@@ -1,0 +1,16 @@
+C:\Users\Admin\Documents\GitHub\KatAM Randomizer\bin\Debug\net8.0-windows\KatAM Randomizer.exe
+C:\Users\Admin\Documents\GitHub\KatAM Randomizer\bin\Debug\net8.0-windows\KatAM Randomizer.deps.json
+C:\Users\Admin\Documents\GitHub\KatAM Randomizer\bin\Debug\net8.0-windows\KatAM Randomizer.runtimeconfig.json
+C:\Users\Admin\Documents\GitHub\KatAM Randomizer\bin\Debug\net8.0-windows\KatAM Randomizer.dll
+C:\Users\Admin\Documents\GitHub\KatAM Randomizer\bin\Debug\net8.0-windows\KatAM Randomizer.pdb
+C:\Users\Admin\Documents\GitHub\KatAM Randomizer\obj\Debug\net8.0-windows\KatAM_Randomizer.Form1.resources
+C:\Users\Admin\Documents\GitHub\KatAM Randomizer\obj\Debug\net8.0-windows\KatAM Randomizer.csproj.GenerateResource.cache
+C:\Users\Admin\Documents\GitHub\KatAM Randomizer\obj\Debug\net8.0-windows\KatAM Randomizer.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Admin\Documents\GitHub\KatAM Randomizer\obj\Debug\net8.0-windows\KatAM Randomizer.AssemblyInfoInputs.cache
+C:\Users\Admin\Documents\GitHub\KatAM Randomizer\obj\Debug\net8.0-windows\KatAM Randomizer.AssemblyInfo.cs
+C:\Users\Admin\Documents\GitHub\KatAM Randomizer\obj\Debug\net8.0-windows\KatAM Randomizer.csproj.CoreCompileInputs.cache
+C:\Users\Admin\Documents\GitHub\KatAM Randomizer\obj\Debug\net8.0-windows\KatAM Randomizer.dll
+C:\Users\Admin\Documents\GitHub\KatAM Randomizer\obj\Debug\net8.0-windows\refint\KatAM Randomizer.dll
+C:\Users\Admin\Documents\GitHub\KatAM Randomizer\obj\Debug\net8.0-windows\KatAM Randomizer.pdb
+C:\Users\Admin\Documents\GitHub\KatAM Randomizer\obj\Debug\net8.0-windows\KatAM Randomizer.genruntimeconfig.cache
+C:\Users\Admin\Documents\GitHub\KatAM Randomizer\obj\Debug\net8.0-windows\ref\KatAM Randomizer.dll
