@@ -30,11 +30,12 @@
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(KatAMRandomizerMain));
             ButtonConsoleSend = new Button();
             ButtonLoadFile = new Button();
-            button1 = new Button();
+            ButtonSaveFile = new Button();
             button2 = new Button();
             button5 = new Button();
             button6 = new Button();
             GroupSettings = new GroupBox();
+            checkBox1 = new CheckBox();
             GroupRomInfo = new GroupBox();
             LabelGameRegion = new Label();
             LabelGameID = new Label();
@@ -47,7 +48,6 @@
             tabPage4 = new TabPage();
             tabPage5 = new TabPage();
             tabPage6 = new TabPage();
-            checkBox1 = new CheckBox();
             GroupSettings.SuspendLayout();
             GroupRomInfo.SuspendLayout();
             tabControl1.SuspendLayout();
@@ -56,7 +56,7 @@
             // ButtonConsoleSend
             // 
             ButtonConsoleSend.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            ButtonConsoleSend.Location = new Point(6, 109);
+            ButtonConsoleSend.Location = new Point(13, 109);
             ButtonConsoleSend.Name = "ButtonConsoleSend";
             ButtonConsoleSend.Size = new Size(158, 23);
             ButtonConsoleSend.TabIndex = 0;
@@ -74,14 +74,16 @@
             ButtonLoadFile.UseVisualStyleBackColor = true;
             ButtonLoadFile.Click += ButtonLoadFile_Click;
             // 
-            // button1
+            // ButtonSaveFile
             // 
-            button1.Location = new Point(626, 41);
-            button1.Name = "button1";
-            button1.Size = new Size(162, 23);
-            button1.TabIndex = 2;
-            button1.Text = "Randomize (Save)";
-            button1.UseVisualStyleBackColor = true;
+            ButtonSaveFile.Enabled = false;
+            ButtonSaveFile.Location = new Point(626, 41);
+            ButtonSaveFile.Name = "ButtonSaveFile";
+            ButtonSaveFile.Size = new Size(162, 23);
+            ButtonSaveFile.TabIndex = 2;
+            ButtonSaveFile.Text = "Randomize (Save)";
+            ButtonSaveFile.UseVisualStyleBackColor = true;
+            ButtonSaveFile.Click += ButtonSaveFile_Click;
             // 
             // button2
             // 
@@ -95,7 +97,7 @@
             // button5
             // 
             button5.Font = new Font("Segoe UI", 9F);
-            button5.Location = new Point(6, 51);
+            button5.Location = new Point(13, 51);
             button5.Name = "button5";
             button5.Size = new Size(158, 23);
             button5.TabIndex = 6;
@@ -105,7 +107,7 @@
             // button6
             // 
             button6.Font = new Font("Segoe UI", 9F);
-            button6.Location = new Point(6, 80);
+            button6.Location = new Point(13, 80);
             button6.Name = "button6";
             button6.Size = new Size(158, 23);
             button6.TabIndex = 7;
@@ -125,6 +127,17 @@
             GroupSettings.TabIndex = 8;
             GroupSettings.TabStop = false;
             GroupSettings.Text = "General Options";
+            // 
+            // checkBox1
+            // 
+            checkBox1.AutoSize = true;
+            checkBox1.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            checkBox1.Location = new Point(13, 25);
+            checkBox1.Name = "checkBox1";
+            checkBox1.Size = new Size(85, 19);
+            checkBox1.TabIndex = 12;
+            checkBox1.Text = "Race Mode";
+            checkBox1.UseVisualStyleBackColor = true;
             // 
             // GroupRomInfo
             // 
@@ -256,17 +269,6 @@
             tabPage6.Text = "Miscellaneous";
             tabPage6.UseVisualStyleBackColor = true;
             // 
-            // checkBox1
-            // 
-            checkBox1.AutoSize = true;
-            checkBox1.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            checkBox1.Location = new Point(6, 25);
-            checkBox1.Name = "checkBox1";
-            checkBox1.Size = new Size(85, 19);
-            checkBox1.TabIndex = 12;
-            checkBox1.Text = "Race Mode";
-            checkBox1.UseVisualStyleBackColor = true;
-            // 
             // KatAMRandomizerMain
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
@@ -276,7 +278,7 @@
             Controls.Add(GroupRomInfo);
             Controls.Add(GroupSettings);
             Controls.Add(button2);
-            Controls.Add(button1);
+            Controls.Add(ButtonSaveFile);
             Controls.Add(ButtonLoadFile);
             Icon = (Icon)resources.GetObject("$this.Icon");
             Name = "KatAMRandomizerMain";
@@ -293,7 +295,7 @@
 
         private Button ButtonConsoleSend;
         private Button ButtonLoadFile;
-        private Button button1;
+        private Button ButtonSaveFile;
         private Button button2;
         private Button button5;
         private Button button6;

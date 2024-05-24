@@ -3,10 +3,13 @@ using KatAMInternal;
 using System.ComponentModel;
 using System.Text;
 using System.Windows.Forms;
+using KatAMRandomizer;
 
 namespace KatAM_Randomizer
 {
     public partial class KatAMRandomizerMain : Form {
+        Settings settings = new Settings();
+
         public KatAMRandomizerMain() {
             InitializeComponent();
         }
@@ -15,17 +18,17 @@ namespace KatAM_Randomizer
             Entity entity = new Entity("Entity", 1, 1, 1, 1, 1, 1, 1, 1, 1);
 
             Console.Clear();
-            ShowObjectData(entity);
+            ShowObjectData(settings);
             Console.WriteLine();
-            ShowObjectData(new Entity());
+            ShowObjectData(entity);
         }
 
-        void ShowObjectData(Entity entity) {
+        void ShowObjectData(object inputObject) {
             //Console.Clear();
 
-            foreach (PropertyDescriptor descriptor in TypeDescriptor.GetProperties(entity)) {
+            foreach (PropertyDescriptor descriptor in TypeDescriptor.GetProperties(inputObject)) {
                 string name = descriptor.Name;
-                object value = descriptor.GetValue(entity);
+                object value = descriptor.GetValue(inputObject);
                 Console.WriteLine("{0}={1}", name, value);
             }
         }
@@ -37,24 +40,19 @@ namespace KatAM_Randomizer
             fileDialog.FilterIndex = 1;
             fileDialog.RestoreDirectory = true;
 
-            if(fileDialog.ShowDialog() == DialogResult.OK) {
+            if (fileDialog.ShowDialog() == DialogResult.OK) {
                 try {
                     string filePath = fileDialog.FileName;
-                    int nameLastIndex = filePath.LastIndexOf('\u005C');
-                    string gameName = "";
+                    settings.ROMPath = filePath;
+                    settings.ROMDirectory = Path.GetDirectoryName(settings.ROMPath);
 
-                    Console.WriteLine(filePath);
+                    string gameName = Path.GetFileNameWithoutExtension(settings.ROMPath);
+                    settings.ROMFilename = gameName;
+                    LabelROMName.Text = settings.ROMFilename;
 
-                    if(nameLastIndex != -1) {
-                        gameName = filePath.Substring(nameLastIndex + 1)
-                            .Replace(".gba", "");
-
-                        LabelROMName.Text = gameName;
-                    }
-
-                    if (gameName == "") return;
-                    
-                    byte[] fileContents = File.ReadAllBytes(filePath);
+                    byte[] fileContents = File.ReadAllBytes(settings.ROMPath);
+                    settings.ROMData = new byte[fileContents.Length];
+                    Array.Copy(fileContents, settings.ROMData, fileContents.Length);
 
                     // Read 12 bytes starting at offset 0xA0 (160)
                     byte[] nameHandleBytes = new byte[4],
@@ -69,7 +67,7 @@ namespace KatAM_Randomizer
                     string nameHandle = Encoding.ASCII.GetString(nameHandleBytes),
                     internalName = nameHandle + Encoding.ASCII.GetString(internalNameBytes),
                     gameId = nameHandle.Replace(" ", "-") + Encoding.ASCII.GetString(gameIdBytes);
-                    
+
                     LabelInternalName.Text = $"Internal Name: {internalName}";
                     LabelGameID.Text = $"Game ID: {gameId}";
 
@@ -79,23 +77,44 @@ namespace KatAM_Randomizer
                         // Japanese Version;
                         case "AGB-B8KJ":
                             region = "(JAP)";
-                        break;
+                            break;
 
                         case "AGB-B8KP":
                             region = "(EUR)";
-                        break;
+                            break;
 
                         case "AGB-B8KE":
                             region = "(USA)";
-                        break;
+                            break;
                     }
 
                     LabelGameRegion.Text = $"Region: {region}";
+
+                    ButtonSaveFile.Enabled = true;
                 } catch (Exception ex) {
                     MessageBox.Show($"Error loading file: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
 
+        }
+
+        private void ButtonSaveRandomized_Click(object sender, EventArgs e) {
+
+        }
+
+        private void ButtonSaveFile_Click(object sender, EventArgs e) {
+            string newFileName = "KatAM.gba",
+            destinationPath = Path.Combine(settings.ROMDirectory, newFileName);
+
+            Console.WriteLine($"Are the settings consistent? {settings.ROMData.SequenceEqual(File.ReadAllBytes(settings.ROMPath))}");
+
+            KatAMSprays.RandomizeSpray(settings.ROMData);
+
+            Console.WriteLine(destinationPath);
+
+            File.WriteAllBytes(destinationPath, settings.ROMData);
+
+            Console.WriteLine($"Are the settings consistent? {settings.ROMData.SequenceEqual(File.ReadAllBytes(settings.ROMPath))} ");
         }
     }
 }
