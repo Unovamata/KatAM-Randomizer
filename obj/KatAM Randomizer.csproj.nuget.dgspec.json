@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\Admin\\Documents\\GitHub\\KatAM Randomizer\\KatAM Randomizer.csproj": {}
+    "C:\\Users\\Admin\\Documents\\GitHub\\KatAM-Randomizer\\KatAM Randomizer.csproj": {}
   },
   "projects": {
-    "C:\\Users\\Admin\\Documents\\GitHub\\KatAM Randomizer\\KatAM Randomizer.csproj": {
+    "C:\\Users\\Admin\\Documents\\GitHub\\KatAM-Randomizer\\KatAM Randomizer.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\Admin\\Documents\\GitHub\\KatAM Randomizer\\KatAM Randomizer.csproj",
+        "projectUniqueName": "C:\\Users\\Admin\\Documents\\GitHub\\KatAM-Randomizer\\KatAM Randomizer.csproj",
         "projectName": "KatAM Randomizer",
-        "projectPath": "C:\\Users\\Admin\\Documents\\GitHub\\KatAM Randomizer\\KatAM Randomizer.csproj",
+        "projectPath": "C:\\Users\\Admin\\Documents\\GitHub\\KatAM-Randomizer\\KatAM Randomizer.csproj",
         "packagesPath": "C:\\Users\\Admin\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\Admin\\Documents\\GitHub\\KatAM Randomizer\\obj\\",
+        "outputPath": "C:\\Users\\Admin\\Documents\\GitHub\\KatAM-Randomizer\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\Admin\\AppData\\Roaming\\NuGet\\NuGet.Config",
