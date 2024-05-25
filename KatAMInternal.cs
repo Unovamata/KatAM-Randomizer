@@ -15,18 +15,15 @@ namespace KatAMInternal {
     }
 
     public static class Utils {
-        public static void WriteToROM(byte[] romFile, long address, ulong value, int bytes) {
-            if (address < 0 || address + bytes > romFile.Length) {
+        public static void WriteToROM(byte[] romData, long address, byte[] valueBytes) {
+            int bytesLength = valueBytes.Length;
+
+            if (address < 0 || address + bytesLength > romData.Length) {
                 throw new ArgumentOutOfRangeException(nameof(address), "Address is out of bounds of the file contents.");
             }
 
-            byte[] valueBytes = BitConverter.GetBytes(value);
-            if (BitConverter.IsLittleEndian) {
-                Array.Reverse(valueBytes);
-            }
-
-            for (int i = 0; i < bytes; i++) {
-                romFile[address + i] = valueBytes[i % valueBytes.Length];
+            for (int i = 0; i < bytesLength; i++) {
+                romData[address + i] = valueBytes[i];
             }
         }
     }
