@@ -1,17 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.Intrinsics.Arm;
-using System.Security.Cryptography.Xml;
-using System.Text;
-using System.Threading.Tasks;
-using KatAMInternal;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.Rebar;
+﻿using KatAMInternal;
 
 namespace KatAMRandomizer {
     internal class KatAMSprays {
-        public static void RandomizeSpray(byte[] romFile) {
+        public static void RandomizeSpray(Processing system) {
+            byte[] romFile = system.ROMData;
+
             Console.WriteLine("Randomizing spray colours...");
+
             List<byte> currentPalette = new List<byte>();
             /*WriteToROM(romFile, 4846172, currentPalette[0] >> 32, 20); // Normal palette. We don't want to use the last two colours, since that's for UFO only.
             WriteToROM(romFile, 4849948, currentPalette[0], 24); // UFO palette.
@@ -26,23 +21,55 @@ namespace KatAMRandomizer {
             /* Colors are stored in pairs of 3. Every index correlates to their RGB values;
              * Every Kirby palette consists of 11 colors
              */
-            for (int i = 0; i <= 21; i++) {
+            /*for (int i = 0; i <= 21; i++) {
                 if (i < 2) currentPalette.Add(0);
                 else currentPalette.Add(255);
-            }
+            }*/
 
-            byte[] bytesPalette = currentPalette.ToArray();
+            List<byte[]> presetSprays = LoadSprayPresets();
+            //byte[] bytesPalette = currentPalette.ToArray();
 
             for (int x = 0; x < 4; x++) {
-                if (x == 0) {
-                    // Kirby Base Palette;
-                    Utils.WriteToROM(romFile, 4846170, KDL3Kirby());
-                    //WriteToROM(romFile, 4847100, bytesPalette); //Title Screen Palette, Supposedly;
-                } else {
+                int spraySelected = Utils.GetRandomNumber(system.Settings, 0, presetSprays.Count);
+
+                if(x < 3) {
                     // Support Kirbys Palettes;
-                    Utils.WriteToROM(romFile, 4846298 + (x * 32), bytesPalette);
+                    Utils.WriteToROM(romFile, 4846298 + (x * 32), presetSprays[spraySelected]);
+                } else {
+                    // Kirby Base Palette;
+                    Utils.WriteToROM(romFile, 4846170, presetSprays[spraySelected]);
+                    //WriteToROM(romFile, 4847100, bytesPalette); //Title Screen Palette, Supposedly;
                 }
+
+                presetSprays.RemoveAt(spraySelected);
             }
+        }
+
+        static List<byte[]> LoadSprayPresets() {
+            List<byte[]> presetSprays = new List<byte[]>();
+
+            presetSprays.Add(DefaultPinkKirby());
+            presetSprays.Add(DefaultYellowKirby());
+            presetSprays.Add(DefaultRedKirby());
+            presetSprays.Add(DefaultGreenKirby());
+            presetSprays.Add(DefaultSnowKirby());
+            presetSprays.Add(DefaultCarbonKirby());
+            presetSprays.Add(DefaultOceanKirby());
+            presetSprays.Add(DefaultSapphireKirby());
+            presetSprays.Add(DefaultGrapeKirby());
+            presetSprays.Add(DefaultEmeraldKirby());
+            presetSprays.Add(DefaultOrangeKirby());
+            presetSprays.Add(DefaultChocolateKirby());
+            presetSprays.Add(DefaultCherryKirby());
+            presetSprays.Add(DefaultChalkKirby());
+            presetSprays.Add(DefaultShadowKirby());
+            presetSprays.Add(KDL3Kirby());
+            presetSprays.Add(AdvanceIceKirby());
+            presetSprays.Add(AdvanceStoneKirby());
+            presetSprays.Add(AdvanceMetaKnightKirby());
+            presetSprays.Add(OriginalWhiteKirby());
+
+            return presetSprays;
         }
 
         public static byte[] RandomizePalette() {
@@ -62,17 +89,17 @@ namespace KatAMRandomizer {
              */
             List<byte> colourPalettes = new List<byte>();
 
-            AddColorRGB(colourPalettes, 0, 0, 0);
-            AddColorRGB(colourPalettes, 0, 0, 0);
-            AddColorRGB(colourPalettes, 0, 0, 0);
-            AddColorRGB(colourPalettes, 0, 0, 0);
-            AddColorRGB(colourPalettes, 0, 0, 0);
-            AddColorRGB(colourPalettes, 0, 0, 0);
-            AddColorRGB(colourPalettes, 0, 0, 0);
-            AddColorRGB(colourPalettes, 0, 0, 0);
-            AddColorRGB(colourPalettes, 0, 0, 0);
-            AddColorRGB(colourPalettes, 0, 0, 0);
-            AddColorRGB(colourPalettes, 0, 0, 0);
+            AddColorRGB(colourPalettes, 0, 0, 0); //0;
+            AddColorRGB(colourPalettes, 0, 0, 0); //1;
+            AddColorRGB(colourPalettes, 0, 0, 0); //2;
+            AddColorRGB(colourPalettes, 0, 0, 0); //3;
+            AddColorRGB(colourPalettes, 0, 0, 0); //4;
+            AddColorRGB(colourPalettes, 0, 0, 0); //5;
+            AddColorRGB(colourPalettes, 0, 0, 0); //6;
+            AddColorRGB(colourPalettes, 0, 0, 0); //7;
+            AddColorRGB(colourPalettes, 0, 0, 0); //8;
+            AddColorRGB(colourPalettes, 0, 0, 0); //9;
+            AddColorRGB(colourPalettes, 0, 0, 0); //10;
 
             return colourPalettes.ToArray();
         }
@@ -85,14 +112,14 @@ namespace KatAMRandomizer {
             reference.Add(gbaColor[1]);
         }
 
-        public static ushort ConvertRgbToGbaColor(byte red, byte green, byte blue) {
+        public static ushort ConvertRGBToGBAColor(byte red, byte green, byte blue) {
             // Convert RGB to GBA color (15-bit RGB format)
             ushort gbaColor = (ushort)(((red >> 3) & 31) | (((green >> 3) & 31) << 5) | (((blue >> 3) & 31) << 10));
             return gbaColor;
         }
 
         public static byte[] ConvertRgbToGbaColorBytes(byte red, byte green, byte blue) {
-            ushort gbaColor = ConvertRgbToGbaColor(red, green, blue);
+            ushort gbaColor = ConvertRGBToGBAColor(red, green, blue);
 
             // Convert the 16-bit integer to a byte array (little-endian)
             byte[] colorBytes = new byte[2];
@@ -444,6 +471,24 @@ namespace KatAMRandomizer {
             AddColorRGB(reference, 232, 0, 152);
             AddColorRGB(reference, 192, 0, 144);
             AddColorRGB(reference, 152, 0, 120);
+
+            return reference.ToArray();
+        }
+
+        static byte[] OriginalWhiteKirby() {
+            List<byte> reference = new List<byte>();
+
+            AddColorRGB(reference, 0, 0, 0);
+            AddColorRGB(reference, 255, 251, 255);
+            AddColorRGB(reference, 255, 251, 255);
+            AddColorRGB(reference, 222, 219, 222);
+            AddColorRGB(reference, 189, 186, 189);
+            AddColorRGB(reference, 148, 146, 148);
+            AddColorRGB(reference, 115, 113, 115);
+            AddColorRGB(reference, 82, 81, 82);
+            AddColorRGB(reference, 222, 219, 222);
+            AddColorRGB(reference, 189, 186, 189);
+            AddColorRGB(reference, 148, 146, 148);
 
             return reference.ToArray();
         }

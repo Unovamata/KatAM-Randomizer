@@ -8,7 +8,7 @@ using KatAMRandomizer;
 namespace KatAM_Randomizer
 {
     public partial class KatAMRandomizerMain : Form {
-        Settings settings = new Settings();
+        Processing system = new Processing();
 
         public KatAMRandomizerMain() {
             InitializeComponent();
@@ -18,7 +18,7 @@ namespace KatAM_Randomizer
             Entity entity = new Entity("Entity", 1, 1, 1, 1, 1, 1, 1, 1, 1);
 
             Console.Clear();
-            ShowObjectData(settings);
+            ShowObjectData(system);
             Console.WriteLine();
             ShowObjectData(entity);
         }
@@ -43,16 +43,16 @@ namespace KatAM_Randomizer
             if (fileDialog.ShowDialog() == DialogResult.OK) {
                 try {
                     string filePath = fileDialog.FileName;
-                    settings.ROMPath = filePath;
-                    settings.ROMDirectory = Path.GetDirectoryName(settings.ROMPath);
+                    system.ROMPath = filePath;
+                    system.ROMDirectory = Path.GetDirectoryName(system.ROMPath);
 
-                    string gameName = Path.GetFileNameWithoutExtension(settings.ROMPath);
-                    settings.ROMFilename = gameName;
-                    LabelROMName.Text = settings.ROMFilename;
+                    string gameName = Path.GetFileNameWithoutExtension(system.ROMPath);
+                    system.ROMFilename = gameName;
+                    LabelROMName.Text = system.ROMFilename;
 
-                    byte[] fileContents = File.ReadAllBytes(settings.ROMPath);
-                    settings.ROMData = new byte[fileContents.Length];
-                    Array.Copy(fileContents, settings.ROMData, fileContents.Length);
+                    byte[] fileContents = File.ReadAllBytes(system.ROMPath);
+                    system.ROMData = new byte[fileContents.Length];
+                    Array.Copy(fileContents, system.ROMData, fileContents.Length);
 
                     // Read 12 bytes starting at offset 0xA0 (160)
                     byte[] nameHandleBytes = new byte[4],
@@ -104,17 +104,17 @@ namespace KatAM_Randomizer
 
         private void ButtonSaveFile_Click(object sender, EventArgs e) {
             string newFileName = "KatAM.gba",
-            destinationPath = Path.Combine(settings.ROMDirectory, newFileName);
+            destinationPath = Path.Combine(system.ROMDirectory, newFileName);
 
-            Console.WriteLine($"Are the settings consistent? {settings.ROMData.SequenceEqual(File.ReadAllBytes(settings.ROMPath))}");
+            Console.WriteLine($"Are the settings consistent? {system.ROMData.SequenceEqual(File.ReadAllBytes(system.ROMPath))}");
 
-            KatAMSprays.RandomizeSpray(settings.ROMData);
+            KatAMSprays.RandomizeSpray(system);
 
             Console.WriteLine(destinationPath);
 
-            File.WriteAllBytes(destinationPath, settings.ROMData);
+            File.WriteAllBytes(destinationPath, system.ROMData);
 
-            Console.WriteLine($"Are the settings consistent? {settings.ROMData.SequenceEqual(File.ReadAllBytes(settings.ROMPath))} ");
+            Console.WriteLine($"Are the settings consistent? {system.ROMData.SequenceEqual(File.ReadAllBytes(system.ROMPath))} ");
         }
     }
 }

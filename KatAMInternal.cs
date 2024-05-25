@@ -1,17 +1,28 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace KatAMInternal {
-    internal class Settings {
+﻿namespace KatAMInternal {
+    internal class Processing {
         public string ROMPath { get; set; }
         public string ROMDirectory { get; set; }
         public string ROMFilename { get; set; }
-        public byte [] ROMData { get; set; }
+        public byte[] ROMData { get; set; }
+        public Settings Settings { get; set; }
+
+        public Processing() {
+            Settings = new Settings();
+        }
+    }
+
+    public class Settings {
+        public Random RandomEntity { get; set; }
         public int Seed { get; set; }
+        public int MinSeed = -9999999, MaxSeed = 9999999;
         public bool IsRace { get; set; }
+        public int SprayGeneration { get; set; }
+        public int SprayOutlineGeneration { get; set; }
+
+        public Settings() {
+            RandomEntity = new Random();
+            Seed = RandomEntity.Next(MinSeed, MaxSeed);
+        }
     }
 
     public static class Utils {
@@ -25,6 +36,10 @@ namespace KatAMInternal {
             for (int i = 0; i < bytesLength; i++) {
                 romData[address + i] = valueBytes[i];
             }
+        }
+
+        public static int GetRandomNumber(Settings settings, int min, int max) {
+            return settings.RandomEntity.Next(min, max);
         }
     }
 }
