@@ -37,10 +37,10 @@ namespace KatAMRandomizer {
 
             List<byte[]> presetSprays = LoadSprayPresets();
 
-            for (int x = 0; x < 4; x++) {
+            for (int x = 0; x < 13; x++) {
                 int spraySelected = Utils.GetRandomNumber(random, 0, presetSprays.Count);
 
-                if(x < 3) {
+                if (x <= 12) {
                     // Support Kirbys Palettes;
                     Utils.WriteToROM(romFile, 4846298 + (x * 32), RandomizePalette()/*presetSprays[spraySelected]*/);
                 } else {
