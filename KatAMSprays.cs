@@ -5,11 +5,15 @@ using System.Security.Cryptography.Xml;
 
 namespace KatAMRandomizer {
     internal class KatAMSprays {
-        static Random random;
+        static Settings settings;
+        static int seed;
 
         public static void RandomizeSpray(Processing system) {
             byte[] romFile = system.ROMData;
-            random = system.Settings.RandomEntity;
+            settings = system.Settings;
+            seed = settings.Seed;
+
+            if (settings.SprayGeneration == SprayGen.Unchanged) return;
 
             Console.WriteLine("Randomizing spray colours...");
 
@@ -37,24 +41,56 @@ namespace KatAMRandomizer {
 
             List<byte[]> presetSprays = LoadSprayPresets();
 
-            byte[] kirbyColorPalette = RandomizePalette();
-
             // Injecting the color palettes in the ROM;
             for (int x = 0; x < 14; x++) {
-                int spraySelected = Utils.GetRandomNumber(random, 0, presetSprays.Count);
+                int spraySelected = Utils.GetRandomNumber(0, presetSprays.Count);
 
                 if (x < 13) {
-                    byte[] kirbySupportPalette = RandomizePalette(); /*presetSprays[spraySelected]*/
+                    byte[] kirbySupportPalette;
+
+                    switch (settings.SprayGeneration) {
+                        case SprayGen.Random:
+                            kirbySupportPalette = RandomizePalette();
+                        break;
+
+                        case SprayGen.RandomAndPresets:
+                            int diceNumber = Utils.Dice();
+                            
+                            if(diceNumber == 1) kirbySupportPalette = presetSprays[spraySelected];
+                            else kirbySupportPalette = RandomizePalette();
+                        break;
+
+                        default:
+                            kirbySupportPalette = presetSprays[spraySelected];
+                        break;
+                    }
 
                     // Support Kirbys Palettes;
                     Utils.WriteToROM(romFile, 4846298 + (x * 32), kirbySupportPalette);
                     Utils.WriteToROM(romFile, 3343126 + (x * 32), GenerateHUDPalette(kirbySupportPalette)/*presetSprays[spraySelected]*/);
                 } else {
-                    
+                    byte[] kirbyRandomColorPalette;
+
+                    switch (settings.SprayGeneration) {
+                        case SprayGen.Random:
+                            kirbyRandomColorPalette = RandomizePalette();
+                        break;
+
+                        case SprayGen.RandomAndPresets:
+                        int choice = Utils.GetRandomNumber(0, 6);
+
+                        if (choice == 0) kirbyRandomColorPalette = presetSprays[spraySelected];
+                        else kirbyRandomColorPalette = RandomizePalette();
+                        break;
+
+                        default:
+                            kirbyRandomColorPalette = presetSprays[spraySelected];
+                        break;
+                    }
 
                     // Kirby Base Palette;
-                    Utils.WriteToROM(romFile, 4846170, kirbyColorPalette);
-                    Utils.WriteToROM(romFile, 3343094, GenerateHUDPalette(kirbyColorPalette)); // HUD palettes (lives + vitality).
+                    Utils.WriteToROM(romFile, 4846170, kirbyRandomColorPalette);
+                    Utils.WriteToROM(romFile, 3343094, GenerateHUDPalette(kirbyRandomColorPalette)); // HUD palettes (lives + vitality).
                     //WriteToROM(romFile, 4847100, bytesPalette); //Title Screen Palette, Supposedly;
                 }
 
@@ -128,9 +164,9 @@ namespace KatAMRandomizer {
             List<int[]> bodyColors = selectedPalette.GetRange(0, 8);
 
             // Creating a HSV tone to color the pixels;
-            int bodyH = Utils.GetRandomNumber(random, 0, 360),
+            int bodyH = Utils.GetRandomNumber(0, 360),
             bodyS = 0, //Utils.GetRandomNumber(random, 0, 0),
-            bodyV = Utils.GetRandomNumber(random, -10, -10);
+            bodyV = Utils.GetRandomNumber(-10, -10);
 
             // Coloring the body color palette;
             List<byte> bodyPalette = AdjustHSV(bodyColors, bodyH, bodyS, bodyV, true);
@@ -139,9 +175,9 @@ namespace KatAMRandomizer {
             List<int[]> shoesAndCheeksColors = selectedPalette.GetRange(8, 3);
 
             // Creating a HSV tone to color the pixels;
-            int shoesH = Utils.GetRandomNumber(random, 0, 360),
+            int shoesH = Utils.GetRandomNumber(0, 360),
             shoesS = 0, //Utils.GetRandomNumber(random, 0, 0),
-            shoesV = Utils.GetRandomNumber(random, -30, -10);
+            shoesV = Utils.GetRandomNumber(-30, -10);
 
             // Coloring the body color palette;
             List<byte> shoesPalette = AdjustHSV(shoesAndCheeksColors, shoesH, shoesS, shoesV);
@@ -152,6 +188,7 @@ namespace KatAMRandomizer {
             return bodyPalette.ToArray();
         }
 
+
         // Method to adjust HSV values based on random number
         public static List<byte> AdjustHSV(List<int[]> rgbColors, int randomH, int randomS, int randomV, bool hasOutline = false) {
             List<byte> adjustedColors = new List<byte>();
@@ -160,7 +197,8 @@ namespace KatAMRandomizer {
                 int[] color = rgbColors[i];
 
                 if(i == 0 && hasOutline) {
-                    color = rgbColors[7];
+                    AddColorRGB(adjustedColors, (byte)color[0], (byte)color[1], (byte)color[2]);
+                    continue;
                 }
 
                 int[] hsvColor = RGBToHSV(color[0], color[1], color[2]);
@@ -178,7 +216,21 @@ namespace KatAMRandomizer {
 
                 AddColorRGB(adjustedColors, (byte)RGBColor[0], (byte)RGBColor[1], (byte)RGBColor[2]);
             }
-            
+
+            if(!hasOutline) return adjustedColors;
+
+            bool allPalettesHaveOutlines = settings.SprayOutlineGenerationType == SprayGen.All;
+            bool somePalettesHaveOutlines = settings.SprayOutlineGenerationType == SprayGen.Random;
+            int diceNumber = Utils.Dice();
+
+            if (allPalettesHaveOutlines) {
+                adjustedColors[0] = adjustedColors[14];
+                adjustedColors[1] = adjustedColors[15];
+            } else if (somePalettesHaveOutlines && diceNumber == 1) {
+                adjustedColors[0] = adjustedColors[14];
+                adjustedColors[1] = adjustedColors[15];
+            }
+
             return adjustedColors;
         }
 
@@ -310,6 +362,27 @@ namespace KatAMRandomizer {
 
         // Preset Colors;
 
+        static void ConvertColorPalette(List<byte> destination, List<int[]> colorReference) {
+            // Setting the outline color for all palettes;
+            switch (settings.SprayOutlineGenerationType) {
+                case SprayGen.All:
+                    colorReference[0] = colorReference[7];
+                break;
+
+                case SprayGen.Random:
+                    int diceNumber = Utils.Dice();
+
+                    if(diceNumber == 1) {
+                        colorReference[0] = colorReference[7];
+                    }
+                break;
+            }
+
+            foreach (int[] color in colorReference) {
+                AddColorRGB(destination, (byte)color[0], (byte)color[1], (byte)color[2]);
+            }
+        }
+
         static List<int[]> pinkKirbyColors = new List<int[]>(){
             new int[] { 0, 0, 0 },
             new int[] { 255, 211, 247 },
@@ -323,13 +396,7 @@ namespace KatAMRandomizer {
             new int[] { 214, 0, 82 },
             new int[] { 181, 0, 41 }
         };
-
-        static void ConvertColorPalette(List<byte> destination, List<int[]> colorReference) {
-            foreach (int[] color in colorReference) {
-                AddColorRGB(destination, (byte)color[0], (byte)color[1], (byte)color[2]);
-            }
-        }
-
+    
         static byte[] DefaultPinkKirby() {
             List<byte> result = new List<byte>();
 

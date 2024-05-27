@@ -1,4 +1,14 @@
-﻿namespace KatAMInternal {
+﻿using System.ComponentModel;
+
+namespace KatAMInternal {
+    public enum SprayGen {
+        Unchanged = 0,
+        Presets = 1,
+        RandomAndPresets = 2,
+        Random = 3,
+        All = 4
+    }
+
     internal class Processing {
         public string ROMPath { get; set; }
         public string ROMDirectory { get; set; }
@@ -12,16 +22,29 @@
     }
 
     public class Settings {
+        private static Settings Instance;
         public Random RandomEntity { get; set; }
         public int Seed { get; set; }
         public int MinSeed = -9999999, MaxSeed = 9999999;
         public bool IsRace { get; set; }
-        public int SprayGeneration { get; set; }
-        public int SprayOutlineGeneration { get; set; }
+        public SprayGen SprayGeneration { get; set; }
+        public SprayGen SprayOutlineGenerationType { get; set; }
 
         public Settings() {
-            RandomEntity = new Random();
-            Seed = RandomEntity.Next(MinSeed, MaxSeed);
+            Random seedGenerator = new Random();
+            Seed = seedGenerator.Next(MinSeed, MaxSeed);
+            RandomEntity = new Random(Seed);
+            Instance = this;
+        }
+
+        public static Settings GetInstance() {
+            return Instance;
+        }
+
+        public void GetNewSeed() {
+            Random seedGenerator = new Random();
+            Seed = seedGenerator.Next(MinSeed, MaxSeed);
+            RandomEntity = new Random(Seed);
         }
     }
 
@@ -38,8 +61,16 @@
             }
         }
 
-        public static int GetRandomNumber(Random random, int min, int max) {
-            return random.Next(min, max);
+        public static int GetRandomNumber(int min, int max) {
+            Settings settings = Settings.GetInstance();
+
+            return settings.RandomEntity.Next(min, max);
+        }
+
+        public static int Dice() {
+            Settings settings = Settings.GetInstance();
+
+            return settings.RandomEntity.Next(1, 7);
         }
     }
 }

@@ -47,20 +47,21 @@
             tabPage3 = new TabPage();
             tabPage4 = new TabPage();
             tabPage5 = new TabPage();
-            tabPage6 = new TabPage();
+            TabMiscellaneous = new TabPage();
             GroupMiscSprayPalettes = new GroupBox();
+            GroupSprayOutlines = new GroupBox();
+            RadioOutlinesRandom = new RadioButton();
+            RadioOutlinesAll = new RadioButton();
+            RadioOutlinesUnchanged = new RadioButton();
             RadioSprayPresets = new RadioButton();
             RadioSprayRandomAndPresets = new RadioButton();
             RadioSprayRandom = new RadioButton();
             RadioSprayUnchanged = new RadioButton();
-            GroupSprayOutlines = new GroupBox();
-            RadioOutlinesUnchanged = new RadioButton();
-            RadioOutlinesAll = new RadioButton();
-            RadioOutlinesRandom = new RadioButton();
+            ButtonRefreshSeed = new Button();
             GroupSettings.SuspendLayout();
             GroupRomInfo.SuspendLayout();
             tabControl1.SuspendLayout();
-            tabPage6.SuspendLayout();
+            TabMiscellaneous.SuspendLayout();
             GroupMiscSprayPalettes.SuspendLayout();
             GroupSprayOutlines.SuspendLayout();
             SuspendLayout();
@@ -212,7 +213,7 @@
             tabControl1.Controls.Add(tabPage3);
             tabControl1.Controls.Add(tabPage4);
             tabControl1.Controls.Add(tabPage5);
-            tabControl1.Controls.Add(tabPage6);
+            tabControl1.Controls.Add(TabMiscellaneous);
             tabControl1.ItemSize = new Size(100, 20);
             tabControl1.Location = new Point(12, 161);
             tabControl1.Name = "tabControl1";
@@ -271,16 +272,16 @@
             tabPage5.Text = "Abilities";
             tabPage5.UseVisualStyleBackColor = true;
             // 
-            // tabPage6
+            // TabMiscellaneous
             // 
-            tabPage6.Controls.Add(GroupMiscSprayPalettes);
-            tabPage6.Location = new Point(4, 24);
-            tabPage6.Name = "tabPage6";
-            tabPage6.Padding = new Padding(3);
-            tabPage6.Size = new Size(768, 249);
-            tabPage6.TabIndex = 5;
-            tabPage6.Text = "Miscellaneous";
-            tabPage6.UseVisualStyleBackColor = true;
+            TabMiscellaneous.Controls.Add(GroupMiscSprayPalettes);
+            TabMiscellaneous.Location = new Point(4, 24);
+            TabMiscellaneous.Name = "TabMiscellaneous";
+            TabMiscellaneous.Padding = new Padding(3);
+            TabMiscellaneous.Size = new Size(768, 249);
+            TabMiscellaneous.TabIndex = 5;
+            TabMiscellaneous.Text = "Miscellaneous";
+            TabMiscellaneous.UseVisualStyleBackColor = true;
             // 
             // GroupMiscSprayPalettes
             // 
@@ -297,54 +298,6 @@
             GroupMiscSprayPalettes.TabStop = false;
             GroupMiscSprayPalettes.Text = "Spray Palettes";
             // 
-            // RadioSprayPresets
-            // 
-            RadioSprayPresets.AutoSize = true;
-            RadioSprayPresets.Font = new Font("Segoe UI", 9F);
-            RadioSprayPresets.Location = new Point(10, 47);
-            RadioSprayPresets.Name = "RadioSprayPresets";
-            RadioSprayPresets.Size = new Size(90, 19);
-            RadioSprayPresets.TabIndex = 3;
-            RadioSprayPresets.TabStop = true;
-            RadioSprayPresets.Text = "Presets Only";
-            RadioSprayPresets.UseVisualStyleBackColor = true;
-            // 
-            // RadioSprayRandomAndPresets
-            // 
-            RadioSprayRandomAndPresets.AutoSize = true;
-            RadioSprayRandomAndPresets.Font = new Font("Segoe UI", 9F);
-            RadioSprayRandomAndPresets.Location = new Point(10, 72);
-            RadioSprayRandomAndPresets.Name = "RadioSprayRandomAndPresets";
-            RadioSprayRandomAndPresets.Size = new Size(121, 19);
-            RadioSprayRandomAndPresets.TabIndex = 2;
-            RadioSprayRandomAndPresets.TabStop = true;
-            RadioSprayRandomAndPresets.Text = "Random + Presets";
-            RadioSprayRandomAndPresets.UseVisualStyleBackColor = true;
-            // 
-            // RadioSprayRandom
-            // 
-            RadioSprayRandom.AutoSize = true;
-            RadioSprayRandom.Font = new Font("Segoe UI", 9F);
-            RadioSprayRandom.Location = new Point(10, 97);
-            RadioSprayRandom.Name = "RadioSprayRandom";
-            RadioSprayRandom.Size = new Size(98, 19);
-            RadioSprayRandom.TabIndex = 1;
-            RadioSprayRandom.TabStop = true;
-            RadioSprayRandom.Text = "Total Random";
-            RadioSprayRandom.UseVisualStyleBackColor = true;
-            // 
-            // RadioSprayUnchanged
-            // 
-            RadioSprayUnchanged.AutoSize = true;
-            RadioSprayUnchanged.Font = new Font("Segoe UI", 9F);
-            RadioSprayUnchanged.Location = new Point(10, 22);
-            RadioSprayUnchanged.Name = "RadioSprayUnchanged";
-            RadioSprayUnchanged.Size = new Size(86, 19);
-            RadioSprayUnchanged.TabIndex = 0;
-            RadioSprayUnchanged.TabStop = true;
-            RadioSprayUnchanged.Text = "Unchanged";
-            RadioSprayUnchanged.UseVisualStyleBackColor = true;
-            // 
             // GroupSprayOutlines
             // 
             GroupSprayOutlines.Controls.Add(RadioOutlinesRandom);
@@ -357,17 +310,17 @@
             GroupSprayOutlines.TabStop = false;
             GroupSprayOutlines.Text = "Outlines";
             // 
-            // RadioOutlinesUnchanged
+            // RadioOutlinesRandom
             // 
-            RadioOutlinesUnchanged.AutoSize = true;
-            RadioOutlinesUnchanged.Font = new Font("Segoe UI", 9F);
-            RadioOutlinesUnchanged.Location = new Point(6, 22);
-            RadioOutlinesUnchanged.Name = "RadioOutlinesUnchanged";
-            RadioOutlinesUnchanged.Size = new Size(86, 19);
-            RadioOutlinesUnchanged.TabIndex = 6;
-            RadioOutlinesUnchanged.TabStop = true;
-            RadioOutlinesUnchanged.Text = "Unchanged";
-            RadioOutlinesUnchanged.UseVisualStyleBackColor = true;
+            RadioOutlinesRandom.AutoSize = true;
+            RadioOutlinesRandom.Font = new Font("Segoe UI", 9F);
+            RadioOutlinesRandom.Location = new Point(6, 75);
+            RadioOutlinesRandom.Name = "RadioOutlinesRandom";
+            RadioOutlinesRandom.Size = new Size(70, 19);
+            RadioOutlinesRandom.TabIndex = 8;
+            RadioOutlinesRandom.Text = "Random";
+            RadioOutlinesRandom.UseVisualStyleBackColor = true;
+            RadioOutlinesRandom.CheckedChanged += RadioOutlinesRandom_CheckedChanged;
             // 
             // RadioOutlinesAll
             // 
@@ -377,27 +330,90 @@
             RadioOutlinesAll.Name = "RadioOutlinesAll";
             RadioOutlinesAll.Size = new Size(83, 19);
             RadioOutlinesAll.TabIndex = 7;
-            RadioOutlinesAll.TabStop = true;
             RadioOutlinesAll.Text = "All Palettes";
             RadioOutlinesAll.UseVisualStyleBackColor = true;
+            RadioOutlinesAll.CheckedChanged += RadioOutlinesAll_CheckedChanged;
             // 
-            // RadioOutlinesRandom
+            // RadioOutlinesUnchanged
             // 
-            RadioOutlinesRandom.AutoSize = true;
-            RadioOutlinesRandom.Font = new Font("Segoe UI", 9F);
-            RadioOutlinesRandom.Location = new Point(6, 75);
-            RadioOutlinesRandom.Name = "RadioOutlinesRandom";
-            RadioOutlinesRandom.Size = new Size(70, 19);
-            RadioOutlinesRandom.TabIndex = 8;
-            RadioOutlinesRandom.TabStop = true;
-            RadioOutlinesRandom.Text = "Random";
-            RadioOutlinesRandom.UseVisualStyleBackColor = true;
+            RadioOutlinesUnchanged.AutoSize = true;
+            RadioOutlinesUnchanged.Checked = true;
+            RadioOutlinesUnchanged.Font = new Font("Segoe UI", 9F);
+            RadioOutlinesUnchanged.Location = new Point(6, 22);
+            RadioOutlinesUnchanged.Name = "RadioOutlinesUnchanged";
+            RadioOutlinesUnchanged.Size = new Size(86, 19);
+            RadioOutlinesUnchanged.TabIndex = 6;
+            RadioOutlinesUnchanged.TabStop = true;
+            RadioOutlinesUnchanged.Text = "Unchanged";
+            RadioOutlinesUnchanged.UseVisualStyleBackColor = true;
+            RadioOutlinesUnchanged.CheckedChanged += RadioOutlinesUnchanged_CheckedChanged;
+            // 
+            // RadioSprayPresets
+            // 
+            RadioSprayPresets.AutoSize = true;
+            RadioSprayPresets.Font = new Font("Segoe UI", 9F);
+            RadioSprayPresets.Location = new Point(10, 47);
+            RadioSprayPresets.Name = "RadioSprayPresets";
+            RadioSprayPresets.Size = new Size(90, 19);
+            RadioSprayPresets.TabIndex = 3;
+            RadioSprayPresets.Text = "Presets Only";
+            RadioSprayPresets.UseVisualStyleBackColor = true;
+            RadioSprayPresets.CheckedChanged += RadioSprayPresets_CheckedChanged;
+            // 
+            // RadioSprayRandomAndPresets
+            // 
+            RadioSprayRandomAndPresets.AutoSize = true;
+            RadioSprayRandomAndPresets.Font = new Font("Segoe UI", 9F);
+            RadioSprayRandomAndPresets.Location = new Point(10, 72);
+            RadioSprayRandomAndPresets.Name = "RadioSprayRandomAndPresets";
+            RadioSprayRandomAndPresets.Size = new Size(121, 19);
+            RadioSprayRandomAndPresets.TabIndex = 2;
+            RadioSprayRandomAndPresets.Text = "Random + Presets";
+            RadioSprayRandomAndPresets.UseVisualStyleBackColor = true;
+            RadioSprayRandomAndPresets.CheckedChanged += RadioSprayRandomAndPresets_CheckedChanged;
+            // 
+            // RadioSprayRandom
+            // 
+            RadioSprayRandom.AutoSize = true;
+            RadioSprayRandom.Font = new Font("Segoe UI", 9F);
+            RadioSprayRandom.Location = new Point(10, 97);
+            RadioSprayRandom.Name = "RadioSprayRandom";
+            RadioSprayRandom.Size = new Size(70, 19);
+            RadioSprayRandom.TabIndex = 1;
+            RadioSprayRandom.Text = "Random";
+            RadioSprayRandom.UseVisualStyleBackColor = true;
+            RadioSprayRandom.CheckedChanged += RadioSprayRandom_CheckedChanged;
+            // 
+            // RadioSprayUnchanged
+            // 
+            RadioSprayUnchanged.AutoSize = true;
+            RadioSprayUnchanged.Checked = true;
+            RadioSprayUnchanged.Font = new Font("Segoe UI", 9F);
+            RadioSprayUnchanged.Location = new Point(10, 22);
+            RadioSprayUnchanged.Name = "RadioSprayUnchanged";
+            RadioSprayUnchanged.Size = new Size(86, 19);
+            RadioSprayUnchanged.TabIndex = 0;
+            RadioSprayUnchanged.TabStop = true;
+            RadioSprayUnchanged.Text = "Unchanged";
+            RadioSprayUnchanged.UseVisualStyleBackColor = true;
+            RadioSprayUnchanged.CheckedChanged += RadioSprayUnchanged_CheckedChanged;
+            // 
+            // ButtonRefreshSeed
+            // 
+            ButtonRefreshSeed.Location = new Point(626, 99);
+            ButtonRefreshSeed.Name = "ButtonRefreshSeed";
+            ButtonRefreshSeed.Size = new Size(162, 23);
+            ButtonRefreshSeed.TabIndex = 11;
+            ButtonRefreshSeed.Text = "Refresh Seed";
+            ButtonRefreshSeed.UseVisualStyleBackColor = true;
+            ButtonRefreshSeed.Click += ButtonRefreshSeed_Click;
             // 
             // KatAMRandomizerMain
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(800, 450);
+            Controls.Add(ButtonRefreshSeed);
             Controls.Add(tabControl1);
             Controls.Add(GroupRomInfo);
             Controls.Add(GroupSettings);
@@ -412,7 +428,7 @@
             GroupRomInfo.ResumeLayout(false);
             GroupRomInfo.PerformLayout();
             tabControl1.ResumeLayout(false);
-            tabPage6.ResumeLayout(false);
+            TabMiscellaneous.ResumeLayout(false);
             GroupMiscSprayPalettes.ResumeLayout(false);
             GroupMiscSprayPalettes.PerformLayout();
             GroupSprayOutlines.ResumeLayout(false);
@@ -439,7 +455,7 @@
         private TabPage tabPage3;
         private TabPage tabPage4;
         private TabPage tabPage5;
-        private TabPage tabPage6;
+        private TabPage TabMiscellaneous;
         private Label LabelGameRegion;
         private CheckBox checkBox1;
         private GroupBox GroupMiscSprayPalettes;
@@ -451,5 +467,6 @@
         private RadioButton RadioOutlinesRandom;
         private RadioButton RadioOutlinesAll;
         private RadioButton RadioOutlinesUnchanged;
+        private Button ButtonRefreshSeed;
     }
 }

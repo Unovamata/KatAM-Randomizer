@@ -9,8 +9,11 @@ namespace KatAM_Randomizer
 {
     public partial class KatAMRandomizerMain : Form {
         Processing system = new Processing();
+        Settings settings;
 
         public KatAMRandomizerMain() {
+            settings = system.Settings;
+
             InitializeComponent();
         }
 
@@ -22,6 +25,9 @@ namespace KatAM_Randomizer
             Console.WriteLine();
             ShowObjectData(entity);
             Console.WriteLine();
+
+            Console.WriteLine((int)settings.SprayGeneration);
+            Console.WriteLine(settings.SprayOutlineGenerationType);
 
             /*int[] randomColor = KatAMSprays.RandomRGB(system.Settings);
             int[] color = KatAMSprays.RGBToHSV(209, 255, 149);
@@ -86,16 +92,16 @@ namespace KatAM_Randomizer
                     switch (gameId) {
                         // Japanese Version;
                         case "AGB-B8KJ":
-                            region = "(JAP)";
-                            break;
+                        region = "(JAP)";
+                        break;
 
                         case "AGB-B8KP":
-                            region = "(EUR)";
-                            break;
+                        region = "(EUR)";
+                        break;
 
                         case "AGB-B8KE":
-                            region = "(USA)";
-                            break;
+                        region = "(USA)";
+                        break;
                     }
 
                     LabelGameRegion.Text = $"Region: {region}";
@@ -111,10 +117,43 @@ namespace KatAM_Randomizer
         private void ButtonSaveFile_Click(object sender, EventArgs e) {
             string newFileName = "KatAM.gba",
             destinationPath = Path.Combine(system.ROMDirectory, newFileName);
+            settings.RandomEntity = new Random(settings.Seed);
 
             KatAMSprays.RandomizeSpray(system);
 
             File.WriteAllBytes(destinationPath, system.ROMData);
+        }
+
+        private void RadioSprayUnchanged_CheckedChanged(object sender, EventArgs e) {
+            settings.SprayGeneration = SprayGen.Unchanged;
+        }
+
+        private void RadioSprayPresets_CheckedChanged(object sender, EventArgs e) {
+            settings.SprayGeneration = SprayGen.Presets;
+        }
+
+        private void RadioSprayRandomAndPresets_CheckedChanged(object sender, EventArgs e) {
+            settings.SprayGeneration = SprayGen.RandomAndPresets;
+        }
+
+        private void RadioSprayRandom_CheckedChanged(object sender, EventArgs e) {
+            settings.SprayGeneration = SprayGen.Random;
+        }
+
+        private void RadioOutlinesUnchanged_CheckedChanged(object sender, EventArgs e) {
+            settings.SprayOutlineGenerationType = SprayGen.Unchanged;
+        }
+
+        private void RadioOutlinesAll_CheckedChanged(object sender, EventArgs e) {
+            settings.SprayOutlineGenerationType = SprayGen.All;
+        }
+
+        private void RadioOutlinesRandom_CheckedChanged(object sender, EventArgs e) {
+            settings.SprayOutlineGenerationType = SprayGen.Random;
+        }
+
+        private void ButtonRefreshSeed_Click(object sender, EventArgs e) {
+            settings.GetNewSeed();
         }
     }
 }
