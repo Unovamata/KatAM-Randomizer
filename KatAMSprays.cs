@@ -37,20 +37,44 @@ namespace KatAMRandomizer {
 
             List<byte[]> presetSprays = LoadSprayPresets();
 
-            for (int x = 0; x < 13; x++) {
+            byte[] kirbyColorPalette = RandomizePalette();
+
+            // Injecting the color palettes in the ROM;
+            for (int x = 0; x < 14; x++) {
                 int spraySelected = Utils.GetRandomNumber(random, 0, presetSprays.Count);
 
-                if (x <= 12) {
+                if (x < 13) {
+                    byte[] kirbySupportPalette = RandomizePalette(); /*presetSprays[spraySelected]*/
+
                     // Support Kirbys Palettes;
-                    Utils.WriteToROM(romFile, 4846298 + (x * 32), RandomizePalette()/*presetSprays[spraySelected]*/);
+                    Utils.WriteToROM(romFile, 4846298 + (x * 32), kirbySupportPalette);
+                    Utils.WriteToROM(romFile, 3343126 + (x * 32), GenerateHUDPalette(kirbySupportPalette)/*presetSprays[spraySelected]*/);
                 } else {
+                    
+
                     // Kirby Base Palette;
-                    Utils.WriteToROM(romFile, 4846170, RandomizePalette());
+                    Utils.WriteToROM(romFile, 4846170, kirbyColorPalette);
+                    Utils.WriteToROM(romFile, 3343094, GenerateHUDPalette(kirbyColorPalette)); // HUD palettes (lives + vitality).
                     //WriteToROM(romFile, 4847100, bytesPalette); //Title Screen Palette, Supposedly;
                 }
 
                 presetSprays.RemoveAt(spraySelected);
             }
+        }
+
+        static byte[] GenerateHUDPalette(byte[] colorPalette) {
+            int[] colorPaletteReferences = new int[] { 4, 5, 8, 9, 8, 9, 12, 13, 8, 9, 12, 13, 0, 1 };
+
+            List<byte> hudPalette = new List<byte>();
+
+            for (int i = 0; i < colorPaletteReferences.Length; i++) {
+                int index = colorPaletteReferences[i];
+
+                hudPalette.Add(colorPalette[index]);
+            }
+
+            return hudPalette.ToArray();
+
         }
 
         //LoadSprayPresets(); Loading all the spray presets for the system to pick one if needed;
@@ -105,8 +129,8 @@ namespace KatAMRandomizer {
 
             // Creating a HSV tone to color the pixels;
             int bodyH = Utils.GetRandomNumber(random, 0, 360),
-            bodyS = Utils.GetRandomNumber(random, -30, 40),
-            bodyV = Utils.GetRandomNumber(random, -30, -10);
+            bodyS = 0, //Utils.GetRandomNumber(random, 0, 0),
+            bodyV = Utils.GetRandomNumber(random, -10, -10);
 
             // Coloring the body color palette;
             List<byte> bodyPalette = AdjustHSV(bodyColors, bodyH, bodyS, bodyV, true);
@@ -116,7 +140,7 @@ namespace KatAMRandomizer {
 
             // Creating a HSV tone to color the pixels;
             int shoesH = Utils.GetRandomNumber(random, 0, 360),
-            shoesS = Utils.GetRandomNumber(random, -40, 40),
+            shoesS = 0, //Utils.GetRandomNumber(random, 0, 0),
             shoesV = Utils.GetRandomNumber(random, -30, -10);
 
             // Coloring the body color palette;
