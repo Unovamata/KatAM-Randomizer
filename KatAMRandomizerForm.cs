@@ -21,6 +21,16 @@ namespace KatAM_Randomizer
             ShowObjectData(system);
             Console.WriteLine();
             ShowObjectData(entity);
+            Console.WriteLine();
+
+            /*int[] randomColor = KatAMSprays.RandomRGB(system.Settings);
+            int[] color = KatAMSprays.RGBToHSV(209, 255, 149);
+            int[] hsv = KatAMSprays.HSVToRGB(86, 105, 255);
+
+            Console.WriteLine($"{(byte)randomColor[0]}, {(byte)randomColor[1]}, {(byte)randomColor[2]}");
+            Console.WriteLine($"{color[0]}, {color[1]}, {color[2]}");
+            Console.WriteLine($"{hsv[0]}, {hsv[1]}, {hsv[2]}");*/
+
         }
 
         void ShowObjectData(object inputObject) {
@@ -98,23 +108,13 @@ namespace KatAM_Randomizer
 
         }
 
-        private void ButtonSaveRandomized_Click(object sender, EventArgs e) {
-
-        }
-
         private void ButtonSaveFile_Click(object sender, EventArgs e) {
             string newFileName = "KatAM.gba",
             destinationPath = Path.Combine(system.ROMDirectory, newFileName);
 
-            Console.WriteLine($"Are the settings consistent? {system.ROMData.SequenceEqual(File.ReadAllBytes(system.ROMPath))}");
-
             KatAMSprays.RandomizeSpray(system);
 
-            Console.WriteLine(destinationPath);
-
             File.WriteAllBytes(destinationPath, system.ROMData);
-
-            Console.WriteLine($"Are the settings consistent? {system.ROMData.SequenceEqual(File.ReadAllBytes(system.ROMPath))} ");
         }
     }
 }

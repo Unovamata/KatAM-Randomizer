@@ -38,8 +38,8 @@
             }
         }
 
-        public static int GetRandomNumber(Settings settings, int min, int max) {
-            return settings.RandomEntity.Next(min, max);
+        public static int GetRandomNumber(Random random, int min, int max) {
+            return random.Next(min, max);
         }
     }
 }
