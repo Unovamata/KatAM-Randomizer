@@ -72,5 +72,31 @@ namespace KatAMInternal {
 
             return settings.RandomEntity.Next(1, 7);
         }
+
+        public static string ConvertIntToHex(int input) {
+            string hex = input.ToString("X");
+
+            return hex;
+        }
+
+        public static string ConvertLongToHex(long input) {
+            string hex = input.ToString("X");
+
+            return hex;
+        }
+
+        public static byte[] LongToBytes(long input) {
+            string hex = ConvertLongToHex(input);
+
+            // Ensure the input string length is even
+            if (hex.Length % 2 != 0)
+                throw new ArgumentException("Hex string must have an even length.");
+
+            byte[] bytes = new byte[hex.Length / 2];
+            for (int i = 0; i < hex.Length; i += 2) {
+                bytes[i / 2] = Convert.ToByte(hex.Substring(i, 2), 16);
+            }
+            return bytes;
+        }
     }
 }

@@ -119,7 +119,8 @@ namespace KatAM_Randomizer
             destinationPath = Path.Combine(system.ROMDirectory, newFileName);
             settings.RandomEntity = new Random(settings.Seed);
 
-            KatAMSprays.RandomizeSpray(system);
+            //KatAMSprays.RandomizeSpray(system);
+            KatAMItems.RandomizeItems(system);
 
             File.WriteAllBytes(destinationPath, system.ROMData);
         }
