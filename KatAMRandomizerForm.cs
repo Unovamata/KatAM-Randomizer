@@ -15,28 +15,14 @@ namespace KatAM_Randomizer
             settings = system.Settings;
 
             InitializeComponent();
+
+            this.StartPosition = FormStartPosition.CenterScreen;
         }
 
         private void ButtonConsoleSend_Click(object sender, EventArgs e) {
-            Entity entity = new Entity("Entity", 1, 1, 1, 1, 1, 1, 1, 1, 1);
-
             Console.Clear();
             ShowObjectData(system);
             Console.WriteLine();
-            ShowObjectData(entity);
-            Console.WriteLine();
-
-            Console.WriteLine((int)settings.SprayGeneration);
-            Console.WriteLine(settings.SprayOutlineGenerationType);
-
-            /*int[] randomColor = KatAMSprays.RandomRGB(system.Settings);
-            int[] color = KatAMSprays.RGBToHSV(209, 255, 149);
-            int[] hsv = KatAMSprays.HSVToRGB(86, 105, 255);
-
-            Console.WriteLine($"{(byte)randomColor[0]}, {(byte)randomColor[1]}, {(byte)randomColor[2]}");
-            Console.WriteLine($"{color[0]}, {color[1]}, {color[2]}");
-            Console.WriteLine($"{hsv[0]}, {hsv[1]}, {hsv[2]}");*/
-
         }
 
         void ShowObjectData(object inputObject) {
@@ -119,8 +105,10 @@ namespace KatAM_Randomizer
             destinationPath = Path.Combine(system.ROMDirectory, newFileName);
             settings.RandomEntity = new Random(settings.Seed);
 
+            KatAMROMReader.ReadROMData(system);
             //KatAMSprays.RandomizeSpray(system);
-            KatAMItems.RandomizeItems(system);
+            //KatAMItems.RandomizeItems(system);
+
 
             File.WriteAllBytes(destinationPath, system.ROMData);
         }

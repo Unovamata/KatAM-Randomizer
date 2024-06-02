@@ -20,6 +20,7 @@ namespace KatAM_Randomizer {
 
             var json = JsonConvert.DeserializeObject<Dictionary<string, Dataset>>(File.ReadAllText("JSON/items.json"));
             List<KatAMEntities.Item> items = new List<KatAMEntities.Item>();
+            List<KatAMEntities.Item> chests = new List<KatAMEntities.Item>();
 
             // Iterate over each key-value pair in the dictionary
             foreach (var kvp in json) {
@@ -37,8 +38,10 @@ namespace KatAM_Randomizer {
                     } catch {
                         item.Properties = dataset.Item[0];
                     }
+                    
+                    //bool isNotOverworldItem = 
 
-                    items.Add(item);
+                    if(item.Name != "")items.Add(item);
                 }
 
                 /*Console.WriteLine($"Key: {kvp.Key}");
@@ -57,6 +60,8 @@ namespace KatAM_Randomizer {
             }
 
             foreach(KatAMEntities.Item item in items) {
+                //bool isIllegalItem = item.Name = 
+
                 if (item.Address == 0) continue;
 
                 byte[] propierties = Utils.LongToBytes(item.Properties);
