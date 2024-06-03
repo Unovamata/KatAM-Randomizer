@@ -1,4 +1,5 @@
-﻿using System.ComponentModel;
+﻿using Newtonsoft.Json;
+using System.ComponentModel;
 
 namespace KatAMInternal {
     public enum SprayGen {
@@ -19,6 +20,177 @@ namespace KatAMInternal {
         public Processing() {
             Settings = new Settings();
         }
+
+        // By Fyyyyik; https://github.com/Fyyyyik/KatAM-Object-Editor/blob/main/Editor/LevelDataManager.cs
+        public static List<long> roomIds = new List<long>(){
+            0x321, 0x323, 0x324, 0x325, 0x0, 0x3D4, 0x3D5, 0x3D6,
+            0xB4, 0xB5, 0x214, 0x216, 0x217, 0x218, 0x219, 0x21A,
+            0x21E, 0x21F, 0x23A, 0x23B, 0x24E, 0x65, 0x67, 0x68,
+            0x6A, 0x6B, 0x6C, 0x6E, 0x8C, 0x8D, 0x8E, 0x8F, 0xBE,
+            0x7F, 0x88, 0x89, 0xC2, 0x1F8, 0x1FB, 0x22A, 0x22B,
+            0x1F7, 0x22C, 0x22D, 0x7E, 0x73, 0x75, 0x76, 0x77,
+            0x8A, 0x8B, 0xAB, 0xAC, 0xAD, 0xAE, 0xAF, 0xB0, 0xB1,
+            0xB2, 0xC0, 0x90, 0x91, 0x92, 0x93, 0x94, 0x95, 0xC3,
+            0x2BC, 0x2C0, 0x2C1, 0x2C2, 0x2C3, 0x2C4, 0x2C5, 0x2C6,
+            0x2C7, 0x2C8, 0x2E4, 0x2E5, 0x2E6, 0x316, 0x2BE, 0x2E7,
+            0x2E8, 0x2E9, 0xC8, 0xCA, 0xCB, 0xCC, 0xCD, 0xCE, 0xD0,
+            0xD1, 0xD2, 0xD3, 0xD6, 0xDC, 0xE2, 0xE3, 0xE4, 0xE5,
+            0xE6, 0xE7, 0xE8, 0x122, 0xD4, 0xD7, 0xD8, 0xD9, 0xDA,
+            0xDB, 0xDD, 0xDE, 0xDF, 0xE0, 0xE1, 0x123, 0x215, 0x21B,
+            0x21C, 0x21D, 0x220, 0x221, 0x222, 0x223, 0x12C, 0x130,
+            0x134, 0x136, 0x138, 0x139, 0x13B, 0x13C, 0x13D,
+            0x13E, 0x141, 0x142, 0x143, 0x144, 0x145, 0x146, 0x186,
+            0x190, 0x191, 0x192, 0x193, 0x194, 0x195, 0x196, 0x197,
+            0x198, 0x199, 0x19B, 0x19C, 0x19D, 0x19E, 0x19F,
+            0x1A0, 0x1A1, 0x1A2, 0x1A3, 0x1A4, 0xA15, 0x1A6,
+            0x1A7, 0x1A8, 0x1A9, 0x1AA, 0x1AB, 0x1EA, 0x1F4,
+            0x1FC, 0x1FD, 0x1FE, 0x204, 0x210, 0x1F5, 0x1FF,
+            0x200, 0x201, 0x202, 0x203, 0x205, 0x20B, 0x20F,
+            0x211, 0x212, 0x213, 0x24F, 0xBF, 0x82, 0x83, 0x84,
+            0x85, 0x86, 0x87, 0x227, 0x229, 0x32B, 0x32E, 0x32F,
+            0x337, 0x338, 0x339, 0x33A, 0x33B, 0x33C, 0x33D,
+            0x33E, 0x33F, 0x340, 0x37A, 0x320, 0x322, 0x32A,
+            0x330, 0x333, 0x335, 0x336, 0x250, 0x259, 0x25B,
+            0x25C, 0x25D, 0x262, 0x263, 0x26C, 0x26D, 0x26E,
+            0x26F, 0x260, 0x261, 0x264, 0x265, 0x266, 0x268,
+            0x269, 0x26A, 0x26B, 0x2B2, 0x1F6, 0x20C, 0x20D,
+            0x20E, 0x66, 0x71, 0x72, 0x81, 0x78, 0x79, 0x7A, 0xAA,
+            0xC1, 0x258, 0x2CA, 0x2CC, 0x2CD, 0x2CF, 0x2DC,
+            0x2DD, 0x2DE, 0x2DF, 0x2E0, 0x2E1, 0x2E2, 0x2E3,
+            0x2D0, 0x2DA, 0x2DB, 0x38D, 0x38E, 0x38F, 0x390,
+            0x391, 0x392, 0x393, 0x394, 0x396, 0x397, 0x3B6,
+            0x3B7, 0x3BB, 0x3BC, 0x3BD, 0x3C9, 0x0, 0x3CA,
+        };
+
+        // https://www.tapatalk.com/groups/lighthouse_of_yoshi/kirby-and-the-amazing-mirror-hacking-t741.html
+        public static Dictionary<byte, string> enemiesDictionary = new Dictionary<byte, string>{
+            { 0x00, "Waddle Dee" },
+            { 0x01, "Bronto Burt" },
+            { 0x02, "Blipper"},
+            { 0x03, "Glunk"},
+            { 0x04, "Squishy" },
+            { 0x05, "Scarfy" },
+            { 0x06, "Gordo" },
+            { 0x07, "Snooter" },
+            { 0x08, "Chip"},
+            { 0x09, "Soarar"},
+            { 0x0A, "Haley"},
+            { 0x0B, "Roly-Poly"},
+            { 0x0C, "Cupie"},
+            { 0x0D, "Blockin"},
+            { 0x0E, "Snooter 2"},
+            { 0x0F, "Leap"},
+            { 0x10, "Jack" },
+            { 0x11, "Big Waddle Dee" },
+            { 0x12, "Waddle Doo"},
+            { 0x13, "Flamer"},
+            { 0x14, "Hot Head" },
+            { 0x15, "Laser Ball" },
+            { 0x16, "Pengy" },
+            { 0x17, "Rocky" },
+            { 0x18, "Sir Kibble"},
+            { 0x19, "Sparky"},
+            { 0x1A, "Sword Knight"},
+            { 0x1B, "UFO"},
+            { 0x1C, "Twister"},
+            { 0x1D, "Wheelie"},
+            { 0x1E, "Noddy"},
+            { 0x1F, "Golem Press"},
+            { 0x20, "Golem Roll" },
+            { 0x21, "Golem Punch" },
+            { 0x22, "Foley"},
+            { 0x23, "Shooty"},
+            { 0x24, "Scarfy 2" },
+            { 0x25, "Boxin" },
+            { 0x26, "Cookin" },
+            { 0x27, "Minny" },
+            { 0x28, "Bomber"},
+            { 0x29, "Heavy Knight"},
+            { 0x2A, "Giant Rocky"},
+            { 0x2B, "Metal Guardian"},
+            { 0x2C, "Nothing"},
+            { 0x2D, "Batty"},
+            { 0x2E, "Foley Automatic"},
+            { 0x2F, "Bang-Bang"},
+            { 0x30, "Explosion" },
+            { 0x31, "Nothing" },
+            { 0x32, "Droppy"},
+            { 0x33, "Prank"},
+            { 0x34, "Mirra" },
+            { 0x35, "Shotzo" },
+            { 0x36, "Nothing" },
+            { 0x37, "Waddle Dee 2" },
+            { 0x70, "Shotzo 2"},
+            { 0xA2, "Parasol"}
+        };
+
+        public static Dictionary<byte, string> minibossesDictionary = new Dictionary<byte, string>{
+            { 0x38, "Mr. Frosty" },
+            { 0x39, "Bonkers" },
+            { 0x3A, "Phan Phan"},
+            { 0x3B, "Batafire"},
+            { 0x3C, "Box Boxer" },
+            { 0x3D, "Boxy" },
+            { 0x3E, "Master Hand" },
+            { 0x3F, "Bombar" },
+        };
+
+        public static Dictionary<byte, string> bossesDictionary = new Dictionary<byte, string>{
+            { 0x45, "Kracko" },
+            { 0x46, "King Golem" },
+            { 0x47, "Master Hand (Boss)"},
+            { 0x48, "Gobbler"},
+            { 0x49, "Wiz" },
+            { 0x4A, "Moley" },
+            { 0x4B, "Mega Titan" },
+            { 0x4C, "Titan Head" },
+            { 0x4D, "Crazy Hand" },
+            { 0x4E, "Dark Meta Knight (Boss)" },
+            { 0x4F, "Dark Mind (1)"},
+            { 0x50, "Dark Mind (2)"},
+            { 0x51, "Dark Mind (Shooting)" },
+            { 0x52, "Dark Meta Knight (Radish)" },
+        };
+
+        public static Dictionary<byte, string> itemsDictionary = new Dictionary<byte, string>{
+            { 0x5E, "Cherry" },
+            { 0x5F, "Pep Brew" },
+            { 0x60, "Meat"},
+            { 0x61, "Maximum Tomato"},
+            { 0x62, "Battery" },
+            { 0x63, "1UP" },
+            { 0x64, "Lollipop" },
+            { 0x65, "Mirror Shard" },
+            { 0x66, "Nothing"},
+            { 0x67, "Nothing"},
+            { 0x68, "Nothing"},
+            { 0x69, "Nothing"},
+            { 0x6A, "Nothing"},
+            { 0x6B, "Nothing"},
+            { 0x6C, "Nothing"},
+            { 0x80, "Small Chest"},
+            { 0x81, "Big Chest"}
+        };
+
+        public static Dictionary<byte, string> mirrorsDictionary = new Dictionary<byte, string>{
+            { 0x6F, "Mirror" },
+            { 0x8C, "Special Hub Mirror"},
+        };
+
+        public static Dictionary<byte, string> abilityStandsDictionary = new Dictionary<byte, string>{
+            { 0x92, "Ability Stand" },
+            { 0x93, "Ability Stand" },
+            { 0x94, "Ability Stand" },
+            { 0x95, "Ability Stand" },
+            { 0x96, "Random Ability Stand" },
+        };
+
+        public static Dictionary<byte, string> mapElementsDictionary = new Dictionary<byte, string>{
+            { 0x7D, "Large Star Stone Block (No Collision)" },
+            { 0x7E, "Large Star Stone Block"},
+            { 0x88, "Large Star Stone Block"},
+            { 0x89, "Large Star Stone Block"},
+        };
     }
 
     public class Settings {
@@ -107,6 +279,55 @@ namespace KatAMInternal {
                 bytes[i / 2] = Convert.ToByte(hex.Substring(i, 2), 16);
             }
             return bytes;
+        }
+
+        public static string jsonRoute = "JSON\\",
+                             enemiesJson = "Enemies",
+                             minibossesJson = "Minibosses",
+                             bossesJson = "Bosses",
+                             itemsJson = "Items",
+                             mirrorsJson = "Mirrors",
+                             abilityStandsJson = "AbilityStands",
+                             worldMapObjectsJson = "WorldMapObjects";
+
+        public static void SaveJSON(dynamic list, string filename) {
+            string json = JsonConvert.SerializeObject(EntitiesToJSON(list), Formatting.Indented);
+
+            File.WriteAllText(jsonRoute + filename + ".json", json);
+        }
+
+        
+        public static dynamic EntitiesToJSON(List<Entity> list) {
+            var groupedEntities = new Dictionary<string, List<Dictionary<string, dynamic>>>();
+
+            foreach (Entity entity in list) {
+                EntitySerializable serialized = entity.SerializeEntity();
+
+                if (!groupedEntities.ContainsKey(serialized.Name)) {
+                    groupedEntities[serialized.Name] = new List<Dictionary<string, dynamic>>();
+                }
+
+                var entityDict = new Dictionary<string, dynamic>();
+
+                // Use reflection to loop through all properties
+                string key = serialized.Name;
+
+                //entityDict["Definition"] = serialized.Definition;
+                entityDict["Address"] = serialized.Address;
+                entityDict["Number"] = serialized.Number;
+                entityDict["Link"] = serialized.Link;
+                entityDict["X"] = serialized.X;
+                entityDict["Y"] = serialized.Y;
+                entityDict["ID"] = serialized.ID;
+                entityDict["Behaviour"] = serialized.Behavior;
+                entityDict["Speed"] = serialized.Speed;
+                entityDict["Properties"] = serialized.Properties;
+                entityDict["Room"] = serialized.Room;
+
+                groupedEntities[serialized.Name].Add(entityDict);
+            }
+
+            return groupedEntities;
         }
     }
 }

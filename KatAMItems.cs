@@ -1,12 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Security.Cryptography;
-using System.Text;
-using System.Threading.Tasks;
-using KatAMInternal;
+﻿using KatAMInternal;
 using Newtonsoft.Json;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace KatAM_Randomizer {
     internal class KatAMItems {
@@ -18,16 +11,21 @@ namespace KatAM_Randomizer {
             settings = system.Settings;
             seed = settings.Seed;
 
+
+
+
+            /*
+
             var json = JsonConvert.DeserializeObject<Dictionary<string, Dataset>>(File.ReadAllText("JSON/items.json"));
-            List<KatAMEntities.Item> items = new List<KatAMEntities.Item>();
-            List<KatAMEntities.Item> chests = new List<KatAMEntities.Item>();
+            List<Entity> items = new List<Entity>();
+            List<Entity> chests = new List<Entity>();
 
             // Iterate over each key-value pair in the dictionary
             foreach (var kvp in json) {
                 Dataset dataset = kvp.Value;
                 
                 for (int i = 0; i < dataset.Address.Count; i++) {
-                    KatAMEntities.Item item = new KatAMEntities.Item();
+                    Entity item = new Entity();
 
                     item.Name = kvp.Key;
 
@@ -42,24 +40,24 @@ namespace KatAM_Randomizer {
                     //bool isNotOverworldItem = 
 
                     if(item.Name != "")items.Add(item);
-                }
+                }*/
 
-                /*Console.WriteLine($"Key: {kvp.Key}");
+            /*Console.WriteLine($"Key: {kvp.Key}");
 
-                Console.WriteLine($"Addresses: {string.Join(", ", kvp.Value.Address)}");
-                Console.WriteLine(); // Add a blank line for readability
+            Console.WriteLine($"Addresses: {string.Join(", ", kvp.Value.Address)}");
+            Console.WriteLine(); // Add a blank line for readability
 
-                // Access and print properties of the Entity class
-                Console.WriteLine($"Addresses: {string.Join(", ", kvp.Value.Address)}");
-                Console.WriteLine($"XY: {string.Join(", ", kvp.Value.XY)}");
-                Console.WriteLine($"Rooms: {string.Join(", ", kvp.Value.Room)}");
-                Console.WriteLine($"Items: {string.Join(", ", kvp.Value.Item)}");
+            // Access and print properties of the Entity class
+            Console.WriteLine($"Addresses: {string.Join(", ", kvp.Value.Address)}");
+            Console.WriteLine($"XY: {string.Join(", ", kvp.Value.XY)}");
+            Console.WriteLine($"Rooms: {string.Join(", ", kvp.Value.Room)}");
+            Console.WriteLine($"Items: {string.Join(", ", kvp.Value.Item)}");
 
-                Console.WriteLine(); // Add a blank line for readability
-                break;*/
-            }
+            Console.WriteLine(); // Add a blank line for readability
+            break;
+        }*/
 
-            foreach(KatAMEntities.Item item in items) {
+            /*foreach(Entity item in items) {
                 //bool isIllegalItem = item.Name = 
 
                 if (item.Address == 0) continue;
@@ -79,15 +77,15 @@ namespace KatAM_Randomizer {
                 }
 
                 Console.WriteLine(processedBytes);
-            }
+            }*/
         }
 
-        public class Dataset {
+        /*public class Dataset {
             public List<long> Address { get; set; }
             public List<long> XY { get; set; }
             public List<long> Room { get; set; }
             public List<long> Item { get; set; }
-        }
+        }*/
 
         /*static List<(string, int)> weightReference = new List<(string, int)>{
         ("Cherry", 4),

@@ -1,4 +1,3 @@
-using KatAMEntities;
 using KatAMInternal;
 using System.ComponentModel;
 using System.Text;
@@ -95,9 +94,9 @@ namespace KatAM_Randomizer
             destinationPath = Path.Combine(system.ROMDirectory, newFileName);
             settings.RandomEntity = new Random(settings.Seed);
 
-            KatAMROMReader.ReadROMData(system);
+            //KatAMROMReader.ReadROMData(system);
             //KatAMSprays.RandomizeSpray(system);
-            //KatAMItems.RandomizeItems(system);
+            KatAMItems.RandomizeItems(system);
 
 
             File.WriteAllBytes(destinationPath, system.ROMData);
