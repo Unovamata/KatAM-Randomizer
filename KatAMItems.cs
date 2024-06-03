@@ -1,84 +1,176 @@
 ﻿using KatAMInternal;
 using Newtonsoft.Json;
+using System.Collections;
+using System.Collections.Generic;
+using System.Net;
+using System.Reflection;
+using System.Transactions;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.Rebar;
 
 namespace KatAM_Randomizer {
     internal class KatAMItems {
         static Settings settings;
         static int seed;
 
+        static List<Entity> entities = new List<Entity>();
+        static List<int> addresses = new List<int>();
+
         public static void RandomizeItems(Processing system) {
             byte[] romFile = system.ROMData;
             settings = system.Settings;
             seed = settings.Seed;
 
+            dynamic itemsJson = Utils.JSONToEntities(Utils.itemsJson);
 
+            /*string formattedJson = JsonConvert.SerializeObject(itemsJson, Formatting.Indented);*/
 
+            // Print each key
+            foreach (string key in itemsJson.Keys) {
+                List<Dictionary<string, dynamic>> dict = itemsJson[key];
 
-            /*
+                // Print the contents of the list
+                foreach (var item in dict) {
+                    EntitySerializable serialized = new EntitySerializable();
 
-            var json = JsonConvert.DeserializeObject<Dictionary<string, Dataset>>(File.ReadAllText("JSON/items.json"));
-            List<Entity> items = new List<Entity>();
-            List<Entity> chests = new List<Entity>();
+                    serialized.Name = key;
 
-            // Iterate over each key-value pair in the dictionary
-            foreach (var kvp in json) {
-                Dataset dataset = kvp.Value;
-                
-                for (int i = 0; i < dataset.Address.Count; i++) {
-                    Entity item = new Entity();
+                    foreach (var kvp in item) {
+                        switch (kvp.Key) {
+                            case "Address":
+                            int address = (int)kvp.Value;
 
-                    item.Name = kvp.Key;
+                            serialized.Address = address;
 
-                    item.Address = dataset.Address[i];
-                    item.Room = dataset.Room[i];
-                    try { 
-                        item.Properties = dataset.Item[i]; 
-                    } catch {
-                        item.Properties = dataset.Item[0];
+                            addresses.Add(address);
+                            break;
+                            case "Number": serialized.Number = kvp.Value; break;
+                            case "Link": serialized.Link = kvp.Value; break;
+                            case "X": serialized.X = kvp.Value; break;
+                            case "Y": serialized.Y = kvp.Value; break;
+                            case "ID": serialized.ID = (byte)kvp.Value; break;
+                            case "Behavior": serialized.Behavior = (byte)kvp.Value; break;
+                            case "Speed": serialized.Speed = (byte)kvp.Value; break;
+                            case "Properties": serialized.Properties = kvp.Value; break;
+                            case "Room": serialized.Room = (byte)kvp.Value; break;
+                        }
                     }
-                    
-                    //bool isNotOverworldItem = 
 
-                    if(item.Name != "")items.Add(item);
-                }*/
+                    Entity entity = serialized.DeserializeEntity();
 
-            /*Console.WriteLine($"Key: {kvp.Key}");
-
-            Console.WriteLine($"Addresses: {string.Join(", ", kvp.Value.Address)}");
-            Console.WriteLine(); // Add a blank line for readability
-
-            // Access and print properties of the Entity class
-            Console.WriteLine($"Addresses: {string.Join(", ", kvp.Value.Address)}");
-            Console.WriteLine($"XY: {string.Join(", ", kvp.Value.XY)}");
-            Console.WriteLine($"Rooms: {string.Join(", ", kvp.Value.Room)}");
-            Console.WriteLine($"Items: {string.Join(", ", kvp.Value.Item)}");
-
-            Console.WriteLine(); // Add a blank line for readability
-            break;
-        }*/
-
-            /*foreach(Entity item in items) {
-                //bool isIllegalItem = item.Name = 
-
-                if (item.Address == 0) continue;
-
-                byte[] propierties = Utils.LongToBytes(item.Properties);
-
-                Utils.WriteToROM(system.ROMData, item.Address, propierties);
-
-
-
-                Console.WriteLine($"{item.Name}: Address {item.Address}");
-
-                string processedBytes = "";
-
-                foreach (byte bit in propierties) {
-                    processedBytes += bit.ToString() + ",";
+                    entities.Add(entity);
+                    //Utils.ShowObjectData(entity);
                 }
+            }
 
-                Console.WriteLine(processedBytes);
+            Console.WriteLine($"Address 0: {entities[0].Address}");
+
+            entities = entities.OrderBy(x => Random.Shared.Next()).ToList();
+
+            Console.WriteLine($"Address Shuffled: {entities[0].Address}");
+
+            bool isRandom = true;
+            byte[] consumableItems = { 0x5E, 0x5F, 0x60, 0x61, 0x62, 0x63, 0x64 };
+
+            for(int i = 0; i < entities.Count; i++) {
+                string name = entities[i].Name;
+                byte id = entities[i].ID;
+                int address = addresses[i];
+
+                if (name == Processing.itemsDictionary[0x65]) continue;
+                if (name == Processing.itemsDictionary[0x80]) continue;
+                if (name == Processing.itemsDictionary[0x81]) continue;
+
+                if (isRandom) {
+                    int index = Utils.GetRandomNumber(0, consumableItems.Length);
+
+                    Utils.WriteToROM(romFile, address + 12, new byte[] { consumableItems[index] });
+                } else Utils.WriteToROM(romFile, address + 12, new byte[] { id });
+            }
+
+            /*foreach (Entity entity in entitiesArray) {
+                byte[] obj = new byte[] { entity.ID };
+
+                if (entity.Name == Processing.itemsDictionary[0x81]) continue;
+                if (entity.Name == Processing.itemsDictionary[0x80]) continue;
+
+                Console.WriteLine(entity.ID);
+
+                Utils.WriteToROM(romFile, entity.Address + 12, obj);
+                romFile[entity.Address + 12] = (byte) entity.ID;
             }*/
         }
+
+
+
+
+        /*Console.WriteLine(formattedJson);*/
+
+
+        /*
+
+        var json = JsonConvert.DeserializeObject<Dictionary<string, Dataset>>(File.ReadAllText("JSON/items.json"));
+        List<Entity> items = new List<Entity>();
+        List<Entity> chests = new List<Entity>();
+
+        // Iterate over each key-value pair in the dictionary
+        foreach (var kvp in json) {
+            Dataset dataset = kvp.Value;
+
+            for (int i = 0; i < dataset.Address.Count; i++) {
+                Entity item = new Entity();
+
+                item.Name = kvp.Key;
+
+                item.Address = dataset.Address[i];
+                item.Room = dataset.Room[i];
+                try { 
+                    item.Properties = dataset.Item[i]; 
+                } catch {
+                    item.Properties = dataset.Item[0];
+                }
+
+                //bool isNotOverworldItem = 
+
+                if(item.Name != "")items.Add(item);
+            }*/
+
+        /*Console.WriteLine($"Key: {kvp.Key}");
+
+        Console.WriteLine($"Addresses: {string.Join(", ", kvp.Value.Address)}");
+        Console.WriteLine(); // Add a blank line for readability
+
+        // Access and print properties of the Entity class
+        Console.WriteLine($"Addresses: {string.Join(", ", kvp.Value.Address)}");
+        Console.WriteLine($"XY: {string.Join(", ", kvp.Value.XY)}");
+        Console.WriteLine($"Rooms: {string.Join(", ", kvp.Value.Room)}");
+        Console.WriteLine($"Items: {string.Join(", ", kvp.Value.Item)}");
+
+        Console.WriteLine(); // Add a blank line for readability
+        break;
+    }*/
+
+        /*foreach(Entity item in items) {
+            //bool isIllegalItem = item.Name = 
+
+            if (item.Address == 0) continue;
+
+            byte[] propierties = Utils.LongToBytes(item.Properties);
+
+            Utils.WriteToROM(system.ROMData, item.Address, propierties);
+
+
+
+            Console.WriteLine($"{item.Name}: Address {item.Address}");
+
+            string processedBytes = "";
+
+            foreach (byte bit in propierties) {
+                processedBytes += bit.ToString() + ",";
+            }
+
+            Console.WriteLine(processedBytes);
+        }
+    }*/
 
         /*public class Dataset {
             public List<long> Address { get; set; }

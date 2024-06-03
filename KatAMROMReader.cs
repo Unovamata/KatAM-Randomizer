@@ -115,6 +115,9 @@ namespace KatAM_Randomizer {
                     // Item references;
                     else if (isItem) {
                         entity.Name = itemsDictionary[ID];
+
+                        entity.AreAllPropertiesZeroes();
+
                         items.Add(entity);
                     } 
                     

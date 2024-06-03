@@ -319,7 +319,7 @@ namespace KatAMInternal {
                 entityDict["X"] = serialized.X;
                 entityDict["Y"] = serialized.Y;
                 entityDict["ID"] = serialized.ID;
-                entityDict["Behaviour"] = serialized.Behavior;
+                entityDict["Behavior"] = serialized.Behavior;
                 entityDict["Speed"] = serialized.Speed;
                 entityDict["Properties"] = serialized.Properties;
                 entityDict["Room"] = serialized.Room;
@@ -328,6 +328,14 @@ namespace KatAMInternal {
             }
 
             return groupedEntities;
+        }
+
+        public static dynamic JSONToEntities(string filename) {
+            string json = File.ReadAllText(jsonRoute + filename + ".json");
+
+            var result = JsonConvert.DeserializeObject<Dictionary<string, List<Dictionary<string, dynamic>>>>(json);
+
+            return result;
         }
     }
 }

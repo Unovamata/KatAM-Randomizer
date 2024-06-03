@@ -34,8 +34,8 @@ public class Entity {
     }
 
     public void AreAllPropertiesZeroes() {
-        if (Properties.All(x => x == 0)) {
-            Properties = new byte[] { 0 };
+        if (this.Properties.All(x => x == 0)) {
+            this.Properties = new byte[] { 0 };
         }
     }
 }
@@ -47,6 +47,8 @@ public class EntitySerializable : Entity {
     public string X { get; set; }
     public string Y { get; set; }
     public string Properties { get; set; }
+
+    public EntitySerializable() {}
 
     public EntitySerializable(Entity entity) {
         Definition = ByteArrayToHexString(entity.Definition);
@@ -64,13 +66,6 @@ public class EntitySerializable : Entity {
         Room = entity.Room;
     }
 
-    public static string ByteArrayToString(byte[] byteArray) {
-        // Convert byte array to a comma-separated string
-        string result = "[" + string.Join(", ", byteArray) + "]";
-
-        return result;
-    }
-
     public static string ByteArrayToHexString(byte[] byteArray) {
         string result = "";
 
@@ -84,12 +79,12 @@ public class EntitySerializable : Entity {
     public Entity DeserializeEntity() {
         Entity entity = new Entity();
 
-        entity.Definition = StringToByteArray(Definition);
-        entity.Number = StringToByteArray(Number);
-        entity.Link = StringToByteArray(Link);
-        entity.X = StringToByteArray(X);
-        entity.Y = StringToByteArray(Y);
-        entity.Properties = StringToByteArray(Properties);
+        /*entity.Definition = StringToByteArray(this.Definition);*/
+        entity.Number = StringToByteArray(this.Number);
+        entity.Link = StringToByteArray(this.Link);
+        entity.X = StringToByteArray(this.X);
+        entity.Y = StringToByteArray(this.Y);
+        entity.Properties = StringToByteArray(this.Properties);
 
         entity.Name = Name;
         entity.Address = Address;
@@ -100,15 +95,15 @@ public class EntitySerializable : Entity {
         return entity;
     }
 
-    public static byte[] StringToByteArray(string input) {
-        // Remove the square brackets
-        input = input.Trim(new char[] { '[', ']' });
+    public static byte[] StringToByteArray(string hexString) {
+        // Initialize the byte array
+        byte[] byteArray = new byte[hexString.Length / 2];
 
-        // Split the string by commas
-        string[] stringArray = input.Split(',');
-
-        // Convert each string element to a byte
-        byte[] byteArray = stringArray.Select(byte.Parse).ToArray();
+        // Convert each pair of characters to a byte
+        for (int i = 0; i < hexString.Length; i += 2) {
+            string byteString = hexString.Substring(i, 2);
+            byteArray[i / 2] = Convert.ToByte(byteString, 16);
+        }
 
         return byteArray;
     }
