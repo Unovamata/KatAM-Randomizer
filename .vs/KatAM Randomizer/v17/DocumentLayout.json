@@ -3,16 +3,16 @@
   "WorkspaceRootPath": "C:\\Users\\Admin\\Documents\\GitHub\\KatAM-Randomizer\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Admin\\Documents\\GitHub\\KatAM-Randomizer\\KatAMROMReader.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:KatAMROMReader.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{7EBBA357-446A-4116-ACAF-84237022A6EC}|KatAM Randomizer.csproj|c:\\users\\admin\\documents\\github\\katam-randomizer\\kataminternal.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{7EBBA357-446A-4116-ACAF-84237022A6EC}|KatAM Randomizer.csproj|solutionrelative:kataminternal.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{7EBBA357-446A-4116-ACAF-84237022A6EC}|KatAM Randomizer.csproj|c:\\users\\admin\\documents\\github\\katam-randomizer\\katamromreader.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{7EBBA357-446A-4116-ACAF-84237022A6EC}|KatAM Randomizer.csproj|solutionrelative:katamromreader.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{7EBBA357-446A-4116-ACAF-84237022A6EC}|KatAM Randomizer.csproj|c:\\users\\admin\\documents\\github\\katam-randomizer\\katamentities.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{7EBBA357-446A-4116-ACAF-84237022A6EC}|KatAM Randomizer.csproj|solutionrelative:katamentities.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{7EBBA357-446A-4116-ACAF-84237022A6EC}|KatAM Randomizer.csproj|c:\\users\\admin\\documents\\github\\katam-randomizer\\kataminternal.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{7EBBA357-446A-4116-ACAF-84237022A6EC}|KatAM Randomizer.csproj|solutionrelative:kataminternal.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{7EBBA357-446A-4116-ACAF-84237022A6EC}|KatAM Randomizer.csproj|c:\\users\\admin\\documents\\github\\katam-randomizer\\katamitems.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
@@ -48,22 +48,23 @@
               "RelativeDocumentMoniker": "KatAMROMReader.cs",
               "ToolTip": "C:\\Users\\Admin\\Documents\\GitHub\\KatAM-Randomizer\\KatAMROMReader.cs",
               "RelativeToolTip": "KatAMROMReader.cs",
-              "ViewState": "AQIAACsAAAAAAAAAAAAUwDQAAAA6AAAA",
+              "ViewState": "AQIAAHYAAAAAAAAAAAAiwH4AAAAvAAAA",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2024-06-02T20:13:32.977Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
+              "DocumentIndex": 1,
               "Title": "KatAMEntities.cs",
               "DocumentMoniker": "C:\\Users\\Admin\\Documents\\GitHub\\KatAM-Randomizer\\KatAMEntities.cs",
               "RelativeDocumentMoniker": "KatAMEntities.cs",
               "ToolTip": "C:\\Users\\Admin\\Documents\\GitHub\\KatAM-Randomizer\\KatAMEntities.cs",
               "RelativeToolTip": "KatAMEntities.cs",
-              "ViewState": "AQIAAFAAAAAAAAAAAAAmwDoAAAATAAAA",
+              "ViewState": "AQIAAFMAAAAAAAAAAAAmwFsAAAAlAAAA",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2024-05-31T23:56:46.678Z"
+              "WhenOpened": "2024-05-31T23:56:46.678Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
@@ -79,7 +80,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
+              "DocumentIndex": 2,
               "Title": "KatAMInternal.cs",
               "DocumentMoniker": "C:\\Users\\Admin\\Documents\\GitHub\\KatAM-Randomizer\\KatAMInternal.cs",
               "RelativeDocumentMoniker": "KatAMInternal.cs",

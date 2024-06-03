@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using KatAMInternal;
 using System.Reflection;
+using System.Security.Cryptography;
 
 namespace KatAM_Randomizer {
     internal class KatAMROMReader {
@@ -53,6 +54,45 @@ namespace KatAM_Randomizer {
             0x3B7, 0x3BB, 0x3BC, 0x3BD, 0x3C9, 0x0, 0x3CA,
         };
 
+        // https://www.tapatalk.com/groups/lighthouse_of_yoshi/kirby-and-the-amazing-mirror-hacking-t741.html
+        static Dictionary<byte, string> enemiesDictionary = new Dictionary<byte, string>{
+            { 0x00, "Waddle Dee" }, 
+            { 0x5F, "Pep Brew" }, 
+            { 0x60, "Meat"},
+            { 0x61, "Maximum Tomato"}, 
+            { 0x62, "Battery" }, 
+            { 0x63, "1UP" },
+            { 0x64, "Lollipop" }, 
+            { 0x65, "Mirror Shard" }, 
+            { 0x66, "Nothing"},
+            { 0x67, "Nothing"}, 
+            { 0x68, "Nothing"}, 
+            { 0x69, "Nothing"}, 
+            { 0x6A, "Nothing"}, 
+            { 0x6B, "Nothing"}, 
+            { 0x6C, "Nothing"},
+            { 0x80, "Small Chest"}
+        };
+
+        static Dictionary<byte, string> itemsDictionary = new Dictionary<byte, string>{
+            { 0x5E, "Cherry" },
+            { 0x5F, "Pep Brew" },
+            { 0x60, "Meat"},
+            { 0x61, "Maximum Tomato"},
+            { 0x62, "Battery" },
+            { 0x63, "1UP" },
+            { 0x64, "Lollipop" },
+            { 0x65, "Mirror Shard" },
+            { 0x66, "Nothing"},
+            { 0x67, "Nothing"},
+            { 0x68, "Nothing"},
+            { 0x69, "Nothing"},
+            { 0x6A, "Nothing"},
+            { 0x6B, "Nothing"},
+            { 0x6C, "Nothing"},
+            { 0x80, "Small Chest"}
+        };
+
         public static void ReadROMData(Processing system) {
             string startAddress = "884C64", endAddress = "8A630D";
             int roomDataStartAddress = Convert.ToInt32(startAddress, 16),
@@ -61,6 +101,10 @@ namespace KatAM_Randomizer {
             byte[] romFile = system.ROMData;
             settings = system.Settings;
             seed = settings.Seed;
+            List<Entity> items = new List<Entity>();
+            List<Entity> enemies = new List<Entity>();
+            List<Entity> mirrors = new List<Entity>();
+            List<Entity> miscellaneous = new List<Entity>();
 
             byte objectByte1 = 0x01, objectByte2 = 0x24, roomLimit = 0xFF;
             int currentRoomIndex = 0;
@@ -68,10 +112,10 @@ namespace KatAM_Randomizer {
             int itemsInRoom = 0;
 
             for (int i = roomDataStartAddress; i < romFile.Length; i++) {
-                if (i > roomDataEndAddress || i + 10 >= romFile.Length) return;
+                if (i > roomDataEndAddress || i + 10 >= romFile.Length) break;
 
                 long currentRoom;
-                try { currentRoom = roomIds[currentRoomIndex]; } catch { return;  }
+                try { currentRoom = roomIds[currentRoomIndex]; } catch { break;  }
 
                 if (!isInConsole) {
                     Console.WriteLine($"Room: {currentRoom} / {Utils.ConvertLongToHex(currentRoom)}");
@@ -80,6 +124,7 @@ namespace KatAM_Randomizer {
 
                 if (romFile[i] == objectByte1 && romFile[i + 1] == objectByte2) {
                     byte[] objectDefinition = new byte[36];
+                    Entity entity = new Entity();
 
                     for(int k = 0; k < 36; k++) {
                         int index = i + k;
@@ -87,7 +132,26 @@ namespace KatAM_Randomizer {
                         objectDefinition[k] = romFile[index];
                     }
 
-                    Console.WriteLine($"Object Found at Address: {i} / {i.ToString("X")}");
+                    entity.Definition = objectDefinition;
+                    entity.Address = i;
+                    entity.Number = new byte[] { romFile[i + 2], romFile[i + 3] };
+                    entity.Link = new byte[] { romFile[i + 4], romFile[i + 5] };
+                    entity.X = new byte[] { romFile[i + 6], romFile[i + 7] };
+                    entity.Y = new byte[] { romFile[i + 8], romFile[i + 9] };
+
+                    byte ID = romFile[i + 12];
+                    entity.ID = ID;
+
+                    entity.Behaviour = romFile[i + 14];
+                    entity.Speed = romFile[i + 16];
+                    Array.Copy(objectDefinition, 18, entity.Properties, 0, 18);
+
+                    if (itemsDictionary.ContainsKey(ID)) {
+                        entity.Name = itemsDictionary[ID];
+                        items.Add(entity);
+                    }
+
+                    Console.WriteLine($"Object Found at Address: {i} / {i.ToString("X")} {ID}");
                     itemsInRoom++;
 
                     i += 35;
@@ -114,6 +178,30 @@ namespace KatAM_Randomizer {
                     }                    
                 }
             }
+
+            Console.WriteLine("Items saved: " + items.Count);
+        }
+    }
+
+    class Entity {
+        public string Name { get; set; }
+        public byte[] Definition { get; set; }
+        public int Address { get; set; }
+
+        // Object Number in a room;
+        public byte[] Number { get; set; }
+
+        // Object to which this entity is linked with; For doors or buttons;
+        public byte[] Link { get; set; }
+        public byte[] X { get; set; }
+        public byte[] Y { get; set; }
+        public byte ID { get; set; }
+        public byte Behaviour { get; set; }
+        public byte Speed { get; set; }
+        public byte[] Properties { get; set; }
+
+        public Entity() {
+            Properties = new byte[18];
         }
     }
 }
