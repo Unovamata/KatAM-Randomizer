@@ -21,18 +21,8 @@ namespace KatAM_Randomizer
 
         private void ButtonConsoleSend_Click(object sender, EventArgs e) {
             Console.Clear();
-            ShowObjectData(system);
+            Utils.ShowObjectData(system);
             Console.WriteLine();
-        }
-
-        void ShowObjectData(object inputObject) {
-            //Console.Clear();
-
-            foreach (PropertyDescriptor descriptor in TypeDescriptor.GetProperties(inputObject)) {
-                string name = descriptor.Name;
-                object value = descriptor.GetValue(inputObject);
-                Console.WriteLine("{0}={1}", name, value);
-            }
         }
 
         private void ButtonLoadFile_Click(object sender, EventArgs e) {

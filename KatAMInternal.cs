@@ -49,6 +49,16 @@ namespace KatAMInternal {
     }
 
     public static class Utils {
+        public static void ShowObjectData(object inputObject) {
+            //Console.Clear();
+
+            foreach (PropertyDescriptor descriptor in TypeDescriptor.GetProperties(inputObject)) {
+                string name = descriptor.Name;
+                object value = descriptor.GetValue(inputObject);
+                Console.WriteLine("{0}={1}", name, value);
+            }
+        }
+
         public static void WriteToROM(byte[] romData, long address, byte[] valueBytes) {
             int bytesLength = valueBytes.Length;
 
