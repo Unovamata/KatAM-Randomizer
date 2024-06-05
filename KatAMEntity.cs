@@ -13,21 +13,16 @@ public class Entity {
     public byte[] Number { get; set; }
 
     // Object to which this entity is linked with; For doors or buttons;
-    public byte[] Link { get; set; }
-    public byte[] X { get; set; }
-    public byte[] Y { get; set; }
+    public byte[] Link { get; set; } = new byte[2];
+    public byte[] X { get; set; } = new byte[2];
+    public byte[] Y { get; set; } = new byte[2];
     public byte ID { get; set; }
     public byte Behavior { get; set; }
     public byte Speed { get; set; }
-    public byte[] Properties { get; set; }
+    public byte[] Properties { get; set; } = new byte[18];
     public byte Room { get; set; }
 
-    public Entity() {
-        Link = new byte[2];
-        X = new byte[2];
-        Y = new byte[2];
-        Properties = new byte[18];
-    }
+    public Entity() {}
 
     public EntitySerializable SerializeEntity() {
         return new EntitySerializable(this);

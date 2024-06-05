@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Net;
 using System.Reflection;
 using System.Transactions;
+using System.Xml.Linq;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement.Rebar;
 
 namespace KatAM_Randomizer {
@@ -13,7 +14,8 @@ namespace KatAM_Randomizer {
         static int seed;
 
         static List<Entity> entities = new List<Entity>();
-        static List<int> addresses = new List<int>();
+        static List<Entity> chestEntities = new List<Entity>();
+        static List<byte> objectIDs = new List<byte>();
 
         public static void RandomizeItems(Processing system) {
             byte[] romFile = system.ROMData;
@@ -37,17 +39,19 @@ namespace KatAM_Randomizer {
                     foreach (var kvp in item) {
                         switch (kvp.Key) {
                             case "Address":
-                            int address = (int)kvp.Value;
+                                int address = (int)kvp.Value;
 
-                            serialized.Address = address;
-
-                            addresses.Add(address);
+                                serialized.Address = address;
                             break;
                             case "Number": serialized.Number = kvp.Value; break;
                             case "Link": serialized.Link = kvp.Value; break;
                             case "X": serialized.X = kvp.Value; break;
                             case "Y": serialized.Y = kvp.Value; break;
-                            case "ID": serialized.ID = (byte)kvp.Value; break;
+                            case "ID":
+                                byte ID = (byte) kvp.Value;
+
+                                serialized.ID = ID;
+                            break;
                             case "Behavior": serialized.Behavior = (byte)kvp.Value; break;
                             case "Speed": serialized.Speed = (byte)kvp.Value; break;
                             case "Properties": serialized.Properties = kvp.Value; break;
@@ -57,50 +61,73 @@ namespace KatAM_Randomizer {
 
                     Entity entity = serialized.DeserializeEntity();
 
+                    // If it's a chest or a mirror shard;
+                    if (IsVetoedObject(serialized.Name) && !IsProgressionObject(serialized.Address)) {
+                        chestEntities.Add(entity);
+                        objectIDs.Add(GenerateRandomConsumable());
+                    } else {
+                        objectIDs.Add(entity.ID);
+                    }
+
                     entities.Add(entity);
+                    
+
                     //Utils.ShowObjectData(entity);
                 }
             }
 
             Console.WriteLine($"Address 0: {entities[0].Address}");
 
-            entities = entities.OrderBy(x => Random.Shared.Next()).ToList();
+            objectIDs = objectIDs.OrderBy(x => Random.Shared.Next()).ToList();
 
             Console.WriteLine($"Address Shuffled: {entities[0].Address}");
 
-            bool isRandom = true;
-            byte[] consumableItems = { 0x5E, 0x5F, 0x60, 0x61, 0x62, 0x63, 0x64 };
+            bool isRandom = false;
+            
 
             for(int i = 0; i < entities.Count; i++) {
-                string name = entities[i].Name;
-                byte id = entities[i].ID;
-                int address = addresses[i];
+                Entity entity = entities[i];
 
-                if (name == Processing.itemsDictionary[0x65]) continue;
-                if (name == Processing.itemsDictionary[0x80]) continue;
-                if (name == Processing.itemsDictionary[0x81]) continue;
+                // Is name either a chest or a mirror shard? Then veto it;
+                /*bool isVetoedItem = IsVetoedObject(entity.Name) || IsVetoedObject(entity.Address);
+                if (isVetoedItem) {
+
+
+                    continue;
+                }*/
 
                 if (isRandom) {
-                    int index = Utils.GetRandomNumber(0, consumableItems.Length);
+                    entity.ID = GenerateRandomConsumable();
 
-                    Utils.WriteToROM(romFile, address + 12, new byte[] { consumableItems[index] });
-                } else Utils.WriteToROM(romFile, address + 12, new byte[] { id });
+                    Utils.WriteObjectToROM(romFile, entity);
+
+                    //Utils.WriteToROM(romFile, address + 12, new byte[] { consumableItems[index] });
+                } else {
+                    entity.ID = objectIDs[i];
+
+                    Utils.WriteObjectToROM(romFile, entity);
+                }
             }
-
-            /*foreach (Entity entity in entitiesArray) {
-                byte[] obj = new byte[] { entity.ID };
-
-                if (entity.Name == Processing.itemsDictionary[0x81]) continue;
-                if (entity.Name == Processing.itemsDictionary[0x80]) continue;
-
-                Console.WriteLine(entity.ID);
-
-                Utils.WriteToROM(romFile, entity.Address + 12, obj);
-                romFile[entity.Address + 12] = (byte) entity.ID;
-            }*/
         }
 
+        static bool IsVetoedObject(string name) {
+            return name == Processing.itemsDictionary[0x65] ||
+                   name == Processing.itemsDictionary[0x80] ||
+                   name == Processing.itemsDictionary[0x81];
+        }
 
+        static bool IsProgressionObject(int address) {
+            return address == 8933912 || address == 8970772 ||
+                   address == 9032664 || address == 9049580 ||
+                   address == 9056256;
+        }
+
+        static byte[] consumableItems = { 0x5E, 0x5F, 0x60, 0x61, 0x62, 0x63, 0x64 };
+        static byte GenerateRandomConsumable() {
+            int index = Utils.GetRandomNumber(0, consumableItems.Length);
+
+            return consumableItems[index];
+        }
 
 
         /*Console.WriteLine(formattedJson);*/

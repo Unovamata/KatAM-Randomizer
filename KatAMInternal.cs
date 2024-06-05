@@ -243,6 +243,19 @@ namespace KatAMInternal {
             }
         }
 
+        public static void WriteObjectToROM(byte[] romFile, Entity entity) {
+            int address = entity.Address;
+            byte id = entity.ID;
+            byte behavior = entity.Behavior;
+            byte speed = entity.Speed;
+            byte[] properties = entity.Properties;
+
+            WriteToROM(romFile, address + 12, new byte[] { id });
+            WriteToROM(romFile, address + 14, new byte[] { behavior });
+            WriteToROM(romFile, address + 16, new byte[] { speed });
+            WriteToROM(romFile, address + 18, properties);
+        }
+
         public static int GetRandomNumber(int min, int max) {
             Settings settings = Settings.GetInstance();
 
@@ -292,37 +305,30 @@ namespace KatAMInternal {
 
         public static void SaveJSON(dynamic list, string filename) {
             string json = JsonConvert.SerializeObject(EntitiesToJSON(list), Formatting.Indented);
-
             File.WriteAllText(jsonRoute + filename + ".json", json);
         }
 
-        
         public static dynamic EntitiesToJSON(List<Entity> list) {
             var groupedEntities = new Dictionary<string, List<Dictionary<string, dynamic>>>();
 
             foreach (Entity entity in list) {
                 EntitySerializable serialized = entity.SerializeEntity();
-
                 if (!groupedEntities.ContainsKey(serialized.Name)) {
                     groupedEntities[serialized.Name] = new List<Dictionary<string, dynamic>>();
                 }
 
-                var entityDict = new Dictionary<string, dynamic>();
-
-                // Use reflection to loop through all properties
-                string key = serialized.Name;
-
-                //entityDict["Definition"] = serialized.Definition;
-                entityDict["Address"] = serialized.Address;
-                entityDict["Number"] = serialized.Number;
-                entityDict["Link"] = serialized.Link;
-                entityDict["X"] = serialized.X;
-                entityDict["Y"] = serialized.Y;
-                entityDict["ID"] = serialized.ID;
-                entityDict["Behavior"] = serialized.Behavior;
-                entityDict["Speed"] = serialized.Speed;
-                entityDict["Properties"] = serialized.Properties;
-                entityDict["Room"] = serialized.Room;
+                var entityDict = new Dictionary<string, dynamic> {
+                    ["Address"] = serialized.Address,
+                    ["Number"] = serialized.Number,
+                    ["Link"] = serialized.Link,
+                    ["X"] = serialized.X,
+                    ["Y"] = serialized.Y,
+                    ["ID"] = serialized.ID,
+                    ["Behavior"] = serialized.Behavior,
+                    ["Speed"] = serialized.Speed,
+                    ["Properties"] = serialized.Properties,
+                    ["Room"] = serialized.Room
+                };
 
                 groupedEntities[serialized.Name].Add(entityDict);
             }
