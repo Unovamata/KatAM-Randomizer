@@ -97,6 +97,7 @@ namespace KatAM_Randomizer
             //KatAMROMReader.ReadROMData(system);
             //KatAMSprays.RandomizeSpray(system);
             KatAMItems.RandomizeItems(system);
+            KatAMItems.RandomizeChests();
 
 
             File.WriteAllBytes(destinationPath, system.ROMData);

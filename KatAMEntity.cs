@@ -24,6 +24,21 @@ public class Entity {
 
     public Entity() {}
 
+    public Entity(Entity entity) {
+        Name = entity.Name;
+        Definition = entity.Definition;
+        Address = entity.Address;
+        Number = entity.Number;
+        Link = entity.Link;
+        X = entity.X;
+        Y = entity.Y;
+        ID = entity.ID;
+        Behavior = entity.Behavior;
+        Speed = entity.Speed;
+        Properties = entity.Properties;
+        Room = entity.Room;
+    }
+
     public EntitySerializable SerializeEntity() {
         return new EntitySerializable(this);
     }

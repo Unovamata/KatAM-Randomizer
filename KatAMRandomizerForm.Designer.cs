@@ -339,9 +339,9 @@
             GroupMirrorShardsAmount.Controls.Add(label2);
             GroupMirrorShardsAmount.Controls.Add(label3);
             GroupMirrorShardsAmount.Enabled = false;
-            GroupMirrorShardsAmount.Location = new Point(6, 121);
+            GroupMirrorShardsAmount.Location = new Point(6, 97);
             GroupMirrorShardsAmount.Name = "GroupMirrorShardsAmount";
-            GroupMirrorShardsAmount.Size = new Size(165, 92);
+            GroupMirrorShardsAmount.Size = new Size(165, 116);
             GroupMirrorShardsAmount.TabIndex = 3;
             GroupMirrorShardsAmount.TabStop = false;
             GroupMirrorShardsAmount.Text = "Amount";

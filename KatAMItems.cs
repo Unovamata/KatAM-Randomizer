@@ -14,11 +14,16 @@ namespace KatAM_Randomizer {
         static Settings Settings;
         static int seed;
 
-        static List<Entity> entities = new List<Entity>();
-        static List<Entity> chestEntities = new List<Entity>();
-        static List<byte> objectIDs = new List<byte>();
+        static List<Entity> entities;
+        static List<Entity> chestEntities;
+        static List<byte> objectIDs;
 
         public static void RandomizeItems(Processing system) {
+            // Reset the lists if needed;
+            entities = new List<Entity>();
+            chestEntities = new List<Entity>();
+            objectIDs = new List<byte>();
+
             System = system;
             Settings = system.Settings;
             byte[] romFile = System.ROMData;
@@ -50,51 +55,38 @@ namespace KatAM_Randomizer {
                             case "X": serialized.X = kvp.Value; break;
                             case "Y": serialized.Y = kvp.Value; break;
                             case "ID":
-                            byte ID = (byte)kvp.Value;
-
-                            serialized.ID = ID;
+                                byte ID = (byte) kvp.Value;
+                                serialized.ID = ID;
                             break;
-                            case "Behavior": serialized.Behavior = (byte)kvp.Value; break;
-                            case "Speed": serialized.Speed = (byte)kvp.Value; break;
+                            case "Behavior": serialized.Behavior = (byte) kvp.Value; break;
+                            case "Speed": serialized.Speed = (byte) kvp.Value; break;
                             case "Properties": serialized.Properties = kvp.Value; break;
                             case "Room": 
                                 serialized.Room = (int) kvp.Value;
-
-
                             break;
                         }
                     }
 
                     Entity entity = serialized.DeserializeEntity();
 
-                    Console.WriteLine(entity.Room);
-
                     // If it's not a progression object or the room is not unused, save entities to a list;
-                    if (!IsProgressionObject(entity) || entity.Room != 0x0) {
-                        // If it's a chest save its information for later;
-                        if (IsVetoedObject(serialized.Name)) {
-                            chestEntities.Add(entity);
-                            objectIDs.Add(GenerateRandomConsumable());
-                        } else { // If it's a consumable, save it for randomization;
-                            objectIDs.Add(entity.ID);
-                        }
+                    if (entity.Room == 0x0 || IsProgressionObject(entity)) continue;
 
-                        entities.Add(entity);
+                    // If it's a chest save its information for later;
+                    if (IsVetoedObject(entity)) {
+                        chestEntities.Add(new Entity(entity));
+                        objectIDs.Add(GenerateRandomConsumable());
+                    } else { // If it's a consumable, save it for randomization;
+                        objectIDs.Add(entity.ID);
                     }
-                    
 
-                    //Utils.ShowObjectData(entity);
+                    entities.Add(entity);
                 }
             }
 
-            Console.WriteLine($"Address 0: {entities[0].Address}");
-
             objectIDs = objectIDs.OrderBy(x => Random.Shared.Next()).ToList();
 
-            Console.WriteLine($"Address Shuffled: {entities[0].Address}");
-
             bool isRandom = false;
-            
 
             for(int i = 0; i < entities.Count; i++) {
                 Entity entity = entities[i];
@@ -111,9 +103,45 @@ namespace KatAM_Randomizer {
                     Utils.WriteObjectToROM(romFile, entity);
                 }
             }
+
+            Console.WriteLine(chestEntities.Count);
+
+            for(int i = 0; i < chestEntities.Count; i++) {
+                Entity chest = chestEntities[i];
+
+                int replacedEntityIndex = ReplaceChestEntity(chest);
+                Entity oldEntity = entities[replacedEntityIndex];
+
+                chest.Address = oldEntity.Address;
+                chest.Number = oldEntity.Number;
+                chest.Link = oldEntity.Link;
+                chest.X = oldEntity.X;
+                chest.Y = oldEntity.Y;
+                chest.Room = oldEntity.Room;
+
+                entities[replacedEntityIndex] = chest;
+
+                Console.WriteLine($"Chest Replaced At Address: {chest.Address}");
+                Utils.ShowObjectData(chest);
+
+                Utils.WriteObjectToROM(romFile, chest);
+            }
         }
 
-        static bool IsVetoedObject(string name) {
+        static int ReplaceChestEntity(Entity chest) {
+            int selectedEntity = Utils.GetRandomNumber(0, entities.Count);
+            Entity entity = entities[selectedEntity];
+
+            if (IsVetoedObject(entity)) {
+                selectedEntity = ReplaceChestEntity(chest);
+            } 
+            
+            return selectedEntity;
+        }
+
+        static bool IsVetoedObject(Entity entity) {
+            string name = entity.Name;
+
             return name == Processing.itemsDictionary[0x80] ||
                    name == Processing.itemsDictionary[0x81];
         }
@@ -123,9 +151,9 @@ namespace KatAM_Randomizer {
             byte behavior = entity.Behavior;
 
             bool isProgressionObject = entity.ID == 0x81 && behavior == 0x63,
-                 isMirror = entity.ID == 0x65 && behavior == 0x08;
+                 isDimensionMirror = entity.ID == 0x65 && behavior == 0x08;
 
-            return isProgressionObject || isMirror;
+            return isProgressionObject || isDimensionMirror;
         }
 
         static byte[] consumableItems = { 0x5E, 0x5F, 0x60, 0x61, 0x62, 0x63, 0x64 };
@@ -136,18 +164,51 @@ namespace KatAM_Randomizer {
         }
 
         static long NineROMStartAddress = 9441164;
-        static long NineROMEndAddress = 9441164;
+        static long NineROMEndAddress = 9449747;
         static long NewNineROMAddress = 14745600;
+        
 
         public static void RandomizeChests() {
             byte[] romFile = System.ROMData;
+            int currentRoom = 0,
+                currentChestsInRoom = 0;
+            long currentRoomAddress = NineROMStartAddress,
+                 newListAddress = NewNineROMAddress;
 
-            for(int i = 0; i < romFile.Length; i++) {
-                if (i >= NineROMEndAddress) return;
+            for (long i = NineROMStartAddress; i < romFile.Length; i += 1) {
+                if (i >= NineROMEndAddress || i >= romFile.Length) return;
 
+                byte byte1 = romFile[i],
+                     byte2 = romFile[i + 1],
+                     byte3 = romFile[i + 2],
+                     byte4 = romFile[i + 3];
 
+                if (IsChest(byte1, byte2, byte3, byte4)) {
+                    //Console.WriteLine($"Chest 9ROM Found at {i} address!");
+                    i += 7;
+                } else if(IsMirror(byte1, byte2, byte3, byte4)) {
+                    //Console.WriteLine($"Mirror 9ROM Found at {i} address!");
+                    i += 7;
+                } else if(IsEndOfRoom(byte1, byte2, byte3, byte4)){
+                    //Console.WriteLine($"End of Room {Processing.roomIds[currentRoom]} / {Utils.ConvertIntToHex(Processing.roomIds[currentRoom])} 9ROM Found at {i} address!");
+                    currentRoom++;
+                    i += 11;
+                    currentRoomAddress = i;
+                }
             }
 
+        }
+
+        static bool IsChest(byte first, byte second, byte third, byte forth) {
+            return (first == 0x01) && (second == 0x08) && (third == 0xFF) && (forth == 0xFF);
+        }
+
+        static bool IsMirror(byte first, byte second, byte third, byte forth) {
+            return (first == 0x02) && (second == 0x08) && (third == 0xFF) && (forth == 0xFF);
+        }
+
+        static bool IsEndOfRoom(byte first, byte second, byte third, byte forth) {
+            return (first == 0x00) && (second == 0x00) && (third == 0xFF) && (forth == 0xFF);
         }
     }
 }
