@@ -31,7 +31,7 @@
             ButtonConsoleSend = new Button();
             ButtonLoadFile = new Button();
             ButtonSaveFile = new Button();
-            button2 = new Button();
+            ButtonInputSeed = new Button();
             button5 = new Button();
             button6 = new Button();
             GroupSettings = new GroupBox();
@@ -75,6 +75,7 @@
             RadioSprayRandom = new RadioButton();
             RadioSprayUnchanged = new RadioButton();
             ButtonRefreshSeed = new Button();
+            LabelSeed = new Label();
             GroupSettings.SuspendLayout();
             GroupRomInfo.SuspendLayout();
             tabControl1.SuspendLayout();
@@ -120,14 +121,16 @@
             ButtonSaveFile.UseVisualStyleBackColor = true;
             ButtonSaveFile.Click += ButtonSaveFile_Click;
             // 
-            // button2
+            // ButtonInputSeed
             // 
-            button2.Location = new Point(626, 70);
-            button2.Name = "button2";
-            button2.Size = new Size(162, 23);
-            button2.TabIndex = 3;
-            button2.Text = "Input Premade Seed";
-            button2.UseVisualStyleBackColor = true;
+            ButtonInputSeed.Enabled = false;
+            ButtonInputSeed.Location = new Point(626, 70);
+            ButtonInputSeed.Name = "ButtonInputSeed";
+            ButtonInputSeed.Size = new Size(162, 23);
+            ButtonInputSeed.TabIndex = 3;
+            ButtonInputSeed.Text = "Input Premade Seed";
+            ButtonInputSeed.UseVisualStyleBackColor = true;
+            ButtonInputSeed.Click += ButtonInputSeed_Click;
             // 
             // button5
             // 
@@ -626,6 +629,7 @@
             // 
             // ButtonRefreshSeed
             // 
+            ButtonRefreshSeed.Enabled = false;
             ButtonRefreshSeed.Location = new Point(626, 99);
             ButtonRefreshSeed.Name = "ButtonRefreshSeed";
             ButtonRefreshSeed.Size = new Size(162, 23);
@@ -634,16 +638,28 @@
             ButtonRefreshSeed.UseVisualStyleBackColor = true;
             ButtonRefreshSeed.Click += ButtonRefreshSeed_Click;
             // 
+            // LabelSeed
+            // 
+            LabelSeed.AutoSize = true;
+            LabelSeed.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            LabelSeed.Location = new Point(626, 125);
+            LabelSeed.Name = "LabelSeed";
+            LabelSeed.Size = new Size(35, 15);
+            LabelSeed.TabIndex = 12;
+            LabelSeed.Text = "Seed:";
+            LabelSeed.Visible = false;
+            // 
             // KatAMRandomizerMain
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(800, 450);
+            Controls.Add(LabelSeed);
             Controls.Add(ButtonRefreshSeed);
             Controls.Add(tabControl1);
             Controls.Add(GroupRomInfo);
             Controls.Add(GroupSettings);
-            Controls.Add(button2);
+            Controls.Add(ButtonInputSeed);
             Controls.Add(ButtonSaveFile);
             Controls.Add(ButtonLoadFile);
             Icon = (Icon)resources.GetObject("$this.Icon");
@@ -668,6 +684,7 @@
             GroupSprayOutlines.ResumeLayout(false);
             GroupSprayOutlines.PerformLayout();
             ResumeLayout(false);
+            PerformLayout();
         }
 
         #endregion
@@ -675,7 +692,7 @@
         private Button ButtonConsoleSend;
         private Button ButtonLoadFile;
         private Button ButtonSaveFile;
-        private Button button2;
+        private Button ButtonInputSeed;
         private Button button5;
         private Button button6;
         private GroupBox GroupSettings;
@@ -719,5 +736,6 @@
         private Label label2;
         private Label label3;
         private RadioButton RadioMirrorShardsRandom;
+        private Label LabelSeed;
     }
 }

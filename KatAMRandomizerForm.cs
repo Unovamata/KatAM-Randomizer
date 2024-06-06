@@ -9,13 +9,19 @@ namespace KatAM_Randomizer
     public partial class KatAMRandomizerMain : Form {
         Processing system = new Processing();
         Settings settings;
+        public static KatAMRandomizerMain Instance;
 
         public KatAMRandomizerMain() {
             settings = system.Settings;
 
             InitializeComponent();
+            Instance = this;
 
             this.StartPosition = FormStartPosition.CenterScreen;
+        }
+
+        public void UpdateLabelSeedText() {
+            LabelSeed.Text = $"Seed: {settings.Seed}";
         }
 
         private void ButtonConsoleSend_Click(object sender, EventArgs e) {
@@ -82,6 +88,10 @@ namespace KatAM_Randomizer
                     LabelGameRegion.Text = $"Region: {region}";
 
                     ButtonSaveFile.Enabled = true;
+                    ButtonInputSeed.Enabled = true;
+                    ButtonRefreshSeed.Enabled = true;
+                    LabelSeed.Visible = true;
+                    UpdateLabelSeedText();
                 } catch (Exception ex) {
                     MessageBox.Show($"Error loading file: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
@@ -133,6 +143,12 @@ namespace KatAM_Randomizer
 
         private void ButtonRefreshSeed_Click(object sender, EventArgs e) {
             settings.GetNewSeed();
+            UpdateLabelSeedText();
+        }
+
+        private void ButtonInputSeed_Click(object sender, EventArgs e) {
+            SeedInputForm form = new SeedInputForm();
+            form.ShowDialog();
         }
     }
 }

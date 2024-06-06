@@ -34,3 +34,4 @@ C:\Users\Admin\Documents\GitHub\KatAM-Randomizer\obj\Debug\net8.0-windows\KatAM_
 C:\Users\Admin\Documents\GitHub\KatAM-Randomizer\obj\Debug\net8.0-windows\KatAM Randomizer.csproj.AssemblyReference.cache
 C:\Users\Admin\Documents\GitHub\KatAM-Randomizer\bin\Debug\net8.0-windows\Newtonsoft.Json.dll
 C:\Users\Admin\Documents\GitHub\KatAM-Randomizer\obj\Debug\net8.0-windows\KatAM Ra.FEB5789B.Up2Date
+C:\Users\Admin\Documents\GitHub\KatAM-Randomizer\obj\Debug\net8.0-windows\KatAM_Randomizer.SeedInputForm.resources

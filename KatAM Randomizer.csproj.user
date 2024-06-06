@@ -4,5 +4,8 @@
     <Compile Update="KatAMRandomizerForm.cs">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Update="SeedInputForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
   </ItemGroup>
 </Project>

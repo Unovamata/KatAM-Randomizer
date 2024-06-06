@@ -84,7 +84,7 @@ namespace KatAM_Randomizer {
                 }
             }
 
-            objectIDs = objectIDs.OrderBy(x => Random.Shared.Next()).ToList();
+            objectIDs = objectIDs.OrderBy(x => Utils.GetNextRandom()).ToList();
 
             bool isRandom = false;
 
@@ -122,7 +122,6 @@ namespace KatAM_Randomizer {
                 entities[replacedEntityIndex] = chest;
 
                 Console.WriteLine($"Chest Replaced At Address: {chest.Address}");
-                Utils.ShowObjectData(chest);
 
                 Utils.WriteObjectToROM(romFile, chest);
             }

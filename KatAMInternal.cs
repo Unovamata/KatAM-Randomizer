@@ -256,6 +256,12 @@ namespace KatAMInternal {
             WriteToROM(romFile, address + 18, properties);
         }
 
+        public static int GetNextRandom() {
+            Settings settings = Settings.GetInstance();
+
+            return settings.RandomEntity.Next();
+        }
+
         public static int GetRandomNumber(int min, int max) {
             Settings settings = Settings.GetInstance();
 
