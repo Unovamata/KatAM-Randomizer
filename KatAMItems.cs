@@ -10,7 +10,8 @@ using static System.Windows.Forms.VisualStyles.VisualStyleElement.Rebar;
 
 namespace KatAM_Randomizer {
     internal class KatAMItems {
-        static Settings settings;
+        static Processing System;
+        static Settings Settings;
         static int seed;
 
         static List<Entity> entities = new List<Entity>();
@@ -18,9 +19,10 @@ namespace KatAM_Randomizer {
         static List<byte> objectIDs = new List<byte>();
 
         public static void RandomizeItems(Processing system) {
-            byte[] romFile = system.ROMData;
-            settings = system.Settings;
-            seed = settings.Seed;
+            System = system;
+            Settings = system.Settings;
+            byte[] romFile = System.ROMData;
+            seed = Settings.Seed;
 
             dynamic itemsJson = Utils.JSONToEntities(Utils.itemsJson);
 
@@ -55,7 +57,7 @@ namespace KatAM_Randomizer {
                             case "Behavior": serialized.Behavior = (byte)kvp.Value; break;
                             case "Speed": serialized.Speed = (byte)kvp.Value; break;
                             case "Properties": serialized.Properties = kvp.Value; break;
-                            case "Room": serialized.Room = (byte)kvp.Value; break;
+                            case "Room": serialized.Room = kvp.Value; break;
                         }
                     }
 
@@ -125,6 +127,21 @@ namespace KatAM_Randomizer {
             int index = Utils.GetRandomNumber(0, consumableItems.Length);
 
             return consumableItems[index];
+        }
+
+        static long NineROMStartAddress = 9441164;
+        static long NineROMEndAddress = 9441164;
+        static long NewNineROMAddress = 14745600;
+
+        public static void RandomizeChests() {
+            byte[] romFile = System.ROMData;
+
+            for(int i = 0; i < romFile.Length; i++) {
+                if (i >= NineROMEndAddress) return;
+
+
+            }
+
         }
     }
 }

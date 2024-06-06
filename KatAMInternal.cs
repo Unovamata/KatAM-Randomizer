@@ -22,7 +22,7 @@ namespace KatAMInternal {
         }
 
         // By Fyyyyik; https://github.com/Fyyyyik/KatAM-Object-Editor/blob/main/Editor/LevelDataManager.cs
-        public static List<long> roomIds = new List<long>(){
+        public static List<int> roomIds = new List<int>(){
             0x321, 0x323, 0x324, 0x325, 0x0, 0x3D4, 0x3D5, 0x3D6,
             0xB4, 0xB5, 0x214, 0x216, 0x217, 0x218, 0x219, 0x21A,
             0x21E, 0x21F, 0x23A, 0x23B, 0x24E, 0x65, 0x67, 0x68,

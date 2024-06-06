@@ -7,7 +7,7 @@ namespace KatAM_Randomizer {
         static int seed;
 
         // Calling the data linking information;
-        static List<long> roomIds = Processing.roomIds;
+        static List<int> roomIds = Processing.roomIds;
         static Dictionary<byte, string> enemiesDictionary = Processing.enemiesDictionary,
                                         minibossesDictionary = Processing.minibossesDictionary,
                                         bossesDictionary = Processing.bossesDictionary,
@@ -44,7 +44,7 @@ namespace KatAM_Randomizer {
             for (int i = roomDataStartAddress; i < romFile.Length; i++) {
                 if (i > roomDataEndAddress || i + 10 >= romFile.Length) break;
 
-                long currentRoom; // Extracting the current room ID;
+                int currentRoom; // Extracting the current room ID;
                 try { currentRoom = roomIds[currentRoomIndex]; } catch { break;  }
 
                 /*if (!isInConsole) {
@@ -80,7 +80,7 @@ namespace KatAM_Randomizer {
                     entity.Behavior = romFile[i + 14];
                     entity.Speed = romFile[i + 16];
                     Array.Copy(objectDefinition, 18, entity.Properties, 0, 18);
-                    entity.Room = (byte) currentRoom;
+                    entity.Room = currentRoom;
 
                     // Mapping the enemies to a specific name type;
                     bool isEnemy = enemiesDictionary.ContainsKey(ID);

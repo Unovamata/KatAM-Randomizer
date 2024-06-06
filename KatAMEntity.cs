@@ -20,7 +20,7 @@ public class Entity {
     public byte Behavior { get; set; }
     public byte Speed { get; set; }
     public byte[] Properties { get; set; } = new byte[18];
-    public byte Room { get; set; }
+    public int Room { get; set; }
 
     public Entity() {}
 

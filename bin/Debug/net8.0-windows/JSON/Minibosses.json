@@ -1,0 +1,450 @@
+{
+  "Master Hand": [
+    {
+      "Address": 8951012,
+      "Number": "0006",
+      "Link": "0101",
+      "X": "B801",
+      "Y": "0801",
+      "ID": 62,
+      "Behavior": 0,
+      "Speed": 0,
+      "Properties": "000000000000000038FFC8FFF00068000000",
+      "Room": 557
+    },
+    {
+      "Address": 9008232,
+      "Number": "000F",
+      "Link": "0101",
+      "X": "C001",
+      "Y": "4000",
+      "ID": 62,
+      "Behavior": 0,
+      "Speed": 0,
+      "Properties": "000000000000000030FFC0FFF00080000000",
+      "Room": 415
+    },
+    {
+      "Address": 9046444,
+      "Number": "000B",
+      "Link": "0101",
+      "X": "7801",
+      "Y": "7800",
+      "ID": 62,
+      "Behavior": 0,
+      "Speed": 0,
+      "Properties": "000000000000000018FF98FF200180000000",
+      "Room": 612
+    }
+  ],
+  "Batafire": [
+    {
+      "Address": 8957916,
+      "Number": "0006",
+      "Link": "0101",
+      "X": "2800",
+      "Y": "2002",
+      "ID": 59,
+      "Behavior": 1,
+      "Speed": 0,
+      "Properties": "0000000000000000E3FFC5FFF0008B000000",
+      "Room": 176
+    },
+    {
+      "Address": 8971708,
+      "Number": "0001",
+      "Link": "0101",
+      "X": "E000",
+      "Y": "4000",
+      "ID": 59,
+      "Behavior": 0,
+      "Speed": 0,
+      "Properties": "000000000000000020FFC0FF000180000000",
+      "Room": 745
+    },
+    {
+      "Address": 8999636,
+      "Number": "0003",
+      "Link": "0301",
+      "X": "D001",
+      "Y": "A000",
+      "ID": 59,
+      "Behavior": 0,
+      "Speed": 0,
+      "Properties": "000000000000000030FFB0FFE00088000000",
+      "Room": 323
+    },
+    {
+      "Address": 9018988,
+      "Number": "0003",
+      "Link": "0101",
+      "X": "2000",
+      "Y": "1802",
+      "ID": 59,
+      "Behavior": 1,
+      "Speed": 0,
+      "Properties": "0000000000000000F0FFD8FFE00080000000",
+      "Room": 514
+    },
+    {
+      "Address": 9068268,
+      "Number": "0000",
+      "Link": "0001",
+      "X": "E000",
+      "Y": "5000",
+      "ID": 59,
+      "Behavior": 0,
+      "Speed": 1,
+      "Properties": "000000000000000020FFB0FF0001A0000500",
+      "Room": 957
+    }
+  ],
+  "Box Boxer": [
+    {
+      "Address": 8958320,
+      "Number": "0003",
+      "Link": "0101",
+      "X": "3801",
+      "Y": "1001",
+      "ID": 60,
+      "Behavior": 0,
+      "Speed": 0,
+      "Properties": "0000000000000000B8FF90FFF000A0000000",
+      "Room": 177
+    },
+    {
+      "Address": 8976752,
+      "Number": "000D",
+      "Link": "0101",
+      "X": "3800",
+      "Y": "E000",
+      "ID": 60,
+      "Behavior": 0,
+      "Speed": 0,
+      "Properties": "0000000000000000E8FFA0FFB00068000000",
+      "Room": 210
+    },
+    {
+      "Address": 8998068,
+      "Number": "0003",
+      "Link": "0101",
+      "X": "A000",
+      "Y": "5001",
+      "ID": 60,
+      "Behavior": 0,
+      "Speed": 0,
+      "Properties": "000000000000000080FFA0FFC00068000000",
+      "Room": 318
+    },
+    {
+      "Address": 9006888,
+      "Number": "0001",
+      "Link": "0101",
+      "X": "2001",
+      "Y": "A800",
+      "ID": 60,
+      "Behavior": 1,
+      "Speed": 0,
+      "Properties": "0000000000000000D0FFB8FF000160000000",
+      "Room": 413
+    },
+    {
+      "Address": 9022516,
+      "Number": "0001",
+      "Link": "0101",
+      "X": "3000",
+      "Y": "7000",
+      "ID": 60,
+      "Behavior": 0,
+      "Speed": 0,
+      "Properties": "0000000000000000E0FFA0FFB00070000000",
+      "Room": 530
+    }
+  ],
+  "Boxy": [
+    {
+      "Address": 8962288,
+      "Number": "0003",
+      "Link": "0101",
+      "X": "B801",
+      "Y": "1001",
+      "ID": 61,
+      "Behavior": 0,
+      "Speed": 0,
+      "Properties": "0000000000000000D8FFA0FFE00080000000",
+      "Room": 148
+    },
+    {
+      "Address": 8968100,
+      "Number": "0009",
+      "Link": "0101",
+      "X": "5000",
+      "Y": "4801",
+      "ID": 61,
+      "Behavior": 0,
+      "Speed": 0,
+      "Properties": "0000000000000001E0FF98FFD00070000100",
+      "Room": 712
+    },
+    {
+      "Address": 8992764,
+      "Number": "0001",
+      "Link": "0101",
+      "X": "7804",
+      "Y": "8800",
+      "ID": 61,
+      "Behavior": 0,
+      "Speed": 0,
+      "Properties": "000000000000000058FFA8FFD00060000000",
+      "Room": 547
+    },
+    {
+      "Address": 9033668,
+      "Number": "0008",
+      "Link": "0101",
+      "X": "B801",
+      "Y": "0001",
+      "ID": 61,
+      "Behavior": 0,
+      "Speed": 0,
+      "Properties": "000000000000000038FFB0FF000158000800",
+      "Room": 827
+    },
+    {
+      "Address": 9052792,
+      "Number": "0007",
+      "Link": "0101",
+      "X": "9002",
+      "Y": "7000",
+      "ID": 61,
+      "Behavior": 1,
+      "Speed": 0,
+      "Properties": "000000000000000150FF90FF000180000100",
+      "Room": 102
+    }
+  ],
+  "Mr. Frosty": [
+    {
+      "Address": 8968324,
+      "Number": "0000",
+      "Link": "0101",
+      "X": "A000",
+      "Y": "4800",
+      "ID": 56,
+      "Behavior": 0,
+      "Speed": 0,
+      "Properties": "000000000000000070FFC8FFD00080000000",
+      "Room": 740
+    },
+    {
+      "Address": 8981056,
+      "Number": "0002",
+      "Link": "0101",
+      "X": "B801",
+      "Y": "E800",
+      "ID": 56,
+      "Behavior": 0,
+      "Speed": 0,
+      "Properties": "000000000000000038FF98FFF000B0000000",
+      "Room": 230
+    },
+    {
+      "Address": 9033084,
+      "Number": "0007",
+      "Link": "0101",
+      "X": "1801",
+      "Y": "6800",
+      "ID": 56,
+      "Behavior": 0,
+      "Speed": 0,
+      "Properties": "000000000000000088FFA8FFF00068000000",
+      "Room": 825
+    },
+    {
+      "Address": 9068124,
+      "Number": "0000",
+      "Link": "0001",
+      "X": "C000",
+      "Y": "7800",
+      "ID": 56,
+      "Behavior": 0,
+      "Speed": 1,
+      "Properties": "000000000000000040FF88FF000198000500",
+      "Room": 956
+    }
+  ],
+  "Bonkers": [
+    {
+      "Address": 8969228,
+      "Number": "000D",
+      "Link": "0101",
+      "X": "5800",
+      "Y": "C801",
+      "ID": 57,
+      "Behavior": 0,
+      "Speed": 0,
+      "Properties": "0000000000000000C8FF98FFC00070000000",
+      "Room": 741
+    },
+    {
+      "Address": 8976572,
+      "Number": "000A",
+      "Link": "0201",
+      "X": "B801",
+      "Y": "E800",
+      "ID": 57,
+      "Behavior": 0,
+      "Speed": 0,
+      "Properties": "000000000000000068FF98FFB00068000000",
+      "Room": 210
+    },
+    {
+      "Address": 9011032,
+      "Number": "0004",
+      "Link": "0101",
+      "X": "C001",
+      "Y": "B000",
+      "ID": 57,
+      "Behavior": 1,
+      "Speed": 0,
+      "Properties": "000000000000000030FFA0FFF00080000000",
+      "Room": 420
+    },
+    {
+      "Address": 9015344,
+      "Number": "0009",
+      "Link": "0101",
+      "X": "8801",
+      "Y": "2801",
+      "ID": 57,
+      "Behavior": 0,
+      "Speed": 0,
+      "Properties": "000000000000000088FFA8FFB00060000000",
+      "Room": 508
+    },
+    {
+      "Address": 9019712,
+      "Number": "000A",
+      "Link": "0101",
+      "X": "2001",
+      "Y": "1802",
+      "ID": 57,
+      "Behavior": 0,
+      "Speed": 0,
+      "Properties": "000000000000000090FFA8FFD00060000000",
+      "Room": 515
+    },
+    {
+      "Address": 9038472,
+      "Number": "0004",
+      "Link": "0101",
+      "X": "A002",
+      "Y": "7000",
+      "ID": 57,
+      "Behavior": 0,
+      "Speed": 0,
+      "Properties": "000000000000000050FFA0FFF00070000000",
+      "Room": 816
+    },
+    {
+      "Address": 9045180,
+      "Number": "0001",
+      "Link": "0101",
+      "X": "C800",
+      "Y": "7800",
+      "ID": 57,
+      "Behavior": 0,
+      "Speed": 0,
+      "Properties": "000000000000000048FF98FFE00060000000",
+      "Room": 608
+    }
+  ],
+  "Bombar": [
+    {
+      "Address": 8982288,
+      "Number": "0008",
+      "Link": "0101",
+      "X": "8800",
+      "Y": "3000",
+      "ID": 63,
+      "Behavior": 1,
+      "Speed": 1,
+      "Properties": "0000000000000000E8FFD0FFF00090000000",
+      "Room": 232
+    },
+    {
+      "Address": 8989344,
+      "Number": "0002",
+      "Link": "0101",
+      "X": "4007",
+      "Y": "3800",
+      "ID": 63,
+      "Behavior": 0,
+      "Speed": 0,
+      "Properties": "000000000000000010FFC8FF300198000000",
+      "Room": 539
+    },
+    {
+      "Address": 9000652,
+      "Number": "000B",
+      "Link": "0100",
+      "X": "8805",
+      "Y": "3800",
+      "ID": 63,
+      "Behavior": 0,
+      "Speed": 0,
+      "Properties": "000000000000000018FFC8FF100198000000",
+      "Room": 326
+    }
+  ],
+  "Phan Phan": [
+    {
+      "Address": 8986872,
+      "Number": "0005",
+      "Link": "0101",
+      "X": "F003",
+      "Y": "8000",
+      "ID": 58,
+      "Behavior": 0,
+      "Speed": 0,
+      "Properties": "0000000000000000D0FF90FFF00088000000",
+      "Room": 224
+    },
+    {
+      "Address": 8997772,
+      "Number": "0006",
+      "Link": "0101",
+      "X": "D800",
+      "Y": "0001",
+      "ID": 58,
+      "Behavior": 0,
+      "Speed": 1,
+      "Properties": "0000000000000000C8FFB0FFD00058000000",
+      "Room": 317
+    },
+    {
+      "Address": 9003232,
+      "Number": "0005",
+      "Link": "0101",
+      "X": "9002",
+      "Y": "8000",
+      "ID": 58,
+      "Behavior": 1,
+      "Speed": 0,
+      "Properties": "0000000000000000C8FF90FFF00080000000",
+      "Room": 403
+    },
+    {
+      "Address": 9061740,
+      "Number": "0016",
+      "Link": "0101",
+      "X": "4000",
+      "Y": "C001",
+      "ID": 58,
+      "Behavior": 1,
+      "Speed": 0,
+      "Properties": "0000000000000000D0FFB0FFD00060000000",
+      "Room": 737
+    }
+  ]
+}

@@ -1,0 +1,42 @@
+{
+  "Large Star Stone Block (No Collision)": [
+    {
+      "Address": 8961308,
+      "Number": "0002",
+      "Link": "0000",
+      "X": "A000",
+      "Y": "8000",
+      "ID": 125,
+      "Behavior": 0,
+      "Speed": 0,
+      "Properties": "00",
+      "Room": 146
+    }
+  ],
+  "Large Star Stone Block": [
+    {
+      "Address": 8996788,
+      "Number": "0005",
+      "Link": "0101",
+      "X": "A000",
+      "Y": "2000",
+      "ID": 136,
+      "Behavior": 0,
+      "Speed": 0,
+      "Properties": "00",
+      "Room": 315
+    },
+    {
+      "Address": 8998944,
+      "Number": "0001",
+      "Link": "0101",
+      "X": "6003",
+      "Y": "2000",
+      "ID": 126,
+      "Behavior": 0,
+      "Speed": 0,
+      "Properties": "000000000000000000000000000000000200",
+      "Room": 322
+    }
+  ]
+}
