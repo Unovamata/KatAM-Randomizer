@@ -86,6 +86,7 @@ public class EntitySerializable : Entity {
         entity.ID = ID;
         entity.Behavior = Behavior;
         entity.Speed = Speed;
+        entity.Room = Room;
 
         return entity;
     }

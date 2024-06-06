@@ -57,11 +57,17 @@ namespace KatAM_Randomizer {
                             case "Behavior": serialized.Behavior = (byte)kvp.Value; break;
                             case "Speed": serialized.Speed = (byte)kvp.Value; break;
                             case "Properties": serialized.Properties = kvp.Value; break;
-                            case "Room": serialized.Room = kvp.Value; break;
+                            case "Room": 
+                                serialized.Room = (int) kvp.Value;
+
+
+                            break;
                         }
                     }
 
                     Entity entity = serialized.DeserializeEntity();
+
+                    Console.WriteLine(entity.Room);
 
                     // If it's not a progression object or the room is not unused, save entities to a list;
                     if (!IsProgressionObject(entity) || entity.Room != 0x0) {
