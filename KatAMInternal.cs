@@ -8,7 +8,11 @@ namespace KatAMInternal {
         Presets = 1,
         RandomAndPresets = 2,
         Random = 3,
-        All = 4
+        Shuffle = 4,
+        All = 5,
+        No = 6,
+        Challenge = 7,
+        Custom = 8
     }
 
     internal class Processing {
@@ -203,6 +207,7 @@ namespace KatAMInternal {
         public GenerationOptions SprayGeneration { get; set; }
         public GenerationOptions SprayOutlineGenerationType { get; set; }
         public GenerationOptions ConsumablesGenerationType { get; set; }
+        public GenerationOptions MirrorShardsGenerationType { get; set; }
         public GenerationOptions ChestsGenerationType { get; set; }
 
         public Settings() {

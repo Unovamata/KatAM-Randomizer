@@ -45,8 +45,19 @@
             tabPage1 = new TabPage();
             tabPage2 = new TabPage();
             Chests = new GroupBox();
+            RadioChestsNo = new RadioButton();
+            GroupChestsProperties = new GroupBox();
+            RadioChestsPropertiesRemoveHealing = new RadioButton();
+            RadioChestsPropertiesRandom = new RadioButton();
+            RadioChestsPropertiesUnchanged = new RadioButton();
+            RadioChestsShuffle = new RadioButton();
+            RadioChestsUnchanged = new RadioButton();
             groupBox2 = new GroupBox();
-            groupBox1 = new GroupBox();
+            RadioConsumablesChallenge = new RadioButton();
+            RadioConsumablesNo = new RadioButton();
+            button1 = new Button();
+            RadioConsumablesCustom = new RadioButton();
+            GroupConsumablesMirrorShards = new GroupBox();
             RadioMirrorShardsRandom = new RadioButton();
             GroupMirrorShardsAmount = new GroupBox();
             TrackBarMirrorShardsAmount = new TrackBar();
@@ -55,7 +66,7 @@
             label4 = new Label();
             label2 = new Label();
             label3 = new Label();
-            RadioMirrorShardsFixed = new RadioButton();
+            RadioMirrorShardsCustom = new RadioButton();
             RadioMirrorShardsUnchanged = new RadioButton();
             RadioConsumablesRandom = new RadioButton();
             RadioConsumablesShuffle = new RadioButton();
@@ -75,29 +86,19 @@
             RadioSprayUnchanged = new RadioButton();
             ButtonRefreshSeed = new Button();
             LabelSeed = new Label();
-            button1 = new Button();
-            RadioConsumablesCustom = new RadioButton();
-            RadioChestsUnchanged = new RadioButton();
-            RadioChestsShuffle = new RadioButton();
-            groupBox3 = new GroupBox();
-            radioButton1 = new RadioButton();
-            radioButton2 = new RadioButton();
-            radioButton4 = new RadioButton();
-            radioButton5 = new RadioButton();
-            RadioConsumablesNo = new RadioButton();
             GroupSettings.SuspendLayout();
             GroupRomInfo.SuspendLayout();
             tabControl1.SuspendLayout();
             tabPage2.SuspendLayout();
             Chests.SuspendLayout();
+            GroupChestsProperties.SuspendLayout();
             groupBox2.SuspendLayout();
-            groupBox1.SuspendLayout();
+            GroupConsumablesMirrorShards.SuspendLayout();
             GroupMirrorShardsAmount.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)TrackBarMirrorShardsAmount).BeginInit();
             TabMiscellaneous.SuspendLayout();
             GroupMiscSprayPalettes.SuspendLayout();
             GroupSprayOutlines.SuspendLayout();
-            groupBox3.SuspendLayout();
             SuspendLayout();
             // 
             // ButtonConsoleSend
@@ -282,48 +283,189 @@
             // 
             // Chests
             // 
-            Chests.Controls.Add(radioButton5);
-            Chests.Controls.Add(groupBox3);
+            Chests.Controls.Add(RadioChestsNo);
+            Chests.Controls.Add(GroupChestsProperties);
             Chests.Controls.Add(RadioChestsShuffle);
             Chests.Controls.Add(RadioChestsUnchanged);
             Chests.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            Chests.Location = new Point(357, 6);
+            Chests.Location = new Point(397, 6);
             Chests.Name = "Chests";
-            Chests.Size = new Size(405, 237);
+            Chests.Size = new Size(365, 237);
             Chests.TabIndex = 3;
             Chests.TabStop = false;
             Chests.Text = "Chests";
             // 
+            // RadioChestsNo
+            // 
+            RadioChestsNo.AutoSize = true;
+            RadioChestsNo.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            RadioChestsNo.Location = new Point(6, 72);
+            RadioChestsNo.Name = "RadioChestsNo";
+            RadioChestsNo.Size = new Size(79, 19);
+            RadioChestsNo.TabIndex = 15;
+            RadioChestsNo.Text = "No Chests";
+            RadioChestsNo.UseVisualStyleBackColor = true;
+            RadioChestsNo.CheckedChanged += RadioChestsNo_CheckedChanged;
+            // 
+            // GroupChestsProperties
+            // 
+            GroupChestsProperties.Controls.Add(RadioChestsPropertiesRemoveHealing);
+            GroupChestsProperties.Controls.Add(RadioChestsPropertiesRandom);
+            GroupChestsProperties.Controls.Add(RadioChestsPropertiesUnchanged);
+            GroupChestsProperties.Enabled = false;
+            GroupChestsProperties.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            GroupChestsProperties.Location = new Point(139, 12);
+            GroupChestsProperties.Name = "GroupChestsProperties";
+            GroupChestsProperties.Size = new Size(220, 219);
+            GroupChestsProperties.TabIndex = 5;
+            GroupChestsProperties.TabStop = false;
+            GroupChestsProperties.Text = "Properties";
+            // 
+            // RadioChestsPropertiesRemoveHealing
+            // 
+            RadioChestsPropertiesRemoveHealing.AutoSize = true;
+            RadioChestsPropertiesRemoveHealing.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            RadioChestsPropertiesRemoveHealing.Location = new Point(6, 47);
+            RadioChestsPropertiesRemoveHealing.Name = "RadioChestsPropertiesRemoveHealing";
+            RadioChestsPropertiesRemoveHealing.Size = new Size(144, 19);
+            RadioChestsPropertiesRemoveHealing.TabIndex = 4;
+            RadioChestsPropertiesRemoveHealing.Text = "Remove Healing Items";
+            RadioChestsPropertiesRemoveHealing.UseVisualStyleBackColor = true;
+            RadioChestsPropertiesRemoveHealing.CheckedChanged += RadioChestsPropertiesRemoveHealing_CheckedChanged;
+            // 
+            // RadioChestsPropertiesRandom
+            // 
+            RadioChestsPropertiesRandom.AutoSize = true;
+            RadioChestsPropertiesRandom.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            RadioChestsPropertiesRandom.Location = new Point(6, 72);
+            RadioChestsPropertiesRandom.Name = "RadioChestsPropertiesRandom";
+            RadioChestsPropertiesRandom.Size = new Size(70, 19);
+            RadioChestsPropertiesRandom.TabIndex = 1;
+            RadioChestsPropertiesRandom.Text = "Random";
+            RadioChestsPropertiesRandom.UseVisualStyleBackColor = true;
+            RadioChestsPropertiesRandom.CheckedChanged += RadioChestsPropertiesRandom_CheckedChanged;
+            // 
+            // RadioChestsPropertiesUnchanged
+            // 
+            RadioChestsPropertiesUnchanged.AutoSize = true;
+            RadioChestsPropertiesUnchanged.Checked = true;
+            RadioChestsPropertiesUnchanged.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            RadioChestsPropertiesUnchanged.Location = new Point(6, 22);
+            RadioChestsPropertiesUnchanged.Name = "RadioChestsPropertiesUnchanged";
+            RadioChestsPropertiesUnchanged.Size = new Size(86, 19);
+            RadioChestsPropertiesUnchanged.TabIndex = 0;
+            RadioChestsPropertiesUnchanged.TabStop = true;
+            RadioChestsPropertiesUnchanged.Text = "Unchanged";
+            RadioChestsPropertiesUnchanged.UseVisualStyleBackColor = true;
+            RadioChestsPropertiesUnchanged.CheckedChanged += RadioChestsPropertiesUnchanged_CheckedChanged;
+            // 
+            // RadioChestsShuffle
+            // 
+            RadioChestsShuffle.AutoSize = true;
+            RadioChestsShuffle.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            RadioChestsShuffle.Location = new Point(6, 47);
+            RadioChestsShuffle.Name = "RadioChestsShuffle";
+            RadioChestsShuffle.Size = new Size(62, 19);
+            RadioChestsShuffle.TabIndex = 14;
+            RadioChestsShuffle.Text = "Shuffle";
+            RadioChestsShuffle.UseVisualStyleBackColor = true;
+            RadioChestsShuffle.CheckedChanged += RadioChestsShuffle_CheckedChanged;
+            // 
+            // RadioChestsUnchanged
+            // 
+            RadioChestsUnchanged.AutoSize = true;
+            RadioChestsUnchanged.Checked = true;
+            RadioChestsUnchanged.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            RadioChestsUnchanged.Location = new Point(6, 22);
+            RadioChestsUnchanged.Name = "RadioChestsUnchanged";
+            RadioChestsUnchanged.Size = new Size(86, 19);
+            RadioChestsUnchanged.TabIndex = 14;
+            RadioChestsUnchanged.TabStop = true;
+            RadioChestsUnchanged.Text = "Unchanged";
+            RadioChestsUnchanged.UseVisualStyleBackColor = true;
+            RadioChestsUnchanged.CheckedChanged += RadioChestsUnchanged_CheckedChanged;
+            // 
             // groupBox2
             // 
+            groupBox2.Controls.Add(RadioConsumablesChallenge);
             groupBox2.Controls.Add(RadioConsumablesNo);
             groupBox2.Controls.Add(button1);
             groupBox2.Controls.Add(RadioConsumablesCustom);
-            groupBox2.Controls.Add(groupBox1);
+            groupBox2.Controls.Add(GroupConsumablesMirrorShards);
             groupBox2.Controls.Add(RadioConsumablesRandom);
             groupBox2.Controls.Add(RadioConsumablesShuffle);
             groupBox2.Controls.Add(RadioConsumablesUnchanged);
             groupBox2.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
             groupBox2.Location = new Point(9, 6);
             groupBox2.Name = "groupBox2";
-            groupBox2.Size = new Size(342, 237);
+            groupBox2.Size = new Size(382, 237);
             groupBox2.TabIndex = 2;
             groupBox2.TabStop = false;
             groupBox2.Text = "Consumables";
             // 
-            // groupBox1
+            // RadioConsumablesChallenge
             // 
-            groupBox1.Controls.Add(RadioMirrorShardsRandom);
-            groupBox1.Controls.Add(GroupMirrorShardsAmount);
-            groupBox1.Controls.Add(RadioMirrorShardsFixed);
-            groupBox1.Controls.Add(RadioMirrorShardsUnchanged);
-            groupBox1.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            groupBox1.Location = new Point(159, 12);
-            groupBox1.Name = "groupBox1";
-            groupBox1.Size = new Size(177, 219);
-            groupBox1.TabIndex = 3;
-            groupBox1.TabStop = false;
-            groupBox1.Text = "Mirror Shards";
+            RadioConsumablesChallenge.AutoSize = true;
+            RadioConsumablesChallenge.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            RadioConsumablesChallenge.Location = new Point(10, 97);
+            RadioConsumablesChallenge.Name = "RadioConsumablesChallenge";
+            RadioConsumablesChallenge.Size = new Size(78, 19);
+            RadioConsumablesChallenge.TabIndex = 15;
+            RadioConsumablesChallenge.Text = "Challenge";
+            RadioConsumablesChallenge.UseVisualStyleBackColor = true;
+            RadioConsumablesChallenge.CheckedChanged += RadioConsumablesChallenge_CheckedChanged;
+            // 
+            // RadioConsumablesNo
+            // 
+            RadioConsumablesNo.AutoSize = true;
+            RadioConsumablesNo.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            RadioConsumablesNo.Location = new Point(10, 122);
+            RadioConsumablesNo.Name = "RadioConsumablesNo";
+            RadioConsumablesNo.Size = new Size(116, 19);
+            RadioConsumablesNo.TabIndex = 14;
+            RadioConsumablesNo.Text = "No Consumables";
+            RadioConsumablesNo.UseVisualStyleBackColor = true;
+            RadioConsumablesNo.CheckedChanged += RadioConsumablesNo_CheckedChanged;
+            // 
+            // button1
+            // 
+            button1.Enabled = false;
+            button1.Font = new Font("Segoe UI", 9F);
+            button1.Location = new Point(10, 172);
+            button1.Name = "button1";
+            button1.Size = new Size(114, 23);
+            button1.TabIndex = 13;
+            button1.Text = "Edit Probability";
+            button1.UseVisualStyleBackColor = true;
+            button1.Visible = false;
+            // 
+            // RadioConsumablesCustom
+            // 
+            RadioConsumablesCustom.AutoSize = true;
+            RadioConsumablesCustom.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            RadioConsumablesCustom.Location = new Point(10, 147);
+            RadioConsumablesCustom.Name = "RadioConsumablesCustom";
+            RadioConsumablesCustom.Size = new Size(67, 19);
+            RadioConsumablesCustom.TabIndex = 4;
+            RadioConsumablesCustom.Text = "Custom";
+            RadioConsumablesCustom.UseVisualStyleBackColor = true;
+            RadioConsumablesCustom.Visible = false;
+            RadioConsumablesCustom.CheckedChanged += RadioConsumablesCustom_CheckedChanged;
+            // 
+            // GroupConsumablesMirrorShards
+            // 
+            GroupConsumablesMirrorShards.Controls.Add(RadioMirrorShardsRandom);
+            GroupConsumablesMirrorShards.Controls.Add(GroupMirrorShardsAmount);
+            GroupConsumablesMirrorShards.Controls.Add(RadioMirrorShardsCustom);
+            GroupConsumablesMirrorShards.Controls.Add(RadioMirrorShardsUnchanged);
+            GroupConsumablesMirrorShards.Enabled = false;
+            GroupConsumablesMirrorShards.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            GroupConsumablesMirrorShards.Location = new Point(159, 12);
+            GroupConsumablesMirrorShards.Name = "GroupConsumablesMirrorShards";
+            GroupConsumablesMirrorShards.Size = new Size(217, 219);
+            GroupConsumablesMirrorShards.TabIndex = 3;
+            GroupConsumablesMirrorShards.TabStop = false;
+            GroupConsumablesMirrorShards.Text = "Mirror Shards";
             // 
             // RadioMirrorShardsRandom
             // 
@@ -333,9 +475,9 @@
             RadioMirrorShardsRandom.Name = "RadioMirrorShardsRandom";
             RadioMirrorShardsRandom.Size = new Size(70, 19);
             RadioMirrorShardsRandom.TabIndex = 4;
-            RadioMirrorShardsRandom.TabStop = true;
             RadioMirrorShardsRandom.Text = "Random";
             RadioMirrorShardsRandom.UseVisualStyleBackColor = true;
+            RadioMirrorShardsRandom.CheckedChanged += RadioMirrorShardsRandom_CheckedChanged;
             // 
             // GroupMirrorShardsAmount
             // 
@@ -348,7 +490,7 @@
             GroupMirrorShardsAmount.Enabled = false;
             GroupMirrorShardsAmount.Location = new Point(6, 97);
             GroupMirrorShardsAmount.Name = "GroupMirrorShardsAmount";
-            GroupMirrorShardsAmount.Size = new Size(165, 116);
+            GroupMirrorShardsAmount.Size = new Size(205, 116);
             GroupMirrorShardsAmount.TabIndex = 3;
             GroupMirrorShardsAmount.TabStop = false;
             GroupMirrorShardsAmount.Text = "Amount";
@@ -360,7 +502,7 @@
             TrackBarMirrorShardsAmount.Minimum = 1;
             TrackBarMirrorShardsAmount.Name = "TrackBarMirrorShardsAmount";
             TrackBarMirrorShardsAmount.RightToLeft = RightToLeft.No;
-            TrackBarMirrorShardsAmount.Size = new Size(153, 45);
+            TrackBarMirrorShardsAmount.Size = new Size(193, 45);
             TrackBarMirrorShardsAmount.TabIndex = 2;
             TrackBarMirrorShardsAmount.TickStyle = TickStyle.TopLeft;
             TrackBarMirrorShardsAmount.Value = 1;
@@ -369,7 +511,7 @@
             // 
             label5.AutoSize = true;
             label5.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            label5.Location = new Point(140, 22);
+            label5.Location = new Point(179, 22);
             label5.Name = "label5";
             label5.Size = new Size(13, 15);
             label5.TabIndex = 7;
@@ -389,7 +531,7 @@
             // 
             label4.AutoSize = true;
             label4.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            label4.Location = new Point(109, 22);
+            label4.Location = new Point(138, 22);
             label4.Name = "label4";
             label4.Size = new Size(13, 15);
             label4.TabIndex = 6;
@@ -399,7 +541,7 @@
             // 
             label2.AutoSize = true;
             label2.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            label2.Location = new Point(46, 22);
+            label2.Location = new Point(56, 22);
             label2.Name = "label2";
             label2.Size = new Size(13, 15);
             label2.TabIndex = 4;
@@ -409,27 +551,28 @@
             // 
             label3.AutoSize = true;
             label3.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            label3.Location = new Point(77, 22);
+            label3.Location = new Point(96, 22);
             label3.Name = "label3";
             label3.Size = new Size(13, 15);
             label3.TabIndex = 5;
             label3.Text = "3";
             // 
-            // RadioMirrorShardsFixed
+            // RadioMirrorShardsCustom
             // 
-            RadioMirrorShardsFixed.AutoSize = true;
-            RadioMirrorShardsFixed.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            RadioMirrorShardsFixed.Location = new Point(6, 72);
-            RadioMirrorShardsFixed.Name = "RadioMirrorShardsFixed";
-            RadioMirrorShardsFixed.Size = new Size(53, 19);
-            RadioMirrorShardsFixed.TabIndex = 1;
-            RadioMirrorShardsFixed.TabStop = true;
-            RadioMirrorShardsFixed.Text = "Fixed";
-            RadioMirrorShardsFixed.UseVisualStyleBackColor = true;
+            RadioMirrorShardsCustom.AutoSize = true;
+            RadioMirrorShardsCustom.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            RadioMirrorShardsCustom.Location = new Point(6, 72);
+            RadioMirrorShardsCustom.Name = "RadioMirrorShardsCustom";
+            RadioMirrorShardsCustom.Size = new Size(67, 19);
+            RadioMirrorShardsCustom.TabIndex = 1;
+            RadioMirrorShardsCustom.Text = "Custom";
+            RadioMirrorShardsCustom.UseVisualStyleBackColor = true;
+            RadioMirrorShardsCustom.CheckedChanged += RadioMirrorShardsCustom_CheckedChanged;
             // 
             // RadioMirrorShardsUnchanged
             // 
             RadioMirrorShardsUnchanged.AutoSize = true;
+            RadioMirrorShardsUnchanged.Checked = true;
             RadioMirrorShardsUnchanged.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
             RadioMirrorShardsUnchanged.Location = new Point(6, 22);
             RadioMirrorShardsUnchanged.Name = "RadioMirrorShardsUnchanged";
@@ -438,6 +581,7 @@
             RadioMirrorShardsUnchanged.TabStop = true;
             RadioMirrorShardsUnchanged.Text = "Unchanged";
             RadioMirrorShardsUnchanged.UseVisualStyleBackColor = true;
+            RadioMirrorShardsUnchanged.CheckedChanged += RadioMirrorShardsUnchanged_CheckedChanged;
             // 
             // RadioConsumablesRandom
             // 
@@ -447,9 +591,9 @@
             RadioConsumablesRandom.Name = "RadioConsumablesRandom";
             RadioConsumablesRandom.Size = new Size(70, 19);
             RadioConsumablesRandom.TabIndex = 2;
-            RadioConsumablesRandom.TabStop = true;
             RadioConsumablesRandom.Text = "Random";
             RadioConsumablesRandom.UseVisualStyleBackColor = true;
+            RadioConsumablesRandom.CheckedChanged += RadioConsumablesRandom_CheckedChanged;
             // 
             // RadioConsumablesShuffle
             // 
@@ -459,13 +603,14 @@
             RadioConsumablesShuffle.Name = "RadioConsumablesShuffle";
             RadioConsumablesShuffle.Size = new Size(62, 19);
             RadioConsumablesShuffle.TabIndex = 1;
-            RadioConsumablesShuffle.TabStop = true;
             RadioConsumablesShuffle.Text = "Shuffle";
             RadioConsumablesShuffle.UseVisualStyleBackColor = true;
+            RadioConsumablesShuffle.CheckedChanged += RadioConsumablesShuffle_CheckedChanged;
             // 
             // RadioConsumablesUnchanged
             // 
             RadioConsumablesUnchanged.AutoSize = true;
+            RadioConsumablesUnchanged.Checked = true;
             RadioConsumablesUnchanged.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
             RadioConsumablesUnchanged.Location = new Point(10, 22);
             RadioConsumablesUnchanged.Name = "RadioConsumablesUnchanged";
@@ -474,6 +619,7 @@
             RadioConsumablesUnchanged.TabStop = true;
             RadioConsumablesUnchanged.Text = "Unchanged";
             RadioConsumablesUnchanged.UseVisualStyleBackColor = true;
+            RadioConsumablesUnchanged.CheckedChanged += RadioConsumablesUnchanged_CheckedChanged;
             // 
             // tabPage3
             // 
@@ -526,7 +672,7 @@
             GroupMiscSprayPalettes.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
             GroupMiscSprayPalettes.Location = new Point(9, 6);
             GroupMiscSprayPalettes.Name = "GroupMiscSprayPalettes";
-            GroupMiscSprayPalettes.Size = new Size(279, 138);
+            GroupMiscSprayPalettes.Size = new Size(279, 237);
             GroupMiscSprayPalettes.TabIndex = 0;
             GroupMiscSprayPalettes.TabStop = false;
             GroupMiscSprayPalettes.Text = "Spray Palettes";
@@ -538,7 +684,7 @@
             GroupSprayOutlines.Controls.Add(RadioOutlinesUnchanged);
             GroupSprayOutlines.Location = new Point(142, 12);
             GroupSprayOutlines.Name = "GroupSprayOutlines";
-            GroupSprayOutlines.Size = new Size(131, 120);
+            GroupSprayOutlines.Size = new Size(131, 219);
             GroupSprayOutlines.TabIndex = 5;
             GroupSprayOutlines.TabStop = false;
             GroupSprayOutlines.Text = "Outlines";
@@ -653,129 +799,6 @@
             LabelSeed.Text = "Seed:";
             LabelSeed.Visible = false;
             // 
-            // button1
-            // 
-            button1.Enabled = false;
-            button1.Font = new Font("Segoe UI", 9F);
-            button1.Location = new Point(10, 147);
-            button1.Name = "button1";
-            button1.Size = new Size(114, 23);
-            button1.TabIndex = 13;
-            button1.Text = "Edit Probability";
-            button1.UseVisualStyleBackColor = true;
-            button1.Visible = false;
-            // 
-            // RadioConsumablesCustom
-            // 
-            RadioConsumablesCustom.AutoSize = true;
-            RadioConsumablesCustom.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            RadioConsumablesCustom.Location = new Point(10, 122);
-            RadioConsumablesCustom.Name = "RadioConsumablesCustom";
-            RadioConsumablesCustom.Size = new Size(67, 19);
-            RadioConsumablesCustom.TabIndex = 4;
-            RadioConsumablesCustom.TabStop = true;
-            RadioConsumablesCustom.Text = "Custom";
-            RadioConsumablesCustom.UseVisualStyleBackColor = true;
-            RadioConsumablesCustom.Visible = false;
-            // 
-            // RadioChestsUnchanged
-            // 
-            RadioChestsUnchanged.AutoSize = true;
-            RadioChestsUnchanged.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            RadioChestsUnchanged.Location = new Point(6, 22);
-            RadioChestsUnchanged.Name = "RadioChestsUnchanged";
-            RadioChestsUnchanged.Size = new Size(86, 19);
-            RadioChestsUnchanged.TabIndex = 14;
-            RadioChestsUnchanged.TabStop = true;
-            RadioChestsUnchanged.Text = "Unchanged";
-            RadioChestsUnchanged.UseVisualStyleBackColor = true;
-            // 
-            // RadioChestsShuffle
-            // 
-            RadioChestsShuffle.AutoSize = true;
-            RadioChestsShuffle.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            RadioChestsShuffle.Location = new Point(6, 47);
-            RadioChestsShuffle.Name = "RadioChestsShuffle";
-            RadioChestsShuffle.Size = new Size(62, 19);
-            RadioChestsShuffle.TabIndex = 14;
-            RadioChestsShuffle.TabStop = true;
-            RadioChestsShuffle.Text = "Shuffle";
-            RadioChestsShuffle.UseVisualStyleBackColor = true;
-            // 
-            // groupBox3
-            // 
-            groupBox3.Controls.Add(radioButton1);
-            groupBox3.Controls.Add(radioButton2);
-            groupBox3.Controls.Add(radioButton4);
-            groupBox3.Enabled = false;
-            groupBox3.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            groupBox3.Location = new Point(98, 12);
-            groupBox3.Name = "groupBox3";
-            groupBox3.Size = new Size(177, 219);
-            groupBox3.TabIndex = 5;
-            groupBox3.TabStop = false;
-            groupBox3.Text = "Properties";
-            // 
-            // radioButton1
-            // 
-            radioButton1.AutoSize = true;
-            radioButton1.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            radioButton1.Location = new Point(6, 47);
-            radioButton1.Name = "radioButton1";
-            radioButton1.Size = new Size(144, 19);
-            radioButton1.TabIndex = 4;
-            radioButton1.TabStop = true;
-            radioButton1.Text = "Remove Healing Items";
-            radioButton1.UseVisualStyleBackColor = true;
-            // 
-            // radioButton2
-            // 
-            radioButton2.AutoSize = true;
-            radioButton2.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            radioButton2.Location = new Point(6, 72);
-            radioButton2.Name = "radioButton2";
-            radioButton2.Size = new Size(70, 19);
-            radioButton2.TabIndex = 1;
-            radioButton2.TabStop = true;
-            radioButton2.Text = "Random";
-            radioButton2.UseVisualStyleBackColor = true;
-            // 
-            // radioButton4
-            // 
-            radioButton4.AutoSize = true;
-            radioButton4.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            radioButton4.Location = new Point(6, 22);
-            radioButton4.Name = "radioButton4";
-            radioButton4.Size = new Size(86, 19);
-            radioButton4.TabIndex = 0;
-            radioButton4.TabStop = true;
-            radioButton4.Text = "Unchanged";
-            radioButton4.UseVisualStyleBackColor = true;
-            // 
-            // radioButton5
-            // 
-            radioButton5.AutoSize = true;
-            radioButton5.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            radioButton5.Location = new Point(6, 72);
-            radioButton5.Name = "radioButton5";
-            radioButton5.Size = new Size(79, 19);
-            radioButton5.TabIndex = 15;
-            radioButton5.TabStop = true;
-            radioButton5.Text = "No Chests";
-            radioButton5.UseVisualStyleBackColor = true;
-            // 
-            // RadioConsumablesNo
-            // 
-            RadioConsumablesNo.AutoSize = true;
-            RadioConsumablesNo.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            RadioConsumablesNo.Location = new Point(10, 97);
-            RadioConsumablesNo.Name = "RadioConsumablesNo";
-            RadioConsumablesNo.Size = new Size(116, 19);
-            RadioConsumablesNo.TabIndex = 14;
-            RadioConsumablesNo.TabStop = true;
-            RadioConsumablesNo.Text = "No Consumables";
-            RadioConsumablesNo.UseVisualStyleBackColor = true;
-            // 
             // KatAMRandomizerMain
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
@@ -800,10 +823,12 @@
             tabPage2.ResumeLayout(false);
             Chests.ResumeLayout(false);
             Chests.PerformLayout();
+            GroupChestsProperties.ResumeLayout(false);
+            GroupChestsProperties.PerformLayout();
             groupBox2.ResumeLayout(false);
             groupBox2.PerformLayout();
-            groupBox1.ResumeLayout(false);
-            groupBox1.PerformLayout();
+            GroupConsumablesMirrorShards.ResumeLayout(false);
+            GroupConsumablesMirrorShards.PerformLayout();
             GroupMirrorShardsAmount.ResumeLayout(false);
             GroupMirrorShardsAmount.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)TrackBarMirrorShardsAmount).EndInit();
@@ -812,8 +837,6 @@
             GroupMiscSprayPalettes.PerformLayout();
             GroupSprayOutlines.ResumeLayout(false);
             GroupSprayOutlines.PerformLayout();
-            groupBox3.ResumeLayout(false);
-            groupBox3.PerformLayout();
             ResumeLayout(false);
             PerformLayout();
         }
@@ -851,8 +874,8 @@
         private RadioButton RadioOutlinesUnchanged;
         private Button ButtonRefreshSeed;
         private GroupBox groupBox2;
-        private GroupBox groupBox1;
-        private RadioButton RadioMirrorShardsFixed;
+        private GroupBox GroupConsumablesMirrorShards;
+        private RadioButton RadioMirrorShardsCustom;
         private RadioButton RadioMirrorShardsUnchanged;
         private RadioButton RadioConsumablesRandom;
         private RadioButton RadioConsumablesShuffle;
@@ -871,11 +894,12 @@
         private RadioButton RadioConsumablesCustom;
         private RadioButton RadioChestsShuffle;
         private RadioButton RadioChestsUnchanged;
-        private RadioButton radioButton5;
-        private GroupBox groupBox3;
-        private RadioButton radioButton1;
-        private RadioButton radioButton2;
-        private RadioButton radioButton4;
+        private RadioButton RadioChestsNo;
+        private GroupBox GroupChestsProperties;
+        private RadioButton RadioChestsPropertiesRemoveHealing;
+        private RadioButton RadioChestsPropertiesRandom;
+        private RadioButton RadioChestsPropertiesUnchanged;
         private RadioButton RadioConsumablesNo;
+        private RadioButton RadioConsumablesChallenge;
     }
 }

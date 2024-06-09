@@ -99,6 +99,9 @@ namespace KatAM_Randomizer
 
         }
 
+        // Control Panel;
+
+        // Randomize (Save);
         private void ButtonSaveFile_Click(object sender, EventArgs e) {
             string newFileName = "KatAM.gba",
             destinationPath = Path.Combine(system.ROMDirectory, newFileName);
@@ -107,11 +110,109 @@ namespace KatAM_Randomizer
             //KatAMROMReader.ReadROMData(system);
             //KatAMSprays.RandomizeSpray(system);
             KatAMItems.RandomizeItems(system);
+            KatAMItems.RandomizeChests();
 
 
             File.WriteAllBytes(destinationPath, system.ROMData);
         }
 
+        // Refresh Seed;
+        private void ButtonRefreshSeed_Click(object sender, EventArgs e) {
+            settings.GetNewSeed();
+            UpdateLabelSeedText();
+        }
+
+        // Input Premade Seed;
+        private void ButtonInputSeed_Click(object sender, EventArgs e) {
+            SeedInputForm form = new SeedInputForm();
+            form.ShowDialog();
+        }
+
+        //////////////////////////////////////////////////////////////////////////////////////////////
+
+        // Chests & Items;
+        // Consumables;
+        private void RadioConsumablesUnchanged_CheckedChanged(object sender, EventArgs e) {
+            settings.ConsumablesGenerationType = GenerationOptions.Unchanged;
+            GroupConsumablesMirrorShards.Enabled = false;
+            RadioMirrorShardsUnchanged.Checked = true;
+        }
+
+        private void RadioConsumablesShuffle_CheckedChanged(object sender, EventArgs e) {
+            settings.ConsumablesGenerationType = GenerationOptions.Shuffle;
+            GroupConsumablesMirrorShards.Enabled = true;
+        }
+
+        private void RadioConsumablesRandom_CheckedChanged(object sender, EventArgs e) {
+            settings.ConsumablesGenerationType = GenerationOptions.Random;
+            GroupConsumablesMirrorShards.Enabled = true;
+        }
+
+        private void RadioConsumablesNo_CheckedChanged(object sender, EventArgs e) {
+            settings.ConsumablesGenerationType = GenerationOptions.No;
+            GroupConsumablesMirrorShards.Enabled = false;
+            RadioMirrorShardsUnchanged.Checked = true;
+        }
+
+        private void RadioConsumablesChallenge_CheckedChanged(object sender, EventArgs e) {
+            settings.ConsumablesGenerationType = GenerationOptions.Challenge;
+            GroupConsumablesMirrorShards.Enabled = true;
+        }
+
+        private void RadioConsumablesCustom_CheckedChanged(object sender, EventArgs e) {
+
+        }
+
+        // Mirror Shards;
+        private void RadioMirrorShardsUnchanged_CheckedChanged(object sender, EventArgs e) {
+            GroupMirrorShardsAmount.Enabled = false;
+            settings.MirrorShardsGenerationType = GenerationOptions.Unchanged;
+        }
+
+        private void RadioMirrorShardsRandom_CheckedChanged(object sender, EventArgs e) {
+            GroupMirrorShardsAmount.Enabled = false;
+            settings.MirrorShardsGenerationType = GenerationOptions.Random;
+        }
+
+        private void RadioMirrorShardsCustom_CheckedChanged(object sender, EventArgs e) {
+            GroupMirrorShardsAmount.Enabled = true;
+            settings.MirrorShardsGenerationType = GenerationOptions.Custom;
+        }
+
+        // Chests;
+        private void RadioChestsUnchanged_CheckedChanged(object sender, EventArgs e) {
+            settings.ChestsGenerationType = GenerationOptions.Unchanged;
+            GroupChestsProperties.Enabled = GroupChestsProperties.Enabled = false;
+            RadioChestsPropertiesUnchanged.Checked = true;
+        }
+
+        private void RadioChestsShuffle_CheckedChanged(object sender, EventArgs e) {
+            settings.ChestsGenerationType = GenerationOptions.Shuffle;
+            GroupChestsProperties.Enabled = true;
+        }
+
+        private void RadioChestsNo_CheckedChanged(object sender, EventArgs e) {
+            settings.ChestsGenerationType = GenerationOptions.No;
+            GroupChestsProperties.Enabled = false;
+            RadioChestsPropertiesUnchanged.Checked = true;
+        }
+
+        private void RadioChestsPropertiesUnchanged_CheckedChanged(object sender, EventArgs e) {
+
+        }
+
+        private void RadioChestsPropertiesRemoveHealing_CheckedChanged(object sender, EventArgs e) {
+
+        }
+
+        private void RadioChestsPropertiesRandom_CheckedChanged(object sender, EventArgs e) {
+
+        }
+
+        //////////////////////////////////////////////////////////////////////////////////////////////
+
+        // Miscellaneous;
+        // Spray Color Presets;
         private void RadioSprayUnchanged_CheckedChanged(object sender, EventArgs e) {
             settings.SprayGeneration = GenerationOptions.Unchanged;
         }
@@ -128,6 +229,7 @@ namespace KatAM_Randomizer
             settings.SprayGeneration = GenerationOptions.Random;
         }
 
+        // Outline Colors;
         private void RadioOutlinesUnchanged_CheckedChanged(object sender, EventArgs e) {
             settings.SprayOutlineGenerationType = GenerationOptions.Unchanged;
         }
@@ -138,16 +240,6 @@ namespace KatAM_Randomizer
 
         private void RadioOutlinesRandom_CheckedChanged(object sender, EventArgs e) {
             settings.SprayOutlineGenerationType = GenerationOptions.Random;
-        }
-
-        private void ButtonRefreshSeed_Click(object sender, EventArgs e) {
-            settings.GetNewSeed();
-            UpdateLabelSeedText();
-        }
-
-        private void ButtonInputSeed_Click(object sender, EventArgs e) {
-            SeedInputForm form = new SeedInputForm();
-            form.ShowDialog();
         }
     }
 }

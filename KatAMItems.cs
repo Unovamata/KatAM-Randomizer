@@ -10,6 +10,7 @@ namespace KatAM_Randomizer {
         static List<Entity> chestEntities;
         static List<byte> objectIDs;
         static Dictionary<int, List<Entity>> chestDictionary;
+        static GenerationOptions consumableOptions;
 
         public static void RandomizeItems(Processing system) {
             entities = new List<Entity>();
@@ -20,6 +21,7 @@ namespace KatAM_Randomizer {
             // Read the settings, entities, and ROM data;
             System = system;
             Settings = system.Settings;
+            consumableOptions = Settings.ConsumablesGenerationType;
             byte[] romFile = System.ROMData;
             seed = Settings.Seed;
 
@@ -27,51 +29,46 @@ namespace KatAM_Randomizer {
             DeserializeEntities(Utils.JSONToEntities(Utils.itemsJson));
 
             // Shuffling the object IDs;
-            objectIDs = Utils.Shuffle(objectIDs);
+            bool isShuffling = consumableOptions == GenerationOptions.Shuffle;
 
-            bool isRandom = false;
+            if (isShuffling) {
+                objectIDs = Utils.Shuffle(objectIDs);
+            }
 
             for(int i = 0; i < entities.Count; i++) {
                 Entity entity = entities[i];
                 
                 if (IsProgressionObject(entity)) continue;
 
-                if (isRandom) {
-                    entity.ID = GenerateRandomConsumable();
+                switch (consumableOptions) {
+                    // Writing consumables as they come in the OG game;
+                    case GenerationOptions.Unchanged:
+                    case GenerationOptions.Shuffle:
+                        entity.ID = objectIDs[i];
+                    break;
 
-                    Utils.WriteObjectToROM(romFile, entity);
-                } else {
-                    entity.ID = objectIDs[i];
+                    case GenerationOptions.Random:
+                        entity.ID = GenerateRandomConsumable();
+                    break;
 
-                    Utils.WriteObjectToROM(romFile, entity);
+                    case GenerationOptions.Challenge:
+                        bool canSpawnItem = Utils.Dice() == 1;
+
+                        // If the item can spawn, spawn a cherry;
+                        if (canSpawnItem) {
+                            entity.ID = consumableItems[0];
+                        } else { // If not, don't spawn anything;
+                            entity.ID = 0x2C;
+                        }
+                    break;
+
+                    // Spawn no consumables;
+                    case GenerationOptions.No:
+                        entity.ID = 0x2C;
+                    break;
                 }
-            }
 
-            for(int i = 0; i < chestEntities.Count; i++) {
-                Entity chest = chestEntities[i];
-
-                if (IsProgressionObject(chest)) {
-                    AddChestToDictionary(chest);
-
-                    continue;
-                }
-
-                int replacedEntityIndex = ReplaceChestEntity(chest);
-                Entity oldEntity = entities[replacedEntityIndex];
-
-                chest.Address = oldEntity.Address;
-                chest.Number = oldEntity.Number;
-                chest.Link = oldEntity.Link;
-                chest.X = oldEntity.X;
-                chest.Y = oldEntity.Y;
-                chest.ID = 0x80; // Assign small chests since big chests fall of the level;
-                chest.Room = oldEntity.Room;
-
-                AddChestToDictionary(chest);
-
-                //Console.WriteLine($"Chest Replaced At Address: {chest.Address}");
-
-                Utils.WriteObjectToROM(romFile, chest);
+                Utils.WriteObjectToROM(romFile, entity);
             }
 
             /*foreach(Entity entity in entities) {
@@ -89,8 +86,6 @@ namespace KatAM_Randomizer {
                 Utils.WriteObjectToROM(romFile, chest);
                 AddChestToDictionary(chest);
             }*/
-
-            RandomizeChests();
         }
 
         static void DeserializeEntities(dynamic itemsJson) {
@@ -131,11 +126,12 @@ namespace KatAM_Randomizer {
 
                     // If it's not a progression object or the room is not unused, save entities to a list;
                     if (entity.Room == 0x0) continue;
+                    if (entity.Name == "Mirror Shard") continue;
 
                     // If it's a chest save its information for later;
                     if (IsVetoedObject(entity) || IsProgressionObject(entity)) {
-                        chestEntities.Add(new Entity(entity));
-                        objectIDs.Add(GenerateRandomConsumable());
+                            chestEntities.Add(new Entity(entity));
+                            objectIDs.Add(GenerateRandomConsumable());
                     } else { // If it's a consumable, save it for randomization;
                         objectIDs.Add(entity.ID);
                     }
@@ -156,10 +152,9 @@ namespace KatAM_Randomizer {
         static bool IsProgressionObject(Entity entity) {
             byte behavior = entity.Behavior;
 
-            bool isProgressionObject = entity.ID == 0x81 && behavior == 0x63,
-                 isDimensionMirror = entity.ID == 0x65 && behavior == 0x08;
+            bool isProgressionObject = (entity.ID == 0x81 && behavior == 0x63) || entity.ID == 0x65;
 
-            return isProgressionObject || isDimensionMirror;
+            return isProgressionObject;
         }
 
         static byte[] consumableItems = { 0x5E, 0x5F, 0x60, 0x61, 0x62, 0x63, 0x64 };
@@ -173,8 +168,6 @@ namespace KatAM_Randomizer {
             if (!chestDictionary.ContainsKey(chest.Room)) {
                 chestDictionary[chest.Room] = new List<Entity>();
             }
-
-            Console.WriteLine($"Chest Type: {chest.Behavior}");
 
             chestDictionary[chest.Room].Add(chest);
         }
@@ -191,14 +184,51 @@ namespace KatAM_Randomizer {
         }
 
 
+        //////////////////////////////////////////////////////////////////////////////////////////////
+
+
         static long NineROMStartAddress = 9441164,
                     NineROMEndAddress = 9449752,
                     NewNineROMAddress = 14745600,
                     PointersListAddress = 13825216,
                     NewListPointer = 134217728;
 
+        static GenerationOptions chestOptions;
+
         public static void RandomizeChests() {
             byte[] romFile = System.ROMData;
+            chestOptions = Settings.ChestsGenerationType;
+
+            if (chestOptions == GenerationOptions.No) return;
+
+            for (int i = 0; i < chestEntities.Count; i++) {
+                Entity chest = chestEntities[i];
+
+                if (IsProgressionObject(chest)) {
+                    AddChestToDictionary(chest);
+                    continue;
+                }
+
+                if (chestOptions == GenerationOptions.Shuffle) {
+                    int replacedEntityIndex = ReplaceChestEntity(chest);
+                    Entity oldEntity = entities[replacedEntityIndex];
+
+                    chest.Address = oldEntity.Address;
+                    chest.Number = oldEntity.Number;
+                    chest.Link = oldEntity.Link;
+                    chest.X = oldEntity.X;
+                    chest.Y = oldEntity.Y;
+                    chest.ID = 0x80; // Assign small chests since big chests fall of the level;
+                    chest.Room = oldEntity.Room;
+                }
+
+                AddChestToDictionary(chest);
+
+                //Console.WriteLine($"Chest Replaced At Address: {chest.Address}");
+
+                Utils.WriteObjectToROM(romFile, chest);
+            }
+            
             int currentRoomIndex = 0,
                 chestsInRoomCount = 0,
                 lastRoomAdded = -1;
