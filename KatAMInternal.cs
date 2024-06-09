@@ -1,8 +1,9 @@
 ﻿using Newtonsoft.Json;
 using System.ComponentModel;
+using System.Collections.Generic;
 
 namespace KatAMInternal {
-    public enum SprayGen {
+    public enum GenerationOptions {
         Unchanged = 0,
         Presets = 1,
         RandomAndPresets = 2,
@@ -199,8 +200,10 @@ namespace KatAMInternal {
         public int Seed { get; set; }
         public int MinSeed = -9999999, MaxSeed = 9999999;
         public bool IsRace { get; set; }
-        public SprayGen SprayGeneration { get; set; }
-        public SprayGen SprayOutlineGenerationType { get; set; }
+        public GenerationOptions SprayGeneration { get; set; }
+        public GenerationOptions SprayOutlineGenerationType { get; set; }
+        public GenerationOptions ConsumablesGenerationType { get; set; }
+        public GenerationOptions ChestsGenerationType { get; set; }
 
         public Settings() {
             Random seedGenerator = new Random();
@@ -252,8 +255,8 @@ namespace KatAMInternal {
 
             WriteToROM(romFile, address + 12, new byte[] { id });
             WriteToROM(romFile, address + 14, new byte[] { behavior });
-            WriteToROM(romFile, address + 16, new byte[] { speed });
-            WriteToROM(romFile, address + 18, properties);
+            WriteToROM(romFile, address + 15, new byte[] { speed });
+            WriteToROM(romFile, address + 16, properties);
         }
 
         public static int GetNextRandom() {
@@ -275,13 +278,13 @@ namespace KatAMInternal {
         }
 
         public static string ConvertIntToHex(int input) {
-            string hex = input.ToString("X");
+            string hex = input.ToString("X2");
 
             return hex;
         }
 
         public static string ConvertLongToHex(long input) {
-            string hex = input.ToString("X");
+            string hex = input.ToString("X2");
 
             return hex;
         }
@@ -348,6 +351,23 @@ namespace KatAMInternal {
             var result = JsonConvert.DeserializeObject<Dictionary<string, List<Dictionary<string, dynamic>>>>(json);
 
             return result;
+        }
+
+        public static byte[] StringToByteArray(string hexString) {
+            // Initialize the byte array
+            byte[] byteArray = new byte[hexString.Length / 2];
+
+            // Convert each pair of characters to a byte
+            for (int i = 0; i < hexString.Length; i += 2) {
+                string byteString = hexString.Substring(i, 2);
+                byteArray[i / 2] = Convert.ToByte(byteString, 16);
+            }
+
+            return byteArray;
+        }
+
+        public static List<T> Shuffle<T>(List<T> list) { 
+            return list.OrderBy(x => Utils.GetNextRandom()).ToList();
         }
     }
 }

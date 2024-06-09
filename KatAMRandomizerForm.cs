@@ -107,38 +107,37 @@ namespace KatAM_Randomizer
             //KatAMROMReader.ReadROMData(system);
             //KatAMSprays.RandomizeSpray(system);
             KatAMItems.RandomizeItems(system);
-            KatAMItems.RandomizeChests();
 
 
             File.WriteAllBytes(destinationPath, system.ROMData);
         }
 
         private void RadioSprayUnchanged_CheckedChanged(object sender, EventArgs e) {
-            settings.SprayGeneration = SprayGen.Unchanged;
+            settings.SprayGeneration = GenerationOptions.Unchanged;
         }
 
         private void RadioSprayPresets_CheckedChanged(object sender, EventArgs e) {
-            settings.SprayGeneration = SprayGen.Presets;
+            settings.SprayGeneration = GenerationOptions.Presets;
         }
 
         private void RadioSprayRandomAndPresets_CheckedChanged(object sender, EventArgs e) {
-            settings.SprayGeneration = SprayGen.RandomAndPresets;
+            settings.SprayGeneration = GenerationOptions.RandomAndPresets;
         }
 
         private void RadioSprayRandom_CheckedChanged(object sender, EventArgs e) {
-            settings.SprayGeneration = SprayGen.Random;
+            settings.SprayGeneration = GenerationOptions.Random;
         }
 
         private void RadioOutlinesUnchanged_CheckedChanged(object sender, EventArgs e) {
-            settings.SprayOutlineGenerationType = SprayGen.Unchanged;
+            settings.SprayOutlineGenerationType = GenerationOptions.Unchanged;
         }
 
         private void RadioOutlinesAll_CheckedChanged(object sender, EventArgs e) {
-            settings.SprayOutlineGenerationType = SprayGen.All;
+            settings.SprayOutlineGenerationType = GenerationOptions.All;
         }
 
         private void RadioOutlinesRandom_CheckedChanged(object sender, EventArgs e) {
-            settings.SprayOutlineGenerationType = SprayGen.Random;
+            settings.SprayOutlineGenerationType = GenerationOptions.Random;
         }
 
         private void ButtonRefreshSeed_Click(object sender, EventArgs e) {

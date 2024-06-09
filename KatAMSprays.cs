@@ -13,7 +13,7 @@ namespace KatAMRandomizer {
             settings = system.Settings;
             seed = settings.Seed;
 
-            if (settings.SprayGeneration == SprayGen.Unchanged) return;
+            if (settings.SprayGeneration == GenerationOptions.Unchanged) return;
 
             Console.WriteLine("Randomizing spray colours...");
 
@@ -49,11 +49,11 @@ namespace KatAMRandomizer {
                     byte[] kirbySupportPalette;
 
                     switch (settings.SprayGeneration) {
-                        case SprayGen.Random:
+                        case GenerationOptions.Random:
                             kirbySupportPalette = RandomizePalette();
                         break;
 
-                        case SprayGen.RandomAndPresets:
+                        case GenerationOptions.RandomAndPresets:
                             int diceNumber = Utils.Dice();
                             
                             if(diceNumber == 1) kirbySupportPalette = presetSprays[spraySelected];
@@ -72,11 +72,11 @@ namespace KatAMRandomizer {
                     byte[] kirbyRandomColorPalette;
 
                     switch (settings.SprayGeneration) {
-                        case SprayGen.Random:
+                        case GenerationOptions.Random:
                             kirbyRandomColorPalette = RandomizePalette();
                         break;
 
-                        case SprayGen.RandomAndPresets:
+                        case GenerationOptions.RandomAndPresets:
                         int choice = Utils.GetRandomNumber(0, 6);
 
                         if (choice == 0) kirbyRandomColorPalette = presetSprays[spraySelected];
@@ -219,8 +219,8 @@ namespace KatAMRandomizer {
 
             if(!hasOutline) return adjustedColors;
 
-            bool allPalettesHaveOutlines = settings.SprayOutlineGenerationType == SprayGen.All;
-            bool somePalettesHaveOutlines = settings.SprayOutlineGenerationType == SprayGen.Random;
+            bool allPalettesHaveOutlines = settings.SprayOutlineGenerationType == GenerationOptions.All;
+            bool somePalettesHaveOutlines = settings.SprayOutlineGenerationType == GenerationOptions.Random;
             int diceNumber = Utils.Dice();
 
             if (allPalettesHaveOutlines) {
@@ -365,11 +365,11 @@ namespace KatAMRandomizer {
         static void ConvertColorPalette(List<byte> destination, List<int[]> colorReference) {
             // Setting the outline color for all palettes;
             switch (settings.SprayOutlineGenerationType) {
-                case SprayGen.All:
+                case GenerationOptions.All:
                     colorReference[0] = colorReference[7];
                 break;
 
-                case SprayGen.Random:
+                case GenerationOptions.Random:
                     int diceNumber = Utils.Dice();
 
                     if(diceNumber == 1) {

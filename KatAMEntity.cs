@@ -1,4 +1,5 @@
-﻿using System;
+﻿using KatAMInternal;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -19,7 +20,7 @@ public class Entity {
     public byte ID { get; set; }
     public byte Behavior { get; set; }
     public byte Speed { get; set; }
-    public byte[] Properties { get; set; } = new byte[18];
+    public byte[] Properties { get; set; } = new byte[20];
     public int Room { get; set; }
 
     public Entity() {}
@@ -107,15 +108,6 @@ public class EntitySerializable : Entity {
     }
 
     public static byte[] StringToByteArray(string hexString) {
-        // Initialize the byte array
-        byte[] byteArray = new byte[hexString.Length / 2];
-
-        // Convert each pair of characters to a byte
-        for (int i = 0; i < hexString.Length; i += 2) {
-            string byteString = hexString.Substring(i, 2);
-            byteArray[i / 2] = Convert.ToByte(byteString, 16);
-        }
-
-        return byteArray;
+        return Utils.StringToByteArray(hexString);
     }
 }
