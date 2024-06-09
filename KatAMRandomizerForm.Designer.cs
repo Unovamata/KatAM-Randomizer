@@ -86,6 +86,8 @@
             RadioSprayUnchanged = new RadioButton();
             ButtonRefreshSeed = new Button();
             LabelSeed = new Label();
+            StatusStripRandomizer = new StatusStrip();
+            StatusLabel = new ToolStripStatusLabel();
             GroupSettings.SuspendLayout();
             GroupRomInfo.SuspendLayout();
             tabControl1.SuspendLayout();
@@ -99,6 +101,7 @@
             TabMiscellaneous.SuspendLayout();
             GroupMiscSprayPalettes.SuspendLayout();
             GroupSprayOutlines.SuspendLayout();
+            StatusStripRandomizer.SuspendLayout();
             SuspendLayout();
             // 
             // ButtonConsoleSend
@@ -255,7 +258,7 @@
             tabControl1.Location = new Point(12, 161);
             tabControl1.Name = "tabControl1";
             tabControl1.SelectedIndex = 0;
-            tabControl1.Size = new Size(776, 277);
+            tabControl1.Size = new Size(776, 265);
             tabControl1.SizeMode = TabSizeMode.Fixed;
             tabControl1.TabIndex = 10;
             // 
@@ -264,7 +267,7 @@
             tabPage1.Location = new Point(4, 24);
             tabPage1.Name = "tabPage1";
             tabPage1.Padding = new Padding(3);
-            tabPage1.Size = new Size(768, 249);
+            tabPage1.Size = new Size(768, 237);
             tabPage1.TabIndex = 0;
             tabPage1.Text = "Mirrors";
             tabPage1.UseVisualStyleBackColor = true;
@@ -276,7 +279,7 @@
             tabPage2.Location = new Point(4, 24);
             tabPage2.Name = "tabPage2";
             tabPage2.Padding = new Padding(3);
-            tabPage2.Size = new Size(768, 249);
+            tabPage2.Size = new Size(768, 237);
             tabPage2.TabIndex = 1;
             tabPage2.Text = "Chests & Items";
             tabPage2.UseVisualStyleBackColor = true;
@@ -626,7 +629,7 @@
             tabPage3.Location = new Point(4, 24);
             tabPage3.Name = "tabPage3";
             tabPage3.Padding = new Padding(3);
-            tabPage3.Size = new Size(768, 249);
+            tabPage3.Size = new Size(768, 237);
             tabPage3.TabIndex = 2;
             tabPage3.Text = "Enemies";
             tabPage3.UseVisualStyleBackColor = true;
@@ -636,7 +639,7 @@
             tabPage4.Location = new Point(4, 24);
             tabPage4.Name = "tabPage4";
             tabPage4.Padding = new Padding(3);
-            tabPage4.Size = new Size(768, 249);
+            tabPage4.Size = new Size(768, 237);
             tabPage4.TabIndex = 3;
             tabPage4.Text = "Minibosses";
             tabPage4.UseVisualStyleBackColor = true;
@@ -646,7 +649,7 @@
             tabPage5.Location = new Point(4, 24);
             tabPage5.Name = "tabPage5";
             tabPage5.Padding = new Padding(3);
-            tabPage5.Size = new Size(768, 249);
+            tabPage5.Size = new Size(768, 237);
             tabPage5.TabIndex = 4;
             tabPage5.Text = "Abilities";
             tabPage5.UseVisualStyleBackColor = true;
@@ -657,7 +660,7 @@
             TabMiscellaneous.Location = new Point(4, 24);
             TabMiscellaneous.Name = "TabMiscellaneous";
             TabMiscellaneous.Padding = new Padding(3);
-            TabMiscellaneous.Size = new Size(768, 249);
+            TabMiscellaneous.Size = new Size(768, 237);
             TabMiscellaneous.TabIndex = 5;
             TabMiscellaneous.Text = "Miscellaneous";
             TabMiscellaneous.UseVisualStyleBackColor = true;
@@ -672,7 +675,7 @@
             GroupMiscSprayPalettes.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
             GroupMiscSprayPalettes.Location = new Point(9, 6);
             GroupMiscSprayPalettes.Name = "GroupMiscSprayPalettes";
-            GroupMiscSprayPalettes.Size = new Size(279, 237);
+            GroupMiscSprayPalettes.Size = new Size(279, 225);
             GroupMiscSprayPalettes.TabIndex = 0;
             GroupMiscSprayPalettes.TabStop = false;
             GroupMiscSprayPalettes.Text = "Spray Palettes";
@@ -684,7 +687,7 @@
             GroupSprayOutlines.Controls.Add(RadioOutlinesUnchanged);
             GroupSprayOutlines.Location = new Point(142, 12);
             GroupSprayOutlines.Name = "GroupSprayOutlines";
-            GroupSprayOutlines.Size = new Size(131, 219);
+            GroupSprayOutlines.Size = new Size(131, 207);
             GroupSprayOutlines.TabIndex = 5;
             GroupSprayOutlines.TabStop = false;
             GroupSprayOutlines.Text = "Outlines";
@@ -799,11 +802,26 @@
             LabelSeed.Text = "Seed:";
             LabelSeed.Visible = false;
             // 
+            // StatusStripRandomizer
+            // 
+            StatusStripRandomizer.Items.AddRange(new ToolStripItem[] { StatusLabel });
+            StatusStripRandomizer.Location = new Point(0, 428);
+            StatusStripRandomizer.Name = "StatusStripRandomizer";
+            StatusStripRandomizer.Size = new Size(800, 22);
+            StatusStripRandomizer.SizingGrip = false;
+            StatusStripRandomizer.TabIndex = 13;
+            // 
+            // StatusLabel
+            // 
+            StatusLabel.Name = "StatusLabel";
+            StatusLabel.Size = new Size(0, 17);
+            // 
             // KatAMRandomizerMain
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(800, 450);
+            Controls.Add(StatusStripRandomizer);
             Controls.Add(LabelSeed);
             Controls.Add(ButtonRefreshSeed);
             Controls.Add(tabControl1);
@@ -837,6 +855,8 @@
             GroupMiscSprayPalettes.PerformLayout();
             GroupSprayOutlines.ResumeLayout(false);
             GroupSprayOutlines.PerformLayout();
+            StatusStripRandomizer.ResumeLayout(false);
+            StatusStripRandomizer.PerformLayout();
             ResumeLayout(false);
             PerformLayout();
         }
@@ -901,5 +921,7 @@
         private RadioButton RadioChestsPropertiesUnchanged;
         private RadioButton RadioConsumablesNo;
         private RadioButton RadioConsumablesChallenge;
+        public static StatusStrip StatusStripRandomizer;
+        private ToolStripStatusLabel StatusLabel;
     }
 }

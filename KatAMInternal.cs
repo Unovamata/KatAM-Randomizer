@@ -1,6 +1,7 @@
 ﻿using Newtonsoft.Json;
 using System.ComponentModel;
 using System.Collections.Generic;
+using KatAM_Randomizer;
 
 namespace KatAMInternal {
     public enum GenerationOptions {
@@ -373,6 +374,10 @@ namespace KatAMInternal {
 
         public static List<T> Shuffle<T>(List<T> list) { 
             return list.OrderBy(x => Utils.GetNextRandom()).ToList();
+        }
+
+        public static void ChangeStatusBarText(string text) {
+            KatAMRandomizerMain.StatusStripRandomizer.Text = text;
         }
     }
 }
