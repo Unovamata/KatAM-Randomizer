@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("KatAM Randomizer")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+a86a1eb4c7a83d01b67c1b5eecd2f82a5674cde6")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+16fcadcdb33b1c089c6afdcf1f81c6d97c931aef")]
 [assembly: System.Reflection.AssemblyProductAttribute("KatAM Randomizer")]
 [assembly: System.Reflection.AssemblyTitleAttribute("KatAM Randomizer")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

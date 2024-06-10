@@ -167,11 +167,13 @@ namespace KatAM_Randomizer
         private void RadioMirrorShardsUnchanged_CheckedChanged(object sender, EventArgs e) {
             GroupMirrorShardsAmount.Enabled = false;
             settings.MirrorShardsGenerationType = GenerationOptions.Unchanged;
+            settings.amountOfMirrorShardsToAdd = 0;
         }
 
         private void RadioMirrorShardsRandom_CheckedChanged(object sender, EventArgs e) {
             GroupMirrorShardsAmount.Enabled = false;
             settings.MirrorShardsGenerationType = GenerationOptions.Random;
+            settings.amountOfMirrorShardsToAdd = Utils.GetRandomNumber(1, 5);
         }
 
         private void RadioMirrorShardsCustom_CheckedChanged(object sender, EventArgs e) {
@@ -201,6 +203,7 @@ namespace KatAM_Randomizer
             RadioChestsPropertiesUnchanged.Checked = true;
             CheckboxChestsMoreHPUP.Checked = false;
             TrackBarHPUP.Value = 1;
+            settings.HPUpsAdded = 0;
         }
 
         // Properties;
@@ -230,6 +233,7 @@ namespace KatAM_Randomizer
                 Label3HPUP.Enabled = false;
                 TrackBarHPUP.Enabled = false;
                 TrackBarHPUP.Value = 1;
+                settings.HPUpsAdded = 0;
             } else {
                 Label1HPUP.Enabled = true;
                 Label2HPUP.Enabled = true;

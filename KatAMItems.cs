@@ -34,10 +34,10 @@ namespace KatAM_Randomizer {
             }
 
             // Inject 
-            for(int i = 0; i < 1; i++) {
+            for(int i = 0; i < Settings.amountOfMirrorShardsToAdd; i++) {
                 // Randomize the mirror shard behaviours;
                 for (int j = 0; j < 8; j++) {
-                    ShuffleMirrorShard(j);
+                    ShuffleMirrorShards((byte) j);
                 }
             }
             
@@ -76,10 +76,6 @@ namespace KatAM_Randomizer {
                 }
 
                 Utils.WriteObjectToROM(romFile, entity);
-
-                if(entity.ID == 0x65) {
-                    Console.WriteLine($"Wrote {entity.Name} at Address {entity.Address} with Behaviour {entity.Behavior}");
-                }
             }
         }
 
@@ -289,8 +285,6 @@ namespace KatAM_Randomizer {
                     // Shuffling chests;
                     ShuffleChest(chest);
                     AddChestToDictionary(chest);
-                    //Console.WriteLine($"Chest Replaced At Address: {chest.Address}");
-
 
                     Utils.WriteObjectToROM(romFile, chest);
                 }
