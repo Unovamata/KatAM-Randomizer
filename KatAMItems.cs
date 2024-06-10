@@ -33,7 +33,16 @@ namespace KatAM_Randomizer {
                 objectIDs = Utils.Shuffle(objectIDs);
             }
 
-            for(int i = 0; i < entities.Count; i++) {
+            // Inject 
+            for(int i = 0; i < 1; i++) {
+                // Randomize the mirror shard behaviours;
+                for (int j = 0; j < 8; j++) {
+                    ShuffleMirrorShard(j);
+                }
+            }
+            
+
+            for (int i = 0; i < entities.Count; i++) {
                 Entity entity = entities[i];
                 
                 if (IsProgressionObject(entity)) continue;
@@ -67,6 +76,10 @@ namespace KatAM_Randomizer {
                 }
 
                 Utils.WriteObjectToROM(romFile, entity);
+
+                if(entity.ID == 0x65) {
+                    Console.WriteLine($"Wrote {entity.Name} at Address {entity.Address} with Behaviour {entity.Behavior}");
+                }
             }
         }
 
@@ -124,6 +137,38 @@ namespace KatAM_Randomizer {
             }
         }
 
+        // ShuffleMirrorShard(); Take an entity and convert it to a mirror shard;
+        static void ShuffleMirrorShards(byte currentShardBehaviour) {
+            if (currentShardBehaviour >= 8) return;
+
+            int index = ReturnReplaceableEntity();
+
+            Entity oldEntity = entities[index];
+            Entity mirrorShard = new Entity(oldEntity);
+
+            mirrorShard.Name = "Mirror Shard";
+            mirrorShard.ID = 0x65; // Mirror shard;
+            mirrorShard.Behavior = currentShardBehaviour; //currentShardBehaviour; // 0x0 - 0x7 behaviors = collectable shards;
+
+            entities[index] = mirrorShard;
+            objectIDs[index] = mirrorShard.ID;
+            currentShardBehaviour++;
+        }
+
+        //ReplaceChestEntity(); Selects a random object to replace it for a chest in the entity list;
+        static int ReturnReplaceableEntity() {
+            int selectedEntity = Utils.GetRandomNumber(0, entities.Count);
+            Entity entity = entities[selectedEntity];
+
+            // If the entity chosen is a chest, reroll;
+            do {
+                selectedEntity = Utils.GetRandomNumber(0, entities.Count);
+                entity = entities[selectedEntity];
+            } while (IsChestObject(entity) || IsMirrorObject(entity));
+
+            return selectedEntity;
+        }
+
         // IsVetoedRoom(); Check if the room is not feasible for randomization;
         static bool IsVetoedRoom(Entity entity) {
             int room = entity.Room;
@@ -151,7 +196,7 @@ namespace KatAM_Randomizer {
             byte behavior = entity.Behavior;
 
             // Big chest with switch parameter or mirror;
-            bool isProgressionObject = (entity.ID == 0x81 && behavior == 0x63) || entity.ID == 0x65;
+            bool isProgressionObject = (entity.ID == 0x81 && behavior == 0x63) || (entity.ID == 0x65 && entity.Behavior == 0x08);
 
             return isProgressionObject;
         }
@@ -164,35 +209,54 @@ namespace KatAM_Randomizer {
             return consumableItems[index];
         }
 
-        //ReplaceChestEntity(); Selects a random object to replace it for a chest in the entity list;
-        static int ReplaceChestEntity(Entity chest) {
-            int selectedEntity = Utils.GetRandomNumber(0, entities.Count);
-            Entity entity = entities[selectedEntity];
+        // IsMirrorObject(); Checks if it's a mirror object;
+        static bool IsMirrorObject(Entity entity) {
+            string name = entity.Name;
 
-            // If the entity chosen is a chest, reroll;
-            do {
-                selectedEntity = Utils.GetRandomNumber(0, entities.Count);
-                entity = entities[selectedEntity];
-            } while (IsChestObject(entity));
-
-            return selectedEntity;
+            return name == Processing.itemsDictionary[0x65]; // Mirror Shard;
         }
 
 
         //////////////////////////////////////////////////////////////////////////////////////////////
-        
+
 
         static Dictionary<int, List<Entity>> chestDictionary;
-        static GenerationOptions chestOptions;
+        static GenerationOptions chestGeneration, chestProperties;
+        static bool isAddingHPUps = false;
+        static int HPUpsToAdd = 0;
+        static int HPUpsAdded = 0;
+
+        // Banned rooms like debug, boss endurance, or final boss rooms;
+        static List<byte> chestConsumableIDs = new List<byte>{
+                0x0, 0x1, 0x2, 0x3, 0x4, 0x5
+        };
+
+        static List<byte> chestTreasureIDs = new List<byte>{
+                0x06, // HP UPs;
+                0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, // Maps;
+                0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, // Sprays
+                0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F, 0x20, 0x21, // Sprays
+                0x28, 0x29, 0x2A, 0x2B, 0x2C, 0x2D, 0x2E, 0x2F // Music
+        };
+
+        static List<byte> combinedTreasureIDs = new List<byte>();
 
         // RandomizeChests(); Randomizes chest objects and injects them in the ROM's 9ROM pointers;
         public static void RandomizeChests() {
             byte[] romFile = System.ROMData;
             chestDictionary = new Dictionary<int, List<Entity>>();
-            chestOptions = Settings.ChestsGenerationType;
+            chestGeneration = Settings.ChestsGenerationType;
+            chestProperties = Settings.ChestsPropertiesType;
+            isAddingHPUps = Settings.isAddingMoreHPUps;
+
+            if (isAddingHPUps) HPUpsToAdd = Settings.HPUpsAdded;
 
             // Return if no chests must be written;
-            if (chestOptions == GenerationOptions.No) return;
+            if (chestGeneration == GenerationOptions.No) return;
+            else if (chestProperties == GenerationOptions.Random) {
+                combinedTreasureIDs.AddRange(chestConsumableIDs);
+                combinedTreasureIDs.AddRange(chestTreasureIDs);
+            }
 
             // For every chest in the list, randomize it;
             for (int i = 0; i < chestEntities.Count; i++) {
@@ -203,17 +267,37 @@ namespace KatAM_Randomizer {
                     continue;
                 }
 
-                // Shuffling chests;
-                ShuffleChest(chest);
-                AddChestToDictionary(chest);
-                //Console.WriteLine($"Chest Replaced At Address: {chest.Address}");
-                
+                // If the randomizer is removing healing items, then don't process the chest;
+                if (chestProperties == GenerationOptions.Remove) {
+                    bool isContainingVetoedItem = chestConsumableIDs.Contains(chest.Behavior);
 
-                Utils.WriteObjectToROM(romFile, chest);
+                    if (isContainingVetoedItem) {
+                        // Adding HP Ups;
+                        bool canAddHPUps = isAddingHPUps && HPUpsAdded < HPUpsToAdd,
+                             isHPUp = chest.Behavior == 0x06,
+                             isTreasure = chestTreasureIDs.Contains(chest.Behavior);
+
+                        if (canAddHPUps && !isTreasure) {
+                            chest.Behavior = 0x06;
+                            HPUpsAdded++;
+                            AddChestToDictionary(chest);
+                        }
+
+                        continue;
+                    }
+
+                    // Shuffling chests;
+                    ShuffleChest(chest);
+                    AddChestToDictionary(chest);
+                    //Console.WriteLine($"Chest Replaced At Address: {chest.Address}");
+
+
+                    Utils.WriteObjectToROM(romFile, chest);
+                }
+
+                // Write to the ROM;
+                WriteChestTo9ROM(romFile);
             }
-
-            // Write to the ROM;
-            WriteChestTo9ROM(romFile);
         }
 
         // AddChestToDictionary(); Adds a chest entity to a dictionary for later processing;
@@ -227,17 +311,34 @@ namespace KatAM_Randomizer {
 
         // ShuffleChest(); Take a chest entity and select a random entity to shuffle it to;
         static void ShuffleChest(Entity chest) {
-            if (chestOptions == GenerationOptions.Shuffle) {
-                int replacedEntityIndex = ReplaceChestEntity(chest);
-                Entity oldEntity = entities[replacedEntityIndex];
+            if (chestGeneration != GenerationOptions.Shuffle) return;
 
-                chest.Address = oldEntity.Address;
-                chest.Number = oldEntity.Number;
-                chest.Link = oldEntity.Link;
-                chest.X = oldEntity.X;
-                chest.Y = oldEntity.Y;
-                chest.ID = 0x80; // Assign small chests since big chests fall of the level;
-                chest.Room = oldEntity.Room;
+            int replacedEntityIndex = ReturnReplaceableEntity();
+            Entity oldEntity = entities[replacedEntityIndex];
+
+            chest.Address = oldEntity.Address;
+            chest.Number = oldEntity.Number;
+            chest.Link = oldEntity.Link;
+            chest.X = oldEntity.X;
+            chest.Y = oldEntity.Y;
+            chest.ID = 0x80; // Assign small chests since big chests fall of the level;
+            chest.Room = oldEntity.Room;
+
+            // Do not shuffle the base HP Ups IDs;
+            if (chest.Behavior == 0x06) return;
+
+            switch (chestProperties) {
+                case GenerationOptions.RandomAndPresets:
+                    int selectedTreasureIndex = Utils.GetRandomNumber(0, chestTreasureIDs.Count);
+
+                    chest.Behavior = chestTreasureIDs[selectedTreasureIndex];
+                break;
+
+                case GenerationOptions.Random:
+                    int selectedIndex = Utils.GetRandomNumber(0, combinedTreasureIDs.Count);
+
+                    chest.Behavior = combinedTreasureIDs[selectedIndex];
+                break;
             }
         }
 

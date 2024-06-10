@@ -13,7 +13,8 @@ namespace KatAMInternal {
         All = 5,
         No = 6,
         Challenge = 7,
-        Custom = 8
+        Custom = 8,
+        Remove = 9
     }
 
     internal class Processing {
@@ -209,7 +210,11 @@ namespace KatAMInternal {
         public GenerationOptions SprayOutlineGenerationType { get; set; }
         public GenerationOptions ConsumablesGenerationType { get; set; }
         public GenerationOptions MirrorShardsGenerationType { get; set; }
+        public int amountOfMirrorShardsToAdd = 0;
         public GenerationOptions ChestsGenerationType { get; set; }
+        public GenerationOptions ChestsPropertiesType { get; set; }
+        public bool isAddingMoreHPUps { get; set; }
+        public int HPUpsAdded { get; set; }
 
         public Settings() {
             Random seedGenerator = new Random();
@@ -377,7 +382,7 @@ namespace KatAMInternal {
         }
 
         public static void ChangeStatusBarText(string text) {
-            KatAMRandomizerMain.StatusStripRandomizer.Text = text;
+            KatAMRandomizerMain.Instance.StatusStripRandomizer.Text = text;
         }
     }
 }

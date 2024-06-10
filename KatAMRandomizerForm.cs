@@ -179,6 +179,10 @@ namespace KatAM_Randomizer
             settings.MirrorShardsGenerationType = GenerationOptions.Custom;
         }
 
+        private void TrackBarMirrorShardsAmount_Scroll(object sender, EventArgs e) {
+            settings.amountOfMirrorShardsToAdd = TrackBarMirrorShardsAmount.Value;
+        }
+
         // Chests;
         private void RadioChestsUnchanged_CheckedChanged(object sender, EventArgs e) {
             settings.ChestsGenerationType = GenerationOptions.Unchanged;
@@ -195,17 +199,48 @@ namespace KatAM_Randomizer
             settings.ChestsGenerationType = GenerationOptions.No;
             GroupChestsProperties.Enabled = false;
             RadioChestsPropertiesUnchanged.Checked = true;
+            CheckboxChestsMoreHPUP.Checked = false;
+            TrackBarHPUP.Value = 1;
         }
 
+        // Properties;
         private void RadioChestsPropertiesUnchanged_CheckedChanged(object sender, EventArgs e) {
-
+            settings.ChestsPropertiesType = GenerationOptions.Unchanged;
         }
 
         private void RadioChestsPropertiesRemoveHealing_CheckedChanged(object sender, EventArgs e) {
+            settings.ChestsPropertiesType = GenerationOptions.Remove;
+        }
 
+        private void RadioChestsPropertiesRandomWithoutConsumables_CheckedChanged(object sender, EventArgs e) {
+            settings.ChestsPropertiesType = GenerationOptions.RandomAndPresets;
         }
 
         private void RadioChestsPropertiesRandom_CheckedChanged(object sender, EventArgs e) {
+            settings.ChestsPropertiesType = GenerationOptions.Random;
+        }
+
+        // HP Ups;
+        private void CheckboxChestsMoreHPUP_CheckedChanged(object sender, EventArgs e) {
+            bool isAddingMoreHPUPs = CheckboxChestsMoreHPUP.Checked;
+
+            if (!isAddingMoreHPUPs) {
+                Label1HPUP.Enabled = false;
+                Label2HPUP.Enabled = false;
+                Label3HPUP.Enabled = false;
+                TrackBarHPUP.Enabled = false;
+                TrackBarHPUP.Value = 1;
+            } else {
+                Label1HPUP.Enabled = true;
+                Label2HPUP.Enabled = true;
+                Label3HPUP.Enabled = true;
+                TrackBarHPUP.Enabled = true;
+                settings.HPUpsAdded = TrackBarHPUP.Value;
+                settings.isAddingMoreHPUps = isAddingMoreHPUPs;
+            }
+        }
+
+        private void TrackBarHPUP_Scroll(object sender, EventArgs e) {
 
         }
 
