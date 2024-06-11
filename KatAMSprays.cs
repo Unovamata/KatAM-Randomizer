@@ -4,16 +4,18 @@ using System.Drawing;
 using System.Security.Cryptography.Xml;
 
 namespace KatAMRandomizer {
-    internal class KatAMSprays {
-        static Settings settings;
-        static int seed;
+    internal class KatAMSprays : KatAMRandomizerComponent {
+        public KatAMSprays(Processing system) {
+            InitializeComponents(system);
 
-        public static void RandomizeSpray(Processing system) {
-            byte[] romFile = system.ROMData;
-            settings = system.Settings;
-            seed = settings.Seed;
+            RandomizeSpray();
+        }
 
-            if (settings.SprayGeneration == GenerationOptions.Unchanged) return;
+        public void RandomizeSpray() {
+            byte[] romFile = System.ROMData;
+            Settings = System.Settings;
+
+            if (Settings.SprayGeneration == GenerationOptions.Unchanged) return;
 
             Console.WriteLine("Randomizing spray colours...");
 
@@ -48,7 +50,7 @@ namespace KatAMRandomizer {
                 if (x < 13) {
                     byte[] kirbySupportPalette;
 
-                    switch (settings.SprayGeneration) {
+                    switch (Settings.SprayGeneration) {
                         case GenerationOptions.Random:
                             kirbySupportPalette = RandomizePalette();
                         break;
@@ -71,7 +73,7 @@ namespace KatAMRandomizer {
                 } else {
                     byte[] kirbyRandomColorPalette;
 
-                    switch (settings.SprayGeneration) {
+                    switch (Settings.SprayGeneration) {
                         case GenerationOptions.Random:
                             kirbyRandomColorPalette = RandomizePalette();
                         break;
@@ -98,7 +100,7 @@ namespace KatAMRandomizer {
             }
         }
 
-        static byte[] GenerateHUDPalette(byte[] colorPalette) {
+        byte[] GenerateHUDPalette(byte[] colorPalette) {
             int[] colorPaletteReferences = new int[] { 4, 5, 8, 9, 8, 9, 12, 13, 8, 9, 12, 13, 0, 1 };
 
             List<byte> hudPalette = new List<byte>();
@@ -114,7 +116,7 @@ namespace KatAMRandomizer {
         }
 
         //LoadSprayPresets(); Loading all the spray presets for the system to pick one if needed;
-        static List<byte[]> LoadSprayPresets() {
+        List<byte[]> LoadSprayPresets() {
             List<byte[]> presetSprays = new List<byte[]>();
 
             presetSprays.Add(DefaultPinkKirby());
@@ -142,7 +144,7 @@ namespace KatAMRandomizer {
         }
 
         //RandomizePalette(); Creates a new color palette taking Kirby's base color as a reference;
-        static byte[] RandomizePalette() {
+        byte[] RandomizePalette() {
             /* Color Index To Kirby Sprite:
              * 0: Outline;
              * 1: Shoe Shine;
@@ -190,7 +192,7 @@ namespace KatAMRandomizer {
 
 
         // Method to adjust HSV values based on random number
-        public static List<byte> AdjustHSV(List<int[]> rgbColors, int randomH, int randomS, int randomV, bool hasOutline = false) {
+        public List<byte> AdjustHSV(List<int[]> rgbColors, int randomH, int randomS, int randomV, bool hasOutline = false) {
             List<byte> adjustedColors = new List<byte>();
 
             for (int i = 0; i < rgbColors.Count; i++) {
@@ -219,8 +221,8 @@ namespace KatAMRandomizer {
 
             if(!hasOutline) return adjustedColors;
 
-            bool allPalettesHaveOutlines = settings.SprayOutlineGenerationType == GenerationOptions.All;
-            bool somePalettesHaveOutlines = settings.SprayOutlineGenerationType == GenerationOptions.Random;
+            bool allPalettesHaveOutlines = Settings.SprayOutlineGenerationType == GenerationOptions.All;
+            bool somePalettesHaveOutlines = Settings.SprayOutlineGenerationType == GenerationOptions.Random;
             int diceNumber = Utils.Dice();
 
             if (allPalettesHaveOutlines) {
@@ -234,7 +236,7 @@ namespace KatAMRandomizer {
             return adjustedColors;
         }
 
-        public static int[] RGBToHSV(int r, int g, int b) {
+        public int[] RGBToHSV(int r, int g, int b) {
             // Scale RGB values to [0, 1]
             double rd = r / 255.0;
             double gd = g / 255.0;
@@ -272,7 +274,7 @@ namespace KatAMRandomizer {
             return new int[] { hueInt, saturationInt, valueInt };
         }
 
-        public static int[] HSVToRGB(int[] colorInput) {
+        public int[] HSVToRGB(int[] colorInput) {
             int hue = colorInput[0], saturation = colorInput[1], value = colorInput[2];
 
             double h = hue / 360.0;       // Scale hue to [0, 1]
@@ -333,14 +335,14 @@ namespace KatAMRandomizer {
 
 
         // AddColorRGB(); Converting a RGB color to a GBA color, 0 min - 255 max;
-        static void AddColorRGB(List<byte> reference, byte red, byte green, byte blue) {
+        void AddColorRGB(List<byte> reference, byte red, byte green, byte blue) {
             byte[] gbaColor = ConvertRGBToGBAColorBytes(red, green, blue);
 
             reference.Add(gbaColor[0]);
             reference.Add(gbaColor[1]);
         }
         
-        public static byte[] ConvertRGBToGBAColorBytes(byte red, byte green, byte blue) {
+        public byte[] ConvertRGBToGBAColorBytes(byte red, byte green, byte blue) {
             ushort gbaColor = ConvertRGBToGBAColor(red, green, blue);
 
             // Convert the 16-bit integer to a byte array (little-endian)
@@ -351,7 +353,7 @@ namespace KatAMRandomizer {
             return colorBytes;
         }
         
-        public static ushort ConvertRGBToGBAColor(byte red, byte green, byte blue) {
+        public ushort ConvertRGBToGBAColor(byte red, byte green, byte blue) {
             // Convert RGB to GBA color (15-bit RGB format)
             ushort gbaColor = (ushort)(((red >> 3) & 31) | (((green >> 3) & 31) << 5) | (((blue >> 3) & 31) << 10));
             return gbaColor;
@@ -362,9 +364,9 @@ namespace KatAMRandomizer {
 
         // Preset Colors;
 
-        static void ConvertColorPalette(List<byte> destination, List<int[]> colorReference) {
+        void ConvertColorPalette(List<byte> destination, List<int[]> colorReference) {
             // Setting the outline color for all palettes;
-            switch (settings.SprayOutlineGenerationType) {
+            switch (Settings.SprayOutlineGenerationType) {
                 case GenerationOptions.All:
                     colorReference[0] = colorReference[7];
                 break;
@@ -383,7 +385,7 @@ namespace KatAMRandomizer {
             }
         }
 
-        static List<int[]> pinkKirbyColors = new List<int[]>(){
+        List<int[]> pinkKirbyColors = new List<int[]>(){
             new int[] { 0, 0, 0 },
             new int[] { 255, 211, 247 },
             new int[] { 255, 162, 222 },
@@ -397,7 +399,7 @@ namespace KatAMRandomizer {
             new int[] { 181, 0, 41 }
         };
     
-        static byte[] DefaultPinkKirby() {
+        byte[] DefaultPinkKirby() {
             List<byte> result = new List<byte>();
 
             ConvertColorPalette(result, pinkKirbyColors);
@@ -405,7 +407,7 @@ namespace KatAMRandomizer {
             return result.ToArray();
         }
 
-        static List<int[]> yellowKirbyColors = new List<int[]>(){
+        List<int[]> yellowKirbyColors = new List<int[]>(){
             new int[] { 0, 0, 0 },
             new int[] { 255, 251, 0 },
             new int[] { 255, 211, 0 },
@@ -419,7 +421,7 @@ namespace KatAMRandomizer {
             new int[] { 173, 0, 0 }
         };
 
-        static byte[] DefaultYellowKirby() {
+        byte[] DefaultYellowKirby() {
             List<byte> result = new List<byte>();
 
             ConvertColorPalette(result, yellowKirbyColors);
@@ -427,7 +429,7 @@ namespace KatAMRandomizer {
             return result.ToArray();
         }
 
-        static List<int[]> redKirbyColors = new List<int[]>(){
+        List<int[]> redKirbyColors = new List<int[]>(){
             new int[] { 0, 0, 0 },
             new int[] { 255, 162, 165 },
             new int[] { 255, 0, 57 },
@@ -441,7 +443,7 @@ namespace KatAMRandomizer {
             new int[] { 181, 0, 41 }
         };
 
-        static byte[] DefaultRedKirby() {
+        byte[] DefaultRedKirby() {
             List<byte> result = new List<byte>();
 
             ConvertColorPalette(result, redKirbyColors);
@@ -449,7 +451,7 @@ namespace KatAMRandomizer {
             return result.ToArray();
         }
 
-        static List<int[]> greenKirbyColors = new List<int[]>(){
+        List<int[]> greenKirbyColors = new List<int[]>(){
             new int[] { 0, 0, 0 },
             new int[] { 198, 251, 156 },
             new int[] { 123, 251, 41 },
@@ -463,7 +465,7 @@ namespace KatAMRandomizer {
             new int[] { 140, 56, 0 }
         };
 
-        static byte[] DefaultGreenKirby() {
+        byte[] DefaultGreenKirby() {
             List<byte> result = new List<byte>();
 
             ConvertColorPalette(result, greenKirbyColors);
@@ -471,7 +473,7 @@ namespace KatAMRandomizer {
             return result.ToArray();
         }
 
-        static List<int[]> defaultSnowKirbyColors = new List<int[]>(){
+        List<int[]> defaultSnowKirbyColors = new List<int[]>(){
             new int[] { 0, 0, 0 },
             new int[] { 255, 251, 255 },
             new int[] { 255, 251, 255 },
@@ -485,7 +487,7 @@ namespace KatAMRandomizer {
             new int[] { 181, 0, 41 }
         };
 
-        static byte[] DefaultSnowKirby() {
+        byte[] DefaultSnowKirby() {
             List<byte> reference = new List<byte>();
 
             ConvertColorPalette(reference, defaultSnowKirbyColors);
@@ -493,7 +495,7 @@ namespace KatAMRandomizer {
             return reference.ToArray();
         }
 
-        static List<int[]> defaultCarbonKirbyColors = new List<int[]>(){
+        List<int[]> defaultCarbonKirbyColors = new List<int[]>(){
             new int[] { 0, 0, 0 },
             new int[] { 132, 130, 132 },
             new int[] { 115, 113, 115 },
@@ -507,7 +509,7 @@ namespace KatAMRandomizer {
             new int[] { 206, 81, 0 }
         };
 
-        static byte[] DefaultCarbonKirby() {
+        byte[] DefaultCarbonKirby() {
             List<byte> reference = new List<byte>();
 
             ConvertColorPalette(reference, defaultCarbonKirbyColors);
@@ -515,7 +517,7 @@ namespace KatAMRandomizer {
             return reference.ToArray();
         }
 
-        static List<int[]> oceanKirbyColors = new List<int[]>(){
+        List<int[]> oceanKirbyColors = new List<int[]>(){
             new int[] { 0, 0, 0 },
             new int[] { 165, 251, 255 },
             new int[] { 140, 219, 255 },
@@ -529,7 +531,7 @@ namespace KatAMRandomizer {
             new int[] { 49, 24, 181 }
         };
 
-        static byte[] DefaultOceanKirby() {
+        byte[] DefaultOceanKirby() {
             List<byte> reference = new List<byte>();
 
             ConvertColorPalette(reference, oceanKirbyColors);
@@ -537,7 +539,7 @@ namespace KatAMRandomizer {
             return reference.ToArray();
         }
 
-        static List<int[]> sapphireKirbyColors = new List<int[]>(){
+        List<int[]> sapphireKirbyColors = new List<int[]>(){
             new int[] { 0, 0, 0 },
             new int[] { 181, 203, 255 },
             new int[] { 123, 154, 239 },
@@ -551,7 +553,7 @@ namespace KatAMRandomizer {
             new int[] { 57, 0, 107 }
         };
 
-        static byte[] DefaultSapphireKirby() {
+        byte[] DefaultSapphireKirby() {
             List<byte> reference = new List<byte>();
 
             ConvertColorPalette(reference, sapphireKirbyColors);
@@ -559,7 +561,7 @@ namespace KatAMRandomizer {
             return reference.ToArray();
         }
 
-        static List<int[]> grapeKirbyColors = new List<int[]>(){
+        List<int[]> grapeKirbyColors = new List<int[]>(){
             new int[] { 0, 0, 0 },
             new int[] { 206, 186, 255 },
             new int[] { 181, 154, 255 },
@@ -573,7 +575,7 @@ namespace KatAMRandomizer {
             new int[] { 123, 0, 82 }
         };
 
-        static byte[] DefaultGrapeKirby() {
+        byte[] DefaultGrapeKirby() {
             List<byte> reference = new List<byte>();
 
             ConvertColorPalette(reference, grapeKirbyColors);
@@ -581,7 +583,7 @@ namespace KatAMRandomizer {
             return reference.ToArray();
         }
 
-        static List<int[]> emeraldKirbyColors = new List<int[]>(){
+        List<int[]> emeraldKirbyColors = new List<int[]>(){
             new int[] { 0, 0, 0 },
             new int[] { 189, 251, 222 },
             new int[] { 115, 251, 189 },
@@ -595,7 +597,7 @@ namespace KatAMRandomizer {
             new int[] { 189, 89, 0 }
         };
 
-        static byte[] DefaultEmeraldKirby() {
+        byte[] DefaultEmeraldKirby() {
             List<byte> reference = new List<byte>();
 
             ConvertColorPalette(reference, emeraldKirbyColors);
@@ -603,7 +605,7 @@ namespace KatAMRandomizer {
             return reference.ToArray();
         }
 
-        static List<int[]> orangeKirbyColors = new List<int[]>(){
+        List<int[]> orangeKirbyColors = new List<int[]>(){
             new int[] { 0, 0, 0 },
             new int[] { 255, 235, 0 },
             new int[] { 255, 178, 24 },
@@ -617,7 +619,7 @@ namespace KatAMRandomizer {
             new int[] { 132, 40, 16 }
         };
 
-        static byte[] DefaultOrangeKirby() {
+        byte[] DefaultOrangeKirby() {
             List<byte> reference = new List<byte>();
 
             ConvertColorPalette(reference, orangeKirbyColors);
@@ -625,7 +627,7 @@ namespace KatAMRandomizer {
             return reference.ToArray();
         }
 
-        static List<int[]> chocolateKirbyColors = new List<int[]>() {
+        List<int[]> chocolateKirbyColors = new List<int[]>() {
             new int[] { 0, 0, 0 },
             new int[] { 214, 154, 140 },
             new int[] { 214, 130, 99 },
@@ -639,7 +641,7 @@ namespace KatAMRandomizer {
             new int[] { 115, 0, 0 }
         };
 
-        static byte[] DefaultChocolateKirby() {
+        byte[] DefaultChocolateKirby() {
             List<byte> reference = new List<byte>();
 
             ConvertColorPalette(reference, chocolateKirbyColors);
@@ -647,7 +649,7 @@ namespace KatAMRandomizer {
             return reference.ToArray();
         }
 
-        static List<int[]> cherryKirbyColors = new List<int[]>(){
+        List<int[]> cherryKirbyColors = new List<int[]>(){
             new int[] { 0, 0, 0 },
             new int[] { 255, 211, 247 },
             new int[] { 255, 146, 222 },
@@ -661,7 +663,7 @@ namespace KatAMRandomizer {
             new int[] { 41, 105, 57 }
         };
 
-        static byte[] DefaultCherryKirby() {
+        byte[] DefaultCherryKirby() {
             List<byte> reference = new List<byte>();
 
             ConvertColorPalette(reference, cherryKirbyColors);
@@ -669,7 +671,7 @@ namespace KatAMRandomizer {
             return reference.ToArray();
         }
 
-        static List<int[]> defaultChalkKirbyColors = new List<int[]>(){
+        List<int[]> defaultChalkKirbyColors = new List<int[]>(){
             new int[] { 0, 0, 0 },
             new int[] { 255, 251, 255 },
             new int[] { 222, 219, 222 },
@@ -683,7 +685,7 @@ namespace KatAMRandomizer {
             new int[] { 66, 65, 66 }
         };
 
-        static byte[] DefaultChalkKirby() {
+        byte[] DefaultChalkKirby() {
             List<byte> reference = new List<byte>();
 
             ConvertColorPalette(reference, defaultChalkKirbyColors);
@@ -691,7 +693,7 @@ namespace KatAMRandomizer {
             return reference.ToArray();
         }
 
-        static List<int[]> defaultShadowKirbyColors = new List<int[]>(){
+        List<int[]> defaultShadowKirbyColors = new List<int[]>(){
             new int[] { 0, 0, 0 },
             new int[] { 140, 138, 140 },
             new int[] { 132, 130, 132 },
@@ -705,7 +707,7 @@ namespace KatAMRandomizer {
             new int[] { 41, 40, 41 }
         };
 
-        static byte[] DefaultShadowKirby() {
+        byte[] DefaultShadowKirby() {
             List<byte> reference = new List<byte>();
 
             ConvertColorPalette(reference, defaultShadowKirbyColors);
@@ -713,7 +715,7 @@ namespace KatAMRandomizer {
             return reference.ToArray();
         }
 
-        static List<int[]> KDL3KirbyColors = new List<int[]>(){
+        List<int[]> KDL3KirbyColors = new List<int[]>(){
             new int[] { 168, 80, 72 },
             new int[] { 232, 120, 128 },
             new int[] { 240, 224, 232 },
@@ -727,7 +729,7 @@ namespace KatAMRandomizer {
             new int[] { 176, 24, 16 }
         };
 
-        static byte[] KDL3Kirby() {
+        byte[] KDL3Kirby() {
             List<byte> reference = new List<byte>();
 
             ConvertColorPalette(reference, KDL3KirbyColors);
@@ -735,7 +737,7 @@ namespace KatAMRandomizer {
             return reference.ToArray();
         }
 
-        static List<int[]> advanceIceKirbyColors = new List<int[]>(){
+        List<int[]> advanceIceKirbyColors = new List<int[]>(){
             new int[] { 0, 0, 0 },
             new int[] { 72, 208, 248 },
             new int[] { 144, 240, 248 },
@@ -749,7 +751,7 @@ namespace KatAMRandomizer {
             new int[] { 80, 0, 48 }
         };
 
-        static byte[] AdvanceIceKirby() {
+        byte[] AdvanceIceKirby() {
             List<byte> reference = new List<byte>();
 
             ConvertColorPalette(reference, advanceIceKirbyColors);
@@ -757,7 +759,7 @@ namespace KatAMRandomizer {
             return reference.ToArray();
         }
 
-        static List<int[]> advanceStoneKirbyColors = new List<int[]>(){
+        List<int[]> advanceStoneKirbyColors = new List<int[]>(){
             new int[] { 0, 0, 0 },
             new int[] { 239, 214, 198 },
             new int[] { 239, 214, 198 },
@@ -771,7 +773,7 @@ namespace KatAMRandomizer {
             new int[] { 153, 51, 51 }
         };
 
-        static byte[] AdvanceStoneKirby() {
+        byte[] AdvanceStoneKirby() {
             List<byte> reference = new List<byte>();
 
             ConvertColorPalette(reference, advanceStoneKirbyColors);
@@ -779,7 +781,7 @@ namespace KatAMRandomizer {
             return reference.ToArray();
         }
 
-        static List<int[]> advanceMetaKnightKirbyColors = new List<int[]>(){
+        List<int[]> advanceMetaKnightKirbyColors = new List<int[]>(){
             new int[] { 0, 0, 0 },
             new int[] { 248, 248, 248 },
             new int[] { 0, 0, 248 },
@@ -793,7 +795,7 @@ namespace KatAMRandomizer {
             new int[] { 152, 0, 120 }
         };
 
-        static byte[] AdvanceMetaKnightKirby() {
+        byte[] AdvanceMetaKnightKirby() {
             List<byte> reference = new List<byte>();
 
             ConvertColorPalette(reference, advanceMetaKnightKirbyColors);
@@ -801,7 +803,7 @@ namespace KatAMRandomizer {
             return reference.ToArray();
         }
 
-        static List<int[]> originalWhiteKirbyColors = new List<int[]>(){
+        List<int[]> originalWhiteKirbyColors = new List<int[]>(){
             new int[] { 0, 0, 0 },
             new int[] { 255, 251, 255 },
             new int[] { 255, 251, 255 },
@@ -815,7 +817,7 @@ namespace KatAMRandomizer {
             new int[] { 148, 146, 148 }
         };
 
-        static byte[] OriginalWhiteKirby() {
+        byte[] OriginalWhiteKirby() {
             List<byte> reference = new List<byte>();
 
             ConvertColorPalette(reference, originalWhiteKirbyColors);

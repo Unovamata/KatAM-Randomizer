@@ -2,9 +2,9 @@
 
 namespace KatAMRandomizer {
     internal class KatAMItems : KatAMRandomizerComponent, IKatAMRandomizer {
-        static List<Entity> chestEntities;
-        static List<byte> objectIDs;
-        static GenerationOptions consumableOptions;
+        List<Entity> chestEntities;
+        List<byte> objectIDs;
+        GenerationOptions consumableOptions;
 
         public KatAMItems(Processing system) {
             InitializeComponents(system);
@@ -13,7 +13,7 @@ namespace KatAMRandomizer {
             RandomizeChests();
         }
 
-        public static void RandomizeItems(KatAMItems Instance) {
+        public void RandomizeItems(KatAMItems Instance) {
             entities = new List<Entity>();
             chestEntities = new List<Entity>();
             objectIDs = new List<byte>();
@@ -98,7 +98,7 @@ namespace KatAMRandomizer {
         }
 
         // ShuffleMirrorShard(); Take an entity and convert it to a mirror shard;
-        static void ShuffleMirrorShards(byte currentShardBehaviour) {
+        void ShuffleMirrorShards(byte currentShardBehaviour) {
             if (currentShardBehaviour >= 8) return;
 
             int index = ReturnReplaceableEntity();
@@ -116,7 +116,7 @@ namespace KatAMRandomizer {
         }
 
         //ReplaceChestEntity(); Selects a random object to replace it for a chest in the entity list;
-        static int ReturnReplaceableEntity() {
+        int ReturnReplaceableEntity() {
             int selectedEntity = Utils.GetRandomNumber(0, entities.Count);
             Entity entity = entities[selectedEntity];
 
@@ -130,7 +130,7 @@ namespace KatAMRandomizer {
         }
 
         // IsChestObject(); Checks if it's a chest object;
-        static bool IsChestObject(Entity entity) {
+        bool IsChestObject(Entity entity) {
             string name = entity.Name;
 
             return name == Processing.itemsDictionary[0x80] || // Small chest;
@@ -138,7 +138,7 @@ namespace KatAMRandomizer {
         }
 
         // IsProgressionObject(); This will not randomize key progression objects;
-        static bool IsProgressionObject(Entity entity) {
+        bool IsProgressionObject(Entity entity) {
             byte behavior = entity.Behavior;
 
             // Big chest with switch parameter or mirror;
@@ -148,15 +148,15 @@ namespace KatAMRandomizer {
         }
 
         // GenerateRandomConsumable(); Generates a random consumable ID ;
-        static byte[] consumableItems = { 0x5E, 0x5F, 0x60, 0x61, 0x62, 0x63, 0x64 };
-        static byte GenerateRandomConsumable() {
+        byte[] consumableItems = { 0x5E, 0x5F, 0x60, 0x61, 0x62, 0x63, 0x64 };
+        byte GenerateRandomConsumable() {
             int index = Utils.GetRandomNumber(0, consumableItems.Length);
 
             return consumableItems[index];
         }
 
         // IsMirrorObject(); Checks if it's a mirror object;
-        static bool IsMirrorObject(Entity entity) {
+        bool IsMirrorObject(Entity entity) {
             string name = entity.Name;
 
             return name == Processing.itemsDictionary[0x65]; // Mirror Shard;
@@ -166,18 +166,18 @@ namespace KatAMRandomizer {
         //////////////////////////////////////////////////////////////////////////////////////////////
 
 
-        static Dictionary<int, List<Entity>> chestDictionary;
-        static GenerationOptions chestGeneration, chestProperties;
-        static bool isAddingHPUps = false;
-        static int HPUpsToAdd = 0;
-        static int HPUpsAdded = 0;
+        Dictionary<int, List<Entity>> chestDictionary;
+        GenerationOptions chestGeneration, chestProperties;
+        bool isAddingHPUps = false;
+        int HPUpsToAdd = 0;
+        int HPUpsAdded = 0;
 
         // Banned rooms like debug, boss endurance, or final boss rooms;
-        static List<byte> chestConsumableIDs = new List<byte>{
+        List<byte> chestConsumableIDs = new List<byte>{
                 0x0, 0x1, 0x2, 0x3, 0x4, 0x5
         };
 
-        static List<byte> chestTreasureIDs = new List<byte>{
+        List<byte> chestTreasureIDs = new List<byte>{
                 0x06, // HP UPs;
                 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, // Maps;
                 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, // Sprays
@@ -185,10 +185,10 @@ namespace KatAMRandomizer {
                 0x28, 0x29, 0x2A, 0x2B, 0x2C, 0x2D, 0x2E, 0x2F // Music
         };
 
-        static List<byte> combinedTreasureIDs = new List<byte>();
+        List<byte> combinedTreasureIDs = new List<byte>();
 
         // RandomizeChests(); Randomizes chest objects and injects them in the ROM's 9ROM pointers;
-        public static void RandomizeChests() {
+        public void RandomizeChests() {
             byte[] romFile = System.ROMData;
             chestDictionary = new Dictionary<int, List<Entity>>();
             chestGeneration = Settings.ChestsGenerationType;
@@ -245,7 +245,7 @@ namespace KatAMRandomizer {
         }
 
         // AddChestToDictionary(); Adds a chest entity to a dictionary for later processing;
-        static void AddChestToDictionary(Entity chest) {
+        void AddChestToDictionary(Entity chest) {
             if (!chestDictionary.ContainsKey(chest.Room)) {
                 chestDictionary[chest.Room] = new List<Entity>();
             }
@@ -254,7 +254,7 @@ namespace KatAMRandomizer {
         }
 
         // ShuffleChest(); Take a chest entity and select a random entity to shuffle it to;
-        static void ShuffleChest(Entity chest) {
+        void ShuffleChest(Entity chest) {
             if (chestGeneration != GenerationOptions.Shuffle) return;
 
             int replacedEntityIndex = ReturnReplaceableEntity();
@@ -287,7 +287,7 @@ namespace KatAMRandomizer {
         }
 
         // Pointers;
-        static long NineROMStartAddress = 9441164,
+        long NineROMStartAddress = 9441164,
                     NineROMEndAddress = 9449752,
 
         // New pointers list for chest and mirror writing;
@@ -296,7 +296,7 @@ namespace KatAMRandomizer {
                     NewListPointer = 134217728;
 
         // WriteChestTo9ROM(); Writing the object data in a format the ROM can understand;
-        static void WriteChestTo9ROM(byte[] romFile) {
+        void WriteChestTo9ROM(byte[] romFile) {
             // Pointers to inspect the data correctly;
             int currentRoomIndex = 0,
                 chestsInRoomCount = 0,

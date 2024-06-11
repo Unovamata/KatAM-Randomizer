@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Text;
 using System.Windows.Forms;
 using KatAMRandomizer;
+using KatAM_Randomizer;
 
 namespace KatAMRandomizer
 {
@@ -108,9 +109,10 @@ namespace KatAMRandomizer
             settings.RandomEntity = new Random(settings.Seed);
 
             //KatAMROMReader.ReadROMData(system);
-            KatAMSprays.RandomizeSpray(system);
+            new KatAMSprays(system);
             new KatAMItems(system);
             new KatAMPedestals(system);
+            new KatAMEnemies(system);
 
 
             File.WriteAllBytes(destinationPath, system.ROMData);

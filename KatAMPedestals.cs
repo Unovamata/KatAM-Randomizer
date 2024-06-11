@@ -2,7 +2,7 @@
 
 namespace KatAMRandomizer {
     internal class KatAMPedestals : KatAMRandomizerComponent, IKatAMRandomizer {
-        static GenerationOptions pedestalsOptions;
+        GenerationOptions pedestalsOptions;
 
         public KatAMPedestals(Processing system) {
             InitializeComponents(system);
@@ -15,7 +15,7 @@ namespace KatAMRandomizer {
         }
 
         // Pedestal ID 0x92;
-        static List<byte> pedestal146AbilitiesList = new List<byte>() {
+        List<byte> pedestal146AbilitiesList = new List<byte>() {
             0x00,  // Beam
             0x01,  // Flame
             0x02,  // Laser
@@ -27,7 +27,7 @@ namespace KatAMRandomizer {
         };
 
         // Pedestal ID 0x93;
-        static List<byte> pedestal147AbilitiesList = new List<byte>() {
+        List<byte> pedestal147AbilitiesList = new List<byte>() {
             0x00,  // Wheel
             0x01,  // Ice
             0x02,  // Electric
@@ -38,23 +38,23 @@ namespace KatAMRandomizer {
         };
 
         // Pedestal ID 0x94;
-        static List<byte> pedestal148AbilitiesList = new List<byte>() {
+        List<byte> pedestal148AbilitiesList = new List<byte>() {
             0x00   // Parasol
         };
 
         // Pedestal ID 0x95;
-        static List<byte> pedestal149AbilitiesList = new List<byte>() {
+        List<byte> pedestal149AbilitiesList = new List<byte>() {
             0x00,  // Sword
             0x01,  // Cutter
             0x02   // Cupid
         };
 
         // Pedestal ID 0x96;
-        static List<byte> pedestal150AbilitiesList = new List<byte>() {
+        List<byte> pedestal150AbilitiesList = new List<byte>() {
             0x00   // Random
         };
 
-        static List<KeyValuePair<byte, byte>> unlockPathAbilities = new List<KeyValuePair<byte, byte>>() {
+        List<KeyValuePair<byte, byte>> unlockPathAbilities = new List<KeyValuePair<byte, byte>>() {
             new KeyValuePair<byte, byte>(0x92, 0x01),
             new KeyValuePair<byte, byte>(0x92, 0x03),
             new KeyValuePair<byte, byte>(0x92, 0x04),
@@ -66,12 +66,12 @@ namespace KatAMRandomizer {
         };
 
         // Store ID with Behaviour;
-        static List<KeyValuePair<byte, byte>> objectIDs = new List<KeyValuePair<byte, byte>>();
+        List<KeyValuePair<byte, byte>> objectIDs = new List<KeyValuePair<byte, byte>>();
 
-        static int maxIndex = 4;
-        static bool isParasolBanned, isAddingRandomPedestal;
+        int maxIndex = 4;
+        bool isParasolBanned, isAddingRandomPedestal;
 
-        public static void RandomizeAbilityPedestals(IKatAMRandomizer Instance) {
+        void RandomizeAbilityPedestals(IKatAMRandomizer Instance) {
             entities = new List<Entity>();
             objectIDs = new List<KeyValuePair<byte, byte>>();
 
@@ -137,7 +137,7 @@ namespace KatAMRandomizer {
             }
         }
 
-        static void SelectRandomPedestalAbility(Entity entity) {
+        void SelectRandomPedestalAbility(Entity entity) {
             int selectedPedestal = Utils.GetRandomNumber(0, maxIndex);
             byte selectedID = 0, selectedAbility = 0;
 
@@ -199,13 +199,13 @@ namespace KatAMRandomizer {
             entity.Behavior = selectedAbility;
         }
 
-        static byte SelectPedestalAbility(List<byte> list) {
+        byte SelectPedestalAbility(List<byte> list) {
             int index = (byte) Utils.GetRandomNumber(0, list.Count);
 
             return list[index];
         }
 
-        //DeserializeEntitiesForRandomization(); Preparing the objects for the randomization process;
+        //FilterEntities(); Filtering the objects for the randomization process;
         public bool FilterEntities(Entity entity) {
             objectIDs.Add(new KeyValuePair<byte, byte>(entity.ID, entity.Behavior));
 
