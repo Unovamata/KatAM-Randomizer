@@ -1,7 +1,7 @@
 ﻿using KatAMInternal;
 using Newtonsoft.Json;
 
-namespace KatAM_Randomizer {
+namespace KatAMRandomizer {
     internal class KatAMROMReader {
         static Settings settings;
         static int seed;

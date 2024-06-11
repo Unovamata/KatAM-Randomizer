@@ -1,4 +1,4 @@
-﻿namespace KatAM_Randomizer {
+﻿namespace KatAMRandomizer {
     partial class SeedInputForm {
         /// <summary>
         /// Required designer variable.

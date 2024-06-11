@@ -9,7 +9,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace KatAM_Randomizer {
+namespace KatAMRandomizer {
     public partial class SeedInputForm : Form {
         Settings settings;
 

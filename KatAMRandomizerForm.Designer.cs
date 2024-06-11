@@ -1,4 +1,4 @@
-﻿namespace KatAM_Randomizer
+﻿namespace KatAMRandomizer
 {
     partial class KatAMRandomizerMain
     {
@@ -94,6 +94,7 @@
             LabelSeed = new Label();
             StatusStripRandomizer = new StatusStrip();
             StatusLabel = new ToolStripStatusLabel();
+            GroupAbilityPedestals = new GroupBox();
             GroupSettings.SuspendLayout();
             GroupRomInfo.SuspendLayout();
             tabControl1.SuspendLayout();
@@ -105,6 +106,7 @@
             GroupConsumablesMirrorShards.SuspendLayout();
             GroupMirrorShardsAmount.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)TrackBarMirrorShardsAmount).BeginInit();
+            tabPage5.SuspendLayout();
             TabMiscellaneous.SuspendLayout();
             GroupMiscSprayPalettes.SuspendLayout();
             GroupSprayOutlines.SuspendLayout();
@@ -730,6 +732,7 @@
             // 
             // tabPage5
             // 
+            tabPage5.Controls.Add(GroupAbilityPedestals);
             tabPage5.Location = new Point(4, 24);
             tabPage5.Name = "tabPage5";
             tabPage5.Padding = new Padding(3);
@@ -900,6 +903,15 @@
             StatusLabel.Name = "StatusLabel";
             StatusLabel.Size = new Size(0, 17);
             // 
+            // GroupAbilityPedestals
+            // 
+            GroupAbilityPedestals.Location = new Point(99, 33);
+            GroupAbilityPedestals.Name = "GroupAbilityPedestals";
+            GroupAbilityPedestals.Size = new Size(200, 100);
+            GroupAbilityPedestals.TabIndex = 0;
+            GroupAbilityPedestals.TabStop = false;
+            GroupAbilityPedestals.Text = "groupBox1";
+            // 
             // KatAMRandomizerMain
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
@@ -935,6 +947,7 @@
             GroupMirrorShardsAmount.ResumeLayout(false);
             GroupMirrorShardsAmount.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)TrackBarMirrorShardsAmount).EndInit();
+            tabPage5.ResumeLayout(false);
             TabMiscellaneous.ResumeLayout(false);
             GroupMiscSprayPalettes.ResumeLayout(false);
             GroupMiscSprayPalettes.PerformLayout();
@@ -1014,5 +1027,6 @@
         private Label Label1HPUP;
         private TrackBar TrackBarHPUP;
         private RadioButton RadioChestsPropertiesRandom;
+        private GroupBox GroupAbilityPedestals;
     }
 }

@@ -1,7 +1,7 @@
 ﻿using Newtonsoft.Json;
 using System.ComponentModel;
 using System.Collections.Generic;
-using KatAM_Randomizer;
+using KatAMRandomizer;
 
 namespace KatAMInternal {
     public enum GenerationOptions {
@@ -383,6 +383,64 @@ namespace KatAMInternal {
 
         public static void ChangeStatusBarText(string text) {
             KatAMRandomizerMain.Instance.StatusStripRandomizer.Text = text;
+        }
+
+        public static void DeserializeJSON(dynamic itemsJson, List<Entity> entities, IKatAMRandomizer component) {
+            // Reading the JSON dictionary;
+            foreach (string key in itemsJson.Keys) {
+                List<Dictionary<string, dynamic>> dict = itemsJson[key];
+
+                // Injecting the extracted information on Entities;
+                foreach (var item in dict) {
+                    EntitySerializable serialized = new EntitySerializable();
+
+                    serialized.Name = key;
+
+                    // Reading the KeyValuePair information;
+                    foreach (var kvp in item) {
+                        switch (kvp.Key) {
+                            case "Address":
+                            int address = (int)kvp.Value;
+                            serialized.Address = address;
+                            break;
+                            case "Number": serialized.Number = kvp.Value; break;
+                            case "Link": serialized.Link = kvp.Value; break;
+                            case "X": serialized.X = kvp.Value; break;
+                            case "Y": serialized.Y = kvp.Value; break;
+                            case "ID":
+                            byte ID = (byte)kvp.Value;
+                            serialized.ID = ID;
+                            break;
+                            case "Behavior": serialized.Behavior = (byte)kvp.Value; break;
+                            case "Speed": serialized.Speed = (byte)kvp.Value; break;
+                            case "Properties": serialized.Properties = kvp.Value; break;
+                            case "Room":
+                            serialized.Room = (int)kvp.Value;
+                            break;
+                        }
+                    }
+
+                    Entity entity = serialized.DeserializeEntity();
+
+                    bool shouldAddEntity = component.FilterEntities(entity);
+
+                    if(shouldAddEntity) entities.Add(entity);
+                }
+            }
+        }
+
+        // IsVetoedRoom(); Check if the room is not feasible for randomization;
+        public static bool IsVetoedRoom(Entity entity) {
+            int room = entity.Room;
+
+            // Banned rooms like debug, boss endurance, or final boss rooms;
+            HashSet<int> vetoedRooms = new HashSet<int>{
+                0x0, 0x38D, 0x38E, 0x38F, 0x390, 0x391, 0x392, 0x393,
+                0x394, 0x396, 0x397, 0x3B6, 0x3B7, 0x3BB, 0x3BC,
+                0x3BD, 0x3C9, 0x3CA
+            };
+
+            return vetoedRooms.Contains(room);
         }
     }
 }

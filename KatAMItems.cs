@@ -1,30 +1,29 @@
 ﻿using KatAMInternal;
 
-namespace KatAM_Randomizer {
-    internal class KatAMItems {
-        static Processing System;
-        static Settings Settings;
-        static int seed;
-
-        static List<Entity> entities;
+namespace KatAMRandomizer {
+    internal class KatAMItems : KatAMRandomizerComponent, IKatAMRandomizer {
         static List<Entity> chestEntities;
         static List<byte> objectIDs;
         static GenerationOptions consumableOptions;
 
-        public static void RandomizeItems(Processing system) {
+        public KatAMItems(Processing system) {
+            InitializeComponents(system);
+
+            RandomizeItems(this);
+            RandomizeChests();
+        }
+
+        public static void RandomizeItems(KatAMItems Instance) {
             entities = new List<Entity>();
             chestEntities = new List<Entity>();
             objectIDs = new List<byte>();
-            
+
             // Read the settings, entities, and ROM data;
-            System = system;
-            Settings = system.Settings;
-            consumableOptions = Settings.ConsumablesGenerationType;
             byte[] romFile = System.ROMData;
-            seed = Settings.Seed;
+            consumableOptions = Settings.ConsumablesGenerationType;
 
             // Deserializing all the entities in the game;
-            DeserializeEntities(Utils.JSONToEntities(Utils.itemsJson));
+            Utils.DeserializeJSON(Utils.JSONToEntities(Utils.itemsJson), entities, Instance);
 
             // Shuffling the object IDs;
             bool isShuffling = consumableOptions == GenerationOptions.Shuffle;
@@ -40,7 +39,7 @@ namespace KatAM_Randomizer {
                     ShuffleMirrorShards((byte) j);
                 }
             }
-            
+
 
             for (int i = 0; i < entities.Count; i++) {
                 Entity entity = entities[i];
@@ -59,6 +58,9 @@ namespace KatAM_Randomizer {
                     break;
 
                     case GenerationOptions.Challenge:
+                        // Big chest at the start, if removed it can softlock the entire seed;
+                        if (entity.ID == 0x81 && entity.Behavior == 0x0A) continue;
+
                         bool canSpawnItem = Utils.Dice() == 1;
 
                         // If the item can spawn, spawn a cherry;
@@ -79,58 +81,20 @@ namespace KatAM_Randomizer {
             }
         }
 
-        static void DeserializeEntities(dynamic itemsJson) {
-            // Reading the JSON dictionary;
-            foreach (string key in itemsJson.Keys) {
-                List<Dictionary<string, dynamic>> dict = itemsJson[key];
+        public bool FilterEntities(Entity entity) {
+            // Save entities to a list if the objects are randomizeable;
+            if (Utils.IsVetoedRoom(entity)) return false;
+            if (entity.Name == "Mirror Shard") return false;
 
-                // Injecting the extracted information on Entities;
-                foreach (var item in dict) {
-                    EntitySerializable serialized = new EntitySerializable();
-
-                    serialized.Name = key;
-
-                    // Reading the KeyValuePair information;
-                    foreach (var kvp in item) {
-                        switch (kvp.Key) {
-                            case "Address":
-                                int address = (int) kvp.Value;
-                                serialized.Address = address;
-                            break;
-                            case "Number": serialized.Number = kvp.Value; break;
-                            case "Link": serialized.Link = kvp.Value; break;
-                            case "X": serialized.X = kvp.Value; break;
-                            case "Y": serialized.Y = kvp.Value; break;
-                            case "ID":
-                                byte ID = (byte) kvp.Value;
-                                serialized.ID = ID;
-                            break;
-                            case "Behavior": serialized.Behavior = (byte) kvp.Value; break;
-                            case "Speed": serialized.Speed = (byte) kvp.Value; break;
-                            case "Properties": serialized.Properties = kvp.Value; break;
-                            case "Room":
-                                serialized.Room = (int) kvp.Value;
-                            break;
-                        }
-                    }
-
-                    Entity entity = serialized.DeserializeEntity();
-
-                    // Save entities to a list if the objects are randomizeable;
-                    if (IsVetoedRoom(entity)) continue;
-                    if (entity.Name == "Mirror Shard") continue;
-
-                    // If it's a chest save its information for later;
-                    if (IsChestObject(entity) || IsProgressionObject(entity)) {
-                        chestEntities.Add(new Entity(entity));
-                        objectIDs.Add(GenerateRandomConsumable());
-                    } else { // If it's a consumable, save it for randomization;
-                        objectIDs.Add(entity.ID);
-                    }
-
-                    entities.Add(entity);
-                }
+            // If it's a chest save its information for later;
+            if (IsChestObject(entity) || IsProgressionObject(entity)) {
+                chestEntities.Add(new Entity(entity));
+                objectIDs.Add(GenerateRandomConsumable());
+            } else { // If it's a consumable, save it for randomization;
+                objectIDs.Add(entity.ID);
             }
+
+            return true;
         }
 
         // ShuffleMirrorShard(); Take an entity and convert it to a mirror shard;
@@ -163,20 +127,6 @@ namespace KatAM_Randomizer {
             } while (IsChestObject(entity) || IsMirrorObject(entity));
 
             return selectedEntity;
-        }
-
-        // IsVetoedRoom(); Check if the room is not feasible for randomization;
-        static bool IsVetoedRoom(Entity entity) {
-            int room = entity.Room;
-
-            // Banned rooms like debug, boss endurance, or final boss rooms;
-            HashSet<int> vetoedRooms = new HashSet<int>{
-                0x0, 0x38D, 0x38E, 0x38F, 0x390, 0x391, 0x392, 0x393,
-                0x394, 0x396, 0x397, 0x3B6, 0x3B7, 0x3BB, 0x3BC,
-                0x3BD, 0x3C9, 0x3CA
-            };
-
-            return vetoedRooms.Contains(room);
         }
 
         // IsChestObject(); Checks if it's a chest object;

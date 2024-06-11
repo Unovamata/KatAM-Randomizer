@@ -4,7 +4,7 @@ using System.Text;
 using System.Windows.Forms;
 using KatAMRandomizer;
 
-namespace KatAM_Randomizer
+namespace KatAMRandomizer
 {
     public partial class KatAMRandomizerMain : Form {
         Processing system = new Processing();
@@ -108,9 +108,9 @@ namespace KatAM_Randomizer
             settings.RandomEntity = new Random(settings.Seed);
 
             //KatAMROMReader.ReadROMData(system);
-            //KatAMSprays.RandomizeSpray(system);
-            KatAMItems.RandomizeItems(system);
-            KatAMItems.RandomizeChests();
+            KatAMSprays.RandomizeSpray(system);
+            new KatAMItems(system);
+            new KatAMPedestals(system);
 
 
             File.WriteAllBytes(destinationPath, system.ROMData);

@@ -1,4 +1,4 @@
-namespace KatAM_Randomizer
+namespace KatAMRandomizer
 {
     internal static class Program
     {
