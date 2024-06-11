@@ -67,13 +67,13 @@ namespace KatAMRandomizer {
                         if (canSpawnItem) {
                             entity.ID = consumableItems[0];
                         } else { // If not, don't spawn anything;
-                            entity.ID = 0x2C;
+                            entity.ID = Utils.Nothing;
                         }
                     break;
 
                     // Spawn no consumables;
                     case GenerationOptions.No:
-                        entity.ID = 0x2C;
+                        entity.ID = Utils.Nothing;
                     break;
                 }
 

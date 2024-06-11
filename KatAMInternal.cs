@@ -215,6 +215,9 @@ namespace KatAMInternal {
         public GenerationOptions ChestsPropertiesType { get; set; }
         public bool isAddingMoreHPUps { get; set; }
         public int HPUpsAdded { get; set; }
+        public GenerationOptions PedestalsGenerationType { get; set; }
+        public bool isAddingRandomPedestal;
+        public bool isBanningParasol;
 
         public Settings() {
             Random seedGenerator = new Random();
@@ -442,5 +445,7 @@ namespace KatAMInternal {
 
             return vetoedRooms.Contains(room);
         }
+
+        public static byte Nothing = 0x2C;
     }
 }

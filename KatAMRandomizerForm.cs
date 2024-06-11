@@ -245,8 +245,49 @@ namespace KatAMRandomizer
         }
 
         private void TrackBarHPUP_Scroll(object sender, EventArgs e) {
-
+            settings.HPUpsAdded = TrackBarHPUP.Value;
         }
+
+        //////////////////////////////////////////////////////////////////////////////////////////////
+
+
+        // Ability Pedestals;
+        private void RadioAbilityPedestalsUnchanged_CheckedChanged(object sender, EventArgs e) {
+            settings.PedestalsGenerationType = GenerationOptions.Unchanged;
+        }
+
+        private void RadioAbilityPedestalShuffle_CheckedChanged(object sender, EventArgs e) {
+            settings.PedestalsGenerationType = GenerationOptions.Shuffle;
+        }
+
+        private void RadioAbilityPedestalsRandom_CheckedChanged(object sender, EventArgs e) {
+            settings.PedestalsGenerationType = GenerationOptions.Random;
+        }
+
+        private void RadioAbilityPedestalsUnlockPath_CheckedChanged(object sender, EventArgs e) {
+            settings.PedestalsGenerationType = GenerationOptions.Presets;
+        }
+
+        private void RadioAbilityPedestalsChallenge_CheckedChanged(object sender, EventArgs e) {
+            settings.PedestalsGenerationType = GenerationOptions.Challenge;
+        }
+
+        private void RadioAbilityPedestalsNo_CheckedChanged(object sender, EventArgs e) {
+            settings.PedestalsGenerationType = GenerationOptions.No;
+        }
+
+        private void RadioAbilityPedestalsCustom_CheckedChanged(object sender, EventArgs e) {
+            settings.PedestalsGenerationType = GenerationOptions.Custom;
+        }
+
+        private void CheckboxIncludeRandomPedestal_CheckedChanged(object sender, EventArgs e) {
+            settings.isAddingRandomPedestal = CheckboxIncludeRandomPedestal.Checked;
+        }
+
+        private void CheckboxBanParasol_CheckedChanged(object sender, EventArgs e) {
+            settings.isBanningParasol = CheckboxBanParasol.Checked;
+        }
+
 
         //////////////////////////////////////////////////////////////////////////////////////////////
 

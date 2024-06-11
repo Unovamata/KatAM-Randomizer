@@ -2,9 +2,16 @@
 
 namespace KatAMRandomizer {
     internal class KatAMPedestals : KatAMRandomizerComponent, IKatAMRandomizer {
+        static GenerationOptions pedestalsOptions;
+
         public KatAMPedestals(Processing system) {
             InitializeComponents(system);
-            RandomizeAbilityPedestals(this);
+
+            pedestalsOptions = Settings.PedestalsGenerationType;
+
+            bool isRandomizing = pedestalsOptions != GenerationOptions.Unchanged;
+
+            if (isRandomizing) RandomizeAbilityPedestals(this);
         }
 
         // Pedestal ID 0x92;
@@ -47,51 +54,149 @@ namespace KatAMRandomizer {
             0x00   // Random
         };
 
+        static List<KeyValuePair<byte, byte>> unlockPathAbilities = new List<KeyValuePair<byte, byte>>() {
+            new KeyValuePair<byte, byte>(0x92, 0x01),
+            new KeyValuePair<byte, byte>(0x92, 0x03),
+            new KeyValuePair<byte, byte>(0x92, 0x04),
+            new KeyValuePair<byte, byte>(0x92, 0x06),
+            new KeyValuePair<byte, byte>(0x93, 0x04),
+            new KeyValuePair<byte, byte>(0x93, 0x06),
+            new KeyValuePair<byte, byte>(0x94, 0x00),
+            new KeyValuePair<byte, byte>(0x94, 0x01),
+        };
+
+        // Store ID with Behaviour;
+        static List<KeyValuePair<byte, byte>> objectIDs = new List<KeyValuePair<byte, byte>>();
+
+        static int maxIndex = 4;
+        static bool isParasolBanned, isAddingRandomPedestal;
+
         public static void RandomizeAbilityPedestals(IKatAMRandomizer Instance) {
             entities = new List<Entity>();
+            objectIDs = new List<KeyValuePair<byte, byte>>();
 
             byte[] romFile = System.ROMData;
 
             Utils.DeserializeJSON(Utils.JSONToEntities(Utils.abilityStandsJson), entities, Instance);
 
-            foreach (Entity entity in entities) {
+            isParasolBanned = Settings.isBanningParasol;
+            isAddingRandomPedestal = Settings.isAddingRandomPedestal;
+
+            if (pedestalsOptions == GenerationOptions.Shuffle) {
+                objectIDs = Utils.Shuffle(objectIDs);
+            } else if (pedestalsOptions == GenerationOptions.Random) {
+                if (isAddingRandomPedestal) maxIndex = 5;
+            }
+
+            
+
+            for (int i = 0; i < entities.Count; i++) {
+                Entity entity = entities[i];
+
                 if (Utils.IsVetoedRoom(entity)) continue;
 
-                int selectedPedestal = Utils.GetRandomNumber(0, 4);
-                byte selectedID = 0, selectedAbility = 0;
-
-                switch (selectedPedestal) {
-                    case 0:
-                        selectedID = 0x92;
-                        selectedAbility = SelectPedestalAbility(pedestal146AbilitiesList);
+                switch (pedestalsOptions) {
+                    case GenerationOptions.Shuffle:
+                        entity.ID = objectIDs[i].Key;
+                        entity.Behavior = objectIDs[i].Value;
                     break;
 
-                    case 1:
-                        selectedID = 0x93;
-                        selectedAbility = SelectPedestalAbility(pedestal147AbilitiesList);
+                    case GenerationOptions.Random:
+                        SelectRandomPedestalAbility(entity);
                     break;
 
-                    case 2:
-                        selectedID = 0x94;
-                        selectedAbility = SelectPedestalAbility(pedestal148AbilitiesList);
+                    case GenerationOptions.Challenge:
+                        int chance = Utils.Dice();
+                        bool isSpawningPedestal = chance <= 3;
+
+                        if (isSpawningPedestal) {
+                            SelectRandomPedestalAbility(entity);
+                        } else {
+                            entity.ID = Utils.Nothing;
+                        }
                     break;
 
-                    case 3:
-                        selectedID = 0x95;
-                        selectedAbility = SelectPedestalAbility(pedestal149AbilitiesList);
+                    // Unlock Path Abilities Only;
+                    case GenerationOptions.Presets:
+                        int randomIndex = Utils.GetRandomNumber(0, unlockPathAbilities.Count);
+                        KeyValuePair<byte, byte> kvp = unlockPathAbilities[randomIndex];
+
+                        entity.ID = kvp.Key;
+                        entity.Behavior = kvp.Value;
                     break;
 
-                    case 4:
-                        selectedID = 0x96;
-                        selectedAbility = SelectPedestalAbility(pedestal150AbilitiesList);
+                    // Spawn nothing;
+                    case GenerationOptions.No:
+                        entity.ID = Utils.Nothing;
                     break;
+
+                    case GenerationOptions.Custom: break;
                 }
-
-                entity.ID = selectedID;
-                entity.Behavior = selectedAbility;
 
                 Utils.WriteObjectToROM(romFile, entity);
             }
+        }
+
+        static void SelectRandomPedestalAbility(Entity entity) {
+            int selectedPedestal = Utils.GetRandomNumber(0, maxIndex);
+            byte selectedID = 0, selectedAbility = 0;
+
+            switch (selectedPedestal) {
+                case 0:
+                selectedID = 0x92;
+                selectedAbility = SelectPedestalAbility(pedestal146AbilitiesList);
+                break;
+
+                case 1:
+                selectedID = 0x93;
+                selectedAbility = SelectPedestalAbility(pedestal147AbilitiesList);
+                break;
+
+                case 2:
+                    if (isParasolBanned) {
+                        List<byte> unbannedPedestals = new List<byte>() { 0x92, 0x93, 0x95 };
+
+                        if (isAddingRandomPedestal) unbannedPedestals.Add(0x96);
+
+                        selectedPedestal = Utils.GetRandomNumber(0, unbannedPedestals.Count);
+                        selectedID = unbannedPedestals[selectedPedestal];
+
+                        switch (selectedID) {
+                            case 0x92:
+                                selectedAbility = SelectPedestalAbility(pedestal148AbilitiesList);
+                            break;
+
+                            case 0x93:
+                                selectedAbility = SelectPedestalAbility(pedestal148AbilitiesList);
+                            break;
+
+                            case 0x95:
+                                selectedAbility = SelectPedestalAbility(pedestal148AbilitiesList);
+                            break;
+
+                            case 0x96:
+                                selectedAbility = SelectPedestalAbility(pedestal148AbilitiesList);
+                            break;
+                        }
+                    } else {
+                        selectedID = 0x94;
+                        selectedAbility = SelectPedestalAbility(pedestal148AbilitiesList);
+                    }
+                break;
+
+                case 3:
+                selectedID = 0x95;
+                selectedAbility = SelectPedestalAbility(pedestal149AbilitiesList);
+                break;
+
+                case 4:
+                selectedID = 0x96;
+                selectedAbility = SelectPedestalAbility(pedestal150AbilitiesList);
+                break;
+            }
+
+            entity.ID = selectedID;
+            entity.Behavior = selectedAbility;
         }
 
         static byte SelectPedestalAbility(List<byte> list) {
@@ -102,6 +207,8 @@ namespace KatAMRandomizer {
 
         //DeserializeEntitiesForRandomization(); Preparing the objects for the randomization process;
         public bool FilterEntities(Entity entity) {
+            objectIDs.Add(new KeyValuePair<byte, byte>(entity.ID, entity.Behavior));
+
             return true;
         }
     }

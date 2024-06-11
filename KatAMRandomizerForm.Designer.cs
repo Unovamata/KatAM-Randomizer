@@ -82,12 +82,13 @@
             tabPage4 = new TabPage();
             tabPage5 = new TabPage();
             GroupAbilityPedestals = new GroupBox();
+            RadioAbilityPedestalsChallenge = new RadioButton();
             button2 = new Button();
             RadioAbilityPedestalsNo = new RadioButton();
             CheckboxIncludeRandomPedestal = new CheckBox();
             RadioAbilityPedestalsCustom = new RadioButton();
-            RadioAbilityPedestalsUnchangedUnlockPath = new RadioButton();
-            RadioAbilityPedestalsUnchangedRandom = new RadioButton();
+            RadioAbilityPedestalsUnlockPath = new RadioButton();
+            RadioAbilityPedestalsRandom = new RadioButton();
             RadioAbilityPedestalShuffle = new RadioButton();
             RadioAbilityPedestalsUnchanged = new RadioButton();
             TabMiscellaneous = new TabPage();
@@ -103,6 +104,7 @@
             ButtonRefreshSeed = new Button();
             StatusStripRandomizer = new StatusStrip();
             StatusLabel = new ToolStripStatusLabel();
+            CheckboxBanParasol = new CheckBox();
             GroupSettings.SuspendLayout();
             GroupRomInfo.SuspendLayout();
             tabControl1.SuspendLayout();
@@ -763,12 +765,14 @@
             // 
             // GroupAbilityPedestals
             // 
+            GroupAbilityPedestals.Controls.Add(CheckboxBanParasol);
+            GroupAbilityPedestals.Controls.Add(RadioAbilityPedestalsChallenge);
             GroupAbilityPedestals.Controls.Add(button2);
             GroupAbilityPedestals.Controls.Add(RadioAbilityPedestalsNo);
             GroupAbilityPedestals.Controls.Add(CheckboxIncludeRandomPedestal);
             GroupAbilityPedestals.Controls.Add(RadioAbilityPedestalsCustom);
-            GroupAbilityPedestals.Controls.Add(RadioAbilityPedestalsUnchangedUnlockPath);
-            GroupAbilityPedestals.Controls.Add(RadioAbilityPedestalsUnchangedRandom);
+            GroupAbilityPedestals.Controls.Add(RadioAbilityPedestalsUnlockPath);
+            GroupAbilityPedestals.Controls.Add(RadioAbilityPedestalsRandom);
             GroupAbilityPedestals.Controls.Add(RadioAbilityPedestalShuffle);
             GroupAbilityPedestals.Controls.Add(RadioAbilityPedestalsUnchanged);
             GroupAbilityPedestals.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
@@ -779,11 +783,23 @@
             GroupAbilityPedestals.TabStop = false;
             GroupAbilityPedestals.Text = "Ability Pedestals";
             // 
+            // RadioAbilityPedestalsChallenge
+            // 
+            RadioAbilityPedestalsChallenge.AutoSize = true;
+            RadioAbilityPedestalsChallenge.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            RadioAbilityPedestalsChallenge.Location = new Point(10, 97);
+            RadioAbilityPedestalsChallenge.Name = "RadioAbilityPedestalsChallenge";
+            RadioAbilityPedestalsChallenge.Size = new Size(78, 19);
+            RadioAbilityPedestalsChallenge.TabIndex = 15;
+            RadioAbilityPedestalsChallenge.Text = "Challenge";
+            RadioAbilityPedestalsChallenge.UseVisualStyleBackColor = true;
+            RadioAbilityPedestalsChallenge.CheckedChanged += RadioAbilityPedestalsChallenge_CheckedChanged;
+            // 
             // button2
             // 
             button2.Enabled = false;
             button2.Font = new Font("Segoe UI", 9F);
-            button2.Location = new Point(10, 171);
+            button2.Location = new Point(10, 196);
             button2.Name = "button2";
             button2.Size = new Size(114, 23);
             button2.TabIndex = 14;
@@ -795,12 +811,13 @@
             // 
             RadioAbilityPedestalsNo.AutoSize = true;
             RadioAbilityPedestalsNo.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            RadioAbilityPedestalsNo.Location = new Point(10, 122);
+            RadioAbilityPedestalsNo.Location = new Point(10, 147);
             RadioAbilityPedestalsNo.Name = "RadioAbilityPedestalsNo";
             RadioAbilityPedestalsNo.Size = new Size(130, 19);
             RadioAbilityPedestalsNo.TabIndex = 7;
             RadioAbilityPedestalsNo.Text = "No Ability Pedestals";
             RadioAbilityPedestalsNo.UseVisualStyleBackColor = true;
+            RadioAbilityPedestalsNo.CheckedChanged += RadioAbilityPedestalsNo_CheckedChanged;
             // 
             // CheckboxIncludeRandomPedestal
             // 
@@ -812,40 +829,44 @@
             CheckboxIncludeRandomPedestal.TabIndex = 6;
             CheckboxIncludeRandomPedestal.Text = "Include \"Random\" Ability Pedestal";
             CheckboxIncludeRandomPedestal.UseVisualStyleBackColor = true;
+            CheckboxIncludeRandomPedestal.CheckedChanged += CheckboxIncludeRandomPedestal_CheckedChanged;
             // 
             // RadioAbilityPedestalsCustom
             // 
             RadioAbilityPedestalsCustom.AutoSize = true;
             RadioAbilityPedestalsCustom.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            RadioAbilityPedestalsCustom.Location = new Point(10, 147);
+            RadioAbilityPedestalsCustom.Location = new Point(10, 172);
             RadioAbilityPedestalsCustom.Name = "RadioAbilityPedestalsCustom";
             RadioAbilityPedestalsCustom.Size = new Size(67, 19);
             RadioAbilityPedestalsCustom.TabIndex = 5;
             RadioAbilityPedestalsCustom.Text = "Custom";
             RadioAbilityPedestalsCustom.UseVisualStyleBackColor = true;
             RadioAbilityPedestalsCustom.Visible = false;
+            RadioAbilityPedestalsCustom.CheckedChanged += RadioAbilityPedestalsCustom_CheckedChanged;
             // 
-            // RadioAbilityPedestalsUnchangedUnlockPath
+            // RadioAbilityPedestalsUnlockPath
             // 
-            RadioAbilityPedestalsUnchangedUnlockPath.AutoSize = true;
-            RadioAbilityPedestalsUnchangedUnlockPath.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            RadioAbilityPedestalsUnchangedUnlockPath.Location = new Point(10, 97);
-            RadioAbilityPedestalsUnchangedUnlockPath.Name = "RadioAbilityPedestalsUnchangedUnlockPath";
-            RadioAbilityPedestalsUnchangedUnlockPath.Size = new Size(162, 19);
-            RadioAbilityPedestalsUnchangedUnlockPath.TabIndex = 3;
-            RadioAbilityPedestalsUnchangedUnlockPath.Text = "Unlock Path Abilities Only";
-            RadioAbilityPedestalsUnchangedUnlockPath.UseVisualStyleBackColor = true;
+            RadioAbilityPedestalsUnlockPath.AutoSize = true;
+            RadioAbilityPedestalsUnlockPath.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            RadioAbilityPedestalsUnlockPath.Location = new Point(10, 122);
+            RadioAbilityPedestalsUnlockPath.Name = "RadioAbilityPedestalsUnlockPath";
+            RadioAbilityPedestalsUnlockPath.Size = new Size(162, 19);
+            RadioAbilityPedestalsUnlockPath.TabIndex = 3;
+            RadioAbilityPedestalsUnlockPath.Text = "Unlock Path Abilities Only";
+            RadioAbilityPedestalsUnlockPath.UseVisualStyleBackColor = true;
+            RadioAbilityPedestalsUnlockPath.CheckedChanged += RadioAbilityPedestalsUnlockPath_CheckedChanged;
             // 
-            // RadioAbilityPedestalsUnchangedRandom
+            // RadioAbilityPedestalsRandom
             // 
-            RadioAbilityPedestalsUnchangedRandom.AutoSize = true;
-            RadioAbilityPedestalsUnchangedRandom.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            RadioAbilityPedestalsUnchangedRandom.Location = new Point(10, 72);
-            RadioAbilityPedestalsUnchangedRandom.Name = "RadioAbilityPedestalsUnchangedRandom";
-            RadioAbilityPedestalsUnchangedRandom.Size = new Size(70, 19);
-            RadioAbilityPedestalsUnchangedRandom.TabIndex = 2;
-            RadioAbilityPedestalsUnchangedRandom.Text = "Random";
-            RadioAbilityPedestalsUnchangedRandom.UseVisualStyleBackColor = true;
+            RadioAbilityPedestalsRandom.AutoSize = true;
+            RadioAbilityPedestalsRandom.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            RadioAbilityPedestalsRandom.Location = new Point(10, 72);
+            RadioAbilityPedestalsRandom.Name = "RadioAbilityPedestalsRandom";
+            RadioAbilityPedestalsRandom.Size = new Size(70, 19);
+            RadioAbilityPedestalsRandom.TabIndex = 2;
+            RadioAbilityPedestalsRandom.Text = "Random";
+            RadioAbilityPedestalsRandom.UseVisualStyleBackColor = true;
+            RadioAbilityPedestalsRandom.CheckedChanged += RadioAbilityPedestalsRandom_CheckedChanged;
             // 
             // RadioAbilityPedestalShuffle
             // 
@@ -857,6 +878,7 @@
             RadioAbilityPedestalShuffle.TabIndex = 1;
             RadioAbilityPedestalShuffle.Text = "Shuffle";
             RadioAbilityPedestalShuffle.UseVisualStyleBackColor = true;
+            RadioAbilityPedestalShuffle.CheckedChanged += RadioAbilityPedestalShuffle_CheckedChanged;
             // 
             // RadioAbilityPedestalsUnchanged
             // 
@@ -870,6 +892,7 @@
             RadioAbilityPedestalsUnchanged.TabStop = true;
             RadioAbilityPedestalsUnchanged.Text = "Unchanged";
             RadioAbilityPedestalsUnchanged.UseVisualStyleBackColor = true;
+            RadioAbilityPedestalsUnchanged.CheckedChanged += RadioAbilityPedestalsUnchanged_CheckedChanged;
             // 
             // TabMiscellaneous
             // 
@@ -1022,6 +1045,18 @@
             StatusLabel.Name = "StatusLabel";
             StatusLabel.Size = new Size(0, 17);
             // 
+            // CheckboxBanParasol
+            // 
+            CheckboxBanParasol.AutoSize = true;
+            CheckboxBanParasol.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            CheckboxBanParasol.Location = new Point(184, 48);
+            CheckboxBanParasol.Name = "CheckboxBanParasol";
+            CheckboxBanParasol.Size = new Size(167, 19);
+            CheckboxBanParasol.TabIndex = 16;
+            CheckboxBanParasol.Text = "Ban \"Parasol\" Ability Stand";
+            CheckboxBanParasol.UseVisualStyleBackColor = true;
+            CheckboxBanParasol.CheckedChanged += CheckboxBanParasol_CheckedChanged;
+            // 
             // KatAMRandomizerMain
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
@@ -1140,13 +1175,15 @@
         private TrackBar TrackBarHPUP;
         private RadioButton RadioChestsPropertiesRandom;
         private GroupBox GroupAbilityPedestals;
-        private RadioButton RadioAbilityPedestalsUnchangedRandom;
+        private RadioButton RadioAbilityPedestalsRandom;
         private RadioButton RadioAbilityPedestalShuffle;
         private RadioButton RadioAbilityPedestalsUnchanged;
         private RadioButton RadioAbilityPedestalsCustom;
-        private RadioButton RadioAbilityPedestalsUnchangedUnlockPath;
+        private RadioButton RadioAbilityPedestalsUnlockPath;
         private CheckBox CheckboxIncludeRandomPedestal;
         private RadioButton RadioAbilityPedestalsNo;
         private Button button2;
+        private RadioButton RadioAbilityPedestalsChallenge;
+        private CheckBox CheckboxBanParasol;
     }
 }
