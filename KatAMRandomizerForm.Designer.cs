@@ -36,6 +36,7 @@
             button6 = new Button();
             GroupSettings = new GroupBox();
             checkBox1 = new CheckBox();
+            LabelSeed = new Label();
             GroupRomInfo = new GroupBox();
             LabelGameRegion = new Label();
             LabelGameID = new Label();
@@ -80,6 +81,15 @@
             tabPage3 = new TabPage();
             tabPage4 = new TabPage();
             tabPage5 = new TabPage();
+            GroupAbilityPedestals = new GroupBox();
+            button2 = new Button();
+            RadioAbilityPedestalsNo = new RadioButton();
+            CheckboxIncludeRandomPedestal = new CheckBox();
+            RadioAbilityPedestalsCustom = new RadioButton();
+            RadioAbilityPedestalsUnchangedUnlockPath = new RadioButton();
+            RadioAbilityPedestalsUnchangedRandom = new RadioButton();
+            RadioAbilityPedestalShuffle = new RadioButton();
+            RadioAbilityPedestalsUnchanged = new RadioButton();
             TabMiscellaneous = new TabPage();
             GroupMiscSprayPalettes = new GroupBox();
             GroupSprayOutlines = new GroupBox();
@@ -91,10 +101,8 @@
             RadioSprayRandom = new RadioButton();
             RadioSprayUnchanged = new RadioButton();
             ButtonRefreshSeed = new Button();
-            LabelSeed = new Label();
             StatusStripRandomizer = new StatusStrip();
             StatusLabel = new ToolStripStatusLabel();
-            GroupAbilityPedestals = new GroupBox();
             GroupSettings.SuspendLayout();
             GroupRomInfo.SuspendLayout();
             tabControl1.SuspendLayout();
@@ -107,6 +115,7 @@
             GroupMirrorShardsAmount.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)TrackBarMirrorShardsAmount).BeginInit();
             tabPage5.SuspendLayout();
+            GroupAbilityPedestals.SuspendLayout();
             TabMiscellaneous.SuspendLayout();
             GroupMiscSprayPalettes.SuspendLayout();
             GroupSprayOutlines.SuspendLayout();
@@ -116,9 +125,9 @@
             // ButtonConsoleSend
             // 
             ButtonConsoleSend.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            ButtonConsoleSend.Location = new Point(13, 109);
+            ButtonConsoleSend.Location = new Point(626, 128);
             ButtonConsoleSend.Name = "ButtonConsoleSend";
-            ButtonConsoleSend.Size = new Size(158, 23);
+            ButtonConsoleSend.Size = new Size(162, 23);
             ButtonConsoleSend.TabIndex = 0;
             ButtonConsoleSend.Text = "Console Send Message";
             ButtonConsoleSend.UseVisualStyleBackColor = true;
@@ -159,9 +168,9 @@
             // button5
             // 
             button5.Font = new Font("Segoe UI", 9F);
-            button5.Location = new Point(13, 51);
+            button5.Location = new Point(6, 80);
             button5.Name = "button5";
-            button5.Size = new Size(158, 23);
+            button5.Size = new Size(165, 23);
             button5.TabIndex = 6;
             button5.Text = "Load Settings";
             button5.UseVisualStyleBackColor = true;
@@ -169,9 +178,9 @@
             // button6
             // 
             button6.Font = new Font("Segoe UI", 9F);
-            button6.Location = new Point(13, 80);
+            button6.Location = new Point(6, 109);
             button6.Name = "button6";
-            button6.Size = new Size(158, 23);
+            button6.Size = new Size(165, 23);
             button6.TabIndex = 7;
             button6.Text = "Save Settings";
             button6.UseVisualStyleBackColor = true;
@@ -179,7 +188,6 @@
             // GroupSettings
             // 
             GroupSettings.Controls.Add(checkBox1);
-            GroupSettings.Controls.Add(ButtonConsoleSend);
             GroupSettings.Controls.Add(button6);
             GroupSettings.Controls.Add(button5);
             GroupSettings.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
@@ -194,17 +202,29 @@
             // 
             checkBox1.AutoSize = true;
             checkBox1.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            checkBox1.Location = new Point(13, 25);
+            checkBox1.Location = new Point(6, 22);
             checkBox1.Name = "checkBox1";
             checkBox1.Size = new Size(85, 19);
             checkBox1.TabIndex = 12;
             checkBox1.Text = "Race Mode";
             checkBox1.UseVisualStyleBackColor = true;
             // 
+            // LabelSeed
+            // 
+            LabelSeed.AutoSize = true;
+            LabelSeed.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            LabelSeed.Location = new Point(136, 113);
+            LabelSeed.Name = "LabelSeed";
+            LabelSeed.Size = new Size(35, 15);
+            LabelSeed.TabIndex = 12;
+            LabelSeed.Text = "Seed:";
+            LabelSeed.Visible = false;
+            // 
             // GroupRomInfo
             // 
             GroupRomInfo.Controls.Add(LabelGameRegion);
             GroupRomInfo.Controls.Add(LabelGameID);
+            GroupRomInfo.Controls.Add(LabelSeed);
             GroupRomInfo.Controls.Add(LabelInternalName);
             GroupRomInfo.Controls.Add(LabelROMName);
             GroupRomInfo.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
@@ -741,6 +761,116 @@
             tabPage5.Text = "Abilities";
             tabPage5.UseVisualStyleBackColor = true;
             // 
+            // GroupAbilityPedestals
+            // 
+            GroupAbilityPedestals.Controls.Add(button2);
+            GroupAbilityPedestals.Controls.Add(RadioAbilityPedestalsNo);
+            GroupAbilityPedestals.Controls.Add(CheckboxIncludeRandomPedestal);
+            GroupAbilityPedestals.Controls.Add(RadioAbilityPedestalsCustom);
+            GroupAbilityPedestals.Controls.Add(RadioAbilityPedestalsUnchangedUnlockPath);
+            GroupAbilityPedestals.Controls.Add(RadioAbilityPedestalsUnchangedRandom);
+            GroupAbilityPedestals.Controls.Add(RadioAbilityPedestalShuffle);
+            GroupAbilityPedestals.Controls.Add(RadioAbilityPedestalsUnchanged);
+            GroupAbilityPedestals.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            GroupAbilityPedestals.Location = new Point(9, 6);
+            GroupAbilityPedestals.Name = "GroupAbilityPedestals";
+            GroupAbilityPedestals.Size = new Size(397, 225);
+            GroupAbilityPedestals.TabIndex = 0;
+            GroupAbilityPedestals.TabStop = false;
+            GroupAbilityPedestals.Text = "Ability Pedestals";
+            // 
+            // button2
+            // 
+            button2.Enabled = false;
+            button2.Font = new Font("Segoe UI", 9F);
+            button2.Location = new Point(10, 171);
+            button2.Name = "button2";
+            button2.Size = new Size(114, 23);
+            button2.TabIndex = 14;
+            button2.Text = "Edit Probability";
+            button2.UseVisualStyleBackColor = true;
+            button2.Visible = false;
+            // 
+            // RadioAbilityPedestalsNo
+            // 
+            RadioAbilityPedestalsNo.AutoSize = true;
+            RadioAbilityPedestalsNo.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            RadioAbilityPedestalsNo.Location = new Point(10, 122);
+            RadioAbilityPedestalsNo.Name = "RadioAbilityPedestalsNo";
+            RadioAbilityPedestalsNo.Size = new Size(130, 19);
+            RadioAbilityPedestalsNo.TabIndex = 7;
+            RadioAbilityPedestalsNo.Text = "No Ability Pedestals";
+            RadioAbilityPedestalsNo.UseVisualStyleBackColor = true;
+            // 
+            // CheckboxIncludeRandomPedestal
+            // 
+            CheckboxIncludeRandomPedestal.AutoSize = true;
+            CheckboxIncludeRandomPedestal.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            CheckboxIncludeRandomPedestal.Location = new Point(184, 22);
+            CheckboxIncludeRandomPedestal.Name = "CheckboxIncludeRandomPedestal";
+            CheckboxIncludeRandomPedestal.Size = new Size(207, 19);
+            CheckboxIncludeRandomPedestal.TabIndex = 6;
+            CheckboxIncludeRandomPedestal.Text = "Include \"Random\" Ability Pedestal";
+            CheckboxIncludeRandomPedestal.UseVisualStyleBackColor = true;
+            // 
+            // RadioAbilityPedestalsCustom
+            // 
+            RadioAbilityPedestalsCustom.AutoSize = true;
+            RadioAbilityPedestalsCustom.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            RadioAbilityPedestalsCustom.Location = new Point(10, 147);
+            RadioAbilityPedestalsCustom.Name = "RadioAbilityPedestalsCustom";
+            RadioAbilityPedestalsCustom.Size = new Size(67, 19);
+            RadioAbilityPedestalsCustom.TabIndex = 5;
+            RadioAbilityPedestalsCustom.Text = "Custom";
+            RadioAbilityPedestalsCustom.UseVisualStyleBackColor = true;
+            RadioAbilityPedestalsCustom.Visible = false;
+            // 
+            // RadioAbilityPedestalsUnchangedUnlockPath
+            // 
+            RadioAbilityPedestalsUnchangedUnlockPath.AutoSize = true;
+            RadioAbilityPedestalsUnchangedUnlockPath.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            RadioAbilityPedestalsUnchangedUnlockPath.Location = new Point(10, 97);
+            RadioAbilityPedestalsUnchangedUnlockPath.Name = "RadioAbilityPedestalsUnchangedUnlockPath";
+            RadioAbilityPedestalsUnchangedUnlockPath.Size = new Size(162, 19);
+            RadioAbilityPedestalsUnchangedUnlockPath.TabIndex = 3;
+            RadioAbilityPedestalsUnchangedUnlockPath.Text = "Unlock Path Abilities Only";
+            RadioAbilityPedestalsUnchangedUnlockPath.UseVisualStyleBackColor = true;
+            // 
+            // RadioAbilityPedestalsUnchangedRandom
+            // 
+            RadioAbilityPedestalsUnchangedRandom.AutoSize = true;
+            RadioAbilityPedestalsUnchangedRandom.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            RadioAbilityPedestalsUnchangedRandom.Location = new Point(10, 72);
+            RadioAbilityPedestalsUnchangedRandom.Name = "RadioAbilityPedestalsUnchangedRandom";
+            RadioAbilityPedestalsUnchangedRandom.Size = new Size(70, 19);
+            RadioAbilityPedestalsUnchangedRandom.TabIndex = 2;
+            RadioAbilityPedestalsUnchangedRandom.Text = "Random";
+            RadioAbilityPedestalsUnchangedRandom.UseVisualStyleBackColor = true;
+            // 
+            // RadioAbilityPedestalShuffle
+            // 
+            RadioAbilityPedestalShuffle.AutoSize = true;
+            RadioAbilityPedestalShuffle.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            RadioAbilityPedestalShuffle.Location = new Point(10, 47);
+            RadioAbilityPedestalShuffle.Name = "RadioAbilityPedestalShuffle";
+            RadioAbilityPedestalShuffle.Size = new Size(62, 19);
+            RadioAbilityPedestalShuffle.TabIndex = 1;
+            RadioAbilityPedestalShuffle.Text = "Shuffle";
+            RadioAbilityPedestalShuffle.UseVisualStyleBackColor = true;
+            // 
+            // RadioAbilityPedestalsUnchanged
+            // 
+            RadioAbilityPedestalsUnchanged.AutoSize = true;
+            RadioAbilityPedestalsUnchanged.Checked = true;
+            RadioAbilityPedestalsUnchanged.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            RadioAbilityPedestalsUnchanged.Location = new Point(10, 22);
+            RadioAbilityPedestalsUnchanged.Name = "RadioAbilityPedestalsUnchanged";
+            RadioAbilityPedestalsUnchanged.Size = new Size(86, 19);
+            RadioAbilityPedestalsUnchanged.TabIndex = 0;
+            RadioAbilityPedestalsUnchanged.TabStop = true;
+            RadioAbilityPedestalsUnchanged.Text = "Unchanged";
+            RadioAbilityPedestalsUnchanged.UseVisualStyleBackColor = true;
+            // 
             // TabMiscellaneous
             // 
             TabMiscellaneous.Controls.Add(GroupMiscSprayPalettes);
@@ -878,17 +1008,6 @@
             ButtonRefreshSeed.UseVisualStyleBackColor = true;
             ButtonRefreshSeed.Click += ButtonRefreshSeed_Click;
             // 
-            // LabelSeed
-            // 
-            LabelSeed.AutoSize = true;
-            LabelSeed.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            LabelSeed.Location = new Point(626, 125);
-            LabelSeed.Name = "LabelSeed";
-            LabelSeed.Size = new Size(35, 15);
-            LabelSeed.TabIndex = 12;
-            LabelSeed.Text = "Seed:";
-            LabelSeed.Visible = false;
-            // 
             // StatusStripRandomizer
             // 
             StatusStripRandomizer.Items.AddRange(new ToolStripItem[] { StatusLabel });
@@ -903,22 +1022,13 @@
             StatusLabel.Name = "StatusLabel";
             StatusLabel.Size = new Size(0, 17);
             // 
-            // GroupAbilityPedestals
-            // 
-            GroupAbilityPedestals.Location = new Point(99, 33);
-            GroupAbilityPedestals.Name = "GroupAbilityPedestals";
-            GroupAbilityPedestals.Size = new Size(200, 100);
-            GroupAbilityPedestals.TabIndex = 0;
-            GroupAbilityPedestals.TabStop = false;
-            GroupAbilityPedestals.Text = "groupBox1";
-            // 
             // KatAMRandomizerMain
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(800, 450);
             Controls.Add(StatusStripRandomizer);
-            Controls.Add(LabelSeed);
+            Controls.Add(ButtonConsoleSend);
             Controls.Add(ButtonRefreshSeed);
             Controls.Add(tabControl1);
             Controls.Add(GroupRomInfo);
@@ -948,6 +1058,8 @@
             GroupMirrorShardsAmount.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)TrackBarMirrorShardsAmount).EndInit();
             tabPage5.ResumeLayout(false);
+            GroupAbilityPedestals.ResumeLayout(false);
+            GroupAbilityPedestals.PerformLayout();
             TabMiscellaneous.ResumeLayout(false);
             GroupMiscSprayPalettes.ResumeLayout(false);
             GroupMiscSprayPalettes.PerformLayout();
@@ -1028,5 +1140,13 @@
         private TrackBar TrackBarHPUP;
         private RadioButton RadioChestsPropertiesRandom;
         private GroupBox GroupAbilityPedestals;
+        private RadioButton RadioAbilityPedestalsUnchangedRandom;
+        private RadioButton RadioAbilityPedestalShuffle;
+        private RadioButton RadioAbilityPedestalsUnchanged;
+        private RadioButton RadioAbilityPedestalsCustom;
+        private RadioButton RadioAbilityPedestalsUnchangedUnlockPath;
+        private CheckBox CheckboxIncludeRandomPedestal;
+        private RadioButton RadioAbilityPedestalsNo;
+        private Button button2;
     }
 }
