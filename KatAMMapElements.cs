@@ -1,0 +1,62 @@
+﻿using KatAMInternal;
+using KatAMRandomizer;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement;
+
+namespace KatAM_Randomizer {
+    internal class KatAMMapElements : KatAMRandomizerComponent, IKatAMRandomizer {
+
+        public KatAMMapElements(Processing system) {
+            InitializeComponents(system);
+
+            ManageMapElements(this);
+        }
+
+        GenerationOptions stoneDoorOptions;
+        bool isRemovingStoneBlocks;
+
+        void ManageMapElements(IKatAMRandomizer Instance) {
+            entities = new List<Entity>();
+
+            stoneDoorOptions = Settings.StoneDoorGenerationType;
+            isRemovingStoneBlocks = Settings.isRemovingStoneBlocks;
+
+            // Read the settings, entities, and ROM data;
+            byte[] romFile = System.ROMData;
+
+            // Deserializing all the entities in the game;
+            Utils.DeserializeJSON(Utils.JSONToEntities(Utils.worldMapObjectsJson), entities, Instance);
+
+            foreach (Entity entity in entities) {
+                bool isButtonOrDoor = (entity.ID == 0x6D || entity.ID == 0x71);
+
+                switch (stoneDoorOptions) {
+                    case GenerationOptions.All:
+                        entity.ID = Utils.Nothing;
+                    break;
+
+                    case GenerationOptions.Presets:
+                        if(isButtonOrDoor && entity.Room == 804) entity.ID = Utils.Nothing;
+                    break;
+                }
+                
+                if (isRemovingStoneBlocks) {
+                    bool isStoneBlock = Processing.mapElementsDictionary.ContainsKey(entity.ID) &&
+                                        Processing.mapElementsDictionary[entity.ID] == "Star Stone Block";
+
+                    if (isStoneBlock) entity.ID = Utils.Nothing;
+                }
+
+                Utils.WriteObjectToROM(romFile, entity);
+            }
+        }
+
+        public bool FilterEntities(Entity entity) {
+            return true;
+        }
+    }
+}

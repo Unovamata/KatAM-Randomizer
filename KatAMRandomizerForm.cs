@@ -113,6 +113,7 @@ namespace KatAMRandomizer
             new KatAMItems(system);
             new KatAMPedestals(system);
             new KatAMEnemies(system);
+            new KatAMMapElements(system);
 
 
             File.WriteAllBytes(destinationPath, system.ROMData);
@@ -270,6 +271,11 @@ namespace KatAMRandomizer
             HideCheckboxEnemiesRandomizeExcluded();
         }
 
+        private void RadioEnemiesNo_CheckedChanged(object sender, EventArgs e) {
+            settings.EnemiesGenerationType = GenerationOptions.No;
+            HideCheckboxEnemiesRandomizeExcluded();
+        }
+
         private void HideCheckboxEnemiesRandomizeExcluded() {
             CheckboxEnemiesRandomizeExcluded.Visible = false;
             CheckboxEnemiesRandomizeExcluded.Checked = false;
@@ -357,6 +363,23 @@ namespace KatAMRandomizer
 
         private void RadioOutlinesRandom_CheckedChanged(object sender, EventArgs e) {
             settings.SprayOutlineGenerationType = GenerationOptions.Random;
+        }
+
+        // Map Elements;
+        private void MapElementsStoneDoorsUnchanged_CheckedChanged(object sender, EventArgs e) {
+            settings.StoneDoorGenerationType = GenerationOptions.Unchanged;
+        }
+
+        private void MapElementsStoneDoorsRemoveAll_CheckedChanged(object sender, EventArgs e) {
+            settings.StoneDoorGenerationType = GenerationOptions.All;
+        }
+
+        private void MapElementsStoneDoorsRemoveTutorial_CheckedChanged(object sender, EventArgs e) {
+            settings.StoneDoorGenerationType = GenerationOptions.Presets;
+        }
+
+        private void CheckboxMapElementsStoneBlocks_CheckedChanged(object sender, EventArgs e) {
+            settings.isRemovingStoneBlocks = CheckboxMapElementsAllStoneBlocks.Checked;
         }
     }
 }

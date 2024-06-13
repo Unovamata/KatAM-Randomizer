@@ -193,10 +193,13 @@ namespace KatAMInternal {
         };
 
         public static Dictionary<byte, string> mapElementsDictionary = new Dictionary<byte, string>{
-            { 0x7D, "Large Star Stone Block (No Collision)" },
-            { 0x7E, "Large Star Stone Block"},
-            { 0x88, "Large Star Stone Block"},
-            { 0x89, "Large Star Stone Block"},
+            { 0x6D, "Small Button"},
+            { 0x71, "Stone Sliding Door"},
+            { 0x79, "Star Stone Block"}, // Small;
+            { 0x7D, "Star Stone Block"},
+            { 0x7E, "Star Stone Block"},
+            { 0x88, "Star Stone Block"},
+            { 0x89, "Star Stone Block"},
         };
     }
 
@@ -206,8 +209,6 @@ namespace KatAMInternal {
         public int Seed { get; set; }
         public int MinSeed = -9999999, MaxSeed = 9999999;
         public bool IsRace { get; set; }
-        public GenerationOptions SprayGeneration { get; set; }
-        public GenerationOptions SprayOutlineGenerationType { get; set; }
         public GenerationOptions ConsumablesGenerationType { get; set; }
         public GenerationOptions MirrorShardsGenerationType { get; set; }
         public int amountOfMirrorShardsToAdd = 0;
@@ -227,6 +228,10 @@ namespace KatAMInternal {
         public GenerationOptions PedestalsGenerationType { get; set; }
         public bool isAddingRandomPedestal;
         public bool isBanningParasol;
+        public GenerationOptions SprayGeneration { get; set; }
+        public GenerationOptions SprayOutlineGenerationType { get; set; }
+        public GenerationOptions StoneDoorGenerationType { get; set; }
+        public bool isRemovingStoneBlocks = false;
 
         public Settings() {
             Random seedGenerator = new Random();

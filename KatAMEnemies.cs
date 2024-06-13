@@ -162,6 +162,10 @@ namespace KatAM_Randomizer {
                                 entity.ID = enemyKeysIDs[idIndex];
                             }
                         break;
+
+                        case GenerationOptions.No:
+                            entity.ID = Utils.Nothing;
+                        break;
                     }
                     
                 }

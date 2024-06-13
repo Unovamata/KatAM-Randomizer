@@ -103,6 +103,9 @@
             radioButton3 = new RadioButton();
             radioButton1 = new RadioButton();
             GroupEnemies = new GroupBox();
+            RadioEnemiesNo = new RadioButton();
+            button3 = new Button();
+            RadioEnemiesCustom = new RadioButton();
             CheckboxEnemiesRandomizeExcluded = new CheckBox();
             CheckboxEnemiesRandomizeIntelligent = new CheckBox();
             RadioEnemiesRandom = new RadioButton();
@@ -122,6 +125,12 @@
             RadioAbilityPedestalShuffle = new RadioButton();
             RadioAbilityPedestalsUnchanged = new RadioButton();
             TabMiscellaneous = new TabPage();
+            GroupMapElements = new GroupBox();
+            GroupMapElementStoneDoors = new GroupBox();
+            MapElementsStoneDoorsUnchanged = new RadioButton();
+            MapElementsStoneDoorsRemoveTutorial = new RadioButton();
+            MapElementsStoneDoorsRemoveAll = new RadioButton();
+            CheckboxMapElementsAllStoneBlocks = new CheckBox();
             GroupMiscSprayPalettes = new GroupBox();
             GroupSprayOutlines = new GroupBox();
             RadioOutlinesRandom = new RadioButton();
@@ -156,6 +165,8 @@
             tabPage5.SuspendLayout();
             GroupAbilityPedestals.SuspendLayout();
             TabMiscellaneous.SuspendLayout();
+            GroupMapElements.SuspendLayout();
+            GroupMapElementStoneDoors.SuspendLayout();
             GroupMiscSprayPalettes.SuspendLayout();
             GroupSprayOutlines.SuspendLayout();
             StatusStripRandomizer.SuspendLayout();
@@ -1078,6 +1089,9 @@
             // GroupEnemies
             // 
             GroupEnemies.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            GroupEnemies.Controls.Add(RadioEnemiesNo);
+            GroupEnemies.Controls.Add(button3);
+            GroupEnemies.Controls.Add(RadioEnemiesCustom);
             GroupEnemies.Controls.Add(CheckboxEnemiesRandomizeExcluded);
             GroupEnemies.Controls.Add(CheckboxEnemiesRandomizeIntelligent);
             GroupEnemies.Controls.Add(RadioEnemiesRandom);
@@ -1090,6 +1104,42 @@
             GroupEnemies.TabIndex = 0;
             GroupEnemies.TabStop = false;
             GroupEnemies.Text = "Enemies";
+            // 
+            // RadioEnemiesNo
+            // 
+            RadioEnemiesNo.AutoSize = true;
+            RadioEnemiesNo.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            RadioEnemiesNo.Location = new Point(10, 97);
+            RadioEnemiesNo.Name = "RadioEnemiesNo";
+            RadioEnemiesNo.Size = new Size(88, 19);
+            RadioEnemiesNo.TabIndex = 16;
+            RadioEnemiesNo.Text = "No Enemies";
+            RadioEnemiesNo.UseVisualStyleBackColor = true;
+            RadioEnemiesNo.CheckedChanged += RadioEnemiesNo_CheckedChanged;
+            // 
+            // button3
+            // 
+            button3.Enabled = false;
+            button3.Font = new Font("Segoe UI", 9F);
+            button3.Location = new Point(10, 146);
+            button3.Name = "button3";
+            button3.Size = new Size(114, 23);
+            button3.TabIndex = 15;
+            button3.Text = "Edit Probability";
+            button3.UseVisualStyleBackColor = true;
+            button3.Visible = false;
+            // 
+            // RadioEnemiesCustom
+            // 
+            RadioEnemiesCustom.AutoSize = true;
+            RadioEnemiesCustom.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            RadioEnemiesCustom.Location = new Point(10, 122);
+            RadioEnemiesCustom.Name = "RadioEnemiesCustom";
+            RadioEnemiesCustom.Size = new Size(67, 19);
+            RadioEnemiesCustom.TabIndex = 14;
+            RadioEnemiesCustom.Text = "Custom";
+            RadioEnemiesCustom.UseVisualStyleBackColor = true;
+            RadioEnemiesCustom.Visible = false;
             // 
             // CheckboxEnemiesRandomizeExcluded
             // 
@@ -1320,6 +1370,7 @@
             // 
             // TabMiscellaneous
             // 
+            TabMiscellaneous.Controls.Add(GroupMapElements);
             TabMiscellaneous.Controls.Add(GroupMiscSprayPalettes);
             TabMiscellaneous.Location = new Point(4, 24);
             TabMiscellaneous.Name = "TabMiscellaneous";
@@ -1328,6 +1379,80 @@
             TabMiscellaneous.TabIndex = 5;
             TabMiscellaneous.Text = "Miscellaneous";
             TabMiscellaneous.UseVisualStyleBackColor = true;
+            // 
+            // GroupMapElements
+            // 
+            GroupMapElements.Controls.Add(GroupMapElementStoneDoors);
+            GroupMapElements.Controls.Add(CheckboxMapElementsAllStoneBlocks);
+            GroupMapElements.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            GroupMapElements.Location = new Point(294, 6);
+            GroupMapElements.Name = "GroupMapElements";
+            GroupMapElements.Size = new Size(213, 225);
+            GroupMapElements.TabIndex = 1;
+            GroupMapElements.TabStop = false;
+            GroupMapElements.Text = "Map Elements";
+            // 
+            // GroupMapElementStoneDoors
+            // 
+            GroupMapElementStoneDoors.Controls.Add(MapElementsStoneDoorsUnchanged);
+            GroupMapElementStoneDoors.Controls.Add(MapElementsStoneDoorsRemoveTutorial);
+            GroupMapElementStoneDoors.Controls.Add(MapElementsStoneDoorsRemoveAll);
+            GroupMapElementStoneDoors.Location = new Point(9, 48);
+            GroupMapElementStoneDoors.Name = "GroupMapElementStoneDoors";
+            GroupMapElementStoneDoors.Size = new Size(194, 171);
+            GroupMapElementStoneDoors.TabIndex = 2;
+            GroupMapElementStoneDoors.TabStop = false;
+            GroupMapElementStoneDoors.Text = "Stone Doors";
+            // 
+            // MapElementsStoneDoorsUnchanged
+            // 
+            MapElementsStoneDoorsUnchanged.AutoSize = true;
+            MapElementsStoneDoorsUnchanged.Checked = true;
+            MapElementsStoneDoorsUnchanged.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            MapElementsStoneDoorsUnchanged.Location = new Point(11, 22);
+            MapElementsStoneDoorsUnchanged.Name = "MapElementsStoneDoorsUnchanged";
+            MapElementsStoneDoorsUnchanged.Size = new Size(86, 19);
+            MapElementsStoneDoorsUnchanged.TabIndex = 2;
+            MapElementsStoneDoorsUnchanged.TabStop = true;
+            MapElementsStoneDoorsUnchanged.Text = "Unchanged";
+            MapElementsStoneDoorsUnchanged.UseVisualStyleBackColor = true;
+            MapElementsStoneDoorsUnchanged.CheckedChanged += MapElementsStoneDoorsUnchanged_CheckedChanged;
+            // 
+            // MapElementsStoneDoorsRemoveTutorial
+            // 
+            MapElementsStoneDoorsRemoveTutorial.AutoSize = true;
+            MapElementsStoneDoorsRemoveTutorial.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            MapElementsStoneDoorsRemoveTutorial.Location = new Point(11, 74);
+            MapElementsStoneDoorsRemoveTutorial.Name = "MapElementsStoneDoorsRemoveTutorial";
+            MapElementsStoneDoorsRemoveTutorial.Size = new Size(139, 19);
+            MapElementsStoneDoorsRemoveTutorial.TabIndex = 1;
+            MapElementsStoneDoorsRemoveTutorial.Text = "Remove Tutorial Only";
+            MapElementsStoneDoorsRemoveTutorial.UseVisualStyleBackColor = true;
+            MapElementsStoneDoorsRemoveTutorial.CheckedChanged += MapElementsStoneDoorsRemoveTutorial_CheckedChanged;
+            // 
+            // MapElementsStoneDoorsRemoveAll
+            // 
+            MapElementsStoneDoorsRemoveAll.AutoSize = true;
+            MapElementsStoneDoorsRemoveAll.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            MapElementsStoneDoorsRemoveAll.Location = new Point(11, 49);
+            MapElementsStoneDoorsRemoveAll.Name = "MapElementsStoneDoorsRemoveAll";
+            MapElementsStoneDoorsRemoveAll.Size = new Size(85, 19);
+            MapElementsStoneDoorsRemoveAll.TabIndex = 0;
+            MapElementsStoneDoorsRemoveAll.Text = "Remove All";
+            MapElementsStoneDoorsRemoveAll.UseVisualStyleBackColor = true;
+            MapElementsStoneDoorsRemoveAll.CheckedChanged += MapElementsStoneDoorsRemoveAll_CheckedChanged;
+            // 
+            // CheckboxMapElementsAllStoneBlocks
+            // 
+            CheckboxMapElementsAllStoneBlocks.AutoSize = true;
+            CheckboxMapElementsAllStoneBlocks.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            CheckboxMapElementsAllStoneBlocks.Location = new Point(10, 23);
+            CheckboxMapElementsAllStoneBlocks.Name = "CheckboxMapElementsAllStoneBlocks";
+            CheckboxMapElementsAllStoneBlocks.Size = new Size(194, 19);
+            CheckboxMapElementsAllStoneBlocks.TabIndex = 1;
+            CheckboxMapElementsAllStoneBlocks.Text = "Remove Large Star Stone Blocks";
+            CheckboxMapElementsAllStoneBlocks.UseVisualStyleBackColor = true;
+            CheckboxMapElementsAllStoneBlocks.CheckedChanged += CheckboxMapElementsStoneBlocks_CheckedChanged;
             // 
             // GroupMiscSprayPalettes
             // 
@@ -1360,7 +1485,7 @@
             // 
             RadioOutlinesRandom.AutoSize = true;
             RadioOutlinesRandom.Font = new Font("Segoe UI", 9F);
-            RadioOutlinesRandom.Location = new Point(6, 72);
+            RadioOutlinesRandom.Location = new Point(8, 72);
             RadioOutlinesRandom.Name = "RadioOutlinesRandom";
             RadioOutlinesRandom.Size = new Size(70, 19);
             RadioOutlinesRandom.TabIndex = 8;
@@ -1372,7 +1497,7 @@
             // 
             RadioOutlinesAll.AutoSize = true;
             RadioOutlinesAll.Font = new Font("Segoe UI", 9F);
-            RadioOutlinesAll.Location = new Point(6, 47);
+            RadioOutlinesAll.Location = new Point(8, 47);
             RadioOutlinesAll.Name = "RadioOutlinesAll";
             RadioOutlinesAll.Size = new Size(83, 19);
             RadioOutlinesAll.TabIndex = 7;
@@ -1385,7 +1510,7 @@
             RadioOutlinesUnchanged.AutoSize = true;
             RadioOutlinesUnchanged.Checked = true;
             RadioOutlinesUnchanged.Font = new Font("Segoe UI", 9F);
-            RadioOutlinesUnchanged.Location = new Point(6, 22);
+            RadioOutlinesUnchanged.Location = new Point(8, 22);
             RadioOutlinesUnchanged.Name = "RadioOutlinesUnchanged";
             RadioOutlinesUnchanged.Size = new Size(86, 19);
             RadioOutlinesUnchanged.TabIndex = 6;
@@ -1521,6 +1646,10 @@
             GroupAbilityPedestals.ResumeLayout(false);
             GroupAbilityPedestals.PerformLayout();
             TabMiscellaneous.ResumeLayout(false);
+            GroupMapElements.ResumeLayout(false);
+            GroupMapElements.PerformLayout();
+            GroupMapElementStoneDoors.ResumeLayout(false);
+            GroupMapElementStoneDoors.PerformLayout();
             GroupMiscSprayPalettes.ResumeLayout(false);
             GroupMiscSprayPalettes.PerformLayout();
             GroupSprayOutlines.ResumeLayout(false);
@@ -1639,5 +1768,14 @@
         private Label label9;
         private Label label10;
         private CheckBox CheckboxEnemiesRandomizeExcluded;
+        private Button button3;
+        private RadioButton RadioEnemiesCustom;
+        private GroupBox GroupMapElements;
+        private CheckBox CheckboxMapElementsAllStoneBlocks;
+        private RadioButton RadioEnemiesNo;
+        private GroupBox GroupMapElementStoneDoors;
+        private RadioButton MapElementsStoneDoorsRemoveTutorial;
+        private RadioButton MapElementsStoneDoorsRemoveAll;
+        private RadioButton MapElementsStoneDoorsUnchanged;
     }
 }
