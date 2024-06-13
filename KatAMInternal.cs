@@ -125,7 +125,7 @@ namespace KatAMInternal {
             { 0x33, "Prank"},
             { 0x34, "Mirra" },
             { 0x35, "Shotzo" },
-            { 0x36, "Nothing" },
+            /*{ 0x36, "Nothing" },*/ // Shadow Kirby with behavior 0 is nothing;
             { 0x37, "Waddle Dee 2" },
             { 0x70, "Shotzo 2"},
             { 0xA2, "Parasol"}
@@ -215,6 +215,15 @@ namespace KatAMInternal {
         public GenerationOptions ChestsPropertiesType { get; set; }
         public bool isAddingMoreHPUps { get; set; }
         public int HPUpsAdded { get; set; }
+        public GenerationOptions EnemiesGenerationType { get; set; }
+        public bool isRandomizingExcludedEnemies { get; set; }
+        public bool isRandomizingEnemiesIntelligently { get; set; }
+        public GenerationOptions EnemiesPropertiesSpeedType { get; set; }
+        public GenerationOptions EnemiesPropertiesBehaviorType { get; set; }
+        public GenerationOptions EnemiesInhaleAbilityType { get; set; }
+        public bool isIncludingMasterInhaleAbility { get; set; }
+        public GenerationOptions EnemiesHPType { get; set; }
+        public bool isHPPercentageModified { get; set; }
         public GenerationOptions PedestalsGenerationType { get; set; }
         public bool isAddingRandomPedestal;
         public bool isBanningParasol;
@@ -269,8 +278,8 @@ namespace KatAMInternal {
 
             WriteToROM(romFile, address + 12, new byte[] { id });
             WriteToROM(romFile, address + 14, new byte[] { behavior });
-            WriteToROM(romFile, address + 15, new byte[] { speed });
-            WriteToROM(romFile, address + 16, properties);
+            WriteToROM(romFile, address + 16, new byte[] { speed });
+            WriteToROM(romFile, address + 17, properties);
         }
 
         public static int GetNextRandom() {

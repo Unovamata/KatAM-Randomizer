@@ -16,10 +16,63 @@ namespace KatAM_Randomizer {
         }
 
         // Adding unused behaviors from the start;
-        Dictionary<byte, List<byte>> enemyDictionary = new Dictionary<byte, List<byte>>();
+        Dictionary<byte, List<byte>> enemyBehaviorDictionary = new Dictionary<byte, List<byte>>();
+        Dictionary<byte, List<byte>> enemySpeedDictionary = new Dictionary<byte, List<byte>>();
+
+        GenerationOptions enemiesOptions, 
+                          enemiesSpeedOptions, 
+                          enemiesBehaviorOptions, 
+                          enemiesInhaleAbilityOptions, 
+                          enemiesHPOptions;
+
+        bool isRandomizingEnemiesIntelligently,
+             isIncludingMasterInhaleAbility,
+             isHPPercentageModified,
+             isRandomizingExcludedEnemies;
+
+        List<byte> underwaterVetoedEnemyIDs = new List<byte>() {
+            0x02, // Blipper;
+            0x03, // Glunk;
+            0x04, // Squishy;
+            0x06, // Gordo;
+        };
+
+        List<byte> underwaterValidEnemyIDs = new List<byte>() {
+            0x01, //Bronto 
+            0x23, //Shooty 
+            0x0F, //Leap
+            0x15, //Laser
+            0x09, //Soarar
+            0x1B, //UFO
+            0x0A //Haley
+        };
+
+        List<byte> underwaterEnemyIDs = new List<byte>();
+
+        List<byte> progressionEnemyIDs = new List<byte>() {
+            0x10, // Jack;
+            0x27, // Minny;
+            0x34, // Mirra;
+        };
 
         void RandomizeEnemies(IKatAMRandomizer Instance) {
-            InitializeEnemyDictionary();
+            // Calling the settings data;
+            enemiesOptions = Settings.EnemiesGenerationType;
+            enemiesSpeedOptions = Settings.EnemiesPropertiesSpeedType;
+            enemiesBehaviorOptions = Settings.EnemiesPropertiesBehaviorType;
+            enemiesInhaleAbilityOptions = Settings.EnemiesInhaleAbilityType;
+            enemiesHPOptions = Settings.EnemiesHPType;
+
+            isRandomizingEnemiesIntelligently = Settings.isRandomizingEnemiesIntelligently;
+            isIncludingMasterInhaleAbility = Settings.isIncludingMasterInhaleAbility;
+            isHPPercentageModified = Settings.isHPPercentageModified;
+            isRandomizingExcludedEnemies = Settings.isRandomizingExcludedEnemies;
+
+            // Adding underwater enemies together for randomization;
+            underwaterEnemyIDs.AddRange(underwaterVetoedEnemyIDs);
+            underwaterEnemyIDs.AddRange(underwaterValidEnemyIDs);
+
+            InitializeBehaviorDictionary();
 
             entities = new List<Entity>();
 
@@ -29,81 +82,167 @@ namespace KatAM_Randomizer {
             // Deserializing all the entities in the game;
             Utils.DeserializeJSON(Utils.JSONToEntities(Utils.enemiesJson), entities, Instance);
 
-            foreach(Entity entity in entities) {
-                if (!enemyDictionary.ContainsKey(entity.ID)) {
-                    enemyDictionary.Add(entity.ID, NewBehavior(entity.Behavior));
-                } 
+            List<byte> enemyIDs = new List<byte>();
 
-                List<byte> behaviorsList = enemyDictionary[entity.ID];
+            foreach(Entity entity in entities) {
+                enemyIDs.Add(entity.ID);
+
+                if (!enemyBehaviorDictionary.ContainsKey(entity.ID)) {
+                    enemyBehaviorDictionary.Add(entity.ID, NewProperty(entity.Behavior));
+                }
+
+                if (!enemySpeedDictionary.ContainsKey(entity.ID)) {
+                    enemySpeedDictionary.Add(entity.ID, NewProperty(entity.Speed));
+                }
+
+                List<byte> behaviorsList = enemyBehaviorDictionary[entity.ID];
 
                 if (!behaviorsList.Contains(entity.Behavior)) {
                     behaviorsList.Add(entity.Behavior);
                 }
-            }
 
-            foreach(KeyValuePair<byte, List<byte>> kvp in enemyDictionary) {
-                Console.WriteLine(Processing.enemiesDictionary[kvp.Key]);
+                List<byte> speedsList = enemySpeedDictionary[entity.ID];
 
-                foreach(byte bit in kvp.Value) {
-                    Console.WriteLine($"Behaviour: {bit}");
+                if (!speedsList.Contains(entity.Speed)) {
+                    speedsList.Add(entity.Speed);
                 }
             }
+
+            if (enemiesOptions == GenerationOptions.Shuffle) enemyIDs = Utils.Shuffle(enemyIDs);
+
+            List<byte> enemyKeysIDs = enemyBehaviorDictionary.Keys.ToList();
+
+            bool isRandomizingIDs = enemiesOptions != GenerationOptions.Unchanged,
+                 isRandomizingSpeed = enemiesSpeedOptions != GenerationOptions.Unchanged,
+                 isRandomizingBehaviors = enemiesBehaviorOptions != GenerationOptions.Unchanged;
+
+            for (int i = 0; i < entities.Count; i++) {
+                bool isIDAssigned = false;
+                Entity entity = entities[i];
+                
+                List<byte> speedsList = enemySpeedDictionary[entity.ID];
+
+                if (IsVetoedEnemy(entity)) {
+                    bool isProgressionEntity = progressionEnemyIDs.Contains(entity.ID);
+
+                    if (isProgressionEntity) continue;
+                    else {
+                        // IDs will not change if entities are being shuffled and the user is not randomizing the underwater enemies;
+                        if (enemiesOptions == GenerationOptions.Shuffle && !isRandomizingExcludedEnemies) continue;
+                        else if (isRandomizingEnemiesIntelligently || isRandomizingExcludedEnemies) {
+                            int underwaterEnemyIndex = Utils.GetRandomNumber(0, underwaterEnemyIDs.Count);
+
+                            entity.ID = underwaterEnemyIDs[underwaterEnemyIndex];
+                            isIDAssigned = true;
+                        }
+                    }
+                }
+
+                if (isRandomizingIDs) {
+                    switch (enemiesOptions) {
+                        case GenerationOptions.Shuffle:
+                            if (!isIDAssigned) {
+                                byte selectedID = enemyIDs[i];
+
+                                entity.ID = enemyIDs[i];
+
+                                // If it will shuffle into a Mirra, reroll the enemy;
+                                do {
+                                    int rerollIndex = Utils.GetRandomNumber(0, enemyKeysIDs.Count);
+
+                                    entity.ID = enemyKeysIDs[rerollIndex];
+                                } while (entity.ID == 0x34); // Mirra;
+                            }
+                        break;
+
+                        case GenerationOptions.Random:
+                            if (!isIDAssigned) {
+                                int idIndex = Utils.GetRandomNumber(0, enemyKeysIDs.Count);
+
+                                entity.ID = enemyKeysIDs[idIndex];
+                            }
+                        break;
+                    }
+                    
+                }
+
+                if (isRandomizingSpeed) {
+                    int speedsIndex = Utils.GetRandomNumber(0, speedsList.Count);
+
+                    entity.Speed = speedsList[speedsIndex];
+                }
+
+                if (isRandomizingBehaviors) {
+                    List<byte> behaviorsList = enemyBehaviorDictionary[entity.ID];
+                    int behaviorIndex = Utils.GetRandomNumber(0, behaviorsList.Count);
+
+                    entity.Behavior = behaviorsList[behaviorIndex];
+                }
+
+                Utils.WriteObjectToROM(romFile, entity);
+            }
         }
 
-        void InitializeEnemyDictionary() {
-            enemyDictionary = new Dictionary<byte, List<byte>>();
+        void InitializeBehaviorDictionary() {
+            enemyBehaviorDictionary = new Dictionary<byte, List<byte>>();
 
             // Squishy;
-            enemyDictionary.Add(0x04, NewBehavior(0x01)); // Appear and launch upwards;
-            enemyDictionary[0x04].Add(0x02); // Hop and chase Kirby;
+            enemyBehaviorDictionary.Add(0x04, NewProperty(0x01)); // Appear and launch upwards;
+            enemyBehaviorDictionary[0x04].Add(0x02); // Hop and chase Kirby;
 
             // Scarfy;
-            enemyDictionary.Add(0x05, NewBehavior(0x03)); // Rise from below and places itself at Kirby's current Y;
+            enemyBehaviorDictionary.Add(0x05, NewProperty(0x03)); // Rise from below and places itself at Kirby's current Y;
 
             // Gordo;
-            enemyDictionary.Add(0x06, NewBehavior(0x03)); // Hover up and down slowly;
+            enemyBehaviorDictionary.Add(0x06, NewProperty(0x03)); // Hover up and down slowly;
 
             // Haley;
-            enemyDictionary.Add(0x0A, NewBehavior(0x01)); // Fly with regular speed instead of slowing down;
+            enemyBehaviorDictionary.Add(0x0A, NewProperty(0x01)); // Fly with regular speed instead of slowing down;
 
             // Cupie;
-            enemyDictionary.Add(0x0C, NewBehavior(0x02)); // Fly in 8 pattern;
-            enemyDictionary[0x0C].Add(0x03); // Run away from Kirby, shoot, disappear out of the screen;
+            enemyBehaviorDictionary.Add(0x0C, NewProperty(0x02)); // Fly in 8 pattern;
+            enemyBehaviorDictionary[0x0C].Add(0x03); // Run away from Kirby, shoot, disappear out of the screen;
 
             // Leap;
-            enemyDictionary.Add(0x0F, NewBehavior(0x01)); // Hover up and down slowly;
+            enemyBehaviorDictionary.Add(0x0F, NewProperty(0x01)); // Hover up and down slowly;
 
             // Big Waddle Dee;
-            enemyDictionary.Add(0x11, NewBehavior(0x02)); // Jump;
+            enemyBehaviorDictionary.Add(0x11, NewProperty(0x02)); // Jump;
 
             // Golem Press;
-            enemyDictionary.Add(0x1F, NewBehavior(0x01)); // Do all the Golem attacks;
+            enemyBehaviorDictionary.Add(0x1F, NewProperty(0x01)); // Do all the Golem attacks;
 
             // Golem Roll;
-            enemyDictionary.Add(0x20, NewBehavior(0x01)); // Do all the Golem attacks;
+            enemyBehaviorDictionary.Add(0x20, NewProperty(0x01)); // Do all the Golem attacks;
 
             // Boxin;
-            enemyDictionary.Add(0x25, NewBehavior(0x03)); // Stand in place;
+            enemyBehaviorDictionary.Add(0x25, NewProperty(0x03)); // Stand in place;
 
             // Cookin;
-            enemyDictionary.Add(0x26, NewBehavior(0x01)); // Walking;
+            enemyBehaviorDictionary.Add(0x26, NewProperty(0x01)); // Walking;
 
             // Heavy Knight;
-            enemyDictionary.Add(0x29, NewBehavior(0x02)); // Stand in place;
+            enemyBehaviorDictionary.Add(0x29, NewProperty(0x02)); // Stand in place;
 
             // Giant Rocky;
-            enemyDictionary.Add(0x2A, NewBehavior(0x01)); // Stand in place;
+            enemyBehaviorDictionary.Add(0x2A, NewProperty(0x01)); // Stand in place;
 
             // Batty;
-            enemyDictionary.Add(0x2D, NewBehavior(0x01)); // Chase Kirby and return to its spawn point;
+            enemyBehaviorDictionary.Add(0x2D, NewProperty(0x01)); // Chase Kirby and return to its spawn point;
 
             // Shotzo;
-            enemyDictionary.Add(0x35, NewBehavior(0x01)); // Fire at the upper left section of the screen;
+            enemyBehaviorDictionary.Add(0x35, NewProperty(0x01)); // Fire at the upper left section of the screen;
 
         }
 
-        List<byte> NewBehavior(byte input) {
+        List<byte> NewProperty(byte input) {
             return new List<byte>() { input };
+        }
+
+        bool IsVetoedEnemy(Entity entity) {
+            byte id = entity.ID;
+
+            return progressionEnemyIDs.Contains(id) || underwaterEnemyIDs.Contains(id);
         }
 
         public bool FilterEntities(Entity entity) {

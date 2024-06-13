@@ -79,9 +79,39 @@
             RadioConsumablesShuffle = new RadioButton();
             RadioConsumablesUnchanged = new RadioButton();
             tabPage3 = new TabPage();
+            GroupEnemiesProperties = new GroupBox();
+            GroupEnemiesPropertiesInhaleAbility = new GroupBox();
+            checkBox2 = new CheckBox();
+            radioButton10 = new RadioButton();
+            radioButton2 = new RadioButton();
+            radioButton5 = new RadioButton();
+            GroupEnemiesPropertiesHP = new GroupBox();
+            label6 = new Label();
+            label7 = new Label();
+            label8 = new Label();
+            label9 = new Label();
+            label10 = new Label();
+            trackBar1 = new TrackBar();
+            CheckboxEnemiesPropertiesPercentage = new CheckBox();
+            radioButton7 = new RadioButton();
+            radioButton8 = new RadioButton();
+            radioButton9 = new RadioButton();
+            GroupEnemiesPropertiesBehavior = new GroupBox();
+            radioButton6 = new RadioButton();
+            radioButton4 = new RadioButton();
+            GroupEnemiesPropertiesSpeed = new GroupBox();
+            radioButton3 = new RadioButton();
+            radioButton1 = new RadioButton();
+            GroupEnemies = new GroupBox();
+            CheckboxEnemiesRandomizeExcluded = new CheckBox();
+            CheckboxEnemiesRandomizeIntelligent = new CheckBox();
+            RadioEnemiesRandom = new RadioButton();
+            RadioEnemiesShuffle = new RadioButton();
+            RadioEnemiesUnchanged = new RadioButton();
             tabPage4 = new TabPage();
             tabPage5 = new TabPage();
             GroupAbilityPedestals = new GroupBox();
+            CheckboxBanParasol = new CheckBox();
             RadioAbilityPedestalsChallenge = new RadioButton();
             button2 = new Button();
             RadioAbilityPedestalsNo = new RadioButton();
@@ -104,7 +134,6 @@
             ButtonRefreshSeed = new Button();
             StatusStripRandomizer = new StatusStrip();
             StatusLabel = new ToolStripStatusLabel();
-            CheckboxBanParasol = new CheckBox();
             GroupSettings.SuspendLayout();
             GroupRomInfo.SuspendLayout();
             tabControl1.SuspendLayout();
@@ -116,6 +145,14 @@
             GroupConsumablesMirrorShards.SuspendLayout();
             GroupMirrorShardsAmount.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)TrackBarMirrorShardsAmount).BeginInit();
+            tabPage3.SuspendLayout();
+            GroupEnemiesProperties.SuspendLayout();
+            GroupEnemiesPropertiesInhaleAbility.SuspendLayout();
+            GroupEnemiesPropertiesHP.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)trackBar1).BeginInit();
+            GroupEnemiesPropertiesBehavior.SuspendLayout();
+            GroupEnemiesPropertiesSpeed.SuspendLayout();
+            GroupEnemies.SuspendLayout();
             tabPage5.SuspendLayout();
             GroupAbilityPedestals.SuspendLayout();
             TabMiscellaneous.SuspendLayout();
@@ -339,7 +376,8 @@
             Label3HPUP.AutoSize = true;
             Label3HPUP.Enabled = false;
             Label3HPUP.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            Label3HPUP.Location = new Point(131, 154);
+            Label3HPUP.ForeColor = SystemColors.ControlDark;
+            Label3HPUP.Location = new Point(131, 158);
             Label3HPUP.Name = "Label3HPUP";
             Label3HPUP.Size = new Size(13, 15);
             Label3HPUP.TabIndex = 8;
@@ -362,7 +400,8 @@
             Label2HPUP.AutoSize = true;
             Label2HPUP.Enabled = false;
             Label2HPUP.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            Label2HPUP.Location = new Point(72, 154);
+            Label2HPUP.ForeColor = SystemColors.ControlDark;
+            Label2HPUP.Location = new Point(72, 158);
             Label2HPUP.Name = "Label2HPUP";
             Label2HPUP.Size = new Size(13, 15);
             Label2HPUP.TabIndex = 8;
@@ -373,7 +412,8 @@
             Label1HPUP.AutoSize = true;
             Label1HPUP.Enabled = false;
             Label1HPUP.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            Label1HPUP.Location = new Point(13, 154);
+            Label1HPUP.ForeColor = SystemColors.ControlDark;
+            Label1HPUP.Location = new Point(13, 158);
             Label1HPUP.Name = "Label1HPUP";
             Label1HPUP.Size = new Size(13, 15);
             Label1HPUP.TabIndex = 8;
@@ -445,6 +485,7 @@
             // 
             // TrackBarHPUP
             // 
+            TrackBarHPUP.BackColor = SystemColors.ButtonHighlight;
             TrackBarHPUP.Enabled = false;
             TrackBarHPUP.Location = new Point(6, 172);
             TrackBarHPUP.Maximum = 3;
@@ -487,7 +528,7 @@
             // 
             CheckboxChestsMoreHPUP.AutoSize = true;
             CheckboxChestsMoreHPUP.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            CheckboxChestsMoreHPUP.Location = new Point(6, 131);
+            CheckboxChestsMoreHPUP.Location = new Point(13, 127);
             CheckboxChestsMoreHPUP.Name = "CheckboxChestsMoreHPUP";
             CheckboxChestsMoreHPUP.Size = new Size(121, 19);
             CheckboxChestsMoreHPUP.TabIndex = 5;
@@ -607,7 +648,8 @@
             // 
             // TrackBarMirrorShardsAmount
             // 
-            TrackBarMirrorShardsAmount.Location = new Point(6, 40);
+            TrackBarMirrorShardsAmount.BackColor = SystemColors.ButtonHighlight;
+            TrackBarMirrorShardsAmount.Location = new Point(6, 45);
             TrackBarMirrorShardsAmount.Maximum = 5;
             TrackBarMirrorShardsAmount.Minimum = 1;
             TrackBarMirrorShardsAmount.Name = "TrackBarMirrorShardsAmount";
@@ -621,8 +663,10 @@
             // label5
             // 
             label5.AutoSize = true;
+            label5.Enabled = false;
             label5.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            label5.Location = new Point(179, 22);
+            label5.ForeColor = SystemColors.ControlDark;
+            label5.Location = new Point(179, 31);
             label5.Name = "label5";
             label5.Size = new Size(13, 15);
             label5.TabIndex = 7;
@@ -631,8 +675,10 @@
             // label1
             // 
             label1.AutoSize = true;
+            label1.Enabled = false;
             label1.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            label1.Location = new Point(13, 22);
+            label1.ForeColor = SystemColors.ControlDark;
+            label1.Location = new Point(13, 31);
             label1.Name = "label1";
             label1.Size = new Size(13, 15);
             label1.TabIndex = 3;
@@ -641,8 +687,10 @@
             // label4
             // 
             label4.AutoSize = true;
+            label4.Enabled = false;
             label4.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            label4.Location = new Point(138, 22);
+            label4.ForeColor = SystemColors.ControlDark;
+            label4.Location = new Point(138, 31);
             label4.Name = "label4";
             label4.Size = new Size(13, 15);
             label4.TabIndex = 6;
@@ -651,8 +699,10 @@
             // label2
             // 
             label2.AutoSize = true;
+            label2.Enabled = false;
             label2.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            label2.Location = new Point(56, 22);
+            label2.ForeColor = SystemColors.ControlDark;
+            label2.Location = new Point(56, 31);
             label2.Name = "label2";
             label2.Size = new Size(13, 15);
             label2.TabIndex = 4;
@@ -661,8 +711,10 @@
             // label3
             // 
             label3.AutoSize = true;
+            label3.Enabled = false;
             label3.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            label3.Location = new Point(96, 22);
+            label3.ForeColor = SystemColors.ControlDark;
+            label3.Location = new Point(96, 31);
             label3.Name = "label3";
             label3.Size = new Size(13, 15);
             label3.TabIndex = 5;
@@ -734,6 +786,8 @@
             // 
             // tabPage3
             // 
+            tabPage3.Controls.Add(GroupEnemiesProperties);
+            tabPage3.Controls.Add(GroupEnemies);
             tabPage3.Location = new Point(4, 24);
             tabPage3.Name = "tabPage3";
             tabPage3.Padding = new Padding(3);
@@ -741,6 +795,364 @@
             tabPage3.TabIndex = 2;
             tabPage3.Text = "Enemies";
             tabPage3.UseVisualStyleBackColor = true;
+            // 
+            // GroupEnemiesProperties
+            // 
+            GroupEnemiesProperties.Controls.Add(GroupEnemiesPropertiesInhaleAbility);
+            GroupEnemiesProperties.Controls.Add(GroupEnemiesPropertiesHP);
+            GroupEnemiesProperties.Controls.Add(GroupEnemiesPropertiesBehavior);
+            GroupEnemiesProperties.Controls.Add(GroupEnemiesPropertiesSpeed);
+            GroupEnemiesProperties.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            GroupEnemiesProperties.Location = new Point(238, 6);
+            GroupEnemiesProperties.Name = "GroupEnemiesProperties";
+            GroupEnemiesProperties.Size = new Size(521, 225);
+            GroupEnemiesProperties.TabIndex = 1;
+            GroupEnemiesProperties.TabStop = false;
+            GroupEnemiesProperties.Text = "Properties";
+            // 
+            // GroupEnemiesPropertiesInhaleAbility
+            // 
+            GroupEnemiesPropertiesInhaleAbility.Controls.Add(checkBox2);
+            GroupEnemiesPropertiesInhaleAbility.Controls.Add(radioButton10);
+            GroupEnemiesPropertiesInhaleAbility.Controls.Add(radioButton2);
+            GroupEnemiesPropertiesInhaleAbility.Controls.Add(radioButton5);
+            GroupEnemiesPropertiesInhaleAbility.Location = new Point(6, 113);
+            GroupEnemiesPropertiesInhaleAbility.Name = "GroupEnemiesPropertiesInhaleAbility";
+            GroupEnemiesPropertiesInhaleAbility.Size = new Size(264, 106);
+            GroupEnemiesPropertiesInhaleAbility.TabIndex = 7;
+            GroupEnemiesPropertiesInhaleAbility.TabStop = false;
+            GroupEnemiesPropertiesInhaleAbility.Text = "Inhale Ability";
+            // 
+            // checkBox2
+            // 
+            checkBox2.AutoSize = true;
+            checkBox2.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            checkBox2.Location = new Point(107, 22);
+            checkBox2.Name = "checkBox2";
+            checkBox2.Size = new Size(151, 19);
+            checkBox2.TabIndex = 6;
+            checkBox2.Text = "Include \"Master\" Ability";
+            checkBox2.UseVisualStyleBackColor = true;
+            // 
+            // radioButton10
+            // 
+            radioButton10.AutoSize = true;
+            radioButton10.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            radioButton10.Location = new Point(8, 47);
+            radioButton10.Name = "radioButton10";
+            radioButton10.Size = new Size(62, 19);
+            radioButton10.TabIndex = 5;
+            radioButton10.Text = "Shuffle";
+            radioButton10.UseVisualStyleBackColor = true;
+            // 
+            // radioButton2
+            // 
+            radioButton2.AutoSize = true;
+            radioButton2.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            radioButton2.Location = new Point(8, 72);
+            radioButton2.Name = "radioButton2";
+            radioButton2.Size = new Size(70, 19);
+            radioButton2.TabIndex = 4;
+            radioButton2.Text = "Random";
+            radioButton2.UseVisualStyleBackColor = true;
+            // 
+            // radioButton5
+            // 
+            radioButton5.AutoSize = true;
+            radioButton5.Checked = true;
+            radioButton5.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            radioButton5.Location = new Point(8, 22);
+            radioButton5.Name = "radioButton5";
+            radioButton5.Size = new Size(86, 19);
+            radioButton5.TabIndex = 2;
+            radioButton5.TabStop = true;
+            radioButton5.Text = "Unchanged";
+            radioButton5.UseVisualStyleBackColor = true;
+            // 
+            // GroupEnemiesPropertiesHP
+            // 
+            GroupEnemiesPropertiesHP.Controls.Add(label6);
+            GroupEnemiesPropertiesHP.Controls.Add(label7);
+            GroupEnemiesPropertiesHP.Controls.Add(label8);
+            GroupEnemiesPropertiesHP.Controls.Add(label9);
+            GroupEnemiesPropertiesHP.Controls.Add(label10);
+            GroupEnemiesPropertiesHP.Controls.Add(trackBar1);
+            GroupEnemiesPropertiesHP.Controls.Add(CheckboxEnemiesPropertiesPercentage);
+            GroupEnemiesPropertiesHP.Controls.Add(radioButton7);
+            GroupEnemiesPropertiesHP.Controls.Add(radioButton8);
+            GroupEnemiesPropertiesHP.Controls.Add(radioButton9);
+            GroupEnemiesPropertiesHP.Location = new Point(276, 16);
+            GroupEnemiesPropertiesHP.Name = "GroupEnemiesPropertiesHP";
+            GroupEnemiesPropertiesHP.Size = new Size(239, 203);
+            GroupEnemiesPropertiesHP.TabIndex = 6;
+            GroupEnemiesPropertiesHP.TabStop = false;
+            GroupEnemiesPropertiesHP.Text = "HP";
+            // 
+            // label6
+            // 
+            label6.AutoSize = true;
+            label6.Enabled = false;
+            label6.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            label6.ForeColor = SystemColors.ControlDark;
+            label6.Location = new Point(211, 179);
+            label6.Name = "label6";
+            label6.Size = new Size(19, 15);
+            label6.TabIndex = 12;
+            label6.Text = "50";
+            // 
+            // label7
+            // 
+            label7.AutoSize = true;
+            label7.Enabled = false;
+            label7.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            label7.ForeColor = SystemColors.ControlDark;
+            label7.Location = new Point(7, 179);
+            label7.Name = "label7";
+            label7.Size = new Size(24, 15);
+            label7.TabIndex = 8;
+            label7.Text = "-50";
+            // 
+            // label8
+            // 
+            label8.AutoSize = true;
+            label8.Enabled = false;
+            label8.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            label8.ForeColor = SystemColors.ControlDark;
+            label8.Location = new Point(162, 179);
+            label8.Name = "label8";
+            label8.Size = new Size(19, 15);
+            label8.TabIndex = 11;
+            label8.Text = "25";
+            // 
+            // label9
+            // 
+            label9.AutoSize = true;
+            label9.Enabled = false;
+            label9.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            label9.ForeColor = SystemColors.ControlDark;
+            label9.Location = new Point(58, 179);
+            label9.Name = "label9";
+            label9.Size = new Size(24, 15);
+            label9.TabIndex = 9;
+            label9.Text = "-25";
+            // 
+            // label10
+            // 
+            label10.AutoSize = true;
+            label10.Enabled = false;
+            label10.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            label10.ForeColor = SystemColors.ControlDark;
+            label10.Location = new Point(115, 179);
+            label10.Name = "label10";
+            label10.Size = new Size(13, 15);
+            label10.TabIndex = 10;
+            label10.Text = "0";
+            // 
+            // trackBar1
+            // 
+            trackBar1.BackColor = SystemColors.ButtonHighlight;
+            trackBar1.Location = new Point(8, 150);
+            trackBar1.Maximum = 50;
+            trackBar1.Minimum = -50;
+            trackBar1.Name = "trackBar1";
+            trackBar1.RightToLeft = RightToLeft.No;
+            trackBar1.Size = new Size(225, 45);
+            trackBar1.TabIndex = 7;
+            // 
+            // CheckboxEnemiesPropertiesPercentage
+            // 
+            CheckboxEnemiesPropertiesPercentage.AutoSize = true;
+            CheckboxEnemiesPropertiesPercentage.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            CheckboxEnemiesPropertiesPercentage.Location = new Point(8, 125);
+            CheckboxEnemiesPropertiesPercentage.Name = "CheckboxEnemiesPropertiesPercentage";
+            CheckboxEnemiesPropertiesPercentage.Size = new Size(155, 19);
+            CheckboxEnemiesPropertiesPercentage.TabIndex = 6;
+            CheckboxEnemiesPropertiesPercentage.Text = "Percentage HP Modifier:";
+            CheckboxEnemiesPropertiesPercentage.UseVisualStyleBackColor = true;
+            // 
+            // radioButton7
+            // 
+            radioButton7.AutoSize = true;
+            radioButton7.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            radioButton7.Location = new Point(8, 72);
+            radioButton7.Name = "radioButton7";
+            radioButton7.Size = new Size(70, 19);
+            radioButton7.TabIndex = 5;
+            radioButton7.Text = "Random";
+            radioButton7.UseVisualStyleBackColor = true;
+            // 
+            // radioButton8
+            // 
+            radioButton8.AutoSize = true;
+            radioButton8.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            radioButton8.Location = new Point(8, 47);
+            radioButton8.Name = "radioButton8";
+            radioButton8.Size = new Size(62, 19);
+            radioButton8.TabIndex = 4;
+            radioButton8.Text = "Shuffle";
+            radioButton8.UseVisualStyleBackColor = true;
+            // 
+            // radioButton9
+            // 
+            radioButton9.AutoSize = true;
+            radioButton9.Checked = true;
+            radioButton9.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            radioButton9.Location = new Point(8, 22);
+            radioButton9.Name = "radioButton9";
+            radioButton9.Size = new Size(86, 19);
+            radioButton9.TabIndex = 3;
+            radioButton9.TabStop = true;
+            radioButton9.Text = "Unchanged";
+            radioButton9.UseVisualStyleBackColor = true;
+            // 
+            // GroupEnemiesPropertiesBehavior
+            // 
+            GroupEnemiesPropertiesBehavior.Controls.Add(radioButton6);
+            GroupEnemiesPropertiesBehavior.Controls.Add(radioButton4);
+            GroupEnemiesPropertiesBehavior.Location = new Point(141, 16);
+            GroupEnemiesPropertiesBehavior.Name = "GroupEnemiesPropertiesBehavior";
+            GroupEnemiesPropertiesBehavior.Size = new Size(129, 91);
+            GroupEnemiesPropertiesBehavior.TabIndex = 1;
+            GroupEnemiesPropertiesBehavior.TabStop = false;
+            GroupEnemiesPropertiesBehavior.Text = "Behavior";
+            // 
+            // radioButton6
+            // 
+            radioButton6.AutoSize = true;
+            radioButton6.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            radioButton6.Location = new Point(8, 47);
+            radioButton6.Name = "radioButton6";
+            radioButton6.Size = new Size(70, 19);
+            radioButton6.TabIndex = 5;
+            radioButton6.Text = "Random";
+            radioButton6.UseVisualStyleBackColor = true;
+            // 
+            // radioButton4
+            // 
+            radioButton4.AutoSize = true;
+            radioButton4.Checked = true;
+            radioButton4.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            radioButton4.Location = new Point(8, 22);
+            radioButton4.Name = "radioButton4";
+            radioButton4.Size = new Size(86, 19);
+            radioButton4.TabIndex = 3;
+            radioButton4.TabStop = true;
+            radioButton4.Text = "Unchanged";
+            radioButton4.UseVisualStyleBackColor = true;
+            // 
+            // GroupEnemiesPropertiesSpeed
+            // 
+            GroupEnemiesPropertiesSpeed.Controls.Add(radioButton3);
+            GroupEnemiesPropertiesSpeed.Controls.Add(radioButton1);
+            GroupEnemiesPropertiesSpeed.Location = new Point(6, 16);
+            GroupEnemiesPropertiesSpeed.Name = "GroupEnemiesPropertiesSpeed";
+            GroupEnemiesPropertiesSpeed.Size = new Size(129, 91);
+            GroupEnemiesPropertiesSpeed.TabIndex = 0;
+            GroupEnemiesPropertiesSpeed.TabStop = false;
+            GroupEnemiesPropertiesSpeed.Text = "Speed";
+            // 
+            // radioButton3
+            // 
+            radioButton3.AutoSize = true;
+            radioButton3.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            radioButton3.Location = new Point(8, 47);
+            radioButton3.Name = "radioButton3";
+            radioButton3.Size = new Size(70, 19);
+            radioButton3.TabIndex = 4;
+            radioButton3.Text = "Random";
+            radioButton3.UseVisualStyleBackColor = true;
+            // 
+            // radioButton1
+            // 
+            radioButton1.AutoSize = true;
+            radioButton1.Checked = true;
+            radioButton1.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            radioButton1.Location = new Point(8, 22);
+            radioButton1.Name = "radioButton1";
+            radioButton1.Size = new Size(86, 19);
+            radioButton1.TabIndex = 2;
+            radioButton1.TabStop = true;
+            radioButton1.Text = "Unchanged";
+            radioButton1.UseVisualStyleBackColor = true;
+            // 
+            // GroupEnemies
+            // 
+            GroupEnemies.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            GroupEnemies.Controls.Add(CheckboxEnemiesRandomizeExcluded);
+            GroupEnemies.Controls.Add(CheckboxEnemiesRandomizeIntelligent);
+            GroupEnemies.Controls.Add(RadioEnemiesRandom);
+            GroupEnemies.Controls.Add(RadioEnemiesShuffle);
+            GroupEnemies.Controls.Add(RadioEnemiesUnchanged);
+            GroupEnemies.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            GroupEnemies.Location = new Point(9, 6);
+            GroupEnemies.Name = "GroupEnemies";
+            GroupEnemies.Size = new Size(223, 225);
+            GroupEnemies.TabIndex = 0;
+            GroupEnemies.TabStop = false;
+            GroupEnemies.Text = "Enemies";
+            // 
+            // CheckboxEnemiesRandomizeExcluded
+            // 
+            CheckboxEnemiesRandomizeExcluded.AutoSize = true;
+            CheckboxEnemiesRandomizeExcluded.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            CheckboxEnemiesRandomizeExcluded.Location = new Point(10, 175);
+            CheckboxEnemiesRandomizeExcluded.Name = "CheckboxEnemiesRandomizeExcluded";
+            CheckboxEnemiesRandomizeExcluded.Size = new Size(183, 19);
+            CheckboxEnemiesRandomizeExcluded.TabIndex = 5;
+            CheckboxEnemiesRandomizeExcluded.Text = "Randomize Excluded Enemies";
+            CheckboxEnemiesRandomizeExcluded.UseVisualStyleBackColor = true;
+            CheckboxEnemiesRandomizeExcluded.Visible = false;
+            CheckboxEnemiesRandomizeExcluded.CheckedChanged += CheckboxEnemiesRandomizeExcluded_CheckedChanged;
+            // 
+            // CheckboxEnemiesRandomizeIntelligent
+            // 
+            CheckboxEnemiesRandomizeIntelligent.AutoSize = true;
+            CheckboxEnemiesRandomizeIntelligent.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            CheckboxEnemiesRandomizeIntelligent.Location = new Point(10, 200);
+            CheckboxEnemiesRandomizeIntelligent.Name = "CheckboxEnemiesRandomizeIntelligent";
+            CheckboxEnemiesRandomizeIntelligent.Size = new Size(150, 19);
+            CheckboxEnemiesRandomizeIntelligent.TabIndex = 4;
+            CheckboxEnemiesRandomizeIntelligent.Text = "Randomize Intelligently";
+            CheckboxEnemiesRandomizeIntelligent.UseVisualStyleBackColor = true;
+            CheckboxEnemiesRandomizeIntelligent.CheckedChanged += CheckboxEnemiesRandomizeIntelligent_CheckedChanged;
+            // 
+            // RadioEnemiesRandom
+            // 
+            RadioEnemiesRandom.AutoSize = true;
+            RadioEnemiesRandom.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            RadioEnemiesRandom.Location = new Point(10, 72);
+            RadioEnemiesRandom.Name = "RadioEnemiesRandom";
+            RadioEnemiesRandom.Size = new Size(70, 19);
+            RadioEnemiesRandom.TabIndex = 3;
+            RadioEnemiesRandom.Text = "Random";
+            RadioEnemiesRandom.UseVisualStyleBackColor = true;
+            RadioEnemiesRandom.CheckedChanged += RadioEnemiesRandom_CheckedChanged;
+            // 
+            // RadioEnemiesShuffle
+            // 
+            RadioEnemiesShuffle.AutoSize = true;
+            RadioEnemiesShuffle.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            RadioEnemiesShuffle.Location = new Point(10, 47);
+            RadioEnemiesShuffle.Name = "RadioEnemiesShuffle";
+            RadioEnemiesShuffle.Size = new Size(62, 19);
+            RadioEnemiesShuffle.TabIndex = 2;
+            RadioEnemiesShuffle.Text = "Shuffle";
+            RadioEnemiesShuffle.UseVisualStyleBackColor = true;
+            RadioEnemiesShuffle.CheckedChanged += RadioEnemiesShuffle_CheckedChanged;
+            // 
+            // RadioEnemiesUnchanged
+            // 
+            RadioEnemiesUnchanged.AutoSize = true;
+            RadioEnemiesUnchanged.Checked = true;
+            RadioEnemiesUnchanged.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            RadioEnemiesUnchanged.Location = new Point(10, 22);
+            RadioEnemiesUnchanged.Name = "RadioEnemiesUnchanged";
+            RadioEnemiesUnchanged.Size = new Size(86, 19);
+            RadioEnemiesUnchanged.TabIndex = 1;
+            RadioEnemiesUnchanged.TabStop = true;
+            RadioEnemiesUnchanged.Text = "Unchanged";
+            RadioEnemiesUnchanged.UseVisualStyleBackColor = true;
+            RadioEnemiesUnchanged.CheckedChanged += RadioEnemiesUnchanged_CheckedChanged;
             // 
             // tabPage4
             // 
@@ -782,6 +1194,18 @@
             GroupAbilityPedestals.TabIndex = 0;
             GroupAbilityPedestals.TabStop = false;
             GroupAbilityPedestals.Text = "Ability Pedestals";
+            // 
+            // CheckboxBanParasol
+            // 
+            CheckboxBanParasol.AutoSize = true;
+            CheckboxBanParasol.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            CheckboxBanParasol.Location = new Point(184, 48);
+            CheckboxBanParasol.Name = "CheckboxBanParasol";
+            CheckboxBanParasol.Size = new Size(167, 19);
+            CheckboxBanParasol.TabIndex = 16;
+            CheckboxBanParasol.Text = "Ban \"Parasol\" Ability Stand";
+            CheckboxBanParasol.UseVisualStyleBackColor = true;
+            CheckboxBanParasol.CheckedChanged += CheckboxBanParasol_CheckedChanged;
             // 
             // RadioAbilityPedestalsChallenge
             // 
@@ -1045,18 +1469,6 @@
             StatusLabel.Name = "StatusLabel";
             StatusLabel.Size = new Size(0, 17);
             // 
-            // CheckboxBanParasol
-            // 
-            CheckboxBanParasol.AutoSize = true;
-            CheckboxBanParasol.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            CheckboxBanParasol.Location = new Point(184, 48);
-            CheckboxBanParasol.Name = "CheckboxBanParasol";
-            CheckboxBanParasol.Size = new Size(167, 19);
-            CheckboxBanParasol.TabIndex = 16;
-            CheckboxBanParasol.Text = "Ban \"Parasol\" Ability Stand";
-            CheckboxBanParasol.UseVisualStyleBackColor = true;
-            CheckboxBanParasol.CheckedChanged += CheckboxBanParasol_CheckedChanged;
-            // 
             // KatAMRandomizerMain
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
@@ -1092,6 +1504,19 @@
             GroupMirrorShardsAmount.ResumeLayout(false);
             GroupMirrorShardsAmount.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)TrackBarMirrorShardsAmount).EndInit();
+            tabPage3.ResumeLayout(false);
+            GroupEnemiesProperties.ResumeLayout(false);
+            GroupEnemiesPropertiesInhaleAbility.ResumeLayout(false);
+            GroupEnemiesPropertiesInhaleAbility.PerformLayout();
+            GroupEnemiesPropertiesHP.ResumeLayout(false);
+            GroupEnemiesPropertiesHP.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)trackBar1).EndInit();
+            GroupEnemiesPropertiesBehavior.ResumeLayout(false);
+            GroupEnemiesPropertiesBehavior.PerformLayout();
+            GroupEnemiesPropertiesSpeed.ResumeLayout(false);
+            GroupEnemiesPropertiesSpeed.PerformLayout();
+            GroupEnemies.ResumeLayout(false);
+            GroupEnemies.PerformLayout();
             tabPage5.ResumeLayout(false);
             GroupAbilityPedestals.ResumeLayout(false);
             GroupAbilityPedestals.PerformLayout();
@@ -1185,5 +1610,34 @@
         private Button button2;
         private RadioButton RadioAbilityPedestalsChallenge;
         private CheckBox CheckboxBanParasol;
+        private GroupBox GroupEnemies;
+        private RadioButton RadioEnemiesRandom;
+        private RadioButton RadioEnemiesShuffle;
+        private RadioButton RadioEnemiesUnchanged;
+        private GroupBox GroupEnemiesProperties;
+        private GroupBox GroupEnemiesPropertiesSpeed;
+        private GroupBox GroupEnemiesPropertiesBehavior;
+        private RadioButton radioButton6;
+        private RadioButton radioButton4;
+        private RadioButton radioButton3;
+        private RadioButton radioButton1;
+        private CheckBox CheckboxEnemiesRandomizeIntelligent;
+        private GroupBox GroupEnemiesPropertiesHP;
+        private RadioButton radioButton7;
+        private RadioButton radioButton8;
+        private RadioButton radioButton9;
+        private GroupBox GroupEnemiesPropertiesInhaleAbility;
+        private RadioButton radioButton2;
+        private RadioButton radioButton5;
+        private CheckBox checkBox2;
+        private RadioButton radioButton10;
+        private CheckBox CheckboxEnemiesPropertiesPercentage;
+        private TrackBar trackBar1;
+        private Label label6;
+        private Label label7;
+        private Label label8;
+        private Label label9;
+        private Label label10;
+        private CheckBox CheckboxEnemiesRandomizeExcluded;
     }
 }

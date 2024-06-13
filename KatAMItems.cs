@@ -234,10 +234,10 @@ namespace KatAMRandomizer {
 
                     // Shuffling chests;
                     ShuffleChest(chest);
-                    AddChestToDictionary(chest);
-
-                    Utils.WriteObjectToROM(romFile, chest);
                 }
+
+                AddChestToDictionary(chest);
+                Utils.WriteObjectToROM(romFile, chest);
 
                 // Write to the ROM;
                 WriteChestTo9ROM(romFile);

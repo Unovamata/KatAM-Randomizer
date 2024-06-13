@@ -108,7 +108,7 @@ namespace KatAMRandomizer
             destinationPath = Path.Combine(system.ROMDirectory, newFileName);
             settings.RandomEntity = new Random(settings.Seed);
 
-            //KatAMROMReader.ReadROMData(system);
+            /*KatAMROMReader.ReadROMData(system);*/
             new KatAMSprays(system);
             new KatAMItems(system);
             new KatAMPedestals(system);
@@ -249,6 +249,41 @@ namespace KatAMRandomizer
         private void TrackBarHPUP_Scroll(object sender, EventArgs e) {
             settings.HPUpsAdded = TrackBarHPUP.Value;
         }
+
+
+        //////////////////////////////////////////////////////////////////////////////////////////////
+
+
+        // Enemies;
+        private void RadioEnemiesUnchanged_CheckedChanged(object sender, EventArgs e) {
+            settings.EnemiesGenerationType = GenerationOptions.Unchanged;
+            HideCheckboxEnemiesRandomizeExcluded();
+        }
+
+        private void RadioEnemiesShuffle_CheckedChanged(object sender, EventArgs e) {
+            settings.EnemiesGenerationType = GenerationOptions.Shuffle;
+            CheckboxEnemiesRandomizeExcluded.Visible = true;
+        }
+
+        private void RadioEnemiesRandom_CheckedChanged(object sender, EventArgs e) {
+            settings.EnemiesGenerationType = GenerationOptions.Random;
+            HideCheckboxEnemiesRandomizeExcluded();
+        }
+
+        private void HideCheckboxEnemiesRandomizeExcluded() {
+            CheckboxEnemiesRandomizeExcluded.Visible = false;
+            CheckboxEnemiesRandomizeExcluded.Checked = false;
+            settings.isRandomizingExcludedEnemies = false;
+        }
+
+        private void CheckboxEnemiesRandomizeExcluded_CheckedChanged(object sender, EventArgs e) {
+            settings.isRandomizingExcludedEnemies = CheckboxEnemiesRandomizeExcluded.Checked;
+        }
+
+        private void CheckboxEnemiesRandomizeIntelligent_CheckedChanged(object sender, EventArgs e) {
+            settings.isRandomizingEnemiesIntelligently = CheckboxEnemiesRandomizeIntelligent.Checked;
+        }
+
 
         //////////////////////////////////////////////////////////////////////////////////////////////
 

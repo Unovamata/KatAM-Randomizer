@@ -78,8 +78,8 @@ namespace KatAMRandomizer {
                     entity.ID = ID;
 
                     entity.Behavior = romFile[i + 14];
-                    entity.Speed = romFile[i + 15];
-                    Array.Copy(objectDefinition, 16, entity.Properties, 0, 20);
+                    entity.Speed = romFile[i + 16];
+                    Array.Copy(objectDefinition, 17, entity.Properties, 0, entity.Properties.Length);
                     entity.Room = currentRoom;
 
                     // Mapping the enemies to a specific name type;
