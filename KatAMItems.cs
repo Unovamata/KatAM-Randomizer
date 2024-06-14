@@ -1,6 +1,8 @@
 ﻿using KatAMInternal;
+using KatAM_Randomizer;
 
-namespace KatAMRandomizer {
+namespace KatAMRandomizer
+{
     internal class KatAMItems : KatAMRandomizerComponent, IKatAMRandomizer {
         List<Entity> chestEntities;
         List<byte> objectIDs;

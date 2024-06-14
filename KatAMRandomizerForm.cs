@@ -3,7 +3,7 @@ using System.ComponentModel;
 using System.Text;
 using System.Windows.Forms;
 using KatAMRandomizer;
-using KatAM_Randomizer;
+using KatAMRandomizer;
 
 namespace KatAMRandomizer
 {
@@ -113,7 +113,12 @@ namespace KatAMRandomizer
             new KatAMItems(system);
             new KatAMPedestals(system);
             new KatAMEnemies(system);
+            new KatAMMinibosses(system);
             new KatAMMapElements(system);
+
+            // 
+            // Intelligently randomize flying enemies;
+            // Randomize mirrors;
 
 
             File.WriteAllBytes(destinationPath, system.ROMData);
@@ -259,21 +264,24 @@ namespace KatAMRandomizer
         private void RadioEnemiesUnchanged_CheckedChanged(object sender, EventArgs e) {
             settings.EnemiesGenerationType = GenerationOptions.Unchanged;
             HideCheckboxEnemiesRandomizeExcluded();
+            HideEnemiesOptions();
         }
 
         private void RadioEnemiesShuffle_CheckedChanged(object sender, EventArgs e) {
             settings.EnemiesGenerationType = GenerationOptions.Shuffle;
             CheckboxEnemiesRandomizeExcluded.Visible = true;
+            ShowEnemiesOptions();
         }
 
         private void RadioEnemiesRandom_CheckedChanged(object sender, EventArgs e) {
             settings.EnemiesGenerationType = GenerationOptions.Random;
+            ShowEnemiesOptions();
             HideCheckboxEnemiesRandomizeExcluded();
         }
 
         private void RadioEnemiesNo_CheckedChanged(object sender, EventArgs e) {
             settings.EnemiesGenerationType = GenerationOptions.No;
-            HideCheckboxEnemiesRandomizeExcluded();
+            HideEnemiesOptions();
         }
 
         private void HideCheckboxEnemiesRandomizeExcluded() {
@@ -282,13 +290,179 @@ namespace KatAMRandomizer
             settings.isRandomizingExcludedEnemies = false;
         }
 
+        private void HideEnemiesOptions() {
+            HideCheckboxEnemiesRandomizeExcluded();
+
+
+            CheckboxEnemiesRandomizeMinibosses.Visible = false;
+            settings.isIncludingMiniBosses = false;
+
+            CheckboxEnemiesRandomizeIntelligent.Visible = false;
+            settings.isRandomizingEnemiesIntelligently = false;
+        }
+
+        private void ShowEnemiesOptions() {
+            CheckboxEnemiesRandomizeMinibosses.Visible = true;
+            settings.isIncludingMiniBosses = false;
+
+            CheckboxEnemiesRandomizeIntelligent.Visible = true;
+            settings.isRandomizingEnemiesIntelligently = false;
+        }
+
         private void CheckboxEnemiesRandomizeExcluded_CheckedChanged(object sender, EventArgs e) {
             settings.isRandomizingExcludedEnemies = CheckboxEnemiesRandomizeExcluded.Checked;
+        }
+
+        private void CheckboxEnemiesRandomizeMinibosses_CheckedChanged(object sender, EventArgs e) {
+            settings.isIncludingMiniBosses = CheckboxEnemiesRandomizeMinibosses.Checked;
         }
 
         private void CheckboxEnemiesRandomizeIntelligent_CheckedChanged(object sender, EventArgs e) {
             settings.isRandomizingEnemiesIntelligently = CheckboxEnemiesRandomizeIntelligent.Checked;
         }
+
+        // Speed;
+        private void RadioEnemyPropertiesSpeedUnchanged_CheckedChanged(object sender, EventArgs e) {
+            settings.EnemiesPropertiesSpeedType = GenerationOptions.Unchanged;
+        }
+
+        private void RadioEnemyPropertiesSpeedRandom_CheckedChanged(object sender, EventArgs e) {
+            settings.EnemiesPropertiesSpeedType = GenerationOptions.Random;
+        }
+
+        // Behavior;
+        private void RadioEnemyPropertiesBehaviorUnchanged_CheckedChanged(object sender, EventArgs e) {
+            settings.EnemiesPropertiesBehaviorType = GenerationOptions.Unchanged;
+        }
+
+        private void RadioEnemyPropertiesBehaviorRandom_CheckedChanged(object sender, EventArgs e) {
+            settings.EnemiesPropertiesBehaviorType = GenerationOptions.Random;
+        }
+
+        private void CheckboxEnemyPropertiesUnusedBehaviors_CheckedChanged(object sender, EventArgs e) {
+            settings.isUsingUnusedBehaviors = CheckboxEnemyPropertiesUnusedBehaviors.Checked;
+        }
+
+        // Abilities;
+        private void RadioEnemyPropertiesAbilityUnchanged_CheckedChanged(object sender, EventArgs e) {
+            settings.EnemiesInhaleAbilityType = GenerationOptions.Unchanged;
+        }
+
+        private void RadioEnemyPropertiesAbilityShuffle_CheckedChanged(object sender, EventArgs e) {
+            settings.EnemiesInhaleAbilityType = GenerationOptions.Shuffle;
+        }
+
+        private void RadioEnemyPropertiesAbilityRandom_CheckedChanged(object sender, EventArgs e) {
+            settings.EnemiesInhaleAbilityType = GenerationOptions.Random;
+        }
+
+        private void CheckboxEnemyPropertiesAbilityMaster_CheckedChanged(object sender, EventArgs e) {
+            settings.isEnemyIncludingMasterInhaleAbility = CheckboxEnemyPropertiesAbilityMaster.Checked;
+        }
+
+        // HP;
+        private void RadioEnemyPropertiesHPUnchanged_CheckedChanged(object sender, EventArgs e) {
+            settings.EnemiesHPType = GenerationOptions.Unchanged;
+        }
+
+        private void RadioEnemyPropertiesHPShuffle_CheckedChanged(object sender, EventArgs e) {
+            settings.EnemiesHPType = GenerationOptions.Shuffle;
+        }
+
+        private void RadioEnemyPropertiesHPRandom_CheckedChanged(object sender, EventArgs e) {
+            settings.EnemiesHPType = GenerationOptions.Random;
+        }
+
+        private void CheckboxEnemyPropertiesHPPercentage_CheckedChanged(object sender, EventArgs e) {
+
+        }
+
+        private void NumericEnemyPropertiesHPMin_ValueChanged(object sender, EventArgs e) {
+
+        }
+
+        private void NumericEnemyPropertiesHPMax_ValueChanged(object sender, EventArgs e) {
+
+        }
+
+
+        //////////////////////////////////////////////////////////////////////////////////////////////
+
+
+        // Mini-Bosses;
+
+        private void RadioMinibossesUnchanged_CheckedChanged(object sender, EventArgs e) {
+            settings.MinibossesGenerationType = GenerationOptions.Unchanged;
+        }
+
+        private void RadioMinibossesShuffle_CheckedChanged(object sender, EventArgs e) {
+            settings.MinibossesGenerationType = GenerationOptions.Shuffle;
+        }
+
+        private void RadioMinibossesRandom_CheckedChanged(object sender, EventArgs e) {
+            settings.MinibossesGenerationType = GenerationOptions.Random;
+        }
+
+        private void RadioMinibossesNo_CheckedChanged(object sender, EventArgs e) {
+            settings.MinibossesGenerationType = GenerationOptions.No;
+        }
+
+        private void RadioMinibossesCustom_CheckedChanged(object sender, EventArgs e) {
+            settings.MinibossesGenerationType = GenerationOptions.Custom;
+        }
+
+        // Speed;
+        private void RadioMinibossPropertiesSpeedUnchanged_CheckedChanged(object sender, EventArgs e) {
+            settings.MinibossesPropertiesSpeedType = GenerationOptions.Unchanged;
+        }
+
+        private void RadioMinibossPropertiesSpeedRandom_CheckedChanged(object sender, EventArgs e) {
+            settings.MinibossesPropertiesSpeedType = GenerationOptions.Random;
+        }
+
+        // Behavior;
+        private void RadioMinibossPropertiesBehaviorUnchanged_CheckedChanged(object sender, EventArgs e) {
+            settings.MinibossesPropertiesBehaviorType = GenerationOptions.Unchanged;
+        }
+
+        private void RadioMinibossPropertiesBehaviorRandom_CheckedChanged(object sender, EventArgs e) {
+            settings.MinibossesPropertiesBehaviorType = GenerationOptions.Random;
+        }
+
+        // Ability;
+        private void RadioMinibossPropertiesAbilityUnchanged_CheckedChanged(object sender, EventArgs e) {
+            settings.MinibossesInhaleAbilityType = GenerationOptions.Unchanged;
+        }
+
+        private void RadioMinibossPropertiesAbilityShuffle_CheckedChanged(object sender, EventArgs e) {
+            settings.MinibossesInhaleAbilityType = GenerationOptions.Shuffle;
+        }
+
+        private void RadioMinibossPropertiesAbilityRandom_CheckedChanged(object sender, EventArgs e) {
+            settings.MinibossesInhaleAbilityType = GenerationOptions.Random;
+        }
+
+        private void CheckboxMinibossPropertiesAbilityMaster_CheckedChanged(object sender, EventArgs e) {
+            settings.MinibossesInhaleAbilityType = GenerationOptions.Shuffle;
+        }
+
+        // HP;
+        private void RadioMinibossPropertiesHPUnchanged_CheckedChanged(object sender, EventArgs e) {
+            settings.MinibossesHPType = GenerationOptions.Unchanged;
+        }
+
+        private void RadioMinibossPropertiesHPShuffle_CheckedChanged(object sender, EventArgs e) {
+            settings.MinibossesHPType = GenerationOptions.Shuffle;
+        }
+
+        private void RadioMinibossPropertiesHPRandom_CheckedChanged(object sender, EventArgs e) {
+            settings.MinibossesHPType = GenerationOptions.Random;
+        }
+
+        private void CheckboxMinibossPropertiesHPPercentage_CheckedChanged(object sender, EventArgs e) {
+            settings.isEnemyHPPercentageModified = CheckboxMinibossPropertiesHPPercentage.Checked;
+        }
+
 
 
         //////////////////////////////////////////////////////////////////////////////////////////////

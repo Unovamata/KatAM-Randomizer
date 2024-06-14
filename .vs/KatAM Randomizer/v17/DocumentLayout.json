@@ -3,32 +3,28 @@
   "WorkspaceRootPath": "C:\\Users\\Admin\\Documents\\GitHub\\KatAM-Randomizer\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{7EBBA357-446A-4116-ACAF-84237022A6EC}|KatAM Randomizer.csproj|c:\\users\\admin\\documents\\github\\katam-randomizer\\katammapelements.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{7EBBA357-446A-4116-ACAF-84237022A6EC}|KatAM Randomizer.csproj|solutionrelative:katammapelements.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{7EBBA357-446A-4116-ACAF-84237022A6EC}|KatAM Randomizer.csproj|c:\\users\\admin\\documents\\github\\katam-randomizer\\katamenemies.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{7EBBA357-446A-4116-ACAF-84237022A6EC}|KatAM Randomizer.csproj|solutionrelative:katamenemies.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
       "AbsoluteMoniker": "D:0:0:{7EBBA357-446A-4116-ACAF-84237022A6EC}|KatAM Randomizer.csproj|c:\\users\\admin\\documents\\github\\katam-randomizer\\katamrandomizerform.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{7EBBA357-446A-4116-ACAF-84237022A6EC}|KatAM Randomizer.csproj|solutionrelative:katamrandomizerform.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{7EBBA357-446A-4116-ACAF-84237022A6EC}|KatAM Randomizer.csproj|C:\\Users\\Admin\\Documents\\GitHub\\KatAM-Randomizer\\katamrandomizerform.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form",
-      "RelativeMoniker": "D:0:0:{7EBBA357-446A-4116-ACAF-84237022A6EC}|KatAM Randomizer.csproj|solutionrelative:katamrandomizerform.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form"
     },
     {
       "AbsoluteMoniker": "D:0:0:{7EBBA357-446A-4116-ACAF-84237022A6EC}|KatAM Randomizer.csproj|c:\\users\\admin\\documents\\github\\katam-randomizer\\kataminternal.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{7EBBA357-446A-4116-ACAF-84237022A6EC}|KatAM Randomizer.csproj|solutionrelative:kataminternal.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{7EBBA357-446A-4116-ACAF-84237022A6EC}|KatAM Randomizer.csproj|c:\\users\\admin\\documents\\github\\katam-randomizer\\katamitems.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{7EBBA357-446A-4116-ACAF-84237022A6EC}|KatAM Randomizer.csproj|solutionrelative:katamitems.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{7EBBA357-446A-4116-ACAF-84237022A6EC}|KatAM Randomizer.csproj|c:\\users\\admin\\documents\\github\\katam-randomizer\\katamenemiesbase.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{7EBBA357-446A-4116-ACAF-84237022A6EC}|KatAM Randomizer.csproj|solutionrelative:katamenemiesbase.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{7EBBA357-446A-4116-ACAF-84237022A6EC}|KatAM Randomizer.csproj|c:\\users\\admin\\documents\\github\\katam-randomizer\\katamentity.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{7EBBA357-446A-4116-ACAF-84237022A6EC}|KatAM Randomizer.csproj|solutionrelative:katamentity.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{7EBBA357-446A-4116-ACAF-84237022A6EC}|KatAM Randomizer.csproj|c:\\users\\admin\\documents\\github\\katam-randomizer\\katamrandomizerform.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form",
+      "RelativeMoniker": "D:0:0:{7EBBA357-446A-4116-ACAF-84237022A6EC}|KatAM Randomizer.csproj|solutionrelative:katamrandomizerform.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{7EBBA357-446A-4116-ACAF-84237022A6EC}|KatAM Randomizer.csproj|c:\\users\\admin\\documents\\github\\katam-randomizer\\katammapelements.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{7EBBA357-446A-4116-ACAF-84237022A6EC}|KatAM Randomizer.csproj|solutionrelative:katammapelements.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{7EBBA357-446A-4116-ACAF-84237022A6EC}|KatAM Randomizer.csproj|c:\\users\\admin\\documents\\github\\katam-randomizer\\katamitems.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{7EBBA357-446A-4116-ACAF-84237022A6EC}|KatAM Randomizer.csproj|solutionrelative:katamitems.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{7EBBA357-446A-4116-ACAF-84237022A6EC}|KatAM Randomizer.csproj|c:\\users\\admin\\documents\\github\\katam-randomizer\\katamsprays.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
@@ -45,72 +41,71 @@
           "SelectedChildIndex": 4,
           "Children": [
             {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{cce594b6-0c39-4442-ba28-10c64ac7e89f}"
+            },
+            {
               "$type": "Document",
               "DocumentIndex": 3,
               "Title": "KatAMRandomizerForm.cs [Design]",
               "DocumentMoniker": "C:\\Users\\Admin\\Documents\\GitHub\\KatAM-Randomizer\\KatAMRandomizerForm.cs",
               "RelativeDocumentMoniker": "KatAMRandomizerForm.cs",
-              "ToolTip": "C:\\Users\\Admin\\Documents\\GitHub\\KatAM-Randomizer\\KatAMRandomizerForm.cs [Design]",
-              "RelativeToolTip": "KatAMRandomizerForm.cs [Design]",
+              "ToolTip": "C:\\Users\\Admin\\Documents\\GitHub\\KatAM-Randomizer\\KatAMRandomizerForm.cs [Design]*",
+              "RelativeToolTip": "KatAMRandomizerForm.cs [Design]*",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2024-06-11T17:56:20.809Z",
-              "IsPinned": true,
+              "WhenOpened": "2024-06-14T03:41:57.474Z",
               "EditorCaption": " [Design]"
             },
             {
               "$type": "Document",
               "DocumentIndex": 2,
+              "Title": "KatAMEnemiesBase.cs",
+              "DocumentMoniker": "C:\\Users\\Admin\\Documents\\GitHub\\KatAM-Randomizer\\KatAMEnemiesBase.cs",
+              "RelativeDocumentMoniker": "KatAMEnemiesBase.cs",
+              "ToolTip": "C:\\Users\\Admin\\Documents\\GitHub\\KatAM-Randomizer\\KatAMEnemiesBase.cs",
+              "RelativeToolTip": "KatAMEnemiesBase.cs",
+              "ViewState": "AQIAACYBAAAAAAAAAAAkwDQBAAAnAAAA",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2024-06-13T02:56:35.393Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "KatAMInternal.cs",
+              "DocumentMoniker": "C:\\Users\\Admin\\Documents\\GitHub\\KatAM-Randomizer\\KatAMInternal.cs",
+              "RelativeDocumentMoniker": "KatAMInternal.cs",
+              "ToolTip": "C:\\Users\\Admin\\Documents\\GitHub\\KatAM-Randomizer\\KatAMInternal.cs",
+              "RelativeToolTip": "KatAMInternal.cs",
+              "ViewState": "AQIAAC8BAAAAAAAAAAAqwEEBAAA6AAAA",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2024-06-08T01:13:46.17Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
               "Title": "KatAMRandomizerForm.cs",
               "DocumentMoniker": "C:\\Users\\Admin\\Documents\\GitHub\\KatAM-Randomizer\\KatAMRandomizerForm.cs",
               "RelativeDocumentMoniker": "KatAMRandomizerForm.cs",
-              "ToolTip": "C:\\Users\\Admin\\Documents\\GitHub\\KatAM-Randomizer\\KatAMRandomizerForm.cs",
-              "RelativeToolTip": "KatAMRandomizerForm.cs",
-              "ViewState": "AQIAAG0BAAAAAAAAAAAcwHkBAAAsAAAA",
+              "ToolTip": "C:\\Users\\Admin\\Documents\\GitHub\\KatAM-Randomizer\\KatAMRandomizerForm.cs*",
+              "RelativeToolTip": "KatAMRandomizerForm.cs*",
+              "ViewState": "AQIAAGYAAAAAAAAAAAAuwHYAAAAPAAAA",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2024-06-07T21:23:26.417Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
-              "Title": "KatAMEnemies.cs",
-              "DocumentMoniker": "C:\\Users\\Admin\\Documents\\GitHub\\KatAM-Randomizer\\KatAMEnemies.cs",
-              "RelativeDocumentMoniker": "KatAMEnemies.cs",
-              "ToolTip": "C:\\Users\\Admin\\Documents\\GitHub\\KatAM-Randomizer\\KatAMEnemies.cs",
-              "RelativeToolTip": "KatAMEnemies.cs",
-              "ViewState": "AQIAAJYAAAAAAAAAAAAowKoAAAARAAAA",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2024-06-13T02:56:35.393Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Bookmark",
-              "Name": "ST:0:0:{cce594b6-0c39-4442-ba28-10c64ac7e89f}"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 0,
+              "DocumentIndex": 4,
               "Title": "KatAMMapElements.cs",
               "DocumentMoniker": "C:\\Users\\Admin\\Documents\\GitHub\\KatAM-Randomizer\\KatAMMapElements.cs",
               "RelativeDocumentMoniker": "KatAMMapElements.cs",
               "ToolTip": "C:\\Users\\Admin\\Documents\\GitHub\\KatAM-Randomizer\\KatAMMapElements.cs",
               "RelativeToolTip": "KatAMMapElements.cs",
-              "ViewState": "AQIAAB8AAAAAAAAAAAAmwC4AAAAQAAAA",
+              "ViewState": "AQIAABYAAAAAAAAAAAAgwC8AAAAQAAAA",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2024-06-13T01:25:53.727Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 4,
-              "Title": "KatAMInternal.cs",
-              "DocumentMoniker": "C:\\Users\\Admin\\Documents\\GitHub\\KatAM-Randomizer\\KatAMInternal.cs",
-              "RelativeDocumentMoniker": "KatAMInternal.cs",
-              "ToolTip": "C:\\Users\\Admin\\Documents\\GitHub\\KatAM-Randomizer\\KatAMInternal.cs",
-              "RelativeToolTip": "KatAMInternal.cs",
-              "ViewState": "AQIAANwAAAAAAAAAAAA9wOgAAAA0AAAA",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2024-06-08T01:13:46.17Z",
               "EditorCaption": ""
             },
             {
@@ -121,7 +116,7 @@
               "RelativeDocumentMoniker": "KatAMItems.cs",
               "ToolTip": "C:\\Users\\Admin\\Documents\\GitHub\\KatAM-Randomizer\\KatAMItems.cs",
               "RelativeToolTip": "KatAMItems.cs",
-              "ViewState": "AQIAAA8AAAAAAAAAAAA5wO0AAAAAAAAA",
+              "ViewState": "AQIAABAAAAAAAAAAAAAgwO0AAAAAAAAA",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2024-06-11T19:12:17.789Z",
               "EditorCaption": ""
@@ -129,19 +124,6 @@
             {
               "$type": "Document",
               "DocumentIndex": 6,
-              "Title": "KatAMEntity.cs",
-              "DocumentMoniker": "C:\\Users\\Admin\\Documents\\GitHub\\KatAM-Randomizer\\KatAMEntity.cs",
-              "RelativeDocumentMoniker": "KatAMEntity.cs",
-              "ToolTip": "C:\\Users\\Admin\\Documents\\GitHub\\KatAM-Randomizer\\KatAMEntity.cs",
-              "RelativeToolTip": "KatAMEntity.cs",
-              "ViewState": "AQIAAD4AAAAAAAAAAAAmwBYAAAA4AAAA",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2024-06-12T21:08:41.015Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 7,
               "Title": "KatAMSprays.cs",
               "DocumentMoniker": "C:\\Users\\Admin\\Documents\\GitHub\\KatAM-Randomizer\\KatAMSprays.cs",
               "RelativeDocumentMoniker": "KatAMSprays.cs",
@@ -149,7 +131,8 @@
               "RelativeToolTip": "KatAMSprays.cs",
               "ViewState": "AQIAAAAAAAAAAAAAAAAAAAkAAAAAAAAA",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2024-06-11T19:13:18.893Z"
+              "WhenOpened": "2024-06-11T19:13:18.893Z",
+              "EditorCaption": ""
             }
           ]
         }

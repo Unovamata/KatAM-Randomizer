@@ -2,8 +2,10 @@
 using System.Collections.Generic;
 using System.Drawing;
 using System.Security.Cryptography.Xml;
+using KatAM_Randomizer;
 
-namespace KatAMRandomizer {
+namespace KatAMRandomizer
+{
     internal class KatAMSprays : KatAMRandomizerComponent {
         public KatAMSprays(Processing system) {
             InitializeComponents(system);

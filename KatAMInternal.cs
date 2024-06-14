@@ -2,8 +2,10 @@
 using System.ComponentModel;
 using System.Collections.Generic;
 using KatAMRandomizer;
+using KatAM_Randomizer;
 
-namespace KatAMInternal {
+namespace KatAMInternal
+{
     public enum GenerationOptions {
         Unchanged = 0,
         Presets = 1,
@@ -218,13 +220,22 @@ namespace KatAMInternal {
         public int HPUpsAdded { get; set; }
         public GenerationOptions EnemiesGenerationType { get; set; }
         public bool isRandomizingExcludedEnemies { get; set; }
+        public bool isIncludingMiniBosses { get; set; }
         public bool isRandomizingEnemiesIntelligently { get; set; }
         public GenerationOptions EnemiesPropertiesSpeedType { get; set; }
         public GenerationOptions EnemiesPropertiesBehaviorType { get; set; }
+        public bool isUsingUnusedBehaviors { get; set; }
         public GenerationOptions EnemiesInhaleAbilityType { get; set; }
-        public bool isIncludingMasterInhaleAbility { get; set; }
+        public bool isEnemyIncludingMasterInhaleAbility { get; set; }
         public GenerationOptions EnemiesHPType { get; set; }
-        public bool isHPPercentageModified { get; set; }
+        public bool isEnemyHPPercentageModified { get; set; }
+        public GenerationOptions MinibossesGenerationType { get; set; }
+        public GenerationOptions MinibossesPropertiesSpeedType { get; set; }
+        public GenerationOptions MinibossesPropertiesBehaviorType { get; set; }
+        public GenerationOptions MinibossesInhaleAbilityType { get; set; }
+        public bool isMinibossIncludingMasterInhaleAbility { get; set; }
+        public GenerationOptions MinibossesHPType { get; set; }
+        public bool isMinibossHPPercentageModified { get; set; }
         public GenerationOptions PedestalsGenerationType { get; set; }
         public bool isAddingRandomPedestal;
         public bool isBanningParasol;
@@ -303,6 +314,12 @@ namespace KatAMInternal {
             Settings settings = Settings.GetInstance();
 
             return settings.RandomEntity.Next(1, 7);
+        }
+
+        public static int Dice(int min, int max) {
+            Settings settings = Settings.GetInstance();
+
+            return settings.RandomEntity.Next(min, max + 1);
         }
 
         public static string ConvertIntToHex(int input) {
