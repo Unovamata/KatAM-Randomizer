@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Collections.Generic;
 using KatAMRandomizer;
 using KatAM_Randomizer;
+using System.Net;
 
 namespace KatAMInternal
 {
@@ -183,6 +184,8 @@ namespace KatAMInternal
 
         public static Dictionary<byte, string> mirrorsDictionary = new Dictionary<byte, string>{
             { 0x6F, "Mirror" },
+            { 0x84, "Warp Star" },
+            { 0x85, "Warp Star [Goal Game]" },
             { 0x8C, "Special Hub Mirror"},
         };
 
@@ -200,9 +203,129 @@ namespace KatAMInternal
             { 0x79, "Star Stone Block"}, // Small;
             { 0x7D, "Star Stone Block"},
             { 0x7E, "Star Stone Block"},
+            { 0x86, "Big Switch" },
             { 0x88, "Star Stone Block"},
             { 0x89, "Star Stone Block"},
         };
+
+        public static Dictionary<byte, string> enemyProperties = new Dictionary<byte, string>() {
+            { 0x40, "???" },
+            { 0x41, "???" },
+            { 0x42, "???" },
+            { 0x43, "???" },
+            { 0x44, "???" },
+            { 0x53, "Nothing" },
+            { 0x54, "Nothing" },
+            { 0x55, "Nothing" },
+            { 0x56, "Nothing" },
+            { 0x57, "Nothing" },
+            { 0x58, "Nothing" },
+            { 0x59, "Nothing" },
+            { 0x5A, "Nothing" },
+            { 0x5B, "Nothing" },
+            { 0x5C, "Nothing" },
+            { 0x5D, "Nothing" },
+            { 0x6E, "Small Flame" },
+            { 0x70, "Unused Shotzo Variant" },
+            { 0x71, "Sliding Pillar" },
+            { 0x72, "Boss Endurance Mirror" },
+            { 0x73, "???" },
+            { 0x74, "Crumbling Block" },
+            { 0x75, "???" },
+            { 0x76, "???" },
+            { 0x77, "Camera Locker Object" },
+            { 0x78, "Fuse" },
+            { 0x79, "Small Heave-Ho block" },
+            { 0x7A, "???" },
+            { 0x7B, "Star Platform" },
+            { 0x7C, "Wall flame" },
+            { 0x7F, "CPU mover" },
+            { 0x82, "???" },
+            { 0x83, "???" },
+            { 0x87, "???" },
+            { 0x8A, "Fuse Cannon" },
+            { 0x8B, "Manual Direction Cannon" },
+            { 0x8D, "Stake" },
+            { 0x8E, "Cutscene loader" },
+            { 0x8F, "Galaxia in pedestal [can't be collected]" },
+            { 0x90, "Air current effect" },
+            { 0x91, "???" },
+            { 0x92, "Copy Essences" },
+            { 0x93, "Copy Essences" },
+            { 0x94, "Copy Essences" },
+            { 0x95, "Copy Essences" },
+            { 0x96, "Random Copy Essence" },
+            { 0x97, "Freezes the game" },
+            { 0x98, "Galaxia in pedestal [collectable]" },
+            { 0x99, "???" },
+            { 0x9A, "Resets the game" },
+            { 0x9B, "King Golem's rock" },
+            { 0x9C, "King Golem's Gordo" },
+            { 0x9D, "Foley's propeller leaves" },
+            { 0x9E, "Frying pan" },
+            { 0x9F, "Pacriel" },
+            { 0xA0, "Sir Kibble's cutter projectile" },
+            { 0xA1, "???" },
+            { 0xA2, "Parasol enemy" },
+            { 0xA3, "Ability Star" },
+            { 0xA4, "Master Sword Ability Star" },
+            { 0xA5, "Impact Star" },
+            { 0xA6, "Mr. Frosty's ice cube" },
+            { 0xA7, "Mr. Frosty's big ice cube" },
+            { 0xA8, "Bonker's coconut" },
+            { 0xA9, "Bonker's big coconut" },
+            { 0xAA, "Phan Phan's apple" },
+            { 0xAB, "Prank's fireball" },
+            { 0xAC, "Prank's ice cube" },
+            { 0xAD, "Prank's bomb" },
+            { 0xAE, "Prank's frying pan" },
+            { 0xAF, "Banana peel" },
+            { 0xB0, "Boxy's present box" },
+            { 0xB1, "Exhaled star" },
+            { 0xB2, "Bombar's bomb" },
+            { 0xB3, "Bombar's missile" },
+            { 0xB4, "Box Boxer's hadouken" },
+            { 0xB5, "Wiz' rugby ball" },
+            { 0xB6, "Wiz' mini-car" },
+            { 0xB7, "Wiz' balloon" },
+            { 0xB8, "Wiz' bomb" },
+            { 0xB9, "Wiz' cloud" },
+            { 0xBA, "Poisonous apple" },
+            { 0xBB, "Wiz' Droppy variant" },
+            { 0xBC, "Mega Titan arm 1" },
+            { 0xBD, "Mega Titan arm 2" },
+            { 0xBE, "Mega Titan arm 3" },
+            { 0xBF, "Mega Titan arm 4" },
+            { 0xC0, "Titan Head's missile" },
+            { 0xC1, "Moley's boulder" },
+            { 0xC2, "Moley's screw" },
+            { 0xC3, "Moley's tire" },
+            { 0xC4, "Moley's big bomb" },
+            { 0xC5, "Moley's massive boulder" },
+            { 0xC6, "Moley's oil barrel" },
+            { 0xC7, "Moley's spike ball" },
+            { 0xC8, "Master Hand's fire bullet" },
+            { 0xC9, "Small bomb" },
+            { 0xCA, "???" },
+            { 0xCB, "Dark Mind's red star projectile" },
+            { 0xCC, "Dark Mind's blue star projectile" },
+            { 0xCD, "Dark Mind's purple star projectile" },
+            { 0xCE, "Dark Mind's green star projectile" },
+            { 0xCF, "???" },
+            { 0xD0, "???" },
+            { 0xD1, "???" },
+            { 0xD2, "Dark Mind's laser" },
+            { 0xD3, "Dark Mind's shooter cutter" },
+            { 0xD4, "Crashes the game" },
+            { 0xD5, "Cutter projectile" },
+            { 0xD6, "Glunk's bullet" },
+            { 0xD7, "Shotzo's bullet" },
+            { 0xD8, "Cupie's arrow" },
+            { 0xD9, "???" },
+            { 0xDA, "Shooty's bomb" },
+            { 0xDB, "Resets the game" }
+        };
+
     }
 
     public class Settings {
@@ -296,6 +419,18 @@ namespace KatAMInternal
             WriteToROM(romFile, address + 14, new byte[] { behavior });
             WriteToROM(romFile, address + 16, new byte[] { speed });
             WriteToROM(romFile, address + 17, properties);
+        }
+
+        public static void WritePropertiesToROM(byte[] romFile, Properties properties) {
+            int address = properties.Address;
+
+            WriteToROM(romFile, address + 4, new byte[] { properties.HP });
+            /*
+
+            WriteToROM(romFile, address + 12, new byte[] { id });
+            WriteToROM(romFile, address + 14, new byte[] { behavior });
+            WriteToROM(romFile, address + 16, new byte[] { speed });
+            WriteToROM(romFile, address + 17, properties);*/
         }
 
         public static int GetNextRandom() {

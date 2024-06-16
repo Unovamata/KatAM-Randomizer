@@ -80,11 +80,6 @@
             RadioConsumablesUnchanged = new RadioButton();
             tabPage3 = new TabPage();
             GroupEnemiesProperties = new GroupBox();
-            GroupEnemiesPropertiesInhaleAbility = new GroupBox();
-            CheckboxEnemyPropertiesAbilityMaster = new CheckBox();
-            RadioEnemyPropertiesAbilityShuffle = new RadioButton();
-            RadioEnemyPropertiesAbilityRandom = new RadioButton();
-            RadioEnemyPropertiesAbilityUnchanged = new RadioButton();
             GroupEnemiesPropertiesHP = new GroupBox();
             label17 = new Label();
             NumericEnemyPropertiesHPMax = new NumericUpDown();
@@ -119,11 +114,6 @@
             RadioEnemiesUnchanged = new RadioButton();
             tabPage4 = new TabPage();
             groupBox1 = new GroupBox();
-            groupBox3 = new GroupBox();
-            CheckboxMinibossPropertiesAbilityMaster = new CheckBox();
-            RadioMinibossPropertiesAbilityShuffle = new RadioButton();
-            RadioMinibossPropertiesAbilityRandom = new RadioButton();
-            RadioMinibossPropertiesAbilityUnchanged = new RadioButton();
             groupBox4 = new GroupBox();
             label18 = new Label();
             numericUpDown1 = new NumericUpDown();
@@ -153,6 +143,16 @@
             RadioMinibossesShuffle = new RadioButton();
             RadioMinibossesUnchanged = new RadioButton();
             tabPage5 = new TabPage();
+            groupBox3 = new GroupBox();
+            CheckboxMinibossPropertiesAbilityMaster = new CheckBox();
+            RadioMinibossPropertiesAbilityShuffle = new RadioButton();
+            RadioMinibossPropertiesAbilityRandom = new RadioButton();
+            RadioMinibossPropertiesAbilityUnchanged = new RadioButton();
+            GroupEnemiesPropertiesInhaleAbility = new GroupBox();
+            CheckboxEnemyPropertiesAbilityMaster = new CheckBox();
+            RadioEnemyPropertiesAbilityShuffle = new RadioButton();
+            RadioEnemyPropertiesAbilityRandom = new RadioButton();
+            RadioEnemyPropertiesAbilityUnchanged = new RadioButton();
             GroupAbilityPedestals = new GroupBox();
             CheckboxBanParasol = new CheckBox();
             RadioAbilityPedestalsChallenge = new RadioButton();
@@ -196,7 +196,6 @@
             ((System.ComponentModel.ISupportInitialize)TrackBarMirrorShardsAmount).BeginInit();
             tabPage3.SuspendLayout();
             GroupEnemiesProperties.SuspendLayout();
-            GroupEnemiesPropertiesInhaleAbility.SuspendLayout();
             GroupEnemiesPropertiesHP.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)NumericEnemyPropertiesHPMax).BeginInit();
             ((System.ComponentModel.ISupportInitialize)NumericEnemyPropertiesHPMin).BeginInit();
@@ -206,7 +205,6 @@
             GroupEnemies.SuspendLayout();
             tabPage4.SuspendLayout();
             groupBox1.SuspendLayout();
-            groupBox3.SuspendLayout();
             groupBox4.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)numericUpDown1).BeginInit();
             ((System.ComponentModel.ISupportInitialize)numericUpDown2).BeginInit();
@@ -215,6 +213,8 @@
             groupBox6.SuspendLayout();
             GroupMinibosses.SuspendLayout();
             tabPage5.SuspendLayout();
+            groupBox3.SuspendLayout();
+            GroupEnemiesPropertiesInhaleAbility.SuspendLayout();
             GroupAbilityPedestals.SuspendLayout();
             TabMiscellaneous.SuspendLayout();
             GroupMapElements.SuspendLayout();
@@ -861,7 +861,6 @@
             // 
             // GroupEnemiesProperties
             // 
-            GroupEnemiesProperties.Controls.Add(GroupEnemiesPropertiesInhaleAbility);
             GroupEnemiesProperties.Controls.Add(GroupEnemiesPropertiesHP);
             GroupEnemiesProperties.Controls.Add(GroupEnemiesPropertiesBehavior);
             GroupEnemiesProperties.Controls.Add(GroupEnemiesPropertiesSpeed);
@@ -872,69 +871,6 @@
             GroupEnemiesProperties.TabIndex = 1;
             GroupEnemiesProperties.TabStop = false;
             GroupEnemiesProperties.Text = "Properties";
-            // 
-            // GroupEnemiesPropertiesInhaleAbility
-            // 
-            GroupEnemiesPropertiesInhaleAbility.Controls.Add(CheckboxEnemyPropertiesAbilityMaster);
-            GroupEnemiesPropertiesInhaleAbility.Controls.Add(RadioEnemyPropertiesAbilityShuffle);
-            GroupEnemiesPropertiesInhaleAbility.Controls.Add(RadioEnemyPropertiesAbilityRandom);
-            GroupEnemiesPropertiesInhaleAbility.Controls.Add(RadioEnemyPropertiesAbilityUnchanged);
-            GroupEnemiesPropertiesInhaleAbility.Location = new Point(6, 187);
-            GroupEnemiesPropertiesInhaleAbility.Name = "GroupEnemiesPropertiesInhaleAbility";
-            GroupEnemiesPropertiesInhaleAbility.Size = new Size(341, 125);
-            GroupEnemiesPropertiesInhaleAbility.TabIndex = 7;
-            GroupEnemiesPropertiesInhaleAbility.TabStop = false;
-            GroupEnemiesPropertiesInhaleAbility.Text = "Inhale Ability";
-            // 
-            // CheckboxEnemyPropertiesAbilityMaster
-            // 
-            CheckboxEnemyPropertiesAbilityMaster.AutoSize = true;
-            CheckboxEnemyPropertiesAbilityMaster.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            CheckboxEnemyPropertiesAbilityMaster.Location = new Point(173, 22);
-            CheckboxEnemyPropertiesAbilityMaster.Name = "CheckboxEnemyPropertiesAbilityMaster";
-            CheckboxEnemyPropertiesAbilityMaster.Size = new Size(151, 19);
-            CheckboxEnemyPropertiesAbilityMaster.TabIndex = 6;
-            CheckboxEnemyPropertiesAbilityMaster.Text = "Include \"Master\" Ability";
-            CheckboxEnemyPropertiesAbilityMaster.UseVisualStyleBackColor = true;
-            CheckboxEnemyPropertiesAbilityMaster.CheckedChanged += CheckboxEnemyPropertiesAbilityMaster_CheckedChanged;
-            // 
-            // RadioEnemyPropertiesAbilityShuffle
-            // 
-            RadioEnemyPropertiesAbilityShuffle.AutoSize = true;
-            RadioEnemyPropertiesAbilityShuffle.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            RadioEnemyPropertiesAbilityShuffle.Location = new Point(8, 47);
-            RadioEnemyPropertiesAbilityShuffle.Name = "RadioEnemyPropertiesAbilityShuffle";
-            RadioEnemyPropertiesAbilityShuffle.Size = new Size(62, 19);
-            RadioEnemyPropertiesAbilityShuffle.TabIndex = 5;
-            RadioEnemyPropertiesAbilityShuffle.Text = "Shuffle";
-            RadioEnemyPropertiesAbilityShuffle.UseVisualStyleBackColor = true;
-            RadioEnemyPropertiesAbilityShuffle.CheckedChanged += RadioEnemyPropertiesAbilityShuffle_CheckedChanged;
-            // 
-            // RadioEnemyPropertiesAbilityRandom
-            // 
-            RadioEnemyPropertiesAbilityRandom.AutoSize = true;
-            RadioEnemyPropertiesAbilityRandom.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            RadioEnemyPropertiesAbilityRandom.Location = new Point(8, 72);
-            RadioEnemyPropertiesAbilityRandom.Name = "RadioEnemyPropertiesAbilityRandom";
-            RadioEnemyPropertiesAbilityRandom.Size = new Size(70, 19);
-            RadioEnemyPropertiesAbilityRandom.TabIndex = 4;
-            RadioEnemyPropertiesAbilityRandom.Text = "Random";
-            RadioEnemyPropertiesAbilityRandom.UseVisualStyleBackColor = true;
-            RadioEnemyPropertiesAbilityRandom.CheckedChanged += RadioEnemyPropertiesAbilityRandom_CheckedChanged;
-            // 
-            // RadioEnemyPropertiesAbilityUnchanged
-            // 
-            RadioEnemyPropertiesAbilityUnchanged.AutoSize = true;
-            RadioEnemyPropertiesAbilityUnchanged.Checked = true;
-            RadioEnemyPropertiesAbilityUnchanged.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            RadioEnemyPropertiesAbilityUnchanged.Location = new Point(8, 22);
-            RadioEnemyPropertiesAbilityUnchanged.Name = "RadioEnemyPropertiesAbilityUnchanged";
-            RadioEnemyPropertiesAbilityUnchanged.Size = new Size(86, 19);
-            RadioEnemyPropertiesAbilityUnchanged.TabIndex = 2;
-            RadioEnemyPropertiesAbilityUnchanged.TabStop = true;
-            RadioEnemyPropertiesAbilityUnchanged.Text = "Unchanged";
-            RadioEnemyPropertiesAbilityUnchanged.UseVisualStyleBackColor = true;
-            RadioEnemyPropertiesAbilityUnchanged.CheckedChanged += RadioEnemyPropertiesAbilityUnchanged_CheckedChanged;
             // 
             // GroupEnemiesPropertiesHP
             // 
@@ -1127,9 +1063,9 @@
             GroupEnemiesPropertiesBehavior.Controls.Add(CheckboxEnemyPropertiesUnusedBehaviors);
             GroupEnemiesPropertiesBehavior.Controls.Add(RadioEnemyPropertiesBehaviorRandom);
             GroupEnemiesPropertiesBehavior.Controls.Add(RadioEnemyPropertiesBehaviorUnchanged);
-            GroupEnemiesPropertiesBehavior.Location = new Point(6, 97);
+            GroupEnemiesPropertiesBehavior.Location = new Point(6, 160);
             GroupEnemiesPropertiesBehavior.Name = "GroupEnemiesPropertiesBehavior";
-            GroupEnemiesPropertiesBehavior.Size = new Size(341, 84);
+            GroupEnemiesPropertiesBehavior.Size = new Size(341, 152);
             GroupEnemiesPropertiesBehavior.TabIndex = 1;
             GroupEnemiesPropertiesBehavior.TabStop = false;
             GroupEnemiesPropertiesBehavior.Text = "Behavior";
@@ -1178,7 +1114,7 @@
             GroupEnemiesPropertiesSpeed.Controls.Add(RadioEnemyPropertiesSpeedUnchanged);
             GroupEnemiesPropertiesSpeed.Location = new Point(6, 16);
             GroupEnemiesPropertiesSpeed.Name = "GroupEnemiesPropertiesSpeed";
-            GroupEnemiesPropertiesSpeed.Size = new Size(341, 75);
+            GroupEnemiesPropertiesSpeed.Size = new Size(341, 138);
             GroupEnemiesPropertiesSpeed.TabIndex = 0;
             GroupEnemiesPropertiesSpeed.TabStop = false;
             GroupEnemiesPropertiesSpeed.Text = "Speed";
@@ -1356,7 +1292,6 @@
             // 
             // groupBox1
             // 
-            groupBox1.Controls.Add(groupBox3);
             groupBox1.Controls.Add(groupBox4);
             groupBox1.Controls.Add(groupBox5);
             groupBox1.Controls.Add(groupBox6);
@@ -1367,69 +1302,6 @@
             groupBox1.TabIndex = 3;
             groupBox1.TabStop = false;
             groupBox1.Text = "Properties";
-            // 
-            // groupBox3
-            // 
-            groupBox3.Controls.Add(CheckboxMinibossPropertiesAbilityMaster);
-            groupBox3.Controls.Add(RadioMinibossPropertiesAbilityShuffle);
-            groupBox3.Controls.Add(RadioMinibossPropertiesAbilityRandom);
-            groupBox3.Controls.Add(RadioMinibossPropertiesAbilityUnchanged);
-            groupBox3.Location = new Point(6, 187);
-            groupBox3.Name = "groupBox3";
-            groupBox3.Size = new Size(341, 125);
-            groupBox3.TabIndex = 7;
-            groupBox3.TabStop = false;
-            groupBox3.Text = "Inhale Ability";
-            // 
-            // CheckboxMinibossPropertiesAbilityMaster
-            // 
-            CheckboxMinibossPropertiesAbilityMaster.AutoSize = true;
-            CheckboxMinibossPropertiesAbilityMaster.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            CheckboxMinibossPropertiesAbilityMaster.Location = new Point(173, 22);
-            CheckboxMinibossPropertiesAbilityMaster.Name = "CheckboxMinibossPropertiesAbilityMaster";
-            CheckboxMinibossPropertiesAbilityMaster.Size = new Size(151, 19);
-            CheckboxMinibossPropertiesAbilityMaster.TabIndex = 6;
-            CheckboxMinibossPropertiesAbilityMaster.Text = "Include \"Master\" Ability";
-            CheckboxMinibossPropertiesAbilityMaster.UseVisualStyleBackColor = true;
-            CheckboxMinibossPropertiesAbilityMaster.CheckedChanged += CheckboxMinibossPropertiesAbilityMaster_CheckedChanged;
-            // 
-            // RadioMinibossPropertiesAbilityShuffle
-            // 
-            RadioMinibossPropertiesAbilityShuffle.AutoSize = true;
-            RadioMinibossPropertiesAbilityShuffle.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            RadioMinibossPropertiesAbilityShuffle.Location = new Point(8, 47);
-            RadioMinibossPropertiesAbilityShuffle.Name = "RadioMinibossPropertiesAbilityShuffle";
-            RadioMinibossPropertiesAbilityShuffle.Size = new Size(62, 19);
-            RadioMinibossPropertiesAbilityShuffle.TabIndex = 5;
-            RadioMinibossPropertiesAbilityShuffle.Text = "Shuffle";
-            RadioMinibossPropertiesAbilityShuffle.UseVisualStyleBackColor = true;
-            RadioMinibossPropertiesAbilityShuffle.CheckedChanged += RadioMinibossPropertiesAbilityShuffle_CheckedChanged;
-            // 
-            // RadioMinibossPropertiesAbilityRandom
-            // 
-            RadioMinibossPropertiesAbilityRandom.AutoSize = true;
-            RadioMinibossPropertiesAbilityRandom.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            RadioMinibossPropertiesAbilityRandom.Location = new Point(8, 72);
-            RadioMinibossPropertiesAbilityRandom.Name = "RadioMinibossPropertiesAbilityRandom";
-            RadioMinibossPropertiesAbilityRandom.Size = new Size(70, 19);
-            RadioMinibossPropertiesAbilityRandom.TabIndex = 4;
-            RadioMinibossPropertiesAbilityRandom.Text = "Random";
-            RadioMinibossPropertiesAbilityRandom.UseVisualStyleBackColor = true;
-            RadioMinibossPropertiesAbilityRandom.CheckedChanged += RadioMinibossPropertiesAbilityRandom_CheckedChanged;
-            // 
-            // RadioMinibossPropertiesAbilityUnchanged
-            // 
-            RadioMinibossPropertiesAbilityUnchanged.AutoSize = true;
-            RadioMinibossPropertiesAbilityUnchanged.Checked = true;
-            RadioMinibossPropertiesAbilityUnchanged.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            RadioMinibossPropertiesAbilityUnchanged.Location = new Point(8, 22);
-            RadioMinibossPropertiesAbilityUnchanged.Name = "RadioMinibossPropertiesAbilityUnchanged";
-            RadioMinibossPropertiesAbilityUnchanged.Size = new Size(86, 19);
-            RadioMinibossPropertiesAbilityUnchanged.TabIndex = 2;
-            RadioMinibossPropertiesAbilityUnchanged.TabStop = true;
-            RadioMinibossPropertiesAbilityUnchanged.Text = "Unchanged";
-            RadioMinibossPropertiesAbilityUnchanged.UseVisualStyleBackColor = true;
-            RadioMinibossPropertiesAbilityUnchanged.CheckedChanged += RadioMinibossPropertiesAbilityUnchanged_CheckedChanged;
             // 
             // groupBox4
             // 
@@ -1619,9 +1491,9 @@
             // 
             groupBox5.Controls.Add(RadioMinibossPropertiesBehaviorRandom);
             groupBox5.Controls.Add(RadioMinibossPropertiesBehaviorUnchanged);
-            groupBox5.Location = new Point(6, 97);
+            groupBox5.Location = new Point(6, 160);
             groupBox5.Name = "groupBox5";
-            groupBox5.Size = new Size(341, 84);
+            groupBox5.Size = new Size(341, 152);
             groupBox5.TabIndex = 1;
             groupBox5.TabStop = false;
             groupBox5.Text = "Behavior";
@@ -1658,7 +1530,7 @@
             groupBox6.Controls.Add(RadioMinibossPropertiesSpeedUnchanged);
             groupBox6.Location = new Point(6, 16);
             groupBox6.Name = "groupBox6";
-            groupBox6.Size = new Size(341, 75);
+            groupBox6.Size = new Size(341, 138);
             groupBox6.TabIndex = 0;
             groupBox6.TabStop = false;
             groupBox6.Text = "Speed";
@@ -1783,6 +1655,8 @@
             // 
             // tabPage5
             // 
+            tabPage5.Controls.Add(groupBox3);
+            tabPage5.Controls.Add(GroupEnemiesPropertiesInhaleAbility);
             tabPage5.Controls.Add(GroupAbilityPedestals);
             tabPage5.Location = new Point(4, 24);
             tabPage5.Name = "tabPage5";
@@ -1791,6 +1665,126 @@
             tabPage5.TabIndex = 4;
             tabPage5.Text = "Abilities";
             tabPage5.UseVisualStyleBackColor = true;
+            // 
+            // groupBox3
+            // 
+            groupBox3.Controls.Add(CheckboxMinibossPropertiesAbilityMaster);
+            groupBox3.Controls.Add(RadioMinibossPropertiesAbilityShuffle);
+            groupBox3.Controls.Add(RadioMinibossPropertiesAbilityRandom);
+            groupBox3.Controls.Add(RadioMinibossPropertiesAbilityUnchanged);
+            groupBox3.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            groupBox3.Location = new Point(451, 163);
+            groupBox3.Name = "groupBox3";
+            groupBox3.Size = new Size(385, 161);
+            groupBox3.TabIndex = 9;
+            groupBox3.TabStop = false;
+            groupBox3.Text = "Minibosses Inhale Ability";
+            // 
+            // CheckboxMinibossPropertiesAbilityMaster
+            // 
+            CheckboxMinibossPropertiesAbilityMaster.AutoSize = true;
+            CheckboxMinibossPropertiesAbilityMaster.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            CheckboxMinibossPropertiesAbilityMaster.Location = new Point(173, 22);
+            CheckboxMinibossPropertiesAbilityMaster.Name = "CheckboxMinibossPropertiesAbilityMaster";
+            CheckboxMinibossPropertiesAbilityMaster.Size = new Size(151, 19);
+            CheckboxMinibossPropertiesAbilityMaster.TabIndex = 6;
+            CheckboxMinibossPropertiesAbilityMaster.Text = "Include \"Master\" Ability";
+            CheckboxMinibossPropertiesAbilityMaster.UseVisualStyleBackColor = true;
+            // 
+            // RadioMinibossPropertiesAbilityShuffle
+            // 
+            RadioMinibossPropertiesAbilityShuffle.AutoSize = true;
+            RadioMinibossPropertiesAbilityShuffle.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            RadioMinibossPropertiesAbilityShuffle.Location = new Point(8, 47);
+            RadioMinibossPropertiesAbilityShuffle.Name = "RadioMinibossPropertiesAbilityShuffle";
+            RadioMinibossPropertiesAbilityShuffle.Size = new Size(62, 19);
+            RadioMinibossPropertiesAbilityShuffle.TabIndex = 5;
+            RadioMinibossPropertiesAbilityShuffle.Text = "Shuffle";
+            RadioMinibossPropertiesAbilityShuffle.UseVisualStyleBackColor = true;
+            // 
+            // RadioMinibossPropertiesAbilityRandom
+            // 
+            RadioMinibossPropertiesAbilityRandom.AutoSize = true;
+            RadioMinibossPropertiesAbilityRandom.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            RadioMinibossPropertiesAbilityRandom.Location = new Point(8, 72);
+            RadioMinibossPropertiesAbilityRandom.Name = "RadioMinibossPropertiesAbilityRandom";
+            RadioMinibossPropertiesAbilityRandom.Size = new Size(70, 19);
+            RadioMinibossPropertiesAbilityRandom.TabIndex = 4;
+            RadioMinibossPropertiesAbilityRandom.Text = "Random";
+            RadioMinibossPropertiesAbilityRandom.UseVisualStyleBackColor = true;
+            // 
+            // RadioMinibossPropertiesAbilityUnchanged
+            // 
+            RadioMinibossPropertiesAbilityUnchanged.AutoSize = true;
+            RadioMinibossPropertiesAbilityUnchanged.Checked = true;
+            RadioMinibossPropertiesAbilityUnchanged.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            RadioMinibossPropertiesAbilityUnchanged.Location = new Point(8, 22);
+            RadioMinibossPropertiesAbilityUnchanged.Name = "RadioMinibossPropertiesAbilityUnchanged";
+            RadioMinibossPropertiesAbilityUnchanged.Size = new Size(86, 19);
+            RadioMinibossPropertiesAbilityUnchanged.TabIndex = 2;
+            RadioMinibossPropertiesAbilityUnchanged.TabStop = true;
+            RadioMinibossPropertiesAbilityUnchanged.Text = "Unchanged";
+            RadioMinibossPropertiesAbilityUnchanged.UseVisualStyleBackColor = true;
+            // 
+            // GroupEnemiesPropertiesInhaleAbility
+            // 
+            GroupEnemiesPropertiesInhaleAbility.Controls.Add(CheckboxEnemyPropertiesAbilityMaster);
+            GroupEnemiesPropertiesInhaleAbility.Controls.Add(RadioEnemyPropertiesAbilityShuffle);
+            GroupEnemiesPropertiesInhaleAbility.Controls.Add(RadioEnemyPropertiesAbilityRandom);
+            GroupEnemiesPropertiesInhaleAbility.Controls.Add(RadioEnemyPropertiesAbilityUnchanged);
+            GroupEnemiesPropertiesInhaleAbility.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            GroupEnemiesPropertiesInhaleAbility.Location = new Point(451, 6);
+            GroupEnemiesPropertiesInhaleAbility.Name = "GroupEnemiesPropertiesInhaleAbility";
+            GroupEnemiesPropertiesInhaleAbility.Size = new Size(385, 151);
+            GroupEnemiesPropertiesInhaleAbility.TabIndex = 8;
+            GroupEnemiesPropertiesInhaleAbility.TabStop = false;
+            GroupEnemiesPropertiesInhaleAbility.Text = "Enemies Inhale Ability";
+            // 
+            // CheckboxEnemyPropertiesAbilityMaster
+            // 
+            CheckboxEnemyPropertiesAbilityMaster.AutoSize = true;
+            CheckboxEnemyPropertiesAbilityMaster.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            CheckboxEnemyPropertiesAbilityMaster.Location = new Point(173, 22);
+            CheckboxEnemyPropertiesAbilityMaster.Name = "CheckboxEnemyPropertiesAbilityMaster";
+            CheckboxEnemyPropertiesAbilityMaster.Size = new Size(151, 19);
+            CheckboxEnemyPropertiesAbilityMaster.TabIndex = 6;
+            CheckboxEnemyPropertiesAbilityMaster.Text = "Include \"Master\" Ability";
+            CheckboxEnemyPropertiesAbilityMaster.UseVisualStyleBackColor = true;
+            // 
+            // RadioEnemyPropertiesAbilityShuffle
+            // 
+            RadioEnemyPropertiesAbilityShuffle.AutoSize = true;
+            RadioEnemyPropertiesAbilityShuffle.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            RadioEnemyPropertiesAbilityShuffle.Location = new Point(8, 47);
+            RadioEnemyPropertiesAbilityShuffle.Name = "RadioEnemyPropertiesAbilityShuffle";
+            RadioEnemyPropertiesAbilityShuffle.Size = new Size(62, 19);
+            RadioEnemyPropertiesAbilityShuffle.TabIndex = 5;
+            RadioEnemyPropertiesAbilityShuffle.Text = "Shuffle";
+            RadioEnemyPropertiesAbilityShuffle.UseVisualStyleBackColor = true;
+            // 
+            // RadioEnemyPropertiesAbilityRandom
+            // 
+            RadioEnemyPropertiesAbilityRandom.AutoSize = true;
+            RadioEnemyPropertiesAbilityRandom.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            RadioEnemyPropertiesAbilityRandom.Location = new Point(8, 72);
+            RadioEnemyPropertiesAbilityRandom.Name = "RadioEnemyPropertiesAbilityRandom";
+            RadioEnemyPropertiesAbilityRandom.Size = new Size(70, 19);
+            RadioEnemyPropertiesAbilityRandom.TabIndex = 4;
+            RadioEnemyPropertiesAbilityRandom.Text = "Random";
+            RadioEnemyPropertiesAbilityRandom.UseVisualStyleBackColor = true;
+            // 
+            // RadioEnemyPropertiesAbilityUnchanged
+            // 
+            RadioEnemyPropertiesAbilityUnchanged.AutoSize = true;
+            RadioEnemyPropertiesAbilityUnchanged.Checked = true;
+            RadioEnemyPropertiesAbilityUnchanged.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            RadioEnemyPropertiesAbilityUnchanged.Location = new Point(8, 22);
+            RadioEnemyPropertiesAbilityUnchanged.Name = "RadioEnemyPropertiesAbilityUnchanged";
+            RadioEnemyPropertiesAbilityUnchanged.Size = new Size(86, 19);
+            RadioEnemyPropertiesAbilityUnchanged.TabIndex = 2;
+            RadioEnemyPropertiesAbilityUnchanged.TabStop = true;
+            RadioEnemyPropertiesAbilityUnchanged.Text = "Unchanged";
+            RadioEnemyPropertiesAbilityUnchanged.UseVisualStyleBackColor = true;
             // 
             // GroupAbilityPedestals
             // 
@@ -1807,7 +1801,7 @@
             GroupAbilityPedestals.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
             GroupAbilityPedestals.Location = new Point(9, 6);
             GroupAbilityPedestals.Name = "GroupAbilityPedestals";
-            GroupAbilityPedestals.Size = new Size(827, 318);
+            GroupAbilityPedestals.Size = new Size(436, 318);
             GroupAbilityPedestals.TabIndex = 0;
             GroupAbilityPedestals.TabStop = false;
             GroupAbilityPedestals.Text = "Ability Pedestals";
@@ -1816,7 +1810,7 @@
             // 
             CheckboxBanParasol.AutoSize = true;
             CheckboxBanParasol.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            CheckboxBanParasol.Location = new Point(184, 48);
+            CheckboxBanParasol.Location = new Point(212, 49);
             CheckboxBanParasol.Name = "CheckboxBanParasol";
             CheckboxBanParasol.Size = new Size(167, 19);
             CheckboxBanParasol.TabIndex = 16;
@@ -1864,7 +1858,7 @@
             // 
             CheckboxIncludeRandomPedestal.AutoSize = true;
             CheckboxIncludeRandomPedestal.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            CheckboxIncludeRandomPedestal.Location = new Point(184, 22);
+            CheckboxIncludeRandomPedestal.Location = new Point(212, 23);
             CheckboxIncludeRandomPedestal.Name = "CheckboxIncludeRandomPedestal";
             CheckboxIncludeRandomPedestal.Size = new Size(207, 19);
             CheckboxIncludeRandomPedestal.TabIndex = 6;
@@ -2198,8 +2192,6 @@
             ((System.ComponentModel.ISupportInitialize)TrackBarMirrorShardsAmount).EndInit();
             tabPage3.ResumeLayout(false);
             GroupEnemiesProperties.ResumeLayout(false);
-            GroupEnemiesPropertiesInhaleAbility.ResumeLayout(false);
-            GroupEnemiesPropertiesInhaleAbility.PerformLayout();
             GroupEnemiesPropertiesHP.ResumeLayout(false);
             GroupEnemiesPropertiesHP.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)NumericEnemyPropertiesHPMax).EndInit();
@@ -2213,8 +2205,6 @@
             GroupEnemies.PerformLayout();
             tabPage4.ResumeLayout(false);
             groupBox1.ResumeLayout(false);
-            groupBox3.ResumeLayout(false);
-            groupBox3.PerformLayout();
             groupBox4.ResumeLayout(false);
             groupBox4.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)numericUpDown1).EndInit();
@@ -2227,6 +2217,10 @@
             GroupMinibosses.ResumeLayout(false);
             GroupMinibosses.PerformLayout();
             tabPage5.ResumeLayout(false);
+            groupBox3.ResumeLayout(false);
+            groupBox3.PerformLayout();
+            GroupEnemiesPropertiesInhaleAbility.ResumeLayout(false);
+            GroupEnemiesPropertiesInhaleAbility.PerformLayout();
             GroupAbilityPedestals.ResumeLayout(false);
             GroupAbilityPedestals.PerformLayout();
             TabMiscellaneous.ResumeLayout(false);
@@ -2339,11 +2333,6 @@
         private RadioButton RadioEnemyPropertiesHPRandom;
         private RadioButton RadioEnemyPropertiesHPShuffle;
         private RadioButton RadioEnemyPropertiesHPUnchanged;
-        private GroupBox GroupEnemiesPropertiesInhaleAbility;
-        private RadioButton RadioEnemyPropertiesAbilityRandom;
-        private RadioButton RadioEnemyPropertiesAbilityUnchanged;
-        private CheckBox CheckboxEnemyPropertiesAbilityMaster;
-        private RadioButton RadioEnemyPropertiesAbilityShuffle;
         private CheckBox CheckboxEnemyPropertiesHPPercentage;
         private TrackBar TrackbarEnemyPropertiesHPPercentage;
         private Label label6;
@@ -2362,11 +2351,6 @@
         private RadioButton MapElementsStoneDoorsRemoveAll;
         private RadioButton MapElementsStoneDoorsUnchanged;
         private GroupBox groupBox1;
-        private GroupBox groupBox3;
-        private CheckBox CheckboxMinibossPropertiesAbilityMaster;
-        private RadioButton RadioMinibossPropertiesAbilityShuffle;
-        private RadioButton RadioMinibossPropertiesAbilityRandom;
-        private RadioButton RadioMinibossPropertiesAbilityUnchanged;
         private GroupBox groupBox4;
         private Label label11;
         private Label label12;
@@ -2401,5 +2385,15 @@
         private NumericUpDown numericUpDown2;
         private CheckBox CheckboxEnemiesRandomizeMinibosses;
         private CheckBox CheckboxEnemyPropertiesUnusedBehaviors;
+        private GroupBox groupBox3;
+        private CheckBox CheckboxMinibossPropertiesAbilityMaster;
+        private RadioButton RadioMinibossPropertiesAbilityShuffle;
+        private RadioButton RadioMinibossPropertiesAbilityRandom;
+        private RadioButton RadioMinibossPropertiesAbilityUnchanged;
+        private GroupBox GroupEnemiesPropertiesInhaleAbility;
+        private CheckBox CheckboxEnemyPropertiesAbilityMaster;
+        private RadioButton RadioEnemyPropertiesAbilityShuffle;
+        private RadioButton RadioEnemyPropertiesAbilityRandom;
+        private RadioButton RadioEnemyPropertiesAbilityUnchanged;
     }
 }

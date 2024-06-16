@@ -1,8 +1,9 @@
-﻿using KatAMInternal;
+﻿using KatAM_Randomizer;
+using KatAMInternal;
 using Newtonsoft.Json;
 
 namespace KatAMRandomizer {
-    internal class KatAMROMReader {
+    internal class KatAMROMReader : KatAMRandomizerComponent {
         static Settings settings;
         static int seed;
 
@@ -25,9 +26,44 @@ namespace KatAMRandomizer {
                             miscellaneous = new List<Entity>(),
                             undefined = new List<Entity>();
 
-        public static void ReadROMData(Processing system) {
-            byte[] romFile = system.ROMData;
+        public KatAMROMReader(Processing system) {
+            InitializeComponents(system);
 
+            ReadObjectParameterData(System.ROMData);
+
+            //ReadObjectData(romFile);
+        }
+
+
+
+        void ReadObjectParameterData(byte[] romFile) {
+            int parameterStartAddress = 0x335E1C,
+                parameterEndAddress = 0x3372A4;
+
+            byte endValue1 = 0x33, endValue2 = 0x08;
+            int currentObjectID = 0, currentByteCount = 0;
+            Properties properties = new Properties();
+            byte[] currentDefinition = new byte[24];
+
+            for (int i = parameterStartAddress; i <= parameterEndAddress; i++) {
+                if(currentByteCount == 24) {
+                    Console.WriteLine(Utils.ConvertIntToHex(i - 24) + " - " + currentObjectID);
+                    currentObjectID++;
+                    currentByteCount = 0;
+                    Utils.WritePropertiesToROM(romFile, properties);
+                } else if(currentByteCount == 0) {
+                    properties = new Properties();
+
+                    properties.Definition[currentByteCount] = romFile[i];
+                }
+
+                Console.Write(Utils.ConvertIntToHex(romFile[i]) + " ");
+
+                currentByteCount++;
+            }
+        }
+
+        static void ReadObjectData(byte[] romFile) {
             // Memory locations;
             string startAddress = "884C64", endAddress = "8A630D";
             int roomDataStartAddress = Convert.ToInt32(startAddress, 16),
@@ -45,7 +81,7 @@ namespace KatAMRandomizer {
                 if (i > roomDataEndAddress || i + 10 >= romFile.Length) break;
 
                 int currentRoom; // Extracting the current room ID;
-                try { currentRoom = roomIds[currentRoomIndex]; } catch { break;  }
+                try { currentRoom = roomIds[currentRoomIndex]; } catch { break; }
 
                 /*if (!isInConsole) {
                     Console.WriteLine($"Room: {currentRoom} / {Utils.ConvertLongToHex(currentRoom)}");
@@ -60,7 +96,7 @@ namespace KatAMRandomizer {
                     Entity entity = new Entity();
 
                     // Extract all the bytes for the object; 01 24 00 00 00 00 00 00 ...
-                    for(int k = 0; k < 36; k++) {
+                    for (int k = 0; k < 36; k++) {
                         int index = i + k;
 
                         objectDefinition[k] = romFile[index];
@@ -98,20 +134,20 @@ namespace KatAMRandomizer {
                         entity.AreAllPropertiesZeroes();
 
                         enemies.Add(entity);
-                    } 
-                    
+                    }
+
                     // Miniboss references;
                     else if (isMiniboss) {
                         entity.Name = minibossesDictionary[ID];
                         minibosses.Add(entity);
                     }
-                    
+
                     // Boss references;
                     else if (isBoss) {
                         entity.Name = bossesDictionary[ID];
                         bosses.Add(entity);
-                    } 
-                    
+                    }
+
                     // Item references;
                     else if (isItem) {
                         entity.Name = itemsDictionary[ID];
@@ -119,8 +155,8 @@ namespace KatAMRandomizer {
                         entity.AreAllPropertiesZeroes();
 
                         items.Add(entity);
-                    } 
-                    
+                    }
+
                     // Mirror references;
                     else if (isMirror) {
                         entity.Name = mirrorsDictionary[ID];
@@ -128,14 +164,14 @@ namespace KatAMRandomizer {
                         entity.AreAllPropertiesZeroes();
 
                         mirrors.Add(entity);
-                    } 
-                    
+                    }
+
                     // Ability Stand references;
                     else if (isAbilityStand) {
                         entity.Name = abilityStandsDictionary[ID];
                         abilityStands.Add(entity);
-                    } 
-                    
+                    }
+
                     // Map Element references;
                     else if (isMapElement) {
                         entity.Name = mapElementsDictionary[ID];
@@ -143,8 +179,8 @@ namespace KatAMRandomizer {
                         entity.AreAllPropertiesZeroes();
 
                         miscellaneous.Add(entity);
-                    } 
-                    
+                    }
+
                     // Unassigned references;
                     else {
                         undefined.Add(entity);
@@ -180,7 +216,7 @@ namespace KatAMRandomizer {
 
                             break;
                         } else emptyBytes++;
-                    }                    
+                    }
                 }
             }
 
