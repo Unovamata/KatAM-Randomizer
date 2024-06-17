@@ -11,33 +11,9 @@
       "Speed": 0,
       "Properties": "00000000000000000028FF98FFC000A0000000",
       "Room": 710
-    },
-    {
-      "Address": 8967228,
-      "Number": "0001",
-      "Link": "0101",
-      "X": "D800",
-      "Y": "F800",
-      "ID": 70,
-      "Behavior": 0,
-      "Speed": 0,
-      "Properties": "00000000000000000028FF98FFC000A0000000",
-      "Room": 710
     }
   ],
   "Wiz": [
-    {
-      "Address": 8985020,
-      "Number": "0000",
-      "Link": "0001",
-      "X": "C000",
-      "Y": "8000",
-      "ID": 73,
-      "Behavior": 0,
-      "Speed": 0,
-      "Properties": "00000000000000000050FF90FFE00080000000",
-      "Room": 219
-    },
     {
       "Address": 8985020,
       "Number": "0000",
@@ -63,33 +39,9 @@
       "Speed": 0,
       "Properties": "00000000000000000050FFD0FF000188000000",
       "Room": 324
-    },
-    {
-      "Address": 8999896,
-      "Number": "0001",
-      "Link": "0101",
-      "X": "B000",
-      "Y": "3000",
-      "ID": 69,
-      "Behavior": 0,
-      "Speed": 0,
-      "Properties": "00000000000000000050FFD0FF000188000000",
-      "Room": 324
     }
   ],
   "Master Hand (Boss)": [
-    {
-      "Address": 9009184,
-      "Number": "0000",
-      "Link": "0001",
-      "X": "D800",
-      "Y": "4800",
-      "ID": 71,
-      "Behavior": 0,
-      "Speed": 0,
-      "Properties": "00000000000000000030FFC0FFF00098000000",
-      "Room": 417
-    },
     {
       "Address": 9009184,
       "Number": "0000",
@@ -115,33 +67,9 @@
       "Speed": 0,
       "Properties": "00000000000000000090FFB8FF000180000000",
       "Room": 516
-    },
-    {
-      "Address": 9016332,
-      "Number": "0001",
-      "Link": "0101",
-      "X": "5002",
-      "Y": "0801",
-      "ID": 74,
-      "Behavior": 0,
-      "Speed": 0,
-      "Properties": "00000000000000000090FFB8FF000180000000",
-      "Room": 516
     }
   ],
   "Gobbler": [
-    {
-      "Address": 9039924,
-      "Number": "0000",
-      "Link": "0101",
-      "X": "D000",
-      "Y": "F800",
-      "ID": 72,
-      "Behavior": 0,
-      "Speed": 0,
-      "Properties": "00000000000000000030FFB0FF0001B8000000",
-      "Room": 822
-    },
     {
       "Address": 9039924,
       "Number": "0000",
@@ -167,18 +95,6 @@
       "Speed": 0,
       "Properties": "00000000000000000030FF88FF000190000000",
       "Room": 120
-    },
-    {
-      "Address": 9054212,
-      "Number": "0000",
-      "Link": "0001",
-      "X": "D000",
-      "Y": "7800",
-      "ID": 82,
-      "Behavior": 0,
-      "Speed": 0,
-      "Properties": "00000000000000000030FF88FF000190000000",
-      "Room": 120
     }
   ],
   "Mega Titan": [
@@ -193,33 +109,9 @@
       "Speed": 0,
       "Properties": "00000000000000000070FF98FFE00080000000",
       "Room": 739
-    },
-    {
-      "Address": 9062688,
-      "Number": "0000",
-      "Link": "0000",
-      "X": "A000",
-      "Y": "7800",
-      "ID": 75,
-      "Behavior": 0,
-      "Speed": 0,
-      "Properties": "00000000000000000070FF98FFE00080000000",
-      "Room": 739
     }
   ],
   "Dark Meta Knight (Boss)": [
-    {
-      "Address": 9065332,
-      "Number": "0000",
-      "Link": "0001",
-      "X": "B001",
-      "Y": "1801",
-      "ID": 78,
-      "Behavior": 1,
-      "Speed": 0,
-      "Properties": "00000000000000000050FEE8FEF00120010000",
-      "Room": 910
-    },
     {
       "Address": 9065332,
       "Number": "0000",
@@ -281,54 +173,6 @@
       "Speed": 3,
       "Properties": "00000000000000000048FFA8FF0001A8000000",
       "Room": 918
-    },
-    {
-      "Address": 9065404,
-      "Number": "0000",
-      "Link": "0001",
-      "X": "B000",
-      "Y": "3800",
-      "ID": 79,
-      "Behavior": 0,
-      "Speed": 0,
-      "Properties": "00000000000000000050FFC8FF0001A8000000",
-      "Room": 911
-    },
-    {
-      "Address": 9065912,
-      "Number": "0000",
-      "Link": "0001",
-      "X": "A800",
-      "Y": "4000",
-      "ID": 79,
-      "Behavior": 0,
-      "Speed": 1,
-      "Properties": "00000000000000000058FFC0FF0001A0000000",
-      "Room": 913
-    },
-    {
-      "Address": 9066312,
-      "Number": "0000",
-      "Link": "0001",
-      "X": "B000",
-      "Y": "4800",
-      "ID": 79,
-      "Behavior": 0,
-      "Speed": 2,
-      "Properties": "00000000000000000050FFB8FF000198000000",
-      "Room": 915
-    },
-    {
-      "Address": 9066860,
-      "Number": "0000",
-      "Link": "0001",
-      "X": "B800",
-      "Y": "5800",
-      "ID": 79,
-      "Behavior": 0,
-      "Speed": 3,
-      "Properties": "00000000000000000048FFA8FF0001A8000000",
-      "Room": 918
     }
   ],
   "Dark Mind (2)": [
@@ -343,33 +187,9 @@
       "Speed": 0,
       "Properties": "00000000000000000088FFD0FF000190000000",
       "Room": 919
-    },
-    {
-      "Address": 9066932,
-      "Number": "0000",
-      "Link": "0000",
-      "X": "7800",
-      "Y": "3000",
-      "ID": 80,
-      "Behavior": 0,
-      "Speed": 0,
-      "Properties": "00000000000000000088FFD0FF000190000000",
-      "Room": 919
     }
   ],
   "Dark Mind (Shooting)": [
-    {
-      "Address": 9067004,
-      "Number": "0000",
-      "Link": "0001",
-      "X": "6800",
-      "Y": "3000",
-      "ID": 81,
-      "Behavior": 0,
-      "Speed": 0,
-      "Properties": "00000000000000000000000000000000000400",
-      "Room": 950
-    },
     {
       "Address": 9067004,
       "Number": "0000",

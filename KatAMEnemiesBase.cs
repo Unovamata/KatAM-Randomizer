@@ -58,12 +58,12 @@ namespace KatAMRandomizer {
             byte[] romFile = System.ROMData;
 
             // Deserializing all the entities in the game;
-            Utils.DeserializeJSON(Utils.JSONToEntities(file), entities, Instance);
+            Utils.DeserializeEntitiesJSON(Utils.JSONToObjects(file), entities, Instance);
 
             List<Entity> minibosses = new List<Entity>();
             
             if (!isRandomizingMiniBosses && isIncludingMiniBosses) {
-                Utils.DeserializeJSON(Utils.JSONToEntities(Utils.minibossesJson), minibosses, Instance);
+                Utils.DeserializeEntitiesJSON(Utils.JSONToObjects(Utils.minibossesJson), minibosses, Instance);
             }
 
             List<byte> allEntitiesIDs = LoadAllSpeedAndBehaviorData();

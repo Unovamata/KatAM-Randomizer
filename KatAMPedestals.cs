@@ -79,7 +79,7 @@ namespace KatAMRandomizer
 
             byte[] romFile = System.ROMData;
 
-            Utils.DeserializeJSON(Utils.JSONToEntities(Utils.abilityStandsJson), entities, Instance);
+            Utils.DeserializeEntitiesJSON(Utils.JSONToObjects(Utils.abilityStandsJson), entities, Instance);
 
             isParasolBanned = Settings.isBanningParasol;
             isAddingRandomPedestal = Settings.isAddingRandomPedestal;

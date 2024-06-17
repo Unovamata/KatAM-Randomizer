@@ -1,69 +1,90 @@
 ﻿using KatAM_Randomizer;
 using KatAMInternal;
-using Newtonsoft.Json;
 
 namespace KatAMRandomizer {
     internal class KatAMROMReader : KatAMRandomizerComponent {
         static Settings settings;
         static int seed;
 
-        // Calling the data linking information;
-        static List<int> roomIds = Processing.roomIds;
-        static Dictionary<byte, string> enemiesDictionary = Processing.enemiesDictionary,
-                                        minibossesDictionary = Processing.minibossesDictionary,
-                                        bossesDictionary = Processing.bossesDictionary,
-                                        itemsDictionary = Processing.itemsDictionary,
-                                        mirrorsDictionary = Processing.mirrorsDictionary,
-                                        abilityStandsDictionary = Processing.abilityStandsDictionary,
-                                        mapElementsDictionary = Processing.mapElementsDictionary;
-
-        static List<Entity> enemies = new List<Entity>(),
-                            minibosses = new List<Entity>(),
-                            bosses = new List<Entity>(),
-                            items = new List<Entity>(),
-                            mirrors = new List<Entity>(),
-                            abilityStands = new List<Entity>(),
-                            miscellaneous = new List<Entity>(),
-                            undefined = new List<Entity>();
-
         public KatAMROMReader(Processing system) {
             InitializeComponents(system);
 
             ReadObjectParameterData(System.ROMData);
 
-            //ReadObjectData(romFile);
+            ReadObjectData(System.ROMData);
         }
 
-
+        List<Properties> properties = new List<Properties>();
 
         void ReadObjectParameterData(byte[] romFile) {
             int parameterStartAddress = 0x335E1C,
                 parameterEndAddress = 0x3372A4;
 
-            byte endValue1 = 0x33, endValue2 = 0x08;
             int currentObjectID = 0, currentByteCount = 0;
-            Properties properties = new Properties();
-            byte[] currentDefinition = new byte[24];
 
+            Properties property = new Properties();
+
+            // Read the object parameter data;
             for (int i = parameterStartAddress; i <= parameterEndAddress; i++) {
-                if(currentByteCount == 24) {
-                    Console.WriteLine(Utils.ConvertIntToHex(i - 24) + " - " + currentObjectID);
+                // Object parameters are 24 bytes long;
+                if(currentByteCount >= 24) {
                     currentObjectID++;
+
+                    // Specify the object parameters and add them to the property list for future processing;
+                    byte[] definition = property.Definition;
+
+                    property.Name = Processing.parameters[(byte) currentObjectID];
+                    property.ID = (byte) currentObjectID;
+                    property.DamageSprites = new byte[] { definition[0], definition[1] };
+                    property.HP = definition[4];
+                    property.CopyAbility = definition[6];
+                    property.Palette = definition[8];
+
+                    properties.Add(property);
+
                     currentByteCount = 0;
-                    Utils.WritePropertiesToROM(romFile, properties);
-                } else if(currentByteCount == 0) {
-                    properties = new Properties();
+                } 
+                
+                // For new object parameters, define the address;
+                if(currentByteCount == 0) {
+                    property = new Properties();
 
-                    properties.Definition[currentByteCount] = romFile[i];
+                    property.Address = i;
+
+                    property.Definition[currentByteCount] = romFile[i];
                 }
-
-                Console.Write(Utils.ConvertIntToHex(romFile[i]) + " ");
+                
+                // Store the definition data;
+                property.Definition[currentByteCount] = romFile[i];
 
                 currentByteCount++;
             }
+
+            Console.WriteLine("Object Properties saved: " + properties.Count);
+
+            Utils.SaveJSON(properties, Utils.propertiesJson);
         }
 
-        static void ReadObjectData(byte[] romFile) {
+        // Calling the data linking information;
+        List<int> roomIds = Processing.roomIds;
+        Dictionary<byte, string> enemiesDictionary = Processing.enemiesDictionary,
+                                 minibossesDictionary = Processing.minibossesDictionary,
+                                 bossesDictionary = Processing.bossesDictionary,
+                                 itemsDictionary = Processing.itemsDictionary,
+                                 mirrorsDictionary = Processing.mirrorsDictionary,
+                                 abilityStandsDictionary = Processing.abilityStandsDictionary,
+                                 mapElementsDictionary = Processing.mapElementsDictionary;
+
+        List<Entity> enemies = new List<Entity>(),
+                     minibosses = new List<Entity>(),
+                     bosses = new List<Entity>(),
+                     items = new List<Entity>(),
+                     mirrors = new List<Entity>(),
+                     abilityStands = new List<Entity>(),
+                     miscellaneous = new List<Entity>(),
+                     undefined = new List<Entity>();
+
+        void ReadObjectData(byte[] romFile) {
             // Memory locations;
             string startAddress = "884C64", endAddress = "8A630D";
             int roomDataStartAddress = Convert.ToInt32(startAddress, 16),

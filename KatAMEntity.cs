@@ -78,13 +78,7 @@ public class EntitySerializable : Entity {
     }
 
     public static string ByteArrayToHexString(byte[] byteArray) {
-        string result = "";
-
-        foreach (byte bit in byteArray) {
-            result += bit.ToString("X2");
-        }
-
-        return result;
+        return Utils.ByteArrayToHexString(byteArray);
     }
 
     public Entity DeserializeEntity() {

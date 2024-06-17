@@ -4,6 +4,7 @@ using System.Text;
 using System.Windows.Forms;
 using KatAMRandomizer;
 using KatAMRandomizer;
+using KatAM_Randomizer;
 
 namespace KatAMRandomizer
 {
@@ -115,6 +116,7 @@ namespace KatAMRandomizer
             new KatAMEnemies(system);
             new KatAMMinibosses(system);
             new KatAMMapElements(system);
+            new KatAMPropertiesManagement(system);
 
             // 
             // Intelligently randomize flying enemies;

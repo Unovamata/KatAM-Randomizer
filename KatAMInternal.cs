@@ -29,6 +29,20 @@ namespace KatAMInternal
 
         public Processing() {
             Settings = new Settings();
+
+            MergeDictionaries(parameters, enemiesDictionary);
+            MergeDictionaries(parameters, minibossesDictionary);
+            MergeDictionaries(parameters, bossesDictionary);
+            MergeDictionaries(parameters, itemsDictionary);
+            MergeDictionaries(parameters, mirrorsDictionary);
+            MergeDictionaries(parameters, abilityStandsDictionary);
+            MergeDictionaries(parameters, mapElementsDictionary);
+        }
+
+        public void MergeDictionaries(Dictionary<byte, string> destination, Dictionary<byte, string> source) {
+            foreach(var item in source) {
+                destination[item.Key] = item.Value;
+            }
         }
 
         // By Fyyyyik; https://github.com/Fyyyyik/KatAM-Object-Editor/blob/main/Editor/LevelDataManager.cs
@@ -208,7 +222,8 @@ namespace KatAMInternal
             { 0x89, "Star Stone Block"},
         };
 
-        public static Dictionary<byte, string> enemyProperties = new Dictionary<byte, string>() {
+        public static Dictionary<byte, string> parameters = new Dictionary<byte, string>() {
+            { 0x36, "Nothing" }, // Shadow Kirby with behavior 0 is nothing;
             { 0x40, "???" },
             { 0x41, "???" },
             { 0x42, "???" },
@@ -235,10 +250,9 @@ namespace KatAMInternal
             { 0x76, "???" },
             { 0x77, "Camera Locker Object" },
             { 0x78, "Fuse" },
-            { 0x79, "Small Heave-Ho block" },
             { 0x7A, "???" },
             { 0x7B, "Star Platform" },
-            { 0x7C, "Wall flame" },
+            { 0x7C, "Wall Flame" },
             { 0x7F, "CPU mover" },
             { 0x82, "???" },
             { 0x83, "???" },
@@ -246,84 +260,79 @@ namespace KatAMInternal
             { 0x8A, "Fuse Cannon" },
             { 0x8B, "Manual Direction Cannon" },
             { 0x8D, "Stake" },
-            { 0x8E, "Cutscene loader" },
-            { 0x8F, "Galaxia in pedestal [can't be collected]" },
-            { 0x90, "Air current effect" },
+            { 0x8E, "Cutscene Loader" },
+            { 0x8F, "???" },
+            { 0x90, "Air Current Effect" },
             { 0x91, "???" },
-            { 0x92, "Copy Essences" },
-            { 0x93, "Copy Essences" },
-            { 0x94, "Copy Essences" },
-            { 0x95, "Copy Essences" },
-            { 0x96, "Random Copy Essence" },
-            { 0x97, "Freezes the game" },
-            { 0x98, "Galaxia in pedestal [collectable]" },
+            { 0x97, "Freezes the Game" },
+            { 0x98, "Resets the Game" },
             { 0x99, "???" },
-            { 0x9A, "Resets the game" },
-            { 0x9B, "King Golem's rock" },
+            { 0x9A, "Resets the Game" },
+            { 0x9B, "King Golem's Rock" },
             { 0x9C, "King Golem's Gordo" },
-            { 0x9D, "Foley's propeller leaves" },
-            { 0x9E, "Frying pan" },
+            { 0x9D, "Foley's Propeller Leaves" },
+            { 0x9E, "Frying Pan" },
             { 0x9F, "Pacriel" },
-            { 0xA0, "Sir Kibble's cutter projectile" },
+            { 0xA0, "Sir Kibble's Cutter Projectile" },
             { 0xA1, "???" },
-            { 0xA2, "Parasol enemy" },
+            { 0xA2, "Parasol Enemy" },
             { 0xA3, "Ability Star" },
             { 0xA4, "Master Sword Ability Star" },
             { 0xA5, "Impact Star" },
-            { 0xA6, "Mr. Frosty's ice cube" },
-            { 0xA7, "Mr. Frosty's big ice cube" },
-            { 0xA8, "Bonker's coconut" },
-            { 0xA9, "Bonker's big coconut" },
-            { 0xAA, "Phan Phan's apple" },
-            { 0xAB, "Prank's fireball" },
-            { 0xAC, "Prank's ice cube" },
-            { 0xAD, "Prank's bomb" },
-            { 0xAE, "Prank's frying pan" },
-            { 0xAF, "Banana peel" },
-            { 0xB0, "Boxy's present box" },
-            { 0xB1, "Exhaled star" },
-            { 0xB2, "Bombar's bomb" },
-            { 0xB3, "Bombar's missile" },
-            { 0xB4, "Box Boxer's hadouken" },
-            { 0xB5, "Wiz' rugby ball" },
-            { 0xB6, "Wiz' mini-car" },
-            { 0xB7, "Wiz' balloon" },
-            { 0xB8, "Wiz' bomb" },
-            { 0xB9, "Wiz' cloud" },
-            { 0xBA, "Poisonous apple" },
-            { 0xBB, "Wiz' Droppy variant" },
-            { 0xBC, "Mega Titan arm 1" },
-            { 0xBD, "Mega Titan arm 2" },
-            { 0xBE, "Mega Titan arm 3" },
-            { 0xBF, "Mega Titan arm 4" },
-            { 0xC0, "Titan Head's missile" },
-            { 0xC1, "Moley's boulder" },
-            { 0xC2, "Moley's screw" },
-            { 0xC3, "Moley's tire" },
-            { 0xC4, "Moley's big bomb" },
-            { 0xC5, "Moley's massive boulder" },
-            { 0xC6, "Moley's oil barrel" },
-            { 0xC7, "Moley's spike ball" },
-            { 0xC8, "Master Hand's fire bullet" },
-            { 0xC9, "Small bomb" },
+            { 0xA6, "Mr. Frosty's Ice Cube" },
+            { 0xA7, "Mr. Frosty's Big Ice Cube" },
+            { 0xA8, "Bonker's Coconut" },
+            { 0xA9, "Bonker's Big Coconut" },
+            { 0xAA, "Phan Phan's Apple" },
+            { 0xAB, "Prank's Fireball" },
+            { 0xAC, "Prank's Ice Cube" },
+            { 0xAD, "Prank's Bomb" },
+            { 0xAE, "Prank's Frying Pan" },
+            { 0xAF, "Banana Peel" },
+            { 0xB0, "Boxy's Present Box" },
+            { 0xB1, "Exhaled Star" },
+            { 0xB2, "Bombar's Bomb" },
+            { 0xB3, "Bombar's Missile" },
+            { 0xB4, "Box Boxer's Hadouken" },
+            { 0xB5, "Wiz' Rugby Ball" },
+            { 0xB6, "Wiz' Mini-car" },
+            { 0xB7, "Wiz' Balloon" },
+            { 0xB8, "Wiz' Bomb" },
+            { 0xB9, "Wiz' Cloud" },
+            { 0xBA, "Poisonous Apple" },
+            { 0xBB, "Wiz' Droppy Variant" },
+            { 0xBC, "Mega Titan Arm 1" },
+            { 0xBD, "Mega Titan Arm 2" },
+            { 0xBE, "Mega Titan Arm 3" },
+            { 0xBF, "Mega Titan Arm 4" },
+            { 0xC0, "Titan Head's Missile" },
+            { 0xC1, "Moley's Boulder" },
+            { 0xC2, "Moley's Screw" },
+            { 0xC3, "Moley's Tire" },
+            { 0xC4, "Moley's Big Bomb" },
+            { 0xC5, "Moley's Massive Boulder" },
+            { 0xC6, "Moley's Oil Barrel" },
+            { 0xC7, "Moley's Spike Ball" },
+            { 0xC8, "Master Hand's Fire Bullet" },
+            { 0xC9, "Small Bomb" },
             { 0xCA, "???" },
-            { 0xCB, "Dark Mind's red star projectile" },
-            { 0xCC, "Dark Mind's blue star projectile" },
-            { 0xCD, "Dark Mind's purple star projectile" },
-            { 0xCE, "Dark Mind's green star projectile" },
+            { 0xCB, "Dark Mind's Red Star" },
+            { 0xCC, "Dark Mind's Blue Star" },
+            { 0xCD, "Dark Mind's Purple Star" },
+            { 0xCE, "Dark Mind's Green Star" },
             { 0xCF, "???" },
             { 0xD0, "???" },
             { 0xD1, "???" },
-            { 0xD2, "Dark Mind's laser" },
-            { 0xD3, "Dark Mind's shooter cutter" },
-            { 0xD4, "Crashes the game" },
-            { 0xD5, "Cutter projectile" },
-            { 0xD6, "Glunk's bullet" },
-            { 0xD7, "Shotzo's bullet" },
-            { 0xD8, "Cupie's arrow" },
+            { 0xD2, "Dark Mind's Laser" },
+            { 0xD3, "Dark Mind's Shooter Cutter" },
+            { 0xD4, "Crashes the Game" },
+            { 0xD5, "Cutter Projectile" },
+            { 0xD6, "Glunk's Bullet" },
+            { 0xD7, "Shotzo's Bullet" },
+            { 0xD8, "Cupie's Arrow" },
             { 0xD9, "???" },
-            { 0xDA, "Shooty's bomb" },
-            { 0xDB, "Resets the game" }
+            { 0xDA, "Shooty's Bomb" },
+            { 0xDB, "Resets the Game" }
         };
 
     }
@@ -424,13 +433,10 @@ namespace KatAMInternal
         public static void WritePropertiesToROM(byte[] romFile, Properties properties) {
             int address = properties.Address;
 
+            WriteToROM(romFile, address, properties.DamageSprites);
             WriteToROM(romFile, address + 4, new byte[] { properties.HP });
-            /*
-
-            WriteToROM(romFile, address + 12, new byte[] { id });
-            WriteToROM(romFile, address + 14, new byte[] { behavior });
-            WriteToROM(romFile, address + 16, new byte[] { speed });
-            WriteToROM(romFile, address + 17, properties);*/
+            WriteToROM(romFile, address + 6, new byte[] { properties.CopyAbility });
+            WriteToROM(romFile, address + 8, new byte[] { properties.Palette });
         }
 
         public static int GetNextRandom() {
@@ -484,6 +490,7 @@ namespace KatAMInternal
         }
 
         public static string jsonRoute = "JSON\\",
+                             propertiesJson = "Properties",
                              enemiesJson = "Enemies",
                              minibossesJson = "Minibosses",
                              bossesJson = "Bosses",
@@ -493,11 +500,11 @@ namespace KatAMInternal
                              worldMapObjectsJson = "WorldMapObjects";
 
         public static void SaveJSON(dynamic list, string filename) {
-            string json = JsonConvert.SerializeObject(EntitiesToJSON(list), Formatting.Indented);
+            string json = JsonConvert.SerializeObject(ObjectsToJSON(list), Formatting.Indented);
             File.WriteAllText(jsonRoute + filename + ".json", json);
         }
 
-        public static dynamic EntitiesToJSON(List<Entity> list) {
+        public static dynamic ObjectsToJSON(List<Entity> list) {
             var groupedEntities = new Dictionary<string, List<Dictionary<string, dynamic>>>();
 
             foreach (Entity entity in list) {
@@ -525,7 +532,34 @@ namespace KatAMInternal
             return groupedEntities;
         }
 
-        public static dynamic JSONToEntities(string filename) {
+        public static dynamic ObjectsToJSON(List<Properties> list) {
+            var groupedProperties = new Dictionary<string, List<Dictionary<string, dynamic>>>();
+
+            foreach (Properties property in list) {
+                PropertiesSerializable serialized = property.SerializeEntity();
+
+                if (!groupedProperties.ContainsKey(serialized.Name)) {
+                    groupedProperties[serialized.Name] = new List<Dictionary<string, dynamic>>();
+                }
+
+                var entityDict = new Dictionary<string, dynamic> {
+                    ["Definition"] = serialized.Definition,
+                    ["ID"] = serialized.ID,
+                    ["Address"] = serialized.Address,
+                    ["Name"] = serialized.Name,
+                    ["Damage Sprites"] = serialized.DamageSprites,
+                    ["HP"] = serialized.HP,
+                    ["Copy Ability"] = serialized.CopyAbility,
+                    ["Palette"] = serialized.Palette
+                };
+
+                groupedProperties[serialized.Name].Add(entityDict);
+            }
+
+            return groupedProperties;
+        }
+
+        public static dynamic JSONToObjects(string filename) {
             string json = File.ReadAllText(jsonRoute + filename + ".json");
 
             var result = JsonConvert.DeserializeObject<Dictionary<string, List<Dictionary<string, dynamic>>>>(json);
@@ -554,7 +588,7 @@ namespace KatAMInternal
             KatAMRandomizerMain.Instance.StatusStripRandomizer.Text = text;
         }
 
-        public static void DeserializeJSON(dynamic itemsJson, List<Entity> entities, IKatAMRandomizer component) {
+        public static void DeserializeEntitiesJSON(dynamic itemsJson, List<Entity> entities, IKatAMRandomizer component) {
             // Reading the JSON dictionary;
             foreach (string key in itemsJson.Keys) {
                 List<Dictionary<string, dynamic>> dict = itemsJson[key];
@@ -613,5 +647,15 @@ namespace KatAMInternal
         }
 
         public static byte Nothing = 0x2C;
+
+        public static string ByteArrayToHexString(byte[] byteArray) {
+            string result = "";
+
+            foreach (byte bit in byteArray) {
+                result += bit.ToString("X2");
+            }
+
+            return result;
+        }
     }
 }

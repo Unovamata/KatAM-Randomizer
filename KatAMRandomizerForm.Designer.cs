@@ -183,6 +183,8 @@
             ButtonRefreshSeed = new Button();
             StatusStripRandomizer = new StatusStrip();
             StatusLabel = new ToolStripStatusLabel();
+            checkBox2 = new CheckBox();
+            checkBox3 = new CheckBox();
             GroupSettings.SuspendLayout();
             GroupRomInfo.SuspendLayout();
             tabControl1.SuspendLayout();
@@ -1668,6 +1670,7 @@
             // 
             // groupBox3
             // 
+            groupBox3.Controls.Add(checkBox3);
             groupBox3.Controls.Add(CheckboxMinibossPropertiesAbilityMaster);
             groupBox3.Controls.Add(RadioMinibossPropertiesAbilityShuffle);
             groupBox3.Controls.Add(RadioMinibossPropertiesAbilityRandom);
@@ -1728,6 +1731,7 @@
             // 
             // GroupEnemiesPropertiesInhaleAbility
             // 
+            GroupEnemiesPropertiesInhaleAbility.Controls.Add(checkBox2);
             GroupEnemiesPropertiesInhaleAbility.Controls.Add(CheckboxEnemyPropertiesAbilityMaster);
             GroupEnemiesPropertiesInhaleAbility.Controls.Add(RadioEnemyPropertiesAbilityShuffle);
             GroupEnemiesPropertiesInhaleAbility.Controls.Add(RadioEnemyPropertiesAbilityRandom);
@@ -2155,6 +2159,28 @@
             StatusLabel.Name = "StatusLabel";
             StatusLabel.Size = new Size(0, 17);
             // 
+            // checkBox2
+            // 
+            checkBox2.AutoSize = true;
+            checkBox2.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            checkBox2.Location = new Point(173, 47);
+            checkBox2.Name = "checkBox2";
+            checkBox2.Size = new Size(135, 19);
+            checkBox2.TabIndex = 7;
+            checkBox2.Text = "Include \"Mix\" Ability";
+            checkBox2.UseVisualStyleBackColor = true;
+            // 
+            // checkBox3
+            // 
+            checkBox3.AutoSize = true;
+            checkBox3.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            checkBox3.Location = new Point(173, 47);
+            checkBox3.Name = "checkBox3";
+            checkBox3.Size = new Size(135, 19);
+            checkBox3.TabIndex = 8;
+            checkBox3.Text = "Include \"Mix\" Ability";
+            checkBox3.UseVisualStyleBackColor = true;
+            // 
             // KatAMRandomizerMain
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
@@ -2395,5 +2421,7 @@
         private RadioButton RadioEnemyPropertiesAbilityShuffle;
         private RadioButton RadioEnemyPropertiesAbilityRandom;
         private RadioButton RadioEnemyPropertiesAbilityUnchanged;
+        private CheckBox checkBox3;
+        private CheckBox checkBox2;
     }
 }
