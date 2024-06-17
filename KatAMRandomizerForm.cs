@@ -358,8 +358,16 @@ namespace KatAMRandomizer
             settings.EnemiesInhaleAbilityType = GenerationOptions.Random;
         }
 
+        private void CheckboxEnemyPropertiesAbilityNormal_CheckedChanged(object sender, EventArgs e) {
+            settings.isEnemyIncludingNormalInhaleAbility = CheckboxEnemyPropertiesAbilityNormal.Checked;
+        }
+
         private void CheckboxEnemyPropertiesAbilityMaster_CheckedChanged(object sender, EventArgs e) {
             settings.isEnemyIncludingMasterInhaleAbility = CheckboxEnemyPropertiesAbilityMaster.Checked;
+        }
+
+        private void CheckboxEnemyPropertiesAbilityMix_CheckedChanged(object sender, EventArgs e) {
+            settings.isEnemyIncludingMixInhaleAbility = CheckboxEnemyPropertiesAbilityMix.Checked;
         }
 
         // HP;

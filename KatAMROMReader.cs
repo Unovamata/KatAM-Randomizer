@@ -28,10 +28,10 @@ namespace KatAMRandomizer {
             for (int i = parameterStartAddress; i <= parameterEndAddress; i++) {
                 // Object parameters are 24 bytes long;
                 if(currentByteCount >= 24) {
-                    currentObjectID++;
-
                     // Specify the object parameters and add them to the property list for future processing;
                     byte[] definition = property.Definition;
+
+                    Console.WriteLine(Processing.parameters[(byte)currentObjectID]);
 
                     property.Name = Processing.parameters[(byte) currentObjectID];
                     property.ID = (byte) currentObjectID;
@@ -43,6 +43,7 @@ namespace KatAMRandomizer {
                     properties.Add(property);
 
                     currentByteCount = 0;
+                    currentObjectID++;
                 } 
                 
                 // For new object parameters, define the address;

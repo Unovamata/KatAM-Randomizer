@@ -15,6 +15,8 @@ namespace KatAMRandomizer {
 
         public Properties() {
             Definition = new byte[24];
+            ID = 0;
+            Address = 0;
             Name = "";
             DamageSprites = new byte[2];
             HP = 0;
@@ -37,6 +39,8 @@ namespace KatAMRandomizer {
             Definition = ByteArrayToHexString(properties.Definition);
             DamageSprites = ByteArrayToHexString(properties.DamageSprites);
 
+            ID = properties.ID;
+            Address = properties.Address;
             Name = properties.Name;
             HP = properties.HP;
             CopyAbility = properties.CopyAbility;
@@ -50,13 +54,15 @@ namespace KatAMRandomizer {
         public Properties DeserializeProperties() {
             Properties properties = new Properties();
 
-            properties.Definition = StringToByteArray(this.Definition);
-            properties.DamageSprites = StringToByteArray(this.DamageSprites);
+            properties.Definition = StringToByteArray(Definition);
+            properties.DamageSprites = StringToByteArray(DamageSprites);
 
-            Name = properties.Name;
-            HP = properties.HP;
-            CopyAbility = properties.CopyAbility;
-            Palette = properties.Palette;
+            properties.ID = ID;
+            properties.Address = Address;
+            properties.Name = Name;
+            properties.HP = HP;
+            properties.CopyAbility = CopyAbility;
+            properties.Palette = Palette;
 
             return properties;
         }

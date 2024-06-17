@@ -144,11 +144,15 @@
             RadioMinibossesUnchanged = new RadioButton();
             tabPage5 = new TabPage();
             groupBox3 = new GroupBox();
+            checkBox5 = new CheckBox();
+            checkBox3 = new CheckBox();
             CheckboxMinibossPropertiesAbilityMaster = new CheckBox();
             RadioMinibossPropertiesAbilityShuffle = new RadioButton();
             RadioMinibossPropertiesAbilityRandom = new RadioButton();
             RadioMinibossPropertiesAbilityUnchanged = new RadioButton();
             GroupEnemiesPropertiesInhaleAbility = new GroupBox();
+            CheckboxEnemyPropertiesAbilityNormal = new CheckBox();
+            CheckboxEnemyPropertiesAbilityMix = new CheckBox();
             CheckboxEnemyPropertiesAbilityMaster = new CheckBox();
             RadioEnemyPropertiesAbilityShuffle = new RadioButton();
             RadioEnemyPropertiesAbilityRandom = new RadioButton();
@@ -183,8 +187,6 @@
             ButtonRefreshSeed = new Button();
             StatusStripRandomizer = new StatusStrip();
             StatusLabel = new ToolStripStatusLabel();
-            checkBox2 = new CheckBox();
-            checkBox3 = new CheckBox();
             GroupSettings.SuspendLayout();
             GroupRomInfo.SuspendLayout();
             tabControl1.SuspendLayout();
@@ -1670,6 +1672,7 @@
             // 
             // groupBox3
             // 
+            groupBox3.Controls.Add(checkBox5);
             groupBox3.Controls.Add(checkBox3);
             groupBox3.Controls.Add(CheckboxMinibossPropertiesAbilityMaster);
             groupBox3.Controls.Add(RadioMinibossPropertiesAbilityShuffle);
@@ -1683,11 +1686,33 @@
             groupBox3.TabStop = false;
             groupBox3.Text = "Minibosses Inhale Ability";
             // 
+            // checkBox5
+            // 
+            checkBox5.AutoSize = true;
+            checkBox5.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            checkBox5.Location = new Point(173, 22);
+            checkBox5.Name = "checkBox5";
+            checkBox5.Size = new Size(155, 19);
+            checkBox5.TabIndex = 9;
+            checkBox5.Text = "Include \"Normal\" Ability";
+            checkBox5.UseVisualStyleBackColor = true;
+            // 
+            // checkBox3
+            // 
+            checkBox3.AutoSize = true;
+            checkBox3.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            checkBox3.Location = new Point(173, 72);
+            checkBox3.Name = "checkBox3";
+            checkBox3.Size = new Size(135, 19);
+            checkBox3.TabIndex = 8;
+            checkBox3.Text = "Include \"Mix\" Ability";
+            checkBox3.UseVisualStyleBackColor = true;
+            // 
             // CheckboxMinibossPropertiesAbilityMaster
             // 
             CheckboxMinibossPropertiesAbilityMaster.AutoSize = true;
             CheckboxMinibossPropertiesAbilityMaster.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            CheckboxMinibossPropertiesAbilityMaster.Location = new Point(173, 22);
+            CheckboxMinibossPropertiesAbilityMaster.Location = new Point(173, 47);
             CheckboxMinibossPropertiesAbilityMaster.Name = "CheckboxMinibossPropertiesAbilityMaster";
             CheckboxMinibossPropertiesAbilityMaster.Size = new Size(151, 19);
             CheckboxMinibossPropertiesAbilityMaster.TabIndex = 6;
@@ -1731,7 +1756,8 @@
             // 
             // GroupEnemiesPropertiesInhaleAbility
             // 
-            GroupEnemiesPropertiesInhaleAbility.Controls.Add(checkBox2);
+            GroupEnemiesPropertiesInhaleAbility.Controls.Add(CheckboxEnemyPropertiesAbilityNormal);
+            GroupEnemiesPropertiesInhaleAbility.Controls.Add(CheckboxEnemyPropertiesAbilityMix);
             GroupEnemiesPropertiesInhaleAbility.Controls.Add(CheckboxEnemyPropertiesAbilityMaster);
             GroupEnemiesPropertiesInhaleAbility.Controls.Add(RadioEnemyPropertiesAbilityShuffle);
             GroupEnemiesPropertiesInhaleAbility.Controls.Add(RadioEnemyPropertiesAbilityRandom);
@@ -1744,16 +1770,41 @@
             GroupEnemiesPropertiesInhaleAbility.TabStop = false;
             GroupEnemiesPropertiesInhaleAbility.Text = "Enemies Inhale Ability";
             // 
+            // CheckboxEnemyPropertiesAbilityNormal
+            // 
+            CheckboxEnemyPropertiesAbilityNormal.AutoSize = true;
+            CheckboxEnemyPropertiesAbilityNormal.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            CheckboxEnemyPropertiesAbilityNormal.Location = new Point(173, 22);
+            CheckboxEnemyPropertiesAbilityNormal.Name = "CheckboxEnemyPropertiesAbilityNormal";
+            CheckboxEnemyPropertiesAbilityNormal.Size = new Size(155, 19);
+            CheckboxEnemyPropertiesAbilityNormal.TabIndex = 8;
+            CheckboxEnemyPropertiesAbilityNormal.Text = "Include \"Normal\" Ability";
+            CheckboxEnemyPropertiesAbilityNormal.UseVisualStyleBackColor = true;
+            CheckboxEnemyPropertiesAbilityNormal.CheckedChanged += CheckboxEnemyPropertiesAbilityNormal_CheckedChanged;
+            // 
+            // CheckboxEnemyPropertiesAbilityMix
+            // 
+            CheckboxEnemyPropertiesAbilityMix.AutoSize = true;
+            CheckboxEnemyPropertiesAbilityMix.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            CheckboxEnemyPropertiesAbilityMix.Location = new Point(173, 72);
+            CheckboxEnemyPropertiesAbilityMix.Name = "CheckboxEnemyPropertiesAbilityMix";
+            CheckboxEnemyPropertiesAbilityMix.Size = new Size(135, 19);
+            CheckboxEnemyPropertiesAbilityMix.TabIndex = 7;
+            CheckboxEnemyPropertiesAbilityMix.Text = "Include \"Mix\" Ability";
+            CheckboxEnemyPropertiesAbilityMix.UseVisualStyleBackColor = true;
+            CheckboxEnemyPropertiesAbilityMix.CheckedChanged += CheckboxEnemyPropertiesAbilityMix_CheckedChanged;
+            // 
             // CheckboxEnemyPropertiesAbilityMaster
             // 
             CheckboxEnemyPropertiesAbilityMaster.AutoSize = true;
             CheckboxEnemyPropertiesAbilityMaster.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            CheckboxEnemyPropertiesAbilityMaster.Location = new Point(173, 22);
+            CheckboxEnemyPropertiesAbilityMaster.Location = new Point(173, 47);
             CheckboxEnemyPropertiesAbilityMaster.Name = "CheckboxEnemyPropertiesAbilityMaster";
             CheckboxEnemyPropertiesAbilityMaster.Size = new Size(151, 19);
             CheckboxEnemyPropertiesAbilityMaster.TabIndex = 6;
             CheckboxEnemyPropertiesAbilityMaster.Text = "Include \"Master\" Ability";
             CheckboxEnemyPropertiesAbilityMaster.UseVisualStyleBackColor = true;
+            CheckboxEnemyPropertiesAbilityMaster.CheckedChanged += CheckboxEnemyPropertiesAbilityMaster_CheckedChanged;
             // 
             // RadioEnemyPropertiesAbilityShuffle
             // 
@@ -1765,6 +1816,7 @@
             RadioEnemyPropertiesAbilityShuffle.TabIndex = 5;
             RadioEnemyPropertiesAbilityShuffle.Text = "Shuffle";
             RadioEnemyPropertiesAbilityShuffle.UseVisualStyleBackColor = true;
+            RadioEnemyPropertiesAbilityShuffle.CheckedChanged += RadioEnemyPropertiesAbilityShuffle_CheckedChanged;
             // 
             // RadioEnemyPropertiesAbilityRandom
             // 
@@ -1776,6 +1828,7 @@
             RadioEnemyPropertiesAbilityRandom.TabIndex = 4;
             RadioEnemyPropertiesAbilityRandom.Text = "Random";
             RadioEnemyPropertiesAbilityRandom.UseVisualStyleBackColor = true;
+            RadioEnemyPropertiesAbilityRandom.CheckedChanged += RadioEnemyPropertiesAbilityRandom_CheckedChanged;
             // 
             // RadioEnemyPropertiesAbilityUnchanged
             // 
@@ -1789,6 +1842,7 @@
             RadioEnemyPropertiesAbilityUnchanged.TabStop = true;
             RadioEnemyPropertiesAbilityUnchanged.Text = "Unchanged";
             RadioEnemyPropertiesAbilityUnchanged.UseVisualStyleBackColor = true;
+            RadioEnemyPropertiesAbilityUnchanged.CheckedChanged += RadioEnemyPropertiesAbilityUnchanged_CheckedChanged;
             // 
             // GroupAbilityPedestals
             // 
@@ -1814,7 +1868,7 @@
             // 
             CheckboxBanParasol.AutoSize = true;
             CheckboxBanParasol.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            CheckboxBanParasol.Location = new Point(212, 49);
+            CheckboxBanParasol.Location = new Point(212, 47);
             CheckboxBanParasol.Name = "CheckboxBanParasol";
             CheckboxBanParasol.Size = new Size(167, 19);
             CheckboxBanParasol.TabIndex = 16;
@@ -2159,28 +2213,6 @@
             StatusLabel.Name = "StatusLabel";
             StatusLabel.Size = new Size(0, 17);
             // 
-            // checkBox2
-            // 
-            checkBox2.AutoSize = true;
-            checkBox2.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            checkBox2.Location = new Point(173, 47);
-            checkBox2.Name = "checkBox2";
-            checkBox2.Size = new Size(135, 19);
-            checkBox2.TabIndex = 7;
-            checkBox2.Text = "Include \"Mix\" Ability";
-            checkBox2.UseVisualStyleBackColor = true;
-            // 
-            // checkBox3
-            // 
-            checkBox3.AutoSize = true;
-            checkBox3.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            checkBox3.Location = new Point(173, 47);
-            checkBox3.Name = "checkBox3";
-            checkBox3.Size = new Size(135, 19);
-            checkBox3.TabIndex = 8;
-            checkBox3.Text = "Include \"Mix\" Ability";
-            checkBox3.UseVisualStyleBackColor = true;
-            // 
             // KatAMRandomizerMain
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
@@ -2422,6 +2454,8 @@
         private RadioButton RadioEnemyPropertiesAbilityRandom;
         private RadioButton RadioEnemyPropertiesAbilityUnchanged;
         private CheckBox checkBox3;
-        private CheckBox checkBox2;
+        private CheckBox CheckboxEnemyPropertiesAbilityMix;
+        private CheckBox checkBox5;
+        private CheckBox CheckboxEnemyPropertiesAbilityNormal;
     }
 }

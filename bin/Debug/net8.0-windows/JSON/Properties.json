@@ -1,35 +1,47 @@
 {
-  "Bronto Burt": [
+  "Waddle Dee": [
     {
       "Definition": "0405C800020000000803000009000000693C0A08DC7B3308",
       "ID": 0,
-      "Address": 0,
-      "Name": "Bronto Burt",
+      "Address": 3366428,
+      "Name": "Waddle Dee",
       "Damage Sprites": "0405",
       "HP": 2,
       "Copy Ability": 0,
       "Palette": 8
     }
   ],
-  "Blipper": [
+  "Bronto Burt": [
     {
       "Definition": "0405640002000000090300000900000039D70A08D0813308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Blipper",
+      "ID": 1,
+      "Address": 3366452,
+      "Name": "Bronto Burt",
       "Damage Sprites": "0405",
       "HP": 2,
       "Copy Ability": 0,
       "Palette": 9
     }
   ],
-  "Glunk": [
+  "Blipper": [
     {
       "Definition": "0C0D6400020000002703000009000000A5700A081C7C3308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Glunk",
+      "ID": 2,
+      "Address": 3366476,
+      "Name": "Blipper",
       "Damage Sprites": "0C0D",
+      "HP": 2,
+      "Copy Ability": 0,
+      "Palette": 39
+    }
+  ],
+  "Glunk": [
+    {
+      "Definition": "0304640002000000270300000900000089F50A08F4833308",
+      "ID": 3,
+      "Address": 3366500,
+      "Name": "Glunk",
+      "Damage Sprites": "0304",
       "HP": 2,
       "Copy Ability": 0,
       "Palette": 39
@@ -37,529 +49,519 @@
   ],
   "Squishy": [
     {
-      "Definition": "0304640002000000270300000900000089F50A08F4833308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Squishy",
-      "Damage Sprites": "0304",
-      "HP": 2,
-      "Copy Ability": 0,
-      "Palette": 39
-    }
-  ],
-  "Scarfy": [
-    {
       "Definition": "06076400020000002403000009000000CDF60A080C843308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Scarfy",
+      "ID": 4,
+      "Address": 3366524,
+      "Name": "Squishy",
       "Damage Sprites": "0607",
       "HP": 2,
       "Copy Ability": 0,
       "Palette": 36
     }
   ],
-  "Gordo": [
+  "Scarfy": [
     {
       "Definition": "0304960001000000320300001000000065800A08CC7C3308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Gordo",
+      "ID": 5,
+      "Address": 3366548,
+      "Name": "Scarfy",
       "Damage Sprites": "0304",
       "HP": 1,
       "Copy Ability": 0,
       "Palette": 50
     }
   ],
-  "Snooter": [
+  "Gordo": [
     {
       "Definition": "0000000002000000000000000E000000D1FB0908E8753308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Snooter",
+      "ID": 6,
+      "Address": 3366572,
+      "Name": "Gordo",
       "Damage Sprites": "0000",
       "HP": 2,
       "Copy Ability": 0,
       "Palette": 0
     }
   ],
-  "Chip": [
+  "Snooter": [
     {
       "Definition": "090A2C0104000000FB0200000C0000001DCB0A0854813308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Chip",
+      "ID": 7,
+      "Address": 3366596,
+      "Name": "Snooter",
       "Damage Sprites": "090A",
       "HP": 4,
       "Copy Ability": 0,
       "Palette": 251
     }
   ],
-  "Soarar": [
+  "Chip": [
     {
       "Definition": "0708640002000000F90200000C00000099B60A08FC803308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Soarar",
+      "ID": 8,
+      "Address": 3366620,
+      "Name": "Chip",
       "Damage Sprites": "0708",
       "HP": 2,
       "Copy Ability": 0,
       "Palette": 249
     }
   ],
-  "Haley": [
+  "Soarar": [
     {
       "Definition": "0B0C960002000000FC0200000C00000055B80A0820813308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Haley",
+      "ID": 9,
+      "Address": 3366644,
+      "Name": "Soarar",
       "Damage Sprites": "0B0C",
       "HP": 2,
       "Copy Ability": 0,
       "Palette": 252
     }
   ],
-  "Roly-Poly": [
+  "Haley": [
     {
       "Definition": "0203C80002000000F80200000C000000110E0A08D4763308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Roly-Poly",
+      "ID": 10,
+      "Address": 3366668,
+      "Name": "Haley",
       "Damage Sprites": "0203",
       "HP": 2,
       "Copy Ability": 0,
       "Palette": 248
     }
   ],
-  "Cupie": [
+  "Roly-Poly": [
     {
       "Definition": "04052C010200000000030000090000004DD50A08B8813308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Cupie",
+      "ID": 11,
+      "Address": 3366692,
+      "Name": "Roly-Poly",
       "Damage Sprites": "0405",
       "HP": 2,
       "Copy Ability": 0,
       "Palette": 0
     }
   ],
-  "Blockin": [
+  "Cupie": [
     {
       "Definition": "0405C80002001300FD02000014000000692A0A0868773308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Blockin",
+      "ID": 12,
+      "Address": 3366716,
+      "Name": "Cupie",
       "Damage Sprites": "0405",
       "HP": 2,
       "Copy Ability": 19,
       "Palette": 253
     }
   ],
-  "Snooter 2": [
+  "Blockin": [
     {
       "Definition": "0304C800020000000F0300000C00000049490A08F47B3308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Snooter 2",
+      "ID": 13,
+      "Address": 3366740,
+      "Name": "Blockin",
       "Damage Sprites": "0304",
       "HP": 2,
       "Copy Ability": 0,
       "Palette": 15
     }
   ],
-  "Leap": [
+  "Snooter 2": [
     {
       "Definition": "0B0C2C0104000000FB0200000C0000001DCB0A0854813308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Leap",
+      "ID": 14,
+      "Address": 3366764,
+      "Name": "Snooter 2",
       "Damage Sprites": "0B0C",
       "HP": 4,
       "Copy Ability": 0,
       "Palette": 251
     }
   ],
-  "Jack": [
+  "Leap": [
     {
       "Definition": "0304C800020000001203000010000000A10E0B08E0843308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Jack",
+      "ID": 15,
+      "Address": 3366788,
+      "Name": "Leap",
       "Damage Sprites": "0304",
       "HP": 2,
       "Copy Ability": 0,
       "Palette": 18
     }
   ],
-  "Big Waddle Dee": [
+  "Jack": [
     {
       "Definition": "06079600020000001C030000100000007D880A081C7E3308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Big Waddle Dee",
+      "ID": 16,
+      "Address": 3366812,
+      "Name": "Jack",
       "Damage Sprites": "0607",
       "HP": 2,
       "Copy Ability": 0,
       "Palette": 28
     }
   ],
-  "Waddle Doo": [
+  "Big Waddle Dee": [
     {
       "Definition": "0304E803020000001403000019000000494F0A08087C3308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Waddle Doo",
+      "ID": 17,
+      "Address": 3366836,
+      "Name": "Big Waddle Dee",
       "Damage Sprites": "0304",
       "HP": 2,
       "Copy Ability": 0,
       "Palette": 20
     }
   ],
-  "Flamer": [
+  "Waddle Doo": [
     {
       "Definition": "08092C01040007000803000009000000CD690B08F88D3308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Flamer",
+      "ID": 18,
+      "Address": 3366860,
+      "Name": "Waddle Doo",
       "Damage Sprites": "0809",
       "HP": 4,
       "Copy Ability": 7,
       "Palette": 8
     }
   ],
-  "Hot Head": [
+  "Flamer": [
     {
       "Definition": "0B0C2C01040003001E0300000F000000ADA20B08448E3308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Hot Head",
+      "ID": 19,
+      "Address": 3366884,
+      "Name": "Flamer",
       "Damage Sprites": "0B0C",
       "HP": 4,
       "Copy Ability": 3,
       "Palette": 30
     }
   ],
-  "Laser Ball": [
+  "Hot Head": [
     {
       "Definition": "0304FA00040001001F03000009000000AD310C08EC9C3308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Laser Ball",
+      "ID": 20,
+      "Address": 3366908,
+      "Name": "Hot Head",
       "Damage Sprites": "0304",
       "HP": 4,
       "Copy Ability": 1,
       "Palette": 31
     }
   ],
-  "Pengy": [
+  "Laser Ball": [
     {
       "Definition": "04052C0104000D00210300000C000000592B0B0844873308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Pengy",
+      "ID": 21,
+      "Address": 3366932,
+      "Name": "Laser Ball",
       "Damage Sprites": "0405",
       "HP": 4,
       "Copy Ability": 13,
       "Palette": 33
     }
   ],
-  "Rocky": [
+  "Pengy": [
     {
       "Definition": "0708FA00040002002C0300000900000071BB0B08B88F3308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Rocky",
+      "ID": 22,
+      "Address": 3366956,
+      "Name": "Pengy",
       "Damage Sprites": "0708",
       "HP": 4,
       "Copy Ability": 2,
       "Palette": 44
     }
   ],
-  "Sir Kibble": [
+  "Rocky": [
     {
       "Definition": "0506900105000800230300000900000011E80B089C933308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Sir Kibble",
+      "ID": 23,
+      "Address": 3366980,
+      "Name": "Rocky",
       "Damage Sprites": "0506",
       "HP": 5,
       "Copy Ability": 8,
       "Palette": 35
     }
   ],
-  "Sparky": [
+  "Sir Kibble": [
     {
       "Definition": "04052C01040006002D0300000C00000081200B0828873308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Sparky",
+      "ID": 24,
+      "Address": 3367004,
+      "Name": "Sir Kibble",
       "Damage Sprites": "0405",
       "HP": 4,
       "Copy Ability": 6,
       "Palette": 45
     }
   ],
-  "Sword Knight": [
+  "Sparky": [
     {
       "Definition": "0809FA0004000F002E0300005A000000E9440C08249D3308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Sword Knight",
+      "ID": 25,
+      "Address": 3367028,
+      "Name": "Sparky",
       "Damage Sprites": "0809",
       "HP": 4,
       "Copy Ability": 15,
       "Palette": 46
     }
   ],
-  "UFO": [
+  "Sword Knight": [
     {
       "Definition": "0708F401040012002F0300001C00000091390B087C873308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "UFO",
+      "ID": 26,
+      "Address": 3367052,
+      "Name": "Sword Knight",
       "Damage Sprites": "0708",
       "HP": 4,
       "Copy Ability": 18,
       "Palette": 47
     }
   ],
-  "Twister": [
+  "UFO": [
     {
       "Definition": "0203E80302000E00260300000C000000454A0C08949D3308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Twister",
+      "ID": 27,
+      "Address": 3367076,
+      "Name": "UFO",
       "Damage Sprites": "0203",
       "HP": 2,
       "Copy Ability": 14,
       "Palette": 38
     }
   ],
-  "Wheelie": [
+  "Twister": [
     {
       "Definition": "03042C0104001000250300000C000000B9C30B08FC903308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Wheelie",
+      "ID": 28,
+      "Address": 3367100,
+      "Name": "Twister",
       "Damage Sprites": "0304",
       "HP": 4,
       "Copy Ability": 16,
       "Palette": 37
     }
   ],
-  "Noddy": [
+  "Wheelie": [
     {
       "Definition": "0708FA00040004002A030000090000000DC50B0810913308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Noddy",
+      "ID": 29,
+      "Address": 3367124,
+      "Name": "Wheelie",
       "Damage Sprites": "0708",
       "HP": 4,
       "Copy Ability": 4,
       "Palette": 42
     }
   ],
-  "Golem Press": [
+  "Noddy": [
     {
       "Definition": "0405640002000B0022030000090000005D220C08209C3308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Golem Press",
+      "ID": 30,
+      "Address": 3367148,
+      "Name": "Noddy",
       "Damage Sprites": "0405",
       "HP": 2,
       "Copy Ability": 11,
       "Palette": 34
     }
   ],
-  "Golem Roll": [
+  "Golem Press": [
     {
       "Definition": "0303DC0507000800EA020000380000007D630C08489E3308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Golem Roll",
+      "ID": 31,
+      "Address": 3367172,
+      "Name": "Golem Press",
       "Damage Sprites": "0303",
       "HP": 7,
       "Copy Ability": 8,
       "Palette": 234
     }
   ],
-  "Golem Punch": [
+  "Golem Roll": [
     {
       "Definition": "0303DC0507000800E9020000380000007D630C08489E3308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Golem Punch",
+      "ID": 32,
+      "Address": 3367196,
+      "Name": "Golem Roll",
       "Damage Sprites": "0303",
       "HP": 7,
       "Copy Ability": 8,
       "Palette": 233
     }
   ],
-  "Foley": [
+  "Golem Punch": [
     {
       "Definition": "0303DC0507000800EB020000380000007D630C08489E3308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Foley",
+      "ID": 33,
+      "Address": 3367220,
+      "Name": "Golem Punch",
       "Damage Sprites": "0303",
       "HP": 7,
       "Copy Ability": 8,
       "Palette": 235
     }
   ],
-  "Shooty": [
+  "Foley": [
     {
       "Definition": "0303C800020009000203000010000000E50B0C0854963308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Shooty",
+      "ID": 34,
+      "Address": 3367244,
+      "Name": "Foley",
       "Damage Sprites": "0303",
       "HP": 2,
       "Copy Ability": 9,
       "Palette": 2
     }
   ],
-  "Scarfy 2": [
+  "Shooty": [
     {
       "Definition": "1112F401020000000A0300000C000000BD1F0C082C973308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Scarfy 2",
+      "ID": 35,
+      "Address": 3367268,
+      "Name": "Shooty",
       "Damage Sprites": "1112",
       "HP": 2,
       "Copy Ability": 0,
       "Palette": 10
     }
   ],
-  "Boxin": [
+  "Scarfy 2": [
     {
       "Definition": "0505960001000000320300001000000065800A08CC7C3308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Boxin",
+      "ID": 36,
+      "Address": 3367292,
+      "Name": "Scarfy 2",
       "Damage Sprites": "0505",
       "HP": 1,
       "Copy Ability": 0,
       "Palette": 50
     }
   ],
-  "Cookin": [
+  "Boxin": [
     {
       "Definition": "0E0F580204001400070300000C000000B1570B0870883308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Cookin",
+      "ID": 37,
+      "Address": 3367316,
+      "Name": "Boxin",
       "Damage Sprites": "0E0F",
       "HP": 4,
       "Copy Ability": 20,
       "Palette": 7
     }
   ],
-  "Minny": [
+  "Cookin": [
     {
       "Definition": "0607C80002000C000B0300002300000095670B08088B3308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Minny",
+      "ID": 38,
+      "Address": 3367340,
+      "Name": "Cookin",
       "Damage Sprites": "0607",
       "HP": 2,
       "Copy Ability": 12,
       "Palette": 11
     }
   ],
-  "Bomber": [
+  "Minny": [
     {
       "Definition": "0203C80002001700FF020000040000003D3E0B0848883308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Bomber",
+      "ID": 39,
+      "Address": 3367364,
+      "Name": "Minny",
       "Damage Sprites": "0203",
       "HP": 2,
       "Copy Ability": 23,
       "Palette": 255
     }
   ],
-  "Heavy Knight": [
+  "Bomber": [
     {
       "Definition": "0405F401010018002B0300000900000005470C08649D3308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Heavy Knight",
+      "ID": 40,
+      "Address": 3367388,
+      "Name": "Bomber",
       "Damage Sprites": "0405",
       "HP": 1,
       "Copy Ability": 24,
       "Palette": 43
     }
   ],
-  "Giant Rocky": [
+  "Heavy Knight": [
     {
       "Definition": "0708E80308001200100300003C00000059FB0B08B8933308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Giant Rocky",
+      "ID": 41,
+      "Address": 3367412,
+      "Name": "Heavy Knight",
       "Damage Sprites": "0708",
       "HP": 8,
       "Copy Ability": 18,
       "Palette": 16
     }
   ],
-  "Metal Guardian": [
+  "Giant Rocky": [
     {
       "Definition": "0607E8030A000800150300001E00000089030C0834963308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Metal Guardian",
+      "ID": 42,
+      "Address": 3367436,
+      "Name": "Giant Rocky",
       "Damage Sprites": "0607",
       "HP": 10,
       "Copy Ability": 8,
       "Palette": 21
     }
   ],
-  "Nothing": [
+  "Metal Guardian": [
     {
       "Definition": "0506E8030A000D00110300001E000000A1E10B082C923308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Nothing",
+      "ID": 43,
+      "Address": 3367460,
+      "Name": "Metal Guardian",
       "Damage Sprites": "0506",
       "HP": 10,
       "Copy Ability": 13,
       "Palette": 17
-    },
+    }
+  ],
+  "Nothing": [
     {
-      "Definition": "0000C8000A00180099030000240000001199100810BA3308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Nothing",
-      "Damage Sprites": "0000",
-      "HP": 10,
-      "Copy Ability": 24,
-      "Palette": 153
-    },
-    {
-      "Definition": "05056400020000000E0300000C0000007DA71108B4C33308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Nothing",
-      "Damage Sprites": "0505",
-      "HP": 2,
-      "Copy Ability": 0,
-      "Palette": 14
-    },
-    {
-      "Definition": "0000307502000000900300003800000025FE0F0810B83308",
-      "ID": 0,
-      "Address": 0,
+      "Definition": "0000CC0002000000000000000900000015FE0908489E3308",
+      "ID": 44,
+      "Address": 3367484,
       "Name": "Nothing",
       "Damage Sprites": "0000",
       "HP": 2,
       "Copy Ability": 0,
-      "Palette": 144
+      "Palette": 0
+    },
+    {
+      "Definition": "0809C80002000C000B0300002300000095670B08088B3308",
+      "ID": 49,
+      "Address": 3367604,
+      "Name": "Nothing",
+      "Damage Sprites": "0809",
+      "HP": 2,
+      "Copy Ability": 12,
+      "Palette": 11
+    },
+    {
+      "Definition": "1313C800040000008303000010000000314F020838FA2D08",
+      "ID": 54,
+      "Address": 3367724,
+      "Name": "Nothing",
+      "Damage Sprites": "1313",
+      "HP": 4,
+      "Copy Ability": 0,
+      "Palette": 131
     },
     {
       "Definition": "0000204E20000000000000000000000031A40D08489E3308",
-      "ID": 0,
-      "Address": 0,
+      "ID": 83,
+      "Address": 3368420,
       "Name": "Nothing",
       "Damage Sprites": "0000",
       "HP": 32,
@@ -568,8 +570,8 @@
     },
     {
       "Definition": "000000000000000000000000000000002DA51108A8C33308",
-      "ID": 0,
-      "Address": 0,
+      "ID": 84,
+      "Address": 3368444,
       "Name": "Nothing",
       "Damage Sprites": "0000",
       "HP": 0,
@@ -578,8 +580,8 @@
     },
     {
       "Definition": "0000204E20000000000000000000000031A40D08489E3308",
-      "ID": 0,
-      "Address": 0,
+      "ID": 85,
+      "Address": 3368468,
       "Name": "Nothing",
       "Damage Sprites": "0000",
       "HP": 32,
@@ -588,8 +590,8 @@
     },
     {
       "Definition": "0000204E20000000000000000000000031A40D08489E3308",
-      "ID": 0,
-      "Address": 0,
+      "ID": 86,
+      "Address": 3368492,
       "Name": "Nothing",
       "Damage Sprites": "0000",
       "HP": 32,
@@ -598,8 +600,8 @@
     },
     {
       "Definition": "0000204E20000000000000000000000031A40D08489E3308",
-      "ID": 0,
-      "Address": 0,
+      "ID": 87,
+      "Address": 3368516,
       "Name": "Nothing",
       "Damage Sprites": "0000",
       "HP": 32,
@@ -608,8 +610,8 @@
     },
     {
       "Definition": "0000204E20000000000000000000000031A40D08489E3308",
-      "ID": 0,
-      "Address": 0,
+      "ID": 88,
+      "Address": 3368540,
       "Name": "Nothing",
       "Damage Sprites": "0000",
       "HP": 32,
@@ -618,8 +620,8 @@
     },
     {
       "Definition": "0000204E20000000000000000000000031A40D08489E3308",
-      "ID": 0,
-      "Address": 0,
+      "ID": 89,
+      "Address": 3368564,
       "Name": "Nothing",
       "Damage Sprites": "0000",
       "HP": 32,
@@ -628,8 +630,8 @@
     },
     {
       "Definition": "0000204E20000000000000000000000031A40D08489E3308",
-      "ID": 0,
-      "Address": 0,
+      "ID": 90,
+      "Address": 3368588,
       "Name": "Nothing",
       "Damage Sprites": "0000",
       "HP": 32,
@@ -638,8 +640,8 @@
     },
     {
       "Definition": "0000204E20000000000000000000000031A40D08489E3308",
-      "ID": 0,
-      "Address": 0,
+      "ID": 91,
+      "Address": 3368612,
       "Name": "Nothing",
       "Damage Sprites": "0000",
       "HP": 32,
@@ -648,8 +650,8 @@
     },
     {
       "Definition": "0000204E20000000000000000000000031A40D08489E3308",
-      "ID": 0,
-      "Address": 0,
+      "ID": 92,
+      "Address": 3368636,
       "Name": "Nothing",
       "Damage Sprites": "0000",
       "HP": 32,
@@ -657,19 +659,19 @@
       "Palette": 0
     },
     {
-      "Definition": "0000000000000000D30200003000000009C301083CF52D08",
-      "ID": 0,
-      "Address": 0,
+      "Definition": "0000204E20000000000000000000000031A40D08489E3308",
+      "ID": 93,
+      "Address": 3368660,
       "Name": "Nothing",
       "Damage Sprites": "0000",
-      "HP": 0,
+      "HP": 32,
       "Copy Ability": 0,
-      "Palette": 211
+      "Palette": 0
     },
     {
       "Definition": "0000000003000000D10200000400000089361208B0C63308",
-      "ID": 0,
-      "Address": 0,
+      "ID": 102,
+      "Address": 3368876,
       "Name": "Nothing",
       "Damage Sprites": "0000",
       "HP": 3,
@@ -678,8 +680,8 @@
     },
     {
       "Definition": "0000000003000000D10200000400000089361208B0C63308",
-      "ID": 0,
-      "Address": 0,
+      "ID": 103,
+      "Address": 3368900,
       "Name": "Nothing",
       "Damage Sprites": "0000",
       "HP": 3,
@@ -688,8 +690,8 @@
     },
     {
       "Definition": "0000000003000000D10200000400000089361208B0C63308",
-      "ID": 0,
-      "Address": 0,
+      "ID": 104,
+      "Address": 3368924,
       "Name": "Nothing",
       "Damage Sprites": "0000",
       "HP": 3,
@@ -698,8 +700,8 @@
     },
     {
       "Definition": "00000000000000000000000010000000FDAB010874F32D08",
-      "ID": 0,
-      "Address": 0,
+      "ID": 105,
+      "Address": 3368948,
       "Name": "Nothing",
       "Damage Sprites": "0000",
       "HP": 0,
@@ -708,8 +710,8 @@
     },
     {
       "Definition": "0000000003000000D10200000400000089361208B0C63308",
-      "ID": 0,
-      "Address": 0,
+      "ID": 106,
+      "Address": 3368972,
       "Name": "Nothing",
       "Damage Sprites": "0000",
       "HP": 3,
@@ -718,8 +720,18 @@
     },
     {
       "Definition": "0000000003000000D10200000400000089361208B0C63308",
-      "ID": 0,
-      "Address": 0,
+      "ID": 107,
+      "Address": 3368996,
+      "Name": "Nothing",
+      "Damage Sprites": "0000",
+      "HP": 3,
+      "Copy Ability": 0,
+      "Palette": 209
+    },
+    {
+      "Definition": "0000000003000000D10200000400000089361208B0C63308",
+      "ID": 108,
+      "Address": 3369020,
       "Name": "Nothing",
       "Damage Sprites": "0000",
       "HP": 3,
@@ -729,223 +741,213 @@
   ],
   "Batty": [
     {
-      "Definition": "0000CC0002000000000000000900000015FE0908489E3308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Batty",
-      "Damage Sprites": "0000",
-      "HP": 2,
-      "Copy Ability": 0,
-      "Palette": 0
-    }
-  ],
-  "Foley Automatic": [
-    {
       "Definition": "0405960002000000330300000C00000045D30B0834913308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Foley Automatic",
+      "ID": 45,
+      "Address": 3367508,
+      "Name": "Batty",
       "Damage Sprites": "0405",
       "HP": 2,
       "Copy Ability": 0,
       "Palette": 51
     }
   ],
-  "Bang-Bang": [
+  "Foley Automatic": [
     {
       "Definition": "0404C800020009000203000010000000350C0C0854963308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Bang-Bang",
+      "ID": 46,
+      "Address": 3367532,
+      "Name": "Foley Automatic",
       "Damage Sprites": "0404",
       "HP": 2,
       "Copy Ability": 9,
       "Palette": 2
     }
   ],
-  "Explosion": [
+  "Bang-Bang": [
     {
       "Definition": "1819C800020019003E0300001000000051700C08A49E3308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Explosion",
+      "ID": 47,
+      "Address": 3367556,
+      "Name": "Bang-Bang",
       "Damage Sprites": "1819",
       "HP": 2,
       "Copy Ability": 25,
       "Palette": 62
     }
   ],
-  "Droppy": [
+  "Explosion": [
     {
-      "Definition": "0809C80002000C000B0300002300000095670B08088B3308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Droppy",
-      "Damage Sprites": "0809",
-      "HP": 2,
-      "Copy Ability": 12,
-      "Palette": 11
+      "Definition": "0000C8000A00180099030000240000001199100810BA3308",
+      "ID": 48,
+      "Address": 3367580,
+      "Name": "Explosion",
+      "Damage Sprites": "0000",
+      "HP": 10,
+      "Copy Ability": 24,
+      "Palette": 153
     }
   ],
-  "Prank": [
+  "Droppy": [
     {
       "Definition": "1415F40104000000F70200001000000015FE09084C763308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Prank",
+      "ID": 50,
+      "Address": 3367628,
+      "Name": "Droppy",
       "Damage Sprites": "1415",
       "HP": 4,
       "Copy Ability": 0,
       "Palette": 247
     }
   ],
-  "Mirra": [
+  "Prank": [
     {
       "Definition": "1213C80004000000FA020000240000005D120A08E4763308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Mirra",
+      "ID": 51,
+      "Address": 3367652,
+      "Name": "Prank",
       "Damage Sprites": "1213",
       "HP": 4,
       "Copy Ability": 0,
       "Palette": 250
     }
   ],
-  "Shotzo": [
+  "Mirra": [
     {
       "Definition": "03032003020000003603000010000000ED100B0800873308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Shotzo",
+      "ID": 52,
+      "Address": 3367676,
+      "Name": "Mirra",
       "Damage Sprites": "0303",
       "HP": 2,
       "Copy Ability": 0,
       "Palette": 54
     }
   ],
-  "Waddle Dee 2": [
+  "Shotzo": [
     {
-      "Definition": "1313C800040000008303000010000000314F020838FA2D08",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Waddle Dee 2",
-      "Damage Sprites": "1313",
-      "HP": 4,
+      "Definition": "05056400020000000E0300000C0000007DA71108B4C33308",
+      "ID": 53,
+      "Address": 3367700,
+      "Name": "Shotzo",
+      "Damage Sprites": "0505",
+      "HP": 2,
       "Copy Ability": 0,
-      "Palette": 131
+      "Palette": 14
     }
   ],
-  "Mr. Frosty": [
+  "Waddle Dee 2": [
     {
       "Definition": "0405C8001E000000080300000900000029420A08DC7B3308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Mr. Frosty",
+      "ID": 55,
+      "Address": 3367748,
+      "Name": "Waddle Dee 2",
       "Damage Sprites": "0405",
       "HP": 30,
       "Copy Ability": 0,
       "Palette": 8
     }
   ],
-  "Bonkers": [
+  "Mr. Frosty": [
     {
       "Definition": "1112E8031E000200191300002400000021D20C08CCA43308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Bonkers",
+      "ID": 56,
+      "Address": 3367772,
+      "Name": "Mr. Frosty",
       "Damage Sprites": "1112",
       "HP": 30,
       "Copy Ability": 2,
       "Palette": 25
     }
   ],
-  "Phan Phan": [
+  "Bonkers": [
     {
       "Definition": "1415D007280011001A1300004800000019F80C082CA83308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Phan Phan",
+      "ID": 57,
+      "Address": 3367796,
+      "Name": "Bonkers",
       "Damage Sprites": "1415",
       "HP": 40,
       "Copy Ability": 17,
       "Palette": 26
     }
   ],
-  "Batafire": [
+  "Phan Phan": [
     {
       "Definition": "1D1ED0071E000A001B13000040000000CDF30C0858A63308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Batafire",
+      "ID": 58,
+      "Address": 3367820,
+      "Name": "Phan Phan",
       "Damage Sprites": "1D1E",
       "HP": 30,
       "Copy Ability": 10,
       "Palette": 27
     }
   ],
-  "Box Boxer": [
+  "Batafire": [
     {
       "Definition": "0C0DD0071E000300E7120000700000004D950C08B4A03308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Box Boxer",
+      "ID": 59,
+      "Address": 3367844,
+      "Name": "Batafire",
       "Damage Sprites": "0C0D",
       "HP": 30,
       "Copy Ability": 3,
       "Palette": 231
     }
   ],
-  "Boxy": [
+  "Box Boxer": [
     {
       "Definition": "1314D00728001400FE1200003F00000049750C080C9F3308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Boxy",
+      "ID": 60,
+      "Address": 3367868,
+      "Name": "Box Boxer",
       "Damage Sprites": "1314",
       "HP": 40,
       "Copy Ability": 20,
       "Palette": 254
     }
   ],
-  "Master Hand": [
+  "Boxy": [
     {
       "Definition": "0D0ED007280015003813000046000000FD760D0858A93308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Master Hand",
+      "ID": 61,
+      "Address": 3367892,
+      "Name": "Boxy",
       "Damage Sprites": "0D0E",
       "HP": 40,
       "Copy Ability": 21,
       "Palette": 56
     }
   ],
-  "Bombar": [
+  "Master Hand": [
     {
       "Definition": "1617D007280016003513000048000000B9190D08E4B03308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Bombar",
+      "ID": 62,
+      "Address": 3367916,
+      "Name": "Master Hand",
       "Damage Sprites": "1617",
       "HP": 40,
       "Copy Ability": 22,
       "Palette": 53
     }
   ],
-  "???": [
+  "Bombar": [
     {
       "Definition": "0809D007280019001613000046000000159E0D08F4A93308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "???",
+      "ID": 63,
+      "Address": 3367940,
+      "Name": "Bombar",
       "Damage Sprites": "0809",
       "HP": 40,
       "Copy Ability": 25,
       "Palette": 22
-    },
+    }
+  ],
+  "???": [
     {
       "Definition": "0000E00002000000000000000900000015FE0908489E3308",
-      "ID": 0,
-      "Address": 0,
+      "ID": 64,
+      "Address": 3367964,
       "Name": "???",
       "Damage Sprites": "0000",
       "HP": 2,
@@ -954,8 +956,8 @@
     },
     {
       "Definition": "0303DC050200000000000000380000007D630C08489E3308",
-      "ID": 0,
-      "Address": 0,
+      "ID": 65,
+      "Address": 3367988,
       "Name": "???",
       "Damage Sprites": "0303",
       "HP": 2,
@@ -964,8 +966,8 @@
     },
     {
       "Definition": "0303DC050200000000000000380000007D630C08489E3308",
-      "ID": 0,
-      "Address": 0,
+      "ID": 66,
+      "Address": 3368012,
       "Name": "???",
       "Damage Sprites": "0303",
       "HP": 2,
@@ -974,8 +976,8 @@
     },
     {
       "Definition": "0303DC050200000000000000380000007D630C08489E3308",
-      "ID": 0,
-      "Address": 0,
+      "ID": 67,
+      "Address": 3368036,
       "Name": "???",
       "Damage Sprites": "0303",
       "HP": 2,
@@ -983,19 +985,19 @@
       "Palette": 0
     },
     {
-      "Definition": "000000000000000000000000FFFFFFFF218B1108D4C23308",
-      "ID": 0,
-      "Address": 0,
+      "Definition": "0000204E02000000000000000900000015FE0908489E3308",
+      "ID": 68,
+      "Address": 3368060,
       "Name": "???",
       "Damage Sprites": "0000",
-      "HP": 0,
+      "HP": 2,
       "Copy Ability": 0,
       "Palette": 0
     },
     {
-      "Definition": "000000000000000000000000000000001DC1110810C43308",
-      "ID": 0,
-      "Address": 0,
+      "Definition": "0000000000000000000000000000000039B911080CC43308",
+      "ID": 115,
+      "Address": 3369188,
       "Name": "???",
       "Damage Sprites": "0000",
       "HP": 0,
@@ -1004,8 +1006,8 @@
     },
     {
       "Definition": "00000000000000000000000000000000A5C1110814C43308",
-      "ID": 0,
-      "Address": 0,
+      "ID": 117,
+      "Address": 3369236,
       "Name": "???",
       "Damage Sprites": "0000",
       "HP": 0,
@@ -1013,29 +1015,29 @@
       "Palette": 0
     },
     {
-      "Definition": "0000000000000000A202000004000000D5EF110884C43308",
-      "ID": 0,
-      "Address": 0,
+      "Definition": "0000000000000000000000000000000061C6110818C43308",
+      "ID": 118,
+      "Address": 3369260,
       "Name": "???",
       "Damage Sprites": "0000",
       "HP": 0,
       "Copy Ability": 0,
-      "Palette": 162
+      "Palette": 0
     },
     {
-      "Definition": "0000000003000000D20200001000000049BD0008E8A12D08",
-      "ID": 0,
-      "Address": 0,
+      "Definition": "0000000000000000000000000000000015F111088CC43308",
+      "ID": 122,
+      "Address": 3369356,
       "Name": "???",
       "Damage Sprites": "0000",
-      "HP": 3,
+      "HP": 0,
       "Copy Ability": 0,
-      "Palette": 210
+      "Palette": 0
     },
     {
       "Definition": "0000000000000000000000000000000049091208D8C43308",
-      "ID": 0,
-      "Address": 0,
+      "ID": 130,
+      "Address": 3369548,
       "Name": "???",
       "Damage Sprites": "0000",
       "HP": 0,
@@ -1043,19 +1045,9 @@
       "Palette": 0
     },
     {
-      "Definition": "0000000000000000E0020000180000009592110898C33308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "???",
-      "Damage Sprites": "0000",
-      "HP": 0,
-      "Copy Ability": 0,
-      "Palette": 224
-    },
-    {
-      "Definition": "00000000000000000000000000000000C12D020800000000",
-      "ID": 0,
-      "Address": 0,
+      "Definition": "00000000000000000000000000000000C5A80A0800000000",
+      "ID": 131,
+      "Address": 3369572,
       "Name": "???",
       "Damage Sprites": "0000",
       "HP": 0,
@@ -1063,9 +1055,9 @@
       "Palette": 0
     },
     {
-      "Definition": "00000000000000000000000000000000D9A80A0800000000",
-      "ID": 0,
-      "Address": 0,
+      "Definition": "00000000000000000000000000000000350F12080CC63308",
+      "ID": 135,
+      "Address": 3369668,
       "Name": "???",
       "Damage Sprites": "0000",
       "HP": 0,
@@ -1073,19 +1065,29 @@
       "Palette": 0
     },
     {
-      "Definition": "0000000001000000C30200000600000065A40A08BC7E3308",
-      "ID": 0,
-      "Address": 0,
+      "Definition": "0000000000000000C30200000600000011540208A0FA2D08",
+      "ID": 143,
+      "Address": 3369860,
       "Name": "???",
       "Damage Sprites": "0000",
-      "HP": 1,
+      "HP": 0,
       "Copy Ability": 0,
       "Palette": 195
     },
     {
-      "Definition": "0000320001000000000000000B030000A9200B0840873308",
-      "ID": 0,
-      "Address": 0,
+      "Definition": "000000000000000000000000000000001D56020800000000",
+      "ID": 145,
+      "Address": 3369908,
+      "Name": "???",
+      "Damage Sprites": "0000",
+      "HP": 0,
+      "Copy Ability": 0,
+      "Palette": 0
+    },
+    {
+      "Definition": "0000000001000000000000000F00000015B4020830C42E08",
+      "ID": 153,
+      "Address": 3370100,
       "Name": "???",
       "Damage Sprites": "0000",
       "HP": 1,
@@ -1093,29 +1095,29 @@
       "Palette": 0
     },
     {
-      "Definition": "0000C8000200090000000000040000009D4F02083C773308",
-      "ID": 0,
-      "Address": 0,
+      "Definition": "0000320001000000E70200002000000019B40C08F0A03308",
+      "ID": 161,
+      "Address": 3370292,
+      "Name": "???",
+      "Damage Sprites": "0000",
+      "HP": 1,
+      "Copy Ability": 0,
+      "Palette": 231
+    },
+    {
+      "Definition": "0000C800020000009A03000020000000CD981008F4B93308",
+      "ID": 202,
+      "Address": 3371276,
       "Name": "???",
       "Damage Sprites": "0000",
       "HP": 2,
-      "Copy Ability": 9,
-      "Palette": 0
-    },
-    {
-      "Definition": "0303C80002001B0099030000100000008964100800BA3308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "???",
-      "Damage Sprites": "0303",
-      "HP": 2,
-      "Copy Ability": 27,
-      "Palette": 153
+      "Copy Ability": 0,
+      "Palette": 154
     },
     {
       "Definition": "000000000800000000000000000000002D99100800000000",
-      "ID": 0,
-      "Address": 0,
+      "ID": 207,
+      "Address": 3371396,
       "Name": "???",
       "Damage Sprites": "0000",
       "HP": 8,
@@ -1124,8 +1126,8 @@
     },
     {
       "Definition": "0000204E0F2700009A03000020000000713A1108E0BA3308",
-      "ID": 0,
-      "Address": 0,
+      "ID": 208,
+      "Address": 3371420,
       "Name": "???",
       "Damage Sprites": "0000",
       "HP": 15,
@@ -1133,357 +1135,367 @@
       "Palette": 154
     },
     {
-      "Definition": "0000C80002000000FD020000100000006D370A0880773308",
-      "ID": 0,
-      "Address": 0,
+      "Definition": "00000000020000009A03000024000000B53A110804BB3308",
+      "ID": 209,
+      "Address": 3371444,
       "Name": "???",
       "Damage Sprites": "0000",
       "HP": 2,
       "Copy Ability": 0,
-      "Palette": 253
+      "Palette": 154
+    },
+    {
+      "Definition": "0000C800020000001C0300001000000001870A083C7E3308",
+      "ID": 217,
+      "Address": 3371636,
+      "Name": "???",
+      "Damage Sprites": "0000",
+      "HP": 2,
+      "Copy Ability": 0,
+      "Palette": 28
     }
   ],
   "Kracko": [
     {
-      "Definition": "0000204E02000000000000000900000015FE0908489E3308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Kracko",
-      "Damage Sprites": "0000",
-      "HP": 2,
-      "Copy Ability": 0,
-      "Palette": 0
-    }
-  ],
-  "King Golem": [
-    {
       "Definition": "0000204E3C0000003903000000000000BDBD0D08C0AB3308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "King Golem",
+      "ID": 69,
+      "Address": 3368084,
+      "Name": "Kracko",
       "Damage Sprites": "0000",
       "HP": 60,
       "Copy Ability": 0,
       "Palette": 57
     }
   ],
-  "Master Hand (Boss)": [
+  "King Golem": [
     {
       "Definition": "0404204E3C000000030300009600000031A40D0884AB3308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Master Hand (Boss)",
+      "ID": 70,
+      "Address": 3368108,
+      "Name": "King Golem",
       "Damage Sprites": "0404",
       "HP": 60,
       "Copy Ability": 0,
       "Palette": 3
     }
   ],
-  "Gobbler": [
+  "Master Hand (Boss)": [
     {
       "Definition": "1616204E3C000000351300004800000015F80D08E4B03308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Gobbler",
+      "ID": 71,
+      "Address": 3368132,
+      "Name": "Master Hand (Boss)",
       "Damage Sprites": "1616",
       "HP": 60,
       "Copy Ability": 0,
       "Palette": 53
     }
   ],
-  "Wiz": [
+  "Gobbler": [
     {
       "Definition": "1011204E3C0000000C0300005800000035430E08F4B13308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Wiz",
+      "ID": 72,
+      "Address": 3368156,
+      "Name": "Gobbler",
       "Damage Sprites": "1011",
       "HP": 60,
       "Copy Ability": 0,
       "Palette": 12
     }
   ],
-  "Moley": [
+  "Wiz": [
     {
       "Definition": "0000204E50000000171300004000000045820E08A8B43308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Moley",
+      "ID": 73,
+      "Address": 3368180,
+      "Name": "Wiz",
       "Damage Sprites": "0000",
       "HP": 80,
       "Copy Ability": 0,
       "Palette": 23
     }
   ],
-  "Mega Titan": [
+  "Moley": [
     {
       "Definition": "0000204E500000003F13000038000000C9B70E0864B53308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Mega Titan",
+      "ID": 74,
+      "Address": 3368204,
+      "Name": "Moley",
       "Damage Sprites": "0000",
       "HP": 80,
       "Copy Ability": 0,
       "Palette": 63
     }
   ],
-  "Titan Head": [
+  "Mega Titan": [
     {
       "Definition": "04048813280000003C0300003000000015DC0E0828B63308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Titan Head",
+      "ID": 75,
+      "Address": 3368228,
+      "Name": "Mega Titan",
       "Damage Sprites": "0404",
       "HP": 40,
       "Copy Ability": 0,
       "Palette": 60
     }
   ],
-  "Crazy Hand": [
+  "Titan Head": [
     {
       "Definition": "0505204E140000003D13000014000000ED470F088CB73308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Crazy Hand",
+      "ID": 76,
+      "Address": 3368252,
+      "Name": "Titan Head",
       "Damage Sprites": "0505",
       "HP": 20,
       "Copy Ability": 0,
       "Palette": 61
     }
   ],
-  "Dark Meta Knight (Boss)": [
+  "Crazy Hand": [
     {
       "Definition": "1616204E3C000000351300004800000015F80D08E4B03308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Dark Meta Knight (Boss)",
+      "ID": 77,
+      "Address": 3368276,
+      "Name": "Crazy Hand",
       "Damage Sprites": "1616",
       "HP": 60,
       "Copy Ability": 0,
       "Palette": 53
     }
   ],
-  "Dark Mind (1)": [
+  "Dark Meta Knight (Boss)": [
     {
       "Definition": "0000307502000000940300003800000025FE0F0810B83308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Dark Mind (1)",
+      "ID": 78,
+      "Address": 3368300,
+      "Name": "Dark Meta Knight (Boss)",
       "Damage Sprites": "0000",
       "HP": 2,
       "Copy Ability": 0,
       "Palette": 148
     }
   ],
-  "Dark Mind (2)": [
+  "Dark Mind (1)": [
     {
       "Definition": "000060EA0200000098030000B0000000B1151008C4B93308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Dark Mind (2)",
+      "ID": 79,
+      "Address": 3368324,
+      "Name": "Dark Mind (1)",
       "Damage Sprites": "0000",
       "HP": 2,
       "Copy Ability": 0,
       "Palette": 152
     }
   ],
-  "Dark Mind (Shooting)": [
+  "Dark Mind (2)": [
     {
       "Definition": "000060EA02000000990300000000000035C91008BCBA3308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Dark Mind (Shooting)",
+      "ID": 80,
+      "Address": 3368348,
+      "Name": "Dark Mind (2)",
       "Damage Sprites": "0000",
       "HP": 2,
       "Copy Ability": 0,
       "Palette": 153
     }
   ],
-  "Dark Meta Knight (Radish)": [
+  "Dark Mind (Shooting)": [
     {
       "Definition": "000060EA020000009C03000024000000A94A110880C23308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Dark Meta Knight (Radish)",
+      "ID": 81,
+      "Address": 3368372,
+      "Name": "Dark Mind (Shooting)",
       "Damage Sprites": "0000",
       "HP": 2,
       "Copy Ability": 0,
       "Palette": 156
     }
   ],
+  "Dark Meta Knight (Radish)": [
+    {
+      "Definition": "0000307502000000900300003800000025FE0F0810B83308",
+      "ID": 82,
+      "Address": 3368396,
+      "Name": "Dark Meta Knight (Radish)",
+      "Damage Sprites": "0000",
+      "HP": 2,
+      "Copy Ability": 0,
+      "Palette": 144
+    }
+  ],
   "Cherry": [
     {
-      "Definition": "0000204E20000000000000000000000031A40D08489E3308",
-      "ID": 0,
-      "Address": 0,
+      "Definition": "00000000010000000000000004000000752E1208BCC63308",
+      "ID": 94,
+      "Address": 3368684,
       "Name": "Cherry",
       "Damage Sprites": "0000",
-      "HP": 32,
+      "HP": 1,
       "Copy Ability": 0,
       "Palette": 0
     }
   ],
   "Pep Brew": [
     {
-      "Definition": "00000000010000000000000004000000752E1208BCC63308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Pep Brew",
-      "Damage Sprites": "0000",
-      "HP": 1,
-      "Copy Ability": 0,
-      "Palette": 0
-    }
-  ],
-  "Meat": [
-    {
       "Definition": "00000000020000000000000004000000752E1208B0C63308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Meat",
+      "ID": 95,
+      "Address": 3368708,
+      "Name": "Pep Brew",
       "Damage Sprites": "0000",
       "HP": 2,
       "Copy Ability": 0,
       "Palette": 0
     }
   ],
-  "Maximum Tomato": [
+  "Meat": [
     {
       "Definition": "00000000030000000000000004000000752E1208D4C63308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Maximum Tomato",
+      "ID": 96,
+      "Address": 3368732,
+      "Name": "Meat",
       "Damage Sprites": "0000",
       "HP": 3,
       "Copy Ability": 0,
       "Palette": 0
     }
   ],
-  "Battery": [
+  "Maximum Tomato": [
     {
       "Definition": "000000000A0000000000000004000000752E1208B8C63308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Battery",
+      "ID": 97,
+      "Address": 3368756,
+      "Name": "Maximum Tomato",
       "Damage Sprites": "0000",
       "HP": 10,
       "Copy Ability": 0,
       "Palette": 0
     }
   ],
-  "1UP": [
+  "Battery": [
     {
       "Definition": "00000000030000000000000004000000752E1208D8C63308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "1UP",
+      "ID": 98,
+      "Address": 3368780,
+      "Name": "Battery",
       "Damage Sprites": "0000",
       "HP": 3,
       "Copy Ability": 0,
       "Palette": 0
     }
   ],
-  "Lollipop": [
+  "1UP": [
     {
       "Definition": "00000000010000000000000004000000752E1208DCC63308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Lollipop",
+      "ID": 99,
+      "Address": 3368804,
+      "Name": "1UP",
       "Damage Sprites": "0000",
       "HP": 1,
       "Copy Ability": 0,
       "Palette": 0
     }
   ],
-  "Mirror Shard": [
+  "Lollipop": [
     {
       "Definition": "00000000C80000000000000004000000752E1208B4C63308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Mirror Shard",
+      "ID": 100,
+      "Address": 3368828,
+      "Name": "Lollipop",
       "Damage Sprites": "0000",
       "HP": 200,
       "Copy Ability": 0,
       "Palette": 0
     }
   ],
-  "Small Button": [
+  "Mirror Shard": [
     {
-      "Definition": "0000000003000000D10200000400000089361208B0C63308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Small Button",
+      "Definition": "0000000000000000D30200003000000009C301083CF52D08",
+      "ID": 101,
+      "Address": 3368852,
+      "Name": "Mirror Shard",
       "Damage Sprites": "0000",
-      "HP": 3,
+      "HP": 0,
       "Copy Ability": 0,
-      "Palette": 209
+      "Palette": 211
     }
   ],
-  "Small Flame": [
+  "Small Button": [
     {
       "Definition": "00000000000000000403000004000000959211088CC33308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Small Flame",
+      "ID": 109,
+      "Address": 3369044,
+      "Name": "Small Button",
       "Damage Sprites": "0000",
       "HP": 0,
       "Copy Ability": 0,
       "Palette": 4
     }
   ],
-  "Mirror": [
+  "Small Flame": [
     {
       "Definition": "00000000000000000503000004000000D99B1108A4C33308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Mirror",
+      "ID": 110,
+      "Address": 3369068,
+      "Name": "Small Flame",
       "Damage Sprites": "0000",
       "HP": 0,
       "Copy Ability": 0,
       "Palette": 5
     }
   ],
-  "Shotzo 2": [
+  "Mirror": [
     {
       "Definition": "000000000000000000000000FFFFFFFF2DA51108A8C33308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Shotzo 2",
+      "ID": 111,
+      "Address": 3369092,
+      "Name": "Mirror",
       "Damage Sprites": "0000",
       "HP": 0,
       "Copy Ability": 0,
       "Palette": 0
     }
   ],
-  "Stone Sliding Door": [
+  "Shotzo 2": [
     {
       "Definition": "00000000000000000E030000060000007DA71108B4C33308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Stone Sliding Door",
+      "ID": 112,
+      "Address": 3369116,
+      "Name": "Shotzo 2",
       "Damage Sprites": "0000",
       "HP": 0,
       "Copy Ability": 0,
       "Palette": 14
     }
   ],
-  "Boss Endurance Mirror": [
+  "Stone Sliding Door": [
     {
       "Definition": "0000000000000000DF0200001000000019B9110800C43308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Boss Endurance Mirror",
+      "ID": 113,
+      "Address": 3369140,
+      "Name": "Stone Sliding Door",
       "Damage Sprites": "0000",
       "HP": 0,
       "Copy Ability": 0,
       "Palette": 223
     }
   ],
+  "Boss Endurance Mirror": [
+    {
+      "Definition": "000000000000000000000000FFFFFFFF218B1108D4C23308",
+      "ID": 114,
+      "Address": 3369164,
+      "Name": "Boss Endurance Mirror",
+      "Damage Sprites": "0000",
+      "HP": 0,
+      "Copy Ability": 0,
+      "Palette": 0
+    }
+  ],
   "Crumbling Block": [
     {
-      "Definition": "0000000000000000000000000000000039B911080CC43308",
-      "ID": 0,
-      "Address": 0,
+      "Definition": "000000000000000000000000000000001DC1110810C43308",
+      "ID": 116,
+      "Address": 3369212,
       "Name": "Crumbling Block",
       "Damage Sprites": "0000",
       "HP": 0,
@@ -1493,9 +1505,9 @@
   ],
   "Camera Locker Object": [
     {
-      "Definition": "0000000000000000000000000000000061C6110818C43308",
-      "ID": 0,
-      "Address": 0,
+      "Definition": "00000000000000000000000000000000DDC811081CC43308",
+      "ID": 119,
+      "Address": 3369284,
       "Name": "Camera Locker Object",
       "Damage Sprites": "0000",
       "HP": 0,
@@ -1505,41 +1517,21 @@
   ],
   "Fuse": [
     {
-      "Definition": "00000000000000000000000000000000DDC811081CC43308",
-      "ID": 0,
-      "Address": 0,
+      "Definition": "0000000000000000DD020000040000009DDC110820C43308",
+      "ID": 120,
+      "Address": 3369308,
       "Name": "Fuse",
       "Damage Sprites": "0000",
       "HP": 0,
       "Copy Ability": 0,
-      "Palette": 0
+      "Palette": 221
     }
   ],
   "Star Stone Block": [
     {
-      "Definition": "0000000000000000DD020000040000009DDC110820C43308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Star Stone Block",
-      "Damage Sprites": "0000",
-      "HP": 0,
-      "Copy Ability": 0,
-      "Palette": 221
-    },
-    {
-      "Definition": "00000000000000000603000010000000F9FC110894C43308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Star Stone Block",
-      "Damage Sprites": "0000",
-      "HP": 0,
-      "Copy Ability": 0,
-      "Palette": 6
-    },
-    {
-      "Definition": "0000000000000000A20200001000000051001208C4C43308",
-      "ID": 0,
-      "Address": 0,
+      "Definition": "0000000000000000A202000004000000D5EF110884C43308",
+      "ID": 121,
+      "Address": 3369332,
       "Name": "Star Stone Block",
       "Damage Sprites": "0000",
       "HP": 0,
@@ -1547,19 +1539,39 @@
       "Palette": 162
     },
     {
-      "Definition": "00000000000000000000000000000000350F12080CC63308",
-      "ID": 0,
-      "Address": 0,
+      "Definition": "0000000000000000A20200001000000051001208C4C43308",
+      "ID": 125,
+      "Address": 3369428,
       "Name": "Star Stone Block",
       "Damage Sprites": "0000",
       "HP": 0,
       "Copy Ability": 0,
-      "Palette": 0
+      "Palette": 162
+    },
+    {
+      "Definition": "0000000000000000A2020000100000009D041208CCC43308",
+      "ID": 126,
+      "Address": 3369452,
+      "Name": "Star Stone Block",
+      "Damage Sprites": "0000",
+      "HP": 0,
+      "Copy Ability": 0,
+      "Palette": 162
     },
     {
       "Definition": "0000000000000000A2020000100000008913120810C63308",
-      "ID": 0,
-      "Address": 0,
+      "ID": 136,
+      "Address": 3369692,
+      "Name": "Star Stone Block",
+      "Damage Sprites": "0000",
+      "HP": 0,
+      "Copy Ability": 0,
+      "Palette": 162
+    },
+    {
+      "Definition": "0000000000000000A2020000100000004918120818C63308",
+      "ID": 137,
+      "Address": 3369716,
       "Name": "Star Stone Block",
       "Damage Sprites": "0000",
       "HP": 0,
@@ -1569,57 +1581,57 @@
   ],
   "Star Platform": [
     {
-      "Definition": "0000000000000000000000000000000015F111088CC43308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Star Platform",
-      "Damage Sprites": "0000",
-      "HP": 0,
-      "Copy Ability": 0,
-      "Palette": 0
-    }
-  ],
-  "Wall Flame": [
-    {
       "Definition": "0000000000000000E10200000800000045FB110890C43308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Wall Flame",
+      "ID": 123,
+      "Address": 3369380,
+      "Name": "Star Platform",
       "Damage Sprites": "0000",
       "HP": 0,
       "Copy Ability": 0,
       "Palette": 225
     }
   ],
-  "CPU mover": [
+  "Wall Flame": [
     {
-      "Definition": "0000000000000000A2020000100000009D041208CCC43308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "CPU mover",
+      "Definition": "00000000000000000603000010000000F9FC110894C43308",
+      "ID": 124,
+      "Address": 3369404,
+      "Name": "Wall Flame",
       "Damage Sprites": "0000",
       "HP": 0,
       "Copy Ability": 0,
-      "Palette": 162
+      "Palette": 6
     }
   ],
-  "Small Chest": [
+  "CPU mover": [
     {
       "Definition": "0000000000000000000000000000000095081208D4C43308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Small Chest",
+      "ID": 127,
+      "Address": 3369476,
+      "Name": "CPU mover",
       "Damage Sprites": "0000",
       "HP": 0,
       "Copy Ability": 0,
       "Palette": 0
     }
   ],
-  "Big Chest": [
+  "Small Chest": [
     {
       "Definition": "0000000003000000D20200000400000049BD0008D8A12D08",
-      "ID": 0,
-      "Address": 0,
+      "ID": 128,
+      "Address": 3369500,
+      "Name": "Small Chest",
+      "Damage Sprites": "0000",
+      "HP": 3,
+      "Copy Ability": 0,
+      "Palette": 210
+    }
+  ],
+  "Big Chest": [
+    {
+      "Definition": "0000000003000000D20200001000000049BD0008E8A12D08",
+      "ID": 129,
+      "Address": 3369524,
       "Name": "Big Chest",
       "Damage Sprites": "0000",
       "HP": 3,
@@ -1629,9 +1641,9 @@
   ],
   "Warp Star": [
     {
-      "Definition": "00000000000000000000000000000000C5A80A0800000000",
-      "ID": 0,
-      "Address": 0,
+      "Definition": "000000000000000000000000FFFFFFFF51DC0008B8ED2D08",
+      "ID": 132,
+      "Address": 3369596,
       "Name": "Warp Star",
       "Damage Sprites": "0000",
       "HP": 0,
@@ -1641,9 +1653,9 @@
   ],
   "Warp Star [Goal Game]": [
     {
-      "Definition": "000000000000000000000000FFFFFFFF51DC0008B8ED2D08",
-      "ID": 0,
-      "Address": 0,
+      "Definition": "000000000000000000000000FFFFFFFF55DC0008C0ED2D08",
+      "ID": 133,
+      "Address": 3369620,
       "Name": "Warp Star [Goal Game]",
       "Damage Sprites": "0000",
       "HP": 0,
@@ -1653,103 +1665,93 @@
   ],
   "Big Switch": [
     {
-      "Definition": "000000000000000000000000FFFFFFFF55DC0008C0ED2D08",
-      "ID": 0,
-      "Address": 0,
+      "Definition": "0000000000000000E0020000180000009592110898C33308",
+      "ID": 134,
+      "Address": 3369644,
       "Name": "Big Switch",
       "Damage Sprites": "0000",
       "HP": 0,
       "Copy Ability": 0,
-      "Palette": 0
+      "Palette": 224
     }
   ],
   "Fuse Cannon": [
     {
-      "Definition": "0000000000000000A2020000100000004918120818C63308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Fuse Cannon",
-      "Damage Sprites": "0000",
-      "HP": 0,
-      "Copy Ability": 0,
-      "Palette": 162
-    }
-  ],
-  "Manual Direction Cannon": [
-    {
       "Definition": "0000000000000000DD02000019000000011A120820C63308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Manual Direction Cannon",
+      "ID": 138,
+      "Address": 3369740,
+      "Name": "Fuse Cannon",
       "Damage Sprites": "0000",
       "HP": 0,
       "Copy Ability": 0,
       "Palette": 221
     }
   ],
-  "Special Hub Mirror": [
+  "Manual Direction Cannon": [
     {
       "Definition": "0000000000000000E302000019000000C123120840C63308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Special Hub Mirror",
+      "ID": 139,
+      "Address": 3369764,
+      "Name": "Manual Direction Cannon",
       "Damage Sprites": "0000",
       "HP": 0,
       "Copy Ability": 0,
       "Palette": 227
     }
   ],
-  "Stake": [
+  "Special Hub Mirror": [
     {
       "Definition": "000000000000000000000000000000002DE6010800000000",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Stake",
+      "ID": 140,
+      "Address": 3369788,
+      "Name": "Special Hub Mirror",
       "Damage Sprites": "0000",
       "HP": 0,
       "Copy Ability": 0,
       "Palette": 0
     }
   ],
-  "Cutscene Loader": [
+  "Stake": [
     {
       "Definition": "00000000010000000000000004000000FD52020898FA2D08",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Cutscene Loader",
+      "ID": 141,
+      "Address": 3369812,
+      "Name": "Stake",
       "Damage Sprites": "0000",
       "HP": 1,
       "Copy Ability": 0,
       "Palette": 0
     }
   ],
-  "Air Current Effect": [
+  "Cutscene Loader": [
     {
-      "Definition": "0000000000000000C30200000600000011540208A0FA2D08",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Air Current Effect",
-      "Damage Sprites": "0000",
-      "HP": 0,
-      "Copy Ability": 0,
-      "Palette": 195
-    }
-  ],
-  "Ability Stand": [
-    {
-      "Definition": "000000000000000000000000000000001D56020800000000",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Ability Stand",
+      "Definition": "00000000000000000000000000000000C12D020800000000",
+      "ID": 142,
+      "Address": 3369836,
+      "Name": "Cutscene Loader",
       "Damage Sprites": "0000",
       "HP": 0,
       "Copy Ability": 0,
       "Palette": 0
-    },
+    }
+  ],
+  "Air Current Effect": [
+    {
+      "Definition": "00000000000000000000000000000000D9A80A0800000000",
+      "ID": 144,
+      "Address": 3369884,
+      "Name": "Air Current Effect",
+      "Damage Sprites": "0000",
+      "HP": 0,
+      "Copy Ability": 0,
+      "Palette": 0
+    }
+  ],
+  "Ability Stand": [
     {
       "Definition": "0000000001000000850300000400000065A40A08707E3308",
-      "ID": 0,
-      "Address": 0,
+      "ID": 146,
+      "Address": 3369932,
       "Name": "Ability Stand",
       "Damage Sprites": "0000",
       "HP": 1,
@@ -1758,8 +1760,8 @@
     },
     {
       "Definition": "0000000001000000860300000400000065A40A08907E3308",
-      "ID": 0,
-      "Address": 0,
+      "ID": 147,
+      "Address": 3369956,
       "Name": "Ability Stand",
       "Damage Sprites": "0000",
       "HP": 1,
@@ -1768,172 +1770,172 @@
     },
     {
       "Definition": "0000000001000000000000000400000065A40A08AC7E3308",
-      "ID": 0,
-      "Address": 0,
+      "ID": 148,
+      "Address": 3369980,
       "Name": "Ability Stand",
       "Damage Sprites": "0000",
       "HP": 1,
       "Copy Ability": 0,
       "Palette": 0
-    }
-  ],
-  "Random Ability Stand": [
+    },
     {
       "Definition": "0000000001000000870300000400000065A40A08B07E3308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Random Ability Stand",
+      "ID": 149,
+      "Address": 3370004,
+      "Name": "Ability Stand",
       "Damage Sprites": "0000",
       "HP": 1,
       "Copy Ability": 0,
       "Palette": 135
     }
   ],
-  "Freezes the Game": [
+  "Random Ability Stand": [
     {
       "Definition": "000000000100000000000000000000000000000000000000",
-      "ID": 0,
-      "Address": 0,
+      "ID": 150,
+      "Address": 3370028,
+      "Name": "Random Ability Stand",
+      "Damage Sprites": "0000",
+      "HP": 1,
+      "Copy Ability": 0,
+      "Palette": 0
+    }
+  ],
+  "Freezes the Game": [
+    {
+      "Definition": "0000000001000000C612000014000000A9B00208E8C32E08",
+      "ID": 151,
+      "Address": 3370052,
       "Name": "Freezes the Game",
       "Damage Sprites": "0000",
       "HP": 1,
       "Copy Ability": 0,
-      "Palette": 0
+      "Palette": 198
     }
   ],
   "Resets the Game": [
     {
-      "Definition": "0000000001000000C612000014000000A9B00208E8C32E08",
-      "ID": 0,
-      "Address": 0,
+      "Definition": "0000000001000000C30200000600000065A40A08BC7E3308",
+      "ID": 152,
+      "Address": 3370076,
       "Name": "Resets the Game",
       "Damage Sprites": "0000",
       "HP": 1,
       "Copy Ability": 0,
-      "Palette": 198
+      "Palette": 195
     },
-    {
-      "Definition": "0000000001000000000000000F00000015B4020830C42E08",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Resets the Game",
-      "Damage Sprites": "0000",
-      "HP": 1,
-      "Copy Ability": 0,
-      "Palette": 0
-    },
-    {
-      "Definition": "0000C800020000000A0300000C000000B11D0C0878973308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Resets the Game",
-      "Damage Sprites": "0000",
-      "HP": 2,
-      "Copy Ability": 0,
-      "Palette": 10
-    }
-  ],
-  "King Golem's Rock": [
     {
       "Definition": "000000000000000000000000000000000000000000000000",
-      "ID": 0,
-      "Address": 0,
-      "Name": "King Golem's Rock",
+      "ID": 154,
+      "Address": 3370124,
+      "Name": "Resets the Game",
       "Damage Sprites": "0000",
       "HP": 0,
       "Copy Ability": 0,
       "Palette": 0
     }
   ],
-  "King Golem's Gordo": [
+  "King Golem's Rock": [
     {
       "Definition": "0000640001000000030300000900000061B50D08BCAB3308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "King Golem's Gordo",
+      "ID": 155,
+      "Address": 3370148,
+      "Name": "King Golem's Rock",
       "Damage Sprites": "0000",
       "HP": 1,
       "Copy Ability": 0,
       "Palette": 3
     }
   ],
-  "Foley's Propeller Leaves": [
+  "King Golem's Gordo": [
     {
       "Definition": "0000640001000000000000000E00000061B50D08E8753308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Foley's Propeller Leaves",
+      "ID": 156,
+      "Address": 3370172,
+      "Name": "King Golem's Gordo",
       "Damage Sprites": "0000",
       "HP": 1,
       "Copy Ability": 0,
       "Palette": 0
     }
   ],
-  "Frying Pan": [
+  "Foley's Propeller Leaves": [
     {
       "Definition": "0000C800010000000203000006000000690C0C0868963308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Frying Pan",
+      "ID": 157,
+      "Address": 3370196,
+      "Name": "Foley's Propeller Leaves",
       "Damage Sprites": "0000",
       "HP": 1,
       "Copy Ability": 0,
       "Palette": 2
     }
   ],
-  "Pacriel": [
+  "Frying Pan": [
     {
       "Definition": "0200C800010000000B0300000C000000F9670B08308B3308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Pacriel",
+      "ID": 158,
+      "Address": 3370220,
+      "Name": "Frying Pan",
       "Damage Sprites": "0200",
       "HP": 1,
       "Copy Ability": 0,
       "Palette": 11
     }
   ],
-  "Sir Kibble's Cutter Projectile": [
+  "Pacriel": [
     {
       "Definition": "090A6400070012000D0300000C00000025790E0840B23308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Sir Kibble's Cutter Projectile",
+      "ID": 159,
+      "Address": 3370244,
+      "Name": "Pacriel",
       "Damage Sprites": "090A",
       "HP": 7,
       "Copy Ability": 18,
       "Palette": 13
     }
   ],
-  "Parasol": [
+  "Sir Kibble's Cutter Projectile": [
     {
-      "Definition": "0000320001000000E70200002000000019B40C08F0A03308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Parasol",
+      "Definition": "0000320001000000000000000B030000A9200B0840873308",
+      "ID": 160,
+      "Address": 3370268,
+      "Name": "Sir Kibble's Cutter Projectile",
       "Damage Sprites": "0000",
       "HP": 1,
       "Copy Ability": 0,
-      "Palette": 231
+      "Palette": 0
     }
   ],
-  "Ability Star": [
+  "Parasol": [
     {
       "Definition": "00003200010005000000000009000000A12A0C08389C3308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Ability Star",
+      "ID": 162,
+      "Address": 3370316,
+      "Name": "Parasol",
       "Damage Sprites": "0000",
       "HP": 1,
       "Copy Ability": 5,
       "Palette": 0
     }
   ],
-  "Master Sword Ability Star": [
+  "Ability Star": [
     {
       "Definition": "040400000100000000000000FFFFFFFF95A80A08407E3308",
-      "ID": 0,
-      "Address": 0,
+      "ID": 163,
+      "Address": 3370340,
+      "Name": "Ability Star",
+      "Damage Sprites": "0404",
+      "HP": 1,
+      "Copy Ability": 0,
+      "Palette": 0
+    }
+  ],
+  "Master Sword Ability Star": [
+    {
+      "Definition": "0404000001000000000000001000000095A80A08587E3308",
+      "ID": 164,
+      "Address": 3370364,
       "Name": "Master Sword Ability Star",
       "Damage Sprites": "0404",
       "HP": 1,
@@ -1943,9 +1945,9 @@
   ],
   "Impact Star": [
     {
-      "Definition": "0404000001000000000000001000000095A80A08587E3308",
-      "ID": 0,
-      "Address": 0,
+      "Definition": "040432000100000000000000FFFFFFFF6D8E0A08407E3308",
+      "ID": 165,
+      "Address": 3370388,
       "Name": "Impact Star",
       "Damage Sprites": "0404",
       "HP": 1,
@@ -1955,11 +1957,11 @@
   ],
   "Mr. Frosty's Ice Cube": [
     {
-      "Definition": "040432000100000000000000FFFFFFFF6D8E0A08407E3308",
-      "ID": 0,
-      "Address": 0,
+      "Definition": "000032000100000000000000090000004DD20C081CA53308",
+      "ID": 166,
+      "Address": 3370412,
       "Name": "Mr. Frosty's Ice Cube",
-      "Damage Sprites": "0404",
+      "Damage Sprites": "0000",
       "HP": 1,
       "Copy Ability": 0,
       "Palette": 0
@@ -1967,11 +1969,11 @@
   ],
   "Mr. Frosty's Big Ice Cube": [
     {
-      "Definition": "000032000100000000000000090000004DD20C081CA53308",
-      "ID": 0,
-      "Address": 0,
+      "Definition": "010132000100000000000000190000004DD20C081CA53308",
+      "ID": 167,
+      "Address": 3370436,
       "Name": "Mr. Frosty's Big Ice Cube",
-      "Damage Sprites": "0000",
+      "Damage Sprites": "0101",
       "HP": 1,
       "Copy Ability": 0,
       "Palette": 0
@@ -1979,23 +1981,23 @@
   ],
   "Bonker's Coconut": [
     {
-      "Definition": "010132000100000000000000190000004DD20C081CA53308",
-      "ID": 0,
-      "Address": 0,
+      "Definition": "00003200010000001A0300000900000015130D088CA83308",
+      "ID": 168,
+      "Address": 3370460,
       "Name": "Bonker's Coconut",
-      "Damage Sprites": "0101",
+      "Damage Sprites": "0000",
       "HP": 1,
       "Copy Ability": 0,
-      "Palette": 0
+      "Palette": 26
     }
   ],
   "Bonker's Big Coconut": [
     {
-      "Definition": "00003200010000001A0300000900000015130D088CA83308",
-      "ID": 0,
-      "Address": 0,
+      "Definition": "01013200010000001A0300000900000015130D088CA83308",
+      "ID": 169,
+      "Address": 3370484,
       "Name": "Bonker's Big Coconut",
-      "Damage Sprites": "0000",
+      "Damage Sprites": "0101",
       "HP": 1,
       "Copy Ability": 0,
       "Palette": 26
@@ -2003,71 +2005,71 @@
   ],
   "Phan Phan's Apple": [
     {
-      "Definition": "01013200010000001A0300000900000015130D088CA83308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Phan Phan's Apple",
-      "Damage Sprites": "0101",
-      "HP": 1,
-      "Copy Ability": 0,
-      "Palette": 26
-    }
-  ],
-  "Prank's Fireball": [
-    {
       "Definition": "00003200010000001B0300000600000055F00C08D8A63308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Prank's Fireball",
+      "ID": 170,
+      "Address": 3370508,
+      "Name": "Phan Phan's Apple",
       "Damage Sprites": "0000",
       "HP": 1,
       "Copy Ability": 0,
       "Palette": 27
     }
   ],
-  "Prank's Ice Cube": [
+  "Prank's Fireball": [
     {
       "Definition": "0000C800010001000000000004000000B5230A0834773308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Prank's Ice Cube",
+      "ID": 171,
+      "Address": 3370532,
+      "Name": "Prank's Fireball",
       "Damage Sprites": "0000",
       "HP": 1,
       "Copy Ability": 1,
       "Palette": 0
     }
   ],
-  "Prank's Bomb": [
+  "Prank's Ice Cube": [
     {
       "Definition": "0000C800010002000000000004000000B5230A0838773308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Prank's Bomb",
+      "ID": 172,
+      "Address": 3370556,
+      "Name": "Prank's Ice Cube",
       "Damage Sprites": "0000",
       "HP": 1,
       "Copy Ability": 2,
       "Palette": 0
     }
   ],
-  "Prank's Frying Pan": [
+  "Prank's Bomb": [
     {
       "Definition": "0000C800010009000000000004000000B5230A083C773308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Prank's Frying Pan",
+      "ID": 173,
+      "Address": 3370580,
+      "Name": "Prank's Bomb",
       "Damage Sprites": "0000",
       "HP": 1,
       "Copy Ability": 9,
       "Palette": 0
     }
   ],
-  "Banana Peel": [
+  "Prank's Frying Pan": [
     {
       "Definition": "0202C80001000000FA0200000C000000F9670B0844773308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Banana Peel",
+      "ID": 174,
+      "Address": 3370604,
+      "Name": "Prank's Frying Pan",
       "Damage Sprites": "0202",
+      "HP": 1,
+      "Copy Ability": 0,
+      "Palette": 250
+    }
+  ],
+  "Banana Peel": [
+    {
+      "Definition": "0101C80001000000FA020000040000000D240A0850773308",
+      "ID": 175,
+      "Address": 3370628,
+      "Name": "Banana Peel",
+      "Damage Sprites": "0101",
       "HP": 1,
       "Copy Ability": 0,
       "Palette": 250
@@ -2075,165 +2077,165 @@
   ],
   "Boxy's Present Box": [
     {
-      "Definition": "0101C80001000000FA020000040000000D240A0850773308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Boxy's Present Box",
-      "Damage Sprites": "0101",
-      "HP": 1,
-      "Copy Ability": 0,
-      "Palette": 250
-    }
-  ],
-  "Exhaled Star": [
-    {
       "Definition": "0000C800010000003803000010000000A16F0D0898A93308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Exhaled Star",
+      "ID": 176,
+      "Address": 3370652,
+      "Name": "Boxy's Present Box",
       "Damage Sprites": "0000",
       "HP": 1,
       "Copy Ability": 0,
       "Palette": 56
     }
   ],
-  "Bombar's Bomb": [
+  "Exhaled Star": [
     {
       "Definition": "0202C8000100000000000000FFFFFFFFBD4E0D08DCA83308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Bombar's Bomb",
+      "ID": 177,
+      "Address": 3370676,
+      "Name": "Exhaled Star",
       "Damage Sprites": "0202",
       "HP": 1,
       "Copy Ability": 0,
       "Palette": 0
     }
   ],
-  "Bombar's Missile": [
+  "Bombar's Bomb": [
     {
       "Definition": "0101C800010009001603000009000000699E0D0820AA3308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Bombar's Missile",
+      "ID": 178,
+      "Address": 3370700,
+      "Name": "Bombar's Bomb",
       "Damage Sprites": "0101",
       "HP": 1,
       "Copy Ability": 9,
       "Palette": 22
     }
   ],
-  "Box Boxer's Hadouken": [
+  "Bombar's Missile": [
     {
       "Definition": "0808C80001001900160300000900000025990D0828AA3308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Box Boxer's Hadouken",
+      "ID": 179,
+      "Address": 3370724,
+      "Name": "Bombar's Missile",
       "Damage Sprites": "0808",
       "HP": 1,
       "Copy Ability": 25,
       "Palette": 22
     }
   ],
-  "Wiz' Rugby Ball": [
+  "Box Boxer's Hadouken": [
     {
       "Definition": "0101C80001000000FE020000180000001D8F0C08649F3308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Wiz' Rugby Ball",
+      "ID": 180,
+      "Address": 3370748,
+      "Name": "Box Boxer's Hadouken",
       "Damage Sprites": "0101",
       "HP": 1,
       "Copy Ability": 0,
       "Palette": 254
     }
   ],
-  "Wiz' Mini-car": [
+  "Wiz' Rugby Ball": [
     {
       "Definition": "0101C800020000001703000006000000F5A70E08FCB43308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Wiz' Mini-car",
+      "ID": 181,
+      "Address": 3370772,
+      "Name": "Wiz' Rugby Ball",
       "Damage Sprites": "0101",
       "HP": 2,
       "Copy Ability": 0,
       "Palette": 23
     }
   ],
-  "Wiz' Balloon": [
+  "Wiz' Mini-car": [
     {
       "Definition": "0101C800020004001703000009000000DDA80E0804B53308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Wiz' Balloon",
+      "ID": 182,
+      "Address": 3370796,
+      "Name": "Wiz' Mini-car",
       "Damage Sprites": "0101",
       "HP": 2,
       "Copy Ability": 4,
       "Palette": 23
     }
   ],
-  "Wiz' Bomb": [
+  "Wiz' Balloon": [
     {
       "Definition": "0101C800020000001703000008000000C9980E080CB53308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Wiz' Bomb",
+      "ID": 183,
+      "Address": 3370820,
+      "Name": "Wiz' Balloon",
       "Damage Sprites": "0101",
       "HP": 2,
       "Copy Ability": 0,
       "Palette": 23
     }
   ],
-  "Wiz' Cloud": [
+  "Wiz' Bomb": [
     {
       "Definition": "0000C800020009000000000004000000999A0E083C773308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Wiz' Cloud",
+      "ID": 184,
+      "Address": 3370844,
+      "Name": "Wiz' Bomb",
       "Damage Sprites": "0000",
       "HP": 2,
       "Copy Ability": 9,
       "Palette": 0
     }
   ],
-  "Poisonous Apple": [
+  "Wiz' Cloud": [
     {
       "Definition": "0202C80002000F001703000009000000B1A90E0814B53308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Poisonous Apple",
+      "ID": 185,
+      "Address": 3370868,
+      "Name": "Wiz' Cloud",
       "Damage Sprites": "0202",
       "HP": 2,
       "Copy Ability": 15,
       "Palette": 23
     }
   ],
-  "Wiz' Droppy Variant": [
+  "Poisonous Apple": [
     {
       "Definition": "0101C80002000B00170300000900000005A00E0820B53308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Wiz' Droppy Variant",
+      "ID": 186,
+      "Address": 3370892,
+      "Name": "Poisonous Apple",
       "Damage Sprites": "0101",
       "HP": 2,
       "Copy Ability": 11,
       "Palette": 23
     }
   ],
-  "Mega Titan Arm 1": [
+  "Wiz' Droppy Variant": [
     {
       "Definition": "1415C80002000000F702000010000000C1A20E084C763308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Mega Titan Arm 1",
+      "ID": 187,
+      "Address": 3370916,
+      "Name": "Wiz' Droppy Variant",
       "Damage Sprites": "1415",
       "HP": 2,
       "Copy Ability": 0,
       "Palette": 247
     }
   ],
-  "Mega Titan Arm 2": [
+  "Mega Titan Arm 1": [
     {
       "Definition": "0808C800640000003C0300001000000029F10E084CB63308",
-      "ID": 0,
-      "Address": 0,
+      "ID": 188,
+      "Address": 3370940,
+      "Name": "Mega Titan Arm 1",
+      "Damage Sprites": "0808",
+      "HP": 100,
+      "Copy Ability": 0,
+      "Palette": 60
+    }
+  ],
+  "Mega Titan Arm 2": [
+    {
+      "Definition": "0808C800640000003C03000010000000F1200F089CB63308",
+      "ID": 189,
+      "Address": 3370964,
       "Name": "Mega Titan Arm 2",
       "Damage Sprites": "0808",
       "HP": 100,
@@ -2243,9 +2245,9 @@
   ],
   "Mega Titan Arm 3": [
     {
-      "Definition": "0808C800640000003C03000010000000F1200F089CB63308",
-      "ID": 0,
-      "Address": 0,
+      "Definition": "0808C800640000003C0300001000000019150F08ECB63308",
+      "ID": 190,
+      "Address": 3370988,
       "Name": "Mega Titan Arm 3",
       "Damage Sprites": "0808",
       "HP": 100,
@@ -2255,9 +2257,9 @@
   ],
   "Mega Titan Arm 4": [
     {
-      "Definition": "0808C800640000003C0300001000000019150F08ECB63308",
-      "ID": 0,
-      "Address": 0,
+      "Definition": "0808C800640000003C03000010000000F52C0F083CB73308",
+      "ID": 191,
+      "Address": 3371012,
       "Name": "Mega Titan Arm 4",
       "Damage Sprites": "0808",
       "HP": 100,
@@ -2267,33 +2269,33 @@
   ],
   "Titan Head's Missile": [
     {
-      "Definition": "0808C800640000003C03000010000000F52C0F083CB73308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Titan Head's Missile",
-      "Damage Sprites": "0808",
-      "HP": 100,
-      "Copy Ability": 0,
-      "Palette": 60
-    }
-  ],
-  "Moley's Boulder": [
-    {
       "Definition": "0101C800020000003D0300000F00000029550F08ACB73308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Moley's Boulder",
+      "ID": 192,
+      "Address": 3371036,
+      "Name": "Titan Head's Missile",
       "Damage Sprites": "0101",
       "HP": 2,
       "Copy Ability": 0,
       "Palette": 61
     }
   ],
-  "Moley's Screw": [
+  "Moley's Boulder": [
     {
       "Definition": "0202C800020000003F0300000900000069C80E0898B53308",
-      "ID": 0,
-      "Address": 0,
+      "ID": 193,
+      "Address": 3371060,
+      "Name": "Moley's Boulder",
+      "Damage Sprites": "0202",
+      "HP": 2,
+      "Copy Ability": 0,
+      "Palette": 63
+    }
+  ],
+  "Moley's Screw": [
+    {
+      "Definition": "0202C800020000003F0300000900000069C80E08A4B53308",
+      "ID": 194,
+      "Address": 3371084,
       "Name": "Moley's Screw",
       "Damage Sprites": "0202",
       "HP": 2,
@@ -2303,141 +2305,141 @@
   ],
   "Moley's Tire": [
     {
-      "Definition": "0202C800020000003F0300000900000069C80E08A4B53308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Moley's Tire",
-      "Damage Sprites": "0202",
-      "HP": 2,
-      "Copy Ability": 0,
-      "Palette": 63
-    }
-  ],
-  "Moley's Big Bomb": [
-    {
       "Definition": "0202C800020004003F0300000900000069C80E08B0B53308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Moley's Big Bomb",
+      "ID": 195,
+      "Address": 3371108,
+      "Name": "Moley's Tire",
       "Damage Sprites": "0202",
       "HP": 2,
       "Copy Ability": 4,
       "Palette": 63
     }
   ],
-  "Moley's Massive Boulder": [
+  "Moley's Big Bomb": [
     {
       "Definition": "0202C800020009003F0300000900000069C80E08BCB53308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Moley's Massive Boulder",
+      "ID": 196,
+      "Address": 3371132,
+      "Name": "Moley's Big Bomb",
       "Damage Sprites": "0202",
       "HP": 2,
       "Copy Ability": 9,
       "Palette": 63
     }
   ],
-  "Moley's Oil Barrel": [
+  "Moley's Massive Boulder": [
     {
       "Definition": "0202C800020008003F0300001000000069C80E08C8B53308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Moley's Oil Barrel",
+      "ID": 197,
+      "Address": 3371156,
+      "Name": "Moley's Massive Boulder",
       "Damage Sprites": "0202",
       "HP": 2,
       "Copy Ability": 8,
       "Palette": 63
     }
   ],
-  "Moley's Spike Ball": [
+  "Moley's Oil Barrel": [
     {
       "Definition": "0202C800020003003F0300001000000069C80E08D4B53308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Moley's Spike Ball",
+      "ID": 198,
+      "Address": 3371180,
+      "Name": "Moley's Oil Barrel",
       "Damage Sprites": "0202",
       "HP": 2,
       "Copy Ability": 3,
       "Palette": 63
     }
   ],
-  "Master Hand's Fire Bullet": [
+  "Moley's Spike Ball": [
     {
       "Definition": "0202C80002000600410300001000000069C80E08E0B53308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Master Hand's Fire Bullet",
+      "ID": 199,
+      "Address": 3371204,
+      "Name": "Moley's Spike Ball",
       "Damage Sprites": "0202",
       "HP": 2,
       "Copy Ability": 6,
       "Palette": 65
     }
   ],
-  "Small Bomb": [
+  "Master Hand's Fire Bullet": [
     {
       "Definition": "0202C800010003003503000069000000F1320E0848B13308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Small Bomb",
+      "ID": 200,
+      "Address": 3371228,
+      "Name": "Master Hand's Fire Bullet",
       "Damage Sprites": "0202",
       "HP": 1,
       "Copy Ability": 3,
       "Palette": 53
     }
   ],
-  "Dark Mind's Red Star": [
+  "Small Bomb": [
     {
-      "Definition": "0000C800020000009A03000020000000CD981008F4B93308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Dark Mind's Red Star",
+      "Definition": "0000C8000200090000000000040000009D4F02083C773308",
+      "ID": 201,
+      "Address": 3371252,
+      "Name": "Small Bomb",
       "Damage Sprites": "0000",
       "HP": 2,
-      "Copy Ability": 0,
-      "Palette": 154
+      "Copy Ability": 9,
+      "Palette": 0
     }
   ],
-  "Dark Mind's Blue Star": [
+  "Dark Mind's Red Star": [
     {
       "Definition": "0000C8000200010099030000100000008964100800BA3308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Dark Mind's Blue Star",
+      "ID": 203,
+      "Address": 3371300,
+      "Name": "Dark Mind's Red Star",
       "Damage Sprites": "0000",
       "HP": 2,
       "Copy Ability": 1,
       "Palette": 153
     }
   ],
-  "Dark Mind's Purple Star": [
+  "Dark Mind's Blue Star": [
     {
       "Definition": "0101C8000200020099030000100000008964100800BA3308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Dark Mind's Purple Star",
+      "ID": 204,
+      "Address": 3371324,
+      "Name": "Dark Mind's Blue Star",
       "Damage Sprites": "0101",
       "HP": 2,
       "Copy Ability": 2,
       "Palette": 153
     }
   ],
-  "Dark Mind's Green Star": [
+  "Dark Mind's Purple Star": [
     {
       "Definition": "0202C80002000F0099030000100000008964100800BA3308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Dark Mind's Green Star",
+      "ID": 205,
+      "Address": 3371348,
+      "Name": "Dark Mind's Purple Star",
       "Damage Sprites": "0202",
       "HP": 2,
       "Copy Ability": 15,
       "Palette": 153
     }
   ],
+  "Dark Mind's Green Star": [
+    {
+      "Definition": "0303C80002001B0099030000100000008964100800BA3308",
+      "ID": 206,
+      "Address": 3371372,
+      "Name": "Dark Mind's Green Star",
+      "Damage Sprites": "0303",
+      "HP": 2,
+      "Copy Ability": 27,
+      "Palette": 153
+    }
+  ],
   "Dark Mind's Laser": [
     {
-      "Definition": "00000000020000009A03000024000000B53A110804BB3308",
-      "ID": 0,
-      "Address": 0,
+      "Definition": "00000000020000009A03000066000000F53A110814BB3308",
+      "ID": 210,
+      "Address": 3371468,
       "Name": "Dark Mind's Laser",
       "Damage Sprites": "0000",
       "HP": 2,
@@ -2447,9 +2449,9 @@
   ],
   "Dark Mind's Shooter Cutter": [
     {
-      "Definition": "00000000020000009A03000066000000F53A110814BB3308",
-      "ID": 0,
-      "Address": 0,
+      "Definition": "00000000020000009A03000010000000193B110820BB3308",
+      "ID": 211,
+      "Address": 3371492,
       "Name": "Dark Mind's Shooter Cutter",
       "Damage Sprites": "0000",
       "HP": 2,
@@ -2459,74 +2461,74 @@
   ],
   "Crashes the Game": [
     {
-      "Definition": "00000000020000009A03000010000000193B110820BB3308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Crashes the Game",
-      "Damage Sprites": "0000",
-      "HP": 2,
-      "Copy Ability": 0,
-      "Palette": 154
-    }
-  ],
-  "Cutter Projectile": [
-    {
       "Definition": "0000C8000200000099030000100000008964100800BA3308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Cutter Projectile",
+      "ID": 212,
+      "Address": 3371516,
+      "Name": "Crashes the Game",
       "Damage Sprites": "0000",
       "HP": 2,
       "Copy Ability": 0,
       "Palette": 153
     }
   ],
-  "Glunk's Bullet": [
+  "Cutter Projectile": [
     {
       "Definition": "0000C800020000002D03000006000000491F0B0840873308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Glunk's Bullet",
+      "ID": 213,
+      "Address": 3371540,
+      "Name": "Cutter Projectile",
       "Damage Sprites": "0000",
       "HP": 2,
       "Copy Ability": 0,
       "Palette": 45
     }
   ],
-  "Shotzo's Bullet": [
+  "Glunk's Bullet": [
     {
       "Definition": "0000C80002000000270300000600000021F00A0808843308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Shotzo's Bullet",
+      "ID": 214,
+      "Address": 3371564,
+      "Name": "Glunk's Bullet",
       "Damage Sprites": "0000",
       "HP": 2,
       "Copy Ability": 0,
       "Palette": 39
     }
   ],
-  "Cupie's Arrow": [
+  "Shotzo's Bullet": [
     {
       "Definition": "0000C800020000000E03000002000000ADB11108CCC33308",
-      "ID": 0,
-      "Address": 0,
-      "Name": "Cupie's Arrow",
+      "ID": 215,
+      "Address": 3371588,
+      "Name": "Shotzo's Bullet",
       "Damage Sprites": "0000",
       "HP": 2,
       "Copy Ability": 0,
       "Palette": 14
     }
   ],
+  "Cupie's Arrow": [
+    {
+      "Definition": "0000C80002000000FD020000100000006D370A0880773308",
+      "ID": 216,
+      "Address": 3371612,
+      "Name": "Cupie's Arrow",
+      "Damage Sprites": "0000",
+      "HP": 2,
+      "Copy Ability": 0,
+      "Palette": 253
+    }
+  ],
   "Shooty's Bomb": [
     {
-      "Definition": "0000C800020000001C0300001000000001870A083C7E3308",
-      "ID": 0,
-      "Address": 0,
+      "Definition": "0000C800020000000A0300000C000000B11D0C0878973308",
+      "ID": 218,
+      "Address": 3371660,
       "Name": "Shooty's Bomb",
       "Damage Sprites": "0000",
       "HP": 2,
       "Copy Ability": 0,
-      "Palette": 28
+      "Palette": 10
     }
   ]
 }

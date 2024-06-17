@@ -358,14 +358,18 @@ namespace KatAMInternal
         public GenerationOptions EnemiesPropertiesBehaviorType { get; set; }
         public bool isUsingUnusedBehaviors { get; set; }
         public GenerationOptions EnemiesInhaleAbilityType { get; set; }
+        public bool isEnemyIncludingNormalInhaleAbility { get; set; }
         public bool isEnemyIncludingMasterInhaleAbility { get; set; }
+        public bool isEnemyIncludingMixInhaleAbility { get; set; }
         public GenerationOptions EnemiesHPType { get; set; }
         public bool isEnemyHPPercentageModified { get; set; }
         public GenerationOptions MinibossesGenerationType { get; set; }
         public GenerationOptions MinibossesPropertiesSpeedType { get; set; }
         public GenerationOptions MinibossesPropertiesBehaviorType { get; set; }
         public GenerationOptions MinibossesInhaleAbilityType { get; set; }
+        public bool isMinibossIncludingNormalInhaleAbility { get; set; }
         public bool isMinibossIncludingMasterInhaleAbility { get; set; }
+        public bool isMinibossIncludingMixInhaleAbility { get; set; }
         public GenerationOptions MinibossesHPType { get; set; }
         public bool isMinibossHPPercentageModified { get; set; }
         public GenerationOptions PedestalsGenerationType { get; set; }
