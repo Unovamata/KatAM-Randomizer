@@ -30,13 +30,19 @@ namespace KatAMInternal
         public Processing() {
             Settings = new Settings();
 
-            MergeDictionaries(parameters, enemiesDictionary);
-            MergeDictionaries(parameters, minibossesDictionary);
+            MergeSpecialDictionaries(parameters, enemiesDictionary);
+            MergeSpecialDictionaries(parameters, minibossesDictionary);
             MergeDictionaries(parameters, bossesDictionary);
             MergeDictionaries(parameters, itemsDictionary);
             MergeDictionaries(parameters, mirrorsDictionary);
             MergeDictionaries(parameters, abilityStandsDictionary);
             MergeDictionaries(parameters, mapElementsDictionary);
+        }
+
+        public void MergeSpecialDictionaries(Dictionary<byte, string> destination, Dictionary<byte, Tuple<string, byte, bool>> source) {
+            foreach (var item in source) {
+                destination[item.Key] = item.Value.Item1;
+            }
         }
 
         public void MergeDictionaries(Dictionary<byte, string> destination, Dictionary<byte, string> source) {
@@ -87,76 +93,77 @@ namespace KatAMInternal
         };
 
         // https://www.tapatalk.com/groups/lighthouse_of_yoshi/kirby-and-the-amazing-mirror-hacking-t741.html
-        public static Dictionary<byte, string> enemiesDictionary = new Dictionary<byte, string>{
-            { 0x00, "Waddle Dee" },
-            { 0x01, "Bronto Burt" },
-            { 0x02, "Blipper"},
-            { 0x03, "Glunk"},
-            { 0x04, "Squishy" },
-            { 0x05, "Scarfy" },
-            { 0x06, "Gordo" },
-            { 0x07, "Snooter" },
-            { 0x08, "Chip"},
-            { 0x09, "Soarar"},
-            { 0x0A, "Haley"},
-            { 0x0B, "Roly-Poly"},
-            { 0x0C, "Cupie"},
-            { 0x0D, "Blockin"},
-            { 0x0E, "Snooter 2"},
-            { 0x0F, "Leap"},
-            { 0x10, "Jack" },
-            { 0x11, "Big Waddle Dee" },
-            { 0x12, "Waddle Doo"},
-            { 0x13, "Flamer"},
-            { 0x14, "Hot Head" },
-            { 0x15, "Laser Ball" },
-            { 0x16, "Pengy" },
-            { 0x17, "Rocky" },
-            { 0x18, "Sir Kibble"},
-            { 0x19, "Sparky"},
-            { 0x1A, "Sword Knight"},
-            { 0x1B, "UFO"},
-            { 0x1C, "Twister"},
-            { 0x1D, "Wheelie"},
-            { 0x1E, "Noddy"},
-            { 0x1F, "Golem Press"},
-            { 0x20, "Golem Roll" },
-            { 0x21, "Golem Punch" },
-            { 0x22, "Foley"},
-            { 0x23, "Shooty"},
-            { 0x24, "Scarfy 2" },
-            { 0x25, "Boxin" },
-            { 0x26, "Cookin" },
-            { 0x27, "Minny" },
-            { 0x28, "Bomber"},
-            { 0x29, "Heavy Knight"},
-            { 0x2A, "Giant Rocky"},
-            { 0x2B, "Metal Guardian"},
-            { 0x2C, "Nothing"},
-            { 0x2D, "Batty"},
-            { 0x2E, "Foley Automatic"},
-            { 0x2F, "Bang-Bang"},
-            { 0x30, "Explosion" },
-            { 0x31, "Nothing" },
-            { 0x32, "Droppy"},
-            { 0x33, "Prank"},
-            { 0x34, "Mirra" },
-            { 0x35, "Shotzo" },
+        /*Prop(Enemy Name, Ability (Default: true), Is Inhalable? (Default: true))*/
+        public static Dictionary<byte, Tuple<string, byte, bool>> enemiesDictionary = new Dictionary<byte, Tuple<string, byte, bool>>{
+            { 0x00, Prop("Waddle Dee")},
+            { 0x01, Prop("Bronto Burt")},
+            { 0x02, Prop("Blipper")},
+            { 0x03, Prop("Glunk")},
+            { 0x04, Prop("Squishy")},
+            { 0x05, Prop("Scarfy", 0x00, false)},
+            { 0x06, Prop("Gordo", 0x00, false)},
+            { 0x07, Prop("Snooter")},
+            { 0x08, Prop("Chip")},
+            { 0x09, Prop("Soarar")},
+            { 0x0A, Prop("Haley")},
+            { 0x0B, Prop("Roly-Poly")},
+            { 0x0C, Prop("Cupie", 0x13)},
+            { 0x0D, Prop("Blockin", 0x00, false)},
+            { 0x0E, Prop("Snooter 2")},
+            { 0x0F, Prop("Leap")},
+            { 0x10, Prop("Jack")},
+            { 0x11, Prop("Big Waddle Dee")},
+            { 0x12, Prop("Waddle Doo", 0x07)},
+            { 0x13, Prop("Flamer", 0x03)},
+            { 0x14, Prop("Hot Head", 0x01)},
+            { 0x15, Prop("Laser Ball", 0x0D) },
+            { 0x16, Prop("Pengy", 0x02)},
+            { 0x17, Prop("Rocky", 0x08)},
+            { 0x18, Prop("Sir Kibble", 0x06)},
+            { 0x19, Prop("Sparky", 0x0F)},
+            { 0x1A, Prop("Sword Knight", 0x12)},
+            { 0x1B, Prop("UFO", 0x0E)},
+            { 0x1C, Prop("Twister", 0x10)},
+            { 0x1D, Prop("Wheelie", 0x04)},
+            { 0x1E, Prop("Noddy", 0x0B)},
+            { 0x1F, Prop("Golem Press", 0x08)},
+            { 0x20, Prop("Golem Roll", 0x04)},
+            { 0x21, Prop("Golem Punch", 0x14) },
+            { 0x22, Prop("Foley", 0x09)},
+            { 0x23, Prop("Shooty")},
+            { 0x24, Prop("Scarfy 2", 0x00, false)},
+            { 0x25, Prop("Boxin", 0x14)},
+            { 0x26, Prop("Cookin", 0x0C)},
+            { 0x27, Prop("Minny", 0x17)},
+            { 0x28, Prop("Bomber", 0x18)},
+            { 0x29, Prop("Heavy Knight", 0x12)},
+            { 0x2A, Prop("Giant Rocky", 0x08)},
+            { 0x2B, Prop("Metal Guardian", 0x0D)},
+            { 0x2C, Prop("Nothing", 0x00, false)},
+            { 0x2D, Prop("Batty")},
+            { 0x2E, Prop("Foley Automatic", 0x09)},
+            { 0x2F, Prop("Bang-Bang", 0x19)},
+            { 0x30, Prop("Explosion", 0x00, false)},
+            { 0x31, Prop("Nothing", 0x00, false)},
+            { 0x32, Prop("Droppy")},
+            { 0x33, Prop("Prank")},
+            { 0x34, Prop("Mirra", 0x00, false) },
+            { 0x35, Prop("Shotzo", 0x00, false)},
             /*{ 0x36, "Nothing" },*/ // Shadow Kirby with behavior 0 is nothing;
-            { 0x37, "Waddle Dee 2" },
-            { 0x70, "Shotzo 2"},
-            { 0xA2, "Parasol"}
+            { 0x37, Prop("Waddle Dee 2")},
+            { 0x70, Prop("Shotzo 2", 0x00, false)},
+            { 0xA2, Prop("Parasol", 0x05)}
         };
 
-        public static Dictionary<byte, string> minibossesDictionary = new Dictionary<byte, string>{
-            { 0x38, "Mr. Frosty" },
-            { 0x39, "Bonkers" },
-            { 0x3A, "Phan Phan"},
-            { 0x3B, "Batafire"},
-            { 0x3C, "Box Boxer" },
-            { 0x3D, "Boxy" },
-            { 0x3E, "Master Hand" },
-            { 0x3F, "Bombar" },
+        public static Dictionary<byte, Tuple<string, byte, bool>> minibossesDictionary = new Dictionary<byte, Tuple<string, byte, bool>>{
+            { 0x38, Prop("Mr. Frosty", 0x02)},
+            { 0x39, Prop("Bonkers", 0x11)},
+            { 0x3A, Prop("Phan Phan", 0x0A)},
+            { 0x3B, Prop("Batafire", 0x03)},
+            { 0x3C, Prop("Box Boxer", 0x14)},
+            { 0x3D, Prop("Boxy", 0x15)},
+            { 0x3E, Prop("Master Hand", 0x16)},
+            { 0x3F, Prop("Bombar", 0x19)},
         };
 
         public static Dictionary<byte, string> bossesDictionary = new Dictionary<byte, string>{
@@ -335,6 +342,13 @@ namespace KatAMInternal
             { 0xDB, "Resets the Game" }
         };
 
+        static Tuple<string, byte, bool> Prop(string name, byte abilityID = 0x00, bool isInhalable = true) {
+            return new Tuple<string, byte, bool>(name, abilityID, isInhalable);
+        }
+
+        static Tuple<string, byte, bool> Null(string name, byte abilityID = 0x00, bool isInhalable = false) {
+            return new Tuple<string, byte, bool>(name, abilityID, isInhalable);
+        }
     }
 
     public class Settings {

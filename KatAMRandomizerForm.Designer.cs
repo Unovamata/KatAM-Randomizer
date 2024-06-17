@@ -1729,6 +1729,7 @@
             RadioMinibossPropertiesAbilityShuffle.TabIndex = 5;
             RadioMinibossPropertiesAbilityShuffle.Text = "Shuffle";
             RadioMinibossPropertiesAbilityShuffle.UseVisualStyleBackColor = true;
+            RadioMinibossPropertiesAbilityShuffle.CheckedChanged += RadioMinibossPropertiesAbilityShuffle_CheckedChanged;
             // 
             // RadioMinibossPropertiesAbilityRandom
             // 
@@ -1740,6 +1741,7 @@
             RadioMinibossPropertiesAbilityRandom.TabIndex = 4;
             RadioMinibossPropertiesAbilityRandom.Text = "Random";
             RadioMinibossPropertiesAbilityRandom.UseVisualStyleBackColor = true;
+            RadioMinibossPropertiesAbilityRandom.CheckedChanged += RadioMinibossPropertiesAbilityRandom_CheckedChanged;
             // 
             // RadioMinibossPropertiesAbilityUnchanged
             // 
@@ -1753,6 +1755,7 @@
             RadioMinibossPropertiesAbilityUnchanged.TabStop = true;
             RadioMinibossPropertiesAbilityUnchanged.Text = "Unchanged";
             RadioMinibossPropertiesAbilityUnchanged.UseVisualStyleBackColor = true;
+            RadioMinibossPropertiesAbilityUnchanged.CheckedChanged += RadioMinibossPropertiesAbilityUnchanged_CheckedChanged;
             // 
             // GroupEnemiesPropertiesInhaleAbility
             // 

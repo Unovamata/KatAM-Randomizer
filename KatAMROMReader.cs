@@ -31,8 +31,6 @@ namespace KatAMRandomizer {
                     // Specify the object parameters and add them to the property list for future processing;
                     byte[] definition = property.Definition;
 
-                    Console.WriteLine(Processing.parameters[(byte)currentObjectID]);
-
                     property.Name = Processing.parameters[(byte) currentObjectID];
                     property.ID = (byte) currentObjectID;
                     property.DamageSprites = new byte[] { definition[0], definition[1] };
@@ -68,9 +66,9 @@ namespace KatAMRandomizer {
 
         // Calling the data linking information;
         List<int> roomIds = Processing.roomIds;
-        Dictionary<byte, string> enemiesDictionary = Processing.enemiesDictionary,
-                                 minibossesDictionary = Processing.minibossesDictionary,
-                                 bossesDictionary = Processing.bossesDictionary,
+        Dictionary<byte, Tuple<string, byte, bool>> enemiesDictionary = Processing.enemiesDictionary,
+                                                    minibossesDictionary = Processing.minibossesDictionary;
+        Dictionary<byte, string> bossesDictionary = Processing.bossesDictionary,
                                  itemsDictionary = Processing.itemsDictionary,
                                  mirrorsDictionary = Processing.mirrorsDictionary,
                                  abilityStandsDictionary = Processing.abilityStandsDictionary,
@@ -151,7 +149,7 @@ namespace KatAMRandomizer {
 
                     // Enemy references;
                     if (isEnemy) {
-                        entity.Name = enemiesDictionary[ID];
+                        entity.Name = enemiesDictionary[ID].Item1;
 
                         entity.AreAllPropertiesZeroes();
 
@@ -160,7 +158,7 @@ namespace KatAMRandomizer {
 
                     // Miniboss references;
                     else if (isMiniboss) {
-                        entity.Name = minibossesDictionary[ID];
+                        entity.Name = minibossesDictionary[ID].Item1;
                         minibosses.Add(entity);
                     }
 

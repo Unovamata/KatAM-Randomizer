@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Forms;
 using System.Xml.Linq;
 
 namespace KatAM_Randomizer {
@@ -19,36 +20,7 @@ namespace KatAM_Randomizer {
         Dictionary<byte, Properties> propertiesDictionary = new Dictionary<byte, Properties>();
         List<Properties> modifiedProperties = new List<Properties>();
 
-        List<byte> abilityIndexes = new List<byte>() {
-            0x00, // Normal*/
-            0x01, // Fire;
-            0x02, // Ice;
-            0x03, // Burning;
-            0x04, // Wheel;
-            0x05, // Parasol;
-            0x06, // Cutter;
-            0x07, // Beam;
-            0x08, // Stone;
-            0x09, // Bomb;
-            0x0A, // Throw;
-            0x0B, // Sleep;
-            0x0C, // Cook;
-            0x0D, // Laser;
-            0x0E, // UFO;
-            0x0F, // Spark;
-            0x10, // Tornado;
-            0x11, // Hammer;
-            0x12, // Sword
-            0x13, // Cupid;
-            0x14, // Fighter;
-            0x15, // Magic;
-            0x16, // Smash;
-            0x17, // Mini;
-            0x18, // Crash;
-            0x19, // Missile;
-            /*0x1A, // Master;
-            0x1B, // WAIT / Mix;*/
-        };
+        Dictionary<byte, Tuple<string, byte, bool>> enemiesDictionary;
 
         GenerationOptions EnemiesInhaleAbilityType,
                           MinibossesInhaleAbilityType;
@@ -61,13 +33,40 @@ namespace KatAM_Randomizer {
                     isMinibossIncludingMasterInhaleAbility,
                     isMinibossIncludingMixInhaleAbility;
 
-        void ManageProperties(IKatAMRandomizer Instance) {
-            propertiesDictionary = new Dictionary<byte, Properties>();
+        List<byte> InitializeAbilityList() {
+            return new List<byte>() {
+                0x00, // Normal*/
+                0x01, // Fire;
+                0x02, // Ice;
+                0x03, // Burning;
+                0x04, // Wheel;
+                0x05, // Parasol;
+                0x06, // Cutter;
+                0x07, // Beam;
+                0x08, // Stone;
+                0x09, // Bomb;
+                0x0A, // Throw;
+                0x0B, // Sleep;
+                0x0C, // Cook;
+                0x0D, // Laser;
+                0x0E, // UFO;
+                0x0F, // Spark;
+                0x10, // Tornado;
+                0x11, // Hammer;
+                0x12, // Sword
+                0x13, // Cupid;
+                0x14, // Fighter;
+                0x15, // Magic;
+                0x16, // Smash;
+                0x17, // Mini;
+                0x18, // Crash;
+                0x19, // Missile;
+                /*0x1A, // Master;
+                0x1B, // WAIT / Mix;*/
+            };
+        }
 
-            byte[] romFile = System.ROMData;
-
-            DeserializePropertiesJSON(Utils.JSONToObjects(Utils.propertiesJson), Instance);
-
+        void LoadRandomizationSettings() {
             EnemiesInhaleAbilityType = Settings.EnemiesInhaleAbilityType;
             isEnemyIncludingNormalInhaleAbility = Settings.isEnemyIncludingNormalInhaleAbility;
             isEnemyIncludingMasterInhaleAbility = Settings.isEnemyIncludingMasterInhaleAbility;
@@ -77,41 +76,80 @@ namespace KatAM_Randomizer {
             isMinibossIncludingNormalInhaleAbility = Settings.isMinibossIncludingNormalInhaleAbility;
             isMinibossIncludingMasterInhaleAbility = Settings.isMinibossIncludingMasterInhaleAbility;
             isMinibossIncludingMixInhaleAbility = Settings.isMinibossIncludingMixInhaleAbility;
+        }
+
+        void ManageProperties(IKatAMRandomizer Instance) {
+            List<byte> abilityIndexes = InitializeAbilityList();
+            propertiesDictionary = new Dictionary<byte, Properties>();
+            modifiedProperties = new List<Properties>();
+            enemiesDictionary = new Dictionary<byte, Tuple<string, byte, bool>>();
+
+            byte[] romFile = System.ROMData;
+
+            DeserializePropertiesJSON(Utils.JSONToObjects(Utils.propertiesJson), Instance);
+
+            LoadRandomizationSettings();
 
             List<byte> enemyAbilityIndexes = new List<byte>(abilityIndexes);
-
-            if (isEnemyIncludingNormalInhaleAbility) enemyAbilityIndexes.Add(0x00);
+        
             if (isEnemyIncludingMasterInhaleAbility) enemyAbilityIndexes.Add(0x1A);
             if (isEnemyIncludingMixInhaleAbility) enemyAbilityIndexes.Add(0x1B);
 
-            if(EnemiesInhaleAbilityType != GenerationOptions.Unchanged) {
-                foreach (byte id in Processing.enemiesDictionary.Keys) {
-                    Properties properties = propertiesDictionary[id];
+            // Removing non inhalable enemies;
+            List<byte> shuffleAbilities = new List<byte>();
 
-                    switch (EnemiesInhaleAbilityType) {
-                        case GenerationOptions.Shuffle:
+            if (EnemiesInhaleAbilityType == GenerationOptions.Shuffle) {
+                foreach (KeyValuePair<byte, Tuple<string, byte, bool>> kvp in Processing.enemiesDictionary) {
+                    byte key = kvp.Key;
+                    Tuple<string, byte, bool> tuple = kvp.Value;
 
-                        break;
+                    bool isInhalable = tuple.Item3;
 
-                        case GenerationOptions.Random:
-                            int index = Utils.GetRandomNumber(0, enemyAbilityIndexes.Count);
+                    // Filtering non-inhalable items so abilities don't go to uninhalable enemies;
+                    if (isInhalable) {
+                        enemiesDictionary[key] = tuple;
 
-                            properties.CopyAbility = enemyAbilityIndexes[index];
-                        break;
+                        shuffleAbilities.Add(tuple.Item2);
                     }
-
-                    modifiedProperties.Add(properties);
                 }
-            }
-            
 
+                shuffleAbilities = Utils.Shuffle(shuffleAbilities);
+            } else { 
+                enemiesDictionary = Processing.enemiesDictionary;
+
+                if (isEnemyIncludingNormalInhaleAbility) enemyAbilityIndexes.Add(0x00);
+            }
+
+            RandomizeAbilityProperties(EnemiesInhaleAbilityType, Processing.enemiesDictionary,
+                                       enemyAbilityIndexes, shuffleAbilities);
+
+
+            // Minibosses;
             List<byte> minibossAbilityIndexes = new List<byte>(abilityIndexes);
 
             if (isMinibossIncludingNormalInhaleAbility) minibossAbilityIndexes.Add(0x00);
             if (isMinibossIncludingMasterInhaleAbility) minibossAbilityIndexes.Add(0x1A);
             if (isMinibossIncludingMixInhaleAbility) minibossAbilityIndexes.Add(0x1B);
 
-            foreach(Properties property in modifiedProperties) {
+            shuffleAbilities = new List<byte>();
+
+            if (MinibossesInhaleAbilityType == GenerationOptions.Shuffle) {
+                foreach (KeyValuePair<byte, Tuple<string, byte, bool>> kvp in Processing.enemiesDictionary) {
+                    byte key = kvp.Key;
+                    Tuple<string, byte, bool> tuple = kvp.Value;
+
+                    enemiesDictionary[key] = tuple;
+
+                    shuffleAbilities.Add(tuple.Item2);
+                }
+
+                shuffleAbilities = Utils.Shuffle(shuffleAbilities);
+            }
+
+            RandomizeAbilityProperties(MinibossesInhaleAbilityType, Processing.minibossesDictionary, 
+                                       minibossAbilityIndexes, shuffleAbilities);
+
+            foreach (Properties property in modifiedProperties) {
                 Utils.WritePropertiesToROM(romFile, property);
             }
         }
@@ -149,6 +187,34 @@ namespace KatAM_Randomizer {
 
                     propertiesDictionary[property.ID] = property;
                 }
+            }
+        }
+
+        void RandomizeAbilityProperties(GenerationOptions inhaleType, 
+                                        Dictionary<byte, Tuple<string, byte, bool>> dictionary, 
+                                        List<byte> abilities, List<byte> shuffledAbilities) {
+            if (inhaleType == GenerationOptions.Unchanged) return;
+
+            int currentAbility = 0;
+
+            foreach (byte id in dictionary.Keys) {
+                Properties properties = propertiesDictionary[id];
+
+                switch (inhaleType) {
+                    case GenerationOptions.Shuffle:
+                        properties.CopyAbility = shuffledAbilities[currentAbility];
+
+                        currentAbility++;
+                    break;
+
+                    case GenerationOptions.Random:
+                        int index = Utils.GetRandomNumber(0, abilities.Count);
+
+                        properties.CopyAbility = abilities[index];
+                    break;
+                }
+
+                modifiedProperties.Add(properties);
             }
         }
 
