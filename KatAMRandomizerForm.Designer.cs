@@ -1684,7 +1684,7 @@
             groupBox3.Size = new Size(385, 161);
             groupBox3.TabIndex = 9;
             groupBox3.TabStop = false;
-            groupBox3.Text = "Minibosses Inhale Ability";
+            groupBox3.Text = "Mini-Bosses Inhale Ability";
             // 
             // checkBox5
             // 
