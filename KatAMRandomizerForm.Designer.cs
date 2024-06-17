@@ -454,7 +454,7 @@
             // 
             RadioChestsNo.AutoSize = true;
             RadioChestsNo.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            RadioChestsNo.Location = new Point(6, 72);
+            RadioChestsNo.Location = new Point(10, 72);
             RadioChestsNo.Name = "RadioChestsNo";
             RadioChestsNo.Size = new Size(79, 19);
             RadioChestsNo.TabIndex = 15;
@@ -505,7 +505,7 @@
             // 
             RadioChestsPropertiesRandom.AutoSize = true;
             RadioChestsPropertiesRandom.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            RadioChestsPropertiesRandom.Location = new Point(6, 97);
+            RadioChestsPropertiesRandom.Location = new Point(10, 97);
             RadioChestsPropertiesRandom.Name = "RadioChestsPropertiesRandom";
             RadioChestsPropertiesRandom.Size = new Size(70, 19);
             RadioChestsPropertiesRandom.TabIndex = 5;
@@ -516,7 +516,7 @@
             // 
             RadioChestsPropertiesRemoveHealing.AutoSize = true;
             RadioChestsPropertiesRemoveHealing.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            RadioChestsPropertiesRemoveHealing.Location = new Point(6, 47);
+            RadioChestsPropertiesRemoveHealing.Location = new Point(10, 47);
             RadioChestsPropertiesRemoveHealing.Name = "RadioChestsPropertiesRemoveHealing";
             RadioChestsPropertiesRemoveHealing.Size = new Size(143, 19);
             RadioChestsPropertiesRemoveHealing.TabIndex = 4;
@@ -528,7 +528,7 @@
             // 
             RadioChestsPropertiesRandomWithoutConsumables.AutoSize = true;
             RadioChestsPropertiesRandomWithoutConsumables.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            RadioChestsPropertiesRandomWithoutConsumables.Location = new Point(6, 72);
+            RadioChestsPropertiesRandomWithoutConsumables.Location = new Point(10, 72);
             RadioChestsPropertiesRandomWithoutConsumables.Name = "RadioChestsPropertiesRandomWithoutConsumables";
             RadioChestsPropertiesRandomWithoutConsumables.Size = new Size(191, 19);
             RadioChestsPropertiesRandomWithoutConsumables.TabIndex = 1;
@@ -541,7 +541,7 @@
             RadioChestsPropertiesUnchanged.AutoSize = true;
             RadioChestsPropertiesUnchanged.Checked = true;
             RadioChestsPropertiesUnchanged.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            RadioChestsPropertiesUnchanged.Location = new Point(6, 22);
+            RadioChestsPropertiesUnchanged.Location = new Point(10, 22);
             RadioChestsPropertiesUnchanged.Name = "RadioChestsPropertiesUnchanged";
             RadioChestsPropertiesUnchanged.Size = new Size(86, 19);
             RadioChestsPropertiesUnchanged.TabIndex = 0;
@@ -569,7 +569,7 @@
             // 
             RadioChestsShuffle.AutoSize = true;
             RadioChestsShuffle.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            RadioChestsShuffle.Location = new Point(6, 47);
+            RadioChestsShuffle.Location = new Point(10, 47);
             RadioChestsShuffle.Name = "RadioChestsShuffle";
             RadioChestsShuffle.Size = new Size(62, 19);
             RadioChestsShuffle.TabIndex = 14;
@@ -582,7 +582,7 @@
             RadioChestsUnchanged.AutoSize = true;
             RadioChestsUnchanged.Checked = true;
             RadioChestsUnchanged.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            RadioChestsUnchanged.Location = new Point(6, 22);
+            RadioChestsUnchanged.Location = new Point(10, 22);
             RadioChestsUnchanged.Name = "RadioChestsUnchanged";
             RadioChestsUnchanged.Size = new Size(86, 19);
             RadioChestsUnchanged.TabIndex = 14;
@@ -595,7 +595,7 @@
             // 
             CheckboxChestsMoreHPUP.AutoSize = true;
             CheckboxChestsMoreHPUP.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            CheckboxChestsMoreHPUP.Location = new Point(13, 127);
+            CheckboxChestsMoreHPUP.Location = new Point(10, 123);
             CheckboxChestsMoreHPUP.Name = "CheckboxChestsMoreHPUP";
             CheckboxChestsMoreHPUP.Size = new Size(121, 19);
             CheckboxChestsMoreHPUP.TabIndex = 5;
@@ -689,7 +689,7 @@
             // 
             RadioMirrorShardsRandom.AutoSize = true;
             RadioMirrorShardsRandom.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            RadioMirrorShardsRandom.Location = new Point(6, 47);
+            RadioMirrorShardsRandom.Location = new Point(10, 47);
             RadioMirrorShardsRandom.Name = "RadioMirrorShardsRandom";
             RadioMirrorShardsRandom.Size = new Size(70, 19);
             RadioMirrorShardsRandom.TabIndex = 4;
@@ -791,7 +791,7 @@
             // 
             RadioMirrorShardsCustom.AutoSize = true;
             RadioMirrorShardsCustom.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            RadioMirrorShardsCustom.Location = new Point(6, 72);
+            RadioMirrorShardsCustom.Location = new Point(10, 72);
             RadioMirrorShardsCustom.Name = "RadioMirrorShardsCustom";
             RadioMirrorShardsCustom.Size = new Size(67, 19);
             RadioMirrorShardsCustom.TabIndex = 1;
@@ -804,7 +804,7 @@
             RadioMirrorShardsUnchanged.AutoSize = true;
             RadioMirrorShardsUnchanged.Checked = true;
             RadioMirrorShardsUnchanged.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            RadioMirrorShardsUnchanged.Location = new Point(6, 22);
+            RadioMirrorShardsUnchanged.Location = new Point(10, 22);
             RadioMirrorShardsUnchanged.Name = "RadioMirrorShardsUnchanged";
             RadioMirrorShardsUnchanged.Size = new Size(86, 19);
             RadioMirrorShardsUnchanged.TabIndex = 0;
@@ -1016,7 +1016,7 @@
             // 
             CheckboxEnemyPropertiesHPPercentage.AutoSize = true;
             CheckboxEnemyPropertiesHPPercentage.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            CheckboxEnemyPropertiesHPPercentage.Location = new Point(8, 193);
+            CheckboxEnemyPropertiesHPPercentage.Location = new Point(10, 193);
             CheckboxEnemyPropertiesHPPercentage.Name = "CheckboxEnemyPropertiesHPPercentage";
             CheckboxEnemyPropertiesHPPercentage.Size = new Size(155, 19);
             CheckboxEnemyPropertiesHPPercentage.TabIndex = 6;
@@ -1028,7 +1028,7 @@
             // 
             RadioEnemyPropertiesHPRandom.AutoSize = true;
             RadioEnemyPropertiesHPRandom.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            RadioEnemyPropertiesHPRandom.Location = new Point(8, 72);
+            RadioEnemyPropertiesHPRandom.Location = new Point(10, 72);
             RadioEnemyPropertiesHPRandom.Name = "RadioEnemyPropertiesHPRandom";
             RadioEnemyPropertiesHPRandom.Size = new Size(70, 19);
             RadioEnemyPropertiesHPRandom.TabIndex = 5;
@@ -1040,7 +1040,7 @@
             // 
             RadioEnemyPropertiesHPShuffle.AutoSize = true;
             RadioEnemyPropertiesHPShuffle.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            RadioEnemyPropertiesHPShuffle.Location = new Point(8, 47);
+            RadioEnemyPropertiesHPShuffle.Location = new Point(10, 47);
             RadioEnemyPropertiesHPShuffle.Name = "RadioEnemyPropertiesHPShuffle";
             RadioEnemyPropertiesHPShuffle.Size = new Size(62, 19);
             RadioEnemyPropertiesHPShuffle.TabIndex = 4;
@@ -1053,7 +1053,7 @@
             RadioEnemyPropertiesHPUnchanged.AutoSize = true;
             RadioEnemyPropertiesHPUnchanged.Checked = true;
             RadioEnemyPropertiesHPUnchanged.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            RadioEnemyPropertiesHPUnchanged.Location = new Point(8, 22);
+            RadioEnemyPropertiesHPUnchanged.Location = new Point(10, 22);
             RadioEnemyPropertiesHPUnchanged.Name = "RadioEnemyPropertiesHPUnchanged";
             RadioEnemyPropertiesHPUnchanged.Size = new Size(86, 19);
             RadioEnemyPropertiesHPUnchanged.TabIndex = 3;
@@ -1090,7 +1090,7 @@
             // 
             RadioEnemyPropertiesBehaviorRandom.AutoSize = true;
             RadioEnemyPropertiesBehaviorRandom.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            RadioEnemyPropertiesBehaviorRandom.Location = new Point(8, 47);
+            RadioEnemyPropertiesBehaviorRandom.Location = new Point(10, 47);
             RadioEnemyPropertiesBehaviorRandom.Name = "RadioEnemyPropertiesBehaviorRandom";
             RadioEnemyPropertiesBehaviorRandom.Size = new Size(70, 19);
             RadioEnemyPropertiesBehaviorRandom.TabIndex = 5;
@@ -1103,7 +1103,7 @@
             RadioEnemyPropertiesBehaviorUnchanged.AutoSize = true;
             RadioEnemyPropertiesBehaviorUnchanged.Checked = true;
             RadioEnemyPropertiesBehaviorUnchanged.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            RadioEnemyPropertiesBehaviorUnchanged.Location = new Point(8, 22);
+            RadioEnemyPropertiesBehaviorUnchanged.Location = new Point(10, 22);
             RadioEnemyPropertiesBehaviorUnchanged.Name = "RadioEnemyPropertiesBehaviorUnchanged";
             RadioEnemyPropertiesBehaviorUnchanged.Size = new Size(86, 19);
             RadioEnemyPropertiesBehaviorUnchanged.TabIndex = 3;
@@ -1127,7 +1127,7 @@
             // 
             RadioEnemyPropertiesSpeedRandom.AutoSize = true;
             RadioEnemyPropertiesSpeedRandom.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            RadioEnemyPropertiesSpeedRandom.Location = new Point(8, 47);
+            RadioEnemyPropertiesSpeedRandom.Location = new Point(10, 47);
             RadioEnemyPropertiesSpeedRandom.Name = "RadioEnemyPropertiesSpeedRandom";
             RadioEnemyPropertiesSpeedRandom.Size = new Size(70, 19);
             RadioEnemyPropertiesSpeedRandom.TabIndex = 4;
@@ -1140,7 +1140,7 @@
             RadioEnemyPropertiesSpeedUnchanged.AutoSize = true;
             RadioEnemyPropertiesSpeedUnchanged.Checked = true;
             RadioEnemyPropertiesSpeedUnchanged.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            RadioEnemyPropertiesSpeedUnchanged.Location = new Point(8, 22);
+            RadioEnemyPropertiesSpeedUnchanged.Location = new Point(10, 22);
             RadioEnemyPropertiesSpeedUnchanged.Name = "RadioEnemyPropertiesSpeedUnchanged";
             RadioEnemyPropertiesSpeedUnchanged.Size = new Size(86, 19);
             RadioEnemyPropertiesSpeedUnchanged.TabIndex = 2;
@@ -1445,7 +1445,7 @@
             // 
             CheckboxMinibossPropertiesHPPercentage.AutoSize = true;
             CheckboxMinibossPropertiesHPPercentage.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            CheckboxMinibossPropertiesHPPercentage.Location = new Point(8, 193);
+            CheckboxMinibossPropertiesHPPercentage.Location = new Point(10, 193);
             CheckboxMinibossPropertiesHPPercentage.Name = "CheckboxMinibossPropertiesHPPercentage";
             CheckboxMinibossPropertiesHPPercentage.Size = new Size(155, 19);
             CheckboxMinibossPropertiesHPPercentage.TabIndex = 6;
@@ -1457,7 +1457,7 @@
             // 
             RadioMinibossPropertiesHPRandom.AutoSize = true;
             RadioMinibossPropertiesHPRandom.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            RadioMinibossPropertiesHPRandom.Location = new Point(8, 72);
+            RadioMinibossPropertiesHPRandom.Location = new Point(10, 72);
             RadioMinibossPropertiesHPRandom.Name = "RadioMinibossPropertiesHPRandom";
             RadioMinibossPropertiesHPRandom.Size = new Size(70, 19);
             RadioMinibossPropertiesHPRandom.TabIndex = 5;
@@ -1469,7 +1469,7 @@
             // 
             RadioMinibossPropertiesHPShuffle.AutoSize = true;
             RadioMinibossPropertiesHPShuffle.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            RadioMinibossPropertiesHPShuffle.Location = new Point(8, 47);
+            RadioMinibossPropertiesHPShuffle.Location = new Point(10, 47);
             RadioMinibossPropertiesHPShuffle.Name = "RadioMinibossPropertiesHPShuffle";
             RadioMinibossPropertiesHPShuffle.Size = new Size(62, 19);
             RadioMinibossPropertiesHPShuffle.TabIndex = 4;
@@ -1482,7 +1482,7 @@
             RadioMinibossPropertiesHPUnchanged.AutoSize = true;
             RadioMinibossPropertiesHPUnchanged.Checked = true;
             RadioMinibossPropertiesHPUnchanged.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            RadioMinibossPropertiesHPUnchanged.Location = new Point(8, 22);
+            RadioMinibossPropertiesHPUnchanged.Location = new Point(10, 22);
             RadioMinibossPropertiesHPUnchanged.Name = "RadioMinibossPropertiesHPUnchanged";
             RadioMinibossPropertiesHPUnchanged.Size = new Size(86, 19);
             RadioMinibossPropertiesHPUnchanged.TabIndex = 3;
@@ -1506,7 +1506,7 @@
             // 
             RadioMinibossPropertiesBehaviorRandom.AutoSize = true;
             RadioMinibossPropertiesBehaviorRandom.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            RadioMinibossPropertiesBehaviorRandom.Location = new Point(8, 47);
+            RadioMinibossPropertiesBehaviorRandom.Location = new Point(10, 47);
             RadioMinibossPropertiesBehaviorRandom.Name = "RadioMinibossPropertiesBehaviorRandom";
             RadioMinibossPropertiesBehaviorRandom.Size = new Size(70, 19);
             RadioMinibossPropertiesBehaviorRandom.TabIndex = 5;
@@ -1519,7 +1519,7 @@
             RadioMinibossPropertiesBehaviorUnchanged.AutoSize = true;
             RadioMinibossPropertiesBehaviorUnchanged.Checked = true;
             RadioMinibossPropertiesBehaviorUnchanged.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            RadioMinibossPropertiesBehaviorUnchanged.Location = new Point(8, 22);
+            RadioMinibossPropertiesBehaviorUnchanged.Location = new Point(10, 22);
             RadioMinibossPropertiesBehaviorUnchanged.Name = "RadioMinibossPropertiesBehaviorUnchanged";
             RadioMinibossPropertiesBehaviorUnchanged.Size = new Size(86, 19);
             RadioMinibossPropertiesBehaviorUnchanged.TabIndex = 3;
@@ -1543,7 +1543,7 @@
             // 
             RadioMinibossPropertiesSpeedRandom.AutoSize = true;
             RadioMinibossPropertiesSpeedRandom.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            RadioMinibossPropertiesSpeedRandom.Location = new Point(8, 47);
+            RadioMinibossPropertiesSpeedRandom.Location = new Point(10, 47);
             RadioMinibossPropertiesSpeedRandom.Name = "RadioMinibossPropertiesSpeedRandom";
             RadioMinibossPropertiesSpeedRandom.Size = new Size(70, 19);
             RadioMinibossPropertiesSpeedRandom.TabIndex = 4;
@@ -1556,7 +1556,7 @@
             RadioMinibossPropertiesSpeedUnchanged.AutoSize = true;
             RadioMinibossPropertiesSpeedUnchanged.Checked = true;
             RadioMinibossPropertiesSpeedUnchanged.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            RadioMinibossPropertiesSpeedUnchanged.Location = new Point(8, 22);
+            RadioMinibossPropertiesSpeedUnchanged.Location = new Point(10, 22);
             RadioMinibossPropertiesSpeedUnchanged.Name = "RadioMinibossPropertiesSpeedUnchanged";
             RadioMinibossPropertiesSpeedUnchanged.Size = new Size(86, 19);
             RadioMinibossPropertiesSpeedUnchanged.TabIndex = 2;
@@ -1723,7 +1723,7 @@
             // 
             RadioMinibossPropertiesAbilityShuffle.AutoSize = true;
             RadioMinibossPropertiesAbilityShuffle.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            RadioMinibossPropertiesAbilityShuffle.Location = new Point(8, 47);
+            RadioMinibossPropertiesAbilityShuffle.Location = new Point(10, 47);
             RadioMinibossPropertiesAbilityShuffle.Name = "RadioMinibossPropertiesAbilityShuffle";
             RadioMinibossPropertiesAbilityShuffle.Size = new Size(62, 19);
             RadioMinibossPropertiesAbilityShuffle.TabIndex = 5;
@@ -1735,7 +1735,7 @@
             // 
             RadioMinibossPropertiesAbilityRandom.AutoSize = true;
             RadioMinibossPropertiesAbilityRandom.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            RadioMinibossPropertiesAbilityRandom.Location = new Point(8, 72);
+            RadioMinibossPropertiesAbilityRandom.Location = new Point(10, 72);
             RadioMinibossPropertiesAbilityRandom.Name = "RadioMinibossPropertiesAbilityRandom";
             RadioMinibossPropertiesAbilityRandom.Size = new Size(70, 19);
             RadioMinibossPropertiesAbilityRandom.TabIndex = 4;
@@ -1748,7 +1748,7 @@
             RadioMinibossPropertiesAbilityUnchanged.AutoSize = true;
             RadioMinibossPropertiesAbilityUnchanged.Checked = true;
             RadioMinibossPropertiesAbilityUnchanged.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            RadioMinibossPropertiesAbilityUnchanged.Location = new Point(8, 22);
+            RadioMinibossPropertiesAbilityUnchanged.Location = new Point(10, 22);
             RadioMinibossPropertiesAbilityUnchanged.Name = "RadioMinibossPropertiesAbilityUnchanged";
             RadioMinibossPropertiesAbilityUnchanged.Size = new Size(86, 19);
             RadioMinibossPropertiesAbilityUnchanged.TabIndex = 2;
@@ -1813,7 +1813,7 @@
             // 
             RadioEnemyPropertiesAbilityShuffle.AutoSize = true;
             RadioEnemyPropertiesAbilityShuffle.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            RadioEnemyPropertiesAbilityShuffle.Location = new Point(8, 47);
+            RadioEnemyPropertiesAbilityShuffle.Location = new Point(10, 47);
             RadioEnemyPropertiesAbilityShuffle.Name = "RadioEnemyPropertiesAbilityShuffle";
             RadioEnemyPropertiesAbilityShuffle.Size = new Size(62, 19);
             RadioEnemyPropertiesAbilityShuffle.TabIndex = 5;
@@ -1825,7 +1825,7 @@
             // 
             RadioEnemyPropertiesAbilityRandom.AutoSize = true;
             RadioEnemyPropertiesAbilityRandom.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            RadioEnemyPropertiesAbilityRandom.Location = new Point(8, 72);
+            RadioEnemyPropertiesAbilityRandom.Location = new Point(10, 72);
             RadioEnemyPropertiesAbilityRandom.Name = "RadioEnemyPropertiesAbilityRandom";
             RadioEnemyPropertiesAbilityRandom.Size = new Size(70, 19);
             RadioEnemyPropertiesAbilityRandom.TabIndex = 4;
@@ -1838,7 +1838,7 @@
             RadioEnemyPropertiesAbilityUnchanged.AutoSize = true;
             RadioEnemyPropertiesAbilityUnchanged.Checked = true;
             RadioEnemyPropertiesAbilityUnchanged.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            RadioEnemyPropertiesAbilityUnchanged.Location = new Point(8, 22);
+            RadioEnemyPropertiesAbilityUnchanged.Location = new Point(10, 22);
             RadioEnemyPropertiesAbilityUnchanged.Name = "RadioEnemyPropertiesAbilityUnchanged";
             RadioEnemyPropertiesAbilityUnchanged.Size = new Size(86, 19);
             RadioEnemyPropertiesAbilityUnchanged.TabIndex = 2;
@@ -2107,7 +2107,7 @@
             // 
             RadioOutlinesRandom.AutoSize = true;
             RadioOutlinesRandom.Font = new Font("Segoe UI", 9F);
-            RadioOutlinesRandom.Location = new Point(6, 72);
+            RadioOutlinesRandom.Location = new Point(10, 72);
             RadioOutlinesRandom.Name = "RadioOutlinesRandom";
             RadioOutlinesRandom.Size = new Size(70, 19);
             RadioOutlinesRandom.TabIndex = 8;
@@ -2119,7 +2119,7 @@
             // 
             RadioOutlinesAll.AutoSize = true;
             RadioOutlinesAll.Font = new Font("Segoe UI", 9F);
-            RadioOutlinesAll.Location = new Point(6, 47);
+            RadioOutlinesAll.Location = new Point(10, 47);
             RadioOutlinesAll.Name = "RadioOutlinesAll";
             RadioOutlinesAll.Size = new Size(83, 19);
             RadioOutlinesAll.TabIndex = 7;
@@ -2132,7 +2132,7 @@
             RadioOutlinesUnchanged.AutoSize = true;
             RadioOutlinesUnchanged.Checked = true;
             RadioOutlinesUnchanged.Font = new Font("Segoe UI", 9F);
-            RadioOutlinesUnchanged.Location = new Point(6, 22);
+            RadioOutlinesUnchanged.Location = new Point(10, 22);
             RadioOutlinesUnchanged.Name = "RadioOutlinesUnchanged";
             RadioOutlinesUnchanged.Size = new Size(86, 19);
             RadioOutlinesUnchanged.TabIndex = 6;

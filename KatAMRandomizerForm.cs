@@ -118,9 +118,10 @@ namespace KatAMRandomizer
             new KatAMMapElements(system);
             new KatAMPropertiesManagement(system);
 
-            // 
             // Intelligently randomize flying enemies;
             // Randomize mirrors;
+            // Randomize HP values on Enemies;
+            // Randomize HP values on Bosses;
 
 
             File.WriteAllBytes(destinationPath, system.ROMData);
