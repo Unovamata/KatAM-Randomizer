@@ -100,8 +100,8 @@ namespace KatAMInternal
             { 0x02, Data("Blipper", default, true)},
             { 0x03, Data("Glunk", default, true)},
             { 0x04, Data("Squishy", default, true)},
-            { 0x05, Data("Scarfy", 0x00, false, false, false)},
-            { 0x06, Data("Gordo", 0x00, true, true, false)},
+            { 0x05, Data("Scarfy", default, false, true, false)},
+            { 0x06, Data("Gordo", default, true, true, false)},
             { 0x07, Data("Snooter")},
             { 0x08, Data("Chip")},
             { 0x09, Data("Soarar", default, true, true)},
@@ -111,7 +111,7 @@ namespace KatAMInternal
             { 0x0D, Data("Blockin", default, false, true, false)},
             { 0x0E, Data("Snooter 2")},
             { 0x0F, Data("Leap", default, true, true)},
-            { 0x10, Data("Jack", 0x00, false, false, false)},
+            { 0x10, Data("Jack", default, false, false, false)},
             { 0x11, Data("Big Waddle Dee")},
             { 0x12, Data("Waddle Doo", 0x07, false, false)},
             { 0x13, Data("Flamer", 0x03)},
@@ -130,8 +130,8 @@ namespace KatAMInternal
             { 0x20, Data("Golem Roll", 0x04)},
             { 0x21, Data("Golem Punch", 0x14) },
             { 0x22, Data("Foley", 0x09, false, true)},
-            { 0x23, Data("Shooty", 0x00, true, true)},
-            { 0x24, Data("Scarfy 2", 0x00, false, false, false)},
+            { 0x23, Data("Shooty", default, true, true)},
+            { 0x24, Data("Scarfy 2", 0x00, false, true, false)},
             { 0x25, Data("Boxin", 0x14)},
             { 0x26, Data("Cookin", 0x0C)},
             { 0x27, Data("Minny", 0x17)},
@@ -139,19 +139,19 @@ namespace KatAMInternal
             { 0x29, Data("Heavy Knight", 0x12)},
             { 0x2A, Data("Giant Rocky", 0x08)},
             { 0x2B, Data("Metal Guardian", 0x0D)},
-            { 0x2C, Data("Nothing", 0x00, false, false, false)},
-            { 0x2D, Data("Batty", 0x00, false, true)},
+            { 0x2C, Data("Nothing", default, false, false, false)},
+            { 0x2D, Data("Batty", default, false, true)},
             { 0x2E, Data("Foley Automatic", 0x09, false, true)},
             { 0x2F, Data("Bang-Bang", 0x19)},
-            { 0x30, Data("Explosion", 0x00, false, false, false)},
-            { 0x31, Data("Nothing", 0x00, false, false, false)},
-            { 0x32, Data("Droppy", 0x00, false, true)},
+            { 0x30, Data("Explosion", default, false, false, false)},
+            { 0x31, Data("Nothing", default, false, false, false)},
+            { 0x32, Data("Droppy", default, false, true)},
             { 0x33, Data("Prank")},
-            { 0x34, Data("Mirra", 0x00, false, false, false) },
-            { 0x35, Data("Shotzo", 0x00, false, false, false)},
+            { 0x34, Data("Mirra", default, false, false, false) },
+            { 0x35, Data("Shotzo", default, false, false, false)},
             /*{ 0x36, "Nothing" },*/ // Shadow Kirby with behavior 0 is nothing;
             { 0x37, Data("Waddle Dee 2")},
-            { 0x70, Data("Shotzo 2", 0x00, false, false, false)},
+            { 0x70, Data("Shotzo 2", default, false, false, false)},
             { 0xA2, Data("Parasol", 0x05, false, true)}
         };
 
@@ -363,7 +363,8 @@ namespace KatAMInternal
         public GenerationOptions EnemiesGenerationType { get; set; }
         public bool isRandomizingExcludedEnemies { get; set; }
         public bool isIncludingMiniBosses { get; set; }
-        public bool isRandomizingEnemiesIntelligently { get; set; }
+        public bool isRandomizingFlyingEnemiesIntelligently { get; set; }
+        public bool isRandomizingUnderwaterEnemiesIntelligently { get; set; }
         public GenerationOptions EnemiesPropertiesSpeedType { get; set; }
         public GenerationOptions EnemiesPropertiesBehaviorType { get; set; }
         public bool isUsingUnusedBehaviors { get; set; }

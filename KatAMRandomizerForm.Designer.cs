@@ -103,12 +103,13 @@
             RadioEnemyPropertiesSpeedRandom = new RadioButton();
             RadioEnemyPropertiesSpeedUnchanged = new RadioButton();
             GroupEnemies = new GroupBox();
+            CheckboxEnemiesRandomizeFlyingIntelligent = new CheckBox();
             CheckboxEnemiesRandomizeMinibosses = new CheckBox();
             RadioEnemiesNo = new RadioButton();
             button3 = new Button();
             RadioEnemiesCustom = new RadioButton();
             CheckboxEnemiesRandomizeExcluded = new CheckBox();
-            CheckboxEnemiesRandomizeIntelligent = new CheckBox();
+            CheckboxEnemiesRandomizeUnderwaterIntelligent = new CheckBox();
             RadioEnemiesRandom = new RadioButton();
             RadioEnemiesShuffle = new RadioButton();
             RadioEnemiesUnchanged = new RadioButton();
@@ -869,9 +870,9 @@
             GroupEnemiesProperties.Controls.Add(GroupEnemiesPropertiesBehavior);
             GroupEnemiesProperties.Controls.Add(GroupEnemiesPropertiesSpeed);
             GroupEnemiesProperties.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            GroupEnemiesProperties.Location = new Point(238, 6);
+            GroupEnemiesProperties.Location = new Point(286, 6);
             GroupEnemiesProperties.Name = "GroupEnemiesProperties";
-            GroupEnemiesProperties.Size = new Size(598, 318);
+            GroupEnemiesProperties.Size = new Size(550, 318);
             GroupEnemiesProperties.TabIndex = 1;
             GroupEnemiesProperties.TabStop = false;
             GroupEnemiesProperties.Text = "Properties";
@@ -892,7 +893,7 @@
             GroupEnemiesPropertiesHP.Controls.Add(RadioEnemyPropertiesHPRandom);
             GroupEnemiesPropertiesHP.Controls.Add(RadioEnemyPropertiesHPShuffle);
             GroupEnemiesPropertiesHP.Controls.Add(RadioEnemyPropertiesHPUnchanged);
-            GroupEnemiesPropertiesHP.Location = new Point(353, 16);
+            GroupEnemiesPropertiesHP.Location = new Point(305, 16);
             GroupEnemiesPropertiesHP.Name = "GroupEnemiesPropertiesHP";
             GroupEnemiesPropertiesHP.Size = new Size(239, 296);
             GroupEnemiesPropertiesHP.TabIndex = 6;
@@ -1069,7 +1070,7 @@
             GroupEnemiesPropertiesBehavior.Controls.Add(RadioEnemyPropertiesBehaviorUnchanged);
             GroupEnemiesPropertiesBehavior.Location = new Point(6, 160);
             GroupEnemiesPropertiesBehavior.Name = "GroupEnemiesPropertiesBehavior";
-            GroupEnemiesPropertiesBehavior.Size = new Size(341, 152);
+            GroupEnemiesPropertiesBehavior.Size = new Size(293, 152);
             GroupEnemiesPropertiesBehavior.TabIndex = 1;
             GroupEnemiesPropertiesBehavior.TabStop = false;
             GroupEnemiesPropertiesBehavior.Text = "Behavior";
@@ -1078,7 +1079,7 @@
             // 
             CheckboxEnemyPropertiesUnusedBehaviors.AutoSize = true;
             CheckboxEnemyPropertiesUnusedBehaviors.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            CheckboxEnemyPropertiesUnusedBehaviors.Location = new Point(173, 25);
+            CheckboxEnemyPropertiesUnusedBehaviors.Location = new Point(10, 127);
             CheckboxEnemyPropertiesUnusedBehaviors.Name = "CheckboxEnemyPropertiesUnusedBehaviors";
             CheckboxEnemyPropertiesUnusedBehaviors.Size = new Size(162, 19);
             CheckboxEnemyPropertiesUnusedBehaviors.TabIndex = 18;
@@ -1118,7 +1119,7 @@
             GroupEnemiesPropertiesSpeed.Controls.Add(RadioEnemyPropertiesSpeedUnchanged);
             GroupEnemiesPropertiesSpeed.Location = new Point(6, 16);
             GroupEnemiesPropertiesSpeed.Name = "GroupEnemiesPropertiesSpeed";
-            GroupEnemiesPropertiesSpeed.Size = new Size(341, 138);
+            GroupEnemiesPropertiesSpeed.Size = new Size(293, 138);
             GroupEnemiesPropertiesSpeed.TabIndex = 0;
             GroupEnemiesPropertiesSpeed.TabStop = false;
             GroupEnemiesPropertiesSpeed.Text = "Speed";
@@ -1152,28 +1153,42 @@
             // GroupEnemies
             // 
             GroupEnemies.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            GroupEnemies.Controls.Add(CheckboxEnemiesRandomizeFlyingIntelligent);
             GroupEnemies.Controls.Add(CheckboxEnemiesRandomizeMinibosses);
             GroupEnemies.Controls.Add(RadioEnemiesNo);
             GroupEnemies.Controls.Add(button3);
             GroupEnemies.Controls.Add(RadioEnemiesCustom);
             GroupEnemies.Controls.Add(CheckboxEnemiesRandomizeExcluded);
-            GroupEnemies.Controls.Add(CheckboxEnemiesRandomizeIntelligent);
+            GroupEnemies.Controls.Add(CheckboxEnemiesRandomizeUnderwaterIntelligent);
             GroupEnemies.Controls.Add(RadioEnemiesRandom);
             GroupEnemies.Controls.Add(RadioEnemiesShuffle);
             GroupEnemies.Controls.Add(RadioEnemiesUnchanged);
             GroupEnemies.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
             GroupEnemies.Location = new Point(9, 6);
             GroupEnemies.Name = "GroupEnemies";
-            GroupEnemies.Size = new Size(223, 318);
+            GroupEnemies.Size = new Size(277, 318);
             GroupEnemies.TabIndex = 0;
             GroupEnemies.TabStop = false;
             GroupEnemies.Text = "Enemies";
+            // 
+            // CheckboxEnemiesRandomizeFlyingIntelligent
+            // 
+            CheckboxEnemiesRandomizeFlyingIntelligent.AutoSize = true;
+            CheckboxEnemiesRandomizeFlyingIntelligent.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            CheckboxEnemiesRandomizeFlyingIntelligent.Location = new Point(10, 263);
+            CheckboxEnemiesRandomizeFlyingIntelligent.Name = "CheckboxEnemiesRandomizeFlyingIntelligent";
+            CheckboxEnemiesRandomizeFlyingIntelligent.Size = new Size(232, 19);
+            CheckboxEnemiesRandomizeFlyingIntelligent.TabIndex = 18;
+            CheckboxEnemiesRandomizeFlyingIntelligent.Text = "Randomize Flying Enemies Intelligently";
+            CheckboxEnemiesRandomizeFlyingIntelligent.UseVisualStyleBackColor = true;
+            CheckboxEnemiesRandomizeFlyingIntelligent.Visible = false;
+            CheckboxEnemiesRandomizeFlyingIntelligent.CheckedChanged += CheckboxEnemiesRandomizeFlyingIntelligent_CheckedChanged;
             // 
             // CheckboxEnemiesRandomizeMinibosses
             // 
             CheckboxEnemiesRandomizeMinibosses.AutoSize = true;
             CheckboxEnemiesRandomizeMinibosses.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            CheckboxEnemiesRandomizeMinibosses.Location = new Point(10, 263);
+            CheckboxEnemiesRandomizeMinibosses.Location = new Point(10, 238);
             CheckboxEnemiesRandomizeMinibosses.Name = "CheckboxEnemiesRandomizeMinibosses";
             CheckboxEnemiesRandomizeMinibosses.Size = new Size(127, 19);
             CheckboxEnemiesRandomizeMinibosses.TabIndex = 17;
@@ -1222,7 +1237,7 @@
             // 
             CheckboxEnemiesRandomizeExcluded.AutoSize = true;
             CheckboxEnemiesRandomizeExcluded.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            CheckboxEnemiesRandomizeExcluded.Location = new Point(10, 238);
+            CheckboxEnemiesRandomizeExcluded.Location = new Point(10, 213);
             CheckboxEnemiesRandomizeExcluded.Name = "CheckboxEnemiesRandomizeExcluded";
             CheckboxEnemiesRandomizeExcluded.Size = new Size(183, 19);
             CheckboxEnemiesRandomizeExcluded.TabIndex = 5;
@@ -1231,18 +1246,18 @@
             CheckboxEnemiesRandomizeExcluded.Visible = false;
             CheckboxEnemiesRandomizeExcluded.CheckedChanged += CheckboxEnemiesRandomizeExcluded_CheckedChanged;
             // 
-            // CheckboxEnemiesRandomizeIntelligent
+            // CheckboxEnemiesRandomizeUnderwaterIntelligent
             // 
-            CheckboxEnemiesRandomizeIntelligent.AutoSize = true;
-            CheckboxEnemiesRandomizeIntelligent.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            CheckboxEnemiesRandomizeIntelligent.Location = new Point(10, 288);
-            CheckboxEnemiesRandomizeIntelligent.Name = "CheckboxEnemiesRandomizeIntelligent";
-            CheckboxEnemiesRandomizeIntelligent.Size = new Size(150, 19);
-            CheckboxEnemiesRandomizeIntelligent.TabIndex = 4;
-            CheckboxEnemiesRandomizeIntelligent.Text = "Randomize Intelligently";
-            CheckboxEnemiesRandomizeIntelligent.UseVisualStyleBackColor = true;
-            CheckboxEnemiesRandomizeIntelligent.Visible = false;
-            CheckboxEnemiesRandomizeIntelligent.CheckedChanged += CheckboxEnemiesRandomizeIntelligent_CheckedChanged;
+            CheckboxEnemiesRandomizeUnderwaterIntelligent.AutoSize = true;
+            CheckboxEnemiesRandomizeUnderwaterIntelligent.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            CheckboxEnemiesRandomizeUnderwaterIntelligent.Location = new Point(10, 288);
+            CheckboxEnemiesRandomizeUnderwaterIntelligent.Name = "CheckboxEnemiesRandomizeUnderwaterIntelligent";
+            CheckboxEnemiesRandomizeUnderwaterIntelligent.Size = new Size(261, 19);
+            CheckboxEnemiesRandomizeUnderwaterIntelligent.TabIndex = 4;
+            CheckboxEnemiesRandomizeUnderwaterIntelligent.Text = "Randomize Underwater Enemies Intelligently";
+            CheckboxEnemiesRandomizeUnderwaterIntelligent.UseVisualStyleBackColor = true;
+            CheckboxEnemiesRandomizeUnderwaterIntelligent.Visible = false;
+            CheckboxEnemiesRandomizeUnderwaterIntelligent.CheckedChanged += CheckboxEnemiesRandomizeUnderwaterIntelligent_CheckedChanged;
             // 
             // RadioEnemiesRandom
             // 
@@ -2389,7 +2404,7 @@
         private RadioButton RadioEnemyPropertiesBehaviorUnchanged;
         private RadioButton RadioEnemyPropertiesSpeedRandom;
         private RadioButton RadioEnemyPropertiesSpeedUnchanged;
-        private CheckBox CheckboxEnemiesRandomizeIntelligent;
+        private CheckBox CheckboxEnemiesRandomizeUnderwaterIntelligent;
         private GroupBox GroupEnemiesPropertiesHP;
         private RadioButton RadioEnemyPropertiesHPRandom;
         private RadioButton RadioEnemyPropertiesHPShuffle;
@@ -2460,5 +2475,6 @@
         private CheckBox CheckboxEnemyPropertiesAbilityMix;
         private CheckBox checkBox5;
         private CheckBox CheckboxEnemyPropertiesAbilityNormal;
+        private CheckBox CheckboxEnemiesRandomizeFlyingIntelligent;
     }
 }

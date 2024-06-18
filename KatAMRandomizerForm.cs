@@ -109,7 +109,7 @@ namespace KatAMRandomizer
             destinationPath = Path.Combine(system.ROMDirectory, newFileName);
             settings.RandomEntity = new Random(settings.Seed);
 
-            new KatAMROMReader(system);
+            /*new KatAMROMReader(system);*/
             new KatAMSprays(system);
             new KatAMItems(system);
             new KatAMPedestals(system);
@@ -300,16 +300,20 @@ namespace KatAMRandomizer
             CheckboxEnemiesRandomizeMinibosses.Visible = false;
             settings.isIncludingMiniBosses = false;
 
-            CheckboxEnemiesRandomizeIntelligent.Visible = false;
-            settings.isRandomizingEnemiesIntelligently = false;
+            CheckboxEnemiesRandomizeUnderwaterIntelligent.Visible = false;
+            CheckboxEnemiesRandomizeFlyingIntelligent.Visible = false;
+            settings.isRandomizingFlyingEnemiesIntelligently = false;
+            settings.isRandomizingUnderwaterEnemiesIntelligently = false;
         }
 
         private void ShowEnemiesOptions() {
             CheckboxEnemiesRandomizeMinibosses.Visible = true;
             settings.isIncludingMiniBosses = false;
 
-            CheckboxEnemiesRandomizeIntelligent.Visible = true;
-            settings.isRandomizingEnemiesIntelligently = false;
+            CheckboxEnemiesRandomizeUnderwaterIntelligent.Visible = true;
+            CheckboxEnemiesRandomizeFlyingIntelligent.Visible = true;
+            settings.isRandomizingFlyingEnemiesIntelligently = false;
+            settings.isRandomizingUnderwaterEnemiesIntelligently = false;
         }
 
         private void CheckboxEnemiesRandomizeExcluded_CheckedChanged(object sender, EventArgs e) {
@@ -320,8 +324,12 @@ namespace KatAMRandomizer
             settings.isIncludingMiniBosses = CheckboxEnemiesRandomizeMinibosses.Checked;
         }
 
-        private void CheckboxEnemiesRandomizeIntelligent_CheckedChanged(object sender, EventArgs e) {
-            settings.isRandomizingEnemiesIntelligently = CheckboxEnemiesRandomizeIntelligent.Checked;
+        private void CheckboxEnemiesRandomizeFlyingIntelligent_CheckedChanged(object sender, EventArgs e) {
+            settings.isRandomizingFlyingEnemiesIntelligently = CheckboxEnemiesRandomizeFlyingIntelligent.Checked;
+        }
+
+        private void CheckboxEnemiesRandomizeUnderwaterIntelligent_CheckedChanged(object sender, EventArgs e) {
+            settings.isRandomizingUnderwaterEnemiesIntelligently = CheckboxEnemiesRandomizeUnderwaterIntelligent.Checked;
         }
 
         // Speed;

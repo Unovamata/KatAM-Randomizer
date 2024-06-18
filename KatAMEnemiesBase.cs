@@ -19,7 +19,8 @@ namespace KatAMRandomizer {
                           enemiesInhaleAbilityOptions,
                           enemiesHPOptions;
 
-        protected bool isRandomizingEnemiesIntelligently,
+        protected bool isRandomizingFlyingEnemiesIntelligently,
+             isRandomizingUnderwaterEnemiesIntelligently,
              isIncludingMiniBosses,
              isUsingUnusedBehaviors,
              isIncludingMasterInhaleAbility,
@@ -27,7 +28,7 @@ namespace KatAMRandomizer {
              isRandomizingExcludedEnemies;
 
         protected List<byte> underwaterEnemyIDs = new List<byte>();
-
+        protected List<byte> flyingEnemyIDs = new List<byte>();
         protected HashSet<byte> progressionEnemyIDs = new HashSet<byte>() {
             0x10, // Jack;
             0x27, // Minny;
@@ -62,23 +63,36 @@ namespace KatAMRandomizer {
 
             for (int i = 0; i < entities.Count; i++) {
                 Entity entity = entities[i];
+                byte id = entity.ID;
 
                 bool isIDAssigned = false;
 
                 // Underwater or Key Progression enemies;
                 if (!isRandomizingMiniBosses && IsVetoedEnemy(entity)) {
-                    bool isProgressionEntity = progressionEnemyIDs.Contains(entity.ID);
+                    bool isProgressionEntity = progressionEnemyIDs.Contains(id);
 
                     if (isProgressionEntity) continue;
                     else {
+                        bool isRandomizingSelectEnemies = isRandomizingFlyingEnemiesIntelligently || isRandomizingUnderwaterEnemiesIntelligently || isRandomizingExcludedEnemies;
+
                         // Underwater enemies will be unchanged if the "Randomize Excluded Enemies" option is not active;
                         if (enemiesOptions == GenerationOptions.Shuffle && !isRandomizingExcludedEnemies) continue;
                         // If it's randomizing underwater enemies, select valid underwater replacements;
-                        else if (isRandomizingEnemiesIntelligently || isRandomizingExcludedEnemies) {
-                            int underwaterEnemyIndex = Utils.GetRandomNumber(0, underwaterEnemyIDs.Count);
+                        else if (isRandomizingSelectEnemies) {
 
-                            entity.ID = underwaterEnemyIDs[underwaterEnemyIndex];
-                            isIDAssigned = true;
+                            if (isRandomizingFlyingEnemiesIntelligently && flyingEnemyIDs.Contains(id)) {
+                                int flyingEnemyIndex = Utils.GetRandomNumber(0, flyingEnemyIDs.Count);
+
+                                entity.ID = flyingEnemyIDs[flyingEnemyIndex];
+                                isIDAssigned = true;
+                            }
+
+                            else if (isRandomizingUnderwaterEnemiesIntelligently && underwaterEnemyIDs.Contains(id)) {
+                                int underwaterEnemyIndex = Utils.GetRandomNumber(0, underwaterEnemyIDs.Count);
+
+                                entity.ID = underwaterEnemyIDs[underwaterEnemyIndex];
+                                isIDAssigned = true;
+                            }
                         }
                     }
                 }
@@ -192,7 +206,9 @@ namespace KatAMRandomizer {
         bool IsVetoedEnemy(Entity entity) {
             byte id = entity.ID;
 
-            return progressionEnemyIDs.Contains(id) || underwaterEnemyIDs.Contains(id);
+            return progressionEnemyIDs.Contains(id) || 
+                   underwaterEnemyIDs.Contains(id) ||
+                   flyingEnemyIDs.Contains(id);
         }
     }
 
@@ -206,7 +222,7 @@ namespace KatAMRandomizer {
 
             LoadEnemyDataset(this, Utils.enemiesJson);
 
-            GroupUnderwaterEnemies();
+            GroupEnemies();
 
             RandomizeEnemies(this);
         }
@@ -219,7 +235,8 @@ namespace KatAMRandomizer {
             enemiesInhaleAbilityOptions = Settings.EnemiesInhaleAbilityType;
             enemiesHPOptions = Settings.EnemiesHPType;
 
-            isRandomizingEnemiesIntelligently = Settings.isRandomizingEnemiesIntelligently;
+            isRandomizingFlyingEnemiesIntelligently = Settings.isRandomizingFlyingEnemiesIntelligently;
+            isRandomizingUnderwaterEnemiesIntelligently = Settings.isRandomizingUnderwaterEnemiesIntelligently;
             isIncludingMiniBosses = Settings.isIncludingMiniBosses;
             isUsingUnusedBehaviors = Settings.isUsingUnusedBehaviors;
             isIncludingMasterInhaleAbility = Settings.isEnemyIncludingMasterInhaleAbility;
@@ -227,12 +244,14 @@ namespace KatAMRandomizer {
             isRandomizingExcludedEnemies = Settings.isRandomizingExcludedEnemies;
         }
 
-        public void GroupUnderwaterEnemies() {
+        public void GroupEnemies() {
             foreach(Entity enemy in entities) {
-                if (enemy.IsUnderwater) {
+                if (enemy.IsUnderwater && !underwaterEnemyIDs.Contains(enemy.ID)) {
                     underwaterEnemyIDs.Add(enemy.ID);
+                }
 
-                    Console.WriteLine("Underwater Enemy Detected");
+                if (enemy.IsFlying && !flyingEnemyIDs.Contains(enemy.ID)) {
+                    flyingEnemyIDs.Add(enemy.ID);
                 }
             }
         }
