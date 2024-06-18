@@ -10,7 +10,11 @@
       "Behavior": 0,
       "Speed": 0,
       "Properties": "00000000000000000028FF98FFC000A0000000",
-      "Room": 710
+      "Room": 710,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     }
   ],
   "Wiz": [
@@ -24,7 +28,11 @@
       "Behavior": 0,
       "Speed": 0,
       "Properties": "00000000000000000050FF90FFE00080000000",
-      "Room": 219
+      "Room": 219,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     }
   ],
   "Kracko": [
@@ -38,7 +46,11 @@
       "Behavior": 0,
       "Speed": 0,
       "Properties": "00000000000000000050FFD0FF000188000000",
-      "Room": 324
+      "Room": 324,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     }
   ],
   "Master Hand (Boss)": [
@@ -52,7 +64,11 @@
       "Behavior": 0,
       "Speed": 0,
       "Properties": "00000000000000000030FFC0FFF00098000000",
-      "Room": 417
+      "Room": 417,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     }
   ],
   "Moley": [
@@ -66,7 +82,11 @@
       "Behavior": 0,
       "Speed": 0,
       "Properties": "00000000000000000090FFB8FF000180000000",
-      "Room": 516
+      "Room": 516,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     }
   ],
   "Gobbler": [
@@ -80,7 +100,11 @@
       "Behavior": 0,
       "Speed": 0,
       "Properties": "00000000000000000030FFB0FF0001B8000000",
-      "Room": 822
+      "Room": 822,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     }
   ],
   "Dark Meta Knight (Radish)": [
@@ -94,7 +118,11 @@
       "Behavior": 0,
       "Speed": 0,
       "Properties": "00000000000000000030FF88FF000190000000",
-      "Room": 120
+      "Room": 120,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     }
   ],
   "Mega Titan": [
@@ -108,7 +136,11 @@
       "Behavior": 0,
       "Speed": 0,
       "Properties": "00000000000000000070FF98FFE00080000000",
-      "Room": 739
+      "Room": 739,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     }
   ],
   "Dark Meta Knight (Boss)": [
@@ -122,7 +154,11 @@
       "Behavior": 1,
       "Speed": 0,
       "Properties": "00000000000000000050FEE8FEF00120010000",
-      "Room": 910
+      "Room": 910,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     }
   ],
   "Dark Mind (1)": [
@@ -136,7 +172,11 @@
       "Behavior": 0,
       "Speed": 0,
       "Properties": "00000000000000000050FFC8FF0001A8000000",
-      "Room": 911
+      "Room": 911,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 9065912,
@@ -148,7 +188,11 @@
       "Behavior": 0,
       "Speed": 1,
       "Properties": "00000000000000000058FFC0FF0001A0000000",
-      "Room": 913
+      "Room": 913,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 9066312,
@@ -160,7 +204,11 @@
       "Behavior": 0,
       "Speed": 2,
       "Properties": "00000000000000000050FFB8FF000198000000",
-      "Room": 915
+      "Room": 915,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 9066860,
@@ -172,7 +220,11 @@
       "Behavior": 0,
       "Speed": 3,
       "Properties": "00000000000000000048FFA8FF0001A8000000",
-      "Room": 918
+      "Room": 918,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     }
   ],
   "Dark Mind (2)": [
@@ -186,7 +238,11 @@
       "Behavior": 0,
       "Speed": 0,
       "Properties": "00000000000000000088FFD0FF000190000000",
-      "Room": 919
+      "Room": 919,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     }
   ],
   "Dark Mind (Shooting)": [
@@ -200,7 +256,11 @@
       "Behavior": 0,
       "Speed": 0,
       "Properties": "00000000000000000000000000000000000400",
-      "Room": 950
+      "Room": 950,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     }
   ]
 }

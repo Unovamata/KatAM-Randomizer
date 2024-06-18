@@ -10,7 +10,11 @@
       "Behavior": 0,
       "Speed": 0,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 590
+      "Room": 590,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 8940180,
@@ -22,7 +26,11 @@
       "Behavior": 7,
       "Speed": 0,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 590
+      "Room": 590,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 8945272,
@@ -34,7 +42,11 @@
       "Behavior": 4,
       "Speed": 0,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 190
+      "Room": 190,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 8945452,
@@ -46,7 +58,11 @@
       "Behavior": 0,
       "Speed": 0,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 190
+      "Room": 190,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 8947380,
@@ -58,7 +74,11 @@
       "Behavior": 1,
       "Speed": 0,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 194
+      "Room": 194,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 8947416,
@@ -70,7 +90,11 @@
       "Behavior": 2,
       "Speed": 1,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 194
+      "Room": 194,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 8959164,
@@ -82,7 +106,11 @@
       "Behavior": 0,
       "Speed": 1,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 192
+      "Room": 192,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 8959200,
@@ -94,7 +122,11 @@
       "Behavior": 2,
       "Speed": 0,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 192
+      "Room": 192,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 8963996,
@@ -106,7 +138,11 @@
       "Behavior": 6,
       "Speed": 0,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 700
+      "Room": 700,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 8964032,
@@ -118,7 +154,11 @@
       "Behavior": 5,
       "Speed": 0,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 700
+      "Room": 700,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 8964068,
@@ -130,7 +170,11 @@
       "Behavior": 1,
       "Speed": 0,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 700
+      "Room": 700,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 8970108,
@@ -142,7 +186,11 @@
       "Behavior": 6,
       "Speed": 1,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 790
+      "Room": 790,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 8970144,
@@ -154,7 +202,11 @@
       "Behavior": 5,
       "Speed": 0,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 790
+      "Room": 790,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 8971816,
@@ -166,7 +218,11 @@
       "Behavior": 0,
       "Speed": 0,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 200
+      "Room": 200,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 8971852,
@@ -178,7 +234,11 @@
       "Behavior": 0,
       "Speed": 0,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 200
+      "Room": 200,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 8971888,
@@ -190,7 +250,11 @@
       "Behavior": 1,
       "Speed": 0,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 200
+      "Room": 200,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 8982620,
@@ -202,7 +266,11 @@
       "Behavior": 1,
       "Speed": 1,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 290
+      "Room": 290,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 8982656,
@@ -214,7 +282,11 @@
       "Behavior": 2,
       "Speed": 0,
       "Properties": "00000000000000000008003000000000000000",
-      "Room": 290
+      "Room": 290,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 8988616,
@@ -226,7 +298,11 @@
       "Behavior": 1,
       "Speed": 0,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 291
+      "Room": 291,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 8988652,
@@ -238,7 +314,11 @@
       "Behavior": 3,
       "Speed": 1,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 291
+      "Room": 291,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 8993236,
@@ -250,7 +330,11 @@
       "Behavior": 0,
       "Speed": 1,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 300
+      "Room": 300,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 8993272,
@@ -262,7 +346,11 @@
       "Behavior": 6,
       "Speed": 0,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 300
+      "Room": 300,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 8993308,
@@ -274,7 +362,11 @@
       "Behavior": 4,
       "Speed": 1,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 300
+      "Room": 300,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 8993344,
@@ -286,7 +378,11 @@
       "Behavior": 5,
       "Speed": 0,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 300
+      "Room": 300,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 8993380,
@@ -298,7 +394,11 @@
       "Behavior": 0,
       "Speed": 1,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 300
+      "Room": 300,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 8993416,
@@ -310,7 +410,11 @@
       "Behavior": 3,
       "Speed": 0,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 300
+      "Room": 300,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 9001020,
@@ -322,7 +426,11 @@
       "Behavior": 3,
       "Speed": 1,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 390
+      "Room": 390,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 9001056,
@@ -334,7 +442,11 @@
       "Behavior": 3,
       "Speed": 0,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 390
+      "Room": 390,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 9001204,
@@ -346,7 +458,11 @@
       "Behavior": 0,
       "Speed": 1,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 400
+      "Room": 400,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 9001240,
@@ -358,7 +474,11 @@
       "Behavior": 3,
       "Speed": 0,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 400
+      "Room": 400,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 9001276,
@@ -370,7 +490,11 @@
       "Behavior": 2,
       "Speed": 1,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 400
+      "Room": 400,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 9001312,
@@ -382,7 +506,11 @@
       "Behavior": 0,
       "Speed": 0,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 400
+      "Room": 400,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 9014728,
@@ -394,7 +522,11 @@
       "Behavior": 2,
       "Speed": 1,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 490
+      "Room": 490,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 9014764,
@@ -406,7 +538,11 @@
       "Behavior": 2,
       "Speed": 0,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 490
+      "Room": 490,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 9014876,
@@ -418,7 +554,11 @@
       "Behavior": 2,
       "Speed": 1,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 500
+      "Room": 500,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 9014912,
@@ -430,7 +570,11 @@
       "Behavior": 5,
       "Speed": 1,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 500
+      "Room": 500,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 9014948,
@@ -442,7 +586,11 @@
       "Behavior": 0,
       "Speed": 1,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 500
+      "Room": 500,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 9023900,
@@ -454,7 +602,11 @@
       "Behavior": 2,
       "Speed": 0,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 591
+      "Room": 591,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 9023936,
@@ -466,7 +618,11 @@
       "Behavior": 5,
       "Speed": 1,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 591
+      "Room": 591,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 9024300,
@@ -478,7 +634,11 @@
       "Behavior": 3,
       "Speed": 0,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 191
+      "Room": 191,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 9024336,
@@ -490,7 +650,11 @@
       "Behavior": 0,
       "Speed": 1,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 191
+      "Room": 191,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 9036800,
@@ -502,7 +666,11 @@
       "Behavior": 6,
       "Speed": 1,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 890
+      "Room": 890,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 9036836,
@@ -514,7 +682,11 @@
       "Behavior": 0,
       "Speed": 0,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 890
+      "Room": 890,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 9036948,
@@ -526,7 +698,11 @@
       "Behavior": 6,
       "Speed": 1,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 800
+      "Room": 800,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 9036984,
@@ -538,7 +714,11 @@
       "Behavior": 0,
       "Speed": 1,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 800
+      "Room": 800,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 9037020,
@@ -550,7 +730,11 @@
       "Behavior": 0,
       "Speed": 1,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 800
+      "Room": 800,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 9040212,
@@ -562,7 +746,11 @@
       "Behavior": 1,
       "Speed": 1,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 592
+      "Room": 592,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 9040248,
@@ -574,7 +762,11 @@
       "Behavior": 4,
       "Speed": 0,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 592
+      "Room": 592,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 9049856,
@@ -586,7 +778,11 @@
       "Behavior": 7,
       "Speed": 1,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 502
+      "Room": 502,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 9049892,
@@ -598,7 +794,11 @@
       "Behavior": 0,
       "Speed": 0,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 502
+      "Room": 502,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 9054104,
@@ -610,7 +810,11 @@
       "Behavior": 0,
       "Speed": 0,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 129
+      "Room": 129,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 9054140,
@@ -622,7 +826,11 @@
       "Behavior": 1,
       "Speed": 1,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 129
+      "Room": 129,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 9056496,
@@ -634,7 +842,11 @@
       "Behavior": 6,
       "Speed": 0,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 600
+      "Room": 600,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 9056532,
@@ -646,7 +858,11 @@
       "Behavior": 1,
       "Speed": 1,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 600
+      "Room": 600,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 9056644,
@@ -658,7 +874,11 @@
       "Behavior": 6,
       "Speed": 0,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 714
+      "Room": 714,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 9056680,
@@ -670,7 +890,11 @@
       "Behavior": 1,
       "Speed": 0,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 714
+      "Room": 714,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 9056716,
@@ -682,7 +906,11 @@
       "Behavior": 2,
       "Speed": 0,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 714
+      "Room": 714,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 9067076,
@@ -694,7 +922,11 @@
       "Behavior": 7,
       "Speed": 0,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 951
+      "Room": 951,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 9067112,
@@ -706,7 +938,11 @@
       "Behavior": 6,
       "Speed": 0,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 951
+      "Room": 951,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 9067184,
@@ -718,7 +954,11 @@
       "Behavior": 2,
       "Speed": 1,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 951
+      "Room": 951,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 9067220,
@@ -730,7 +970,11 @@
       "Behavior": 1,
       "Speed": 1,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 951
+      "Room": 951,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 9067256,
@@ -742,7 +986,11 @@
       "Behavior": 0,
       "Speed": 1,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 951
+      "Room": 951,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 9067292,
@@ -754,7 +1002,11 @@
       "Behavior": 0,
       "Speed": 1,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 951
+      "Room": 951,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 9067328,
@@ -766,7 +1018,11 @@
       "Behavior": 6,
       "Speed": 1,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 951
+      "Room": 951,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 9067364,
@@ -778,7 +1034,11 @@
       "Behavior": 5,
       "Speed": 1,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 951
+      "Room": 951,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 9067400,
@@ -790,7 +1050,11 @@
       "Behavior": 4,
       "Speed": 1,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 951
+      "Room": 951,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 9067436,
@@ -802,7 +1066,11 @@
       "Behavior": 3,
       "Speed": 1,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 951
+      "Room": 951,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 9067472,
@@ -814,7 +1082,11 @@
       "Behavior": 2,
       "Speed": 1,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 951
+      "Room": 951,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 9067508,
@@ -826,7 +1098,11 @@
       "Behavior": 0,
       "Speed": 0,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 951
+      "Room": 951,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 9067544,
@@ -838,7 +1114,11 @@
       "Behavior": 0,
       "Speed": 0,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 951
+      "Room": 951,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 9067580,
@@ -850,7 +1130,11 @@
       "Behavior": 1,
       "Speed": 0,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 951
+      "Room": 951,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 9067616,
@@ -862,7 +1146,11 @@
       "Behavior": 5,
       "Speed": 0,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 951
+      "Room": 951,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 9067652,
@@ -874,7 +1162,11 @@
       "Behavior": 4,
       "Speed": 0,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 951
+      "Room": 951,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 9067688,
@@ -886,7 +1178,11 @@
       "Behavior": 3,
       "Speed": 0,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 951
+      "Room": 951,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 9067724,
@@ -898,7 +1194,11 @@
       "Behavior": 2,
       "Speed": 0,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 951
+      "Room": 951,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 9067760,
@@ -910,7 +1210,11 @@
       "Behavior": 1,
       "Speed": 0,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 951
+      "Room": 951,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 9068628,
@@ -922,7 +1226,11 @@
       "Behavior": 7,
       "Speed": 0,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 970
+      "Room": 970,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 9068664,
@@ -934,7 +1242,11 @@
       "Behavior": 6,
       "Speed": 0,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 970
+      "Room": 970,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 9068700,
@@ -946,7 +1258,11 @@
       "Behavior": 2,
       "Speed": 1,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 970
+      "Room": 970,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 9068736,
@@ -958,7 +1274,11 @@
       "Behavior": 1,
       "Speed": 1,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 970
+      "Room": 970,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 9068772,
@@ -970,7 +1290,11 @@
       "Behavior": 0,
       "Speed": 1,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 970
+      "Room": 970,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 9068808,
@@ -982,7 +1306,11 @@
       "Behavior": 0,
       "Speed": 1,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 970
+      "Room": 970,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 9068844,
@@ -994,7 +1322,11 @@
       "Behavior": 6,
       "Speed": 1,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 970
+      "Room": 970,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 9068880,
@@ -1006,7 +1338,11 @@
       "Behavior": 5,
       "Speed": 1,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 970
+      "Room": 970,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 9068916,
@@ -1018,7 +1354,11 @@
       "Behavior": 4,
       "Speed": 1,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 970
+      "Room": 970,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 9068952,
@@ -1030,7 +1370,11 @@
       "Behavior": 3,
       "Speed": 1,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 970
+      "Room": 970,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 9068988,
@@ -1042,7 +1386,11 @@
       "Behavior": 2,
       "Speed": 1,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 970
+      "Room": 970,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 9069024,
@@ -1054,7 +1402,11 @@
       "Behavior": 0,
       "Speed": 0,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 970
+      "Room": 970,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 9069060,
@@ -1066,7 +1418,11 @@
       "Behavior": 0,
       "Speed": 0,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 970
+      "Room": 970,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 9069096,
@@ -1078,7 +1434,11 @@
       "Behavior": 1,
       "Speed": 0,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 970
+      "Room": 970,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 9069132,
@@ -1090,7 +1450,11 @@
       "Behavior": 5,
       "Speed": 0,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 970
+      "Room": 970,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 9069168,
@@ -1102,7 +1466,11 @@
       "Behavior": 4,
       "Speed": 0,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 970
+      "Room": 970,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 9069204,
@@ -1114,7 +1482,11 @@
       "Behavior": 3,
       "Speed": 0,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 970
+      "Room": 970,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 9069240,
@@ -1126,7 +1498,11 @@
       "Behavior": 2,
       "Speed": 0,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 970
+      "Room": 970,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     },
     {
       "Address": 9069276,
@@ -1138,7 +1514,11 @@
       "Behavior": 1,
       "Speed": 0,
       "Properties": "00000000000000000000000000000000000000",
-      "Room": 970
+      "Room": 970,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     }
   ],
   "Random Ability Stand": [
@@ -1152,7 +1532,11 @@
       "Behavior": 0,
       "Speed": 0,
       "Properties": "000000000000000000A0FFF0FFC00010000000",
-      "Room": 955
+      "Room": 955,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false
     }
   ]
 }

@@ -39,9 +39,9 @@ namespace KatAMInternal
             MergeDictionaries(parameters, mapElementsDictionary);
         }
 
-        public void MergeSpecialDictionaries(Dictionary<byte, string> destination, Dictionary<byte, Tuple<string, byte, bool>> source) {
+        public void MergeSpecialDictionaries(Dictionary<byte, string> destination, Dictionary<byte, Data> source) {
             foreach (var item in source) {
-                destination[item.Key] = item.Value.Item1;
+                destination[item.Key] = item.Value.Name;
             }
         }
 
@@ -93,78 +93,82 @@ namespace KatAMInternal
         };
 
         // https://www.tapatalk.com/groups/lighthouse_of_yoshi/kirby-and-the-amazing-mirror-hacking-t741.html
-        /*Prop(Enemy Name, Ability (Default: true), Is Inhalable? (Default: true))*/
-        public static Dictionary<byte, Tuple<string, byte, bool>> enemiesDictionary = new Dictionary<byte, Tuple<string, byte, bool>>{
-            { 0x00, Prop("Waddle Dee")},
-            { 0x01, Prop("Bronto Burt")},
-            { 0x02, Prop("Blipper")},
-            { 0x03, Prop("Glunk")},
-            { 0x04, Prop("Squishy")},
-            { 0x05, Prop("Scarfy", 0x00, false)},
-            { 0x06, Prop("Gordo", 0x00, false)},
-            { 0x07, Prop("Snooter")},
-            { 0x08, Prop("Chip")},
-            { 0x09, Prop("Soarar")},
-            { 0x0A, Prop("Haley")},
-            { 0x0B, Prop("Roly-Poly")},
-            { 0x0C, Prop("Cupie", 0x13)},
-            { 0x0D, Prop("Blockin", 0x00, false)},
-            { 0x0E, Prop("Snooter 2")},
-            { 0x0F, Prop("Leap")},
-            { 0x10, Prop("Jack")},
-            { 0x11, Prop("Big Waddle Dee")},
-            { 0x12, Prop("Waddle Doo", 0x07)},
-            { 0x13, Prop("Flamer", 0x03)},
-            { 0x14, Prop("Hot Head", 0x01)},
-            { 0x15, Prop("Laser Ball", 0x0D) },
-            { 0x16, Prop("Pengy", 0x02)},
-            { 0x17, Prop("Rocky", 0x08)},
-            { 0x18, Prop("Sir Kibble", 0x06)},
-            { 0x19, Prop("Sparky", 0x0F)},
-            { 0x1A, Prop("Sword Knight", 0x12)},
-            { 0x1B, Prop("UFO", 0x0E)},
-            { 0x1C, Prop("Twister", 0x10)},
-            { 0x1D, Prop("Wheelie", 0x04)},
-            { 0x1E, Prop("Noddy", 0x0B)},
-            { 0x1F, Prop("Golem Press", 0x08)},
-            { 0x20, Prop("Golem Roll", 0x04)},
-            { 0x21, Prop("Golem Punch", 0x14) },
-            { 0x22, Prop("Foley", 0x09)},
-            { 0x23, Prop("Shooty")},
-            { 0x24, Prop("Scarfy 2", 0x00, false)},
-            { 0x25, Prop("Boxin", 0x14)},
-            { 0x26, Prop("Cookin", 0x0C)},
-            { 0x27, Prop("Minny", 0x17)},
-            { 0x28, Prop("Bomber", 0x18)},
-            { 0x29, Prop("Heavy Knight", 0x12)},
-            { 0x2A, Prop("Giant Rocky", 0x08)},
-            { 0x2B, Prop("Metal Guardian", 0x0D)},
-            { 0x2C, Prop("Nothing", 0x00, false)},
-            { 0x2D, Prop("Batty")},
-            { 0x2E, Prop("Foley Automatic", 0x09)},
-            { 0x2F, Prop("Bang-Bang", 0x19)},
-            { 0x30, Prop("Explosion", 0x00, false)},
-            { 0x31, Prop("Nothing", 0x00, false)},
-            { 0x32, Prop("Droppy")},
-            { 0x33, Prop("Prank")},
-            { 0x34, Prop("Mirra", 0x00, false) },
-            { 0x35, Prop("Shotzo", 0x00, false)},
+        /*Data(Enemy Name, Ability (Default: true), Is Inhalable? (Default: true))*/
+        public static Dictionary<byte, Data> enemiesDictionary = new Dictionary<byte, Data>{
+            { 0x00, Data("Waddle Dee")},
+            { 0x01, Data("Bronto Burt", default, true, true)},
+            { 0x02, Data("Blipper", default, true)},
+            { 0x03, Data("Glunk", default, true)},
+            { 0x04, Data("Squishy", default, true)},
+            { 0x05, Data("Scarfy", 0x00, false, false, false)},
+            { 0x06, Data("Gordo", 0x00, true, true, false)},
+            { 0x07, Data("Snooter")},
+            { 0x08, Data("Chip")},
+            { 0x09, Data("Soarar", default, true, true)},
+            { 0x0A, Data("Haley", default, true, true)},
+            { 0x0B, Data("Roly-Poly")},
+            { 0x0C, Data("Cupie", 0x13, false, true)},
+            { 0x0D, Data("Blockin", default, false, true, false)},
+            { 0x0E, Data("Snooter 2")},
+            { 0x0F, Data("Leap", default, true, true)},
+            { 0x10, Data("Jack", 0x00, false, false, false)},
+            { 0x11, Data("Big Waddle Dee")},
+            { 0x12, Data("Waddle Doo", 0x07, false, false)},
+            { 0x13, Data("Flamer", 0x03)},
+            { 0x14, Data("Hot Head", 0x01)},
+            { 0x15, Data("Laser Ball", 0x0D, true, true) },
+            { 0x16, Data("Pengy", 0x02)},
+            { 0x17, Data("Rocky", 0x08)},
+            { 0x18, Data("Sir Kibble", 0x06)},
+            { 0x19, Data("Sparky", 0x0F)},
+            { 0x1A, Data("Sword Knight", 0x12)},
+            { 0x1B, Data("UFO", 0x0E, true, true)},
+            { 0x1C, Data("Twister", 0x10)},
+            { 0x1D, Data("Wheelie", 0x04)},
+            { 0x1E, Data("Noddy", 0x0B)},
+            { 0x1F, Data("Golem Press", 0x08)},
+            { 0x20, Data("Golem Roll", 0x04)},
+            { 0x21, Data("Golem Punch", 0x14) },
+            { 0x22, Data("Foley", 0x09, false, true)},
+            { 0x23, Data("Shooty", 0x00, true, true)},
+            { 0x24, Data("Scarfy 2", 0x00, false, false, false)},
+            { 0x25, Data("Boxin", 0x14)},
+            { 0x26, Data("Cookin", 0x0C)},
+            { 0x27, Data("Minny", 0x17)},
+            { 0x28, Data("Bomber", 0x18)},
+            { 0x29, Data("Heavy Knight", 0x12)},
+            { 0x2A, Data("Giant Rocky", 0x08)},
+            { 0x2B, Data("Metal Guardian", 0x0D)},
+            { 0x2C, Data("Nothing", 0x00, false, false, false)},
+            { 0x2D, Data("Batty", 0x00, false, true)},
+            { 0x2E, Data("Foley Automatic", 0x09, false, true)},
+            { 0x2F, Data("Bang-Bang", 0x19)},
+            { 0x30, Data("Explosion", 0x00, false, false, false)},
+            { 0x31, Data("Nothing", 0x00, false, false, false)},
+            { 0x32, Data("Droppy", 0x00, false, true)},
+            { 0x33, Data("Prank")},
+            { 0x34, Data("Mirra", 0x00, false, false, false) },
+            { 0x35, Data("Shotzo", 0x00, false, false, false)},
             /*{ 0x36, "Nothing" },*/ // Shadow Kirby with behavior 0 is nothing;
-            { 0x37, Prop("Waddle Dee 2")},
-            { 0x70, Prop("Shotzo 2", 0x00, false)},
-            { 0xA2, Prop("Parasol", 0x05)}
+            { 0x37, Data("Waddle Dee 2")},
+            { 0x70, Data("Shotzo 2", 0x00, false, false, false)},
+            { 0xA2, Data("Parasol", 0x05, false, true)}
         };
 
-        public static Dictionary<byte, Tuple<string, byte, bool>> minibossesDictionary = new Dictionary<byte, Tuple<string, byte, bool>>{
-            { 0x38, Prop("Mr. Frosty", 0x02)},
-            { 0x39, Prop("Bonkers", 0x11)},
-            { 0x3A, Prop("Phan Phan", 0x0A)},
-            { 0x3B, Prop("Batafire", 0x03)},
-            { 0x3C, Prop("Box Boxer", 0x14)},
-            { 0x3D, Prop("Boxy", 0x15)},
-            { 0x3E, Prop("Master Hand", 0x16)},
-            { 0x3F, Prop("Bombar", 0x19)},
+        public static Dictionary<byte, Data> minibossesDictionary = new Dictionary<byte, Data>{
+            { 0x38, Data("Mr. Frosty", 0x02, true)},
+            { 0x39, Data("Bonkers", 0x11, true)},
+            { 0x3A, Data("Phan Phan", 0x0A, true)},
+            { 0x3B, Data("Batafire", 0x03, true, true)},
+            { 0x3C, Data("Box Boxer", 0x14, true)},
+            { 0x3D, Data("Boxy", 0x15, true)},
+            { 0x3E, Data("Master Hand", 0x16, true)},
+            { 0x3F, Data("Bombar", 0x19, true, true)},
         };
+
+        static Data Data(string name, byte abilityID = 0x00, bool isUnderwater = false, bool isFlying = false, bool isInhalable = true) {
+            return new Data(name, abilityID, isInhalable, isUnderwater, isFlying);
+        }
 
         public static Dictionary<byte, string> bossesDictionary = new Dictionary<byte, string>{
             { 0x45, "Kracko" },
@@ -341,14 +345,6 @@ namespace KatAMInternal
             { 0xDA, "Shooty's Bomb" },
             { 0xDB, "Resets the Game" }
         };
-
-        static Tuple<string, byte, bool> Prop(string name, byte abilityID = 0x00, bool isInhalable = true) {
-            return new Tuple<string, byte, bool>(name, abilityID, isInhalable);
-        }
-
-        static Tuple<string, byte, bool> Null(string name, byte abilityID = 0x00, bool isInhalable = false) {
-            return new Tuple<string, byte, bool>(name, abilityID, isInhalable);
-        }
     }
 
     public class Settings {
@@ -541,7 +537,11 @@ namespace KatAMInternal
                     ["Behavior"] = serialized.Behavior,
                     ["Speed"] = serialized.Speed,
                     ["Properties"] = serialized.Properties,
-                    ["Room"] = serialized.Room
+                    ["Room"] = serialized.Room,
+                    ["Ability"] = serialized.AbilityID,
+                    ["Underwater"] = serialized.IsUnderwater,
+                    ["Flying"] = serialized.IsFlying,
+                    ["Inhalable"] = serialized.IsInhalable,
                 };
 
                 groupedEntities[serialized.Name].Add(entityDict);
@@ -621,22 +621,38 @@ namespace KatAMInternal
                     foreach (var kvp in item) {
                         switch (kvp.Key) {
                             case "Address":
-                            int address = (int)kvp.Value;
-                            serialized.Address = address;
+                                int address = (int)kvp.Value;
+                                serialized.Address = address;
                             break;
                             case "Number": serialized.Number = kvp.Value; break;
                             case "Link": serialized.Link = kvp.Value; break;
                             case "X": serialized.X = kvp.Value; break;
                             case "Y": serialized.Y = kvp.Value; break;
                             case "ID":
-                            byte ID = (byte)kvp.Value;
-                            serialized.ID = ID;
+                                byte ID = (byte)kvp.Value;
+                                serialized.ID = ID;
                             break;
                             case "Behavior": serialized.Behavior = (byte)kvp.Value; break;
                             case "Speed": serialized.Speed = (byte)kvp.Value; break;
                             case "Properties": serialized.Properties = kvp.Value; break;
                             case "Room":
-                            serialized.Room = (int)kvp.Value;
+                                serialized.Room = (int)kvp.Value;
+                            break;
+                            case "Ability":
+                                byte abilityID = (byte)kvp.Value;
+                                serialized.AbilityID = abilityID;
+                            break;
+                            case "Underwater":
+                                bool isUnderwater = kvp.Value;
+                                serialized.IsUnderwater = isUnderwater;
+                            break;
+                            case "Flying":
+                                bool isFlying = kvp.Value;
+                                serialized.IsFlying = isFlying;
+                            break;
+                            case "Inhalable":
+                                bool isInhalable = kvp.Value;
+                                serialized.IsInhalable = isInhalable;
                             break;
                         }
                     }

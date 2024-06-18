@@ -20,7 +20,7 @@ namespace KatAM_Randomizer {
         Dictionary<byte, Properties> propertiesDictionary = new Dictionary<byte, Properties>();
         List<Properties> modifiedProperties = new List<Properties>();
 
-        Dictionary<byte, Tuple<string, byte, bool>> enemiesDictionary;
+        Dictionary<byte, Data> enemiesDictionary;
 
         GenerationOptions EnemiesInhaleAbilityType,
                           MinibossesInhaleAbilityType;
@@ -82,7 +82,7 @@ namespace KatAM_Randomizer {
             List<byte> abilityIndexes = InitializeAbilityList();
             propertiesDictionary = new Dictionary<byte, Properties>();
             modifiedProperties = new List<Properties>();
-            enemiesDictionary = new Dictionary<byte, Tuple<string, byte, bool>>();
+            enemiesDictionary = new Dictionary<byte, Data>();
 
             byte[] romFile = System.ROMData;
 
@@ -99,17 +99,17 @@ namespace KatAM_Randomizer {
             List<byte> shuffleAbilities = new List<byte>();
 
             if (EnemiesInhaleAbilityType == GenerationOptions.Shuffle) {
-                foreach (KeyValuePair<byte, Tuple<string, byte, bool>> kvp in Processing.enemiesDictionary) {
+                foreach (KeyValuePair<byte, Data> kvp in Processing.enemiesDictionary) {
                     byte key = kvp.Key;
-                    Tuple<string, byte, bool> tuple = kvp.Value;
+                    Data data = kvp.Value;
 
-                    bool isInhalable = tuple.Item3;
+                    bool isInhalable = data.IsInhalable;
 
                     // Filtering non-inhalable items so abilities don't go to uninhalable enemies;
                     if (isInhalable) {
-                        enemiesDictionary[key] = tuple;
-
-                        shuffleAbilities.Add(tuple.Item2);
+                        enemiesDictionary[key] = data;
+                        
+                        shuffleAbilities.Add(data.AbilityID);
                     }
                 }
 
@@ -134,13 +134,13 @@ namespace KatAM_Randomizer {
             shuffleAbilities = new List<byte>();
 
             if (MinibossesInhaleAbilityType == GenerationOptions.Shuffle) {
-                foreach (KeyValuePair<byte, Tuple<string, byte, bool>> kvp in Processing.enemiesDictionary) {
+                foreach (KeyValuePair<byte, Data> kvp in Processing.enemiesDictionary) {
                     byte key = kvp.Key;
-                    Tuple<string, byte, bool> tuple = kvp.Value;
+                    Data data = kvp.Value;
 
-                    enemiesDictionary[key] = tuple;
+                    enemiesDictionary[key] = data;
 
-                    shuffleAbilities.Add(tuple.Item2);
+                    shuffleAbilities.Add(data.AbilityID);
                 }
 
                 shuffleAbilities = Utils.Shuffle(shuffleAbilities);
@@ -191,8 +191,8 @@ namespace KatAM_Randomizer {
         }
 
         void RandomizeAbilityProperties(GenerationOptions inhaleType, 
-                                        Dictionary<byte, Tuple<string, byte, bool>> dictionary, 
-                                        List<byte> abilities, List<byte> shuffledAbilities) {
+                                        Dictionary<byte, Data> dictionary, List<byte> abilities, 
+                                        List<byte> shuffledAbilities) {
             if (inhaleType == GenerationOptions.Unchanged) return;
 
             int currentAbility = 0;

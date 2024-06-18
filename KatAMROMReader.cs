@@ -17,6 +17,8 @@ namespace KatAMRandomizer {
         List<Properties> properties = new List<Properties>();
 
         void ReadObjectParameterData(byte[] romFile) {
+            properties = new List<Properties>();
+
             int parameterStartAddress = 0x335E1C,
                 parameterEndAddress = 0x3372A4;
 
@@ -66,7 +68,7 @@ namespace KatAMRandomizer {
 
         // Calling the data linking information;
         List<int> roomIds = Processing.roomIds;
-        Dictionary<byte, Tuple<string, byte, bool>> enemiesDictionary = Processing.enemiesDictionary,
+        Dictionary<byte, Data> enemiesDictionary = Processing.enemiesDictionary,
                                                     minibossesDictionary = Processing.minibossesDictionary;
         Dictionary<byte, string> bossesDictionary = Processing.bossesDictionary,
                                  itemsDictionary = Processing.itemsDictionary,
@@ -83,7 +85,20 @@ namespace KatAMRandomizer {
                      miscellaneous = new List<Entity>(),
                      undefined = new List<Entity>();
 
+        void ResetListData() {
+            enemies = new List<Entity>();
+            minibosses = new List<Entity>();
+            bosses = new List<Entity>();
+            items = new List<Entity>();
+            mirrors = new List<Entity>();
+            abilityStands = new List<Entity>();
+            miscellaneous = new List<Entity>();
+            undefined = new List<Entity>();
+        }
+
         void ReadObjectData(byte[] romFile) {
+            ResetListData();
+
             // Memory locations;
             string startAddress = "884C64", endAddress = "8A630D";
             int roomDataStartAddress = Convert.ToInt32(startAddress, 16),
@@ -149,16 +164,31 @@ namespace KatAMRandomizer {
 
                     // Enemy references;
                     if (isEnemy) {
-                        entity.Name = enemiesDictionary[ID].Item1;
+                        entity.Name = enemiesDictionary[ID].Name;
 
                         entity.AreAllPropertiesZeroes();
+
+                        Data data = Processing.enemiesDictionary[ID];
+
+                        entity.AbilityID = data.AbilityID;
+                        entity.IsUnderwater = data.IsUnderwater;
+                        entity.IsFlying = data.IsFlying;
+                        entity.IsInhalable = data.IsInhalable;
 
                         enemies.Add(entity);
                     }
 
                     // Miniboss references;
                     else if (isMiniboss) {
-                        entity.Name = minibossesDictionary[ID].Item1;
+                        entity.Name = minibossesDictionary[ID].Name;
+
+                        Data data = Processing.minibossesDictionary[ID];
+
+                        entity.AbilityID = data.AbilityID;
+                        entity.IsUnderwater = data.IsUnderwater;
+                        entity.IsFlying = data.IsFlying;
+                        entity.IsInhalable = data.IsInhalable;
+
                         minibosses.Add(entity);
                     }
 

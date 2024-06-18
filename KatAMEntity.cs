@@ -22,6 +22,10 @@ public class Entity {
     public byte Speed { get; set; }
     public byte[] Properties { get; set; } = new byte[19];
     public int Room { get; set; }
+    public byte AbilityID { get; set; }
+    public bool IsUnderwater { get; set; }
+    public bool IsFlying { get; set; }
+    public bool IsInhalable { get; set; }
 
     public Entity() {}
 
@@ -38,6 +42,10 @@ public class Entity {
         Speed = entity.Speed;
         Properties = entity.Properties;
         Room = entity.Room;
+        AbilityID = entity.AbilityID;
+        IsUnderwater = entity.IsUnderwater;
+        IsFlying = entity.IsFlying;
+        IsInhalable = entity.IsInhalable;
     }
 
     public EntitySerializable SerializeEntity() {
@@ -74,7 +82,11 @@ public class EntitySerializable : Entity {
         ID = entity.ID;
         Behavior = entity.Behavior;
         Speed = entity.Speed;
-        Room = entity.Room;
+        Room = entity.Room; 
+        AbilityID = entity.AbilityID;
+        IsUnderwater = entity.IsUnderwater;
+        IsFlying = entity.IsFlying;
+        IsInhalable = entity.IsInhalable;
     }
 
     public static string ByteArrayToHexString(byte[] byteArray) {
@@ -97,11 +109,33 @@ public class EntitySerializable : Entity {
         entity.Behavior = Behavior;
         entity.Speed = Speed;
         entity.Room = Room;
+        entity.IsUnderwater = IsUnderwater;
+        entity.IsFlying = IsFlying;
+        entity.AbilityID = AbilityID;
+        entity.IsUnderwater = IsUnderwater;
+        entity.IsFlying = IsFlying;
+        entity.IsInhalable = IsInhalable;
 
         return entity;
     }
 
     public static byte[] StringToByteArray(string hexString) {
         return Utils.StringToByteArray(hexString);
+    }
+}
+
+public class Data {
+    public string Name { get; set; }
+    public byte AbilityID { get; set; }
+    public bool IsInhalable { get; set; }
+    public bool IsUnderwater { get; set; }
+    public bool IsFlying { get; set; }
+
+    public Data(string name, byte abilityID, bool isInhalable, bool isUnderwater, bool isFlying) {
+        Name = name;
+        AbilityID = abilityID;
+        IsInhalable = isInhalable;
+        IsUnderwater = isUnderwater;
+        IsFlying = isFlying;
     }
 }

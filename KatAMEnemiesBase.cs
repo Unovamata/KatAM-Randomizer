@@ -28,38 +28,20 @@ namespace KatAMRandomizer {
 
         protected List<byte> underwaterEnemyIDs = new List<byte>();
 
-        protected List<byte> underwaterVetoedEnemyIDs = new List<byte>() {
-            0x02, // Blipper;
-            0x03, // Glunk;
-            0x04, // Squishy;
-            0x06, // Gordo;
-        };
-
-        protected List<byte> underwaterValidEnemyIDs = new List<byte>() {
-            0x01, //Bronto 
-            0x23, //Shooty 
-            0x0F, //Leap
-            0x15, //Laser
-            0x09, //Soarar
-            0x1B, //UFO
-            0x0A //Haley
-        };
-
-        protected List<byte> progressionEnemyIDs = new List<byte>() {
+        protected HashSet<byte> progressionEnemyIDs = new HashSet<byte>() {
             0x10, // Jack;
             0x27, // Minny;
             0x34, // Mirra;
         };
 
-        protected void RandomizeEnemies(IKatAMRandomizer Instance, string file, bool isRandomizingMiniBosses = false) {
+        protected void LoadEnemyDataset(IKatAMRandomizer Instance, string file) {
             entities = new List<Entity>();
-
-            // Read the settings, entities, and ROM data;
-            byte[] romFile = System.ROMData;
 
             // Deserializing all the entities in the game;
             Utils.DeserializeEntitiesJSON(Utils.JSONToObjects(file), entities, Instance);
+        }
 
+        protected void RandomizeEnemies(IKatAMRandomizer Instance, bool isRandomizingMiniBosses = false) {
             List<Entity> minibosses = new List<Entity>();
             
             if (!isRandomizingMiniBosses && isIncludingMiniBosses) {
@@ -169,7 +151,7 @@ namespace KatAMRandomizer {
                     entity.Behavior = availableEnemyBehaviors[behaviorIndex];
                 }
 
-                Utils.WriteObjectToROM(romFile, entity);
+                Utils.WriteObjectToROM(System.ROMData, entity);
             }
         }
 
@@ -219,12 +201,14 @@ namespace KatAMRandomizer {
             InitializeComponents(system);
 
             LoadSettings();
-
-            GroupUnderwaterEnemies();
             
             if(isUsingUnusedBehaviors) InitializeBehaviorDictionary();
 
-            RandomizeEnemies(this, Utils.enemiesJson);
+            LoadEnemyDataset(this, Utils.enemiesJson);
+
+            GroupUnderwaterEnemies();
+
+            RandomizeEnemies(this);
         }
 
         public void LoadSettings() {
@@ -244,9 +228,13 @@ namespace KatAMRandomizer {
         }
 
         public void GroupUnderwaterEnemies() {
-            // Adding underwater enemies together for randomization;
-            underwaterEnemyIDs.AddRange(underwaterVetoedEnemyIDs);
-            underwaterEnemyIDs.AddRange(underwaterValidEnemyIDs);
+            foreach(Entity enemy in entities) {
+                if (enemy.IsUnderwater) {
+                    underwaterEnemyIDs.Add(enemy.ID);
+
+                    Console.WriteLine("Underwater Enemy Detected");
+                }
+            }
         }
 
         void InitializeBehaviorDictionary() {
@@ -310,7 +298,9 @@ namespace KatAMRandomizer {
 
             LoadSettings();
 
-            RandomizeEnemies(this, Utils.minibossesJson, true);
+            LoadEnemyDataset(this, Utils.minibossesJson);
+
+            RandomizeEnemies(this);
         }
 
         public void LoadSettings() {

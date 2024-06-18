@@ -849,97 +849,97 @@
   ],
   "Mr. Frosty": [
     {
-      "Definition": "1112E8031E000E00191300002400000021D20C08CCA43308",
+      "Definition": "1112E8031E000200191300002400000021D20C08CCA43308",
       "ID": 56,
       "Address": 3367772,
       "Name": "Mr. Frosty",
       "Damage Sprites": "1112",
       "HP": 30,
-      "Copy Ability": 14,
+      "Copy Ability": 2,
       "Palette": 25
     }
   ],
   "Bonkers": [
     {
-      "Definition": "1415D007280015001A1300004800000019F80C082CA83308",
+      "Definition": "1415D007280011001A1300004800000019F80C082CA83308",
       "ID": 57,
       "Address": 3367796,
       "Name": "Bonkers",
       "Damage Sprites": "1415",
       "HP": 40,
-      "Copy Ability": 21,
+      "Copy Ability": 17,
       "Palette": 26
     }
   ],
   "Phan Phan": [
     {
-      "Definition": "1D1ED0071E0003001B13000040000000CDF30C0858A63308",
+      "Definition": "1D1ED0071E000A001B13000040000000CDF30C0858A63308",
       "ID": 58,
       "Address": 3367820,
       "Name": "Phan Phan",
       "Damage Sprites": "1D1E",
       "HP": 30,
-      "Copy Ability": 3,
+      "Copy Ability": 10,
       "Palette": 27
     }
   ],
   "Batafire": [
     {
-      "Definition": "0C0DD0071E000800E7120000700000004D950C08B4A03308",
+      "Definition": "0C0DD0071E000300E7120000700000004D950C08B4A03308",
       "ID": 59,
       "Address": 3367844,
       "Name": "Batafire",
       "Damage Sprites": "0C0D",
       "HP": 30,
-      "Copy Ability": 8,
+      "Copy Ability": 3,
       "Palette": 231
     }
   ],
   "Box Boxer": [
     {
-      "Definition": "1314D00728000900FE1200003F00000049750C080C9F3308",
+      "Definition": "1314D00728001400FE1200003F00000049750C080C9F3308",
       "ID": 60,
       "Address": 3367868,
       "Name": "Box Boxer",
       "Damage Sprites": "1314",
       "HP": 40,
-      "Copy Ability": 9,
+      "Copy Ability": 20,
       "Palette": 254
     }
   ],
   "Boxy": [
     {
-      "Definition": "0D0ED00728000D003813000046000000FD760D0858A93308",
+      "Definition": "0D0ED007280015003813000046000000FD760D0858A93308",
       "ID": 61,
       "Address": 3367892,
       "Name": "Boxy",
       "Damage Sprites": "0D0E",
       "HP": 40,
-      "Copy Ability": 13,
+      "Copy Ability": 21,
       "Palette": 56
     }
   ],
   "Master Hand": [
     {
-      "Definition": "1617D007280019003513000048000000B9190D08E4B03308",
+      "Definition": "1617D007280016003513000048000000B9190D08E4B03308",
       "ID": 62,
       "Address": 3367916,
       "Name": "Master Hand",
       "Damage Sprites": "1617",
       "HP": 40,
-      "Copy Ability": 25,
+      "Copy Ability": 22,
       "Palette": 53
     }
   ],
   "Bombar": [
     {
-      "Definition": "0809D007280010001613000046000000159E0D08F4A93308",
+      "Definition": "0809D007280019001613000046000000159E0D08F4A93308",
       "ID": 63,
       "Address": 3367940,
       "Name": "Bombar",
       "Damage Sprites": "0809",
       "HP": 40,
-      "Copy Ability": 16,
+      "Copy Ability": 25,
       "Palette": 22
     }
   ],
