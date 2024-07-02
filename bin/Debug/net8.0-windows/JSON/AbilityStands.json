@@ -14,7 +14,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 8940180,
@@ -30,7 +31,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 8945272,
@@ -46,7 +48,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 8945452,
@@ -62,7 +65,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 8947380,
@@ -78,7 +82,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 8947416,
@@ -94,7 +99,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 8959164,
@@ -110,7 +116,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 8959200,
@@ -126,7 +133,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 8963996,
@@ -142,7 +150,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 8964032,
@@ -158,7 +167,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 8964068,
@@ -174,7 +184,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 8970108,
@@ -190,7 +201,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 8970144,
@@ -206,7 +218,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 8971816,
@@ -222,7 +235,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 8971852,
@@ -238,7 +252,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 8971888,
@@ -254,7 +269,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 8982620,
@@ -270,7 +286,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 8982656,
@@ -286,7 +303,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 8988616,
@@ -302,7 +320,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 8988652,
@@ -318,7 +337,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 8993236,
@@ -334,7 +354,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 8993272,
@@ -350,7 +371,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 8993308,
@@ -366,7 +388,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 8993344,
@@ -382,7 +405,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 8993380,
@@ -398,7 +422,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 8993416,
@@ -414,7 +439,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 9001020,
@@ -430,7 +456,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 9001056,
@@ -446,7 +473,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 9001204,
@@ -462,7 +490,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 9001240,
@@ -478,7 +507,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 9001276,
@@ -494,7 +524,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 9001312,
@@ -510,7 +541,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 9014728,
@@ -526,7 +558,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 9014764,
@@ -542,7 +575,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 9014876,
@@ -558,7 +592,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 9014912,
@@ -574,7 +609,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 9014948,
@@ -590,7 +626,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 9023900,
@@ -606,7 +643,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 9023936,
@@ -622,7 +660,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 9024300,
@@ -638,7 +677,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 9024336,
@@ -654,7 +694,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 9036800,
@@ -670,7 +711,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 9036836,
@@ -686,7 +728,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 9036948,
@@ -702,7 +745,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 9036984,
@@ -718,7 +762,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 9037020,
@@ -734,7 +779,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 9040212,
@@ -750,7 +796,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 9040248,
@@ -766,7 +813,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 9049856,
@@ -782,7 +830,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 9049892,
@@ -798,7 +847,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 9054104,
@@ -814,7 +864,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 9054140,
@@ -830,7 +881,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 9056496,
@@ -846,7 +898,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 9056532,
@@ -862,7 +915,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 9056644,
@@ -878,7 +932,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 9056680,
@@ -894,7 +949,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 9056716,
@@ -910,7 +966,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 9067076,
@@ -926,7 +983,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 9067112,
@@ -942,7 +1000,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 9067184,
@@ -958,7 +1017,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 9067220,
@@ -974,7 +1034,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 9067256,
@@ -990,7 +1051,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 9067292,
@@ -1006,7 +1068,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 9067328,
@@ -1022,7 +1085,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 9067364,
@@ -1038,7 +1102,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 9067400,
@@ -1054,7 +1119,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 9067436,
@@ -1070,7 +1136,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 9067472,
@@ -1086,7 +1153,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 9067508,
@@ -1102,7 +1170,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 9067544,
@@ -1118,7 +1187,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 9067580,
@@ -1134,7 +1204,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 9067616,
@@ -1150,7 +1221,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 9067652,
@@ -1166,7 +1238,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 9067688,
@@ -1182,7 +1255,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 9067724,
@@ -1198,7 +1272,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 9067760,
@@ -1214,7 +1289,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 9068628,
@@ -1230,7 +1306,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 9068664,
@@ -1246,7 +1323,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 9068700,
@@ -1262,7 +1340,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 9068736,
@@ -1278,7 +1357,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 9068772,
@@ -1294,7 +1374,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 9068808,
@@ -1310,7 +1391,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 9068844,
@@ -1326,7 +1408,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 9068880,
@@ -1342,7 +1425,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 9068916,
@@ -1358,7 +1442,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 9068952,
@@ -1374,7 +1459,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 9068988,
@@ -1390,7 +1476,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 9069024,
@@ -1406,7 +1493,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 9069060,
@@ -1422,7 +1510,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 9069096,
@@ -1438,7 +1527,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 9069132,
@@ -1454,7 +1544,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 9069168,
@@ -1470,7 +1561,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 9069204,
@@ -1486,7 +1578,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 9069240,
@@ -1502,7 +1595,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 9069276,
@@ -1518,7 +1612,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     }
   ],
   "Random Ability Stand": [
@@ -1536,7 +1631,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     }
   ]
 }

@@ -110,6 +110,7 @@ namespace KatAMRandomizer
             settings.RandomEntity = new Random(settings.Seed);
 
             /*new KatAMROMReader(system);*/
+            new KatAMMirrors(system);
             new KatAMSprays(system);
             new KatAMItems(system);
             new KatAMPedestals(system);
@@ -117,8 +118,7 @@ namespace KatAMRandomizer
             new KatAMMinibosses(system);
             new KatAMMapElements(system);
             new KatAMPropertiesManagement(system);
-
-            // Intelligently randomize flying enemies;
+            
             // Randomize mirrors;
             // Randomize HP values on Enemies;
             // Randomize HP values on Bosses;

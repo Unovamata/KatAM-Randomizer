@@ -14,7 +14,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     }
   ],
   "Wiz": [
@@ -32,7 +33,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     }
   ],
   "Kracko": [
@@ -50,7 +52,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     }
   ],
   "Master Hand (Boss)": [
@@ -68,7 +71,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     }
   ],
   "Moley": [
@@ -86,7 +90,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     }
   ],
   "Gobbler": [
@@ -104,7 +109,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     }
   ],
   "Dark Meta Knight (Radish)": [
@@ -122,7 +128,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     }
   ],
   "Mega Titan": [
@@ -140,7 +147,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     }
   ],
   "Dark Meta Knight (Boss)": [
@@ -158,7 +166,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     }
   ],
   "Dark Mind (1)": [
@@ -176,7 +185,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 9065912,
@@ -192,7 +202,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 9066312,
@@ -208,7 +219,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     },
     {
       "Address": 9066860,
@@ -224,7 +236,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     }
   ],
   "Dark Mind (2)": [
@@ -242,7 +255,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     }
   ],
   "Dark Mind (Shooting)": [
@@ -260,7 +274,8 @@
       "Ability": 0,
       "Underwater": false,
       "Flying": false,
-      "Inhalable": false
+      "Inhalable": false,
+      "Description": ""
     }
   ]
 }

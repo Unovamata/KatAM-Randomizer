@@ -14,7 +14,8 @@
       "Ability": 22,
       "Underwater": true,
       "Flying": false,
-      "Inhalable": true
+      "Inhalable": true,
+      "Description": ""
     },
     {
       "Address": 9008232,
@@ -30,7 +31,8 @@
       "Ability": 22,
       "Underwater": true,
       "Flying": false,
-      "Inhalable": true
+      "Inhalable": true,
+      "Description": ""
     },
     {
       "Address": 9046444,
@@ -46,7 +48,8 @@
       "Ability": 22,
       "Underwater": true,
       "Flying": false,
-      "Inhalable": true
+      "Inhalable": true,
+      "Description": ""
     }
   ],
   "Batafire": [
@@ -64,7 +67,8 @@
       "Ability": 3,
       "Underwater": true,
       "Flying": true,
-      "Inhalable": true
+      "Inhalable": true,
+      "Description": ""
     },
     {
       "Address": 8971708,
@@ -80,7 +84,8 @@
       "Ability": 3,
       "Underwater": true,
       "Flying": true,
-      "Inhalable": true
+      "Inhalable": true,
+      "Description": ""
     },
     {
       "Address": 8999636,
@@ -96,7 +101,8 @@
       "Ability": 3,
       "Underwater": true,
       "Flying": true,
-      "Inhalable": true
+      "Inhalable": true,
+      "Description": ""
     },
     {
       "Address": 9018988,
@@ -112,7 +118,8 @@
       "Ability": 3,
       "Underwater": true,
       "Flying": true,
-      "Inhalable": true
+      "Inhalable": true,
+      "Description": ""
     },
     {
       "Address": 9068268,
@@ -128,7 +135,8 @@
       "Ability": 3,
       "Underwater": true,
       "Flying": true,
-      "Inhalable": true
+      "Inhalable": true,
+      "Description": ""
     }
   ],
   "Box Boxer": [
@@ -146,7 +154,8 @@
       "Ability": 20,
       "Underwater": true,
       "Flying": false,
-      "Inhalable": true
+      "Inhalable": true,
+      "Description": ""
     },
     {
       "Address": 8976752,
@@ -162,7 +171,8 @@
       "Ability": 20,
       "Underwater": true,
       "Flying": false,
-      "Inhalable": true
+      "Inhalable": true,
+      "Description": ""
     },
     {
       "Address": 8998068,
@@ -178,7 +188,8 @@
       "Ability": 20,
       "Underwater": true,
       "Flying": false,
-      "Inhalable": true
+      "Inhalable": true,
+      "Description": ""
     },
     {
       "Address": 9006888,
@@ -194,7 +205,8 @@
       "Ability": 20,
       "Underwater": true,
       "Flying": false,
-      "Inhalable": true
+      "Inhalable": true,
+      "Description": ""
     },
     {
       "Address": 9022516,
@@ -210,7 +222,8 @@
       "Ability": 20,
       "Underwater": true,
       "Flying": false,
-      "Inhalable": true
+      "Inhalable": true,
+      "Description": ""
     }
   ],
   "Boxy": [
@@ -228,7 +241,8 @@
       "Ability": 21,
       "Underwater": true,
       "Flying": false,
-      "Inhalable": true
+      "Inhalable": true,
+      "Description": ""
     },
     {
       "Address": 8968100,
@@ -244,7 +258,8 @@
       "Ability": 21,
       "Underwater": true,
       "Flying": false,
-      "Inhalable": true
+      "Inhalable": true,
+      "Description": ""
     },
     {
       "Address": 8992764,
@@ -260,7 +275,8 @@
       "Ability": 21,
       "Underwater": true,
       "Flying": false,
-      "Inhalable": true
+      "Inhalable": true,
+      "Description": ""
     },
     {
       "Address": 9033668,
@@ -276,7 +292,8 @@
       "Ability": 21,
       "Underwater": true,
       "Flying": false,
-      "Inhalable": true
+      "Inhalable": true,
+      "Description": ""
     },
     {
       "Address": 9052792,
@@ -292,7 +309,8 @@
       "Ability": 21,
       "Underwater": true,
       "Flying": false,
-      "Inhalable": true
+      "Inhalable": true,
+      "Description": ""
     }
   ],
   "Mr. Frosty": [
@@ -310,7 +328,8 @@
       "Ability": 2,
       "Underwater": true,
       "Flying": false,
-      "Inhalable": true
+      "Inhalable": true,
+      "Description": ""
     },
     {
       "Address": 8981056,
@@ -326,7 +345,8 @@
       "Ability": 2,
       "Underwater": true,
       "Flying": false,
-      "Inhalable": true
+      "Inhalable": true,
+      "Description": ""
     },
     {
       "Address": 9033084,
@@ -342,7 +362,8 @@
       "Ability": 2,
       "Underwater": true,
       "Flying": false,
-      "Inhalable": true
+      "Inhalable": true,
+      "Description": ""
     },
     {
       "Address": 9068124,
@@ -358,7 +379,8 @@
       "Ability": 2,
       "Underwater": true,
       "Flying": false,
-      "Inhalable": true
+      "Inhalable": true,
+      "Description": ""
     }
   ],
   "Bonkers": [
@@ -376,7 +398,8 @@
       "Ability": 17,
       "Underwater": true,
       "Flying": false,
-      "Inhalable": true
+      "Inhalable": true,
+      "Description": ""
     },
     {
       "Address": 8976572,
@@ -392,7 +415,8 @@
       "Ability": 17,
       "Underwater": true,
       "Flying": false,
-      "Inhalable": true
+      "Inhalable": true,
+      "Description": ""
     },
     {
       "Address": 9011032,
@@ -408,7 +432,8 @@
       "Ability": 17,
       "Underwater": true,
       "Flying": false,
-      "Inhalable": true
+      "Inhalable": true,
+      "Description": ""
     },
     {
       "Address": 9015344,
@@ -424,7 +449,8 @@
       "Ability": 17,
       "Underwater": true,
       "Flying": false,
-      "Inhalable": true
+      "Inhalable": true,
+      "Description": ""
     },
     {
       "Address": 9019712,
@@ -440,7 +466,8 @@
       "Ability": 17,
       "Underwater": true,
       "Flying": false,
-      "Inhalable": true
+      "Inhalable": true,
+      "Description": ""
     },
     {
       "Address": 9038472,
@@ -456,7 +483,8 @@
       "Ability": 17,
       "Underwater": true,
       "Flying": false,
-      "Inhalable": true
+      "Inhalable": true,
+      "Description": ""
     },
     {
       "Address": 9045180,
@@ -472,7 +500,8 @@
       "Ability": 17,
       "Underwater": true,
       "Flying": false,
-      "Inhalable": true
+      "Inhalable": true,
+      "Description": ""
     }
   ],
   "Bombar": [
@@ -490,7 +519,8 @@
       "Ability": 25,
       "Underwater": true,
       "Flying": true,
-      "Inhalable": true
+      "Inhalable": true,
+      "Description": ""
     },
     {
       "Address": 8989344,
@@ -506,7 +536,8 @@
       "Ability": 25,
       "Underwater": true,
       "Flying": true,
-      "Inhalable": true
+      "Inhalable": true,
+      "Description": ""
     },
     {
       "Address": 9000652,
@@ -522,7 +553,8 @@
       "Ability": 25,
       "Underwater": true,
       "Flying": true,
-      "Inhalable": true
+      "Inhalable": true,
+      "Description": ""
     }
   ],
   "Phan Phan": [
@@ -540,7 +572,8 @@
       "Ability": 10,
       "Underwater": true,
       "Flying": false,
-      "Inhalable": true
+      "Inhalable": true,
+      "Description": ""
     },
     {
       "Address": 8997772,
@@ -556,7 +589,8 @@
       "Ability": 10,
       "Underwater": true,
       "Flying": false,
-      "Inhalable": true
+      "Inhalable": true,
+      "Description": ""
     },
     {
       "Address": 9003232,
@@ -572,7 +606,8 @@
       "Ability": 10,
       "Underwater": true,
       "Flying": false,
-      "Inhalable": true
+      "Inhalable": true,
+      "Description": ""
     },
     {
       "Address": 9061740,
@@ -588,7 +623,8 @@
       "Ability": 10,
       "Underwater": true,
       "Flying": false,
-      "Inhalable": true
+      "Inhalable": true,
+      "Description": ""
     }
   ]
 }

@@ -543,6 +543,7 @@ namespace KatAMInternal
                     ["Underwater"] = serialized.IsUnderwater,
                     ["Flying"] = serialized.IsFlying,
                     ["Inhalable"] = serialized.IsInhalable,
+                    ["Description"] = serialized.Description,
                 };
 
                 groupedEntities[serialized.Name].Add(entityDict);
@@ -562,14 +563,14 @@ namespace KatAMInternal
                 }
 
                 var entityDict = new Dictionary<string, dynamic> {
-                    ["Definition"] = serialized.Definition,
                     ["ID"] = serialized.ID,
                     ["Address"] = serialized.Address,
                     ["Name"] = serialized.Name,
                     ["Damage Sprites"] = serialized.DamageSprites,
                     ["HP"] = serialized.HP,
                     ["Copy Ability"] = serialized.CopyAbility,
-                    ["Palette"] = serialized.Palette
+                    ["Palette"] = serialized.Palette,
+                    ["Definition"] = serialized.Definition
                 };
 
                 groupedProperties[serialized.Name].Add(entityDict);
@@ -654,6 +655,9 @@ namespace KatAMInternal
                             case "Inhalable":
                                 bool isInhalable = kvp.Value;
                                 serialized.IsInhalable = isInhalable;
+                            break;
+                            case "Description":
+                                serialized.Description = kvp.Value;
                             break;
                         }
                     }

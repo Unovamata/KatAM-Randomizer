@@ -152,6 +152,7 @@ namespace KatAMRandomizer {
                     entity.Speed = romFile[i + 16];
                     Array.Copy(objectDefinition, 17, entity.Properties, 0, entity.Properties.Length);
                     entity.Room = currentRoom;
+                    entity.Description = "";
 
                     // Mapping the enemies to a specific name type;
                     bool isEnemy = enemiesDictionary.ContainsKey(ID);
@@ -210,6 +211,7 @@ namespace KatAMRandomizer {
                     // Mirror references;
                     else if (isMirror) {
                         entity.Name = mirrorsDictionary[ID];
+                        entity.Description = "a";
 
                         entity.AreAllPropertiesZeroes();
 

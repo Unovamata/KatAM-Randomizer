@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 
 public class Entity {
     public string Name { get; set; }
+    public string Description { get; set; }
     public byte[] Definition { get; set; }
     public int Address { get; set; }
 
@@ -31,6 +32,7 @@ public class Entity {
 
     public Entity(Entity entity) {
         Name = entity.Name;
+        Description = entity.Description;
         Definition = entity.Definition;
         Address = entity.Address;
         Number = entity.Number;
@@ -78,6 +80,7 @@ public class EntitySerializable : Entity {
         Properties = ByteArrayToHexString(entity.Properties);
 
         Name = entity.Name;
+        Description = entity.Description;
         Address = entity.Address;
         ID = entity.ID;
         Behavior = entity.Behavior;
@@ -104,6 +107,7 @@ public class EntitySerializable : Entity {
         entity.Properties = StringToByteArray(this.Properties);
 
         entity.Name = Name;
+        entity.Description = Description;
         entity.Address = Address;
         entity.ID = ID;
         entity.Behavior = Behavior;
