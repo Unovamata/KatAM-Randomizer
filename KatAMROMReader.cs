@@ -12,6 +12,8 @@ namespace KatAMRandomizer {
             ReadObjectParameterData(System.ROMData);
 
             ReadObjectData(System.ROMData);
+
+            Read9ROMData(System.ROMData);
         }
 
         List<Properties> properties = new List<Properties>();
@@ -268,6 +270,96 @@ namespace KatAMRandomizer {
 
                             break;
                         } else emptyBytes++;
+                    }
+                }
+            }
+
+            long NineROMStartAddress = 9441164,
+                 NineROMEndAddress = 9449752;
+
+            void Read9ROMData(byte[] romFile) {
+
+            }
+
+            // WriteChestTo9ROM(); Writing the object data in a format the ROM can understand;
+            void WriteChestTo9ROM(byte[] romFile) {
+                // Pointers to inspect the data correctly;
+                int currentRoomIndex = 0,
+                    chestsInRoomCount = 0,
+                    lastRoomAdded = -1;
+
+                // Base empty chest;
+                byte[] chestBytes = new byte[] { 0x01, 0x08, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, };
+
+                // Read and Overwritte the data for all 9ROM addresses found;
+                for(long i = NineROMStartAddress; i < romFile.Length; i += 1) {
+                    if(i >= NineROMEndAddress || i >= romFile.Length) return;
+
+                    int currentRoom;
+
+                    try { currentRoom = Processing.roomIds[currentRoomIndex]; } catch { return; }
+
+                    // Read the next 4 bytes to detect the 9ROM reference instance;
+                    byte byte1 = romFile[i],
+                         byte2 = romFile[i + 1],
+                         byte3 = romFile[i + 2],
+                         byte4 = romFile[i + 3];
+
+                    if(Processing.IsChest(byte1, byte2, byte3, byte4)) {
+                        //Console.WriteLine($"Chest 9ROM Found at {i} address!");
+                        i += 7;
+                    }
+
+                    else if(Processing.IsMirror(byte1, byte2, byte3, byte4)) {
+                        //Console.WriteLine($"Mirror 9ROM Found at {i} address!");
+
+                        // Read the 9ROM mirror data and inject it untouched to the ROM;
+                        byte[] mirrorData = Processing.ExtractNineROMData(romFile, i, 8);
+
+                        Utils.WriteToROM(romFile, newListAddress, mirrorData);
+
+                        i += 7;
+                        newListAddress += 8;
+                    }
+
+                    // If it's the end of the room, inject all the chests to their respective pointers;
+                    else if(Processing.IsEndOfRoom(byte1, byte2, byte3, byte4)) {
+                        //Console.WriteLine($"End of Room {Processing.roomIds[currentRoomIndex]} / {Utils.ConvertIntToHex(Processing.roomIds[currentRoomIndex])} 9ROM Found at {i} address!");
+
+                        // Extract the room data and move the pointers to the new list;
+                        byte[] endOfRoomData = Processing.ExtractNineROMData(romFile, i, 12),
+                               writeRoomData = BitConverter.GetBytes(currentRoomAddress + NewListPointer);
+
+                        /* Leave the "00 00 FF FF" bytes untouched and replace everything
+                         * with the writeRoomData information */
+                        for(int j = 4; j < writeRoomData.Length + 4; j += 1) {
+                            byte bit = writeRoomData[j - 4];
+
+                            endOfRoomData[j] = bit;
+                        }
+
+                        // Change the byte that tracks the number of chests in a room;
+                        endOfRoomData[8] = (byte)chestsInRoomCount;
+
+                        Utils.WriteToROM(romFile, newListAddress, endOfRoomData);
+
+                        // Overwritting Pointers;
+                        long pointerIndex = PointersListAddress + (4 * currentRoomIndex);
+                        byte[] pointerInformation = BitConverter.GetBytes((newListAddress + 4) + NewListPointer),
+                               pointerToWrite = new byte[4];
+
+                        // Telling the pointer data to look for the new chest table;
+                        for(int l = 0; l < 4; l++) {
+                            pointerToWrite[l] = pointerInformation[l];
+                        }
+
+                        Utils.WriteToROM(romFile, pointerIndex, pointerToWrite);
+
+                        // Check for the next room and continue writing in the next addresses;
+                        currentRoomIndex++;
+                        i += 11;
+                        newListAddress += 12;
+                        currentRoomAddress = newListAddress;
                     }
                 }
             }

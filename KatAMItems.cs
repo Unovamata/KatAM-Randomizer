@@ -289,13 +289,9 @@ namespace KatAMRandomizer
         }
 
         // Pointers;
-        long NineROMStartAddress = 9441164,
-                    NineROMEndAddress = 9449752,
-
-        // New pointers list for chest and mirror writing;
-                    NewNineROMAddress = 14745600,
-                    PointersListAddress = 13825216,
-                    NewListPointer = 134217728;
+        long NewNineROMAddress = 14745600,
+             PointersListAddress = 13825216,
+             NewListPointer = 134217728;
 
         // WriteChestTo9ROM(); Writing the object data in a format the ROM can understand;
         void WriteChestTo9ROM(byte[] romFile) {
@@ -311,8 +307,8 @@ namespace KatAMRandomizer
             byte[] chestBytes = new byte[] { 0x01, 0x08, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, };
 
             // Read and Overwritte the data for all 9ROM addresses found;
-            for (long i = NineROMStartAddress; i < romFile.Length; i += 1) {
-                if (i >= NineROMEndAddress || i >= romFile.Length) return;
+            for (long i = Processing.NineROMStartAddress; i < romFile.Length; i += 1) {
+                if (i >= Processing.NineROMEndAddress || i >= romFile.Length) return;
 
                 int currentRoom;
 
@@ -359,16 +355,16 @@ namespace KatAMRandomizer
                      byte3 = romFile[i + 2],
                      byte4 = romFile[i + 3];
 
-                if (IsChest(byte1, byte2, byte3, byte4)) {
+                if (Processing.IsChest(byte1, byte2, byte3, byte4)) {
                     //Console.WriteLine($"Chest 9ROM Found at {i} address!");
                     i += 7;
                 }
                 
-                else if (IsMirror(byte1, byte2, byte3, byte4)) {
+                else if (Processing.IsMirror(byte1, byte2, byte3, byte4)) {
                     //Console.WriteLine($"Mirror 9ROM Found at {i} address!");
 
                     // Read the 9ROM mirror data and inject it untouched to the ROM;
-                    byte[] mirrorData = ExtractNineROMData(romFile, i, 8);
+                    byte[] mirrorData = Processing.ExtractNineROMData(romFile, i, 8);
 
                     Utils.WriteToROM(romFile, newListAddress, mirrorData);
 
@@ -377,11 +373,11 @@ namespace KatAMRandomizer
                 } 
                 
                 // If it's the end of the room, inject all the chests to their respective pointers;
-                else if (IsEndOfRoom(byte1, byte2, byte3, byte4)) {
+                else if (Processing.IsEndOfRoom(byte1, byte2, byte3, byte4)) {
                     //Console.WriteLine($"End of Room {Processing.roomIds[currentRoomIndex]} / {Utils.ConvertIntToHex(Processing.roomIds[currentRoomIndex])} 9ROM Found at {i} address!");
 
                     // Extract the room data and move the pointers to the new list;
-                    byte[] endOfRoomData = ExtractNineROMData(romFile, i, 12),
+                    byte[] endOfRoomData = Processing.ExtractNineROMData(romFile, i, 12),
                            writeRoomData = BitConverter.GetBytes(currentRoomAddress + NewListPointer);
 
                     /* Leave the "00 00 FF FF" bytes untouched and replace everything
@@ -416,33 +412,6 @@ namespace KatAMRandomizer
                     currentRoomAddress = newListAddress;
                 }
             }
-        }
-
-        // IsChest(); Checks if an array of bytes is equal to a chest 9ROM notation;
-        static bool IsChest(byte first, byte second, byte third, byte forth) {
-            return (first == 0x01) && (second == 0x08) && (third == 0xFF) && (forth == 0xFF);
-        }
-
-        // IsMirror(); Checks if an array of bytes is equal to a mirror door 9ROM notation;
-        static bool IsMirror(byte first, byte second, byte third, byte forth) {
-            return (first == 0x02) && (second == 0x08) && (third == 0xFF) && (forth == 0xFF);
-        }
-
-        // IsMirror(); Checks if an array of bytes is equal to a end of the room 9ROM notation;
-        static bool IsEndOfRoom(byte first, byte second, byte third, byte forth) {
-            return (first == 0x00) && (second == 0x00) && (third == 0xFF) && (forth == 0xFF);
-        }
-
-        // ExtractNineROMData(); A function to spit out 9ROM data;
-        static byte[] ExtractNineROMData(byte[] romFile, long i, int arraySize) {
-            byte[] data = new byte[arraySize];
-
-            for (long j = 0; j < arraySize; j++) {
-                long index = i + j;
-                data[j] = romFile[index];
-            }
-
-            return data;
         }
     }
 }

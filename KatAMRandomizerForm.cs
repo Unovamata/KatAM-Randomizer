@@ -109,7 +109,7 @@ namespace KatAMRandomizer
             destinationPath = Path.Combine(system.ROMDirectory, newFileName);
             settings.RandomEntity = new Random(settings.Seed);
 
-            /*new KatAMROMReader(system);*/
+            new KatAMROMReader(system);
             new KatAMMirrors(system);
             new KatAMSprays(system);
             new KatAMItems(system);

@@ -345,6 +345,36 @@ namespace KatAMInternal
             { 0xDA, "Shooty's Bomb" },
             { 0xDB, "Resets the Game" }
         };
+
+        public static long NineROMStartAddress = 9441164,
+                           NineROMEndAddress = 9449752;
+
+        // IsChest(); Checks if an array of bytes is equal to a chest 9ROM notation;
+        public static bool IsChest(byte first, byte second, byte third, byte forth) {
+            return (first == 0x01) && (second == 0x08) && (third == 0xFF) && (forth == 0xFF);
+        }
+
+        // IsMirror(); Checks if an array of bytes is equal to a mirror door 9ROM notation;
+        public static bool IsMirror(byte first, byte second, byte third, byte forth) {
+            return (first == 0x02) && (second == 0x08) && (third == 0xFF) && (forth == 0xFF);
+        }
+
+        // IsMirror(); Checks if an array of bytes is equal to a end of the room 9ROM notation;
+        public static bool IsEndOfRoom(byte first, byte second, byte third, byte forth) {
+            return (first == 0x00) && (second == 0x00) && (third == 0xFF) && (forth == 0xFF);
+        }
+
+        // ExtractNineROMData(); A function to spit out 9ROM data;
+        public static byte[] ExtractNineROMData(byte[] romFile, long i, int arraySize) {
+            byte[] data = new byte[arraySize];
+
+            for(long j = 0; j < arraySize; j++) {
+                long index = i + j;
+                data[j] = romFile[index];
+            }
+
+            return data;
+        }
     }
 
     public class Settings {
