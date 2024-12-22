@@ -13,7 +13,7 @@ namespace KatAMRandomizer {
 
             ReadObjectData(System.ROMData);
 
-            Read9ROMData(System.ROMData);
+            // Read9ROMData(System.ROMData);
         }
 
         List<Properties> properties = new List<Properties>();
@@ -29,14 +29,14 @@ namespace KatAMRandomizer {
             Properties property = new Properties();
 
             // Read the object parameter data;
-            for (int i = parameterStartAddress; i <= parameterEndAddress; i++) {
+            for(int i = parameterStartAddress; i <= parameterEndAddress; i++) {
                 // Object parameters are 24 bytes long;
                 if(currentByteCount >= 24) {
                     // Specify the object parameters and add them to the property list for future processing;
                     byte[] definition = property.Definition;
 
-                    property.Name = Processing.parameters[(byte) currentObjectID];
-                    property.ID = (byte) currentObjectID;
+                    property.Name = Processing.parameters[(byte)currentObjectID];
+                    property.ID = (byte)currentObjectID;
                     property.DamageSprites = new byte[] { definition[0], definition[1] };
                     property.HP = definition[4];
                     property.CopyAbility = definition[6];
@@ -46,8 +46,8 @@ namespace KatAMRandomizer {
 
                     currentByteCount = 0;
                     currentObjectID++;
-                } 
-                
+                }
+
                 // For new object parameters, define the address;
                 if(currentByteCount == 0) {
                     property = new Properties();
@@ -56,7 +56,7 @@ namespace KatAMRandomizer {
 
                     property.Definition[currentByteCount] = romFile[i];
                 }
-                
+
                 // Store the definition data;
                 property.Definition[currentByteCount] = romFile[i];
 
@@ -114,8 +114,8 @@ namespace KatAMRandomizer {
             //bool isInConsole = false;
 
             // Checking all rooms for objects;
-            for (int i = roomDataStartAddress; i < romFile.Length; i++) {
-                if (i > roomDataEndAddress || i + 10 >= romFile.Length) break;
+            for(int i = roomDataStartAddress; i < romFile.Length; i++) {
+                if(i > roomDataEndAddress || i + 10 >= romFile.Length) break;
 
                 int currentRoom; // Extracting the current room ID;
                 try { currentRoom = roomIds[currentRoomIndex]; } catch { break; }
@@ -127,13 +127,13 @@ namespace KatAMRandomizer {
 
                 bool isAnObject = romFile[i] == objectByte1 && romFile[i + 1] == objectByte2;
 
-                if (isAnObject) {
+                if(isAnObject) {
                     // Create a new Entity reference;
                     byte[] objectDefinition = new byte[36];
                     Entity entity = new Entity();
 
                     // Extract all the bytes for the object; 01 24 00 00 00 00 00 00 ...
-                    for (int k = 0; k < 36; k++) {
+                    for(int k = 0; k < 36; k++) {
                         int index = i + k;
 
                         objectDefinition[k] = romFile[index];
@@ -166,7 +166,7 @@ namespace KatAMRandomizer {
                     bool isMapElement = mapElementsDictionary.ContainsKey(ID);
 
                     // Enemy references;
-                    if (isEnemy) {
+                    if(isEnemy) {
                         entity.Name = enemiesDictionary[ID].Name;
 
                         entity.AreAllPropertiesZeroes();
@@ -182,7 +182,7 @@ namespace KatAMRandomizer {
                     }
 
                     // Miniboss references;
-                    else if (isMiniboss) {
+                    else if(isMiniboss) {
                         entity.Name = minibossesDictionary[ID].Name;
 
                         Data data = Processing.minibossesDictionary[ID];
@@ -196,13 +196,13 @@ namespace KatAMRandomizer {
                     }
 
                     // Boss references;
-                    else if (isBoss) {
+                    else if(isBoss) {
                         entity.Name = bossesDictionary[ID];
                         bosses.Add(entity);
                     }
 
                     // Item references;
-                    else if (isItem) {
+                    else if(isItem) {
                         entity.Name = itemsDictionary[ID];
 
                         entity.AreAllPropertiesZeroes();
@@ -211,7 +211,7 @@ namespace KatAMRandomizer {
                     }
 
                     // Mirror references;
-                    else if (isMirror) {
+                    else if(isMirror) {
                         entity.Name = mirrorsDictionary[ID];
                         entity.Description = "a";
 
@@ -221,13 +221,13 @@ namespace KatAMRandomizer {
                     }
 
                     // Ability Stand references;
-                    else if (isAbilityStand) {
+                    else if(isAbilityStand) {
                         entity.Name = abilityStandsDictionary[ID];
                         abilityStands.Add(entity);
                     }
 
                     // Map Element references;
-                    else if (isMapElement) {
+                    else if(isMapElement) {
                         entity.Name = mapElementsDictionary[ID];
 
                         entity.AreAllPropertiesZeroes();
@@ -252,16 +252,16 @@ namespace KatAMRandomizer {
 
                 bool isInObjectLimitByte = romFile[i] == roomLimit;
 
-                if (isInObjectLimitByte) {
+                if(isInObjectLimitByte) {
                     // If the room limit byte repeats 10 times, then this is a room end definition;
-                    for (int j = 0; j < 10; i++) {
+                    for(int j = 0; j < 10; i++) {
                         bool isNotARoomLimit = romFile[i + j] != roomLimit;
 
-                        if (isNotARoomLimit) {
+                        if(isNotARoomLimit) {
                             //Console.WriteLine($"Objects found in room: {itemsInRoom}");
 
                             // If the room separator has been reached, increment the data points;
-                            if (emptyBytes >= 10) {
+                            if(emptyBytes >= 10) {
                                 currentRoomIndex += 1;
                                 i += 9;
                                 //isInConsole = false;
@@ -269,97 +269,8 @@ namespace KatAMRandomizer {
                             }
 
                             break;
-                        } else emptyBytes++;
-                    }
-                }
-            }
-
-            long NineROMStartAddress = 9441164,
-                 NineROMEndAddress = 9449752;
-
-            void Read9ROMData(byte[] romFile) {
-
-            }
-
-            // WriteChestTo9ROM(); Writing the object data in a format the ROM can understand;
-            void WriteChestTo9ROM(byte[] romFile) {
-                // Pointers to inspect the data correctly;
-                int currentRoomIndex = 0,
-                    chestsInRoomCount = 0,
-                    lastRoomAdded = -1;
-
-                // Base empty chest;
-                byte[] chestBytes = new byte[] { 0x01, 0x08, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, };
-
-                // Read and Overwritte the data for all 9ROM addresses found;
-                for(long i = NineROMStartAddress; i < romFile.Length; i += 1) {
-                    if(i >= NineROMEndAddress || i >= romFile.Length) return;
-
-                    int currentRoom;
-
-                    try { currentRoom = Processing.roomIds[currentRoomIndex]; } catch { return; }
-
-                    // Read the next 4 bytes to detect the 9ROM reference instance;
-                    byte byte1 = romFile[i],
-                         byte2 = romFile[i + 1],
-                         byte3 = romFile[i + 2],
-                         byte4 = romFile[i + 3];
-
-                    if(Processing.IsChest(byte1, byte2, byte3, byte4)) {
-                        //Console.WriteLine($"Chest 9ROM Found at {i} address!");
-                        i += 7;
-                    }
-
-                    else if(Processing.IsMirror(byte1, byte2, byte3, byte4)) {
-                        //Console.WriteLine($"Mirror 9ROM Found at {i} address!");
-
-                        // Read the 9ROM mirror data and inject it untouched to the ROM;
-                        byte[] mirrorData = Processing.ExtractNineROMData(romFile, i, 8);
-
-                        Utils.WriteToROM(romFile, newListAddress, mirrorData);
-
-                        i += 7;
-                        newListAddress += 8;
-                    }
-
-                    // If it's the end of the room, inject all the chests to their respective pointers;
-                    else if(Processing.IsEndOfRoom(byte1, byte2, byte3, byte4)) {
-                        //Console.WriteLine($"End of Room {Processing.roomIds[currentRoomIndex]} / {Utils.ConvertIntToHex(Processing.roomIds[currentRoomIndex])} 9ROM Found at {i} address!");
-
-                        // Extract the room data and move the pointers to the new list;
-                        byte[] endOfRoomData = Processing.ExtractNineROMData(romFile, i, 12),
-                               writeRoomData = BitConverter.GetBytes(currentRoomAddress + NewListPointer);
-
-                        /* Leave the "00 00 FF FF" bytes untouched and replace everything
-                         * with the writeRoomData information */
-                        for(int j = 4; j < writeRoomData.Length + 4; j += 1) {
-                            byte bit = writeRoomData[j - 4];
-
-                            endOfRoomData[j] = bit;
                         }
-
-                        // Change the byte that tracks the number of chests in a room;
-                        endOfRoomData[8] = (byte)chestsInRoomCount;
-
-                        Utils.WriteToROM(romFile, newListAddress, endOfRoomData);
-
-                        // Overwritting Pointers;
-                        long pointerIndex = PointersListAddress + (4 * currentRoomIndex);
-                        byte[] pointerInformation = BitConverter.GetBytes((newListAddress + 4) + NewListPointer),
-                               pointerToWrite = new byte[4];
-
-                        // Telling the pointer data to look for the new chest table;
-                        for(int l = 0; l < 4; l++) {
-                            pointerToWrite[l] = pointerInformation[l];
-                        }
-
-                        Utils.WriteToROM(romFile, pointerIndex, pointerToWrite);
-
-                        // Check for the next room and continue writing in the next addresses;
-                        currentRoomIndex++;
-                        i += 11;
-                        newListAddress += 12;
-                        currentRoomAddress = newListAddress;
+                        else emptyBytes++;
                     }
                 }
             }
@@ -381,6 +292,55 @@ namespace KatAMRandomizer {
             Utils.SaveJSON(mirrors, Utils.mirrorsJson);
             Utils.SaveJSON(abilityStands, Utils.abilityStandsJson);
             Utils.SaveJSON(miscellaneous, Utils.worldMapObjectsJson);
+        }
+
+        public void Read9ROMData(byte[] romFile) {
+            // Pointers to inspect the data correctly;
+            int currentRoomIndex = 0,
+                chestsInRoomCount = 0,
+                lastRoomAdded = -1;
+
+            // Read and Overwritte the data for all 9ROM addresses found;
+            for(long i = Processing.NineROMStartAddress; i < romFile.Length; i += 1) {
+                if(i >= Processing.NineROMEndAddress || i >= romFile.Length) return;
+
+                int currentRoom;
+
+                try { currentRoom = Processing.roomIds[currentRoomIndex]; } catch { return; }
+
+                // Read the next 4 bytes to detect the 9ROM reference instance;
+                byte byte1 = romFile[i],
+                     byte2 = romFile[i + 1],
+                     byte3 = romFile[i + 2],
+                     byte4 = romFile[i + 3];
+
+                if(Processing.IsChest(byte1, byte2, byte3, byte4)) {
+                    Console.WriteLine($"Chest 9ROM Found at {i} address!");
+                    i += 7;
+                }
+
+                else if(Processing.IsMirror(byte1, byte2, byte3, byte4)) {
+                    Console.WriteLine($"Mirror 9ROM Found at {i} address!");
+
+                    // Read the 9ROM mirror data and inject it untouched to the ROM;
+                    byte[] mirrorData = Processing.ExtractNineROMData(romFile, i, 8);
+
+                    string mirrorString = Utils.ByteArrayToHexString(mirrorData, " ");
+
+                    Console.WriteLine(mirrorString);
+
+                    i += 7;
+                }
+
+                // If it's the end of the room, inject all the chests to their respective pointers;
+                else if(Processing.IsEndOfRoom(byte1, byte2, byte3, byte4)) {
+                    Console.WriteLine($"End of Room {Processing.roomIds[currentRoomIndex]} / {Utils.ConvertIntToHex(Processing.roomIds[currentRoomIndex])} 9ROM Found at {i} address!");
+
+                    // Check for the next room and continue writing in the next addresses;
+                    currentRoomIndex++;
+                    i += 11;
+                }
+            }
         }
     }
 }

@@ -4,6 +4,7 @@ using KatAM_Randomizer;
 namespace KatAMRandomizer
 {
     internal class KatAMItems : KatAMRandomizerComponent, IKatAMRandomizer {
+        byte[] romFile = System.ROMData;
         List<Entity> chestEntities;
         List<byte> objectIDs;
         GenerationOptions consumableOptions;
@@ -21,7 +22,6 @@ namespace KatAMRandomizer
             objectIDs = new List<byte>();
 
             // Read the settings, entities, and ROM data;
-            byte[] romFile = System.ROMData;
             consumableOptions = Settings.ConsumablesGenerationType;
 
             // Deserializing all the entities in the game;
@@ -126,7 +126,7 @@ namespace KatAMRandomizer
             do {
                 selectedEntity = Utils.GetRandomNumber(0, entities.Count);
                 entity = entities[selectedEntity];
-            } while (IsChestObject(entity) || IsMirrorObject(entity));
+            } while (IsChestObject(entity) || IsMirrorShardObject(entity));
 
             return selectedEntity;
         }
@@ -158,10 +158,8 @@ namespace KatAMRandomizer
         }
 
         // IsMirrorObject(); Checks if it's a mirror object;
-        bool IsMirrorObject(Entity entity) {
-            string name = entity.Name;
-
-            return name == Processing.itemsDictionary[0x65]; // Mirror Shard;
+        bool IsMirrorShardObject(Entity entity) {
+            return entity.Name == Processing.itemsDictionary[0x65]; // Mirror Shard;
         }
 
 
@@ -191,7 +189,6 @@ namespace KatAMRandomizer
 
         // RandomizeChests(); Randomizes chest objects and injects them in the ROM's 9ROM pointers;
         public void RandomizeChests() {
-            byte[] romFile = System.ROMData;
             chestDictionary = new Dictionary<int, List<Entity>>();
             chestGeneration = Settings.ChestsGenerationType;
             chestProperties = Settings.ChestsPropertiesType;

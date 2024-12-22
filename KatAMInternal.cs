@@ -211,6 +211,7 @@ namespace KatAMInternal
             { 0x6F, "Mirror" },
             { 0x84, "Warp Star" },
             { 0x85, "Warp Star [Goal Game]" },
+            { 0x8A, "Fuse Cannon" },
             { 0x8C, "Special Hub Mirror"},
         };
 
@@ -268,7 +269,6 @@ namespace KatAMInternal
             { 0x82, "???" },
             { 0x83, "???" },
             { 0x87, "???" },
-            { 0x8A, "Fuse Cannon" },
             { 0x8B, "Manual Direction Cannon" },
             { 0x8D, "Stake" },
             { 0x8E, "Cutscene Loader" },
@@ -630,7 +630,7 @@ namespace KatAMInternal
             return byteArray;
         }
 
-        public static List<T> Shuffle<T>(List<T> list) { 
+        public static List<T> Shuffle<T>(List<T> list) {
             return list.OrderBy(x => Utils.GetNextRandom()).ToList();
         }
 
@@ -717,11 +717,11 @@ namespace KatAMInternal
 
         public static byte Nothing = 0x2C;
 
-        public static string ByteArrayToHexString(byte[] byteArray) {
+        public static string ByteArrayToHexString(byte[] byteArray, string addedString = "") {
             string result = "";
 
             foreach (byte bit in byteArray) {
-                result += bit.ToString("X2");
+                result += bit.ToString("X2") + addedString;
             }
 
             return result;

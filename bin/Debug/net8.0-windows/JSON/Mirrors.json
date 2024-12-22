@@ -8336,5 +8336,75 @@
       "Inhalable": false,
       "Description": "a"
     }
+  ],
+  "Fuse Cannon": [
+    {
+      "Address": 8951412,
+      "Number": "0004",
+      "Link": "0101",
+      "X": "9000",
+      "Y": "4000",
+      "ID": 138,
+      "Behavior": 0,
+      "Speed": 0,
+      "Properties": "003A020000000009060000F0FF000000000000",
+      "Room": 126,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false,
+      "Description": "a"
+    },
+    {
+      "Address": 8999600,
+      "Number": "0002",
+      "Link": "0101",
+      "X": "8000",
+      "Y": "8001",
+      "ID": 138,
+      "Behavior": 0,
+      "Speed": 0,
+      "Properties": "002C01020000001C0200000000000000000200",
+      "Room": 323,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false,
+      "Description": "a"
+    },
+    {
+      "Address": 9033704,
+      "Number": "0009",
+      "Link": "0201",
+      "X": "9002",
+      "Y": "1001",
+      "ID": 138,
+      "Behavior": 0,
+      "Speed": 0,
+      "Properties": "00850003000000041B00000000000000000200",
+      "Room": 827,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false,
+      "Description": "a"
+    },
+    {
+      "Address": 9050004,
+      "Number": "0001",
+      "Link": "0101",
+      "X": "5004",
+      "Y": "9000",
+      "ID": 138,
+      "Behavior": 0,
+      "Speed": 0,
+      "Properties": "000D0202000000030200000000000000000200",
+      "Room": 524,
+      "Ability": 0,
+      "Underwater": false,
+      "Flying": false,
+      "Inhalable": false,
+      "Description": "a"
+    }
   ]
 }
