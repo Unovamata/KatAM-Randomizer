@@ -286,9 +286,9 @@ namespace KatAMRandomizer
         }
 
         // Pointers;
-        long NewNineROMAddress = 14745600,
-             PointersListAddress = 13825216,
-             NewListPointer = 134217728;
+        readonly long NewNineROMAddress = 14745600,
+                      PointersListAddress = 13825216,
+                      NewListPointer = 134217728;
 
         // WriteChestTo9ROM(); Writing the object data in a format the ROM can understand;
         void WriteChestTo9ROM(byte[] romFile) {
@@ -362,6 +362,8 @@ namespace KatAMRandomizer
 
                     // Read the 9ROM mirror data and inject it untouched to the ROM;
                     byte[] mirrorData = Processing.ExtractNineROMData(romFile, i, 8);
+
+                    //Console.WriteLine(Utils.ByteArrayToHexString(mirrorData, " "));
 
                     Utils.WriteToROM(romFile, newListAddress, mirrorData);
 

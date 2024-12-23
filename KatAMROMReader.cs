@@ -13,7 +13,7 @@ namespace KatAMRandomizer {
 
             ReadObjectData(System.ROMData);
 
-            // Read9ROMData(System.ROMData);
+            Read9ROMData(System.ROMData);
         }
 
         List<Properties> properties = new List<Properties>();
@@ -315,7 +315,7 @@ namespace KatAMRandomizer {
                      byte4 = romFile[i + 3];
 
                 if(Processing.IsChest(byte1, byte2, byte3, byte4)) {
-                    Console.WriteLine($"Chest 9ROM Found at {i} address!");
+                    //Console.WriteLine($"Chest 9ROM Found at {i} address!");
                     i += 7;
                 }
 
@@ -327,14 +327,12 @@ namespace KatAMRandomizer {
 
                     string mirrorString = Utils.ByteArrayToHexString(mirrorData, " ");
 
-                    Console.WriteLine(mirrorString);
-
                     i += 7;
                 }
 
                 // If it's the end of the room, inject all the chests to their respective pointers;
                 else if(Processing.IsEndOfRoom(byte1, byte2, byte3, byte4)) {
-                    Console.WriteLine($"End of Room {Processing.roomIds[currentRoomIndex]} / {Utils.ConvertIntToHex(Processing.roomIds[currentRoomIndex])} 9ROM Found at {i} address!");
+                    //Console.WriteLine($"End of Room {Processing.roomIds[currentRoomIndex]} / {Utils.ConvertIntToHex(Processing.roomIds[currentRoomIndex])} 9ROM Found at {i} address!");
 
                     // Check for the next room and continue writing in the next addresses;
                     currentRoomIndex++;

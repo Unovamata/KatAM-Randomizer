@@ -101,10 +101,6 @@ namespace KatAM_Randomizer {
             for(int i = 0; i < warpCannons.Count; i++) {
                 Entity entity = new Entity(cannonEntities[i]);
                 Entity shuffledEntity = warpCannons[i];
-
-                Console.WriteLine(i);
-                Console.WriteLine(Utils.ByteArrayToHexString(entity.Properties));
-                Console.WriteLine(Utils.ByteArrayToHexString(shuffledEntity.Properties));
                 
                 entity.Properties = shuffledEntity.Properties;
 

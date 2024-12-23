@@ -350,18 +350,18 @@ namespace KatAMInternal
                            NineROMEndAddress = 9449752;
 
         // IsChest(); Checks if an array of bytes is equal to a chest 9ROM notation;
-        public static bool IsChest(byte first, byte second, byte third, byte forth) {
-            return (first == 0x01) && (second == 0x08) && (third == 0xFF) && (forth == 0xFF);
+        public static bool IsChest(byte first, byte second, byte third, byte fourth) {
+            return (first == 0x01) && (second == 0x08) && (third == 0xFF) && (fourth == 0xFF);
         }
 
         // IsMirror(); Checks if an array of bytes is equal to a mirror door 9ROM notation;
-        public static bool IsMirror(byte first, byte second, byte third, byte forth) {
-            return (first == 0x02) && (second == 0x08) && (third == 0xFF) && (forth == 0xFF);
+        public static bool IsMirror(byte first, byte second, byte third, byte fourth) {
+            return (first == 0x02) && (second == 0x08) && (third == 0xFF) && (fourth == 0xFF);
         }
 
         // IsMirror(); Checks if an array of bytes is equal to a end of the room 9ROM notation;
-        public static bool IsEndOfRoom(byte first, byte second, byte third, byte forth) {
-            return (first == 0x00) && (second == 0x00) && (third == 0xFF) && (forth == 0xFF);
+        public static bool IsEndOfRoom(byte first, byte second, byte third, byte fourth) {
+            return (first == 0x00) && (second == 0x00) && (third == 0xFF) && (fourth == 0xFF);
         }
 
         // ExtractNineROMData(); A function to spit out 9ROM data;
