@@ -213,7 +213,7 @@ namespace KatAMRandomizer {
                     // Mirror references;
                     else if(isMirror) {
                         entity.Name = mirrorsDictionary[ID];
-                        entity.Description = "a";
+                        entity.Description = "";
 
                         entity.AreAllPropertiesZeroes();
 

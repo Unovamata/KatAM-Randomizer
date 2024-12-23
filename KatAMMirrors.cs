@@ -78,6 +78,7 @@ namespace KatAM_Randomizer {
 
         void RandomizeWarps() {
             RandomizeWarpStars();
+            RandomizeWarpCannons();
         }
 
         void RandomizeWarpStars() {
@@ -86,14 +87,27 @@ namespace KatAM_Randomizer {
             for(int i = 0; i < warpStars.Count; i++) {
                 Entity entity = new Entity(warpStarEntities[i]);
                 Entity shuffledEntity = warpStars[i];
+                
+                entity.Behavior = shuffledEntity.Behavior;
+                entity.Properties = shuffledEntity.Properties;
+                
+                Utils.WriteObjectToROM(romFile, entity);
+            }
+        }
+
+        void RandomizeWarpCannons() {
+            List<Entity> warpCannons = Utils.Shuffle(new List<Entity>(cannonEntities));
+
+            for(int i = 0; i < warpCannons.Count; i++) {
+                Entity entity = new Entity(cannonEntities[i]);
+                Entity shuffledEntity = warpCannons[i];
 
                 Console.WriteLine(i);
                 Console.WriteLine(Utils.ByteArrayToHexString(entity.Properties));
                 Console.WriteLine(Utils.ByteArrayToHexString(shuffledEntity.Properties));
                 
-                entity.Behavior = shuffledEntity.Behavior;
                 entity.Properties = shuffledEntity.Properties;
-                
+
                 Utils.WriteObjectToROM(romFile, entity);
             }
         }
