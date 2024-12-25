@@ -10,7 +10,7 @@ using System.Xml.Linq;
 
 namespace KatAM_Randomizer {
     internal class KatAMPropertiesManagement : KatAMRandomizerComponent, IKatAMRandomizer {
-
+        byte[] romFile = Processing.ROMData;
         public KatAMPropertiesManagement(Processing system) {
             InitializeComponents(system);
 
@@ -84,8 +84,6 @@ namespace KatAM_Randomizer {
             modifiedProperties = new List<Properties>();
             enemiesDictionary = new Dictionary<byte, Data>();
 
-            byte[] romFile = System.ROMData;
-
             DeserializePropertiesJSON(Utils.JSONToObjects(Utils.propertiesJson), Instance);
 
             LoadRandomizationSettings();
@@ -150,7 +148,7 @@ namespace KatAM_Randomizer {
                                        minibossAbilityIndexes, shuffleAbilities);
 
             foreach (Properties property in modifiedProperties) {
-                Utils.WritePropertiesToROM(romFile, property);
+                Utils.WritePropertiesToROM(property);
             }
         }
 

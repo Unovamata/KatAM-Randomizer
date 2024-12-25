@@ -27,7 +27,7 @@ namespace KatAMRandomizer
             isRemovingStoneBlocks = Settings.isRemovingStoneBlocks;
 
             // Read the settings, entities, and ROM data;
-            byte[] romFile = System.ROMData;
+            byte[] romFile = Processing.ROMData;
 
             // Deserializing all the entities in the game;
             Utils.DeserializeEntitiesJSON(Utils.JSONToObjects(Utils.worldMapObjectsJson), entities, Instance);
@@ -52,7 +52,7 @@ namespace KatAMRandomizer
                     if (isStoneBlock) entity.ID = Utils.Nothing;
                 }
 
-                Utils.WriteObjectToROM(romFile, entity);
+                Utils.WriteObjectToROM(entity);
             }
         }
 

@@ -24,11 +24,26 @@ namespace KatAMInternal
         public string ROMPath { get; set; }
         public string ROMDirectory { get; set; }
         public string ROMFilename { get; set; }
-        public byte[] ROMData { get; set; }
+        public static byte[] ROMData { get; set; }
         public Settings Settings { get; set; }
+
+        string EightROMStartAddressHex = "843271", 
+               EightROMEndAddressHex = "884C50",
+               NineROMStartAddressHex = "900f8C",
+               NineROMEndAddressHex = "90310C";
+
+        public static long EightROMStartAddress = 0, 
+                           EightROMEndAddress = 0,
+                           NineROMStartAddress = 0,
+                           NineROMEndAddress = 0;
 
         public Processing() {
             Settings = new Settings();
+
+            EightROMStartAddress = Convert.ToInt32(EightROMStartAddressHex, 16);
+            EightROMEndAddress = Convert.ToInt32(EightROMEndAddressHex, 16);
+            NineROMStartAddress = Convert.ToInt32(NineROMStartAddressHex, 16);
+            NineROMEndAddress = Convert.ToInt32(NineROMEndAddressHex, 16);
 
             MergeSpecialDictionaries(parameters, enemiesDictionary);
             MergeSpecialDictionaries(parameters, minibossesDictionary);
@@ -346,26 +361,30 @@ namespace KatAMInternal
             { 0xDB, "Resets the Game" }
         };
 
-        public static long NineROMStartAddress = 9441164,
-                           NineROMEndAddress = 9449752;
+        // IsMirror(); Checks if an array of bytes is equal to a mirror door 9ROM notation;
+        public static bool Is8ROMMirror(byte first, byte second, byte third, byte fourth) {
+            return (first == 0x0E) && (second == 0x00) && (third == 0xFF) && (fourth == 0xFF);
+        }
 
         // IsChest(); Checks if an array of bytes is equal to a chest 9ROM notation;
-        public static bool IsChest(byte first, byte second, byte third, byte fourth) {
+        public static bool Is9ROMChest(byte first, byte second, byte third, byte fourth) {
             return (first == 0x01) && (second == 0x08) && (third == 0xFF) && (fourth == 0xFF);
         }
 
         // IsMirror(); Checks if an array of bytes is equal to a mirror door 9ROM notation;
-        public static bool IsMirror(byte first, byte second, byte third, byte fourth) {
+        public static bool Is9ROMMirror(byte first, byte second, byte third, byte fourth) {
             return (first == 0x02) && (second == 0x08) && (third == 0xFF) && (fourth == 0xFF);
         }
 
         // IsMirror(); Checks if an array of bytes is equal to a end of the room 9ROM notation;
-        public static bool IsEndOfRoom(byte first, byte second, byte third, byte fourth) {
+        public static bool Is9ROMEndOfRoom(byte first, byte second, byte third, byte fourth) {
             return (first == 0x00) && (second == 0x00) && (third == 0xFF) && (fourth == 0xFF);
         }
 
         // ExtractNineROMData(); A function to spit out 9ROM data;
-        public static byte[] ExtractNineROMData(byte[] romFile, long i, int arraySize) {
+        public static byte[] ExtractROMData(long i, int arraySize) {
+            byte[] romFile = Processing.ROMData;
+
             byte[] data = new byte[arraySize];
 
             for(long j = 0; j < arraySize; j++) {
@@ -439,6 +458,8 @@ namespace KatAMInternal
         }
     }
 
+
+
     public static class Utils {
         public static void ShowObjectData(object inputObject) {
             //Console.Clear();
@@ -450,38 +471,39 @@ namespace KatAMInternal
             }
         }
 
-        public static void WriteToROM(byte[] romData, long address, byte[] valueBytes) {
+        public static void WriteToROM(long address, byte[] valueBytes) {
+            byte[] romFile = Processing.ROMData;
             int bytesLength = valueBytes.Length;
 
-            if (address < 0 || address + bytesLength > romData.Length) {
+            if (address < 0 || address + bytesLength > romFile.Length) {
                 throw new ArgumentOutOfRangeException(nameof(address), "Address is out of bounds of the file contents.");
             }
 
             for (int i = 0; i < bytesLength; i++) {
-                romData[address + i] = valueBytes[i];
+                romFile[address + i] = valueBytes[i];
             }
         }
 
-        public static void WriteObjectToROM(byte[] romFile, Entity entity) {
+        public static void WriteObjectToROM(Entity entity) {
             int address = entity.Address;
             byte id = entity.ID;
             byte behavior = entity.Behavior;
             byte speed = entity.Speed;
             byte[] properties = entity.Properties;
 
-            WriteToROM(romFile, address + 12, new byte[] { id });
-            WriteToROM(romFile, address + 14, new byte[] { behavior });
-            WriteToROM(romFile, address + 16, new byte[] { speed });
-            WriteToROM(romFile, address + 17, properties);
+            WriteToROM(address + 12, new byte[] { id });
+            WriteToROM(address + 14, new byte[] { behavior });
+            WriteToROM(address + 16, new byte[] { speed });
+            WriteToROM(address + 17, properties);
         }
 
-        public static void WritePropertiesToROM(byte[] romFile, Properties properties) {
+        public static void WritePropertiesToROM(Properties properties) {
             int address = properties.Address;
 
-            WriteToROM(romFile, address, properties.DamageSprites);
-            WriteToROM(romFile, address + 4, new byte[] { properties.HP });
-            WriteToROM(romFile, address + 6, new byte[] { properties.CopyAbility });
-            WriteToROM(romFile, address + 8, new byte[] { properties.Palette });
+            WriteToROM(address, properties.DamageSprites);
+            WriteToROM(address + 4, new byte[] { properties.HP });
+            WriteToROM(address + 6, new byte[] { properties.CopyAbility });
+            WriteToROM(address + 8, new byte[] { properties.Palette });
         }
 
         public static int GetNextRandom() {

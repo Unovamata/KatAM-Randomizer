@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace KatAM_Randomizer {
     internal class KatAMMirrors : KatAMRandomizerComponent, IKatAMRandomizer {
-        byte[] romFile = System.ROMData;
+        byte[] romFile = Processing.ROMData;
 
         List<Entity> mirrorEntities,
                      warpStarEntities,
@@ -91,7 +91,7 @@ namespace KatAM_Randomizer {
                 entity.Behavior = shuffledEntity.Behavior;
                 entity.Properties = shuffledEntity.Properties;
                 
-                Utils.WriteObjectToROM(romFile, entity);
+                Utils.WriteObjectToROM(entity);
             }
         }
 
@@ -104,8 +104,13 @@ namespace KatAM_Randomizer {
                 
                 entity.Properties = shuffledEntity.Properties;
 
-                Utils.WriteObjectToROM(romFile, entity);
+                Utils.WriteObjectToROM(entity);
             }
+        }
+
+
+        void RandomizeMirrors() {
+
         }
     }
 }

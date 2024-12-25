@@ -7,6 +7,8 @@ using KatAM_Randomizer;
 namespace KatAMRandomizer
 {
     internal class KatAMSprays : KatAMRandomizerComponent {
+        byte[] romFile = Processing.ROMData;
+
         public KatAMSprays(Processing system) {
             InitializeComponents(system);
 
@@ -14,7 +16,6 @@ namespace KatAMRandomizer
         }
 
         public void RandomizeSpray() {
-            byte[] romFile = System.ROMData;
             Settings = System.Settings;
 
             if (Settings.SprayGeneration == GenerationOptions.Unchanged) return;
@@ -70,8 +71,8 @@ namespace KatAMRandomizer
                     }
 
                     // Support Kirbys Palettes;
-                    Utils.WriteToROM(romFile, 4846298 + (x * 32), kirbySupportPalette);
-                    Utils.WriteToROM(romFile, 3343126 + (x * 32), GenerateHUDPalette(kirbySupportPalette)/*presetSprays[spraySelected]*/);
+                    Utils.WriteToROM(4846298 + (x * 32), kirbySupportPalette);
+                    Utils.WriteToROM(3343126 + (x * 32), GenerateHUDPalette(kirbySupportPalette)/*presetSprays[spraySelected]*/);
                 } else {
                     byte[] kirbyRandomColorPalette;
 
@@ -93,8 +94,8 @@ namespace KatAMRandomizer
                     }
 
                     // Kirby Base Palette;
-                    Utils.WriteToROM(romFile, 4846170, kirbyRandomColorPalette);
-                    Utils.WriteToROM(romFile, 3343094, GenerateHUDPalette(kirbyRandomColorPalette)); // HUD palettes (lives + vitality).
+                    Utils.WriteToROM(4846170, kirbyRandomColorPalette);
+                    Utils.WriteToROM(3343094, GenerateHUDPalette(kirbyRandomColorPalette)); // HUD palettes (lives + vitality).
                     //WriteToROM(romFile, 4847100, bytesPalette); //Title Screen Palette, Supposedly;
                 }
 

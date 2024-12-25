@@ -8,7 +8,6 @@ namespace KatAMRandomizer {
     }
 
     internal class KatAMEnemiesBase : KatAMRandomizerComponent {
-
         // Adding unused behaviors from the start;
         protected Dictionary<byte, List<byte>> behaviorDictionary = new Dictionary<byte, List<byte>>();
         protected Dictionary<byte, List<byte>> speedDictionary = new Dictionary<byte, List<byte>>();
@@ -165,7 +164,7 @@ namespace KatAMRandomizer {
                     entity.Behavior = availableEnemyBehaviors[behaviorIndex];
                 }
 
-                Utils.WriteObjectToROM(System.ROMData, entity);
+                Utils.WriteObjectToROM(entity);
             }
         }
 

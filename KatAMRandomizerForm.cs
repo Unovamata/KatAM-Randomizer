@@ -50,8 +50,8 @@ namespace KatAMRandomizer
                     LabelROMName.Text = system.ROMFilename;
 
                     byte[] fileContents = File.ReadAllBytes(system.ROMPath);
-                    system.ROMData = new byte[fileContents.Length];
-                    Array.Copy(fileContents, system.ROMData, fileContents.Length);
+                    Processing.ROMData = new byte[fileContents.Length];
+                    Array.Copy(fileContents, Processing.ROMData, fileContents.Length);
 
                     // Read 12 bytes starting at offset 0xA0 (160)
                     byte[] nameHandleBytes = new byte[4],
@@ -110,21 +110,20 @@ namespace KatAMRandomizer
             settings.RandomEntity = new Random(settings.Seed);
 
             new KatAMROMReader(system);
-            new KatAMMirrors(system);
+            /*new KatAMMirrors(system);
             new KatAMSprays(system);
             new KatAMItems(system);
             new KatAMPedestals(system);
             new KatAMEnemies(system);
             new KatAMMinibosses(system);
             new KatAMMapElements(system);
-            new KatAMPropertiesManagement(system);
+            new KatAMPropertiesManagement(system);*/
             
             // Randomize mirrors;
             // Randomize HP values on Enemies;
             // Randomize HP values on Bosses;
 
-
-            File.WriteAllBytes(destinationPath, system.ROMData);
+            File.WriteAllBytes(destinationPath, Processing.ROMData);
         }
 
         // Refresh Seed;

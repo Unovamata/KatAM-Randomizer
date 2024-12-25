@@ -4,6 +4,8 @@ using KatAM_Randomizer;
 namespace KatAMRandomizer
 {
     internal class KatAMPedestals : KatAMRandomizerComponent, IKatAMRandomizer {
+        byte[] romFile = Processing.ROMData;
+
         GenerationOptions pedestalsOptions;
 
         public KatAMPedestals(Processing system) {
@@ -77,8 +79,6 @@ namespace KatAMRandomizer
             entities = new List<Entity>();
             objectIDs = new List<KeyValuePair<byte, byte>>();
 
-            byte[] romFile = System.ROMData;
-
             Utils.DeserializeEntitiesJSON(Utils.JSONToObjects(Utils.abilityStandsJson), entities, Instance);
 
             isParasolBanned = Settings.isBanningParasol;
@@ -135,7 +135,7 @@ namespace KatAMRandomizer
                     case GenerationOptions.Custom: break;
                 }
 
-                Utils.WriteObjectToROM(romFile, entity);
+                Utils.WriteObjectToROM(entity);
             }
         }
 
