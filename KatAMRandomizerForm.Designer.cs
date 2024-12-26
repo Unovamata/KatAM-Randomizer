@@ -35,9 +35,12 @@
             button5 = new Button();
             button6 = new Button();
             GroupSettings = new GroupBox();
-            checkBox1 = new CheckBox();
+            CheckboxOptionsSpoilerLog = new CheckBox();
+            CheckboxOptionsRace = new CheckBox();
             LabelSeed = new Label();
             GroupRomInfo = new GroupBox();
+            LabelStability = new Label();
+            LabelCompatibility = new Label();
             LabelGameRegion = new Label();
             LabelGameID = new Label();
             LabelInternalName = new Label();
@@ -257,7 +260,7 @@
             // ButtonConsoleSend
             // 
             ButtonConsoleSend.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            ButtonConsoleSend.Location = new Point(696, 125);
+            ButtonConsoleSend.Location = new Point(696, 128);
             ButtonConsoleSend.Name = "ButtonConsoleSend";
             ButtonConsoleSend.Size = new Size(162, 23);
             ButtonConsoleSend.TabIndex = 0;
@@ -268,7 +271,7 @@
             // 
             // ButtonLoadFile
             // 
-            ButtonLoadFile.Location = new Point(696, 9);
+            ButtonLoadFile.Location = new Point(696, 12);
             ButtonLoadFile.Name = "ButtonLoadFile";
             ButtonLoadFile.Size = new Size(162, 23);
             ButtonLoadFile.TabIndex = 1;
@@ -279,7 +282,7 @@
             // ButtonSaveFile
             // 
             ButtonSaveFile.Enabled = false;
-            ButtonSaveFile.Location = new Point(696, 38);
+            ButtonSaveFile.Location = new Point(696, 41);
             ButtonSaveFile.Name = "ButtonSaveFile";
             ButtonSaveFile.Size = new Size(162, 23);
             ButtonSaveFile.TabIndex = 2;
@@ -290,7 +293,7 @@
             // ButtonInputSeed
             // 
             ButtonInputSeed.Enabled = false;
-            ButtonInputSeed.Location = new Point(696, 67);
+            ButtonInputSeed.Location = new Point(696, 70);
             ButtonInputSeed.Name = "ButtonInputSeed";
             ButtonInputSeed.Size = new Size(162, 23);
             ButtonInputSeed.TabIndex = 3;
@@ -320,7 +323,8 @@
             // 
             // GroupSettings
             // 
-            GroupSettings.Controls.Add(checkBox1);
+            GroupSettings.Controls.Add(CheckboxOptionsSpoilerLog);
+            GroupSettings.Controls.Add(CheckboxOptionsRace);
             GroupSettings.Controls.Add(button6);
             GroupSettings.Controls.Add(button5);
             GroupSettings.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
@@ -331,22 +335,33 @@
             GroupSettings.TabStop = false;
             GroupSettings.Text = "General Options";
             // 
-            // checkBox1
+            // CheckboxOptionsSpoilerLog
             // 
-            checkBox1.AutoSize = true;
-            checkBox1.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            checkBox1.Location = new Point(6, 22);
-            checkBox1.Name = "checkBox1";
-            checkBox1.Size = new Size(85, 19);
-            checkBox1.TabIndex = 12;
-            checkBox1.Text = "Race Mode";
-            checkBox1.UseVisualStyleBackColor = true;
+            CheckboxOptionsSpoilerLog.AutoSize = true;
+            CheckboxOptionsSpoilerLog.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            CheckboxOptionsSpoilerLog.Location = new Point(6, 47);
+            CheckboxOptionsSpoilerLog.Name = "CheckboxOptionsSpoilerLog";
+            CheckboxOptionsSpoilerLog.Size = new Size(85, 19);
+            CheckboxOptionsSpoilerLog.TabIndex = 13;
+            CheckboxOptionsSpoilerLog.Text = "Spoiler Log";
+            CheckboxOptionsSpoilerLog.UseVisualStyleBackColor = true;
+            // 
+            // CheckboxOptionsRace
+            // 
+            CheckboxOptionsRace.AutoSize = true;
+            CheckboxOptionsRace.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            CheckboxOptionsRace.Location = new Point(6, 22);
+            CheckboxOptionsRace.Name = "CheckboxOptionsRace";
+            CheckboxOptionsRace.Size = new Size(85, 19);
+            CheckboxOptionsRace.TabIndex = 12;
+            CheckboxOptionsRace.Text = "Race Mode";
+            CheckboxOptionsRace.UseVisualStyleBackColor = true;
             // 
             // LabelSeed
             // 
             LabelSeed.AutoSize = true;
             LabelSeed.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            LabelSeed.Location = new Point(136, 113);
+            LabelSeed.Location = new Point(194, 113);
             LabelSeed.Name = "LabelSeed";
             LabelSeed.Size = new Size(35, 15);
             LabelSeed.TabIndex = 12;
@@ -355,6 +370,8 @@
             // 
             // GroupRomInfo
             // 
+            GroupRomInfo.Controls.Add(LabelStability);
+            GroupRomInfo.Controls.Add(LabelCompatibility);
             GroupRomInfo.Controls.Add(LabelGameRegion);
             GroupRomInfo.Controls.Add(LabelGameID);
             GroupRomInfo.Controls.Add(LabelSeed);
@@ -363,10 +380,32 @@
             GroupRomInfo.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
             GroupRomInfo.Location = new Point(195, 12);
             GroupRomInfo.Name = "GroupRomInfo";
-            GroupRomInfo.Size = new Size(271, 143);
+            GroupRomInfo.Size = new Size(495, 143);
             GroupRomInfo.TabIndex = 9;
             GroupRomInfo.TabStop = false;
             GroupRomInfo.Text = "ROM Information";
+            // 
+            // LabelStability
+            // 
+            LabelStability.AutoSize = true;
+            LabelStability.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            LabelStability.Location = new Point(194, 84);
+            LabelStability.Name = "LabelStability";
+            LabelStability.Size = new Size(52, 15);
+            LabelStability.TabIndex = 14;
+            LabelStability.Text = "Stability:";
+            LabelStability.Visible = false;
+            // 
+            // LabelCompatibility
+            // 
+            LabelCompatibility.AutoSize = true;
+            LabelCompatibility.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            LabelCompatibility.Location = new Point(194, 55);
+            LabelCompatibility.Name = "LabelCompatibility";
+            LabelCompatibility.Size = new Size(82, 15);
+            LabelCompatibility.TabIndex = 13;
+            LabelCompatibility.Text = "Compatibility:";
+            LabelCompatibility.Visible = false;
             // 
             // LabelGameRegion
             // 
@@ -2471,7 +2510,7 @@
             // ButtonRefreshSeed
             // 
             ButtonRefreshSeed.Enabled = false;
-            ButtonRefreshSeed.Location = new Point(696, 96);
+            ButtonRefreshSeed.Location = new Point(696, 99);
             ButtonRefreshSeed.Name = "ButtonRefreshSeed";
             ButtonRefreshSeed.Size = new Size(162, 23);
             ButtonRefreshSeed.TabIndex = 11;
@@ -2507,8 +2546,10 @@
             Controls.Add(ButtonInputSeed);
             Controls.Add(ButtonSaveFile);
             Controls.Add(ButtonLoadFile);
+            FormBorderStyle = FormBorderStyle.FixedSingle;
             Icon = (Icon)resources.GetObject("$this.Icon");
             Name = "KatAMRandomizerMain";
+            StartPosition = FormStartPosition.CenterScreen;
             Text = "KatAM Randomizer";
             GroupSettings.ResumeLayout(false);
             GroupSettings.PerformLayout();
@@ -2607,7 +2648,7 @@
         private TabPage tabPage5;
         private TabPage TabMiscellaneous;
         private Label LabelGameRegion;
-        private CheckBox checkBox1;
+        private CheckBox CheckboxOptionsRace;
         private GroupBox GroupMiscSprayPalettes;
         private RadioButton RadioSprayUnchanged;
         private RadioButton RadioSprayRandom;
@@ -2768,5 +2809,8 @@
         private CheckBox CheckboxMirrorsUseRegularWarps;
         private RadioButton RadioGoalGameMirrorsNo;
         private CheckBox checkBox2;
+        private CheckBox CheckboxOptionsSpoilerLog;
+        private Label LabelStability;
+        private Label LabelCompatibility;
     }
 }

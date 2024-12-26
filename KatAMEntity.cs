@@ -149,14 +149,15 @@ public class Mirror {
     public long Address9ROM { get; set; }
     public byte X { get; set; }
     public byte Y { get; set; }
-    public int RoomID {  get; set; }
+    public int RoomIn { get; set; }
+    public int Destination {  get; set; }
     public Mirror Warp { get; set; }
     public string MirrorData { get; set; }
 
-    public Mirror(long address, byte x, byte y, int room) {
+    public Mirror(long address, byte x, byte y, int destination) {
         Address8ROM = address; 
         X = x; 
         Y = y;
-        RoomID = room;
+        Destination = destination;
     }
 }

@@ -76,15 +76,26 @@ namespace KatAMRandomizer
                         // Japanese Version;
                         case "AGB-B8KJ":
                             region = "(JAP)";
+                            LabelCompatibility.ForeColor = Color.Green;
+                            LabelCompatibility.Text = "Compatibility: Compatible";
                             break;
 
                         case "AGB-B8KP":
                             region = "(EUR)";
+                            LabelCompatibility.ForeColor = Color.Red;
+                            LabelCompatibility.Text = "Compatibility: Incompatible";
                             break;
 
                         case "AGB-B8KE":
                             region = "(USA)";
+                        LabelCompatibility.ForeColor = Color.Red;
+                        LabelCompatibility.Text = "Compatibility: Incompatible";
                             break;
+
+                        default:
+                            LabelCompatibility.ForeColor = Color.Red;
+                            LabelCompatibility.Text = "Compatibility: Incompatible";
+                        break;
                     }
 
                     LabelGameRegion.Text = $"Region: {region}";
@@ -93,6 +104,8 @@ namespace KatAMRandomizer
                     ButtonInputSeed.Enabled = true;
                     ButtonRefreshSeed.Enabled = true;
                     LabelSeed.Visible = true;
+                    LabelCompatibility.Visible = true;
+                    LabelStability.Visible = true;
                     UpdateLabelSeedText();
                 }
                 catch(Exception ex) {
