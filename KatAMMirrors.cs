@@ -82,6 +82,8 @@ namespace KatAM_Randomizer {
         }
 
         void RandomizeWarpStars() {
+            if(Settings.WarpStarsGenerationType == GenerationOptions.Unchanged) return;
+
             List<Entity> warpStars = Utils.Shuffle(new List<Entity>(warpStarEntities));
 
             for(int i = 0; i < warpStars.Count; i++) {
@@ -96,6 +98,8 @@ namespace KatAM_Randomizer {
         }
 
         void RandomizeWarpCannons() {
+            if(Settings.FuseCannonsGenerationType == GenerationOptions.Unchanged) return;
+
             List<Entity> warpCannons = Utils.Shuffle(new List<Entity>(cannonEntities));
 
             for(int i = 0; i < warpCannons.Count; i++) {

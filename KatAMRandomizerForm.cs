@@ -39,7 +39,7 @@ namespace KatAMRandomizer
             fileDialog.FilterIndex = 1;
             fileDialog.RestoreDirectory = true;
 
-            if (fileDialog.ShowDialog() == DialogResult.OK) {
+            if(fileDialog.ShowDialog() == DialogResult.OK) {
                 try {
                     string filePath = fileDialog.FileName;
                     system.ROMPath = filePath;
@@ -72,19 +72,19 @@ namespace KatAMRandomizer
 
                     string region = "";
 
-                    switch (gameId) {
+                    switch(gameId) {
                         // Japanese Version;
                         case "AGB-B8KJ":
-                        region = "(JAP)";
-                        break;
+                            region = "(JAP)";
+                            break;
 
                         case "AGB-B8KP":
-                        region = "(EUR)";
-                        break;
+                            region = "(EUR)";
+                            break;
 
                         case "AGB-B8KE":
-                        region = "(USA)";
-                        break;
+                            region = "(USA)";
+                            break;
                     }
 
                     LabelGameRegion.Text = $"Region: {region}";
@@ -94,7 +94,8 @@ namespace KatAMRandomizer
                     ButtonRefreshSeed.Enabled = true;
                     LabelSeed.Visible = true;
                     UpdateLabelSeedText();
-                } catch (Exception ex) {
+                }
+                catch(Exception ex) {
                     MessageBox.Show($"Error loading file: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
@@ -118,7 +119,7 @@ namespace KatAMRandomizer
             new KatAMMinibosses(system);
             new KatAMMapElements(system);
             new KatAMPropertiesManagement(system);*/
-            
+
             // Randomize mirrors;
             // Randomize HP values on Enemies;
             // Randomize HP values on Bosses;
@@ -237,14 +238,15 @@ namespace KatAMRandomizer
         private void CheckboxChestsMoreHPUP_CheckedChanged(object sender, EventArgs e) {
             bool isAddingMoreHPUPs = CheckboxChestsMoreHPUP.Checked;
 
-            if (!isAddingMoreHPUPs) {
+            if(!isAddingMoreHPUPs) {
                 Label1HPUP.Enabled = false;
                 Label2HPUP.Enabled = false;
                 Label3HPUP.Enabled = false;
                 TrackBarHPUP.Enabled = false;
                 TrackBarHPUP.Value = 1;
                 settings.HPUpsAdded = 0;
-            } else {
+            }
+            else {
                 Label1HPUP.Enabled = true;
                 Label2HPUP.Enabled = true;
                 Label3HPUP.Enabled = true;
@@ -572,6 +574,22 @@ namespace KatAMRandomizer
 
         private void CheckboxMapElementsStoneBlocks_CheckedChanged(object sender, EventArgs e) {
             settings.isRemovingStoneBlocks = CheckboxMapElementsAllStoneBlocks.Checked;
+        }
+
+        private void RadioWarpsStarsUnchanged_CheckedChanged(object sender, EventArgs e) {
+            settings.WarpStarsGenerationType = GenerationOptions.Unchanged;
+        }
+
+        private void RadioWarpsStarsShuffle_CheckedChanged(object sender, EventArgs e) {
+            settings.WarpStarsGenerationType = GenerationOptions.Shuffle;
+        }
+
+        private void RadioWarpsFuseCannonsUnchanged_CheckedChanged(object sender, EventArgs e) {
+            settings.WarpStarsGenerationType = GenerationOptions.Unchanged;
+        }
+
+        private void RadioWarpsFuseCannonsShuffle_CheckedChanged(object sender, EventArgs e) {
+            settings.WarpStarsGenerationType = GenerationOptions.Shuffle;
         }
     }
 }

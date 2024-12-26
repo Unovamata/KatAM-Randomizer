@@ -402,6 +402,8 @@ namespace KatAMInternal
         public int Seed { get; set; }
         public int MinSeed = -9999999, MaxSeed = 9999999;
         public bool IsRace { get; set; }
+        public GenerationOptions WarpStarsGenerationType { get; set; }
+        public GenerationOptions FuseCannonsGenerationType { get; set; }
         public GenerationOptions ConsumablesGenerationType { get; set; }
         public GenerationOptions MirrorShardsGenerationType { get; set; }
         public int amountOfMirrorShardsToAdd = 0;
