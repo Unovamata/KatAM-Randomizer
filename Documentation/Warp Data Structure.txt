@@ -1,0 +1,24 @@
+// Star Warps & Cannons
+
+Address 0 sets a byte value from 0 to 5 without repeating
+The first 2 bytes before Address 0 start with 84 FF for all addresses
+84 FF always have 11 empty bytes after the Address 0 value
+
+		   Behavior						   	  Properties
+			  ↓ 								  ↓
+887BA8: 84 FF 00 00 00 00 00 00 00 00 00 00 00 00 FB FF FD FF C3 00 00 00 00 00
+88CA58: 84 FF 04 00 00 00 00 00 00 00 00 00 00 00 3F 00 0F 00 99 01 00 00 00 00
+890A28: 84 FF 01 00 00 00 00 00 00 00 00 00 00 00 0B 00 0F 00 94 01 00 00 00 00
+894C78: 84 FF 02 00 00 00 00 00 00 00 00 00 00 00 FF FF 14 00 91 01 00 00 00 00
+896D60: 84 FF 03 00 00 00 00 00 00 00 00 00 00 00 05 00 0F 00 9F 01 00 00 00 00
+8A5310: 84 FF 05 00 00 00 00 00 00 00 00 00 00 00 FF FF 00 00 DE 00 00 00 00 00
+
+It's a good idea to shuffle these together as star warps need a star object definition in the room to function,
+else it'll crash the game. The properties at the end are most likely pointers for this star object declaration.
+
+// Mirror Data
+
+	  Object Type Destination	X  Y
+		   ↓		   ↓ 		↓  ↓
+		 __ __		 __ __		__ __
+843270 : 0E 00 FF FF CA 03 		0F 06

@@ -108,7 +108,7 @@ namespace KatAM_Randomizer {
             }
         }
 
-
+        // 
         void RandomizeMirrors() {
 
         }

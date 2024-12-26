@@ -14,7 +14,7 @@ namespace KatAMRandomizer {
 
             ReadObjectData();
 
-            //Read8ROMData();
+            Read8ROMData();
             Read9ROMData();
         }
 
@@ -312,9 +312,7 @@ namespace KatAMRandomizer {
                     // Read the 8ROM mirror data and inject it untouched to the ROM;
                     byte[] mirrorData = Processing.ExtractROMData(i, 8);
 
-                    string mirrorString = Utils.ByteArrayToHexString(mirrorData, " ");
-
-                    Console.WriteLine($"Mirror at address {i}: {mirrorString}");
+                    int roomID = MirrorGetRoomID(mirrorData);
 
                     i += 7;
                     totalMirrors++;
@@ -350,12 +348,10 @@ namespace KatAMRandomizer {
                 }
 
                 else if(Processing.Is9ROMMirror(byte1, byte2, byte3, byte4)) {
-                    Console.WriteLine($"Mirror 9ROM Found at {i} address!");
-
                     // Read the 9ROM mirror data and inject it untouched to the ROM;
                     byte[] mirrorData = Processing.ExtractROMData(i, 8);
 
-                    string mirrorString = Utils.ByteArrayToHexString(mirrorData, " ");
+                    int roomID = MirrorGetRoomID(mirrorData);
 
                     i += 7;
                     totalMirrors++;
@@ -372,6 +368,13 @@ namespace KatAMRandomizer {
             }
 
             Console.WriteLine($"Total Mirrors Found: {totalMirrors}");
+        }
+
+        int MirrorGetRoomID(byte[] mirrorData) {
+            // Little endian notation conversion;
+            byte[] bytes = new byte[] { mirrorData[4], mirrorData[5] };
+
+            return BitConverter.ToUInt16(bytes, 0);
         }
     }
 }
