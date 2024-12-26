@@ -13,9 +13,6 @@ namespace KatAMRandomizer {
             ReadObjectParameterData();
 
             ReadObjectData();
-
-            Read8ROMData();
-            Read9ROMData();
         }
 
         List<Properties> properties = new List<Properties>();
@@ -294,87 +291,6 @@ namespace KatAMRandomizer {
             Utils.SaveJSON(mirrors, Utils.mirrorsJson);
             Utils.SaveJSON(abilityStands, Utils.abilityStandsJson);
             Utils.SaveJSON(miscellaneous, Utils.worldMapObjectsJson);
-        }
-
-        int totalMirrors = 0;
-
-        public void Read8ROMData() {
-            for(long i = Processing.EightROMStartAddress; i < romFile.Length; i += 1) {
-                if(i >= Processing.EightROMEndAddress || i >= romFile.Length) break;
-
-                // Read the next 4 bytes to detect the 9ROM reference instance;
-                byte byte1 = romFile[i],
-                     byte2 = romFile[i + 1],
-                     byte3 = romFile[i + 2],
-                     byte4 = romFile[i + 3];
-
-                if(Processing.Is8ROMMirror(byte1, byte2, byte3, byte4)) {
-                    // Read the 8ROM mirror data and inject it untouched to the ROM;
-                    byte[] mirrorData = Processing.ExtractROMData(i, 8);
-
-                    int roomID = MirrorGetRoomID(mirrorData);
-
-                    i += 7;
-                    totalMirrors++;
-                }
-            }
-            
-            Console.WriteLine($"Total Mirrors Found: {totalMirrors}");
-        }
-
-        public void Read9ROMData() {
-            // Pointers to inspect the data correctly;
-            int currentRoomIndex = 0,
-                chestsInRoomCount = 0,
-                lastRoomAdded = -1;
-
-            // Read and Overwritte the data for all 9ROM addresses found;
-            for(long i = Processing.NineROMStartAddress; i < romFile.Length; i += 1) {
-                if(i >= Processing.NineROMEndAddress || i >= romFile.Length) break;
-
-                int currentRoom;
-
-                try { currentRoom = Processing.roomIds[currentRoomIndex]; } catch { return; }
-
-                // Read the next 4 bytes to detect the 9ROM reference instance;
-                byte byte1 = romFile[i],
-                     byte2 = romFile[i + 1],
-                     byte3 = romFile[i + 2],
-                     byte4 = romFile[i + 3];
-
-                if(Processing.Is9ROMChest(byte1, byte2, byte3, byte4)) {
-                    //Console.WriteLine($"Chest 9ROM Found at {i} address!");
-                    i += 7;
-                }
-
-                else if(Processing.Is9ROMMirror(byte1, byte2, byte3, byte4)) {
-                    // Read the 9ROM mirror data and inject it untouched to the ROM;
-                    byte[] mirrorData = Processing.ExtractROMData(i, 8);
-
-                    int roomID = MirrorGetRoomID(mirrorData);
-
-                    i += 7;
-                    totalMirrors++;
-                }
-
-                // If it's the end of the room, inject all the chests to their respective pointers;
-                else if(Processing.Is9ROMEndOfRoom(byte1, byte2, byte3, byte4)) {
-                    //Console.WriteLine($"End of Room {Processing.roomIds[currentRoomIndex]} / {Utils.ConvertIntToHex(Processing.roomIds[currentRoomIndex])} 9ROM Found at {i} address!");
-
-                    // Check for the next room and continue writing in the next addresses;
-                    currentRoomIndex++;
-                    i += 11;
-                }
-            }
-
-            Console.WriteLine($"Total Mirrors Found: {totalMirrors}");
-        }
-
-        int MirrorGetRoomID(byte[] mirrorData) {
-            // Little endian notation conversion;
-            byte[] bytes = new byte[] { mirrorData[4], mirrorData[5] };
-
-            return BitConverter.ToUInt16(bytes, 0);
         }
     }
 }

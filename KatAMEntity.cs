@@ -143,3 +143,20 @@ public class Data {
         IsFlying = isFlying;
     }
 }
+
+public class Mirror {
+    public long Address8ROM { get; set; }
+    public long Address9ROM { get; set; }
+    public byte X { get; set; }
+    public byte Y { get; set; }
+    public int RoomID {  get; set; }
+    public Mirror Warp { get; set; }
+    public string MirrorData { get; set; }
+
+    public Mirror(long address, byte x, byte y, int room) {
+        Address8ROM = address; 
+        X = x; 
+        Y = y;
+        RoomID = room;
+    }
+}

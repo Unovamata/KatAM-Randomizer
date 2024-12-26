@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace KatAM_Randomizer {
     internal class KatAMMirrors : KatAMRandomizerComponent, IKatAMRandomizer {
@@ -77,8 +78,135 @@ namespace KatAM_Randomizer {
         
 
         void RandomizeWarps() {
+            RandomizeMirrors();
             RandomizeWarpStars();
             RandomizeWarpCannons();
+        }
+
+        // 
+        void RandomizeMirrors() {
+            ReadROMData();
+        }
+
+        List<Mirror> mirrorList = new List<Mirror>();
+        Dictionary<int, List<Mirror>> mirrorWarpDictionary = new Dictionary<int, List<Mirror>>();
+
+        int currentRoomIndex = 0;
+
+        public void ReadROMData() {
+            for(long i = Processing.EightROMStartAddress; i < Processing.EightROMEndAddress; i++) {
+                byte[] bytes = Processing.ExtractROMData(i, 14);
+
+                bool isMirror = Processing.Is8ROMMirror(bytes) || Processing.Is9ROMMirror(bytes),
+                     isChest = Processing.Is8ROMChest(bytes),
+                     isEmpty = Processing.Is8ROMEmpty(bytes),
+                     isEmptyRoom = Processing.Is8ROMEmpty(bytes);
+
+                int roomIndexChecked = Processing.roomIds[currentRoomIndex];
+
+                if(isMirror) {
+                    int warpRoomID = MirrorGetRoomID(bytes);
+
+                    if(Processing.roomIds.Contains(warpRoomID)) {
+                        byte x = bytes[6],
+                             y = bytes[7];
+
+                        Mirror mirror = new Mirror(i, x, y, warpRoomID);
+                        mirror.MirrorData = Utils.ByteArrayToHexString(bytes, " ");
+                        Console.WriteLine(mirror.MirrorData);
+
+                        mirrorList.Add(mirror);
+
+                        if(!mirrorWarpDictionary.ContainsKey(warpRoomID)) {
+                            mirrorWarpDictionary[warpRoomID] = new List<Mirror>();
+                            mirrorWarpDictionary[warpRoomID].Add(mirror);
+                        }
+                        else {
+                            mirrorWarpDictionary[warpRoomID].Add(mirror);
+                        }
+                    }
+
+                    i += 13;
+                } else if(isChest) {
+                    //Console.WriteLine($"Chest At: {Utils.ByteArrayToHexString(bytes, " ")}");
+
+                    i += 11;
+                }
+                
+                else if(isEmptyRoom) {
+                    Console.WriteLine($"Address: {i.ToString("X2")} Checked room: {roomIndexChecked.ToString("X2")}");
+                    currentRoomIndex++;
+                    Console.WriteLine(" ");
+                }
+
+                // Read the next 4 bytes to detect the 9ROM reference instance;
+                /*byte[] bytes = new byte[] { romFile[i], romFile[i + 1], romFile[i + 2], romFile[i + 3] };
+
+                bool isUnknown = Processing.Is8ROMUnknown(bytes),
+                     isMirror = Processing.Is8ROMMirror(bytes) || Processing.Is9ROMMirror(bytes),
+                     isEndOfRoom = Processing.Is9ROMEndOfRoom(bytes);
+
+                int roomIndexChecked = Processing.roomIds[currentRoomIndex];
+
+                if(isUnknown) {
+                    i += 11;
+                }
+                if(isMirror) {
+                    // Read the 8ROM mirror data and inject it untouched to the ROM;
+                    byte[] mirrorData = Processing.ExtractROMData(i, 8);
+
+                    int warpRoomID = MirrorGetRoomID(mirrorData);
+
+                    if(Processing.roomIds.Contains(warpRoomID)) {
+                        byte x = mirrorData[6],
+                             y = mirrorData[7];
+
+                        Mirror mirror = new Mirror(i, x, y, warpRoomID);
+                        mirror.MirrorData = Utils.ByteArrayToHexString(mirrorData, " ");
+                        Console.WriteLine(mirror.MirrorData);
+
+                        mirrorList.Add(mirror);
+
+                        if(!mirrorWarpDictionary.ContainsKey(warpRoomID)) {
+                            mirrorWarpDictionary[warpRoomID] = new List<Mirror>();
+                            mirrorWarpDictionary[warpRoomID].Add(mirror);
+                        } else {
+                            mirrorWarpDictionary[warpRoomID].Add(mirror);
+                        }
+                    }
+
+                    i += 11;
+                } else if(isEndOfRoom) {
+                    currentRoomIndex++;
+                    i += 11;
+                    Console.WriteLine($"Checked room: {roomIndexChecked.ToString("X2")}");
+                }*/
+            }
+
+            /*Console.WriteLine($"Total Rooms: {Processing.roomIds.Count}");
+            Console.WriteLine($"Total Mirrors Found: {mirrorList.Count}");
+
+            foreach(Mirror mirror in mirrorList) {
+                int warpRoomID = mirror.RoomID;
+                Mirror warpMirror = new Mirror(0, 0, 0, 0);
+
+                Console.WriteLine($"Main Mirror: {mirror.MirrorData}");
+
+                foreach(Mirror warp in mirrorWarpDictionary[warpRoomID]) {
+                    Console.WriteLine(warp.MirrorData);
+                }
+
+                Console.WriteLine($"Mirror in room: {mirror.RoomID} warps to room: {warpMirror.RoomID}");
+                Console.WriteLine($"Mirror in room: {warpMirror.RoomID} warps to room: {mirror.RoomID}");
+
+
+                return;
+            }*/
+        }
+
+        int MirrorGetRoomID(byte[] mirrorData) {
+            // Little endian notation conversion;
+            return BitConverter.ToUInt16(new byte[] { mirrorData[8], mirrorData[9] }, 0);
         }
 
         void RandomizeWarpStars() {
@@ -110,11 +238,6 @@ namespace KatAM_Randomizer {
 
                 Utils.WriteObjectToROM(entity);
             }
-        }
-
-        // 
-        void RandomizeMirrors() {
-
         }
     }
 }

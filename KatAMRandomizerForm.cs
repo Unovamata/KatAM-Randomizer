@@ -111,8 +111,8 @@ namespace KatAMRandomizer
             settings.RandomEntity = new Random(settings.Seed);
 
             new KatAMROMReader(system);
-            /*new KatAMMirrors(system);
-            new KatAMSprays(system);
+            new KatAMMirrors(system);
+            /*new KatAMSprays(system);
             new KatAMItems(system);
             new KatAMPedestals(system);
             new KatAMEnemies(system);
@@ -138,6 +138,30 @@ namespace KatAMRandomizer
             SeedInputForm form = new SeedInputForm();
             form.ShowDialog();
         }
+
+
+        //////////////////////////////////////////////////////////////////////////////////////////////
+        
+        // Mirrors;
+        // Warp Stars;
+        private void RadioWarpsStarsUnchanged_CheckedChanged(object sender, EventArgs e) {
+            settings.WarpStarsGenerationType = GenerationOptions.Unchanged;
+        }
+
+        private void RadioWarpsStarsShuffle_CheckedChanged(object sender, EventArgs e) {
+            settings.WarpStarsGenerationType = GenerationOptions.Shuffle;
+        }
+
+        // Fuse Cannons;
+        private void RadioWarpsFuseCannonsUnchanged_CheckedChanged(object sender, EventArgs e) {
+            settings.WarpStarsGenerationType = GenerationOptions.Unchanged;
+        }
+
+        private void RadioWarpsFuseCannonsShuffle_CheckedChanged(object sender, EventArgs e) {
+            settings.WarpStarsGenerationType = GenerationOptions.Shuffle;
+        }
+
+
 
         //////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -576,20 +600,6 @@ namespace KatAMRandomizer
             settings.isRemovingStoneBlocks = CheckboxMapElementsAllStoneBlocks.Checked;
         }
 
-        private void RadioWarpsStarsUnchanged_CheckedChanged(object sender, EventArgs e) {
-            settings.WarpStarsGenerationType = GenerationOptions.Unchanged;
-        }
-
-        private void RadioWarpsStarsShuffle_CheckedChanged(object sender, EventArgs e) {
-            settings.WarpStarsGenerationType = GenerationOptions.Shuffle;
-        }
-
-        private void RadioWarpsFuseCannonsUnchanged_CheckedChanged(object sender, EventArgs e) {
-            settings.WarpStarsGenerationType = GenerationOptions.Unchanged;
-        }
-
-        private void RadioWarpsFuseCannonsShuffle_CheckedChanged(object sender, EventArgs e) {
-            settings.WarpStarsGenerationType = GenerationOptions.Shuffle;
-        }
+        
     }
 }

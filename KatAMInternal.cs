@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using KatAMRandomizer;
 using KatAM_Randomizer;
 using System.Net;
+using System.DirectoryServices.ActiveDirectory;
 
 namespace KatAMInternal
 {
@@ -27,8 +28,8 @@ namespace KatAMInternal
         public static byte[] ROMData { get; set; }
         public Settings Settings { get; set; }
 
-        string EightROMStartAddressHex = "843271", 
-               EightROMEndAddressHex = "884C50",
+        string EightROMStartAddressHex = "84326C", 
+               EightROMEndAddressHex = "884C51",
                NineROMStartAddressHex = "900f8C",
                NineROMEndAddressHex = "90310C";
 
@@ -361,9 +362,21 @@ namespace KatAMInternal
             { 0xDB, "Resets the Game" }
         };
 
+        // IsChest(); Checks if an array of bytes is equal to a chest 8ROM notation;
+        public static bool Is8ROMChest(byte[] bytes) {
+            return ((bytes[2] == 0x12) && (bytes[3] == 0x00) && (bytes[4] == 0xFF) && (bytes[5] == 0xFF)); // Presumably, a chest;
+        }
+
+        public static bool Is8ROMEmpty(byte[] bytes) {
+            return (bytes[0] == 0x00) && (bytes[1] == 0x00) && (bytes[2] == 0x00) && (bytes[3] == 0x00) && (bytes[4] == 0x00) && (bytes[5] == 0x00) &&
+                   (bytes[6] == 0xFF) && (bytes[7] == 0xFF);
+        }
+
+
         // IsMirror(); Checks if an array of bytes is equal to a mirror door 9ROM notation;
-        public static bool Is8ROMMirror(byte first, byte second, byte third, byte fourth) {
-            return (first == 0x0E) && (second == 0x00) && (third == 0xFF) && (fourth == 0xFF);
+        public static bool Is8ROMMirror(byte[] bytes) {
+            return (bytes[0] == 0x03) && // Data indicator
+                   (bytes[4] == 0x0E) && (bytes[5] == 0x00) && (bytes[6] == 0xFF) && (bytes[7] == 0xFF);
         }
 
         // IsChest(); Checks if an array of bytes is equal to a chest 9ROM notation;
@@ -371,14 +384,26 @@ namespace KatAMInternal
             return (first == 0x01) && (second == 0x08) && (third == 0xFF) && (fourth == 0xFF);
         }
 
+        public static bool Is9ROMChest(byte[] bytes) {
+            return (bytes[0] == 0x01) && (bytes[1] == 0x08) && (bytes[2] == 0xFF) && (bytes[3] == 0xFF);
+        }
+
         // IsMirror(); Checks if an array of bytes is equal to a mirror door 9ROM notation;
         public static bool Is9ROMMirror(byte first, byte second, byte third, byte fourth) {
             return (first == 0x02) && (second == 0x08) && (third == 0xFF) && (fourth == 0xFF);
         }
 
+        public static bool Is9ROMMirror(byte[] bytes) {
+            return (bytes[0] == 0x02) && (bytes[1] == 0x08) && (bytes[2] == 0xFF) && (bytes[3] == 0xFF);
+        }
+
         // IsMirror(); Checks if an array of bytes is equal to a end of the room 9ROM notation;
         public static bool Is9ROMEndOfRoom(byte first, byte second, byte third, byte fourth) {
             return (first == 0x00) && (second == 0x00) && (third == 0xFF) && (fourth == 0xFF);
+        }
+
+        public static bool Is9ROMEndOfRoom(byte[] bytes) {
+            return (bytes[0] == 0x00) && (bytes[1] == 0x00) && (bytes[2] == 0xFF) && (bytes[3] == 0xFF);
         }
 
         // ExtractNineROMData(); A function to spit out 9ROM data;
