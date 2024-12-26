@@ -92,15 +92,44 @@ namespace KatAM_Randomizer {
         Dictionary<int, List<Mirror>> mirrorWarpDictionary = new Dictionary<int, List<Mirror>>();
 
         int currentRoomIndex = 0;
+        bool is9ROMResetted = false;
+        string addressType = "8";
 
         public void ReadROMData() {
-            for(long i = Processing.EightROMStartAddress; i < Processing.EightROMEndAddress; i++) {
+            for(long i = Processing.EightROMStartAddress; i < Processing.NineROMEndAddress; i++) {
+                if(!is9ROMResetted) {
+                    if(i >= Processing.NineROMStartAddress) {
+                        is9ROMResetted = true;
+                        currentRoomIndex = 0;
+                        addressType = "9";
+                        Console.WriteLine("");
+                        Console.WriteLine("9ROM Address Start!");
+                        Console.WriteLine("");
+                    }
+                }
+
+                bool isWithinRange = i >= Processing.EightROMStartAddress && i <= Processing.EightROMEndAddress ||
+                                     i >= Processing.NineROMStartAddress && i <= Processing.NineROMEndAddress;
+
+                if(!isWithinRange) continue;
+
                 byte[] bytes = Processing.ExtractROMData(i, 14);
 
-                bool isMirror = Processing.Is8ROMMirror(bytes) || Processing.Is9ROMMirror(bytes),
-                     isChest = Processing.Is8ROMChest(bytes),
-                     isEmpty = Processing.Is8ROMEmpty(bytes),
-                     isEmptyRoom = Processing.Is8ROMEmpty(bytes);
+                bool isMirror = false, isChest = false, isEndOfRoom = false;
+
+                switch(addressType) {
+                    case "8":
+                        isMirror = Processing.Is8ROMMirror(bytes);
+                        isChest = Processing.Is8ROMChest(bytes);
+                        isEndOfRoom = Processing.Is8ROMEmpty(bytes);
+                        break;
+
+                    case "9":
+                        isMirror = Processing.Is9ROMMirror(bytes);
+                        isChest = Processing.Is9ROMChest(bytes);
+                        isEndOfRoom = Processing.Is9ROMEndOfRoom(bytes);
+                    break;
+                }
 
                 int roomIndexChecked = Processing.roomIds[currentRoomIndex];
 
@@ -133,54 +162,11 @@ namespace KatAM_Randomizer {
                     i += 11;
                 }
                 
-                else if(isEmptyRoom) {
+                else if(isEndOfRoom) {
                     Console.WriteLine($"Address: {i.ToString("X2")} Checked room: {roomIndexChecked.ToString("X2")}");
                     currentRoomIndex++;
                     Console.WriteLine(" ");
                 }
-
-                // Read the next 4 bytes to detect the 9ROM reference instance;
-                /*byte[] bytes = new byte[] { romFile[i], romFile[i + 1], romFile[i + 2], romFile[i + 3] };
-
-                bool isUnknown = Processing.Is8ROMUnknown(bytes),
-                     isMirror = Processing.Is8ROMMirror(bytes) || Processing.Is9ROMMirror(bytes),
-                     isEndOfRoom = Processing.Is9ROMEndOfRoom(bytes);
-
-                int roomIndexChecked = Processing.roomIds[currentRoomIndex];
-
-                if(isUnknown) {
-                    i += 11;
-                }
-                if(isMirror) {
-                    // Read the 8ROM mirror data and inject it untouched to the ROM;
-                    byte[] mirrorData = Processing.ExtractROMData(i, 8);
-
-                    int warpRoomID = MirrorGetRoomID(mirrorData);
-
-                    if(Processing.roomIds.Contains(warpRoomID)) {
-                        byte x = mirrorData[6],
-                             y = mirrorData[7];
-
-                        Mirror mirror = new Mirror(i, x, y, warpRoomID);
-                        mirror.MirrorData = Utils.ByteArrayToHexString(mirrorData, " ");
-                        Console.WriteLine(mirror.MirrorData);
-
-                        mirrorList.Add(mirror);
-
-                        if(!mirrorWarpDictionary.ContainsKey(warpRoomID)) {
-                            mirrorWarpDictionary[warpRoomID] = new List<Mirror>();
-                            mirrorWarpDictionary[warpRoomID].Add(mirror);
-                        } else {
-                            mirrorWarpDictionary[warpRoomID].Add(mirror);
-                        }
-                    }
-
-                    i += 11;
-                } else if(isEndOfRoom) {
-                    currentRoomIndex++;
-                    i += 11;
-                    Console.WriteLine($"Checked room: {roomIndexChecked.ToString("X2")}");
-                }*/
             }
 
             /*Console.WriteLine($"Total Rooms: {Processing.roomIds.Count}");

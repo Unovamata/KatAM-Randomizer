@@ -111,10 +111,10 @@ namespace KatAMRandomizer
             settings.RandomEntity = new Random(settings.Seed);
 
             new KatAMROMReader(system);
-            new KatAMMirrors(system);
-            /*new KatAMSprays(system);
+            //new KatAMMirrors(system);
+            //new KatAMSprays(system);
             new KatAMItems(system);
-            new KatAMPedestals(system);
+            /*new KatAMPedestals(system);
             new KatAMEnemies(system);
             new KatAMMinibosses(system);
             new KatAMMapElements(system);

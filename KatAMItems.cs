@@ -358,12 +358,12 @@ namespace KatAMRandomizer
                 }
                 
                 else if (Processing.Is9ROMMirror(byte1, byte2, byte3, byte4)) {
-                    //Console.WriteLine($"Mirror 9ROM Found at {i} address!");
+                    Console.WriteLine($"Mirror 9ROM Found at {i} address!");
 
                     // Read the 9ROM mirror data and inject it untouched to the ROM;
                     byte[] mirrorData = Processing.ExtractROMData(i, 8);
 
-                    //Console.WriteLine(Utils.ByteArrayToHexString(mirrorData, " "));
+                    Console.WriteLine(Utils.ByteArrayToHexString(mirrorData, " "));
 
                     Utils.WriteToROM(newListAddress, mirrorData);
 
