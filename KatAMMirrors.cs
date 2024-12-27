@@ -88,7 +88,7 @@ namespace KatAM_Randomizer {
             ReadROMData();
         }
 
-        List<Mirror> mirrorList = new List<Mirror>();
+        List<Mirror> mirrors = new List<Mirror>();
         Dictionary<int, List<Mirror>> EightROMMirrors = new Dictionary<int, List<Mirror>>(),
                                       NineROMMirrors = new Dictionary<int, List<Mirror>>();
 
@@ -162,7 +162,6 @@ namespace KatAM_Randomizer {
                         switch(addressType) {
                             case "8":
                                 mirror.Facing = bytes[12];
-                                mirrorList.Add(mirror);
 
                                 if(!EightROMMirrors.ContainsKey(currentRoom)) {
                                     EightROMMirrors[currentRoom] = new List<Mirror>();
@@ -204,8 +203,6 @@ namespace KatAM_Randomizer {
                     i += breakerAdd;
                 }
             }
-
-            List<Mirror> mirrors = new List<Mirror>();
 
             foreach(int key in EightROMMirrors.Keys) {
                 //Console.WriteLine($"Checking room {key}...");
@@ -319,9 +316,16 @@ namespace KatAM_Randomizer {
 
             Console.WriteLine("Mirrors found: " + mirrors.Count);
 
+            Mirror firstMirror = mirrors[1];
+
             foreach(Mirror mirror in mirrors) {
-                Utils.WriteMirrorToROM(mirror);
-                Console.WriteLine(" ");
+                Mirror newMirror = new Mirror(mirror);
+
+                newMirror.Destination = firstMirror.Destination;
+                newMirror.X = firstMirror.X;
+                newMirror.Y = firstMirror.Y;
+
+                //Utils.WriteMirrorToROM(newMirror);
             }
         }
 

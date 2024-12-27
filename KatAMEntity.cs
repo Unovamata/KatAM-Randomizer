@@ -173,4 +173,17 @@ public class Mirror {
         InRoom = inRoom;
         Destination = destination;
     }
+
+    public Mirror(Mirror mirror) {
+        Address8ROM = mirror.Address8ROM;
+        Address9ROM = mirror.Address9ROM;
+        X = mirror.X; 
+        Y = mirror.Y; 
+        InRoom = mirror.InRoom; 
+        Destination = mirror.Destination;
+        Facing = mirror.Facing;
+        Warp = mirror.Warp;
+        MirrorData = mirror.MirrorData;
+        MirrorWarpType = mirror.MirrorWarpType;
+    }
 }

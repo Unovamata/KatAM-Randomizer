@@ -535,16 +535,16 @@ namespace KatAMInternal
         }
 
         public static void WriteMirrorToROM(Mirror mirror) {
-            byte[] destinationLE = BitConverter.GetBytes(mirror.Destination); // Little endian;
+            byte[] mirrorData = BitConverter.GetBytes(mirror.Destination); // Little endian;
 
-            foreach(byte b in destinationLE) {
-                Console.Write($"{b:X2} ");
-            }
+            mirrorData[2] = mirror.X;
+            mirrorData[3] = mirror.Y;
 
-            Console.WriteLine("\n" + mirror.MirrorData);
-            Console.WriteLine("");
+            long eight = mirror.Address8ROM, nine = mirror.Address9ROM;
 
-            //WriteToROM(mirror.Address8ROM, properties.DamageSprites);
+            WriteToROM(eight + 8, mirrorData);
+            WriteToROM(eight + 12, new byte[] { mirror.Facing });
+            WriteToROM(nine + 4, mirrorData);
         }
 
         public static int GetNextRandom() {
