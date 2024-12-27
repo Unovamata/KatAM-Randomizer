@@ -78,23 +78,31 @@ namespace KatAMRandomizer
                             region = "(JAP)";
                             LabelCompatibility.ForeColor = Color.Green;
                             LabelCompatibility.Text = "Compatibility: Compatible";
-                            break;
+                            LabelStability.ForeColor = Color.Green;
+                            LabelStability.Text = "Stability: Perfectly Playable";
+                        break;
 
                         case "AGB-B8KP":
                             region = "(EUR)";
                             LabelCompatibility.ForeColor = Color.Red;
                             LabelCompatibility.Text = "Compatibility: Incompatible";
-                            break;
+                            LabelStability.ForeColor = Color.Red;
+                            LabelStability.Text = "Stability: Unsupported";
+                        break;
 
                         case "AGB-B8KE":
                             region = "(USA)";
-                        LabelCompatibility.ForeColor = Color.Red;
-                        LabelCompatibility.Text = "Compatibility: Incompatible";
-                            break;
+                            LabelCompatibility.ForeColor = Color.Red;
+                            LabelCompatibility.Text = "Compatibility: Incompatible";
+                            LabelStability.ForeColor = Color.Red;
+                            LabelStability.Text = "Stability: Unsupported";
+                        break;
 
                         default:
                             LabelCompatibility.ForeColor = Color.Red;
                             LabelCompatibility.Text = "Compatibility: Incompatible";
+                            LabelStability.ForeColor = Color.Red;
+                            LabelStability.Text = "Stability: Unsupported";
                         break;
                     }
 
@@ -124,9 +132,9 @@ namespace KatAMRandomizer
             settings.RandomEntity = new Random(settings.Seed);
 
             new KatAMROMReader(system);
-            //new KatAMMirrors(system);
+            new KatAMMirrors(system);
             //new KatAMSprays(system);
-            new KatAMItems(system);
+            //new KatAMItems(system);
             /*new KatAMPedestals(system);
             new KatAMEnemies(system);
             new KatAMMinibosses(system);

@@ -391,9 +391,9 @@
             LabelStability.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
             LabelStability.Location = new Point(194, 84);
             LabelStability.Name = "LabelStability";
-            LabelStability.Size = new Size(52, 15);
+            LabelStability.Size = new Size(148, 15);
             LabelStability.TabIndex = 14;
-            LabelStability.Text = "Stability:";
+            LabelStability.Text = "Stability: Perfectly Playable";
             LabelStability.Visible = false;
             // 
             // LabelCompatibility

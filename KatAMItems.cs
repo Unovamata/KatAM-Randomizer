@@ -110,7 +110,7 @@ namespace KatAMRandomizer
 
             mirrorShard.Name = "Mirror Shard";
             mirrorShard.ID = 0x65; // Mirror shard;
-            mirrorShard.Behavior = currentShardBehaviour; //currentShardBehaviour; // 0x0 - 0x7 behaviors = collectable shards;
+            mirrorShard.Behavior = currentShardBehaviour; // 0x0 - 0x7 behaviors = collectable shards;
 
             entities[index] = mirrorShard;
             objectIDs[index] = mirrorShard.ID;
@@ -237,10 +237,10 @@ namespace KatAMRandomizer
 
                 AddChestToDictionary(chest);
                 Utils.WriteObjectToROM(chest);
-
-                // Write to the ROM;
-                WriteChestTo9ROM(romFile);
             }
+
+            // Write to the ROM;
+            WriteChestTo9ROM();
         }
 
         // AddChestToDictionary(); Adds a chest entity to a dictionary for later processing;
@@ -291,7 +291,7 @@ namespace KatAMRandomizer
                       NewListPointer = 134217728;
 
         // WriteChestTo9ROM(); Writing the object data in a format the ROM can understand;
-        void WriteChestTo9ROM(byte[] romFile) {
+        void WriteChestTo9ROM() {
             // Pointers to inspect the data correctly;
             int currentRoomIndex = 0,
                 chestsInRoomCount = 0,
@@ -309,7 +309,7 @@ namespace KatAMRandomizer
 
                 int currentRoom;
 
-                try { currentRoom = Processing.roomIds[currentRoomIndex]; } catch { return; }
+                try { currentRoom = Processing.roomIDs[currentRoomIndex]; } catch { return; }
 
                 // If the room has any chests, process the data;
                 if (chestDictionary.ContainsKey(currentRoom)) {
@@ -347,19 +347,14 @@ namespace KatAMRandomizer
                 }
 
                 // Read the next 4 bytes to detect the 9ROM reference instance;
-                byte byte1 = romFile[i],
-                     byte2 = romFile[i + 1],
-                     byte3 = romFile[i + 2],
-                     byte4 = romFile[i + 3];
+                byte[] bytes = new byte[] { romFile[i], romFile[i + 1], romFile[i + 2], romFile[i + 3] };
 
-                if (Processing.Is9ROMChest(byte1, byte2, byte3, byte4)) {
+                if (Processing.Is9ROMChest(bytes)) {
                     //Console.WriteLine($"Chest 9ROM Found at {i} address!");
                     i += 7;
                 }
                 
-                else if (Processing.Is9ROMMirror(byte1, byte2, byte3, byte4)) {
-                    Console.WriteLine($"Mirror 9ROM Found at {i} address!");
-
+                else if (Processing.Is9ROMMirror(bytes)) {
                     // Read the 9ROM mirror data and inject it untouched to the ROM;
                     byte[] mirrorData = Processing.ExtractROMData(i, 8);
 
@@ -372,7 +367,7 @@ namespace KatAMRandomizer
                 } 
                 
                 // If it's the end of the room, inject all the chests to their respective pointers;
-                else if (Processing.Is9ROMEndOfRoom(byte1, byte2, byte3, byte4)) {
+                else if (Processing.Is9ROMEndOfRoom(bytes)) {
                     //Console.WriteLine($"End of Room {Processing.roomIds[currentRoomIndex]} / {Utils.ConvertIntToHex(Processing.roomIds[currentRoomIndex])} 9ROM Found at {i} address!");
 
                     // Extract the room data and move the pointers to the new list;
@@ -409,6 +404,8 @@ namespace KatAMRandomizer
                     i += 11;
                     newListAddress += 12;
                     currentRoomAddress = newListAddress;
+                    Console.WriteLine($"Address: {i.ToString("X2")} Checked room: {currentRoom.ToString("X2")}");
+                    Console.WriteLine(" ");
                 }
             }
         }

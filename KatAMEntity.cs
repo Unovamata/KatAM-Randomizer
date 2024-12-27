@@ -144,20 +144,33 @@ public class Data {
     }
 }
 
+public enum Exits {
+    TwoWay = 0,
+    OneWay = 1,
+    Goal = 2,
+    Boss = 3,
+}
+
 public class Mirror {
     public long Address8ROM { get; set; }
     public long Address9ROM { get; set; }
     public byte X { get; set; }
     public byte Y { get; set; }
-    public int RoomIn { get; set; }
+    public int InRoom { get; set; }
     public int Destination {  get; set; }
+    public byte Facing { get; set; }
     public Mirror Warp { get; set; }
     public string MirrorData { get; set; }
+    public Exits MirrorWarpType;
 
-    public Mirror(long address, byte x, byte y, int destination) {
-        Address8ROM = address; 
+    public Mirror(string addressType, long address, byte x, byte y, int inRoom, int destination) {
+        switch(addressType) {
+            case "8": Address8ROM = address; break;
+            case "9": Address9ROM = address; break;
+        }
         X = x; 
         Y = y;
+        InRoom = inRoom;
         Destination = destination;
     }
 }

@@ -68,7 +68,7 @@ namespace KatAMRandomizer {
         }
 
         // Calling the data linking information;
-        List<int> roomIds = Processing.roomIds;
+        List<int> roomIds = Processing.roomIDs;
         Dictionary<byte, Data> enemiesDictionary = Processing.enemiesDictionary,
                                                     minibossesDictionary = Processing.minibossesDictionary;
         Dictionary<byte, string> bossesDictionary = Processing.bossesDictionary,

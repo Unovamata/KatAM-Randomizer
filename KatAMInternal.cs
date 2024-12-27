@@ -29,9 +29,9 @@ namespace KatAMInternal
         public Settings Settings { get; set; }
 
         string EightROMStartAddressHex = "84326C", 
-               EightROMEndAddressHex = "884C51",
+               EightROMEndAddressHex = "884C64",
                NineROMStartAddressHex = "900f8C",
-               NineROMEndAddressHex = "90310C";
+               NineROMEndAddressHex = "903117";
 
         public static long EightROMStartAddress = 0, 
                            EightROMEndAddress = 0,
@@ -68,7 +68,7 @@ namespace KatAMInternal
         }
 
         // By Fyyyyik; https://github.com/Fyyyyik/KatAM-Object-Editor/blob/main/Editor/LevelDataManager.cs
-        public static List<int> roomIds = new List<int>(){
+        public static List<int> roomIDs = new List<int>(){
             0x321, 0x323, 0x324, 0x325, 0x0, 0x3D4, 0x3D5, 0x3D6,
             0xB4, 0xB5, 0x214, 0x216, 0x217, 0x218, 0x219, 0x21A,
             0x21E, 0x21F, 0x23A, 0x23B, 0x24E, 0x65, 0x67, 0x68,
@@ -380,28 +380,16 @@ namespace KatAMInternal
         }
 
         // IsChest(); Checks if an array of bytes is equal to a chest 9ROM notation;
-        public static bool Is9ROMChest(byte first, byte second, byte third, byte fourth) {
-            return (first == 0x01) && (second == 0x08) && (third == 0xFF) && (fourth == 0xFF);
-        }
-
         public static bool Is9ROMChest(byte[] bytes) {
             return (bytes[0] == 0x01) && (bytes[1] == 0x08) && (bytes[2] == 0xFF) && (bytes[3] == 0xFF);
         }
 
         // IsMirror(); Checks if an array of bytes is equal to a mirror door 9ROM notation;
-        public static bool Is9ROMMirror(byte first, byte second, byte third, byte fourth) {
-            return (first == 0x02) && (second == 0x08) && (third == 0xFF) && (fourth == 0xFF);
-        }
-
         public static bool Is9ROMMirror(byte[] bytes) {
             return (bytes[0] == 0x02) && (bytes[1] == 0x08) && (bytes[2] == 0xFF) && (bytes[3] == 0xFF);
         }
 
         // IsMirror(); Checks if an array of bytes is equal to a end of the room 9ROM notation;
-        public static bool Is9ROMEndOfRoom(byte first, byte second, byte third, byte fourth) {
-            return (first == 0x00) && (second == 0x00) && (third == 0xFF) && (fourth == 0xFF);
-        }
-
         public static bool Is9ROMEndOfRoom(byte[] bytes) {
             return (bytes[0] == 0x00) && (bytes[1] == 0x00) && (bytes[2] == 0xFF) && (bytes[3] == 0xFF);
         }
