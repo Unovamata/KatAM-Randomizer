@@ -271,8 +271,6 @@ namespace KatAM_Randomizer {
                     /*Utils.ShowObjectData(mirror);
                     Console.WriteLine("");*/
                 }
-
-                break;
             }
 
             void ClasifyWarpType(Mirror mirror) {
@@ -316,16 +314,22 @@ namespace KatAM_Randomizer {
 
             Console.WriteLine("Mirrors found: " + mirrors.Count);
 
-            Mirror firstMirror = mirrors[1];
+            /* Goal doors have 2 exit tiles, if these 2 tiles are not the same value,
+             * the game will freeze when entering this second warp tile but it will work
+             * as intended when entering the first warp tile. This is a matter of handling
+             * Goal doors differently; */
 
             foreach(Mirror mirror in mirrors) {
                 Mirror newMirror = new Mirror(mirror);
 
-                newMirror.Destination = firstMirror.Destination;
-                newMirror.X = firstMirror.X;
-                newMirror.Y = firstMirror.Y;
+                Mirror randomMirror = mirrors[Utils.GetRandomNumber(0, mirrors.Count)];
 
-                //Utils.WriteMirrorToROM(newMirror);
+                newMirror.Destination = randomMirror.Destination;
+                newMirror.X = randomMirror.X;
+                newMirror.Y = randomMirror.Y;
+                newMirror.Facing = randomMirror.Facing;
+
+                Utils.WriteMirrorToROM(newMirror);
             }
         }
 
