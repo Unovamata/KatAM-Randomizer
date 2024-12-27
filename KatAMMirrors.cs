@@ -317,7 +317,10 @@ namespace KatAM_Randomizer {
             /* Goal doors have 2 exit tiles, if these 2 tiles are not the same value,
              * the game will freeze when entering this second warp tile but it will work
              * as intended when entering the first warp tile. This is a matter of handling
-             * Goal doors differently; */
+             * Goal doors differently; 
+             * Same occurs with multi-enter tiles or any kind of wide entrance. Since these
+             * 8ROM and 9ROM exits are linked together, if the 8ROM randomized does not
+             * correspond to the 9ROM warp in the ROM, the game freezes.*/
 
             foreach(Mirror mirror in mirrors) {
                 Mirror newMirror = new Mirror(mirror);
