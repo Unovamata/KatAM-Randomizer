@@ -314,13 +314,25 @@ namespace KatAM_Randomizer {
 
             Console.WriteLine("Mirrors found: " + mirrors.Count);
 
-            /* Goal doors have 2 exit tiles, if these 2 tiles are not the same value,
-             * the game will freeze when entering this second warp tile but it will work
-             * as intended when entering the first warp tile. This is a matter of handling
-             * Goal doors differently; 
-             * Same occurs with multi-enter tiles or any kind of wide entrance. Since these
-             * 8ROM and 9ROM exits are linked together, if the 8ROM randomized does not
-             * correspond to the 9ROM warp in the ROM, the game freezes.*/
+            /* Some rooms have wide doors/mirrors or mirrors linked to the same destination 
+             * room warp but at different coordinates. 100% of the time, one warp will function
+             * normally, while other will crash the game because of a mismatch in 
+             * 8ROM and 9ROM data;
+             * 
+             * For the randomization to work effectively you must:
+             * • Make sure the object is a wide door/linked mirror.
+             * • These mirrors have the SAME warp destination in 8ROM and 9ROM respectively, destination x/y coordinates don't matter.
+             * • Do not override the 9ROM warp as the 8ROM will have nowhere to point to;
+             * 
+             * Here's a list of everything that can be considered a wide door/linked mirror:
+             * • Goal Minigame Mirrors. (2 tile warp);
+             * • Wide Doors. (Ex: Carrot Castle Entrance, Ice Palace Entrance);
+             * • Linked Doors pointing to the same room. (Ex: Kracko Boss Room Warp Mirrors);
+             * 
+             * Remember that for every 8ROM reference, there's only 1 9ROM reference warp.
+             * If there's 15 8ROM objects with the same warp location, there will only be 1 9ROM 
+             * data point for all these objects.
+             */
 
             foreach(Mirror mirror in mirrors) {
                 Mirror newMirror = new Mirror(mirror);
