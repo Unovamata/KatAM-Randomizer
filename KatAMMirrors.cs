@@ -96,6 +96,7 @@ namespace KatAM_Randomizer {
         bool is9ROMResetted = false;
         string addressType = "8";
         int ROMAdd = 13, breakerAdd = 11, dataToExtract = 14;
+        int xIndex = 10, yIndex = 11;
 
         List<int> roomIDs = Processing.roomIDs;
 
@@ -104,11 +105,17 @@ namespace KatAM_Randomizer {
                 if(!is9ROMResetted) {
                     if(i >= Processing.NineROMStartAddress) {
                         is9ROMResetted = true;
-                        currentRoomIndex = 0;
+
                         addressType = "9";
+
+                        currentRoomIndex = 0;
+                        
                         ROMAdd = 7;
                         breakerAdd = 11;
                         dataToExtract = 8;
+
+                        xIndex = 6;
+                        yIndex = 7;
                         /*Console.WriteLine("");
                         Console.WriteLine("9ROM Address Start!");
                         Console.WriteLine("");*/
@@ -146,8 +153,8 @@ namespace KatAM_Randomizer {
                     int warpRoomID = MirrorGetRoomID(bytes, addressType);
 
                     if(Processing.roomIDs.Contains(currentRoom)) {
-                        byte x = bytes[6],
-                             y = bytes[7];
+                        byte x = bytes[xIndex],
+                             y = bytes[yIndex];
 
                         Mirror mirror = new Mirror(addressType, i, x, y, currentRoom, warpRoomID);
                         mirror.MirrorData = Utils.ByteArrayToHexString(bytes, " ");
@@ -198,34 +205,60 @@ namespace KatAM_Randomizer {
                 }
             }
 
+            List<Mirror> mirrors = new List<Mirror>();
+
             foreach(int key in EightROMMirrors.Keys) {
                 //Console.WriteLine($"Checking room {key}...");
 
                 List<Mirror> mirrorsInRoom = EightROMMirrors[key]; 
 
                 foreach(Mirror mirror in mirrorsInRoom) {
-                    int destinationRoom = mirror.Destination;
+                    int x = mirror.X,
+                        y = mirror.Y,
+                        destination = mirror.Destination,
+                        inRoom = mirror.InRoom;
 
-                    List<Mirror> dest8ROMRooms = new List<Mirror>(),
-                                 dest9ROMRooms = new List<Mirror>();
+                    List<Mirror> destination8ROMRooms = new List<Mirror>(),
+                                 current9ROMRooms = new List<Mirror>();
+
+                    current9ROMRooms = NineROMMirrors[inRoom];
+
+                    /* To save on memory space, the 9ROM warp data is stored in a per-room
+                     * basis, where if multiple warps with the same destination exist,
+                     * the ROM will assign the same pointers to 1 set of data. So there
+                     * may be 15 warps all pointing to the same 9ROM address, but with a different
+                     * 8ROM address. Since there's only 1 9ROM reference per warp per room,
+                     * it's as easy as finding the corresponding matching warp and link these 
+                     * data points together;
+                     */
+                    foreach(Mirror NineROMMirror in current9ROMRooms) {
+                        long address9ROM = NineROMMirror.Address9ROM;
+                        int x9ROM = NineROMMirror.X,
+                            y9ROM = NineROMMirror.Y,
+                            destination9ROM = NineROMMirror.Destination;
+
+                        if(x == x9ROM && y == y9ROM && destination == destination9ROM) {
+                            mirror.Address9ROM = address9ROM;
+                        }
+                    }
 
                     try {
-                        dest8ROMRooms = EightROMMirrors[destinationRoom];
-                        dest9ROMRooms = NineROMMirrors[destinationRoom];
+                        destination8ROMRooms = EightROMMirrors[destination];
                     } 
                     /* If the destination room has no mirrors, it's a One-Way mirror;
                      * Though, it can be either a Goal, One-Way, or Boss warp;
                      */
                     catch {
                         ClasifyWarpType(mirror);
+                        mirrors.Add(mirror);
                         continue;
                     }
 
-                    for(int i = 0; i < dest8ROMRooms.Count; i++) {
-                        Mirror destinationMirror = dest8ROMRooms[i];
-                        int destination = destinationMirror.Destination;
+                    for(int i = 0; i < destination8ROMRooms.Count; i++) {
+                        Mirror destinationMirror = destination8ROMRooms[i];
+                        int destination8ROM = destinationMirror.Destination;
 
-                        if(destination == mirror.InRoom) {
+                        if(destination8ROM == mirror.InRoom) {
                             mirror.Warp = destinationMirror;
                             destinationMirror.Warp = mirror;
                             mirror.MirrorWarpType = Exits.TwoWay;
@@ -234,19 +267,15 @@ namespace KatAM_Randomizer {
                         }
                     }
 
-                    if(mirror.Warp == null) {
-                        mirror.MirrorWarpType = Exits.OneWay;
-                        //Console.WriteLine("One-Way Mirror Detected!");
-                    } else {
-                        //Console.WriteLine($"{mirror.Destination} -> {mirror.Warp.Destination}");
-                    }
+                    if(mirror.Warp == null) mirror.MirrorWarpType = Exits.OneWay;
 
-                    
-                    //Utils.ShowObjectData(mirror.Warp);
-                    //Console.WriteLine("");
+                    mirrors.Add(mirror);
+
+                    /*Utils.ShowObjectData(mirror);
+                    Console.WriteLine("");*/
                 }
 
-                //return;
+                break;
             }
 
             void ClasifyWarpType(Mirror mirror) {
@@ -288,25 +317,12 @@ namespace KatAM_Randomizer {
                        destination == 0x2E2;
             }
 
-            /*Console.WriteLine($"Total Rooms: {Processing.roomIds.Count}");
-            Console.WriteLine($"Total Mirrors Found: {mirrorList.Count}");
+            Console.WriteLine("Mirrors found: " + mirrors.Count);
 
-            foreach(Mirror mirror in mirrorList) {
-                int warpRoomID = mirror.RoomID;
-                Mirror warpMirror = new Mirror(0, 0, 0, 0);
-
-                Console.WriteLine($"Main Mirror: {mirror.MirrorData}");
-
-                foreach(Mirror warp in mirrorWarpDictionary[warpRoomID]) {
-                    Console.WriteLine(warp.MirrorData);
-                }
-
-                Console.WriteLine($"Mirror in room: {mirror.RoomID} warps to room: {warpMirror.RoomID}");
-                Console.WriteLine($"Mirror in room: {warpMirror.RoomID} warps to room: {mirror.RoomID}");
-
-
-                return;
-            }*/
+            foreach(Mirror mirror in mirrors) {
+                Utils.WriteMirrorToROM(mirror);
+                Console.WriteLine(" ");
+            }
         }
 
         int MirrorGetRoomID(byte[] mirrorData, string ROMSpace) {

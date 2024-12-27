@@ -5,6 +5,8 @@ using KatAMRandomizer;
 using KatAM_Randomizer;
 using System.Net;
 using System.DirectoryServices.ActiveDirectory;
+using System.Reflection;
+using Newtonsoft.Json.Linq;
 
 namespace KatAMInternal
 {
@@ -477,12 +479,23 @@ namespace KatAMInternal
 
     public static class Utils {
         public static void ShowObjectData(object inputObject) {
-            //Console.Clear();
+            if(inputObject == null) {
+                Console.WriteLine("Input object is null.");
+                return;
+            }
 
-            foreach (PropertyDescriptor descriptor in TypeDescriptor.GetProperties(inputObject)) {
+            // Show properties
+            foreach(PropertyDescriptor descriptor in TypeDescriptor.GetProperties(inputObject)) {
                 string name = descriptor.Name;
                 object value = descriptor.GetValue(inputObject);
-                Console.WriteLine("{0}={1}", name, value);
+                Console.WriteLine("{0} = {1}", name, value);
+            }
+
+            // Show fields (including enums)
+            foreach(FieldInfo field in inputObject.GetType().GetFields(BindingFlags.Public | BindingFlags.Instance)) {
+                string name = field.Name;
+                object value = field.GetValue(inputObject);
+                Console.WriteLine("{0} = {1}", name, value);
             }
         }
 
@@ -519,6 +532,19 @@ namespace KatAMInternal
             WriteToROM(address + 4, new byte[] { properties.HP });
             WriteToROM(address + 6, new byte[] { properties.CopyAbility });
             WriteToROM(address + 8, new byte[] { properties.Palette });
+        }
+
+        public static void WriteMirrorToROM(Mirror mirror) {
+            byte[] destinationLE = BitConverter.GetBytes(mirror.Destination); // Little endian;
+
+            foreach(byte b in destinationLE) {
+                Console.Write($"{b:X2} ");
+            }
+
+            Console.WriteLine("\n" + mirror.MirrorData);
+            Console.WriteLine("");
+
+            //WriteToROM(mirror.Address8ROM, properties.DamageSprites);
         }
 
         public static int GetNextRandom() {
