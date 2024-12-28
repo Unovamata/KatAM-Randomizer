@@ -129,7 +129,7 @@ namespace KatAMInternal
             { 0x0D, Data("Blockin", default, false, true, false)},
             { 0x0E, Data("Snooter 2")},
             { 0x0F, Data("Leap", default, true, true)},
-            { 0x10, Data("Jack", default, false, false, false)},
+            //{ 0x10, Data("Jack", default, false, false, false)},
             { 0x11, Data("Big Waddle Dee")},
             { 0x12, Data("Waddle Doo", 0x07, false, false)},
             { 0x13, Data("Flamer", 0x03)},
@@ -152,7 +152,6 @@ namespace KatAMInternal
             { 0x24, Data("Scarfy 2", 0x00, false, true, false)},
             { 0x25, Data("Boxin", 0x14)},
             { 0x26, Data("Cookin", 0x0C)},
-            { 0x27, Data("Minny", 0x17)},
             { 0x28, Data("Bomber", 0x18)},
             { 0x29, Data("Heavy Knight", 0x12)},
             { 0x2A, Data("Giant Rocky", 0x08)},
@@ -165,7 +164,7 @@ namespace KatAMInternal
             { 0x31, Data("Nothing", default, false, false, false)},
             { 0x32, Data("Droppy", default, false, true)},
             { 0x33, Data("Prank")},
-            { 0x34, Data("Mirra", default, false, false, false) },
+            //{ 0x34, Data("Mirra", default, false, false, false) },
             { 0x35, Data("Shotzo", default, false, false, false)},
             /*{ 0x36, "Nothing" },*/ // Shadow Kirby with behavior 0 is nothing;
             { 0x37, Data("Waddle Dee 2")},
@@ -253,6 +252,9 @@ namespace KatAMInternal
         };
 
         public static Dictionary<byte, string> parameters = new Dictionary<byte, string>() {
+            { 0x10, "Jack" },
+            { 0x27, "Minny"},
+            { 0x34, "Mirra" },
             { 0x36, "Nothing" }, // Shadow Kirby with behavior 0 is nothing;
             { 0x40, "???" },
             { 0x41, "???" },

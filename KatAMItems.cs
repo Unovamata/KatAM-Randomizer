@@ -144,7 +144,8 @@ namespace KatAMRandomizer
             byte behavior = entity.Behavior;
 
             // Big chest with switch parameter or mirror;
-            bool isProgressionObject = (entity.ID == 0x81 && behavior == 0x63) || (entity.ID == 0x65 && entity.Behavior == 0x08);
+            bool isProgressionObject = (entity.ID == 0x81 && behavior == 0x63) || 
+                                       (entity.ID == 0x65);
 
             return isProgressionObject;
         }
@@ -358,7 +359,7 @@ namespace KatAMRandomizer
                     // Read the 9ROM mirror data and inject it untouched to the ROM;
                     byte[] mirrorData = Processing.ExtractROMData(i, 8);
 
-                    Console.WriteLine(Utils.ByteArrayToHexString(mirrorData, " "));
+                    //Console.WriteLine(Utils.ByteArrayToHexString(mirrorData, " "));
 
                     Utils.WriteToROM(newListAddress, mirrorData);
 
@@ -404,8 +405,8 @@ namespace KatAMRandomizer
                     i += 11;
                     newListAddress += 12;
                     currentRoomAddress = newListAddress;
-                    Console.WriteLine($"Address: {i.ToString("X2")} Checked room: {currentRoom.ToString("X2")}");
-                    Console.WriteLine(" ");
+                    /*Console.WriteLine($"Address: {i.ToString("X2")} Checked room: {currentRoom.ToString("X2")}");
+                    Console.WriteLine(" ");*/
                 }
             }
         }

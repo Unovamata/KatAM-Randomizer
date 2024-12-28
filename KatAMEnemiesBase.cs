@@ -43,14 +43,14 @@ namespace KatAMRandomizer {
 
         protected void RandomizeEnemies(IKatAMRandomizer Instance, bool isRandomizingMiniBosses = false) {
             List<Entity> minibosses = new List<Entity>();
-            
-            if (!isRandomizingMiniBosses && isIncludingMiniBosses) {
+
+            if(!isRandomizingMiniBosses && isIncludingMiniBosses) {
                 Utils.DeserializeEntitiesJSON(Utils.JSONToObjects(Utils.minibossesJson), minibosses, Instance);
             }
 
             List<byte> allEntitiesIDs = LoadAllSpeedAndBehaviorData();
 
-            if (enemiesOptions == GenerationOptions.Shuffle) allEntitiesIDs = Utils.Shuffle(allEntitiesIDs);
+            if(enemiesOptions == GenerationOptions.Shuffle) allEntitiesIDs = Utils.Shuffle(allEntitiesIDs);
 
             bool isRandomizingIDs = enemiesOptions != GenerationOptions.Unchanged,
                  isRandomizingSpeed = enemiesSpeedOptions != GenerationOptions.Unchanged,
@@ -60,33 +60,33 @@ namespace KatAMRandomizer {
              * Compared to the "allEntitiesIDs" list, this list has no repeats; */
             List<byte> availableEnemyIDs = behaviorDictionary.Keys.ToList();
 
-            for (int i = 0; i < entities.Count; i++) {
+            for(int i = 0; i < entities.Count; i++) {
                 Entity entity = entities[i];
                 byte id = entity.ID;
 
                 bool isIDAssigned = false;
 
                 // Underwater or Key Progression enemies;
-                if (!isRandomizingMiniBosses && IsVetoedEnemy(entity)) {
+                if(!isRandomizingMiniBosses && IsVetoedEnemy(entity)) {
                     bool isProgressionEntity = progressionEnemyIDs.Contains(id);
 
-                    if (isProgressionEntity) continue;
+                    if(isProgressionEntity) continue;
                     else {
                         bool isRandomizingSelectEnemies = isRandomizingFlyingEnemiesIntelligently || isRandomizingUnderwaterEnemiesIntelligently || isRandomizingExcludedEnemies;
 
                         // Underwater enemies will be unchanged if the "Randomize Excluded Enemies" option is not active;
-                        if (enemiesOptions == GenerationOptions.Shuffle && !isRandomizingExcludedEnemies) continue;
+                        if(enemiesOptions == GenerationOptions.Shuffle && !isRandomizingExcludedEnemies) continue;
                         // If it's randomizing underwater enemies, select valid underwater replacements;
-                        else if (isRandomizingSelectEnemies) {
+                        else if(isRandomizingSelectEnemies) {
 
-                            if (isRandomizingFlyingEnemiesIntelligently && flyingEnemyIDs.Contains(id)) {
+                            if(isRandomizingFlyingEnemiesIntelligently && flyingEnemyIDs.Contains(id)) {
                                 int flyingEnemyIndex = Utils.GetRandomNumber(0, flyingEnemyIDs.Count);
 
                                 entity.ID = flyingEnemyIDs[flyingEnemyIndex];
                                 isIDAssigned = true;
                             }
 
-                            else if (isRandomizingUnderwaterEnemiesIntelligently && underwaterEnemyIDs.Contains(id)) {
+                            else if(isRandomizingUnderwaterEnemiesIntelligently && underwaterEnemyIDs.Contains(id)) {
                                 int underwaterEnemyIndex = Utils.GetRandomNumber(0, underwaterEnemyIDs.Count);
 
                                 entity.ID = underwaterEnemyIDs[underwaterEnemyIndex];
@@ -97,44 +97,50 @@ namespace KatAMRandomizer {
                 }
 
                 // Randomizing enemy IDs;
-                if (isRandomizingIDs) {
-                    switch (enemiesOptions) {
+                if(isRandomizingIDs) {
+                    switch(enemiesOptions) {
                         // Shuffling enemies;
                         case GenerationOptions.Shuffle:
-                        if (!isIDAssigned) {
-                            byte selectedID = allEntitiesIDs[i];
-                            entity.ID = allEntitiesIDs[i];
+                            if(!isIDAssigned) {
+                                byte selectedID = allEntitiesIDs[i];
+                                entity.ID = allEntitiesIDs[i];
 
-                            do {
-                                int rerollIndex = Utils.GetRandomNumber(0, availableEnemyIDs.Count);
+                                do {
+                                    int rerollIndex = Utils.GetRandomNumber(0, availableEnemyIDs.Count);
 
-                                entity.ID = availableEnemyIDs[rerollIndex];
-                            } while (entity.ID == 0x34 || entity.ID == 0x10);
-                        }
+                                    entity.ID = availableEnemyIDs[rerollIndex];
 
-                        break;
+                                    if(entity.ID == 0x34 || entity.ID == 0x10) {
+                                        Console.WriteLine(entity.ID);
+                                    }
+                                } while(entity.ID == 0x34 || entity.ID == 0x10);
+
+                                
+                            }
+
+                            break;
 
                         // Randomizing enemies;
                         case GenerationOptions.Random:
-                        if (!isIDAssigned) {
-                            int idIndex = Utils.GetRandomNumber(0, availableEnemyIDs.Count);
+                            if(!isIDAssigned) {
+                                int idIndex = Utils.GetRandomNumber(0, availableEnemyIDs.Count);
 
-                            entity.ID = availableEnemyIDs[idIndex];
-                        }
-                        break;
+                                entity.ID = availableEnemyIDs[idIndex];
+                            }
+                            break;
 
                         // Removing enemies;
                         case GenerationOptions.No:
                             entity.ID = Utils.Nothing;
-                        break;
+                            break;
                     }
 
 
-                    if (!isRandomizingMiniBosses && enemiesOptions != GenerationOptions.No) {
-                        if (isIncludingMiniBosses) {
+                    if(!isRandomizingMiniBosses && enemiesOptions != GenerationOptions.No) {
+                        if(isIncludingMiniBosses) {
                             bool canSpawnMiniboss = Utils.Dice(1, 10) == 1;
 
-                            if (canSpawnMiniboss) {
+                            if(canSpawnMiniboss) {
                                 int selectedMinibossIndex = Utils.GetRandomNumber(0, minibosses.Count);
                                 Entity miniboss = minibosses[selectedMinibossIndex];
 
@@ -149,19 +155,23 @@ namespace KatAMRandomizer {
                 }
 
                 // Randomizing enemy speeds;
-                if (isRandomizingSpeed) {
-                    List<byte> availableEnemySpeeds = speedDictionary[entity.ID];
-                    int speedsIndex = Utils.GetRandomNumber(0, availableEnemySpeeds.Count);
+                if(isRandomizingSpeed) {
+                    if(speedDictionary.ContainsKey(entity.ID)) {
+                        List<byte> availableEnemySpeeds = speedDictionary[entity.ID];
+                        int speedsIndex = Utils.GetRandomNumber(0, availableEnemySpeeds.Count);
 
-                    entity.Speed = availableEnemySpeeds[speedsIndex];
+                        entity.Speed = availableEnemySpeeds[speedsIndex];
+                    }
                 }
 
                 // Randomizing enemy behaviors;
-                if (isRandomizingBehaviors) {
-                    List<byte> availableEnemyBehaviors = behaviorDictionary[entity.ID];
-                    int behaviorIndex = Utils.GetRandomNumber(0, availableEnemyBehaviors.Count);
+                if(isRandomizingBehaviors) {
+                    if(behaviorDictionary.ContainsKey(entity.ID)) {
+                        List<byte> availableEnemyBehaviors = behaviorDictionary[entity.ID];
+                        int behaviorIndex = Utils.GetRandomNumber(0, availableEnemyBehaviors.Count);
 
-                    entity.Behavior = availableEnemyBehaviors[behaviorIndex];
+                        entity.Behavior = availableEnemyBehaviors[behaviorIndex];
+                    }
                 }
 
                 Utils.WriteObjectToROM(entity);
@@ -171,26 +181,26 @@ namespace KatAMRandomizer {
         protected List<byte> LoadAllSpeedAndBehaviorData() {
             List<byte> allEntitiesIDs = new List<byte>();
 
-            foreach (Entity entity in entities) {
+            foreach(Entity entity in entities) {
                 allEntitiesIDs.Add(entity.ID);
 
-                if (!behaviorDictionary.ContainsKey(entity.ID)) {
+                if(!behaviorDictionary.ContainsKey(entity.ID)) {
                     behaviorDictionary.Add(entity.ID, NewProperty(entity.Behavior));
                 }
 
-                if (!speedDictionary.ContainsKey(entity.ID)) {
+                if(!speedDictionary.ContainsKey(entity.ID)) {
                     speedDictionary.Add(entity.ID, NewProperty(entity.Speed));
                 }
 
                 List<byte> behaviorsList = behaviorDictionary[entity.ID];
 
-                if (!behaviorsList.Contains(entity.Behavior)) {
+                if(!behaviorsList.Contains(entity.Behavior)) {
                     behaviorsList.Add(entity.Behavior);
                 }
 
                 List<byte> speedsList = speedDictionary[entity.ID];
 
-                if (!speedsList.Contains(entity.Speed)) {
+                if(!speedsList.Contains(entity.Speed)) {
                     speedsList.Add(entity.Speed);
                 }
             }
@@ -205,7 +215,7 @@ namespace KatAMRandomizer {
         bool IsVetoedEnemy(Entity entity) {
             byte id = entity.ID;
 
-            return progressionEnemyIDs.Contains(id) || 
+            return progressionEnemyIDs.Contains(id) ||
                    underwaterEnemyIDs.Contains(id) ||
                    flyingEnemyIDs.Contains(id);
         }
@@ -216,7 +226,7 @@ namespace KatAMRandomizer {
             InitializeComponents(system);
 
             LoadSettings();
-            
+
             if(isUsingUnusedBehaviors) InitializeBehaviorDictionary();
 
             LoadEnemyDataset(this, Utils.enemiesJson);
@@ -245,11 +255,11 @@ namespace KatAMRandomizer {
 
         public void GroupEnemies() {
             foreach(Entity enemy in entities) {
-                if (enemy.IsUnderwater && !underwaterEnemyIDs.Contains(enemy.ID)) {
+                if(enemy.IsUnderwater && !underwaterEnemyIDs.Contains(enemy.ID)) {
                     underwaterEnemyIDs.Add(enemy.ID);
                 }
 
-                if (enemy.IsFlying && !flyingEnemyIDs.Contains(enemy.ID)) {
+                if(enemy.IsFlying && !flyingEnemyIDs.Contains(enemy.ID)) {
                     flyingEnemyIDs.Add(enemy.ID);
                 }
             }

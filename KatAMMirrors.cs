@@ -278,18 +278,18 @@ namespace KatAM_Randomizer {
 
                 // For Goal Minigame warps;
                 if(IsGoalMinigameRoom(destinationRoom)) {
-                    Console.WriteLine("Minigame Goal Door Found!");
+                    //Console.WriteLine("Minigame Goal Door Found!");
                     mirror.MirrorWarpType = Exits.Goal;
                 }
                 // For Boss room warps;
                 else if(IsBossRoom(destinationRoom)) {
-                    Console.WriteLine("Boss Door Found!");
+                    //Console.WriteLine("Boss Door Found!");
                     mirror.MirrorWarpType = Exits.Boss;
                 }
                 // For warps with no doors that come from a One-Way mirror;
                 else {
                     mirror.MirrorWarpType = Exits.OneWay;
-                    Console.WriteLine("One-Way Door Found!");
+                    //Console.WriteLine("One-Way Door Found!");
                 }
             }
 

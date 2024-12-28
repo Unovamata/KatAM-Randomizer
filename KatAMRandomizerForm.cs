@@ -132,18 +132,19 @@ namespace KatAMRandomizer
             settings.RandomEntity = new Random(settings.Seed);
 
             new KatAMROMReader(system);
-            new KatAMMirrors(system);
-            //new KatAMSprays(system);
-            //new KatAMItems(system);
-            /*new KatAMPedestals(system);
+            //new KatAMMirrors(system);
+            new KatAMSprays(system);
+            new KatAMItems(system);
+            new KatAMPedestals(system);
             new KatAMEnemies(system);
             new KatAMMinibosses(system);
             new KatAMMapElements(system);
-            new KatAMPropertiesManagement(system);*/
+            new KatAMPropertiesManagement(system);
 
             // Randomize mirrors;
             // Randomize HP values on Enemies;
             // Randomize HP values on Bosses;
+            // Fix the way behaviors and speeds are loaded when including minibosses in enemy generation;
 
             File.WriteAllBytes(destinationPath, Processing.ROMData);
         }

@@ -34,6 +34,8 @@ namespace KatAMRandomizer {
                     // Specify the object parameters and add them to the property list for future processing;
                     byte[] definition = property.Definition;
 
+                    Console.WriteLine(currentObjectID);
+
                     property.Name = Processing.parameters[(byte)currentObjectID];
                     property.ID = (byte)currentObjectID;
                     property.DamageSprites = new byte[] { definition[0], definition[1] };
@@ -101,9 +103,8 @@ namespace KatAMRandomizer {
             ResetListData();
 
             // Memory locations;
-            string startAddress = "884C64", endAddress = "8A630D";
-            int roomDataStartAddress = Convert.ToInt32(startAddress, 16),
-                roomDataEndAddress = Convert.ToInt32(endAddress, 16);
+            int roomDataStartAddress = 0x884C64,
+                roomDataEndAddress = 0x8A630D;
 
             // Data pointers;
             byte objectByte1 = 0x01, objectByte2 = 0x24, // Start of object definition;

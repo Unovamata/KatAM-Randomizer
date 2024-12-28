@@ -6,9 +6,9 @@
       "Name": "Waddle Dee",
       "Damage Sprites": "0405",
       "HP": 2,
-      "Copy Ability": 0,
+      "Copy Ability": 7,
       "Palette": 8,
-      "Definition": "0405C800020000000803000009000000693C0A08DC7B3308"
+      "Definition": "0405C800020007000803000009000000693C0A08DC7B3308"
     }
   ],
   "Bronto Burt": [
@@ -18,9 +18,9 @@
       "Name": "Bronto Burt",
       "Damage Sprites": "0405",
       "HP": 2,
-      "Copy Ability": 0,
+      "Copy Ability": 26,
       "Palette": 9,
-      "Definition": "0405640002000000090300000900000039D70A08D0813308"
+      "Definition": "0405640002001A00090300000900000039D70A08D0813308"
     }
   ],
   "Blipper": [
@@ -30,9 +30,9 @@
       "Name": "Blipper",
       "Damage Sprites": "0C0D",
       "HP": 2,
-      "Copy Ability": 0,
+      "Copy Ability": 8,
       "Palette": 39,
-      "Definition": "0C0D6400020000002703000009000000A5700A081C7C3308"
+      "Definition": "0C0D6400020008002703000009000000A5700A081C7C3308"
     }
   ],
   "Glunk": [
@@ -42,9 +42,9 @@
       "Name": "Glunk",
       "Damage Sprites": "0304",
       "HP": 2,
-      "Copy Ability": 0,
+      "Copy Ability": 20,
       "Palette": 39,
-      "Definition": "0304640002000000270300000900000089F50A08F4833308"
+      "Definition": "0304640002001400270300000900000089F50A08F4833308"
     }
   ],
   "Squishy": [
@@ -54,9 +54,9 @@
       "Name": "Squishy",
       "Damage Sprites": "0607",
       "HP": 2,
-      "Copy Ability": 0,
+      "Copy Ability": 3,
       "Palette": 36,
-      "Definition": "06076400020000002403000009000000CDF60A080C843308"
+      "Definition": "06076400020003002403000009000000CDF60A080C843308"
     }
   ],
   "Scarfy": [
@@ -66,9 +66,9 @@
       "Name": "Scarfy",
       "Damage Sprites": "0304",
       "HP": 1,
-      "Copy Ability": 0,
+      "Copy Ability": 6,
       "Palette": 50,
-      "Definition": "0304960001000000320300001000000065800A08CC7C3308"
+      "Definition": "0304960001000600320300001000000065800A08CC7C3308"
     }
   ],
   "Gordo": [
@@ -78,9 +78,9 @@
       "Name": "Gordo",
       "Damage Sprites": "0000",
       "HP": 2,
-      "Copy Ability": 0,
+      "Copy Ability": 24,
       "Palette": 0,
-      "Definition": "0000000002000000000000000E000000D1FB0908E8753308"
+      "Definition": "0000000002001800000000000E000000D1FB0908E8753308"
     }
   ],
   "Snooter": [
@@ -90,9 +90,9 @@
       "Name": "Snooter",
       "Damage Sprites": "090A",
       "HP": 4,
-      "Copy Ability": 0,
+      "Copy Ability": 21,
       "Palette": 251,
-      "Definition": "090A2C0104000000FB0200000C0000001DCB0A0854813308"
+      "Definition": "090A2C0104001500FB0200000C0000001DCB0A0854813308"
     }
   ],
   "Chip": [
@@ -102,9 +102,9 @@
       "Name": "Chip",
       "Damage Sprites": "0708",
       "HP": 2,
-      "Copy Ability": 0,
+      "Copy Ability": 1,
       "Palette": 249,
-      "Definition": "0708640002000000F90200000C00000099B60A08FC803308"
+      "Definition": "0708640002000100F90200000C00000099B60A08FC803308"
     }
   ],
   "Soarar": [
@@ -114,9 +114,9 @@
       "Name": "Soarar",
       "Damage Sprites": "0B0C",
       "HP": 2,
-      "Copy Ability": 0,
+      "Copy Ability": 12,
       "Palette": 252,
-      "Definition": "0B0C960002000000FC0200000C00000055B80A0820813308"
+      "Definition": "0B0C960002000C00FC0200000C00000055B80A0820813308"
     }
   ],
   "Haley": [
@@ -126,9 +126,9 @@
       "Name": "Haley",
       "Damage Sprites": "0203",
       "HP": 2,
-      "Copy Ability": 0,
+      "Copy Ability": 5,
       "Palette": 248,
-      "Definition": "0203C80002000000F80200000C000000110E0A08D4763308"
+      "Definition": "0203C80002000500F80200000C000000110E0A08D4763308"
     }
   ],
   "Roly-Poly": [
@@ -150,9 +150,9 @@
       "Name": "Cupie",
       "Damage Sprites": "0405",
       "HP": 2,
-      "Copy Ability": 19,
+      "Copy Ability": 6,
       "Palette": 253,
-      "Definition": "0405C80002001300FD02000014000000692A0A0868773308"
+      "Definition": "0405C80002000600FD02000014000000692A0A0868773308"
     }
   ],
   "Blockin": [
@@ -162,9 +162,9 @@
       "Name": "Blockin",
       "Damage Sprites": "0304",
       "HP": 2,
-      "Copy Ability": 0,
+      "Copy Ability": 22,
       "Palette": 15,
-      "Definition": "0304C800020000000F0300000C00000049490A08F47B3308"
+      "Definition": "0304C800020016000F0300000C00000049490A08F47B3308"
     }
   ],
   "Snooter 2": [
@@ -174,9 +174,9 @@
       "Name": "Snooter 2",
       "Damage Sprites": "0B0C",
       "HP": 4,
-      "Copy Ability": 0,
+      "Copy Ability": 21,
       "Palette": 251,
-      "Definition": "0B0C2C0104000000FB0200000C0000001DCB0A0854813308"
+      "Definition": "0B0C2C0104001500FB0200000C0000001DCB0A0854813308"
     }
   ],
   "Leap": [
@@ -186,9 +186,9 @@
       "Name": "Leap",
       "Damage Sprites": "0304",
       "HP": 2,
-      "Copy Ability": 0,
+      "Copy Ability": 25,
       "Palette": 18,
-      "Definition": "0304C800020000001203000010000000A10E0B08E0843308"
+      "Definition": "0304C800020019001203000010000000A10E0B08E0843308"
     }
   ],
   "Jack": [
@@ -210,9 +210,9 @@
       "Name": "Big Waddle Dee",
       "Damage Sprites": "0304",
       "HP": 2,
-      "Copy Ability": 0,
+      "Copy Ability": 6,
       "Palette": 20,
-      "Definition": "0304E803020000001403000019000000494F0A08087C3308"
+      "Definition": "0304E803020006001403000019000000494F0A08087C3308"
     }
   ],
   "Waddle Doo": [
@@ -222,9 +222,9 @@
       "Name": "Waddle Doo",
       "Damage Sprites": "0809",
       "HP": 4,
-      "Copy Ability": 7,
+      "Copy Ability": 0,
       "Palette": 8,
-      "Definition": "08092C01040007000803000009000000CD690B08F88D3308"
+      "Definition": "08092C01040000000803000009000000CD690B08F88D3308"
     }
   ],
   "Flamer": [
@@ -234,9 +234,9 @@
       "Name": "Flamer",
       "Damage Sprites": "0B0C",
       "HP": 4,
-      "Copy Ability": 3,
+      "Copy Ability": 0,
       "Palette": 30,
-      "Definition": "0B0C2C01040003001E0300000F000000ADA20B08448E3308"
+      "Definition": "0B0C2C01040000001E0300000F000000ADA20B08448E3308"
     }
   ],
   "Hot Head": [
@@ -246,9 +246,9 @@
       "Name": "Hot Head",
       "Damage Sprites": "0304",
       "HP": 4,
-      "Copy Ability": 1,
+      "Copy Ability": 9,
       "Palette": 31,
-      "Definition": "0304FA00040001001F03000009000000AD310C08EC9C3308"
+      "Definition": "0304FA00040009001F03000009000000AD310C08EC9C3308"
     }
   ],
   "Laser Ball": [
@@ -258,9 +258,9 @@
       "Name": "Laser Ball",
       "Damage Sprites": "0405",
       "HP": 4,
-      "Copy Ability": 13,
+      "Copy Ability": 0,
       "Palette": 33,
-      "Definition": "04052C0104000D00210300000C000000592B0B0844873308"
+      "Definition": "04052C0104000000210300000C000000592B0B0844873308"
     }
   ],
   "Pengy": [
@@ -270,9 +270,9 @@
       "Name": "Pengy",
       "Damage Sprites": "0708",
       "HP": 4,
-      "Copy Ability": 2,
+      "Copy Ability": 10,
       "Palette": 44,
-      "Definition": "0708FA00040002002C0300000900000071BB0B08B88F3308"
+      "Definition": "0708FA0004000A002C0300000900000071BB0B08B88F3308"
     }
   ],
   "Rocky": [
@@ -282,9 +282,9 @@
       "Name": "Rocky",
       "Damage Sprites": "0506",
       "HP": 5,
-      "Copy Ability": 8,
+      "Copy Ability": 21,
       "Palette": 35,
-      "Definition": "0506900105000800230300000900000011E80B089C933308"
+      "Definition": "0506900105001500230300000900000011E80B089C933308"
     }
   ],
   "Sir Kibble": [
@@ -294,9 +294,9 @@
       "Name": "Sir Kibble",
       "Damage Sprites": "0405",
       "HP": 4,
-      "Copy Ability": 6,
+      "Copy Ability": 8,
       "Palette": 45,
-      "Definition": "04052C01040006002D0300000C00000081200B0828873308"
+      "Definition": "04052C01040008002D0300000C00000081200B0828873308"
     }
   ],
   "Sparky": [
@@ -306,9 +306,9 @@
       "Name": "Sparky",
       "Damage Sprites": "0809",
       "HP": 4,
-      "Copy Ability": 15,
+      "Copy Ability": 14,
       "Palette": 46,
-      "Definition": "0809FA0004000F002E0300005A000000E9440C08249D3308"
+      "Definition": "0809FA0004000E002E0300005A000000E9440C08249D3308"
     }
   ],
   "Sword Knight": [
@@ -318,9 +318,9 @@
       "Name": "Sword Knight",
       "Damage Sprites": "0708",
       "HP": 4,
-      "Copy Ability": 18,
+      "Copy Ability": 27,
       "Palette": 47,
-      "Definition": "0708F401040012002F0300001C00000091390B087C873308"
+      "Definition": "0708F40104001B002F0300001C00000091390B087C873308"
     }
   ],
   "UFO": [
@@ -330,9 +330,9 @@
       "Name": "UFO",
       "Damage Sprites": "0203",
       "HP": 2,
-      "Copy Ability": 14,
+      "Copy Ability": 19,
       "Palette": 38,
-      "Definition": "0203E80302000E00260300000C000000454A0C08949D3308"
+      "Definition": "0203E80302001300260300000C000000454A0C08949D3308"
     }
   ],
   "Twister": [
@@ -342,9 +342,9 @@
       "Name": "Twister",
       "Damage Sprites": "0304",
       "HP": 4,
-      "Copy Ability": 16,
+      "Copy Ability": 5,
       "Palette": 37,
-      "Definition": "03042C0104001000250300000C000000B9C30B08FC903308"
+      "Definition": "03042C0104000500250300000C000000B9C30B08FC903308"
     }
   ],
   "Wheelie": [
@@ -354,9 +354,9 @@
       "Name": "Wheelie",
       "Damage Sprites": "0708",
       "HP": 4,
-      "Copy Ability": 4,
+      "Copy Ability": 18,
       "Palette": 42,
-      "Definition": "0708FA00040004002A030000090000000DC50B0810913308"
+      "Definition": "0708FA00040012002A030000090000000DC50B0810913308"
     }
   ],
   "Noddy": [
@@ -366,9 +366,9 @@
       "Name": "Noddy",
       "Damage Sprites": "0405",
       "HP": 2,
-      "Copy Ability": 11,
+      "Copy Ability": 23,
       "Palette": 34,
-      "Definition": "0405640002000B0022030000090000005D220C08209C3308"
+      "Definition": "040564000200170022030000090000005D220C08209C3308"
     }
   ],
   "Golem Press": [
@@ -378,9 +378,9 @@
       "Name": "Golem Press",
       "Damage Sprites": "0303",
       "HP": 7,
-      "Copy Ability": 8,
+      "Copy Ability": 24,
       "Palette": 234,
-      "Definition": "0303DC0507000800EA020000380000007D630C08489E3308"
+      "Definition": "0303DC0507001800EA020000380000007D630C08489E3308"
     }
   ],
   "Golem Roll": [
@@ -390,9 +390,9 @@
       "Name": "Golem Roll",
       "Damage Sprites": "0303",
       "HP": 7,
-      "Copy Ability": 8,
+      "Copy Ability": 18,
       "Palette": 233,
-      "Definition": "0303DC0507000800E9020000380000007D630C08489E3308"
+      "Definition": "0303DC0507001200E9020000380000007D630C08489E3308"
     }
   ],
   "Golem Punch": [
@@ -402,9 +402,9 @@
       "Name": "Golem Punch",
       "Damage Sprites": "0303",
       "HP": 7,
-      "Copy Ability": 8,
+      "Copy Ability": 17,
       "Palette": 235,
-      "Definition": "0303DC0507000800EB020000380000007D630C08489E3308"
+      "Definition": "0303DC0507001100EB020000380000007D630C08489E3308"
     }
   ],
   "Foley": [
@@ -414,9 +414,9 @@
       "Name": "Foley",
       "Damage Sprites": "0303",
       "HP": 2,
-      "Copy Ability": 9,
+      "Copy Ability": 25,
       "Palette": 2,
-      "Definition": "0303C800020009000203000010000000E50B0C0854963308"
+      "Definition": "0303C800020019000203000010000000E50B0C0854963308"
     }
   ],
   "Shooty": [
@@ -426,9 +426,9 @@
       "Name": "Shooty",
       "Damage Sprites": "1112",
       "HP": 2,
-      "Copy Ability": 0,
+      "Copy Ability": 20,
       "Palette": 10,
-      "Definition": "1112F401020000000A0300000C000000BD1F0C082C973308"
+      "Definition": "1112F401020014000A0300000C000000BD1F0C082C973308"
     }
   ],
   "Scarfy 2": [
@@ -438,9 +438,9 @@
       "Name": "Scarfy 2",
       "Damage Sprites": "0505",
       "HP": 1,
-      "Copy Ability": 0,
+      "Copy Ability": 6,
       "Palette": 50,
-      "Definition": "0505960001000000320300001000000065800A08CC7C3308"
+      "Definition": "0505960001000600320300001000000065800A08CC7C3308"
     }
   ],
   "Boxin": [
@@ -450,9 +450,9 @@
       "Name": "Boxin",
       "Damage Sprites": "0E0F",
       "HP": 4,
-      "Copy Ability": 20,
+      "Copy Ability": 5,
       "Palette": 7,
-      "Definition": "0E0F580204001400070300000C000000B1570B0870883308"
+      "Definition": "0E0F580204000500070300000C000000B1570B0870883308"
     }
   ],
   "Cookin": [
@@ -462,9 +462,9 @@
       "Name": "Cookin",
       "Damage Sprites": "0607",
       "HP": 2,
-      "Copy Ability": 12,
+      "Copy Ability": 16,
       "Palette": 11,
-      "Definition": "0607C80002000C000B0300002300000095670B08088B3308"
+      "Definition": "0607C800020010000B0300002300000095670B08088B3308"
     }
   ],
   "Minny": [
@@ -474,9 +474,9 @@
       "Name": "Minny",
       "Damage Sprites": "0203",
       "HP": 2,
-      "Copy Ability": 23,
+      "Copy Ability": 26,
       "Palette": 255,
-      "Definition": "0203C80002001700FF020000040000003D3E0B0848883308"
+      "Definition": "0203C80002001A00FF020000040000003D3E0B0848883308"
     }
   ],
   "Bomber": [
@@ -486,9 +486,9 @@
       "Name": "Bomber",
       "Damage Sprites": "0405",
       "HP": 1,
-      "Copy Ability": 24,
+      "Copy Ability": 9,
       "Palette": 43,
-      "Definition": "0405F401010018002B0300000900000005470C08649D3308"
+      "Definition": "0405F401010009002B0300000900000005470C08649D3308"
     }
   ],
   "Heavy Knight": [
@@ -498,9 +498,9 @@
       "Name": "Heavy Knight",
       "Damage Sprites": "0708",
       "HP": 8,
-      "Copy Ability": 18,
+      "Copy Ability": 8,
       "Palette": 16,
-      "Definition": "0708E80308001200100300003C00000059FB0B08B8933308"
+      "Definition": "0708E80308000800100300003C00000059FB0B08B8933308"
     }
   ],
   "Giant Rocky": [
@@ -510,9 +510,9 @@
       "Name": "Giant Rocky",
       "Damage Sprites": "0607",
       "HP": 10,
-      "Copy Ability": 8,
+      "Copy Ability": 7,
       "Palette": 21,
-      "Definition": "0607E8030A000800150300001E00000089030C0834963308"
+      "Definition": "0607E8030A000700150300001E00000089030C0834963308"
     }
   ],
   "Metal Guardian": [
@@ -522,9 +522,9 @@
       "Name": "Metal Guardian",
       "Damage Sprites": "0506",
       "HP": 10,
-      "Copy Ability": 13,
+      "Copy Ability": 4,
       "Palette": 17,
-      "Definition": "0506E8030A000D00110300001E000000A1E10B082C923308"
+      "Definition": "0506E8030A000400110300001E000000A1E10B082C923308"
     }
   ],
   "Nothing": [
@@ -544,9 +544,9 @@
       "Name": "Nothing",
       "Damage Sprites": "0809",
       "HP": 2,
-      "Copy Ability": 12,
+      "Copy Ability": 8,
       "Palette": 11,
-      "Definition": "0809C80002000C000B0300002300000095670B08088B3308"
+      "Definition": "0809C800020008000B0300002300000095670B08088B3308"
     },
     {
       "ID": 54,
@@ -746,9 +746,9 @@
       "Name": "Batty",
       "Damage Sprites": "0405",
       "HP": 2,
-      "Copy Ability": 0,
+      "Copy Ability": 27,
       "Palette": 51,
-      "Definition": "0405960002000000330300000C00000045D30B0834913308"
+      "Definition": "0405960002001B00330300000C00000045D30B0834913308"
     }
   ],
   "Foley Automatic": [
@@ -758,9 +758,9 @@
       "Name": "Foley Automatic",
       "Damage Sprites": "0404",
       "HP": 2,
-      "Copy Ability": 9,
+      "Copy Ability": 16,
       "Palette": 2,
-      "Definition": "0404C800020009000203000010000000350C0C0854963308"
+      "Definition": "0404C800020010000203000010000000350C0C0854963308"
     }
   ],
   "Bang-Bang": [
@@ -770,9 +770,9 @@
       "Name": "Bang-Bang",
       "Damage Sprites": "1819",
       "HP": 2,
-      "Copy Ability": 25,
+      "Copy Ability": 26,
       "Palette": 62,
-      "Definition": "1819C800020019003E0300001000000051700C08A49E3308"
+      "Definition": "1819C80002001A003E0300001000000051700C08A49E3308"
     }
   ],
   "Explosion": [
@@ -782,9 +782,9 @@
       "Name": "Explosion",
       "Damage Sprites": "0000",
       "HP": 10,
-      "Copy Ability": 24,
+      "Copy Ability": 3,
       "Palette": 153,
-      "Definition": "0000C8000A00180099030000240000001199100810BA3308"
+      "Definition": "0000C8000A00030099030000240000001199100810BA3308"
     }
   ],
   "Droppy": [
@@ -794,9 +794,9 @@
       "Name": "Droppy",
       "Damage Sprites": "1415",
       "HP": 4,
-      "Copy Ability": 0,
+      "Copy Ability": 20,
       "Palette": 247,
-      "Definition": "1415F40104000000F70200001000000015FE09084C763308"
+      "Definition": "1415F40104001400F70200001000000015FE09084C763308"
     }
   ],
   "Prank": [
@@ -806,9 +806,9 @@
       "Name": "Prank",
       "Damage Sprites": "1213",
       "HP": 4,
-      "Copy Ability": 0,
+      "Copy Ability": 3,
       "Palette": 250,
-      "Definition": "1213C80004000000FA020000240000005D120A08E4763308"
+      "Definition": "1213C80004000300FA020000240000005D120A08E4763308"
     }
   ],
   "Mirra": [
@@ -830,9 +830,9 @@
       "Name": "Shotzo",
       "Damage Sprites": "0505",
       "HP": 2,
-      "Copy Ability": 0,
+      "Copy Ability": 19,
       "Palette": 14,
-      "Definition": "05056400020000000E0300000C0000007DA71108B4C33308"
+      "Definition": "05056400020013000E0300000C0000007DA71108B4C33308"
     }
   ],
   "Waddle Dee 2": [
@@ -842,9 +842,9 @@
       "Name": "Waddle Dee 2",
       "Damage Sprites": "0405",
       "HP": 30,
-      "Copy Ability": 0,
+      "Copy Ability": 5,
       "Palette": 8,
-      "Definition": "0405C8001E000000080300000900000029420A08DC7B3308"
+      "Definition": "0405C8001E000500080300000900000029420A08DC7B3308"
     }
   ],
   "Mr. Frosty": [
@@ -854,9 +854,9 @@
       "Name": "Mr. Frosty",
       "Damage Sprites": "1112",
       "HP": 30,
-      "Copy Ability": 2,
+      "Copy Ability": 23,
       "Palette": 25,
-      "Definition": "1112E8031E000200191300002400000021D20C08CCA43308"
+      "Definition": "1112E8031E001700191300002400000021D20C08CCA43308"
     }
   ],
   "Bonkers": [
@@ -866,9 +866,9 @@
       "Name": "Bonkers",
       "Damage Sprites": "1415",
       "HP": 40,
-      "Copy Ability": 17,
+      "Copy Ability": 4,
       "Palette": 26,
-      "Definition": "1415D007280011001A1300004800000019F80C082CA83308"
+      "Definition": "1415D007280004001A1300004800000019F80C082CA83308"
     }
   ],
   "Phan Phan": [
@@ -878,9 +878,9 @@
       "Name": "Phan Phan",
       "Damage Sprites": "1D1E",
       "HP": 30,
-      "Copy Ability": 10,
+      "Copy Ability": 0,
       "Palette": 27,
-      "Definition": "1D1ED0071E000A001B13000040000000CDF30C0858A63308"
+      "Definition": "1D1ED0071E0000001B13000040000000CDF30C0858A63308"
     }
   ],
   "Batafire": [
@@ -890,9 +890,9 @@
       "Name": "Batafire",
       "Damage Sprites": "0C0D",
       "HP": 30,
-      "Copy Ability": 3,
+      "Copy Ability": 5,
       "Palette": 231,
-      "Definition": "0C0DD0071E000300E7120000700000004D950C08B4A03308"
+      "Definition": "0C0DD0071E000500E7120000700000004D950C08B4A03308"
     }
   ],
   "Box Boxer": [
@@ -902,9 +902,9 @@
       "Name": "Box Boxer",
       "Damage Sprites": "1314",
       "HP": 40,
-      "Copy Ability": 20,
+      "Copy Ability": 4,
       "Palette": 254,
-      "Definition": "1314D00728001400FE1200003F00000049750C080C9F3308"
+      "Definition": "1314D00728000400FE1200003F00000049750C080C9F3308"
     }
   ],
   "Boxy": [
@@ -914,9 +914,9 @@
       "Name": "Boxy",
       "Damage Sprites": "0D0E",
       "HP": 40,
-      "Copy Ability": 21,
+      "Copy Ability": 14,
       "Palette": 56,
-      "Definition": "0D0ED007280015003813000046000000FD760D0858A93308"
+      "Definition": "0D0ED00728000E003813000046000000FD760D0858A93308"
     }
   ],
   "Master Hand": [
@@ -926,9 +926,9 @@
       "Name": "Master Hand",
       "Damage Sprites": "1617",
       "HP": 40,
-      "Copy Ability": 22,
+      "Copy Ability": 17,
       "Palette": 53,
-      "Definition": "1617D007280016003513000048000000B9190D08E4B03308"
+      "Definition": "1617D007280011003513000048000000B9190D08E4B03308"
     }
   ],
   "Bombar": [
@@ -938,9 +938,9 @@
       "Name": "Bombar",
       "Damage Sprites": "0809",
       "HP": 40,
-      "Copy Ability": 25,
+      "Copy Ability": 2,
       "Palette": 22,
-      "Definition": "0809D007280019001613000046000000159E0D08F4A93308"
+      "Definition": "0809D007280002001613000046000000159E0D08F4A93308"
     }
   ],
   "???": [
@@ -1462,9 +1462,9 @@
       "Name": "Shotzo 2",
       "Damage Sprites": "0000",
       "HP": 0,
-      "Copy Ability": 0,
+      "Copy Ability": 1,
       "Palette": 14,
-      "Definition": "00000000000000000E030000060000007DA71108B4C33308"
+      "Definition": "00000000000001000E030000060000007DA71108B4C33308"
     }
   ],
   "Stone Sliding Door": [
@@ -1914,9 +1914,9 @@
       "Name": "Parasol",
       "Damage Sprites": "0000",
       "HP": 1,
-      "Copy Ability": 5,
+      "Copy Ability": 22,
       "Palette": 0,
-      "Definition": "00003200010005000000000009000000A12A0C08389C3308"
+      "Definition": "00003200010016000000000009000000A12A0C08389C3308"
     }
   ],
   "Ability Star": [

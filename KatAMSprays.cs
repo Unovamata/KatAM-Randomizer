@@ -20,8 +20,6 @@ namespace KatAMRandomizer
 
             if (Settings.SprayGeneration == GenerationOptions.Unchanged) return;
 
-            Console.WriteLine("Randomizing spray colours...");
-
             List<byte> currentPalette = new List<byte>();
             /*WriteToROM(romFile, 4846172, currentPalette[0] >> 32, 20); // Normal palette. We don't want to use the last two colours, since that's for UFO only.
             WriteToROM(romFile, 4849948, currentPalette[0], 24); // UFO palette.
