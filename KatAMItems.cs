@@ -45,8 +45,12 @@ namespace KatAMRandomizer
 
             for (int i = 0; i < entities.Count; i++) {
                 Entity entity = entities[i];
-                
-                if (IsProgressionObject(entity)) continue;
+
+                if(IsProgressionObject(entity)) {
+                    Utils.WriteObjectToROM(entity);
+                    Console.WriteLine($"{entity.Address} {entity.ID}");
+                    continue;
+                }
 
                 switch (consumableOptions) {
                     // Writing consumables as they come in the OG game;
@@ -80,7 +84,7 @@ namespace KatAMRandomizer
                 }
 
                 Utils.WriteObjectToROM(entity);
-            }
+            }            
         }
 
         public bool FilterEntities(Entity entity) {
@@ -112,9 +116,10 @@ namespace KatAMRandomizer
             mirrorShard.ID = 0x65; // Mirror shard;
             mirrorShard.Behavior = currentShardBehaviour; // 0x0 - 0x7 behaviors = collectable shards;
 
+            Console.WriteLine($"{currentShardBehaviour}");
+
             entities[index] = mirrorShard;
             objectIDs[index] = mirrorShard.ID;
-            currentShardBehaviour++;
         }
 
         //ReplaceChestEntity(); Selects a random object to replace it for a chest in the entity list;

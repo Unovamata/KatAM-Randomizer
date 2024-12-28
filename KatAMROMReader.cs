@@ -34,8 +34,6 @@ namespace KatAMRandomizer {
                     // Specify the object parameters and add them to the property list for future processing;
                     byte[] definition = property.Definition;
 
-                    Console.WriteLine(currentObjectID);
-
                     property.Name = Processing.parameters[(byte)currentObjectID];
                     property.ID = (byte)currentObjectID;
                     property.DamageSprites = new byte[] { definition[0], definition[1] };

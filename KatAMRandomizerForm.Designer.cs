@@ -56,10 +56,9 @@
             RadioWarpsStarsUnchanged = new RadioButton();
             GroupMirrors = new GroupBox();
             GroupMirrorsGoalGameMirrors = new GroupBox();
-            checkBox2 = new CheckBox();
-            CheckboxMirrorsUseBossWarps = new CheckBox();
-            CheckboxMirrorsUseRegularWarps = new CheckBox();
-            RadioGoalGameMirrorsNo = new RadioButton();
+            groupBox2 = new GroupBox();
+            radioButton2 = new RadioButton();
+            radioButton1 = new RadioButton();
             RadioGoalGameMirrorsRandom = new RadioButton();
             RadioGoalGameMirrorsShuffle = new RadioButton();
             RadioGoalGameMirrorsUnchanged = new RadioButton();
@@ -207,6 +206,7 @@
             RadioSprayRandomAndPresets = new RadioButton();
             RadioSprayRandom = new RadioButton();
             RadioSprayUnchanged = new RadioButton();
+            tabPage6 = new TabPage();
             ButtonRefreshSeed = new Button();
             StatusStripRandomizer = new StatusStrip();
             StatusLabel = new ToolStripStatusLabel();
@@ -219,6 +219,7 @@
             GroupWarpsStars.SuspendLayout();
             GroupMirrors.SuspendLayout();
             GroupMirrorsGoalGameMirrors.SuspendLayout();
+            groupBox2.SuspendLayout();
             tabPage2.SuspendLayout();
             GroupChests.SuspendLayout();
             GroupChestsProperties.SuspendLayout();
@@ -266,7 +267,6 @@
             ButtonConsoleSend.TabIndex = 0;
             ButtonConsoleSend.Text = "Console Send Message";
             ButtonConsoleSend.UseVisualStyleBackColor = true;
-            ButtonConsoleSend.Visible = false;
             ButtonConsoleSend.Click += ButtonConsoleSend_Click;
             // 
             // ButtonLoadFile
@@ -455,6 +455,7 @@
             tabControl1.Controls.Add(tabPage4);
             tabControl1.Controls.Add(tabPage5);
             tabControl1.Controls.Add(TabMiscellaneous);
+            tabControl1.Controls.Add(tabPage6);
             tabControl1.ItemSize = new Size(100, 20);
             tabControl1.Location = new Point(12, 161);
             tabControl1.Name = "tabControl1";
@@ -577,67 +578,53 @@
             // 
             // GroupMirrorsGoalGameMirrors
             // 
-            GroupMirrorsGoalGameMirrors.Controls.Add(checkBox2);
-            GroupMirrorsGoalGameMirrors.Controls.Add(CheckboxMirrorsUseBossWarps);
-            GroupMirrorsGoalGameMirrors.Controls.Add(CheckboxMirrorsUseRegularWarps);
-            GroupMirrorsGoalGameMirrors.Controls.Add(RadioGoalGameMirrorsNo);
+            GroupMirrorsGoalGameMirrors.Controls.Add(groupBox2);
             GroupMirrorsGoalGameMirrors.Controls.Add(RadioGoalGameMirrorsRandom);
             GroupMirrorsGoalGameMirrors.Controls.Add(RadioGoalGameMirrorsShuffle);
             GroupMirrorsGoalGameMirrors.Controls.Add(RadioGoalGameMirrorsUnchanged);
             GroupMirrorsGoalGameMirrors.Enabled = false;
-            GroupMirrorsGoalGameMirrors.Location = new Point(10, 112);
+            GroupMirrorsGoalGameMirrors.Location = new Point(10, 144);
             GroupMirrorsGoalGameMirrors.Name = "GroupMirrorsGoalGameMirrors";
-            GroupMirrorsGoalGameMirrors.Size = new Size(472, 200);
+            GroupMirrorsGoalGameMirrors.Size = new Size(472, 168);
             GroupMirrorsGoalGameMirrors.TabIndex = 3;
             GroupMirrorsGoalGameMirrors.TabStop = false;
             GroupMirrorsGoalGameMirrors.Text = "Goal Game Mirrors";
             // 
-            // checkBox2
+            // groupBox2
             // 
-            checkBox2.AutoSize = true;
-            checkBox2.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            checkBox2.Location = new Point(201, 73);
-            checkBox2.Name = "checkBox2";
-            checkBox2.Size = new Size(174, 19);
-            checkBox2.TabIndex = 10;
-            checkBox2.Text = "Update Goal Game Graphics";
-            checkBox2.UseVisualStyleBackColor = true;
-            checkBox2.Visible = false;
+            groupBox2.Controls.Add(radioButton2);
+            groupBox2.Controls.Add(radioButton1);
+            groupBox2.Enabled = false;
+            groupBox2.Location = new Point(186, 16);
+            groupBox2.Name = "groupBox2";
+            groupBox2.Size = new Size(280, 146);
+            groupBox2.TabIndex = 10;
+            groupBox2.TabStop = false;
+            groupBox2.Text = "Warp Type";
             // 
-            // CheckboxMirrorsUseBossWarps
+            // radioButton2
             // 
-            CheckboxMirrorsUseBossWarps.AutoSize = true;
-            CheckboxMirrorsUseBossWarps.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            CheckboxMirrorsUseBossWarps.Location = new Point(201, 48);
-            CheckboxMirrorsUseBossWarps.Name = "CheckboxMirrorsUseBossWarps";
-            CheckboxMirrorsUseBossWarps.Size = new Size(248, 19);
-            CheckboxMirrorsUseBossWarps.TabIndex = 9;
-            CheckboxMirrorsUseBossWarps.Text = "Replace Minigame with Boss Room Warps";
-            CheckboxMirrorsUseBossWarps.UseVisualStyleBackColor = true;
-            CheckboxMirrorsUseBossWarps.Visible = false;
+            radioButton2.AutoSize = true;
+            radioButton2.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            radioButton2.Location = new Point(10, 47);
+            radioButton2.Name = "radioButton2";
+            radioButton2.Size = new Size(115, 19);
+            radioButton2.TabIndex = 11;
+            radioButton2.Text = "Boss Room Warp";
+            radioButton2.UseVisualStyleBackColor = true;
             // 
-            // CheckboxMirrorsUseRegularWarps
+            // radioButton1
             // 
-            CheckboxMirrorsUseRegularWarps.AutoSize = true;
-            CheckboxMirrorsUseRegularWarps.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            CheckboxMirrorsUseRegularWarps.Location = new Point(201, 23);
-            CheckboxMirrorsUseRegularWarps.Name = "CheckboxMirrorsUseRegularWarps";
-            CheckboxMirrorsUseRegularWarps.Size = new Size(265, 19);
-            CheckboxMirrorsUseRegularWarps.TabIndex = 8;
-            CheckboxMirrorsUseRegularWarps.Text = "Replace Minigame with Regular Mirror Warps";
-            CheckboxMirrorsUseRegularWarps.UseVisualStyleBackColor = true;
-            CheckboxMirrorsUseRegularWarps.Visible = false;
-            // 
-            // RadioGoalGameMirrorsNo
-            // 
-            RadioGoalGameMirrorsNo.AutoSize = true;
-            RadioGoalGameMirrorsNo.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            RadioGoalGameMirrorsNo.Location = new Point(10, 97);
-            RadioGoalGameMirrorsNo.Name = "RadioGoalGameMirrorsNo";
-            RadioGoalGameMirrorsNo.Size = new Size(166, 19);
-            RadioGoalGameMirrorsNo.TabIndex = 7;
-            RadioGoalGameMirrorsNo.Text = "No Goal Minigame Mirrors";
-            RadioGoalGameMirrorsNo.UseVisualStyleBackColor = true;
+            radioButton1.AutoSize = true;
+            radioButton1.Checked = true;
+            radioButton1.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            radioButton1.Location = new Point(10, 22);
+            radioButton1.Name = "radioButton1";
+            radioButton1.Size = new Size(137, 19);
+            radioButton1.TabIndex = 10;
+            radioButton1.TabStop = true;
+            radioButton1.Text = "Regular Mirror Warps";
+            radioButton1.UseVisualStyleBackColor = true;
             // 
             // RadioGoalGameMirrorsRandom
             // 
@@ -1616,9 +1603,9 @@
             groupBox1.Controls.Add(groupBox5);
             groupBox1.Controls.Add(groupBox6);
             groupBox1.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            groupBox1.Location = new Point(238, 6);
+            groupBox1.Location = new Point(286, 6);
             groupBox1.Name = "groupBox1";
-            groupBox1.Size = new Size(598, 318);
+            groupBox1.Size = new Size(550, 318);
             groupBox1.TabIndex = 3;
             groupBox1.TabStop = false;
             groupBox1.Text = "Properties";
@@ -1639,7 +1626,7 @@
             groupBox4.Controls.Add(RadioMinibossPropertiesHPRandom);
             groupBox4.Controls.Add(RadioMinibossPropertiesHPShuffle);
             groupBox4.Controls.Add(RadioMinibossPropertiesHPUnchanged);
-            groupBox4.Location = new Point(353, 16);
+            groupBox4.Location = new Point(305, 16);
             groupBox4.Name = "groupBox4";
             groupBox4.Size = new Size(239, 296);
             groupBox4.TabIndex = 6;
@@ -1813,7 +1800,7 @@
             groupBox5.Controls.Add(RadioMinibossPropertiesBehaviorUnchanged);
             groupBox5.Location = new Point(6, 160);
             groupBox5.Name = "groupBox5";
-            groupBox5.Size = new Size(341, 152);
+            groupBox5.Size = new Size(293, 152);
             groupBox5.TabIndex = 1;
             groupBox5.TabStop = false;
             groupBox5.Text = "Behavior";
@@ -1850,7 +1837,7 @@
             groupBox6.Controls.Add(RadioMinibossPropertiesSpeedUnchanged);
             groupBox6.Location = new Point(6, 16);
             groupBox6.Name = "groupBox6";
-            groupBox6.Size = new Size(341, 138);
+            groupBox6.Size = new Size(293, 138);
             groupBox6.TabIndex = 0;
             groupBox6.TabStop = false;
             groupBox6.Text = "Speed";
@@ -1893,7 +1880,7 @@
             GroupMinibosses.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
             GroupMinibosses.Location = new Point(9, 6);
             GroupMinibosses.Name = "GroupMinibosses";
-            GroupMinibosses.Size = new Size(223, 318);
+            GroupMinibosses.Size = new Size(271, 318);
             GroupMinibosses.TabIndex = 2;
             GroupMinibosses.TabStop = false;
             GroupMinibosses.Text = "Mini-Bosses";
@@ -2507,6 +2494,15 @@
             RadioSprayUnchanged.UseVisualStyleBackColor = true;
             RadioSprayUnchanged.CheckedChanged += RadioSprayUnchanged_CheckedChanged;
             // 
+            // tabPage6
+            // 
+            tabPage6.Location = new Point(4, 24);
+            tabPage6.Name = "tabPage6";
+            tabPage6.Size = new Size(842, 330);
+            tabPage6.TabIndex = 6;
+            tabPage6.Text = "Credits";
+            tabPage6.UseVisualStyleBackColor = true;
+            // 
             // ButtonRefreshSeed
             // 
             ButtonRefreshSeed.Enabled = false;
@@ -2566,6 +2562,8 @@
             GroupMirrors.PerformLayout();
             GroupMirrorsGoalGameMirrors.ResumeLayout(false);
             GroupMirrorsGoalGameMirrors.PerformLayout();
+            groupBox2.ResumeLayout(false);
+            groupBox2.PerformLayout();
             tabPage2.ResumeLayout(false);
             GroupChests.ResumeLayout(false);
             GroupChests.PerformLayout();
@@ -2805,12 +2803,12 @@
         private RadioButton RadioGoalGameMirrorsRandom;
         private RadioButton RadioGoalGameMirrorsShuffle;
         private RadioButton RadioGoalGameMirrorsUnchanged;
-        private CheckBox CheckboxMirrorsUseBossWarps;
-        private CheckBox CheckboxMirrorsUseRegularWarps;
-        private RadioButton RadioGoalGameMirrorsNo;
-        private CheckBox checkBox2;
         private CheckBox CheckboxOptionsSpoilerLog;
         private Label LabelStability;
         private Label LabelCompatibility;
+        private TabPage tabPage6;
+        private GroupBox groupBox2;
+        private RadioButton radioButton2;
+        private RadioButton radioButton1;
     }
 }

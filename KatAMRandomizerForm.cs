@@ -134,11 +134,11 @@ namespace KatAMRandomizer
             new KatAMROMReader(system);
             //new KatAMMirrors(system);
             new KatAMSprays(system);
-            new KatAMItems(system);
             new KatAMPedestals(system);
             new KatAMEnemies(system);
             new KatAMMinibosses(system);
             new KatAMMapElements(system);
+            new KatAMItems(system);
             new KatAMPropertiesManagement(system);
 
             // Randomize mirrors;

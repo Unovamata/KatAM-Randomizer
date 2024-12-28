@@ -109,10 +109,6 @@ namespace KatAMRandomizer {
                                     int rerollIndex = Utils.GetRandomNumber(0, availableEnemyIDs.Count);
 
                                     entity.ID = availableEnemyIDs[rerollIndex];
-
-                                    if(entity.ID == 0x34 || entity.ID == 0x10) {
-                                        Console.WriteLine(entity.ID);
-                                    }
                                 } while(entity.ID == 0x34 || entity.ID == 0x10);
 
                                 
@@ -138,7 +134,7 @@ namespace KatAMRandomizer {
 
                     if(!isRandomizingMiniBosses && enemiesOptions != GenerationOptions.No) {
                         if(isIncludingMiniBosses) {
-                            bool canSpawnMiniboss = Utils.Dice(1, 10) == 1;
+                            bool canSpawnMiniboss = Utils.Dice(1, 20) == 1;
 
                             if(canSpawnMiniboss) {
                                 int selectedMinibossIndex = Utils.GetRandomNumber(0, minibosses.Count);

@@ -152,6 +152,7 @@ namespace KatAMInternal
             { 0x24, Data("Scarfy 2", 0x00, false, true, false)},
             { 0x25, Data("Boxin", 0x14)},
             { 0x26, Data("Cookin", 0x0C)},
+            //{ 0x27, Data("Minny", 0x17)},
             { 0x28, Data("Bomber", 0x18)},
             { 0x29, Data("Heavy Knight", 0x12)},
             { 0x2A, Data("Giant Rocky", 0x08)},
