@@ -46,6 +46,11 @@ namespace KatAMRandomizer
                 }
                 
                 if (isRemovingStoneBlocks) {
+                    /* Removing this specific block can lead to a softlocked run.
+                     * This block unlocks a door that can make the difference between a 
+                     * beatable and an unbeatable run. Do not remove this object at any cost; */
+                    if(entity.Room == 0x13B) continue;
+
                     bool isStoneBlock = Processing.mapElementsDictionary.ContainsKey(entity.ID) &&
                                         Processing.mapElementsDictionary[entity.ID] == "Star Stone Block";
 
