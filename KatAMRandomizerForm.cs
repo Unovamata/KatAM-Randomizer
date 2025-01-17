@@ -80,7 +80,7 @@ namespace KatAMRandomizer
                             LabelCompatibility.Text = "Compatibility: Compatible";
                             LabelStability.ForeColor = Color.Green;
                             LabelStability.Text = "Stability: Perfectly Playable";
-                        break;
+                            break;
 
                         case "AGB-B8KP":
                             region = "(EUR)";
@@ -88,7 +88,7 @@ namespace KatAMRandomizer
                             LabelCompatibility.Text = "Compatibility: Incompatible";
                             LabelStability.ForeColor = Color.Red;
                             LabelStability.Text = "Stability: Unsupported";
-                        break;
+                            break;
 
                         case "AGB-B8KE":
                             region = "(USA)";
@@ -96,14 +96,14 @@ namespace KatAMRandomizer
                             LabelCompatibility.Text = "Compatibility: Incompatible";
                             LabelStability.ForeColor = Color.Red;
                             LabelStability.Text = "Stability: Unsupported";
-                        break;
+                            break;
 
                         default:
                             LabelCompatibility.ForeColor = Color.Red;
                             LabelCompatibility.Text = "Compatibility: Incompatible";
                             LabelStability.ForeColor = Color.Red;
                             LabelStability.Text = "Stability: Unsupported";
-                        break;
+                            break;
                     }
 
                     LabelGameRegion.Text = $"Region: {region}";
@@ -163,7 +163,7 @@ namespace KatAMRandomizer
 
 
         //////////////////////////////////////////////////////////////////////////////////////////////
-        
+
         // Mirrors;
         // Warp Stars;
         private void RadioWarpsStarsUnchanged_CheckedChanged(object sender, EventArgs e) {
@@ -622,6 +622,38 @@ namespace KatAMRandomizer
             settings.isRemovingStoneBlocks = CheckboxMapElementsAllStoneBlocks.Checked;
         }
 
-        
+        // Mirrors;
+        private void RadioMirrorsUnchanged_CheckedChanged(object sender, EventArgs e) {
+            GroupMirrorsGoalGameMirrors.Enabled = false;
+            RadioGoalGameMirrorsUnchanged.Checked = true;
+        }
+
+        private void RadioMirrorsShuffle_CheckedChanged(object sender, EventArgs e) {
+            GroupMirrorsGoalGameMirrors.Enabled = true;
+        }
+
+        private void RadioMirrorsRandom_CheckedChanged(object sender, EventArgs e) {
+            GroupMirrorsGoalGameMirrors.Enabled = true;
+        }
+
+        private void RadioGoalGameMirrorsUnchanged_CheckedChanged(object sender, EventArgs e) {
+            GroupGoalGameMirrorsWarpType.Enabled = false;
+        }
+
+        private void RadioGoalGameMirrorsShuffle_CheckedChanged(object sender, EventArgs e) {
+            GroupGoalGameMirrorsWarpType.Enabled = true;
+        }
+
+        private void RadioGoalGameMirrorsRandom_CheckedChanged(object sender, EventArgs e) {
+            GroupGoalGameMirrorsWarpType.Enabled = true;
+        }
+
+        private void RadioWarpTypeShuffle_CheckedChanged(object sender, EventArgs e) {
+
+        }
+
+        private void RadioWarpTypeCustom_CheckedChanged(object sender, EventArgs e) {
+
+        }
     }
 }
