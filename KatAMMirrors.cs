@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Forms;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace KatAM_Randomizer {
@@ -88,7 +89,9 @@ namespace KatAM_Randomizer {
             ReadROMData();
         }
 
-        List<Mirror> mirrors = new List<Mirror>();
+        List<Mirror> mirrors = new List<Mirror>(),
+                     bossMirrors = new List<Mirror>(),
+                     goalMirrors = new List<Mirror>();
         Dictionary<int, List<Mirror>> EightROMMirrors = new Dictionary<int, List<Mirror>>(),
                                       NineROMMirrors = new Dictionary<int, List<Mirror>>();
 
@@ -204,6 +207,7 @@ namespace KatAM_Randomizer {
                 }
             }
 
+            // Here starts Mirror Randomization
             foreach(int key in EightROMMirrors.Keys) {
                 //Console.WriteLine($"Checking room {key}...");
 
@@ -280,11 +284,13 @@ namespace KatAM_Randomizer {
                 if(IsGoalMinigameRoom(destinationRoom)) {
                     //Console.WriteLine("Minigame Goal Door Found!");
                     mirror.MirrorWarpType = Exits.Goal;
+                    goalMirrors.Add(mirror);
                 }
                 // For Boss room warps;
                 else if(IsBossRoom(destinationRoom)) {
                     //Console.WriteLine("Boss Door Found!");
                     mirror.MirrorWarpType = Exits.Boss;
+                    bossMirrors.Add(mirror);
                 }
                 // For warps with no doors that come from a One-Way mirror;
                 else {
@@ -334,7 +340,46 @@ namespace KatAM_Randomizer {
              * data point for all these objects.
              */
 
-            foreach(Mirror mirror in mirrors) {
+            int bossMirrorIndex = 0,
+                randomBossMirrorIndex = Utils.GetRandomNumber(0, bossMirrors.Count);
+
+            List<Mirror> shuffledBossMirrors = Utils.Shuffle(new List<Mirror>(bossMirrors));
+
+            // Removing the duplicate Kracko warp as there are 2;
+            Mirror duplicateKrackoWarp = shuffledBossMirrors.FirstOrDefault(x => x.Destination == 0x144);
+            shuffledBossMirrors.Remove(duplicateKrackoWarp);
+
+            Dictionary<int, List<Mirror>> goalMirrorsDictionary = goalMirrors
+            .GroupBy(mirror => mirror.InRoom) // Group mirrors by the `InRoom` property
+            .ToDictionary(
+                group => group.Key,           // Key selector: the room number
+                group => group.ToList()       // Value selector: list of mirrors in that room
+            );
+
+            var keys = goalMirrorsDictionary.Keys.ToList();
+
+            for(int i = 0; i < keys.Count; i++) {
+                if(i % 2 == 0 && i > 0) bossMirrorIndex++;
+
+                int key = keys[i];
+
+                List<Mirror> goalMirrorsInRoom = goalMirrorsDictionary[key];
+
+                Mirror bossMirror = bossMirrors[bossMirrorIndex];
+
+                foreach(Mirror goalMirrorToReplace in goalMirrorsInRoom) {
+                    goalMirrorToReplace.Destination = bossMirror.Destination;
+                    goalMirrorToReplace.X = bossMirror.X;
+                    goalMirrorToReplace.Y = bossMirror.Y;
+                    goalMirrorToReplace.Facing = bossMirror.Facing;
+                    goalMirrorToReplace.Warp = bossMirror.Warp;
+                    goalMirrorToReplace.MirrorWarpType = bossMirror.MirrorWarpType;
+
+                    Utils.WriteMirrorToROM(goalMirrorToReplace);
+                }
+            }
+
+            /*foreach(Mirror mirror in mirrors) {
                 Mirror newMirror = new Mirror(mirror);
 
                 Mirror randomMirror = mirrors[Utils.GetRandomNumber(0, mirrors.Count)];
@@ -345,7 +390,7 @@ namespace KatAM_Randomizer {
                 newMirror.Facing = randomMirror.Facing;
 
                 Utils.WriteMirrorToROM(newMirror);
-            }
+            }*/
         }
 
         int MirrorGetRoomID(byte[] mirrorData, string ROMSpace) {

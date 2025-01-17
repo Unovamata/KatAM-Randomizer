@@ -132,7 +132,7 @@ namespace KatAMRandomizer
             settings.RandomEntity = new Random(settings.Seed);
 
             new KatAMROMReader(system);
-            //new KatAMMirrors(system);
+            new KatAMMirrors(system);
             new KatAMSprays(system);
             new KatAMPedestals(system);
             new KatAMEnemies(system);

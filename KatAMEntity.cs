@@ -161,7 +161,7 @@ public class Mirror {
     public byte Facing { get; set; }
     public Mirror Warp { get; set; }
     public string MirrorData { get; set; }
-    public Exits MirrorWarpType;
+    public Exits MirrorWarpType { get; set; }
 
     public Mirror(string addressType, long address, byte x, byte y, int inRoom, int destination) {
         switch(addressType) {
