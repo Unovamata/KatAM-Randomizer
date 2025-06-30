@@ -48,7 +48,7 @@ namespace KatAMRandomizer
 
                 if(IsProgressionObject(entity)) {
                     Utils.WriteObjectToROM(entity);
-                    Console.WriteLine($"{entity.Address} {entity.ID}");
+                    //Console.WriteLine($"{entity.Address} {entity.ID}");
                     continue;
                 }
 
@@ -89,7 +89,7 @@ namespace KatAMRandomizer
 
         public bool FilterEntities(Entity entity) {
             // Save entities to a list if the objects are randomizeable;
-            if (Utils.IsVetoedRoom(entity)) return false;
+            if (Utils.IsVetoedEntityRoom(entity)) return false;
             if (entity.Name == "Mirror Shard") return false;
 
             // If it's a chest save its information for later;
@@ -116,7 +116,7 @@ namespace KatAMRandomizer
             mirrorShard.ID = 0x65; // Mirror shard;
             mirrorShard.Behavior = currentShardBehaviour; // 0x0 - 0x7 behaviors = collectable shards;
 
-            Console.WriteLine($"{currentShardBehaviour}");
+            //Console.WriteLine($"{currentShardBehaviour}");
 
             entities[index] = mirrorShard;
             objectIDs[index] = mirrorShard.ID;
@@ -124,12 +124,12 @@ namespace KatAMRandomizer
 
         //ReplaceChestEntity(); Selects a random object to replace it for a chest in the entity list;
         int ReturnReplaceableEntity() {
-            int selectedEntity = Utils.GetRandomNumber(0, entities.Count);
+            int selectedEntity = Utils.GetRandomRange(0, entities.Count);
             Entity entity = entities[selectedEntity];
 
             // If the entity chosen is a chest, reroll;
             do {
-                selectedEntity = Utils.GetRandomNumber(0, entities.Count);
+                selectedEntity = Utils.GetRandomRange(0, entities.Count);
                 entity = entities[selectedEntity];
             } while (IsChestObject(entity) || IsMirrorShardObject(entity));
 
@@ -158,7 +158,7 @@ namespace KatAMRandomizer
         // GenerateRandomConsumable(); Generates a random consumable ID ;
         byte[] consumableItems = { 0x5E, 0x5F, 0x60, 0x61, 0x62, 0x63, 0x64 };
         byte GenerateRandomConsumable() {
-            int index = Utils.GetRandomNumber(0, consumableItems.Length);
+            int index = Utils.GetRandomRange(0, consumableItems.Length);
 
             return consumableItems[index];
         }
@@ -278,13 +278,13 @@ namespace KatAMRandomizer
 
             switch (chestProperties) {
                 case GenerationOptions.RandomAndPresets:
-                    int selectedTreasureIndex = Utils.GetRandomNumber(0, chestTreasureIDs.Count);
+                    int selectedTreasureIndex = Utils.GetRandomRange(0, chestTreasureIDs.Count);
 
                     chest.Behavior = chestTreasureIDs[selectedTreasureIndex];
                 break;
 
                 case GenerationOptions.Random:
-                    int selectedIndex = Utils.GetRandomNumber(0, combinedTreasureIDs.Count);
+                    int selectedIndex = Utils.GetRandomRange(0, combinedTreasureIDs.Count);
 
                     chest.Behavior = combinedTreasureIDs[selectedIndex];
                 break;

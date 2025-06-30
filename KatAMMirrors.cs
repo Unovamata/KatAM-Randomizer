@@ -1,10 +1,12 @@
 ﻿using KatAMInternal;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.Eventing.Reader;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using static Mirror;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace KatAM_Randomizer {
@@ -104,7 +106,15 @@ namespace KatAM_Randomizer {
         List<int> roomIDs = Processing.roomIDs;
 
         public void ReadROMData() {
-            for(long i = Processing.EightROMStartAddress; i < Processing.NineROMEndAddress; i++) {
+            Utils.UniteVetoedRoomHashSets();
+
+            mirrors = new List<Mirror>();
+            bossMirrors = new List<Mirror>();
+            goalMirrors = new List<Mirror>();
+            EightROMMirrors = new Dictionary<int, List<Mirror>>();
+            NineROMMirrors = new Dictionary<int, List<Mirror>>();
+
+            for (long i = Processing.EightROMStartAddress; i < Processing.NineROMEndAddress; i++) {
                 if(!is9ROMResetted) {
                     if(i >= Processing.NineROMStartAddress) {
                         is9ROMResetted = true;
@@ -209,8 +219,6 @@ namespace KatAM_Randomizer {
 
             // Here starts Mirror Randomization
             foreach(int key in EightROMMirrors.Keys) {
-                //Console.WriteLine($"Checking room {key}...");
-
                 List<Mirror> mirrorsInRoom = EightROMMirrors[key]; 
 
                 foreach(Mirror mirror in mirrorsInRoom) {
@@ -262,7 +270,15 @@ namespace KatAM_Randomizer {
                         if(destination8ROM == mirror.InRoom) {
                             mirror.Warp = destinationMirror;
                             destinationMirror.Warp = mirror;
-                            mirror.MirrorWarpType = Exits.TwoWay;
+                            if(Utils.IsVetoedRoom(mirror) && Utils.IsVetoedRoom(destinationMirror)){
+                                mirror.MirrorWarpType = Exits.Hub;
+                                destinationMirror.MirrorWarpType = Exits.Hub;
+                                //Console.WriteLine($"Found Hub mirror {mirror.Destination:X} -> {destinationMirror.Destination:X} for mirror {mirror.Address8ROM}");
+                            } else if (mirror.Destination == mirror.InRoom){
+                                mirror.MirrorWarpType = Exits.OneWay;
+                            } else {
+                                mirror.MirrorWarpType = Exits.TwoWay;
+                            }
                             //Console.WriteLine($"Found destination {destinationRoom} for mirror {mirror.Address8ROM}");
                             break;
                         }
@@ -307,7 +323,6 @@ namespace KatAM_Randomizer {
             }
 
             bool IsBossRoom(int destination) {
-                // Goal rooms are 0x3D4, 0x3D5, 0x3D6;
                 return destination == 0x2C6 ||
                        destination == 0xDB ||
                        destination == 0x144 || // Has 2 entrances;
@@ -340,57 +355,136 @@ namespace KatAM_Randomizer {
              * data point for all these objects.
              */
 
-            int bossMirrorIndex = 0,
-                randomBossMirrorIndex = Utils.GetRandomNumber(0, bossMirrors.Count);
-
-            List<Mirror> shuffledBossMirrors = Utils.Shuffle(new List<Mirror>(bossMirrors));
-
-            // Removing the duplicate Kracko warp as there are 2;
-            Mirror duplicateKrackoWarp = shuffledBossMirrors.FirstOrDefault(x => x.Destination == 0x144);
-            shuffledBossMirrors.Remove(duplicateKrackoWarp);
-
-            Dictionary<int, List<Mirror>> goalMirrorsDictionary = goalMirrors
-            .GroupBy(mirror => mirror.InRoom) // Group mirrors by the `InRoom` property
+            // We create another list to properly filter out duplicate mirrors in a room so its easier to shuffle them;
+            EightROMMirrors = EightROMMirrors
             .ToDictionary(
-                group => group.Key,           // Key selector: the room number
-                group => group.ToList()       // Value selector: list of mirrors in that room
+                kvp => kvp.Key,
+                kvp => kvp.Value
+                    .Where(m => m.MirrorWarpType != Exits.Hub)
+                    .Where(m => m.InRoom != 0x2E0 && m.Destination != 0x2E0)
+                    .Where(m => !Utils.IsVetoedRoom(m.InRoom))
+                    .ToList()
             );
 
-            var keys = goalMirrorsDictionary.Keys.ToList();
+            // Step 1: Filter out Hub mirrors and remove duplicates based on (Destination, X, Y)
+            var filteredMirrorList = EightROMMirrors
+                .SelectMany(kvp => kvp.Value)
+                .Where(m => m.MirrorWarpType != Exits.Hub)
+                .GroupBy(m => (m.Destination, m.X, m.Y))  // Group by unique key
+                .Select(g => g.First())                   // Keep only the first from each group
+                .ToList();
 
-            for(int i = 0; i < keys.Count; i++) {
-                if(i % 2 == 0 && i > 0) bossMirrorIndex++;
+            // Step 2: Log mirrors
+            foreach (var mirror in filteredMirrorList) {
+                Console.WriteLine($"Warp 0x{mirror.InRoom:X} -> 0x{mirror.Destination:X}! X: {mirror.X} Y: {mirror.Y} Type: {mirror.MirrorWarpType}");
+            }
 
-                int key = keys[i];
+            // Step 3: Prepare shuffled mirror lists
+            List<Mirror> OneWayMirrors = Utils.Shuffle(filteredMirrorList.Where(m => m.MirrorWarpType == Exits.OneWay || m.MirrorWarpType == Exits.Boss).ToList());
+            int currentOneWayIndex = 0;
 
-                List<Mirror> goalMirrorsInRoom = goalMirrorsDictionary[key];
+            List<Mirror> TwoWayMirrors = Utils.Shuffle(filteredMirrorList.Where(m => m.MirrorWarpType == Exits.TwoWay).ToList());
+            int currentTwoWayIndex = 0;
 
-                Mirror bossMirror = bossMirrors[bossMirrorIndex];
+            Console.WriteLine(OneWayMirrors.Count);
+            Console.WriteLine(TwoWayMirrors.Count);
+            Console.WriteLine(filteredMirrorList.Count);
 
-                foreach(Mirror goalMirrorToReplace in goalMirrorsInRoom) {
-                    goalMirrorToReplace.Destination = bossMirror.Destination;
-                    goalMirrorToReplace.X = bossMirror.X;
-                    goalMirrorToReplace.Y = bossMirror.Y;
-                    goalMirrorToReplace.Facing = bossMirror.Facing;
-                    goalMirrorToReplace.Warp = bossMirror.Warp;
-                    goalMirrorToReplace.MirrorWarpType = bossMirror.MirrorWarpType;
+            int entries = 1;
 
-                    Utils.WriteMirrorToROM(goalMirrorToReplace);
+            foreach (int key in EightROMMirrors.Keys) {
+                List<Mirror> mirrorsInRoom = EightROMMirrors[key];
+
+                Mirror lastMirror = new Mirror("", -1, 0, 0, -1, -1);
+
+                foreach (Mirror mirror in mirrorsInRoom) {
+                    if (mirror.IsRandomized) continue;
+
+                    bool isLastMirrorValid = lastMirror.Destination != -1;
+                    bool isDifferentMirror = lastMirror.Destination != mirror.Destination && lastMirror.X != mirror.X && lastMirror.Y != mirror.Y;
+
+                    switch (mirror.MirrorWarpType) {
+                        case Exits.OneWay:
+                        case Exits.Boss:
+                            if(!isLastMirrorValid || isDifferentMirror) {
+                                Console.WriteLine($"{OneWayMirrors.Count}/{currentOneWayIndex} One-Way Mirrors Used");
+                                lastMirror = mirror;
+                                currentOneWayIndex++;
+                            }
+
+                            Mirror newMirror = new Mirror(mirror);
+                            Mirror randomMirror = OneWayMirrors[currentOneWayIndex];
+
+                            newMirror.Destination = randomMirror.Destination;
+                            newMirror.X = randomMirror.X;
+                            newMirror.Y = randomMirror.Y;
+                            newMirror.Facing = randomMirror.Facing;
+                            
+                            Utils.WriteMirrorToROM(newMirror);
+
+                            Console.WriteLine($"Warp 0x{mirror.InRoom:X} -> 0x{mirror.Destination:X}! X: {mirror.X} Y: {mirror.Y} Type: {mirror.MirrorWarpType}");
+                        break;
+                        
+                        case Exits.TwoWay:
+
+
+                        break;
+
+                        default: continue; break;
+                    }
                 }
             }
 
-            /*foreach(Mirror mirror in mirrors) {
-                Mirror newMirror = new Mirror(mirror);
 
-                Mirror randomMirror = mirrors[Utils.GetRandomNumber(0, mirrors.Count)];
+            /*foreach (int key in EightROMMirrors.Keys) {
+                List<Mirror> mirrorsInRoom = EightROMMirrors[key];
 
-                newMirror.Destination = randomMirror.Destination;
-                newMirror.X = randomMirror.X;
-                newMirror.Y = randomMirror.Y;
-                newMirror.Facing = randomMirror.Facing;
+                Mirror lastMirror = new Mirror("", -1, 0, 0, -1, -1);
 
-                Utils.WriteMirrorToROM(newMirror);
+                foreach (Mirror mirror in mirrorsInRoom) {
+                    if (mirror.IsRandomized) continue;
+
+                    bool isLastMirrorValid = lastMirror.Destination != -1;
+                    bool isDiferentMirror = lastMirror.Destination != mirror.Destination && lastMirror.X != mirror.X && lastMirror.Y != mirror.Y;
+
+                    switch (mirror.MirrorWarpType) {
+                        case Exits.OneWay:
+                        case Exits.Boss:
+                        try {
+                            if (!isLastMirrorValid || isDiferentMirror) {
+                                lastMirror = OneWayMirrors[currentOneWayIndex];
+                                currentOneWayIndex++;
+                                Console.WriteLine($"{OneWayMirrors.Count}/{currentOneWayIndex} One-Way Mirrors Used");
+                            }
+                        } catch {
+                            currentOneWayIndex++;
+                        }
+
+
+                        Mirror newMirror = new Mirror(mirror);
+                        newMirror.Destination = lastMirror.Destination;
+                        newMirror.X = lastMirror.X;
+                        newMirror.Y = lastMirror.Y;
+                        newMirror.Facing = lastMirror.Facing;
+
+                        Utils.WriteMirrorToROM(newMirror);
+
+                        //Console.WriteLine($"Warp 0x{mirror.InRoom:X} -> 0x{mirror.Destination:X}! X: {mirror.X} Y: {mirror.Y} Type: {mirror.MirrorWarpType}");
+                        break;
+
+                        case Exits.TwoWay:
+                        Mirror randomTwoWayMirror = TwoWayMirrors[currentTwoWayIndex];
+
+
+                        break;
+                    }
+                }
             }*/
+
+            // Swap Goal Mirrors for Boss Warp Mirrors;
+            /*bool isRandomizingMirrors = Settings.MirrorRandomization != GenerationOptions.Unchanged;
+
+            if (isRandomizingMirrors) RandomizeGoalMirrorsToBossMirrors();*/
         }
 
         int MirrorGetRoomID(byte[] mirrorData, string ROMSpace) {
@@ -438,6 +532,82 @@ namespace KatAM_Randomizer {
                 entity.Properties = shuffledEntity.Properties;
 
                 Utils.WriteObjectToROM(entity);
+            }
+        }
+
+        int goalMirrorIndex = 0;
+
+        void RandomizeGoalMirrorsToBossMirrors() {
+            bool isRandomizingGoalMirrors = Settings.GoalMirrorRandomization != GenerationOptions.Unchanged,
+                 isSettingGoalMirrorsAsBossRooms = Settings.GoalMirrorWarpTypeRandomization == GenerationOptions.Custom;
+
+            if(!isRandomizingGoalMirrors){
+                foreach(Mirror goalMirror in goalMirrors) {
+                    Utils.WriteMirrorToROM(goalMirror);
+                }
+
+                return;
+            }
+
+            Dictionary<int, List<Mirror>> goalMirrorsDictionary = goalMirrors
+                .GroupBy(mirror => mirror.InRoom) // Group mirrors by the `InRoom` property
+                .ToDictionary(
+                    group => group.Key,           // Key selector: the room number
+                    group => group.ToList()       // Value selector: list of mirrors in that room
+                );
+
+            var keys = goalMirrorsDictionary.Keys.ToList();
+
+            if (isSettingGoalMirrorsAsBossRooms) {
+                List<Mirror> shuffledBossMirrors = Utils.Shuffle(new List<Mirror>(bossMirrors));
+
+                // Removing the duplicate Kracko warp as there are 2;
+                Mirror duplicateKrackoWarp = shuffledBossMirrors.FirstOrDefault(x => x.Destination == 0x144);
+                shuffledBossMirrors.Remove(duplicateKrackoWarp);
+
+                for (int i = 0; i < keys.Count; i++) {
+                    if (i % 2 == 0 && i > 0) goalMirrorIndex++;
+
+                    int key = keys[i];
+
+                    List<Mirror> goalMirrorsInRoom = goalMirrorsDictionary[key];
+
+                    Mirror bossMirror = shuffledBossMirrors[goalMirrorIndex];
+
+                    foreach (Mirror goalMirrorToReplace in goalMirrorsInRoom) {
+                        goalMirrorToReplace.Destination = bossMirror.Destination;
+                        goalMirrorToReplace.X = bossMirror.X;
+                        goalMirrorToReplace.Y = bossMirror.Y;
+                        goalMirrorToReplace.Facing = bossMirror.Facing;
+                        goalMirrorToReplace.Warp = bossMirror.Warp;
+                        goalMirrorToReplace.MirrorWarpType = bossMirror.MirrorWarpType;
+
+                        Utils.WriteMirrorToROM(goalMirrorToReplace);
+                    }
+                }
+            } else {
+                List<Mirror> shuffledGoalRooms = Utils.Shuffle(new List<Mirror>(goalMirrors));
+
+                for (int i = 0; i < keys.Count; i++) {
+                    if (i % 2 == 0 && i > 0) goalMirrorIndex++;
+
+                    int key = keys[i];
+
+                    List<Mirror> goalMirrorsInRoom = goalMirrorsDictionary[key];
+
+                    Mirror goalMirror = shuffledGoalRooms[goalMirrorIndex];
+
+                    foreach (Mirror goalMirrorToReplace in goalMirrorsInRoom) {
+                        goalMirrorToReplace.Destination = goalMirror.Destination;
+                        goalMirrorToReplace.X = goalMirror.X;
+                        goalMirrorToReplace.Y = goalMirror.Y;
+                        goalMirrorToReplace.Facing = goalMirror.Facing;
+                        goalMirrorToReplace.Warp = goalMirror.Warp;
+                        goalMirrorToReplace.MirrorWarpType = goalMirror.MirrorWarpType;
+
+                        Utils.WriteMirrorToROM(goalMirrorToReplace);
+                    }
+                }
             }
         }
     }

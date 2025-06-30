@@ -142,6 +142,7 @@ namespace KatAMRandomizer
             new KatAMPropertiesManagement(system);
 
             // Randomize mirrors;
+            // Veto rooms without at least one exit for the first mirror;
             // Randomize HP values on Enemies;
             // Randomize HP values on Bosses;
             // Fix the way behaviors and speeds are loaded when including minibosses in enemy generation;
@@ -230,7 +231,7 @@ namespace KatAMRandomizer
         private void RadioMirrorShardsRandom_CheckedChanged(object sender, EventArgs e) {
             GroupMirrorShardsAmount.Enabled = false;
             settings.MirrorShardsGenerationType = GenerationOptions.Random;
-            settings.amountOfMirrorShardsToAdd = Utils.GetRandomNumber(1, 5);
+            settings.amountOfMirrorShardsToAdd = Utils.GetRandomRange(1, 5);
         }
 
         private void RadioMirrorShardsCustom_CheckedChanged(object sender, EventArgs e) {
@@ -626,34 +627,44 @@ namespace KatAMRandomizer
         private void RadioMirrorsUnchanged_CheckedChanged(object sender, EventArgs e) {
             GroupMirrorsGoalGameMirrors.Enabled = false;
             RadioGoalGameMirrorsUnchanged.Checked = true;
+            settings.MirrorRandomization = GenerationOptions.Unchanged;
+            settings.GoalMirrorRandomization = GenerationOptions.Unchanged;
+            settings.GoalMirrorWarpTypeRandomization = GenerationOptions.Unchanged;
         }
 
         private void RadioMirrorsShuffle_CheckedChanged(object sender, EventArgs e) {
             GroupMirrorsGoalGameMirrors.Enabled = true;
+            settings.MirrorRandomization = GenerationOptions.Shuffle;
         }
 
         private void RadioMirrorsRandom_CheckedChanged(object sender, EventArgs e) {
             GroupMirrorsGoalGameMirrors.Enabled = true;
+            settings.MirrorRandomization = GenerationOptions.Random;
         }
 
         private void RadioGoalGameMirrorsUnchanged_CheckedChanged(object sender, EventArgs e) {
             GroupGoalGameMirrorsWarpType.Enabled = false;
+            settings.GoalMirrorRandomization = GenerationOptions.Unchanged;
+            settings.GoalMirrorWarpTypeRandomization = GenerationOptions.Unchanged;
+            RadioWarpTypeShuffle.Checked = true;
         }
 
         private void RadioGoalGameMirrorsShuffle_CheckedChanged(object sender, EventArgs e) {
             GroupGoalGameMirrorsWarpType.Enabled = true;
+            settings.GoalMirrorRandomization = GenerationOptions.Shuffle;
         }
 
         private void RadioGoalGameMirrorsRandom_CheckedChanged(object sender, EventArgs e) {
             GroupGoalGameMirrorsWarpType.Enabled = true;
+            settings.GoalMirrorRandomization = GenerationOptions.Random;
         }
 
         private void RadioWarpTypeShuffle_CheckedChanged(object sender, EventArgs e) {
-
+            settings.GoalMirrorWarpTypeRandomization = GenerationOptions.Unchanged;
         }
 
         private void RadioWarpTypeCustom_CheckedChanged(object sender, EventArgs e) {
-
+            settings.GoalMirrorWarpTypeRandomization = GenerationOptions.Custom;
         }
     }
 }

@@ -206,7 +206,7 @@ namespace KatAM_Randomizer {
                     break;
 
                     case GenerationOptions.Random:
-                        int index = Utils.GetRandomNumber(0, abilities.Count);
+                        int index = Utils.GetRandomRange(0, abilities.Count);
 
                         properties.CopyAbility = abilities[index];
                     break;

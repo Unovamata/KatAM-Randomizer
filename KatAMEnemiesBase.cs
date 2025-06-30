@@ -80,14 +80,14 @@ namespace KatAMRandomizer {
                         else if(isRandomizingSelectEnemies) {
 
                             if(isRandomizingFlyingEnemiesIntelligently && flyingEnemyIDs.Contains(id)) {
-                                int flyingEnemyIndex = Utils.GetRandomNumber(0, flyingEnemyIDs.Count);
+                                int flyingEnemyIndex = Utils.GetRandomRange(0, flyingEnemyIDs.Count);
 
                                 entity.ID = flyingEnemyIDs[flyingEnemyIndex];
                                 isIDAssigned = true;
                             }
 
                             else if(isRandomizingUnderwaterEnemiesIntelligently && underwaterEnemyIDs.Contains(id)) {
-                                int underwaterEnemyIndex = Utils.GetRandomNumber(0, underwaterEnemyIDs.Count);
+                                int underwaterEnemyIndex = Utils.GetRandomRange(0, underwaterEnemyIDs.Count);
 
                                 entity.ID = underwaterEnemyIDs[underwaterEnemyIndex];
                                 isIDAssigned = true;
@@ -106,7 +106,7 @@ namespace KatAMRandomizer {
                                 entity.ID = allEntitiesIDs[i];
 
                                 do {
-                                    int rerollIndex = Utils.GetRandomNumber(0, availableEnemyIDs.Count);
+                                    int rerollIndex = Utils.GetRandomRange(0, availableEnemyIDs.Count);
 
                                     entity.ID = availableEnemyIDs[rerollIndex];
                                 } while(entity.ID == 0x34 || entity.ID == 0x10);
@@ -119,7 +119,7 @@ namespace KatAMRandomizer {
                         // Randomizing enemies;
                         case GenerationOptions.Random:
                             if(!isIDAssigned) {
-                                int idIndex = Utils.GetRandomNumber(0, availableEnemyIDs.Count);
+                                int idIndex = Utils.GetRandomRange(0, availableEnemyIDs.Count);
 
                                 entity.ID = availableEnemyIDs[idIndex];
                             }
@@ -137,7 +137,7 @@ namespace KatAMRandomizer {
                             bool canSpawnMiniboss = Utils.Dice(1, 20) == 1;
 
                             if(canSpawnMiniboss) {
-                                int selectedMinibossIndex = Utils.GetRandomNumber(0, minibosses.Count);
+                                int selectedMinibossIndex = Utils.GetRandomRange(0, minibosses.Count);
                                 Entity miniboss = minibosses[selectedMinibossIndex];
 
                                 entity.ID = miniboss.ID;
@@ -154,7 +154,7 @@ namespace KatAMRandomizer {
                 if(isRandomizingSpeed) {
                     if(speedDictionary.ContainsKey(entity.ID)) {
                         List<byte> availableEnemySpeeds = speedDictionary[entity.ID];
-                        int speedsIndex = Utils.GetRandomNumber(0, availableEnemySpeeds.Count);
+                        int speedsIndex = Utils.GetRandomRange(0, availableEnemySpeeds.Count);
 
                         entity.Speed = availableEnemySpeeds[speedsIndex];
                     }
@@ -164,7 +164,7 @@ namespace KatAMRandomizer {
                 if(isRandomizingBehaviors) {
                     if(behaviorDictionary.ContainsKey(entity.ID)) {
                         List<byte> availableEnemyBehaviors = behaviorDictionary[entity.ID];
-                        int behaviorIndex = Utils.GetRandomNumber(0, availableEnemyBehaviors.Count);
+                        int behaviorIndex = Utils.GetRandomRange(0, availableEnemyBehaviors.Count);
 
                         entity.Behavior = availableEnemyBehaviors[behaviorIndex];
                     }

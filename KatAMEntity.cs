@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 public class Entity {
     public string Name { get; set; }
@@ -149,6 +150,7 @@ public enum Exits {
     OneWay = 1,
     Goal = 2,
     Boss = 3,
+    Hub = 4,
 }
 
 public class Mirror {
@@ -162,6 +164,7 @@ public class Mirror {
     public Mirror Warp { get; set; }
     public string MirrorData { get; set; }
     public Exits MirrorWarpType { get; set; }
+    public bool IsRandomized { get; set; }
 
     public Mirror(string addressType, long address, byte x, byte y, int inRoom, int destination) {
         switch(addressType) {
@@ -172,6 +175,7 @@ public class Mirror {
         Y = y;
         InRoom = inRoom;
         Destination = destination;
+        IsRandomized = false;
     }
 
     public Mirror(Mirror mirror) {
@@ -185,5 +189,16 @@ public class Mirror {
         Warp = mirror.Warp;
         MirrorData = mirror.MirrorData;
         MirrorWarpType = mirror.MirrorWarpType;
+        IsRandomized = mirror.IsRandomized;
+    }
+
+    public void UpdateWarpData(Mirror mirror) {
+        IsRandomized = true;
+        Warp = mirror;
+        Warp.X = mirror.X;
+        Warp.Y = mirror.Y;
+        Warp.Facing = mirror.Facing;
+        Warp.Destination = mirror.Destination;
+        Warp.IsRandomized = true;
     }
 }

@@ -7,6 +7,7 @@ using System.Net;
 using System.DirectoryServices.ActiveDirectory;
 using System.Reflection;
 using Newtonsoft.Json.Linq;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace KatAMInternal
 {
@@ -420,6 +421,9 @@ namespace KatAMInternal
         public int Seed { get; set; }
         public int MinSeed = -9999999, MaxSeed = 9999999;
         public bool IsRace { get; set; }
+        public GenerationOptions MirrorRandomization { get; set; }
+        public GenerationOptions GoalMirrorRandomization { get; set; }
+        public GenerationOptions GoalMirrorWarpTypeRandomization { get; set; }
         public GenerationOptions WarpStarsGenerationType { get; set; }
         public GenerationOptions FuseCannonsGenerationType { get; set; }
         public GenerationOptions ConsumablesGenerationType { get; set; }
@@ -556,7 +560,7 @@ namespace KatAMInternal
             return settings.RandomEntity.Next();
         }
 
-        public static int GetRandomNumber(int min, int max) {
+        public static int GetRandomRange(int min, int max) {
             Settings settings = Settings.GetInstance();
 
             return settings.RandomEntity.Next(min, max);
@@ -768,17 +772,43 @@ namespace KatAMInternal
         }
 
         // IsVetoedRoom(); Check if the room is not feasible for randomization;
-        public static bool IsVetoedRoom(Entity entity) {
-            int room = entity.Room;
-
-            // Banned rooms like debug, boss endurance, or final boss rooms;
-            HashSet<int> vetoedRooms = new HashSet<int>{
+        // Banned rooms like debug, boss endurance, or final boss rooms;
+        static HashSet<int> vetoedEntityRooms = new HashSet<int>{
                 0x0, 0x38D, 0x38E, 0x38F, 0x390, 0x391, 0x392, 0x393,
                 0x394, 0x396, 0x397, 0x3B6, 0x3B7, 0x3BB, 0x3BC,
                 0x3BD, 0x3C9, 0x3CA
-            };
+        };
 
-            return vetoedRooms.Contains(room);
+        public static bool IsVetoedEntityRoom(Entity entity) {
+            int room = entity.Room;
+            bool isVetoedRoom = false;
+
+            try { isVetoedRoom = vetoedEntityRooms.Contains(room); } catch { }
+
+            return isVetoedRoom;
+        }
+
+        // Hub mirrors;
+        static HashSet<int> vetoedRooms = new HashSet<int>{
+                0x321, 0x323, 0x324, 0x325, 0x24E, 0xBE, 0xC2, 0xC0,
+                0x316, 0x122, 0x123, 0x186, 0x1EA, 0x24F, 0xBF, 0x37A, 0x250,
+                0x2B2, 0xC1, 0x2E0
+        };
+
+        public static void UniteVetoedRoomHashSets() {
+            vetoedRooms.UnionWith(vetoedEntityRooms);
+        }
+
+        public static bool IsVetoedRoom(Mirror mirror) {
+            bool isVetoedRoom = false;
+            
+            try { isVetoedRoom = vetoedRooms.Contains(mirror.Destination); } catch { }
+
+            return isVetoedRoom;
+        }
+
+        public static bool IsVetoedRoom(int destination) {
+            return vetoedRooms.Contains(destination);
         }
 
         public static byte Nothing = 0x2C;

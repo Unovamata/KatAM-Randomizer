@@ -46,7 +46,7 @@ namespace KatAMRandomizer
 
             // Injecting the color palettes in the ROM;
             for (int x = 0; x < 14; x++) {
-                int spraySelected = Utils.GetRandomNumber(0, presetSprays.Count);
+                int spraySelected = Utils.GetRandomRange(0, presetSprays.Count);
 
                 if (x < 13) {
                     byte[] kirbySupportPalette;
@@ -80,7 +80,7 @@ namespace KatAMRandomizer
                         break;
 
                         case GenerationOptions.RandomAndPresets:
-                        int choice = Utils.GetRandomNumber(0, 6);
+                        int choice = Utils.GetRandomRange(0, 6);
 
                         if (choice == 0) kirbyRandomColorPalette = presetSprays[spraySelected];
                         else kirbyRandomColorPalette = RandomizePalette();
@@ -167,9 +167,9 @@ namespace KatAMRandomizer
             List<int[]> bodyColors = selectedPalette.GetRange(0, 8);
 
             // Creating a HSV tone to color the pixels;
-            int bodyH = Utils.GetRandomNumber(0, 360),
+            int bodyH = Utils.GetRandomRange(0, 360),
             bodyS = 0, //Utils.GetRandomNumber(random, 0, 0),
-            bodyV = Utils.GetRandomNumber(-10, -10);
+            bodyV = Utils.GetRandomRange(-10, -10);
 
             // Coloring the body color palette;
             List<byte> bodyPalette = AdjustHSV(bodyColors, bodyH, bodyS, bodyV, true);
@@ -178,9 +178,9 @@ namespace KatAMRandomizer
             List<int[]> shoesAndCheeksColors = selectedPalette.GetRange(8, 3);
 
             // Creating a HSV tone to color the pixels;
-            int shoesH = Utils.GetRandomNumber(0, 360),
+            int shoesH = Utils.GetRandomRange(0, 360),
             shoesS = 0, //Utils.GetRandomNumber(random, 0, 0),
-            shoesV = Utils.GetRandomNumber(-30, -10);
+            shoesV = Utils.GetRandomRange(-30, -10);
 
             // Coloring the body color palette;
             List<byte> shoesPalette = AdjustHSV(shoesAndCheeksColors, shoesH, shoesS, shoesV);

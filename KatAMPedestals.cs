@@ -95,7 +95,7 @@ namespace KatAMRandomizer
             for (int i = 0; i < entities.Count; i++) {
                 Entity entity = entities[i];
 
-                if (Utils.IsVetoedRoom(entity)) continue;
+                if (Utils.IsVetoedEntityRoom(entity)) continue;
 
                 switch (pedestalsOptions) {
                     case GenerationOptions.Shuffle:
@@ -120,7 +120,7 @@ namespace KatAMRandomizer
 
                     // Unlock Path Abilities Only;
                     case GenerationOptions.Presets:
-                        int randomIndex = Utils.GetRandomNumber(0, unlockPathAbilities.Count);
+                        int randomIndex = Utils.GetRandomRange(0, unlockPathAbilities.Count);
                         KeyValuePair<byte, byte> kvp = unlockPathAbilities[randomIndex];
 
                         entity.ID = kvp.Key;
@@ -140,7 +140,7 @@ namespace KatAMRandomizer
         }
 
         void SelectRandomPedestalAbility(Entity entity) {
-            int selectedPedestal = Utils.GetRandomNumber(0, maxIndex);
+            int selectedPedestal = Utils.GetRandomRange(0, maxIndex);
             byte selectedID = 0, selectedAbility = 0;
 
             switch (selectedPedestal) {
@@ -160,7 +160,7 @@ namespace KatAMRandomizer
 
                         if (isAddingRandomPedestal) unbannedPedestals.Add(0x96);
 
-                        selectedPedestal = Utils.GetRandomNumber(0, unbannedPedestals.Count);
+                        selectedPedestal = Utils.GetRandomRange(0, unbannedPedestals.Count);
                         selectedID = unbannedPedestals[selectedPedestal];
 
                         switch (selectedID) {
@@ -202,7 +202,7 @@ namespace KatAMRandomizer
         }
 
         byte SelectPedestalAbility(List<byte> list) {
-            int index = (byte) Utils.GetRandomNumber(0, list.Count);
+            int index = (byte) Utils.GetRandomRange(0, list.Count);
 
             return list[index];
         }
