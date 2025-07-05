@@ -369,7 +369,6 @@ namespace KatAM_Randomizer {
             // Step 1: Filter out Hub mirrors and remove duplicates based on (Destination, X, Y)
             var filteredMirrorList = EightROMMirrors
                 .SelectMany(kvp => kvp.Value)
-                .Where(m => m.MirrorWarpType != Exits.Hub)
                 .GroupBy(m => (m.Destination, m.X, m.Y))  // Group by unique key
                 .Select(g => g.First())                   // Keep only the first from each group
                 .ToList();
@@ -434,52 +433,6 @@ namespace KatAM_Randomizer {
                     }
                 }
             }
-
-
-            /*foreach (int key in EightROMMirrors.Keys) {
-                List<Mirror> mirrorsInRoom = EightROMMirrors[key];
-
-                Mirror lastMirror = new Mirror("", -1, 0, 0, -1, -1);
-
-                foreach (Mirror mirror in mirrorsInRoom) {
-                    if (mirror.IsRandomized) continue;
-
-                    bool isLastMirrorValid = lastMirror.Destination != -1;
-                    bool isDiferentMirror = lastMirror.Destination != mirror.Destination && lastMirror.X != mirror.X && lastMirror.Y != mirror.Y;
-
-                    switch (mirror.MirrorWarpType) {
-                        case Exits.OneWay:
-                        case Exits.Boss:
-                        try {
-                            if (!isLastMirrorValid || isDiferentMirror) {
-                                lastMirror = OneWayMirrors[currentOneWayIndex];
-                                currentOneWayIndex++;
-                                Console.WriteLine($"{OneWayMirrors.Count}/{currentOneWayIndex} One-Way Mirrors Used");
-                            }
-                        } catch {
-                            currentOneWayIndex++;
-                        }
-
-
-                        Mirror newMirror = new Mirror(mirror);
-                        newMirror.Destination = lastMirror.Destination;
-                        newMirror.X = lastMirror.X;
-                        newMirror.Y = lastMirror.Y;
-                        newMirror.Facing = lastMirror.Facing;
-
-                        Utils.WriteMirrorToROM(newMirror);
-
-                        //Console.WriteLine($"Warp 0x{mirror.InRoom:X} -> 0x{mirror.Destination:X}! X: {mirror.X} Y: {mirror.Y} Type: {mirror.MirrorWarpType}");
-                        break;
-
-                        case Exits.TwoWay:
-                        Mirror randomTwoWayMirror = TwoWayMirrors[currentTwoWayIndex];
-
-
-                        break;
-                    }
-                }
-            }*/
 
             // Swap Goal Mirrors for Boss Warp Mirrors;
             /*bool isRandomizingMirrors = Settings.MirrorRandomization != GenerationOptions.Unchanged;
