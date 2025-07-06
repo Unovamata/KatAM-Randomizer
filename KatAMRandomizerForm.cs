@@ -127,6 +127,10 @@ namespace KatAMRandomizer
 
         // Randomize (Save);
         private void ButtonSaveFile_Click(object sender, EventArgs e) {
+            byte[] fileContents = File.ReadAllBytes(system.ROMPath);
+            Processing.ROMData = new byte[fileContents.Length];
+            Array.Copy(fileContents, Processing.ROMData, fileContents.Length);
+
             string newFileName = "KatAM.gba",
             destinationPath = Path.Combine(system.ROMDirectory, newFileName);
             settings.RandomEntity = new Random(settings.Seed);
