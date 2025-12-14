@@ -165,6 +165,7 @@ public class Mirror {
     public string MirrorData { get; set; }
     public Exits MirrorWarpType { get; set; }
     public bool IsRandomized { get; set; }
+    public int Occurrences { get; set; }
 
     public Mirror(string addressType, long address, byte x, byte y, int inRoom, int destination) {
         switch(addressType) {
@@ -192,13 +193,19 @@ public class Mirror {
         IsRandomized = mirror.IsRandomized;
     }
 
-    public void UpdateWarpData(Mirror mirror) {
+    public void SetRandomizedFlag(){
         IsRandomized = true;
-        Warp = mirror;
-        Warp.X = mirror.X;
-        Warp.Y = mirror.Y;
-        Warp.Facing = mirror.Facing;
-        Warp.Destination = mirror.Destination;
-        Warp.IsRandomized = true;
+    }
+
+    public void UpdateMirrorData(Mirror mirror) {
+        IsRandomized = true;
+        X = mirror.X;
+        Y = mirror.Y;
+        Destination = mirror.Destination;
+        Facing = mirror.Facing;
+    }
+
+    public static Mirror NullMirror() {
+        return new Mirror("", -1, 0, 0, -1, -1);
     }
 }

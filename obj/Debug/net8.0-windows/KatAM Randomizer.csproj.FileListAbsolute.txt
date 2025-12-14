@@ -56,3 +56,24 @@ C:\Users\Bryan\Documents\GitHub\KatAM-Randomizer\obj\Debug\net8.0-windows\refint
 C:\Users\Bryan\Documents\GitHub\KatAM-Randomizer\obj\Debug\net8.0-windows\KatAM Randomizer.pdb
 C:\Users\Bryan\Documents\GitHub\KatAM-Randomizer\obj\Debug\net8.0-windows\KatAM Randomizer.genruntimeconfig.cache
 C:\Users\Bryan\Documents\GitHub\KatAM-Randomizer\obj\Debug\net8.0-windows\ref\KatAM Randomizer.dll
+D:\Users\Bryan\Documents\GitHub\KatAM-Randomizer\bin\Debug\net8.0-windows\KatAM Randomizer.exe
+D:\Users\Bryan\Documents\GitHub\KatAM-Randomizer\bin\Debug\net8.0-windows\KatAM Randomizer.deps.json
+D:\Users\Bryan\Documents\GitHub\KatAM-Randomizer\bin\Debug\net8.0-windows\KatAM Randomizer.runtimeconfig.json
+D:\Users\Bryan\Documents\GitHub\KatAM-Randomizer\bin\Debug\net8.0-windows\KatAM Randomizer.dll
+D:\Users\Bryan\Documents\GitHub\KatAM-Randomizer\bin\Debug\net8.0-windows\KatAM Randomizer.pdb
+D:\Users\Bryan\Documents\GitHub\KatAM-Randomizer\bin\Debug\net8.0-windows\Newtonsoft.Json.dll
+D:\Users\Bryan\Documents\GitHub\KatAM-Randomizer\obj\Debug\net8.0-windows\KatAM Randomizer.csproj.AssemblyReference.cache
+D:\Users\Bryan\Documents\GitHub\KatAM-Randomizer\obj\Debug\net8.0-windows\KatAMRandomizer.KatAMRandomizerMain.resources
+D:\Users\Bryan\Documents\GitHub\KatAM-Randomizer\obj\Debug\net8.0-windows\KatAMRandomizer.SeedInputForm.resources
+D:\Users\Bryan\Documents\GitHub\KatAM-Randomizer\obj\Debug\net8.0-windows\KatAM Randomizer.csproj.GenerateResource.cache
+D:\Users\Bryan\Documents\GitHub\KatAM-Randomizer\obj\Debug\net8.0-windows\KatAM Randomizer.GeneratedMSBuildEditorConfig.editorconfig
+D:\Users\Bryan\Documents\GitHub\KatAM-Randomizer\obj\Debug\net8.0-windows\KatAM Randomizer.AssemblyInfoInputs.cache
+D:\Users\Bryan\Documents\GitHub\KatAM-Randomizer\obj\Debug\net8.0-windows\KatAM Randomizer.AssemblyInfo.cs
+D:\Users\Bryan\Documents\GitHub\KatAM-Randomizer\obj\Debug\net8.0-windows\KatAM Randomizer.csproj.CoreCompileInputs.cache
+D:\Users\Bryan\Documents\GitHub\KatAM-Randomizer\obj\Debug\net8.0-windows\KatAM Randomizer.sourcelink.json
+D:\Users\Bryan\Documents\GitHub\KatAM-Randomizer\obj\Debug\net8.0-windows\KatAM Ra.FEB5789B.Up2Date
+D:\Users\Bryan\Documents\GitHub\KatAM-Randomizer\obj\Debug\net8.0-windows\KatAM Randomizer.dll
+D:\Users\Bryan\Documents\GitHub\KatAM-Randomizer\obj\Debug\net8.0-windows\refint\KatAM Randomizer.dll
+D:\Users\Bryan\Documents\GitHub\KatAM-Randomizer\obj\Debug\net8.0-windows\KatAM Randomizer.pdb
+D:\Users\Bryan\Documents\GitHub\KatAM-Randomizer\obj\Debug\net8.0-windows\KatAM Randomizer.genruntimeconfig.cache
+D:\Users\Bryan\Documents\GitHub\KatAM-Randomizer\obj\Debug\net8.0-windows\ref\KatAM Randomizer.dll
