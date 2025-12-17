@@ -111,6 +111,14 @@ namespace KatAMInternal
             0x3B7, 0x3BB, 0x3BC, 0x3BD, 0x3C9, 0x0, 0x3CA,
         };
 
+        // Check 2E0 room;
+        // 0x2DA is kind of a wildcard;
+        public static List<int> UnsafeMirrors = new List<int>{
+            0xB4, 0xB5, 0x6B, 0x6C, 0x94, 0x2C5, 0x2E5, 0xE8,
+            0xD9, 0x12C, 0x13B, 0x142, 0x193, 0x1A3, 0x84, 0x85,
+            0x338, 0x26F, 0x26B, 0x2DE,
+        };
+
         // https://www.tapatalk.com/groups/lighthouse_of_yoshi/kirby-and-the-amazing-mirror-hacking-t741.html
         /*Data(Enemy Name, Ability (Default: true), Is Inhalable? (Default: true))*/
         public static Dictionary<byte, Data> enemiesDictionary = new Dictionary<byte, Data>{

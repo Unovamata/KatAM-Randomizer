@@ -145,12 +145,18 @@ public class Data {
     }
 }
 
-public enum Exits {
+public enum ExitType {
     TwoWay = 0,
     OneWay = 1,
     Goal = 2,
     Boss = 3,
     Hub = 4,
+}
+
+public enum ExitSafety {
+    Safe = 0,
+    DeadEnd = 1,
+    Vetoed = 2,
 }
 
 public class Mirror {
@@ -163,7 +169,9 @@ public class Mirror {
     public byte Facing { get; set; }
     public Mirror Warp { get; set; }
     public string MirrorData { get; set; }
-    public Exits MirrorWarpType { get; set; }
+    public List<Mirror> Exits { get; set; } = new List<Mirror>();
+    public ExitType ExitType { get; set; }
+    public ExitSafety ExitSafety { get; set; }
     public bool IsRandomized { get; set; }
     public int Occurrences { get; set; }
 
@@ -189,7 +197,7 @@ public class Mirror {
         Facing = mirror.Facing;
         Warp = mirror.Warp;
         MirrorData = mirror.MirrorData;
-        MirrorWarpType = mirror.MirrorWarpType;
+        ExitType = mirror.ExitType;
         IsRandomized = mirror.IsRandomized;
     }
 
@@ -203,6 +211,7 @@ public class Mirror {
         Y = mirror.Y;
         Destination = mirror.Destination;
         Facing = mirror.Facing;
+        Exits = mirror.Exits;
     }
 
     public static Mirror NullMirror() {
