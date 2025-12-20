@@ -172,8 +172,7 @@ public class Mirror {
     public List<Mirror> Exits { get; set; } = new List<Mirror>();
     public ExitType ExitType { get; set; }
     public ExitSafety ExitSafety { get; set; }
-    public bool IsRandomized { get; set; }
-    public int Occurrences { get; set; }
+    public bool IsQueued { get; set; }
 
     public Mirror(string addressType, long address, byte x, byte y, int inRoom, int destination) {
         switch(addressType) {
@@ -184,7 +183,6 @@ public class Mirror {
         Y = y;
         InRoom = inRoom;
         Destination = destination;
-        IsRandomized = false;
     }
 
     public Mirror(Mirror mirror) {
@@ -198,20 +196,25 @@ public class Mirror {
         Warp = mirror.Warp;
         MirrorData = mirror.MirrorData;
         ExitType = mirror.ExitType;
-        IsRandomized = mirror.IsRandomized;
+        Exits = mirror.Exits;
     }
 
-    public void SetRandomizedFlag(){
-        IsRandomized = true;
+    public void SetQueuedFlag(){
+        IsQueued = true;
+    }
+
+    public bool GetQueuedFlag() {
+        return IsQueued;
     }
 
     public void UpdateMirrorData(Mirror mirror) {
-        IsRandomized = true;
+        IsQueued = true;
         X = mirror.X;
         Y = mirror.Y;
         Destination = mirror.Destination;
         Facing = mirror.Facing;
         Exits = mirror.Exits;
+        MirrorData = mirror.MirrorData;
     }
 
     public static Mirror NullMirror() {

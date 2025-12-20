@@ -36,7 +36,6 @@
             button6 = new Button();
             GroupSettings = new GroupBox();
             CheckboxOptionsSpoilerLog = new CheckBox();
-            CheckboxOptionsRace = new CheckBox();
             LabelSeed = new Label();
             GroupRomInfo = new GroupBox();
             LabelStability = new Label();
@@ -55,6 +54,7 @@
             RadioWarpsStarsShuffle = new RadioButton();
             RadioWarpsStarsUnchanged = new RadioButton();
             GroupMirrors = new GroupBox();
+            Checkbox8WayCannonStart = new CheckBox();
             GroupMirrorsGoalGameMirrors = new GroupBox();
             GroupGoalGameMirrorsWarpType = new GroupBox();
             RadioWarpTypeCustom = new RadioButton();
@@ -210,6 +210,7 @@
             ButtonRefreshSeed = new Button();
             StatusStripRandomizer = new StatusStrip();
             StatusLabel = new ToolStripStatusLabel();
+            toolStripProgressBar1 = new ToolStripProgressBar();
             GroupSettings.SuspendLayout();
             GroupRomInfo.SuspendLayout();
             tabControl1.SuspendLayout();
@@ -331,7 +332,6 @@
             // GroupSettings
             // 
             GroupSettings.Controls.Add(CheckboxOptionsSpoilerLog);
-            GroupSettings.Controls.Add(CheckboxOptionsRace);
             GroupSettings.Controls.Add(button6);
             GroupSettings.Controls.Add(button5);
             GroupSettings.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
@@ -348,25 +348,13 @@
             // 
             CheckboxOptionsSpoilerLog.AutoSize = true;
             CheckboxOptionsSpoilerLog.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            CheckboxOptionsSpoilerLog.Location = new Point(9, 78);
+            CheckboxOptionsSpoilerLog.Location = new Point(9, 34);
             CheckboxOptionsSpoilerLog.Margin = new Padding(4, 5, 4, 5);
             CheckboxOptionsSpoilerLog.Name = "CheckboxOptionsSpoilerLog";
             CheckboxOptionsSpoilerLog.Size = new Size(128, 29);
             CheckboxOptionsSpoilerLog.TabIndex = 13;
             CheckboxOptionsSpoilerLog.Text = "Spoiler Log";
             CheckboxOptionsSpoilerLog.UseVisualStyleBackColor = true;
-            // 
-            // CheckboxOptionsRace
-            // 
-            CheckboxOptionsRace.AutoSize = true;
-            CheckboxOptionsRace.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            CheckboxOptionsRace.Location = new Point(9, 37);
-            CheckboxOptionsRace.Margin = new Padding(4, 5, 4, 5);
-            CheckboxOptionsRace.Name = "CheckboxOptionsRace";
-            CheckboxOptionsRace.Size = new Size(127, 29);
-            CheckboxOptionsRace.TabIndex = 12;
-            CheckboxOptionsRace.Text = "Race Mode";
-            CheckboxOptionsRace.UseVisualStyleBackColor = true;
             // 
             // LabelSeed
             // 
@@ -489,11 +477,11 @@
             // 
             tabPage1.Controls.Add(GroupWarps);
             tabPage1.Controls.Add(GroupMirrors);
-            tabPage1.Location = new Point(4, 24);
+            tabPage1.Location = new Point(4, 29);
             tabPage1.Margin = new Padding(4, 5, 4, 5);
             tabPage1.Name = "tabPage1";
             tabPage1.Padding = new Padding(4, 5, 4, 5);
-            tabPage1.Size = new Size(1206, 569);
+            tabPage1.Size = new Size(1206, 564);
             tabPage1.TabIndex = 0;
             tabPage1.Text = "Mirrors";
             tabPage1.UseVisualStyleBackColor = true;
@@ -596,6 +584,7 @@
             // 
             // GroupMirrors
             // 
+            GroupMirrors.Controls.Add(Checkbox8WayCannonStart);
             GroupMirrors.Controls.Add(GroupMirrorsGoalGameMirrors);
             GroupMirrors.Controls.Add(RadioMirrorsRandom);
             GroupMirrors.Controls.Add(RadioMirrorsShuffle);
@@ -609,6 +598,20 @@
             GroupMirrors.TabIndex = 3;
             GroupMirrors.TabStop = false;
             GroupMirrors.Text = "Mirrors";
+            // 
+            // Checkbox8WayCannonStart
+            // 
+            Checkbox8WayCannonStart.AutoSize = true;
+            Checkbox8WayCannonStart.Enabled = false;
+            Checkbox8WayCannonStart.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            Checkbox8WayCannonStart.Location = new Point(14, 201);
+            Checkbox8WayCannonStart.Margin = new Padding(4, 5, 4, 5);
+            Checkbox8WayCannonStart.Name = "Checkbox8WayCannonStart";
+            Checkbox8WayCannonStart.Size = new Size(302, 29);
+            Checkbox8WayCannonStart.TabIndex = 6;
+            Checkbox8WayCannonStart.Text = "Carrot Castle 8-Way Cannon Start";
+            Checkbox8WayCannonStart.UseVisualStyleBackColor = true;
+            Checkbox8WayCannonStart.CheckedChanged += Checkbox8WayCannonStart_CheckedChanged;
             // 
             // GroupMirrorsGoalGameMirrors
             // 
@@ -1237,11 +1240,11 @@
             // 
             tabPage3.Controls.Add(GroupEnemiesProperties);
             tabPage3.Controls.Add(GroupEnemies);
-            tabPage3.Location = new Point(4, 24);
+            tabPage3.Location = new Point(4, 29);
             tabPage3.Margin = new Padding(4, 5, 4, 5);
             tabPage3.Name = "tabPage3";
             tabPage3.Padding = new Padding(4, 5, 4, 5);
-            tabPage3.Size = new Size(1206, 569);
+            tabPage3.Size = new Size(1206, 564);
             tabPage3.TabIndex = 2;
             tabPage3.Text = "Enemies";
             tabPage3.UseVisualStyleBackColor = true;
@@ -1722,11 +1725,11 @@
             // 
             tabPage4.Controls.Add(groupBox1);
             tabPage4.Controls.Add(GroupMinibosses);
-            tabPage4.Location = new Point(4, 24);
+            tabPage4.Location = new Point(4, 29);
             tabPage4.Margin = new Padding(4, 5, 4, 5);
             tabPage4.Name = "tabPage4";
             tabPage4.Padding = new Padding(4, 5, 4, 5);
-            tabPage4.Size = new Size(1206, 569);
+            tabPage4.Size = new Size(1206, 564);
             tabPage4.TabIndex = 3;
             tabPage4.Text = "Mini-Bosses";
             tabPage4.UseVisualStyleBackColor = true;
@@ -2133,11 +2136,11 @@
             tabPage5.Controls.Add(groupBox3);
             tabPage5.Controls.Add(GroupEnemiesPropertiesInhaleAbility);
             tabPage5.Controls.Add(GroupAbilityPedestals);
-            tabPage5.Location = new Point(4, 24);
+            tabPage5.Location = new Point(4, 29);
             tabPage5.Margin = new Padding(4, 5, 4, 5);
             tabPage5.Name = "tabPage5";
             tabPage5.Padding = new Padding(4, 5, 4, 5);
-            tabPage5.Size = new Size(1206, 569);
+            tabPage5.Size = new Size(1206, 564);
             tabPage5.TabIndex = 4;
             tabPage5.Text = "Abilities";
             tabPage5.UseVisualStyleBackColor = true;
@@ -2494,11 +2497,11 @@
             // 
             TabMiscellaneous.Controls.Add(GroupMapElements);
             TabMiscellaneous.Controls.Add(GroupMiscSprayPalettes);
-            TabMiscellaneous.Location = new Point(4, 24);
+            TabMiscellaneous.Location = new Point(4, 29);
             TabMiscellaneous.Margin = new Padding(4, 5, 4, 5);
             TabMiscellaneous.Name = "TabMiscellaneous";
             TabMiscellaneous.Padding = new Padding(4, 5, 4, 5);
-            TabMiscellaneous.Size = new Size(1206, 569);
+            TabMiscellaneous.Size = new Size(1206, 564);
             TabMiscellaneous.TabIndex = 5;
             TabMiscellaneous.Text = "Miscellaneous";
             TabMiscellaneous.UseVisualStyleBackColor = true;
@@ -2713,10 +2716,10 @@
             // 
             // tabPage6
             // 
-            tabPage6.Location = new Point(4, 24);
+            tabPage6.Location = new Point(4, 29);
             tabPage6.Margin = new Padding(4, 5, 4, 5);
             tabPage6.Name = "tabPage6";
-            tabPage6.Size = new Size(1206, 569);
+            tabPage6.Size = new Size(1206, 564);
             tabPage6.TabIndex = 6;
             tabPage6.Text = "Credits";
             tabPage6.UseVisualStyleBackColor = true;
@@ -2736,18 +2739,24 @@
             // StatusStripRandomizer
             // 
             StatusStripRandomizer.ImageScalingSize = new Size(24, 24);
-            StatusStripRandomizer.Items.AddRange(new ToolStripItem[] { StatusLabel });
-            StatusStripRandomizer.Location = new Point(0, 891);
+            StatusStripRandomizer.Items.AddRange(new ToolStripItem[] { StatusLabel, toolStripProgressBar1 });
+            StatusStripRandomizer.Location = new Point(0, 885);
             StatusStripRandomizer.Name = "StatusStripRandomizer";
             StatusStripRandomizer.Padding = new Padding(1, 0, 20, 0);
-            StatusStripRandomizer.Size = new Size(1249, 22);
+            StatusStripRandomizer.Size = new Size(1249, 28);
             StatusStripRandomizer.SizingGrip = false;
             StatusStripRandomizer.TabIndex = 13;
             // 
             // StatusLabel
             // 
             StatusLabel.Name = "StatusLabel";
-            StatusLabel.Size = new Size(0, 15);
+            StatusLabel.Size = new Size(0, 21);
+            // 
+            // toolStripProgressBar1
+            // 
+            toolStripProgressBar1.Margin = new Padding(4, 4, 2, 4);
+            toolStripProgressBar1.Name = "toolStripProgressBar1";
+            toolStripProgressBar1.Size = new Size(100, 20);
             // 
             // KatAMRandomizerMain
             // 
@@ -2868,7 +2877,6 @@
         private TabPage tabPage5;
         private TabPage TabMiscellaneous;
         private Label LabelGameRegion;
-        private CheckBox CheckboxOptionsRace;
         private GroupBox GroupMiscSprayPalettes;
         private RadioButton RadioSprayUnchanged;
         private RadioButton RadioSprayRandom;
@@ -3032,5 +3040,7 @@
         private GroupBox GroupGoalGameMirrorsWarpType;
         private RadioButton RadioWarpTypeCustom;
         private RadioButton RadioWarpTypeShuffle;
+        private CheckBox Checkbox8WayCannonStart;
+        private ToolStripProgressBar toolStripProgressBar1;
     }
 }

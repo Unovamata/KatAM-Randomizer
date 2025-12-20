@@ -39,7 +39,7 @@ namespace KatAMRandomizer
             fileDialog.FilterIndex = 1;
             fileDialog.RestoreDirectory = true;
 
-            if(fileDialog.ShowDialog() == DialogResult.OK) {
+            if (fileDialog.ShowDialog() == DialogResult.OK) {
                 try {
                     string filePath = fileDialog.FileName;
                     system.ROMPath = filePath;
@@ -72,7 +72,7 @@ namespace KatAMRandomizer
 
                     string region = "";
 
-                    switch(gameId) {
+                    switch (gameId) {
                         // Japanese Version;
                         case "AGB-B8KJ":
                             region = "(JAP)";
@@ -115,8 +115,7 @@ namespace KatAMRandomizer
                     LabelCompatibility.Visible = true;
                     LabelStability.Visible = true;
                     UpdateLabelSeedText();
-                }
-                catch(Exception ex) {
+                } catch (Exception ex) {
                     MessageBox.Show($"Error loading file: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
@@ -136,10 +135,10 @@ namespace KatAMRandomizer
             settings.RandomEntity = new Random(settings.Seed);
 
             new KatAMROMReader(system);
+            new KatAMEnemies(system);
             new KatAMMirrors(system);
             new KatAMSprays(system);
             new KatAMPedestals(system);
-            new KatAMEnemies(system);
             new KatAMMinibosses(system);
             new KatAMMapElements(system);
             new KatAMItems(system);
@@ -150,6 +149,7 @@ namespace KatAMRandomizer
             // Randomize HP values on Enemies;
             // Randomize HP values on Bosses;
             // Fix the way behaviors and speeds are loaded when including minibosses in enemy generation;
+            // Consider Mirras for mirror randomization;
 
             File.WriteAllBytes(destinationPath, Processing.ROMData);
         }
@@ -289,15 +289,14 @@ namespace KatAMRandomizer
         private void CheckboxChestsMoreHPUP_CheckedChanged(object sender, EventArgs e) {
             bool isAddingMoreHPUPs = CheckboxChestsMoreHPUP.Checked;
 
-            if(!isAddingMoreHPUPs) {
+            if (!isAddingMoreHPUPs) {
                 Label1HPUP.Enabled = false;
                 Label2HPUP.Enabled = false;
                 Label3HPUP.Enabled = false;
                 TrackBarHPUP.Enabled = false;
                 TrackBarHPUP.Value = 1;
                 settings.HPUpsAdded = 0;
-            }
-            else {
+            } else {
                 Label1HPUP.Enabled = true;
                 Label2HPUP.Enabled = true;
                 Label3HPUP.Enabled = true;
@@ -631,21 +630,30 @@ namespace KatAMRandomizer
         private void RadioMirrorsUnchanged_CheckedChanged(object sender, EventArgs e) {
             GroupMirrorsGoalGameMirrors.Enabled = false;
             RadioGoalGameMirrorsUnchanged.Checked = true;
+            Checkbox8WayCannonStart.Enabled = false;
+            Checkbox8WayCannonStart.Checked = false;
             settings.MirrorRandomization = GenerationOptions.Unchanged;
+            settings.EightWayCarrotCastleStart = false;
             settings.GoalMirrorRandomization = GenerationOptions.Unchanged;
             settings.GoalMirrorWarpTypeRandomization = GenerationOptions.Unchanged;
         }
 
         private void RadioMirrorsShuffle_CheckedChanged(object sender, EventArgs e) {
             GroupMirrorsGoalGameMirrors.Enabled = true;
+            Checkbox8WayCannonStart.Enabled = true;
             settings.MirrorRandomization = GenerationOptions.Shuffle;
         }
 
         private void RadioMirrorsRandom_CheckedChanged(object sender, EventArgs e) {
             GroupMirrorsGoalGameMirrors.Enabled = true;
+            Checkbox8WayCannonStart.Enabled = true;
             settings.MirrorRandomization = GenerationOptions.Random;
+            
         }
 
+        private void Checkbox8WayCannonStart_CheckedChanged(object sender, EventArgs e) {
+            settings.EightWayCarrotCastleStart = Checkbox8WayCannonStart.Checked;
+        }
         private void RadioGoalGameMirrorsUnchanged_CheckedChanged(object sender, EventArgs e) {
             GroupGoalGameMirrorsWarpType.Enabled = false;
             settings.GoalMirrorRandomization = GenerationOptions.Unchanged;

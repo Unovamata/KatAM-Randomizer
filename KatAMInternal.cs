@@ -113,7 +113,7 @@ namespace KatAMInternal
 
         // Check 2E0 room;
         // 0x2DA is kind of a wildcard;
-        public static List<int> UnsafeMirrors = new List<int>{
+        public static List<int> unsafeMirrors = new List<int>{
             0xB4, 0xB5, 0x6B, 0x6C, 0x94, 0x2C5, 0x2E5, 0xE8,
             0xD9, 0x12C, 0x13B, 0x142, 0x193, 0x1A3, 0x84, 0x85,
             0x338, 0x26F, 0x26B, 0x2DE,
@@ -180,6 +180,10 @@ namespace KatAMInternal
             { 0x37, Data("Waddle Dee 2")},
             { 0x70, Data("Shotzo 2", default, false, false, false)},
             { 0xA2, Data("Parasol", 0x05, false, true)}
+        };
+
+        public static List<int> roomsWithMirras = new List<int> {
+            0x8D, 0x75, 0xAF, 0xD1, 0xE4, 0x32B, 0x263, 0x2CF
         };
 
         public static Dictionary<byte, Data> minibossesDictionary = new Dictionary<byte, Data>{
@@ -428,8 +432,9 @@ namespace KatAMInternal
         public Random RandomEntity { get; set; }
         public int Seed { get; set; }
         public int MinSeed = -9999999, MaxSeed = 9999999;
-        public bool IsRace { get; set; }
+        public bool SpoilerLog { get; set; }
         public GenerationOptions MirrorRandomization { get; set; }
+        public bool EightWayCarrotCastleStart { get; set; }
         public GenerationOptions GoalMirrorRandomization { get; set; }
         public GenerationOptions GoalMirrorWarpTypeRandomization { get; set; }
         public GenerationOptions WarpStarsGenerationType { get; set; }
@@ -800,7 +805,7 @@ namespace KatAMInternal
         static HashSet<int> vetoedRooms = new HashSet<int>{
                 0x321, 0x323, 0x324, 0x325, 0x24E, 0xBE, 0xC2, 0xC0,
                 0x316, 0x122, 0x123, 0x186, 0x1EA, 0x24F, 0xBF, 0x37A, 0x250,
-                0x2B2, 0xC1, 0x2E0
+                0x2B2, 0xC1, /*0x2E0*/
         };
 
         public static void UniteVetoedRoomHashSets() {
