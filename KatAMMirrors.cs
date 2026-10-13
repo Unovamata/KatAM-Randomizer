@@ -479,165 +479,6 @@ namespace KatAM_Randomizer {
                     .Where(m => !Utils.IsVetoedRoom(m.InRoom))
                     .ToList()
             );
-            
-
-            /*EightROMMirrors = EightROMMirrors
-            .ToDictionary(
-                kvp => kvp.Key,
-                kvp => {
-                    var filtered = kvp.Value
-                        .Where(m => m.MirrorWarpType != Exits.Hub)
-                        .Where(m => m.InRoom != 0x2E0 && m.Destination != 0x2E0)
-                        .Where(m => !Utils.IsVetoedRoom(m.InRoom))
-                        .ToList();
-
-                    var counts = filtered
-                        .GroupBy(m => (m.Destination, m.X, m.Y))
-                        .ToDictionary(g => g.Key, g => g.Count());
-
-                    foreach (var mirror in filtered) {
-                        mirror.Occurrences = counts[(mirror.Destination, mirror.X, mirror.Y)];
-                    }
-
-                    return filtered;
-                }
-            );*/
-
-
-            // Step 1: Filter out Hub mirrors and remove duplicates based on (Destination, X, Y)
-            /*List<Mirror> filteredMirrorList = EightROMMirrors
-                .SelectMany(kvp => kvp.Value)
-                .ToList();*/
-
-            // Step 2: Randomize random rooms;
-            /*List<int> keys = Utils.Shuffle(EightROMMirrors.Keys.ToList());
-
-            // Step 3: Prepare shuffled mirror lists
-            List<Mirror> OneWayMirrors = Utils.Shuffle(filteredMirrorList.Where(m => m.MirrorWarpType == Exits.OneWay || m.MirrorWarpType == Exits.Boss).ToList());
-            int oneWayMirrorsCount = OneWayMirrors.Count;
-            int currentOneWayIndex = 0;
-
-            foreach (int key in keys) {
-                List<Mirror> mirrorsInRoom = EightROMMirrors[key];
-
-                Mirror lastMirror = NullMirror();
-                if (mirrorsInRoom.Count > 0) Console.WriteLine($"* Room {key:X} *");
-
-                foreach (Mirror mirror in mirrorsInRoom) {
-                    bool isLastMirrorValid = lastMirror.Destination != -1;
-                    bool isDifferentMirror = lastMirror.Address9ROM != mirror.Address9ROM;
-
-                    Mirror newMirror = new Mirror(mirror);
-                    Mirror randomMirror = new Mirror(mirror);
-
-                    switch (mirror.MirrorWarpType) {
-                        case Exits.OneWay:
-                        case Exits.Boss:
-                            try {
-                                randomMirror = OneWayMirrors[currentOneWayIndex];
-                            } catch {
-                                currentOneWayIndex = 0;
-                                randomMirror = OneWayMirrors[currentOneWayIndex];
-                            }
-
-                            newMirror.Destination = randomMirror.Destination;
-                            newMirror.X = randomMirror.X;
-                            newMirror.Y = randomMirror.Y;
-                            newMirror.Facing = randomMirror.Facing;
-
-                            Utils.WriteMirrorToROM(newMirror);
-
-                            if (!isLastMirrorValid && isDifferentMirror) {
-                                lastMirror = mirror;
-                                currentOneWayIndex++;
-                            }
-                            break;
-
-                        default: continue; break;
-                    }
-                }
-            }
-
-            List<Mirror> TwoWayMirrors = Utils.Shuffle(filteredMirrorList.Where(m => m.MirrorWarpType == Exits.TwoWay).ToList());
-            int twoWayMirrorsCount = TwoWayMirrors.Count;
-            int currentTwoWayIndex = 0;
-            int mirrorsAlreadyRandomized = 0;*/
-
-
-            /*foreach (int key in keys) {
-                List<Mirror> mirrorsInRoom = EightROMMirrors[key];
-
-                Mirror lastMirror = NullMirror();
-                if(mirrorsInRoom.Count > 0) Console.WriteLine($"* Room {key:X} *");
-
-                foreach (Mirror mirror in mirrorsInRoom) {
-                    bool isLastMirrorValid = lastMirror.Destination != -1;
-                    bool isDifferentMirror = lastMirror.Address9ROM != mirror.Address9ROM;
-
-                    Mirror newMirror = new Mirror(mirror);
-                    Mirror randomMirror = new Mirror(mirror);
-
-                    switch (mirror.MirrorWarpType) {
-                        case Exits.OneWay:
-                        case Exits.Boss:
-                            try {
-                                randomMirror = OneWayMirrors[currentOneWayIndex];
-                            } catch {
-                                currentOneWayIndex = 0;
-                                randomMirror = OneWayMirrors[currentOneWayIndex];
-                            }
-
-                            newMirror.Destination = randomMirror.Destination;
-                            newMirror.X = randomMirror.X;
-                            newMirror.Y = randomMirror.Y;
-                            newMirror.Facing = randomMirror.Facing;
-                            
-                            Utils.WriteMirrorToROM(newMirror);
-
-                            if (!isLastMirrorValid && isDifferentMirror) {
-                                lastMirror = mirror;
-                                currentOneWayIndex++;
-                            }   
-                        break;
-                        
-                        case Exits.TwoWay:
-                            if (isDifferentMirror) {
-                                lastMirror = mirror;
-                                currentTwoWayIndex++;
-                            }
-
-                            randomMirror = TwoWayMirrors[currentTwoWayIndex];
-                            
-                            while (randomMirror.IsRandomized) {
-                                currentTwoWayIndex++;
-                                randomMirror = TwoWayMirrors[currentTwoWayIndex];
-                            }
-
-                            Mirror A = new Mirror(mirror), B = new Mirror(randomMirror.Warp);
-
-                            A.UpdateMirrorData(randomMirror);
-                            B.UpdateMirrorData(mirror.Warp);
-
-                            Utils.WriteMirrorToROM(A);
-                            Utils.WriteMirrorToROM(B);
-
-                            Console.WriteLine($"{currentTwoWayIndex}: Warp 0x{mirror.InRoom:X} -> 0x{mirror.Destination:X}! X: {mirror.X} Y: {mirror.Y} Type: {mirror.MirrorWarpType} Occurences: {mirror.Occurrences}");
-                            break;
-
-                        default: continue; break;
-                    }
-                }
-            }
-
-            Console.WriteLine($"{currentTwoWayIndex}/{twoWayMirrorsCount} Two-Way Mirrors Used");
-            Console.WriteLine($"Mirrors already randomized: {mirrorsAlreadyRandomized}");
-            //Console.WriteLine("Leftover Mirrors:");
-
-            /*while (currentTwoWayIndex < twoWayMirrorsCount) {
-                Mirror mirror = TwoWayMirrors[currentTwoWayIndex];
-                Console.WriteLine($"Warp 0x{mirror.InRoom:X} -> 0x{mirror.Destination:X}! X: {mirror.X} Y: {mirror.Y} Type: {mirror.MirrorWarpType}");
-                currentTwoWayIndex++;
-            }*/
         }
 
         int currentExitIndex = 0;
@@ -647,7 +488,7 @@ namespace KatAM_Randomizer {
             List<Mirror> ShuffledSafeOneWayMirrors = Utils.Shuffle(safeOneWayMirrors);
 
             // Selecting the starting mirror based on the user's options;
-            /*startingMirror = new Mirror(startingMirror);
+            startingMirror = new Mirror(startingMirror);
              
             // If selected, the starting mirror would be the 8-way cannon at Carrot Castle;
             if(Settings.EightWayCarrotCastleStart) startingMirror.UpdateMirrorData(carrotCastle8CannonMirror);
@@ -655,13 +496,13 @@ namespace KatAM_Randomizer {
                 // Else, we get a random one way safe mirror;
                 startingMirror.UpdateMirrorData(ShuffledSafeOneWayMirrors[currentExitIndex]);
                 currentExitIndex++;
-            }*/
+            }
 
             Utils.WriteMirrorToROM(startingMirror);
             Console.WriteLine($"{startingMirror.X:X2}:{startingMirror.Y:X2} Warp 0x{startingMirror.InRoom:X} -> 0x{startingMirror.Destination:X}! X: {startingMirror.X} Y: {startingMirror.Y} Type: {startingMirror.ExitType}");
             
             // Add starting mirror to the queue for traversal;
-            mirrorQueue.Enqueue(startingMirror);
+            //mirrorQueue.Enqueue(startingMirror);
 
             // Queue that traverses all exits;
             while (mirrorQueue.Count > 0) {
@@ -673,7 +514,7 @@ namespace KatAM_Randomizer {
 
                 mirror.SetQueuedFlag();
 
-                // 
+                // Filtering exits;
                 foreach (Mirror exit in mirror.Exits) {
                     switch (exit.ExitType) {
                         case ExitType.OneWay:
