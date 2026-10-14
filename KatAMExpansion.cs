@@ -45,7 +45,8 @@ namespace KatAMRandomizer {
         };
 
         // Part; One NiDL frame drawn into a frame, with its colors remapped (NiDL colors of other palettes go to unused ones);
-        sealed record Part(int Frame, Dictionary<int, int> Recolor = null);
+        // Part; A NiDL frame (from the enemy's frame table, or Table when the enemy has more than one), recolored;
+        sealed record Part(int Frame, Dictionary<int, int> Recolor = null, int Table = 0);
 
         /* Enemy; A ported enemy: its index (NIDL_* in nidl.h), name, NiDL object type and frame table, its frames (in the order the
          * C code numbers them), its hurt frame, palette changes, the letters of its name and the behavior bytes the randomizer uses; */
@@ -90,11 +91,13 @@ namespace KatAMRandomizer {
                 new byte[] { 0x00 });
         }
 
-        // Cappy; Frames: NiDL's 4 (standing, it hops turning around). Variant 2 hops in place;
-        static Enemy Cappy() => new Enemy(1, "Cappy", 0x10, 0x75235C, new List<Part[]> { new[] { new Part(4) } }, new[] { new Part(3) },
+        // Cappy; Frames: NiDL's 4 (standing, it hops turning around), then the capless Cappy's 4 and 6 (frame table 0x0875237C).
+        // Variant 1 is the capless one, variant 2 hops in place;
+        static Enemy Cappy() => new Enemy(1, "Cappy", 0x10, 0x75235C,
+            new List<Part[]> { new[] { new Part(4) }, new[] { new Part(4, null, 0x75237C) }, new[] { new Part(6, null, 0x75237C) } }, new[] { new Part(3) },
             new Dictionary<int, ushort>(),
             new[] { (0x0C, 0), (0x19, 2), (0x19, 1), (0x19, 1), (0x19, 5) },   // "C" (Cupie), "a", "p", "p", "y" (Sparky);
-            new byte[] { 0x00 });
+            new byte[] { 0x00, 0x01, 0x02 });
 
         // Twizzy; Frames: NiDL's 4, 5 (flapping) and 6 (sitting). Variant 0 swoops, variant 5 sits until Kirby comes near;
         static Enemy Twizzy() => new Enemy(2, "Twizzy", 0x18, 0x752560, new List<Part[]> { new[] { new Part(4) }, new[] { new Part(5) }, new[] { new Part(6) } },
@@ -357,7 +360,7 @@ namespace KatAMRandomizer {
             List<(byte[], ushort[], short[])> frames = new List<(byte[], ushort[], short[])>();
 
             foreach (Part[] parts in enemy.Frames) {
-                List<(Piece piece, Dictionary<int, int> recolor)> pieces = parts.SelectMany(p => ReadFrame(nightmare, frameTable, p.Frame).Select(piece => (piece, p.Recolor))).ToList();
+                List<(Piece piece, Dictionary<int, int> recolor)> pieces = parts.SelectMany(p => ReadFrame(nightmare, p.Table != 0 ? p.Table + region.FrameShift : frameTable, p.Frame).Select(piece => (piece, p.Recolor))).ToList();
 
                 int halfWidth = pieces.Max(p => Math.Max(-p.piece.X, p.piece.X + p.piece.Width));
                 int top = pieces.Min(p => p.piece.Y), bottom = pieces.Max(p => p.piece.Y + p.piece.Height);

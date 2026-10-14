@@ -44,7 +44,7 @@ Graphics come from the player's NiDL ROM: each enemy's descriptor (`0x0873EEA0 +
 | Enemy | NiDL type | Notes |
 |---|---|---|
 | Broom Hatter | `0x0B` | Frames 4-7 with the broom dust (8-10, NiDL palette 15, drawn with the unused color 6) on top; hurt frame 3. Variant 1 sweeps in place |
-| Cappy | `0x10` | Hops forward (0.25), its sprite turning around on every landing, facing Kirby again every 40 hops; frame 4, hurt frame 3. Variant 2 hops in place. Not ported: NiDL's cap coming off when inhaled (a separate capless Cappy) |
+| Cappy | `0x10` | Hops forward (0.25), its sprite turning around on every landing, facing Kirby again every 40 hops; frame 4, hurt frame 3. Variant 1 is the capless Cappy (frames 4 and 6 of its own frame table, alternating on every landing); variant 2 hops in place. Not ported: NiDL's cap coming off when inhaled |
 | Twizzy | `0x18` | Variant 0 flies forward (0.75) swooping towards Kirby's height every 40 frames, then climbs away after 4 swoops; variant 5 sits until Kirby comes near, takes off, hovers and dashes at it. Frames 4-5 (flapping), 6 (sitting); hurt frame 3. NiDL's other 8 variants aren't ported |
 | Bubbles | `0x1E` | Variant 0 bounces forward (1.0) at random heights, spinning, squashing on floors, walls (turning around) and ceilings; variant 1 bounces in place. Frames 4-21; hurt frame 0 |
 | Slippy | `0x22` | Sits facing Kirby, looks around, and jumps low or high, in place, forward or turning around, chosen at random like NiDL. Frames 4, 5, 6, 8; hurt frame 3. NiDL's swimming states aren't ported |

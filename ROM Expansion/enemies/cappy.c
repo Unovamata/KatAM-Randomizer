@@ -2,12 +2,15 @@
  * NiDL scripts (16.16 speeds, Y down; KatAM's are 8.8, Y up):
  * • Variant 0, 0x0807E640: faces Kirby and walks forward at 0.25 hopping (Y speed -1.0, gravity 1/16), its sprite turning
  *   around on every landing; after 40 hops it faces Kirby again.
- * • Variant 2, 0x0807E950: hops in place, turning around on every landing.
- * • Variant 1 is the capless Cappy NiDL spawns when Kirby inhales the cap (0x0807E814); it isn't ported; */
+ * • Variant 1, 0x0807E6D4 (0x0807E768): the capless Cappy (frame table 0x0875237C; NiDL also spawns it when Kirby inhales the
+ *   cap, 0x0807E814): walks and hops like variant 0, but its sprite alternates frames 4 and 6 on every landing instead.
+ * • Variant 2, 0x0807E950: hops in place, turning around on every landing; */
 #include "../nidl.h"
 
-// Frames: NiDL's 4 (standing). Its hurt frame is NiDL's 3;
+// Frames: NiDL's 4 (standing), then the capless Cappy's 4 and 6. Its hurt frame is NiDL's 3;
 #define FRAME_STAND 0
+#define FRAME_CAPLESS 1
+#define FRAME_CAPLESS_2 2
 
 #define WALK_SPEED 0x40
 #define HOP_SPEED 0x100
@@ -49,7 +52,10 @@ static void CappyMain(struct Object *obj) {
     // Landed: the sprite turns around (not the walk), and it hops again;
     if (cappy->airborne) {
         cappy->airborne = FALSE;
-        obj->base.flags ^= 1;
+        if (cappy->n.variant == 1)
+            NidlSetFrame(&cappy->n, obj->unk83 == cappy->n.animBase + FRAME_CAPLESS ? FRAME_CAPLESS_2 : FRAME_CAPLESS);
+        else
+            obj->base.flags ^= 1;
         if (cappy->n.variant != 2 && cappy->hops-- == 0) {
             Walk(cappy);
         }
@@ -62,7 +68,7 @@ void CappyStart(struct Object *obj) {
     struct Cappy *cappy = (struct Cappy *)obj;
 
     ObjectSetFunc(obj, 0, CappyMain);
-    NidlSetFrame(&cappy->n, FRAME_STAND);
+    NidlSetFrame(&cappy->n, cappy->n.variant == 1 ? FRAME_CAPLESS : FRAME_STAND);
     Walk(cappy);
     Hop(cappy);
 }
