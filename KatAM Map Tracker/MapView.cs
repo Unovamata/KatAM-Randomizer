@@ -25,6 +25,14 @@ namespace KatAMMapTracker {
         const double PanDuration = 0.45, ZoomDuration = 0.3; // Seconds;
         const float FadedOpacity = 0.35f;
 
+        /* Dynamic scaling: zoomed out, rooms and lines would shrink to a few pixels. They're drawn bigger instead, so a room
+         * square never gets smaller than MinRoomScreenScale times its in-game size, up to MaxElementScale times its map size
+         * (rooms are 48 map pixels apart, so they don't run into each other). Lines grow half as much, so they don't merge; */
+        const double MinRoomScreenScale = 0.75, MaxElementScale = 1.75, LineScaleShare = 0.5;
+
+        // Grown rooms are never bigger than this (map pixels), so big rooms keep a gap to their neighbors on the 48 pixel grid;
+        const double MaxScaledRoomSize = 40;
+
         // Soft colors for the regions behind the room clusters, like the in-game map backdrop;
         static readonly Color[] RegionColors = {
             Color.FromArgb(70, 76, 120), Color.FromArgb(64, 112, 72), Color.FromArgb(120, 92, 60), Color.FromArgb(104, 70, 116),
@@ -33,7 +41,7 @@ namespace KatAMMapTracker {
         };
 
         // Scene; What a drawing pass shows: the discovered map, or everything (faded or not where it wasn't discovered);
-        readonly record struct Scene(bool ShowAll, bool FadeUndiscovered);
+        readonly record struct Scene(bool ShowAll, bool FadeUndiscovered, double RoomScale = 1, double LineScale = 1);
 
         RomMap map;
         MapPlan plan;
@@ -72,6 +80,18 @@ namespace KatAMMapTracker {
 
         public bool Follow { get; set; } = true;
 
+        bool dynamicScaling = true;
+
+        // A short message drawn over the map (e.g. how to leave the minimalist mode), until hintUntil;
+        string hint;
+        DateTime hintUntil;
+
+        // Rooms and lines keep a readable size when zoomed out (see MinRoomScreenScale);
+        public bool DynamicScaling {
+            get => dynamicScaling;
+            set { dynamicScaling = value; Invalidate(); }
+        }
+
         public event Action FollowDisabledByUser;
 
         // Raised when the zoom changes;
@@ -83,7 +103,12 @@ namespace KatAMMapTracker {
             BackColor = Color.FromArgb(28, 28, 36);
             SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint | ControlStyles.OptimizedDoubleBuffer, true);
 
-            pulseTimer.Tick += (s, e) => { AdvanceCamera(); AdvancePulse(); };
+            pulseTimer.Tick += (s, e) => {
+                AdvanceCamera();
+                AdvancePulse();
+
+                if (hint != null && DateTime.Now >= hintUntil) Invalidate();
+            };
             pulseTimer.Start();
         }
 
@@ -95,7 +120,18 @@ namespace KatAMMapTracker {
 
         bool RevealAll => progress?.RevealAll == true;
 
-        Scene ViewScene => new Scene(RevealAll, true);
+        Scene ViewScene => new Scene(RevealAll, true, RoomScale, 1 + (RoomScale - 1) * LineScaleShare);
+
+        // RoomScale(); How much bigger than their map size rooms are drawn at the current zoom;
+        double RoomScale => DynamicScaling ? Math.Clamp(MinRoomScreenScale / zoom, 1, MaxElementScale) : 1;
+
+        // RoomBounds(); Where a room square is drawn, grown around its center by the room scale (up to MaxScaledRoomSize);
+        RectangleF RoomBounds(RoomPlacement placement, double scale) {
+            if (scale > 1) scale = Math.Max(1, Math.Min(scale, MaxScaledRoomSize / Math.Max(placement.Width, placement.Height)));
+
+            double width = placement.Width * scale, height = placement.Height * scale;
+            return new RectangleF((float)(placement.CenterX - width / 2), (float)(placement.CenterY - height / 2), (float)width, (float)height);
+        }
 
         /* SetMap(); Loads a map with its plan (room positions, clusters and connection paths); */
         public void SetMap(RomMap romMap, MapPlan mapPlan, MapProgress mapProgress) {
@@ -300,9 +336,31 @@ namespace KatAMMapTracker {
 
             if (!changed) return;
 
-            RoomPlacement current = layout[progress.CurrentRoom];
-            PointF topLeft = ToScreen(current.X, current.Y);
-            Invalidate(Rectangle.Inflate(Rectangle.Round(new RectangleF(topLeft, new SizeF((float)(current.Width * zoom), (float)(current.Height * zoom)))), 4, 4));
+            RectangleF bounds = RoomBounds(layout[progress.CurrentRoom], RoomScale);
+            PointF topLeft = ToScreen(bounds.X, bounds.Y);
+            Invalidate(Rectangle.Inflate(Rectangle.Round(new RectangleF(topLeft, new SizeF((float)(bounds.Width * zoom), (float)(bounds.Height * zoom)))), 4, 4));
+        }
+
+        // ShowHint(); Shows a short message at the bottom of the map for a few seconds;
+        public void ShowHint(string text, double seconds = 4) {
+            hint = text;
+            hintUntil = DateTime.Now.AddSeconds(seconds);
+            Invalidate();
+        }
+
+        void DrawHint(Graphics g) {
+            if (hint == null) return;
+
+            if (DateTime.Now >= hintUntil) {
+                hint = null;
+                return;
+            }
+
+            Size size = TextRenderer.MeasureText(hint, Font);
+            Rectangle box = new Rectangle((Width - size.Width) / 2 - 10, Height - size.Height - 28, size.Width + 20, size.Height + 10);
+
+            using (SolidBrush background = new SolidBrush(Color.FromArgb(200, 16, 16, 24))) g.FillRectangle(background, box);
+            TextRenderer.DrawText(g, hint, Font, box, Color.White, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
         }
 
         PointF ToScreen(double x, double y) => new PointF((float)((x - OffsetX) * zoom), (float)((y - OffsetY) * zoom));
@@ -336,6 +394,8 @@ namespace KatAMMapTracker {
             g.Restore(state);
 
             if (hoveredRoom >= 0 && !isDragging) DrawPreview(g, hoveredRoom);
+
+            DrawHint(g);
         }
 
         /* DrawScene(); Draws the regions, lines and rooms of a scene in map pixels, as pixel art; */
@@ -360,11 +420,13 @@ namespace KatAMMapTracker {
                 : RoomStyle.Unexplored;
 
             Sprite sprite = graphics.Room(MapGraphics.ShapeOf(info), style, pulseFrame);
-            g.DrawImage(GetBitmap(sprite, IsFaded(scene, room)), (float)placement.X, (float)placement.Y, sprite.Width, sprite.Height);
+            RectangleF bounds = RoomBounds(placement, scene.RoomScale);
+            g.DrawImage(GetBitmap(sprite, IsFaded(scene, room)), bounds);
 
             if (room == hoveredRoom) {
                 using Pen pen = new Pen(Color.White, (float)(1.5 / zoom));
-                g.DrawRectangle(pen, (float)placement.X - 1, (float)placement.Y - 1, (float)placement.Width + 2, (float)placement.Height + 2);
+                RectangleF outline = RectangleF.Inflate(RoomBounds(placement, scene.RoomScale), 1, 1);
+                g.DrawRectangle(pen, outline.X, outline.Y, outline.Width, outline.Height);
             }
         }
 
@@ -385,14 +447,16 @@ namespace KatAMMapTracker {
                     LineSprites lines = graphics.Lines(lineColors.GetValueOrDefault(MapRoutes.ConnectionKey(door.Room, door.Destination)));
                     bool faded = IsFaded(scene, door);
 
-                    foreach (RouteSegment segment in plan.Segments(door.Room, door.Destination, !isTwoWay)) DrawSegment(g, segment, lines, faded);
+                    foreach (RouteSegment segment in plan.Segments(door.Room, door.Destination, !isTwoWay)) DrawSegment(g, segment, lines, faded, (float)scene.LineScale);
                 }
             }
         }
 
-        /* DrawSegment(); Fills a segment with the in-game line (or arrow) tiles;
+        /* DrawSegment(); Fills a segment with the in-game line (or arrow) tiles, scaled by the line scale;
          * Straight segments use the in-game pieces aligned to the 8 pixel grid. Diagonals rotate the horizontal pieces 45°; */
-        void DrawSegment(Graphics g, RouteSegment segment, LineSprites lines, bool faded) {
+        void DrawSegment(Graphics g, RouteSegment segment, LineSprites lines, bool faded, float scale) {
+            float half = 8 * scale, thickness = 16 * scale;
+
             if (!segment.IsDiagonal) {
                 Sprite sprite = !segment.IsOneWay
                     ? (segment.IsHorizontal ? lines.Horizontal : lines.Vertical)
@@ -401,11 +465,12 @@ namespace KatAMMapTracker {
 
                 double left = Math.Min(segment.StartX, segment.EndX), top = Math.Min(segment.StartY, segment.EndY);
                 RectangleF area = segment.IsHorizontal
-                    ? new RectangleF((float)left, (float)segment.StartY - 8, (float)Math.Abs(segment.EndX - segment.StartX), 16)
-                    : new RectangleF((float)segment.StartX - 8, (float)top, 16, (float)Math.Abs(segment.EndY - segment.StartY));
+                    ? new RectangleF((float)left, (float)segment.StartY - half, (float)Math.Abs(segment.EndX - segment.StartX), thickness)
+                    : new RectangleF((float)segment.StartX - half, (float)top, thickness, (float)Math.Abs(segment.EndY - segment.StartY));
 
-                using TextureBrush brush = new TextureBrush(GetBitmap(sprite, faded), WrapMode.Tile);
-                brush.TranslateTransform(area.X, area.Y);
+                using TextureBrush brush = new TextureBrush(GetBitmap(sprite, faded), WrapMode.Tile) {
+                    Transform = new Matrix(scale, 0, 0, scale, area.X, area.Y),
+                };
                 g.FillRectangle(brush, area);
                 return;
             }
@@ -417,9 +482,8 @@ namespace KatAMMapTracker {
             g.TranslateTransform((float)segment.StartX, (float)segment.StartY);
             g.RotateTransform((float)segment.Angle);
 
-            using (TextureBrush brush = new TextureBrush(GetBitmap(piece, faded), WrapMode.Tile)) {
-                brush.TranslateTransform(0, -8);
-                g.FillRectangle(brush, 0, -8, (float)segment.Length, 16);
+            using (TextureBrush brush = new TextureBrush(GetBitmap(piece, faded), WrapMode.Tile) { Transform = new Matrix(scale, 0, 0, scale, 0, -half) }) {
+                g.FillRectangle(brush, 0, -half, (float)segment.Length, thickness);
             }
 
             g.Restore(state);
@@ -632,9 +696,10 @@ namespace KatAMMapTracker {
 
             double mapX = OffsetX + screen.X / zoom, mapY = OffsetY + screen.Y / zoom;
 
+            double scale = RoomScale;
+
             foreach (int room in ShownRooms(ViewScene)) {
-                RoomPlacement p = layout[room];
-                if (mapX >= p.X && mapX <= p.X + p.Width && mapY >= p.Y && mapY <= p.Y + p.Height) return room;
+                if (RoomBounds(layout[room], scale).Contains((float)mapX, (float)mapY)) return room;
             }
 
             return -1;

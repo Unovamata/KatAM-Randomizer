@@ -13,7 +13,12 @@ namespace KatAMMapTracker {
         readonly MapView mapView = new MapView { Dock = DockStyle.Fill };
         readonly ToolStripButton followButton = new ToolStripButton("Follow Kirby") { CheckOnClick = true, Checked = true };
         readonly ToolStripMenuItem recentMenu = new ToolStripMenuItem("Open Recent"),
-                                   revealAllItem = new ToolStripMenuItem("Reveal Entire Map (Spoilers)") { CheckOnClick = true };
+                                   revealAllItem = new ToolStripMenuItem("Reveal Entire Map (Spoilers)") { CheckOnClick = true },
+                                   minimalistItem = new ToolStripMenuItem("Minimalist Mode") { ShortcutKeyDisplayString = "M" },
+                                   dynamicScalingItem = new ToolStripMenuItem("Dynamic Scaling") { CheckOnClick = true, Checked = true };
+        MenuStrip menu;
+        ToolStrip toolbar;
+        StatusStrip statusBar;
         readonly ToolStripStatusLabel connectionLabel = new ToolStripStatusLabel(),
                                       discoveryLabel = new ToolStripStatusLabel { Spring = true, TextAlign = ContentAlignment.MiddleRight };
 
@@ -29,7 +34,8 @@ namespace KatAMMapTracker {
         static readonly string SettingsFolder = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "KatAM Map Tracker");
         static readonly string LastRomFile = Path.Combine(SettingsFolder, "last_rom.txt"),
-                               RecentRomsFile = Path.Combine(SettingsFolder, "recent_roms.txt");
+                               RecentRomsFile = Path.Combine(SettingsFolder, "recent_roms.txt"),
+                               ViewSettingsFile = Path.Combine(SettingsFolder, "view_settings.txt");
         const int MaxRecentRoms = 10;
 
         public TrackerForm(string startupRom) {
@@ -41,9 +47,12 @@ namespace KatAMMapTracker {
             BuildMenus();
 
             Controls.Add(mapView);
-            Controls.Add(BuildToolbar());
-            Controls.Add(BuildStatusBar());
+            Controls.Add(toolbar = BuildToolbar());
+            Controls.Add(statusBar = BuildStatusBar());
             mapView.BringToFront();
+            mapView.ContextMenuStrip = BuildContextMenu();
+
+            LoadViewSettings();
 
             mapView.FollowDisabledByUser += () => followButton.Checked = false;
             mapView.ViewChanged += UpdateDiscoveryLabel;
@@ -66,7 +75,7 @@ namespace KatAMMapTracker {
         }
 
         void BuildMenus() {
-            MenuStrip menu = new MenuStrip();
+            menu = new MenuStrip();
             ToolStripMenuItem file = new ToolStripMenuItem("File");
             file.DropDownItems.Add("Open ROM...", null, (s, e) => OpenRomDialog());
             file.DropDownItems.Add(recentMenu);
@@ -86,6 +95,14 @@ namespace KatAMMapTracker {
             ToolStripMenuItem view = new ToolStripMenuItem("View");
             revealAllItem.Click += (s, e) => SetRevealAll(revealAllItem.Checked);
             view.DropDownItems.Add(revealAllItem);
+            view.DropDownItems.Add(new ToolStripSeparator());
+            minimalistItem.Click += (s, e) => SetMinimalist(true);
+            view.DropDownItems.Add(minimalistItem);
+            dynamicScalingItem.CheckedChanged += (s, e) => {
+                mapView.DynamicScaling = dynamicScalingItem.Checked;
+                SaveViewSettings();
+            };
+            view.DropDownItems.Add(dynamicScalingItem);
 
             ToolStripMenuItem help = new ToolStripMenuItem("Help");
             help.DropDownItems.Add("How to use...", null, (s, e) => ShowHelp());
@@ -114,6 +131,79 @@ namespace KatAMMapTracker {
             return toolbar;
         }
 
+        /* BuildContextMenu(); Right clicking the map; It's the way to reach the options in the minimalist mode,
+         * where the menus, toolbar and status bar are hidden; */
+        ContextMenuStrip BuildContextMenu() {
+            ContextMenuStrip context = new ContextMenuStrip();
+            ToolStripMenuItem minimalist = new ToolStripMenuItem("Minimalist Mode", null, (s, e) => SetMinimalist(!IsMinimalist)) { ShortcutKeyDisplayString = "M" },
+                              follow = new ToolStripMenuItem("Follow Kirby", null, (s, e) => followButton.Checked = !followButton.Checked) { ShortcutKeyDisplayString = "Space" },
+                              reveal = new ToolStripMenuItem("Reveal Entire Map (Spoilers)", null, (s, e) => {
+                                  revealAllItem.Checked = !revealAllItem.Checked;
+                                  SetRevealAll(revealAllItem.Checked);
+                              }),
+                              scaling = new ToolStripMenuItem("Dynamic Scaling", null, (s, e) => dynamicScalingItem.Checked = !dynamicScalingItem.Checked);
+
+            context.Items.Add(minimalist);
+            context.Items.Add(new ToolStripSeparator());
+            context.Items.Add(follow);
+            context.Items.Add(new ToolStripMenuItem("Fit Map", null, (s, e) => mapView.FitToDiscovered()) { ShortcutKeyDisplayString = "F" });
+            context.Items.Add(reveal);
+            context.Items.Add(scaling);
+            context.Items.Add(new ToolStripSeparator());
+            context.Items.Add("Open ROM...", null, (s, e) => OpenRomDialog());
+
+            context.Opening += (s, e) => {
+                minimalist.Checked = IsMinimalist;
+                follow.Checked = followButton.Checked;
+                reveal.Checked = revealAllItem.Checked;
+                reveal.Enabled = progress != null;
+                scaling.Checked = dynamicScalingItem.Checked;
+            };
+
+            return context;
+        }
+
+        // Kept apart from the controls' Visible, which reads false until the window is shown;
+        bool IsMinimalist { get; set; }
+
+        /* SetMinimalist(); The minimalist mode hides everything but the map (menus, toolbar and status bar), so it can sit next to the game
+         * without clutter. M toggles it, Esc leaves it, and right clicking the map has every option; */
+        void SetMinimalist(bool minimalist) {
+            IsMinimalist = minimalist;
+            menu.Visible = toolbar.Visible = statusBar.Visible = !minimalist;
+            minimalistItem.Checked = minimalist;
+
+            if (minimalist) mapView.ShowHint("Minimalist mode: press M or Esc to leave it, or right click the map for options.");
+
+            SaveViewSettings();
+        }
+
+        // View settings (minimalist mode and dynamic scaling), as "key=value" lines in the settings folder;
+        void LoadViewSettings() {
+            try {
+                if (!File.Exists(ViewSettingsFile)) return;
+
+                Dictionary<string, string> values = File.ReadAllLines(ViewSettingsFile)
+                    .Select(line => line.Split('=', 2)).Where(parts => parts.Length == 2)
+                    .ToDictionary(parts => parts[0].Trim(), parts => parts[1].Trim());
+
+                if (values.TryGetValue("dynamic_scaling", out string scaling)) dynamicScalingItem.Checked = scaling != "0";
+                if (values.TryGetValue("minimalist", out string minimalist) && minimalist == "1") Shown += (s, e) => SetMinimalist(true);
+            }
+            catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException || exception is ArgumentException) { }
+        }
+
+        void SaveViewSettings() {
+            try {
+                Directory.CreateDirectory(SettingsFolder);
+                File.WriteAllLines(ViewSettingsFile, new[] {
+                    $"minimalist={(IsMinimalist ? 1 : 0)}",
+                    $"dynamic_scaling={(dynamicScalingItem.Checked ? 1 : 0)}",
+                });
+            }
+            catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException) { }
+        }
+
         StatusStrip BuildStatusBar() {
             StatusStrip status = new StatusStrip();
             status.Items.Add(connectionLabel);
@@ -129,6 +219,8 @@ namespace KatAMMapTracker {
                 case Keys.Subtract: case Keys.OemMinus: mapView.ZoomBy(0.8); break;
                 case Keys.F: mapView.FitToDiscovered(); break;
                 case Keys.Space: followButton.Checked = !followButton.Checked; break;
+                case Keys.M: SetMinimalist(!IsMinimalist); break;
+                case Keys.Escape when IsMinimalist: SetMinimalist(false); break;
                 default: return;
             }
 
@@ -320,7 +412,9 @@ namespace KatAMMapTracker {
                 "Yellow rooms: every mirror used. Orange rooms: some mirrors left. The pulsing room is where Kirby is.\n" +
                 "Dotted lines: Two-Way mirrors. Arrows: One-Way mirrors.\n\n" +
                 "Mouse wheel: zoom.   Drag: move the map.   Hover: room preview.   Double click: center a room.\n" +
-                "Space: follow Kirby on/off (it comes back on when Kirby changes rooms).   F: fit the discovered map.   +/-: zoom.\n\n" +
+                "Space: follow Kirby on/off (it comes back on when Kirby changes rooms).   F: fit the discovered map.   +/-: zoom.\n" +
+                "M: minimalist mode (only the map; Esc leaves it).   Right click the map: options.\n" +
+                "View > Dynamic Scaling keeps rooms and lines readable when zoomed out.\n\n" +
                 "View > Reveal Entire Map shows the whole seed (spoilers). File > Export Map Image saves the map as a PNG.\n\n" +
                 "Progress is saved next to the ROM as <rom>.tracker.json.",
                 "How to use", MessageBoxButtons.OK, MessageBoxIcon.Information);

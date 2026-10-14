@@ -9,6 +9,8 @@ An optional companion window for the KatAM Randomizer. It draws the map of your 
 - Following Kirby pans smoothly to the room he enters, and every room change brings the camera back to him. Zooming eases too.
 - `View > Reveal Entire Map (Spoilers)` shows every room and mirror of the seed, with what you haven't found yet faded, for when you want to go straight to the bosses. It's remembered with the seed's progress.
 - `File > Export Map Image` saves the discovered map, or the entire map, as a PNG.
+- **Minimalist mode** (`M`, or `View > Minimalist Mode`) hides the menus, toolbar and status bar, leaving only the map next to your game. `M` or `Esc` brings them back, and right clicking the map opens every option in any mode. It's remembered for next time.
+- **Dynamic scaling** (`View > Dynamic Scaling`, on by default): zoomed out, rooms and lines are drawn bigger than their map size, so they stay readable instead of shrinking to a few pixels. Big rooms stay bigger than small ones and never touch their neighbors.
 - Hovering a room shows a preview of it with its in-game graphics and background, and where its mirrors are (**green** once used, **yellow** if not).
 - Rooms appear once you enter them, and lines once you go through a mirror. Arriving through a Two-Way mirror also reveals the way back.
 - Progress is saved after every discovery to `<your rom>.gba.tracker.json`, next to the ROM. Progress saved for another seed is ignored.
@@ -46,6 +48,8 @@ The order doesn't matter: the script keeps retrying, so the tracker can be opene
 | Reveal the whole map (spoilers) | `View > Reveal Entire Map (Spoilers)` |
 | Save the map as an image | `File > Export Map Image` |
 | Open a recent ROM | `File > Open Recent` |
+| Minimalist mode (only the map) | `M` (`Esc` leaves it) |
+| All options, in any mode | Right click the map |
 | Forget the progress | `File > Reset Progress...` |
 
 ## How it works
