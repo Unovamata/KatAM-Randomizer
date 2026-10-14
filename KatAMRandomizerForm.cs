@@ -5,6 +5,9 @@ using System.Windows.Forms;
 using KatAMRandomizer;
 using KatAMRandomizer;
 using KatAM_Randomizer;
+using System.Reflection;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace KatAMRandomizer
 {
@@ -107,7 +110,8 @@ namespace KatAMRandomizer
 
         // Randomize (Save);
         private void ButtonSaveFile_Click(object sender, EventArgs e) {
-            byte[] fileContents = File.ReadAllBytes(system.ROMPath);
+            byte[] fileContents = File.ReadAllBytes(system.ROMPath),
+                   originalROM = (byte[])fileContents.Clone();
             Processing.ROMData = new byte[fileContents.Length];
             Array.Copy(fileContents, Processing.ROMData, fileContents.Length);
             RomRegion.Use(RomRegion.Detect(fileContents));
@@ -134,6 +138,133 @@ namespace KatAMRandomizer
             // Consider Mirras for mirror randomization;
 
             File.WriteAllBytes(destinationPath, Processing.ROMData);
+
+            // The spoiler log is written next to the randomized ROM;
+            if (settings.SpoilerLog) {
+                string spoilerLogPath = Path.Combine(system.ROMDirectory, Path.GetFileNameWithoutExtension(newFileName) + " - Spoiler Log.txt");
+                new KatAMSpoilerLog(system, originalROM).Save(spoilerLogPath);
+            }
+        }
+
+        //////////////////////////////////////////////////////////////////////////////////////////////
+
+        // General Options;
+        private void CheckboxOptionsSpoilerLog_CheckedChanged(object sender, EventArgs e) {
+            settings.SpoilerLog = CheckboxOptionsSpoilerLog.Checked;
+        }
+
+        /* Settings files; The state of every option (radio buttons, checkboxes, track bars and numeric boxes, by name) and the seed.
+         * Loading sets the options back as if they were clicked, so their handlers update the settings like they always do; */
+        const int SettingsFileVersion = 1;
+
+        private void ButtonSaveSettings_Click(object sender, EventArgs e) {
+            using SaveFileDialog fileDialog = new SaveFileDialog {
+                Filter = "KatAM Randomizer Settings (*.json)|*.json",
+                FileName = "KatAM Randomizer Settings.json",
+                RestoreDirectory = true,
+            };
+
+            if (fileDialog.ShowDialog() != DialogResult.OK) return;
+
+            JObject options = new JObject();
+
+            foreach (Control control in GetOptionControls(this)) {
+                switch (control) {
+                    case RadioButton radio: options[radio.Name] = radio.Checked; break;
+                    case CheckBox checkbox: options[checkbox.Name] = checkbox.Checked; break;
+                    case TrackBar trackBar: options[trackBar.Name] = trackBar.Value; break;
+                    case NumericUpDown numeric: options[numeric.Name] = numeric.Value; break;
+                }
+            }
+
+            JObject file = new JObject {
+                ["Version"] = SettingsFileVersion,
+                ["Seed"] = settings.Seed,
+                ["Options"] = options,
+            };
+
+            try {
+                File.WriteAllText(fileDialog.FileName, file.ToString(Formatting.Indented));
+            } catch (Exception ex) {
+                MessageBox.Show($"Error saving settings: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void ButtonLoadSettings_Click(object sender, EventArgs e) {
+            using OpenFileDialog fileDialog = new OpenFileDialog {
+                Filter = "KatAM Randomizer Settings (*.json)|*.json",
+                RestoreDirectory = true,
+            };
+
+            if (fileDialog.ShowDialog() != DialogResult.OK) return;
+
+            JObject file, options;
+
+            try {
+                file = JObject.Parse(File.ReadAllText(fileDialog.FileName));
+                options = file["Options"] as JObject ?? throw new InvalidDataException("The file has no options.");
+            } catch (Exception ex) {
+                MessageBox.Show($"Error loading settings: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            try {
+                ApplyOptions(options);
+            } catch (Exception ex) when (ex is InvalidCastException || ex is FormatException || ex is ArgumentException || ex is OverflowException) {
+                MessageBox.Show($"Some settings couldn't be loaded: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+
+            if (file["Seed"]?.Type == JTokenType.Integer) {
+                settings.Seed = (int)Math.Clamp((long)file["Seed"], settings.MinSeed, settings.MaxSeed);
+                settings.RandomEntity = new Random(settings.Seed);
+                UpdateLabelSeedText();
+            }
+        }
+
+        // ApplyOptions(); Sets every option of a settings file;
+        void ApplyOptions(JObject options) {
+            List<Control> controls = GetOptionControls(this).Where(control => options.ContainsKey(control.Name)).ToList();
+
+            /* Two passes: an option's handler may reset the options that depend on it (e.g. chests set to "No" reset the HP Ups),
+             * and the second pass restores them. Each handler is run even if the option didn't change, so the settings always match; */
+            for (int pass = 0; pass < 2; pass++) {
+                // Radio buttons first, since they enable or reset the other options;
+                foreach (RadioButton radio in controls.OfType<RadioButton>().Where(radio => (bool)options[radio.Name])) {
+                    if (radio.Checked) RaiseControlEvent(radio, "OnCheckedChanged");
+                    else radio.Checked = true;
+                }
+
+                foreach (CheckBox checkbox in controls.OfType<CheckBox>()) {
+                    bool isChecked = (bool)options[checkbox.Name];
+
+                    if (checkbox.Checked == isChecked) RaiseControlEvent(checkbox, "OnCheckedChanged");
+                    else checkbox.Checked = isChecked;
+                }
+
+                foreach (TrackBar trackBar in controls.OfType<TrackBar>()) {
+                    trackBar.Value = Math.Clamp((int)options[trackBar.Name], trackBar.Minimum, trackBar.Maximum);
+                    RaiseControlEvent(trackBar, "OnScroll");
+                }
+
+                foreach (NumericUpDown numeric in controls.OfType<NumericUpDown>()) {
+                    numeric.Value = Math.Clamp((decimal)options[numeric.Name], numeric.Minimum, numeric.Maximum);
+                }
+            }
+        }
+
+        // GetOptionControls(); Every option control of the form, in the order they're laid out;
+        static IEnumerable<Control> GetOptionControls(Control parent) {
+            foreach (Control control in parent.Controls.Cast<Control>().OrderBy(control => control.TabIndex)) {
+                if (control is RadioButton || control is CheckBox || control is TrackBar || control is NumericUpDown) yield return control;
+
+                foreach (Control child in GetOptionControls(control)) yield return child;
+            }
+        }
+
+        // RaiseControlEvent(); Runs a control's event (e.g. OnCheckedChanged) as if the user had changed it;
+        static void RaiseControlEvent(Control control, string method) {
+            control.GetType().GetMethod(method, BindingFlags.Instance | BindingFlags.NonPublic, null, new[] { typeof(EventArgs) }, null)
+                   ?.Invoke(control, new object[] { EventArgs.Empty });
         }
 
         // Refresh Seed;

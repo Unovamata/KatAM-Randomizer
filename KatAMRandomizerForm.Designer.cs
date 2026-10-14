@@ -32,8 +32,8 @@
             ButtonLoadFile = new Button();
             ButtonSaveFile = new Button();
             ButtonInputSeed = new Button();
-            button5 = new Button();
-            button6 = new Button();
+            ButtonLoadSettings = new Button();
+            ButtonSaveSettings = new Button();
             GroupSettings = new GroupBox();
             CheckboxOptionsSpoilerLog = new CheckBox();
             LabelSeed = new Label();
@@ -307,33 +307,35 @@
             ButtonInputSeed.UseVisualStyleBackColor = true;
             ButtonInputSeed.Click += ButtonInputSeed_Click;
             // 
-            // button5
+            // ButtonLoadSettings
             // 
-            button5.Font = new Font("Segoe UI", 9F);
-            button5.Location = new Point(9, 133);
-            button5.Margin = new Padding(4, 5, 4, 5);
-            button5.Name = "button5";
-            button5.Size = new Size(236, 38);
-            button5.TabIndex = 6;
-            button5.Text = "Load Settings";
-            button5.UseVisualStyleBackColor = true;
+            ButtonLoadSettings.Font = new Font("Segoe UI", 9F);
+            ButtonLoadSettings.Location = new Point(9, 133);
+            ButtonLoadSettings.Margin = new Padding(4, 5, 4, 5);
+            ButtonLoadSettings.Name = "ButtonLoadSettings";
+            ButtonLoadSettings.Size = new Size(236, 38);
+            ButtonLoadSettings.TabIndex = 6;
+            ButtonLoadSettings.Text = "Load Settings";
+            ButtonLoadSettings.UseVisualStyleBackColor = true;
+            ButtonLoadSettings.Click += ButtonLoadSettings_Click;
             // 
-            // button6
+            // ButtonSaveSettings
             // 
-            button6.Font = new Font("Segoe UI", 9F);
-            button6.Location = new Point(9, 182);
-            button6.Margin = new Padding(4, 5, 4, 5);
-            button6.Name = "button6";
-            button6.Size = new Size(236, 38);
-            button6.TabIndex = 7;
-            button6.Text = "Save Settings";
-            button6.UseVisualStyleBackColor = true;
+            ButtonSaveSettings.Font = new Font("Segoe UI", 9F);
+            ButtonSaveSettings.Location = new Point(9, 182);
+            ButtonSaveSettings.Margin = new Padding(4, 5, 4, 5);
+            ButtonSaveSettings.Name = "ButtonSaveSettings";
+            ButtonSaveSettings.Size = new Size(236, 38);
+            ButtonSaveSettings.TabIndex = 7;
+            ButtonSaveSettings.Text = "Save Settings";
+            ButtonSaveSettings.UseVisualStyleBackColor = true;
+            ButtonSaveSettings.Click += ButtonSaveSettings_Click;
             // 
             // GroupSettings
             // 
             GroupSettings.Controls.Add(CheckboxOptionsSpoilerLog);
-            GroupSettings.Controls.Add(button6);
-            GroupSettings.Controls.Add(button5);
+            GroupSettings.Controls.Add(ButtonSaveSettings);
+            GroupSettings.Controls.Add(ButtonLoadSettings);
             GroupSettings.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
             GroupSettings.Location = new Point(17, 20);
             GroupSettings.Margin = new Padding(4, 5, 4, 5);
@@ -355,6 +357,7 @@
             CheckboxOptionsSpoilerLog.TabIndex = 13;
             CheckboxOptionsSpoilerLog.Text = "Spoiler Log";
             CheckboxOptionsSpoilerLog.UseVisualStyleBackColor = true;
+            CheckboxOptionsSpoilerLog.CheckedChanged += CheckboxOptionsSpoilerLog_CheckedChanged;
             // 
             // LabelSeed
             // 
@@ -2862,8 +2865,8 @@
         private Button ButtonLoadFile;
         private Button ButtonSaveFile;
         private Button ButtonInputSeed;
-        private Button button5;
-        private Button button6;
+        private Button ButtonLoadSettings;
+        private Button ButtonSaveSettings;
         private GroupBox GroupSettings;
         private GroupBox GroupRomInfo;
         private Label LabelGameID;
