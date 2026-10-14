@@ -7,17 +7,21 @@ using System.Threading;
 
 namespace KatAMMapTracker {
     /* TrackerServer; Receives the room reports sent by the emulator script (Lua/katam_tracker.lua);
-     * The script connects to 127.0.0.1 on the given port, sends "HELLO <script version>", then one line per room change: "ROOM <hex id>".
+     * The script connects to 127.0.0.1 on the given port, sends "HELLO <script version>", then one line per room change: "ROOM <hex id>",
+     * and the area maps of the loaded save whenever they change: "MAPS <hex bits>" (bit n: the map of area n).
      * Old copies of the script don't send HELLO; Their first room is reported as script version 0;
      * Events are raised on a background thread; */
     public sealed class TrackerServer : IDisposable {
         public const int DefaultPort = 8765;
 
         // Version of Lua/katam_tracker.lua that goes with this tracker (SCRIPT_VERSION in the script);
-        public const int ScriptVersion = 2;
+        public const int ScriptVersion = 3;
 
         // Raised once per connection with the version of the connected script (0: an old script without HELLO);
         public event Action<int> ScriptVersionReported;
+
+        // Raised with the area maps of the loaded save (bit n: the map of area n);
+        public event Action<int> MapsReported;
 
         // Raised for every valid line. sessionStart is true for the first report of a connection;
         public event Action<int, bool> RoomReported;
@@ -65,6 +69,11 @@ namespace KatAMMapTracker {
                             continue;
                         }
 
+                        if (TryParseMaps(line, out int maps)) {
+                            MapsReported?.Invoke(maps);
+                            continue;
+                        }
+
                         if (!TryParseRoom(line, out int room)) continue;
 
                         if (!versionKnown) {
@@ -92,6 +101,13 @@ namespace KatAMMapTracker {
 
             return parts.Length == 2 && parts[0] == "ROOM" &&
                    int.TryParse(parts[1], NumberStyles.HexNumber, CultureInfo.InvariantCulture, out room);
+        }
+
+        public static bool TryParseMaps(string line, out int maps) {
+            maps = 0;
+            string[] parts = line.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+            return parts.Length == 2 && parts[0] == "MAPS" && int.TryParse(parts[1], NumberStyles.HexNumber, CultureInfo.InvariantCulture, out maps);
         }
 
         public static bool TryParseHello(string line, out int version) {

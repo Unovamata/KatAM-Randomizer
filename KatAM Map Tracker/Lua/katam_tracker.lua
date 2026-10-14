@@ -10,10 +10,12 @@ local HOST = "127.0.0.1"
 local PORT = 8765                 -- Must match the port of the tracker window;
 local ROOM_ADDRESS = 0x02020F40   -- Current room ID of Kirby (player 1), the same in every version;
 local RETRY_FRAMES = 180          -- Frames to wait before trying to connect again (~3 seconds);
-local SCRIPT_VERSION = 2          -- Sent to the tracker, which warns about outdated copies of this script;
+local SCRIPT_VERSION = 3          -- Sent to the tracker, which warns about outdated copies of this script;
+local MAPS_ADDRESS = 0x0203897C   -- Area maps the loaded save holds (gTreasures.bigChestField), one bit per area;
 
 local connection = nil
 local sentRoom = -1
+local sentMaps = -1
 local retryTimer = 0
 local warnedGame = false
 
@@ -25,6 +27,7 @@ local function disconnect()
   if connection then connection:close() end
   connection = nil
   sentRoom = -1
+  sentMaps = -1
 end
 
 local function connect()
@@ -39,6 +42,7 @@ local function connect()
 
   connection = sock
   sentRoom = -1
+  sentMaps = -1
   log("Connected to the tracker on port " .. PORT .. ".")
 end
 
@@ -88,6 +92,14 @@ callbacks:add("frame", function()
 
   if room ~= sentRoom and send(string.format("ROOM %X", room)) then
     sentRoom = room
+  end
+
+  -- The maps change when one is found, or when another save is loaded;
+  if connection then
+    local maps = emu:read32(MAPS_ADDRESS) & 0x3FF
+    if maps ~= sentMaps and send(string.format("MAPS %X", maps)) then
+      sentMaps = maps
+    end
   end
 end)
 

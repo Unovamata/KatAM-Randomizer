@@ -15,7 +15,10 @@ namespace KatAMMapTracker {
         readonly ToolStripMenuItem recentMenu = new ToolStripMenuItem("Open Recent"),
                                    revealAllItem = new ToolStripMenuItem("Reveal Entire Map (Spoilers)") { CheckOnClick = true },
                                    minimalistItem = new ToolStripMenuItem("Minimalist Mode") { ShortcutKeyDisplayString = "M" },
-                                   dynamicScalingItem = new ToolStripMenuItem("Dynamic Scaling") { CheckOnClick = true, Checked = true };
+                                   dynamicScalingItem = new ToolStripMenuItem("Dynamic Scaling") { CheckOnClick = true, Checked = true },
+                                   entitiesItem = new ToolStripMenuItem("Show on Map"),
+                                   chestContentsItem = new ToolStripMenuItem("Show Chest Contents (Spoilers)") { CheckOnClick = true },
+                                   mapsItem = new ToolStripMenuItem("Reveal Areas of Found Maps") { CheckOnClick = true };
         MenuStrip menu;
         ToolStrip toolbar;
         StatusStrip statusBar;
@@ -29,6 +32,23 @@ namespace KatAMMapTracker {
         MapProgress progress;
         string romPath, progressPath;
         int previousRoom = -1, lastReportedRoom = -1;
+
+        // The kinds of objects that can be shown in the rooms, with their menu names and settings keys; All off by default;
+        static readonly (EntityKind kind, string name, string key)[] EntityCategories = {
+            (EntityKind.Boss, "Bosses", "bosses"),
+            (EntityKind.MiniBoss, "Mini-Bosses", "minibosses"),
+            (EntityKind.BigSwitch, "Big Switches", "big_switches"),
+            (EntityKind.MirrorShard, "Mirror Shards", "mirror_shards"),
+            (EntityKind.Treasure, "Chests", "chests"),
+            (EntityKind.Item, "Items (Food, 1UPs...)", "items"),
+            (EntityKind.FuseCannon, "Fuse Cannons", "fuse_cannons"),
+            (EntityKind.WarpStar, "Warp Stars", "warp_stars"),
+        };
+
+        readonly Dictionary<EntityKind, ToolStripMenuItem> entityKindItems = new Dictionary<EntityKind, ToolStripMenuItem>();
+
+        // Area maps the emulator's loaded save holds (bit n: the map of area n), as last reported by the script;
+        int mapFlags;
         bool isConnected;
 
         static readonly string SettingsFolder = Path.Combine(
@@ -62,6 +82,7 @@ namespace KatAMMapTracker {
             server.RoomReported += (room, sessionStart) => BeginInvokeSafe(() => OnRoomReported(room, sessionStart));
             server.ConnectionChanged += connected => BeginInvokeSafe(() => SetConnected(connected));
             server.ScriptVersionReported += version => BeginInvokeSafe(() => OnScriptVersion(version));
+            server.MapsReported += maps => BeginInvokeSafe(() => OnMapsReported(maps));
 
             try {
                 server.Start();
@@ -112,6 +133,18 @@ namespace KatAMMapTracker {
                 SaveViewSettings();
             };
             view.DropDownItems.Add(dynamicScalingItem);
+            BuildEntityMenu();
+            view.DropDownItems.Add(entitiesItem);
+            chestContentsItem.CheckedChanged += (s, e) => {
+                mapView.ShowChestContents = chestContentsItem.Checked;
+                SaveViewSettings();
+            };
+            view.DropDownItems.Add(chestContentsItem);
+            mapsItem.CheckedChanged += (s, e) => {
+                UpdateMapRevealedRooms();
+                SaveViewSettings();
+            };
+            view.DropDownItems.Add(mapsItem);
 
             ToolStripMenuItem help = new ToolStripMenuItem("Help");
             help.DropDownItems.Add("How to use...", null, (s, e) => ShowHelp());
@@ -140,6 +173,32 @@ namespace KatAMMapTracker {
             return toolbar;
         }
 
+        /* BuildEntityMenu(); View > Show on Map: which kinds of objects are drawn in the rooms, each on its own, all off by default,
+         * plus Show All and Hide All; */
+        void BuildEntityMenu() {
+            foreach ((EntityKind kind, string name, string key) in EntityCategories) {
+                ToolStripMenuItem item = new ToolStripMenuItem(name) { CheckOnClick = true };
+                item.CheckedChanged += (s, e) => {
+                    UpdateShownEntityKinds();
+                    SaveViewSettings();
+                };
+                entityKindItems[kind] = item;
+                entitiesItem.DropDownItems.Add(item);
+            }
+
+            entitiesItem.DropDownItems.Add(new ToolStripSeparator());
+            entitiesItem.DropDownItems.Add("Show All", null, (s, e) => SetAllEntityKinds(true));
+            entitiesItem.DropDownItems.Add("Hide All", null, (s, e) => SetAllEntityKinds(false));
+        }
+
+        void SetAllEntityKinds(bool shown) {
+            foreach (ToolStripMenuItem item in entityKindItems.Values) item.Checked = shown;
+        }
+
+        void UpdateShownEntityKinds() {
+            mapView.ShownEntityKinds = new HashSet<EntityKind>(entityKindItems.Where(kvp => kvp.Value.Checked).Select(kvp => kvp.Key));
+        }
+
         /* BuildContextMenu(); Right clicking the map; It's the way to reach the options in the minimalist mode,
          * where the menus, toolbar and status bar are hidden; */
         ContextMenuStrip BuildContextMenu() {
@@ -150,7 +209,10 @@ namespace KatAMMapTracker {
                                   revealAllItem.Checked = !revealAllItem.Checked;
                                   SetRevealAll(revealAllItem.Checked);
                               }),
-                              scaling = new ToolStripMenuItem("Dynamic Scaling", null, (s, e) => dynamicScalingItem.Checked = !dynamicScalingItem.Checked);
+                              scaling = new ToolStripMenuItem("Dynamic Scaling", null, (s, e) => dynamicScalingItem.Checked = !dynamicScalingItem.Checked),
+                              entities = new ToolStripMenuItem("Show on Map"),
+                              contents = new ToolStripMenuItem("Show Chest Contents (Spoilers)", null, (s, e) => chestContentsItem.Checked = !chestContentsItem.Checked),
+                              maps = new ToolStripMenuItem("Reveal Areas of Found Maps", null, (s, e) => mapsItem.Checked = !mapsItem.Checked);
 
             context.Items.Add(minimalist);
             context.Items.Add(new ToolStripSeparator());
@@ -158,8 +220,18 @@ namespace KatAMMapTracker {
             context.Items.Add(new ToolStripMenuItem("Fit Map", null, (s, e) => mapView.FitToDiscovered()) { ShortcutKeyDisplayString = "F" });
             context.Items.Add(reveal);
             context.Items.Add(scaling);
+            context.Items.Add(entities);
+            context.Items.Add(contents);
+            context.Items.Add(maps);
             context.Items.Add(new ToolStripSeparator());
             context.Items.Add("Open ROM...", null, (s, e) => OpenRomDialog());
+
+            // The same categories as View > Show on Map, toggling them;
+            foreach ((EntityKind kind, string name, string key) in EntityCategories) {
+                ToolStripMenuItem item = new ToolStripMenuItem(name, null, (s, e) => entityKindItems[kind].Checked = !entityKindItems[kind].Checked);
+                entities.DropDownItems.Add(item);
+                entities.DropDownOpening += (s, e) => item.Checked = entityKindItems[kind].Checked;
+            }
 
             context.Opening += (s, e) => {
                 minimalist.Checked = IsMinimalist;
@@ -167,6 +239,9 @@ namespace KatAMMapTracker {
                 reveal.Checked = revealAllItem.Checked;
                 reveal.Enabled = progress != null;
                 scaling.Checked = dynamicScalingItem.Checked;
+                entities.Checked = entityKindItems.Values.Any(item => item.Checked);
+                contents.Checked = chestContentsItem.Checked;
+                maps.Checked = mapsItem.Checked;
             };
 
             return context;
@@ -197,6 +272,11 @@ namespace KatAMMapTracker {
                     .ToDictionary(parts => parts[0].Trim(), parts => parts[1].Trim());
 
                 if (values.TryGetValue("dynamic_scaling", out string scaling)) dynamicScalingItem.Checked = scaling != "0";
+                foreach ((EntityKind kind, string name, string key) in EntityCategories) {
+                    if (values.TryGetValue("show_" + key, out string shown)) entityKindItems[kind].Checked = shown == "1";
+                }
+                if (values.TryGetValue("chest_contents", out string contents)) chestContentsItem.Checked = contents == "1";
+                if (values.TryGetValue("area_maps", out string maps)) mapsItem.Checked = maps == "1";
                 if (values.TryGetValue("minimalist", out string minimalist) && minimalist == "1") Shown += (s, e) => SetMinimalist(true);
             }
             catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException || exception is ArgumentException) { }
@@ -208,7 +288,9 @@ namespace KatAMMapTracker {
                 File.WriteAllLines(ViewSettingsFile, new[] {
                     $"minimalist={(IsMinimalist ? 1 : 0)}",
                     $"dynamic_scaling={(dynamicScalingItem.Checked ? 1 : 0)}",
-                });
+                    $"chest_contents={(chestContentsItem.Checked ? 1 : 0)}",
+                    $"area_maps={(mapsItem.Checked ? 1 : 0)}",
+                }.Concat(EntityCategories.Select(category => $"show_{category.key}={(entityKindItems[category.kind].Checked ? 1 : 0)}")));
             }
             catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException) { }
         }
@@ -406,6 +488,19 @@ namespace KatAMMapTracker {
             mapView.ShowHint(message, 12);
         }
 
+        /* OnMapsReported(); The loaded save's area maps changed (a map was found, or another save was loaded). The rooms they
+         * reveal aren't saved with the progress: they follow whatever save is loaded, so switching saves never reveals areas
+         * the player hasn't explored in that save; */
+        void OnMapsReported(int maps) {
+            mapFlags = maps;
+            UpdateMapRevealedRooms();
+        }
+
+        void UpdateMapRevealedRooms() {
+            mapView.MapRevealedRooms = mapsItem.Checked ? AreaMaps.RoomsOf(mapFlags) : new HashSet<int>();
+            UpdateDiscoveryLabel();
+        }
+
         void SetConnected(bool connected) {
             isConnected = connected;
             if (!connected) lastReportedRoom = -1;
@@ -423,7 +518,8 @@ namespace KatAMMapTracker {
             }
 
             int doors = map.Rooms.Values.Sum(r => r.Doors.Count);
-            discoveryLabel.Text = $"Rooms: {progress.VisitedRooms.Count}/{map.Rooms.Count}   Mirrors: {progress.FoundDoors.Count}/{doors}   Zoom: {mapView.Zoom:P0}";
+            string maps = mapsItem.Checked ? $"   Maps: {AreaMaps.CountOf(mapFlags)}" : "";
+            discoveryLabel.Text = $"Rooms: {progress.VisitedRooms.Count}/{map.Rooms.Count}   Mirrors: {progress.FoundDoors.Count}/{doors}{maps}   Zoom: {mapView.Zoom:P0}";
         }
 
         void ShowHelp() {
@@ -436,7 +532,10 @@ namespace KatAMMapTracker {
                 "Mouse wheel: zoom.   Drag: move the map.   Hover: room preview.   Double click: center a room.\n" +
                 "Space: follow Kirby on/off (it comes back on when Kirby changes rooms).   F: fit the discovered map.   +/-: zoom.\n" +
                 "M: minimalist mode (only the map; Esc leaves it).   Right click the map: options.\n" +
-                "View > Dynamic Scaling keeps rooms and lines readable when zoomed out.\n\n" +
+                "View > Dynamic Scaling keeps rooms and lines readable when zoomed out.\n" +
+                "View > Show on Map draws the bosses, mini-bosses, switches, shards, chests, items... of every room, each kind on its own.\n" +
+                "View > Show Chest Contents shows what chests hold instead of the chest (spoilers).\n" +
+                "View > Reveal Areas of Found Maps shows the rooms of every area whose map the loaded save holds.\n\n" +
                 "View > Reveal Entire Map shows the whole seed (spoilers). File > Export Map Image saves the map as a PNG.\n\n" +
                 "Progress is saved next to the ROM as <rom>.tracker.json.",
                 "How to use", MessageBoxButtons.OK, MessageBoxIcon.Information);

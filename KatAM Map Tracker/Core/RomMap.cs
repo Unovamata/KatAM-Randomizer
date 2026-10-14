@@ -28,6 +28,9 @@ namespace KatAMMapTracker {
         public static string DoorKey(int room, int destination) => $"{room:X}>{destination:X}";
     }
 
+    // RoomObject; An object placed in a room (enemy, item, chest, switch...), as read from the room's object list;
+    public sealed record RoomObject(int Id, int Behavior, int X, int Y);
+
     // RoomInfo; A room and its doors as read from the ROM;
     public sealed class RoomInfo {
         public int Id { get; init; }
@@ -44,6 +47,9 @@ namespace KatAMMapTracker {
         public int Height { get; init; }
 
         public List<DoorInfo> Doors { get; } = new List<DoorInfo>();
+
+        // Objects of the room, in the order of the ROM;
+        public List<RoomObject> Objects { get; } = new List<RoomObject>();
     }
 
     /* RomVersion; The Japanese, American and European versions of the game hold the same data at different addresses.
@@ -70,7 +76,9 @@ namespace KatAMMapTracker {
      *   +2 X, +3 Y (16px units), +4 object size, +8 destination room.
      * • Room appearance: pointer table at 0xD2F93C + short * 4. +0 width, +2 height (8px tiles), +0x18 tilemap.
      * • Palettes: 0xD2E6A4 + palette * 4. Tilesets: 0xD2FDB8 + tileset * 4. Both LZ77 compressed but palettes.
-     * • Long room parameter +0x00: area/theme (4 = hubs, 0x25 = boss & goal game rooms). +0x1E: background; */
+     * • Long room parameter +0x00: area/theme (4 = hubs, 0x25 = boss & goal game rooms). +0x1E: background.
+     * • Room objects: pointer table at 0xD2EBC4 + short * 4, to a 16 byte header followed by 36 byte objects ("01 24" header):
+     *   +6 X, +8 Y (pixels), +12 object ID, +14 behavior (e.g. what a chest holds); */
     public sealed class RomMap {
         const int LongRoomParameterSize = 0x28,
                   MaxLongRoom = 0x3D7,
@@ -89,7 +97,8 @@ namespace KatAMMapTracker {
                      RoomAppearanceTable,
                      PaletteTable,
                      TilesetTable,
-                     GraphicsTable;
+                     GraphicsTable,
+                     ObjectTable;
 
         public byte[] Rom { get; }
         public uint Crc32 { get; }
@@ -114,6 +123,7 @@ namespace KatAMMapTracker {
             PaletteTable = 0xD2E6A4 + Version.PointerTableShift;
             TilesetTable = 0xD2FDB8 + Version.PointerTableShift;
             GraphicsTable = 0xD2E5F0 + Version.PointerTableShift;
+            ObjectTable = 0xD2EBC4 + Version.PointerTableShift;
 
             ReadRooms();
         }
@@ -157,6 +167,7 @@ namespace KatAMMapTracker {
                 RoomInfo info = new RoomInfo { Id = room, ShortIndex = shortIndex, Area = Read16(parameters), Width = width, Height = height };
 
                 ReadDoors(info);
+                ReadObjects(info);
 
                 // Several long rooms may share a short room. The first one is the one the game uses;
                 if (Rooms.Values.Any(r => r.ShortIndex == shortIndex)) continue;
@@ -183,6 +194,19 @@ namespace KatAMMapTracker {
 
                     if (landsOnDoor) door.DoorBack = back;
                 }
+            }
+        }
+
+        // ReadObjects(); Reads the objects of a room, until the list ends (no more "01 24" object headers);
+        void ReadObjects(RoomInfo room) {
+            int header = ReadPointer(ObjectTable + room.ShortIndex * 4);
+
+            if (header < 0) return;
+
+            for (int address = header + 16; address + 36 <= Rom.Length && room.Objects.Count < 256; address += 36) {
+                if (Rom[address] != 0x01 || Rom[address + 1] != 0x24) break;
+
+                room.Objects.Add(new RoomObject(Rom[address + 12], Rom[address + 14], Read16(address + 6), Read16(address + 8)));
             }
         }
 
@@ -229,8 +253,9 @@ namespace KatAMMapTracker {
         }
 
         /* RenderRoom(); Renders a room with its in-game graphics, background included, as 0xAARRGGBB pixels;
-         * pixelsPerTile: 8 for full size; 4, 2 or 1 average the tiles down for thumbnails; */
-        public int[] RenderRoom(int roomId, int pixelsPerTile, out int width, out int height) {
+         * pixelsPerTile: 8 for full size; 4, 2 or 1 average the tiles down for thumbnails.
+         * includeBackground: false leaves the background out, transparent, keeping only the room's own tiles; */
+        public int[] RenderRoom(int roomId, int pixelsPerTile, out int width, out int height, bool includeBackground = true) {
             RoomInfo room = Rooms[roomId];
             int fullWidth = room.Width * 8, fullHeight = room.Height * 8;
             int[] canvas = new int[fullWidth * fullHeight];
@@ -256,9 +281,11 @@ namespace KatAMMapTracker {
 
             for (int i = 0; i < 256; i++) colors[i] = ToArgb(Read16(palette + i * 2));
 
-            Array.Fill(canvas, colors[0]);
+            if (includeBackground) {
+                Array.Fill(canvas, colors[0]);
+                DrawBackground(canvas, fullWidth, fullHeight, backgroundIndex, colors);
+            }
 
-            DrawBackground(canvas, fullWidth, fullHeight, backgroundIndex, colors);
             DrawLayer(canvas, fullWidth, fullHeight, tileset, tilemap, room.Width, room.Height, colors, true, false);
             DrawCoverBlocks(canvas, fullWidth, fullHeight, room, tileset, colors);
 

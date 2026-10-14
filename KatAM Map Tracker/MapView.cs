@@ -83,6 +83,47 @@ namespace KatAMMapTracker {
 
         bool dynamicScaling = true;
 
+        HashSet<EntityKind> shownEntityKinds = new HashSet<EntityKind>();
+
+        // The kinds of important objects (bosses, items, chests...) whose in-game sprites are drawn in the rooms; None by default;
+        public HashSet<EntityKind> ShownEntityKinds {
+            get => shownEntityKinds;
+            set { shownEntityKinds = value ?? new HashSet<EntityKind>(); Invalidate(); }
+        }
+
+        bool ShowEntities => shownEntityKinds.Count > 0;
+
+        // The entities of a room that are shown;
+        IEnumerable<MapEntity> ShownEntities(int room) =>
+            roomEntities.TryGetValue(room, out List<MapEntity> entities) ? entities.Where(entity => shownEntityKinds.Contains(entity.Kind)) : Enumerable.Empty<MapEntity>();
+
+        bool showChestContents;
+
+        // Chests show what they hold (spoiler) instead of the chest sprite;
+        public bool ShowChestContents {
+            get => showChestContents;
+            set { showChestContents = value; Invalidate(); }
+        }
+
+        HashSet<int> mapRevealedRooms = new HashSet<int>();
+
+        // Rooms revealed by the area maps of the player's save, shown faded like rooms not visited yet;
+        public HashSet<int> MapRevealedRooms {
+            get => mapRevealedRooms;
+            set { mapRevealedRooms = value ?? new HashSet<int>(); areaLayerKey = (-1, false); Invalidate(); }
+        }
+
+        /* Entity icons are drawn inside the room square, all the same size: half a small room's square, in a 2x2 grid of up to MaxEntityIcons
+         * (a single one in the middle). They're pixel art: nearest neighbor, never smoothed; */
+        const int MaxEntityIcons = 4;
+        const float MinEntityIconScreenSize = 16;
+
+        // Bosses, mini-bosses and Big Switches are drawn this much bigger than the other icons, so they stand out;
+        const float BigEntityIconScale = 1.5f, LoneBigEntityIconScale = 0.8f;
+
+        Dictionary<int, List<MapEntity>> roomEntities = new Dictionary<int, List<MapEntity>>();
+        readonly Dictionary<EntityIcon, Sprite> entitySprites = new Dictionary<EntityIcon, Sprite>();
+
         // A short message drawn over the map (e.g. how to leave the minimalist mode), until hintUntil;
         string hint;
         DateTime hintUntil;
@@ -149,6 +190,8 @@ namespace KatAMMapTracker {
             progress = mapProgress;
             graphics = map == null ? null : new MapGraphics(map);
             lineColors = map == null ? new Dictionary<string, int>() : MapRoutes.AssignLineColors(map);
+            roomEntities = map == null ? new Dictionary<int, List<MapEntity>>() : map.Rooms.ToDictionary(kvp => kvp.Key, kvp => MapEntities.EntitiesOf(kvp.Value));
+            entitySprites.Clear();
 
             // Clusters are numbered in order so neighbor clusters tend to get different region colors;
             regionOf = new Dictionary<int, int>();
@@ -342,6 +385,9 @@ namespace KatAMMapTracker {
             if (!changed) return;
 
             RectangleF bounds = RoomBounds(layout[progress.CurrentRoom], RoomGrowth);
+
+            // Entity icons (bigger when zoomed out) and the current room's outline reach past the square;
+            if (ShowEntities) bounds = RectangleF.Inflate(bounds, bounds.Width + 2, bounds.Height + 2);
             PointF topLeft = ToScreen(bounds.X, bounds.Y);
             Invalidate(Rectangle.Inflate(Rectangle.Round(new RectangleF(topLeft, new SizeF((float)(bounds.Width * zoom), (float)(bounds.Height * zoom)))), 4, 4));
         }
@@ -374,7 +420,13 @@ namespace KatAMMapTracker {
 
         // ShownRooms(); Rooms a scene draws: the visited ones, or all of them;
         IEnumerable<int> ShownRooms(Scene scene) =>
-            (scene.ShowAll ? (IEnumerable<int>)map.Rooms.Keys : progress.VisitedRooms).Where(layout.ContainsKey);
+            (scene.ShowAll ? (IEnumerable<int>)map.Rooms.Keys : progress.VisitedRooms.Union(mapRevealedRooms)).Where(layout.ContainsKey);
+
+        bool IsShown(Scene scene, int room) => scene.ShowAll || progress.VisitedRooms.Contains(room) || mapRevealedRooms.Contains(room);
+
+        // IsDoorShown(); Found doors, every door with Reveal All, and the doors between rooms an area map reveals;
+        bool IsDoorShown(Scene scene, DoorInfo door) =>
+            scene.ShowAll || progress.IsDoorFound(door) || (mapRevealedRooms.Contains(door.Room) && IsShown(scene, door.Destination));
 
         bool IsFaded(Scene scene, int room) => scene.FadeUndiscovered && !progress.VisitedRooms.Contains(room);
 
@@ -414,6 +466,96 @@ namespace KatAMMapTracker {
 
             // Faded rooms first, so the discovered ones are drawn over them;
             foreach (int room in ShownRooms(scene).OrderBy(room => IsFaded(scene, room) ? 0 : 1)) DrawRoom(g, scene, room);
+
+            if (ShowEntities) {
+                foreach (int room in ShownRooms(scene).OrderBy(room => IsFaded(scene, room) ? 0 : 1)) DrawEntities(g, scene, room);
+            }
+        }
+
+        /* DrawEntities(); The sprites of the important objects of a room (one per kind of sprite), inside its square, all the same
+         * size: one in the middle, two side by side, three or four in a 2x2 grid. The current room gets a blinking outline; */
+        void DrawEntities(Graphics g, Scene scene, int room) {
+            List<(EntityIcon icon, bool isBig)> icons = ShownEntities(room)
+                .Select(entity => (IconOf(entity), entity.Kind == EntityKind.Boss || entity.Kind == EntityKind.MiniBoss || entity.Kind == EntityKind.BigSwitch))
+                .GroupBy(icon => icon.Item1).Select(group => group.First()).Take(MaxEntityIcons).ToList();
+
+            if (icons.Count == 0) return;
+
+            RectangleF square = RoomBounds(layout[room], scene.RoomGrowth);
+            bool faded = IsFaded(scene, room);
+            float screenScale = g.Transform.Elements[0];
+
+            GraphicsState state = g.Save();
+            g.InterpolationMode = InterpolationMode.NearestNeighbor;
+            g.PixelOffsetMode = PixelOffsetMode.Half;
+
+            int columns = icons.Count == 1 ? 1 : 2, rows = icons.Count > 2 ? 2 : 1;
+            /* The same size in every room: half a small room's square. Zoomed out, icons stay at least MinEntityIconScreenSize screen
+             * pixels (up to a whole small room's square), so the room doesn't swallow them; */
+            float smallSquare = MapGraphics.TileSize * 2 + 2 * (float)Math.Clamp(scene.RoomGrowth, 0, MaxSmallRoomGrowth);
+            float cell = Math.Clamp(MinEntityIconScreenSize / screenScale, smallSquare / 2, smallSquare);
+            float left = square.X + square.Width / 2 - columns * cell / 2, top = square.Y + square.Height / 2 - rows * cell / 2;
+
+            for (int i = 0; i < icons.Count; i++) {
+                // Alone in its room, a boss or Big Switch fills most of the square (they're mostly in the big rooms);
+                float box = !icons[i].isBig ? cell
+                    : icons.Count == 1 ? Math.Max(cell * BigEntityIconScale, Math.Min(square.Width, square.Height) * LoneBigEntityIconScale)
+                    : cell * BigEntityIconScale;
+                DrawPixelArt(g, GetEntitySprite(icons[i].icon), left + (i % columns + 0.5f) * cell, top + (i / columns + 0.5f) * cell, box, screenScale, faded);
+            }
+
+            if (room == progress.CurrentRoom && pulseFrame % 2 == 0) {
+                using Pen pen = new Pen(Color.White, 2 / screenScale);
+                RectangleF outline = RectangleF.Inflate(square, 1, 1);
+                g.DrawRectangle(pen, outline.X, outline.Y, outline.Width, outline.Height);
+            }
+
+            g.Restore(state);
+        }
+
+        // IconOf(); The sprite of an entity: what a chest holds when chest contents are shown, else its own sprite;
+        EntityIcon IconOf(MapEntity entity) => ShowChestContents && entity.ContentIcon != null ? entity.ContentIcon.Value : entity.Icon;
+
+        /* DrawPixelArt(); Draws a sprite centered at x, y, fitting exactly in box map pixels, so every icon is the same size.
+         * Nearest neighbor only, never smoothed: it stays pixel art; */
+        void DrawPixelArt(Graphics g, Sprite sprite, float x, float y, float box, float screenScale, bool faded) {
+            if (sprite == null) return;
+
+            float scale = box / Math.Max(sprite.Width, sprite.Height);
+            float width = sprite.Width * scale, height = sprite.Height * scale;
+
+            g.DrawImage(GetBitmap(sprite, faded), new RectangleF(x - width / 2, y - height / 2, width, height));
+        }
+
+        Sprite GetEntitySprite(EntityIcon icon) {
+            if (!entitySprites.TryGetValue(icon, out Sprite sprite)) entitySprites[icon] = sprite = Trim(MapEntities.Render(map, icon));
+
+            return sprite;
+        }
+
+        // Trim(); Crops a sprite to its visible pixels, so empty margins don't make it look smaller than the others;
+        static Sprite Trim(Sprite sprite) {
+            if (sprite == null) return null;
+
+            int left = sprite.Width, top = sprite.Height, right = -1, bottom = -1;
+
+            for (int y = 0; y < sprite.Height; y++) {
+                for (int x = 0; x < sprite.Width; x++) {
+                    if (((sprite.Pixels[y * sprite.Width + x] >> 24) & 0xFF) == 0) continue;
+
+                    left = Math.Min(left, x); right = Math.Max(right, x);
+                    top = Math.Min(top, y); bottom = Math.Max(bottom, y);
+                }
+            }
+
+            if (right < 0) return sprite;
+
+            int width = right - left + 1, height = bottom - top + 1;
+            int[] pixels = new int[width * height];
+
+            for (int y = 0; y < height; y++) Array.Copy(sprite.Pixels, (top + y) * sprite.Width + left, pixels, y * width, width);
+
+            return new Sprite(width, height, pixels);
         }
 
         void DrawRoom(Graphics g, Scene scene, int room) {
@@ -438,7 +580,7 @@ namespace KatAMMapTracker {
         void DrawConnections(Graphics g, Scene scene) {
             foreach (int room in ShownRooms(scene)) {
                 foreach (DoorInfo door in map.Rooms[room].Doors) {
-                    if (!(scene.ShowAll || progress.IsDoorFound(door)) || !layout.ContainsKey(door.Destination)) continue;
+                    if (!IsDoorShown(scene, door) || !layout.ContainsKey(door.Destination)) continue;
 
                     bool isTwoWay = door.DoorBack != null;
 
@@ -579,6 +721,13 @@ namespace KatAMMapTracker {
 
             int found = info.Doors.Count(progress.IsDoorFound);
             string caption = $"Room 0x{room:X}   Mirrors used: {found}/{info.Doors.Count}" + (progress.VisitedRooms.Contains(room) ? "" : "   (not visited)");
+
+            // What's in the room, with counts (e.g. "Cherry x3");
+            List<MapEntity> entities = ShownEntities(room).ToList();
+
+            if (entities.Count > 0) {
+                caption += "\n" + string.Join(", ", entities.GroupBy(entity => entity.Name).Select(group => group.Count() > 1 ? $"{group.Key} x{group.Count()}" : group.Key));
+            }
             Size captionSize = TextRenderer.MeasureText(caption, Font);
 
             int boxWidth = Math.Max(width, captionSize.Width) + 12, boxHeight = height + captionSize.Height + 14;
