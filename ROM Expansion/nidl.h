@@ -29,6 +29,7 @@ enum {
     NIDL_SLIPPY,
     NIDL_KABU,
     NIDL_COCONUT,
+    NIDL_CONER,
     NIDL_ENEMY_COUNT,
 };
 
@@ -99,5 +100,7 @@ void KabuInit(struct NidlObject *);
 void KabuStart(struct Object *);
 void CoconutInit(struct NidlObject *);
 void CoconutStart(struct Object *);
+void ConerInit(struct NidlObject *);
+void ConerStart(struct Object *);
 
 #endif

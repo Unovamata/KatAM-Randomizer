@@ -61,6 +61,7 @@ namespace KatAMRandomizer {
             Slippy(),
             Kabu(),
             Coconut(),
+            Coner(),
         };
 
         static KatAMExpansion() {
@@ -121,6 +122,12 @@ namespace KatAMRandomizer {
             new[] { new Part(3) }, new Dictionary<int, ushort>(),
             new[] { (0x26, 0), (0x26, 1), (0x0D, 3), (0x0D, 2), (0x26, 5), (0x0C, 1), (0x14, 2) },   // "Co" (Cookin), "c", "o" (Blockin), "n" (Cookin), "u" (Cupie), "t" (Hot Head);
             new byte[] { 0x02 }, new byte[] { 0x00, 0x01 });
+
+        // Coner; Frames: NiDL's 4 (standing), 5 and 6 (scuttling). Variant 0 scuttles along, variant 1 in place;
+        static Enemy Coner() => new Enemy(7, "Coner", 0x29, 0x752A70, new[] { 4, 5, 6 }.Select(f => new[] { new Part(f) }).ToList(),
+            new[] { new Part(3) }, new Dictionary<int, ushort>(),
+            new[] { (0x26, 0), (0x26, 1), (0x26, 5), (0x14, 4), (0x01, 1) },   // "Co", "n" (Cookin), "e" (Hot Head), "r" (Bronto Burt);
+            new byte[] { 0x00, 0x01 });
 
         // IsNightmareInDreamLand(); A Kirby: Nightmare in Dream Land ROM (USA, Japanese or European);
         public static bool IsNightmareInDreamLand(byte[] rom) => RegionOf(rom) != null;

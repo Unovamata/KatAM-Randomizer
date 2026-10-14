@@ -117,6 +117,15 @@ Most enemies' first frames (0-3) are their hurt frames. Frames are drawn around 
 - Spawn `0x0808E8D4`; variants 0 and 1 (`0x0808E914`, facing right or left) hang on frame 5 until Kirby is within 7 pixels sideways (`0x0808E9D4`), then fall (`0x0808EA00`): gravity and max fall by the record flags byte (`0x08743214` 0x1500/0x3000, `0x0874321C` 3.0/4.0), tumbling through frames 7-15 every 2 frames while turning around 4 times. Landing (`0x0808EB10`) it explodes (`0x0806A344`). Variant 2 (`0x0808EB24`) rocks on frames 4, 5, 6, 5 (6 frames each).
 - Frames `0x087524A4`: 0-3 hurt, 4-6 rocking, 7-15 tumbling.
 
+## Coner (type `0x29`)
+
+- Spawn `0x0808FA10`, variants `0x087432F4`. Variant 0 (`0x0808FA50`) faces Kirby and scuttles (`0x0808FAB4`): speed 1.0 (frame 5), 0.5 (frame 6), 0.25 (frame 5), 0 (frame 4), for 8, 8, 16 and 16 frames (`0x087432EC`, 4 bytes per record flag; the second set is 4, 4, 6, 6). Variant 1 (`0x0808FBAC`) does it in place (`0x0808FC00`). States 1 and 2 (`0x0808FB50`, `0x0808FB80`) sink and swim in water (`0x080692FC` picks them).
+- Frames `0x08752A70`: 0-3 hurt, 4 standing, 5-6 scuttling.
+
+## Spawn functions
+
+The master table (`0x0872FF30`) has 8-byte entries, `(kind, spawn function)`, so type `t`'s spawn is at `0x0872FF34 + t * 8`: Chilly `0x08084CD4`, Cool Spook `0x0807EDB4`, Starman `0x08080DD0`, Sword/Blade Knight `0x0807AF58`/`0x0807AF98`, Poppy Bros. Jr. `0x080819B4`/`0x08081F60`/`0x08082008`, Coner `0x0808FA10`, Needlous `0x0807BD20`, Gip `0x0808BDB4`.
+
 ## KatAM side (USA)
 
 - `gSpriteTables` `0x083B909C` (anims, attrs, oamData, palette, tiles4bpp...); 939 anims. Tile and palette indexes are relative to the table bases, so new data must be aligned to them.
