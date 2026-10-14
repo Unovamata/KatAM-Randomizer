@@ -25,7 +25,8 @@ namespace KatAMRandomizer {
              isIncludingMasterInhaleAbility,
              isHPPercentageModified,
              isRandomizingExcludedEnemies,
-             isAddingBroomHatter;
+             isAddingNightmareEnemies;
+        protected List<byte> nightmareBehaviors = new List<byte>(), nightmareFlyingBehaviors = new List<byte>();
 
         protected List<byte> underwaterEnemyIDs = new List<byte>();
         protected List<byte> flyingEnemyIDs = new List<byte>();
@@ -56,10 +57,13 @@ namespace KatAMRandomizer {
 
             List<byte> allEntitiesIDs = LoadAllSpeedAndBehaviorData();
 
-            // ROM Expansion enemies join the pool with their only behavior (0) and speed (0);
-            if(!isRandomizingMiniBosses && isAddingBroomHatter) {
-                behaviorDictionary[KatAMExpansion.BroomHatterID] = NewProperty(0x00);
-                speedDictionary[KatAMExpansion.BroomHatterID] = NewProperty(0x00);
+            // ROM Expansion enemies join the pool as object type 0x31, the behavior picking which one (and speed 0);
+            if(!isRandomizingMiniBosses && isAddingNightmareEnemies) {
+                behaviorDictionary[KatAMExpansion.NightmareID] = new List<byte>(nightmareBehaviors);
+                speedDictionary[KatAMExpansion.NightmareID] = NewProperty(0x00);
+
+                // The ones that fly can take flying enemies' places;
+                if(nightmareFlyingBehaviors.Count > 0 && !flyingEnemyIDs.Contains(KatAMExpansion.NightmareID)) flyingEnemyIDs.Add(KatAMExpansion.NightmareID);
             }
 
             if(enemiesOptions == GenerationOptions.Shuffle) allEntitiesIDs = Utils.Shuffle(allEntitiesIDs);
@@ -76,7 +80,8 @@ namespace KatAMRandomizer {
                 Entity entity = entities[i];
                 byte id = entity.ID;
 
-                bool isIDAssigned = false;
+                bool isIDAssigned = false,
+                     isFlyingPlace = isRandomizingFlyingEnemiesIntelligently && flyingEnemyIDs.Contains(id);
 
                 // Enemies in these rooms keep their vanilla data;
                 if(roomsWithoutEnemyRandomization.Contains(entity.Room)) continue;
@@ -165,8 +170,11 @@ namespace KatAMRandomizer {
                     }
                 }
 
-                // The Broom Hatter's behavior 1 sweeps in place forever; Only the regular one is used;
-                if(entity.ID == KatAMExpansion.BroomHatterID) entity.Behavior = 0x00;
+                // ROM Expansion enemies: the behavior picks which one, so it's always one of theirs;
+                if(entity.ID == KatAMExpansion.NightmareID && isAddingNightmareEnemies) {
+                    List<byte> behaviors = isFlyingPlace && nightmareFlyingBehaviors.Count > 0 ? nightmareFlyingBehaviors : nightmareBehaviors;
+                    entity.Behavior = behaviors[Utils.GetRandomRange(0, behaviors.Count)];
+                }
 
                 // Randomizing enemy speeds;
                 if(isRandomizingSpeed) {
@@ -178,8 +186,8 @@ namespace KatAMRandomizer {
                     }
                 }
 
-                // Randomizing enemy behaviors;
-                if(isRandomizingBehaviors) {
+                // Randomizing enemy behaviors (ROM Expansion enemies already have theirs);
+                if(isRandomizingBehaviors && !(entity.ID == KatAMExpansion.NightmareID && isAddingNightmareEnemies)) {
                     if(behaviorDictionary.ContainsKey(entity.ID)) {
                         List<byte> availableEnemyBehaviors = behaviorDictionary[entity.ID];
                         int behaviorIndex = Utils.GetRandomRange(0, availableEnemyBehaviors.Count);
@@ -265,7 +273,9 @@ namespace KatAMRandomizer {
             isIncludingMasterInhaleAbility = Settings.isEnemyIncludingMasterInhaleAbility;
             isHPPercentageModified = Settings.isEnemyHPPercentageModified;
             isRandomizingExcludedEnemies = Settings.isRandomizingExcludedEnemies;
-            isAddingBroomHatter = Settings.isAddingBroomHatter;
+            isAddingNightmareEnemies = Settings.NightmareEnemies.Count > 0;
+            nightmareBehaviors = KatAMExpansion.BehaviorsOf(Settings.NightmareEnemies);
+            nightmareFlyingBehaviors = KatAMExpansion.BehaviorsOf(Settings.NightmareEnemies, true);
         }
 
         public void GroupEnemies() {

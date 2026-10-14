@@ -108,6 +108,15 @@ namespace KatAMRandomizer
 
         // Control Panel;
 
+        // AddNightmareEnemies(); The ROM Expansion, which also expands the ROM to 32 MB (so ROMData becomes the bigger copy);
+        private string AddNightmareEnemies() {
+            byte[] rom = Processing.ROMData;
+            string error = KatAMExpansion.AddEnemies(ref rom, nightmareROM);
+
+            Processing.ROMData = rom;
+            return error;
+        }
+
         // Randomize (Save);
         private void ButtonSaveFile_Click(object sender, EventArgs e) {
             byte[] fileContents = File.ReadAllBytes(system.ROMPath),
@@ -121,18 +130,18 @@ namespace KatAMRandomizer
             settings.RandomEntity = new Random(settings.Seed);
 
             // ROM Expansion goes first, so the ROM reader sees the new enemies' parameters like any other's;
-            if (settings.isAddingBroomHatter) {
-                string error = nightmareROM == null ? "Load a Nightmare in Dream Land (USA) ROM in the ROM Expansion tab, or turn the Broom Hatter off."
-                                                    : KatAMExpansion.AddBroomHatter(Processing.ROMData, nightmareROM);
+            if (settings.NightmareEnemies.Count > 0) {
+                string error = nightmareROM == null ? "Load a Nightmare in Dream Land ROM in the ROM Expansion tab, or turn its enemies off."
+                                                    : AddNightmareEnemies();
 
                 if (error != null) {
                     MessageBox.Show(error, "ROM Expansion", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     return;
                 }
 
-                Processing.parameters[KatAMExpansion.BroomHatterID] = KatAMExpansion.BroomHatterName;
+                Processing.parameters[KatAMExpansion.NightmareID] = "Nightmare in Dream Land Enemy";
             } else {
-                Processing.parameters[KatAMExpansion.BroomHatterID] = Processing.enemiesDictionary[KatAMExpansion.BroomHatterID].Name;
+                Processing.parameters[KatAMExpansion.NightmareID] = Processing.enemiesDictionary[KatAMExpansion.NightmareID].Name;
             }
 
             new KatAMROMReader(system);
@@ -769,20 +778,28 @@ namespace KatAMRandomizer
                 byte[] rom = File.ReadAllBytes(fileDialog.FileName);
 
                 if (!KatAMExpansion.IsNightmareInDreamLand(rom)) {
-                    MessageBox.Show("That isn't a Kirby: Nightmare in Dream Land (USA) ROM.", "ROM Expansion", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    MessageBox.Show("That isn't a Kirby: Nightmare in Dream Land ROM (USA, Japanese or European).", "ROM Expansion", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     return;
                 }
 
                 nightmareROM = rom;
                 LabelExpansionNightmare.Text = Path.GetFileName(fileDialog.FileName);
-                CheckboxExpansionBroomHatter.Enabled = true;
+                CheckedListExpansionEnemies.Enabled = true;
+
+                if (CheckedListExpansionEnemies.Items.Count == 0) {
+                    foreach ((int index, string name) in KatAMExpansion.Enemies) CheckedListExpansionEnemies.Items.Add(name);
+                }
             } catch (Exception ex) {
                 MessageBox.Show($"Error loading file: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
-        private void CheckboxExpansionBroomHatter_CheckedChanged(object sender, EventArgs e) {
-            settings.isAddingBroomHatter = CheckboxExpansionBroomHatter.Checked;
+        // The enemies picked; ItemCheck comes before the item's state changes;
+        private void CheckedListExpansionEnemies_ItemCheck(object sender, ItemCheckEventArgs e) {
+            int index = KatAMExpansion.Enemies[e.Index].index;
+
+            settings.NightmareEnemies.Remove(index);
+            if (e.NewValue == CheckState.Checked) settings.NightmareEnemies.Add(index);
         }
 
         // Mirrors;

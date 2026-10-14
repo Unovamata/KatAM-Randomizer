@@ -1,6 +1,8 @@
 # Kirby: Nightmare in Dream Land (USA, `AGB-A7KE`) — porting notes
 
-Reverse-engineering notes gathered while porting the Broom Hatter (see `ROM Expansion/`). All addresses are NiDL USA unless marked KatAM.
+Reverse-engineering notes gathered while porting enemies (see `ROM Expansion/`). All addresses are NiDL USA unless marked KatAM.
+
+The Japanese (`A7KJ`) and European (`A7KP`) ROMs have the same enemy data: their frame tables are `0x3A8C` / `0x23C7EC` further than the USA ones, and their descriptor tables are at `0x08742DAC` / `0x0897B678`.
 
 ## Engine
 
@@ -24,9 +26,12 @@ Reverse-engineering notes gathered while porting the Broom Hatter (see `ROM Expa
 | `+0x3E` | Bit 15: horizontal flip |
 | `+0x43` | Facing (s8): `1` right, `-1` left |
 | `+0x48` / `+0x4A` | X / Y in pixels (s16) |
+| `+0x00` | Motion function (`0x080656B4` adds the accelerations to the velocities, caps them and moves; 0 freezes the object) |
 | `+0x4C` / `+0x50` | X / Y in 16.16 |
-| `+0x54` / `+0x5C` | X / Y velocity, 16.16 pixels per frame |
-| `+0x60`, `+0x68` | Acceleration / max speed |
+| `+0x54` / `+0x58` | X / Y velocity, 16.16 pixels per frame |
+| `+0x5C` / `+0x60` | X / Y acceleration |
+| `+0x64` / `+0x68` | X / Y speed limit (`0x80000000` none) |
+| `+0x7A` | Set by the collisions when landing |
 | `+0x73` | Variant (from the room object) |
 | `+0x8C` | Pointer to a sub-structure (`+0x1A`: extra sprite frame, e.g. broom dust, `0xFFFF` none) |
 
@@ -61,24 +66,44 @@ Reverse-engineering notes gathered while porting the Broom Hatter (see `ROM Expa
 
 ## Enemy types (category 0, type = index + 8)
 
-| Type | Enemy | In KatAM |
-|---|---|---|
-| `0x08` | Waddle Dee | yes |
-| `0x0B` | **Broom Hatter** | no (ported) |
-| `0x0C` | Pengy | yes |
-| `0x0E` | Chilly | no |
-| `0x10` | Cappy | no |
-| `0x11` | Hot Head | yes |
-| `0x12` | Togezo | no |
-| `0x14` | Bronto Burt | yes |
-| `0x15` | Kabu | no |
-| `0x18` | Twizzy | no |
-| `0x19` | Shotzo | yes |
-| `0x1A` | Sparky (the green hopper of stage 1-1) | yes |
-| `0x1D` | Scarfy | yes |
-| `0x26`, `0x27`, `0x28` | Poppy Bros. Jr. (alone, on an apple, with a bomb) | no |
+Spawn functions are in the master table (`0x0872FF30`), frame tables are the `0x0875xxxx` literal each spawn function loads, and graphics descriptors are at `0x0873EEA0 + index * 4` (`+2` tile count, `+8` palette, `+12` LZ77 tiles; null for enemies drawn with shared graphics). Names from WiKirby's NiDL enemy list, matched by sprite.
 
-The others weren't identified with certainty; `sw2/` style contact sheets (put each index in Sparky's 1-1 record at `0x0835DD99`) show them all.
+| Type | Enemy | Frames | In KatAM |
+|---|---|---|---|
+| `0x08` | Waddle Dee | `0x08752118` | yes |
+| `0x09` | (headband, not a regular enemy) | `0x08752194` | - |
+| `0x0A` | Noddy | `0x08752150` | yes |
+| `0x0B` | **Broom Hatter** | `0x087521D8` | no (ported) |
+| `0x0C` | Pengy | `0x08752204` | yes |
+| `0x0D` | Laser Ball | `0x08752248` | yes |
+| `0x0E` | **Chilly** | `0x08752284` | no |
+| `0x0F` | Sir Kibble | `0x0875230C` | yes |
+| `0x10` | **Cappy** | `0x0875235C` | no |
+| `0x11` | Waddle Doo | `0x087523A0` | yes |
+| `0x12` | Gordo (no descriptor) | `0x08752108` | yes |
+| `0x13` | **Cool Spook** | `0x087523EC` | no |
+| `0x14` | Bronto Burt | `0x0875240C` | yes |
+| `0x15` | **Kabu** | `0x08752438` | no |
+| `0x16` | Bomber | `0x0875246C` | yes |
+| `0x17` | **Coconut** | `0x087524A4` | no |
+| `0x18` | **Twizzy** | `0x08752560` | no |
+| `0x19` | Shotzo | `0x087524E4` | yes |
+| `0x1A` | Sparky | `0x08752584` | yes |
+| `0x1B` | Twister | `0x087525E4` | yes |
+| `0x1D` | Scarfy | `0x0875265C` | yes |
+| `0x1E` | **Bubbles** | `0x087526A8` | no |
+| `0x1F` | **Starman** | `0x08752708` | no |
+| `0x20` | Hot Head | `0x0875275C` | yes |
+| `0x21` | Glunk | `0x087527DC` | yes |
+| `0x22` | **Slippy** | `0x08752828` | no |
+| `0x24`, `0x25` | Sword Knight, **Blade Knight** (same code) | `0x087529D8`, `0x08752A24` | Sword Knight only |
+| `0x26`, `0x27`, `0x28` | **Poppy Bros. Jr.** (alone, on an apple, with a bomb) | `0x087528D0`... | no |
+| `0x29` | **Coner** | `0x08752A70` | no |
+| `0x2C` | **Needlous** | `0x08752B08` | no |
+| `0x2D` | UFO | `0x08752B4C` | yes |
+| `0x2F` | **Gip** | `0x08752BD4` | no |
+
+Most enemies' first frames (0-3) are their hurt frames. Frames are drawn around the object's position, about 24x24.
 
 ## Broom Hatter (type `0x0B`)
 
@@ -87,6 +112,40 @@ The others weren't identified with certainty; `sw2/` style contact sheets (put e
 - Velocity tables `0x08743144` (1.0, 0.5, 0.25, 0.25, 2.0) and `0x08743158` (1.0, 0.5, 0.5, -1.0, -0.5, -0.5).
 - Frames `0x087521D8`: 0-2 dizzy, 3 knocked away, 4-7 sweeping, 8-10 broom dust. Palette `0x0824CCF8` (the dust uses palette 15, white), tiles LZ77 `0x0824CD18`.
 
+## Coconut (type `0x17`)
+
+- Spawn `0x0808E8D4`; variants 0 and 1 (`0x0808E914`, facing right or left) hang on frame 5 until Kirby is within 7 pixels sideways (`0x0808E9D4`), then fall (`0x0808EA00`): gravity and max fall by the record flags byte (`0x08743214` 0x1500/0x3000, `0x0874321C` 3.0/4.0), tumbling through frames 7-15 every 2 frames while turning around 4 times. Landing (`0x0808EB10`) it explodes (`0x0806A344`). Variant 2 (`0x0808EB24`) rocks on frames 4, 5, 6, 5 (6 frames each).
+- Frames `0x087524A4`: 0-3 hurt, 4-6 rocking, 7-15 tumbling.
+
+## Coner (type `0x29`)
+
+- Spawn `0x0808FA10`, variants `0x087432F4`. Variant 0 (`0x0808FA50`) faces Kirby and scuttles (`0x0808FAB4`): speed 1.0 (frame 5), 0.5 (frame 6), 0.25 (frame 5), 0 (frame 4), for 8, 8, 16 and 16 frames (`0x087432EC`, 4 bytes per record flag; the second set is 4, 4, 6, 6). Variant 1 (`0x0808FBAC`) does it in place (`0x0808FC00`). States 1 and 2 (`0x0808FB50`, `0x0808FB80`) sink and swim in water (`0x080692FC` picks them).
+- Frames `0x08752A70`: 0-3 hurt, 4 standing, 5-6 scuttling.
+
+## Starman (type `0x1F`)
+
+- Spawn `0x08080DD0`, variants `0x08741544` (4); variant 0 (`0x08080E10`) has 6 states (`0x08741554`, per frame `0x0874156C`): walk (`0x08080EA4`, 1.0 from `0x087414F8`, frames `0x08081814`) until Kirby is within 47 pixels; crouch and take off (`0x08080F34`/`0x08080FA4`: 2.0 up, steering 0x1900 a frame towards Kirby up to 2.0) until 9 pixels above the screen (`0x03002158` + 4 is the camera's y); hide (`0x08081084`/`0x080810C4`) for 78 frames (`0x08741500`), following Kirby's x but for the last 30 (`0x08741502`); dive (`0x08081140`: 2.0 down, gravity 0x1500, at most 3.0), bounce 2.0, then stand 60 frames and walk again, or the second time fly away (`0x08081274`: 0.4 forward, rising 0x1900 faster a frame). State 4 (`0x080812F0`) swims.
+- Frames `0x08752708`: 0-3 hurt, 4-10 walking, 11-12 crouching, 13-18 flying, 20 diving.
+
+## Needlous (type `0x2C`)
+
+- Spawn `0x0807BD20`, variants `0x08740A78`; variant 0 (`0x0807C080`) states `0x08740AC8`, per frame `0x08740AE0`, landing handler `0x0807BE08`, wall handlers `0x0807BEAC`/`0x0807BED4` (turn around; while rolling, stop 16 frames). Start (`0x0807BD7C`) walks one time in 4, else curls.
+- Walk (`0x0807BF0C`/`0x0807C138`): 0.5, frames `0x08740A98`; at most 240 frames (`0x08740A80`) or 60 with Kirby within 9 pixels vertically (`0x08740A88`, `0x08063D2C` is dy to Kirby); 150 frames after rolling before it can curl again.
+- Curl (`0x0807BF74`): 3.0 up, gravity 0x2500, frames 7, 8, then spin `0x08740AAC` (14, 15, 11, 13, 16, 12); bounces 2.0 (`0x0807BFD0`) and 1.0 (`0x0807C000`); roll (`0x0807C030`/`0x0807C2E0`) 3.0 (`0x08740A90`) for 60 frames.
+- Frames `0x08752B08`: 0-3 hurt, 4-6 walking, 7-8 hopping, 11-16 spinning (15 and 16 mostly color 15, white: the spin's blur).
+
+## Blade Knight (type `0x25`, Sword Knight's scripts)
+
+- Spawn `0x0807AF98` (Sword Knight `0x0807AF58`), variants `0x08740990`; variant 0 (`0x0807B300`) states `0x087409FC`, per frame `0x08740A1C`.
+- Walk (`0x0807B3F8`/`0x0807B430`): 0.5, frames `0x0874099C`, stops at ledges (`0x0807B088`); within 63 pixels (`0x0807B294`) one time in 4 raises the sword (frame 15, 16 frames, `0x0807B49C`) else lowers it (frame 16, `0x0807B584`).
+- Slashes: down (`0x0807B4F0`: 14, 12, 11, 10, 16) and up (`0x0807B5D8`: 10, 11, 12, 14, 15), 2, 2, 1, 2, 8 frames; the hitbox comes on the second frame (`0x0807B1E4`); they lunge (`0x0807B0B4`: 4.0, 3.0, 2.0, 1.0, 0, every 3 frames, `0x087409E4`). After one (`0x0807B16C`, `0x0807B1A8`): the other once, one time in 4, else back off (`0x0807B66C`: -0.5 facing Kirby, 90 frames).
+- `0x0807B200` swings (`0x0807B6E8`) at something within 30x48 pixels while Kirby is further than 63.
+- Frames `0x08752A24`: 0-3 hurt, 4-9 walking, 10-16 slashing.
+
+## Spawn functions
+
+The master table (`0x0872FF30`) has 8-byte entries, `(kind, spawn function)`, so type `t`'s spawn is at `0x0872FF34 + t * 8`: Chilly `0x08084CD4`, Cool Spook `0x0807EDB4`, Starman `0x08080DD0`, Sword/Blade Knight `0x0807AF58`/`0x0807AF98`, Poppy Bros. Jr. `0x080819B4`/`0x08081F60`/`0x08082008`, Coner `0x0808FA10`, Needlous `0x0807BD20`, Gip `0x0808BDB4`.
+
 ## KatAM side (USA)
 
 - `gSpriteTables` `0x083B909C` (anims, attrs, oamData, palette, tiles4bpp...); 939 anims. Tile and palette indexes are relative to the table bases, so new data must be aligned to them.
@@ -94,5 +153,7 @@ The others weren't identified with certainty; `sw2/` style contact sheets (put e
 - Free object types: `0x2C` is the randomizer's "Nothing"; `0x31` is free (used by the Broom Hatter). `0x40-0x44` count as bosses.
 - HP bar names: `gUnk_08D60EE4[language]` + type * 0x100, 64x8 images; language 1 is English.
 - Collision attributes: bit 0 marks an *empty* tile (Boxin's ledge check).
-- Free space from `0xF40000` (the randomizer's 9ROM lists) to the end; the expansion uses `0xFC0000`.
+- Gravity: `ObjectMain` pulls every object down (`0x0809A990`: 0x15 per frame, at most 3.0, NiDL's 0x1500 and 3.0) unless `flags & 0x40` (and not `0x20`, which it sets once falling). Flying enemies set `0x40` in their start; getting hit clears it.
+- Explosions: `0x08073D2C` is the small one Foley and Scarfy explode with (40x40, hurts Kirby); `0x08074420` is Bomber's (128x128).
+- Free space from `0xF40000` (the randomizer's 9ROM lists) to the end of the 16 MB ROM. The expansion pads the ROM to 32 MB (the most the GBA maps, `0x08000000`-`0x09FFFFFF`; the game saves to SRAM, so no EEPROM range gets in the way) and puts everything at `0x09000000`.
 - The KatAM decompilation builds byte-identical to the USA ROM, so `katam.elf` gives every symbol to link new code against (`--just-symbols`); `ld` adds interworking veneers for the long calls.
