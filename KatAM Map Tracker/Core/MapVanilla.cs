@@ -234,7 +234,7 @@ namespace KatAMMapTracker {
                 /* Rooms connected to nothing placed: rows under the map, in ID order. The tutorial comes first, in its own row
                  * above the others (the last rooms...), so the map comes full circle; */
                 List<int> rest = map.Rooms.Keys.Where(id => !centers.ContainsKey(id))
-                    .OrderBy(id => id == FirstTutorialRoom ? -1 : RomMap.IsArenaRoom(id) ? 1 : 0).ThenBy(id => id).ToList();
+                    .OrderBy(id => id == FirstTutorialRoom ? -1 : 0).ThenBy(id => id).ToList();
 
                 if (rest.Count == 0) break;
 
@@ -245,8 +245,8 @@ namespace KatAMMapTracker {
                 foreach (int room in rest) {
                     if (centers.ContainsKey(room)) continue;
 
-                    // The tutorial, the game's end and the arena (see RomMap.IsArenaRoom) each get their own row;
-                    int group = room == FirstTutorialRoom ? -1 : RomMap.IsArenaRoom(room) ? 1 : 0;
+                    // The tutorial and the game's end each get their own row;
+                    int group = room == FirstTutorialRoom ? -1 : 0;
 
                     if (rowGroup != null && group != rowGroup) {
                         rowX = startX;
