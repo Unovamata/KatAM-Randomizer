@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -518,6 +518,8 @@ namespace KatAMMapTracker {
                 if (!moved) break;
             }
 
+            CompactClusters(offsetX, offsetY, minX, minY, maxX, maxY, weights);
+
             // Offsets land on the 8 pixel grid (cells are multiples of 8 too), so every room center does;
             Dictionary<int, (double x, double y)> offsets = new Dictionary<int, (double x, double y)>();
 
@@ -526,6 +528,83 @@ namespace KatAMMapTracker {
             }
 
             return offsets;
+        }
+
+        /* CompactClusters(); The forces leave some outer clusters far away from everything, with plenty of free space closer in.
+         * Every cluster, the outermost first, moves to the free spot that best shortens its mirror lines (and a little towards
+         * the center), keeping the same margin to the other clusters, so the lines can still be routed between them.
+         * Central Circle's cluster (index 0) stays where it is; */
+        static void CompactClusters(double[] offsetX, double[] offsetY, double[] minX, double[] minY, double[] maxX, double[] maxY,
+                                    Dictionary<(int, int), int> weights) {
+            int count = offsetX.Length;
+            const double CenterPull = 0.25, Step = 16;
+
+            double CenterX(int i) => offsetX[i] + (minX[i] + maxX[i]) / 2;
+            double CenterY(int i) => offsetY[i] + (minY[i] + maxY[i]) / 2;
+
+            List<(int other, int weight)>[] links = Enumerable.Range(0, count).Select(_ => new List<(int, int)>()).ToArray();
+
+            foreach (((int a, int b), int w) in weights) {
+                links[a].Add((b, w));
+                links[b].Add((a, w));
+            }
+
+            // Cost of a cluster centered at x, y: its weighted line lengths, plus a pull towards the center;
+            double Cost(int i, double x, double y) {
+                double cost = CenterPull * Math.Sqrt(x * x + y * y);
+
+                foreach ((int other, int weight) in links[i]) {
+                    double dx = x - CenterX(other), dy = y - CenterY(other);
+                    cost += Math.Min(weight, 4) * Math.Sqrt(dx * dx + dy * dy);
+                }
+
+                return cost;
+            }
+
+            bool IsFree(int i, double newOffsetX, double newOffsetY) {
+                for (int j = 0; j < count; j++) {
+                    if (j == i) continue;
+
+                    double overlapX = Math.Min(newOffsetX + maxX[i], offsetX[j] + maxX[j]) - Math.Max(newOffsetX + minX[i], offsetX[j] + minX[j]) + ClusterMargin,
+                           overlapY = Math.Min(newOffsetY + maxY[i], offsetY[j] + maxY[j]) - Math.Max(newOffsetY + minY[i], offsetY[j] + minY[j]) + ClusterMargin;
+
+                    if (overlapX > 0 && overlapY > 0) return false;
+                }
+
+                return true;
+            }
+
+            for (int pass = 0; pass < 3; pass++) {
+                bool improved = false;
+
+                foreach (int i in Enumerable.Range(1, count - 1).OrderByDescending(i => CenterX(i) * CenterX(i) + CenterY(i) * CenterY(i))) {
+                    double currentX = CenterX(i), currentY = CenterY(i), currentCost = Cost(i, currentX, currentY);
+
+                    // Candidates on a grid between the cluster and the center, cheapest first;
+                    double reach = Math.Sqrt(currentX * currentX + currentY * currentY) + Step;
+                    List<(double cost, double x, double y)> candidates = new List<(double, double, double)>();
+
+                    for (double y = -reach; y <= reach; y += Step) {
+                        for (double x = -reach; x <= reach; x += Step) {
+                            double cost = Cost(i, x, y);
+                            if (cost < currentCost * 0.95) candidates.Add((cost, x, y));
+                        }
+                    }
+
+                    foreach ((double cost, double x, double y) in candidates.OrderBy(c => c.cost)) {
+                        double newOffsetX = offsetX[i] + x - currentX, newOffsetY = offsetY[i] + y - currentY;
+
+                        if (!IsFree(i, newOffsetX, newOffsetY)) continue;
+
+                        offsetX[i] = newOffsetX;
+                        offsetY[i] = newOffsetY;
+                        improved = true;
+                        break;
+                    }
+                }
+
+                if (!improved) break;
+            }
         }
     }
 }
