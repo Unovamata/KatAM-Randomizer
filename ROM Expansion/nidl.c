@@ -9,6 +9,7 @@ static const struct NidlEnemy sNidlEnemies[NIDL_ENEMY_COUNT] = {
     [NIDL_CAPPY] = { CappyInit, CappyStart, 2, 0 },
     [NIDL_TWIZZY] = { TwizzyInit, TwizzyStart, 1, 0 },
     [NIDL_BUBBLES] = { BubblesInit, BubblesStart, 2, 0 },
+    [NIDL_SLIPPY] = { SlippyInit, SlippyStart, 2, 0 },
 };
 
 // NidlSetFrame(); Shows one of the enemy's frames (its own numbering);

@@ -24,6 +24,7 @@ enum {
     NIDL_CAPPY,
     NIDL_TWIZZY,
     NIDL_BUBBLES,
+    NIDL_SLIPPY,
     NIDL_ENEMY_COUNT,
 };
 
@@ -87,5 +88,7 @@ void TwizzyInit(struct NidlObject *);
 void TwizzyStart(struct Object *);
 void BubblesInit(struct NidlObject *);
 void BubblesStart(struct Object *);
+void SlippyInit(struct NidlObject *);
+void SlippyStart(struct Object *);
 
 #endif

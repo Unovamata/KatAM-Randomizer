@@ -49,6 +49,7 @@ namespace KatAMRandomizer {
             Cappy(),
             Twizzy(),
             Bubbles(),
+            Slippy(),
         };
 
         static KatAMExpansion() {
@@ -90,6 +91,12 @@ namespace KatAMRandomizer {
             new[] { new Part(0) }, new Dictionary<int, ushort>(),
             new[] { (0x28, 0), (0x0C, 1), (0x18, 5), (0x18, 6), (0x18, 7), (0x18, 8), (0x04, 4) },   // "B" (Bomber), "u" (Cupie), "bble" (Sir Kibble), "s" (Squishy);
             new byte[] { 0x00, 0x01 });
+
+        // Slippy; Frames: NiDL's 4 (sitting), 5 (blinking, falling), 6 (top of a jump), 8 (jumping). It jumps around on land;
+        static Enemy Slippy() => new Enemy(4, "Slippy", 0x22, 0x752828, new[] { 4, 5, 6, 8 }.Select(f => new[] { new Part(f) }).ToList(),
+            new[] { new Part(3) }, new Dictionary<int, ushort>(),
+            new[] { (0x04, 0), (0x02, 1), (0x02, 2), (0x02, 3), (0x02, 4), (0x05, 5) },   // "S" (Squishy), "lipp" (Blipper), "y" (Scarfy);
+            new byte[] { 0x00 });
 
         public static bool IsNightmareInDreamLand(byte[] rom) =>
             rom != null && rom.Length >= 0x800000 && Encoding.ASCII.GetString(rom, 0xAC, 4) == NightmareGameCode;
