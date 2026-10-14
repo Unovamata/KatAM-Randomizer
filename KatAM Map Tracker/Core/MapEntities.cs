@@ -21,7 +21,8 @@ namespace KatAMMapTracker {
 
     /* MapEntity; An important object of a room: what it is, the sprite drawn for it and its name.
      * ContentIcon: for chests, the sprite of what they hold (null if unknown), shown when chest contents are spoiled; */
-    public sealed record MapEntity(EntityKind Kind, EntityIcon Icon, string Name, EntityIcon? ContentIcon = null);
+    // Destination: the room a Fuse Cannon or Warp Star sends Kirby to (-1 for the rest);
+    public sealed record MapEntity(EntityKind Kind, EntityIcon Icon, string Name, EntityIcon? ContentIcon = null, int Destination = -1);
 
     /* MapEntities; Which room objects are worth showing on the map (bosses, mini-bosses, mirror shards, big switches, treasure,
      * items, fuse cannons and warp stars), and their in-game sprites, read from the ROM like the rest of the map graphics.
@@ -440,9 +441,9 @@ namespace KatAMMapTracker {
             switch (id) {
                 case 0x65: return behavior < 8 ? new MapEntity(EntityKind.MirrorShard, EntityIcon.MirrorShard, "Mirror Shard") : null;
                 case 0x80: case 0x81: return Chest(id == 0x81, behavior);
-                case 0x84: return new MapEntity(EntityKind.WarpStar, EntityIcon.WarpStar, "Warp Star");
+                case 0x84: return new MapEntity(EntityKind.WarpStar, EntityIcon.WarpStar, "Warp Star", Destination: obj.Destination);
                 case 0x86: return new MapEntity(EntityKind.BigSwitch, EntityIcon.BigSwitch, "Big Switch");
-                case 0x8A: return new MapEntity(EntityKind.FuseCannon, EntityIcon.FuseCannon, "Fuse Cannon");
+                case 0x8A: return new MapEntity(EntityKind.FuseCannon, EntityIcon.FuseCannon, "Fuse Cannon", Destination: obj.Destination);
             }
 
             return null;

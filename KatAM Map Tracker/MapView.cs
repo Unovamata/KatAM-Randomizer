@@ -66,6 +66,7 @@ namespace KatAMMapTracker {
         bool isZooming, isZoomAnchored;
 
         readonly Dictionary<(Sprite, bool), Bitmap> spriteBitmaps = new Dictionary<(Sprite, bool), Bitmap>();
+        readonly Dictionary<(Sprite, int, int, int), (Sprite sprite, int startX, int startY)> diagonals = new Dictionary<(Sprite, int, int, int), (Sprite, int, int)>();
         readonly Dictionary<int, Bitmap> previews = new Dictionary<int, Bitmap>();
         readonly Queue<int> previewOrder = new Queue<int>();
         readonly Timer pulseTimer = new Timer { Interval = 16 };
@@ -475,14 +476,17 @@ namespace KatAMMapTracker {
         /* DrawEntities(); The sprites of the important objects of a room (one per kind of sprite), inside its square, all the same
          * size: one in the middle, two side by side, three or four in a 2x2 grid. The current room gets a blinking outline; */
         void DrawEntities(Graphics g, Scene scene, int room) {
-            List<(EntityIcon icon, bool isBig)> icons = ShownEntities(room)
-                .Select(entity => (IconOf(entity), entity.Kind == EntityKind.Boss || entity.Kind == EntityKind.MiniBoss || entity.Kind == EntityKind.BigSwitch))
-                .GroupBy(icon => icon.Item1).Select(group => group.First()).Take(MaxEntityIcons).ToList();
+            bool faded = IsFaded(scene, room);
+
+            // Fuse Cannons and Warp Stars not used yet (the room they send Kirby to wasn't visited) are faded like rooms not visited;
+            List<(EntityIcon icon, bool isBig, bool faded)> icons = ShownEntities(room)
+                .Select(entity => (IconOf(entity), entity.Kind == EntityKind.Boss || entity.Kind == EntityKind.MiniBoss || entity.Kind == EntityKind.BigSwitch,
+                                   faded || (entity.Destination >= 0 && !progress.VisitedRooms.Contains(entity.Destination))))
+                .GroupBy(icon => icon.Item1).Select(group => group.OrderBy(icon => icon.Item3).First()).Take(MaxEntityIcons).ToList();
 
             if (icons.Count == 0) return;
 
             RectangleF square = RoomBounds(layout[room], scene.RoomGrowth);
-            bool faded = IsFaded(scene, room);
             float screenScale = g.Transform.Elements[0];
 
             GraphicsState state = g.Save();
@@ -501,7 +505,7 @@ namespace KatAMMapTracker {
                 float box = !icons[i].isBig ? cell
                     : icons.Count == 1 ? Math.Max(cell * BigEntityIconScale, Math.Min(square.Width, square.Height) * LoneBigEntityIconScale)
                     : cell * BigEntityIconScale;
-                DrawPixelArt(g, GetEntitySprite(icons[i].icon), left + (i % columns + 0.5f) * cell, top + (i / columns + 0.5f) * cell, box, screenScale, faded);
+                DrawPixelArt(g, GetEntitySprite(icons[i].icon), left + (i % columns + 0.5f) * cell, top + (i / columns + 0.5f) * cell, box, screenScale, icons[i].faded);
             }
 
             if (room == progress.CurrentRoom && pulseFrame % 2 == 0) {
@@ -622,18 +626,17 @@ namespace KatAMMapTracker {
                 return;
             }
 
-            // Diagonal: the horizontal piece (or the arrow pointing right) rotated along the segment;
+            // Diagonal: the horizontal piece (or the arrow pointing right) rotated along the segment as pixel art (see MapGraphics.Diagonal);
             Sprite piece = segment.IsOneWay ? lines.ArrowRight : lines.Horizontal;
-            GraphicsState state = g.Save();
+            int steps = (int)Math.Round(Math.Abs(segment.EndX - segment.StartX) / scale);
+            var key = (piece, steps, segment.DirectionX, segment.DirectionY);
 
-            g.TranslateTransform((float)segment.StartX, (float)segment.StartY);
-            g.RotateTransform((float)segment.Angle);
+            if (!diagonals.TryGetValue(key, out var diagonal)) diagonals[key] = diagonal = MapGraphics.Diagonal(piece, steps, segment.DirectionX, segment.DirectionY);
 
-            using (TextureBrush brush = new TextureBrush(GetBitmap(piece, faded), WrapMode.Tile) { Transform = new Matrix(scale, 0, 0, scale, 0, -half) }) {
-                g.FillRectangle(brush, 0, -half, (float)segment.Length, thickness);
-            }
+            RectangleF target = new RectangleF((float)segment.StartX - diagonal.startX * scale, (float)segment.StartY - diagonal.startY * scale,
+                                               diagonal.sprite.Width * scale, diagonal.sprite.Height * scale);
 
-            g.Restore(state);
+            g.DrawImage(GetBitmap(diagonal.sprite, faded), target, new RectangleF(0, 0, diagonal.sprite.Width, diagonal.sprite.Height), GraphicsUnit.Pixel);
         }
 
         // DrawAreas(); Colored regions behind the rooms, by cluster, like the in-game map backdrop;
@@ -838,6 +841,7 @@ namespace KatAMMapTracker {
         void ClearImages() {
             foreach (Bitmap bitmap in spriteBitmaps.Values.Concat(previews.Values)) bitmap.Dispose();
             spriteBitmaps.Clear();
+            diagonals.Clear();
             previews.Clear();
             previewOrder.Clear();
             areaLayer?.Dispose();
