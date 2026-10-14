@@ -20,18 +20,27 @@ namespace KatAMMapTracker {
      * Every room center lands on the 8 pixel grid, so the in-game line tiles line up. The layout only depends on the ROM data,
      * so it's the same every time the same ROM is opened; */
     public static class MapLayout {
-        // Distance between neighbor rooms in a cluster, in map pixels (5 map tiles);
-        const int Cell = 40;
+        // Distance between neighbor rooms in a cluster, and space between clusters, in map pixels;
+        // They grow when lines can't be routed around the rooms (see MapPlan);
+        [ThreadStatic] static int Cell;
+        [ThreadStatic] static double ClusterMargin;
         const int Grid = MapGraphics.TileSize;
-        const double ClusterMargin = 48;
         const int ForceIterations = 300, OverlapIterations = 400;
 
         // First tutorial room (0x323 -> 0x324 -> 0x325);
         const int FirstTutorialRoom = 0x323;
 
+        public const int DefaultCell = 48;
+        public const double DefaultClusterMargin = 56;
+
         public static Dictionary<int, RoomPlacement> Generate(RomMap map) => Generate(map, out _);
 
-        public static Dictionary<int, RoomPlacement> Generate(RomMap map, out Dictionary<int, int> clusters) {
+        /* Generate(); cell: distance between neighbor rooms (a multiple of 8). clusterMargin: space between clusters; */
+        public static Dictionary<int, RoomPlacement> Generate(RomMap map, out Dictionary<int, int> clusters,
+                                                              int cell = DefaultCell, double clusterMargin = DefaultClusterMargin) {
+            Cell = cell;
+            ClusterMargin = clusterMargin;
+
             Dictionary<int, List<int>> neighbors = BuildNeighbors(map);
 
             clusters = FindClusters(neighbors);

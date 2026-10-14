@@ -30,6 +30,7 @@ namespace KatAMMapTracker {
         };
 
         RomMap map;
+        MapPlan plan;
         Dictionary<int, RoomPlacement> layout;
         Dictionary<int, int> regionOf = new Dictionary<int, int>();
         Dictionary<string, int> lineColors = new Dictionary<string, int>();
@@ -75,12 +76,14 @@ namespace KatAMMapTracker {
 
         public double Zoom => zoom;
 
-        /* SetMap(); Loads a map. clusters: cluster of every room (from MapLayout), tinted as regions; */
-        public void SetMap(RomMap romMap, Dictionary<int, RoomPlacement> roomLayout, Dictionary<int, int> clusters, MapProgress mapProgress) {
+        /* SetMap(); Loads a map with its plan (room positions, clusters and connection paths); */
+        public void SetMap(RomMap romMap, MapPlan mapPlan, MapProgress mapProgress) {
             ClearImages();
 
             map = romMap;
-            layout = roomLayout;
+            plan = mapPlan;
+            layout = mapPlan?.Layout;
+            Dictionary<int, int> clusters = mapPlan?.Clusters;
             progress = mapProgress;
             graphics = map == null ? null : new MapGraphics(map);
             lineColors = map == null ? new Dictionary<string, int>() : MapRoutes.AssignLineColors(map);
@@ -281,7 +284,7 @@ namespace KatAMMapTracker {
 
                     LineSprites lines = graphics.Lines(lineColors.GetValueOrDefault(MapRoutes.ConnectionKey(door.Room, door.Destination)));
 
-                    foreach (RouteSegment segment in MapRoutes.Route(layout[room], destination, !isTwoWay)) DrawSegment(g, segment, lines);
+                    foreach (RouteSegment segment in plan.Segments(door.Room, door.Destination, !isTwoWay)) DrawSegment(g, segment, lines);
                 }
             }
         }

@@ -149,13 +149,17 @@ namespace KatAMMapTracker {
 
             map = loaded;
             romPath = path;
-            layout = MapLayout.Generate(map, out Dictionary<int, int> clusters);
+            // Laying out the map and routing every connection around the rooms takes a moment;
+            Cursor = Cursors.WaitCursor;
+            MapPlan plan = MapPlan.Generate(map);
+            Cursor = Cursors.Default;
+            layout = plan.Layout;
             progressPath = MapProgress.PathForRom(path);
             progress = MapProgress.Load(progressPath, map.Crc32);
             previousRoom = -1;
 
             Text = $"KatAM Map Tracker - {Path.GetFileName(path)}";
-            mapView.SetMap(map, layout, clusters, progress);
+            mapView.SetMap(map, plan, progress);
             UpdateDiscoveryLabel();
             SaveLastRom(path);
         }

@@ -2,7 +2,7 @@
 
 An optional companion window for the KatAM Randomizer. It draws the map of your randomized ROM as you explore it, in the style of the game's pause screen map, using the game's own graphics.
 
-- The map is generated from the ROM's (randomized) mirrors, so rooms connected by a mirror are drawn next to each other, wherever they were in the original game. Rooms are grouped in clusters of densely connected rooms, and connections are drawn with straight, 45° and 90° lines like a metro map. The tutorial rooms sit at the top, above Central Circle.
+- The map is generated from the ROM's (randomized) mirrors, so rooms connected by a mirror are drawn next to each other, wherever they were in the original game. Rooms are grouped in clusters of densely connected rooms, and connections are drawn with straight, 45° and 90° lines like a metro map. Lines are routed around the rooms, so they never touch or hide behind a room square (rooms and clusters are spread apart if a line can't get through). The tutorial rooms sit at the top, above Central Circle.
 - Rooms use the in-game map squares: **yellow** once every mirror in the room was used, **orange** while some weren't, and the room Kirby is in **pulses** with the game's own animation. Hubs are big squares, Boss and Goal game rooms big star squares.
 - Lines use the in-game map lines: Two-Way mirrors are dotted lines, One-Way mirrors are chains of arrows pointing the way they go. Lines come in a few colors (the game's purple, re-hued) so connections next to each other don't blend.
 - Each cluster gets a colored region behind it, like the colored areas of the in-game map.
@@ -50,6 +50,7 @@ The order doesn't matter: the script keeps retrying, so the tracker can be opene
   - Rooms, doors, tilesets, tilemaps and palettes: addresses from ReflexViewer (`Documentation/Reflex JP Tools`).
   - Room backgrounds: room parameter `+0x1E` selects entry `0x614 + index` of the graphics table at `0xD2E5F0` (LZ77 tiles, palette, raw tilemap).
   - Map graphics: the pause screen map tiles at `0x33F688`, palette at `0x33F588`, square pulse frames at `0x3458AE` and line colors at `0x34591E`.
+- Connections are routed with A* on the 8 pixel grid in the 8 directions: rooms other than the two being connected block the cells around them, turns cost a little (sharp turns aren't allowed) and cells used by other lines cost a bit more, so lines bend around rooms with 45° turns and spread out.
 - When Kirby moves from room A to room B, the mirror in A leading to B is marked as found. Rooms never hold two mirrors to the same room, so the mirror is always known. Arriving through a Two-Way mirror also reveals the mirror back.
 - Room changes that aren't mirrors (deaths, warp stars, cannons, menus) only reveal the room.
 - To use another port, change `PORT` in the Lua script and `TrackerServer.DefaultPort`.
