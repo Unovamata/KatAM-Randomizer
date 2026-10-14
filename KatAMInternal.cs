@@ -24,6 +24,58 @@ namespace KatAMInternal
         Remove = 9
     }
 
+    /* RomRegion; The Japanese, American and European versions hold the same data at different addresses.
+     * Every data block is moved as a whole, so each Japanese address is translated with the shift of the block it's in.
+     * The shifts were found by matching the data of the three ROMs:
+     * • Level data (objects, 8ROM & 9ROM warps, long room parameters): 0x843000 - 0x93xxxx.
+     * • Pointer tables (rooms, 9ROM lists, graphics): 0xD2xxxx.
+     * • Object parameters and HUD palettes: 0x33xxxx.
+     * • Kirby palettes (sprays): 0x49Fxxx.
+     * • Free space used to rebuild the 9ROM lists (chests); */
+    public sealed class RomRegion {
+        public string GameCode { get; }
+        public string Name { get; }
+        public long LevelDataShift { get; }
+        public long PointerTableShift { get; }
+        public long ParameterShift { get; }
+        public long KirbyPaletteShift { get; }
+        public long FreeSpace { get; }
+
+        public static readonly RomRegion Japan = new RomRegion("B8KJ", "(JAP)", 0, 0, 0, 0, 0xE10000);
+        public static readonly RomRegion USA = new RomRegion("B8KE", "(USA)", 0x2FE74, 0x34BE4, 0x1B82C, 0x1BED4, 0xF40000);
+        public static readonly RomRegion Europe = new RomRegion("B8KP", "(EUR)", 0x3A2D8, 0x3F1C0, 0x1D30C, 0x25EB8, 0xF50000);
+
+        // Region of the loaded ROM;
+        public static RomRegion Current { get; private set; } = Japan;
+
+        RomRegion(string gameCode, string name, long levelDataShift, long pointerTableShift, long parameterShift, long kirbyPaletteShift, long freeSpace) {
+            GameCode = gameCode;
+            Name = name;
+            LevelDataShift = levelDataShift;
+            PointerTableShift = pointerTableShift;
+            ParameterShift = parameterShift;
+            KirbyPaletteShift = kirbyPaletteShift;
+            FreeSpace = freeSpace;
+        }
+
+        // Detect(); Region of a ROM from its game code (0xAC), or null if it isn't Kirby & the Amazing Mirror;
+        public static RomRegion Detect(byte[] rom) {
+            if (rom == null || rom.Length < 0xB0) return null;
+
+            string code = System.Text.Encoding.ASCII.GetString(rom, 0xAC, 4);
+
+            return new[] { Japan, USA, Europe }.FirstOrDefault(region => region.GameCode == code);
+        }
+
+        public static void Use(RomRegion region) => Current = region ?? Japan;
+
+        // Translations of Japanese addresses;
+        public long LevelData(long japanese) => japanese + LevelDataShift;
+        public long PointerTable(long japanese) => japanese + PointerTableShift;
+        public long Parameters(long japanese) => japanese + ParameterShift;
+        public long KirbyPalette(long japanese) => japanese + KirbyPaletteShift;
+    }
+
     internal class Processing {
         public string ROMPath { get; set; }
         public string ROMDirectory { get; set; }
@@ -31,23 +83,14 @@ namespace KatAMInternal
         public static byte[] ROMData { get; set; }
         public Settings Settings { get; set; }
 
-        string EightROMStartAddressHex = "84326C", 
-               EightROMEndAddressHex = "884C64",
-               NineROMStartAddressHex = "900f8C",
-               NineROMEndAddressHex = "903117";
-
-        public static long EightROMStartAddress = 0, 
-                           EightROMEndAddress = 0,
-                           NineROMStartAddress = 0,
-                           NineROMEndAddress = 0;
+        // 8ROM & 9ROM warp data ranges (Japanese addresses, translated to the loaded ROM's region);
+        public static long EightROMStartAddress => RomRegion.Current.LevelData(0x84326C);
+        public static long EightROMEndAddress => RomRegion.Current.LevelData(0x884C64);
+        public static long NineROMStartAddress => RomRegion.Current.LevelData(0x900F8C);
+        public static long NineROMEndAddress => RomRegion.Current.LevelData(0x903117);
 
         public Processing() {
             Settings = new Settings();
-
-            EightROMStartAddress = Convert.ToInt32(EightROMStartAddressHex, 16);
-            EightROMEndAddress = Convert.ToInt32(EightROMEndAddressHex, 16);
-            NineROMStartAddress = Convert.ToInt32(NineROMStartAddressHex, 16);
-            NineROMEndAddress = Convert.ToInt32(NineROMEndAddressHex, 16);
 
             MergeSpecialDictionaries(parameters, enemiesDictionary);
             MergeSpecialDictionaries(parameters, minibossesDictionary);
@@ -825,6 +868,11 @@ namespace KatAMInternal
         }
 
         public static byte Nothing = 0x2C;
+
+        // Big switch object; Each one unlocks the Central Circle mirror to an area, so they must never be randomized or removed;
+        public const byte BigSwitch = 0x86;
+
+        public static bool IsBigSwitch(Entity entity) => entity.ID == BigSwitch;
 
         public static string ByteArrayToHexString(byte[] byteArray, string addedString = "") {
             string result = "";

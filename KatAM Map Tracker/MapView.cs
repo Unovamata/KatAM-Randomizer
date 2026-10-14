@@ -14,13 +14,16 @@ namespace KatAMMapTracker {
      * • Lines join the rooms through the mirrors Kirby used, with 0°, 45° and 90° segments and a few colors so they don't blend.
      *   One-Way mirrors are drawn as arrows, like the game does.
      * • Room clusters are tinted, like the colored regions of the in-game map.
-     * • Following Kirby pans smoothly to the room he enters.
+     * • Everything is drawn as pixel art (nearest neighbor), never blurred.
+     * • The camera eases its pans and zooms. Following Kirby keeps it on the room he's in.
+     * • Reveal All (spoiler) shows the whole map, with what wasn't discovered yet faded.
      * • Hovering a room shows its preview, with its background, and its mirrors (green: used, yellow: not yet).
      * • Mouse wheel zooms around the cursor, dragging pans, double clicking a room centers it; */
     public sealed class MapView : Control {
         const double MinZoom = 0.25, MaxZoom = 8, ZoomStep = 1.2;
-        const int AreaRadius = 56, AreaCell = 8, PreviewMaxWidth = 420, PreviewMaxHeight = 280;
-        const double PanDuration = 0.45; // Seconds;
+        const int AreaRadius = 56, AreaCell = 2, PreviewMaxWidth = 420, PreviewMaxHeight = 280;
+        const double PanDuration = 0.45, ZoomDuration = 0.3; // Seconds;
+        const float FadedOpacity = 0.35f;
 
         // Soft colors for the regions behind the room clusters, like the in-game map backdrop;
         static readonly Color[] RegionColors = {
@@ -29,28 +32,39 @@ namespace KatAMMapTracker {
             Color.FromArgb(76, 116, 104), Color.FromArgb(128, 104, 48),
         };
 
+        // Scene; What a drawing pass shows: the discovered map, or everything (faded or not where it wasn't discovered);
+        readonly record struct Scene(bool ShowAll, bool FadeUndiscovered);
+
         RomMap map;
+        MapPlan plan;
         Dictionary<int, RoomPlacement> layout;
         Dictionary<int, int> regionOf = new Dictionary<int, int>();
         Dictionary<string, int> lineColors = new Dictionary<string, int>();
         MapProgress progress;
         MapGraphics graphics;
 
-        // Smooth pan: from where the view was to where it's going;
+        // Camera: the map position at the center of the view, and the zoom;
+        double centerX, centerY, zoom = 2;
+
+        // Smooth pan: from where the view was to where it's going (ease-out cubic);
         double panFromX, panFromY, panToX, panToY;
         DateTime panStart;
         bool isPanning;
 
-        readonly Dictionary<Sprite, Bitmap> spriteBitmaps = new Dictionary<Sprite, Bitmap>();
+        // Smooth zoom: around a map point that stays under the same screen point (anchored), or around the center;
+        double zoomFrom, zoomTo, zoomAnchorX, zoomAnchorY, zoomAnchorScreenX, zoomAnchorScreenY;
+        DateTime zoomStart;
+        bool isZooming, isZoomAnchored;
+
+        readonly Dictionary<(Sprite, bool), Bitmap> spriteBitmaps = new Dictionary<(Sprite, bool), Bitmap>();
         readonly Dictionary<int, Bitmap> previews = new Dictionary<int, Bitmap>();
         readonly Queue<int> previewOrder = new Queue<int>();
         readonly Timer pulseTimer = new Timer { Interval = 16 };
 
         Bitmap areaLayer;
         RectangleF areaLayerBounds;
-        int areaLayerRoomCount = -1;
+        (int rooms, bool all) areaLayerKey = (-1, false);
 
-        double zoom = 2, offsetX, offsetY; // offset: map position drawn at the top left corner;
         Point dragStart, mouse;
         bool isDragging, hasDragged;
         int hoveredRoom = -1, pulseFrame, pulseTicks;
@@ -69,18 +83,28 @@ namespace KatAMMapTracker {
             BackColor = Color.FromArgb(28, 28, 36);
             SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint | ControlStyles.OptimizedDoubleBuffer, true);
 
-            pulseTimer.Tick += (s, e) => { AdvancePan(); AdvancePulse(); };
+            pulseTimer.Tick += (s, e) => { AdvanceCamera(); AdvancePulse(); };
             pulseTimer.Start();
         }
 
-        public double Zoom => zoom;
+        public double Zoom => isZooming ? zoomTo : zoom;
 
-        /* SetMap(); Loads a map. clusters: cluster of every room (from MapLayout), tinted as regions; */
-        public void SetMap(RomMap romMap, Dictionary<int, RoomPlacement> roomLayout, Dictionary<int, int> clusters, MapProgress mapProgress) {
+        // Map position drawn at the top left corner;
+        double OffsetX => centerX - Width / 2.0 / zoom;
+        double OffsetY => centerY - Height / 2.0 / zoom;
+
+        bool RevealAll => progress?.RevealAll == true;
+
+        Scene ViewScene => new Scene(RevealAll, true);
+
+        /* SetMap(); Loads a map with its plan (room positions, clusters and connection paths); */
+        public void SetMap(RomMap romMap, MapPlan mapPlan, MapProgress mapProgress) {
             ClearImages();
 
             map = romMap;
-            layout = roomLayout;
+            plan = mapPlan;
+            layout = mapPlan?.Layout;
+            Dictionary<int, int> clusters = mapPlan?.Clusters;
             progress = mapProgress;
             graphics = map == null ? null : new MapGraphics(map);
             lineColors = map == null ? new Dictionary<string, int>() : MapRoutes.AssignLineColors(map);
@@ -94,17 +118,23 @@ namespace KatAMMapTracker {
                 regionOf[room] = regionIndex[cluster];
             }
 
-            isPanning = false;
+            StopCamera();
 
             if (progress != null && layout != null && layout.ContainsKey(progress.CurrentRoom)) CenterOn(progress.CurrentRoom, false);
-            else FitToDiscovered();
+            else FitToDiscovered(false);
 
             Invalidate();
         }
 
         public void SetProgress(MapProgress mapProgress) {
             progress = mapProgress;
-            areaLayerRoomCount = -1;
+            areaLayerKey = (-1, false);
+            Invalidate();
+        }
+
+        // RefreshProgress(); Redraws after the progress changed outside of room changes (Reveal All);
+        public void RefreshProgress() {
+            areaLayerKey = (-1, false);
             Invalidate();
         }
 
@@ -118,42 +148,94 @@ namespace KatAMMapTracker {
         /* CenterOn(); Centers the view on a room. With animate, the view eases there (ease-out cubic) instead of jumping; */
         public void CenterOn(int room, bool animate = true) {
             RoomPlacement placement = layout[room];
-            double targetX = placement.CenterX - Width / 2.0 / zoom, targetY = placement.CenterY - Height / 2.0 / zoom;
+            PanTo(placement.CenterX, placement.CenterY, animate);
+        }
 
+        void PanTo(double x, double y, bool animate) {
             if (!animate) {
                 isPanning = false;
-                offsetX = targetX;
-                offsetY = targetY;
+                centerX = x;
+                centerY = y;
                 Invalidate();
                 return;
             }
 
-            panFromX = offsetX; panFromY = offsetY;
-            panToX = targetX; panToY = targetY;
+            panFromX = centerX; panFromY = centerY;
+            panToX = x; panToY = y;
             panStart = DateTime.Now;
             isPanning = true;
         }
 
-        // AdvancePan(); Moves the view along the current smooth pan;
-        void AdvancePan() {
-            if (!isPanning) return;
+        void StopCamera() {
+            isPanning = false;
 
-            double t = Math.Min(1, (DateTime.Now - panStart).TotalSeconds / PanDuration);
-            double eased = 1 - Math.Pow(1 - t, 3);
+            if (isZooming) zoom = zoomTo;
 
-            offsetX = panFromX + (panToX - panFromX) * eased;
-            offsetY = panFromY + (panToY - panFromY) * eased;
+            isZooming = false;
+        }
 
-            if (t >= 1) isPanning = false;
+        // AdvanceCamera(); Moves the view along the current smooth pan and zoom, and keeps it on Kirby while following him;
+        void AdvanceCamera() {
+            if (map == null || layout == null) return;
+
+            // Following never loses Kirby: if the view isn't on his room (resizes, a new layout...), it goes back to it;
+            if (Follow && !isPanning && !isDragging && progress != null && layout.TryGetValue(progress.CurrentRoom, out RoomPlacement current) &&
+                (Math.Abs(centerX - current.CenterX) > 0.5 || Math.Abs(centerY - current.CenterY) > 0.5)) {
+                PanTo(current.CenterX, current.CenterY, true);
+            }
+
+            if (!isPanning && !isZooming) return;
+
+            DateTime now = DateTime.Now;
+
+            if (isZooming) {
+                double t = Math.Min(1, (now - zoomStart).TotalSeconds / ZoomDuration);
+                double eased = 1 - Math.Pow(1 - t, 3);
+
+                // Geometric interpolation, so every step of the zoom feels the same;
+                zoom = zoomFrom * Math.Pow(zoomTo / zoomFrom, eased);
+
+                if (isZoomAnchored && !isPanning) {
+                    centerX = zoomAnchorX - zoomAnchorScreenX / zoom;
+                    centerY = zoomAnchorY - zoomAnchorScreenY / zoom;
+                }
+
+                if (t >= 1) isZooming = false;
+
+                ViewChanged?.Invoke();
+            }
+
+            if (isPanning) {
+                double t = Math.Min(1, (now - panStart).TotalSeconds / PanDuration);
+                double eased = 1 - Math.Pow(1 - t, 3);
+
+                centerX = panFromX + (panToX - panFromX) * eased;
+                centerY = panFromY + (panToY - panFromY) * eased;
+
+                if (t >= 1) isPanning = false;
+            }
 
             Invalidate();
         }
 
+        /* FitToDiscovered(); Shows every room on the map (the discovered ones, or all of them with Reveal All); */
         public void FitToDiscovered() {
+            StopFollowing();
+            FitToDiscovered(true);
+        }
+
+        // StopFollowing(); The user moved the view away from Kirby; Following comes back when he enters another room;
+        void StopFollowing() {
+            if (!Follow) return;
+
+            Follow = false;
+            FollowDisabledByUser?.Invoke();
+        }
+
+        void FitToDiscovered(bool animate) {
             if (layout == null) return;
 
-            List<RoomPlacement> rooms = (progress?.VisitedRooms ?? new HashSet<int>())
-                .Where(layout.ContainsKey).Select(r => layout[r]).ToList();
+            List<RoomPlacement> rooms = ShownRooms(ViewScene).Select(r => layout[r]).ToList();
 
             // Nothing discovered yet; Central Circle is where the adventure starts;
             if (rooms.Count == 0 && layout.TryGetValue(RomMap.CentralCircle, out RoomPlacement hub)) rooms.Add(hub);
@@ -162,32 +244,41 @@ namespace KatAMMapTracker {
             double minX = rooms.Min(r => r.X), minY = rooms.Min(r => r.Y),
                    maxX = rooms.Max(r => r.X + r.Width), maxY = rooms.Max(r => r.Y + r.Height);
             double margin = 48;
+            double target = Math.Clamp(Math.Min(Width / (maxX - minX + margin * 2), Height / (maxY - minY + margin * 2)), MinZoom, 4);
 
-            isPanning = false;
-            zoom = Math.Clamp(Math.Min(Width / (maxX - minX + margin * 2), Height / (maxY - minY + margin * 2)), MinZoom, 4);
-            offsetX = (minX + maxX) / 2 - Width / 2.0 / zoom;
-            offsetY = (minY + maxY) / 2 - Height / 2.0 / zoom;
-            Invalidate();
-            ViewChanged?.Invoke();
-        }
-
-        public void ZoomBy(double factor) => ZoomAt(factor, new Point(Width / 2, Height / 2));
-
-        void ZoomAt(double factor, Point screen) {
-            // Zooming during a pan would fight it; The pan target is kept relative to the new zoom instead;
-            if (isPanning) {
-                double centerX = panToX + Width / 2.0 / zoom, centerY = panToY + Height / 2.0 / zoom;
-                double newZoom = Math.Clamp(zoom * factor, MinZoom, MaxZoom);
-                panToX = centerX - Width / 2.0 / newZoom;
-                panToY = centerY - Height / 2.0 / newZoom;
+            if (!animate || Width == 0) {
+                StopCamera();
+                zoom = target;
+                PanTo((minX + maxX) / 2, (minY + maxY) / 2, false);
+                ViewChanged?.Invoke();
+                return;
             }
 
-            double mapX = offsetX + screen.X / zoom, mapY = offsetY + screen.Y / zoom;
+            ZoomTo(target, null);
+            PanTo((minX + maxX) / 2, (minY + maxY) / 2, true);
+        }
 
-            zoom = Math.Clamp(zoom * factor, MinZoom, MaxZoom);
-            offsetX = mapX - screen.X / zoom;
-            offsetY = mapY - screen.Y / zoom;
-            Invalidate();
+        public void ZoomBy(double factor) => ZoomAt(factor, null);
+
+        // ZoomAt(); Eases the zoom; Around the cursor, unless the view follows Kirby (or pans), which zooms around the center;
+        void ZoomAt(double factor, Point? screen) {
+            ZoomTo(Math.Clamp(Zoom * factor, MinZoom, MaxZoom), screen);
+        }
+
+        void ZoomTo(double target, Point? screen) {
+            isZoomAnchored = screen.HasValue && !Follow && !isPanning;
+
+            if (isZoomAnchored) {
+                zoomAnchorScreenX = screen.Value.X - Width / 2.0;
+                zoomAnchorScreenY = screen.Value.Y - Height / 2.0;
+                zoomAnchorX = centerX + zoomAnchorScreenX / zoom;
+                zoomAnchorY = centerY + zoomAnchorScreenY / zoom;
+            }
+
+            zoomFrom = zoom;
+            zoomTo = target;
+            zoomStart = DateTime.Now;
+            isZooming = true;
             ViewChanged?.Invoke();
         }
 
@@ -214,9 +305,17 @@ namespace KatAMMapTracker {
             Invalidate(Rectangle.Inflate(Rectangle.Round(new RectangleF(topLeft, new SizeF((float)(current.Width * zoom), (float)(current.Height * zoom)))), 4, 4));
         }
 
-        PointF ToScreen(double x, double y) => new PointF((float)((x - offsetX) * zoom), (float)((y - offsetY) * zoom));
+        PointF ToScreen(double x, double y) => new PointF((float)((x - OffsetX) * zoom), (float)((y - OffsetY) * zoom));
 
         //////////////////////////////////////////////////////////////////////////////////////////////
+
+        // ShownRooms(); Rooms a scene draws: the visited ones, or all of them;
+        IEnumerable<int> ShownRooms(Scene scene) =>
+            (scene.ShowAll ? (IEnumerable<int>)map.Rooms.Keys : progress.VisitedRooms).Where(layout.ContainsKey);
+
+        bool IsFaded(Scene scene, int room) => scene.FadeUndiscovered && !progress.VisitedRooms.Contains(room);
+
+        bool IsFaded(Scene scene, DoorInfo door) => scene.FadeUndiscovered && !progress.IsDoorFound(door);
 
         protected override void OnPaint(PaintEventArgs e) {
             base.OnPaint(e);
@@ -232,25 +331,27 @@ namespace KatAMMapTracker {
             GraphicsState state = g.Save();
 
             // Everything is drawn in map pixels; The transform does the zoom and pan;
-            g.Transform = new Matrix((float)zoom, 0, 0, (float)zoom, (float)(-offsetX * zoom), (float)(-offsetY * zoom));
-            g.PixelOffsetMode = PixelOffsetMode.Half;
-
-            DrawAreas(g);
-
-            g.InterpolationMode = InterpolationMode.NearestNeighbor;
-
-            DrawConnections(g);
-
-            foreach (int room in progress.VisitedRooms) {
-                if (layout.ContainsKey(room)) DrawRoom(g, room);
-            }
-
+            g.Transform = new Matrix((float)zoom, 0, 0, (float)zoom, (float)(-OffsetX * zoom), (float)(-OffsetY * zoom));
+            DrawScene(g, ViewScene, true);
             g.Restore(state);
 
             if (hoveredRoom >= 0 && !isDragging) DrawPreview(g, hoveredRoom);
         }
 
-        void DrawRoom(Graphics g, int room) {
+        /* DrawScene(); Draws the regions, lines and rooms of a scene in map pixels, as pixel art; */
+        void DrawScene(Graphics g, Scene scene, bool useAreaCache) {
+            g.PixelOffsetMode = PixelOffsetMode.Half;
+            g.InterpolationMode = InterpolationMode.NearestNeighbor;
+            g.SmoothingMode = SmoothingMode.None;
+
+            DrawAreas(g, scene, useAreaCache);
+            DrawConnections(g, scene);
+
+            // Faded rooms first, so the discovered ones are drawn over them;
+            foreach (int room in ShownRooms(scene).OrderBy(room => IsFaded(scene, room) ? 0 : 1)) DrawRoom(g, scene, room);
+        }
+
+        void DrawRoom(Graphics g, Scene scene, int room) {
             RoomPlacement placement = layout[room];
             RoomInfo info = map.Rooms[room];
 
@@ -259,7 +360,7 @@ namespace KatAMMapTracker {
                 : RoomStyle.Unexplored;
 
             Sprite sprite = graphics.Room(MapGraphics.ShapeOf(info), style, pulseFrame);
-            g.DrawImage(GetBitmap(sprite), (float)placement.X, (float)placement.Y, sprite.Width, sprite.Height);
+            g.DrawImage(GetBitmap(sprite, IsFaded(scene, room)), (float)placement.X, (float)placement.Y, sprite.Width, sprite.Height);
 
             if (room == hoveredRoom) {
                 using Pen pen = new Pen(Color.White, (float)(1.5 / zoom));
@@ -267,28 +368,31 @@ namespace KatAMMapTracker {
             }
         }
 
-        void DrawConnections(Graphics g) {
-            foreach (int room in progress.VisitedRooms) {
-                if (!layout.ContainsKey(room)) continue;
-
+        void DrawConnections(Graphics g, Scene scene) {
+            foreach (int room in ShownRooms(scene)) {
                 foreach (DoorInfo door in map.Rooms[room].Doors) {
-                    if (!progress.IsDoorFound(door) || !layout.TryGetValue(door.Destination, out RoomPlacement destination)) continue;
+                    if (!(scene.ShowAll || progress.IsDoorFound(door)) || !layout.ContainsKey(door.Destination)) continue;
 
                     bool isTwoWay = door.DoorBack != null;
 
-                    // Two-Way mirrors are drawn once;
-                    if (isTwoWay && progress.IsDoorFound(door.DoorBack) && door.Room > door.Destination) continue;
+                    // Two-Way mirrors are drawn once; The found side is drawn, so the line isn't faded when only one was used;
+                    if (isTwoWay && (scene.ShowAll || progress.IsDoorFound(door.DoorBack))) {
+                        bool backDrawnInstead = IsFaded(scene, door) == IsFaded(scene, door.DoorBack) ? door.Room > door.Destination : IsFaded(scene, door);
+
+                        if (backDrawnInstead) continue;
+                    }
 
                     LineSprites lines = graphics.Lines(lineColors.GetValueOrDefault(MapRoutes.ConnectionKey(door.Room, door.Destination)));
+                    bool faded = IsFaded(scene, door);
 
-                    foreach (RouteSegment segment in MapRoutes.Route(layout[room], destination, !isTwoWay)) DrawSegment(g, segment, lines);
+                    foreach (RouteSegment segment in plan.Segments(door.Room, door.Destination, !isTwoWay)) DrawSegment(g, segment, lines, faded);
                 }
             }
         }
 
         /* DrawSegment(); Fills a segment with the in-game line (or arrow) tiles;
          * Straight segments use the in-game pieces aligned to the 8 pixel grid. Diagonals rotate the horizontal pieces 45°; */
-        void DrawSegment(Graphics g, RouteSegment segment, LineSprites lines) {
+        void DrawSegment(Graphics g, RouteSegment segment, LineSprites lines, bool faded) {
             if (!segment.IsDiagonal) {
                 Sprite sprite = !segment.IsOneWay
                     ? (segment.IsHorizontal ? lines.Horizontal : lines.Vertical)
@@ -300,7 +404,7 @@ namespace KatAMMapTracker {
                     ? new RectangleF((float)left, (float)segment.StartY - 8, (float)Math.Abs(segment.EndX - segment.StartX), 16)
                     : new RectangleF((float)segment.StartX - 8, (float)top, 16, (float)Math.Abs(segment.EndY - segment.StartY));
 
-                using TextureBrush brush = new TextureBrush(GetBitmap(sprite), WrapMode.Tile);
+                using TextureBrush brush = new TextureBrush(GetBitmap(sprite, faded), WrapMode.Tile);
                 brush.TranslateTransform(area.X, area.Y);
                 g.FillRectangle(brush, area);
                 return;
@@ -313,7 +417,7 @@ namespace KatAMMapTracker {
             g.TranslateTransform((float)segment.StartX, (float)segment.StartY);
             g.RotateTransform((float)segment.Angle);
 
-            using (TextureBrush brush = new TextureBrush(GetBitmap(piece), WrapMode.Tile)) {
+            using (TextureBrush brush = new TextureBrush(GetBitmap(piece, faded), WrapMode.Tile)) {
                 brush.TranslateTransform(0, -8);
                 g.FillRectangle(brush, 0, -8, (float)segment.Length, 16);
             }
@@ -321,56 +425,79 @@ namespace KatAMMapTracker {
             g.Restore(state);
         }
 
-        // DrawAreas(); Soft colored regions behind the discovered rooms, by cluster, like the in-game map backdrop;
-        void DrawAreas(Graphics g) {
-            List<int> visited = progress.VisitedRooms.Where(layout.ContainsKey).ToList();
+        // DrawAreas(); Colored regions behind the rooms, by cluster, like the in-game map backdrop;
+        void DrawAreas(Graphics g, Scene scene, bool useCache) {
+            List<int> rooms = ShownRooms(scene).ToList();
 
-            if (visited.Count == 0) return;
+            if (rooms.Count == 0) return;
 
-            if (areaLayer == null || areaLayerRoomCount != visited.Count) BuildAreaLayer(visited);
+            if (!useCache) {
+                (Bitmap layer, RectangleF bounds) = BuildAreaLayer(rooms);
+                using (layer) g.DrawImage(layer, bounds);
+                return;
+            }
 
-            InterpolationMode previous = g.InterpolationMode;
-            g.InterpolationMode = InterpolationMode.Bilinear;
+            if (areaLayer == null || areaLayerKey != (rooms.Count, scene.ShowAll)) {
+                areaLayer?.Dispose();
+                (areaLayer, areaLayerBounds) = BuildAreaLayer(rooms);
+                areaLayerKey = (rooms.Count, scene.ShowAll);
+            }
+
             g.DrawImage(areaLayer, areaLayerBounds);
-            g.InterpolationMode = previous;
         }
 
-        void BuildAreaLayer(List<int> visited) {
-            areaLayer?.Dispose();
-
-            double minX = visited.Min(r => layout[r].CenterX) - AreaRadius, minY = visited.Min(r => layout[r].CenterY) - AreaRadius,
-                   maxX = visited.Max(r => layout[r].CenterX) + AreaRadius, maxY = visited.Max(r => layout[r].CenterY) + AreaRadius;
+        /* BuildAreaLayer(); Every room stamps its region color in a circle around it, in 2 pixel cells.
+         * The nearest room wins, which splits the regions like a Voronoi diagram. Cells on the edge of a region get
+         * a darker outline, so the regions look crisp, like the in-game map, instead of blurred; */
+        (Bitmap, RectangleF) BuildAreaLayer(List<int> rooms) {
+            double minX = rooms.Min(r => layout[r].CenterX) - AreaRadius - AreaCell, minY = rooms.Min(r => layout[r].CenterY) - AreaRadius - AreaCell,
+                   maxX = rooms.Max(r => layout[r].CenterX) + AreaRadius + AreaCell, maxY = rooms.Max(r => layout[r].CenterY) + AreaRadius + AreaCell;
 
             int columns = (int)Math.Ceiling((maxX - minX) / AreaCell) + 1, rows = (int)Math.Ceiling((maxY - minY) / AreaCell) + 1;
             double[] distance = new double[columns * rows];
-            int[] colors = new int[columns * rows];
+            int[] region = new int[columns * rows];
 
             Array.Fill(distance, double.MaxValue);
+            Array.Fill(region, -1);
 
-            // Every room stamps its color around it; The nearest room wins, which splits the regions like a Voronoi diagram;
-            foreach (int room in visited) {
+            foreach (int room in rooms) {
                 RoomPlacement p = layout[room];
-                Color color = RegionColors[regionOf.GetValueOrDefault(room) % RegionColors.Length];
-                int argb = Color.FromArgb(150, color).ToArgb();
+                int regionColor = regionOf.GetValueOrDefault(room) % RegionColors.Length;
                 int centerColumn = (int)((p.CenterX - minX) / AreaCell), centerRow = (int)((p.CenterY - minY) / AreaCell);
-                int reach = AreaRadius / AreaCell;
+                int reach = AreaRadius / AreaCell + 1;
 
                 for (int row = Math.Max(0, centerRow - reach); row <= Math.Min(rows - 1, centerRow + reach); row++) {
                     for (int column = Math.Max(0, centerColumn - reach); column <= Math.Min(columns - 1, centerColumn + reach); column++) {
-                        double dx = minX + column * AreaCell - p.CenterX, dy = minY + row * AreaCell - p.CenterY;
-                        double d = Math.Sqrt(dx * dx + dy * dy);
+                        double dx = minX + (column + 0.5) * AreaCell - p.CenterX, dy = minY + (row + 0.5) * AreaCell - p.CenterY;
+                        double d = dx * dx + dy * dy;
 
-                        if (d > AreaRadius || d >= distance[row * columns + column]) continue;
+                        if (d > AreaRadius * AreaRadius || d >= distance[row * columns + column]) continue;
 
                         distance[row * columns + column] = d;
-                        colors[row * columns + column] = argb;
+                        region[row * columns + column] = regionColor;
                     }
                 }
             }
 
-            areaLayer = ToBitmap(new Sprite(columns, rows, colors));
-            areaLayerBounds = new RectangleF((float)minX, (float)minY, columns * AreaCell, rows * AreaCell);
-            areaLayerRoomCount = visited.Count;
+            int[] fill = RegionColors.Select(color => Color.FromArgb(150, color).ToArgb()).ToArray(),
+                  outline = RegionColors.Select(color => Color.FromArgb(220, color.R * 3 / 5, color.G * 3 / 5, color.B * 3 / 5).ToArgb()).ToArray();
+            int[] pixels = new int[columns * rows];
+
+            for (int row = 0; row < rows; row++) {
+                for (int column = 0; column < columns; column++) {
+                    int index = row * columns + column, color = region[index];
+
+                    if (color < 0) continue;
+
+                    bool isEdge = column == 0 || row == 0 || column == columns - 1 || row == rows - 1 ||
+                                  region[index - 1] != color || region[index + 1] != color ||
+                                  region[index - columns] != color || region[index + columns] != color;
+
+                    pixels[index] = isEdge ? outline[color] : fill[color];
+                }
+            }
+
+            return (ToBitmap(new Sprite(columns, rows, pixels)), new RectangleF((float)minX, (float)minY, columns * AreaCell, rows * AreaCell));
         }
 
         // DrawPreview(); Shows the hovered room with its in-game graphics and background, and where its mirrors are;
@@ -382,7 +509,7 @@ namespace KatAMMapTracker {
             int width = (int)(image.Width * scale), height = (int)(image.Height * scale);
 
             int found = info.Doors.Count(progress.IsDoorFound);
-            string caption = $"Room 0x{room:X}   Mirrors used: {found}/{info.Doors.Count}";
+            string caption = $"Room 0x{room:X}   Mirrors used: {found}/{info.Doors.Count}" + (progress.VisitedRooms.Contains(room) ? "" : "   (not visited)");
             Size captionSize = TextRenderer.MeasureText(caption, Font);
 
             int boxWidth = Math.Max(width, captionSize.Width) + 12, boxHeight = height + captionSize.Height + 14;
@@ -397,8 +524,11 @@ namespace KatAMMapTracker {
 
             int imageX = x + 6, imageY = y + captionSize.Height + 8;
 
-            g.InterpolationMode = scale >= 1 ? InterpolationMode.NearestNeighbor : InterpolationMode.HighQualityBilinear;
+            // Pixel art, even when the preview is scaled down;
+            g.InterpolationMode = InterpolationMode.NearestNeighbor;
+            g.PixelOffsetMode = PixelOffsetMode.Half;
             g.DrawImage(image, imageX, imageY, width, height);
+            g.PixelOffsetMode = PixelOffsetMode.Default;
 
             foreach (DoorInfo door in info.Doors) {
                 float doorX = imageX + (float)(door.X * scale), doorY = imageY + (float)(door.Y * scale);
@@ -426,11 +556,19 @@ namespace KatAMMapTracker {
             return bitmap;
         }
 
-        Bitmap GetBitmap(Sprite sprite) {
-            if (spriteBitmaps.TryGetValue(sprite, out Bitmap cached)) return cached;
+        // GetBitmap(); The bitmap of a sprite, faded (see-through) for what wasn't discovered yet;
+        Bitmap GetBitmap(Sprite sprite, bool faded = false) {
+            if (spriteBitmaps.TryGetValue((sprite, faded), out Bitmap cached)) return cached;
 
-            Bitmap bitmap = ToBitmap(sprite);
-            spriteBitmaps[sprite] = bitmap;
+            Sprite source = sprite;
+
+            if (faded) {
+                int[] pixels = sprite.Pixels.Select(argb => (int)((uint)(((argb >> 24) & 0xFF) * FadedOpacity) << 24) | (argb & 0xFFFFFF)).ToArray();
+                source = new Sprite(sprite.Width, sprite.Height, pixels);
+            }
+
+            Bitmap bitmap = ToBitmap(source);
+            spriteBitmaps[(sprite, faded)] = bitmap;
 
             return bitmap;
         }
@@ -448,6 +586,37 @@ namespace KatAMMapTracker {
             return bitmap;
         }
 
+        /* RenderImage(); Draws the map into an image, to save it: the discovered map, or the entire map (spoilers).
+         * Pixel art is scaled 2x (nearest neighbor) unless the image would be too big; */
+        public Bitmap RenderImage(bool entireMap) {
+            if (map == null || layout == null || progress == null) return null;
+
+            Scene scene = new Scene(entireMap, false);
+            List<int> rooms = ShownRooms(scene).ToList();
+
+            if (rooms.Count == 0) return null;
+
+            double margin = AreaRadius + 8;
+            double minX = rooms.Min(r => layout[r].X) - margin, minY = rooms.Min(r => layout[r].Y) - margin,
+                   maxX = rooms.Max(r => layout[r].X + layout[r].Width) + margin, maxY = rooms.Max(r => layout[r].Y + layout[r].Height) + margin;
+
+            int scale = Math.Max(maxX - minX, maxY - minY) * 2 <= 6000 ? 2 : 1;
+            Bitmap image = new Bitmap((int)Math.Ceiling(maxX - minX) * scale, (int)Math.Ceiling(maxY - minY) * scale, PixelFormat.Format32bppArgb);
+
+            int previousHover = hoveredRoom;
+            hoveredRoom = -1;
+
+            using (Graphics g = Graphics.FromImage(image)) {
+                g.Clear(BackColor);
+                g.Transform = new Matrix(scale, 0, 0, scale, (float)(-minX * scale), (float)(-minY * scale));
+                DrawScene(g, scene, false);
+            }
+
+            hoveredRoom = previousHover;
+
+            return image;
+        }
+
         void ClearImages() {
             foreach (Bitmap bitmap in spriteBitmaps.Values.Concat(previews.Values)) bitmap.Dispose();
             spriteBitmaps.Clear();
@@ -455,16 +624,16 @@ namespace KatAMMapTracker {
             previewOrder.Clear();
             areaLayer?.Dispose();
             areaLayer = null;
-            areaLayerRoomCount = -1;
+            areaLayerKey = (-1, false);
         }
 
         int RoomAt(Point screen) {
             if (layout == null || progress == null) return -1;
 
-            double mapX = offsetX + screen.X / zoom, mapY = offsetY + screen.Y / zoom;
+            double mapX = OffsetX + screen.X / zoom, mapY = OffsetY + screen.Y / zoom;
 
-            foreach (int room in progress.VisitedRooms) {
-                if (!layout.TryGetValue(room, out RoomPlacement p)) continue;
+            foreach (int room in ShownRooms(ViewScene)) {
+                RoomPlacement p = layout[room];
                 if (mapX >= p.X && mapX <= p.X + p.Width && mapY >= p.Y && mapY <= p.Y + p.Height) return room;
             }
 
@@ -498,16 +667,15 @@ namespace KatAMMapTracker {
 
                 if (!hasDragged && Math.Abs(dx) + Math.Abs(dy) < 4) return;
 
-                if (!hasDragged && Follow) {
-                    // Panning by hand stops following Kirby;
-                    Follow = false;
-                    FollowDisabledByUser?.Invoke();
+                // Panning by hand stops following Kirby;
+                if (!hasDragged) {
+                    StopFollowing();
+                    StopCamera();
                 }
 
                 hasDragged = true;
-                isPanning = false;
-                offsetX -= dx / zoom;
-                offsetY -= dy / zoom;
+                centerX -= dx / zoom;
+                centerY -= dy / zoom;
                 dragStart = e.Location;
                 Invalidate();
                 return;
@@ -537,7 +705,11 @@ namespace KatAMMapTracker {
 
             int room = RoomAt(e.Location);
 
-            if (room >= 0) CenterOn(room);
+            if (room < 0) return;
+
+            if (room != progress.CurrentRoom) StopFollowing();
+
+            CenterOn(room);
         }
 
         protected override void Dispose(bool disposing) {

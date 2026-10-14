@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -16,6 +16,9 @@ namespace KatAMMapTracker {
         public HashSet<int> VisitedRooms { get; set; } = new HashSet<int>();
         public HashSet<string> FoundDoors { get; set; } = new HashSet<string>();
         public int CurrentRoom { get; set; } = -1;
+
+        // The player chose to see the whole map of this seed (spoiler), e.g. to go straight to the bosses;
+        public bool RevealAll { get; set; }
 
         static readonly JsonSerializerOptions JsonOptions = new JsonSerializerOptions { WriteIndented = true };
 
@@ -71,6 +74,7 @@ namespace KatAMMapTracker {
             VisitedRooms.Clear();
             FoundDoors.Clear();
             CurrentRoom = -1;
+            RevealAll = false;
         }
     }
 }

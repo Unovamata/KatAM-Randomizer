@@ -69,8 +69,8 @@ namespace KatAMRandomizer
                     }
 
                     // Support Kirbys Palettes;
-                    Utils.WriteToROM(4846298 + (x * 32), kirbySupportPalette);
-                    Utils.WriteToROM(3343126 + (x * 32), GenerateHUDPalette(kirbySupportPalette)/*presetSprays[spraySelected]*/);
+                    Utils.WriteToROM(RomRegion.Current.KirbyPalette(4846298) + (x * 32), kirbySupportPalette);
+                    Utils.WriteToROM(RomRegion.Current.Parameters(3343126) + (x * 32), GenerateHUDPalette(kirbySupportPalette)/*presetSprays[spraySelected]*/);
                 } else {
                     byte[] kirbyRandomColorPalette;
 
@@ -92,8 +92,8 @@ namespace KatAMRandomizer
                     }
 
                     // Kirby Base Palette;
-                    Utils.WriteToROM(4846170, kirbyRandomColorPalette);
-                    Utils.WriteToROM(3343094, GenerateHUDPalette(kirbyRandomColorPalette)); // HUD palettes (lives + vitality).
+                    Utils.WriteToROM(RomRegion.Current.KirbyPalette(4846170), kirbyRandomColorPalette);
+                    Utils.WriteToROM(RomRegion.Current.Parameters(3343094), GenerateHUDPalette(kirbyRandomColorPalette)); // HUD palettes (lives + vitality).
                     //WriteToROM(romFile, 4847100, bytesPalette); //Title Screen Palette, Supposedly;
                 }
 

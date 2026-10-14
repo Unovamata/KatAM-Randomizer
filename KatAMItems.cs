@@ -127,11 +127,11 @@ namespace KatAMRandomizer
             int selectedEntity = Utils.GetRandomRange(0, entities.Count);
             Entity entity = entities[selectedEntity];
 
-            // If the entity chosen is a chest, reroll;
+            // If the entity chosen is a chest or a progression object (big switches included), reroll;
             do {
                 selectedEntity = Utils.GetRandomRange(0, entities.Count);
                 entity = entities[selectedEntity];
-            } while (IsChestObject(entity) || IsMirrorShardObject(entity));
+            } while (IsChestObject(entity) || IsMirrorShardObject(entity) || IsProgressionObject(entity));
 
             return selectedEntity;
         }
@@ -148,9 +148,10 @@ namespace KatAMRandomizer
         bool IsProgressionObject(Entity entity) {
             byte behavior = entity.Behavior;
 
-            // Big chest with switch parameter or mirror;
+            // Big chest with switch parameter, mirror, or big switch (unlocks the hub mirrors to an area);
             bool isProgressionObject = (entity.ID == 0x81 && behavior == 0x63) || 
-                                       (entity.ID == 0x65);
+                                       (entity.ID == 0x65) ||
+                                       Utils.IsBigSwitch(entity);
 
             return isProgressionObject;
         }
@@ -292,9 +293,10 @@ namespace KatAMRandomizer
         }
 
         // Pointers;
-        readonly long NewNineROMAddress = 14745600,
-                      PointersListAddress = 13825216,
-                      NewListPointer = 134217728;
+        // Free space where the 9ROM lists are rebuilt, the 9ROM list pointer table, and the GBA ROM base address;
+        readonly long NewNineROMAddress = RomRegion.Current.FreeSpace,
+                      PointersListAddress = RomRegion.Current.PointerTable(0xD2F4C0),
+                      NewListPointer = 0x08000000;
 
         // WriteChestTo9ROM(); Writing the object data in a format the ROM can understand;
         void WriteChestTo9ROM() {

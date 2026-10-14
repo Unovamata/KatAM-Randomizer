@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -46,10 +46,25 @@ namespace KatAMMapTracker {
         public List<DoorInfo> Doors { get; } = new List<DoorInfo>();
     }
 
-    /* RomMap; Reads the rooms, doors and room graphics of a Kirby & the Amazing Mirror (JP) ROM.
+    /* RomVersion; The Japanese, American and European versions of the game hold the same data at different addresses.
+     * Every block of data is moved as a whole, so the Japanese addresses below are translated with the shift of their block:
+     * • Level data (long room parameters): 0x84xxxx - 0x93xxxx.
+     * • Pointer tables (cover data, room appearance, palettes, tilesets, graphics): 0xD2xxxx.
+     * • Pause screen map graphics: 0x33F5xx - 0x3459xx; */
+    public sealed record RomVersion(string GameCode, string Name, int LevelDataShift, int PointerTableShift, int MapScreenShift) {
+        public static readonly RomVersion Japan = new RomVersion("B8KJ", "Japan", 0, 0, 0);
+        public static readonly RomVersion USA = new RomVersion("B8KE", "USA", 0x2FE74, 0x34BE4, 0x1B844);
+        public static readonly RomVersion Europe = new RomVersion("B8KP", "Europe", 0x3A2D8, 0x3F1C0, 0x20324);
+
+        public static readonly RomVersion[] All = { Japan, USA, Europe };
+
+        public static RomVersion FromGameCode(string gameCode) => Array.Find(All, version => version.GameCode == gameCode);
+    }
+
+    /* RomMap; Reads the rooms, doors and room graphics of a Kirby & the Amazing Mirror ROM (any region).
      * Since it reads the ROM data directly, it reflects the randomized mirrors of any generated seed;
      *
-     * Addresses come from ReflexViewer (Documentation/Reflex JP Tools):
+     * Addresses come from ReflexViewer (Documentation/Reflex JP Tools). They're the Japanese ones (see RomVersion):
      * • Long room parameters: 0x903338 + room * 0x28. +0x14 tileset, +0x16 palette, +0x24 short room index.
      * • Cover data (objects): pointer table at 0xD2E74C + short * 4. Doors are objects of type 3:
      *   +2 X, +3 Y (16px units), +4 object size, +8 destination room.
@@ -57,15 +72,9 @@ namespace KatAMMapTracker {
      * • Palettes: 0xD2E6A4 + palette * 4. Tilesets: 0xD2FDB8 + tileset * 4. Both LZ77 compressed but palettes.
      * • Long room parameter +0x00: area/theme (4 = hubs, 0x25 = boss & goal game rooms). +0x1E: background; */
     public sealed class RomMap {
-        const int LongRoomParameters = 0x903338,
-                  LongRoomParameterSize = 0x28,
+        const int LongRoomParameterSize = 0x28,
                   MaxLongRoom = 0x3D7,
                   MaxShortRoom = 0x11F,
-                  CoverDataTable = 0xD2E74C,
-                  RoomAppearanceTable = 0xD2F93C,
-                  PaletteTable = 0xD2E6A4,
-                  TilesetTable = 0xD2FDB8,
-                  GraphicsTable = 0xD2E5F0,
                   FirstBackground = 0x614,
                   CoverObjectType = 1,
                   FillerTile = 0xF200,
@@ -74,9 +83,18 @@ namespace KatAMMapTracker {
         // Central Circle, the main hub. The map is laid out from it;
         public const int CentralCircle = 0x321;
 
+        // Addresses of the Japanese version, translated to the ROM's region;
+        readonly int LongRoomParameters,
+                     CoverDataTable,
+                     RoomAppearanceTable,
+                     PaletteTable,
+                     TilesetTable,
+                     GraphicsTable;
+
         public byte[] Rom { get; }
         public uint Crc32 { get; }
         public string GameCode { get; }
+        public RomVersion Version { get; }
         public Dictionary<int, RoomInfo> Rooms { get; } = new Dictionary<int, RoomInfo>();
 
         readonly Dictionary<int, byte[]> tilesetCache = new Dictionary<int, byte[]>();
@@ -85,13 +103,24 @@ namespace KatAMMapTracker {
             Rom = rom;
             Crc32 = ComputeCrc32(rom);
             GameCode = System.Text.Encoding.ASCII.GetString(rom, 0xAC, 4);
+            Version = RomVersion.FromGameCode(GameCode);
+
+            // Other games aren't read;
+            if (Version == null) return;
+
+            LongRoomParameters = 0x903338 + Version.LevelDataShift;
+            CoverDataTable = 0xD2E74C + Version.PointerTableShift;
+            RoomAppearanceTable = 0xD2F93C + Version.PointerTableShift;
+            PaletteTable = 0xD2E6A4 + Version.PointerTableShift;
+            TilesetTable = 0xD2FDB8 + Version.PointerTableShift;
+            GraphicsTable = 0xD2E5F0 + Version.PointerTableShift;
 
             ReadRooms();
         }
 
         public static RomMap Load(string path) => new RomMap(File.ReadAllBytes(path));
 
-        public bool IsSupportedGame => GameCode == "B8KJ";
+        public bool IsSupportedGame => Version != null;
 
         int Read16(int address) => Rom[address] | (Rom[address + 1] << 8);
 
