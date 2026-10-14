@@ -66,7 +66,6 @@ namespace KatAMMapTracker {
         bool isZooming, isZoomAnchored;
 
         readonly Dictionary<(Sprite, bool), Bitmap> spriteBitmaps = new Dictionary<(Sprite, bool), Bitmap>();
-        readonly Dictionary<(Sprite, int, int, int), (Sprite sprite, int startX, int startY)> diagonals = new Dictionary<(Sprite, int, int, int), (Sprite, int, int)>();
         readonly Dictionary<int, Bitmap> previews = new Dictionary<int, Bitmap>();
         readonly Queue<int> previewOrder = new Queue<int>();
         readonly Timer pulseTimer = new Timer { Interval = 16 };
@@ -626,17 +625,22 @@ namespace KatAMMapTracker {
                 return;
             }
 
-            // Diagonal: the horizontal piece (or the arrow pointing right) rotated along the segment as pixel art (see MapGraphics.Diagonal);
+            /* Diagonal: the horizontal piece (or the arrow pointing right) rotated along the segment, softened (smooth filtering and
+             * edges): rotated pixel by pixel, the 45° pieces turn into jagged steps that run into each other; */
             Sprite piece = segment.IsOneWay ? lines.ArrowRight : lines.Horizontal;
-            int steps = (int)Math.Round(Math.Abs(segment.EndX - segment.StartX) / scale);
-            var key = (piece, steps, segment.DirectionX, segment.DirectionY);
+            GraphicsState state = g.Save();
 
-            if (!diagonals.TryGetValue(key, out var diagonal)) diagonals[key] = diagonal = MapGraphics.Diagonal(piece, steps, segment.DirectionX, segment.DirectionY);
+            g.InterpolationMode = InterpolationMode.HighQualityBilinear;
+            g.PixelOffsetMode = PixelOffsetMode.HighQuality;
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+            g.TranslateTransform((float)segment.StartX, (float)segment.StartY);
+            g.RotateTransform((float)segment.Angle);
 
-            RectangleF target = new RectangleF((float)segment.StartX - diagonal.startX * scale, (float)segment.StartY - diagonal.startY * scale,
-                                               diagonal.sprite.Width * scale, diagonal.sprite.Height * scale);
+            using (TextureBrush brush = new TextureBrush(GetBitmap(piece, faded), WrapMode.Tile) { Transform = new Matrix(scale, 0, 0, scale, 0, -half) }) {
+                g.FillRectangle(brush, 0, -half, (float)segment.Length, thickness);
+            }
 
-            g.DrawImage(GetBitmap(diagonal.sprite, faded), target, new RectangleF(0, 0, diagonal.sprite.Width, diagonal.sprite.Height), GraphicsUnit.Pixel);
+            g.Restore(state);
         }
 
         // DrawAreas(); Colored regions behind the rooms, by cluster, like the in-game map backdrop;
@@ -841,7 +845,6 @@ namespace KatAMMapTracker {
         void ClearImages() {
             foreach (Bitmap bitmap in spriteBitmaps.Values.Concat(previews.Values)) bitmap.Dispose();
             spriteBitmaps.Clear();
-            diagonals.Clear();
             previews.Clear();
             previewOrder.Clear();
             areaLayer?.Dispose();

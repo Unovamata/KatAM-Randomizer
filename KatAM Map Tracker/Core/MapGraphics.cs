@@ -103,32 +103,6 @@ namespace KatAMMapTracker {
             return sprites;
         }
 
-        /* Diagonal(); A 45° line as pixel art: 'piece' (the horizontal line or the arrow pointing right) tiled along a diagonal of
-         * 'steps' pixels in each axis towards (directionX, directionY), rotated pixel by pixel in the line's own pixel grid,
-         * so it is drawn scaled with nearest neighbor like every other piece. Returns where the line starts in the sprite; */
-        public static (Sprite sprite, int startX, int startY) Diagonal(Sprite piece, int steps, int directionX, int directionY) {
-            const int Margin = 6; // Half the line's thickness (8) along each axis of a 45° line;
-
-            int width = steps + 2 * Margin, height = width;
-            int startX = directionX > 0 ? Margin : steps + Margin, startY = directionY > 0 ? Margin : steps + Margin;
-            double length = steps * Math.Sqrt(2), ux = directionX / Math.Sqrt(2), uy = directionY / Math.Sqrt(2);
-            int[] pixels = new int[width * height];
-
-            for (int y = 0; y < height; y++) {
-                for (int x = 0; x < width; x++) {
-                    double mx = x + 0.5 - startX, my = y + 0.5 - startY;
-                    double u = mx * ux + my * uy, v = my * ux - mx * uy;
-
-                    if (u < 0 || u >= length || v < -8 || v >= 8) continue;
-
-                    int px = (int)Math.Floor(u) % piece.Width, py = Math.Min(piece.Height - 1, (int)Math.Floor(v + 8));
-                    pixels[y * width + x] = piece.Pixels[py * piece.Width + px];
-                }
-            }
-
-            return (new Sprite(width, height, pixels), startX, startY);
-        }
-
         // WithHue(); Same color with another hue, keeping its saturation and brightness;
         static int WithHue(int argb, double hue) {
             double r = ((argb >> 16) & 0xFF) / 255.0, g = ((argb >> 8) & 0xFF) / 255.0, b = (argb & 0xFF) / 255.0;
