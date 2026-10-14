@@ -1,6 +1,7 @@
 /* NiDL enemies; Object type 0x31: creates the enemy the template's behavior byte asks for and handles what all of them share
  * (see nidl.h); */
 #include "nidl.h"
+#include "constants/kirby.h"
 
 extern const u8 *const gUnk_08D60EE4[];  // HP bar names per language: 64x8 (0x100 bytes) per object type;
 
@@ -15,6 +16,7 @@ static const struct NidlEnemy sNidlEnemies[NIDL_ENEMY_COUNT] = {
     [NIDL_CONER] = { ConerInit, ConerStart, 2, 0 },
     [NIDL_STARMAN] = { StarmanInit, StarmanStart, 2, 0 },
     [NIDL_NEEDLOUS] = { NeedlousInit, NeedlousStart, 2, 0 },
+    [NIDL_BLADE_KNIGHT] = { BladeKnightInit, BladeKnightStart, 2, KIRBY_ABILITY_SWORD },
 };
 
 // NidlSetFrame(); Shows one of the enemy's frames (its own numbering);

@@ -134,6 +134,14 @@ Most enemies' first frames (0-3) are their hurt frames. Frames are drawn around 
 - Curl (`0x0807BF74`): 3.0 up, gravity 0x2500, frames 7, 8, then spin `0x08740AAC` (14, 15, 11, 13, 16, 12); bounces 2.0 (`0x0807BFD0`) and 1.0 (`0x0807C000`); roll (`0x0807C030`/`0x0807C2E0`) 3.0 (`0x08740A90`) for 60 frames.
 - Frames `0x08752B08`: 0-3 hurt, 4-6 walking, 7-8 hopping, 11-16 spinning (15 and 16 mostly color 15, white: the spin's blur).
 
+## Blade Knight (type `0x25`, Sword Knight's scripts)
+
+- Spawn `0x0807AF98` (Sword Knight `0x0807AF58`), variants `0x08740990`; variant 0 (`0x0807B300`) states `0x087409FC`, per frame `0x08740A1C`.
+- Walk (`0x0807B3F8`/`0x0807B430`): 0.5, frames `0x0874099C`, stops at ledges (`0x0807B088`); within 63 pixels (`0x0807B294`) one time in 4 raises the sword (frame 15, 16 frames, `0x0807B49C`) else lowers it (frame 16, `0x0807B584`).
+- Slashes: down (`0x0807B4F0`: 14, 12, 11, 10, 16) and up (`0x0807B5D8`: 10, 11, 12, 14, 15), 2, 2, 1, 2, 8 frames; the hitbox comes on the second frame (`0x0807B1E4`); they lunge (`0x0807B0B4`: 4.0, 3.0, 2.0, 1.0, 0, every 3 frames, `0x087409E4`). After one (`0x0807B16C`, `0x0807B1A8`): the other once, one time in 4, else back off (`0x0807B66C`: -0.5 facing Kirby, 90 frames).
+- `0x0807B200` swings (`0x0807B6E8`) at something within 30x48 pixels while Kirby is further than 63.
+- Frames `0x08752A24`: 0-3 hurt, 4-9 walking, 10-16 slashing.
+
 ## Spawn functions
 
 The master table (`0x0872FF30`) has 8-byte entries, `(kind, spawn function)`, so type `t`'s spawn is at `0x0872FF34 + t * 8`: Chilly `0x08084CD4`, Cool Spook `0x0807EDB4`, Starman `0x08080DD0`, Sword/Blade Knight `0x0807AF58`/`0x0807AF98`, Poppy Bros. Jr. `0x080819B4`/`0x08081F60`/`0x08082008`, Coner `0x0808FA10`, Needlous `0x0807BD20`, Gip `0x0808BDB4`.

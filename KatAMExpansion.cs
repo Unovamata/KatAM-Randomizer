@@ -65,6 +65,7 @@ namespace KatAMRandomizer {
             Coner(),
             Starman(),
             Needlous(),
+            BladeKnight(),
         };
 
         static KatAMExpansion() {
@@ -145,6 +146,16 @@ namespace KatAMRandomizer {
             new[] { new Part(3) }, new Dictionary<int, ushort>(),
             new[] { (0x1E, 0), (0x14, 4), (0x14, 4), (0x1E, 2), (0x02, 1), (0x1E, 1), (0x0C, 1), (0x04, 4) },   // "N" (Noddy), "ee" (Hot Head), "d" (Noddy), "l" (Blipper), "o" (Noddy), "u" (Cupie), "s" (Squishy);
             new byte[] { 0x00, 0x01 });
+
+        // Blade Knight; Frames: NiDL's 4 to 16 (walking 4-9, slashing 10-16). It walks up to Kirby and slashes (sometimes twice),
+        // lunging, then backs off; gives Sword;
+        static Enemy BladeKnight() => new Enemy(10, "Blade Knight", 0x25, 0x752A24, Enumerable.Range(4, 13).Select(f => new[] { new Part(f) }).ToList(),
+            new[] { new Part(3) }, new Dictionary<int, ushort>(),
+            new[] {
+                (0x28, 0), (0x02, 1), (0x14, 5), (0x1E, 2), (0x14, 4), (-1, -1),   // "B" (Bomber), "l" (Blipper), "a" (Hot Head), "d" (Noddy), "e" (Hot Head), space;
+                (0x18, 3), (0x26, 5), (0x26, 4), (0x16, 3), (0x04, 5), (0x14, 2),  // "K" (Sir Kibble), "ni" (Cookin), "g" (Pengy), "h" (Squishy), "t" (Hot Head);
+            },
+            new byte[] { 0x00 });
 
         // IsNightmareInDreamLand(); A Kirby: Nightmare in Dream Land ROM (USA, Japanese or European);
         public static bool IsNightmareInDreamLand(byte[] rom) => RegionOf(rom) != null;
