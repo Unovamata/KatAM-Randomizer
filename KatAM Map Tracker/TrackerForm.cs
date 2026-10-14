@@ -43,6 +43,7 @@ namespace KatAMMapTracker {
             Size = new Size(1100, 800);
             StartPosition = FormStartPosition.CenterScreen;
             KeyPreview = true;
+            Icon = LoadIcon();
 
             BuildMenus();
 
@@ -72,6 +73,13 @@ namespace KatAMMapTracker {
             string rom = startupRom ?? ReadRecentRoms().FirstOrDefault();
 
             if (rom != null && File.Exists(rom)) Shown += (s, e) => LoadRom(rom);
+        }
+
+        // LoadIcon(); The window icon (the star room square of the in-game map), embedded in the executable;
+        static Icon LoadIcon() {
+            using Stream stream = typeof(TrackerForm).Assembly.GetManifestResourceStream("MapTracker.ico");
+
+            return stream == null ? null : new Icon(stream);
         }
 
         void BuildMenus() {
