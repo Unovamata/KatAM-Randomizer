@@ -13,4 +13,11 @@
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
   </ItemGroup>
 
+  <!-- The map tracker is a separate project (KatAM Map Tracker/KatAM Map Tracker.csproj); -->
+  <ItemGroup>
+    <Compile Remove="KatAM Map Tracker\**" />
+    <EmbeddedResource Remove="KatAM Map Tracker\**" />
+    <None Remove="KatAM Map Tracker\**" />
+  </ItemGroup>
+
 </Project>
