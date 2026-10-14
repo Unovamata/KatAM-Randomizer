@@ -29,7 +29,8 @@ namespace KatAMMapTracker {
     }
 
     // RoomObject; An object placed in a room (enemy, item, chest, switch...), as read from the room's object list;
-    public sealed record RoomObject(int Id, int Behavior, int X, int Y);
+    // Destination: the room a Warp Star (template +0x1E) or a Fuse Cannon (template +0x12) sends Kirby to, else -1;
+    public sealed record RoomObject(int Id, int Behavior, int X, int Y, int Destination = -1);
 
     // RoomInfo; A room and its doors as read from the ROM;
     public sealed class RoomInfo {
@@ -86,7 +87,9 @@ namespace KatAMMapTracker {
                   FirstBackground = 0x614,
                   CoverObjectType = 1,
                   FillerTile = 0xF200,
-                  DoorObjectType = 3;
+                  DoorObjectType = 3,
+                  WarpStarObject = 0x84,
+                  FuseCannonObject = 0x8A;
 
         // Central Circle, the main hub. The map is laid out from it;
         public const int CentralCircle = 0x321;
@@ -206,7 +209,8 @@ namespace KatAMMapTracker {
             for (int address = header + 16; address + 36 <= Rom.Length && room.Objects.Count < 256; address += 36) {
                 if (Rom[address] != 0x01 || Rom[address + 1] != 0x24) break;
 
-                room.Objects.Add(new RoomObject(Rom[address + 12], Rom[address + 14], Read16(address + 6), Read16(address + 8)));
+                room.Objects.Add(new RoomObject(Rom[address + 12], Rom[address + 14], Read16(address + 6), Read16(address + 8),
+                                             Rom[address + 12] == WarpStarObject ? Read16(address + 0x1E) : Rom[address + 12] == FuseCannonObject ? Read16(address + 0x12) : -1));
             }
         }
 

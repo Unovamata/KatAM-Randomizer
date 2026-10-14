@@ -476,14 +476,17 @@ namespace KatAMMapTracker {
         /* DrawEntities(); The sprites of the important objects of a room (one per kind of sprite), inside its square, all the same
          * size: one in the middle, two side by side, three or four in a 2x2 grid. The current room gets a blinking outline; */
         void DrawEntities(Graphics g, Scene scene, int room) {
-            List<(EntityIcon icon, bool isBig)> icons = ShownEntities(room)
-                .Select(entity => (IconOf(entity), entity.Kind == EntityKind.Boss || entity.Kind == EntityKind.MiniBoss || entity.Kind == EntityKind.BigSwitch))
-                .GroupBy(icon => icon.Item1).Select(group => group.First()).Take(MaxEntityIcons).ToList();
+            bool faded = IsFaded(scene, room);
+
+            // Fuse Cannons and Warp Stars not used yet (the room they send Kirby to wasn't visited) are faded like rooms not visited;
+            List<(EntityIcon icon, bool isBig, bool faded)> icons = ShownEntities(room)
+                .Select(entity => (IconOf(entity), entity.Kind == EntityKind.Boss || entity.Kind == EntityKind.MiniBoss || entity.Kind == EntityKind.BigSwitch,
+                                   faded || (entity.Destination >= 0 && !progress.VisitedRooms.Contains(entity.Destination))))
+                .GroupBy(icon => icon.Item1).Select(group => group.OrderBy(icon => icon.Item3).First()).Take(MaxEntityIcons).ToList();
 
             if (icons.Count == 0) return;
 
             RectangleF square = RoomBounds(layout[room], scene.RoomGrowth);
-            bool faded = IsFaded(scene, room);
             float screenScale = g.Transform.Elements[0];
 
             GraphicsState state = g.Save();
@@ -502,7 +505,7 @@ namespace KatAMMapTracker {
                 float box = !icons[i].isBig ? cell
                     : icons.Count == 1 ? Math.Max(cell * BigEntityIconScale, Math.Min(square.Width, square.Height) * LoneBigEntityIconScale)
                     : cell * BigEntityIconScale;
-                DrawPixelArt(g, GetEntitySprite(icons[i].icon), left + (i % columns + 0.5f) * cell, top + (i / columns + 0.5f) * cell, box, screenScale, faded);
+                DrawPixelArt(g, GetEntitySprite(icons[i].icon), left + (i % columns + 0.5f) * cell, top + (i / columns + 0.5f) * cell, box, screenScale, icons[i].faded);
             }
 
             if (room == progress.CurrentRoom && pulseFrame % 2 == 0) {

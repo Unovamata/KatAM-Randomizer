@@ -33,7 +33,7 @@ namespace KatAMMapTracker {
         string romPath, progressPath;
         int previousRoom = -1, lastReportedRoom = -1;
 
-        // The kinds of objects that can be shown in the rooms, with their menu names and settings keys; All off by default;
+        // The kinds of objects that can be shown in the rooms, with their menu names and settings keys; Off by default but the cannons and stars;
         static readonly (EntityKind kind, string name, string key)[] EntityCategories = {
             (EntityKind.Boss, "Bosses", "bosses"),
             (EntityKind.MiniBoss, "Mini-Bosses", "minibosses"),
@@ -173,11 +173,11 @@ namespace KatAMMapTracker {
             return toolbar;
         }
 
-        /* BuildEntityMenu(); View > Show on Map: which kinds of objects are drawn in the rooms, each on its own, all off by default,
-         * plus Show All and Hide All; */
+        /* BuildEntityMenu(); View > Show on Map: which kinds of objects are drawn in the rooms, each on its own, off by default but
+         * Fuse Cannons and Warp Stars (they are ways between rooms), plus Show All and Hide All; */
         void BuildEntityMenu() {
             foreach ((EntityKind kind, string name, string key) in EntityCategories) {
-                ToolStripMenuItem item = new ToolStripMenuItem(name) { CheckOnClick = true };
+                ToolStripMenuItem item = new ToolStripMenuItem(name) { CheckOnClick = true, Checked = kind == EntityKind.FuseCannon || kind == EntityKind.WarpStar };
                 item.CheckedChanged += (s, e) => {
                     UpdateShownEntityKinds();
                     SaveViewSettings();
@@ -189,6 +189,7 @@ namespace KatAMMapTracker {
             entitiesItem.DropDownItems.Add(new ToolStripSeparator());
             entitiesItem.DropDownItems.Add("Show All", null, (s, e) => SetAllEntityKinds(true));
             entitiesItem.DropDownItems.Add("Hide All", null, (s, e) => SetAllEntityKinds(false));
+            UpdateShownEntityKinds();
         }
 
         void SetAllEntityKinds(bool shown) {
