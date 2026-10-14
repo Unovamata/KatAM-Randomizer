@@ -191,6 +191,12 @@
             RadioAbilityPedestalShuffle = new RadioButton();
             RadioAbilityPedestalsUnchanged = new RadioButton();
             TabMiscellaneous = new TabPage();
+            TabExpansion = new TabPage();
+            GroupExpansionNightmare = new GroupBox();
+            LabelExpansionDescription = new Label();
+            ButtonExpansionLoadNightmare = new Button();
+            LabelExpansionNightmare = new Label();
+            CheckboxExpansionBroomHatter = new CheckBox();
             GroupMapElements = new GroupBox();
             GroupMapElementStoneDoors = new GroupBox();
             MapElementsStoneDoorsUnchanged = new RadioButton();
@@ -252,6 +258,8 @@
             GroupEnemiesPropertiesInhaleAbility.SuspendLayout();
             GroupAbilityPedestals.SuspendLayout();
             TabMiscellaneous.SuspendLayout();
+            TabExpansion.SuspendLayout();
+            GroupExpansionNightmare.SuspendLayout();
             GroupMapElements.SuspendLayout();
             GroupMapElementStoneDoors.SuspendLayout();
             GroupMiscSprayPalettes.SuspendLayout();
@@ -466,6 +474,7 @@
             tabControl1.Controls.Add(tabPage4);
             tabControl1.Controls.Add(tabPage5);
             tabControl1.Controls.Add(TabMiscellaneous);
+            tabControl1.Controls.Add(TabExpansion);
             tabControl1.Controls.Add(tabPage6);
             tabControl1.ItemSize = new Size(125, 25);
             tabControl1.Location = new Point(17, 268);
@@ -2717,6 +2726,81 @@
             RadioSprayUnchanged.UseVisualStyleBackColor = true;
             RadioSprayUnchanged.CheckedChanged += RadioSprayUnchanged_CheckedChanged;
             // 
+            // TabExpansion
+            // 
+            TabExpansion.Controls.Add(GroupExpansionNightmare);
+            TabExpansion.Location = new Point(4, 29);
+            TabExpansion.Margin = new Padding(4, 5, 4, 5);
+            TabExpansion.Name = "TabExpansion";
+            TabExpansion.Padding = new Padding(4, 5, 4, 5);
+            TabExpansion.Size = new Size(1206, 564);
+            TabExpansion.TabIndex = 7;
+            TabExpansion.Text = "ROM Expansion";
+            TabExpansion.UseVisualStyleBackColor = true;
+            // 
+            // GroupExpansionNightmare
+            // 
+            GroupExpansionNightmare.Controls.Add(LabelExpansionDescription);
+            GroupExpansionNightmare.Controls.Add(ButtonExpansionLoadNightmare);
+            GroupExpansionNightmare.Controls.Add(LabelExpansionNightmare);
+            GroupExpansionNightmare.Controls.Add(CheckboxExpansionBroomHatter);
+            GroupExpansionNightmare.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            GroupExpansionNightmare.Location = new Point(10, 10);
+            GroupExpansionNightmare.Margin = new Padding(4, 5, 4, 5);
+            GroupExpansionNightmare.Name = "GroupExpansionNightmare";
+            GroupExpansionNightmare.Padding = new Padding(4, 5, 4, 5);
+            GroupExpansionNightmare.Size = new Size(1184, 530);
+            GroupExpansionNightmare.TabIndex = 0;
+            GroupExpansionNightmare.TabStop = false;
+            GroupExpansionNightmare.Text = "Kirby: Nightmare in Dream Land";
+            // 
+            // LabelExpansionDescription
+            // 
+            LabelExpansionDescription.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            LabelExpansionDescription.Location = new Point(16, 34);
+            LabelExpansionDescription.Margin = new Padding(4, 0, 4, 0);
+            LabelExpansionDescription.Name = "LabelExpansionDescription";
+            LabelExpansionDescription.Size = new Size(1150, 80);
+            LabelExpansionDescription.TabIndex = 0;
+            LabelExpansionDescription.Text = "Adds enemies ported from Kirby: Nightmare in Dream Land to the enemy pool. Their graphics are taken from your own Nightmare in Dream Land (USA) ROM. Only for the USA version of Kirby & the Amazing Mirror; The new enemies appear when enemies are randomized.";
+            // 
+            // ButtonExpansionLoadNightmare
+            // 
+            ButtonExpansionLoadNightmare.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            ButtonExpansionLoadNightmare.Location = new Point(16, 120);
+            ButtonExpansionLoadNightmare.Margin = new Padding(4, 5, 4, 5);
+            ButtonExpansionLoadNightmare.Name = "ButtonExpansionLoadNightmare";
+            ButtonExpansionLoadNightmare.Size = new Size(320, 38);
+            ButtonExpansionLoadNightmare.TabIndex = 1;
+            ButtonExpansionLoadNightmare.Text = "Load Nightmare in Dream Land ROM";
+            ButtonExpansionLoadNightmare.UseVisualStyleBackColor = true;
+            ButtonExpansionLoadNightmare.Click += ButtonExpansionLoadNightmare_Click;
+            // 
+            // LabelExpansionNightmare
+            // 
+            LabelExpansionNightmare.AutoSize = true;
+            LabelExpansionNightmare.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            LabelExpansionNightmare.Location = new Point(350, 126);
+            LabelExpansionNightmare.Margin = new Padding(4, 0, 4, 0);
+            LabelExpansionNightmare.Name = "LabelExpansionNightmare";
+            LabelExpansionNightmare.Size = new Size(180, 25);
+            LabelExpansionNightmare.TabIndex = 2;
+            LabelExpansionNightmare.Text = "No ROM loaded";
+            // 
+            // CheckboxExpansionBroomHatter
+            // 
+            CheckboxExpansionBroomHatter.AutoSize = true;
+            CheckboxExpansionBroomHatter.Enabled = false;
+            CheckboxExpansionBroomHatter.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            CheckboxExpansionBroomHatter.Location = new Point(16, 178);
+            CheckboxExpansionBroomHatter.Margin = new Padding(4, 5, 4, 5);
+            CheckboxExpansionBroomHatter.Name = "CheckboxExpansionBroomHatter";
+            CheckboxExpansionBroomHatter.Size = new Size(160, 29);
+            CheckboxExpansionBroomHatter.TabIndex = 3;
+            CheckboxExpansionBroomHatter.Text = "Broom Hatter";
+            CheckboxExpansionBroomHatter.UseVisualStyleBackColor = true;
+            CheckboxExpansionBroomHatter.CheckedChanged += CheckboxExpansionBroomHatter_CheckedChanged;
+            // 
             // tabPage6
             // 
             tabPage6.Location = new Point(4, 29);
@@ -2845,6 +2929,9 @@
             GroupAbilityPedestals.ResumeLayout(false);
             GroupAbilityPedestals.PerformLayout();
             TabMiscellaneous.ResumeLayout(false);
+            TabExpansion.ResumeLayout(false);
+            GroupExpansionNightmare.ResumeLayout(false);
+            GroupExpansionNightmare.PerformLayout();
             GroupMapElements.ResumeLayout(false);
             GroupMapElements.PerformLayout();
             GroupMapElementStoneDoors.ResumeLayout(false);
@@ -2879,6 +2966,12 @@
         private TabPage tabPage4;
         private TabPage tabPage5;
         private TabPage TabMiscellaneous;
+        private TabPage TabExpansion;
+        private GroupBox GroupExpansionNightmare;
+        private Label LabelExpansionDescription;
+        private Button ButtonExpansionLoadNightmare;
+        private Label LabelExpansionNightmare;
+        private CheckBox CheckboxExpansionBroomHatter;
         private Label LabelGameRegion;
         private GroupBox GroupMiscSprayPalettes;
         private RadioButton RadioSprayUnchanged;

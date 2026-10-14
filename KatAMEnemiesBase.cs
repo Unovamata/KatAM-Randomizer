@@ -24,7 +24,8 @@ namespace KatAMRandomizer {
              isUsingUnusedBehaviors,
              isIncludingMasterInhaleAbility,
              isHPPercentageModified,
-             isRandomizingExcludedEnemies;
+             isRandomizingExcludedEnemies,
+             isAddingBroomHatter;
 
         protected List<byte> underwaterEnemyIDs = new List<byte>();
         protected List<byte> flyingEnemyIDs = new List<byte>();
@@ -54,6 +55,12 @@ namespace KatAMRandomizer {
             }
 
             List<byte> allEntitiesIDs = LoadAllSpeedAndBehaviorData();
+
+            // ROM Expansion enemies join the pool with their only behavior (0) and speed (0);
+            if(!isRandomizingMiniBosses && isAddingBroomHatter) {
+                behaviorDictionary[KatAMExpansion.BroomHatterID] = NewProperty(0x00);
+                speedDictionary[KatAMExpansion.BroomHatterID] = NewProperty(0x00);
+            }
 
             if(enemiesOptions == GenerationOptions.Shuffle) allEntitiesIDs = Utils.Shuffle(allEntitiesIDs);
 
@@ -158,6 +165,9 @@ namespace KatAMRandomizer {
                     }
                 }
 
+                // The Broom Hatter's behavior 1 sweeps in place forever; Only the regular one is used;
+                if(entity.ID == KatAMExpansion.BroomHatterID) entity.Behavior = 0x00;
+
                 // Randomizing enemy speeds;
                 if(isRandomizingSpeed) {
                     if(speedDictionary.ContainsKey(entity.ID)) {
@@ -255,6 +265,7 @@ namespace KatAMRandomizer {
             isIncludingMasterInhaleAbility = Settings.isEnemyIncludingMasterInhaleAbility;
             isHPPercentageModified = Settings.isEnemyHPPercentageModified;
             isRandomizingExcludedEnemies = Settings.isRandomizingExcludedEnemies;
+            isAddingBroomHatter = Settings.isAddingBroomHatter;
         }
 
         public void GroupEnemies() {

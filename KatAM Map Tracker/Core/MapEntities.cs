@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace KatAMMapTracker {
@@ -6,7 +6,7 @@ namespace KatAMMapTracker {
     public enum EntityIcon {
         Cherry, PepBrew, Meat, MaximTomato, Battery, OneUp, InvincibleCandy, MirrorShard, ChestSmall, ChestBig, WarpStar, BigSwitch, FuseCannon,
         MrFrosty, Bonkers, PhanPhan, Batafire, BoxBoxer, Boxy, MasterHandMini, Bombar,
-        Kracko, KingGolem, MasterHand, Gobbler, Wiz, Moley, MegaTitan, DarkMetaKnight, DarkMind,
+        Kracko, KingGolem, MasterHand, Gobbler, Wiz, Moley, MegaTitan, DarkMetaKnight, DarkMind, DarkMindOrb,
 
         // Treasure, as the Collection Room shows it;
         Vitality, SoundPlayer,
@@ -225,6 +225,11 @@ namespace KatAMMapTracker {
                 P(64, 64, 32, 16, 0, 0, 0x4A2A98, 0x7DD958),
                 P(64, 80, 32, 8, 0, 0, 0x4A2A98, 0x7DDA58),
             },
+            // Dark Mind's open eye (anim 0x399, variant 0x2D), over the slit of its second form's orb (see RenderDarkMindOrb);
+            [EntityIcon.DarkMindOrb] = new[] {
+                P(48, 64, 32, 32, 0, 0, 0x4A2AD8, 0x81DB78),
+                P(48, 96, 32, 16, 0, 0, 0x4A2AD8, 0x81DD78),
+            },
 
             [EntityIcon.Vitality] = new[] { P(0, 0, 16, 16, 0, 0, 0x49F758, 0x603998) },
             [EntityIcon.SoundPlayer] = new[] { P(0, 0, 16, 16, 0, 0, 0x49F758, 0x603A18) },
@@ -267,8 +272,8 @@ namespace KatAMMapTracker {
         // Translations of the Japanese addresses: (start, end, shift) per block, by game code;
         static readonly Dictionary<string, (int start, int end, int shift)[]> TileBlocks = new Dictionary<string, (int, int, int)[]> {
             ["B8KJ"] = new[] { (0, int.MaxValue, 0) },
-            ["B8KE"] = new[] { (0x5F0000, 0x603000, 0x1C0D4), (0x603000, 0x7B0000, 0x1C0D4), (0x7B0000, 0x7BCA00, 0x2BEF4), (0x7BCA00, 0x800000, 0x2CC74) },
-            ["B8KP"] = new[] { (0x5F0000, 0x603000, 0x26098), (0x603000, 0x7B0000, 0x25E18), (0x7B0000, 0x7BCA00, 0x36358), (0x7BCA00, 0x800000, 0x370D8) },
+            ["B8KE"] = new[] { (0x5F0000, 0x603000, 0x1C0D4), (0x603000, 0x7B0000, 0x1C0D4), (0x7B0000, 0x7BCA00, 0x2BEF4), (0x7BCA00, 0x839C00, 0x2CC74), (0x839C00, 0x843000, 0x2FE74) },
+            ["B8KP"] = new[] { (0x5F0000, 0x603000, 0x26098), (0x603000, 0x7B0000, 0x25E18), (0x7B0000, 0x7BCA00, 0x36358), (0x7BCA00, 0x839C00, 0x370D8), (0x839C00, 0x843000, 0x3A2D8) },
         };
 
         static readonly Dictionary<string, (int start, int end, int shift)[]> PaletteBlocks = new Dictionary<string, (int, int, int)[]> {
@@ -294,6 +299,7 @@ namespace KatAMMapTracker {
          * the ROM doesn't hold it where expected; */
         public static Sprite Render(RomMap map, EntityIcon icon) {
             if (icon == EntityIcon.KingGolem) return RenderKingGolem(map);
+            if (icon == EntityIcon.DarkMindOrb) return RenderDarkMindOrb(map);
 
             return RenderSprite(map, icon);
         }
@@ -318,6 +324,46 @@ namespace KatAMMapTracker {
             }
 
             return new Sprite(KingGolemCropWidth, KingGolemCropHeight, pixels);
+        }
+
+        /* Dark Mind's second form, as it appears after the first one, before the chase: a 128x128 orb the game draws as an 8bpp
+         * background in its room (anim 0x39B: 256 tiles from 8bpp tile 24, left half then right half, 8x16 tiles each), with its
+         * open eye sprite over the slit. The orb uses the room's palette (0x396) for colors 0-18, and colors 19-30 (the aura) from
+         * the room's palette animation, whose first 12 colors are the full set (the next frames darken one at a time); */
+        const int DarkMindRoom = 0x396, DarkMindOrbTiles = 0x83A2F8, DarkMindOrbSize = 128;
+        static readonly Dictionary<string, int> DarkMindAura = new Dictionary<string, int> {
+            ["B8KJ"] = 0x39A930, ["B8KE"] = 0x39A930 + 0x1B574, ["B8KP"] = 0x39A930 + 0x2553C,
+        };
+
+        static Sprite RenderDarkMindOrb(RomMap map) {
+            Sprite eye = RenderSprite(map, EntityIcon.DarkMindOrb);
+            int[] colors = map.Version == null ? null : map.RoomPalette(DarkMindRoom);
+            int tiles = Translate(TileBlocks, map.GameCode, DarkMindOrbTiles);
+
+            if (colors == null || tiles < 0 || tiles + 256 * 64 > map.Rom.Length || !DarkMindAura.TryGetValue(map.GameCode, out int aura)) return eye;
+
+            for (int i = 0; i < 12; i++) colors[19 + i] = RomMap.ToArgb(map.Rom[aura + i * 2] | (map.Rom[aura + i * 2 + 1] << 8));
+
+            int[] pixels = new int[DarkMindOrbSize * DarkMindOrbSize];
+
+            for (int tile = 0; tile < 256; tile++) {
+                int left = tile / 128 * 64 + tile % 128 % 8 * 8, top = tile % 128 / 8 * 8;
+
+                for (int y = 0; y < 8; y++) {
+                    for (int x = 0; x < 8; x++) {
+                        int color = map.Rom[tiles + tile * 64 + y * 8 + x];
+                        if (color != 0) pixels[(top + y) * DarkMindOrbSize + left + x] = colors[color];
+                    }
+                }
+            }
+
+            if (eye != null) {
+                for (int y = 0; y < eye.Height && y < DarkMindOrbSize; y++)
+                    for (int x = 0; x < eye.Width && x < DarkMindOrbSize; x++)
+                        if (eye.Pixels[y * eye.Width + x] != 0) pixels[y * DarkMindOrbSize + x] = eye.Pixels[y * eye.Width + x];
+            }
+
+            return new Sprite(DarkMindOrbSize, DarkMindOrbSize, pixels);
         }
 
         static Sprite RenderSprite(RomMap map, EntityIcon icon) {
@@ -345,6 +391,8 @@ namespace KatAMMapTracker {
                     for (int y = 0; y < 8; y++) {
                         for (int x = 0; x < 8; x++) {
                             int data = rom[tiles + t * 32 + y * 4 + x / 2], color = (x & 1) != 0 ? data >> 4 : data & 15;
+
+                            if (color == 0) continue;
 
                             if (color == 0) continue;
 
@@ -377,8 +425,8 @@ namespace KatAMMapTracker {
         static readonly Dictionary<int, (EntityIcon icon, string name)> Bosses = new Dictionary<int, (EntityIcon, string)> {
             [0x45] = (EntityIcon.Kracko, "Kracko"), [0x46] = (EntityIcon.KingGolem, "King Golem"), [0x47] = (EntityIcon.MasterHand, "Master Hand & Crazy Hand"),
             [0x48] = (EntityIcon.Gobbler, "Gobbler"), [0x49] = (EntityIcon.Wiz, "Wiz"), [0x4A] = (EntityIcon.Moley, "Moley"), [0x4B] = (EntityIcon.MegaTitan, "Mega Titan"),
-            [0x4E] = (EntityIcon.DarkMetaKnight, "Dark Meta Knight"), [0x4F] = (EntityIcon.DarkMind, "Dark Mind"), [0x50] = (EntityIcon.DarkMind, "Dark Mind"),
-            [0x51] = (EntityIcon.DarkMind, "Dark Mind"), [0x52] = (EntityIcon.DarkMetaKnight, "Dark Meta Knight"),
+            [0x4E] = (EntityIcon.DarkMetaKnight, "Dark Meta Knight"), [0x4F] = (EntityIcon.DarkMind, "Dark Mind"), [0x50] = (EntityIcon.DarkMindOrb, "Dark Mind (2nd form)"),
+            [0x51] = (EntityIcon.DarkMindOrb, "Dark Mind (2nd form)"), [0x52] = (EntityIcon.DarkMetaKnight, "Dark Meta Knight"),
         };
 
         // Classify(); The entity a room object stands for, or null if it isn't worth showing (enemies, doors, scenery...);
