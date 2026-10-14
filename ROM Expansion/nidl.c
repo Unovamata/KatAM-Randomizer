@@ -7,11 +7,39 @@ extern const u8 *const gUnk_08D60EE4[];  // HP bar names per language: 64x8 (0x1
 static const struct NidlEnemy sNidlEnemies[NIDL_ENEMY_COUNT] = {
     [NIDL_BROOM_HATTER] = { BroomHatterInit, BroomHatterStart, 2, 0 },
     [NIDL_CAPPY] = { CappyInit, CappyStart, 2, 0 },
+    [NIDL_TWIZZY] = { TwizzyInit, TwizzyStart, 1, 0 },
 };
 
 // NidlSetFrame(); Shows one of the enemy's frames (its own numbering);
 void NidlSetFrame(struct NidlObject *n, u8 frame) {
     n->obj.unk83 = n->animBase + frame;
+}
+
+// NidlPlay(); Starts a frame sequence (see nidl.h), played by NidlAnimate;
+void NidlPlay(struct NidlObject *n, const s16 *sequence) {
+    n->sequence = sequence;
+    n->sequenceStep = 0;
+    n->sequenceTimer = 0;
+    NidlAnimate(n);
+}
+
+// NidlAnimate(); Steps the frame sequence, once per frame;
+void NidlAnimate(struct NidlObject *n) {
+    const s16 *entry;
+
+    if (!n->sequence || (n->sequenceTimer && --n->sequenceTimer)) return;
+
+    entry = &n->sequence[n->sequenceStep * 2];
+    if (entry[0] == NIDL_LOOP) {
+        n->sequenceStep = 0;
+        entry = n->sequence;
+    } else if (entry[0] == NIDL_END) {
+        n->sequence = NULL;
+        return;
+    }
+    NidlSetFrame(n, entry[0]);
+    n->sequenceTimer = entry[1];
+    n->sequenceStep++;
 }
 
 /* NidlUploadHurtTiles(); Copies the enemy's hurt frame into the last NIDL_HURT_TILES tiles of its VRAM, where the type's
@@ -61,6 +89,7 @@ void *CreateNidlEnemy(struct ObjectTemplate *template, u8 playerId) {
     n->variant = template->subtype1 & 0xF;
     n->animBase = gNidlData.enemies[enemy].animBase;
     n->hurtVram = 0;
+    n->sequence = NULL;
     n->obj.unk80 = sNidlEnemies[enemy].hp;
     sNidlEnemies[enemy].init(n);
     NidlSetFrame(n, 0);

@@ -22,6 +22,7 @@
 enum {
     NIDL_BROOM_HATTER,
     NIDL_CAPPY,
+    NIDL_TWIZZY,
     NIDL_ENEMY_COUNT,
 };
 
@@ -38,7 +39,15 @@ struct NidlObject {
     u8 variant;
     u16 animBase;
     u32 hurtVram;   // VRAM the hurt frame was uploaded to;
+    const s16 *sequence;
+    u8 sequenceStep;
+    u8 sequenceTimer;
 };
+
+/* Frame sequences, like NiDL's (0x080640DC plays one, 0x080640FC steps it): pairs of (frame, frames to show it), then
+ * NIDL_LOOP (back to the start) or NIDL_END (holds the last frame); */
+#define NIDL_LOOP -3
+#define NIDL_END -2
 
 // NidlEnemy; What the code knows about each enemy;
 struct NidlEnemy {
@@ -61,6 +70,8 @@ struct NidlData {
 extern const struct NidlData gNidlData;
 
 void NidlSetFrame(struct NidlObject *, u8 frame);
+void NidlPlay(struct NidlObject *, const s16 *sequence);
+void NidlAnimate(struct NidlObject *);
 void NidlUpdate(struct NidlObject *);
 void NidlFaceKirby(struct Object *);
 bool32 NidlIsFloor(struct Object *, s32 x, s32 y);
@@ -71,5 +82,7 @@ void BroomHatterInit(struct NidlObject *);
 void BroomHatterStart(struct Object *);
 void CappyInit(struct NidlObject *);
 void CappyStart(struct Object *);
+void TwizzyInit(struct NidlObject *);
+void TwizzyStart(struct Object *);
 
 #endif

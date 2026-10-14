@@ -40,13 +40,14 @@ namespace KatAMRandomizer {
         /* Enemy; A ported enemy: its index (NIDL_* in nidl.h), name, NiDL object type and frame table, its frames (in the order the
          * C code numbers them), its hurt frame, palette changes, the letters of its name and the behavior bytes the randomizer uses; */
         sealed record Enemy(int Index, string Name, int Type, int FrameTable, List<Part[]> Frames, Part[] Hurt,
-                            Dictionary<int, ushort> PaletteChanges, (int type, int letter)[] Glyphs, byte[] Behaviors);
+                            Dictionary<int, ushort> PaletteChanges, (int type, int letter)[] Glyphs, byte[] Behaviors, byte[] FlyingBehaviors = null);
 
         public static readonly IReadOnlyList<(int index, string name)> Enemies;
 
         static readonly List<Enemy> Definitions = new List<Enemy> {
             BroomHatter(),
             Cappy(),
+            Twizzy(),
         };
 
         static KatAMExpansion() {
@@ -77,12 +78,19 @@ namespace KatAMRandomizer {
             new[] { (0x0C, 0), (0x19, 2), (0x19, 1), (0x19, 1), (0x19, 5) },   // "C" (Cupie), "a", "p", "p", "y" (Sparky);
             new byte[] { 0x00 });
 
+        // Twizzy; Frames: NiDL's 4, 5 (flapping) and 6 (sitting). Variant 0 swoops, variant 5 sits until Kirby comes near;
+        static Enemy Twizzy() => new Enemy(2, "Twizzy", 0x18, 0x752560, new List<Part[]> { new[] { new Part(4) }, new[] { new Part(5) }, new[] { new Part(6) } },
+            new[] { new Part(3) }, new Dictionary<int, ushort>(),
+            new[] { (0x1C, 0), (0x1C, 1), (0x1C, 2), (0x35, 4), (0x35, 4), (0x05, 5) },   // "Twi" (Twister), "z", "z" (Shotzo), "y" (Scarfy);
+            new byte[] { 0x00, 0x05 }, new byte[] { 0x00 });
+
         public static bool IsNightmareInDreamLand(byte[] rom) =>
             rom != null && rom.Length >= 0x800000 && Encoding.ASCII.GetString(rom, 0xAC, 4) == NightmareGameCode;
 
-        // BehaviorsOf(); The behavior bytes of type 0x31 the randomizer may use, for the enemies picked;
-        public static List<byte> BehaviorsOf(IEnumerable<int> enemies) =>
-            Definitions.Where(e => enemies.Contains(e.Index)).SelectMany(e => e.Behaviors.Select(b => (byte)(e.Index << 4 | b))).ToList();
+        // BehaviorsOf(); The behavior bytes of type 0x31 the randomizer may use, for the enemies picked (only the flying ones, or all);
+        public static List<byte> BehaviorsOf(IEnumerable<int> enemies, bool flying = false) =>
+            Definitions.Where(e => enemies.Contains(e.Index))
+                       .SelectMany(e => (flying ? e.FlyingBehaviors ?? Array.Empty<byte>() : e.Behaviors).Select(b => (byte)(e.Index << 4 | b))).ToList();
 
         // NameOf(); The ported enemy a behavior byte of type 0x31 picks;
         public static string NameOf(byte behavior) => Definitions.FirstOrDefault(e => e.Index == behavior >> 4)?.Name ?? Definitions[0].Name;

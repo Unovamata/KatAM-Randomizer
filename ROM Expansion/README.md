@@ -18,7 +18,7 @@ The hit flash also looked the palette up again by type when it ended; its branch
 
 ## Files
 
-- `nidl.h`, `nidl.c`: the shared part (creation, palette, hurt frame, names, helpers like facing Kirby and stopping at ledges).
+- `nidl.h`, `nidl.c`: the shared part (creation, palette, hurt frame, names, NiDL's frame sequences, helpers like facing Kirby and stopping at ledges).
 - `nidl_data.c`: `gNidlData`, left blank and filled in by `KatAMExpansion.cs` (names, and each enemy's `animBase`, anim ID and hurt frame).
 - `enemies/*.c`: one file per enemy, written against the [KatAM decompilation](https://github.com/jiangzhengwenjz/katam) headers. NiDL runs enemies as coroutine scripts; each script is copied as tables of steps.
 - `build.sh /path/to/katam`: compiles everything with the decompilation's `agbcc`, links it at `0x08F60000` against `katam.elf` and writes `../KatAMExpansionCode.cs` (the code and the symbols `KatAMExpansion.cs` uses).
@@ -41,3 +41,4 @@ Graphics come from the player's NiDL ROM: each enemy's descriptor (`0x0873EEA0 +
 |---|---|---|
 | Broom Hatter | `0x0B` | Frames 4-7 with the broom dust (8-10, NiDL palette 15, drawn with the unused color 6) on top; hurt frame 3. Variant 1 sweeps in place |
 | Cappy | `0x10` | Hops forward (0.25), its sprite turning around on every landing, facing Kirby again every 40 hops; frame 4, hurt frame 3. Variant 2 hops in place. Not ported: NiDL's cap coming off when inhaled (a separate capless Cappy) |
+| Twizzy | `0x18` | Variant 0 flies forward (0.75) swooping towards Kirby's height every 40 frames, then climbs away after 4 swoops; variant 5 sits until Kirby comes near, takes off, hovers and dashes at it. Frames 4-5 (flapping), 6 (sitting); hurt frame 3. NiDL's other 8 variants aren't ported |
