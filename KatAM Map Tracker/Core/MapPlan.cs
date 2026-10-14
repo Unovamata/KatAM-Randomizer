@@ -26,7 +26,7 @@ namespace KatAMMapTracker {
         // Line half thickness (8) plus a gap, so lines never touch the squares;
         const int Clearance = 16;
 
-        const double TurnCost45 = 0.6, TurnCost90 = 2.5, UsedCellCost = 0.35;
+        const double TurnCost45 = 0.6, TurnCost90 = 2.5, UsedCellCost = 0.35, OutsideCost = 0.25;
         const int MaxExpansions = 400000;
 
         static readonly (int x, int y)[] Directions = {
@@ -126,7 +126,7 @@ namespace KatAMMapTracker {
 
         int originX, originY, columns, rows;
         int[] blockOwnerA, blockOwnerB; // Up to two rooms blocking a cell (-1 none, -2 more than two);
-        float[] usedCost;
+        float[] usedCost, outsideCost;
 
         // A* state arrays, reused by every search; A state is valid for the current search when its stamp matches;
         float[] stateCost;
@@ -155,6 +155,19 @@ namespace KatAMMapTracker {
             Array.Fill(blockOwnerB, -1);
 
             foreach ((int room, RoomPlacement p) in Layout) BlockRoom(room, p);
+
+            /* Lines may go around the map when it's crowded, but every cell outside the rooms' box costs more the farther out it is,
+             * so they hug the map instead of looping far away; */
+            outsideCost = new float[columns * rows];
+            int boxLeft = (int)Math.Floor((Layout.Values.Min(p => p.X) - originX) / Grid), boxTop = (int)Math.Floor((Layout.Values.Min(p => p.Y) - originY) / Grid);
+            int boxRight = (int)Math.Ceiling((Layout.Values.Max(p => p.X + p.Width) - originX) / Grid), boxBottom = (int)Math.Ceiling((Layout.Values.Max(p => p.Y + p.Height) - originY) / Grid);
+
+            for (int y = 0; y < rows; y++) {
+                for (int x = 0; x < columns; x++) {
+                    int outside = Math.Max(Math.Max(boxLeft - x, x - boxRight), Math.Max(boxTop - y, y - boxBottom));
+                    if (outside > 0) outsideCost[y * columns + x] = (float)(OutsideCost * outside);
+                }
+            }
 
             // Shorter connections are routed first, so they get the straightest lines;
             List<(int a, int b)> connections = map.Rooms.Values
@@ -256,7 +269,7 @@ namespace KatAMMapTracker {
                     // Diagonal steps can't squeeze between two blocked cells;
                     if (dx != 0 && dy != 0 && (!IsFree(x + dx, y, from, to) || !IsFree(x, y + dy, from, to))) continue;
 
-                    float step = 1 + usedCost[ny * columns + nx] + (turn == 1 ? (float)TurnCost45 : turn == 2 ? (float)TurnCost90 : 0);
+                    float step = 1 + usedCost[ny * columns + nx] + outsideCost[ny * columns + nx] + (turn == 1 ? (float)TurnCost45 : turn == 2 ? (float)TurnCost90 : 0);
                     int next = (ny * columns + nx) * 9 + d;
                     float total = current + step;
 

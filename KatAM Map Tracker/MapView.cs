@@ -813,6 +813,8 @@ namespace KatAMMapTracker {
 
         /* RenderImage(); Draws the map into an image, to save it: the discovered map, or the entire map (spoilers).
          * Pixel art is scaled 2x (nearest neighbor) unless the image would be too big; */
+        const double LineMargin = 24;
+
         public Bitmap RenderImage(bool entireMap) {
             if (map == null || layout == null || progress == null) return null;
 
@@ -824,6 +826,16 @@ namespace KatAMMapTracker {
             double margin = AreaRadius + 8;
             double minX = rooms.Min(r => layout[r].X) - margin, minY = rooms.Min(r => layout[r].Y) - margin,
                    maxX = rooms.Max(r => layout[r].X + layout[r].Width) + margin, maxY = rooms.Max(r => layout[r].Y + layout[r].Height) + margin;
+
+            // Lines going around the map are kept whole;
+            foreach (DoorInfo door in rooms.SelectMany(r => map.Rooms[r].Doors).Where(d => layout.ContainsKey(d.Destination) && IsDoorShown(scene, d))) {
+                if (!plan.Paths.TryGetValue(MapRoutes.ConnectionKey(door.Room, door.Destination), out List<(double x, double y)> path)) continue;
+
+                foreach ((double x, double y) in path) {
+                    minX = Math.Min(minX, x - LineMargin); minY = Math.Min(minY, y - LineMargin);
+                    maxX = Math.Max(maxX, x + LineMargin); maxY = Math.Max(maxY, y + LineMargin);
+                }
+            }
 
             int scale = Math.Max(maxX - minX, maxY - minY) * 2 <= 6000 ? 2 : 1;
             Bitmap image = new Bitmap((int)Math.Ceiling(maxX - minX) * scale, (int)Math.Ceiling(maxY - minY) * scale, PixelFormat.Format32bppArgb);

@@ -10,8 +10,11 @@ namespace KatAMMapTracker {
      * • Each area map is its own canvas, so the areas are arranged like the world map arranges them (the average spot of
      *   their rooms in gWorldMapKirbysCoor*, src/pause_world_map.c), spread apart until they don't overlap.
      * • Rooms the area maps don't show (tutorial, boss and goal game rooms, the last rooms...) are put next to a room they
-     *   connect to, on the side its door is on. Rooms connected to nothing placed are lined up above the map; */
+     *   connect to, on the side its door is on. Rooms connected to nothing placed are lined up under the map; */
     public static class MapVanilla {
+        // First tutorial room (0x323 -> 0x324 -> 0x325);
+        const int FirstTutorialRoom = 0x323;
+
         // (room, area, type: N normal, B big, S star, map tile column, map tile row);
         const char N = 'N', B = 'B', S = 'S';
         static readonly (int room, int area, char type, int column, int row)[] Rooms = {
@@ -178,7 +181,7 @@ namespace KatAMMapTracker {
         }
 
         /* PlaceRest(); Rooms not on the area maps: next to a placed room they connect to (in breadth-first order), on the side
-         * of its door, at the first free spot going outwards. Rooms connected to nothing placed are lined up in a row above the map; */
+         * of its door, at the first free spot going outwards. Rooms connected to nothing placed are lined up in rows under the map; */
         static void PlaceRest(RomMap map, Dictionary<int, (double x, double y)> centers, Dictionary<int, int> clusters,
                               Func<int, double> sizeOf, Func<double, double> snap) {
             Dictionary<int, List<int>> neighbors = map.Rooms.Keys.ToDictionary(id => id, id => new List<int>());
@@ -228,26 +231,37 @@ namespace KatAMMapTracker {
                     }
                 }
 
-                // Rooms connected to nothing placed (the tutorial, the last rooms...): one row above the map, in ID order;
-                List<int> rest = map.Rooms.Keys.Where(id => !centers.ContainsKey(id)).OrderBy(id => id).ToList();
+                /* Rooms connected to nothing placed: rows under the map, in ID order. The tutorial comes first, in its own row
+                 * above the others (the last rooms...), so the map comes full circle; */
+                List<int> rest = map.Rooms.Keys.Where(id => !centers.ContainsKey(id)).OrderBy(id => id == FirstTutorialRoom ? -1 : id).ToList();
 
                 if (rest.Count == 0) break;
 
-                double rowY = snap((centers.Count == 0 ? 0 : centers.Values.Min(c => c.y)) - 128);
-                double rowX = snap(centers.Count == 0 ? 0 : centers.Values.Min(c => c.x));
+                double rowY = snap((centers.Count == 0 ? 0 : centers.Values.Max(c => c.y)) + 128);
+                double startX = snap(centers.Count == 0 ? 0 : centers.Values.Min(c => c.x)), rowX = startX;
 
                 foreach (int room in rest) {
                     if (centers.ContainsKey(room)) continue;
+
+                    if (room != FirstTutorialRoom && rest[0] == FirstTutorialRoom && clusters[FirstTutorialRoom] == nextCluster - 1) {
+                        rowX = startX;
+                        rowY += NeighborStep;
+                    }
 
                     centers[room] = (rowX, rowY);
                     clusters[room] = nextCluster++;
                     rowX += NeighborStep;
 
-                    // Its own connections (the tutorial's rooms) follow it in the row;
-                    foreach (int next in neighbors[room].Where(n => !centers.ContainsKey(n)).OrderBy(n => n)) {
-                        centers[next] = (rowX, rowY);
-                        clusters[next] = clusters[room];
-                        rowX += NeighborStep;
+                    // The rooms it leads to (the tutorial's rooms, one after another) follow it in the row;
+                    Queue<int> chain = new Queue<int>(new[] { room });
+
+                    while (chain.Count > 0) {
+                        foreach (int next in neighbors[chain.Dequeue()].Where(n => !centers.ContainsKey(n)).OrderBy(n => n)) {
+                            centers[next] = (rowX, rowY);
+                            clusters[next] = clusters[room];
+                            rowX += NeighborStep;
+                            chain.Enqueue(next);
+                        }
                     }
                 }
             }
