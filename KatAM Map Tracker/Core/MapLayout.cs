@@ -76,17 +76,19 @@ namespace KatAMMapTracker {
                 members.Where(kvp => !isolated.Contains(kvp.Key)).ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
                 localCells, neighbors, clusters);
 
-            /* The tutorial rooms are where a new game starts, so they sit right above the map, over Central Circle,
-             * where players can see the tracker reacting from the very beginning; */
+            /* The tutorial rooms are where a new game starts, so they sit right under the map, under Central Circle, just above
+             * the rooms lined up at the bottom (the final ones among them), so the map comes full circle; */
             int? tutorial = clusters.TryGetValue(FirstTutorialRoom, out int tutorialCluster) && isolated.Contains(tutorialCluster)
                 ? tutorialCluster : null;
 
             if (tutorial != null) {
                 isolated.Remove(tutorial.Value);
-                PlaceAbove(tutorial.Value, clusterOffsets, localCells, rootCluster, clusters);
+                PlaceBelow(tutorial.Value, clusterOffsets, localCells, rootCluster);
             }
 
-            PlaceIsolated(isolated.OrderBy(c => members[c][0]).ToList(), clusterOffsets, localCells);
+            // The game's end first, then the arena's rooms on their own rows (see RomMap.IsArenaRoom);
+            PlaceIsolated(isolated.OrderBy(c => RomMap.IsArenaRoom(members[c][0]) ? 1 : 0).ThenBy(c => members[c][0]).ToList(), clusterOffsets, localCells,
+                          c => RomMap.IsArenaRoom(members[c][0]) ? 1 : 0);
 
             Dictionary<int, RoomPlacement> placements = new Dictionary<int, RoomPlacement>();
 
@@ -107,7 +109,8 @@ namespace KatAMMapTracker {
             Dictionary<int, List<int>> neighbors = map.Rooms.Keys.ToDictionary(id => id, id => new List<int>());
 
             foreach (RoomInfo room in map.Rooms.Values) {
-                foreach (DoorInfo door in room.Doors.OrderBy(d => d.X).ThenBy(d => d.Y)) {
+                // Rooms are laid out by their mirrors (and Links); Warp Stars and Fuse Cannons fly far away, so they don't pull rooms together;
+                foreach (DoorInfo door in room.Doors.Where(d => d.Kind == DoorKind.Mirror || d.Kind == DoorKind.Link).OrderBy(d => d.X).ThenBy(d => d.Y)) {
                     if (door.Destination == room.Id || !map.Rooms.ContainsKey(door.Destination)) continue;
 
                     if (!neighbors[room.Id].Contains(door.Destination)) neighbors[room.Id].Add(door.Destination);
@@ -315,32 +318,32 @@ namespace KatAMMapTracker {
             return cost + crowd * 0.15 + spread * 0.35;
         }
 
-        // PlaceAbove(); Places a cluster above the rest of the map, centered over Central Circle;
-        static void PlaceAbove(int cluster, Dictionary<int, (double x, double y)> offsets,
-                               Dictionary<int, Dictionary<int, (int x, int y)>> localCells, int rootCluster, Dictionary<int, int> clusterOf) {
-            double minY = double.MaxValue;
+        // PlaceBelow(); Places a cluster under the rest of the map, centered under Central Circle;
+        static void PlaceBelow(int cluster, Dictionary<int, (double x, double y)> offsets,
+                               Dictionary<int, Dictionary<int, (int x, int y)>> localCells, int rootCluster) {
+            double maxY = double.MinValue;
 
             foreach ((int other, (double x, double y)) in offsets) {
-                foreach ((int cx, int cy) in localCells[other].Values) minY = Math.Min(minY, y + cy * Cell);
+                foreach ((int cx, int cy) in localCells[other].Values) maxY = Math.Max(maxY, y + cy * Cell);
             }
 
-            if (minY == double.MaxValue) minY = 0;
+            if (maxY == double.MinValue) maxY = 0;
 
             (double rootX, double rootY) = offsets.GetValueOrDefault(rootCluster);
             (int hubX, int hubY) = localCells.TryGetValue(rootCluster, out var rootCells) && rootCells.TryGetValue(RomMap.CentralCircle, out var hubCell)
                 ? hubCell : (0, 0);
 
             IEnumerable<(int x, int y)> cells = localCells[cluster].Values;
-            int left = cells.Min(c => c.x), right = cells.Max(c => c.x), bottom = cells.Max(c => c.y);
+            int left = cells.Min(c => c.x), right = cells.Max(c => c.x), top = cells.Min(c => c.y);
             double centerX = rootX + hubX * Cell;
 
             offsets[cluster] = (Math.Round((centerX - (left + right) / 2.0 * Cell) / Grid) * Grid,
-                                Math.Round((minY - Cell * 2 - bottom * Cell) / Grid) * Grid);
+                                Math.Round((maxY + Cell * 2 - top * Cell) / Grid) * Grid);
         }
 
-        // PlaceIsolated(); Lines up the rooms without mirrors in rows under the rest of the map;
+        // PlaceIsolated(); Lines up the rooms without mirrors in rows under the rest of the map, each group starting a new row;
         static void PlaceIsolated(List<int> isolated, Dictionary<int, (double x, double y)> offsets,
-                                  Dictionary<int, Dictionary<int, (int x, int y)>> localCells) {
+                                  Dictionary<int, Dictionary<int, (int x, int y)>> localCells, Func<int, int> groupOf) {
             if (isolated.Count == 0) return;
 
             double minX = 0, maxX = 0, maxY = 0;
@@ -352,14 +355,16 @@ namespace KatAMMapTracker {
             }
 
             double cursorX = minX, cursorY = maxY + Cell * 2, rowHeight = 0;
+            int group = groupOf(isolated[0]);
 
             foreach (int cluster in isolated) {
                 IEnumerable<(int x, int y)> cells = localCells[cluster].Values;
                 int left = cells.Min(c => c.x), right = cells.Max(c => c.x), top = cells.Min(c => c.y), bottom = cells.Max(c => c.y);
 
-                if (cursorX > minX && cursorX + (right - left) * Cell > maxX) {
+                if (cursorX > minX && (cursorX + (right - left) * Cell > maxX || groupOf(cluster) != group)) {
+                    cursorY += rowHeight + Cell * (groupOf(cluster) != group ? 2 : 1);
+                    group = groupOf(cluster);
                     cursorX = minX;
-                    cursorY += rowHeight + Cell;
                     rowHeight = 0;
                 }
 

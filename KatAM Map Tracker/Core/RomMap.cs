@@ -4,10 +4,15 @@ using System.IO;
 using System.Linq;
 
 namespace KatAMMapTracker {
+    /* DoorKind; What takes Kirby to another room: a mirror (door), a link the room data doesn't hold (see RomMap.Links),
+     * or a Warp Star or Fuse Cannon, which work like One-Way mirrors; */
+    public enum DoorKind { Mirror, Link, WarpStar, FuseCannon }
+
     // DoorInfo; A door in a room. Wide doors made of several objects pointing to the same room are merged in one;
     public sealed class DoorInfo {
         public int Room { get; init; }
         public int Destination { get; init; }
+        public DoorKind Kind { get; init; } = DoorKind.Mirror;
 
         // Door position in the room, in pixels;
         public int X { get; init; }
@@ -29,8 +34,8 @@ namespace KatAMMapTracker {
     }
 
     // RoomObject; An object placed in a room (enemy, item, chest, switch...), as read from the room's object list;
-    // Destination: the room a Warp Star (template +0x1E) or a Fuse Cannon (template +0x12) sends Kirby to, else -1;
-    public sealed record RoomObject(int Id, int Behavior, int X, int Y, int Destination = -1);
+    // Destination: the room a Warp Star (template +0x1E) or a Fuse Cannon (template +0x12) sends Kirby to, else -1; LandX, LandY: where, in tiles;
+    public sealed record RoomObject(int Id, int Behavior, int X, int Y, int Destination = -1, int LandX = 0, int LandY = 0);
 
     // RoomInfo; A room and its doors as read from the ROM;
     public sealed class RoomInfo {
@@ -93,6 +98,15 @@ namespace KatAMMapTracker {
 
         // Central Circle, the main hub. The map is laid out from it;
         public const int CentralCircle = 0x321;
+
+        // Rooms left out of the map: 0x3C9 is an empty debug room nothing leads to;
+        static readonly HashSet<int> HiddenRooms = new HashSet<int> { 0x3C9 };
+
+        // Two-Way connections that have no mirror in the room data: the arena's room 0x3B6 opens from Central Circle;
+        static readonly (int a, int b)[] Links = { (CentralCircle, 0x3B6) };
+
+        // IsArenaRoom(); The arena's rooms (0x3B6 entrance, 0x3B7 rest room, 0x3BB-0x3BD fights), kept apart from the game's end;
+        public static bool IsArenaRoom(int room) => room >= 0x3B6 && room <= 0x3BD;
 
         // Addresses of the Japanese version, translated to the ROM's region;
         readonly int LongRoomParameters,
@@ -173,12 +187,55 @@ namespace KatAMMapTracker {
                 ReadObjects(info);
 
                 // Several long rooms may share a short room. The first one is the one the game uses;
-                if (Rooms.Values.Any(r => r.ShortIndex == shortIndex)) continue;
+                if (Rooms.Values.Any(r => r.ShortIndex == shortIndex) || HiddenRooms.Contains(room)) continue;
 
                 Rooms[room] = info;
             }
 
+            AddLaunchers();
+            AddLinks();
             LinkTwoWayDoors();
+        }
+
+        // AddLinks(); The Two-Way Links, between the rooms' centers, unless a mirror already joins them;
+        void AddLinks() {
+            foreach ((int a, int b) in Links) {
+                if (!Rooms.TryGetValue(a, out RoomInfo roomA) || !Rooms.TryGetValue(b, out RoomInfo roomB)) continue;
+                if (roomA.Doors.Any(d => d.Destination == b) || roomB.Doors.Any(d => d.Destination == a)) continue;
+
+                DoorInfo there = Link(roomA, roomB), back = Link(roomB, roomA);
+                there.DoorBack = back;
+                back.DoorBack = there;
+                roomA.Doors.Add(there);
+                roomB.Doors.Add(back);
+            }
+
+            static DoorInfo Link(RoomInfo from, RoomInfo to) => new DoorInfo {
+                Room = from.Id, Destination = to.Id, Kind = DoorKind.Link,
+                X = from.Width * 4, Y = from.Height * 4, LandX = to.Width * 4, LandY = to.Height * 4,
+                Tiles = new List<(int x, int y)> { (from.Width / 4, from.Height / 4) },
+            };
+        }
+
+        /* AddLaunchers(); Warp Stars and Fuse Cannons, as One-Way doors from where they are to the room they send Kirby to
+         * (unless a mirror already leads there). Landing: Warp Star template +0x1A/+0x1C, Fuse Cannon +0x18/+0x19, in tiles; */
+        void AddLaunchers() {
+            foreach (RoomInfo room in Rooms.Values) {
+                foreach (RoomObject obj in room.Objects.Where(o => o.Destination >= 0)) {
+                    if (obj.Destination == room.Id || !Rooms.ContainsKey(obj.Destination) || room.Doors.Any(d => d.Destination == obj.Destination)) continue;
+
+                    room.Doors.Add(new DoorInfo {
+                        Room = room.Id,
+                        Destination = obj.Destination,
+                        Kind = obj.Id == WarpStarObject ? DoorKind.WarpStar : DoorKind.FuseCannon,
+                        X = obj.X,
+                        Y = obj.Y,
+                        LandX = Math.Max(0, obj.LandX) * 16 + 8,
+                        LandY = Math.Max(0, obj.LandY) * 16 + 8,
+                        Tiles = new List<(int x, int y)> { (obj.X / 16, obj.Y / 16) },
+                    });
+                }
+            }
         }
 
         /* LinkTwoWayDoors(); A door is Two-Way when it lands Kirby next to a door leading back (doors land Kirby up to 2-3 tiles away).
@@ -186,9 +243,9 @@ namespace KatAMMapTracker {
         void LinkTwoWayDoors() {
             foreach (RoomInfo room in Rooms.Values) {
                 foreach (DoorInfo door in room.Doors) {
-                    if (!Rooms.TryGetValue(door.Destination, out RoomInfo destination)) continue;
+                    if (door.Kind != DoorKind.Mirror || !Rooms.TryGetValue(door.Destination, out RoomInfo destination)) continue;
 
-                    DoorInfo back = destination.Doors.FirstOrDefault(d => d.Destination == room.Id);
+                    DoorInfo back = destination.Doors.FirstOrDefault(d => d.Destination == room.Id && d.Kind == DoorKind.Mirror);
 
                     if (back == null) continue;
 
@@ -209,8 +266,11 @@ namespace KatAMMapTracker {
             for (int address = header + 16; address + 36 <= Rom.Length && room.Objects.Count < 256; address += 36) {
                 if (Rom[address] != 0x01 || Rom[address + 1] != 0x24) break;
 
-                room.Objects.Add(new RoomObject(Rom[address + 12], Rom[address + 14], Read16(address + 6), Read16(address + 8),
-                                             Rom[address + 12] == WarpStarObject ? Read16(address + 0x1E) : Rom[address + 12] == FuseCannonObject ? Read16(address + 0x12) : -1));
+                int id = Rom[address + 12], x = Read16(address + 6), y = Read16(address + 8);
+
+                room.Objects.Add(id == WarpStarObject ? new RoomObject(id, Rom[address + 14], x, y, Read16(address + 0x1E), (short)Read16(address + 0x1A), (short)Read16(address + 0x1C))
+                               : id == FuseCannonObject ? new RoomObject(id, Rom[address + 14], x, y, Read16(address + 0x12), Rom[address + 0x18], Rom[address + 0x19])
+                               : new RoomObject(id, Rom[address + 14], x, y));
             }
         }
 

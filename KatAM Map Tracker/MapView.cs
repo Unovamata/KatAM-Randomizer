@@ -42,7 +42,8 @@ namespace KatAMMapTracker {
         };
 
         // Scene; What a drawing pass shows: the discovered map, or everything (faded or not where it wasn't discovered);
-        readonly record struct Scene(bool ShowAll, bool FadeUndiscovered, double RoomGrowth = 0, double LineScale = 1);
+        // IconScreenScale: screen pixels per map pixel that entity icons are sized for (0 = the drawing's own scale);
+        readonly record struct Scene(bool ShowAll, bool FadeUndiscovered, double RoomGrowth = 0, double LineScale = 1, double IconScreenScale = 0);
 
         RomMap map;
         MapPlan plan;
@@ -486,7 +487,7 @@ namespace KatAMMapTracker {
             if (icons.Count == 0) return;
 
             RectangleF square = RoomBounds(layout[room], scene.RoomGrowth);
-            float screenScale = g.Transform.Elements[0];
+            float screenScale = g.Transform.Elements[0], sizingScale = scene.IconScreenScale > 0 ? (float)scene.IconScreenScale : screenScale;
 
             GraphicsState state = g.Save();
             g.InterpolationMode = InterpolationMode.NearestNeighbor;
@@ -496,7 +497,7 @@ namespace KatAMMapTracker {
             /* The same size in every room: half a small room's square. Zoomed out, icons stay at least MinEntityIconScreenSize screen
              * pixels (up to a whole small room's square), so the room doesn't swallow them; */
             float smallSquare = MapGraphics.TileSize * 2 + 2 * (float)Math.Clamp(scene.RoomGrowth, 0, MaxSmallRoomGrowth);
-            float cell = Math.Clamp(MinEntityIconScreenSize / screenScale, smallSquare / 2, smallSquare);
+            float cell = Math.Clamp(MinEntityIconScreenSize / sizingScale, smallSquare / 2, smallSquare);
             float left = square.X + square.Width / 2 - columns * cell / 2, top = square.Y + square.Height / 2 - rows * cell / 2;
 
             for (int i = 0; i < icons.Count; i++) {
@@ -727,7 +728,7 @@ namespace KatAMMapTracker {
             int width = (int)(image.Width * scale), height = (int)(image.Height * scale);
 
             int found = info.Doors.Count(progress.IsDoorFound);
-            string caption = $"Room 0x{room:X}   Mirrors used: {found}/{info.Doors.Count}" + (progress.VisitedRooms.Contains(room) ? "" : "   (not visited)");
+            string caption = $"Room 0x{room:X}   Exits used: {found}/{info.Doors.Count}" + (progress.VisitedRooms.Contains(room) ? "" : "   (not visited)");
 
             // What's in the room, with counts (e.g. "Cherry x3");
             List<MapEntity> entities = ShownEntities(room).ToList();
@@ -813,10 +814,16 @@ namespace KatAMMapTracker {
 
         /* RenderImage(); Draws the map into an image, to save it: the discovered map, or the entire map (spoilers).
          * Pixel art is scaled 2x (nearest neighbor) unless the image would be too big; */
+        const double LineMargin = 24;
+
         public Bitmap RenderImage(bool entireMap) {
             if (map == null || layout == null || progress == null) return null;
 
-            Scene scene = new Scene(entireMap, false);
+            /* Drawn like the map zoomed all the way out (with Dynamic Scaling): grown squares, thicker lines, bigger icons,
+             * as if a small room were MinRoomScreenSize pixels; */
+            double growth = DynamicScaling ? MaxSmallRoomGrowth : 0;
+            Scene scene = new Scene(entireMap, false, growth, 1 + growth * LineGrowthShare,
+                                    DynamicScaling ? MinRoomScreenSize / (MapGraphics.TileSize * 2 + growth * 2) : 0);
             List<int> rooms = ShownRooms(scene).ToList();
 
             if (rooms.Count == 0) return null;
@@ -824,6 +831,16 @@ namespace KatAMMapTracker {
             double margin = AreaRadius + 8;
             double minX = rooms.Min(r => layout[r].X) - margin, minY = rooms.Min(r => layout[r].Y) - margin,
                    maxX = rooms.Max(r => layout[r].X + layout[r].Width) + margin, maxY = rooms.Max(r => layout[r].Y + layout[r].Height) + margin;
+
+            // Lines going around the map are kept whole;
+            foreach (DoorInfo door in rooms.SelectMany(r => map.Rooms[r].Doors).Where(d => layout.ContainsKey(d.Destination) && IsDoorShown(scene, d))) {
+                if (!plan.Paths.TryGetValue(MapRoutes.ConnectionKey(door.Room, door.Destination), out List<(double x, double y)> path)) continue;
+
+                foreach ((double x, double y) in path) {
+                    minX = Math.Min(minX, x - LineMargin); minY = Math.Min(minY, y - LineMargin);
+                    maxX = Math.Max(maxX, x + LineMargin); maxY = Math.Max(maxY, y + LineMargin);
+                }
+            }
 
             int scale = Math.Max(maxX - minX, maxY - minY) * 2 <= 6000 ? 2 : 1;
             Bitmap image = new Bitmap((int)Math.Ceiling(maxX - minX) * scale, (int)Math.Ceiling(maxY - minY) * scale, PixelFormat.Format32bppArgb);
