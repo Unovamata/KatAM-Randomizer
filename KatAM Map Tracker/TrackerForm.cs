@@ -521,7 +521,7 @@ namespace KatAMMapTracker {
 
             int doors = map.Rooms.Values.Sum(r => r.Doors.Count);
             string maps = mapsItem.Checked ? $"   Maps: {AreaMaps.CountOf(mapFlags)}" : "";
-            discoveryLabel.Text = $"Rooms: {progress.VisitedRooms.Count}/{map.Rooms.Count}   Mirrors: {progress.FoundDoors.Count}/{doors}{maps}   Zoom: {mapView.Zoom:P0}";
+            discoveryLabel.Text = $"Rooms: {progress.VisitedRooms.Count}/{map.Rooms.Count}   Exits: {progress.FoundDoors.Count}/{doors}{maps}   Zoom: {mapView.Zoom:P0}";
         }
 
         void ShowHelp() {

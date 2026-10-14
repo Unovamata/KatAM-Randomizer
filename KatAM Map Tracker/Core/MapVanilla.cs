@@ -84,7 +84,7 @@ namespace KatAMMapTracker {
             }
 
             foreach (RoomInfo room in map.Rooms.Values.OrderBy(r => r.Id)) {
-                foreach (DoorInfo door in room.Doors.OrderBy(d => d.Destination).ThenBy(d => d.X).ThenBy(d => d.Y)) {
+                foreach (DoorInfo door in room.Doors.Where(d => d.Kind == DoorKind.Mirror).OrderBy(d => d.Destination).ThenBy(d => d.X).ThenBy(d => d.Y)) {
                     Add(room.Id); Add(door.Destination); Add(door.X); Add(door.Y); Add(door.LandX); Add(door.LandY);
                 }
             }

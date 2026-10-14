@@ -61,7 +61,7 @@ namespace KatAMMapTracker {
             // Rooms never point twice to the same room, so the door Kirby went through is the one leading here;
             DoorInfo door = from.Doors.FirstOrDefault(d => d.Destination == room);
 
-            if (door == null) return changed; // Not a mirror: death, warp star, cannon...
+            if (door == null) return changed; // Nothing leads there: death, menus...
 
             changed |= FoundDoors.Add(door.Key);
 

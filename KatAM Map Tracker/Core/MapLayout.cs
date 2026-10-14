@@ -107,7 +107,8 @@ namespace KatAMMapTracker {
             Dictionary<int, List<int>> neighbors = map.Rooms.Keys.ToDictionary(id => id, id => new List<int>());
 
             foreach (RoomInfo room in map.Rooms.Values) {
-                foreach (DoorInfo door in room.Doors.OrderBy(d => d.X).ThenBy(d => d.Y)) {
+                // Rooms are laid out by their mirrors; Warp Stars and Fuse Cannons fly far away, so they don't pull rooms together;
+                foreach (DoorInfo door in room.Doors.Where(d => d.Kind == DoorKind.Mirror).OrderBy(d => d.X).ThenBy(d => d.Y)) {
                     if (door.Destination == room.Id || !map.Rooms.ContainsKey(door.Destination)) continue;
 
                     if (!neighbors[room.Id].Contains(door.Destination)) neighbors[room.Id].Add(door.Destination);

@@ -727,7 +727,7 @@ namespace KatAMMapTracker {
             int width = (int)(image.Width * scale), height = (int)(image.Height * scale);
 
             int found = info.Doors.Count(progress.IsDoorFound);
-            string caption = $"Room 0x{room:X}   Mirrors used: {found}/{info.Doors.Count}" + (progress.VisitedRooms.Contains(room) ? "" : "   (not visited)");
+            string caption = $"Room 0x{room:X}   Exits used: {found}/{info.Doors.Count}" + (progress.VisitedRooms.Contains(room) ? "" : "   (not visited)");
 
             // What's in the room, with counts (e.g. "Cherry x3");
             List<MapEntity> entities = ShownEntities(room).ToList();
