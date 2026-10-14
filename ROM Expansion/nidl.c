@@ -6,6 +6,7 @@ extern const u8 *const gUnk_08D60EE4[];  // HP bar names per language: 64x8 (0x1
 
 static const struct NidlEnemy sNidlEnemies[NIDL_ENEMY_COUNT] = {
     [NIDL_BROOM_HATTER] = { BroomHatterInit, BroomHatterStart, 2, 0 },
+    [NIDL_CAPPY] = { CappyInit, CappyStart, 2, 0 },
 };
 
 // NidlSetFrame(); Shows one of the enemy's frames (its own numbering);

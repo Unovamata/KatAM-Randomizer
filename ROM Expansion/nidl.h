@@ -21,6 +21,7 @@
 // Enemies (the behavior byte's high nibble);
 enum {
     NIDL_BROOM_HATTER,
+    NIDL_CAPPY,
     NIDL_ENEMY_COUNT,
 };
 
@@ -68,5 +69,7 @@ void NidlStopAtLedge(struct Object *);
 // Enemies;
 void BroomHatterInit(struct NidlObject *);
 void BroomHatterStart(struct Object *);
+void CappyInit(struct NidlObject *);
+void CappyStart(struct Object *);
 
 #endif

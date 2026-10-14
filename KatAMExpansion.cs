@@ -46,6 +46,7 @@ namespace KatAMRandomizer {
 
         static readonly List<Enemy> Definitions = new List<Enemy> {
             BroomHatter(),
+            Cappy(),
         };
 
         static KatAMExpansion() {
@@ -69,6 +70,12 @@ namespace KatAMRandomizer {
                 },
                 new byte[] { 0x00 });
         }
+
+        // Cappy; Frames: NiDL's 4 (standing, it hops turning around). Variant 2 hops in place;
+        static Enemy Cappy() => new Enemy(1, "Cappy", 0x10, 0x75235C, new List<Part[]> { new[] { new Part(4) } }, new[] { new Part(3) },
+            new Dictionary<int, ushort>(),
+            new[] { (0x0C, 0), (0x19, 2), (0x19, 1), (0x19, 1), (0x19, 5) },   // "C" (Cupie), "a", "p", "p", "y" (Sparky);
+            new byte[] { 0x00 });
 
         public static bool IsNightmareInDreamLand(byte[] rom) =>
             rom != null && rom.Length >= 0x800000 && Encoding.ASCII.GetString(rom, 0xAC, 4) == NightmareGameCode;
