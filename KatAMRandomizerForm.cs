@@ -1,4 +1,4 @@
-using KatAMInternal;
+﻿using KatAMInternal;
 using System.ComponentModel;
 using System.Text;
 using System.Windows.Forms;
@@ -70,45 +70,26 @@ namespace KatAMRandomizer
                     LabelInternalName.Text = $"Internal Name: {internalName}";
                     LabelGameID.Text = $"Game ID: {gameId}";
 
-                    string region = "";
+                    // Every version of the game is supported; Each one keeps its data at different addresses;
+                    RomRegion romRegion = RomRegion.Detect(fileContents);
+                    string region = romRegion?.Name ?? "";
 
-                    switch (gameId) {
-                        // Japanese Version;
-                        case "AGB-B8KJ":
-                            region = "(JAP)";
-                            LabelCompatibility.ForeColor = Color.Green;
-                            LabelCompatibility.Text = "Compatibility: Compatible";
-                            LabelStability.ForeColor = Color.Green;
-                            LabelStability.Text = "Stability: Perfectly Playable";
-                            break;
-
-                        case "AGB-B8KP":
-                            region = "(EUR)";
-                            LabelCompatibility.ForeColor = Color.Red;
-                            LabelCompatibility.Text = "Compatibility: Incompatible";
-                            LabelStability.ForeColor = Color.Red;
-                            LabelStability.Text = "Stability: Unsupported";
-                            break;
-
-                        case "AGB-B8KE":
-                            region = "(USA)";
-                            LabelCompatibility.ForeColor = Color.Red;
-                            LabelCompatibility.Text = "Compatibility: Incompatible";
-                            LabelStability.ForeColor = Color.Red;
-                            LabelStability.Text = "Stability: Unsupported";
-                            break;
-
-                        default:
-                            LabelCompatibility.ForeColor = Color.Red;
-                            LabelCompatibility.Text = "Compatibility: Incompatible";
-                            LabelStability.ForeColor = Color.Red;
-                            LabelStability.Text = "Stability: Unsupported";
-                            break;
+                    if (romRegion != null) {
+                        RomRegion.Use(romRegion);
+                        LabelCompatibility.ForeColor = Color.Green;
+                        LabelCompatibility.Text = "Compatibility: Compatible";
+                        LabelStability.ForeColor = Color.Green;
+                        LabelStability.Text = "Stability: Perfectly Playable";
+                    } else {
+                        LabelCompatibility.ForeColor = Color.Red;
+                        LabelCompatibility.Text = "Compatibility: Incompatible";
+                        LabelStability.ForeColor = Color.Red;
+                        LabelStability.Text = "Stability: Unsupported";
                     }
 
                     LabelGameRegion.Text = $"Region: {region}";
 
-                    ButtonSaveFile.Enabled = true;
+                    ButtonSaveFile.Enabled = romRegion != null;
                     ButtonInputSeed.Enabled = true;
                     ButtonRefreshSeed.Enabled = true;
                     LabelSeed.Visible = true;
@@ -129,6 +110,7 @@ namespace KatAMRandomizer
             byte[] fileContents = File.ReadAllBytes(system.ROMPath);
             Processing.ROMData = new byte[fileContents.Length];
             Array.Copy(fileContents, Processing.ROMData, fileContents.Length);
+            RomRegion.Use(RomRegion.Detect(fileContents));
 
             string newFileName = "KatAM.gba",
             destinationPath = Path.Combine(system.ROMDirectory, newFileName);

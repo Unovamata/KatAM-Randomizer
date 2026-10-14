@@ -35,6 +35,13 @@ namespace KatAMRandomizer
             foreach (Entity entity in entities) {
                 bool isButtonOrDoor = (entity.ID == 0x6D || entity.ID == 0x71);
 
+                /* Big switches unlock the hub mirrors to every area. Removing or moving them can make the seed
+                 * unbeatable, so they're always written untouched; */
+                if (Utils.IsBigSwitch(entity)) {
+                    Utils.WriteObjectToROM(entity);
+                    continue;
+                }
+
                 switch (stoneDoorOptions) {
                     case GenerationOptions.All:
                         entity.ID = Utils.Nothing;

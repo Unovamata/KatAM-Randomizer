@@ -19,7 +19,7 @@ Run `Build Map Tracker.bat` (it needs the [.NET 8 SDK](https://dotnet.microsoft.
 
 - Windows.
 - [mGBA](https://mgba.io/) 0.10 or newer (it includes Lua scripting).
-- The Japanese ROM (Hoshi no Kirby: Kagami no Daimeikyuu, `AGB-B8KJ`), randomized or not.
+- A Kirby & the Amazing Mirror ROM, randomized or not: Japanese (`AGB-B8KJ`), American (`AGB-B8KE`) or European (`AGB-B8KP`).
 
 ## How to use
 
@@ -50,6 +50,7 @@ The order doesn't matter: the script keeps retrying, so the tracker can be opene
   - Rooms, doors, tilesets, tilemaps and palettes: addresses from ReflexViewer (`Documentation/Reflex JP Tools`).
   - Room backgrounds: room parameter `+0x1E` selects entry `0x614 + index` of the graphics table at `0xD2E5F0` (LZ77 tiles, palette, raw tilemap).
   - Map graphics: the pause screen map tiles at `0x33F688`, palette at `0x33F588`, square pulse frames at `0x3458AE` and line colors at `0x34591E`.
+  - These are the Japanese addresses. The American and European ROMs move each block of data as a whole, so the addresses are shifted per block (see `RomVersion` in `Core/RomMap.cs`): level data `+0x2FE74` / `+0x3A2D8`, pointer tables `+0x34BE4` / `+0x3F1C0`, map screen graphics `+0x1B844` / `+0x20324`. The RAM room address is the same in every version.
 - Connections are routed with A* on the 8 pixel grid in the 8 directions: rooms other than the two being connected block the cells around them, turns cost a little (sharp turns aren't allowed) and cells used by other lines cost a bit more, so lines bend around rooms with 45° turns and spread out.
 - When Kirby moves from room A to room B, the mirror in A leading to B is marked as found. Rooms never hold two mirrors to the same room, so the mirror is always known. Arriving through a Two-Way mirror also reveals the mirror back.
 - Room changes that aren't mirrors (deaths, warp stars, cannons, menus) only reveal the room.

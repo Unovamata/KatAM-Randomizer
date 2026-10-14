@@ -4,11 +4,11 @@
 -- Usage: open the tracker window first, then in mGBA go to Tools > Scripting... > File > Load script
 -- and pick this file. The script reconnects on its own if the tracker is opened later or restarted.
 --
--- Only the Japanese version (Hoshi no Kirby: Kagami no Daimeikyuu, AGB-B8KJ) is supported.
+-- Works with the Japanese (AGB-B8KJ), American (AGB-B8KE) and European (AGB-B8KP) versions.
 
 local HOST = "127.0.0.1"
 local PORT = 8765                 -- Must match the port of the tracker window;
-local ROOM_ADDRESS = 0x02020F40   -- Current room ID of Kirby (player 1);
+local ROOM_ADDRESS = 0x02020F40   -- Current room ID of Kirby (player 1), the same in every version;
 local RETRY_FRAMES = 180          -- Frames to wait before trying to connect again (~3 seconds);
 
 local connection = nil
@@ -59,8 +59,8 @@ callbacks:add("frame", function()
   if not warnedGame then
     warnedGame = true
     local ok, code = pcall(function() return emu:getGameCode() end)
-    if ok and code and not string.find(code, "B8KJ") then
-      log("Warning: this doesn't look like the Japanese KatAM ROM (" .. code .. "). Rooms may not be tracked.")
+    if ok and code and not (string.find(code, "B8KJ") or string.find(code, "B8KE") or string.find(code, "B8KP")) then
+      log("Warning: this doesn't look like a KatAM ROM (" .. code .. "). Rooms may not be tracked.")
     end
   end
 

@@ -34,6 +34,11 @@ namespace KatAMRandomizer {
             0x34, // Mirra;
         };
 
+        // Rooms whose enemies are never randomized, as the game crashes consistently when they are;
+        protected static readonly HashSet<int> roomsWithoutEnemyRandomization = new HashSet<int>() {
+            0x6B,
+        };
+
         protected void LoadEnemyDataset(IKatAMRandomizer Instance, string file) {
             entities = new List<Entity>();
 
@@ -65,6 +70,9 @@ namespace KatAMRandomizer {
                 byte id = entity.ID;
 
                 bool isIDAssigned = false;
+
+                // Enemies in these rooms keep their vanilla data;
+                if(roomsWithoutEnemyRandomization.Contains(entity.Room)) continue;
 
                 // Underwater or Key Progression enemies;
                 if(!isRandomizingMiniBosses && IsVetoedEnemy(entity)) {

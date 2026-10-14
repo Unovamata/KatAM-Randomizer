@@ -20,8 +20,8 @@ namespace KatAMRandomizer {
         void ReadObjectParameterData() {
             properties = new List<Properties>();
 
-            int parameterStartAddress = 0x335E1C,
-                parameterEndAddress = 0x3372A4;
+            int parameterStartAddress = (int)RomRegion.Current.Parameters(0x335E1C),
+                parameterEndAddress = (int)RomRegion.Current.Parameters(0x3372A4);
 
             int currentObjectID = 0, currentByteCount = 0;
 
@@ -101,8 +101,8 @@ namespace KatAMRandomizer {
             ResetListData();
 
             // Memory locations;
-            int roomDataStartAddress = 0x884C64,
-                roomDataEndAddress = 0x8A630D;
+            int roomDataStartAddress = (int)RomRegion.Current.LevelData(0x884C64),
+                roomDataEndAddress = (int)RomRegion.Current.LevelData(0x8A630D);
 
             // Data pointers;
             byte objectByte1 = 0x01, objectByte2 = 0x24, // Start of object definition;

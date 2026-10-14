@@ -1,4 +1,4 @@
 # KatAM Randomizer
  
 Still in development, thank you for your patience.
-Currently, this randomizer only supports the JAPANESE version of Kirby and the Amazing Mirror.
+This randomizer supports the Japanese (`AGB-B8KJ`), American (`AGB-B8KE`) and European (`AGB-B8KP`) versions of Kirby and the Amazing Mirror. The region is detected when the ROM is loaded.

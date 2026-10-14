@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace KatAMMapTracker {
@@ -13,7 +13,8 @@ namespace KatAMMapTracker {
     // LineSprites; The in-game line and arrow pieces in one color. Diagonals are drawn by rotating the horizontal pieces;
     public sealed record LineSprites(Sprite Horizontal, Sprite Vertical, Sprite ArrowRight, Sprite ArrowLeft, Sprite ArrowDown, Sprite ArrowUp);
 
-    /* MapGraphics; The pause screen map graphics of the game, read from the ROM, to draw the tracker's map like the game does;
+    /* MapGraphics; The pause screen map graphics of the game, read from the ROM, to draw the tracker's map like the game does.
+     * Addresses are the Japanese ones (see RomVersion);
      *
      * • Tiles: 256 8bpp tiles at 0x33F688 (the map is an affine BG layer).
      *   Room squares are 2x2 (small) or 4x4 (big) tile blocks, in row order:
@@ -24,12 +25,11 @@ namespace KatAMMapTracker {
      * • Square pulse: 8 frames at 0x3458AE of [duration, 5 colors] written to colors 2-6 (durations in 1/60 s).
      * • Line colors: frames at 0x34591E of [duration, 4 colors] written to colors 18-21. The first frame is used; */
     public sealed class MapGraphics {
-        const int TileData = 0x33F688,
-                  TileCount = 256,
-                  BasePalette = 0x33F588,
-                  SquarePulse = 0x3458AE,
-                  SquarePulseFrames = 8,
-                  LineColors = 0x34591E;
+        const int TileCount = 256,
+                  SquarePulseFrames = 8;
+
+        // Addresses of the Japanese version, translated to the ROM's region;
+        readonly int TileData, BasePalette, SquarePulse, LineColors;
 
         // Map tiles are drawn at 8 pixels per tile; Small rooms are 16 pixels, big rooms 32;
         public const int TileSize = 8;
@@ -49,6 +49,12 @@ namespace KatAMMapTracker {
         public MapGraphics(RomMap map) {
             byte[] rom = map.Rom;
             int Read16(int address) => rom[address] | (rom[address + 1] << 8);
+
+            int shift = map.Version.MapScreenShift;
+            TileData = 0x33F688 + shift;
+            BasePalette = 0x33F588 + shift;
+            SquarePulse = 0x3458AE + shift;
+            LineColors = 0x34591E + shift;
 
             tiles = new byte[TileCount * 64];
             Array.Copy(rom, TileData, tiles, 0, tiles.Length);

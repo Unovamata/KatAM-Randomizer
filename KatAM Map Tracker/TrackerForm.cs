@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
@@ -142,7 +142,7 @@ namespace KatAMMapTracker {
             }
 
             if (!loaded.IsSupportedGame) {
-                MessageBox.Show(this, $"This ROM ({loaded.GameCode}) isn't the Japanese Kirby & the Amazing Mirror (B8KJ). The map can't be read.",
+                MessageBox.Show(this, $"This ROM ({loaded.GameCode}) isn't Kirby & the Amazing Mirror (B8KJ, B8KE or B8KP). The map can't be read.",
                                 Text, MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
