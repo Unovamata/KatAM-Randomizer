@@ -86,7 +86,9 @@ namespace KatAMMapTracker {
                 PlaceBelow(tutorial.Value, clusterOffsets, localCells, rootCluster);
             }
 
-            PlaceIsolated(isolated.OrderBy(c => members[c][0]).ToList(), clusterOffsets, localCells);
+            // The game's end first, then the arena's rooms on their own rows (see RomMap.IsArenaRoom);
+            PlaceIsolated(isolated.OrderBy(c => RomMap.IsArenaRoom(members[c][0]) ? 1 : 0).ThenBy(c => members[c][0]).ToList(), clusterOffsets, localCells,
+                          c => RomMap.IsArenaRoom(members[c][0]) ? 1 : 0);
 
             Dictionary<int, RoomPlacement> placements = new Dictionary<int, RoomPlacement>();
 
@@ -107,8 +109,8 @@ namespace KatAMMapTracker {
             Dictionary<int, List<int>> neighbors = map.Rooms.Keys.ToDictionary(id => id, id => new List<int>());
 
             foreach (RoomInfo room in map.Rooms.Values) {
-                // Rooms are laid out by their mirrors; Warp Stars and Fuse Cannons fly far away, so they don't pull rooms together;
-                foreach (DoorInfo door in room.Doors.Where(d => d.Kind == DoorKind.Mirror).OrderBy(d => d.X).ThenBy(d => d.Y)) {
+                // Rooms are laid out by their mirrors (and Links); Warp Stars and Fuse Cannons fly far away, so they don't pull rooms together;
+                foreach (DoorInfo door in room.Doors.Where(d => d.Kind == DoorKind.Mirror || d.Kind == DoorKind.Link).OrderBy(d => d.X).ThenBy(d => d.Y)) {
                     if (door.Destination == room.Id || !map.Rooms.ContainsKey(door.Destination)) continue;
 
                     if (!neighbors[room.Id].Contains(door.Destination)) neighbors[room.Id].Add(door.Destination);
@@ -339,9 +341,9 @@ namespace KatAMMapTracker {
                                 Math.Round((maxY + Cell * 2 - top * Cell) / Grid) * Grid);
         }
 
-        // PlaceIsolated(); Lines up the rooms without mirrors in rows under the rest of the map;
+        // PlaceIsolated(); Lines up the rooms without mirrors in rows under the rest of the map, each group starting a new row;
         static void PlaceIsolated(List<int> isolated, Dictionary<int, (double x, double y)> offsets,
-                                  Dictionary<int, Dictionary<int, (int x, int y)>> localCells) {
+                                  Dictionary<int, Dictionary<int, (int x, int y)>> localCells, Func<int, int> groupOf) {
             if (isolated.Count == 0) return;
 
             double minX = 0, maxX = 0, maxY = 0;
@@ -353,14 +355,16 @@ namespace KatAMMapTracker {
             }
 
             double cursorX = minX, cursorY = maxY + Cell * 2, rowHeight = 0;
+            int group = groupOf(isolated[0]);
 
             foreach (int cluster in isolated) {
                 IEnumerable<(int x, int y)> cells = localCells[cluster].Values;
                 int left = cells.Min(c => c.x), right = cells.Max(c => c.x), top = cells.Min(c => c.y), bottom = cells.Max(c => c.y);
 
-                if (cursorX > minX && cursorX + (right - left) * Cell > maxX) {
+                if (cursorX > minX && (cursorX + (right - left) * Cell > maxX || groupOf(cluster) != group)) {
+                    cursorY += rowHeight + Cell * (groupOf(cluster) != group ? 2 : 1);
+                    group = groupOf(cluster);
                     cursorX = minX;
-                    cursorY += rowHeight + Cell;
                     rowHeight = 0;
                 }
 

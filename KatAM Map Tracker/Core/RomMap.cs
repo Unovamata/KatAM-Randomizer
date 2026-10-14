@@ -4,8 +4,9 @@ using System.IO;
 using System.Linq;
 
 namespace KatAMMapTracker {
-    // DoorKind; What takes Kirby to another room: a mirror (door), or a Warp Star or Fuse Cannon, which work like One-Way mirrors;
-    public enum DoorKind { Mirror, WarpStar, FuseCannon }
+    /* DoorKind; What takes Kirby to another room: a mirror (door), a link the room data doesn't hold (see RomMap.Links),
+     * or a Warp Star or Fuse Cannon, which work like One-Way mirrors; */
+    public enum DoorKind { Mirror, Link, WarpStar, FuseCannon }
 
     // DoorInfo; A door in a room. Wide doors made of several objects pointing to the same room are merged in one;
     public sealed class DoorInfo {
@@ -98,6 +99,15 @@ namespace KatAMMapTracker {
         // Central Circle, the main hub. The map is laid out from it;
         public const int CentralCircle = 0x321;
 
+        // Rooms left out of the map: 0x3C9 is an empty debug room nothing leads to;
+        static readonly HashSet<int> HiddenRooms = new HashSet<int> { 0x3C9 };
+
+        // Two-Way connections that have no mirror in the room data: the arena's room 0x3B6 opens from Central Circle;
+        static readonly (int a, int b)[] Links = { (CentralCircle, 0x3B6) };
+
+        // IsArenaRoom(); The arena's rooms (0x3B6 entrance, 0x3B7 rest room, 0x3BB-0x3BD fights), kept apart from the game's end;
+        public static bool IsArenaRoom(int room) => room >= 0x3B6 && room <= 0x3BD;
+
         // Addresses of the Japanese version, translated to the ROM's region;
         readonly int LongRoomParameters,
                      CoverDataTable,
@@ -177,13 +187,34 @@ namespace KatAMMapTracker {
                 ReadObjects(info);
 
                 // Several long rooms may share a short room. The first one is the one the game uses;
-                if (Rooms.Values.Any(r => r.ShortIndex == shortIndex)) continue;
+                if (Rooms.Values.Any(r => r.ShortIndex == shortIndex) || HiddenRooms.Contains(room)) continue;
 
                 Rooms[room] = info;
             }
 
             AddLaunchers();
+            AddLinks();
             LinkTwoWayDoors();
+        }
+
+        // AddLinks(); The Two-Way Links, between the rooms' centers, unless a mirror already joins them;
+        void AddLinks() {
+            foreach ((int a, int b) in Links) {
+                if (!Rooms.TryGetValue(a, out RoomInfo roomA) || !Rooms.TryGetValue(b, out RoomInfo roomB)) continue;
+                if (roomA.Doors.Any(d => d.Destination == b) || roomB.Doors.Any(d => d.Destination == a)) continue;
+
+                DoorInfo there = Link(roomA, roomB), back = Link(roomB, roomA);
+                there.DoorBack = back;
+                back.DoorBack = there;
+                roomA.Doors.Add(there);
+                roomB.Doors.Add(back);
+            }
+
+            static DoorInfo Link(RoomInfo from, RoomInfo to) => new DoorInfo {
+                Room = from.Id, Destination = to.Id, Kind = DoorKind.Link,
+                X = from.Width * 4, Y = from.Height * 4, LandX = to.Width * 4, LandY = to.Height * 4,
+                Tiles = new List<(int x, int y)> { (from.Width / 4, from.Height / 4) },
+            };
         }
 
         /* AddLaunchers(); Warp Stars and Fuse Cannons, as One-Way doors from where they are to the room they send Kirby to
