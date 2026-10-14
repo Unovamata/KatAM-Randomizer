@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -27,14 +27,7 @@ namespace KatAMMapTracker {
         const int Clearance = 16;
 
         const double TurnCost45 = 0.6, TurnCost90 = 2.5, UsedCellCost = 0.35;
-        const int MaxExpansions = 400000, MaxSidedExpansions = 6000;
-
-        // Sided paths: at most this much longer than the distance between the rooms (in cells), and this many 45° turns in total;
-        const double MaxDetour = 1.3;
-        const int DetourSlack = 6, MaxTurns = 4;
-
-        // Connections whose lines leave both rooms from their door's side (see FindSidedPath);
-        public int SidedConnections { get; private set; }
+        const int MaxExpansions = 400000;
 
         static readonly (int x, int y)[] Directions = {
             (1, 0), (1, 1), (0, 1), (-1, 1), (-1, 0), (-1, -1), (0, -1), (1, -1),
@@ -143,7 +136,6 @@ namespace KatAMMapTracker {
         void RouteAll(RomMap map) {
             Paths = new Dictionary<string, List<(double x, double y)>>();
             UnroutedConnections = 0;
-            SidedConnections = 0;
 
             const int Border = 160;
 
@@ -173,10 +165,7 @@ namespace KatAMMapTracker {
                 .ToList();
 
             foreach ((int a, int b) in connections) {
-                List<(int x, int y)> cells = FindSidedPath(map, a, b);
-
-                if (cells != null) SidedConnections++;
-                else cells = FindPath(a, b);
+                List<(int x, int y)> cells = FindPath(a, b);
 
                 if (cells == null) {
                     UnroutedConnections++;
@@ -224,117 +213,10 @@ namespace KatAMMapTracker {
 
         (int x, int y) CellOf(RoomPlacement p) => ((int)Math.Round((p.CenterX - originX) / Grid), (int)Math.Round((p.CenterY - originY) / Grid));
 
-        /* FindSidedPath(); A path that leaves each room from the side its door is on (see MapSides):
-         * it goes straight out of the square to a port cell past the room's clearance, is routed between the two ports
-         * starting in the port's direction and arriving within 90° of the other port's, then goes straight into the other room.
-         * Doors on a straight side of a big square leave from where they are along it. A room without a side keeps the
-         * usual route from its center. Returns null when the ports are blocked or can't be joined; */
-        List<(int x, int y)> FindSidedPath(RomMap map, int a, int b) {
-            DoorSide? sideA = Facing(map, a, b), sideB = Facing(map, b, a);
-
-            if (sideA == null && sideB == null) return null;
-
-            // Both sides, else only one of them, as long as the line stays short and simple (see IsDirect);
-            foreach ((DoorSide? useA, DoorSide? useB) in new[] { (sideA, sideB), (sideA, null), (null, sideB) }) {
-                if (useA == null && useB == null) continue;
-
-                List<(int x, int y)> cells = FindSidedPath(a, b, useA, useB);
-
-                if (cells != null && IsDirect(cells, a, b)) return cells;
-                if (sideA == null || sideB == null) break;
-            }
-
-            return null;
-        }
-
-        // Facing(); Side of 'room' for its connection with 'other', unless it faces away from 'other' (a line leaving it would loop back);
-        DoorSide? Facing(RomMap map, int room, int other) {
-            if (MapSides.Of(map, room, other) is not DoorSide side) return null;
-
-            RoomPlacement from = Layout[room], to = Layout[other];
-            int toward = MapSides.Octant(to.CenterX - from.CenterX, to.CenterY - from.CenterY);
-
-            return MapSides.Difference(MapSides.Octant(side.DX, side.DY), toward) <= 2 ? side : null;
-        }
-
-        /* IsDirect(); A sided path is only worth it when it isn't much longer than the distance between the rooms
-         * and doesn't turn more than half a turn in total (no loops around rooms); */
-        bool IsDirect(List<(int x, int y)> cells, int a, int b) {
-            (int ax, int ay) = CellOf(Layout[a]);
-            (int bx, int by) = CellOf(Layout[b]);
-            int distance = Math.Max(Math.Abs(ax - bx), Math.Abs(ay - by)), turns = 0;
-
-            if (cells.Count - 1 > distance * MaxDetour + DetourSlack) return false;
-
-            for (int i = 1; i + 1 < cells.Count; i++) {
-                int d1 = Array.IndexOf(Directions, (cells[i].x - cells[i - 1].x, cells[i].y - cells[i - 1].y));
-                int d2 = Array.IndexOf(Directions, (cells[i + 1].x - cells[i].x, cells[i + 1].y - cells[i].y));
-
-                turns += MapSides.Difference(d1, d2);
-            }
-
-            return turns <= MaxTurns;
-        }
-
-        List<(int x, int y)> FindSidedPath(int a, int b, DoorSide? sideA, DoorSide? sideB) {
-
-            (List<(int x, int y)> lead, int direction)? Port(int room, DoorSide? side) {
-                if (side is not DoorSide s) return null;
-
-                RoomPlacement p = Layout[room];
-                (int cx, int cy) = CellOf(p);
-                int reach = (int)Math.Ceiling((p.Width / 2 + Clearance) / Grid);
-                int maxOffset = Math.Max(0, (int)Math.Floor((p.Width / 2 - 4) / Grid));
-                int offset = s.DX != 0 && s.DY != 0 ? 0 : Math.Clamp((int)Math.Round(s.Along * p.Width / Grid), -maxOffset, maxOffset);
-
-                // Perpendicular to a straight side: a vertical side moves along Y, a horizontal one along X;
-                (int sx, int sy) = s.DX != 0 && s.DY == 0 ? (cx, cy + offset) : s.DY != 0 && s.DX == 0 ? (cx + offset, cy) : (cx, cy);
-                List<(int x, int y)> lead = new List<(int x, int y)>();
-
-                for (int k = 0; k <= reach; k++) lead.Add((sx + s.DX * k, sy + s.DY * k));
-
-                (int px, int py) = lead[^1];
-                if (!IsFree(px, py, -1, -1)) return null;
-
-                return (lead, Array.IndexOf(Directions, (s.DX, s.DY)));
-            }
-
-            var portA = Port(a, sideA);
-            var portB = Port(b, sideB);
-
-            if ((sideA != null && portA == null) || (sideB != null && portB == null)) return null;
-
-            (int x, int y) start = portA?.lead[^1] ?? CellOf(Layout[a]);
-            (int x, int y) goal = portB?.lead[^1] ?? CellOf(Layout[b]);
-
-            // Arriving at b's port heading into the room, the opposite of its side's direction;
-            int arrival = portB is var (_, outward) ? (outward + 4) % 8 : -1;
-
-            List<(int x, int y)> middle = FindPath(start, portA?.direction ?? 8, goal, arrival,
-                                                   portA == null ? a : -1, portB == null ? b : -1, MaxSidedExpansions);
-
-            if (middle == null) return null;
-
-            List<(int x, int y)> cells = new List<(int x, int y)>();
-
-            if (portA is var (leadA, _)) cells.AddRange(leadA.Take(leadA.Count - 1));
-            cells.AddRange(middle);
-            if (portB is var (leadB, _)) cells.AddRange(Enumerable.Reverse(leadB).Skip(1));
-
-            return cells;
-        }
-
-        // FindPath(); Path from the center of a room to the center of another, each one not blocking its own line;
-        List<(int x, int y)> FindPath(int from, int to) => FindPath(CellOf(Layout[from]), 8, CellOf(Layout[to]), -1, from, to, MaxExpansions);
-
-        /* FindPath(); A* over (cell, direction) states, so turns can be priced. Returns the cells of the path, or null;
-         * startDirection: direction the path is already heading at the start (8 = none).
-         * arrivalDirection: the path must arrive heading within 90° of it (-1 = any) and then turn into it.
-         * from, to: rooms that don't block the path (-1 = none); */
-        List<(int x, int y)> FindPath((int x, int y) startCell, int startDirection, (int x, int y) goalCell, int arrivalDirection, int from, int to,
-                                        int maxExpansions) {
-            (int startX, int startY) = startCell;
-            (int goalX, int goalY) = goalCell;
+        /* FindPath(); A* over (cell, direction) states, so turns can be priced. Returns the cells of the path, or null; */
+        List<(int x, int y)> FindPath(int from, int to) {
+            (int startX, int startY) = CellOf(Layout[from]);
+            (int goalX, int goalY) = CellOf(Layout[to]);
 
             int stamp = ++searchStamp;
             PriorityQueue<int, float> open = new PriorityQueue<int, float>();
@@ -345,24 +227,19 @@ namespace KatAMMapTracker {
             }
 
             // State = cell * 9 + direction (8 = no direction yet, at the start);
-            int start = (startY * columns + startX) * 9 + startDirection;
+            int start = (startY * columns + startX) * 9 + 8;
             stateCost[start] = 0;
             stateStamp[start] = stamp;
             open.Enqueue(start, Heuristic(startX, startY));
 
             int expansions = 0, goalState = -1;
 
-            while (open.Count > 0 && expansions++ < maxExpansions) {
+            while (open.Count > 0 && expansions++ < MaxExpansions) {
                 int state = open.Dequeue();
                 int cell = state / 9, direction = state % 9;
                 int x = cell % columns, y = cell / columns;
 
-                if (x == goalX && y == goalY) {
-                    int turnIn = arrivalDirection < 0 || direction == 8 ? 0
-                        : Math.Min((arrivalDirection - direction + 8) % 8, (direction - arrivalDirection + 8) % 8);
-
-                    if (turnIn <= 2) { goalState = state; break; }
-                }
+                if (x == goalX && y == goalY) { goalState = state; break; }
 
                 float current = stateCost[state];
 

@@ -7,8 +7,8 @@ namespace KatAMMapTracker {
      * and how far along that side the door is (-0.5 to 0.5, perpendicular to a straight direction; 0 for diagonals); */
     public readonly record struct DoorSide(int DX, int DY, double Along);
 
-    /* MapSides; The side of the room square each connection leaves from, taken from where its door is in the room,
-     * like the game's own area maps: a door at the left end of a room leaves to the left, one in the ceiling leaves upwards.
+    /* MapSides; The side of a room each connection's door is on, like the game's own area maps: a door at the left end of a
+     * room is on the left, one in the ceiling on top. The original layout uses it to place the rooms the area maps don't show;
      * • A room's end of a connection is its door(s) leading to the other room, or, for a One-Way mirror arriving there,
      *   the spot where Kirby lands.
      * • Positions are taken relative to the room's size, so long corridors have their side doors on the ends. Doors near
