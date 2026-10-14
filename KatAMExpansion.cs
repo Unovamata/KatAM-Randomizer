@@ -59,6 +59,7 @@ namespace KatAMRandomizer {
             Twizzy(),
             Bubbles(),
             Slippy(),
+            Kabu(),
         };
 
         static KatAMExpansion() {
@@ -108,6 +109,12 @@ namespace KatAMRandomizer {
             new byte[] { 0x00 });
 
         // IsNightmareInDreamLand(); A Kirby: Nightmare in Dream Land ROM (USA, Japanese or European);
+        // Kabu; Frames: NiDL's 4 to 12 (spinning 4-11, sitting 12). It spins and jumps around;
+        static Enemy Kabu() => new Enemy(5, "Kabu", 0x15, 0x752438, Enumerable.Range(4, 9).Select(f => new[] { new Part(f) }).ToList(),
+            new[] { new Part(3) }, new Dictionary<int, ushort>(),
+            new[] { (0x18, 3), (0x14, 5), (0x18, 5), (0x0C, 1) },   // "K" (Sir Kibble), "a" (Hot Head), "b" (Sir Kibble), "u" (Cupie);
+            new byte[] { 0x00 });
+
         public static bool IsNightmareInDreamLand(byte[] rom) => RegionOf(rom) != null;
 
         // BehaviorsOf(); The behavior bytes of type 0x31 the randomizer may use, for the enemies picked (only the flying ones, or all);
