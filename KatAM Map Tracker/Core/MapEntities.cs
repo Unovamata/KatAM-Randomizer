@@ -40,15 +40,11 @@ namespace KatAMMapTracker {
      * • Treasure sprites (sprays, music, maps, Vitality, Sound Player) come from the Collection Room, which shows them as
      *   16x16 sprites (Japanese tiles at 0x7BAEB8 and on, palettes at 0x4A2818 and on); */
     public static class MapEntities {
-        /* IconPart; A sprite piece: position in the sprite, size, flips, palette and first tile (Japanese addresses).
-         * Bpp8: 8bpp tiles (64 bytes) instead of 4bpp ones, colors read on from the palette (16 colors per palette row); */
-        readonly record struct IconPart(int X, int Y, int Width, int Height, bool FlipH, bool FlipV, int Palette, int Tiles, bool Bpp8 = false);
+        // IconPart; A sprite piece: position in the sprite, size, flips, palette and first tile (Japanese addresses);
+        readonly record struct IconPart(int X, int Y, int Width, int Height, bool FlipH, bool FlipV, int Palette, int Tiles);
 
         static IconPart P(int x, int y, int width, int height, int flipH, int flipV, int palette, int tiles) =>
             new IconPart(x, y, width, height, flipH != 0, flipV != 0, palette, tiles);
-
-        static IconPart P8(int x, int y, int width, int height, int palette, int tiles) =>
-            new IconPart(x, y, width, height, false, false, palette, tiles, true);
 
         static readonly Dictionary<EntityIcon, IconPart[]> Icons = new Dictionary<EntityIcon, IconPart[]> {
             [EntityIcon.Cherry] = new[] {
@@ -229,11 +225,10 @@ namespace KatAMMapTracker {
                 P(64, 64, 32, 16, 0, 0, 0x4A2A98, 0x7DD958),
                 P(64, 80, 32, 8, 0, 0, 0x4A2A98, 0x7DDA58),
             },
-            /* Dark Mind's second form: the big eye it turns into after the first form, before the chase (anim 0x39B). The game
-             * draws it as an 8bpp background, 256 tiles in two halves of 8x16 tiles, with palettes 457-458; */
+            // Dark Mind's open eye (anim 0x399, variant 0x2D), over the slit of its second form's orb (see RenderDarkMindOrb);
             [EntityIcon.DarkMindOrb] = new[] {
-                P8(0, 0, 64, 128, 0x4A2B38, 0x83A2F8),
-                P8(64, 0, 64, 128, 0x4A2B38, 0x83C2F8),
+                P(48, 64, 32, 32, 0, 0, 0x4A2AD8, 0x81DB78),
+                P(48, 96, 32, 16, 0, 0, 0x4A2AD8, 0x81DD78),
             },
 
             [EntityIcon.Vitality] = new[] { P(0, 0, 16, 16, 0, 0, 0x49F758, 0x603998) },
@@ -304,6 +299,7 @@ namespace KatAMMapTracker {
          * the ROM doesn't hold it where expected; */
         public static Sprite Render(RomMap map, EntityIcon icon) {
             if (icon == EntityIcon.KingGolem) return RenderKingGolem(map);
+            if (icon == EntityIcon.DarkMindOrb) return RenderDarkMindOrb(map);
 
             return RenderSprite(map, icon);
         }
@@ -330,6 +326,46 @@ namespace KatAMMapTracker {
             return new Sprite(KingGolemCropWidth, KingGolemCropHeight, pixels);
         }
 
+        /* Dark Mind's second form, as it appears after the first one, before the chase: a 128x128 orb the game draws as an 8bpp
+         * background in its room (anim 0x39B: 256 tiles from 8bpp tile 24, left half then right half, 8x16 tiles each), with its
+         * open eye sprite over the slit. The orb uses the room's palette (0x396) for colors 0-18, and colors 19-30 (the aura) from
+         * the room's palette animation, whose first 12 colors are the full set (the next frames darken one at a time); */
+        const int DarkMindRoom = 0x396, DarkMindOrbTiles = 0x83A2F8, DarkMindOrbSize = 128;
+        static readonly Dictionary<string, int> DarkMindAura = new Dictionary<string, int> {
+            ["B8KJ"] = 0x39A930, ["B8KE"] = 0x39A930 + 0x1B574, ["B8KP"] = 0x39A930 + 0x2553C,
+        };
+
+        static Sprite RenderDarkMindOrb(RomMap map) {
+            Sprite eye = RenderSprite(map, EntityIcon.DarkMindOrb);
+            int[] colors = map.Version == null ? null : map.RoomPalette(DarkMindRoom);
+            int tiles = Translate(TileBlocks, map.GameCode, DarkMindOrbTiles);
+
+            if (colors == null || tiles < 0 || tiles + 256 * 64 > map.Rom.Length || !DarkMindAura.TryGetValue(map.GameCode, out int aura)) return eye;
+
+            for (int i = 0; i < 12; i++) colors[19 + i] = RomMap.ToArgb(map.Rom[aura + i * 2] | (map.Rom[aura + i * 2 + 1] << 8));
+
+            int[] pixels = new int[DarkMindOrbSize * DarkMindOrbSize];
+
+            for (int tile = 0; tile < 256; tile++) {
+                int left = tile / 128 * 64 + tile % 128 % 8 * 8, top = tile % 128 / 8 * 8;
+
+                for (int y = 0; y < 8; y++) {
+                    for (int x = 0; x < 8; x++) {
+                        int color = map.Rom[tiles + tile * 64 + y * 8 + x];
+                        if (color != 0) pixels[(top + y) * DarkMindOrbSize + left + x] = colors[color];
+                    }
+                }
+            }
+
+            if (eye != null) {
+                for (int y = 0; y < eye.Height && y < DarkMindOrbSize; y++)
+                    for (int x = 0; x < eye.Width && x < DarkMindOrbSize; x++)
+                        if (eye.Pixels[y * eye.Width + x] != 0) pixels[y * DarkMindOrbSize + x] = eye.Pixels[y * eye.Width + x];
+            }
+
+            return new Sprite(DarkMindOrbSize, DarkMindOrbSize, pixels);
+        }
+
         static Sprite RenderSprite(RomMap map, EntityIcon icon) {
             if (map.Version == null || !Icons.TryGetValue(icon, out IconPart[] parts)) return null;
 
@@ -347,22 +383,16 @@ namespace KatAMMapTracker {
             for (int p = parts.Length - 1; p >= 0; p--) {
                 IconPart part = parts[p];
                 int palette = Translate(PaletteBlocks, map.GameCode, part.Palette), tiles = Translate(TileBlocks, map.GameCode, part.Tiles);
-                int columns = part.Width / 8, tileCount = columns * (part.Height / 8), tileBytes = part.Bpp8 ? 64 : 32;
+                int columns = part.Width / 8, tileCount = columns * (part.Height / 8);
 
-                if (palette < 0 || tiles < 0 || palette + 32 > rom.Length || tiles + tileCount * tileBytes > rom.Length) return null;
+                if (palette < 0 || tiles < 0 || palette + 32 > rom.Length || tiles + tileCount * 32 > rom.Length) return null;
 
                 for (int t = 0; t < tileCount; t++) {
                     for (int y = 0; y < 8; y++) {
                         for (int x = 0; x < 8; x++) {
-                            int color;
+                            int data = rom[tiles + t * 32 + y * 4 + x / 2], color = (x & 1) != 0 ? data >> 4 : data & 15;
 
-                            if (part.Bpp8) color = rom[tiles + t * 64 + y * 8 + x];
-                            else {
-                                int data = rom[tiles + t * 32 + y * 4 + x / 2];
-                                color = (x & 1) != 0 ? data >> 4 : data & 15;
-                            }
-
-                            if (color == 0 || palette + color * 2 + 1 >= rom.Length) continue;
+                            if (color == 0) continue;
 
                             if (color == 0) continue;
 

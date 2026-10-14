@@ -252,6 +252,21 @@ namespace KatAMMapTracker {
             }
         }
 
+        // RoomPalette(); The room's 256 colors (as 0xAARRGGBB), or null if it has none;
+        public int[] RoomPalette(int roomId) {
+            if (!Rooms.ContainsKey(roomId)) return null;
+
+            int paletteIndex = Read16(LongRoomParameters + roomId * LongRoomParameterSize + 0x16);
+            int paletteHeader = ReadPointer(PaletteTable + paletteIndex * 4), palette = paletteHeader < 0 ? -1 : ReadPointer(paletteHeader);
+
+            if (palette < 0 || palette + 512 > Rom.Length) return null;
+
+            int[] colors = new int[256];
+            for (int i = 0; i < 256; i++) colors[i] = ToArgb(Read16(palette + i * 2));
+
+            return colors;
+        }
+
         /* RenderRoom(); Renders a room with its in-game graphics, background included, as 0xAARRGGBB pixels;
          * pixelsPerTile: 8 for full size; 4, 2 or 1 average the tiles down for thumbnails.
          * includeBackground: false leaves the background out, transparent, keeping only the room's own tiles; */
