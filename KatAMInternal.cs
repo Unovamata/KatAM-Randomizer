@@ -519,7 +519,8 @@ namespace KatAMInternal
         public GenerationOptions SprayOutlineGenerationType { get; set; }
         public GenerationOptions StoneDoorGenerationType { get; set; }
         public bool isRemovingStoneBlocks = false;
-        public bool isAddingBroomHatter { get; set; }
+        // ROM Expansion: the ported Nightmare in Dream Land enemies to add (KatAMExpansion.Enemies indexes);
+        public List<int> NightmareEnemies { get; set; } = new List<int>();
 
         public Settings() {
             Random seedGenerator = new Random();

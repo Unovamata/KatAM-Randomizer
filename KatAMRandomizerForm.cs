@@ -121,18 +121,18 @@ namespace KatAMRandomizer
             settings.RandomEntity = new Random(settings.Seed);
 
             // ROM Expansion goes first, so the ROM reader sees the new enemies' parameters like any other's;
-            if (settings.isAddingBroomHatter) {
-                string error = nightmareROM == null ? "Load a Nightmare in Dream Land (USA) ROM in the ROM Expansion tab, or turn the Broom Hatter off."
-                                                    : KatAMExpansion.AddBroomHatter(Processing.ROMData, nightmareROM);
+            if (settings.NightmareEnemies.Count > 0) {
+                string error = nightmareROM == null ? "Load a Nightmare in Dream Land (USA) ROM in the ROM Expansion tab, or turn its enemies off."
+                                                    : KatAMExpansion.AddEnemies(Processing.ROMData, nightmareROM);
 
                 if (error != null) {
                     MessageBox.Show(error, "ROM Expansion", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     return;
                 }
 
-                Processing.parameters[KatAMExpansion.BroomHatterID] = KatAMExpansion.BroomHatterName;
+                Processing.parameters[KatAMExpansion.NightmareID] = "Nightmare in Dream Land Enemy";
             } else {
-                Processing.parameters[KatAMExpansion.BroomHatterID] = Processing.enemiesDictionary[KatAMExpansion.BroomHatterID].Name;
+                Processing.parameters[KatAMExpansion.NightmareID] = Processing.enemiesDictionary[KatAMExpansion.NightmareID].Name;
             }
 
             new KatAMROMReader(system);
@@ -775,14 +775,22 @@ namespace KatAMRandomizer
 
                 nightmareROM = rom;
                 LabelExpansionNightmare.Text = Path.GetFileName(fileDialog.FileName);
-                CheckboxExpansionBroomHatter.Enabled = true;
+                CheckedListExpansionEnemies.Enabled = true;
+
+                if (CheckedListExpansionEnemies.Items.Count == 0) {
+                    foreach ((int index, string name) in KatAMExpansion.Enemies) CheckedListExpansionEnemies.Items.Add(name);
+                }
             } catch (Exception ex) {
                 MessageBox.Show($"Error loading file: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
-        private void CheckboxExpansionBroomHatter_CheckedChanged(object sender, EventArgs e) {
-            settings.isAddingBroomHatter = CheckboxExpansionBroomHatter.Checked;
+        // The enemies picked; ItemCheck comes before the item's state changes;
+        private void CheckedListExpansionEnemies_ItemCheck(object sender, ItemCheckEventArgs e) {
+            int index = KatAMExpansion.Enemies[e.Index].index;
+
+            settings.NightmareEnemies.Remove(index);
+            if (e.NewValue == CheckState.Checked) settings.NightmareEnemies.Add(index);
         }
 
         // Mirrors;

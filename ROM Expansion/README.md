@@ -2,19 +2,41 @@
 
 Enemies ported from *Kirby: Nightmare in Dream Land* (USA) into *Kirby & the Amazing Mirror* (USA). `KatAMExpansion.cs` applies them.
 
-## Broom Hatter
+## How they fit in
 
-- `broom_hatter.c`: the behavior, written against the [KatAM decompilation](https://github.com/jiangzhengwenjz/katam) headers. NiDL runs it as coroutine scripts; each script is copied as a table of steps (speed, body frame, broom dust, frames to wait).
-- `build.sh /path/to/katam`: compiles it with the decompilation's `agbcc`, links it at `0x08FC0000` against `katam.elf` and prints the symbol offsets. The resulting `broom_hatter.bin` is what `KatAMExpansion.cs` embeds (`BroomHatterCode`).
+KatAM treats object types `0x00`-`0x37` as enemies all over its code, and the only free one is `0x31`. So every ported enemy is type `0x31`, and the template's behavior byte picks which: high nibble = enemy (`NIDL_*` in `nidl.h`), low nibble = its variant. What the game reads per type is shared, so `nidl.c` handles it per enemy:
 
-What `KatAMExpansion.AddBroomHatter()` writes into the KatAM ROM:
+| Shared per type | How each enemy gets its own |
+|---|---|
+| Animations (`AnimInfo` table, indexed by the object's frame) | One table holding every enemy's frames; each enemy has its own range (`animBase`) and anim ID |
+| Palette key | The type has none; each enemy loads its palette with its anim ID as the key |
+| Hurt frames (indexes 0 and 1) | A generic 32x32 frame drawn from the last 16 tiles of the object's VRAM, where each enemy uploads its own hurt frame |
+| HP bar name | The game's two name copies (`0x08034ED2`, `0x08035B34`) are patched to call `NidlCopyName` |
+| Behavior start after a hit | `NidlStart` calls the enemy's own start |
+
+The hit flash also looked the palette up again by type when it ended; its branch at `0x080857EE` is patched to keep the enemy's palette (which is what it found for the game's own enemies anyway).
+
+## Files
+
+- `nidl.h`, `nidl.c`: the shared part (creation, palette, hurt frame, names, helpers like facing Kirby and stopping at ledges).
+- `nidl_data.c`: `gNidlData`, left blank and filled in by `KatAMExpansion.cs` (names, and each enemy's `animBase`, anim ID and hurt frame).
+- `enemies/*.c`: one file per enemy, written against the [KatAM decompilation](https://github.com/jiangzhengwenjz/katam) headers. NiDL runs enemies as coroutine scripts; each script is copied as tables of steps.
+- `build.sh /path/to/katam`: compiles everything with the decompilation's `agbcc`, links it at `0x08F60000` against `katam.elf` and writes `../KatAMExpansionCode.cs` (the code and the symbols `KatAMExpansion.cs` uses).
+
+## What `KatAMExpansion.AddEnemies()` writes into the KatAM ROM
 
 | Where | What |
 |---|---|
-| `0xFC0000` | Code, then the converted graphics, animations and the extended sprite tables |
-| `gSpriteTables` (`0x3B909C`) | `anims`, `attrs` and `oamData` copied with one more entry, anim `939` |
-| `gSpawnFuncTable1[0x31]` | `CreateBroomHatter` |
-| Object parameters (`0x351648 + 0x31 * 0x18`) | Hurt frames, Waddle Dee's score and HP, no ability, palette key `939`, 10 tiles, start function, animations |
-| HP bar names (`gUnk_08D60EE4`) | "Broom Hatter", put together from the letters of other enemy names |
+| `0xF60000` | Code, then the converted graphics, animations, names and the extended sprite tables |
+| `gSpriteTables` (`0x3B909C`) | `anims`, `attrs` and `oamData` copied with more entries: anim `939` is the hurt frame, `940` on are the enemies (one variant per frame) |
+| `gSpawnFuncTable1[0x31]` | `CreateNidlEnemy` |
+| Object parameters (`0x351648 + 0x31 * 0x18`) | Hurt frames 0 and 1, Waddle Dee's score and HP, no ability, no palette key, VRAM for the biggest frame plus the hurt frame, `NidlStart`, the shared animations |
+| `0x08034ED2`, `0x08035B34`, `0x080857EE` | The patches above |
 
-Graphics come from the player's NiDL ROM: frames `0x087521D8` (8-byte OAM records), palette `0x0824CCF8`, LZ77 tiles `0x0824CD18`. The broom dust (NiDL palette 15, white) is drawn with color 6 of the Broom Hatter's palette, which it doesn't use, so body and dust are a single sprite.
+Graphics come from the player's NiDL ROM: each enemy's descriptor (`0x0873EEA0 + (type - 8) * 4`: palette, LZ77 tiles) and frame table (8-byte OAM records). Nothing from NiDL is shipped.
+
+## Enemies
+
+| Enemy | NiDL type | Notes |
+|---|---|---|
+| Broom Hatter | `0x0B` | Frames 4-7 with the broom dust (8-10, NiDL palette 15, drawn with the unused color 6) on top; hurt frame 3. Variant 1 sweeps in place |

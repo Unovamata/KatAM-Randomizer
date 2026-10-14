@@ -61,24 +61,44 @@ Reverse-engineering notes gathered while porting the Broom Hatter (see `ROM Expa
 
 ## Enemy types (category 0, type = index + 8)
 
-| Type | Enemy | In KatAM |
-|---|---|---|
-| `0x08` | Waddle Dee | yes |
-| `0x0B` | **Broom Hatter** | no (ported) |
-| `0x0C` | Pengy | yes |
-| `0x0E` | Chilly | no |
-| `0x10` | Cappy | no |
-| `0x11` | Hot Head | yes |
-| `0x12` | Togezo | no |
-| `0x14` | Bronto Burt | yes |
-| `0x15` | Kabu | no |
-| `0x18` | Twizzy | no |
-| `0x19` | Shotzo | yes |
-| `0x1A` | Sparky (the green hopper of stage 1-1) | yes |
-| `0x1D` | Scarfy | yes |
-| `0x26`, `0x27`, `0x28` | Poppy Bros. Jr. (alone, on an apple, with a bomb) | no |
+Spawn functions are in the master table (`0x0872FF30`), frame tables are the `0x0875xxxx` literal each spawn function loads, and graphics descriptors are at `0x0873EEA0 + index * 4` (`+2` tile count, `+8` palette, `+12` LZ77 tiles; null for enemies drawn with shared graphics). Names from WiKirby's NiDL enemy list, matched by sprite.
 
-The others weren't identified with certainty; `sw2/` style contact sheets (put each index in Sparky's 1-1 record at `0x0835DD99`) show them all.
+| Type | Enemy | Frames | In KatAM |
+|---|---|---|---|
+| `0x08` | Waddle Dee | `0x08752118` | yes |
+| `0x09` | (headband, not a regular enemy) | `0x08752194` | - |
+| `0x0A` | Noddy | `0x08752150` | yes |
+| `0x0B` | **Broom Hatter** | `0x087521D8` | no (ported) |
+| `0x0C` | Pengy | `0x08752204` | yes |
+| `0x0D` | Laser Ball | `0x08752248` | yes |
+| `0x0E` | **Chilly** | `0x08752284` | no |
+| `0x0F` | Sir Kibble | `0x0875230C` | yes |
+| `0x10` | **Cappy** | `0x0875235C` | no |
+| `0x11` | Waddle Doo | `0x087523A0` | yes |
+| `0x12` | Gordo (no descriptor) | `0x08752108` | yes |
+| `0x13` | **Cool Spook** | `0x087523EC` | no |
+| `0x14` | Bronto Burt | `0x0875240C` | yes |
+| `0x15` | **Kabu** | `0x08752438` | no |
+| `0x16` | Bomber | `0x0875246C` | yes |
+| `0x17` | **Coconut** | `0x087524A4` | no |
+| `0x18` | **Twizzy** | `0x08752560` | no |
+| `0x19` | Shotzo | `0x087524E4` | yes |
+| `0x1A` | Sparky | `0x08752584` | yes |
+| `0x1B` | Twister | `0x087525E4` | yes |
+| `0x1D` | Scarfy | `0x0875265C` | yes |
+| `0x1E` | **Bubbles** | `0x087526A8` | no |
+| `0x1F` | **Starman** | `0x08752708` | no |
+| `0x20` | Hot Head | `0x0875275C` | yes |
+| `0x21` | Glunk | `0x087527DC` | yes |
+| `0x22` | **Slippy** | `0x08752828` | no |
+| `0x24`, `0x25` | Sword Knight, **Blade Knight** (same code) | `0x087529D8`, `0x08752A24` | Sword Knight only |
+| `0x26`, `0x27`, `0x28` | **Poppy Bros. Jr.** (alone, on an apple, with a bomb) | `0x087528D0`... | no |
+| `0x29` | **Coner** | `0x08752A70` | no |
+| `0x2C` | **Needlous** | `0x08752B08` | no |
+| `0x2D` | UFO | `0x08752B4C` | yes |
+| `0x2F` | **Gip** | `0x08752BD4` | no |
+
+Most enemies' first frames (0-3) are their hurt frames. Frames are drawn around the object's position, about 24x24.
 
 ## Broom Hatter (type `0x0B`)
 

@@ -196,7 +196,7 @@
             LabelExpansionDescription = new Label();
             ButtonExpansionLoadNightmare = new Button();
             LabelExpansionNightmare = new Label();
-            CheckboxExpansionBroomHatter = new CheckBox();
+            CheckedListExpansionEnemies = new CheckedListBox();
             GroupMapElements = new GroupBox();
             GroupMapElementStoneDoors = new GroupBox();
             MapElementsStoneDoorsUnchanged = new RadioButton();
@@ -2743,7 +2743,7 @@
             GroupExpansionNightmare.Controls.Add(LabelExpansionDescription);
             GroupExpansionNightmare.Controls.Add(ButtonExpansionLoadNightmare);
             GroupExpansionNightmare.Controls.Add(LabelExpansionNightmare);
-            GroupExpansionNightmare.Controls.Add(CheckboxExpansionBroomHatter);
+            GroupExpansionNightmare.Controls.Add(CheckedListExpansionEnemies);
             GroupExpansionNightmare.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
             GroupExpansionNightmare.Location = new Point(10, 10);
             GroupExpansionNightmare.Margin = new Padding(4, 5, 4, 5);
@@ -2787,19 +2787,19 @@
             LabelExpansionNightmare.TabIndex = 2;
             LabelExpansionNightmare.Text = "No ROM loaded";
             // 
-            // CheckboxExpansionBroomHatter
+            // CheckedListExpansionEnemies
             // 
-            CheckboxExpansionBroomHatter.AutoSize = true;
-            CheckboxExpansionBroomHatter.Enabled = false;
-            CheckboxExpansionBroomHatter.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            CheckboxExpansionBroomHatter.Location = new Point(16, 178);
-            CheckboxExpansionBroomHatter.Margin = new Padding(4, 5, 4, 5);
-            CheckboxExpansionBroomHatter.Name = "CheckboxExpansionBroomHatter";
-            CheckboxExpansionBroomHatter.Size = new Size(160, 29);
-            CheckboxExpansionBroomHatter.TabIndex = 3;
-            CheckboxExpansionBroomHatter.Text = "Broom Hatter";
-            CheckboxExpansionBroomHatter.UseVisualStyleBackColor = true;
-            CheckboxExpansionBroomHatter.CheckedChanged += CheckboxExpansionBroomHatter_CheckedChanged;
+            CheckedListExpansionEnemies.CheckOnClick = true;
+            CheckedListExpansionEnemies.Enabled = false;
+            CheckedListExpansionEnemies.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            CheckedListExpansionEnemies.Location = new Point(16, 178);
+            CheckedListExpansionEnemies.Margin = new Padding(4, 5, 4, 5);
+            CheckedListExpansionEnemies.MultiColumn = true;
+            CheckedListExpansionEnemies.ColumnWidth = 220;
+            CheckedListExpansionEnemies.Name = "CheckedListExpansionEnemies";
+            CheckedListExpansionEnemies.Size = new Size(1150, 330);
+            CheckedListExpansionEnemies.TabIndex = 3;
+            CheckedListExpansionEnemies.ItemCheck += CheckedListExpansionEnemies_ItemCheck;
             // 
             // tabPage6
             // 
@@ -2971,7 +2971,7 @@
         private Label LabelExpansionDescription;
         private Button ButtonExpansionLoadNightmare;
         private Label LabelExpansionNightmare;
-        private CheckBox CheckboxExpansionBroomHatter;
+        private CheckedListBox CheckedListExpansionEnemies;
         private Label LabelGameRegion;
         private GroupBox GroupMiscSprayPalettes;
         private RadioButton RadioSprayUnchanged;
