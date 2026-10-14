@@ -127,6 +127,13 @@ Most enemies' first frames (0-3) are their hurt frames. Frames are drawn around 
 - Spawn `0x08080DD0`, variants `0x08741544` (4); variant 0 (`0x08080E10`) has 6 states (`0x08741554`, per frame `0x0874156C`): walk (`0x08080EA4`, 1.0 from `0x087414F8`, frames `0x08081814`) until Kirby is within 47 pixels; crouch and take off (`0x08080F34`/`0x08080FA4`: 2.0 up, steering 0x1900 a frame towards Kirby up to 2.0) until 9 pixels above the screen (`0x03002158` + 4 is the camera's y); hide (`0x08081084`/`0x080810C4`) for 78 frames (`0x08741500`), following Kirby's x but for the last 30 (`0x08741502`); dive (`0x08081140`: 2.0 down, gravity 0x1500, at most 3.0), bounce 2.0, then stand 60 frames and walk again, or the second time fly away (`0x08081274`: 0.4 forward, rising 0x1900 faster a frame). State 4 (`0x080812F0`) swims.
 - Frames `0x08752708`: 0-3 hurt, 4-10 walking, 11-12 crouching, 13-18 flying, 20 diving.
 
+## Needlous (type `0x2C`)
+
+- Spawn `0x0807BD20`, variants `0x08740A78`; variant 0 (`0x0807C080`) states `0x08740AC8`, per frame `0x08740AE0`, landing handler `0x0807BE08`, wall handlers `0x0807BEAC`/`0x0807BED4` (turn around; while rolling, stop 16 frames). Start (`0x0807BD7C`) walks one time in 4, else curls.
+- Walk (`0x0807BF0C`/`0x0807C138`): 0.5, frames `0x08740A98`; at most 240 frames (`0x08740A80`) or 60 with Kirby within 9 pixels vertically (`0x08740A88`, `0x08063D2C` is dy to Kirby); 150 frames after rolling before it can curl again.
+- Curl (`0x0807BF74`): 3.0 up, gravity 0x2500, frames 7, 8, then spin `0x08740AAC` (14, 15, 11, 13, 16, 12); bounces 2.0 (`0x0807BFD0`) and 1.0 (`0x0807C000`); roll (`0x0807C030`/`0x0807C2E0`) 3.0 (`0x08740A90`) for 60 frames.
+- Frames `0x08752B08`: 0-3 hurt, 4-6 walking, 7-8 hopping, 11-16 spinning (15 and 16 mostly color 15, white: the spin's blur).
+
 ## Spawn functions
 
 The master table (`0x0872FF30`) has 8-byte entries, `(kind, spawn function)`, so type `t`'s spawn is at `0x0872FF34 + t * 8`: Chilly `0x08084CD4`, Cool Spook `0x0807EDB4`, Starman `0x08080DD0`, Sword/Blade Knight `0x0807AF58`/`0x0807AF98`, Poppy Bros. Jr. `0x080819B4`/`0x08081F60`/`0x08082008`, Coner `0x0808FA10`, Needlous `0x0807BD20`, Gip `0x0808BDB4`.

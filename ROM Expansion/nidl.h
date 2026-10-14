@@ -31,6 +31,7 @@ enum {
     NIDL_COCONUT,
     NIDL_CONER,
     NIDL_STARMAN,
+    NIDL_NEEDLOUS,
     NIDL_ENEMY_COUNT,
 };
 
@@ -105,5 +106,7 @@ void ConerInit(struct NidlObject *);
 void ConerStart(struct Object *);
 void StarmanInit(struct NidlObject *);
 void StarmanStart(struct Object *);
+void NeedlousInit(struct NidlObject *);
+void NeedlousStart(struct Object *);
 
 #endif

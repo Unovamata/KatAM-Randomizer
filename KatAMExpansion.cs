@@ -64,6 +64,7 @@ namespace KatAMRandomizer {
             Coconut(),
             Coner(),
             Starman(),
+            Needlous(),
         };
 
         static KatAMExpansion() {
@@ -137,6 +138,13 @@ namespace KatAMRandomizer {
             new[] { new Part(3) }, new Dictionary<int, ushort>(),
             new[] { (0x04, 0), (0x14, 2), (0x14, 5), (0x01, 1), (0x28, 2), (0x14, 5), (0x26, 5) },   // "S" (Squishy), "ta" (Hot Head), "r" (Bronto Burt), "m" (Bomber), "a" (Hot Head), "n" (Cookin);
             new byte[] { 0x00 });
+
+        // Needlous; Frames: NiDL's 4 to 16 (walking 4-6, hopping 7-8, spinning 11-16). It walks, curls up and rolls; variant 1 walks
+        // in place;
+        static Enemy Needlous() => new Enemy(9, "Needlous", 0x2C, 0x752B08, Enumerable.Range(4, 13).Select(f => new[] { new Part(f) }).ToList(),
+            new[] { new Part(3) }, new Dictionary<int, ushort>(),
+            new[] { (0x1E, 0), (0x14, 4), (0x14, 4), (0x1E, 2), (0x02, 1), (0x1E, 1), (0x0C, 1), (0x04, 4) },   // "N" (Noddy), "ee" (Hot Head), "d" (Noddy), "l" (Blipper), "o" (Noddy), "u" (Cupie), "s" (Squishy);
+            new byte[] { 0x00, 0x01 });
 
         // IsNightmareInDreamLand(); A Kirby: Nightmare in Dream Land ROM (USA, Japanese or European);
         public static bool IsNightmareInDreamLand(byte[] rom) => RegionOf(rom) != null;
