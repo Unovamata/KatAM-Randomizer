@@ -22,6 +22,8 @@ namespace KatAM_Randomizer {
         Dictionary<byte, string> mirrorDictionary = Processing.mirrorsDictionary;
 
         public KatAMMirrors(Processing system) {
+            InitializeComponents(system);
+
             mirrorEntities = new List<Entity>();
             warpStarEntities = new List<Entity>();
             cannonEntities = new List<Entity>();
@@ -100,7 +102,8 @@ namespace KatAM_Randomizer {
                      bossMirrors = new List<Mirror>(),
                      goalMirrors = new List<Mirror>();
         Dictionary<int, List<Mirror>> EightROMMirrors = new Dictionary<int, List<Mirror>>(),
-                                      NineROMMirrors = new Dictionary<int, List<Mirror>>();
+                                      NineROMMirrors = new Dictionary<int, List<Mirror>>(),
+                                      allRoomMirrors = new Dictionary<int, List<Mirror>>();
 
         int currentRoomIndex = 0;
         bool is9ROMResetted = false;
@@ -349,6 +352,9 @@ namespace KatAM_Randomizer {
                 }
             }
             
+            // Mirrors are added once per mirror in their destination room, so duplicates are removed;
+            mirrors = mirrors.Distinct().ToList();
+
             /* Processing mirrors' safety;
              * While this can be done in the loop above. It is simpler to process it
              * in a single for loop for maintainability and readability in the future. */
@@ -469,6 +475,9 @@ namespace KatAM_Randomizer {
             // Add a failsafe so it doesn't teleport you to the same room.
             // Make an algorithm to check if the seed is beatable.
 
+            // Every room's mirrors, before filtering. Used to build the doors and the non randomized paths;
+            allRoomMirrors = EightROMMirrors.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.ToList());
+
             // We create another list to properly filter out duplicate mirrors in a room so its easier to shuffle them;
             EightROMMirrors = EightROMMirrors
             .ToDictionary(
@@ -481,55 +490,184 @@ namespace KatAM_Randomizer {
             );
         }
 
-        int currentExitIndex = 0;
-        Queue<Mirror> mirrorQueue = new Queue<Mirror>();
+        // Rooms the generation doesn't touch;
+        const int CarrotCastle8CannonRoom = 0x2E0;
 
+        /* RandomizeMirrors(); Rewires the mirrors through a randomized queue. See MirrorShuffler for the logic;
+         * Hub, Vetoed, Goal and Boss mirrors keep their vanilla destination; */
         void RandomizeMirrors() {
-            List<Mirror> ShuffledSafeOneWayMirrors = Utils.Shuffle(safeOneWayMirrors);
+            if (Settings.MirrorRandomization == GenerationOptions.Unchanged) return;
 
-            // Selecting the starting mirror based on the user's options;
-            startingMirror = new Mirror(startingMirror);
-             
-            // If selected, the starting mirror would be the 8-way cannon at Carrot Castle;
-            if(Settings.EightWayCarrotCastleStart) startingMirror.UpdateMirrorData(carrotCastle8CannonMirror);
-            else {
-                // Else, we get a random one way safe mirror;
-                startingMirror.UpdateMirrorData(ShuffledSafeOneWayMirrors[currentExitIndex]);
-                currentExitIndex++;
+            if (startingMirror.Destination == -1) {
+                Console.WriteLine("Starting mirror not found, mirrors won't be randomized.");
+                return;
             }
 
-            Utils.WriteMirrorToROM(startingMirror);
-            Console.WriteLine($"{startingMirror.X:X2}:{startingMirror.Y:X2} Warp 0x{startingMirror.InRoom:X} -> 0x{startingMirror.Destination:X}! X: {startingMirror.X} Y: {startingMirror.Y} Type: {startingMirror.ExitType}");
-            
-            // Add starting mirror to the queue for traversal;
-            //mirrorQueue.Enqueue(startingMirror);
+            int hubRoom = startingMirror.InRoom;
 
-            // Queue that traverses all exits;
-            while (mirrorQueue.Count > 0) {
-                Mirror mirror = mirrorQueue.Dequeue();
+            // The starting mirror may be made of several 8ROM objects sharing its 9ROM entry;
+            List<Mirror> startingMirrorGroup = allRoomMirrors[hubRoom]
+                .Where(m => m.Destination == startingMirror.Destination)
+                .ToList();
 
-                // If the mirror has already been randomized, then continue;
-                if (mirror.IsQueued)
-                    continue;
+            List<MirrorDoor> doors = BuildMirrorDoors();
+            HashSet<Mirror> randomizedMirrors = new HashSet<Mirror>(doors.SelectMany(door => door.Mirrors));
+            randomizedMirrors.UnionWith(startingMirrorGroup);
 
-                mirror.SetQueuedFlag();
+            Dictionary<int, List<int>> frozenEdges = new Dictionary<int, List<int>>();
+            Dictionary<int, HashSet<int>> reservedDestinations = new Dictionary<int, HashSet<int>>();
 
-                // Filtering exits;
-                foreach (Mirror exit in mirror.Exits) {
-                    switch (exit.ExitType) {
-                        case ExitType.OneWay:
+            foreach (Mirror mirror in allRoomMirrors.Values.SelectMany(m => m)) {
+                if (randomizedMirrors.Contains(mirror)) continue;
 
-                        break;
+                // A room can't point twice to the same destination, so non randomized mirrors keep theirs reserved;
+                if (!reservedDestinations.ContainsKey(mirror.InRoom)) reservedDestinations[mirror.InRoom] = new HashSet<int>();
+                reservedDestinations[mirror.InRoom].Add(mirror.Destination);
 
-                        case ExitType.TwoWay:
+                /* Hub mirrors are locked until their area switch is pressed, so they aren't
+                 * considered as paths in the logic; */
+                if (Utils.IsVetoedRoom(mirror.InRoom)) continue;
 
-                        break;
-                    }
+                if (!frozenEdges.ContainsKey(mirror.InRoom)) frozenEdges[mirror.InRoom] = new List<int>();
+                frozenEdges[mirror.InRoom].Add(mirror.Destination);
+            }
 
-                    mirrorQueue.Enqueue(exit);
+            MirrorShuffler shuffler = new MirrorShuffler(doors, frozenEdges, reservedDestinations,
+                                                         new HashSet<int>(allRoomMirrors.Keys), Utils.IsVetoedRoom);
 
-                    Console.WriteLine($"{exit.X:X2}:{exit.Y:X2} Warp 0x{exit.InRoom:X} -> 0x{exit.Destination:X}! X: {exit.X} Y: {exit.Y} Type: {exit.ExitType} Safety: {exit.ExitSafety}");
+            // If selected, the starting mirror would be the 8-way cannon at Carrot Castle;
+            MirrorTarget fixedStart = null;
+
+            if (Settings.EightWayCarrotCastleStart && carrotCastle8CannonMirror.Destination != -1) {
+                fixedStart = MirrorTarget.FromMirror(carrotCastle8CannonMirror);
+            }
+
+            // Else, a random safe One-Way target is used, and the vanilla starting target joins the One-Way pool;
+            MirrorTarget vanillaStart = MirrorTarget.FromMirror(startingMirror);
+            vanillaStart.IsSafe = true;
+
+            bool isFullyConnected = shuffler.Shuffle(hubRoom, fixedStart, vanillaStart);
+
+            if (shuffler.StartTarget == null) {
+                Console.WriteLine($"Mirrors couldn't be linked after {shuffler.Attempts} attempts, mirrors won't be randomized.");
+                return;
+            }
+
+            if (!isFullyConnected) {
+                Console.WriteLine($"Warning: {shuffler.StrandedRooms} rooms can't get back to the hub in the best generated map.");
+            }
+
+            Console.WriteLine($"Mirrors linked in {shuffler.Attempts} attempts. Doors randomized: {doors.Count}");
+
+            List<long> startingMirrorNineROMAddresses = NineROMMirrors[hubRoom]
+                .Where(m => m.Destination == startingMirror.Destination)
+                .Select(m => m.Address9ROM)
+                .ToList();
+
+            WriteDoorToROM(startingMirrorGroup, startingMirrorNineROMAddresses, shuffler.StartTarget);
+            Console.WriteLine($"Start: Warp 0x{hubRoom:X} -> 0x{shuffler.StartTarget.Destination:X}! X: {shuffler.StartTarget.X} Y: {shuffler.StartTarget.Y}");
+
+            foreach (MirrorDoor door in doors) {
+                WriteDoorToROM(door.Mirrors, door.NineROMAddresses, door.Target);
+                Console.WriteLine($"Warp 0x{door.Room:X} -> 0x{door.Target.Destination:X} (Vanilla: 0x{door.Destination:X})! X: {door.Target.X} Y: {door.Target.Y} Type: {door.ExitType}");
+            }
+        }
+
+        /* BuildMirrorDoors(); Groups the randomizable mirrors in doors;
+         * Every 8ROM object in a room pointing to the same destination shares a 9ROM entry,
+         * so they are grouped together and always get the same target; */
+        List<MirrorDoor> BuildMirrorDoors() {
+            HashSet<Mirror> candidates = new HashSet<Mirror>(
+                safeOneWayMirrors
+                .Concat(deadEndOneWayMirrors)
+                .Concat(safeTwoWayMirrors)
+                .Concat(deadEndTwoWayMirrors)
+                .Where(IsRandomizableMirror)
+            );
+
+            Dictionary<(int room, int destination), MirrorDoor> doorsByKey = new Dictionary<(int room, int destination), MirrorDoor>();
+
+            var groups = allRoomMirrors.Values
+                .SelectMany(m => m)
+                .Distinct()
+                .GroupBy(m => (room: m.InRoom, destination: m.Destination));
+
+            foreach (var group in groups) {
+                List<Mirror> groupMirrors = group.ToList();
+
+                // If any 8ROM object of the door can't be randomized, the whole door stays vanilla;
+                if (!groupMirrors.All(candidates.Contains)) continue;
+
+                ExitType exitType = groupMirrors[0].ExitType;
+
+                if (exitType != ExitType.OneWay && exitType != ExitType.TwoWay) continue;
+                if (groupMirrors.Any(m => m.ExitType != exitType)) continue;
+
+                // Without its 9ROM entry, the 8ROM data has nowhere to point to;
+                List<long> nineROMAddresses = new List<long>();
+
+                if (NineROMMirrors.TryGetValue(group.Key.room, out List<Mirror> nineROMMirrorsInRoom)) {
+                    nineROMAddresses = nineROMMirrorsInRoom
+                        .Where(m => m.Destination == group.Key.destination && m.Address9ROM > 0)
+                        .Select(m => m.Address9ROM)
+                        .Distinct()
+                        .ToList();
                 }
+
+                if (nineROMAddresses.Count == 0) continue;
+
+                doorsByKey[group.Key] = new MirrorDoor {
+                    Room = group.Key.room,
+                    Destination = group.Key.destination,
+                    Mirrors = groupMirrors,
+                    NineROMAddresses = nineROMAddresses,
+                    ExitType = exitType,
+                    IsReliable = !Processing.unsafeMirrors.Contains(group.Key.room),
+                };
+            }
+
+            List<MirrorDoor> doors = new List<MirrorDoor>();
+
+            foreach (MirrorDoor door in doorsByKey.Values) {
+                if (door.ExitType == ExitType.TwoWay) {
+                    /* Two-Way doors need their vanilla partner door to be randomized as well, as the partner's data
+                     * is what lands Kirby in front of this door. Otherwise, both stay vanilla; */
+                    if (!doorsByKey.TryGetValue((door.Destination, door.Room), out MirrorDoor partner)) continue;
+                    if (partner.ExitType != ExitType.TwoWay) continue;
+
+                    door.Partner = partner;
+                }
+
+                doors.Add(door);
+            }
+
+            return doors;
+        }
+
+        bool IsRandomizableMirror(Mirror mirror) {
+            return mirror.ExitType != ExitType.Hub &&
+                   !Utils.IsVetoedRoom(mirror.InRoom) &&
+                   !Utils.IsVetoedRoom(mirror.Destination) &&
+                   mirror.InRoom != CarrotCastle8CannonRoom &&
+                   mirror.Destination != CarrotCastle8CannonRoom &&
+                   // Mirrors leading to rooms without mirrors exit through cannons, stars or goals, so they stay vanilla;
+                   allRoomMirrors.ContainsKey(mirror.Destination);
+        }
+
+        // WriteDoorToROM(); Writes the same target to every 8ROM object of a door and its 9ROM entries;
+        void WriteDoorToROM(IEnumerable<Mirror> doorMirrors, IEnumerable<long> nineROMAddresses, MirrorTarget target) {
+            byte[] mirrorData = BitConverter.GetBytes(target.Destination); // Little endian;
+
+            mirrorData[2] = target.X;
+            mirrorData[3] = target.Y;
+
+            foreach (Mirror mirror in doorMirrors) {
+                Utils.WriteToROM(mirror.Address8ROM + 8, mirrorData);
+                Utils.WriteToROM(mirror.Address8ROM + 12, new byte[] { target.Facing });
+            }
+
+            foreach (long nineROMAddress in nineROMAddresses.Where(address => address > 0).Distinct()) {
+                Utils.WriteToROM(nineROMAddress + 4, mirrorData);
             }
         }
 
