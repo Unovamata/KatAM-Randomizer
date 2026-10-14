@@ -110,6 +110,7 @@ namespace KatAMMapTracker {
         /* Entity icons are drawn inside the room square, all the same size: half a small room's square, in a 2x2 grid of up to MaxEntityIcons
          * (a single one in the middle). They're pixel art: nearest neighbor, never smoothed; */
         const int MaxEntityIcons = 4;
+        const float MinEntityIconScreenSize = 16;
 
         Dictionary<int, List<MapEntity>> roomEntities = new Dictionary<int, List<MapEntity>>();
         readonly Dictionary<EntityIcon, Sprite> entitySprites = new Dictionary<EntityIcon, Sprite>();
@@ -376,8 +377,8 @@ namespace KatAMMapTracker {
 
             RectangleF bounds = RoomBounds(layout[progress.CurrentRoom], RoomGrowth);
 
-            // The current room's outline reaches past the square;
-            if (ShowEntities) bounds = RectangleF.Inflate(bounds, 2, 2);
+            // Entity icons (bigger when zoomed out) and the current room's outline reach past the square;
+            if (ShowEntities) bounds = RectangleF.Inflate(bounds, bounds.Width / 2 + 2, bounds.Height / 2 + 2);
             PointF topLeft = ToScreen(bounds.X, bounds.Y);
             Invalidate(Rectangle.Inflate(Rectangle.Round(new RectangleF(topLeft, new SizeF((float)(bounds.Width * zoom), (float)(bounds.Height * zoom)))), 4, 4));
         }
@@ -477,8 +478,10 @@ namespace KatAMMapTracker {
             g.PixelOffsetMode = PixelOffsetMode.Half;
 
             int columns = icons.Count == 1 ? 1 : 2, rows = icons.Count > 2 ? 2 : 1;
-            // The same size in every room: half a small room's square;
-            float cell = (MapGraphics.TileSize * 2 + 2 * (float)Math.Clamp(scene.RoomGrowth, 0, MaxSmallRoomGrowth)) / 2;
+            /* The same size in every room: half a small room's square. Zoomed out, icons stay at least MinEntityIconScreenSize screen
+             * pixels (up to a whole small room's square), so the room doesn't swallow them; */
+            float smallSquare = MapGraphics.TileSize * 2 + 2 * (float)Math.Clamp(scene.RoomGrowth, 0, MaxSmallRoomGrowth);
+            float cell = Math.Clamp(MinEntityIconScreenSize / screenScale, smallSquare / 2, smallSquare);
             float left = square.X + square.Width / 2 - columns * cell / 2, top = square.Y + square.Height / 2 - rows * cell / 2;
 
             for (int i = 0; i < icons.Count; i++) {
