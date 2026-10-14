@@ -10,6 +10,7 @@ local HOST = "127.0.0.1"
 local PORT = 8765                 -- Must match the port of the tracker window;
 local ROOM_ADDRESS = 0x02020F40   -- Current room ID of Kirby (player 1), the same in every version;
 local RETRY_FRAMES = 180          -- Frames to wait before trying to connect again (~3 seconds);
+local SCRIPT_VERSION = 2          -- Sent to the tracker, which warns about outdated copies of this script;
 
 local connection = nil
 local sentRoom = -1
@@ -53,6 +54,11 @@ local function send(line)
   return true
 end
 
+local function connectAndGreet()
+  connect()
+  if connection then send("HELLO " .. SCRIPT_VERSION) end
+end
+
 callbacks:add("frame", function()
   if not emu then return end
 
@@ -74,7 +80,7 @@ callbacks:add("frame", function()
     retryTimer = retryTimer - 1
     if retryTimer > 0 then return end
     retryTimer = RETRY_FRAMES
-    connect()
+    connectAndGreet()
     if not connection then return end
   end
 
@@ -89,4 +95,4 @@ callbacks:add("reset", function()
   sentRoom = -1
 end)
 
-log("Loaded. Waiting for the tracker window on port " .. PORT .. "...")
+log("Loaded (script version " .. SCRIPT_VERSION .. "). Waiting for the tracker window on port " .. PORT .. "...")

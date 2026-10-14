@@ -61,6 +61,7 @@ namespace KatAMMapTracker {
             server = new TrackerServer();
             server.RoomReported += (room, sessionStart) => BeginInvokeSafe(() => OnRoomReported(room, sessionStart));
             server.ConnectionChanged += connected => BeginInvokeSafe(() => SetConnected(connected));
+            server.ScriptVersionReported += version => BeginInvokeSafe(() => OnScriptVersion(version));
 
             try {
                 server.Start();
@@ -390,6 +391,19 @@ namespace KatAMMapTracker {
             finally {
                 Cursor = Cursors.Default;
             }
+        }
+
+        /* OnScriptVersion(); An outdated copy of the emulator script (e.g. one copied elsewhere before an update) still tracks rooms,
+         * but may miss fixes; The window says which file to load instead; */
+        void OnScriptVersion(int version) {
+            if (version >= TrackerServer.ScriptVersion) return;
+
+            string script = Path.Combine(AppContext.BaseDirectory, "Lua", "katam_tracker.lua");
+            string message = $"mGBA is running an outdated copy of the tracker script. Load this one instead: {script}";
+
+            connectionLabel.Text = message;
+            connectionLabel.ForeColor = Color.Firebrick;
+            mapView.ShowHint(message, 12);
         }
 
         void SetConnected(bool connected) {

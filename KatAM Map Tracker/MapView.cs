@@ -25,13 +25,12 @@ namespace KatAMMapTracker {
         const double PanDuration = 0.45, ZoomDuration = 0.3; // Seconds;
         const float FadedOpacity = 0.35f;
 
-        /* Dynamic scaling: zoomed out, rooms and lines would shrink to a few pixels. They're drawn bigger instead, so a room
-         * square never gets smaller than MinRoomScreenScale times its in-game size, up to MaxElementScale times its map size
-         * (rooms are 48 map pixels apart, so they don't run into each other). Lines grow half as much, so they don't merge; */
-        const double MinRoomScreenScale = 0.75, MaxElementScale = 1.75, LineScaleShare = 0.5;
-
-        // Grown rooms are never bigger than this (map pixels), so big rooms keep a gap to their neighbors on the 48 pixel grid;
-        const double MaxScaledRoomSize = 40;
+        /* Dynamic scaling: zoomed out, room squares grow by a number of map pixels on every side (and lines get thicker with them)
+         * until a small room is at least MinRoomScreenSize screen pixels, so the map can be previewed. Zoomed in, everything keeps
+         * its in-game size, which leaves the most space to follow the paths.
+         * Small rooms grow up to MaxSmallRoomGrowth (40 pixel squares on the 48 pixel grid) and big rooms up to MaxBigRoomGrowth,
+         * so neighbors never touch; */
+        const double MinRoomScreenSize = 20, MaxSmallRoomGrowth = 12, MaxBigRoomGrowth = 6, LineGrowthShare = 1.0 / 24;
 
         // Soft colors for the regions behind the room clusters, like the in-game map backdrop;
         static readonly Color[] RegionColors = {
@@ -41,7 +40,7 @@ namespace KatAMMapTracker {
         };
 
         // Scene; What a drawing pass shows: the discovered map, or everything (faded or not where it wasn't discovered);
-        readonly record struct Scene(bool ShowAll, bool FadeUndiscovered, double RoomScale = 1, double LineScale = 1);
+        readonly record struct Scene(bool ShowAll, bool FadeUndiscovered, double RoomGrowth = 0, double LineScale = 1);
 
         RomMap map;
         MapPlan plan;
@@ -86,7 +85,7 @@ namespace KatAMMapTracker {
         string hint;
         DateTime hintUntil;
 
-        // Rooms and lines keep a readable size when zoomed out (see MinRoomScreenScale);
+        // Zoomed out, rooms and lines are drawn bigger so they stay readable (see MinRoomScreenSize);
         public bool DynamicScaling {
             get => dynamicScaling;
             set { dynamicScaling = value; Invalidate(); }
@@ -120,16 +119,24 @@ namespace KatAMMapTracker {
 
         bool RevealAll => progress?.RevealAll == true;
 
-        Scene ViewScene => new Scene(RevealAll, true, RoomScale, 1 + (RoomScale - 1) * LineScaleShare);
+        Scene ViewScene => new Scene(RevealAll, true, RoomGrowth, 1 + Math.Min(RoomGrowth, MaxSmallRoomGrowth) * LineGrowthShare);
 
-        // RoomScale(); How much bigger than their map size rooms are drawn at the current zoom;
-        double RoomScale => DynamicScaling ? Math.Clamp(MinRoomScreenScale / zoom, 1, MaxElementScale) : 1;
+        // RoomGrowth(); How many map pixels room squares grow on every side at the current zoom;
+        double RoomGrowth {
+            get {
+                if (!DynamicScaling) return 0;
 
-        // RoomBounds(); Where a room square is drawn, grown around its center by the room scale (up to MaxScaledRoomSize);
-        RectangleF RoomBounds(RoomPlacement placement, double scale) {
-            if (scale > 1) scale = Math.Max(1, Math.Min(scale, MaxScaledRoomSize / Math.Max(placement.Width, placement.Height)));
+                // Small rooms are 16 map pixels; Zoomed in enough, they're already MinRoomScreenSize and nothing grows;
+                return Math.Max(0, (MinRoomScreenSize / zoom - MapGraphics.TileSize * 2) / 2);
+            }
+        }
 
-            double width = placement.Width * scale, height = placement.Height * scale;
+        // RoomBounds(); Where a room square is drawn, grown around its center (up to MaxSmallRoomGrowth or MaxBigRoomGrowth);
+        RectangleF RoomBounds(RoomPlacement placement, double growth) {
+            bool isBig = Math.Max(placement.Width, placement.Height) > MapGraphics.TileSize * 2;
+            growth = Math.Clamp(growth, 0, isBig ? MaxBigRoomGrowth : MaxSmallRoomGrowth);
+
+            double width = placement.Width + growth * 2, height = placement.Height + growth * 2;
             return new RectangleF((float)(placement.CenterX - width / 2), (float)(placement.CenterY - height / 2), (float)width, (float)height);
         }
 
@@ -336,7 +343,7 @@ namespace KatAMMapTracker {
 
             if (!changed) return;
 
-            RectangleF bounds = RoomBounds(layout[progress.CurrentRoom], RoomScale);
+            RectangleF bounds = RoomBounds(layout[progress.CurrentRoom], RoomGrowth);
             PointF topLeft = ToScreen(bounds.X, bounds.Y);
             Invalidate(Rectangle.Inflate(Rectangle.Round(new RectangleF(topLeft, new SizeF((float)(bounds.Width * zoom), (float)(bounds.Height * zoom)))), 4, 4));
         }
@@ -420,12 +427,12 @@ namespace KatAMMapTracker {
                 : RoomStyle.Unexplored;
 
             Sprite sprite = graphics.Room(MapGraphics.ShapeOf(info), style, pulseFrame);
-            RectangleF bounds = RoomBounds(placement, scene.RoomScale);
+            RectangleF bounds = RoomBounds(placement, scene.RoomGrowth);
             g.DrawImage(GetBitmap(sprite, IsFaded(scene, room)), bounds);
 
             if (room == hoveredRoom) {
                 using Pen pen = new Pen(Color.White, (float)(1.5 / zoom));
-                RectangleF outline = RectangleF.Inflate(RoomBounds(placement, scene.RoomScale), 1, 1);
+                RectangleF outline = RectangleF.Inflate(RoomBounds(placement, scene.RoomGrowth), 1, 1);
                 g.DrawRectangle(pen, outline.X, outline.Y, outline.Width, outline.Height);
             }
         }
@@ -696,10 +703,10 @@ namespace KatAMMapTracker {
 
             double mapX = OffsetX + screen.X / zoom, mapY = OffsetY + screen.Y / zoom;
 
-            double scale = RoomScale;
+            double growth = RoomGrowth;
 
             foreach (int room in ShownRooms(ViewScene)) {
-                if (RoomBounds(layout[room], scale).Contains((float)mapX, (float)mapY)) return room;
+                if (RoomBounds(layout[room], growth).Contains((float)mapX, (float)mapY)) return room;
             }
 
             return -1;
