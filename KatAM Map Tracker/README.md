@@ -9,7 +9,7 @@ An optional companion window for the KatAM Randomizer. It draws the map of your 
 - Following Kirby pans smoothly to the room he enters, and every room change brings the camera back to him. Zooming eases too.
 - `View > Reveal Entire Map (Spoilers)` shows every room and mirror of the seed, with what you haven't found yet faded, for when you want to go straight to the bosses. It's remembered with the seed's progress.
 - `File > Export Map Image` saves the discovered map, or the entire map, as a PNG.
-- **Items & bosses** (`View > Show Items & Bosses`, off by default): the in-game sprites of each room's bosses, mini-bosses, Mirror Shards, Big Switches, treasure chests, items, Fuse Cannons and Warp Stars are drawn inside the room, as pixel art, all the same size: one in the middle, two side by side, three or four in a 2x2 grid. Hovering the room lists everything in it. Since it reads the ROM, it shows where the randomizer put things.
+- **Show on map** (`View > Show on Map`, everything off by default): the in-game sprites of each room's objects, each kind on its own: bosses, mini-bosses, Big Switches, Mirror Shards, chests, items (food, 1UPs...), Fuse Cannons and Warp Stars. They're drawn inside the room as pixel art, all the same size (bosses, mini-bosses and Big Switches bigger), up to four in a 2x2 grid. Hovering the room lists what's in it. Since it reads the ROM, it shows where the randomizer put things.
 - **Chest contents** (`View > Show Chest Contents (Spoilers)`, off by default): chests show what they hold instead of the chest: the item, or the Collection Room sprite of the spray, music sheet, map, Vitality or Sound Player.
 - **Area maps** (`View > Reveal Areas of Found Maps`, off by default): the rooms of every area whose map the save loaded in the emulator holds are shown, faded until visited, like the pause screen does. It follows the loaded save, so switching saves never reveals areas found in another one, and it's never saved with the progress.
 - **Minimalist mode** (`M`, or `View > Minimalist Mode`) hides the menus, toolbar and status bar, leaving only the map next to your game. `M` or `Esc` brings them back, and right clicking the map opens every option in any mode. It's remembered for next time.
@@ -52,7 +52,7 @@ The order doesn't matter: the script keeps retrying, so the tracker can be opene
 | Save the map as an image | `File > Export Map Image` |
 | Open a recent ROM | `File > Open Recent` |
 | Minimalist mode (only the map) | `M` (`Esc` leaves it) |
-| Show items & bosses | `View > Show Items & Bosses` |
+| Show bosses, items, chests... | `View > Show on Map` |
 | All options, in any mode | Right click the map |
 | Forget the progress | `File > Reset Progress...` |
 
