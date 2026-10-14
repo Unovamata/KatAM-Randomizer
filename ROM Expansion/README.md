@@ -22,13 +22,16 @@ The hit flash also looked the palette up again by type when it ended; its branch
 - `nidl.h`, `nidl.c`: the shared part (creation, palette, hurt frame, names, NiDL's frame sequences, helpers like facing Kirby and stopping at ledges).
 - `nidl_data.c`: `gNidlData`, left blank and filled in by `KatAMExpansion.cs` (names, and each enemy's `animBase`, anim ID and hurt frame).
 - `enemies/*.c`: one file per enemy, written against the [KatAM decompilation](https://github.com/jiangzhengwenjz/katam) headers. NiDL runs enemies as coroutine scripts; each script is copied as tables of steps.
-- `build.sh /path/to/katam`: compiles everything with the decompilation's `agbcc`, links it at `0x08F60000` against `katam.elf` and writes `../KatAMExpansionCode.cs` (the code and the symbols `KatAMExpansion.cs` uses).
+- `build.sh /path/to/katam`: compiles everything with the decompilation's `agbcc`, links it at `0x09000000` against `katam.elf` and writes `../KatAMExpansionCode.cs` (the code and the symbols `KatAMExpansion.cs` uses).
 
 ## What `KatAMExpansion.AddEnemies()` writes into the KatAM ROM
 
+The ROM is first padded from 16 MB to 32 MB with `0xFF` (the most the GBA maps: `0x08000000`-`0x09FFFFFF`, which emulators and flash carts load like any other ROM; the game saves to SRAM, so nothing else depends on its size). Everything new goes in that second half, so the expansion has 16 MB for its enemies and leaves the game's own free space to the randomizer.
+
+
 | Where | What |
 |---|---|
-| `0xF60000` | Code, then the converted graphics, animations, names and the extended sprite tables |
+| `0x1000000` | Code, then the converted graphics, animations, names and the extended sprite tables |
 | `gSpriteTables` (`0x3B909C`) | `anims`, `attrs` and `oamData` copied with more entries: anim `939` is the hurt frame, `940` on are the enemies (one variant per frame) |
 | `gSpawnFuncTable1[0x31]` | `CreateNidlEnemy` |
 | Object parameters (`0x351648 + 0x31 * 0x18`) | Hurt frames 0 and 1, Waddle Dee's score and HP, no ability, no palette key, VRAM for the biggest frame plus the hurt frame, `NidlStart`, the shared animations |

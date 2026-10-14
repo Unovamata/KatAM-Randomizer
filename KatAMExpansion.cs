@@ -7,8 +7,9 @@ namespace KatAMRandomizer {
      * built) and ship compiled in KatAMExpansionCode. The graphics are never shipped: they are read from the player's own NiDL ROM.
      * Every ported enemy is object type 0x31 (the only free regular enemy type); the template's behavior byte picks the enemy
      * (high nibble) and its variant (low nibble). See "ROM Expansion/nidl.h" for how they share it.
-     * Layout (free space after the randomizer's 9ROM lists):
-     * • 0xF60000: compiled code, then the converted graphics, animations, names and the extended sprite tables.
+     * Layout: the ROM is expanded from 16 MB to 32 MB (the most the GBA maps, 0x08000000-0x09FFFFFF), and everything new goes in
+     * the new half, so the expansion has room for every enemy and leaves the game's own free space alone:
+     * • 0x1000000 (0x09000000): compiled code, then the converted graphics, animations, names and the extended sprite tables.
      * • gSpriteTables (0x3B909C): anims, attrs and oamData are copied with more entries: anim 939 is the shared hurt frame,
      *   940 on are the enemies' frames (one anim per enemy, one variant per frame).
      * • Object type 0x31: spawn function and parameters; its AnimInfo table holds every enemy's frames.
@@ -18,7 +19,7 @@ namespace KatAMRandomizer {
         public const byte NightmareID = 0x31;
 
         const int HurtAnimID = 939,                  // First free anim ID (the vanilla table has 939);
-                  CodeAddress = 0xF60000, ReservedSize = 0xA0000,
+                  ExpandedSize = 0x2000000, CodeAddress = 0x1000000, ReservedSize = ExpandedSize - CodeAddress,
                   SpriteTables = 0x3B909C, SpawnTable = 0x35107C, ObjectParameters = 0x351648, ObjectParameters2 = 0x352AD0;
 
         // The hit flash's "beq" after comparing the sprite's palette with 15 (0x080857EE), see AddEnemies;
@@ -148,10 +149,31 @@ namespace KatAMRandomizer {
         // NameOf(); The ported enemy a behavior byte of type 0x31 picks;
         public static string NameOf(byte behavior) => Definitions.FirstOrDefault(e => e.Index == behavior >> 4)?.Name ?? Definitions[0].Name;
 
-        /* AddEnemies(); Adds every ported enemy as object type 0x31. Returns null when done, or why it couldn't be done; */
-        public static string AddEnemies(byte[] rom, byte[] nightmare) {
+        /* AddEnemies(); Adds every ported enemy as object type 0x31, expanding the ROM to 32 MB (rom is replaced by the bigger one).
+         * Returns null when done, or why it couldn't be done (rom is left as it was); */
+        public static string AddEnemies(ref byte[] rom, byte[] nightmare) {
             if (RomRegion.Detect(rom) != RomRegion.USA) return "The ROM Expansion only supports the USA version of Kirby & the Amazing Mirror.";
             if (!IsNightmareInDreamLand(nightmare)) return "That isn't a Kirby: Nightmare in Dream Land ROM.";
+            if (rom.Length > ExpandedSize) return "That ROM is bigger than the GBA can map (32 MB).";
+
+            byte[] original = rom;
+
+            rom = Expand(rom);
+            string error = AddEnemiesTo(rom, nightmare);
+            if (error != null) rom = original;
+            return error;
+        }
+
+        // Expand(); A copy of the ROM padded to 32 MB with 0xFF (what unused ROM reads as), the size emulators and flash carts expect;
+        static byte[] Expand(byte[] rom) {
+            byte[] expanded = new byte[ExpandedSize];
+
+            Array.Copy(rom, expanded, rom.Length);
+            Array.Fill(expanded, (byte)0xFF, rom.Length, ExpandedSize - rom.Length);
+            return expanded;
+        }
+
+        static string AddEnemiesTo(byte[] rom, byte[] nightmare) {
 
             for (int i = CodeAddress; i < CodeAddress + ReservedSize; i++) {
                 if (rom[i] != 0xFF) return "The free space used by the ROM Expansion is already in use.";

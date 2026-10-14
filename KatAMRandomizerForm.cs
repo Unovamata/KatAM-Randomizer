@@ -108,6 +108,15 @@ namespace KatAMRandomizer
 
         // Control Panel;
 
+        // AddNightmareEnemies(); The ROM Expansion, which also expands the ROM to 32 MB (so ROMData becomes the bigger copy);
+        private string AddNightmareEnemies() {
+            byte[] rom = Processing.ROMData;
+            string error = KatAMExpansion.AddEnemies(ref rom, nightmareROM);
+
+            Processing.ROMData = rom;
+            return error;
+        }
+
         // Randomize (Save);
         private void ButtonSaveFile_Click(object sender, EventArgs e) {
             byte[] fileContents = File.ReadAllBytes(system.ROMPath),
@@ -123,7 +132,7 @@ namespace KatAMRandomizer
             // ROM Expansion goes first, so the ROM reader sees the new enemies' parameters like any other's;
             if (settings.NightmareEnemies.Count > 0) {
                 string error = nightmareROM == null ? "Load a Nightmare in Dream Land ROM in the ROM Expansion tab, or turn its enemies off."
-                                                    : KatAMExpansion.AddEnemies(Processing.ROMData, nightmareROM);
+                                                    : AddNightmareEnemies();
 
                 if (error != null) {
                     MessageBox.Show(error, "ROM Expansion", MessageBoxButtons.OK, MessageBoxIcon.Error);

@@ -140,5 +140,5 @@ The master table (`0x0872FF30`) has 8-byte entries, `(kind, spawn function)`, so
 - Collision attributes: bit 0 marks an *empty* tile (Boxin's ledge check).
 - Gravity: `ObjectMain` pulls every object down (`0x0809A990`: 0x15 per frame, at most 3.0, NiDL's 0x1500 and 3.0) unless `flags & 0x40` (and not `0x20`, which it sets once falling). Flying enemies set `0x40` in their start; getting hit clears it.
 - Explosions: `0x08073D2C` is the small one Foley and Scarfy explode with (40x40, hurts Kirby); `0x08074420` is Bomber's (128x128).
-- Free space from `0xF40000` (the randomizer's 9ROM lists) to the end; the expansion uses `0xFC0000`.
+- Free space from `0xF40000` (the randomizer's 9ROM lists) to the end of the 16 MB ROM. The expansion pads the ROM to 32 MB (the most the GBA maps, `0x08000000`-`0x09FFFFFF`; the game saves to SRAM, so no EEPROM range gets in the way) and puts everything at `0x09000000`.
 - The KatAM decompilation builds byte-identical to the USA ROM, so `katam.elf` gives every symbol to link new code against (`--just-symbols`); `ld` adds interworking veneers for the long calls.

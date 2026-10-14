@@ -2762,7 +2762,7 @@
             LabelExpansionDescription.Name = "LabelExpansionDescription";
             LabelExpansionDescription.Size = new Size(1150, 80);
             LabelExpansionDescription.TabIndex = 0;
-            LabelExpansionDescription.Text = "Adds enemies ported from Kirby: Nightmare in Dream Land to the enemy pool. Their graphics are taken from your own Nightmare in Dream Land ROM (USA, Japanese or European). Only for the USA version of Kirby & the Amazing Mirror; The new enemies appear when enemies are randomized.";
+            LabelExpansionDescription.Text = "Adds enemies ported from Kirby: Nightmare in Dream Land to the enemy pool. Their graphics are taken from your own Nightmare in Dream Land ROM (USA, Japanese or European). Only for the USA version of Kirby & the Amazing Mirror; The new enemies appear when enemies are randomized. The ROM is expanded to 32 MB to fit them.";
             // 
             // ButtonExpansionLoadNightmare
             // 
