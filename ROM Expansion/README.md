@@ -48,3 +48,4 @@ Graphics come from the player's NiDL ROM: each enemy's descriptor (`0x0873EEA0 +
 | Kabu | `0x15` | Sits, spins in place 1-3 times, then faces Kirby and jumps (5 jumps picked by weight, never the same twice), spinning. Frames 4-12; hurt frame 3. NiDL's variants 1-3 aren't ported |
 | Coconut | `0x17` | Variants 0 and 1 hang (facing right or left) until Kirby passes under them, then fall tumbling and explode on landing (KatAM's small explosion, like Foley's); variant 2 rocks on the ground. Frames 4-15; hurt frame 3 |
 | Coner | `0x29` | Faces Kirby and scuttles in bursts (1.0, 0.5, 0.25, stopped); variant 1 scuttles in place. Frames 4-6; hurt frame 3. NiDL's water states aren't ported |
+| Starman | `0x1F` | Walks up to Kirby, crouches and flies off the top of the screen steering towards it, follows Kirby hidden up there, then dives onto it and bounces; the second time it flies away. Frames 4-20; hurt frame 3. NiDL's variants 1-3 and its water state aren't ported |

@@ -30,6 +30,7 @@ enum {
     NIDL_KABU,
     NIDL_COCONUT,
     NIDL_CONER,
+    NIDL_STARMAN,
     NIDL_ENEMY_COUNT,
 };
 
@@ -102,5 +103,7 @@ void CoconutInit(struct NidlObject *);
 void CoconutStart(struct Object *);
 void ConerInit(struct NidlObject *);
 void ConerStart(struct Object *);
+void StarmanInit(struct NidlObject *);
+void StarmanStart(struct Object *);
 
 #endif

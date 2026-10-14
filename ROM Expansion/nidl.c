@@ -13,6 +13,7 @@ static const struct NidlEnemy sNidlEnemies[NIDL_ENEMY_COUNT] = {
     [NIDL_KABU] = { KabuInit, KabuStart, 2, 0 },
     [NIDL_COCONUT] = { CoconutInit, CoconutStart, 1, 0 },
     [NIDL_CONER] = { ConerInit, ConerStart, 2, 0 },
+    [NIDL_STARMAN] = { StarmanInit, StarmanStart, 2, 0 },
 };
 
 // NidlSetFrame(); Shows one of the enemy's frames (its own numbering);
