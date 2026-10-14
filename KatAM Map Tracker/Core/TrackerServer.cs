@@ -7,10 +7,17 @@ using System.Threading;
 
 namespace KatAMMapTracker {
     /* TrackerServer; Receives the room reports sent by the emulator script (Lua/katam_tracker.lua);
-     * The script connects to 127.0.0.1 on the given port and sends one line per room change: "ROOM <hex id>".
+     * The script connects to 127.0.0.1 on the given port, sends "HELLO <script version>", then one line per room change: "ROOM <hex id>".
+     * Old copies of the script don't send HELLO; Their first room is reported as script version 0;
      * Events are raised on a background thread; */
     public sealed class TrackerServer : IDisposable {
         public const int DefaultPort = 8765;
+
+        // Version of Lua/katam_tracker.lua that goes with this tracker (SCRIPT_VERSION in the script);
+        public const int ScriptVersion = 2;
+
+        // Raised once per connection with the version of the connected script (0: an old script without HELLO);
+        public event Action<int> ScriptVersionReported;
 
         // Raised for every valid line. sessionStart is true for the first report of a connection;
         public event Action<int, bool> RoomReported;
@@ -48,11 +55,22 @@ namespace KatAMMapTracker {
 
                 try {
                     using StreamReader reader = new StreamReader(client.GetStream());
-                    bool sessionStart = true;
+                    bool sessionStart = true, versionKnown = false;
                     string line;
 
                     while (running && (line = reader.ReadLine()) != null) {
+                        if (!versionKnown && TryParseHello(line, out int version)) {
+                            versionKnown = true;
+                            ScriptVersionReported?.Invoke(version);
+                            continue;
+                        }
+
                         if (!TryParseRoom(line, out int room)) continue;
+
+                        if (!versionKnown) {
+                            versionKnown = true;
+                            ScriptVersionReported?.Invoke(0);
+                        }
 
                         RoomReported?.Invoke(room, sessionStart);
                         sessionStart = false;
@@ -74,6 +92,13 @@ namespace KatAMMapTracker {
 
             return parts.Length == 2 && parts[0] == "ROOM" &&
                    int.TryParse(parts[1], NumberStyles.HexNumber, CultureInfo.InvariantCulture, out room);
+        }
+
+        public static bool TryParseHello(string line, out int version) {
+            version = 0;
+            string[] parts = line.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+            return parts.Length == 2 && parts[0] == "HELLO" && int.TryParse(parts[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out version);
         }
 
         public void Dispose() {

@@ -61,6 +61,7 @@ namespace KatAMMapTracker {
             server = new TrackerServer();
             server.RoomReported += (room, sessionStart) => BeginInvokeSafe(() => OnRoomReported(room, sessionStart));
             server.ConnectionChanged += connected => BeginInvokeSafe(() => SetConnected(connected));
+            server.ScriptVersionReported += version => BeginInvokeSafe(() => OnScriptVersion(version));
 
             try {
                 server.Start();
@@ -392,6 +393,19 @@ namespace KatAMMapTracker {
             }
         }
 
+        /* OnScriptVersion(); An outdated copy of the emulator script (e.g. one copied elsewhere before an update) still tracks rooms,
+         * but may miss fixes; The window says which file to load instead; */
+        void OnScriptVersion(int version) {
+            if (version >= TrackerServer.ScriptVersion) return;
+
+            string script = Path.Combine(AppContext.BaseDirectory, "Lua", "katam_tracker.lua");
+            string message = $"mGBA is running an outdated copy of the tracker script. Load this one instead: {script}";
+
+            connectionLabel.Text = message;
+            connectionLabel.ForeColor = Color.Firebrick;
+            mapView.ShowHint(message, 12);
+        }
+
         void SetConnected(bool connected) {
             isConnected = connected;
             if (!connected) lastReportedRoom = -1;
@@ -422,7 +436,7 @@ namespace KatAMMapTracker {
                 "Mouse wheel: zoom.   Drag: move the map.   Hover: room preview.   Double click: center a room.\n" +
                 "Space: follow Kirby on/off (it comes back on when Kirby changes rooms).   F: fit the discovered map.   +/-: zoom.\n" +
                 "M: minimalist mode (only the map; Esc leaves it).   Right click the map: options.\n" +
-                "View > Dynamic Scaling draws rooms and lines bigger, more when zoomed in or out.\n\n" +
+                "View > Dynamic Scaling keeps rooms and lines readable when zoomed out.\n\n" +
                 "View > Reveal Entire Map shows the whole seed (spoilers). File > Export Map Image saves the map as a PNG.\n\n" +
                 "Progress is saved next to the ROM as <rom>.tracker.json.",
                 "How to use", MessageBoxButtons.OK, MessageBoxIcon.Information);

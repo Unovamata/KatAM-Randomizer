@@ -25,13 +25,12 @@ namespace KatAMMapTracker {
         const double PanDuration = 0.45, ZoomDuration = 0.3; // Seconds;
         const float FadedOpacity = 0.35f;
 
-        /* Dynamic scaling: room squares grow by a number of map pixels on every side, and lines get thicker with them;
-         * • Zoomed in, squares grow from ZoomedInGrowth at 100% to MaxZoomedInGrowth at 200% and closer, so they read well.
-         * • Zoomed out, they grow until a small room is at least MinRoomScreenSize screen pixels, so the map can be previewed.
+        /* Dynamic scaling: zoomed out, room squares grow by a number of map pixels on every side (and lines get thicker with them)
+         * until a small room is at least MinRoomScreenSize screen pixels, so the map can be previewed. Zoomed in, everything keeps
+         * its in-game size, which leaves the most space to follow the paths.
          * Small rooms grow up to MaxSmallRoomGrowth (40 pixel squares on the 48 pixel grid) and big rooms up to MaxBigRoomGrowth,
-         * so neighbors never touch. Lines are routed 16 pixels away from the squares, so up close they keep a gap too; */
-        const double ZoomedInGrowth = 4, MaxZoomedInGrowth = 8, MinRoomScreenSize = 20,
-                     MaxSmallRoomGrowth = 12, MaxBigRoomGrowth = 6, LineGrowthShare = 1.0 / 24;
+         * so neighbors never touch; */
+        const double MinRoomScreenSize = 20, MaxSmallRoomGrowth = 12, MaxBigRoomGrowth = 6, LineGrowthShare = 1.0 / 24;
 
         // Soft colors for the regions behind the room clusters, like the in-game map backdrop;
         static readonly Color[] RegionColors = {
@@ -86,7 +85,7 @@ namespace KatAMMapTracker {
         string hint;
         DateTime hintUntil;
 
-        // Rooms and lines are drawn bigger, more when zoomed out or zoomed in (see MinRoomScreenSize);
+        // Zoomed out, rooms and lines are drawn bigger so they stay readable (see MinRoomScreenSize);
         public bool DynamicScaling {
             get => dynamicScaling;
             set { dynamicScaling = value; Invalidate(); }
@@ -127,10 +126,8 @@ namespace KatAMMapTracker {
             get {
                 if (!DynamicScaling) return 0;
 
-                double zoomedIn = Math.Clamp(ZoomedInGrowth + (MaxZoomedInGrowth - ZoomedInGrowth) * Math.Log2(Math.Max(zoom, 1)), ZoomedInGrowth, MaxZoomedInGrowth),
-                       zoomedOut = (MinRoomScreenSize / zoom - MapGraphics.TileSize * 2) / 2;
-
-                return Math.Max(zoomedIn, zoomedOut);
+                // Small rooms are 16 map pixels; Zoomed in enough, they're already MinRoomScreenSize and nothing grows;
+                return Math.Max(0, (MinRoomScreenSize / zoom - MapGraphics.TileSize * 2) / 2);
             }
         }
 
