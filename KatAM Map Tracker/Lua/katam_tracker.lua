@@ -59,8 +59,14 @@ callbacks:add("frame", function()
   if not warnedGame then
     warnedGame = true
     local ok, code = pcall(function() return emu:getGameCode() end)
-    if ok and code and not (string.find(code, "B8KJ") or string.find(code, "B8KE") or string.find(code, "B8KP")) then
-      log("Warning: this doesn't look like a KatAM ROM (" .. code .. "). Rooms may not be tracked.")
+    if ok and code then
+      local version = string.find(code, "B8KJ") and "Japanese" or string.find(code, "B8KE") and "American"
+                      or string.find(code, "B8KP") and "European" or nil
+      if version then
+        log("Game: Kirby & the Amazing Mirror, " .. version .. " version (" .. code .. ").")
+      else
+        log("Warning: this doesn't look like a KatAM ROM (" .. code .. "). Rooms may not be tracked.")
+      end
     end
   end
 

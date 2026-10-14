@@ -7,10 +7,11 @@
     <AssemblyName>KatAM Map Tracker</AssemblyName>
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>disable</ImplicitUsings>
-    <ApplicationIcon>..\KirbyRandomizer.ico</ApplicationIcon>
+    <ApplicationIcon>MapTracker.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="MapTracker.ico" LogicalName="MapTracker.ico" />
     <None Include="Lua\katam_tracker.lua" CopyToOutputDirectory="PreserveNewest" />
     <None Include="README.md" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
