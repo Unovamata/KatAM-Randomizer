@@ -23,6 +23,7 @@ enum {
     NIDL_BROOM_HATTER,
     NIDL_CAPPY,
     NIDL_TWIZZY,
+    NIDL_BUBBLES,
     NIDL_ENEMY_COUNT,
 };
 
@@ -84,5 +85,7 @@ void CappyInit(struct NidlObject *);
 void CappyStart(struct Object *);
 void TwizzyInit(struct NidlObject *);
 void TwizzyStart(struct Object *);
+void BubblesInit(struct NidlObject *);
+void BubblesStart(struct Object *);
 
 #endif
