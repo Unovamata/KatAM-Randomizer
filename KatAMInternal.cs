@@ -519,6 +519,7 @@ namespace KatAMInternal
         public GenerationOptions SprayOutlineGenerationType { get; set; }
         public GenerationOptions StoneDoorGenerationType { get; set; }
         public bool isRemovingStoneBlocks = false;
+        public bool isAddingBroomHatter { get; set; }
 
         public Settings() {
             Random seedGenerator = new Random();

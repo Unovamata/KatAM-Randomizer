@@ -120,6 +120,21 @@ namespace KatAMRandomizer
             destinationPath = Path.Combine(system.ROMDirectory, newFileName);
             settings.RandomEntity = new Random(settings.Seed);
 
+            // ROM Expansion goes first, so the ROM reader sees the new enemies' parameters like any other's;
+            if (settings.isAddingBroomHatter) {
+                string error = nightmareROM == null ? "Load a Nightmare in Dream Land (USA) ROM in the ROM Expansion tab, or turn the Broom Hatter off."
+                                                    : KatAMExpansion.AddBroomHatter(Processing.ROMData, nightmareROM);
+
+                if (error != null) {
+                    MessageBox.Show(error, "ROM Expansion", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+
+                Processing.parameters[KatAMExpansion.BroomHatterID] = KatAMExpansion.BroomHatterName;
+            } else {
+                Processing.parameters[KatAMExpansion.BroomHatterID] = Processing.enemiesDictionary[KatAMExpansion.BroomHatterID].Name;
+            }
+
             new KatAMROMReader(system);
             new KatAMEnemies(system);
             new KatAMMirrors(system);
@@ -737,6 +752,37 @@ namespace KatAMRandomizer
 
         private void CheckboxMapElementsStoneBlocks_CheckedChanged(object sender, EventArgs e) {
             settings.isRemovingStoneBlocks = CheckboxMapElementsAllStoneBlocks.Checked;
+        }
+
+        // ROM Expansion;
+        byte[] nightmareROM;
+
+        private void ButtonExpansionLoadNightmare_Click(object sender, EventArgs e) {
+            OpenFileDialog fileDialog = new OpenFileDialog {
+                Filter = "GBA ROM Files (*.gba)|*.gba",
+                RestoreDirectory = true
+            };
+
+            if (fileDialog.ShowDialog() != DialogResult.OK) return;
+
+            try {
+                byte[] rom = File.ReadAllBytes(fileDialog.FileName);
+
+                if (!KatAMExpansion.IsNightmareInDreamLand(rom)) {
+                    MessageBox.Show("That isn't a Kirby: Nightmare in Dream Land (USA) ROM.", "ROM Expansion", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+
+                nightmareROM = rom;
+                LabelExpansionNightmare.Text = Path.GetFileName(fileDialog.FileName);
+                CheckboxExpansionBroomHatter.Enabled = true;
+            } catch (Exception ex) {
+                MessageBox.Show($"Error loading file: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void CheckboxExpansionBroomHatter_CheckedChanged(object sender, EventArgs e) {
+            settings.isAddingBroomHatter = CheckboxExpansionBroomHatter.Checked;
         }
 
         // Mirrors;
