@@ -89,6 +89,7 @@ static void SlippyMain(struct Object *obj) {
 
     NidlUpdate(&s->n);
     obj->base.flags |= 4;
+    if (s->state != STATE_JUMP) NidlFall(obj);
 
     switch (s->state) {
     case STATE_SIT:

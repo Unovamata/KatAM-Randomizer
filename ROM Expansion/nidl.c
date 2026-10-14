@@ -11,6 +11,7 @@ static const struct NidlEnemy sNidlEnemies[NIDL_ENEMY_COUNT] = {
     [NIDL_BUBBLES] = { BubblesInit, BubblesStart, 2, 0 },
     [NIDL_SLIPPY] = { SlippyInit, SlippyStart, 2, 0 },
     [NIDL_KABU] = { KabuInit, KabuStart, 2, 0 },
+    [NIDL_COCONUT] = { CoconutInit, CoconutStart, 1, 0 },
 };
 
 // NidlSetFrame(); Shows one of the enemy's frames (its own numbering);
@@ -78,6 +79,13 @@ void NidlUpdate(struct NidlObject *n) {
     NidlUploadHurtTiles(n);
 }
 
+// NidlFall(); The engine's gravity (0x0809A990), for enemies that only fall when there's no floor (NiDL's is the same);
+void NidlFall(struct Object *obj) {
+    if (obj->base.unk62 & 4) return;
+    obj->base.yspeed -= 0x15;
+    if (obj->base.yspeed < -0x300) obj->base.yspeed = -0x300;
+}
+
 void NidlStart(struct Object *);
 
 void *CreateNidlEnemy(struct ObjectTemplate *template, u8 playerId) {
@@ -108,6 +116,9 @@ void NidlStart(struct Object *obj) {
     struct NidlObject *n = (struct NidlObject *)obj;
 
     obj->kirbyAbility = sNidlEnemies[n->enemy].ability;
+    // The engine's gravity off (flag 0x40, and 0x20, which keeps it on once falling): it's turned back on while the enemy is
+    // knocked back by a hit, and NiDL's enemies have their own;
+    obj->base.flags = (obj->base.flags | 0x40) & ~0x20;
     sNidlEnemies[n->enemy].start(obj);
 }
 

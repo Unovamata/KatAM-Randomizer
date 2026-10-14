@@ -123,6 +123,7 @@ static void BroomHatterMain(struct Object *obj) {
     struct BroomHatter *bh = (struct BroomHatter *)obj;
 
     NidlUpdate(&bh->n);
+    NidlFall(obj);
     obj->base.flags |= 4;
     if (bh->wait && --bh->wait) {
         NidlStopAtLedge(obj);

@@ -78,6 +78,8 @@ static void KabuMain(struct Object *obj) {
     NidlUpdate(&k->n);
     obj->base.flags |= 4;
 
+    if (k->state != STATE_JUMP) NidlFall(obj);
+
     switch (k->state) {
     case STATE_SIT:
         if (--k->timer) break;

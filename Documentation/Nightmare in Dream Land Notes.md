@@ -112,6 +112,11 @@ Most enemies' first frames (0-3) are their hurt frames. Frames are drawn around 
 - Velocity tables `0x08743144` (1.0, 0.5, 0.25, 0.25, 2.0) and `0x08743158` (1.0, 0.5, 0.5, -1.0, -0.5, -0.5).
 - Frames `0x087521D8`: 0-2 dizzy, 3 knocked away, 4-7 sweeping, 8-10 broom dust. Palette `0x0824CCF8` (the dust uses palette 15, white), tiles LZ77 `0x0824CD18`.
 
+## Coconut (type `0x17`)
+
+- Spawn `0x0808E8D4`; variants 0 and 1 (`0x0808E914`, facing right or left) hang on frame 5 until Kirby is within 7 pixels sideways (`0x0808E9D4`), then fall (`0x0808EA00`): gravity and max fall by the record flags byte (`0x08743214` 0x1500/0x3000, `0x0874321C` 3.0/4.0), tumbling through frames 7-15 every 2 frames while turning around 4 times. Landing (`0x0808EB10`) it explodes (`0x0806A344`). Variant 2 (`0x0808EB24`) rocks on frames 4, 5, 6, 5 (6 frames each).
+- Frames `0x087524A4`: 0-3 hurt, 4-6 rocking, 7-15 tumbling.
+
 ## KatAM side (USA)
 
 - `gSpriteTables` `0x083B909C` (anims, attrs, oamData, palette, tiles4bpp...); 939 anims. Tile and palette indexes are relative to the table bases, so new data must be aligned to them.
@@ -119,5 +124,7 @@ Most enemies' first frames (0-3) are their hurt frames. Frames are drawn around 
 - Free object types: `0x2C` is the randomizer's "Nothing"; `0x31` is free (used by the Broom Hatter). `0x40-0x44` count as bosses.
 - HP bar names: `gUnk_08D60EE4[language]` + type * 0x100, 64x8 images; language 1 is English.
 - Collision attributes: bit 0 marks an *empty* tile (Boxin's ledge check).
+- Gravity: `ObjectMain` pulls every object down (`0x0809A990`: 0x15 per frame, at most 3.0, NiDL's 0x1500 and 3.0) unless `flags & 0x40` (and not `0x20`, which it sets once falling). Flying enemies set `0x40` in their start; getting hit clears it.
+- Explosions: `0x08073D2C` is the small one Foley and Scarfy explode with (40x40, hurts Kirby); `0x08074420` is Bomber's (128x128).
 - Free space from `0xF40000` (the randomizer's 9ROM lists) to the end; the expansion uses `0xFC0000`.
 - The KatAM decompilation builds byte-identical to the USA ROM, so `katam.elf` gives every symbol to link new code against (`--just-symbols`); `ld` adds interworking veneers for the long calls.

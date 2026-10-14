@@ -6,6 +6,8 @@
  * • Hurt frames: the game picks the type's hurt indexes (0 and 1), which show a generic 32x32 frame drawn from the last
  *   16 tiles of the object's VRAM; each enemy uploads its own hurt frame there (see NidlUploadHurtTiles).
  * • HP bar names: the game's name copies are patched to call NidlCopyName, which looks up the enemy's own name.
+ * • Gravity: the engine's (0x0809A990) is turned off, like KatAM's flying enemies do; each enemy moves up and down like in
+ *   NiDL, and the ones that just stand or walk fall with NidlFall.
  * The tables filled by KatAMExpansion.cs (animations, hurt tiles, names) are in gNidlData; */
 #ifndef GUARD_NIDL_H
 #define GUARD_NIDL_H
@@ -26,6 +28,7 @@ enum {
     NIDL_BUBBLES,
     NIDL_SLIPPY,
     NIDL_KABU,
+    NIDL_COCONUT,
     NIDL_ENEMY_COUNT,
 };
 
@@ -76,6 +79,7 @@ void NidlSetFrame(struct NidlObject *, u8 frame);
 void NidlPlay(struct NidlObject *, const s16 *sequence);
 void NidlAnimate(struct NidlObject *);
 void NidlUpdate(struct NidlObject *);
+void NidlFall(struct Object *);
 void NidlFaceKirby(struct Object *);
 bool32 NidlIsFloor(struct Object *, s32 x, s32 y);
 void NidlStopAtLedge(struct Object *);
@@ -93,5 +97,7 @@ void SlippyInit(struct NidlObject *);
 void SlippyStart(struct Object *);
 void KabuInit(struct NidlObject *);
 void KabuStart(struct Object *);
+void CoconutInit(struct NidlObject *);
+void CoconutStart(struct Object *);
 
 #endif

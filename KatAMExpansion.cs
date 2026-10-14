@@ -60,6 +60,7 @@ namespace KatAMRandomizer {
             Bubbles(),
             Slippy(),
             Kabu(),
+            Coconut(),
         };
 
         static KatAMExpansion() {
@@ -108,13 +109,20 @@ namespace KatAMRandomizer {
             new[] { (0x04, 0), (0x02, 1), (0x02, 2), (0x02, 3), (0x02, 4), (0x05, 5) },   // "S" (Squishy), "lipp" (Blipper), "y" (Scarfy);
             new byte[] { 0x00 });
 
-        // IsNightmareInDreamLand(); A Kirby: Nightmare in Dream Land ROM (USA, Japanese or European);
         // Kabu; Frames: NiDL's 4 to 12 (spinning 4-11, sitting 12). It spins and jumps around;
         static Enemy Kabu() => new Enemy(5, "Kabu", 0x15, 0x752438, Enumerable.Range(4, 9).Select(f => new[] { new Part(f) }).ToList(),
             new[] { new Part(3) }, new Dictionary<int, ushort>(),
             new[] { (0x18, 3), (0x14, 5), (0x18, 5), (0x0C, 1) },   // "K" (Sir Kibble), "a" (Hot Head), "b" (Sir Kibble), "u" (Cupie);
             new byte[] { 0x00 });
 
+        // Coconut; Frames: NiDL's 4 to 15 (rocking 4-6, hanging 5, tumbling 7-15). Variants 0 and 1 hang until Kirby passes
+        // under them, then fall and explode; variant 2 rocks on the ground;
+        static Enemy Coconut() => new Enemy(6, "Coconut", 0x17, 0x7524A4, Enumerable.Range(4, 12).Select(f => new[] { new Part(f) }).ToList(),
+            new[] { new Part(3) }, new Dictionary<int, ushort>(),
+            new[] { (0x26, 0), (0x26, 1), (0x0D, 3), (0x0D, 2), (0x26, 5), (0x0C, 1), (0x14, 2) },   // "Co" (Cookin), "c", "o" (Blockin), "n" (Cookin), "u" (Cupie), "t" (Hot Head);
+            new byte[] { 0x02 }, new byte[] { 0x00, 0x01 });
+
+        // IsNightmareInDreamLand(); A Kirby: Nightmare in Dream Land ROM (USA, Japanese or European);
         public static bool IsNightmareInDreamLand(byte[] rom) => RegionOf(rom) != null;
 
         // BehaviorsOf(); The behavior bytes of type 0x31 the randomizer may use, for the enemies picked (only the flying ones, or all);

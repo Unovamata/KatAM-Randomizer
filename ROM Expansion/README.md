@@ -13,6 +13,7 @@ KatAM treats object types `0x00`-`0x37` as enemies all over its code, and the on
 | Hurt frames (indexes 0 and 1) | A generic 32x32 frame drawn from the last 16 tiles of the object's VRAM, where each enemy uploads its own hurt frame |
 | HP bar name | The game's two name copies (`0x08034ED2`, `0x08035B34`) are patched to call `NidlCopyName` |
 | Behavior start after a hit | `NidlStart` calls the enemy's own start |
+| Gravity | The engine pulls every enemy down unless flag `0x40` is set (KatAM's flying enemies set it); `NidlStart` sets it, and each enemy moves up and down like in NiDL (`NidlFall` is the engine's gravity, for the ones that just stand or walk) |
 
 The hit flash also looked the palette up again by type when it ended; its branch at `0x080857EE` is patched to keep the enemy's palette (which is what it found for the game's own enemies anyway).
 
@@ -45,3 +46,4 @@ Graphics come from the player's NiDL ROM: each enemy's descriptor (`0x0873EEA0 +
 | Bubbles | `0x1E` | Variant 0 bounces forward (1.0) at random heights, spinning, squashing on floors, walls (turning around) and ceilings; variant 1 bounces in place. Frames 4-21; hurt frame 0 |
 | Slippy | `0x22` | Sits facing Kirby, looks around, and jumps low or high, in place, forward or turning around, chosen at random like NiDL. Frames 4, 5, 6, 8; hurt frame 3. NiDL's swimming states aren't ported |
 | Kabu | `0x15` | Sits, spins in place 1-3 times, then faces Kirby and jumps (5 jumps picked by weight, never the same twice), spinning. Frames 4-12; hurt frame 3. NiDL's variants 1-3 aren't ported |
+| Coconut | `0x17` | Variants 0 and 1 hang (facing right or left) until Kirby passes under them, then fall tumbling and explode on landing (KatAM's small explosion, like Foley's); variant 2 rocks on the ground. Frames 4-15; hurt frame 3 |
