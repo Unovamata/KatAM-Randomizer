@@ -223,7 +223,7 @@ namespace KatAMMapTracker {
         static Dictionary<int, (int x, int y)> LayoutCluster(List<int> rooms, Dictionary<int, List<int>> neighbors, RomMap map) {
             HashSet<int> inCluster = new HashSet<int>(rooms);
             Dictionary<int, (int x, int y)> cells = new Dictionary<int, (int x, int y)>();
-            HashSet<(int x, int y)> used = new HashSet<(int x, int y)>();
+            HashSet<(int x, int y)> used = new HashSet<(int x, int y)>(), bigCells = new HashSet<(int x, int y)>();
 
             int Links(int room) => neighbors[room].Count(inCluster.Contains);
 
@@ -257,6 +257,7 @@ namespace KatAMMapTracker {
                 if (cells.Count == 0) {
                     cells[room] = (0, 0);
                     used.Add((0, 0));
+                    if (IsBig(map, room)) bigCells.Add((0, 0));
                     continue;
                 }
 
@@ -280,14 +281,24 @@ namespace KatAMMapTracker {
                     }
                 }
 
+                // Where the doors point: a neighbor whose door is on its left wants this room on its left, and so on;
+                List<(int x, int y, int? fromNeighbor, int? fromRoom)> sided = neighbors[room].Where(cells.ContainsKey).Select(n => {
+                    DoorSide? neighborSide = MapSides.Of(map, n, room), roomSide = MapSides.Of(map, room, n);
+                    return (cells[n].x, cells[n].y,
+                            neighborSide is DoorSide a ? MapSides.Octant(a.DX, a.DY) : (int?)null,
+                            roomSide is DoorSide b ? MapSides.Octant(b.DX, b.DY) : (int?)null);
+                }).ToList();
+
                 (int x, int y) best = candidates
-                    .OrderBy(cell => CellCost(cell, placedNeighbors, cells.Values))
+                    .OrderBy(cell => CellCost(cell, placedNeighbors, cells.Values) + SideCost(cell, sided) + EnclosureCost(cell, used)
+                                    + (IsBig(map, room) ? BigNeighborCost(cell, bigCells) : 0))
                     .ThenBy(cell => Math.Abs(cell.x) + Math.Abs(cell.y))
                     .ThenBy(cell => cell.y).ThenBy(cell => cell.x)
                     .First();
 
                 cells[room] = best;
                 used.Add(best);
+                if (IsBig(map, room)) bigCells.Add(best);
             }
 
             return cells;
@@ -313,6 +324,47 @@ namespace KatAMMapTracker {
             double spread = Math.Sqrt((cell.x - centerX) * (cell.x - centerX) + (cell.y - centerY) * (cell.y - centerY));
 
             return cost + crowd * 0.15 + spread * 0.35;
+        }
+
+        static bool IsBig(RomMap map, int room) => MapGraphics.ShapeOf(map.Rooms[room]) != RoomShape.Small;
+
+        // BigNeighborCost(); Two big squares next to each other leave no space for lines between them;
+        static double BigNeighborCost((int x, int y) cell, HashSet<(int x, int y)> bigCells) {
+            return 3 * Directions.Count(d => bigCells.Contains((cell.x + d.x, cell.y + d.y)));
+        }
+
+        /* EnclosureCost(); Rooms with most of the 8 cells around them taken can't be left by any line (their squares block
+         * the space between them), so filling the 6th cell around a room, or a cell with 6 rooms around it, costs a lot; */
+        static double EnclosureCost((int x, int y) cell, HashSet<(int x, int y)> used) {
+            const int Limit = 6;
+            const double Cost = 4;
+
+            int Around((int x, int y) c) => Directions.Count(d => used.Contains((c.x + d.x, c.y + d.y)));
+
+            double cost = Around(cell) >= Limit ? Cost : 0;
+
+            foreach ((int dx, int dy) in Directions) {
+                (int x, int y) neighbor = (cell.x + dx, cell.y + dy);
+                if (used.Contains(neighbor) && Around(neighbor) + 1 >= Limit) cost += Cost;
+            }
+
+            return cost;
+        }
+
+        /* SideCost(); How much a cell goes against the sides the doors are on (see MapSides), for the room and each placed neighbor;
+         * Each step of 45° off costs a bit less than a cell of distance, so doors bend the layout without stretching it; */
+        static double SideCost((int x, int y) cell, List<(int x, int y, int? fromNeighbor, int? fromRoom)> neighbors) {
+            const double Weight = 0.7;
+            double cost = 0;
+
+            foreach ((int nx, int ny, int? fromNeighbor, int? fromRoom) in neighbors) {
+                if (cell.x == nx && cell.y == ny) continue;
+
+                if (fromNeighbor is int a) cost += Weight * MapSides.Difference(MapSides.Octant(cell.x - nx, cell.y - ny), a);
+                if (fromRoom is int b) cost += Weight * MapSides.Difference(MapSides.Octant(nx - cell.x, ny - cell.y), b);
+            }
+
+            return cost;
         }
 
         // PlaceAbove(); Places a cluster above the rest of the map, centered over Central Circle;

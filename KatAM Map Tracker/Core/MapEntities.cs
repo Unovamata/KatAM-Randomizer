@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace KatAMMapTracker {
@@ -6,7 +6,7 @@ namespace KatAMMapTracker {
     public enum EntityIcon {
         Cherry, PepBrew, Meat, MaximTomato, Battery, OneUp, InvincibleCandy, MirrorShard, ChestSmall, ChestBig, WarpStar, BigSwitch, FuseCannon,
         MrFrosty, Bonkers, PhanPhan, Batafire, BoxBoxer, Boxy, MasterHandMini, Bombar,
-        Kracko, KingGolem, MasterHand, Gobbler, Wiz, Moley, MegaTitan, DarkMetaKnight, DarkMind,
+        Kracko, KingGolem, MasterHand, Gobbler, Wiz, Moley, MegaTitan, DarkMetaKnight, DarkMind, DarkMindOrb,
 
         // Treasure, as the Collection Room shows it;
         Vitality, SoundPlayer,
@@ -40,11 +40,15 @@ namespace KatAMMapTracker {
      * • Treasure sprites (sprays, music, maps, Vitality, Sound Player) come from the Collection Room, which shows them as
      *   16x16 sprites (Japanese tiles at 0x7BAEB8 and on, palettes at 0x4A2818 and on); */
     public static class MapEntities {
-        // IconPart; A sprite piece: position in the sprite, size, flips, palette and first tile (Japanese addresses);
-        readonly record struct IconPart(int X, int Y, int Width, int Height, bool FlipH, bool FlipV, int Palette, int Tiles);
+        /* IconPart; A sprite piece: position in the sprite, size, flips, palette and first tile (Japanese addresses).
+         * Bpp8: 8bpp tiles (64 bytes) instead of 4bpp ones, colors read on from the palette (16 colors per palette row); */
+        readonly record struct IconPart(int X, int Y, int Width, int Height, bool FlipH, bool FlipV, int Palette, int Tiles, bool Bpp8 = false);
 
         static IconPart P(int x, int y, int width, int height, int flipH, int flipV, int palette, int tiles) =>
             new IconPart(x, y, width, height, flipH != 0, flipV != 0, palette, tiles);
+
+        static IconPart P8(int x, int y, int width, int height, int palette, int tiles) =>
+            new IconPart(x, y, width, height, false, false, palette, tiles, true);
 
         static readonly Dictionary<EntityIcon, IconPart[]> Icons = new Dictionary<EntityIcon, IconPart[]> {
             [EntityIcon.Cherry] = new[] {
@@ -225,6 +229,12 @@ namespace KatAMMapTracker {
                 P(64, 64, 32, 16, 0, 0, 0x4A2A98, 0x7DD958),
                 P(64, 80, 32, 8, 0, 0, 0x4A2A98, 0x7DDA58),
             },
+            /* Dark Mind's second form: the big eye it turns into after the first form, before the chase (anim 0x39B). The game
+             * draws it as an 8bpp background, 256 tiles in two halves of 8x16 tiles, with palettes 457-458; */
+            [EntityIcon.DarkMindOrb] = new[] {
+                P8(0, 0, 64, 128, 0x4A2B38, 0x83A2F8),
+                P8(64, 0, 64, 128, 0x4A2B38, 0x83C2F8),
+            },
 
             [EntityIcon.Vitality] = new[] { P(0, 0, 16, 16, 0, 0, 0x49F758, 0x603998) },
             [EntityIcon.SoundPlayer] = new[] { P(0, 0, 16, 16, 0, 0, 0x49F758, 0x603A18) },
@@ -267,8 +277,8 @@ namespace KatAMMapTracker {
         // Translations of the Japanese addresses: (start, end, shift) per block, by game code;
         static readonly Dictionary<string, (int start, int end, int shift)[]> TileBlocks = new Dictionary<string, (int, int, int)[]> {
             ["B8KJ"] = new[] { (0, int.MaxValue, 0) },
-            ["B8KE"] = new[] { (0x5F0000, 0x603000, 0x1C0D4), (0x603000, 0x7B0000, 0x1C0D4), (0x7B0000, 0x7BCA00, 0x2BEF4), (0x7BCA00, 0x800000, 0x2CC74) },
-            ["B8KP"] = new[] { (0x5F0000, 0x603000, 0x26098), (0x603000, 0x7B0000, 0x25E18), (0x7B0000, 0x7BCA00, 0x36358), (0x7BCA00, 0x800000, 0x370D8) },
+            ["B8KE"] = new[] { (0x5F0000, 0x603000, 0x1C0D4), (0x603000, 0x7B0000, 0x1C0D4), (0x7B0000, 0x7BCA00, 0x2BEF4), (0x7BCA00, 0x839C00, 0x2CC74), (0x839C00, 0x843000, 0x2FE74) },
+            ["B8KP"] = new[] { (0x5F0000, 0x603000, 0x26098), (0x603000, 0x7B0000, 0x25E18), (0x7B0000, 0x7BCA00, 0x36358), (0x7BCA00, 0x839C00, 0x370D8), (0x839C00, 0x843000, 0x3A2D8) },
         };
 
         static readonly Dictionary<string, (int start, int end, int shift)[]> PaletteBlocks = new Dictionary<string, (int, int, int)[]> {
@@ -337,14 +347,22 @@ namespace KatAMMapTracker {
             for (int p = parts.Length - 1; p >= 0; p--) {
                 IconPart part = parts[p];
                 int palette = Translate(PaletteBlocks, map.GameCode, part.Palette), tiles = Translate(TileBlocks, map.GameCode, part.Tiles);
-                int columns = part.Width / 8, tileCount = columns * (part.Height / 8);
+                int columns = part.Width / 8, tileCount = columns * (part.Height / 8), tileBytes = part.Bpp8 ? 64 : 32;
 
-                if (palette < 0 || tiles < 0 || palette + 32 > rom.Length || tiles + tileCount * 32 > rom.Length) return null;
+                if (palette < 0 || tiles < 0 || palette + 32 > rom.Length || tiles + tileCount * tileBytes > rom.Length) return null;
 
                 for (int t = 0; t < tileCount; t++) {
                     for (int y = 0; y < 8; y++) {
                         for (int x = 0; x < 8; x++) {
-                            int data = rom[tiles + t * 32 + y * 4 + x / 2], color = (x & 1) != 0 ? data >> 4 : data & 15;
+                            int color;
+
+                            if (part.Bpp8) color = rom[tiles + t * 64 + y * 8 + x];
+                            else {
+                                int data = rom[tiles + t * 32 + y * 4 + x / 2];
+                                color = (x & 1) != 0 ? data >> 4 : data & 15;
+                            }
+
+                            if (color == 0 || palette + color * 2 + 1 >= rom.Length) continue;
 
                             if (color == 0) continue;
 
@@ -377,8 +395,8 @@ namespace KatAMMapTracker {
         static readonly Dictionary<int, (EntityIcon icon, string name)> Bosses = new Dictionary<int, (EntityIcon, string)> {
             [0x45] = (EntityIcon.Kracko, "Kracko"), [0x46] = (EntityIcon.KingGolem, "King Golem"), [0x47] = (EntityIcon.MasterHand, "Master Hand & Crazy Hand"),
             [0x48] = (EntityIcon.Gobbler, "Gobbler"), [0x49] = (EntityIcon.Wiz, "Wiz"), [0x4A] = (EntityIcon.Moley, "Moley"), [0x4B] = (EntityIcon.MegaTitan, "Mega Titan"),
-            [0x4E] = (EntityIcon.DarkMetaKnight, "Dark Meta Knight"), [0x4F] = (EntityIcon.DarkMind, "Dark Mind"), [0x50] = (EntityIcon.DarkMind, "Dark Mind"),
-            [0x51] = (EntityIcon.DarkMind, "Dark Mind"), [0x52] = (EntityIcon.DarkMetaKnight, "Dark Meta Knight"),
+            [0x4E] = (EntityIcon.DarkMetaKnight, "Dark Meta Knight"), [0x4F] = (EntityIcon.DarkMind, "Dark Mind"), [0x50] = (EntityIcon.DarkMindOrb, "Dark Mind (2nd form)"),
+            [0x51] = (EntityIcon.DarkMindOrb, "Dark Mind (2nd form)"), [0x52] = (EntityIcon.DarkMetaKnight, "Dark Meta Knight"),
         };
 
         // Classify(); The entity a room object stands for, or null if it isn't worth showing (enemies, doors, scenery...);

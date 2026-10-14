@@ -1,4 +1,4 @@
-# KatAM Map Tracker
+﻿# KatAM Map Tracker
 
 An optional companion window for the KatAM Randomizer. It draws the map of your randomized ROM as you explore it, in the style of the game's pause screen map, using the game's own graphics.
 
@@ -9,6 +9,8 @@ An optional companion window for the KatAM Randomizer. It draws the map of your 
 - Following Kirby pans smoothly to the room he enters, and every room change brings the camera back to him. Zooming eases too.
 - `View > Reveal Entire Map (Spoilers)` shows every room and mirror of the seed, with what you haven't found yet faded, for when you want to go straight to the bosses. It's remembered with the seed's progress.
 - `File > Export Map Image` saves the discovered map, or the entire map, as a PNG.
+- **Original layout**: when the ROM's mirrors are the original ones (an unmodified game, or a randomization that kept the mirrors), rooms are placed where the pause screen's area maps draw them, each area arranged around Rainbow Route like the world map, and the title bar says "(original layout)". Rooms the area maps don't show (tutorial, Dark Mind's rooms...) go next to the rooms they connect to, or in a row above the map.
+- **Exits follow the doors**: every line leaves a room from the side its mirror is on in the room (a door at the left end of a room leaves to the left, one in the ceiling upwards), and arrives at the other room on the side of its door, or where Kirby lands for One-Way mirrors. Randomized layouts also prefer putting neighbors on those sides.
 - **Show on map** (`View > Show on Map`, everything off by default): the in-game sprites of each room's objects, each kind on its own: bosses, mini-bosses, Big Switches, Mirror Shards, chests, items (food, 1UPs...), Fuse Cannons and Warp Stars. They're drawn inside the room as pixel art, all the same size (bosses, mini-bosses and Big Switches bigger), up to four in a 2x2 grid. Hovering the room lists what's in it. Since it reads the ROM, it shows where the randomizer put things.
 - **Chest contents** (`View > Show Chest Contents (Spoilers)`, off by default): chests show what they hold instead of the chest: the item, or the Collection Room sprite of the spray, music sheet, map, Vitality or Sound Player.
 - **Area maps** (`View > Reveal Areas of Found Maps`, off by default): the rooms of every area whose map the save loaded in the emulator holds are shown, faded until visited, like the pause screen does. It follows the loaded save, so switching saves never reveals areas found in another one, and it's never saved with the progress.

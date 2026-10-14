@@ -363,7 +363,8 @@ namespace KatAMMapTracker {
             progress = MapProgress.Load(progressPath, map.Crc32);
             previousRoom = -1;
 
-            Text = $"KatAM Map Tracker - {Path.GetFileName(path)}";
+            // Unmodified mirrors get the game's own map layout (see MapVanilla);
+            Text = $"KatAM Map Tracker - {Path.GetFileName(path)}" + (plan.IsOriginalLayout ? " (original layout)" : "");
             revealAllItem.Checked = progress.RevealAll;
             mapView.SetMap(map, plan, progress);
             UpdateDiscoveryLabel();
