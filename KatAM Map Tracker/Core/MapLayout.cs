@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 
 namespace KatAMMapTracker {
-    // RoomPlacement; Where a room is drawn on the map, in map units. A map unit is one thumbnail pixel;
+    // RoomPlacement; Where a room square is drawn on the map, in map pixels (in-game map tiles are 8 pixels);
     public readonly record struct RoomPlacement(double X, double Y, double Width, double Height) {
         public double CenterX => X + Width / 2;
         public double CenterY => Y + Height / 2;
@@ -14,15 +14,14 @@ namespace KatAMMapTracker {
      *
      * • Central Circle is the root. Rooms are spread in rings by how many mirrors away they are from it.
      * • A force pass pulls connected rooms together and pushes the rest apart.
-     * • A final pass removes overlaps between room thumbnails.
+     * • A final pass removes overlaps and snaps every room to the 8 pixel tile grid, so the in-game line tiles line up.
      * The layout only depends on the ROM data, so it's the same every time the same ROM is opened; */
     public static class MapLayout {
-        // Thumbnail pixels per 8x8 tile;
-        public const int PixelsPerTile = 4;
+        const double RingGap = 48,
+                     EdgeLength = 40,
+                     RoomMargin = 16;
 
-        const double RingGap = 350,
-                     EdgeLength = 220,
-                     RoomMargin = 40;
+        const int Grid = MapGraphics.TileSize;
 
         const int ForceIterations = 400,
                   OverlapIterations = 300;
@@ -32,7 +31,7 @@ namespace KatAMMapTracker {
             Dictionary<int, (double x, double y)> centers = new Dictionary<int, (double x, double y)>();
             Dictionary<int, (double w, double h)> sizes = map.Rooms.ToDictionary(
                 kvp => kvp.Key,
-                kvp => ((double)kvp.Value.Width * PixelsPerTile, (double)kvp.Value.Height * PixelsPerTile));
+                kvp => ((double)MapGraphics.SizeOf(MapGraphics.ShapeOf(kvp.Value)), (double)MapGraphics.SizeOf(MapGraphics.ShapeOf(kvp.Value))));
 
             // Main component from Central Circle, then any room the mirrors don't reach (entered through cannons, stars, etc.);
             List<List<int>> components = new List<List<int>>();
@@ -55,7 +54,10 @@ namespace KatAMMapTracker {
                 placements[room] = new RoomPlacement(centers[room].x - w / 2, centers[room].y - h / 2, w, h);
             }
 
-            foreach (List<int> component in components) RemoveOverlaps(component, placements);
+            foreach (List<int> component in components) {
+                RemoveOverlaps(component, placements);
+                SnapToGrid(component, placements);
+            }
 
             ArrangeComponents(components, placements);
 
@@ -221,6 +223,41 @@ namespace KatAMMapTracker {
             }
         }
 
+        /* SnapToGrid(); Centers every room on the 8 pixel grid; Lines run along room centers, so they fall on tile
+         * boundaries like the in-game map. Rooms that end up overlapping are moved away one grid step at a time; */
+        static void SnapToGrid(List<int> component, Dictionary<int, RoomPlacement> placements) {
+            foreach (int room in component) {
+                RoomPlacement p = placements[room];
+                double centerX = Math.Round(p.CenterX / Grid) * Grid, centerY = Math.Round(p.CenterY / Grid) * Grid;
+                placements[room] = p with { X = centerX - p.Width / 2, Y = centerY - p.Height / 2 };
+            }
+
+            for (int iteration = 0; iteration < OverlapIterations; iteration++) {
+                bool moved = false;
+
+                for (int i = 0; i < component.Count; i++) {
+                    for (int j = i + 1; j < component.Count; j++) {
+                        RoomPlacement a = placements[component[i]], b = placements[component[j]];
+
+                        bool overlaps = a.X < b.X + b.Width + Grid && b.X < a.X + a.Width + Grid &&
+                                        a.Y < b.Y + b.Height + Grid && b.Y < a.Y + a.Height + Grid;
+
+                        if (!overlaps) continue;
+
+                        moved = true;
+                        double dx = b.CenterX - a.CenterX, dy = b.CenterY - a.CenterY;
+
+                        if (Math.Abs(dx) >= Math.Abs(dy)) b = b with { X = b.X + (dx >= 0 ? Grid : -Grid) };
+                        else b = b with { Y = b.Y + (dy >= 0 ? Grid : -Grid) };
+
+                        placements[component[j]] = b;
+                    }
+                }
+
+                if (!moved) break;
+            }
+        }
+
         // ArrangeComponents(); Lines up the components that aren't connected to Central Circle under the main one;
         static void ArrangeComponents(List<List<int>> components, Dictionary<int, RoomPlacement> placements) {
             if (components.Count < 2) return;
@@ -230,7 +267,7 @@ namespace KatAMMapTracker {
                 component.Max(r => placements[r].X + placements[r].Width), component.Max(r => placements[r].Y + placements[r].Height));
 
             var main = Bounds(components[0]);
-            double cursorX = main.minX, cursorY = main.maxY + RingGap, rowHeight = 0;
+            double cursorX = Math.Round(main.minX / Grid) * Grid, cursorY = Math.Round((main.maxY + RingGap) / Grid) * Grid, rowHeight = 0;
 
             foreach (List<int> component in components.Skip(1)) {
                 var bounds = Bounds(component);
@@ -238,7 +275,7 @@ namespace KatAMMapTracker {
 
                 if (cursorX + width > main.maxX && cursorX > main.minX) {
                     cursorX = main.minX;
-                    cursorY += rowHeight + RoomMargin * 2;
+                    cursorY += Math.Ceiling((rowHeight + RoomMargin * 2) / Grid) * Grid;
                     rowHeight = 0;
                 }
 
@@ -247,7 +284,7 @@ namespace KatAMMapTracker {
                     placements[room] = p with { X = p.X - bounds.minX + cursorX, Y = p.Y - bounds.minY + cursorY };
                 }
 
-                cursorX += width + RoomMargin * 2;
+                cursorX += Math.Ceiling((width + RoomMargin * 2) / Grid) * Grid;
                 rowHeight = Math.Max(rowHeight, height);
             }
         }

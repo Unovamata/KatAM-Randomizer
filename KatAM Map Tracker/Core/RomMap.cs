@@ -33,6 +33,12 @@ namespace KatAMMapTracker {
         public int Id { get; init; }
         public int ShortIndex { get; init; }
 
+        // Room parameter +0x00; Area/theme of the room. 4 are the hubs, 0x25 the boss & goal game rooms;
+        public int Area { get; init; }
+
+        public bool IsHub => Area == 4;
+        public bool IsPathEnder => Area == 0x25;
+
         // Room size in 8x8 tiles;
         public int Width { get; init; }
         public int Height { get; init; }
@@ -48,7 +54,8 @@ namespace KatAMMapTracker {
      * • Cover data (objects): pointer table at 0xD2E74C + short * 4. Doors are objects of type 3:
      *   +2 X, +3 Y (16px units), +4 object size, +8 destination room.
      * • Room appearance: pointer table at 0xD2F93C + short * 4. +0 width, +2 height (8px tiles), +0x18 tilemap.
-     * • Palettes: 0xD2E6A4 + palette * 4. Tilesets: 0xD2FDB8 + tileset * 4. Both LZ77 compressed but palettes; */
+     * • Palettes: 0xD2E6A4 + palette * 4. Tilesets: 0xD2FDB8 + tileset * 4. Both LZ77 compressed but palettes.
+     * • Long room parameter +0x00: area/theme (4 = hubs, 0x25 = boss & goal game rooms). +0x1E: background; */
     public sealed class RomMap {
         const int LongRoomParameters = 0x903338,
                   LongRoomParameterSize = 0x28,
@@ -58,6 +65,8 @@ namespace KatAMMapTracker {
                   RoomAppearanceTable = 0xD2F93C,
                   PaletteTable = 0xD2E6A4,
                   TilesetTable = 0xD2FDB8,
+                  GraphicsTable = 0xD2E5F0,
+                  FirstBackground = 0x614,
                   DoorObjectType = 3;
 
         // Central Circle, the main hub. The map is laid out from it;
@@ -114,7 +123,7 @@ namespace KatAMMapTracker {
 
                 if (width == 0 || height == 0) continue;
 
-                RoomInfo info = new RoomInfo { Id = room, ShortIndex = shortIndex, Width = width, Height = height };
+                RoomInfo info = new RoomInfo { Id = room, ShortIndex = shortIndex, Area = Read16(parameters), Width = width, Height = height };
 
                 ReadDoors(info);
 
@@ -188,16 +197,19 @@ namespace KatAMMapTracker {
             }
         }
 
-        /* RenderRoom(); Renders a room with its in-game graphics as 0xAARRGGBB pixels;
+        /* RenderRoom(); Renders a room with its in-game graphics, background included, as 0xAARRGGBB pixels;
          * pixelsPerTile: 8 for full size; 4, 2 or 1 average the tiles down for thumbnails; */
         public int[] RenderRoom(int roomId, int pixelsPerTile, out int width, out int height) {
             RoomInfo room = Rooms[roomId];
+            int fullWidth = room.Width * 8, fullHeight = room.Height * 8;
+            int[] canvas = new int[fullWidth * fullHeight];
+
             width = room.Width * pixelsPerTile;
             height = room.Height * pixelsPerTile;
 
-            int[] pixels = new int[width * height];
             int parameters = LongRoomParameters + roomId * LongRoomParameterSize;
-            int tilesetIndex = Read16(parameters + 0x14), paletteIndex = Read16(parameters + 0x16);
+            int tilesetIndex = Read16(parameters + 0x14), paletteIndex = Read16(parameters + 0x16),
+                backgroundIndex = Read16(parameters + 0x1E);
 
             int paletteHeader = ReadPointer(PaletteTable + paletteIndex * 4),
                 palette = paletteHeader < 0 ? -1 : ReadPointer(paletteHeader),
@@ -207,59 +219,120 @@ namespace KatAMMapTracker {
             byte[] tileset = GetTileset(tilesetIndex);
             byte[] tilemap = tilemapAddress < 0 ? null : DecompressLZ77(tilemapAddress);
 
-            if (palette < 0 || tileset == null || tilemap == null) return pixels;
+            if (palette < 0 || tileset == null || tilemap == null) return Downsample(canvas, fullWidth, fullHeight, pixelsPerTile);
 
             int[] colors = new int[256];
 
-            for (int i = 0; i < 256; i++) {
-                int color = Read16(palette + i * 2);
-                int r = (color & 0x1F) * 255 / 31, g = ((color >> 5) & 0x1F) * 255 / 31, b = ((color >> 10) & 0x1F) * 255 / 31;
+            for (int i = 0; i < 256; i++) colors[i] = ToArgb(Read16(palette + i * 2));
 
-                colors[i] = unchecked((int)0xFF000000) | (r << 16) | (g << 8) | b;
-            }
+            Array.Fill(canvas, colors[0]);
 
-            int step = 8 / pixelsPerTile;
-            int[] tile = new int[64];
+            DrawBackground(canvas, fullWidth, fullHeight, backgroundIndex, colors);
+            DrawLayer(canvas, fullWidth, fullHeight, tileset, tilemap, room.Width, room.Height, colors, true, false);
 
-            for (int i = 0; i < room.Width * room.Height && i * 2 + 1 < tilemap.Length; i++) {
-                int entry = tilemap[i * 2] | (tilemap[i * 2 + 1] << 8);
-                int character = entry & 0x3FF, paletteRow = entry >> 12;
-                bool flipX = (entry & 0x400) != 0, flipY = (entry & 0x800) != 0;
+            return Downsample(canvas, fullWidth, fullHeight, pixelsPerTile);
+        }
 
-                // Decoding the 4bpp tile;
-                for (int y = 0; y < 8; y++) {
-                    for (int x = 0; x < 8; x++) {
-                        int offset = character * 32 + y * 4 + x / 2;
-                        int value = offset < tileset.Length ? tileset[offset] : 0;
-                        int index = (x & 1) != 0 ? value >> 4 : value & 0xF;
+        /* DrawBackground(); Draws the room's background layer (BG0 in-game), repeated to fill the room;
+         * Room parameter +0x1E selects the background: entry 0x614 + index of the graphics table at 0xD2E5F0.
+         * Background header: +0 width, +2 height (tiles), +8 tileset (LZ77), +0x10 palette, +0x14 first color,
+         * +0x16 color count, +0x18 tilemap (uncompressed); */
+        void DrawBackground(int[] canvas, int width, int height, int backgroundIndex, int[] roomColors) {
+            if (backgroundIndex == 0xFFFF) return;
 
-                        tile[(flipY ? 7 - y : y) * 8 + (flipX ? 7 - x : x)] = colors[paletteRow * 16 + index];
-                    }
-                }
+            int header = ReadPointer(GraphicsTable + (FirstBackground + backgroundIndex) * 4);
 
-                int tileX = (i % room.Width) * pixelsPerTile, tileY = (i / room.Width) * pixelsPerTile;
+            if (header < 0) return;
 
-                // Averaging the tile down to the requested size;
-                for (int y = 0; y < pixelsPerTile; y++) {
-                    for (int x = 0; x < pixelsPerTile; x++) {
-                        int r = 0, g = 0, b = 0;
+            int mapWidth = Read16(header), mapHeight = Read16(header + 2);
+            int tilesAddress = ReadPointer(header + 8), paletteAddress = ReadPointer(header + 0x10),
+                tilemapAddress = ReadPointer(header + 0x18);
+            int firstColor = Read16(header + 0x14), colorCount = Read16(header + 0x16);
 
-                        for (int sy = 0; sy < step; sy++) {
-                            for (int sx = 0; sx < step; sx++) {
-                                int color = tile[(y * step + sy) * 8 + x * step + sx];
-                                r += (color >> 16) & 0xFF;
-                                g += (color >> 8) & 0xFF;
-                                b += color & 0xFF;
-                            }
+            if (mapWidth == 0 || mapHeight == 0 || tilesAddress < 0 || paletteAddress < 0 || tilemapAddress < 0) return;
+            if (firstColor + colorCount > 256 || tilemapAddress + mapWidth * mapHeight * 2 > Rom.Length) return;
+
+            byte[] tiles = DecompressLZ77(tilesAddress);
+
+            if (tiles == null) return;
+
+            int[] colors = (int[])roomColors.Clone();
+
+            for (int i = 0; i < colorCount; i++) colors[firstColor + i] = ToArgb(Read16(paletteAddress + i * 2));
+
+            byte[] tilemap = new byte[mapWidth * mapHeight * 2];
+            Array.Copy(Rom, tilemapAddress, tilemap, 0, tilemap.Length);
+
+            DrawLayer(canvas, width, height, tiles, tilemap, mapWidth, mapHeight, colors, false, true);
+        }
+
+        /* DrawLayer(); Draws a 4bpp tile layer;
+         * transparent: color 0 of every palette row is skipped, like the GBA does for upper layers;
+         * repeat: the tilemap repeats to fill the canvas (backgrounds); */
+        static void DrawLayer(int[] canvas, int width, int height, byte[] tiles, byte[] tilemap, int mapWidth, int mapHeight,
+                              int[] colors, bool transparent, bool repeat) {
+            for (int tileY = 0; tileY < height / 8; tileY++) {
+                for (int tileX = 0; tileX < width / 8; tileX++) {
+                    int mapX = repeat ? tileX % mapWidth : tileX, mapY = repeat ? tileY % mapHeight : tileY;
+
+                    if (mapX >= mapWidth || mapY >= mapHeight) continue;
+
+                    int i = mapY * mapWidth + mapX;
+
+                    if (i * 2 + 1 >= tilemap.Length) continue;
+
+                    int entry = tilemap[i * 2] | (tilemap[i * 2 + 1] << 8);
+                    int character = entry & 0x3FF, paletteRow = entry >> 12;
+                    bool flipX = (entry & 0x400) != 0, flipY = (entry & 0x800) != 0;
+
+                    for (int y = 0; y < 8; y++) {
+                        for (int x = 0; x < 8; x++) {
+                            int sourceX = flipX ? 7 - x : x, sourceY = flipY ? 7 - y : y;
+                            int offset = character * 32 + sourceY * 4 + sourceX / 2;
+                            int value = offset < tiles.Length ? tiles[offset] : 0;
+                            int index = (sourceX & 1) != 0 ? value >> 4 : value & 0xF;
+
+                            if (transparent && index == 0) continue;
+
+                            canvas[(tileY * 8 + y) * width + tileX * 8 + x] = colors[paletteRow * 16 + index];
                         }
-
-                        int samples = step * step;
-                        pixels[(tileY + y) * width + tileX + x] = unchecked((int)0xFF000000) | ((r / samples) << 16) | ((g / samples) << 8) | (b / samples);
                     }
                 }
             }
+        }
 
-            return pixels;
+        // Downsample(); Averages the full size image down to pixelsPerTile pixels per 8x8 tile;
+        static int[] Downsample(int[] canvas, int width, int height, int pixelsPerTile) {
+            if (pixelsPerTile >= 8) return canvas;
+
+            int step = 8 / pixelsPerTile, outWidth = width / step, outHeight = height / step, samples = step * step;
+            int[] output = new int[outWidth * outHeight];
+
+            for (int y = 0; y < outHeight; y++) {
+                for (int x = 0; x < outWidth; x++) {
+                    int r = 0, g = 0, b = 0;
+
+                    for (int sy = 0; sy < step; sy++) {
+                        for (int sx = 0; sx < step; sx++) {
+                            int color = canvas[(y * step + sy) * width + x * step + sx];
+                            r += (color >> 16) & 0xFF;
+                            g += (color >> 8) & 0xFF;
+                            b += color & 0xFF;
+                        }
+                    }
+
+                    output[y * outWidth + x] = unchecked((int)0xFF000000) | ((r / samples) << 16) | ((g / samples) << 8) | (b / samples);
+                }
+            }
+
+            return output;
+        }
+
+        // ToArgb(); Converts a GBA BGR555 color to 0xAARRGGBB;
+        public static int ToArgb(int color) {
+            int r = (color & 0x1F) * 255 / 31, g = ((color >> 5) & 0x1F) * 255 / 31, b = ((color >> 10) & 0x1F) * 255 / 31;
+
+            return unchecked((int)0xFF000000) | (r << 16) | (g << 8) | b;
         }
 
         byte[] GetTileset(int tilesetIndex) {

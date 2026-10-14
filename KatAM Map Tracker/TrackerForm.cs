@@ -222,8 +222,10 @@ namespace KatAMMapTracker {
             MessageBox.Show(this,
                 "1. Open the randomized ROM you're playing (File > Open ROM...).\n" +
                 "2. In mGBA 0.10 or newer: Tools > Scripting... > File > Load script, and pick Lua/katam_tracker.lua.\n" +
-                "3. Play! Rooms appear as you enter them, and mirrors as you go through them.\n\n" +
-                "Mouse wheel: zoom.   Drag: move the map.   Double click: center a room.\n" +
+                "3. Play! Rooms appear as you enter them, and lines as you go through their mirrors.\n\n" +
+                "Yellow rooms: every mirror used. Orange rooms: some mirrors left. The pulsing room is where Kirby is.\n" +
+                "Dotted lines: Two-Way mirrors. Arrows: One-Way mirrors.\n\n" +
+                "Mouse wheel: zoom.   Drag: move the map.   Hover: room preview.   Double click: center a room.\n" +
                 "Space: follow Kirby on/off.   F: fit the discovered map.   +/-: zoom.\n\n" +
                 "Progress is saved next to the ROM as <rom>.tracker.json.",
                 "How to use", MessageBoxButtons.OK, MessageBoxIcon.Information);
