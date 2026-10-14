@@ -25,12 +25,14 @@ namespace KatAMMapTracker {
         const double PanDuration = 0.45, ZoomDuration = 0.3; // Seconds;
         const float FadedOpacity = 0.35f;
 
-        /* Dynamic scaling: zoomed out, room squares grow by a number of map pixels on every side (and lines get thicker with them)
-         * until a small room is at least MinRoomScreenSize screen pixels, so the map can be previewed. Zoomed in, everything keeps
-         * its in-game size, which leaves the most space to follow the paths.
+        /* Dynamic scaling: room squares grow by a number of map pixels on every side;
+         * • Zoomed in, they grow ZoomedInGrowth pixels, so they read well, while lines keep their in-game thickness to keep
+         *   the paths easy to follow (lines are routed 16 pixels away from the squares, so they keep a gap).
+         * • Zoomed out, they grow until a small room is at least MinRoomScreenSize screen pixels, so the map can be previewed,
+         *   and lines get thicker with them.
          * Small rooms grow up to MaxSmallRoomGrowth (40 pixel squares on the 48 pixel grid) and big rooms up to MaxBigRoomGrowth,
          * so neighbors never touch; */
-        const double MinRoomScreenSize = 20, MaxSmallRoomGrowth = 12, MaxBigRoomGrowth = 6, LineGrowthShare = 1.0 / 24;
+        const double ZoomedInGrowth = 4, MinRoomScreenSize = 20, MaxSmallRoomGrowth = 12, MaxBigRoomGrowth = 6, LineGrowthShare = 1.0 / 24;
 
         // Soft colors for the regions behind the room clusters, like the in-game map backdrop;
         static readonly Color[] RegionColors = {
@@ -119,17 +121,13 @@ namespace KatAMMapTracker {
 
         bool RevealAll => progress?.RevealAll == true;
 
-        Scene ViewScene => new Scene(RevealAll, true, RoomGrowth, 1 + Math.Min(RoomGrowth, MaxSmallRoomGrowth) * LineGrowthShare);
+        Scene ViewScene => new Scene(RevealAll, true, RoomGrowth, 1 + Math.Min(ZoomedOutGrowth, MaxSmallRoomGrowth) * LineGrowthShare);
 
         // RoomGrowth(); How many map pixels room squares grow on every side at the current zoom;
-        double RoomGrowth {
-            get {
-                if (!DynamicScaling) return 0;
+        double RoomGrowth => DynamicScaling ? Math.Max(ZoomedInGrowth, ZoomedOutGrowth) : 0;
 
-                // Small rooms are 16 map pixels; Zoomed in enough, they're already MinRoomScreenSize and nothing grows;
-                return Math.Max(0, (MinRoomScreenSize / zoom - MapGraphics.TileSize * 2) / 2);
-            }
-        }
+        // ZoomedOutGrowth(); Growth that keeps small rooms (16 map pixels) at least MinRoomScreenSize on screen; 0 when zoomed in;
+        double ZoomedOutGrowth => DynamicScaling ? Math.Max(0, (MinRoomScreenSize / zoom - MapGraphics.TileSize * 2) / 2) : 0;
 
         // RoomBounds(); Where a room square is drawn, grown around its center (up to MaxSmallRoomGrowth or MaxBigRoomGrowth);
         RectangleF RoomBounds(RoomPlacement placement, double growth) {
