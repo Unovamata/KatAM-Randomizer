@@ -91,10 +91,26 @@ namespace KatAMMapTracker {
             set { showEntities = value; Invalidate(); }
         }
 
-        /* Entity icons: up to MaxEntityIcons per room, right of the room square: one or two in a column, fitting in
-         * EntityIconSize map pixels (BigEntityIconSize with a boss or mini-boss), three or four in a smaller 2x2 grid,
-         * which keeps them clear of the neighbor rooms (48 map pixels away); */
-        const int EntityIconSize = 15, BigEntityIconSize = 18, GridEntityIconSize = 12, GridBigEntityIconSize = 15, MaxEntityIcons = 4;
+        bool showChestContents;
+
+        // Chests show what they hold (spoiler) instead of the chest sprite;
+        public bool ShowChestContents {
+            get => showChestContents;
+            set { showChestContents = value; Invalidate(); }
+        }
+
+        HashSet<int> mapRevealedRooms = new HashSet<int>();
+
+        // Rooms revealed by the area maps of the player's save, shown faded like rooms not visited yet;
+        public HashSet<int> MapRevealedRooms {
+            get => mapRevealedRooms;
+            set { mapRevealedRooms = value ?? new HashSet<int>(); areaLayerKey = (-1, false); Invalidate(); }
+        }
+
+        /* Entity icons are drawn inside the room square: a single one takes over the room (SingleEntityIconScale times its
+         * size), two to MaxEntityIcons share a 2x2 grid. They're pixel art: nearest neighbor, at whole screen pixel ratios; */
+        const float SingleEntityIconScale = 1.4f;
+        const int MaxEntityIcons = 4;
 
         Dictionary<int, List<MapEntity>> roomEntities = new Dictionary<int, List<MapEntity>>();
         readonly Dictionary<EntityIcon, Sprite> entitySprites = new Dictionary<EntityIcon, Sprite>();
@@ -360,6 +376,9 @@ namespace KatAMMapTracker {
             if (!changed) return;
 
             RectangleF bounds = RoomBounds(layout[progress.CurrentRoom], RoomGrowth);
+
+            // Entity sprites (and the current room's outline) reach past the square;
+            if (ShowEntities) bounds = RectangleF.Inflate(bounds, bounds.Width * (SingleEntityIconScale - 1) / 2 + 2, bounds.Height * (SingleEntityIconScale - 1) / 2 + 2);
             PointF topLeft = ToScreen(bounds.X, bounds.Y);
             Invalidate(Rectangle.Inflate(Rectangle.Round(new RectangleF(topLeft, new SizeF((float)(bounds.Width * zoom), (float)(bounds.Height * zoom)))), 4, 4));
         }
@@ -392,7 +411,13 @@ namespace KatAMMapTracker {
 
         // ShownRooms(); Rooms a scene draws: the visited ones, or all of them;
         IEnumerable<int> ShownRooms(Scene scene) =>
-            (scene.ShowAll ? (IEnumerable<int>)map.Rooms.Keys : progress.VisitedRooms).Where(layout.ContainsKey);
+            (scene.ShowAll ? (IEnumerable<int>)map.Rooms.Keys : progress.VisitedRooms.Union(mapRevealedRooms)).Where(layout.ContainsKey);
+
+        bool IsShown(Scene scene, int room) => scene.ShowAll || progress.VisitedRooms.Contains(room) || mapRevealedRooms.Contains(room);
+
+        // IsDoorShown(); Found doors, every door with Reveal All, and the doors between rooms an area map reveals;
+        bool IsDoorShown(Scene scene, DoorInfo door) =>
+            scene.ShowAll || progress.IsDoorFound(door) || (mapRevealedRooms.Contains(door.Room) && IsShown(scene, door.Destination));
 
         bool IsFaded(Scene scene, int room) => scene.FadeUndiscovered && !progress.VisitedRooms.Contains(room);
 
@@ -438,41 +463,55 @@ namespace KatAMMapTracker {
             }
         }
 
-        /* DrawEntities(); The sprites of the important objects of a room (one per kind of sprite), in a grid next to its square.
-         * Big sprites (bosses) are scaled down smoothly so they stay readable; Small ones are scaled as pixel art; */
+        /* DrawEntities(); The sprites of the important objects of a room (one per kind of sprite), inside its square: a single
+         * one takes over the room, more share a 2x2 grid. The current room gets a blinking outline, since the sprites cover it; */
         void DrawEntities(Graphics g, Scene scene, int room) {
             if (!roomEntities.TryGetValue(room, out List<MapEntity> entities) || entities.Count == 0) return;
 
-            List<MapEntity> icons = entities.GroupBy(entity => entity.Icon).Select(group => group.First()).Take(MaxEntityIcons).ToList();
+            List<EntityIcon> icons = entities.Select(IconOf).Distinct().Take(MaxEntityIcons).ToList();
             RectangleF square = RoomBounds(layout[room], scene.RoomGrowth);
-            float grow = (float)Math.Min(scene.RoomGrowth, MaxSmallRoomGrowth) * 0.5f;
-            bool hasBig = icons.Any(icon => icon.Kind == EntityKind.Boss || icon.Kind == EntityKind.MiniBoss);
-            int columns = icons.Count <= 2 ? 1 : 2, rows = (icons.Count + columns - 1) / columns;
-            float cell = (columns == 1 ? (hasBig ? BigEntityIconSize : EntityIconSize) : (hasBig ? GridBigEntityIconSize : GridEntityIconSize)) + grow;
-            float left = square.Right + 1, top = square.Y + square.Height / 2 - rows * cell / 2;
             bool faded = IsFaded(scene, room);
+            float screenScale = g.Transform.Elements[0];
 
             GraphicsState state = g.Save();
+            g.InterpolationMode = InterpolationMode.NearestNeighbor;
+            g.PixelOffsetMode = PixelOffsetMode.Half;
 
-            for (int i = 0; i < icons.Count; i++) {
-                Sprite sprite = GetEntitySprite(icons[i].Icon);
+            if (icons.Count == 1) {
+                float size = square.Width * SingleEntityIconScale;
+                DrawPixelArt(g, GetEntitySprite(icons[0]), square.X + square.Width / 2, square.Y + square.Height / 2, size, screenScale, faded);
+            }
+            else {
+                int rows = icons.Count > 2 ? 2 : 1;
+                float cell = square.Width / 2, top = square.Y + square.Height / 2 - rows * cell / 2;
 
-                if (sprite == null) continue;
+                for (int i = 0; i < icons.Count; i++) {
+                    DrawPixelArt(g, GetEntitySprite(icons[i]), square.X + (i % 2 + 0.5f) * cell, top + (i / 2 + 0.5f) * cell, cell, screenScale, faded);
+                }
+            }
 
-                // Items are drawn a bit smaller than bosses in the same cell, so the bosses stand out;
-                bool isBig = icons[i].Kind == EntityKind.Boss || icons[i].Kind == EntityKind.MiniBoss;
-                float box = isBig || !hasBig ? cell : cell * 0.8f;
-                float scale = box / Math.Max(sprite.Width, sprite.Height);
-                float width = sprite.Width * scale, height = sprite.Height * scale;
-                float x = left + i % columns * cell + (cell - width) / 2, y = top + i / columns * cell + (cell - height) / 2;
-
-                // Scaled down on screen: smooth; Scaled up: pixel art;
-                bool isDownscaled = scale * g.Transform.Elements[0] < 1;
-                g.InterpolationMode = isDownscaled ? InterpolationMode.HighQualityBicubic : InterpolationMode.NearestNeighbor;
-                g.DrawImage(GetBitmap(sprite, faded), new RectangleF(x, y, width, height));
+            if (room == progress.CurrentRoom && pulseFrame % 2 == 0) {
+                using Pen pen = new Pen(Color.White, 2 / screenScale);
+                RectangleF outline = RectangleF.Inflate(square, square.Width * (icons.Count == 1 ? (SingleEntityIconScale - 1) / 2 : 0) + 1, square.Height * (icons.Count == 1 ? (SingleEntityIconScale - 1) / 2 : 0) + 1);
+                g.DrawRectangle(pen, outline.X, outline.Y, outline.Width, outline.Height);
             }
 
             g.Restore(state);
+        }
+
+        // IconOf(); The sprite of an entity: what a chest holds when chest contents are shown, else its own sprite;
+        EntityIcon IconOf(MapEntity entity) => ShowChestContents && entity.ContentIcon != null ? entity.ContentIcon.Value : entity.Icon;
+
+        /* DrawPixelArt(); Draws a sprite centered at x, y, fitting in box map pixels, as pixel art: its pixels are scaled to a whole
+         * number of screen pixels (or a whole fraction when it has to shrink), so every pixel stays the same size; */
+        void DrawPixelArt(Graphics g, Sprite sprite, float x, float y, float box, float screenScale, bool faded) {
+            if (sprite == null) return;
+
+            float fit = box * screenScale / Math.Max(sprite.Width, sprite.Height);
+            float pixel = fit >= 1 ? (float)Math.Floor(fit) : 1f / (float)Math.Ceiling(1 / fit);
+            float width = sprite.Width * pixel / screenScale, height = sprite.Height * pixel / screenScale;
+
+            g.DrawImage(GetBitmap(sprite, faded), new RectangleF(x - width / 2, y - height / 2, width, height));
         }
 
         Sprite GetEntitySprite(EntityIcon icon) {
@@ -503,7 +542,7 @@ namespace KatAMMapTracker {
         void DrawConnections(Graphics g, Scene scene) {
             foreach (int room in ShownRooms(scene)) {
                 foreach (DoorInfo door in map.Rooms[room].Doors) {
-                    if (!(scene.ShowAll || progress.IsDoorFound(door)) || !layout.ContainsKey(door.Destination)) continue;
+                    if (!IsDoorShown(scene, door) || !layout.ContainsKey(door.Destination)) continue;
 
                     bool isTwoWay = door.DoorBack != null;
 

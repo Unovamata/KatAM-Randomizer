@@ -16,7 +16,9 @@ namespace KatAMMapTracker {
                                    revealAllItem = new ToolStripMenuItem("Reveal Entire Map (Spoilers)") { CheckOnClick = true },
                                    minimalistItem = new ToolStripMenuItem("Minimalist Mode") { ShortcutKeyDisplayString = "M" },
                                    dynamicScalingItem = new ToolStripMenuItem("Dynamic Scaling") { CheckOnClick = true, Checked = true },
-                                   entitiesItem = new ToolStripMenuItem("Show Items && Bosses") { CheckOnClick = true };
+                                   entitiesItem = new ToolStripMenuItem("Show Items && Bosses") { CheckOnClick = true },
+                                   chestContentsItem = new ToolStripMenuItem("Show Chest Contents (Spoilers)") { CheckOnClick = true },
+                                   mapsItem = new ToolStripMenuItem("Reveal Areas of Found Maps") { CheckOnClick = true };
         MenuStrip menu;
         ToolStrip toolbar;
         StatusStrip statusBar;
@@ -30,6 +32,9 @@ namespace KatAMMapTracker {
         MapProgress progress;
         string romPath, progressPath;
         int previousRoom = -1, lastReportedRoom = -1;
+
+        // Area maps the emulator's loaded save holds (bit n: the map of area n), as last reported by the script;
+        int mapFlags;
         bool isConnected;
 
         static readonly string SettingsFolder = Path.Combine(
@@ -63,6 +68,7 @@ namespace KatAMMapTracker {
             server.RoomReported += (room, sessionStart) => BeginInvokeSafe(() => OnRoomReported(room, sessionStart));
             server.ConnectionChanged += connected => BeginInvokeSafe(() => SetConnected(connected));
             server.ScriptVersionReported += version => BeginInvokeSafe(() => OnScriptVersion(version));
+            server.MapsReported += maps => BeginInvokeSafe(() => OnMapsReported(maps));
 
             try {
                 server.Start();
@@ -118,6 +124,16 @@ namespace KatAMMapTracker {
                 SaveViewSettings();
             };
             view.DropDownItems.Add(entitiesItem);
+            chestContentsItem.CheckedChanged += (s, e) => {
+                mapView.ShowChestContents = chestContentsItem.Checked;
+                SaveViewSettings();
+            };
+            view.DropDownItems.Add(chestContentsItem);
+            mapsItem.CheckedChanged += (s, e) => {
+                UpdateMapRevealedRooms();
+                SaveViewSettings();
+            };
+            view.DropDownItems.Add(mapsItem);
 
             ToolStripMenuItem help = new ToolStripMenuItem("Help");
             help.DropDownItems.Add("How to use...", null, (s, e) => ShowHelp());
@@ -157,7 +173,9 @@ namespace KatAMMapTracker {
                                   SetRevealAll(revealAllItem.Checked);
                               }),
                               scaling = new ToolStripMenuItem("Dynamic Scaling", null, (s, e) => dynamicScalingItem.Checked = !dynamicScalingItem.Checked),
-                              entities = new ToolStripMenuItem("Show Items && Bosses", null, (s, e) => entitiesItem.Checked = !entitiesItem.Checked);
+                              entities = new ToolStripMenuItem("Show Items && Bosses", null, (s, e) => entitiesItem.Checked = !entitiesItem.Checked),
+                              contents = new ToolStripMenuItem("Show Chest Contents (Spoilers)", null, (s, e) => chestContentsItem.Checked = !chestContentsItem.Checked),
+                              maps = new ToolStripMenuItem("Reveal Areas of Found Maps", null, (s, e) => mapsItem.Checked = !mapsItem.Checked);
 
             context.Items.Add(minimalist);
             context.Items.Add(new ToolStripSeparator());
@@ -166,6 +184,8 @@ namespace KatAMMapTracker {
             context.Items.Add(reveal);
             context.Items.Add(scaling);
             context.Items.Add(entities);
+            context.Items.Add(contents);
+            context.Items.Add(maps);
             context.Items.Add(new ToolStripSeparator());
             context.Items.Add("Open ROM...", null, (s, e) => OpenRomDialog());
 
@@ -176,6 +196,8 @@ namespace KatAMMapTracker {
                 reveal.Enabled = progress != null;
                 scaling.Checked = dynamicScalingItem.Checked;
                 entities.Checked = entitiesItem.Checked;
+                contents.Checked = chestContentsItem.Checked;
+                maps.Checked = mapsItem.Checked;
             };
 
             return context;
@@ -207,6 +229,8 @@ namespace KatAMMapTracker {
 
                 if (values.TryGetValue("dynamic_scaling", out string scaling)) dynamicScalingItem.Checked = scaling != "0";
                 if (values.TryGetValue("entities", out string entities)) entitiesItem.Checked = entities == "1";
+                if (values.TryGetValue("chest_contents", out string contents)) chestContentsItem.Checked = contents == "1";
+                if (values.TryGetValue("area_maps", out string maps)) mapsItem.Checked = maps == "1";
                 if (values.TryGetValue("minimalist", out string minimalist) && minimalist == "1") Shown += (s, e) => SetMinimalist(true);
             }
             catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException || exception is ArgumentException) { }
@@ -219,6 +243,8 @@ namespace KatAMMapTracker {
                     $"minimalist={(IsMinimalist ? 1 : 0)}",
                     $"dynamic_scaling={(dynamicScalingItem.Checked ? 1 : 0)}",
                     $"entities={(entitiesItem.Checked ? 1 : 0)}",
+                    $"chest_contents={(chestContentsItem.Checked ? 1 : 0)}",
+                    $"area_maps={(mapsItem.Checked ? 1 : 0)}",
                 });
             }
             catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException) { }
@@ -417,6 +443,19 @@ namespace KatAMMapTracker {
             mapView.ShowHint(message, 12);
         }
 
+        /* OnMapsReported(); The loaded save's area maps changed (a map was found, or another save was loaded). The rooms they
+         * reveal aren't saved with the progress: they follow whatever save is loaded, so switching saves never reveals areas
+         * the player hasn't explored in that save; */
+        void OnMapsReported(int maps) {
+            mapFlags = maps;
+            UpdateMapRevealedRooms();
+        }
+
+        void UpdateMapRevealedRooms() {
+            mapView.MapRevealedRooms = mapsItem.Checked ? AreaMaps.RoomsOf(mapFlags) : new HashSet<int>();
+            UpdateDiscoveryLabel();
+        }
+
         void SetConnected(bool connected) {
             isConnected = connected;
             if (!connected) lastReportedRoom = -1;
@@ -434,7 +473,8 @@ namespace KatAMMapTracker {
             }
 
             int doors = map.Rooms.Values.Sum(r => r.Doors.Count);
-            discoveryLabel.Text = $"Rooms: {progress.VisitedRooms.Count}/{map.Rooms.Count}   Mirrors: {progress.FoundDoors.Count}/{doors}   Zoom: {mapView.Zoom:P0}";
+            string maps = mapsItem.Checked ? $"   Maps: {AreaMaps.CountOf(mapFlags)}" : "";
+            discoveryLabel.Text = $"Rooms: {progress.VisitedRooms.Count}/{map.Rooms.Count}   Mirrors: {progress.FoundDoors.Count}/{doors}{maps}   Zoom: {mapView.Zoom:P0}";
         }
 
         void ShowHelp() {
@@ -448,7 +488,9 @@ namespace KatAMMapTracker {
                 "Space: follow Kirby on/off (it comes back on when Kirby changes rooms).   F: fit the discovered map.   +/-: zoom.\n" +
                 "M: minimalist mode (only the map; Esc leaves it).   Right click the map: options.\n" +
                 "View > Dynamic Scaling keeps rooms and lines readable when zoomed out.\n" +
-                "View > Show Items & Bosses draws the bosses, mini-bosses, mirror shards, switches, treasure and items of every room.\n\n" +
+                "View > Show Items & Bosses draws the bosses, mini-bosses, mirror shards, switches, treasure and items of every room.\n" +
+                "View > Show Chest Contents shows what chests hold instead of the chest (spoilers).\n" +
+                "View > Reveal Areas of Found Maps shows the rooms of every area whose map the loaded save holds.\n\n" +
                 "View > Reveal Entire Map shows the whole seed (spoilers). File > Export Map Image saves the map as a PNG.\n\n" +
                 "Progress is saved next to the ROM as <rom>.tracker.json.",
                 "How to use", MessageBoxButtons.OK, MessageBoxIcon.Information);

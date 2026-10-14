@@ -7,13 +7,21 @@ namespace KatAMMapTracker {
         Cherry, PepBrew, Meat, MaximTomato, Battery, OneUp, InvincibleCandy, MirrorShard, ChestSmall, ChestBig, WarpStar, BigSwitch, FuseCannon,
         MrFrosty, Bonkers, PhanPhan, Batafire, BoxBoxer, Boxy, MasterHandMini, Bombar,
         Kracko, KingGolem, MasterHand, Gobbler, Wiz, Moley, MegaTitan, DarkMetaKnight, DarkMind,
+
+        // Treasure, as the Collection Room shows it;
+        Vitality, SoundPlayer,
+        Spray1, Spray2, Spray3, Spray4, Spray5, Spray6, Spray7, Spray8, Spray9, Spray10, Spray11, Spray12, Spray13, Spray14,
+        Music1, Music2, Music3, Music4, Music5, Music6, Music7, Music8, Music9, Music10,
+        MapTutorial, MapRainbowRoute, MapMoonlightMansion, MapCabbageCavern, MapMustardMountain, MapCarrotCastle,
+        MapOliveOcean, MapPeppermintPalace, MapRadishRuins, MapCandyConstellation,
     }
 
     // EntityKind; What an important object is, in drawing order (the first ones are the most important);
     public enum EntityKind { Boss, MiniBoss, MirrorShard, BigSwitch, Treasure, Item, FuseCannon, WarpStar }
 
-    // MapEntity; An important object of a room: what it is, the sprite drawn for it and its name;
-    public sealed record MapEntity(EntityKind Kind, EntityIcon Icon, string Name);
+    /* MapEntity; An important object of a room: what it is, the sprite drawn for it and its name.
+     * ContentIcon: for chests, the sprite of what they hold (null if unknown), shown when chest contents are spoiled; */
+    public sealed record MapEntity(EntityKind Kind, EntityIcon Icon, string Name, EntityIcon? ContentIcon = null);
 
     /* MapEntities; Which room objects are worth showing on the map (bosses, mini-bosses, mirror shards, big switches, treasure,
      * items, fuse cannons and warp stars), and their in-game sprites, read from the ROM like the rest of the map graphics.
@@ -28,7 +36,9 @@ namespace KatAMMapTracker {
      *   Dimensional Mirror), 0x80 & 0x81 small & big chests (behavior: what they hold), 0x84 Warp Star, 0x86 Big Switch,
      *   0x8A Fuse Cannon.
      * • Chest contents: 0x00-0x05 the items 0x5E-0x63, 0x06 Vitality, 0x0A-0x13 area maps, 0x14-0x21 sprays, 0x28 the
-     *   Sound Player, 0x29-0x32 music, 0x63 the big treasures; */
+     *   Sound Player, 0x29-0x32 music, 0x63 the big treasures.
+     * • Treasure sprites (sprays, music, maps, Vitality, Sound Player) come from the Collection Room, which shows them as
+     *   16x16 sprites (Japanese tiles at 0x7BAEB8 and on, palettes at 0x4A2818 and on); */
     public static class MapEntities {
         // IconPart; A sprite piece: position in the sprite, size, flips, palette and first tile (Japanese addresses);
         readonly record struct IconPart(int X, int Y, int Width, int Height, bool FlipH, bool FlipV, int Palette, int Tiles);
@@ -215,13 +225,50 @@ namespace KatAMMapTracker {
                 P(64, 64, 32, 16, 0, 0, 0x4A2A98, 0x7DD958),
                 P(64, 80, 32, 8, 0, 0, 0x4A2A98, 0x7DDA58),
             },
+
+            [EntityIcon.Vitality] = new[] { P(0, 0, 16, 16, 0, 0, 0x49F758, 0x603998) },
+            [EntityIcon.SoundPlayer] = new[] { P(0, 0, 16, 16, 0, 0, 0x49F758, 0x603A18) },
+            [EntityIcon.Spray1] = new[] { P(0, 0, 16, 16, 0, 0, 0x4A2818, 0x7BAF38) },
+            [EntityIcon.Spray2] = new[] { P(0, 0, 16, 16, 0, 0, 0x4A2818, 0x7BAFB8) },
+            [EntityIcon.Spray3] = new[] { P(0, 0, 16, 16, 0, 0, 0x4A2838, 0x7BB038) },
+            [EntityIcon.Spray4] = new[] { P(0, 0, 16, 16, 0, 0, 0x4A2858, 0x7BB0B8) },
+            [EntityIcon.Spray5] = new[] { P(0, 0, 16, 16, 0, 0, 0x4A2878, 0x7BAF38) },
+            [EntityIcon.Spray6] = new[] { P(0, 0, 16, 16, 0, 0, 0x4A2858, 0x7BAF38) },
+            [EntityIcon.Spray7] = new[] { P(0, 0, 16, 16, 0, 0, 0x4A2838, 0x7BAF38) },
+            [EntityIcon.Spray8] = new[] { P(0, 0, 16, 16, 0, 0, 0x4A2898, 0x7BAF38) },
+            [EntityIcon.Spray9] = new[] { P(0, 0, 16, 16, 0, 0, 0x4A2898, 0x7BB138) },
+            [EntityIcon.Spray10] = new[] { P(0, 0, 16, 16, 0, 0, 0x4A2858, 0x7BB1B8) },
+            [EntityIcon.Spray11] = new[] { P(0, 0, 16, 16, 0, 0, 0x4A2878, 0x7BB238) },
+            [EntityIcon.Spray12] = new[] { P(0, 0, 16, 16, 0, 0, 0x4A2878, 0x7BB2B8) },
+            [EntityIcon.Spray13] = new[] { P(0, 0, 16, 16, 0, 0, 0x4A2818, 0x7BB338) },
+            [EntityIcon.Spray14] = new[] { P(0, 0, 16, 16, 0, 0, 0x4A28B8, 0x7BAF38) },
+            [EntityIcon.Music1] = new[] { P(0, 0, 16, 16, 0, 0, 0x4A28D8, 0x7BB5B8) },
+            [EntityIcon.Music2] = new[] { P(0, 0, 16, 16, 0, 0, 0x4A28D8, 0x7BB438) },
+            [EntityIcon.Music3] = new[] { P(0, 0, 16, 16, 0, 0, 0x4A28D8, 0x7BB538) },
+            [EntityIcon.Music4] = new[] { P(0, 0, 16, 16, 0, 0, 0x4A28D8, 0x7BB4B8) },
+            [EntityIcon.Music5] = new[] { P(0, 0, 16, 16, 0, 0, 0x4A28F8, 0x7BB7B8) },
+            [EntityIcon.Music6] = new[] { P(0, 0, 16, 16, 0, 0, 0x4A28F8, 0x7BB738) },
+            [EntityIcon.Music7] = new[] { P(0, 0, 16, 16, 0, 0, 0x4A28D8, 0x7BB3B8) },
+            [EntityIcon.Music8] = new[] { P(0, 0, 16, 16, 0, 0, 0x4A28F8, 0x7BB838) },
+            [EntityIcon.Music9] = new[] { P(0, 0, 16, 16, 0, 0, 0x4A28F8, 0x7BB6B8) },
+            [EntityIcon.Music10] = new[] { P(0, 0, 16, 16, 0, 0, 0x4A28F8, 0x7BB638) },
+            [EntityIcon.MapTutorial] = new[] { P(0, 0, 16, 16, 0, 0, 0x4A28D8, 0x7BB8B8) },
+            [EntityIcon.MapRainbowRoute] = new[] { P(0, 0, 16, 16, 0, 0, 0x4A28D8, 0x7BB938) },
+            [EntityIcon.MapMoonlightMansion] = new[] { P(0, 0, 16, 16, 0, 0, 0x4A28D8, 0x7BBA38) },
+            [EntityIcon.MapCabbageCavern] = new[] { P(0, 0, 16, 16, 0, 0, 0x4A28F8, 0x7BBD38) },
+            [EntityIcon.MapMustardMountain] = new[] { P(0, 0, 16, 16, 0, 0, 0x4A28D8, 0x7BB9B8) },
+            [EntityIcon.MapCarrotCastle] = new[] { P(0, 0, 16, 16, 0, 0, 0x4A28F8, 0x7BBCB8) },
+            [EntityIcon.MapOliveOcean] = new[] { P(0, 0, 16, 16, 0, 0, 0x4A28F8, 0x7BBB38) },
+            [EntityIcon.MapPeppermintPalace] = new[] { P(0, 0, 16, 16, 0, 0, 0x4A28D8, 0x7BBAB8) },
+            [EntityIcon.MapRadishRuins] = new[] { P(0, 0, 16, 16, 0, 0, 0x4A28F8, 0x7BBC38) },
+            [EntityIcon.MapCandyConstellation] = new[] { P(0, 0, 16, 16, 0, 0, 0x4A28F8, 0x7BBBB8) },
         };
 
         // Translations of the Japanese addresses: (start, end, shift) per block, by game code;
         static readonly Dictionary<string, (int start, int end, int shift)[]> TileBlocks = new Dictionary<string, (int, int, int)[]> {
             ["B8KJ"] = new[] { (0, int.MaxValue, 0) },
-            ["B8KE"] = new[] { (0x5F0000, 0x603000, 0x1C0D4), (0x603000, 0x7B0000, 0x1C0D4), (0x7B0000, 0x800000, 0x2CC74) },
-            ["B8KP"] = new[] { (0x5F0000, 0x603000, 0x26098), (0x603000, 0x7B0000, 0x25E18), (0x7B0000, 0x800000, 0x370D8) },
+            ["B8KE"] = new[] { (0x5F0000, 0x603000, 0x1C0D4), (0x603000, 0x7B0000, 0x1C0D4), (0x7B0000, 0x7BCA00, 0x2BEF4), (0x7BCA00, 0x800000, 0x2CC74) },
+            ["B8KP"] = new[] { (0x5F0000, 0x603000, 0x26098), (0x603000, 0x7B0000, 0x25E18), (0x7B0000, 0x7BCA00, 0x36358), (0x7BCA00, 0x800000, 0x370D8) },
         };
 
         static readonly Dictionary<string, (int start, int end, int shift)[]> PaletteBlocks = new Dictionary<string, (int, int, int)[]> {
@@ -353,21 +400,30 @@ namespace KatAMMapTracker {
             return null;
         }
 
-        // Chest(); Chests holding an item show the item; The others show the chest, and say what they hold;
-        static MapEntity Chest(bool isBig, int contents) {
-            if (contents <= 0x05) return new MapEntity(EntityKind.Treasure, Items[contents].icon, $"Chest: {Items[contents].name}");
+        static readonly string[] AreaNames = {
+            "Tutorial", "Rainbow Route", "Moonlight Mansion", "Cabbage Cavern", "Mustard Mountain", "Carrot Castle",
+            "Olive Ocean", "Peppermint Palace", "Radish Ruins", "Candy Constellation",
+        };
 
-            string treasure = contents switch {
-                0x06 => "Vitality",
-                >= 0x0A and <= 0x13 => "Area Map",
-                >= 0x14 and <= 0x21 => "Spray Paint",
-                0x28 => "Sound Player",
-                >= 0x29 and <= 0x32 => "Music",
-                0x63 => "Special Treasure",
-                _ => $"Treasure 0x{contents:X2}",
+        /* Chest(); Chests show the chest sprite; Their ContentIcon is what they hold (an item, or the Collection Room sprite of
+         * the treasure), for when chest contents are spoiled; */
+        static MapEntity Chest(bool isBig, int contents) {
+            EntityIcon chest = isBig ? EntityIcon.ChestBig : EntityIcon.ChestSmall;
+            string size = isBig ? "Big" : "Small";
+
+            if (contents <= 0x05) return new MapEntity(EntityKind.Treasure, chest, $"{size} Chest: {Items[contents].name}", Items[contents].icon);
+
+            (string treasure, EntityIcon? icon) = contents switch {
+                0x06 => ("Vitality", EntityIcon.Vitality),
+                >= 0x0A and <= 0x13 => ($"{AreaNames[contents - 0x0A]} Map", EntityIcon.MapTutorial + (contents - 0x0A)),
+                >= 0x14 and <= 0x21 => ($"Spray Paint {contents - 0x13}", EntityIcon.Spray1 + (contents - 0x14)),
+                0x28 => ("Sound Player", EntityIcon.SoundPlayer),
+                >= 0x29 and <= 0x32 => ($"Music Sheet {contents - 0x28}", EntityIcon.Music1 + (contents - 0x29)),
+                0x63 => ("Special Treasure", (EntityIcon?)null),
+                _ => ($"Treasure 0x{contents:X2}", (EntityIcon?)null),
             };
 
-            return new MapEntity(EntityKind.Treasure, isBig ? EntityIcon.ChestBig : EntityIcon.ChestSmall, $"{(isBig ? "Big" : "Small")} Chest: {treasure}");
+            return new MapEntity(EntityKind.Treasure, chest, $"{size} Chest: {treasure}", icon);
         }
 
         // EntitiesOf(); The important objects of a room, the most important first;
