@@ -3,3 +3,8 @@
 .gba
 *.gba
 Documentation/Reflex JP Tools/ReflexViewer001/kagami.gba
+
+# KatAM Map Tracker build output
+KatAM Map Tracker/bin/
+KatAM Map Tracker/obj/
+KatAM Map Tracker/publish/
