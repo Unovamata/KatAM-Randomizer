@@ -83,6 +83,22 @@ namespace KatAMMapTracker {
 
         bool dynamicScaling = true;
 
+        bool showEntities;
+
+        // Shows the in-game sprites of the important objects of every room (bosses, items, treasure...); Off by default;
+        public bool ShowEntities {
+            get => showEntities;
+            set { showEntities = value; Invalidate(); }
+        }
+
+        /* Entity icons: up to MaxEntityIcons per room, right of the room square: one or two in a column, fitting in
+         * EntityIconSize map pixels (BigEntityIconSize with a boss or mini-boss), three or four in a smaller 2x2 grid,
+         * which keeps them clear of the neighbor rooms (48 map pixels away); */
+        const int EntityIconSize = 15, BigEntityIconSize = 18, GridEntityIconSize = 12, GridBigEntityIconSize = 15, MaxEntityIcons = 4;
+
+        Dictionary<int, List<MapEntity>> roomEntities = new Dictionary<int, List<MapEntity>>();
+        readonly Dictionary<EntityIcon, Sprite> entitySprites = new Dictionary<EntityIcon, Sprite>();
+
         // A short message drawn over the map (e.g. how to leave the minimalist mode), until hintUntil;
         string hint;
         DateTime hintUntil;
@@ -149,6 +165,8 @@ namespace KatAMMapTracker {
             progress = mapProgress;
             graphics = map == null ? null : new MapGraphics(map);
             lineColors = map == null ? new Dictionary<string, int>() : MapRoutes.AssignLineColors(map);
+            roomEntities = map == null ? new Dictionary<int, List<MapEntity>>() : map.Rooms.ToDictionary(kvp => kvp.Key, kvp => MapEntities.EntitiesOf(kvp.Value));
+            entitySprites.Clear();
 
             // Clusters are numbered in order so neighbor clusters tend to get different region colors;
             regionOf = new Dictionary<int, int>();
@@ -414,6 +432,53 @@ namespace KatAMMapTracker {
 
             // Faded rooms first, so the discovered ones are drawn over them;
             foreach (int room in ShownRooms(scene).OrderBy(room => IsFaded(scene, room) ? 0 : 1)) DrawRoom(g, scene, room);
+
+            if (ShowEntities) {
+                foreach (int room in ShownRooms(scene).OrderBy(room => IsFaded(scene, room) ? 0 : 1)) DrawEntities(g, scene, room);
+            }
+        }
+
+        /* DrawEntities(); The sprites of the important objects of a room (one per kind of sprite), in a grid next to its square.
+         * Big sprites (bosses) are scaled down smoothly so they stay readable; Small ones are scaled as pixel art; */
+        void DrawEntities(Graphics g, Scene scene, int room) {
+            if (!roomEntities.TryGetValue(room, out List<MapEntity> entities) || entities.Count == 0) return;
+
+            List<MapEntity> icons = entities.GroupBy(entity => entity.Icon).Select(group => group.First()).Take(MaxEntityIcons).ToList();
+            RectangleF square = RoomBounds(layout[room], scene.RoomGrowth);
+            float grow = (float)Math.Min(scene.RoomGrowth, MaxSmallRoomGrowth) * 0.5f;
+            bool hasBig = icons.Any(icon => icon.Kind == EntityKind.Boss || icon.Kind == EntityKind.MiniBoss);
+            int columns = icons.Count <= 2 ? 1 : 2, rows = (icons.Count + columns - 1) / columns;
+            float cell = (columns == 1 ? (hasBig ? BigEntityIconSize : EntityIconSize) : (hasBig ? GridBigEntityIconSize : GridEntityIconSize)) + grow;
+            float left = square.Right + 1, top = square.Y + square.Height / 2 - rows * cell / 2;
+            bool faded = IsFaded(scene, room);
+
+            GraphicsState state = g.Save();
+
+            for (int i = 0; i < icons.Count; i++) {
+                Sprite sprite = GetEntitySprite(icons[i].Icon);
+
+                if (sprite == null) continue;
+
+                // Items are drawn a bit smaller than bosses in the same cell, so the bosses stand out;
+                bool isBig = icons[i].Kind == EntityKind.Boss || icons[i].Kind == EntityKind.MiniBoss;
+                float box = isBig || !hasBig ? cell : cell * 0.8f;
+                float scale = box / Math.Max(sprite.Width, sprite.Height);
+                float width = sprite.Width * scale, height = sprite.Height * scale;
+                float x = left + i % columns * cell + (cell - width) / 2, y = top + i / columns * cell + (cell - height) / 2;
+
+                // Scaled down on screen: smooth; Scaled up: pixel art;
+                bool isDownscaled = scale * g.Transform.Elements[0] < 1;
+                g.InterpolationMode = isDownscaled ? InterpolationMode.HighQualityBicubic : InterpolationMode.NearestNeighbor;
+                g.DrawImage(GetBitmap(sprite, faded), new RectangleF(x, y, width, height));
+            }
+
+            g.Restore(state);
+        }
+
+        Sprite GetEntitySprite(EntityIcon icon) {
+            if (!entitySprites.TryGetValue(icon, out Sprite sprite)) entitySprites[icon] = sprite = MapEntities.Render(map, icon);
+
+            return sprite;
         }
 
         void DrawRoom(Graphics g, Scene scene, int room) {
@@ -579,6 +644,11 @@ namespace KatAMMapTracker {
 
             int found = info.Doors.Count(progress.IsDoorFound);
             string caption = $"Room 0x{room:X}   Mirrors used: {found}/{info.Doors.Count}" + (progress.VisitedRooms.Contains(room) ? "" : "   (not visited)");
+
+            // What's in the room, with counts (e.g. "Cherry x3");
+            if (ShowEntities && roomEntities.TryGetValue(room, out List<MapEntity> entities) && entities.Count > 0) {
+                caption += "\n" + string.Join(", ", entities.GroupBy(entity => entity.Name).Select(group => group.Count() > 1 ? $"{group.Key} x{group.Count()}" : group.Key));
+            }
             Size captionSize = TextRenderer.MeasureText(caption, Font);
 
             int boxWidth = Math.Max(width, captionSize.Width) + 12, boxHeight = height + captionSize.Height + 14;

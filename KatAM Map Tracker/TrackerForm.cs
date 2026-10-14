@@ -15,7 +15,8 @@ namespace KatAMMapTracker {
         readonly ToolStripMenuItem recentMenu = new ToolStripMenuItem("Open Recent"),
                                    revealAllItem = new ToolStripMenuItem("Reveal Entire Map (Spoilers)") { CheckOnClick = true },
                                    minimalistItem = new ToolStripMenuItem("Minimalist Mode") { ShortcutKeyDisplayString = "M" },
-                                   dynamicScalingItem = new ToolStripMenuItem("Dynamic Scaling") { CheckOnClick = true, Checked = true };
+                                   dynamicScalingItem = new ToolStripMenuItem("Dynamic Scaling") { CheckOnClick = true, Checked = true },
+                                   entitiesItem = new ToolStripMenuItem("Show Items && Bosses") { CheckOnClick = true };
         MenuStrip menu;
         ToolStrip toolbar;
         StatusStrip statusBar;
@@ -112,6 +113,11 @@ namespace KatAMMapTracker {
                 SaveViewSettings();
             };
             view.DropDownItems.Add(dynamicScalingItem);
+            entitiesItem.CheckedChanged += (s, e) => {
+                mapView.ShowEntities = entitiesItem.Checked;
+                SaveViewSettings();
+            };
+            view.DropDownItems.Add(entitiesItem);
 
             ToolStripMenuItem help = new ToolStripMenuItem("Help");
             help.DropDownItems.Add("How to use...", null, (s, e) => ShowHelp());
@@ -150,7 +156,8 @@ namespace KatAMMapTracker {
                                   revealAllItem.Checked = !revealAllItem.Checked;
                                   SetRevealAll(revealAllItem.Checked);
                               }),
-                              scaling = new ToolStripMenuItem("Dynamic Scaling", null, (s, e) => dynamicScalingItem.Checked = !dynamicScalingItem.Checked);
+                              scaling = new ToolStripMenuItem("Dynamic Scaling", null, (s, e) => dynamicScalingItem.Checked = !dynamicScalingItem.Checked),
+                              entities = new ToolStripMenuItem("Show Items && Bosses", null, (s, e) => entitiesItem.Checked = !entitiesItem.Checked);
 
             context.Items.Add(minimalist);
             context.Items.Add(new ToolStripSeparator());
@@ -158,6 +165,7 @@ namespace KatAMMapTracker {
             context.Items.Add(new ToolStripMenuItem("Fit Map", null, (s, e) => mapView.FitToDiscovered()) { ShortcutKeyDisplayString = "F" });
             context.Items.Add(reveal);
             context.Items.Add(scaling);
+            context.Items.Add(entities);
             context.Items.Add(new ToolStripSeparator());
             context.Items.Add("Open ROM...", null, (s, e) => OpenRomDialog());
 
@@ -167,6 +175,7 @@ namespace KatAMMapTracker {
                 reveal.Checked = revealAllItem.Checked;
                 reveal.Enabled = progress != null;
                 scaling.Checked = dynamicScalingItem.Checked;
+                entities.Checked = entitiesItem.Checked;
             };
 
             return context;
@@ -197,6 +206,7 @@ namespace KatAMMapTracker {
                     .ToDictionary(parts => parts[0].Trim(), parts => parts[1].Trim());
 
                 if (values.TryGetValue("dynamic_scaling", out string scaling)) dynamicScalingItem.Checked = scaling != "0";
+                if (values.TryGetValue("entities", out string entities)) entitiesItem.Checked = entities == "1";
                 if (values.TryGetValue("minimalist", out string minimalist) && minimalist == "1") Shown += (s, e) => SetMinimalist(true);
             }
             catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException || exception is ArgumentException) { }
@@ -208,6 +218,7 @@ namespace KatAMMapTracker {
                 File.WriteAllLines(ViewSettingsFile, new[] {
                     $"minimalist={(IsMinimalist ? 1 : 0)}",
                     $"dynamic_scaling={(dynamicScalingItem.Checked ? 1 : 0)}",
+                    $"entities={(entitiesItem.Checked ? 1 : 0)}",
                 });
             }
             catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException) { }
@@ -436,7 +447,8 @@ namespace KatAMMapTracker {
                 "Mouse wheel: zoom.   Drag: move the map.   Hover: room preview.   Double click: center a room.\n" +
                 "Space: follow Kirby on/off (it comes back on when Kirby changes rooms).   F: fit the discovered map.   +/-: zoom.\n" +
                 "M: minimalist mode (only the map; Esc leaves it).   Right click the map: options.\n" +
-                "View > Dynamic Scaling keeps rooms and lines readable when zoomed out.\n\n" +
+                "View > Dynamic Scaling keeps rooms and lines readable when zoomed out.\n" +
+                "View > Show Items & Bosses draws the bosses, mini-bosses, mirror shards, switches, treasure and items of every room.\n\n" +
                 "View > Reveal Entire Map shows the whole seed (spoilers). File > Export Map Image saves the map as a PNG.\n\n" +
                 "Progress is saved next to the ROM as <rom>.tracker.json.",
                 "How to use", MessageBoxButtons.OK, MessageBoxIcon.Information);
