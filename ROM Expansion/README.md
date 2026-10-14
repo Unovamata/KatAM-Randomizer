@@ -1,6 +1,6 @@
 # ROM Expansion
 
-Enemies ported from *Kirby: Nightmare in Dream Land* (USA) into *Kirby & the Amazing Mirror* (USA). `KatAMExpansion.cs` applies them.
+Enemies ported from *Kirby: Nightmare in Dream Land* into *Kirby & the Amazing Mirror* (USA). `KatAMExpansion.cs` applies them. The graphics can come from a USA (`A7KE`), Japanese (`A7KJ`, *Hoshi no Kirby: Yume no Izumi Deluxe*) or European (`A7KP`) NiDL ROM: they hold the same data, the Japanese one's frame tables `0x3A8C` further and its descriptors at `0x08742DAC`, the European one's `0x23C7EC` further and at `0x0897B678`. NiDL addresses in these notes and the code are the USA ones.
 
 ## How they fit in
 

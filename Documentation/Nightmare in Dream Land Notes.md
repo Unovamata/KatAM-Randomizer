@@ -1,6 +1,8 @@
 # Kirby: Nightmare in Dream Land (USA, `AGB-A7KE`) — porting notes
 
-Reverse-engineering notes gathered while porting the Broom Hatter (see `ROM Expansion/`). All addresses are NiDL USA unless marked KatAM.
+Reverse-engineering notes gathered while porting enemies (see `ROM Expansion/`). All addresses are NiDL USA unless marked KatAM.
+
+The Japanese (`A7KJ`) and European (`A7KP`) ROMs have the same enemy data: their frame tables are `0x3A8C` / `0x23C7EC` further than the USA ones, and their descriptor tables are at `0x08742DAC` / `0x0897B678`.
 
 ## Engine
 
@@ -24,9 +26,12 @@ Reverse-engineering notes gathered while porting the Broom Hatter (see `ROM Expa
 | `+0x3E` | Bit 15: horizontal flip |
 | `+0x43` | Facing (s8): `1` right, `-1` left |
 | `+0x48` / `+0x4A` | X / Y in pixels (s16) |
+| `+0x00` | Motion function (`0x080656B4` adds the accelerations to the velocities, caps them and moves; 0 freezes the object) |
 | `+0x4C` / `+0x50` | X / Y in 16.16 |
-| `+0x54` / `+0x5C` | X / Y velocity, 16.16 pixels per frame |
-| `+0x60`, `+0x68` | Acceleration / max speed |
+| `+0x54` / `+0x58` | X / Y velocity, 16.16 pixels per frame |
+| `+0x5C` / `+0x60` | X / Y acceleration |
+| `+0x64` / `+0x68` | X / Y speed limit (`0x80000000` none) |
+| `+0x7A` | Set by the collisions when landing |
 | `+0x73` | Variant (from the room object) |
 | `+0x8C` | Pointer to a sub-structure (`+0x1A`: extra sprite frame, e.g. broom dust, `0xFFFF` none) |
 

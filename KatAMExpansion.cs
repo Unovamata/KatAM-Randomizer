@@ -2,7 +2,7 @@
 using System.Text;
 
 namespace KatAMRandomizer {
-    /* KatAMExpansion; ROM Expansion: enemies ported from Kirby: Nightmare in Dream Land (USA, game code A7KE). USA ROMs only.
+    /* KatAMExpansion; ROM Expansion: enemies ported from Kirby: Nightmare in Dream Land (USA, Japanese or European). Kirby & the Amazing Mirror USA ROMs only.
      * The behaviors are re-implemented in C against the KatAM decompilation (see "ROM Expansion/" for the sources and how they're
      * built) and ship compiled in KatAMExpansionCode. The graphics are never shipped: they are read from the player's own NiDL ROM.
      * Every ported enemy is object type 0x31 (the only free regular enemy type); the template's behavior byte picks the enemy
@@ -17,7 +17,6 @@ namespace KatAMRandomizer {
     internal static class KatAMExpansion {
         public const byte NightmareID = 0x31;
 
-        const string NightmareGameCode = "A7KE";
         const int HurtAnimID = 939,                  // First free anim ID (the vanilla table has 939);
                   CodeAddress = 0xF60000, ReservedSize = 0xA0000,
                   SpriteTables = 0x3B909C, SpawnTable = 0x35107C, ObjectParameters = 0x351648, ObjectParameters2 = 0x352AD0;
@@ -25,8 +24,18 @@ namespace KatAMRandomizer {
         // The hit flash's "beq" after comparing the sprite's palette with 15 (0x080857EE), see AddEnemies;
         const int HitFlashBranch = 0x857EE;
 
-        // NiDL (USA): graphics descriptor per enemy (type - 8): tile count (+2), palette (+8), LZ77 tiles (+12);
-        const int NightmareDescriptors = 0x73EEA0;
+        /* NiDL: graphics descriptor per enemy (type - 8): tile count (+2), palette (+8), LZ77 tiles (+12). The frame tables (and every
+         * NiDL address in the enemies' notes) are the USA ones; the Japanese and European ROMs have the same data, moved by FrameShift; */
+        sealed record NightmareRegion(string GameCode, int Descriptors, int FrameShift);
+
+        static readonly NightmareRegion[] NightmareRegions = {
+            new NightmareRegion("A7KE", 0x73EEA0, 0),           // USA;
+            new NightmareRegion("A7KJ", 0x742DAC, 0x3A8C),      // Japan (Hoshi no Kirby: Yume no Izumi Deluxe);
+            new NightmareRegion("A7KP", 0x97B678, 0x23C7EC),    // Europe;
+        };
+
+        static NightmareRegion RegionOf(byte[] rom) => rom == null || rom.Length < 0x800000 ? null
+            : NightmareRegions.FirstOrDefault(region => Encoding.ASCII.GetString(rom, 0xAC, 4) == region.GameCode);
 
         /* HP bar name copies patched to call NidlCopyName (see ApplyNamePatch): where the copy starts, its length (up to the end of
          * its bl CpuSet), the literal it loads the name table from, and whether it has the object's type pointer in ip (else the object in r2); */
@@ -98,8 +107,8 @@ namespace KatAMRandomizer {
             new[] { (0x04, 0), (0x02, 1), (0x02, 2), (0x02, 3), (0x02, 4), (0x05, 5) },   // "S" (Squishy), "lipp" (Blipper), "y" (Scarfy);
             new byte[] { 0x00 });
 
-        public static bool IsNightmareInDreamLand(byte[] rom) =>
-            rom != null && rom.Length >= 0x800000 && Encoding.ASCII.GetString(rom, 0xAC, 4) == NightmareGameCode;
+        // IsNightmareInDreamLand(); A Kirby: Nightmare in Dream Land ROM (USA, Japanese or European);
+        public static bool IsNightmareInDreamLand(byte[] rom) => RegionOf(rom) != null;
 
         // BehaviorsOf(); The behavior bytes of type 0x31 the randomizer may use, for the enemies picked (only the flying ones, or all);
         public static List<byte> BehaviorsOf(IEnumerable<int> enemies, bool flying = false) =>
@@ -112,7 +121,7 @@ namespace KatAMRandomizer {
         /* AddEnemies(); Adds every ported enemy as object type 0x31. Returns null when done, or why it couldn't be done; */
         public static string AddEnemies(byte[] rom, byte[] nightmare) {
             if (RomRegion.Detect(rom) != RomRegion.USA) return "The ROM Expansion only supports the USA version of Kirby & the Amazing Mirror.";
-            if (!IsNightmareInDreamLand(nightmare)) return "That isn't a Kirby: Nightmare in Dream Land (USA) ROM.";
+            if (!IsNightmareInDreamLand(nightmare)) return "That isn't a Kirby: Nightmare in Dream Land ROM.";
 
             for (int i = CodeAddress; i < CodeAddress + ReservedSize; i++) {
                 if (rom[i] != 0xFF) return "The free space used by the ROM Expansion is already in use.";
@@ -121,7 +130,8 @@ namespace KatAMRandomizer {
             List<(Enemy enemy, byte[] palette, List<(byte[] tiles, ushort[] oams, short[] attributes)> frames, byte[] hurt)> built;
 
             try {
-                built = Definitions.Select(e => Build(nightmare, e)).ToList();
+                NightmareRegion region = RegionOf(nightmare);
+                built = Definitions.Select(e => Build(nightmare, region, e)).ToList();
             } catch (Exception exception) when (exception is IndexOutOfRangeException or ArgumentException or InvalidOperationException) {
                 return "The Nightmare in Dream Land ROM doesn't match the USA release.";
             }
@@ -262,8 +272,8 @@ namespace KatAMRandomizer {
 
         /* Build(); The enemy's palette, frames (tiles in 1D order, OAM entries, attributes: oam index, pieces, box width, height,
          * origin x, y) and hurt frame (HurtTiles tiles of 32x32 pixels); */
-        static (Enemy, byte[], List<(byte[], ushort[], short[])>, byte[]) Build(byte[] nightmare, Enemy enemy) {
-            int descriptor = ReadInt(nightmare, NightmareDescriptors + (enemy.Type - 8) * 4) - 0x08000000;
+        static (Enemy, byte[], List<(byte[], ushort[], short[])>, byte[]) Build(byte[] nightmare, NightmareRegion region, Enemy enemy) {
+            int descriptor = ReadInt(nightmare, region.Descriptors + (enemy.Type - 8) * 4) - 0x08000000, frameTable = enemy.FrameTable + region.FrameShift;
             int paletteAddress = ReadInt(nightmare, descriptor + 8) - 0x08000000, tilesAddress = ReadInt(nightmare, descriptor + 12) - 0x08000000;
 
             if (nightmare[tilesAddress] != 0x10) throw new InvalidOperationException("Not LZ77 tiles.");
@@ -276,7 +286,7 @@ namespace KatAMRandomizer {
             List<(byte[], ushort[], short[])> frames = new List<(byte[], ushort[], short[])>();
 
             foreach (Part[] parts in enemy.Frames) {
-                List<(Piece piece, Dictionary<int, int> recolor)> pieces = parts.SelectMany(p => ReadFrame(nightmare, enemy.FrameTable, p.Frame).Select(piece => (piece, p.Recolor))).ToList();
+                List<(Piece piece, Dictionary<int, int> recolor)> pieces = parts.SelectMany(p => ReadFrame(nightmare, frameTable, p.Frame).Select(piece => (piece, p.Recolor))).ToList();
 
                 int halfWidth = pieces.Max(p => Math.Max(-p.piece.X, p.piece.X + p.piece.Width));
                 int top = pieces.Min(p => p.piece.Y), bottom = pieces.Max(p => p.piece.Y + p.piece.Height);
@@ -297,7 +307,7 @@ namespace KatAMRandomizer {
             // Hurt frame: drawn pixel by pixel into 32x32 and cut into tiles;
             int[,] canvas = new int[32, 32];
             foreach (Part part in enemy.Hurt) {
-                foreach (Piece piece in ReadFrame(nightmare, enemy.FrameTable, part.Frame)) {
+                foreach (Piece piece in ReadFrame(nightmare, frameTable, part.Frame)) {
                     byte[] pieceTiles = PieceTiles(tiles, piece, part.Recolor);
                     int columns = piece.Width / 8;
 

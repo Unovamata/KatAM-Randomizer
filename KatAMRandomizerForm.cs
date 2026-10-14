@@ -122,7 +122,7 @@ namespace KatAMRandomizer
 
             // ROM Expansion goes first, so the ROM reader sees the new enemies' parameters like any other's;
             if (settings.NightmareEnemies.Count > 0) {
-                string error = nightmareROM == null ? "Load a Nightmare in Dream Land (USA) ROM in the ROM Expansion tab, or turn its enemies off."
+                string error = nightmareROM == null ? "Load a Nightmare in Dream Land ROM in the ROM Expansion tab, or turn its enemies off."
                                                     : KatAMExpansion.AddEnemies(Processing.ROMData, nightmareROM);
 
                 if (error != null) {
@@ -769,7 +769,7 @@ namespace KatAMRandomizer
                 byte[] rom = File.ReadAllBytes(fileDialog.FileName);
 
                 if (!KatAMExpansion.IsNightmareInDreamLand(rom)) {
-                    MessageBox.Show("That isn't a Kirby: Nightmare in Dream Land (USA) ROM.", "ROM Expansion", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    MessageBox.Show("That isn't a Kirby: Nightmare in Dream Land ROM (USA, Japanese or European).", "ROM Expansion", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     return;
                 }
 
