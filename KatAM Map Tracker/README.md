@@ -2,17 +2,22 @@
 
 An optional companion window for the KatAM Randomizer. It draws the map of your randomized ROM as you explore it, in the style of the game's pause screen map, using the game's own graphics.
 
-- The map is generated from the ROM's (randomized) mirrors, so rooms connected by a mirror are drawn next to each other, wherever they were in the original game.
+- The map is generated from the ROM's (randomized) mirrors, so rooms connected by a mirror are drawn next to each other, wherever they were in the original game. Rooms are grouped in clusters of densely connected rooms, and connections are drawn with straight, 45° and 90° lines like a metro map. The tutorial rooms sit at the top, above Central Circle.
 - Rooms use the in-game map squares: **yellow** once every mirror in the room was used, **orange** while some weren't, and the room Kirby is in **pulses** with the game's own animation. Hubs are big squares, Boss and Goal game rooms big star squares.
-- Lines use the in-game map lines: Two-Way mirrors are dotted lines, One-Way mirrors are chains of arrows pointing the way they go.
-- Discovered rooms are tinted by area, like the colored regions of the in-game map.
+- Lines use the in-game map lines: Two-Way mirrors are dotted lines, One-Way mirrors are chains of arrows pointing the way they go. Lines come in a few colors (the game's purple, re-hued) so connections next to each other don't blend.
+- Each cluster gets a colored region behind it, like the colored areas of the in-game map.
+- Following Kirby pans smoothly to the room he enters.
 - Hovering a room shows a preview of it with its in-game graphics and background, and where its mirrors are (**green** once used, **yellow** if not).
 - Rooms appear once you enter them, and lines once you go through a mirror. Arriving through a Two-Way mirror also reveals the way back.
 - Progress is saved after every discovery to `<your rom>.gba.tracker.json`, next to the ROM. Progress saved for another seed is ignored.
 
+## Building the executable
+
+Run `Build Map Tracker.bat` (it needs the [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)). It creates `publish\KatAM Map Tracker.exe`, a single self-contained executable, with `publish\Lua\katam_tracker.lua` next to it. Players don't need .NET installed to run it.
+
 ## Requirements
 
-- Windows with the .NET 8 Desktop Runtime.
+- Windows.
 - [mGBA](https://mgba.io/) 0.10 or newer (it includes Lua scripting).
 - The Japanese ROM (Hoshi no Kirby: Kagami no Daimeikyuu, `AGB-B8KJ`), randomized or not.
 

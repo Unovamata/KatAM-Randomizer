@@ -10,12 +10,15 @@ namespace KatAMMapTracker {
     // Sprite; An image made of in-game map tiles, as 0xAARRGGBB pixels (transparent where the game draws color 0);
     public sealed record Sprite(int Width, int Height, int[] Pixels);
 
+    // LineSprites; The in-game line and arrow pieces in one color. Diagonals are drawn by rotating the horizontal pieces;
+    public sealed record LineSprites(Sprite Horizontal, Sprite Vertical, Sprite ArrowRight, Sprite ArrowLeft, Sprite ArrowDown, Sprite ArrowUp);
+
     /* MapGraphics; The pause screen map graphics of the game, read from the ROM, to draw the tracker's map like the game does;
      *
      * • Tiles: 256 8bpp tiles at 0x33F688 (the map is an affine BG layer).
      *   Room squares are 2x2 (small) or 4x4 (big) tile blocks, in row order:
      *     Small rooms: 1 (pulsing), 5 (yellow), 9 (orange). Big rooms: 16, 32, 48. Star rooms: 64, 80, 96.
-     *   Lines: 160 over 176 (horizontal), 163 next to 164 (vertical).
+     *   Lines: 160 over 176 (horizontal), 163 next to 164 (vertical). Diagonals rotate the horizontal pieces.
      *   One-Way arrows: 197/213 (right), 193/209 (left), 246|247 (down), 226|227 (up).
      * • Palette: 16 colors at 0x33F588, used by palette rows 0 and 2. Pulsing squares use row 0.
      * • Square pulse: 8 frames at 0x3458AE of [duration, 5 colors] written to colors 2-6 (durations in 1/60 s).
@@ -36,12 +39,10 @@ namespace KatAMMapTracker {
         readonly List<(int duration, int[] colors)> pulseFrames = new List<(int duration, int[] colors)>();
         readonly Dictionary<(RoomShape, RoomStyle, int), Sprite> roomCache = new Dictionary<(RoomShape, RoomStyle, int), Sprite>();
 
-        public Sprite LineHorizontal { get; }
-        public Sprite LineVertical { get; }
-        public Sprite ArrowRight { get; }
-        public Sprite ArrowLeft { get; }
-        public Sprite ArrowDown { get; }
-        public Sprite ArrowUp { get; }
+        // Hues of the line colors; The first one is the game's own purple. The others re-hue it, keeping its shading;
+        static readonly double[] LineHues = { double.NaN, 205, 170, 325, 40, 115 };
+
+        readonly Dictionary<int, LineSprites> lineCache = new Dictionary<int, LineSprites>();
 
         public int PulseFrameCount => pulseFrames.Count;
 
@@ -69,12 +70,45 @@ namespace KatAMMapTracker {
                 pulseFrames.Add((Math.Max(1, Read16(address)), colors));
             }
 
-            LineHorizontal = Compose(new[,] { { 160 }, { 176 } }, basePalette);
-            LineVertical = Compose(new[,] { { 163, 164 } }, basePalette);
-            ArrowRight = Compose(new[,] { { 197 }, { 213 } }, basePalette);
-            ArrowLeft = Compose(new[,] { { 193 }, { 209 } }, basePalette);
-            ArrowDown = Compose(new[,] { { 246, 247 } }, basePalette);
-            ArrowUp = Compose(new[,] { { 226, 227 } }, basePalette);
+        }
+
+        // Lines(); Line and arrow pieces in one of the line colors (0 is the in-game purple);
+        public LineSprites Lines(int color) {
+            color = ((color % LineHues.Length) + LineHues.Length) % LineHues.Length;
+
+            if (lineCache.TryGetValue(color, out LineSprites cached)) return cached;
+
+            int[] palette = (int[])basePalette.Clone();
+
+            if (!double.IsNaN(LineHues[color])) {
+                for (int i = 18; i < 22; i++) palette[i] = WithHue(basePalette[i], LineHues[color]);
+            }
+
+            LineSprites sprites = new LineSprites(
+                Compose(new[,] { { 160 }, { 176 } }, palette),
+                Compose(new[,] { { 163, 164 } }, palette),
+                Compose(new[,] { { 197 }, { 213 } }, palette),
+                Compose(new[,] { { 193 }, { 209 } }, palette),
+                Compose(new[,] { { 246, 247 } }, palette),
+                Compose(new[,] { { 226, 227 } }, palette));
+
+            lineCache[color] = sprites;
+
+            return sprites;
+        }
+
+        // WithHue(); Same color with another hue, keeping its saturation and brightness;
+        static int WithHue(int argb, double hue) {
+            double r = ((argb >> 16) & 0xFF) / 255.0, g = ((argb >> 8) & 0xFF) / 255.0, b = (argb & 0xFF) / 255.0;
+            double max = Math.Max(r, Math.Max(g, b)), min = Math.Min(r, Math.Min(g, b));
+            double saturation = max == 0 ? 0 : (max - min) / max, value = max;
+
+            double h = hue / 60, c = value * saturation, x = c * (1 - Math.Abs(h % 2 - 1)), m = value - c;
+            (double rr, double gg, double bb) = (int)h switch {
+                0 => (c, x, 0.0), 1 => (x, c, 0.0), 2 => (0.0, c, x), 3 => (0.0, x, c), 4 => (x, 0.0, c), _ => (c, 0.0, x),
+            };
+
+            return unchecked((int)0xFF000000) | ((int)((rr + m) * 255) << 16) | ((int)((gg + m) * 255) << 8) | (int)((bb + m) * 255);
         }
 
         public static RoomShape ShapeOf(RoomInfo room) => room.IsHub ? RoomShape.Hub : room.IsPathEnder ? RoomShape.PathEnder : RoomShape.Small;

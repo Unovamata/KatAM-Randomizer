@@ -67,6 +67,8 @@ namespace KatAMMapTracker {
                   TilesetTable = 0xD2FDB8,
                   GraphicsTable = 0xD2E5F0,
                   FirstBackground = 0x614,
+                  CoverObjectType = 1,
+                  FillerTile = 0xF200,
                   DoorObjectType = 3;
 
         // Central Circle, the main hub. The map is laid out from it;
@@ -229,6 +231,7 @@ namespace KatAMMapTracker {
 
             DrawBackground(canvas, fullWidth, fullHeight, backgroundIndex, colors);
             DrawLayer(canvas, fullWidth, fullHeight, tileset, tilemap, room.Width, room.Height, colors, true, false);
+            DrawCoverBlocks(canvas, fullWidth, fullHeight, room, tileset, colors);
 
             return Downsample(canvas, fullWidth, fullHeight, pixelsPerTile);
         }
@@ -266,6 +269,39 @@ namespace KatAMMapTracker {
             DrawLayer(canvas, width, height, tiles, tilemap, mapWidth, mapHeight, colors, false, true);
         }
 
+        /* DrawCoverBlocks(); Draws the blocks placed over the tilemap (breakable blocks, switches, etc.);
+         * The tilemap holds placeholder tiles under them, which look garbled if they aren't covered.
+         * Cover objects are type 1 in the room's object list: +2 X, +3 Y (16px units), +8 four tilemap entries (2x2); */
+        void DrawCoverBlocks(int[] canvas, int width, int height, RoomInfo room, byte[] tileset, int[] colors) {
+            int header = ReadPointer(CoverDataTable + room.ShortIndex * 4);
+            int address = header < 0 ? -1 : ReadPointer(header + 4);
+
+            if (address < 0) return;
+
+            for (int i = 0; i < 1024 && address + 16 <= Rom.Length; i++) {
+                int size = Read16(address + 4);
+
+                if (size == 0) break;
+
+                if (Rom[address] == CoverObjectType) {
+                    byte[] block = new byte[8];
+                    Array.Copy(Rom, address + 8, block, 0, 8);
+
+                    int blockX = Rom[address + 2] * 16, blockY = Rom[address + 3] * 16;
+
+                    for (int quarter = 0; quarter < 4; quarter++) {
+                        int x = blockX + quarter % 2 * 8, y = blockY + quarter / 2 * 8;
+
+                        if (x + 8 > width || y + 8 > height) continue;
+
+                        DrawTile(canvas, width, x, y, tileset, block[quarter * 2] | (block[quarter * 2 + 1] << 8), colors, true);
+                    }
+                }
+
+                address += size;
+            }
+        }
+
         /* DrawLayer(); Draws a 4bpp tile layer;
          * transparent: color 0 of every palette row is skipped, like the GBA does for upper layers;
          * repeat: the tilemap repeats to fill the canvas (backgrounds); */
@@ -282,21 +318,30 @@ namespace KatAMMapTracker {
                     if (i * 2 + 1 >= tilemap.Length) continue;
 
                     int entry = tilemap[i * 2] | (tilemap[i * 2 + 1] << 8);
-                    int character = entry & 0x3FF, paletteRow = entry >> 12;
-                    bool flipX = (entry & 0x400) != 0, flipY = (entry & 0x800) != 0;
 
-                    for (int y = 0; y < 8; y++) {
-                        for (int x = 0; x < 8; x++) {
-                            int sourceX = flipX ? 7 - x : x, sourceY = flipY ? 7 - y : y;
-                            int offset = character * 32 + sourceY * 4 + sourceX / 2;
-                            int value = offset < tiles.Length ? tiles[offset] : 0;
-                            int index = (sourceX & 1) != 0 ? value >> 4 : value & 0xF;
+                    // Filler tile (tile 0x200, palette row 15) used out of the camera's reach; It's left out so it doesn't look garbled;
+                    if (transparent && (entry & 0xF3FF) == FillerTile) continue;
 
-                            if (transparent && index == 0) continue;
+                    DrawTile(canvas, width, tileX * 8, tileY * 8, tiles, entry, colors, transparent);
+                }
+            }
+        }
 
-                            canvas[(tileY * 8 + y) * width + tileX * 8 + x] = colors[paletteRow * 16 + index];
-                        }
-                    }
+        // DrawTile(); Draws one 4bpp tile from a tilemap entry (tile index, flips and palette row);
+        static void DrawTile(int[] canvas, int width, int left, int top, byte[] tiles, int entry, int[] colors, bool transparent) {
+            int character = entry & 0x3FF, paletteRow = entry >> 12;
+            bool flipX = (entry & 0x400) != 0, flipY = (entry & 0x800) != 0;
+
+            for (int y = 0; y < 8; y++) {
+                for (int x = 0; x < 8; x++) {
+                    int sourceX = flipX ? 7 - x : x, sourceY = flipY ? 7 - y : y;
+                    int offset = character * 32 + sourceY * 4 + sourceX / 2;
+                    int value = offset < tiles.Length ? tiles[offset] : 0;
+                    int index = (sourceX & 1) != 0 ? value >> 4 : value & 0xF;
+
+                    if (transparent && index == 0) continue;
+
+                    canvas[(top + y) * width + left + x] = colors[paletteRow * 16 + index];
                 }
             }
         }
