@@ -44,6 +44,9 @@ namespace KatAM_Randomizer {
         // Doors in rooms listed as unsafe may not be reachable, so the logic never relies on them to keep exploring;
         public bool IsReliable { get; set; } = true;
 
+        // Doors in mini hubs. They are never linked between themselves, so every mini hub mirror leads to a level room;
+        public bool IsHubDoor { get; set; }
+
         // Vanilla door at the other side of a Two-Way mirror. Its data is what lands Kirby in front of this door;
         public MirrorDoor Partner { get; set; }
 
@@ -66,7 +69,9 @@ namespace KatAM_Randomizer {
     /* MirrorShuffler; Rewires the mirrors keeping a web of logical navigation like the original map;
      *
      * • Mirrors keep their type: Two-Way doors are paired with other Two-Way doors, and One-Way doors
-     *   receive One-Way targets.
+     *   receive One-Way targets. Goal and Boss targets are One-Way targets, so none of them is lost.
+     * • Mini hub doors are Two-Way doors that are never paired between themselves, so they always lead to a
+     *   random room whose door brings Kirby back to the mini hub.
      * • Two-Way doors are paired symmetrically. If door A in room 1 leads to door B in room 2, then door B
      *   leads back to door A in room 1.
      * • A randomized queue holds every unused door in the rooms reachable so far. A door is picked at random,
@@ -276,6 +281,7 @@ namespace KatAM_Randomizer {
                 MirrorDoor other = twoWayPool[i];
 
                 if (other == door || other.Target != null || other.Room == door.Room) return null;
+                if (door.IsHubDoor && other.IsHubDoor) return null;
                 if (!CanLink(door.Room, other.Room) || !CanLink(other.Room, door.Room)) return null;
                 if (mustReachNewRoom && reachedRooms.Contains(other.Room)) return null;
 
@@ -397,9 +403,10 @@ namespace KatAM_Randomizer {
             return roomDoors.Count(door => door != excluded && door.Target == null && door.IsReliable);
         }
 
-        // CanLink(); A room can't point to the same destination room twice, nor to a hub room;
+        /* CanLink(); A room can't point to the same destination room twice, nor to a hub room;
+         * Rooms without mirrors (Goal, Boss) are valid One-Way destinations, as they are path enders; */
         bool CanLink(int room, int destination) {
-            if (isHubRoom(destination) || !roomsWithMirrors.Contains(destination)) return false;
+            if (isHubRoom(destination)) return false;
 
             return !usedDestinations.TryGetValue(room, out HashSet<int> used) || !used.Contains(destination);
         }

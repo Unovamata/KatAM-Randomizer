@@ -493,8 +493,32 @@ namespace KatAM_Randomizer {
         // Rooms the generation doesn't touch;
         const int CarrotCastle8CannonRoom = 0x2E0;
 
+        /* Mini hubs; Hub rooms with mirrors to the levels of an area, reached from Central Circle (0x321)
+         * or from another mini hub. Their mirrors to the levels are randomized, so they lead to a random room
+         * that brings Kirby back to the same mini hub. Mirrors between hubs are never randomized;
+         * 
+         * Central Circle -> 0x24E, 0xBE, 0xC2, 0xC0, 0x316, 0x122, 0x1EA, 0xBF, 0x250
+         * 0x24E -> 0x186, 0xC2 -> 0x24F, 0xC0 -> 0xC1, 0x122 -> 0x123, 0xBF -> 0x37A, 0x250 -> 0x2B2 */
+        static readonly HashSet<int> miniHubRooms = new HashSet<int> {
+            0x24E, 0xBE, 0xC2, 0xC0, 0x316, 0x122, 0x1EA, 0xBF, 0x250,
+            0x186, 0x24F, 0xC1, 0x123, 0x37A, 0x2B2,
+        };
+
+        // IsMainHubRoom(); Vetoed rooms that aren't mini hubs (Central Circle, tutorial, debug & boss endurance rooms);
+        static bool IsMainHubRoom(int room) {
+            return Utils.IsVetoedRoom(room) && !miniHubRooms.Contains(room);
+        }
+
+        // Goal and Boss mirrors join the One-Way shuffle when the Goal Game Mirrors option is randomized;
+        bool arePathEndersShuffled = false;
+
+        bool IsShufflingPathEnders() {
+            return Settings.GoalMirrorRandomization != GenerationOptions.Unchanged &&
+                   Settings.GoalMirrorWarpTypeRandomization != GenerationOptions.Custom;
+        }
+
         /* RandomizeMirrors(); Rewires the mirrors through a randomized queue. See MirrorShuffler for the logic;
-         * Hub, Vetoed, Goal and Boss mirrors keep their vanilla destination; */
+         * Mirrors in Central Circle (except the starting mirror) and mirrors between hubs keep their vanilla destination; */
         void RandomizeMirrors() {
             if (Settings.MirrorRandomization == GenerationOptions.Unchanged) return;
 
@@ -526,16 +550,16 @@ namespace KatAM_Randomizer {
                 if (!reservedDestinations.ContainsKey(mirror.InRoom)) reservedDestinations[mirror.InRoom] = new HashSet<int>();
                 reservedDestinations[mirror.InRoom].Add(mirror.Destination);
 
-                /* Hub mirrors are locked until their area switch is pressed, so they aren't
+                /* Central Circle mirrors are locked until their area switch is pressed, so they aren't
                  * considered as paths in the logic; */
-                if (Utils.IsVetoedRoom(mirror.InRoom)) continue;
+                if (IsMainHubRoom(mirror.InRoom)) continue;
 
                 if (!frozenEdges.ContainsKey(mirror.InRoom)) frozenEdges[mirror.InRoom] = new List<int>();
                 frozenEdges[mirror.InRoom].Add(mirror.Destination);
             }
 
             MirrorShuffler shuffler = new MirrorShuffler(doors, frozenEdges, reservedDestinations,
-                                                         new HashSet<int>(allRoomMirrors.Keys), Utils.IsVetoedRoom);
+                                                         new HashSet<int>(allRoomMirrors.Keys), IsMainHubRoom);
 
             // If selected, the starting mirror would be the 8-way cannon at Carrot Castle;
             MirrorTarget fixedStart = null;
@@ -573,19 +597,15 @@ namespace KatAM_Randomizer {
                 WriteDoorToROM(door.Mirrors, door.NineROMAddresses, door.Target);
                 Console.WriteLine($"Warp 0x{door.Room:X} -> 0x{door.Target.Destination:X} (Vanilla: 0x{door.Destination:X})! X: {door.Target.X} Y: {door.Target.Y} Type: {door.ExitType}");
             }
+
+            arePathEndersShuffled = doors.Any(door => door.Mirrors.Any(m => m.ExitType == ExitType.Goal || m.ExitType == ExitType.Boss));
         }
 
         /* BuildMirrorDoors(); Groups the randomizable mirrors in doors;
          * Every 8ROM object in a room pointing to the same destination shares a 9ROM entry,
          * so they are grouped together and always get the same target; */
         List<MirrorDoor> BuildMirrorDoors() {
-            HashSet<Mirror> candidates = new HashSet<Mirror>(
-                safeOneWayMirrors
-                .Concat(deadEndOneWayMirrors)
-                .Concat(safeTwoWayMirrors)
-                .Concat(deadEndTwoWayMirrors)
-                .Where(IsRandomizableMirror)
-            );
+            HashSet<Mirror> candidates = new HashSet<Mirror>(mirrors.Where(IsRandomizableMirror));
 
             Dictionary<(int room, int destination), MirrorDoor> doorsByKey = new Dictionary<(int room, int destination), MirrorDoor>();
 
@@ -600,10 +620,13 @@ namespace KatAM_Randomizer {
                 // If any 8ROM object of the door can't be randomized, the whole door stays vanilla;
                 if (!groupMirrors.All(candidates.Contains)) continue;
 
-                ExitType exitType = groupMirrors[0].ExitType;
+                // Goal and Boss mirrors are One-Way doors; Their targets can be placed on any One-Way door;
+                ExitType ShuffleType(Mirror m) => m.ExitType == ExitType.Goal || m.ExitType == ExitType.Boss ? ExitType.OneWay : m.ExitType;
+
+                ExitType exitType = ShuffleType(groupMirrors[0]);
 
                 if (exitType != ExitType.OneWay && exitType != ExitType.TwoWay) continue;
-                if (groupMirrors.Any(m => m.ExitType != exitType)) continue;
+                if (groupMirrors.Any(m => ShuffleType(m) != exitType)) continue;
 
                 // Without its 9ROM entry, the 8ROM data has nowhere to point to;
                 List<long> nineROMAddresses = new List<long>();
@@ -625,6 +648,7 @@ namespace KatAM_Randomizer {
                     NineROMAddresses = nineROMAddresses,
                     ExitType = exitType,
                     IsReliable = !Processing.unsafeMirrors.Contains(group.Key.room),
+                    IsHubDoor = miniHubRooms.Contains(group.Key.room),
                 };
             }
 
@@ -647,13 +671,19 @@ namespace KatAM_Randomizer {
         }
 
         bool IsRandomizableMirror(Mirror mirror) {
+            bool isPathEnder = mirror.ExitType == ExitType.Goal || mirror.ExitType == ExitType.Boss;
+
+            if (isPathEnder && !IsShufflingPathEnders()) return false;
+
             return mirror.ExitType != ExitType.Hub &&
-                   !Utils.IsVetoedRoom(mirror.InRoom) &&
-                   !Utils.IsVetoedRoom(mirror.Destination) &&
+                   !IsMainHubRoom(mirror.InRoom) &&
+                   !IsMainHubRoom(mirror.Destination) &&
+                   // Mirrors between hubs are never randomized;
+                   !(miniHubRooms.Contains(mirror.InRoom) && miniHubRooms.Contains(mirror.Destination)) &&
                    mirror.InRoom != CarrotCastle8CannonRoom &&
                    mirror.Destination != CarrotCastle8CannonRoom &&
-                   // Mirrors leading to rooms without mirrors exit through cannons, stars or goals, so they stay vanilla;
-                   allRoomMirrors.ContainsKey(mirror.Destination);
+                   // Mirrors leading to other rooms without mirrors exit through cannons or stars, so they stay vanilla;
+                   (isPathEnder || allRoomMirrors.ContainsKey(mirror.Destination));
         }
 
         // WriteDoorToROM(); Writes the same target to every 8ROM object of a door and its 9ROM entries;
@@ -727,6 +757,9 @@ namespace KatAM_Randomizer {
             bool isRandomizingMirrors = Settings.MirrorRandomization != GenerationOptions.Unchanged;
 
             if (!isRandomizingMirrors) return;
+
+            // Goal and Boss mirrors were already shuffled with the rest of the One-Way mirrors;
+            if (arePathEndersShuffled) return;
 
             bool isRandomizingGoalMirrors = Settings.GoalMirrorRandomization != GenerationOptions.Unchanged,
                  isSettingGoalMirrorsAsBossRooms = Settings.GoalMirrorWarpTypeRandomization == GenerationOptions.Custom;
