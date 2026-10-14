@@ -29,6 +29,10 @@ namespace KatAMMapTracker {
         const double TurnCost45 = 0.6, TurnCost90 = 2.5, UsedCellCost = 0.35;
         const int MaxExpansions = 400000, MaxSidedExpansions = 6000;
 
+        // Sided paths: at most this much longer than the distance between the rooms (in cells), and this many 45° turns in total;
+        const double MaxDetour = 1.3;
+        const int DetourSlack = 6, MaxTurns = 4;
+
         // Connections whose lines leave both rooms from their door's side (see FindSidedPath);
         public int SidedConnections { get; private set; }
 
@@ -226,9 +230,53 @@ namespace KatAMMapTracker {
          * Doors on a straight side of a big square leave from where they are along it. A room without a side keeps the
          * usual route from its center. Returns null when the ports are blocked or can't be joined; */
         List<(int x, int y)> FindSidedPath(RomMap map, int a, int b) {
-            DoorSide? sideA = MapSides.Of(map, a, b), sideB = MapSides.Of(map, b, a);
+            DoorSide? sideA = Facing(map, a, b), sideB = Facing(map, b, a);
 
             if (sideA == null && sideB == null) return null;
+
+            // Both sides, else only one of them, as long as the line stays short and simple (see IsDirect);
+            foreach ((DoorSide? useA, DoorSide? useB) in new[] { (sideA, sideB), (sideA, null), (null, sideB) }) {
+                if (useA == null && useB == null) continue;
+
+                List<(int x, int y)> cells = FindSidedPath(a, b, useA, useB);
+
+                if (cells != null && IsDirect(cells, a, b)) return cells;
+                if (sideA == null || sideB == null) break;
+            }
+
+            return null;
+        }
+
+        // Facing(); Side of 'room' for its connection with 'other', unless it faces away from 'other' (a line leaving it would loop back);
+        DoorSide? Facing(RomMap map, int room, int other) {
+            if (MapSides.Of(map, room, other) is not DoorSide side) return null;
+
+            RoomPlacement from = Layout[room], to = Layout[other];
+            int toward = MapSides.Octant(to.CenterX - from.CenterX, to.CenterY - from.CenterY);
+
+            return MapSides.Difference(MapSides.Octant(side.DX, side.DY), toward) <= 2 ? side : null;
+        }
+
+        /* IsDirect(); A sided path is only worth it when it isn't much longer than the distance between the rooms
+         * and doesn't turn more than half a turn in total (no loops around rooms); */
+        bool IsDirect(List<(int x, int y)> cells, int a, int b) {
+            (int ax, int ay) = CellOf(Layout[a]);
+            (int bx, int by) = CellOf(Layout[b]);
+            int distance = Math.Max(Math.Abs(ax - bx), Math.Abs(ay - by)), turns = 0;
+
+            if (cells.Count - 1 > distance * MaxDetour + DetourSlack) return false;
+
+            for (int i = 1; i + 1 < cells.Count; i++) {
+                int d1 = Array.IndexOf(Directions, (cells[i].x - cells[i - 1].x, cells[i].y - cells[i - 1].y));
+                int d2 = Array.IndexOf(Directions, (cells[i + 1].x - cells[i].x, cells[i + 1].y - cells[i].y));
+
+                turns += MapSides.Difference(d1, d2);
+            }
+
+            return turns <= MaxTurns;
+        }
+
+        List<(int x, int y)> FindSidedPath(int a, int b, DoorSide? sideA, DoorSide? sideB) {
 
             (List<(int x, int y)> lead, int direction)? Port(int room, DoorSide? side) {
                 if (side is not DoorSide s) return null;
