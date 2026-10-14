@@ -499,7 +499,9 @@ namespace KatAM_Randomizer {
             if (Settings.MirrorRandomization == GenerationOptions.Unchanged) return;
 
             if (startingMirror.Destination == -1) {
-                Console.WriteLine("Starting mirror not found, mirrors won't be randomized.");
+                /* The starting mirror is detected by its vanilla warp (0x321 -> 0x65). If it's missing,
+                 * the ROM has most likely been randomized already, so a clean ROM must be used; */
+                Console.WriteLine("Starting mirror (0x321 -> 0x65) not found, mirrors won't be randomized. Please use a clean, unrandomized ROM.");
                 return;
             }
 

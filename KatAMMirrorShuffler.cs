@@ -76,8 +76,8 @@ namespace KatAM_Randomizer {
      *   leaves the queue without a reliable door to continue from. Dead ends are only placed while other exits
      *   remain open. Once every room is reachable, the doors left in the queue are linked between themselves.
      * • A room never holds two mirrors pointing to the same destination room, as that causes the 8ROM/9ROM mismatch;
-     * • Once every door is linked, each room must be reachable from the hub and be able to get back to it.
-     *   Otherwise, the generation is attempted again; */
+     * • Once every door is linked, each room must be reachable from the hub and be able to get back to it,
+     *   either through mirrors or through a path ender (Goal, Boss). Otherwise, the generation is attempted again; */
     internal class MirrorShuffler {
         const int MaxAttempts = 500;
 
@@ -94,7 +94,7 @@ namespace KatAM_Randomizer {
         readonly HashSet<int> roomsWithMirrors;
         readonly Func<int, bool> isHubRoom;
 
-        HashSet<int> reachedRooms, pendingRooms;
+        HashSet<int> reachedRooms, pendingRooms, entryRooms;
         Dictionary<int, HashSet<int>> usedDestinations;
         List<MirrorDoor> doorQueue, twoWayPool;
         List<MirrorTarget> oneWayPool;
@@ -130,6 +130,19 @@ namespace KatAM_Randomizer {
             Dictionary<MirrorDoor, MirrorTarget> bestAssignment = null;
             MirrorTarget bestStart = null;
             int bestStranded = int.MaxValue;
+
+            /* Entry rooms; Rooms no randomized mirror can lead to, as they have no Two-Way doors and no One-Way target
+             * lands in them. The game enters these through hub mirrors or non mirror objects (Ex: Rooms 0xB4, 0xB5),
+             * which aren't randomized, so the logic doesn't need to reach them. Their doors are still randomized; */
+            HashSet<int> oneWayDestinations = new HashSet<int>(doors
+                .Where(door => door.ExitType == ExitType.OneWay)
+                .Select(door => door.Destination));
+
+            if (fixedStart == null) oneWayDestinations.Add(vanillaStart.Destination);
+
+            entryRooms = new HashSet<int>(doorsByRoom
+                .Where(kvp => !oneWayDestinations.Contains(kvp.Key) && kvp.Value.All(door => door.ExitType != ExitType.TwoWay))
+                .Select(kvp => kvp.Key));
 
             for (Attempts = 1; Attempts <= MaxAttempts; Attempts++) {
                 if (!TryLinkDoors(hubRoom, fixedStart, vanillaStart)) continue;
@@ -168,7 +181,7 @@ namespace KatAM_Randomizer {
             twoWayPool = doors.Where(door => door.ExitType == ExitType.TwoWay).ToList();
             oneWayPool = doors.Where(door => door.ExitType == ExitType.OneWay).Select(door => door.VanillaTarget).ToList();
             reachedRooms = new HashSet<int>();
-            pendingRooms = new HashSet<int>(doorsByRoom.Keys);
+            pendingRooms = new HashSet<int>(doorsByRoom.Keys.Where(room => !entryRooms.Contains(room)));
             doorQueue = new List<MirrorDoor>();
             reliableDoorsInQueue = 0;
 
@@ -196,6 +209,9 @@ namespace KatAM_Randomizer {
             while (pendingRooms.Count > 0) {
                 if (!LinkDoorToNewRoom()) return false;
             }
+
+            // Entry rooms are reachable through their vanilla entrances, so their doors join the queue now;
+            foreach (int entryRoom in entryRooms) ReachRoom(entryRoom);
 
             /* Every room is reachable now. The doors left in the queue are picked at random
              * and linked to any of the remaining doors/targets; */
@@ -405,9 +421,9 @@ namespace KatAM_Randomizer {
 
             void AddEdge(int from, int to) {
                 int source = isHubRoom(from) ? HubNode : from;
-                int destination = isHubRoom(to) ? HubNode : to;
-
-                if (destination != HubNode && !roomsWithMirrors.Contains(destination)) return;
+                /* Rooms without mirrors are path enders (Goal minigames, Boss rooms, cannons or stars);
+                 * Once finished, they bring Kirby back to the hub; */
+                int destination = isHubRoom(to) || !roomsWithMirrors.Contains(to) ? HubNode : to;
 
                 if (!edges.ContainsKey(source)) edges[source] = new List<int>();
                 if (!reverseEdges.ContainsKey(destination)) reverseEdges[destination] = new List<int>();
@@ -417,6 +433,8 @@ namespace KatAM_Randomizer {
             }
 
             AddEdge(HubNode, StartTarget.Destination);
+
+            foreach (int entryRoom in entryRooms) AddEdge(HubNode, entryRoom);
 
             foreach (MirrorDoor door in doors) AddEdge(door.Room, door.Target.Destination);
 
