@@ -142,6 +142,15 @@ Most enemies' first frames (0-3) are their hurt frames. Frames are drawn around 
 - `0x0807B200` swings (`0x0807B6E8`) at something within 30x48 pixels while Kirby is further than 63.
 - Frames `0x08752A24`: 0-3 hurt, 4-9 walking, 10-16 slashing.
 
+## Slippy (type `0x22`)
+
+- Spawn `0x08089C98`: put in water (tile attribute 128 or more, `0x080224B0` sets `obj+0x7B` to 3) it starts swimming (state 6, frame 7, heading 0 facing right else 256).
+- Swimming: drift (`0x0808A298`, 6) heads at 0.5 (`0x0806421C(angle, speed)`: polar velocity, 512 a circle, 0 right, 128 down; cosines `0x0872FB30`) for 26 frames, 3 times in 4 30 more, paddles (4, 5, 6, 5, 9: 3, 3, 4, 2, 3 frames), then kicks, one of 3: `0x0808A3C4` (7) at 3.0, 2.0, 1.0; `0x0808A4D0` (8) waits 10 frames (frame 9), then 2.25, 2.0, 1.0, 0.5, again one time in 3; `0x0808A610` (9) waits 10, then 3.2, 2.83, 1.41, 0.71, then 8 one time in 3. Every step lasts 8 frames, frame 7.
+- Kick headings `0x08742862`, 8 per kick, indexed by Kirby's octant (`0x08064314`: 0 below right, more below; 1 below right, more right; 2, 3 below left; 4, 5 above left; 6, 7 above right): straight `128 0 256 128 384 256 0 384`, the other way `0 128 128 256 256 384 384 0`, diagonal `64 64 192 192 320 320 448 448`.
+- Out of the water (`0x08021C14(x, y)`: water at a point; 8 pixels above, `0x0808A36C`) it leaps (`0x0808A110`, 4): bobs 2.0, 1.0 down, 1.0, 2.0 up (4 frames each), then jumps 5.0 up and 1.0 towards Kirby, gravity 0.25 (frames 8, 6, 5). Into the water from a jump (`0x0808A204`, 5): 0.5 forward, heading diagonally down, 40 frames (frame 5). State 10 sinks (gravity 0x1500).
+- Variant 1 (`0x0808A7A8`): faces Kirby, frame 4, nothing else.
+- KatAM: swimmers set `unkC & 1` (the engine kills anything else in water, `sub_0809D710`); the engine has no terrain outside the level's bounds, so they keep themselves inside (`NidlKeepInLevel`); its swimmers stop in the surface's 16 pixel tile, so the port looks 16 pixels up instead of 8.
+
 ## Spawn functions
 
 The master table (`0x0872FF30`) has 8-byte entries, `(kind, spawn function)`, so type `t`'s spawn is at `0x0872FF34 + t * 8`: Chilly `0x08084CD4`, Cool Spook `0x0807EDB4`, Starman `0x08080DD0`, Sword/Blade Knight `0x0807AF58`/`0x0807AF98`, Poppy Bros. Jr. `0x080819B4`/`0x08081F60`/`0x08082008`, Coner `0x0808FA10`, Needlous `0x0807BD20`, Gip `0x0808BDB4`.

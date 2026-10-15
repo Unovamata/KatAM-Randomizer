@@ -6,6 +6,7 @@
  * • Hurt frames: the game picks the type's hurt indexes (0 and 1), which show a generic 32x32 frame drawn from the last
  *   16 tiles of the object's VRAM; each enemy uploads its own hurt frame there (see NidlUploadHurtTiles).
  * • HP bar names: the game's name copies are patched to call NidlCopyName, which looks up the enemy's own name.
+ * • Water: enemies that swim in NiDL swim here too (NidlIsWater, NidlSetHeading); the others sink like KatAM's.
  * • Gravity: the engine's (0x0809A990) is turned off, like KatAM's flying enemies do; each enemy moves up and down like in
  *   NiDL, and the ones that just stand or walk fall with NidlFall.
  * The tables filled by KatAMExpansion.cs (animations, hurt tiles, names) are in gNidlData; */
@@ -87,6 +88,14 @@ void NidlFall(struct Object *);
 void NidlFaceKirby(struct Object *);
 bool32 NidlIsFloor(struct Object *, s32 x, s32 y);
 void NidlStopAtLedge(struct Object *);
+bool32 NidlIsWater(struct Object *, s32 dy);
+void NidlKeepInLevel(struct Object *, s32 bottom);
+void NidlSetHeading(struct Object *, u16 angle, s16 speed);
+u8 NidlKirbyOctant(struct Object *);
+
+/* Water: KatAM sinks (kills) any enemy in water unless base.unkC & 1, so the ones that swim set it (NIDL_SWIMS). Angles are
+ * NiDL's: 512 a circle, 0 right, 128 down; */
+#define NIDL_SWIMS(obj) ((obj)->base.unkC |= 1)
 
 // Enemies;
 void BroomHatterInit(struct NidlObject *);

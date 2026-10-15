@@ -152,6 +152,50 @@ bool32 NidlIsFloor(struct Object *obj, s32 x, s32 y) {
     return (gCollisionAttributes[GetCollisionTile(obj->base.unk56, x >> 12, y >> 12)] & 1) == 0;
 }
 
+// NidlIsWater(); Water dy pixels below the object's position (NiDL looks 8 above it: -8; 0x08021C14);
+bool32 NidlIsWater(struct Object *obj, s32 dy) {
+    s32 y = obj->base.y + dy * 0x100;
+
+    if (obj->base.x < gCurLevelInfo[obj->base.unk56].levelMinPosition.x || obj->base.x > gCurLevelInfo[obj->base.unk56].levelMaxPosition.x
+        || y < gCurLevelInfo[obj->base.unk56].levelMinPosition.y || y > gCurLevelInfo[obj->base.unk56].levelMaxPosition.y)
+        return FALSE;
+    return (gCollisionAttributes[GetCollisionTile(obj->base.unk56, obj->base.x >> 12, y >> 12)] & 2) != 0;
+}
+
+/* NidlKeepInLevel(); Keeps a swimmer's bottom (bottom pixels below its position) inside the level: the engine has no terrain there,
+ * and below it nothing is water; */
+void NidlKeepInLevel(struct Object *obj, s32 bottom) {
+    s32 max = gCurLevelInfo[obj->base.unk56].levelMaxPosition.y - bottom * 0x100;
+
+    if (obj->base.y - obj->base.yspeed > max && obj->base.yspeed < 0) {
+        obj->base.y = max;
+        obj->base.yspeed = 0;
+    }
+}
+
+/* NidlSetHeading(); 0x0806421C: the speed towards a NiDL angle (512 a circle, 0 right, 128 down; only multiples of 64 are used),
+ * turning the sprite with it like NiDL's swimmers (0x0808A880); */
+void NidlSetHeading(struct Object *obj, u16 angle, s16 speed) {
+    static const s16 sCos[8] = { 256, 181, 0, -181, -256, -181, 0, 181 };
+    u8 i = (angle >> 6) & 7;
+
+    obj->base.xspeed = sCos[i] * speed / 256;
+    obj->base.yspeed = -sCos[(i + 6) & 7] * speed / 256;    // sin, Y up;
+    if (sCos[i] > 0) obj->base.flags &= ~1;
+    else if (sCos[i] < 0) obj->base.flags |= 1;
+}
+
+/* NidlKirbyOctant(); 0x08064314: where Kirby is: 0 below right (more below), 1 below right (more to the right), 2 below left
+ * (more to the left), 3 below left (more below), 4 above left (more above), 5 above left (more to the left), 6 above right (more
+ * to the right), 7 above right (more above); */
+u8 NidlKirbyOctant(struct Object *obj) {
+    s32 dx = (obj->kirby3->base.x - obj->base.x) >> 8, dy = (obj->kirby3->base.y - obj->base.y) >> 8;
+    bool8 more = abs(dx) > abs(dy);
+
+    if (dy >= 0) return dx >= 0 ? (more ? 1 : 0) : (more ? 2 : 3);
+    return dx < 0 ? (more ? 5 : 4) : (more ? 6 : 7);
+}
+
 // NidlStopAtLedge(); Stops walking when the floor ends ahead (walls already stop it). A slope going down continues one tile lower;
 void NidlStopAtLedge(struct Object *obj) {
     s32 x, y;

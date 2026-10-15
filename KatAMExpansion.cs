@@ -53,7 +53,8 @@ namespace KatAMRandomizer {
         /* Enemy; A ported enemy: its index (NIDL_* in nidl.h), name, NiDL object type and frame table, its frames (in the order the
          * C code numbers them), its hurt frame, palette changes, the letters of its name and the behavior bytes the randomizer uses; */
         sealed record Enemy(int Index, string Name, int Type, int FrameTable, List<Part[]> Frames, Part[] Hurt,
-                            Dictionary<int, ushort> PaletteChanges, (int type, int letter)[] Glyphs, byte[] Behaviors, byte[] FlyingBehaviors = null);
+                            Dictionary<int, ushort> PaletteChanges, (int type, int letter)[] Glyphs, byte[] Behaviors, byte[] FlyingBehaviors = null,
+                            byte[] WaterBehaviors = null);
 
         public static readonly IReadOnlyList<(int index, string name)> Enemies;
 
@@ -114,11 +115,12 @@ namespace KatAMRandomizer {
             new[] { (0x28, 0), (0x0C, 1), (0x18, 5), (0x18, 6), (0x18, 7), (0x18, 8), (0x04, 4) },   // "B" (Bomber), "u" (Cupie), "bble" (Sir Kibble), "s" (Squishy);
             new byte[] { 0x00, 0x01 });
 
-        // Slippy; Frames: NiDL's 4 (sitting), 5 (blinking, falling), 6 (top of a jump), 8 (jumping). It jumps around on land;
-        static Enemy Slippy() => new Enemy(4, "Slippy", 0x22, 0x752828, new[] { 4, 5, 6, 8 }.Select(f => new[] { new Part(f) }).ToList(),
+        // Slippy; Frames: NiDL's 4 (sitting), 5 (blinking, falling), 6 (top of a jump), 8 (jumping), 7 (swimming), 9 (paddling). It
+        // jumps around on land and swims in water (variant 0, either place); variant 1 sits;
+        static Enemy Slippy() => new Enemy(4, "Slippy", 0x22, 0x752828, new[] { 4, 5, 6, 8, 7, 9 }.Select(f => new[] { new Part(f) }).ToList(),
             new[] { new Part(3) }, new Dictionary<int, ushort>(),
             new[] { (0x04, 0), (0x02, 1), (0x02, 2), (0x02, 3), (0x02, 4), (0x05, 5) },   // "S" (Squishy), "lipp" (Blipper), "y" (Scarfy);
-            new byte[] { 0x00 });
+            new byte[] { 0x00, 0x01 }, WaterBehaviors: new byte[] { 0x00 });
 
         // Kabu; Frames: NiDL's 4 to 12 (spinning 4-11, sitting 12). It spins and jumps around;
         static Enemy Kabu() => new Enemy(5, "Kabu", 0x15, 0x752438, Enumerable.Range(4, 9).Select(f => new[] { new Part(f) }).ToList(),
@@ -166,16 +168,17 @@ namespace KatAMRandomizer {
         // IsNightmareInDreamLand(); A Kirby: Nightmare in Dream Land ROM (USA, Japanese or European);
         public static bool IsNightmareInDreamLand(byte[] rom) => RegionOf(rom) != null;
 
-        // BehaviorsOf(); The behavior bytes of type 0x31 the randomizer may use, for the enemies picked (only the flying ones, or all);
-        public static List<byte> BehaviorsOf(IEnumerable<int> enemies, bool flying = false) =>
-            Definitions.Where(e => enemies.Contains(e.Index))
-                       .SelectMany(e => (flying ? e.FlyingBehaviors ?? Array.Empty<byte>() : e.Behaviors).Select(b => (byte)(e.Index << 4 | b))).ToList();
+        // BehaviorsOf(); The behavior bytes of type 0x31 the randomizer may use, for the enemies picked (only the flying ones, only the
+        // swimming ones, or all);
+        public static List<byte> BehaviorsOf(IEnumerable<int> enemies, bool flying = false, bool water = false) =>
+            BehaviorGroupsOf(enemies, flying, water).SelectMany(group => group).ToList();
 
         /* BehaviorGroupsOf(); The same, one list per enemy (only the enemies that have some), so the randomizer can pick an enemy
          * first and then its variant, and give each enemy as much room in the pool as any of the game's own; */
-        public static List<List<byte>> BehaviorGroupsOf(IEnumerable<int> enemies, bool flying = false) =>
+        public static List<List<byte>> BehaviorGroupsOf(IEnumerable<int> enemies, bool flying = false, bool water = false) =>
             Definitions.Where(e => enemies.Contains(e.Index))
-                       .Select(e => (flying ? e.FlyingBehaviors ?? Array.Empty<byte>() : e.Behaviors).Select(b => (byte)(e.Index << 4 | b)).ToList())
+                       .Select(e => ((water ? e.WaterBehaviors : flying ? e.FlyingBehaviors : e.Behaviors) ?? Array.Empty<byte>())
+                                    .Select(b => (byte)(e.Index << 4 | b)).ToList())
                        .Where(group => group.Count > 0).ToList();
 
         // NameOf(); The ported enemy a behavior byte of type 0x31 picks;

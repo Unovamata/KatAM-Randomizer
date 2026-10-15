@@ -27,7 +27,8 @@ namespace KatAMRandomizer {
              isRandomizingExcludedEnemies,
              isAddingNightmareEnemies;
         protected List<byte> nightmareBehaviors = new List<byte>(), nightmareFlyingBehaviors = new List<byte>();
-        protected List<List<byte>> nightmareGroups = new List<List<byte>>(), nightmareFlyingGroups = new List<List<byte>>();
+        protected List<List<byte>> nightmareGroups = new List<List<byte>>(), nightmareFlyingGroups = new List<List<byte>>(),
+                                   nightmareWaterGroups = new List<List<byte>>();
 
         protected List<byte> underwaterEnemyIDs = new List<byte>();
         protected List<byte> flyingEnemyIDs = new List<byte>();
@@ -68,6 +69,9 @@ namespace KatAMRandomizer {
 
                 // Every ported enemy counts as much as one of the game's own: type 0x31 is in the pools once per enemy;
                 for(int i = 1; i < nightmareFlyingGroups.Count; i++) flyingEnemyIDs.Add(KatAMExpansion.NightmareID);
+
+                // The ones that swim, underwater enemies' places, the same way;
+                for(int i = 0; i < nightmareWaterGroups.Count; i++) underwaterEnemyIDs.Add(KatAMExpansion.NightmareID);
             }
 
             if(enemiesOptions == GenerationOptions.Shuffle) allEntitiesIDs = Utils.Shuffle(allEntitiesIDs);
@@ -89,7 +93,8 @@ namespace KatAMRandomizer {
                 byte id = entity.ID;
 
                 bool isIDAssigned = false,
-                     isFlyingPlace = isRandomizingFlyingEnemiesIntelligently && flyingEnemyIDs.Contains(id);
+                     isFlyingPlace = isRandomizingFlyingEnemiesIntelligently && flyingEnemyIDs.Contains(id),
+                     isUnderwaterPlace = isRandomizingUnderwaterEnemiesIntelligently && underwaterEnemyIDs.Contains(id);
 
                 // Enemies in these rooms keep their vanilla data;
                 if(roomsWithoutEnemyRandomization.Contains(entity.Room)) continue;
@@ -181,7 +186,8 @@ namespace KatAMRandomizer {
                 // ROM Expansion enemies: the behavior picks which one, so it's always one of theirs;
                 if(entity.ID == KatAMExpansion.NightmareID && isAddingNightmareEnemies) {
                     // An enemy first, then one of its variants, so enemies with many variants aren't more common;
-                    List<List<byte>> groups = isFlyingPlace && nightmareFlyingGroups.Count > 0 ? nightmareFlyingGroups : nightmareGroups;
+                    List<List<byte>> groups = isFlyingPlace && nightmareFlyingGroups.Count > 0 ? nightmareFlyingGroups :
+                                              isUnderwaterPlace && nightmareWaterGroups.Count > 0 ? nightmareWaterGroups : nightmareGroups;
                     List<byte> behaviors = groups[Utils.GetRandomRange(0, groups.Count)];
                     entity.Behavior = behaviors[Utils.GetRandomRange(0, behaviors.Count)];
                 }
@@ -288,6 +294,7 @@ namespace KatAMRandomizer {
             nightmareFlyingBehaviors = KatAMExpansion.BehaviorsOf(Settings.NightmareEnemies, true);
             nightmareGroups = KatAMExpansion.BehaviorGroupsOf(Settings.NightmareEnemies);
             nightmareFlyingGroups = KatAMExpansion.BehaviorGroupsOf(Settings.NightmareEnemies, true);
+            nightmareWaterGroups = KatAMExpansion.BehaviorGroupsOf(Settings.NightmareEnemies, water: true);
         }
 
         public void GroupEnemies() {
