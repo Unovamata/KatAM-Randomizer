@@ -200,6 +200,15 @@ Most enemies' first frames (0-3) are their hurt frames. Frames are drawn around 
 | Needlous | `0x08740EE0` | defeated (`0x0807BE9C`) |
 | Blade Knight | `0x08740EC4` | defeated (`0x0807B048`) |
 
+## Kirby and his abilities
+
+- Kirby's object is at `0x03002790` (`[0x03002490]`); `+0x3C` (u16) is the frame he shows, an index into the frame table `0x0874CFEC` (5610 entries; set through `0x08006338`/`0x0800634C`, drawn by `0x0803D55C`).
+- Frame entries: `{ OAM layout | layers, palette, tiles, [palette 2, tiles 2] }`. Bit 0 of the first word marks two layers: the body (palette slot, tiles from the sprite's base) and the ability's hat (the next palette slot, tiles from base + 0x800, i.e. tile 0x40 on). Palettes are a u16 byte count and the colors; tiles are chunks (u16 byte count, data), each one row of 32 tiles further (2D layout), until 0xFFFF; a 0 pointer loads nothing. The OAM layout is the enemies' 8-byte format (`y, attr0 high | 0x10 last, x, attr1 high, flipped x, flipped attr1, tile`).
+- Frames are grouped per ability. Every ability's block starts with the normal Kirby's frames in the same order (`0x00`-`0x75`: stand, walk, slide, run, jump, float...) wearing its hat, followed by its own attack frames; the first block (`0x000`-`0x0F5`) is plain Kirby, `0x11E`-`0x19A` Kirby with a mouthful.
+- Blocks of the abilities ported to KatAM, found by swallowing their enemies (the game shows the ability's card): Needle `0x8E8` (yellow spiky Kirby), Freeze `0xA10` (blue and white hood; the barrier is `0xA86`-`0xA8E`), Hi-Jump `0xA8F` (red and purple cape), Ball `0xC54` (blue cap; rolled up `0xCD0`-`0xCF1`), Light (no hat: plain Kirby; holding the light `0xDFD`-`0xE06`). Others: Fire `0x19A`, Sword `0x3E8`, Burning `0x4E0`, Hammer `0x708`, Parasol `0x7F0`, Ice `0x985`, Beam `0xBB8`, UFO `0xF88`; ability pick-up poses `0x10E0`-`0x11C8`, Meta Knight `0x11C9`.
+- Per-ability code: two 30-entry tables, `0x0873A7BC` and `0x0873A8A8`, ordered as the blocks are (entry 18 is Beam, which sets frames `0xBBD`...).
+- To test an ability in an emulator: room 1-1's first object records (`0x0835DD68`, see Levels) hold a Waddle Doo at records 1 and 4 (index 9); changing their index to another enemy's (type - 8) puts that enemy there, and swallowing it gives its ability.
+
 ## Spawn functions
 
 The master table (`0x0872FF30`) has 8-byte entries, `(kind, spawn function)`, so type `t`'s spawn is at `0x0872FF34 + t * 8`: Chilly `0x08084CD4`, Cool Spook `0x0807EDB4`, Starman `0x08080DD0`, Sword/Blade Knight `0x0807AF58`/`0x0807AF98`, Poppy Bros. Jr. `0x080819B4`/`0x08081F60`/`0x08082008`, Coner `0x0808FA10`, Needlous `0x0807BD20`, Gip `0x0808BDB4`.

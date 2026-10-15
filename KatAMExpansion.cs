@@ -19,7 +19,7 @@ namespace KatAMRandomizer {
      * • HP bar names: the two copies of an enemy's name (USA 0x08034ED2, 0x08035B34) call NidlCopyName instead.
      * • The hit flash keeps the enemy's own palette (USA 0x080857EE), see AddEnemies.
      * Every address differs between versions: KatAMExpansionCode.Versions has each one's (and its own build of the code); */
-    internal static class KatAMExpansion {
+    internal static partial class KatAMExpansion {
         public const byte NightmareID = 0x31;
 
         const int ExpandedSize = 0x2000000, CodeAddress = 0x1000000, ReservedSize = ExpandedSize - CodeAddress;
@@ -418,7 +418,7 @@ namespace KatAMRandomizer {
                 ApplyNamePatch(rom, sites[i], length, sites[i] + literal, fromTypePointer, codeBase + version.NidlCopyName);
             }
 
-            return null;
+            return AddAbilities(rom, version, ref cursor, new Dictionary<string, int[]>());
         }
 
         //////////////////////////////////////////////////////////////////////////////////////////////

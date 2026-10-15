@@ -1,0 +1,60 @@
+/* NiDL abilities; Copy abilities ported from Kirby: Nightmare in Dream Land, as KatAM abilities 27-31 (KatAM has 0-26 and keeps
+ * Kirby's ability in 5 bits, so these are all the room there is):
+ * • Ability tables: KatAMExpansion.cs copies every table KatAM indexes by ability with 27 entries (B button on land and in water,
+ *   setup, hat palette, hats, the CPU helpers' AI) to the expansion with 32, and points the game's code to the copies. The new
+ *   entries come from gNidlAbilityTables, or from the base ability's entries where it has none.
+ * • HUD: the portrait table (gUnk_08D60B64/gUnk_08D60BE4, sub_080356AC) already has 32 entries, but 27-31 are special
+ *   portraits (0x1C-0x1F: hurt and such, set by sub_08088640). Both functions are detoured (KatAMExpansion.cs writes a jump to
+ *   the C function at their start and a trampoline that runs the original): sub_08088640 moves the special portraits to
+ *   0x2C-0x2F, and NidlAbilityPortrait draws the new abilities' portraits and moves those back for the original;
+ * • Graphics (hats, portraits) are built from the NiDL ROM by KatAMExpansion.cs, see gNidlData.abilities; */
+#ifndef GUARD_ABILITIES_H
+#define GUARD_ABILITIES_H
+
+#include "nidl.h"
+#include "constants/kirby.h"
+
+enum {
+    NIDL_ABILITY_NEEDLE = KIRBY_ABILITY_COUNT,
+    NIDL_ABILITY_FREEZE,
+    NIDL_ABILITY_LIGHT,
+    NIDL_ABILITY_BALL,
+    NIDL_ABILITY_HI_JUMP,
+    NIDL_ABILITY_END,
+};
+
+#define NIDL_FIRST_ABILITY NIDL_ABILITY_NEEDLE
+#define NIDL_ABILITY_COUNT (NIDL_ABILITY_END - NIDL_FIRST_ABILITY)
+
+// Special HUD portraits (sub_08088640's, 0x1C-0x1F) are moved up by this;
+#define NIDL_SPECIAL_PORTRAIT_SHIFT 0x10
+
+// NidlAbilityTables; The new abilities' entries in KatAM's ability tables (NULL: the base ability's), read by KatAMExpansion.cs;
+struct NidlAbilityTables {
+    u8 base[NIDL_ABILITY_COUNT];                        // Ability whose entries the new one copies;
+    void (*landB[NIDL_ABILITY_COUNT])(struct Kirby *);  // gUnk_0834C2AC: B on land (or in the air);
+    void (*waterB[NIDL_ABILITY_COUNT])(struct Kirby *); // gUnk_0834C318: B in water;
+    void (*setup[NIDL_ABILITY_COUNT])(struct Kirby *);  // gUnk_083509D0: on getting it (body animations);
+};
+
+extern const struct NidlAbilityTables gNidlAbilityTables;
+
+// NidlAbilityData; Filled in by KatAMExpansion.cs (in nidl_data.c, like gNidlData);
+struct NidlAbilityData {
+    void (*portraitOriginal)(u32, u8, u8);              // Trampolines running the detoured functions;
+    void (*hudTimerOriginal)(struct Kirby *, u8, u16);
+    struct {
+        const u16 *palette;                             // 16 colors;
+        const u8 *tiles;                                // PORTRAIT_SIZE bytes, laid out like KatAM's portraits;
+    } portraits[NIDL_ABILITY_COUNT];
+};
+
+extern const struct NidlAbilityData gNidlAbilityData;
+
+// The HUD portraits' size (sub_080356AC's: abilities and the special portraits up to 0x1B; the rest are smaller);
+#define PORTRAIT_SIZE 0x3C0
+
+void NidlAbilityPortrait(u32 vram, u8 palette, u8 id);
+void NidlAbilityHudTimer(struct Kirby *, u8 portrait, u16 frames);
+
+#endif

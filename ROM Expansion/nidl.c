@@ -2,6 +2,7 @@
  * (see nidl.h); */
 #include "nidl.h"
 #include "constants/kirby.h"
+#include "abilities.h"
 
 extern const u8 *const gUnk_08D60EE4[];  // HP bar names per language: 64x8 (0x100 bytes) per object type;
 
