@@ -112,6 +112,7 @@ Most enemies' first frames (0-3) are their hurt frames. Frames are drawn around 
 - Velocity tables `0x08743144` (1.0, 0.5, 0.25, 0.25, 2.0) and `0x08743158` (1.0, 0.5, 0.5, -1.0, -0.5, -0.5).
 - Frames `0x087521D8`: 0-2 dizzy, 3 knocked away, 4-7 sweeping, 8-10 broom dust. Palette `0x0824CCF8` (the dust uses palette 15, white), tiles LZ77 `0x0824CD18`.
 
+- Variants `0x08743188`: 0 `0x0808D558` (states `0x08743194`: Sweep `0x0808D640`, Back & Forth `0x0808D790`, Stand `0x0808D964`; per frame `0x087431A0`); 1 `0x0808DA00` (states `0x087431AC`: Sweep `0x0808DAE8` with waits 7, 3, 4, 6, 6, 2, 4, 4, 2 over 9 steps, Back & Forth `0x0808DC94` and Stand `0x0808DEBC` as variant 0's; velocities only once `obj+0x30` is set by the landing handler `0x0808D304`); 2 `0x0808DF58` sweeps in place (`0x0808DFC4`, every step 8 frames). Dust: `0x0808D4D0` none, `0x0808D4A8` frame 8, `0x0808D494` 9, `0x0808D4BC` 10. Handlers `0x087434C4`: leaving the floor (`0x0808D2B8`) stands, landing restarts the scripts.
 ## Coconut (type `0x17`)
 
 - Spawn `0x0808E8D4`; variants 0 and 1 (`0x0808E914`, facing right or left) hang on frame 5 until Kirby is within 7 pixels sideways (`0x0808E9D4`), then fall (`0x0808EA00`): gravity and max fall by the record flags byte (`0x08743214` 0x1500/0x3000, `0x0874321C` 3.0/4.0), tumbling through frames 7-15 every 2 frames while turning around 4 times. Landing (`0x0808EB10`) it explodes (`0x0806A344`). Variant 2 (`0x0808EB24`) rocks on frames 4, 5, 6, 5 (6 frames each).

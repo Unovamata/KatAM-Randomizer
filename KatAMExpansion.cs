@@ -77,7 +77,8 @@ namespace KatAMRandomizer {
         }
 
         // Broom Hatter; Frames: NiDL's body frames 4-7 with the broom dust (none, 8, 9, 10) on top. The dust is white in NiDL's
-        // palette 15: it's drawn with color 6 of the Broom Hatter's palette, which it doesn't use;
+        // palette 15: it's drawn with color 6 of the Broom Hatter's palette, which it doesn't use. All 3 NiDL variants: 0 and 1 sweep
+        // around (1 with other timing), 2 sweeps in place;
         static Enemy BroomHatter() {
             Dictionary<int, int> dust = new Dictionary<int, int> { [14] = 6 };
             List<Part[]> frames = new List<Part[]>();
@@ -91,7 +92,7 @@ namespace KatAMRandomizer {
                     (0x01, 0), (0x01, 1), (0x01, 2), (0x01, 2), (0x28, 2), (-1, -1),   // "Bro" (Bronto Burt), "o", "m" (Bomber), space;
                     (0x14, 0), (0x14, 5), (0x14, 2), (0x14, 2), (0x14, 4), (0x01, 1),  // "H", "a", "t", "t", "e" (Hot Head), "r";
                 },
-                new byte[] { 0x00 });
+                new byte[] { 0x00, 0x01, 0x02 });
         }
 
         // Cappy; Frames: NiDL's 4 (standing, it hops turning around), then the capless Cappy's 4 and 6 (frame table 0x0875237C).
