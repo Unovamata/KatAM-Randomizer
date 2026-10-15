@@ -18,7 +18,9 @@
  *   holds its wings going down. Then it turns away and flies off at 0.4, rising 0x1900 faster every frame.
  * • Variant 5, 0x08087B8C: sits until Kirby is 63 pixels away or less, then takes off (0x08087C48: -3.0 for 4 frames, -2.0 for 8,
  *   -1.0 for 16, -0.5 for 8, then drifts down at 0.5), hovers 48 frames, faces Kirby and dashes at 1.0, 2.0, then 3.0 (0x08087D20).
- *   It can't be hit while taking off; */
+ *   It can't be hit while taking off.
+ * • Variant 6, 0x08087E2C: on the ground: sits (frame 6) 24 frames, faces Kirby, sits 24 more (0x08087EB4), then hops straight up
+ *   (0x08087F18: 2.0, gravity 0x800, falling at 3.0 at most), flapping 4 times, and flutters back down flapping (0x08087F8C); */
 #include "../nidl.h"
 
 // Frames: NiDL's 4, 5 (flapping) and 6 (sitting). Its hurt frame is NiDL's 3;
@@ -61,8 +63,13 @@ static const s16 sAmbushOffsets[] = { -72, -40, 56, 88 };  // 0x087425DC;
 #define CHASE_AIM 8
 #define LEAVE_SPEED 0x66
 #define LEAVE_ACCEL 0x19
+#define HOP_SPEED 0x200
+#define HOP_GRAVITY 0x8
+#define HOP_MAX_FALL 0x300
+#define HOP_SIT_TIME 24
+#define HOP_FLAPS 4
 
-enum { STATE_SWOOP, STATE_SIT, STATE_TAKEOFF, STATE_HOVER, STATE_DASH, STATE_DROP, STATE_LOOP, STATE_BOUNCE, STATE_CHASE, STATE_LEAVE };
+enum { STATE_SWOOP, STATE_SIT, STATE_TAKEOFF, STATE_HOVER, STATE_DASH, STATE_DROP, STATE_LOOP, STATE_BOUNCE, STATE_CHASE, STATE_LEAVE, STATE_HOP_SIT, STATE_HOP };
 
 struct Twizzy {
     struct NidlObject n;
@@ -303,6 +310,51 @@ static void Chase(struct Twizzy *tw) {
     obj->base.yspeed = Approach(obj->base.yspeed, tw->aimY);
 }
 
+// HopSit(); 0x08087EB4: sits, facing Kirby halfway, then hops;
+static void HopSit(struct Twizzy *tw) {
+    struct Object *obj = &tw->n.obj;
+
+    NidlFall(obj);
+    if (--tw->timer) return;
+    if (!tw->step) {
+        tw->step = 1;
+        tw->timer = HOP_SIT_TIME;
+        NidlFaceKirby(obj);
+        return;
+    }
+    // 0x08087F18: up, flapping 4 times (32 frames), then fluttering down;
+    tw->state = STATE_HOP;
+    obj->base.yspeed = HOP_SPEED;
+    tw->timer = HOP_FLAPS * 8;
+    NidlPlay(&tw->n, sFlapFast);
+}
+
+static void StartHopSit(struct Twizzy *tw) {
+    tw->state = STATE_HOP_SIT;
+    tw->step = 0;
+    tw->timer = HOP_SIT_TIME;
+    tw->n.obj.base.xspeed = 0;
+    tw->n.sequence = NULL;
+    NidlSetFrame(&tw->n, FRAME_SIT);
+}
+
+// Hop(); 0x08087F18, 0x08087F8C: the hop, then fluttering down until it lands;
+static void Hop(struct Twizzy *tw) {
+    struct Object *obj = &tw->n.obj;
+
+    obj->base.yspeed -= HOP_GRAVITY;
+    if (obj->base.yspeed < -HOP_MAX_FALL) obj->base.yspeed = -HOP_MAX_FALL;
+    if (tw->timer && !--tw->timer) {
+        tw->n.sequence = NULL;
+        NidlSetFrame(&tw->n, FRAME_WINGS_UP);
+    }
+    if (obj->base.yspeed <= 0 && !tw->timer && !tw->n.sequence) NidlPlay(&tw->n, sFlapFast);
+    if ((obj->base.unk62 & 4) && obj->base.yspeed <= 0) {
+        obj->base.yspeed = 0;
+        StartHopSit(tw);
+    }
+}
+
 static void TwizzyMain(struct Object *obj) {
     struct Twizzy *tw = (struct Twizzy *)obj;
     s32 distance;
@@ -355,6 +407,12 @@ static void TwizzyMain(struct Object *obj) {
     case STATE_CHASE:
         Chase(tw);
         break;
+    case STATE_HOP_SIT:
+        HopSit(tw);
+        break;
+    case STATE_HOP:
+        Hop(tw);
+        break;
     case STATE_LEAVE:
         if ((obj->base.yspeed += LEAVE_ACCEL) > MAX_CLIMB) obj->base.yspeed = MAX_CLIMB;
         break;
@@ -373,6 +431,8 @@ void TwizzyStart(struct Object *obj) {
         Ambush(tw);
     } else if (tw->n.variant == 3) {
         StartBounce(tw);
+    } else if (tw->n.variant == 6) {
+        StartHopSit(tw);
     } else if (tw->n.variant == 4) {
         if (tw->state != STATE_LEAVE) {
             tw->state = STATE_CHASE;
@@ -408,7 +468,7 @@ void TwizzyInit(struct NidlObject *n) {
     ObjectSetBounds(&obj->base, -6, -5, 6, 9);
     tw->state = STATE_SWOOP;
     tw->placed = FALSE;
-    if (n->variant == 5) {
+    if (n->variant == 5 || n->variant == 6) {
         tw->state = STATE_SIT;
         obj->base.unk4C = obj->base.y = ((obj->base.y + (obj->base.unk3F * 0x100)) & 0xfffff000) - (obj->base.unk3F * 0x100) - 1;
     }
