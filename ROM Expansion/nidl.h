@@ -36,6 +36,7 @@ enum {
     NIDL_BLADE_KNIGHT,
     NIDL_CHILLY,
     NIDL_COOL_SPOOK,
+    NIDL_POPPY_BROS_JR,
     NIDL_ENEMY_COUNT,
 };
 
@@ -128,5 +129,7 @@ void ChillyInit(struct NidlObject *);
 void ChillyStart(struct Object *);
 void CoolSpookInit(struct NidlObject *);
 void CoolSpookStart(struct Object *);
+void PoppyBrosJrInit(struct NidlObject *);
+void PoppyBrosJrStart(struct Object *);
 
 #endif

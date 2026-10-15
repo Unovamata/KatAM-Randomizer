@@ -1,6 +1,10 @@
 # KatAM European (B8KP): the addresses of the KatAM symbols the NiDL enemies use, and what KatAMExpansion.cs patches; written by find_symbols.py
+ClearEffectObject 0x803e3ec
 ClearObjectBase 0x803e3bc
 CpuSet 0x8159c30
+EffectObjectDisplaySprite 0x803dc04
+EffectObjectInitSprite 0x8070a40
+EffectObjectPostUpdate 0x806fb10
 GetCollisionTile 0x8002404
 InitObject 0x809f078
 ObjectBaseDestroy 0x803dd08

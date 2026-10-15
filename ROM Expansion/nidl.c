@@ -19,6 +19,7 @@ static const struct NidlEnemy sNidlEnemies[NIDL_ENEMY_COUNT] = {
     [NIDL_BLADE_KNIGHT] = { BladeKnightInit, BladeKnightStart, 2, KIRBY_ABILITY_SWORD },
     [NIDL_CHILLY] = { ChillyInit, ChillyStart, 2, KIRBY_ABILITY_ICE },
     [NIDL_COOL_SPOOK] = { CoolSpookInit, CoolSpookStart, 1, 0 },
+    [NIDL_POPPY_BROS_JR] = { PoppyBrosJrInit, PoppyBrosJrStart, 1, 0 },
 };
 
 // NidlSetFrame(); Shows one of the enemy's frames (its own numbering);

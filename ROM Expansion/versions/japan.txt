@@ -1,6 +1,10 @@
 # KatAM Japanese, revision 1 (B8KJ): the addresses of the KatAM symbols the NiDL enemies use, and what KatAMExpansion.cs patches; written by find_symbols.py
+ClearEffectObject 0x803e340
 ClearObjectBase 0x803e310
 CpuSet 0x81592b4
+EffectObjectDisplaySprite 0x803db58
+EffectObjectInitSprite 0x8070970
+EffectObjectPostUpdate 0x806fa40
 GetCollisionTile 0x80023e4
 InitObject 0x809efa8
 ObjectBaseDestroy 0x803dc5c
