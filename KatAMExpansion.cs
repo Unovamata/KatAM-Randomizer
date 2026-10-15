@@ -363,7 +363,7 @@ namespace KatAMRandomizer {
             int[] hatTables, motions, hatPalettes = new int[NewAbilities];
             bool[][] paletteUsed = new bool[NewAbilities][];
             try {
-                hatTables = BuildHats(rom, nightmare, region, version.RomSymbols["gUnk_0834C9AC"], anims, tilesBase, paletteBase, ref cursor, HurtAnimID,
+                hatTables = BuildHats(rom, nightmare, region, version.RomSymbols["gUnk_0834C5D4"], anims, attrTable, tilesBase, paletteBase, ref cursor, HurtAnimID,
                                       animVariants, animAttributes, animOams, hatPalettes, paletteUsed);
                 motions = BuildMotions(rom, nightmare, region, hatTables, hatPalettes, paletteUsed, tilesBase, ref cursor, HurtAnimID, animVariants,
                                        animAttributes, animOams);

@@ -86,7 +86,10 @@ How they fit in:
 - **Ability tables.** Every table KatAM indexes by ability with 27 entries (B on land and in water, setup, body palette, hats, the CPU helpers' AI) is copied with 32 entries, and the game's code is pointed to the copies. The new entries come from `gNidlAbilityTables`, or from Normal's.
 - **Swallowing.** `sub_080547C4` took abilities `0x1B` and `0x1C` to mean "random" and "none". They're now `0x3B` and `0x3C`, and the one object type whose ability was `0x1B` (`0xCE`) is changed to match.
 - **HUD and pause portraits** are NiDL's ability cards. `sub_080356AC` and `sub_08088640` are detoured to `NidlAbilityPortrait` and `NidlAbilityHudTimer`, and the special portraits (`0x1C`-`0x1F`) move to `0x2C`-`0x2F`.
-- **Hats** (`KatAMExpansionHats.cs`). KatAM draws Kirby as a body plus a hat sprite, animating in step. Each new ability's hat anim has a variant per animation index: the body's commands, with NiDL's hat for the same pose (matched offline, `BodyMatches`).
+- **Hats** (`KatAMExpansionHats.cs`). KatAM draws Kirby as a body plus a hat sprite, animating in step. The new abilities use Normal's body table (`gUnk_0834C5D4`), and each one's hat anim has a variant per entry of it (185): the body's commands, with NiDL's hat for the same pose.
+  - `BodyMatches` pairs each KatAM body frame with one of NiDL's plain Kirby poses, by silhouette, checked by eye. Mirrored body frames (attributes `| 0x4000` / `| 0x8000`) are matched unmirrored, and their hat is mirrored the same way.
+  - `HatFrames` pairs each plain pose with the same pose in the ability's block. Its body pixels match exactly, or match outside the hat where the hat hides part of it.
+  - Poses with no match (inhaling, a mouthful, Kirby facing the camera with something on his head) get no hat.
 - **Attack poses** (`KatAMExpansionMotions.cs`) are NiDL's frames, played at animation indexes `0x4A`-`0x59` (copy abilities' own), which `NidlAbilitySetup` points to them.
   - Kirby's own pixels go to the body sprite, which has the player's palette and 16 tiles of VRAM.
   - The rest (ice, needles, the cape) goes to the hat sprite, which has 48 tiles of VRAM.
