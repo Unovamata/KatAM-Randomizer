@@ -77,6 +77,7 @@ namespace KatAMRandomizer {
         static readonly List<Miniboss> MinibossDefinitions = new List<Miniboss> {
             PoppyBrosSr(),
             MrTickTock(),
+            GrandWheelie(),
         };
 
         static readonly List<Enemy> Definitions = new List<Enemy> {
@@ -101,6 +102,16 @@ namespace KatAMRandomizer {
             Enemies = Definitions.Select(e => (e.Index, e.Name)).ToList();
             Minibosses = MinibossDefinitions.Select(m => (m.Index, m.Name)).ToList();
         }
+
+        /* Grand Wheelie; NiDL mini-boss 2 (type 0x33). Frames: NiDL's 0-55 (streamed frames). Hurt: NiDL's 35. Variants 0-3 roll at
+         * 1.5, 2.625, 0.9 and 1.57 (0x087444A4); */
+        static Miniboss GrandWheelie() => new Miniboss(2, "Grand Wheelie", 2, 0x752F74, Enumerable.Range(0, 56).Select(f => new[] { new Part(f) }).ToList(),
+            new[] { new Part(35) },
+            new[] {
+                (0x03, 0), (0x01, 1), (0x14, 5), (0x26, 5), (0x1E, 2), (-1, -1),   // "G" (Glunk), "r" (Bronto Burt), "a" (Hot Head), "n" (Cookin), "d" (Noddy), space;
+                (0x1D, 0), (0x1D, 1), (0x1D, 2), (0x1D, 3), (0x1D, 4), (0x1D, 5), (0x1D, 6),   // "Wheelie";
+            },
+            new byte[] { 0x00, 0x01, 0x02, 0x03 });
 
         /* Mr. Tick-Tock; NiDL mini-boss 4 (type 0x35). Frames: NiDL's 0-28 (its body's are streamed frames, 0-16; its rings 17-22 and
          * notes 23-28 are drawn with its descriptor's palette). Hurt: NiDL's 13. Variant 1 is faster; */

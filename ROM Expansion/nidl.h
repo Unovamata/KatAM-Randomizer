@@ -175,5 +175,7 @@ void PoppyBrosSrInit(struct NidlObject *);
 void PoppyBrosSrStart(struct Object *);
 void MrTickTockInit(struct NidlObject *);
 void MrTickTockStart(struct Object *);
+void GrandWheelieInit(struct NidlObject *);
+void GrandWheelieStart(struct Object *);
 
 #endif

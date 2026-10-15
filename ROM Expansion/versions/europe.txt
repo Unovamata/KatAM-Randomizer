@@ -99,3 +99,7 @@ sub_08034E14 0x8034e50
 sub_08039430 0x803946c
 m4aSongNumStartOrChange 0x8150a84
 gUnk_08D610B4 0x8d6b514
+CreateObject 0x800a888
+RequestScreenShake 0x806feac
+gUnk_020229D4 0x20229d4
+gUnk_020229E0 0x20229e0

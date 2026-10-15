@@ -12,7 +12,7 @@
 static const struct NidlMiniboss sNidlMinibosses[NIDL_MINIBOSS_COUNT] = {
     [NIDL_POPPY_BROS_SR] = { PoppyBrosSrInit, PoppyBrosSrStart, 30, KIRBY_ABILITY_CRASH },
     [NIDL_MR_TICK_TOCK] = { MrTickTockInit, MrTickTockStart, 30, NIDL_ABILITY_MIKE },
-    [NIDL_GRAND_WHEELIE] = { PoppyBrosSrInit, PoppyBrosSrStart, 30, KIRBY_ABILITY_WHEEL },
+    [NIDL_GRAND_WHEELIE] = { GrandWheelieInit, GrandWheelieStart, 30, KIRBY_ABILITY_WHEEL },
     [NIDL_BUGZZY] = { PoppyBrosSrInit, PoppyBrosSrStart, 30, NIDL_ABILITY_BACKDROP },
     [NIDL_FIRE_LION] = { PoppyBrosSrInit, PoppyBrosSrStart, 30, KIRBY_ABILITY_BURNING },
     [NIDL_META_KNIGHTS] = { PoppyBrosSrInit, PoppyBrosSrStart, 30, 0 },
