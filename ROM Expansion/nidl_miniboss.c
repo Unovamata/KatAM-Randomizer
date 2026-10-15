@@ -1,21 +1,21 @@
-/* NiDL mini-bosses; Object type 0x40 (OBJ_EMPTY_40, which KatAM already treats as a mini-boss everywhere: HP bar, music, camera,
- * defeat): creates the mini-boss the template's behavior byte asks for (high nibble = mini-boss, NIDL_* in nidl.h; low nibble = its
+/* NiDL mini-bosses; Object types 0x40 and 0x41 (OBJ_EMPTY_40, 41, which KatAM already treats as mini-bosses everywhere: HP bar, music,
+ * camera, defeat): creates the mini-boss the template's behavior byte asks for (high nibble = mini-boss, NIDL_* in nidl.h; low nibble = its
  * variant), and starts the fight like KatAM's own mini-bosses (Mr. Frosty, 0x080CB7E8): it waits facing Kirby until Kirby is in the
  * template's area, then locks the camera there, shows the HP bar and plays the mini-boss music. The rest is shared with the enemies
  * (see nidl.h): one AnimInfo table for the type, each mini-boss's own palette, its hurt frame uploaded to the end of its VRAM
- * (64x64 here), its own HP bar name; */
+ * (64x96 here), its own HP bar name; */
 #include "nidl.h"
 #include "constants/kirby.h"
 #include "abilities.h"
 
 // The mini-bosses not ported yet stand in with Poppy Bros. Sr.'s code (and KatAMExpansion.cs gives them no graphics, see below);
 static const struct NidlMiniboss sNidlMinibosses[NIDL_MINIBOSS_COUNT] = {
-    [NIDL_POPPY_BROS_SR] = { PoppyBrosSrInit, PoppyBrosSrStart, 30, KIRBY_ABILITY_CRASH },
-    [NIDL_MR_TICK_TOCK] = { MrTickTockInit, MrTickTockStart, 30, NIDL_ABILITY_MIKE },
-    [NIDL_GRAND_WHEELIE] = { GrandWheelieInit, GrandWheelieStart, 30, KIRBY_ABILITY_WHEEL },
-    [NIDL_BUGZZY] = { BugzzyInit, BugzzyStart, 30, NIDL_ABILITY_BACKDROP },
-    [NIDL_FIRE_LION] = { PoppyBrosSrInit, PoppyBrosSrStart, 30, KIRBY_ABILITY_BURNING },
-    [NIDL_META_KNIGHTS] = { PoppyBrosSrInit, PoppyBrosSrStart, 30, 0 },
+    [NIDL_POPPY_BROS_SR] = { PoppyBrosSrInit, PoppyBrosSrStart, 30, KIRBY_ABILITY_CRASH, 0, NIDL_MINIBOSS_TYPE },
+    [NIDL_MR_TICK_TOCK] = { MrTickTockInit, MrTickTockStart, 30, NIDL_ABILITY_MIKE, 0, NIDL_MINIBOSS_TYPE },
+    [NIDL_GRAND_WHEELIE] = { GrandWheelieInit, GrandWheelieStart, 30, KIRBY_ABILITY_WHEEL, 0, NIDL_MINIBOSS_TYPE },
+    [NIDL_BUGZZY] = { BugzzyInit, BugzzyStart, 30, NIDL_ABILITY_BACKDROP, 0, NIDL_MINIBOSS_TYPE_2 },
+    [NIDL_FIRE_LION] = { FireLionInit, FireLionStart, 30, KIRBY_ABILITY_BURNING, 12, NIDL_MINIBOSS_TYPE_2 },
+    [NIDL_META_KNIGHTS] = { PoppyBrosSrInit, PoppyBrosSrStart, 30, 0, 0, NIDL_MINIBOSS_TYPE_2 },
 };
 
 void NidlMinibossStart(struct Object *);
@@ -26,8 +26,10 @@ void *CreateNidlMiniboss(struct ObjectTemplate *template, u8 playerId) {
     struct Object *obj = &n->obj;
     u8 boss = template->subtype1 >> 4;
 
-    // Unknown ones, and ones without graphics (not ported yet), are the first;
-    if (boss >= NIDL_MINIBOSS_COUNT || !gNidlData.minibosses[boss].animId) boss = 0;
+    // Unknown ones, ones without graphics (not ported yet) and ones of the other type are the first of this type;
+    if (boss >= NIDL_MINIBOSS_COUNT || !gNidlData.minibosses[boss].animId || sNidlMinibosses[boss].type != template->type)
+        for (boss = 0; boss < NIDL_MINIBOSS_COUNT - 1; boss++)
+            if (sNidlMinibosses[boss].type == template->type && gNidlData.minibosses[boss].animId) break;
 
     InitObject(obj, template, playerId);
     n->enemy = boss;
@@ -46,6 +48,8 @@ void *CreateNidlMiniboss(struct ObjectTemplate *template, u8 playerId) {
     NidlSetFrame(n, 0);
     ObjectInitSprite(obj);
     obj->base.sprite.unk14 = 0x6C0;
+    // Its frames are drawn hurtShift pixels lower (see KatAMExpansion.cs), its sprite as much higher;
+    obj->base.objBase55 = -sNidlMinibosses[boss].hurtShift;
     NidlInitPalette(n);
     NidlUploadHurtTiles(n);
     NidlMinibossStart(obj);

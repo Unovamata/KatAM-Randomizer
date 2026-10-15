@@ -60,7 +60,7 @@ void NidlAnimate(struct NidlObject *n) {
  * hurt animation draws from (mini-bosses: NIDL_MINIBOSS_HURT_TILES). Done again whenever the object gets new VRAM; */
 void NidlUploadHurtTiles(struct NidlObject *n) {
     u32 vram = n->obj.base.sprite.tilesVram;
-    u32 tiles = n->obj.type == NIDL_MINIBOSS_TYPE ? NIDL_MINIBOSS_HURT_TILES : NIDL_HURT_TILES;
+    u32 tiles = NidlIsMiniboss(&n->obj) ? NIDL_MINIBOSS_HURT_TILES : NIDL_HURT_TILES;
 
     if (!vram || vram == n->hurtVram) return;
     n->hurtVram = vram;
@@ -69,7 +69,7 @@ void NidlUploadHurtTiles(struct NidlObject *n) {
 
 // NidlGraphicsOf(); The graphics of an enemy or mini-boss;
 const struct NidlGraphics *NidlGraphicsOf(struct NidlObject *n) {
-    return n->obj.type == NIDL_MINIBOSS_TYPE ? &gNidlData.minibosses[n->enemy] : &gNidlData.enemies[n->enemy];
+    return NidlIsMiniboss(&n->obj) ? &gNidlData.minibosses[n->enemy] : &gNidlData.enemies[n->enemy];
 }
 
 /* NidlLoadPalette(); The palette slot of one of the enemy's palettes: the one its frame `frame` loads (the anim's GetPalette), under
@@ -150,7 +150,7 @@ void NidlCopyName(struct Object *obj) {
 
     if (obj->type == NIDL_TYPE)
         name = gNidlData.names + ((struct NidlObject *)obj)->enemy * 0x100;
-    else if (obj->type == NIDL_MINIBOSS_TYPE)
+    else if (NidlIsMiniboss(obj))
         name = gNidlData.minibossNames + ((struct NidlObject *)obj)->enemy * 0x100;
     else
         name = gUnk_08D60EE4[gLanguage] + obj->type * 0x100;

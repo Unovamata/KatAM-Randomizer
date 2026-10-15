@@ -20,8 +20,12 @@
 #include "task.h"
 
 #define NIDL_TYPE OBJ_EMPTY_31
-// Mini-bosses ported from NiDL share object type 0x40 the same way (see nidl_miniboss.c): the game treats it as a mini-boss;
+/* Mini-bosses ported from NiDL share object types 0x40 and 0x41 the same way (see nidl_miniboss.c): the game treats them as mini-bosses.
+ * An object's frame index is a byte, so they're spread over the two, each with its own AnimInfo table (KatAMExpansion.cs decides which
+ * mini-boss goes where); */
 #define NIDL_MINIBOSS_TYPE OBJ_EMPTY_40
+#define NIDL_MINIBOSS_TYPE_2 OBJ_EMPTY_41
+#define NidlIsMiniboss(obj) ((obj)->type == NIDL_MINIBOSS_TYPE || (obj)->type == NIDL_MINIBOSS_TYPE_2)
 
 // Enemies (the behavior byte's high nibble);
 enum {
@@ -59,8 +63,8 @@ enum {
 
 #define NIDL_HURT_FRAME 0
 #define NIDL_HURT_TILES 16
-// A mini-boss's hurt frame is 64x64;
-#define NIDL_MINIBOSS_HURT_TILES 64
+// A mini-boss's hurt frame is 64x96 (centered);
+#define NIDL_MINIBOSS_HURT_TILES 96
 
 // NidlObject; Every ported enemy starts with it;
 struct NidlObject {
@@ -94,13 +98,15 @@ struct NidlMiniboss {
     void (*start)(struct Object *);     // Behavior start once the fight starts, also after recovering from a hit;
     s16 hp;
     u16 ability;
+    s8 hurtShift;   // Pixels its frames and hurt frame are drawn lower (to fit the hurt frame; the same as KatAMExpansion.cs's), moved back up;
+    u8 type;        // Its object type (NIDL_MINIBOSS_TYPE or _2; the same as KatAMExpansion.cs's);
 };
 
 // NidlGraphics; Where an enemy's or mini-boss's graphics went;
 struct NidlGraphics {
     u16 animBase;                       // First AnimInfo of the enemy in the type's table;
     u16 animId;                         // Its anim ID (and palette key);
-    const u8 *hurtTiles;                // Its hurt frame (32x32, 16 tiles; mini-bosses 64x64, 64 tiles);
+    const u8 *hurtTiles;                // Its hurt frame (32x32, 16 tiles; mini-bosses 64x96, 96 tiles);
 };
 
 // NidlData; Filled in by KatAMExpansion.cs once the graphics are built;
@@ -179,5 +185,7 @@ void GrandWheelieInit(struct NidlObject *);
 void GrandWheelieStart(struct Object *);
 void BugzzyInit(struct NidlObject *);
 void BugzzyStart(struct Object *);
+void FireLionInit(struct NidlObject *);
+void FireLionStart(struct Object *);
 
 #endif

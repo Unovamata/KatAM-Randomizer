@@ -27,9 +27,9 @@ namespace KatAMRandomizer {
              isRandomizingExcludedEnemies,
              isAddingNightmareEnemies;
         protected List<byte> nightmareBehaviors = new List<byte>(), nightmareFlyingBehaviors = new List<byte>();
-        // ROM Expansion mini-bosses (object type 0x40), one behavior list per mini-boss;
+        // ROM Expansion mini-bosses (object types 0x40 and 0x41), one behavior list per mini-boss, by type;
         protected bool isAddingNightmareMinibosses;
-        protected List<List<byte>> nightmareMinibossGroups = new List<List<byte>>();
+        protected Dictionary<byte, List<List<byte>>> nightmareMinibossGroups = new Dictionary<byte, List<List<byte>>>();
         protected List<List<byte>> nightmareGroups = new List<List<byte>>(), nightmareFlyingGroups = new List<List<byte>>(),
                                    nightmareWaterGroups = new List<List<byte>>();
 
@@ -77,10 +77,12 @@ namespace KatAMRandomizer {
                 for(int i = 0; i < nightmareWaterGroups.Count; i++) underwaterEnemyIDs.Add(KatAMExpansion.NightmareID);
             }
 
-            // ROM Expansion mini-bosses join the mini-boss pool as object type 0x40 the same way;
+            // ROM Expansion mini-bosses join the mini-boss pool as object types 0x40 and 0x41 the same way;
             if(isAddingNightmareMinibosses) {
-                behaviorDictionary[KatAMExpansion.MinibossID] = nightmareMinibossGroups.SelectMany(group => group).ToList();
-                speedDictionary[KatAMExpansion.MinibossID] = NewProperty(0x00);
+                foreach((byte type, List<List<byte>> groups) in nightmareMinibossGroups) {
+                    behaviorDictionary[type] = groups.SelectMany(group => group).ToList();
+                    speedDictionary[type] = NewProperty(0x00);
+                }
             }
 
             if(enemiesOptions == GenerationOptions.Shuffle) allEntitiesIDs = Utils.Shuffle(allEntitiesIDs);
@@ -99,7 +101,8 @@ namespace KatAMRandomizer {
 
             // Every ported mini-boss counts as much as one of the game's own;
             if(isAddingNightmareMinibosses) {
-                for(int i = 1; i < nightmareMinibossGroups.Count; i++) availableEnemyIDs.Add(KatAMExpansion.MinibossID);
+                foreach((byte type, List<List<byte>> groups) in nightmareMinibossGroups)
+                    for(int i = 1; i < groups.Count; i++) availableEnemyIDs.Add(type);
             }
 
             for(int i = 0; i < entities.Count; i++) {
@@ -207,9 +210,10 @@ namespace KatAMRandomizer {
                 }
 
                 // ROM Expansion mini-bosses: the behavior picks which one (a mini-boss first, then one of its variants);
-                bool isNightmareMiniboss = entity.ID == KatAMExpansion.MinibossID && isAddingNightmareMinibosses;
+                bool isNightmareMiniboss = isAddingNightmareMinibosses && nightmareMinibossGroups.ContainsKey(entity.ID);
                 if(isNightmareMiniboss) {
-                    List<byte> behaviors = nightmareMinibossGroups[Utils.GetRandomRange(0, nightmareMinibossGroups.Count)];
+                    List<List<byte>> groups = nightmareMinibossGroups[entity.ID];
+                    List<byte> behaviors = groups[Utils.GetRandomRange(0, groups.Count)];
                     entity.Behavior = behaviors[Utils.GetRandomRange(0, behaviors.Count)];
                 }
 
@@ -407,7 +411,8 @@ namespace KatAMRandomizer {
             isIncludingMasterInhaleAbility = Settings.isMinibossIncludingMasterInhaleAbility;
             isHPPercentageModified = Settings.isMinibossHPPercentageModified;
             isAddingNightmareMinibosses = Settings.NightmareMinibosses.Count > 0;
-            nightmareMinibossGroups = KatAMExpansion.MinibossBehaviorGroupsOf(Settings.NightmareMinibosses);
+            nightmareMinibossGroups = KatAMExpansion.MinibossIDs.ToDictionary(type => type, type => KatAMExpansion.MinibossBehaviorGroupsOf(Settings.NightmareMinibosses, type))
+                                                               .Where(entry => entry.Value.Count > 0).ToDictionary(entry => entry.Key, entry => entry.Value);
         }
 
         public bool FilterEntities(Entity entity) { return true; }

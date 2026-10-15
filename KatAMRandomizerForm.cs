@@ -140,10 +140,11 @@ namespace KatAMRandomizer
                 }
 
                 Processing.parameters[KatAMExpansion.NightmareID] = "Nightmare in Dream Land Enemy";
-                Processing.parameters[KatAMExpansion.MinibossID] = "Nightmare in Dream Land Mini-boss";
+                foreach (byte type in KatAMExpansion.MinibossIDs) Processing.parameters[type] = "Nightmare in Dream Land Mini-boss";
             } else {
                 Processing.parameters[KatAMExpansion.NightmareID] = Processing.enemiesDictionary[KatAMExpansion.NightmareID].Name;
-                if (Processing.enemiesDictionary.TryGetValue(KatAMExpansion.MinibossID, out var empty)) Processing.parameters[KatAMExpansion.MinibossID] = empty.Name;
+                foreach (byte type in KatAMExpansion.MinibossIDs)
+                    if (Processing.enemiesDictionary.TryGetValue(type, out var empty)) Processing.parameters[type] = empty.Name;
             }
 
             // Every pause help screen shows the base one, which frees the space of the rest;
