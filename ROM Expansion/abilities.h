@@ -1,5 +1,8 @@
-/* NiDL abilities; Copy abilities ported from Kirby: Nightmare in Dream Land, as KatAM abilities 27-31 (KatAM has 0-26 and keeps
- * Kirby's ability in 5 bits, so these are all the room there is):
+/* NiDL abilities; Copy abilities ported from Kirby: Nightmare in Dream Land, as KatAM abilities 27-33 (KatAM has 0-26):
+ * • Ability field: KatAM keeps the ability Kirby is getting (transitioningAbility) in 5 bits, with 3 flags above. It's widened to 6
+ *   bits (NIDL_ABILITY_MASK): the "random" flag moves from 0x20 to 0x40, and the 0x40 flag ("several things in the mouth", which makes
+ *   the spat star bigger) to the unused unkF1. KatAMExpansion.cs patches every "& 0x1F" read of it to "& 0x3F", the random flag's
+ *   tests and sets and the spat star's read; swallowing (sub_080547C4) is replaced by NidlSwallow;
  * • Ability tables: KatAMExpansion.cs copies every table KatAM indexes by ability with 27 entries (B button on land and in water,
  *   setup, hat palette, hats, the CPU helpers' AI) to the expansion with 32, and points the game's code to the copies. The new
  *   entries come from gNidlAbilityTables, or from the base ability's entries where it has none.
@@ -20,8 +23,20 @@ enum {
     NIDL_ABILITY_LIGHT,
     NIDL_ABILITY_BALL,
     NIDL_ABILITY_HI_JUMP,
+    NIDL_ABILITY_MIKE,
+    NIDL_ABILITY_BACKDROP,
     NIDL_ABILITY_END,
 };
+
+// transitioningAbility's layout (see above);
+#define NIDL_ABILITY_MASK 0x3F
+#define NIDL_ABILITY_CHANGE_RANDOM 0x40
+#define NIDL_ABILITY_CHANGE_IS_ABILITY_STAR 0x80
+#define NIDL_ABILITY_SEVERAL 0x40         // In unkF1: several things swallowed at once (KatAM's KIRBY_ABILITY_CHANGE_UNKNOWN);
+
+// What sub_080547C4's callers pass instead of an ability: a random one (object type 0xCE), none (special objects, sub_0809C48C);
+#define NIDL_SWALLOW_RANDOM 0x3B
+#define NIDL_SWALLOW_NONE 0x3C
 
 #define NIDL_FIRST_ABILITY NIDL_ABILITY_NEEDLE
 #define NIDL_ABILITY_COUNT (NIDL_ABILITY_END - NIDL_FIRST_ABILITY)
@@ -73,6 +88,7 @@ void NidlAbilityPortrait(u32 vram, u8 palette, u8 id);
 
 void NidlAbilityHudTimer(struct Kirby *, u8 portrait, u16 frames);
 void NidlAbilitySetup(struct Kirby *);
+void NidlSwallow(struct Kirby *, u8 ability);
 
 /* NidlAttack; An attack box that follows Kirby while `alive` says so (his state is the ability's), making him unhurt (`guard`) meanwhile.
  * `effect` is the hit's kind (unk68, like gUnk_082DDFC8's: 0x200 freezes, 0x2000 cuts...), `damage` its strength (unk63); */

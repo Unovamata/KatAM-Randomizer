@@ -3,9 +3,11 @@
 #include "main.h"
 #include "data.h"
 #include "code_0806F780.h"
+#include "constants/songs.h"
 
 void KirbyEnterWater(struct Kirby *);
 void sub_0805B1B8(struct Kirby *);
+void sub_08054950(struct Kirby *);
 
 const struct NidlAbilityTables gNidlAbilityTables = {
     .base = {
@@ -14,6 +16,8 @@ const struct NidlAbilityTables gNidlAbilityTables = {
         [NIDL_ABILITY_LIGHT - NIDL_FIRST_ABILITY] = KIRBY_ABILITY_NORMAL,
         [NIDL_ABILITY_BALL - NIDL_FIRST_ABILITY] = KIRBY_ABILITY_NORMAL,
         [NIDL_ABILITY_HI_JUMP - NIDL_FIRST_ABILITY] = KIRBY_ABILITY_NORMAL,
+        [NIDL_ABILITY_MIKE - NIDL_FIRST_ABILITY] = KIRBY_ABILITY_NORMAL,
+        [NIDL_ABILITY_BACKDROP - NIDL_FIRST_ABILITY] = KIRBY_ABILITY_NORMAL,
     },
     .landB = {
         [NIDL_ABILITY_NEEDLE - NIDL_FIRST_ABILITY] = NeedleStart,
@@ -28,6 +32,8 @@ const struct NidlAbilityTables gNidlAbilityTables = {
         [NIDL_ABILITY_LIGHT - NIDL_FIRST_ABILITY] = NidlAbilitySetup,
         [NIDL_ABILITY_BALL - NIDL_FIRST_ABILITY] = NidlAbilitySetup,
         [NIDL_ABILITY_HI_JUMP - NIDL_FIRST_ABILITY] = NidlAbilitySetup,
+        [NIDL_ABILITY_MIKE - NIDL_FIRST_ABILITY] = NidlAbilitySetup,
+        [NIDL_ABILITY_BACKDROP - NIDL_FIRST_ABILITY] = NidlAbilitySetup,
     },
 };
 
@@ -157,4 +163,39 @@ void NidlAbilityEnd(struct Kirby *kirby) {
         sub_08044EA8(kirby);
     else
         sub_0803FE74(kirby);
+}
+
+/* NidlSwallow(); sub_080547C4 (detoured, never returning to it): something is swallowed, giving `ability` (| the ability star flag
+ * for ability stars; NIDL_SWALLOW_RANDOM, NIDL_SWALLOW_NONE). KatAM's, with transitioningAbility's 6-bit layout; */
+void NidlSwallow(struct Kirby *kirby, u8 ability) {
+    PlaySfx(&kirby->base, SE_KIRBY_STUFFED_CHEEKS_UNUSED);
+    if (ability != NIDL_SWALLOW_NONE) {
+        if (!(kirby->base.flags & 0x80)) {
+            kirby->base.flags |= 0x80;
+            kirby->unkF1 = 0;
+            sub_0806F260(kirby);
+        } else {
+            if ((kirby->transitioningAbility & NIDL_ABILITY_MASK) != KIRBY_ABILITY_NORMAL && ability
+                && !(kirby->transitioningAbility & NIDL_ABILITY_CHANGE_IS_ABILITY_STAR))
+                kirby->transitioningAbility |= NIDL_ABILITY_CHANGE_RANDOM;
+            kirby->unkF1 = NIDL_ABILITY_SEVERAL;
+        }
+        if (ability & NIDL_ABILITY_CHANGE_IS_ABILITY_STAR) {
+            if (!(kirby->transitioningAbility & NIDL_ABILITY_CHANGE_IS_ABILITY_STAR))
+                kirby->transitioningAbility = (ability & NIDL_ABILITY_MASK) | NIDL_ABILITY_CHANGE_IS_ABILITY_STAR;
+            else if ((ability & NIDL_ABILITY_MASK) == KIRBY_ABILITY_MASTER)
+                gUnk_0203AD34 = 0;
+        } else if (!(kirby->transitioningAbility & (NIDL_ABILITY_CHANGE_RANDOM | NIDL_ABILITY_CHANGE_IS_ABILITY_STAR))) {
+            kirby->transitioningAbility |= ability;
+            if (ability == NIDL_SWALLOW_RANDOM)
+                kirby->transitioningAbility |= NIDL_ABILITY_CHANGE_RANDOM;
+        } else if ((ability & NIDL_ABILITY_MASK) == KIRBY_ABILITY_MASTER)
+            gUnk_0203AD34 = 0;
+    }
+    if (!kirby->inhaling || !--kirby->inhaling) {
+        if (kirby->stateFn == sub_08054950)
+            kirby->animationIndex = kirby->base.flags & 0x80 ? 30 : 37;
+        sub_0808A3E0(&kirby->base);
+        kirby->base.flags &= ~2;
+    }
 }

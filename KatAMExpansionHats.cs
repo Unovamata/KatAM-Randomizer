@@ -124,10 +124,12 @@
                 0xafd, 0xafe, 0xb00, 0xb01, 0xb02, 0xb03, 0xb04, 0xb05, 0xb06, 0xb07, 0xb08, 0xb09,
                 0xb0a, 0xb0b, 0xb0c, 0xb0d, 0xb0e, 0xb0f, 0xb10, 0xb11, 0xac0, 0xac1,
             },
+            null,           // Mike (filled in with the ability);
+            null,           // Backdrop;
         };
 
         // Per new ability, which pixels are its hat: null, the second layer's; else the first layer's of these colors (Ball's cap is drawn with Kirby);
-        static readonly int[][] HatColors = { null, null, null, new[] { 12, 13, 14 }, null };
+        static readonly int[][] HatColors = { null, null, null, new[] { 12, 13, 14 }, null, null, null };
 
         record KirbyFrame(List<Piece> Pieces, byte[] Palette1, byte[] Tiles1, byte[] Palette2, byte[] Tiles2);
 
