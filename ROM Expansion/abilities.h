@@ -64,6 +64,7 @@ enum { FREEZE_MOTION_EDGE, FREEZE_MOTION_BREATH };
 enum { LIGHT_MOTION_SHINE };
 enum { BALL_MOTION_HOP, BALL_MOTION_FALL, BALL_MOTION_SQUASH, BALL_MOTION_REST, BALL_MOTION_LAUNCH, BALL_MOTION_ROLL };
 enum { HI_JUMP_MOTION_RISE };
+enum { MIKE_MOTION_1, MIKE_MOTION_2, MIKE_MOTION_3, MIKE_MOTION_1_END, MIKE_MOTION_2_END, MIKE_MOTION_3_END };
 
 // NidlMotion(); Plays one of the ability's motions;
 #define NidlMotion(kirby, motion) ((kirby)->animationIndex = NIDL_MOTION_SLOT + (motion))
@@ -101,10 +102,15 @@ struct NidlAttack {
 struct NidlAttack *NidlAttackCreate(struct Kirby *, bool32 (*alive)(struct Kirby *), u32 effect, u8 damage, bool8 guard,
                                     s8 left, s8 top, s8 right, s8 bottom);
 
-// Helpers for the abilities' states: water, falling, landing;
+// Helpers for the abilities' states: water, falling, landing, being used up, a white screen flash;
 bool32 NidlAbilityInWater(struct Kirby *);
 void NidlAbilityGravity(struct Kirby *);
 void NidlAbilityEnd(struct Kirby *);
+void NidlAbilityUsedUp(struct Kirby *);
+void NidlFlash(struct Kirby *, const u8 *levels, u16 count);
+
+// Mike's uses so far (Kirby's padding byte after unk1A5; reset by NidlAbilitySetup on getting Mike);
+#define NIDL_MIKE_USES(kirby) (((u8 *)(kirby))[0x1A6])
 
 // Abilities (abilities/*.c): B on land;
 void NeedleStart(struct Kirby *);
@@ -112,5 +118,6 @@ void FreezeStart(struct Kirby *);
 void LightStart(struct Kirby *);
 void BallStart(struct Kirby *);
 void HiJumpStart(struct Kirby *);
+void MikeStart(struct Kirby *);
 
 #endif

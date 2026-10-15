@@ -69,7 +69,7 @@ Graphics come from the player's NiDL ROM: each enemy's descriptor (`0x0873EEA0 +
 
 ## Abilities
 
-NiDL's Needle, Freeze, Light, Ball and Hi-Jump are KatAM abilities 27-31 (`NIDL_ABILITY_*` in `abilities.h`). KatAM keeps Kirby's ability in 5 bits, so these five are all the room there is. Needlous, Chilly, Cool Spook, Bubbles and Starman give them.
+NiDL's Needle, Freeze, Light, Ball, Hi-Jump, Mike and Backdrop are KatAM abilities 27-33 (`NIDL_ABILITY_*` in `abilities.h`). Needlous, Chilly, Cool Spook, Bubbles and Starman give the first five; Mike and Backdrop come from the mini-bosses Mr. Tick-Tock and Bugzzy.
 
 | Ability | B button |
 |---|---|
@@ -78,13 +78,20 @@ NiDL's Needle, Freeze, Light, Ball and Hi-Jump are KatAM abilities 27-31 (`NIDL_
 | Light | Kirby hovers and holds up a light (28 frames), which shines for 65 frames; then the ability is used up. NiDL's Light only lights up dark rooms. KatAM has none, so the light flashes the screen white (when the room isn't already blending) and hurts every enemy on the screen, like a weak Crash |
 | Ball | Kirby hops (up to 20 pixels) and curls into a ball, which bounces once and then rests. B again launches it (up to 37 pixels), and it ends on landing. It can be steered in the air and hurts what it touches, Kirby unhurt meanwhile |
 | Hi-Jump | Kirby crouches for 4 frames, then rockets up 4.16 pixels a frame for 25 frames or until he hits a ceiling, steerable sideways, hurting what he touches and unhurt; then he falls |
+| Mike | Kirby sings, a different song each of the 3 times: into a megaphone, a microphone, then a microphone while jumping 26 pixels. While he sings, every enemy on the screen takes a heavy hit and the screen flashes. After the third song the ability is gone |
+| Backdrop | KatAM's Throw (its closest relative: grab with a dash, then throw, a backdrop when thrown backwards) with NiDL's red headband: Throw's body draws its headband in colors 12-14 of the body palette, and Backdrop's palette has NiDL's red there. NiDL's own grab couldn't be measured (its Waddle Dee never came within reach) |
 
-The timings and speeds were measured in NiDL. In water, every ability's B button does what KatAM's other abilities do (the base ability's entry). CPU helpers fight like Normal Kirby.
+The timings and speeds were measured in NiDL. Mike and Backdrop were measured by patching the enemy Starman to give them: an enemy's ability is byte 12 of its variant data (Starman's: `0x08741918`), copied to `obj+0` of its extra data at spawn. In water, every ability's B button does what KatAM's other abilities do (the base ability's entry). CPU helpers fight like Normal Kirby.
 
 How they fit in:
 
-- **Ability tables.** Every table KatAM indexes by ability with 27 entries (B on land and in water, setup, body palette, hats, the CPU helpers' AI) is copied with 32 entries, and the game's code is pointed to the copies. The new entries come from `gNidlAbilityTables`, or from Normal's.
-- **Swallowing.** `sub_080547C4` took abilities `0x1B` and `0x1C` to mean "random" and "none". They're now `0x3B` and `0x3C`, and the one object type whose ability was `0x1B` (`0xCE`) is changed to match.
+- **Ability field.** KatAM keeps the ability Kirby is getting in 5 bits of `transitioningAbility`, with 3 flags above it, so 27-31 were all the room there was. It's widened to 6 bits:
+  - the "random" flag moves from `0x20` to `0x40`;
+  - the old `0x40` flag ("several things in the mouth", which makes the spat star bigger) moves to `unkF1`, which the game only ever clears;
+  - every `& 0x1F` read of the field becomes `& 0x3F` (18 places, found by their code, the same in every version);
+  - swallowing (`sub_080547C4`) is replaced by `NidlSwallow`.
+- **Ability tables.** Every table KatAM indexes by ability (B on land and in water, setup, body palette, hats, the CPU helpers' AI, the state after getting an ability, the pause world map's Kirby) is copied with 34 entries, and the game's code is pointed to the copies. The new entries come from `gNidlAbilityTables`, or from Normal's.
+- **Swallowing.** `sub_080547C4` took abilities `0x1B` and `0x1C` to mean "random" and "none". They're now `0x3B` and `0x3C` (`NIDL_SWALLOW_*`), and the one object type whose ability was `0x1B` (`0xCE`) is changed to match.
 - **HUD and pause portraits** are NiDL's ability cards. `sub_080356AC` and `sub_08088640` are detoured to `NidlAbilityPortrait` and `NidlAbilityHudTimer`, and the special portraits (`0x1C`-`0x1F`) move to `0x2C`-`0x2F`.
 - **Hats** (`KatAMExpansionHats.cs`). KatAM draws Kirby as a body plus a hat sprite, animating in step. The new abilities use Normal's body table (`gUnk_0834C5D4`), and each one's hat anim has a variant per entry of it (185): the body's commands, with NiDL's hat for the same pose.
   - `BodyMatches` pairs each KatAM body frame with one of NiDL's plain Kirby poses, by silhouette, checked by eye. Mirrored body frames (attributes `| 0x4000` / `| 0x8000`) are matched unmirrored, and their hat is mirrored the same way.

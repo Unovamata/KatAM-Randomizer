@@ -33,7 +33,7 @@
         const int CodeEnd = 0x160000;
 
         /* AddAbilities(); Relocates the ability tables, detours the HUD portraits and fills gNidlAbilityData. `newEntries[table]`, when
-         * given, replaces the base ability's entries of AbilityTables[table] (hats); `motions`, BuildMotions' body AnimInfos; */
+         * given, replaces the base ability's entries of AbilityTables[table] (hats, Backdrop's palette; -1: the base's); `motions`, BuildMotions' body AnimInfos; */
         static string AddAbilities(byte[] rom, byte[] nightmare, NightmareRegion region, KatAMExpansionCode.Version version, ref int cursor,
                                    int[] motions, Dictionary<string, int[]> newEntries) {
             int codeBase = CodeAddress + 0x08000000;
@@ -46,7 +46,7 @@
                 Array.Copy(rom, old, rom, copy, Math.Min(entries, FirstAbility) * entrySize);
                 for (int k = 0; k < NewAbilities; k++) {
                     int value = ReadInt(rom, old + (template >= 0 ? template : rom[tables + k]) * entrySize);
-                    if (newEntries.TryGetValue(symbol, out int[] given)) value = given[k];
+                    if (newEntries.TryGetValue(symbol, out int[] given) && given[k] != -1) value = given[k];
                     else if (field >= 0 && ReadInt(rom, tables + field + k * 4) != 0) value = ReadInt(rom, tables + field + k * 4);
                     WriteInt(rom, copy + (FirstAbility + k) * entrySize, value);
                 }

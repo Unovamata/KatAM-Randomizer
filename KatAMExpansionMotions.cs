@@ -37,6 +37,15 @@ namespace KatAMRandomizer {
             new Motion(3, 3, new[] { (0xCE2, 3), (0xCE3, 3), (0xCE4, 3), (0xCE5, 3), (0xCE6, 3), (0xCE5, 3), (0xCE4, 3), (0xCE3, 3) }, 0),
             new Motion(3, 4, Frames(new[] { (0xCE9, 2), (0xCE7, 2) }, Frames(0xCD2, 0xCD6, 2), new[] { (0xC7B, 2), (0xC7C, 2) }), 7),
             new Motion(3, 5, Frames(0xCD2, 0xCD9, 1), 0),
+            // Mike: the three songs (megaphone, microphone, microphone jumping), the start then the song held; their ends;
+            new Motion(5, 0, Frames(new[] { (0x66B, 2), (0x66C, 6), (0x66D, 2), (0x66E, 2), (0x66F, 2), (0x66E, 2) }, Frames(0x670, 0x673, 2),
+                                    new[] { (0x674, 2), (0x675, 2) }), 10),
+            new Motion(5, 1, Frames(Frames(0x676, 0x67C, 4), new[] { (0x67D, 6), (0x67E, 2), (0x67D, 2) }), 8),
+            new Motion(5, 2, Frames(Frames(0x67F, 0x682, 2), new[] { (0x683, 5), (0x682, 4), (0x681, 4) }, Frames(0x684, 0x687, 4),
+                                    new[] { (0x688, 5), (0x689, 2), (0x68A, 2) }), 12),
+            new Motion(5, 3, new[] { (0x670, 5) }, -1),
+            new Motion(5, 4, new[] { (0x679, 5) }, -1),
+            new Motion(5, 5, new[] { (0x683, 5) }, -1),
             // Hi-Jump: the rise (cape flapping, held);
             new Motion(4, 0, Frames(new[] { (0xB2D, 2), (0xB2E, 2) }, Frames(0xB2F, 0xB31, 2)), 2),
         };
@@ -156,6 +165,35 @@ namespace KatAMRandomizer {
             }
 
             return (output.ToArray(), oams.ToArray(), new short[] { 0, (short)(oams.Count / 3), (short)(halfWidth * 2), (short)(bottom - top), (short)halfWidth, (short)(Center - top) });
+        }
+
+        /* BuildBackdropPalette(); Backdrop plays like KatAM's Throw, whose body draws a headband in colors 12-14 of the body palette anim
+         * (gUnk_08350A3C[Throw]): an anim like it whose palette has NiDL's red Backdrop headband there (frame 0xE20's). Returns its
+         * AnimInfo for gUnk_08350A3C[Backdrop]; */
+        static int BuildBackdropPalette(byte[] rom, byte[] nightmare, NightmareRegion region, int bodyPalettes, int anims, int attrTable, int oamTable,
+                                        int paletteBase, ref int cursor, int firstAnimId, List<int> animVariants, List<int> animAttributes, List<int> animOams) {
+            const int Throw = 10, HeadbandFrame = 0xE20;
+            int throwAnim = ReadShort(rom, bodyPalettes + Throw * 4), throwVariant = rom[bodyPalettes + Throw * 4 + 2];
+            int commands = ReadInt(rom, ReadInt(rom, anims + throwAnim * 4) - 0x08000000 + throwVariant * 4) - 0x08000000;
+            if (ReadInt(rom, commands) != -2 || ReadInt(rom, commands + 12) != -1) throw new ArgumentException("Throw's palette anim");
+
+            int entry = ReadInt(nightmare, KirbyFrameTable + region.FrameShift + HeadbandFrame * 4) - 0x08000000;
+            ushort[] headband = FramePalette(nightmare, ReadInt(nightmare, entry + 4));
+            int paletteAt = Allocate(ref cursor, 32, 32, paletteBase);
+            Array.Copy(rom, paletteBase + ReadInt(rom, commands + 4) * 32, rom, paletteAt, 32);
+            for (int c = 12; c <= 14; c++) WriteShort(rom, paletteAt + c * 2, headband[c]);
+
+            // Its commands: GetPalette (the new palette), Throw's first GetTiles and ShowFrame, End;
+            int at = Allocate(ref cursor, 9 * 4, 4), variantsAt = Allocate(ref cursor, 4, 4);
+            WriteInts(rom, at, -2, (paletteAt - paletteBase) / 32, 16);
+            Array.Copy(rom, commands + 12, rom, at + 12, 5 * 4);
+            WriteInt(rom, at + 32, -4);
+            WriteInt(rom, variantsAt, at + 0x08000000);
+
+            animVariants.Add(variantsAt);
+            animAttributes.Add(ReadInt(rom, attrTable + throwAnim * 4) - 0x08000000);
+            animOams.Add(ReadInt(rom, oamTable + throwAnim * 4) - 0x08000000);
+            return firstAnimId + animVariants.Count - 1;
         }
 
         /* BuildMotions(); The body and hat motion anims (a variant per motion, in Motions' order), each ability's hat table entries at its

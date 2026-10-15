@@ -8,6 +8,8 @@
 void KirbyEnterWater(struct Kirby *);
 void sub_0805B1B8(struct Kirby *);
 void sub_08054950(struct Kirby *);
+void sub_08034C9C(u8);
+void sub_08035E28(u8);
 
 const struct NidlAbilityTables gNidlAbilityTables = {
     .base = {
@@ -17,7 +19,7 @@ const struct NidlAbilityTables gNidlAbilityTables = {
         [NIDL_ABILITY_BALL - NIDL_FIRST_ABILITY] = KIRBY_ABILITY_NORMAL,
         [NIDL_ABILITY_HI_JUMP - NIDL_FIRST_ABILITY] = KIRBY_ABILITY_NORMAL,
         [NIDL_ABILITY_MIKE - NIDL_FIRST_ABILITY] = KIRBY_ABILITY_NORMAL,
-        [NIDL_ABILITY_BACKDROP - NIDL_FIRST_ABILITY] = KIRBY_ABILITY_NORMAL,
+        [NIDL_ABILITY_BACKDROP - NIDL_FIRST_ABILITY] = KIRBY_ABILITY_THROW,
     },
     .landB = {
         [NIDL_ABILITY_NEEDLE - NIDL_FIRST_ABILITY] = NeedleStart,
@@ -25,6 +27,7 @@ const struct NidlAbilityTables gNidlAbilityTables = {
         [NIDL_ABILITY_LIGHT - NIDL_FIRST_ABILITY] = LightStart,
         [NIDL_ABILITY_BALL - NIDL_FIRST_ABILITY] = BallStart,
         [NIDL_ABILITY_HI_JUMP - NIDL_FIRST_ABILITY] = HiJumpStart,
+        [NIDL_ABILITY_MIKE - NIDL_FIRST_ABILITY] = MikeStart,
     },
     .setup = {
         [NIDL_ABILITY_NEEDLE - NIDL_FIRST_ABILITY] = NidlAbilitySetup,
@@ -33,7 +36,6 @@ const struct NidlAbilityTables gNidlAbilityTables = {
         [NIDL_ABILITY_BALL - NIDL_FIRST_ABILITY] = NidlAbilitySetup,
         [NIDL_ABILITY_HI_JUMP - NIDL_FIRST_ABILITY] = NidlAbilitySetup,
         [NIDL_ABILITY_MIKE - NIDL_FIRST_ABILITY] = NidlAbilitySetup,
-        [NIDL_ABILITY_BACKDROP - NIDL_FIRST_ABILITY] = NidlAbilitySetup,
     },
 };
 
@@ -49,6 +51,7 @@ void NidlAbilitySetup(struct Kirby *kirby) {
         dst[i].animId = src[i].animId;
         dst[i].variant = src[i].variant;
     }
+    if (kirby->ability == NIDL_ABILITY_MIKE) NIDL_MIKE_USES(kirby) = 0;
 }
 
 /* NidlAbilityPortrait(); sub_080356AC (detoured): queues the portrait `id` (an ability's, or a special one) for `vram` and loads its
@@ -198,4 +201,46 @@ void NidlSwallow(struct Kirby *kirby, u8 ability) {
         sub_0808A3E0(&kirby->base);
         kirby->base.flags &= ~2;
     }
+}
+
+// NidlAbilityUsedUp(); The ability is gone (like Crash's, sub_08068724): back to Normal, the HUD's portrait too;
+void NidlAbilityUsedUp(struct Kirby *kirby) {
+    kirby->ability = KIRBY_ABILITY_NORMAL;
+    if (gLocalPlayerId == kirby->base.unk56) {
+        sub_08035E28(0);
+        sub_08034C9C(2);
+    }
+    sub_0806F260(kirby);
+}
+
+/* NidlFlash; The screen brightening (BLDY, one level a frame), a task of its own so it ends whatever happens to Kirby. Only the
+ * local player's, and only when the room isn't blending already; */
+struct NidlFlash {
+    const u8 *levels;
+    u16 count;
+    u16 timer;
+};
+
+static void NidlFlashMain(void) {
+    struct NidlFlash *flash = TaskGetStructPtr(gCurTask);
+    u16 t = flash->timer++;
+
+    if (t >= flash->count) {
+        gBldRegs.bldCnt = 0;
+        gBldRegs.bldY = 0;
+        TaskDestroy(gCurTask);
+        return;
+    }
+    gBldRegs.bldCnt = BLDCNT_TGT1_ALL | BLDCNT_EFFECT_LIGHTEN;
+    gBldRegs.bldY = flash->levels[t];
+}
+
+void NidlFlash(struct Kirby *kirby, const u8 *levels, u16 count) {
+    struct NidlFlash *flash;
+
+    if (gLocalPlayerId != kirby->base.unk56 || gBldRegs.bldCnt != 0) return;
+    flash = TaskGetStructPtr(TaskCreate(NidlFlashMain, sizeof(struct NidlFlash), 0x3500, TASK_USE_IWRAM, NULL));
+    flash->levels = levels;
+    flash->count = count;
+    flash->timer = 0;
 }

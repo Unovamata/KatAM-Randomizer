@@ -124,8 +124,8 @@
                 0xafd, 0xafe, 0xb00, 0xb01, 0xb02, 0xb03, 0xb04, 0xb05, 0xb06, 0xb07, 0xb08, 0xb09,
                 0xb0a, 0xb0b, 0xb0c, 0xb0d, 0xb0e, 0xb0f, 0xb10, 0xb11, 0xac0, 0xac1,
             },
-            null,           // Mike (filled in with the ability);
-            null,           // Backdrop;
+            null,           // Mike: no hat;
+            null,           // Backdrop: no hat (it has Throw's body, headband included, see BuildBackdropPalette);
         };
 
         // Per new ability, which pixels are its hat: null, the second layer's; else the first layer's of these colors (Ball's cap is drawn with Kirby);
@@ -218,8 +218,8 @@
         /* BuildHats(); Each new ability's hat anim (added to the anim lists, after the enemies'), and its hat table (an AnimInfo per animation
          * index: the anim and variant i) for gUnk_08D60FDC, with its palette's offset and which of its colors the hat uses (`hatPalettes`,
          * `paletteUsed`, for BuildMotions). Light's hat is empty (its motions draw on the hat sprite, see BuildMotions).
-         * `bodyTable` is gUnk_0834C5D4 (Normal's; KatAM's own hat tables have up to 118 entries, these have one per body
-         * table entry, the frames without a match hatless); */
+         * `bodyTable` is gUnk_0834C5D4 (Normal's, which they use; KatAM's own hat tables have up to 118 entries, these have one per
+         * body table entry, the frames without a match hatless); */
         static int[] BuildHats(byte[] rom, byte[] nightmare, NightmareRegion region, int bodyTable, int anims, int attrTable, int tilesBase, int paletteBase,
                                ref int cursor, int firstAnimId, List<int> animVariants, List<int> animAttributes, List<int> animOams,
                                int[] hatPalettes, bool[][] paletteUsed) {
