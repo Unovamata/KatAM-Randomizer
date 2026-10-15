@@ -26,7 +26,8 @@
  *   frames (2). When Kirby comes within 50 pixels sideways and 64 up or down while it sits (0x080880FC, 0x0874269C, 0x087426A4),
  *   it takes off (0x0808827C: 3.0 up, gravity 0x1500, flapping) and goes on as variant 4.
  * • Variant 8, 0x08088360 (0x080883DC, 0x08088478): hovers in place, bobbing (Y speeds 1.0 up, 0.5 up, 0.5 down, 1.0 down, 0.5
- *   down, 0, 0.5 up, 8 frames each, flapping with them), facing Kirby every 8 frames; */
+ *   down, 0, 0.5 up, 8 frames each, flapping with them), facing Kirby every 8 frames.
+ * • Variant 9, 0x08088498: sits on the ground (frame 6) facing Kirby, and never does anything else; */
 #include "../nidl.h"
 
 // Frames: NiDL's 4, 5 (flapping) and 6 (sitting). Its hurt frame is NiDL's 3;
@@ -81,7 +82,7 @@ static const s16 sAmbushOffsets[] = { -72, -40, 56, 88 };  // 0x087425DC;
 #define PERCH_NEAR_Y 64
 #define PERCH_TAKEOFF 0x300
 
-enum { STATE_SWOOP, STATE_SIT, STATE_TAKEOFF, STATE_HOVER, STATE_DASH, STATE_DROP, STATE_LOOP, STATE_BOUNCE, STATE_CHASE, STATE_LEAVE, STATE_HOP_SIT, STATE_HOP, STATE_PERCH, STATE_PERCH_HOP, STATE_PERCH_WAIT, STATE_PERCH_TAKEOFF, STATE_BOB };
+enum { STATE_SWOOP, STATE_SIT, STATE_TAKEOFF, STATE_HOVER, STATE_DASH, STATE_DROP, STATE_LOOP, STATE_BOUNCE, STATE_CHASE, STATE_LEAVE, STATE_HOP_SIT, STATE_HOP, STATE_PERCH, STATE_PERCH_HOP, STATE_PERCH_WAIT, STATE_PERCH_TAKEOFF, STATE_BOB, STATE_STILL };
 
 struct Twizzy {
     struct NidlObject n;
@@ -527,6 +528,9 @@ static void TwizzyMain(struct Object *obj) {
     case STATE_BOB:
         Bob(tw);
         break;
+    case STATE_STILL:
+        NidlFall(obj);
+        break;
     case STATE_LEAVE:
         if ((obj->base.yspeed += LEAVE_ACCEL) > MAX_CLIMB) obj->base.yspeed = MAX_CLIMB;
         break;
@@ -549,6 +553,12 @@ void TwizzyStart(struct Object *obj) {
         StartHopSit(tw);
     } else if (tw->n.variant == 7) {
         Perch(tw);
+    } else if (tw->n.variant == 9) {
+        tw->state = STATE_STILL;
+        obj->base.xspeed = 0;
+        NidlFaceKirby(obj);
+        tw->n.sequence = NULL;
+        NidlSetFrame(&tw->n, FRAME_SIT);
     } else if (tw->n.variant == 8) {
         tw->state = STATE_BOB;
         tw->step = 0;
@@ -590,7 +600,7 @@ void TwizzyInit(struct NidlObject *n) {
     ObjectSetBounds(&obj->base, -6, -5, 6, 9);
     tw->state = STATE_SWOOP;
     tw->placed = FALSE;
-    if (n->variant == 5 || n->variant == 6 || n->variant == 7) {
+    if (n->variant == 5 || n->variant == 6 || n->variant == 7 || n->variant == 9) {
         tw->state = STATE_SIT;
         obj->base.unk4C = obj->base.y = ((obj->base.y + (obj->base.unk3F * 0x100)) & 0xfffff000) - (obj->base.unk3F * 0x100) - 1;
     }

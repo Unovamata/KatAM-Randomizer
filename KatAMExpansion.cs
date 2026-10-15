@@ -101,11 +101,12 @@ namespace KatAMRandomizer {
             new[] { (0x0C, 0), (0x19, 2), (0x19, 1), (0x19, 1), (0x19, 5) },   // "C" (Cupie), "a", "p", "p", "y" (Sparky);
             new byte[] { 0x00, 0x01, 0x02 });
 
-        // Twizzy; Frames: NiDL's 4, 5 (flapping) and 6 (sitting). Variant 0 swoops, variant 5 sits until Kirby comes near;
+        // Twizzy; Frames: NiDL's 4, 5 (flapping) and 6 (sitting). All 10 NiDL variants: 0-4 and 8 fly (swooping, swooping after
+        // Kirby, ambushing from above, bouncing diagonally, chasing, bobbing), 5-7 and 9 start on the ground;
         static Enemy Twizzy() => new Enemy(2, "Twizzy", 0x18, 0x752560, new List<Part[]> { new[] { new Part(4) }, new[] { new Part(5) }, new[] { new Part(6) } },
             new[] { new Part(3) }, new Dictionary<int, ushort>(),
             new[] { (0x1C, 0), (0x1C, 1), (0x1C, 2), (0x35, 4), (0x35, 4), (0x05, 5) },   // "Twi" (Twister), "z", "z" (Shotzo), "y" (Scarfy);
-            new byte[] { 0x00, 0x05, 0x06, 0x07 }, new byte[] { 0x00, 0x01, 0x02, 0x03, 0x04, 0x08 });
+            new byte[] { 0x05, 0x06, 0x07, 0x09 }, new byte[] { 0x00, 0x01, 0x02, 0x03, 0x04, 0x08 });
 
         // Bubbles; Frames: NiDL's 4 to 21 (spinning 4-12, squashed 13-21). Variant 0 bounces around, variant 1 in place;
         static Enemy Bubbles() => new Enemy(3, "Bubbles", 0x1E, 0x7526A8, Enumerable.Range(4, 18).Select(f => new[] { new Part(f) }).ToList(),
