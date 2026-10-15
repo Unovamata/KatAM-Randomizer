@@ -8,7 +8,10 @@
  * • 0x08081140: dives (frame 20) at 2.0, gravity 0x1500, at 3.0 at most; landing it bounces up 2.0 (frame 13, then 14-15 every
  *   4 frames) and lands again. The first time it stands (frame 13) for 60 frames and walks again; the second time:
  * • 0x08081274: crouches and flies away: 0.4 forward, rising 0x1900 faster every frame (frame 13).
- * NiDL's variants 1 to 3 and its water state (0x080812F0) aren't ported; */
+ * • Variant 1, 0x08081408 (states 0x08741584, per frame 0x08741590): walks at 0.5 facing Kirby (0x0808148C); after a while (216
+ *   frames the first time, then 27 to 216 at random, table 0x0874150C) it crouches (frame 11 for 16 frames, 12 for 6) and jumps
+ *   2.0 (0x08081508: gravity 0x1000, at 3.0 at most, frame 13), falls (frames 14 and 15, 4 frames each, 0x0808159C) and walks again.
+ * NiDL's variants 2 and 3 and its water state (0x080812F0) aren't ported; */
 #include "../nidl.h"
 
 // Frames: NiDL's 4 to 20 (walking 4-10, crouching 11-12, flying 13-18, diving 20), numbered from 0. Its hurt frame is NiDL's 3;
@@ -32,13 +35,20 @@ static const s16 sCrouch[] = { FRAME(11), 16, FRAME(12), 6, NIDL_END };
 static const s16 sFly[] = { FRAME(16), 6, FRAME(17), 6, FRAME(18), 6, NIDL_LOOP };
 static const s16 sTumble[] = { FRAME(14), 4, FRAME(15), 4, NIDL_LOOP };
 
-enum { STATE_WALK, STATE_CROUCH, STATE_TAKEOFF, STATE_HIDE, STATE_DIVE, STATE_BOUNCE, STATE_REST, STATE_LEAVE_CROUCH, STATE_LEAVE };
+enum { STATE_WALK, STATE_CROUCH, STATE_TAKEOFF, STATE_HIDE, STATE_DIVE, STATE_BOUNCE, STATE_REST, STATE_LEAVE_CROUCH, STATE_LEAVE,
+       STATE_STROLL, STATE_HOP_CROUCH, STATE_HOP };
+
+// Variant 1: frames between hops (0x0874150C);
+static const u8 sHopDelays[] = { 27, 54, 54, 81, 81, 81, 108, 108, 135, 135, 162, 162, 162, 189, 189, 216 };
+#define HOP_SPEED 0x200
+#define HOP_GRAVITY 0x10
 
 struct Starman {
     struct NidlObject n;
     u8 state;
     u8 timer;
     u8 dives;
+    u8 strollTime;
 };
 
 // SetState(); Also what it looks like;
@@ -47,6 +57,7 @@ static void SetState(struct Starman *s, u8 state) {
 
     s->state = state;
     switch (state) {
+    case STATE_STROLL:
     case STATE_WALK:
         NidlFaceKirby(obj);
         obj->base.xspeed = (obj->base.flags & 1) ? -WALK_SPEED : WALK_SPEED;
@@ -132,11 +143,54 @@ static bool8 Fall(struct Object *obj) {
     return (obj->base.unk62 & 4) && obj->base.yspeed <= 0;
 }
 
+// Stroll(); Variant 1 (0x0808148C, 0x080814B4, 0x08081508, 0x0808159C);
+static void Stroll(struct Starman *s) {
+    struct Object *obj = &s->n.obj;
+
+    switch (s->state) {
+    case STATE_STROLL:
+        NidlFall(obj);
+        NidlAnimate(&s->n);
+        NidlStopAtLedge(obj);
+        if (--s->strollTime) break;
+        s->state = STATE_HOP_CROUCH;
+        s->timer = 16 + 6;
+        obj->base.xspeed = 0;
+        NidlPlay(&s->n, sCrouch);
+        break;
+    case STATE_HOP_CROUCH:
+        NidlFall(obj);
+        NidlAnimate(&s->n);
+        if (--s->timer) break;
+        s->state = STATE_HOP;
+        obj->base.yspeed = HOP_SPEED;
+        s->n.sequence = NULL;
+        NidlSetFrame(&s->n, FRAME(13));
+        break;
+    case STATE_HOP:
+        obj->base.yspeed -= HOP_GRAVITY;
+        if (obj->base.yspeed < -MAX_FALL) obj->base.yspeed = -MAX_FALL;
+        if (obj->base.yspeed <= 0 && !s->n.sequence) NidlPlay(&s->n, sTumble);
+        NidlAnimate(&s->n);
+        if ((obj->base.unk62 & 4) && obj->base.yspeed <= 0) {
+            obj->base.yspeed = 0;
+            SetState(s, STATE_STROLL);
+            s->strollTime = sHopDelays[Rand16() % ARRAY_COUNT(sHopDelays)];
+        }
+        break;
+    }
+}
+
 static void StarmanMain(struct Object *obj) {
     struct Starman *s = (struct Starman *)obj;
 
     NidlUpdate(&s->n);
     obj->base.flags |= 4;
+
+    if (s->n.variant == 1) {
+        Stroll(s);
+        return;
+    }
 
     switch (s->state) {
     case STATE_WALK:
@@ -192,6 +246,11 @@ void StarmanStart(struct Object *obj) {
     ObjectSetFunc(obj, 0, StarmanMain);
     obj->base.flags &= ~(0x400 | 0x100 | 0x2000000);
     obj->base.yspeed = 0;
+    if (s->n.variant == 1) {
+        SetState(s, STATE_STROLL);
+        if (!s->strollTime) s->strollTime = 216;
+        return;
+    }
     SetState(s, STATE_WALK);
 }
 
@@ -200,6 +259,7 @@ void StarmanInit(struct NidlObject *n) {
     struct Object *obj = &n->obj;
 
     ((struct Starman *)n)->dives = 0;
+    ((struct Starman *)n)->strollTime = 0;
     sub_0803E2B0(&obj->base, -6, -6, 6, 8);
     ObjectSetBounds(&obj->base, -7, -7, 7, 9);
     obj->base.unk4C = obj->base.y = ((obj->base.y + (obj->base.unk3F * 0x100)) & 0xfffff000) - (obj->base.unk3F * 0x100) - 1;
