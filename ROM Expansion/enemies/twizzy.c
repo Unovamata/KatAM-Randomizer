@@ -24,7 +24,9 @@
  * • Variant 7, 0x08087FCC: on the ground: sits 15 frames facing Kirby (0x08088054), then at random (of 8) hops in place (2), hops
  *   1.0 (2) or 2.0 forward (1) (0x080881A0: 1.5 up, gravity 0x4000, turning around half the time), or sits on for 32 (1) or 64
  *   frames (2). When Kirby comes within 50 pixels sideways and 64 up or down while it sits (0x080880FC, 0x0874269C, 0x087426A4),
- *   it takes off (0x0808827C: 3.0 up, gravity 0x1500, flapping) and goes on as variant 4; */
+ *   it takes off (0x0808827C: 3.0 up, gravity 0x1500, flapping) and goes on as variant 4.
+ * • Variant 8, 0x08088360 (0x080883DC, 0x08088478): hovers in place, bobbing (Y speeds 1.0 up, 0.5 up, 0.5 down, 1.0 down, 0.5
+ *   down, 0, 0.5 up, 8 frames each, flapping with them), facing Kirby every 8 frames; */
 #include "../nidl.h"
 
 // Frames: NiDL's 4, 5 (flapping) and 6 (sitting). Its hurt frame is NiDL's 3;
@@ -79,7 +81,7 @@ static const s16 sAmbushOffsets[] = { -72, -40, 56, 88 };  // 0x087425DC;
 #define PERCH_NEAR_Y 64
 #define PERCH_TAKEOFF 0x300
 
-enum { STATE_SWOOP, STATE_SIT, STATE_TAKEOFF, STATE_HOVER, STATE_DASH, STATE_DROP, STATE_LOOP, STATE_BOUNCE, STATE_CHASE, STATE_LEAVE, STATE_HOP_SIT, STATE_HOP, STATE_PERCH, STATE_PERCH_HOP, STATE_PERCH_WAIT, STATE_PERCH_TAKEOFF };
+enum { STATE_SWOOP, STATE_SIT, STATE_TAKEOFF, STATE_HOVER, STATE_DASH, STATE_DROP, STATE_LOOP, STATE_BOUNCE, STATE_CHASE, STATE_LEAVE, STATE_HOP_SIT, STATE_HOP, STATE_PERCH, STATE_PERCH_HOP, STATE_PERCH_WAIT, STATE_PERCH_TAKEOFF, STATE_BOB };
 
 struct Twizzy {
     struct NidlObject n;
@@ -440,6 +442,24 @@ static void TwizzyPerch(struct Twizzy *tw) {
     }
 }
 
+// The bob of variant 8 (0x080883DC): Y speeds and frames, 8 frames each;
+static const s16 sBob[][2] = {
+    { 0x100, FRAME_WINGS_DOWN }, { 0x80, FRAME_WINGS_UP }, { -0x80, FRAME_WINGS_UP }, { -0x100, FRAME_WINGS_DOWN },
+    { -0x80, FRAME_WINGS_UP }, { 0, FRAME_WINGS_DOWN }, { 0x80, FRAME_WINGS_UP },
+};
+
+// Bob(); 0x080883DC, 0x08088478;
+static void Bob(struct Twizzy *tw) {
+    struct Object *obj = &tw->n.obj;
+
+    if (tw->timer && --tw->timer) return;
+    tw->timer = 8;
+    NidlFaceKirby(obj);
+    obj->base.yspeed = sBob[tw->step][0];
+    NidlSetFrame(&tw->n, sBob[tw->step][1]);
+    if (++tw->step >= ARRAY_COUNT(sBob)) tw->step = 0;
+}
+
 static void TwizzyMain(struct Object *obj) {
     struct Twizzy *tw = (struct Twizzy *)obj;
     s32 distance;
@@ -504,6 +524,9 @@ static void TwizzyMain(struct Object *obj) {
     case STATE_PERCH_TAKEOFF:
         TwizzyPerch(tw);
         break;
+    case STATE_BOB:
+        Bob(tw);
+        break;
     case STATE_LEAVE:
         if ((obj->base.yspeed += LEAVE_ACCEL) > MAX_CLIMB) obj->base.yspeed = MAX_CLIMB;
         break;
@@ -526,6 +549,12 @@ void TwizzyStart(struct Object *obj) {
         StartHopSit(tw);
     } else if (tw->n.variant == 7) {
         Perch(tw);
+    } else if (tw->n.variant == 8) {
+        tw->state = STATE_BOB;
+        tw->step = 0;
+        tw->timer = 0;
+        obj->base.xspeed = 0;
+        tw->n.sequence = NULL;
     } else if (tw->n.variant == 4) {
         if (tw->state != STATE_LEAVE) {
             tw->state = STATE_CHASE;
