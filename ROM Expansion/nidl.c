@@ -56,15 +56,21 @@ void NidlAnimate(struct NidlObject *n) {
     n->sequenceStep++;
 }
 
-/* NidlUploadHurtTiles(); Copies the enemy's hurt frame into the last NIDL_HURT_TILES tiles of its VRAM, where the type's
- * hurt animation draws from (mini-bosses: NIDL_MINIBOSS_HURT_TILES). Done again whenever the object gets new VRAM; */
+// NidlHurtTiles(); The tiles of an enemy's or mini-boss's hurt frame (its type's);
+u32 NidlHurtTiles(struct Object *obj) {
+    if (obj->type == NIDL_MINIBOSS_TYPE_3) return NIDL_KNIGHT_HURT_TILES;
+    return NidlIsMiniboss(obj) ? NIDL_MINIBOSS_HURT_TILES : NIDL_HURT_TILES;
+}
+
+/* NidlUploadHurtTiles(); Copies the enemy's hurt frame (its hurt one, for the mini-bosses with several) into the last NidlHurtTiles
+ * tiles of its VRAM, where the type's hurt animation draws from. Done again whenever the object gets new VRAM; */
 void NidlUploadHurtTiles(struct NidlObject *n) {
     u32 vram = n->obj.base.sprite.tilesVram;
-    u32 tiles = NidlIsMiniboss(&n->obj) ? NIDL_MINIBOSS_HURT_TILES : NIDL_HURT_TILES;
+    u32 tiles = NidlHurtTiles(&n->obj);
 
     if (!vram || vram == n->hurtVram) return;
     n->hurtVram = vram;
-    CpuSet(NidlGraphicsOf(n)->hurtTiles, (void *)(vram + (gUnk_08351648[n->obj.type].numTiles - tiles) * 32), tiles * 32 / 2);
+    CpuSet(NidlGraphicsOf(n)->hurtTiles + n->hurt * tiles * 32, (void *)(vram + (gUnk_08351648[n->obj.type].numTiles - tiles) * 32), tiles * 32 / 2);
 }
 
 // NidlGraphicsOf(); The graphics of an enemy or mini-boss;
@@ -122,6 +128,7 @@ void *CreateNidlEnemy(struct ObjectTemplate *template, u8 playerId) {
     n->hurtVram = 0;
     n->sequence = NULL;
     n->activated = FALSE;
+    n->hurt = 0;
     n->obj.unk80 = sNidlEnemies[enemy].hp;
     sNidlEnemies[enemy].init(n);
     NidlSetFrame(n, 0);

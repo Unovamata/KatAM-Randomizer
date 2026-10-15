@@ -52,7 +52,7 @@ namespace KatAMRandomizer {
 
         /* Part; A NiDL frame (from the enemy's frame table, or Table when the enemy has more than one), recolored, drawn with NiDL's
          * palette 15 or with another of the descriptor's palettes (Palette); */
-        sealed record Part(int Frame, Dictionary<int, int> Recolor = null, int Table = 0, bool Palette15 = false, int Palette = 0);
+        sealed record Part(int Frame, Dictionary<int, int> Recolor = null, int Table = 0, bool Palette15 = false, int Palette = 0, int Descriptor = -1);
 
         /* Enemy; A ported enemy: its index (NIDL_* in nidl.h), name, NiDL object type and frame table, its frames (in the order the
          * C code numbers them), its hurt frame, palette changes, the letters of its name and the behavior bytes the randomizer uses; */
@@ -67,14 +67,26 @@ namespace KatAMRandomizer {
          * frame table, frames, hurt frame (64x96, centered), the letters of its name, the behavior bytes the randomizer uses and its object
          * type (MinibossIDs). HurtShift
          * moves the hurt frame that many pixels down within it, for mini-bosses too tall for it, and every frame as much (the C code moves
-         * the sprite back up: hurtShift in nidl_miniboss.c, the same value); */
+         * the sprite back up: hurtShift in nidl_miniboss.c, the same value). ExtraHurts follow the hurt frame (the C code picks one: the
+         * object's hurt); */
         sealed record Miniboss(int Index, string Name, int NightmareIndex, int FrameTable, List<Part[]> Frames, Part[] Hurt,
-                               (int type, int letter)[] Glyphs, byte[] Behaviors, int HurtShift = 0, byte Type = 0x40);
+                               (int type, int letter)[] Glyphs, byte[] Behaviors, int HurtShift = 0, byte Type = 0x40,
+                               List<Part[]> ExtraHurts = null);
 
-        /* Mini-boss object types: an object's frame index is a byte, so the mini-bosses are spread over types 0x40 and 0x41 (both mini-bosses
+        /* Mini-boss object types: an object's frame index is a byte, so the mini-bosses are spread over types 0x40-0x42 (all mini-bosses
          * to KatAM), each with its own AnimInfo table; the behavior byte picks the mini-boss either way; */
-        public static readonly byte[] MinibossIDs = { 0x40, 0x41 };
-        const int MinibossDescriptors = 0x244, MinibossHurtTiles = 96, MinibossHurtWidth = 64, MinibossHurtHeight = 96, MinibossHurtOriginX = 32, MinibossHurtOriginY = 48;
+        public static readonly byte[] MinibossIDs = { 0x40, 0x41, 0x42 };
+        const int MinibossDescriptors = 0x244;
+
+        /* MinibossHurt; A mini-boss type's hurt frame: its size, origin and KatAM OAM pieces (shape, size, x, y, first tile), drawn from
+         * its last tiles of VRAM (the same as nidl.c's NidlHurtTiles). 64x96 (a 64x64 and a 64x32 piece), but type 0x42's (the
+         * Meta-Knights, several at once) 32x64; */
+        sealed record MinibossHurt(int Width, int Height, int OriginX, int OriginY, (int shape, int size, int x, int y, int tile)[] Pieces) {
+            public int Tiles => Width * Height / 64;
+        }
+        static readonly MinibossHurt BigHurt = new MinibossHurt(64, 96, 32, 48, new[] { (0, 3, 0, 0, 0), (1, 3, 0, 64, 64) }),
+                                     KnightHurt = new MinibossHurt(32, 64, 16, 28, new[] { (2, 3, 0, 0, 0) });
+        static MinibossHurt HurtOf(byte type) => type == 0x42 ? KnightHurt : BigHurt;
         const int EnemyCount = 15;  // NIDL_ENEMY_COUNT: gNidlData's mini-bosses follow its enemies;
 
         public static readonly IReadOnlyList<(int index, string name)> Minibosses;
@@ -85,6 +97,7 @@ namespace KatAMRandomizer {
             GrandWheelie(),
             Bugzzy(),
             FireLion(),
+            MetaKnights(),
         };
 
         static readonly List<Enemy> Definitions = new List<Enemy> {
@@ -108,6 +121,31 @@ namespace KatAMRandomizer {
         static KatAMExpansion() {
             Enemies = Definitions.Select(e => (e.Index, e.Name)).ToList();
             Minibosses = MinibossDefinitions.Select(m => (m.Index, m.Name)).ToList();
+        }
+
+        /* Meta-Knights; NiDL mini-boss 8 (Meta Knight, type 0x39, who calls in his knights: type 0x3A, one graphics descriptor each,
+         * mini-boss descriptors 9-12). Frames: Axe Knight's 0-34 (0x08753204), Javelin Knight's 0-57 (0x08753290), Mace Knight's 0-38
+         * (0x08753378) and Trident Knight's 0-62 (0x08753414), each with its own palette (palettes 0-3). Hurt: each knight's frame 3
+         * (the object's hurt picks it). Variants 0-4: NiDL's five line-ups (0x08745CFC); */
+        static Miniboss MetaKnights() {
+            List<Part[]> frames = new List<Part[]>();
+
+            frames.AddRange(Enumerable.Range(0, 35).Select(f => new[] { new Part(f) }));
+            frames.AddRange(Enumerable.Range(0, 58).Select(f => new[] { new Part(f, Table: 0x753290, Descriptor: 10) }));
+            frames.AddRange(Enumerable.Range(0, 39).Select(f => new[] { new Part(f, Table: 0x753378, Descriptor: 11) }));
+            frames.AddRange(Enumerable.Range(0, 63).Select(f => new[] { new Part(f, Table: 0x753414, Descriptor: 12) }));
+
+            return new Miniboss(5, "Meta-Knights", 9, 0x753204, frames, new[] { new Part(3) },
+                new[] {
+                    (0x38, 0), (0x14, 4), (0x14, 2), (0x14, 5), (0x0B, 4),                         // "M" (Mr.Frosty), "eta" (Hot Head), "-" (Roly-Poly);
+                    (0x1A, 5), (0x1A, 6), (0x1A, 7), (0x1A, 8), (0x1A, 9), (0x1A, 10), (0x04, 4),   // "Knight" (Sword Knight), "s" (Squishy);
+                },
+                new byte[] { 0x00, 0x01, 0x02, 0x03, 0x04 }, Type: 0x42,
+                ExtraHurts: new List<Part[]> {
+                    new[] { new Part(3, Table: 0x753290, Descriptor: 10) },
+                    new[] { new Part(3, Table: 0x753378, Descriptor: 11) },
+                    new[] { new Part(3, Table: 0x753414, Descriptor: 12) },
+                });
         }
 
         /* Fire Lion; NiDL mini-boss 6 (type 0x37). Frames: NiDL's 0-56 (streamed frames 0-51, its fire bits 52-56). Hurt: NiDL's 0,
@@ -373,8 +411,9 @@ namespace KatAMRandomizer {
             try {
                 built = Definitions.Select(e => Build(nightmare, region, e)).ToList();
                 builtMinibosses = MinibossDefinitions.Select(m => BuildGraphics(nightmare, region,
-                    ReadInt(nightmare, region.Descriptors + MinibossDescriptors + m.NightmareIndex * 4) - 0x08000000, m.FrameTable, m.Frames, m.Hurt,
-                    new Dictionary<int, ushort>(), MinibossHurtWidth, MinibossHurtHeight, MinibossHurtOriginX, MinibossHurtOriginY, m.HurtShift)).ToList();
+                    ReadInt(nightmare, region.Descriptors + MinibossDescriptors + m.NightmareIndex * 4) - 0x08000000, m.FrameTable, m.Frames,
+                    new[] { m.Hurt }.Concat(m.ExtraHurts ?? new List<Part[]>()).ToList(), new Dictionary<int, ushort>(), HurtOf(m.Type).Width,
+                    HurtOf(m.Type).Height, HurtOf(m.Type).OriginX, HurtOf(m.Type).OriginY, m.HurtShift)).ToList();
             } catch (Exception exception) when (exception is IndexOutOfRangeException or ArgumentException or InvalidOperationException) {
                 return $"The Nightmare in Dream Land ROM doesn't match the {region.KatAM} release.";
             }
@@ -463,23 +502,28 @@ namespace KatAMRandomizer {
             foreach ((Enemy enemy, byte[] palette, List<(byte[] tiles, ushort[] oams, short[] attributes, int palette)> frames, byte[] hurt) in built)
                 data.Add(AddAnim(new List<byte[]> { palette }, frames, hurt, animInfos));
 
-            /* Per mini-boss type: its hurt anim (a 64x64 and a 64x32 piece, 64x96, drawing the last MinibossHurtTiles tiles of the object's
-             * VRAM, after the type's biggest frame), then its mini-bosses' anims; */
+            /* Per mini-boss type: its hurt anim (HurtOf: drawing the last tiles of the object's VRAM, after the type's biggest frame), then
+             * its mini-bosses' anims; */
             Dictionary<byte, int> minibossFrameTiles = new Dictionary<byte, int>();
             Dictionary<byte, List<(int animId, int variant)>> minibossAnimInfos = new Dictionary<byte, List<(int, int)>>();
             foreach (byte type in MinibossIDs) {
                 List<int> ofType = Enumerable.Range(0, MinibossDefinitions.Count).Where(i => MinibossDefinitions[i].Type == type).ToList();
                 if (ofType.Count == 0) continue;
 
+                MinibossHurt typeHurt = HurtOf(type);
                 int typeFrameTiles = minibossFrameTiles[type] = ofType.SelectMany(i => builtMinibosses[i].frames).Max(f => f.tiles.Length / 32);
                 int typeHurtCommands = Allocate(ref cursor, 12, 4);
                 WriteInts(rom, typeHurtCommands, 60, 0, -4);
                 int typeHurtVariants = Allocate(ref cursor, 4, 4);
                 WriteInt(rom, typeHurtVariants, typeHurtCommands + 0x08000000);
                 int typeHurtAttributes = Allocate(ref cursor, 12, 4);
-                WriteShorts(rom, typeHurtAttributes, 0, 2, MinibossHurtWidth, MinibossHurtHeight, MinibossHurtOriginX, MinibossHurtOriginY);
-                int typeHurtOam = Allocate(ref cursor, 12, 4);
-                WriteShorts(rom, typeHurtOam, 0 | 0 << 14, 0 | 3 << 14, typeFrameTiles, 64 | 1 << 14, 0 | 3 << 14, typeFrameTiles + 64);
+                WriteShorts(rom, typeHurtAttributes, 0, (short)typeHurt.Pieces.Length, (short)typeHurt.Width, (short)typeHurt.Height, (short)typeHurt.OriginX,
+                            (short)typeHurt.OriginY);
+                int typeHurtOam = Allocate(ref cursor, typeHurt.Pieces.Length * 6, 4);
+                for (int p = 0; p < typeHurt.Pieces.Length; p++) {
+                    (int shape, int size, int x, int y, int tile) = typeHurt.Pieces[p];
+                    WriteShorts(rom, typeHurtOam + p * 6, (short)(y | shape << 14), (short)(x | size << 14), (short)(typeFrameTiles + tile));
+                }
                 int typeHurtAnimID = HurtAnimID + animVariants.Count;
                 animVariants.Add(typeHurtVariants);
                 animAttributes.Add(typeHurtAttributes);
@@ -580,7 +624,7 @@ namespace KatAMRandomizer {
             WriteInt(rom, parameters + 20, animInfosAt + 0x08000000);
             Array.Copy(rom, ObjectParameters2, rom, ObjectParameters2 + NightmareID * 8, 8);
 
-            /* Object types 0x40 and 0x41: spawn function and parameters, as Mr. Frosty's (type 0x38: score, HP) but for its hurt frames (0 &
+            /* Object types 0x40-0x42: spawn function and parameters, as Mr. Frosty's (type 0x38: score, HP) but for its hurt frames (0 &
              * 1), no ability (the code sets each mini-boss's), no palette key, VRAM tiles (the type's biggest frame, then the hurt frame),
              * behavior start and animations. Their second parameters are Mr. Frosty's; */
             const int FrostyID = 0x38;
@@ -592,11 +636,19 @@ namespace KatAMRandomizer {
                 rom[minibossParameters + 1] = 1;
                 WriteShort(rom, minibossParameters + 6, 0);
                 WriteShort(rom, minibossParameters + 8, 0);
-                WriteInt(rom, minibossParameters + 12, minibossFrameTiles[type] + MinibossHurtTiles);
+                WriteInt(rom, minibossParameters + 12, minibossFrameTiles[type] + HurtOf(type).Tiles);
                 WriteInt(rom, minibossParameters + 16, codeBase + version.CodeSymbols["NidlMinibossStart"] + 1);
                 WriteInt(rom, minibossParameters + 20, minibossAnimInfosAt[type] + 0x08000000);
                 Array.Copy(rom, ObjectParameters2 + FrostyID * 8, rom, ObjectParameters2 + type * 8, 8);
             }
+
+            /* The HP bar's fill (0x08034F38): HP times gUnk_08351458[type - 0x38][players - 1], >> 8 (64: full). The table sits right before
+             * gUnk_08351648 in every version, and holds a placeholder (8192) for types 0x40-0x44: the mini-bosses (30 HP) get Mr. Frosty's
+             * 546 (30 HP as well, for one player) for any number of players; */
+            int hpBar = version.RomSymbols["gUnk_08351648"] - 0x1F0;
+            if (ReadShort(rom, hpBar + 8 * 8) != 8192) return $"The ROM's data doesn't match the {version.Name} release.";
+            foreach (byte type in minibossAnimInfosAt.Keys)
+                for (int players = 0; players < 4; players++) WriteShort(rom, hpBar + (type - FrostyID) * 8 + players * 2, 546);
 
             /* A defeated mini-boss blinks with the animation gUnk_08D610B4[type - 0x38] (sub_0809D060), a table of 8 (0x38-0x3F): type 0x40
              * read past its end. It's copied with 3 more entries (0x40-0x42, none: no blinking), and its one use points at the copy; */
@@ -638,16 +690,19 @@ namespace KatAMRandomizer {
         static (Enemy, byte[], List<(byte[], ushort[], short[], int)>, byte[]) Build(byte[] nightmare, NightmareRegion region, Enemy enemy) {
             int descriptor = ReadInt(nightmare, region.Descriptors + (enemy.Type - 8) * 4) - 0x08000000;
             (List<byte[]> palettes, List<(byte[], ushort[], short[], int)> frames, byte[] hurt) =
-                BuildGraphics(nightmare, region, descriptor, enemy.FrameTable, enemy.Frames, enemy.Hurt, enemy.PaletteChanges, 32, 32, HurtOriginX, HurtOriginY);
+                BuildGraphics(nightmare, region, descriptor, enemy.FrameTable, enemy.Frames, new List<Part[]> { enemy.Hurt }, enemy.PaletteChanges, 32, 32,
+                              HurtOriginX, HurtOriginY);
             return (enemy, palettes[0], frames, hurt);
         }
 
         /* BuildGraphics(); Palettes (the descriptor's, recolored by paletteChanges), frames (as Build's; palette: the descriptor's palette
-         * index, or -1 for NiDL's palette 15) and hurt frame (hurtWidth x hurtHeight pixels, the NiDL origin at hurtOriginX, hurtOriginY)
-         * of a NiDL graphics descriptor; shift moves every frame and the hurt frame that many pixels down; */
+         * index, or -1 for NiDL's palette 15) and hurt frames (hurtWidth x hurtHeight pixels each, the NiDL origin at hurtOriginX,
+         * hurtOriginY, one after the other) of a NiDL graphics descriptor; shift moves every frame and the hurt frames that many pixels
+         * down. Parts with a Descriptor (a NiDL mini-boss descriptor index) are drawn from that one's tiles, with its palettes (added after
+         * the others); */
         static (List<byte[]>, List<(byte[], ushort[], short[], int)>, byte[]) BuildGraphics(byte[] nightmare, NightmareRegion region, int descriptor,
-                int frameTable, List<Part[]> frameParts, Part[] hurtParts, Dictionary<int, ushort> paletteChanges, int hurtWidth, int hurtHeight, int hurtOriginX,
-                int hurtOriginY, int shift = 0) {
+                int frameTable, List<Part[]> frameParts, List<Part[]> hurts, Dictionary<int, ushort> paletteChanges, int hurtWidth, int hurtHeight,
+                int hurtOriginX, int hurtOriginY, int shift = 0) {
             int paletteAddress = ReadInt(nightmare, descriptor + 8) - 0x08000000, tilesAddress = ReadInt(nightmare, descriptor + 12) - 0x08000000;
             int paletteCount = ReadShort(nightmare, descriptor);
 
@@ -666,8 +721,25 @@ namespace KatAMRandomizer {
 
             List<(byte[], ushort[], short[], int)> frames = new List<(byte[], ushort[], short[], int)>();
 
+            // Other descriptors' tiles and where their palettes went;
+            Dictionary<int, (byte[] tiles, int palette)> others = new Dictionary<int, (byte[], int)>();
+            List<(Piece, byte[], int)> Pieces(Part part) {
+                if (part.Descriptor < 0) return PartPieces(nightmare, region, frameTable, part, tiles, palettes);
+                if (!others.TryGetValue(part.Descriptor, out (byte[] tiles, int palette) other)) {
+                    int at = ReadInt(nightmare, region.Descriptors + MinibossDescriptors + part.Descriptor * 4) - 0x08000000;
+                    int otherTiles = ReadInt(nightmare, at + 12) - 0x08000000, otherPalettes = ReadInt(nightmare, at + 8) - 0x08000000;
+
+                    if (nightmare[otherTiles] != 0x10 || ReadShort(nightmare, at) < 1 || ReadShort(nightmare, at) > 4)
+                        throw new InvalidOperationException("Not a graphics descriptor.");
+                    other = others[part.Descriptor] = (DecompressLZ77(nightmare, otherTiles), palettes.Count);
+                    for (int p = 0; p < ReadShort(nightmare, at); p++) palettes.Add(nightmare[(otherPalettes + p * 32)..(otherPalettes + p * 32 + 32)]);
+                }
+                return PartPieces(nightmare, region, frameTable, part, other.tiles, palettes)
+                    .Select(p => (p.Item1, p.Item2, p.Item3 < 0 ? p.Item3 : p.Item3 + other.palette)).ToList();
+            }
+
             foreach (Part[] parts in frameParts) {
-                List<(Piece piece, byte[] tiles, int palette)> pieces = parts.SelectMany(p => PartPieces(nightmare, region, frameTable, p, tiles, palettes)).ToList();
+                List<(Piece piece, byte[] tiles, int palette)> pieces = parts.SelectMany(Pieces).ToList();
 
                 int halfWidth = pieces.Max(p => Math.Max(-p.piece.X, p.piece.X + p.piece.Width));
                 int top = pieces.Min(p => p.piece.Y), bottom = pieces.Max(p => p.piece.Y + p.piece.Height);
@@ -687,31 +759,35 @@ namespace KatAMRandomizer {
                             pieces.Any(p => p.palette < 0) ? -1 : pieces[0].palette));
             }
 
-            // Hurt frame: drawn pixel by pixel into hurtWidth x hurtHeight and cut into tiles (rows of hurtWidth / 8);
-            int[,] canvas = new int[hurtHeight, hurtWidth];
-            foreach (Part part in hurtParts) {
-                foreach ((Piece piece, byte[] pieceTiles, int _) in PartPieces(nightmare, region, frameTable, part, tiles, palettes)) {
-                    int columns = piece.Width / 8;
+            // Hurt frames: each drawn pixel by pixel into hurtWidth x hurtHeight and cut into tiles (rows of hurtWidth / 8);
+            List<byte> hurtTiles = new List<byte>();
+            foreach (Part[] hurtParts in hurts) {
+                int[,] canvas = new int[hurtHeight, hurtWidth];
+                foreach (Part part in hurtParts) {
+                    foreach ((Piece piece, byte[] pieceTiles, int _) in Pieces(part)) {
+                        int columns = piece.Width / 8;
 
-                    for (int y = 0; y < piece.Height; y++) {
-                        for (int x = 0; x < piece.Width; x++) {
-                            int t = y / 8 * columns + x / 8, b = pieceTiles[t * 32 + y % 8 * 4 + x % 8 / 2];
-                            int color = (x & 1) != 0 ? b >> 4 : b & 0xF;
-                            int cx = hurtOriginX + piece.X + (piece.HFlip != 0 ? piece.Width - 1 - x : x);
-                            int cy = hurtOriginY + shift + piece.Y + (piece.VFlip != 0 ? piece.Height - 1 - y : y);
+                        for (int y = 0; y < piece.Height; y++) {
+                            for (int x = 0; x < piece.Width; x++) {
+                                int t = y / 8 * columns + x / 8, b = pieceTiles[t * 32 + y % 8 * 4 + x % 8 / 2];
+                                int color = (x & 1) != 0 ? b >> 4 : b & 0xF;
+                                int cx = hurtOriginX + piece.X + (piece.HFlip != 0 ? piece.Width - 1 - x : x);
+                                int cy = hurtOriginY + shift + piece.Y + (piece.VFlip != 0 ? piece.Height - 1 - y : y);
 
-                            if (color != 0 && cx >= 0 && cx < hurtWidth && cy >= 0 && cy < hurtHeight) canvas[cy, cx] = color;
+                                if (color != 0 && cx >= 0 && cx < hurtWidth && cy >= 0 && cy < hurtHeight) canvas[cy, cx] = color;
+                            }
                         }
                     }
                 }
+
+                byte[] hurt = new byte[hurtWidth * hurtHeight / 2];
+                for (int y = 0; y < hurtHeight; y++)
+                    for (int x = 0; x < hurtWidth; x++)
+                        hurt[(y / 8 * (hurtWidth / 8) + x / 8) * 32 + y % 8 * 4 + x % 8 / 2] |= (byte)((x & 1) != 0 ? canvas[y, x] << 4 : canvas[y, x]);
+                hurtTiles.AddRange(hurt);
             }
 
-            byte[] hurt = new byte[hurtWidth * hurtHeight / 2];
-            for (int y = 0; y < hurtHeight; y++)
-                for (int x = 0; x < hurtWidth; x++)
-                    hurt[(y / 8 * (hurtWidth / 8) + x / 8) * 32 + y % 8 * 4 + x % 8 / 2] |= (byte)((x & 1) != 0 ? canvas[y, x] << 4 : canvas[y, x]);
-
-            return (palettes, frames, hurt);
+            return (palettes, frames, hurtTiles.ToArray());
         }
 
         /* PartPieces(); A part's pieces, with their tiles (1D, recolored) and palette (-1: NiDL's palette 15). The frame table entry is

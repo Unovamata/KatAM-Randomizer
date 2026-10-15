@@ -25,12 +25,16 @@ done
 comm -23 <(arm-none-eabi-nm -u "${objects[@]}" | awk '{print $2}' | sort -u) \
          <(arm-none-eabi-nm --defined-only "${objects[@]}" | awk '{print $3}' | sort -u) > "$OUT/external.txt"
 
-link() { # link <name> <symbols file>;
-    arm-none-eabi-ld -Ttext=$BASE --just-symbols="$2" -e CreateNidlEnemy -o "$OUT/$1.elf" "${objects[@]}"
+link() { # link <name> <symbols file> [more objects];
+    arm-none-eabi-ld -Ttext=$BASE --just-symbols="$2" -e CreateNidlEnemy -o "$OUT/$1.elf" "${objects[@]}" "${@:3}"
     arm-none-eabi-objcopy -O binary "$OUT/$1.elf" "$OUT/$1.bin"
 }
 
-link usa "$D/katam.elf"
+# The decompilation's static functions the code uses (--just-symbols only gives the global ones), as an object;
+arm-none-eabi-nm "$D/katam.elf" | awk 'NR == FNR { used[$1] = 1; next } $2 == "t" && used[$3] { print ".global " $3; print ".thumb_set " $3 ", 0x" $1 }' \
+    "$OUT/external.txt" - > "$OUT/usa_locals.s"
+arm-none-eabi-as -mcpu=arm7tdmi -o "$OUT/usa_locals.o" "$OUT/usa_locals.s"
+link usa "$D/katam.elf" "$OUT/usa_locals.o"
 for v in europe japan; do
     # Symbols of that version, as an object: functions are Thumb (.thumb_set), the rest plain addresses;
     python3 - "$OUT/external.txt" "versions/$v.txt" "$D/katam.elf" > "$OUT/$v.s" <<'PY'

@@ -1,35 +1,39 @@
-/* NiDL mini-bosses; Object types 0x40 and 0x41 (OBJ_EMPTY_40, 41, which KatAM already treats as mini-bosses everywhere: HP bar, music,
+/* NiDL mini-bosses; Object types 0x40-0x42 (OBJ_EMPTY_40-42, which KatAM already treats as mini-bosses everywhere: HP bar, music,
  * camera, defeat): creates the mini-boss the template's behavior byte asks for (high nibble = mini-boss, NIDL_* in nidl.h; low nibble = its
  * variant), and starts the fight like KatAM's own mini-bosses (Mr. Frosty, 0x080CB7E8): it waits facing Kirby until Kirby is in the
  * template's area, then locks the camera there, shows the HP bar and plays the mini-boss music. The rest is shared with the enemies
  * (see nidl.h): one AnimInfo table for the type, each mini-boss's own palette, its hurt frame uploaded to the end of its VRAM
- * (64x96 here), its own HP bar name; */
+ * (64x96 here; 32x64 for type 0x42's), its own HP bar name. The Meta-Knights are several objects of type 0x42: Meta Knight (the
+ * template's), who calls in his knights (see minibosses/meta_knights.c); */
 #include "nidl.h"
 #include "constants/kirby.h"
 #include "abilities.h"
 
-// The mini-bosses not ported yet stand in with Poppy Bros. Sr.'s code (and KatAMExpansion.cs gives them no graphics, see below);
 static const struct NidlMiniboss sNidlMinibosses[NIDL_MINIBOSS_COUNT] = {
     [NIDL_POPPY_BROS_SR] = { PoppyBrosSrInit, PoppyBrosSrStart, 30, KIRBY_ABILITY_CRASH, 0, NIDL_MINIBOSS_TYPE },
     [NIDL_MR_TICK_TOCK] = { MrTickTockInit, MrTickTockStart, 30, NIDL_ABILITY_MIKE, 0, NIDL_MINIBOSS_TYPE },
     [NIDL_GRAND_WHEELIE] = { GrandWheelieInit, GrandWheelieStart, 30, KIRBY_ABILITY_WHEEL, 0, NIDL_MINIBOSS_TYPE },
     [NIDL_BUGZZY] = { BugzzyInit, BugzzyStart, 30, NIDL_ABILITY_BACKDROP, 0, NIDL_MINIBOSS_TYPE_2 },
     [NIDL_FIRE_LION] = { FireLionInit, FireLionStart, 30, KIRBY_ABILITY_BURNING, 12, NIDL_MINIBOSS_TYPE_2 },
-    [NIDL_META_KNIGHTS] = { PoppyBrosSrInit, PoppyBrosSrStart, 30, 0, 0, NIDL_MINIBOSS_TYPE_2 },
+    [NIDL_META_KNIGHTS] = { MetaKnightsInit, MetaKnightsStart, 30, KIRBY_ABILITY_SWORD, 0, NIDL_MINIBOSS_TYPE_3 },
 };
 
 void NidlMinibossStart(struct Object *);
 
 void *CreateNidlMiniboss(struct ObjectTemplate *template, u8 playerId) {
-    struct Task *task = TaskCreate(ObjectMain, NIDL_OBJECT_SIZE, 0x1000, TASK_USE_EWRAM, ObjectDestroy);
-    struct NidlObject *n = TaskGetStructPtr(task);
-    struct Object *obj = &n->obj;
+    struct Task *task;
+    struct NidlObject *n;
+    struct Object *obj;
     u8 boss = template->subtype1 >> 4;
 
-    // Unknown ones, ones without graphics (not ported yet) and ones of the other type are the first of this type;
+    // Unknown ones, ones without graphics and ones of another type are the first of this type;
     if (boss >= NIDL_MINIBOSS_COUNT || !gNidlData.minibosses[boss].animId || sNidlMinibosses[boss].type != template->type)
         for (boss = 0; boss < NIDL_MINIBOSS_COUNT - 1; boss++)
             if (sNidlMinibosses[boss].type == template->type && gNidlData.minibosses[boss].animId) break;
+    // The Meta-Knights know when one of them goes (MetaKnightsDestroy);
+    task = TaskCreate(ObjectMain, NIDL_OBJECT_SIZE, 0x1000, TASK_USE_EWRAM, boss == NIDL_META_KNIGHTS ? MetaKnightsDestroy : ObjectDestroy);
+    n = TaskGetStructPtr(task);
+    obj = &n->obj;
 
     InitObject(obj, template, playerId);
     n->enemy = boss;
@@ -38,6 +42,7 @@ void *CreateNidlMiniboss(struct ObjectTemplate *template, u8 playerId) {
     n->hurtVram = 0;
     n->sequence = NULL;
     n->activated = FALSE;
+    n->hurt = 0;
     obj->unk80 = sNidlMinibosses[boss].hp;
     // As Mr. Frosty (0x080CB6E8): water doesn't defeat it, untouchable until the fight starts, its touch hurts like a mini-boss's;
     obj->base.unkC |= 1;

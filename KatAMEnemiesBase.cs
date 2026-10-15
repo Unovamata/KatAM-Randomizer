@@ -27,7 +27,7 @@ namespace KatAMRandomizer {
              isRandomizingExcludedEnemies,
              isAddingNightmareEnemies;
         protected List<byte> nightmareBehaviors = new List<byte>(), nightmareFlyingBehaviors = new List<byte>();
-        // ROM Expansion mini-bosses (object types 0x40 and 0x41), one behavior list per mini-boss, by type;
+        // ROM Expansion mini-bosses (object types 0x40-0x42), one behavior list per mini-boss, by type;
         protected bool isAddingNightmareMinibosses;
         protected Dictionary<byte, List<List<byte>>> nightmareMinibossGroups = new Dictionary<byte, List<List<byte>>>();
         protected List<List<byte>> nightmareGroups = new List<List<byte>>(), nightmareFlyingGroups = new List<List<byte>>(),
@@ -77,7 +77,7 @@ namespace KatAMRandomizer {
                 for(int i = 0; i < nightmareWaterGroups.Count; i++) underwaterEnemyIDs.Add(KatAMExpansion.NightmareID);
             }
 
-            // ROM Expansion mini-bosses join the mini-boss pool as object types 0x40 and 0x41 the same way;
+            // ROM Expansion mini-bosses join the mini-boss pool as object types 0x40-0x42 the same way;
             if(isAddingNightmareMinibosses) {
                 foreach((byte type, List<List<byte>> groups) in nightmareMinibossGroups) {
                     behaviorDictionary[type] = groups.SelectMany(group => group).ToList();

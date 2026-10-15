@@ -104,3 +104,6 @@ RequestScreenShake 0x806fddc
 gUnk_020229D4 0x20229d4
 gUnk_020229E0 0x20229e0
 sub_0804E09C 0x804e014
+sub_08086C48 0x8086bc0
+sub_0809D060 0x809cfd8
+CreateEffectObject 0x808ada8

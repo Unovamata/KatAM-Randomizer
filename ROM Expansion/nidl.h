@@ -20,12 +20,13 @@
 #include "task.h"
 
 #define NIDL_TYPE OBJ_EMPTY_31
-/* Mini-bosses ported from NiDL share object types 0x40 and 0x41 the same way (see nidl_miniboss.c): the game treats them as mini-bosses.
- * An object's frame index is a byte, so they're spread over the two, each with its own AnimInfo table (KatAMExpansion.cs decides which
- * mini-boss goes where); */
+/* Mini-bosses ported from NiDL share object types 0x40-0x42 the same way (see nidl_miniboss.c): the game treats them as mini-bosses.
+ * An object's frame index is a byte, so they're spread over the three, each with its own AnimInfo table (KatAMExpansion.cs decides
+ * which mini-boss goes where); */
 #define NIDL_MINIBOSS_TYPE OBJ_EMPTY_40
 #define NIDL_MINIBOSS_TYPE_2 OBJ_EMPTY_41
-#define NidlIsMiniboss(obj) ((obj)->type == NIDL_MINIBOSS_TYPE || (obj)->type == NIDL_MINIBOSS_TYPE_2)
+#define NIDL_MINIBOSS_TYPE_3 OBJ_EMPTY_42
+#define NidlIsMiniboss(obj) ((obj)->type == NIDL_MINIBOSS_TYPE || (obj)->type == NIDL_MINIBOSS_TYPE_2 || (obj)->type == NIDL_MINIBOSS_TYPE_3)
 
 // Enemies (the behavior byte's high nibble);
 enum {
@@ -63,8 +64,9 @@ enum {
 
 #define NIDL_HURT_FRAME 0
 #define NIDL_HURT_TILES 16
-// A mini-boss's hurt frame is 64x96 (centered);
+// A mini-boss's hurt frame is 64x96 (centered), type 0x42's (the Meta-Knights, several at once) 32x64 (KatAMExpansion.cs's HurtOf);
 #define NIDL_MINIBOSS_HURT_TILES 96
+#define NIDL_KNIGHT_HURT_TILES 32
 
 // NidlObject; Every ported enemy starts with it;
 struct NidlObject {
@@ -77,6 +79,7 @@ struct NidlObject {
     u8 sequenceStep;
     u8 sequenceTimer;
     bool8 activated;    // Mini-bosses: Kirby came in range (the fight started);
+    u8 hurt;            // Which of its hurt frames (mini-bosses with several, the Meta-Knights; 0 for the others);
 };
 
 /* Frame sequences, like NiDL's (0x080640DC plays one, 0x080640FC steps it): pairs of (frame, frames to show it), then
@@ -106,7 +109,7 @@ struct NidlMiniboss {
 struct NidlGraphics {
     u16 animBase;                       // First AnimInfo of the enemy in the type's table;
     u16 animId;                         // Its anim ID (and palette key);
-    const u8 *hurtTiles;                // Its hurt frame (32x32, 16 tiles; mini-bosses 64x96, 96 tiles);
+    const u8 *hurtTiles;                // Its hurt frame (32x32, 16 tiles; mini-bosses 64x96, 96 tiles; NidlHurtTiles), or frames;
 };
 
 // NidlData; Filled in by KatAMExpansion.cs once the graphics are built;
@@ -122,6 +125,7 @@ extern const struct NidlData gNidlData;
 void *CreateNidlEnemy(struct ObjectTemplate *, u8 playerId);
 void *CreateNidlMiniboss(struct ObjectTemplate *, u8 playerId);
 const struct NidlGraphics *NidlGraphicsOf(struct NidlObject *);
+u32 NidlHurtTiles(struct Object *);
 void NidlUploadHurtTiles(struct NidlObject *);
 void NidlInitPalette(struct NidlObject *);
 void NidlSetFrame(struct NidlObject *, u8 frame);
@@ -187,5 +191,9 @@ void BugzzyInit(struct NidlObject *);
 void BugzzyStart(struct Object *);
 void FireLionInit(struct NidlObject *);
 void FireLionStart(struct Object *);
+void MetaKnightsInit(struct NidlObject *);
+void MetaKnightsStart(struct Object *);
+void MetaKnightsDestroy(struct Task *);
+bool32 NidlIsMetaKnight(struct ObjectTemplate *);
 
 #endif
