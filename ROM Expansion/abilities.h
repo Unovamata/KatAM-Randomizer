@@ -39,6 +39,20 @@ struct NidlAbilityTables {
 
 extern const struct NidlAbilityTables gNidlAbilityTables;
 
+/* Motions; The new abilities' attack poses, NiDL's frames (KatAMExpansionMotions.cs builds them): played at animation indexes
+ * NIDL_MOTION_SLOT on (copy abilities' own), which NidlAbilitySetup points to them. Numbered per ability, as in Motions there; */
+#define NIDL_MOTION_SLOT 0x4A
+#define NIDL_MOTION_SLOTS 16
+
+enum { NEEDLE_MOTION_OUT, NEEDLE_MOTION_IN, NEEDLE_MOTION_AIR };
+enum { FREEZE_MOTION_EDGE, FREEZE_MOTION_BREATH };
+enum { LIGHT_MOTION_SHINE };
+enum { BALL_MOTION_HOP, BALL_MOTION_FALL, BALL_MOTION_SQUASH, BALL_MOTION_REST, BALL_MOTION_LAUNCH, BALL_MOTION_ROLL };
+enum { HI_JUMP_MOTION_RISE };
+
+// NidlMotion(); Plays one of the ability's motions;
+#define NidlMotion(kirby, motion) ((kirby)->animationIndex = NIDL_MOTION_SLOT + (motion))
+
 // NidlAbilityData; Filled in by KatAMExpansion.cs (in nidl_data.c, like gNidlData);
 struct NidlAbilityData {
     void (*portraitOriginal)(u32, u8, u8);              // Trampolines running the detoured functions;
@@ -47,6 +61,7 @@ struct NidlAbilityData {
         const u16 *palette;                             // 16 colors;
         const u8 *tiles;                                // PORTRAIT_SIZE bytes, laid out like KatAM's portraits;
     } portraits[NIDL_ABILITY_COUNT];
+    struct AnimInfo motions[NIDL_ABILITY_COUNT][NIDL_MOTION_SLOTS]; // Body animations of the motions (0: none), see NidlAbilitySetup;
 };
 
 extern const struct NidlAbilityData gNidlAbilityData;
@@ -56,8 +71,30 @@ extern const struct NidlAbilityData gNidlAbilityData;
 
 void NidlAbilityPortrait(u32 vram, u8 palette, u8 id);
 
-// Abilities;
-void HiJumpStart(struct Kirby *);
 void NidlAbilityHudTimer(struct Kirby *, u8 portrait, u16 frames);
+void NidlAbilitySetup(struct Kirby *);
+
+/* NidlAttack; An attack box that follows Kirby while `alive` says so (his state is the ability's), making him unhurt (`guard`) meanwhile.
+ * `effect` is the hit's kind (unk68, like gUnk_082DDFC8's: 0x200 freezes, 0x2000 cuts...), `damage` its strength (unk63); */
+struct NidlAttack {
+    struct ObjectBase base;
+    bool32 (*alive)(struct Kirby *);
+    bool8 guard;
+};
+
+struct NidlAttack *NidlAttackCreate(struct Kirby *, bool32 (*alive)(struct Kirby *), u32 effect, u8 damage, bool8 guard,
+                                    s8 left, s8 top, s8 right, s8 bottom);
+
+// Helpers for the abilities' states: water, falling, landing;
+bool32 NidlAbilityInWater(struct Kirby *);
+void NidlAbilityGravity(struct Kirby *);
+void NidlAbilityEnd(struct Kirby *);
+
+// Abilities (abilities/*.c): B on land;
+void NeedleStart(struct Kirby *);
+void FreezeStart(struct Kirby *);
+void LightStart(struct Kirby *);
+void BallStart(struct Kirby *);
+void HiJumpStart(struct Kirby *);
 
 #endif

@@ -150,11 +150,10 @@
         }
 
         /* HatFrame(); KatAM frame (tiles in 1D order, OAM entries, attributes) of a NiDL frame's hat pixels (see HatColors), moved by (dx, dy):
-         * drawn on a canvas and cut into 8x8 pieces. The box is centered on the origin, so it flips about it like the body; */
+         * drawn on a canvas and cut into 8x8 pieces (CutFrame); */
         static (byte[] tiles, ushort[] oams, short[] attributes) HatFrame(KirbyFrame frame, int dx, int dy, int[] colors) {
             const int Size = 128, Center = 64;
             int[,] canvas = new int[Size, Size];
-            int left = Size, right = 0, top = Size, bottom = 0;
 
             foreach (Piece piece in frame.Pieces) {
                 bool second = piece.Tile >= 0x40;
@@ -171,48 +170,23 @@
                         int y = Center + piece.Y + dy + (piece.VFlip != 0 ? piece.Height - 1 - py : py);
                         if (x < 0 || y < 0 || x >= Size || y >= Size) continue;
                         canvas[x, y] = value;
-                        left = Math.Min(left, x); right = Math.Max(right, x + 1); top = Math.Min(top, y); bottom = Math.Max(bottom, y + 1);
                     }
                 }
             }
-            if (left >= right) return (new byte[0], new ushort[0], new short[] { 0, 0, 0, 0, 0, 0 });
-
-            // 8x8 pieces on a grid from the top left, the box widened to be centered on the origin;
-            int halfWidth = Math.Max(Center - left, right - Center);
-            List<byte> output = new List<byte>();
-            List<ushort> oams = new List<ushort>();
-
-            for (int cy = top; cy < bottom; cy += 8) {
-                for (int cx = left; cx < right; cx += 8) {
-                    byte[] cell = new byte[32];
-                    bool any = false;
-                    for (int y = 0; y < 8; y++)
-                        for (int x = 0; x < 8; x++) {
-                            int value = cx + x < Size && cy + y < Size ? canvas[cx + x, cy + y] : 0;
-                            if (value == 0) continue;
-                            cell[y * 4 + x / 2] |= (byte)(value << (x % 2 * 4));
-                            any = true;
-                        }
-                    if (!any || oams.Count / 3 >= HatTiles) continue;
-                    oams.Add((ushort)(cy - top));
-                    oams.Add((ushort)(cx - Center + halfWidth));
-                    oams.Add((ushort)(output.Count / 32));
-                    output.AddRange(cell);
-                }
-            }
-
-            return (output.ToArray(), oams.ToArray(), new short[] { 0, (short)(oams.Count / 3), (short)(halfWidth * 2), (short)(bottom - top), (short)halfWidth, (short)(Center - top) });
+            return CutFrame(canvas, HatTiles);
         }
 
         /* BuildHats(); Each new ability's hat anim (added to the anim lists, after the enemies'), and its hat table (an AnimInfo per animation
-         * index: the anim and variant i) for gUnk_08D60FDC, or 0 when it has no hat (Light). `bodyTable` is gUnk_0834C9AC; */
+         * index: the anim and variant i) for gUnk_08D60FDC, with its palette's offset and which of its colors the hat uses (`hatPalettes`,
+         * `paletteUsed`, for BuildMotions). Light's hat is empty (its motions draw on the hat sprite, see BuildMotions).
+         * `bodyTable` is gUnk_0834C9AC; */
         static int[] BuildHats(byte[] rom, byte[] nightmare, NightmareRegion region, int bodyTable, int anims, int tilesBase, int paletteBase,
-                               ref int cursor, int firstAnimId, List<int> animVariants, List<int> animAttributes, List<int> animOams) {
+                               ref int cursor, int firstAnimId, List<int> animVariants, List<int> animAttributes, List<int> animOams,
+                               int[] hatPalettes, bool[][] paletteUsed) {
             int[] hatTables = new int[NewAbilities];
             Dictionary<(int, int), (int nidl, int dx, int dy)> matches = BodyMatches.ToDictionary(m => (m.anim, m.frame), m => (m.nidl, m.dx, m.dy));
 
             for (int k = 0; k < NewAbilities; k++) {
-                if (HatFrames[k] == null) continue;
                 int animId = firstAnimId + animVariants.Count;
 
                 // Frames, one per (ability frame, offset); frame 0 is empty, for body frames without a hat;
@@ -221,7 +195,7 @@
                 byte[] palette = null;
 
                 int HatFrameIndex(int bodyAnim, int bodyFrame) {
-                    if (!matches.TryGetValue((bodyAnim, bodyFrame), out (int nidl, int dx, int dy) m) || m.nidl >= HatFrames[k].Length || HatFrames[k][m.nidl] < 0) return 0;
+                    if (HatFrames[k] == null || !matches.TryGetValue((bodyAnim, bodyFrame), out (int nidl, int dx, int dy) m) || m.nidl >= HatFrames[k].Length || HatFrames[k][m.nidl] < 0) return 0;
                     (int, int, int) key = (HatFrames[k][m.nidl], m.dx, m.dy);
                     if (frameIndexes.TryGetValue(key, out int index)) return index;
 
@@ -243,6 +217,11 @@
                 int tilesAt = Allocate(ref cursor, Math.Max(32, frames.Sum(f => f.tiles.Length)), 32, tilesBase);
                 int paletteAt = Allocate(ref cursor, 32, 32, paletteBase);
                 (palette ?? new byte[32]).CopyTo(rom, paletteAt);
+                hatPalettes[k] = paletteAt;
+                paletteUsed[k] = new bool[16];
+                foreach (var f in frames)
+                    foreach (byte pair in f.tiles) { paletteUsed[k][pair & 0xF] = true; paletteUsed[k][pair >> 4] = true; }
+                paletteUsed[k][0] = true;
                 int tileIndex = (tilesAt - tilesBase) / 32, paletteIndex = (paletteAt - paletteBase) / 32;
                 int attributesAt = Allocate(ref cursor, frames.Count * 12, 4), oamsAt = Allocate(ref cursor, Math.Max(2, frames.Sum(f => f.oams.Length) * 2), 4);
                 int[] frameTile = new int[frames.Count];

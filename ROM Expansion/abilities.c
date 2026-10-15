@@ -1,6 +1,11 @@
 /* NiDL abilities; What KatAM needs to know about abilities 27-31 (see abilities.h), and their HUD portraits; */
 #include "abilities.h"
 #include "main.h"
+#include "data.h"
+#include "code_0806F780.h"
+
+void KirbyEnterWater(struct Kirby *);
+void sub_0805B1B8(struct Kirby *);
 
 const struct NidlAbilityTables gNidlAbilityTables = {
     .base = {
@@ -11,9 +16,34 @@ const struct NidlAbilityTables gNidlAbilityTables = {
         [NIDL_ABILITY_HI_JUMP - NIDL_FIRST_ABILITY] = KIRBY_ABILITY_NORMAL,
     },
     .landB = {
+        [NIDL_ABILITY_NEEDLE - NIDL_FIRST_ABILITY] = NeedleStart,
+        [NIDL_ABILITY_FREEZE - NIDL_FIRST_ABILITY] = FreezeStart,
+        [NIDL_ABILITY_LIGHT - NIDL_FIRST_ABILITY] = LightStart,
+        [NIDL_ABILITY_BALL - NIDL_FIRST_ABILITY] = BallStart,
         [NIDL_ABILITY_HI_JUMP - NIDL_FIRST_ABILITY] = HiJumpStart,
     },
+    .setup = {
+        [NIDL_ABILITY_NEEDLE - NIDL_FIRST_ABILITY] = NidlAbilitySetup,
+        [NIDL_ABILITY_FREEZE - NIDL_FIRST_ABILITY] = NidlAbilitySetup,
+        [NIDL_ABILITY_LIGHT - NIDL_FIRST_ABILITY] = NidlAbilitySetup,
+        [NIDL_ABILITY_BALL - NIDL_FIRST_ABILITY] = NidlAbilitySetup,
+        [NIDL_ABILITY_HI_JUMP - NIDL_FIRST_ABILITY] = NidlAbilitySetup,
+    },
 };
+
+/* NidlAbilitySetup(); gUnk_083509D0's (on getting the ability): points the player's motion slots to the ability's motions (the rest
+ * are Normal's, which losing the ability restores, like for KatAM's abilities); */
+void NidlAbilitySetup(struct Kirby *kirby) {
+    struct AnimInfo *dst = gUnk_02021590[kirby->base.unk56] + NIDL_MOTION_SLOT;
+    const struct AnimInfo *src = gNidlAbilityData.motions[kirby->ability - NIDL_FIRST_ABILITY];
+    u8 i;
+
+    for (i = 0; i < NIDL_MOTION_SLOTS; i++) {
+        if (!src[i].animId) continue;
+        dst[i].animId = src[i].animId;
+        dst[i].variant = src[i].variant;
+    }
+}
 
 /* NidlAbilityPortrait(); sub_080356AC (detoured): queues the portrait `id` (an ability's, or a special one) for `vram` and loads its
  * palette into BG palette `palette`. The new abilities' come from gNidlAbilityData; the special ones are back at their place for
@@ -38,4 +68,93 @@ void NidlAbilityPortrait(u32 vram, u8 palette, u8 id) {
 void NidlAbilityHudTimer(struct Kirby *kirby, u8 portrait, u16 frames) {
     if (portrait >= NIDL_FIRST_ABILITY) portrait += NIDL_SPECIAL_PORTRAIT_SHIFT;
     gNidlAbilityData.hudTimerOriginal(kirby, portrait, frames);
+}
+
+// NidlAttackMain(); Follows Kirby, hitting every few frames (Burning's, sub_08079714), until his state isn't the ability's;
+static void NidlAttackMain(void) {
+    struct NidlAttack *attack = TaskGetStructPtr(gCurTask);
+    struct Kirby *kirby = attack->base.parent;
+
+    if (ObjectPreUpdate(&attack->base)) return;
+    if (!attack->alive(kirby)) {
+        if (attack->guard) kirby->base.flags &= ~0x8000;
+        attack->base.flags |= 0x1000;
+        return;
+    }
+    SetPointerSomething(&attack->base);
+    if (!(kirby->base.flags & 0x800000) && ++attack->base.counter > 2) {
+        attack->base.flags &= ~0x40000;
+        attack->base.counter = 0;
+    }
+    attack->base.x = kirby->base.x;
+    attack->base.y = kirby->base.y;
+    attack->base.flags = (attack->base.flags & ~1) | (kirby->base.flags & 1);
+    if (attack->guard) kirby->base.flags |= 0x8000;
+}
+
+// NidlAttackCreate(); See abilities.h (Burning's attack box, sub_0807958C);
+struct NidlAttack *NidlAttackCreate(struct Kirby *kirby, bool32 (*alive)(struct Kirby *), u32 effect, u8 damage, bool8 guard,
+                                    s8 left, s8 top, s8 right, s8 bottom) {
+    struct Task *task = TaskCreate(NidlAttackMain, sizeof(struct NidlAttack), 0x3500, TASK_USE_IWRAM, ObjectBaseDestroy);
+    struct NidlAttack *attack = TaskGetStructPtr(task);
+
+    ClearObjectBase(&attack->base);
+    attack->alive = alive;
+    attack->guard = guard;
+    attack->base.header.kind = 2;
+    attack->base.x = kirby->base.x;
+    attack->base.y = kirby->base.y;
+    attack->base.parent = kirby;
+    attack->base.counter = 0;
+    attack->base.roomId = kirby->base.roomId;
+    attack->base.unk56 = kirby->base.unk56;
+    if (Macro_0810B1F4(&attack->base))
+        attack->base.flags |= 0x2000;
+    attack->base.unk64 = 0;
+    attack->base.unk66 = 0x80;
+    attack->base.unk63 = damage;
+    attack->base.flags |= 0xA0000000;
+    attack->base.flags |= 0x400;
+    attack->base.flags |= 0x2000000;
+    attack->base.unk68 |= effect;
+    if (kirby->base.flags & 1)
+        attack->base.flags |= 1;
+    if (guard) {
+        kirby->base.flags |= 0x8000;
+        kirby->base.unk68 = 0x80;
+    }
+    sub_0803E2B0(&attack->base, left, top, right, bottom);
+    ObjectSetBounds(&attack->base, left, top, right, bottom);
+    SetPointerSomething(&attack->base);
+    return attack;
+}
+
+// NidlAbilityInWater(); Into the water (out of the ability's state), like KatAM's abilities;
+bool32 NidlAbilityInWater(struct Kirby *kirby) {
+    if (!(kirby->base.unk58 & 2)) return FALSE;
+    kirby->base.flags &= ~0x40;
+    KirbyEnterWater(kirby);
+    KirbyStartWaterMovement(kirby);
+    return TRUE;
+}
+
+// NidlAbilityGravity(); Falling (unless on the ground) and slowing down sideways, like KatAM's attacks (sub_0805D164);
+void NidlAbilityGravity(struct Kirby *kirby) {
+    if (!(kirby->base.unk62 & 4)) {
+        kirby->base.yspeed -= 38;
+        if (kirby->base.yspeed < -0x280)
+            kirby->base.yspeed = -0x280;
+    }
+    sub_0805B1B8(kirby);
+    if (kirby->base.unk62 & 1)
+        kirby->base.xspeed = 0;
+}
+
+// NidlAbilityEnd(); Back to standing, or falling (sub_0805D480);
+void NidlAbilityEnd(struct Kirby *kirby) {
+    kirby->base.flags &= ~0x40;
+    if (kirby->base.flags & 0x20)
+        sub_08044EA8(kirby);
+    else
+        sub_0803FE74(kirby);
 }

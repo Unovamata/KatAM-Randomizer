@@ -25,9 +25,9 @@
         const int CodeEnd = 0x160000;
 
         /* AddAbilities(); Relocates the ability tables, detours the HUD portraits and fills gNidlAbilityData. `newEntries[table]`, when
-         * given, replaces the base ability's entries of AbilityTables[table] (hats, palettes); */
+         * given, replaces the base ability's entries of AbilityTables[table] (hats); `motions`, BuildMotions' body AnimInfos; */
         static string AddAbilities(byte[] rom, byte[] nightmare, NightmareRegion region, KatAMExpansionCode.Version version, ref int cursor,
-                                   Dictionary<string, int[]> newEntries) {
+                                   int[] motions, Dictionary<string, int[]> newEntries) {
             int codeBase = CodeAddress + 0x08000000;
             int tables = CodeAddress + version.CodeSymbols["gNidlAbilityTables"], data = CodeAddress + version.CodeSymbols["gNidlAbilityData"];
 
@@ -78,6 +78,9 @@
                 WriteInt(rom, data + 8 + k * 8, paletteAt + 0x08000000);
                 WriteInt(rom, data + 12 + k * 8, tilesAt + 0x08000000);
             }
+
+            // The motions' body animations (gNidlAbilityData.motions, after the portraits);
+            for (int i = 0; i < motions.Length; i++) WriteInt(rom, data + 8 + NewAbilities * 8 + i * 4, motions[i]);
             return null;
         }
 
