@@ -119,7 +119,7 @@ Most enemies' first frames (0-3) are their hurt frames. Frames are drawn around 
 
 ## Coner (type `0x29`)
 
-- Spawn `0x0808FA10`, variants `0x087432F4`. Variant 0 (`0x0808FA50`) faces Kirby and scuttles (`0x0808FAB4`): speed 1.0 (frame 5), 0.5 (frame 6), 0.25 (frame 5), 0 (frame 4), for 8, 8, 16 and 16 frames (`0x087432EC`, 4 bytes per record flag; the second set is 4, 4, 6, 6). Variant 1 (`0x0808FBAC`) does it in place (`0x0808FC00`). States 1 and 2 (`0x0808FB50`, `0x0808FB80`) sink and swim in water (`0x080692FC` picks them).
+- Spawn `0x0808FA10`, variants `0x087432F4`. Variant 0 (`0x0808FA50`) faces Kirby and scuttles (`0x0808FAB4`): speed 1.0 (frame 5), 0.5 (frame 6), 0.25 (frame 5), 0 (frame 4), for 8, 8, 16 and 16 frames (`0x087432EC`, 4 bytes per record flag; the second set is 4, 4, 6, 6). Variant 1 (`0x0808FBAC`) does it in place (`0x0808FC00`). States 1 and 2 sink and swim in water: its handlers (`0x08743518`: landed, water, in water, ..., wall) run from `0x080692FC`; entering water (`0x0808F978`) picks 2 when submerged (`obj+0x7B == 3`) else 1. 1 (`0x0808FB50`): 0.25 forward, gravity 0x1000, frame 6; 2 (`0x0808FB80`): 0.25 forward and 0.25 down, frame 6; landing (`0x0808F9B8`) scuttles again. Variant 1's per frame skips `0x080692FC`: it just sinks.
 - Frames `0x08752A70`: 0-3 hurt, 4 standing, 5-6 scuttling.
 
 ## Starman (type `0x1F`)

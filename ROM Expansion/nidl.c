@@ -173,6 +173,11 @@ void NidlKeepInLevel(struct Object *obj, s32 bottom) {
     }
 }
 
+// NidlAtLevelBottom(); A swimmer's bottom is at the level's (where NidlKeepInLevel stops it), the floor there;
+bool32 NidlAtLevelBottom(struct Object *obj, s32 bottom) {
+    return obj->base.y >= gCurLevelInfo[obj->base.unk56].levelMaxPosition.y - bottom * 0x100;
+}
+
 /* NidlSetHeading(); 0x0806421C: the speed towards a NiDL angle (512 a circle, 0 right, 128 down; only multiples of 64 are used),
  * turning the sprite with it like NiDL's swimmers (0x0808A880); */
 void NidlSetHeading(struct Object *obj, u16 angle, s16 speed) {

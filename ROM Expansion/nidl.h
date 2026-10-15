@@ -90,6 +90,7 @@ bool32 NidlIsFloor(struct Object *, s32 x, s32 y);
 void NidlStopAtLedge(struct Object *);
 bool32 NidlIsWater(struct Object *, s32 dy);
 void NidlKeepInLevel(struct Object *, s32 bottom);
+bool32 NidlAtLevelBottom(struct Object *, s32 bottom);
 void NidlSetHeading(struct Object *, u16 angle, s16 speed);
 u8 NidlKirbyOctant(struct Object *);
 

@@ -135,11 +135,12 @@ namespace KatAMRandomizer {
             new[] { (0x26, 0), (0x26, 1), (0x0D, 3), (0x0D, 2), (0x26, 5), (0x0C, 1), (0x14, 2) },   // "Co" (Cookin), "c", "o" (Blockin), "n" (Cookin), "u" (Cupie), "t" (Hot Head);
             new byte[] { 0x02 }, new byte[] { 0x00, 0x01 });
 
-        // Coner; Frames: NiDL's 4 (standing), 5 and 6 (scuttling). Variant 0 scuttles along, variant 1 in place;
+        // Coner; Frames: NiDL's 4 (standing), 5 and 6 (scuttling). Variant 0 scuttles along, variant 1 in place; in water it glides
+        // down and scuttles along the bottom;
         static Enemy Coner() => new Enemy(7, "Coner", 0x29, 0x752A70, new[] { 4, 5, 6 }.Select(f => new[] { new Part(f) }).ToList(),
             new[] { new Part(3) }, new Dictionary<int, ushort>(),
             new[] { (0x26, 0), (0x26, 1), (0x26, 5), (0x14, 4), (0x01, 1) },   // "Co", "n" (Cookin), "e" (Hot Head), "r" (Bronto Burt);
-            new byte[] { 0x00, 0x01 });
+            new byte[] { 0x00, 0x01 }, WaterBehaviors: new byte[] { 0x00 });
 
         // Starman; Frames: NiDL's 4 to 20 (walking 4-10, crouching 11-12, flying 13-18, diving 20). It walks up to Kirby, flies off the
         // top of the screen and dives onto it, twice, then flies away;
