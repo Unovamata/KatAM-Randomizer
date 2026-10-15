@@ -168,13 +168,20 @@ namespace KatAMRandomizer {
             Definitions.Where(e => enemies.Contains(e.Index))
                        .SelectMany(e => (flying ? e.FlyingBehaviors ?? Array.Empty<byte>() : e.Behaviors).Select(b => (byte)(e.Index << 4 | b))).ToList();
 
+        /* BehaviorGroupsOf(); The same, one list per enemy (only the enemies that have some), so the randomizer can pick an enemy
+         * first and then its variant, and give each enemy as much room in the pool as any of the game's own; */
+        public static List<List<byte>> BehaviorGroupsOf(IEnumerable<int> enemies, bool flying = false) =>
+            Definitions.Where(e => enemies.Contains(e.Index))
+                       .Select(e => (flying ? e.FlyingBehaviors ?? Array.Empty<byte>() : e.Behaviors).Select(b => (byte)(e.Index << 4 | b)).ToList())
+                       .Where(group => group.Count > 0).ToList();
+
         // NameOf(); The ported enemy a behavior byte of type 0x31 picks;
         public static string NameOf(byte behavior) => Definitions.FirstOrDefault(e => e.Index == behavior >> 4)?.Name ?? Definitions[0].Name;
 
         /* AddEnemies(); Adds every ported enemy as object type 0x31, expanding the ROM to 32 MB (rom is replaced by the bigger one).
          * Returns null when done, or why it couldn't be done (rom is left as it was); */
         public static string AddEnemies(ref byte[] rom, byte[] nightmare) {
-            if (RomRegion.Detect(rom) != RomRegion.USA) return "The ROM Expansion only supports the USA version of Kirby & the Amazing Mirror.";
+            if (RomRegion.Detect(rom) != RomRegion.USA) return "The ROM Expansion needs the USA version of Kirby & the Amazing Mirror as the ROM to randomize (the one loaded is the Japanese or European version). The Nightmare in Dream Land ROM can be from any region.";
             if (!IsNightmareInDreamLand(nightmare)) return "That isn't a Kirby: Nightmare in Dream Land ROM.";
             if (rom.Length > ExpandedSize) return "That ROM is bigger than the GBA can map (32 MB).";
 

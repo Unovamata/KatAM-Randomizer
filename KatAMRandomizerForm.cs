@@ -782,24 +782,23 @@ namespace KatAMRandomizer
                     return;
                 }
 
+                // Its content is included by kind; every ported enemy comes with "Include enemies";
                 nightmareROM = rom;
                 LabelExpansionNightmare.Text = Path.GetFileName(fileDialog.FileName);
-                CheckedListExpansionEnemies.Enabled = true;
-
-                if (CheckedListExpansionEnemies.Items.Count == 0) {
-                    foreach ((int index, string name) in KatAMExpansion.Enemies) CheckedListExpansionEnemies.Items.Add(name);
-                }
+                CheckboxExpansionEnemies.Enabled = true;
+                CheckboxExpansionEnemies.Checked = true;
+                CheckboxExpansionEnemies_CheckedChanged(CheckboxExpansionEnemies, EventArgs.Empty);
             } catch (Exception ex) {
                 MessageBox.Show($"Error loading file: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
-        // The enemies picked; ItemCheck comes before the item's state changes;
-        private void CheckedListExpansionEnemies_ItemCheck(object sender, ItemCheckEventArgs e) {
-            int index = KatAMExpansion.Enemies[e.Index].index;
+        // CheckboxExpansionEnemies_CheckedChanged(); Every ported enemy, or none;
+        private void CheckboxExpansionEnemies_CheckedChanged(object sender, EventArgs e) {
+            bool including = nightmareROM != null && CheckboxExpansionEnemies.Checked;
 
-            settings.NightmareEnemies.Remove(index);
-            if (e.NewValue == CheckState.Checked) settings.NightmareEnemies.Add(index);
+            settings.NightmareEnemies = including ? KatAMExpansion.Enemies.Select(enemy => enemy.index).ToList() : new List<int>();
+            LabelExpansionEnemies.Text = including ? "Enemies: " + string.Join(", ", KatAMExpansion.Enemies.Select(enemy => enemy.name)) + "." : "";
         }
 
         // Mirrors;
