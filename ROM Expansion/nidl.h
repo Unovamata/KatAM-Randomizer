@@ -86,6 +86,8 @@ extern const struct NidlData gNidlData;
 
 void *CreateNidlEnemy(struct ObjectTemplate *, u8 playerId);
 void NidlSetFrame(struct NidlObject *, u8 frame);
+u8 NidlLoadPalette(struct NidlObject *, u16 key, u8 frame);
+#define NIDL_SECOND_PALETTE 0x2000
 void NidlPlay(struct NidlObject *, const s16 *sequence);
 void NidlAnimate(struct NidlObject *);
 void NidlUpdate(struct NidlObject *);

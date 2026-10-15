@@ -66,21 +66,26 @@ static void NidlUploadHurtTiles(struct NidlObject *n) {
            NIDL_HURT_TILES * 32 / 2);
 }
 
-/* NidlInitPalette(); The type's palette key is 0 (no palette), so each enemy loads its own palette with its anim ID as the key,
- * like ObjectInitSprite does for the other enemies; */
-static void NidlInitPalette(struct NidlObject *n) {
-    u16 key = gNidlData.enemies[n->enemy].animId;
+/* NidlLoadPalette(); The palette slot of one of the enemy's palettes: the one its frame `frame` loads (the anim's GetPalette), under
+ * `key`. The type's palette key is 0 (no palette), so each enemy loads its own palettes with its anim ID as the key (| 0x2000 for a
+ * second one), like ObjectInitSprite does for the other enemies; */
+u8 NidlLoadPalette(struct NidlObject *n, u16 key, u8 frame) {
     u8 palId = sub_0803DF24(key);
 
     if (palId == 0xFF) {
         if (gKirbys[gLocalPlayerId].base.roomId == n->obj.base.roomId) {
-            sub_0803DFAC(key, n->obj.objTemplate->unkF);
+            sub_0803DFAC(key, frame);
             palId = sub_0803DF24(key);
         } else {
             palId = 0;
         }
     }
-    n->obj.base.sprite.palId = palId;
+    return palId;
+}
+
+// NidlInitPalette(); Its own palette (frame 0's; not the template's palette variant, the frames are all the enemy's);
+static void NidlInitPalette(struct NidlObject *n) {
+    n->obj.base.sprite.palId = NidlLoadPalette(n, gNidlData.enemies[n->enemy].animId, 0);
 }
 
 // NidlUpdate(); Called by every enemy each frame;

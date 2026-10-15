@@ -73,6 +73,7 @@ struct PoppyBrosJr {
     bool8 spawned;          // The ball came off, or Poppy Bros. Jr. jumped off;
     struct EffectObject *rider;
     u8 riderFrame;
+    u8 riderPalette;        // Poppy Bros. Jr.'s palette (the ball and bomb use NiDL's palette 15);
     u8 riderStep;
     u8 riderTimer;
     bool8 riderUp;
@@ -121,7 +122,7 @@ static void RiderMain(void) {
     }
     Macro_08107BA8_4(r, &r->sprite, &sprite, RIDER_TILES, &r->sprite);
     r->sprite.variant = p->riderFrame;
-    r->sprite.palId = obj->base.sprite.palId;
+    r->sprite.palId = p->riderPalette;
     EffectObjectPostUpdate(r);
 }
 
@@ -139,7 +140,7 @@ static void CreateRider(struct PoppyBrosJr *p) {
     r->flags |= obj->base.flags & 1;
     if (Macro_0810B1F4(&obj->base)) r->flags |= 0x2000;
     EffectObjectInitSprite(r, &r->sprite, RIDER_TILES, gNidlData.enemies[p->n.enemy].animId, p->riderFrame, obj->base.sprite.unk14 >> 6);
-    r->sprite.palId = obj->base.sprite.palId;
+    r->sprite.palId = p->riderPalette;
     p->rider = r;
 }
 
@@ -329,6 +330,11 @@ void PoppyBrosJrStart(struct Object *obj) {
 
     ObjectSetFunc(obj, 0, PoppyBrosJrMain);
     obj->base.yspeed = 0;
+    // The ball and the bomb: NiDL's palette 15 (0x08081FC4 sets it in obj+0x40, keeping Poppy Bros. Jr.'s for the rider), a second
+    // palette its ball frames load;
+    p->riderPalette = NidlLoadPalette(&p->n, gNidlData.enemies[p->n.enemy].animId, 0);
+    if (Rides(p) || p->n.variant == VARIANT_THROWN_BALL || p->n.variant == VARIANT_THROWN_BOMB)
+        obj->base.sprite.palId = NidlLoadPalette(&p->n, gNidlData.enemies[p->n.enemy].animId | NIDL_SECOND_PALETTE, FRAME_BALL);
     switch (p->n.variant) {
     case VARIANT_JUMP_IN:
         if (p->state == STATE_JUMP_IN_WAIT || p->state == STATE_JUMP_IN) return;

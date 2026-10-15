@@ -26,12 +26,13 @@ namespace KatAMRandomizer {
 
         /* NiDL: graphics descriptor per enemy (type - 8): tile count (+2), palette (+8), LZ77 tiles (+12). The frame tables (and every
          * NiDL address in the enemies' notes) are the USA ones; the Japanese and European ROMs have the same data, moved by FrameShift; */
-        sealed record NightmareRegion(string GameCode, int Descriptors, int FrameShift, string KatAM);
+        // Palette15: NiDL's shared object palette 15 (the level loads it; the Poppy Bros. Jr.'s ball and bomb are drawn with it);
+        sealed record NightmareRegion(string GameCode, int Descriptors, int FrameShift, string KatAM, int Palette15);
 
         static readonly NightmareRegion[] NightmareRegions = {
-            new NightmareRegion("A7KE", 0x73EEA0, 0, "USA"),
-            new NightmareRegion("A7KJ", 0x742DAC, 0x3A8C, "Japan"),           // Hoshi no Kirby: Yume no Izumi Deluxe;
-            new NightmareRegion("A7KP", 0x97B678, 0x23C7EC, "Europe"),
+            new NightmareRegion("A7KE", 0x73EEA0, 0, "USA", 0x0D07A8),
+            new NightmareRegion("A7KJ", 0x742DAC, 0x3A8C, "Japan", 0x0CFF60),   // Hoshi no Kirby: Yume no Izumi Deluxe;
+            new NightmareRegion("A7KP", 0x97B678, 0x23C7EC, "Europe", 0x0D3228),
         };
 
         static NightmareRegion RegionOf(byte[] rom) => rom == null || rom.Length < 0x800000 ? null
@@ -48,7 +49,7 @@ namespace KatAMRandomizer {
 
         // Part; One NiDL frame drawn into a frame, with its colors remapped (NiDL colors of other palettes go to unused ones);
         // Part; A NiDL frame (from the enemy's frame table, or Table when the enemy has more than one), recolored;
-        sealed record Part(int Frame, Dictionary<int, int> Recolor = null, int Table = 0);
+        sealed record Part(int Frame, Dictionary<int, int> Recolor = null, int Table = 0, bool Palette15 = false);
 
         /* Enemy; A ported enemy: its index (NIDL_* in nidl.h), name, NiDL object type and frame table, its frames (in the order the
          * C code numbers them), its hurt frame, palette changes, the letters of its name and the behavior bytes the randomizer uses; */
@@ -196,8 +197,8 @@ namespace KatAMRandomizer {
         // 7 and 8 (the ball or bomb that comes off when Kirby inhales the rider) are only spawned;
         static Enemy PoppyBrosJr() => new Enemy(13, "Poppy Bros. Jr.", 0x26, 0x7528D0,
             Enumerable.Range(4, 4).Select(f => new[] { new Part(f) })
-                .Concat(Enumerable.Range(9, 8).Select(f => new[] { new Part(f, null, 0x7528F0) }))
-                .Concat(Enumerable.Range(9, 8).Select(f => new[] { new Part(f, null, 0x752934) })).ToList(),
+                .Concat(Enumerable.Range(9, 8).Select(f => new[] { new Part(f, null, 0x7528F0, true) }))
+                .Concat(Enumerable.Range(9, 8).Select(f => new[] { new Part(f, null, 0x752934, true) })).ToList(),
             new[] { new Part(3) }, new Dictionary<int, ushort>(),
             new[] {
                 (0x16, 0), (0x1E, 1), (0x02, 3), (0x02, 3), (0x05, 5), (-1, -1),   // "P" (Pengy), "o" (Noddy), "pp" (Blipper), "y" (Scarfy), space;
@@ -272,7 +273,7 @@ namespace KatAMRandomizer {
                 if (rom[i] != 0xFF) return "The free space used by the ROM Expansion is already in use.";
             }
 
-            List<(Enemy enemy, byte[] palette, List<(byte[] tiles, ushort[] oams, short[] attributes)> frames, byte[] hurt)> built;
+            List<(Enemy enemy, byte[] palette, List<(byte[] tiles, ushort[] oams, short[] attributes, bool palette15)> frames, byte[] hurt)> built;
 
             try {
                 built = Definitions.Select(e => Build(nightmare, region, e)).ToList();
@@ -307,10 +308,15 @@ namespace KatAMRandomizer {
             animAttributes.Add(hurtAttributes);
             animOams.Add(hurtOam);
 
+            // NiDL's palette 15, for the frames drawn with it (the C code loads it as a second palette, from one of them);
+            int palette15At = Allocate(ref cursor, 32, 32, paletteBase);
+            Array.Copy(nightmare, region.Palette15, rom, palette15At, 32);
+            int palette15Index = (palette15At - paletteBase) / 32;
+
             List<(int animBase, int animId, int hurtTiles)> data = new List<(int, int, int)>();
             List<(int animId, int variant)> animInfos = new List<(int, int)> { (HurtAnimID, 0), (HurtAnimID, 0) };
 
-            foreach ((Enemy enemy, byte[] palette, List<(byte[] tiles, ushort[] oams, short[] attributes)> frames, byte[] hurt) in built) {
+            foreach ((Enemy enemy, byte[] palette, List<(byte[] tiles, ushort[] oams, short[] attributes, bool palette15)> frames, byte[] hurt) in built) {
                 int animId = HurtAnimID + 1 + data.Count;
 
                 // Tiles and palettes are indexes from their table's base, so they are aligned to it;
@@ -327,11 +333,11 @@ namespace KatAMRandomizer {
 
                 // Animation commands of every frame: GetPalette, GetTiles, ShowFrame and End (holds the frame);
                 for (int i = 0, tile = 0, oam = 0; i < frames.Count; i++) {
-                    (byte[] tiles, ushort[] oams, short[] attributes) = frames[i];
+                    (byte[] tiles, ushort[] oams, short[] attributes, bool palette15) = frames[i];
                     int commands = Allocate(ref cursor, 36, 4);
 
                     tiles.CopyTo(rom, tilesAt + tile * 32);
-                    WriteInts(rom, commands, -2, paletteIndex, 16, -1, tileIndex + tile, tiles.Length / 32, 60, i, -4);
+                    WriteInts(rom, commands, -2, palette15 ? palette15Index : paletteIndex, 16, -1, tileIndex + tile, tiles.Length / 32, 60, i, -4);
                     WriteInt(rom, variantsAt + i * 4, commands + 0x08000000);
                     WriteShorts(rom, attributesAt + i * 12, (short)(oam / 3), attributes[1], attributes[2], attributes[3], attributes[4], attributes[5]);
                     for (int o = 0; o < oams.Length; o++) WriteShort(rom, oamsAt + (oam + o) * 2, oams[o]);
@@ -422,7 +428,7 @@ namespace KatAMRandomizer {
 
         /* Build(); The enemy's palette, frames (tiles in 1D order, OAM entries, attributes: oam index, pieces, box width, height,
          * origin x, y) and hurt frame (HurtTiles tiles of 32x32 pixels); */
-        static (Enemy, byte[], List<(byte[], ushort[], short[])>, byte[]) Build(byte[] nightmare, NightmareRegion region, Enemy enemy) {
+        static (Enemy, byte[], List<(byte[], ushort[], short[], bool)>, byte[]) Build(byte[] nightmare, NightmareRegion region, Enemy enemy) {
             int descriptor = ReadInt(nightmare, region.Descriptors + (enemy.Type - 8) * 4) - 0x08000000, frameTable = enemy.FrameTable + region.FrameShift;
             int paletteAddress = ReadInt(nightmare, descriptor + 8) - 0x08000000, tilesAddress = ReadInt(nightmare, descriptor + 12) - 0x08000000;
 
@@ -433,7 +439,7 @@ namespace KatAMRandomizer {
             Array.Copy(nightmare, paletteAddress, palette, 0, 32);
             foreach ((int color, ushort value) in enemy.PaletteChanges) WriteShort(palette, color * 2, value);
 
-            List<(byte[], ushort[], short[])> frames = new List<(byte[], ushort[], short[])>();
+            List<(byte[], ushort[], short[], bool)> frames = new List<(byte[], ushort[], short[], bool)>();
 
             foreach (Part[] parts in enemy.Frames) {
                 List<(Piece piece, Dictionary<int, int> recolor)> pieces = parts.SelectMany(p => ReadFrame(nightmare, p.Table != 0 ? p.Table + region.FrameShift : frameTable, p.Frame).Select(piece => (piece, p.Recolor))).ToList();
@@ -451,7 +457,7 @@ namespace KatAMRandomizer {
                     frameTiles.AddRange(PieceTiles(tiles, piece, recolor));
                 }
 
-                frames.Add((frameTiles.ToArray(), oams.ToArray(), new short[] { 0, (short)pieces.Count, (short)(halfWidth * 2), (short)(bottom - top), (short)halfWidth, (short)-top }));
+                frames.Add((frameTiles.ToArray(), oams.ToArray(), new short[] { 0, (short)pieces.Count, (short)(halfWidth * 2), (short)(bottom - top), (short)halfWidth, (short)-top }, parts.Any(p => p.Palette15)));
             }
 
             // Hurt frame: drawn pixel by pixel into 32x32 and cut into tiles;
