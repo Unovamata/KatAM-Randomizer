@@ -55,6 +55,9 @@ extern const struct NidlAbilityData gNidlAbilityData;
 #define PORTRAIT_SIZE 0x3C0
 
 void NidlAbilityPortrait(u32 vram, u8 palette, u8 id);
+
+// Abilities;
+void HiJumpStart(struct Kirby *);
 void NidlAbilityHudTimer(struct Kirby *, u8 portrait, u16 frames);
 
 #endif

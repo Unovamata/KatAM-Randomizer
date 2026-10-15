@@ -48,6 +48,18 @@
             WriteInt(rom, data, portrait + 0x08000000 + 1);
             WriteInt(rom, data + 4, hudTimer + 0x08000000 + 1);
 
+            /* Swallowing (sub_080547C4) takes 0x1B as "a random ability" and 0x1C as "no ability" (special objects, sub_0809C48C):
+             * they're now 0x3B (0x1B | KIRBY_ABILITY_CHANGE_RANDOM, which it ORs in anyway) and 0x3C, out of Needle's and Freeze's way.
+             * Object type 0xCE is the only one whose ability is 0x1B; */
+            int swallow = version.RomSymbols["sub_080547C4"], special = version.RomSymbols["SwallowSpecialSite"];
+            int randomType = version.RomSymbols["gUnk_08351648"] + 0xCE * 0x18 + 6;
+            if (ReadShort(rom, swallow + 0x74) != 0x2E1C || ReadShort(rom, swallow + 0x11C) != 0x2E1B || ReadShort(rom, special) != 0x211C
+                || ReadShort(rom, randomType) != 0x1B) return $"The {version.Name} ROM's swallowing code doesn't match.";
+            WriteShort(rom, swallow + 0x74, 0x2E3C);
+            WriteShort(rom, swallow + 0x11C, 0x2E3B);
+            WriteShort(rom, special, 0x213C);
+            WriteShort(rom, randomType, 0x3B);
+
             // TODO: NiDL's portraits; the normal one for now;
             int palettes = version.RomSymbols["gUnk_08D60B64"], pictures = version.RomSymbols["gUnk_08D60BE4"];
             for (int k = 0; k < NewAbilities; k++) {

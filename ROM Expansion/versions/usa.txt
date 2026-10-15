@@ -8,6 +8,7 @@ ObjectInitSprite 0x809f3e0
 ObjectMain 0x8099b80
 ObjectSetBounds 0x803e308
 ObjectSetFunc 0x809f7d8
+SwallowSpecialSite 0x809c672
 TaskCreate 0x8152b00
 TaskDestroy 0x8152c3c
 __umodsi3 0x815a4b4
@@ -48,6 +49,7 @@ sub_0803D21C 0x803d21c
 sub_0803DF24 0x803df24
 sub_0803DFAC 0x803dfac
 sub_0803E2B0 0x803e2b0
+sub_080547C4 0x80547c4
 sub_08073D2C 0x8073d2c
 sub_08088640 0x8088640
 SpriteTables 0x83b909c

@@ -7,6 +7,8 @@ EffectObjectInitSprite 0x8070a40
 EffectObjectPostUpdate 0x806fb10
 GetCollisionTile 0x8002404
 InitObject 0x809f078
+KirbyEnterWater 0x805baa0
+KirbyStartWaterMovement 0x8059858
 ObjectBaseDestroy 0x803dd08
 ObjectBaseInitSprite 0x8070924
 ObjectDestroy 0x809a20d
@@ -15,6 +17,7 @@ ObjectMain 0x8099bc8
 ObjectPreUpdate 0x806f7c8
 ObjectSetBounds 0x803e344
 ObjectSetFunc 0x809f820
+SwallowSpecialSite 0x809c6ba
 TaskCreate 0x815343c
 TaskDestroy 0x8153578
 VramFree 0x8157acc
@@ -61,6 +64,8 @@ sub_0803DE54 0x803de90
 sub_0803DF24 0x803df60
 sub_0803DFAC 0x803dfe8
 sub_0803E2B0 0x803e2ec
+sub_08044EA8 0x8044ee4
+sub_080547C4 0x8054800
 sub_0806F8BC 0x806f904
 sub_08073D2C 0x8073d74
 sub_08088640 0x8088688

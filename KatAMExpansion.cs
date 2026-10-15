@@ -690,6 +690,8 @@ namespace KatAMRandomizer {
 
         static int ReadInt(byte[] data, int address) => BitConverter.ToInt32(data, address);
 
+        static int ReadShort(byte[] data, int address) => BitConverter.ToUInt16(data, address);
+
         static void WriteInt(byte[] data, int address, int value) => BitConverter.GetBytes(value).CopyTo(data, address);
 
         static void WriteInts(byte[] data, int address, params int[] values) {

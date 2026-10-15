@@ -10,6 +10,9 @@ const struct NidlAbilityTables gNidlAbilityTables = {
         [NIDL_ABILITY_BALL - NIDL_FIRST_ABILITY] = KIRBY_ABILITY_NORMAL,
         [NIDL_ABILITY_HI_JUMP - NIDL_FIRST_ABILITY] = KIRBY_ABILITY_NORMAL,
     },
+    .landB = {
+        [NIDL_ABILITY_HI_JUMP - NIDL_FIRST_ABILITY] = HiJumpStart,
+    },
 };
 
 /* NidlAbilityPortrait(); sub_080356AC (detoured): queues the portrait `id` (an ability's, or a special one) for `vram` and loads its
