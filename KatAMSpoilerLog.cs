@@ -205,6 +205,7 @@ namespace KatAMRandomizer
 
             // ROM Expansion enemies: the behavior picks which one;
             if (id == KatAMExpansion.NightmareID && Settings.GetInstance()?.NightmareEnemies.Count > 0) return KatAMExpansion.NameOf(behavior);
+            if (id == KatAMExpansion.MinibossID && Settings.GetInstance()?.NightmareMinibosses.Count > 0) return KatAMExpansion.MinibossNameOf(behavior);
 
             if (pedestalAbilities.TryGetValue(id, out string[] abilities)) {
                 return behavior < abilities.Length ? $"{ObjectName(id)} [{abilities[behavior]}]" : $"{ObjectName(id)} [0x{behavior:X2}]";

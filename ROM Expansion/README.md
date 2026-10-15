@@ -1,12 +1,12 @@
 # ROM Expansion
 
-Enemies and copy abilities ported from *Kirby: Nightmare in Dream Land* into *Kirby & the Amazing Mirror*. `KatAMExpansion.cs` applies them. Every version of KatAM works (USA `B8KE`, European `B8KP`, Japanese revision 1 `B8KJ`), with the NiDL ROM of the same region: USA (`A7KE`), European (`A7KP`) or Japanese (`A7KJ`, *Hoshi no Kirby: Yume no Izumi Deluxe*). The NiDL ROMs hold the same data, the Japanese one's frame tables `0x3A8C` further and its descriptors at `0x08742DAC`, the European one's `0x23C7EC` further and at `0x0897B678`. NiDL addresses in these notes and the code are the USA ones.
+Enemies, mini-bosses and copy abilities ported from *Kirby: Nightmare in Dream Land* into *Kirby & the Amazing Mirror*. `KatAMExpansion.cs` applies them. Every version of KatAM works (USA `B8KE`, European `B8KP`, Japanese revision 1 `B8KJ`), with the NiDL ROM of the same region: USA (`A7KE`), European (`A7KP`) or Japanese (`A7KJ`, *Hoshi no Kirby: Yume no Izumi Deluxe*). The NiDL ROMs hold the same data, the Japanese one's frame tables `0x3A8C` further and its descriptors at `0x08742DAC`, the European one's `0x23C7EC` further and at `0x0897B678`. NiDL addresses in these notes and the code are the USA ones.
 
 European games show the enemies' English names in every language. Japanese games show none: their HP bar names are stored differently (not as the USA's per-type images), so the bar keeps type `0x31`'s own name.
 
 ## KatAM versions
 
-The code is written against the KatAM decompilation, which builds the USA version. `build.sh` links it once per version: the USA build against `katam.elf`, the others against `versions/<version>.txt`, the same symbols' addresses in that version, found in its ROM by `find_symbols.py <katam decomp> <ROM> <symbols...>` (functions by their code with call targets and pointers masked, variables through the pointers in matched functions, and the rest by the shift of the nearest symbol found). Those tables also hold what `KatAMExpansion.cs` patches in each version (sprite tables, spawn and parameter tables, the hit flash branch, the HP bar name copies, the number of anims: 938 in the Japanese ROM, 939 in the others). When the code starts using a KatAM symbol the tables don't have, `build.sh` says so: rerun `find_symbols.py` with the full list for each version's ROM.
+The code is written against the KatAM decompilation, which builds the USA version. `build.sh` links it once per version: the USA build against `katam.elf`, the others against `versions/<version>.txt`, the same symbols' addresses in that version, found in its ROM by `find_symbols.py <katam decomp> <ROM> <symbols...>` (functions by their code with call targets and pointers masked, variables through the pointers in matched functions, and the rest by the shift of the nearest symbol found). The shift is only checked against the first bytes of the function, so check what it finds when it can't match a function by its code (Japan's `sub_08034E14` is `0x08034DD8`, found from the call in Mr. Frosty's code; the shift gave a similar function). Those tables also hold what `KatAMExpansion.cs` patches in each version (sprite tables, spawn and parameter tables, the hit flash branch, the HP bar name copies, the number of anims: 938 in the Japanese ROM, 939 in the others). When the code starts using a KatAM symbol the tables don't have, `build.sh` says so: rerun `find_symbols.py` with the full list for each version's ROM.
 
 ## How they fit in
 
@@ -21,6 +21,8 @@ KatAM treats object types `0x00`-`0x37` as enemies all over its code, and the on
 | Behavior start after a hit | `NidlStart` calls the enemy's own start |
 | Gravity | The engine pulls every enemy down unless flag `0x40` is set (KatAM's flying enemies set it); `NidlStart` sets it, and each enemy moves up and down like in NiDL (`NidlFall` is the engine's gravity, for the ones that just stand or walk) |
 
+Mini-bosses work the same way on object type `0x40` (`OBJ_EMPTY_40`), which KatAM already treats as a mini-boss everywhere (it's in every `ObjType38To42` check, and `gUnk_08352D80[0x40 - 0x38]` is the mini-boss music): see Mini-bosses below.
+
 The hit flash also looked the palette up again by type when it ended; its branch at `0x080857EE` is patched to keep the enemy's palette (which is what it found for the game's own enemies anyway).
 
 ## Files
@@ -28,6 +30,7 @@ The hit flash also looked the palette up again by type when it ended; its branch
 - `nidl.h`, `nidl.c`: the shared part (creation, palette, hurt frame, names, NiDL's frame sequences, helpers like facing Kirby and stopping at ledges).
 - `nidl_data.c`: `gNidlData`, left blank and filled in by `KatAMExpansion.cs` (names, and each enemy's `animBase`, anim ID and hurt frame).
 - `abilities.h`, `abilities.c`, `abilities/*.c`: the new copy abilities (see Abilities below); `abilities/*.c` has one file per ability.
+- `nidl_miniboss.c`, `minibosses/*.c`: the mini-bosses (type `0x40`): creation, the start of the fight, and one file per mini-boss.
 - `enemies/*.c`: one file per enemy, written against the [KatAM decompilation](https://github.com/jiangzhengwenjz/katam) headers. NiDL runs enemies as coroutine scripts; each script is copied as tables of steps.
 - `build.sh /path/to/katam`: compiles everything with the decompilation's `agbcc`, links it at `0x09000000` for each KatAM version and writes `../KatAMExpansionCode.cs` (each version's code, the symbols `KatAMExpansion.cs` uses and what it patches).
 - `find_symbols.py`, `versions/*.txt`: the KatAM symbols' addresses in each version (see above).
@@ -66,6 +69,20 @@ Graphics come from the player's NiDL ROM: each enemy's descriptor (`0x0873EEA0 +
 | Cool Spook | `0x13` | Both NiDL variants (flying pool): 0 flies left at 0.5 bobbing, through walls and water (NiDL's skips every terrain check); 1 bobs in place facing Kirby. Gives Light. Frames 4-7; hurt frame 3 |
 | Poppy Bros. Jr. | `0x26`-`0x28` | NiDL's three types as one enemy (they share graphics): 0 hops (0.5 forward, low hops; every other hop it turns around one time in 3, for one hop); 1 jumps in after 30 frames, then hops; 2 hops in place; 3 and 4 roll a ball or a bomb (0.5), spinning, with Poppy Bros. Jr. hopping on top of it (an effect object drawing the enemy's own frames); 5 and 6 the same in place. Inhaled, the ball or bomb comes off and bounces away from Kirby twice (the bomb then explodes, KatAM's small explosion) and Kirby swallows Poppy Bros. Jr.; defeated, Poppy Bros. Jr. jumps off (variant 1). Water defeats them, as in NiDL. Frames 4-7, the ball's 9-16 and the bomb's 9-16 (an apple and a bomb, drawn with NiDL's shared object palette 15, read from the NiDL ROM: a second palette slot, key anim | 0x2000, while the rider keeps Poppy Bros. Jr.'s); hurt frame 3. Not ported: walking instead of hopping in the rooms NiDL marks for it |
 | Gip | `0x2F` | Both NiDL variants: 0 walks towards Kirby (turning its back to it when it's close) and climbs walls it walks into; on a wall it clings, then flaps up, glides down, drops off or shakes and jumps at Kirby (weighted by where Kirby is), steps onto the top or drops off the bottom when the wall ends, slides down the side of ledges it walks off, and every 120 frames of walking throws a spinning star (a KatAM attack object drawing the enemy's own frames). Starting next to a wall it clings to it. 1 walks in place. Water defeats it, as in NiDL. Frames 4-16 and the star's 4-7; hurt frame 3. Not ported: the throw's sound |
+
+## Mini-bosses
+
+Ported mini-bosses are object type `0x40`; the behavior byte's high nibble picks the mini-boss (`NIDL_POPPY_BROS_SR`... in `nidl.h`), the low nibble its variant. KatAM's own Mr. Frosty, Bonkers and Phan Phan stay as they are (NiDL's are the same mini-bosses).
+
+- **The fight** starts like KatAM's mini-bosses' (Mr. Frosty, `0x080CB7E8`): the mini-boss waits facing Kirby, untouchable, until Kirby is in the template's area (`unk1A`-`unk20`, the randomizer keeps the vanilla mini-boss's), then the camera stays in that area (`Macro_081003EC`), the HP bar shows and the mini-boss music plays (`Macro_08100F18`). Defeat is KatAM's (the engine handles every type `0x38`-`0x52` the same way: it flies off exploding).
+- **Shared per type**, as for the enemies: one `AnimInfo` table (its own, after the enemies'), each mini-boss's own palettes and anim ID, a 64x64 hurt frame (64 tiles at the end of the object's VRAM, anim index 0 and 1), its own HP bar name. `NidlMinibossStart` (the type's start, after a hit too) sets the mini-boss's ability and calls its own start once the fight has started.
+- **Graphics**: NiDL's mini-boss descriptors are at `0x0873F0E4 + index * 4` (USA; `region.Descriptors + 0x244` in every region; index = NiDL type - `0x31`), in the enemies' format, often with two palettes: frames drawn with the second load it under the anim ID | `0x2000`. Frame tables are the `0x0875xxxx` literal each spawn function stores at `obj+0x38`.
+- **Object type `0x40`'s parameters** are Mr. Frosty's (score, HP), with the hurt frames, no palette key, VRAM for the biggest frame plus the hurt frame, `NidlMinibossStart` and the shared animations; `gSpawnFuncTable1[0x40]` is `CreateNidlMiniboss`.
+- **Randomizer**: with "Include mini-bosses" (ROM Expansion tab), type `0x40` joins the mini-boss pool once per ported mini-boss, the behavior picking a mini-boss and then one of its variants.
+
+| Mini-boss | NiDL type | Notes |
+|---|---|---|
+| Poppy Bros. Sr. | `0x32` | Hops at Kirby (back when Kirby is within 39 pixels, then the other way every hop), 4, 2, 2 or 2 hops (variant 1: 4, 6, 2 or 0); jumps straight up and throws a bomb from over its head near the top (holding it longer when Kirby is within 63 pixels), the bomb bouncing once and exploding (KatAM's small explosion); 2 hops; a jump forward and one back; a long jump forward and back (or straight up when Kirby is far); and again. NiDL draws its head and its hands as separate objects: here every body frame (4-9) is drawn with every head frame (12-19, the head's own animation, `0x08743A00`), and the bomb it holds is an effect object. Frames: the 48 body and head ones, the hands (20-25), the bomb (26-30, the second palette); hurt frame 10. Gives Crash |
 
 ## Abilities
 

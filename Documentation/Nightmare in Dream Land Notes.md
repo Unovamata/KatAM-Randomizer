@@ -218,6 +218,13 @@ Most enemies' first frames (0-3) are their hurt frames. Frames are drawn around 
 - Per-ability code: two 30-entry tables, `0x0873A7BC` and `0x0873A8A8`, ordered as the blocks are (entry 18 is Beam, which sets frames `0xBBD`...).
 - To test an ability in an emulator: room 1-1's first object records (`0x0835DD68`, see Levels) hold a Waddle Doo at records 1 and 4 (index 9); changing their index to another enemy's (type - 8) puts that enemy there, and swallowing it gives its ability.
 
+## Mini-bosses (category 1, type = index + `0x31`)
+
+- Room records with category 1 (`0x0873F23C`): index 0 Bonkers (`0x31`), 1 Poppy Bros. Sr. (`0x32`), 2 Grand Wheelie (`0x33`), 3 Mr. Frosty (`0x34`), 4 Mr. Tick-Tock (`0x35`), 5 Bugzzy (`0x36`), 6 Fire Lion (`0x37`), 7 Phan Phan (`0x38`), 8 Meta-Knights (`0x39`), 9 a small yellow one (`0x3A`).
+- Graphics descriptors at `0x0873F0E4 + index * 4` (the enemies' format: palettes, often 2, at `+8`, LZ77 tiles at `+12`); the tiles use the enemies' 2D mapping. Frame tables: the `0x0875xxxx` literal each spawn stores at `obj+0x38` (`0x31` `0x08752ED8`, `0x32` `0x087530F8`, `0x33` `0x08752F74`, `0x34` `0x08753090`, `0x35` `0x08753180`, `0x36` `0x087535FC`, `0x37` `0x08753718`, `0x38` `0x087537FC`, `0x3A` `0x08753204`). Mini-bosses use object slots 32 and up.
+- Spawn functions (master table): `0x31` `0x0809000C`, `0x32` `0x080910C0`, `0x33` `0x080941AC`, `0x35` `0x0809A0A8`, `0x36` `0x08091F08`, `0x37` `0x080957BC`, `0x39` `0x0809BBD8`, `0x3A` `0x0809C404`.
+- Poppy Bros. Sr. is three objects: its body (`0x32`), its head (`0xB3`, `0x08091DDC`: frame table `0x08753128`, the body's frames 12 on; it copies the body's position and flip and plays the head animation the body sets in `obj+0x30`, table `0x08743A00` of (frame, frames) pairs ending with -1) and, while it throws, its hands (`0xB4`, `0x08091B6C`: frames 20 on, offsets from the body moving per frame), which create the bomb (category 9 index `0x6F`, `0x08093BD4`: thrown at 1.5 ahead and 0.5 up, gravity 1/8, bouncing once at 2.0, exploding when it lands again). `obj+0x7A` is set when it lands. See `ROM Expansion/minibosses/poppy_bros_sr.c` for its script.
+
 ## Spawn functions
 
 The master table (`0x0872FF30`) has 8-byte entries, `(kind, spawn function)`, so type `t`'s spawn is at `0x0872FF34 + t * 8`: Chilly `0x08084CD4`, Cool Spook `0x0807EDB4`, Starman `0x08080DD0`, Sword/Blade Knight `0x0807AF58`/`0x0807AF98`, Poppy Bros. Jr. `0x080819B4`/`0x08081F60`/`0x08082008`, Coner `0x0808FA10`, Needlous `0x0807BD20`, Gip `0x0808BDB4`.

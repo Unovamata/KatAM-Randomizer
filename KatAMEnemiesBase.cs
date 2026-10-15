@@ -27,6 +27,9 @@ namespace KatAMRandomizer {
              isRandomizingExcludedEnemies,
              isAddingNightmareEnemies;
         protected List<byte> nightmareBehaviors = new List<byte>(), nightmareFlyingBehaviors = new List<byte>();
+        // ROM Expansion mini-bosses (object type 0x40), one behavior list per mini-boss;
+        protected bool isAddingNightmareMinibosses;
+        protected List<List<byte>> nightmareMinibossGroups = new List<List<byte>>();
         protected List<List<byte>> nightmareGroups = new List<List<byte>>(), nightmareFlyingGroups = new List<List<byte>>(),
                                    nightmareWaterGroups = new List<List<byte>>();
 
@@ -74,6 +77,12 @@ namespace KatAMRandomizer {
                 for(int i = 0; i < nightmareWaterGroups.Count; i++) underwaterEnemyIDs.Add(KatAMExpansion.NightmareID);
             }
 
+            // ROM Expansion mini-bosses join the mini-boss pool as object type 0x40 the same way;
+            if(isAddingNightmareMinibosses) {
+                behaviorDictionary[KatAMExpansion.MinibossID] = nightmareMinibossGroups.SelectMany(group => group).ToList();
+                speedDictionary[KatAMExpansion.MinibossID] = NewProperty(0x00);
+            }
+
             if(enemiesOptions == GenerationOptions.Shuffle) allEntitiesIDs = Utils.Shuffle(allEntitiesIDs);
 
             bool isRandomizingIDs = enemiesOptions != GenerationOptions.Unchanged,
@@ -86,6 +95,11 @@ namespace KatAMRandomizer {
 
             if(!isRandomizingMiniBosses && isAddingNightmareEnemies) {
                 for(int i = 1; i < nightmareGroups.Count; i++) availableEnemyIDs.Add(KatAMExpansion.NightmareID);
+            }
+
+            // Every ported mini-boss counts as much as one of the game's own;
+            if(isAddingNightmareMinibosses) {
+                for(int i = 1; i < nightmareMinibossGroups.Count; i++) availableEnemyIDs.Add(KatAMExpansion.MinibossID);
             }
 
             for(int i = 0; i < entities.Count; i++) {
@@ -192,6 +206,13 @@ namespace KatAMRandomizer {
                     entity.Behavior = behaviors[Utils.GetRandomRange(0, behaviors.Count)];
                 }
 
+                // ROM Expansion mini-bosses: the behavior picks which one (a mini-boss first, then one of its variants);
+                bool isNightmareMiniboss = entity.ID == KatAMExpansion.MinibossID && isAddingNightmareMinibosses;
+                if(isNightmareMiniboss) {
+                    List<byte> behaviors = nightmareMinibossGroups[Utils.GetRandomRange(0, nightmareMinibossGroups.Count)];
+                    entity.Behavior = behaviors[Utils.GetRandomRange(0, behaviors.Count)];
+                }
+
                 // Randomizing enemy speeds;
                 if(isRandomizingSpeed) {
                     if(speedDictionary.ContainsKey(entity.ID)) {
@@ -203,7 +224,7 @@ namespace KatAMRandomizer {
                 }
 
                 // Randomizing enemy behaviors (ROM Expansion enemies already have theirs);
-                if(isRandomizingBehaviors && !(entity.ID == KatAMExpansion.NightmareID && isAddingNightmareEnemies)) {
+                if(isRandomizingBehaviors && !(entity.ID == KatAMExpansion.NightmareID && isAddingNightmareEnemies) && !isNightmareMiniboss) {
                     if(behaviorDictionary.ContainsKey(entity.ID)) {
                         List<byte> availableEnemyBehaviors = behaviorDictionary[entity.ID];
                         int behaviorIndex = Utils.GetRandomRange(0, availableEnemyBehaviors.Count);
@@ -385,6 +406,8 @@ namespace KatAMRandomizer {
 
             isIncludingMasterInhaleAbility = Settings.isMinibossIncludingMasterInhaleAbility;
             isHPPercentageModified = Settings.isMinibossHPPercentageModified;
+            isAddingNightmareMinibosses = Settings.NightmareMinibosses.Count > 0;
+            nightmareMinibossGroups = KatAMExpansion.MinibossBehaviorGroupsOf(Settings.NightmareMinibosses);
         }
 
         public bool FilterEntities(Entity entity) { return true; }

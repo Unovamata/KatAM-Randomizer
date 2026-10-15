@@ -20,6 +20,8 @@
 #include "task.h"
 
 #define NIDL_TYPE OBJ_EMPTY_31
+// Mini-bosses ported from NiDL share object type 0x40 the same way (see nidl_miniboss.c): the game treats it as a mini-boss;
+#define NIDL_MINIBOSS_TYPE OBJ_EMPTY_40
 
 // Enemies (the behavior byte's high nibble);
 enum {
@@ -41,11 +43,24 @@ enum {
     NIDL_ENEMY_COUNT,
 };
 
+// Mini-bosses (type 0x40's behavior byte's high nibble);
+enum {
+    NIDL_POPPY_BROS_SR,
+    NIDL_MR_TICK_TOCK,
+    NIDL_GRAND_WHEELIE,
+    NIDL_BUGZZY,
+    NIDL_FIRE_LION,
+    NIDL_META_KNIGHTS,
+    NIDL_MINIBOSS_COUNT,
+};
+
 // Room every ported enemy gets (NidlObject and its own fields);
 #define NIDL_OBJECT_SIZE 0x100
 
 #define NIDL_HURT_FRAME 0
 #define NIDL_HURT_TILES 16
+// A mini-boss's hurt frame is 64x64;
+#define NIDL_MINIBOSS_HURT_TILES 64
 
 // NidlObject; Every ported enemy starts with it;
 struct NidlObject {
@@ -57,6 +72,7 @@ struct NidlObject {
     const s16 *sequence;
     u8 sequenceStep;
     u8 sequenceTimer;
+    bool8 activated;    // Mini-bosses: Kirby came in range (the fight started);
 };
 
 /* Frame sequences, like NiDL's (0x080640DC plays one, 0x080640FC steps it): pairs of (frame, frames to show it), then
@@ -72,19 +88,36 @@ struct NidlEnemy {
     u16 ability;
 };
 
+// NidlMiniboss; What the code knows about each mini-boss;
+struct NidlMiniboss {
+    void (*init)(struct NidlObject *);  // Bounds and position, after InitObject;
+    void (*start)(struct Object *);     // Behavior start once the fight starts, also after recovering from a hit;
+    s16 hp;
+    u16 ability;
+};
+
+// NidlGraphics; Where an enemy's or mini-boss's graphics went;
+struct NidlGraphics {
+    u16 animBase;                       // First AnimInfo of the enemy in the type's table;
+    u16 animId;                         // Its anim ID (and palette key);
+    const u8 *hurtTiles;                // Its hurt frame (32x32, 16 tiles; mini-bosses 64x64, 64 tiles);
+};
+
 // NidlData; Filled in by KatAMExpansion.cs once the graphics are built;
 struct NidlData {
     const u8 *names;                    // One 64x8 HP bar name (0x100 bytes) per enemy;
-    struct {
-        u16 animBase;                   // First AnimInfo of the enemy in the type's table;
-        u16 animId;                     // Its anim ID (and palette key);
-        const u8 *hurtTiles;            // Its 32x32 hurt frame (16 tiles);
-    } enemies[NIDL_ENEMY_COUNT];
+    struct NidlGraphics enemies[NIDL_ENEMY_COUNT];
+    const u8 *minibossNames;            // The same per mini-boss;
+    struct NidlGraphics minibosses[NIDL_MINIBOSS_COUNT];
 };
 
 extern const struct NidlData gNidlData;
 
 void *CreateNidlEnemy(struct ObjectTemplate *, u8 playerId);
+void *CreateNidlMiniboss(struct ObjectTemplate *, u8 playerId);
+const struct NidlGraphics *NidlGraphicsOf(struct NidlObject *);
+void NidlUploadHurtTiles(struct NidlObject *);
+void NidlInitPalette(struct NidlObject *);
 void NidlSetFrame(struct NidlObject *, u8 frame);
 u8 NidlLoadPalette(struct NidlObject *, u16 key, u8 frame);
 #define NIDL_SECOND_PALETTE 0x2000
@@ -136,5 +169,9 @@ void PoppyBrosJrInit(struct NidlObject *);
 void PoppyBrosJrStart(struct Object *);
 void GipInit(struct NidlObject *);
 void GipStart(struct Object *);
+
+// Mini-bosses;
+void PoppyBrosSrInit(struct NidlObject *);
+void PoppyBrosSrStart(struct Object *);
 
 #endif

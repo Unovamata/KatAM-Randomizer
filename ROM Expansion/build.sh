@@ -13,7 +13,7 @@ OUT=$(mktemp -d)
 trap 'rm -rf "$OUT"' EXIT
 
 objects=()
-for c in nidl.c nidl_data.c abilities.c abilities/*.c enemies/*.c; do
+for c in nidl.c nidl_miniboss.c nidl_data.c abilities.c abilities/*.c enemies/*.c minibosses/*.c; do
     o="$OUT/$(basename "${c%.c}").o"
     cpp -I "$D/tools/agbcc/include" -I "$D/tools/agbcc" -nostdinc -iquote "$D/include" -iquote . -DREVISION=0 -DENGLISH \
         -Wno-trigraphs -DMODERN=0 "$c" | "$D/tools/agbcc/bin/agbcc" -mthumb-interwork -Wimplicit -Wparentheses -O2 -fhex-asm -o "$OUT/a.s" -
@@ -56,7 +56,7 @@ versions = [('usa', 'USA', 'B8KE', 0), ('europe', 'Europe', 'B8KP', 0), ('japan'
 names = ['CreateNidlEnemy', 'NidlStart', 'NidlCopyName', 'gNidlData']
 patched = ['SpriteTables', 'AnimCount', 'SpawnTable', 'gUnk_08351648', 'ObjectParameters2', 'gUnk_08D60EE4', 'HitFlashBranch', 'NameSite1', 'NameSite2']
 # The abilities' (see abilities.h): code symbols, and the KatAM tables and functions it relocates or hooks;
-codeNames = ['gNidlAbilityTables', 'gNidlAbilityData', 'NidlAbilityPortrait', 'NidlAbilityHudTimer', 'NidlSwallow']
+codeNames = ['gNidlAbilityTables', 'gNidlAbilityData', 'NidlAbilityPortrait', 'NidlAbilityHudTimer', 'NidlSwallow', 'CreateNidlMiniboss', 'NidlMinibossStart']
 romNames = ['gUnk_0834C2AC', 'gUnk_0834C318', 'gUnk_083509D0', 'gUnk_08350A3C', 'gUnk_08D60FDC', 'gUnk_082DDE84', 'gUnk_082DDEF0',
             'gUnk_082DDF5C', 'gUnk_0834C4B0', 'gUnk_08350AAC', 'gUnk_08350B30', 'sub_080356AC', 'sub_08088640', 'gUnk_08D60B64', 'gUnk_08D60BE4',
             'sub_080547C4', 'SwallowSpecialSite', 'gUnk_08351648', 'gUnk_0834C5D4']

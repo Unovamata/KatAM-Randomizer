@@ -2768,7 +2768,7 @@
             LabelExpansionDescription.Name = "LabelExpansionDescription";
             LabelExpansionDescription.Size = new Size(1150, 80);
             LabelExpansionDescription.TabIndex = 0;
-            LabelExpansionDescription.Text = "Adds enemies ported from Kirby: Nightmare in Dream Land to the enemy pool. Their graphics are taken from your own Nightmare in Dream Land ROM, which must be from the same region as the Kirby & the Amazing Mirror ROM: USA with USA, European with European, Japanese (revision 1) with Japanese. European games show the enemies' English names in every language; Japanese games show no names. Pick what to include once the ROM is loaded. Enemies appear when enemies are randomized, each as often as any of the game's own enemies. The ROM is expanded to 32 MB to fit them.";
+            LabelExpansionDescription.Text = "Adds enemies and mini-bosses ported from Kirby: Nightmare in Dream Land to the enemy and mini-boss pools. Their graphics are taken from your own Nightmare in Dream Land ROM, which must be from the same region as the Kirby & the Amazing Mirror ROM: USA with USA, European with European, Japanese (revision 1) with Japanese. European games show the enemies' English names in every language; Japanese games show no names. Pick what to include once the ROM is loaded. Enemies appear when enemies are randomized, mini-bosses when mini-bosses are, each as often as any of the game's own. The ROM is expanded to 32 MB to fit them.";
             // 
             // ButtonExpansionLoadNightmare
             // 
@@ -2815,8 +2815,9 @@
             CheckboxExpansionMinibosses.Margin = new Padding(4, 5, 4, 5);
             CheckboxExpansionMinibosses.Name = "CheckboxExpansionMinibosses";
             CheckboxExpansionMinibosses.TabIndex = 4;
-            CheckboxExpansionMinibosses.Text = "Include mini-bosses (not ported yet)";
+            CheckboxExpansionMinibosses.Text = "Include mini-bosses";
             CheckboxExpansionMinibosses.UseVisualStyleBackColor = true;
+            CheckboxExpansionMinibosses.CheckedChanged += CheckboxExpansionMinibosses_CheckedChanged;
             // 
             // CheckboxExpansionRooms
             // 

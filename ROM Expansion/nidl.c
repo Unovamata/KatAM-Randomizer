@@ -57,14 +57,19 @@ void NidlAnimate(struct NidlObject *n) {
 }
 
 /* NidlUploadHurtTiles(); Copies the enemy's hurt frame into the last NIDL_HURT_TILES tiles of its VRAM, where the type's
- * hurt animation draws from. Done again whenever the object gets new VRAM; */
-static void NidlUploadHurtTiles(struct NidlObject *n) {
+ * hurt animation draws from (mini-bosses: NIDL_MINIBOSS_HURT_TILES). Done again whenever the object gets new VRAM; */
+void NidlUploadHurtTiles(struct NidlObject *n) {
     u32 vram = n->obj.base.sprite.tilesVram;
+    u32 tiles = n->obj.type == NIDL_MINIBOSS_TYPE ? NIDL_MINIBOSS_HURT_TILES : NIDL_HURT_TILES;
 
     if (!vram || vram == n->hurtVram) return;
     n->hurtVram = vram;
-    CpuSet(gNidlData.enemies[n->enemy].hurtTiles, (void *)(vram + (gUnk_08351648[NIDL_TYPE].numTiles - NIDL_HURT_TILES) * 32),
-           NIDL_HURT_TILES * 32 / 2);
+    CpuSet(NidlGraphicsOf(n)->hurtTiles, (void *)(vram + (gUnk_08351648[n->obj.type].numTiles - tiles) * 32), tiles * 32 / 2);
+}
+
+// NidlGraphicsOf(); The graphics of an enemy or mini-boss;
+const struct NidlGraphics *NidlGraphicsOf(struct NidlObject *n) {
+    return n->obj.type == NIDL_MINIBOSS_TYPE ? &gNidlData.minibosses[n->enemy] : &gNidlData.enemies[n->enemy];
 }
 
 /* NidlLoadPalette(); The palette slot of one of the enemy's palettes: the one its frame `frame` loads (the anim's GetPalette), under
@@ -85,8 +90,8 @@ u8 NidlLoadPalette(struct NidlObject *n, u16 key, u8 frame) {
 }
 
 // NidlInitPalette(); Its own palette (frame 0's; not the template's palette variant, the frames are all the enemy's);
-static void NidlInitPalette(struct NidlObject *n) {
-    n->obj.base.sprite.palId = NidlLoadPalette(n, gNidlData.enemies[n->enemy].animId, 0);
+void NidlInitPalette(struct NidlObject *n) {
+    n->obj.base.sprite.palId = NidlLoadPalette(n, NidlGraphicsOf(n)->animId, 0);
 }
 
 // NidlUpdate(); Called by every enemy each frame;
@@ -116,6 +121,7 @@ void *CreateNidlEnemy(struct ObjectTemplate *template, u8 playerId) {
     n->animBase = gNidlData.enemies[enemy].animBase;
     n->hurtVram = 0;
     n->sequence = NULL;
+    n->activated = FALSE;
     n->obj.unk80 = sNidlEnemies[enemy].hp;
     sNidlEnemies[enemy].init(n);
     NidlSetFrame(n, 0);
@@ -138,12 +144,14 @@ void NidlStart(struct Object *obj) {
 }
 
 /* NidlCopyName(); The HP bar's name, for any object: the game's copies of it (0x08034ED2, 0x08035B34) are patched to call
- * this, so ported enemies show their own name; */
+ * this, so ported enemies and mini-bosses show their own name; */
 void NidlCopyName(struct Object *obj) {
     const u8 *name;
 
     if (obj->type == NIDL_TYPE)
         name = gNidlData.names + ((struct NidlObject *)obj)->enemy * 0x100;
+    else if (obj->type == NIDL_MINIBOSS_TYPE)
+        name = gNidlData.minibossNames + ((struct NidlObject *)obj)->enemy * 0x100;
     else
         name = gUnk_08D60EE4[gLanguage] + obj->type * 0x100;
     CpuSet(name, (void *)0x060077A0, 0x80);
