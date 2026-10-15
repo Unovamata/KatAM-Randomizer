@@ -13,6 +13,9 @@
  * • Variant 3, 0x08087790: flies diagonally at 1.0 (0x08742600), towards Kirby's side and height (0x0806443C gives the direction,
  *   0x0806421C the speeds), bouncing off walls, floors and ceilings (0x08087848, 0x08086F54), flapping fast for 20 frames after
  *   every bounce.
+ * • Variant 4, 0x0808795C (0x080879D4, 0x08087A98): follows Kirby for 384 frames, facing it: every 8 frames it heads towards Kirby
+ *   again (0x080645A4: 8 directions), accelerating by 0x3300 a frame up to 1.0 (0x08742614, 0x08742624); it flaps fast going up,
+ *   holds its wings going down. Then it turns away and flies off at 0.4, rising 0x1900 faster every frame.
  * • Variant 5, 0x08087B8C: sits until Kirby is 63 pixels away or less, then takes off (0x08087C48: -3.0 for 4 frames, -2.0 for 8,
  *   -1.0 for 16, -0.5 for 8, then drifts down at 0.5), hovers 48 frames, faces Kirby and dashes at 1.0, 2.0, then 3.0 (0x08087D20).
  *   It can't be hit while taking off; */
@@ -52,8 +55,14 @@ static const s16 sAmbushOffsets[] = { -72, -40, 56, 88 };  // 0x087425DC;
 #define LOOP_STEP 4
 #define DIAGONAL_SPEED 0xB5     // 1.0 at 45 degrees;
 #define BOUNCE_FLAP_TIME 20
+#define FOLLOW_TIME 384
+#define CHASE_ACCEL 0x33
+#define CHASE_SPEED 0x100
+#define CHASE_AIM 8
+#define LEAVE_SPEED 0x66
+#define LEAVE_ACCEL 0x19
 
-enum { STATE_SWOOP, STATE_SIT, STATE_TAKEOFF, STATE_HOVER, STATE_DASH, STATE_DROP, STATE_LOOP, STATE_BOUNCE };
+enum { STATE_SWOOP, STATE_SIT, STATE_TAKEOFF, STATE_HOVER, STATE_DASH, STATE_DROP, STATE_LOOP, STATE_BOUNCE, STATE_CHASE, STATE_LEAVE };
 
 struct Twizzy {
     struct NidlObject n;
@@ -63,6 +72,8 @@ struct Twizzy {
     u8 step;
     s8 swoops;
     u8 placed;
+    u16 chaseTimer;
+    s8 aimX, aimY;      // Where it heads for variant 4: -1, 0, 1 (Y: 1 is up);
 };
 
 static void Face(struct Object *obj, s16 speed) {
@@ -247,6 +258,51 @@ static void Bounce(struct Twizzy *tw) {
     }
 }
 
+// Approach(); A speed accelerating towards a direction, up to the chase speed;
+static s16 Approach(s16 speed, s8 aim) {
+    if (aim > 0 && (speed += CHASE_ACCEL) > CHASE_SPEED) speed = CHASE_SPEED;
+    if (aim < 0 && (speed -= CHASE_ACCEL) < -CHASE_SPEED) speed = -CHASE_SPEED;
+    return speed;
+}
+
+// Chase(); 0x08087A98: towards Kirby, aiming again every 8 frames, then away;
+static void Chase(struct Twizzy *tw) {
+    struct Object *obj = &tw->n.obj;
+    s32 dx, dy;
+    s8 aimY;
+
+    if (!tw->chaseTimer--) {
+        // 0x08087A56: turns away from Kirby and flies off rising;
+        tw->state = STATE_LEAVE;
+        NidlFaceKirby(obj);
+        obj->base.flags ^= 1;
+        obj->base.xspeed = (obj->base.flags & 1) ? -LEAVE_SPEED : LEAVE_SPEED;
+        NidlPlay(&tw->n, sFlapFast);
+        return;
+    }
+    NidlFaceKirby(obj);
+    if (!tw->timer || !--tw->timer) {
+        tw->timer = CHASE_AIM;
+        dx = (obj->kirby3->base.x - obj->base.x) >> 8;
+        dy = (obj->kirby3->base.y - obj->base.y) >> 8;
+        tw->aimX = dx > 4 ? 1 : dx < -4 ? -1 : 0;
+        aimY = dy > 4 ? -1 : dy < -4 ? 1 : 0;
+        if (aimY != tw->aimY || !tw->n.sequence) {
+            // 0x080879D4: flapping fast going up, wings held going down;
+            if (aimY > 0)
+                NidlPlay(&tw->n, sFlapFast);
+            else if (aimY < 0) {
+                tw->n.sequence = NULL;
+                NidlSetFrame(&tw->n, FRAME_WINGS_UP);
+            } else
+                NidlPlay(&tw->n, sFlapSlow);
+        }
+        tw->aimY = aimY;
+    }
+    obj->base.xspeed = Approach(obj->base.xspeed, tw->aimX);
+    obj->base.yspeed = Approach(obj->base.yspeed, tw->aimY);
+}
+
 static void TwizzyMain(struct Object *obj) {
     struct Twizzy *tw = (struct Twizzy *)obj;
     s32 distance;
@@ -296,6 +352,12 @@ static void TwizzyMain(struct Object *obj) {
     case STATE_BOUNCE:
         Bounce(tw);
         break;
+    case STATE_CHASE:
+        Chase(tw);
+        break;
+    case STATE_LEAVE:
+        if ((obj->base.yspeed += LEAVE_ACCEL) > MAX_CLIMB) obj->base.yspeed = MAX_CLIMB;
+        break;
     }
 }
 
@@ -311,6 +373,17 @@ void TwizzyStart(struct Object *obj) {
         Ambush(tw);
     } else if (tw->n.variant == 3) {
         StartBounce(tw);
+    } else if (tw->n.variant == 4) {
+        if (tw->state != STATE_LEAVE) {
+            tw->state = STATE_CHASE;
+            tw->chaseTimer = FOLLOW_TIME;
+            tw->timer = 0;
+            tw->aimY = 2;
+            obj->base.xspeed = 0;
+        } else {
+            obj->base.xspeed = (obj->base.flags & 1) ? -LEAVE_SPEED : LEAVE_SPEED;
+            NidlPlay(&tw->n, sFlapFast);
+        }
     } else if (tw->n.variant != 5) {
         StartSwoop(tw);
     } else if (tw->state == STATE_SIT) {
