@@ -159,6 +159,8 @@ void BubblesInit(struct NidlObject *n) {
 
     sub_0803E2B0(&obj->base, -6, -6, 6, 7);
     ObjectSetBounds(&obj->base, -7, -7, 7, 8);
+    // Water defeats variant 0 like KatAM's enemies, but not variant 1 (0x0808976C);
+    if (n->variant == 1) NIDL_SWIMS(obj);
     obj->base.unk4C = obj->base.y = ((obj->base.y + (obj->base.unk3F * 0x100)) & 0xfffff000) - (obj->base.unk3F * 0x100) - 1;
     b->spin = 12;
 }

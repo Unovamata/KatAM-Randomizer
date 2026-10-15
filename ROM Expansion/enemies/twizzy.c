@@ -598,6 +598,8 @@ void TwizzyInit(struct NidlObject *n) {
 
     sub_0803E2B0(&obj->base, -5, -4, 5, 7);
     ObjectSetBounds(&obj->base, -6, -5, 6, 9);
+    // NiDL's Twizzy ignores water (its handlers, 0x08742D44, have none for it);
+    NIDL_SWIMS(obj);
     tw->state = STATE_SWOOP;
     tw->placed = FALSE;
     if (n->variant == 5 || n->variant == 6 || n->variant == 7 || n->variant == 9) {

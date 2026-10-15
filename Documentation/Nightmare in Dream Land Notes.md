@@ -151,6 +151,24 @@ Most enemies' first frames (0-3) are their hurt frames. Frames are drawn around 
 - Variant 1 (`0x0808A7A8`): faces Kirby, frame 4, nothing else.
 - KatAM: swimmers set `unkC & 1` (the engine kills anything else in water, `sub_0809D710`); the engine has no terrain outside the level's bounds, so they keep themselves inside (`NidlKeepInLevel`); its swimmers stop in the surface's 16 pixel tile, so the port looks 16 pixels up instead of 8.
 
+## Water
+
+`0x080692FC` calls the object's handlers (`[[obj+0x8C]+0x54]`, from the type's record: 0x2C-byte records with the handler table at `+0x28`): `+0` landed, `+4` left the floor, `+8` entered water, `+12` left water (`+16`, `+20` walls). Most enemies' `+8` calls `0x0806A0F0(-2)`, which defeats them, like KatAM's engine does to its own enemies:
+
+| Enemy | Handlers | Entering water |
+|---|---|---|
+| Broom Hatter | `0x087434C4` | defeated (`0x0808D354`) |
+| Cappy | `0x08741B9C` | defeated (`0x0807E9C8`) |
+| Twizzy | `0x08742D44` | nothing |
+| Bubbles | `0x08742D7C` | defeated, but not variant 1 (`0x0808976C`) |
+| Slippy | `0x08742DB4` | swims (its own scripts, see below) |
+| Kabu | `0x08741BB8` | defeated (`0x0807FCAC`) |
+| Coconut | `0x087434FC` | defeated (`0x0808ECB4`) |
+| Coner | `0x08743518` | glides down (`0x0808F9D8`, state 2) |
+| Starman | `0x08741BF0` | defeated (`0x080819A4`) |
+| Needlous | `0x08740EE0` | defeated (`0x0807BE9C`) |
+| Blade Knight | `0x08740EC4` | defeated (`0x0807B048`) |
+
 ## Spawn functions
 
 The master table (`0x0872FF30`) has 8-byte entries, `(kind, spawn function)`, so type `t`'s spawn is at `0x0872FF34 + t * 8`: Chilly `0x08084CD4`, Cool Spook `0x0807EDB4`, Starman `0x08080DD0`, Sword/Blade Knight `0x0807AF58`/`0x0807AF98`, Poppy Bros. Jr. `0x080819B4`/`0x08081F60`/`0x08082008`, Coner `0x0808FA10`, Needlous `0x0807BD20`, Gip `0x0808BDB4`.
