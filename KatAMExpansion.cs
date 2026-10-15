@@ -356,6 +356,15 @@ namespace KatAMRandomizer {
 
             if (animInfos.Count > 256) throw new InvalidOperationException("The ported enemies have more than 256 frames.");
 
+            // The new abilities' hats (anims after the enemies');
+            int[] hatTables;
+            try {
+                hatTables = BuildHats(rom, nightmare, region, version.RomSymbols["gUnk_0834C9AC"], anims, tilesBase, paletteBase, ref cursor, HurtAnimID,
+                                      animVariants, animAttributes, animOams);
+            } catch (Exception exception) when (exception is IndexOutOfRangeException or ArgumentException) {
+                return $"The Nightmare in Dream Land ROM doesn't match the {region.KatAM} release.";
+            }
+
             // Extended anims, attrs and oamData tables (indexed by anim ID);
             int[] tables = { anims, attrTable, oamTable };
             List<int>[] entries = { animVariants, animAttributes, animOams };
@@ -418,7 +427,9 @@ namespace KatAMRandomizer {
                 ApplyNamePatch(rom, sites[i], length, sites[i] + literal, fromTypePointer, codeBase + version.NidlCopyName);
             }
 
-            return AddAbilities(rom, version, ref cursor, new Dictionary<string, int[]>());
+            return AddAbilities(rom, version, ref cursor, new Dictionary<string, int[]> {
+                ["gUnk_08D60FDC"] = hatTables.Select(table => table == 0 ? 0 : table + 0x08000000).ToArray(),
+            });
         }
 
         //////////////////////////////////////////////////////////////////////////////////////////////
