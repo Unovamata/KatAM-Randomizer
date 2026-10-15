@@ -144,7 +144,7 @@ namespace KatAMRandomizer {
         static Enemy Starman() => new Enemy(8, "Starman", 0x1F, 0x752708, Enumerable.Range(4, 17).Select(f => new[] { new Part(f) }).ToList(),
             new[] { new Part(3) }, new Dictionary<int, ushort>(),
             new[] { (0x04, 0), (0x14, 2), (0x14, 5), (0x01, 1), (0x28, 2), (0x14, 5), (0x26, 5) },   // "S" (Squishy), "ta" (Hot Head), "r" (Bronto Burt), "m" (Bomber), "a" (Hot Head), "n" (Cookin);
-            new byte[] { 0x00, 0x01 });
+            new byte[] { 0x00, 0x01 }, new byte[] { 0x02 });
 
         // Needlous; Frames: NiDL's 4 to 16 (walking 4-6, hopping 7-8, spinning 11-16). It walks, curls up and rolls; variant 1 walks
         // in place;

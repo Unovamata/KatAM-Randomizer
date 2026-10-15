@@ -11,7 +11,10 @@
  * • Variant 1, 0x08081408 (states 0x08741584, per frame 0x08741590): walks at 0.5 facing Kirby (0x0808148C); after a while (216
  *   frames the first time, then 27 to 216 at random, table 0x0874150C) it crouches (frame 11 for 16 frames, 12 for 6) and jumps
  *   2.0 (0x08081508: gravity 0x1000, at 3.0 at most, frame 13), falls (frames 14 and 15, 4 frames each, 0x0808159C) and walks again.
- * NiDL's variants 2 and 3 and its water state (0x080812F0) aren't ported; */
+ * • Variant 2, 0x08081614 (0x0808168C, 0x080816E8): flies at 0.75 (0x0874151C), flapping (frames 16-18, 6 frames each), bobbing
+ *   (Y speeds 0, 0.5, 1.0, 0.5, 0, -0.5, -1.0, -0.5 down, table 0x08741524, 6 frames each, 8 when it bobs towards Kirby's height
+ *   and Kirby is more than 10 pixels up or down); after 6 bobs it rises away (0x1900 faster a frame).
+ * NiDL's variant 3 and its water state (0x080812F0) aren't ported; */
 #include "../nidl.h"
 
 // Frames: NiDL's 4 to 20 (walking 4-10, crouching 11-12, flying 13-18, diving 20), numbered from 0. Its hurt frame is NiDL's 3;
@@ -36,7 +39,13 @@ static const s16 sFly[] = { FRAME(16), 6, FRAME(17), 6, FRAME(18), 6, NIDL_LOOP 
 static const s16 sTumble[] = { FRAME(14), 4, FRAME(15), 4, NIDL_LOOP };
 
 enum { STATE_WALK, STATE_CROUCH, STATE_TAKEOFF, STATE_HIDE, STATE_DIVE, STATE_BOUNCE, STATE_REST, STATE_LEAVE_CROUCH, STATE_LEAVE,
-       STATE_STROLL, STATE_HOP_CROUCH, STATE_HOP };
+       STATE_STROLL, STATE_HOP_CROUCH, STATE_HOP, STATE_BOB, STATE_RISE };
+
+// Variant 2;
+static const s16 sBob[] = { 0, -0x80, -0x100, -0x80, 0, 0x80, 0x100, 0x80 };   // 0x08741524 (Y up);
+#define BOB_SPEED 0xC0
+#define BOB_STEP 6
+#define BOB_COUNT 6
 
 // Variant 1: frames between hops (0x0874150C);
 static const u8 sHopDelays[] = { 27, 54, 54, 81, 81, 81, 108, 108, 135, 135, 162, 162, 162, 189, 189, 216 };
@@ -49,6 +58,8 @@ struct Starman {
     u8 timer;
     u8 dives;
     u8 strollTime;
+    u8 bobStep;
+    u8 bobs;
 };
 
 // SetState(); Also what it looks like;
@@ -181,6 +192,33 @@ static void Stroll(struct Starman *s) {
     }
 }
 
+// Bob(); Variant 2 (0x080816E8);
+static void Bob(struct Starman *s) {
+    struct Object *obj = &s->n.obj;
+    s32 dy;
+    s16 speed;
+
+    NidlAnimate(&s->n);
+    if (s->state == STATE_RISE) {
+        obj->base.yspeed += STEER;
+        if (obj->base.yspeed > MAX_FALL) obj->base.yspeed = MAX_FALL;
+        return;
+    }
+    if (--s->timer) return;
+    if (++s->bobStep == ARRAY_COUNT(sBob)) {
+        s->bobStep = 0;
+        if (!--s->bobs) {
+            s->state = STATE_RISE;
+            return;
+        }
+    }
+    speed = sBob[s->bobStep];
+    dy = (obj->kirby3->base.y - obj->base.y) >> 8;
+    // Longer steps towards Kirby's height when it's far up or down (Kirby below: down, which is negative);
+    s->timer = (dy > 10 && speed < 0) || (dy < -10 && speed > 0) ? 8 : BOB_STEP;
+    obj->base.yspeed = speed;
+}
+
 static void StarmanMain(struct Object *obj) {
     struct Starman *s = (struct Starman *)obj;
 
@@ -189,6 +227,10 @@ static void StarmanMain(struct Object *obj) {
 
     if (s->n.variant == 1) {
         Stroll(s);
+        return;
+    }
+    if (s->n.variant == 2) {
+        Bob(s);
         return;
     }
 
@@ -246,6 +288,18 @@ void StarmanStart(struct Object *obj) {
     ObjectSetFunc(obj, 0, StarmanMain);
     obj->base.flags &= ~(0x400 | 0x100 | 0x2000000);
     obj->base.yspeed = 0;
+    if (s->n.variant == 2) {
+        if (s->state != STATE_RISE) {
+            s->state = STATE_BOB;
+            s->bobStep = 0;
+            s->bobs = BOB_COUNT;
+            s->timer = BOB_STEP;
+            NidlFaceKirby(obj);
+        }
+        obj->base.xspeed = (obj->base.flags & 1) ? -BOB_SPEED : BOB_SPEED;
+        NidlPlay(&s->n, sFly);
+        return;
+    }
     if (s->n.variant == 1) {
         SetState(s, STATE_STROLL);
         if (!s->strollTime) s->strollTime = 216;
@@ -262,5 +316,7 @@ void StarmanInit(struct NidlObject *n) {
     ((struct Starman *)n)->strollTime = 0;
     sub_0803E2B0(&obj->base, -6, -6, 6, 8);
     ObjectSetBounds(&obj->base, -7, -7, 7, 9);
-    obj->base.unk4C = obj->base.y = ((obj->base.y + (obj->base.unk3F * 0x100)) & 0xfffff000) - (obj->base.unk3F * 0x100) - 1;
+    ((struct Starman *)n)->state = 0;
+    if (n->variant != 2)
+        obj->base.unk4C = obj->base.y = ((obj->base.y + (obj->base.unk3F * 0x100)) & 0xfffff000) - (obj->base.unk3F * 0x100) - 1;
 }
