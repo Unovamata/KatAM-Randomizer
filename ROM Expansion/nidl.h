@@ -34,6 +34,7 @@ enum {
     NIDL_STARMAN,
     NIDL_NEEDLOUS,
     NIDL_BLADE_KNIGHT,
+    NIDL_CHILLY,
     NIDL_ENEMY_COUNT,
 };
 
@@ -122,5 +123,7 @@ void NeedlousInit(struct NidlObject *);
 void NeedlousStart(struct Object *);
 void BladeKnightInit(struct NidlObject *);
 void BladeKnightStart(struct Object *);
+void ChillyInit(struct NidlObject *);
+void ChillyStart(struct Object *);
 
 #endif

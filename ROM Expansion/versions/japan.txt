@@ -3,13 +3,18 @@ ClearObjectBase 0x803e310
 CpuSet 0x81592b4
 GetCollisionTile 0x80023e4
 InitObject 0x809efa8
+ObjectBaseDestroy 0x803dc5c
+ObjectBaseInitSprite 0x8070854
 ObjectDestroy 0x809a13d
 ObjectInitSprite 0x809f358
 ObjectMain 0x8099af8
+ObjectPreUpdate 0x806f6f8
 ObjectSetBounds 0x803e298
 ObjectSetFunc 0x809f750
 TaskCreate 0x8152ac0
 TaskDestroy 0x8152bfc
+VramFree 0x8157150
+VramMalloc 0x8157070
 __umodsi3 0x815a474
 _call_via_r1 0x815a25c
 gCollisionAttributes 0x82d984c
@@ -29,10 +34,13 @@ gUnk_08351648 0x8335e1c
 gUnk_08D60EE4 0x8d2c37c  # a guess (by shift): Japan stores its HP bar names differently, and has no names patch, so it is never read
 gUnk_08D60FA4 0x8d2c43c
 m4aSongNumStart 0x81500dc
+sub_0803DE54 0x803dde4
 sub_0803DF24 0x803deb4
 sub_0803DFAC 0x803df3c
 sub_0803E2B0 0x803e240
+sub_0806F8BC 0x806f834
 sub_08073D2C 0x8073ca4
+sub_0815521C 0x81551dc
 SpriteTables 0x839da88
 AnimCount 938
 SpawnTable 0x8335850

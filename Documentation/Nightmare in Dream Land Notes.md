@@ -152,6 +152,13 @@ Most enemies' first frames (0-3) are their hurt frames. Frames are drawn around 
 - Variant 1 (`0x0808A7A8`): faces Kirby, frame 4, nothing else.
 - KatAM: swimmers set `unkC & 1` (the engine kills anything else in water, `sub_0809D710`); the engine has no terrain outside the level's bounds, so they keep themselves inside (`NidlKeepInLevel`); its swimmers stop in the surface's 16 pixel tile, so the port looks 16 pixels up instead of 8.
 
+## Chilly (type `0x0E`)
+
+- Spawn `0x08084CD4`, variants `0x08741FB8`; variant 0 (`0x08084D14`) states `0x08741FC0`, per frame `0x08741FD4`, handlers `0x08742D0C`. Start: state 0 (rand(4) 0 or 1), 2 or 3.
+- 0 (`0x08084DC0`): wiggle (4, 5, 6, 7, 6, 5, 4 for 1, 2, 2, 8, 2, 2, 1) and turn around, 4 times, then turn once more; 1 (`0x08084E9C`): turn and wiggle until it faces Kirby (`0x08063DF4`) with Kirby within 32 pixels vertically; 2 (`0x08084F78`): 4 lunges (frame 4 for 4, 5 for 2, then 3.0, 2.0, 1.0, 0.5 every 2 frames on frames 5, 6, 6, 6, 0.5 on frame 7 for 18, stop `0x08006214`, 7, 6, 5, 4 for 3, 6, 5, 4; record flag set: 3 lunges from 4.0), then 3 (`0x08085180`): frame 10 shaking (velocity -1.0, 1.0, -1.0 for 1, 2, 1 frames) 15 times, spawns the freeze (`0x08064B28` with (category 2, type 0x68)), frame 11 shaking 64 times, state 0. 4 (`0x0808529C`) falls (gravity 0x2500).
+- Freeze, type 0x68 (`0x0808CB70`): frame table `0x087522B4` (shared effect tiles, no descriptor), frames 0, none, 1, none every frame for 240 frames, sound 0xB9 every 5, sparkles (type 0xD7) every 20; ends when Chilly stops.
+- Variant 1 (`0x080852CC`): lunges in place (4, 5, 6, 7, 6, 5, 4 for 4, 4, 8, 21, 6, 5, 4). Frames `0x08752284`: 0-3 hurt, 4-7 wiggling/lunging, 10 crouched, 11 arms up.
+
 ## Cappy's cap
 
 - Variant 0's per frame (`0x0807E5BC`): while inhaled (`obj+0x7C == 3`) it calls `0x08064FC4(0, 8, 1, 0, x, y, flags)`, which spawns category 0, index 8 (type `0x10`, Cappy), variant 1 (capless, frame table `0x0875237C`); the inhaled one is drawn with frame 1, the cap. The capless one starts in state 1 (`0x0807E814`): faces Kirby, 0.5 back, 2.0 up, gravity 0x2000, frames 4, 5, 6, 5 (3, 2, 3, 2 frames), and hops on when it lands (`0x0807E884`). Variant 2 keeps its cap.

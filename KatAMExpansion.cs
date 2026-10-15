@@ -70,6 +70,7 @@ namespace KatAMRandomizer {
             Starman(),
             Needlous(),
             BladeKnight(),
+            Chilly(),
         };
 
         static KatAMExpansion() {
@@ -170,6 +171,13 @@ namespace KatAMRandomizer {
                 (0x18, 3), (0x26, 5), (0x26, 4), (0x16, 3), (0x04, 5), (0x14, 2),  // "K" (Sir Kibble), "ni" (Cookin), "g" (Pengy), "h" (Squishy), "t" (Hot Head);
             },
             new byte[] { 0x00, 0x01, 0x02 });
+
+        // Chilly; Frames: NiDL's 4 to 11 (wiggling and lunging 4-7, crouched 10, arms up 11). It wiggles turning around until it
+        // faces Kirby, lunges at it, then freezes (a ring of KatAM's Pengy's ice); variant 1 lunges in place; gives Ice;
+        static Enemy Chilly() => new Enemy(11, "Chilly", 0x0E, 0x752284, Enumerable.Range(4, 8).Select(f => new[] { new Part(f) }).ToList(),
+            new[] { new Part(3) }, new Dictionary<int, ushort>(),
+            new[] { (0x0C, 0), (0x04, 5), (0x26, 4), (0x02, 1), (0x02, 1), (0x05, 5) },   // "C" (Cupie), "h" (Squishy), "i" (Cookin), "ll" (Blipper), "y" (Scarfy);
+            new byte[] { 0x00, 0x01 });
 
         // IsNightmareInDreamLand(); A Kirby: Nightmare in Dream Land ROM (USA, Japanese or European);
         public static bool IsNightmareInDreamLand(byte[] rom) => RegionOf(rom) != null;
