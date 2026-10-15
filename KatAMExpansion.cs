@@ -124,7 +124,7 @@ namespace KatAMRandomizer {
         static Enemy Kabu() => new Enemy(5, "Kabu", 0x15, 0x752438, Enumerable.Range(4, 9).Select(f => new[] { new Part(f) }).ToList(),
             new[] { new Part(3) }, new Dictionary<int, ushort>(),
             new[] { (0x18, 3), (0x14, 5), (0x18, 5), (0x0C, 1) },   // "K" (Sir Kibble), "a" (Hot Head), "b" (Sir Kibble), "u" (Cupie);
-            new byte[] { 0x00 });
+            new byte[] { 0x00, 0x01 });
 
         // Coconut; Frames: NiDL's 4 to 15 (rocking 4-6, hanging 5, tumbling 7-15). Variants 0 and 1 hang until Kirby passes
         // under them, then fall and explode; variant 2 rocks on the ground;
