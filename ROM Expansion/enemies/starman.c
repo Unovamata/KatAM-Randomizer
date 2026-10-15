@@ -15,7 +15,9 @@
  *   (Y speeds 0, 0.5, 1.0, 0.5, 0, -0.5, -1.0, -0.5 down, table 0x08741524, 6 frames each, 8 when it bobs towards Kirby's height
  *   and Kirby is more than 10 pixels up or down); after 6 bobs it rises away (0x1900 faster a frame).
  * • Variant 3, 0x08081774 (0x080817F8): faces Kirby and walks in place.
- * NiDL's water state (0x080812F0) isn't ported; */
+ * • In water (variant 0's state 4, 0x080812F0): it sinks at 1.5 (frames 16-18, 4 frames each), then sits on the bottom (frame
+ *   16) for good, drifting back 0.0156 and blowing bubbles every 8 frames (0x0806CC90; not ported). The other variants walk or fly
+ *   on in water; */
 #include "../nidl.h"
 
 // Frames: NiDL's 4 to 20 (walking 4-10, crouching 11-12, flying 13-18, diving 20), numbered from 0. Its hurt frame is NiDL's 3;
@@ -38,9 +40,12 @@ static const s16 sWalk[] = {
 static const s16 sCrouch[] = { FRAME(11), 16, FRAME(12), 6, NIDL_END };
 static const s16 sFly[] = { FRAME(16), 6, FRAME(17), 6, FRAME(18), 6, NIDL_LOOP };
 static const s16 sTumble[] = { FRAME(14), 4, FRAME(15), 4, NIDL_LOOP };
+static const s16 sSink[] = { FRAME(16), 4, FRAME(17), 4, FRAME(18), 4, NIDL_LOOP };
+#define SINK_SPEED 0x180
+#define DROWNED_SPEED 4
 
 enum { STATE_WALK, STATE_CROUCH, STATE_TAKEOFF, STATE_HIDE, STATE_DIVE, STATE_BOUNCE, STATE_REST, STATE_LEAVE_CROUCH, STATE_LEAVE,
-       STATE_STROLL, STATE_HOP_CROUCH, STATE_HOP, STATE_BOB, STATE_RISE };
+       STATE_STROLL, STATE_HOP_CROUCH, STATE_HOP, STATE_BOB, STATE_RISE, STATE_SINK, STATE_SUNK };
 
 // Variant 2;
 static const s16 sBob[] = { 0, -0x80, -0x100, -0x80, 0, 0x80, 0x100, 0x80 };   // 0x08741524 (Y up);
@@ -240,7 +245,30 @@ static void StarmanMain(struct Object *obj) {
         return;
     }
 
+    // 0x080812F0: water sinks it;
+    if (s->state < STATE_SINK && s->state != STATE_HIDE && NidlIsWater(obj, 0)) {
+        s->state = STATE_SINK;
+        obj->base.flags &= ~0x100;
+        obj->base.xspeed = 0;
+        NidlPlay(&s->n, sSink);
+    }
+
     switch (s->state) {
+    case STATE_SINK:
+        NidlAnimate(&s->n);
+        obj->base.yspeed = -SINK_SPEED;
+        NidlKeepInLevel(obj, 8);
+        if ((obj->base.unk62 & 4) || NidlAtLevelBottom(obj, 8)) {
+            s->state = STATE_SUNK;
+            s->n.sequence = NULL;
+            NidlSetFrame(&s->n, FRAME(16));
+            obj->base.xspeed = (obj->base.flags & 1) ? DROWNED_SPEED : -DROWNED_SPEED;
+        }
+        break;
+    case STATE_SUNK:
+        NidlFall(obj);
+        NidlKeepInLevel(obj, 8);
+        break;
     case STATE_WALK:
         NidlFall(obj);
         NidlAnimate(&s->n);
@@ -328,6 +356,7 @@ void StarmanInit(struct NidlObject *n) {
     ((struct Starman *)n)->strollTime = 0;
     sub_0803E2B0(&obj->base, -6, -6, 6, 8);
     ObjectSetBounds(&obj->base, -7, -7, 7, 9);
+    NIDL_SWIMS(obj);
     ((struct Starman *)n)->state = 0;
     if (n->variant != 2)
         obj->base.unk4C = obj->base.y = ((obj->base.y + (obj->base.unk3F * 0x100)) & 0xfffff000) - (obj->base.unk3F * 0x100) - 1;

@@ -127,6 +127,10 @@ Most enemies' first frames (0-3) are their hurt frames. Frames are drawn around 
 - Spawn `0x08080DD0`, variants `0x08741544` (4); variant 0 (`0x08080E10`) has 6 states (`0x08741554`, per frame `0x0874156C`): walk (`0x08080EA4`, 1.0 from `0x087414F8`, frames `0x08081814`) until Kirby is within 47 pixels; crouch and take off (`0x08080F34`/`0x08080FA4`: 2.0 up, steering 0x1900 a frame towards Kirby up to 2.0) until 9 pixels above the screen (`0x03002158` + 4 is the camera's y); hide (`0x08081084`/`0x080810C4`) for 78 frames (`0x08741500`), following Kirby's x but for the last 30 (`0x08741502`); dive (`0x08081140`: 2.0 down, gravity 0x1500, at most 3.0), bounce 2.0, then stand 60 frames and walk again, or the second time fly away (`0x08081274`: 0.4 forward, rising 0x1900 faster a frame). State 4 (`0x080812F0`) swims.
 - Frames `0x08752708`: 0-3 hurt, 4-10 walking, 11-12 crouching, 13-18 flying, 20 diving.
 
+## Starman water state
+
+- Variant 0's states (`0x08741554`): walk, crouch, hide, dive, water (`0x080812F0`), leave. In water: 1.5 down, no gravity, frames 16-18 every 4 frames until it lands; then 0.0156 backwards (`0x08741504`, per record flag), frame 16, bubbles (`0x0806CC90(1, 1, -2, 5)`) every 8 frames, forever. Variants 1-3 have no water state.
+
 ## Needlous (type `0x2C`)
 
 - Spawn `0x0807BD20`, variants `0x08740A78`; variant 0 (`0x0807C080`) states `0x08740AC8`, per frame `0x08740AE0`, landing handler `0x0807BE08`, wall handlers `0x0807BEAC`/`0x0807BED4` (turn around; while rolling, stop 16 frames). Start (`0x0807BD7C`) walks one time in 4, else curls.
