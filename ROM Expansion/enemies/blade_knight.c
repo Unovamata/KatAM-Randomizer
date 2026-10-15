@@ -12,10 +12,13 @@
  * • Variant 2, 0x0807B8EC (states 0x08740A44, per frame 0x08740A5C): a guard: stands facing left (0x0807B9EC) until Kirby is
  *   within 63 pixels, then slashes like variant 0 (raising or lowering its sword, the slashes, sometimes the other one), and
  *   instead of backing off it stands guard again for the rest of the back-off time (0x0807BC44).
- * The slash's hitbox is KatAM's Sword Knight's (0x080B351C), with its sound. NiDL's swing at things thrown at it (0x0807B6E8) and
- * its water state aren't ported; */
+ * • Variant 0's swing (0x0807B200, 0x0807B6E8): while Kirby is further than 63 pixels, something of Kirby's (NiDL: the nearest
+ *   other object, 0x08063A2C; here an attack or thrown object whose parent is a Kirby) within 30 pixels sideways and 48 up or
+ *   down makes it slash at once, without lunging, up (3 times in 4) or down; then it walks again.
+ * The slash's hitbox is KatAM's Sword Knight's (0x080B351C), with its sound. NiDL's water state isn't ported; */
 #include "../nidl.h"
 #include "constants/songs.h"
+#include "task.h"
 
 // Frames: NiDL's 4 to 16 (walking 4-9, slashing 10-16), numbered from 0. Its hurt frame is NiDL's 3;
 #define FRAME(nidl) ((nidl) - 4)
@@ -34,7 +37,10 @@ static const s16 sLunge[] = { 0x400, 0x300, 0x200, 0x100, 0 };
 
 #define SLASH_TIME (2 + 2 + 1 + 2 + 8)
 
-enum { STATE_WALK, STATE_RAISE, STATE_LOWER, STATE_SLASH_DOWN, STATE_SLASH_UP, STATE_BACK_OFF };
+enum { STATE_WALK, STATE_RAISE, STATE_LOWER, STATE_SLASH_DOWN, STATE_SLASH_UP, STATE_BACK_OFF, STATE_SWING };
+
+#define THREAT_X 30
+#define THREAT_Y 48
 
 struct BladeKnight {
     struct NidlObject n;
@@ -129,6 +135,24 @@ static void AfterSlash(struct BladeKnight *bk, u8 other) {
     }
 }
 
+/* Threatened(); 0x0807B200: something of Kirby's close by: an object (ObjectBase kind 2, Kirby's attacks and the things it
+ * spits or throws) whose parent is one of the Kirbys, found walking the task list; */
+static bool8 Threatened(struct Object *obj) {
+    struct Task *t = &gTasks[0];
+    u8 n;
+
+    for (n = 0; n < MAX_TASK_NUM && t->next; n++) {
+        struct ObjectBase *other;
+
+        t = (struct Task *)(IWRAM_START + t->next);
+        other = TaskGetStructPtr(t);
+        if (other->header.kind != 2 || (u32)other->parent < (u32)gKirbys || (u32)other->parent >= (u32)(gKirbys + 4)) continue;
+        if (other->roomId != obj->base.roomId || (other->flags & 0x1000)) continue;
+        if (abs(other->x - obj->base.x) <= THREAT_X * 0x100 && abs(other->y - obj->base.y) <= THREAT_Y * 0x100) return TRUE;
+    }
+    return FALSE;
+}
+
 static void SetState(struct BladeKnight *bk, u8 state) {
     struct Object *obj = &bk->n.obj;
 
@@ -166,6 +190,13 @@ static void SetState(struct BladeKnight *bk, u8 state) {
         bk->n.sequence = NULL;
         NidlSetFrame(&bk->n, state == STATE_RAISE ? FRAME(15) : FRAME(16));
         break;
+    case STATE_SWING:
+        // 0x0807B6E8: at once, without lunging: up 3 times in 4;
+        obj->base.xspeed = 0;
+        bk->timer = SLASH_TIME;
+        NidlPlay(&bk->n, Rand16() % 4 ? sSlashUp : sSlashDown);
+        Slash(obj);
+        break;
     case STATE_SLASH_DOWN:
     case STATE_SLASH_UP:
         obj->base.xspeed = 0;
@@ -198,7 +229,12 @@ static void BladeKnightMain(struct Object *obj) {
             NidlFaceKirby(obj);
             bk->combo = 0;
             SetState(bk, Rand16() % 4 == 0 ? STATE_RAISE : STATE_LOWER);
+        } else if (bk->n.variant == 0 && Threatened(obj)) {
+            SetState(bk, STATE_SWING);
         }
+        break;
+    case STATE_SWING:
+        if (!--bk->timer) SetState(bk, STATE_WALK);
         break;
     case STATE_RAISE:
     case STATE_LOWER:

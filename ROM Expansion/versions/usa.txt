@@ -20,6 +20,7 @@ gLanguage 0x8d60a80
 gLocalPlayerId 0x203ad3c
 gRngVal 0x30068d8
 gSongTable 0x8b59ed0
+gTasks 0x30019f0
 gUnk_02022EB0 0x2022eb0
 gUnk_02022F50 0x2022f50
 gUnk_0203AD10 0x203ad10
