@@ -71,6 +71,7 @@ namespace KatAMRandomizer {
             Needlous(),
             BladeKnight(),
             Chilly(),
+            CoolSpook(),
         };
 
         static KatAMExpansion() {
@@ -178,6 +179,15 @@ namespace KatAMRandomizer {
             new[] { new Part(3) }, new Dictionary<int, ushort>(),
             new[] { (0x0C, 0), (0x04, 5), (0x26, 4), (0x02, 1), (0x02, 1), (0x05, 5) },   // "C" (Cupie), "h" (Squishy), "i" (Cookin), "ll" (Blipper), "y" (Scarfy);
             new byte[] { 0x00, 0x01 });
+
+        // Cool Spook; Frames: NiDL's 4 to 7 (flapping). It flies left bobbing, through walls; variant 1 bobs in place facing Kirby;
+        static Enemy CoolSpook() => new Enemy(12, "Cool Spook", 0x13, 0x7523EC, Enumerable.Range(4, 4).Select(f => new[] { new Part(f) }).ToList(),
+            new[] { new Part(3) }, new Dictionary<int, ushort>(),
+            new[] {
+                (0x0C, 0), (0x1E, 1), (0x1E, 1), (0x02, 1), (-1, -1),   // "C" (Cupie), "oo" (Noddy), "l" (Blipper), space;
+                (0x04, 0), (0x02, 3), (0x1E, 1), (0x1E, 1), (0x17, 3),  // "S" (Squishy), "p" (Blipper), "oo" (Noddy), "k" (Rocky);
+            },
+            new byte[0], new byte[] { 0x00, 0x01 });
 
         // IsNightmareInDreamLand(); A Kirby: Nightmare in Dream Land ROM (USA, Japanese or European);
         public static bool IsNightmareInDreamLand(byte[] rom) => RegionOf(rom) != null;

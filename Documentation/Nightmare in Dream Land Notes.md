@@ -159,6 +159,10 @@ Most enemies' first frames (0-3) are their hurt frames. Frames are drawn around 
 - Freeze, type 0x68 (`0x0808CB70`): frame table `0x087522B4` (shared effect tiles, no descriptor), frames 0, none, 1, none every frame for 240 frames, sound 0xB9 every 5, sparkles (type 0xD7) every 20; ends when Chilly stops.
 - Variant 1 (`0x080852CC`): lunges in place (4, 5, 6, 7, 6, 5, 4 for 4, 4, 8, 21, 6, 5, 4). Frames `0x08752284`: 0-3 hurt, 4-7 wiggling/lunging, 10 crouched, 11 arms up.
 
+## Cool Spook (type `0x13`)
+
+- Spawn `0x0807EDB4`: faces left, frames `0x087412EC` (4, 5, 6, 7, 12 frames each), `0x08065848(0, 0)` (a shared helper object, type 0xAE), variants `0x08741300`. Variant 0 (`0x0807EE14`, state `0x0807EE84`): 0.5 left, bobbing (`0x0807EF7C`: Y speeds -1.0, -0.5, 0, 0.5, 1.0, 0.5, 0, -0.5, 8 frames each); variant 1 (`0x0807EEC4`, `0x0807EF48`): faces Kirby, bobs in place. Its per frame (`0x0807EE60`) doesn't call `0x080692FC`. Frames `0x087523EC`: 0-3 hurt, 4-7 flapping.
+
 ## Cappy's cap
 
 - Variant 0's per frame (`0x0807E5BC`): while inhaled (`obj+0x7C == 3`) it calls `0x08064FC4(0, 8, 1, 0, x, y, flags)`, which spawns category 0, index 8 (type `0x10`, Cappy), variant 1 (capless, frame table `0x0875237C`); the inhaled one is drawn with frame 1, the cap. The capless one starts in state 1 (`0x0807E814`): faces Kirby, 0.5 back, 2.0 up, gravity 0x2000, frames 4, 5, 6, 5 (3, 2, 3, 2 frames), and hops on when it lands (`0x0807E884`). Variant 2 keeps its cap.
