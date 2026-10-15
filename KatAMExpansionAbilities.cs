@@ -5,7 +5,10 @@
      * • sub_080356AC (HUD portraits) and sub_08088640 (special portraits) are detoured to the C code (see Detour);
      * • World map icons (gUnk_08350AAC body, gUnk_08350B30 hat) already have entries 27-31: normal body, no hat; */
     internal static partial class KatAMExpansion {
-        const int FirstAbility = 27, NewAbilities = 5, AbilitySlots = 32;
+        const int FirstAbility = 27, NewAbilities = 5, AbilitySlots = 32, PortraitTiles = 30;
+
+        // NiDL's IDs of the new abilities (Needle, Freeze, Light, Ball, Hi-Jump), for their cards;
+        static readonly int[] NightmareAbilities = { 12, 14, 21, 18, 15 };
 
         // The relocated tables: KatAM symbol, entry size, entries, gNidlAbilityTables field (offset of its 5 pointers; -1: none);
         static readonly (string symbol, int entrySize, int entries, int field)[] AbilityTables = {
@@ -23,7 +26,8 @@
 
         /* AddAbilities(); Relocates the ability tables, detours the HUD portraits and fills gNidlAbilityData. `newEntries[table]`, when
          * given, replaces the base ability's entries of AbilityTables[table] (hats, palettes); */
-        static string AddAbilities(byte[] rom, KatAMExpansionCode.Version version, ref int cursor, Dictionary<string, int[]> newEntries) {
+        static string AddAbilities(byte[] rom, byte[] nightmare, NightmareRegion region, KatAMExpansionCode.Version version, ref int cursor,
+                                   Dictionary<string, int[]> newEntries) {
             int codeBase = CodeAddress + 0x08000000;
             int tables = CodeAddress + version.CodeSymbols["gNidlAbilityTables"], data = CodeAddress + version.CodeSymbols["gNidlAbilityData"];
 
@@ -60,11 +64,19 @@
             WriteShort(rom, special, 0x213C);
             WriteShort(rom, randomType, 0x3B);
 
-            // TODO: NiDL's portraits; the normal one for now;
-            int palettes = version.RomSymbols["gUnk_08D60B64"], pictures = version.RomSymbols["gUnk_08D60BE4"];
+            /* Portraits: NiDL's ability cards, the same 5x6 tiles as KatAM's (the name, then the picture), stored as two groups of 16 tiles
+             * (rows 0, 2, 4, then 1, 3, 5); KatAM's are row by row; */
             for (int k = 0; k < NewAbilities; k++) {
-                WriteInt(rom, data + 8 + k * 8, ReadInt(rom, palettes));
-                WriteInt(rom, data + 12 + k * 8, ReadInt(rom, pictures + (version.Name == "Japan" ? 0 : AbilitySlots * 4)));
+                int palette = ReadInt(nightmare, region.CardPalettes + NightmareAbilities[k] * region.CardPaletteStride) - 0x08000000;
+                int tiles = ReadInt(nightmare, region.CardTiles + NightmareAbilities[k] * region.CardTileStride) - 0x08000000;
+                int paletteAt = Allocate(ref cursor, 32, 4), tilesAt = Allocate(ref cursor, PortraitTiles * 32, 4);
+
+                Array.Copy(nightmare, palette, rom, paletteAt, 32);
+                for (int row = 0; row < 6; row++)
+                    for (int column = 0; column < 5; column++)
+                        Array.Copy(nightmare, tiles + ((row / 2) * 5 + column + (row % 2) * 16) * 32, rom, tilesAt + (row * 5 + column) * 32, 32);
+                WriteInt(rom, data + 8 + k * 8, paletteAt + 0x08000000);
+                WriteInt(rom, data + 12 + k * 8, tilesAt + 0x08000000);
             }
             return null;
         }
