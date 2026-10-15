@@ -10,6 +10,9 @@
  *   else 72 or 40 pixels behind, 56 or 88 ahead, at random; table 0x087425DC), falling (gravity 0x2500, at 3.0 at most) until it's
  *   15 pixels above Kirby's height (0x08087724); then it loops (0x0808752C), backwards and down, then up and forward, in steps of 4
  *   frames (0x087425F0) with the gravity still on, and goes on as variant 0.
+ * • Variant 3, 0x08087790: flies diagonally at 1.0 (0x08742600), towards Kirby's side and height (0x0806443C gives the direction,
+ *   0x0806421C the speeds), bouncing off walls, floors and ceilings (0x08087848, 0x08086F54), flapping fast for 20 frames after
+ *   every bounce.
  * • Variant 5, 0x08087B8C: sits until Kirby is 63 pixels away or less, then takes off (0x08087C48: -3.0 for 4 frames, -2.0 for 8,
  *   -1.0 for 16, -0.5 for 8, then drifts down at 0.5), hovers 48 frames, faces Kirby and dashes at 1.0, 2.0, then 3.0 (0x08087D20).
  *   It can't be hit while taking off; */
@@ -47,8 +50,10 @@ static const s16 sAmbushOffsets[] = { -72, -40, 56, 88 };  // 0x087425DC;
 #define AMBUSH_NEAR 31
 #define AMBUSH_LEVEL 15
 #define LOOP_STEP 4
+#define DIAGONAL_SPEED 0xB5     // 1.0 at 45 degrees;
+#define BOUNCE_FLAP_TIME 20
 
-enum { STATE_SWOOP, STATE_SIT, STATE_TAKEOFF, STATE_HOVER, STATE_DASH, STATE_DROP, STATE_LOOP };
+enum { STATE_SWOOP, STATE_SIT, STATE_TAKEOFF, STATE_HOVER, STATE_DASH, STATE_DROP, STATE_LOOP, STATE_BOUNCE };
 
 struct Twizzy {
     struct NidlObject n;
@@ -208,6 +213,40 @@ static void Loop(struct Twizzy *tw) {
     tw->step++;
 }
 
+// StartBounce(); 0x08087790: diagonally towards Kirby;
+static void StartBounce(struct Twizzy *tw) {
+    struct Object *obj = &tw->n.obj;
+
+    tw->state = STATE_BOUNCE;
+    NidlFaceKirby(obj);
+    obj->base.xspeed = (obj->base.flags & 1) ? -DIAGONAL_SPEED : DIAGONAL_SPEED;
+    obj->base.yspeed = obj->base.y < obj->kirby3->base.y ? -DIAGONAL_SPEED : DIAGONAL_SPEED;
+    tw->timer = 0;
+    NidlPlay(&tw->n, sFlapSlow);
+}
+
+// Bounce(); 0x08087848: off walls, floors and ceilings, flapping fast for a while;
+static void Bounce(struct Twizzy *tw) {
+    struct Object *obj = &tw->n.obj;
+    bool8 bounced = FALSE;
+
+    if ((obj->base.unk62 & 3) && obj->base.x == obj->base.unk48) {
+        obj->base.xspeed = -obj->base.xspeed;
+        obj->base.flags ^= 1;
+        bounced = TRUE;
+    }
+    if (((obj->base.unk62 & 4) && obj->base.yspeed < 0) || ((obj->base.unk62 & 8) && obj->base.yspeed > 0)) {
+        obj->base.yspeed = -obj->base.yspeed;
+        bounced = TRUE;
+    }
+    if (bounced) {
+        tw->timer = BOUNCE_FLAP_TIME;
+        NidlPlay(&tw->n, sFlapFast);
+    } else if (tw->timer && !--tw->timer) {
+        NidlPlay(&tw->n, sFlapSlow);
+    }
+}
+
 static void TwizzyMain(struct Object *obj) {
     struct Twizzy *tw = (struct Twizzy *)obj;
     s32 distance;
@@ -254,6 +293,9 @@ static void TwizzyMain(struct Object *obj) {
     case STATE_LOOP:
         Loop(tw);
         break;
+    case STATE_BOUNCE:
+        Bounce(tw);
+        break;
     }
 }
 
@@ -267,6 +309,8 @@ void TwizzyStart(struct Object *obj) {
     if (tw->n.variant == 2 && !tw->placed) {
         tw->placed = TRUE;
         Ambush(tw);
+    } else if (tw->n.variant == 3) {
+        StartBounce(tw);
     } else if (tw->n.variant != 5) {
         StartSwoop(tw);
     } else if (tw->state == STATE_SIT) {
