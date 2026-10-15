@@ -144,6 +144,9 @@ namespace KatAMRandomizer
                 Processing.parameters[KatAMExpansion.NightmareID] = Processing.enemiesDictionary[KatAMExpansion.NightmareID].Name;
             }
 
+            // Every pause help screen shows the base one, which frees the space of the rest;
+            KatAMPauseScreens.Apply(Processing.ROMData);
+
             new KatAMROMReader(system);
             new KatAMEnemies(system);
             new KatAMMirrors(system);
