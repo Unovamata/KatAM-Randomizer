@@ -3,6 +3,9 @@
  * • Variant 0, 0x0808713C: flies forward at 0.75 swooping: it starts at 2.54 towards Kirby's height, accelerating back by 0x1900,
  *   and every 40 frames the swoop turns around (0x08087210). After 4 swoops up it keeps climbing away. It flaps every 8 frames
  *   (every 4 while accelerating upwards).
+ * • Variant 1, 0x080872E0: the same, swooping at 1.93 (accelerating back by 0x1300; tables 0x087425C0, 0x087425C8) forever; halfway
+ *   through each swoop (0x080873B0), if Kirby is more than 32 pixels above or below, it keeps going towards Kirby's height
+ *   (accelerating back by 0xD00 only) or turns sooner (0x2000).
  * • Variant 5, 0x08087B8C: sits until Kirby is 63 pixels away or less, then takes off (0x08087C48: -3.0 for 4 frames, -2.0 for 8,
  *   -1.0 for 16, -0.5 for 8, then drifts down at 0.5), hovers 48 frames, faces Kirby and dashes at 1.0, 2.0, then 3.0 (0x08087D20).
  *   It can't be hit while taking off; */
@@ -17,6 +20,9 @@ static const s16 sFlapSlow[] = { FRAME_WINGS_UP, 8, FRAME_WINGS_DOWN, 8, NIDL_LO
 #define FLY_SPEED 0xC0
 #define SWOOP_SPEED 0x28A
 #define SWOOP_ACCEL 0x19
+#define FOLLOW_SPEED 0x1EE
+#define FOLLOW_ACCEL 0x13
+#define FOLLOW_RANGE 32
 #define SWOOP_TIME 40
 #define SWOOPS 4
 #define MAX_CLIMB 0x400
@@ -45,29 +51,54 @@ static void SetFlap(struct Twizzy *tw) {
     NidlPlay(&tw->n, tw->accel > 0 ? sFlapFast : sFlapSlow);
 }
 
-// StartSwoop(); 0x0808713C: towards Kirby's height, accelerating back;
+// SwoopSpeed(), SwoopAccel(); Variant 1's swoops are slower;
+static s16 SwoopSpeed(struct Twizzy *tw) { return tw->n.variant == 1 ? FOLLOW_SPEED : SWOOP_SPEED; }
+static s16 SwoopAccel(struct Twizzy *tw) { return tw->n.variant == 1 ? FOLLOW_ACCEL : SWOOP_ACCEL; }
+
+// StartSwoop(); 0x0808713C, 0x080872E0: towards Kirby's height, accelerating back;
 static void StartSwoop(struct Twizzy *tw) {
     struct Object *obj = &tw->n.obj;
 
     tw->state = STATE_SWOOP;
     Face(obj, FLY_SPEED);
     if (obj->base.y < obj->kirby3->base.y) {
-        obj->base.yspeed = -SWOOP_SPEED;
-        tw->accel = SWOOP_ACCEL;
+        obj->base.yspeed = -SwoopSpeed(tw);
+        tw->accel = SwoopAccel(tw);
     } else {
-        obj->base.yspeed = SWOOP_SPEED;
-        tw->accel = -SWOOP_ACCEL;
+        obj->base.yspeed = SwoopSpeed(tw);
+        tw->accel = -SwoopAccel(tw);
     }
     tw->swoops = SWOOPS;
     tw->timer = SWOOP_TIME;
     SetFlap(tw);
 }
 
-// Swoop(); 0x08087210: every 40 frames the swoop turns around, until the last one up;
+// Follow(); 0x080873B0: halfway through a swoop, towards Kirby's height when it's far above or below;
+static void Follow(struct Twizzy *tw) {
+    struct Object *obj = &tw->n.obj;
+    s32 dy = (obj->kirby3->base.y - obj->base.y) >> 8;
+
+    if (dy >= -FOLLOW_RANGE && dy <= FOLLOW_RANGE) return;
+    if (tw->accel > 0)
+        tw->accel = dy < 0 ? 0x20 : 0xD;      // Swooping down: Kirby above turns it sooner;
+    else
+        tw->accel = dy < 0 ? -0xD : -0x20;    // Swooping up: Kirby above keeps it going;
+}
+
+// Swoop(); 0x08087210: every 40 frames the swoop turns around, until the last one up (variant 1: forever, following Kirby);
 static void Swoop(struct Twizzy *tw) {
     struct Object *obj = &tw->n.obj;
 
     obj->base.yspeed += tw->accel;
+    if (tw->n.variant == 1) {
+        if (tw->timer == SWOOP_TIME / 2) Follow(tw);
+        if (--tw->timer) return;
+        obj->base.yspeed = tw->accel > 0 ? FOLLOW_SPEED : -FOLLOW_SPEED;
+        tw->accel = tw->accel > 0 ? -FOLLOW_ACCEL : FOLLOW_ACCEL;
+        tw->timer = SWOOP_TIME;
+        SetFlap(tw);
+        return;
+    }
     if (obj->base.yspeed > MAX_CLIMB) obj->base.yspeed = MAX_CLIMB;
     if (!tw->timer || --tw->timer) return;
 

@@ -105,7 +105,7 @@ namespace KatAMRandomizer {
         static Enemy Twizzy() => new Enemy(2, "Twizzy", 0x18, 0x752560, new List<Part[]> { new[] { new Part(4) }, new[] { new Part(5) }, new[] { new Part(6) } },
             new[] { new Part(3) }, new Dictionary<int, ushort>(),
             new[] { (0x1C, 0), (0x1C, 1), (0x1C, 2), (0x35, 4), (0x35, 4), (0x05, 5) },   // "Twi" (Twister), "z", "z" (Shotzo), "y" (Scarfy);
-            new byte[] { 0x00, 0x05 }, new byte[] { 0x00 });
+            new byte[] { 0x00, 0x05 }, new byte[] { 0x00, 0x01 });
 
         // Bubbles; Frames: NiDL's 4 to 21 (spinning 4-12, squashed 13-21). Variant 0 bounces around, variant 1 in place;
         static Enemy Bubbles() => new Enemy(3, "Bubbles", 0x1E, 0x7526A8, Enumerable.Range(4, 18).Select(f => new[] { new Part(f) }).ToList(),
