@@ -103,3 +103,4 @@ CreateObject 0x800a864
 RequestScreenShake 0x806fddc
 gUnk_020229D4 0x20229d4
 gUnk_020229E0 0x20229e0
+sub_0804E09C 0x804e014

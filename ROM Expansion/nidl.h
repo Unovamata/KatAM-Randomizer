@@ -177,5 +177,7 @@ void MrTickTockInit(struct NidlObject *);
 void MrTickTockStart(struct Object *);
 void GrandWheelieInit(struct NidlObject *);
 void GrandWheelieStart(struct Object *);
+void BugzzyInit(struct NidlObject *);
+void BugzzyStart(struct Object *);
 
 #endif

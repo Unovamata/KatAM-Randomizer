@@ -78,6 +78,7 @@ namespace KatAMRandomizer {
             PoppyBrosSr(),
             MrTickTock(),
             GrandWheelie(),
+            Bugzzy(),
         };
 
         static readonly List<Enemy> Definitions = new List<Enemy> {
@@ -102,6 +103,12 @@ namespace KatAMRandomizer {
             Enemies = Definitions.Select(e => (e.Index, e.Name)).ToList();
             Minibosses = MinibossDefinitions.Select(m => (m.Index, m.Name)).ToList();
         }
+
+        /* Bugzzy; NiDL mini-boss 5 (type 0x36). Frames: NiDL's 0-63 (streamed frames). Hurt: NiDL's 3; */
+        static Miniboss Bugzzy() => new Miniboss(3, "Bugzzy", 5, 0x7535FC, Enumerable.Range(0, 64).Select(f => new[] { new Part(f) }).ToList(),
+            new[] { new Part(3) },
+            new[] { (0x28, 0), (0x0C, 1), (0x16, 3), (0x35, 4), (0x35, 4), (0x05, 5) },   // "B" (Bomber), "u" (Cupie), "g" (Pengy), "zz" (Shotzo), "y" (Scarfy);
+            new byte[] { 0x00 });
 
         /* Grand Wheelie; NiDL mini-boss 2 (type 0x33). Frames: NiDL's 0-55 (streamed frames). Hurt: NiDL's 35. Variants 0-3 roll at
          * 1.5, 2.625, 0.9 and 1.57 (0x087444A4); */
