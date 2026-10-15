@@ -14,7 +14,8 @@
  * • Variant 2, 0x0807F88C (states 0x087413C0, per frame 0x087413C8): spins (frames 4-11, 4 frames each, 0x0807F920) gliding to a
  *   point 64 pixels in front of or behind Kirby (0x08741378), accelerating by 0x2000 a frame up to 3.0 (0x0807F9A0); when it's
  *   there it hangs on 180 frames (switching sides after 60 and 120), switching sides 3 times; then (0x0807FA98) it sits 15
- *   frames (frame 12), hops 4.0 (gravity: the engine's), spinning every frame, and glides again; */
+ *   frames (frame 12), hops 4.0 (gravity: the engine's), spinning every frame, and glides again.
+ * • Variant 3, 0x0807FB00 (0x0807FB84): faces Kirby and spins in place forever (frames 4-10, 5 frames each); */
 #include "../nidl.h"
 
 // Frames: NiDL's 4 to 12 (spinning 4-11, sitting 12), numbered from 0. Its hurt frame is NiDL's 3;
@@ -291,6 +292,14 @@ static void KabuMain(struct Object *obj) {
         KabuGlide(k);
         return;
     }
+    if (k->n.variant == 3) {
+        NidlFall(obj);
+        if (--k->timer) return;
+        k->timer = SPIN_TIME;
+        if (++k->spinFrame > FRAME(10)) k->spinFrame = FRAME(4);
+        NidlSetFrame(&k->n, k->spinFrame);
+        return;
+    }
     if (k->state != STATE_JUMP) NidlFall(obj);
 
     switch (k->state) {
@@ -334,6 +343,14 @@ void KabuStart(struct Object *obj) {
     obj->base.flags &= ~(0x400 | 0x100 | 0x200);
     if (k->n.variant == 2) {
         StartGlide(k);
+        return;
+    }
+    if (k->n.variant == 3) {
+        NidlFaceKirby(obj);
+        obj->base.xspeed = 0;
+        k->timer = SPIN_TIME;
+        k->spinFrame = FRAME(4);
+        NidlSetFrame(&k->n, k->spinFrame);
         return;
     }
     if (k->n.variant == 1) {
