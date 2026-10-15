@@ -152,6 +152,11 @@ Most enemies' first frames (0-3) are their hurt frames. Frames are drawn around 
 - Variant 1 (`0x0808A7A8`): faces Kirby, frame 4, nothing else.
 - KatAM: swimmers set `unkC & 1` (the engine kills anything else in water, `sub_0809D710`); the engine has no terrain outside the level's bounds, so they keep themselves inside (`NidlKeepInLevel`); its swimmers stop in the surface's 16 pixel tile, so the port looks 16 pixels up instead of 8.
 
+## Cappy's cap
+
+- Variant 0's per frame (`0x0807E5BC`): while inhaled (`obj+0x7C == 3`) it calls `0x08064FC4(0, 8, 1, 0, x, y, flags)`, which spawns category 0, index 8 (type `0x10`, Cappy), variant 1 (capless, frame table `0x0875237C`); the inhaled one is drawn with frame 1, the cap. The capless one starts in state 1 (`0x0807E814`): faces Kirby, 0.5 back, 2.0 up, gravity 0x2000, frames 4, 5, 6, 5 (3, 2, 3, 2 frames), and hops on when it lands (`0x0807E884`). Variant 2 keeps its cap.
+- KatAM: inhaling sets `base.unkC & 0x400` (`sub_0809C380`, `sub_0809C6D0` in object.c) and replaces `unk78`, but `ObjectMain` still calls `unk7C` every frame.
+
 ## Water
 
 `0x080692FC` calls the object's handlers (`[[obj+0x8C]+0x54]`, from the type's record: 0x2C-byte records with the handler table at `+0x28`): `+0` landed, `+4` left the floor, `+8` entered water, `+12` left water (`+16`, `+20` walls). Most enemies' `+8` calls `0x0806A0F0(-2)`, which defeats them, like KatAM's engine does to its own enemies:

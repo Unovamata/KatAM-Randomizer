@@ -80,6 +80,7 @@ struct NidlData {
 
 extern const struct NidlData gNidlData;
 
+void *CreateNidlEnemy(struct ObjectTemplate *, u8 playerId);
 void NidlSetFrame(struct NidlObject *, u8 frame);
 void NidlPlay(struct NidlObject *, const s16 *sequence);
 void NidlAnimate(struct NidlObject *);

@@ -95,10 +95,14 @@ namespace KatAMRandomizer {
                 new byte[] { 0x00, 0x01, 0x02 });
         }
 
-        // Cappy; Frames: NiDL's 4 (standing, it hops turning around), then the capless Cappy's 4 and 6 (frame table 0x0875237C).
-        // Variant 1 is the capless one, variant 2 hops in place;
+        // Cappy; Frames: NiDL's 4 (standing, it hops turning around), the capless Cappy's 4, 6 and 5 (frame table 0x0875237C), and
+        // NiDL's 1 (the cap alone). Variant 1 is the capless one, variant 2 hops in place; inhaled, variant 0 loses its cap and a
+        // capless one springs out;
         static Enemy Cappy() => new Enemy(1, "Cappy", 0x10, 0x75235C,
-            new List<Part[]> { new[] { new Part(4) }, new[] { new Part(4, null, 0x75237C) }, new[] { new Part(6, null, 0x75237C) } }, new[] { new Part(3) },
+            new List<Part[]> {
+                new[] { new Part(4) }, new[] { new Part(4, null, 0x75237C) }, new[] { new Part(6, null, 0x75237C) }, new[] { new Part(5, null, 0x75237C) },
+                new[] { new Part(1) },
+            }, new[] { new Part(3) },
             new Dictionary<int, ushort>(),
             new[] { (0x0C, 0), (0x19, 2), (0x19, 1), (0x19, 1), (0x19, 5) },   // "C" (Cupie), "a", "p", "p", "y" (Sparky);
             new byte[] { 0x00, 0x01, 0x02 });
