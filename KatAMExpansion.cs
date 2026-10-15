@@ -161,7 +161,7 @@ namespace KatAMRandomizer {
                 (0x28, 0), (0x02, 1), (0x14, 5), (0x1E, 2), (0x14, 4), (-1, -1),   // "B" (Bomber), "l" (Blipper), "a" (Hot Head), "d" (Noddy), "e" (Hot Head), space;
                 (0x18, 3), (0x26, 5), (0x26, 4), (0x16, 3), (0x04, 5), (0x14, 2),  // "K" (Sir Kibble), "ni" (Cookin), "g" (Pengy), "h" (Squishy), "t" (Hot Head);
             },
-            new byte[] { 0x00 });
+            new byte[] { 0x00, 0x01, 0x02 });
 
         // IsNightmareInDreamLand(); A Kirby: Nightmare in Dream Land ROM (USA, Japanese or European);
         public static bool IsNightmareInDreamLand(byte[] rom) => RegionOf(rom) != null;

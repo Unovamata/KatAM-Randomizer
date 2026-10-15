@@ -8,8 +8,12 @@
  *   of it on their second frame (0x0807B1E4). Down: frames 14, 12, 11, 10, 16; up: 10, 11, 12, 14, 15 (2, 2, 1, 2 and 8 frames).
  *   After a slash (0x0807B16C, 0x0807B1A8) it slashes the other way once, one time in 4, else
  * • 0x0807B66C: backs off at 0.5, facing Kirby, for 90 frames, and walks again.
- * The slash's hitbox is KatAM's Sword Knight's (0x080B351C), with its sound. NiDL's swing at things thrown at it (0x0807B6E8),
- * its variants 1 and 2 and its water state aren't ported; */
+ * • Variant 1, 0x0807B800 (0x0807B8A4): faces Kirby and walks in place (frames 0x087409C0).
+ * • Variant 2, 0x0807B8EC (states 0x08740A44, per frame 0x08740A5C): a guard: stands facing left (0x0807B9EC) until Kirby is
+ *   within 63 pixels, then slashes like variant 0 (raising or lowering its sword, the slashes, sometimes the other one), and
+ *   instead of backing off it stands guard again for the rest of the back-off time (0x0807BC44).
+ * The slash's hitbox is KatAM's Sword Knight's (0x080B351C), with its sound. NiDL's swing at things thrown at it (0x0807B6E8) and
+ * its water state aren't ported; */
 #include "../nidl.h"
 #include "constants/songs.h"
 
@@ -134,6 +138,20 @@ static void SetState(struct BladeKnight *bk, u8 state) {
     case STATE_BACK_OFF:
         NidlFaceKirby(obj);
         obj->base.xspeed = (obj->base.flags & 1) ? -WALK_SPEED : WALK_SPEED;
+        if (bk->n.variant != 0) {
+            // Variant 1 walks in place; variant 2 stands guard facing left (0x0807B9EC), backing off in place (0x0807BC44);
+            obj->base.xspeed = 0;
+            if (bk->n.variant == 2 && state == STATE_WALK) obj->base.flags |= 1;
+            if (state == STATE_BACK_OFF) bk->timer = BACK_OFF_TIME;
+            bk->blocked = FALSE;
+            if (bk->n.variant == 2) {
+                bk->n.sequence = NULL;
+                NidlSetFrame(&bk->n, FRAME(4));
+            } else {
+                NidlPlay(&bk->n, sWalk);
+            }
+            break;
+        }
         if (state == STATE_BACK_OFF) {
             obj->base.xspeed = -obj->base.xspeed;
             bk->timer = BACK_OFF_TIME;
@@ -175,6 +193,7 @@ static void BladeKnightMain(struct Object *obj) {
 
     switch (bk->state) {
     case STATE_WALK:
+        if (bk->n.variant == 1) break;
         if (abs((obj->kirby3->base.x - obj->base.x) >> 8) <= NEAR) {
             NidlFaceKirby(obj);
             bk->combo = 0;
