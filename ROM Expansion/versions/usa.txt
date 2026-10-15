@@ -60,3 +60,4 @@ ObjectParameters2 0x8352ad0
 HitFlashBranch 0x80857ee
 NameSite1 0x8034ed2
 NameSite2 0x8035b34
+gUnk_08D610B4 0x8d610b4

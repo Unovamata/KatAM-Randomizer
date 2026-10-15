@@ -69,13 +69,14 @@ namespace KatAMRandomizer {
                                (int type, int letter)[] Glyphs, byte[] Behaviors);
 
         public const byte MinibossID = 0x40;
-        const int MinibossDescriptors = 0x244, MinibossHurtTiles = 64, MinibossHurtSize = 64, MinibossHurtOriginX = 32, MinibossHurtOriginY = 48;
+        const int MinibossDescriptors = 0x244, MinibossHurtTiles = 64, MinibossHurtSize = 64, MinibossHurtOriginX = 32, MinibossHurtOriginY = 32;
         const int EnemyCount = 15;  // NIDL_ENEMY_COUNT: gNidlData's mini-bosses follow its enemies;
 
         public static readonly IReadOnlyList<(int index, string name)> Minibosses;
 
         static readonly List<Miniboss> MinibossDefinitions = new List<Miniboss> {
             PoppyBrosSr(),
+            MrTickTock(),
         };
 
         static readonly List<Enemy> Definitions = new List<Enemy> {
@@ -100,6 +101,17 @@ namespace KatAMRandomizer {
             Enemies = Definitions.Select(e => (e.Index, e.Name)).ToList();
             Minibosses = MinibossDefinitions.Select(m => (m.Index, m.Name)).ToList();
         }
+
+        /* Mr. Tick-Tock; NiDL mini-boss 4 (type 0x35). Frames: NiDL's 0-28 (its body's are streamed frames, 0-16; its rings 17-22 and
+         * notes 23-28 are drawn with its descriptor's palette). Hurt: NiDL's 13. Variant 1 is faster; */
+        static Miniboss MrTickTock() => new Miniboss(1, "Mr. Tick-Tock", 4, 0x753180, Enumerable.Range(0, 29).Select(f => new[] { new Part(f) }).ToList(),
+            new[] { new Part(13) },
+            new[] {
+                (0x38, 0), (0x38, 1), (0x38, 2),                                    // "Mr." (Mr.Frosty, written like it);
+                (0x1C, 0), (0x1C, 2), (0x0D, 3), (0x0D, 4), (0x0B, 4),              // "T", "i" (Twister), "ck" (Blockin), "-" (Roly-Poly);
+                (0x1C, 0), (0x0D, 2), (0x0D, 3), (0x0D, 4),                         // "T" (Twister), "ock" (Blockin);
+            },
+            new byte[] { 0x00, 0x01 });
 
         /* Poppy Bros. Sr.; NiDL mini-boss 1 (type 0x32). Frames: every body frame (NiDL's 4-9, hopping) with every head frame (12-19,
          * drawn by its head object in NiDL), then its hands (20-25) and its bomb (26-30, NiDL's second palette). Hurt: NiDL's 10;
@@ -432,8 +444,8 @@ namespace KatAMRandomizer {
             animVariants.Add(minibossHurtVariants);
             animAttributes.Add(minibossHurtAttributes);
             animOams.Add(minibossHurtOam);
-            minibossAnimInfos.Add((minibossHurtAnimID, 0));
-            minibossAnimInfos.Add((minibossHurtAnimID, 0));
+            // Hurt frames 0 and 1, and 2: a defeated mini-boss shows the one after its second (sub_0809D1E0);
+            for (int i = 0; i < 3; i++) minibossAnimInfos.Add((minibossHurtAnimID, 0));
 
             foreach ((List<byte[]> palettes, List<(byte[] tiles, ushort[] oams, short[] attributes, int palette)> frames, byte[] hurt) in builtMinibosses)
                 minibossData.Add(AddAnim(palettes, frames, hurt, minibossAnimInfos));
@@ -538,6 +550,17 @@ namespace KatAMRandomizer {
             WriteInt(rom, minibossParameters + 20, minibossAnimInfosAt + 0x08000000);
             Array.Copy(rom, ObjectParameters2 + FrostyID * 8, rom, ObjectParameters2 + MinibossID * 8, 8);
 
+            /* A defeated mini-boss blinks with the animation gUnk_08D610B4[type - 0x38] (sub_0809D060), a table of 8 (0x38-0x3F): type 0x40
+             * read past its end. It's copied with 3 more entries (0x40-0x42, none: no blinking), and its one use points at the copy; */
+            int blinks = version.RomSymbols["gUnk_08D610B4"], blinksAt = Allocate(ref cursor, 11 * 4, 4);
+            byte[] blinksPointer = BitConverter.GetBytes(blinks + 0x08000000);
+            List<int> blinksUses = Enumerable.Range(0, (CodeAddress - 4) / 4).Select(i => i * 4)
+                                             .Where(at => rom.AsSpan(at, 4).SequenceEqual(blinksPointer)).ToList();
+            if (blinksUses.Count != 1) return $"The ROM's code doesn't match the {version.Name} release.";
+            Array.Copy(rom, blinks, rom, blinksAt, 8 * 4);
+            WriteInts(rom, blinksAt + 8 * 4, 0, 0, 0);
+            WriteInt(rom, blinksUses[0], blinksAt + 0x08000000);
+
             /* The hit flash (sub_080857A0) keeps the palette to restore afterwards, but then looks it up again from the type's palette key
              * (none for type 0x31: palette 15, the flash's). Its "palette isn't 15" branch now skips that lookup (bne to the store); */
             if (rom[HitFlashBranch] != 0x00 || rom[HitFlashBranch + 1] != 0xD0) return $"The ROM's code doesn't match the {version.Name} release.";
@@ -595,7 +618,7 @@ namespace KatAMRandomizer {
             List<(byte[], ushort[], short[], int)> frames = new List<(byte[], ushort[], short[], int)>();
 
             foreach (Part[] parts in frameParts) {
-                List<(Piece piece, Dictionary<int, int> recolor)> pieces = parts.SelectMany(p => ReadFrame(nightmare, p.Table != 0 ? p.Table + region.FrameShift : frameTable, p.Frame).Select(piece => (piece, p.Recolor))).ToList();
+                List<(Piece piece, byte[] tiles, int palette)> pieces = parts.SelectMany(p => PartPieces(nightmare, region, frameTable, p, tiles, palettes)).ToList();
 
                 int halfWidth = pieces.Max(p => Math.Max(-p.piece.X, p.piece.X + p.piece.Width));
                 int top = pieces.Min(p => p.piece.Y), bottom = pieces.Max(p => p.piece.Y + p.piece.Height);
@@ -603,23 +626,22 @@ namespace KatAMRandomizer {
                 List<byte> frameTiles = new List<byte>();
                 List<ushort> oams = new List<ushort>();
 
-                foreach ((Piece piece, Dictionary<int, int> recolor) in pieces) {
+                foreach ((Piece piece, byte[] pieceTiles, int palette) in pieces) {
                     oams.Add((ushort)((piece.Y - top) | piece.Shape << 14));
                     oams.Add((ushort)((piece.X + halfWidth) | piece.Size << 14 | piece.HFlip << 12 | piece.VFlip << 13));
                     oams.Add((ushort)(frameTiles.Count / 32));
-                    frameTiles.AddRange(PieceTiles(tiles, piece, recolor));
+                    frameTiles.AddRange(pieceTiles);
                 }
 
-                if (parts.Any(p => p.Palette >= paletteCount)) throw new InvalidOperationException("No such palette.");
+                if (pieces.Any(p => p.palette >= palettes.Count)) throw new InvalidOperationException("No such palette.");
                 frames.Add((frameTiles.ToArray(), oams.ToArray(), new short[] { 0, (short)pieces.Count, (short)(halfWidth * 2), (short)(bottom - top), (short)halfWidth, (short)-top },
-                            parts.Any(p => p.Palette15) ? -1 : parts[0].Palette));
+                            pieces.Any(p => p.palette < 0) ? -1 : pieces[0].palette));
             }
 
             // Hurt frame: drawn pixel by pixel into hurtSize x hurtSize and cut into tiles;
             int[,] canvas = new int[hurtSize, hurtSize];
             foreach (Part part in hurtParts) {
-                foreach (Piece piece in ReadFrame(nightmare, frameTable, part.Frame)) {
-                    byte[] pieceTiles = PieceTiles(tiles, piece, part.Recolor);
+                foreach ((Piece piece, byte[] pieceTiles, int _) in PartPieces(nightmare, region, frameTable, part, tiles, palettes)) {
                     int columns = piece.Width / 8;
 
                     for (int y = 0; y < piece.Height; y++) {
@@ -643,14 +665,57 @@ namespace KatAMRandomizer {
             return (palettes, frames, hurt);
         }
 
-        // PieceTiles(); The 4bpp tiles of a piece in 1D order (NiDL's VRAM is 2D, 32 tiles per row; its data, 16 tiles per row);
-        static byte[] PieceTiles(byte[] tiles, Piece piece, Dictionary<int, int> recolor) {
+        /* PartPieces(); A part's pieces, with their tiles (1D, recolored) and palette (-1: NiDL's palette 15). The frame table entry is
+         * either a frame's OAM records, drawn from the descriptor's tiles, or a streamed frame (Mr. Tick-Tock's): 12 bytes, pointers to
+         * its OAM records, its palette (u16 0x20, then the colors; added to palettes) and its tiles, uploaded with the frame (rows of
+         * VRAM, 32 tiles each: u16 bytes and the tiles, until 0xFFFF); */
+        static List<(Piece, byte[], int)> PartPieces(byte[] nightmare, NightmareRegion region, int frameTable, Part part, byte[] tiles, List<byte[]> palettes) {
+            int table = part.Table != 0 ? part.Table + region.FrameShift : frameTable;
+            int entry = ReadInt(nightmare, table + part.Frame * 4) - 0x08000000, records = entry;
+            int palette = part.Palette15 ? -1 : part.Palette, width = 16;
+            byte[] source = tiles;
+
+            if (IsStreamed(nightmare, entry)) {
+                int paletteAt = ReadInt(nightmare, entry + 4) - 0x08000000 + 2, rows = ReadInt(nightmare, entry + 8) - 0x08000000;
+                byte[] colors = nightmare[paletteAt..(paletteAt + 32)];
+
+                records = ReadInt(nightmare, entry) - 0x08000000;
+                palette = palettes.FindIndex(p => p.SequenceEqual(colors));
+                if (palette < 0) {
+                    palette = palettes.Count;
+                    palettes.Add(colors);
+                }
+                List<byte> rowTiles = new List<byte>();
+                for (int bytes; (bytes = ReadShort(nightmare, rows)) != 0xFFFF; rows += 2 + bytes) {
+                    if (bytes > 32 * 32) throw new InvalidOperationException("Not a streamed frame.");
+                    byte[] row = new byte[32 * 32];
+                    Array.Copy(nightmare, rows + 2, row, 0, bytes);
+                    rowTiles.AddRange(row);
+                }
+                source = rowTiles.ToArray();
+                width = 32;
+            }
+
+            return ReadFrameAt(nightmare, records).Select(piece => (piece, PieceTiles(source, piece, part.Recolor, width), palette)).ToList();
+        }
+
+        // IsStreamed(); A frame table entry that's a streamed frame (three ROM pointers, the second to a 16-color palette);
+        static bool IsStreamed(byte[] nightmare, int entry) {
+            bool IsPointer(int value) => value >= 0x08000000 && value < 0x08000000 + nightmare.Length;
+            int oam = ReadInt(nightmare, entry), palette = ReadInt(nightmare, entry + 4), rows = ReadInt(nightmare, entry + 8);
+
+            return IsPointer(oam) && IsPointer(palette) && IsPointer(rows) && ReadShort(nightmare, palette - 0x08000000) == 0x20;
+        }
+
+        /* PieceTiles(); The 4bpp tiles of a piece in 1D order (NiDL's VRAM is 2D, 32 tiles per row; its data, 16 tiles per row; a streamed
+         * frame's, 32 per row: width); */
+        static byte[] PieceTiles(byte[] tiles, Piece piece, Dictionary<int, int> recolor, int width = 16) {
             List<byte> output = new List<byte>();
 
             for (int y = 0; y < piece.Height / 8; y++) {
                 for (int x = 0; x < piece.Width / 8; x++) {
                     int source = piece.Tile + y * 32 + x;
-                    source = source / 32 * 16 + source % 32;
+                    if (width == 16) source = source / 32 * 16 + source % 32;
 
                     for (int b = 0; b < 32; b++) {
                         byte pixels = tiles[source * 32 + b];
@@ -703,9 +768,10 @@ namespace KatAMRandomizer {
 
         /* ReadFrame(); NiDL frame records are 8 bytes: y, attr0 (shape, 0x10 = last), x, attr1 (size, flips), flipped x,
          * flipped attr1, tile (10 bits); */
-        static List<Piece> ReadFrame(byte[] nightmare, int frameTable, int frame) {
+        static List<Piece> ReadFrame(byte[] nightmare, int frameTable, int frame) => ReadFrameAt(nightmare, ReadInt(nightmare, frameTable + frame * 4) - 0x08000000);
+
+        static List<Piece> ReadFrameAt(byte[] nightmare, int address) {
             List<Piece> pieces = new List<Piece>();
-            int address = ReadInt(nightmare, frameTable + frame * 4) - 0x08000000;
 
             for (int i = 0; i < 16; i++, address += 8) {
                 int shape = nightmare[address + 1] >> 6, size = nightmare[address + 3] >> 6;

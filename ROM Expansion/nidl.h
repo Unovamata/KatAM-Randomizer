@@ -173,5 +173,7 @@ void GipStart(struct Object *);
 // Mini-bosses;
 void PoppyBrosSrInit(struct NidlObject *);
 void PoppyBrosSrStart(struct Object *);
+void MrTickTockInit(struct NidlObject *);
+void MrTickTockStart(struct Object *);
 
 #endif
