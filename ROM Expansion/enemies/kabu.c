@@ -10,7 +10,11 @@
  *   is gone for 60, and comes back 32-48 pixels to a side of Kirby and up to 64 above, where there's room (tables 0x08741367,
  *   0x0874136D; up to 60 tries, 0x0807F6A8), spinning 48 frames fading in; it falls (0x0807F78C: gravity 0x2000, at 6.0 at most,
  *   spinning every 4 frames), sits 10 frames (0x08741365, frame 12), then slides at Kirby at 3.0 spinning until it stops, and
- *   vanishes again; */
+ *   vanishes again.
+ * • Variant 2, 0x0807F88C (states 0x087413C0, per frame 0x087413C8): spins (frames 4-11, 4 frames each, 0x0807F920) gliding to a
+ *   point 64 pixels in front of or behind Kirby (0x08741378), accelerating by 0x2000 a frame up to 3.0 (0x0807F9A0); when it's
+ *   there it hangs on 180 frames (switching sides after 60 and 120), switching sides 3 times; then (0x0807FA98) it sits 15
+ *   frames (frame 12), hops 4.0 (gravity: the engine's), spinning every frame, and glides again; */
 #include "../nidl.h"
 
 // Frames: NiDL's 4 to 12 (spinning 4-11, sitting 12), numbered from 0. Its hurt frame is NiDL's 3;
@@ -35,11 +39,19 @@ static const u8 sSpinTime[] = { 4, 2, 8, 8, 4 };                    // 0x0874135
 #define WARP_SIT_TIME 10
 #define SLIDE_SPEED 0x300
 #define SLIDE_FRICTION 0x10
+
+// Variant 2;
+#define GLIDE_OFFSET 64
+#define GLIDE_ACCEL 0x20
+#define GLIDE_SPEED 0x300
+#define GLIDE_HOLD 180
+#define GLIDE_SWITCHES 3
+#define GLIDE_HOP 0x400
 static const u8 sFade[] = { 0x7F, 0x77, 0x57, 0x55, 0x15, 0x11, 0x01, 0x01, 0x11, 0x15, 0x55, 0x57, 0x77, 0x7F };  // 0x08741357;
 static const s8 sWarpX[] = { 32, 40, 48, -32, -40, -48 };                    // 0x08741367;
 static const s8 sWarpY[] = { 0, -8, -16, -24, -32, -40, -48, -56, -64 };   // 0x0874136D;
 
-enum { STATE_SIT, STATE_SPIN, STATE_WAIT, STATE_JUMP, STATE_ROCK, STATE_FADE_OUT, STATE_GONE, STATE_FADE_IN, STATE_DROP, STATE_LAND, STATE_SLIDE };
+enum { STATE_SIT, STATE_SPIN, STATE_WAIT, STATE_JUMP, STATE_ROCK, STATE_FADE_OUT, STATE_GONE, STATE_FADE_IN, STATE_DROP, STATE_LAND, STATE_SLIDE, STATE_GLIDE, STATE_GLIDE_SIT, STATE_GLIDE_HOP };
 
 struct Kabu {
     struct NidlObject n;
@@ -51,6 +63,9 @@ struct Kabu {
     u8 spinTime;
     u8 airborne;
     u8 fade;
+    u8 side;        // Variant 2: 0 in front of Kirby (at its right), 1 behind;
+    u8 switches;
+    u8 hold;
 };
 
 static void Sit(struct Kabu *k, u8 time) {
@@ -197,6 +212,71 @@ static void KabuWarp(struct Kabu *k) {
     }
 }
 
+// StartGlide(); 0x0807F920: on Kirby's nearer side;
+static void StartGlide(struct Kabu *k) {
+    struct Object *obj = &k->n.obj;
+
+    k->state = STATE_GLIDE;
+    k->switches = GLIDE_SWITCHES;
+    k->hold = 0;
+    k->side = obj->kirby3->base.x > obj->base.x;
+    k->spinTime = 4;
+    k->timer = 4;
+    k->spinFrame = FRAME(4);
+    NidlSetFrame(&k->n, k->spinFrame);
+}
+
+// KabuGlide(); Variant 2 (0x0807F9A0, 0x0807FA98);
+static void KabuGlide(struct Kabu *k) {
+    struct Object *obj = &k->n.obj;
+    s32 dx;
+
+    switch (k->state) {
+    case STATE_GLIDE:
+        NidlFall(obj);
+        Spin(k);
+        if (k->hold) {
+            // Holding: switches sides at 120 and 60, and last at 0;
+            if (--k->hold == 120 || k->hold == 60 || !k->hold) {
+                k->side ^= 1;
+                k->switches--;
+                k->hold = 0;
+            }
+        }
+        dx = ((obj->kirby3->base.x >> 8) + (k->side ? -GLIDE_OFFSET : GLIDE_OFFSET)) - (obj->base.x >> 8);
+        if (!k->hold && dx >= -1 && dx <= 1) k->hold = GLIDE_HOLD;
+        obj->base.xspeed += dx >= 0 ? GLIDE_ACCEL : -GLIDE_ACCEL;
+        if (obj->base.xspeed > GLIDE_SPEED) obj->base.xspeed = 0x100;
+        if (obj->base.xspeed < -GLIDE_SPEED) obj->base.xspeed = -0x100;
+        if (!k->switches) {
+            k->state = STATE_GLIDE_SIT;
+            k->timer = 15;
+            obj->base.xspeed = 0;
+            NidlSetFrame(&k->n, FRAME_SIT);
+        }
+        break;
+    case STATE_GLIDE_SIT:
+        NidlFall(obj);
+        if (--k->timer) break;
+        k->state = STATE_GLIDE_HOP;
+        obj->base.yspeed = GLIDE_HOP;
+        k->airborne = FALSE;
+        k->spinTime = 1;
+        k->timer = 1;
+        break;
+    case STATE_GLIDE_HOP:
+        Spin(k);
+        obj->base.yspeed -= GRAVITY;
+        if (obj->base.yspeed < -MAX_FALL) obj->base.yspeed = -MAX_FALL;
+        if (!(obj->base.unk62 & 4)) k->airborne = TRUE;
+        if (k->airborne && (obj->base.unk62 & 4) && obj->base.yspeed <= 0) {
+            obj->base.yspeed = 0;
+            StartGlide(k);
+        }
+        break;
+    }
+}
+
 static void KabuMain(struct Object *obj) {
     struct Kabu *k = (struct Kabu *)obj;
 
@@ -205,6 +285,10 @@ static void KabuMain(struct Object *obj) {
 
     if (k->n.variant == 1) {
         KabuWarp(k);
+        return;
+    }
+    if (k->n.variant == 2) {
+        KabuGlide(k);
         return;
     }
     if (k->state != STATE_JUMP) NidlFall(obj);
@@ -248,6 +332,10 @@ void KabuStart(struct Object *obj) {
     ObjectSetFunc(obj, 0, KabuMain);
     obj->base.yspeed = 0;
     obj->base.flags &= ~(0x400 | 0x100 | 0x200);
+    if (k->n.variant == 2) {
+        StartGlide(k);
+        return;
+    }
     if (k->n.variant == 1) {
         k->state = STATE_ROCK;
         k->timer = ROCK_TIME;
