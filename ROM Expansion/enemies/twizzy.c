@@ -6,6 +6,10 @@
  * • Variant 1, 0x080872E0: the same, swooping at 1.93 (accelerating back by 0x1300; tables 0x087425C0, 0x087425C8) forever; halfway
  *   through each swoop (0x080873B0), if Kirby is more than 32 pixels above or below, it keeps going towards Kirby's height
  *   (accelerating back by 0xD00 only) or turns sooner (0x2000).
+ * • Variant 2, 0x08087458: ambushes from the top of the room, above Kirby (at Kirby's x when Kirby is within 31 pixels vertically,
+ *   else 72 or 40 pixels behind, 56 or 88 ahead, at random; table 0x087425DC), falling (gravity 0x2500, at 3.0 at most) until it's
+ *   15 pixels above Kirby's height (0x08087724); then it loops (0x0808752C), backwards and down, then up and forward, in steps of 4
+ *   frames (0x087425F0) with the gravity still on, and goes on as variant 0.
  * • Variant 5, 0x08087B8C: sits until Kirby is 63 pixels away or less, then takes off (0x08087C48: -3.0 for 4 frames, -2.0 for 8,
  *   -1.0 for 16, -0.5 for 8, then drifts down at 0.5), hovers 48 frames, faces Kirby and dashes at 1.0, 2.0, then 3.0 (0x08087D20).
  *   It can't be hit while taking off; */
@@ -31,7 +35,20 @@ static const s16 sFlapSlow[] = { FRAME_WINGS_UP, 8, FRAME_WINGS_DOWN, 8, NIDL_LO
 // Takeoff of variant 5: Y speed and frames to keep it (0x08087C48);
 static const struct { s16 speed; u8 time; } sTakeoff[] = { { 0x300, 4 }, { 0x200, 8 }, { 0x100, 16 }, { 0x80, 8 } };
 
-enum { STATE_SWOOP, STATE_SIT, STATE_TAKEOFF, STATE_HOVER, STATE_DASH };
+// The loop of variant 2 (0x0808752C): speeds (X forward, Y up), 4 frames each, the last one 16;
+static const s16 sLoop[][2] = {
+    { -0x100, -0x400 }, { -0x200, -0x300 }, { -0x300, -0x200 }, { -0x200, 0x80 }, { -0x100, 0x100 }, { -0x80, 0x200 },
+    { 0x100, 0x300 }, { 0x140, 0x200 }, { 0x140, 0x100 }, { 0x140, 0x80 }, { 0x140, -0x80 },
+};
+static const s16 sAmbushOffsets[] = { -72, -40, 56, 88 };  // 0x087425DC;
+
+#define AMBUSH_GRAVITY 0x25
+#define AMBUSH_MAX_FALL 0x300
+#define AMBUSH_NEAR 31
+#define AMBUSH_LEVEL 15
+#define LOOP_STEP 4
+
+enum { STATE_SWOOP, STATE_SIT, STATE_TAKEOFF, STATE_HOVER, STATE_DASH, STATE_DROP, STATE_LOOP };
 
 struct Twizzy {
     struct NidlObject n;
@@ -40,6 +57,7 @@ struct Twizzy {
     u8 timer;
     u8 step;
     s8 swoops;
+    u8 placed;
 };
 
 static void Face(struct Object *obj, s16 speed) {
@@ -155,6 +173,41 @@ static void Hover(struct Twizzy *tw) {
     }
 }
 
+// Ambush(); 0x08087458: to the top of the room, above Kirby;
+static void Ambush(struct Twizzy *tw) {
+    struct Object *obj = &tw->n.obj;
+    s32 dy = (obj->kirby3->base.y - obj->base.y) >> 8;
+
+    obj->base.x = obj->kirby3->base.x;
+    if (dy > AMBUSH_NEAR) obj->base.x += sAmbushOffsets[Rand16() % ARRAY_COUNT(sAmbushOffsets)] * 0x100;
+    obj->base.y = gCurLevelInfo[obj->base.unk56].levelMinPosition.y;
+    obj->base.flags |= 0x100;   // Through the ceiling until it's in the room;
+    tw->state = STATE_DROP;
+    obj->base.xspeed = obj->base.yspeed = 0;
+    NidlFaceKirby(obj);
+    tw->n.sequence = NULL;
+    NidlSetFrame(&tw->n, FRAME_WINGS_UP);
+}
+
+// Loop(); 0x0808752C: the next step of the loop, then variant 0's swoops;
+static void Loop(struct Twizzy *tw) {
+    struct Object *obj = &tw->n.obj;
+
+    obj->base.yspeed -= AMBUSH_GRAVITY;
+    if (tw->timer && --tw->timer) return;
+    if (tw->step == ARRAY_COUNT(sLoop)) {
+        tw->n.variant = 0;
+        StartSwoop(tw);
+        return;
+    }
+    if (tw->step == 3) NidlPlay(&tw->n, sFlapFast);
+    if (tw->step == 10) NidlPlay(&tw->n, sFlapSlow);
+    obj->base.xspeed = (obj->base.flags & 1) ? -sLoop[tw->step][0] : sLoop[tw->step][0];
+    obj->base.yspeed = sLoop[tw->step][1];
+    tw->timer = tw->step == ARRAY_COUNT(sLoop) - 1 ? 16 : LOOP_STEP;
+    tw->step++;
+}
+
 static void TwizzyMain(struct Object *obj) {
     struct Twizzy *tw = (struct Twizzy *)obj;
     s32 distance;
@@ -185,6 +238,22 @@ static void TwizzyMain(struct Object *obj) {
     case STATE_HOVER:
         Hover(tw);
         break;
+    case STATE_DROP:
+        if ((obj->base.flags & 0x100) && !NidlIsFloor(obj, obj->base.x, obj->base.y)) obj->base.flags &= ~0x100;
+        obj->base.yspeed -= AMBUSH_GRAVITY;
+        if (obj->base.yspeed < -AMBUSH_MAX_FALL) obj->base.yspeed = -AMBUSH_MAX_FALL;
+        if (((obj->kirby3->base.y - obj->base.y) >> 8) <= AMBUSH_LEVEL) {
+            obj->base.flags &= ~0x100;
+            tw->state = STATE_LOOP;
+            tw->step = 0;
+            tw->timer = 0;
+            NidlPlay(&tw->n, sFlapSlow);
+            Loop(tw);
+        }
+        break;
+    case STATE_LOOP:
+        Loop(tw);
+        break;
     }
 }
 
@@ -195,7 +264,10 @@ void TwizzyStart(struct Object *obj) {
     ObjectSetFunc(obj, 0, TwizzyMain);
     obj->base.yspeed = 0;
 
-    if (tw->n.variant != 5) {
+    if (tw->n.variant == 2 && !tw->placed) {
+        tw->placed = TRUE;
+        Ambush(tw);
+    } else if (tw->n.variant != 5) {
         StartSwoop(tw);
     } else if (tw->state == STATE_SIT) {
         obj->base.xspeed = 0;
@@ -218,6 +290,7 @@ void TwizzyInit(struct NidlObject *n) {
     sub_0803E2B0(&obj->base, -5, -4, 5, 7);
     ObjectSetBounds(&obj->base, -6, -5, 6, 9);
     tw->state = STATE_SWOOP;
+    tw->placed = FALSE;
     if (n->variant == 5) {
         tw->state = STATE_SIT;
         obj->base.unk4C = obj->base.y = ((obj->base.y + (obj->base.unk3F * 0x100)) & 0xfffff000) - (obj->base.unk3F * 0x100) - 1;
