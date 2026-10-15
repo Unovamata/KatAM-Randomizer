@@ -14,7 +14,8 @@
  * • Variant 2, 0x08081614 (0x0808168C, 0x080816E8): flies at 0.75 (0x0874151C), flapping (frames 16-18, 6 frames each), bobbing
  *   (Y speeds 0, 0.5, 1.0, 0.5, 0, -0.5, -1.0, -0.5 down, table 0x08741524, 6 frames each, 8 when it bobs towards Kirby's height
  *   and Kirby is more than 10 pixels up or down); after 6 bobs it rises away (0x1900 faster a frame).
- * NiDL's variant 3 and its water state (0x080812F0) aren't ported; */
+ * • Variant 3, 0x08081774 (0x080817F8): faces Kirby and walks in place.
+ * NiDL's water state (0x080812F0) isn't ported; */
 #include "../nidl.h"
 
 // Frames: NiDL's 4 to 20 (walking 4-10, crouching 11-12, flying 13-18, diving 20), numbered from 0. Its hurt frame is NiDL's 3;
@@ -233,6 +234,11 @@ static void StarmanMain(struct Object *obj) {
         Bob(s);
         return;
     }
+    if (s->n.variant == 3) {
+        NidlFall(obj);
+        NidlAnimate(&s->n);
+        return;
+    }
 
     switch (s->state) {
     case STATE_WALK:
@@ -288,6 +294,12 @@ void StarmanStart(struct Object *obj) {
     ObjectSetFunc(obj, 0, StarmanMain);
     obj->base.flags &= ~(0x400 | 0x100 | 0x2000000);
     obj->base.yspeed = 0;
+    if (s->n.variant == 3) {
+        NidlFaceKirby(obj);
+        obj->base.xspeed = 0;
+        NidlPlay(&s->n, sWalk);
+        return;
+    }
     if (s->n.variant == 2) {
         if (s->state != STATE_RISE) {
             s->state = STATE_BOB;
