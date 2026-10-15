@@ -73,6 +73,7 @@ namespace KatAMRandomizer {
             Chilly(),
             CoolSpook(),
             PoppyBrosJr(),
+            Gip(),
         };
 
         static KatAMExpansion() {
@@ -204,6 +205,15 @@ namespace KatAMRandomizer {
                 (0x10, 0), (0x01, 1),                                               // "J" (Jack), "r" (Bronto Burt);
             },
             new byte[] { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06 });
+
+        // Gip; Frames: NiDL's 4 to 16 (walking 4-7, clinging and flapping 8-12, gliding 13 and 16, throwing 14 and 15), then its
+        // star's 4-7 (frame table 0x08752C18). It walks, clings to walls, flaps up and glides down them, jumps at Kirby off them and
+        // throws stars; variant 1 walks in place;
+        static Enemy Gip() => new Enemy(14, "Gip", 0x2F, 0x752BD4,
+            Enumerable.Range(4, 13).Select(f => new[] { new Part(f) }).Concat(Enumerable.Range(4, 4).Select(f => new[] { new Part(f, null, 0x752C18) })).ToList(),
+            new[] { new Part(3) }, new Dictionary<int, ushort>(),
+            new[] { (0x03, 0), (0x26, 4), (0x02, 3) },   // "G" (Glunk), "i" (Cookin), "p" (Blipper);
+            new byte[] { 0x00, 0x01 });
 
         // IsNightmareInDreamLand(); A Kirby: Nightmare in Dream Land ROM (USA, Japanese or European);
         public static bool IsNightmareInDreamLand(byte[] rom) => RegionOf(rom) != null;
