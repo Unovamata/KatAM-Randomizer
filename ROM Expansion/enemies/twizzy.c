@@ -20,7 +20,11 @@
  *   -1.0 for 16, -0.5 for 8, then drifts down at 0.5), hovers 48 frames, faces Kirby and dashes at 1.0, 2.0, then 3.0 (0x08087D20).
  *   It can't be hit while taking off.
  * • Variant 6, 0x08087E2C: on the ground: sits (frame 6) 24 frames, faces Kirby, sits 24 more (0x08087EB4), then hops straight up
- *   (0x08087F18: 2.0, gravity 0x800, falling at 3.0 at most), flapping 4 times, and flutters back down flapping (0x08087F8C); */
+ *   (0x08087F18: 2.0, gravity 0x800, falling at 3.0 at most), flapping 4 times, and flutters back down flapping (0x08087F8C).
+ * • Variant 7, 0x08087FCC: on the ground: sits 15 frames facing Kirby (0x08088054), then at random (of 8) hops in place (2), hops
+ *   1.0 (2) or 2.0 forward (1) (0x080881A0: 1.5 up, gravity 0x4000, turning around half the time), or sits on for 32 (1) or 64
+ *   frames (2). When Kirby comes within 50 pixels sideways and 64 up or down while it sits (0x080880FC, 0x0874269C, 0x087426A4),
+ *   it takes off (0x0808827C: 3.0 up, gravity 0x1500, flapping) and goes on as variant 4; */
 #include "../nidl.h"
 
 // Frames: NiDL's 4, 5 (flapping) and 6 (sitting). Its hurt frame is NiDL's 3;
@@ -68,8 +72,14 @@ static const s16 sAmbushOffsets[] = { -72, -40, 56, 88 };  // 0x087425DC;
 #define HOP_MAX_FALL 0x300
 #define HOP_SIT_TIME 24
 #define HOP_FLAPS 4
+#define PERCH_SIT_TIME 15
+#define PERCH_HOP_SPEED 0x180
+#define PERCH_GRAVITY 0x40
+#define PERCH_NEAR_X 50
+#define PERCH_NEAR_Y 64
+#define PERCH_TAKEOFF 0x300
 
-enum { STATE_SWOOP, STATE_SIT, STATE_TAKEOFF, STATE_HOVER, STATE_DASH, STATE_DROP, STATE_LOOP, STATE_BOUNCE, STATE_CHASE, STATE_LEAVE, STATE_HOP_SIT, STATE_HOP };
+enum { STATE_SWOOP, STATE_SIT, STATE_TAKEOFF, STATE_HOVER, STATE_DASH, STATE_DROP, STATE_LOOP, STATE_BOUNCE, STATE_CHASE, STATE_LEAVE, STATE_HOP_SIT, STATE_HOP, STATE_PERCH, STATE_PERCH_HOP, STATE_PERCH_WAIT, STATE_PERCH_TAKEOFF };
 
 struct Twizzy {
     struct NidlObject n;
@@ -355,6 +365,81 @@ static void Hop(struct Twizzy *tw) {
     }
 }
 
+// Perch(); 0x08088054: sits facing Kirby;
+static void Perch(struct Twizzy *tw) {
+    struct Object *obj = &tw->n.obj;
+
+    tw->state = STATE_PERCH;
+    tw->timer = PERCH_SIT_TIME;
+    obj->base.xspeed = 0;
+    NidlFaceKirby(obj);
+    tw->n.sequence = NULL;
+    NidlSetFrame(&tw->n, FRAME_SIT);
+}
+
+// PerchChoose(); 0x0808807C: a hop or a wait, at random;
+static void PerchChoose(struct Twizzy *tw) {
+    struct Object *obj = &tw->n.obj;
+    static const s16 sSpeeds[] = { 0, 0, 0x100, 0x100, 0x200 };
+    u8 r = Rand16() % 8;
+
+    NidlFaceKirby(obj);
+    if (r < ARRAY_COUNT(sSpeeds)) {
+        // 0x080881A0: turning around half the time;
+        if (Rand16() & 1) obj->base.flags ^= 1;
+        obj->base.xspeed = (obj->base.flags & 1) ? -sSpeeds[r] : sSpeeds[r];
+        obj->base.yspeed = PERCH_HOP_SPEED;
+        tw->state = STATE_PERCH_HOP;
+    } else {
+        tw->state = STATE_PERCH_WAIT;
+        tw->timer = r == 5 ? 32 : 64;
+    }
+}
+
+static void TwizzyPerch(struct Twizzy *tw) {
+    struct Object *obj = &tw->n.obj;
+    s32 dx = (obj->kirby3->base.x - obj->base.x) >> 8, dy = (obj->kirby3->base.y - obj->base.y) >> 8;
+
+    switch (tw->state) {
+    case STATE_PERCH:
+        NidlFall(obj);
+        // 0x080880FC: Kirby near: takes off (0x0808827C);
+        if (dx > -PERCH_NEAR_X && dx < PERCH_NEAR_X && dy > -PERCH_NEAR_Y && dy < PERCH_NEAR_Y) {
+            tw->state = STATE_PERCH_TAKEOFF;
+            obj->base.xspeed = 0;
+            obj->base.yspeed = PERCH_TAKEOFF;
+            NidlFaceKirby(obj);
+            NidlPlay(&tw->n, sFlapFast);
+        } else if (!--tw->timer) {
+            PerchChoose(tw);
+        }
+        break;
+    case STATE_PERCH_HOP:
+        obj->base.yspeed -= PERCH_GRAVITY;
+        if (obj->base.yspeed < -HOP_MAX_FALL) obj->base.yspeed = -HOP_MAX_FALL;
+        if ((obj->base.unk62 & 4) && obj->base.yspeed <= 0) {
+            obj->base.yspeed = 0;
+            Perch(tw);
+        }
+        break;
+    case STATE_PERCH_WAIT:
+        NidlFall(obj);
+        if (!--tw->timer) Perch(tw);
+        break;
+    case STATE_PERCH_TAKEOFF:
+        obj->base.yspeed -= 0x15;
+        if (obj->base.yspeed <= 0) {
+            // 0x080882D6: variant 4 from here;
+            tw->n.variant = 4;
+            tw->state = STATE_CHASE;
+            tw->chaseTimer = FOLLOW_TIME;
+            tw->timer = 0;
+            tw->aimY = 2;
+        }
+        break;
+    }
+}
+
 static void TwizzyMain(struct Object *obj) {
     struct Twizzy *tw = (struct Twizzy *)obj;
     s32 distance;
@@ -413,6 +498,12 @@ static void TwizzyMain(struct Object *obj) {
     case STATE_HOP:
         Hop(tw);
         break;
+    case STATE_PERCH:
+    case STATE_PERCH_HOP:
+    case STATE_PERCH_WAIT:
+    case STATE_PERCH_TAKEOFF:
+        TwizzyPerch(tw);
+        break;
     case STATE_LEAVE:
         if ((obj->base.yspeed += LEAVE_ACCEL) > MAX_CLIMB) obj->base.yspeed = MAX_CLIMB;
         break;
@@ -433,6 +524,8 @@ void TwizzyStart(struct Object *obj) {
         StartBounce(tw);
     } else if (tw->n.variant == 6) {
         StartHopSit(tw);
+    } else if (tw->n.variant == 7) {
+        Perch(tw);
     } else if (tw->n.variant == 4) {
         if (tw->state != STATE_LEAVE) {
             tw->state = STATE_CHASE;
@@ -468,7 +561,7 @@ void TwizzyInit(struct NidlObject *n) {
     ObjectSetBounds(&obj->base, -6, -5, 6, 9);
     tw->state = STATE_SWOOP;
     tw->placed = FALSE;
-    if (n->variant == 5 || n->variant == 6) {
+    if (n->variant == 5 || n->variant == 6 || n->variant == 7) {
         tw->state = STATE_SIT;
         obj->base.unk4C = obj->base.y = ((obj->base.y + (obj->base.unk3F * 0x100)) & 0xfffff000) - (obj->base.unk3F * 0x100) - 1;
     }
