@@ -2,7 +2,10 @@
 using System.Text;
 
 namespace KatAMRandomizer {
-    /* KatAMExpansion; ROM Expansion: enemies ported from Kirby: Nightmare in Dream Land (USA, Japanese or European). Kirby & the Amazing Mirror USA ROMs only.
+    /* KatAMExpansion; ROM Expansion: enemies ported from Kirby: Nightmare in Dream Land into Kirby & the Amazing Mirror, any version
+     * (USA, European, Japanese revision 1), with the NiDL ROM of the same region: USA with USA, European with European, Japanese with
+     * Japanese. The European version shows the English names in every language; the Japanese one shows none (its names are images
+     * of Japanese text).
      * The behaviors are re-implemented in C against the KatAM decompilation (see "ROM Expansion/" for the sources and how they're
      * built) and ship compiled in KatAMExpansionCode. The graphics are never shipped: they are read from the player's own NiDL ROM.
      * Every ported enemy is object type 0x31 (the only free regular enemy type); the template's behavior byte picks the enemy
@@ -10,39 +13,38 @@ namespace KatAMRandomizer {
      * Layout: the ROM is expanded from 16 MB to 32 MB (the most the GBA maps, 0x08000000-0x09FFFFFF), and everything new goes in
      * the new half, so the expansion has room for every enemy and leaves the game's own free space alone:
      * • 0x1000000 (0x09000000): compiled code, then the converted graphics, animations, names and the extended sprite tables.
-     * • gSpriteTables (0x3B909C): anims, attrs and oamData are copied with more entries: anim 939 is the shared hurt frame,
-     *   940 on are the enemies' frames (one anim per enemy, one variant per frame).
+     * • gSpriteTables (USA 0x3B909C): anims, attrs and oamData are copied with more entries: the first free anim (USA 939) is the
+     *   shared hurt frame, the next ones are the enemies' frames (one anim per enemy, one variant per frame).
      * • Object type 0x31: spawn function and parameters; its AnimInfo table holds every enemy's frames.
-     * • HP bar names: the two copies of an enemy's name (0x08034ED2, 0x08035B34) call NidlCopyName instead.
-     * • The hit flash keeps the enemy's own palette (0x080857EE), see AddEnemies; */
+     * • HP bar names: the two copies of an enemy's name (USA 0x08034ED2, 0x08035B34) call NidlCopyName instead.
+     * • The hit flash keeps the enemy's own palette (USA 0x080857EE), see AddEnemies.
+     * Every address differs between versions: KatAMExpansionCode.Versions has each one's (and its own build of the code); */
     internal static class KatAMExpansion {
         public const byte NightmareID = 0x31;
 
-        const int HurtAnimID = 939,                  // First free anim ID (the vanilla table has 939);
-                  ExpandedSize = 0x2000000, CodeAddress = 0x1000000, ReservedSize = ExpandedSize - CodeAddress,
-                  SpriteTables = 0x3B909C, SpawnTable = 0x35107C, ObjectParameters = 0x351648, ObjectParameters2 = 0x352AD0;
-
-        // The hit flash's "beq" after comparing the sprite's palette with 15 (0x080857EE), see AddEnemies;
-        const int HitFlashBranch = 0x857EE;
+        const int ExpandedSize = 0x2000000, CodeAddress = 0x1000000, ReservedSize = ExpandedSize - CodeAddress;
 
         /* NiDL: graphics descriptor per enemy (type - 8): tile count (+2), palette (+8), LZ77 tiles (+12). The frame tables (and every
          * NiDL address in the enemies' notes) are the USA ones; the Japanese and European ROMs have the same data, moved by FrameShift; */
-        sealed record NightmareRegion(string GameCode, int Descriptors, int FrameShift);
+        sealed record NightmareRegion(string GameCode, int Descriptors, int FrameShift, string KatAM);
 
         static readonly NightmareRegion[] NightmareRegions = {
-            new NightmareRegion("A7KE", 0x73EEA0, 0),           // USA;
-            new NightmareRegion("A7KJ", 0x742DAC, 0x3A8C),      // Japan (Hoshi no Kirby: Yume no Izumi Deluxe);
-            new NightmareRegion("A7KP", 0x97B678, 0x23C7EC),    // Europe;
+            new NightmareRegion("A7KE", 0x73EEA0, 0, "USA"),
+            new NightmareRegion("A7KJ", 0x742DAC, 0x3A8C, "Japan"),           // Hoshi no Kirby: Yume no Izumi Deluxe;
+            new NightmareRegion("A7KP", 0x97B678, 0x23C7EC, "Europe"),
         };
 
         static NightmareRegion RegionOf(byte[] rom) => rom == null || rom.Length < 0x800000 ? null
             : NightmareRegions.FirstOrDefault(region => Encoding.ASCII.GetString(rom, 0xAC, 4) == region.GameCode);
 
-        /* HP bar name copies patched to call NidlCopyName (see ApplyNamePatch): where the copy starts, its length (up to the end of
-         * its bl CpuSet), the literal it loads the name table from, and whether it has the object's type pointer in ip (else the object in r2); */
-        static readonly (int at, int length, int literal, bool fromTypePointer)[] NameCopies = {
-            (0x34ED2, 28, 0x34F24, true), (0x35B34, 30, 0x35B7C, false),
-        };
+        /* HP bar name copies patched to call NidlCopyName (see ApplyNamePatch), from where they start (the version's NameSite1 and 2):
+         * their length (up to the end of their bl CpuSet), where their literal for the name table is, and whether they have the
+         * object's type pointer in ip (else the object in r2); */
+        static readonly (int length, int literal, bool fromTypePointer)[] NameCopies = { (28, 0x52, true), (30, 0x48, false) };
+
+        // VersionOf(); The version of a KatAM ROM the ROM Expansion has a build for, or null;
+        static KatAMExpansionCode.Version VersionOf(byte[] rom) => rom == null || rom.Length < 0x1000000 ? null
+            : KatAMExpansionCode.Versions.FirstOrDefault(v => Encoding.ASCII.GetString(rom, 0xAC, 4) == v.GameCode && rom[0xBC] == v.Revision);
 
         // Part; One NiDL frame drawn into a frame, with its colors remapped (NiDL colors of other palettes go to unused ones);
         // Part; A NiDL frame (from the enemy's frame table, or Table when the enemy has more than one), recolored;
@@ -181,14 +183,19 @@ namespace KatAMRandomizer {
         /* AddEnemies(); Adds every ported enemy as object type 0x31, expanding the ROM to 32 MB (rom is replaced by the bigger one).
          * Returns null when done, or why it couldn't be done (rom is left as it was); */
         public static string AddEnemies(ref byte[] rom, byte[] nightmare) {
-            if (RomRegion.Detect(rom) != RomRegion.USA) return "The ROM Expansion needs the USA version of Kirby & the Amazing Mirror as the ROM to randomize (the one loaded is the Japanese or European version). The Nightmare in Dream Land ROM can be from any region.";
-            if (!IsNightmareInDreamLand(nightmare)) return "That isn't a Kirby: Nightmare in Dream Land ROM.";
+            KatAMExpansionCode.Version version = VersionOf(rom);
+            NightmareRegion region = RegionOf(nightmare);
+
+            if (version == null) return "The ROM Expansion supports the USA, European and Japanese (revision 1) versions of Kirby & the Amazing Mirror.";
+            if (region == null) return "That isn't a Kirby: Nightmare in Dream Land ROM.";
+            if (region.KatAM != version.Name)
+                return $"The Nightmare in Dream Land ROM must be from the same region as Kirby & the Amazing Mirror: {version.Name} with {version.Name} (this one is from {region.KatAM}).";
             if (rom.Length > ExpandedSize) return "That ROM is bigger than the GBA can map (32 MB).";
 
             byte[] original = rom;
 
             rom = Expand(rom);
-            string error = AddEnemiesTo(rom, nightmare);
+            string error = AddEnemiesTo(rom, nightmare, region, version);
             if (error != null) rom = original;
             return error;
         }
@@ -202,7 +209,10 @@ namespace KatAMRandomizer {
             return expanded;
         }
 
-        static string AddEnemiesTo(byte[] rom, byte[] nightmare) {
+        static string AddEnemiesTo(byte[] rom, byte[] nightmare, NightmareRegion region, KatAMExpansionCode.Version version) {
+            int HurtAnimID = version.AnimCount,     // The first free anim ID (the vanilla table's size);
+                SpriteTables = version.SpriteTables, SpawnTable = version.SpawnTable, ObjectParameters = version.ObjectParameters,
+                ObjectParameters2 = version.ObjectParameters2, HitFlashBranch = version.HitFlashBranch;
 
             for (int i = CodeAddress; i < CodeAddress + ReservedSize; i++) {
                 if (rom[i] != 0xFF) return "The free space used by the ROM Expansion is already in use.";
@@ -211,17 +221,16 @@ namespace KatAMRandomizer {
             List<(Enemy enemy, byte[] palette, List<(byte[] tiles, ushort[] oams, short[] attributes)> frames, byte[] hurt)> built;
 
             try {
-                NightmareRegion region = RegionOf(nightmare);
                 built = Definitions.Select(e => Build(nightmare, region, e)).ToList();
             } catch (Exception exception) when (exception is IndexOutOfRangeException or ArgumentException or InvalidOperationException) {
-                return "The Nightmare in Dream Land ROM doesn't match the USA release.";
+                return $"The Nightmare in Dream Land ROM doesn't match the {region.KatAM} release.";
             }
 
             int anims = ReadInt(rom, SpriteTables) - 0x08000000, attrTable = ReadInt(rom, SpriteTables + 4) - 0x08000000,
                 oamTable = ReadInt(rom, SpriteTables + 8) - 0x08000000, paletteBase = ReadInt(rom, SpriteTables + 12) - 0x08000000,
                 tilesBase = ReadInt(rom, SpriteTables + 16) - 0x08000000;
 
-            byte[] code = KatAMExpansionCode.Code;
+            byte[] code = version.Code;
             Array.Copy(code, 0, rom, CodeAddress, code.Length);
             int cursor = CodeAddress + ((code.Length + 0xFF) & ~0xFF);
 
@@ -306,10 +315,11 @@ namespace KatAMRandomizer {
 
             // HP bar names, one per enemy;
             int namesAt = Allocate(ref cursor, Definitions.Count * 0x100, 4);
-            for (int i = 0; i < Definitions.Count; i++) ComposeName(rom, Definitions[i].Glyphs).CopyTo(rom, namesAt + i * 0x100);
+            if (version.NameSite1 != 0)
+                for (int i = 0; i < Definitions.Count; i++) ComposeName(rom, version, Definitions[i].Glyphs).CopyTo(rom, namesAt + i * 0x100);
 
             // gNidlData: names, then per enemy (animBase, animId, hurt tiles);
-            int nidlData = CodeAddress + KatAMExpansionCode.GNidlData;
+            int nidlData = CodeAddress + version.NidlData;
             WriteInt(rom, nidlData, namesAt + 0x08000000);
             for (int i = 0; i < data.Count; i++) {
                 int entry = nidlData + 4 + Definitions[i].Index * 8;
@@ -323,7 +333,7 @@ namespace KatAMRandomizer {
             int codeBase = CodeAddress + 0x08000000;
             int parameters = ObjectParameters + NightmareID * 0x18;
 
-            WriteInt(rom, SpawnTable + NightmareID * 4, codeBase + KatAMExpansionCode.CreateNidlEnemy + 1);
+            WriteInt(rom, SpawnTable + NightmareID * 4, codeBase + version.CreateNidlEnemy + 1);
             rom[parameters] = 0;
             rom[parameters + 1] = 1;
             Array.Copy(rom, ObjectParameters + 2, rom, parameters + 2, 4);
@@ -331,17 +341,22 @@ namespace KatAMRandomizer {
             WriteShort(rom, parameters + 8, 0);
             WriteShort(rom, parameters + 10, 0);
             WriteInt(rom, parameters + 12, numTiles);
-            WriteInt(rom, parameters + 16, codeBase + KatAMExpansionCode.NidlStart + 1);
+            WriteInt(rom, parameters + 16, codeBase + version.NidlStart + 1);
             WriteInt(rom, parameters + 20, animInfosAt + 0x08000000);
             Array.Copy(rom, ObjectParameters2, rom, ObjectParameters2 + NightmareID * 8, 8);
 
             /* The hit flash (sub_080857A0) keeps the palette to restore afterwards, but then looks it up again from the type's palette key
              * (none for type 0x31: palette 15, the flash's). Its "palette isn't 15" branch now skips that lookup (bne to the store); */
-            if (rom[HitFlashBranch] != 0x00 || rom[HitFlashBranch + 1] != 0xD0) return "The ROM's code doesn't match the USA release.";
+            if (rom[HitFlashBranch] != 0x00 || rom[HitFlashBranch + 1] != 0xD0) return $"The ROM's code doesn't match the {version.Name} release.";
             WriteShort(rom, HitFlashBranch, 0xD11A);
 
-            foreach ((int at, int length, int literal, bool fromTypePointer) in NameCopies)
-                ApplyNamePatch(rom, at, length, literal, fromTypePointer, codeBase + KatAMExpansionCode.NidlCopyName);
+            // Japan has no names patch (version.NameSite1 is 0; its HP bar names are stored differently): the bar keeps type 0x31's;
+            int[] sites = { version.NameSite1, version.NameSite2 };
+            for (int i = 0; i < NameCopies.Length; i++) {
+                if (sites[i] == 0) continue;
+                (int length, int literal, bool fromTypePointer) = NameCopies[i];
+                ApplyNamePatch(rom, sites[i], length, sites[i] + literal, fromTypePointer, codeBase + version.NidlCopyName);
+            }
 
             return null;
         }
@@ -497,7 +512,7 @@ namespace KatAMRandomizer {
          * New names are put together from the letters of other names: a letter is a run of columns with fill pixels (8 or 15),
          * letters are 1 column apart (3 for a space), and the outline (7) is drawn around the fill afterwards, as the game's names are;
          * Letters are (object type, letter index) in the English names; */
-        const int NameTables = 0xD60EE4, EnglishNames = 1, NameEnd = 62;
+        const int EnglishNames = 1, NameEnd = 62;
 
         static int[,] ReadName(byte[] rom, int table, int type) {
             int[,] pixels = new int[8, 64];
@@ -541,8 +556,8 @@ namespace KatAMRandomizer {
         }
 
         // ComposeName(); A name image (8 tiles) made of letters of the game's English names;
-        static byte[] ComposeName(byte[] rom, (int type, int letter)[] glyphs) {
-            int english = ReadInt(rom, NameTables + EnglishNames * 4) - 0x08000000;
+        static byte[] ComposeName(byte[] rom, KatAMExpansionCode.Version version, (int type, int letter)[] glyphs) {
+            int english = ReadInt(rom, version.Names + EnglishNames * 4) - 0x08000000;
             List<int[,]> letters = glyphs.Select(g => g.type < 0 ? null : Letter(rom, english, g.type, g.letter)).ToList();
 
             int width = 0;
