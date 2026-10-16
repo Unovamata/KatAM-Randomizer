@@ -185,14 +185,14 @@ namespace KatAMRandomizer {
             },
             new byte[] { 0x00, 0x01 });
 
-        /* Poppy Bros. Sr.; NiDL mini-boss 1 (type 0x32). Frames: every body frame (NiDL's 4-9, hopping) with every head frame (12-19,
+        /* Poppy Bros. Sr.; NiDL mini-boss 1 (type 0x32). Frames: every body frame (NiDL's 4-9, hopping) with every head frame over it (12-19,
          * drawn by its head object in NiDL), then its hands (20-25) and its bomb (26-30, NiDL's second palette). Hurt: NiDL's 10;
          * Variants 0 and 1 hop a different number of times before each bomb (0x087438DC); */
         static Miniboss PoppyBrosSr() {
             List<Part[]> frames = new List<Part[]>();
 
             for (int body = 4; body <= 9; body++)
-                for (int head = 12; head <= 19; head++) frames.Add(new[] { new Part(body), new Part(head) });
+                for (int head = 12; head <= 19; head++) frames.Add(new[] { new Part(head), new Part(body) });
             frames.AddRange(Enumerable.Range(20, 6).Select(f => new[] { new Part(f) }));
             frames.AddRange(Enumerable.Range(26, 5).Select(f => new[] { new Part(f, Palette: 1) }));
 
