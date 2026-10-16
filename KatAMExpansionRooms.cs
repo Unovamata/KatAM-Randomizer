@@ -84,7 +84,7 @@ namespace KatAMRandomizer {
          * their level's hub (object 0x8C); both read a world state slot (template +4, saved: gUnk_02028C10, 0x20 of them). KatAM's big
          * switches use slots 1-15, Central Circle's last mirror 0x12, Dark Meta Knight 0x13: a level's switches share one of the free
          * ones (0 where the level has none: Vegetable Valley and Ice Cream Island); */
-        static readonly int[] LevelSlots = { 0, 0, 0x14, 0x15, 0x16, 0x17, 0x18, 0 };
+        static readonly int[] LevelSlots = { 0, 0, 0x16, 0x17, 0x18, 0x19, 0x1A, 0 };  // 0x14 + level (worldmap.c's gNidlWorldMapDoors);
         const byte BigSwitchType = 0x86, HubMirrorType = 0x8C;
 
         // Hubs (see BuildHubs()): their stage numbers (a level's hub, the NiDL hub);
@@ -107,7 +107,7 @@ namespace KatAMRandomizer {
         static (int width, int height) Padded(int width, int height) => (Math.Max(width, MinWidth), Math.Max(height + HiddenRows, MinHeight));
         const int HiddenRows = 3, MinWidth = 16, MinHeight = 13;
 
-        static HashSet<(int level, int stage, int index)> KeptSwitches = new HashSet<(int, int, int)>();
+        internal static HashSet<(int level, int stage, int index)> KeptSwitches = new HashSet<(int, int, int)>();
         public static IReadOnlyList<NightmareRoom> PortedRooms { get; private set; } = new List<NightmareRoom>();
         public static IReadOnlyDictionary<NightmareRoom, List<Door>> PortedDoors { get; private set; } = new Dictionary<NightmareRoom, List<Door>>();
 
@@ -837,11 +837,12 @@ namespace KatAMRandomizer {
             return template;
         }
 
-        // BigSwitchTemplate(); A big switch (object 0x86, as KatAM's: +0x18 2, +0x22 6) setting the world slot, at NiDL's position;
-        static byte[] BigSwitchTemplate(int x, int y, int number, int slot) {
+        /* BigSwitchTemplate(); A big switch (object 0x86, as KatAM's: +0x22 6) setting the world slot, at NiDL's position; its +0x14 picks
+         * what pressing it runs: level's world map door (see KatAMExpansionWorldMap.cs); */
+        static byte[] BigSwitchTemplate(int x, int y, int number, int slot, int level) {
             byte[] template = ObjectTemplate(x, y, number, BigSwitchType);
             template[4] = (byte)slot; template[5] = 1;
-            WriteShort(template, 0x18, 2);
+            WriteShort(template, 0x14, NidlBigSwitchId(level));
             template[0x22] = 6;
             return template;
         }
@@ -1028,7 +1029,7 @@ namespace KatAMRandomizer {
                     miniboss = true;
                 } else if (category == 3 && RoomItems.TryGetValue(index, out type)) { }
                 else if (category == 4 && index == 1 && LevelSlots[r.Level] != 0 && KeptSwitches.Contains((r.Level, r.Stage, r.Index))) {
-                    templates.Add(BigSwitchTemplate(x, y, templates.Count, LevelSlots[r.Level]));
+                    templates.Add(BigSwitchTemplate(x, y, templates.Count, LevelSlots[r.Level], r.Level));
                     if (!types.Contains(BigSwitchType)) types.Add(BigSwitchType);
                     continue;
                 } else continue;

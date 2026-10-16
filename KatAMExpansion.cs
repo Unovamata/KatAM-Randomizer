@@ -682,7 +682,7 @@ namespace KatAMRandomizer {
                 ["gUnk_08D60FDC"] = hatTables.Select(table => table + 0x08000000).ToArray(),
                 ["gUnk_08350A3C"] = new[] { -1, -1, -1, -1, -1, -1, backdropPalette },
             });
-            return error ?? (rooms ? AddRooms(rom, nightmare, region, version, ref cursor) : null);
+            return error ?? (rooms ? AddWorldMap(rom, version, ref cursor) ?? AddRooms(rom, nightmare, region, version, ref cursor) : null);
         }
 
         //////////////////////////////////////////////////////////////////////////////////////////////
