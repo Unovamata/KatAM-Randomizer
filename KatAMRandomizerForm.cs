@@ -141,14 +141,15 @@ namespace KatAMRandomizer
 
                 Processing.parameters[KatAMExpansion.NightmareID] = "Nightmare in Dream Land Enemy";
                 foreach (byte type in KatAMExpansion.MinibossIDs) Processing.parameters[type] = "Nightmare in Dream Land Mini-boss";
+
+                /* Only with the ROM Expansion: every pause help screen shows the base one, which frees the space of the rest (and shows
+                 * the new abilities' portraits); */
+                KatAMPauseScreens.Apply(Processing.ROMData);
             } else {
                 Processing.parameters[KatAMExpansion.NightmareID] = Processing.enemiesDictionary[KatAMExpansion.NightmareID].Name;
                 foreach (byte type in KatAMExpansion.MinibossIDs)
                     if (Processing.enemiesDictionary.TryGetValue(type, out var empty)) Processing.parameters[type] = empty.Name;
             }
-
-            // Every pause help screen shows the base one, which frees the space of the rest;
-            KatAMPauseScreens.Apply(Processing.ROMData);
 
             new KatAMROMReader(system);
             new KatAMEnemies(system);
