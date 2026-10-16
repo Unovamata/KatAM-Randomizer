@@ -961,7 +961,7 @@ namespace KatAMRandomizer {
                     }
                     for (int y = MirrorTop; y <= height - 4; y++) {
                         for (int x = 1; x <= width - 2; x++) {
-                            if (At(x, y) != 0 || At(x, y - 1) != 0 || At(x, y + 1) is < 0x05 or > 0x1B || distance[y * width + x] < 0) continue;
+                            if (At(x, y) != 0 || At(x, y - 1) != 0 || Enumerable.Range(x - 1, 3).Any(fx => At(fx, y + 1) is < 0x05 or > 0x1B) || distance[y * width + x] < 0) continue;
                             if (doorCells.Any(c => Math.Abs(c.x - x) < MirrorSpacing * 2 && Math.Abs(c.y - y) <= 2)) continue;
                             double score = distance[y * width + x] - (deadEnd ? 12 * doorCount : 0) + random.NextDouble() * 3;
                             if (score > bestScore) { bestScore = score; best = (room, x, y); }
@@ -973,7 +973,8 @@ namespace KatAMRandomizer {
             }
             static int KatAMArea(int level) => 5 + level;
 
-            // RoomSpot(); A floor cell for a mirror in a NiDL room: where the camera shows it, with room above, not water, no door within
+            // RoomSpot(); A floor cell for a mirror in a NiDL room (a floor 3 cells wide under it: Kirby landing on a ledge 2 wide drops
+            // off it), where the camera shows it, with room above, not water, no door within
             // 2 x MirrorSpacing cells, one Kirby reaches; in the room's middle, or hidden (the farthest from where he comes in, behind blocks);
             (NightmareRoom part, int x, int y)? RoomSpot(NightmareRoom r, bool hidden) {
                 var key = (r.Level, r.Stage, r.Index);
@@ -1006,7 +1007,7 @@ namespace KatAMRandomizer {
                     for (int x = 1; x < width - 1 && x < r.FullWidth - 1; x++) {
                         int distance = broken[y * width + x];
                         if (distance < 0 || !Shown(r, y) || Kind(x, y) != 0 || !OpenCell(cells, width, x, y - 1)) continue;
-                        if (RoomCollision[Kind(x, y + 1)] is not (0x0D or (>= 0x05 and <= 0x0E) or (>= 0x10 and <= 0x1B))) continue;
+                        if (Enumerable.Range(x - 1, 3).Any(fx => RoomCollision[Kind(fx, y + 1)] is not (0x0D or (>= 0x05 and <= 0x0E) or (>= 0x10 and <= 0x1B)))) continue;
                         if (doors[r].Any(d => Math.Abs(d.X - x) < MirrorSpacing * 2 && Math.Abs(d.Y - y) <= 2)) continue;
                         double score = hidden ? distance + (plain[y * width + x] < 0 ? 60 : 0) : -Math.Abs(x - width / 2.0) + random.NextDouble() * 6;
                         if (score > bestScore) { bestScore = score; best = (r, x, y); }
@@ -1178,7 +1179,7 @@ namespace KatAMRandomizer {
                             for (int x = 1; x < width - 1 && x < r.FullWidth - 1; x++) {
                                 int distance = broken[y * width + x];
                                 if (distance < 0 || !Shown(r, y) || Kind(x, y) != 0 || !OpenCell(cells, width, x, y - 1)) continue;
-                                if (RoomCollision[Kind(x, y + 1)] is not (0x0D or (>= 0x05 and <= 0x0E) or (>= 0x10 and <= 0x1B))) continue;
+                                if (Enumerable.Range(x - 1, 3).Any(fx => RoomCollision[Kind(fx, y + 1)] is not (0x0D or (>= 0x05 and <= 0x0E) or (>= 0x10 and <= 0x1B)))) continue;
                                 if (doors[r].Any(d => Math.Abs(d.X - x) < MirrorSpacing * 2 && Math.Abs(d.Y - y) <= 2)) continue;
                                 int score = distance + 20 * depth.GetValueOrDefault(key.Item3) + (plain[y * width + x] < 0 ? 60 : 0);
                                 if (score > bestScore) { bestScore = score; best = (r, x, y); }
@@ -1298,7 +1299,7 @@ namespace KatAMRandomizer {
                 while (Open(x, y + 1) && !Floor(x, y + 1)) y++;
                 foreach (int dx in Enumerable.Range(0, 2 * ReturnReach + 1).Select(i => (i + 1) / 2 * (i % 2 == 0 ? -1 : 1))) {
                     int cx = x + dx;
-                    if (cx >= 1 && cx <= r.FullWidth - 2 && Shown(r, y) && Open(cx, y) && y + 1 < r.Height && Floor(cx, y + 1) && !doors[r].Any(d => d.Edge ? d.Y == y && d.X == cx : Math.Abs(d.Y - y) <= 2 && Math.Abs(d.X - cx) < MirrorSpacing))
+                    if (cx >= 1 && cx <= r.FullWidth - 2 && Shown(r, y) && Open(cx, y) && y + 1 < r.Height && Floor(cx, y + 1) && (cx == 0 || Floor(cx - 1, y + 1)) && (cx + 1 >= r.Width || Floor(cx + 1, y + 1)) && !doors[r].Any(d => d.Edge ? d.Y == y && d.X == cx : Math.Abs(d.Y - y) <= 2 && Math.Abs(d.X - cx) < MirrorSpacing))
                         return (cx, y);
                 }
                 // (no floor nearby: the landing itself, in the air, as KatAM's hub doors are, where the camera shows it; none where Kirby
