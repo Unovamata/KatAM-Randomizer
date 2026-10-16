@@ -58,11 +58,16 @@ namespace KatAMRandomizer {
             [3] = 0, [8] = 1, [16] = 2, [22] = 3, [26] = 4, [13] = 5, [15] = 6, [33] = 7, [23] = 8, [36] = 9, [29] = 10, [6] = 11,
             [11] = 12, [30] = 13, [31] = 13, [32] = 13, [39] = 14,
         };
-        // NiDL mini-bosses (category 1) -> KatAM type and behavior (0: Bonkers, 3: Mr. Frosty, 7: Phan Phan; the rest ported);
+        /* NiDL mini-bosses (category 6, Miniboss.NightmareIndex) -> KatAM type and behavior (0: Bonkers, 3: Mr. Frosty, 7: Phan Phan;
+         * the rest ported, NiDL's variant in the low nibble when the port has it); Meta Knight's event (category 7, its variant the
+         * knights' line-up) is the Meta-Knights. Each fight's screen is where its camera lock (category 5, index 0) is (see ArenaOf()); */
         static readonly Dictionary<int, (byte type, byte behavior)> RoomMinibosses = new Dictionary<int, (byte, byte)> {
             [0] = (0x39, 0), [1] = (0x40, 0x00), [2] = (0x40, 0x20), [3] = (0x38, 0), [4] = (0x40, 0x10), [5] = (0x41, 0x30),
-            [6] = (0x41, 0x40), [7] = (0x3A, 0), [8] = (0x42, 0x50), [9] = (0x42, 0x50),
+            [6] = (0x41, 0x40), [7] = (0x3A, 0),
         };
+        static readonly (byte type, byte behavior) RoomMetaKnights = (0x42, 0x50);
+        const int MinibossCategory = 6, MetaKnightsCategory = 7, CameraLockCategory = 5;
+        const byte ArenaBehavior = 0xF0;    // NIDL_ARENA << 4 (nidl.h);
         // NiDL items (category 3): 1-Up, Maxim Tomato, Invincibility Candy, Energy Drink -> KatAM's 1UP, Maximum Tomato, Lollipop, Pep Brew;
         static readonly Dictionary<int, byte> RoomItems = new Dictionary<int, byte> { [1] = 0x63, [2] = 0x61, [3] = 0x64, [4] = 0x5F };
         // KatAM song per NiDL level (Vegetable Valley ... Rainbow Resort, then the Fountain of Dreams);
@@ -1341,6 +1346,10 @@ namespace KatAMRandomizer {
             List<byte[]> templates = new List<byte[]>();
             List<byte> types = new List<byte>();
             int list = ReadInt(nightmare, r.Record + 0x48);
+            (int x, int y)? cameraLock = null;
+            for (int at = list == 0 ? r.Record : list - 0x08000000; at + 8 <= r.Record; at += 8)
+                if (nightmare[at] - 1 == CameraLockCategory && nightmare[at + 1] == 0)
+                    cameraLock = (ReadShort(nightmare, at + 4) - r.X * 16, ReadShort(nightmare, at + 6) - r.Y * 16);
 
             for (int at = list == 0 ? r.Record : list - 0x08000000; at + 8 <= r.Record; at += 8) {
                 int category = nightmare[at] - 1, index = nightmare[at + 1], variant = nightmare[at + 2];
@@ -1356,8 +1365,14 @@ namespace KatAMRandomizer {
                     if (index == 31) variant = variant == 0 ? 3 : variant == 1 ? 7 : 5;
                     else if (index == 32) variant = variant == 0 ? 4 : variant == 1 ? 8 : 6;
                     behavior = (byte)(ported << 4 | (variant & 0xF));
-                } else if (category == 1 && RoomMinibosses.TryGetValue(index, out (byte type, byte behavior) boss)) {
+                } else if (category == MinibossCategory && RoomMinibosses.TryGetValue(index, out (byte type, byte behavior) boss)) {
                     (type, behavior) = boss;
+                    if (MinibossDefinitions.FirstOrDefault(m => m.NightmareIndex == index)?.Behaviors.Contains((byte)(variant & 0xF)) == true)
+                        behavior |= (byte)(variant & 0xF);
+                    miniboss = true;
+                } else if (category == MetaKnightsCategory) {
+                    (type, behavior) = RoomMetaKnights;
+                    behavior |= (byte)(variant & 0xF);
                     miniboss = true;
                 } else if (category == 3 && RoomItems.TryGetValue(index, out type)) { }
                 else continue;
@@ -1367,8 +1382,20 @@ namespace KatAMRandomizer {
                 WriteShorts(template, 6, x, y);
                 template[10] = template[11] = template[13] = 0xFF;
                 template[12] = type; template[14] = behavior;
-                // A mini-boss fights in the whole room (NiDL's are the size of their arena);
-                if (miniboss) WriteShorts(template, 0x1A, -x, -y, r.FullWidth * 16, r.FullHeight * 16);
+                // A mini-boss fights on its screen: the camera stays there once Kirby is in it, as in NiDL;
+                if (miniboss) {
+                    (int left, int top, int width, int height) = ArenaOf(r, cameraLock ?? (x, y), x, y);
+                    WriteShorts(template, 0x1A, left - x, top - y, width, height);
+                }
+                // and the camera stays there, its edges walls, until it's beaten: an arena object ("ROM Expansion/enemies/arena.c"), first,
+                // so the camera is held when the mini-boss starts (and keeps itself on that screen);
+                if (miniboss) {
+                    byte[] arena = (byte[])template.Clone();
+                    arena[12] = NightmareID; arena[14] = ArenaBehavior;
+                    templates.Add(arena);
+                    if (!types.Contains(NightmareID)) types.Add(NightmareID);
+                    template[3] = (byte)templates.Count;
+                }
                 templates.Add(template);
                 if (!types.Contains(type)) types.Add(type);
             }
@@ -1394,6 +1421,20 @@ namespace KatAMRandomizer {
             }
 
             return WriteObjectList(rom, templates, types, noTypes, ref cursor);
+        }
+
+        /* ArenaOf(); A mini-boss's fight area: the screen around NiDL's camera lock (its x the screen's middle, its y near the top), moved
+         * to hold the mini-boss too, inside what KatAM's camera shows of the room (8 pixels in from its sides and top, 40 from its
+         * bottom; see Padded()); */
+        static (int left, int top, int width, int height) ArenaOf(NightmareRoom r, (int x, int y) cameraLock, int x, int y) {
+            const int ScreenWidth = 240, ScreenHeight = 160, Edge = 8, Bottom = 40, Margin = 24;
+            int width = Math.Min(ScreenWidth, r.FullWidth * 16 - 2 * Edge), height = Math.Min(ScreenHeight, r.FullHeight * 16 - Edge - Bottom);
+            int left = cameraLock.x - width / 2, top = cameraLock.y - Margin;
+            left = Math.Clamp(left, x + Margin - width, x - Margin);
+            top = Math.Clamp(top, y + Margin - height, y - Margin);
+            left = Math.Clamp(left, Edge, r.FullWidth * 16 - Edge - width);
+            top = Math.Clamp(top, Edge, r.FullHeight * 16 - Bottom - height);
+            return (left, top, width, height);
         }
 
         // WriteObjectList(); A room's LevelInfo_1E4: its templates (then an end), the types in it, an empty list, how many types;

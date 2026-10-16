@@ -47,6 +47,8 @@ enum {
     NIDL_GIP,
     NIDL_ENEMY_COUNT,
 };
+// Not an enemy: a mini-boss fight's walls in NiDL rooms (enemies/arena.c), with Broom Hatter's graphics (never shown);
+#define NIDL_ARENA NIDL_ENEMY_COUNT
 
 // Mini-bosses (type 0x40's behavior byte's high nibble);
 enum {
@@ -169,6 +171,8 @@ void StarmanInit(struct NidlObject *);
 void StarmanStart(struct Object *);
 void NeedlousInit(struct NidlObject *);
 void NeedlousStart(struct Object *);
+void ArenaInit(struct NidlObject *);
+void ArenaStart(struct Object *);
 void BladeKnightInit(struct NidlObject *);
 void BladeKnightStart(struct Object *);
 void ChillyInit(struct NidlObject *);

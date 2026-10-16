@@ -8,7 +8,7 @@ extern const u8 *const gUnk_08D60EE4[];  // HP bar names per language: 64x8 (0x1
 
 /* HP as KatAM's enemies': 4 for the ones that give an ability (KatAM's Sword Knight, Hot Head, Sparky...), 2 for the others
  * (NiDL's 1 and 2 die to any attack); */
-static const struct NidlEnemy sNidlEnemies[NIDL_ENEMY_COUNT] = {
+static const struct NidlEnemy sNidlEnemies[NIDL_ENEMY_COUNT + 1] = {
     [NIDL_BROOM_HATTER] = { BroomHatterInit, BroomHatterStart, 2, 0 },
     [NIDL_CAPPY] = { CappyInit, CappyStart, 2, 0 },
     [NIDL_TWIZZY] = { TwizzyInit, TwizzyStart, 2, 0 },
@@ -24,6 +24,7 @@ static const struct NidlEnemy sNidlEnemies[NIDL_ENEMY_COUNT] = {
     [NIDL_COOL_SPOOK] = { CoolSpookInit, CoolSpookStart, 4, NIDL_ABILITY_LIGHT },
     [NIDL_POPPY_BROS_JR] = { PoppyBrosJrInit, PoppyBrosJrStart, 2, 0 },
     [NIDL_GIP] = { GipInit, GipStart, 2, 0 },
+    [NIDL_ARENA] = { ArenaInit, ArenaStart, 1, 0 },
 };
 
 // NidlSetFrame(); Shows one of the enemy's frames (its own numbering);
@@ -125,12 +126,12 @@ void *CreateNidlEnemy(struct ObjectTemplate *template, u8 playerId) {
     struct NidlObject *n = TaskGetStructPtr(task);
     u8 enemy = template->subtype1 >> 4;
 
-    if (enemy >= NIDL_ENEMY_COUNT) enemy = 0;
+    if (enemy > NIDL_ARENA) enemy = 0;
 
     InitObject(&n->obj, template, playerId);
-    n->enemy = enemy;
+    n->enemy = enemy == NIDL_ARENA ? 0 : enemy;
     n->variant = template->subtype1 & 0xF;
-    n->animBase = gNidlData.enemies[enemy].animBase;
+    n->animBase = gNidlData.enemies[n->enemy].animBase;
     n->hurtVram = 0;
     n->sequence = NULL;
     n->activated = FALSE;
@@ -141,6 +142,7 @@ void *CreateNidlEnemy(struct ObjectTemplate *template, u8 playerId) {
     ObjectInitSprite(&n->obj);
     NidlInitPalette(n);
     NidlUploadHurtTiles(n);
+    n->enemy = enemy;
     NidlStart(&n->obj);
     return n;
 }

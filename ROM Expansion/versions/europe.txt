@@ -29,6 +29,7 @@ gCollisionAttributes 0x82da758
 gCurLevelInfo 0x2023530
 gCurTask 0x30035d0
 gKirbys 0x2020ee0
+gNumKirbys 0x203ad44
 gLanguage 0x3000468
 gLocalPlayerId 0x203ad3c
 gMainFlags 0x3002440
