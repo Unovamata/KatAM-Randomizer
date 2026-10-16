@@ -5,11 +5,12 @@
  * (gNidlWorldMapDoors) into copies of the door tables, adds NidlWorldMapUnlock* to gUnk_0834BD94, and makes these functions
  * replace KatAM's:
  * - NidlWorldMapUnlockSave: the slot of every door (KatAM's switch, then the NiDL doors');
- * - NidlWorldMapGetCoorFromRoom: where Kirby is drawn on the map: in a NiDL level (area 11 + level), on its door;
+ * - NidlWorldMapGetCoorFromRoom: where Kirby is drawn on the map: in a NiDL level (area 11 + level), on its door; in the NiDL hub
+ *   (gNidlHubRoom, set by KatAMExpansionRooms.cs), on Central Circle;
  * - NidlWorldMapDrawKirbys: in the pause menu, the unlocked NiDL doors (the map's door tile) and their paths (the dots of the
  *   unlocking animation: KatAM's paths are drawn in the map's tilemap, which has none for them) before the Kirbys;
- * - NidlGetKirbyRoomFlagIndex: the pause menu takes the NiDL levels' rooms (no area map) as the tutorial's: Select switches between
- *   the help and the world map once it is owned; */
+ * - NidlGetKirbyRoomFlagIndex: the pause menu takes the NiDL levels' rooms and the NiDL hub (no area map) as the tutorial's: Select
+ *   switches between the help and the world map once it is owned; */
 #include "global.h"
 #include "data.h"
 #include "functions.h"
@@ -25,6 +26,9 @@
 #define NIDL_WORLDMAP_MAX_DOTS 20
 #define NIDL_AREA_BASE 11
 #define WORLDMAP_DOT_SPRITE_MAGIC 0x4E494D50
+#define CENTRAL_CIRCLE_ROOM 0x321
+
+u16 gNidlHubRoom = 0xFFFF;
 
 struct NidlWorldMapDoor {
     u8 x, y;          // the NiDL level's door;
@@ -81,7 +85,10 @@ extern const struct NidlKirbysCoorByRoom *const gWorldMapKirbysCoorsByArea[];
 u16 NidlWorldMapGetCoorFromRoom(u16 roomId, u8 playerId) {
     u16 roomIdx;
     u32 coor = 0;
-    s32 area = gUnk_08D6CD0C[roomId]->unk46, areaId = AREA_TUTORIAL;
+    s32 area, areaId = AREA_TUTORIAL;
+
+    if (roomId == gNidlHubRoom) roomId = CENTRAL_CIRCLE_ROOM;
+    area = gUnk_08D6CD0C[roomId]->unk46;
 
     if (area >= NIDL_AREA_BASE && area < NIDL_AREA_BASE + NIDL_WORLDMAP_DOORS)
         return gNidlWorldMapDoors[area - NIDL_AREA_BASE].x << 8 | gNidlWorldMapDoors[area - NIDL_AREA_BASE].y;
@@ -159,8 +166,10 @@ void NidlWorldMapDrawKirbys(struct NidlWorldMap *worldmap) {
 u32 (*gNidlRoomFlagIndexOriginal)(u32) = NULL;
 
 u32 NidlGetKirbyRoomFlagIndex(u32 playerId) {
-    s32 area = gUnk_08D6CD0C[gKirbys[playerId].base.roomId]->unk46;
+    u16 roomId = gKirbys[playerId].base.roomId;
+    s32 area = gUnk_08D6CD0C[roomId]->unk46;
 
+    if (roomId == gNidlHubRoom) return KIRBY_IN_TUTORIAL_ROOM;
     if (area >= NIDL_AREA_BASE && area < NIDL_AREA_BASE + NIDL_WORLDMAP_DOORS) return KIRBY_IN_TUTORIAL_ROOM;
     return gNidlRoomFlagIndexOriginal(playerId);
 }
