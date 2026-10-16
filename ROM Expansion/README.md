@@ -49,6 +49,8 @@ The ROM is first padded from 16 MB to 32 MB with `0xFF` (the most the GBA maps: 
 | Object parameters (`0x351648 + 0x31 * 0x18`) | Hurt frames 0 and 1, Waddle Dee's score and HP, no ability, no palette key, VRAM for the biggest frame plus the hurt frame, `NidlStart`, the shared animations |
 | `0x08034ED2`, `0x08035B34`, `0x080857EE` | The patches above |
 
+Each enemy's HP is its own (`sNidlEnemies`, set at spawn), as KatAM's enemies': 4 for the ones that give an ability (as KatAM's Sword Knight, Hot Head or Sparky), 2 for the others. NiDL's are 1 or 2, so anything killed them in one hit.
+
 Graphics come from the player's NiDL ROM: each enemy's descriptor (`0x0873EEA0 + (type - 8) * 4`: palette, LZ77 tiles) and frame table (8-byte OAM records). Nothing from NiDL is shipped.
 
 ## Enemies

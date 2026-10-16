@@ -6,21 +6,23 @@
 
 extern const u8 *const gUnk_08D60EE4[];  // HP bar names per language: 64x8 (0x100 bytes) per object type;
 
+/* HP as KatAM's enemies': 4 for the ones that give an ability (KatAM's Sword Knight, Hot Head, Sparky...), 2 for the others
+ * (NiDL's 1 and 2 die to any attack); */
 static const struct NidlEnemy sNidlEnemies[NIDL_ENEMY_COUNT] = {
     [NIDL_BROOM_HATTER] = { BroomHatterInit, BroomHatterStart, 2, 0 },
     [NIDL_CAPPY] = { CappyInit, CappyStart, 2, 0 },
-    [NIDL_TWIZZY] = { TwizzyInit, TwizzyStart, 1, 0 },
-    [NIDL_BUBBLES] = { BubblesInit, BubblesStart, 2, NIDL_ABILITY_BALL },
+    [NIDL_TWIZZY] = { TwizzyInit, TwizzyStart, 2, 0 },
+    [NIDL_BUBBLES] = { BubblesInit, BubblesStart, 4, NIDL_ABILITY_BALL },
     [NIDL_SLIPPY] = { SlippyInit, SlippyStart, 2, 0 },
     [NIDL_KABU] = { KabuInit, KabuStart, 2, 0 },
-    [NIDL_COCONUT] = { CoconutInit, CoconutStart, 1, 0 },
+    [NIDL_COCONUT] = { CoconutInit, CoconutStart, 2, 0 },
     [NIDL_CONER] = { ConerInit, ConerStart, 2, 0 },
-    [NIDL_STARMAN] = { StarmanInit, StarmanStart, 2, NIDL_ABILITY_HI_JUMP },
-    [NIDL_NEEDLOUS] = { NeedlousInit, NeedlousStart, 2, NIDL_ABILITY_NEEDLE },
-    [NIDL_BLADE_KNIGHT] = { BladeKnightInit, BladeKnightStart, 2, KIRBY_ABILITY_SWORD },
-    [NIDL_CHILLY] = { ChillyInit, ChillyStart, 2, NIDL_ABILITY_FREEZE },
-    [NIDL_COOL_SPOOK] = { CoolSpookInit, CoolSpookStart, 1, NIDL_ABILITY_LIGHT },
-    [NIDL_POPPY_BROS_JR] = { PoppyBrosJrInit, PoppyBrosJrStart, 1, 0 },
+    [NIDL_STARMAN] = { StarmanInit, StarmanStart, 4, NIDL_ABILITY_HI_JUMP },
+    [NIDL_NEEDLOUS] = { NeedlousInit, NeedlousStart, 4, NIDL_ABILITY_NEEDLE },
+    [NIDL_BLADE_KNIGHT] = { BladeKnightInit, BladeKnightStart, 4, KIRBY_ABILITY_SWORD },
+    [NIDL_CHILLY] = { ChillyInit, ChillyStart, 4, NIDL_ABILITY_FREEZE },
+    [NIDL_COOL_SPOOK] = { CoolSpookInit, CoolSpookStart, 4, NIDL_ABILITY_LIGHT },
+    [NIDL_POPPY_BROS_JR] = { PoppyBrosJrInit, PoppyBrosJrStart, 2, 0 },
     [NIDL_GIP] = { GipInit, GipStart, 2, 0 },
 };
 
