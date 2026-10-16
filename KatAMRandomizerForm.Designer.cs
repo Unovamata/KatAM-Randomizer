@@ -196,7 +196,10 @@
             LabelExpansionDescription = new Label();
             ButtonExpansionLoadNightmare = new Button();
             LabelExpansionNightmare = new Label();
-            CheckedListExpansionEnemies = new CheckedListBox();
+            CheckboxExpansionEnemies = new CheckBox();
+            CheckboxExpansionMinibosses = new CheckBox();
+            CheckboxExpansionRooms = new CheckBox();
+            LabelExpansionEnemies = new Label();
             GroupMapElements = new GroupBox();
             GroupMapElementStoneDoors = new GroupBox();
             MapElementsStoneDoorsUnchanged = new RadioButton();
@@ -2743,7 +2746,10 @@
             GroupExpansionNightmare.Controls.Add(LabelExpansionDescription);
             GroupExpansionNightmare.Controls.Add(ButtonExpansionLoadNightmare);
             GroupExpansionNightmare.Controls.Add(LabelExpansionNightmare);
-            GroupExpansionNightmare.Controls.Add(CheckedListExpansionEnemies);
+            GroupExpansionNightmare.Controls.Add(CheckboxExpansionEnemies);
+            GroupExpansionNightmare.Controls.Add(CheckboxExpansionMinibosses);
+            GroupExpansionNightmare.Controls.Add(CheckboxExpansionRooms);
+            GroupExpansionNightmare.Controls.Add(LabelExpansionEnemies);
             GroupExpansionNightmare.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
             GroupExpansionNightmare.Location = new Point(10, 10);
             GroupExpansionNightmare.Margin = new Padding(4, 5, 4, 5);
@@ -2762,7 +2768,7 @@
             LabelExpansionDescription.Name = "LabelExpansionDescription";
             LabelExpansionDescription.Size = new Size(1150, 80);
             LabelExpansionDescription.TabIndex = 0;
-            LabelExpansionDescription.Text = "Adds enemies ported from Kirby: Nightmare in Dream Land to the enemy pool. Their graphics are taken from your own Nightmare in Dream Land ROM (USA, Japanese or European). Only for the USA version of Kirby & the Amazing Mirror; The new enemies appear when enemies are randomized. The ROM is expanded to 32 MB to fit them.";
+            LabelExpansionDescription.Text = "Adds enemies and mini-bosses ported from Kirby: Nightmare in Dream Land to the enemy and mini-boss pools. Their graphics are taken from your own Nightmare in Dream Land ROM, which must be from the same region as the Kirby & the Amazing Mirror ROM: USA with USA, European with European, Japanese (revision 1) with Japanese. European games show the enemies' English names in every language; Japanese games show no names. Pick what to include once the ROM is loaded. Enemies appear when enemies are randomized, mini-bosses when mini-bosses are, each as often as any of the game's own. The ROM is expanded to 32 MB to fit them.";
             // 
             // ButtonExpansionLoadNightmare
             // 
@@ -2787,19 +2793,53 @@
             LabelExpansionNightmare.TabIndex = 2;
             LabelExpansionNightmare.Text = "No ROM loaded";
             // 
-            // CheckedListExpansionEnemies
+            // CheckboxExpansionEnemies
             // 
-            CheckedListExpansionEnemies.CheckOnClick = true;
-            CheckedListExpansionEnemies.Enabled = false;
-            CheckedListExpansionEnemies.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            CheckedListExpansionEnemies.Location = new Point(16, 178);
-            CheckedListExpansionEnemies.Margin = new Padding(4, 5, 4, 5);
-            CheckedListExpansionEnemies.MultiColumn = true;
-            CheckedListExpansionEnemies.ColumnWidth = 220;
-            CheckedListExpansionEnemies.Name = "CheckedListExpansionEnemies";
-            CheckedListExpansionEnemies.Size = new Size(1150, 330);
-            CheckedListExpansionEnemies.TabIndex = 3;
-            CheckedListExpansionEnemies.ItemCheck += CheckedListExpansionEnemies_ItemCheck;
+            CheckboxExpansionEnemies.AutoSize = true;
+            CheckboxExpansionEnemies.Enabled = false;
+            CheckboxExpansionEnemies.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            CheckboxExpansionEnemies.Location = new Point(16, 172);
+            CheckboxExpansionEnemies.Margin = new Padding(4, 5, 4, 5);
+            CheckboxExpansionEnemies.Name = "CheckboxExpansionEnemies";
+            CheckboxExpansionEnemies.TabIndex = 3;
+            CheckboxExpansionEnemies.Text = "Include enemies";
+            CheckboxExpansionEnemies.UseVisualStyleBackColor = true;
+            CheckboxExpansionEnemies.CheckedChanged += CheckboxExpansionEnemies_CheckedChanged;
+            // 
+            // CheckboxExpansionMinibosses
+            // 
+            CheckboxExpansionMinibosses.AutoSize = true;
+            CheckboxExpansionMinibosses.Enabled = false;
+            CheckboxExpansionMinibosses.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            CheckboxExpansionMinibosses.Location = new Point(16, 206);
+            CheckboxExpansionMinibosses.Margin = new Padding(4, 5, 4, 5);
+            CheckboxExpansionMinibosses.Name = "CheckboxExpansionMinibosses";
+            CheckboxExpansionMinibosses.TabIndex = 4;
+            CheckboxExpansionMinibosses.Text = "Include mini-bosses";
+            CheckboxExpansionMinibosses.UseVisualStyleBackColor = true;
+            CheckboxExpansionMinibosses.CheckedChanged += CheckboxExpansionMinibosses_CheckedChanged;
+            // 
+            // CheckboxExpansionRooms
+            // 
+            CheckboxExpansionRooms.AutoSize = true;
+            CheckboxExpansionRooms.Enabled = false;
+            CheckboxExpansionRooms.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            CheckboxExpansionRooms.Location = new Point(16, 240);
+            CheckboxExpansionRooms.Margin = new Padding(4, 5, 4, 5);
+            CheckboxExpansionRooms.Name = "CheckboxExpansionRooms";
+            CheckboxExpansionRooms.TabIndex = 5;
+            CheckboxExpansionRooms.Text = "Include rooms (not ported yet)";
+            CheckboxExpansionRooms.UseVisualStyleBackColor = true;
+            // 
+            // LabelExpansionEnemies
+            // 
+            LabelExpansionEnemies.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            LabelExpansionEnemies.Location = new Point(16, 284);
+            LabelExpansionEnemies.Margin = new Padding(4, 0, 4, 0);
+            LabelExpansionEnemies.Name = "LabelExpansionEnemies";
+            LabelExpansionEnemies.Size = new Size(1150, 230);
+            LabelExpansionEnemies.TabIndex = 6;
+            LabelExpansionEnemies.Text = "";
             // 
             // tabPage6
             // 
@@ -2971,7 +3011,10 @@
         private Label LabelExpansionDescription;
         private Button ButtonExpansionLoadNightmare;
         private Label LabelExpansionNightmare;
-        private CheckedListBox CheckedListExpansionEnemies;
+        private CheckBox CheckboxExpansionEnemies;
+        private CheckBox CheckboxExpansionMinibosses;
+        private CheckBox CheckboxExpansionRooms;
+        private Label LabelExpansionEnemies;
         private Label LabelGameRegion;
         private GroupBox GroupMiscSprayPalettes;
         private RadioButton RadioSprayUnchanged;

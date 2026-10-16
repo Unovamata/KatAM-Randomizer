@@ -130,8 +130,8 @@ namespace KatAMRandomizer
             settings.RandomEntity = new Random(settings.Seed);
 
             // ROM Expansion goes first, so the ROM reader sees the new enemies' parameters like any other's;
-            if (settings.NightmareEnemies.Count > 0) {
-                string error = nightmareROM == null ? "Load a Nightmare in Dream Land ROM in the ROM Expansion tab, or turn its enemies off."
+            if (settings.NightmareEnemies.Count > 0 || settings.NightmareMinibosses.Count > 0) {
+                string error = nightmareROM == null ? "Load a Nightmare in Dream Land ROM in the ROM Expansion tab, or turn its enemies and mini-bosses off."
                                                     : AddNightmareEnemies();
 
                 if (error != null) {
@@ -140,9 +140,15 @@ namespace KatAMRandomizer
                 }
 
                 Processing.parameters[KatAMExpansion.NightmareID] = "Nightmare in Dream Land Enemy";
+                foreach (byte type in KatAMExpansion.MinibossIDs) Processing.parameters[type] = "Nightmare in Dream Land Mini-boss";
             } else {
                 Processing.parameters[KatAMExpansion.NightmareID] = Processing.enemiesDictionary[KatAMExpansion.NightmareID].Name;
+                foreach (byte type in KatAMExpansion.MinibossIDs)
+                    if (Processing.enemiesDictionary.TryGetValue(type, out var empty)) Processing.parameters[type] = empty.Name;
             }
+
+            // Every pause help screen shows the base one, which frees the space of the rest;
+            KatAMPauseScreens.Apply(Processing.ROMData);
 
             new KatAMROMReader(system);
             new KatAMEnemies(system);
@@ -782,24 +788,43 @@ namespace KatAMRandomizer
                     return;
                 }
 
+                // Its content is included by kind; every ported enemy comes with "Include enemies";
                 nightmareROM = rom;
                 LabelExpansionNightmare.Text = Path.GetFileName(fileDialog.FileName);
-                CheckedListExpansionEnemies.Enabled = true;
-
-                if (CheckedListExpansionEnemies.Items.Count == 0) {
-                    foreach ((int index, string name) in KatAMExpansion.Enemies) CheckedListExpansionEnemies.Items.Add(name);
-                }
+                CheckboxExpansionEnemies.Enabled = true;
+                CheckboxExpansionEnemies.Checked = true;
+                CheckboxExpansionEnemies_CheckedChanged(CheckboxExpansionEnemies, EventArgs.Empty);
+                CheckboxExpansionMinibosses.Enabled = true;
+                CheckboxExpansionMinibosses.Checked = true;
+                CheckboxExpansionMinibosses_CheckedChanged(CheckboxExpansionMinibosses, EventArgs.Empty);
             } catch (Exception ex) {
                 MessageBox.Show($"Error loading file: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
-        // The enemies picked; ItemCheck comes before the item's state changes;
-        private void CheckedListExpansionEnemies_ItemCheck(object sender, ItemCheckEventArgs e) {
-            int index = KatAMExpansion.Enemies[e.Index].index;
+        // CheckboxExpansionEnemies_CheckedChanged(); Every ported enemy, or none;
+        private void CheckboxExpansionEnemies_CheckedChanged(object sender, EventArgs e) {
+            bool including = nightmareROM != null && CheckboxExpansionEnemies.Checked;
 
-            settings.NightmareEnemies.Remove(index);
-            if (e.NewValue == CheckState.Checked) settings.NightmareEnemies.Add(index);
+            settings.NightmareEnemies = including ? KatAMExpansion.Enemies.Select(enemy => enemy.index).ToList() : new List<int>();
+            UpdateExpansionLabel();
+        }
+
+        // CheckboxExpansionMinibosses_CheckedChanged(); Every ported mini-boss, or none;
+        private void CheckboxExpansionMinibosses_CheckedChanged(object sender, EventArgs e) {
+            bool including = nightmareROM != null && CheckboxExpansionMinibosses.Checked;
+
+            settings.NightmareMinibosses = including ? KatAMExpansion.Minibosses.Select(miniboss => miniboss.index).ToList() : new List<int>();
+            UpdateExpansionLabel();
+        }
+
+        // UpdateExpansionLabel(); What the ROM Expansion adds;
+        private void UpdateExpansionLabel() {
+            List<string> lines = new List<string>();
+
+            if (settings.NightmareEnemies.Count > 0) lines.Add("Enemies: " + string.Join(", ", KatAMExpansion.Enemies.Select(enemy => enemy.name)) + ".");
+            if (settings.NightmareMinibosses.Count > 0) lines.Add("Mini-bosses: " + string.Join(", ", KatAMExpansion.Minibosses.Select(miniboss => miniboss.name)) + ".");
+            LabelExpansionEnemies.Text = string.Join(Environment.NewLine + Environment.NewLine, lines);
         }
 
         // Mirrors;

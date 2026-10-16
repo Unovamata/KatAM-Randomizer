@@ -1,5 +1,7 @@
 /* Broom Hatter; ported from Kirby: Nightmare in Dream Land (USA), object type 0x0B (spawn 0x0808D4E8), as NiDL enemy
- * NIDL_BROOM_HATTER (see nidl.h). Variant 1 sweeps in place forever.
+ * NIDL_BROOM_HATTER (see nidl.h). Variants (0x08743188): 0 (0x0808D558); 1 (0x0808DA00), the same with its own Sweep timing
+ * (0x0808DAE8), moving only once it has landed (obj+0x30, set by its landing handler 0x0808D304); 2 (0x0808DF58) sweeps in place
+ * forever (0x0808DFC4, the same steps as Stand).
  * NiDL runs it as coroutine scripts (one per state) that set a velocity, a broom dust frame and a body frame, then
  * wait some frames. The scripts are copied here step by step as tables and played back one step at a time;
  * NiDL velocities are 16.16 pixels per frame, KatAM's are 8.8, so 0x10000 there is 0x100 here;
@@ -37,12 +39,19 @@ struct BroomHatter {
     u8 wait;
     u8 loop;
     u8 lastAction;
+    bool8 landed;   // Variant 1 moves only once it has landed;
 };
 
 // 0x0808D640; Velocity table 0x08743144: 1.0, 0.5, 0.25, 0.25, 2.0;
 static const struct Step sSweep[] = {
     { 0x100, 0, 6, 5, 0 }, { 0x100, 0, 6, 5, 0 }, { 0x80, 0, 5, 5, 0 }, { 0x80, 2, 4, 5, 0 },
     { 0x40, 2, 4, 1, 0 }, { 0x40, 1, 7, 7, 0 }, { 0x40, 3, 6, 6, 0 }, { 0x200, 3, 6, 2, 0 },
+};
+
+// 0x0808DAE8; Variant 1's Sweep: the same speeds, other timing;
+static const struct Step sSweep1[] = {
+    { 0x100, 0, 6, 7, 0 }, { 0x100, 0, 6, 3, 0 }, { 0x80, 0, 6, 4, 0 }, { 0x80, 0, 5, 6, 0 }, { 0x40, 2, 4, 6, 0 },
+    { 0x40, 1, 7, 2, 0 }, { 0x40, 1, 7, 4, 0 }, { 0x40, 3, 6, 4, 0 }, { 0x200, 3, 6, 2, 0 },
 };
 
 // 0x0808D790; Velocity table 0x08743158: 1.0, 0.5, 0.5, -1.0, -0.5, -0.5. The first step only plays once;
@@ -69,7 +78,8 @@ static void PlayStep(struct BroomHatter *bh) {
 
     if (step->backward && (bh->n.obj.base.flags & 1))
         frame |= 1;
-    bh->n.obj.base.xspeed = (bh->n.obj.base.flags & 1) ? -step->speed : step->speed;
+    if (bh->n.variant != 1 || bh->landed)
+        bh->n.obj.base.xspeed = (bh->n.obj.base.flags & 1) ? -step->speed : step->speed;
     NidlSetFrame(&bh->n, (frame - 4) * 4 + step->dust);
     bh->wait = step->wait;
 }
@@ -80,8 +90,8 @@ static void StartScript(struct BroomHatter *bh, u8 script) {
     bh->loop = 0;
     switch (script) {
     case SCRIPT_SWEEP:
-        bh->steps = sSweep;
-        bh->numSteps = ARRAY_COUNT(sSweep);
+        bh->steps = bh->n.variant == 1 ? sSweep1 : sSweep;
+        bh->numSteps = bh->n.variant == 1 ? ARRAY_COUNT(sSweep1) : ARRAY_COUNT(sSweep);
         bh->loopStart = 0;
         bh->loops = 2;
         break;
@@ -125,6 +135,7 @@ static void BroomHatterMain(struct Object *obj) {
     NidlUpdate(&bh->n);
     NidlFall(obj);
     obj->base.flags |= 4;
+    if (obj->base.unk62 & 4) bh->landed = TRUE;
     if (bh->wait && --bh->wait) {
         NidlStopAtLedge(obj);
         return;
@@ -149,7 +160,7 @@ void BroomHatterStart(struct Object *obj) {
     ObjectSetFunc(obj, 0, BroomHatterMain);
     NidlFaceKirby(obj);
     bh->lastAction = ACTION_SWEEP;
-    StartScript(bh, bh->n.variant == 1 ? SCRIPT_STAND : SCRIPT_SWEEP);
+    StartScript(bh, bh->n.variant == 2 ? SCRIPT_STAND : SCRIPT_SWEEP);
 }
 
 // BroomHatterInit(); Its box, standing on the floor;
@@ -158,5 +169,6 @@ void BroomHatterInit(struct NidlObject *n) {
 
     sub_0803E2B0(&obj->base, -5, -4, 5, 7);
     ObjectSetBounds(&obj->base, -6, -5, 6, 9);
+    ((struct BroomHatter *)n)->landed = FALSE;
     obj->base.unk4C = obj->base.y = ((obj->base.y + (obj->base.unk3F * 0x100)) & 0xfffff000) - (obj->base.unk3F * 0x100) - 1;
 }

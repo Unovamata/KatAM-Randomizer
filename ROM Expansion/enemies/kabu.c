@@ -5,7 +5,17 @@
  * • 0x0807F218: faces Kirby and jumps; the 5 jumps (tables 0x08741328, 0x0874133C, 0x08741350): in place 3.0, forward 1.0 3.0,
  *   backwards 1.0 3.0, in place 4.5, forward 1.0 4.5 (gravity 1/8, falling at 6.0 at most), spinning every 4, 2, 8, 8 or 4
  *   frames. Landing (0x0807F2B4) it sits again.
- * NiDL's variants 1 to 3 aren't ported; */
+ * • Variant 1, 0x0807F380 (states 0x087413A8, per frame 0x087413B4): sits rocking (frames 4-10, 8 frames each, 0x0807F42C) until
+ *   Kirby is within 63 pixels (0x0807F488); then (0x0807F4DC) spins for 48 frames fading out (a mask per 8 frames, 0x08741357),
+ *   is gone for 60, and comes back 32-48 pixels to a side of Kirby and up to 64 above, where there's room (tables 0x08741367,
+ *   0x0874136D; up to 60 tries, 0x0807F6A8), spinning 48 frames fading in; it falls (0x0807F78C: gravity 0x2000, at 6.0 at most,
+ *   spinning every 4 frames), sits 10 frames (0x08741365, frame 12), then slides at Kirby at 3.0 spinning until it stops, and
+ *   vanishes again.
+ * • Variant 2, 0x0807F88C (states 0x087413C0, per frame 0x087413C8): spins (frames 4-11, 4 frames each, 0x0807F920) gliding to a
+ *   point 64 pixels in front of or behind Kirby (0x08741378), accelerating by 0x2000 a frame up to 3.0 (0x0807F9A0); when it's
+ *   there it hangs on 180 frames (switching sides after 60 and 120), switching sides 3 times; then (0x0807FA98) it sits 15
+ *   frames (frame 12), hops 4.0 (gravity: the engine's), spinning every frame, and glides again.
+ * • Variant 3, 0x0807FB00 (0x0807FB84): faces Kirby and spins in place forever (frames 4-10, 5 frames each); */
 #include "../nidl.h"
 
 // Frames: NiDL's 4 to 12 (spinning 4-11, sitting 12), numbered from 0. Its hurt frame is NiDL's 3;
@@ -21,7 +31,28 @@ static const u8 sSpinTime[] = { 4, 2, 8, 8, 4 };                    // 0x0874135
 #define MAX_FALL 0x600
 #define SPIN_TIME 5
 
-enum { STATE_SIT, STATE_SPIN, STATE_WAIT, STATE_JUMP };
+// Variant 1;
+#define ROCK_TIME 8
+#define WARP_RANGE 63
+#define FADE_TIME 48
+#define GONE_TIME 60
+#define WARP_TRIES 60
+#define WARP_SIT_TIME 10
+#define SLIDE_SPEED 0x300
+#define SLIDE_FRICTION 0x10
+
+// Variant 2;
+#define GLIDE_OFFSET 64
+#define GLIDE_ACCEL 0x20
+#define GLIDE_SPEED 0x300
+#define GLIDE_HOLD 180
+#define GLIDE_SWITCHES 3
+#define GLIDE_HOP 0x400
+static const u8 sFade[] = { 0x7F, 0x77, 0x57, 0x55, 0x15, 0x11, 0x01, 0x01, 0x11, 0x15, 0x55, 0x57, 0x77, 0x7F };  // 0x08741357;
+static const s8 sWarpX[] = { 32, 40, 48, -32, -40, -48 };                    // 0x08741367;
+static const s8 sWarpY[] = { 0, -8, -16, -24, -32, -40, -48, -56, -64 };   // 0x0874136D;
+
+enum { STATE_SIT, STATE_SPIN, STATE_WAIT, STATE_JUMP, STATE_ROCK, STATE_FADE_OUT, STATE_GONE, STATE_FADE_IN, STATE_DROP, STATE_LAND, STATE_SLIDE, STATE_GLIDE, STATE_GLIDE_SIT, STATE_GLIDE_HOP };
 
 struct Kabu {
     struct NidlObject n;
@@ -32,6 +63,10 @@ struct Kabu {
     u8 spinFrame;
     u8 spinTime;
     u8 airborne;
+    u8 fade;
+    u8 side;        // Variant 2: 0 in front of Kirby (at its right), 1 behind;
+    u8 switches;
+    u8 hold;
 };
 
 static void Sit(struct Kabu *k, u8 time) {
@@ -72,12 +107,199 @@ static void Jump(struct Kabu *k) {
     NidlSetFrame(&k->n, k->spinFrame);
 }
 
+// FadeSpin(); The spin while vanishing or coming back: every 4 frames, shown or hidden by a mask of 8 frames (0x0807F634);
+static void FadeSpin(struct Kabu *k, u8 step) {
+    struct Object *obj = &k->n.obj;
+
+    if (!(k->timer % 4) && ++k->spinFrame > FRAME(11)) k->spinFrame = FRAME(4);
+    NidlSetFrame(&k->n, k->spinFrame);
+    if (sFade[step + (k->timer >> 3)] & (1 << (k->timer & 7)))
+        obj->base.flags &= ~0x400;
+    else
+        obj->base.flags |= 0x400;
+}
+
+// Warp(); 0x0807F538: somewhere free next to Kirby (it turns around when it found none);
+static void Warp(struct Kabu *k) {
+    struct Object *obj = &k->n.obj;
+    s32 x, y;
+    u8 tries;
+
+    for (tries = 0; tries < WARP_TRIES; tries++) {
+        x = obj->kirby3->base.x + sWarpX[Rand16() % ARRAY_COUNT(sWarpX)] * 0x100;
+        y = obj->kirby3->base.y + sWarpY[Rand16() % ARRAY_COUNT(sWarpY)] * 0x100;
+        if (!NidlIsFloor(obj, x - 0x600, y - 0x700) && !NidlIsFloor(obj, x + 0x600, y - 0x700)
+            && !NidlIsFloor(obj, x - 0x600, y + 0x600) && !NidlIsFloor(obj, x + 0x600, y + 0x600)) break;
+    }
+    if (tries == WARP_TRIES) obj->base.flags ^= 1;
+    else obj->base.x = x, obj->base.y = y;
+}
+
+// KabuWarp(); Variant 1;
+static void KabuWarp(struct Kabu *k) {
+    struct Object *obj = &k->n.obj;
+    s32 dx = (obj->kirby3->base.x - obj->base.x) >> 8;
+
+    switch (k->state) {
+    case STATE_ROCK:
+        NidlFall(obj);
+        if (dx >= -WARP_RANGE && dx <= WARP_RANGE) {
+            k->state = STATE_FADE_OUT;
+            k->timer = FADE_TIME;
+            k->spinFrame = FRAME(4);
+            break;
+        }
+        if (--k->timer) break;
+        k->timer = ROCK_TIME;
+        if (++k->spinFrame > FRAME(10)) k->spinFrame = FRAME(4);
+        NidlSetFrame(&k->n, k->spinFrame);
+        break;
+    case STATE_FADE_OUT:
+        NidlFall(obj);
+        FadeSpin(k, 0);
+        if (--k->timer) break;
+        obj->base.flags |= 0x400 | 0x100;   // Gone: not drawn, not touching anything;
+        obj->base.flags |= 0x200;
+        k->state = STATE_GONE;
+        k->timer = GONE_TIME;
+        break;
+    case STATE_GONE:
+        obj->base.xspeed = obj->base.yspeed = 0;
+        if (--k->timer) break;
+        Warp(k);
+        NidlFaceKirby(obj);
+        obj->base.flags &= ~(0x100 | 0x200);
+        k->state = STATE_FADE_IN;
+        k->timer = FADE_TIME;
+        break;
+    case STATE_FADE_IN:
+        FadeSpin(k, 7 - 1);
+        if (--k->timer) break;
+        obj->base.flags &= ~0x400;
+        k->state = STATE_DROP;
+        k->timer = 4;
+        break;
+    case STATE_DROP:
+        obj->base.yspeed -= GRAVITY;
+        if (obj->base.yspeed < -MAX_FALL) obj->base.yspeed = -MAX_FALL;
+        Spin(k);
+        if ((obj->base.unk62 & 4) && obj->base.yspeed <= 0) {
+            obj->base.yspeed = 0;
+            k->state = STATE_LAND;
+            k->timer = WARP_SIT_TIME;
+            NidlSetFrame(&k->n, FRAME_SIT);
+        }
+        break;
+    case STATE_LAND:
+        NidlFall(obj);
+        if (--k->timer) break;
+        k->state = STATE_SLIDE;
+        NidlFaceKirby(obj);
+        obj->base.xspeed = (obj->base.flags & 1) ? -SLIDE_SPEED : SLIDE_SPEED;
+        k->spinTime = 1;
+        k->timer = 1;
+        break;
+    case STATE_SLIDE:
+        NidlFall(obj);
+        Spin(k);
+        if (obj->base.xspeed > 0) obj->base.xspeed = obj->base.xspeed > SLIDE_FRICTION ? obj->base.xspeed - SLIDE_FRICTION : 0;
+        if (obj->base.xspeed < 0) obj->base.xspeed = obj->base.xspeed < -SLIDE_FRICTION ? obj->base.xspeed + SLIDE_FRICTION : 0;
+        if (!obj->base.xspeed || (obj->base.unk62 & 3)) {
+            obj->base.xspeed = 0;
+            k->state = STATE_FADE_OUT;
+            k->timer = FADE_TIME;
+        }
+        break;
+    }
+}
+
+// StartGlide(); 0x0807F920: on Kirby's nearer side;
+static void StartGlide(struct Kabu *k) {
+    struct Object *obj = &k->n.obj;
+
+    k->state = STATE_GLIDE;
+    k->switches = GLIDE_SWITCHES;
+    k->hold = 0;
+    k->side = obj->kirby3->base.x > obj->base.x;
+    k->spinTime = 4;
+    k->timer = 4;
+    k->spinFrame = FRAME(4);
+    NidlSetFrame(&k->n, k->spinFrame);
+}
+
+// KabuGlide(); Variant 2 (0x0807F9A0, 0x0807FA98);
+static void KabuGlide(struct Kabu *k) {
+    struct Object *obj = &k->n.obj;
+    s32 dx;
+
+    switch (k->state) {
+    case STATE_GLIDE:
+        NidlFall(obj);
+        Spin(k);
+        if (k->hold) {
+            // Holding: switches sides at 120 and 60, and last at 0;
+            if (--k->hold == 120 || k->hold == 60 || !k->hold) {
+                k->side ^= 1;
+                k->switches--;
+                k->hold = 0;
+            }
+        }
+        dx = ((obj->kirby3->base.x >> 8) + (k->side ? -GLIDE_OFFSET : GLIDE_OFFSET)) - (obj->base.x >> 8);
+        if (!k->hold && dx >= -1 && dx <= 1) k->hold = GLIDE_HOLD;
+        obj->base.xspeed += dx >= 0 ? GLIDE_ACCEL : -GLIDE_ACCEL;
+        if (obj->base.xspeed > GLIDE_SPEED) obj->base.xspeed = 0x100;
+        if (obj->base.xspeed < -GLIDE_SPEED) obj->base.xspeed = -0x100;
+        if (!k->switches) {
+            k->state = STATE_GLIDE_SIT;
+            k->timer = 15;
+            obj->base.xspeed = 0;
+            NidlSetFrame(&k->n, FRAME_SIT);
+        }
+        break;
+    case STATE_GLIDE_SIT:
+        NidlFall(obj);
+        if (--k->timer) break;
+        k->state = STATE_GLIDE_HOP;
+        obj->base.yspeed = GLIDE_HOP;
+        k->airborne = FALSE;
+        k->spinTime = 1;
+        k->timer = 1;
+        break;
+    case STATE_GLIDE_HOP:
+        Spin(k);
+        obj->base.yspeed -= GRAVITY;
+        if (obj->base.yspeed < -MAX_FALL) obj->base.yspeed = -MAX_FALL;
+        if (!(obj->base.unk62 & 4)) k->airborne = TRUE;
+        if (k->airborne && (obj->base.unk62 & 4) && obj->base.yspeed <= 0) {
+            obj->base.yspeed = 0;
+            StartGlide(k);
+        }
+        break;
+    }
+}
+
 static void KabuMain(struct Object *obj) {
     struct Kabu *k = (struct Kabu *)obj;
 
     NidlUpdate(&k->n);
     obj->base.flags |= 4;
 
+    if (k->n.variant == 1) {
+        KabuWarp(k);
+        return;
+    }
+    if (k->n.variant == 2) {
+        KabuGlide(k);
+        return;
+    }
+    if (k->n.variant == 3) {
+        NidlFall(obj);
+        if (--k->timer) return;
+        k->timer = SPIN_TIME;
+        if (++k->spinFrame > FRAME(10)) k->spinFrame = FRAME(4);
+        NidlSetFrame(&k->n, k->spinFrame);
+        return;
+    }
     if (k->state != STATE_JUMP) NidlFall(obj);
 
     switch (k->state) {
@@ -118,6 +340,27 @@ void KabuStart(struct Object *obj) {
 
     ObjectSetFunc(obj, 0, KabuMain);
     obj->base.yspeed = 0;
+    obj->base.flags &= ~(0x400 | 0x100 | 0x200);
+    if (k->n.variant == 2) {
+        StartGlide(k);
+        return;
+    }
+    if (k->n.variant == 3) {
+        NidlFaceKirby(obj);
+        obj->base.xspeed = 0;
+        k->timer = SPIN_TIME;
+        k->spinFrame = FRAME(4);
+        NidlSetFrame(&k->n, k->spinFrame);
+        return;
+    }
+    if (k->n.variant == 1) {
+        k->state = STATE_ROCK;
+        k->timer = ROCK_TIME;
+        k->spinFrame = FRAME(4);
+        obj->base.xspeed = 0;
+        NidlSetFrame(&k->n, k->spinFrame);
+        return;
+    }
     Sit(k, 1);
 }
 
