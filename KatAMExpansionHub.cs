@@ -159,12 +159,11 @@ namespace KatAMRandomizer {
 
             int background = HubBackground(rom, nightmare, backgroundRecord, hub, doorColors, ref cursor);
 
-            /* Props (Central Circle's, with the new entries), its area info (Central Circle's). The background's scroll rates (8.8: unk0E,
-             * unk10): KatAM aligns its bottom with the room's (minus the 40 pixels it hides) and scrolls it by the rate (level.c,
-             * sub_080019F8), so its top shows when the camera is at the room's top with this rate; */
+            // Props (Central Circle's, with the new entries), its area info (Central Circle's); the background spans the room once (BackgroundRates());
             int props = roomProps + hub * 0x28, roomHeight = collision.Length / width * 16, backgroundHeight = ReadShort(rom, background + 2) * 8;
             Array.Copy(rom, roomProps + EntryRoom * 0x28, rom, props, 0x28);
-            WriteShorts(rom, props + 7 * 2, 0x80, Math.Max(0, (backgroundHeight - 160) * 0x100 / (roomHeight - 160)));
+            (int rateX, int rateY) = BackgroundRates(ReadShort(rom, background) * 8, backgroundHeight, width * 16, roomHeight);
+            WriteShorts(rom, props + 7 * 2, rateX, rateY);
             WriteShorts(rom, props + 10 * 2, tableSizes[10] + infos.Count, tableSizes[11] + palettes.Count, tableSizes[12] + tilemaps.Count, tableSizes[13] + solidities.Count);
             WriteShort(rom, props + 15 * 2, tableSizes[15] + backgrounds.Count);
             WriteShort(rom, props + 16 * 2, tableSizes[16] + objects.Count);
