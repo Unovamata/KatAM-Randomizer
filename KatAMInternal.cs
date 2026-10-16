@@ -586,6 +586,10 @@ namespace KatAMInternal
             byte speed = entity.Speed;
             byte[] properties = entity.Properties;
 
+            if (entity.IsMoved) {
+                WriteToROM(address + 6, entity.X);
+                WriteToROM(address + 8, entity.Y);
+            }
             WriteToROM(address + 12, new byte[] { id });
             WriteToROM(address + 14, new byte[] { behavior });
             WriteToROM(address + 16, new byte[] { speed });

@@ -100,9 +100,13 @@ void NidlInitPalette(struct NidlObject *n) {
     n->obj.base.sprite.palId = NidlLoadPalette(n, NidlGraphicsOf(n)->animId, 0);
 }
 
-// NidlUpdate(); Called by every enemy each frame;
+/* NidlUpdate(); Called by every enemy each frame. A mini-boss in its fight stays in the area the camera is locked to (the bounds
+ * Macro_081003EC keeps when the fight starts), as KatAM's own do (ObjXSomething: Mr. Frosty, Bonkers, Phan Phan...); */
 void NidlUpdate(struct NidlObject *n) {
+    struct Object *obj = &n->obj;
+
     NidlUploadHurtTiles(n);
+    if (NidlIsMiniboss(obj) && n->activated && obj->unkA8 > obj->unkA4) ObjXSomething(obj);
 }
 
 // NidlFall(); The engine's gravity (0x0809A990), for enemies that only fall when there's no floor (NiDL's is the same);

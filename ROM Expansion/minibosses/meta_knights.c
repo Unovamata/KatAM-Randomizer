@@ -891,6 +891,11 @@ static void CallKnight(struct MetaKnights *m, u8 slot, struct Entry const *e) {
     k->leader = m;
     k->slot = slot;
     k->n.obj.base.parent = m;
+    // The fight's area (Macro_081003EC's, NidlUpdate keeps the knights in it);
+    k->n.obj.unkA4 = obj->unkA4;
+    k->n.obj.unkA6 = obj->unkA6;
+    k->n.obj.unkA8 = obj->unkA8;
+    k->n.obj.unkAA = obj->unkAA;
     m->knights[slot] = k;
 }
 

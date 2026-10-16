@@ -184,7 +184,9 @@ namespace KatAMRandomizer {
 
                     if(!isRandomizingMiniBosses && enemiesOptions != GenerationOptions.No) {
                         if(isIncludingMiniBosses) {
-                            bool canSpawnMiniboss = Utils.Dice(1, 20) == 1;
+                            // Only where the camera can't leave them behind (see MinibossScreens);
+                            (int x, int y, int width, int height)? screen = MinibossScreens.ScreenOf(entity);
+                            bool canSpawnMiniboss = screen != null && Utils.Dice(1, 20) == 1;
 
                             if(canSpawnMiniboss) {
                                 int selectedMinibossIndex = Utils.GetRandomRange(0, minibosses.Count);
@@ -194,7 +196,8 @@ namespace KatAMRandomizer {
                                 entity.Link = new byte[2] { 0x0, 0x0 };
                                 entity.Behavior = miniboss.Behavior;
                                 entity.Speed = miniboss.Speed;
-                                entity.Properties = miniboss.Properties;
+                                entity.Properties = (byte[])miniboss.Properties.Clone();
+                                MinibossScreens.SetArea(entity, screen.Value);
                             }
                         }
                     }
@@ -236,6 +239,9 @@ namespace KatAMRandomizer {
                         entity.Behavior = availableEnemyBehaviors[behaviorIndex];
                     }
                 }
+
+                // Batafire flies across the arena from one side (its own places are all by one), so elsewhere it goes there;
+                if(entity.ID == MinibossScreens.Batafire && id != MinibossScreens.Batafire) MinibossScreens.MoveToSide(entity);
 
                 Utils.WriteObjectToROM(entity);
             }
@@ -416,5 +422,90 @@ namespace KatAMRandomizer {
         }
 
         public bool FilterEntities(Entity entity) { return true; }
+    }
+
+    /* MinibossScreens; Keeping randomized mini-bosses on the screen. In their own rooms a scroll lock (object 0x77, its area: template
+     * +0x1A-0x21, like the mini-boss's) holds the camera on the arena, and KatAM's mini-bosses stay inside it (ObjXSomething, the ROM
+     * Expansion's too); elsewhere the camera follows Kirby and they'd wander off. So a mini-boss only takes an enemy's place where the
+     * camera can't leave it: inside a scroll lock's area, or in a room the size of the screen (256x208 at most), and its fight area
+     * becomes that one. Batafire doesn't keep itself inside: it flies across from one side of the arena, so in another's place it
+     * goes to the side that one was nearer to, where its own are (29 pixels in, 60 down from the top); */
+    internal static class MinibossScreens {
+        public const byte Batafire = 0x3B;
+        const byte ScrollLock = 0x77;
+        const int MaxScreenWidth = 256, MaxScreenHeight = 208, BatafireSide = 29, BatafireTop = 60, BatafireWidth = 32;
+
+        static readonly Dictionary<int, List<(int x, int y, int width, int height)>> screens = new Dictionary<int, List<(int, int, int, int)>>();
+        static byte[] screensOf;
+
+        static int Read16(byte[] rom, long address) => rom[address] | (rom[address + 1] << 8);
+
+        static long Pointer(byte[] rom, long address) {
+            uint pointer = BitConverter.ToUInt32(rom, (int)address);
+            return pointer >= 0x08000000 && pointer < 0x0A000000 ? pointer & 0x01FFFFFF : -1;
+        }
+
+        // Screens(); A room's areas the camera stays on: its scroll locks', or the whole room if it's the size of the screen;
+        static List<(int x, int y, int width, int height)> Screens(int room) {
+            byte[] rom = Processing.ROMData;
+
+            if (screensOf != rom) {
+                screens.Clear();
+                screensOf = rom;
+            }
+            if (screens.TryGetValue(room, out var cached)) return cached;
+
+            List<(int, int, int, int)> list = new List<(int, int, int, int)>();
+            RomRegion region = RomRegion.Current;
+            int shortIndex = Read16(rom, region.LevelData(0x903338) + room * 0x28 + 0x24);
+            long appearance = Pointer(rom, region.PointerTable(0xD2F93C) + shortIndex * 4), objects = Pointer(rom, region.PointerTable(0xD2EBC4) + shortIndex * 4);
+
+            if (appearance >= 0 && Read16(rom, appearance) * 8 <= MaxScreenWidth && Read16(rom, appearance + 2) * 8 <= MaxScreenHeight)
+                list.Add((0, 0, Read16(rom, appearance) * 8, Read16(rom, appearance + 2) * 8));
+            for (long at = objects + 16; objects >= 0 && rom[at] == 0x01 && rom[at + 1] == 0x24; at += 36) {
+                if (rom[at + 12] != ScrollLock) continue;
+                list.Add(((short)Read16(rom, at + 6) + (short)Read16(rom, at + 0x1A), (short)Read16(rom, at + 8) + (short)Read16(rom, at + 0x1C),
+                          Read16(rom, at + 0x1E), Read16(rom, at + 0x20)));
+            }
+            return screens[room] = list;
+        }
+
+        static int X(Entity entity) => (short)(entity.X[0] | (entity.X[1] << 8));
+        static int Y(Entity entity) => (short)(entity.Y[0] | (entity.Y[1] << 8));
+
+        // ScreenOf(); The area the camera stays on around an enemy's place, or null if it follows Kirby there;
+        public static (int x, int y, int width, int height)? ScreenOf(Entity entity) {
+            int x = X(entity), y = Y(entity);
+
+            foreach (var screen in Screens(entity.Room))
+                if (x >= screen.x && x <= screen.x + screen.width && y >= screen.y && y <= screen.y + screen.height) return screen;
+            return null;
+        }
+
+        // SetArea(); The mini-boss's fight area (Properties 9-16: template +0x1A-0x21, relative to its place) becomes the screen;
+        public static void SetArea(Entity entity, (int x, int y, int width, int height) screen) {
+            WriteArea(entity, screen.x - X(entity), screen.y - Y(entity), screen.width, screen.height);
+        }
+
+        static void WriteArea(Entity entity, int left, int top, int width, int height) {
+            BitConverter.GetBytes((short)left).CopyTo(entity.Properties, 9);
+            BitConverter.GetBytes((short)top).CopyTo(entity.Properties, 11);
+            BitConverter.GetBytes((ushort)width).CopyTo(entity.Properties, 13);
+            BitConverter.GetBytes((ushort)height).CopyTo(entity.Properties, 15);
+        }
+
+        // MoveToSide(); Batafire to the side of its fight area its place is nearer to; the area stays where it is;
+        public static void MoveToSide(Entity entity) {
+            int left = BitConverter.ToInt16(entity.Properties, 9), top = BitConverter.ToInt16(entity.Properties, 11), width = BitConverter.ToUInt16(entity.Properties, 13);
+
+            if (width == 0) return;
+
+            int fromLeft = -left, toLeft = fromLeft * 2 > width ? width - BatafireWidth : BatafireSide, dx = toLeft - fromLeft, dy = BatafireTop + top;
+
+            entity.X = BitConverter.GetBytes((short)(X(entity) + dx));
+            entity.Y = BitConverter.GetBytes((short)(Y(entity) + dy));
+            WriteArea(entity, left - dx, top - dy, width, BitConverter.ToUInt16(entity.Properties, 15));
+            entity.IsMoved = true;
+        }
     }
 }

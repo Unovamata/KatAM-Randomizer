@@ -28,6 +28,8 @@ public class Entity {
     public bool IsUnderwater { get; set; }
     public bool IsFlying { get; set; }
     public bool IsInhalable { get; set; }
+    // Its position changed (the ROM gets X and Y too);
+    public bool IsMoved { get; set; }
 
     public Entity() {}
 
