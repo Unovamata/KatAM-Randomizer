@@ -15,7 +15,7 @@ static const struct NidlMiniboss sNidlMinibosses[NIDL_MINIBOSS_COUNT] = {
     [NIDL_GRAND_WHEELIE] = { GrandWheelieInit, GrandWheelieStart, 30, KIRBY_ABILITY_WHEEL, 0, NIDL_MINIBOSS_TYPE },
     [NIDL_BUGZZY] = { BugzzyInit, BugzzyStart, 30, NIDL_ABILITY_BACKDROP, 0, NIDL_MINIBOSS_TYPE_2 },
     [NIDL_FIRE_LION] = { FireLionInit, FireLionStart, 30, KIRBY_ABILITY_BURNING, 12, NIDL_MINIBOSS_TYPE_2 },
-    [NIDL_META_KNIGHTS] = { MetaKnightsInit, MetaKnightsStart, 30, KIRBY_ABILITY_SWORD, 0, NIDL_MINIBOSS_TYPE_3 },
+    [NIDL_META_KNIGHTS] = { MetaKnightsInit, MetaKnightsStart, 30, 0, 0, NIDL_MINIBOSS_TYPE_3 },
 };
 
 void NidlMinibossStart(struct Object *);
