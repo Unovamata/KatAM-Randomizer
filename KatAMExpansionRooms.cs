@@ -152,13 +152,16 @@ namespace KatAMRandomizer {
         };
         static int[] SwitchStatueXs(int level) => LayoutB(level) ? new[] { 64, 208 } : new[] { 96, 160 };
 
-        /* The NiDL hub (see KatAMExpansionHub.cs): Central Circle again, at night; its golden mirror (MainHubReturn) back to Central
-         * Circle's twin; each level has one of Central Circle's own doors (MainHubDoors: its door cells), recolored for the level's
-         * theme, and hidden until the level's big switch is pressed (but Vegetable Valley's, the way in): Vegetable Valley the trees',
-         * Ice Cream Island the waves', Butter Building the stone pillars', Grape Garden the purple one, Yogurt Yard the rocks', Orange
-         * Ocean the blue blocks', Rainbow Resort the ice one, the Fountain of Dreams the starry one; */
+        /* The NiDL hub (see KatAMExpansionHub.cs): Central Circle again, at night; as there, its golden mirror (MainHubEntry, Central
+         * Circle's to Rainbow Route) is the way in: to Vegetable Valley's first room (onto a mirror back, where Kirby starts it), from
+         * which every room is reached (each boss stage leads to the next level's switch room); a pink one on the platform's left end
+         * (MainHubReturn) leads back to Central Circle's, onto which Kirby arrives; each level has one of Central
+         * Circle's own doors (MainHubDoors: its door cells), recolored for the level's theme, hidden until the level's big switch is
+         * pressed, as KatAM's: Vegetable Valley the trees', Ice Cream Island the waves', Butter Building the stone pillars', Grape
+         * Garden the purple one, Yogurt Yard the rocks', Orange Ocean the blue blocks', Rainbow Resort the ice one, the Fountain of
+         * Dreams the starry one; */
         static readonly (int x, int y)[] MainHubDoors = { (6, 12), (25, 17), (15, 4), (28, 11), (15, 18), (5, 17), (2, 11), (27, 4) };
-        static readonly (int x, int y) MainHubReturn = (19, 14);
+        static readonly (int x, int y) MainHubEntry = (19, 14), MainHubReturn = (11, 14);
 
         /* NightmareRoom; A NiDL room: level, stage, index, record (file offset); its part when split
          * (X, Y, Width, Height in metatiles), and the KatAM room it becomes; */
@@ -314,6 +317,7 @@ namespace KatAMRandomizer {
                 WriteShorts(record, 0x50, SwitchArrival(level).x * 16 + 8, SwitchArrival(level).y * 16 + 8);
                 int at = Put(record);
                 switchRooms.Add(new NightmareRoom(level, SwitchStage, 0, at, 0, 0, SwitchWidth, SwitchHeight));
+
             }
 
             byte[] extended = new byte[start + added.Count];
@@ -541,11 +545,7 @@ namespace KatAMRandomizer {
             }
             int entryTilemap = edited[0].tilemap;
 
-            /* Its tilemap: the Rainbow Route mirror on the right end of its platform (tiles 37-40, rows 24-29: door 19, 14) mirrored onto
-             * the left end (door EntryX, EntryY), flipped, and recolored to the NiDL hub's night (EntryMirrorColor(): its gold pink): new
-             * tiles (in the ones neither its tilemap nor its special blocks use), each in the room's palette that shows it best, the pinks
-             * in the colors no tile of the room uses nor its palette cycles change (ForegroundPalette_4pp: unk4[1] the first color, unk8
-             * how many); */
+            // Its tilemap: the golden mirror to Nightmare in Dream Land on its platform's left end (door EntryX, EntryY: MirrorTwin());
             {
                 int columns = ReadShort(rom, entryTilemap);
                 byte[] map = DecompressLZ77(rom, ReadInt(rom, entryTilemap + 0x18) - 0x08000000);
@@ -553,60 +553,11 @@ namespace KatAMRandomizer {
                 byte[] tiles = DecompressLZ77(rom, tilesPointer - 0x08000000);
                 int paletteEntry = Entry("gForegroundPalettes", Props(EntryRoom, 11)), sourceColors = ReadInt(rom, paletteEntry) - 0x08000000;
                 int[] colors = Enumerable.Range(0, 96).Select(i => ReadShort(rom, sourceColors + i * 2) & 0x7FFF).ToArray();
-                List<int> entries = Enumerable.Range(0, map.Length / 2).Select(i => ReadShort(map, i * 2)).ToList();
+                List<int> specialEntries = new List<int>();
                 int entrySpecials = ReadInt(rom, solidities[edited[0].solidity - tableSizes[13]] - 0x08000000 + 4) - 0x08000000;
                 for (int at = entrySpecials; rom[at + 4] != 0; at += rom[at + 4])
-                    if (rom[at] == 1) for (int q = 0; q < 4; q++) entries.Add(ReadShort(rom, at + 8 + q * 2));
-                HashSet<int> used = entries.Select(e => e & 0x3FF).ToHashSet();
-                HashSet<int> usedColors = entries.SelectMany(e => Enumerable.Range(0, 64).Select(i => tiles[(e & 0x3FF) * 32 + i / 2] >> (i % 2 * 4) & 0xF)
-                                                                 .Where(index => index != 0).Select(index => (e >> 12) * 16 + index)).ToHashSet();
-                int cycles = ReadInt(rom, paletteEntry + 4) - 0x08000000;
-                for (int i = 0; cycles >= 0 && i < ReadShort(rom, paletteEntry + 8); i++) {
-                    int cycle = ReadInt(rom, cycles + i * 4) - 0x08000000;
-                    for (int c = 0; c < ReadShort(rom, cycle + 8); c++) usedColors.Add(ReadShort(rom, cycle + 6) + c);
-                }
-                // The pinks, in each palette's free colors;
-                List<int> pinks = new List<int>();
-                for (int y = 24; y <= 29; y++)
-                    for (int x = 37; x <= 40; x++) {
-                        int entry = ReadShort(map, (y * columns + x) * 2);
-                        for (int i = 0; entry != 0 && i < 64; i++) {
-                            int index = tiles[(entry & 0x3FF) * 32 + i / 2] >> (i % 2 * 4) & 0xF, color = colors[(entry >> 12) * 16 + index];
-                            if (index != 0 && EntryMirrorColor(color) != color) pinks.Add(EntryMirrorColor(color));
-                        }
-                    }
-                for (int palette = 0; palette < 6 && pinks.Count > 0; palette++) {
-                    int[] slots = Enumerable.Range(palette * 16 + 1, 15).Where(c => !usedColors.Contains(c)).ToArray();
-                    if (slots.Length == 0) continue;
-                    int[] shades = Quantize(pinks, slots.Length);
-                    for (int i = 0; i < slots.Length && i < shades.Length; i++) colors[slots[i]] = shades[i];
-                }
-                Queue<int> freeTiles = new Queue<int>(Enumerable.Range(1, tiles.Length / 32 - 1).Where(t => !used.Contains(t)));
-                Dictionary<int, int> recolored = new Dictionary<int, int>();
-                for (int y = 24; y <= 29; y++) {
-                    for (int x = 37; x <= 40; x++) {
-                        int entry = ReadShort(map, (y * columns + x) * 2);
-                        if (entry == 0) continue;
-                        if (!recolored.TryGetValue(entry & 0xF3FF, out int made)) {
-                            int tile = entry & 0x3FF, palette = entry >> 12;
-                            int[] wanted = Enumerable.Range(0, 64).Select(i => tiles[tile * 32 + i / 2] >> (i % 2 * 4) & 0xF)
-                                                     .Select(index => index == 0 ? -1 : EntryMirrorColor(colors[palette * 16 + index])).ToArray();
-                            int Nearest(int p, int color) => 1 + NearestColor(colors.Skip(p * 16 + 1).Take(15).ToArray(), color);
-                            double Error(int p) => wanted.Where(c => c >= 0).Sum(c => Distance(Rgb(colors[p * 16 + Nearest(p, c)]), Rgb(c)));
-                            int best = Enumerable.Range(0, 6).MinBy(Error);
-                            made = entry & 0xF3FF;
-                            bool changed = Enumerable.Range(0, 64).Any(i => wanted[i] >= 0 && wanted[i] != colors[palette * 16 + (tiles[tile * 32 + i / 2] >> (i % 2 * 4) & 0xF)]);
-                            if (changed && freeTiles.Count > 0) {
-                                int newTile = freeTiles.Dequeue();
-                                for (int i = 0; i < 64; i += 2)
-                                    tiles[newTile * 32 + i / 2] = (byte)((wanted[i] < 0 ? 0 : Nearest(best, wanted[i])) | (wanted[i + 1] < 0 ? 0 : Nearest(best, wanted[i + 1])) << 4);
-                                made = best << 12 | newTile;
-                            }
-                            recolored[entry & 0xF3FF] = made;
-                        }
-                        WriteShort(map, (y * columns + columns - 1 - x) * 2, (made | (entry & 0xC00)) ^ 0x400);
-                    }
-                }
+                    if (rom[at] == 1) for (int q = 0; q < 4; q++) specialEntries.Add(ReadShort(rom, at + 8 + q * 2));
+                MirrorTwin(map, columns, tiles, colors, specialEntries, CycledColors(rom, paletteEntry), 0);
                 int infoAt = Allocate(ref cursor, 16, 4), tilesAt = AllocateCompressed(rom, CompressLZ77(tiles), ref cursor);
                 Array.Copy(rom, info, rom, infoAt, 16);
                 for (int i = 0; i < 3; i++) if (ReadInt(rom, infoAt + i * 4) == tilesPointer) WriteInt(rom, infoAt + i * 4, tilesAt + 0x08000000);
@@ -848,7 +799,8 @@ namespace KatAMRandomizer {
          * • a room left past its edge (kind 26: its x the room, 0xFFFF none; Kirby falls from the sky out of its bottom, climbs a tower
          *   out of its top) gets edges on its top and bottom rows' open cells;
          * • the hubs: Central Circle's golden mirror (EntryRoom) leads to the NiDL hub (mainHub, its doors in mainHubDoors), whose
-         *   mirrors lead to the levels' switch rooms (hidden until their big switch is pressed, Slot, but Vegetable Valley's) and back;
+         *   mirrors lead to the levels' switch rooms (hidden until their big switch is pressed, Slot) and back, its golden one to
+         *   Vegetable Valley's first room, the way in;
          *   a switch room's side mirrors lead to its level's first 4 stages (the others follow them; the Fountain of Dreams': its only
          *   one), and the mirror its big switch reveals to where LevelLinks says;
          * • a split room's parts lead into each other through their shared edge.
@@ -932,6 +884,8 @@ namespace KatAMRandomizer {
             Dictionary<int, int> widths = rooms.ToDictionary(r => r.Room, r => r.Width);
             byte Facing((int room, int x, int y) to) => (byte)(!widths.TryGetValue(to.room, out int w) || (to.x - 1) * 2 < w ? 1 : 2);
             void Add((NightmareRoom part, int x, int y) at, (int room, int x, int y) to, bool edge = false, int slot = 0, int design = HubDesign) {
+                // (KatAM keeps Kirby 8 pixels and his half width inside a room: a mirror on its first or last column moves in a cell);
+                if (!edge) at.x = Math.Clamp(at.x, 1, at.part.FullWidth - 2);
                 if (doors[at.part].Any(d => d.X == at.x && d.Y == at.y)) return;
                 doors[at.part].Add(new Door(at.x, at.y, to.room, to.x, to.y, Facing(to), edge, slot, design));
             }
@@ -1011,11 +965,19 @@ namespace KatAMRandomizer {
                 }
                 (int room, int x, int y) arrival = Target((switchRoom, hubDoor.x, hubDoor.y));
                 if (linked != Hub) Add((switchRoom, hubDoor.x, hubDoor.y), MainHubAt(MainHubDoors[level]), slot: LevelSlot(level), design: HubDesign);
-                mainHubDoors.Add(new Door(MainHubDoors[level].x, MainHubDoors[level].y, arrival.room, arrival.x, arrival.y, Facing(arrival), Slot: level == 0 ? 0 : LevelSlot(level)));
+                mainHubDoors.Add(new Door(MainHubDoors[level].x, MainHubDoors[level].y, arrival.room, arrival.x, arrival.y, Facing(arrival), Slot: LevelSlot(level)));
             }
             mainHubDoors.Add(new Door(MainHubReturn.x, MainHubReturn.y, back.room, back.x, back.y, 1));
             firstStart = MainHubAt(MainHubReturn);
-            firstFacing = 2;
+            firstFacing = 1;
+
+            // The way in, the hub's golden mirror: to where Kirby starts Vegetable Valley's first room, onto a mirror back (the switch
+            // room's mirror there lands beside it, TwoWay());
+            int firstStage = stages.Where(t => t.level == 0).Min(t => t.stage);
+            var firstRoom = Start((0, firstStage, byRoom.Keys.Where(k => k.Item1 == 0 && k.Item2 == firstStage).Min(k => k.Item3)));
+            (int room, int x, int y) entryArrival = Target(firstRoom);
+            mainHubDoors.Add(new Door(MainHubEntry.x, MainHubEntry.y, entryArrival.room, entryArrival.x, entryArrival.y, Facing(entryArrival)));
+            Add(firstRoom, MainHubAt(MainHubEntry));
 
             // A split room's parts: the cells on their shared edge (not solid) take Kirby across;
             foreach (var parts in byRoom.Values.Where(p => p.Count > 1)) {
@@ -1057,7 +1019,7 @@ namespace KatAMRandomizer {
                 while (Open(x, y + 1) && !Floor(x, y + 1)) y++;
                 foreach (int dx in Enumerable.Range(0, 13).Select(i => (i + 1) / 2 * (i % 2 == 0 ? -1 : 1))) {
                     int cx = x + dx;
-                    if (Open(cx, y) && y + 1 < r.Height && Floor(cx, y + 1) && !doors[r].Any(d => d.Y == y && Math.Abs(d.X - cx) <= (d.Edge ? 0 : 1)))
+                    if (cx >= 1 && cx <= r.FullWidth - 2 && Open(cx, y) && y + 1 < r.Height && Floor(cx, y + 1) && !doors[r].Any(d => d.Y == y && Math.Abs(d.X - cx) <= (d.Edge ? 0 : 1)))
                         return (cx, y);
                 }
                 // (no floor nearby: the landing itself, in the air, as KatAM's hub doors are);
@@ -1328,6 +1290,69 @@ namespace KatAMRandomizer {
             int at = Allocate(ref cursor, 8, 4);
             WriteInts(rom, at, collisionAt + 0x08000000, specialsAt + 0x08000000);
             return at;
+        }
+
+        /* MirrorTwin(); Central Circle's Rainbow Route mirror (tiles 37-40, rows 24-29 of its tilemap: door 19, 14) mirrored onto its
+         * platform's left end (door 11, 14) of a Central Circle tilemap (map, columns wide), flipped and pink (EntryMirrorColor()): new
+         * tiles (in the ones neither the map nor otherEntries use), each in the palette (firstPalette to 5) that shows it best, the pinks
+         * in the colors no tile uses nor the palette cycles change (cycled); */
+        static void MirrorTwin(byte[] map, int columns, byte[] tiles, int[] colors, IEnumerable<int> otherEntries, IEnumerable<int> cycled, int firstPalette) {
+            List<int> entries = Enumerable.Range(0, map.Length / 2).Select(i => ReadShort(map, i * 2)).Concat(otherEntries).ToList();
+            HashSet<int> used = entries.Select(e => e & 0x3FF).ToHashSet();
+            HashSet<int> usedColors = entries.SelectMany(e => Enumerable.Range(0, 64).Select(i => tiles[(e & 0x3FF) * 32 + i / 2] >> (i % 2 * 4) & 0xF)
+                                                             .Where(index => index != 0).Select(index => (e >> 12) * 16 + index)).ToHashSet();
+            usedColors.UnionWith(cycled);
+            // The pinks, in each palette's free colors;
+            List<int> pinks = new List<int>();
+            for (int y = 24; y <= 29; y++)
+                for (int x = 37; x <= 40; x++) {
+                    int entry = ReadShort(map, (y * columns + x) * 2);
+                    for (int i = 0; entry != 0 && i < 64; i++) {
+                        int index = tiles[(entry & 0x3FF) * 32 + i / 2] >> (i % 2 * 4) & 0xF, color = colors[(entry >> 12) * 16 + index];
+                        if (index != 0 && EntryMirrorColor(color) != color) pinks.Add(EntryMirrorColor(color));
+                    }
+                }
+            for (int palette = firstPalette; palette < 6 && pinks.Count > 0; palette++) {
+                int[] slots = Enumerable.Range(palette * 16 + 1, 15).Where(c => !usedColors.Contains(c)).ToArray();
+                if (slots.Length == 0) continue;
+                int[] shades = Quantize(pinks, slots.Length);
+                for (int i = 0; i < slots.Length && i < shades.Length; i++) colors[slots[i]] = shades[i];
+            }
+            Queue<int> freeTiles = new Queue<int>(Enumerable.Range(1, tiles.Length / 32 - 1).Where(t => !used.Contains(t)));
+            Dictionary<int, int> recolored = new Dictionary<int, int>();
+            for (int y = 24; y <= 29; y++) {
+                for (int x = 37; x <= 40; x++) {
+                    int entry = ReadShort(map, (y * columns + x) * 2);
+                    if (entry == 0) continue;
+                    if (!recolored.TryGetValue(entry & 0xF3FF, out int made)) {
+                        int tile = entry & 0x3FF, palette = entry >> 12;
+                        int[] wanted = Enumerable.Range(0, 64).Select(i => tiles[tile * 32 + i / 2] >> (i % 2 * 4) & 0xF)
+                                                 .Select(index => index == 0 ? -1 : EntryMirrorColor(colors[palette * 16 + index])).ToArray();
+                        int Nearest(int p, int color) => 1 + NearestColor(colors.Skip(p * 16 + 1).Take(15).ToArray(), color);
+                        double Error(int p) => wanted.Where(c => c >= 0).Sum(c => Distance(Rgb(colors[p * 16 + Nearest(p, c)]), Rgb(c)));
+                        int best = Enumerable.Range(firstPalette, 6 - firstPalette).MinBy(Error);
+                        made = entry & 0xF3FF;
+                        bool changed = Enumerable.Range(0, 64).Any(i => wanted[i] >= 0 && wanted[i] != colors[palette * 16 + (tiles[tile * 32 + i / 2] >> (i % 2 * 4) & 0xF)]);
+                        if (changed && freeTiles.Count > 0) {
+                            int newTile = freeTiles.Dequeue();
+                            for (int i = 0; i < 64; i += 2)
+                                tiles[newTile * 32 + i / 2] = (byte)((wanted[i] < 0 ? 0 : Nearest(best, wanted[i])) | (wanted[i + 1] < 0 ? 0 : Nearest(best, wanted[i + 1])) << 4);
+                            made = best << 12 | newTile;
+                        }
+                        recolored[entry & 0xF3FF] = made;
+                    }
+                    WriteShort(map, (y * columns + columns - 1 - x) * 2, (made | (entry & 0xC00)) ^ 0x400);
+                }
+            }
+        }
+
+        // CycledColors(); The colors a ForegroundPalette's cycles change (ForegroundPalette_4pp: unk4[1] the first color, unk8 how many);
+        static IEnumerable<int> CycledColors(byte[] rom, int paletteEntry) {
+            int cycles = ReadInt(rom, paletteEntry + 4) - 0x08000000;
+            for (int i = 0; cycles >= 0 && i < ReadShort(rom, paletteEntry + 8); i++) {
+                int cycle = ReadInt(rom, cycles + i * 4) - 0x08000000;
+                for (int c = 0; c < ReadShort(rom, cycle + 8); c++) yield return ReadShort(rom, cycle + 6) + c;
+            }
         }
 
         // EntryMirrorColor(); A color of Central Circle's golden mirror, for its NiDL one: gold, orange and brown to pink;
