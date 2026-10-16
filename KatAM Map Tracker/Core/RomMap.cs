@@ -57,6 +57,10 @@ namespace KatAMMapTracker {
         public List<RoomObject> Objects { get; } = new List<RoomObject>();
     }
 
+    /* ExpansionMiniboss; A mini-boss the randomizer's ROM Expansion ported from Nightmare in Dream Land: its object type (0x40-0x42), its
+     * index (the behavior's high nibble picks it), its name and its sprite; */
+    public sealed record ExpansionMiniboss(int Type, int Index, string Name, Sprite Icon);
+
     /* RomVersion; The Japanese, American and European versions of the game hold the same data at different addresses.
      * Every block of data is moved as a whole, so the Japanese addresses below are translated with the shift of their block:
      * • Level data (long room parameters): 0x84xxxx - 0x93xxxx.
@@ -119,6 +123,10 @@ namespace KatAMMapTracker {
         public RomVersion Version { get; }
         public Dictionary<int, RoomInfo> Rooms { get; } = new Dictionary<int, RoomInfo>();
 
+        // The ROM Expansion's mini-bosses (empty for unexpanded ROMs, see ReadExpansion);
+        public List<ExpansionMiniboss> ExpansionMinibosses { get; } = new List<ExpansionMiniboss>();
+        public bool IsExpanded { get; private set; }
+
         readonly Dictionary<int, byte[]> tilesetCache = new Dictionary<int, byte[]>();
 
         public RomMap(byte[] rom) {
@@ -139,6 +147,40 @@ namespace KatAMMapTracker {
             ObjectTable = 0xD2EBC4 + Version.PointerTableShift;
 
             ReadRooms();
+            ReadExpansion();
+        }
+
+        /* ReadExpansion(); A ROM the randomizer expanded (ROM Expansion tab) is 32 MB and ends with its map table (the last 0x100
+         * bytes; written by KatAMExpansion.WriteMapTable): "NIDLMAP" and version 1, u16 entries, u16 entry size, then per mini-boss
+         * its object type, index, u16 0, its icon (file offset: u16 width, u16 height, a BGR555 color per pixel, | 0x8000 where it's
+         * drawn) and its name (24 bytes, ASCII); */
+        const int ExpandedSize = 0x2000000, ExpansionTable = ExpandedSize - 0x100;
+
+        void ReadExpansion() {
+            if (Rom.Length != ExpandedSize || System.Text.Encoding.ASCII.GetString(Rom, ExpansionTable, 7) != "NIDLMAP" || Rom[ExpansionTable + 7] != 1) return;
+
+            int count = Read16(ExpansionTable + 8), entrySize = Read16(ExpansionTable + 10);
+
+            IsExpanded = true;
+            for (int i = 0; i < count && entrySize >= 32 && ExpansionTable + 12 + (i + 1) * entrySize <= Rom.Length; i++) {
+                int entry = ExpansionTable + 12 + i * entrySize, icon = Read32(entry + 4);
+                string name = System.Text.Encoding.ASCII.GetString(Rom, entry + 8, 24).TrimEnd('\0');
+                Sprite sprite = null;
+
+                if (icon >= 0 && icon + 4 <= Rom.Length) {
+                    int width = Read16(icon), height = Read16(icon + 2);
+
+                    if (width > 0 && height > 0 && icon + 4 + width * height * 2 <= Rom.Length) {
+                        int[] pixels = new int[width * height];
+                        for (int p = 0; p < pixels.Length; p++) {
+                            int color = Read16(icon + 4 + p * 2);
+                            if ((color & 0x8000) != 0) pixels[p] = ToArgb(color & 0x7FFF);
+                        }
+                        sprite = new Sprite(width, height, pixels);
+                    }
+                }
+                ExpansionMinibosses.Add(new ExpansionMiniboss(Rom[entry], Rom[entry + 1], name, sprite));
+            }
         }
 
         public static RomMap Load(string path) => new RomMap(File.ReadAllBytes(path));

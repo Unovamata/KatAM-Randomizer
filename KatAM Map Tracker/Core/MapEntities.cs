@@ -14,6 +14,9 @@ namespace KatAMMapTracker {
         Music1, Music2, Music3, Music4, Music5, Music6, Music7, Music8, Music9, Music10,
         MapTutorial, MapRainbowRoute, MapMoonlightMansion, MapCabbageCavern, MapMustardMountain, MapCarrotCastle,
         MapOliveOcean, MapPeppermintPalace, MapRadishRuins, MapCandyConstellation,
+
+        // The ROM Expansion's mini-bosses: Expansion + their place in RomMap.ExpansionMinibosses (their sprites are in the ROM);
+        Expansion,
     }
 
     // EntityKind; What an important object is, in drawing order (the first ones are the most important);
@@ -33,7 +36,7 @@ namespace KatAMMapTracker {
      * The addresses are the Japanese ones; The other versions keep the sprite graphics and object palettes in blocks moved
      * as a whole, translated below;
      *
-     * • Room object IDs: 0x38-0x3F mini-bosses, 0x45-0x52 bosses, 0x5E-0x64 items, 0x65 Mirror Shard (behavior 0-7; 8 is the
+     * • Room object IDs: 0x38-0x3F mini-bosses (0x40-0x42 too in expanded ROMs, see RomMap.ReadExpansion), 0x45-0x52 bosses, 0x5E-0x64 items, 0x65 Mirror Shard (behavior 0-7; 8 is the
      *   Dimensional Mirror), 0x80 & 0x81 small & big chests (behavior: what they hold), 0x84 Warp Star, 0x86 Big Switch,
      *   0x8A Fuse Cannon.
      * • Chest contents: 0x00-0x05 the items 0x5E-0x63, 0x06 Vitality, 0x0A-0x13 area maps, 0x14-0x21 sprays, 0x28 the
@@ -299,6 +302,10 @@ namespace KatAMMapTracker {
         /* Render(); Draws an icon from the ROM as 0xAARRGGBB pixels (transparent where the game draws color 0), or null if
          * the ROM doesn't hold it where expected; */
         public static Sprite Render(RomMap map, EntityIcon icon) {
+            if (icon >= EntityIcon.Expansion) {
+                int i = icon - EntityIcon.Expansion;
+                return i < map.ExpansionMinibosses.Count ? map.ExpansionMinibosses[i].Icon : null;
+            }
             if (icon == EntityIcon.KingGolem) return RenderKingGolem(map);
             if (icon == EntityIcon.DarkMindOrb) return RenderDarkMindOrb(map);
 
@@ -431,9 +438,15 @@ namespace KatAMMapTracker {
         };
 
         // Classify(); The entity a room object stands for, or null if it isn't worth showing (enemies, doors, scenery...);
-        public static MapEntity Classify(RoomObject obj) {
+        public static MapEntity Classify(RomMap map, RoomObject obj) {
             int id = obj.Id, behavior = obj.Behavior;
 
+            // The ROM Expansion's mini-bosses: the behavior's high nibble picks one; an unknown one is its type's first, as in the game;
+            if (map.IsExpanded && id >= 0x40 && id <= 0x42) {
+                int i = map.ExpansionMinibosses.FindIndex(m => m.Type == id && m.Index == behavior >> 4);
+                if (i < 0) i = map.ExpansionMinibosses.FindIndex(m => m.Type == id);
+                if (i >= 0) return new MapEntity(EntityKind.MiniBoss, EntityIcon.Expansion + i, map.ExpansionMinibosses[i].Name);
+            }
             if (Bosses.TryGetValue(id, out var boss)) return new MapEntity(EntityKind.Boss, boss.icon, boss.name);
             if (MiniBosses.TryGetValue(id, out var miniBoss)) return new MapEntity(EntityKind.MiniBoss, miniBoss.icon, miniBoss.name);
             if (id >= 0x5E && id <= 0x64) return new MapEntity(EntityKind.Item, Items[id - 0x5E].icon, Items[id - 0x5E].name);
@@ -476,11 +489,11 @@ namespace KatAMMapTracker {
         }
 
         // EntitiesOf(); The important objects of a room, the most important first;
-        public static List<MapEntity> EntitiesOf(RoomInfo room) {
+        public static List<MapEntity> EntitiesOf(RomMap map, RoomInfo room) {
             List<MapEntity> entities = new List<MapEntity>();
 
             foreach (RoomObject obj in room.Objects) {
-                MapEntity entity = Classify(obj);
+                MapEntity entity = Classify(map, obj);
                 if (entity != null) entities.Add(entity);
             }
 

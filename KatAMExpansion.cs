@@ -22,7 +22,7 @@ namespace KatAMRandomizer {
     internal static partial class KatAMExpansion {
         public const byte NightmareID = 0x31;
 
-        const int ExpandedSize = 0x2000000, CodeAddress = 0x1000000, ReservedSize = ExpandedSize - CodeAddress;
+        const int ExpandedSize = 0x2000000, CodeAddress = 0x1000000, MapTableAddress = ExpandedSize - 0x100, ReservedSize = MapTableAddress - CodeAddress;
 
         /* NiDL: graphics descriptor per enemy (type - 8): tile count (+2), palette (+8), LZ77 tiles (+12). The frame tables (and every
          * NiDL address in the enemies' notes) are the USA ones; the Japanese and European ROMs have the same data, moved by FrameShift; */
@@ -68,10 +68,10 @@ namespace KatAMRandomizer {
          * type (MinibossIDs). HurtShift
          * moves the hurt frame that many pixels down within it, for mini-bosses too tall for it, and every frame as much (the C code moves
          * the sprite back up: hurtShift in nidl_miniboss.c, the same value). ExtraHurts follow the hurt frame (the C code picks one: the
-         * object's hurt); */
+         * object's hurt). Icon: the frames the map tracker shows for it (frame 0 if none; see WriteMapTable); */
         sealed record Miniboss(int Index, string Name, int NightmareIndex, int FrameTable, List<Part[]> Frames, Part[] Hurt,
                                (int type, int letter)[] Glyphs, byte[] Behaviors, int HurtShift = 0, byte Type = 0x40,
-                               List<Part[]> ExtraHurts = null);
+                               List<Part[]> ExtraHurts = null, int[] Icon = null);
 
         /* Mini-boss object types: an object's frame index is a byte, so the mini-bosses are spread over types 0x40-0x42 (all mini-bosses
          * to KatAM), each with its own AnimInfo table; the behavior byte picks the mini-boss either way; */
@@ -145,7 +145,8 @@ namespace KatAMRandomizer {
                     new[] { new Part(3, Table: 0x753290, Descriptor: 10) },
                     new[] { new Part(3, Table: 0x753378, Descriptor: 11) },
                     new[] { new Part(3, Table: 0x753414, Descriptor: 12) },
-                });
+                },
+                Icon: new[] { 4, 35 + 4, 93 + 9, 132 + 4 });
         }
 
         /* Fire Lion; NiDL mini-boss 6 (type 0x37). Frames: NiDL's 0-56 (streamed frames 0-51, its fire bits 52-56). Hurt: NiDL's 0,
@@ -156,13 +157,13 @@ namespace KatAMRandomizer {
                 (0x13, 0), (0x26, 4), (0x01, 1), (0x14, 4), (-1, -1),   // "F" (Flamer), "i" (Cookin), "r" (Bronto Burt), "e" (Hot Head), space;
                 (0x0F, 0), (0x26, 4), (0x1E, 1), (0x26, 5),             // "L" (Leap), "i" (Cookin), "o" (Noddy), "n" (Cookin);
             },
-            new byte[] { 0x00 }, HurtShift: 12, Type: 0x41);
+            new byte[] { 0x00 }, HurtShift: 12, Type: 0x41, Icon: new[] { 4 });
 
         /* Bugzzy; NiDL mini-boss 5 (type 0x36). Frames: NiDL's 0-63 (streamed frames). Hurt: NiDL's 3; */
         static Miniboss Bugzzy() => new Miniboss(3, "Bugzzy", 5, 0x7535FC, Enumerable.Range(0, 64).Select(f => new[] { new Part(f) }).ToList(),
             new[] { new Part(3) },
             new[] { (0x28, 0), (0x0C, 1), (0x16, 3), (0x35, 4), (0x35, 4), (0x05, 5) },   // "B" (Bomber), "u" (Cupie), "g" (Pengy), "zz" (Shotzo), "y" (Scarfy);
-            new byte[] { 0x00 }, Type: 0x41);
+            new byte[] { 0x00 }, Type: 0x41, Icon: new[] { 4 });
 
         /* Grand Wheelie; NiDL mini-boss 2 (type 0x33). Frames: NiDL's 0-55 (streamed frames). Hurt: NiDL's 35. Variants 0-3 roll at
          * 1.5, 2.625, 0.9 and 1.57 (0x087444A4); */
@@ -172,7 +173,7 @@ namespace KatAMRandomizer {
                 (0x03, 0), (0x01, 1), (0x14, 5), (0x26, 5), (0x1E, 2), (-1, -1),   // "G" (Glunk), "r" (Bronto Burt), "a" (Hot Head), "n" (Cookin), "d" (Noddy), space;
                 (0x1D, 0), (0x1D, 1), (0x1D, 2), (0x1D, 3), (0x1D, 4), (0x1D, 5), (0x1D, 6),   // "Wheelie";
             },
-            new byte[] { 0x00, 0x01, 0x02, 0x03 });
+            new byte[] { 0x00, 0x01, 0x02, 0x03 }, Icon: new[] { 4 });
 
         /* Mr. Tick-Tock; NiDL mini-boss 4 (type 0x35). Frames: NiDL's 0-28 (its body's are streamed frames, 0-16; its rings 17-22 and
          * notes 23-28 are drawn with its descriptor's palette). Hurt: NiDL's 13. Variant 1 is faster; */
@@ -183,7 +184,7 @@ namespace KatAMRandomizer {
                 (0x1C, 0), (0x1C, 2), (0x0D, 3), (0x0D, 4), (0x0B, 4),              // "T", "i" (Twister), "ck" (Blockin), "-" (Roly-Poly);
                 (0x1C, 0), (0x0D, 2), (0x0D, 3), (0x0D, 4),                         // "T" (Twister), "ock" (Blockin);
             },
-            new byte[] { 0x00, 0x01 });
+            new byte[] { 0x00, 0x01 }, Icon: new[] { 4 });
 
         /* Poppy Bros. Sr.; NiDL mini-boss 1 (type 0x32). Frames: every body frame (NiDL's 4-9, hopping) with every head frame over it (12-19,
          * drawn by its head object in NiDL), then its hands (20-25) and its bomb (26-30, NiDL's second palette). Hurt: NiDL's 10;
@@ -607,6 +608,8 @@ namespace KatAMRandomizer {
                 WriteInt(rom, entry + 4, minibossData[i].hurtTiles + 0x08000000);
             }
 
+            WriteMapTable(rom, nightmare, region, builtMinibosses, ref cursor);
+
             /* Object type 0x31: spawn function and parameters (hurt frames 0 & 1, Waddle Dee's score and HP, no ability, no palette
              * key (each enemy loads its own), VRAM tiles, behavior start, animations). Its second parameters are Waddle Dee's; */
             int codeBase = CodeAddress + 0x08000000;
@@ -1020,6 +1023,66 @@ namespace KatAMRandomizer {
             }
 
             return output;
+        }
+
+        /* WriteMapTable(); What the map tracker ("KatAM Map Tracker", Core/RomMap.cs) reads to tell an expanded ROM and draw its ported
+         * mini-bosses, in the last 0x100 bytes of the ROM (MapTableAddress): "NIDLMAP" and a version byte (1), u16 entries, u16 entry
+         * size (32), then per mini-boss: object type, index (the behavior's high nibble), u16 0, the icon's address (file offset) and
+         * its name (24 bytes, ASCII, 0-padded). An icon is u16 width, u16 height, then a BGR555 color per pixel (| 0x8000 where it's
+         * drawn): its Icon frames in a grid as square as can be (the Meta-Knights' 2x2), each bottom-centered in its cell; */
+        static void WriteMapTable(byte[] rom, byte[] nightmare, NightmareRegion region,
+                                  List<(List<byte[]> palettes, List<(byte[] tiles, ushort[] oams, short[] attributes, int palette)> frames, byte[] hurt)> built,
+                                  ref int cursor) {
+            const int EntrySize = 32, Gap = 2;
+
+            System.Text.Encoding.ASCII.GetBytes("NIDLMAP\x01").CopyTo(rom, MapTableAddress);
+            WriteShort(rom, MapTableAddress + 8, MinibossDefinitions.Count);
+            WriteShort(rom, MapTableAddress + 10, EntrySize);
+            for (int i = 0; i < MinibossDefinitions.Count; i++) {
+                Miniboss m = MinibossDefinitions[i];
+                List<(byte[] tiles, ushort[] oams, short[] attributes, int palette)> frames = (m.Icon ?? new[] { 0 }).Select(f => built[i].frames[f]).ToList();
+                int columns = (int)Math.Ceiling(Math.Sqrt(frames.Count)), rows = (frames.Count + columns - 1) / columns;
+                int cellWidth = frames.Max(f => f.attributes[2]), cellHeight = frames.Max(f => f.attributes[3]);
+                int width = columns * cellWidth + Gap * (columns - 1), height = rows * cellHeight + Gap * (rows - 1);
+                ushort[] pixels = new ushort[width * height];
+
+                for (int f = 0; f < frames.Count; f++) {
+                    (byte[] tiles, ushort[] oams, short[] attributes, int palette) = frames[f];
+                    byte[] colors = palette < 0 ? nightmare[region.Palette15..(region.Palette15 + 32)] : built[i].palettes[palette];
+                    int left = f % columns * (cellWidth + Gap) + (cellWidth - attributes[2]) / 2;
+                    int top = f / columns * (cellHeight + Gap) + cellHeight - attributes[3];
+
+                    // The first piece is on top, so they're drawn last to first;
+                    for (int p = oams.Length / 3 - 1; p >= 0; p--) {
+                        int shape = oams[p * 3] >> 14, size = oams[p * 3 + 1] >> 14, tile = oams[p * 3 + 2];
+                        int pieceY = oams[p * 3] & 0x3FFF, pieceX = oams[p * 3 + 1] & 0xFFF;
+                        bool flipH = (oams[p * 3 + 1] & 0x1000) != 0, flipV = (oams[p * 3 + 1] & 0x2000) != 0;
+                        int w = shape == 0 ? 8 << size : shape == 1 ? new[] { 16, 32, 32, 64 }[size] : new[] { 8, 8, 16, 32 }[size];
+                        int h = shape == 0 ? 8 << size : shape == 1 ? new[] { 8, 8, 16, 32 }[size] : new[] { 16, 32, 32, 64 }[size];
+
+                        for (int y = 0; y < h; y++) {
+                            for (int x = 0; x < w; x++) {
+                                int t = tile + y / 8 * (w / 8) + x / 8, b = tiles[t * 32 + y % 8 * 4 + x % 8 / 2];
+                                int color = (x & 1) != 0 ? b >> 4 : b & 0xF;
+                                int px = left + pieceX + (flipH ? w - 1 - x : x), py = top + pieceY + (flipV ? h - 1 - y : y);
+
+                                if (color != 0 && px < width && py < height) pixels[py * width + px] = (ushort)(ReadShort(colors, color * 2) | 0x8000);
+                            }
+                        }
+                    }
+                }
+
+                int icon = Allocate(ref cursor, 4 + pixels.Length * 2, 4), entry = MapTableAddress + 12 + i * EntrySize;
+                WriteShort(rom, icon, width);
+                WriteShort(rom, icon + 2, height);
+                for (int p = 0; p < pixels.Length; p++) WriteShort(rom, icon + 4 + p * 2, pixels[p]);
+                rom[entry] = m.Type;
+                rom[entry + 1] = (byte)m.Index;
+                WriteShort(rom, entry + 2, 0);
+                WriteInt(rom, entry + 4, icon);
+                Array.Clear(rom, entry + 8, 24);
+                System.Text.Encoding.ASCII.GetBytes(m.Name).CopyTo(rom, entry + 8);
+            }
         }
 
         // Allocate(); Next free address, aligned (to a table's base, for tiles and palettes);

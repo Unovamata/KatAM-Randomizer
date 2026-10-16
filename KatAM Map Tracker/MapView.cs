@@ -191,7 +191,7 @@ namespace KatAMMapTracker {
             progress = mapProgress;
             graphics = map == null ? null : new MapGraphics(map);
             lineColors = map == null ? new Dictionary<string, int>() : MapRoutes.AssignLineColors(map);
-            roomEntities = map == null ? new Dictionary<int, List<MapEntity>>() : map.Rooms.ToDictionary(kvp => kvp.Key, kvp => MapEntities.EntitiesOf(kvp.Value));
+            roomEntities = map == null ? new Dictionary<int, List<MapEntity>>() : map.Rooms.ToDictionary(kvp => kvp.Key, kvp => MapEntities.EntitiesOf(map, kvp.Value));
             entitySprites.Clear();
 
             // Clusters are numbered in order so neighbor clusters tend to get different region colors;
