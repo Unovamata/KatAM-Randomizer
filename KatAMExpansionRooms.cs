@@ -84,21 +84,34 @@ namespace KatAMRandomizer {
          * object 0x86, setting the level's world state slot (template +4, saved: gUnk_02028C10, 0x20 of them; KatAM's big switches use
          * slots 1-15, Central Circle's last mirror 0x12, Dark Meta Knight 0x13), which lights the level's mirror in the NiDL hub and the
          * one its switch room shows above the switch (object 0x8C), and its door on the world map (KatAMExpansionWorldMap.cs);
-         * LevelLinks: where that mirror leads, as its path on the world map (worldmap.c's gNidlWorldMapDoors): KatAM's switch room of
-         * the door it starts from (onto its own revealed mirror, SwitchLanding), or the NiDL hub (-1, onto the level's mirror there): Vegetable
-         * Valley from Rainbow Route East, Ice Cream Island from Carrot Castle, Butter Building from Mustard Mountain, Grape Garden from Peppermint Palace West, Yogurt Yard
-         * from Radish Ruins, Orange Ocean from Olive Ocean, the Fountain of Dreams from Cabbage Cavern's center; */
+         * LevelLinks: where that mirror leads, as its path on the world map (worldmap.c's gNidlWorldMapDoors): a KatAM switch room (onto
+         * its floor, left of the pedestal: SwitchLanding, so Kirby doesn't land on its big switch), another level's switch room (Nidl(level),
+         * onto its SwitchArrival) or the NiDL hub (Hub, onto the level's door there). Chains of at most 2 links, a few to KatAM rooms:
+         * Vegetable Valley to Rainbow Route East (0x316), Ice Cream Island to the Moonlight Mansion door (0xBE), Butter Building to Rainbow
+         * Resort to the hub, Grape Garden to Peppermint Palace East (0x122), Yogurt Yard to Cabbage Cavern West (0x250), Orange Ocean and
+         * the Fountain of Dreams to Cabbage Cavern East (0xBF) (the KatAM rooms of KatAM's world map doors: sWorldMapDoorRoomIds);
+         * Door designs (object 0x97's subtype, its frame: CreateDoorToHub; KatAM shows the design of where a door leads, KatAMDesigns):
+         * each level has one KatAM's Central Circle doesn't (NidlDesigns), for its door in the NiDL hub and the doors leading to it; */
         static int LevelSlot(int level) => 0x14 + level;
-        static readonly int[] LevelLinks = { 0x316, 0xC1, 0x186, 0x123, 0x2B2, 0x37A, -1, 0x24F };
-        static readonly (int x, int y) SwitchLanding = (9, 4);
+        const int Hub = -1;
+        static int Nidl(int level) => -2 - level;
+        static readonly int[] LevelLinks = { 0x316, 0xBE, Nidl(6), 0x122, 0x250, 0xBF, Hub, 0xBF };
+        static readonly (int x, int y) SwitchLanding = (5, 9);
+        static readonly int[] NidlDesigns = { 11, 3, 13, 7, 5, 2, 6, 1 };
+        static readonly Dictionary<int, int> KatAMDesigns = new Dictionary<int, int> {
+            [0x316] = 14, [0x2B2] = 5, [0x24F] = 7, [0xC1] = 13, [0x123] = 6, [0x37A] = 11, [0x186] = 2, [0x122] = 15, [0xC0] = 8, [0xC2] = 10,
+            [0x250] = 4, [0xBF] = 12, [0x24E] = 16, [0x1EA] = 0, [0xBE] = 9,
+        };
+        const int HubDesign = 17;
+        static int LinkDesign(int link) => link == Hub ? HubDesign : link < 0 ? NidlDesigns[-2 - link] : KatAMDesigns.GetValueOrDefault(link, HubDesign);
         const byte BigSwitchType = 0x86, HubMirrorType = 0x8C;
 
         /* Switch rooms: a level's entry, as KatAM's switch rooms (0x24F, 0x316, 0xC1...: one screen walled on top, a pedestal in the
-         * middle with the big switch on it, a mirror on each side's floor) in the level's tiles (see BuildSwitchRooms()), with a ledge
-         * and a mirror more on each side: its 4 mirrors (SwitchSides) lead to the level's first stages, Kirby arrives at SwitchArrival,
+         * middle with the big switch on it, a mirror on each side's floor) in the level's tiles (see BuildSwitchRooms()): its 2 mirrors
+         * (SwitchSides) lead to the level's first stages (the others follow them), Kirby arrives at SwitchArrival,
          * and the mirror above the switch (SwitchTop) shows once it's pressed (LevelLinks); */
         const int SwitchStage = 8, SwitchWidth = 16, SwitchHeight = 10, SwitchX = 136, SwitchY = 128;
-        static readonly (int x, int y)[] SwitchSides = { (1, 8), (14, 8), (3, 4), (12, 4) };
+        static readonly (int x, int y)[] SwitchSides = { (1, 8), (14, 8) };
         static readonly (int x, int y) SwitchArrival = (4, 8), SwitchTop = (8, 3);
 
         /* The NiDL hub (see KatAMExpansionHub.cs): Central Circle again, at night; its golden mirror (MainHubReturn) back to Central
@@ -182,8 +195,7 @@ namespace KatAMRandomizer {
          * has none), laid out as KatAM's switch rooms (rows 0-9; the padding repeats the floor below):
          *   ################      0
          *   ##............##      1-3
-         *   ##.M........M.##      4    upper mirrors (3, 4), (12, 4)
-         *   ##___......___##      5    ledges (one-way)
+         *   ##............##      4-5
          *   #..............#      6
          *   ................      7
          *   .M....#####...M.      8    floor mirrors (1, 8), (14, 8); the pedestal, the big switch on it
@@ -237,7 +249,6 @@ namespace KatAMRandomizer {
                         else Set(x, y, y > 0 && !Solid(x, y - 1) ? top : ground, 0x01);
                     }
                 }
-                foreach (int x in new[] { 2, 3, 4, 11, 12, 13 }) Set(x, 5, platform >= 0 ? platform : top, 0x11);
 
                 byte[] record = nightmare.Skip(source.Record).Take(0x54).ToArray();
                 WriteShort(record, 2, 0);
@@ -408,7 +419,7 @@ namespace KatAMRandomizer {
                 return $"The Nightmare in Dream Land ROM doesn't match the {region.KatAM} release.";
             }
 
-            BuildMainHub(rom, nightmare, symbols, mainHub, mainHubDoors, rooms.First(r => r.Level == 7 && r.Stage == 0 && r.Index == 0).Record, tableSizes,
+            BuildMainHub(rom, nightmare, symbols, version.SpriteTables, mainHub, mainHubDoors, rooms.First(r => r.Level == 7 && r.Stage == 0 && r.Index == 0).Record, tableSizes,
                          infos, palettes, tilemaps, solidities, backgrounds, objects, noTypes, ref cursor);
             WriteShort(rom, CodeAddress + version.CodeSymbols["gNidlHubRoom"], mainHub);
 
@@ -628,7 +639,7 @@ namespace KatAMRandomizer {
          * where it leads (the KatAM room, and the cell Kirby lands in plus one, as the records hold it), and whether a mirror (object
          * 0x6F) stands on it, and which way Kirby faces there (1 right, 2 left: towards the room's middle); an edge (collision 0xFE, 0xFC in
          * water) takes Kirby through as he touches it, without a mirror; */
-        public sealed record Door(int X, int Y, int Room, int DestX, int DestY, byte Facing, bool Edge = false, int Slot = 0);
+        public sealed record Door(int X, int Y, int Room, int DestX, int DestY, byte Facing, bool Edge = false, int Slot = 0, int Design = HubDesign);
 
         // The KatAM room with the mirror to Nightmare in Dream Land: Central Circle, on its platform's left end (FinishRooms());
         const int EntryRoom = 0x321, EntryX = 11, EntryY = 14;
@@ -693,9 +704,9 @@ namespace KatAMRandomizer {
             }
             Dictionary<int, int> widths = rooms.ToDictionary(r => r.Room, r => r.Width);
             byte Facing((int room, int x, int y) to) => (byte)(!widths.TryGetValue(to.room, out int w) || (to.x - 1) * 2 < w ? 1 : 2);
-            void Add((NightmareRoom part, int x, int y) at, (int room, int x, int y) to, bool edge = false, int slot = 0) {
+            void Add((NightmareRoom part, int x, int y) at, (int room, int x, int y) to, bool edge = false, int slot = 0, int design = HubDesign) {
                 if (doors[at.part].Any(d => d.X == at.x && d.Y == at.y)) return;
-                doors[at.part].Add(new Door(at.x, at.y, to.room, to.x, to.y, Facing(to), edge, slot));
+                doors[at.part].Add(new Door(at.x, at.y, to.room, to.x, to.y, Facing(to), edge, slot, design));
             }
 
             List<((NightmareRoom, int, int) at, (int, int, int) to)> edges = new List<((NightmareRoom, int, int), (int, int, int))>();
@@ -750,8 +761,9 @@ namespace KatAMRandomizer {
                 List<(int level, int stage)> levelStages = stages.Where(t => t.level == level && !IsBossStage(t)).DefaultIfEmpty(stages.First(t => t.level == level)).ToList();
                 for (int i = 0; i < SwitchSides.Length && i < levelStages.Count; i++)
                     Add((switchRoom, SwitchSides[i].x, SwitchSides[i].y), StageStart(levelStages[i]));
-                (int, int, int) link = LevelLinks[level] < 0 ? MainHubAt(MainHubDoors[level]) : (LevelLinks[level], SwitchLanding.x, SwitchLanding.y);
-                Add((switchRoom, SwitchTop.x, SwitchTop.y), link, slot: LevelSlot(level));
+                int linked = LevelLinks[level];
+                (int, int, int) link = linked == Hub ? MainHubAt(MainHubDoors[level]) : linked < 0 ? SwitchRoomArrival(-2 - linked) : (linked, SwitchLanding.x, SwitchLanding.y);
+                Add((switchRoom, SwitchTop.x, SwitchTop.y), link, slot: LevelSlot(level), design: LinkDesign(linked));
 
                 (int room, int x, int y) arrival = SwitchRoomArrival(level);
                 mainHubDoors.Add(new Door(MainHubDoors[level].x, MainHubDoors[level].y, arrival.room, arrival.x, arrival.y, Facing(arrival), Slot: level == 0 ? 0 : LevelSlot(level)));
@@ -827,12 +839,13 @@ namespace KatAMRandomizer {
         static byte[] MirrorTemplate(int x, int y, int number) => ObjectTemplate(x * 16 + 8, y * 16 + 8, number, MirrorType);
 
         /* DoorToHubTemplate(); A door object (0x97, CreateDoorToHub) under a door cell (its x, y: the cell's bottom center), as KatAM's
-         * switch rooms': once the world slot is set, it breaks the cell's special block (making the door) and shows its mirror; */
+         * switch rooms': once the world slot is set, it breaks the cell's special block (making the door) and shows its mirror, whose
+         * frame is the design (anim 0x2C6's variant); */
         const byte DoorToHubType = 0x97;
-        static byte[] DoorToHubTemplate(int x, int y, int number, int slot) {
+        static byte[] DoorToHubTemplate(int x, int y, int number, int slot, int design) {
             byte[] template = ObjectTemplate(x * 16 + 8, (y + 1) * 16, number, DoorToHubType);
             template[4] = (byte)slot;
-            template[14] = template[15] = 0x11;
+            template[14] = template[15] = (byte)design;
             return template;
         }
 
@@ -1050,7 +1063,7 @@ namespace KatAMRandomizer {
             // A mirror on each door (see Door); a hidden one is a door object (0x97, its own mirror), showing once the slot is set;
             foreach (Door door in doors.Where(d => !d.Edge)) {
                 byte type = door.Slot != 0 ? DoorToHubType : MirrorType;
-                templates.Add(door.Slot != 0 ? DoorToHubTemplate(door.X, door.Y, templates.Count, door.Slot) : MirrorTemplate(door.X, door.Y, templates.Count));
+                templates.Add(door.Slot != 0 ? DoorToHubTemplate(door.X, door.Y, templates.Count, door.Slot, door.Design) : MirrorTemplate(door.X, door.Y, templates.Count));
                 if (!types.Contains(type)) types.Add(type);
             }
 

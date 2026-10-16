@@ -1,121 +1,105 @@
 namespace KatAMRandomizer {
     /* KatAMExpansion's NiDL hub (see MainHubDoors): Central Circle's props, collision, tiles and CPU helpers' zones, at night:
      * • Background: NiDL's final boss background (the Fountain of Dreams' first room's: stars, the pink and cyan nebula, the violet
-     *   sky, the sunset hills), cut down to 32x36 tiles and quantized to 3 palettes (6-8), one per band of rows (HubBackground);
+     *   sky and its galaxies), cut down to 32x36 tiles and quantized to 3 palettes (6-8), one per band of rows (HubBackground);
      * • Palettes: Central Circle's scenery (palettes 4 and 5) tinted to the night (NightTint);
-     * • Doors: Central Circle's doors are special blocks (kind 1) its hub mirror objects (0x8C) break once their world slot is set,
-     *   drawing the door's tiles over the 3x3 cells above its door cell. Each level gets the door at its MainHubDoors cell, its
-     *   tiles copied (into the tiles Central Circle's tilemap doesn't use) with their colors in a palette of their own, recolored
-     *   for the level (DoorThemes): palettes 1 and 2 (Vegetable Valley's, Ice Cream Island's: Central Circle's doors used them) and
-     *   9-13 (the others': the background's palette block carries them). The Fountain of Dreams' starry door keeps its palettes:
-     *   its own colors are palette 3's 4-7, which only it uses; */
+     * • Doors: as Central Circle's, special blocks (kind 1) its hub mirror objects (0x8C) break once their world slot is set, drawing
+     *   the door over the 3x3 cells above its door cell (MainHubDoors: Central Circle's own doors' cells). Each level's door is its
+     *   design (NidlDesigns: one of KatAM's door frames, anim 0x2C6, over its mirror, anim 0x2C5, as object 0x97 draws them; none of
+     *   Central Circle's), drawn over the room's tiles there into new tiles (the ones Central Circle's tilemap doesn't use) with
+     *   their colors in a palette of their own: 0-2 (Central Circle's tilemap only uses palette 0's transparent color, its doors
+     *   palettes 1 and 2) and 9-13 (the background's palette block carries them); */
     internal static partial class KatAMExpansion {
-        // The door palettes, per level (the Fountain of Dreams': none, see above);
-        static readonly int[] DoorPalettes = { 1, 2, 9, 10, 11, 12, 13, -1 };
-        const int FountainLevel = 7, StarryPalette = 3;
-
-        /* DoorThemes; How a level's door is recolored (its glass, white and black, GlassColors, stay; its bits of clouds get the night
-         * tint): "rotate" turns the hue of the colors whose hue is between From and To by Degrees, "colorize" gives every color hue
-         * Degrees; both scale the saturation and value. Vegetable Valley: carrot trunks; Ice Cream Island: tropical sea; Butter Building:
-         * butter; Grape Garden: grape; Yogurt Yard: strawberry yogurt; Orange Ocean: orange; Rainbow Resort: pastel ice; the Fountain
-         * of Dreams: violet night; */
-        static readonly (bool colorize, double degrees, double saturation, double value, double from, double to)[] DoorThemes = {
-            (false, -12, 1.5, 1.05, 15, 50), (false, -25, 1.1, 1.05, 0, 360), (true, 48, 0.45, 1.1, 0, 360), (false, 10, 1.15, 1.0, 0, 360),
-            (true, 335, 0.28, 1.12, 0, 360), (false, 180, 1.1, 1.05, 0, 360), (false, 60, 1.0, 1.05, 0, 360), (false, 45, 1.1, 0.9, 180, 260),
-        };
-        static readonly HashSet<int> GlassColors = new HashSet<int> { 0x7D20, 0x3C00, 0x7E20, 0x7ECA, 0x7F75, 0x7FFF, 0x0000, 0x7CC0 };
+        // The door palettes, per level;
+        static readonly int[] DoorPalettes = { 1, 2, 0, 9, 10, 11, 12, 13 };
+        const int DoorFrameAnim = 0x2C6, DoorMirrorAnim = 0x2C5;
 
         // The final boss background's rows the hub's is made of, and its 3 bands (rows of 8 pixels in it, one palette each);
-        static readonly (int from, int to)[] HubBackgroundRows = { (296, 376), (376, 520), (776, 840) };
+        static readonly (int from, int to)[] HubBackgroundRows = { (296, 376), (376, 520), (520, 584) };
         static readonly int[] HubBackgroundBands = { 0, 14, 28 };
         const int HubBackgroundPalette = 6;
 
-        static void BuildMainHub(byte[] rom, byte[] nightmare, IReadOnlyDictionary<string, int> symbols, int hub, List<Door> hubDoors, int backgroundRecord,
-                                 int[] tableSizes, List<int> infos, List<int> palettes, List<int> tilemaps, List<int> solidities, List<int> backgrounds,
-                                 List<int> objects, int noTypes, ref int cursor) {
+        static void BuildMainHub(byte[] rom, byte[] nightmare, IReadOnlyDictionary<string, int> symbols, int spriteTables, int hub, List<Door> hubDoors,
+                                 int backgroundRecord, int[] tableSizes, List<int> infos, List<int> palettes, List<int> tilemaps, List<int> solidities,
+                                 List<int> backgrounds, List<int> objects, int noTypes, ref int cursor) {
             int roomProps = symbols["gRoomProps"], roomInfos = symbols["gUnk_08D6CD0C"];
             int Props(int field) => ReadShort(rom, roomProps + EntryRoom * 0x28 + field * 2);
             int Entry(string table, int index) => ReadInt(rom, symbols[table] + index * 4) - 0x08000000;
 
             int info = Entry("gForegroundInfo", Props(10)), tilesPointer = ReadInt(rom, info);
-            byte[] tiles = DecompressLZ77(rom, tilesPointer - 0x08000000), sourceTiles = (byte[])tiles.Clone();
+            byte[] tiles = DecompressLZ77(rom, tilesPointer - 0x08000000);
             int tilemapEntry = Entry("gForegroundTilemaps", Props(12)), columns = ReadShort(rom, tilemapEntry), width = columns / 2;
             byte[] map = DecompressLZ77(rom, ReadInt(rom, tilemapEntry + 0x18) - 0x08000000);
             int paletteEntry = Entry("gForegroundPalettes", Props(11)), sourceColors = ReadInt(rom, paletteEntry) - 0x08000000;
-            int Color(int palette, int index) => ReadShort(rom, sourceColors + (palette * 16 + index) * 2) & 0x7FFF;
             int solidity = Entry("gSolidityMaps", Props(13));
             byte[] collision = DecompressRL(rom, ReadInt(rom, solidity) - 0x08000000);
 
-            // Central Circle's doors' special blocks (kind 1: their 4 tilemap entries);
-            Dictionary<(int x, int y), int[]> blocks = new Dictionary<(int, int), int[]>();
-            for (int at = ReadInt(rom, solidity + 4) - 0x08000000; rom[at + 4] != 0; at += rom[at + 4])
-                if (rom[at] == 1) blocks[(rom[at + 2], rom[at + 3])] = Enumerable.Range(0, 4).Select(q => ReadShort(rom, at + 8 + q * 2)).ToArray();
-            int MapEntry(int x, int y, int q) => ReadShort(map, ((y * 2 + q / 2) * columns + x * 2 + q % 2) * 2);
-
-            // Palettes: Central Circle's, its scenery at night, palettes 1 and 2 for doors, the starry door's colors;
+            // Palettes: Central Circle's, its scenery at night;
             int[] colors = new int[96];
-            for (int i = 0; i < 96; i++) colors[i] = Color(i / 16, i % 16);
+            for (int i = 0; i < 96; i++) colors[i] = ReadShort(rom, sourceColors + i * 2) & 0x7FFF;
             for (int i = 4 * 16 + 1; i < 96; i++) if (i % 16 != 0) colors[i] = NightTint(colors[i]);
-            for (int i = 4; i <= 7; i++) colors[StarryPalette * 16 + i] = ThemeColor(FountainLevel, Color(StarryPalette, i));
             int[][] doorColors = new int[8][];
-
-            // The doors' tiles: the tiles of their special blocks that aren't the tilemap's, recolored into their palette;
-            // (the doors that keep their tiles keep them too);
-            HashSet<int> usedTiles = Enumerable.Range(0, map.Length / 2).Select(i => ReadShort(map, i * 2) & 0x3FF).ToHashSet();
-            for (int level = 0; level < MainHubDoors.Length; level++) {
-                if (DoorPalettes[level] >= 0) continue;
-                (int x, int y) door = MainHubDoors[level];
-                for (int y = door.y - 2; y <= door.y; y++)
-                    for (int x = door.x - 1; x <= door.x + 1; x++) usedTiles.UnionWith(blocks[(x, y)].Select(e => e & 0x3FF));
+            // A pixel of the room's tilemap (RGB555, or -1: transparent);
+            int RoomPixel(int x, int y) {
+                int entry = ReadShort(map, ((y / 8) * columns + x / 8) * 2);
+                int px = (entry & 0x400) != 0 ? 7 - x % 8 : x % 8, py = (entry & 0x800) != 0 ? 7 - y % 8 : y % 8;
+                int index = tiles[(entry & 0x3FF) * 32 + py * 4 + px / 2] >> (px % 2 * 4) & 0xF;
+                return index == 0 ? -1 : colors[(entry >> 12) * 16 + index];
             }
+
+            // The doors: their designs drawn over the room's pixels (bottom center on the door cell's), the tiles they touch made anew;
+            HashSet<int> usedTiles = Enumerable.Range(0, map.Length / 2).Select(i => ReadShort(map, i * 2) & 0x3FF).ToHashSet();
             Queue<int> freeTiles = new Queue<int>(Enumerable.Range(1, tiles.Length / 32 - 1).Where(t => !usedTiles.Contains(t)));
+            byte[] sourceTiles = (byte[])tiles.Clone();
             Dictionary<(int x, int y), int[]> drawn = new Dictionary<(int, int), int[]>();
+            (int width, int height, int originX, int originY, int[] pixels) mirror = DecodeSprite(rom, spriteTables, DoorMirrorAnim, 0);
             for (int level = 0; level < MainHubDoors.Length; level++) {
                 (int x, int y) door = MainHubDoors[level];
-                List<int> sources = new List<int>();
-                for (int y = door.y - 2; y <= door.y; y++)
-                    for (int x = door.x - 1; x <= door.x + 1; x++)
-                        for (int q = 0; q < 4; q++)
-                            if (blocks[(x, y)][q] != MapEntry(x, y, q) && !sources.Contains(blocks[(x, y)][q] & 0xF3FF)) sources.Add(blocks[(x, y)][q] & 0xF3FF);
+                int left = (door.x - 1) * 16, top = (door.y - 2) * 16, bottomX = door.x * 16 + 8, bottomY = (door.y + 1) * 16;
+                int[] area = new int[48 * 48];
+                bool[] ofDoor = new bool[48 * 48];
+                for (int y = 0; y < 48; y++) for (int x = 0; x < 48; x++) area[y * 48 + x] = RoomPixel(left + x, top + y);
+                var frame = DecodeSprite(rom, spriteTables, DoorFrameAnim, NidlDesigns[level]);
+                foreach (var sprite in new[] { mirror, frame }) {
+                    for (int y = 0; y < sprite.height; y++)
+                        for (int x = 0; x < sprite.width; x++) {
+                            int color = sprite.pixels[y * sprite.width + x], ax = bottomX - sprite.originX + x - left, ay = bottomY - sprite.originY + y - top;
+                            if (color < 0 || ax < 0 || ay < 0 || ax >= 48 || ay >= 48) continue;
+                            area[ay * 48 + ax] = color;
+                            ofDoor[ay * 48 + ax] = true;
+                        }
+                }
 
-                Dictionary<int, int> newEntries = new Dictionary<int, int>();
-                if (DoorPalettes[level] >= 0 && freeTiles.Count >= sources.Count) {
-                    // The door's colors, recolored (the most common 15 if more), and its tiles remapped to them;
-                    int Recolored(int palette, int index) {
-                        int color = Color(palette, index);
-                        return palette >= 4 ? NightTint(color) : GlassColors.Contains(color) ? color : ThemeColor(level, color);
-                    }
-                    Dictionary<int, int> counts = new Dictionary<int, int>();
-                    foreach (int source in sources)
-                        for (int b = 0; b < 64; b++) {
-                            int index = sourceTiles[(source & 0x3FF) * 32 + b / 2] >> (b % 2 * 4) & 0xF;
-                            if (index != 0) counts[Recolored(source >> 12, index)] = counts.GetValueOrDefault(Recolored(source >> 12, index)) + 1;
-                        }
-                    int[] palette = counts.OrderByDescending(c => c.Value).ThenBy(c => c.Key).Take(15).Select(c => c.Key).ToArray();
-                    doorColors[level] = palette;
-                    foreach (int source in sources) {
-                        int tile = freeTiles.Dequeue();
-                        for (int b = 0; b < 32; b++) {
-                            int pixels = sourceTiles[(source & 0x3FF) * 32 + b], value = 0;
-                            for (int half = 0; half < 2; half++) {
-                                int index = pixels >> (half * 4) & 0xF;
-                                if (index != 0) value |= (1 + NearestColor(palette, Recolored(source >> 12, index))) << (half * 4);
+                // The tiles the door touches: their colors (15 at most), its palette;
+                bool Touched(int tx, int ty) => Enumerable.Range(0, 64).Any(i => ofDoor[(ty * 8 + i / 8) * 48 + tx * 8 + i % 8]);
+                List<int> doorPixels = new List<int>();
+                for (int ty = 0; ty < 6; ty++)
+                    for (int tx = 0; tx < 6; tx++)
+                        if (Touched(tx, ty)) for (int i = 0; i < 64; i++) if (area[(ty * 8 + i / 8) * 48 + tx * 8 + i % 8] >= 0) doorPixels.Add(area[(ty * 8 + i / 8) * 48 + tx * 8 + i % 8]);
+                int[] palette = doorColors[level] = Quantize(doorPixels, 15);
+                int[][] entries = new int[9][];
+                for (int cell = 0; cell < 9; cell++) entries[cell] = new int[4];
+                for (int ty = 0; ty < 6; ty++) {
+                    for (int tx = 0; tx < 6; tx++) {
+                        int mapX = door.x * 2 - 2 + tx, mapY = door.y * 2 - 4 + ty, entry = ReadShort(map, (mapY * columns + mapX) * 2);
+                        if (Touched(tx, ty) && freeTiles.Count > 0) {
+                            int tile = freeTiles.Dequeue();
+                            for (int i = 0; i < 64; i++) {
+                                int color = area[(ty * 8 + i / 8) * 48 + tx * 8 + i % 8];
+                                int value = color < 0 ? 0 : 1 + NearestColor(palette, color);
+                                if (i % 2 == 0) tiles[tile * 32 + i / 2] = (byte)value; else tiles[tile * 32 + i / 2] |= (byte)(value << 4);
                             }
-                            tiles[tile * 32 + b] = (byte)value;
+                            entry = DoorPalettes[level] << 12 | tile;
                         }
-                        newEntries[source] = DoorPalettes[level] << 12 | tile;
+                        entries[ty / 2 * 3 + tx / 2][ty % 2 * 2 + tx % 2] = entry;
                     }
                 }
-                for (int y = door.y - 2; y <= door.y; y++)
-                    for (int x = door.x - 1; x <= door.x + 1; x++)
-                        drawn[(x, y)] = Enumerable.Range(0, 4).Select(q => {
-                            int entry = blocks[(x, y)][q];
-                            if (entry == MapEntry(x, y, q)) return entry;
-                            return newEntries.TryGetValue(entry & 0xF3FF, out int recolored) ? recolored | (entry & 0x0C00) : entry;
-                        }).ToArray();
+                for (int cell = 0; cell < 9; cell++) drawn[(door.x - 1 + cell % 3, door.y - 2 + cell / 3)] = entries[cell];
             }
-            for (int level = 0; level < 2; level++)
-                for (int i = 0; i < 15; i++) colors[DoorPalettes[level] * 16 + 1 + i] = doorColors[level] != null && i < doorColors[level].Length ? doorColors[level][i] : 0;
+            for (int level = 0; level < DoorPalettes.Length; level++) {
+                if (DoorPalettes[level] >= HubBackgroundPalette) continue;
+                for (int i = 0; i < 15; i++) colors[DoorPalettes[level] * 16 + 1 + i] = i < doorColors[level].Length ? doorColors[level][i] : 0;
+            }
 
             int infoAt = Allocate(ref cursor, 16, 4), tilesAt = AllocateCompressed(rom, CompressLZ77(tiles), ref cursor);
             Array.Copy(rom, info, rom, infoAt, 16);
@@ -285,6 +269,44 @@ namespace KatAMRandomizer {
             return centers.Select(k => (int)Math.Round(k.r) | (int)Math.Round(k.g) << 5 | (int)Math.Round(k.b) << 10).Distinct().ToArray();
         }
 
+        /* DecodeSprite(); A frame of a KatAM anim (gSpriteTables: anims, attrs, oamData, palettes, tiles): its variant's commands load
+         * its palette (-2, index) and tiles (-1, index, count) and show a frame (a duration, the frame); the frame's attrs (its first OAM
+         * piece, pieces, width, height, origin) and pieces (3 halfwords: y | shape << 14, x | size << 14 | flips, tile). Its pixels: RGB555,
+         * -1 where transparent; */
+        static (int width, int height, int originX, int originY, int[] pixels) DecodeSprite(byte[] rom, int spriteTables, int anim, int variant) {
+            int Table(int i) => ReadInt(rom, spriteTables + i * 4) - 0x08000000;
+            int commands = ReadInt(rom, ReadInt(rom, Table(0) + anim * 4) - 0x08000000 + variant * 4) - 0x08000000;
+            int palette = 0, tileIndex = 0, frame = 0;
+            for (int i = 0; i < 40;) {
+                int command = ReadInt(rom, commands + i * 4);
+                if (command == -2) { palette = ReadInt(rom, commands + i * 4 + 4); i += 3; }
+                else if (command == -1) { tileIndex = ReadInt(rom, commands + i * 4 + 4); i += 3; }
+                else if (command >= 0) { frame = ReadInt(rom, commands + i * 4 + 4); break; }
+                else i++;
+            }
+            int attributes = ReadInt(rom, Table(1) + anim * 4) - 0x08000000 + frame * 12, pieces = ReadInt(rom, Table(2) + anim * 4) - 0x08000000;
+            int first = (short)ReadShort(rom, attributes), count = (short)ReadShort(rom, attributes + 2), width = ReadShort(rom, attributes + 4),
+                height = ReadShort(rom, attributes + 6), originX = (short)ReadShort(rom, attributes + 8), originY = (short)ReadShort(rom, attributes + 10);
+            int colors = Table(3) + palette * 32, tileData = Table(4);
+            int[] pixels = Enumerable.Repeat(-1, width * height).ToArray();
+            for (int p = count - 1; p >= 0; p--) {
+                int a0 = ReadShort(rom, pieces + (first + p) * 6), a1 = ReadShort(rom, pieces + (first + p) * 6 + 2), tile = ReadShort(rom, pieces + (first + p) * 6 + 4);
+                int y = a0 & 0x3FFF, x = a1 & 0xFFF, shape = a0 >> 14, size = a1 >> 14;
+                if (y >= 0x2000) y -= 0x4000;
+                if (x >= 0x800) x -= 0x1000;
+                int pw = shape == 0 ? 8 << size : shape == 1 ? new[] { 16, 32, 32, 64 }[size] : new[] { 8, 8, 16, 32 }[size];
+                int ph = shape == 0 ? 8 << size : shape == 1 ? new[] { 8, 8, 16, 32 }[size] : new[] { 16, 32, 32, 64 }[size];
+                for (int py = 0; py < ph; py++)
+                    for (int px = 0; px < pw; px++) {
+                        int t = tileIndex + tile + py / 8 * (pw / 8) + px / 8;
+                        int index = rom[tileData + t * 32 + py % 8 * 4 + px % 8 / 2] >> (px % 2 * 4) & 0xF;
+                        int dx = x + ((a1 & 0x1000) != 0 ? pw - 1 - px : px), dy = y + ((a1 & 0x2000) != 0 ? ph - 1 - py : py);
+                        if (index != 0 && dx >= 0 && dy >= 0 && dx < width && dy < height) pixels[dy * width + dx] = ReadShort(rom, colors + index * 2) & 0x7FFF;
+                    }
+            }
+            return (width, height, originX, originY, pixels);
+        }
+
         static (double r, double g, double b) Rgb(int color) => (color & 31, color >> 5 & 31, color >> 10 & 31);
         static double Distance((double r, double g, double b) a, (double r, double g, double b) b) =>
             (a.r - b.r) * (a.r - b.r) * 0.3 + (a.g - b.g) * (a.g - b.g) * 0.59 + (a.b - b.b) * (a.b - b.b) * 0.11;
@@ -295,19 +317,6 @@ namespace KatAMRandomizer {
             (double h, double s, double v) = ToHsv(color);
             double toward = 270, delta = ((toward - h + 540) % 360) - 180;
             return FromHsv((h + delta * 0.55 + 360) % 360, Math.Min(1, s * 0.8 + 0.25), v * 0.75 + 0.05);
-        }
-
-        // ThemeColor(); A door color recolored for the level (see DoorThemes);
-        static int ThemeColor(int level, int color) {
-            if (GlassColors.Contains(color)) return color;
-            var theme = DoorThemes[level];
-            (double h, double s, double v) = ToHsv(color);
-            if (theme.colorize) { h = theme.degrees; s = s > 0.08 ? Math.Max(s, theme.saturation) : theme.saturation * 0.7; }
-            else if (theme.from <= theme.to ? h >= theme.from && h <= theme.to : h >= theme.from || h <= theme.to) {
-                h = (h + theme.degrees + 360) % 360;
-                s = Math.Min(1, s * theme.saturation);
-            }
-            return FromHsv(h, s, Math.Min(1, v * theme.value));
         }
 
         static (double h, double s, double v) ToHsv(int color) {

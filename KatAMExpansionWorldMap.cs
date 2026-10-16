@@ -20,14 +20,14 @@ namespace KatAMRandomizer {
             int lineCoors = version.RomSymbols["sWorldMapLineCoors"], dotCounts = lineCoors + WorldMapDoors * 4, dotCoors = version.RomSymbols["gWorldMapDotCoors"];
             if (ReadInt(rom, lineCoors + 4) != 0x50705898) return $"The {version.Name} ROM's world map isn't where it should be.";
 
-            // The paths' dots (4 bytes each, as struct WorldMapDotCoor's, which agbcc pads): about every 6.5 pixels, from 6 pixels off the NiDL door to 14 (18: Central Circle) before where it leads (the doors are placed so their paths are straight, level or 45 degrees, and clear of KatAM's paths and the map's captions);
+            // The paths' dots (4 bytes each, as struct WorldMapDotCoor's, which agbcc pads): about every 6.5 pixels, from 5 pixels off the NiDL door to 9 (17: Central Circle) before where it leads, as KatAM's (the doors are placed so their paths are straight, level or 45 degrees, and clear of KatAM's paths and the map's captions);
             for (int k = 0; k < NidlWorldMapDoors; k++) {
                 int door = doors + k * NidlDoorSize;
                 double x = rom[door], y = rom[door + 1], destX = rom[door + 2], destY = rom[door + 3];
                 double length = Math.Sqrt((destX - x) * (destX - x) + (destY - y) * (destY - y));
-                double end = length - (destX == 112 && destY == 80 ? 18 : 14) + 0.01;
+                double end = length - (destX == 112 && destY == 80 ? 17 : 9) + 0.01;
                 int count = 0;
-                for (double t = 6; t <= end && count < NidlMaxDots; t += 6.5, count++) {
+                for (double t = 5; t <= end && count < NidlMaxDots; t += 6.5, count++) {
                     rom[door + 8 + count * 4] = (byte)Math.Round(x + (destX - x) * t / length);
                     rom[door + 9 + count * 4] = (byte)Math.Round(y + (destY - y) * t / length + 2);
                 }

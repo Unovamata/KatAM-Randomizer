@@ -32,26 +32,27 @@ u16 gNidlHubRoom = 0xFFFF;
 
 struct NidlWorldMapDoor {
     u8 x, y;          // the NiDL level's door;
-    u8 destX, destY;  // where its path leads: a KatAM door, or Central Circle (112, 80);
+    u8 destX, destY;  // where its path leads: a KatAM door, another NiDL door, or Central Circle (112, 80);
     u8 slot;          // its world slot (the level's big switch's);
     u8 dotCount;
     u16 tilemapOffset;  // its door tile in the map's tilemap (BG screen 24);
     struct { u8 x, y; } dots[NIDL_WORLDMAP_MAX_DOTS];  // 4 bytes each (agbcc pads them), as KatAM's struct WorldMapDotCoor;
 };
 
-/* The doors, where their paths are straight (level, upright or 45 degrees) and clear of KatAM's paths, doors and the map's captions:
- * Vegetable Valley right of Rainbow Route East, Ice Cream Island left of Carrot Castle, Butter Building right of Mustard Mountain,
- * Grape Garden below Peppermint Palace West, Yogurt Yard above Radish Ruins, Orange Ocean above Olive Ocean, Rainbow Resort straight
- * from Central Circle, the Fountain of Dreams right of Cabbage Cavern's center; their dots are filled in by KatAMExpansionWorldMap.cs; */
+/* The doors, clear of KatAM's paths, doors and the map's captions, leading where the level's switch room's revealed mirror does
+ * (KatAMExpansionRooms.cs' LevelLinks): Vegetable Valley right of Rainbow Route East, Ice Cream Island right of the Moonlight Mansion door,
+ * Butter Building up from Rainbow Resort, Grape Garden left of Peppermint Palace East, Yogurt Yard left of Cabbage Cavern West, Orange
+ * Ocean right of Cabbage Cavern East and the Fountain of Dreams below it, Rainbow Resort straight from Central Circle; their dots are
+ * filled in by KatAMExpansionWorldMap.cs; */
 struct NidlWorldMapDoor gNidlWorldMapDoors[NIDL_WORLDMAP_DOORS] = {
     { 204, 72, 168, 72, 0x13 + 1, 0, 0 },
-    { 24, 80, 64, 80, 0x13 + 2, 0, 0 },
-    { 172, 24, 136, 24, 0x13 + 3, 0, 0 },
-    { 8, 56, 32, 32, 0x13 + 4, 0, 0 },
-    { 24, 104, 48, 128, 0x13 + 5, 0, 0 },
-    { 208, 100, 208, 136, 0x13 + 6, 0, 0 },
+    { 208, 100, 152, 88, 0x13 + 2, 0, 0 },
+    { 176, 16, 152, 40, 0x13 + 3, 0, 0 },
+    { 24, 72, 88, 56, 0x13 + 4, 0, 0 },
+    { 24, 104, 80, 120, 0x13 + 5, 0, 0 },
+    { 228, 120, 168, 120, 0x13 + 6, 0, 0 },
     { 152, 40, 112, 80, 0x13 + 7, 0, 0 },
-    { 162, 136, 128, 136, 0x13 + 8, 0, 0 },
+    { 162, 136, 168, 120, 0x13 + 8, 0, 0 },
 };
 
 // KatAM's doors' slots (pause_world_map.c's WorldMapUnlockSave);
