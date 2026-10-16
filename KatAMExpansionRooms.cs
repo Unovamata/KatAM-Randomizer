@@ -165,10 +165,11 @@ namespace KatAMRandomizer {
         }
 
         /* Padded(); A room's size in KatAM: KatAM's camera never shows a room's bottom 40 pixels nor 8 on its other sides (its rooms
-         * hide that much past their edges), so NiDL's rooms get their last row repeated HiddenRows times below, and their last column
-         * and row repeated up to a screen (256 x 208: smaller rooms push the camera off them); */
+         * hide that much past their edges), so NiDL's rooms get their last row repeated HiddenRows times below (one: the camera stops
+         * 24 pixels above the NiDL room's bottom, so the repeated row never shows), and their last column and row repeated up to a
+         * screen (256 x 208: smaller rooms push the camera off them; 11 rows, a screen in NiDL: the camera stops 8 pixels above); */
         static (int width, int height) Padded(int width, int height) => (Math.Max(width, MinWidth), Math.Max(height + HiddenRows, MinHeight));
-        const int HiddenRows = 3, MinWidth = 16, MinHeight = 13;
+        const int HiddenRows = 1, MinWidth = 16, MinHeight = 13;
 
         public static IReadOnlyList<NightmareRoom> PortedRooms { get; private set; } = new List<NightmareRoom>();
         public static IReadOnlyDictionary<NightmareRoom, List<Door>> PortedDoors { get; private set; } = new Dictionary<NightmareRoom, List<Door>>();
@@ -458,9 +459,14 @@ namespace KatAMRandomizer {
                     rom[roomInfo + 0x46] = (byte)r.Area;
                     WriteInt(rom, roomInfos + r.Room * 4, roomInfo + 0x08000000);
 
-                    // The background scrolls as in NiDL: its rates (+0x34, x and y in 16ths) as KatAM's (8.8), bottom-aligned;
+                    /* The background scrolls as in NiDL: its rates (+0x34, x and y in 16ths) as KatAM's (8.8), bottom-aligned; the vertical
+                     * one no faster than reaches the background's top at the room's (KatAM would show past it: two rooms with a short
+                     * background); */
+                    int backgroundHeight = ReadShort(nightmare, backgroundMap + 4) * 8, roomHeight = r.FullHeight * 16;
+                    int rateY = ReadShort(nightmare, record + 0x36) * 16;
+                    if (roomHeight > 160) rateY = Math.Min(rateY, Math.Max(0, (backgroundHeight - 160) * 0x100 / (roomHeight - 160)));
                     WriteShorts(rom, roomProps + r.Room * 0x28, LevelSongs[r.Level], 0, 0, 0x100, 0x100, 0, 0,
-                                ReadShort(nightmare, record + 0x34) * 16, ReadShort(nightmare, record + 0x36) * 16, RoomFlags,
+                                ReadShort(nightmare, record + 0x34) * 16, rateY, RoomFlags,
                                 info, palette, tableSizes[12] + i, tableSizes[13] + i, 0xFFFF, background, tableSizes[16] + i,
                                 tableSizes[17] + i, SharedDoors, 0);
                 }
@@ -1108,9 +1114,10 @@ namespace KatAMRandomizer {
             return record;
         }
 
-        /* Breakable blocks (NiDL collision 0x2X) -> KatAM's: star blocks 0xF0, metal 0xF4 (0x2D), bomb blocks 0xF1 (0x2E) and the blocks
-         * a bomb block breaks 0xF2 (0x2F); */
-        static byte BreakableBlock(int collision) => collision switch { 0x2D => 0xF4, 0x2E => 0xF1, 0x2F => 0xF2, _ => 0xF0 };
+        /* Breakable blocks (NiDL collision 0x2X) -> KatAM's: star blocks 0xF0 (0x24, and Rainbow Resort's few 0x20), bomb blocks 0xF1
+         * (0x2E), the blocks a bomb block sets off 0xF2 (0x2D, touching it and each other: KatAM breaks them as a chain from the bomb
+         * block), metal blocks 0xF4 (0x2F); */
+        static byte BreakableBlock(int collision) => collision switch { 0x2D => 0xF2, 0x2E => 0xF1, 0x2F => 0xF4, _ => 0xF0 };
 
         /* BuildSolidity(); The room's (part's) SolidityMap: its RL collision and its special blocks: per breakable block, its KatAM
          * value, where it is, and what it leaves when broken (the 4 tilemap entries of the metatile NiDL's object data lists for the
@@ -1205,29 +1212,64 @@ namespace KatAMRandomizer {
             return position - address;
         }
 
-        /* BuildBackground(); A KatAM RoomTiledBG for a NiDL background: only the tiles its map uses (renumbered, at most
-         * BackgroundTiles), palettes 8-15 as KatAM's 6-13, the map row by row; returns its address; */
+        /* BuildBackground(); A KatAM RoomTiledBG for a NiDL background: only the tiles its map uses (renumbered, flipped copies shared,
+         * at most BackgroundTiles), palettes 8-15 as KatAM's 6-13, the map row by row; returns its address; */
         static int BuildBackground(byte[] rom, byte[] nightmare, int tilesAddress, int paletteAddress, int map, int room, ref int cursor) {
             byte[] tiles = DecompressLZ77(nightmare, tilesAddress);
             int width = ReadShort(nightmare, map + 2), height = ReadShort(nightmare, map + 4);
             bool compressed = ReadShort(nightmare, map + 6) == 0xFFFF;
             byte[] source = compressed ? DecompressLZ77(nightmare, map + 8) : null;
 
-            Dictionary<int, int> renumbered = new Dictionary<int, int>();
-            List<byte> usedTiles = new List<byte>();
-            byte[] entries = new byte[width * height * 2];
-            for (int y = 0; y < height; y++) {
-                for (int x = 0; x < width; x++) {
-                    int entry = compressed ? ReadShort(source, ((x >> 5) * 1024 + y * 32 + (x & 31)) * 2) : ReadShort(nightmare, map + 6 + (y * width + x) * 2);
-                    int tile = entry & 0x3FF;
-                    if (!renumbered.TryGetValue(tile, out int number)) {
-                        // Past KatAM's limit, tiles share the last one (none of NiDL's backgrounds but one need it);
-                        number = renumbered.Count < BackgroundTiles ? renumbered.Count : BackgroundTiles - 1;
-                        if (renumbered.Count < BackgroundTiles) usedTiles.AddRange(tile * 32 + 32 <= tiles.Length ? tiles.Skip(tile * 32).Take(32) : new byte[32]);
-                        renumbered[tile] = number;
-                    }
-                    WriteShort(entries, (y * width + x) * 2, ShiftPalette((entry & 0xFC00) | number));
+            // The map's entries, and its tiles' pixels (64 each, unflipped);
+            int[] mapEntries = new int[width * height];
+            for (int y = 0; y < height; y++)
+                for (int x = 0; x < width; x++)
+                    // (in GBA screen blocks: 32x32 each, left to right, then top to bottom);
+                    mapEntries[y * width + x] = compressed ? ReadShort(source, (((y >> 5) * ((width + 31) >> 5) + (x >> 5)) * 1024 + (y & 31) * 32 + (x & 31)) * 2)
+                                                           : ReadShort(nightmare, map + 6 + (y * width + x) * 2);
+            byte[] Pixels(int tile, int flip) {
+                byte[] pixels = new byte[64];
+                for (int i = 0; i < 64; i++) {
+                    int x = (flip & 1) != 0 ? 7 - i % 8 : i % 8, y = (flip & 2) != 0 ? 7 - i / 8 : i / 8;
+                    pixels[i] = tile * 32 + 32 <= tiles.Length ? (byte)(tiles[tile * 32 + y * 4 + x / 2] >> (x % 2 * 4) & 0xF) : (byte)0;
                 }
+                return pixels;
+            }
+
+            /* Tiles the same but flipped share one (KatAM's tilemap flips them); past KatAM's limit (BackgroundTiles: one of NiDL's
+             * backgrounds), the least used share the most alike of those kept; */
+            Dictionary<string, (int tile, int flip)> kept = new Dictionary<string, (int, int)>();
+            Dictionary<int, (int tile, int flip)> same = new Dictionary<int, (int, int)>();
+            Dictionary<int, int> uses = mapEntries.GroupBy(e => e & 0x3FF).ToDictionary(g => g.Key, g => g.Count());
+            foreach (int tile in uses.Keys.OrderByDescending(t => uses[t])) {
+                (int, int)? match = null;
+                for (int flip = 0; flip < 4 && match == null; flip++)
+                    if (kept.TryGetValue(Convert.ToBase64String(Pixels(tile, flip)), out var k)) match = (k.tile, flip);
+                if (match == null) kept[Convert.ToBase64String(Pixels(tile, 0))] = (tile, 0);
+                same[tile] = match ?? (tile, 0);
+            }
+            List<int> distinct = same.Where(t => t.Value.tile == t.Key).Select(t => t.Key).ToList();     // Most used first;
+            List<int> chosen = distinct.Take(BackgroundTiles).ToList();
+            foreach (int tile in distinct.Skip(BackgroundTiles)) {
+                byte[] pixels = Pixels(tile, 0);
+                (int tile, int flip) best = (chosen[0], 0);
+                int bestDistance = int.MaxValue;
+                foreach (int candidate in chosen)
+                    for (int flip = 0; flip < 4; flip++) {
+                        byte[] other = Pixels(candidate, flip);
+                        int distance = 0;
+                        for (int i = 0; i < 64 && distance < bestDistance; i++) distance += Math.Abs(pixels[i] - other[i]);
+                        if (distance < bestDistance) { bestDistance = distance; best = (candidate, flip); }
+                    }
+                foreach (int t in same.Keys.Where(t => same[t].tile == tile).ToList()) same[t] = (best.tile, best.flip ^ same[t].flip);
+            }
+            Dictionary<int, int> number = chosen.Select((tile, n) => (tile, n)).ToDictionary(t => t.tile, t => t.n);
+            List<byte> usedTiles = new List<byte>();
+            foreach (int tile in chosen) usedTiles.AddRange(tile * 32 + 32 <= tiles.Length ? tiles.Skip(tile * 32).Take(32) : new byte[32]);
+            byte[] entries = new byte[width * height * 2];
+            for (int i = 0; i < mapEntries.Length; i++) {
+                (int tile, int flip) = same[mapEntries[i] & 0x3FF];
+                WriteShort(entries, i * 2, ShiftPalette((mapEntries[i] & 0xF000) | (((mapEntries[i] >> 10 & 3) ^ flip) << 10) | number[tile]));
             }
 
             byte[] compressedTiles = CompressLZ77(usedTiles.ToArray());

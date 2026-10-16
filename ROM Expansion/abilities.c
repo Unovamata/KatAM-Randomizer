@@ -86,12 +86,15 @@ static void NidlAttackMain(void) {
 
     if (ObjectPreUpdate(&attack->base)) return;
     if (!attack->alive(kirby)) {
-        if (attack->guard) kirby->base.flags &= ~0x8000;
+        if (attack->guard) {
+            kirby->base.flags &= ~0x8000;
+            kirby->base.unk68 = attack->kirbyUnk68;
+        }
         attack->base.flags |= 0x1000;
         return;
     }
     SetPointerSomething(&attack->base);
-    if (!(kirby->base.flags & 0x800000) && ++attack->base.counter > 2) {
+    if (!(kirby->base.flags & 0x800000) && ++attack->base.counter > attack->rehit) {
         attack->base.flags &= ~0x40000;
         attack->base.counter = 0;
     }
@@ -110,6 +113,8 @@ struct NidlAttack *NidlAttackCreate(struct Kirby *kirby, bool32 (*alive)(struct 
     ClearObjectBase(&attack->base);
     attack->alive = alive;
     attack->guard = guard;
+    attack->rehit = 2;
+    attack->kirbyUnk68 = kirby->base.unk68;
     attack->base.header.kind = 2;
     attack->base.x = kirby->base.x;
     attack->base.y = kirby->base.y;

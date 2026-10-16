@@ -97,6 +97,8 @@ struct NidlAttack {
     struct ObjectBase base;
     bool32 (*alive)(struct Kirby *);
     bool8 guard;
+    u8 rehit;           // Frames until it can hit again (2 by default, as Burning's);
+    u32 kirbyUnk68;     // Kirby's base.unk68 before the guard, put back after;
 };
 
 struct NidlAttack *NidlAttackCreate(struct Kirby *, bool32 (*alive)(struct Kirby *), u32 effect, u8 damage, bool8 guard,

@@ -176,8 +176,11 @@
         }
 
         /* HatFrame(); KatAM frame (tiles in 1D order, OAM entries, attributes) of a NiDL frame's hat pixels (see HatColors), moved by (dx, dy):
-         * drawn on a canvas and cut into 8x8 pieces (CutFrame); */
-        static (byte[] tiles, ushort[] oams, short[] attributes) HatFrame(KirbyFrame frame, int dx, int dy, int[] colors, (int flags, int w, int h, int ox, int oy) body) {
+         * drawn on a canvas and cut into 8x8 pieces (CutFrame); NiDL's Kirby is always pink, so its hats (Needle's) draw parts of his
+         * body in his colors (kirbyColors: plain Kirby's 2-11), which KatAM's hat palette would keep pink on every Kirby: they're left to
+         * the body; */
+        static (byte[] tiles, ushort[] oams, short[] attributes) HatFrame(KirbyFrame frame, int dx, int dy, int[] colors, (int flags, int w, int h, int ox, int oy) body,
+                                                                          HashSet<int> kirbyColors) {
             const int Size = 128, Center = 64;
             int[,] canvas = new int[Size, Size];
 
@@ -191,6 +194,8 @@
                         int tile = piece.Tile - (second ? 0x40 : 0) + py / 8 * 32 + px / 8;
                         int value = tiles[tile * 32 + py % 8 * 4 + px % 8 / 2] >> (px % 2 * 4) & 0xF;
                         if (value == 0 || (colors != null && !colors.Contains(value))) continue;
+                        // (the second layer's pixels in plain Kirby's colors are his body, which KatAM's body frame draws in the player's colors);
+                        if (second && kirbyColors.Contains(ReadShort(frame.Palette2, value * 2))) continue;
 
                         int x = Center + piece.X + dx + (piece.HFlip != 0 ? piece.Width - 1 - px : px);
                         int y = Center + piece.Y + dy + (piece.VFlip != 0 ? piece.Height - 1 - py : py);
@@ -225,6 +230,7 @@
                                int[] hatPalettes, bool[][] paletteUsed) {
             int[] hatTables = new int[NewAbilities];
             Dictionary<(int, int), (int nidl, int dx, int dy)> matches = BodyMatches.ToDictionary(m => (m.anim, m.frame), m => (m.nidl, m.dx, m.dy));
+            HashSet<int> kirbyColors = PlainKirby(nightmare, region).Skip(2).Take(10).Select(c => (int)c).ToHashSet();
 
             for (int k = 0; k < NewAbilities; k++) {
                 int animId = firstAnimId + animVariants.Count;
@@ -244,7 +250,7 @@
 
                     KirbyFrame frame = ReadKirbyFrame(nightmare, region, HatFrames[k][m.nidl]);
                     palette ??= HatColors[k] == null ? frame.Palette2 : frame.Palette1;
-                    frames.Add(HatFrame(frame, m.dx, m.dy, HatColors[k], body));
+                    frames.Add(HatFrame(frame, m.dx, m.dy, HatColors[k], body, kirbyColors));
                     return frameIndexes[key] = frames.Count - 1;
                 }
 

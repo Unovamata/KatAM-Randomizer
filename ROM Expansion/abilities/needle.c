@@ -1,11 +1,13 @@
 /* Needle; NiDL's (from Needlous): B makes Kirby stick his needles out (10 frames), and keep them out as long as it's held; then he
  * pulls them in (10 frames). In the air he falls, needles all around, and keeps them out on landing if B is still held. The needles
- * hurt what they touch, and Kirby is unhurt while they're out; */
+ * hurt what they touch, once per REHIT_FRAMES (NiDL's enemies die in one hit; KatAM's would otherwise be hurt every 3 frames), and
+ * Kirby is unhurt while they're out (KatAM's guard, put back when they're in or he's hurt); */
 #include "../abilities.h"
 #include "constants/songs.h"
 
 #define OUT_FRAMES 10
 #define IN_FRAMES 10
+#define REHIT_FRAMES 30
 
 static void NeedleOut(struct Kirby *);
 static void NeedleAir(struct Kirby *);
@@ -35,11 +37,11 @@ void NeedleStart(struct Kirby *kirby) {
         NidlMotion(kirby, NEEDLE_MOTION_AIR);
         kirby->base.counter = 0;
         kirby->stateFn = NeedleAir;
-        NidlAttackCreate(kirby, NeedleSpiked, 0x30002003, 3, TRUE, -28, -38, 28, 26);
+        NidlAttackCreate(kirby, NeedleSpiked, 0x30002003, 3, TRUE, -28, -38, 28, 26)->rehit = REHIT_FRAMES;
     } else {
         kirby->base.xspeed = 0;
         NeedleGround(kirby);
-        NidlAttackCreate(kirby, NeedleSpiked, 0x30002003, 3, TRUE, -28, -36, 28, 10);
+        NidlAttackCreate(kirby, NeedleSpiked, 0x30002003, 3, TRUE, -28, -36, 28, 10)->rehit = REHIT_FRAMES;
     }
 }
 
