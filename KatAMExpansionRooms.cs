@@ -498,6 +498,8 @@ namespace KatAMRandomizer {
                     WriteInt(rom, roomInfo, noRoutes);
                     WriteShort(rom, roomInfo + 0x44, r.Room);
                     rom[roomInfo + 0x46] = (byte)r.Area;
+                    // For the Map Tracker (the game never reads +0x48-0x49): the NiDL stage + 1 (9: the switch room) and room number;
+                    rom[roomInfo + 0x48] = (byte)(r.Stage + 1); rom[roomInfo + 0x49] = (byte)r.Index;
                     WriteInt(rom, roomInfos + r.Room * 4, roomInfo + 0x08000000);
 
                     /* The background scrolls as in NiDL: its rates (+0x34, x and y in 16ths) as KatAM's (8.8), bottom-aligned; the vertical

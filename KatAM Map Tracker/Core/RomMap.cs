@@ -50,6 +50,10 @@ namespace KatAMMapTracker {
         // The Nightmare in Dream Land level (0-7) of a ROM Expansion room, or -1 (see RomMap.ReadExpansionRooms); its NiDL hub;
         public int NightmareLevel { get; init; } = -1;
         public bool IsNightmareHub { get; init; }
+        // Its NiDL stage (0-7, 8 the level's switch room) and its room number in the stage, or -1 (older expanded ROMs have none);
+        public int NightmareStage { get; init; } = -1;
+        public int NightmareIndex { get; init; } = -1;
+        public bool IsNightmareRoom => NightmareLevel >= 0 || IsNightmareHub;
 
         // Room parameter +0x00; Area/theme of the room. 4 are the hubs, 0x25 the boss & goal game rooms;
         public int Area { get; init; }
@@ -143,6 +147,19 @@ namespace KatAMMapTracker {
 
         readonly Dictionary<int, byte[]> tilesetCache = new Dictionary<int, byte[]>();
 
+        // Subset(); The same ROM with only the rooms kept (their doors to the others stay, and lead nowhere on its map);
+        public RomMap Subset(Func<RoomInfo, bool> keep) => new RomMap(this, keep);
+
+        RomMap(RomMap source, Func<RoomInfo, bool> keep) {
+            (Rom, Crc32, GameCode, Version, LongRoomParameters) = (source.Rom, source.Crc32, source.GameCode, source.Version, source.LongRoomParameters);
+            (CoverDataTable, RoomAppearanceTable, PaletteTable, TilesetTable, BackgroundTable, ObjectListTable, RoomAreaTable, NightmareHub) =
+                (source.CoverDataTable, source.RoomAppearanceTable, source.PaletteTable, source.TilesetTable, source.BackgroundTable,
+                 source.ObjectListTable, source.RoomAreaTable, source.NightmareHub);
+            IsExpanded = source.IsExpanded;
+            ExpansionMinibosses.AddRange(source.ExpansionMinibosses);
+            foreach (RoomInfo room in source.Rooms.Values.Where(keep)) Rooms[room.Id] = room;
+        }
+
         public RomMap(byte[] rom) {
             Rom = rom;
             Crc32 = ComputeCrc32(rom);
@@ -214,6 +231,14 @@ namespace KatAMMapTracker {
                 (tables[0], tables[1], tables[2], tables[3], tables[4], tables[5], tables[6]);
         }
 
+        /* NightmareStageOf(); A room's NiDL stage and room number (its area entry's +0x48: the stage + 1, 0 none; +0x49 the room number,
+         * written by KatAMExpansionRooms.cs), or -1; */
+        (int stage, int index) NightmareStageOf(int room) {
+            int info = RoomAreaTable < 0 ? -1 : ReadPointer(RoomAreaTable + room * 4);
+            if (info < 0 || info + 0x4A > Rom.Length || Rom[info + 0x48] == 0) return (-1, -1);
+            return (Rom[info + 0x48] - 1, Rom[info + 0x49]);
+        }
+
         // NightmareLevelOf(); A room's NiDL level (its area - 11), or -1;
         int NightmareLevelOf(int room) {
             int info = RoomAreaTable < 0 ? -1 : ReadPointer(RoomAreaTable + room * 4);
@@ -267,6 +292,7 @@ namespace KatAMMapTracker {
                 RoomInfo info = new RoomInfo {
                     Id = room, ShortIndex = shortIndex, TilemapIndex = tilemapIndex, CoverIndex = coverIndex, ObjectIndex = objectIndex,
                     Area = Read16(parameters), Width = width, Height = height, NightmareLevel = NightmareLevelOf(room), IsNightmareHub = room == NightmareHub,
+                    NightmareStage = NightmareStageOf(room).stage, NightmareIndex = NightmareStageOf(room).index,
                 };
 
                 ReadDoors(info);
