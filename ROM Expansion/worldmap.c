@@ -39,18 +39,19 @@ struct NidlWorldMapDoor {
     struct { u8 x, y; } dots[NIDL_WORLDMAP_MAX_DOTS];  // 4 bytes each (agbcc pads them), as KatAM's struct WorldMapDotCoor;
 };
 
-/* The doors: Vegetable Valley from Rainbow Route East, Ice Cream Island from Carrot Castle, Butter Building from Central Circle,
- * Grape Garden from Peppermint Palace West, Yogurt Yard from Radish Ruins, Orange Ocean from Olive Ocean, Rainbow Resort from
- * Central Circle, the Fountain of Dreams from Cabbage Cavern's center; their dots are filled in by KatAMExpansionWorldMap.cs; */
+/* The doors, where their paths are straight (level, upright or 45 degrees) and clear of KatAM's paths, doors and the map's captions:
+ * Vegetable Valley right of Rainbow Route East, Ice Cream Island left of Carrot Castle, Butter Building right of Mustard Mountain,
+ * Grape Garden below Peppermint Palace West, Yogurt Yard above Radish Ruins, Orange Ocean above Olive Ocean, Rainbow Resort straight
+ * from Central Circle, the Fountain of Dreams right of Cabbage Cavern's center; their dots are filled in by KatAMExpansionWorldMap.cs; */
 struct NidlWorldMapDoor gNidlWorldMapDoors[NIDL_WORLDMAP_DOORS] = {
-    { 200, 98, 168, 72, 0x13 + 1, 0, 0 },
-    { 14, 92, 64, 80, 0x13 + 2, 0, 0 },
-    { 102, 12, 112, 80, 0x13 + 3, 0, 0 },
-    { 44, 10, 32, 32, 0x13 + 4, 0, 0 },
-    { 18, 148, 48, 128, 0x13 + 5, 0, 0 },
-    { 228, 152, 208, 136, 0x13 + 6, 0, 0 },
-    { 228, 40, 112, 80, 0x13 + 7, 0, 0 },
-    { 100, 152, 128, 136, 0x13 + 8, 0, 0 },
+    { 204, 72, 168, 72, 0x13 + 1, 0, 0 },
+    { 24, 80, 64, 80, 0x13 + 2, 0, 0 },
+    { 172, 24, 136, 24, 0x13 + 3, 0, 0 },
+    { 8, 56, 32, 32, 0x13 + 4, 0, 0 },
+    { 24, 104, 48, 128, 0x13 + 5, 0, 0 },
+    { 208, 100, 208, 136, 0x13 + 6, 0, 0 },
+    { 152, 40, 112, 80, 0x13 + 7, 0, 0 },
+    { 162, 136, 128, 136, 0x13 + 8, 0, 0 },
 };
 
 // KatAM's doors' slots (pause_world_map.c's WorldMapUnlockSave);

@@ -422,6 +422,9 @@ namespace KatAMMapTracker {
             int[] colors = new int[256];
 
             for (int i = 0; i < 256; i++) colors[i] = ToArgb(Read16(palette + i * 2));
+            // The background's palettes are the game's from its first color on, for the room's tiles too (the ROM Expansion's NiDL hub
+            // has door colors there);
+            ApplyBackgroundPalette(backgroundIndex, colors);
 
             if (includeBackground) {
                 Array.Fill(canvas, colors[0]);
@@ -438,6 +441,16 @@ namespace KatAMMapTracker {
          * Room parameter +0x1E selects the background: entry 0x614 + index of the graphics table at 0xD2E5F0.
          * Background header: +0 width, +2 height (tiles), +8 tileset (LZ77), +0x10 palette, +0x14 first color,
          * +0x16 color count, +0x18 tilemap (uncompressed); */
+        void ApplyBackgroundPalette(int backgroundIndex, int[] colors) {
+            int header = backgroundIndex == 0xFFFF ? -1 : ReadPointer(BackgroundTable + backgroundIndex * 4);
+            int paletteAddress = header < 0 ? -1 : ReadPointer(header + 0x10);
+            if (paletteAddress < 0) return;
+
+            int firstColor = Read16(header + 0x14), colorCount = Read16(header + 0x16);
+            if (firstColor + colorCount > 256 || paletteAddress + colorCount * 2 > Rom.Length) return;
+            for (int i = 0; i < colorCount; i++) colors[firstColor + i] = ToArgb(Read16(paletteAddress + i * 2));
+        }
+
         void DrawBackground(int[] canvas, int width, int height, int backgroundIndex, int[] roomColors) {
             if (backgroundIndex == 0xFFFF) return;
 

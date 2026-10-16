@@ -86,10 +86,10 @@ namespace KatAMRandomizer {
          * one its switch room shows above the switch (object 0x8C), and its door on the world map (KatAMExpansionWorldMap.cs);
          * LevelLinks: where that mirror leads, as its path on the world map (worldmap.c's gNidlWorldMapDoors): KatAM's switch room of
          * the door it starts from (onto its own revealed mirror, SwitchLanding), or the NiDL hub (-1, onto the level's mirror there): Vegetable
-         * Valley from Rainbow Route East, Ice Cream Island from Carrot Castle, Grape Garden from Peppermint Palace West, Yogurt Yard
+         * Valley from Rainbow Route East, Ice Cream Island from Carrot Castle, Butter Building from Mustard Mountain, Grape Garden from Peppermint Palace West, Yogurt Yard
          * from Radish Ruins, Orange Ocean from Olive Ocean, the Fountain of Dreams from Cabbage Cavern's center; */
         static int LevelSlot(int level) => 0x14 + level;
-        static readonly int[] LevelLinks = { 0x316, 0xC1, -1, 0x123, 0x2B2, 0x37A, -1, 0x24F };
+        static readonly int[] LevelLinks = { 0x316, 0xC1, 0x186, 0x123, 0x2B2, 0x37A, -1, 0x24F };
         static readonly (int x, int y) SwitchLanding = (9, 4);
         const byte BigSwitchType = 0x86, HubMirrorType = 0x8C;
 
@@ -101,11 +101,12 @@ namespace KatAMRandomizer {
         static readonly (int x, int y)[] SwitchSides = { (1, 8), (14, 8), (3, 4), (12, 4) };
         static readonly (int x, int y) SwitchArrival = (4, 8), SwitchTop = (8, 3);
 
-        /* The NiDL hub: Central Circle again (EntryRoom: its tiles, palettes, background, collision), its golden mirror (MainHubReturn)
-         * back to Central Circle's twin; each level has a golden mirror where Central Circle's winged ones show (MainHubDoors), to its
-         * switch room, recolored (MirrorRamps), and hidden until the level's big switch is pressed (but Vegetable Valley's, the way in);
-         * see BuildMainHub(); */
-        static readonly (int x, int y)[] MainHubDoors = { (5, 17), (25, 17), (6, 12), (24, 12), (2, 11), (28, 11), (27, 4), (15, 4) };
+        /* The NiDL hub (see KatAMExpansionHub.cs): Central Circle again, at night; its golden mirror (MainHubReturn) back to Central
+         * Circle's twin; each level has one of Central Circle's own doors (MainHubDoors: its door cells), recolored for the level's
+         * theme, and hidden until the level's big switch is pressed (but Vegetable Valley's, the way in): Vegetable Valley the trees',
+         * Ice Cream Island the waves', Butter Building the stone pillars', Grape Garden the purple one, Yogurt Yard the rocks', Orange
+         * Ocean the blue blocks', Rainbow Resort the ice one, the Fountain of Dreams the starry one; */
+        static readonly (int x, int y)[] MainHubDoors = { (6, 12), (25, 17), (15, 4), (28, 11), (15, 18), (5, 17), (2, 11), (27, 4) };
         static readonly (int x, int y) MainHubReturn = (19, 14);
 
         /* NightmareRoom; A NiDL room: level, stage, index, record (file offset); its part when split
@@ -407,7 +408,8 @@ namespace KatAMRandomizer {
                 return $"The Nightmare in Dream Land ROM doesn't match the {region.KatAM} release.";
             }
 
-            BuildMainHub(rom, symbols, mainHub, mainHubDoors, tableSizes, infos, palettes, tilemaps, solidities, objects, noTypes, ref cursor);
+            BuildMainHub(rom, nightmare, symbols, mainHub, mainHubDoors, rooms.First(r => r.Level == 7 && r.Stage == 0 && r.Index == 0).Record, tableSizes,
+                         infos, palettes, tilemaps, solidities, backgrounds, objects, noTypes, ref cursor);
             WriteShort(rom, CodeAddress + version.CodeSymbols["gNidlHubRoom"], mainHub);
 
             /* The entry room's collision gets an entry of its own (still its vanilla one: the randomizer writes into it), which
@@ -1069,155 +1071,6 @@ namespace KatAMRandomizer {
             rom[objectList + 12] = (byte)types.Count;
             rom[objectList + 13] = rom[objectList + 14] = rom[objectList + 15] = 0;
             return objectList;
-        }
-
-        /* Golden mirror recolors, one per level (Vegetable Valley ... Rainbow Resort; the Fountain of Dreams keeps the gold): the dark,
-         * middle and light colors (5 bits each) of its frame, and where they go: the palette and its 3 indexes. Central Circle's
-         * golden mirror (palette 3: its frame 8-11, the glass 5 and 12-14, white 1 and 15, black 3) shares its glass, white and black
-         * with them: palettes 1 and 2 (Central Circle's winged mirrors', which the NiDL hub hasn't) get 3 frames each, palette 3 one
-         * more in its unused 2, 4, 6; */
-        static readonly ((int r, int g, int b) dark, (int r, int g, int b) middle, (int r, int g, int b) light, int palette, int[] indexes)[] MirrorRamps = {
-            ((3, 12, 3), (8, 21, 5), (17, 28, 9), 1, new[] { 2, 4, 6 }),       // Vegetable Valley: green;
-            ((2, 13, 18), (7, 22, 27), (18, 29, 31), 1, new[] { 7, 8, 9 }),    // Ice Cream Island: ice blue;
-            ((9, 9, 12), (17, 17, 20), (27, 27, 29), 1, new[] { 10, 11, 15 }), // Butter Building: silver;
-            ((11, 3, 16), (19, 8, 25), (27, 17, 31), 2, new[] { 2, 4, 6 }),    // Grape Garden: purple;
-            ((13, 7, 2), (22, 15, 6), (29, 24, 14), 2, new[] { 7, 8, 9 }),     // Yogurt Yard: tan;
-            ((20, 6, 0), (29, 13, 1), (31, 22, 7), 2, new[] { 10, 11, 15 }),   // Orange Ocean: orange;
-            ((20, 4, 13), (28, 10, 21), (31, 20, 28), 3, new[] { 2, 4, 6 }),   // Rainbow Resort: pink;
-        };
-        // Central Circle's golden mirror: its tilemap block (tiles 37-40, rows 24-29) over its door (MainHubReturn), and its palette;
-        const int MirrorColumn = 37, MirrorRow = 24, MirrorPalette = 3;
-
-        /* BuildMainHub(); The NiDL hub (see MainHubDoors): Central Circle's props, background and CPU helpers' zones, with copies of
-         * its tiles (with the recolored mirrors'), palettes (with the recolors' colors), tilemap (Vegetable Valley's mirror
-         * drawn in), collision (its doors, no special blocks of its own: its winged mirrors aren't there) and objects (a hub mirror,
-         * 0x8C, over each hidden mirror: as Central Circle's, it breaks the 9 special blocks around itself once the level's slot is set,
-         * which draw the mirror and make its door); */
-        static void BuildMainHub(byte[] rom, IReadOnlyDictionary<string, int> symbols, int hub, List<Door> hubDoors, int[] tableSizes,
-                                 List<int> infos, List<int> palettes, List<int> tilemaps, List<int> solidities, List<int> objects, int noTypes, ref int cursor) {
-            int roomProps = symbols["gRoomProps"], roomInfos = symbols["gUnk_08D6CD0C"];
-            int Props(int field) => ReadShort(rom, roomProps + EntryRoom * 0x28 + field * 2);
-            int Entry(string table, int index) => ReadInt(rom, symbols[table] + index * 4) - 0x08000000;
-
-            /* Tiles: KatAM's foreground tiles end where its BG maps start (0x0600E000: 768 tiles, as many as Central Circle has), so the
-             * recolored mirrors' take the tiles its tilemap doesn't use (its winged mirrors', which the NiDL hub hasn't): each recolor
-             * gets a copy of the mirror's tiles that have frame colors, remapped to its indexes (the others are glass: the same in its
-             * palette); */
-            int info = Entry("gForegroundInfo", Props(10)), tilesPointer = ReadInt(rom, info);
-            byte[] tiles = DecompressLZ77(rom, tilesPointer - 0x08000000);
-            int tilemapEntry = Entry("gForegroundTilemaps", Props(12)), columns = ReadShort(rom, tilemapEntry), width = columns / 2;
-            byte[] map = DecompressLZ77(rom, ReadInt(rom, tilemapEntry + 0x18) - 0x08000000);
-            int MirrorEntry(int column, int row) => ReadShort(map, ((MirrorRow + row) * columns + MirrorColumn + column) * 2);
-            bool FrameTile(int tile) => tiles.Skip(tile * 32).Take(32).Any(b => (b & 0xF) is >= 8 and <= 11 || (b >> 4) is >= 8 and <= 11);
-            List<int> frameTiles = new List<int>();
-            for (int row = 0; row < 6; row++)
-                for (int column = 0; column < 4; column++) {
-                    int tile = MirrorEntry(column, row) & 0x3FF;
-                    if (MirrorEntry(column, row) >> 12 == MirrorPalette && FrameTile(tile) && !frameTiles.Contains(tile)) frameTiles.Add(tile);
-                }
-            HashSet<int> usedTiles = Enumerable.Range(0, map.Length / 2).Select(i => ReadShort(map, i * 2) & 0x3FF).ToHashSet();
-            List<int> freeTiles = Enumerable.Range(1, tiles.Length / 32 - 1).Where(t => !usedTiles.Contains(t)).ToList();
-            bool recolored = freeTiles.Count >= MirrorRamps.Length * frameTiles.Count;
-            for (int k = 0; recolored && k < MirrorRamps.Length; k++) {
-                int[] remap = Enumerable.Range(0, 16).ToArray();
-                (remap[8], remap[9], remap[10], remap[11], remap[15]) = (MirrorRamps[k].indexes[0], MirrorRamps[k].indexes[1], MirrorRamps[k].indexes[1], MirrorRamps[k].indexes[2], 1);
-                for (int j = 0; j < frameTiles.Count; j++) {
-                    int to = freeTiles[k * frameTiles.Count + j] * 32, from = frameTiles[j] * 32;
-                    for (int b = 0; b < 32; b++) tiles[to + b] = (byte)(remap[tiles[from + b] & 0xF] | remap[tiles[from + b] >> 4] << 4);
-                }
-            }
-            // The level's mirror's tilemap entry for an entry of Central Circle's (its frame and glass: palette 3), or -1 (not the mirror);
-            int Recolor(int level, int entry) {
-                if (entry >> 12 != MirrorPalette) return -1;
-                if (level >= MirrorRamps.Length || !recolored) return entry;
-                int j = frameTiles.IndexOf(entry & 0x3FF);
-                return (entry & 0x0C00) | MirrorRamps[level].palette << 12 | (j < 0 ? entry & 0x3FF : freeTiles[level * frameTiles.Count + j]);
-            }
-            // The tilemap with the level's mirror drawn over its door (as Central Circle's over MainHubReturn);
-            byte[] WithMirror(byte[] source, int level) {
-                byte[] drawn = (byte[])source.Clone();
-                (int x, int y) door = MainHubDoors[level];
-                for (int row = 0; row < 6; row++)
-                    for (int column = 0; column < 4; column++) {
-                        int entry = Recolor(level, MirrorEntry(column, row));
-                        if (entry >= 0) WriteShort(drawn, ((door.y * 2 - 4 + row) * columns + door.x * 2 - 1 + column) * 2, entry);
-                    }
-                return drawn;
-            }
-
-            int infoAt = Allocate(ref cursor, 16, 4), tilesAt = AllocateCompressed(rom, CompressLZ77(tiles), ref cursor);
-            Array.Copy(rom, info, rom, infoAt, 16);
-            for (int i = 0; i < 3; i++) if (ReadInt(rom, infoAt + i * 4) == tilesPointer) WriteInt(rom, infoAt + i * 4, tilesAt + 0x08000000);
-            WriteShort(rom, infoAt + 14, hub);
-
-            // Palettes: the recolors' (palettes 1 and 2 start as copies of palette 3: its glass, white and black);
-            int paletteEntry = Entry("gForegroundPalettes", Props(11)), colorsAt = Allocate(ref cursor, 0xC0, 4), paletteAt = Allocate(ref cursor, 12, 4);
-            Array.Copy(rom, ReadInt(rom, paletteEntry) - 0x08000000, rom, colorsAt, 0xC0);
-            Array.Copy(rom, colorsAt + MirrorPalette * 32, rom, colorsAt + 1 * 32, 32);
-            Array.Copy(rom, colorsAt + MirrorPalette * 32, rom, colorsAt + 2 * 32, 32);
-            foreach (var ramp in MirrorRamps) {
-                (int r, int g, int b)[] colors = { ramp.dark, ramp.middle, ramp.light };
-                for (int i = 0; i < 3; i++) WriteShort(rom, colorsAt + ramp.palette * 32 + ramp.indexes[i] * 2, colors[i].r | colors[i].g << 5 | colors[i].b << 10);
-            }
-            Array.Copy(rom, paletteEntry, rom, paletteAt, 12);
-            WriteInt(rom, paletteAt, colorsAt + 0x08000000);
-            WriteShort(rom, paletteAt + 10, hub);
-
-            // Tilemap, with the mirror that's open from the start;
-            byte[] hubMap = map;
-            foreach (Door door in hubDoors.Where(d => d.Slot == 0)) {
-                int level = Array.IndexOf(MainHubDoors, (door.X, door.Y));
-                if (level >= 0) hubMap = WithMirror(hubMap, level);
-            }
-            int tilemapAt = Allocate(ref cursor, 0x20, 4), mapAt = AllocateCompressed(rom, CompressLZ77(hubMap), ref cursor);
-            Array.Copy(rom, tilemapEntry, rom, tilemapAt, 0x20);
-            WriteInt(rom, tilemapAt + 0x18, mapAt + 0x08000000);
-            WriteShort(rom, tilemapAt + 0x1E, hub);
-
-            // Collision and special blocks: the doors, and around each hidden one the 9 special blocks that draw its mirror;
-            int solidity = Entry("gSolidityMaps", Props(13));
-            byte[] collision = DecompressRL(rom, ReadInt(rom, solidity) - 0x08000000);
-            List<byte> specials = new List<byte>();
-            List<byte[]> templates = new List<byte[]>();
-            foreach (Door door in hubDoors) {
-                if (door.Slot == 0) collision[door.Y * width + door.X] = 0xFF;
-                specials.AddRange(DoorRecord(door, 0xFF));
-                if (door.Slot == 0) continue;
-
-                byte[] drawn = WithMirror(hubMap, Array.IndexOf(MainHubDoors, (door.X, door.Y)));
-                for (int y = door.Y - 2; y <= door.Y; y++) {
-                    for (int x = door.X - 1; x <= door.X + 1; x++) {
-                        byte here = collision[y * width + x];
-                        specials.AddRange(new byte[] { 1, here, (byte)x, (byte)y, 0x12, 0, 0xFF, 0xFF });
-                        foreach (int tile in new[] { (y * 2) * columns + x * 2, (y * 2) * columns + x * 2 + 1, (y * 2 + 1) * columns + x * 2, (y * 2 + 1) * columns + x * 2 + 1 })
-                            specials.AddRange(BitConverter.GetBytes((ushort)ReadShort(drawn, tile * 2)));
-                        specials.AddRange(new byte[] { x == door.X && y == door.Y ? (byte)0xFF : here, 0xFF });
-                    }
-                }
-                templates.Add(HubMirrorTemplate(door.X, door.Y - 1, templates.Count, door.Slot));
-            }
-            specials.AddRange(new byte[] { 0, 0, 0, 0, 0, 0, 0xFF, 0xFF });
-            int collisionAt = AllocateCompressed(rom, CompressRL(collision), ref cursor), specialsAt = AllocateCompressed(rom, specials.ToArray(), ref cursor);
-            int solidityAt = Allocate(ref cursor, 8, 4);
-            WriteInts(rom, solidityAt, collisionAt + 0x08000000, specialsAt + 0x08000000);
-
-            int objectList = WriteObjectList(rom, templates, templates.Count > 0 ? new List<byte> { HubMirrorType } : new List<byte>(), noTypes, ref cursor);
-
-            // Props (Central Circle's, with the new entries), and its area info (Central Circle's: area 0);
-            int props = roomProps + hub * 0x28;
-            Array.Copy(rom, roomProps + EntryRoom * 0x28, rom, props, 0x28);
-            WriteShorts(rom, props + 10 * 2, tableSizes[10] + infos.Count, tableSizes[11] + palettes.Count, tableSizes[12] + tilemaps.Count, tableSizes[13] + solidities.Count);
-            WriteShort(rom, props + 16 * 2, tableSizes[16] + objects.Count);
-            WriteShort(rom, props + 18 * 2, SharedDoors);
-            infos.Add(infoAt + 0x08000000);
-            palettes.Add(paletteAt + 0x08000000);
-            tilemaps.Add(tilemapAt + 0x08000000);
-            solidities.Add(solidityAt + 0x08000000);
-            objects.Add(objectList + 0x08000000);
-            int roomInfo = Allocate(ref cursor, 0x4C, 4);
-            Array.Copy(rom, ReadInt(rom, roomInfos + EntryRoom * 4) - 0x08000000, rom, roomInfo, 0x4C);
-            WriteShort(rom, roomInfo + 0x44, hub);
-            WriteInt(rom, roomInfos + hub * 4, roomInfo + 0x08000000);
         }
 
         // AllocateCompressed(); Data copied into the expansion, 4-aligned; its offset;
