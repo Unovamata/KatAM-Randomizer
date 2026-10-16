@@ -21,11 +21,12 @@ namespace KatAMRandomizer {
      * height in tiles, LZ77 tilemap), gRoomTiledBGs (the background: tiles at 0x06000000, at most 900 of them as KatAM's HUD tiles
      * follow, palettes 6-13, its map row by row), gSolidityMaps (RL collision per 16x16 block, special blocks list), gLevelObjLists
      * (object templates), gUnk_08D63C28 (CPU helpers' zones), gUnk_08D6CD0C (per room: area, routes; written in place) and
-     * gUnk_08D640A4 (doors per doorsIdx). The tables are copied with the new entries and every reference to them repointed. A room
-     * can have at most 1950 blocks (KatAM's buffers for the collision, its zones and tilemap), so the 7 bigger NiDL rooms are split
-     * in parts. Every new room uses doorsIdx 287, the one gVisitedDoors entry (0x120) no vanilla room uses; */
+     * gUnk_08D640A4 (doors per doorsIdx). The tables are copied with the new entries and every reference to them repointed. KatAM's
+     * rooms have at most 1950 blocks (its buffers for the collision, its zones and tilemap, per loaded room); "ROM Expansion/rooms.c"
+     * gives them room for BigRoomBlocks (see BigRooms()), which every NiDL room fits in, whole. Every new room uses doorsIdx 287, the
+     * one gVisitedDoors entry (0x120) no vanilla room uses; */
     internal static partial class KatAMExpansion {
-        const int MaxRoomBlocks = 1950, BackgroundTiles = 900, SharedDoors = 287, RoomFlags = 0x79;
+        const int MaxRoomBlocks = BigRoomBlocks, BackgroundTiles = 900, SharedDoors = 287, RoomFlags = 0x79;
 
         // NiDL collision -> KatAM collision (see the notes above);
         static readonly byte[] RoomCollision = {
@@ -324,8 +325,39 @@ namespace KatAMRandomizer {
 
         /* AddRooms(); Every NiDL room into KatAM's free room slots (see the notes above); the room records' foregrounds, palettes and
          * backgrounds are shared as in NiDL; */
+        /* BigRooms(); Rooms of up to BigRoomBlocks blocks ("ROM Expansion/rooms.c": each loaded room's collision, zones and tilemap in
+         * buffers that big, two in KatAM's own, two at the end of the EWRAM heap): the game's functions using those buffers jump to
+         * rooms.c's copies, and the heap (EwramInitHeap's size, 0x20080) shrinks to NidlHeapSize; */
+        const int BigRoomBlocks = 3584, VanillaHeapSize = 0x20080, NidlHeapSize = 0xE878;   // rooms.c's BIG_BLOCKS, NIDL_HEAP_SIZE;
+        static readonly string[] BigRoomFunctions = {
+            "FillLevelInfo", "GetCollisionTile", "sub_08002434", "sub_08002470", "sub_080024F0", "sub_0800255C", "sub_080025AC",
+            "sub_08002624", "sub_080026A8", "sub_08001408", "sub_080015A8",
+        };
+        static string BigRooms(byte[] rom, KatAMExpansionCode.Version version) {
+            int codeBase = CodeAddress + 0x08000000, heap = version.RomSymbols["EwramInitHeap"], size = -1;
+            for (int at = (heap + 3) & ~3; at < heap + 0x20; at += 4)
+                if (ReadInt(rom, at) == VanillaHeapSize) { size = at; break; }
+            if (size < 0) return $"The {version.Name} ROM's EWRAM heap isn't what it should be.";
+            WriteInt(rom, size, NidlHeapSize);
+            foreach (string function in BigRoomFunctions) {
+                string replacement = "Big" + (function.StartsWith("sub_") ? "Sub" + function.Substring(3) : function);
+                Redirect(rom, version.RomSymbols[function], codeBase + version.CodeSymbols[replacement]);
+            }
+            return null;
+        }
+
+        /* Redirect(); Makes the Thumb function at `function` jump to `target` for good, all registers kept (it can take 4 arguments):
+         * bx pc (into ARM, at the next word), ldr ip, [pc]; bx ip; the target; */
+        static void Redirect(byte[] rom, int function, int target) {
+            int arm = (function + 4) & ~3;
+            WriteShorts(rom, function, 0x4778, 0x46C0);
+            WriteInts(rom, arm, unchecked((int)0xE59FC000), unchecked((int)0xE12FFF1C), target + 1);
+        }
+
         static string AddRooms(byte[] rom, byte[] nightmare, NightmareRegion region, KatAMExpansionCode.Version version, ref int cursor) {
             IReadOnlyDictionary<string, int> symbols = version.RomSymbols;
+            string bigRooms = BigRooms(rom, version);
+            if (bigRooms != null) return bigRooms;
             int roomProps = symbols["gRoomProps"], roomInfos = symbols["gUnk_08D6CD0C"];
             List<NightmareRoom> rooms;
 
@@ -623,6 +655,9 @@ namespace KatAMRandomizer {
                 Array.Copy(rom, symbols[table], rom, at, size * 4);
                 WriteInts(rom, at + size * 4, entries.ToArray());
                 Repoint(rom, symbols[table] + 0x08000000, at + 0x08000000);
+                // and the expansion's code's (rooms.c's copy of FillLevelInfo reads them);
+                for (int i = CodeAddress; i < CodeAddress + version.Code.Length; i += 4)
+                    if (ReadInt(rom, i) == symbols[table] + 0x08000000) WriteInt(rom, i, at + 0x08000000);
             }
 
             PortedRooms = rooms;
@@ -1527,6 +1562,8 @@ namespace KatAMRandomizer {
                 if (!types.Contains(type)) types.Add(type);
             }
 
+            // KatAM keeps which of a room's objects are gone in 32 bits per room (gUnk_02023358), by number (31: none);
+            if (templates.Count > 31) throw new ArgumentException($"Room 0x{r.Room:X} has {templates.Count} objects (at most 31).");
             return WriteObjectList(rom, templates, types, noTypes, ref cursor);
         }
 
