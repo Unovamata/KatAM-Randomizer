@@ -117,3 +117,5 @@ gLevelObjLists 0x8d2ebc8
 gUnk_08D63C28 0x8d2f044
 gUnk_08D6CD0C 0x8d38128
 gUnk_08D640A4 0x8d2f4c0
+gUnk_08D6DCAC 0x8d390c8  # the CPU helpers' routes per area (11 entries)
+AreaPlates 0x8d2c394  # gUnk_08D60EE4 as the HUD's area plates read it (Japan's real table)
