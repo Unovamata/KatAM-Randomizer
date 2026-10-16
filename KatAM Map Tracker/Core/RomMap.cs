@@ -54,7 +54,9 @@ namespace KatAMMapTracker {
         // Room parameter +0x00; Area/theme of the room. 4 are the hubs, 0x25 the boss & goal game rooms;
         public int Area { get; init; }
 
-        public bool IsHub => Area == 4 || IsNightmareHub;
+        // A ROM Expansion level's switch room (its big switch, object 0x86): a hub, as KatAM's mini hubs;
+        public bool IsNightmareSwitchRoom => NightmareLevel >= 0 && Objects.Any(o => o.Id == 0x86);
+        public bool IsHub => Area == 4 || IsNightmareHub || IsNightmareSwitchRoom;
         public bool IsPathEnder => Area == 0x25;
 
         // Room size in 8x8 tiles;
