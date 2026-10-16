@@ -41,10 +41,20 @@ namespace KatAMMapTracker {
         public int Id { get; init; }
         public int ShortIndex { get; init; }
 
+        // Its entries in the room tables (long room parameters +0x18 tilemap, +0x1A collision and doors, +0x20 objects): in the game
+        // they're all ShortIndex's, but the ROM Expansion's rooms have their own (they share one doors list, ShortIndex 0x11F);
+        public int TilemapIndex { get; init; }
+        public int CoverIndex { get; init; }
+        public int ObjectIndex { get; init; }
+
+        // The Nightmare in Dream Land level (0-7) of a ROM Expansion room, or -1 (see RomMap.ReadExpansionRooms); its NiDL hub;
+        public int NightmareLevel { get; init; } = -1;
+        public bool IsNightmareHub { get; init; }
+
         // Room parameter +0x00; Area/theme of the room. 4 are the hubs, 0x25 the boss & goal game rooms;
         public int Area { get; init; }
 
-        public bool IsHub => Area == 4;
+        public bool IsHub => Area == 4 || IsNightmareHub;
         public bool IsPathEnder => Area == 0x25;
 
         // Room size in 8x8 tiles;
@@ -108,14 +118,16 @@ namespace KatAMMapTracker {
         // IsArenaRoom(); The arena's rooms (0x3B6 entrance, 0x3B7 rest room, 0x3BB-0x3BD fights), left out: they're no part of exploring;
         static bool IsArenaRoom(int room) => room >= 0x3B6 && room <= 0x3BD;
 
-        // Addresses of the Japanese version, translated to the ROM's region;
-        readonly int LongRoomParameters,
-                     CoverDataTable,
-                     RoomAppearanceTable,
-                     PaletteTable,
-                     TilesetTable,
-                     GraphicsTable,
-                     ObjectTable;
+        // Addresses of the Japanese version, translated to the ROM's region (an expanded ROM's copies, see ReadExpansionRooms);
+        readonly int LongRoomParameters;
+        int CoverDataTable,
+            RoomAppearanceTable,
+            PaletteTable,
+            TilesetTable,
+            BackgroundTable,
+            ObjectListTable,
+            RoomAreaTable = -1,
+            NightmareHub = -1;
 
         public byte[] Rom { get; }
         public uint Crc32 { get; }
@@ -143,9 +155,10 @@ namespace KatAMMapTracker {
             RoomAppearanceTable = 0xD2F93C + Version.PointerTableShift;
             PaletteTable = 0xD2E6A4 + Version.PointerTableShift;
             TilesetTable = 0xD2FDB8 + Version.PointerTableShift;
-            GraphicsTable = 0xD2E5F0 + Version.PointerTableShift;
-            ObjectTable = 0xD2EBC4 + Version.PointerTableShift;
+            BackgroundTable = 0xD2E5F0 + FirstBackground * 4 + Version.PointerTableShift;
+            ObjectListTable = 0xD2EBC8 + Version.PointerTableShift;
 
+            ReadExpansionRooms();
             ReadRooms();
             ReadExpansion();
         }
@@ -183,6 +196,29 @@ namespace KatAMMapTracker {
             }
         }
 
+        /* ReadExpansionRooms(); An expanded ROM with the Nightmare in Dream Land rooms (KatAMExpansionRooms.cs) has its rooms block
+         * in the map table, at +0xE0: "NR", u16 the NiDL hub's room, then pointers to the room tables the game uses (it copied them
+         * with the new rooms' entries): collision and doors, tilemaps, palettes, tilesets, backgrounds, objects, and the rooms' areas
+         * (+0x46: 11 + the NiDL level for the NiDL rooms); */
+        void ReadExpansionRooms() {
+            int block = ExpansionTable + 0xE0;
+            if (Rom.Length != ExpandedSize || Rom[block] != 'N' || Rom[block + 1] != 'R') return;
+
+            int[] tables = Enumerable.Range(0, 7).Select(i => ReadPointer(block + 4 + i * 4)).ToArray();
+            if (tables.Any(t => t < 0)) return;
+
+            NightmareHub = Read16(block + 2);
+            (CoverDataTable, RoomAppearanceTable, PaletteTable, TilesetTable, BackgroundTable, ObjectListTable, RoomAreaTable) =
+                (tables[0], tables[1], tables[2], tables[3], tables[4], tables[5], tables[6]);
+        }
+
+        // NightmareLevelOf(); A room's NiDL level (its area - 11), or -1;
+        int NightmareLevelOf(int room) {
+            int info = RoomAreaTable < 0 ? -1 : ReadPointer(RoomAreaTable + room * 4);
+            int area = info < 0 || info + 0x47 > Rom.Length ? -1 : Rom[info + 0x46];
+            return area >= 11 && area < 19 ? area - 11 : -1;
+        }
+
         public static RomMap Load(string path) => new RomMap(File.ReadAllBytes(path));
 
         public bool IsSupportedGame => Version != null;
@@ -208,10 +244,17 @@ namespace KatAMMapTracker {
             for (int room = 0; room < MaxLongRoom; room++) {
                 int parameters = LongRoomParameters + room * LongRoomParameterSize;
                 int shortIndex = Read16(parameters + 0x24);
+                // The ROM Expansion's rooms share the doors list 0x11F, past the game's;
+                bool expansionRoom = RoomAreaTable >= 0 && shortIndex == MaxShortRoom;
 
-                if (shortIndex >= MaxShortRoom) continue;
+                if (shortIndex >= MaxShortRoom && !expansionRoom) continue;
 
-                int appearance = ReadPointer(RoomAppearanceTable + shortIndex * 4);
+                // (in an expanded ROM every room's own entries: Central Circle's tilemap and collision have the mirror to NiDL);
+                bool ownEntries = RoomAreaTable >= 0;
+                int tilemapIndex = ownEntries ? Read16(parameters + 0x18) : shortIndex,
+                    coverIndex = ownEntries ? Read16(parameters + 0x1A) : shortIndex,
+                    objectIndex = ownEntries ? Read16(parameters + 0x20) : shortIndex;
+                int appearance = ReadPointer(RoomAppearanceTable + tilemapIndex * 4);
 
                 if (appearance < 0) continue;
 
@@ -219,13 +262,16 @@ namespace KatAMMapTracker {
 
                 if (width == 0 || height == 0) continue;
 
-                RoomInfo info = new RoomInfo { Id = room, ShortIndex = shortIndex, Area = Read16(parameters), Width = width, Height = height };
+                RoomInfo info = new RoomInfo {
+                    Id = room, ShortIndex = shortIndex, TilemapIndex = tilemapIndex, CoverIndex = coverIndex, ObjectIndex = objectIndex,
+                    Area = Read16(parameters), Width = width, Height = height, NightmareLevel = NightmareLevelOf(room), IsNightmareHub = room == NightmareHub,
+                };
 
                 ReadDoors(info);
                 ReadObjects(info);
 
                 // Several long rooms may share a short room. The first one is the one the game uses;
-                if (Rooms.Values.Any(r => r.ShortIndex == shortIndex) || HiddenRooms.Contains(room) || IsArenaRoom(room)) continue;
+                if (!expansionRoom && Rooms.Values.Any(r => r.ShortIndex == shortIndex) || HiddenRooms.Contains(room) || IsArenaRoom(room)) continue;
 
                 Rooms[room] = info;
             }
@@ -276,11 +322,11 @@ namespace KatAMMapTracker {
 
         // ReadObjects(); Reads the objects of a room, until the list ends (no more "01 24" object headers);
         void ReadObjects(RoomInfo room) {
-            int header = ReadPointer(ObjectTable + room.ShortIndex * 4);
+            int header = ReadPointer(ObjectListTable + room.ObjectIndex * 4), templates = header < 0 ? -1 : ReadPointer(header);
 
-            if (header < 0) return;
+            if (templates < 0) return;
 
-            for (int address = header + 16; address + 36 <= Rom.Length && room.Objects.Count < 256; address += 36) {
+            for (int address = templates; address + 36 <= Rom.Length && room.Objects.Count < 256; address += 36) {
                 if (Rom[address] != 0x01 || Rom[address + 1] != 0x24) break;
 
                 int id = Rom[address + 12], x = Read16(address + 6), y = Read16(address + 8);
@@ -292,7 +338,7 @@ namespace KatAMMapTracker {
         }
 
         void ReadDoors(RoomInfo room) {
-            int header = ReadPointer(CoverDataTable + room.ShortIndex * 4);
+            int header = ReadPointer(CoverDataTable + room.CoverIndex * 4);
 
             if (header < 0) return;
 
@@ -365,7 +411,7 @@ namespace KatAMMapTracker {
 
             int paletteHeader = ReadPointer(PaletteTable + paletteIndex * 4),
                 palette = paletteHeader < 0 ? -1 : ReadPointer(paletteHeader),
-                appearance = ReadPointer(RoomAppearanceTable + room.ShortIndex * 4),
+                appearance = ReadPointer(RoomAppearanceTable + room.TilemapIndex * 4),
                 tilemapAddress = appearance < 0 ? -1 : ReadPointer(appearance + 0x18);
 
             byte[] tileset = GetTileset(tilesetIndex);
@@ -395,7 +441,7 @@ namespace KatAMMapTracker {
         void DrawBackground(int[] canvas, int width, int height, int backgroundIndex, int[] roomColors) {
             if (backgroundIndex == 0xFFFF) return;
 
-            int header = ReadPointer(GraphicsTable + (FirstBackground + backgroundIndex) * 4);
+            int header = ReadPointer(BackgroundTable + backgroundIndex * 4);
 
             if (header < 0) return;
 
@@ -425,7 +471,7 @@ namespace KatAMMapTracker {
          * The tilemap holds placeholder tiles under them, which look garbled if they aren't covered.
          * Cover objects are type 1 in the room's object list: +2 X, +3 Y (16px units), +8 four tilemap entries (2x2); */
         void DrawCoverBlocks(int[] canvas, int width, int height, RoomInfo room, byte[] tileset, int[] colors) {
-            int header = ReadPointer(CoverDataTable + room.ShortIndex * 4);
+            int header = ReadPointer(CoverDataTable + room.CoverIndex * 4);
             int address = header < 0 ? -1 : ReadPointer(header + 4);
 
             if (address < 0) return;

@@ -147,19 +147,27 @@
 
         /* Detour(); Makes the Thumb function at `function` (4-aligned) jump to `target` (ldr r3, =target; bx r3: r3 is free at the
          * entry of the functions detoured, which take 3 arguments) and builds a trampoline running the original: its first 8 bytes
-         * (checked for code that depends on where it is), then a jump to the rest. Returns the trampoline's offset, or -1; */
+         * (checked for code that depends on where it is; literal loads get a copy of their literal), then a jump to the rest. Returns
+         * the trampoline's offset, or -1; */
         static int Detour(byte[] rom, int function, int target, ref int cursor) {
             if ((function & 3) != 0) return -1;
+            List<int> literals = new List<int>();
             for (int i = 0; i < 8; i += 2) {
                 int op = BitConverter.ToUInt16(rom, function + i);
-                if ((op & 0xF800) == 0x4800 || (op & 0xF000) == 0xD000 || (op & 0xF800) == 0xE000 || (op & 0xE000) == 0xE000
+                if ((op & 0xF800) == 0x4800) { literals.Add(i); continue; }
+                if ((op & 0xF000) == 0xD000 || (op & 0xF800) == 0xE000 || (op & 0xE000) == 0xE000
                     || (op & 0xF800) == 0xA000 || (op & 0xFF00) == 0x4700) return -1;
             }
 
-            int trampoline = Allocate(ref cursor, 16, 4);
+            int trampoline = Allocate(ref cursor, 16 + literals.Count * 4, 4);
             Array.Copy(rom, function, rom, trampoline, 8);
             WriteShorts(rom, trampoline + 8, 0x4B00, 0x4718);    // ldr r3, [pc, #0]; bx r3;
             WriteInt(rom, trampoline + 12, function + 8 + 0x08000000 + 1);
+            for (int j = 0; j < literals.Count; j++) {
+                int i = literals[j], op = BitConverter.ToUInt16(rom, function + i), copy = trampoline + 16 + j * 4;
+                WriteInt(rom, copy, ReadInt(rom, ((function + i + 4) & ~3) + (op & 0xFF) * 4));
+                WriteShort(rom, trampoline + i, (op & 0xFF00) | ((copy - ((trampoline + i + 4) & ~3)) / 4));
+            }
 
             WriteShorts(rom, function, 0x4B00, 0x4718);
             WriteInt(rom, function + 4, target + 1);

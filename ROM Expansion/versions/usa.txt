@@ -73,3 +73,13 @@ gUnk_08D6CD0C 0x8d6cd0c
 gUnk_08D640A4 0x8d640a4
 gUnk_08D6DCAC 0x8d6dcac  # the CPU helpers' routes per area (11 entries)
 AreaPlates 0x8d60ee4  # gUnk_08D60EE4 as the HUD's area plates read it (Japan's real table)
+# The world map's (worldmap.c, KatAMExpansionWorldMap.cs);
+WorldMapUnlockSave 0x8126080
+WorldMapGetCoorFromRoom 0x8124f88
+WorldMapDrawKirbys 0x812595c
+gUnk_0834BD94 0x834bd94
+gWorldMapDotCoors 0x8d61188
+sWorldMapLineCoors 0x8359c48
+gUnk_08357B8C 0x8357b8c
+sub_08039600 0x8039600
+GetKirbyRoomFlagIndex 0x8128694
