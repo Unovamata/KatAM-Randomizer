@@ -12,7 +12,8 @@ namespace KatAMRandomizer {
      *   width, height, then 0xFFFF and the LZ77 map in 64x32 screenblock order, or the map itself, row by row), +0x44 exits (12 bytes:
      *   room, 0, u16 tile x, y, landing x, y, 0), +0x48 objects (8 bytes: category + 1, index, variant, flags, u16 x, y) up to the
      *   record itself, +0x50 u16 x, y: where Kirby starts.
-     * • Collision: high nibble = kind (0, 5, 7 solid; 1 one-way (0x10 a door); 2 breakable; 3 ladders (0x30, 0x31) and walls; 4 air
+     * • Collision: high nibble = kind (0, 5, 7 solid; 1 one-way (0x10 a door); 2 breakable; 3 ladders (0x30, 0x31), walls, and 0x34:
+     *   platforms Kirby jumps through, clouds and bridges (KatAM's one-way 0x0F); 4 air
      *   currents; 6 spikes; 8, C water; 9 water with one-way floors; E water with spikes), low nibble = shape in NiDL's height maps
      *   (0x087328F0: empty, full, 45° floors, gentle floors, ceilings). Collision maps it to KatAM's values (gCollisionAttributes).
      * KatAM (per version, KatAMExpansionCode's RomSymbols): gRoomProps (0x28 bytes per room: song, ..., indexes into the tables below,
@@ -31,7 +32,7 @@ namespace KatAMRandomizer {
             0x00, 0x0D, 0x0B, 0x0C, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x01, 0x02, 0x03, 0x04, 0x00, 0x00,
             0x00, 0x0F, 0x1A, 0x1B, 0x14, 0x15, 0x16, 0x17, 0x00, 0x0E, 0x18, 0x19, 0x10, 0x11, 0x12, 0x13,
             0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D,
-            0x20, 0x21, 0x21, 0x0D, 0x0D, 0x00, 0x00, 0x00, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x00, 0x00,
+            0x20, 0x21, 0x21, 0x0D, 0x0F, 0x00, 0x00, 0x00, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0B, 0x0C, 0x0B, 0x0C, 0x09, 0x0A, 0x09, 0x0A,
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0B, 0x0C, 0x05, 0x06, 0x07, 0x08, 0x00,
             0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x0D, 0x0B, 0x0C, 0x05, 0x06, 0x07, 0x08, 0x0D,
@@ -391,7 +392,7 @@ namespace KatAMRandomizer {
                     NightmareRoom r = rooms[i];
                     int record = r.Record, roomWidth = ReadShort(nightmare, record + 0x14);
                     int Address(int offset) => ReadInt(nightmare, record + offset) - 0x08000000;
-                    byte[] cells = DecompressLZ77(nightmare, Address(8));
+                    byte[] cells = RoomCells(nightmare, record);
                     // The NiDL cell for a cell of the padded room (see Padded()): the edge's own where past it;
                     int Cell(int x, int y) => (r.Y + Math.Min(y, r.Height - 1)) * roomWidth + r.X + Math.Min(x, r.Width - 1);
 
@@ -830,21 +831,56 @@ namespace KatAMRandomizer {
                 NightmareRoom last = byRoom[key].Last();
                 return (last, Math.Clamp(x - last.X, 0, last.Width - 1), Math.Clamp(y - last.Y, 0, last.Height - 1));
             }
-            byte[] Cells(NightmareRoom r) => DecompressLZ77(nightmare, ReadInt(nightmare, r.Record + 8) - 0x08000000);
+            byte[] Cells(NightmareRoom r) => RoomCells(nightmare, r.Record);
             // Whether Kirby can go through a NiDL cell (nothing, water, ladders; breakable blocks too, once broken, if blocks);
             bool OpenCell(byte[] cells, int width, int x, int y, bool blocks = false) {
                 int kind = cells[(y * width + x) * 4 + 3];
                 return RoomCollision[kind] is 0x00 or 0x48 or 0x20 or 0x21 || blocks && kind >> 4 == 2;
             }
-            // Where Kirby starts (+0x50, pixels), down to the floor;
+            /* Where Kirby starts (+0x50, pixels), down to the floor. A start in a closed pocket, without exits (NiDL's rides: Butter
+             * Building's revolving tower, 3-2, whose warp star flies Kirby up around it, a chamber of its walls here), moves to the
+             * nearest cell that leads out of the room, at the same height; */
             (NightmareRoom part, int x, int y) Start((int, int, int) key) {
                 NightmareRoom any = byRoom[key][0];
+                return Land(key, ReadShort(nightmare, any.Record + 0x50) / 16, ReadShort(nightmare, any.Record + 0x52) / 16, true);
+            }
+            // A cell Kirby arrives in (pixels / 16), down to the floor if drop, out of a closed pocket (see Start());
+            (NightmareRoom part, int x, int y) Land((int, int, int) key, int x, int y, bool drop) {
+                NightmareRoom any = byRoom[key][0];
                 int width = ReadShort(nightmare, any.Record + 0x14), height = ReadShort(nightmare, any.Record + 0x16);
-                int x = Math.Clamp(ReadShort(nightmare, any.Record + 0x50) / 16, 0, width - 1), y = Math.Clamp(ReadShort(nightmare, any.Record + 0x52) / 16, 0, height - 1);
+                x = Math.Clamp(x, 0, width - 1); y = Math.Clamp(y, 0, height - 1);
                 byte[] cells = Cells(any);
+                HashSet<(int, int)> exitCells = new HashSet<(int, int)>();
+                int exits = ReadInt(nightmare, any.Record + 0x44), objects = ReadInt(nightmare, any.Record + 0x48);
+                for (int at = exits - 0x08000000; exits != 0 && at + 12 <= (objects != 0 ? objects - 0x08000000 : any.Record); at += 12)
+                    if (nightmare[at + 1] is 0 or 34) exitCells.Add((ReadShort(nightmare, at + 2), ReadShort(nightmare, at + 4)));
+                bool Pocket(int px, int py) => Shut(cells, width, height, px, py, exitCells);
+                if (Pocket(x, y)) {
+                    (int x, int y) best = (x, y);
+                    int distance = int.MaxValue;
+                    for (int cy = 0; cy < height; cy++)
+                        for (int cx = 0; cx < width; cx++) {
+                            int d = Math.Abs(cx - x) + Math.Abs(cy - y);
+                            if (d < distance && OpenCell(cells, width, cx, cy) && !Pocket(cx, cy)) { best = (cx, cy); distance = d; }
+                        }
+                    return PartAt(key, best.x, best.y);
+                }
                 bool Floor(int cy) => RoomCollision[cells[(cy * width + x) * 4 + 3]] is >= 0x01 and <= 0x1B || (cells[(cy * width + x) * 4 + 3] >> 4) == 2;
-                while (y + 1 < height && !Floor(y + 1)) y++;
+                while (drop && y + 1 < height && !Floor(y + 1)) y++;
                 return PartAt(key, x, y);
+            }
+            // Whether Kirby at a cell is shut in: the open cells it reaches (at most 64 of them) don't reach the room's edge nor exits;
+            bool Shut(byte[] cells, int width, int height, int x, int y, HashSet<(int, int)> exitCells) {
+                HashSet<(int, int)> seen = new HashSet<(int, int)> { (x, y) };
+                Queue<(int x, int y)> queue = new Queue<(int, int)>(seen);
+                while (queue.Count > 0) {
+                    (int cx, int cy) = queue.Dequeue();
+                    if (cx == 0 || cy == 0 || cx == width - 1 || cy == height - 1 || seen.Count > 64 || exitCells.Contains((cx, cy))) return false;
+                    foreach ((int nx, int ny) in new[] { (cx + 1, cy), (cx - 1, cy), (cx, cy + 1), (cx, cy - 1) })
+                        if (RoomCollision[cells[(ny * width + nx) * 4 + 3]] is not (0x0D or (>= 0x01 and <= 0x04)) && seen.Add((nx, ny)))
+                            queue.Enqueue((nx, ny));
+                }
+                return true;
             }
             (int room, int x, int y) Target((NightmareRoom part, int x, int y) at) => (at.part.Room, at.x + 1, at.y + 1);
             (int, int, int) StageStart((int level, int stage) s) => Target(Start((s.level, s.stage, byRoom.Keys.Where(k => k.Item1 == s.level && k.Item2 == s.stage).Min(k => k.Item3))));
@@ -891,7 +927,7 @@ namespace KatAMRandomizer {
                         found.Add((transports[0].x, transports[0].y, Target(Start((s.level, s.stage, x)))));
                     else if (kind == 26 && byRoom.ContainsKey((s.level, s.stage, x))) {
                         byte[] cells = Cells(r);
-                        var to = Target(PartAt((s.level, s.stage, x), landX, landY));
+                        var to = Target(Land((s.level, s.stage, x), landX, landY, false));
                         for (int cx = 0; cx < width; cx++) {
                             if (OpenCell(cells, width, cx, 0)) edges.Add((PartAt(key, cx, 0), to));
                             if (OpenCell(cells, width, cx, height - 1)) edges.Add((PartAt(key, cx, height - 1), to));
@@ -1126,8 +1162,61 @@ namespace KatAMRandomizer {
 
         /* Breakable blocks (NiDL collision 0x2X) -> KatAM's: star blocks 0xF0 (0x24, and Rainbow Resort's few 0x20), bomb blocks 0xF1
          * (0x2E), the blocks a bomb block sets off 0xF2 (0x2D, touching it and each other: KatAM breaks them as a chain from the bomb
-         * block), metal blocks 0xF4 (0x2F); */
-        static byte BreakableBlock(int collision) => collision switch { 0x2D => 0xF2, 0x2E => 0xF1, 0x2F => 0xF4, _ => 0xF0 };
+         * block); 0x2F (Heavy Mole's dirt, which any attack digs through, and a few elsewhere) are star blocks too, as no NiDL block
+         * needs an ability (KatAM's metal blocks, 0xF4, do); */
+        /* RoomCells(); A NiDL room's cells (u32 each: metatile, attribute, collision), where a chain of blocks a bomb block sets off
+         * borders an open area that borders none of its bomb blocks, with one of its blocks next to that area a bomb block (one of the
+         * chain's own, its metatile and collision; it still leaves its own when broken): NiDL lets Kirby reach some areas only from
+         * the bomb block's side, and the ported doors are two-way, so he could come in on the other (Butter Building 1-1's second
+         * room: a return door above the chain, its bomb block below). A chain without a bomb block is star blocks; */
+        static byte[] RoomCells(byte[] nightmare, int record) {
+            int width = ReadShort(nightmare, record + 0x14), height = ReadShort(nightmare, record + 0x16);
+            byte[] cells = DecompressLZ77(nightmare, ReadInt(nightmare, record + 8) - 0x08000000);
+            if (cells.Length < width * height * 4) return cells;
+            int Kind(int i) => cells[i * 4 + 3];
+            bool Chain(int i) => Kind(i) is 0x2D or 0x2E;
+            bool Open(int i) => Kind(i) >> 4 == 2 ? !Chain(i) : RoomCollision[Kind(i)] is not (0x0D or (>= 0x01 and <= 0x04));
+            IEnumerable<int> Around(int i) {
+                int x = i % width, y = i / width;
+                if (x > 0) yield return i - 1;
+                if (x + 1 < width) yield return i + 1;
+                if (y > 0) yield return i - width;
+                if (y + 1 < height) yield return i + width;
+            }
+            List<int> Flood(int from, Func<int, bool> through, int[] marks, int mark) {
+                List<int> found = new List<int> { from };
+                marks[from] = mark;
+                for (int k = 0; k < found.Count; k++)
+                    foreach (int n in Around(found[k]))
+                        if (marks[n] < 0 && through(n)) { marks[n] = mark; found.Add(n); }
+                return found;
+            }
+
+            int[] area = Enumerable.Repeat(-1, width * height).ToArray(), chain = Enumerable.Repeat(-1, width * height).ToArray();
+            for (int i = 0, areas = 0; i < width * height; i++) if (area[i] < 0 && Open(i)) Flood(i, Open, area, areas++);
+            for (int i = 0, chains = 0; i < width * height; i++) {
+                if (chain[i] >= 0 || !Chain(i)) continue;
+                List<int> blocks = Flood(i, Chain, chain, chains++);
+                List<int> bombs = blocks.Where(b => Kind(b) == 0x2E).ToList();
+                if (bombs.Count == 0) {
+                    // No bomb block sets them off (Rainbow Resort 3-7's): blocks any attack breaks, as star blocks;
+                    foreach (int block in blocks) cells[block * 4 + 3] = 0x24;
+                    continue;
+                }
+                HashSet<int> armed = new HashSet<int>(bombs.SelectMany(Around).Where(n => area[n] >= 0).Select(n => area[n]));
+                foreach (int block in blocks) {
+                    foreach (int n in Around(block)) {
+                        if (area[n] < 0 || armed.Contains(area[n])) continue;
+                        Array.Copy(cells, bombs[0] * 4, cells, block * 4, 4);
+                        armed.UnionWith(Around(block).Where(m => area[m] >= 0).Select(m => area[m]));
+                        break;
+                    }
+                }
+            }
+            return cells;
+        }
+
+        static byte BreakableBlock(int collision) => collision switch { 0x2D => 0xF2, 0x2E => 0xF1, _ => 0xF0 };
 
         /* BuildSolidity(); The room's (part's) SolidityMap: its RL collision and its special blocks: per breakable block, its KatAM
          * value, where it is, and what it leaves when broken (the 4 tilemap entries of the metatile NiDL's object data lists for the
