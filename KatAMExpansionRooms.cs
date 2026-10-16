@@ -869,15 +869,15 @@ namespace KatAMRandomizer {
                 while (drop && y + 1 < height && !Floor(y + 1)) y++;
                 return PartAt(key, x, y);
             }
-            // Whether Kirby at a cell is shut in: the open cells it reaches (at most 64 of them) don't reach the room's edge nor exits;
+            // Whether Kirby at a cell is shut in: the cells it reaches are few (64 at most: rooms have 176 or more) and hold no exit;
             bool Shut(byte[] cells, int width, int height, int x, int y, HashSet<(int, int)> exitCells) {
                 HashSet<(int, int)> seen = new HashSet<(int, int)> { (x, y) };
                 Queue<(int x, int y)> queue = new Queue<(int, int)>(seen);
                 while (queue.Count > 0) {
                     (int cx, int cy) = queue.Dequeue();
-                    if (cx == 0 || cy == 0 || cx == width - 1 || cy == height - 1 || seen.Count > 64 || exitCells.Contains((cx, cy))) return false;
+                    if (seen.Count > 64 || exitCells.Contains((cx, cy))) return false;
                     foreach ((int nx, int ny) in new[] { (cx + 1, cy), (cx - 1, cy), (cx, cy + 1), (cx, cy - 1) })
-                        if (RoomCollision[cells[(ny * width + nx) * 4 + 3]] is not (0x0D or (>= 0x01 and <= 0x04)) && seen.Add((nx, ny)))
+                        if (nx >= 0 && ny >= 0 && nx < width && ny < height && RoomCollision[cells[(ny * width + nx) * 4 + 3]] is not (0x0D or (>= 0x01 and <= 0x04)) && seen.Add((nx, ny)))
                             queue.Enqueue((nx, ny));
                 }
                 return true;
