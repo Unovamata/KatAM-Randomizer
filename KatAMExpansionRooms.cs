@@ -1098,11 +1098,21 @@ namespace KatAMRandomizer {
                     if (cx >= 1 && cx <= r.FullWidth - 2 && Shown(r, y) && Open(cx, y) && y + 1 < r.Height && Floor(cx, y + 1) && !doors[r].Any(d => d.Edge ? d.Y == y && d.X == cx : Math.Abs(d.Y - y) <= 2 && Math.Abs(d.X - cx) <= 2))
                         return (cx, y);
                 }
-                // (no floor nearby: the landing itself, in the air, as KatAM's hub doors are, where the camera shows it);
+                // (no floor nearby: the landing itself, in the air, as KatAM's hub doors are, where the camera shows it; none where Kirby
+                // falls out of the room, as a cannon's shot into a sky he falls through: he'd never stay on it);
+                if (y + 1 >= r.Height) return null;
                 x = Math.Clamp(x, 1, r.FullWidth - 2);
                 while (!Shown(r, landingY) && landingY < MirrorTop && Open(x, landingY + 1)) landingY++;
                 while (!Shown(r, landingY) && landingY > MirrorTop && Open(x, landingY - 1)) landingY--;
                 return doors[r].Any(d => d.Y == landingY && Math.Abs(d.X - x) <= 1) ? null : (x, landingY);
+            }
+            // FallsOut(); Whether Kirby, there, falls out of the room (nothing but air and water below it): landing on a mirror floating
+            // over a fall, he'd drop out at once (NiDL's doors in its skies: Kirby flies into them, and lands beside them);
+            bool FallsOut(NightmareRoom r, int x, int y) {
+                if (!cellsOf.TryGetValue(r, out byte[] cells)) cellsOf[r] = cells = Cells(r);
+                int width = ReadShort(nightmare, r.Record + 0x14);
+                while (y + 1 < r.Height && OpenCell(cells, width, r.X + x, r.Y + y + 1)) y++;
+                return y + 1 >= r.Height;
             }
             foreach (NightmareRoom from in rooms) {
                 foreach (Door door in doors[from].ToList()) {
@@ -1112,7 +1122,7 @@ namespace KatAMRandomizer {
                     Door partner = doors[to].Where(d => !d.Edge && d.Room == from.Room && Math.Abs(d.X - x) <= 2 && Math.Abs(d.Y - y) <= 2)
                                             .OrderBy(d => Math.Abs(d.X - x) + Math.Abs(d.Y - y)).FirstOrDefault();
                     if (partner != null) {
-                        if ((partner.X, partner.Y) != (x, y))
+                        if ((partner.X, partner.Y) != (x, y) && !FallsOut(to, partner.X, partner.Y))
                             doors[from][doors[from].IndexOf(door)] = door with { DestX = partner.X + 1, DestY = partner.Y + 1, Facing = Facing((to.Room, partner.X + 1, partner.Y + 1)) };
                         continue;
                     }
