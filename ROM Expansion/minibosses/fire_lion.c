@@ -14,6 +14,8 @@
 #include "task.h"
 
 // Frames: NiDL's 0-56. Its hurt frame is NiDL's 0, drawn 12 pixels lower (HurtShift);
+// Its frames are drawn this much lower than NiDL's (HurtShift in KatAMExpansion.cs: they fit the hurt frame's tiles), so its boxes too;
+#define DRAWN_LOWER 12
 #define FRAME_IDLE 4
 #define FRAME_FIRE 53          // 53-56;
 
@@ -159,7 +161,7 @@ static void Flame(struct FireLion *f, s32 dx, s32 dy, s16 xspeed, s16 yspeed) {
     flame->xspeed = left ? -xspeed : xspeed;
     flame->yspeed = yspeed;
     flame->filler6[0] = f->firePalette;
-    sub_0803E2B0(flame, -5, -5, 5, 5);
+    sub_0803E2B0(flame, -5, -5 + DRAWN_LOWER, 5, 5 + DRAWN_LOWER);
     ObjectSetBounds(flame, 0, 0, 0, 0);
     ObjectBaseInitSprite(flame, &flame->sprite, FLAME_TILES, NidlGraphicsOf(&f->n)->animId, FRAME_FIRE, obj->base.sprite.unk14 >> 6);
     flame->sprite.palId = f->firePalette;
@@ -245,7 +247,7 @@ void FireLionStart(struct Object *obj) {
     SetState(f, STATE_IDLE);
 }
 
-// FireLionInit(); Its box, on the floor;
+// FireLionInit(); Its boxes (DRAWN_LOWER pixels lower than NiDL's, as its frames are), on the floor;
 void FireLionInit(struct NidlObject *n) {
     struct FireLion *f = (struct FireLion *)n;
     struct Object *obj = &n->obj;
@@ -253,7 +255,7 @@ void FireLionInit(struct NidlObject *n) {
     f->gravity = GRAVITY;
     f->waiting = FALSE;
     NidlSetFrame(n, FRAME_IDLE);
-    sub_0803E2B0(&obj->base, -24, -40, 24, 12);
-    ObjectSetBounds(&obj->base, -24, -40, 24, 13);
+    sub_0803E2B0(&obj->base, -24, -40 + DRAWN_LOWER, 24, 12 + DRAWN_LOWER);
+    ObjectSetBounds(&obj->base, -24, -40 + DRAWN_LOWER, 24, 13 + DRAWN_LOWER);
     obj->base.unk4C = obj->base.y = ((obj->base.y + (obj->base.unk3F * 0x100)) & 0xfffff000) - (obj->base.unk3F * 0x100) - 1;
 }

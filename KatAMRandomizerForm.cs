@@ -111,7 +111,7 @@ namespace KatAMRandomizer
         // AddNightmareEnemies(); The ROM Expansion, which also expands the ROM to 32 MB (so ROMData becomes the bigger copy);
         private string AddNightmareEnemies() {
             byte[] rom = Processing.ROMData;
-            string error = KatAMExpansion.AddEnemies(ref rom, nightmareROM);
+            string error = KatAMExpansion.AddEnemies(ref rom, nightmareROM, settings.NightmareRooms);
 
             Processing.ROMData = rom;
             return error;
@@ -130,8 +130,8 @@ namespace KatAMRandomizer
             settings.RandomEntity = new Random(settings.Seed);
 
             // ROM Expansion goes first, so the ROM reader sees the new enemies' parameters like any other's;
-            if (settings.NightmareEnemies.Count > 0 || settings.NightmareMinibosses.Count > 0) {
-                string error = nightmareROM == null ? "Load a Nightmare in Dream Land ROM in the ROM Expansion tab, or turn its enemies and mini-bosses off."
+            if (settings.NightmareEnemies.Count > 0 || settings.NightmareMinibosses.Count > 0 || settings.NightmareRooms) {
+                string error = nightmareROM == null ? "Load a Nightmare in Dream Land ROM in the ROM Expansion tab, or turn its enemies, mini-bosses and rooms off."
                                                     : AddNightmareEnemies();
 
                 if (error != null) {
@@ -141,14 +141,15 @@ namespace KatAMRandomizer
 
                 Processing.parameters[KatAMExpansion.NightmareID] = "Nightmare in Dream Land Enemy";
                 foreach (byte type in KatAMExpansion.MinibossIDs) Processing.parameters[type] = "Nightmare in Dream Land Mini-boss";
+
+                /* Only with the ROM Expansion: every pause help screen shows the base one, which frees the space of the rest (and shows
+                 * the new abilities' portraits); */
+                KatAMPauseScreens.Apply(Processing.ROMData);
             } else {
                 Processing.parameters[KatAMExpansion.NightmareID] = Processing.enemiesDictionary[KatAMExpansion.NightmareID].Name;
                 foreach (byte type in KatAMExpansion.MinibossIDs)
                     if (Processing.enemiesDictionary.TryGetValue(type, out var empty)) Processing.parameters[type] = empty.Name;
             }
-
-            // Every pause help screen shows the base one, which frees the space of the rest;
-            KatAMPauseScreens.Apply(Processing.ROMData);
 
             new KatAMROMReader(system);
             new KatAMEnemies(system);
@@ -166,6 +167,9 @@ namespace KatAMRandomizer
             // Randomize HP values on Bosses;
             // Fix the way behaviors and speeds are loaded when including minibosses in enemy generation;
             // Consider Mirras for mirror randomization;
+
+            // ROM Expansion rooms: Central Circle's mirror to them, now that the randomizer is done with its room;
+            KatAMExpansion.FinishRooms(Processing.ROMData);
 
             File.WriteAllBytes(destinationPath, Processing.ROMData);
 
@@ -797,9 +801,34 @@ namespace KatAMRandomizer
                 CheckboxExpansionMinibosses.Enabled = true;
                 CheckboxExpansionMinibosses.Checked = true;
                 CheckboxExpansionMinibosses_CheckedChanged(CheckboxExpansionMinibosses, EventArgs.Empty);
+                CheckboxExpansionRooms.Enabled = true;
+                CheckboxExpansionRooms.Checked = true;
+                CheckboxExpansionRooms_CheckedChanged(CheckboxExpansionRooms, EventArgs.Empty);
+                ButtonExpansionUnloadNightmare.Enabled = true;
             } catch (Exception ex) {
                 MessageBox.Show($"Error loading file: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
+        }
+
+        // ButtonExpansionUnloadNightmare_Click(); Forgets the NiDL ROM: no ROM Expansion until one is loaded again;
+        private void ButtonExpansionUnloadNightmare_Click(object sender, EventArgs e) {
+            nightmareROM = null;
+            LabelExpansionNightmare.Text = "No ROM loaded";
+            foreach (CheckBox box in new[] { CheckboxExpansionEnemies, CheckboxExpansionMinibosses, CheckboxExpansionRooms }) {
+                box.Checked = false;
+                box.Enabled = false;
+            }
+            settings.NightmareEnemies = new List<int>();
+            settings.NightmareMinibosses = new List<int>();
+            settings.NightmareRooms = false;
+            ButtonExpansionUnloadNightmare.Enabled = false;
+            UpdateExpansionLabel();
+        }
+
+        // CheckboxExpansionRooms_CheckedChanged(); NiDL's rooms;
+        private void CheckboxExpansionRooms_CheckedChanged(object sender, EventArgs e) {
+            settings.NightmareRooms = nightmareROM != null && CheckboxExpansionRooms.Checked;
+            UpdateExpansionLabel();
         }
 
         // CheckboxExpansionEnemies_CheckedChanged(); Every ported enemy, or none;
@@ -824,6 +853,7 @@ namespace KatAMRandomizer
 
             if (settings.NightmareEnemies.Count > 0) lines.Add("Enemies: " + string.Join(", ", KatAMExpansion.Enemies.Select(enemy => enemy.name)) + ".");
             if (settings.NightmareMinibosses.Count > 0) lines.Add("Mini-bosses: " + string.Join(", ", KatAMExpansion.Minibosses.Select(miniboss => miniboss.name)) + ".");
+            if (settings.NightmareRooms) lines.Add("Rooms: every level room of Nightmare in Dream Land, connected by mirrors.");
             LabelExpansionEnemies.Text = string.Join(Environment.NewLine + Environment.NewLine, lines);
         }
 

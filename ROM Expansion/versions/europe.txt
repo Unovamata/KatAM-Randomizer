@@ -107,3 +107,15 @@ sub_0804E09C 0x804e0d8
 sub_08086C48 0x8086c90
 sub_0809D060 0x809d0a8
 CreateEffectObject 0x808ae78
+gRoomProps 0x893d610
+gForegroundInfo 0x8d6ef78
+gForegroundPalettes 0x8d6d864
+gForegroundTilemaps 0x8d6eafc
+gSolidityMaps 0x8d6d90c
+gRoomTiledBGs 0x8d6f000
+gLevelObjLists 0x8d6dd88
+gUnk_08D63C28 0x8d6e204
+gUnk_08D6CD0C 0x8d772e8
+gUnk_08D640A4 0x8d6e680
+gUnk_08D6DCAC 0x8d78288  # the CPU helpers' routes per area (11 entries)
+AreaPlates 0x8d6b344  # gUnk_08D60EE4 as the HUD's area plates read it (Japan's real table)

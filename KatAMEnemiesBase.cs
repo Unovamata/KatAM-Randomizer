@@ -194,7 +194,9 @@ namespace KatAMRandomizer {
                                 entity.Link = new byte[2] { 0x0, 0x0 };
                                 entity.Behavior = miniboss.Behavior;
                                 entity.Speed = miniboss.Speed;
-                                entity.Properties = miniboss.Properties;
+                                entity.Properties = (byte[])miniboss.Properties.Clone();
+                                // Its fight area is the whole room, so the camera doesn't lock and Kirby can get away;
+                                MinibossScreens.SetArea(entity, MinibossScreens.RoomArea(entity.Room));
                             }
                         }
                     }
@@ -236,6 +238,11 @@ namespace KatAMRandomizer {
                         entity.Behavior = availableEnemyBehaviors[behaviorIndex];
                     }
                 }
+
+                // Batafire flies across the arena from one side (its own places are all by one), so in another mini-boss's arena it goes there;
+                if(entity.ID == MinibossScreens.Batafire && id != MinibossScreens.Batafire && MinibossScreens.IsMiniboss(id)) MinibossScreens.MoveToSide(entity);
+                // Bombar flies its attacks the way it faces (its behavior), so it faces the inside of its fight area;
+                if(entity.ID == MinibossScreens.Bombar) entity.Behavior = MinibossScreens.InwardFacing(entity);
 
                 Utils.WriteObjectToROM(entity);
             }
@@ -416,5 +423,66 @@ namespace KatAMRandomizer {
         }
 
         public bool FilterEntities(Entity entity) { return true; }
+    }
+
+    /* MinibossScreens; Randomized mini-bosses' fight areas (template +0x1A-0x21, relative to their place: when Kirby is in it the fight
+     * starts and the camera stays in it). A mini-boss in an enemy's place gets the whole room, so the camera never locks and Kirby can
+     * get away. Batafire flies across its arena from one side, so in another mini-boss's arena it goes to the side its place was
+     * nearer to, where its own are (29 pixels in, 60 down from the top). Bombar faces the inside of its area (see InwardFacing); */
+    internal static class MinibossScreens {
+        public const byte Batafire = 0x3B, Bombar = 0x3F;
+        const int BatafireSide = 29, BatafireTop = 60, BatafireWidth = 32;
+
+        static int Read16(byte[] rom, long address) => rom[address] | (rom[address + 1] << 8);
+
+        // IsMiniboss(); KatAM's mini-boss types (0x38-0x3F) and the ROM Expansion's;
+        public static bool IsMiniboss(byte id) => (id >= 0x38 && id <= 0x3F) || KatAMExpansion.MinibossIDs.Contains(id);
+
+        // RoomArea(); The whole room (its size from its foreground tilemap: gRoomProps -> appearance, width and height in tiles);
+        public static (int x, int y, int width, int height) RoomArea(int room) {
+            byte[] rom = Processing.ROMData;
+            RomRegion region = RomRegion.Current;
+            int shortIndex = Read16(rom, region.LevelData(0x903338) + room * 0x28 + 0x24);
+            uint pointer = BitConverter.ToUInt32(rom, (int)region.PointerTable(0xD2F93C) + shortIndex * 4);
+            long appearance = pointer & 0x01FFFFFF;
+            return (0, 0, Read16(rom, appearance) * 8, Read16(rom, appearance + 2) * 8);
+        }
+
+        static int X(Entity entity) => (short)(entity.X[0] | (entity.X[1] << 8));
+        static int Y(Entity entity) => (short)(entity.Y[0] | (entity.Y[1] << 8));
+
+        // SetArea(); The mini-boss's fight area (Properties 9-16: template +0x1A-0x21, relative to its place) becomes the given one;
+        public static void SetArea(Entity entity, (int x, int y, int width, int height) screen) {
+            WriteArea(entity, screen.x - X(entity), screen.y - Y(entity), screen.width, screen.height);
+        }
+
+        static void WriteArea(Entity entity, int left, int top, int width, int height) {
+            BitConverter.GetBytes((short)left).CopyTo(entity.Properties, 9);
+            BitConverter.GetBytes((short)top).CopyTo(entity.Properties, 11);
+            BitConverter.GetBytes((ushort)width).CopyTo(entity.Properties, 13);
+            BitConverter.GetBytes((ushort)height).CopyTo(entity.Properties, 15);
+        }
+
+        /* InwardFacing(); Bombar's behavior (the template's subtype1: 0 faces left, 1 right) facing the farther side of its fight area:
+         * its moves are all relative to its place, in the direction it faces, and only its dive leaves the screen on purpose; */
+        public static byte InwardFacing(Entity entity) {
+            int left = BitConverter.ToInt16(entity.Properties, 9), width = BitConverter.ToUInt16(entity.Properties, 13);
+            if (width == 0) return entity.Behavior;
+            return (byte)(-left * 2 < width ? 1 : 0);
+        }
+
+        // MoveToSide(); Batafire to the side of its fight area its place is nearer to; the area stays where it is;
+        public static void MoveToSide(Entity entity) {
+            int left = BitConverter.ToInt16(entity.Properties, 9), top = BitConverter.ToInt16(entity.Properties, 11), width = BitConverter.ToUInt16(entity.Properties, 13);
+
+            if (width == 0) return;
+
+            int fromLeft = -left, toLeft = fromLeft * 2 > width ? width - BatafireWidth : BatafireSide, dx = toLeft - fromLeft, dy = BatafireTop + top;
+
+            entity.X = BitConverter.GetBytes((short)(X(entity) + dx));
+            entity.Y = BitConverter.GetBytes((short)(Y(entity) + dy));
+            WriteArea(entity, left - dx, top - dy, width, BitConverter.ToUInt16(entity.Properties, 15));
+            entity.IsMoved = true;
+        }
     }
 }

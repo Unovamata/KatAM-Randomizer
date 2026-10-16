@@ -53,8 +53,8 @@ void *CreateNidlMiniboss(struct ObjectTemplate *template, u8 playerId) {
     NidlSetFrame(n, 0);
     ObjectInitSprite(obj);
     obj->base.sprite.unk14 = 0x6C0;
-    // Its frames are drawn hurtShift pixels lower (see KatAMExpansion.cs), its sprite as much higher;
-    obj->base.objBase55 = -sNidlMinibosses[boss].hurtShift;
+    // A mini-boss whose frames are drawn lower (hurtShift, see KatAMExpansion.cs) has its boxes as much lower (KatAM resets objBase55
+    // after every frame it draws, so the sprite can't be moved back up instead);
     NidlInitPalette(n);
     NidlUploadHurtTiles(n);
     NidlMinibossStart(obj);
