@@ -75,7 +75,8 @@ namespace KatAMMapTracker {
         const double AreaMargin = 64, NeighborStep = 48;
 
         /* Fingerprint(); Hash of every mirror of the ROM: room, destination, door position and landing spot.
-         * Anything else in the ROM (enemies, items, colors) can change without changing the layout; */
+         * Anything else in the ROM (enemies, items, colors) can change without changing the layout. The ROM Expansion's rooms and the
+         * mirrors to them are left out, so an expanded ROM's KatAM is still the original one; */
         public static ulong Fingerprint(RomMap map) {
             ulong hash = 14695981039346656037UL;
 
@@ -86,8 +87,11 @@ namespace KatAMMapTracker {
                 }
             }
 
-            foreach (RoomInfo room in map.Rooms.Values.OrderBy(r => r.Id)) {
-                foreach (DoorInfo door in room.Doors.Where(d => d.Kind == DoorKind.Mirror).OrderBy(d => d.Destination).ThenBy(d => d.X).ThenBy(d => d.Y)) {
+            bool Nightmare(int room) => map.Rooms.TryGetValue(room, out RoomInfo info) && info.IsNightmareRoom;
+
+            foreach (RoomInfo room in map.Rooms.Values.Where(r => !r.IsNightmareRoom).OrderBy(r => r.Id)) {
+                foreach (DoorInfo door in room.Doors.Where(d => d.Kind == DoorKind.Mirror && !Nightmare(d.Destination))
+                                                   .OrderBy(d => d.Destination).ThenBy(d => d.X).ThenBy(d => d.Y)) {
                     Add(room.Id); Add(door.Destination); Add(door.X); Add(door.Y); Add(door.LandX); Add(door.LandY);
                 }
             }
@@ -95,7 +99,7 @@ namespace KatAMMapTracker {
             return hash;
         }
 
-        // IsUnmodified(); Whether the ROM's mirrors are the original game's;
+        // IsUnmodified(); Whether the ROM's mirrors are the original game's (its KatAM's, for an expanded ROM);
         public static bool IsUnmodified(RomMap map) => Fingerprint(map) == OriginalMirrors;
 
         /* Generate(); The original layout, with the area maps scaled by 'scale' (1 = the game's spacing).

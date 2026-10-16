@@ -103,8 +103,11 @@ namespace KatAMRandomizer {
                         int x = Center + piece.x + MotionDx + (piece.hf != 0 ? piece.w - 1 - px : px);
                         int y = Center + piece.y + MotionDy + (piece.vf != 0 ? piece.h - 1 - py : py);
                         if (x < 0 || y < 0 || x >= Size || y >= Size) continue;
-                        bool isKirby = !second && bank == 0 && plainBank0 && value <= 11;
-                        body[x, y] = isKirby ? value : 0;
+                        // Kirby's pixels: the first layer's plain colors 1-11, and the second layer's in plain Kirby's colors (NiDL's Kirby is
+                        // always pink, so Needle's spiked ball, drawn on the second layer, has his body's colors: the player's in KatAM);
+                        int plainIndex = second ? Array.IndexOf(plain, palette[value], 2, 10) : -1;
+                        bool isKirby = !second && bank == 0 && plainBank0 && value <= 11 || plainIndex >= 2;
+                        body[x, y] = !isKirby ? 0 : plainIndex >= 2 ? plainIndex : value;
                         colors[x, y] = isKirby ? 0 : palette[bank * 16 + value] + 1;
                     }
                 }

@@ -92,6 +92,9 @@ namespace KatAMMapTracker {
                 connectionLabel.Text = $"Port {server.Port} is in use ({exception.Message}). Is another tracker open?";
             }
 
+            AcceptRomDrops(this);
+            AcceptRomDrops(mapView);
+
             string rom = startupRom ?? ReadRecentRoms().FirstOrDefault();
 
             if (rom != null && File.Exists(rom)) Shown += (s, e) => LoadRom(rom);
@@ -320,6 +323,19 @@ namespace KatAMMapTracker {
         }
 
         //////////////////////////////////////////////////////////////////////////////////////////////
+
+        // AcceptRomDrops(); A ROM dropped on the control (from Explorer, the first file if several) opens like File > Open ROM;
+        void AcceptRomDrops(Control control) {
+            control.AllowDrop = true;
+            control.DragEnter += (s, e) =>
+                e.Effect = e.Data?.GetData(DataFormats.FileDrop) is string[] files && files.Length > 0 && File.Exists(files[0]) ? DragDropEffects.Copy : DragDropEffects.None;
+            control.DragDrop += (s, e) => {
+                if (e.Data?.GetData(DataFormats.FileDrop) is string[] files && files.Length > 0 && File.Exists(files[0])) {
+                    Activate();
+                    BeginInvokeSafe(() => LoadRom(files[0]));
+                }
+            };
+        }
 
         void OpenRomDialog() {
             using OpenFileDialog dialog = new OpenFileDialog {

@@ -20,20 +20,26 @@ namespace KatAMRandomizer {
             int lineCoors = version.RomSymbols["sWorldMapLineCoors"], dotCounts = lineCoors + WorldMapDoors * 4, dotCoors = version.RomSymbols["gWorldMapDotCoors"];
             if (ReadInt(rom, lineCoors + 4) != 0x50705898) return $"The {version.Name} ROM's world map isn't where it should be.";
 
-            // The paths' dots (4 bytes each, as struct WorldMapDotCoor's, which agbcc pads): about every 6.5 pixels, from 5 pixels off the NiDL door to 9 (17: Central Circle) before where it leads, as KatAM's (the doors are placed so their paths are straight, level or 45 degrees, and clear of KatAM's paths and the map's captions);
+            /* The paths' dots (4 bytes each, as struct WorldMapDotCoor's, which agbcc pads), as KatAM's: evenly spaced (about 6 pixels)
+             * between the two doors' icons (centered on their 8 pixel tiles), about 8 pixels off each (15 off Central Circle's); a dot shows
+             * 1.5 pixels right of and below its coordinates; */
             for (int k = 0; k < NidlWorldMapDoors; k++) {
                 int door = doors + k * NidlDoorSize;
-                double x = rom[door], y = rom[door + 1], destX = rom[door + 2], destY = rom[door + 3];
+                double Center(int coordinate) => coordinate / 8 * 8 + 3.5;
+                double x = Center(rom[door]), y = Center(rom[door + 1]), destX = Center(rom[door + 2]), destY = Center(rom[door + 3]);
                 double length = Math.Sqrt((destX - x) * (destX - x) + (destY - y) * (destY - y));
-                double end = length - (destX == 112 && destY == 80 ? 17 : 9) + 0.01;
-                int count = 0;
-                for (double t = 5; t <= end && count < NidlMaxDots; t += 6.5, count++) {
-                    rom[door + 8 + count * 4] = (byte)Math.Round(x + (destX - x) * t / length);
-                    rom[door + 9 + count * 4] = (byte)Math.Round(y + (destY - y) * t / length + 2);
+                double start = 8, end = length - (rom[door + 2] == 112 && rom[door + 3] == 80 ? 15 : 8);
+                int count = Math.Clamp((int)Math.Round((end - start) / 6) + 1, 1, NidlMaxDots);
+                double step = count > 1 ? (end - start) / (count - 1) : 0;
+                if (count == 1) start = (start + end) / 2;
+                for (int i = 0; i < count; i++) {
+                    double t = start + i * step;
+                    rom[door + 8 + i * 4] = (byte)Math.Round(x + (destX - x) * t / length - 1.5);
+                    rom[door + 9 + i * 4] = (byte)Math.Round(y + (destY - y) * t / length - 1.5);
                 }
                 rom[door + 5] = (byte)count;
                 // Its door tile in the map's tilemap (as sWorldMapDoorTilemapOffsets');
-                WriteShort(rom, door + 6, ((int)y / 8 + 1) * 32 + (int)x / 8 + 1);
+                WriteShort(rom, door + 6, (rom[door + 1] / 8 + 1) * 32 + rom[door] / 8 + 1);
             }
 
             int newLines = Allocate(ref cursor, (WorldMapDoors + NidlWorldMapDoors) * 4, 4),

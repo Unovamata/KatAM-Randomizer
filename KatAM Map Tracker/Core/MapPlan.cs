@@ -36,39 +36,44 @@ namespace KatAMMapTracker {
         // Whether the rooms sit where the game's own maps draw them (the ROM's mirrors are the original ones, see MapVanilla);
         public bool IsOriginalLayout { get; private set; }
 
+        /* Generate(); Three kinds of map: an original ROM's is the game's (MapVanilla); a randomized one's is laid out from its mirrors
+         * (MapLayout); an expanded ROM's (ROM Expansion) is its KatAM's, one of those two, with the Nightmare in Dream Land levels next to
+         * it, laid out by stage (MapExpansion). The spacing grows until every line can be routed between the squares; */
         public static MapPlan Generate(RomMap map) {
-            if (MapVanilla.IsUnmodified(map)) {
-                MapPlan original = null;
+            bool original = MapVanilla.IsUnmodified(map);
+            RomMap katam = map.IsExpanded ? map.Subset(r => !r.IsNightmareRoom) : map;
+            List<Func<(Dictionary<int, RoomPlacement> layout, Dictionary<int, int> clusters)>> attempts =
+                new List<Func<(Dictionary<int, RoomPlacement>, Dictionary<int, int>)>>();
 
+            if (original) {
                 // The game's spacing first, wider when some lines can't be routed between the squares;
-                foreach (double scale in new[] { 1.0, 1.5, 2.0, 2.5 }) {
-                    MapPlan plan = new MapPlan { Layout = MapVanilla.Generate(map, scale, out Dictionary<int, int> areas), IsOriginalLayout = true };
-                    plan.Clusters = areas;
-                    plan.RouteAll(map);
-
-                    if (original == null || plan.UnroutedConnections < original.UnroutedConnections) original = plan;
-                    if (plan.UnroutedConnections == 0) break;
-                }
-
-                return original;
+                foreach (double scale in new[] { 1.0, 1.5, 2.0, 2.5 })
+                    attempts.Add(() => (MapVanilla.Generate(katam, scale, out Dictionary<int, int> areas), areas));
+            } else {
+                foreach ((int cell, double margin) in new[] {
+                    (MapLayout.DefaultCell, MapLayout.DefaultClusterMargin),
+                    (MapLayout.DefaultCell, MapLayout.DefaultClusterMargin * 2),
+                    (MapLayout.DefaultCell + 8, MapLayout.DefaultClusterMargin * 2),
+                    (MapLayout.DefaultCell + 16, MapLayout.DefaultClusterMargin * 3),
+                }) attempts.Add(() => (MapLayout.Generate(katam, out Dictionary<int, int> clusters, cell, margin), clusters));
             }
 
-            (int cell, double margin)[] attempts = {
-                (MapLayout.DefaultCell, MapLayout.DefaultClusterMargin),
-                (MapLayout.DefaultCell, MapLayout.DefaultClusterMargin * 2),
-                (MapLayout.DefaultCell + 8, MapLayout.DefaultClusterMargin * 2),
-                (MapLayout.DefaultCell + 16, MapLayout.DefaultClusterMargin * 3),
-            };
-
+            // The spacing is KatAM's lines' (the few long ones to the NiDL levels would spread KatAM apart for nothing);
             MapPlan best = null;
 
-            foreach ((int cell, double margin) in attempts) {
-                MapPlan plan = new MapPlan { Layout = MapLayout.Generate(map, out Dictionary<int, int> clusters, cell, margin) };
-                plan.Clusters = clusters;
-                plan.RouteAll(map);
+            foreach (var attempt in attempts) {
+                (Dictionary<int, RoomPlacement> layout, Dictionary<int, int> clusters) = attempt();
+                MapPlan plan = new MapPlan { Layout = layout, Clusters = clusters, IsOriginalLayout = original };
+                plan.RouteAll(katam);
 
                 if (best == null || plan.UnroutedConnections < best.UnroutedConnections) best = plan;
                 if (plan.UnroutedConnections == 0) break;
+            }
+
+            if (map.IsExpanded) {
+                MapExpansion.Place(map, best.Layout, best.Clusters);
+                best.Paths.Clear();
+                best.RouteAll(map);
             }
 
             return best;
