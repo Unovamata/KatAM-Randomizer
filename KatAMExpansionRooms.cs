@@ -73,7 +73,7 @@ namespace KatAMRandomizer {
          * one hundred (LevelHundreds; KatAM numbers its rooms by hundreds too, mostly by area): the NiDL hub and the Fountain of Dreams
          * 1-99, Vegetable Valley 100-199 ... Rainbow Resort 700-799. The HUD shows the area's plate (its name, AreaPlates) in its corner,
          * and the CPU helpers' routes are per area (gUnk_08D6DCAC); both only had areas 0-10: see ExtendAreas(); */
-        const int AreaBase = 11;
+        const int AreaBase = 11, MapRoomsBlock = MapTableAddress + 0xE0;
         static readonly int[] LevelHundreds = { 1, 2, 3, 4, 5, 6, 7, 0 };
         static readonly (string first, string second)[] LevelNames = {
             ("VEGETABLE", "VALLEY"), ("ICE CREAM", "ISLAND"), ("BUTTER", "BUILDING"), ("GRAPE", "GARDEN"), ("YOGURT", "YARD"),
@@ -467,6 +467,14 @@ namespace KatAMRandomizer {
             PortedRooms = rooms;
             PortedDoors = doors;
             PortedMainHub = (mainHub, mainHubDoors);
+
+            /* The map tracker's rooms block, in the map table (see WriteMapTable(): its mini-bosses end before it): "NR", the NiDL hub's
+             * room, then where the room tables are (gSolidityMaps, gForegroundTilemaps, gForegroundPalettes, gForegroundInfo,
+             * gRoomTiledBGs, gLevelObjLists: the copies; gUnk_08D6CD0C: the areas); */
+            System.Text.Encoding.ASCII.GetBytes("NR").CopyTo(rom, MapRoomsBlock);
+            WriteShort(rom, MapRoomsBlock + 2, mainHub);
+            WriteInts(rom, MapRoomsBlock + 4, new[] { "gSolidityMaps", "gForegroundTilemaps", "gForegroundPalettes", "gForegroundInfo", "gRoomTiledBGs", "gLevelObjLists" }
+                .Select(t => moved[t] + 0x08000000).Append(roomInfos + 0x08000000).ToArray());
             entry = (moved["gSolidityMaps"] + entrySolidity * 4, cursor, firstStart, firstFacing, entryWidth, moved["gUnk_08D640A4"] + Props(EntryRoom, 18) * 4);
             return null;
         }
