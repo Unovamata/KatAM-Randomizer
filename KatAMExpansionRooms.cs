@@ -351,7 +351,8 @@ namespace KatAMRandomizer {
 
             List<int> infos = new List<int>(), palettes = new List<int>(), tilemaps = new List<int>(), backgrounds = new List<int>(),
                       solidities = new List<int>(), objects = new List<int>(), navigations = new List<int>();
-            Dictionary<int, int> infoOf = new Dictionary<int, int>(), paletteOf = new Dictionary<int, int>(), backgroundOf = new Dictionary<int, int>();
+            Dictionary<(int, int), int> infoOf = new Dictionary<(int, int), int>();
+            Dictionary<int, int> paletteOf = new Dictionary<int, int>(), backgroundOf = new Dictionary<int, int>(), frameCopies = new Dictionary<int, int>();
             int noSpecials = Allocate(ref cursor, 8, 4);
             WriteInts(rom, noSpecials, 0, unchecked((int)0xFFFF0000));
             int noTypes = Allocate(ref cursor, 4, 4);
@@ -389,14 +390,16 @@ namespace KatAMRandomizer {
                     // The NiDL cell for a cell of the padded room (see Padded()): the edge's own where past it;
                     int Cell(int x, int y) => (r.Y + Math.Min(y, r.Height - 1)) * roomWidth + r.X + Math.Min(x, r.Width - 1);
 
-                    // Foreground tiles (NiDL's own LZ77) and palette (NiDL's palettes 2-7, KatAM's 0-5), shared;
-                    int tilesAddress = Address(0x1C), paletteAddress = Address(0x18);
-                    if (!infoOf.TryGetValue(tilesAddress, out int info)) {
+                    // Foreground tiles (NiDL's own LZ77) and their animations (see TileAnimations()), and palette (NiDL's palettes 2-7,
+                    // KatAM's 0-5), shared;
+                    int tilesAddress = Address(0x1C), paletteAddress = Address(0x18), animationSet = ReadShort(nightmare, record + 0x40);
+                    if (!infoOf.TryGetValue((tilesAddress, animationSet), out int info)) {
                         int tiles = CopyLZ77(rom, nightmare, tilesAddress, ref cursor);
+                        (int animations, int count) = TileAnimations(rom, nightmare, region.RoomTable, animationSet, frameCopies, ref cursor);
                         int at = Allocate(ref cursor, 16, 4);
-                        WriteInts(rom, at, tiles, tiles, tiles);
-                        WriteShorts(rom, at + 12, 0, r.Room);
-                        infoOf[tilesAddress] = info = tableSizes[10] + infos.Count;
+                        WriteInts(rom, at, tiles, 0, animations);
+                        WriteShorts(rom, at + 12, count, r.Room);
+                        infoOf[(tilesAddress, animationSet)] = info = tableSizes[10] + infos.Count;
                         infos.Add(at + 0x08000000);
                     }
                     if (!paletteOf.TryGetValue(paletteAddress, out int palette)) {
@@ -450,7 +453,7 @@ namespace KatAMRandomizer {
                     solidities.Add(solidity + 0x08000000);
 
                     objects.Add(BuildObjects(rom, nightmare, r, doors[r], noTypes, ref cursor) + 0x08000000);
-                    navigations.Add(BuildNavigation(rom, r, navigationRoutes, ref cursor) + 0x08000000);
+                    navigations.Add(BuildNavigation(rom, r, collision, navigationRoutes, ref cursor) + 0x08000000);
 
                     // Area and routes (a room of its own, like room 0x397), written into the vanilla table's free entry;
                     int roomInfo = Allocate(ref cursor, 0x4C, 4);
@@ -1187,6 +1190,50 @@ namespace KatAMRandomizer {
             return FromHsv((288 + (h < 72 ? h : h - 360) * 0.6 + 360) % 360, s, v);
         }
 
+        /* TileAnimations(); A room's animated foreground tiles (water, waterfalls, lights...) as KatAM's (ForegroundInfo +4, +8, +0xC):
+         * NiDL's room record +0x40 picks a set (0: none) of RoomTable + 0x1C8 (pointers per set, the same in every region: null
+         * terminated lists of scripts, at most 10). A script: 8 bytes per step, u16 the command, u16 its parameter, u32 its argument:
+         * 0 shows a frame (for the parameter's frames), 3 loops, 4 stops; the others (1: palette animations, 2, 6) aren't ported, a
+         * script without frames is left out; a frame: u16 the first foreground tile it's copied to, u16 its bytes, then the raw tiles.
+         * KatAM's (ForegroundInfo_8p, 0x14 bytes): the VRAM offset from 0x06008000 (KatAM's foreground tiles: NiDL's, same numbers),
+         * bytes per copy, stride, its steps (u32 source, +4 its base: 0 here, u16 frames; 8 bytes each), how many, copies per step (1);
+         * KatAM runs 16 at most. The frames are copied once (frameCopies); returns the list and its count; */
+        static (int animations, int count) TileAnimations(byte[] rom, byte[] nightmare, int roomTable, int set, Dictionary<int, int> frameCopies, ref int cursor) {
+            if (set == 0) return (0, 0);
+            int list = ReadInt(nightmare, roomTable + 0x1C8 + set * 4) - 0x08000000;
+            if (list < 0 || list >= nightmare.Length) return (0, 0);
+            List<List<(int frame, int duration)>> scripts = new List<List<(int, int)>>();
+            for (int i = 0; i < 16 && (ReadInt(nightmare, list + i * 4) >> 24) == 8; i++) {
+                List<(int frame, int duration)> script = new List<(int, int)>();
+                for (int at = ReadInt(nightmare, list + i * 4) - 0x08000000, n = 0; n < 64; at += 8, n++) {
+                    int command = ReadShort(nightmare, at), frame = ReadInt(nightmare, at + 4) - 0x08000000;
+                    if (command is 3 or 4) break;
+                    if (command == 0 && frame >= 0 && frame < nightmare.Length) script.Add((frame, Math.Max(1, ReadShort(nightmare, at + 2))));
+                }
+                if (script.Count > 0) scripts.Add(script);
+            }
+            if (scripts.Count == 0) return (0, 0);
+
+            int animations = Allocate(ref cursor, scripts.Count * 0x14, 4);
+            for (int k = 0; k < scripts.Count; k++) {
+                List<(int frame, int duration)> steps = scripts[k];
+                int tile = ReadShort(nightmare, steps[0].frame), bytes = ReadShort(nightmare, steps[0].frame + 2);
+                int stepsAt = Allocate(ref cursor, steps.Count * 8, 4);
+                for (int i = 0; i < steps.Count; i++) {
+                    if (!frameCopies.TryGetValue(steps[i].frame, out int copy)) {
+                        copy = frameCopies[steps[i].frame] = Allocate(ref cursor, bytes, 4);
+                        Array.Copy(nightmare, steps[i].frame + 4, rom, copy, bytes);
+                    }
+                    WriteInt(rom, stepsAt + i * 8, copy + 0x08000000);
+                    WriteShorts(rom, stepsAt + i * 8 + 4, steps[i].duration, 0);
+                }
+                int animation = animations + k * 0x14;
+                WriteInts(rom, animation, tile * 32, bytes, bytes, stepsAt + 0x08000000);
+                WriteShorts(rom, animation + 0x10, steps.Count, 1);
+            }
+            return (animations + 0x08000000, scripts.Count);
+        }
+
         // ShiftPalette(); A NiDL tilemap entry with its palette moved down by 2 (NiDL's level palettes start at 2, KatAM's at 0);
         static int ShiftPalette(int entry) => (entry & 0xFFF) | (Math.Max((entry >> 12) - 2, 0) << 12);
 
@@ -1384,24 +1431,77 @@ namespace KatAMRandomizer {
             return output;
         }
 
-        /* BuildNavigation(); The CPU helpers' zones (LevelInfo_1E8): the whole room is zone 0, its point the room's center; the route
-         * lists are room 0x3C9's (generic); returns its address; */
-        static int BuildNavigation(byte[] rom, NightmareRoom r, int routes, ref int cursor) {
-            byte[] zones = CompressRL(new byte[r.FullWidth * r.FullHeight]);
-            int zonesAt = Allocate(ref cursor, zones.Length, 4);
-            zones.CopyTo(rom, zonesAt);
+        /* BuildNavigation(); The CPU helpers' zones (LevelInfo_1E8): the route lists are room 0x3C9's (generic); +0x10 the zone of each
+         * cell (RL), +0x14 the zones (0x34 bytes each: +0 the zone to go through towards each zone, 0xFF none; +0x20, +0x22 its point,
+         * where a called helper appears when the player is in it; +0x24 0x20; +0x28 its number, +0x29 how many neighbours, then
+         * them), +0x18 how many (32 at most: the table's size). The room is cut in blocks (8x6 cells, larger until there are 32 at
+         * most), a zone per block Kirby can stand in (its point: the open cell over a floor nearest its middle), the others' cells
+         * given to the nearest zone; blocks side by side are neighbours; returns its address; */
+        static int BuildNavigation(byte[] rom, NightmareRoom r, byte[] collision, int routes, ref int cursor) {
+            int width = r.FullWidth, height = r.FullHeight;
+            bool Open(int x, int y) => x >= 0 && y >= 0 && x < width && y < height
+                                       && collision[y * width + x] is 0x00 or 0x48 or 0x20 or 0x21 or 0xFC or 0xFD or 0xFE or 0xFF;
+            bool Standable(int x, int y) => Open(x, y) && y + 1 < height && !Open(x, y + 1);
 
-            int zone = Allocate(ref cursor, 0x34, 4);
-            Array.Fill(rom, (byte)0xFF, zone, 0x34);
-            rom[zone] = 0;
-            WriteShorts(rom, zone + 0x20, r.FullWidth * 8, r.FullHeight * 8, 0x20);
-            new byte[] { 0, 0, 0, 1, 1 }.CopyTo(rom, zone + 0x26);
-            WriteShort(rom, zone + 0x32, 0);
+            int blockWidth = 8, blockHeight = 6;
+            List<(int bx, int by, int x, int y)> zones;
+            while (true) {
+                zones = new List<(int, int, int, int)>();
+                for (int by = 0; by * blockHeight < height; by++)
+                    for (int bx = 0; bx * blockWidth < width; bx++) {
+                        int cx = bx * blockWidth + blockWidth / 2, cy = by * blockHeight + blockHeight / 2, best = int.MaxValue, px = -1, py = -1;
+                        for (int y = by * blockHeight; y < Math.Min(height, (by + 1) * blockHeight); y++)
+                            for (int x = bx * blockWidth; x < Math.Min(width, (bx + 1) * blockWidth); x++) {
+                                int distance = (x - cx) * (x - cx) + (y - cy) * (y - cy);
+                                if (Standable(x, y) && distance < best) { best = distance; px = x; py = y; }
+                            }
+                        if (px >= 0) zones.Add((bx, by, px, py));
+                    }
+                if (zones.Count <= 32) break;
+                if (blockWidth <= blockHeight * 2) blockWidth += 4; else blockHeight += 3;
+            }
+            if (zones.Count == 0) zones.Add((0, 0, width / 2, height / 2));
 
-            int at = Allocate(ref cursor, 0x1C, 4);
-            Array.Copy(rom, routes, rom, at, 16);
-            WriteInts(rom, at + 16, zonesAt + 0x08000000, zone + 0x08000000, 1);
-            return at;
+            // Each cell's zone: its block's, else the nearest zone's point;
+            byte[] map = new byte[width * height];
+            Dictionary<(int, int), int> zoneOf = zones.Select((z, i) => (z, i)).ToDictionary(t => (t.z.bx, t.z.by), t => t.i);
+            for (int y = 0; y < height; y++)
+                for (int x = 0; x < width; x++)
+                    map[y * width + x] = (byte)(zoneOf.TryGetValue((x / blockWidth, y / blockHeight), out int z) ? z
+                        : Enumerable.Range(0, zones.Count).MinBy(i => (zones[i].x - x) * (zones[i].x - x) + (zones[i].y - y) * (zones[i].y - y)));
+            byte[] zonesMap = CompressRL(map);
+            int zonesAt = Allocate(ref cursor, zonesMap.Length, 4);
+            zonesMap.CopyTo(rom, zonesAt);
+
+            // Neighbours (blocks side by side), and the way to each zone (breadth first);
+            List<int>[] neighbours = zones.Select(z => new[] { (1, 0), (-1, 0), (0, 1), (0, -1) }
+                .Where(d => zoneOf.ContainsKey((z.bx + d.Item1, z.by + d.Item2))).Select(d => zoneOf[(z.bx + d.Item1, z.by + d.Item2)]).ToList()).ToArray();
+            int records = Allocate(ref cursor, zones.Count * 0x34, 4);
+            for (int i = 0; i < zones.Count; i++) {
+                int record = records + i * 0x34;
+                Array.Fill(rom, (byte)0xFF, record, 0x34);
+                // (from each target back towards this zone: the first step is the neighbour we came from);
+                byte[] via = Enumerable.Repeat((byte)0xFF, 0x20).ToArray();
+                via[i] = (byte)i;
+                Queue<int> queue = new Queue<int>();
+                foreach (int n in neighbours[i]) { via[n] = (byte)n; queue.Enqueue(n); }
+                while (queue.Count > 0) {
+                    int at = queue.Dequeue();
+                    foreach (int n in neighbours[at]) if (via[n] == 0xFF) { via[n] = via[at]; queue.Enqueue(n); }
+                }
+                via.CopyTo(rom, record);
+                WriteShorts(rom, record + 0x20, zones[i].x * 16 + 8, zones[i].y * 16 + 8, 0x20);
+                rom[record + 0x26] = rom[record + 0x27] = 0;
+                rom[record + 0x28] = (byte)i;
+                rom[record + 0x29] = (byte)Math.Min(neighbours[i].Count, 8);
+                for (int n = 0; n < neighbours[i].Count && n < 8; n++) rom[record + 0x2A + n] = (byte)neighbours[i][n];
+                WriteShort(rom, record + 0x32, 0);
+            }
+
+            int nav = Allocate(ref cursor, 0x1C, 4);
+            Array.Copy(rom, routes, rom, nav, 16);
+            WriteInts(rom, nav + 16, zonesAt + 0x08000000, records + 0x08000000, zones.Count);
+            return nav;
         }
 
         // CompressLZ77(); GBA BIOS LZ77 (type 0x10), VRAM safe (never copies from 1 byte back);
