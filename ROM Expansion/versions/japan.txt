@@ -107,3 +107,13 @@ sub_0804E09C 0x804e014
 sub_08086C48 0x8086bc0
 sub_0809D060 0x809cfd8
 CreateEffectObject 0x808ada8
+gRoomProps 0x8903338
+gForegroundInfo 0x8d2fdb8
+gForegroundPalettes 0x8d2e6a4
+gForegroundTilemaps 0x8d2f93c
+gSolidityMaps 0x8d2e74c
+gRoomTiledBGs 0x8d2fe40
+gLevelObjLists 0x8d2ebc8
+gUnk_08D63C28 0x8d2f044
+gUnk_08D6CD0C 0x8d38128
+gUnk_08D640A4 0x8d2f4c0

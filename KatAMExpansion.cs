@@ -28,14 +28,15 @@ namespace KatAMRandomizer {
          * NiDL address in the enemies' notes) are the USA ones; the Japanese and European ROMs have the same data, moved by FrameShift; */
         // Palette15: NiDL's shared object palette 15 (the level loads it; the Poppy Bros. Jr.'s ball and bomb are drawn with it);
         /* Cards: the ability cards (HUD portraits) by NiDL ability: palette pointers (CardPalettes + ability * CardPaletteStride) and tiles
-         * pointers (CardTiles + ability * CardTileStride; Europe's are per language, English first); */
+         * pointers (CardTiles + ability * CardTileStride; Europe's are per language, English first); RoomTable: the rooms (see
+         * KatAMExpansionRooms.cs); */
         sealed record NightmareRegion(string GameCode, int Descriptors, int FrameShift, string KatAM, int Palette15,
-                                      int CardPalettes, int CardPaletteStride, int CardTiles, int CardTileStride);
+                                      int CardPalettes, int CardPaletteStride, int CardTiles, int CardTileStride, int RoomTable);
 
         static readonly NightmareRegion[] NightmareRegions = {
-            new NightmareRegion("A7KE", 0x73EEA0, 0, "USA", 0x0D07A8, 0x731A90, 8, 0x731A94, 8),
-            new NightmareRegion("A7KJ", 0x742DAC, 0x3A8C, "Japan", 0x0CFF60, 0x73599C, 8, 0x7359A0, 8),     // Hoshi no Kirby: Yume no Izumi Deluxe;
-            new NightmareRegion("A7KP", 0x97B678, 0x23C7EC, "Europe", 0x0D3228, 0x96D770, 4, 0x96D7E0, 20),
+            new NightmareRegion("A7KE", 0x73EEA0, 0, "USA", 0x0D07A8, 0x731A90, 8, 0x731A94, 8, 0x7E1D58),
+            new NightmareRegion("A7KJ", 0x742DAC, 0x3A8C, "Japan", 0x0CFF60, 0x73599C, 8, 0x7359A0, 8, 0x7E60DC),     // Hoshi no Kirby: Yume no Izumi Deluxe;
+            new NightmareRegion("A7KP", 0x97B678, 0x23C7EC, "Europe", 0x0D3228, 0x96D770, 4, 0x96D7E0, 20, 0xBFD8E8),
         };
 
         static NightmareRegion RegionOf(byte[] rom) => rom == null || rom.Length < 0x800000 ? null
@@ -677,10 +678,11 @@ namespace KatAMRandomizer {
                 ApplyNamePatch(rom, sites[i], length, sites[i] + literal, fromTypePointer, codeBase + version.NidlCopyName);
             }
 
-            return AddAbilities(rom, nightmare, region, version, ref cursor, motions, new Dictionary<string, int[]> {
+            string error = AddAbilities(rom, nightmare, region, version, ref cursor, motions, new Dictionary<string, int[]> {
                 ["gUnk_08D60FDC"] = hatTables.Select(table => table + 0x08000000).ToArray(),
                 ["gUnk_08350A3C"] = new[] { -1, -1, -1, -1, -1, -1, backdropPalette },
             });
+            return error ?? AddRooms(rom, nightmare, region, version, ref cursor);
         }
 
         //////////////////////////////////////////////////////////////////////////////////////////////

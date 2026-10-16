@@ -61,3 +61,13 @@ HitFlashBranch 0x80857ee
 NameSite1 0x8034ed2
 NameSite2 0x8035b34
 gUnk_08D610B4 0x8d610b4
+gRoomProps 0x89331ac
+gForegroundInfo 0x8d6499c
+gForegroundPalettes 0x8d63288
+gForegroundTilemaps 0x8d64520
+gSolidityMaps 0x8d63330
+gRoomTiledBGs 0x8d64a24
+gLevelObjLists 0x8d637ac
+gUnk_08D63C28 0x8d63c28
+gUnk_08D6CD0C 0x8d6cd0c
+gUnk_08D640A4 0x8d640a4
