@@ -7,13 +7,15 @@ namespace KatAMMapTracker {
      * NiDL level, next to KatAM's map (original or randomized: the randomizer doesn't shuffle NiDL's own doors):
      * • A level: its switch room (a hub square) at the top left, then a row per stage (0-7, as KatAMExpansionRooms.cs records them, see
      *   RoomInfo.NightmareStage), its rooms in the order Kirby goes through them: each at its door distance from the stage's first
-     *   room (its lowest room number), the rooms at the same distance stacked, on the game's grid (small rooms 2 tiles, 4 apart).
-     * • The levels in two columns of four (Vegetable Valley to Grape Garden, Yogurt Yard to the Fountain of Dreams), under the NiDL
+     *   room (its lowest room number), the rooms at the same distance stacked, on the game's grid, as far apart as KatAM's laid out
+     *   map's (MapVanilla's NeighborStep: small rooms 2 tiles, 6 apart); a stage longer than WrapColumns rooms turns back and forth.
+     * • The levels in two rows of four (Vegetable Valley to Grape Garden, Yogurt Yard to the Fountain of Dreams), under the NiDL
      *   hub, to the right of KatAM's map. Each level is a cluster of its own (11 + level, as its area), the hub too (19);
      * Rooms of an older expanded ROM (no stages) are laid out the same way, the whole level as one stage; */
     public static class MapExpansion {
         const int Grid = MapGraphics.TileSize;
-        const int Step = 4 * Grid, StageGap = 2 * Grid, LevelMargin = 64, BlockMargin = 128;
+        const int Step = 6 * Grid, StageGap = 3 * Grid, LevelMargin = 96, BlockMargin = 128;
+        const int WrapColumns = 6, LevelsPerRow = 4;
         public const int HubCluster = 19;
         public static int LevelCluster(int level) => 11 + level;
 
@@ -66,20 +68,26 @@ namespace KatAMMapTracker {
                         }
                     }
 
-                    int rows = 1;
-                    foreach (IGrouping<int, int> column in depth.Keys.GroupBy(r => depth[r])) {
-                        int row = 0;
-                        foreach (int room in column.OrderBy(r => map.Rooms[r].NightmareIndex).ThenBy(r => r)) {
-                            centers[room] = (left + column.Key * Step + Grid, top + row * Step + Grid);
-                            row++;
+                    // Wrapped back and forth every WrapColumns rooms (bands), so a long stage stays a block, as an area map;
+                    int deepest = depth.Values.Max();
+                    for (int band = 0; band * WrapColumns <= deepest; band++) {
+                        int rows = 1;
+                        foreach (IGrouping<int, int> column in depth.Keys.Where(r => depth[r] / WrapColumns == band).GroupBy(r => depth[r])) {
+                            int at = column.Key % WrapColumns, row = 0;
+                            if (band % 2 == 1) at = WrapColumns - 1 - at;
+                            foreach (int room in column.OrderBy(r => map.Rooms[r].NightmareIndex).ThenBy(r => r)) {
+                                centers[room] = (left + at * Step + Grid, top + row * Step + Grid);
+                                row++;
+                            }
+                            rows = Math.Max(rows, row);
                         }
-                        rows = Math.Max(rows, row);
+                        top += rows * Step;
                     }
-                    top += rows * Step + StageGap;
+                    top += StageGap;
                 }
             }
 
-            // The block: the hub, then the levels in two columns, right of KatAM's map;
+            // The block: the hub, then the levels in rows of LevelsPerRow, right of KatAM's map;
             double blockX = layout.Count == 0 ? 0 : Snap(layout.Values.Max(p => p.X + p.Width) + BlockMargin);
             double blockY = layout.Count == 0 ? 0 : Snap(layout.Values.Min(p => p.Y));
             double y = blockY;
@@ -93,16 +101,14 @@ namespace KatAMMapTracker {
                 (centers.Max(c => c.Value.x + SizeOf(map.Rooms[c.Key]) / 2), centers.Max(c => c.Value.y + SizeOf(map.Rooms[c.Key]) / 2));
 
             List<int> order = levels.Keys.OrderBy(l => l).ToList();
-            int perColumn = (order.Count + 1) / 2;
-            double x = blockX, columnTop = y;
-            for (int i = 0; i < order.Count; i++) {
-                if (i == perColumn) {
-                    x = Snap(order.Take(perColumn).Max(l => Bounds(levels[l]).width) + blockX + LevelMargin);
-                    y = columnTop;
+            for (int first = 0; first < order.Count; first += LevelsPerRow) {
+                List<int> row = order.Skip(first).Take(LevelsPerRow).ToList();
+                double x = blockX;
+                foreach (int level in row) {
+                    foreach ((int room, (double cx, double cy)) in levels[level]) Put(map.Rooms[room], x + cx, y + cy, LevelCluster(level));
+                    x = Snap(x + Bounds(levels[level]).width + LevelMargin);
                 }
-                Dictionary<int, (double x, double y)> centers = levels[order[i]];
-                foreach ((int room, (double cx, double cy)) in centers) Put(map.Rooms[room], x + cx, y + cy, LevelCluster(order[i]));
-                y = Snap(y + Bounds(centers).height + LevelMargin);
+                y = Snap(y + row.Max(l => Bounds(levels[l]).height) + LevelMargin);
             }
 
             void Put(RoomInfo room, double centerX, double centerY, int cluster) {
