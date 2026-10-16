@@ -787,8 +787,10 @@ namespace KatAMRandomizer {
         /* Door; A door of a ported room (KatAM's 8ROM: a special block record, kind 3, at its cell, collision 0xFF, or 0xFD in water):
          * where it leads (the KatAM room, and the cell Kirby lands in plus one, as the records hold it), and whether a mirror (object
          * 0x6F) stands on it, and which way Kirby faces there (1 right, 2 left: towards the room's middle); an edge (collision 0xFE, 0xFC in
-         * water) takes Kirby through as he touches it, without a mirror; */
-        public sealed record Door(int X, int Y, int Room, int DestX, int DestY, byte Facing, bool Edge = false, int Slot = 0, int Design = HubDesign);
+         * water) takes Kirby through as he touches it, without a mirror; a secret one (behind a breakable block in NiDL, see
+         * BuildSolidity()) stays a block until it's broken, and its mirror shows then; */
+        public sealed record Door(int X, int Y, int Room, int DestX, int DestY, byte Facing, bool Edge = false, int Slot = 0, int Design = HubDesign,
+                                  bool Secret = false);
 
         // The KatAM room with the mirror to Nightmare in Dream Land: Central Circle, on its platform's left end (FinishRooms());
         const int EntryRoom = 0x321, EntryX = 11, EntryY = 14;
@@ -1135,6 +1137,7 @@ namespace KatAMRandomizer {
             int roomWidth = ReadShort(nightmare, r.Record + 0x14), data = ReadInt(nightmare, r.Record + 0x10) - 0x08000000;
             byte[] numbers = DecompressLZ77(nightmare, ReadInt(nightmare, r.Record + 0xC) - 0x08000000);
             List<byte> specials = new List<byte>();
+            Dictionary<(int x, int y), int> leaves = new Dictionary<(int, int), int>();
             bool Water(int x, int y) => x >= 0 && y >= 0 && x < r.FullWidth && y < r.FullHeight && collision[y * r.FullWidth + x] is >= 0x34 and <= 0x48;
 
             for (int y = 0; y < r.Height && y < 256; y++) {
@@ -1154,15 +1157,27 @@ namespace KatAMRandomizer {
                     collision[y * r.FullWidth + x] = block;
                     specials.AddRange(new byte[] { 1, block, (byte)x, (byte)y, 0x12, 0, 0xFF, 0xFF });
                     for (int q = 0; q < 4; q++) specials.AddRange(BitConverter.GetBytes((ushort)ShiftPalette(ReadShort(metatiles, metatile * 8 + q * 2))));
+                    leaves[(x, y)] = specials.Count;
                     specials.AddRange(new byte[] { left, 0xFF });
                 }
             }
 
-            // Doors: their cells and 8ROM records;
-            foreach (Door door in doors) {
+            /* Doors: their cells and 8ROM records. A door behind a breakable block (NiDL's secret ones: the block leaves the door's
+             * metatile) stays the block, which leaves the door's collision, its record first (a later record of a cell is what the cell
+             * is, as for the hidden doors below): its mirror (subtype 1, KatAM's) shows once it's a door; */
+            List<byte> secrets = new List<byte>();
+            for (int i = 0; i < doors.Count; i++) {
+                Door door = doors[i];
                 bool water = Water(door.X, door.Y) && collision[door.Y * r.FullWidth + door.X] != 0;
                 byte value = door.Edge ? (byte)(water ? 0xFC : 0xFE) : (byte)(water ? 0xFD : 0xFF);
-                if (door.Slot == 0) collision[door.Y * r.FullWidth + door.X] = value;
+                if (door.Slot == 0 && !door.Edge && leaves.TryGetValue((door.X, door.Y), out int leave)) {
+                    specials[leave] = value;
+                    doors[i] = door with { Secret = true };
+                    secrets.AddRange(DoorRecord(door, value));
+                    continue;
+                } else if (door.Slot == 0) {
+                    collision[door.Y * r.FullWidth + door.X] = value;
+                }
                 specials.AddRange(DoorRecord(door, value));
                 if (door.Slot == 0) continue;
 
@@ -1174,6 +1189,7 @@ namespace KatAMRandomizer {
                 specials.AddRange(new byte[] { value, 0xFF });
             }
 
+            specials.InsertRange(0, secrets);
             byte[] compressed = CompressRL(collision);
             int collisionAt = Allocate(ref cursor, compressed.Length, 4);
             compressed.CopyTo(rom, collisionAt);
@@ -1416,7 +1432,9 @@ namespace KatAMRandomizer {
             // A mirror on each door (see Door); a hidden one is a door object (0x97, its own mirror), showing once the slot is set;
             foreach (Door door in doors.Where(d => !d.Edge)) {
                 byte type = door.Slot != 0 ? DoorToHubType : MirrorType;
-                templates.Add(door.Slot != 0 ? DoorToHubTemplate(door.X, door.Y, templates.Count, door.Slot, door.Design) : MirrorTemplate(door.X, door.Y, templates.Count));
+                byte[] mirror = door.Slot != 0 ? DoorToHubTemplate(door.X, door.Y, templates.Count, door.Slot, door.Design) : MirrorTemplate(door.X, door.Y, templates.Count);
+                if (door.Secret) mirror[14] = 1;    // subtype1 1: hidden until its cell is a door (CreateMirrorDoor);
+                templates.Add(mirror);
                 if (!types.Contains(type)) types.Add(type);
             }
 
