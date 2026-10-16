@@ -68,7 +68,7 @@ namespace KatAMRandomizer {
          * frame table, frames, hurt frame (64x96, centered), the letters of its name, the behavior bytes the randomizer uses and its object
          * type (MinibossIDs). HurtShift
          * moves the hurt frame that many pixels down within it, for mini-bosses too tall for it, and every frame as much (the C code moves
-         * the sprite back up: hurtShift in nidl_miniboss.c, the same value). ExtraHurts follow the hurt frame (the C code picks one: the
+         * its boxes as much down: DRAWN_LOWER in fire_lion.c, the same value). ExtraHurts follow the hurt frame (the C code picks one: the
          * object's hurt). Icon: the frames the map tracker shows for it (frame 0 if none; see WriteMapTable); */
         sealed record Miniboss(int Index, string Name, int NightmareIndex, int FrameTable, List<Part[]> Frames, Part[] Hurt,
                                (int type, int letter)[] Glyphs, byte[] Behaviors, int HurtShift = 0, byte Type = 0x40,
@@ -371,7 +371,7 @@ namespace KatAMRandomizer {
 
         /* AddEnemies(); Adds every ported enemy as object type 0x31, expanding the ROM to 32 MB (rom is replaced by the bigger one).
          * Returns null when done, or why it couldn't be done (rom is left as it was); */
-        public static string AddEnemies(ref byte[] rom, byte[] nightmare) {
+        public static string AddEnemies(ref byte[] rom, byte[] nightmare, bool rooms = true) {
             KatAMExpansionCode.Version version = VersionOf(rom);
             NightmareRegion region = RegionOf(nightmare);
 
@@ -384,7 +384,7 @@ namespace KatAMRandomizer {
             byte[] original = rom;
 
             rom = Expand(rom);
-            string error = AddEnemiesTo(rom, nightmare, region, version);
+            string error = AddEnemiesTo(rom, nightmare, region, version, rooms);
             if (error != null) rom = original;
             return error;
         }
@@ -398,7 +398,7 @@ namespace KatAMRandomizer {
             return expanded;
         }
 
-        static string AddEnemiesTo(byte[] rom, byte[] nightmare, NightmareRegion region, KatAMExpansionCode.Version version) {
+        static string AddEnemiesTo(byte[] rom, byte[] nightmare, NightmareRegion region, KatAMExpansionCode.Version version, bool rooms) {
             int HurtAnimID = version.AnimCount,     // The first free anim ID (the vanilla table's size);
                 SpriteTables = version.SpriteTables, SpawnTable = version.SpawnTable, ObjectParameters = version.ObjectParameters,
                 ObjectParameters2 = version.ObjectParameters2, HitFlashBranch = version.HitFlashBranch;
@@ -682,7 +682,7 @@ namespace KatAMRandomizer {
                 ["gUnk_08D60FDC"] = hatTables.Select(table => table + 0x08000000).ToArray(),
                 ["gUnk_08350A3C"] = new[] { -1, -1, -1, -1, -1, -1, backdropPalette },
             });
-            return error ?? AddRooms(rom, nightmare, region, version, ref cursor);
+            return error ?? (rooms ? AddRooms(rom, nightmare, region, version, ref cursor) : null);
         }
 
         //////////////////////////////////////////////////////////////////////////////////////////////

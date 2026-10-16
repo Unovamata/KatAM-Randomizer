@@ -195,6 +195,7 @@
             GroupExpansionNightmare = new GroupBox();
             LabelExpansionDescription = new Label();
             ButtonExpansionLoadNightmare = new Button();
+            ButtonExpansionUnloadNightmare = new Button();
             LabelExpansionNightmare = new Label();
             CheckboxExpansionEnemies = new CheckBox();
             CheckboxExpansionMinibosses = new CheckBox();
@@ -2745,6 +2746,7 @@
             // 
             GroupExpansionNightmare.Controls.Add(LabelExpansionDescription);
             GroupExpansionNightmare.Controls.Add(ButtonExpansionLoadNightmare);
+            GroupExpansionNightmare.Controls.Add(ButtonExpansionUnloadNightmare);
             GroupExpansionNightmare.Controls.Add(LabelExpansionNightmare);
             GroupExpansionNightmare.Controls.Add(CheckboxExpansionEnemies);
             GroupExpansionNightmare.Controls.Add(CheckboxExpansionMinibosses);
@@ -2768,7 +2770,7 @@
             LabelExpansionDescription.Name = "LabelExpansionDescription";
             LabelExpansionDescription.Size = new Size(1150, 80);
             LabelExpansionDescription.TabIndex = 0;
-            LabelExpansionDescription.Text = "Adds enemies and mini-bosses ported from Kirby: Nightmare in Dream Land to the enemy and mini-boss pools. Their graphics are taken from your own Nightmare in Dream Land ROM, which must be from the same region as the Kirby & the Amazing Mirror ROM: USA with USA, European with European, Japanese (revision 1) with Japanese. European games show the enemies' English names in every language; Japanese games show no names. Pick what to include once the ROM is loaded. Enemies appear when enemies are randomized, mini-bosses when mini-bosses are, each as often as any of the game's own. The ROM is expanded to 32 MB to fit them.";
+            LabelExpansionDescription.Text = "Adds enemies and mini-bosses ported from Kirby: Nightmare in Dream Land to the enemy and mini-boss pools. Their graphics are taken from your own Nightmare in Dream Land ROM, which must be from the same region as the Kirby & the Amazing Mirror ROM: USA with USA, European with European, Japanese (revision 1) with Japanese. European games show the enemies' English names in every language; Japanese games show no names. Pick what to include once the ROM is loaded (rooms: every Nightmare in Dream Land level room, connected by mirrors). Enemies appear when enemies are randomized, mini-bosses when mini-bosses are, each as often as any of the game's own. The ROM is expanded to 32 MB to fit them.";
             // 
             // ButtonExpansionLoadNightmare
             // 
@@ -2782,11 +2784,24 @@
             ButtonExpansionLoadNightmare.UseVisualStyleBackColor = true;
             ButtonExpansionLoadNightmare.Click += ButtonExpansionLoadNightmare_Click;
             // 
+            // ButtonExpansionUnloadNightmare
+            // 
+            ButtonExpansionUnloadNightmare.Enabled = false;
+            ButtonExpansionUnloadNightmare.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            ButtonExpansionUnloadNightmare.Location = new Point(344, 120);
+            ButtonExpansionUnloadNightmare.Margin = new Padding(4, 5, 4, 5);
+            ButtonExpansionUnloadNightmare.Name = "ButtonExpansionUnloadNightmare";
+            ButtonExpansionUnloadNightmare.Size = new Size(120, 38);
+            ButtonExpansionUnloadNightmare.TabIndex = 6;
+            ButtonExpansionUnloadNightmare.Text = "Unload";
+            ButtonExpansionUnloadNightmare.UseVisualStyleBackColor = true;
+            ButtonExpansionUnloadNightmare.Click += ButtonExpansionUnloadNightmare_Click;
+            // 
             // LabelExpansionNightmare
             // 
             LabelExpansionNightmare.AutoSize = true;
             LabelExpansionNightmare.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            LabelExpansionNightmare.Location = new Point(350, 126);
+            LabelExpansionNightmare.Location = new Point(476, 126);
             LabelExpansionNightmare.Margin = new Padding(4, 0, 4, 0);
             LabelExpansionNightmare.Name = "LabelExpansionNightmare";
             LabelExpansionNightmare.Size = new Size(180, 25);
@@ -2828,8 +2843,9 @@
             CheckboxExpansionRooms.Margin = new Padding(4, 5, 4, 5);
             CheckboxExpansionRooms.Name = "CheckboxExpansionRooms";
             CheckboxExpansionRooms.TabIndex = 5;
-            CheckboxExpansionRooms.Text = "Include rooms (not ported yet)";
+            CheckboxExpansionRooms.Text = "Include rooms";
             CheckboxExpansionRooms.UseVisualStyleBackColor = true;
+            CheckboxExpansionRooms.CheckedChanged += CheckboxExpansionRooms_CheckedChanged;
             // 
             // LabelExpansionEnemies
             // 
@@ -3010,6 +3026,7 @@
         private GroupBox GroupExpansionNightmare;
         private Label LabelExpansionDescription;
         private Button ButtonExpansionLoadNightmare;
+        private Button ButtonExpansionUnloadNightmare;
         private Label LabelExpansionNightmare;
         private CheckBox CheckboxExpansionEnemies;
         private CheckBox CheckboxExpansionMinibosses;

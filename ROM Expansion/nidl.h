@@ -101,7 +101,7 @@ struct NidlMiniboss {
     void (*start)(struct Object *);     // Behavior start once the fight starts, also after recovering from a hit;
     s16 hp;
     u16 ability;
-    s8 hurtShift;   // Pixels its frames and hurt frame are drawn lower (to fit the hurt frame; the same as KatAMExpansion.cs's), moved back up;
+    s8 hurtShift;   // Pixels its frames and hurt frame are drawn lower (to fit the hurt frame; the same as KatAMExpansion.cs's); its boxes are as much lower;
     u8 type;        // Its object type (NIDL_MINIBOSS_TYPE or _2; the same as KatAMExpansion.cs's);
 };
 

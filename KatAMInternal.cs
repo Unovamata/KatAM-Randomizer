@@ -523,6 +523,7 @@ namespace KatAMInternal
         public List<int> NightmareEnemies { get; set; } = new List<int>();
         // ROM Expansion: the ported Nightmare in Dream Land mini-bosses to add (KatAMExpansion.Minibosses indexes);
         public List<int> NightmareMinibosses { get; set; } = new List<int>();
+        public bool NightmareRooms { get; set; }
 
         public Settings() {
             Random seedGenerator = new Random();
