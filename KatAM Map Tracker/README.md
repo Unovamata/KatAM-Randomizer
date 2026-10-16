@@ -31,7 +31,7 @@ Run `Build Map Tracker.bat` (it needs the [.NET 8 SDK](https://dotnet.microsoft.
 
 ## How to use
 
-1. Open **KatAM Map Tracker** and pick the ROM you're playing (`File > Open ROM...`). It's remembered for next time, and `File > Open Recent` lists the last ROMs you opened.
+1. Open **KatAM Map Tracker** and pick the ROM you're playing (`File > Open ROM...`, or drag the ROM file onto the window). It's remembered for next time, and `File > Open Recent` lists the last ROMs you opened.
    You can also pass the ROM path as an argument: `"KatAM Map Tracker.exe" "C:\Games\KatAM.gba"`.
 2. In mGBA, open the same ROM, then `Tools > Scripting...`, and in that window `File > Load script...` and pick `Lua/katam_tracker.lua`.
    The scripting window shows `[KatAM Tracker] Connected to the tracker on port 8765.` once linked.
@@ -52,6 +52,7 @@ The order doesn't matter: the script keeps retrying, so the tracker can be opene
 | Reveal the whole map (spoilers) | `View > Reveal Entire Map (Spoilers)` |
 | Save the map as an image | `File > Export Map Image` |
 | Open a recent ROM | `File > Open Recent` |
+| Open a ROM by dragging it | Drop the `.gba` file onto the window |
 | Minimalist mode (only the map) | `M` (`Esc` leaves it) |
 | Show bosses, items, chests... | `View > Show on Map` |
 | All options, in any mode | Right click the map |
