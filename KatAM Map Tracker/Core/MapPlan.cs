@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -71,7 +71,7 @@ namespace KatAMMapTracker {
             }
 
             if (map.IsExpanded) {
-                MapExpansion.Place(map, best.Layout, best.Clusters);
+                MapExpansion.Place(map, best.Layout, best.Clusters, original);
                 best.Paths.Clear();
                 best.RouteAll(map);
             }

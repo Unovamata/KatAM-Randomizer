@@ -11,8 +11,9 @@ namespace KatAMMapTracker {
      *   tile grid), three steps past a room long that way; in the free cell that best keeps the directions of every door it shares with the rooms placed;
      *   so a level grows the branches, loops and long corridors its doors make, not rows.
      * • The levels packed tight around KatAM's map (Pack()): each in the free spot that keeps the whole map the most square, then the
-     *   closest to its middle, its rooms RoomMargin clear of every other cluster's, so they fill the gaps between clusters and none
-     *   is left out on its own; the hub beside Central Circle. A room linked to none of its level's rooms (only to other levels': a swapped door, a switch room's) sits by
+     *   closest to its middle, its rooms RoomMargin clear of every other cluster's, so none is left out on its own; the hub beside
+     *   Central Circle. KatAM's original map (its original mirrors) stays exactly the pause screen's, one block the levels go around,
+     *   never in its gaps; a randomized one's clusters leave gaps the levels fill. A room linked to none of its level's rooms (only to other levels': a swapped door, a switch room's) sits by
      *   its stage's rooms, else by the level's way in, so a stage's map stays together.
      *   Each level is a cluster of its own (11 + level, as its area), the hub too (19).
      * • KatAM's rooms the map lines up under itself (the tutorial and the game's end: rooms no mirror links to Central Circle's
@@ -25,7 +26,7 @@ namespace KatAMMapTracker {
         public static bool IsLevelCluster(int cluster) => cluster >= 11 && cluster < 19;
 
         // Place(); Adds the NiDL rooms of 'map' to 'layout' (KatAM's rooms, placed) and their clusters to 'clusters';
-        public static void Place(RomMap map, Dictionary<int, RoomPlacement> layout, Dictionary<int, int> clusters) {
+        public static void Place(RomMap map, Dictionary<int, RoomPlacement> layout, Dictionary<int, int> clusters, bool original = false) {
             List<RoomInfo> nightmare = map.Rooms.Values.Where(r => r.IsNightmareRoom).ToList();
             if (nightmare.Count == 0) return;
 
@@ -95,7 +96,9 @@ namespace KatAMMapTracker {
                         for (int cy = (int)Math.Floor((p.Y - reach - originY) / Fit); cy <= (int)Math.Ceiling((p.Y + p.Height + reach - originY) / Fit); cy++)
                             blocked.Add((cx, cy));
                 }
-                foreach (RoomPlacement p in katamRooms) Block(p);
+                // (KatAM's original map is one block: the levels go around it, never in its gaps; a randomized one's rooms each);
+                if (original) Block(new RoomPlacement(main.left, main.top, main.right - main.left, main.bottom - main.top));
+                else foreach (RoomPlacement p in katamRooms) Block(p);
                 List<(int level, double left, double top)> spots = new List<(int, double, double)>();
                 (double left, double top, double right, double bottom) all = main;
                 double middleX = (main.left + main.right) / 2, middleY = (main.top + main.bottom) / 2;

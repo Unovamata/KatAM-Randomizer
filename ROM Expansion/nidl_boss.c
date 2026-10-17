@@ -109,8 +109,9 @@ void NidlBossDefeat(struct Object *obj) {
 }
 
 /* gNidlShardExits; Where Kirby goes once a boss's shard cutscene ends (KatAM: Central Circle, sub_0804C614's `roomId = 0x321`, which
- * KatAMExpansion.cs replaces with a call to NidlShardExit()): from a ported boss's room (each part), where its boss stage goes on (the
- * next room, the next level's first): a boss room has no door out, the shard is the way on (KatAMExpansionRooms.cs' bossExitsOf);
+ * KatAMExpansion.cs replaces with a call to NidlShardExit()): from a ported boss's room (each part), the NiDL hub, onto the level's
+ * door there (the Power Orb's: Nightmare's room, the rest of its fight): a boss room has no door out, the shard is the way out
+ * (KatAMExpansionRooms.cs' bossExitsOf);
  * filled in by KatAMExpansion.cs, ended by a room 0; */
 #define NIDL_SHARD_EXITS 24
 struct NidlShardExit {

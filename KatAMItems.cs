@@ -108,7 +108,7 @@ namespace KatAMRandomizer
          * shard n is owned; */
         public const byte ShardChest = 0x40, ShardChestIndex = 0x80;
 
-        // ShuffleMirrorShard(); Take an entity and convert it to a mirror shard, or a chest holding it (Settings.MirrorShardsInChests);
+        // ShuffleMirrorShard(); Take an entity and convert it to a mirror shard lying in its room (the field shards);
         void ShuffleMirrorShards(byte currentShardBehaviour) {
             if (currentShardBehaviour >= 8) return;
 
@@ -120,14 +120,6 @@ namespace KatAMRandomizer
             mirrorShard.Name = "Mirror Shard";
             mirrorShard.ID = 0x65; // Mirror shard;
             mirrorShard.Behavior = currentShardBehaviour; // 0x0 - 0x7 behaviors = collectable shards;
-
-            if (Settings.MirrorShardsInChests) {
-                mirrorShard.ID = 0x80; // Small chest (big chests fall off the level);
-                mirrorShard.Behavior = (byte)(ShardChest + currentShardBehaviour);
-                mirrorShard.Speed = 0;
-                mirrorShard.Properties = new byte[oldEntity.Properties.Length];
-                mirrorShard.Properties[0] = (byte)(ShardChestIndex + currentShardBehaviour);
-            }
 
             //Console.WriteLine($"{currentShardBehaviour}");
 
@@ -148,6 +140,30 @@ namespace KatAMRandomizer
 
             return selectedEntity;
         }
+
+        /* AddShardsToChests(); The chest shards (Settings.MirrorShardsInChests, Settings.amountOfChestShards copies of the 8 shards, 1-3):
+         * chests that held a consumable (chestConsumableIDs, never a treasure) picked at random become chests holding a shard, n of
+         * shard n (ShardChest + n, treasure index ShardChestIndex + n), as many whole copies as there are such chests; they're left out
+         * of the rooms' chest lists (WriteChestTo9ROM: chest.c's chests aren't in them); */
+        void AddShardsToChests() {
+            if (!Settings.MirrorShardsInChests || Settings.amountOfChestShards <= 0) return;
+
+            List<Entity> consumables = Utils.Shuffle(chestEntities.Where(c => !IsProgressionObject(c) && chestConsumableIDs.Contains(c.Behavior)).ToList());
+            int copies = Math.Min(Settings.amountOfChestShards, consumables.Count / 8);
+
+            for (int k = 0; k < copies * 8; k++) {
+                Entity chest = consumables[k];
+                byte shard = (byte)(k % 8);
+                chest.Name = "Mirror Shard";
+                chest.Behavior = (byte)(ShardChest + shard);
+                chest.Speed = 0;
+                chest.Properties[0] = (byte)(ShardChestIndex + shard);
+                Utils.WriteObjectToROM(chest);
+            }
+        }
+
+        // IsShardChest(); A chest holding a mirror shard (AddShardsToChests);
+        bool IsShardChest(Entity entity) => entity.ID == 0x80 && entity.Behavior >= ShardChest && entity.Behavior < ShardChest + 8;
 
         // IsChestObject(); Checks if it's a chest object;
         bool IsChestObject(Entity entity) {
@@ -217,8 +233,17 @@ namespace KatAMRandomizer
 
             if (isAddingHPUps) HPUpsToAdd = Settings.HPUpsAdded;
 
-            // Return if no chests must be written;
-            if (chestGeneration == GenerationOptions.No) return;
+            // The chest shards first: they're progression from then on;
+            AddShardsToChests();
+            bool shardChests = chestEntities.Any(IsShardChest);
+
+            // Return if no chests must be written (but the rooms' chest lists, without the shard chests, if there are any);
+            if (chestGeneration == GenerationOptions.No) {
+                if (!shardChests) return;
+                foreach (Entity chest in chestEntities.Where(c => !IsShardChest(c))) AddChestToDictionary(chest);
+                WriteChestTo9ROM();
+                return;
+            }
             else if (chestProperties == GenerationOptions.Random) {
                 combinedTreasureIDs.AddRange(chestConsumableIDs);
                 combinedTreasureIDs.AddRange(chestTreasureIDs);
@@ -229,7 +254,7 @@ namespace KatAMRandomizer
                 Entity chest = chestEntities[i];
 
                 if (IsProgressionObject(chest)) {
-                    AddChestToDictionary(chest);
+                    if (!IsShardChest(chest)) AddChestToDictionary(chest);
                     continue;
                 }
 

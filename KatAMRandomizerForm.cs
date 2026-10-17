@@ -179,7 +179,7 @@ namespace KatAMRandomizer
             KatAMExpansion.FinishRooms(Processing.ROMData);
 
             // Mirror shards in chests, then Reduce flashing and Skip the tutorial, last: they put the expansion's code in when no NiDL ROM did;
-            if (settings.MirrorShardsInChests && settings.amountOfMirrorShardsToAdd > 0) {
+            if (settings.MirrorShardsInChests && settings.amountOfChestShards > 0) {
                 byte[] chests = Processing.ROMData;
                 string chestsError = KatAMExpansion.AddShardChests(ref chests);
                 if (chestsError == null) Processing.ROMData = chests;
@@ -195,7 +195,7 @@ namespace KatAMRandomizer
             }
 
             // The shards put in rooms: one already owned is a Maxim Tomato instead, so it never blocks the way;
-            if (!settings.MirrorShardsInChests && settings.amountOfMirrorShardsToAdd > 0) {
+            if (settings.amountOfMirrorShardsToAdd > 0) {
                 byte[] field = Processing.ROMData;
                 string fieldError = KatAMExpansion.OwnedFieldShards(ref field);
                 if (fieldError == null) Processing.ROMData = field;
@@ -454,14 +454,21 @@ namespace KatAMRandomizer
             settings.amountOfMirrorShardsToAdd = TrackBarMirrorShardsAmount.Value;
         }
 
+        // TrackBarChestShardsAmount_Scroll(); How many copies of the 8 shards go in chests (1-3);
+        private void TrackBarChestShardsAmount_Scroll(object sender, EventArgs e) {
+            settings.amountOfChestShards = TrackBarChestShardsAmount.Value;
+        }
+
         // CheckboxBossShardsRandom_CheckedChanged(); Which shard each boss leaves, shuffled (KatAMExpansion.RandomizeBossShards);
         private void CheckboxBossShardsRandom_CheckedChanged(object sender, EventArgs e) {
             settings.RandomizeBossShards = CheckboxBossShardsRandom.Checked;
         }
 
-        // CheckboxMirrorShardsInChests_CheckedChanged(); The added shards in small chests (KatAMExpansion.AddShardChests);
+        // CheckboxMirrorShardsInChests_CheckedChanged(); Shards in chests, 1-3 copies of the 8 (KatAMItems.AddShardsToChests, KatAMExpansion.AddShardChests);
         private void CheckboxMirrorShardsInChests_CheckedChanged(object sender, EventArgs e) {
             settings.MirrorShardsInChests = CheckboxMirrorShardsInChests.Checked;
+            TrackBarChestShardsAmount.Enabled = CheckboxMirrorShardsInChests.Checked;
+            settings.amountOfChestShards = TrackBarChestShardsAmount.Value;
         }
 
         // Chests;

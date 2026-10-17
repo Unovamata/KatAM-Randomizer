@@ -32,6 +32,8 @@ after any change.
   (`MirrorSpacing` x 2 cells across, 2 up or down; half that in small rooms). `RoomSpot()`.
 - NiDL's own door halls (Butter Building's tower floors, Rainbow Resort's rooms of doors) keep all their doors, drawn as NiDL's
   own doorways without mirrors, past these limits.
+- **Secret doors stay hidden until uncovered**: a door behind breakable blocks or in a hidden spot only shows once Kirby finds it.
+- **Enemies keep away from doors**: no enemy stands on a door or right where a door lands Kirby.
 
 ## 3. One-way and two-way
 
@@ -68,7 +70,8 @@ after any change.
 - **The world map is fixed as approved** (`worldmap.c`'s `gNidlWorldMapDoors`, one path per level's hub door). Neither the world
   map nor the hub links change unless the user asks for it.
 - **Hub doors are always two-way and never lead to a Mirra.**
-- The NiDL hub (a Central Circle copy at night) has one door per level, as Central Circle has one per area.
+- The NiDL hub (a Central Circle copy at night) has one door per level, as Central Circle has one per area. It is reached
+  through a golden mirror in Central Circle (beside Central Circle's own), and a pink mirror in the NiDL hub leads back.
 
 ## 5. Levels, stages and the order of things
 
@@ -101,9 +104,12 @@ after any change.
 
 ## 8. Bosses and mini-bosses
 
-- **A boss room has no door out.** Taking the shard its boss leaves is the only way on: after the shard cutscene Kirby goes where the
-  boss stage went on (the next room, else the next level's first). A boss fought again leaves a Maxim Tomato and the shard again.
-  `bossExitsOf`, `gNidlShardExits`, `NidlShardExit()`.
+- **A boss room has no door out, and is the end of its branch.** Taking the shard its boss leaves is the only way out. A one-way door
+  that was in a boss room goes elsewhere. A boss fought again leaves a Maxim Tomato and the shard again. `bossExitsOf`,
+  `gNidlShardExits`, `NidlShardExit()`.
+- **A shard only ever sends Kirby to a central hub**: KatAM's to Central Circle, NiDL's to the NiDL hub, onto that level's door
+  there. Never into another level or room. The one exception is the Power Orb, whose fight goes on in Nightmare's room, as in NiDL.
+  NiDL's empty walk-out rooms after a boss are left out of the port: nothing leads there any more.
 - **Which shard a boss leaves can be shuffled** (Bosses give random shards): KatAM's bosses always hold all 8 between them, so the
   game can be beaten from KatAM alone; NiDL's spread the 8 evenly. An owned shard is always a Maxim Tomato, never a cutscene in the way.
 - **Doors into boss rooms are one-way.** Nothing else (branches, links, Mirras) goes in a boss stage.
@@ -122,16 +128,24 @@ after any change.
 
 ## 10. Chests and items
 
-- Chests go where KatAM would put one: dead ends, secret rooms, behind blocks, at the end of a branch. Never in a boss room, a
-  switch room or a mini-boss's fight area.
-- Mirror shards in chests only replace chests that held consumables (healing items, 1UPs and such), never treasures.
+- Chests go where KatAM would put one, as a reward for exploring (dead ends, secret rooms, behind blocks, the end of a branch), for
+  a challenge, or as a surprise. Never in a boss room, a switch room or a mini-boss's fight area.
+- **Mirror shards the randomizer adds** come in two options, used separately or both at once:
+  - **field shards**: 1 to 5 copies of the 8 shards, lying in rooms, each replacing a consumable item;
+  - **chest shards**: 1 to 3 copies of the 8 shards, each in a chest that held a consumable (healing items, 1UPs and such), never a
+    treasure. Off: no shards in chests. Shard chests are left out of the pause screen's chest lists.
+- **An owned shard never blocks the way**: a field shard already owned is a Maxim Tomato; a chest whose shard is owned shows open.
 
 ## 11. The map viewer
 
+- **Unrandomized ROMs (expanded or not): KatAM's map stays exactly KatAM's**, as the pause screen's area maps draw it
+  (`MapVanilla`), and the NiDL levels go **around** it: never in its gaps, never moving it. `MapExpansion.Place(original)`.
+- **Randomized ROMs**: clusters are enough.
 - **Each level is one cluster**; a stage's rooms stay together, and a room linked only to another level sits by its own stage's
   rooms.
 - **The whole map is tight and as square as it fits, with no rogue rooms**: each level goes in the free spot that keeps the map the
-  most square, then the closest to its middle, filling the gaps between clusters; no level is left out in a corner on its own.
+  most square, then the closest to its middle (on a randomized map, filling the gaps between clusters); no level is left out in a
+  corner on its own.
   The tutorial and the game's end come last, under it all. `MapExpansion.Place()`.
 - **A randomized map has no islands of 2-4 rooms**: its clusters are whole communities of rooms (Louvain with its aggregation
   phase), and any cluster under 6 rooms joins the one it shares the most mirrors with. `MapLayout.FindClusters()`.

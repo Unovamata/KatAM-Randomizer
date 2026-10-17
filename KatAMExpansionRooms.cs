@@ -192,7 +192,7 @@
 
         /* The NiDL hub (see KatAMExpansionHub.cs): Central Circle again, at night; as there, its golden mirror (MainHubEntry, Central
          * Circle's to Rainbow Route) is the way in: to Vegetable Valley's first room (onto a mirror back, where Kirby starts it), from
-         * which every room is reached (each boss stage leads to the next level's first room); a pink one on the platform's left end
+         * which every room is reached (each level's way into the next; a boss's shard leads back here); a pink one on the platform's left end
          * (MainHubReturn) leads back to Central Circle's, onto which Kirby arrives; each level has one of Central
          * Circle's own doors (MainHubDoors: its door cells), recolored for the level's theme, hidden until the level's big switch is
          * pressed, as KatAM's: Vegetable Valley the trees', Ice Cream Island the waves', Butter Building the stone pillars', Grape
@@ -236,7 +236,9 @@
 
         /* NightmareRooms(); NiDL's level rooms, split where KatAM can't hold them whole. Left out: the levels' hub lists (hub, museum,
          * arena, boss tower, boss room: no gameplay of their own), level 7's stage 1 (the boss rush's copies of the boss rooms) and
-         * stage 2 (unused test rooms), and rooms with no exits nor objects outside the boss stages (empty floors no door leads to); */
+         * stage 2 (unused test rooms), rooms with no exits nor objects outside the boss stages (empty floors no door leads to), and a
+         * boss stage's rooms after its last boss (NiDL's empty walks out after the fight: a boss's shard takes Kirby to the NiDL hub,
+         * so nothing leads there; Shine & Bright's two, Heavy Mole's, Nightmare's); */
         static List<NightmareRoom> NightmareRooms(byte[] nightmare, int table) {
             List<(int level, int stage, int index, int record)> records = new List<(int, int, int, int)>();
 
@@ -255,11 +257,19 @@
                 }
             }
 
+            // (a room with a boss NiDL's spawn is ported for: RoomBosses);
+            bool Boss(int record) {
+                int list = ReadInt(nightmare, record + 0x48);
+                for (int at = list == 0 ? record : list - 0x08000000; list != 0 && at + 8 <= record; at += 8)
+                    if (nightmare[at] - 1 == BossCategory && RoomBosses.ContainsKey(nightmare[at + 1])) return true;
+                return false;
+            }
             List<NightmareRoom> rooms = new List<NightmareRoom>();
             foreach ((int level, int stage, int index, int record) in records) {
                 int width = ReadShort(nightmare, record + 0x14), height = ReadShort(nightmare, record + 0x16);
                 if (width <= 2 && height <= 2) continue;
                 bool bossStage = level == 7 || stage == records.Where(r => r.level == level).Max(r => r.stage);
+                if (bossStage && !Boss(record) && records.Any(r => r.level == level && r.stage == stage && r.index < index && Boss(r.record))) continue;
                 if (!bossStage && ReadInt(nightmare, record + 0x44) == 0 && ReadInt(nightmare, record + 0x48) == 0) continue;
 
                 // Split along the longer side into the fewest parts that fit (padded, see Padded());
@@ -2017,9 +2027,12 @@
                 if (IsBossStage(s)) {
                     int next = byRoom.Keys.Where(k => k.Item1 == s.level && k.Item2 == s.stage && k.Item3 > key.Item3).Select(k => k.Item3).DefaultIfEmpty(-1).Min();
                     (int room, int x, int y) on = next >= 0 ? Target(Start((s.level, s.stage, next))) : After(s);
-                    // (a boss's room: no door out, its shard takes Kirby on, bossExitsOf);
-                    if (HasBoss(byRoom[key][0])) foreach (NightmareRoom part in byRoom[key]) bossExitsOf[part] = on;
-                    else Add(Start(key), on, DoorKind.Boss, oneWay: true);
+                    /* (a boss's room: no door out, its shard takes Kirby back to the NiDL hub, onto his level's door there, as KatAM's take
+                     * him to Central Circle (bossExitsOf); but for a fight in two rooms, the Power Orb's, which goes on to Nightmare's); */
+                    if (HasBoss(byRoom[key][0])) {
+                        bool goesOn = next >= 0 && HasBoss(byRoom[(s.level, s.stage, next)][0]);
+                        foreach (NightmareRoom part in byRoom[key]) bossExitsOf[part] = goesOn ? on : MainHubAt(MainHubDoors[s.level]);
+                    } else Add(Start(key), on, DoorKind.Boss, oneWay: true);
                 }
             }
 

@@ -41,6 +41,10 @@
             CheckboxOptionsSkipTutorial = new CheckBox();
             CheckboxMirrorShardsInChests = new CheckBox();
             CheckboxBossShardsRandom = new CheckBox();
+            TrackBarChestShardsAmount = new TrackBar();
+            LabelChestShards1 = new Label();
+            LabelChestShards2 = new Label();
+            LabelChestShards3 = new Label();
             LabelSeed = new Label();
             GroupRomInfo = new GroupBox();
             LabelStability = new Label();
@@ -1112,6 +1116,10 @@
             GroupConsumablesMirrorShards.Controls.Add(RadioMirrorShardsUnchanged);
             GroupConsumablesMirrorShards.Controls.Add(CheckboxMirrorShardsInChests);
             GroupConsumablesMirrorShards.Controls.Add(CheckboxBossShardsRandom);
+            GroupConsumablesMirrorShards.Controls.Add(TrackBarChestShardsAmount);
+            GroupConsumablesMirrorShards.Controls.Add(LabelChestShards1);
+            GroupConsumablesMirrorShards.Controls.Add(LabelChestShards2);
+            GroupConsumablesMirrorShards.Controls.Add(LabelChestShards3);
             GroupConsumablesMirrorShards.Enabled = false;
             GroupConsumablesMirrorShards.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
             GroupConsumablesMirrorShards.Location = new Point(259, 20);
@@ -1139,15 +1147,13 @@
             // CheckboxMirrorShardsInChests
             // 
             CheckboxMirrorShardsInChests.AutoSize = true;
-            CheckboxMirrorShardsInChests.Checked = true;
-            CheckboxMirrorShardsInChests.CheckState = CheckState.Checked;
             CheckboxMirrorShardsInChests.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
             CheckboxMirrorShardsInChests.Location = new Point(14, 350);
             CheckboxMirrorShardsInChests.Margin = new Padding(4, 5, 4, 5);
             CheckboxMirrorShardsInChests.Name = "CheckboxMirrorShardsInChests";
-            CheckboxMirrorShardsInChests.Size = new Size(170, 29);
+            CheckboxMirrorShardsInChests.Size = new Size(260, 29);
             CheckboxMirrorShardsInChests.TabIndex = 5;
-            CheckboxMirrorShardsInChests.Text = "Put them in chests";
+            CheckboxMirrorShardsInChests.Text = "Add shards in chests";
             CheckboxMirrorShardsInChests.UseVisualStyleBackColor = true;
             CheckboxMirrorShardsInChests.CheckedChanged += CheckboxMirrorShardsInChests_CheckedChanged;
             // 
@@ -1155,7 +1161,7 @@
             // 
             CheckboxBossShardsRandom.AutoSize = true;
             CheckboxBossShardsRandom.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            CheckboxBossShardsRandom.Location = new Point(14, 389);
+            CheckboxBossShardsRandom.Location = new Point(14, 455);
             CheckboxBossShardsRandom.Margin = new Padding(4, 5, 4, 5);
             CheckboxBossShardsRandom.Name = "CheckboxBossShardsRandom";
             CheckboxBossShardsRandom.Size = new Size(260, 29);
@@ -1163,6 +1169,45 @@
             CheckboxBossShardsRandom.Text = "Bosses give random shards";
             CheckboxBossShardsRandom.UseVisualStyleBackColor = true;
             CheckboxBossShardsRandom.CheckedChanged += CheckboxBossShardsRandom_CheckedChanged;
+            // 
+            // TrackBarChestShardsAmount: copies of the 8 shards in chests, 1-3;
+            // 
+            TrackBarChestShardsAmount.BackColor = SystemColors.ButtonHighlight;
+            TrackBarChestShardsAmount.Enabled = false;
+            TrackBarChestShardsAmount.Location = new Point(9, 405);
+            TrackBarChestShardsAmount.Margin = new Padding(4, 5, 4, 5);
+            TrackBarChestShardsAmount.Maximum = 3;
+            TrackBarChestShardsAmount.Minimum = 1;
+            TrackBarChestShardsAmount.Name = "TrackBarChestShardsAmount";
+            TrackBarChestShardsAmount.Size = new Size(276, 45);
+            TrackBarChestShardsAmount.TabIndex = 7;
+            TrackBarChestShardsAmount.TickStyle = TickStyle.TopLeft;
+            TrackBarChestShardsAmount.Value = 1;
+            TrackBarChestShardsAmount.Scroll += TrackBarChestShardsAmount_Scroll;
+            // 
+            // LabelChestShards1, 2, 3
+            // 
+            LabelChestShards1.AutoSize = true;
+            LabelChestShards1.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            LabelChestShards1.ForeColor = SystemColors.ControlDark;
+            LabelChestShards1.Location = new Point(19, 382);
+            LabelChestShards1.Name = "LabelChestShards1";
+            LabelChestShards1.Size = new Size(22, 25);
+            LabelChestShards1.Text = "1";
+            LabelChestShards2.AutoSize = true;
+            LabelChestShards2.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            LabelChestShards2.ForeColor = SystemColors.ControlDark;
+            LabelChestShards2.Location = new Point(140, 382);
+            LabelChestShards2.Name = "LabelChestShards2";
+            LabelChestShards2.Size = new Size(22, 25);
+            LabelChestShards2.Text = "2";
+            LabelChestShards3.AutoSize = true;
+            LabelChestShards3.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            LabelChestShards3.ForeColor = SystemColors.ControlDark;
+            LabelChestShards3.Location = new Point(262, 382);
+            LabelChestShards3.Name = "LabelChestShards3";
+            LabelChestShards3.Size = new Size(22, 25);
+            LabelChestShards3.Text = "3";
             // 
             // GroupMirrorShardsAmount
             // 
@@ -3305,6 +3350,10 @@
         private CheckBox CheckboxOptionsSkipTutorial;
         private GroupBox GroupMiscGame;
         private CheckBox CheckboxBossShardsRandom;
+        private TrackBar TrackBarChestShardsAmount;
+        private Label LabelChestShards1;
+        private Label LabelChestShards2;
+        private Label LabelChestShards3;
         private CheckBox CheckboxMirrorShardsInChests;
         private Label LabelStability;
         private Label LabelCompatibility;
