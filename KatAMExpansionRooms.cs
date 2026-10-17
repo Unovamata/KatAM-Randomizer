@@ -373,9 +373,7 @@ namespace KatAMRandomizer {
             // corner, heaps of different sizes on the floor);
             [4] = new[] {
                 "2 3 1B0/1AF/1A4",
-                "3 7 000 1B1 1B0/1AD 1AE",
-                // (the heap's last piece over the pedestal's corner: no gap between them);
-                "!5 8 1AE",
+                "2 7 000 1B1 1B0/1AD 1AE 1AE",
                 "6 7 1B1 1B0",
                 "12 1 1CE 1AE/1CF 1D0/000 1D1/000 1D2",
                 "11 8 1B1 1B0",
