@@ -276,10 +276,26 @@ namespace KatAMRandomizer {
         // with the most of its shapes;
         static readonly int[] ModelRanks = { 0, 0, 0, 0, 4, 0, 0, 0 };
         /* SwitchDesigns; Switch rooms picked by eye, kept as they are whatever BuildSwitchRooms() would draw now: per level, the left
-         * half's metatiles, row by row (~: its tiles flipped), the right half its mirror image; the same metatiles in every region
-         * (NiDL's tilesets are); Yogurt Yard's after its sixth stage's second room, inside its rock the fills (and moss) joining best
+         * half's metatiles, row by row (~: flipped left to right, ^: upside down, @: both), the right half its mirror image; the same
+         * metatiles in every region (NiDL's tilesets are); Vegetable Valley's built from its raised hedges (its stages have no
+         * ceilings: their rounded tops upside down, their sides and the joins at their feet turned round), its first stage's
+         * pedestal, its second stage's dirt on the side floors; Yogurt Yard's after its sixth stage's second room, inside its rock the fills (and moss) joining best
          * (least colour across their edges), Orange Ocean's after its fifth stage's first; */
         static readonly Dictionary<int, string[]> SwitchDesigns = new Dictionary<int, string[]> {
+            [0] = new[] {
+                "087 @0A6 ^091 ^091 ^091 ^091 ^091 ^091",
+                "087 09F 000 000 000 000 000 000",
+                "087 09F 000 000 000 000 000 000",
+                "087 09F 000 000 000 000 000 000",
+                "087 09F 000 000 000 000 000 000",
+                "^091 ^09E 000 000 000 000 000 000",
+                "000 000 000 000 000 000 000 000",
+                "000 000 000 000 000 000 000 000",
+                "000 000 000 000 000 ~09E ~002 ~001",
+                "001 036 037 038 03B ~0B1 ~087 ~087",
+                "087 041 04A 04A 051 ~087 ~087 ~087",
+                "087 08B 005 005 005 ~08A ~087 ~06B",
+            },
             [4] = new[] {
                 "16E 002 01E 059 020 021 022 059",
                 "17A 0BB 000 000 000 000 000 000",
@@ -644,31 +660,40 @@ namespace KatAMRandomizer {
                     return drawn;
                 }
                 bool designed = SwitchDesigns.TryGetValue(level, out string[] design) && Environment.GetEnvironmentVariable("SWITCH_ROOM_NO_DESIGNS") == null;
+                if (Environment.GetEnvironmentVariable($"SWITCH_ROOM_DESIGN_{level}") is string tried) { design = tried.Split('/'); designed = true; }
                 bool leftKept = designed || Drawn(0, SwitchWidth / 2 - 1) >= Drawn(SwitchWidth / 2, SwitchWidth - 1);
                 // (a metatile flipped: its tiles swapped left and right, each drawn flipped (0x400), added to the room's own copy of the
                 // tileset's metatiles where the tileset hasn't one drawing it so);
                 List<byte> table = new List<byte>(metatiles);
-                Dictionary<int, int> flippedOf = new Dictionary<int, int>();
-                int Flipped(int m) {
-                    if (Mirror(m) >= 0) return Mirror(m);
-                    if (flippedOf.TryGetValue(m, out int made)) return made;
-                    int[] e = Enumerable.Range(0, 4).Select(q => ReadShort(metatiles, m * 8 + q * 2) ^ 0x400).ToArray();
-                    foreach (int q in new[] { 1, 0, 3, 2 }) { table.Add((byte)e[q]); table.Add((byte)(e[q] >> 8)); }
-                    return flippedOf[m] = table.Count / 8 - 1;
+                Dictionary<(int m, bool h, bool v), int> made = new Dictionary<(int, bool, bool), int>();
+                Dictionary<int, (int m, bool h, bool v)> madeFrom = new Dictionary<int, (int, bool, bool)>();
+                // Flip(); A metatile flipped left to right (h) and/or upside down (v): the tileset's own drawing it so (left to right),
+                // else one made: its tiles swapped and each drawn flipped (0x400, 0x800);
+                int Flip(int m, bool h, bool v) {
+                    if (madeFrom.TryGetValue(m, out var from)) (m, h, v) = (from.m, from.h ^ h, from.v ^ v);
+                    if (!h && !v) return m;
+                    if (h && !v && Mirror(m) >= 0) return Mirror(m);
+                    if (made.TryGetValue((m, h, v), out int id)) return id;
+                    int[] e = Enumerable.Range(0, 4).Select(q => ReadShort(metatiles, m * 8 + q * 2) ^ (h ? 0x400 : 0) ^ (v ? 0x800 : 0)).ToArray();
+                    foreach (int q in Enumerable.Range(0, 4)) {
+                        int entry = e[q ^ (h ? 1 : 0) ^ (v ? 2 : 0)];
+                        table.Add((byte)entry); table.Add((byte)(entry >> 8));
+                    }
+                    id = table.Count / 8 - 1;
+                    made[(m, h, v)] = id; madeFrom[id] = (m, h, v);
+                    return id;
                 }
-                // (or the level's design, SwitchDesigns, as its left half);
+                // (or the level's design, SwitchDesigns, as its left half: ~ a metatile flipped left to right, ^ upside down, @ both);
                 if (designed)
                     for (int y = 0; y < SwitchHeight; y++)
                         for (int x = 0; x < SwitchWidth / 2; x++) {
                             string id = design[y].Split(' ')[x];
-                            WriteShort(cells, (y * SwitchWidth + x) * 4, id.StartsWith("~") ? Flipped(Convert.ToInt32(id[1..], 16)) : Convert.ToInt32(id, 16));
+                            bool h = id[0] is '~' or '@', v = id[0] is '^' or '@';
+                            WriteShort(cells, (y * SwitchWidth + x) * 4, Flip(Convert.ToInt32(id.TrimStart('~', '^', '@'), 16), h, v));
                         }
                 for (int y = 0; y < SwitchHeight; y++)
-                    for (int x = leftKept ? SwitchWidth / 2 : 0; x < (leftKept ? SwitchWidth : SwitchWidth / 2); x++) {
-                        // (a flipped one's mirror image: the metatile it was made from);
-                        int kept = Current(SwitchWidth - 1 - x, y);
-                        WriteShort(cells, (y * SwitchWidth + x) * 4, flippedOf.FirstOrDefault(f => f.Value == kept, new KeyValuePair<int, int>(-1, -1)).Key is int from and >= 0 ? from : Flipped(kept));
-                    }
+                    for (int x = leftKept ? SwitchWidth / 2 : 0; x < (leftKept ? SwitchWidth : SwitchWidth / 2); x++)
+                        WriteShort(cells, (y * SwitchWidth + x) * 4, Flip(Current(SwitchWidth - 1 - x, y), true, false));
                 if (Environment.GetEnvironmentVariable("SWITCH_ROOM_DUMP") is string tableDump)
                     File.WriteAllBytes(Path.Combine(tableDump, $"switch{level}.metatiles"), table.ToArray());
                 if (Environment.GetEnvironmentVariable("SWITCH_ROOM_DUMP") is string dump)
