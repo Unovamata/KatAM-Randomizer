@@ -37,6 +37,7 @@
             GroupSettings = new GroupBox();
             CheckboxOptionsSpoilerLog = new CheckBox();
             CheckboxOptionsTitleParade = new CheckBox();
+            CheckboxOptionsReduceFlashing = new CheckBox();
             LabelSeed = new Label();
             GroupRomInfo = new GroupBox();
             LabelStability = new Label();
@@ -349,6 +350,7 @@
             // 
             GroupSettings.Controls.Add(CheckboxOptionsSpoilerLog);
             GroupSettings.Controls.Add(CheckboxOptionsTitleParade);
+            GroupSettings.Controls.Add(CheckboxOptionsReduceFlashing);
             GroupSettings.Controls.Add(ButtonSaveSettings);
             GroupSettings.Controls.Add(ButtonLoadSettings);
             GroupSettings.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
@@ -365,7 +367,7 @@
             // 
             CheckboxOptionsSpoilerLog.AutoSize = true;
             CheckboxOptionsSpoilerLog.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            CheckboxOptionsSpoilerLog.Location = new Point(9, 34);
+            CheckboxOptionsSpoilerLog.Location = new Point(9, 30);
             CheckboxOptionsSpoilerLog.Margin = new Padding(4, 5, 4, 5);
             CheckboxOptionsSpoilerLog.Name = "CheckboxOptionsSpoilerLog";
             CheckboxOptionsSpoilerLog.Size = new Size(128, 29);
@@ -378,7 +380,7 @@
             // 
             CheckboxOptionsTitleParade.AutoSize = true;
             CheckboxOptionsTitleParade.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            CheckboxOptionsTitleParade.Location = new Point(9, 73);
+            CheckboxOptionsTitleParade.Location = new Point(9, 62);
             CheckboxOptionsTitleParade.Margin = new Padding(4, 5, 4, 5);
             CheckboxOptionsTitleParade.Name = "CheckboxOptionsTitleParade";
             CheckboxOptionsTitleParade.Size = new Size(200, 29);
@@ -386,6 +388,19 @@
             CheckboxOptionsTitleParade.Text = "Random intro parade";
             CheckboxOptionsTitleParade.UseVisualStyleBackColor = true;
             CheckboxOptionsTitleParade.CheckedChanged += CheckboxOptionsTitleParade_CheckedChanged;
+            // 
+            // CheckboxOptionsReduceFlashing
+            // 
+            CheckboxOptionsReduceFlashing.AutoSize = true;
+            CheckboxOptionsReduceFlashing.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            CheckboxOptionsReduceFlashing.Location = new Point(9, 94);
+            CheckboxOptionsReduceFlashing.Margin = new Padding(4, 5, 4, 5);
+            CheckboxOptionsReduceFlashing.Name = "CheckboxOptionsReduceFlashing";
+            CheckboxOptionsReduceFlashing.Size = new Size(165, 29);
+            CheckboxOptionsReduceFlashing.TabIndex = 15;
+            CheckboxOptionsReduceFlashing.Text = "Reduce flashing";
+            CheckboxOptionsReduceFlashing.UseVisualStyleBackColor = true;
+            CheckboxOptionsReduceFlashing.CheckedChanged += CheckboxOptionsReduceFlashing_CheckedChanged;
             // 
             // LabelSeed
             // 
@@ -3222,6 +3237,7 @@
         private RadioButton RadioGoalGameMirrorsUnchanged;
         private CheckBox CheckboxOptionsSpoilerLog;
         private CheckBox CheckboxOptionsTitleParade;
+        private CheckBox CheckboxOptionsReduceFlashing;
         private Label LabelStability;
         private Label LabelCompatibility;
         private TabPage tabPage6;

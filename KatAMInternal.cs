@@ -528,6 +528,8 @@ namespace KatAMInternal
         public bool RandomizeTitleParade { get; set; }
         // Title screen: the intro picked at random between KatAM's and Nightmare in Dream Land's (needs a NiDL ROM loaded);
         public bool NightmareTitle { get; set; }
+        // Reduce flashing: KatAM's white screen flashes eased in like fades (KatAMExpansion.ReduceFlashing);
+        public bool ReduceFlashing { get; set; }
 
         public Settings() {
             Random seedGenerator = new Random();

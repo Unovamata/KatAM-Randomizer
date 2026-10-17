@@ -178,6 +178,14 @@ namespace KatAMRandomizer
             // ROM Expansion rooms: Central Circle's mirror to them, now that the randomizer is done with its room;
             KatAMExpansion.FinishRooms(Processing.ROMData);
 
+            // Reduce flashing, last: it puts the expansion's code in when no NiDL ROM did;
+            if (settings.ReduceFlashing) {
+                byte[] calmed = Processing.ROMData;
+                string flashingError = KatAMExpansion.ReduceFlashing(ref calmed);
+                if (flashingError == null) Processing.ROMData = calmed;
+                else MessageBox.Show(flashingError, "Reduce flashing", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+
             File.WriteAllBytes(destinationPath, Processing.ROMData);
 
             // The spoiler log is written next to the randomized ROM;
@@ -197,6 +205,11 @@ namespace KatAMRandomizer
         // CheckboxOptionsTitleParade_CheckedChanged(); The characters parading through the intro, swapped (KatAMTitleScreen);
         private void CheckboxOptionsTitleParade_CheckedChanged(object sender, EventArgs e) {
             settings.RandomizeTitleParade = CheckboxOptionsTitleParade.Checked;
+        }
+
+        // CheckboxOptionsReduceFlashing_CheckedChanged(); KatAM's white screen flashes eased in (KatAMExpansion.ReduceFlashing);
+        private void CheckboxOptionsReduceFlashing_CheckedChanged(object sender, EventArgs e) {
+            settings.ReduceFlashing = CheckboxOptionsReduceFlashing.Checked;
         }
 
         /* Settings files; The state of every option (radio buttons, checkboxes, track bars and numeric boxes, by name) and the seed.

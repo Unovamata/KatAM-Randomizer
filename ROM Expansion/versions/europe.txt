@@ -198,3 +198,6 @@ sub_08002C18 0x8002c38
 gUnk_08D60A84 0x8d6aee4
 gUnk_0893CB44 0x8946fa8
 gUnk_03000010 0x3000010
+UpdateScreenDma 0x8152700
+UpdateScreenCpuSet 0x8152ab4
+_call_via_r6 0x815abec

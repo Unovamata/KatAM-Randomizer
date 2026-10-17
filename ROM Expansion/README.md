@@ -35,6 +35,7 @@ The hit flash also looked the palette up again by type when it ended; its branch
 - `build.sh /path/to/katam`: compiles everything with the decompilation's `agbcc`, links it at `0x09000000` for each KatAM version and writes `../KatAMExpansionCode.cs` (each version's code, the symbols `KatAMExpansion.cs` uses and what it patches).
 - `find_symbols.py`, `versions/*.txt`: the KatAM symbols' addresses in each version (see above).
 - `title.c`, `title.h`: Nightmare in Dream Land's title screen swarm (see Title screen below).
+- `calm.c`: the randomizer's Reduce flashing option: `UpdateScreenDma` and `UpdateScreenCpuSet` (the VBlank's copies of the blend registers) are detoured to it (`KatAMExpansionCalm.cs`), and copy `gBldRegs` with the screen's brightness (BLDY, while the effect is lighten) following the game's at most one level a frame up and at once down, the game's own put back after (what the screen shows is kept in `gBldRegs`' padding, the struct being 6 bytes of its 8). It needs only itself: without a NiDL ROM, the option pads the ROM and copies the expansion's code in, and allocates its trampolines in `gNidlCalmTrampolines`.
 - `rooms.c`: rooms bigger than KatAM's 1950 blocks (see Rooms below: Limits), the game's room loader and collision functions with bigger buffers.
 - `../KatAMExpansionRooms.cs`: NiDL's rooms (see Rooms below).
 
