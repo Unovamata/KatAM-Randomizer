@@ -133,8 +133,9 @@ namespace KatAMRandomizer {
 
         static int CountCells(int[,] canvas) => CutFrame(canvas, int.MaxValue).oams.Length / 3;
 
-        /* CutFrame(); A canvas (128x128, origin at its center; 0: transparent) as a KatAM frame: its 8x8 cells with pixels, on a grid from the
-         * top left (at most maxTiles), the box widened to be centered on the origin so it flips about it; */
+        /* CutFrame(); A canvas (128x128, origin at its center; 0: transparent) as a KatAM frame: its 8x8 cells with pixels (at most
+         * maxTiles), on the grid (one of the 64 offsets from the top left) needing the fewest (Needle's spiked ball in the air needs 50 on
+         * the top left's, 48 on its best: the hat's VRAM), the box widened to be centered on the origin so it flips about it; */
         static (byte[] tiles, ushort[] oams, short[] attributes) CutFrame(int[,] canvas, int maxTiles) {
             const int Size = 128, Center = 64;
             int left = Size, right = 0, top = Size, bottom = 0;
@@ -144,30 +145,52 @@ namespace KatAMRandomizer {
                     if (canvas[x, y] != 0) { left = Math.Min(left, x); right = Math.Max(right, x + 1); top = Math.Min(top, y); bottom = Math.Max(bottom, y + 1); }
             if (left >= right) return (new byte[0], new ushort[0], new short[] { 0, 0, 0, 0, 0, 0 });
 
-            int halfWidth = Math.Max(Center - left, right - Center);
+            bool Any(int cx, int cy) {
+                for (int y = Math.Max(cy, 0); y < cy + 8 && y < Size; y++)
+                    for (int x = Math.Max(cx, 0); x < cx + 8 && x < Size; x++)
+                        if (canvas[x, y] != 0) return true;
+                return false;
+            }
+            int Cells(int gridLeft, int gridTop) {
+                int count = 0;
+                for (int cy = gridTop; cy < bottom; cy += 8)
+                    for (int cx = gridLeft; cx < right; cx += 8)
+                        if (Any(cx, cy)) count++;
+                return count;
+            }
+            (int ox, int oy) best = (0, 0);
+            int fewest = Cells(left, top);
+            for (int oy = 0; oy < 8; oy++)
+                for (int ox = 0; ox < 8; ox++) {
+                    int count = Cells(left - ox, top - oy);
+                    if (count < fewest) { fewest = count; best = (ox, oy); }
+                }
+            int gridLeft = left - best.ox, gridTop = top - best.oy, gridRight = gridLeft + (right - gridLeft + 7) / 8 * 8;
+
+            int halfWidth = Math.Max(Center - gridLeft, gridRight - Center);
             List<byte> output = new List<byte>();
             List<ushort> oams = new List<ushort>();
 
-            for (int cy = top; cy < bottom; cy += 8) {
-                for (int cx = left; cx < right; cx += 8) {
+            for (int cy = gridTop; cy < bottom; cy += 8) {
+                for (int cx = gridLeft; cx < right; cx += 8) {
                     byte[] cell = new byte[32];
                     bool any = false;
                     for (int y = 0; y < 8; y++)
                         for (int x = 0; x < 8; x++) {
-                            int value = cx + x < Size && cy + y < Size ? canvas[cx + x, cy + y] : 0;
+                            int value = cx + x >= 0 && cy + y >= 0 && cx + x < Size && cy + y < Size ? canvas[cx + x, cy + y] : 0;
                             if (value == 0) continue;
                             cell[y * 4 + x / 2] |= (byte)(value << (x % 2 * 4));
                             any = true;
                         }
                     if (!any || oams.Count / 3 >= maxTiles) continue;
-                    oams.Add((ushort)(cy - top));
+                    oams.Add((ushort)(cy - gridTop));
                     oams.Add((ushort)(cx - Center + halfWidth));
                     oams.Add((ushort)(output.Count / 32));
                     output.AddRange(cell);
                 }
             }
 
-            return (output.ToArray(), oams.ToArray(), new short[] { 0, (short)(oams.Count / 3), (short)(halfWidth * 2), (short)(bottom - top), (short)halfWidth, (short)(Center - top) });
+            return (output.ToArray(), oams.ToArray(), new short[] { 0, (short)(oams.Count / 3), (short)(halfWidth * 2), (short)(bottom - gridTop), (short)halfWidth, (short)(Center - gridTop) });
         }
 
         /* BuildBackdropPalette(); Backdrop plays like KatAM's Throw, whose body draws a headband in colors 12-14 of the body palette anim

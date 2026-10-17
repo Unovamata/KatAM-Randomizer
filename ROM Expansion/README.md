@@ -102,15 +102,15 @@ NiDL's Needle, Freeze, Light, Ball, Hi-Jump, Mike and Backdrop are KatAM abiliti
 
 | Ability | B button |
 |---|---|
-| Needle | Kirby sticks his needles out (10 frames) and keeps them out while B is held, then pulls them in. In the air he falls with needles all around, and keeps them out on landing if B is still held. The needles hurt what they touch (a cutting hit) and Kirby is unhurt while they're out |
-| Freeze | Kirby wraps himself in ice crystals for as long as B is held (16 frames at least). What touches the ice freezes, with KatAM's Ice's freezing hit, and Kirby is unhurt meanwhile |
+| Needle | Kirby sticks his needles out (10 frames) and keeps them out while B is held, then pulls them in. In the air he falls with needles all around, and keeps them out on landing if B is still held. The needles hurt what they touch (a cutting hit, strength 2: NiDL's 3 was too strong), and Kirby can still be hurt meanwhile |
+| Freeze | Kirby wraps himself in ice crystals for as long as B is held (16 frames at least). What touches the ice freezes, with KatAM's Ice's freezing hit; Kirby can still be hurt meanwhile |
 | Light | Kirby hovers and holds up a light (28 frames), which shines for 65 frames; then the ability is used up. NiDL's Light only lights up dark rooms. KatAM has none, so the light flashes the screen white (when the room isn't already blending) and hurts every enemy on the screen, like a weak Crash |
-| Ball | Kirby hops (up to 20 pixels) and curls into a ball, which bounces once and then rests. B again launches it (up to 37 pixels), and it ends on landing. It can be steered in the air and hurts what it touches, Kirby unhurt meanwhile |
-| Hi-Jump | Kirby crouches for 4 frames, then rockets up 4.16 pixels a frame for 25 frames or until he hits a ceiling, steerable sideways, hurting what he touches and unhurt; then he falls |
+| Ball | Kirby hops (up to 20 pixels) and curls into a ball, which bounces once and then rests. B again launches it (up to 37 pixels), and it ends on landing. It can be steered in the air and hurts what it touches; Kirby can still be hurt meanwhile |
+| Hi-Jump | Kirby crouches for 4 frames, then rockets up 4.16 pixels a frame for 23 frames, slows (3.85, then 1.55 pixels) and falls, as NiDL's; a ceiling stops him at once. He's steerable sideways and hurts what he touches, and can still be hurt meanwhile |
 | Mike | Kirby sings, a different song each of the 3 times: into a megaphone, a microphone, then a microphone while jumping 26 pixels. While he sings, every enemy on the screen takes a heavy hit and the screen flashes. After the third song the ability is gone |
 | Backdrop | KatAM's Throw (its closest relative: grab with a dash, then throw, a backdrop when thrown backwards) with NiDL's red headband: Throw's body draws its headband in colors 12-14 of the body palette, and Backdrop's palette has NiDL's red there. NiDL's own grab couldn't be measured (its Waddle Dee never came within reach) |
 
-The timings and speeds were measured in NiDL. Mike and Backdrop were measured by patching the enemy Starman to give them: an enemy's ability is byte 12 of its variant data (Starman's: `0x08741918`), copied to `obj+0` of its extra data at spawn. In water, every ability's B button does what KatAM's other abilities do (the base ability's entry). CPU helpers fight like Normal Kirby.
+The timings and speeds were measured in NiDL. NiDL's Needle, Freeze, Ball and Hi-Jump also made Kirby untouchable (KatAM's guard, as its Burning's): not here, so no ported ability is a shield. Mike and Backdrop were measured by patching the enemy Starman to give them: an enemy's ability is byte 12 of its variant data (Starman's: `0x08741918`), copied to `obj+0` of its extra data at spawn. In water, every ability's B button does what KatAM's other abilities do (the base ability's entry). CPU helpers fight like Normal Kirby.
 
 How they fit in:
 
@@ -128,7 +128,7 @@ How they fit in:
   - Poses with no match (inhaling, a mouthful, Kirby facing the camera with something on his head) get no hat.
 - **Attack poses** (`KatAMExpansionMotions.cs`) are NiDL's frames, played at animation indexes `0x4A`-`0x59` (copy abilities' own), which `NidlAbilitySetup` points to them.
   - Kirby's own pixels go to the body sprite, which has the player's palette and 16 tiles of VRAM.
-  - The rest (ice, needles, the cape) goes to the hat sprite, which has 48 tiles of VRAM.
+  - The rest (ice, needles, the cape) goes to the hat sprite, which has 48 tiles of VRAM. Frames are cut into 8x8 cells on the grid (of the 64 offsets) needing the fewest: Needle's spiked ball in the air needs 50 on the top left's, which lost its bottom, and 48 on its best.
   - KatAM loads the hat sprite's palette from the ability's hat, so the poses use the colors that palette has free. Needle's hat leaves few, so its needles are a duller yellow than NiDL's.
 - **Attacks** (`NidlAttackCreate`) are Burning's attack box: an object following Kirby while he's in the ability's state, with the hit's kind (`unk68`, as in `gUnk_082DDFC8`) and strength.
 
