@@ -69,12 +69,13 @@ namespace KatAMMapTracker {
         };
 
         // Fingerprint of the original mirrors (see Fingerprint); The Japanese, American and European versions share it;
-        const ulong OriginalMirrors = 0xD7553C6CD8543A94;
+        const ulong OriginalMirrors = 0xAA868785D38ED2BD;
 
         const int Grid = MapGraphics.TileSize;
         const double AreaMargin = 64, NeighborStep = 48;
 
-        /* Fingerprint(); Hash of every mirror of the ROM: room, destination, door position and landing spot.
+        /* Fingerprint(); Hash of every mirror of the ROM: its room and destination (the randomizer changes those; not where it stands
+         * nor lands, which the ROM Expansion moves in the hub rooms it keeps symmetric).
          * Anything else in the ROM (enemies, items, colors) can change without changing the layout. The ROM Expansion's rooms and the
          * mirrors to them are left out, so an expanded ROM's KatAM is still the original one; */
         public static ulong Fingerprint(RomMap map) {
@@ -92,7 +93,7 @@ namespace KatAMMapTracker {
             foreach (RoomInfo room in map.Rooms.Values.Where(r => !r.IsNightmareRoom).OrderBy(r => r.Id)) {
                 foreach (DoorInfo door in room.Doors.Where(d => d.Kind == DoorKind.Mirror && !Nightmare(d.Destination))
                                                    .OrderBy(d => d.Destination).ThenBy(d => d.X).ThenBy(d => d.Y)) {
-                    Add(room.Id); Add(door.Destination); Add(door.X); Add(door.Y); Add(door.LandX); Add(door.LandY);
+                    Add(room.Id); Add(door.Destination);
                 }
             }
 

@@ -26,7 +26,7 @@ namespace KatAMMapTracker {
         // Line half thickness (8) plus a gap, so lines never touch the squares;
         const int Clearance = 16;
 
-        const double TurnCost45 = 0.6, TurnCost90 = 2.5, UsedCellCost = 0.35, OutsideCost = 0.25;
+        const double TurnCost45 = 0.6, TurnCost90 = 2.5, UsedCellCost = 0.35, OutsideCost = 0.25, ForeignLevelCost = 1.5;
         const int MaxExpansions = 400000;
 
         static readonly (int x, int y)[] Directions = {
@@ -132,6 +132,7 @@ namespace KatAMMapTracker {
         int originX, originY, columns, rows;
         int[] blockOwnerA, blockOwnerB; // Up to two rooms blocking a cell (-1 none, -2 more than two);
         float[] usedCost, outsideCost;
+        int[] levelAt; // The NiDL level cluster whose box a cell is in (MapExpansion: -1 none);
 
         // A* state arrays, reused by every search; A state is valid for the current search when its stamp matches;
         float[] stateCost;
@@ -171,6 +172,20 @@ namespace KatAMMapTracker {
                 for (int x = 0; x < columns; x++) {
                     int outside = Math.Max(Math.Max(boxLeft - x, x - boxRight), Math.Max(boxTop - y, y - boxBottom));
                     if (outside > 0) outsideCost[y * columns + x] = (float)(OutsideCost * outside);
+                }
+            }
+
+            /* The ROM Expansion's levels (MapExpansion's clusters): a line between two other clusters costs more through a level's box,
+             * so the long lines between levels and to KatAM go around the levels, in the gaps between them, not through their rooms'
+             * own lines (KatAM's areas keep their routes); */
+            levelAt = new int[columns * rows];
+            Array.Fill(levelAt, -1);
+            if (Clusters != null) {
+                foreach (IGrouping<int, int> level in Layout.Keys.Where(r => Clusters.TryGetValue(r, out int c) && MapExpansion.IsLevelCluster(c)).GroupBy(r => Clusters[r])) {
+                    int left = (int)Math.Floor((level.Min(r => Layout[r].X) - originX) / Grid), top = (int)Math.Floor((level.Min(r => Layout[r].Y) - originY) / Grid);
+                    int right = (int)Math.Ceiling((level.Max(r => Layout[r].X + Layout[r].Width) - originX) / Grid), bottom = (int)Math.Ceiling((level.Max(r => Layout[r].Y + Layout[r].Height) - originY) / Grid);
+                    for (int y = Math.Max(0, top); y <= Math.Min(rows - 1, bottom); y++)
+                        for (int x = Math.Max(0, left); x <= Math.Min(columns - 1, right); x++) levelAt[y * columns + x] = level.Key;
                 }
             }
 
@@ -237,6 +252,7 @@ namespace KatAMMapTracker {
             (int goalX, int goalY) = CellOf(Layout[to]);
 
             int stamp = ++searchStamp;
+            int fromLevel = Clusters != null && Clusters.TryGetValue(from, out int fc) ? fc : -1, toLevel = Clusters != null && Clusters.TryGetValue(to, out int tc) ? tc : -1;
             PriorityQueue<int, float> open = new PriorityQueue<int, float>();
 
             float Heuristic(int x, int y) {
@@ -274,7 +290,9 @@ namespace KatAMMapTracker {
                     // Diagonal steps can't squeeze between two blocked cells;
                     if (dx != 0 && dy != 0 && (!IsFree(x + dx, y, from, to) || !IsFree(x, y + dy, from, to))) continue;
 
-                    float step = 1 + usedCost[ny * columns + nx] + outsideCost[ny * columns + nx] + (turn == 1 ? (float)TurnCost45 : turn == 2 ? (float)TurnCost90 : 0);
+                    int level = levelAt[ny * columns + nx];
+                    float foreign = level >= 0 && level != fromLevel && level != toLevel ? (float)ForeignLevelCost : 0;
+                    float step = 1 + usedCost[ny * columns + nx] + outsideCost[ny * columns + nx] + foreign + (turn == 1 ? (float)TurnCost45 : turn == 2 ? (float)TurnCost90 : 0);
                     int next = (ny * columns + nx) * 9 + d;
                     float total = current + step;
 
