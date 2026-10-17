@@ -485,6 +485,8 @@ namespace KatAMInternal
         public GenerationOptions ConsumablesGenerationType { get; set; }
         public GenerationOptions MirrorShardsGenerationType { get; set; }
         public int amountOfMirrorShardsToAdd = 0;
+        // The added mirror shards are put in small chests ("ROM Expansion/chest.c", KatAMExpansion.AddShardChests);
+        public bool MirrorShardsInChests { get; set; } = true;
         public GenerationOptions ChestsGenerationType { get; set; }
         public GenerationOptions ChestsPropertiesType { get; set; }
         public bool isAddingMoreHPUps { get; set; }

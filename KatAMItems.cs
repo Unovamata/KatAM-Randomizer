@@ -103,7 +103,12 @@ namespace KatAMRandomizer
             return true;
         }
 
-        // ShuffleMirrorShard(); Take an entity and convert it to a mirror shard;
+        /* Mirror shards in chests ("ROM Expansion/chest.c", KatAMExpansion.AddShardChests): a small chest holding ShardChest + n holds
+         * mirror shard n; its treasure index is ShardChestIndex + n, where HasChest reads gTreasures' shard bits, so it's open once
+         * shard n is owned; */
+        public const byte ShardChest = 0x40, ShardChestIndex = 0x80;
+
+        // ShuffleMirrorShard(); Take an entity and convert it to a mirror shard, or a chest holding it (Settings.MirrorShardsInChests);
         void ShuffleMirrorShards(byte currentShardBehaviour) {
             if (currentShardBehaviour >= 8) return;
 
@@ -115,6 +120,14 @@ namespace KatAMRandomizer
             mirrorShard.Name = "Mirror Shard";
             mirrorShard.ID = 0x65; // Mirror shard;
             mirrorShard.Behavior = currentShardBehaviour; // 0x0 - 0x7 behaviors = collectable shards;
+
+            if (Settings.MirrorShardsInChests) {
+                mirrorShard.ID = 0x80; // Small chest (big chests fall off the level);
+                mirrorShard.Behavior = (byte)(ShardChest + currentShardBehaviour);
+                mirrorShard.Speed = 0;
+                mirrorShard.Properties = new byte[oldEntity.Properties.Length];
+                mirrorShard.Properties[0] = (byte)(ShardChestIndex + currentShardBehaviour);
+            }
 
             //Console.WriteLine($"{currentShardBehaviour}");
 
@@ -151,6 +164,7 @@ namespace KatAMRandomizer
             // Big chest with switch parameter, mirror, or big switch (unlocks the hub mirrors to an area);
             bool isProgressionObject = (entity.ID == 0x81 && behavior == 0x63) || 
                                        (entity.ID == 0x65) ||
+                                       (entity.ID == 0x80 && behavior >= ShardChest && behavior < ShardChest + 8) || // Mirror shard chests;
                                        Utils.IsBigSwitch(entity);
 
             return isProgressionObject;

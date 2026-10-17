@@ -219,6 +219,7 @@ namespace KatAMRandomizer
             if (chestTreasures.TryGetValue(behavior, out string treasure)) return treasure;
             if (behavior >= 0x10 && behavior <= 0x21) return "Spray Paint";
             if (behavior >= 0x28 && behavior <= 0x2F) return "Sound Player Track";
+            if (behavior >= KatAMItems.ShardChest && behavior < KatAMItems.ShardChest + 8) return $"Mirror Shard #{behavior - KatAMItems.ShardChest + 1}";
 
             return $"0x{behavior:X2}";
         }

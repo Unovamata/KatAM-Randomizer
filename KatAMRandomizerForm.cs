@@ -178,7 +178,14 @@ namespace KatAMRandomizer
             // ROM Expansion rooms: Central Circle's mirror to them, now that the randomizer is done with its room;
             KatAMExpansion.FinishRooms(Processing.ROMData);
 
-            // Reduce flashing, last: it puts the expansion's code in when no NiDL ROM did;
+            // Mirror shards in chests, then Reduce flashing, last: they put the expansion's code in when no NiDL ROM did;
+            if (settings.MirrorShardsInChests && settings.amountOfMirrorShardsToAdd > 0) {
+                byte[] chests = Processing.ROMData;
+                string chestsError = KatAMExpansion.AddShardChests(ref chests);
+                if (chestsError == null) Processing.ROMData = chests;
+                else MessageBox.Show(chestsError, "Mirror shards in chests", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+
             if (settings.ReduceFlashing) {
                 byte[] calmed = Processing.ROMData;
                 string flashingError = KatAMExpansion.ReduceFlashing(ref calmed);
@@ -417,6 +424,11 @@ namespace KatAMRandomizer
 
         private void TrackBarMirrorShardsAmount_Scroll(object sender, EventArgs e) {
             settings.amountOfMirrorShardsToAdd = TrackBarMirrorShardsAmount.Value;
+        }
+
+        // CheckboxMirrorShardsInChests_CheckedChanged(); The added shards in small chests (KatAMExpansion.AddShardChests);
+        private void CheckboxMirrorShardsInChests_CheckedChanged(object sender, EventArgs e) {
+            settings.MirrorShardsInChests = CheckboxMirrorShardsInChests.Checked;
         }
 
         // Chests;

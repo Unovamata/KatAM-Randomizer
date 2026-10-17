@@ -38,6 +38,7 @@
             CheckboxOptionsSpoilerLog = new CheckBox();
             CheckboxOptionsTitleParade = new CheckBox();
             CheckboxOptionsReduceFlashing = new CheckBox();
+            CheckboxMirrorShardsInChests = new CheckBox();
             LabelSeed = new Label();
             GroupRomInfo = new GroupBox();
             LabelStability = new Label();
@@ -1092,6 +1093,7 @@
             GroupConsumablesMirrorShards.Controls.Add(GroupMirrorShardsAmount);
             GroupConsumablesMirrorShards.Controls.Add(RadioMirrorShardsCustom);
             GroupConsumablesMirrorShards.Controls.Add(RadioMirrorShardsUnchanged);
+            GroupConsumablesMirrorShards.Controls.Add(CheckboxMirrorShardsInChests);
             GroupConsumablesMirrorShards.Enabled = false;
             GroupConsumablesMirrorShards.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
             GroupConsumablesMirrorShards.Location = new Point(259, 20);
@@ -1115,6 +1117,21 @@
             RadioMirrorShardsRandom.Text = "Random";
             RadioMirrorShardsRandom.UseVisualStyleBackColor = true;
             RadioMirrorShardsRandom.CheckedChanged += RadioMirrorShardsRandom_CheckedChanged;
+            // 
+            // CheckboxMirrorShardsInChests
+            // 
+            CheckboxMirrorShardsInChests.AutoSize = true;
+            CheckboxMirrorShardsInChests.Checked = true;
+            CheckboxMirrorShardsInChests.CheckState = CheckState.Checked;
+            CheckboxMirrorShardsInChests.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            CheckboxMirrorShardsInChests.Location = new Point(14, 350);
+            CheckboxMirrorShardsInChests.Margin = new Padding(4, 5, 4, 5);
+            CheckboxMirrorShardsInChests.Name = "CheckboxMirrorShardsInChests";
+            CheckboxMirrorShardsInChests.Size = new Size(170, 29);
+            CheckboxMirrorShardsInChests.TabIndex = 5;
+            CheckboxMirrorShardsInChests.Text = "Put them in chests";
+            CheckboxMirrorShardsInChests.UseVisualStyleBackColor = true;
+            CheckboxMirrorShardsInChests.CheckedChanged += CheckboxMirrorShardsInChests_CheckedChanged;
             // 
             // GroupMirrorShardsAmount
             // 
@@ -3238,6 +3255,7 @@
         private CheckBox CheckboxOptionsSpoilerLog;
         private CheckBox CheckboxOptionsTitleParade;
         private CheckBox CheckboxOptionsReduceFlashing;
+        private CheckBox CheckboxMirrorShardsInChests;
         private Label LabelStability;
         private Label LabelCompatibility;
         private TabPage tabPage6;
