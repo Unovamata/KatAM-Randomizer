@@ -198,7 +198,7 @@ namespace KatAMRandomizer {
 
         /* Shown(); Whether the camera shows a whole mirror on a room's row: it's 2 cells tall, on its cell and the one above, and KatAM's
          * camera shows from 8 pixels below a room's top to 40 above its bottom (rows MirrorTop to FullHeight - 4); */
-        const int MirrorTop = 2, MirrorSpacing = 4, ReturnReach = 10, LayoutSeed = 0x4E49444C, KatAMLinks = 6;
+        const int MirrorTop = 2, MirrorSpacing = 4, ReturnReach = 10, LayoutSeed = 0x4E49444C, KatAMLinks = 3;
         // KatAM's goal games (goal_game_bonus.c: their mirrors, object 0x6F, show as goal mirrors for doors to rooms 0x3D4-0x3DD,
         // mirror_door.c), and where KatAM's goal mirrors land Kirby in them (56, 1176: cells + 1); done, the game takes him to Central
         // Circle;
@@ -938,10 +938,11 @@ namespace KatAMRandomizer {
              * • only the deepest stage's goal leads to the boss stage; the others' goals end their branch, one-way as KatAM's goal mirrors,
              *   in turn: into a goal game (GoalRooms: back to Central Circle after), a stage of a level next to it, a goal game, a room of
              *   the KatAM area paired with the level (KatAMArea());
-             * • loops: doors between rooms of two stages (3 per stage, at least 4; two in three one-way, KatAM's are 40%); a hidden
-             *   two-way one between each level and the next, two two-way ones and five one-way ones with other levels; and KatAMLinks
-             *   between each level and dead ends of its KatAM area (rooms with few doors, far from them), which get mirrors: one one-way
-             *   from NiDL, one one-way into it, the rest two-way, half hidden (behind Mirras, MirraSpots()); */
+             * • loops, few, each for a reason (KatAM connects sparingly: about a loop per 7 rooms): one-way shortcuts home from the
+             *   deepest stages (a third as many as the level has stages), a two-way door between sibling branches (two in big levels);
+             *   a hidden two-way door between each level and the next, one one-way throw into another level; and KatAMLinks between
+             *   each level and dead ends of its KatAM area (rooms with few doors, far from them), which get mirrors: one one-way from
+             *   NiDL, one one-way into it, one two-way hidden behind a Mirra (MirraSpots()); */
             Random random = new Random(LayoutSeed);
             int RoomProps(int room, int field) => ReadShort(rom, symbols["gRoomProps"] + room * 0x28 + field * 2);
             int TableEntry(string table, int index) => ReadInt(rom, symbols[table] + index * 4) - 0x08000000;
@@ -1102,24 +1103,36 @@ namespace KatAMRandomizer {
                     }
                     goals[s] = to ?? StageStart(regular[0]);
                 }
-                for (int i = 0; i < Math.Max(4, 3 * regular.Count) && regular.Count > 1; i++) {
-                    for (int tries = 0; tries < 10; tries++) {
-                        var a = regular[random.Next(regular.Count)];
-                        var b = regular[random.Next(regular.Count)];
-                        if (a == b || parent.GetValueOrDefault(a) == b || parent.GetValueOrDefault(b) == a) continue;
-                        links.Add((a, b, random.Next(2) == 0, random.Next(3) != 0));
-                        break;
-                    }
+                /* Loops, few and each for a reason, as KatAM's (about one per 7 rooms of an area): shortcuts, one-way, from the deepest
+                 * stages back to one at least two branches shallower (else any shallower but its own parent: a way home earned by the
+                 * long way out, as KatAM's mirrors back from a branch's end), at least 2; and a two-way door between sibling branches
+                 * (stages about as deep, through different stages), so two branches meet; */
+                bool Ancestor((int, int) up, (int, int) of) { for (var at = of; parent.TryGetValue(at, out var p); at = p) if (p == up) return true; return false; }
+                List<(int level, int stage)> deepest = regular.OrderByDescending(t => depth[t]).ThenBy(t => t.stage).ToList();
+                for (int i = 0; i < Math.Max(2, regular.Count / 3) && i < deepest.Count; i++) {
+                    var a = deepest[i];
+                    var home = regular.Where(t => depth[t] <= depth[a] - 2).ToList();
+                    if (home.Count == 0) home = regular.Where(t => depth[t] < depth[a] && parent.GetValueOrDefault(a) != t).ToList();
+                    if (home.Count == 0) continue;
+                    links.Add((a, home[random.Next(home.Count)], random.Next(2) == 0, true));
+                }
+                var siblings = (from a in regular from b in regular
+                                where a.stage < b.stage && Math.Abs(depth[a] - depth[b]) <= 1 && depth[a] > 0 && depth[b] > 0 && parent[a] != parent[b] && !Ancestor(a, b) && !Ancestor(b, a)
+                                select (a, b)).ToList();
+                for (int i = 0; i < (regular.Count >= 6 ? 2 : 1) && siblings.Count > 0; i++) {
+                    var (a, b) = siblings[random.Next(siblings.Count)];
+                    siblings.RemoveAll(p => p.a == a || p.b == b || p.a == b || p.b == a);
+                    links.Add((a, b, random.Next(2) == 0, false));
                 }
             }
             for (int level = 0; level < 7; level++) {
                 if (regulars[level].Count == 0) continue;
                 (int, int) Any(int l) => regulars[l][random.Next(regulars[l].Count)];
+                // (between levels: a hidden two-way door to the next, and one one-way throw into another, as KatAM's few mirrors
+                // between areas);
                 if (level + 1 < 7 && regulars[level + 1].Count > 0) links.Add((Any(level), Any(level + 1), true, false));
-                for (int i = 0; i < 7; i++) {
-                    int other = (level + 2 + random.Next(5)) % 7;
-                    if (regulars[other].Count > 0) links.Add((Any(level), Any(other), random.Next(2) == 0, i >= 2));
-                }
+                int other = (level + 2 + random.Next(5)) % 7;
+                if (regulars[other].Count > 0) links.Add((Any(level), Any(other), random.Next(2) == 0, true));
             }
 
             List<((NightmareRoom, int, int) at, (int, int, int) to)> edges = new List<((NightmareRoom, int, int), (int, int, int))>();
@@ -1358,11 +1371,11 @@ namespace KatAMRandomizer {
             for (int link = 0; link < KatAMLinks * 7; link++) {
                 int level = link % 7;
                 if (regulars[level].Count == 0) continue;
-                bool hiddenLink = link / 7 % 2 == 1;
+                bool hiddenLink = link / 7 % KatAMLinks == 2;
                 if (HostSpot(regulars[level][random.Next(regulars[level].Count)], hiddenLink) is not (NightmareRoom, int, int) spot) continue;
                 if (KatAMSpot(KatAMArea(level), true) is not (int room, int x, int y) katam) continue;
-                // (a link of every KatAMLinks one-way: one throwing Kirby from NiDL into KatAM's area, the next from KatAM's into NiDL, as
-                // KatAM's own one-way mirrors throw him across areas; the rest both ways);
+                // (per level: one throwing Kirby one-way from NiDL into KatAM's area, one from KatAM's into NiDL, as KatAM's own one-way
+                // mirrors throw him across areas, and one both ways, hidden, behind a Mirra);
                 int kind = link / 7 % KatAMLinks;
                 if (kind != 1) Add(spot, (katam.room, katam.x + 1, katam.y + 1), oneWay: kind == 0, hidden: hiddenLink);
                 if (kind == 0) continue;
