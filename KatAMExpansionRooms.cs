@@ -271,6 +271,9 @@ namespace KatAMRandomizer {
          *   ................      ####.........###      7
          *   .M...PPPPPP...M.      ####....L....###      8
          *   ################      ################      9 */
+        // FillOverrides; The metatile a level's switch room fills its ground with, where the level's most common one is out of place:
+        // Vegetable Valley's hedge (its checkered dirt, under its raised grass, looked out of place in a room of hedges);
+        static readonly Dictionary<int, int> FillOverrides = new Dictionary<int, int> { [0] = 5 };
         // Neighbours(); A cell's solid neighbours as bits: up, down, left, right, and with diagonals the 4 corners after;
         static int Neighbours(int x, int y, Func<int, int, bool> solid, bool diagonals) {
             (int dx, int dy)[] around = { (0, -1), (0, 1), (-1, 0), (1, 0), (-1, -1), (1, -1), (-1, 1), (1, 1) };
@@ -308,10 +311,11 @@ namespace KatAMRandomizer {
                 // (the first stage's tileset, the level's own look: Vegetable Valley's grass, 28% ground; one mostly sky, under 27%:
                 // Grape Garden's clouds 25%, Yogurt Yard's and Rainbow Resort's skies: instead the one in 2 rooms or more most solid and most
                 // used, its share of ground times the root of its rooms: Grape Garden's castle, Yogurt Yard's purple caves);
-                // (the Fountain of Dreams': King Dedede's arena's, Rainbow Resort's boss stage: the Fountain itself in its background, its
-                // tiles with it);
+                // (the Fountain of Dreams': Grape Garden's clouds, soft and dreamy, under King Dedede's arena's background, the Fountain
+                // itself, below);
                 int dededeStage = rooms.Where(r => r.Level == 6).Max(r => r.Stage);
-                var levelRooms = level == 7 ? rooms.Where(r => r.Level == 6 && r.Stage == dededeStage).ToList() : rooms.Where(r => r.Level == level).ToList();
+                NightmareRoom dedede = rooms.Where(r => r.Level == 6 && r.Stage == dededeStage).OrderBy(r => r.Index).First();
+                var levelRooms = level == 7 ? rooms.Where(r => r.Level == 3 && r.Stage == 0).ToList() : rooms.Where(r => r.Level == level).ToList();
                 NightmareRoom first = levelRooms.OrderBy(r => r.Stage).ThenBy(r => r.Index).First();
                 var tilesets = levelRooms.GroupBy(Tileset).ToList();
                 var chosen = tilesets.First(g => g.Key == Tileset(first));
@@ -358,20 +362,29 @@ namespace KatAMRandomizer {
                     if (!table.TryGetValue(key, out var counts)) table[key] = counts = new Dictionary<int, int>();
                     counts[metatile] = counts.GetValueOrDefault(metatile) + 1;
                 }
+                // (and which metatiles it draws side by side and one above another, so the room keeps to one of its terrains: dirt with
+                // dirt, hedge with hedge; rooms in the switch room's own palette count thrice, their metatiles drawn in its colours);
+                Dictionary<(int, int), int> beside = new Dictionary<(int, int), int>(), under = new Dictionary<(int, int), int>();
                 byte[] nidl = nightmare;
                 foreach (int learnt in levelRooms.Where(r => Enumerable.Range(1, 2).All(k => ReadInt(nidl, r.Record + 0x18 + k * 4) == ReadInt(nidl, source.Record + 0x18 + k * 4)))
                                             .Select(r => r.Record).Distinct()) {
                     byte[] roomCells = DecompressLZ77(nightmare, ReadInt(nightmare, learnt + 8) - 0x08000000);
                     int w = ReadShort(nightmare, learnt + 0x14), h = ReadShort(nightmare, learnt + 0x16);
+                    int weight = ReadInt(nightmare, learnt + 0x18) == ReadInt(nightmare, source.Record + 0x18) ? 3 : 1;
                     byte K(int x, int y) => x < 0 || y < 0 || x >= w || y >= h ? (byte)0x0D : RoomCollision[roomCells[(y * w + x) * 4 + 3]];
+                    int M(int x, int y) => ReadShort(roomCells, (y * w + x) * 4);
                     for (int y = 0; y < h; y++) {
                         for (int x = 0; x < w; x++) {
-                            int metatile = ReadShort(roomCells, (y * w + x) * 4);
-                            if (K(x, y) == 0x0D) {
-                                Count(eight, Neighbours(x, y, (nx, ny) => K(nx, ny) == 0x0D, true), metatile);
-                                Count(four, Neighbours(x, y, (nx, ny) => K(nx, ny) == 0x0D, false), metatile);
-                            } else if (K(x, y) == 0x0E && K(x, y - 1) == 0x00) {
-                                Count(platforms, (K(x - 1, y) == 0x0E ? 1 : 0) | (K(x + 1, y) == 0x0E ? 2 : 0), metatile);
+                            int metatile = M(x, y);
+                            if (x + 1 < w) beside[(metatile, M(x + 1, y))] = beside.GetValueOrDefault((metatile, M(x + 1, y))) + weight;
+                            if (y + 1 < h) under[(metatile, M(x, y + 1))] = under.GetValueOrDefault((metatile, M(x, y + 1))) + weight;
+                            for (int k = 0; k < weight; k++) {
+                                if (K(x, y) == 0x0D) {
+                                    Count(eight, Neighbours(x, y, (nx, ny) => K(nx, ny) == 0x0D, true), metatile);
+                                    Count(four, Neighbours(x, y, (nx, ny) => K(nx, ny) == 0x0D, false), metatile);
+                                } else if (K(x, y) == 0x0E && K(x, y - 1) == 0x00) {
+                                    Count(platforms, (K(x - 1, y) == 0x0E ? 1 : 0) | (K(x + 1, y) == 0x0E ? 2 : 0), metatile);
+                                }
                             }
                         }
                     }
@@ -407,21 +420,66 @@ namespace KatAMRandomizer {
                         }
                     }
                 }
+                /* Then each solid cell again, a few times over: among the metatiles the level commonly draws for its pattern (8
+                 * neighbours, else 4), the one that both fits it (how often) and fits its solid neighbours as they are now (how often the
+                 * level draws them side by side, or one above the other), so neighbouring cells settle on the same terrain; */
+                int Current(int x, int y) => ReadShort(cells, (y * SwitchWidth + x) * 4);
+                /* (one terrain: the fill, the metatile the level draws most inside its ground, 8 solid around, or one chosen by eye where
+                 * that's out of place (FillOverrides: Vegetable Valley's checkered dirt, its hedge instead); every cell inside the ground
+                 * is the fill, and the others choose what sits best by it); */
+                int fill = FillOverrides.TryGetValue(level, out int chosenFill) ? chosenFill : Learned(eight, 0xFF);
+                int Fill(int m) => fill < 0 ? 0 : beside.GetValueOrDefault((m, fill)) + beside.GetValueOrDefault((fill, m)) + under.GetValueOrDefault((m, fill)) + under.GetValueOrDefault((fill, m));
+                for (int y = 0; y < SwitchHeight; y++)
+                    for (int x = 0; x < SwitchWidth; x++)
+                        if (fill >= 0 && Solid(x, y) && !Ledge(x, y) && Neighbours(x, y, Around, true) == 0xFF) WriteShort(cells, (y * SwitchWidth + x) * 4, fill);
+                for (int pass = 0; pass < 4; pass++) {
+                    for (int y = 0; y < SwitchHeight; y++) {
+                        for (int x = 0; x < SwitchWidth; x++) {
+                            if (!Solid(x, y) || Ledge(x, y) || fill >= 0 && Neighbours(x, y, Around, true) == 0xFF) continue;
+                            var fits8 = eight.GetValueOrDefault(Neighbours(x, y, Around, true)) ?? new Dictionary<int, int>();
+                            var fits4 = four.GetValueOrDefault(Neighbours(x, y, Around, false)) ?? new Dictionary<int, int>();
+                            // (the pattern's common ones only: a fifth as often as its most common at least, so no odd one-off comes in;
+                            // fitting the solid neighbours, not the air);
+                            // (8 neighbours' pattern; one the level never draws is the fill, its own terrain, not a guess from the 4's);
+                            if (fits8.Count == 0 && fill >= 0) { WriteShort(cells, (y * SwitchWidth + x) * 4, fill); continue; }
+                            var fits = fits8.Count > 0 ? fits8 : fits4;
+                            if (fits.Count == 0) continue;
+                            int most = fits.Values.Max();
+                            var candidates = fits.Where(c => c.Value * 5 >= most).Select(c => c.Key).ToList();
+                            // (those the level draws by the fill, where there are: no piece of another terrain);
+                            var byFill = fits.Keys.Where(m => Fill(m) > 0).ToList();
+                            if (fill >= 0 && byFill.Count > 0) candidates = candidates.Where(m => Fill(m) > 0).DefaultIfEmpty(byFill.MaxBy(m => fits[m])).ToList();
+                            if (candidates.Count == 0) continue;
+                            double Fit(int m) {
+                                double fit = Math.Log(1 + fits.GetValueOrDefault(m)) + 2 * Math.Log(1 + Fill(m));
+                                if (x > 0 && Solid(x - 1, y)) fit += 1.5 * Math.Log(1 + beside.GetValueOrDefault((Current(x - 1, y), m)));
+                                if (x + 1 < SwitchWidth && Solid(x + 1, y)) fit += 1.5 * Math.Log(1 + beside.GetValueOrDefault((m, Current(x + 1, y))));
+                                if (y > 0 && Solid(x, y - 1)) fit += 1.5 * Math.Log(1 + under.GetValueOrDefault((Current(x, y - 1), m)));
+                                if (y + 1 < SwitchHeight && Solid(x, y + 1)) fit += 1.5 * Math.Log(1 + under.GetValueOrDefault((m, Current(x, y + 1))));
+                                return fit;
+                            }
+                            WriteShort(cells, (y * SwitchWidth + x) * 4, candidates.MaxBy(Fit));
+                        }
+                    }
+                }
 
                 byte[] record = nightmare.Skip(source.Record).Take(0x54).ToArray();
                 // (the Fountain of Dreams': its background framed on the Fountain, as a room a screen high shows only the top of it: rows
                 // 15-34 of King Dedede's arena's, the grass and the Fountain mid-screen, without its sky and the empty rows under it; uncompressed);
                 if (level == 7) {
-                    int map = ReadInt(nightmare, source.Record + 0x30) - 0x08000000, mapWidth = ReadShort(nightmare, map + 2);
+                    Array.Copy(nightmare, dedede.Record + 0x28, record, 0x28, 0x10);
+                    int map = ReadInt(nightmare, dedede.Record + 0x30) - 0x08000000, mapWidth = ReadShort(nightmare, map + 2);
                     bool packed = ReadShort(nightmare, map + 6) == 0xFFFF;
                     byte[] whole = packed ? DecompressLZ77(nightmare, map + 8) : null;
                     const int FirstRow = 15, Rows = 20;
                     byte[] framed = new byte[6 + mapWidth * Rows * 2];
                     WriteShorts(framed, 0, mapWidth * Rows * 2, mapWidth, Rows);
+                    // (2 columns right, the Fountain in the middle of the screen: the camera shows the room's columns 0.5-15.5);
+                    const int Shift = 2;
                     for (int y = 0; y < Rows; y++)
-                        for (int x = 0; x < mapWidth; x++) {
-                            int row = FirstRow + y;
-                            WriteShort(framed, 6 + (y * mapWidth + x) * 2, packed ? ReadShort(whole, (((row >> 5) * ((mapWidth + 31) >> 5) + (x >> 5)) * 1024 + (row & 31) * 32 + (x & 31)) * 2)
+                        for (int column = 0; column < mapWidth; column++) {
+                            int row = FirstRow + y, x = (column - Shift + mapWidth) % mapWidth;
+                            WriteShort(framed, 6 + (y * mapWidth + column) * 2, packed ? ReadShort(whole, (((row >> 5) * ((mapWidth + 31) >> 5) + (x >> 5)) * 1024 + (row & 31) * 32 + (x & 31)) * 2)
                                                                                 : ReadShort(nightmare, map + 6 + (row * mapWidth + x) * 2));
                         }
                     WriteInt(record, 0x30, Put(framed) + 0x08000000);
