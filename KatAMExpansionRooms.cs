@@ -106,16 +106,30 @@ namespace KatAMRandomizer {
         static readonly int[] LevelLinks = { 0x316, 0xBE, Nidl(6), 0x122, 0x250, 0xBF, Hub, 0xBF };
         /* KatAMLinkDoors: where, in the KatAM mini hub a level's mirror leads to, its way back stands, and where Kirby lands (as KatAM's
          * paths: both rooms get a mirror once the big switch is pressed): a door (object 0x97, the level's slot, in the level's design;
-         * FinishRooms()) as KatAM's hub doors, on the top row (0x316 and 0xBE left, their left statue moved aside: DecorationMoves; 0x122
-         * in the middle, Kirby landing on the floor, off its big switch) or on the lower floor (0x250, 0xBF, beside their own); Butter
-         * Building's leads to Rainbow Resort's switch room, onto its SwitchLinkDoor; */
+         * FinishRooms()) as KatAM's hub doors, on the top row (0x316 and 0xBE left; 0x122 in the middle, Kirby landing on the floor, off
+         * its big switch) or on the lower floor (0x250, 0xBF, beside their own); Butter Building's leads to Rainbow Resort's switch room,
+         * onto its SwitchLinkDoor. The top rows stay symmetric, as KatAM's own (0x122: doors at cells 3 and 12, statues between):
+         * 0x316 and 0xBE take 0x122's layout, Central Circle's door moving from the middle to cell 12 (MovedDoors: where it leads stays,
+         * and the doors landing on it land on it there) and their statues between (DecorationMoves); 0x122's door stands in the
+         * middle of the room (DoorDrawX: its cell 8, drawn at x 128, between its statues). 0x250's lower floor takes 0xBF's: its own
+         * door (to Mustard Mountain's hub) moves from under its big switch to cell 11, the level's at cell 5; */
         static readonly ((int x, int y) door, (int x, int y) landing)[] KatAMLinkDoors = {
             ((3, 3), (3, 3)), ((3, 3), (3, 3)), ((0, 0), (0, 0)), ((8, 3), (4, 8)), ((5, 8), (5, 8)), ((5, 8), (5, 8)), ((0, 0), (0, 0)), ((11, 8), (11, 8)),
         };
-        static readonly Dictionary<int, (byte type, int fromX, int toX)> DecorationMoves = new Dictionary<int, (byte, int, int)> {
-            [0x316] = (0x92, 64, 96), [0xBE] = (0x92, 64, 96),
+        static readonly Dictionary<int, (byte type, int fromX, int toX)[]> DecorationMoves = new Dictionary<int, (byte, int, int)[]> {
+            [0x316] = new[] { ((byte)0x92, 64, 96), ((byte)0x92, 200, 160) }, [0xBE] = new[] { ((byte)0x92, 64, 96), ((byte)0x92, 200, 160) },
         };
-        static readonly int[] NidlDesigns = { 11, 3, 13, 7, 5, 2, 6, 1 };
+        static readonly Dictionary<int, (int x, int y, int toX, int toY)> MovedDoors = new Dictionary<int, (int, int, int, int)> {
+            [0x316] = (8, 3, 12, 3), [0xBE] = (8, 3, 12, 3), [0x250] = (8, 8, 11, 8),
+        };
+        // (the rooms whose doors land on a moved door, so FinishRooms() moves their landings too: Central Circle's, Mustard Mountain's hub);
+        static readonly int[] LandingRooms = { 0x321, 0x2B2 };
+        static readonly Dictionary<int, int> DoorDrawX = new Dictionary<int, int> { [0x122] = 128 };
+        // LandsOn(); Whether a landing (x, y: Kirby at x * 16 - 8, y * 16 - 7) is on a moved door (within a cell: KatAM's hub doors land
+        // Kirby on their cell, 9, 3 on 8, 3, or beside it, 8, 8 on 8, 8); it moves with it;
+        static bool LandsOn(int x, int y, (int x, int y, int toX, int toY) door) => Math.Abs(x - 1 - door.x) <= 1 && Math.Abs(y - 1 - door.y) <= 1;
+        // (and none the KatAM rooms its doors stand in have: Yogurt Yard's, in 0x250 beside its door to Mustard Mountain's hub, 5, isn't);
+        static readonly int[] NidlDesigns = { 11, 3, 5, 7, 13, 2, 6, 1 };
         static readonly Dictionary<int, int> KatAMDesigns = new Dictionary<int, int> {
             [0x316] = 14, [0x2B2] = 5, [0x24F] = 7, [0xC1] = 13, [0x123] = 6, [0x37A] = 11, [0x186] = 2, [0x122] = 15, [0xC0] = 8, [0xC2] = 10,
             [0x250] = 4, [0xBF] = 12, [0x24E] = 16, [0x1EA] = 0, [0xBE] = 9,
@@ -125,9 +139,9 @@ namespace KatAMRandomizer {
         const byte BigSwitchType = 0x86, HubMirrorType = 0x8C;
 
         /* Switch rooms: a level's entry, as KatAM's switch rooms (0x24F, 0x316, 0xC1...: one screen walled on top, a pedestal in the
-         * middle with the big switch on it, a mirror on each side's floor) in the level's tiles (see BuildSwitchRooms()): its floor
-         * mirror (SwitchSides' first) is the way in and out, both ways with a spot hidden in the level (PlanDoors(), SecretSpot(): as
-         * KatAM's, found by exploring, not on the way); its 2 hub doors, as KatAM's rooms with 2 (LayoutB()), show once its big switch is pressed: SwitchLinkDoor to
+         * middle with the big switch on it, a mirror on each side's floor) in the level's tiles (see BuildSwitchRooms()): its left
+         * floor mirror (SwitchSides' first) is the way in and out, both ways with a spot hidden in the level (PlanDoors(), SecretSpot():
+         * as KatAM's, found by exploring, not on the way); its right one leads one-way to the start of the level's stage before its boss; its 2 hub doors, as KatAM's rooms with 2 (LayoutB()), show once its big switch is pressed: SwitchLinkDoor to
          * where LevelLinks says, SwitchHubDoor back to the NiDL hub (as KatAM's mini hubs' to Central Circle; Kirby arrives on it from
          * the hub; Rainbow Resort's link is the hub's, so there, and its SwitchLinkDoor leads back to Butter Building's); Kirby starts
          * at SwitchArrival; */
@@ -542,6 +556,7 @@ namespace KatAMRandomizer {
                 (EntryRoom, 0, -1, 0, new List<Door> { new Door(EntryX, EntryY, firstStart.room, firstStart.x, firstStart.y, firstFacing) })
             };
             foreach (var (room, list) in katamDoors) edited.Add((room, 0, 0, 0, list));
+            foreach (int room in LandingRooms.Where(r => r != EntryRoom && !katamDoors.ContainsKey(r))) edited.Add((room, 0, 0, 0, new List<Door>()));
             for (int i = 0; i < edited.Count; i++) {
                 int room = edited[i].room, solidity = tableSizes[13] + solidities.Count, objectList = -1;
                 solidities.Add(Entry("gSolidityMaps", Props(room, 13)) + 0x08000000);
@@ -1046,6 +1061,7 @@ namespace KatAMRandomizer {
             Dictionary<(int level, int stage), (int room, int x, int y)> goals = new Dictionary<(int, int), (int, int, int)>();
             HashSet<(int level, int stage)> oneWayGoals = new HashSet<(int, int)>();
             List<List<(int level, int stage)>> regulars = new List<List<(int, int)>>();
+            Dictionary<int, (int level, int stage)> gates = new Dictionary<int, (int, int)>();
             for (int level = 0; level < 7; level++) {
                 List<(int level, int stage)> regular = stages.Where(t => t.level == level && !IsBossStage(t)).OrderBy(t => t.stage).ToList();
                 regulars.Add(regular);
@@ -1062,6 +1078,7 @@ namespace KatAMRandomizer {
                     children[s] = 0;
                 }
                 var gate = depth.Keys.OrderByDescending(p => depth[p]).ThenByDescending(p => p.Item2).First();
+                gates[level] = gate;
                 int ends = 0;
                 foreach (var s in regular) {
                     if (s == gate) { goals[s] = StageStart(boss); continue; }
@@ -1286,6 +1303,9 @@ namespace KatAMRandomizer {
                 secretRooms.Add(secret.part);
                 Add(secret, Target((switchRoom, sides[0].x, sides[0].y)), hidden: true);
                 Add((switchRoom, sides[0].x, sides[0].y), Target(secret));
+                // and its other side's (as KatAM's switch rooms have one on each side), one-way back into the level: to the start of
+                // the stage leading to its boss (the Fountain of Dreams', Rainbow Resort's), a shortcut earned by finding the room;
+                if (gates.TryGetValue(level < 7 ? level : 6, out var gate)) Add((switchRoom, sides[1].x, sides[1].y), StageStart(gate), oneWay: true);
 
                 // Its hub doors (2, see LayoutB()): the mirror its big switch reveals (SwitchLinkDoor; Rainbow Resort's, to the hub, is its
                 // SwitchHubDoor), and its way back on where it leads (KatAMLinkDoors; Butter Building's on Rainbow Resort's SwitchLinkDoor);
@@ -1446,8 +1466,18 @@ namespace KatAMRandomizer {
                 int solidity = ReadInt(rom, edited.SolidityEntry) - 0x08000000;
                 byte[] collision = DecompressRL(rom, ReadInt(rom, solidity) - 0x08000000);
                 List<byte> specials = new List<byte>();
-                for (int at = ReadInt(rom, solidity + 4) - 0x08000000; rom[at + 4] != 0; at += rom[at + 4])
-                    specials.AddRange(rom.Skip(at).Take(rom[at + 4]));
+                for (int at = ReadInt(rom, solidity + 4) - 0x08000000; rom[at + 4] != 0; at += rom[at + 4]) {
+                    byte[] record = rom.Skip(at).Take(rom[at + 4]).ToArray();
+                    // (a moved door, MovedDoors: its records at its new cell; a door landing on it, there);
+                    if (MovedDoors.TryGetValue(edited.Room, out var moved) && record[2] == moved.x && record[3] == moved.y) { record[2] = (byte)moved.toX; record[3] = (byte)moved.toY; }
+                    if (record[0] == 3 && record.Length >= 12 && MovedDoors.TryGetValue(ReadShort(record, 8), out var landing) && LandsOn(record[10], record[11], landing)) {
+                        record[10] += (byte)(landing.toX - landing.x); record[11] += (byte)(landing.toY - landing.y);
+                    }
+                    specials.AddRange(record);
+                }
+                if (MovedDoors.TryGetValue(edited.Room, out var move)) {
+                    (collision[move.y * width + move.x], collision[move.toY * width + move.toX]) = (collision[move.toY * width + move.toX], collision[move.y * width + move.x]);
+                }
                 foreach (Door door in edited.Doors) {
                     specials.AddRange(DoorRecord(door, 0xFF));
                     if (door.Slot == 0) { collision[door.Y * width + door.X] = 0xFF; continue; }
@@ -1468,11 +1498,19 @@ namespace KatAMRandomizer {
                     int list = ReadInt(rom, edited.ObjectsEntry) - 0x08000000;
                     List<byte[]> templates = new List<byte[]>();
                     for (int at = ReadInt(rom, list) - 0x08000000; rom[at] != 0 || rom[at + 1] != 0; at += 36) templates.Add(rom.Skip(at).Take(36).ToArray());
-                    if (DecorationMoves.TryGetValue(edited.Room, out var move))
-                        foreach (byte[] template in templates.Where(t => t[12] == move.type && ReadShort(t, 6) == move.fromX)) WriteShort(template, 6, move.toX);
+                    if (DecorationMoves.TryGetValue(edited.Room, out var moves))
+                        foreach (var decoration in moves)
+                            foreach (byte[] template in templates.Where(t => t[12] == decoration.type && ReadShort(t, 6) == decoration.fromX)) WriteShort(template, 6, decoration.toX);
+                    if (MovedDoors.TryGetValue(edited.Room, out var door97))
+                        foreach (byte[] template in templates.Where(t => t[12] == DoorToHubType && ReadShort(t, 6) == door97.x * 16 + 8 && ReadShort(t, 8) == (door97.y + 1) * 16))
+                            WriteShorts(template, 6, door97.toX * 16 + 8, (door97.toY + 1) * 16);
                     List<byte> types = new List<byte>();
                     for (int i = 0, at = ReadInt(rom, list + 4) - 0x08000000; i < rom[list + 12]; i++) types.Add(rom[at + i]);
-                    foreach (Door door in edited.Doors.Where(d => d.Slot != 0)) templates.Add(DoorToHubTemplate(door.X, door.Y, templates.Count, door.Slot, door.Design));
+                    foreach (Door door in edited.Doors.Where(d => d.Slot != 0)) {
+                        byte[] template = DoorToHubTemplate(door.X, door.Y, templates.Count, door.Slot, door.Design);
+                        if (DoorDrawX.TryGetValue(edited.Room, out int drawX)) WriteShort(template, 6, drawX);
+                        templates.Add(template);
+                    }
                     if (!types.Contains(DoorToHubType)) types.Add(DoorToHubType);
                     // (the mirrors to NiDL's levels, always there: KatAM's mirror object, as the ported rooms');
                     foreach (Door door in edited.Doors.Where(d => d.Slot == 0 && !d.Edge && edited.Room != EntryRoom)) templates.Add(MirrorTemplate(door.X, door.Y, templates.Count));
@@ -1484,7 +1522,13 @@ namespace KatAMRandomizer {
                 // 9ROM: its doors list with the new doors, before the list's end (its door count stays: the map doesn't count them);
                 int doorsInfo = ReadInt(rom, edited.DoorsEntry) - 0x08000000;
                 List<byte> nineROM = new List<byte>();
-                for (int at = ReadInt(rom, doorsInfo) - 0x08000000; rom[at + 1] != 0; at += rom[at + 1]) nineROM.AddRange(rom.Skip(at).Take(rom[at + 1]));
+                for (int at = ReadInt(rom, doorsInfo) - 0x08000000; rom[at + 1] != 0; at += rom[at + 1]) {
+                    byte[] entry = rom.Skip(at).Take(rom[at + 1]).ToArray();
+                    if (entry[0] == 2 && entry.Length >= 8 && MovedDoors.TryGetValue(ReadShort(entry, 4), out var landing) && LandsOn(entry[6], entry[7], landing)) {
+                        entry[6] += (byte)(landing.toX - landing.x); entry[7] += (byte)(landing.toY - landing.y);
+                    }
+                    nineROM.AddRange(entry);
+                }
                 foreach (Door door in edited.Doors) nineROM.AddRange(NineROMEntry(door.Room, door.DestX, door.DestY));
                 nineROM.AddRange(new byte[] { 0, 0, 0xFF, 0xFF });
                 int nineROMAt = Allocate(ref cursor, nineROM.Count, 4), newDoorsInfo = Allocate(ref cursor, 8, 4);
