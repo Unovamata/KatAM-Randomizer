@@ -279,7 +279,8 @@ namespace KatAMRandomizer {
         static readonly int[] ModelRanks = { 0, 0, 0, 0, 4, 0, 0, 0 };
         /* SwitchDesigns; Switch rooms picked by eye, kept as they are whatever BuildSwitchRooms() would draw now: per level, the left
          * half's metatiles, row by row (~: flipped left to right, ^: upside down, @: both), the right half its mirror image; the same
-         * metatiles in every region (NiDL's tilesets are); Rainbow Resort's in its Game Boy tiles (SwitchLook), after its last stage's fifth room;
+         * metatiles in every region (NiDL's tilesets are); Rainbow Resort's in its Game Boy tiles (SwitchLook), after its last stage's fifth room, its floor (flower
+         * grass) after the mix of all its rooms;
          * Grape Garden's after its second stage's fifth room, no ledges (NoLedges); the Fountain of
          * Dreams' in FountainLook's castle, the castle's circle pillars as its walls'
          * inner faces; Butter Building's after its sixth stage's eighth room, its floor after its first stage's
@@ -299,10 +300,10 @@ namespace KatAMRandomizer {
                 "~0ED 0F1 01E 01E 01E 01E 01E 01E",
                 "01E 01E 01E 01E 01E 01E 01E 01E",
                 "01E 01E 01E 01E 01E 01E 01E 01E",
-                "01E 01E 01E 01E 01E 0C2 ~0C3 ~0C3",
-                "~0C3 ~0C3 ~0C3 ~0C3 0C7 ~0C5 ~0C5 ~0C5",
-                "~0C5 ~0C5 ~0C5 ~0C5 ~163 ~0C6 ~0C6 ~0C6",
-                "~0C6 ~0C6 ~0C6 ~0C6 ~163 ~163 ~163 ~163",
+                "01E 01E 01E 01E 01E ~002 ~004 ~004",
+                "~004 ~004 ~004 ~004 ~004 ~02E ~005 ~005",
+                "~005 ~005 ~005 ~005 ~005 ~02F ~005 ~005",
+                "~02E ~02E ~02E ~02E ~02E ~035 ~02E ~02E",
             },
             [7] = new[] {
                 "001 090 00B 00A 00B 00A 00B 00A",
@@ -418,10 +419,10 @@ namespace KatAMRandomizer {
                 "3 2 *14C/*14B/*0EC/*14B/*14C",
                 "12 3 *14F/*146/*146/*0F7/*0F8/*300",
             },
-            // (Rainbow Resort's: the Game Boy forest of its last stage's second room behind it (its columns 6-21, rows 1-8: canopy,
-            // trunks, tall grass along the floor), its left tree left out);
+            // (Rainbow Resort's: the Game Boy forest of its last stage's second room behind it (its columns 6-21: canopy and trunks),
+            // its left tree left out, its tall grass standing on the floor, the trunks down to it);
             [6] = new[] {
-                "0 1 038 038 05B 05C 038 05C 038 061 038 05E 05A 038 05D 05A 060 038/05A 038 05E 05A 038 038 05D 060 038 05B 038 061 05E 05E 05E 05F/03C 03E 042 038 03C 042 05E 05E 05E 05A 05B 05C 053 03C 042 038/04E 04E 04E 03E 04E 04E 042 03C 042 053 05E 03C 03F 041 04E 042/03F 041 04E 04E 04E 041 04E 03F 041 04E 03E 052 047 048 052 04E/01E 01E 040 01E 01E 018 040 01E 017 041 04F 01E 047 048 01E 041/054 054 054 054 054 054 054 054 054 054 055 054 047 048 054 054/059 059 059 059 059 059 059 059 059 059 04C 059 047 048 059 059",
+                "0 1 038 038 05B 05C 038 05C 038 061 038 05E 05A 038 05D 05A 060 038/05A 038 05E 05A 038 038 05D 060 038 05B 038 061 05E 05E 05E 05F/03C 03E 042 038 03C 042 05E 05E 05E 05A 05B 05C 053 03C 042 038/04E 04E 04E 03E 04E 04E 042 03C 042 053 05E 03C 03F 041 04E 042/03F 041 04E 04E 04E 041 04E 03F 041 04E 03E 052 047 048 052 04E/01E 01E 040 01E 01E 018 040 01E 017 041 04F 01E 047 048 01E 041/01E 01E 01E 01E 01E 01E 01E 01E 01E 01E 04D 01E 047 048 01E 01E/054 054 054 054 054 054 054 054 054 054 055 054 047 048 054 054",
             },
             // (Grape Garden's: its first stage's castle keep behind the pedestal, from its spire to its walls, its clouds on the side
             // floors, ForeignDecorations; the clouds first, their colours kept, the keep's least used colours sharing the nearest row);
