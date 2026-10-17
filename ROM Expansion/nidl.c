@@ -25,6 +25,7 @@ static const struct NidlEnemy sNidlEnemies[NIDL_ENEMY_COUNT + 1] = {
     [NIDL_COOL_SPOOK] = { CoolSpookInit, CoolSpookStart, 4, NIDL_ABILITY_LIGHT },
     [NIDL_POPPY_BROS_JR] = { PoppyBrosJrInit, PoppyBrosJrStart, 2, 0 },
     [NIDL_GIP] = { GipInit, GipStart, 2, 0 },
+    [NIDL_APPLE] = { AppleInit, AppleStart, 1, 0 },
     [NIDL_ARENA] = { ArenaInit, ArenaStart, 1, 0 },
 };
 
@@ -63,7 +64,7 @@ void NidlAnimate(struct NidlObject *n) {
 // NidlHurtTiles(); The tiles of an enemy's or mini-boss's hurt frame (its type's);
 u32 NidlHurtTiles(struct Object *obj) {
     if (obj->type == NIDL_MINIBOSS_TYPE_3) return NIDL_KNIGHT_HURT_TILES;
-    return NidlIsMiniboss(obj) ? NIDL_MINIBOSS_HURT_TILES : NIDL_HURT_TILES;
+    return NidlIsMiniboss(obj) || NidlIsBoss(obj) ? NIDL_MINIBOSS_HURT_TILES : NIDL_HURT_TILES;
 }
 
 /* NidlUploadHurtTiles(); Copies the enemy's hurt frame (its hurt one, for the mini-bosses with several) into the last NidlHurtTiles
@@ -79,6 +80,7 @@ void NidlUploadHurtTiles(struct NidlObject *n) {
 
 // NidlGraphicsOf(); The graphics of an enemy or mini-boss;
 const struct NidlGraphics *NidlGraphicsOf(struct NidlObject *n) {
+    if (NidlIsBoss(&n->obj)) return &gNidlData.bosses[n->enemy];
     return NidlIsMiniboss(&n->obj) ? &gNidlData.minibosses[n->enemy] : &gNidlData.enemies[n->enemy];
 }
 
@@ -140,6 +142,7 @@ void *CreateNidlEnemy(struct ObjectTemplate *template, u8 playerId) {
     struct NidlObject *n = TaskGetStructPtr(task);
     u8 enemy = template->subtype1 >> 4;
 
+    if (enemy == NIDL_SPECIAL) enemy = (template->subtype1 & 0xF) == 1 ? NIDL_APPLE : NIDL_ARENA;
     if (enemy > NIDL_ARENA) enemy = 0;
 
     InitObject(&n->obj, template, playerId);
@@ -181,6 +184,8 @@ void NidlCopyName(struct Object *obj) {
         name = gNidlData.names + ((struct NidlObject *)obj)->enemy * 0x100;
     else if (NidlIsMiniboss(obj))
         name = gNidlData.minibossNames + ((struct NidlObject *)obj)->enemy * 0x100;
+    else if (NidlIsBoss(obj))
+        name = gNidlData.bossNames + ((struct NidlObject *)obj)->enemy * 0x100;
     else
         name = gUnk_08D60EE4[gLanguage] + obj->type * 0x100;
     CpuSet(name, (void *)0x060077A0, 0x80);

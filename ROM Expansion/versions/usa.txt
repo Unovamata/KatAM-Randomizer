@@ -131,3 +131,4 @@ gUnk_0893CB44 0x893cb44
 UpdateScreenDma 0x8151dc4
 UpdateScreenCpuSet 0x8152178
 sub_0800AFC8 0x800afc8
+gUnk_08350E58 0x8350e58

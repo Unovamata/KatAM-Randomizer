@@ -203,3 +203,6 @@ UpdateScreenCpuSet 0x8152138
 _call_via_r6 0x815a270
 CollectShard 0x8019d8c
 sub_0800AFC8 0x800afc4
+BonusCreateTomatoAt 0x81233dc
+HasShard 0x8019da4
+gUnk_08350E58 0x833562c

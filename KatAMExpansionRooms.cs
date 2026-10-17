@@ -1,4 +1,4 @@
-namespace KatAMRandomizer {
+﻿namespace KatAMRandomizer {
     /* Rooms: every room of Kirby: Nightmare in Dream Land, converted from the player's NiDL ROM into KatAM's free room slots (the
      * rooms whose gRoomProps entry is all 0xFFFF), with their foreground, background, collision, enemies, mini-bosses and items.
      * Doors, big switches, warp stars and bosses aren't ported yet: the rooms aren't reachable from KatAM's map.
@@ -74,8 +74,15 @@ namespace KatAMRandomizer {
             [6] = (0x41, 0x40), [7] = (0x3A, 0),
         };
         static readonly (byte type, byte behavior) RoomMetaKnights = (0x42, 0x50);
-        const int MinibossCategory = 6, MetaKnightsCategory = 7, CameraLockCategory = 5;
-        const byte ArenaBehavior = 0xF0;    // NIDL_ARENA << 4 (nidl.h);
+        const int MinibossCategory = 6, MetaKnightsCategory = 7, CameraLockCategory = 5, BossCategory = 2;
+        const byte ArenaBehavior = 0xF0;    // NIDL_SPECIAL << 4 | 0, the arena (nidl.h);
+        /* NiDL bosses (category 2: 0 King Dedede, 1 Paint Roller, 2 Meta Knight, 3 Heavy Mole, 4 Mr. Shine & Mr. Bright, 5 Whispy Woods,
+         * 6 Kracko, 7 and 8 Nightmare) -> the ported ones (type 0x43, "ROM Expansion/nidl_boss.c"): the boss (NIDL_* bosses), the spot
+         * NiDL's spawn puts it on (-1: the template's), and the middle of its fight's screen from that spot. Its behavior's low nibble is
+         * the mirror shard it leaves: its level's (0-7). The others aren't ported yet: their rooms stay empty, their mirror on; */
+        static readonly Dictionary<int, (byte boss, int x, int y, int screenDx, int screenDy)> RoomBosses = new Dictionary<int, (byte, int, int, int, int)> {
+            [5] = (0, 206, 256, 0, 64),     // Whispy Woods: its face (0x080B2A00), the screen down to the floor under it;
+        };
         // NiDL items (category 3): 1-Up, Maxim Tomato, Invincibility Candy, Energy Drink -> KatAM's 1UP, Maximum Tomato, Lollipop, Pep Brew;
         static readonly Dictionary<int, byte> RoomItems = new Dictionary<int, byte> { [1] = 0x63, [2] = 0x61, [3] = 0x64, [4] = 0x5F };
         // KatAM song per NiDL level (Vegetable Valley ... Rainbow Resort, then the Fountain of Dreams);
@@ -3076,6 +3083,12 @@ namespace KatAMRandomizer {
                     if (MinibossDefinitions.FirstOrDefault(m => m.NightmareIndex == index)?.Behaviors.Contains((byte)(variant & 0xF)) == true)
                         behavior |= (byte)(variant & 0xF);
                     miniboss = true;
+                } else if (category == BossCategory && RoomBosses.TryGetValue(index, out (byte boss, int x, int y, int screenDx, int screenDy) spot)) {
+                    type = BossID;
+                    behavior = (byte)(spot.boss << 4 | r.Level & 7);
+                    if (spot.x >= 0) (x, y) = (spot.x - r.X * 16, spot.y - r.Y * 16);
+                    cameraLock = (x + spot.screenDx, y + spot.screenDy);
+                    miniboss = true;
                 } else if (category == MetaKnightsCategory) {
                     (type, behavior) = RoomMetaKnights;
                     behavior |= (byte)(variant & 0xF);
@@ -3097,7 +3110,7 @@ namespace KatAMRandomizer {
                 template[12] = type; template[14] = behavior;
                 // A mini-boss fights on its screen: the camera stays there once Kirby is in it, as in NiDL;
                 if (miniboss) {
-                    (int left, int top, int width, int height) = ArenaOf(r, cameraLock ?? (x, y), x, y, CameraTop(nightmare, r));
+                    (int left, int top, int width, int height) = ArenaOf(r, cameraLock ?? (x, y), x, y, CameraTop(nightmare, r), type == BossID ? HiddenRows * 16 : 0);
                     WriteShorts(template, 0x1A, left - x, top - y, width, height);
                 }
                 // and the camera stays there, its edges walls, until it's beaten: an arena object ("ROM Expansion/enemies/arena.c"), first,
@@ -3218,15 +3231,21 @@ namespace KatAMRandomizer {
                 if (x < 0 || y < 0 || x >= r.Width * 16 || y >= r.Height * 16) continue;
                 if (category == MinibossCategory && RoomMinibosses.ContainsKey(index) || category == MetaKnightsCategory)
                     arenas.Add(ArenaOf(r, cameraLock ?? (x, y), x, y, CameraTop(nightmare, r)));
+                else if (category == BossCategory && RoomBosses.TryGetValue(index, out (byte boss, int x, int y, int screenDx, int screenDy) spot)) {
+                    if (spot.x >= 0) (x, y) = (spot.x - r.X * 16, spot.y - r.Y * 16);
+                    arenas.Add(ArenaOf(r, (x + spot.screenDx, y + spot.screenDy), x, y, CameraTop(nightmare, r), HiddenRows * 16));
+                }
             }
             return arenas;
         }
 
         /* ArenaOf(); A mini-boss's fight area: the screen around NiDL's camera lock (its x the screen's middle, its y near the top), moved
          * to hold the mini-boss too, inside what KatAM's camera shows of the room (8 pixels in from its sides, cameraTop (CameraTop())
-         * from its top, 40 from its bottom; see Padded()); */
-        static (int left, int top, int width, int height) ArenaOf(NightmareRoom r, (int x, int y) cameraLock, int x, int y, int cameraTop) {
-            const int ScreenWidth = 240, ScreenHeight = 160, Edge = 8, Bottom = 40, Margin = 24;
+         * from its top, 40 from its bottom; see Padded()); a boss's may go `below` more (the room's hidden rows: down to where KatAM's
+         * camera stops, so its floor shows: Whispy Woods'); */
+        static (int left, int top, int width, int height) ArenaOf(NightmareRoom r, (int x, int y) cameraLock, int x, int y, int cameraTop, int below = 0) {
+            const int ScreenWidth = 240, ScreenHeight = 160, Edge = 8, Margin = 24;
+            int Bottom = 40 - below;
             int width = Math.Min(ScreenWidth, r.FullWidth * 16 - 2 * Edge), height = Math.Min(ScreenHeight, r.FullHeight * 16 - Edge - Bottom);
             int left = cameraLock.x - width / 2, top = cameraLock.y - Margin;
             left = Math.Clamp(left, x + Margin - width, x - Margin);
