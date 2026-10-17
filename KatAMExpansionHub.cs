@@ -3,6 +3,8 @@ namespace KatAMRandomizer {
      * • Background: NiDL's final boss background (the Fountain of Dreams' first room's: stars, the pink and cyan nebula, the violet
      *   sky and its galaxies), cut down to 32x36 tiles and quantized to 3 palettes (6-8), one per band of rows (HubBackground);
      * • Palettes: Central Circle's scenery (palettes 4 and 5) tinted to the night (NightTint);
+     * • Mirrors: its golden one (MainHubEntry) to Vegetable Valley's first room, the way in, a pink one (MainHubReturn, MirrorTwin()) back to Central Circle, and
+     *   Central Circle's Dimension Mirror (DimensionMirrorTemplate());
      * • Doors: as Central Circle's, special blocks (kind 1) its hub mirror objects (0x8C) break once their world slot is set, drawing
      *   the door over the 3x3 cells above its door cell (MainHubDoors: Central Circle's own doors' cells). Each level's door is its
      *   design (NidlDesigns: one of KatAM's door frames, anim 0x2C6, over its mirror, anim 0x2C5, as object 0x97 draws them; none of
@@ -38,6 +40,8 @@ namespace KatAMRandomizer {
             int[] colors = new int[96];
             for (int i = 0; i < 96; i++) colors[i] = ReadShort(rom, sourceColors + i * 2) & 0x7FFF;
             for (int i = 4 * 16 + 1; i < 96; i++) if (i % 16 != 0) colors[i] = NightTint(colors[i]);
+            // Its pink mirror back to Central Circle (MainHubReturn), as Central Circle's to here (not in the doors' palettes 0-2);
+            MirrorTwin(map, columns, tiles, colors, Enumerable.Empty<int>(), CycledColors(rom, paletteEntry), 3);
             int[][] doorColors = new int[8][];
             // A pixel of the room's tilemap (RGB555, or -1: transparent);
             int RoomPixel(int x, int y) {
@@ -136,6 +140,13 @@ namespace KatAMRandomizer {
                 }
                 templates.Add(HubMirrorTemplate(door.X, door.Y - 1, templates.Count, door.Slot));
             }
+            List<byte> types = templates.Count > 0 ? new List<byte> { HubMirrorType } : new List<byte>();
+            byte[] dimensionMirror = DimensionMirrorTemplate(rom, symbols);
+            if (dimensionMirror != null) {
+                dimensionMirror[3] = (byte)templates.Count;
+                templates.Add(dimensionMirror);
+                types.Add(ShardType);
+            }
             specials.AddRange(new byte[] { 0, 0, 0, 0, 0, 0, 0xFF, 0xFF });
             int tilemapAt = Allocate(ref cursor, 0x20, 4), mapAt = AllocateCompressed(rom, CompressLZ77(hubMap), ref cursor);
             Array.Copy(rom, tilemapEntry, rom, tilemapAt, 0x20);
@@ -144,16 +155,15 @@ namespace KatAMRandomizer {
             int collisionAt = AllocateCompressed(rom, CompressRL(collision), ref cursor), specialsAt = AllocateCompressed(rom, specials.ToArray(), ref cursor);
             int solidityAt = Allocate(ref cursor, 8, 4);
             WriteInts(rom, solidityAt, collisionAt + 0x08000000, specialsAt + 0x08000000);
-            int objectList = WriteObjectList(rom, templates, templates.Count > 0 ? new List<byte> { HubMirrorType } : new List<byte>(), noTypes, ref cursor);
+            int objectList = WriteObjectList(rom, templates, types, noTypes, ref cursor);
 
             int background = HubBackground(rom, nightmare, backgroundRecord, hub, doorColors, ref cursor);
 
-            /* Props (Central Circle's, with the new entries), its area info (Central Circle's). The background's scroll rates (8.8: unk0E,
-             * unk10): KatAM aligns its bottom with the room's (minus the 40 pixels it hides) and scrolls it by the rate (level.c,
-             * sub_080019F8), so its top shows when the camera is at the room's top with this rate; */
+            // Props (Central Circle's, with the new entries), its area info (Central Circle's); the background spans the room once (BackgroundRates());
             int props = roomProps + hub * 0x28, roomHeight = collision.Length / width * 16, backgroundHeight = ReadShort(rom, background + 2) * 8;
             Array.Copy(rom, roomProps + EntryRoom * 0x28, rom, props, 0x28);
-            WriteShorts(rom, props + 7 * 2, 0x80, Math.Max(0, (backgroundHeight - 160) * 0x100 / (roomHeight - 160)));
+            (int rateX, int rateY) = BackgroundRates(ReadShort(rom, background) * 8, backgroundHeight, width * 16, roomHeight);
+            WriteShorts(rom, props + 7 * 2, rateX, rateY);
             WriteShorts(rom, props + 10 * 2, tableSizes[10] + infos.Count, tableSizes[11] + palettes.Count, tableSizes[12] + tilemaps.Count, tableSizes[13] + solidities.Count);
             WriteShort(rom, props + 15 * 2, tableSizes[15] + backgrounds.Count);
             WriteShort(rom, props + 16 * 2, tableSizes[16] + objects.Count);
@@ -164,10 +174,24 @@ namespace KatAMRandomizer {
             solidities.Add(solidityAt + 0x08000000);
             backgrounds.Add(background + 0x08000000);
             objects.Add(objectList + 0x08000000);
+            // Its CPU helpers' routes: room 0x397's (the Dimension Mirror's: no routes, flags 0x81), as the NiDL rooms' (not Central
+            // Circle's: a helper in the hub would follow Central Circle's routes through doors the hub hasn't, to room 0xFFFF);
             int roomInfo = Allocate(ref cursor, 0x4C, 4);
-            Array.Copy(rom, ReadInt(rom, roomInfos + EntryRoom * 4) - 0x08000000, rom, roomInfo, 0x4C);
+            Array.Copy(rom, ReadInt(rom, roomInfos + 0x397 * 4) - 0x08000000, rom, roomInfo, 0x4C);
             WriteShort(rom, roomInfo + 0x44, hub);
             WriteInt(rom, roomInfos + hub * 4, roomInfo + 0x08000000);
+        }
+
+        /* DimensionMirrorTemplate(); Central Circle's Dimension Mirror: its mirror shard object (0x65) of subtype 8 (shard.c, CreateShard:
+         * the big mirror, whole once the 8 shards are found, and the way to the Dimension Mirror then), copied from its object list, or
+         * null if it's not there; */
+        const byte ShardType = 0x65;
+        static byte[] DimensionMirrorTemplate(byte[] rom, IReadOnlyDictionary<string, int> symbols) {
+            int index = ReadShort(rom, symbols["gRoomProps"] + EntryRoom * 0x28 + 16 * 2);
+            int list = ReadInt(rom, symbols["gLevelObjLists"] + index * 4) - 0x08000000;
+            for (int at = ReadInt(rom, list) - 0x08000000; rom[at] != 0 || rom[at + 1] != 0; at += 36)
+                if (rom[at + 12] == ShardType && rom[at + 14] == 8) return rom.Skip(at).Take(36).ToArray();
+            return null;
         }
 
         /* HubBackground(); The hub's RoomTiledBG (see above): NiDL's background drawn (its palettes 8-15, colors from its palette data;
