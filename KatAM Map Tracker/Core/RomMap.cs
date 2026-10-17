@@ -231,12 +231,14 @@ namespace KatAMMapTracker {
                 (tables[0], tables[1], tables[2], tables[3], tables[4], tables[5], tables[6]);
         }
 
-        /* NightmareStageOf(); A room's NiDL stage and room number (its area entry's +0x48: the stage + 1, 0 none; +0x49 the room number,
-         * written by KatAMExpansionRooms.cs), or -1; */
+        /* NightmareStageOf(); A room's NiDL stage and room number (its area entry's padding, +0x4A: the stage + 1, 0 none; +0x4B the room
+         * number, written by KatAMExpansionRooms.cs; older expanded ROMs had them at +0x48, +0x49, which the game reads), or -1; */
         (int stage, int index) NightmareStageOf(int room) {
             int info = RoomAreaTable < 0 ? -1 : ReadPointer(RoomAreaTable + room * 4);
-            if (info < 0 || info + 0x4A > Rom.Length || Rom[info + 0x48] == 0) return (-1, -1);
-            return (Rom[info + 0x48] - 1, Rom[info + 0x49]);
+            if (info < 0 || info + 0x4C > Rom.Length) return (-1, -1);
+            if (Rom[info + 0x4A] != 0) return (Rom[info + 0x4A] - 1, Rom[info + 0x4B]);
+            if (Rom[info + 0x48] != 0) return (Rom[info + 0x48] - 1, Rom[info + 0x49]);
+            return (-1, -1);
         }
 
         // NightmareLevelOf(); A room's NiDL level (its area - 11), or -1;

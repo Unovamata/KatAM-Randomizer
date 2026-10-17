@@ -413,8 +413,7 @@ namespace KatAMRandomizer {
             int Props(int room, int field) => ReadShort(rom, roomProps + room * 0x28 + field * 2);
             int Entry(string table, int index) => ReadInt(rom, symbols[table] + index * 4) - 0x08000000;
             int paletteCycles = ReadInt(rom, Entry("gForegroundPalettes", Props(0x323, 11)) + 4),        // Unused (no cycles), but read;
-                navigationRoutes = Entry("gUnk_08D63C28", Props(0x3C9, 17)),                                  // Its 4 generic route lists;
-                noRoutes = ReadInt(rom, ReadInt(rom, roomInfos + 0x397 * 4) - 0x08000000);                    // A list with no routes;
+                navigationRoutes = Entry("gUnk_08D63C28", Props(0x3C9, 17));                                  // Its 4 generic route lists;
 
             List<int> infos = new List<int>(), palettes = new List<int>(), tilemaps = new List<int>(), backgrounds = new List<int>(),
                       solidities = new List<int>(), objects = new List<int>(), navigations = new List<int>();
@@ -525,13 +524,17 @@ namespace KatAMRandomizer {
                     objects.Add(BuildObjects(rom, nightmare, r, doors[r], mirras, noTypes, ref cursor) + 0x08000000);
                     navigations.Add(BuildNavigation(rom, r, collision, navigationRoutes, ref cursor) + 0x08000000);
 
-                    // Area and routes (a room of its own, like room 0x397), written into the vanilla table's free entry;
+                    /* Area and CPU helpers' routes (gUnk_08D6CD0C, written into the vanilla table's free entry), as room 0x397's (the
+                     * Dimension Mirror's): no routes (+0, +0x48 their count: 0), flags 0x81 (+0x47: roaming helpers don't go through a
+                     * door into it, and one in it, brought by the phone, heads back where it came from: a helper looking for a way to
+                     * Kirby through rooms the routes don't know got 0xFFFF and loaded that room, jumping into garbage); */
+                    // (all of 0x397's, its own room and area after: free space is 0xFF, and the game reads every byte to +0x49);
                     int roomInfo = Allocate(ref cursor, 0x4C, 4);
-                    WriteInt(rom, roomInfo, noRoutes);
+                    Array.Copy(rom, ReadInt(rom, roomInfos + 0x397 * 4) - 0x08000000, rom, roomInfo, 0x4C);
                     WriteShort(rom, roomInfo + 0x44, r.Room);
                     rom[roomInfo + 0x46] = (byte)r.Area;
-                    // For the Map Tracker (the game never reads +0x48-0x49): the NiDL stage + 1 (9: the switch room) and room number;
-                    rom[roomInfo + 0x48] = (byte)(r.Stage + 1); rom[roomInfo + 0x49] = (byte)r.Index;
+                    // For the Map Tracker (the game never reads the padding, +0x4A-0x4B): the NiDL stage + 1 (9: the switch room) and room number;
+                    rom[roomInfo + 0x4A] = (byte)(r.Stage + 1); rom[roomInfo + 0x4B] = (byte)r.Index;
                     WriteInt(rom, roomInfos + r.Room * 4, roomInfo + 0x08000000);
 
                     // The background spans the room once, both ways (BackgroundRates());

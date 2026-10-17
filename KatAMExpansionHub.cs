@@ -174,8 +174,10 @@ namespace KatAMRandomizer {
             solidities.Add(solidityAt + 0x08000000);
             backgrounds.Add(background + 0x08000000);
             objects.Add(objectList + 0x08000000);
+            // Its CPU helpers' routes: room 0x397's (the Dimension Mirror's: no routes, flags 0x81), as the NiDL rooms' (not Central
+            // Circle's: a helper in the hub would follow Central Circle's routes through doors the hub hasn't, to room 0xFFFF);
             int roomInfo = Allocate(ref cursor, 0x4C, 4);
-            Array.Copy(rom, ReadInt(rom, roomInfos + EntryRoom * 4) - 0x08000000, rom, roomInfo, 0x4C);
+            Array.Copy(rom, ReadInt(rom, roomInfos + 0x397 * 4) - 0x08000000, rom, roomInfo, 0x4C);
             WriteShort(rom, roomInfo + 0x44, hub);
             WriteInt(rom, roomInfos + hub * 4, roomInfo + 0x08000000);
         }
