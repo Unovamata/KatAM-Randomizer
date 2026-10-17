@@ -31,7 +31,9 @@
  * its defeat, explosion and gUnk_08350E58's handler, here NidlBossDefeat: the mirror shard) the same way (see nidl_boss.c), with the
  * mini-bosses' graphics and hurt frame (64x96); */
 #define NIDL_BOSS_TYPE OBJ_EMPTY_43
-#define NidlIsBoss(obj) ((obj)->type == NIDL_BOSS_TYPE)
+// (and type 0x44, OBJ_EMPTY_44, as much a boss to KatAM: the bosses that don't fit in type 0x43's 256 frames, KatAMExpansion.cs's BossTypeOf);
+#define NIDL_BOSS_TYPE_2 OBJ_EMPTY_44
+#define NidlIsBoss(obj) ((obj)->type == NIDL_BOSS_TYPE || (obj)->type == NIDL_BOSS_TYPE_2)
 /* NidlOnFloor(); A mini-boss's spot from its template (NiDL's: the middle of the cell it stands in) on the floor under that cell:
  * its box's bottom (unk3F) on the cell's bottom. The enemies' snap (to the cell edge under the box's bottom) put the big ones
  * (Bugzzy, Mr. Tick-Tock, Fire Lion: bottoms past 23 pixels) a cell lower: in the ground, or through a floor a cell thick; */
@@ -81,6 +83,7 @@ enum {
     NIDL_KRACKO,
     NIDL_SHINE_BRIGHT,
     NIDL_META_KNIGHT,
+    NIDL_PAINT_ROLLER,
     NIDL_BOSS_COUNT,
 };
 
@@ -247,6 +250,8 @@ void ShineBrightInit(struct NidlObject *);
 void ShineBrightStart(struct Object *);
 void MetaKnightInit(struct NidlObject *);
 void MetaKnightStart(struct Object *);
+void PaintRollerInit(struct NidlObject *);
+void PaintRollerStart(struct Object *);
 
 void NidlDestroy(struct Task *);
 bool32 NidlIsMetaKnight(struct ObjectTemplate *);

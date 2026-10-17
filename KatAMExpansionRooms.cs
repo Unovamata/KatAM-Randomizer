@@ -81,6 +81,7 @@
          * NiDL's spawn puts it on (-1: the template's), and the middle of its fight's screen from that spot. Its behavior's low nibble is
          * the mirror shard it leaves: its level's (0-7). The others aren't ported yet: their rooms stay empty, their mirror on; */
         static readonly Dictionary<int, (byte boss, int x, int y, int screenDx, int screenDy)> RoomBosses = new Dictionary<int, (byte, int, int, int, int)> {
+            [1] = (4, -1, -1, 0, 0),        // Paint Roller: the template's (24, 40), his easels (bosses/paint_roller.c) from it;
             [2] = (3, -1, -1, 0, 0),        // Meta Knight: the template's (232, 56), NiDL's ledge (he drops to the floor);
             [4] = (2, -1, -1, 0, 0),        // Mr. Shine & Mr. Bright: the template's (208, 104), on the floor of their one-screen room;
             [5] = (0, 206, 256, 0, 64),     // Whispy Woods: its face (0x080B2A00), the screen down to the floor under it;
@@ -3087,7 +3088,7 @@
                         behavior |= (byte)(variant & 0xF);
                     miniboss = true;
                 } else if (category == BossCategory && RoomBosses.TryGetValue(index, out (byte boss, int x, int y, int screenDx, int screenDy) spot)) {
-                    type = BossID;
+                    type = BossTypeOf(spot.boss);
                     behavior = (byte)(spot.boss << 4 | r.Level & 7);
                     if (spot.x >= 0) (x, y) = (spot.x - r.X * 16, spot.y - r.Y * 16);
                     cameraLock = (x + spot.screenDx, y + spot.screenDy);
@@ -3113,7 +3114,7 @@
                 template[12] = type; template[14] = behavior;
                 // A mini-boss fights on its screen: the camera stays there once Kirby is in it, as in NiDL;
                 if (miniboss) {
-                    (int left, int top, int width, int height) = ArenaOf(r, cameraLock ?? (x, y), x, y, CameraTop(nightmare, r), type == BossID ? HiddenRows * 16 : 0);
+                    (int left, int top, int width, int height) = ArenaOf(r, cameraLock ?? (x, y), x, y, CameraTop(nightmare, r), IsBossType(type) ? HiddenRows * 16 : 0);
                     WriteShorts(template, 0x1A, left - x, top - y, width, height);
                 }
                 // and the camera stays there, its edges walls, until it's beaten: an arena object ("ROM Expansion/enemies/arena.c"), first,

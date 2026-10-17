@@ -1,4 +1,4 @@
-/* NiDL bosses; Object type 0x43 (OBJ_EMPTY_43, which KatAM already treats as a boss everywhere: the boss music, its HP bar, a hit
+/* NiDL bosses; Object types 0x43 and 0x44 (OBJ_EMPTY_43 and 44, which KatAM already treats as a boss everywhere: the boss music, its HP bar, a hit
  * only flashes it, its defeat: it freezes, explodes and goes, then gUnk_08350E58[type - 0x43] runs, here NidlBossDefeat): creates the
  * boss the template's behavior byte asks for (high nibble = boss, NIDL_* in nidl.h; low nibble = the mirror shard it leaves, 0-7),
  * and starts the fight as the mini-bosses do (nidl_miniboss.c): it waits, untouchable, until Kirby is in the template's area (the
@@ -14,6 +14,7 @@ static const struct NidlBoss sNidlBosses[NIDL_BOSS_COUNT] = {
     [NIDL_KRACKO] = { KrackoInit, KrackoStart, 60 },
     [NIDL_SHINE_BRIGHT] = { ShineBrightInit, ShineBrightStart, 60 },
     [NIDL_META_KNIGHT] = { MetaKnightInit, MetaKnightStart, 60 },
+    [NIDL_PAINT_ROLLER] = { PaintRollerInit, PaintRollerStart, 60 },
 };
 
 // Where a boss leaves its shard: the middle of its screen (the camera's, KatAM's 240x160), a little up;

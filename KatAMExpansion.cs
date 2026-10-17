@@ -102,14 +102,22 @@ namespace KatAMRandomizer {
         /* Bosses (object type 0x43, see "ROM Expansion/nidl_boss.c"): Miniboss records too (their index is NIDL_* bosses in nidl.h), built
          * the same way (BigHurt), kept out of the mini-boss options; */
         public const byte BossID = 0x43;
+        /* Type 0x44 (OBJ_EMPTY_44, a boss to KatAM as 0x43 is) takes the bosses that don't fit in type 0x43's 256 frames (an object's
+         * frame index is a byte); */
+        public const byte BossID2 = 0x44;
+        static readonly byte[] BossIDs = { BossID, BossID2 };
+        public static bool IsBossType(byte type) => BossIDs.Contains(type);
+        // BossTypeOf(); The object type of a boss (NIDL_* bosses);
+        public static byte BossTypeOf(int boss) => BossDefinitions.FirstOrDefault(b => b.Index == boss)?.Type ?? BossID;
         static readonly List<Miniboss> BossDefinitions = new List<Miniboss> {
             WhispyWoods(),
             Kracko(),
             ShineAndBright(),
             MetaKnight(),
+            PaintRoller(),
         };
         static List<Miniboss> AllBosses => MinibossDefinitions.Concat(BossDefinitions).ToList();
-        static IEnumerable<byte> BossTypes => MinibossIDs.Append(BossID);
+        static IEnumerable<byte> BossTypes => MinibossIDs.Concat(BossIDs);
 
         public static readonly IReadOnlyList<(int index, string name)> Minibosses;
 
@@ -293,6 +301,23 @@ namespace KatAMRandomizer {
                     (0x1A, 5), (0x1A, 6), (0x1A, 7), (0x1A, 8), (0x1A, 9), (0x1A, 10),             // "Knight" (Sword Knight);
                 },
                 new byte[0], Type: BossID);
+        }
+
+        /* Paint Roller; NiDL boss 1 (type 0x3C, Ice Cream Island's). His frames are streamed frames with two palettes each (0x08753994),
+         * cut by palette (OnlyPalette): 0-40 the first palette's pieces, 41-81 the second's (bosses/paint_roller.c draws them as two
+         * sprites). Type 0x44 (BossID2: type 0x43's frames are full). Hurt: standing (0), its first palette's pieces; */
+        static Miniboss PaintRoller() {
+            List<Part[]> frames = new List<Part[]>();
+
+            for (int palette = 0; palette < 2; palette++)
+                frames.AddRange(Enumerable.Range(0, 41).Select(f => new[] { new Part(f, OnlyPalette: palette) }));
+
+            return new Miniboss(4, "Paint Roller", 31, 0x753994, frames, new[] { new Part(0, OnlyPalette: 0) },
+                new[] {
+                    (0x16, 0), (0x2D, 1), (0x26, 4), (0x26, 5), (0x23, 4), (-1, -1),               // "P" (Pengy), "a" (Batty), "in" (Cookin), "t" (Shooty), space;
+                    (0x17, 0), (0x1E, 1), (0x02, 1), (0x02, 1), (0x02, 5), (0x01, 1),              // "R" (Rocky), "o" (Noddy), "ll" (Blipper), "e", "r" (Bronto Burt);
+                },
+                new byte[0], Type: BossID2);
         }
 
         /* Apple; Whispy Woods' apples (NiDL object 0x7D, its own frame table 0x08754308: Whispy Woods' frames 18-37, its second palette).
@@ -769,15 +794,15 @@ namespace KatAMRandomizer {
             /* Type 0x43 (the bosses) the same, as Kracko's (0x45: score, HP; the code sets each boss's HP) with the bosses' functions; */
             const int FrostyID = 0x38, KrackoID = 0x45;
             foreach (byte type in minibossAnimInfosAt.Keys) {
-                int minibossParameters = ObjectParameters + type * 0x18, like = type == BossID ? KrackoID : FrostyID;
-                WriteInt(rom, SpawnTable + type * 4, codeBase + version.CodeSymbols[type == BossID ? "CreateNidlBoss" : "CreateNidlMiniboss"] + 1);
+                int minibossParameters = ObjectParameters + type * 0x18, like = IsBossType(type) ? KrackoID : FrostyID;
+                WriteInt(rom, SpawnTable + type * 4, codeBase + version.CodeSymbols[IsBossType(type) ? "CreateNidlBoss" : "CreateNidlMiniboss"] + 1);
                 Array.Copy(rom, ObjectParameters + like * 0x18, rom, minibossParameters, 0x18);
                 rom[minibossParameters] = 0;
                 rom[minibossParameters + 1] = 1;
                 WriteShort(rom, minibossParameters + 6, 0);
                 WriteShort(rom, minibossParameters + 8, 0);
                 WriteInt(rom, minibossParameters + 12, minibossFrameTiles[type] + HurtOf(type).Tiles);
-                WriteInt(rom, minibossParameters + 16, codeBase + version.CodeSymbols[type == BossID ? "NidlBossStart" : "NidlMinibossStart"] + 1);
+                WriteInt(rom, minibossParameters + 16, codeBase + version.CodeSymbols[IsBossType(type) ? "NidlBossStart" : "NidlMinibossStart"] + 1);
                 WriteInt(rom, minibossParameters + 20, minibossAnimInfosAt[type] + 0x08000000);
                 Array.Copy(rom, ObjectParameters2 + like * 8, rom, ObjectParameters2 + type * 8, 8);
             }
@@ -789,23 +814,25 @@ namespace KatAMRandomizer {
             if (ReadShort(rom, hpBar + 8 * 8) != 8192) return $"The ROM's data doesn't match the {version.Name} release.";
             // (and the bosses, 60 HP as KatAM's, the 273 of Kracko's for one player);
             foreach (byte type in minibossAnimInfosAt.Keys)
-                for (int players = 0; players < 4; players++) WriteShort(rom, hpBar + (type - FrostyID) * 8 + players * 2, type == BossID ? 273 : 546);
+                for (int players = 0; players < 4; players++) WriteShort(rom, hpBar + (type - FrostyID) * 8 + players * 2, IsBossType(type) ? 273 : 546);
 
             /* A boss's defeat runs gUnk_08350E58[type - 0x43] as it explodes (KatAM's bosses leave their shard there): type 0x43's (none)
-             * is the bosses' NidlBossDefeat; */
+             * and 0x44's (none) are the bosses' NidlBossDefeat; */
             int bossHandlers = version.RomSymbols["gUnk_08350E58"];
-            if (ReadInt(rom, bossHandlers) != 0) return $"The ROM's data doesn't match the {version.Name} release.";
-            WriteInt(rom, bossHandlers, codeBase + version.CodeSymbols["NidlBossDefeat"] + 1);
+            foreach (byte type in BossIDs) {
+                if (ReadInt(rom, bossHandlers + (type - BossID) * 4) != 0) return $"The ROM's data doesn't match the {version.Name} release.";
+                WriteInt(rom, bossHandlers + (type - BossID) * 4, codeBase + version.CodeSymbols["NidlBossDefeat"] + 1);
+            }
 
             /* A defeated mini-boss blinks with the animation gUnk_08D610B4[type - 0x38] (sub_0809D060), a table of 8 (0x38-0x3F): type 0x40
-             * read past its end. It's copied with 4 more entries (0x40-0x43, none: no blinking), and its one use points at the copy; */
-            int blinks = version.RomSymbols["gUnk_08D610B4"], blinksAt = Allocate(ref cursor, 12 * 4, 4);
+             * read past its end. It's copied with 5 more entries (0x40-0x44, none: no blinking), and its one use points at the copy; */
+            int blinks = version.RomSymbols["gUnk_08D610B4"], blinksAt = Allocate(ref cursor, 13 * 4, 4);
             byte[] blinksPointer = BitConverter.GetBytes(blinks + 0x08000000);
             List<int> blinksUses = Enumerable.Range(0, (CodeAddress - 4) / 4).Select(i => i * 4)
                                              .Where(at => rom.AsSpan(at, 4).SequenceEqual(blinksPointer)).ToList();
             if (blinksUses.Count != 1) return $"The ROM's code doesn't match the {version.Name} release.";
             Array.Copy(rom, blinks, rom, blinksAt, 8 * 4);
-            WriteInts(rom, blinksAt + 8 * 4, 0, 0, 0, 0);
+            WriteInts(rom, blinksAt + 8 * 4, 0, 0, 0, 0, 0);
             WriteInt(rom, blinksUses[0], blinksAt + 0x08000000);
 
             /* The hit flash (sub_080857A0) keeps the palette to restore afterwards, but then looks it up again from the type's palette key
@@ -968,16 +995,23 @@ namespace KatAMRandomizer {
             int palette = part.Palette15 ? -1 : part.Palette, width = 16;
             byte[] source = tiles;
 
+            int[] streamedPalettes = null;
             if (IsStreamed(nightmare, entry)) {
                 int paletteAt = ReadInt(nightmare, entry + 4) - 0x08000000 + 2, rows = ReadInt(nightmare, entry + 8) - 0x08000000;
-                byte[] colors = nightmare[paletteAt..(paletteAt + 32)];
+                int count = ReadShort(nightmare, paletteAt - 2) / 32;
 
                 records = ReadInt(nightmare, entry) - 0x08000000;
-                palette = palettes.FindIndex(p => p.SequenceEqual(colors));
-                if (palette < 0) {
-                    palette = palettes.Count;
-                    palettes.Add(colors);
-                }
+                // Its palettes (Paint Roller's have two: its pieces pick theirs, Piece.Palette);
+                streamedPalettes = Enumerable.Range(0, count).Select(k => {
+                    byte[] colors = nightmare[(paletteAt + k * 32)..(paletteAt + k * 32 + 32)];
+                    int index = palettes.FindIndex(p => p.SequenceEqual(colors));
+                    if (index < 0) {
+                        index = palettes.Count;
+                        palettes.Add(colors);
+                    }
+                    return index;
+                }).ToArray();
+                palette = streamedPalettes[0];
                 List<byte> rowTiles = new List<byte>();
                 for (int bytes; (bytes = ReadShort(nightmare, rows)) != 0xFFFF; rows += 2 + bytes) {
                     if (bytes > 32 * 32) throw new InvalidOperationException("Not a streamed frame.");
@@ -989,15 +1023,18 @@ namespace KatAMRandomizer {
                 width = 32;
             }
 
-            return ReadFrameAt(nightmare, records).Select(piece => (piece, PieceTiles(source, piece, part.Recolor, width), palette)).ToList();
+            return ReadFrameAt(nightmare, records).Select(piece => (piece, PieceTiles(source, piece, part.Recolor, width),
+                                                                     streamedPalettes == null ? palette : streamedPalettes[piece.Palette % streamedPalettes.Length])).ToList();
         }
 
-        // IsStreamed(); A frame table entry that's a streamed frame (three ROM pointers, the second to a 16-color palette);
+        // IsStreamed(); A frame table entry that's a streamed frame (three ROM pointers, the second to 16-color palettes: u16 bytes, 1-4 of them);
         static bool IsStreamed(byte[] nightmare, int entry) {
             bool IsPointer(int value) => value >= 0x08000000 && value < 0x08000000 + nightmare.Length;
             int oam = ReadInt(nightmare, entry), palette = ReadInt(nightmare, entry + 4), rows = ReadInt(nightmare, entry + 8);
 
-            return IsPointer(oam) && IsPointer(palette) && IsPointer(rows) && ReadShort(nightmare, palette - 0x08000000) == 0x20;
+            int header = IsPointer(palette) ? ReadShort(nightmare, palette - 0x08000000) : 0;
+
+            return IsPointer(oam) && IsPointer(palette) && IsPointer(rows) && header >= 0x20 && header <= 0x80 && header % 0x20 == 0;
         }
 
         /* PieceTiles(); The 4bpp tiles of a piece in 1D order (NiDL's VRAM is 2D, 32 tiles per row; its data, 16 tiles per row; a streamed
