@@ -328,9 +328,12 @@ namespace KatAMRandomizer {
         };
         /* SwitchDecorations; What stands about a switch room by eye, as its stages dress theirs, each side its own (the terrain is
          * symmetric, its dressing needn't be): blocks "x y rows" (the block's top left cell, its metatiles row by row, / between
-         * rows, 000 nothing, ~ ^ @ flips as SwitchDesigns'), put in air cells after the room is mirrored; */
+         * rows, 000 nothing, ~ ^ @ flips as SwitchDesigns'), put in air cells after the room is mirrored (! first: over the terrain
+         * too, its collision kept: flowers in grass, a side's own texture); */
         static readonly Dictionary<int, string[]> SwitchDecorations = new Dictionary<int, string[]> {
         };
+        // UnmirroredFill; The levels whose switch rooms' ground inside isn't mirrored (see BuildSwitchRooms());
+        static readonly HashSet<int> UnmirroredFill = new HashSet<int>();
         // FountainLook; The room (level, stage, index) whose tiles and colours the Fountain of Dreams' switch room takes, picked by
         // eye: Grape Garden's castle in its stage 6's dusk colours;
         static readonly (int level, int stage, int index) FountainLook = (3, 5, 5);
@@ -700,18 +703,29 @@ namespace KatAMRandomizer {
                 for (int y = 0; y < SwitchHeight; y++)
                     for (int x = leftKept ? SwitchWidth / 2 : 0; x < (leftKept ? SwitchWidth : SwitchWidth / 2); x++)
                         WriteShort(cells, (y * SwitchWidth + x) * 4, Flip(Current(SwitchWidth - 1 - x, y), true, false));
+                // (UnmirroredFill: inside the ground, the other half's metatiles as they are, not flipped: its texture runs on across
+                // the room, not mirrored, only the edges are);
+                if (UnmirroredFill.Contains(level) || Environment.GetEnvironmentVariable($"SWITCH_ROOM_UNMIRRORED_{level}") != null)
+                    for (int y = 0; y < SwitchHeight; y++)
+                        for (int x = leftKept ? SwitchWidth / 2 : 0; x < (leftKept ? SwitchWidth : SwitchWidth / 2); x++) {
+                            int from = leftKept ? x - SwitchWidth / 2 : x + SwitchWidth / 2;
+                            bool Inside(int cx) => Enumerable.Range(-1, 3).All(dy => Enumerable.Range(-1, 3).All(dx => TargetClass(cx + dx, y + dy) == Earth));
+                            if (Inside(x) && Inside(from)) WriteShort(cells, (y * SwitchWidth + x) * 4, Current(from, y));
+                        }
                 // (its decorations, SwitchDecorations, each side its own, in air only);
                 string[] decorations = SwitchDecorations.GetValueOrDefault(level, new string[0]);
                 if (Environment.GetEnvironmentVariable($"SWITCH_ROOM_DECOR_{level}") is string triedDecor) decorations = triedDecor.Split(';', StringSplitOptions.RemoveEmptyEntries);
                 foreach (string decoration in decorations) {
-                    string[] parts = decoration.Trim().Split(' ', 3);
+                    // (! first: over the terrain too, as flowers in grass, its collision kept);
+                    bool over = decoration.Trim().StartsWith("!");
+                    string[] parts = decoration.Trim().TrimStart('!').Split(' ', 3);
                     int left = int.Parse(parts[0]), up = int.Parse(parts[1]);
                     string[] lines = parts[2].Split('/');
                     for (int dy = 0; dy < lines.Length; dy++) {
                         string[] ids = lines[dy].Split(' ', StringSplitOptions.RemoveEmptyEntries);
                         for (int dx = 0; dx < ids.Length; dx++) {
                             int x = left + dx, y = up + dy;
-                            if (ids[dx] == "000" || x < 0 || y < 0 || x >= SwitchWidth || y >= SwitchHeight || TargetClass(x, y) != Air) continue;
+                            if (ids[dx] == "000" || x < 0 || y < 0 || x >= SwitchWidth || y >= SwitchHeight || !over && TargetClass(x, y) != Air) continue;
                             bool h = ids[dx][0] is '~' or '@', v = ids[dx][0] is '^' or '@';
                             WriteShort(cells, (y * SwitchWidth + x) * 4, Flip(Convert.ToInt32(ids[dx].TrimStart('~', '^', '@'), 16), h, v));
                         }
