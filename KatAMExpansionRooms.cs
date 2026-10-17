@@ -422,7 +422,9 @@ namespace KatAMRandomizer {
         /* ForeignDecorations; Levels whose switch rooms take decorations (SwitchDecorations' * metatiles) from another level's last
          * room: the Fountain of Dreams' from King Dedede's arena (Rainbow Resort's last), its light streaks; their colour rows go in
          * rows the room's own metatiles don't use (8 on are the arena background's); */
-        static readonly Dictionary<int, (int level, int unused)> ForeignDecorations = new Dictionary<int, (int, int)> { [7] = (6, 0) };
+        static readonly Dictionary<int, (int level, int stage, int index)> ForeignDecorations = new Dictionary<int, (int, int, int)> {
+            [7] = (6, -1, -1),
+        };
         // FountainLook; The room (level, stage, index) whose tiles and colours the Fountain of Dreams' switch room takes, picked by
         // eye: Grape Garden's castle in its stage 6's dusk colours;
         static readonly (int level, int stage, int index) FountainLook = (3, 5, 5);
@@ -462,6 +464,8 @@ namespace KatAMRandomizer {
                 // (the Fountain of Dreams': FountainLook's tileset and colours, learnt from every room with that tileset, under the
                 // Fountain of Dreams' own nebula or the Fountain itself, below);
                 NightmareRoom pastel = rooms.First(r => (r.Level, r.Stage, r.Index) == FountainLook);
+                if (Environment.GetEnvironmentVariable("SWITCH_ROOM_WHERE") is string where && level == 0)
+                    foreach (var r in rooms.Where(r => r.Record == Convert.ToInt32(where, 16))) Console.WriteLine($"WHERE {r.Level} {r.Stage} {r.Index}");
                 if (Environment.GetEnvironmentVariable("SWITCH_ROOM_FOUNTAIN") is string look)
                     pastel = rooms.First(r => r.Record == Convert.ToInt32(look, 16));
                 NightmareRoom fountain = rooms.Where(r => r.Level == 7).OrderBy(r => r.Stage).ThenBy(r => r.Index).First();
@@ -820,9 +824,13 @@ namespace KatAMRandomizer {
                 Dictionary<int, int> foreignTile = new Dictionary<int, int>(), foreignMetatile = new Dictionary<int, int>(), foreignRow = new Dictionary<int, int>();
                 Queue<int> freeRows = null;
                 NightmareRoom foreignRoom = null;
+                if (Environment.GetEnvironmentVariable($"SWITCH_ROOM_FOREIGN_{level}") is string triedForeign)
+                    ForeignDecorations[level] = (int.Parse(triedForeign.Split(',')[0]), int.Parse(triedForeign.Split(',')[1]), int.Parse(triedForeign.Split(',')[2]));
                 if (ForeignDecorations.TryGetValue(level, out var foreignOf)) {
-                    int lastStage = rooms.Where(r => r.Level == foreignOf.level && !r.IsSwitchRoom).Max(r => r.Stage);
-                    foreignRoom = rooms.Where(r => r.Level == foreignOf.level && r.Stage == lastStage).MaxBy(r => r.Index);
+                    // (its stage, or -1 its level's last; its index, or -1 the stage's last);
+                    int stage = foreignOf.stage >= 0 ? foreignOf.stage : rooms.Where(r => r.Level == foreignOf.level && !r.IsSwitchRoom).Max(r => r.Stage);
+                    var inStage = rooms.Where(r => r.Level == foreignOf.level && r.Stage == stage);
+                    foreignRoom = foreignOf.index >= 0 ? inStage.First(r => r.Index == foreignOf.index) : inStage.MaxBy(r => r.Index);
                 }
                 int Foreign(int m) {
                     if (foreignMetatile.TryGetValue(m, out int id)) return id;
@@ -843,11 +851,19 @@ namespace KatAMRandomizer {
                             roomTiles.AddRange(tile * 32 + 32 <= theirTiles.Length ? theirTiles.Skip(tile * 32).Take(32) : new byte[32]);
                         }
                         if (!foreignRow.TryGetValue(entry >> 12, out int row)) {
-                            if (freeRows.Count == 0) throw new InvalidOperationException($"Switch room {level}: no colour row left for its foreign decorations.");
-                            foreignRow[entry >> 12] = row = freeRows.Dequeue();
-                            // (rows 2-7 the foreground's, 8 on the background's);
+                            // (rows 2-7 the foreground's, 8 on the background's; none left, the row of the room's colours nearest theirs);
                             int from = entry >> 12, theirs = ReadInt(nidl, foreignRoom.Record + (from < 8 ? 0x18 : 0x28)) - 0x08000000;
-                            Array.Copy(nidl, theirs + 2 + (from - (from < 8 ? 2 : 8)) * 32, roomPalette, 2 + (row - 2) * 32, 32);
+                            int source = theirs + 2 + (from - (from < 8 ? 2 : 8)) * 32;
+                            if (freeRows.Count > 0) {
+                                foreignRow[from] = row = freeRows.Dequeue();
+                                Array.Copy(nidl, source, roomPalette, 2 + (row - 2) * 32, 32);
+                            } else {
+                                int Distance(int r) => Enumerable.Range(1, 15).Sum(c => {
+                                    int a = ReadShort(nidl, source + c * 2), b = ReadShort(roomPalette, 2 + (r - 2) * 32 + c * 2);
+                                    return Math.Abs((a & 31) - (b & 31)) + Math.Abs((a >> 5 & 31) - (b >> 5 & 31)) + Math.Abs((a >> 10 & 31) - (b >> 10 & 31));
+                                });
+                                foreignRow[from] = row = Enumerable.Range(2, 6).MinBy(Distance);
+                            }
                         }
                         entry = (entry & 0x0C00) | mine | row << 12;
                         table.Add((byte)entry); table.Add((byte)(entry >> 8));
