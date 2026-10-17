@@ -277,7 +277,8 @@ namespace KatAMRandomizer {
         static readonly int[] ModelRanks = { 0, 0, 0, 0, 4, 0, 0, 0 };
         /* SwitchDesigns; Switch rooms picked by eye, kept as they are whatever BuildSwitchRooms() would draw now: per level, the left
          * half's metatiles, row by row (~: flipped left to right, ^: upside down, @: both), the right half its mirror image; the same
-         * metatiles in every region (NiDL's tilesets are); Vegetable Valley's built from its raised hedges (its stages have no
+         * metatiles in every region (NiDL's tilesets are); Ice Cream Island's after its third stage's third room (its grass ends curling under as its
+         * stages', the ledges and pedestal one floating platform with rounded ends); Vegetable Valley's built from its raised hedges (its stages have no
          * ceilings: their rounded tops upside down, their sides and the joins at their feet turned round), its first stage's
          * pedestal, its second stage's dirt on the side floors, dressed as its stages (grass along the floors, flower beds,
          * white tusks framing the big switch); Yogurt Yard's after its sixth stage's second room, inside its rock the fills (and moss) joining best
@@ -296,6 +297,20 @@ namespace KatAMRandomizer {
                 "001 036 037 038 03B ~0B1 ~087 ~087",
                 "087 041 04A 04A 051 ~087 ~087 ~087",
                 "087 08B 005 005 005 ~08A ~087 ~06B",
+            },
+            [1] = new[] {
+                "009 @017 0FA 044 0FA 044 0FA 044",
+                "007 010 000 000 000 000 000 000",
+                "009 011 000 000 000 000 000 000",
+                "003 005 000 000 000 000 000 000",
+                "010 000 000 000 000 000 000 000",
+                "010 000 000 000 000 000 000 000",
+                "011 000 000 000 0B3 0B2 0B2 0B2",
+                "002 004 002 156 000 000 000 000",
+                "0ED 0EC 0ED 0F0 000 000 000 000",
+                "009 008 009 157 004 002 002 002",
+                "007 006 007 0ED 0EC 0ED 0EC 0ED",
+                "009 008 009 008 008 009 008 009",
             },
             [4] = new[] {
                 "16E 002 01E 059 020 021 022 059",
@@ -331,9 +346,22 @@ namespace KatAMRandomizer {
          * rows, 000 nothing, ~ ^ @ flips as SwitchDesigns'), put in air cells after the room is mirrored (! first: over the terrain
          * too, its collision kept: flowers in grass, a side's own texture); */
         static readonly Dictionary<int, string[]> SwitchDecorations = new Dictionary<int, string[]> {
+            // (Ice Cream Island's: red flowers in the grass on the left, blue on the right, sand hills in the pit, a palm leaning in
+            // from the right);
+            [1] = new[] {
+                "!0 7 138",
+                "!2 7 137",
+                "!13 7 13B 13D",
+                "!5 9 139 138",
+                "!9 9 13B",
+                "!11 9 13D",
+                "5 8 050 054",
+                "9 8 058 059 05A",
+                "10 2 ~09F ~09E ~09D ~09C/~0A3 ~0A2 ~0A1 ~0A0/000 000 ~094 000/000 000 ~095 000/000 000 ~096 ~097",
+            },
         };
         // UnmirroredFill; The levels whose switch rooms' ground inside isn't mirrored (see BuildSwitchRooms());
-        static readonly HashSet<int> UnmirroredFill = new HashSet<int>();
+        static readonly HashSet<int> UnmirroredFill = new HashSet<int> { 1 };
         // FountainLook; The room (level, stage, index) whose tiles and colours the Fountain of Dreams' switch room takes, picked by
         // eye: Grape Garden's castle in its stage 6's dusk colours;
         static readonly (int level, int stage, int index) FountainLook = (3, 5, 5);
