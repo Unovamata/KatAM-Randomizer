@@ -106,6 +106,7 @@ namespace KatAMRandomizer {
             WhispyWoods(),
             Kracko(),
             ShineAndBright(),
+            MetaKnight(),
         };
         static List<Miniboss> AllBosses => MinibossDefinitions.Concat(BossDefinitions).ToList();
         static IEnumerable<byte> BossTypes => MinibossIDs.Append(BossID);
@@ -272,6 +273,24 @@ namespace KatAMRandomizer {
                 new[] {
                     (0x04, 0), (0x23, 1), (0x26, 4), (0x26, 5), (0x02, 5), (-1, -1),               // "S" (Squishy), "h" (Shooty), "in" (Cookin), "e" (Blipper), space;
                     (0x28, 0), (0x01, 1), (0x26, 4), (0x11, 2), (0x23, 1), (0x01, 4),              // "B" (Bomber), "r" (Bronto Burt), "i", "g" (Big Waddle Dee), "h", "t" (Bronto Burt);
+                },
+                new byte[0], Type: BossID);
+        }
+
+        /* Meta Knight; NiDL boss 2 (type 0x3D, Orange Ocean's). His body is streamed frames (0x08753BB4: his cape 0-9, his poses 21-52,
+         * each with its own palette), Galaxia a frame of the sword table (0x08753DA0: 16-23, eight ways, the descriptor's second palette,
+         * gold). Frames as bosses/meta_knight.c numbers them: 0-9 the cape, 10-41 the poses, 42-49 the sword. Hurt: standing (21); */
+        static Miniboss MetaKnight() {
+            List<Part[]> frames = new List<Part[]>();
+
+            frames.AddRange(Enumerable.Range(0, 10).Select(f => new[] { new Part(f) }));
+            frames.AddRange(Enumerable.Range(21, 32).Select(f => new[] { new Part(f) }));
+            frames.AddRange(Enumerable.Range(16, 8).Select(f => new[] { new Part(f, Table: 0x753DA0, Palette: 1) }));
+
+            return new Miniboss(3, "Meta Knight", 32, 0x753BB4, frames, new[] { new Part(21) },
+                new[] {
+                    (0x38, 0), (0x14, 4), (0x14, 2), (0x14, 5), (-1, -1),                          // "M" (Mr.Frosty), "eta" (Hot Head), space;
+                    (0x1A, 5), (0x1A, 6), (0x1A, 7), (0x1A, 8), (0x1A, 9), (0x1A, 10),             // "Knight" (Sword Knight);
                 },
                 new byte[0], Type: BossID);
         }

@@ -80,6 +80,7 @@ enum {
     NIDL_WHISPY_WOODS,
     NIDL_KRACKO,
     NIDL_SHINE_BRIGHT,
+    NIDL_META_KNIGHT,
     NIDL_BOSS_COUNT,
 };
 
@@ -244,6 +245,8 @@ void KrackoInit(struct NidlObject *);
 void KrackoStart(struct Object *);
 void ShineBrightInit(struct NidlObject *);
 void ShineBrightStart(struct Object *);
+void MetaKnightInit(struct NidlObject *);
+void MetaKnightStart(struct Object *);
 
 void NidlDestroy(struct Task *);
 bool32 NidlIsMetaKnight(struct ObjectTemplate *);

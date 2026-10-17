@@ -81,6 +81,7 @@
          * NiDL's spawn puts it on (-1: the template's), and the middle of its fight's screen from that spot. Its behavior's low nibble is
          * the mirror shard it leaves: its level's (0-7). The others aren't ported yet: their rooms stay empty, their mirror on; */
         static readonly Dictionary<int, (byte boss, int x, int y, int screenDx, int screenDy)> RoomBosses = new Dictionary<int, (byte, int, int, int, int)> {
+            [2] = (3, -1, -1, 0, 0),        // Meta Knight: the template's (232, 56), NiDL's ledge (he drops to the floor);
             [4] = (2, -1, -1, 0, 0),        // Mr. Shine & Mr. Bright: the template's (208, 104), on the floor of their one-screen room;
             [5] = (0, 206, 256, 0, 64),     // Whispy Woods: its face (0x080B2A00), the screen down to the floor under it;
             [6] = (1, -1, -1, 0, 0),        // Kracko: the template's (its tower's bottom, where Kirby comes in), that screen;
