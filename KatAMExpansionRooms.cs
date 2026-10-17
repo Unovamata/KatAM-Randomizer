@@ -360,6 +360,8 @@ namespace KatAMRandomizer {
                 "10 2 ~09F ~09E ~09D ~09C/~0A3 ~0A2 ~0A1 ~0A0/000 000 ~094 000/000 000 ~095 000/000 000 ~096 ~097",
             },
         };
+        // SwitchExtraGround; Cells of ground a level's switch room has besides its layout's (solid, drawn by its design);
+        static readonly Dictionary<int, (int x, int y)[]> SwitchExtraGround = new Dictionary<int, (int, int)[]>();
         // UnmirroredFill; The levels whose switch rooms' ground inside isn't mirrored (see BuildSwitchRooms());
         static readonly HashSet<int> UnmirroredFill = new HashSet<int> { 1 };
         // FountainLook; The room (level, stage, index) whose tiles and colours the Fountain of Dreams' switch room takes, picked by
@@ -526,7 +528,11 @@ namespace KatAMRandomizer {
                 }
                 // NiDL collision: 0 nothing, 0x01 solid, 0x11 a one-way floor (KatAM's 0x0E);
                 bool b = LayoutB(level);
-                bool Solid(int x, int y) => y == 0 || y >= SwitchFloor || Pedestal(x, y) || (b
+                // (and the level's own extra ground, SwitchExtraGround: Yogurt Yard's stalactite);
+                var extra = Environment.GetEnvironmentVariable($"SWITCH_ROOM_EXTRA_{level}") is string triedExtra
+                    ? triedExtra.Split(';', StringSplitOptions.RemoveEmptyEntries).Select(c => (int.Parse(c.Split(',')[0]), int.Parse(c.Split(',')[1]))).ToHashSet()
+                    : SwitchExtraGround.GetValueOrDefault(level, new (int, int)[0]).ToHashSet();
+                bool Solid(int x, int y) => y == 0 || y >= SwitchFloor || Pedestal(x, y) || extra.Contains((x, y)) || (b
                     ? (y <= 3 && (x <= 1 || x >= SwitchWidth - 2)) || (y >= 4 && (x == 0 || x == SwitchWidth - 1)) || (y >= 7 && (x <= 3 || x >= SwitchWidth - 4))
                     : y <= 5 && (x <= 1 || x >= SwitchWidth - 2));
                 bool Pedestal(int x, int y) => b ? y == 6 && x >= 6 && x <= 9 : y == 8 && x >= 5 && x <= 10;
