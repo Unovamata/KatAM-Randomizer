@@ -4,8 +4,8 @@ using System.Text;
 namespace KatAMRandomizer {
     /* KatAMExpansion; ROM Expansion: enemies ported from Kirby: Nightmare in Dream Land into Kirby & the Amazing Mirror, any version
      * (USA, European, Japanese revision 1), with the NiDL ROM of the same region: USA with USA, European with European, Japanese with
-     * Japanese. The European version shows the English names in every language; the Japanese one shows none (its names are images
-     * of Japanese text).
+     * Japanese. The European version shows the English names in every language; the Japanese one shows none (an empty bar: its
+     * names, both of its table's languages, are images of Japanese text, no letters to make others of).
      * The behaviors are re-implemented in C against the KatAM decompilation (see "ROM Expansion/" for the sources and how they're
      * built) and ship compiled in KatAMExpansionCode. The graphics are never shipped: they are read from the player's own NiDL ROM.
      * Every ported enemy is object type 0x31 (the only free regular enemy type); the template's behavior byte picks the enemy
@@ -115,6 +115,7 @@ namespace KatAMRandomizer {
             ShineAndBright(),
             MetaKnight(),
             PaintRoller(),
+            HeavyMole(),
         };
         static List<Miniboss> AllBosses => MinibossDefinitions.Concat(BossDefinitions).ToList();
         static IEnumerable<byte> BossTypes => MinibossIDs.Concat(BossIDs);
@@ -316,6 +317,25 @@ namespace KatAMRandomizer {
                 new[] {
                     (0x16, 0), (0x2D, 1), (0x26, 4), (0x26, 5), (0x23, 4), (-1, -1),               // "P" (Pengy), "a" (Batty), "in" (Cookin), "t" (Shooty), space;
                     (0x17, 0), (0x1E, 1), (0x02, 1), (0x02, 1), (0x02, 5), (0x01, 1),              // "R" (Rocky), "o" (Noddy), "ll" (Blipper), "e", "r" (Bronto Burt);
+                },
+                new byte[0], Type: BossID2);
+        }
+
+        /* Heavy Mole; NiDL boss 3 (type 0x3E, Yogurt Yard's; mini-boss descriptor 33, five palettes). Frames as bosses/heavy_mole.c numbers
+         * them: 0-7 the body (0x08753E3C's 0-7, the first palette), 8-43 its arms (26-61: six ways of six, the second palette), 44-67 the
+         * fired balls (64-87: six ways of four, the second palette). Type 0x44. Hurt: its body (0); */
+        static Miniboss HeavyMole() {
+            List<Part[]> frames = new List<Part[]>();
+
+            frames.AddRange(Enumerable.Range(0, 8).Select(f => new[] { new Part(f) }));
+            frames.AddRange(Enumerable.Range(26, 36).Select(f => new[] { new Part(f, Palette: 1) }));
+            for (int way = 0; way < 6; way++)
+                frames.AddRange(Enumerable.Range(64 + way * 4, 4).Select(f => new[] { new Part(f, Palette: 1) }));
+
+            return new Miniboss(5, "Heavy Mole", 33, 0x753E3C, frames, new[] { new Part(0) },
+                new[] {
+                    (0x29, 0), (0x29, 1), (0x29, 2), (0x29, 3), (0x29, 4), (-1, -1),               // "Heavy" (Heavy Knight), space;
+                    (0x38, 0), (0x1E, 1), (0x02, 1), (0x02, 5),                                    // "M" (Mr.Frosty), "o" (Noddy), "le" (Blipper);
                 },
                 new byte[0], Type: BossID2);
         }
@@ -734,11 +754,9 @@ namespace KatAMRandomizer {
             // HP bar names, one per enemy, then one per mini-boss, then one per boss;
             int namesAt = Allocate(ref cursor, Definitions.Count * 0x100, 4), minibossNamesAt = Allocate(ref cursor, MinibossDefinitions.Count * 0x100, 4),
                 bossNamesAt = Allocate(ref cursor, BossDefinitions.Count * 0x100, 4);
-            if (version.NameSite1 != 0) {
-                for (int i = 0; i < Definitions.Count; i++) ComposeName(rom, version, Definitions[i].Glyphs).CopyTo(rom, namesAt + i * 0x100);
-                for (int i = 0; i < MinibossDefinitions.Count; i++) ComposeName(rom, version, MinibossDefinitions[i].Glyphs).CopyTo(rom, minibossNamesAt + i * 0x100);
-                for (int i = 0; i < BossDefinitions.Count; i++) ComposeName(rom, version, BossDefinitions[i].Glyphs).CopyTo(rom, bossNamesAt + i * 0x100);
-            }
+            for (int i = 0; i < Definitions.Count; i++) ComposeName(rom, version, Definitions[i].Glyphs).CopyTo(rom, namesAt + i * 0x100);
+            for (int i = 0; i < MinibossDefinitions.Count; i++) ComposeName(rom, version, MinibossDefinitions[i].Glyphs).CopyTo(rom, minibossNamesAt + i * 0x100);
+            for (int i = 0; i < BossDefinitions.Count; i++) ComposeName(rom, version, BossDefinitions[i].Glyphs).CopyTo(rom, bossNamesAt + i * 0x100);
 
             // gNidlData: names, then per enemy (animBase, animId, hurt tiles);
             int nidlData = CodeAddress + version.NidlData;
@@ -840,10 +858,8 @@ namespace KatAMRandomizer {
             if (rom[HitFlashBranch] != 0x00 || rom[HitFlashBranch + 1] != 0xD0) return $"The ROM's code doesn't match the {version.Name} release.";
             WriteShort(rom, HitFlashBranch, 0xD11A);
 
-            // Japan has no names patch (version.NameSite1 is 0; its HP bar names are stored differently): the bar keeps type 0x31's;
             int[] sites = { version.NameSite1, version.NameSite2 };
             for (int i = 0; i < NameCopies.Length; i++) {
-                if (sites[i] == 0) continue;
                 (int length, int literal, bool fromTypePointer) = NameCopies[i];
                 ApplyNamePatch(rom, sites[i], length, sites[i] + literal, fromTypePointer, codeBase + version.NidlCopyName);
             }
@@ -887,7 +903,7 @@ namespace KatAMRandomizer {
 
             frameTable = FrameAddress(region, frameTable);
             if (nightmare[tilesAddress] != 0x10) throw new InvalidOperationException("Not LZ77 tiles.");
-            if (paletteCount < 1 || paletteCount > 4) throw new InvalidOperationException("Not a graphics descriptor.");
+            if (paletteCount < 1 || paletteCount > 8) throw new InvalidOperationException("Not a graphics descriptor.");
 
             byte[] tiles = DecompressLZ77(nightmare, tilesAddress);
             List<byte[]> palettes = new List<byte[]>();
@@ -1167,8 +1183,9 @@ namespace KatAMRandomizer {
             throw new InvalidOperationException($"Letter {index} of object 0x{type:X2}'s name wasn't found.");
         }
 
-        // ComposeName(); A name image (8 tiles) made of letters of the game's English names;
+        // ComposeName(); A name image (8 tiles) made of letters of the game's English names (none in the Japanese game: an empty one);
         static byte[] ComposeName(byte[] rom, KatAMExpansionCode.Version version, (int type, int letter)[] glyphs) {
+            if (version.GameCode == "B8KJ") return new byte[0x100];
             int english = ReadInt(rom, version.Names + EnglishNames * 4) - 0x08000000;
             List<int[,]> letters = glyphs.Select(g => g.type < 0 ? null : Letter(rom, english, g.type, g.letter)).ToList();
 

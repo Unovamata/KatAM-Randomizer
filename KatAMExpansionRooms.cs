@@ -83,6 +83,7 @@
         static readonly Dictionary<int, (byte boss, int x, int y, int screenDx, int screenDy)> RoomBosses = new Dictionary<int, (byte, int, int, int, int)> {
             [1] = (4, -1, -1, 0, 0),        // Paint Roller: the template's (24, 40), his easels (bosses/paint_roller.c) from it;
             [2] = (3, -1, -1, 0, 0),        // Meta Knight: the template's (232, 56), NiDL's ledge (he drops to the floor);
+            [3] = (5, 200, 300, -64, -40),    // Heavy Mole: on the right of its screen (NiDL's (136, 264) its middle: it scrolls with the mole there);
             [4] = (2, -1, -1, 0, 0),        // Mr. Shine & Mr. Bright: the template's (208, 104), on the floor of their one-screen room;
             [5] = (0, 206, 256, 0, 64),     // Whispy Woods: its face (0x080B2A00), the screen down to the floor under it;
             [6] = (1, -1, -1, 0, 0),        // Kracko: the template's (its tower's bottom, where Kirby comes in), that screen;
@@ -1192,7 +1193,7 @@
                     var landings = doors.Values.SelectMany(list => list).Concat(mainHubDoors).Concat(katamDoors.Values.SelectMany(list => list))
                                         .Where(d => d.Room == r.Room && !d.Edge).Select(d => (d.DestX - 1, d.DestY - 1)).ToList();
                     objects.Add(BuildObjects(rom, nightmare, r, doors[r], mirras, landings, noTypes, ref cursor) + 0x08000000);
-                    navigations.Add(BuildNavigation(rom, r, collision, navigationRoutes, ref cursor) + 0x08000000);
+                    navigations.Add(BuildNavigation(rom, r, collision, navigationRoutes, Arenas(nightmare, r), ref cursor) + 0x08000000);
 
                     /* Area and CPU helpers' routes (gUnk_08D6CD0C, written into the vanilla table's free entry), as room 0x397's (the
                      * Dimension Mirror's): no routes (+0, +0x48 their count: 0), flags 0x81 (+0x47: roaming helpers don't go through a
@@ -3299,8 +3300,10 @@
          * where a called helper appears when the player is in it; +0x24 0x20; +0x28 its number, +0x29 how many neighbours, then
          * them), +0x18 how many (32 at most: the table's size). The room is cut in blocks (8x6 cells, larger until there are 32 at
          * most), a zone per block Kirby can stand in (its point: the open cell over a floor nearest its middle), the others' cells
-         * given to the nearest zone; blocks side by side are neighbours; returns its address; */
-        static int BuildNavigation(byte[] rom, NightmareRoom r, byte[] collision, int routes, ref int cursor) {
+         * given to the nearest zone; blocks side by side are neighbours. A fight's area (Arenas(), where the camera is held) holds a
+         * zone's point: a called helper looks for one inside the camera's bounds, forever if there's none (sub_08010034); returns
+         * its address; */
+        static int BuildNavigation(byte[] rom, NightmareRoom r, byte[] collision, int routes, List<(int left, int top, int width, int height)> arenas, ref int cursor) {
             int width = r.FullWidth, height = r.FullHeight;
             bool Open(int x, int y) => x >= 0 && y >= 0 && x < width && y < height
                                        && collision[y * width + x] is 0x00 or 0x48 or 0x20 or 0x21 or 0xFC or 0xFD or 0xFE or 0xFF;
@@ -3324,6 +3327,21 @@
                 if (blockWidth <= blockHeight * 2) blockWidth += 4; else blockHeight += 3;
             }
             if (zones.Count == 0) zones.Add((0, 0, width / 2, height / 2));
+            // (each fight's area: the cell it can stand on nearest its middle, else an open one, becomes its block's zone's point);
+            foreach (var arena in arenas) {
+                bool Inside(int x, int y) => x * 16 + 8 > arena.left && x * 16 + 8 < arena.left + arena.width
+                                             && y * 16 + 8 > arena.top && y * 16 + 8 < arena.top + arena.height;
+                if (zones.Any(z => Inside(z.x, z.y))) continue;
+                int mx = (arena.left + arena.width / 2) / 16, my = (arena.top + arena.height / 2) / 16;
+                var cells = Enumerable.Range(0, height).SelectMany(y => Enumerable.Range(0, width).Select(x => (x, y))).Where(c => Inside(c.x, c.y)).ToList();
+                var spot = cells.OrderBy(c => Standable(c.x, c.y) ? 0 : Open(c.x, c.y) ? 1 : 2)
+                                .ThenBy(c => (c.x - mx) * (c.x - mx) + (c.y - my) * (c.y - my)).Select(c => ((int, int)?)c).FirstOrDefault();
+                if (spot == null) continue;
+                var (sx, sy) = spot.Value;
+                int index = zones.FindIndex(z => z.bx == sx / blockWidth && z.by == sy / blockHeight);
+                if (index >= 0) zones[index] = (zones[index].bx, zones[index].by, sx, sy);
+                else if (zones.Count < 32) zones.Add((sx / blockWidth, sy / blockHeight, sx, sy));
+            }
 
             // Each cell's zone: its block's, else the nearest zone's point;
             byte[] map = new byte[width * height];

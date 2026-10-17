@@ -56,7 +56,7 @@ gUnk_08350B30 0x8335304
 gUnk_08351648 0x8335e1c
 gUnk_08D60B64 0x8d2c014
 gUnk_08D60BE4 0x8d2c094
-gUnk_08D60EE4 0x8d2c37c  # a guess (by shift): Japan stores its HP bar names differently, and has no names patch, so it is never read
+gUnk_08D60EE4 0x8d2c394  # (its literal at 0x08034EE8; 0x18 past the shift's guess)
 gUnk_08D60FA4 0x8d2c43c
 gUnk_08D60FDC 0x8d2c474
 m4aSongNumStart 0x81500dc
@@ -77,8 +77,8 @@ AnimCount 938
 SpawnTable 0x8335850
 ObjectParameters2 0x83372a4
 HitFlashBranch 0x8085766
-NameSite1 0x0
-NameSite2 0x0
+NameSite1 0x8034e96
+NameSite2 0x8035ae0
 gUnk_02021590 0x2021590
 sub_08034C9C 0x8034c14
 sub_08035E28 0x8035da0
