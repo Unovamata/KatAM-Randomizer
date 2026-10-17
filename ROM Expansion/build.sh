@@ -13,7 +13,7 @@ OUT=$(mktemp -d)
 trap 'rm -rf "$OUT"' EXIT
 
 objects=()
-for c in nidl.c nidl_miniboss.c nidl_data.c worldmap.c rooms.c abilities.c abilities/*.c enemies/*.c minibosses/*.c; do
+for c in nidl.c nidl_miniboss.c nidl_data.c worldmap.c rooms.c title.c abilities.c abilities/*.c enemies/*.c minibosses/*.c; do
     o="$OUT/$(basename "${c%.c}").o"
     cpp -I "$D/tools/agbcc/include" -I "$D/tools/agbcc" -nostdinc -iquote "$D/include" -iquote . -DREVISION=0 -DENGLISH \
         -Wno-trigraphs -DMODERN=0 "$c" | "$D/tools/agbcc/bin/agbcc" -mthumb-interwork -Wimplicit -Wparentheses -O2 -fhex-asm -o "$OUT/a.s" -
@@ -61,6 +61,8 @@ names = ['CreateNidlEnemy', 'NidlStart', 'NidlCopyName', 'gNidlData']
 patched = ['SpriteTables', 'AnimCount', 'SpawnTable', 'gUnk_08351648', 'ObjectParameters2', 'gUnk_08D60EE4', 'HitFlashBranch', 'NameSite1', 'NameSite2']
 # The abilities' (see abilities.h): code symbols, and the KatAM tables and functions it relocates or hooks;
 codeNames = ['gNidlWorldMapDoors', 'NidlWorldMapUnlockSave', 'NidlWorldMapGetCoorFromRoom', 'NidlWorldMapDrawKirbys', 'NidlWorldMapUnlock0', 'NidlWorldMapUnlock1', 'NidlWorldMapUnlock2', 'NidlWorldMapUnlock3', 'NidlWorldMapUnlock4', 'NidlWorldMapUnlock5', 'NidlWorldMapUnlock6', 'NidlWorldMapUnlock7', 'NidlGetKirbyRoomFlagIndex', 'gNidlRoomFlagIndexOriginal', 'gNidlHubRoom', 'gNidlAbilityTables', 'gNidlAbilityData', 'NidlAbilityPortrait', 'NidlAbilityHudTimer', 'NidlSwallow', 'CreateNidlMiniboss', 'NidlMinibossStart',
+             # The NiDL title screen (title.c);
+             'gNidlTitle', 'CreateNidlTitle',
              # Bigger rooms (rooms.c): the replacements;
              'BigFillLevelInfo', 'BigGetCollisionTile', 'BigSub_08002434', 'BigSub_08002470', 'BigSub_080024F0', 'BigSub_0800255C', 'BigSub_080025AC', 'BigSub_08002624', 'BigSub_080026A8', 'BigSub_08001408', 'BigSub_080015A8']
 romNames = ['gUnk_0834C2AC', 'gUnk_0834C318', 'gUnk_083509D0', 'gUnk_08350A3C', 'gUnk_08D60FDC', 'gUnk_082DDE84', 'gUnk_082DDEF0',
@@ -69,6 +71,8 @@ romNames = ['gUnk_0834C2AC', 'gUnk_0834C318', 'gUnk_083509D0', 'gUnk_08350A3C', 
             # The rooms' tables (see KatAMExpansionRooms.cs);
             'gRoomProps', 'gForegroundInfo', 'gForegroundPalettes', 'gForegroundTilemaps', 'gSolidityMaps', 'gRoomTiledBGs', 'gLevelObjLists',
             'gUnk_08D63C28', 'gUnk_08D6CD0C', 'gUnk_08D640A4', 'gUnk_08D6DCAC', 'AreaPlates', 'WorldMapUnlockSave', 'WorldMapGetCoorFromRoom', 'WorldMapDrawKirbys', 'gUnk_0834BD94', 'gWorldMapDotCoors', 'sWorldMapLineCoors', 'gUnk_08357B8C', 'sub_08039600', 'GetKirbyRoomFlagIndex',
+            # KatAM's intro, which the NiDL title screen replaces;
+            'sub_08145B64',
             # Bigger rooms (rooms.c): what they replace, and the EWRAM heap's size;
             'FillLevelInfo', 'GetCollisionTile', 'sub_08002434', 'sub_08002470', 'sub_080024F0', 'sub_0800255C', 'sub_080025AC', 'sub_08002624', 'sub_080026A8', 'sub_08001408', 'sub_080015A8', 'EwramInitHeap']
 print('namespace KatAMRandomizer {')

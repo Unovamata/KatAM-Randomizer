@@ -109,9 +109,9 @@ namespace KatAMRandomizer
         // Control Panel;
 
         // AddNightmareEnemies(); The ROM Expansion, which also expands the ROM to 32 MB (so ROMData becomes the bigger copy);
-        private string AddNightmareEnemies() {
+        private string AddNightmareEnemies(bool nightmareTitle) {
             byte[] rom = Processing.ROMData;
-            string error = KatAMExpansion.AddEnemies(ref rom, nightmareROM, settings.NightmareRooms);
+            string error = KatAMExpansion.AddEnemies(ref rom, nightmareROM, settings.NightmareRooms, nightmareTitle);
 
             Processing.ROMData = rom;
             return error;
@@ -129,10 +129,14 @@ namespace KatAMRandomizer
             destinationPath = Path.Combine(system.ROMDirectory, newFileName);
             settings.RandomEntity = new Random(settings.Seed);
 
+            /* The title screen: KatAM's intro or Nightmare in Dream Land's, picked from the seed (its own generator, so the rest of the
+             * randomization stays the same either way); */
+            bool nightmareTitle = settings.NightmareTitle && nightmareROM != null && new Random(settings.Seed ^ 0x7171E).Next(2) == 1;
+
             // ROM Expansion goes first, so the ROM reader sees the new enemies' parameters like any other's;
-            if (settings.NightmareEnemies.Count > 0 || settings.NightmareMinibosses.Count > 0 || settings.NightmareRooms) {
+            if (settings.NightmareEnemies.Count > 0 || settings.NightmareMinibosses.Count > 0 || settings.NightmareRooms || nightmareTitle) {
                 string error = nightmareROM == null ? "Load a Nightmare in Dream Land ROM in the ROM Expansion tab, or turn its enemies, mini-bosses and rooms off."
-                                                    : AddNightmareEnemies();
+                                                    : AddNightmareEnemies(nightmareTitle);
 
                 if (error != null) {
                     MessageBox.Show(error, "ROM Expansion", MessageBoxButtons.OK, MessageBoxIcon.Error);
@@ -168,6 +172,9 @@ namespace KatAMRandomizer
             // Fix the way behaviors and speeds are loaded when including minibosses in enemy generation;
             // Consider Mirras for mirror randomization;
 
+            // Title screen: the intro's characters;
+            if (settings.RandomizeTitleParade) KatAMTitleScreen.RandomizeParade(Processing.ROMData, settings.RandomEntity);
+
             // ROM Expansion rooms: Central Circle's mirror to them, now that the randomizer is done with its room;
             KatAMExpansion.FinishRooms(Processing.ROMData);
 
@@ -185,6 +192,11 @@ namespace KatAMRandomizer
         // General Options;
         private void CheckboxOptionsSpoilerLog_CheckedChanged(object sender, EventArgs e) {
             settings.SpoilerLog = CheckboxOptionsSpoilerLog.Checked;
+        }
+
+        // CheckboxOptionsTitleParade_CheckedChanged(); The characters parading through the intro, swapped (KatAMTitleScreen);
+        private void CheckboxOptionsTitleParade_CheckedChanged(object sender, EventArgs e) {
+            settings.RandomizeTitleParade = CheckboxOptionsTitleParade.Checked;
         }
 
         /* Settings files; The state of every option (radio buttons, checkboxes, track bars and numeric boxes, by name) and the seed.
@@ -804,6 +816,8 @@ namespace KatAMRandomizer
                 CheckboxExpansionRooms.Enabled = true;
                 CheckboxExpansionRooms.Checked = true;
                 CheckboxExpansionRooms_CheckedChanged(CheckboxExpansionRooms, EventArgs.Empty);
+                CheckboxExpansionTitle.Enabled = true;
+                CheckboxExpansionTitle_CheckedChanged(CheckboxExpansionTitle, EventArgs.Empty);
                 ButtonExpansionUnloadNightmare.Enabled = true;
             } catch (Exception ex) {
                 MessageBox.Show($"Error loading file: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
@@ -814,15 +828,21 @@ namespace KatAMRandomizer
         private void ButtonExpansionUnloadNightmare_Click(object sender, EventArgs e) {
             nightmareROM = null;
             LabelExpansionNightmare.Text = "No ROM loaded";
-            foreach (CheckBox box in new[] { CheckboxExpansionEnemies, CheckboxExpansionMinibosses, CheckboxExpansionRooms }) {
+            foreach (CheckBox box in new[] { CheckboxExpansionEnemies, CheckboxExpansionMinibosses, CheckboxExpansionRooms, CheckboxExpansionTitle }) {
                 box.Checked = false;
                 box.Enabled = false;
             }
             settings.NightmareEnemies = new List<int>();
             settings.NightmareMinibosses = new List<int>();
             settings.NightmareRooms = false;
+            settings.NightmareTitle = false;
             ButtonExpansionUnloadNightmare.Enabled = false;
             UpdateExpansionLabel();
+        }
+
+        // CheckboxExpansionTitle_CheckedChanged(); The title screen: KatAM's intro or NiDL's Kirby swarm, picked from the seed;
+        private void CheckboxExpansionTitle_CheckedChanged(object sender, EventArgs e) {
+            settings.NightmareTitle = nightmareROM != null && CheckboxExpansionTitle.Checked;
         }
 
         // CheckboxExpansionRooms_CheckedChanged(); NiDL's rooms;

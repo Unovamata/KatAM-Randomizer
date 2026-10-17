@@ -524,6 +524,10 @@ namespace KatAMInternal
         // ROM Expansion: the ported Nightmare in Dream Land mini-bosses to add (KatAMExpansion.Minibosses indexes);
         public List<int> NightmareMinibosses { get; set; } = new List<int>();
         public bool NightmareRooms { get; set; }
+        // Title screen: the intro's parading characters swapped (KatAMTitleScreen.RandomizeParade);
+        public bool RandomizeTitleParade { get; set; }
+        // Title screen: the intro picked at random between KatAM's and Nightmare in Dream Land's (needs a NiDL ROM loaded);
+        public bool NightmareTitle { get; set; }
 
         public Settings() {
             Random seedGenerator = new Random();

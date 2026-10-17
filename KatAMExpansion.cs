@@ -371,7 +371,7 @@ namespace KatAMRandomizer {
 
         /* AddEnemies(); Adds every ported enemy as object type 0x31, expanding the ROM to 32 MB (rom is replaced by the bigger one).
          * Returns null when done, or why it couldn't be done (rom is left as it was); */
-        public static string AddEnemies(ref byte[] rom, byte[] nightmare, bool rooms = true) {
+        public static string AddEnemies(ref byte[] rom, byte[] nightmare, bool rooms = true, bool title = false) {
             KatAMExpansionCode.Version version = VersionOf(rom);
             NightmareRegion region = RegionOf(nightmare);
 
@@ -384,7 +384,7 @@ namespace KatAMRandomizer {
             byte[] original = rom;
 
             rom = Expand(rom);
-            string error = AddEnemiesTo(rom, nightmare, region, version, rooms);
+            string error = AddEnemiesTo(rom, nightmare, region, version, rooms, title);
             if (error != null) rom = original;
             return error;
         }
@@ -398,7 +398,7 @@ namespace KatAMRandomizer {
             return expanded;
         }
 
-        static string AddEnemiesTo(byte[] rom, byte[] nightmare, NightmareRegion region, KatAMExpansionCode.Version version, bool rooms) {
+        static string AddEnemiesTo(byte[] rom, byte[] nightmare, NightmareRegion region, KatAMExpansionCode.Version version, bool rooms, bool title) {
             int HurtAnimID = version.AnimCount,     // The first free anim ID (the vanilla table's size);
                 SpriteTables = version.SpriteTables, SpawnTable = version.SpawnTable, ObjectParameters = version.ObjectParameters,
                 ObjectParameters2 = version.ObjectParameters2, HitFlashBranch = version.HitFlashBranch;
@@ -682,6 +682,8 @@ namespace KatAMRandomizer {
                 ["gUnk_08D60FDC"] = hatTables.Select(table => table + 0x08000000).ToArray(),
                 ["gUnk_08350A3C"] = new[] { -1, -1, -1, -1, -1, -1, backdropPalette },
             });
+            // NiDL's title screen swarm (KatAMExpansionTitle.cs), before the rooms: FinishRooms() allocates after them;
+            error ??= title ? AddTitle(rom, nightmare, version, ref cursor) : null;
             return error ?? (rooms ? AddWorldMap(rom, version, ref cursor) ?? AddRooms(rom, nightmare, region, version, ref cursor) : null);
         }
 

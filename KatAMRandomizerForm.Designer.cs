@@ -36,6 +36,7 @@
             ButtonSaveSettings = new Button();
             GroupSettings = new GroupBox();
             CheckboxOptionsSpoilerLog = new CheckBox();
+            CheckboxOptionsTitleParade = new CheckBox();
             LabelSeed = new Label();
             GroupRomInfo = new GroupBox();
             LabelStability = new Label();
@@ -200,6 +201,7 @@
             CheckboxExpansionEnemies = new CheckBox();
             CheckboxExpansionMinibosses = new CheckBox();
             CheckboxExpansionRooms = new CheckBox();
+            CheckboxExpansionTitle = new CheckBox();
             LabelExpansionEnemies = new Label();
             GroupMapElements = new GroupBox();
             GroupMapElementStoneDoors = new GroupBox();
@@ -346,6 +348,7 @@
             // GroupSettings
             // 
             GroupSettings.Controls.Add(CheckboxOptionsSpoilerLog);
+            GroupSettings.Controls.Add(CheckboxOptionsTitleParade);
             GroupSettings.Controls.Add(ButtonSaveSettings);
             GroupSettings.Controls.Add(ButtonLoadSettings);
             GroupSettings.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
@@ -370,6 +373,19 @@
             CheckboxOptionsSpoilerLog.Text = "Spoiler Log";
             CheckboxOptionsSpoilerLog.UseVisualStyleBackColor = true;
             CheckboxOptionsSpoilerLog.CheckedChanged += CheckboxOptionsSpoilerLog_CheckedChanged;
+            // 
+            // CheckboxOptionsTitleParade
+            // 
+            CheckboxOptionsTitleParade.AutoSize = true;
+            CheckboxOptionsTitleParade.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            CheckboxOptionsTitleParade.Location = new Point(9, 73);
+            CheckboxOptionsTitleParade.Margin = new Padding(4, 5, 4, 5);
+            CheckboxOptionsTitleParade.Name = "CheckboxOptionsTitleParade";
+            CheckboxOptionsTitleParade.Size = new Size(200, 29);
+            CheckboxOptionsTitleParade.TabIndex = 14;
+            CheckboxOptionsTitleParade.Text = "Random intro parade";
+            CheckboxOptionsTitleParade.UseVisualStyleBackColor = true;
+            CheckboxOptionsTitleParade.CheckedChanged += CheckboxOptionsTitleParade_CheckedChanged;
             // 
             // LabelSeed
             // 
@@ -2751,6 +2767,7 @@
             GroupExpansionNightmare.Controls.Add(CheckboxExpansionEnemies);
             GroupExpansionNightmare.Controls.Add(CheckboxExpansionMinibosses);
             GroupExpansionNightmare.Controls.Add(CheckboxExpansionRooms);
+            GroupExpansionNightmare.Controls.Add(CheckboxExpansionTitle);
             GroupExpansionNightmare.Controls.Add(LabelExpansionEnemies);
             GroupExpansionNightmare.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
             GroupExpansionNightmare.Location = new Point(10, 10);
@@ -2847,13 +2864,26 @@
             CheckboxExpansionRooms.UseVisualStyleBackColor = true;
             CheckboxExpansionRooms.CheckedChanged += CheckboxExpansionRooms_CheckedChanged;
             // 
+            // CheckboxExpansionTitle
+            // 
+            CheckboxExpansionTitle.AutoSize = true;
+            CheckboxExpansionTitle.Enabled = false;
+            CheckboxExpansionTitle.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            CheckboxExpansionTitle.Location = new Point(16, 274);
+            CheckboxExpansionTitle.Margin = new Padding(4, 5, 4, 5);
+            CheckboxExpansionTitle.Name = "CheckboxExpansionTitle";
+            CheckboxExpansionTitle.TabIndex = 6;
+            CheckboxExpansionTitle.Text = "Title screen: KatAM's intro or NiDL's Kirby swarm, picked at random";
+            CheckboxExpansionTitle.UseVisualStyleBackColor = true;
+            CheckboxExpansionTitle.CheckedChanged += CheckboxExpansionTitle_CheckedChanged;
+            // 
             // LabelExpansionEnemies
             // 
             LabelExpansionEnemies.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            LabelExpansionEnemies.Location = new Point(16, 284);
+            LabelExpansionEnemies.Location = new Point(16, 318);
             LabelExpansionEnemies.Margin = new Padding(4, 0, 4, 0);
             LabelExpansionEnemies.Name = "LabelExpansionEnemies";
-            LabelExpansionEnemies.Size = new Size(1150, 230);
+            LabelExpansionEnemies.Size = new Size(1150, 196);
             LabelExpansionEnemies.TabIndex = 6;
             LabelExpansionEnemies.Text = "";
             // 
@@ -3031,6 +3061,7 @@
         private CheckBox CheckboxExpansionEnemies;
         private CheckBox CheckboxExpansionMinibosses;
         private CheckBox CheckboxExpansionRooms;
+        private CheckBox CheckboxExpansionTitle;
         private Label LabelExpansionEnemies;
         private Label LabelGameRegion;
         private GroupBox GroupMiscSprayPalettes;
@@ -3190,6 +3221,7 @@
         private RadioButton RadioGoalGameMirrorsShuffle;
         private RadioButton RadioGoalGameMirrorsUnchanged;
         private CheckBox CheckboxOptionsSpoilerLog;
+        private CheckBox CheckboxOptionsTitleParade;
         private Label LabelStability;
         private Label LabelCompatibility;
         private TabPage tabPage6;

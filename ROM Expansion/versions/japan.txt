@@ -175,3 +175,16 @@ sub_08001408 0x8001408
 sub_080015A8 0x80015a8
 EwramInitHeap 0x8159034
 sub_08002EC4 0x8002ec4  # FillLevelInfo's call before sub_08031CE4 (find_symbols.py doesn't find it)
+CreateTitleScreen 0x8149c81
+gDispCnt 0x3003690
+gObjPalette 0x3002c60
+gPressedKeys 0x30039fc
+gVramHeapMaxTileSlots 0x3002488
+gVramHeapStartAddr 0x3002540
+iwram_end 0x3006cc4
+sub_08156D84 0x8156d44
+sub_08145B64 0x8145b00
+TitleScreenMain 0x8149d5d  # the main CreateTitleScreen passes TaskCreate
+gUnk_03002EC0 0x3002ec0
+gUnk_030039A4 0x30039a4
+gUnk_03006078 0x3006078

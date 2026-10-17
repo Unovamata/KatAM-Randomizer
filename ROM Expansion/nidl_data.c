@@ -7,3 +7,7 @@ const struct NidlData gNidlData = { 0 };
 #include "abilities.h"
 
 const struct NidlAbilityData gNidlAbilityData = { 0 };
+
+#include "title.h"
+
+const struct NidlTitle gNidlTitle = { 0 };
