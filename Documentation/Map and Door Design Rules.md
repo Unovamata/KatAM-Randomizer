@@ -1,0 +1,133 @@
+# Map and door design rules
+
+The rulebook for laying out mirrors, doors and the ways between rooms, for the ROM Expansion's Nightmare in Dream Land rooms
+(`KatAMExpansionRooms.cs`, `PlanDoors()`) and for anything that adds or moves a way between rooms later. The goal is always the
+same: the map should read and play like *Kirby & the Amazing Mirror*, not like a pile of teleporters. When a new idea breaks one of
+these rules, change the rule here first, on purpose, then the code.
+
+Each rule says where it is enforced, so it can be checked. The logic checks (every room reached, every big switch pressed, no
+place you can't get out of, with and without dropping through thin floors) must pass on the USA, European and Japanese builds
+after any change.
+
+## 1. What counts as a way between rooms
+
+| Way | KatAM object | One-way or two-way | Notes |
+|---|---|---|---|
+| Mirror (door) | `0x6F` mirror, a door cell | either | The normal way. One-way mirrors are drawn with KatAM's one-way graphic. |
+| Hub door | `0x97` door object | always two-way | Only in hubs (rule 4). Hidden until its big switch is pressed. |
+| Mirra | `0x34` | always one-way | A hidden mirror that runs away (rule 6). |
+| Warp star | `0x84` | one-way | NiDL's own; stays a warp star (rule 7). |
+| Cannon | `0x8A` + fuse `0x78` | one-way | NiDL's own; stays a cannon (rule 7). |
+| Edge | none (the room's edge) | one-way | NiDL's falls out of a room's bottom and climbs out of its top. |
+| Boss shard | `0x65` shard | one-way | The only way out of a boss room (rule 8). |
+
+## 2. How many doors a room has
+
+- **At most 3 exits a room, 2 in a small room** (2 screens or less). `MaxExits()`.
+- **The camera never shows 3 doors at once**: no door goes within a screen (`ViewWidth` x `ViewHeight` cells) of two others.
+  `ViewFits()`. NiDL's rooms lagged and read as a mess with many mirrors in view.
+- **Mirrors stay inside what the camera shows**: never on a row the camera can't reach, never in mid-air, always on a floor
+  3 cells wide with room above. `RoomSpot()`, `Shown()`.
+- **Doors keep their distance** from other doors, from where other doors land Kirby, and from warp stars and cannons
+  (`MirrorSpacing` x 2 cells across, 2 up or down; half that in small rooms). `RoomSpot()`.
+- NiDL's own door halls (Butter Building's tower floors, Rainbow Resort's rooms of doors) keep all their doors, drawn as NiDL's
+  own doorways without mirrors, past these limits.
+
+## 3. One-way and two-way
+
+- **Two-way doors are used sparingly**; most added connections are one-way throws, as KatAM's.
+- **A two-way door leads back where you came from**: it lands Kirby on (or right beside) the door that brings him back.
+- **A one-way door never throws Kirby onto a door, nor in front of a two-way one** (4 cells across, 2 up or down): its landing
+  moves to a floor nearby that the camera shows. `Crowded()`, `Clear()`.
+- **NiDL's own two-way doors stay two-way**, and its one-way mirrors were made two-way, unless the way back lands somewhere
+  unreachable.
+
+## 4. Hubs
+
+- **A hub has at most 2 regular doors** (mirrors). Hub doors (`0x97`, the doors a big switch reveals) are counted apart and are
+  not limited by this rule.
+- **The NiDL switch rooms have 2 hub doors**, in one of KatAM's two hub-door layouts:
+  - **A** (`0x122`): doors at the top left and top right, the big switch between them;
+  - **B** (`0x250`): one door at the top middle, one at the bottom middle.
+  Each switch room also has 1 regular door: its right floor mirror (rule 5).
+- **The hubs stay interconnected the way they were approved**: each level's switch room reveals a hub door leading to
+  (`LevelLinks`, `KatAMLinkDoors`):
+
+  | Level | Its hub door leads to |
+  |---|---|
+  | Vegetable Valley | Rainbow Route East `0x316` |
+  | Ice Cream Island | the Moonlight Mansion door `0xBE` |
+  | Butter Building | Rainbow Resort's switch room |
+  | Grape Garden | Peppermint Palace East `0x122` |
+  | Yogurt Yard | Cabbage Cavern West `0x250` |
+  | Orange Ocean | Cabbage Cavern East `0xBF` |
+  | Rainbow Resort | the NiDL hub |
+  | Fountain of Dreams | Cabbage Cavern East `0xBF` |
+
+  Each KatAM room in that list gets a hub door back.
+- **The world map is fixed as approved** (`worldmap.c`'s `gNidlWorldMapDoors`, one path per level's hub door). Neither the world
+  map nor the hub links change unless the user asks for it.
+- **Hub doors are always two-way and never lead to a Mirra.**
+- The NiDL hub (a Central Circle copy at night) has one door per level, as Central Circle has one per area.
+
+## 5. Levels, stages and the order of things
+
+- **A level is a tree of stages** from its first stage. Every other stage is entered through a branch door (in a room's middle or
+  hidden, half and half), and its start gets a mirror back.
+- **Only the deepest stage's goal leads to the boss stage.** The other goals end their branch, one-way, as KatAM's goal mirrors.
+- **Loops are few and each has a reason** (about one per 7 rooms): one-way shortcuts home from deep stages, a two-way door between
+  sibling branches, a hidden two-way door between each level and the next, one one-way throw into another level, and links with the
+  KatAM area paired with the level (rooms with few doors, far from them).
+- **Goal rooms keep their goal door alone**: no branch, no way back.
+- **A level's switch room is found by exploring**: a Mirra hidden in the second half of the level leads to it, one-way. Its right
+  floor mirror goes both ways to the stage before the boss.
+
+## 6. Mirras
+
+- **As few as KatAM's**, at most one per room, never chained.
+- **Always one-way, always hidden, never in mid-air.**
+- **Each leads to real progress** (a switch room, a shortcut to a later stage), never sideways.
+- Never in a boss room or a switch room. `MirraSpots()`.
+
+## 7. Warp stars and cannons
+
+- **They are key routes to other areas and secrets**: they stay KatAM's own objects, where NiDL has them, to where NiDL's take
+  Kirby. They are not turned into mirrors. `Transport`.
+- **Warp stars float where NiDL puts them** (a cell's middle). **Cannons sit on their fuse** as KatAM's own do (rooms `0x7E`,
+  `0x143`, `0x1F6`, `0x33B`): x the right edge of the fuse cell the rope enters, y that cell's top. `TransportSpot()`.
+- **They always land Kirby safely**: on a floor, never in a pit or the room's hidden bottom rows. A cannon fires Kirby to the top of
+  its room and he must fall onto a floor. `Land()`.
+- No mirror is placed next to them (rule 2).
+
+## 8. Bosses and mini-bosses
+
+- **A boss room has no door out.** Taking the shard its boss leaves is the only way on: after the shard cutscene Kirby goes where the
+  boss stage went on (the next room, else the next level's first). A boss fought again leaves a Maxim Tomato and the shard again.
+  `bossExitsOf`, `gNidlShardExits`, `NidlShardExit()`.
+- **Doors into boss rooms are one-way.** Nothing else (branches, links, Mirras) goes in a boss stage.
+- **A mini-boss's fight area has no door until it is beaten**: doors there show once the fight ends. No two-way door in a
+  mini-boss's room; a door into one throws Kirby in, one-way. `Arenas()`, `InArena()`.
+
+## 9. Every place gets you back out
+
+- **Every room is reached** from the NiDL hub's starter mirror: a group of rooms nothing leads into gets a one-way throw into its
+  first room. `Reached()`.
+- **Every place Kirby can reach has a way back out** (to the hub or KatAM's rooms), **without needing Down + B** through a thin floor.
+  A place with none gets a one-way throw out, into the first stage of its level that has a way out. The way-out pass in `PlanDoors()`.
+- **Thin floors only become KatAM's undroppable kind** when, from every place Kirby arrives, dropping through leads nowhere he
+  doesn't reach anyway. `ThinFloors()`.
+- A one-way throw's landing never traps Kirby (rule 3), and breakable blocks a door lands Kirby inside start broken.
+
+## 10. Chests and items
+
+- Chests go where KatAM would put one: dead ends, secret rooms, behind blocks, at the end of a branch. Never in a boss room, a
+  switch room or a mini-boss's fight area.
+- Mirror shards in chests only replace chests that held consumables (healing items, 1UPs and such), never treasures.
+
+## 11. The map viewer
+
+- **Each level is one cluster**; a stage's rooms stay together, and a room linked only to another level sits by its own stage's
+  rooms.
+- **The whole map is as square as it fits**: levels go beside KatAM's map, then in rows under it, the same gap everywhere; the
+  tutorial and the game's end come last. `MapExpansion.Place()`.
+- Rooms are placed where their doors lead (a door on a room's right edge puts the next room to its right), as KatAM's area maps.

@@ -114,43 +114,41 @@
          * one its switch room shows above the switch (object 0x8C), and its door on the world map (KatAMExpansionWorldMap.cs);
          * LevelLinks: where that mirror leads, as its path on the world map (worldmap.c's gNidlWorldMapDoors): a KatAM mini hub, another
          * level's switch room (Nidl(level)) or the NiDL hub (Hub, onto the level's door there); the first two get a mirror back, onto
-         * which Kirby arrives (KatAMLinkDoors). Chains of at most 2 links, a few to KatAM rooms, each a mini hub with one hub door of its
-         * own, so it has 2, as every hub: Vegetable Valley to Rainbow Route East (0x316), Ice Cream Island to the Moonlight Mansion door
-         * (0xBE), Butter Building to Rainbow Resort to the hub, Grape Garden to Peppermint Palace West (0x123), Yogurt Yard to Radish Ruins
-         * (0x2B2), Orange Ocean to Olive Ocean (0x37A), the Fountain of Dreams to Candy Constellation (0x1EA) (the KatAM rooms of KatAM's
-         * world map doors: sWorldMapDoorRoomIds);
+         * which Kirby arrives (KatAMLinkDoors: off their big switch). Chains of at most 2 links, a few to KatAM rooms:
+         * Vegetable Valley to Rainbow Route East (0x316), Ice Cream Island to the Moonlight Mansion door (0xBE), Butter Building to Rainbow
+         * Resort to the hub, Grape Garden to Peppermint Palace East (0x122), Yogurt Yard to Cabbage Cavern West (0x250), Orange Ocean and
+         * the Fountain of Dreams to Cabbage Cavern East (0xBF) (the KatAM rooms of KatAM's world map doors: sWorldMapDoorRoomIds);
          * Door designs (object 0x97's subtype, its frame: CreateDoorToHub; KatAM shows the design of where a door leads, KatAMDesigns):
          * each level has one KatAM's Central Circle doesn't (NidlDesigns), for its door in the NiDL hub and the doors leading to it; */
         static int LevelSlot(int level) => 0x14 + level;
         const int Hub = -1;
         static int Nidl(int level) => -2 - level;
-        static readonly int[] LevelLinks = { 0x316, 0xBE, Nidl(6), 0x123, 0x2B2, 0x37A, Hub, 0x1EA };
+        static readonly int[] LevelLinks = { 0x316, 0xBE, Nidl(6), 0x122, 0x250, 0xBF, Hub, 0xBF };
         /* KatAMLinkDoors: where, in the KatAM mini hub a level's mirror leads to, its way back stands, and where Kirby lands (as KatAM's
          * paths: both rooms get a mirror once the big switch is pressed): a door (object 0x97, the level's slot, in the level's design;
-         * FinishRooms()) as KatAM's hub doors: the 2 doors of KatAM's two layouts of a hub (LayoutB()). 0x316, 0xBE, 0x123, 0x2B2 and
-         * 0x37A (their door in the middle of the top row, over their big switch) take 0x122's (A: doors at cells 3 and 12, statues
-         * between): their door moves from the middle to cell 12 (MovedDoors: where it leads stays, and the doors landing on it land on
-         * it there), the level's at cell 3, their statues between (DecorationMoves); 0x1EA (its door in the lower floor's middle) takes
-         * 0x250's (B: top and bottom middle), the level's door on top, over its big switch; Butter Building's leads to Rainbow Resort's
-         * switch room, onto its SwitchLinkDoor; */
+         * FinishRooms()) as KatAM's hub doors, on the top row (0x316 and 0xBE left; 0x122 in the middle, Kirby landing on the floor, off
+         * its big switch) or on the lower floor (0x250, 0xBF, beside their own); Butter Building's leads to Rainbow Resort's switch room,
+         * onto its SwitchLinkDoor. The top rows stay symmetric, as KatAM's own (0x122: doors at cells 3 and 12, statues between):
+         * 0x316 and 0xBE take 0x122's layout, Central Circle's door moving from the middle to cell 12 (MovedDoors: where it leads stays,
+         * and the doors landing on it land on it there) and their statues between (DecorationMoves); 0x122's door stands in the
+         * middle of the room (DoorDrawX: its cell 8, drawn at x 128, between its statues). 0x250's lower floor takes 0xBF's: its own
+         * door (to Mustard Mountain's hub) moves from under its big switch to cell 11, the level's at cell 5; */
         static readonly ((int x, int y) door, (int x, int y) landing)[] KatAMLinkDoors = {
-            ((3, 3), (3, 3)), ((3, 3), (3, 3)), ((0, 0), (0, 0)), ((3, 3), (3, 3)), ((3, 3), (3, 3)), ((3, 3), (3, 3)), ((0, 0), (0, 0)), ((8, 2), (8, 2)),
+            ((3, 3), (3, 3)), ((3, 3), (3, 3)), ((0, 0), (0, 0)), ((8, 3), (4, 8)), ((5, 8), (5, 8)), ((5, 8), (5, 8)), ((0, 0), (0, 0)), ((11, 8), (11, 8)),
         };
         static readonly Dictionary<int, (byte type, int fromX, int toX)[]> DecorationMoves = new Dictionary<int, (byte, int, int)[]> {
             [0x316] = new[] { ((byte)0x92, 64, 96), ((byte)0x92, 200, 160) }, [0xBE] = new[] { ((byte)0x92, 64, 96), ((byte)0x92, 200, 160) },
-            [0x123] = new[] { ((byte)0x92, 64, 96), ((byte)0x92, 200, 160) }, [0x2B2] = new[] { ((byte)0x92, 64, 96), ((byte)0x95, 200, 160) },
-            [0x37A] = new[] { ((byte)0x92, 64, 96), ((byte)0x94, 200, 160) },
         };
         static readonly Dictionary<int, (int x, int y, int toX, int toY)> MovedDoors = new Dictionary<int, (int, int, int, int)> {
-            [0x316] = (8, 3, 12, 3), [0xBE] = (8, 3, 12, 3), [0x123] = (8, 3, 12, 3), [0x2B2] = (8, 3, 12, 3), [0x37A] = (8, 3, 12, 3),
+            [0x316] = (8, 3, 12, 3), [0xBE] = (8, 3, 12, 3), [0x250] = (8, 8, 11, 8),
         };
-        // (the rooms whose doors land on a moved door, so FinishRooms() moves their landings too: Central Circle's, Peppermint Palace
-        // East's, Cabbage Cavern West's and East's);
-        static readonly int[] LandingRooms = { 0x321, 0x122, 0x250, 0xBF };
+        // (the rooms whose doors land on a moved door, so FinishRooms() moves their landings too: Central Circle's, Mustard Mountain's hub);
+        static readonly int[] LandingRooms = { 0x321, 0x2B2 };
+        static readonly Dictionary<int, int> DoorDrawX = new Dictionary<int, int> { [0x122] = 128 };
         // LandsOn(); Whether a landing (x, y: Kirby at x * 16 - 8, y * 16 - 7) is on a moved door (within a cell: KatAM's hub doors land
-        // Kirby on their cell, 9, 3 on 8, 3); it moves with it;
+        // Kirby on their cell, 9, 3 on 8, 3, or beside it, 8, 8 on 8, 8); it moves with it;
         static bool LandsOn(int x, int y, (int x, int y, int toX, int toY) door) => Math.Abs(x - 1 - door.x) <= 1 && Math.Abs(y - 1 - door.y) <= 1;
-        // (and none the KatAM rooms its doors stand in have: Yogurt Yard's, in 0x2B2 beside its door to Cabbage Cavern West, 4, isn't);
+        // (and none the KatAM rooms its doors stand in have: Yogurt Yard's, in 0x250 beside its door to Mustard Mountain's hub, 5, isn't);
         static readonly int[] NidlDesigns = { 11, 3, 5, 7, 13, 2, 6, 1 };
         static readonly Dictionary<int, int> KatAMDesigns = new Dictionary<int, int> {
             [0x316] = 14, [0x2B2] = 5, [0x24F] = 7, [0xC1] = 13, [0x123] = 6, [0x37A] = 11, [0x186] = 2, [0x122] = 15, [0xC0] = 8, [0xC2] = 10,
@@ -2641,6 +2639,7 @@
                     for (int i = 0, at = ReadInt(rom, list + 4) - 0x08000000; i < rom[list + 12]; i++) types.Add(rom[at + i]);
                     foreach (Door door in edited.Doors.Where(d => d.Slot != 0)) {
                         byte[] template = DoorToHubTemplate(door.X, door.Y, templates.Count, door.Slot, door.Design);
+                        if (DoorDrawX.TryGetValue(edited.Room, out int drawX)) WriteShort(template, 6, drawX);
                         templates.Add(template);
                     }
                     if (!types.Contains(DoorToHubType)) types.Add(DoorToHubType);
@@ -3341,7 +3340,7 @@
             foreach (Door door in doors.Where(d => !d.Edge && !d.Plain)) {
                 byte type = door.Slot != 0 ? DoorToHubType : MirrorType;
                 byte[] mirror = door.Slot != 0 ? DoorToHubTemplate(door.X, door.Y, templates.Count, door.Slot, door.Design) : MirrorTemplate(door.X, door.Y, templates.Count);
-                // (layout B's doors in the middle, on cell 8, drawn at x 128, the room's middle);
+                // (layout B's doors in the middle, on cell 8, drawn at x 128, the room's middle, as 0x122's: DoorDrawX);
                 if (r.IsSwitchRoom && LayoutB(r.Level) && door.Slot != 0 && door.X == 8) WriteShort(mirror, 6, 128);
                 if (door.Secret || Shut(door)) mirror[14] = 1;    // subtype1 1: hidden until its cell is a door (CreateMirrorDoor);
                 if (door.OneWay && door.Slot == 0) mirror[0x23] |= 1;    // +0x22 0x100: drawn as a one-way mirror (mirror_door.c), as KatAM's;
