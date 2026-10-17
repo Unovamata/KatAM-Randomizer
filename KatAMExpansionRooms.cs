@@ -279,7 +279,8 @@ namespace KatAMRandomizer {
         static readonly int[] ModelRanks = { 0, 0, 0, 0, 4, 0, 0, 0 };
         /* SwitchDesigns; Switch rooms picked by eye, kept as they are whatever BuildSwitchRooms() would draw now: per level, the left
          * half's metatiles, row by row (~: flipped left to right, ^: upside down, @: both), the right half its mirror image; the same
-         * metatiles in every region (NiDL's tilesets are); Grape Garden's after its second stage's fifth room, no ledges (NoLedges); the Fountain of
+         * metatiles in every region (NiDL's tilesets are); Rainbow Resort's in its Game Boy tiles (SwitchLook), after its last stage's fifth room;
+         * Grape Garden's after its second stage's fifth room, no ledges (NoLedges); the Fountain of
          * Dreams' in FountainLook's castle, the castle's circle pillars as its walls'
          * inner faces; Butter Building's after its sixth stage's eighth room, its floor after its first stage's
          * third; Ice Cream Island's after its third stage's third room (its grass ends curling under as its
@@ -289,6 +290,20 @@ namespace KatAMRandomizer {
          * white tusks framing the big switch); Yogurt Yard's after its sixth stage's second room, inside its rock the fills (and moss) joining best
          * (least colour across their edges), Orange Ocean's after its fifth stage's first; */
         static readonly Dictionary<int, string[]> SwitchDesigns = new Dictionary<int, string[]> {
+            [6] = new[] {
+                "~163 0F5 ~0ED ~0ED ~0ED ~0ED ~0ED ~0ED",
+                "~163 0EE 01E 01E 01E 01E 01E 01E",
+                "~163 0EE 01E 01E 01E 01E 01E 01E",
+                "~163 0EE 01E 01E 01E 01E 01E 01E",
+                "~163 0EE 01E 01E 01E 01E 01E 01E",
+                "~0ED 0F1 01E 01E 01E 01E 01E 01E",
+                "01E 01E 01E 01E 01E 01E 01E 01E",
+                "01E 01E 01E 01E 01E 01E 01E 01E",
+                "01E 01E 01E 01E 01E 0C2 ~0C3 ~0C3",
+                "~0C3 ~0C3 ~0C3 ~0C3 0C7 ~0C5 ~0C5 ~0C5",
+                "~0C5 ~0C5 ~0C5 ~0C5 ~163 ~0C6 ~0C6 ~0C6",
+                "~0C6 ~0C6 ~0C6 ~0C6 ~163 ~163 ~163 ~163",
+            },
             [7] = new[] {
                 "001 090 00B 00A 00B 00A 00B 00A",
                 "001 014 000 000 000 000 000 000",
