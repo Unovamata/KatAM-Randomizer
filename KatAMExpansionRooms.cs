@@ -145,7 +145,7 @@ namespace KatAMRandomizer {
          * where LevelLinks says, SwitchHubDoor back to the NiDL hub (as KatAM's mini hubs' to Central Circle; Kirby arrives on it from
          * the hub; Rainbow Resort's link is the hub's, so there, and its SwitchLinkDoor leads back to Butter Building's); Kirby starts
          * at SwitchArrival; */
-        const int SwitchStage = 8, SwitchWidth = 16, SwitchHeight = 10;
+        const int SwitchStage = 8, SwitchWidth = 16, SwitchHeight = 13, SwitchFloor = 9;
         // LayoutB(); KatAM's two layouts of a room with 2 hub doors: 0x122's (A: top left and right) or 0x250's (B: top and bottom middle);
         static bool LayoutB(int level) => level % 2 == 1;
         static (int x, int y)[] SwitchSides(int level) => LayoutB(level) ? new[] { (1, 6), (14, 6) } : new[] { (1, 8), (14, 8) };
@@ -259,7 +259,8 @@ namespace KatAMRandomizer {
         /* BuildSwitchRooms(); The switch rooms, as NiDL rooms appended to a copy of the NiDL ROM (records whose cells are made here, the
          * rest the first room's with the level's own tileset (Choose: its first stage's, or its most solid where that's mostly sky): foreground tiles, palette, metatiles, background), so they're converted as the others: per
          * level, its most common metatiles for air, a floor's top, the ground below it and one-way platforms (a floor's top where it
-         * has none), laid out as KatAM's rooms with 2 hub doors (rows 0-9; the padding repeats the floor below; L, H: SwitchLinkDoor,
+         * has none), laid out as KatAM's rooms with 2 hub doors (13 rows as theirs, the ground from row 9 down: a floor's top, then
+         * ground, not its top again; L, H: SwitchLinkDoor,
          * SwitchHubDoor; P: the pedestal, the big switch on it, and ledges, in the level's blocks: its most common floating solid
          * metatile; M: the floor mirrors):
          *   A (0x122's)           B (0x250's)
@@ -268,9 +269,9 @@ namespace KatAMRandomizer {
          *   ##............##      #..............#      4
          *   ##............##      #..............#      5
          *   #..............#      #M...PPPPP...M.#      6
-         *   ................      ####.........###      7
-         *   .M...PPPPPP...M.      ####....L....###      8
-         *   ################      ################      9 */
+         *   #..............#      ####.........###      7
+         *   #M...PPPPPP...M#      ####....L....###      8
+         *   ################      ################      9-12 */
         // FillOverrides; The metatile a level's switch room fills its ground with, where the level's most common one is out of place:
         // Vegetable Valley's hedge (its checkered dirt, under its raised grass, looked out of place in a room of hedges);
         static readonly Dictionary<int, int> FillOverrides = new Dictionary<int, int> { [0] = 5 };
@@ -311,16 +312,17 @@ namespace KatAMRandomizer {
                 // (the first stage's tileset, the level's own look: Vegetable Valley's grass, 28% ground; one mostly sky, under 27%:
                 // Grape Garden's clouds 25%, Yogurt Yard's and Rainbow Resort's skies: instead the one in 2 rooms or more most solid and most
                 // used, its share of ground times the root of its rooms: Grape Garden's castle, Yogurt Yard's purple caves);
-                // (the Fountain of Dreams': Grape Garden's clouds, soft and dreamy, under King Dedede's arena's background, the Fountain
-                // itself, below);
-                int dededeStage = rooms.Where(r => r.Level == 6).Max(r => r.Stage);
-                NightmareRoom dedede = rooms.Where(r => r.Level == 6 && r.Stage == dededeStage).OrderBy(r => r.Index).First();
-                var levelRooms = level == 7 ? rooms.Where(r => r.Level == 3 && r.Stage == 0).ToList() : rooms.Where(r => r.Level == level).ToList();
-                NightmareRoom first = levelRooms.OrderBy(r => r.Stage).ThenBy(r => r.Index).First();
+                // (the Fountain of Dreams': the clouds of the skies of NiDL's levels, in Yogurt Yard's pastel colours (its first room's),
+                // learnt from every room with them, under the Fountain of Dreams' own nebula, below);
+                NightmareRoom pastel = rooms.Where(r => r.Level == 4).OrderBy(r => r.Stage).ThenBy(r => r.Index).First();
+                NightmareRoom fountain = rooms.Where(r => r.Level == 7).OrderBy(r => r.Stage).ThenBy(r => r.Index).First();
+                var levelRooms = level == 7 ? rooms.Where(r => Tileset(r) == Tileset(pastel)).ToList()
+                                            : rooms.Where(r => r.Level == level).ToList();
+                NightmareRoom first = level == 7 ? pastel : levelRooms.OrderBy(r => r.Stage).ThenBy(r => r.Index).First();
                 var tilesets = levelRooms.GroupBy(Tileset).ToList();
                 var chosen = tilesets.First(g => g.Key == Tileset(first));
                 int Rooms(IEnumerable<NightmareRoom> group) => group.Select(r => r.Record).Distinct().Count();
-                if (Solidness(chosen) < 0.27)
+                if (Solidness(chosen) < 0.27 && level != 7)
                     chosen = tilesets.Where(g => Rooms(g) >= 2).DefaultIfEmpty(chosen).OrderByDescending(g => Solidness(g) * Math.Sqrt(Rooms(g))).First();
                 NightmareRoom source = chosen.OrderBy(r => r.Stage).ThenBy(r => r.Index).First();
                 byte[] sourceCells = DecompressLZ77(nightmare, ReadInt(nightmare, source.Record + 8) - 0x08000000);
@@ -398,9 +400,9 @@ namespace KatAMRandomizer {
                 }
                 // NiDL collision: 0 nothing, 0x01 solid, 0x11 a one-way floor (KatAM's 0x0E); a solid cell with air above is a floor's top;
                 bool b = LayoutB(level);
-                bool Solid(int x, int y) => y == 0 || y == SwitchHeight - 1 || Pedestal(x, y) || (b
+                bool Solid(int x, int y) => y == 0 || y >= SwitchFloor || Pedestal(x, y) || (b
                     ? (y <= 3 && (x <= 1 || x >= SwitchWidth - 2)) || (y >= 4 && (x == 0 || x == SwitchWidth - 1)) || (y >= 7 && (x <= 3 || x >= 13))
-                    : (y <= 5 && (x <= 1 || x >= SwitchWidth - 2)) || (y == 6 && (x == 0 || x == SwitchWidth - 1)));
+                    : (y <= 5 && (x <= 1 || x >= SwitchWidth - 2)) || (y >= 6 && (x == 0 || x == SwitchWidth - 1)));
                 bool Pedestal(int x, int y) => b ? y == 6 && x >= 7 && x <= 9 : y == 8 && x >= 5 && x <= 10;
                 bool Ledge(int x, int y) => b && y == 6 && (x == 5 || x == 6 || x == 10 || x == 11);
                 // (past the room's edges solid, as the learning's; the padding repeats the bottom row);
@@ -464,18 +466,18 @@ namespace KatAMRandomizer {
                 }
 
                 byte[] record = nightmare.Skip(source.Record).Take(0x54).ToArray();
-                // (the Fountain of Dreams': its background framed on the Fountain, as a room a screen high shows only the top of it: rows
-                // 15-34 of King Dedede's arena's, the grass and the Fountain mid-screen, without its sky and the empty rows under it; uncompressed);
+                // (the Fountain of Dreams': the Fountain of Dreams' own background, its starry nebula, as a room a screen high shows only
+                // the top of it: its first 20 rows, uncompressed);
                 if (level == 7) {
-                    Array.Copy(nightmare, dedede.Record + 0x28, record, 0x28, 0x10);
-                    int map = ReadInt(nightmare, dedede.Record + 0x30) - 0x08000000, mapWidth = ReadShort(nightmare, map + 2);
+                    Array.Copy(nightmare, fountain.Record + 0x28, record, 0x28, 0x10);
+                    int map = ReadInt(nightmare, fountain.Record + 0x30) - 0x08000000, mapWidth = ReadShort(nightmare, map + 2);
                     bool packed = ReadShort(nightmare, map + 6) == 0xFFFF;
                     byte[] whole = packed ? DecompressLZ77(nightmare, map + 8) : null;
-                    const int FirstRow = 15, Rows = 20;
+                    const int FirstRow = 47, Rows = 20;
                     byte[] framed = new byte[6 + mapWidth * Rows * 2];
                     WriteShorts(framed, 0, mapWidth * Rows * 2, mapWidth, Rows);
-                    // (2 columns right, the Fountain in the middle of the screen: the camera shows the room's columns 0.5-15.5);
-                    const int Shift = 2;
+                    // (as it is across: Shift columns right where a feature should be mid-screen, the camera showing columns 0.5-15.5);
+                    const int Shift = 0;
                     for (int y = 0; y < Rows; y++)
                         for (int column = 0; column < mapWidth; column++) {
                             int row = FirstRow + y, x = (column - Shift + mapWidth) % mapWidth;
