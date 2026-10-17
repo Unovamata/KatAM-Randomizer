@@ -65,7 +65,7 @@ codeNames = ['gNidlWorldMapDoors', 'NidlWorldMapUnlockSave', 'NidlWorldMapGetCoo
              'gNidlTitle', 'CreateNidlTitle',
              # Bigger rooms (rooms.c): the replacements;
              'BigFillLevelInfo', 'BigGetCollisionTile', 'BigSub_08002434', 'BigSub_08002470', 'BigSub_080024F0', 'BigSub_0800255C', 'BigSub_080025AC', 'BigSub_08002624', 'BigSub_080026A8', 'BigSub_08001408', 'BigSub_080015A8',
-             'BigSub_08002A5C', 'BigSub_08002A80', 'BigSub_08002AD0', 'BigSub_08002B30', 'BigSub_08002BA8', 'BigSub_08002C18']
+             'gNidlRoomTops', 'BigSub_08002A5C', 'BigSub_08002A80', 'BigSub_08002AD0', 'BigSub_08002B30', 'BigSub_08002BA8', 'BigSub_08002C18']
 romNames = ['gUnk_0834C2AC', 'gUnk_0834C318', 'gUnk_083509D0', 'gUnk_08350A3C', 'gUnk_08D60FDC', 'gUnk_082DDE84', 'gUnk_082DDEF0',
             'gUnk_082DDF5C', 'gUnk_0834C4B0', 'gUnk_08350AAC', 'gUnk_08350B30', 'sub_080356AC', 'sub_08088640', 'gUnk_08D60B64', 'gUnk_08D60BE4',
             'sub_080547C4', 'SwallowSpecialSite', 'gUnk_08351648', 'gUnk_0834C5D4', 'gUnk_08D610B4',

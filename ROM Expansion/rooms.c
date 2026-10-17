@@ -33,6 +33,11 @@
 
 void LoadLevelGfx(u8 playerId, const u16 **arg1, const u16 **arg2);
 
+/* gNidlRoomTops; Per room, where the camera's view starts at the top (KatAMExpansionRooms.cs, CameraTop()): 0 KatAM's (8 pixels down,
+ * as its rooms hide that much), 1 the room's top (NiDL shows its rooms' top row whole), 2 a row down (16 pixels: a NiDL room whose top
+ * row repeats the one under it, which NiDL never showed); */
+const u8 gNidlRoomTops[0x400] = { 0 };
+
 #define NIDL_VISITED ((u32 *)((u8 *)gEwramHeap + NIDL_HEAP_SIZE))
 #define BIG_AREA ((u8 *)gEwramHeap + NIDL_HEAP_SIZE + NIDL_VISITED_SIZE)
 
@@ -394,6 +399,7 @@ void BigFillLevelInfo(u8 playerId, u16 roomId, const u16 **arg2, const u16 **arg
         levelInfo->unk_S32Vec2_74.y = (levelInfo->roomHeight - 0x28) * 0x100;
         levelInfo->unk_S32Vec2_7C.x = 0x800;
         levelInfo->unk_S32Vec2_7C.y = 0x800;
+        if (gNidlRoomTops[roomId]) levelInfo->unk_S32Vec2_6C.y = levelInfo->unk_S32Vec2_7C.y = (gNidlRoomTops[roomId] - 1) * 0x1000;
         levelInfo->unk_S32Vec2_84.x = levelInfo->unk_S32Vec2_74.x;
         levelInfo->unk_S32Vec2_84.y = levelInfo->unk_S32Vec2_74.y;
         levelInfo->unk8C = 0x200;

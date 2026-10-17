@@ -11,8 +11,9 @@
 #include "../nidl.h"
 #include "constants/object_types.h"
 
-/* The camera's bounds are what it may show, and 39 pixels more below (the room's own: 8, 8, width - 8, height - 1, as it never
- * shows a room's bottom 40); the arena's area is the screen, so the camera stays put. Kirby stays 8 pixels inside it; */
+/* The camera's bounds (unk_S32Vec2_7C, unk_S32Vec2_84) are what it may show: the arena's area, the screen, so the camera stays put
+ * (as KatAM's scroll locks, 15 x 10 cells); Kirby's (unkA0-unkAC) are that and 39 pixels more below (the room's own: 8, 8,
+ * width - 8, height - 1), so he falls off its pits. Kirby stays 8 pixels inside its sides; */
 #define BELOW 39
 #define WALL 8
 #define SHUT_DOORS 4
@@ -32,11 +33,11 @@ struct Arena {
     struct ShutDoor doors[SHUT_DOORS];
 };
 
-// The camera's bounds: its template's area (and BELOW);
+// The camera's bounds: its template's area (Kirby's, BELOW more);
 #define ARENA_LEFT(a) ((a->n.obj.objTemplate->x + a->n.obj.objTemplate->unk1A) << 8)
 #define ARENA_TOP(a) ((a->n.obj.objTemplate->y + a->n.obj.objTemplate->unk1C) << 8)
 #define ARENA_RIGHT(a) ((a->n.obj.objTemplate->x + a->n.obj.objTemplate->unk1A + a->n.obj.objTemplate->unk1E) << 8)
-#define ARENA_BOTTOM(a) ((a->n.obj.objTemplate->y + a->n.obj.objTemplate->unk1C + a->n.obj.objTemplate->unk20 + BELOW) << 8)
+#define ARENA_BOTTOM(a) ((a->n.obj.objTemplate->y + a->n.obj.objTemplate->unk1C + a->n.obj.objTemplate->unk20) << 8)
 
 typedef char ArenaFits[sizeof(struct Arena) <= NIDL_OBJECT_SIZE ? 1 : -1];
 
@@ -96,7 +97,8 @@ static void LockCamera(struct Arena *a, u8 i) {
     l->unk_S32Vec2_7C.x = l->unkA0 = ARENA_LEFT(a);
     l->unk_S32Vec2_7C.y = l->unkA4 = ARENA_TOP(a);
     l->unk_S32Vec2_84.x = l->unkA8 = ARENA_RIGHT(a);
-    l->unk_S32Vec2_84.y = l->unkAC = ARENA_BOTTOM(a);
+    l->unk_S32Vec2_84.y = ARENA_BOTTOM(a);
+    l->unkAC = ARENA_BOTTOM(a) + (BELOW << 8);
     if (a->locked & (1 << i)) return;
     a->locked |= 1 << i;
     l->unk1EC = 0;
