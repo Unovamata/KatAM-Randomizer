@@ -308,7 +308,10 @@ namespace KatAMRandomizer {
                 // (the first stage's tileset, the level's own look: Vegetable Valley's grass, 28% ground; one mostly sky, under 27%:
                 // Grape Garden's clouds 25%, Yogurt Yard's and Rainbow Resort's skies: instead the one in 2 rooms or more most solid and most
                 // used, its share of ground times the root of its rooms: Grape Garden's castle, Yogurt Yard's purple caves);
-                var levelRooms = rooms.Where(r => r.Level == level).ToList();
+                // (the Fountain of Dreams': King Dedede's arena's, Rainbow Resort's boss stage: the Fountain itself in its background, its
+                // tiles with it);
+                int dededeStage = rooms.Where(r => r.Level == 6).Max(r => r.Stage);
+                var levelRooms = level == 7 ? rooms.Where(r => r.Level == 6 && r.Stage == dededeStage).ToList() : rooms.Where(r => r.Level == level).ToList();
                 NightmareRoom first = levelRooms.OrderBy(r => r.Stage).ThenBy(r => r.Index).First();
                 var tilesets = levelRooms.GroupBy(Tileset).ToList();
                 var chosen = tilesets.First(g => g.Key == Tileset(first));
@@ -356,7 +359,7 @@ namespace KatAMRandomizer {
                     counts[metatile] = counts.GetValueOrDefault(metatile) + 1;
                 }
                 byte[] nidl = nightmare;
-                foreach (int learnt in rooms.Where(r => r.Level == level && Enumerable.Range(1, 2).All(k => ReadInt(nidl, r.Record + 0x18 + k * 4) == ReadInt(nidl, source.Record + 0x18 + k * 4)))
+                foreach (int learnt in levelRooms.Where(r => Enumerable.Range(1, 2).All(k => ReadInt(nidl, r.Record + 0x18 + k * 4) == ReadInt(nidl, source.Record + 0x18 + k * 4)))
                                             .Select(r => r.Record).Distinct()) {
                     byte[] roomCells = DecompressLZ77(nightmare, ReadInt(nightmare, learnt + 8) - 0x08000000);
                     int w = ReadShort(nightmare, learnt + 0x14), h = ReadShort(nightmare, learnt + 0x16);
@@ -406,10 +409,23 @@ namespace KatAMRandomizer {
                 }
 
                 byte[] record = nightmare.Skip(source.Record).Take(0x54).ToArray();
-                // (the Fountain of Dreams': its second room's starry sky, +0x28-0x37: its first room's shows black down where one screen
-                // looks, its ground's tiles kept);
-                NightmareRoom sky = level == 7 ? levelRooms.FirstOrDefault(r => r.Stage == first.Stage && r.Index == 1) : null;
-                if (sky != null) Array.Copy(nightmare, sky.Record + 0x28, record, 0x28, 0x10);
+                // (the Fountain of Dreams': its background framed on the Fountain, as a room a screen high shows only the top of it: rows
+                // 15-34 of King Dedede's arena's, the grass and the Fountain mid-screen, without its sky and the empty rows under it; uncompressed);
+                if (level == 7) {
+                    int map = ReadInt(nightmare, source.Record + 0x30) - 0x08000000, mapWidth = ReadShort(nightmare, map + 2);
+                    bool packed = ReadShort(nightmare, map + 6) == 0xFFFF;
+                    byte[] whole = packed ? DecompressLZ77(nightmare, map + 8) : null;
+                    const int FirstRow = 15, Rows = 20;
+                    byte[] framed = new byte[6 + mapWidth * Rows * 2];
+                    WriteShorts(framed, 0, mapWidth * Rows * 2, mapWidth, Rows);
+                    for (int y = 0; y < Rows; y++)
+                        for (int x = 0; x < mapWidth; x++) {
+                            int row = FirstRow + y;
+                            WriteShort(framed, 6 + (y * mapWidth + x) * 2, packed ? ReadShort(whole, (((row >> 5) * ((mapWidth + 31) >> 5) + (x >> 5)) * 1024 + (row & 31) * 32 + (x & 31)) * 2)
+                                                                                : ReadShort(nightmare, map + 6 + (row * mapWidth + x) * 2));
+                        }
+                    WriteInt(record, 0x30, Put(framed) + 0x08000000);
+                }
                 WriteShort(record, 2, 0);
                 WriteInts(record, 8, Put(CompressLZ77(cells)) + 0x08000000, Put(CompressLZ77(new byte[SwitchWidth * SwitchHeight * 2])) + 0x08000000, 0);
                 WriteShorts(record, 0x14, SwitchWidth, SwitchHeight);
