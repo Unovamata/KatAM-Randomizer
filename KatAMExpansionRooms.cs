@@ -3048,7 +3048,7 @@
          * and one there hit him as he came in; */
         static int BuildObjects(byte[] rom, byte[] nightmare, NightmareRoom r, List<Door> doors, List<(int x, int y, bool door)> mirras,
                                 List<(int x, int y)> landings, int noTypes, ref int cursor) {
-            const int LandingClear = 3, ShotzoType = 0x35;
+            const int LandingClear = 3, ShotzoType = 0x35, BomberType = 0x28;
             List<byte[]> templates = new List<byte[]>();
             List<byte> types = new List<byte>();
             int list = ReadInt(nightmare, r.Record + 0x48);
@@ -3080,6 +3080,16 @@
                 // (a Shotzo on blocks that break: NiDL's falls when they go, KatAM's stays in the air: left out, as on room 0x2FD's);
                 if (category == 0 && NativeEnemies.TryGetValue(index, out type)) {
                     if (type == ShotzoType && y / 16 + 1 < r.Height && Kind(x / 16, y / 16 + 1) >> 4 == 2) continue;
+                    /* (a Bomber's spot is the top of the floor under it, as KatAM's own: InitObject looks for a floor once, at the
+                     * template's spot, before the object has its box, and bomber.c starts falling when there's none, then blows up on
+                     * landing: from NiDL's spots, 8 pixels up, every Bomber went off before Kirby saw it. That look misses one-way
+                     * floors (NiDL's 0x1X), so one on them stands on the floor under them; over a pit it stays); */
+                    if (type == BomberType) {
+                        bool Floor(int cx, int cy) => RoomCollision[Kind(cx, cy)] is >= 0x01 and <= 0x1B && Kind(cx, cy) >> 4 != 1 || Solid(cx, cy);
+                        int cy = y / 16;
+                        while (cy + 1 < r.Height && cy <= y / 16 + 6 && !Floor(x / 16, cy + 1)) cy++;
+                        if (cy + 1 < r.Height && cy <= y / 16 + 6) y = (cy + 1) * 16;
+                    }
                 }
                 else if (category == 0 && PortedEnemies.TryGetValue(index, out int ported)) {
                     type = NightmareID;

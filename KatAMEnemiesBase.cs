@@ -42,6 +42,7 @@ namespace KatAMRandomizer {
         };
 
         // Rooms whose enemies are never randomized, as the game crashes consistently when they are;
+        const byte BomberID = 0x28;
         protected static readonly HashSet<int> roomsWithoutEnemyRandomization = new HashSet<int>() {
             0x6B,
         };
@@ -243,6 +244,13 @@ namespace KatAMRandomizer {
                 if(entity.ID == MinibossScreens.Batafire && id != MinibossScreens.Batafire && MinibossScreens.IsMiniboss(id)) MinibossScreens.MoveToSide(entity);
                 // Bombar flies its attacks the way it faces (its behavior), so it faces the inside of its fight area;
                 if(entity.ID == MinibossScreens.Bombar) entity.Behavior = MinibossScreens.InwardFacing(entity);
+                /* A Bomber stands on the floor line (KatAM's own Bombers' places are on it): the game looks for a floor once, at its
+                 * place, and one placed in a block's middle (other enemies' places, the ROM Expansion's) starts falling, then blows
+                 * up on landing before Kirby ever sees it; */
+                if(entity.ID == BomberID && id != BomberID && BitConverter.ToInt16(entity.Y, 0) % 16 == 8) {
+                    entity.Y = BitConverter.GetBytes((short)(BitConverter.ToInt16(entity.Y, 0) + 8));
+                    entity.IsMoved = true;
+                }
 
                 Utils.WriteObjectToROM(entity);
             }
