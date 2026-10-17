@@ -40,6 +40,7 @@
             CheckboxOptionsReduceFlashing = new CheckBox();
             CheckboxOptionsSkipTutorial = new CheckBox();
             CheckboxMirrorShardsInChests = new CheckBox();
+            CheckboxBossShardsRandom = new CheckBox();
             LabelSeed = new Label();
             GroupRomInfo = new GroupBox();
             LabelStability = new Label();
@@ -1110,6 +1111,7 @@
             GroupConsumablesMirrorShards.Controls.Add(RadioMirrorShardsCustom);
             GroupConsumablesMirrorShards.Controls.Add(RadioMirrorShardsUnchanged);
             GroupConsumablesMirrorShards.Controls.Add(CheckboxMirrorShardsInChests);
+            GroupConsumablesMirrorShards.Controls.Add(CheckboxBossShardsRandom);
             GroupConsumablesMirrorShards.Enabled = false;
             GroupConsumablesMirrorShards.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
             GroupConsumablesMirrorShards.Location = new Point(259, 20);
@@ -1148,6 +1150,19 @@
             CheckboxMirrorShardsInChests.Text = "Put them in chests";
             CheckboxMirrorShardsInChests.UseVisualStyleBackColor = true;
             CheckboxMirrorShardsInChests.CheckedChanged += CheckboxMirrorShardsInChests_CheckedChanged;
+            // 
+            // CheckboxBossShardsRandom
+            // 
+            CheckboxBossShardsRandom.AutoSize = true;
+            CheckboxBossShardsRandom.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            CheckboxBossShardsRandom.Location = new Point(14, 389);
+            CheckboxBossShardsRandom.Margin = new Padding(4, 5, 4, 5);
+            CheckboxBossShardsRandom.Name = "CheckboxBossShardsRandom";
+            CheckboxBossShardsRandom.Size = new Size(260, 29);
+            CheckboxBossShardsRandom.TabIndex = 6;
+            CheckboxBossShardsRandom.Text = "Bosses give random shards";
+            CheckboxBossShardsRandom.UseVisualStyleBackColor = true;
+            CheckboxBossShardsRandom.CheckedChanged += CheckboxBossShardsRandom_CheckedChanged;
             // 
             // GroupMirrorShardsAmount
             // 
@@ -3289,6 +3304,7 @@
         private CheckBox CheckboxOptionsReduceFlashing;
         private CheckBox CheckboxOptionsSkipTutorial;
         private GroupBox GroupMiscGame;
+        private CheckBox CheckboxBossShardsRandom;
         private CheckBox CheckboxMirrorShardsInChests;
         private Label LabelStability;
         private Label LabelCompatibility;

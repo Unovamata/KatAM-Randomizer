@@ -10,6 +10,7 @@
 #include "global.h"
 #include "chest.h"
 #include "bonus.h"
+#include "shard.h"
 #include "code_0806F780.h"
 #include "object.h"
 #include "kirby.h"
@@ -68,11 +69,20 @@ void NidlChestOpen(struct Chest *chest) {
  * pointed here by KatAMExpansionChests.cs) makes an owned one a Maxim Tomato instead, as a boss fought again leaves. Only the rooms'
  * shards (their templates in the ROM): the ones the game makes as it goes (a boss's, a chest's, which collects its shard first, a NiDL
  * boss room's way out) and the Dimension Mirror (subtype 8) stay as they are; */
+/* Bosses' shards: the randomizer's "Bosses give random shards" sets which shard each of KatAM's bosses leaves (bossShards, by the
+ * shard it leaves in the game; KatAMExpansionChests.cs also changes the shard number each boss's defeat asks HasShard about, so an
+ * owned one still leaves a tomato). A boss's shard is made in its room (the boss rooms, by the game's shard: gUnk_0835105C's), its
+ * template's subtype the game's: it's made as the game's, then given the new one (unkD4, the cutscene and the shard it collects;
+ * unk83, the piece drawn); the template keeps the game's, which places the victory dance in that room (gUnk_08352DBE). The NiDL
+ * bosses' shards are in their templates; */
 struct NidlShard {
     void *(*create)(struct ObjectTemplate *, u8);
+    u8 bossShards[8];
 };
 
-const struct NidlShard gNidlShard = { NULL };
+const struct NidlShard gNidlShard = { NULL, { 0, 1, 2, 3, 4, 5, 6, 7 } };
+
+static const u16 sBossRooms[8] = { 0x144, 0x2C6, 0x1A1, 0x336, 0xDB, 0x204, 0x2E2, 0x81 };
 
 /* NidlFieldTomato(); A Maxim Tomato from the shard's own template, as CreateBonus makes a room's (subtype2 0: on the floor), the type
  * changed before its sprite is made; eaten, it's gone until Kirby comes back to the room, as the room's food (the template's
@@ -112,7 +122,15 @@ static struct Object *NidlFieldTomato(struct ObjectTemplate *template, u8 player
 }
 
 void *NidlCreateShard(struct ObjectTemplate *template, u8 playerId) {
-    if ((u32)template >= 0x08000000 && template->subtype1 < 8 && HasShard(template->subtype1))
+    struct Shard *shard;
+    u8 n = template->subtype1;
+
+    if ((u32)template >= 0x08000000 && n < 8 && HasShard(n))
         return NidlFieldTomato(template, playerId);
-    return gNidlShard.create(template, playerId);
+    shard = gNidlShard.create(template, playerId);
+    if ((u32)template < 0x08000000 && n < 8 && shard->obj.base.roomId == sBossRooms[n]) {
+        shard->unkD4 = gNidlShard.bossShards[n];
+        shard->obj.unk83 = gNidlShard.bossShards[n];
+    }
+    return shard;
 }

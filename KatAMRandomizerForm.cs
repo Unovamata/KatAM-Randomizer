@@ -186,6 +186,14 @@ namespace KatAMRandomizer
                 else MessageBox.Show(chestsError, "Mirror shards in chests", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
 
+            // Bosses give random shards: KatAM's 8 shuffled, then NiDL's spread evenly;
+            if (settings.RandomizeBossShards) {
+                byte[] bosses = Processing.ROMData;
+                string bossesError = KatAMExpansion.RandomizeBossShards(ref bosses, settings.RandomEntity);
+                if (bossesError == null) Processing.ROMData = bosses;
+                else MessageBox.Show(bossesError, "Bosses give random shards", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+
             // The shards put in rooms: one already owned is a Maxim Tomato instead, so it never blocks the way;
             if (!settings.MirrorShardsInChests && settings.amountOfMirrorShardsToAdd > 0) {
                 byte[] field = Processing.ROMData;
@@ -444,6 +452,11 @@ namespace KatAMRandomizer
 
         private void TrackBarMirrorShardsAmount_Scroll(object sender, EventArgs e) {
             settings.amountOfMirrorShardsToAdd = TrackBarMirrorShardsAmount.Value;
+        }
+
+        // CheckboxBossShardsRandom_CheckedChanged(); Which shard each boss leaves, shuffled (KatAMExpansion.RandomizeBossShards);
+        private void CheckboxBossShardsRandom_CheckedChanged(object sender, EventArgs e) {
+            settings.RandomizeBossShards = CheckboxBossShardsRandom.Checked;
         }
 
         // CheckboxMirrorShardsInChests_CheckedChanged(); The added shards in small chests (KatAMExpansion.AddShardChests);

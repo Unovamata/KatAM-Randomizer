@@ -104,6 +104,8 @@ after any change.
 - **A boss room has no door out.** Taking the shard its boss leaves is the only way on: after the shard cutscene Kirby goes where the
   boss stage went on (the next room, else the next level's first). A boss fought again leaves a Maxim Tomato and the shard again.
   `bossExitsOf`, `gNidlShardExits`, `NidlShardExit()`.
+- **Which shard a boss leaves can be shuffled** (Bosses give random shards): KatAM's bosses always hold all 8 between them, so the
+  game can be beaten from KatAM alone; NiDL's spread the 8 evenly. An owned shard is always a Maxim Tomato, never a cutscene in the way.
 - **Doors into boss rooms are one-way.** Nothing else (branches, links, Mirras) goes in a boss stage.
 - **A mini-boss's fight area has no door until it is beaten**: doors there show once the fight ends. No two-way door in a
   mini-boss's room; a door into one throws Kirby in, one-way. `Arenas()`, `InArena()`.

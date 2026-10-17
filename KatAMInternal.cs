@@ -487,6 +487,8 @@ namespace KatAMInternal
         public int amountOfMirrorShardsToAdd = 0;
         // The added mirror shards are put in small chests ("ROM Expansion/chest.c", KatAMExpansion.AddShardChests);
         public bool MirrorShardsInChests { get; set; } = true;
+        // Bosses give random shards: KatAM's bosses leave the 8 shards shuffled, then NiDL's spread evenly (KatAMExpansion.RandomizeBossShards);
+        public bool RandomizeBossShards { get; set; }
         public GenerationOptions ChestsGenerationType { get; set; }
         public GenerationOptions ChestsPropertiesType { get; set; }
         public bool isAddingMoreHPUps { get; set; }
