@@ -85,6 +85,7 @@ enum {
     NIDL_META_KNIGHT,
     NIDL_PAINT_ROLLER,
     NIDL_HEAVY_MOLE,
+    NIDL_KING_DEDEDE,
     NIDL_BOSS_COUNT,
 };
 
@@ -255,6 +256,8 @@ void PaintRollerInit(struct NidlObject *);
 void PaintRollerStart(struct Object *);
 void HeavyMoleInit(struct NidlObject *);
 void HeavyMoleStart(struct Object *);
+void KingDededeInit(struct NidlObject *);
+void KingDededeStart(struct Object *);
 
 void NidlDestroy(struct Task *);
 bool32 NidlIsMetaKnight(struct ObjectTemplate *);

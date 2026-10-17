@@ -16,6 +16,7 @@ static const struct NidlBoss sNidlBosses[NIDL_BOSS_COUNT] = {
     [NIDL_META_KNIGHT] = { MetaKnightInit, MetaKnightStart, 60 },
     [NIDL_PAINT_ROLLER] = { PaintRollerInit, PaintRollerStart, 60 },
     [NIDL_HEAVY_MOLE] = { HeavyMoleInit, HeavyMoleStart, 60 },
+    [NIDL_KING_DEDEDE] = { KingDededeInit, KingDededeStart, 60 },
 };
 
 // Where a boss leaves its shard: the middle of its screen (the camera's, KatAM's 240x160), a little up;

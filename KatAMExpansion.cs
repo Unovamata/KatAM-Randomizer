@@ -116,6 +116,7 @@ namespace KatAMRandomizer {
             MetaKnight(),
             PaintRoller(),
             HeavyMole(),
+            KingDedede(),
         };
         static List<Miniboss> AllBosses => MinibossDefinitions.Concat(BossDefinitions).ToList();
         static IEnumerable<byte> BossTypes => MinibossIDs.Concat(BossIDs);
@@ -336,6 +337,24 @@ namespace KatAMRandomizer {
                 new[] {
                     (0x29, 0), (0x29, 1), (0x29, 2), (0x29, 3), (0x29, 4), (-1, -1),               // "Heavy" (Heavy Knight), space;
                     (0x38, 0), (0x1E, 1), (0x02, 1), (0x02, 5),                                    // "M" (Mr.Frosty), "o" (Noddy), "le" (Blipper);
+                },
+                new byte[0], Type: BossID2);
+        }
+
+        /* King Dedede; NiDL boss 0 (type 0x3B, Rainbow Resort's; mini-boss descriptor 30 holds only his effects). His frames are streamed
+         * frames (0x087538E0), with the same two palettes in every one, cut by palette as Paint Roller's: 0-43 the first palette's
+         * pieces, 44-87 the second's (bosses/dedede.c draws them as two sprites). Type 0x44. Hurt: standing (4), its first palette's
+         * pieces; */
+        static Miniboss KingDedede() {
+            List<Part[]> frames = new List<Part[]>();
+
+            for (int palette = 0; palette < 2; palette++)
+                frames.AddRange(Enumerable.Range(0, 44).Select(f => new[] { new Part(f, OnlyPalette: palette) }));
+
+            return new Miniboss(6, "King Dedede", 30, 0x7538E0, frames, new[] { new Part(4, OnlyPalette: 0) },
+                new[] {
+                    (0x46, 0), (0x46, 1), (0x46, 2), (0x46, 3), (-1, -1),                          // "King" (King Golem), space;
+                    (0x32, 0), (0x02, 5), (0x00, 2), (0x02, 5), (0x00, 2), (0x02, 5),              // "D" (Droppy), "e" (Blipper), "d" (Waddle Dee);
                 },
                 new byte[0], Type: BossID2);
         }
