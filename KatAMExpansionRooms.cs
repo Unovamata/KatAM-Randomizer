@@ -1,7 +1,7 @@
 ﻿namespace KatAMRandomizer {
     /* Rooms: every room of Kirby: Nightmare in Dream Land, converted from the player's NiDL ROM into KatAM's free room slots (the
-     * rooms whose gRoomProps entry is all 0xFFFF), with their foreground, background, collision, enemies, mini-bosses and items.
-     * Doors, big switches, warp stars and bosses aren't ported yet: the rooms aren't reachable from KatAM's map.
+     * rooms whose gRoomProps entry is all 0xFFFF), with their foreground, background, collision, enemies, mini-bosses, bosses and
+     * items; their doors become KatAM's mirrors (PlanDoors()), their warp stars and cannons KatAM's own (Transport).
      * NiDL rooms (USA addresses; the European and Japanese ROMs hold the same rooms, their table elsewhere: region.RoomTable):
      * • RoomTable: per level (0-7) 8 stage lists (RoomTable + level * 0x20 + stage * 4), then the levels' hub lists (+0x100 + level *
      *   4); each list holds room records, null where a room is missing, until a record whose index (+2) isn't its place.
@@ -1536,8 +1536,9 @@
 
         /* PlanDoors(); Every ported room's doors, as KatAM mirrors:
          * • NiDL's doors (exits to a room of the same stage) where they were, to where they led;
-         * • warp stars and cannons (their exits, kind 30) become mirrors where they stood, to where Kirby starts in the room they lead to
-         *   (their landing is where their flight starts: under the tower they fly Kirby up into, in 3-2);
+         * • warp stars and cannons (their exits, kind 30) stay warp stars and cannons, KatAM's own objects where they stood (Transport), to
+         *   where Kirby starts in the room they lead to (their landing is where their flight starts: under the tower they fly Kirby up
+         *   into, in 3-2);
          * • a stage's goal door (kind 34) leads where the level's structure says (see below: the boss stage, or one-way, ending its branch);
          *   the levels' boss stages (their last) and the Fountain of
          *   Dreams have no doors of their own, so each of their rooms gets a mirror where Kirby lands, to the next room, then to the next

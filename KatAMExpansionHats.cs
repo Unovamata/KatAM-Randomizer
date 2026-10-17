@@ -11,6 +11,8 @@
         const int KirbyFrameTable = 0x74CFEC;   // NiDL USA (+ region.FrameShift);
         const int AnimationIndexes = 0xB9;      // Entries of a hat table (one per entry of the body table);
         const int HatTiles = 16;                // VRAM for a hat frame (KatAM's biggest hats use 16; NiDL's here need at most 15);
+        // Kirby's animation indexes while he calls his helpers: taking out his phone, dialing, then ringing (sub_080572A0, sub_080573D0);
+        static readonly int[] CallAnimations = { 97, 98, 99 };
 
         /* KatAM body frames (anim, frame index; Normal's body table's, indexes 0x00-0x75) -> NiDL's plain Kirby frame and the offset from
          * it (x, y), matched by silhouette (mirrored frames unmirrored) and checked by eye. Anim 0x35 (Kirby facing the camera with
@@ -254,12 +256,13 @@
                     return frameIndexes[key] = frames.Count - 1;
                 }
 
-                // Commands per animation index: the body's, with its frames swapped for the hat's (GetTiles + ShowFrame), JumpBacks kept;
+                /* Commands per animation index: the body's, with its frames swapped for the hat's (GetTiles + ShowFrame), JumpBacks kept;
+                 * none while he calls his helpers (CallAnimations: the hat looks odd on Kirby holding his phone); */
                 Dictionary<(int, int), List<(int command, int[] words)>> bodies = new Dictionary<(int, int), List<(int, int[])>>();
                 List<int>[] variants = new List<int>[AnimationIndexes];
                 for (int i = 0; i < AnimationIndexes; i++) {
                     int bodyAnim = ReadShort(rom, bodyTable + i * 4), bodyVariant = rom[bodyTable + i * 4 + 2];
-                    variants[i] = HatCommands(rom, anims, bodyAnim, bodyVariant, HatFrameIndex);
+                    variants[i] = HatCommands(rom, anims, bodyAnim, bodyVariant, CallAnimations.Contains(i) ? (anim, frame) => 0 : HatFrameIndex);
                 }
 
                 // Data: tiles (aligned to the tiles base), palette, attributes, OAM, commands;
