@@ -363,16 +363,17 @@ namespace KatAMRandomizer {
         static readonly Dictionary<int, string[]> SwitchDecorations = new Dictionary<int, string[]> {
             // (Ice Cream Island's: red flowers in the grass on the left, blue on the right, sand hills in the pit, a palm leaning in
             // from the right);
-            // (Butter Building's: its first stage's skyline as it is there, its columns 14-25 against the right wall: railing, a tall
-            // pale pillar through a small tower, two crenellated towers with walkways across them (here behind, not floors));
+            // (Butter Building's: its first stage's skyline as it is there, its columns 14-25, 2 cells right of the right wall's face
+            // (its tall tower going on behind the wall), the walkways across its towers left out (their walls behind instead), the
+            // small tower's piece left of the pale pillar left out);
             [2] = new[] {
-                "2 1 000 000 000 000 000 000 000 000 01A 019 015 016/000 000 000 000 031 000 000 000 018 017 013 014/000 000 000 000 030 000 000 000 012 011 091 08C/000 000 000 000 02E 000 01A 019 012 092 08D 04A/000 000 000 000 036 000 018 017 01D 01E 01F 020/000 000 000 01A 037 019 012 092 012 039 03A 094/000 000 000 018 036 093 08F 021 022 038 03B 025/097 096 097 095 036 03D 04D 090 08F 037 03A 08C",
+                "4 1 000 000 000 000 000 000 000 000 01A 019 015 016/000 000 000 000 031 000 000 000 018 017 013 014/000 000 000 000 030 000 000 000 012 011 091 08C/000 000 000 000 02E 000 01A 019 012 092 08D 04A/000 000 000 000 036 000 018 017 012 011 091 08C/000 000 000 000 037 019 012 092 012 039 03A 094/000 000 000 000 036 093 08F 011 012 036 08D 04A/097 096 097 095 036 03D 04D 090 08F 037 03A 08C",
             },
             // (Yogurt Yard's: its brown boulders, each side its own: one clinging to the left wall, a cluster in the right ceiling
             // corner, heaps of different sizes on the floor);
             [4] = new[] {
                 "2 3 1B0/1AF/1A4",
-                "2 7 1CE 1EE 1EF/1D1 1E7 1ED",
+                "2 7 000 1B1 1B0/1AD 1AE 1AE",
                 "5 7 1B1 1B0",
                 "12 1 1CE 1AE/1CF 1D0/000 1D1/000 1D2",
                 "11 8 1B1 1B0",
