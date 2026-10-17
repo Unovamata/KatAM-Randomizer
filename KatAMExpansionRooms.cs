@@ -279,7 +279,8 @@ namespace KatAMRandomizer {
         static readonly int[] ModelRanks = { 0, 0, 0, 0, 4, 0, 0, 0 };
         /* SwitchDesigns; Switch rooms picked by eye, kept as they are whatever BuildSwitchRooms() would draw now: per level, the left
          * half's metatiles, row by row (~: flipped left to right, ^: upside down, @: both), the right half its mirror image; the same
-         * metatiles in every region (NiDL's tilesets are); the Fountain of Dreams' as approved (FountainLook's castle); Butter Building's after its sixth stage's eighth room, its floor after its first stage's
+         * metatiles in every region (NiDL's tilesets are); the Fountain of Dreams' in FountainLook's castle, the castle's circle pillars as its walls'
+         * inner faces; Butter Building's after its sixth stage's eighth room, its floor after its first stage's
          * third; Ice Cream Island's after its third stage's third room (its grass ends curling under as its
          * stages', the ledges and pedestal one floating platform with rounded ends); Vegetable Valley's built from its raised hedges (its stages have no
          * ceilings: their rounded tops upside down, their sides and the joins at their feet turned round), its first stage's
@@ -289,10 +290,10 @@ namespace KatAMRandomizer {
         static readonly Dictionary<int, string[]> SwitchDesigns = new Dictionary<int, string[]> {
             [7] = new[] {
                 "001 090 00B 00A 00B 00A 00B 00A",
-                "001 008 000 000 000 000 000 000",
-                "001 008 000 000 000 000 000 000",
-                "001 008 000 000 000 000 000 000",
-                "001 008 000 000 000 000 000 000",
+                "001 014 000 000 000 000 000 000",
+                "001 013 000 000 000 000 000 000",
+                "001 016 000 000 000 000 000 000",
+                "001 012 000 000 000 000 000 000",
                 "00B 00F 000 000 000 000 000 000",
                 "000 000 000 000 000 000 000 000",
                 "000 000 000 000 000 000 000 000",
@@ -379,6 +380,14 @@ namespace KatAMRandomizer {
         static readonly Dictionary<int, string[]> SwitchDecorations = new Dictionary<int, string[]> {
             // (Ice Cream Island's: red flowers in the grass on the left, blue on the right, sand hills in the pit, a palm leaning in
             // from the right);
+            // (the Fountain of Dreams': King Dedede's arena's light, lines under the ceiling and streaks, a cyan one left, a pink one
+            // right, its pieces, ForeignDecorations);
+            [7] = new[] {
+                "2 1 *111 *110 *10F",
+                "11 1 *111 *110 *10F",
+                "3 2 *14C/*14B/*0EC/*14B/*14C",
+                "12 3 *14F/*146/*146/*0F7/*0F8/*300",
+            },
             // (Butter Building's: its first stage's skyline as it is there, its columns 14-25, 2 cells right of the right wall's face
             // (its tall tower going on behind the wall), the walkways across its towers left out (their walls behind instead), the
             // small tower's piece left of the pale pillar left out);
