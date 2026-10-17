@@ -27,7 +27,7 @@ namespace KatAMMapTracker {
         const int Clearance = 16;
 
         const double TurnCost45 = 0.6, TurnCost90 = 2.5, UsedCellCost = 0.35, OutsideCost = 0.25, ForeignLevelCost = 1.5;
-        const int MaxExpansions = 400000;
+        const int MaxExpansions = 2000000;
 
         static readonly (int x, int y)[] Directions = {
             (1, 0), (1, 1), (0, 1), (-1, 1), (-1, 0), (-1, -1), (0, -1), (1, -1),

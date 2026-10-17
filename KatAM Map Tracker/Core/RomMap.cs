@@ -42,7 +42,7 @@ namespace KatAMMapTracker {
         public int ShortIndex { get; init; }
 
         // Its entries in the room tables (long room parameters +0x18 tilemap, +0x1A collision and doors, +0x20 objects): in the game
-        // they're all ShortIndex's, but the ROM Expansion's rooms have their own (they share one doors list, ShortIndex 0x11F);
+        // they're all ShortIndex's, but the ROM Expansion's rooms have their own (each has its own doors list, ShortIndex 0x11F on);
         public int TilemapIndex { get; init; }
         public int CoverIndex { get; init; }
         public int ObjectIndex { get; init; }
@@ -273,8 +273,8 @@ namespace KatAMMapTracker {
             for (int room = 0; room < MaxLongRoom; room++) {
                 int parameters = LongRoomParameters + room * LongRoomParameterSize;
                 int shortIndex = Read16(parameters + 0x24);
-                // The ROM Expansion's rooms share the doors list 0x11F, past the game's;
-                bool expansionRoom = RoomAreaTable >= 0 && shortIndex == MaxShortRoom;
+                // The ROM Expansion's rooms have doors lists past the game's (0x11F, the NiDL hub's, then one a room from 0x120);
+                bool expansionRoom = RoomAreaTable >= 0 && shortIndex >= MaxShortRoom && shortIndex < MaxShortRoom + 0x400;
 
                 if (shortIndex >= MaxShortRoom && !expansionRoom) continue;
 
