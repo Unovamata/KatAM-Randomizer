@@ -55,10 +55,12 @@ enum {
     NIDL_POPPY_BROS_JR,
     NIDL_GIP,
     NIDL_APPLE,     // Whispy Woods' apples (enemies/apple.c), behavior NIDL_SPECIAL << 4 | 1: no room has them;
+    NIDL_STAR,      // Mr. Shine's falling stars (enemies/star.c), behavior NIDL_SPECIAL << 4 | 2: no room has them;
     NIDL_ENEMY_COUNT,
 };
 /* The behavior's high nibble 15 (NIDL_SPECIAL) holds what isn't a room's enemy, by its low nibble: 0 a mini-boss fight's walls in
- * NiDL rooms (NIDL_ARENA, enemies/arena.c, with Broom Hatter's graphics, never shown), 1 an apple (NIDL_APPLE); */
+ * NiDL rooms (NIDL_ARENA, enemies/arena.c, with Broom Hatter's graphics, never shown), 1 an apple (NIDL_APPLE), 2 a falling star
+ * (NIDL_STAR); */
 #define NIDL_SPECIAL 15
 #define NIDL_ARENA NIDL_ENEMY_COUNT
 
@@ -77,6 +79,7 @@ enum {
 enum {
     NIDL_WHISPY_WOODS,
     NIDL_KRACKO,
+    NIDL_SHINE_BRIGHT,
     NIDL_BOSS_COUNT,
 };
 
@@ -216,6 +219,8 @@ void GipInit(struct NidlObject *);
 void GipStart(struct Object *);
 void AppleInit(struct NidlObject *);
 void AppleStart(struct Object *);
+void StarInit(struct NidlObject *);
+void StarStart(struct Object *);
 
 // Mini-bosses;
 void PoppyBrosSrInit(struct NidlObject *);
@@ -237,6 +242,8 @@ void WhispyWoodsInit(struct NidlObject *);
 void WhispyWoodsStart(struct Object *);
 void KrackoInit(struct NidlObject *);
 void KrackoStart(struct Object *);
+void ShineBrightInit(struct NidlObject *);
+void ShineBrightStart(struct Object *);
 
 void NidlDestroy(struct Task *);
 bool32 NidlIsMetaKnight(struct ObjectTemplate *);

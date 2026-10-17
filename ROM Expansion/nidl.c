@@ -26,6 +26,7 @@ static const struct NidlEnemy sNidlEnemies[NIDL_ENEMY_COUNT + 1] = {
     [NIDL_POPPY_BROS_JR] = { PoppyBrosJrInit, PoppyBrosJrStart, 2, 0 },
     [NIDL_GIP] = { GipInit, GipStart, 2, 0 },
     [NIDL_APPLE] = { AppleInit, AppleStart, 1, 0 },
+    [NIDL_STAR] = { StarInit, StarStart, 1, 0 },
     [NIDL_ARENA] = { ArenaInit, ArenaStart, 1, 0 },
 };
 
@@ -142,7 +143,7 @@ void *CreateNidlEnemy(struct ObjectTemplate *template, u8 playerId) {
     struct NidlObject *n = TaskGetStructPtr(task);
     u8 enemy = template->subtype1 >> 4;
 
-    if (enemy == NIDL_SPECIAL) enemy = (template->subtype1 & 0xF) == 1 ? NIDL_APPLE : NIDL_ARENA;
+    if (enemy == NIDL_SPECIAL) enemy = (template->subtype1 & 0xF) == 1 ? NIDL_APPLE : (template->subtype1 & 0xF) == 2 ? NIDL_STAR : NIDL_ARENA;
     if (enemy > NIDL_ARENA) enemy = 0;
 
     InitObject(&n->obj, template, playerId);

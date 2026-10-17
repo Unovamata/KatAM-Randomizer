@@ -207,3 +207,5 @@ BonusCreateTomatoAt 0x81233dc
 HasShard 0x8019da4
 gUnk_08350E58 0x833562c
 sub_0809F840 0x809f7b8
+__modsi3 0x815a32c
+__udivsi3 0x815a3fc

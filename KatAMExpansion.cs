@@ -26,14 +26,14 @@ namespace KatAMRandomizer {
 
         /* NiDL: graphics descriptor per enemy (type - 8): tile count (+2), palette (+8), LZ77 tiles (+12). The frame tables (and every
          * NiDL address in the enemies' notes) are the USA ones; the Japanese and European ROMs have the same data, moved by FrameShift
-         * (the European one's from Whispy Woods' table on, LateFrames, by LateShift: FrameAddress()); */
+         * (the European one's from Mr. Bright's table, 0x08753E3C, on, LateFrames, by LateShift: FrameAddress()); */
         // Palette15: NiDL's shared object palette 15 (the level loads it; the Poppy Bros. Jr.'s ball and bomb are drawn with it);
         /* Cards: the ability cards (HUD portraits) by NiDL ability: palette pointers (CardPalettes + ability * CardPaletteStride) and tiles
          * pointers (CardTiles + ability * CardTileStride; Europe's are per language, English first); RoomTable: the rooms (see
          * KatAMExpansionRooms.cs); */
         sealed record NightmareRegion(string GameCode, int Descriptors, int FrameShift, string KatAM, int Palette15,
                                       int CardPalettes, int CardPaletteStride, int CardTiles, int CardTileStride, int RoomTable, int LateShift);
-        const int LateFrames = 0x7542C0;
+        const int LateFrames = 0x753E3C;
         static int FrameAddress(NightmareRegion region, int usa) => usa + (usa >= LateFrames ? region.LateShift : region.FrameShift);
 
         static readonly NightmareRegion[] NightmareRegions = {
@@ -96,7 +96,7 @@ namespace KatAMRandomizer {
         static readonly MinibossHurt BigHurt = new MinibossHurt(64, 96, 32, 48, new[] { (0, 3, 0, 0, 0), (1, 3, 0, 64, 64) }),
                                      KnightHurt = new MinibossHurt(32, 64, 16, 28, new[] { (2, 3, 0, 0, 0) });
         static MinibossHurt HurtOf(byte type) => type == 0x42 ? KnightHurt : BigHurt;    // (and the bosses', 0x43);
-        const int EnemyCount = 16;  // NIDL_ENEMY_COUNT: gNidlData's mini-bosses follow its enemies;
+        const int EnemyCount = 17;  // NIDL_ENEMY_COUNT: gNidlData's mini-bosses follow its enemies;
         const int MinibossCount = 6;    // NIDL_MINIBOSS_COUNT: gNidlData's bosses follow its mini-bosses;
 
         /* Bosses (object type 0x43, see "ROM Expansion/nidl_boss.c"): Miniboss records too (their index is NIDL_* bosses in nidl.h), built
@@ -105,6 +105,7 @@ namespace KatAMRandomizer {
         static readonly List<Miniboss> BossDefinitions = new List<Miniboss> {
             WhispyWoods(),
             Kracko(),
+            ShineAndBright(),
         };
         static List<Miniboss> AllBosses => MinibossDefinitions.Concat(BossDefinitions).ToList();
         static IEnumerable<byte> BossTypes => MinibossIDs.Append(BossID);
@@ -137,6 +138,7 @@ namespace KatAMRandomizer {
             PoppyBrosJr(),
             Gip(),
             Apple(),
+            FallingStar(),
         };
 
         static KatAMExpansion() {
@@ -247,12 +249,46 @@ namespace KatAMRandomizer {
                 new byte[0], Type: BossID);
         }
 
+        /* Mr. Shine & Mr. Bright; NiDL boss 4 (type 0x3F, Butter Building's). Two frame tables of one descriptor: Mr. Shine's (0x08754210:
+         * his body 10-18, the moon 4-9, the crescent 20-27, the fireball 28-29, the sun's beam 34-35, with the descriptor's palettes 0, 1
+         * and 2; the falling star is an enemy, FallingStar) and Mr. Bright's (0x0875412C: his flaming body, streamed frames with their own
+         * palette, facing 21-32 and rolling 33-44; his face and hands 4-15, drawn over it; the sun 16-19). Frames as bosses/shine_bright.c numbers
+         * them: 0-8 Mr. Shine, 9-14 the moon, 15-38 Mr. Bright's body, 39-50 his face, 51-54 the sun, 55-62 the crescent, 63-64 the
+         * fireball, 65-66 the beam (two of its frames, stacked). Hurt: Mr. Shine cracked (0); */
+        static Miniboss ShineAndBright() {
+            const int Shine = 0x754210, Bright = 0x75412C;
+            List<Part[]> frames = new List<Part[]>();
+
+            frames.AddRange(Enumerable.Range(10, 9).Select(f => new[] { new Part(f) }));
+            frames.AddRange(Enumerable.Range(4, 6).Select(f => new[] { new Part(f) }));
+            frames.AddRange(Enumerable.Range(21, 24).Select(f => new[] { new Part(f, Table: Bright) }));
+            frames.AddRange(Enumerable.Range(4, 12).Select(f => new[] { new Part(f, Table: Bright) }));
+            frames.AddRange(Enumerable.Range(16, 4).Select(f => new[] { new Part(f, Table: Bright) }));
+            frames.AddRange(Enumerable.Range(20, 8).Select(f => new[] { new Part(f) }));
+            frames.AddRange(Enumerable.Range(28, 2).Select(f => new[] { new Part(f, Palette: 1) }));
+            frames.AddRange(new[] { 34, 35 }.Select(f => new[] { new Part(f, Palette: 2, Dy: 48), new Part(f, Palette: 2, Dy: 64) }));
+
+            return new Miniboss(2, "Mr. Shine & Mr. Bright", 34, Shine, frames, new[] { new Part(0) },
+                new[] {
+                    (0x04, 0), (0x23, 1), (0x26, 4), (0x26, 5), (0x02, 5), (-1, -1),               // "S" (Squishy), "h" (Shooty), "in" (Cookin), "e" (Blipper), space;
+                    (0x28, 0), (0x01, 1), (0x26, 4), (0x11, 2), (0x23, 1), (0x01, 4),              // "B" (Bomber), "r" (Bronto Burt), "i", "g" (Big Waddle Dee), "h", "t" (Bronto Burt);
+                },
+                new byte[0], Type: BossID);
+        }
+
         /* Apple; Whispy Woods' apples (NiDL object 0x7D, its own frame table 0x08754308: Whispy Woods' frames 18-37, its second palette).
          * Hurt: its 4; */
         static Enemy Apple() => new Enemy(15, "Apple", 0, 0x754308, Enumerable.Range(0, 20).Select(f => new[] { new Part(f, Palette: 1) }).ToList(),
             new[] { new Part(4, Palette: 1) }, new Dictionary<int, ushort>(),
             new[] { (0x2D, 1), (0x02, 3), (0x02, 3), (0x02, 1), (0x02, 5) },   // "a" (Batty), "pp", "l", "e" (Blipper);
             new byte[0], Descriptor: 35, Palette: 1, Hidden: true);
+
+        /* Falling star; Mr. Shine's from the sky (Mr. Shine & Mr. Bright's frame table 0x08754210, frames 38-43, its second palette), an
+         * enemy so Kirby can inhale it and spit it back. Hurt: its 38; */
+        static Enemy FallingStar() => new Enemy(16, "Falling Star", 0, 0x754210, Enumerable.Range(38, 6).Select(f => new[] { new Part(f, Palette: 1) }).ToList(),
+            new[] { new Part(38, Palette: 1) }, new Dictionary<int, ushort>(),
+            new[] { (0x04, 0), (0x23, 4), (0x2D, 1), (0x01, 1) },   // "S" (Squishy), "t" (Shooty), "a" (Batty), "r" (Bronto Burt);
+            new byte[0], Descriptor: 34, Palette: 1, Hidden: true);
 
         /* Poppy Bros. Sr.; NiDL mini-boss 1 (type 0x32). Frames: every body frame (NiDL's 4-9, hopping) with every head frame over it (12-19,
          * drawn by its head object in NiDL), then its hands (20-25) and its bomb (26-30, NiDL's second palette). Hurt: NiDL's 10;

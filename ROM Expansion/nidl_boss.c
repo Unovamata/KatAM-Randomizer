@@ -12,6 +12,7 @@
 static const struct NidlBoss sNidlBosses[NIDL_BOSS_COUNT] = {
     [NIDL_WHISPY_WOODS] = { WhispyWoodsInit, WhispyWoodsStart, 60 },
     [NIDL_KRACKO] = { KrackoInit, KrackoStart, 60 },
+    [NIDL_SHINE_BRIGHT] = { ShineBrightInit, ShineBrightStart, 60 },
 };
 
 // Where a boss leaves its shard: the middle of its screen (the camera's, KatAM's 240x160), a little up;
