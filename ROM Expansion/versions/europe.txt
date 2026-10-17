@@ -214,3 +214,7 @@ gTreasures 0x2038960
 sbClearFunctions 0x82db0dc
 _call_via_r0 0x815abd4
 sub_0804C614 0x804c650
+sub_08123FD4 0x812401c
+sub_08123780 0x81237c8
+sub_0809513C 0x8095184
+_call_via_r2 0x815abdc

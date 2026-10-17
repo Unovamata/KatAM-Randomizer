@@ -1,8 +1,8 @@
-namespace KatAMRandomizer {
+﻿namespace KatAMRandomizer {
     /* KatAMExpansionChests; Mirror shards in chests ("ROM Expansion/chest.c"; KatAMItems puts the shards it adds in small chests
      * holding KatAMItems.ShardChest + n): a chest's opening (sub_0800AFC8) detoured to chest.c's, which lets shard n out of those
-     * and runs the original for the others. It needs the expansion's code, which it puts in itself when no NiDL ROM is loaded
-     * (PatchWithCode); */
+     * and runs the original for the others. The shards it puts in rooms instead become Maxim Tomatoes once owned (OwnedFieldShards).
+     * Both need the expansion's code, which they put in themselves when no NiDL ROM is loaded (PatchWithCode); */
     internal static partial class KatAMExpansion {
         // AddShardChests(); See above. Returns an error, or null (the ROM unchanged on an error);
         public static string AddShardChests(ref byte[] rom) => PatchWithCode(ref rom, "Mirror shards in chests", (patched, version) => {
@@ -12,6 +12,19 @@ namespace KatAMRandomizer {
             int open = Detour(patched, version.RomSymbols["sub_0800AFC8"], CodeAddress + 0x08000000 + version.CodeSymbols["NidlChestOpen"], ref cursor);
             if (open < 0) return $"The {version.Name} ROM's chest code doesn't match.";
             WriteInt(patched, chest, open + 0x08000000 + 1);
+            return null;
+        });
+
+        /* OwnedFieldShards(); For the shards the randomizer puts in rooms (not in chests): their spawn (object 0x65's, the spawn table's)
+         * becomes chest.c's NidlCreateShard, which makes one already owned a Maxim Tomato (the original's address in gNidlShard).
+         * Returns an error, or null (the ROM unchanged on an error); */
+        public static string OwnedFieldShards(ref byte[] rom) => PatchWithCode(ref rom, "Owned mirror shards as tomatoes", (patched, version) => {
+            int entry = version.SpawnTable + 0x65 * 4, shard = CodeAddress + version.CodeSymbols["gNidlShard"];
+            int create = CodeAddress + 0x08000000 + version.CodeSymbols["NidlCreateShard"] + 1;
+            if (ReadInt(patched, entry) == create) return null;  // (applied already);
+            if (ReadInt(patched, entry) >> 24 != 0x08) return $"The {version.Name} ROM's mirror shard code doesn't match.";
+            WriteInt(patched, shard, ReadInt(patched, entry));
+            WriteInt(patched, entry, create);
             return null;
         });
     }

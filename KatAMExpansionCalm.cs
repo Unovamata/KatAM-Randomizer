@@ -1,4 +1,4 @@
-namespace KatAMRandomizer {
+﻿namespace KatAMRandomizer {
     /* KatAMExpansionCalm; The "Reduce flashing" option ("ROM Expansion/calm.c"): KatAM's white screen flashes (BLDY, lighten) eased in
      * as fades, by detouring the VBlank's copies of the blend registers (UpdateScreenDma, UpdateScreenCpuSet) to calm.c's. It needs the
      * expansion's code, which it puts in itself when no NiDL ROM is loaded (PatchWithCode); with the ROM Expansion, it runs after
@@ -20,7 +20,9 @@ namespace KatAMRandomizer {
 
         /* SkipTutorial(); The "Skip the tutorial" option ("ROM Expansion/skip.c"): the save buffers' world props clear (sbClearFunctions[1],
          * what a new save runs) becomes NidlSkipClear, given the original and the item and treasure index of the tutorial's big chest
-         * (TutorialChestRoom's, as the randomizer left it: what skipping it would lose). Returns an error, or null; */
+         * (TutorialChestRoom's, as the randomizer left it: what skipping it would lose); and the single-player start (sub_08123FD4, what
+         * a new and a continued game run) is detoured to NidlSkipStart (its trampoline in gNidlSkipTrampolines, its address in
+         * gNidlSkip +8), for the files no clear touched. Returns an error, or null; */
         const int TutorialChestRoom = 0x325;
         public static string SkipTutorial(ref byte[] rom) => PatchWithCode(ref rom, "Skip the tutorial", (patched, version) => {
             int table = version.RomSymbols["sbClearFunctions"], skip = CodeAddress + version.CodeSymbols["gNidlSkip"];
@@ -37,6 +39,10 @@ namespace KatAMRandomizer {
             WriteInt(patched, skip, ReadInt(patched, table + 4));
             patched[skip + 4] = item;
             patched[skip + 5] = index;
+            int cursor = CodeAddress + version.CodeSymbols["gNidlSkipTrampolines"];
+            int start = Detour(patched, version.RomSymbols["sub_08123FD4"], CodeAddress + 0x08000000 + version.CodeSymbols["NidlSkipStart"], ref cursor);
+            if (start < 0) return $"The {version.Name} ROM's game start code doesn't match.";
+            WriteInt(patched, skip + 8, start + 0x08000000 + 1);
             WriteInt(patched, table + 4, clear);
             return null;
         });

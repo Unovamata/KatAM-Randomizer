@@ -186,6 +186,14 @@ namespace KatAMRandomizer
                 else MessageBox.Show(chestsError, "Mirror shards in chests", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
 
+            // The shards put in rooms: one already owned is a Maxim Tomato instead, so it never blocks the way;
+            if (!settings.MirrorShardsInChests && settings.amountOfMirrorShardsToAdd > 0) {
+                byte[] field = Processing.ROMData;
+                string fieldError = KatAMExpansion.OwnedFieldShards(ref field);
+                if (fieldError == null) Processing.ROMData = field;
+                else MessageBox.Show(fieldError, "Mirror shards", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+
             if (settings.ReduceFlashing) {
                 byte[] calmed = Processing.ROMData;
                 string flashingError = KatAMExpansion.ReduceFlashing(ref calmed);

@@ -9,6 +9,8 @@
  * expansion: the option copies the code even when no NiDL ROM is loaded; */
 #include "global.h"
 #include "chest.h"
+#include "bonus.h"
+#include "code_0806F780.h"
 #include "object.h"
 #include "kirby.h"
 #include "functions.h"
@@ -58,4 +60,59 @@ void NidlChestOpen(struct Chest *chest) {
     // As the item popups do once their item is given (sub_080029F4: lever walls count these);
     gUnk_02023510[gCurLevelInfo[chest->obj.base.unk56].unk65E]++;
     chest->obj.unk78 = NidlChestOpened;
+}
+
+/* Field shards: the shards the randomizer puts in rooms instead of in chests (object 0x65, subtype n, from the room's own object
+ * list) spawn every time the room is entered, owned or not (CreateShard never asks), and touching one plays the shard cutscene and
+ * throws Kirby out of the level, even for a shard he has: one on the way through a room blocks it. Its spawn (gSpawnFuncTable1[0x65],
+ * pointed here by KatAMExpansionChests.cs) makes an owned one a Maxim Tomato instead, as a boss fought again leaves. Only the rooms'
+ * shards (their templates in the ROM): the ones the game makes as it goes (a boss's, a chest's, which collects its shard first, a NiDL
+ * boss room's way out) and the Dimension Mirror (subtype 8) stay as they are; */
+struct NidlShard {
+    void *(*create)(struct ObjectTemplate *, u8);
+};
+
+const struct NidlShard gNidlShard = { NULL };
+
+/* NidlFieldTomato(); A Maxim Tomato from the shard's own template, as CreateBonus makes a room's (subtype2 0: on the floor), the type
+ * changed before its sprite is made; eaten, it's gone until Kirby comes back to the room, as the room's food (the template's
+ * slot, unk2/unk3, the shard's); */
+static struct Object *NidlFieldTomato(struct ObjectTemplate *template, u8 playerId) {
+    struct Task *task = TaskCreate(ObjectMain, sizeof(struct Object), 0x2F9C, TASK_USE_EWRAM, ObjectDestroy);
+    struct Object *obj = TaskGetStructPtr(task);
+
+    InitObject(obj, template, playerId);
+    obj->type = OBJ_TOMATO;
+    obj->unk78 = gUnk_08351648[OBJ_TOMATO].unk10;
+    obj->unk80 = gUnk_08351648[OBJ_TOMATO].unk4;
+    obj->kirbyAbility = gUnk_08351648[OBJ_TOMATO].kirbyAbility;
+    obj->base.flags |= 0x10000000;
+    obj->base.unkC |= 1;
+    obj->base.flags |= 0x10000;
+    obj->base.flags |= 0x200000;
+    obj->base.flags |= 0x400000;
+    obj->base.unk68 &= ~7;
+    obj->base.unk5C |= ~0xA7;
+    obj->base.flags |= 1;
+    obj->base.unkC |= 0x100;
+    sub_0803E2B0(&obj->base, -5, 1 - 7, 5, 5);
+    ObjectSetBounds(&obj->base, -6, -7, 6, 7);
+    obj->base.y = ((obj->base.y + (obj->base.unk3F << 8) + 0xFFF) & 0xFFFFF000) - (obj->base.unk3F << 8) - 1;
+    obj->base.unk4C = obj->base.y;
+    ObjectInitSprite(obj);
+    obj->base.sprite.unk14 = 0x700;
+    sub_08123780(obj);
+    if (!(template->unk22 & 4))
+        sub_0809513C(&obj->base, 0, 0);
+    if (template->unk22 & 8) {
+        obj->base.flags |= 0x40;
+        obj->base.flags |= 0x100;
+    }
+    return obj;
+}
+
+void *NidlCreateShard(struct ObjectTemplate *template, u8 playerId) {
+    if ((u32)template >= 0x08000000 && template->subtype1 < 8 && HasShard(template->subtype1))
+        return NidlFieldTomato(template, playerId);
+    return gNidlShard.create(template, playerId);
 }
