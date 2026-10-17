@@ -1,7 +1,7 @@
 /* Whispy Woods; ported from Kirby: Nightmare in Dream Land (USA), boss object type 0x40 (spawn 0x080B2A00), as NiDL boss
  * NIDL_WHISPY_WOODS, Vegetable Valley's (room 0x9F here). The tree is the room's own (its tiles and collision, NiDL's too); the boss
- * is its face, which NiDL draws as three frames of one table stacked (0x080B2890: the eyes, 0x087542C0 + i, at its spot, the nose,
- * + 38 + i, 26 pixels lower, the mouth, + 56 + i, 42 lower), one frame each here (KatAMExpansion.cs), 0-17: 4-6 the blink, 7-9
+ * is its face, which NiDL draws as three frames of one table at its spot (0x080B2890: the eyes, 0x087542C0 + i, the nose, + 38 + i,
+ * the mouth, + 56 + i; the frames place the nose and mouth lower themselves), one frame each here (KatAMExpansion.cs), 0-17: 4-6 the blink, 7-9
  * surprised and angry, 10-13 crying, 14-16 blowing, 17 its usual face. Its spot is NiDL's, (206, 256), the template's.
  * NiDL script (states 0x0874C12C; 16.16 speeds, Y down; KatAM's are 8.8, Y up):
  * • State 0 (0x080B2AE4): face 17 for 8, a blink (0x080B25A4: faces 4, 5, 6, 5 and 4 for 1, 1, 1, 2 and 2), face 17 for 63, a
@@ -31,8 +31,8 @@
 #define PUFF_TILES 8
 #define PUFF_SPEED 0x200
 #define PUFF_TIME 100
-#define PUFF_X -24          // From its spot: its mouth's left (the mouth is 42 lower, 26-44 down and 4-28 across in its frames);
-#define PUFF_Y 76
+#define PUFF_X -24          // From its spot: its mouth's left (its frames draw the mouth 26-44 down and 4-28 across);
+#define PUFF_Y 34
 #define APPLE_Y 224
 #define HIT_TIME 32         // The hit faces (0x080B25E8's timer): surprised (9) until 20, startled (7) until 16, then 4;
 

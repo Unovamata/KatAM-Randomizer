@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
@@ -955,9 +955,15 @@ namespace KatAMMapTracker {
             Invalidate();
         }
 
+        // Raised when a room is clicked (left button, without dragging the map): the debug warp (TrackerForm);
+        public event Action<int> RoomClicked;
+
         protected override void OnMouseUp(MouseEventArgs e) {
             base.OnMouseUp(e);
+            bool clicked = isDragging && !hasDragged && e.Button == MouseButtons.Left;
             isDragging = false;
+
+            if (clicked && RoomAt(e.Location) is int room && room >= 0) RoomClicked?.Invoke(room);
         }
 
         protected override void OnMouseDoubleClick(MouseEventArgs e) {

@@ -195,6 +195,7 @@
             RadioAbilityPedestalShuffle = new RadioButton();
             RadioAbilityPedestalsUnchanged = new RadioButton();
             TabMiscellaneous = new TabPage();
+            GroupMiscGame = new GroupBox();
             TabExpansion = new TabPage();
             GroupExpansionNightmare = new GroupBox();
             LabelExpansionDescription = new Label();
@@ -267,6 +268,7 @@
             GroupEnemiesPropertiesInhaleAbility.SuspendLayout();
             GroupAbilityPedestals.SuspendLayout();
             TabMiscellaneous.SuspendLayout();
+            GroupMiscGame.SuspendLayout();
             TabExpansion.SuspendLayout();
             GroupExpansionNightmare.SuspendLayout();
             GroupMapElements.SuspendLayout();
@@ -327,10 +329,10 @@
             // ButtonLoadSettings
             // 
             ButtonLoadSettings.Font = new Font("Segoe UI", 9F);
-            ButtonLoadSettings.Location = new Point(9, 172);
+            ButtonLoadSettings.Location = new Point(9, 133);
             ButtonLoadSettings.Margin = new Padding(4, 5, 4, 5);
             ButtonLoadSettings.Name = "ButtonLoadSettings";
-            ButtonLoadSettings.Size = new Size(116, 38);
+            ButtonLoadSettings.Size = new Size(236, 38);
             ButtonLoadSettings.TabIndex = 6;
             ButtonLoadSettings.Text = "Load Settings";
             ButtonLoadSettings.UseVisualStyleBackColor = true;
@@ -339,10 +341,10 @@
             // ButtonSaveSettings
             // 
             ButtonSaveSettings.Font = new Font("Segoe UI", 9F);
-            ButtonSaveSettings.Location = new Point(129, 172);
+            ButtonSaveSettings.Location = new Point(9, 182);
             ButtonSaveSettings.Margin = new Padding(4, 5, 4, 5);
             ButtonSaveSettings.Name = "ButtonSaveSettings";
-            ButtonSaveSettings.Size = new Size(116, 38);
+            ButtonSaveSettings.Size = new Size(236, 38);
             ButtonSaveSettings.TabIndex = 7;
             ButtonSaveSettings.Text = "Save Settings";
             ButtonSaveSettings.UseVisualStyleBackColor = true;
@@ -353,7 +355,6 @@
             GroupSettings.Controls.Add(CheckboxOptionsSpoilerLog);
             GroupSettings.Controls.Add(CheckboxOptionsTitleParade);
             GroupSettings.Controls.Add(CheckboxOptionsReduceFlashing);
-            GroupSettings.Controls.Add(CheckboxOptionsSkipTutorial);
             GroupSettings.Controls.Add(ButtonSaveSettings);
             GroupSettings.Controls.Add(ButtonLoadSettings);
             GroupSettings.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
@@ -409,10 +410,10 @@
             // 
             CheckboxOptionsSkipTutorial.AutoSize = true;
             CheckboxOptionsSkipTutorial.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            CheckboxOptionsSkipTutorial.Location = new Point(9, 126);
+            CheckboxOptionsSkipTutorial.Location = new Point(14, 38);
             CheckboxOptionsSkipTutorial.Margin = new Padding(4, 5, 4, 5);
             CheckboxOptionsSkipTutorial.Name = "CheckboxOptionsSkipTutorial";
-            CheckboxOptionsSkipTutorial.Size = new Size(165, 29);
+            CheckboxOptionsSkipTutorial.Size = new Size(290, 29);
             CheckboxOptionsSkipTutorial.TabIndex = 16;
             CheckboxOptionsSkipTutorial.Text = "Skip the tutorial";
             CheckboxOptionsSkipTutorial.UseVisualStyleBackColor = true;
@@ -2574,6 +2575,7 @@
             // 
             // TabMiscellaneous
             // 
+            TabMiscellaneous.Controls.Add(GroupMiscGame);
             TabMiscellaneous.Controls.Add(GroupMapElements);
             TabMiscellaneous.Controls.Add(GroupMiscSprayPalettes);
             TabMiscellaneous.Location = new Point(4, 29);
@@ -2585,6 +2587,19 @@
             TabMiscellaneous.Text = "Miscellaneous";
             TabMiscellaneous.UseVisualStyleBackColor = true;
             // 
+            // GroupMiscGame
+            // 
+            GroupMiscGame.Controls.Add(CheckboxOptionsSkipTutorial);
+            GroupMiscGame.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            GroupMiscGame.Location = new Point(567, 278);
+            GroupMiscGame.Margin = new Padding(4, 5, 4, 5);
+            GroupMiscGame.Name = "GroupMiscGame";
+            GroupMiscGame.Padding = new Padding(4, 5, 4, 5);
+            GroupMiscGame.Size = new Size(627, 262);
+            GroupMiscGame.TabIndex = 2;
+            GroupMiscGame.TabStop = false;
+            GroupMiscGame.Text = "Game";
+            // 
             // GroupMapElements
             // 
             GroupMapElements.Controls.Add(GroupMapElementStoneDoors);
@@ -2594,7 +2609,7 @@
             GroupMapElements.Margin = new Padding(4, 5, 4, 5);
             GroupMapElements.Name = "GroupMapElements";
             GroupMapElements.Padding = new Padding(4, 5, 4, 5);
-            GroupMapElements.Size = new Size(627, 530);
+            GroupMapElements.Size = new Size(627, 262);
             GroupMapElements.TabIndex = 1;
             GroupMapElements.TabStop = false;
             GroupMapElements.Text = "Map Elements";
@@ -3065,6 +3080,8 @@
             TabExpansion.ResumeLayout(false);
             GroupExpansionNightmare.ResumeLayout(false);
             GroupExpansionNightmare.PerformLayout();
+            GroupMiscGame.ResumeLayout(false);
+            GroupMiscGame.PerformLayout();
             GroupMapElements.ResumeLayout(false);
             GroupMapElements.PerformLayout();
             GroupMapElementStoneDoors.ResumeLayout(false);
@@ -3271,6 +3288,7 @@
         private CheckBox CheckboxOptionsTitleParade;
         private CheckBox CheckboxOptionsReduceFlashing;
         private CheckBox CheckboxOptionsSkipTutorial;
+        private GroupBox GroupMiscGame;
         private CheckBox CheckboxMirrorShardsInChests;
         private Label LabelStability;
         private Label LabelCompatibility;

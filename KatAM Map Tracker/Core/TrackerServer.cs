@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Globalization;
 using System.IO;
 using System.Net;
@@ -10,12 +10,14 @@ namespace KatAMMapTracker {
      * The script connects to 127.0.0.1 on the given port, sends "HELLO <script version>", then one line per room change: "ROOM <hex id>",
      * and the area maps of the loaded save whenever they change: "MAPS <hex bits>" (bit n: the map of area n).
      * Old copies of the script don't send HELLO; Their first room is reported as script version 0;
+     * Debug: the tracker sends the script "WARP <hex room> <x> <y>" (Send()), and the script moves Kirby there (x, y: the spawn tile, as a
+     * door's landing; -1 -1: the room's own default spawn);
      * Events are raised on a background thread; */
     public sealed class TrackerServer : IDisposable {
         public const int DefaultPort = 8765;
 
         // Version of Lua/katam_tracker.lua that goes with this tracker (SCRIPT_VERSION in the script);
-        public const int ScriptVersion = 3;
+        public const int ScriptVersion = 4;
 
         // Raised once per connection with the version of the connected script (0: an old script without HELLO);
         public event Action<int> ScriptVersionReported;
@@ -33,6 +35,7 @@ namespace KatAMMapTracker {
         Thread thread;
         volatile bool running;
         TcpClient currentClient;
+        readonly object sendLock = new object();
 
         public TrackerServer(int port = DefaultPort) {
             Port = port;
@@ -91,6 +94,22 @@ namespace KatAMMapTracker {
                     client.Close();
                     currentClient = null;
                     ConnectionChanged?.Invoke(false);
+                }
+            }
+        }
+
+        // Send(); A line to the connected script (false when none is connected or the connection failed);
+        public bool Send(string line) {
+            lock (sendLock) {
+                try {
+                    TcpClient client = currentClient;
+                    if (client == null || !client.Connected) return false;
+                    byte[] bytes = System.Text.Encoding.ASCII.GetBytes(line + "\n");
+                    client.GetStream().Write(bytes, 0, bytes.Length);
+                    return true;
+                }
+                catch (Exception exception) when (exception is IOException || exception is ObjectDisposedException || exception is InvalidOperationException) {
+                    return false;
                 }
             }
         }

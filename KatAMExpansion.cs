@@ -223,11 +223,12 @@ namespace KatAMRandomizer {
             new byte[] { 0x00, 0x01 }, Icon: new[] { 4 });
 
         /* Whispy Woods; NiDL boss 5 (type 0x40, mini-boss descriptor 35). NiDL draws its face as three frames of one table (0x087542C0)
-         * stacked: the eyes (i), the nose (38 + i, 26 pixels lower) and the mouth (56 + i, 42 lower); its frames 0-17 are the three
-         * together. Then its puff (object 0x7E's frames, 0x0874C568, 0-7: NiDL's shared object tiles, palette 15). Hurt: crying (12).
+         * at the same spot: the eyes (i), the nose (38 + i) and the mouth (56 + i), each frame placed lower on its own (0x080B2890 adds
+         * 26 and 42 to the spot only to ask whether the nose and mouth are on screen, and takes them back before drawing them: added
+         * here too, the nose and mouth hung twice as low, the mouth in the roots); its frames 0-17 are the three together. Then its puff (object 0x7E's frames, 0x0874C568, 0-7: NiDL's shared object tiles, palette 15). Hurt: crying (12).
          * Its apples are an enemy (Apple); */
         static Miniboss WhispyWoods() {
-            Part[] Face(int i) => new[] { new Part(i), new Part(38 + i, Dy: 26), new Part(56 + i, Dy: 42) };
+            Part[] Face(int i) => new[] { new Part(i), new Part(38 + i), new Part(56 + i) };
             List<Part[]> frames = Enumerable.Range(0, 18).Select(Face).ToList();
             frames.AddRange(Enumerable.Range(0, 8).Select(f => new[] { new Part(f, Table: 0x74C568, Palette15: true, Common: true) }));
 
