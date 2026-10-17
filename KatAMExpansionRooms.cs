@@ -147,7 +147,8 @@ namespace KatAMRandomizer {
          * at SwitchArrival; */
         const int SwitchStage = 8, SwitchWidth = 16, SwitchHeight = 12, SwitchFloor = 9;
         // LayoutB(); KatAM's two layouts of a room with 2 hub doors: 0x122's (A: top left and right) or 0x250's (B: top and bottom middle);
-        static bool LayoutB(int level) => level % 2 == 1;
+        // (the Fountain of Dreams' A, though odd: no platform in the middle, the Fountain behind it shown whole);
+        static bool LayoutB(int level) => level % 2 == 1 && level != 7;
         static (int x, int y)[] SwitchSides(int level) => LayoutB(level) ? new[] { (1, 6), (14, 6) } : new[] { (1, 8), (14, 8) };
         static (int x, int y) SwitchLinkDoor(int level) => LayoutB(level) ? (8, 8) : (3, 3);
         static (int x, int y) SwitchHubDoor(int level) => LayoutB(level) ? (8, 3) : (12, 3);
@@ -267,13 +268,53 @@ namespace KatAMRandomizer {
          *   ##.L........H.##      ##.....H......##      1-3
          *   ##............##      #..............#      4
          *   ##............##      #..............#      5
-         *   #..............#      #M..PPPPPPPP..M#      6
+         *   ................      #M..PPPPPPPP..M#      6
          *   ................      ####........####      7
          *   .M...PPPPPP...M.      ####....L...####      8
          *   ################      ################      9-11 */
         // ModelRanks; Per level, the room its switch room is drawn after (see BuildSwitchRooms()), by rank: 0 the one in its colours
         // with the most of its shapes;
         static readonly int[] ModelRanks = { 0, 0, 0, 0, 4, 0, 0, 0 };
+        /* SwitchDesigns; Switch rooms picked by eye, kept as they are whatever BuildSwitchRooms() would draw now: per level, the left
+         * half's metatiles, row by row (~: its tiles flipped), the right half its mirror image; the same metatiles in every region
+         * (NiDL's tilesets are); Yogurt Yard's after its sixth stage's second room, inside its rock the fills (and moss) joining best
+         * (least colour across their edges), Orange Ocean's after its fifth stage's first; */
+        static readonly Dictionary<int, string[]> SwitchDesigns = new Dictionary<int, string[]> {
+            [4] = new[] {
+                "16E 002 01E 059 020 021 022 059",
+                "17A 0BB 000 000 000 000 000 000",
+                "063 08C 000 000 000 000 000 000",
+                "090 08D 000 000 000 000 000 000",
+                "1D6 08E 000 000 000 000 000 000",
+                "01E 0AF 000 000 000 000 000 000",
+                "000 000 000 000 000 000 000 000",
+                "000 000 000 000 000 000 000 000",
+                "000 000 000 000 000 1F9 1DF 1DF",
+                "093 094 2E3 1DF 1E0 1C6 063 31E",
+                "240 12C 31E 063 31E 17A 318 1DC",
+                "17A 318 001 318 22C 254 327 324",
+            },
+            [5] = new[] {
+                "008 1C6 101 100 044 0FA 044 0FA",
+                "006 010 000 000 000 000 000 000",
+                "008 00D 000 000 000 000 000 000",
+                "1C5 0FD 000 000 000 000 000 000",
+                "00D 000 000 000 000 000 000 000",
+                "00D 000 000 000 000 000 000 000",
+                "0EB 000 000 000 0B3 0B4 18B 04D",
+                "157 003 004 156 000 000 000 000",
+                "006 0EC 0ED 0EB 000 000 000 000",
+                "008 008 009 157 003 004 138 004",
+                "007 006 007 006 0EC 0ED 145 0ED",
+                "009 008 009 008 008 009 008 009",
+            },
+        };
+        // FountainLook; The room (level, stage, index) whose tiles and colours the Fountain of Dreams' switch room takes, picked by
+        // eye: Grape Garden's castle in its stage 6's dusk colours;
+        static readonly (int level, int stage, int index) FountainLook = (3, 5, 5);
+        // FountainInBack; Whether the Fountain of Dreams' switch room shows the Fountain behind it (King Dedede's arena's background), or
+        // the Fountain of Dreams' nebula; picked by eye;
+        const bool FountainInBack = true;
         static List<NightmareRoom> BuildSwitchRooms(ref byte[] nightmare, List<NightmareRoom> rooms) {
             List<NightmareRoom> switchRooms = new List<NightmareRoom>();
             int start = (nightmare.Length + 3) & ~3;
@@ -304,9 +345,11 @@ namespace KatAMRandomizer {
                 // (the first stage's tileset, the level's own look: Vegetable Valley's grass, 28% ground; one mostly sky, under 27%:
                 // Grape Garden's clouds 25%, Yogurt Yard's and Rainbow Resort's skies: instead the one in 2 rooms or more most solid and most
                 // used, its share of ground times the root of its rooms: Grape Garden's castle, Yogurt Yard's purple caves);
-                // (the Fountain of Dreams': the clouds of the skies of NiDL's levels, in Yogurt Yard's pastel colours (its first room's),
-                // learnt from every room with them, under the Fountain of Dreams' own nebula, below);
-                NightmareRoom pastel = rooms.Where(r => r.Level == 4).OrderBy(r => r.Stage).ThenBy(r => r.Index).First();
+                // (the Fountain of Dreams': FountainLook's tileset and colours, learnt from every room with that tileset, under the
+                // Fountain of Dreams' own nebula or the Fountain itself, below);
+                NightmareRoom pastel = rooms.First(r => (r.Level, r.Stage, r.Index) == FountainLook);
+                if (Environment.GetEnvironmentVariable("SWITCH_ROOM_FOUNTAIN") is string look)
+                    pastel = rooms.First(r => r.Record == Convert.ToInt32(look, 16));
                 NightmareRoom fountain = rooms.Where(r => r.Level == 7).OrderBy(r => r.Stage).ThenBy(r => r.Index).First();
                 var levelRooms = level == 7 ? rooms.Where(r => Tileset(r) == Tileset(pastel)).ToList()
                                             : rooms.Where(r => r.Level == level).ToList();
@@ -316,7 +359,7 @@ namespace KatAMRandomizer {
                 int Rooms(IEnumerable<NightmareRoom> group) => group.Select(r => r.Record).Distinct().Count();
                 if (Solidness(chosen) < 0.27 && level != 7)
                     chosen = tilesets.Where(g => Rooms(g) >= 2).DefaultIfEmpty(chosen).OrderByDescending(g => Solidness(g) * Math.Sqrt(Rooms(g))).First();
-                NightmareRoom source = chosen.OrderBy(r => r.Stage).ThenBy(r => r.Index).First();
+                NightmareRoom source = level == 7 ? pastel : chosen.OrderBy(r => r.Stage).ThenBy(r => r.Index).First();
                 byte[] sourceCells = DecompressLZ77(nightmare, ReadInt(nightmare, source.Record + 8) - 0x08000000);
                 int sourceWidth = ReadShort(nightmare, source.Record + 0x14), sourceHeight = ReadShort(nightmare, source.Record + 0x16);
                 byte Kind(int x, int y) => RoomCollision[sourceCells[(y * sourceWidth + x) * 4 + 3]];
@@ -432,7 +475,7 @@ namespace KatAMRandomizer {
                 bool b = LayoutB(level);
                 bool Solid(int x, int y) => y == 0 || y >= SwitchFloor || Pedestal(x, y) || (b
                     ? (y <= 3 && (x <= 1 || x >= SwitchWidth - 2)) || (y >= 4 && (x == 0 || x == SwitchWidth - 1)) || (y >= 7 && (x <= 3 || x >= SwitchWidth - 4))
-                    : (y <= 5 && (x <= 1 || x >= SwitchWidth - 2)) || (y == 6 && (x == 0 || x == SwitchWidth - 1)));
+                    : y <= 5 && (x <= 1 || x >= SwitchWidth - 2));
                 bool Pedestal(int x, int y) => b ? y == 6 && x >= 6 && x <= 9 : y == 8 && x >= 5 && x <= 10;
                 bool Ledge(int x, int y) => b && y == 6 && (x == 4 || x == 5 || x == 10 || x == 11);
                 // (past the room's edges solid, as the level's);
@@ -445,12 +488,30 @@ namespace KatAMRandomizer {
 
                 // (how unlike a cell of the level is to a switch room's: its 5x5 shape, the nearest 8 counting most; the metatiles of the
                 // switch room's cells taken, which it should draw beside as the level does; the level's rooms in other colours last);
-                // (whether the shape around a cell reads the same both ways, so the other half can have its metatile as it is; where
-                // not, one with a mirror image where it's about as good: so both halves match);
-                bool Even(int x, int y) => Enumerable.Range(-1, 3).All(dy => TargetClass(x - 1, y + dy) == TargetClass(x + 1, y + dy));
+                // (which metatiles the level draws side by side and one above another: a pair it never draws doesn't join, a wall's
+                // face against more rock, a floor's grass running under a wall);
+                Dictionary<(int, int), int> beside = new Dictionary<(int, int), int>(), under = new Dictionary<(int, int), int>();
+                foreach (var room in learnt)
+                    for (int y = 0; y < room.h; y++)
+                        for (int x = 0; x < room.w; x++) {
+                            int m = ReadShort(room.cells, (y * room.w + x) * 4);
+                            if (x + 1 < room.w) beside[(m, ReadShort(room.cells, (y * room.w + x + 1) * 4))] = beside.GetValueOrDefault((m, ReadShort(room.cells, (y * room.w + x + 1) * 4))) + 1;
+                            if (y + 1 < room.h) under[(m, ReadShort(room.cells, ((y + 1) * room.w + x) * 4))] = under.GetValueOrDefault((m, ReadShort(room.cells, ((y + 1) * room.w + x) * 4))) + 1;
+                        }
+                // Seam(); How many of the 16 pixels along the edge a metatile shares with its neighbour (dx, dy) one is drawn and the other not;
+                int Seam(int m, int n, int dx, int dy) {
+                    if (m < 0 || n < 0 || m >= metatiles.Length / 8 || n >= metatiles.Length / 8) return 0;
+                    string a = Pixels(m, false), b = Pixels(n, false);
+                    int seam = 0;
+                    for (int i = 0; i < 16; i++) {
+                        int mine = dx == -1 ? i * 16 : dx == 1 ? i * 16 + 15 : dy == -1 ? i : 240 + i;
+                        int theirs = dx == -1 ? i * 16 + 15 : dx == 1 ? i * 16 : dy == -1 ? 240 + i : i;
+                        if ((a[mine] == 0) != (b[theirs] == 0)) seam++;
+                    }
+                    return seam;
+                }
                 double Cost(int s, int sx, int sy, int x, int y) {
                     double cost = learnt[s].same ? 0 : 6;
-                    if (!Even(x, y) && Mirror(SourceMetatile(s, sx, sy)) < 0) cost += 5;
                     if (TargetClass(x, y) == Earth && use.TryGetValue(SourceMetatile(s, sx, sy), out double[] u)) {
                         (int dx, int dy)[] sides = { (0, -1), (0, 1), (-1, 0), (1, 0) };
                         for (int i = 0; i < 4; i++) cost += 4 * Math.Abs(u[i + 1] / u[0] - (TargetClass(x + sides[i].dx, y + sides[i].dy) != Earth ? 1 : 0));
@@ -465,8 +526,17 @@ namespace KatAMRandomizer {
                             bool near = Math.Abs(dx) <= 1 && Math.Abs(dy) <= 1;
                             if (SourceClass(s, sx + dx, sy + dy) != TargetClass(x + dx, y + dy)) cost += near ? 4 : 1;
                             int nx = x + dx, ny = y + dy;
-                            if (!near || nx < 0 || ny < 0 || nx >= SwitchWidth || ny >= SwitchHeight || !taken[ny * SwitchWidth + nx]) continue;
-                            cost += SourceMetatile(s, sx + dx, sy + dy) == Current(nx, ny) ? -6 : 3;
+                            if (!near || nx < 0 || ny < 0 || nx >= SwitchWidth || ny >= SwitchHeight) continue;
+                            bool known = taken[ny * SwitchWidth + nx] || TargetClass(nx, ny) == Air;
+                            if (!known) continue;
+                            if (taken[ny * SwitchWidth + nx]) cost += SourceMetatile(s, sx + dx, sy + dy) == Current(nx, ny) ? -6 : 3;
+                            int m = SourceMetatile(s, sx, sy), n = Current(nx, ny);
+                            if ((dx == 0 || dy == 0) && Environment.GetEnvironmentVariable("SWITCH_ROOM_LOOSE") == null) {
+                                if ((dx == -1 ? beside.GetValueOrDefault((n, m)) : dx == 1 ? beside.GetValueOrDefault((m, n)) : dy == -1 ? under.GetValueOrDefault((n, m)) : under.GetValueOrDefault((m, n))) == 0)
+                                    cost += 8;
+                                // (no seam: between two ground cells, their facing edges drawn at the same pixels);
+                                if (taken[ny * SwitchWidth + nx] && TargetClass(nx, ny) != Air) cost += 0.5 * Seam(m, n, dx, dy);
+                            }
                         }
                     return cost;
                 }
@@ -501,6 +571,7 @@ namespace KatAMRandomizer {
                 var models = Enumerable.Range(0, learnt.Count).OrderByDescending(s => (learnt[s].same ? 1000 : 0) + Covered(s)).ToList();
                 int rank = int.TryParse(Environment.GetEnvironmentVariable("SWITCH_ROOM_MODEL_RANK"), out int asked) ? asked : ModelRanks[level];
                 model = rank >= 0 && rank < models.Count ? models[rank] : -1;
+                if (Environment.GetEnvironmentVariable("SWITCH_ROOM_MODEL") is string named) model = learntRecords.IndexOf(Convert.ToInt32(named, 16));
                 List<(int s, int x, int y)> Candidates(int x, int y, Func<int, int, int, bool> allowed) {
                     var all = new List<(int s, int x, int y)>();
                     for (int s = 0; s < learnt.Count; s++)
@@ -559,18 +630,10 @@ namespace KatAMRandomizer {
                         taken[y * SwitchWidth + x] = true;
                     }
 
-                /* Symmetric, as KatAM's hub rooms: one half as above, the other its mirror image, each metatile there the one of the
-                 * tileset that draws its pixels flipped (walls' left and right pieces, corners; itself where it's symmetric); the half
-                 * kept the one the level would draw (its metatiles side by side and one above another as often as the level draws them),
-                 * and a cell whose mirror image the tileset hasn't taken as above again, by its neighbours; */
-                Dictionary<(int, int), int> beside = new Dictionary<(int, int), int>(), under = new Dictionary<(int, int), int>();
-                foreach (var room in learnt)
-                    for (int y = 0; y < room.h; y++)
-                        for (int x = 0; x < room.w; x++) {
-                            int m = ReadShort(room.cells, (y * room.w + x) * 4);
-                            if (x + 1 < room.w) beside[(m, ReadShort(room.cells, (y * room.w + x + 1) * 4))] = beside.GetValueOrDefault((m, ReadShort(room.cells, (y * room.w + x + 1) * 4))) + 1;
-                            if (y + 1 < room.h) under[(m, ReadShort(room.cells, ((y + 1) * room.w + x) * 4))] = under.GetValueOrDefault((m, ReadShort(room.cells, ((y + 1) * room.w + x) * 4))) + 1;
-                        }
+                /* Symmetric, as KatAM's hub rooms: one half as above (the one the level would draw: its metatiles side by side and one
+                 * above another as often as the level draws them), the other its mirror image, each metatile there flipped: the
+                 * tileset's own drawing its pixels flipped (walls' left and right pieces, corners; itself where it's symmetric), else
+                 * made, its tiles flipped (the level's art is mostly drawn one way: Orange Ocean's rock, Yogurt Yard's frosting); */
                 double Drawn(int from, int to) {
                     double drawn = 0;
                     for (int y = 0; y < SwitchHeight; y++)
@@ -580,48 +643,34 @@ namespace KatAMRandomizer {
                         }
                     return drawn;
                 }
-                bool leftKept = Drawn(0, SwitchWidth / 2 - 1) >= Drawn(SwitchWidth / 2, SwitchWidth - 1);
-                var again = new List<(int x, int y)>();
+                bool designed = SwitchDesigns.TryGetValue(level, out string[] design) && Environment.GetEnvironmentVariable("SWITCH_ROOM_NO_DESIGNS") == null;
+                bool leftKept = designed || Drawn(0, SwitchWidth / 2 - 1) >= Drawn(SwitchWidth / 2, SwitchWidth - 1);
+                // (a metatile flipped: its tiles swapped left and right, each drawn flipped (0x400), added to the room's own copy of the
+                // tileset's metatiles where the tileset hasn't one drawing it so);
+                List<byte> table = new List<byte>(metatiles);
+                Dictionary<int, int> flippedOf = new Dictionary<int, int>();
+                int Flipped(int m) {
+                    if (Mirror(m) >= 0) return Mirror(m);
+                    if (flippedOf.TryGetValue(m, out int made)) return made;
+                    int[] e = Enumerable.Range(0, 4).Select(q => ReadShort(metatiles, m * 8 + q * 2) ^ 0x400).ToArray();
+                    foreach (int q in new[] { 1, 0, 3, 2 }) { table.Add((byte)e[q]); table.Add((byte)(e[q] >> 8)); }
+                    return flippedOf[m] = table.Count / 8 - 1;
+                }
+                // (or the level's design, SwitchDesigns, as its left half);
+                if (designed)
+                    for (int y = 0; y < SwitchHeight; y++)
+                        for (int x = 0; x < SwitchWidth / 2; x++) {
+                            string id = design[y].Split(' ')[x];
+                            WriteShort(cells, (y * SwitchWidth + x) * 4, id.StartsWith("~") ? Flipped(Convert.ToInt32(id[1..], 16)) : Convert.ToInt32(id, 16));
+                        }
                 for (int y = 0; y < SwitchHeight; y++)
                     for (int x = leftKept ? SwitchWidth / 2 : 0; x < (leftKept ? SwitchWidth : SwitchWidth / 2); x++) {
-                        int kept = SwitchWidth - 1 - x, flipped = Mirror(Current(kept, y));
-                        // (no mirror image: the same metatile where the shape around reads the same both ways, inside the ground, a floor's top);
-                        if (flipped < 0 && Even(kept, y)) flipped = Current(kept, y);
-                        if (flipped >= 0) WriteShort(cells, (y * SwitchWidth + x) * 4, flipped);
-                        else if (TargetClass(x, y) == Air) WriteShort(cells, (y * SwitchWidth + x) * 4, air);
-                        else again.Add((x, y));
+                        // (a flipped one's mirror image: the metatile it was made from);
+                        int kept = Current(SwitchWidth - 1 - x, y);
+                        WriteShort(cells, (y * SwitchWidth + x) * 4, flippedOf.FirstOrDefault(f => f.Value == kept, new KeyValuePair<int, int>(-1, -1)).Key is int from and >= 0 ? from : Flipped(kept));
                     }
-                /* (the two again together: the few best for each side by its neighbours, the pair that fits best and looks most like
-                 * mirror images, outline first (where it's drawn and where not), then colours: the level's own right wall's piece to a
-                 * left wall's where its art isn't drawn flipped, or both sides changed to a piece that is); */
-                double Unlike(int a, int b) {
-                    if (a < 0 || b < 0 || a >= metatiles.Length / 8 || b >= metatiles.Length / 8) return 16;
-                    string left = Pixels(a, false), right = Pixels(b, true);
-                    double differ = 0;
-                    for (int i = 0; i < 256; i++) differ += (left[i] == 0) != (right[i] == 0) ? 1 : left[i] != right[i] ? 0.25 : 0;
-                    return 16.0 * differ / 64;
-                }
-                List<(int m, double cost)> Options(int x, int y) => Candidates(x, y, (s, sx, sy) => SourceClass(s, sx, sy) == TargetClass(x, y))
-                    .Select(c => (m: SourceMetatile(c.s, c.x, c.y), cost: Cost(c.s, c.x, c.y, x, y))).GroupBy(o => o.m).Select(g => (g.Key, g.Min(o => o.cost)))
-                    .OrderBy(o => o.Item2).Take(8).ToList();
-                foreach (var (x, y) in again) {
-                    int kept = SwitchWidth - 1 - x;
-                    var keptOptions = Options(kept, y);
-                    if (!keptOptions.Any(o => o.m == Current(kept, y))) keptOptions.Add((Current(kept, y), keptOptions.Count > 0 ? keptOptions.Max(o => o.cost) : 0));
-                    var options = Options(x, y);
-                    double bestCost = double.MaxValue;
-                    (int kept, int other) pair = (Current(kept, y), Current(x, y));
-                    foreach (var k in keptOptions) {
-                        // (a piece with a mirror image, both sides alike as they can be);
-                        if (Mirror(k.m) >= 0 && 2 * k.cost < bestCost) { bestCost = 2 * k.cost; pair = (k.m, Mirror(k.m)); }
-                        foreach (var o in options) {
-                            double cost = k.cost + o.cost + Unlike(o.m, k.m);
-                            if (cost < bestCost) { bestCost = cost; pair = (k.m, o.m); }
-                        }
-                    }
-                    WriteShort(cells, (y * SwitchWidth + kept) * 4, pair.kept);
-                    WriteShort(cells, (y * SwitchWidth + x) * 4, pair.other);
-                }
+                if (Environment.GetEnvironmentVariable("SWITCH_ROOM_DUMP") is string tableDump)
+                    File.WriteAllBytes(Path.Combine(tableDump, $"switch{level}.metatiles"), table.ToArray());
                 if (Environment.GetEnvironmentVariable("SWITCH_ROOM_DUMP") is string dump)
                     File.WriteAllText(Path.Combine(dump, $"switch{level}.txt"), $"{source.Record:X} {(model >= 0 ? learntRecords[model].ToString("X") : "-")}\n" + string.Join("\n", Enumerable.Range(0, SwitchHeight).Select(y => string.Join(" ", Enumerable.Range(0, SwitchWidth).Select(x => Current(x, y).ToString("X3"))))));
 
@@ -629,15 +678,20 @@ namespace KatAMRandomizer {
                 // (the Fountain of Dreams': the Fountain of Dreams' own background, its starry nebula, as a room a screen high shows only
                 // 20 rows of it, from the top: its rows 47-66, the nebula with the stars over it, uncompressed);
                 if (level == 7) {
-                    Array.Copy(nightmare, fountain.Record + 0x28, record, 0x28, 0x10);
-                    int map = ReadInt(nightmare, fountain.Record + 0x30) - 0x08000000, mapWidth = ReadShort(nightmare, map + 2);
+                    // (or, FountainInBack, King Dedede's arena's, Rainbow Resort's last stage, on the Fountain itself: its rows 15-34, the
+                    // grass and the Fountain, a column (8 pixels) right: its stem at x 128, the room's middle, under the doors);
+                    bool inBack = Environment.GetEnvironmentVariable("SWITCH_ROOM_FOUNTAIN_BACK") is string back ? back == "1" : FountainInBack;
+                    int dededeStage = rooms.Where(r => r.Level == 6).Max(r => r.Stage);
+                    NightmareRoom framing = inBack ? rooms.Where(r => r.Level == 6 && r.Stage == dededeStage).OrderBy(r => r.Index).First() : fountain;
+                    Array.Copy(nightmare, framing.Record + 0x28, record, 0x28, 0x10);
+                    int map = ReadInt(nightmare, framing.Record + 0x30) - 0x08000000, mapWidth = ReadShort(nightmare, map + 2);
                     bool packed = ReadShort(nightmare, map + 6) == 0xFFFF;
                     byte[] whole = packed ? DecompressLZ77(nightmare, map + 8) : null;
-                    const int FirstRow = 47, Rows = 20;
+                    int FirstRow = inBack ? 15 : 47; const int Rows = 20;
                     byte[] framed = new byte[6 + mapWidth * Rows * 2];
                     WriteShorts(framed, 0, mapWidth * Rows * 2, mapWidth, Rows);
                     // (as it is across: Shift columns right where a feature should be mid-screen, the camera showing columns 0.5-15.5);
-                    const int Shift = 0;
+                    int Shift = inBack ? 1 : 0;
                     for (int y = 0; y < Rows; y++)
                         for (int column = 0; column < mapWidth; column++) {
                             int row = FirstRow + y, x = (column - Shift + mapWidth) % mapWidth;
@@ -646,6 +700,7 @@ namespace KatAMRandomizer {
                         }
                     WriteInt(record, 0x30, Put(framed) + 0x08000000);
                 }
+                if (table.Count > metatiles.Length) WriteInt(record, 0x20, Put(CompressLZ77(table.ToArray())) + 0x08000000);
                 WriteShort(record, 2, 0);
                 WriteInts(record, 8, Put(CompressLZ77(cells)) + 0x08000000, Put(CompressLZ77(new byte[SwitchWidth * SwitchHeight * 2])) + 0x08000000, 0);
                 WriteShorts(record, 0x14, SwitchWidth, SwitchHeight);
