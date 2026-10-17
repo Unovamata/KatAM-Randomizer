@@ -101,7 +101,7 @@
          * one hundred (LevelHundreds; KatAM numbers its rooms by hundreds too, mostly by area): the NiDL hub and the Fountain of Dreams
          * 1-99, Vegetable Valley 100-199 ... Rainbow Resort 700-799. The HUD shows the area's plate (its name, AreaPlates) in its corner,
          * and the CPU helpers' routes are per area (gUnk_08D6DCAC); both only had areas 0-10: see ExtendAreas(); */
-        const int AreaBase = 11, MapRoomsBlock = MapTableAddress + 0xE0;
+        const int AreaBase = 11, MapRoomsBlock = MapTableAddress + 0xE0, MapShardExits = MapTableAddress + 0xD8;
         static readonly int[] LevelHundreds = { 1, 2, 3, 4, 5, 6, 7, 0 };
         static readonly (string first, string second)[] LevelNames = {
             ("VEGETABLE", "VALLEY"), ("ICE CREAM", "ISLAND"), ("BUTTER", "BUILDING"), ("GRAPE", "GARDEN"), ("YOGURT", "YARD"),
@@ -1231,6 +1231,31 @@
             BuildMainHub(rom, nightmare, symbols, version.SpriteTables, mainHub, mainHubDoors, rooms.First(r => r.Level == 7 && r.Stage == 0 && r.Index == 0).Record, tableSizes,
                          infos, palettes, tilemaps, solidities, backgrounds, objects, noTypes, ref cursor);
             WriteShort(rom, CodeAddress + version.CodeSymbols["gNidlHubRoom"], mainHub);
+            /* The boss rooms' shards (bossExitsOf): gNidlShardExits ("ROM Expansion/nidl_boss.c"), and sub_0804C614's `kirby->roomId = 0x321`
+             * and spawn spot (after the shard cutscene) a call to NidlShardExit(): `adds r0, r4, #0; ldr r1, =NidlShardExit; bl
+             * _call_via_r1; b` past the spot's stores, the 0x321 literal holding the address; */
+            {
+                int exits = CodeAddress + version.CodeSymbols["gNidlShardExits"], site = version.RomSymbols["sub_0804C614"] + 0x174;
+                int literal = version.RomSymbols["sub_0804C614"] + 0x1B4;
+                if (ReadShort(rom, site) != 0x2083 || ReadInt(rom, literal) != 0x321)
+                    return $"The {region.KatAM} ROM's shard code doesn't match.";
+                int n = 0;
+                foreach (var (part, exit) in bossExitsOf.OrderBy(e => e.Key.Room)) {
+                    if (n >= 24) break;
+                    WriteShorts(rom, exits + n * 8, part.Room, exit.room);
+                    rom[exits + n * 8 + 4] = (byte)exit.x;
+                    rom[exits + n * 8 + 5] = (byte)exit.y;
+                    n++;
+                }
+                int call = version.RomSymbols["_call_via_r1"] - (site + 0x08000000 + 4 + 4);
+                WriteShorts(rom, site, 0x1C20, 0x4900 | (literal - ((site + 2 + 4) & ~3)) / 4, 0xF000 | (call >> 12 & 0x7FF), 0xF800 | (call >> 1 & 0x7FF),
+                            0xE000 | ((0x198 - (0x174 + 8) - 4) / 2 & 0x7FF));
+                WriteInt(rom, literal, CodeAddress + 0x08000000 + version.CodeSymbols["NidlShardExit"] + 1);
+                // (for the map tracker, in the map table after its mini-bosses: "SX", u16 the exits, the table's address);
+                System.Text.Encoding.ASCII.GetBytes("SX").CopyTo(rom, MapShardExits);
+                WriteShort(rom, MapShardExits + 2, n);
+                WriteInt(rom, MapShardExits + 4, exits + 0x08000000);
+            }
 
             /* The KatAM rooms getting doors (Central Circle: its door to Nightmare in Dream Land; the KatAM rooms NiDL levels lead to: their
              * doors back) get collision and object list entries of their own (still their vanilla ones: the randomizer writes into them),
@@ -1527,6 +1552,11 @@
          * Kirby (the room, the landing cell + 1); */
         public sealed record Transport(int X, int Y, bool Cannon, int Room, int DestX, int DestY);
         static Dictionary<NightmareRoom, List<Transport>> transportsOf = new Dictionary<NightmareRoom, List<Transport>>();
+        /* bossExitsOf; Where a boss room's shard takes Kirby (the room, the landing cell + 1), by its room (each part): a boss room has no
+         * door out, as KatAM's: taking the shard its boss leaves is the way on (gNidlShardExits, "ROM Expansion/nidl_boss.c": where the
+         * shard cutscene leaves Kirby, KatAM's Central Circle otherwise); */
+        static Dictionary<NightmareRoom, (int room, int x, int y)> bossExitsOf = new Dictionary<NightmareRoom, (int, int, int)>();
+        public static IReadOnlyDictionary<NightmareRoom, (int room, int x, int y)> PortedBossExits => bossExitsOf;
         public static IReadOnlyDictionary<NightmareRoom, List<Transport>> PortedTransports => transportsOf;
 
         // The KatAM room with the mirror to Nightmare in Dream Land: Central Circle, on its platform's left end (FinishRooms());
@@ -1579,6 +1609,14 @@
                                                                out Dictionary<int, List<Door>> katamDoors, out (int room, int x, int y) firstStart, out byte firstFacing) {
             Dictionary<NightmareRoom, List<Door>> doors = rooms.ToDictionary(r => r, r => new List<Door>());
             transportsOf = rooms.ToDictionary(r => r, r => new List<Transport>());
+            bossExitsOf = new Dictionary<NightmareRoom, (int, int, int)>();
+            // HasBoss(); Whether a room (any of its parts) holds a ported boss (NiDL's category 2, RoomBosses);
+            bool HasBoss(NightmareRoom r) {
+                int list = ReadInt(nightmare, r.Record + 0x48);
+                for (int at = list == 0 ? r.Record : list - 0x08000000; list != 0 && at + 8 <= r.Record; at += 8)
+                    if (nightmare[at] - 1 == BossCategory && RoomBosses.ContainsKey(nightmare[at + 1])) return true;
+                return false;
+            }
             clearedBlocks = new Dictionary<int, HashSet<int>>();
             var byRoom = rooms.GroupBy(r => (r.Level, r.Stage, r.Index)).ToDictionary(g => g.Key, g => g.ToList());
             List<(int level, int stage)> stages = rooms.Where(r => !r.IsSwitchRoom).Select(r => (r.Level, r.Stage)).Distinct().ToList();
@@ -1980,7 +2018,10 @@
 
                 if (IsBossStage(s)) {
                     int next = byRoom.Keys.Where(k => k.Item1 == s.level && k.Item2 == s.stage && k.Item3 > key.Item3).Select(k => k.Item3).DefaultIfEmpty(-1).Min();
-                    Add(Start(key), next >= 0 ? Target(Start((s.level, s.stage, next))) : After(s), DoorKind.Boss, oneWay: true);
+                    (int room, int x, int y) on = next >= 0 ? Target(Start((s.level, s.stage, next))) : After(s);
+                    // (a boss's room: no door out, its shard takes Kirby on, bossExitsOf);
+                    if (HasBoss(byRoom[key][0])) foreach (NightmareRoom part in byRoom[key]) bossExitsOf[part] = on;
+                    else Add(Start(key), on, DoorKind.Boss, oneWay: true);
                 }
             }
 
@@ -2381,6 +2422,7 @@
                     bool Near(int x, int y) => Enumerable.Range(-1, 3).Any(dx => Enumerable.Range(-1, 3).Any(dy => seen.Contains((x + dx, y + dy))));
                     foreach (Door d in doors[r]) if (d.Edge ? seen.Contains((d.X, d.Y)) : Near(d.X, d.Y)) Arrive(d.Room, d.DestX - 1, d.DestY - 1);
                     foreach (Transport t in transportsOf[r]) if (Near(t.X / 16, (t.Y - 1) / 16)) Arrive(t.Room, t.DestX - 1, t.DestY - 1);
+                    if (bossExitsOf.TryGetValue(r, out var shard)) Arrive(shard.room, shard.x - 1, shard.y - 1);
                 }
                 return arrived.Keys.ToHashSet();
             }
@@ -2424,7 +2466,8 @@
                     }
                     bool Near(int dx, int dy) => Enumerable.Range(-1, 3).Any(ox => Enumerable.Range(-1, 3).Any(oy => seen.Contains((dx + ox, dy + oy))));
                     var leads = doors[r].Where(d => d.Edge ? seen.Contains((d.X, d.Y)) : Near(d.X, d.Y)).Select(d => (d.Room, d.DestX - 1, d.DestY - 1))
-                                        .Concat(transportsOf[r].Where(t => Near(t.X / 16, (t.Y - 1) / 16)).Select(t => (t.Room, t.DestX - 1, t.DestY - 1))).ToList();
+                                        .Concat(transportsOf[r].Where(t => Near(t.X / 16, (t.Y - 1) / 16)).Select(t => (t.Room, t.DestX - 1, t.DestY - 1)))
+                                        .Concat(bossExitsOf.TryGetValue(r, out var shard) ? new[] { (shard.room, shard.x - 1, shard.y - 1) } : new (int, int, int)[0]).ToList();
                     places.Add((r, seen, leads));
                     return placeOf[(room, x, y)] = places.Count - 1;
                 }

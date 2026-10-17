@@ -62,7 +62,7 @@ patched = ['SpriteTables', 'AnimCount', 'SpawnTable', 'gUnk_08351648', 'ObjectPa
 # The abilities' (see abilities.h): code symbols, and the KatAM tables and functions it relocates or hooks;
 codeNames = ['gNidlWorldMapDoors', 'NidlWorldMapUnlockSave', 'NidlWorldMapGetCoorFromRoom', 'NidlWorldMapDrawKirbys', 'NidlWorldMapUnlock0', 'NidlWorldMapUnlock1', 'NidlWorldMapUnlock2', 'NidlWorldMapUnlock3', 'NidlWorldMapUnlock4', 'NidlWorldMapUnlock5', 'NidlWorldMapUnlock6', 'NidlWorldMapUnlock7', 'NidlGetKirbyRoomFlagIndex', 'gNidlRoomFlagIndexOriginal', 'gNidlHubRoom', 'gNidlAbilityTables', 'gNidlAbilityData', 'NidlAbilityPortrait', 'NidlAbilityHudTimer', 'NidlSwallow', 'CreateNidlMiniboss', 'NidlMinibossStart',
              # The bosses (nidl_boss.c);
-             'CreateNidlBoss', 'NidlBossStart', 'NidlBossDefeat',
+             'CreateNidlBoss', 'NidlBossStart', 'NidlBossDefeat', 'gNidlShardExits', 'NidlShardExit',
              # The NiDL title screen (title.c);
              'gNidlTitle', 'CreateNidlTitle',
              # Reduce flashing (calm.c);
@@ -93,6 +93,8 @@ romNames = ['gUnk_0834C2AC', 'gUnk_0834C318', 'gUnk_083509D0', 'gUnk_08350A3C', 
             'sub_0800AFC8',
             # Skip the tutorial (skip.c): the save buffers' clear functions;
             'sbClearFunctions',
+            # Boss rooms' shards (nidl_boss.c): where Kirby goes after the shard cutscene;
+            'sub_0804C614', '_call_via_r1',
             # The bosses: the handlers run as one explodes (by type - 0x43), the HP bar's fill per type;
             'gUnk_08350E58']
 print('namespace KatAMRandomizer {')

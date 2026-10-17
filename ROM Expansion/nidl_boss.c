@@ -86,8 +86,12 @@ void NidlBossStart(struct Object *obj) {
 }
 
 /* NidlBossDefeat(); gUnk_08350E58's entry for type 0x43, run as it explodes (as KatAM's bosses, sub_08087390...): its mirror shard
- * (the behavior's low nibble) in the middle of the screen, which Kirby takes as a boss's (the shard cutscene, then the Dimension
- * Mirror); a Maxim Tomato instead when the shard is owned already (KatAM's bosses fought again leave one, sub_08088A38); */
+ * (the behavior's low nibble) in the middle of the screen, which Kirby takes as a boss's (the shard cutscene, then where
+ * gNidlShardExits says for the room: the boss stage's way on, its room having no door out; KatAM's: Central Circle); a Maxim
+ * Tomato instead when the shard is owned already (KatAM's bosses fought again leave one, sub_08088A38), and the shard again in a
+ * room with no door out (one gNidlShardExits has); */
+static const struct NidlShardExit *NidlShardExitOf(u16 room);
+
 void NidlBossDefeat(struct Object *obj) {
     struct NidlObject *n = (struct NidlObject *)obj;
     struct LevelInfo *level = &gCurLevelInfo[obj->base.unk56];
@@ -96,7 +100,48 @@ void NidlBossDefeat(struct Object *obj) {
 
     if (HasShard(shard)) {
         BonusCreateTomatoAt(obj, x, y);
+        // (and the shard again, under it, in a room with no door out: taking it is still the way on);
+        if (NidlShardExitOf(obj->base.roomId))
+            CreateObjTemplateAndObj(obj->base.unk56, 1, 0x24, x, y + 0x18, 0, 0x1F, 0, 0, OBJ_MIRROR_SHARD, shard, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
         return;
     }
     CreateObjTemplateAndObj(obj->base.unk56, 1, 0x24, x, y, 0, 0x1F, 0, 0, OBJ_MIRROR_SHARD, shard, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 }
+
+/* gNidlShardExits; Where Kirby goes once a boss's shard cutscene ends (KatAM: Central Circle, sub_0804C614's `roomId = 0x321`, which
+ * KatAMExpansion.cs replaces with a call to NidlShardExit()): from a ported boss's room (each part), where its boss stage goes on (the
+ * next room, the next level's first): a boss room has no door out, the shard is the way on (KatAMExpansionRooms.cs' bossExitsOf);
+ * filled in by KatAMExpansion.cs, ended by a room 0; */
+#define NIDL_SHARD_EXITS 24
+struct NidlShardExit {
+    u16 room, exitRoom;
+    u8 x, y;    // the landing cell + 1, as a door's;
+    u16 pad;
+};
+
+const struct NidlShardExit gNidlShardExits[NIDL_SHARD_EXITS] = { { 0 } };
+
+// NidlShardExitOf(); A room's entry in gNidlShardExits, or NULL;
+static const struct NidlShardExit *NidlShardExitOf(u16 room) {
+    const struct NidlShardExit *exit;
+
+    for (exit = gNidlShardExits; exit < gNidlShardExits + NIDL_SHARD_EXITS && exit->room; exit++)
+        if (exit->room == room) return exit;
+    return NULL;
+}
+
+// NidlShardExit(); The room and spot Kirby comes back to after the shard cutscene (sub_0804C614);
+void NidlShardExit(struct Kirby *kirby) {
+    const struct NidlShardExit *exit = NidlShardExitOf(kirby->base.roomId);
+
+    if (exit) {
+        kirby->roomId = exit->exitRoom;
+        kirby->spawnLocation.x = exit->x;
+        kirby->spawnLocation.y = exit->y;
+        return;
+    }
+    kirby->roomId = 0x321;
+    kirby->spawnLocation.x = kirby->unkF2;
+    kirby->spawnLocation.y = kirby->unkF3;
+}
+

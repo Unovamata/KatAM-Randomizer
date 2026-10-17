@@ -213,3 +213,4 @@ gAIKirbyState 0x203ad2c
 gTreasures 0x2038960
 sbClearFunctions 0x82db0dc
 _call_via_r0 0x815abd4
+sub_0804C614 0x804c650
