@@ -5,6 +5,7 @@
 #include "abilities.h"
 
 extern const u8 *const gUnk_08D60EE4[];  // HP bar names per language: 64x8 (0x100 bytes) per object type;
+extern struct Task *gUnk_03000010;       // The HUD's task (its data: +0x0A the HP bar's length, +0x1C the object it shows);
 
 /* HP as KatAM's enemies': 4 for the ones that give an ability (KatAM's Sword Knight, Hot Head, Sparky...), 2 for the others
  * (NiDL's 1 and 2 die to any attack); */
@@ -121,8 +122,21 @@ void NidlFall(struct Object *obj) {
 
 void NidlStart(struct Object *);
 
+/* NidlDestroy(); Every ported object's task destructor: the HUD lets go of the object its HP bar shows only once its flags say it's
+ * gone (0x1000, read every frame, 0x0803533C), and the task's memory can hold another object by then (the bar stayed, empty or
+ * not, after the enemy died); the bar is emptied and the object let go of here, as the HUD does for a defeated one; */
+void NidlDestroy(struct Task *task) {
+    u8 *hud = gUnk_03000010 ? TaskGetStructPtr(gUnk_03000010) : NULL;
+
+    if (hud && *(void **)(hud + 0x1C) == TaskGetStructPtr(task)) {
+        hud[0xA] = 0;
+        *(void **)(hud + 0x1C) = NULL;
+    }
+    ObjectDestroy(task);
+}
+
 void *CreateNidlEnemy(struct ObjectTemplate *template, u8 playerId) {
-    struct Task *task = TaskCreate(ObjectMain, NIDL_OBJECT_SIZE, 0x1000, TASK_USE_EWRAM, ObjectDestroy);
+    struct Task *task = TaskCreate(ObjectMain, NIDL_OBJECT_SIZE, 0x1000, TASK_USE_EWRAM, NidlDestroy);
     struct NidlObject *n = TaskGetStructPtr(task);
     u8 enemy = template->subtype1 >> 4;
 

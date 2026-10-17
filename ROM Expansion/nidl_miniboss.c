@@ -31,7 +31,7 @@ void *CreateNidlMiniboss(struct ObjectTemplate *template, u8 playerId) {
         for (boss = 0; boss < NIDL_MINIBOSS_COUNT - 1; boss++)
             if (sNidlMinibosses[boss].type == template->type && gNidlData.minibosses[boss].animId) break;
     // The Meta-Knights know when one of them goes (MetaKnightsDestroy);
-    task = TaskCreate(ObjectMain, NIDL_OBJECT_SIZE, 0x1000, TASK_USE_EWRAM, boss == NIDL_META_KNIGHTS ? MetaKnightsDestroy : ObjectDestroy);
+    task = TaskCreate(ObjectMain, NIDL_OBJECT_SIZE, 0x1000, TASK_USE_EWRAM, boss == NIDL_META_KNIGHTS ? MetaKnightsDestroy : NidlDestroy);
     n = TaskGetStructPtr(task);
     obj = &n->obj;
 

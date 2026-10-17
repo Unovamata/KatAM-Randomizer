@@ -315,5 +315,5 @@ void BugzzyInit(struct NidlObject *n) {
     NidlSetFrame(n, FRAME_WALK);
     sub_0803E2B0(&obj->base, -20, -18, 20, 22);
     ObjectSetBounds(&obj->base, -22, -18, 22, 24);
-    obj->base.unk4C = obj->base.y = ((obj->base.y + (obj->base.unk3F * 0x100)) & 0xfffff000) - (obj->base.unk3F * 0x100) - 1;
+    NidlOnFloor(obj);
 }

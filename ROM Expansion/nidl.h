@@ -27,6 +27,10 @@
 #define NIDL_MINIBOSS_TYPE_2 OBJ_EMPTY_41
 #define NIDL_MINIBOSS_TYPE_3 OBJ_EMPTY_42
 #define NidlIsMiniboss(obj) ((obj)->type == NIDL_MINIBOSS_TYPE || (obj)->type == NIDL_MINIBOSS_TYPE_2 || (obj)->type == NIDL_MINIBOSS_TYPE_3)
+/* NidlOnFloor(); A mini-boss's spot from its template (NiDL's: the middle of the cell it stands in) on the floor under that cell:
+ * its box's bottom (unk3F) on the cell's bottom. The enemies' snap (to the cell edge under the box's bottom) put the big ones
+ * (Bugzzy, Mr. Tick-Tock, Fire Lion: bottoms past 23 pixels) a cell lower: in the ground, or through a floor a cell thick; */
+#define NidlOnFloor(obj) ((obj)->base.unk4C = (obj)->base.y = (((obj)->base.y & ~0xFFF) + 0x1000) - ((obj)->base.unk3F * 0x100) - 1)
 
 // Enemies (the behavior byte's high nibble);
 enum {
@@ -198,6 +202,7 @@ void FireLionStart(struct Object *);
 void MetaKnightsInit(struct NidlObject *);
 void MetaKnightsStart(struct Object *);
 void MetaKnightsDestroy(struct Task *);
+void NidlDestroy(struct Task *);
 bool32 NidlIsMetaKnight(struct ObjectTemplate *);
 
 #endif
