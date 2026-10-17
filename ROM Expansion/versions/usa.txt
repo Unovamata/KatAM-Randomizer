@@ -132,3 +132,6 @@ UpdateScreenDma 0x8151dc4
 UpdateScreenCpuSet 0x8152178
 sub_0800AFC8 0x800afc8
 gUnk_08350E58 0x8350e58
+gAIKirbyState 0x203ad2c
+gTreasures 0x2038960
+sbClearFunctions 0x82d923c

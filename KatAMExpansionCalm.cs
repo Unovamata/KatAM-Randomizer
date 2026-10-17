@@ -18,6 +18,29 @@ namespace KatAMRandomizer {
             return null;
         });
 
+        /* SkipTutorial(); The "Skip the tutorial" option ("ROM Expansion/skip.c"): the save buffers' world props clear (sbClearFunctions[1],
+         * what a new save runs) becomes NidlSkipClear, given the original and the item and treasure index of the tutorial's big chest
+         * (TutorialChestRoom's, as the randomizer left it: what skipping it would lose). Returns an error, or null; */
+        const int TutorialChestRoom = 0x325;
+        public static string SkipTutorial(ref byte[] rom) => PatchWithCode(ref rom, "Skip the tutorial", (patched, version) => {
+            int table = version.RomSymbols["sbClearFunctions"], skip = CodeAddress + version.CodeSymbols["gNidlSkip"];
+            int clear = CodeAddress + 0x08000000 + version.CodeSymbols["NidlSkipClear"] + 1;
+            if (ReadInt(patched, table + 4) == clear) return null;  // (applied already);
+            if (ReadInt(patched, table + 4) >> 24 != 0x08) return $"The {version.Name} ROM's save code doesn't match.";
+
+            // (the room's object list, through the original tables: the ROM Expansion's copies point to the same lists);
+            int objects = ReadShort(patched, version.RomSymbols["gRoomProps"] + TutorialChestRoom * 0x28 + 16 * 2);
+            int list = ReadInt(patched, version.RomSymbols["gLevelObjLists"] + objects * 4) - 0x08000000;
+            byte item = 0, index = 0;
+            for (int at = ReadInt(patched, list) - 0x08000000; patched[at] != 0 || patched[at + 1] != 0; at += 36)
+                if (patched[at + 12] is 0x80 or 0x81) { item = patched[at + 14]; index = patched[at + 17]; break; }
+            WriteInt(patched, skip, ReadInt(patched, table + 4));
+            patched[skip + 4] = item;
+            patched[skip + 5] = index;
+            WriteInt(patched, table + 4, clear);
+            return null;
+        });
+
         /* PatchWithCode(); Runs `patch` on a copy of the ROM holding the expansion's code, which it puts in when the ROM Expansion
          * didn't (its free space still empty; the ROM padded to 32 MB, as the expansion's). `rom` becomes the copy unless there's an
          * error (returned, or null); `option` names what needs it in errors; */

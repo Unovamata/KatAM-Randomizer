@@ -38,6 +38,7 @@
             CheckboxOptionsSpoilerLog = new CheckBox();
             CheckboxOptionsTitleParade = new CheckBox();
             CheckboxOptionsReduceFlashing = new CheckBox();
+            CheckboxOptionsSkipTutorial = new CheckBox();
             CheckboxMirrorShardsInChests = new CheckBox();
             LabelSeed = new Label();
             GroupRomInfo = new GroupBox();
@@ -326,10 +327,10 @@
             // ButtonLoadSettings
             // 
             ButtonLoadSettings.Font = new Font("Segoe UI", 9F);
-            ButtonLoadSettings.Location = new Point(9, 133);
+            ButtonLoadSettings.Location = new Point(9, 172);
             ButtonLoadSettings.Margin = new Padding(4, 5, 4, 5);
             ButtonLoadSettings.Name = "ButtonLoadSettings";
-            ButtonLoadSettings.Size = new Size(236, 38);
+            ButtonLoadSettings.Size = new Size(116, 38);
             ButtonLoadSettings.TabIndex = 6;
             ButtonLoadSettings.Text = "Load Settings";
             ButtonLoadSettings.UseVisualStyleBackColor = true;
@@ -338,10 +339,10 @@
             // ButtonSaveSettings
             // 
             ButtonSaveSettings.Font = new Font("Segoe UI", 9F);
-            ButtonSaveSettings.Location = new Point(9, 182);
+            ButtonSaveSettings.Location = new Point(129, 172);
             ButtonSaveSettings.Margin = new Padding(4, 5, 4, 5);
             ButtonSaveSettings.Name = "ButtonSaveSettings";
-            ButtonSaveSettings.Size = new Size(236, 38);
+            ButtonSaveSettings.Size = new Size(116, 38);
             ButtonSaveSettings.TabIndex = 7;
             ButtonSaveSettings.Text = "Save Settings";
             ButtonSaveSettings.UseVisualStyleBackColor = true;
@@ -352,6 +353,7 @@
             GroupSettings.Controls.Add(CheckboxOptionsSpoilerLog);
             GroupSettings.Controls.Add(CheckboxOptionsTitleParade);
             GroupSettings.Controls.Add(CheckboxOptionsReduceFlashing);
+            GroupSettings.Controls.Add(CheckboxOptionsSkipTutorial);
             GroupSettings.Controls.Add(ButtonSaveSettings);
             GroupSettings.Controls.Add(ButtonLoadSettings);
             GroupSettings.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
@@ -402,6 +404,19 @@
             CheckboxOptionsReduceFlashing.Text = "Reduce flashing";
             CheckboxOptionsReduceFlashing.UseVisualStyleBackColor = true;
             CheckboxOptionsReduceFlashing.CheckedChanged += CheckboxOptionsReduceFlashing_CheckedChanged;
+            // 
+            // CheckboxOptionsSkipTutorial
+            // 
+            CheckboxOptionsSkipTutorial.AutoSize = true;
+            CheckboxOptionsSkipTutorial.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            CheckboxOptionsSkipTutorial.Location = new Point(9, 126);
+            CheckboxOptionsSkipTutorial.Margin = new Padding(4, 5, 4, 5);
+            CheckboxOptionsSkipTutorial.Name = "CheckboxOptionsSkipTutorial";
+            CheckboxOptionsSkipTutorial.Size = new Size(165, 29);
+            CheckboxOptionsSkipTutorial.TabIndex = 16;
+            CheckboxOptionsSkipTutorial.Text = "Skip the tutorial";
+            CheckboxOptionsSkipTutorial.UseVisualStyleBackColor = true;
+            CheckboxOptionsSkipTutorial.CheckedChanged += CheckboxOptionsSkipTutorial_CheckedChanged;
             // 
             // LabelSeed
             // 
@@ -3255,6 +3270,7 @@
         private CheckBox CheckboxOptionsSpoilerLog;
         private CheckBox CheckboxOptionsTitleParade;
         private CheckBox CheckboxOptionsReduceFlashing;
+        private CheckBox CheckboxOptionsSkipTutorial;
         private CheckBox CheckboxMirrorShardsInChests;
         private Label LabelStability;
         private Label LabelCompatibility;

@@ -209,3 +209,7 @@ gUnk_08350E58 0x833562c
 sub_0809F840 0x809f7b8
 __modsi3 0x815a32c
 __udivsi3 0x815a3fc
+gAIKirbyState 0x203ad2c
+gTreasures 0x2038960
+sbClearFunctions 0x82da1d0
+_call_via_r0 0x815a258

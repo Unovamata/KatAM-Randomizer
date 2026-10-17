@@ -532,6 +532,8 @@ namespace KatAMInternal
         public bool NightmareTitle { get; set; }
         // Reduce flashing: KatAM's white screen flashes eased in like fades (KatAMExpansion.ReduceFlashing);
         public bool ReduceFlashing { get; set; }
+        // Skip the tutorial: a new save starts in Central Circle with the tutorial's big chest's item (KatAMExpansion.SkipTutorial);
+        public bool SkipTutorial { get; set; }
 
         public Settings() {
             Random seedGenerator = new Random();

@@ -178,7 +178,7 @@ namespace KatAMRandomizer
             // ROM Expansion rooms: Central Circle's mirror to them, now that the randomizer is done with its room;
             KatAMExpansion.FinishRooms(Processing.ROMData);
 
-            // Mirror shards in chests, then Reduce flashing, last: they put the expansion's code in when no NiDL ROM did;
+            // Mirror shards in chests, then Reduce flashing and Skip the tutorial, last: they put the expansion's code in when no NiDL ROM did;
             if (settings.MirrorShardsInChests && settings.amountOfMirrorShardsToAdd > 0) {
                 byte[] chests = Processing.ROMData;
                 string chestsError = KatAMExpansion.AddShardChests(ref chests);
@@ -191,6 +191,13 @@ namespace KatAMRandomizer
                 string flashingError = KatAMExpansion.ReduceFlashing(ref calmed);
                 if (flashingError == null) Processing.ROMData = calmed;
                 else MessageBox.Show(flashingError, "Reduce flashing", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+
+            if (settings.SkipTutorial) {
+                byte[] skipped = Processing.ROMData;
+                string skipError = KatAMExpansion.SkipTutorial(ref skipped);
+                if (skipError == null) Processing.ROMData = skipped;
+                else MessageBox.Show(skipError, "Skip the tutorial", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
 
             File.WriteAllBytes(destinationPath, Processing.ROMData);
@@ -217,6 +224,11 @@ namespace KatAMRandomizer
         // CheckboxOptionsReduceFlashing_CheckedChanged(); KatAM's white screen flashes eased in (KatAMExpansion.ReduceFlashing);
         private void CheckboxOptionsReduceFlashing_CheckedChanged(object sender, EventArgs e) {
             settings.ReduceFlashing = CheckboxOptionsReduceFlashing.Checked;
+        }
+
+        // CheckboxOptionsSkipTutorial_CheckedChanged(); A new save starts past the tutorial, with its big chest's item (KatAMExpansion.SkipTutorial);
+        private void CheckboxOptionsSkipTutorial_CheckedChanged(object sender, EventArgs e) {
+            settings.SkipTutorial = CheckboxOptionsSkipTutorial.Checked;
         }
 
         /* Settings files; The state of every option (radio buttons, checkboxes, track bars and numeric boxes, by name) and the seed.
