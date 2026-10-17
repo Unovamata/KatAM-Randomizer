@@ -277,7 +277,7 @@ namespace KatAMRandomizer {
         static readonly int[] ModelRanks = { 0, 0, 0, 0, 4, 0, 0, 0 };
         /* SwitchDesigns; Switch rooms picked by eye, kept as they are whatever BuildSwitchRooms() would draw now: per level, the left
          * half's metatiles, row by row (~: flipped left to right, ^: upside down, @: both), the right half its mirror image; the same
-         * metatiles in every region (NiDL's tilesets are); Butter Building's after its sixth stage's eighth room, its floor after its first stage's
+         * metatiles in every region (NiDL's tilesets are); the Fountain of Dreams' as approved (FountainLook's castle); Butter Building's after its sixth stage's eighth room, its floor after its first stage's
          * third; Ice Cream Island's after its third stage's third room (its grass ends curling under as its
          * stages', the ledges and pedestal one floating platform with rounded ends); Vegetable Valley's built from its raised hedges (its stages have no
          * ceilings: their rounded tops upside down, their sides and the joins at their feet turned round), its first stage's
@@ -285,6 +285,20 @@ namespace KatAMRandomizer {
          * white tusks framing the big switch); Yogurt Yard's after its sixth stage's second room, inside its rock the fills (and moss) joining best
          * (least colour across their edges), Orange Ocean's after its fifth stage's first; */
         static readonly Dictionary<int, string[]> SwitchDesigns = new Dictionary<int, string[]> {
+            [7] = new[] {
+                "001 090 00B 00A 00B 00A 00B 00A",
+                "001 008 000 000 000 000 000 000",
+                "001 008 000 000 000 000 000 000",
+                "001 008 000 000 000 000 000 000",
+                "001 008 000 000 000 000 000 000",
+                "00B 00F 000 000 000 000 000 000",
+                "000 000 000 000 000 000 000 000",
+                "000 000 000 000 000 000 000 000",
+                "000 000 000 000 000 006 003 002",
+                "003 002 003 002 003 08F 001 001",
+                "001 001 001 001 001 001 001 001",
+                "001 001 001 001 001 001 001 001",
+            },
             [0] = new[] {
                 "087 @0A6 ^091 ^091 ^091 ^091 ^091 ^091",
                 "087 09F 000 000 000 000 000 000",
