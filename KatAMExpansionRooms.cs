@@ -452,6 +452,9 @@ namespace KatAMRandomizer {
             // (Grape Garden's: its first stage's castle room);
             [3] = (3, 1, 0),
         };
+        // SwitchLook; The room (stage, index) whose tileset a level's switch room is drawn in, picked by eye: Rainbow Resort's last
+        // stage's Game Boy look;
+        static readonly Dictionary<int, (int stage, int index)> SwitchLook = new Dictionary<int, (int, int)> { [6] = (5, 0) };
         // FountainLook; The room (level, stage, index) whose tiles and colours the Fountain of Dreams' switch room takes, picked by
         // eye: Grape Garden's castle in its stage 6's dusk colours;
         static readonly (int level, int stage, int index) FountainLook = (3, 5, 5);
@@ -498,11 +501,14 @@ namespace KatAMRandomizer {
                 NightmareRoom fountain = rooms.Where(r => r.Level == 7).OrderBy(r => r.Stage).ThenBy(r => r.Index).First();
                 var levelRooms = level == 7 ? rooms.Where(r => Tileset(r) == Tileset(pastel)).ToList()
                                             : rooms.Where(r => r.Level == level).ToList();
-                NightmareRoom first = level == 7 ? pastel : levelRooms.OrderBy(r => r.Stage).ThenBy(r => r.Index).First();
+                // (or SwitchLook's room's, picked by eye: Rainbow Resort's, its last stage's Game Boy look);
+                bool looked = SwitchLook.TryGetValue(level, out var lookRoom) && Environment.GetEnvironmentVariable($"SWITCH_ROOM_NO_LOOK_{level}") == null;
+                NightmareRoom first = level == 7 ? pastel : looked ? rooms.First(r => r.Level == level && r.Stage == lookRoom.stage && r.Index == lookRoom.index)
+                                                                 : levelRooms.OrderBy(r => r.Stage).ThenBy(r => r.Index).First();
                 var tilesets = levelRooms.GroupBy(Tileset).ToList();
                 var chosen = tilesets.First(g => g.Key == Tileset(first));
                 int Rooms(IEnumerable<NightmareRoom> group) => group.Select(r => r.Record).Distinct().Count();
-                if (Solidness(chosen) < 0.27 && level != 7)
+                if (Solidness(chosen) < 0.27 && level != 7 && !looked)
                     chosen = tilesets.Where(g => Rooms(g) >= 2).DefaultIfEmpty(chosen).OrderByDescending(g => Solidness(g) * Math.Sqrt(Rooms(g))).First();
                 NightmareRoom source = level == 7 ? pastel : chosen.OrderBy(r => r.Stage).ThenBy(r => r.Index).First();
                 byte[] sourceCells = DecompressLZ77(nightmare, ReadInt(nightmare, source.Record + 8) - 0x08000000);
