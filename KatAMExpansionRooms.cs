@@ -1523,7 +1523,7 @@
         public enum DoorKind { Nidl, Goal, Boss, Branch, BranchBack, Loop, Link, KatAMLink, SwitchEntry, SwitchFloor, Hub, Entry, Edge, Split }
 
         /* Transport; A warp star or cannon of a ported room (NiDL's gimmicks 4 and 6, their exits kind 30), as KatAM's own (objects 0x84,
-         * 0x8A: BuildObjects()): where it stands (pixels: on a floor's line, StandOn(), so its cell is (Y - 1) / 16), and where it takes
+         * 0x8A: BuildObjects()): where it stands (pixels, TransportSpot(): a cannon on a cell's top, a warp star in a cell's middle, so its cell is (Y - 1) / 16), and where it takes
          * Kirby (the room, the landing cell + 1); */
         public sealed record Transport(int X, int Y, bool Cannon, int Room, int DestX, int DestY);
         static Dictionary<NightmareRoom, List<Transport>> transportsOf = new Dictionary<NightmareRoom, List<Transport>>();
@@ -1537,15 +1537,22 @@
         static List<EditedRoom> editedRooms = new List<EditedRoom>();
         static int finishCursor;
 
-        /* StandOn(); The floor line under a spot (NiDL's room pixels), when there's a floor up to 3 cells below it, else the spot's own y: a
-         * warp star's or cannon's place, as KatAM's own are (on the floor; NiDL's, in a cell's middle, floated 8 pixels up); */
-        static int StandOn(byte[] nightmare, NightmareRoom r, int x, int y) {
+        /* TransportSpot(); Where a warp star or cannon stands (NiDL's room pixels): a warp star where NiDL's does (in a cell's middle: it
+         * floats, bobbing, as NiDL's); a cannon on its fuse, as KatAM's own (rooms 0x7E, 0x143, 0x1F6, 0x33B: x the right edge of the
+         * fuse's cell its rope enters, y that cell's top), its fuse the nearest of NiDL's fuse cells (0x38-0x3D) under NiDL's spot (in a
+         * cell's middle, 8 pixels up), else on the floor's line under it (up to 3 cells down); */
+        static (int x, int y) TransportSpot(byte[] nightmare, NightmareRoom r, int x, int y, bool cannon) {
+            if (!cannon) return (x, y);
             byte[] cells = RoomCells(nightmare, r.Record);
             int width = ReadShort(nightmare, r.Record + 0x14), height = ReadShort(nightmare, r.Record + 0x16);
-            bool Floor(int cy) => cells[(cy * width + x / 16) * 4 + 3] is byte kind && (RoomCollision[kind] is >= 0x01 and <= 0x1B || kind >> 4 == 2);
+            int Kind(int cx, int cy) => cx >= 0 && cy >= 0 && cx < width && cy < height ? cells[(cy * width + cx) * 4 + 3] : 0;
+            for (int dy = 0; dy <= 3; dy++)
+                foreach (int dx in new[] { 0, -1, 1 })
+                    if (Kind(x / 16 + dx, y / 16 + dy) is >= 0x38 and <= 0x3D) return ((x / 16 + dx + 1) * 16, (y / 16 + dy) * 16);
+            bool Floor(int cy) => Kind(x / 16, cy) is int kind && (RoomCollision[kind] is >= 0x01 and <= 0x1B || kind >> 4 == 2);
             for (int cy = y / 16; cy + 1 < height && cy <= y / 16 + 3; cy++)
-                if (Floor(cy + 1)) return (cy + 1) * 16;
-            return y;
+                if (Floor(cy + 1)) return (x, (cy + 1) * 16);
+            return (x, y);
         }
 
         /* PlanDoors(); Every ported room's doors, as KatAM mirrors:
@@ -1931,8 +1938,10 @@
                 List<(int x, int y, bool cannon)> transports = new List<(int, int, bool)>();
                 for (int at = objects == 0 ? r.Record : objects - 0x08000000; objects != 0 && at + 8 <= r.Record; at += 8) {
                     // Warp stars (gimmick 4) and cannons (6);
-                    if (nightmare[at] == 5 && (nightmare[at + 1] == 4 || nightmare[at + 1] == 6))
-                        transports.Add((ReadShort(nightmare, at + 4), StandOn(nightmare, r, ReadShort(nightmare, at + 4), ReadShort(nightmare, at + 6)), nightmare[at + 1] == 6));
+                    if (nightmare[at] == 5 && (nightmare[at + 1] == 4 || nightmare[at + 1] == 6)) {
+                        var (sx, sy) = TransportSpot(nightmare, r, ReadShort(nightmare, at + 4), ReadShort(nightmare, at + 6), nightmare[at + 1] == 6);
+                        transports.Add((sx, sy, nightmare[at + 1] == 6));
+                    }
                 }
 
                 // NiDL's exits; a door with two exits (one only after a big switch) keeps its plain one, listed later;
@@ -3159,9 +3168,11 @@
                 int category = nightmare[at] - 1, index = nightmare[at + 1], variant = nightmare[at + 2];
                 int x = ReadShort(nightmare, at + 4) - r.X * 16, y = ReadShort(nightmare, at + 6) - r.Y * 16;
                 if (x < 0 || y < 0 || x >= r.Width * 16 || y >= r.Height * 16) continue;
-                // (an enemy or item inside a wall or on the top row, which KatAM's camera never shows, NiDL's on its ceilings (Orange
-                // Ocean 2-5's Sparkys, out of reach and unseen): down to the first open cell, else left out);
-                if (category is 0 or 3 && (y < 16 || Solid(x / 16, y / 16))) {
+                // (an enemy or item inside a wall, or on the top row hanging from nothing, NiDL's on its ceilings (Orange Ocean 2-5's
+                // Sparkys, out of reach): down to the first open cell, else left out; one on the top row resting on a wall or blocks
+                // stays, trapped as NiDL has it until the blocks go (room 0xFA's above its bomb chains);
+                bool resting = y < 16 && !Solid(x / 16, y / 16) && y / 16 + 1 < r.Height && Solid(x / 16, y / 16 + 1);
+                if (category is 0 or 3 && !resting && (y < 16 || Solid(x / 16, y / 16))) {
                     int cy = Math.Max(y / 16, 1);
                     while (cy < r.Height && cy <= y / 16 + 4 && Solid(x / 16, cy)) cy++;
                     if (cy >= r.Height || cy > y / 16 + 4) continue;
