@@ -7,14 +7,14 @@ namespace KatAMMapTracker {
      * NiDL level, next to KatAM's map (original or randomized: the randomizer doesn't shuffle NiDL's own doors):
      * • A level (LayoutLevel()): from its way in (its first stage's first room) outwards, each room where the door to it is in the
      *   room before it, as the game's area maps draw rooms where their exits lead (a door on a room's right edge: the next room to
-     *   its right; one in its ceiling: above it), one grid step away (MapVanilla's NeighborStep: small rooms 2 tiles, 6 apart), two
-     *   past a room long that way; in the free cell that best keeps the directions of every door it shares with the rooms placed;
+     *   its right; one in its ceiling: above it), as far as KatAM's linked rooms sit on its own maps (8 tiles: two steps of a 4
+     *   tile grid), three steps past a room long that way; in the free cell that best keeps the directions of every door it shares with the rooms placed;
      *   so a level grows the branches, loops and long corridors its doors make, not rows.
      * • Each level beside the KatAM rooms it links to, in the nearest spot clear of KatAM's areas and the other levels; the hub
      *   beside Central Circle. Each level is a cluster of its own (11 + level, as its area), the hub too (19); */
     public static class MapExpansion {
         const int Grid = MapGraphics.TileSize;
-        const int Step = 6 * Grid, LevelMargin = 128, LongRoom = 60;
+        const int Step = 4 * Grid, LevelMargin = 128, LongRoom = 60;
         public const int HubCluster = 19;
         public static int LevelCluster(int level) => 11 + level;
         public static bool IsLevelCluster(int cluster) => cluster >= 11 && cluster < 19;
@@ -97,8 +97,8 @@ namespace KatAMMapTracker {
 
         /* LayoutLevel(); A level's rooms on a grid of Step cells (centers relative to the level's top left): breadth first from its way
          * in (the lowest stage's first room), in NiDL's order; each room in the free cell around the room that first leads to it (its
-         * corridor's) that best keeps the direction its door to it leaves it (Toward()) and the distance (a cell more per LongRoom
-         * tiles that room is long that way), straight or 45° (as MapLayout's: the in-game lines' angles), a cell away from rooms it
+         * corridor's) that best keeps the direction its door to it leaves it (Toward()) and the distance (two cells, a third past a
+         * room LongRoom tiles long that way), straight or 45° (as MapLayout's: the in-game lines' angles), a cell away from rooms it
          * isn't linked to; the other rooms it's linked to (loops) pull it only a little, their lines going around as KatAM's do; */
         static Dictionary<int, (double x, double y)> LayoutLevel(List<RoomInfo> rooms, Dictionary<int, List<int>> neighbors, Func<RoomInfo, double> sizeOf) {
             Dictionary<int, RoomInfo> byId = rooms.ToDictionary(r => r.Id);
@@ -122,7 +122,7 @@ namespace KatAMMapTracker {
                 int k = (int)Math.Round(Math.Atan2(vy, vx) / (Math.PI / 4));
                 return Directions[((k % 8) + 8) % 8];
             }
-            int Reach(RoomInfo from, (int x, int y) d) => 1 + Math.Min(2, (Math.Abs(d.x) * from.Width + Math.Abs(d.y) * from.Height) / LongRoom);
+            int Reach(RoomInfo from, (int x, int y) d) => 2 + Math.Min(1, (Math.Abs(d.x) * from.Width + Math.Abs(d.y) * from.Height) / LongRoom);
 
             List<RoomInfo> order = new List<RoomInfo>();
             Dictionary<int, RoomInfo> parent = new Dictionary<int, RoomInfo>();
@@ -147,7 +147,7 @@ namespace KatAMMapTracker {
                 RoomInfo from = parent.TryGetValue(room.Id, out RoomInfo first) ? first : null;
                 IEnumerable<(int x, int y)> anchors = from != null ? new[] { cells[from.Id] } : placed.Count > 0 ? placed.Select(p => cells[p.Id]) : cells.Values;
                 HashSet<(int x, int y)> candidates = new HashSet<(int x, int y)>();
-                for (int ring = 1; ring <= 6 || candidates.Count == 0; ring++)
+                for (int ring = 1; ring <= 8 || candidates.Count == 0; ring++)
                     foreach ((int ax, int ay) in anchors)
                         foreach ((int dx, int dy) in Directions)
                             if (!used.Contains((ax + dx * ring, ay + dy * ring))) candidates.Add((ax + dx * ring, ay + dy * ring));
