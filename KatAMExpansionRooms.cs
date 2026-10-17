@@ -87,6 +87,8 @@
             [3] = (5, 200, 300, -64, -40),    // Heavy Mole: on the right of its screen (NiDL's (136, 264) its middle: it scrolls with the mole there);
             [4] = (2, -1, -1, 0, 0),        // Mr. Shine & Mr. Bright: the template's (208, 104), on the floor of their one-screen room;
             [5] = (0, 206, 256, 0, 64),     // Whispy Woods: its face (0x080B2A00), the screen down to the floor under it;
+            [7] = (7, 160, 830, 0, 200),    // Nightmare's Power Orb: over the floor at the bottom of the fall (NiDL's (232, 24) is its top, in space);
+            [8] = (8, 150, 280, 0, 200),    // Nightmare: over the floor at the room's bottom (NiDL's (215, 72), in the sky);
             [6] = (1, -1, -1, 0, 0),        // Kracko: the template's (its tower's bottom, where Kirby comes in), that screen;
         };
         // NiDL items (category 3): 1-Up, Maxim Tomato, Invincibility Candy, Energy Drink -> KatAM's 1UP, Maximum Tomato, Lollipop, Pep Brew;

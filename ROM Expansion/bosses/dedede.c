@@ -1,9 +1,10 @@
 /* King Dedede; ported from Kirby: Nightmare in Dream Land (USA), boss object type 0x3B (spawn 0x0809FC44), as NiDL boss
  * NIDL_KING_DEDEDE, Rainbow Resort's (room 0x313 here, the ring on the Fountain of Dreams, from NiDL's spot (232, 296)). His frames are
  * streamed frames with two palettes each (0x087538E0; the same two in every one), so his object draws the first palette's pieces and
- * a sprite follows it with the second's (DededePart), as Paint Roller's. Its frames (KatAMExpansion.cs): 0-43 NiDL's 0-43 (the first
- * palette's pieces), 44-87 the same (the second's): 4-7 standing, 13-16 walking, 17 the hop of his dive, 18-19 diving on his belly,
- * 24-27 inhaling, 28 gulping, 39 raising the hammer, 36, 35 swinging it, 34 the slam, 41 crouching, 42 jumping, 43 falling.
+ * a sprite follows it with the second's (DededePart), as Paint Roller's. Only the frames he uses are kept (sFrames: type 0x44's 256
+ * frames are shared), by NiDL's numbers: 4-7 standing, 13-16 walking, 17 the hop of his dive, 18-19 diving on his belly, 24-27
+ * inhaling, 28 gulping, 39 raising the hammer, 36, 35 swinging it, 34 the slam, 41 crouching, 42 jumping, 43 falling; its frames
+ * (KatAMExpansion.cs) are those, the first palette's pieces, then the same, the second's.
  * What he does (NiDL's moves, by its pictures, timed off NiDL's fight): walks at Kirby, stands a while between moves, then dives at
  * him on his belly, or jumps high and comes down at him (stars burst out where he lands, which Kirby inhales and spits at him: KatAM's
  * bosses take only the stronger attacks), or inhales (Kirby is drawn in; NiDL's swallows him and spits him out, here touching him
@@ -14,7 +15,7 @@
 #include "task.h"
 #include "constants/songs.h"
 
-#define FRAMES 44               // The second palette's pieces follow the first's;
+#define FRAMES 23               // The second palette's pieces follow the first's;
 #define PART_TILES 64
 #define WALK_SPEED 0x100
 #define DIVE_SPEED 0x300
@@ -43,6 +44,12 @@ struct KingDedede {
     bool8 airborne;
 };
 
+// His frames by NiDL's numbers (KatAMExpansion.KingDedede's list);
+static const u8 sFrames[44] = {
+    [4] = 0, [5] = 1, [6] = 2, [7] = 3, [13] = 4, [14] = 5, [15] = 6, [16] = 7, [17] = 8, [18] = 9, [19] = 10, [24] = 11, [25] = 12,
+    [26] = 13, [27] = 14, [28] = 15, [34] = 16, [35] = 17, [36] = 18, [39] = 19, [41] = 20, [42] = 21, [43] = 22,
+};
+
 typedef char sKingDededeFits[sizeof(struct KingDedede) <= NIDL_OBJECT_SIZE ? 1 : -1];
 
 // DededePart(); The second palette's pieces of his frame, following him (as KatAM's Kracko's eye: sub_080DD9B4);
@@ -51,7 +58,7 @@ static void DededePartMain(void) {
     struct EffectObject *part = TaskGetStructPtr(gCurTask);
     struct KingDedede *d = part->parent;
     struct Object *obj = &d->n.obj;
-    u8 frame = d->frame + FRAMES;
+    u8 frame = sFrames[d->frame] + FRAMES;
 
     if (part->flags & 0x1000) {
         TaskDestroy(gCurTask);
@@ -288,7 +295,7 @@ static void KingDededeMain(struct Object *obj) {
     d->anim++;
     if (!d->airborne) NidlFall(obj);
     Update(d);
-    NidlSetFrame(&d->n, d->frame);
+    NidlSetFrame(&d->n, sFrames[d->frame]);
 }
 
 // KingDededeStart(); The fight starts;

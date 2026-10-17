@@ -117,6 +117,8 @@ namespace KatAMRandomizer {
             PaintRoller(),
             HeavyMole(),
             KingDedede(),
+            PowerOrb(),
+            Nightmare(),
         };
         static List<Miniboss> AllBosses => MinibossDefinitions.Concat(BossDefinitions).ToList();
         static IEnumerable<byte> BossTypes => MinibossIDs.Concat(BossIDs);
@@ -342,19 +344,48 @@ namespace KatAMRandomizer {
         }
 
         /* King Dedede; NiDL boss 0 (type 0x3B, Rainbow Resort's; mini-boss descriptor 30 holds only his effects). His frames are streamed
-         * frames (0x087538E0), with the same two palettes in every one, cut by palette as Paint Roller's: 0-43 the first palette's
-         * pieces, 44-87 the second's (bosses/dedede.c draws them as two sprites). Type 0x44. Hurt: standing (4), its first palette's
-         * pieces; */
+         * frames (0x087538E0), with the same two palettes in every one, cut by palette as Paint Roller's: the ones he uses (used,
+         * bosses/dedede.c's sFrames), the first palette's pieces, then the same, the second's (drawn as two sprites). Type 0x44. Hurt:
+         * standing (4), its first palette's pieces; */
         static Miniboss KingDedede() {
+            int[] used = { 4, 5, 6, 7, 13, 14, 15, 16, 17, 18, 19, 24, 25, 26, 27, 28, 34, 35, 36, 39, 41, 42, 43 };
             List<Part[]> frames = new List<Part[]>();
 
             for (int palette = 0; palette < 2; palette++)
-                frames.AddRange(Enumerable.Range(0, 44).Select(f => new[] { new Part(f, OnlyPalette: palette) }));
+                frames.AddRange(used.Select(f => new[] { new Part(f, OnlyPalette: palette) }));
 
             return new Miniboss(6, "King Dedede", 30, 0x7538E0, frames, new[] { new Part(4, OnlyPalette: 0) },
                 new[] {
                     (0x46, 0), (0x46, 1), (0x46, 2), (0x46, 3), (-1, -1),                          // "King" (King Golem), space;
                     (0x32, 0), (0x02, 5), (0x00, 2), (0x02, 5), (0x00, 2), (0x02, 5),              // "D" (Droppy), "e" (Blipper), "d" (Waddle Dee);
+                },
+                new byte[0], Type: BossID2);
+        }
+
+        /* Nightmare's Power Orb; NiDL boss 7 (type 0x42, the Fountain of Dreams' first; mini-boss descriptor 37): 0x087544B4's 0-7, spinning
+         * (plain frames). Type 0x44. Hurt: its 0; */
+        static Miniboss PowerOrb() => new Miniboss(7, "Power Orb", 37, 0x7544B4, Enumerable.Range(0, 8).Select(f => new[] { new Part(f) }).ToList(),
+            new[] { new Part(0) },
+            new[] {
+                (0x16, 0), (0x1E, 1), (0x1C, 1), (0x02, 5), (0x01, 1), (-1, -1),               // "P" (Pengy), "o" (Noddy), "w" (Twister), "e" (Blipper), "r" (Bronto Burt), space;
+                (0x1B, 2), (0x01, 1), (0x28, 3),                                                // "O" (UFO), "r", "b" (Bomber);
+            },
+            new byte[0], Type: BossID2);
+
+        /* Nightmare; NiDL boss 8 (type 0x43, the Fountain of Dreams' last; mini-boss descriptor 38). His frames are streamed frames with
+         * three palettes (0x0875456C's 8-15, cut by palette: 0-7 the first's pieces, 8-15 the second's, 16-23 the third's; bosses/
+         * nightmare.c draws them as three sprites), then his beams (61-63, their own palette). Type 0x44. Hurt: his collar and arms (8); */
+        static Miniboss Nightmare() {
+            List<Part[]> frames = new List<Part[]>();
+
+            for (int palette = 0; palette < 3; palette++)
+                frames.AddRange(Enumerable.Range(8, 8).Select(f => new[] { new Part(f, OnlyPalette: palette) }));
+            frames.AddRange(Enumerable.Range(61, 3).Select(f => new[] { new Part(f) }));
+
+            return new Miniboss(8, "Nightmare", 38, 0x75456C, frames, new[] { new Part(8, OnlyPalette: 0) },
+                new[] {
+                    (0x1E, 0), (0x26, 4), (0x29, 8), (0x29, 9), (0x29, 10),                        // "N" (Noddy), "i" (Cookin), "ght" (Heavy Knight);
+                    (0x28, 2), (0x2D, 1), (0x01, 1), (0x02, 5),                                    // "m" (Bomber), "a" (Batty), "r" (Bronto Burt), "e" (Blipper);
                 },
                 new byte[0], Type: BossID2);
         }
