@@ -420,9 +420,10 @@ namespace KatAMRandomizer {
                 "12 3 *14F/*146/*146/*0F7/*0F8/*300",
             },
             // (Rainbow Resort's: the Game Boy forest of its last stage's second room behind it (its columns 6-21: canopy and trunks),
-            // its left tree left out, its tall grass standing on the floor, the trunks down to it);
+            // a pale trunk each side, the left one the right one's mirror image, thin dark trunks at x6 and x10,
+            // two rows of grass, tall and leafy, down to the floor);
             [6] = new[] {
-                "0 1 038 038 05B 05C 038 05C 038 061 038 05E 05A 038 05D 05A 060 038/05A 038 05E 05A 038 038 05D 060 038 05B 038 061 05E 05E 05E 05F/03C 03E 042 038 03C 042 05E 05E 05E 05A 05B 05C 053 03C 042 038/04E 04E 04E 03E 04E 04E 042 03C 042 053 05E 03C 03F 041 04E 042/03F 041 04E 04E 04E 041 04E 03F 041 04E 03E 052 047 048 052 04E/01E 01E 040 01E 01E 018 040 01E 017 041 04F 01E 047 048 01E 041/01E 01E 01E 01E 01E 01E 01E 01E 01E 01E 04D 01E 047 048 01E 01E/054 054 054 054 054 054 054 054 054 054 055 054 047 048 054 054",
+                "0 1 038 038 ~05A ~05D 038 05C 038 061 038 05E 05A 038 05D 05A 060 038/05A 038 ~05E ~05E 038 038 05D 060 038 05B 038 061 05E 05E 05E 05F/03C 03E ~03C ~053 03C 042 05E 05E 05E 05A 05B 05C 053 03C 042 038/04E 03C 03F 041 04E 04E 042 03C 042 053 05E 03C 03F 041 04E 042/03F 052 ~048 ~047 ~03F 052 04E 03F 041 04E 03E 052 047 048 052 04E/~041 01E ~048 ~047 01E 018 ~04F 01E 017 041 04F 01E 047 048 01E 041/~054 ~054 ~048 ~047 054 054 ~055 054 054 054 055 054 047 048 054 054/~059 ~059 ~048 ~047 059 059 04C 059 059 059 04C 059 047 048 059 059",
             },
             // (Grape Garden's: its first stage's castle keep behind the pedestal, from its spire to its walls, its clouds on the side
             // floors, ForeignDecorations; the clouds first, their colours kept, the keep's least used colours sharing the nearest row);
