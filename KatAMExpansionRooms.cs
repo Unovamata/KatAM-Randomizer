@@ -279,7 +279,8 @@ namespace KatAMRandomizer {
         static readonly int[] ModelRanks = { 0, 0, 0, 0, 4, 0, 0, 0 };
         /* SwitchDesigns; Switch rooms picked by eye, kept as they are whatever BuildSwitchRooms() would draw now: per level, the left
          * half's metatiles, row by row (~: flipped left to right, ^: upside down, @: both), the right half its mirror image; the same
-         * metatiles in every region (NiDL's tilesets are); the Fountain of Dreams' in FountainLook's castle, the castle's circle pillars as its walls'
+         * metatiles in every region (NiDL's tilesets are); Grape Garden's after its second stage's fifth room, no ledges (NoLedges); the Fountain of
+         * Dreams' in FountainLook's castle, the castle's circle pillars as its walls'
          * inner faces; Butter Building's after its sixth stage's eighth room, its floor after its first stage's
          * third; Ice Cream Island's after its third stage's third room (its grass ends curling under as its
          * stages', the ledges and pedestal one floating platform with rounded ends); Vegetable Valley's built from its raised hedges (its stages have no
@@ -344,6 +345,20 @@ namespace KatAMRandomizer {
                 "~01B ~01C ~01B ~01C ~01B ~01C ~0CE ~0CF",
                 "~0CE ~0CF ~0CE ~0CF ~0CE ~0CF ~0CE ~0CF",
             },
+            [3] = new[] {
+                "001 090 00B 00A 00B 00A 00B 00A",
+                "001 013 000 000 000 000 000 000",
+                "001 016 000 000 000 000 000 000",
+                "090 00F 000 000 000 000 000 000",
+                "013 000 000 000 000 000 000 000",
+                "016 000 000 000 000 000 000 000",
+                "012 000 000 000 000 000 078 01E",
+                "003 002 003 004 000 000 000 000",
+                "001 001 001 008 000 000 000 000",
+                "001 001 001 003 002 003 002 003",
+                "001 001 001 001 001 001 001 001",
+                "001 001 001 001 001 001 001 001",
+            },
             [4] = new[] {
                 "16E 002 01E 059 020 021 022 059",
                 "17A 0BB 000 000 000 000 000 000",
@@ -388,6 +403,13 @@ namespace KatAMRandomizer {
                 "3 2 *14C/*14B/*0EC/*14B/*14C",
                 "12 3 *14F/*146/*146/*0F7/*0F8/*300",
             },
+            // (Grape Garden's: its first stage's castle keep behind the pedestal, from its spire to its walls, its clouds on the side
+            // floors, ForeignDecorations; the clouds first, their colours kept, the keep's least used colours sharing the nearest row);
+            [3] = new[] {
+                "1 6 *007 *008 *009",
+                "12 6 *003 *004 *005",
+                "3 1 000 000 000 000 *076 *077 000 000 000 000/000 000 000 *075 *08E *08F *078 000 000 000/000 000 *074 *08A *08B *08C *08D *079 000 000/000 *073 *084 *085 *086 *087 *088 *089 *07A 000/*072 *07C *07D *07E *07F *080 *081 *082 *083 *07B/*042 *043 *044 *045 *046 *047 *048 *049 *04A *071/*037 *03C *03F *03F *051 *051 *03F *03F *04C *035/*033 *03D *04B *03B *052 *052 *03B *03B *04D *038",
+            },
             // (Butter Building's: its first stage's skyline as it is there, its columns 14-25, 2 cells right of the right wall's face
             // (its tall tower going on behind the wall), the walkways across its towers left out (their walls behind instead), the
             // small tower's piece left of the pale pillar left out);
@@ -417,13 +439,18 @@ namespace KatAMRandomizer {
         };
         // SwitchExtraGround; Cells of ground a level's switch room has besides its layout's (solid, drawn by its design);
         static readonly Dictionary<int, (int x, int y)[]> SwitchExtraGround = new Dictionary<int, (int, int)[]>();
+        // NoLedges; The levels whose switch rooms (layout B) have no ledges beside the pedestal;
+        static readonly HashSet<int> NoLedges = new HashSet<int> { 3 };
         // UnmirroredFill; The levels whose switch rooms' ground inside isn't mirrored (see BuildSwitchRooms());
         static readonly HashSet<int> UnmirroredFill = new HashSet<int> { 1 };
         /* ForeignDecorations; Levels whose switch rooms take decorations (SwitchDecorations' * metatiles) from another level's last
-         * room: the Fountain of Dreams' from King Dedede's arena (Rainbow Resort's last), its light streaks; their colour rows go in
+         * room: the Fountain of Dreams' from King Dedede's arena (Rainbow Resort's last), its light streaks, Grape Garden's from its
+         * castle room; their colour rows go in
          * rows the room's own metatiles don't use (8 on are the arena background's); */
         static readonly Dictionary<int, (int level, int stage, int index)> ForeignDecorations = new Dictionary<int, (int, int, int)> {
             [7] = (6, -1, -1),
+            // (Grape Garden's: its first stage's castle room);
+            [3] = (3, 1, 0),
         };
         // FountainLook; The room (level, stage, index) whose tiles and colours the Fountain of Dreams' switch room takes, picked by
         // eye: Grape Garden's castle in its stage 6's dusk colours;
@@ -603,7 +630,8 @@ namespace KatAMRandomizer {
                     ? (y <= 3 && (x <= 1 || x >= SwitchWidth - 2)) || (y >= 4 && (x == 0 || x == SwitchWidth - 1)) || (y >= 7 && (x <= 3 || x >= SwitchWidth - 4))
                     : y <= 5 && (x <= 1 || x >= SwitchWidth - 2));
                 bool Pedestal(int x, int y) => b ? y == 6 && x >= 6 && x <= 9 : y == 8 && x >= 5 && x <= 10;
-                bool Ledge(int x, int y) => b && y == 6 && (x == 4 || x == 5 || x == 10 || x == 11);
+                // (none in NoLedges' rooms: Grape Garden's, its castle shown whole behind);
+                bool Ledge(int x, int y) => b && y == 6 && (x == 4 || x == 5 || x == 10 || x == 11) && !NoLedges.Contains(level) && Environment.GetEnvironmentVariable($"SWITCH_ROOM_NO_LEDGES_{level}") == null;
                 // (past the room's edges solid, as the level's);
                 int TargetClass(int x, int y) => x < 0 || y < 0 || x >= SwitchWidth || y >= SwitchHeight ? Earth : Ledge(x, y) ? OneWay : Solid(x, y) ? Earth : Air;
                 for (int y = 0; y < SwitchHeight; y++)
