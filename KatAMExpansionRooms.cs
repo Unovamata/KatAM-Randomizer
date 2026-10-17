@@ -257,7 +257,7 @@ namespace KatAMRandomizer {
         }
 
         /* BuildSwitchRooms(); The switch rooms, as NiDL rooms appended to a copy of the NiDL ROM (records whose cells are made here, the
-         * rest the level's first room's: foreground tiles, palette, metatiles, background), so they're converted as the others: per
+         * rest the first room's with the level's own tileset (Choose: its first stage's, or its most solid where that's mostly sky): foreground tiles, palette, metatiles, background), so they're converted as the others: per
          * level, its most common metatiles for air, a floor's top, the ground below it and one-way platforms (a floor's top where it
          * has none), laid out as KatAM's rooms with 2 hub doors (rows 0-9; the padding repeats the floor below; L, H: SwitchLinkDoor,
          * SwitchHubDoor; P: the pedestal, the big switch on it, and ledges, in the level's blocks: its most common floating solid
@@ -271,6 +271,13 @@ namespace KatAMRandomizer {
          *   ................      ####.........###      7
          *   .M...PPPPPP...M.      ####....L....###      8
          *   ################      ################      9 */
+        // Neighbours(); A cell's solid neighbours as bits: up, down, left, right, and with diagonals the 4 corners after;
+        static int Neighbours(int x, int y, Func<int, int, bool> solid, bool diagonals) {
+            (int dx, int dy)[] around = { (0, -1), (0, 1), (-1, 0), (1, 0), (-1, -1), (1, -1), (-1, 1), (1, 1) };
+            int bits = 0;
+            for (int i = 0; i < (diagonals ? 8 : 4); i++) if (solid(x + around[i].dx, y + around[i].dy)) bits |= 1 << i;
+            return bits;
+        }
         static List<NightmareRoom> BuildSwitchRooms(ref byte[] nightmare, List<NightmareRoom> rooms) {
             List<NightmareRoom> switchRooms = new List<NightmareRoom>();
             int start = (nightmare.Length + 3) & ~3;
@@ -283,7 +290,32 @@ namespace KatAMRandomizer {
             }
 
             for (int level = 0; level < 8; level++) {
-                NightmareRoom source = rooms.Where(r => r.Level == level).OrderBy(r => r.Stage).ThenBy(r => r.Index).First();
+                // (its scenery, as KatAM's hubs are built of their area's own walls, not its skies; its first room with that tileset);
+                byte[] nidl0 = nightmare;
+                // (a tileset: its tiles and metatiles, +0x1C and +0x20, whatever its palette; how solid: the share of its rooms' cells
+                // that are ground, so a castle's walls beat a sky's few clouds);
+                string Tileset(NightmareRoom r) => $"{ReadInt(nidl0, r.Record + 0x1C)},{ReadInt(nidl0, r.Record + 0x20)}";
+                (int ground, int cells) Ground(int record) {
+                    byte[] c = DecompressLZ77(nidl0, ReadInt(nidl0, record + 8) - 0x08000000);
+                    int count = 0;
+                    for (int i = 3; i < c.Length; i += 4) if (RoomCollision[c[i]] == 0x0D) count++;
+                    return (count, c.Length / 4);
+                }
+                double Solidness(IEnumerable<NightmareRoom> group) {
+                    var counts = group.Select(r => r.Record).Distinct().Select(Ground).ToList();
+                    return counts.Sum(c => c.ground) / (double)Math.Max(1, counts.Sum(c => c.cells));
+                }
+                // (the first stage's tileset, the level's own look: Vegetable Valley's grass, 28% ground; one mostly sky, under 27%:
+                // Grape Garden's clouds 25%, Yogurt Yard's and Rainbow Resort's skies: instead the one in 2 rooms or more most solid and most
+                // used, its share of ground times the root of its rooms: Grape Garden's castle, Yogurt Yard's purple caves);
+                var levelRooms = rooms.Where(r => r.Level == level).ToList();
+                NightmareRoom first = levelRooms.OrderBy(r => r.Stage).ThenBy(r => r.Index).First();
+                var tilesets = levelRooms.GroupBy(Tileset).ToList();
+                var chosen = tilesets.First(g => g.Key == Tileset(first));
+                int Rooms(IEnumerable<NightmareRoom> group) => group.Select(r => r.Record).Distinct().Count();
+                if (Solidness(chosen) < 0.27)
+                    chosen = tilesets.Where(g => Rooms(g) >= 2).DefaultIfEmpty(chosen).OrderByDescending(g => Solidness(g) * Math.Sqrt(Rooms(g))).First();
+                NightmareRoom source = chosen.OrderBy(r => r.Stage).ThenBy(r => r.Index).First();
                 byte[] sourceCells = DecompressLZ77(nightmare, ReadInt(nightmare, source.Record + 8) - 0x08000000);
                 int sourceWidth = ReadShort(nightmare, source.Record + 0x14), sourceHeight = ReadShort(nightmare, source.Record + 0x16);
                 byte Kind(int x, int y) => RoomCollision[sourceCells[(y * sourceWidth + x) * 4 + 3]];
@@ -314,6 +346,35 @@ namespace KatAMRandomizer {
                         }
                 int block = blocks.Count == 0 ? top : blocks.MaxBy(b => b.Value).Key;
 
+                /* How the level draws its terrain (from its rooms with that tileset: their metatiles are the same): for
+                 * each pattern of solid neighbours (8 around, then the 4 beside; past a room's edge solid), the metatile it draws most;
+                 * its one-way platforms' pieces by whether the cells beside are platforms too (left end, middle, right end, alone): so
+                 * a switch room's walls, corners, floors and ledges look as the level's own do, not one metatile over and over; */
+                Dictionary<int, Dictionary<int, int>> eight = new Dictionary<int, Dictionary<int, int>>(), four = new Dictionary<int, Dictionary<int, int>>(), platforms = new Dictionary<int, Dictionary<int, int>>();
+                void Count(Dictionary<int, Dictionary<int, int>> table, int key, int metatile) {
+                    if (!table.TryGetValue(key, out var counts)) table[key] = counts = new Dictionary<int, int>();
+                    counts[metatile] = counts.GetValueOrDefault(metatile) + 1;
+                }
+                byte[] nidl = nightmare;
+                foreach (int learnt in rooms.Where(r => r.Level == level && Enumerable.Range(1, 2).All(k => ReadInt(nidl, r.Record + 0x18 + k * 4) == ReadInt(nidl, source.Record + 0x18 + k * 4)))
+                                            .Select(r => r.Record).Distinct()) {
+                    byte[] roomCells = DecompressLZ77(nightmare, ReadInt(nightmare, learnt + 8) - 0x08000000);
+                    int w = ReadShort(nightmare, learnt + 0x14), h = ReadShort(nightmare, learnt + 0x16);
+                    byte K(int x, int y) => x < 0 || y < 0 || x >= w || y >= h ? (byte)0x0D : RoomCollision[roomCells[(y * w + x) * 4 + 3]];
+                    for (int y = 0; y < h; y++) {
+                        for (int x = 0; x < w; x++) {
+                            int metatile = ReadShort(roomCells, (y * w + x) * 4);
+                            if (K(x, y) == 0x0D) {
+                                Count(eight, Neighbours(x, y, (nx, ny) => K(nx, ny) == 0x0D, true), metatile);
+                                Count(four, Neighbours(x, y, (nx, ny) => K(nx, ny) == 0x0D, false), metatile);
+                            } else if (K(x, y) == 0x0E && K(x, y - 1) == 0x00) {
+                                Count(platforms, (K(x - 1, y) == 0x0E ? 1 : 0) | (K(x + 1, y) == 0x0E ? 2 : 0), metatile);
+                            }
+                        }
+                    }
+                }
+                int Learned(Dictionary<int, Dictionary<int, int>> table, int key) => table.TryGetValue(key, out var counts) ? counts.MaxBy(c => c.Value).Key : -1;
+
                 byte[] cells = new byte[SwitchWidth * SwitchHeight * 4];
                 void Set(int x, int y, int metatile, byte collision) {
                     WriteShort(cells, (y * SwitchWidth + x) * 4, metatile);
@@ -326,15 +387,29 @@ namespace KatAMRandomizer {
                     : (y <= 5 && (x <= 1 || x >= SwitchWidth - 2)) || (y == 6 && (x == 0 || x == SwitchWidth - 1)));
                 bool Pedestal(int x, int y) => b ? y == 6 && x >= 7 && x <= 9 : y == 8 && x >= 5 && x <= 10;
                 bool Ledge(int x, int y) => b && y == 6 && (x == 5 || x == 6 || x == 10 || x == 11);
+                // (past the room's edges solid, as the learning's; the padding repeats the bottom row);
+                bool Around(int x, int y) => x < 0 || y < 0 || x >= SwitchWidth || y >= SwitchHeight || Solid(x, y);
                 for (int y = 0; y < SwitchHeight; y++) {
                     for (int x = 0; x < SwitchWidth; x++) {
-                        if (Ledge(x, y)) Set(x, y, block, 0x11);
-                        else if (!Solid(x, y)) Set(x, y, air, 0x00);
-                        else Set(x, y, Pedestal(x, y) ? block : y > 0 && !Solid(x, y - 1) ? top : ground, 0x01);
+                        if (Ledge(x, y)) {
+                            int piece = Learned(platforms, (Ledge(x - 1, y) ? 1 : 0) | (Ledge(x + 1, y) ? 2 : 0));
+                            if (piece < 0) piece = Learned(platforms, 3);
+                            Set(x, y, piece >= 0 ? piece : block, 0x11);
+                        } else if (!Solid(x, y)) Set(x, y, air, 0x00);
+                        else {
+                            int metatile = Learned(eight, Neighbours(x, y, Around, true));
+                            if (metatile < 0) metatile = Learned(four, Neighbours(x, y, Around, false));
+                            if (metatile < 0) metatile = Pedestal(x, y) ? block : y > 0 && !Solid(x, y - 1) ? top : ground;
+                            Set(x, y, metatile, 0x01);
+                        }
                     }
                 }
 
                 byte[] record = nightmare.Skip(source.Record).Take(0x54).ToArray();
+                // (the Fountain of Dreams': its second room's starry sky, +0x28-0x37: its first room's shows black down where one screen
+                // looks, its ground's tiles kept);
+                NightmareRoom sky = level == 7 ? levelRooms.FirstOrDefault(r => r.Stage == first.Stage && r.Index == 1) : null;
+                if (sky != null) Array.Copy(nightmare, sky.Record + 0x28, record, 0x28, 0x10);
                 WriteShort(record, 2, 0);
                 WriteInts(record, 8, Put(CompressLZ77(cells)) + 0x08000000, Put(CompressLZ77(new byte[SwitchWidth * SwitchHeight * 2])) + 0x08000000, 0);
                 WriteShorts(record, 0x14, SwitchWidth, SwitchHeight);
