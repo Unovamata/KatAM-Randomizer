@@ -279,7 +279,8 @@ namespace KatAMRandomizer {
          * half's metatiles, row by row (~: flipped left to right, ^: upside down, @: both), the right half its mirror image; the same
          * metatiles in every region (NiDL's tilesets are); Vegetable Valley's built from its raised hedges (its stages have no
          * ceilings: their rounded tops upside down, their sides and the joins at their feet turned round), its first stage's
-         * pedestal, its second stage's dirt on the side floors; Yogurt Yard's after its sixth stage's second room, inside its rock the fills (and moss) joining best
+         * pedestal, its second stage's dirt on the side floors, dressed as its stages (grass along the floors, flower beds,
+         * white tusks framing the big switch); Yogurt Yard's after its sixth stage's second room, inside its rock the fills (and moss) joining best
          * (least colour across their edges), Orange Ocean's after its fifth stage's first; */
         static readonly Dictionary<int, string[]> SwitchDesigns = new Dictionary<int, string[]> {
             [0] = new[] {
@@ -288,10 +289,10 @@ namespace KatAMRandomizer {
                 "087 09F 000 000 000 000 000 000",
                 "087 09F 000 000 000 000 000 000",
                 "087 09F 000 000 000 000 000 000",
-                "^091 ^09E 000 000 000 000 000 000",
-                "000 000 000 000 000 000 000 000",
-                "000 000 000 000 000 000 000 000",
-                "000 000 000 000 000 ~09E ~002 ~001",
+                "^091 ^09E 000 000 000 02A 027 000",
+                "000 000 000 000 000 029 026 000",
+                "000 000 000 000 000 028 025 01C",
+                "01B 01A 020 021 022 ~09E ~002 ~001",
                 "001 036 037 038 03B ~0B1 ~087 ~087",
                 "087 041 04A 04A 051 ~087 ~087 ~087",
                 "087 08B 005 005 005 ~08A ~087 ~06B",
