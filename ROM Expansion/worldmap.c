@@ -41,18 +41,18 @@ struct NidlWorldMapDoor {
 
 /* The doors, clear of KatAM's paths, doors and the map's captions, leading where the level's switch room's revealed mirror does
  * (KatAMExpansionRooms.cs' LevelLinks): Vegetable Valley right of Rainbow Route East, Ice Cream Island right of the Moonlight Mansion door,
- * Butter Building up from Rainbow Resort, Grape Garden left of Peppermint Palace East, Yogurt Yard left of Cabbage Cavern West, Orange
- * Ocean right of Cabbage Cavern East and the Fountain of Dreams below it, Rainbow Resort straight from Central Circle; their dots are
- * filled in by KatAMExpansionWorldMap.cs; */
+ * Butter Building up from Rainbow Resort, Grape Garden below Peppermint Palace West, Yogurt Yard above Radish Ruins, Orange Ocean above
+ * Olive Ocean, the Fountain of Dreams right of Candy Constellation, in the stars, Rainbow Resort straight from Central Circle; their dots
+ * are filled in by KatAMExpansionWorldMap.cs; */
 struct NidlWorldMapDoor gNidlWorldMapDoors[NIDL_WORLDMAP_DOORS] = {
     { 204, 72, 168, 72, 0x13 + 1, 0, 0 },
     { 208, 100, 152, 88, 0x13 + 2, 0, 0 },
     { 176, 16, 152, 40, 0x13 + 3, 0, 0 },
-    { 24, 72, 88, 56, 0x13 + 4, 0, 0 },
-    { 24, 104, 80, 120, 0x13 + 5, 0, 0 },
-    { 228, 120, 168, 120, 0x13 + 6, 0, 0 },
+    { 24, 72, 32, 32, 0x13 + 4, 0, 0 },
+    { 24, 104, 48, 128, 0x13 + 5, 0, 0 },
+    { 228, 120, 208, 136, 0x13 + 6, 0, 0 },
     { 152, 40, 112, 80, 0x13 + 7, 0, 0 },
-    { 162, 136, 168, 120, 0x13 + 8, 0, 0 },
+    { 224, 40, 200, 24, 0x13 + 8, 0, 0 },
 };
 
 // KatAM's doors' slots (pause_world_map.c's WorldMapUnlockSave);
