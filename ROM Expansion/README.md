@@ -149,6 +149,7 @@ How they fit in:
   - `BodyMatches` pairs each KatAM body frame with one of NiDL's plain Kirby poses, by silhouette, checked by eye. Mirrored body frames (attributes `| 0x4000` / `| 0x8000`) are matched unmirrored, and their hat is mirrored the same way.
   - `HatFrames` pairs each plain pose with the same pose in the ability's block. Its body pixels match exactly, or match outside the hat where the hat hides part of it.
   - Poses with no match (inhaling, a mouthful, Kirby facing the camera with something on his head) get no hat.
+  - NiDL's Kirby is always pink, so its hats (Needle's) draw some of his head in his colors. Those pixels are left to the body sprite, which has the player's colors, where KatAM's body frame covers them (`BodyCoverage()`: the body frame drawn from its attributes, OAM entries and the tiles its GetTiles loads, mirrored as KatAM mirrors it). Where it doesn't (KatAM's Kirby is shaped a little differently), they're drawn in the hat's nearest other color: the room showed through Needle's spikes. Body frames whose hats come out the same share one frame.
   - Calling the helpers (animation indexes 97-99: taking out the phone, dialing, ringing; `CallAnimations`) shows no hat: it looked odd on Kirby holding his phone.
 - **Attack poses** (`KatAMExpansionMotions.cs`) are NiDL's frames, played at animation indexes `0x4A`-`0x59` (copy abilities' own), which `NidlAbilitySetup` points to them.
   - Kirby's own pixels go to the body sprite, which has the player's palette and 16 tiles of VRAM.
