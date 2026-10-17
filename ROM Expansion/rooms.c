@@ -6,7 +6,12 @@
  * uses a few KB of it). These replace the game's functions that use those arrays (the same code, from the decompilation, with
  * BigCollision, BigZones and BigTilemap for them): FillLevelInfo (loads a room into its slot), GetCollisionTile and the other
  * collision reads, sub_0800255C (sets a block), sub_080025AC and sub_08002624 (a block's special block), sub_08001408 (a special
- * block changes the tilemap and collision), sub_080015A8 (reads a block's tilemap) and sub_080026A8 (the zones); */
+ * block changes the tilemap and collision), sub_080015A8 (reads a block's tilemap) and sub_080026A8 (the zones).
+ * Each ported room has a doors list of its own (gUnk_08D640A4, from NIDL_DOORS_FIRST: a mirror looks its door up there every frame,
+ * and one list for them all made NiDL's rooms lag), and KatAM keeps which of a list's doors were used (and whether its room was seen,
+ * bit 15) in gVisitedDoors, a u16 per list, NIDL_DOORS_FIRST of them: the ported rooms' are kept here instead, after the heap
+ * (NIDL_VISITED, not saved: their mirrors show as new again after a reset), by the functions reading and setting those bits
+ * (sub_08002A5C, sub_08002A80, sub_08002AD0, sub_08002B30, sub_08002BA8, sub_08002C18); */
 #include "global.h"
 #include "data.h"
 #include "functions.h"
@@ -21,11 +26,96 @@
 #define BIG_BLOCKS 3584
 #define BIG_ZONES (BIG_BLOCKS + 4)
 #define BIG_TILEMAP (BIG_BLOCKS * 8)
-#define NIDL_HEAP_SIZE 0xE878   // 0x20080 - 2 * (BIG_TILEMAP + BIG_BLOCKS + BIG_ZONES): KatAMExpansionRooms.cs's NidlHeapSize;
+#define NIDL_HEAP_SIZE 0xE478   // 0x20080 - NIDL_VISITED_SIZE - 2 * (BIG_TILEMAP + BIG_BLOCKS + BIG_ZONES): KatAMExpansionRooms.cs's NidlHeapSize;
+#define NIDL_VISITED_SIZE 0x400
+#define NIDL_DOORS_FIRST 0x120  // ARRAY_COUNT(gVisitedDoors): KatAMExpansionRooms.cs's FirstDoorsList;
+#define NIDL_VISITED_MAGIC 0x4E494456
 
 void LoadLevelGfx(u8 playerId, const u16 **arg1, const u16 **arg2);
 
-#define BIG_AREA ((u8 *)gEwramHeap + NIDL_HEAP_SIZE)
+#define NIDL_VISITED ((u32 *)((u8 *)gEwramHeap + NIDL_HEAP_SIZE))
+#define BIG_AREA ((u8 *)gEwramHeap + NIDL_HEAP_SIZE + NIDL_VISITED_SIZE)
+
+// Visited(); A room's doors list's visited bits (see above): KatAM's, or the ported rooms' here (cleared the first time: a magic word
+// first);
+static u16 *Visited(u16 roomId) {
+    u16 list = gRoomProps[roomId].doorsIdx;
+    u32 *area = NIDL_VISITED;
+
+    if (list < NIDL_DOORS_FIRST) return &gVisitedDoors[list];
+    if (area[0] != NIDL_VISITED_MAGIC) {
+        u32 i;
+        for (i = 1; i < NIDL_VISITED_SIZE / 4; i++) area[i] = 0;
+        area[0] = NIDL_VISITED_MAGIC;
+    }
+    list -= NIDL_DOORS_FIRST;
+    if (list >= NIDL_VISITED_SIZE / 2 - 2) list = NIDL_VISITED_SIZE / 2 - 3;
+    return (u16 *)(area + 1) + list;
+}
+
+u32 BigSub_08002A5C(u16 roomId)
+{
+    return *Visited(roomId) >> 0xF;
+}
+
+void BigSub_08002A80(u16 roomId)
+{
+    *Visited(roomId) |= 0x8000;
+}
+
+u8 BigSub_08002AD0(u16 roomId)
+{
+    u8 count = 0;
+    u8 doors = gUnk_08D640A4[gRoomProps[roomId].doorsIdx]->unk04;
+    u16 visited = *Visited(roomId);
+    u16 i;
+
+    for (i = 0; i < doors; i++) {
+        if ((visited >> i) & 1)
+            count++;
+    }
+    return count;
+}
+
+void BigSub_08002B30(u16 roomId, s16 x, s16 y)
+{
+    struct Unk_08930E00_1 *entry = gUnk_08D640A4[gRoomProps[roomId].doorsIdx]->unk00.pat1;
+    u16 i;
+
+    for (i = 0; ; i++) {
+        if (entry->unk00 == 1 && entry->unk04 == x && entry->unk06 == y) {
+            *Visited(roomId) |= 1 << i;
+            return;
+        }
+        entry = (void *)entry + entry->unk01;
+    }
+}
+
+u32 BigSub_08002BA8(u16 roomId, u16 room, u8 x, u8 y)
+{
+    struct Unk_08930E00_2 *entry = gUnk_08D640A4[gRoomProps[roomId].doorsIdx]->unk00.pat2;
+    u16 i;
+
+    for (i = 0; ; i++) {
+        if (entry->unk00 == 2 && entry->unk04 == room && entry->unk06 == x && entry->unk07 == y)
+            return *Visited(roomId) >> i & 1;
+        entry = (void *)entry + entry->unk01;
+    }
+}
+
+void BigSub_08002C18(u16 roomId, u16 room, u8 x, u8 y)
+{
+    struct Unk_08930E00_2 *entry = gUnk_08D640A4[gRoomProps[roomId].doorsIdx]->unk00.pat2;
+    u16 i;
+
+    for (i = 0; ; i++) {
+        if (entry->unk00 == 2 && entry->unk04 == room && entry->unk06 == x && entry->unk07 == y) {
+            *Visited(roomId) |= 1 << i;
+            return;
+        }
+        entry = (void *)entry + entry->unk01;
+    }
+}
 
 static inline u16 *BigTilemap(u8 slot) {
     return (u16 *)(slot < 2 ? (u8 *)gUnk_02028EE0 + slot * BIG_TILEMAP : BIG_AREA + (slot - 2) * BIG_TILEMAP);

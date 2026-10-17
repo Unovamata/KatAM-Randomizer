@@ -188,3 +188,12 @@ TitleScreenMain 0x8149f6d  # the main CreateTitleScreen passes TaskCreate (its t
 gUnk_03002EC0 0x3002ec0
 gUnk_030039A4 0x30039a4
 gUnk_03006078 0x3006078
+gVisitedDoors 0x2028ca0
+sub_08002A5C 0x8002a7c
+sub_08002A80 0x8002aa0
+sub_08002AD0 0x8002af0
+sub_08002B30 0x8002b50
+sub_08002BA8 0x8002bc8
+sub_08002C18 0x8002c38
+gUnk_08D60A84 0x8d6aee4
+gUnk_0893CB44 0x8946fa8

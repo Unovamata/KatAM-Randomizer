@@ -27,7 +27,12 @@ namespace KatAMRandomizer {
      * gives them room for BigRoomBlocks (see BigRooms()), which every NiDL room fits in, whole. Every new room uses doorsIdx 287, the
      * one gVisitedDoors entry (0x120) no vanilla room uses; */
     internal static partial class KatAMExpansion {
-        const int MaxRoomBlocks = BigRoomBlocks, BackgroundTiles = 900, SharedDoors = 287, RoomFlags = 0x79;
+        const int MaxRoomBlocks = BigRoomBlocks, BackgroundTiles = 900, SharedDoors = 287, FirstDoorsList = 0x120, RoomFlags = 0x79;
+
+        /* A cannon's fuse (NiDL 0x38-0x3D, inside walls: up-down, left-right, up-right, up-left, right-down, left-down) -> KatAM's
+         * (0x22-0x27: up-down, right-down, left-down, left-right, up-right, up-left; solid, as walls), which its fuse object
+         * (0x78, cannon_fuse.c) burns along to the cannon; elsewhere they're walls (0x0D, RoomCollision); */
+        static readonly byte[] FuseCollision = { 0x22, 0x25, 0x26, 0x27, 0x23, 0x24 };
 
         // NiDL collision -> KatAM collision (see the notes above);
         static readonly byte[] RoomCollision = {
@@ -201,7 +206,7 @@ namespace KatAMRandomizer {
 
         /* Shown(); Whether the camera shows a whole mirror on a room's row: it's 2 cells tall, on its cell and the one above, and KatAM's
          * camera shows from 8 pixels below a room's top to 40 above its bottom (rows MirrorTop to FullHeight - 4); */
-        const int MirrorTop = 2, MirrorSpacing = 4, ReturnReach = 10, LayoutSeed = 0x4E49444C, KatAMLinks = 3;
+        const int MirrorTop = 2, MirrorSpacing = 4, ReturnReach = 10, LayoutSeed = 0x4E49444C, KatAMLinks = 2, ViewWidth = 15, ViewHeight = 10;
         // KatAM's goal games (goal_game_bonus.c: their mirrors, object 0x6F, show as goal mirrors for doors to rooms 0x3D4-0x3DD,
         // mirror_door.c), and where KatAM's goal mirrors land Kirby in them (56, 1176: cells + 1); done, the game takes him to Central
         // Circle;
@@ -1001,10 +1006,12 @@ namespace KatAMRandomizer {
         /* BigRooms(); Rooms of up to BigRoomBlocks blocks ("ROM Expansion/rooms.c": each loaded room's collision, zones and tilemap in
          * buffers that big, two in KatAM's own, two at the end of the EWRAM heap): the game's functions using those buffers jump to
          * rooms.c's copies, and the heap (EwramInitHeap's size, 0x20080) shrinks to NidlHeapSize; */
-        const int BigRoomBlocks = 3584, VanillaHeapSize = 0x20080, NidlHeapSize = 0xE878;   // rooms.c's BIG_BLOCKS, NIDL_HEAP_SIZE;
+        const int BigRoomBlocks = 3584, VanillaHeapSize = 0x20080, NidlHeapSize = 0xE478;   // rooms.c's BIG_BLOCKS, NIDL_HEAP_SIZE;
+        // (and the ported rooms' doors lists, from FirstDoorsList, their visited doors in rooms.c's NIDL_VISITED: the functions reading them);
         static readonly string[] BigRoomFunctions = {
             "FillLevelInfo", "GetCollisionTile", "sub_08002434", "sub_08002470", "sub_080024F0", "sub_0800255C", "sub_080025AC",
             "sub_08002624", "sub_080026A8", "sub_08001408", "sub_080015A8",
+            "sub_08002A5C", "sub_08002A80", "sub_08002AD0", "sub_08002B30", "sub_08002BA8", "sub_08002C18",
         };
         static string BigRooms(byte[] rom, KatAMExpansionCode.Version version) {
             int codeBase = CodeAddress + 0x08000000, heap = version.RomSymbols["EwramInitHeap"], size = -1;
@@ -1156,7 +1163,7 @@ namespace KatAMRandomizer {
                         for (int x = 0; x < r.FullWidth; x++) {
                             int kind = cells[Cell(x, y) * 4 + 3];
                             bool padding = x >= r.Width || y >= r.Height;
-                            collision[y * r.FullWidth + x] = padding && kind >> 4 == 2 ? (byte)0x0D : RoomCollision[kind];
+                            collision[y * r.FullWidth + x] = padding && kind >> 4 == 2 ? (byte)0x0D : !padding && kind is >= 0x38 and <= 0x3D ? FuseCollision[kind - 0x38] : RoomCollision[kind];
                         }
                     }
                     // Mirras (see MirraSpots()): not in a boss's room nor a switch room;
@@ -1165,7 +1172,10 @@ namespace KatAMRandomizer {
                     int solidity = BuildSolidity(rom, nightmare, r, cells, collision, metatiles, doors[r], mirras, noSpecials, ref cursor);
                     solidities.Add(solidity + 0x08000000);
 
-                    objects.Add(BuildObjects(rom, nightmare, r, doors[r], mirras, noTypes, ref cursor) + 0x08000000);
+                    // (where doors land Kirby in it: no enemy waits there, BuildObjects());
+                    var landings = doors.Values.SelectMany(list => list).Concat(mainHubDoors).Concat(katamDoors.Values.SelectMany(list => list))
+                                        .Where(d => d.Room == r.Room && !d.Edge).Select(d => (d.DestX - 1, d.DestY - 1)).ToList();
+                    objects.Add(BuildObjects(rom, nightmare, r, doors[r], mirras, landings, noTypes, ref cursor) + 0x08000000);
                     navigations.Add(BuildNavigation(rom, r, collision, navigationRoutes, ref cursor) + 0x08000000);
 
                     /* Area and CPU helpers' routes (gUnk_08D6CD0C, written into the vanilla table's free entry), as room 0x397's (the
@@ -1186,11 +1196,13 @@ namespace KatAMRandomizer {
                                                              r.FullWidth * 16, r.FullHeight * 16);
                     WriteShorts(rom, roomProps + r.Room * 0x28, LevelSongs[r.Level], 0, 0, 0x100, 0x100, 0, 0, rateX, rateY, RoomFlags,
                                 info, palette, tableSizes[12] + i, tableSizes[13] + i, 0xFFFF, background, tableSizes[16] + i,
-                                tableSizes[17] + i, SharedDoors, 0);
+                                tableSizes[17] + i, FirstDoorsList + i, 0);
                 }
             } catch (Exception exception) when (exception is IndexOutOfRangeException or ArgumentException) {
                 return $"The Nightmare in Dream Land ROM doesn't match the {region.KatAM} release.";
             }
+
+            WarpFlights(rom, symbols, ref cursor);
 
             BuildMainHub(rom, nightmare, symbols, version.SpriteTables, mainHub, mainHubDoors, rooms.First(r => r.Level == 7 && r.Stage == 0 && r.Index == 0).Record, tableSizes,
                          infos, palettes, tilemaps, solidities, backgrounds, objects, noTypes, ref cursor);
@@ -1252,27 +1264,32 @@ namespace KatAMRandomizer {
             }
             ExtendAreas(rom, symbols, ref cursor);
 
-            /* 9ROM: the doors list every ported room shares (doorsIdx 287): one entry (kind 2, size 8, room, landing + 1) per place a
-             * door leads to. KatAM looks a door up there when Kirby goes through it (and a mirror, to show whether it was used), until it
-             * finds it: it must be there. Its door count is 0, so the map counts none of them. Every mirror looks its door up every frame
-             * (sub_08002BA8, from the list's start), so the mirrors' come first (the NiDL hub's and the switch rooms', which show up to 9
-             * and 4, first of all), the edges' last: the switch rooms ran at half speed once their doors showed, with theirs at the end; */
-            List<byte> nineROM = new List<byte>();
-            IEnumerable<Door> hubDoors = mainHubDoors.Concat(doors.Where(d => d.Key.IsSwitchRoom).SelectMany(d => d.Value));
-            IEnumerable<Door> allDoors = doors.Values.SelectMany(list => list);
-            foreach (Door door in hubDoors.Concat(allDoors.Where(d => !d.Edge)).Concat(allDoors.Where(d => d.Edge)).DistinctBy(d => (d.Room, d.DestX, d.DestY)))
-                nineROM.AddRange(NineROMEntry(door.Room, door.DestX, door.DestY));
-            nineROM.AddRange(new byte[] { 0, 0, 0xFF, 0xFF });
-            int nineROMAt = Allocate(ref cursor, nineROM.Count, 4), doorless = Allocate(ref cursor, 8, 4);
-            nineROM.ToArray().CopyTo(rom, nineROMAt);
-            WriteInts(rom, doorless, nineROMAt + 0x08000000, 0);
+            /* 9ROM: each ported room's doors list (doorsIdx FirstDoorsList + its number in rooms; the NiDL hub's SharedDoors, KatAM's last
+             * free one): an entry (kind 2, size 8, room, landing + 1) per place its doors lead to. KatAM looks a door up there when Kirby
+             * goes through it, until it finds it (it must be there), and every mirror looks its own up every frame (sub_08002BA8, from the
+             * list's start): one list for all the rooms (hundreds of entries) made rooms with mirrors lag. Mirrors' entries first, the
+             * edges' last. Their door counts are 0, so the map counts none of them; which were used is kept in rooms.c (NIDL_VISITED); */
+            int listCursor = cursor;
+            int DoorsList(IEnumerable<Door> list) {
+                List<byte> nineROM = new List<byte>();
+                foreach (Door door in list.Where(d => !d.Edge).Concat(list.Where(d => d.Edge)).DistinctBy(d => (d.Room, d.DestX, d.DestY)))
+                    nineROM.AddRange(NineROMEntry(door.Room, door.DestX, door.DestY));
+                nineROM.AddRange(new byte[] { 0, 0, 0xFF, 0xFF });
+                int nineROMAt = Allocate(ref listCursor, nineROM.Count, 4), entry = Allocate(ref listCursor, 8, 4);
+                nineROM.ToArray().CopyTo(rom, nineROMAt);
+                WriteInts(rom, entry, nineROMAt + 0x08000000, 0);
+                return entry + 0x08000000;
+            }
+            List<int> doorLists = new List<int> { DoorsList(mainHubDoors) };
+            doorLists.AddRange(rooms.Select(r => DoorsList(doors[r])));
+            cursor = listCursor;
 
             // The tables, copied with the new entries;
             (string table, int size, List<int> entries)[] tables = {
                 ("gForegroundInfo", tableSizes[10], infos), ("gForegroundPalettes", tableSizes[11], palettes),
                 ("gForegroundTilemaps", tableSizes[12], tilemaps), ("gSolidityMaps", tableSizes[13], solidities),
                 ("gRoomTiledBGs", tableSizes[15], backgrounds), ("gLevelObjLists", tableSizes[16], objects),
-                ("gUnk_08D63C28", tableSizes[17], navigations), ("gUnk_08D640A4", SharedDoors, new List<int> { doorless + 0x08000000 }),
+                ("gUnk_08D63C28", tableSizes[17], navigations), ("gUnk_08D640A4", SharedDoors, doorLists),
             };
             Dictionary<string, int> moved = new Dictionary<string, int>();
             foreach ((string table, int size, List<int> entries) in tables) {
@@ -1300,6 +1317,30 @@ namespace KatAMRandomizer {
                                                             moved["gUnk_08D640A4"] + Props(e.room, 18) * 4, e.tilemap, e.doors)).ToList();
             finishCursor = cursor;
             return null;
+        }
+
+        /* WarpFlights(); The ported warp stars' flight (their subtype, WarpFlight): KatAM's flights (gUnk_08D60A84, 6, each a script of
+         * Kirby's speed frame by frame, sub_080534D0) fly him up, take him to the star's room (the step flagged 0x40; he arrives where
+         * gUnk_0893CB44 says for that room, not the star's +0x1A, +0x1C), then fly him in along a path drawn for that room alone, which
+         * took him out of the NiDL rooms. This one is flight 0 up to its room change, then Kirby lands where the star says (the rooms'
+         * gUnk_0893CB44 entries) and hops off, as at a flight's end. The table moves (the code's pointer to it with it) to hold it; */
+        const int WarpFlight = 6, FlightStep = 12, FlightRise = 201;
+        static void WarpFlights(byte[] rom, IReadOnlyDictionary<string, int> symbols, ref int cursor) {
+            int table = symbols["gUnk_08D60A84"], arrivals = symbols["gUnk_0893CB44"], first = ReadInt(rom, table) - 0x08000000;
+            if (rom[first + (FlightRise - 1) * FlightStep + 9] != 0x40) return;     // (its room change: +9, the flags);
+            int flight = Allocate(ref cursor, (FlightRise + 2) * FlightStep, 4), moved = Allocate(ref cursor, (WarpFlight + 1) * 4, 4);
+            Array.Copy(rom, first, rom, flight, FlightRise * FlightStep);
+            WriteShorts(rom, flight + FlightRise * FlightStep, 0, 0, 1, 90);            // A frame still (it moves on to the end);
+            WriteShorts(rom, flight + FlightRise * FlightStep + 8, 0xFF);
+            WriteShorts(rom, flight + (FlightRise + 1) * FlightStep, 0, 0, 0, 90);     // The end: Kirby hops off;
+            WriteShorts(rom, flight + (FlightRise + 1) * FlightStep + 8, 0x80FF);
+            Array.Copy(rom, table, rom, moved, WarpFlight * 4);
+            WriteInt(rom, moved + WarpFlight * 4, flight + 0x08000000);
+            Repoint(rom, table + 0x08000000, moved + 0x08000000);
+            foreach (Transport t in transportsOf.Values.SelectMany(list => list).Where(t => !t.Cannon)) {
+                rom[arrivals + t.Room * 2] = (byte)t.DestX;
+                rom[arrivals + t.Room * 2 + 1] = (byte)t.DestY;
+            }
         }
 
         /* ExtendAreas(); Areas AreaBase... for the NiDL levels (see Areas):
@@ -1451,7 +1492,17 @@ namespace KatAMRandomizer {
          * water) takes Kirby through as he touches it, without a mirror; a secret one (behind a breakable block in NiDL, see
          * BuildSolidity()) stays a block until it's broken, and its mirror shows then; */
         public sealed record Door(int X, int Y, int Room, int DestX, int DestY, byte Facing, bool Edge = false, int Slot = 0, int Design = HubDesign,
-                                  bool Secret = false, bool OneWay = false, bool Hidden = false);
+                                  bool Secret = false, bool OneWay = false, bool Hidden = false, DoorKind Kind = DoorKind.Nidl, bool Plain = false);
+        // DoorKind; Why a door is there (see PlanDoors()): NiDL's own, a stage's goal, the boss stages' chain, a branch into a stage and
+        // its way back, a loop, a link between levels or with a KatAM area, a switch room's (its Mirra's way in,
+        // its floor mirror), the hubs', the way into NiDL, an edge (a fall or climb out of a room), a split room's parts;
+        public enum DoorKind { Nidl, Goal, Boss, Branch, BranchBack, Loop, Link, KatAMLink, SwitchEntry, SwitchFloor, Hub, Entry, Edge, Split }
+
+        /* Transport; A warp star or cannon of a ported room (NiDL's gimmicks 4 and 6, their exits kind 30), as KatAM's own (objects 0x84,
+         * 0x8A: BuildObjects()): where it stands (pixels), and where it takes Kirby (the room, the landing cell + 1); */
+        public sealed record Transport(int X, int Y, bool Cannon, int Room, int DestX, int DestY);
+        static Dictionary<NightmareRoom, List<Transport>> transportsOf = new Dictionary<NightmareRoom, List<Transport>>();
+        public static IReadOnlyDictionary<NightmareRoom, List<Transport>> PortedTransports => transportsOf;
 
         // The KatAM room with the mirror to Nightmare in Dream Land: Central Circle, on its platform's left end (FinishRooms());
         const int EntryRoom = 0x321, EntryX = 11, EntryY = 14;
@@ -1483,6 +1534,7 @@ namespace KatAMRandomizer {
                                                                int mainHub, out List<Door> mainHubDoors,
                                                                out Dictionary<int, List<Door>> katamDoors, out (int room, int x, int y) firstStart, out byte firstFacing) {
             Dictionary<NightmareRoom, List<Door>> doors = rooms.ToDictionary(r => r, r => new List<Door>());
+            transportsOf = rooms.ToDictionary(r => r, r => new List<Transport>());
             var byRoom = rooms.GroupBy(r => (r.Level, r.Stage, r.Index)).ToDictionary(g => g.Key, g => g.ToList());
             List<(int level, int stage)> stages = rooms.Where(r => !r.IsSwitchRoom).Select(r => (r.Level, r.Stage)).Distinct().ToList();
             bool IsBossStage((int level, int stage) s) => s.level == 7 || s.stage == stages.Where(t => t.level == s.level).Max(t => t.stage);
@@ -1559,7 +1611,7 @@ namespace KatAMRandomizer {
             Dictionary<int, int> widths = rooms.ToDictionary(r => r.Room, r => r.Width);
             byte Facing((int room, int x, int y) to) => (byte)(!widths.TryGetValue(to.room, out int w) || (to.x - 1) * 2 < w ? 1 : 2);
             Dictionary<NightmareRoom, byte[]> partCells = new Dictionary<NightmareRoom, byte[]>();
-            void Add((NightmareRoom part, int x, int y) at, (int room, int x, int y) to, bool edge = false, int slot = 0, int design = HubDesign, bool oneWay = false, bool hidden = false) {
+            Door Add((NightmareRoom part, int x, int y) at, (int room, int x, int y) to, DoorKind kind, bool edge = false, int slot = 0, int design = HubDesign, bool oneWay = false, bool hidden = false) {
                 // (KatAM keeps Kirby 8 pixels and his half width inside a room: a mirror on its first or last column moves in a cell; one
                 // the camera wouldn't show whole, Shown(), moves in through open cells: NiDL's doors on a room's top row);
                 if (!edge) {
@@ -1571,9 +1623,38 @@ namespace KatAMRandomizer {
                     while (!Shown(at.part, at.y) && at.y > MirrorTop && Open(at.y - 1)) at.y--;
                 }
                 // (one door of a door 2 cells wide, NiDL's, or next to one to the same room: one mirror);
-                if (doors[at.part].Any(d => d.X == at.x && d.Y == at.y || d.Room == to.room && !edge && !d.Edge && Math.Abs(d.X - at.x) <= 1 && Math.Abs(d.Y - at.y) <= 1)) return;
-                doors[at.part].Add(new Door(at.x, at.y, to.room, to.x, to.y, Facing(to), edge, slot, design, OneWay: oneWay, Hidden: hidden));
+                if (doors[at.part].Any(d => d.X == at.x && d.Y == at.y || d.Room == to.room && !edge && !d.Edge && Math.Abs(d.X - at.x) <= 1 && Math.Abs(d.Y - at.y) <= 1)) return null;
+                Door door = new Door(at.x, at.y, to.room, to.x, to.y, Facing(to), edge, slot, design, OneWay: oneWay, Hidden: hidden, Kind: kind);
+                doors[at.part].Add(door);
+                return door;
             }
+
+            /* The layout's rules, as KatAM's (NiDL's rooms lagged with many mirrors in view, and read as a mess): a room has 3 doors at most,
+             * 2 if it's small (2 screens or less: MaxExits()); the camera never shows 3 at once (ViewFits(): none within a screen, ViewWidth
+             * x ViewHeight cells, of 2 others); no door is made in a mini-boss's fight area (Arenas(): the ones there show once it's beaten,
+             * "ROM Expansion/enemies/arena.c"), nor a two-way one in its room (a door into one throws Kirby in, one-way); a goal room keeps
+             * its goal door alone (goalRooms: no branch, no way back); */
+            int MaxExits(NightmareRoom r) => r.Width * r.Height <= 2 * ViewWidth * (ViewHeight + 1) ? 2 : 3;
+            int Exits(NightmareRoom r) => doors[r].Count(d => !d.Edge);
+            bool ViewFits(NightmareRoom r, int x, int y) => InView(doors[r], x, y);
+            bool InView(List<Door> others, int x, int y) {
+                List<Door> near = others.Where(d => !d.Edge && !d.Plain && Math.Abs(d.X - x) < ViewWidth && Math.Abs(d.Y - y) < ViewHeight).ToList();
+                for (int i = 0; i < near.Count; i++)
+                    for (int j = i + 1; j < near.Count; j++) {
+                        int[] xs = { x, near[i].X, near[j].X }, ys = { y, near[i].Y, near[j].Y };
+                        if (xs.Max() - xs.Min() < ViewWidth && ys.Max() - ys.Min() < ViewHeight) return false;
+                    }
+                return true;
+            }
+            Dictionary<NightmareRoom, List<(int left, int top, int width, int height)>> arenas = rooms.ToDictionary(r => r, r => Arenas(nightmare, r));
+            // (a cell around the area too: Kirby lands on a door, and its mirror is 2 cells tall);
+            bool InArena(NightmareRoom r, int x, int y) => arenas[r].Any(a => x * 16 + 24 > a.left && x * 16 - 8 < a.left + a.width && y * 16 + 24 > a.top && y * 16 - 24 < a.top + a.height);
+            bool MinibossRoom(NightmareRoom r) => arenas[r].Count > 0;
+            HashSet<NightmareRoom> goalRooms = new HashSet<NightmareRoom>();
+            // Hosts(); Whether a room takes a new door: under its exits, not a goal room, a boss stage's, a switch room, a split room's
+            // part, nor (two-way) a mini-boss's;
+            bool Hosts(NightmareRoom r, bool twoWay) => Exits(r) < MaxExits(r) && !goalRooms.Contains(r) && !r.IsSwitchRoom && !IsBossStage((r.Level, r.Stage))
+                                                     && !(twoWay && MinibossRoom(r)) && byRoom[(r.Level, r.Stage, r.Index)].Count == 1;
 
             /* The levels' structure, as KatAM's areas are laid out (see the notes above PlanDoors()), from LayoutSeed:
              * • a level's regular stages are a tree from its first (its way in): every other stage is entered through a branch door in a
@@ -1648,7 +1729,8 @@ namespace KatAMRandomizer {
             // RoomSpot(); A floor cell for a mirror in a NiDL room (a floor 3 cells wide under it, open cells beside it: Kirby landing on a
             // ledge 2 wide drops off it, next to a wall he's pushed off it), where the camera shows it, with room above, not water, no door within
             // 2 x MirrorSpacing cells, one Kirby reaches; in the room's middle, or hidden (the farthest from where he comes in, behind blocks);
-            (NightmareRoom part, int x, int y)? RoomSpot(NightmareRoom r, bool hidden, int spacing = MirrorSpacing * 2) {
+            // (a landing, door false: the same, for a one-way door's: away from doors, no door made, a mini-boss's fight area as good);
+            (NightmareRoom part, int x, int y)? RoomSpot(NightmareRoom r, bool hidden, int spacing = MirrorSpacing * 2, bool door = true) {
                 var key = (r.Level, r.Stage, r.Index);
                 int width = ReadShort(nightmare, r.Record + 0x14), height = ReadShort(nightmare, r.Record + 0x16);
                 if (!partCells.TryGetValue(r, out byte[] cells)) partCells[r] = cells = Cells(r);
@@ -1683,31 +1765,47 @@ namespace KatAMRandomizer {
                         if (distance < 0 || !Shown(r, y) || Kind(x, y) != 0 || !OpenCell(cells, width, x, y - 1) || !OpenCell(cells, width, x - 1, y) || !OpenCell(cells, width, x + 1, y)) continue;
                         if (Enumerable.Range(x - 1, 3).Any(fx => RoomCollision[Kind(fx, y + 1)] is not (0x0D or (>= 0x05 and <= 0x0E) or (>= 0x10 and <= 0x1B)))) continue;
                         if (doors[r].Any(d => Math.Abs(d.X - x) < spacing && Math.Abs(d.Y - y) <= 2) || landings.Any(c => Math.Abs(c.x - x) < spacing && Math.Abs(c.y - y) <= 2)) continue;
+                        if (door && (InArena(r, x, y) || !ViewFits(r, x, y))) continue;
                         double score = hidden ? distance + (plain[y * width + x] < 0 ? 60 : 0) : -Math.Abs(x - width / 2.0) + random.NextDouble() * 6;
                         if (score > bestScore) { bestScore = score; best = (r, x, y); }
                     }
                 }
                 return best;
             }
-            // HostSpot(); A spot in a room of a stage (not its first, if it has others; not one with 4 doors), the rooms in a random order;
-            // with none left, one in a room with up to 5 (KatAM's busiest rooms have 6), still spread from its other mirrors;
-            (NightmareRoom part, int x, int y)? HostSpot((int level, int stage) s, bool hidden) {
+            // HostSpot(); A spot for a new door in a room of a stage that takes one (Hosts(): not its first, if it has others), the rooms in
+            // a random order, bigger ones likelier (they have room for more ways on);
+            (NightmareRoom part, int x, int y)? HostSpot((int level, int stage) s, bool hidden, bool twoWay, int spacing = MirrorSpacing * 2) {
                 var keys = byRoom.Keys.Where(k => k.Item1 == s.level && k.Item2 == s.stage && byRoom[k].Count == 1).OrderBy(k => k.Item3).ToList();
-                var order = keys.Skip(keys.Count > 1 ? 1 : 0).OrderBy(_ => random.Next()).Concat(keys.Take(keys.Count > 1 ? 1 : 0)).ToList();
-                foreach (int most in new[] { 4, 6 }) {
-                    foreach (var key in order) {
-                        NightmareRoom r = byRoom[key][0];
-                        if (doors[r].Count(d => !d.Edge) >= most) continue;
-                        if (RoomSpot(r, hidden) is (NightmareRoom, int, int) spot) return spot;
-                    }
+                var order = keys.Skip(keys.Count > 1 ? 1 : 0).OrderByDescending(k => random.NextDouble() * (1 + byRoom[k][0].Width * byRoom[k][0].Height / 330.0))
+                                .Concat(keys.Take(keys.Count > 1 ? 1 : 0)).ToList();
+                foreach (var key in order) {
+                    NightmareRoom r = byRoom[key][0];
+                    if (Hosts(r, twoWay) && RoomSpot(r, hidden, spacing) is (NightmareRoom, int, int) spot) return spot;
                 }
                 return null;
             }
+            // EntrySpot(); Where a door into a stage stands, two-way (a branch's way back, the switch room's): in its first room that takes
+            // one (in its middle), else none;
+            (NightmareRoom part, int x, int y)? EntrySpot((int level, int stage) s, int spacing = MirrorSpacing * 2) {
+                foreach (var key in byRoom.Keys.Where(k => k.Item1 == s.level && k.Item2 == s.stage && byRoom[k].Count == 1).OrderBy(k => k.Item3)) {
+                    NightmareRoom r = byRoom[key][0];
+                    if (Hosts(r, true) && RoomSpot(r, false, spacing) is (NightmareRoom, int, int) spot) return spot;
+                }
+                return null;
+            }
+            // LandingIn(); Where a one-way door throws Kirby into a stage: a floor in one of its rooms (a random one, or its first), away
+            // from its doors (none lands him in front of one, as KatAM's); its start, if none;
+            (int room, int x, int y) LandingIn((int level, int stage) s, bool first = false) {
+                var keys = byRoom.Keys.Where(k => k.Item1 == s.level && k.Item2 == s.stage && byRoom[k].Count == 1 && !goalRooms.Contains(byRoom[k][0])).OrderBy(k => k.Item3).ToList();
+                foreach (var key in first ? keys : keys.OrderBy(_ => random.Next()).ToList())
+                    if (!IsBossStage(s) && RoomSpot(byRoom[key][0], false, door: false) is (NightmareRoom, int, int) spot) return Target(spot);
+                return StageStart(s);
+            }
 
             List<((int level, int stage) from, (int level, int stage) to)> branches = new List<((int, int), (int, int))>();
+            Dictionary<(int level, int stage), (int level, int stage)> parentOf = new Dictionary<(int, int), (int, int)>();
             List<((int level, int stage) a, (int level, int stage) b, bool hidden, bool oneWay)> links = new List<((int, int), (int, int), bool, bool)>();
             Dictionary<(int level, int stage), (int room, int x, int y)> goals = new Dictionary<(int, int), (int, int, int)>();
-            HashSet<(int level, int stage)> oneWayGoals = new HashSet<(int, int)>();
             List<List<(int level, int stage)>> regulars = new List<List<(int, int)>>();
             Dictionary<int, (int level, int stage)> gates = new Dictionary<int, (int, int)>();
             for (int level = 0; level < 7; level++) {
@@ -1717,10 +1815,12 @@ namespace KatAMRandomizer {
                 (int level, int stage) boss = stages.First(t => t.level == level && IsBossStage(t));
                 Dictionary<(int, int), int> depth = new Dictionary<(int, int), int> { [regular[0]] = 0 }, children = new Dictionary<(int, int), int> { [regular[0]] = 0 };
                 Dictionary<(int, int), (int, int)> parent = new Dictionary<(int, int), (int, int)>();
+                // (a big stage, of many rooms, branches more: up to 3 ways on);
+                int Branches((int level, int stage) p) => Math.Clamp(1 + byRoom.Keys.Count(k => k.Item1 == p.level && k.Item2 == p.stage) / 4, 1, 3);
                 foreach (var s in regular.Skip(1).OrderBy(_ => random.Next()).ToList()) {
-                    var from = depth.Keys.Where(p => children[p] < 2).OrderByDescending(p => random.NextDouble() * (1 + depth[p])).First();
+                    var from = depth.Keys.Where(p => children[p] < Branches(p)).DefaultIfEmpty(depth.Keys.First()).OrderByDescending(p => random.NextDouble() * (1 + depth[p])).First();
                     branches.Add((from, s));
-                    parent[s] = from;
+                    parent[s] = parentOf[s] = from;
                     children[from]++;
                     depth[s] = depth[from] + 1;
                     children[s] = 0;
@@ -1730,7 +1830,6 @@ namespace KatAMRandomizer {
                 int ends = 0;
                 foreach (var s in regular) {
                     if (s == gate) { goals[s] = StageStart(boss); continue; }
-                    oneWayGoals.Add(s);
                     (int room, int x, int y)? to = null;
                     switch (ends++ % 4) {
                         case 0: case 2:
@@ -1749,9 +1848,7 @@ namespace KatAMRandomizer {
                 }
                 /* Loops, few and each for a reason, as KatAM's (about one per 7 rooms of an area): shortcuts, one-way, from the deepest
                  * stages back to one at least two branches shallower (else any shallower but its own parent: a way home earned by the
-                 * long way out, as KatAM's mirrors back from a branch's end), at least 2; and a two-way door between sibling branches
-                 * (stages about as deep, through different stages), so two branches meet; */
-                bool Ancestor((int, int) up, (int, int) of) { for (var at = of; parent.TryGetValue(at, out var p); at = p) if (p == up) return true; return false; }
+                 * long way out, as KatAM's mirrors back from a branch's end), at least 2; */
                 List<(int level, int stage)> deepest = regular.OrderByDescending(t => depth[t]).ThenBy(t => t.stage).ToList();
                 for (int i = 0; i < Math.Max(2, regular.Count / 3) && i < deepest.Count; i++) {
                     var a = deepest[i];
@@ -1760,21 +1857,12 @@ namespace KatAMRandomizer {
                     if (home.Count == 0) continue;
                     links.Add((a, home[random.Next(home.Count)], random.Next(2) == 0, true));
                 }
-                var siblings = (from a in regular from b in regular
-                                where a.stage < b.stage && Math.Abs(depth[a] - depth[b]) <= 1 && depth[a] > 0 && depth[b] > 0 && parent[a] != parent[b] && !Ancestor(a, b) && !Ancestor(b, a)
-                                select (a, b)).ToList();
-                for (int i = 0; i < (regular.Count >= 6 ? 2 : 1) && siblings.Count > 0; i++) {
-                    var (a, b) = siblings[random.Next(siblings.Count)];
-                    siblings.RemoveAll(p => p.a == a || p.b == b || p.a == b || p.b == a);
-                    links.Add((a, b, random.Next(2) == 0, false));
-                }
             }
             for (int level = 0; level < 7; level++) {
                 if (regulars[level].Count == 0) continue;
                 (int, int) Any(int l) => regulars[l][random.Next(regulars[l].Count)];
-                // (between levels: a hidden two-way door to the next, and one one-way throw into another, as KatAM's few mirrors
-                // between areas);
-                if (level + 1 < 7 && regulars[level + 1].Count > 0) links.Add((Any(level), Any(level + 1), true, false));
+                // (between levels: a hidden door to the next, and a throw into another, one-way as KatAM's few mirrors between areas);
+                if (level + 1 < 7 && regulars[level + 1].Count > 0) links.Add((Any(level), Any(level + 1), true, true));
                 int other = (level + 2 + random.Next(5)) % 7;
                 if (regulars[other].Count > 0) links.Add((Any(level), Any(other), random.Next(2) == 0, true));
             }
@@ -1787,24 +1875,33 @@ namespace KatAMRandomizer {
                 int width = ReadShort(nightmare, r.Record + 0x14), height = ReadShort(nightmare, r.Record + 0x16);
                 int exits = ReadInt(nightmare, r.Record + 0x44), objects = ReadInt(nightmare, r.Record + 0x48);
                 int exitsEnd = objects != 0 ? objects - 0x08000000 : r.Record;
-                List<(int x, int y)> transports = new List<(int, int)>();
+                List<(int x, int y, bool cannon)> transports = new List<(int, int, bool)>();
                 for (int at = objects == 0 ? r.Record : objects - 0x08000000; objects != 0 && at + 8 <= r.Record; at += 8) {
                     // Warp stars (gimmick 4) and cannons (6);
                     if (nightmare[at] == 5 && (nightmare[at + 1] == 4 || nightmare[at + 1] == 6))
-                        transports.Add((ReadShort(nightmare, at + 4) / 16, ReadShort(nightmare, at + 6) / 16));
+                        transports.Add((ReadShort(nightmare, at + 4), ReadShort(nightmare, at + 6), nightmare[at + 1] == 6));
                 }
 
                 // NiDL's exits; a door with two exits (one only after a big switch) keeps its plain one, listed later;
-                List<(int x, int y, (int, int, int) to)> found = new List<(int, int, (int, int, int))>();
+                List<(int x, int y, (int, int, int) to, DoorKind kind)> found = new List<(int, int, (int, int, int), DoorKind)>();
                 for (int at = exits - 0x08000000; exits != 0 && at + 12 <= exitsEnd; at += 12) {
                     int destination = nightmare[at], kind = nightmare[at + 1], x = ReadShort(nightmare, at + 2), y = ReadShort(nightmare, at + 4);
                     int landX = ReadShort(nightmare, at + 6) / 16, landY = ReadShort(nightmare, at + 8) / 16;
                     if (kind == 0 && x < width && y < height && byRoom.ContainsKey((s.level, s.stage, destination)))
-                        found.Insert(0, (x, y, Target(PartAt((s.level, s.stage, destination), landX, landY))));
-                    else if (kind == 34 && x < width && y < height)
-                        found.Add((x, y, goals.TryGetValue(s, out var goal) ? goal : After(s)));
-                    else if (kind == 30 && transports.Count > 0 && byRoom.ContainsKey((s.level, s.stage, x)))
-                        found.Add((transports[0].x, transports[0].y, Target(Start((s.level, s.stage, x)))));
+                        found.Insert(0, (x, y, Target(PartAt((s.level, s.stage, destination), landX, landY)), DoorKind.Nidl));
+                    else if (kind == 34 && x < width && y < height) {
+                        found.Add((x, y, goals.TryGetValue(s, out var goal) ? goal : After(s), DoorKind.Goal));
+                        goalRooms.Add(PartAt(key, x, y).part);
+                    } else if (kind == 30 && transports.Count > 0 && byRoom.ContainsKey((s.level, s.stage, x))) {
+                        // (a warp star or cannon: KatAM's own object, where it stands, to where its exit lands Kirby: a cannon's, the top
+                        // of the room it shoots him up into);
+                        var (tx, ty, cannon) = transports[0];
+                        transports.RemoveAt(0);
+                        var (part, _, _) = PartAt(key, tx / 16, ty / 16);
+                        // (a warp star's lands Kirby in the air past a fall: he lands where the room starts, on its floor);
+                        var to = cannon ? Target(PartAt((s.level, s.stage, x), landX, landY)) : Target(Start((s.level, s.stage, x)));
+                        transportsOf[part].Add(new Transport(tx - part.X * 16, ty - part.Y * 16, cannon, to.room, to.x, to.y));
+                    }
                     else if (kind == 26 && byRoom.ContainsKey((s.level, s.stage, x))) {
                         byte[] cells = Cells(r);
                         var to = Target(Land((s.level, s.stage, x), landX, landY, false));
@@ -1814,15 +1911,122 @@ namespace KatAMRandomizer {
                         }
                     }
                 }
-                foreach ((int x, int y, (int, int, int) to) in found) Add(PartAt(key, x, y), to, oneWay: oneWayGoals.Contains(s) && goals[s].Equals(to));
+                // (a goal door is one-way, as KatAM's goal mirrors);
+                foreach ((int x, int y, (int, int, int) to, DoorKind kind) in found) Add(PartAt(key, x, y), to, kind, oneWay: kind != DoorKind.Nidl);
 
                 if (IsBossStage(s)) {
                     int next = byRoom.Keys.Where(k => k.Item1 == s.level && k.Item2 == s.stage && k.Item3 > key.Item3).Select(k => k.Item3).DefaultIfEmpty(-1).Min();
-                    Add(Start(key), next >= 0 ? Target(Start((s.level, s.stage, next))) : After(s));
+                    Add(Start(key), next >= 0 ? Target(Start((s.level, s.stage, next))) : After(s), DoorKind.Boss, oneWay: true);
                 }
             }
 
-            foreach (var (at, to) in edges) Add(at, to, true);
+            foreach (var (at, to) in edges) Add(at, to, DoorKind.Edge, true);
+
+            // A split room's parts: the cells on their shared edge (not solid) take Kirby across;
+            foreach (var parts in byRoom.Values.Where(p => p.Count > 1)) {
+                byte[] cells = Cells(parts[0]);
+                int width = ReadShort(nightmare, parts[0].Record + 0x14);
+                // (through breakable blocks too: Heavy Mole's arena is all blocks);
+                bool Open(int x, int y) => OpenCell(cells, width, x, y, true);
+                for (int i = 0; i + 1 < parts.Count; i++) {
+                    NightmareRoom a = parts[i], b = parts[i + 1];
+                    if (b.X > a.X) {
+                        for (int y = 0; y < a.Height; y++) {
+                            if (Open(b.X - 1, y)) Add((a, a.Width - 1, y), (b.Room, 2, y + 1), DoorKind.Split, true);
+                            if (Open(b.X, y)) Add((b, 0, y), (a.Room, a.Width - 1, y + 1), DoorKind.Split, true);
+                        }
+                    } else {
+                        for (int x = 0; x < a.Width; x++) {
+                            if (Open(x, b.Y - 1)) Add((a, x, a.Height - 1), (b.Room, x + 1, 2), DoorKind.Split, true);
+                            if (Open(x, b.Y)) Add((b, x, 0), (a.Room, x + 1, a.Height - 1), DoorKind.Split, true);
+                        }
+                    }
+                }
+            }
+
+            /* Two-way, as KatAM's: NiDL's own doors are pairs, and one whose landing has no mirror back nearby (NiDL's few one-way doors)
+             * gets one there, or beside it on the same floor (the first free cell up to 10 away that Kirby walks to, none within 2 cells,
+             * where the camera shows it: then the mirror lands there; with no floor, the landing itself), where the room takes it (its
+             * exits, the camera: see MaxExits(), not a goal room); not into or out of the boss stages (one-way); a mirror with one back
+             * lands Kirby on it, as KatAM's (NiDL's doors land him beside theirs); */
+            Dictionary<int, NightmareRoom> partOf = rooms.ToDictionary(r => r.Room, r => r);
+            bool IsBossRoom(NightmareRoom r) => !r.IsSwitchRoom && IsBossStage((r.Level, r.Stage));
+            Dictionary<NightmareRoom, byte[]> cellsOf = new Dictionary<NightmareRoom, byte[]>();
+            (int x, int y)? FreeFloor(NightmareRoom r, int x, int y) {
+                if (!cellsOf.TryGetValue(r, out byte[] cells)) cellsOf[r] = cells = Cells(r);
+                int width = ReadShort(nightmare, r.Record + 0x14), height = ReadShort(nightmare, r.Record + 0x16);
+                int Kind(int cx, int cy) => cells[((r.Y + cy) * width + r.X + cx) * 4 + 3];
+                bool Open(int cx, int cy) => cx >= 0 && cx < r.Width && cy >= 0 && cy < r.Height && OpenCell(cells, width, r.X + cx, r.Y + cy);
+                bool Floor(int cx, int cy) => r.Y + cy < height && RoomCollision[Kind(cx, cy)] is >= 0x01 and <= 0x1B;
+                if (!Open(x, y)) return null;
+                int landingY = y;
+                while (Open(x, y + 1) && !Floor(x, y + 1)) y++;
+                foreach (int dx in Enumerable.Range(0, 2 * ReturnReach + 1).Select(i => (i + 1) / 2 * (i % 2 == 0 ? -1 : 1))) {
+                    int cx = x + dx;
+                    if (cx >= 1 && cx <= r.FullWidth - 2 && Shown(r, y) && Enumerable.Range(Math.Min(x, cx), Math.Abs(dx) + 1).All(ix => Open(ix, y)) && Open(cx - 1, y) && Open(cx + 1, y) && y + 1 < r.Height && Floor(cx, y + 1) && (cx == 0 || Floor(cx - 1, y + 1)) && (cx + 1 >= r.Width || Floor(cx + 1, y + 1)) && !doors[r].Any(d => d.Edge ? d.Y == y && d.X == cx : Math.Abs(d.Y - y) <= 2 && Math.Abs(d.X - cx) < MirrorSpacing))
+                        return (cx, y);
+                }
+                // (no floor nearby: the landing itself, in the air, as KatAM's hub doors are, where the camera shows it; none where Kirby
+                // falls out of the room, as a cannon's shot into a sky he falls through: he'd never stay on it);
+                if (y + 1 >= r.Height) return null;
+                x = Math.Clamp(x, 1, r.FullWidth - 2);
+                while (!Shown(r, landingY) && landingY < MirrorTop && Open(x, landingY + 1)) landingY++;
+                while (!Shown(r, landingY) && landingY > MirrorTop && Open(x, landingY - 1)) landingY--;
+                return doors[r].Any(d => !d.Edge && Math.Abs(d.Y - landingY) <= 2 && Math.Abs(d.X - x) < MirrorSpacing) ? null : (x, landingY);
+            }
+            // FallsOut(); Whether Kirby, there, falls out of the room (nothing but air and water below it): landing on a mirror floating
+            // over a fall, he'd drop out at once (NiDL's doors in its skies: Kirby flies into them, and lands beside them);
+            bool FallsOut(NightmareRoom r, int x, int y) {
+                if (!cellsOf.TryGetValue(r, out byte[] cells)) cellsOf[r] = cells = Cells(r);
+                int width = ReadShort(nightmare, r.Record + 0x14);
+                while (y + 1 < r.Height && OpenCell(cells, width, r.X + x, r.Y + y + 1)) y++;
+                return y + 1 >= r.Height;
+            }
+            foreach (NightmareRoom from in rooms) {
+                foreach (Door door in doors[from].ToList()) {
+                    if (door.Kind != DoorKind.Nidl || door.OneWay || !partOf.TryGetValue(door.Room, out NightmareRoom to)) continue;
+                    int x = door.DestX - 1, y = door.DestY - 1;
+                    // (NiDL lands Kirby beside the door back; KatAM, on it);
+                    // (beside it: up to 2 cells across, 3 up or down, where Kirby lands above a door and drops by it);
+                    Door partner = doors[to].Where(d => !d.Edge && d.Room == from.Room && Math.Abs(d.X - x) <= 2 && Math.Abs(d.Y - y) <= 3)
+                                            .OrderBy(d => Math.Abs(d.X - x) + Math.Abs(d.Y - y)).FirstOrDefault();
+                    if (partner != null) {
+                        if ((partner.X, partner.Y) != (x, y) && !FallsOut(to, partner.X, partner.Y))
+                            doors[from][doors[from].IndexOf(door)] = door with { DestX = partner.X + 1, DestY = partner.Y + 1, Facing = Facing((to.Room, partner.X + 1, partner.Y + 1)) };
+                        continue;
+                    }
+                    // (boss stages are one-way, as KatAM's boss rooms: no way back into one, nor out of one back to it; a room with a door
+                    // back already, elsewhere, gets no second one);
+                    if (IsBossRoom(from) || IsBossRoom(to)) continue;
+                    if (doors[to].Any(d => !d.Edge && d.Room == from.Room) || goalRooms.Contains(to) || Exits(to) >= MaxExits(to)) continue;
+                    if (FreeFloor(to, x, y) is not (int, int) cell || !ViewFits(to, cell.x, cell.y)) continue;
+                    if (cell != (x, y)) doors[from][doors[from].IndexOf(door)] = door with { DestX = cell.x + 1, DestY = cell.y + 1, Facing = Facing((to.Room, cell.x + 1, cell.y + 1)) };
+                    doors[to].Add(new Door(cell.x, cell.y, from.Room, door.X + 1, door.Y + 1, Facing((from.Room, door.X + 1, door.Y + 1)), Kind: DoorKind.Nidl));
+                }
+            }
+            /* A goal room keeps its goal door alone, as KatAM's (no branch, no way back): its doors back towards its stage's start (fewer
+             * doors from it: the way Kirby came) go, and the doors into it there throw him in, one-way; NiDL's goal rooms that lead on
+             * (into side rooms, up Butter Building's tower, Orange Ocean's room of doors) keep those doors: the rooms past them are
+             * reached only through them; */
+            foreach (NightmareRoom goalRoom in goalRooms) {
+                Dictionary<int, int> fromStart = new Dictionary<int, int>();
+                Queue<NightmareRoom> queue = new Queue<NightmareRoom>();
+                foreach (NightmareRoom first in byRoom[byRoom.Keys.Where(k => k.Item1 == goalRoom.Level && k.Item2 == goalRoom.Stage).Min()]) { fromStart[first.Room] = 0; queue.Enqueue(first); }
+                while (queue.Count > 0) {
+                    NightmareRoom at = queue.Dequeue();
+                    foreach (Door d in doors[at])
+                        if (partOf.TryGetValue(d.Room, out NightmareRoom next) && (next.Level, next.Stage) == (goalRoom.Level, goalRoom.Stage) && fromStart.TryAdd(next.Room, fromStart[at.Room] + 1))
+                            queue.Enqueue(next);
+                }
+                foreach (Door way in doors[goalRoom].Where(d => !d.Edge && d.Kind != DoorKind.Goal).ToList()) {
+                    if (!fromStart.TryGetValue(way.Room, out int distance) || distance >= fromStart.GetValueOrDefault(goalRoom.Room, int.MaxValue)) continue;
+                    var into = rooms.SelectMany(r => doors[r].Select(d => (r, d)))
+                                    .Where(p => p.r.Room == way.Room && p.d.Room == goalRoom.Room && !p.d.Edge && p.d.DestX == way.X + 1 && p.d.DestY == way.Y + 1).ToList();
+                    if (into.Count == 0) continue;
+                    doors[goalRoom].Remove(way);
+                    foreach (var (r, d) in into) doors[r][doors[r].IndexOf(d)] = d with { OneWay = true };
+                }
+            }
 
             /* Stages unlinked from themselves: pairs of NiDL's own two-way doors (a door and the one back, in rooms of a regular stage) of
              * two stages swap their other ends (a-b, c-d: a-d, c-b), so a stage's rooms lead on into another's, still two-way: per level,
@@ -1893,11 +2097,12 @@ namespace KatAMRandomizer {
              * of its stages (not the boss's), in the room farthest from its stage's start (by doors), on the floor cell farthest from
              * where Kirby comes into it (by open cells, through breakable blocks), best behind blocks he must break to get there; a cell
              * the camera shows a mirror on (Shown()), with room above, no door within 2 cells, not water; not in a room taken; */
-            (NightmareRoom part, int x, int y) SecretSpot(int level, HashSet<NightmareRoom> taken) {
+            // (in a room that takes a door, Hosts(), the camera showing 2 at most there; in any stage if none in the second half);
+            (NightmareRoom part, int x, int y) SecretSpot(int level, HashSet<NightmareRoom> taken, bool anyStage = false) {
                 List<(int level, int stage)> regular = stages.Where(t => t.level == level && !IsBossStage(t)).ToList();
                 (NightmareRoom part, int x, int y) best = default;
                 int bestScore = int.MinValue;
-                foreach ((int level, int stage) s in regular.Skip(regular.Count / 2)) {
+                foreach ((int level, int stage) s in regular.Skip(anyStage ? 0 : regular.Count / 2)) {
                     // The stage's rooms by doors from its first;
                     var keys = byRoom.Keys.Where(k => k.Item1 == s.level && k.Item2 == s.stage).ToList();
                     Dictionary<int, int> depth = new Dictionary<int, int> { [keys.Min(k => k.Item3)] = 0 };
@@ -1913,7 +2118,7 @@ namespace KatAMRandomizer {
                     }
                     foreach (var key in keys) {
                         NightmareRoom r = byRoom[key][0];
-                        if (taken.Contains(r) || byRoom[key].Count > 1) continue;
+                        if (taken.Contains(r) || !Hosts(r, false)) continue;
                         int width = ReadShort(nightmare, r.Record + 0x14), height = ReadShort(nightmare, r.Record + 0x16);
                         byte[] cells = Cells(r);
                         int Kind(int x, int y) => cells[(y * width + x) * 4 + 3];
@@ -1940,14 +2145,14 @@ namespace KatAMRandomizer {
                                 int distance = broken[y * width + x];
                                 if (distance < 0 || !Shown(r, y) || Kind(x, y) != 0 || !OpenCell(cells, width, x, y - 1) || !OpenCell(cells, width, x - 1, y) || !OpenCell(cells, width, x + 1, y)) continue;
                                 if (Enumerable.Range(x - 1, 3).Any(fx => RoomCollision[Kind(fx, y + 1)] is not (0x0D or (>= 0x05 and <= 0x0E) or (>= 0x10 and <= 0x1B)))) continue;
-                                if (doors[r].Any(d => Math.Abs(d.X - x) < MirrorSpacing * 2 && Math.Abs(d.Y - y) <= 2)) continue;
+                                if (doors[r].Any(d => Math.Abs(d.X - x) < MirrorSpacing * 2 && Math.Abs(d.Y - y) <= 2) || InArena(r, x, y) || !ViewFits(r, x, y)) continue;
                                 int score = distance + 20 * depth.GetValueOrDefault(key.Item3) + (plain[y * width + x] < 0 ? 60 : 0);
                                 if (score > bestScore) { bestScore = score; best = (r, x, y); }
                             }
                         }
                     }
                 }
-                return best;
+                return best.part != null || anyStage ? best : SecretSpot(level, taken, true);
             }
 
             // The switch rooms; the NiDL hub's mirrors (Central Circle's golden mirror leads to the NiDL hub's, FinishRooms());
@@ -1956,16 +2161,18 @@ namespace KatAMRandomizer {
             HashSet<NightmareRoom> secretRooms = new HashSet<NightmareRoom>();
             for (int level = 0; level < 8; level++) {
                 NightmareRoom switchRoom = SwitchRoomOf(level);
-                // Its floor mirror, both ways with a hidden spot in the level (SecretSpot(); the Fountain of Dreams, all boss stage: in
-                // Rainbow Resort's, another room);
+                // The way in: a Mirra's, hidden in the level (SecretSpot(); the Fountain of Dreams, all boss stage: in Rainbow Resort's,
+                // another room), one-way, as KatAM's Mirras, onto its floor (no mirror there: the room's are hub doors, two-way);
                 (int x, int y)[] sides = SwitchSides(level);
                 (NightmareRoom part, int x, int y) secret = SecretSpot(level < 7 ? level : 6, secretRooms);
                 secretRooms.Add(secret.part);
-                Add(secret, Target((switchRoom, sides[0].x, sides[0].y)), hidden: true);
-                Add((switchRoom, sides[0].x, sides[0].y), Target(secret));
-                // and its other side's (as KatAM's switch rooms have one on each side), one-way back into the level: to the start of
-                // the stage leading to its boss (the Fountain of Dreams', Rainbow Resort's), a shortcut earned by finding the room;
-                if (gates.TryGetValue(level < 7 ? level : 6, out var gate)) Add((switchRoom, sides[1].x, sides[1].y), StageStart(gate), oneWay: true);
+                Add(secret, Target((switchRoom, sides[0].x, sides[0].y)), DoorKind.SwitchEntry, oneWay: true, hidden: true);
+                // its floor mirror (as KatAM's switch rooms have one on a side), both ways with the start of the stage leading to its boss
+                // (the Fountain of Dreams', Rainbow Resort's), a shortcut earned by finding the room;
+                if (gates.TryGetValue(level < 7 ? level : 6, out var gate) && EntrySpot(gate) is (NightmareRoom, int, int) gateSpot) {
+                    Add((switchRoom, sides[1].x, sides[1].y), Target(gateSpot), DoorKind.SwitchFloor);
+                    Add(gateSpot, Target((switchRoom, sides[1].x, sides[1].y)), DoorKind.SwitchFloor);
+                }
 
                 // Its hub doors (2, see LayoutB()): the mirror its big switch reveals (SwitchLinkDoor; Rainbow Resort's, to the hub, is its
                 // SwitchHubDoor), and its way back on where it leads (KatAMLinkDoors; Butter Building's on Rainbow Resort's SwitchLinkDoor);
@@ -1977,135 +2184,198 @@ namespace KatAMRandomizer {
                 (int x, int y) linkedDoor = linked < Hub ? SwitchLinkDoor(-2 - linked) : default;
                 (int, int, int) link = linked == Hub ? MainHubAt(MainHubDoors[level]) : linked < 0 ? Target((SwitchRoomOf(-2 - linked), linkedDoor.x, linkedDoor.y))
                                                                                     : (linked, landing.x + 1, landing.y + 1);
-                Add((switchRoom, linkDoor.x, linkDoor.y), link, slot: LevelSlot(level), design: LinkDesign(linked));
-                if (linked < Hub) Add((SwitchRoomOf(-2 - linked), linkedDoor.x, linkedDoor.y), linkTarget, slot: LevelSlot(level), design: NidlDesigns[level]);
+                Add((switchRoom, linkDoor.x, linkDoor.y), link, DoorKind.Hub, slot: LevelSlot(level), design: LinkDesign(linked));
+                if (linked < Hub) Add((SwitchRoomOf(-2 - linked), linkedDoor.x, linkedDoor.y), linkTarget, DoorKind.Hub, slot: LevelSlot(level), design: NidlDesigns[level]);
                 else if (linked != Hub) {
                     if (!katamDoors.ContainsKey(linked)) katamDoors[linked] = new List<Door>();
-                    katamDoors[linked].Add(new Door(door.x, door.y, linkTarget.room, linkTarget.x, linkTarget.y, Facing(linkTarget), Slot: LevelSlot(level), Design: NidlDesigns[level]));
+                    katamDoors[linked].Add(new Door(door.x, door.y, linkTarget.room, linkTarget.x, linkTarget.y, Facing(linkTarget), Slot: LevelSlot(level), Design: NidlDesigns[level], Kind: DoorKind.Hub));
                 }
                 (int room, int x, int y) arrival = Target((switchRoom, hubDoor.x, hubDoor.y));
-                if (linked != Hub) Add((switchRoom, hubDoor.x, hubDoor.y), MainHubAt(MainHubDoors[level]), slot: LevelSlot(level), design: HubDesign);
-                mainHubDoors.Add(new Door(MainHubDoors[level].x, MainHubDoors[level].y, arrival.room, arrival.x, arrival.y, Facing(arrival), Slot: LevelSlot(level)));
+                if (linked != Hub) Add((switchRoom, hubDoor.x, hubDoor.y), MainHubAt(MainHubDoors[level]), DoorKind.Hub, slot: LevelSlot(level), design: HubDesign);
+                mainHubDoors.Add(new Door(MainHubDoors[level].x, MainHubDoors[level].y, arrival.room, arrival.x, arrival.y, Facing(arrival), Slot: LevelSlot(level), Kind: DoorKind.Hub));
             }
-            mainHubDoors.Add(new Door(MainHubReturn.x, MainHubReturn.y, back.room, back.x, back.y, 1));
+            mainHubDoors.Add(new Door(MainHubReturn.x, MainHubReturn.y, back.room, back.x, back.y, 1, Kind: DoorKind.Hub));
             firstStart = MainHubAt(MainHubReturn);
             firstFacing = 1;
 
-            // The way in, the hub's golden mirror: to where Kirby starts Vegetable Valley's first room, onto a mirror back (the switch
-            // room's mirror there lands beside it, TwoWay());
+            // The way in, the hub's golden mirror: to where Kirby starts Vegetable Valley's first room, onto a mirror back;
             int firstStage = stages.Where(t => t.level == 0).Min(t => t.stage);
             var firstRoom = Start((0, firstStage, byRoom.Keys.Where(k => k.Item1 == 0 && k.Item2 == firstStage).Min(k => k.Item3)));
             (int room, int x, int y) entryArrival = Target(firstRoom);
-            mainHubDoors.Add(new Door(MainHubEntry.x, MainHubEntry.y, entryArrival.room, entryArrival.x, entryArrival.y, Facing(entryArrival)));
-            Add(firstRoom, MainHubAt(MainHubEntry));
+            mainHubDoors.Add(new Door(MainHubEntry.x, MainHubEntry.y, entryArrival.room, entryArrival.x, entryArrival.y, Facing(entryArrival), Kind: DoorKind.Entry));
+            Add(firstRoom, MainHubAt(MainHubEntry), DoorKind.Entry);
 
-            // The levels' structure (see above): branch doors into stages, loops, links between levels and with KatAM's areas;
-            foreach (var (from, to) in branches) {
+            // The levels' structure (see above): branch doors into stages (two-way, as KatAM's: a branch's way back lands Kirby on its
+            // mirror; one-way into the stage where the rooms take no more doors), loops and links between levels, one-way;
+            // (from its parent, else from a stage further up, or any other the branch doesn't lead to: the rooms took no more doors);
+            bool Under((int, int) stage, (int, int) of) { for (var at = stage; ; at = parentOf[at]) { if (at == of) return true; if (!parentOf.ContainsKey(at)) return false; } }
+            foreach (var (parent, to) in branches) {
                 bool hiddenBranch = random.Next(2) == 0;
-                var spot = HostSpot(from, hiddenBranch) ?? HostSpot(from, hiddenBranch = true);
-                if (spot is not (NightmareRoom, int, int) at) throw new InvalidOperationException($"No room for a branch door in level {from.level}, stage {from.stage}.");
-                Add(at, StageStart(to), hidden: hiddenBranch);
+                List<(int level, int stage)> froms = new List<(int, int)>();
+                for (var at = parent; ; at = parentOf[at]) { froms.Add(at); if (!parentOf.ContainsKey(at)) break; }
+                froms.AddRange(regulars[to.level].Where(t => !froms.Contains(t) && !Under(t, to)).OrderBy(_ => random.Next()));
+                bool placed = false;
+                // (mirrors kept 2 x MirrorSpacing cells apart, else MirrorSpacing, in small rooms);
+                foreach (int spacing in new[] { MirrorSpacing * 2, MirrorSpacing }) {
+                    foreach (var from in froms) {
+                        if (placed || (HostSpot(from, hiddenBranch, true, spacing) ?? HostSpot(from, !hiddenBranch, true, spacing)) is not (NightmareRoom, int, int) at
+                            || EntrySpot(to, spacing) is not (NightmareRoom, int, int) entry) continue;
+                        Add(at, Target(entry), DoorKind.Branch);
+                        Add(entry, Target(at), DoorKind.BranchBack);
+                        placed = true;
+                    }
+                    foreach (var from in froms) {
+                        if (placed || (HostSpot(from, hiddenBranch, false, spacing) ?? HostSpot(from, !hiddenBranch, false, spacing)) is not (NightmareRoom, int, int) host) continue;
+                        Add(host, LandingIn(to, true), DoorKind.Branch, oneWay: true);
+                        placed = true;
+                    }
+                }
+                // (else another stage's goal throws Kirby into it, as KatAM's goal mirrors throw him on: one not leading to the boss, of a
+                // stage it doesn't lead to);
+                foreach (var from in froms) {
+                    NightmareRoom goalRoom = goalRooms.FirstOrDefault(g => (g.Level, g.Stage) == from && doors[g].Any(d => d.Kind == DoorKind.Goal && !partOf.TryGetValue(d.Room, out NightmareRoom t)));
+                    if (placed || goalRoom == null) continue;
+                    Door goal = doors[goalRoom].First(d => d.Kind == DoorKind.Goal);
+                    (int room, int x, int y) into = LandingIn(to, true);
+                    doors[goalRoom][doors[goalRoom].IndexOf(goal)] = goal with { Room = into.room, DestX = into.x, DestY = into.y, Facing = Facing(into) };
+                    placed = true;
+                }
+                if (!placed) throw new InvalidOperationException($"No room for a branch door in level {parent.level}, into stage {to.stage}.");
             }
-            foreach (var (a, b, hidden, oneWay) in links) {
-                if (HostSpot(a, hidden) is not (NightmareRoom, int, int) one) continue;
-                if (HostSpot(b, hidden) is not (NightmareRoom, int, int) two || two.part == one.part) continue;
-                Add(one, Target(two), oneWay: oneWay, hidden: hidden);
-                if (!oneWay) Add(two, Target(one), hidden: hidden);
+            // (a link between levels from any stage of its level that takes a door; small rooms' mirrors MirrorSpacing apart, if none);
+            foreach (var (a, b, hidden, _) in links) {
+                var froms = new[] { a }.Concat(a.level == b.level ? Array.Empty<(int, int)>() : regulars[a.level].Where(t => t != a).OrderBy(_ => random.Next())).ToList();
+                var host = froms.Select(f => HostSpot(f, hidden, false)).FirstOrDefault(h => h != null) ?? froms.Select(f => HostSpot(f, hidden, false, MirrorSpacing)).FirstOrDefault(h => h != null);
+                if (host is not (NightmareRoom, int, int) one) continue;
+                Add(one, LandingIn(b), a.level == b.level ? DoorKind.Loop : DoorKind.Link, oneWay: true);
             }
+            // KatAMLinks (per level: one throwing Kirby one-way from NiDL into KatAM's area, one from KatAM's into NiDL, as KatAM's own
+            // one-way mirrors throw him across areas);
             for (int link = 0; link < KatAMLinks * 7; link++) {
                 int level = link % 7;
                 if (regulars[level].Count == 0) continue;
-                bool hiddenLink = link / 7 % KatAMLinks == 2;
-                if (HostSpot(regulars[level][random.Next(regulars[level].Count)], hiddenLink) is not (NightmareRoom, int, int) spot) continue;
-                if (KatAMSpot(KatAMArea(level), true) is not (int room, int x, int y) katam) continue;
-                // (per level: one throwing Kirby one-way from NiDL into KatAM's area, one from KatAM's into NiDL, as KatAM's own one-way
-                // mirrors throw him across areas, and one both ways, hidden, behind a Mirra);
-                int kind = link / 7 % KatAMLinks;
-                if (kind != 1) Add(spot, (katam.room, katam.x + 1, katam.y + 1), oneWay: kind == 0, hidden: hiddenLink);
-                if (kind == 0) continue;
-                if (!katamDoors.ContainsKey(katam.room)) katamDoors[katam.room] = new List<Door>();
-                katamDoors[katam.room].Add(new Door(katam.x, katam.y, spot.part.Room, spot.x + 1, spot.y + 1, Facing(Target(spot)), OneWay: kind == 1));
+                (int level, int stage) stage = regulars[level][random.Next(regulars[level].Count)];
+                if (link / 7 == 0) {
+                    var host = regulars[level].OrderBy(t => t == stage ? 0 : 1 + random.Next(100)).Select(t => HostSpot(t, false, false) ?? HostSpot(t, false, false, MirrorSpacing)).FirstOrDefault(h => h != null);
+                    if (host is not (NightmareRoom, int, int) spot || KatAMSpot(KatAMArea(level), true) is not (int room, int x, int y) katam) continue;
+                    Add(spot, (katam.room, katam.x + 1, katam.y + 1), DoorKind.KatAMLink, oneWay: true);
+                } else {
+                    if (KatAMSpot(KatAMArea(level), true) is not (int room, int x, int y) katam) continue;
+                    (int room, int x, int y) to = LandingIn(stage);
+                    if (!katamDoors.ContainsKey(katam.room)) katamDoors[katam.room] = new List<Door>();
+                    katamDoors[katam.room].Add(new Door(katam.x, katam.y, to.room, to.x, to.y, Facing(to), OneWay: true, Kind: DoorKind.KatAMLink));
+                }
             }
 
-            // A split room's parts: the cells on their shared edge (not solid) take Kirby across;
-            foreach (var parts in byRoom.Values.Where(p => p.Count > 1)) {
-                byte[] cells = Cells(parts[0]);
-                int width = ReadShort(nightmare, parts[0].Record + 0x14);
-                // (through breakable blocks too: Heavy Mole's arena is all blocks);
-                bool Open(int x, int y) => OpenCell(cells, width, x, y, true);
-                for (int i = 0; i + 1 < parts.Count; i++) {
-                    NightmareRoom a = parts[i], b = parts[i + 1];
-                    if (b.X > a.X) {
-                        for (int y = 0; y < a.Height; y++) {
-                            if (Open(b.X - 1, y)) Add((a, a.Width - 1, y), (b.Room, 2, y + 1), true);
-                            if (Open(b.X, y)) Add((b, 0, y), (a.Room, a.Width - 1, y + 1), true);
-                        }
-                    } else {
-                        for (int x = 0; x < a.Width; x++) {
-                            if (Open(x, b.Y - 1)) Add((a, x, a.Height - 1), (b.Room, x + 1, 2), true);
-                            if (Open(x, b.Y)) Add((b, x, 0), (a.Room, x + 1, a.Height - 1), true);
-                        }
+
+            /* Every room reached from the NiDL hub (Reached(): by its doors, warp stars and cannons, through its open cells): a group of
+             * rooms none leads into (the swaps above can leave one, a stage's far end leading only into another's) gets a one-way door
+             * into its first room, a throw from a room reached, of the same level if one takes it, as KatAM's one-way mirrors; */
+            Dictionary<int, NightmareRoom> numbered = rooms.ToDictionary(r => r.Room, r => r);
+            List<Door> hubDoors = mainHubDoors;
+            // Reached(); The rooms Kirby gets to from the hub: from each cell he arrives in, through open cells (and breakable blocks),
+            // to the doors, warp stars and cannons there (a door at a cell he reaches, or beside it); not through KatAM's rooms;
+            HashSet<int> Reached() {
+                Dictionary<int, HashSet<(int, int)>> arrived = new Dictionary<int, HashSet<(int, int)>>();
+                Queue<(int room, int x, int y)> open = new Queue<(int, int, int)>();
+                void Arrive(int room, int x, int y) {
+                    if (!numbered.ContainsKey(room)) return;
+                    if (!arrived.TryGetValue(room, out var cells)) arrived[room] = cells = new HashSet<(int, int)>();
+                    if (cells.Add((x, y))) open.Enqueue((room, x, y));
+                }
+                foreach (Door d in hubDoors) Arrive(d.Room, d.DestX - 1, d.DestY - 1);
+                Dictionary<int, HashSet<(int, int)>> flooded = new Dictionary<int, HashSet<(int, int)>>();
+                while (open.Count > 0) {
+                    var (room, sx, sy) = open.Dequeue();
+                    NightmareRoom r = numbered[room];
+                    if (!flooded.TryGetValue(room, out var seen)) flooded[room] = seen = new HashSet<(int, int)>();
+                    if (!partCells.TryGetValue(r, out byte[] cells)) partCells[r] = cells = Cells(r);
+                    int width = ReadShort(nightmare, r.Record + 0x14);
+                    bool Open(int x, int y) => x >= 0 && y >= 0 && x < r.Width && y < r.Height && OpenCell(cells, width, r.X + x, r.Y + y, true);
+                    Queue<(int x, int y)> cellsOpen = new Queue<(int, int)>();
+                    sx = Math.Clamp(sx, 0, r.Width - 1); sy = Math.Clamp(sy, 0, r.Height - 1);
+                    if (seen.Add((sx, sy))) cellsOpen.Enqueue((sx, sy));
+                    while (cellsOpen.Count > 0) {
+                        var (x, y) = cellsOpen.Dequeue();
+                        foreach (var (nx, ny) in new[] { (x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1) })
+                            if (Open(nx, ny) && seen.Add((nx, ny))) cellsOpen.Enqueue((nx, ny));
                     }
+                    bool Near(int x, int y) => Enumerable.Range(-1, 3).Any(dx => Enumerable.Range(-1, 3).Any(dy => seen.Contains((x + dx, y + dy))));
+                    foreach (Door d in doors[r]) if (d.Edge ? seen.Contains((d.X, d.Y)) : Near(d.X, d.Y)) Arrive(d.Room, d.DestX - 1, d.DestY - 1);
+                    foreach (Transport t in transportsOf[r]) if (Near(t.X / 16, t.Y / 16)) Arrive(t.Room, t.DestX - 1, t.DestY - 1);
+                }
+                return arrived.Keys.ToHashSet();
+            }
+            for (int pass = 0; pass < rooms.Count; pass++) {
+                HashSet<int> reached = Reached();
+                NightmareRoom lost = rooms.Where(r => !r.IsSwitchRoom && !reached.Contains(r.Room)).OrderBy(r => (r.Level, r.Stage, r.Index)).FirstOrDefault();
+                if (lost == null) break;
+                var host = rooms.Where(r => reached.Contains(r.Room) && Hosts(r, false)).OrderBy(r => r.Level == lost.Level ? 0 : 1).ThenBy(_ => random.Next())
+                                .Select(r => RoomSpot(r, false) ?? RoomSpot(r, false, MirrorSpacing)).FirstOrDefault(h => h != null);
+                if (host is not (NightmareRoom, int, int) from) throw new InvalidOperationException($"No room for a door into room 0x{lost.Room:X}.");
+                (int room, int x, int y) into = RoomSpot(lost, false, door: false) is (NightmareRoom, int, int) spot ? Target(spot) : Target(Start((lost.Level, lost.Stage, lost.Index)));
+                Add(from, into, DoorKind.Link, oneWay: true);
+            }
+
+            /* Which doors are one-way, for good: one is two-way when the door it lands Kirby on leads back onto it (or, NiDL's over a fall,
+             * where Kirby lands beside them, the door beside the landing back beside it: up to 2 cells across, 3 up or down); KatAM draws
+             * the others as one-way mirrors (BuildObjects()); the doors into KatAM's rooms keep what they were made as; */
+            Dictionary<int, List<Door>> listOf = doors.ToDictionary(p => p.Key.Room, p => p.Value);
+            listOf[mainHub] = mainHubDoors;
+            foreach (var (room, list) in katamDoors) listOf[room] = list;
+            bool Near(int x, int y, int toX, int toY) => Math.Abs(x - toX) <= 2 && Math.Abs(y - toY) <= 3;
+            bool Back(int room, Door d) => listOf[d.Room].Any(e => !e.Edge && e.Room == room && Near(e.X, e.Y, d.DestX - 1, d.DestY - 1) && Near(e.DestX - 1, e.DestY - 1, d.X, d.Y));
+            foreach (var (room, list) in listOf)
+                for (int i = 0; i < list.Count; i++)
+                    if (!list[i].Edge && list[i].Slot == 0 && listOf.ContainsKey(list[i].Room) && (partOf.ContainsKey(list[i].Room) || list[i].Room == mainHub))
+                        list[i] = list[i] with { OneWay = !Back(room, list[i]) };
+
+            /* NiDL's door halls (Butter Building's tower floors, Rainbow Resort's rooms of doors) keep their doors past the rules
+             * (MaxExits(), ViewFits()), without mirrors: NiDL's own doorways, drawn in its tiles, as NiDL has them; */
+            foreach (NightmareRoom r in rooms.Where(r => !r.IsSwitchRoom)) {
+                List<Door> mirrored = new List<Door>();
+                foreach (Door d in doors[r].Where(d => !d.Edge).OrderBy(d => d.Kind == DoorKind.Nidl ? 1 : 0).ToList()) {
+                    if (d.Kind != DoorKind.Nidl || mirrored.Count < MaxExits(r) && InView(mirrored, d.X, d.Y)) mirrored.Add(d);
+                    else doors[r][doors[r].IndexOf(d)] = d with { Plain = true };
                 }
             }
 
-            /* Two-way, as KatAM's: a mirror whose landing has no mirror back nearby (a goal door, a warp star or cannon; NiDL's own doors
-             * are pairs) gets one there, or beside it on the same floor (the first free cell up to 10 away that Kirby walks to, none within 2 cells, where the
-             * camera shows it: then the mirror lands there; with no floor, the landing itself); not the edges (falls), the hub doors,
-             * those to the NiDL hub, nor the boss stages' (one-way); a mirror with one back lands Kirby on it, as KatAM's (NiDL's doors land him beside
-             * theirs); */
-            Dictionary<int, NightmareRoom> partOf = rooms.ToDictionary(r => r.Room, r => r);
-            bool IsBossRoom(NightmareRoom r) => !r.IsSwitchRoom && IsBossStage((r.Level, r.Stage));
-            Dictionary<NightmareRoom, byte[]> cellsOf = new Dictionary<NightmareRoom, byte[]>();
-            (int x, int y)? FreeFloor(NightmareRoom r, int x, int y) {
-                if (!cellsOf.TryGetValue(r, out byte[] cells)) cellsOf[r] = cells = Cells(r);
-                int width = ReadShort(nightmare, r.Record + 0x14), height = ReadShort(nightmare, r.Record + 0x16);
-                int Kind(int cx, int cy) => cells[((r.Y + cy) * width + r.X + cx) * 4 + 3];
-                bool Open(int cx, int cy) => cx >= 0 && cx < r.Width && cy >= 0 && cy < r.Height && OpenCell(cells, width, r.X + cx, r.Y + cy);
-                bool Floor(int cx, int cy) => r.Y + cy < height && RoomCollision[Kind(cx, cy)] is >= 0x01 and <= 0x1B;
-                if (!Open(x, y)) return null;
-                int landingY = y;
-                while (Open(x, y + 1) && !Floor(x, y + 1)) y++;
-                foreach (int dx in Enumerable.Range(0, 2 * ReturnReach + 1).Select(i => (i + 1) / 2 * (i % 2 == 0 ? -1 : 1))) {
-                    int cx = x + dx;
-                    if (cx >= 1 && cx <= r.FullWidth - 2 && Shown(r, y) && Enumerable.Range(Math.Min(x, cx), Math.Abs(dx) + 1).All(ix => Open(ix, y)) && Open(cx - 1, y) && Open(cx + 1, y) && y + 1 < r.Height && Floor(cx, y + 1) && (cx == 0 || Floor(cx - 1, y + 1)) && (cx + 1 >= r.Width || Floor(cx + 1, y + 1)) && !doors[r].Any(d => d.Edge ? d.Y == y && d.X == cx : Math.Abs(d.Y - y) <= 2 && Math.Abs(d.X - cx) < MirrorSpacing))
-                        return (cx, y);
-                }
-                // (no floor nearby: the landing itself, in the air, as KatAM's hub doors are, where the camera shows it; none where Kirby
-                // falls out of the room, as a cannon's shot into a sky he falls through: he'd never stay on it);
-                if (y + 1 >= r.Height) return null;
-                x = Math.Clamp(x, 1, r.FullWidth - 2);
-                while (!Shown(r, landingY) && landingY < MirrorTop && Open(x, landingY + 1)) landingY++;
-                while (!Shown(r, landingY) && landingY > MirrorTop && Open(x, landingY - 1)) landingY--;
-                return doors[r].Any(d => !d.Edge && Math.Abs(d.Y - landingY) <= 2 && Math.Abs(d.X - x) < MirrorSpacing) ? null : (x, landingY);
-            }
-            // FallsOut(); Whether Kirby, there, falls out of the room (nothing but air and water below it): landing on a mirror floating
-            // over a fall, he'd drop out at once (NiDL's doors in its skies: Kirby flies into them, and lands beside them);
-            bool FallsOut(NightmareRoom r, int x, int y) {
+            /* No one-way door throws Kirby onto a door, nor in front of a two-way one (4 cells across, 2 up or down), as KatAM's: its landing
+             * moves to a floor nearby away from them (up to ReturnReach cells, the camera showing it), else anywhere in the room
+             * (RoomSpot()); not the boss stages' (Kirby lands by the next room's mirror there, as KatAM's boss rooms); */
+            bool Crowded(NightmareRoom r, int x, int y) => doors[r].Any(e => !e.Edge && (Math.Abs(e.X - x) <= 1 && Math.Abs(e.Y - y) <= 1 || !e.OneWay && Math.Abs(e.X - x) <= 4 && Math.Abs(e.Y - y) <= 2));
+            (int x, int y)? Clear(NightmareRoom r, int x, int y) {
                 if (!cellsOf.TryGetValue(r, out byte[] cells)) cellsOf[r] = cells = Cells(r);
                 int width = ReadShort(nightmare, r.Record + 0x14);
-                while (y + 1 < r.Height && OpenCell(cells, width, r.X + x, r.Y + y + 1)) y++;
-                return y + 1 >= r.Height;
-            }
-            foreach (NightmareRoom from in rooms) {
-                foreach (Door door in doors[from].ToList()) {
-                    if (door.Edge || door.Slot != 0 || door.OneWay || !partOf.TryGetValue(door.Room, out NightmareRoom to)) continue;
-                    int x = door.DestX - 1, y = door.DestY - 1;
-                    // (NiDL lands Kirby beside the door back; KatAM, on it);
-                    Door partner = doors[to].Where(d => !d.Edge && d.Room == from.Room && Math.Abs(d.X - x) <= 2 && Math.Abs(d.Y - y) <= 2)
-                                            .OrderBy(d => Math.Abs(d.X - x) + Math.Abs(d.Y - y)).FirstOrDefault();
-                    if (partner != null) {
-                        if ((partner.X, partner.Y) != (x, y) && !FallsOut(to, partner.X, partner.Y))
-                            doors[from][doors[from].IndexOf(door)] = door with { DestX = partner.X + 1, DestY = partner.Y + 1, Facing = Facing((to.Room, partner.X + 1, partner.Y + 1)) };
-                        continue;
+                bool Open(int cx, int cy) => cx >= 1 && cx < Math.Min(r.Width, r.FullWidth - 1) && cy >= 0 && cy < r.Height && OpenCell(cells, width, r.X + cx, r.Y + cy);
+                bool Floor(int cx, int cy) => cy < r.Height && RoomCollision[cells[((r.Y + cy) * width + r.X + cx) * 4 + 3]] is >= 0x01 and <= 0x1B;
+                // (a cell Kirby goes to from the landing, through open cells: not one behind a wall);
+                HashSet<(int, int)> reached = new HashSet<(int, int)> { (x, y) };
+                Queue<(int x, int y)> open = new Queue<(int, int)>(reached);
+                while (open.Count > 0) {
+                    (int ox, int oy) = open.Dequeue();
+                    foreach ((int nx, int ny) in new[] { (ox + 1, oy), (ox - 1, oy), (ox, oy + 1), (ox, oy - 1) })
+                        if (Math.Abs(nx - x) <= ReturnReach && Math.Abs(ny - y) <= ReturnReach && Open(nx, ny) && reached.Add((nx, ny))) open.Enqueue((nx, ny));
+                }
+                (int x, int y)? best = null;
+                int bestDistance = int.MaxValue;
+                for (int cy = Math.Max(MirrorTop, y - ReturnReach); cy <= y + ReturnReach && cy + 1 < r.Height; cy++)
+                    for (int cx = x - ReturnReach; cx <= x + ReturnReach; cx++) {
+                        int distance = Math.Abs(cx - x) + 2 * Math.Abs(cy - y);
+                        if (distance < bestDistance && reached.Contains((cx, cy)) && Shown(r, cy) && Open(cx, cy - 1) && Floor(cx, cy + 1) && !Crowded(r, cx, cy)) {
+                            best = (cx, cy);
+                            bestDistance = distance;
+                        }
                     }
-                    // (boss stages are one-way, as KatAM's boss rooms: no way back into one, nor out of one back to it; a room with a door
-                    // back already, elsewhere, gets no second one);
-                    if (IsBossRoom(from) || IsBossRoom(to)) continue;
-                    if (doors[to].Any(d => !d.Edge && d.Room == from.Room)) continue;
-                    if (FreeFloor(to, x, y) is not (int, int) cell) continue;
-                    if (cell != (x, y)) doors[from][doors[from].IndexOf(door)] = door with { DestX = cell.x + 1, DestY = cell.y + 1, Facing = Facing((to.Room, cell.x + 1, cell.y + 1)) };
-                    doors[to].Add(new Door(cell.x, cell.y, from.Room, door.X + 1, door.Y + 1, Facing((from.Room, door.X + 1, door.Y + 1))));
+                return best;
+            }
+            foreach (var (room, list) in listOf) {
+                for (int i = 0; i < list.Count; i++) {
+                    Door d = list[i];
+                    if (!d.OneWay || d.Edge || d.Kind == DoorKind.Boss || !partOf.TryGetValue(d.Room, out NightmareRoom to) || IsBossRoom(to) || !Crowded(to, d.DestX - 1, d.DestY - 1)) continue;
+                    (int x, int y)? cell = Clear(to, d.DestX - 1, d.DestY - 1);
+                    if (cell == null && RoomSpot(to, false, door: false) is (NightmareRoom, int, int) spot) cell = (spot.x, spot.y);
+                    if (cell is (int x, int y)) list[i] = d with { DestX = x + 1, DestY = y + 1, Facing = Facing((to.Room, x + 1, y + 1)) };
                 }
             }
             return doors;
@@ -2173,7 +2443,11 @@ namespace KatAMRandomizer {
                     }
                     if (!types.Contains(DoorToHubType)) types.Add(DoorToHubType);
                     // (the mirrors to NiDL's levels, always there: KatAM's mirror object, as the ported rooms');
-                    foreach (Door door in edited.Doors.Where(d => d.Slot == 0 && !d.Edge && edited.Room != EntryRoom)) templates.Add(MirrorTemplate(door.X, door.Y, templates.Count));
+                    foreach (Door door in edited.Doors.Where(d => d.Slot == 0 && !d.Edge && edited.Room != EntryRoom)) {
+                        byte[] mirror = MirrorTemplate(door.X, door.Y, templates.Count);
+                        if (door.OneWay) mirror[0x23] |= 1;    // (a one-way mirror, as in BuildObjects());
+                        templates.Add(mirror);
+                    }
                     if (edited.Doors.Any(d => d.Slot == 0 && edited.Room != EntryRoom) && !types.Contains(MirrorType)) types.Add(MirrorType);
                     int newList = WriteObjectList(rom, templates, types, ReadInt(rom, list + 8) - 0x08000000, ref cursor);
                     WriteInt(rom, edited.ObjectsEntry, newList + 0x08000000);
@@ -2200,7 +2474,7 @@ namespace KatAMRandomizer {
             editedRooms = new List<EditedRoom>();
         }
 
-        const byte MirrorType = 0x6F, MirraType = 0x34;
+        const byte MirrorType = 0x6F, MirraType = 0x34, WarpStarType = 0x84, CannonType = 0x8A, FuseType = 0x78;
 
         // MirrorTemplate(); A mirror (object 0x6F) standing on a door cell, as KatAM's (its x, y: the cell's center);
         static byte[] MirrorTemplate(int x, int y, int number) => ObjectTemplate(x * 16 + 8, y * 16 + 8, number, MirrorType);
@@ -2353,6 +2627,28 @@ namespace KatAMRandomizer {
                     for (int q = 0; q < 4; q++) specials.AddRange(BitConverter.GetBytes((ushort)ShiftPalette(ReadShort(metatiles, metatile * 8 + q * 2))));
                     leaves[(x, y)] = specials.Count;
                     specials.AddRange(new byte[] { left, 0xFF });
+                }
+            }
+
+            /* A fuse's cells: two special block records each, as KatAM's (cannon_fuse.c applies the first as it burns, the second when
+             * it's lit again): the wall without the rope (the metatile of the nearest NiDL wall, kind 0x01), then the cell's own; */
+            for (int y = 0; y < r.Height && y < 256; y++) {
+                for (int x = 0; x < r.Width && x < 256; x++) {
+                    byte value = collision[y * r.FullWidth + x];
+                    if (value is < 0x22 or > 0x27) continue;
+                    int own = ReadShort(cells, ((r.Y + y) * roomWidth + r.X + x) * 4), wall = own;
+                    for (int d = 1, best = int.MaxValue; d <= 6 && best == int.MaxValue; d++)
+                        for (int wy = y - d; wy <= y + d; wy++)
+                            for (int wx = x - d; wx <= x + d; wx++)
+                                if (wx >= 0 && wy >= 0 && wx < r.Width && wy < r.Height && cells[((r.Y + wy) * roomWidth + r.X + wx) * 4 + 3] == 0x01 && Math.Abs(wx - x) + Math.Abs(wy - y) < best) {
+                                    best = Math.Abs(wx - x) + Math.Abs(wy - y);
+                                    wall = ReadShort(cells, ((r.Y + wy) * roomWidth + r.X + wx) * 4);
+                                }
+                    foreach (int metatile in new[] { wall, own }) {
+                        specials.AddRange(new byte[] { 1, value, (byte)x, (byte)y, 0x12, 0, 0xFF, 0xFF });
+                        for (int q = 0; q < 4; q++) specials.AddRange(BitConverter.GetBytes((ushort)ShiftPalette(ReadShort(metatiles, metatile * 8 + q * 2))));
+                        specials.AddRange(new byte[] { value, 0xFF });
+                    }
                 }
             }
 
@@ -2635,16 +2931,21 @@ namespace KatAMRandomizer {
 
         /* MirraSpots(); Where a room's Mirras stand (object 0x34, KatAM's mirror enemy: it breaks at a touch, and KatAM then applies the
          * special block record of its cell, gUnk_08D...: a cell a door is hidden in, its mirror showing then, as KatAM's rooms 0x75,
-         * 0x8D, 0xAF... hide theirs; it isn't remembered, so it's back each visit): one on each hidden mirror (Door.Hidden: the branch,
-         * link, KatAM link and secret switch room doors placed far from where Kirby comes in), on an open cell (padded collision 0); */
+         * 0x8D, 0xAF... hide theirs; it isn't remembered, so it's back each visit): as few as KatAM's (9), one on each switch room's
+         * hidden way in (DoorKind.SwitchEntry, one-way, one a room: see PlanDoors()), on an open cell over a floor; */
         static List<(int x, int y, bool door)> MirraSpots(NightmareRoom r, List<Door> doors, byte[] collision) {
             byte At(int x, int y) => x >= 0 && y >= 0 && x < r.Width && y < r.Height ? collision[y * r.FullWidth + x] : (byte)0x0D;
-            return doors.Where(d => d.Hidden && !d.Edge && d.Slot == 0 && At(d.X, d.Y) == 0).Select(d => (d.X, d.Y, true)).ToList();
+            return doors.Where(d => d.Kind == DoorKind.SwitchEntry && d.Hidden && !d.Edge && d.Slot == 0 && At(d.X, d.Y) == 0 && At(d.X, d.Y + 1) is >= 0x01 and <= 0x1B)
+                        .Select(d => (d.X, d.Y, true)).Take(1).ToList();
         }
 
         /* BuildObjects(); The room's (part's) enemies, mini-bosses and items as KatAM object templates (LevelInfo_1E4: templates, the
-         * types in the room, an empty list, how many types), and its doors' mirrors; returns its address; */
-        static int BuildObjects(byte[] rom, byte[] nightmare, NightmareRoom r, List<Door> doors, List<(int x, int y, bool door)> mirras, int noTypes, ref int cursor) {
+         * types in the room, an empty list, how many types), and its doors' mirrors; returns its address. No enemy stands within
+         * LandingClear cells across (2 up or down) of where a door lands Kirby (landings): KatAM lands him on the door, NiDL beside it,
+         * and one there hit him as he came in; */
+        static int BuildObjects(byte[] rom, byte[] nightmare, NightmareRoom r, List<Door> doors, List<(int x, int y, bool door)> mirras,
+                                List<(int x, int y)> landings, int noTypes, ref int cursor) {
+            const int LandingClear = 3;
             List<byte[]> templates = new List<byte[]>();
             List<byte> types = new List<byte>();
             int list = ReadInt(nightmare, r.Record + 0x48);
@@ -2660,6 +2961,7 @@ namespace KatAMRandomizer {
 
                 byte type, behavior = 0;
                 bool miniboss = false;
+                if (category == 0 && landings.Any(c => Math.Abs(x / 16 - c.x) <= LandingClear && Math.Abs(y / 16 - c.y) <= 2)) continue;
                 if (category == 0 && NativeEnemies.TryGetValue(index, out type)) { }
                 else if (category == 0 && PortedEnemies.TryGetValue(index, out int ported)) {
                     type = NightmareID;
@@ -2677,7 +2979,14 @@ namespace KatAMRandomizer {
                     behavior |= (byte)(variant & 0xF);
                     miniboss = true;
                 } else if (category == 3 && RoomItems.TryGetValue(index, out type)) { }
-                else continue;
+                else if (category == 4 && index == 2 && transportsOf[r].Any(t => t.Cannon)) {
+                    // A cannon's fuse, where Kirby lights it (NiDL's gimmick 2, over its first cell): KatAM's fuse object, as room 0x1F6's;
+                    byte[] fuse = ObjectTemplate(x, y, templates.Count, FuseType);
+                    fuse[4] = fuse[5] = 1;
+                    templates.Add(fuse);
+                    if (!types.Contains(FuseType)) types.Add(FuseType);
+                    continue;
+                } else continue;
 
                 byte[] template = new byte[36];
                 template[0] = 0x01; template[1] = 0x24; template[3] = (byte)templates.Count;
@@ -2702,6 +3011,25 @@ namespace KatAMRandomizer {
                 if (!types.Contains(type)) types.Add(type);
             }
 
+            /* Warp stars and cannons (see Transport), as KatAM's: a warp star (0x84, warp_star.c: +0x1E the room, +0x1A, +0x1C the landing
+             * cell + 1; subtype its flight, WarpFlight: straight up, landing there); a cannon (0x8A, kirby_cannon.s, as room 0x1F6's: +0x12 the room, +0x18 the
+             * landing (x << 8 | y), the fuse's state slot); */
+            foreach (Transport t in transportsOf[r]) {
+                byte[] template = ObjectTemplate(t.X, t.Y, templates.Count, t.Cannon ? CannonType : WarpStarType);
+                if (t.Cannon) {
+                    template[4] = template[5] = 1;
+                    WriteShort(template, 0x12, t.Room);
+                    template[0x14] = 2;
+                    WriteShort(template, 0x18, t.DestX << 8 | t.DestY);
+                    template[0x22] = 2;
+                } else {
+                    template[14] = WarpFlight;
+                    WriteShorts(template, 0x1A, t.DestX, t.DestY, t.Room);
+                }
+                templates.Add(template);
+                if (!types.Contains(template[12])) types.Add(template[12]);
+            }
+
             // A switch room's big switch (NiDL's own aren't ported: a level has one, see LevelSlot()) and ability statues (SwitchStatues);
             if (r.IsSwitchRoom) {
                 templates.Add(BigSwitchTemplate(SwitchAt(r.Level).x, SwitchAt(r.Level).y, templates.Count, LevelSlot(r.Level), r.Level));
@@ -2715,13 +3043,18 @@ namespace KatAMRandomizer {
                 }
             }
 
-            // A mirror on each door (see Door); a hidden one is a door object (0x97, its own mirror), showing once the slot is set;
-            foreach (Door door in doors.Where(d => !d.Edge)) {
+            // A mirror on each door (see Door); a hidden one is a door object (0x97, its own mirror), showing once the slot is set; one in
+            // a mini-boss's fight area (and a cell around it) shows only while its cell is a door: the arena shuts those during the
+            // fight ("ROM Expansion/enemies/arena.c", ShutDoors(), the same cells);
+            var fights = Arenas(nightmare, r);
+            bool Shut(Door d) => fights.Any(a => d.X >= (a.left - 16) >> 4 && d.X < (a.left + a.width + 15) >> 4 && d.Y >= (a.top - 16) >> 4 && d.Y < (a.top + a.height + 15) >> 4);
+            foreach (Door door in doors.Where(d => !d.Edge && !d.Plain)) {
                 byte type = door.Slot != 0 ? DoorToHubType : MirrorType;
                 byte[] mirror = door.Slot != 0 ? DoorToHubTemplate(door.X, door.Y, templates.Count, door.Slot, door.Design) : MirrorTemplate(door.X, door.Y, templates.Count);
                 // (layout B's doors in the middle, on cell 8, drawn at x 128, the room's middle, as 0x122's: DoorDrawX);
                 if (r.IsSwitchRoom && LayoutB(r.Level) && door.Slot != 0 && door.X == 8) WriteShort(mirror, 6, 128);
-                if (door.Secret) mirror[14] = 1;    // subtype1 1: hidden until its cell is a door (CreateMirrorDoor);
+                if (door.Secret || Shut(door)) mirror[14] = 1;    // subtype1 1: hidden until its cell is a door (CreateMirrorDoor);
+                if (door.OneWay && door.Slot == 0) mirror[0x23] |= 1;    // +0x22 0x100: drawn as a one-way mirror (mirror_door.c), as KatAM's;
                 templates.Add(mirror);
                 if (!types.Contains(type)) types.Add(type);
             }
@@ -2735,6 +3068,24 @@ namespace KatAMRandomizer {
             // KatAM keeps which of a room's objects are gone in 32 bits per room (gUnk_02023358), by number (31: none);
             if (templates.Count > 31) throw new ArgumentException($"Room 0x{r.Room:X} has {templates.Count} objects (at most 31).");
             return WriteObjectList(rom, templates, types, noTypes, ref cursor);
+        }
+
+        /* Arenas(); A room's (part's) mini-bosses' fight areas (ArenaOf(), pixels), as BuildObjects() gives them; */
+        static List<(int left, int top, int width, int height)> Arenas(byte[] nightmare, NightmareRoom r) {
+            List<(int, int, int, int)> arenas = new List<(int, int, int, int)>();
+            int list = ReadInt(nightmare, r.Record + 0x48);
+            (int x, int y)? cameraLock = null;
+            for (int at = list == 0 ? r.Record : list - 0x08000000; at + 8 <= r.Record; at += 8)
+                if (nightmare[at] - 1 == CameraLockCategory && nightmare[at + 1] == 0)
+                    cameraLock = (ReadShort(nightmare, at + 4) - r.X * 16, ReadShort(nightmare, at + 6) - r.Y * 16);
+            for (int at = list == 0 ? r.Record : list - 0x08000000; at + 8 <= r.Record; at += 8) {
+                int category = nightmare[at] - 1, index = nightmare[at + 1];
+                int x = ReadShort(nightmare, at + 4) - r.X * 16, y = ReadShort(nightmare, at + 6) - r.Y * 16;
+                if (x < 0 || y < 0 || x >= r.Width * 16 || y >= r.Height * 16) continue;
+                if (category == MinibossCategory && RoomMinibosses.ContainsKey(index) || category == MetaKnightsCategory)
+                    arenas.Add(ArenaOf(r, cameraLock ?? (x, y), x, y));
+            }
+            return arenas;
         }
 
         /* ArenaOf(); A mini-boss's fight area: the screen around NiDL's camera lock (its x the screen's middle, its y near the top), moved
