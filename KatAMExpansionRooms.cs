@@ -149,7 +149,9 @@ namespace KatAMRandomizer {
         // LayoutB(); KatAM's two layouts of a room with 2 hub doors: 0x122's (A: top left and right) or 0x250's (B: top and bottom middle);
         // (the Fountain of Dreams' A, though odd: no platform in the middle, the Fountain behind it shown whole);
         static bool LayoutB(int level) => level % 2 == 1 && level != 7;
-        static (int x, int y)[] SwitchSides(int level) => LayoutB(level) ? new[] { (1, 6), (14, 6) } : new[] { (1, 8), (14, 8) };
+        // (the Fountain of Dreams' inside its pillars, which run floor to ceiling: SwitchPillared);
+        static (int x, int y)[] SwitchSides(int level) => LayoutB(level) ? new[] { (1, 6), (14, 6) } : SwitchPillared(level) ? new[] { (3, 8), (12, 8) } : new[] { (1, 8), (14, 8) };
+        static bool SwitchPillared(int level) => level == 7 && Environment.GetEnvironmentVariable("SWITCH_ROOM_PILLARED") != null;
         static (int x, int y) SwitchLinkDoor(int level) => LayoutB(level) ? (8, 8) : (3, 3);
         static (int x, int y) SwitchHubDoor(int level) => LayoutB(level) ? (8, 3) : (12, 3);
         static (int x, int y) SwitchAt(int level) => LayoutB(level) ? (128, 96) : (128, 128);
@@ -408,6 +410,10 @@ namespace KatAMRandomizer {
         static readonly Dictionary<int, (int x, int y)[]> SwitchExtraGround = new Dictionary<int, (int, int)[]>();
         // UnmirroredFill; The levels whose switch rooms' ground inside isn't mirrored (see BuildSwitchRooms());
         static readonly HashSet<int> UnmirroredFill = new HashSet<int> { 1 };
+        /* ForeignDecorations; Levels whose switch rooms take decorations (SwitchDecorations' * metatiles) from another level's last
+         * room: the Fountain of Dreams' from King Dedede's arena (Rainbow Resort's last), its light streaks; their colour rows go in
+         * rows the room's own metatiles don't use (8 on are the arena background's); */
+        static readonly Dictionary<int, (int level, int unused)> ForeignDecorations = new Dictionary<int, (int, int)> { [7] = (6, 0) };
         // FountainLook; The room (level, stage, index) whose tiles and colours the Fountain of Dreams' switch room takes, picked by
         // eye: Grape Garden's castle in its stage 6's dusk colours;
         static readonly (int level, int stage, int index) FountainLook = (3, 5, 5);
@@ -576,7 +582,11 @@ namespace KatAMRandomizer {
                 var extra = Environment.GetEnvironmentVariable($"SWITCH_ROOM_EXTRA_{level}") is string triedExtra
                     ? triedExtra.Split(';', StringSplitOptions.RemoveEmptyEntries).Select(c => (int.Parse(c.Split(',')[0]), int.Parse(c.Split(',')[1]))).ToHashSet()
                     : SwitchExtraGround.GetValueOrDefault(level, new (int, int)[0]).ToHashSet();
-                bool Solid(int x, int y) => y == 0 || y >= SwitchFloor || Pedestal(x, y) || extra.Contains((x, y)) || (b
+                // (pillared, the Fountain of Dreams': its walls 3 cells, the outer 2 and a pillar, floor to ceiling, its ceiling a step lower
+                // above its top doors, as Grape Garden's castle room 0x3742CC);
+                bool pillared = SwitchPillared(level);
+                bool Pillared(int x, int y) => pillared && y >= 1 && y <= 8 && (x <= 2 || x >= SwitchWidth - 3 || y == 1 && (x == 3 || x == SwitchWidth - 4));
+                bool Solid(int x, int y) => y == 0 || y >= SwitchFloor || Pedestal(x, y) || extra.Contains((x, y)) || Pillared(x, y) || (b
                     ? (y <= 3 && (x <= 1 || x >= SwitchWidth - 2)) || (y >= 4 && (x == 0 || x == SwitchWidth - 1)) || (y >= 7 && (x <= 3 || x >= SwitchWidth - 4))
                     : y <= 5 && (x <= 1 || x >= SwitchWidth - 2));
                 bool Pedestal(int x, int y) => b ? y == 6 && x >= 6 && x <= 9 : y == 8 && x >= 5 && x <= 10;
@@ -793,6 +803,48 @@ namespace KatAMRandomizer {
                 // (its decorations, SwitchDecorations, each side its own, in air only);
                 string[] decorations = SwitchDecorations.GetValueOrDefault(level, new string[0]);
                 if (Environment.GetEnvironmentVariable($"SWITCH_ROOM_DECOR_{level}") is string triedDecor) decorations = triedDecor.Split(';', StringSplitOptions.RemoveEmptyEntries);
+                /* (* before a metatile: one of ForeignDecorations' room's (King Dedede's arena's, for the Fountain of Dreams'), its tiles
+                 * added after the room's own and its colour rows put in rows the room's metatiles don't use: so a room can be dressed in
+                 * another tileset's pieces); */
+                List<byte> roomTiles = null;
+                byte[] roomPalette = null;
+                Dictionary<int, int> foreignTile = new Dictionary<int, int>(), foreignMetatile = new Dictionary<int, int>(), foreignRow = new Dictionary<int, int>();
+                Queue<int> freeRows = null;
+                NightmareRoom foreignRoom = null;
+                if (ForeignDecorations.TryGetValue(level, out var foreignOf)) {
+                    int lastStage = rooms.Where(r => r.Level == foreignOf.level && !r.IsSwitchRoom).Max(r => r.Stage);
+                    foreignRoom = rooms.Where(r => r.Level == foreignOf.level && r.Stage == lastStage).MaxBy(r => r.Index);
+                }
+                int Foreign(int m) {
+                    if (foreignMetatile.TryGetValue(m, out int id)) return id;
+                    byte[] theirTiles = DecompressLZ77(nidl, ReadInt(nidl, foreignRoom.Record + 0x1C) - 0x08000000);
+                    byte[] theirMetatiles = DecompressLZ77(nidl, ReadInt(nidl, foreignRoom.Record + 0x20) - 0x08000000);
+                    if (roomTiles == null) {
+                        roomTiles = new List<byte>(DecompressLZ77(nidl, ReadInt(nidl, source.Record + 0x1C) - 0x08000000));
+                        int ours = ReadInt(nidl, source.Record + 0x18) - 0x08000000;
+                        roomPalette = nidl.Skip(ours).Take(2 + 0xC0).ToArray();
+                        // (the rows the room's own metatiles don't use, for theirs);
+                        var used = Enumerable.Range(0, SwitchWidth * SwitchHeight).SelectMany(c => Enumerable.Range(0, 4).Select(q => table[ReadShort(cells, c * 4) * 8 + q * 2 + 1] >> 4)).ToHashSet();
+                        freeRows = new Queue<int>(Enumerable.Range(2, 6).Where(r => !used.Contains(r)));
+                    }
+                    foreach (int q in Enumerable.Range(0, 4)) {
+                        int entry = ReadShort(theirMetatiles, m * 8 + q * 2), tile = entry & 0x3FF;
+                        if (!foreignTile.TryGetValue(tile, out int mine)) {
+                            foreignTile[tile] = mine = roomTiles.Count / 32;
+                            roomTiles.AddRange(tile * 32 + 32 <= theirTiles.Length ? theirTiles.Skip(tile * 32).Take(32) : new byte[32]);
+                        }
+                        if (!foreignRow.TryGetValue(entry >> 12, out int row)) {
+                            if (freeRows.Count == 0) throw new InvalidOperationException($"Switch room {level}: no colour row left for its foreign decorations.");
+                            foreignRow[entry >> 12] = row = freeRows.Dequeue();
+                            // (rows 2-7 the foreground's, 8 on the background's);
+                            int from = entry >> 12, theirs = ReadInt(nidl, foreignRoom.Record + (from < 8 ? 0x18 : 0x28)) - 0x08000000;
+                            Array.Copy(nidl, theirs + 2 + (from - (from < 8 ? 2 : 8)) * 32, roomPalette, 2 + (row - 2) * 32, 32);
+                        }
+                        entry = (entry & 0x0C00) | mine | row << 12;
+                        table.Add((byte)entry); table.Add((byte)(entry >> 8));
+                    }
+                    return foreignMetatile[m] = table.Count / 8 - 1;
+                }
                 foreach (string decoration in decorations) {
                     // (! first: over the terrain too, as flowers in grass, its collision kept);
                     bool over = decoration.Trim().StartsWith("!");
@@ -804,6 +856,7 @@ namespace KatAMRandomizer {
                         for (int dx = 0; dx < ids.Length; dx++) {
                             int x = left + dx, y = up + dy;
                             if (ids[dx] == "000" || x < 0 || y < 0 || x >= SwitchWidth || y >= SwitchHeight || !over && TargetClass(x, y) != Air) continue;
+                            if (ids[dx][0] == '*') { WriteShort(cells, (y * SwitchWidth + x) * 4, Foreign(Convert.ToInt32(ids[dx][1..], 16))); continue; }
                             bool h = ids[dx][0] is '~' or '@', v = ids[dx][0] is '^' or '@';
                             WriteShort(cells, (y * SwitchWidth + x) * 4, Flip(Convert.ToInt32(ids[dx].TrimStart('~', '^', '@'), 16), h, v));
                         }
@@ -841,6 +894,10 @@ namespace KatAMRandomizer {
                     WriteInt(record, 0x30, Put(framed) + 0x08000000);
                 }
                 if (table.Count > metatiles.Length) WriteInt(record, 0x20, Put(CompressLZ77(table.ToArray())) + 0x08000000);
+                if (roomTiles != null) {
+                    WriteInt(record, 0x1C, Put(CompressLZ77(roomTiles.ToArray())) + 0x08000000);
+                    WriteInt(record, 0x18, Put(roomPalette) + 0x08000000);
+                }
                 WriteShort(record, 2, 0);
                 WriteInts(record, 8, Put(CompressLZ77(cells)) + 0x08000000, Put(CompressLZ77(new byte[SwitchWidth * SwitchHeight * 2])) + 0x08000000, 0);
                 WriteShorts(record, 0x14, SwitchWidth, SwitchHeight);
