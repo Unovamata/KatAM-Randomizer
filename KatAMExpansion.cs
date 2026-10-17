@@ -56,9 +56,10 @@ namespace KatAMRandomizer {
 
         /* Part; A NiDL frame (from the enemy's frame table, or Table when the enemy has more than one), recolored, drawn with NiDL's
          * palette 15 or with another of the descriptor's palettes (Palette), Dx, Dy pixels from the others (NiDL draws some bosses as
-         * several frames); Common: from NiDL's shared object tiles (CommonTiles, its effects: Whispy Woods' puffs) instead; */
+         * several frames); Common: from NiDL's shared object tiles (CommonTiles, its effects: Whispy Woods' puffs) instead; OnlyPalette:
+         * only its pieces NiDL draws with that palette (its OAM's; NiDL draws Kracko with several at once, a KatAM sprite with one); */
         sealed record Part(int Frame, Dictionary<int, int> Recolor = null, int Table = 0, bool Palette15 = false, int Palette = 0, int Descriptor = -1,
-                           int Dx = 0, int Dy = 0, bool Common = false);
+                           int Dx = 0, int Dy = 0, bool Common = false, int OnlyPalette = -1);
 
         /* Enemy; A ported enemy: its index (NIDL_* in nidl.h), name, NiDL object type and frame table, its frames (in the order the
          * C code numbers them), its hurt frame, palette changes, the letters of its name and the behavior bytes the randomizer uses; */
@@ -103,6 +104,7 @@ namespace KatAMRandomizer {
         public const byte BossID = 0x43;
         static readonly List<Miniboss> BossDefinitions = new List<Miniboss> {
             WhispyWoods(),
+            Kracko(),
         };
         static List<Miniboss> AllBosses => MinibossDefinitions.Concat(BossDefinitions).ToList();
         static IEnumerable<byte> BossTypes => MinibossIDs.Append(BossID);
@@ -220,6 +222,29 @@ namespace KatAMRandomizer {
                     (0x00, 0), (0x1E, 1), (0x1E, 1), (0x1E, 2), (0x04, 4),                        // "W" (Waddle Dee), "o", "o", "d" (Noddy), "s" (Squishy);
                 },
                 new byte[0], Type: BossID, Icon: new[] { 17 });
+        }
+
+        /* Kracko; NiDL boss 6 (type 0x41, Grape Garden's), its cloud fight. NiDL draws it with three palettes at once (the cloud's top 0,
+         * its bottom 1, the eye and lightning 2), a KatAM sprite has one: its object draws the cloud's top, two more sprites follow it
+         * (bosses/kracko.c), so the cloud's frames are cut by palette. Frames: the cloud's top (NiDL's 12, then 13 and 14, its spikes out),
+         * 0-2; its bottom, 3-5; its eye (4-11: looking right, then each eighth of a turn clockwise; NiDL's own object, at the cloud's
+         * middle), 6-13; its lightning bolts (14-29), one or more of the lightning object's segments (0x0C5, its table 0x08754448: 4-11
+         * run down) stacked 16 pixels apart, 1-8 of them, two of each (jagged differently). Hurt: the cloud's top; */
+        static Miniboss Kracko() {
+            int[] jitter = { 0, 2, -2, 1, -1, 3, -3, 1 };
+            List<Part[]> frames = new List<Part[]>();
+
+            for (int palette = 0; palette < 2; palette++)
+                frames.AddRange(new[] { 12, 13, 14 }.Select(cloud => new[] { new Part(cloud, Palette: palette, OnlyPalette: palette) }));
+            frames.AddRange(Enumerable.Range(4, 8).Select(eye => new[] { new Part(eye, Palette: 2) }));
+            for (int length = 1; length <= 8; length++)
+                for (int jag = 0; jag < 2; jag++)
+                    frames.Add(Enumerable.Range(0, length).Select(k => new Part(4 + (k * 5 + jag * 3) % 8, Table: 0x754448, Palette: 2,
+                                                                                    Dx: jitter[(k + jag * 3) % 8], Dy: 8 + 16 * k)).ToArray());
+
+            return new Miniboss(1, "Kracko", 36, 0x7543E8, frames, new[] { new Part(12, OnlyPalette: 0) },
+                new[] { (0x45, 0), (0x45, 1), (0x45, 2), (0x45, 3), (0x45, 4), (0x45, 5) },    // "Kracko" (KatAM's own Kracko);
+                new byte[0], Type: BossID);
         }
 
         /* Apple; Whispy Woods' apples (NiDL object 0x7D, its own frame table 0x08754308: Whispy Woods' frames 18-37, its second palette).
@@ -796,7 +821,7 @@ namespace KatAMRandomizer {
             // Other descriptors' tiles and where their palettes went;
             Dictionary<int, (byte[] tiles, int palette)> others = new Dictionary<int, (byte[], int)>();
             byte[] common = null;
-            List<(Piece, byte[], int)> Pieces(Part part) => PartOffset(part, UnmovedPieces(part));
+            List<(Piece, byte[], int)> Pieces(Part part) => PartOffset(part, UnmovedPieces(part).Where(p => part.OnlyPalette < 0 || p.Item1.Palette == part.OnlyPalette).ToList());
             List<(Piece, byte[], int)> PartOffset(Part part, List<(Piece, byte[], int)> pieces) =>
                 pieces.Select(p => (p.Item1 with { X = p.Item1.X + part.Dx, Y = p.Item1.Y + part.Dy }, p.Item2, p.Item3)).ToList();
             List<(Piece, byte[], int)> UnmovedPieces(Part part) {
@@ -971,7 +996,7 @@ namespace KatAMRandomizer {
         //////////////////////////////////////////////////////////////////////////////////////////////
 
         // Piece; One OAM piece of a NiDL frame, mirrored: KatAM sprites face left, NiDL's face right. Y is 1 pixel lower to stand like KatAM enemies;
-        record Piece(int X, int Y, int Width, int Height, int Shape, int Size, int HFlip, int VFlip, int Tile);
+        record Piece(int X, int Y, int Width, int Height, int Shape, int Size, int HFlip, int VFlip, int Tile, int Palette = 0);   // (Palette: NiDL's, its OAM's)
 
         static readonly int[,,] Shapes = {
             { { 8, 8 }, { 16, 16 }, { 32, 32 }, { 64, 64 } },
@@ -986,13 +1011,14 @@ namespace KatAMRandomizer {
         static List<Piece> ReadFrameAt(byte[] nightmare, int address) {
             List<Piece> pieces = new List<Piece>();
 
-            for (int i = 0; i < 16; i++, address += 8) {
+            // Until the record marked last (Kracko's cloud has 28; 64 at most);
+            for (int i = 0; i < 64; i++, address += 8) {
                 int shape = nightmare[address + 1] >> 6, size = nightmare[address + 3] >> 6;
 
                 pieces.Add(new Piece((sbyte)nightmare[address + 4], (sbyte)nightmare[address] + 1,
                     Shapes[shape, size, 0], Shapes[shape, size, 1], shape, size,
                     1 - ((nightmare[address + 3] >> 4) & 1), (nightmare[address + 3] >> 5) & 1,
-                    nightmare[address + 6] | (nightmare[address + 7] & 3) << 8));
+                    nightmare[address + 6] | (nightmare[address + 7] & 3) << 8, nightmare[address + 7] >> 4));
 
                 if ((nightmare[address + 1] & 0x10) != 0) break;
             }

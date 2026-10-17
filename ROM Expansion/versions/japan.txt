@@ -206,3 +206,4 @@ sub_0800AFC8 0x800afc4
 BonusCreateTomatoAt 0x81233dc
 HasShard 0x8019da4
 gUnk_08350E58 0x833562c
+sub_0809F840 0x809f7b8

@@ -76,6 +76,7 @@ enum {
 // Bosses (type 0x43's behavior byte's high nibble; its low nibble is the mirror shard it leaves, 0-7);
 enum {
     NIDL_WHISPY_WOODS,
+    NIDL_KRACKO,
     NIDL_BOSS_COUNT,
 };
 
@@ -234,6 +235,8 @@ void MetaKnightsDestroy(struct Task *);
 // Bosses;
 void WhispyWoodsInit(struct NidlObject *);
 void WhispyWoodsStart(struct Object *);
+void KrackoInit(struct NidlObject *);
+void KrackoStart(struct Object *);
 
 void NidlDestroy(struct Task *);
 bool32 NidlIsMetaKnight(struct ObjectTemplate *);
