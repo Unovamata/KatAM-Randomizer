@@ -128,6 +128,9 @@ after any change.
 
 - **Each level is one cluster**; a stage's rooms stay together, and a room linked only to another level sits by its own stage's
   rooms.
-- **The whole map is as square as it fits**: levels go beside KatAM's map, then in rows under it, the same gap everywhere; the
-  tutorial and the game's end come last. `MapExpansion.Place()`.
+- **The whole map is tight and as square as it fits, with no rogue rooms**: each level goes in the free spot that keeps the map the
+  most square, then the closest to its middle, filling the gaps between clusters; no level is left out in a corner on its own.
+  The tutorial and the game's end come last, under it all. `MapExpansion.Place()`.
+- **A randomized map has no islands of 2-4 rooms**: its clusters are whole communities of rooms (Louvain with its aggregation
+  phase), and any cluster under 6 rooms joins the one it shares the most mirrors with. `MapLayout.FindClusters()`.
 - Rooms are placed where their doors lead (a door on a room's right edge puts the next room to its right), as KatAM's area maps.

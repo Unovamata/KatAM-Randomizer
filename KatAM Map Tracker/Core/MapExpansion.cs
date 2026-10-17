@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -10,16 +10,16 @@ namespace KatAMMapTracker {
      *   its right; one in its ceiling: above it), as far as KatAM's linked rooms sit on its own maps (8 tiles: two steps of a 4
      *   tile grid), three steps past a room long that way; in the free cell that best keeps the directions of every door it shares with the rooms placed;
      *   so a level grows the branches, loops and long corridors its doors make, not rows.
-     * • The levels in order (Vegetable Valley first) beside KatAM's map, then in rows under it, LevelMargin apart every way, as KatAM's
-     *   own areas sit on the world map: a tidy grid, the same gap everywhere, the whole map as square as it fits; the hub beside
-     *   Central Circle. A room linked to none of its level's rooms (only to other levels': a swapped door, a switch room's) sits by
+     * • The levels packed tight around KatAM's map (Pack()): each in the free spot that keeps the whole map the most square, then the
+     *   closest to its middle, its rooms RoomMargin clear of every other cluster's, so they fill the gaps between clusters and none
+     *   is left out on its own; the hub beside Central Circle. A room linked to none of its level's rooms (only to other levels': a swapped door, a switch room's) sits by
      *   its stage's rooms, else by the level's way in, so a stage's map stays together.
      *   Each level is a cluster of its own (11 + level, as its area), the hub too (19).
      * • KatAM's rooms the map lines up under itself (the tutorial and the game's end: rooms no mirror links to Central Circle's
      *   map) go after the levels, so the map still ends with them; */
     public static class MapExpansion {
         const int Grid = MapGraphics.TileSize;
-        const int Step = 4 * Grid, LevelMargin = 128, LongRoom = 60;
+        const int Step = 4 * Grid, LevelMargin = 128, LongRoom = 60, RoomMargin = 72, Fit = 2 * Grid;
         public const int HubCluster = 19;
         public static int LevelCluster(int level) => 11 + level;
         public static bool IsLevelCluster(int cluster) => cluster >= 11 && cluster < 19;
@@ -75,52 +75,63 @@ namespace KatAMMapTracker {
                 main = (Math.Min(main.left, best.left), Math.Min(main.top, best.top), Math.Max(main.right, best.left + size), Math.Max(main.bottom, best.top + size));
             }
 
-            /* The levels in order, the map kept square (as KatAM's world map: no long strip to scroll): beside KatAM's map first, in
-             * columns down its right side as far as its bottom, then in rows under it, a row as wide as the map (Pack()); of the widths
-             * the map could take, the one giving the smallest square around it all, the squarer of two alike. KatAM's rooms lined up
-             * under its map come last, after the levels, as one more block (Under), so the map still ends with them; */
+            /* The levels packed tight around KatAM's map, the whole map kept square (as KatAM's world map: no long strip to scroll, no
+             * level left out on its own, none of the gaps between clusters left empty): each level goes in the free spot (each of its
+             * rooms RoomMargin clear of every room placed, of KatAM's and the levels before it, on a Fit grid) that keeps the square
+             * around it all the smallest, then the closest to the map's middle; the levels in their order and the biggest first are both
+             * tried, the tighter map kept. KatAM's rooms lined up under its map come last, under it all (Under), so the map still ends
+             * with them; */
             const int Under = -1;
-            List<int> order = levels.Keys.OrderBy(l => l).ToList();
-            if (under.Count > 0) order.Add(Under);
             (double left, double top, double right, double bottom) underBox = under.Count == 0 ? default
                 : (under.Min(r => layout[r].X), under.Min(r => layout[r].Y), under.Max(r => layout[r].X + layout[r].Width), under.Max(r => layout[r].Y + layout[r].Height));
-            (double width, double height) Size(int level) => level == Under ? (underBox.right - underBox.left, underBox.bottom - underBox.top) : Bounds(levels[level]);
-            List<(int level, double left, double top)> Pack(double mapWidth, out double right, out double bottom) {
-                List<(int level, double left, double top)> spots = new List<(int, double, double)>();
-                double columnLeft = Snap(main.right + LevelMargin), columnTop = main.top, columnWidth = 0, x = main.left, y = Snap(main.bottom + LevelMargin), rowHeight = 0;
-                bool beside = true;
-                right = main.right; bottom = main.bottom;
-                foreach (int level in order) {
-                    (double width, double height) = Size(level);
-                    (double left, double top) at;
-                    if (level == Under) beside = false;
-                    if (beside && columnTop > main.top && columnTop + height > main.bottom) { columnLeft = Snap(columnLeft + columnWidth + LevelMargin); columnTop = main.top; columnWidth = 0; }
-                    if (beside && (columnLeft + width > main.left + mapWidth || height > main.bottom - main.top)) beside = false;
-                    if (beside) {
-                        at = (columnLeft, Snap(columnTop));
-                        columnTop = at.top + height + LevelMargin;
-                        columnWidth = Math.Max(columnWidth, width);
-                    } else {
-                        if (x > main.left && x + width > main.left + mapWidth) { x = main.left; y = Snap(y + rowHeight + LevelMargin); rowHeight = 0; }
-                        at = (Snap(x), y);
-                        x = at.left + width + LevelMargin;
-                        rowHeight = Math.Max(rowHeight, height);
-                    }
-                    spots.Add((level, at.left, at.top));
-                    right = Math.Max(right, at.left + width);
-                    bottom = Math.Max(bottom, at.top + height);
+            List<RoomPlacement> katamRooms = layout.Where(p => !under.Contains(p.Key)).Select(p => p.Value).ToList();
+            List<(int level, double left, double top)> Pack(IEnumerable<int> order, out double score) {
+                // (the cells of a Fit grid no room of a level may stand in: within RoomMargin of a room placed);
+                double reach = RoomMargin + nightmare.Max(SizeOf) / 2;
+                double originX = main.left - 4096, originY = main.top - 4096;
+                HashSet<(int, int)> blocked = new HashSet<(int, int)>();
+                void Block(RoomPlacement p) {
+                    for (int cx = (int)Math.Floor((p.X - reach - originX) / Fit); cx <= (int)Math.Ceiling((p.X + p.Width + reach - originX) / Fit); cx++)
+                        for (int cy = (int)Math.Floor((p.Y - reach - originY) / Fit); cy <= (int)Math.Ceiling((p.Y + p.Height + reach - originY) / Fit); cy++)
+                            blocked.Add((cx, cy));
                 }
+                foreach (RoomPlacement p in katamRooms) Block(p);
+                List<(int level, double left, double top)> spots = new List<(int, double, double)>();
+                (double left, double top, double right, double bottom) all = main;
+                double middleX = (main.left + main.right) / 2, middleY = (main.top + main.bottom) / 2;
+                double Square(double width, double height) => Math.Max(width, height) + Math.Abs(width - height) / 2;
+                foreach (int level in order) {
+                    (double width, double height) = Bounds(levels[level]);
+                    List<(double x, double y)> centers = levels[level].Values.ToList();
+                    bool Free(double left, double top) => centers.All(c => !blocked.Contains(((int)Math.Round((left + c.x - originX) / Fit), (int)Math.Round((top + c.y - originY) / Fit))));
+                    (double left, double top) best = (Snap(all.right + LevelMargin), all.top);
+                    (double size, double distance) bestScore = (double.MaxValue, double.MaxValue);
+                    for (double x = Snap(all.left - width - LevelMargin); x <= all.right + LevelMargin; x += Fit)
+                        for (double y = Snap(all.top - height - LevelMargin); y <= all.bottom + LevelMargin; y += Fit) {
+                            double size = Square(Math.Max(all.right, x + width) - Math.Min(all.left, x), Math.Max(all.bottom, y + height) - Math.Min(all.top, y));
+                            if (size > bestScore.size + 0.5) continue;
+                            double distance = Math.Abs(x + width / 2 - middleX) + Math.Abs(y + height / 2 - middleY);
+                            if (Math.Abs(size - bestScore.size) <= 0.5 && distance >= bestScore.distance) continue;
+                            if (!Free(x, y)) continue;
+                            bestScore = (size, distance); best = (x, y);
+                        }
+                    spots.Add((level, best.left, best.top));
+                    foreach ((double cx, double cy) in centers) { double s = 16; Block(new RoomPlacement(best.left + cx - s / 2, best.top + cy - s / 2, s, s)); }
+                    all = (Math.Min(all.left, best.left), Math.Min(all.top, best.top), Math.Max(all.right, best.left + width), Math.Max(all.bottom, best.top + height));
+                }
+                if (under.Count > 0) {
+                    spots.Add((Under, all.left, Snap(all.bottom + LevelMargin)));
+                    all.bottom = Snap(all.bottom + LevelMargin) + underBox.bottom - underBox.top;
+                    all.right = Math.Max(all.right, all.left + underBox.right - underBox.left);
+                }
+                score = Square(all.right - all.left, all.bottom - all.top);
                 return spots;
             }
-            double narrowest = Math.Max(main.right - main.left, levels.Values.Max(l => Bounds(l).width));
-            double widest = main.right - main.left + levels.Values.Sum(l => Bounds(l).width + LevelMargin);
-            List<(int level, double left, double top)> packed = null;
-            double bestScore = double.MaxValue;
-            for (double mapWidth = narrowest; mapWidth <= widest + Step; mapWidth += Step) {
-                List<(int level, double left, double top)> spots = Pack(mapWidth, out double right, out double bottom);
-                double width = right - main.left, height = bottom - main.top, score = Math.Max(width, height) + Math.Abs(width - height) / 2;
-                if (score < bestScore) { bestScore = score; packed = spots; }
-            }
+            List<int> inOrder = levels.Keys.OrderBy(l => l).ToList();
+            List<int> biggestFirst = levels.Keys.OrderByDescending(l => Bounds(levels[l]).width * Bounds(levels[l]).height).ThenBy(l => l).ToList();
+            List<(int level, double left, double top)> packed = Pack(biggestFirst, out double biggestScore);
+            List<(int level, double left, double top)> ordered = Pack(inOrder, out double orderedScore);
+            if (orderedScore <= biggestScore) packed = ordered;
             foreach ((int level, double left, double top) in packed) {
                 if (level == Under) {
                     // (KatAM's rooms lined up under its map: the same arrangement, moved there);
