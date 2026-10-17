@@ -145,13 +145,13 @@ namespace KatAMRandomizer {
          * where LevelLinks says, SwitchHubDoor back to the NiDL hub (as KatAM's mini hubs' to Central Circle; Kirby arrives on it from
          * the hub; Rainbow Resort's link is the hub's, so there, and its SwitchLinkDoor leads back to Butter Building's); Kirby starts
          * at SwitchArrival; */
-        const int SwitchStage = 8, SwitchWidth = 16, SwitchHeight = 13, SwitchFloor = 9;
+        const int SwitchStage = 8, SwitchWidth = 16, SwitchHeight = 12, SwitchFloor = 9;
         // LayoutB(); KatAM's two layouts of a room with 2 hub doors: 0x122's (A: top left and right) or 0x250's (B: top and bottom middle);
         static bool LayoutB(int level) => level % 2 == 1;
         static (int x, int y)[] SwitchSides(int level) => LayoutB(level) ? new[] { (1, 6), (14, 6) } : new[] { (1, 8), (14, 8) };
         static (int x, int y) SwitchLinkDoor(int level) => LayoutB(level) ? (8, 8) : (3, 3);
         static (int x, int y) SwitchHubDoor(int level) => LayoutB(level) ? (8, 3) : (12, 3);
-        static (int x, int y) SwitchAt(int level) => LayoutB(level) ? (136, 96) : (128, 128);
+        static (int x, int y) SwitchAt(int level) => LayoutB(level) ? (128, 96) : (128, 128);
         static (int x, int y) SwitchArrival(int level) => LayoutB(level) ? (3, 6) : (3, 8);
         /* SwitchStatues: the ability statues on each switch room's top row, as KatAM's hub rooms' (objects 0x92: Beam, Burning, Laser,
          * Fire, Stone, Fighter, Bomb, Tornado; 0x93: Wheel, Ice, Spark, Missile, Smash, Throw, Hammer; 0x94: Parasol; 0x95: Sword,
@@ -257,31 +257,23 @@ namespace KatAMRandomizer {
         }
 
         /* BuildSwitchRooms(); The switch rooms, as NiDL rooms appended to a copy of the NiDL ROM (records whose cells are made here, the
-         * rest the first room's with the level's own tileset (Choose: its first stage's, or its most solid where that's mostly sky): foreground tiles, palette, metatiles, background), so they're converted as the others: per
-         * level, its most common metatiles for air, a floor's top, the ground below it and one-way platforms (a floor's top where it
-         * has none), laid out as KatAM's rooms with 2 hub doors (13 rows as theirs, the ground from row 9 down: a floor's top, then
-         * ground, not its top again; L, H: SwitchLinkDoor,
-         * SwitchHubDoor; P: the pedestal, the big switch on it, and ledges, in the level's blocks: its most common floating solid
-         * metatile; M: the floor mirrors):
+         * rest the first room's with the level's own tileset (its first stage's, or its most solid where that's mostly sky: foreground
+         * tiles, palette, metatiles, background), so they're converted as the others: per level, cells copied from its stages (below),
+         * laid out as KatAM's rooms with 2 hub doors, symmetric (rows 0-11, the floor's top on row 9 and ground under it, so the padding
+         * (to KatAM's 13 rows) repeats ground, not the floor's top; L, H: SwitchLinkDoor, SwitchHubDoor; P: the pedestal, the big switch
+         * on it, and ledges; M: the floor mirrors):
          *   A (0x122's)           B (0x250's)
          *   ################      ################      0
          *   ##.L........H.##      ##.....H......##      1-3
          *   ##............##      #..............#      4
          *   ##............##      #..............#      5
-         *   #..............#      #M...PPPPP...M.#      6
-         *   #..............#      ####.........###      7
-         *   #M...PPPPPP...M#      ####....L....###      8
-         *   ################      ################      9-12 */
-        // FillOverrides; The metatile a level's switch room fills its ground with, where the level's most common one is out of place:
-        // Vegetable Valley's hedge (its checkered dirt, under its raised grass, looked out of place in a room of hedges);
-        static readonly Dictionary<int, int> FillOverrides = new Dictionary<int, int> { [0] = 5 };
-        // Neighbours(); A cell's solid neighbours as bits: up, down, left, right, and with diagonals the 4 corners after;
-        static int Neighbours(int x, int y, Func<int, int, bool> solid, bool diagonals) {
-            (int dx, int dy)[] around = { (0, -1), (0, 1), (-1, 0), (1, 0), (-1, -1), (1, -1), (-1, 1), (1, 1) };
-            int bits = 0;
-            for (int i = 0; i < (diagonals ? 8 : 4); i++) if (solid(x + around[i].dx, y + around[i].dy)) bits |= 1 << i;
-            return bits;
-        }
+         *   #..............#      #M..PPPPPPPP..M#      6
+         *   ................      ####........####      7
+         *   .M...PPPPPP...M.      ####....L...####      8
+         *   ################      ################      9-11 */
+        // ModelRanks; Per level, the room its switch room is drawn after (see BuildSwitchRooms()), by rank: 0 the one in its colours
+        // with the most of its shapes;
+        static readonly int[] ModelRanks = { 0, 0, 0, 0, 4, 0, 0, 0 };
         static List<NightmareRoom> BuildSwitchRooms(ref byte[] nightmare, List<NightmareRoom> rooms) {
             List<NightmareRoom> switchRooms = new List<NightmareRoom>();
             int start = (nightmare.Length + 3) & ~3;
@@ -355,119 +347,287 @@ namespace KatAMRandomizer {
                         }
                 int block = blocks.Count == 0 ? top : blocks.MaxBy(b => b.Value).Key;
 
-                /* How the level draws its terrain (from its rooms with that tileset: their metatiles are the same): for
-                 * each pattern of solid neighbours (8 around, then the 4 beside; past a room's edge solid), the metatile it draws most;
-                 * its one-way platforms' pieces by whether the cells beside are platforms too (left end, middle, right end, alone): so
-                 * a switch room's walls, corners, floors and ledges look as the level's own do, not one metatile over and over; */
-                Dictionary<int, Dictionary<int, int>> eight = new Dictionary<int, Dictionary<int, int>>(), four = new Dictionary<int, Dictionary<int, int>>(), platforms = new Dictionary<int, Dictionary<int, int>>();
-                void Count(Dictionary<int, Dictionary<int, int>> table, int key, int metatile) {
-                    if (!table.TryGetValue(key, out var counts)) table[key] = counts = new Dictionary<int, int>();
-                    counts[metatile] = counts.GetValueOrDefault(metatile) + 1;
-                }
-                // (and which metatiles it draws side by side and one above another, so the room keeps to one of its terrains: dirt with
-                // dirt, hedge with hedge; rooms in the switch room's own palette count thrice, their metatiles drawn in its colours);
-                Dictionary<(int, int), int> beside = new Dictionary<(int, int), int>(), under = new Dictionary<(int, int), int>();
+                /* How the level builds its terrain, copied: the switch room's cells are taken from the level's own rooms with that tileset
+                 * (their metatiles the same), each from where the level has the same shape of ground around (5x5 cells: solid, one-way,
+                 * air; past a room's edge solid) and the same metatiles as the switch room's cells taken before (beside, above): so
+                 * neighbours come from one place in the level, and whole stretches of its walls, floors, corners and fills (Vegetable
+                 * Valley's hedges and dirt, Butter Building's towers and brick frames, Grape Garden's beaded edges, Rainbow Resort's ice
+                 * caps) carry over as the level draws them, not one metatile over and over; then what stands on its floors (flowers,
+                 * crystals: a cell big, alone), on the main floor, off the doors, mirrors and pedestal; */
+                const int Air = 0, Earth = 1, OneWay = 2, Other = 3;
+                // (plain ground only: NiDL's solid, 0x01, and Rainbow Resort's ice, 0x70; not slopes, water, doors, ladders, blocks);
+                int Class(byte raw) => raw == 0x00 ? Air : raw == 0x01 || raw == 0x70 ? Earth : raw == 0x11 ? OneWay : Other;
                 byte[] nidl = nightmare;
-                foreach (int learnt in levelRooms.Where(r => Enumerable.Range(1, 2).All(k => ReadInt(nidl, r.Record + 0x18 + k * 4) == ReadInt(nidl, source.Record + 0x18 + k * 4)))
-                                            .Select(r => r.Record).Distinct()) {
-                    byte[] roomCells = DecompressLZ77(nightmare, ReadInt(nightmare, learnt + 8) - 0x08000000);
-                    int w = ReadShort(nightmare, learnt + 0x14), h = ReadShort(nightmare, learnt + 0x16);
-                    int weight = ReadInt(nightmare, learnt + 0x18) == ReadInt(nightmare, source.Record + 0x18) ? 3 : 1;
-                    byte K(int x, int y) => x < 0 || y < 0 || x >= w || y >= h ? (byte)0x0D : RoomCollision[roomCells[(y * w + x) * 4 + 3]];
-                    int M(int x, int y) => ReadShort(roomCells, (y * w + x) * 4);
-                    for (int y = 0; y < h; y++) {
-                        for (int x = 0; x < w; x++) {
-                            int metatile = M(x, y);
-                            if (x + 1 < w) beside[(metatile, M(x + 1, y))] = beside.GetValueOrDefault((metatile, M(x + 1, y))) + weight;
-                            if (y + 1 < h) under[(metatile, M(x, y + 1))] = under.GetValueOrDefault((metatile, M(x, y + 1))) + weight;
-                            for (int k = 0; k < weight; k++) {
-                                if (K(x, y) == 0x0D) {
-                                    Count(eight, Neighbours(x, y, (nx, ny) => K(nx, ny) == 0x0D, true), metatile);
-                                    Count(four, Neighbours(x, y, (nx, ny) => K(nx, ny) == 0x0D, false), metatile);
-                                } else if (K(x, y) == 0x0E && K(x, y - 1) == 0x00) {
-                                    Count(platforms, (K(x - 1, y) == 0x0E ? 1 : 0) | (K(x + 1, y) == 0x0E ? 2 : 0), metatile);
-                                }
-                            }
+                var learntRecords = levelRooms.Where(r => Tileset(r) == Tileset(source)).Select(r => r.Record).Distinct().ToList();
+                var learnt = learntRecords
+                    .Select(record => (cells: DecompressLZ77(nidl, ReadInt(nidl, record + 8) - 0x08000000), w: ReadShort(nidl, record + 0x14),
+                                       h: ReadShort(nidl, record + 0x16), same: ReadInt(nidl, record + 0x18) == ReadInt(nidl, source.Record + 0x18))).ToList();
+                int SourceClass(int s, int x, int y) => x < 0 || y < 0 || x >= learnt[s].w || y >= learnt[s].h ? Earth : Class(learnt[s].cells[(y * learnt[s].w + x) * 4 + 3]);
+                int SourceMetatile(int s, int x, int y) => x < 0 || y < 0 || x >= learnt[s].w || y >= learnt[s].h ? -1 : ReadShort(learnt[s].cells, (y * learnt[s].w + x) * 4);
+
+                // (the metatile of the tileset drawing a metatile's pixels flipped, its mirror image, for the room's other half, below);
+                byte[] tiles = DecompressLZ77(nidl, ReadInt(nidl, source.Record + 0x1C) - 0x08000000);
+                byte[] metatiles = DecompressLZ77(nidl, ReadInt(nidl, source.Record + 0x20) - 0x08000000);
+                string Pixels(int m, bool flip) {
+                    char[] pixels = new char[256];
+                    for (int py = 0; py < 16; py++)
+                        for (int px = 0; px < 16; px++) {
+                            int x = flip ? 15 - px : px, e = ReadShort(metatiles, m * 8 + (py / 8 * 2 + x / 8) * 2), tile = e & 0x3FF;
+                            int tx = (e & 0x400) != 0 ? 7 - x % 8 : x % 8, ty = (e & 0x800) != 0 ? 7 - py % 8 : py % 8;
+                            int color = tile * 32 + 32 <= tiles.Length ? tiles[tile * 32 + ty * 4 + tx / 2] >> (tx % 2 * 4) & 0xF : 0;
+                            pixels[py * 16 + px] = (char)(color == 0 ? 0 : (e >> 12) * 16 + color);
                         }
-                    }
+                    return new string(pixels);
                 }
-                int Learned(Dictionary<int, Dictionary<int, int>> table, int key) => table.TryGetValue(key, out var counts) ? counts.MaxBy(c => c.Value).Key : -1;
+                Dictionary<string, int> drawing = new Dictionary<string, int>();
+                for (int m = metatiles.Length / 8 - 1; m >= 0; m--) drawing[Pixels(m, false)] = m;
+                // (one drawing nothing, its tiles not in the tileset's (animated), only itself);
+                int Mirror(int m) {
+                    if (m == air || m < 0 || m >= metatiles.Length / 8) return m == air ? air : -1;
+                    string flipped = Pixels(m, true);
+                    if (flipped.All(c => c == 0)) return m;
+                    return drawing.TryGetValue(flipped, out int image) ? image : -1;
+                }
+                /* (how the level uses each metatile: how often it has no ground above, below, left, right, and anything but ground,
+                 * air and one-way floors 2 cells around, under water, and inside the ground: a grass top goes where there's air above
+                 * it as the level draws it, not under more ground where it once drew one under a step; rock drawn under water stays out
+                 * of dry ground; deep inside the ground (2 rows under a floor's top) the level's usual fill, so fills are even, not a
+                 * patchwork, the row under a floor's top what the level draws there (Vegetable Valley's dirt under its grass); and what most of its rooms
+                 * draw, its own terrain, over what one room draws once: Ice Cream Island's sandy cobble, not its first room's strip of
+                 * blue under its water); */
+                Dictionary<int, double[]> use = new Dictionary<int, double[]>();
+                Dictionary<int, HashSet<int>> roomsDrawing = new Dictionary<int, HashSet<int>>();
+                for (int s = 0; s < learnt.Count; s++)
+                    for (int sy = 0; sy < learnt[s].h; sy++)
+                        for (int sx = 0; sx < learnt[s].w; sx++) {
+                            if (SourceClass(s, sx, sy) != Earth) continue;
+                            int m = SourceMetatile(s, sx, sy);
+                            if (!use.TryGetValue(m, out double[] u)) use[m] = u = new double[8];
+                            u[0]++;
+                            if (!roomsDrawing.TryGetValue(m, out var drawers)) roomsDrawing[m] = drawers = new HashSet<int>();
+                            drawers.Add(s);
+                            if (SourceClass(s, sx, sy - 1) != Earth) u[1]++;
+                            if (SourceClass(s, sx, sy + 1) != Earth) u[2]++;
+                            if (SourceClass(s, sx - 1, sy) != Earth) u[3]++;
+                            if (SourceClass(s, sx + 1, sy) != Earth) u[4]++;
+                            bool near = false;
+                            for (int dy = -2; dy <= 2 && !near; dy++)
+                                for (int dx = -2; dx <= 2 && !near; dx++) near = SourceClass(s, sx + dx, sy + dy) == Other;
+                            if (near) u[5]++;
+                            // (under water: water above it in its column, through ground only);
+                            int above = sy - 1;
+                            while (above >= 0 && SourceClass(s, sx, above) == Earth) above--;
+                            if (above >= 0 && learnt[s].cells[(above * learnt[s].w + sx) * 4 + 3] >> 4 == 8) u[6]++;
+                            // (inside the ground, the 8 around ground: how often it's the level's fill);
+                            if (Enumerable.Range(-1, 3).All(dy => Enumerable.Range(-1, 3).All(dx => SourceClass(s, sx + dx, sy + dy) == Earth))) u[7]++;
+                        }
+                double mostFill = use.Values.Max(u => u[7]), mostRooms = roomsDrawing.Values.Max(r => r.Count);
 
                 byte[] cells = new byte[SwitchWidth * SwitchHeight * 4];
                 void Set(int x, int y, int metatile, byte collision) {
                     WriteShort(cells, (y * SwitchWidth + x) * 4, metatile);
                     cells[(y * SwitchWidth + x) * 4 + 3] = collision;
                 }
-                // NiDL collision: 0 nothing, 0x01 solid, 0x11 a one-way floor (KatAM's 0x0E); a solid cell with air above is a floor's top;
+                // NiDL collision: 0 nothing, 0x01 solid, 0x11 a one-way floor (KatAM's 0x0E);
                 bool b = LayoutB(level);
                 bool Solid(int x, int y) => y == 0 || y >= SwitchFloor || Pedestal(x, y) || (b
-                    ? (y <= 3 && (x <= 1 || x >= SwitchWidth - 2)) || (y >= 4 && (x == 0 || x == SwitchWidth - 1)) || (y >= 7 && (x <= 3 || x >= 13))
-                    : (y <= 5 && (x <= 1 || x >= SwitchWidth - 2)) || (y >= 6 && (x == 0 || x == SwitchWidth - 1)));
-                bool Pedestal(int x, int y) => b ? y == 6 && x >= 7 && x <= 9 : y == 8 && x >= 5 && x <= 10;
-                bool Ledge(int x, int y) => b && y == 6 && (x == 5 || x == 6 || x == 10 || x == 11);
-                // (past the room's edges solid, as the learning's; the padding repeats the bottom row);
-                bool Around(int x, int y) => x < 0 || y < 0 || x >= SwitchWidth || y >= SwitchHeight || Solid(x, y);
-                for (int y = 0; y < SwitchHeight; y++) {
-                    for (int x = 0; x < SwitchWidth; x++) {
-                        if (Ledge(x, y)) {
-                            int piece = Learned(platforms, (Ledge(x - 1, y) ? 1 : 0) | (Ledge(x + 1, y) ? 2 : 0));
-                            if (piece < 0) piece = Learned(platforms, 3);
-                            Set(x, y, piece >= 0 ? piece : block, 0x11);
-                        } else if (!Solid(x, y)) Set(x, y, air, 0x00);
-                        else {
-                            int metatile = Learned(eight, Neighbours(x, y, Around, true));
-                            if (metatile < 0) metatile = Learned(four, Neighbours(x, y, Around, false));
-                            if (metatile < 0) metatile = Pedestal(x, y) ? block : y > 0 && !Solid(x, y - 1) ? top : ground;
-                            Set(x, y, metatile, 0x01);
-                        }
-                    }
-                }
-                /* Then each solid cell again, a few times over: among the metatiles the level commonly draws for its pattern (8
-                 * neighbours, else 4), the one that both fits it (how often) and fits its solid neighbours as they are now (how often the
-                 * level draws them side by side, or one above the other), so neighbouring cells settle on the same terrain; */
-                int Current(int x, int y) => ReadShort(cells, (y * SwitchWidth + x) * 4);
-                /* (one terrain: the fill, the metatile the level draws most inside its ground, 8 solid around, or one chosen by eye where
-                 * that's out of place (FillOverrides: Vegetable Valley's checkered dirt, its hedge instead); every cell inside the ground
-                 * is the fill, and the others choose what sits best by it); */
-                int fill = FillOverrides.TryGetValue(level, out int chosenFill) ? chosenFill : Learned(eight, 0xFF);
-                int Fill(int m) => fill < 0 ? 0 : beside.GetValueOrDefault((m, fill)) + beside.GetValueOrDefault((fill, m)) + under.GetValueOrDefault((m, fill)) + under.GetValueOrDefault((fill, m));
+                    ? (y <= 3 && (x <= 1 || x >= SwitchWidth - 2)) || (y >= 4 && (x == 0 || x == SwitchWidth - 1)) || (y >= 7 && (x <= 3 || x >= SwitchWidth - 4))
+                    : (y <= 5 && (x <= 1 || x >= SwitchWidth - 2)) || (y == 6 && (x == 0 || x == SwitchWidth - 1)));
+                bool Pedestal(int x, int y) => b ? y == 6 && x >= 6 && x <= 9 : y == 8 && x >= 5 && x <= 10;
+                bool Ledge(int x, int y) => b && y == 6 && (x == 4 || x == 5 || x == 10 || x == 11);
+                // (past the room's edges solid, as the level's);
+                int TargetClass(int x, int y) => x < 0 || y < 0 || x >= SwitchWidth || y >= SwitchHeight ? Earth : Ledge(x, y) ? OneWay : Solid(x, y) ? Earth : Air;
                 for (int y = 0; y < SwitchHeight; y++)
                     for (int x = 0; x < SwitchWidth; x++)
-                        if (fill >= 0 && Solid(x, y) && !Ledge(x, y) && Neighbours(x, y, Around, true) == 0xFF) WriteShort(cells, (y * SwitchWidth + x) * 4, fill);
-                for (int pass = 0; pass < 4; pass++) {
-                    for (int y = 0; y < SwitchHeight; y++) {
+                        Set(x, y, air, (byte)(TargetClass(x, y) == Earth ? 0x01 : TargetClass(x, y) == OneWay ? 0x11 : 0x00));
+                int Current(int x, int y) => ReadShort(cells, (y * SwitchWidth + x) * 4);
+                bool[] taken = new bool[SwitchWidth * SwitchHeight];
+
+                // (how unlike a cell of the level is to a switch room's: its 5x5 shape, the nearest 8 counting most; the metatiles of the
+                // switch room's cells taken, which it should draw beside as the level does; the level's rooms in other colours last);
+                // (whether the shape around a cell reads the same both ways, so the other half can have its metatile as it is; where
+                // not, one with a mirror image where it's about as good: so both halves match);
+                bool Even(int x, int y) => Enumerable.Range(-1, 3).All(dy => TargetClass(x - 1, y + dy) == TargetClass(x + 1, y + dy));
+                double Cost(int s, int sx, int sy, int x, int y) {
+                    double cost = learnt[s].same ? 0 : 6;
+                    if (!Even(x, y) && Mirror(SourceMetatile(s, sx, sy)) < 0) cost += 5;
+                    if (TargetClass(x, y) == Earth && use.TryGetValue(SourceMetatile(s, sx, sy), out double[] u)) {
+                        (int dx, int dy)[] sides = { (0, -1), (0, 1), (-1, 0), (1, 0) };
+                        for (int i = 0; i < 4; i++) cost += 4 * Math.Abs(u[i + 1] / u[0] - (TargetClass(x + sides[i].dx, y + sides[i].dy) != Earth ? 1 : 0));
+                        cost += 10 * (u[5] + u[6]) / u[0] + 5 * (1 - roomsDrawing[SourceMetatile(s, sx, sy)].Count / mostRooms);
+                        // (deep inside: the row under a floor's top is where the level draws its dirt, flowers and roots, as it does);
+                        bool inside = Enumerable.Range(-2, 4).All(dy => Enumerable.Range(-1, 3).All(dx => TargetClass(x + dx, y + dy) == Earth));
+                        if (inside && mostFill > 0) cost += 8 * (1 - Math.Sqrt(u[7] / mostFill));
+                    }
+                    for (int dy = -2; dy <= 2; dy++)
+                        for (int dx = -2; dx <= 2; dx++) {
+                            if (dx == 0 && dy == 0) continue;
+                            bool near = Math.Abs(dx) <= 1 && Math.Abs(dy) <= 1;
+                            if (SourceClass(s, sx + dx, sy + dy) != TargetClass(x + dx, y + dy)) cost += near ? 4 : 1;
+                            int nx = x + dx, ny = y + dy;
+                            if (!near || nx < 0 || ny < 0 || nx >= SwitchWidth || ny >= SwitchHeight || !taken[ny * SwitchWidth + nx]) continue;
+                            cost += SourceMetatile(s, sx + dx, sy + dy) == Current(nx, ny) ? -6 : 3;
+                        }
+                    return cost;
+                }
+                // (the level's cells of the class: those shaped as the switch room's cell (its 8 around) where there are);
+                /* (one room of the level first, the model: each room has its own look, Vegetable Valley's grass and dirt here, its
+                 * hedges there, so the switch room is drawn after the one in its colours with the most of its shapes, other rooms
+                 * only for shapes it hasn't); */
+                int model = -1;
+                bool ShapedAt(int s, int sx, int sy, int x, int y) {
+                    for (int dy = -1; dy <= 1; dy++)
+                        for (int dx = -1; dx <= 1; dx++)
+                            if (SourceClass(s, sx + dx, sy + dy) != TargetClass(x + dx, y + dy)) return false;
+                    for (int dy = -2; dy <= 2; dy++)
+                        for (int dx = -2; dx <= 2; dx++)
+                            if (SourceClass(s, sx + dx, sy + dy) == Other) return false;
+                    return true;
+                }
+                int Covered(int s) {
+                    int covered = 0;
+                    for (int y = 0; y < SwitchHeight; y++)
+                        for (int x = 0; x < SwitchWidth / 2; x++) {
+                            if (TargetClass(x, y) == Air) continue;
+                            bool found = false;
+                            for (int sy = 0; sy < learnt[s].h && !found; sy++)
+                                for (int sx = 0; sx < learnt[s].w && !found; sx++)
+                                    found = SourceClass(s, sx, sy) == TargetClass(x, y) && ShapedAt(s, sx, sy, x, y);
+                            if (found) covered++;
+                        }
+                    return covered;
+                }
+                // (ModelRanks: which, by that order, as picked by eye; -1 none, every room alike);
+                var models = Enumerable.Range(0, learnt.Count).OrderByDescending(s => (learnt[s].same ? 1000 : 0) + Covered(s)).ToList();
+                int rank = int.TryParse(Environment.GetEnvironmentVariable("SWITCH_ROOM_MODEL_RANK"), out int asked) ? asked : ModelRanks[level];
+                model = rank >= 0 && rank < models.Count ? models[rank] : -1;
+                List<(int s, int x, int y)> Candidates(int x, int y, Func<int, int, int, bool> allowed) {
+                    var all = new List<(int s, int x, int y)>();
+                    for (int s = 0; s < learnt.Count; s++)
+                        for (int sy = 0; sy < learnt[s].h; sy++)
+                            for (int sx = 0; sx < learnt[s].w; sx++)
+                                if (allowed(s, sx, sy)) all.Add((s, sx, sy));
+                    bool Shaped((int s, int x, int y) c) {
+                        for (int dy = -1; dy <= 1; dy++)
+                            for (int dx = -1; dx <= 1; dx++)
+                                if (SourceClass(c.s, c.x + dx, c.y + dy) != TargetClass(x + dx, y + dy)) return false;
+                        return true;
+                    }
+                    // (and away from anything but ground, air and one-way floors, 2 cells around, where there are: no rock from under
+                    // water, by a door, a slope or blocks; from rooms in the switch room's colours first: a metatile another palette
+                    // draws orange may draw green in its);
+                    bool Clean((int s, int x, int y) c) {
+                        for (int dy = -2; dy <= 2; dy++)
+                            for (int dx = -2; dx <= 2; dx++)
+                                if (SourceClass(c.s, c.x + dx, c.y + dy) == Other) return false;
+                        return true;
+                    }
+                    var pool = new[] { all.Where(c => c.s == model && Shaped(c) && Clean(c)), all.Where(c => Shaped(c) && Clean(c) && learnt[c.s].same), all.Where(c => Shaped(c) && Clean(c)),
+                                       all.Where(c => Shaped(c) && learnt[c.s].same), all.Where(Shaped) }
+                        .Select(p => p.ToList()).FirstOrDefault(p => p.Count > 0) ?? all;
+                    return pool;
+                }
+                (int s, int x, int y) Best(int x, int y, Func<int, int, int, bool> allowed) {
+                    var pool = Candidates(x, y, allowed);
+                    return pool.Count == 0 ? (-1, 0, 0) : pool.MinBy(c => Cost(c.s, c.x, c.y, x, y));
+                }
+                // Earth and one-way floors, row by row, then again with every neighbour taken;
+                for (int pass = 0; pass < 2; pass++)
+                    for (int y = 0; y < SwitchHeight; y++)
                         for (int x = 0; x < SwitchWidth; x++) {
-                            if (!Solid(x, y) || Ledge(x, y) || fill >= 0 && Neighbours(x, y, Around, true) == 0xFF) continue;
-                            var fits8 = eight.GetValueOrDefault(Neighbours(x, y, Around, true)) ?? new Dictionary<int, int>();
-                            var fits4 = four.GetValueOrDefault(Neighbours(x, y, Around, false)) ?? new Dictionary<int, int>();
-                            // (the pattern's common ones only: a fifth as often as its most common at least, so no odd one-off comes in;
-                            // fitting the solid neighbours, not the air);
-                            // (8 neighbours' pattern; one the level never draws is the fill, its own terrain, not a guess from the 4's);
-                            if (fits8.Count == 0 && fill >= 0) { WriteShort(cells, (y * SwitchWidth + x) * 4, fill); continue; }
-                            var fits = fits8.Count > 0 ? fits8 : fits4;
-                            if (fits.Count == 0) continue;
-                            int most = fits.Values.Max();
-                            var candidates = fits.Where(c => c.Value * 5 >= most).Select(c => c.Key).ToList();
-                            // (those the level draws by the fill, where there are: no piece of another terrain);
-                            var byFill = fits.Keys.Where(m => Fill(m) > 0).ToList();
-                            if (fill >= 0 && byFill.Count > 0) candidates = candidates.Where(m => Fill(m) > 0).DefaultIfEmpty(byFill.MaxBy(m => fits[m])).ToList();
-                            if (candidates.Count == 0) continue;
-                            double Fit(int m) {
-                                double fit = Math.Log(1 + fits.GetValueOrDefault(m)) + 2 * Math.Log(1 + Fill(m));
-                                if (x > 0 && Solid(x - 1, y)) fit += 1.5 * Math.Log(1 + beside.GetValueOrDefault((Current(x - 1, y), m)));
-                                if (x + 1 < SwitchWidth && Solid(x + 1, y)) fit += 1.5 * Math.Log(1 + beside.GetValueOrDefault((m, Current(x + 1, y))));
-                                if (y > 0 && Solid(x, y - 1)) fit += 1.5 * Math.Log(1 + under.GetValueOrDefault((Current(x, y - 1), m)));
-                                if (y + 1 < SwitchHeight && Solid(x, y + 1)) fit += 1.5 * Math.Log(1 + under.GetValueOrDefault((m, Current(x, y + 1))));
-                                return fit;
-                            }
-                            WriteShort(cells, (y * SwitchWidth + x) * 4, candidates.MaxBy(Fit));
+                            int target = TargetClass(x, y);
+                            if (target == Air) continue;
+                            var best = Best(x, y, (s, sx, sy) => SourceClass(s, sx, sy) == target);
+                            int metatile = best.s >= 0 ? SourceMetatile(best.s, best.x, best.y) : target == OneWay || Pedestal(x, y) ? block : y > 0 && !Solid(x, y - 1) ? top : ground;
+                            WriteShort(cells, (y * SwitchWidth + x) * 4, metatile);
+                            taken[y * SwitchWidth + x] = true;
+                        }
+                /* What stands on the floors: on each air cell on the main floor (off the mirrors, the doors and the pedestal), what the
+                 * level draws on the same floor metatile in the same shape, where that's a thing standing alone a cell big (air above
+                 * and beside it: a flower, a crystal, not part of a tree, a hill or a fence), or nothing; */
+                var mirrors = SwitchSides(level);
+                bool Clear(int x, int y) => mirrors.All(m => Math.Abs(m.x - x) > 1) && !(b && y >= 7 && Math.Abs(x - SwitchLinkDoor(level).x) <= 1)
+                                         && !Pedestal(x, y + 1) && !Ledge(x, y + 1) && !Pedestal(x, y + 2) && !Ledge(x, y + 2);
+                for (int y = 1; y < SwitchHeight; y++)
+                    for (int x = 0; x < SwitchWidth; x++) {
+                        if (TargetClass(x, y) != Air || TargetClass(x, y + 1) != Earth || !Clear(x, y)) continue;
+                        int floor = Current(x, y + 1);
+                        var best = Best(x, y, (s, sx, sy) => SourceClass(s, sx, sy) == Air && SourceMetatile(s, sx, sy + 1) == floor
+                            && SourceMetatile(s, sx, sy - 1) == air && SourceMetatile(s, sx - 1, sy) == air && SourceMetatile(s, sx + 1, sy) == air);
+                        if (best.s < 0) continue;
+                        Set(x, y, SourceMetatile(best.s, best.x, best.y), 0x00);
+                        taken[y * SwitchWidth + x] = true;
+                    }
+
+                /* Symmetric, as KatAM's hub rooms: one half as above, the other its mirror image, each metatile there the one of the
+                 * tileset that draws its pixels flipped (walls' left and right pieces, corners; itself where it's symmetric); the half
+                 * kept the one the level would draw (its metatiles side by side and one above another as often as the level draws them),
+                 * and a cell whose mirror image the tileset hasn't taken as above again, by its neighbours; */
+                Dictionary<(int, int), int> beside = new Dictionary<(int, int), int>(), under = new Dictionary<(int, int), int>();
+                foreach (var room in learnt)
+                    for (int y = 0; y < room.h; y++)
+                        for (int x = 0; x < room.w; x++) {
+                            int m = ReadShort(room.cells, (y * room.w + x) * 4);
+                            if (x + 1 < room.w) beside[(m, ReadShort(room.cells, (y * room.w + x + 1) * 4))] = beside.GetValueOrDefault((m, ReadShort(room.cells, (y * room.w + x + 1) * 4))) + 1;
+                            if (y + 1 < room.h) under[(m, ReadShort(room.cells, ((y + 1) * room.w + x) * 4))] = under.GetValueOrDefault((m, ReadShort(room.cells, ((y + 1) * room.w + x) * 4))) + 1;
+                        }
+                double Drawn(int from, int to) {
+                    double drawn = 0;
+                    for (int y = 0; y < SwitchHeight; y++)
+                        for (int x = from; x <= to; x++) {
+                            if (x < to) drawn += Math.Log(1 + beside.GetValueOrDefault((Current(x, y), Current(x + 1, y))));
+                            if (y + 1 < SwitchHeight) drawn += Math.Log(1 + under.GetValueOrDefault((Current(x, y), Current(x, y + 1))));
+                        }
+                    return drawn;
+                }
+                bool leftKept = Drawn(0, SwitchWidth / 2 - 1) >= Drawn(SwitchWidth / 2, SwitchWidth - 1);
+                var again = new List<(int x, int y)>();
+                for (int y = 0; y < SwitchHeight; y++)
+                    for (int x = leftKept ? SwitchWidth / 2 : 0; x < (leftKept ? SwitchWidth : SwitchWidth / 2); x++) {
+                        int kept = SwitchWidth - 1 - x, flipped = Mirror(Current(kept, y));
+                        // (no mirror image: the same metatile where the shape around reads the same both ways, inside the ground, a floor's top);
+                        if (flipped < 0 && Even(kept, y)) flipped = Current(kept, y);
+                        if (flipped >= 0) WriteShort(cells, (y * SwitchWidth + x) * 4, flipped);
+                        else if (TargetClass(x, y) == Air) WriteShort(cells, (y * SwitchWidth + x) * 4, air);
+                        else again.Add((x, y));
+                    }
+                /* (the two again together: the few best for each side by its neighbours, the pair that fits best and looks most like
+                 * mirror images, outline first (where it's drawn and where not), then colours: the level's own right wall's piece to a
+                 * left wall's where its art isn't drawn flipped, or both sides changed to a piece that is); */
+                double Unlike(int a, int b) {
+                    if (a < 0 || b < 0 || a >= metatiles.Length / 8 || b >= metatiles.Length / 8) return 16;
+                    string left = Pixels(a, false), right = Pixels(b, true);
+                    double differ = 0;
+                    for (int i = 0; i < 256; i++) differ += (left[i] == 0) != (right[i] == 0) ? 1 : left[i] != right[i] ? 0.25 : 0;
+                    return 16.0 * differ / 64;
+                }
+                List<(int m, double cost)> Options(int x, int y) => Candidates(x, y, (s, sx, sy) => SourceClass(s, sx, sy) == TargetClass(x, y))
+                    .Select(c => (m: SourceMetatile(c.s, c.x, c.y), cost: Cost(c.s, c.x, c.y, x, y))).GroupBy(o => o.m).Select(g => (g.Key, g.Min(o => o.cost)))
+                    .OrderBy(o => o.Item2).Take(8).ToList();
+                foreach (var (x, y) in again) {
+                    int kept = SwitchWidth - 1 - x;
+                    var keptOptions = Options(kept, y);
+                    if (!keptOptions.Any(o => o.m == Current(kept, y))) keptOptions.Add((Current(kept, y), keptOptions.Count > 0 ? keptOptions.Max(o => o.cost) : 0));
+                    var options = Options(x, y);
+                    double bestCost = double.MaxValue;
+                    (int kept, int other) pair = (Current(kept, y), Current(x, y));
+                    foreach (var k in keptOptions) {
+                        // (a piece with a mirror image, both sides alike as they can be);
+                        if (Mirror(k.m) >= 0 && 2 * k.cost < bestCost) { bestCost = 2 * k.cost; pair = (k.m, Mirror(k.m)); }
+                        foreach (var o in options) {
+                            double cost = k.cost + o.cost + Unlike(o.m, k.m);
+                            if (cost < bestCost) { bestCost = cost; pair = (k.m, o.m); }
                         }
                     }
+                    WriteShort(cells, (y * SwitchWidth + kept) * 4, pair.kept);
+                    WriteShort(cells, (y * SwitchWidth + x) * 4, pair.other);
                 }
+                if (Environment.GetEnvironmentVariable("SWITCH_ROOM_DUMP") is string dump)
+                    File.WriteAllText(Path.Combine(dump, $"switch{level}.txt"), $"{source.Record:X} {(model >= 0 ? learntRecords[model].ToString("X") : "-")}\n" + string.Join("\n", Enumerable.Range(0, SwitchHeight).Select(y => string.Join(" ", Enumerable.Range(0, SwitchWidth).Select(x => Current(x, y).ToString("X3"))))));
 
                 byte[] record = nightmare.Skip(source.Record).Take(0x54).ToArray();
                 // (the Fountain of Dreams': the Fountain of Dreams' own background, its starry nebula, as a room a screen high shows only
-                // the top of it: its first 20 rows, uncompressed);
+                // 20 rows of it, from the top: its rows 47-66, the nebula with the stars over it, uncompressed);
                 if (level == 7) {
                     Array.Copy(nightmare, fountain.Record + 0x28, record, 0x28, 0x10);
                     int map = ReadInt(nightmare, fountain.Record + 0x30) - 0x08000000, mapWidth = ReadShort(nightmare, map + 2);
@@ -2226,6 +2386,8 @@ namespace KatAMRandomizer {
             foreach (Door door in doors.Where(d => !d.Edge)) {
                 byte type = door.Slot != 0 ? DoorToHubType : MirrorType;
                 byte[] mirror = door.Slot != 0 ? DoorToHubTemplate(door.X, door.Y, templates.Count, door.Slot, door.Design) : MirrorTemplate(door.X, door.Y, templates.Count);
+                // (layout B's doors in the middle, on cell 8, drawn at x 128, the room's middle, as 0x122's: DoorDrawX);
+                if (r.IsSwitchRoom && LayoutB(r.Level) && door.Slot != 0 && door.X == 8) WriteShort(mirror, 6, 128);
                 if (door.Secret) mirror[14] = 1;    // subtype1 1: hidden until its cell is a door (CreateMirrorDoor);
                 templates.Add(mirror);
                 if (!types.Contains(type)) types.Add(type);
