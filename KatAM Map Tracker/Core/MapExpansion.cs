@@ -10,11 +10,13 @@ namespace KatAMMapTracker {
      *   its right; one in its ceiling: above it), as far as KatAM's linked rooms sit on its own maps (8 tiles: two steps of a 4
      *   tile grid), three steps past a room long that way; in the free cell that best keeps the directions of every door it shares with the rooms placed;
      *   so a level grows the branches, loops and long corridors its doors make, not rows.
-     * • The levels in order (Vegetable Valley first) on rows under KatAM's map, LevelMargin apart every way, each row no wider than
-     *   KatAM's map, as KatAM's own areas sit on the world map: a tidy grid, the same gap everywhere; the hub beside Central Circle.
+     * • The levels in order (Vegetable Valley first) beside KatAM's map, then in rows under it, LevelMargin apart every way, as KatAM's
+     *   own areas sit on the world map: a tidy grid, the same gap everywhere, the whole map as square as it fits; the hub beside
+     *   Central Circle. A room linked to none of its level's rooms (only to other levels': a swapped door, a switch room's) sits by
+     *   its stage's rooms, else by the level's way in, so a stage's map stays together.
      *   Each level is a cluster of its own (11 + level, as its area), the hub too (19).
      * • KatAM's rooms the map lines up under itself (the tutorial and the game's end: rooms no mirror links to Central Circle's
-     *   map) go under the levels, so the map still ends with them; */
+     *   map) go after the levels, so the map still ends with them; */
     public static class MapExpansion {
         const int Grid = MapGraphics.TileSize;
         const int Step = 4 * Grid, LevelMargin = 128, LongRoom = 60;
@@ -73,30 +75,62 @@ namespace KatAMMapTracker {
                 main = (Math.Min(main.left, best.left), Math.Min(main.top, best.top), Math.Max(main.right, best.left + size), Math.Max(main.bottom, best.top + size));
             }
 
-            // The levels in order, in rows under KatAM's map (each row as wide as KatAM's map at most, a level a row when wider);
-            double rowWidth = Math.Max(main.right - main.left, levels.Values.Max(l => Bounds(l).width));
-            double x = main.left, y = Snap(main.bottom + LevelMargin), rowHeight = 0, levelsBottom = main.bottom;
-            foreach (int level in levels.Keys.OrderBy(l => l)) {
-                (double width, double height) = Bounds(levels[level]);
-                if (x > main.left && x + width > main.left + rowWidth) {
-                    x = main.left;
-                    y = Snap(y + rowHeight + LevelMargin);
-                    rowHeight = 0;
+            /* The levels in order, the map kept square (as KatAM's world map: no long strip to scroll): beside KatAM's map first, in
+             * columns down its right side as far as its bottom, then in rows under it, a row as wide as the map (Pack()); of the widths
+             * the map could take, the one giving the smallest square around it all, the squarer of two alike. KatAM's rooms lined up
+             * under its map come last, after the levels, as one more block (Under), so the map still ends with them; */
+            const int Under = -1;
+            List<int> order = levels.Keys.OrderBy(l => l).ToList();
+            if (under.Count > 0) order.Add(Under);
+            (double left, double top, double right, double bottom) underBox = under.Count == 0 ? default
+                : (under.Min(r => layout[r].X), under.Min(r => layout[r].Y), under.Max(r => layout[r].X + layout[r].Width), under.Max(r => layout[r].Y + layout[r].Height));
+            (double width, double height) Size(int level) => level == Under ? (underBox.right - underBox.left, underBox.bottom - underBox.top) : Bounds(levels[level]);
+            List<(int level, double left, double top)> Pack(double mapWidth, out double right, out double bottom) {
+                List<(int level, double left, double top)> spots = new List<(int, double, double)>();
+                double columnLeft = Snap(main.right + LevelMargin), columnTop = main.top, columnWidth = 0, x = main.left, y = Snap(main.bottom + LevelMargin), rowHeight = 0;
+                bool beside = true;
+                right = main.right; bottom = main.bottom;
+                foreach (int level in order) {
+                    (double width, double height) = Size(level);
+                    (double left, double top) at;
+                    if (level == Under) beside = false;
+                    if (beside && columnTop > main.top && columnTop + height > main.bottom) { columnLeft = Snap(columnLeft + columnWidth + LevelMargin); columnTop = main.top; columnWidth = 0; }
+                    if (beside && (columnLeft + width > main.left + mapWidth || height > main.bottom - main.top)) beside = false;
+                    if (beside) {
+                        at = (columnLeft, Snap(columnTop));
+                        columnTop = at.top + height + LevelMargin;
+                        columnWidth = Math.Max(columnWidth, width);
+                    } else {
+                        if (x > main.left && x + width > main.left + mapWidth) { x = main.left; y = Snap(y + rowHeight + LevelMargin); rowHeight = 0; }
+                        at = (Snap(x), y);
+                        x = at.left + width + LevelMargin;
+                        rowHeight = Math.Max(rowHeight, height);
+                    }
+                    spots.Add((level, at.left, at.top));
+                    right = Math.Max(right, at.left + width);
+                    bottom = Math.Max(bottom, at.top + height);
                 }
-                (double left, double top) at = (Snap(x), y);
-                foreach ((int room, (double cx, double cy)) in levels[level]) Put(map.Rooms[room], at.left + cx, at.top + cy, LevelCluster(level));
-                x = at.left + width + LevelMargin;
-                rowHeight = Math.Max(rowHeight, height);
-                levelsBottom = Math.Max(levelsBottom, at.top + height);
+                return spots;
             }
-
-            // KatAM's rooms lined up under its map, under the levels now (the same arrangement, moved down);
-            if (under.Count > 0) {
-                double shift = Snap(levelsBottom + LevelMargin) - under.Min(r => layout[r].Y);
-                foreach (int room in under) {
-                    RoomPlacement p = layout[room];
-                    if (shift > 0) layout[room] = new RoomPlacement(p.X, p.Y + shift, p.Width, p.Height);
+            double narrowest = Math.Max(main.right - main.left, levels.Values.Max(l => Bounds(l).width));
+            double widest = main.right - main.left + levels.Values.Sum(l => Bounds(l).width + LevelMargin);
+            List<(int level, double left, double top)> packed = null;
+            double bestScore = double.MaxValue;
+            for (double mapWidth = narrowest; mapWidth <= widest + Step; mapWidth += Step) {
+                List<(int level, double left, double top)> spots = Pack(mapWidth, out double right, out double bottom);
+                double width = right - main.left, height = bottom - main.top, score = Math.Max(width, height) + Math.Abs(width - height) / 2;
+                if (score < bestScore) { bestScore = score; packed = spots; }
+            }
+            foreach ((int level, double left, double top) in packed) {
+                if (level == Under) {
+                    // (KatAM's rooms lined up under its map: the same arrangement, moved there);
+                    foreach (int room in under) {
+                        RoomPlacement p = layout[room];
+                        layout[room] = new RoomPlacement(p.X + left - underBox.left, p.Y + top - underBox.top, p.Width, p.Height);
+                    }
+                    continue;
                 }
+                foreach ((int room, (double cx, double cy)) in levels[level]) Put(map.Rooms[room], left + cx, top + cy, LevelCluster(level));
             }
 
             void Put(RoomInfo room, double centerX, double centerY, int cluster) {
@@ -173,9 +207,14 @@ namespace KatAMMapTracker {
             foreach (RoomInfo room in order) {
                 if (cells.Count == 0) { cells[room.Id] = (0, 0); used.Add((0, 0)); continue; }
                 List<RoomInfo> placed = Linked(room.Id).Where(cells.ContainsKey).Select(n => byId[n]).ToList();
-                // (around the room that leads to it first, its corridor's; the other rooms it's linked to, loops, only pull a little);
+                // (around the room that leads to it first, its corridor's; the other rooms it's linked to, loops, only pull a little; one
+                // linked to none of the level's rooms placed, only to other levels' (a swapped door, the switch room's), by its stage's
+                // rooms, else the level's way in: kept close, its stage's map together);
                 RoomInfo from = parent.TryGetValue(room.Id, out RoomInfo first) ? first : null;
-                IEnumerable<(int x, int y)> anchors = from != null ? new[] { cells[from.Id] } : placed.Count > 0 ? placed.Select(p => cells[p.Id]) : cells.Values;
+                List<(int x, int y)> kin = placed.Count > 0 || from != null ? new List<(int x, int y)>()
+                    : cells.Where(c => !room.IsNightmareSwitchRoom && byId[c.Key].NightmareStage == room.NightmareStage && !byId[c.Key].IsNightmareSwitchRoom).Select(c => c.Value).ToList();
+                if (placed.Count == 0 && from == null && kin.Count == 0) kin.Add(cells[order[0].Id]);
+                IEnumerable<(int x, int y)> anchors = from != null ? new[] { cells[from.Id] } : placed.Count > 0 ? placed.Select(p => cells[p.Id]) : kin;
                 HashSet<(int x, int y)> candidates = new HashSet<(int x, int y)>();
                 for (int ring = 1; ring <= 8 || candidates.Count == 0; ring++)
                     foreach ((int ax, int ay) in anchors)
@@ -200,6 +239,7 @@ namespace KatAMMapTracker {
                     int Near((int x, int y) o) => Math.Max(Math.Abs(o.x - cell.x), Math.Abs(o.y - cell.y));
                     int strangers = cells.Values.Count(o => !mine.Contains(o) && Near(o) <= 1), farStrangers = cells.Values.Count(o => !mine.Contains(o) && Near(o) == 2);
                     int friends = mine.Count(o => Near(o) <= 1);
+                    if (kin.Count > 0) cost += kin.Min(Near);
                     return cost + strangers * 2.5 + farStrangers * 0.8 + friends * 0.3;
                 }
 
