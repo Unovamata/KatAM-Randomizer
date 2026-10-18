@@ -105,7 +105,8 @@ after any change.
 ## 8. Bosses and mini-bosses
 
 - **A boss room has no door out, and is the end of its branch.** Taking the shard its boss leaves is the only way out. A one-way door
-  that was in a boss room goes elsewhere. A boss fought again leaves a Maxim Tomato and the shard again. `bossExitsOf`,
+  that was in a boss room goes elsewhere. A boss whose shard is owned leaves a Maxim Tomato
+  instead, never the shard, and grabbing it takes Kirby out as the shard would. `bossExitsOf`,
   `gNidlShardExits`, `NidlShardExit()`.
 - **A shard only ever sends Kirby to a central hub**: KatAM's to Central Circle, NiDL's to the NiDL hub, onto that level's door
   there. Never into another level or room. The one exception is the Power Orb, whose fight goes on in Nightmare's room, as in NiDL.
@@ -114,7 +115,8 @@ after any change.
   game can be beaten from KatAM alone; NiDL's spread the 8 evenly. An owned shard is always a Maxim Tomato, never a cutscene in the way.
 - **Doors into boss rooms are one-way.** Nothing else (branches, links, Mirras) goes in a boss stage.
 - **A mini-boss's fight area has no door until it is beaten**: doors there show once the fight ends. No two-way door in a
-  mini-boss's room; a door into one throws Kirby in, one-way. `Arenas()`, `InArena()`.
+  mini-boss's room; a door into one throws Kirby in, one-way, and its way out is one-way too, never
+  right beside the way in. `Arenas()`, `InArena()`.
 
 ## 9. Every place gets you back out
 
@@ -152,6 +154,8 @@ after any change.
 - **Only a boss's shard takes Kirby out of the level** (to Central Circle, or the NiDL hub). A shard from a chest or lying in a room
   plays its cutscene, then the game goes back to the same room where Kirby was: no victory dance, no warp. `NidlShardDone()`.
 - **An owned shard never blocks the way**: a field shard already owned is a Maxim Tomato; a chest whose shard is owned shows open.
+- **NiDL's loose items are taken once per visit**, as KatAM's: once eaten they don't come back until the game forgets them.
+- **Batteries** go in the NiDL rooms too, at valuable, rewarding places.
 
 ## 11. The map viewer
 
@@ -167,3 +171,7 @@ after any change.
 - **A randomized map has no islands of 2-4 rooms**: its clusters are whole communities of rooms (Louvain with its aggregation
   phase), and any cluster under 6 rooms joins the one it shares the most mirrors with. `MapLayout.FindClusters()`.
 - Rooms are placed where their doors lead (a door on a room's right edge puts the next room to its right), as KatAM's area maps.
+- **The spacing between rooms is consistent, as KatAM's**, room to room, as much as it can be: no room bleeds into another. This
+  holds for the NiDL levels as for KatAM's.
+- **Goal rooms are drawn beside each room whose goal mirror leads to them**, as a room of their own each time, not as one room every
+  goal mirror's line crosses the map to.
