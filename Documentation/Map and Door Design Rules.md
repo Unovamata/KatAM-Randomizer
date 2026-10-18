@@ -144,7 +144,7 @@ after any change.
     (KatAM's, and NiDL's once they have them). Never a new chest, never a treasure chest, and never so many that the consumable
     chests run out (2 copies take 16 of KatAM's 41).
 - **Only a boss's shard takes Kirby out of the level** (to Central Circle, or the NiDL hub). A shard from a chest or lying in a room
-  plays its cutscene and Kirby stays where he is: no victory dance, no trip out. `NidlShardDone()`.
+  plays its cutscene, then the game goes back to the same room where Kirby was: no victory dance, no warp. `NidlShardDone()`.
 - **An owned shard never blocks the way**: a field shard already owned is a Maxim Tomato; a chest whose shard is owned shows open.
 
 ## 11. The map viewer

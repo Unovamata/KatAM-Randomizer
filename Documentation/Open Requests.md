@@ -11,8 +11,6 @@ is done, move it to "Done" and say how it was checked. The design rules for door
 - **The randomizer reads chests and consumables from the expanded ROM**: the ROM Expansion runs first, so the randomizer sees
   NiDL's rooms too (its items, its chests) and randomizes everything at once. Chest shards then use NiDL's chests as well.
 - **Title screen**: when the ROM Expansion is on, the random title parade can include its ported NiDL enemies.
-- **Generate the ROM in the background**: the progress bar at the bottom shows the progress, and the window's buttons are greyed
-  out until it's done.
 
 ### 1. Save door visits, and show them in game from the save
 - Which doors Kirby has been through (and which chest shards he's taken) must be kept in the save file, for KatAM's rooms and
@@ -44,6 +42,9 @@ is done, move it to "Done" and say how it was checked. The design rules for door
 - **Every boss** must play like NiDL's. Whispy Woods' face is done (see below); check the others against NiDL.
 
 ## Done (rules to keep)
+
+- **The ROM is made in the background**: the progress bar at the bottom follows each step (with its name beside it), the rest of the
+  window is greyed out until it's done, and any warnings show once it ends. Compiled; not run in the real Windows program from here.
 
 - **Mirror shard options**: field shards (Unchanged, Random or Custom, 1-2 copies of the 8, lying in rooms) and **Add shards in
   chests** (off by default, 1-2 copies of the 8, injected into existing chests that held a consumable, never new chests) work

@@ -117,8 +117,39 @@ namespace KatAMRandomizer
             return error;
         }
 
-        // Randomize (Save);
-        private void ButtonSaveFile_Click(object sender, EventArgs e) {
+        /* ButtonSaveFile_Click(); Randomize (Save): the ROM is made in the background (Generate()), the progress bar at the bottom
+         * following it, the rest of the window greyed out until it's done; the warnings the steps raise are shown once it's done; */
+        private async void ButtonSaveFile_Click(object sender, EventArgs e) {
+            List<(string text, string caption, MessageBoxIcon icon)> messages = new List<(string, string, MessageBoxIcon)>();
+            Progress<(int percent, string step)> progress = new Progress<(int percent, string step)>(p => {
+                toolStripProgressBar1.Value = Math.Clamp(p.percent, toolStripProgressBar1.Minimum, toolStripProgressBar1.Maximum);
+                StatusLabel.Text = p.step;
+            });
+
+            SetBusy(true);
+            try {
+                await Task.Run(() => Generate(progress, messages));
+            } catch (Exception exception) {
+                messages.Add(($"The ROM couldn't be made: {exception.Message}", "Randomize", MessageBoxIcon.Error));
+            } finally {
+                SetBusy(false);
+            }
+            foreach ((string text, string caption, MessageBoxIcon icon) in messages) MessageBox.Show(text, caption, MessageBoxButtons.OK, icon);
+            StatusLabel.Text = messages.Any(m => m.icon == MessageBoxIcon.Error) ? "The ROM wasn't made." : "Done.";
+            toolStripProgressBar1.Value = messages.Any(m => m.icon == MessageBoxIcon.Error) ? 0 : toolStripProgressBar1.Maximum;
+        }
+
+        // SetBusy(); While the ROM is made, everything but the status bar (its progress) is greyed out;
+        void SetBusy(bool busy) {
+            foreach (Control control in Controls)
+                if (control != StatusStripRandomizer) control.Enabled = !busy;
+            UseWaitCursor = busy;
+            if (busy) toolStripProgressBar1.Value = 0;
+        }
+
+        // Generate(); Makes the randomized ROM (in the background: no window access here, warnings go to `messages`);
+        void Generate(IProgress<(int percent, string step)> progress, List<(string text, string caption, MessageBoxIcon icon)> messages) {
+            progress.Report((2, "Reading the ROM..."));
             byte[] fileContents = File.ReadAllBytes(system.ROMPath),
                    originalROM = (byte[])fileContents.Clone();
             Processing.ROMData = new byte[fileContents.Length];
@@ -134,12 +165,13 @@ namespace KatAMRandomizer
             bool nightmareTitle = settings.NightmareTitle && nightmareROM != null && new Random(settings.Seed ^ 0x7171E).Next(2) == 1;
 
             // ROM Expansion goes first, so the ROM reader sees the new enemies' parameters like any other's;
+            progress.Report((5, "Adding the ROM Expansion..."));
             if (settings.NightmareEnemies.Count > 0 || settings.NightmareMinibosses.Count > 0 || settings.NightmareRooms || nightmareTitle) {
                 string error = nightmareROM == null ? "Load a Nightmare in Dream Land ROM in the ROM Expansion tab, or turn its enemies, mini-bosses and rooms off."
                                                     : AddNightmareEnemies(nightmareTitle);
 
                 if (error != null) {
-                    MessageBox.Show(error, "ROM Expansion", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    messages.Add((error, "ROM Expansion", MessageBoxIcon.Error));
                     return;
                 }
 
@@ -155,14 +187,23 @@ namespace KatAMRandomizer
                     if (Processing.enemiesDictionary.TryGetValue(type, out var empty)) Processing.parameters[type] = empty.Name;
             }
 
+            progress.Report((40, "Reading the rooms..."));
             new KatAMROMReader(system);
+            progress.Report((50, "Randomizing enemies..."));
             new KatAMEnemies(system);
+            progress.Report((58, "Randomizing mirrors..."));
             new KatAMMirrors(system);
+            progress.Report((66, "Randomizing sprays..."));
             new KatAMSprays(system);
+            progress.Report((70, "Randomizing ability pedestals..."));
             new KatAMPedestals(system);
+            progress.Report((74, "Randomizing mini-bosses..."));
             new KatAMMinibosses(system);
+            progress.Report((78, "Randomizing map elements..."));
             new KatAMMapElements(system);
+            progress.Report((82, "Randomizing items and chests..."));
             new KatAMItems(system);
+            progress.Report((86, "Writing properties..."));
             new KatAMPropertiesManagement(system);
 
             // Randomize mirrors;
@@ -175,15 +216,17 @@ namespace KatAMRandomizer
             // Title screen: the intro's characters;
             if (settings.RandomizeTitleParade) KatAMTitleScreen.RandomizeParade(Processing.ROMData, settings.RandomEntity);
 
+            progress.Report((88, "Finishing the rooms..."));
             // ROM Expansion rooms: Central Circle's mirror to them, now that the randomizer is done with its room;
             KatAMExpansion.FinishRooms(Processing.ROMData);
 
+            progress.Report((90, "Applying the options..."));
             // Mirror shards in chests, then Reduce flashing and Skip the tutorial, last: they put the expansion's code in when no NiDL ROM did;
             if (settings.MirrorShardsInChests && settings.amountOfChestShards > 0 && settings.ChestsGenerationType != GenerationOptions.No) {
                 byte[] chests = Processing.ROMData;
                 string chestsError = KatAMExpansion.AddShardChests(ref chests);
                 if (chestsError == null) Processing.ROMData = chests;
-                else MessageBox.Show(chestsError, "Mirror shards in chests", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                else messages.Add((chestsError, "Mirror shards in chests", MessageBoxIcon.Warning));
             }
 
             // Bosses give random shards: KatAM's 8 shuffled, then NiDL's spread evenly;
@@ -191,7 +234,7 @@ namespace KatAMRandomizer
                 byte[] bosses = Processing.ROMData;
                 string bossesError = KatAMExpansion.RandomizeBossShards(ref bosses, settings.RandomEntity);
                 if (bossesError == null) Processing.ROMData = bosses;
-                else MessageBox.Show(bossesError, "Bosses give random shards", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                else messages.Add((bossesError, "Bosses give random shards", MessageBoxIcon.Warning));
             }
 
             // The shards put in rooms: one already owned is a Maxim Tomato instead, so it never blocks the way;
@@ -199,30 +242,33 @@ namespace KatAMRandomizer
                 byte[] field = Processing.ROMData;
                 string fieldError = KatAMExpansion.OwnedFieldShards(ref field);
                 if (fieldError == null) Processing.ROMData = field;
-                else MessageBox.Show(fieldError, "Mirror shards", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                else messages.Add((fieldError, "Mirror shards", MessageBoxIcon.Warning));
             }
 
             if (settings.ReduceFlashing) {
                 byte[] calmed = Processing.ROMData;
                 string flashingError = KatAMExpansion.ReduceFlashing(ref calmed);
                 if (flashingError == null) Processing.ROMData = calmed;
-                else MessageBox.Show(flashingError, "Reduce flashing", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                else messages.Add((flashingError, "Reduce flashing", MessageBoxIcon.Warning));
             }
 
             if (settings.SkipTutorial) {
                 byte[] skipped = Processing.ROMData;
                 string skipError = KatAMExpansion.SkipTutorial(ref skipped);
                 if (skipError == null) Processing.ROMData = skipped;
-                else MessageBox.Show(skipError, "Skip the tutorial", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                else messages.Add((skipError, "Skip the tutorial", MessageBoxIcon.Warning));
             }
 
+            progress.Report((96, "Saving the ROM..."));
             File.WriteAllBytes(destinationPath, Processing.ROMData);
 
             // The spoiler log is written next to the randomized ROM;
             if (settings.SpoilerLog) {
                 string spoilerLogPath = Path.Combine(system.ROMDirectory, Path.GetFileNameWithoutExtension(newFileName) + " - Spoiler Log.txt");
+                progress.Report((98, "Writing the spoiler log..."));
                 new KatAMSpoilerLog(system, originalROM).Save(spoilerLogPath);
             }
+            progress.Report((100, "Done."));
         }
 
         //////////////////////////////////////////////////////////////////////////////////////////////
