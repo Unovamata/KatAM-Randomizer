@@ -7,13 +7,17 @@
  * (KatAMExpansion.cs) are those, the first palette's pieces, then the same, the second's.
  * What he does (NiDL's moves, by its pictures, timed off NiDL's fight): walks at Kirby, stands a while between moves, then dives at
  * him on his belly, or jumps high and comes down at him (stars burst out where he lands, which Kirby inhales and spits at him: KatAM's
- * bosses take only the stronger attacks), or inhales (Kirby is drawn in; NiDL's swallows him and spits him out, here touching him
- * hurts, and he gulps), or swings his hammer down, one to three times (the last slam knocks out a star). Touching him hurts, as does
- * his hammer as it comes down; */
+ * bosses take only the stronger attacks), or inhales (every Kirby in front of him, the player's and the helpers, is drawn in; one
+ * that reaches his mouth is swallowed, held hidden inside him through KatAM's own grab, as its Gobbler's: sSwallowed; he gulps, then
+ * spits them all out ahead of him, hurt, as Gobbler spits Kirby: sSpit), or swings his hammer down, one to three times (the last
+ * slam knocks out a star). Touching him hurts, as does his hammer as it comes down; */
 #include "../nidl.h"
 #include "code_0806F780.h"
 #include "task.h"
+#include "kirby.h"
 #include "constants/songs.h"
+
+void sub_0804E09C(struct Kirby *);
 
 #define FRAMES 23               // The second palette's pieces follow the first's;
 #define PART_TILES 64
@@ -28,9 +32,15 @@
 #define REACH 112               // The inhale's;
 #define PULL 0xC0
 #define STAR_SPEED 0x100
+#define MOUTH 26                // How close to him a Kirby being drawn in is swallowed;
+#define CHEW_TIME 48
+#define SPIT_TIME 24
+// His states for the grab (obj->unk83: a Kirby held follows its script while it stays; a new one restarts it, as with Gobbler's);
+#define GRAB_HOLD 0xF0
+#define GRAB_SPIT 0xF1
 
-enum { STATE_IDLE, STATE_WALK, STATE_DIVE_HOP, STATE_DIVE, STATE_CROUCH, STATE_JUMP, STATE_LAND, STATE_INHALE, STATE_GULP, STATE_RAISE,
-       STATE_SWING };
+enum { STATE_IDLE, STATE_WALK, STATE_DIVE_HOP, STATE_DIVE, STATE_CROUCH, STATE_JUMP, STATE_LAND, STATE_INHALE, STATE_GULP, STATE_SPIT,
+       STATE_RAISE, STATE_SWING };
 
 struct KingDedede {
     struct NidlObject n;
@@ -42,12 +52,27 @@ struct KingDedede {
     u8 lastMove;
     bool8 started;
     bool8 airborne;
+    u8 swallowed;       // The Kirbys inside him (a bit each);
+    u8 state83;         // His own unk83, put back after a grab;
 };
 
 // His frames by NiDL's numbers (KatAMExpansion.KingDedede's list);
 static const u8 sFrames[44] = {
     [4] = 0, [5] = 1, [6] = 2, [7] = 3, [13] = 4, [14] = 5, [15] = 6, [16] = 7, [17] = 8, [18] = 9, [19] = 10, [24] = 11, [25] = 12,
     [26] = 13, [27] = 14, [28] = 15, [34] = 16, [35] = 17, [36] = 18, [39] = 19, [41] = 20, [42] = 21, [43] = 22,
+};
+
+/* The grab's scripts (struct Kirby_110, kirby.c's sub_0804E60C: x ahead of him, y, priority, frames, Kirby's animation, flags: 0x400
+ * held, 0x40 hidden, 0x100 back to the entry its frames count names, 0x10 thrown out at x, y * 0x10 speed, hurt): hidden inside him
+ * (one entry: his state changes as he's hit, restarting it), then out at his mouth and spat. Both the same length, every entry held:
+ * a Kirby switched to sSpit is checked at the entry it was at before its script restarts; */
+static const struct Kirby_110 sSwallowed[] = {
+    { 0, 0, -1, 1, 0x4A, 0x440 },
+    { 0, 0, 0, 0, 0, 0x500 },
+};
+static const struct Kirby_110 sSpit[] = {
+    { 24, 0, -1, 2, 0x4A, 0x400 },
+    { 0x30, 0x10, 0, 1, 0, 0x410 },
 };
 
 typedef char sKingDededeFits[sizeof(struct KingDedede) <= NIDL_OBJECT_SIZE ? 1 : -1];
@@ -110,6 +135,44 @@ static void Star(struct KingDedede *d, s32 dx, s16 xspeed) {
     star->base.yspeed = 0;
     star->base.parent = obj;
     star->unk7C = sub_0809F840;
+}
+
+/* Swallow(); A Kirby that reached his mouth goes into KatAM's grab (as Gobbler's catch: sub_080E588C; the grab's start, sub_0804E09C,
+ * refuses a Kirby hurt, dead or busy, and clears its script then); */
+static void Swallow(struct KingDedede *d, struct Kirby *kirby, u8 i) {
+    struct Object *obj = &d->n.obj;
+
+    if (!d->swallowed) d->state83 = obj->unk83;
+    obj->unk83 = GRAB_HOLD;
+    kirby->unk110 = sSwallowed;
+    kirby->base.unk6C = obj;
+    kirby->base.flags |= 0x40000;
+    sub_0804E09C(kirby);
+    if (kirby->unk110) {
+        d->swallowed |= 1 << i;
+        PlaySfx(&obj->base, SE_GOBBLER_EAT_KIRBY);
+    }
+}
+
+// Spit(); The Kirbys inside him thrown out ahead of him (their scripts restart as his state changes);
+static void Spit(struct KingDedede *d) {
+    struct Object *obj = &d->n.obj;
+    u8 i;
+
+    for (i = 0; i < gNumKirbys; i++)
+        if ((d->swallowed >> i & 1) && gKirbys[i].unk110 == sSwallowed && gKirbys[i].base.unk6C == obj) gKirbys[i].unk110 = sSpit;
+    obj->unk83 = GRAB_SPIT;
+    PlaySfx(&obj->base, SE_FROSTY_SPIT_KIRBY);
+}
+
+// Held(); Whether a Kirby is still inside him, or being spat;
+static bool32 Held(struct KingDedede *d) {
+    struct Object *obj = &d->n.obj;
+    u8 i;
+
+    for (i = 0; i < gNumKirbys; i++)
+        if ((d->swallowed >> i & 1) && gKirbys[i].unk110 && gKirbys[i].base.unk6C == obj) return TRUE;
+    return FALSE;
 }
 
 static void Set(struct KingDedede *d, u8 state) {
@@ -243,22 +306,39 @@ static void Update(struct KingDedede *d) {
         break;
     case STATE_INHALE:
         d->frame = d->timer < 8 ? 24 : d->timer < 28 ? 25 : 26 + ((d->timer / 5) & 1);
-        // Kirby is drawn in, in front of him (as NiDL's: on the floor's level);
-        dx = (obj->kirby3->base.x - obj->base.x) >> 8;
-        dy = (obj->kirby3->base.y - obj->base.y) >> 8;
-        if (d->timer >= 8 && (obj->base.flags & 1 ? dx < 0 && dx > -REACH : dx > 0 && dx < REACH) && dy > -40 && dy < 40) {
-            obj->kirby3->base.x += dx < 0 ? PULL : -PULL;
-            if (dx > -30 && dx < 30) {
-                Set(d, STATE_GULP);
-                break;
+        // Every Kirby in front of him is drawn in (as NiDL's: on the floor's level); one at his mouth is swallowed;
+        if (d->timer >= 8) {
+            u8 i;
+
+            for (i = 0; i < gNumKirbys; i++) {
+                struct Kirby *kirby = &gKirbys[i];
+
+                if (kirby->base.roomId != obj->base.roomId || kirby->hp <= 0 || kirby->unk110 || (d->swallowed >> i & 1)) continue;
+                dx = (kirby->base.x - obj->base.x) >> 8;
+                dy = (kirby->base.y - obj->base.y) >> 8;
+                if (!(obj->base.flags & 1 ? dx < 0 && dx > -REACH : dx > 0 && dx < REACH) || dy <= -40 || dy >= 40) continue;
+                kirby->base.x += dx < 0 ? PULL : -PULL;
+                if (dx > -MOUTH && dx < MOUTH) Swallow(d, kirby, i);
             }
         }
         if (!(d->timer & 15)) PlaySfx(&obj->base, SE_KIRBY_INHALE);
-        if (++d->timer >= 120) Set(d, STATE_IDLE);
+        if (++d->timer >= 120 || (d->swallowed && d->timer >= 40)) Set(d, d->swallowed ? STATE_GULP : STATE_IDLE);
         break;
     case STATE_GULP:
-        d->frame = 28;
-        if (++d->timer >= 30) Set(d, STATE_IDLE);
+        // He gulps and chews, then spits them out;
+        d->frame = d->timer < 12 || (d->timer / 8) & 1 ? 28 : 4;
+        if (++d->timer >= CHEW_TIME) {
+            Spit(d);
+            Set(d, STATE_SPIT);
+        }
+        break;
+    case STATE_SPIT:
+        d->frame = 25;
+        if (++d->timer >= SPIT_TIME && !Held(d)) {
+            d->swallowed = 0;
+            obj->unk83 = d->state83;
+            Set(d, STATE_IDLE);
+        }
         break;
     case STATE_RAISE:
         d->frame = 39;
@@ -320,6 +400,7 @@ void KingDededeInit(struct NidlObject *n) {
     d->frame = 4;
     d->anim = 0;
     d->lastMove = 0xFF;
+    d->swallowed = 0;
     obj->base.unk5C = (obj->base.unk5C & ~7) | 3 | 0xA0;
     Box(d, FALSE);
     ObjectSetBounds(&obj->base, -12, -10, 12, 34);

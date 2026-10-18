@@ -233,3 +233,4 @@ WriteSaveSectionByOffset 0x800a9f0
 VerifySaveByOffset 0x800aadc
 WriteSramEx 0x8159274
 ReadSram 0x815913c
+sub_0804E09C 0x804e014
