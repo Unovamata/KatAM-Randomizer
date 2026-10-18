@@ -31,9 +31,17 @@ is done, move it to "Done" and say how it was checked. The design rules for door
 
 ### 30. Warp stars: NiDL's scaling in their flight
 - NiDL's warp star flight scales the star (and Kirby) as it flies; KatAM's here doesn't.
+- Not started. The ported warp stars fly KatAM's flight 0 up to its room change, then land Kirby where the star says
+  (`WarpFlights()`). Copying NiDL's scaling needs NiDL's flight itself (when the star grows or shrinks, how much, over how many
+  frames) and affine sprites for KatAM's star and Kirby during the flight. Waiting on the owner: what exactly should match (the take-off,
+  the flight across the sky, the landing), or a clip of it.
 
 ### 32. NiDL hubs have only one two-way door
 - The owner: "All NiDL's hubs only have 1 2 way door."
+- Checked: each level's switch room (its hub) has its two hub doors, hidden until its big switch is pressed, and its floor mirror
+  (two-way, to a spot in the level); its way in is a hidden Mirra's one-way door. So until the switch is pressed, the only two-way
+  door in use is the floor mirror. Waiting on the owner: is that the bug (they should have two two-way doors from the start), or the
+  rule to keep (only one two-way door each)? It touches the approved hub design, so nothing changed yet.
 
 ## Done (rules to keep)
 
