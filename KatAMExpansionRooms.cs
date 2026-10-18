@@ -1112,7 +1112,8 @@
             List<int> infos = new List<int>(), palettes = new List<int>(), tilemaps = new List<int>(), backgrounds = new List<int>(),
                       solidities = new List<int>(), objects = new List<int>(), navigations = new List<int>();
             Dictionary<(int, int), int> infoOf = new Dictionary<(int, int), int>();
-            Dictionary<int, int> paletteOf = new Dictionary<int, int>(), backgroundOf = new Dictionary<int, int>(), frameCopies = new Dictionary<int, int>();
+            Dictionary<int, int> paletteOf = new Dictionary<int, int>(), builtBackground = new Dictionary<int, int>(), frameCopies = new Dictionary<int, int>();
+            Dictionary<(int, string), int> backgroundOf = new Dictionary<(int, string), int>();
             int noSpecials = Allocate(ref cursor, 8, 4);
             WriteInts(rom, noSpecials, 0, unchecked((int)0xFFFF0000));
             int noTypes = Allocate(ref cursor, 4, 4);
@@ -1193,11 +1194,14 @@
                     WriteInts(rom, tilemapEntry + 0x18, tilemapAt + 0x08000000, r.Room << 16);
                     tilemaps.Add(tilemapEntry + 0x08000000);
 
-                    // Background, shared;
+                    // Background, shared (a room with its own colours for it, as Orange Ocean's sea at sunset, shares its tiles and map);
                     int backgroundMap = Address(0x30);
-                    if (!backgroundOf.TryGetValue(backgroundMap, out int background)) {
-                        int at = BuildBackground(rom, nightmare, Address(0x2C), Address(0x28), backgroundMap, r.Room, ref cursor);
-                        backgroundOf[backgroundMap] = background = tableSizes[15] + backgrounds.Count;
+                    string colours = BackgroundColours(nightmare, Address(0x28));
+                    if (!backgroundOf.TryGetValue((backgroundMap, colours), out int background)) {
+                        int at = builtBackground.TryGetValue(backgroundMap, out int built) ? RecolourBackground(rom, built, nightmare, Address(0x28), r.Room, ref cursor)
+                                                                                         : BuildBackground(rom, nightmare, Address(0x2C), Address(0x28), backgroundMap, r.Room, ref cursor);
+                        builtBackground.TryAdd(backgroundMap, at);
+                        backgroundOf[(backgroundMap, colours)] = background = tableSizes[15] + backgrounds.Count;
                         backgrounds.Add(at + 0x08000000);
                     }
 
@@ -3261,8 +3265,7 @@
             byte[] compressedTiles = CompressLZ77(usedTiles.ToArray());
             int tilesAt = Allocate(ref cursor, compressedTiles.Length, 4);
             compressedTiles.CopyTo(rom, tilesAt);
-            int colors = Allocate(ref cursor, 0x100, 4);
-            Array.Copy(nightmare, paletteAddress + 2, rom, colors, Math.Min(0x100, ReadShort(nightmare, paletteAddress)));
+            int colors = BackgroundPalette(rom, nightmare, paletteAddress, ref cursor);
             int mapAt = Allocate(ref cursor, entries.Length, 4);
             entries.CopyTo(rom, mapAt);
 
@@ -3271,6 +3274,28 @@
             WriteInts(rom, at + 8, tilesAt + 0x08000000, usedTiles.Count / 32, colors + 0x08000000);
             WriteShorts(rom, at + 0x14, 0x60, 0x80);
             WriteInts(rom, at + 0x18, mapAt + 0x08000000, room << 16);
+            return at;
+        }
+
+        /* BackgroundPalette(); A NiDL background's colours as KatAM's palettes 6-13 (NiDL's 8-15): a shorter palette ends at palette 15,
+         * as NiDL loads it (Grape Garden 2's sky, 0x1B9-0x1BE: 7 palettes, its map using 9-15); returns its address; */
+        static int BackgroundPalette(byte[] rom, byte[] nightmare, int paletteAddress, ref int cursor) {
+            int colors = Allocate(ref cursor, 0x100, 4), length = Math.Min(0x100, (int)ReadShort(nightmare, paletteAddress));
+            Array.Copy(nightmare, paletteAddress + 2, rom, colors + 0x100 - length, length);
+            return colors;
+        }
+
+        // BackgroundColours(); A NiDL background palette's colours, to tell rooms sharing a background apart by them;
+        static string BackgroundColours(byte[] nightmare, int paletteAddress) =>
+            Convert.ToBase64String(nightmare, paletteAddress + 2, Math.Min(0x100, (int)ReadShort(nightmare, paletteAddress)));
+
+        /* RecolourBackground(); A copy of a built background's RoomTiledBG (BuildBackground()) with other colours, its tiles and map
+         * shared, its room's; returns its address; */
+        static int RecolourBackground(byte[] rom, int built, byte[] nightmare, int paletteAddress, int room, ref int cursor) {
+            int at = Allocate(ref cursor, 0x20, 4);
+            Array.Copy(rom, built, rom, at, 0x20);
+            WriteInt(rom, at + 0x10, BackgroundPalette(rom, nightmare, paletteAddress, ref cursor) + 0x08000000);
+            WriteInt(rom, at + 0x1C, room << 16);
             return at;
         }
 

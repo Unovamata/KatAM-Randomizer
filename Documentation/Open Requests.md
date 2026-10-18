@@ -44,13 +44,20 @@ is done, move it to "Done" and say how it was checked. The design rules for door
 - The NiDL levels' spacing is nothing like KatAM's room-to-room spacing: rooms bleed into each other. The spacing between rooms
   must be consistent (as KatAM's), as much as it can be. This is a rule (rulebook, section 11): enforce it harder.
 
-### 19. Rooms using 0x1B9's background: corrupted
-
 ### 20. Room 0x147: falling doesn't kill Kirby
 - The owner asked whether that's expected. It isn't: the room has no fall-out exit (its only ways out are its two doors), so a fall
   should cost a life. To look into.
 
 ## Done (rules to keep)
+
+- **NiDL backgrounds in their own colours** (item 19, 0x1B9): Grape Garden 2's sky (rooms 0x1B9-0x1BE) has a 7-palette palette that
+  NiDL loads from palette 9 (its map uses 9-15); it was loaded from 8, so every tile had its neighbour palette's colours (the blocky,
+  patched sky). A shorter palette now ends at palette 15. Found with it: rooms sharing a background got the first room's colours,
+  while eleven of NiDL's backgrounds have a second colouring (Orange Ocean's sea at sunset is Ice Cream Island's, 0x27B and 0x0F0;
+  the others: 0x164, 0x274-0x277, 0x234, 0x25F and its stage, 0x160, 0x2D5, 0x2D6, 0x275/0x27A, 0x230/0x231, 0x2D4/0x2D9); each
+  colouring is now its own palette, sharing the tiles and map. Tested in the emulator (USA, new games started in each room, not
+  playthroughs): 0x1B9's sky is NiDL's clouds, 0x27B's sea is orange at sunset, 0x0F0's stays blue. The other recoloured rooms
+  weren't looked at one by one. Logic and chest checks pass on all three versions, with and without dropping through thin floors.
 
 - **No empty dead ends** (item 12, room 0x298): a dead end with nothing in it at all (no enemy, item or boss) always gets a chest,
   over its level's count (0x298 and 0x150 got one: 30 NiDL chests). Tested in the emulator (USA, a new game started in 0x298, not a
