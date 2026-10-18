@@ -1260,7 +1260,8 @@
 
                     // The camera's top (CameraTop()); the background spans the room once, both ways (BackgroundRates());
                     int top = CameraTop(nightmare, r);
-                    rom[CodeAddress + version.CodeSymbols["gNidlRoomTops"] + r.Room] = (byte)(top / 8 + 1);
+                    // (rooms.c's code: 0 KatAM's 8 pixels, 1 the room's top, 2 a row down; it was top / 8 + 1, two rows down, 0x147);
+                    rom[CodeAddress + version.CodeSymbols["gNidlRoomTops"] + r.Room] = (byte)(top == 8 ? 0 : top / 16 + 1);
                     (int rateX, int rateY) = BackgroundRates(ReadShort(nightmare, backgroundMap + 2) * 8, ReadShort(nightmare, backgroundMap + 4) * 8,
                                                              r.FullWidth * 16, r.FullHeight * 16, top);
                     WriteShorts(rom, roomProps + r.Room * 0x28, LevelSongs[r.Level], 0, 0, 0x100, 0x100, 0, 0, rateX, rateY, RoomFlags,

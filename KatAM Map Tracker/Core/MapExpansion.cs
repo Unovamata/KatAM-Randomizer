@@ -43,9 +43,12 @@ namespace KatAMMapTracker {
 
             double SizeOf(RoomInfo room) => MapGraphics.SizeOf(MapGraphics.ShapeOf(room));
 
-            // Each level on its own canvas: room centers relative to its top left;
+            /* Each level on its own canvas: room centers relative to its top left; beside KatAM's original map, laid out as its area maps
+             * are (LayoutLevel()); on a randomized map, a cluster as compact as KatAM's clusters there (ClusterLevel()), and packed as
+             * close to the others as they are to each other (ClusterMargin); */
             Dictionary<int, Dictionary<int, (double x, double y)>> levels = nightmare.Where(r => r.NightmareLevel >= 0).GroupBy(r => r.NightmareLevel)
-                .ToDictionary(level => level.Key, level => LayoutLevel(level.ToList(), neighbors, SizeOf));
+                .ToDictionary(level => level.Key, level => original ? LayoutLevel(level.ToList(), neighbors, SizeOf) : ClusterLevel(level.ToList(), neighbors, map, SizeOf));
+            double roomMargin = original ? RoomMargin : MapLayout.DefaultClusterMargin;
 
             (double width, double height) Bounds(Dictionary<int, (double x, double y)> centers) =>
                 (centers.Max(c => c.Value.x + SizeOf(map.Rooms[c.Key]) / 2), centers.Max(c => c.Value.y + SizeOf(map.Rooms[c.Key]) / 2));
@@ -90,7 +93,7 @@ namespace KatAMMapTracker {
             List<RoomPlacement> katamRooms = layout.Where(p => !under.Contains(p.Key)).Select(p => p.Value).ToList();
             List<(int level, double left, double top)> Pack(IEnumerable<int> order, out double score) {
                 // (the cells of a Fit grid no room of a level may stand in: within RoomMargin of a room placed);
-                double reach = RoomMargin + nightmare.Max(SizeOf) / 2;
+                double reach = roomMargin + nightmare.Max(SizeOf) / 2;
                 double originX = main.left - 4096, originY = main.top - 4096;
                 HashSet<(int, int)> blocked = new HashSet<(int, int)>();
                 void Block(RoomPlacement p) {
@@ -272,6 +275,15 @@ namespace KatAMMapTracker {
             int minX = cells.Values.Min(c => c.x), minY = cells.Values.Min(c => c.y);
             double margin = rooms.Max(sizeOf) / 2;
             return cells.ToDictionary(c => c.Key, c => (margin + (c.Value.x - minX) * Step, margin + (c.Value.y - minY) * Step));
+        }
+
+        // ClusterLevel(); A level's rooms as one of a randomized map's clusters (MapLayout.LayoutCluster(): its grid, compact), centers
+        // relative to the level's top left;
+        static Dictionary<int, (double x, double y)> ClusterLevel(List<RoomInfo> rooms, Dictionary<int, List<int>> neighbors, RomMap map, Func<RoomInfo, double> sizeOf) {
+            Dictionary<int, (int x, int y)> cells = MapLayout.LayoutCluster(rooms.Select(r => r.Id).OrderBy(id => id).ToList(), neighbors, map);
+            int minX = cells.Values.Min(c => c.x), minY = cells.Values.Min(c => c.y);
+            double margin = rooms.Max(sizeOf) / 2;
+            return cells.ToDictionary(c => c.Key, c => (margin + (c.Value.x - minX) * MapLayout.DefaultCell, margin + (c.Value.y - minY) * MapLayout.DefaultCell));
         }
 
         static double Snap(double value) => Math.Round(value / Grid) * Grid;

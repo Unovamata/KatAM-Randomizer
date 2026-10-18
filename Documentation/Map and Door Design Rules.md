@@ -168,7 +168,9 @@ after any change.
 
 - **Unrandomized ROMs (expanded or not): KatAM's map stays exactly KatAM's**, as the pause screen's area maps draw it
   (`MapVanilla`), and the NiDL levels go **around** it: never in its gaps, never moving it. `MapExpansion.Place(original)`.
-- **Randomized ROMs**: clusters are enough.
+- **Randomized ROMs**: clusters are enough, and **every cluster looks the same**: each NiDL level is laid out as compact as KatAM's
+  clusters there (`MapLayout.LayoutCluster()`, its grid) and packed as close to the others as they are to each other.
+  `MapExpansion.ClusterLevel()`.
 - **Each level is one cluster**; a stage's rooms stay together, and a room linked only to another level sits by its own stage's
   rooms.
 - **The whole map is tight and as square as it fits, with no rogue rooms**: each level goes in the free spot that keeps the map the
@@ -178,7 +180,7 @@ after any change.
 - **A randomized map has no islands of 2-4 rooms**: its clusters are whole communities of rooms (Louvain with its aggregation
   phase), and any cluster under 6 rooms joins the one it shares the most mirrors with. `MapLayout.FindClusters()`.
 - Rooms are placed where their doors lead (a door on a room's right edge puts the next room to its right), as KatAM's area maps.
-- **The spacing between rooms is consistent, as KatAM's**, room to room, as much as it can be: no room bleeds into another. This
+- **The spacing between rooms is consistent, as KatAM's** (on an unrandomized map, the levels as its area maps; on a randomized one, as its clusters), room to room, as much as it can be: no room bleeds into another. This
   holds for the NiDL levels as for KatAM's.
 - **Goal rooms are drawn beside each room whose goal mirror leads to them**, as a room of their own each time, not as one room every
   goal mirror's line crosses the map to.

@@ -39,11 +39,21 @@ is done, move it to "Done" and say how it was checked. The design rules for door
   hit on an enemy (1), every enemy defeated and every hit on a boss (3), so randomized mini-bosses in enemy spots ("Include
   Minibosses") shake the screen as often as they do in KatAM.
 
-### 20. Room 0x147: falling doesn't kill Kirby
-- The owner asked whether that's expected. It isn't: the room has no fall-out exit (its only ways out are its two doors), so a fall
-  should cost a life. To look into.
-
 ## Done (rules to keep)
+
+- **Room 0x147's camera one tile higher** (item 20; the owner: "camera can move 1 tile up"): the camera's top was stored as a wrong
+  code (pixels / 8 + 1 for rooms.c's 0, 1, 2), so the 41 rooms meant to start a row down (NiDL's repeated top row) started two rows
+  down (0x147 at 32 pixels: flying to its ceiling Kirby went half off the screen), and split rooms' lower parts 16 pixels down
+  instead of KatAM's 8. Tested in the emulator (USA, a new game started in 0x147, not a playthrough): the camera's top is now 16
+  (`viewportPosition.y` 0x1000, was 0x2000), the snowy wall top shows and Kirby stays in view at the ceiling. The other 40 rooms
+  weren't looked at one by one. Logic and chest checks pass on all three versions, with and without dropping through thin floors.
+
+- **Randomized maps: every cluster alike** (the owner: the outer maps were far more spread out than the clusters in the middle):
+  on a randomized ROM each NiDL level is laid out as KatAM's clusters are (`MapLayout.LayoutCluster()`: its 48-pixel grid, pulled
+  compact) and packed with their margin (`MapExpansion.ClusterLevel()`); beside KatAM's original map the levels keep the area map
+  layout. Checked with the viewer's layout code outside the app (mirror-randomized expanded USA ROM): the levels are compact
+  clusters like the middle ones, the map went from 3080x3416 to 2144x2480, every line routed, none touching; the unrandomized map's
+  layout is unchanged. Not tried in the app.
 
 - **Warp star rides through NiDL's skies** (item 8, rooms 0x2F9 and 0x280): Kirby arrived on the sky room's bottom row and its edge
   exit sent him straight on, a white flash. A warp star into a sky room now has a flight of its own (`SkyFlight()`): KatAM's flight
