@@ -2802,7 +2802,8 @@
 
         /* Breakable blocks (NiDL collision 0x2X) -> KatAM's: star blocks 0xF0 (0x24, and Rainbow Resort's few 0x20), bomb blocks 0xF1
          * (0x2E), the blocks a bomb block sets off 0xF2 (0x2D, touching it and each other: KatAM breaks them as a chain from the bomb
-         * block), metal blocks 0xF4 (0x2F, NiDL's grey ones: as KatAM's, only some abilities break them), but where a room has more
+         * block), metal blocks 0xF5 (0x2F, NiDL's grey ones: KatAM's silver metal blocks, as room 0x134's, which only some abilities break;
+         * 0xF4 breaks with any ability's attack: code_0800ECAC_2.c's helpers try type 0 and 1 blocks only), but where a room has more
          * than MetalBlocks of them (Heavy Mole's dirt, which any attack digs through) star blocks (RoomCells()); */
         /* RoomCells(); A NiDL room's cells (u32 each: metatile, attribute, collision), its bomb chains as NiDL's: a chain's blocks are
          * NiDL's own (its bomb blocks only where NiDL has them: Kirby arriving on a chain's far side leaves by the two-way door he came
@@ -2902,7 +2903,7 @@
         const int MetalBlocks = 64;
 
         const byte LinkCollision = 0xF3;   // KatAM's invisible chain link (gCollisionAttributes 0x41: not solid, a chain goes through);
-        static byte BreakableBlock(int collision) => collision switch { 0x2D => 0xF2, 0x2E => 0xF1, 0x2F => 0xF4, _ => 0xF0 };
+        static byte BreakableBlock(int collision) => collision switch { 0x2D => 0xF2, 0x2E => 0xF1, 0x2F => 0xF5, _ => 0xF0 };
 
         /* BuildSolidity(); The room's (part's) SolidityMap: its RL collision and its special blocks: per breakable block, its KatAM
          * value, where it is, and what it leaves when broken (the 4 tilemap entries of the metatile NiDL's object data lists for the

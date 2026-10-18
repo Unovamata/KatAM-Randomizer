@@ -37,10 +37,6 @@ is done, move it to "Done" and say how it was checked. The design rules for door
 - Room 0x2F9's warp star ride has no animation, and room 0x280 needs it too. Port NiDL's warp star animations, for every warp star
   room, with support for the helper Kirbys (and any NPC riding along).
 
-### 9. Ability blocks: KatAM's grey ones, everywhere
-- NiDL's ability-only blocks (as in room 0x271) break with any ability. KatAM has its own grey ability blocks: every such block in
-  every NiDL room becomes KatAM's.
-
 ### 10. Screen shake as KatAM's
 - The screen shakes far too much; something broke along the way. Match KatAM's screen shake.
 
@@ -65,6 +61,13 @@ is done, move it to "Done" and say how it was checked. The design rules for door
   should cost a life. To look into.
 
 ## Done (rules to keep)
+
+- **NiDL's grey blocks are KatAM's silver metal blocks** (item 9, the owner's picture: room 0x134's), collision `0xF5`, which only
+  some abilities break; they were `0xF4`, which any ability's attack breaks (KatAM's helpers' block code, `code_0800ECAC_2.c`, tries
+  only blocks of types 0 and 1; `0xF4` is type 1, `0xF5` type 2). All 39 in the NiDL rooms; Heavy Mole's dirt (the same NiDL kind,
+  dug by any attack) stays star blocks. They keep NiDL's tiles (grey, bevelled, as KatAM's). Logic checks pass on all three versions
+  (with metal blocks off: nothing they guard is needed). Not tested in the emulator: an ability given by RAM doesn't attack (the old
+  `0xF4` blocks didn't break with it either), so which abilities break them in game wasn't seen.
 
 - **Room 0x2FD's collision and cannons; bomb chains everywhere as NiDL's** (items 6 and 16): NiDL's invisible chain links (its `0x35`
   cells) are KatAM's own `0xF3` links, so a bomb block sets off every block NiDL links to it (0x2FD's ceiling and pits, 0x304's goal
