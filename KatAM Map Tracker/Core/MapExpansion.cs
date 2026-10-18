@@ -7,9 +7,11 @@ namespace KatAMMapTracker {
      * NiDL level, next to KatAM's map (original or randomized: the randomizer doesn't shuffle NiDL's own doors):
      * • A level (LayoutLevel()): from its way in (its first stage's first room) outwards, each room where the door to it is in the
      *   room before it, as the game's area maps draw rooms where their exits lead (a door on a room's right edge: the next room to
-     *   its right; one in its ceiling: above it), as far as KatAM's linked rooms sit on its own maps (8 tiles: two steps of a 4
-     *   tile grid), three steps past a room long that way; in the free cell that best keeps the directions of every door it shares with the rooms placed;
-     *   so a level grows the branches, loops and long corridors its doors make, not rows.
+     *   its right; one in its ceiling: above it), as far as KatAM's linked rooms sit on its own maps (a step of a 6 tile grid: 4
+     *   tiles between two small rooms, KatAM's most common gap), two steps past a room long that way; in the free cell that best
+     *   keeps the directions of every door it shares with the rooms placed, never nearer another room than KatAM's rooms ever are
+     *   (MinGap: 3 tiles between their edges); so a level grows the branches, loops and long corridors its doors make, not rows,
+     *   spaced as KatAM's.
      * • The levels packed tight around KatAM's map (Pack()): each in the free spot that keeps the whole map the most square, then the
      *   closest to its middle, its rooms RoomMargin clear of every other cluster's, so none is left out on its own; the hub beside
      *   Central Circle. KatAM's original map (its original mirrors) stays exactly the pause screen's, one block the levels go around,
@@ -20,7 +22,7 @@ namespace KatAMMapTracker {
      *   map) go after the levels, so the map still ends with them; */
     public static class MapExpansion {
         const int Grid = MapGraphics.TileSize;
-        const int Step = 4 * Grid, LevelMargin = 128, LongRoom = 60, RoomMargin = 72, Fit = 2 * Grid;
+        const int Step = 6 * Grid, MinGap = 3 * Grid, LevelMargin = 128, LongRoom = 60, RoomMargin = 72, Fit = 2 * Grid;
         public const int HubCluster = 19;
         public static int LevelCluster(int level) => 11 + level;
         public static bool IsLevelCluster(int cluster) => cluster >= 11 && cluster < 19;
@@ -175,9 +177,10 @@ namespace KatAMMapTracker {
 
         /* LayoutLevel(); A level's rooms on a grid of Step cells (centers relative to the level's top left): breadth first from its way
          * in (the lowest stage's first room), in NiDL's order; each room in the free cell around the room that first leads to it (its
-         * corridor's) that best keeps the direction its door to it leaves it (Toward()) and the distance (two cells, a third past a
+         * corridor's) that best keeps the direction its door to it leaves it (Toward()) and the distance (a cell, a second past a
          * room LongRoom tiles long that way), straight or 45° (as MapLayout's: the in-game lines' angles), a cell away from rooms it
-         * isn't linked to; the other rooms it's linked to (loops) pull it only a little, their lines going around as KatAM's do; */
+         * isn't linked to, and never nearer a room than MinGap edge to edge (two big rooms side by side); the other rooms it's linked
+         * to (loops) pull it only a little, their lines going around as KatAM's do; */
         static Dictionary<int, (double x, double y)> LayoutLevel(List<RoomInfo> rooms, Dictionary<int, List<int>> neighbors, Func<RoomInfo, double> sizeOf) {
             Dictionary<int, RoomInfo> byId = rooms.ToDictionary(r => r.Id);
             Dictionary<int, (int x, int y)> cells = new Dictionary<int, (int x, int y)>();
@@ -200,7 +203,7 @@ namespace KatAMMapTracker {
                 int k = (int)Math.Round(Math.Atan2(vy, vx) / (Math.PI / 4));
                 return Directions[((k % 8) + 8) % 8];
             }
-            int Reach(RoomInfo from, (int x, int y) d) => 2 + Math.Min(1, (Math.Abs(d.x) * from.Width + Math.Abs(d.y) * from.Height) / LongRoom);
+            int Reach(RoomInfo from, (int x, int y) d) => 1 + Math.Min(1, (Math.Abs(d.x) * from.Width + Math.Abs(d.y) * from.Height) / LongRoom);
 
             List<RoomInfo> order = new List<RoomInfo>();
             Dictionary<int, RoomInfo> parent = new Dictionary<int, RoomInfo>();
@@ -229,11 +232,15 @@ namespace KatAMMapTracker {
                     : cells.Where(c => !room.IsNightmareSwitchRoom && byId[c.Key].NightmareStage == room.NightmareStage && !byId[c.Key].IsNightmareSwitchRoom).Select(c => c.Value).ToList();
                 if (placed.Count == 0 && from == null && kin.Count == 0) kin.Add(cells[order[0].Id]);
                 IEnumerable<(int x, int y)> anchors = from != null ? new[] { cells[from.Id] } : placed.Count > 0 ? placed.Select(p => cells[p.Id]) : kin;
+                // (a cell is free when it's MinGap clear of every room placed, edge to edge);
+                double size = sizeOf(room);
+                bool Clear((int x, int y) cell) => !used.Contains(cell) && cells.All(c =>
+                    Math.Max(Math.Abs(c.Value.x - cell.x), Math.Abs(c.Value.y - cell.y)) * Step - (size + sizeOf(byId[c.Key])) / 2 >= MinGap);
                 HashSet<(int x, int y)> candidates = new HashSet<(int x, int y)>();
                 for (int ring = 1; ring <= 8 || candidates.Count == 0; ring++)
                     foreach ((int ax, int ay) in anchors)
                         foreach ((int dx, int dy) in Directions)
-                            if (!used.Contains((ax + dx * ring, ay + dy * ring))) candidates.Add((ax + dx * ring, ay + dy * ring));
+                            if (Clear((ax + dx * ring, ay + dy * ring))) candidates.Add((ax + dx * ring, ay + dy * ring));
 
                 double Cost((int x, int y) cell) {
                     double cost = 0;

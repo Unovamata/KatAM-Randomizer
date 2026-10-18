@@ -158,6 +158,7 @@ namespace KatAMMapTracker {
             IsExpanded = source.IsExpanded;
             ExpansionMinibosses.AddRange(source.ExpansionMinibosses);
             foreach (RoomInfo room in source.Rooms.Values.Where(keep)) Rooms[room.Id] = room;
+            goalRooms.UnionWith(source.goalRooms);
         }
 
         public RomMap(byte[] rom) {
@@ -317,6 +318,52 @@ namespace KatAMMapTracker {
 
             AddLaunchers();
             LinkTwoWayDoors();
+            SplitGoalRooms();
+        }
+
+        /* SplitGoalRooms(); A goal game room (a boss & goal game room many rooms' goal mirrors lead to: KatAM's goal games, 0x3D4-0x3D6)
+         * becomes a room of its own beside each room leading to it: a copy (GoalCopy(): its id) the room's goal door leads to instead,
+         * in that room's NiDL level and stage if it has one, so the map draws each beside its room rather than one goal room every goal
+         * mirror's line crosses the map to. The game's room is RealRoom() of each copy; ResolveRoom() finds the copy Kirby is in; */
+        const int GoalCopies = 0x10000;
+        readonly HashSet<int> goalRooms = new HashSet<int>();
+
+        public static int GoalCopy(int goal, int from) => GoalCopies + (goal << 10) + from;
+        public static int RealRoom(int room) => room >= GoalCopies ? (room - GoalCopies) >> 10 : room;
+        public static bool IsGoalCopy(int room) => room >= GoalCopies;
+
+        void SplitGoalRooms() {
+            foreach (RoomInfo goal in Rooms.Values.Where(r => r.IsPathEnder && r.Doors.Count == 0).ToList()) {
+                List<RoomInfo> sources = Rooms.Values.Where(r => r.Id != goal.Id && r.Doors.Any(d => d.Destination == goal.Id)).ToList();
+                if (sources.Count < 2) continue;
+
+                goalRooms.Add(goal.Id);
+                Rooms.Remove(goal.Id);
+                foreach (RoomInfo source in sources) {
+                    RoomInfo copy = new RoomInfo {
+                        Id = GoalCopy(goal.Id, source.Id), ShortIndex = goal.ShortIndex, TilemapIndex = goal.TilemapIndex, CoverIndex = goal.CoverIndex,
+                        ObjectIndex = goal.ObjectIndex, Area = goal.Area, Width = goal.Width, Height = goal.Height,
+                        NightmareLevel = source.NightmareLevel, NightmareStage = source.NightmareStage,
+                    };
+                    copy.Objects.AddRange(goal.Objects);
+                    Rooms[copy.Id] = copy;
+                    for (int i = 0; i < source.Doors.Count; i++) {
+                        DoorInfo door = source.Doors[i];
+                        if (door.Destination != goal.Id) continue;
+                        source.Doors[i] = new DoorInfo {
+                            Room = door.Room, Destination = copy.Id, Kind = door.Kind, X = door.X, Y = door.Y, LandX = door.LandX, LandY = door.LandY, Tiles = door.Tiles,
+                        };
+                    }
+                }
+            }
+        }
+
+        // ResolveRoom(); The map's room for a room the game reports: a split goal game room is the copy beside the room Kirby came from
+        // (else its first copy); any other room is itself;
+        public int ResolveRoom(int room, int previousRoom) {
+            if (!goalRooms.Contains(room)) return room;
+            if (Rooms.ContainsKey(GoalCopy(room, RealRoom(previousRoom)))) return GoalCopy(room, RealRoom(previousRoom));
+            return Rooms.Keys.Where(k => IsGoalCopy(k) && RealRoom(k) == room).DefaultIfEmpty(room).Min();
         }
 
         /* AddLaunchers(); Warp Stars and Fuse Cannons, as One-Way doors from where they are to the room they send Kirby to
@@ -430,7 +477,7 @@ namespace KatAMMapTracker {
         public int[] RoomPalette(int roomId) {
             if (!Rooms.ContainsKey(roomId)) return null;
 
-            int paletteIndex = Read16(LongRoomParameters + roomId * LongRoomParameterSize + 0x16);
+            int paletteIndex = Read16(LongRoomParameters + RealRoom(roomId) * LongRoomParameterSize + 0x16);
             int paletteHeader = ReadPointer(PaletteTable + paletteIndex * 4), palette = paletteHeader < 0 ? -1 : ReadPointer(paletteHeader);
 
             if (palette < 0 || palette + 512 > Rom.Length) return null;
@@ -452,7 +499,7 @@ namespace KatAMMapTracker {
             width = room.Width * pixelsPerTile;
             height = room.Height * pixelsPerTile;
 
-            int parameters = LongRoomParameters + roomId * LongRoomParameterSize;
+            int parameters = LongRoomParameters + RealRoom(roomId) * LongRoomParameterSize;
             int tilesetIndex = Read16(parameters + 0x14), paletteIndex = Read16(parameters + 0x16),
                 backgroundIndex = Read16(parameters + 0x1E);
 

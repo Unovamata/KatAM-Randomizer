@@ -29,10 +29,6 @@ is done, move it to "Done" and say how it was checked. The design rules for door
 - **Nightmare's Power Orb**: port the Star Rod flying sequence, for the player and for all the helper Kirbys.
 - **Every boss** must play like NiDL's. Whispy Woods' face is done (see below); check the others against NiDL.
 
-### 7. Map viewer: goal rooms drawn by the room that leads to them
-- Goal rooms get their own icon beside each room whose goal mirror leads to them, as if each were a room of its own, instead of
-  one goal room every goal mirror's line crosses the map to. Fewer long lines over the map.
-
 ### 8. Warp star rides: NiDL's animation
 - Room 0x2F9's warp star ride has no animation, and room 0x280 needs it too. Port NiDL's warp star animations, for every warp star
   room, with support for the helper Kirbys (and any NPC riding along).
@@ -47,15 +43,27 @@ is done, move it to "Done" and say how it was checked. The design rules for door
   hit on an enemy (1), every enemy defeated and every hit on a boss (3), so randomized mini-bosses in enemy spots ("Include
   Minibosses") shake the screen as often as they do in KatAM.
 
-### 13. Map viewer: NiDL room spacing as KatAM's
-- The NiDL levels' spacing is nothing like KatAM's room-to-room spacing: rooms bleed into each other. The spacing between rooms
-  must be consistent (as KatAM's), as much as it can be. This is a rule (rulebook, section 11): enforce it harder.
-
 ### 20. Room 0x147: falling doesn't kill Kirby
 - The owner asked whether that's expected. It isn't: the room has no fall-out exit (its only ways out are its two doors), so a fall
   should cost a life. To look into.
 
 ## Done (rules to keep)
+
+- **Goal rooms drawn beside each room leading to them** (item 7): the map viewer splits each goal game (0x3D4-0x3D6: 9, 14 and 12
+  rooms' goal mirrors lead to them) into a copy beside each of those rooms (`RomMap.SplitGoalRooms()`), in that room's NiDL level
+  when it's a NiDL room; arriving in a goal game marks the copy beside the room Kirby came from (`ResolveRoom()`), and the debug warp
+  and the room caption use the real room. Checked with the viewer's layout code outside the app (renders of an unrandomized and a
+  mirror-randomized expanded USA ROM): 35 copies, each 1 cell (48 pixels) from its room, at most 4 where the map is crowded; the long
+  lines to the goal rooms are gone; the unrandomized ROM is still recognised as KatAM's original map and its 263 area map rooms are
+  exactly where they were. Not tried in the app with the emulator connected, and the app itself wasn't built here (no Windows
+  desktop SDK in this container): its two edits, in `TrackerForm.cs` and `MapView.cs`, are single calls to `RomMap`.
+
+- **NiDL rooms spaced as KatAM's on the map viewer** (item 13, rulebook section 11): KatAM's rooms are never nearer each other than
+  24 pixels edge to edge (32 most often); NiDL's were 16 (8 by a big room). The levels are now laid out on a 48-pixel grid (6 tiles),
+  linked rooms a step apart (32 pixels between two small rooms), no room nearer another than 24 (`MapExpansion.LayoutLevel()`).
+  Measured on the unrandomized expanded USA ROM: nearest-room gaps 24 (31 rooms, the big ones) and 32 (211), as KatAM's 24 and 32;
+  the map grew from 2976x3216 to 3336x3576 and stays square. On a mirror-randomized ROM two rooms sit 3 cells from their level's
+  nearest room (a goal copy kept off a crowded corner, and 0x1B1). Not tried in the app.
 
 - **NiDL backgrounds in their own colours** (item 19, 0x1B9): Grape Garden 2's sky (rooms 0x1B9-0x1BE) has a 7-palette palette that
   NiDL loads from palette 9 (its map uses 9-15); it was loaded from 8, so every tile had its neighbour palette's colours (the blocky,
