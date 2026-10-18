@@ -2804,20 +2804,23 @@
          * (0x2E), the blocks a bomb block sets off 0xF2 (0x2D, touching it and each other: KatAM breaks them as a chain from the bomb
          * block), metal blocks 0xF4 (0x2F, NiDL's grey ones: as KatAM's, only some abilities break them), but where a room has more
          * than MetalBlocks of them (Heavy Mole's dirt, which any attack digs through) star blocks (RoomCells()); */
-        /* RoomCells(); A NiDL room's cells (u32 each: metatile, attribute, collision), where a chain of blocks a bomb block sets off
-         * borders an open area that borders none of its bomb blocks, with one of its blocks next to that area a bomb block (one of the
-         * chain's own, its metatile and collision; it still leaves its own when broken): NiDL lets Kirby reach some areas only from
-         * the bomb block's side, and the ported doors are two-way, so he could come in on the other (Butter Building 1-1's second
-         * room: a return door above the chain, its bomb block below). A chain without a bomb block is star blocks. NiDL's 0x34 cells
-         * touching a breakable block are blocks a bomb sets off too (Ice Cream Island's sand path under its bomb block in stage 2,
-         * Rainbow Resort's), not one-way clouds (Grape Garden's boss tower: those touch none); */
+        /* RoomCells(); A NiDL room's cells (u32 each: metatile, attribute, collision), its bomb chains as NiDL's: a chain's blocks are
+         * NiDL's own (its bomb blocks only where NiDL has them: Kirby arriving on a chain's far side leaves by the two-way door he came
+         * through, and the logic checks find every room reached and nowhere trapped). A chain without a bomb block is star blocks. NiDL's
+         * 0x34 cells touching a breakable block are blocks a bomb sets off too (Ice Cream Island's sand path under its bomb block in stage
+         * 2, Rainbow Resort's), not one-way clouds (Grape Garden's boss tower: those touch none). NiDL's 0x35 cells touching a chain (and
+         * the 0x34 cells among them) are its invisible links: a bomb's chain goes on through them (Rainbow Resort 3-4's, 0x2FD: one bomb
+         * block sets off its ceiling and its pits' floors through columns of them; 3-7's, 0x304: the bomb at the bottom opens the goal
+         * door's at the top); they're KatAM's own, 0xF3 (not solid, its chain attribute 0x40: code_0800E0E4.c breaks a chain's
+         * neighbours that have it), linkCells; */
+        static Dictionary<int, HashSet<int>> linkCells = new Dictionary<int, HashSet<int>>();
         static byte[] RoomCells(byte[] nightmare, int record) {
             int width = ReadShort(nightmare, record + 0x14), height = ReadShort(nightmare, record + 0x16);
             byte[] cells = DecompressLZ77(nightmare, ReadInt(nightmare, record + 8) - 0x08000000);
             if (cells.Length < width * height * 4) return cells;
             int Kind(int i) => cells[i * 4 + 3];
-            bool Chain(int i) => Kind(i) is 0x2D or 0x2E;
-            bool Open(int i) => Kind(i) >> 4 == 2 ? !Chain(i) : RoomCollision[Kind(i)] is not (0x0D or (>= 0x01 and <= 0x04));
+            HashSet<int> links = new HashSet<int>();
+            bool Chain(int i) => Kind(i) is 0x2D or 0x2E || links.Contains(i);
             IEnumerable<int> Around(int i) {
                 int x = i % width, y = i / width;
                 if (x > 0) yield return i - 1;
@@ -2845,37 +2848,37 @@
                 if (touches) foreach (int g in group) cells[g * 4 + 3] = 0x2D;
             }
 
+            // 0x35 groups (with the 0x34 cells in them: Rainbow Resort 3-7's link column, 0x304) touching a chain: its links (linkCells);
+            int[] linkGroups = Enumerable.Repeat(-1, width * height).ToArray();
+            for (int i = 0, groups = 0; i < width * height; i++) {
+                if (linkGroups[i] >= 0 || Kind(i) != 0x35) continue;
+                List<int> group = Flood(i, n => Kind(n) is 0x35 or 0x34, linkGroups, groups++);
+                if (group.Any(g => Around(g).Any(n => Kind(n) is 0x2D or 0x2E))) links.UnionWith(group);
+            }
+            linkCells[record] = links;
+
             // (Heavy Mole's dirt: star blocks);
             if (Enumerable.Range(0, width * height).Count(i => Kind(i) == 0x2F) > MetalBlocks)
                 for (int i = 0; i < width * height; i++) if (Kind(i) == 0x2F) cells[i * 4 + 3] = 0x24;
 
-            int[] area = Enumerable.Repeat(-1, width * height).ToArray(), chain = Enumerable.Repeat(-1, width * height).ToArray();
-            for (int i = 0, areas = 0; i < width * height; i++) if (area[i] < 0 && Open(i)) Flood(i, Open, area, areas++);
-            for (int i = 0, chains = 0; i < width * height; i++) {
-                if (chain[i] >= 0 || !Chain(i)) continue;
-                List<int> blocks = Flood(i, Chain, chain, chains++);
-                List<int> bombs = blocks.Where(b => Kind(b) == 0x2E).ToList();
-                if (bombs.Count == 0) {
-                    // No bomb block sets them off (Rainbow Resort 3-7's): blocks any attack breaks, as star blocks;
-                    foreach (int block in blocks) cells[block * 4 + 3] = 0x24;
-                    continue;
-                }
-                HashSet<int> armed = new HashSet<int>(bombs.SelectMany(Around).Where(n => area[n] >= 0).Select(n => area[n]));
-                foreach (int block in blocks) {
-                    foreach (int n in Around(block)) {
-                        if (area[n] < 0 || armed.Contains(area[n])) continue;
-                        Array.Copy(cells, bombs[0] * 4, cells, block * 4, 4);
-                        armed.UnionWith(Around(block).Where(m => area[m] >= 0).Select(m => area[m]));
-                        break;
-                    }
-                }
-            }
-            // (blocks a door lands Kirby in, PlanDoors()'s clearedBlocks: what breaking them leaves, air);
+            // (blocks a door lands Kirby in, PlanDoors()'s clearedBlocks: what breaking them leaves, air; before the chains: one whose bomb
+            // block starts broken so is star blocks, 0x27C's);
             if (clearedBlocks.TryGetValue(record, out HashSet<int> cleared))
                 foreach (int i in cleared) {
                     WriteShort(cells, i * 4, LeftMetatile(nightmare, record, i));
                     cells[i * 4 + 3] = 0;
                 }
+            int[] chain = Enumerable.Repeat(-1, width * height).ToArray();
+            for (int i = 0, chains = 0; i < width * height; i++) {
+                if (chain[i] >= 0 || !Chain(i)) continue;
+                List<int> blocks = Flood(i, Chain, chain, chains++);
+                if (blocks.Any(b => Kind(b) == 0x2E)) continue;
+                // No bomb block sets them off (Rainbow Resort 3-7's): blocks any attack breaks, as star blocks (links: nothing);
+                foreach (int block in blocks) {
+                    if (links.Remove(block)) continue;
+                    cells[block * 4 + 3] = 0x24;
+                }
+            }
             return cells;
         }
 
@@ -2898,6 +2901,7 @@
 
         const int MetalBlocks = 64;
 
+        const byte LinkCollision = 0xF3;   // KatAM's invisible chain link (gCollisionAttributes 0x41: not solid, a chain goes through);
         static byte BreakableBlock(int collision) => collision switch { 0x2D => 0xF2, 0x2E => 0xF1, 0x2F => 0xF4, _ => 0xF0 };
 
         /* BuildSolidity(); The room's (part's) SolidityMap: its RL collision and its special blocks: per breakable block, its KatAM
@@ -2932,6 +2936,21 @@
                     specials.AddRange(new byte[] { left, 0xFF });
                 }
             }
+
+            /* NiDL's chain links (RoomCells()'s linkCells): KatAM's 0xF3, with a special block record a chain applies (nothing, or water:
+             * the cell looks as it did, its own metatile); */
+            if (linkCells.TryGetValue(r.Record, out HashSet<int> links))
+                for (int y = 0; y < r.Height && y < 256; y++) {
+                    for (int x = 0; x < r.Width && x < 256; x++) {
+                        int cell = (r.Y + y) * roomWidth + r.X + x;
+                        if (!links.Contains(cell)) continue;
+                        byte left = (byte)(Water(x, y) ? 0x48 : 0);
+                        collision[y * r.FullWidth + x] = LinkCollision;
+                        specials.AddRange(new byte[] { 1, LinkCollision, (byte)x, (byte)y, 0x12, 0, 0xFF, 0xFF });
+                        for (int q = 0; q < 4; q++) specials.AddRange(BitConverter.GetBytes((ushort)ShiftPalette(ReadShort(metatiles, ReadShort(cells, cell * 4) * 8 + q * 2))));
+                        specials.AddRange(new byte[] { left, 0xFF });
+                    }
+                }
 
             /* A fuse's cells: two special block records each, as KatAM's (cannon_fuse.c applies the first as it burns, the second when
              * it's lit again): the wall without the rope (the metatile of the nearest NiDL wall, kind 0x01), then the cell's own; */
@@ -3395,7 +3414,7 @@
          * and one there hit him as he came in; */
         static int BuildObjects(byte[] rom, byte[] nightmare, NightmareRoom r, List<Door> doors, List<(int x, int y, bool door)> mirras,
                                 List<(int x, int y)> landings, List<NidlChest> chests, int noTypes, ref int cursor) {
-            const int LandingClear = 3, ShotzoType = 0x35, BomberType = 0x28;
+            const int LandingClear = 3, BomberType = 0x28;
             // KatAM's enemies that walk the floor (Waddle Dee, Noddy, Pengy, Sir Kibble, Waddle Doo, Sparky, Twister, Hot Head, Sword Knight);
             byte[] walkers = { 0x00, 0x1E, 0x16, 0x18, 0x12, 0x19, 0x1C, 0x14, 0x1A };
             List<byte[]> templates = new List<byte[]>();
@@ -3428,9 +3447,9 @@
                 byte type, behavior = 0;
                 bool miniboss = false;
                 if (category == 0 && landings.Any(c => Math.Abs(x / 16 - c.x) <= LandingClear && Math.Abs(y / 16 - c.y) <= 2)) continue;
-                // (a Shotzo on blocks that break: NiDL's falls when they go, KatAM's stays in the air: left out, as on room 0x2FD's);
+                // (a Shotzo on blocks that break stays: NiDL's falls when they go, KatAM's stays where it is, but they're the room's cannons,
+                // as room 0x2FD's under its ceiling);
                 if (category == 0 && NativeEnemies.TryGetValue(index, out type)) {
-                    if (type == ShotzoType && y / 16 + 1 < r.Height && Kind(x / 16, y / 16 + 1) >> 4 == 2) continue;
                     /* (one that walks starts on the floor under its spot (up to 8 cells down, one-way floors too): NiDL drops its
                      * enemies there, KatAM's start standing, and a fall onto a one-way floor left room 0x153's Waddle Doo, placed
                      * under the ceiling, stuck in the floor); */

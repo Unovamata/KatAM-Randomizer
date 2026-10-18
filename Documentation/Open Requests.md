@@ -29,9 +29,6 @@ is done, move it to "Done" and say how it was checked. The design rules for door
 - **Nightmare's Power Orb**: port the Star Rod flying sequence, for the player and for all the helper Kirbys.
 - **Every boss** must play like NiDL's. Whispy Woods' face is done (see below); check the others against NiDL.
 
-### 6. Room 0x2FD: collision and cannons
-- Its collision is broken and its cannons are missing.
-
 ### 7. Map viewer: goal rooms drawn by the room that leads to them
 - Goal rooms get their own icon beside each room whose goal mirror leads to them, as if each were a room of its own, instead of
   one goal room every goal mirror's line crosses the map to. Fewer long lines over the map.
@@ -58,9 +55,6 @@ is done, move it to "Done" and say how it was checked. The design rules for door
 - The NiDL levels' spacing is nothing like KatAM's room-to-room spacing: rooms bleed into each other. The spacing between rooms
   must be consistent (as KatAM's), as much as it can be. This is a rule (rulebook, section 11): enforce it harder.
 
-### 16. Bomb chains, for good
-- Rooms 0x304 and 0x2FD's bomb block chains are broken. Fix every room with bomb chains, checked against NiDL's own maps.
-
 ### 18. Batteries in the NiDL rooms
 - Add batteries at valuable, rewarding places in the NiDL rooms.
 
@@ -71,6 +65,15 @@ is done, move it to "Done" and say how it was checked. The design rules for door
   should cost a life. To look into.
 
 ## Done (rules to keep)
+
+- **Room 0x2FD's collision and cannons; bomb chains everywhere as NiDL's** (items 6 and 16): NiDL's invisible chain links (its `0x35`
+  cells) are KatAM's own `0xF3` links, so a bomb block sets off every block NiDL links to it (0x2FD's ceiling and pits, 0x304's goal
+  door chain from the bottom); bomb blocks are only where NiDL has them (the extra ones the port added are gone: every room's count now
+  matches NiDL's, but 0x27C's and 0x294's, whose bomb block starts broken where a door lands Kirby; their chains are star blocks); 0x2FD's
+  Shotzos (its cannons, on its breakable ceiling) are back. Checked: the rooms' collision against NiDL's map, the bomb counts in all
+  rooms, and in the emulator (USA, Kirby started alone in 0x2FD with Bomb given by RAM, not a playthrough): one hit on the bomb block
+  broke the ceiling (linked only through the link column), the chain and the pits; the Shotzos showed before. Logic checks pass on
+  all three versions, with and without dropping through thin floors. 0x304 wasn't played in the emulator.
 
 - **NiDL boss rematch: a Maxim Tomato, never the shard** (item 14): eating it gives the victory dance and takes Kirby where the shard
   would (the NiDL hub, onto the level's door). Tested in the emulator (USA, a new game started in Mr. Shine & Mr. Bright's room
