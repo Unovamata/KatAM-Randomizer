@@ -120,9 +120,11 @@ after any change.
 - **Which shard a boss leaves can be shuffled** (Bosses Give Random Shards): KatAM's bosses always hold all 8 between them, so the
   game can be beaten from KatAM alone; NiDL's spread the 8 evenly. An owned shard is always a Maxim Tomato, never a cutscene in the way.
 - **Doors into boss rooms are one-way.** Nothing else (branches, links, Mirras) goes in a boss stage.
-- **A mini-boss's fight area has no door until it is beaten**: doors there show once the fight ends. No two-way door in a
-  mini-boss's room; a door into one throws Kirby in, one-way, and its way out is one-way too, never
-  right beside the way in. `Arenas()`, `InArena()`.
+- **A mini-boss's fight area has no door until it is beaten**: doors there show once the fight ends, whenever Kirby comes in (a
+  long room's too, before the fight is on screen). The fight area for doors is its screen and the space it's fought in: the cells
+  Kirby walks to from it, up to 4 cells across and 2 up or down (not past a wall). Those doors are built shut and open when the
+  mini-boss is beaten. No two-way door in a mini-boss's room; a door into one throws Kirby in, one-way, and its way out is one-way
+  too, never right beside the way in. `Arenas()`, `InArena()`, `ArenaCells()`, `arena.c`.
 
 ## 9. Every place gets you back out
 

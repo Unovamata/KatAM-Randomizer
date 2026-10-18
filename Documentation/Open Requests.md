@@ -34,10 +34,6 @@ is done, move it to "Done" and say how it was checked. The design rules for door
   once opened (and stays so); opened when its shard is already owned (from a boss or the field), it gives a Maxim Tomato instead,
   as an owned field shard does. Today it uses its shard's bit, so it shows open, never opened, once the shard is owned elsewhere.
 
-### 24. Mini-boss doors already there in long rooms
-- Room 0x244: entering a long room with a mini-boss whose fight area holds a door, the door is already there before the fight.
-  Doors in a mini-boss's fight area show only once it's beaten, whenever Kirby comes in.
-
 ### 26. Meta-Knights float a few pixels off the ground
 
 ### 27. Mr. Tick-Tock stands above the ground in 0xF8; check the others
@@ -55,6 +51,17 @@ is done, move it to "Done" and say how it was checked. The design rules for door
 - The owner: "All NiDL's hubs only have 1 2 way door."
 
 ## Done (rules to keep)
+
+- **Mini-boss doors in long rooms** (item 24): in 0x244 the door by Fire Lion's fight stood 2 cells past its screen, in the same
+  walled space, so nothing hid it. Doors in a fight's area were also only shut once the fight's arena object came on screen, so in
+  a long room they showed as Kirby walked up. Now a mini-boss's doors (its fight screen and the space it's fought in: the cells
+  Kirby walks to from it, up to 4 across and 2 up or down, not past a wall) are built shut, and the arena object opens them once
+  no mini-boss is left; the map, the logic and the doors' records are unchanged. 58 doors in 33 rooms are built shut (they include the
+  ones the arena already shut, as 0xF5's). Tested in the emulator (USA, European and Japanese, expanded; a new game started in 0x244,
+  Kirby moved next to the door in RAM, Fire Lion's HP set to 0 in RAM: a forced state, not a real fight): before the fight the old
+  build shows the door and the new one doesn't; once Fire Lion's HP is 0 the door appears and Up takes Kirby to 0x164. 0xF5 rechecked
+  the same way (its exit works). Logic checks pass on all three, with and without dropping through thin floors, and on a randomized
+  ROM. Not tried: a real fight, every one of the 33 rooms.
 
 - **The ability room's door in the NiDL hub** (item 33): the NiDL hub now has Central Circle's door to the ability room (0x3CA) at
   the same spot (top left, cell 3, 4). It's Central Circle's own: its hub mirror object (world slot 0x12, KatAM's switch, so it

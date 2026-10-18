@@ -5,9 +5,12 @@
  * alive in the room, it holds the camera there as KatAM's scroll locks do (scroll_lock.c, type 0x77: sub_0811C7D0 and sub_0811C8BC,
  * which eases the camera in) and keeps every Kirby in the room on it, until none is left; then it gives the camera back
  * (ScrollLockDestroy) and goes away. Its graphics are Broom Hatter's (never shown).
- * While the mini-boss is alive, the doors in its fight's screen (and a cell around it) are shut: their cells aren't doors (KatAM's
- * door collision 0xFF, 0xFD in water: air, water), and their mirrors (subtype 1, KatAMExpansionRooms.cs) hide with them, as KatAM's
- * hidden mirrors do; they open once it's beaten (or when the room is left: its collision is loaded again); */
+ * The doors of its fight (its screen, and the cells Kirby goes to from it within ARENA_REACH cells across, ARENA_REACH_Y up or
+ * down: KatAMExpansionRooms.cs, ArenaCells()) are built shut (BuildSolidity()): their cells
+ * aren't doors (air, water), only their door records (kind 3, KatAM's door collision 0xFF, 0xFD in water) say they are, and their
+ * mirrors (subtype 1) hide with them, as KatAM's hidden mirrors do. Once no mini-boss is alive in the room, it opens them: each
+ * door record there whose cell has no other record (secret doors' blocks, Mirras' cells) gets its collision; so they show only
+ * once the fight is won, whenever Kirby comes in (shut once it began, they showed in a long room before it came on screen); */
 #include "../nidl.h"
 #include "constants/object_types.h"
 
@@ -16,11 +19,8 @@
  * width - 8, height - 1), so he falls off its pits. Kirby stays 8 pixels inside its sides; */
 #define BELOW 39
 #define WALL 8
-#define SHUT_DOORS 4
-
-struct ShutDoor {
-    u8 x, y, collision;
-};
+#define ARENA_REACH 4
+#define ARENA_REACH_Y 2
 
 struct Arena {
     struct NidlObject n;
@@ -28,9 +28,7 @@ struct Arena {
     u8 locked;          // The players whose camera it holds (bit per player);
     struct S32Vec2 saved7C, saved84;
     s32 savedA0, savedA4, savedA8, savedAC;
-    bool8 checked;      // It shut the doors there were (once);
-    u8 shut;            // How many doors it shut;
-    struct ShutDoor doors[SHUT_DOORS];
+    bool8 opened;       // It opened the doors (once);
 };
 
 // The camera's bounds: its template's area (Kirby's, BELOW more);
@@ -41,37 +39,21 @@ struct Arena {
 
 typedef char ArenaFits[sizeof(struct Arena) <= NIDL_OBJECT_SIZE ? 1 : -1];
 
-// ShutDoors(); The doors in the fight's screen, and a cell around it, made air (water), for the room's player;
-static void ShutDoors(struct Arena *a) {
+// OpenDoors(); The doors of the fight (ArenaCells()' box: those outside its cells weren't shut), for the room's player: their
+// records' collision, where their cell has no other record (the special records, levelInfo->unk1E0: kind, collision, x, y, length);
+static void OpenDoors(struct Arena *a) {
     const struct ObjectTemplate *area = a->n.obj.objTemplate;
     u8 player = a->n.obj.base.unk56;
-    s32 left = (area->x + area->unk1A - 16) >> 4, top = (area->y + area->unk1C - 16) >> 4;
-    s32 right = (area->x + area->unk1A + area->unk1E + 15) >> 4, bottom = (area->y + area->unk1C + area->unk20 + 15) >> 4;
-    s32 x, y;
+    s32 left = ((area->x + area->unk1A) >> 4) - ARENA_REACH, top = ((area->y + area->unk1C) >> 4) - ARENA_REACH_Y;
+    s32 right = ((area->x + area->unk1A + area->unk1E - 1) >> 4) + ARENA_REACH, bottom = ((area->y + area->unk1C + area->unk20 - 1) >> 4) + ARENA_REACH_Y;
+    const u8 *record, *other;
 
-    if (left < 0) left = 0;
-    if (top < 0) top = 0;
-    if (right > gCurLevelInfo[player].roomWidth >> 4) right = gCurLevelInfo[player].roomWidth >> 4;
-    if (bottom > gCurLevelInfo[player].roomHeight >> 4) bottom = gCurLevelInfo[player].roomHeight >> 4;
-    for (y = top; y < bottom; y++) {
-        for (x = left; x < right && a->shut < SHUT_DOORS; x++) {
-            u8 collision = GetCollisionTile(player, x, y);
-
-            if (collision != 0xFF && collision != 0xFD) continue;
-            a->doors[a->shut].x = x;
-            a->doors[a->shut].y = y;
-            a->doors[a->shut].collision = sub_0800255C(player, x, y, collision == 0xFD ? 0x48 : 0);
-            a->shut++;
-        }
+    for (record = (const u8 *)gCurLevelInfo[player].unk1E0.pat1; record[4] != 0; record += record[4]) {
+        if (record[0] != 3 || record[2] < left || record[2] > right || record[3] < top || record[3] > bottom) continue;
+        for (other = (const u8 *)gCurLevelInfo[player].unk1E0.pat1; other[4] != 0; other += other[4])
+            if (other != record && other[2] == record[2] && other[3] == record[3]) break;
+        if (other[4] == 0 && GetCollisionTile(player, record[2], record[3]) != record[1]) sub_0800255C(player, record[2], record[3], record[1]);
     }
-}
-
-// OpenDoors(); The doors ShutDoors() shut, back;
-static void OpenDoors(struct Arena *a) {
-    u8 i;
-
-    for (i = 0; i < a->shut; i++) sub_0800255C(a->n.obj.base.unk56, a->doors[i].x, a->doors[i].y, a->doors[i].collision);
-    a->shut = 0;
 }
 
 // MinibossAlive(); A mini-boss with HP left in the room, found walking the task list (objects are ObjectBase kind 1, InitObject);
@@ -145,16 +127,15 @@ static void ArenaMain(struct Object *obj) {
     obj->base.xspeed = obj->base.yspeed = 0;
 
     if (!MinibossAlive(obj)) {
-        OpenDoors(a);
+        if (!a->opened) {
+            a->opened = TRUE;
+            OpenDoors(a);
+        }
         if (a->active) {
             UnlockCameras(a);
             obj->base.flags |= 0x1000;
         }
         return;
-    }
-    if (!a->checked) {
-        a->checked = TRUE;
-        ShutDoors(a);
     }
     if (!a->active) {
         struct LevelInfo *l = &gCurLevelInfo[obj->base.unk56];
@@ -200,6 +181,5 @@ void ArenaInit(struct NidlObject *n) {
 
     a->active = FALSE;
     a->locked = 0;
-    a->shut = 0;
-    a->checked = FALSE;
+    a->opened = FALSE;
 }

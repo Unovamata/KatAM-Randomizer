@@ -1657,9 +1657,11 @@
          * where it leads (the KatAM room, and the cell Kirby lands in plus one, as the records hold it), and whether a mirror (object
          * 0x6F) stands on it, and which way Kirby faces there (1 right, 2 left: towards the room's middle); an edge (collision 0xFE, 0xFC in
          * water) takes Kirby through as he touches it, without a mirror; a secret one (behind a breakable block in NiDL, see
-         * BuildSolidity()) stays a block until it's broken, and its mirror shows then; */
+         * BuildSolidity()) stays a block until it's broken, and its mirror shows then; a shut one (a mini-boss's, see ArenaCells()) is
+         * built air until the fight is won; */
         public sealed record Door(int X, int Y, int Room, int DestX, int DestY, byte Facing, bool Edge = false, int Slot = 0, int Design = HubDesign,
-                                  bool Secret = false, bool OneWay = false, bool Hidden = false, DoorKind Kind = DoorKind.Nidl, bool Plain = false);
+                                  bool Secret = false, bool OneWay = false, bool Hidden = false, DoorKind Kind = DoorKind.Nidl, bool Plain = false,
+                                  bool Shut = false);
         // DoorKind; Why a door is there (see PlanDoors()): NiDL's own, a stage's goal, the boss stages' chain, a branch into a stage and
         // its way back, a loop, a link between levels or with a KatAM area, a switch room's (its Mirra's way in,
         // its floor mirror), the hubs', the way into NiDL, an edge (a fall or climb out of a room), a split room's parts;
@@ -3105,6 +3107,9 @@
             /* Doors: their cells and 8ROM records. A door behind a breakable block (NiDL's secret ones: the block leaves the door's
              * metatile) stays the block, which leaves the door's collision, its record first (a later record of a cell is what the cell
              * is, as for the hidden doors below): its mirror (subtype 1, KatAM's) shows once it's a door; */
+            // (a door of a mini-boss's fight, ArenaCells(), is built shut, air or water, its record alone: the arena opens it once the
+            // mini-boss is beaten, "ROM Expansion/enemies/arena.c"; it showed in a long room before the arena came on screen);
+            HashSet<(int x, int y)> fightCells = ArenaCells(Arenas(nightmare, r), collision, r.FullWidth, r.Width, r.Height);
             List<byte> secrets = new List<byte>();
             for (int i = 0; i < doors.Count; i++) {
                 Door door = doors[i];
@@ -3125,6 +3130,9 @@
                     specials.AddRange(new byte[] { value, 0xFF });
                     doors[i] = door with { Secret = true };
                     continue;
+                } else if (door.Slot == 0 && !door.Edge && fightCells.Contains((door.X, door.Y))) {
+                    collision[door.Y * r.FullWidth + door.X] = (byte)(water ? 0x48 : 0);
+                    doors[i] = door with { Shut = true };
                 } else if (door.Slot == 0) {
                     collision[door.Y * r.FullWidth + door.X] = value;
                 }
@@ -3753,16 +3761,14 @@
             }
 
             // A mirror on each door (see Door); a hidden one is a door object (0x97, its own mirror), showing once the slot is set; one in
-            // a mini-boss's fight area (and a cell around it) shows only while its cell is a door: the arena shuts those during the
-            // fight ("ROM Expansion/enemies/arena.c", ShutDoors(), the same cells);
-            var fights = Arenas(nightmare, r);
-            bool Shut(Door d) => fights.Any(a => d.X >= (a.left - 16) >> 4 && d.X < (a.left + a.width + 15) >> 4 && d.Y >= (a.top - 16) >> 4 && d.Y < (a.top + a.height + 15) >> 4);
+            // a mini-boss's fight (ArenaCells()) shows only while its cell is a door: those are built shut (BuildSolidity()) and the
+            // arena opens them once the mini-boss is beaten ("ROM Expansion/enemies/arena.c", OpenDoors());
             foreach (Door door in doors.Where(d => !d.Edge && !d.Plain)) {
                 byte type = door.Slot != 0 ? DoorToHubType : MirrorType;
                 byte[] mirror = door.Slot != 0 ? DoorToHubTemplate(door.X, door.Y, templates.Count, door.Slot, door.Design) : MirrorTemplate(door.X, door.Y, templates.Count);
                 // (layout B's doors in the middle, on cell 8, drawn at x 128, the room's middle, as 0x122's: DoorDrawX);
                 if (r.IsSwitchRoom && LayoutB(r.Level) && door.Slot != 0 && door.X == 8) WriteShort(mirror, 6, 128);
-                if (door.Secret || Shut(door)) mirror[14] = 1;    // subtype1 1: hidden until its cell is a door (CreateMirrorDoor);
+                if (door.Secret || door.Shut) mirror[14] = 1;    // subtype1 1: hidden until its cell is a door (CreateMirrorDoor);
                 if (door.OneWay && door.Slot == 0) mirror[0x23] |= 1;    // +0x22 0x100: drawn as a one-way mirror (mirror_door.c), as KatAM's;
                 templates.Add(mirror);
                 if (!types.Contains(type)) types.Add(type);
@@ -3811,6 +3817,32 @@
                 if (targets.Any(c => Near(withDrop, c) && !Near(without, c))) return;
             }
             for (int i = 0; i < collision.Length; i++) collision[i] = Kept(collision[i]);
+        }
+
+        /* ArenaCells(); The cells of a room's (part's) mini-boss fights whose doors are built shut until the fight is won: from the fight
+         * area (Arenas()), the cells Kirby goes to through anything but walls (KatAM's collision 0x0D) within ArenaReach cells of it
+         * across, ArenaReachY up or down (the room it's fought in: 0x244's door 2 cells past Fire Lion's screen, by the wall; not a
+         * door behind a wall, in another part of the room); "ROM Expansion/enemies/arena.c" opens the doors in the same box
+         * (ARENA_REACH, ARENA_REACH_Y); */
+        const int ArenaReach = 4, ArenaReachY = 2;
+        static HashSet<(int x, int y)> ArenaCells(List<(int left, int top, int width, int height)> fights, byte[] collision, int stride, int width, int height) {
+            HashSet<(int x, int y)> cells = new HashSet<(int, int)>();
+            foreach ((int left, int top, int areaWidth, int areaHeight) in fights) {
+                int x0 = left >> 4, y0 = top >> 4, x1 = (left + areaWidth - 1) >> 4, y1 = (top + areaHeight - 1) >> 4;
+                bool Open((int x, int y) c) => c.x >= Math.Max(0, x0 - ArenaReach) && c.x <= Math.Min(width - 1, x1 + ArenaReach)
+                                              && c.y >= Math.Max(0, y0 - ArenaReachY) && c.y <= Math.Min(height - 1, y1 + ArenaReachY)
+                                              && collision[c.y * stride + c.x] != 0x0D;
+                Queue<(int x, int y)> open = new Queue<(int, int)>();
+                for (int y = y0; y <= y1; y++)
+                    for (int x = x0; x <= x1; x++)
+                        if (Open((x, y)) && cells.Add((x, y))) open.Enqueue((x, y));
+                while (open.Count > 0) {
+                    (int x, int y) = open.Dequeue();
+                    foreach ((int, int) n in new[] { (x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1) })
+                        if (Open(n) && cells.Add(n)) open.Enqueue(n);
+                }
+            }
+            return cells;
         }
 
         /* Arenas(); A room's (part's) mini-bosses' fight areas (ArenaOf(), pixels), as BuildObjects() gives them; */
