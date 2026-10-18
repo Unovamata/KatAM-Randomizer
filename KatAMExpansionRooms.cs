@@ -1435,6 +1435,9 @@
                 .Select(t => moved[t] + 0x08000000).Append(roomInfos + 0x08000000).ToArray());
             editedRooms = edited.Select(e => new EditedRoom(e.room, moved["gSolidityMaps"] + e.solidity * 4, e.objects < 0 ? 0 : moved["gLevelObjLists"] + e.objects * 4,
                                                             moved["gUnk_08D640A4"] + Props(e.room, 18) * 4, e.tilemap, e.doors)).ToList();
+            HashSet<int> ported = rooms.Select(r => r.Room).Append(mainHub).ToHashSet();
+            katamLandings = doors.Values.SelectMany(list => list).Concat(mainHubDoors).Where(d => !d.Edge && !ported.Contains(d.Room) && Props(d.Room, 16) != 0xFFFF)
+                                 .GroupBy(d => moved["gLevelObjLists"] + Props(d.Room, 16) * 4).ToDictionary(g => g.Key, g => g.Select(d => (d.DestX - 1, d.DestY - 1)).ToList());
             finishCursor = cursor;
             return null;
         }
@@ -1691,6 +1694,9 @@
          * list's), its tilemap (file offset), the doors; */
         sealed record EditedRoom(int Room, int SolidityEntry, int ObjectsEntry, int DoorsEntry, int Tilemap, List<Door> Doors);
         static List<EditedRoom> editedRooms = new List<EditedRoom>();
+        // (where the ported rooms' doors land Kirby in KatAM's rooms, by the rooms' object list entries: FinishRooms() keeps KatAM's
+        // enemies off them, as BuildObjects() the ported rooms', 3 cells across, 2 up or down);
+        static Dictionary<int, List<(int x, int y)>> katamLandings = new Dictionary<int, List<(int, int)>>();
         static int finishCursor;
 
         /* TransportSpot(); Where a warp star or cannon stands (NiDL's room pixels): a warp star where NiDL's does (in a cell's middle: it
@@ -1900,15 +1906,20 @@
             (int room, int x, int y)? KatAMSpot(int area, bool deadEnd) {
                 (int room, int x, int y)? best = null;
                 double bestScore = double.MinValue;
+                Dictionary<int, (double score, int x, int y)> clearOf = new Dictionary<int, (double, int, int)>();
                 for (int room = 0; room < 0x3C0; room++) {
                     if (katamUsed.Contains(room) || RoomProps(room, 0) != area) continue;
                     int tilemapIndex = RoomProps(room, 12), solidityIndex = RoomProps(room, 13), objectsIndex = RoomProps(room, 16);
                     if (tilemapIndex == 0xFFFF || solidityIndex == 0xFFFF || objectsIndex == 0xFFFF) continue;
                     int templates = 0;
                     bool owned = false;
+                    // (its enemies: no spot, where Kirby lands, within 3 cells across of one, 2 up or down, as the NiDL rooms' (BuildObjects()):
+                    // room 0x142's Waddle Doo stood by the landing from 0xF4);
+                    List<(int x, int y)> enemies = new List<(int, int)>();
                     for (int at = ReadInt(rom, TableEntry("gLevelObjLists", objectsIndex)) - 0x08000000; rom[at] != 0 || rom[at + 1] != 0; at += 36) {
                         templates++;
                         if (rom[at + 12] is 0x86 or 0x77 or 0x8C or 0x97 or 0x65 or 0x85 or (>= 0x38 and <= 0x5F)) owned = true;
+                        if (rom[at + 12] < 0x38) enemies.Add(((short)ReadShort(rom, at + 6) / 16, (short)ReadShort(rom, at + 8) / 16));
                     }
                     if (owned || templates > 28) continue;
                     int tilemap = TableEntry("gForegroundTilemaps", tilemapIndex), width = ReadShort(rom, tilemap) / 2, height = ReadShort(rom, tilemap + 2) / 2;
@@ -1939,10 +1950,16 @@
                             if (doorCells.Any(c => Math.Abs(c.x - x) < MirrorSpacing * 2 && Math.Abs(c.y - y) <= 2)) continue;
                             double score = distance[y * width + x] - (deadEnd ? 12 * doorCount : 0) + random.NextDouble() * 3;
                             if (score > bestScore) { bestScore = score; best = (room, x, y); }
+                            if (!enemies.Any(e => Math.Abs(e.x - x) <= 3 && Math.Abs(e.y - y) <= 2) && (!clearOf.TryGetValue(room, out var clear) || score > clear.score))
+                                clearOf[room] = (score, x, y);
                         }
                     }
                 }
-                if (best is (int used, _, _)) katamUsed.Add(used);
+                // (the best spot's room, as before, and its best spot clear of its enemies: another room changed the levels' doors);
+                if (best is (int used, _, _)) {
+                    katamUsed.Add(used);
+                    if (clearOf.TryGetValue(used, out var clear)) best = (used, clear.x, clear.y);
+                }
                 return best;
             }
             static int KatAMArea(int level) => 5 + level;
@@ -2788,6 +2805,19 @@
                 rom[header + 4] = (byte)(chests.Count / 8);
             }
             chestLists = new List<(int, int, int)>();
+
+            // KatAM's enemies (types under 0x38) where the ported rooms' doors land Kirby in its rooms, left out (room 0x142's by the
+            // landing from 0xF4, the only spot there its door reaches);
+            foreach ((int entry, List<(int x, int y)> spots) in katamLandings) {
+                int list = ReadInt(rom, entry) - 0x08000000;
+                List<byte[]> templates = new List<byte[]>();
+                for (int at = ReadInt(rom, list) - 0x08000000; rom[at] != 0 || rom[at + 1] != 0; at += 36) templates.Add(rom.Skip(at).Take(36).ToArray());
+                int removed = templates.RemoveAll(t => t[12] < 0x38 && spots.Any(c => Math.Abs((short)ReadShort(t, 6) / 16 - c.x) <= 3 && Math.Abs((short)ReadShort(t, 8) / 16 - c.y) <= 2));
+                if (removed == 0) continue;
+                List<byte> types = new List<byte>();
+                for (int i = 0, at = ReadInt(rom, list + 4) - 0x08000000; i < rom[list + 12]; i++) types.Add(rom[at + i]);
+                WriteInt(rom, entry, WriteObjectList(rom, templates, types, ReadInt(rom, list + 8) - 0x08000000, ref cursor) + 0x08000000);
+            }
             foreach (EditedRoom edited in editedRooms) {
                 int width = ReadShort(rom, edited.Tilemap) / 2, columns = width * 2;
                 byte[] tilemap = DecompressLZ77(rom, ReadInt(rom, edited.Tilemap + 0x18) - 0x08000000);
@@ -3692,6 +3722,9 @@
                     if (!types.Contains(FuseType)) types.Add(FuseType);
                     continue;
                 } else continue;
+                // (and none where it ends up: a walker dropped onto the floor, a Bomber onto its, landed in front of the door, rooms
+                // 0x277, 0x278, 0x27A, 0x2CB);
+                if (category == 0 && landings.Any(c => Math.Abs(x / 16 - c.x) <= LandingClear && Math.Abs(y / 16 - c.y) <= 2)) continue;
 
                 byte[] template = new byte[36];
                 template[0] = 0x01; template[1] = 0x24; template[3] = (byte)templates.Count;

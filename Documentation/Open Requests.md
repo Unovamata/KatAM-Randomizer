@@ -34,9 +34,6 @@ is done, move it to "Done" and say how it was checked. The design rules for door
   once opened (and stays so); opened when its shard is already owned (from a boss or the field), it gives a Maxim Tomato instead,
   as an owned field shard does. Today it uses its shard's bit, so it shows open, never opened, once the shard is owned elsewhere.
 
-### 29. Enemies at rooms' entrances
-- Against rule 2 ("no enemy stands on a door or right where a door lands Kirby"): enemies still stand at entrances.
-
 ### 30. Warp stars: NiDL's scaling in their flight
 - NiDL's warp star flight scales the star (and Kirby) as it flies; KatAM's here doesn't.
 
@@ -47,6 +44,17 @@ is done, move it to "Done" and say how it was checked. The design rules for door
 - The owner: "All NiDL's hubs only have 1 2 way door."
 
 ## Done (rules to keep)
+
+- **Enemies at rooms' entrances** (item 29): an audit of every room a door lands Kirby in found 7 enemies within 3 cells across (2 up or
+  down) of a landing. Five were walkers in NiDL rooms (0x277, 0x278 twice, 0x27A, 0x2CB): their NiDL spot passed the check, then
+  they were dropped onto the floor below it, right where Kirby lands. The check now runs again where they end up. One was KatAM's own
+  Bronto Burt in 0x142, by the landing from 0xF4's door (the only spot that door's side of the room has). KatAM link spots now
+  prefer a spot in the chosen room clear of its enemies (same room, so the levels' doors don't change). Where there is none, the
+  KatAM enemy at a landing is left out once the randomizer is done. (The 0x34 left in 0x2FF is a Mirra on its door, not an
+  enemy.) The audit finds none now in USA, European, Japanese and a randomized USA ROM. Tested in the emulator (USA, expanded, new
+  games started on the doors, Up pressed: a real door trip): 0x276's door into 0x277 had a Waddle Dee by the landing in the old build
+  and none now; 0xF4's into 0x142 had a Bronto Burt and none now. Logic checks pass on all of them, with and without dropping through
+  thin floors; the door plan is unchanged. Not changed: 29 enemies stand exactly 4 cells from a landing, one past the rule's 3.
 
 - **Meta-Knights and Mr. Tick-Tock on the ground** (items 26, 27): their floor boxes reached further down than their frames' feet,
   so they stood on the box and floated: the knights 2 to 5 pixels (their box 12 pixels below their middle, the frames' feet at about

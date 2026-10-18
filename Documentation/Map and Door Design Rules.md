@@ -33,7 +33,9 @@ after any change.
 - NiDL's own door halls (Butter Building's tower floors, Rainbow Resort's rooms of doors) keep all their doors, drawn as NiDL's
   own doorways without mirrors, past these limits.
 - **Secret doors stay hidden until uncovered**: a door behind breakable blocks or in a hidden spot only shows once Kirby finds it.
-- **Enemies keep away from doors**: no enemy stands on a door or right where a door lands Kirby.
+- **Enemies keep away from doors**: no enemy stands on a door or right where a door lands Kirby (3 cells across, 2 up or
+  down), counted where the enemy ends up (a walker dropped onto the floor below its spot), in the NiDL rooms and in KatAM's
+  rooms the NiDL doors land in (KatAM's enemy there is left out). `BuildObjects()`, `KatAMSpot()`, `FinishRooms()`.
 
 ## 3. One-way and two-way
 
