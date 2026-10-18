@@ -39,6 +39,7 @@
             CheckboxOptionsTitleParade = new CheckBox();
             CheckboxOptionsReduceFlashing = new CheckBox();
             CheckboxOptionsSkipTutorial = new CheckBox();
+            CheckboxOptionsMasterSword = new CheckBox();
             CheckboxMirrorShardsInChests = new CheckBox();
             CheckboxBossShardsRandom = new CheckBox();
             TrackBarChestShardsAmount = new TrackBar();
@@ -420,6 +421,19 @@
             CheckboxOptionsSkipTutorial.Text = "Skip the Tutorial";
             CheckboxOptionsSkipTutorial.UseVisualStyleBackColor = true;
             CheckboxOptionsSkipTutorial.CheckedChanged += CheckboxOptionsSkipTutorial_CheckedChanged;
+            // 
+            // CheckboxOptionsMasterSword
+            // 
+            CheckboxOptionsMasterSword.AutoSize = true;
+            CheckboxOptionsMasterSword.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            CheckboxOptionsMasterSword.Location = new Point(14, 170);
+            CheckboxOptionsMasterSword.Margin = new Padding(4, 5, 4, 5);
+            CheckboxOptionsMasterSword.Name = "CheckboxOptionsMasterSword";
+            CheckboxOptionsMasterSword.Size = new Size(240, 29);
+            CheckboxOptionsMasterSword.TabIndex = 17;
+            CheckboxOptionsMasterSword.Text = "Unlock the Master Sword";
+            CheckboxOptionsMasterSword.UseVisualStyleBackColor = true;
+            CheckboxOptionsMasterSword.CheckedChanged += CheckboxOptionsMasterSword_CheckedChanged;
             // 
             // LabelSeed
             // 
@@ -2635,6 +2649,7 @@
             // 
             // GroupMiscGame
             // 
+            GroupMiscGame.Controls.Add(CheckboxOptionsMasterSword);
             GroupMiscGame.Controls.Add(CheckboxOptionsSkipTutorial);
             GroupMiscGame.Controls.Add(CheckboxOptionsReduceFlashing);
             GroupMiscGame.Controls.Add(CheckboxOptionsTitleParade);
@@ -3336,6 +3351,7 @@
         private CheckBox CheckboxOptionsTitleParade;
         private CheckBox CheckboxOptionsReduceFlashing;
         private CheckBox CheckboxOptionsSkipTutorial;
+        private CheckBox CheckboxOptionsMasterSword;
         private GroupBox GroupMiscGame;
         private CheckBox CheckboxBossShardsRandom;
         private TrackBar TrackBarChestShardsAmount;

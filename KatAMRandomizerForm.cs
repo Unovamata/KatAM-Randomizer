@@ -260,6 +260,13 @@ namespace KatAMRandomizer
                 else messages.Add((skipError, "Skip the Tutorial", MessageBoxIcon.Warning));
             }
 
+            if (settings.UnlockMasterSword) {
+                byte[] unlocked = Processing.ROMData;
+                string swordError = KatAMExpansion.UnlockMasterSword(ref unlocked);
+                if (swordError == null) Processing.ROMData = unlocked;
+                else messages.Add((swordError, "Unlock the Master Sword", MessageBoxIcon.Warning));
+            }
+
             progress.Report((96, "Saving the ROM..."));
             File.WriteAllBytes(destinationPath, Processing.ROMData);
 
@@ -292,6 +299,11 @@ namespace KatAMRandomizer
         // CheckboxOptionsSkipTutorial_CheckedChanged(); A new save starts past the tutorial, with its big chest's item (KatAMExpansion.SkipTutorial);
         private void CheckboxOptionsSkipTutorial_CheckedChanged(object sender, EventArgs e) {
             settings.SkipTutorial = CheckboxOptionsSkipTutorial.Checked;
+        }
+
+        // CheckboxOptionsMasterSword_CheckedChanged(); The Master Sword's stand in Central Circle works from the start (KatAMExpansion.UnlockMasterSword);
+        private void CheckboxOptionsMasterSword_CheckedChanged(object sender, EventArgs e) {
+            settings.UnlockMasterSword = CheckboxOptionsMasterSword.Checked;
         }
 
         /* Settings files; The state of every option (radio buttons, checkboxes, track bars and numeric boxes, by name) and the seed.

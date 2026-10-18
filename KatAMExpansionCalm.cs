@@ -47,6 +47,20 @@
             return null;
         });
 
+        /* UnlockMasterSword(); The "Unlock the Master Sword" option: the Master Sword's stand in Central Circle (OBJ_MASTER_SWORD_STAND)
+         * only works and shows once the game is beaten (gAIKirbyState >= AI_KIRBY_STATE_UNK1); both checks (as it runs, sub_080AA618,
+         * and as it's drawn, sub_080AAA64) are dropped, so it's there from the start. Returns an error, or null; */
+        const int SwordRunCheck = 0x14, SwordDrawCheck = 0x14;
+        public static string UnlockMasterSword(ref byte[] rom) => PatchWithCode(ref rom, "Unlock the Master Sword", (patched, version) => {
+            int run = version.RomSymbols["sub_080AA618"] + SwordRunCheck, draw = version.RomSymbols["sub_080AAA64"] + SwordDrawCheck;
+            if (ReadShort(patched, run) == 0x46C0 && ReadShort(patched, draw) == 0xE004) return null;  // (applied already);
+            // (bls past the stand's work, bhi past its hiding: a nop, and an always taken b);
+            if (ReadShort(patched, run) != 0xD950 || ReadShort(patched, draw) != 0xD804) return $"The {version.Name} ROM's Master Sword code doesn't match.";
+            WriteShort(patched, run, 0x46C0);
+            WriteShort(patched, draw, 0xE004);
+            return null;
+        });
+
         /* PatchWithCode(); Runs `patch` on a copy of the ROM holding the expansion's code, which it puts in when the ROM Expansion
          * didn't (its free space still empty; the ROM padded to 32 MB, as the expansion's). `rom` becomes the copy unless there's an
          * error (returned, or null); `option` names what needs it in errors; */

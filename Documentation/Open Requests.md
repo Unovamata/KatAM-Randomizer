@@ -16,9 +16,6 @@ is done, move it to "Done" and say how it was checked. The design rules for door
 - What the game shows must follow the save: load a save and the pause screen's maps show the doors and rooms that save visited.
   This is one of the owner's biggest complaints.
 
-### 3. Master Sword toggle
-- A randomizer option: the Master Sword in the hub is unlocked from the start of the game.
-
 ### 4. NiDL Meta Knight fight keeps Kirby's own abilities
 - The fight starts with whatever abilities the player has. Don't give a sword, and don't add a sword pedestal.
 
@@ -45,6 +42,14 @@ is done, move it to "Done" and say how it was checked. The design rules for door
   owner's details of what still goes wrong.
 
 ## Done (rules to keep)
+
+- **Unlock the Master Sword** (item 3): a Miscellaneous toggle. The Master Sword's stand in Central Circle (`OBJ_MASTER_SWORD_STAND`)
+  is KatAM's own, which works and shows only once the game is beaten (`gAIKirbyState` 9999); the option drops both checks (as it
+  runs, `sub_080AA618`, and as it's drawn, `sub_080AAA64`), so it's there from a new game. Everything else is KatAM's: one Kirby
+  holds it at a time, and it's back on its stand when he loses it. Tested in the emulator in all three versions (randomized and
+  expanded, with Skip the Tutorial): a new game, walking from the spawn cloud to the stand, Kirby became Master (ability 0x1A, the
+  sword in his hand and "MASTER" on the HUD); without the option the stand isn't there and Kirby stays Normal. Applying it twice
+  changes nothing. Not tried: losing the sword and taking it back, multiplayer.
 
 - **NiDL bosses on the map viewer** (item 21): the nine ported bosses (types `0x43`/`0x44`) have map table entries of their own
   ("BS" at `+0xCC`: the map table had no room left), read by the viewer as the mini-bosses' and shown with "Show on Map". Whispy
