@@ -233,6 +233,21 @@
         public static IReadOnlyDictionary<NightmareRoom, List<Door>> PortedDoors { get; private set; } = new Dictionary<NightmareRoom, List<Door>>();
         // The NiDL hub's room and doors (see BuildMainHub());
         public static (int Room, IReadOnlyList<Door> Doors) PortedMainHub { get; private set; } = (0, new List<Door>());
+        /* For the randomizer, which reads the expanded ROM's items and chests as KatAM's: the ported rooms' items and chests (room, template
+         * address; none in a boss room, a switch room or a mini-boss's fight area), and where the doors lists' table went (-1: not moved,
+         * no rooms ported); chestLists: each such room's doors list (its table entry) and objects, for FinishRooms(); */
+        static List<(int room, int address)> portedItems = new List<(int, int)>();
+        public static IReadOnlyList<(int room, int address)> PortedItems => portedItems;
+        public static int DoorsTable { get; private set; } = -1;
+        static List<(int room, int list, int objects)> chestLists = new List<(int, int, int)>();
+
+        // ForgetRooms(); Before a ROM is made: nothing ported yet (what the last ROM's expansion left);
+        public static void ForgetRooms() {
+            portedItems = new List<(int, int)>();
+            chestLists = new List<(int, int, int)>();
+            chestsOf = new Dictionary<NightmareRoom, List<NidlChest>>();
+            DoorsTable = -1;
+        }
 
         /* NightmareRooms(); NiDL's level rooms, split where KatAM can't hold them whole. Left out: the levels' hub lists (hub, museum,
          * arena, boss tower, boss room: no gameplay of their own), level 7's stage 1 (the boss rush's copies of the boss rooms) and
@@ -1048,6 +1063,8 @@
                 string replacement = "Big" + (function.StartsWith("sub_") ? "Sub" + function.Substring(3) : function);
                 Redirect(rom, version.RomSymbols[function], codeBase + version.CodeSymbols[replacement]);
             }
+            // (and the completion counts KatAM's chests only, not the NiDL rooms' (PlanChests()): rooms.c's NidlNumChestsCollected);
+            Redirect(rom, version.RomSymbols["NumChestsCollected"], codeBase + version.CodeSymbols["NidlNumChestsCollected"]);
             return null;
         }
 
@@ -1119,6 +1136,7 @@
             byte firstFacing;
             try {
                 doors = PlanDoors(rom, symbols, nightmare, rooms, mainHub, out mainHubDoors, out katamDoors, out firstStart, out firstFacing);
+                chestsOf = PlanChests(nightmare, rooms, doors, mainHubDoors, katamDoors);
             } catch (Exception exception) when (exception is IndexOutOfRangeException or ArgumentException or InvalidOperationException) {
                 return $"The Nightmare in Dream Land ROM doesn't match the {region.KatAM} release.";
             }
@@ -1205,7 +1223,20 @@
                     // (where doors land Kirby in it: no enemy waits there, BuildObjects());
                     var landings = doors.Values.SelectMany(list => list).Concat(mainHubDoors).Concat(katamDoors.Values.SelectMany(list => list))
                                         .Where(d => d.Room == r.Room && !d.Edge).Select(d => (d.DestX - 1, d.DestY - 1)).ToList();
-                    objects.Add(BuildObjects(rom, nightmare, r, doors[r], mirras, landings, noTypes, ref cursor) + 0x08000000);
+                    int objectList = BuildObjects(rom, nightmare, r, doors[r], mirras, landings, chestsOf[r], noTypes, ref cursor);
+                    objects.Add(objectList + 0x08000000);
+                    // (the randomizer's: its items and chests, but in a boss room, a switch room or a mini-boss's fight area; FinishRooms()
+                    // lists its chests in its doors list, once the randomizer has moved them);
+                    if (!r.IsSwitchRoom && !bossRoom) {
+                        var fights = Arenas(nightmare, r);
+                        for (int at = ReadInt(rom, objectList) - 0x08000000; rom[at] != 0 || rom[at + 1] != 0; at += 36) {
+                            int x = (short)ReadShort(rom, at + 6), y = (short)ReadShort(rom, at + 8);
+                            if (rom[at + 12] is (>= 0x5E and <= 0x64) or SmallChestType
+                                && !fights.Any(a => x >= a.left - 16 && x < a.left + a.width + 16 && y >= a.top - 16 && y < a.top + a.height + 16))
+                                portedItems.Add((r.Room, at));
+                        }
+                        chestLists.Add((r.Room, i, objectList));
+                    }
                     navigations.Add(BuildNavigation(rom, r, collision, navigationRoutes, Arenas(nightmare, r), ref cursor) + 0x08000000);
 
                     /* Area and CPU helpers' routes (gUnk_08D6CD0C, written into the vanilla table's free entry), as room 0x397's (the
@@ -1325,20 +1356,23 @@
              * free one): an entry (kind 2, size 8, room, landing + 1) per place its doors lead to. KatAM looks a door up there when Kirby
              * goes through it, until it finds it (it must be there), and every mirror looks its own up every frame (sub_08002BA8, from the
              * list's start): one list for all the rooms (hundreds of entries) made rooms with mirrors lag. Mirrors' entries first, the
-             * edges' last. Their door counts are 0, so the map counts none of them; which were used is kept in rooms.c (NIDL_VISITED); */
+             * edges' last. Their door counts are 0, so the map counts none of them; which were used is kept in rooms.c (NIDL_VISITED). Its
+             * chests (PlanChests()) come first, as KatAM's (kind 1, size 8, the chest's spot): opening one marks it (sub_08002B30, which
+             * looks until it finds it), and the list's count (+4) is its chests'; */
             int listCursor = cursor;
-            int DoorsList(IEnumerable<Door> list) {
+            int DoorsList(IEnumerable<Door> list, List<NidlChest> chests) {
                 List<byte> nineROM = new List<byte>();
+                foreach (NidlChest chest in chests) nineROM.AddRange(ChestEntry(chest.X, chest.Y));
                 foreach (Door door in list.Where(d => !d.Edge).Concat(list.Where(d => d.Edge)).DistinctBy(d => (d.Room, d.DestX, d.DestY)))
                     nineROM.AddRange(NineROMEntry(door.Room, door.DestX, door.DestY));
                 nineROM.AddRange(new byte[] { 0, 0, 0xFF, 0xFF });
                 int nineROMAt = Allocate(ref listCursor, nineROM.Count, 4), entry = Allocate(ref listCursor, 8, 4);
                 nineROM.ToArray().CopyTo(rom, nineROMAt);
-                WriteInts(rom, entry, nineROMAt + 0x08000000, 0);
+                WriteInts(rom, entry, nineROMAt + 0x08000000, chests.Count);
                 return entry + 0x08000000;
             }
-            List<int> doorLists = new List<int> { DoorsList(mainHubDoors) };
-            doorLists.AddRange(rooms.Select(r => DoorsList(doors[r])));
+            List<int> doorLists = new List<int> { DoorsList(mainHubDoors, new List<NidlChest>()) };
+            doorLists.AddRange(rooms.Select(r => DoorsList(doors[r], chestsOf[r])));
             cursor = listCursor;
 
             // The tables, copied with the new entries;
@@ -1361,6 +1395,8 @@
 
             PortedRooms = rooms;
             PortedDoors = doors;
+            DoorsTable = moved["gUnk_08D640A4"];
+            chestLists = chestLists.Select(c => (c.room, moved["gUnk_08D640A4"] + (FirstDoorsList + c.list) * 4, c.objects)).ToList();
             PortedMainHub = (mainHub, mainHubDoors);
 
             /* The map tracker's rooms block, in the map table (see WriteMapTable(): its mini-bosses end before it): "NR", the NiDL hub's
@@ -2601,6 +2637,26 @@
          * 9ROM lists keep their door counts, so the map's doors don't change; */
         public static void FinishRooms(byte[] rom) {
             int cursor = finishCursor;
+
+            /* The ported rooms' doors lists: their chests as the randomizer left them (moved, removed, emptied into items, a KatAM chest
+             * shuffled in), first, then the list's doors (a shard chest isn't listed: chest.c doesn't mark it); */
+            foreach ((int room, int list, int objects) in chestLists) {
+                List<byte> chests = new List<byte>();
+                for (int at = ReadInt(rom, objects) - 0x08000000; rom[at] != 0 || rom[at + 1] != 0; at += 36)
+                    if (rom[at + 12] is SmallChestType or 0x81 && !(rom[at + 14] >= KatAMItems.ShardChest && rom[at + 14] < KatAMItems.ShardChest + 8))
+                        chests.AddRange(ChestEntry((short)ReadShort(rom, at + 6), (short)ReadShort(rom, at + 8)));
+                int header = ReadInt(rom, list) - 0x08000000;
+                List<byte> listed = new List<byte>(), rest = new List<byte>();
+                for (int at = ReadInt(rom, header) - 0x08000000; rom[at + 1] != 0; at += rom[at + 1])
+                    (rom[at] == 1 ? listed : rest).AddRange(rom.Skip(at).Take(rom[at + 1]));
+                if (listed.SequenceEqual(chests)) continue;
+                byte[] nineROM = chests.Concat(rest).Concat(new byte[] { 0, 0, 0xFF, 0xFF }).ToArray();
+                int nineROMAt = Allocate(ref cursor, nineROM.Length, 4);
+                nineROM.CopyTo(rom, nineROMAt);
+                WriteInt(rom, header, nineROMAt + 0x08000000);
+                rom[header + 4] = (byte)(chests.Count / 8);
+            }
+            chestLists = new List<(int, int, int)>();
             foreach (EditedRoom edited in editedRooms) {
                 int width = ReadShort(rom, edited.Tilemap) / 2, columns = width * 2;
                 byte[] tilemap = DecompressLZ77(rom, ReadInt(rom, edited.Tilemap + 0x18) - 0x08000000);
@@ -2731,6 +2787,8 @@
         }
 
         // NineROMEntry(); A 9ROM entry: kind 2 (a door), size 8, the room and landing cell + 1 it leads to;
+        // ChestEntry(); A 9ROM chest entry: kind 1, size 8, the chest's spot (its template's x, y);
+        static byte[] ChestEntry(int x, int y) => new byte[] { 1, 8, 0xFF, 0xFF, (byte)x, (byte)(x >> 8), (byte)y, (byte)(y >> 8) };
         static byte[] NineROMEntry(int room, int x, int y) => new byte[] { 2, 8, 0xFF, 0xFF, (byte)room, (byte)(room >> 8), (byte)x, (byte)y };
 
         // DoorRecord(); An 8ROM door record: kind 3, collision, cell, size 14, room, landing cell + 1, facing;
@@ -3198,12 +3256,137 @@
                         .Select(d => (d.X, d.Y, true)).Take(1).ToList();
         }
 
+        /* NidlChest; A consumable chest in a ported room (PlanChests()): where it stands (room pixels, the middle of a cell with a floor
+         * under it, as KatAM's), what it holds (KatAM's chest items: 0 1UP, 1 Invincible Candy, 2 Maximum Tomato, 3 Meat, 4 Pep Brew,
+         * 5 Cherry), its treasure index (from FirstNidlChest), and the NiDL item it replaces (its record in the NiDL ROM; -1 a new one); */
+        public sealed record NidlChest(int X, int Y, byte Item, byte Index, int Replaces);
+        static Dictionary<NightmareRoom, List<NidlChest>> chestsOf = new Dictionary<NightmareRoom, List<NidlChest>>();
+        public static IReadOnlyDictionary<NightmareRoom, List<NidlChest>> PortedChests => chestsOf;
+        /* The treasure indices of the NiDL chests: KatAM's 84 chests use 0-83 (gTreasures.chestFields has 128 bits; 0x80 on are the shard
+         * chests', KatAMItems.ShardChestIndex); the game's completion counts only KatAM's (rooms.c's NidlNumChestsCollected,
+         * NIDL_CHESTS_FIRST); */
+        public const int FirstNidlChest = 84, LastNidlChest = 127;
+        const byte SmallChestType = 0x80;
+        // A NiDL item as a chest's item (KatAM's 1UP, Invincible Candy, Maximum Tomato, Meat, Pep Brew, Cherry);
+        static readonly Dictionary<byte, byte> ChestItems = new Dictionary<byte, byte> { [0x63] = 0, [0x64] = 1, [0x61] = 2, [0x60] = 3, [0x5F] = 4, [0x5E] = 5 };
+        // KatAM's 41 consumable chests' items (18 1UPs, 7 Pep Brews, 6 Meats, 5 Maximum Tomatoes, 4 Cherries, an Invincible Candy), dealt
+        // in turn to the new chests;
+        static readonly byte[] KatAMChestItems = Enumerable.Repeat((byte)0, 18).Concat(Enumerable.Repeat((byte)4, 7)).Concat(Enumerable.Repeat((byte)3, 6))
+                                                           .Concat(Enumerable.Repeat((byte)2, 5)).Concat(Enumerable.Repeat((byte)5, 4)).Append((byte)1).ToArray();
+
+        /* PlanChests(); The NiDL chests, made by the ROM Expansion whatever the randomizer does after: a few per level, as KatAM has (a
+         * chest per 8 of its rooms, 2 to 5), one a room at most, where KatAM puts its chests: a reward for exploring. Each level's spots
+         * are ranked: a loose item behind breakable blocks (Kirby reaches it only by breaking some), a dead end (a room with one way in
+         * and out), far from where Kirby comes in; a loose item there becomes a chest holding it, and a dead end with none gets a new chest,
+         * as far into the room as Kirby goes. Never in a boss room, a switch room or the NiDL hub, nor in a mini-boss's fight area; a chest
+         * stands on a floor (solid ground, ice or a one-way floor) Kirby reaches. The Fountain of Dreams is all boss rooms: none there; */
+        static Dictionary<NightmareRoom, List<NidlChest>> PlanChests(byte[] nightmare, List<NightmareRoom> rooms, Dictionary<NightmareRoom, List<Door>> doors,
+                                                                    List<Door> mainHubDoors, Dictionary<int, List<Door>> katamDoors) {
+            const int FarCells = 12, DoorClear = 3, MostRecords = 20;
+            var plan = rooms.ToDictionary(r => r, r => new List<NidlChest>());
+            var arrivals = doors.Values.SelectMany(list => list).Concat(mainHubDoors).Concat(katamDoors.Values.SelectMany(list => list)).Where(d => !d.Edge).ToList();
+            int index = FirstNidlChest, dealt = 0;
+            for (int level = 0; level < 8; level++) {
+                var levelRooms = rooms.Where(r => r.Level == level && !r.IsSwitchRoom).ToList();
+                if (levelRooms.Count == 0) continue;
+                int bossStage = levelRooms.Max(o => o.Stage);
+                var candidates = new List<(NightmareRoom room, int score, int distance, NidlChest chest)>();
+                foreach (NightmareRoom r in levelRooms.Where(o => o.Level != 7 && o.Stage != bossStage)) {
+                    byte[] cells = RoomCells(nightmare, r.Record);
+                    int roomWidth = ReadShort(nightmare, r.Record + 0x14);
+                    int Kind(int cx, int cy) => cx >= 0 && cy >= 0 && cx < r.Width && cy < r.Height ? cells[((r.Y + cy) * roomWidth + r.X + cx) * 4 + 3] : 0x01;
+                    bool Breakable(int cx, int cy) => Kind(cx, cy) >> 4 == 2;
+                    bool Solid(int cx, int cy) => RoomCollision[Kind(cx, cy)] == 0x0D || Breakable(cx, cy);
+                    bool Air(int cx, int cy) => cx >= 0 && cy >= 0 && cx < r.Width && cy < r.Height && RoomCollision[Kind(cx, cy)] == 0 && !Breakable(cx, cy);
+                    bool Floor(int cx, int cy) => cy < r.Height && Kind(cx, cy) is 0x01 or 0x70 or 0x11;
+
+                    // Where Kirby comes in (doors' landings, warp stars' and cannons'), and how far each place is from there: without
+                    // breaking blocks, and breaking them (he flies: any cell not solid);
+                    var entries = arrivals.Where(d => d.Room == r.Room).Select(d => (x: d.DestX - 1, y: d.DestY - 1))
+                                          .Concat(transportsOf.Values.SelectMany(list => list).Where(t => t.Room == r.Room).Select(t => (x: t.DestX - 1, y: t.DestY - 1)))
+                                          .Where(c => c.x >= 0 && c.y >= 0 && c.x < r.Width && c.y < r.Height).Distinct().ToList();
+                    if (entries.Count == 0) continue;
+                    Dictionary<(int, int), int> Reach(bool breaking) {
+                        var distance = new Dictionary<(int, int), int>();
+                        var queue = new Queue<(int x, int y)>();
+                        foreach (var e in entries) { distance[e] = 0; queue.Enqueue(e); }
+                        while (queue.Count > 0) {
+                            var (x, y) = queue.Dequeue();
+                            foreach (var (nx, ny) in new[] { (x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1) }) {
+                                if (nx < 0 || ny < 0 || nx >= r.Width || ny >= r.Height || distance.ContainsKey((nx, ny))) continue;
+                                if (Solid(nx, ny) && !(breaking && Breakable(nx, ny))) continue;
+                                distance[(nx, ny)] = distance[(x, y)] + 1;
+                                queue.Enqueue((nx, ny));
+                            }
+                        }
+                        return distance;
+                    }
+                    var open = Reach(false);
+                    var all = Reach(true);
+                    var fights = Arenas(nightmare, r);
+                    bool InFight(int cx, int cy) => fights.Any(a => cx * 16 + 8 >= a.left - 16 && cx * 16 + 8 < a.left + a.width + 16 && cy * 16 + 8 >= a.top - 16 && cy * 16 + 8 < a.top + a.height + 16);
+                    var doorCells = doors[r].Where(d => !d.Edge).Select(d => (x: d.X, y: d.Y)).Concat(transportsOf[r].Select(t => (x: t.X / 16, y: (t.Y - 1) / 16))).Concat(entries).ToList();
+                    bool NearDoor(int cx, int cy) => doorCells.Any(c => Math.Abs(c.x - cx) <= DoorClear && Math.Abs(c.y - cy) <= 2);
+                    bool deadEnd = doors[r].Count + transportsOf[r].Count <= 1;
+                    // (a chest stands on a floor, down to it from a spot, up to 6 cells, where the camera shows it, as a mirror: Shown());
+                    (int x, int y)? OnFloor(int cx, int cy) {
+                        for (int k = 0; k <= 6 && Air(cx, cy + k); k++)
+                            if (Floor(cx, cy + k + 1)) return Shown(r, cy + k) ? (cx, cy + k) : null;
+                        return null;
+                    }
+
+                    // Its loose items: one at a reward spot becomes a chest holding it;
+                    int list = ReadInt(nightmare, r.Record + 0x48), records = 0;
+                    for (int at = list == 0 ? r.Record : list - 0x08000000; at + 8 <= r.Record; at += 8) {
+                        int category = nightmare[at] - 1;
+                        int x = ReadShort(nightmare, at + 4) - r.X * 16, y = ReadShort(nightmare, at + 6) - r.Y * 16;
+                        if (x < 0 || y < 0 || x >= r.Width * 16 || y >= r.Height * 16) continue;
+                        records++;
+                        if (category != 3 || !RoomItems.TryGetValue(nightmare[at + 1], out byte type)) continue;
+                        var spot = OnFloor(x / 16, y / 16);
+                        if (spot == null || !all.TryGetValue(spot.Value, out int far) || InFight(spot.Value.x, spot.Value.y)) continue;
+                        bool secret = !open.ContainsKey(spot.Value);
+                        int score = (secret ? 3 : 0) + (deadEnd ? 2 : 0) + (far >= FarCells ? 1 : 0);
+                        if (score >= 2) candidates.Add((r, score, far, new NidlChest(spot.Value.x * 16 + 8, spot.Value.y * 16 + 8, ChestItems[type], 0, at)));
+                    }
+
+                    // A dead end with no item there: a new chest, as far into the room as Kirby goes (off the doors);
+                    if (deadEnd && records <= MostRecords && !candidates.Any(c => c.room == r)) {
+                        var best = all.Where(c => OnFloor(c.Key.Item1, c.Key.Item2) == c.Key && !NearDoor(c.Key.Item1, c.Key.Item2) && !InFight(c.Key.Item1, c.Key.Item2))
+                                      .OrderByDescending(c => c.Value).ThenBy(c => c.Key.Item2).ThenBy(c => c.Key.Item1).Select(c => ((int x, int y, int far)?)(c.Key.Item1, c.Key.Item2, c.Value)).FirstOrDefault();
+                        if (best != null) {
+                            bool secret = !open.ContainsKey((best.Value.x, best.Value.y));
+                            candidates.Add((r, 2 + (secret ? 1 : 0) + (best.Value.far >= FarCells ? 1 : 0), best.Value.far, new NidlChest(best.Value.x * 16 + 8, best.Value.y * 16 + 8, 0xFF, 0, -1)));
+                        }
+                    }
+                }
+
+                // The best spots, one a room;
+                int wanted = Math.Clamp(levelRooms.Count / 8, 2, 5);
+                foreach (var c in candidates.OrderByDescending(c => c.score).ThenByDescending(c => c.distance).ThenBy(c => c.room.Room)) {
+                    if (wanted == 0 || index > LastNidlChest) break;
+                    if (plan[c.room].Count > 0) continue;
+                    byte item = c.chest.Item != 0xFF ? c.chest.Item : KatAMChestItems[dealt++ * 17 % KatAMChestItems.Length];
+                    plan[c.room].Add(c.chest with { Item = item, Index = (byte)index++ });
+                    wanted--;
+                }
+            }
+            return plan;
+        }
+
+        // ChestTemplate(); A small chest (0x80) as KatAM's: subtype1 its item, unk11 its treasure index;
+        static byte[] ChestTemplate(NidlChest chest, int number) {
+            byte[] template = ObjectTemplate(chest.X, chest.Y, number, SmallChestType);
+            template[14] = chest.Item; template[15] = 0; template[0x11] = chest.Index;
+            return template;
+        }
+
         /* BuildObjects(); The room's (part's) enemies, mini-bosses and items as KatAM object templates (LevelInfo_1E4: templates, the
          * types in the room, an empty list, how many types), and its doors' mirrors; returns its address. No enemy stands within
          * LandingClear cells across (2 up or down) of where a door lands Kirby (landings): KatAM lands him on the door, NiDL beside it,
          * and one there hit him as he came in; */
         static int BuildObjects(byte[] rom, byte[] nightmare, NightmareRoom r, List<Door> doors, List<(int x, int y, bool door)> mirras,
-                                List<(int x, int y)> landings, int noTypes, ref int cursor) {
+                                List<(int x, int y)> landings, List<NidlChest> chests, int noTypes, ref int cursor) {
             const int LandingClear = 3, ShotzoType = 0x35, BomberType = 0x28;
             // KatAM's enemies that walk the floor (Waddle Dee, Noddy, Pengy, Sir Kibble, Waddle Doo, Sparky, Twister, Hot Head, Sword Knight);
             byte[] walkers = { 0x00, 0x1E, 0x16, 0x18, 0x12, 0x19, 0x1C, 0x14, 0x1A };
@@ -3280,7 +3463,15 @@
                     (type, behavior) = RoomMetaKnights;
                     behavior |= (byte)(variant & 0xF);
                     miniboss = true;
-                } else if (category == 3 && RoomItems.TryGetValue(index, out type)) { }
+                } else if (category == 3 && RoomItems.TryGetValue(index, out type)) {
+                    // (one PlanChests() made a chest: the chest, holding it);
+                    NidlChest chest = chests.FirstOrDefault(c => c.Replaces == at);
+                    if (chest != null) {
+                        templates.Add(ChestTemplate(chest, templates.Count));
+                        if (!types.Contains(SmallChestType)) types.Add(SmallChestType);
+                        continue;
+                    }
+                }
                 else if (category == 4 && index == 2 && transportsOf[r].Any(t => t.Cannon)) {
                     // A cannon's fuse, where Kirby lights it (NiDL's gimmick 2, over its first cell): KatAM's fuse object, as room 0x1F6's;
                     byte[] fuse = ObjectTemplate(x, y, templates.Count, FuseType);
@@ -3311,6 +3502,12 @@
                 }
                 templates.Add(template);
                 if (!types.Contains(type)) types.Add(type);
+            }
+
+            // The new chests (PlanChests());
+            foreach (NidlChest chest in chests.Where(c => c.Replaces < 0)) {
+                templates.Add(ChestTemplate(chest, templates.Count));
+                if (!types.Contains(SmallChestType)) types.Add(SmallChestType);
             }
 
             /* Warp stars and cannons (see Transport), as KatAM's: a warp star (0x84, warp_star.c: +0x1E the room, +0x1A, +0x1C the landing

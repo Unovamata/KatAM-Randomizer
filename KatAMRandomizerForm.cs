@@ -164,7 +164,8 @@ namespace KatAMRandomizer
              * randomization stays the same either way); */
             bool nightmareTitle = settings.NightmareTitle && nightmareROM != null && new Random(settings.Seed ^ 0x7171E).Next(2) == 1;
 
-            // ROM Expansion goes first, so the ROM reader sees the new enemies' parameters like any other's;
+            // ROM Expansion goes first, so the ROM reader sees the new enemies' parameters like any other's (and its rooms' items and chests);
+            KatAMExpansion.ForgetRooms();
             progress.Report((5, "Adding the ROM Expansion..."));
             if (settings.NightmareEnemies.Count > 0 || settings.NightmareMinibosses.Count > 0 || settings.NightmareRooms || nightmareTitle) {
                 string error = nightmareROM == null ? "Load a Nightmare in Dream Land ROM in the ROM Expansion tab, or turn its enemies, mini-bosses and rooms off."

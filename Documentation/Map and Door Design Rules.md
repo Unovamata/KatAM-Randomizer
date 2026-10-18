@@ -132,7 +132,11 @@ after any change.
   for a challenge, or as a surprise. Never in a boss room, a switch room or a mini-boss's fight area.
 - **NiDL chests**: some of NiDL's loose consumables turn into consumable chests, sparingly (a few per level, as KatAM has). The
   ROM Expansion makes them when it ports the rooms, following KatAM's patterns, whether or not the ROM is randomized; the randomizer
-  only reads them afterwards, as it reads KatAM's.
+  only reads them afterwards, as it reads KatAM's. A chest per 8 rooms of a level (2 to 5), one a room at most, at the best reward
+  spots: a loose item behind breakable blocks, a dead end, far from where Kirby comes in; an item there becomes a chest holding it, a
+  dead end with none gets a new chest as far into the room as Kirby goes. Always on a floor the camera shows. `PlanChests()`.
+- **A chest is listed in its room's doors list**, or opening it hangs the game: the ported rooms' lists are rebuilt after the
+  randomizer (`FinishRooms()`), and KatAM's chest lists go into the table the game reads (the expansion moved it).
 - **To the randomizer a chest is a consumable spot**: shuffled, a chest can land wherever a consumable was in the original game.
 - **Protected, never randomized**: big switches, levers and story progression chests (and the shard chests the randomizer makes).
 - **The chest options, top to bottom** (Chests & Items):

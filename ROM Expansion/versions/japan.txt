@@ -220,3 +220,4 @@ sub_0809513C 0x80950b4
 _call_via_r2 0x815a260
 sub_0801C558 0x801c558
 sub_0801BD68 0x801bd68
+NumChestsCollected 0x8019cd8

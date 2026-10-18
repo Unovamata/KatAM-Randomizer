@@ -450,6 +450,8 @@ namespace KatAMRandomizer
                     }
 
                     Utils.WriteToROM(pointerIndex, pointerToWrite);
+                    // (and in the table the game reads once the ROM Expansion added rooms: it moved it, KatAMExpansion.DoorsTable);
+                    if (KatAMExpansion.DoorsTable >= 0) Utils.WriteToROM(KatAMExpansion.DoorsTable + 4 * currentRoomIndex, pointerToWrite);
 
                     // Check for the next room and continue writing in the next addresses;
                     currentRoomIndex++;

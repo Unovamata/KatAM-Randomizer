@@ -273,6 +273,31 @@ namespace KatAMRandomizer {
                 }
             }
 
+            /* The ROM Expansion's rooms' items and chests (KatAMExpansion.PortedItems: the expansion runs first, its NiDL chests made), read
+             * as KatAM's, so everything is randomized at once; */
+            foreach ((int room, int address) in KatAMExpansion.PortedItems) {
+                byte ID = romFile[address + 12];
+                if (!itemsDictionary.ContainsKey(ID)) continue;
+
+                Entity entity = new Entity();
+                entity.Definition = romFile.Skip(address).Take(36).ToArray();
+                entity.Address = address;
+                entity.Number = new byte[] { romFile[address + 2], romFile[address + 3] };
+                entity.Link = new byte[] { romFile[address + 4], romFile[address + 5] };
+                entity.X = new byte[] { romFile[address + 6], romFile[address + 7] };
+                entity.Y = new byte[] { romFile[address + 8], romFile[address + 9] };
+                entity.ID = ID;
+                entity.Behavior = romFile[address + 14];
+                entity.Speed = romFile[address + 16];
+                Array.Copy(entity.Definition, 17, entity.Properties, 0, entity.Properties.Length);
+                entity.Room = room;
+                entity.Description = "";
+                entity.Name = itemsDictionary[ID];
+                entity.AreAllPropertiesZeroes();
+
+                items.Add(entity);
+            }
+
             Console.WriteLine("Enemies saved: " + enemies.Count);
             Console.WriteLine("Minibosses saved: " + minibosses.Count);
             Console.WriteLine("Bosses saved: " + bosses.Count);

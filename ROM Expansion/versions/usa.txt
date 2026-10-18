@@ -142,3 +142,4 @@ sub_0809513C 0x809513c
 HasShard 0x8019da8
 sub_0801C558 0x801c558
 sub_0801BD68 0x801bd68
+NumChestsCollected 0x8019cdc

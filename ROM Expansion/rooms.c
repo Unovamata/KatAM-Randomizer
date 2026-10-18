@@ -22,6 +22,7 @@
 #include "gba/macro.h"
 #include "malloc_ewram.h"
 #include "multi_08030C94.h"
+#include "treasures.h"
 
 #define BIG_BLOCKS 3584
 #define BIG_ZONES (BIG_BLOCKS + 4)
@@ -120,6 +121,22 @@ void BigSub_08002C18(u16 roomId, u16 room, u8 x, u8 y)
         }
         entry = (void *)entry + entry->unk01;
     }
+}
+
+/* NidlNumChestsCollected(); The chests the game's completion counts (NumChestsCollected, redirected here by KatAMExpansionRooms.cs):
+ * KatAM's 84 (treasure indices below NIDL_CHESTS_FIRST), not the NiDL rooms' (from NIDL_CHESTS_FIRST: KatAMExpansionRooms.cs's
+ * FirstNidlChest), so 100% stays KatAM's 100%; */
+#define NIDL_CHESTS_FIRST 84
+
+u16 NidlNumChestsCollected(void)
+{
+    u16 count = 0, i;
+
+    for (i = 0; i < NIDL_CHESTS_FIRST; i++) {
+        if ((gTreasures.chestFields[i >> 3] >> (i & 7)) & 1)
+            count++;
+    }
+    return count;
 }
 
 static inline u16 *BigTilemap(u8 slot) {
