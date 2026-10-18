@@ -15,7 +15,7 @@ is done, move it to "Done" and say how it was checked. The design rules for door
 ### 5. Bosses as faithful 1:1 recreations of NiDL
 - **Heavy Mole**: rework the fight to match NiDL's, which needs the boss rooms to support scrolling (the screen moves through the
   dirt with the mole).
-- **King Dedede**: he must inhale Kirby (and the helper Kirbys), swallow them and spit them out, as in NiDL.
+- **King Dedede**: done (see Done: "King Dedede swallows and spits out the Kirbys").
 - **Nightmare's Power Orb**: port the Star Rod flying sequence, for the player and for all the helper Kirbys.
 - **Every boss** must play like NiDL's. Whispy Woods' face is done (see below); check the others against NiDL.
 
@@ -31,6 +31,19 @@ is done, move it to "Done" and say how it was checked. The design rules for door
 
 ## Done (rules to keep)
 
+- **King Dedede swallows and spits out the Kirbys** (item 5; the owner: "King Dedede inhales, swallows and spits out Kirby and
+  the helpers."): NiDL's fight was recorded frame by frame in an emulator (his state, frame and position, Kirby's, every object's).
+  His inhale is now NiDL's: the mouth opens (28 frames), he sucks up to 90 frames with sparkles flying into his mouth, every Kirby in
+  NiDL's catch box in front of him (the player's and the helpers) is caught with KatAM's own grab and drawn into his mouth, hidden;
+  he shakes puffed up for 30 frames, turns to the room's middle and spits them out in a star (NiDL's object 0x70, ported as
+  `enemies/spit_star.c`) that flies along the floor with them inside until the wall or the screen's side, where it bursts and they
+  pop out hurt (1 HP). Before, his inhale only drew Kirby in and touching him hurt. Tested in the emulator (new games started in his
+  room 0x313, Kirby played by the game's own inputs, the helpers by KatAM's CPU): USA solo, 4 swallows in 3000 frames, each 1 HP,
+  57-78 frames from catch to release by how far the star flies (NiDL's recorded one: 75), screenshots of the spit compared with
+  NiDL's (the star comes out on the frame he opens his mouth); USA with 3 CPU helpers (Dedede's HP raised to 600 in a test copy so
+  they don't beat him first), all 4 Kirbys caught at once and spat out together in one star (4000 frames: 4 swallows, 2-4 Kirbys each, every one 1 HP). European: the same 2 swallows as the
+  USA run; Japanese rev 1: a swallow and its release, 1 HP. Logic checks on all three: 280 rooms reached, 8 big switches, no traps,
+  with and without drops. Not tested: a real playthrough to the boss.
 - **Warp stars fly NiDL's own rides** (item 30; the owner: "The NiDL warp stars do this animation with scale and some places is
   off. Some routines are a bit off so you should reference all the properties of scale, rotation, positioning, and states these
   animations go off from since some are slightly off."): NiDL's warp star (object type 0x4A) was recorded frame by frame in an

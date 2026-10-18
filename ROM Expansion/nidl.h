@@ -58,11 +58,12 @@ enum {
     NIDL_GIP,
     NIDL_APPLE,     // Whispy Woods' apples (enemies/apple.c), behavior NIDL_SPECIAL << 4 | 1: no room has them;
     NIDL_STAR,      // Mr. Shine's falling stars (enemies/star.c), behavior NIDL_SPECIAL << 4 | 2: no room has them;
+    NIDL_SPIT_STAR, // The star King Dedede spits the Kirbys he swallowed out in (enemies/spit_star.c), behavior NIDL_SPECIAL << 4 | 3;
     NIDL_ENEMY_COUNT,
 };
 /* The behavior's high nibble 15 (NIDL_SPECIAL) holds what isn't a room's enemy, by its low nibble: 0 a mini-boss fight's walls in
  * NiDL rooms (NIDL_ARENA, enemies/arena.c, with Broom Hatter's graphics, never shown), 1 an apple (NIDL_APPLE), 2 a falling star
- * (NIDL_STAR); */
+ * (NIDL_STAR), 3 King Dedede's spit star (NIDL_SPIT_STAR); */
 #define NIDL_SPECIAL 15
 #define NIDL_ARENA NIDL_ENEMY_COUNT
 
@@ -232,6 +233,9 @@ void AppleInit(struct NidlObject *);
 void AppleStart(struct Object *);
 void StarInit(struct NidlObject *);
 void StarStart(struct Object *);
+void SpitStarInit(struct NidlObject *);
+void SpitStarStart(struct Object *);
+void SpitStarCarry(struct Object *star, u8 kirbys, bool8 left);
 
 // Mini-bosses;
 void PoppyBrosSrInit(struct NidlObject *);

@@ -99,7 +99,7 @@ namespace KatAMRandomizer {
         static readonly MinibossHurt BigHurt = new MinibossHurt(64, 96, 32, 48, new[] { (0, 3, 0, 0, 0), (1, 3, 0, 64, 64) }),
                                      KnightHurt = new MinibossHurt(32, 64, 16, 28, new[] { (2, 3, 0, 0, 0) });
         static MinibossHurt HurtOf(byte type) => type == 0x42 ? KnightHurt : BigHurt;    // (and the bosses', 0x43);
-        const int EnemyCount = 17;  // NIDL_ENEMY_COUNT: gNidlData's mini-bosses follow its enemies;
+        const int EnemyCount = 18;  // NIDL_ENEMY_COUNT: gNidlData's mini-bosses follow its enemies;
         const int MinibossCount = 6;    // NIDL_MINIBOSS_COUNT: gNidlData's bosses follow its mini-bosses;
 
         /* Bosses (object type 0x43, see "ROM Expansion/nidl_boss.c"): Miniboss records too (their index is NIDL_* bosses in nidl.h), built
@@ -155,6 +155,7 @@ namespace KatAMRandomizer {
             Gip(),
             Apple(),
             FallingStar(),
+            SpitStar(),
         };
 
         /* ParadeLoops; The ported enemies the intro's parade shows (KatAMTitleScreen.AddNidlTypes): their kind there (KatAMTitleScreen's
@@ -365,7 +366,7 @@ namespace KatAMRandomizer {
          * bosses/dedede.c's sFrames), the first palette's pieces, then the same, the second's (drawn as two sprites). Type 0x44. Hurt:
          * standing (4), its first palette's pieces; */
         static Miniboss KingDedede() {
-            int[] used = { 4, 5, 6, 7, 13, 14, 15, 16, 17, 18, 19, 24, 25, 26, 27, 28, 34, 35, 36, 39, 41, 42, 43 };
+            int[] used = { 4, 5, 6, 7, 13, 14, 15, 16, 17, 18, 19, 24, 25, 26, 27, 28, 29, 34, 35, 36, 39, 41, 42, 43 };
             List<Part[]> frames = new List<Part[]>();
 
             for (int palette = 0; palette < 2; palette++)
@@ -420,6 +421,15 @@ namespace KatAMRandomizer {
             new[] { new Part(38, Palette: 1) }, new Dictionary<int, ushort>(),
             new[] { (0x04, 0), (0x23, 4), (0x2D, 1), (0x01, 1) },   // "S" (Squishy), "t" (Shooty), "a" (Batty), "r" (Bronto Burt);
             new byte[0], Descriptor: 34, Palette: 1, Hidden: true);
+
+        /* Spit star; the star King Dedede spits the Kirbys he swallowed out in (NiDL object 0x70: frames of NiDL's shared effects,
+         * 0x0874C44C, with its shared tiles and palette 15): 4 the star, 35-37 its burst, then the sparkles of his inhale (45). Not
+         * hit; hurt: its star; */
+        static Enemy SpitStar() => new Enemy(17, "Spit Star", 0, 0x74C44C,
+            new[] { 4, 35, 36, 37, 45 }.Select(f => new[] { new Part(f, Palette15: true, Common: true) }).ToList(),
+            new[] { new Part(4, Palette15: true, Common: true) }, new Dictionary<int, ushort>(),
+            new[] { (0x04, 0), (0x23, 4), (0x2D, 1), (0x01, 1) },   // "S" (Squishy), "t" (Shooty), "a" (Batty), "r" (Bronto Burt);
+            new byte[0], Descriptor: 30, Hidden: true);
 
         /* Poppy Bros. Sr.; NiDL mini-boss 1 (type 0x32). Frames: every body frame (NiDL's 4-9, hopping) with every head frame over it (12-19,
          * drawn by its head object in NiDL), then its hands (20-25) and its bomb (26-30, NiDL's second palette). Hurt: NiDL's 10;
