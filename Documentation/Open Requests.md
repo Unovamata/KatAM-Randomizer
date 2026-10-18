@@ -54,10 +54,17 @@ is done, move it to "Done" and say how it was checked. The design rules for door
 ### 32. NiDL hubs have only one two-way door
 - The owner: "All NiDL's hubs only have 1 2 way door."
 
-### 33. The ability room's door in the NiDL hub
-- Central Circle's door at its top left (56, 72) leads to the ability room (0x3CA); the NiDL hub needs that door, in the same spot.
-
 ## Done (rules to keep)
+
+- **The ability room's door in the NiDL hub** (item 33): the NiDL hub now has Central Circle's door to the ability room (0x3CA) at
+  the same spot (top left, cell 3, 4). It's Central Circle's own: its hub mirror object (world slot 0x12, KatAM's switch, so it
+  opens in both hubs together), the tiles that draw it (its mirror's recolored into the hub's door colors, since the hub's level
+  doors took that palette), and its door, landing where Central Circle's does; the way out of the ability room is KatAM's, to
+  Central Circle. Found and fixed on the way: a door missing from a room's doors list (the list the pause map's visits use) froze
+  the game the moment it opened, so the hub's list carries it. Tested in the emulator (USA, European and Japanese, expanded, a new
+  game started in the NiDL hub, slot 0x12 set in RAM: a forced state, not the real switch): the door appears as in Central Circle,
+  the game keeps running, and Up on it takes Kirby to 0x3CA; without the slot it's hidden; the level doors still draw right.
+  Logic checks pass on all three, the map viewer routes it (no unrouted lines). Not tried: pressing KatAM's real switch for it.
 
 - **Room 0xF5's two-way door** (item 25): 0xF5 is the Meta-Knights' room. Its way back to 0xF1 landed Kirby right beside 0xF1's door
   into 0xF5, so the pair worked as a two-way door. Now a door out of a mini-boss room (or into one) never lands Kirby within 4 cells

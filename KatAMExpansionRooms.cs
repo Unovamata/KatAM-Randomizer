@@ -1294,7 +1294,7 @@
             WarpFlights(rom, symbols, ref cursor);
 
             BuildMainHub(rom, nightmare, symbols, version.SpriteTables, mainHub, mainHubDoors, rooms.First(r => r.Level == 7 && r.Stage == 0 && r.Index == 0).Record, tableSizes,
-                         infos, palettes, tilemaps, solidities, backgrounds, objects, noTypes, ref cursor);
+                         infos, palettes, tilemaps, solidities, backgrounds, objects, noTypes, ref cursor, out Door abilityDoor);
             WriteShort(rom, CodeAddress + version.CodeSymbols["gNidlHubRoom"], mainHub);
             /* The boss rooms' shards (bossExitsOf): gNidlShardExits ("ROM Expansion/nidl_boss.c"), and sub_0804C614's `kirby->roomId = 0x321`
              * and spawn spot (after the shard cutscene) a call to NidlShardExit(): `adds r0, r4, #0; ldr r1, =NidlShardExit; bl
@@ -1397,7 +1397,8 @@
                 WriteInts(rom, entry, nineROMAt + 0x08000000, chests.Count);
                 return entry + 0x08000000;
             }
-            List<int> doorLists = new List<int> { DoorsList(mainHubDoors, new List<NidlChest>()) };
+            // (the hub's, with its door to the ability room last: the game's door visits look for a door in its list, endlessly);
+            List<int> doorLists = new List<int> { DoorsList(abilityDoor == null ? mainHubDoors : mainHubDoors.Append(abilityDoor), new List<NidlChest>()) };
             doorLists.AddRange(rooms.Select(r => DoorsList(doors[r], chestsOf[r].Where(c => !c.Battery).ToList())));
             cursor = listCursor;
 

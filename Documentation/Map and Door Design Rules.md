@@ -73,6 +73,9 @@ after any change.
 - **Hub doors are always two-way and never lead to a Mirra.**
 - The NiDL hub (a Central Circle copy at night) has one door per level, as Central Circle has one per area. It is reached
   through a golden mirror in Central Circle (beside Central Circle's own), and a pink mirror in the NiDL hub leads back.
+- **The NiDL hub has Central Circle's ability room door**, at the same spot (top left, cell 3, 4), drawn and opened as Central
+  Circle's (KatAM's own switch, world slot 0x12), leading to the ability room (0x3CA) as Central Circle's does; the way out of the
+  ability room is KatAM's, to Central Circle.
 
 ## 5. Levels, stages and the order of things
 
