@@ -29,29 +29,51 @@ is done, move it to "Done" and say how it was checked. The design rules for door
   hit on an enemy (1), every enemy defeated and every hit on a boss (3), so randomized mini-bosses in enemy spots ("Include
   Minibosses") shake the screen as often as they do in KatAM.
 
-### 22. Grey blocks: still a pain
-- The owner: "grey blocks are proving to be a pain." They're KatAM's silver metal blocks (`0xF5`) since item 9.
-- Tested with real abilities (USA, expanded; a test ROM with an ability statue put beside Kirby, who walked into it and got the
-  ability as from a pedestal, then walked to room 0x195's four metal blocks on the floor and attacked them: three rounds of B, then
-  three of forward+B): **Hammer, Burning, Fighter, Wheel, Missile, Master and Smash (its forward+B hammer) break them**, and
-  **Stone** from above (turned to stone standing on one, he fell through). **Throw** breaks them with something held (the owner saw
-  it; not tried here: nothing to grab beside those blocks). **Beam, Laser, Fire, Ice, Spark, Parasol, Sword, Cutter, Cupid and Bomb
-  don't**, with B or forward+B (Bomb also with Up+B, Down+B and from on top); Smash's plain B, Up+B, Down+B and Down+B from on top
-  don't either. Tornado didn't in three tries (it spins away). Not tested: Sleep, Cook, UFO, Magic, Mini, Crash (no statue for them)
-  and the expansion's own abilities (Hi-Jump, Needle, Light, Ball, Freeze, Mike, Backdrop).
-- KatAM's own metal blocks (room 0x134, unchanged) gave the same results with the same test (Hammer and Burning broke them; Beam,
-  Bomb, Stone from the side, Smash's plain B and Sword didn't), so the NiDL rooms' grey blocks behave as KatAM's. Nothing found
-  broken; what they guard is optional (the logic checks count them as walls).
-- Needs the owner: what still goes wrong (a room, what happened), or whether they should break with more abilities (KatAM's `0xF4`
-  blocks break with any ability's attack).
+### 23. Shard chests open only once opened
+- The owner: "Shard chests cannot be reopened once consumed." A mirror shard chest gets a chest bit of its own: it shows open only
+  once opened (and stays so); opened when its shard is already owned (from a boss or the field), it gives a Maxim Tomato instead,
+  as an owned field shard does. Today it uses its shard's bit, so it shows open, never opened, once the shard is owned elsewhere.
 
-### 23. Shard chests that show open
-- The owner sees chests open that were never opened. One cause is by design (the rulebook, section 10: "a chest whose shard is
-  owned shows open"): a mirror shard chest uses its shard's own bit, so owning that shard from a boss or the field makes its chest
-  look opened and empty. Proposal, needs the owner's go-ahead (a rule change): give each shard chest a chest bit of its own, and
-  have an opened chest whose shard is already owned give a Maxim Tomato, as owned field shards do.
+### 24. Mini-boss doors already there in long rooms
+- Room 0x244: entering a long room with a mini-boss whose fight area holds a door, the door is already there before the fight.
+  Doors in a mini-boss's fight area show only once it's beaten, whenever Kirby comes in.
+
+### 26. Meta-Knights float a few pixels off the ground
+
+### 27. Mr. Tick-Tock stands above the ground in 0xF8; check the others
+
+### 29. Enemies at rooms' entrances
+- Against rule 2 ("no enemy stands on a door or right where a door lands Kirby"): enemies still stand at entrances.
+
+### 30. Warp stars: NiDL's scaling in their flight
+- NiDL's warp star flight scales the star (and Kirby) as it flies; KatAM's here doesn't.
+
+### 31. Room 0x248: a block's tiles stay after its bomb block goes
+- The bomb block's chain removes a block's collision but not its tiles.
+
+### 32. NiDL hubs have only one two-way door
+- The owner: "All NiDL's hubs only have 1 2 way door."
+
+### 33. The ability room's door in the NiDL hub
+- Central Circle's door at its top left (56, 72) leads to the ability room (0x3CA); the NiDL hub needs that door, in the same spot.
 
 ## Done (rules to keep)
+
+- **Room 0xF5's two-way door** (item 25): 0xF5 is the Meta-Knights' room. Its way back to 0xF1 landed Kirby right beside 0xF1's door
+  into 0xF5, so the pair worked as a two-way door. Now a door out of a mini-boss room (or into one) never lands Kirby within 4 cells
+  across and 2 up or down of a door, as for two-way doors. Where every floor near the landing is walled in (0xF1's door into 0xF5 sits
+  in a pocket behind a bomb block's chain), Kirby lands past the blocks: in 0xF1 he now lands beside the bomb block, so going back
+  into 0xF5 means breaking it first. The same rule moved 0xF1's door into 0xF5 off 0xF5's way out. Tested in the emulator (USA,
+  expanded, a new game started in 0xF5, the Meta-Knights' HP set to 0 in RAM to open the doors: a forced state, not a real fight):
+  Kirby took 0xF5's exit and landed in 0xF1 at (38, 6), by the bomb block, the door into 0xF5 behind the chain. Logic checks pass on
+  all three versions, with and without dropping through thin floors.
+
+- **Room 0xED's entrance from 0xEC is one-way** (item 28): 0xEC's door throws Kirby into 0xED, and 0xED has no door back to 0xEC
+  (the owner's one-way entrances, `OneWayEntrances` in KatAMExpansionRooms.cs). Tested in the emulator (USA, expanded, a new game
+  started in 0xEC): Up on its door put Kirby in 0xED, with no door where he landed. Logic checks pass on all three versions.
+
+- **Grey blocks** (item 22): the owner confirmed they're fine now (KatAM's metal blocks; which abilities break them is in the ROM
+  Expansion README).
 
 - **Chests: what was wrong** (the owner's report: empty chests never opened, chests outside the camera, the viewer showing a Battery
   in a chest that gave a Soda). Checked in the ROMs (USA unrandomized, randomized, and with every option on, chests shuffled): 114
