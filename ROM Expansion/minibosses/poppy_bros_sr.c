@@ -417,5 +417,5 @@ void PoppyBrosSrInit(struct NidlObject *n) {
     p->headFrame = 0;
     sub_0803E2B0(&obj->base, -12, -28, 12, 10);
     ObjectSetBounds(&obj->base, -12, -28, 12, 11);
-    obj->base.unk4C = obj->base.y = ((obj->base.y + (obj->base.unk3F * 0x100)) & 0xfffff000) - (obj->base.unk3F * 0x100) - 1;
+    NidlOnFloor(obj);
 }

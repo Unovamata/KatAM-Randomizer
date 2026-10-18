@@ -4,23 +4,75 @@
  * mini-boss's): unseen and untouchable, once a Kirby is on that screen while a mini-boss (types 0x38-0x52, KatAM's or ported) is
  * alive in the room, it holds the camera there as KatAM's scroll locks do (scroll_lock.c, type 0x77: sub_0811C7D0 and sub_0811C8BC,
  * which eases the camera in) and keeps every Kirby in the room on it, until none is left; then it gives the camera back
- * (ScrollLockDestroy) and goes away. Its graphics are Broom Hatter's (never shown); */
+ * (ScrollLockDestroy) and goes away. Its graphics are Broom Hatter's (never shown).
+ * While the mini-boss is alive, the doors in its fight's screen (and a cell around it) are shut: their cells aren't doors (KatAM's
+ * door collision 0xFF, 0xFD in water: air, water), and their mirrors (subtype 1, KatAMExpansionRooms.cs) hide with them, as KatAM's
+ * hidden mirrors do; they open once it's beaten (or when the room is left: its collision is loaded again); */
 #include "../nidl.h"
 #include "constants/object_types.h"
 
-/* The camera's bounds are what it may show, and 39 pixels more below (the room's own: 8, 8, width - 8, height - 1, as it never
- * shows a room's bottom 40); the arena's area is the screen, so the camera stays put. Kirby stays 8 pixels inside it; */
+/* The camera's bounds (unk_S32Vec2_7C, unk_S32Vec2_84) are what it may show: the arena's area, the screen, so the camera stays put
+ * (as KatAM's scroll locks, 15 x 10 cells); Kirby's (unkA0-unkAC) are that and 39 pixels more below (the room's own: 8, 8,
+ * width - 8, height - 1), so he falls off its pits. Kirby stays 8 pixels inside its sides; */
 #define BELOW 39
 #define WALL 8
+#define SHUT_DOORS 4
+
+struct ShutDoor {
+    u8 x, y, collision;
+};
 
 struct Arena {
     struct NidlObject n;
     bool8 active;
     u8 locked;          // The players whose camera it holds (bit per player);
-    s32 left, top, right, bottom;
     struct S32Vec2 saved7C, saved84;
     s32 savedA0, savedA4, savedA8, savedAC;
+    bool8 checked;      // It shut the doors there were (once);
+    u8 shut;            // How many doors it shut;
+    struct ShutDoor doors[SHUT_DOORS];
 };
+
+// The camera's bounds: its template's area (Kirby's, BELOW more);
+#define ARENA_LEFT(a) ((a->n.obj.objTemplate->x + a->n.obj.objTemplate->unk1A) << 8)
+#define ARENA_TOP(a) ((a->n.obj.objTemplate->y + a->n.obj.objTemplate->unk1C) << 8)
+#define ARENA_RIGHT(a) ((a->n.obj.objTemplate->x + a->n.obj.objTemplate->unk1A + a->n.obj.objTemplate->unk1E) << 8)
+#define ARENA_BOTTOM(a) ((a->n.obj.objTemplate->y + a->n.obj.objTemplate->unk1C + a->n.obj.objTemplate->unk20) << 8)
+
+typedef char ArenaFits[sizeof(struct Arena) <= NIDL_OBJECT_SIZE ? 1 : -1];
+
+// ShutDoors(); The doors in the fight's screen, and a cell around it, made air (water), for the room's player;
+static void ShutDoors(struct Arena *a) {
+    const struct ObjectTemplate *area = a->n.obj.objTemplate;
+    u8 player = a->n.obj.base.unk56;
+    s32 left = (area->x + area->unk1A - 16) >> 4, top = (area->y + area->unk1C - 16) >> 4;
+    s32 right = (area->x + area->unk1A + area->unk1E + 15) >> 4, bottom = (area->y + area->unk1C + area->unk20 + 15) >> 4;
+    s32 x, y;
+
+    if (left < 0) left = 0;
+    if (top < 0) top = 0;
+    if (right > gCurLevelInfo[player].roomWidth >> 4) right = gCurLevelInfo[player].roomWidth >> 4;
+    if (bottom > gCurLevelInfo[player].roomHeight >> 4) bottom = gCurLevelInfo[player].roomHeight >> 4;
+    for (y = top; y < bottom; y++) {
+        for (x = left; x < right && a->shut < SHUT_DOORS; x++) {
+            u8 collision = GetCollisionTile(player, x, y);
+
+            if (collision != 0xFF && collision != 0xFD) continue;
+            a->doors[a->shut].x = x;
+            a->doors[a->shut].y = y;
+            a->doors[a->shut].collision = sub_0800255C(player, x, y, collision == 0xFD ? 0x48 : 0);
+            a->shut++;
+        }
+    }
+}
+
+// OpenDoors(); The doors ShutDoors() shut, back;
+static void OpenDoors(struct Arena *a) {
+    u8 i;
+
+    for (i = 0; i < a->shut; i++) sub_0800255C(a->n.obj.base.unk56, a->doors[i].x, a->doors[i].y, a->doors[i].collision);
+    a->shut = 0;
+}
 
 // MinibossAlive(); A mini-boss with HP left in the room, found walking the task list (objects are ObjectBase kind 1, InitObject);
 static bool8 MinibossAlive(struct Object *arena) {
@@ -42,18 +94,19 @@ static bool8 MinibossAlive(struct Object *arena) {
 static void LockCamera(struct Arena *a, u8 i) {
     struct LevelInfo *l = &gCurLevelInfo[i];
 
-    l->unk_S32Vec2_7C.x = l->unkA0 = a->left;
-    l->unk_S32Vec2_7C.y = l->unkA4 = a->top;
-    l->unk_S32Vec2_84.x = l->unkA8 = a->right;
-    l->unk_S32Vec2_84.y = l->unkAC = a->bottom;
+    l->unk_S32Vec2_7C.x = l->unkA0 = ARENA_LEFT(a);
+    l->unk_S32Vec2_7C.y = l->unkA4 = ARENA_TOP(a);
+    l->unk_S32Vec2_84.x = l->unkA8 = ARENA_RIGHT(a);
+    l->unk_S32Vec2_84.y = ARENA_BOTTOM(a);
+    l->unkAC = ARENA_BOTTOM(a) + (BELOW << 8);
     if (a->locked & (1 << i)) return;
     a->locked |= 1 << i;
     l->unk1EC = 0;
-    if (a->right - a->left >= 0xF000) {
+    if (ARENA_RIGHT(a) - ARENA_LEFT(a) >= 0xF000) {
         if (l->unk_S32Vec2_6C.x <= l->viewportPosition.x - 0x800) l->unk_S32Vec2_6C.x = l->viewportPosition.x - 0x800;
         if (l->unk_S32Vec2_74.x >= l->viewportPosition.x + 0xF800) l->unk_S32Vec2_74.x = l->viewportPosition.x + 0xF800;
     }
-    if (a->bottom - a->top >= 0xA000) {
+    if (ARENA_BOTTOM(a) - ARENA_TOP(a) >= 0xA000) {
         if (l->unk_S32Vec2_6C.y <= l->viewportPosition.y - 0x800) l->unk_S32Vec2_6C.y = l->viewportPosition.y - 0x800;
         if (l->unk_S32Vec2_74.y >= l->viewportPosition.y + 0xA800) l->unk_S32Vec2_74.y = l->viewportPosition.y + 0xA800;
     }
@@ -70,7 +123,7 @@ static void UnlockCameras(struct Arena *a) {
     for (i = 0; i < gNumKirbys; i++) {
         struct LevelInfo *l = &gCurLevelInfo[i];
 
-        if (!(a->locked & (1 << i)) || l->unk_S32Vec2_7C.x != a->left || l->unk_S32Vec2_7C.y != a->top) continue;
+        if (!(a->locked & (1 << i)) || l->unk_S32Vec2_7C.x != ARENA_LEFT(a) || l->unk_S32Vec2_7C.y != ARENA_TOP(a)) continue;
         l->unk_S32Vec2_7C = l->unk_S32Vec2_6C = a->saved7C;
         l->unk_S32Vec2_84 = l->unk_S32Vec2_74 = a->saved84;
         l->unkA0 = l->unk90 = a->savedA0;
@@ -92,11 +145,16 @@ static void ArenaMain(struct Object *obj) {
     obj->base.xspeed = obj->base.yspeed = 0;
 
     if (!MinibossAlive(obj)) {
+        OpenDoors(a);
         if (a->active) {
             UnlockCameras(a);
             obj->base.flags |= 0x1000;
         }
         return;
+    }
+    if (!a->checked) {
+        a->checked = TRUE;
+        ShutDoors(a);
     }
     if (!a->active) {
         struct LevelInfo *l = &gCurLevelInfo[obj->base.unk56];
@@ -104,10 +162,6 @@ static void ArenaMain(struct Object *obj) {
         for (i = 0; i < 4; i++)
             if (gKirbys[i].base.roomId == obj->base.roomId && Macro_08039430_2(&gKirbys[i].base, obj)) a->active = TRUE;
         if (!a->active) return;
-        a->left = (area->x + area->unk1A) << 8;
-        a->top = (area->y + area->unk1C) << 8;
-        a->right = (area->x + area->unk1A + area->unk1E) << 8;
-        a->bottom = (area->y + area->unk1C + area->unk20 + BELOW) << 8;
         a->saved7C = l->unk_S32Vec2_7C;
         a->saved84 = l->unk_S32Vec2_84;
         a->savedA0 = l->unkA0;
@@ -146,4 +200,6 @@ void ArenaInit(struct NidlObject *n) {
 
     a->active = FALSE;
     a->locked = 0;
+    a->shut = 0;
+    a->checked = FALSE;
 }

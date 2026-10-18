@@ -43,6 +43,7 @@ namespace KatAMRandomizer
             WriteHeader();
             WriteSettings();
             WriteMirrors();
+            WriteBossShards();
             WriteEntities("Enemies", Utils.enemiesJson, false, false);
             WriteEntities("Mini-Bosses", Utils.minibossesJson, false, false);
             WriteEntities("Chests & Items", Utils.itemsJson, true, true);
@@ -74,6 +75,13 @@ namespace KatAMRandomizer
             log.AppendLine($"Generated: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
             log.AppendLine($"Original ROM: {System.ROMFilename} {RomRegion.Current.Name}");
             log.AppendLine($"Seed: {Seed}");
+        }
+
+        // WriteBossShards(); Which shard each boss leaves, with "Bosses give random shards" (KatAMExpansion.RandomizeBossShards);
+        void WriteBossShards() {
+            if (!Settings.RandomizeBossShards || KatAMExpansion.BossShardLog.Count == 0) return;
+            WriteSection("Boss Mirror Shards");
+            foreach (string line in KatAMExpansion.BossShardLog) log.AppendLine(line);
         }
 
         // WriteSettings(); Every setting, read from the Settings class so new settings show up on their own;
@@ -219,6 +227,7 @@ namespace KatAMRandomizer
             if (chestTreasures.TryGetValue(behavior, out string treasure)) return treasure;
             if (behavior >= 0x10 && behavior <= 0x21) return "Spray Paint";
             if (behavior >= 0x28 && behavior <= 0x2F) return "Sound Player Track";
+            if (behavior >= KatAMItems.ShardChest && behavior < KatAMItems.ShardChest + 8) return $"Mirror Shard #{behavior - KatAMItems.ShardChest + 1}";
 
             return $"0x{behavior:X2}";
         }

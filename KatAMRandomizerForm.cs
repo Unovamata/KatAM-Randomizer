@@ -109,16 +109,47 @@ namespace KatAMRandomizer
         // Control Panel;
 
         // AddNightmareEnemies(); The ROM Expansion, which also expands the ROM to 32 MB (so ROMData becomes the bigger copy);
-        private string AddNightmareEnemies() {
+        private string AddNightmareEnemies(bool nightmareTitle) {
             byte[] rom = Processing.ROMData;
-            string error = KatAMExpansion.AddEnemies(ref rom, nightmareROM, settings.NightmareRooms);
+            string error = KatAMExpansion.AddEnemies(ref rom, nightmareROM, settings.NightmareRooms, nightmareTitle);
 
             Processing.ROMData = rom;
             return error;
         }
 
-        // Randomize (Save);
-        private void ButtonSaveFile_Click(object sender, EventArgs e) {
+        /* ButtonSaveFile_Click(); Randomize (Save): the ROM is made in the background (Generate()), the progress bar at the bottom
+         * following it, the rest of the window greyed out until it's done; the warnings the steps raise are shown once it's done; */
+        private async void ButtonSaveFile_Click(object sender, EventArgs e) {
+            List<(string text, string caption, MessageBoxIcon icon)> messages = new List<(string, string, MessageBoxIcon)>();
+            Progress<(int percent, string step)> progress = new Progress<(int percent, string step)>(p => {
+                toolStripProgressBar1.Value = Math.Clamp(p.percent, toolStripProgressBar1.Minimum, toolStripProgressBar1.Maximum);
+                StatusLabel.Text = p.step;
+            });
+
+            SetBusy(true);
+            try {
+                await Task.Run(() => Generate(progress, messages));
+            } catch (Exception exception) {
+                messages.Add(($"The ROM couldn't be made: {exception.Message}", "Randomize", MessageBoxIcon.Error));
+            } finally {
+                SetBusy(false);
+            }
+            foreach ((string text, string caption, MessageBoxIcon icon) in messages) MessageBox.Show(text, caption, MessageBoxButtons.OK, icon);
+            StatusLabel.Text = messages.Any(m => m.icon == MessageBoxIcon.Error) ? "The ROM wasn't made." : "Done.";
+            toolStripProgressBar1.Value = messages.Any(m => m.icon == MessageBoxIcon.Error) ? 0 : toolStripProgressBar1.Maximum;
+        }
+
+        // SetBusy(); While the ROM is made, everything but the status bar (its progress) is greyed out;
+        void SetBusy(bool busy) {
+            foreach (Control control in Controls)
+                if (control != StatusStripRandomizer) control.Enabled = !busy;
+            UseWaitCursor = busy;
+            if (busy) toolStripProgressBar1.Value = 0;
+        }
+
+        // Generate(); Makes the randomized ROM (in the background: no window access here, warnings go to `messages`);
+        void Generate(IProgress<(int percent, string step)> progress, List<(string text, string caption, MessageBoxIcon icon)> messages) {
+            progress.Report((2, "Reading the ROM..."));
             byte[] fileContents = File.ReadAllBytes(system.ROMPath),
                    originalROM = (byte[])fileContents.Clone();
             Processing.ROMData = new byte[fileContents.Length];
@@ -129,13 +160,18 @@ namespace KatAMRandomizer
             destinationPath = Path.Combine(system.ROMDirectory, newFileName);
             settings.RandomEntity = new Random(settings.Seed);
 
+            /* The title screen: KatAM's intro or Nightmare in Dream Land's, picked from the seed (its own generator, so the rest of the
+             * randomization stays the same either way); */
+            bool nightmareTitle = settings.NightmareTitle && nightmareROM != null && new Random(settings.Seed ^ 0x7171E).Next(2) == 1;
+
             // ROM Expansion goes first, so the ROM reader sees the new enemies' parameters like any other's;
-            if (settings.NightmareEnemies.Count > 0 || settings.NightmareMinibosses.Count > 0 || settings.NightmareRooms) {
+            progress.Report((5, "Adding the ROM Expansion..."));
+            if (settings.NightmareEnemies.Count > 0 || settings.NightmareMinibosses.Count > 0 || settings.NightmareRooms || nightmareTitle) {
                 string error = nightmareROM == null ? "Load a Nightmare in Dream Land ROM in the ROM Expansion tab, or turn its enemies, mini-bosses and rooms off."
-                                                    : AddNightmareEnemies();
+                                                    : AddNightmareEnemies(nightmareTitle);
 
                 if (error != null) {
-                    MessageBox.Show(error, "ROM Expansion", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    messages.Add((error, "ROM Expansion", MessageBoxIcon.Error));
                     return;
                 }
 
@@ -151,14 +187,23 @@ namespace KatAMRandomizer
                     if (Processing.enemiesDictionary.TryGetValue(type, out var empty)) Processing.parameters[type] = empty.Name;
             }
 
+            progress.Report((40, "Reading the rooms..."));
             new KatAMROMReader(system);
+            progress.Report((50, "Randomizing enemies..."));
             new KatAMEnemies(system);
+            progress.Report((58, "Randomizing mirrors..."));
             new KatAMMirrors(system);
+            progress.Report((66, "Randomizing sprays..."));
             new KatAMSprays(system);
+            progress.Report((70, "Randomizing ability pedestals..."));
             new KatAMPedestals(system);
+            progress.Report((74, "Randomizing mini-bosses..."));
             new KatAMMinibosses(system);
+            progress.Report((78, "Randomizing map elements..."));
             new KatAMMapElements(system);
+            progress.Report((82, "Randomizing items and chests..."));
             new KatAMItems(system);
+            progress.Report((86, "Writing properties..."));
             new KatAMPropertiesManagement(system);
 
             // Randomize mirrors;
@@ -168,16 +213,62 @@ namespace KatAMRandomizer
             // Fix the way behaviors and speeds are loaded when including minibosses in enemy generation;
             // Consider Mirras for mirror randomization;
 
+            // Title screen: the intro's characters;
+            if (settings.RandomizeTitleParade) KatAMTitleScreen.RandomizeParade(Processing.ROMData, settings.RandomEntity);
+
+            progress.Report((88, "Finishing the rooms..."));
             // ROM Expansion rooms: Central Circle's mirror to them, now that the randomizer is done with its room;
             KatAMExpansion.FinishRooms(Processing.ROMData);
 
+            progress.Report((90, "Applying the options..."));
+            // Mirror shards in chests, then Reduce flashing and Skip the tutorial, last: they put the expansion's code in when no NiDL ROM did;
+            if (settings.MirrorShardsInChests && settings.amountOfChestShards > 0 && settings.ChestsGenerationType != GenerationOptions.No) {
+                byte[] chests = Processing.ROMData;
+                string chestsError = KatAMExpansion.AddShardChests(ref chests);
+                if (chestsError == null) Processing.ROMData = chests;
+                else messages.Add((chestsError, "Mirror shards in chests", MessageBoxIcon.Warning));
+            }
+
+            // Bosses give random shards: KatAM's 8 shuffled, then NiDL's spread evenly;
+            if (settings.RandomizeBossShards) {
+                byte[] bosses = Processing.ROMData;
+                string bossesError = KatAMExpansion.RandomizeBossShards(ref bosses, settings.RandomEntity);
+                if (bossesError == null) Processing.ROMData = bosses;
+                else messages.Add((bossesError, "Bosses give random shards", MessageBoxIcon.Warning));
+            }
+
+            // The shards put in rooms: one already owned is a Maxim Tomato instead, so it never blocks the way;
+            if (settings.amountOfMirrorShardsToAdd > 0) {
+                byte[] field = Processing.ROMData;
+                string fieldError = KatAMExpansion.OwnedFieldShards(ref field);
+                if (fieldError == null) Processing.ROMData = field;
+                else messages.Add((fieldError, "Mirror shards", MessageBoxIcon.Warning));
+            }
+
+            if (settings.ReduceFlashing) {
+                byte[] calmed = Processing.ROMData;
+                string flashingError = KatAMExpansion.ReduceFlashing(ref calmed);
+                if (flashingError == null) Processing.ROMData = calmed;
+                else messages.Add((flashingError, "Reduce flashing", MessageBoxIcon.Warning));
+            }
+
+            if (settings.SkipTutorial) {
+                byte[] skipped = Processing.ROMData;
+                string skipError = KatAMExpansion.SkipTutorial(ref skipped);
+                if (skipError == null) Processing.ROMData = skipped;
+                else messages.Add((skipError, "Skip the tutorial", MessageBoxIcon.Warning));
+            }
+
+            progress.Report((96, "Saving the ROM..."));
             File.WriteAllBytes(destinationPath, Processing.ROMData);
 
             // The spoiler log is written next to the randomized ROM;
             if (settings.SpoilerLog) {
                 string spoilerLogPath = Path.Combine(system.ROMDirectory, Path.GetFileNameWithoutExtension(newFileName) + " - Spoiler Log.txt");
+                progress.Report((98, "Writing the spoiler log..."));
                 new KatAMSpoilerLog(system, originalROM).Save(spoilerLogPath);
             }
+            progress.Report((100, "Done."));
         }
 
         //////////////////////////////////////////////////////////////////////////////////////////////
@@ -185,6 +276,21 @@ namespace KatAMRandomizer
         // General Options;
         private void CheckboxOptionsSpoilerLog_CheckedChanged(object sender, EventArgs e) {
             settings.SpoilerLog = CheckboxOptionsSpoilerLog.Checked;
+        }
+
+        // CheckboxOptionsTitleParade_CheckedChanged(); The characters parading through the intro, swapped (KatAMTitleScreen);
+        private void CheckboxOptionsTitleParade_CheckedChanged(object sender, EventArgs e) {
+            settings.RandomizeTitleParade = CheckboxOptionsTitleParade.Checked;
+        }
+
+        // CheckboxOptionsReduceFlashing_CheckedChanged(); KatAM's white screen flashes eased in (KatAMExpansion.ReduceFlashing);
+        private void CheckboxOptionsReduceFlashing_CheckedChanged(object sender, EventArgs e) {
+            settings.ReduceFlashing = CheckboxOptionsReduceFlashing.Checked;
+        }
+
+        // CheckboxOptionsSkipTutorial_CheckedChanged(); A new save starts past the tutorial, with its big chest's item (KatAMExpansion.SkipTutorial);
+        private void CheckboxOptionsSkipTutorial_CheckedChanged(object sender, EventArgs e) {
+            settings.SkipTutorial = CheckboxOptionsSkipTutorial.Checked;
         }
 
         /* Settings files; The state of every option (radio buttons, checkboxes, track bars and numeric boxes, by name) and the seed.
@@ -382,7 +488,7 @@ namespace KatAMRandomizer
         private void RadioMirrorShardsRandom_CheckedChanged(object sender, EventArgs e) {
             GroupMirrorShardsAmount.Enabled = false;
             settings.MirrorShardsGenerationType = GenerationOptions.Random;
-            settings.amountOfMirrorShardsToAdd = Utils.GetRandomRange(1, 5);
+            settings.amountOfMirrorShardsToAdd = Utils.GetRandomRange(1, 3);    // 1-2 copies of the 8;
         }
 
         private void RadioMirrorShardsCustom_CheckedChanged(object sender, EventArgs e) {
@@ -394,9 +500,33 @@ namespace KatAMRandomizer
             settings.amountOfMirrorShardsToAdd = TrackBarMirrorShardsAmount.Value;
         }
 
+        // TrackBarChestShardsAmount_Scroll(); How many copies of the 8 shards go in chests (1-2);
+        private void TrackBarChestShardsAmount_Scroll(object sender, EventArgs e) {
+            settings.amountOfChestShards = TrackBarChestShardsAmount.Value;
+        }
+
+        // CheckboxBossShardsRandom_CheckedChanged(); Which shard each boss leaves, shuffled (KatAMExpansion.RandomizeBossShards);
+        private void CheckboxBossShardsRandom_CheckedChanged(object sender, EventArgs e) {
+            settings.RandomizeBossShards = CheckboxBossShardsRandom.Checked;
+        }
+
+        // CheckboxMirrorShardsInChests_CheckedChanged(); Shards in chests, 1-2 copies of the 8 (KatAMItems.AddShardsToChests, KatAMExpansion.AddShardChests);
+        private void CheckboxMirrorShardsInChests_CheckedChanged(object sender, EventArgs e) {
+            settings.MirrorShardsInChests = CheckboxMirrorShardsInChests.Checked;
+            TrackBarChestShardsAmount.Enabled = CheckboxMirrorShardsInChests.Checked;
+            settings.amountOfChestShards = TrackBarChestShardsAmount.Value;
+        }
+
         // Chests;
+        // ChestsExist(); "No Chests" is above every chest option: no chests at all, so no shards in chests either;
+        void ChestsExist(bool exist) {
+            CheckboxMirrorShardsInChests.Enabled = exist;
+            if (!exist) CheckboxMirrorShardsInChests.Checked = false;
+        }
+
         private void RadioChestsUnchanged_CheckedChanged(object sender, EventArgs e) {
             settings.ChestsGenerationType = GenerationOptions.Unchanged;
+            ChestsExist(true);
             GroupChestsProperties.Enabled = GroupChestsProperties.Enabled = false;
             RadioChestsPropertiesUnchanged.Checked = true;
         }
@@ -404,11 +534,13 @@ namespace KatAMRandomizer
         private void RadioChestsShuffle_CheckedChanged(object sender, EventArgs e) {
             settings.ChestsGenerationType = GenerationOptions.Shuffle;
             GroupChestsProperties.Enabled = true;
+            ChestsExist(true);
         }
 
         private void RadioChestsNo_CheckedChanged(object sender, EventArgs e) {
             settings.ChestsGenerationType = GenerationOptions.No;
             GroupChestsProperties.Enabled = false;
+            ChestsExist(false);
             RadioChestsPropertiesUnchanged.Checked = true;
             CheckboxChestsMoreHPUP.Checked = false;
             TrackBarHPUP.Value = 1;
@@ -804,6 +936,8 @@ namespace KatAMRandomizer
                 CheckboxExpansionRooms.Enabled = true;
                 CheckboxExpansionRooms.Checked = true;
                 CheckboxExpansionRooms_CheckedChanged(CheckboxExpansionRooms, EventArgs.Empty);
+                CheckboxExpansionTitle.Enabled = true;
+                CheckboxExpansionTitle_CheckedChanged(CheckboxExpansionTitle, EventArgs.Empty);
                 ButtonExpansionUnloadNightmare.Enabled = true;
             } catch (Exception ex) {
                 MessageBox.Show($"Error loading file: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
@@ -814,15 +948,21 @@ namespace KatAMRandomizer
         private void ButtonExpansionUnloadNightmare_Click(object sender, EventArgs e) {
             nightmareROM = null;
             LabelExpansionNightmare.Text = "No ROM loaded";
-            foreach (CheckBox box in new[] { CheckboxExpansionEnemies, CheckboxExpansionMinibosses, CheckboxExpansionRooms }) {
+            foreach (CheckBox box in new[] { CheckboxExpansionEnemies, CheckboxExpansionMinibosses, CheckboxExpansionRooms, CheckboxExpansionTitle }) {
                 box.Checked = false;
                 box.Enabled = false;
             }
             settings.NightmareEnemies = new List<int>();
             settings.NightmareMinibosses = new List<int>();
             settings.NightmareRooms = false;
+            settings.NightmareTitle = false;
             ButtonExpansionUnloadNightmare.Enabled = false;
             UpdateExpansionLabel();
+        }
+
+        // CheckboxExpansionTitle_CheckedChanged(); The title screen: KatAM's intro or NiDL's Kirby swarm, picked from the seed;
+        private void CheckboxExpansionTitle_CheckedChanged(object sender, EventArgs e) {
+            settings.NightmareTitle = nightmareROM != null && CheckboxExpansionTitle.Checked;
         }
 
         // CheckboxExpansionRooms_CheckedChanged(); NiDL's rooms;

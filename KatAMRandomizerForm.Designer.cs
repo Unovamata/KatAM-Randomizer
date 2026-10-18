@@ -36,6 +36,14 @@
             ButtonSaveSettings = new Button();
             GroupSettings = new GroupBox();
             CheckboxOptionsSpoilerLog = new CheckBox();
+            CheckboxOptionsTitleParade = new CheckBox();
+            CheckboxOptionsReduceFlashing = new CheckBox();
+            CheckboxOptionsSkipTutorial = new CheckBox();
+            CheckboxMirrorShardsInChests = new CheckBox();
+            CheckboxBossShardsRandom = new CheckBox();
+            TrackBarChestShardsAmount = new TrackBar();
+            LabelChestShards1 = new Label();
+            LabelChestShards2 = new Label();
             LabelSeed = new Label();
             GroupRomInfo = new GroupBox();
             LabelStability = new Label();
@@ -191,6 +199,7 @@
             RadioAbilityPedestalShuffle = new RadioButton();
             RadioAbilityPedestalsUnchanged = new RadioButton();
             TabMiscellaneous = new TabPage();
+            GroupMiscGame = new GroupBox();
             TabExpansion = new TabPage();
             GroupExpansionNightmare = new GroupBox();
             LabelExpansionDescription = new Label();
@@ -200,6 +209,7 @@
             CheckboxExpansionEnemies = new CheckBox();
             CheckboxExpansionMinibosses = new CheckBox();
             CheckboxExpansionRooms = new CheckBox();
+            CheckboxExpansionTitle = new CheckBox();
             LabelExpansionEnemies = new Label();
             GroupMapElements = new GroupBox();
             GroupMapElementStoneDoors = new GroupBox();
@@ -262,6 +272,7 @@
             GroupEnemiesPropertiesInhaleAbility.SuspendLayout();
             GroupAbilityPedestals.SuspendLayout();
             TabMiscellaneous.SuspendLayout();
+            GroupMiscGame.SuspendLayout();
             TabExpansion.SuspendLayout();
             GroupExpansionNightmare.SuspendLayout();
             GroupMapElements.SuspendLayout();
@@ -346,6 +357,8 @@
             // GroupSettings
             // 
             GroupSettings.Controls.Add(CheckboxOptionsSpoilerLog);
+            GroupSettings.Controls.Add(CheckboxOptionsTitleParade);
+            GroupSettings.Controls.Add(CheckboxOptionsReduceFlashing);
             GroupSettings.Controls.Add(ButtonSaveSettings);
             GroupSettings.Controls.Add(ButtonLoadSettings);
             GroupSettings.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
@@ -362,7 +375,7 @@
             // 
             CheckboxOptionsSpoilerLog.AutoSize = true;
             CheckboxOptionsSpoilerLog.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            CheckboxOptionsSpoilerLog.Location = new Point(9, 34);
+            CheckboxOptionsSpoilerLog.Location = new Point(9, 30);
             CheckboxOptionsSpoilerLog.Margin = new Padding(4, 5, 4, 5);
             CheckboxOptionsSpoilerLog.Name = "CheckboxOptionsSpoilerLog";
             CheckboxOptionsSpoilerLog.Size = new Size(128, 29);
@@ -370,6 +383,45 @@
             CheckboxOptionsSpoilerLog.Text = "Spoiler Log";
             CheckboxOptionsSpoilerLog.UseVisualStyleBackColor = true;
             CheckboxOptionsSpoilerLog.CheckedChanged += CheckboxOptionsSpoilerLog_CheckedChanged;
+            // 
+            // CheckboxOptionsTitleParade
+            // 
+            CheckboxOptionsTitleParade.AutoSize = true;
+            CheckboxOptionsTitleParade.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            CheckboxOptionsTitleParade.Location = new Point(9, 62);
+            CheckboxOptionsTitleParade.Margin = new Padding(4, 5, 4, 5);
+            CheckboxOptionsTitleParade.Name = "CheckboxOptionsTitleParade";
+            CheckboxOptionsTitleParade.Size = new Size(200, 29);
+            CheckboxOptionsTitleParade.TabIndex = 14;
+            CheckboxOptionsTitleParade.Text = "Random intro parade";
+            CheckboxOptionsTitleParade.UseVisualStyleBackColor = true;
+            CheckboxOptionsTitleParade.CheckedChanged += CheckboxOptionsTitleParade_CheckedChanged;
+            // 
+            // CheckboxOptionsReduceFlashing
+            // 
+            CheckboxOptionsReduceFlashing.AutoSize = true;
+            CheckboxOptionsReduceFlashing.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            CheckboxOptionsReduceFlashing.Location = new Point(9, 94);
+            CheckboxOptionsReduceFlashing.Margin = new Padding(4, 5, 4, 5);
+            CheckboxOptionsReduceFlashing.Name = "CheckboxOptionsReduceFlashing";
+            CheckboxOptionsReduceFlashing.Size = new Size(165, 29);
+            CheckboxOptionsReduceFlashing.TabIndex = 15;
+            CheckboxOptionsReduceFlashing.Text = "Reduce flashing";
+            CheckboxOptionsReduceFlashing.UseVisualStyleBackColor = true;
+            CheckboxOptionsReduceFlashing.CheckedChanged += CheckboxOptionsReduceFlashing_CheckedChanged;
+            // 
+            // CheckboxOptionsSkipTutorial
+            // 
+            CheckboxOptionsSkipTutorial.AutoSize = true;
+            CheckboxOptionsSkipTutorial.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            CheckboxOptionsSkipTutorial.Location = new Point(14, 38);
+            CheckboxOptionsSkipTutorial.Margin = new Padding(4, 5, 4, 5);
+            CheckboxOptionsSkipTutorial.Name = "CheckboxOptionsSkipTutorial";
+            CheckboxOptionsSkipTutorial.Size = new Size(290, 29);
+            CheckboxOptionsSkipTutorial.TabIndex = 16;
+            CheckboxOptionsSkipTutorial.Text = "Skip the tutorial";
+            CheckboxOptionsSkipTutorial.UseVisualStyleBackColor = true;
+            CheckboxOptionsSkipTutorial.CheckedChanged += CheckboxOptionsSkipTutorial_CheckedChanged;
             // 
             // LabelSeed
             // 
@@ -1061,6 +1113,11 @@
             GroupConsumablesMirrorShards.Controls.Add(GroupMirrorShardsAmount);
             GroupConsumablesMirrorShards.Controls.Add(RadioMirrorShardsCustom);
             GroupConsumablesMirrorShards.Controls.Add(RadioMirrorShardsUnchanged);
+            GroupConsumablesMirrorShards.Controls.Add(CheckboxMirrorShardsInChests);
+            GroupConsumablesMirrorShards.Controls.Add(CheckboxBossShardsRandom);
+            GroupConsumablesMirrorShards.Controls.Add(TrackBarChestShardsAmount);
+            GroupConsumablesMirrorShards.Controls.Add(LabelChestShards1);
+            GroupConsumablesMirrorShards.Controls.Add(LabelChestShards2);
             GroupConsumablesMirrorShards.Enabled = false;
             GroupConsumablesMirrorShards.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
             GroupConsumablesMirrorShards.Location = new Point(259, 20);
@@ -1085,14 +1142,69 @@
             RadioMirrorShardsRandom.UseVisualStyleBackColor = true;
             RadioMirrorShardsRandom.CheckedChanged += RadioMirrorShardsRandom_CheckedChanged;
             // 
+            // CheckboxMirrorShardsInChests
+            // 
+            CheckboxMirrorShardsInChests.AutoSize = true;
+            CheckboxMirrorShardsInChests.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            CheckboxMirrorShardsInChests.Location = new Point(14, 350);
+            CheckboxMirrorShardsInChests.Margin = new Padding(4, 5, 4, 5);
+            CheckboxMirrorShardsInChests.Name = "CheckboxMirrorShardsInChests";
+            CheckboxMirrorShardsInChests.Size = new Size(260, 29);
+            CheckboxMirrorShardsInChests.TabIndex = 5;
+            CheckboxMirrorShardsInChests.Text = "Add shards in chests";
+            CheckboxMirrorShardsInChests.UseVisualStyleBackColor = true;
+            CheckboxMirrorShardsInChests.CheckedChanged += CheckboxMirrorShardsInChests_CheckedChanged;
+            // 
+            // CheckboxBossShardsRandom
+            // 
+            CheckboxBossShardsRandom.AutoSize = true;
+            CheckboxBossShardsRandom.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            CheckboxBossShardsRandom.Location = new Point(14, 455);
+            CheckboxBossShardsRandom.Margin = new Padding(4, 5, 4, 5);
+            CheckboxBossShardsRandom.Name = "CheckboxBossShardsRandom";
+            CheckboxBossShardsRandom.Size = new Size(260, 29);
+            CheckboxBossShardsRandom.TabIndex = 6;
+            CheckboxBossShardsRandom.Text = "Bosses give random shards";
+            CheckboxBossShardsRandom.UseVisualStyleBackColor = true;
+            CheckboxBossShardsRandom.CheckedChanged += CheckboxBossShardsRandom_CheckedChanged;
+            // 
+            // TrackBarChestShardsAmount: copies of the 8 shards in chests, 1-2;
+            // 
+            TrackBarChestShardsAmount.BackColor = SystemColors.ButtonHighlight;
+            TrackBarChestShardsAmount.Enabled = false;
+            TrackBarChestShardsAmount.Location = new Point(9, 405);
+            TrackBarChestShardsAmount.Margin = new Padding(4, 5, 4, 5);
+            TrackBarChestShardsAmount.Maximum = 2;
+            TrackBarChestShardsAmount.Minimum = 1;
+            TrackBarChestShardsAmount.Name = "TrackBarChestShardsAmount";
+            TrackBarChestShardsAmount.Size = new Size(276, 45);
+            TrackBarChestShardsAmount.TabIndex = 7;
+            TrackBarChestShardsAmount.TickStyle = TickStyle.TopLeft;
+            TrackBarChestShardsAmount.Value = 1;
+            TrackBarChestShardsAmount.Scroll += TrackBarChestShardsAmount_Scroll;
+            // 
+            // LabelChestShards1, 2
+            // 
+            LabelChestShards1.AutoSize = true;
+            LabelChestShards1.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            LabelChestShards1.ForeColor = SystemColors.ControlDark;
+            LabelChestShards1.Location = new Point(19, 382);
+            LabelChestShards1.Name = "LabelChestShards1";
+            LabelChestShards1.Size = new Size(22, 25);
+            LabelChestShards1.Text = "1";
+            LabelChestShards2.AutoSize = true;
+            LabelChestShards2.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            LabelChestShards2.ForeColor = SystemColors.ControlDark;
+            LabelChestShards2.Location = new Point(262, 382);
+            LabelChestShards2.Name = "LabelChestShards2";
+            LabelChestShards2.Size = new Size(22, 25);
+            LabelChestShards2.Text = "2";
+            // 
             // GroupMirrorShardsAmount
             // 
             GroupMirrorShardsAmount.Controls.Add(TrackBarMirrorShardsAmount);
-            GroupMirrorShardsAmount.Controls.Add(label5);
             GroupMirrorShardsAmount.Controls.Add(label1);
-            GroupMirrorShardsAmount.Controls.Add(label4);
             GroupMirrorShardsAmount.Controls.Add(label2);
-            GroupMirrorShardsAmount.Controls.Add(label3);
             GroupMirrorShardsAmount.Enabled = false;
             GroupMirrorShardsAmount.Location = new Point(9, 162);
             GroupMirrorShardsAmount.Margin = new Padding(4, 5, 4, 5);
@@ -1108,7 +1220,7 @@
             TrackBarMirrorShardsAmount.BackColor = SystemColors.ButtonHighlight;
             TrackBarMirrorShardsAmount.Location = new Point(9, 75);
             TrackBarMirrorShardsAmount.Margin = new Padding(4, 5, 4, 5);
-            TrackBarMirrorShardsAmount.Maximum = 5;
+            TrackBarMirrorShardsAmount.Maximum = 2;
             TrackBarMirrorShardsAmount.Minimum = 1;
             TrackBarMirrorShardsAmount.Name = "TrackBarMirrorShardsAmount";
             TrackBarMirrorShardsAmount.RightToLeft = RightToLeft.No;
@@ -1163,7 +1275,7 @@
             label2.Enabled = false;
             label2.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
             label2.ForeColor = SystemColors.ControlDark;
-            label2.Location = new Point(80, 52);
+            label2.Location = new Point(256, 52);
             label2.Margin = new Padding(4, 0, 4, 0);
             label2.Name = "label2";
             label2.Size = new Size(22, 25);
@@ -2511,6 +2623,7 @@
             // 
             // TabMiscellaneous
             // 
+            TabMiscellaneous.Controls.Add(GroupMiscGame);
             TabMiscellaneous.Controls.Add(GroupMapElements);
             TabMiscellaneous.Controls.Add(GroupMiscSprayPalettes);
             TabMiscellaneous.Location = new Point(4, 29);
@@ -2522,6 +2635,19 @@
             TabMiscellaneous.Text = "Miscellaneous";
             TabMiscellaneous.UseVisualStyleBackColor = true;
             // 
+            // GroupMiscGame
+            // 
+            GroupMiscGame.Controls.Add(CheckboxOptionsSkipTutorial);
+            GroupMiscGame.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            GroupMiscGame.Location = new Point(567, 278);
+            GroupMiscGame.Margin = new Padding(4, 5, 4, 5);
+            GroupMiscGame.Name = "GroupMiscGame";
+            GroupMiscGame.Padding = new Padding(4, 5, 4, 5);
+            GroupMiscGame.Size = new Size(627, 262);
+            GroupMiscGame.TabIndex = 2;
+            GroupMiscGame.TabStop = false;
+            GroupMiscGame.Text = "Game";
+            // 
             // GroupMapElements
             // 
             GroupMapElements.Controls.Add(GroupMapElementStoneDoors);
@@ -2531,7 +2657,7 @@
             GroupMapElements.Margin = new Padding(4, 5, 4, 5);
             GroupMapElements.Name = "GroupMapElements";
             GroupMapElements.Padding = new Padding(4, 5, 4, 5);
-            GroupMapElements.Size = new Size(627, 530);
+            GroupMapElements.Size = new Size(627, 262);
             GroupMapElements.TabIndex = 1;
             GroupMapElements.TabStop = false;
             GroupMapElements.Text = "Map Elements";
@@ -2751,6 +2877,7 @@
             GroupExpansionNightmare.Controls.Add(CheckboxExpansionEnemies);
             GroupExpansionNightmare.Controls.Add(CheckboxExpansionMinibosses);
             GroupExpansionNightmare.Controls.Add(CheckboxExpansionRooms);
+            GroupExpansionNightmare.Controls.Add(CheckboxExpansionTitle);
             GroupExpansionNightmare.Controls.Add(LabelExpansionEnemies);
             GroupExpansionNightmare.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
             GroupExpansionNightmare.Location = new Point(10, 10);
@@ -2847,13 +2974,26 @@
             CheckboxExpansionRooms.UseVisualStyleBackColor = true;
             CheckboxExpansionRooms.CheckedChanged += CheckboxExpansionRooms_CheckedChanged;
             // 
+            // CheckboxExpansionTitle
+            // 
+            CheckboxExpansionTitle.AutoSize = true;
+            CheckboxExpansionTitle.Enabled = false;
+            CheckboxExpansionTitle.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            CheckboxExpansionTitle.Location = new Point(16, 274);
+            CheckboxExpansionTitle.Margin = new Padding(4, 5, 4, 5);
+            CheckboxExpansionTitle.Name = "CheckboxExpansionTitle";
+            CheckboxExpansionTitle.TabIndex = 6;
+            CheckboxExpansionTitle.Text = "Title screen: KatAM's intro or NiDL's Kirby swarm, picked at random";
+            CheckboxExpansionTitle.UseVisualStyleBackColor = true;
+            CheckboxExpansionTitle.CheckedChanged += CheckboxExpansionTitle_CheckedChanged;
+            // 
             // LabelExpansionEnemies
             // 
             LabelExpansionEnemies.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            LabelExpansionEnemies.Location = new Point(16, 284);
+            LabelExpansionEnemies.Location = new Point(16, 318);
             LabelExpansionEnemies.Margin = new Padding(4, 0, 4, 0);
             LabelExpansionEnemies.Name = "LabelExpansionEnemies";
-            LabelExpansionEnemies.Size = new Size(1150, 230);
+            LabelExpansionEnemies.Size = new Size(1150, 196);
             LabelExpansionEnemies.TabIndex = 6;
             LabelExpansionEnemies.Text = "";
             // 
@@ -2988,6 +3128,8 @@
             TabExpansion.ResumeLayout(false);
             GroupExpansionNightmare.ResumeLayout(false);
             GroupExpansionNightmare.PerformLayout();
+            GroupMiscGame.ResumeLayout(false);
+            GroupMiscGame.PerformLayout();
             GroupMapElements.ResumeLayout(false);
             GroupMapElements.PerformLayout();
             GroupMapElementStoneDoors.ResumeLayout(false);
@@ -3031,6 +3173,7 @@
         private CheckBox CheckboxExpansionEnemies;
         private CheckBox CheckboxExpansionMinibosses;
         private CheckBox CheckboxExpansionRooms;
+        private CheckBox CheckboxExpansionTitle;
         private Label LabelExpansionEnemies;
         private Label LabelGameRegion;
         private GroupBox GroupMiscSprayPalettes;
@@ -3190,6 +3333,15 @@
         private RadioButton RadioGoalGameMirrorsShuffle;
         private RadioButton RadioGoalGameMirrorsUnchanged;
         private CheckBox CheckboxOptionsSpoilerLog;
+        private CheckBox CheckboxOptionsTitleParade;
+        private CheckBox CheckboxOptionsReduceFlashing;
+        private CheckBox CheckboxOptionsSkipTutorial;
+        private GroupBox GroupMiscGame;
+        private CheckBox CheckboxBossShardsRandom;
+        private TrackBar TrackBarChestShardsAmount;
+        private Label LabelChestShards1;
+        private Label LabelChestShards2;
+        private CheckBox CheckboxMirrorShardsInChests;
         private Label LabelStability;
         private Label LabelCompatibility;
         private TabPage tabPage6;

@@ -11,6 +11,8 @@
         const int KirbyFrameTable = 0x74CFEC;   // NiDL USA (+ region.FrameShift);
         const int AnimationIndexes = 0xB9;      // Entries of a hat table (one per entry of the body table);
         const int HatTiles = 16;                // VRAM for a hat frame (KatAM's biggest hats use 16; NiDL's here need at most 15);
+        // Kirby's animation indexes while he calls his helpers: taking out his phone, dialing, then ringing (sub_080572A0, sub_080573D0);
+        static readonly int[] CallAnimations = { 97, 98, 99 };
 
         /* KatAM body frames (anim, frame index; Normal's body table's, indexes 0x00-0x75) -> NiDL's plain Kirby frame and the offset from
          * it (x, y), matched by silhouette (mirrored frames unmirrored) and checked by eye. Anim 0x35 (Kirby facing the camera with
@@ -178,11 +180,18 @@
         /* HatFrame(); KatAM frame (tiles in 1D order, OAM entries, attributes) of a NiDL frame's hat pixels (see HatColors), moved by (dx, dy):
          * drawn on a canvas and cut into 8x8 pieces (CutFrame); NiDL's Kirby is always pink, so its hats (Needle's) draw parts of his
          * body in his colors (kirbyColors: plain Kirby's 2-11), which KatAM's hat palette would keep pink on every Kirby: they're left to
-         * the body; */
+         * the body where KatAM's body frame covers them (`covered`, BodyCoverage()), else drawn in the hat's nearest other color (KatAM's
+         * Kirby is shaped a little differently: Needle's head between its spikes showed the room through); */
         static (byte[] tiles, ushort[] oams, short[] attributes) HatFrame(KirbyFrame frame, int dx, int dy, int[] colors, (int flags, int w, int h, int ox, int oy) body,
-                                                                          HashSet<int> kirbyColors) {
+                                                                          HashSet<int> kirbyColors, bool[,] covered) {
             const int Size = 128, Center = 64;
             int[,] canvas = new int[Size, Size];
+            // (a body pixel is kept as -its color until the body's coverage is known, after mirroring);
+            int Nearest(int value) {
+                ushort c = (ushort)ReadShort(frame.Palette2, value * 2);
+                int Distance(ushort o) => Enumerable.Range(0, 3).Sum(i => (c >> i * 5 & 31) - (o >> i * 5 & 31) is int d ? d * d : 0);
+                return Enumerable.Range(2, 14).Where(i => !kirbyColors.Contains(ReadShort(frame.Palette2, i * 2))).OrderBy(i => Distance((ushort)ReadShort(frame.Palette2, i * 2))).First();
+            }
 
             foreach (Piece piece in frame.Pieces) {
                 bool second = piece.Tile >= 0x40;
@@ -195,7 +204,7 @@
                         int value = tiles[tile * 32 + py % 8 * 4 + px % 8 / 2] >> (px % 2 * 4) & 0xF;
                         if (value == 0 || (colors != null && !colors.Contains(value))) continue;
                         // (the second layer's pixels in plain Kirby's colors are his body, which KatAM's body frame draws in the player's colors);
-                        if (second && kirbyColors.Contains(ReadShort(frame.Palette2, value * 2))) continue;
+                        if (second && kirbyColors.Contains(ReadShort(frame.Palette2, value * 2))) value = -value;
 
                         int x = Center + piece.X + dx + (piece.HFlip != 0 ? piece.Width - 1 - px : px);
                         int y = Center + piece.Y + dy + (piece.VFlip != 0 ? piece.Height - 1 - py : py);
@@ -217,7 +226,58 @@
                     }
                 canvas = mirrored;
             }
+            for (int y = 0; y < Size; y++)
+                for (int x = 0; x < Size; x++)
+                    if (canvas[x, y] < 0) canvas[x, y] = covered[x, y] ? 0 : Nearest(-canvas[x, y]);
             return CutFrame(canvas, HatTiles);
+        }
+
+        /* BodyCoverage(); Which pixels of a HatFrame canvas (128x128, origin at its center) a KatAM body frame (anim, frame) draws: its
+         * attributes (oamStart | flags, pieces, box w, h, origin x, y), its OAM entries (y | shape << 14, x | size << 14 (| flips), tile),
+         * its tiles from the GetTiles before its ShowFrame (in any variant), the box mirrored by the flags; */
+        static bool[,] BodyCoverage(byte[] rom, int anims, int attrTable, int oamTable, int tilesBase, int anim, int frame) {
+            const int Size = 128, Center = 64;
+            bool[,] covered = new bool[Size, Size];
+            int attributes = ReadInt(rom, attrTable + anim * 4) - 0x08000000 + frame * 12;
+            int start = ReadShort(rom, attributes) & 0x3FFF, flags = ReadShort(rom, attributes) & 0xC000, pieces = ReadShort(rom, attributes + 2);
+            int w = (short)ReadShort(rom, attributes + 4), h = (short)ReadShort(rom, attributes + 6), ox = (short)ReadShort(rom, attributes + 8), oy = (short)ReadShort(rom, attributes + 10);
+            int firstTile = -1;
+            int[] lengths = { 0, 3, 3, 2, 1, 2, 3, 2, 3, 2, 4, 2, 2 };
+            for (int variant = 0, variants = ReadInt(rom, anims + anim * 4) - 0x08000000; variant < 64 && firstTile < 0; variant++) {
+                int pointer = ReadInt(rom, variants + variant * 4);
+                if (pointer >> 24 != 8) break;
+                for (int address = pointer - 0x08000000, n = 0, tiles = -1; n < 256; n++) {
+                    int command = ReadInt(rom, address);
+                    if (command >= 0) {
+                        if (ReadInt(rom, address + 4) == frame && tiles >= 0) { firstTile = tiles; break; }
+                        address += 8;
+                    } else if (command == -1) { tiles = ReadInt(rom, address + 4); address += 12; }
+                    else if (command == -3 || command == -4 || command < -12) break;
+                    else address += lengths[-command] * 4;
+                }
+            }
+            if (firstTile < 0) return covered;
+            int[,] shapes = { { 8, 8, 16, 8, 8, 16 }, { 16, 16, 32, 8, 8, 32 }, { 32, 32, 32, 16, 16, 32 }, { 64, 64, 64, 32, 32, 64 } };
+            int oams = ReadInt(rom, oamTable + anim * 4) - 0x08000000 + start * 6;
+            for (int p = 0; p < pieces; p++) {
+                int a = ReadShort(rom, oams + p * 6), b = ReadShort(rom, oams + p * 6 + 2), tile = ReadShort(rom, oams + p * 6 + 4) & 0x3FF;
+                int shape = a >> 14 & 3, size = b >> 14 & 3, pw = shapes[size, shape * 2], ph = shapes[size, shape * 2 + 1];
+                int x = b & 0x1FF, y = a & 0xFF;
+                if (x > 255) x -= 512;
+                if (y > 127) y -= 256;
+                bool hf = (b & 0x1000) != 0, vf = (b & 0x2000) != 0;
+                for (int py = 0; py < ph; py++)
+                    for (int px = 0; px < pw; px++) {
+                        int t = firstTile + tile + py / 8 * (pw / 8) + px / 8;
+                        if ((rom[tilesBase + t * 32 + py % 8 * 4 + px % 8 / 2] >> (px % 2 * 4) & 0xF) == 0) continue;
+                        int bx = x + (hf ? pw - 1 - px : px), by = y + (vf ? ph - 1 - py : py);
+                        if ((flags & 0x4000) != 0) bx = w - 1 - bx;
+                        if ((flags & 0x8000) != 0) by = h - 1 - by;
+                        int cx = Center + bx - ox, cy = Center + by - oy;
+                        if (cx >= 0 && cy >= 0 && cx < Size && cy < Size) covered[cx, cy] = true;
+                    }
+            }
+            return covered;
         }
 
         /* BuildHats(); Each new ability's hat anim (added to the anim lists, after the enemies'), and its hat table (an AnimInfo per animation
@@ -225,7 +285,7 @@
          * `paletteUsed`, for BuildMotions). Light's hat is empty (its motions draw on the hat sprite, see BuildMotions).
          * `bodyTable` is gUnk_0834C5D4 (Normal's, which they use; KatAM's own hat tables have up to 118 entries, these have one per
          * body table entry, the frames without a match hatless); */
-        static int[] BuildHats(byte[] rom, byte[] nightmare, NightmareRegion region, int bodyTable, int anims, int attrTable, int tilesBase, int paletteBase,
+        static int[] BuildHats(byte[] rom, byte[] nightmare, NightmareRegion region, int bodyTable, int anims, int attrTable, int oamTable, int tilesBase, int paletteBase,
                                ref int cursor, int firstAnimId, List<int> animVariants, List<int> animAttributes, List<int> animOams,
                                int[] hatPalettes, bool[][] paletteUsed) {
             int[] hatTables = new int[NewAbilities];
@@ -236,7 +296,8 @@
                 int animId = firstAnimId + animVariants.Count;
 
                 // Frames, one per (ability frame, offset); frame 0 is empty, for body frames without a hat;
-                Dictionary<(int, int, int, (int, int, int, int, int)), int> frameIndexes = new Dictionary<(int, int, int, (int, int, int, int, int)), int>();
+                Dictionary<(int, int), int> frameIndexes = new Dictionary<(int, int), int>();
+                Dictionary<string, int> sameFrames = new Dictionary<string, int>();
                 List<(byte[] tiles, ushort[] oams, short[] attributes)> frames = new List<(byte[], ushort[], short[])> { (new byte[0], new ushort[0], new short[] { 0, 0, 0, 0, 0, 0 }) };
                 byte[] palette = null;
 
@@ -245,21 +306,24 @@
                     int attributes = ReadInt(rom, attrTable + bodyAnim * 4) - 0x08000000 + bodyFrame * 12;
                     var body = (ReadShort(rom, attributes) & 0xC000, (int)(short)ReadShort(rom, attributes + 4), (int)(short)ReadShort(rom, attributes + 6),
                                 (int)(short)ReadShort(rom, attributes + 8), (int)(short)ReadShort(rom, attributes + 10));
-                    (int, int, int, (int, int, int, int, int)) key = (HatFrames[k][m.nidl], m.dx, m.dy, body.Item1 == 0 ? default : body);
-                    if (frameIndexes.TryGetValue(key, out int index)) return index;
+                    if (frameIndexes.TryGetValue((bodyAnim, bodyFrame), out int index)) return index;
 
                     KirbyFrame frame = ReadKirbyFrame(nightmare, region, HatFrames[k][m.nidl]);
                     palette ??= HatColors[k] == null ? frame.Palette2 : frame.Palette1;
-                    frames.Add(HatFrame(frame, m.dx, m.dy, HatColors[k], body, kirbyColors));
-                    return frameIndexes[key] = frames.Count - 1;
+                    var hat = HatFrame(frame, m.dx, m.dy, HatColors[k], body, kirbyColors, BodyCoverage(rom, anims, attrTable, oamTable, tilesBase, bodyAnim, bodyFrame));
+                    // (one frame per look: body frames alike share theirs);
+                    string look = Convert.ToBase64String(hat.tiles) + string.Join(",", hat.oams) + "/" + string.Join(",", hat.attributes);
+                    if (!sameFrames.TryGetValue(look, out index)) { frames.Add(hat); sameFrames[look] = index = frames.Count - 1; }
+                    return frameIndexes[(bodyAnim, bodyFrame)] = index;
                 }
 
-                // Commands per animation index: the body's, with its frames swapped for the hat's (GetTiles + ShowFrame), JumpBacks kept;
+                /* Commands per animation index: the body's, with its frames swapped for the hat's (GetTiles + ShowFrame), JumpBacks kept;
+                 * none while he calls his helpers (CallAnimations: the hat looks odd on Kirby holding his phone); */
                 Dictionary<(int, int), List<(int command, int[] words)>> bodies = new Dictionary<(int, int), List<(int, int[])>>();
                 List<int>[] variants = new List<int>[AnimationIndexes];
                 for (int i = 0; i < AnimationIndexes; i++) {
                     int bodyAnim = ReadShort(rom, bodyTable + i * 4), bodyVariant = rom[bodyTable + i * 4 + 2];
-                    variants[i] = HatCommands(rom, anims, bodyAnim, bodyVariant, HatFrameIndex);
+                    variants[i] = HatCommands(rom, anims, bodyAnim, bodyVariant, CallAnimations.Contains(i) ? (anim, frame) => 0 : HatFrameIndex);
                 }
 
                 // Data: tiles (aligned to the tiles base), palette, attributes, OAM, commands;

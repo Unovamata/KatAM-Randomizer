@@ -27,6 +27,17 @@
 #define NIDL_MINIBOSS_TYPE_2 OBJ_EMPTY_41
 #define NIDL_MINIBOSS_TYPE_3 OBJ_EMPTY_42
 #define NidlIsMiniboss(obj) ((obj)->type == NIDL_MINIBOSS_TYPE || (obj)->type == NIDL_MINIBOSS_TYPE_2 || (obj)->type == NIDL_MINIBOSS_TYPE_3)
+/* Bosses ported from NiDL share object type 0x43 (OBJ_EMPTY_43, which KatAM treats as a boss everywhere: the boss music, its HP bar,
+ * its defeat, explosion and gUnk_08350E58's handler, here NidlBossDefeat: the mirror shard) the same way (see nidl_boss.c), with the
+ * mini-bosses' graphics and hurt frame (64x96); */
+#define NIDL_BOSS_TYPE OBJ_EMPTY_43
+// (and type 0x44, OBJ_EMPTY_44, as much a boss to KatAM: the bosses that don't fit in type 0x43's 256 frames, KatAMExpansion.cs's BossTypeOf);
+#define NIDL_BOSS_TYPE_2 OBJ_EMPTY_44
+#define NidlIsBoss(obj) ((obj)->type == NIDL_BOSS_TYPE || (obj)->type == NIDL_BOSS_TYPE_2)
+/* NidlOnFloor(); A mini-boss's spot from its template (NiDL's: the middle of the cell it stands in) on the floor under that cell:
+ * its box's bottom (unk3F) on the cell's bottom. The enemies' snap (to the cell edge under the box's bottom) put the big ones
+ * (Bugzzy, Mr. Tick-Tock, Fire Lion: bottoms past 23 pixels) a cell lower: in the ground, or through a floor a cell thick; */
+#define NidlOnFloor(obj) ((obj)->base.unk4C = (obj)->base.y = (((obj)->base.y & ~0xFFF) + 0x1000) - ((obj)->base.unk3F * 0x100) - 1)
 
 // Enemies (the behavior byte's high nibble);
 enum {
@@ -45,9 +56,14 @@ enum {
     NIDL_COOL_SPOOK,
     NIDL_POPPY_BROS_JR,
     NIDL_GIP,
+    NIDL_APPLE,     // Whispy Woods' apples (enemies/apple.c), behavior NIDL_SPECIAL << 4 | 1: no room has them;
+    NIDL_STAR,      // Mr. Shine's falling stars (enemies/star.c), behavior NIDL_SPECIAL << 4 | 2: no room has them;
     NIDL_ENEMY_COUNT,
 };
-// Not an enemy: a mini-boss fight's walls in NiDL rooms (enemies/arena.c), with Broom Hatter's graphics (never shown);
+/* The behavior's high nibble 15 (NIDL_SPECIAL) holds what isn't a room's enemy, by its low nibble: 0 a mini-boss fight's walls in
+ * NiDL rooms (NIDL_ARENA, enemies/arena.c, with Broom Hatter's graphics, never shown), 1 an apple (NIDL_APPLE), 2 a falling star
+ * (NIDL_STAR); */
+#define NIDL_SPECIAL 15
 #define NIDL_ARENA NIDL_ENEMY_COUNT
 
 // Mini-bosses (type 0x40's behavior byte's high nibble);
@@ -59,6 +75,20 @@ enum {
     NIDL_FIRE_LION,
     NIDL_META_KNIGHTS,
     NIDL_MINIBOSS_COUNT,
+};
+
+// Bosses (type 0x43's behavior byte's high nibble; its low nibble is the mirror shard it leaves, 0-7);
+enum {
+    NIDL_WHISPY_WOODS,
+    NIDL_KRACKO,
+    NIDL_SHINE_BRIGHT,
+    NIDL_META_KNIGHT,
+    NIDL_PAINT_ROLLER,
+    NIDL_HEAVY_MOLE,
+    NIDL_KING_DEDEDE,
+    NIDL_POWER_ORB,
+    NIDL_NIGHTMARE,
+    NIDL_BOSS_COUNT,
 };
 
 // Room every ported enemy gets (NidlObject and its own fields);
@@ -107,6 +137,13 @@ struct NidlMiniboss {
     u8 type;        // Its object type (NIDL_MINIBOSS_TYPE or _2; the same as KatAMExpansion.cs's);
 };
 
+// NidlBoss; What the code knows about each boss;
+struct NidlBoss {
+    void (*init)(struct NidlObject *);  // Bounds and position, after InitObject;
+    void (*start)(struct Object *);     // Behavior start once the fight starts;
+    s16 hp;
+};
+
 // NidlGraphics; Where an enemy's or mini-boss's graphics went;
 struct NidlGraphics {
     u16 animBase;                       // First AnimInfo of the enemy in the type's table;
@@ -120,12 +157,17 @@ struct NidlData {
     struct NidlGraphics enemies[NIDL_ENEMY_COUNT];
     const u8 *minibossNames;            // The same per mini-boss;
     struct NidlGraphics minibosses[NIDL_MINIBOSS_COUNT];
+    const u8 *bossNames;                // The same per boss;
+    struct NidlGraphics bosses[NIDL_BOSS_COUNT];
 };
 
 extern const struct NidlData gNidlData;
 
 void *CreateNidlEnemy(struct ObjectTemplate *, u8 playerId);
 void *CreateNidlMiniboss(struct ObjectTemplate *, u8 playerId);
+void *CreateNidlBoss(struct ObjectTemplate *, u8 playerId);
+void NidlBossStart(struct Object *);
+void NidlBossDefeat(struct Object *);
 const struct NidlGraphics *NidlGraphicsOf(struct NidlObject *);
 u32 NidlHurtTiles(struct Object *);
 void NidlUploadHurtTiles(struct NidlObject *);
@@ -183,6 +225,10 @@ void PoppyBrosJrInit(struct NidlObject *);
 void PoppyBrosJrStart(struct Object *);
 void GipInit(struct NidlObject *);
 void GipStart(struct Object *);
+void AppleInit(struct NidlObject *);
+void AppleStart(struct Object *);
+void StarInit(struct NidlObject *);
+void StarStart(struct Object *);
 
 // Mini-bosses;
 void PoppyBrosSrInit(struct NidlObject *);
@@ -198,6 +244,28 @@ void FireLionStart(struct Object *);
 void MetaKnightsInit(struct NidlObject *);
 void MetaKnightsStart(struct Object *);
 void MetaKnightsDestroy(struct Task *);
+
+// Bosses;
+void WhispyWoodsInit(struct NidlObject *);
+void WhispyWoodsStart(struct Object *);
+void KrackoInit(struct NidlObject *);
+void KrackoStart(struct Object *);
+void ShineBrightInit(struct NidlObject *);
+void ShineBrightStart(struct Object *);
+void MetaKnightInit(struct NidlObject *);
+void MetaKnightStart(struct Object *);
+void PaintRollerInit(struct NidlObject *);
+void PaintRollerStart(struct Object *);
+void HeavyMoleInit(struct NidlObject *);
+void HeavyMoleStart(struct Object *);
+void KingDededeInit(struct NidlObject *);
+void KingDededeStart(struct Object *);
+void PowerOrbInit(struct NidlObject *);
+void PowerOrbStart(struct Object *);
+void NightmareInit(struct NidlObject *);
+void NightmareStart(struct Object *);
+
+void NidlDestroy(struct Task *);
 bool32 NidlIsMetaKnight(struct ObjectTemplate *);
 
 #endif

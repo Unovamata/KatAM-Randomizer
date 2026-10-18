@@ -5,6 +5,7 @@
 #include "abilities.h"
 
 extern const u8 *const gUnk_08D60EE4[];  // HP bar names per language: 64x8 (0x100 bytes) per object type;
+extern struct Task *gUnk_03000010;       // The HUD's task (its data: +0x0A the HP bar's length, +0x1C the object it shows);
 
 /* HP as KatAM's enemies': 4 for the ones that give an ability (KatAM's Sword Knight, Hot Head, Sparky...), 2 for the others
  * (NiDL's 1 and 2 die to any attack); */
@@ -24,6 +25,8 @@ static const struct NidlEnemy sNidlEnemies[NIDL_ENEMY_COUNT + 1] = {
     [NIDL_COOL_SPOOK] = { CoolSpookInit, CoolSpookStart, 4, NIDL_ABILITY_LIGHT },
     [NIDL_POPPY_BROS_JR] = { PoppyBrosJrInit, PoppyBrosJrStart, 2, 0 },
     [NIDL_GIP] = { GipInit, GipStart, 2, 0 },
+    [NIDL_APPLE] = { AppleInit, AppleStart, 1, 0 },
+    [NIDL_STAR] = { StarInit, StarStart, 1, 0 },
     [NIDL_ARENA] = { ArenaInit, ArenaStart, 1, 0 },
 };
 
@@ -62,7 +65,7 @@ void NidlAnimate(struct NidlObject *n) {
 // NidlHurtTiles(); The tiles of an enemy's or mini-boss's hurt frame (its type's);
 u32 NidlHurtTiles(struct Object *obj) {
     if (obj->type == NIDL_MINIBOSS_TYPE_3) return NIDL_KNIGHT_HURT_TILES;
-    return NidlIsMiniboss(obj) ? NIDL_MINIBOSS_HURT_TILES : NIDL_HURT_TILES;
+    return NidlIsMiniboss(obj) || NidlIsBoss(obj) ? NIDL_MINIBOSS_HURT_TILES : NIDL_HURT_TILES;
 }
 
 /* NidlUploadHurtTiles(); Copies the enemy's hurt frame (its hurt one, for the mini-bosses with several) into the last NidlHurtTiles
@@ -78,6 +81,7 @@ void NidlUploadHurtTiles(struct NidlObject *n) {
 
 // NidlGraphicsOf(); The graphics of an enemy or mini-boss;
 const struct NidlGraphics *NidlGraphicsOf(struct NidlObject *n) {
+    if (NidlIsBoss(&n->obj)) return &gNidlData.bosses[n->enemy];
     return NidlIsMiniboss(&n->obj) ? &gNidlData.minibosses[n->enemy] : &gNidlData.enemies[n->enemy];
 }
 
@@ -121,11 +125,25 @@ void NidlFall(struct Object *obj) {
 
 void NidlStart(struct Object *);
 
+/* NidlDestroy(); Every ported object's task destructor: the HUD lets go of the object its HP bar shows only once its flags say it's
+ * gone (0x1000, read every frame, 0x0803533C), and the task's memory can hold another object by then (the bar stayed, empty or
+ * not, after the enemy died); the bar is emptied and the object let go of here, as the HUD does for a defeated one; */
+void NidlDestroy(struct Task *task) {
+    u8 *hud = gUnk_03000010 ? TaskGetStructPtr(gUnk_03000010) : NULL;
+
+    if (hud && *(void **)(hud + 0x1C) == TaskGetStructPtr(task)) {
+        hud[0xA] = 0;
+        *(void **)(hud + 0x1C) = NULL;
+    }
+    ObjectDestroy(task);
+}
+
 void *CreateNidlEnemy(struct ObjectTemplate *template, u8 playerId) {
-    struct Task *task = TaskCreate(ObjectMain, NIDL_OBJECT_SIZE, 0x1000, TASK_USE_EWRAM, ObjectDestroy);
+    struct Task *task = TaskCreate(ObjectMain, NIDL_OBJECT_SIZE, 0x1000, TASK_USE_EWRAM, NidlDestroy);
     struct NidlObject *n = TaskGetStructPtr(task);
     u8 enemy = template->subtype1 >> 4;
 
+    if (enemy == NIDL_SPECIAL) enemy = (template->subtype1 & 0xF) == 1 ? NIDL_APPLE : (template->subtype1 & 0xF) == 2 ? NIDL_STAR : NIDL_ARENA;
     if (enemy > NIDL_ARENA) enemy = 0;
 
     InitObject(&n->obj, template, playerId);
@@ -167,6 +185,8 @@ void NidlCopyName(struct Object *obj) {
         name = gNidlData.names + ((struct NidlObject *)obj)->enemy * 0x100;
     else if (NidlIsMiniboss(obj))
         name = gNidlData.minibossNames + ((struct NidlObject *)obj)->enemy * 0x100;
+    else if (NidlIsBoss(obj))
+        name = gNidlData.bossNames + ((struct NidlObject *)obj)->enemy * 0x100;
     else
         name = gUnk_08D60EE4[gLanguage] + obj->type * 0x100;
     CpuSet(name, (void *)0x060077A0, 0x80);

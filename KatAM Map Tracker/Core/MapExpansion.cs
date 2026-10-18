@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -10,17 +10,23 @@ namespace KatAMMapTracker {
      *   its right; one in its ceiling: above it), as far as KatAM's linked rooms sit on its own maps (8 tiles: two steps of a 4
      *   tile grid), three steps past a room long that way; in the free cell that best keeps the directions of every door it shares with the rooms placed;
      *   so a level grows the branches, loops and long corridors its doors make, not rows.
-     * • Each level beside the KatAM rooms it links to, in the nearest spot clear of KatAM's areas and the other levels; the hub
-     *   beside Central Circle. Each level is a cluster of its own (11 + level, as its area), the hub too (19); */
+     * • The levels packed tight around KatAM's map (Pack()): each in the free spot that keeps the whole map the most square, then the
+     *   closest to its middle, its rooms RoomMargin clear of every other cluster's, so none is left out on its own; the hub beside
+     *   Central Circle. KatAM's original map (its original mirrors) stays exactly the pause screen's, one block the levels go around,
+     *   never in its gaps; a randomized one's clusters leave gaps the levels fill. A room linked to none of its level's rooms (only to other levels': a swapped door, a switch room's) sits by
+     *   its stage's rooms, else by the level's way in, so a stage's map stays together.
+     *   Each level is a cluster of its own (11 + level, as its area), the hub too (19).
+     * • KatAM's rooms the map lines up under itself (the tutorial and the game's end: rooms no mirror links to Central Circle's
+     *   map) go after the levels, so the map still ends with them; */
     public static class MapExpansion {
         const int Grid = MapGraphics.TileSize;
-        const int Step = 4 * Grid, LevelMargin = 128, LongRoom = 60;
+        const int Step = 4 * Grid, LevelMargin = 128, LongRoom = 60, RoomMargin = 72, Fit = 2 * Grid;
         public const int HubCluster = 19;
         public static int LevelCluster(int level) => 11 + level;
         public static bool IsLevelCluster(int cluster) => cluster >= 11 && cluster < 19;
 
         // Place(); Adds the NiDL rooms of 'map' to 'layout' (KatAM's rooms, placed) and their clusters to 'clusters';
-        public static void Place(RomMap map, Dictionary<int, RoomPlacement> layout, Dictionary<int, int> clusters) {
+        public static void Place(RomMap map, Dictionary<int, RoomPlacement> layout, Dictionary<int, int> clusters, bool original = false) {
             List<RoomInfo> nightmare = map.Rooms.Values.Where(r => r.IsNightmareRoom).ToList();
             if (nightmare.Count == 0) return;
 
@@ -42,48 +48,103 @@ namespace KatAMMapTracker {
             (double width, double height) Bounds(Dictionary<int, (double x, double y)> centers) =>
                 (centers.Max(c => c.Value.x + SizeOf(map.Rooms[c.Key]) / 2), centers.Max(c => c.Value.y + SizeOf(map.Rooms[c.Key]) / 2));
 
-            /* Each level next to the KatAM rooms it links to (its anchor: their middle; the hub's, Central Circle), in the nearest free
-             * spot: clear of KatAM's areas (each area's box, LevelMargin around it) and of the levels placed already; the levels with
-             * the most links to KatAM first, so the lines between the two maps stay short and each level reads as part of the map
-             * around it, as KatAM's areas do around Central Circle; */
-            List<(double left, double top, double right, double bottom)> taken = clusters.Where(c => layout.ContainsKey(c.Key)).GroupBy(c => c.Value)
+            // KatAM's map, without the rooms lined up under it (UnderKatAM(): not linked to Central Circle's map);
+            HashSet<int> under = UnderKatAM(map, layout);
+            List<RoomPlacement> katam = layout.Where(p => !under.Contains(p.Key)).Select(p => p.Value).ToList();
+            (double left, double top, double right, double bottom) main = katam.Count == 0 ? (0, 0, 0, 0)
+                : (katam.Min(p => p.X), katam.Min(p => p.Y), katam.Max(p => p.X + p.Width), katam.Max(p => p.Y + p.Height));
+
+            // The hub beside Central Circle, clear of KatAM's areas;
+            List<(double left, double top, double right, double bottom)> taken = clusters.Where(c => layout.ContainsKey(c.Key) && !under.Contains(c.Key)).GroupBy(c => c.Value)
                 .Select(area => (area.Min(c => layout[c.Key].X), area.Min(c => layout[c.Key].Y), area.Max(c => layout[c.Key].X + layout[c.Key].Width), area.Max(c => layout[c.Key].Y + layout[c.Key].Height)))
                 .ToList();
-            (double x, double y) mapMiddle = layout.Count == 0 ? (0, 0) : (layout.Values.Average(p => p.CenterX), layout.Values.Average(p => p.CenterY));
-            (double x, double y) Anchor(IEnumerable<RoomInfo> rooms) {
-                HashSet<int> mine = rooms.Select(r => r.Id).ToHashSet();
-                List<RoomPlacement> linked = map.Rooms.Values.Where(r => layout.ContainsKey(r.Id) && !mine.Contains(r.Id)
-                        && (r.Doors.Any(d => mine.Contains(d.Destination)) || rooms.Any(m => m.Doors.Any(d => d.Destination == r.Id))))
-                    .Select(r => layout[r.Id]).ToList();
-                return linked.Count == 0 ? mapMiddle : (linked.Average(p => p.CenterX), linked.Average(p => p.CenterY));
-            }
-            void Settle(double width, double height, (double x, double y) anchor, Action<double, double> put) {
-                bool Free(double left, double top) => taken.All(t => left + width + LevelMargin <= t.left || left >= t.right + LevelMargin || top + height + LevelMargin <= t.top || top >= t.bottom + LevelMargin);
-                (double left, double top) best = (anchor.x - width / 2, anchor.y - height / 2);
-                double bestDistance = double.MaxValue;
-                for (int ring = 0; ring < 400 && bestDistance == double.MaxValue; ring++) {
-                    for (int k = -ring; k <= ring; k++) {
-                        foreach ((int dx, int dy) in new[] { (k, -ring), (k, ring), (-ring, k), (ring, k) }) {
-                            double left = Snap(anchor.x - width / 2 + dx * 2 * Grid), top = Snap(anchor.y - height / 2 + dy * 2 * Grid);
-                            double distance = Math.Abs(left + width / 2 - anchor.x) + Math.Abs(top + height / 2 - anchor.y);
-                            if (distance < bestDistance && Free(left, top)) { bestDistance = distance; best = (left, top); }
-                        }
-                    }
-                }
-                taken.Add((best.left, best.top, best.left + width, best.top + height));
-                put(best.left, best.top);
-            }
-
             foreach (RoomInfo hub in nightmare.Where(r => r.IsNightmareHub)) {
                 double size = SizeOf(hub);
-                (double x, double y) anchor = layout.TryGetValue(RomMap.CentralCircle, out RoomPlacement circle) ? (circle.CenterX, circle.CenterY) : mapMiddle;
-                Settle(size, size, anchor, (left, top) => Put(hub, left + size / 2, top + size / 2, HubCluster));
+                (double x, double y) anchor = layout.TryGetValue(RomMap.CentralCircle, out RoomPlacement circle) ? (circle.CenterX, circle.CenterY)
+                    : ((main.left + main.right) / 2, (main.top + main.bottom) / 2);
+                (double left, double top) best = (anchor.x - size / 2, anchor.y - size / 2);
+                bool Free(double left, double top) => taken.All(t => left + size + LevelMargin <= t.left || left >= t.right + LevelMargin || top + size + LevelMargin <= t.top || top >= t.bottom + LevelMargin);
+                for (int ring = 0; ring < 400 && !Free(best.left, best.top); ring++) {
+                    foreach ((int dx, int dy) in Enumerable.Range(-ring, 2 * ring + 1).SelectMany(k => new[] { (k, -ring), (k, ring), (-ring, k), (ring, k) })
+                                                     .OrderBy(d => Math.Abs(d.Item1) + Math.Abs(d.Item2))) {
+                        (double left, double top) spot = (Snap(anchor.x - size / 2 + dx * 2 * Grid), Snap(anchor.y - size / 2 + dy * 2 * Grid));
+                        if (Free(spot.left, spot.top)) { best = spot; break; }
+                    }
+                }
+                taken.Add((best.left, best.top, best.left + size, best.top + size));
+                Put(hub, best.left + size / 2, best.top + size / 2, HubCluster);
+                main = (Math.Min(main.left, best.left), Math.Min(main.top, best.top), Math.Max(main.right, best.left + size), Math.Max(main.bottom, best.top + size));
             }
-            int Links(int level) => map.Rooms.Values.Count(r => r.NightmareLevel == level && r.Doors.Any(d => map.Rooms.TryGetValue(d.Destination, out RoomInfo to) && !to.IsNightmareRoom));
-            foreach (int level in levels.Keys.OrderByDescending(Links).ThenBy(l => l)) {
-                (double width, double height) = Bounds(levels[level]);
-                Settle(width, height, Anchor(nightmare.Where(r => r.NightmareLevel == level)),
-                       (left, top) => { foreach ((int room, (double cx, double cy)) in levels[level]) Put(map.Rooms[room], left + cx, top + cy, LevelCluster(level)); });
+
+            /* The levels packed tight around KatAM's map, the whole map kept square (as KatAM's world map: no long strip to scroll, no
+             * level left out on its own, none of the gaps between clusters left empty): each level goes in the free spot (each of its
+             * rooms RoomMargin clear of every room placed, of KatAM's and the levels before it, on a Fit grid) that keeps the square
+             * around it all the smallest, then the closest to the map's middle; the levels in their order and the biggest first are both
+             * tried, the tighter map kept. KatAM's rooms lined up under its map come last, under it all (Under), so the map still ends
+             * with them; */
+            const int Under = -1;
+            (double left, double top, double right, double bottom) underBox = under.Count == 0 ? default
+                : (under.Min(r => layout[r].X), under.Min(r => layout[r].Y), under.Max(r => layout[r].X + layout[r].Width), under.Max(r => layout[r].Y + layout[r].Height));
+            List<RoomPlacement> katamRooms = layout.Where(p => !under.Contains(p.Key)).Select(p => p.Value).ToList();
+            List<(int level, double left, double top)> Pack(IEnumerable<int> order, out double score) {
+                // (the cells of a Fit grid no room of a level may stand in: within RoomMargin of a room placed);
+                double reach = RoomMargin + nightmare.Max(SizeOf) / 2;
+                double originX = main.left - 4096, originY = main.top - 4096;
+                HashSet<(int, int)> blocked = new HashSet<(int, int)>();
+                void Block(RoomPlacement p) {
+                    for (int cx = (int)Math.Floor((p.X - reach - originX) / Fit); cx <= (int)Math.Ceiling((p.X + p.Width + reach - originX) / Fit); cx++)
+                        for (int cy = (int)Math.Floor((p.Y - reach - originY) / Fit); cy <= (int)Math.Ceiling((p.Y + p.Height + reach - originY) / Fit); cy++)
+                            blocked.Add((cx, cy));
+                }
+                // (KatAM's original map is one block: the levels go around it, never in its gaps; a randomized one's rooms each);
+                if (original) Block(new RoomPlacement(main.left, main.top, main.right - main.left, main.bottom - main.top));
+                else foreach (RoomPlacement p in katamRooms) Block(p);
+                List<(int level, double left, double top)> spots = new List<(int, double, double)>();
+                (double left, double top, double right, double bottom) all = main;
+                double middleX = (main.left + main.right) / 2, middleY = (main.top + main.bottom) / 2;
+                double Square(double width, double height) => Math.Max(width, height) + Math.Abs(width - height) / 2;
+                foreach (int level in order) {
+                    (double width, double height) = Bounds(levels[level]);
+                    List<(double x, double y)> centers = levels[level].Values.ToList();
+                    bool Free(double left, double top) => centers.All(c => !blocked.Contains(((int)Math.Round((left + c.x - originX) / Fit), (int)Math.Round((top + c.y - originY) / Fit))));
+                    (double left, double top) best = (Snap(all.right + LevelMargin), all.top);
+                    (double size, double distance) bestScore = (double.MaxValue, double.MaxValue);
+                    for (double x = Snap(all.left - width - LevelMargin); x <= all.right + LevelMargin; x += Fit)
+                        for (double y = Snap(all.top - height - LevelMargin); y <= all.bottom + LevelMargin; y += Fit) {
+                            double size = Square(Math.Max(all.right, x + width) - Math.Min(all.left, x), Math.Max(all.bottom, y + height) - Math.Min(all.top, y));
+                            if (size > bestScore.size + 0.5) continue;
+                            double distance = Math.Abs(x + width / 2 - middleX) + Math.Abs(y + height / 2 - middleY);
+                            if (Math.Abs(size - bestScore.size) <= 0.5 && distance >= bestScore.distance) continue;
+                            if (!Free(x, y)) continue;
+                            bestScore = (size, distance); best = (x, y);
+                        }
+                    spots.Add((level, best.left, best.top));
+                    foreach ((double cx, double cy) in centers) { double s = 16; Block(new RoomPlacement(best.left + cx - s / 2, best.top + cy - s / 2, s, s)); }
+                    all = (Math.Min(all.left, best.left), Math.Min(all.top, best.top), Math.Max(all.right, best.left + width), Math.Max(all.bottom, best.top + height));
+                }
+                if (under.Count > 0) {
+                    spots.Add((Under, all.left, Snap(all.bottom + LevelMargin)));
+                    all.bottom = Snap(all.bottom + LevelMargin) + underBox.bottom - underBox.top;
+                    all.right = Math.Max(all.right, all.left + underBox.right - underBox.left);
+                }
+                score = Square(all.right - all.left, all.bottom - all.top);
+                return spots;
+            }
+            List<int> inOrder = levels.Keys.OrderBy(l => l).ToList();
+            List<int> biggestFirst = levels.Keys.OrderByDescending(l => Bounds(levels[l]).width * Bounds(levels[l]).height).ThenBy(l => l).ToList();
+            List<(int level, double left, double top)> packed = Pack(biggestFirst, out double biggestScore);
+            List<(int level, double left, double top)> ordered = Pack(inOrder, out double orderedScore);
+            if (orderedScore <= biggestScore) packed = ordered;
+            foreach ((int level, double left, double top) in packed) {
+                if (level == Under) {
+                    // (KatAM's rooms lined up under its map: the same arrangement, moved there);
+                    foreach (int room in under) {
+                        RoomPlacement p = layout[room];
+                        layout[room] = new RoomPlacement(p.X + left - underBox.left, p.Y + top - underBox.top, p.Width, p.Height);
+                    }
+                    continue;
+                }
+                foreach ((int room, (double cx, double cy)) in levels[level]) Put(map.Rooms[room], left + cx, top + cy, LevelCluster(level));
             }
 
             void Put(RoomInfo room, double centerX, double centerY, int cluster) {
@@ -91,6 +152,23 @@ namespace KatAMMapTracker {
                 layout[room.Id] = new RoomPlacement(Snap(centerX) - size / 2, Snap(centerY) - size / 2, size, size);
                 clusters[room.Id] = cluster;
             }
+        }
+
+        /* UnderKatAM(); KatAM's rooms its map lines up under itself (MapVanilla's and MapLayout's rows: the tutorial, the game's end...):
+         * the ones no door links to Central Circle's map through KatAM's own rooms (NiDL's links left out); */
+        static HashSet<int> UnderKatAM(RomMap map, Dictionary<int, RoomPlacement> layout) {
+            HashSet<int> katam = layout.Keys.Where(id => map.Rooms.TryGetValue(id, out RoomInfo r) && !r.IsNightmareRoom).ToHashSet();
+            if (!katam.Contains(RomMap.CentralCircle)) return new HashSet<int>();
+            Dictionary<int, HashSet<int>> links = katam.ToDictionary(id => id, id => new HashSet<int>());
+            foreach (int id in katam)
+                foreach (DoorInfo door in map.Rooms[id].Doors)
+                    if (door.Destination != id && katam.Contains(door.Destination)) { links[id].Add(door.Destination); links[door.Destination].Add(id); }
+            HashSet<int> reached = new HashSet<int> { RomMap.CentralCircle };
+            Queue<int> queue = new Queue<int>(reached);
+            while (queue.Count > 0)
+                foreach (int next in links[queue.Dequeue()])
+                    if (reached.Add(next)) queue.Enqueue(next);
+            return katam.Where(id => !reached.Contains(id)).ToHashSet();
         }
 
         static readonly (int x, int y)[] Directions = { (1, 0), (1, 1), (0, 1), (-1, 1), (-1, 0), (-1, -1), (0, -1), (1, -1) };
@@ -143,9 +221,14 @@ namespace KatAMMapTracker {
             foreach (RoomInfo room in order) {
                 if (cells.Count == 0) { cells[room.Id] = (0, 0); used.Add((0, 0)); continue; }
                 List<RoomInfo> placed = Linked(room.Id).Where(cells.ContainsKey).Select(n => byId[n]).ToList();
-                // (around the room that leads to it first, its corridor's; the other rooms it's linked to, loops, only pull a little);
+                // (around the room that leads to it first, its corridor's; the other rooms it's linked to, loops, only pull a little; one
+                // linked to none of the level's rooms placed, only to other levels' (a swapped door, the switch room's), by its stage's
+                // rooms, else the level's way in: kept close, its stage's map together);
                 RoomInfo from = parent.TryGetValue(room.Id, out RoomInfo first) ? first : null;
-                IEnumerable<(int x, int y)> anchors = from != null ? new[] { cells[from.Id] } : placed.Count > 0 ? placed.Select(p => cells[p.Id]) : cells.Values;
+                List<(int x, int y)> kin = placed.Count > 0 || from != null ? new List<(int x, int y)>()
+                    : cells.Where(c => !room.IsNightmareSwitchRoom && byId[c.Key].NightmareStage == room.NightmareStage && !byId[c.Key].IsNightmareSwitchRoom).Select(c => c.Value).ToList();
+                if (placed.Count == 0 && from == null && kin.Count == 0) kin.Add(cells[order[0].Id]);
+                IEnumerable<(int x, int y)> anchors = from != null ? new[] { cells[from.Id] } : placed.Count > 0 ? placed.Select(p => cells[p.Id]) : kin;
                 HashSet<(int x, int y)> candidates = new HashSet<(int x, int y)>();
                 for (int ring = 1; ring <= 8 || candidates.Count == 0; ring++)
                     foreach ((int ax, int ay) in anchors)
@@ -170,6 +253,7 @@ namespace KatAMMapTracker {
                     int Near((int x, int y) o) => Math.Max(Math.Abs(o.x - cell.x), Math.Abs(o.y - cell.y));
                     int strangers = cells.Values.Count(o => !mine.Contains(o) && Near(o) <= 1), farStrangers = cells.Values.Count(o => !mine.Contains(o) && Near(o) == 2);
                     int friends = mine.Count(o => Near(o) <= 1);
+                    if (kin.Count > 0) cost += kin.Min(Near);
                     return cost + strangers * 2.5 + farStrangers * 0.8 + friends * 0.3;
                 }
 

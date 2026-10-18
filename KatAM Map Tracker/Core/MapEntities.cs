@@ -40,7 +40,8 @@ namespace KatAMMapTracker {
      *   Dimensional Mirror), 0x80 & 0x81 small & big chests (behavior: what they hold), 0x84 Warp Star, 0x86 Big Switch,
      *   0x8A Fuse Cannon.
      * • Chest contents: 0x00-0x05 the items 0x5E-0x63, 0x06 Vitality, 0x0A-0x13 area maps, 0x14-0x21 sprays, 0x28 the
-     *   Sound Player, 0x29-0x32 music, 0x63 the big treasures.
+     *   Sound Player, 0x29-0x32 music, 0x40-0x47 mirror shards 1-8 (the randomizer's, "ROM Expansion/chest.c"), 0x63 the big
+     *   treasures.
      * • Treasure sprites (sprays, music, maps, Vitality, Sound Player) come from the Collection Room, which shows them as
      *   16x16 sprites (Japanese tiles at 0x7BAEB8 and on, palettes at 0x4A2818 and on); */
     public static class MapEntities {
@@ -481,6 +482,7 @@ namespace KatAMMapTracker {
                 >= 0x14 and <= 0x21 => ($"Spray Paint {contents - 0x13}", EntityIcon.Spray1 + (contents - 0x14)),
                 0x28 => ("Sound Player", EntityIcon.SoundPlayer),
                 >= 0x29 and <= 0x32 => ($"Music Sheet {contents - 0x28}", EntityIcon.Music1 + (contents - 0x29)),
+                >= 0x40 and <= 0x47 => ($"Mirror Shard {contents - 0x3F}", EntityIcon.MirrorShard),
                 0x63 => ("Special Treasure", (EntityIcon?)null),
                 _ => ($"Treasure 0x{contents:X2}", (EntityIcon?)null),
             };

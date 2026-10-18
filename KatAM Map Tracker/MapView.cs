@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
@@ -47,6 +47,10 @@ namespace KatAMMapTracker {
 
         RomMap map;
         MapPlan plan;
+        // Each connection's segments (MapPlan.Segments() clips them every call), per (from, to, one-way); cleared with the map;
+        readonly Dictionary<(int, int, bool), List<RouteSegment>> segments = new Dictionary<(int, int, bool), List<RouteSegment>>();
+        // What a paint draws (map pixels): what's in the window, a margin around it; null draws everything (exports);
+        RectangleF? cull;
         Dictionary<int, RoomPlacement> layout;
         Dictionary<int, int> regionOf = new Dictionary<int, int>();
         Dictionary<string, int> lineColors = new Dictionary<string, int>();
@@ -118,6 +122,7 @@ namespace KatAMMapTracker {
          * (a single one in the middle). They're pixel art: nearest neighbor, never smoothed; */
         const int MaxEntityIcons = 4;
         const float MinEntityIconScreenSize = 16;
+        const int CullMargin = 32;
 
         // Bosses, mini-bosses and Big Switches are drawn this much bigger than the other icons, so they stand out;
         const float BigEntityIconScale = 1.5f, LoneBigEntityIconScale = 0.8f;
@@ -186,6 +191,7 @@ namespace KatAMMapTracker {
 
             map = romMap;
             plan = mapPlan;
+            segments.Clear();
             layout = mapPlan?.Layout;
             Dictionary<int, int> clusters = mapPlan?.Clusters;
             progress = mapProgress;
@@ -448,7 +454,10 @@ namespace KatAMMapTracker {
 
             // Everything is drawn in map pixels; The transform does the zoom and pan;
             g.Transform = new Matrix((float)zoom, 0, 0, (float)zoom, (float)(-OffsetX * zoom), (float)(-OffsetY * zoom));
+            // Culling: only the rooms, lines and icons in the window (and CullMargin around it) are drawn;
+            cull = new RectangleF((float)(OffsetX - CullMargin), (float)(OffsetY - CullMargin), (float)(Width / zoom + 2 * CullMargin), (float)(Height / zoom + 2 * CullMargin));
             DrawScene(g, ViewScene, true);
+            cull = null;
             g.Restore(state);
 
             if (hoveredRoom >= 0 && !isDragging) DrawPreview(g, hoveredRoom);
@@ -465,11 +474,13 @@ namespace KatAMMapTracker {
             DrawAreas(g, scene, useAreaCache);
             DrawConnections(g, scene);
 
-            // Faded rooms first, so the discovered ones are drawn over them;
-            foreach (int room in ShownRooms(scene).OrderBy(room => IsFaded(scene, room) ? 0 : 1)) DrawRoom(g, scene, room);
+            // Faded rooms first, so the discovered ones are drawn over them (the ones out of the window aren't);
+            List<int> rooms = ShownRooms(scene).Where(room => cull is not RectangleF view || view.IntersectsWith(RoomBounds(layout[room], scene.RoomGrowth)))
+                                               .OrderBy(room => IsFaded(scene, room) ? 0 : 1).ToList();
+            foreach (int room in rooms) DrawRoom(g, scene, room);
 
             if (ShowEntities) {
-                foreach (int room in ShownRooms(scene).OrderBy(room => IsFaded(scene, room) ? 0 : 1)) DrawEntities(g, scene, room);
+                foreach (int room in rooms) DrawEntities(g, scene, room);
             }
         }
 
@@ -598,7 +609,13 @@ namespace KatAMMapTracker {
                     LineSprites lines = graphics.Lines(lineColors.GetValueOrDefault(MapRoutes.ConnectionKey(door.Room, door.Destination)));
                     bool faded = IsFaded(scene, door);
 
-                    foreach (RouteSegment segment in plan.Segments(door.Room, door.Destination, !isTwoWay)) DrawSegment(g, segment, lines, faded, (float)scene.LineScale);
+                    if (!segments.TryGetValue((door.Room, door.Destination, !isTwoWay), out List<RouteSegment> parts))
+                        segments[(door.Room, door.Destination, !isTwoWay)] = parts = plan.Segments(door.Room, door.Destination, !isTwoWay);
+                    foreach (RouteSegment segment in parts) {
+                        if (cull is RectangleF view && !view.IntersectsWith(RectangleF.FromLTRB((float)Math.Min(segment.StartX, segment.EndX) - 8, (float)Math.Min(segment.StartY, segment.EndY) - 8,
+                                                                                               (float)Math.Max(segment.StartX, segment.EndX) + 8, (float)Math.Max(segment.StartY, segment.EndY) + 8))) continue;
+                        DrawSegment(g, segment, lines, faded, (float)scene.LineScale);
+                    }
                 }
             }
         }
@@ -938,9 +955,15 @@ namespace KatAMMapTracker {
             Invalidate();
         }
 
+        // Raised when a room is clicked (left button, without dragging the map): the debug warp (TrackerForm);
+        public event Action<int> RoomClicked;
+
         protected override void OnMouseUp(MouseEventArgs e) {
             base.OnMouseUp(e);
+            bool clicked = isDragging && !hasDragged && e.Button == MouseButtons.Left;
             isDragging = false;
+
+            if (clicked && RoomAt(e.Location) is int room && room >= 0) RoomClicked?.Invoke(room);
         }
 
         protected override void OnMouseDoubleClick(MouseEventArgs e) {

@@ -485,6 +485,12 @@ namespace KatAMInternal
         public GenerationOptions ConsumablesGenerationType { get; set; }
         public GenerationOptions MirrorShardsGenerationType { get; set; }
         public int amountOfMirrorShardsToAdd = 0;
+        // Shards in chests: amountOfChestShards copies (1-2) of the 8 shards, each in a chest that held a consumable ("ROM Expansion/chest.c",
+        // KatAMExpansion.AddShardChests); independent of the field shards above (amountOfMirrorShardsToAdd), so both can be on;
+        public bool MirrorShardsInChests { get; set; }
+        public int amountOfChestShards = 1;
+        // Bosses give random shards: KatAM's bosses leave the 8 shards shuffled, then NiDL's spread evenly (KatAMExpansion.RandomizeBossShards);
+        public bool RandomizeBossShards { get; set; }
         public GenerationOptions ChestsGenerationType { get; set; }
         public GenerationOptions ChestsPropertiesType { get; set; }
         public bool isAddingMoreHPUps { get; set; }
@@ -524,6 +530,14 @@ namespace KatAMInternal
         // ROM Expansion: the ported Nightmare in Dream Land mini-bosses to add (KatAMExpansion.Minibosses indexes);
         public List<int> NightmareMinibosses { get; set; } = new List<int>();
         public bool NightmareRooms { get; set; }
+        // Title screen: the intro's parading characters swapped (KatAMTitleScreen.RandomizeParade);
+        public bool RandomizeTitleParade { get; set; }
+        // Title screen: the intro picked at random between KatAM's and Nightmare in Dream Land's (needs a NiDL ROM loaded);
+        public bool NightmareTitle { get; set; }
+        // Reduce flashing: KatAM's white screen flashes eased in like fades (KatAMExpansion.ReduceFlashing);
+        public bool ReduceFlashing { get; set; }
+        // Skip the tutorial: a new save starts in Central Circle with the tutorial's big chest's item (KatAMExpansion.SkipTutorial);
+        public bool SkipTutorial { get; set; }
 
         public Settings() {
             Random seedGenerator = new Random();

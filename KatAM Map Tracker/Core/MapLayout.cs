@@ -121,55 +121,90 @@ namespace KatAMMapTracker {
 
         //////////////////////////////////////////////////////////////////////////////////////////////
 
-        /* FindClusters(); Louvain community detection (local moving phase), visiting rooms in ID order so it's deterministic;
-         * Very small clusters are then merged into the neighbor cluster they share the most mirrors with; */
+        /* FindClusters(); Louvain community detection, visiting rooms in ID order so it's deterministic: rooms move to the neighbor
+         * cluster that gains the most modularity (the local moving phase), then each cluster becomes one node, its mirrors to the
+         * others summed, and the clusters move the same way, again and again until nothing moves (the aggregation: a randomized
+         * map's mirrors are sparse, and rooms alone only pair up, a map of 3-room islands); Very small clusters are then merged
+         * into the neighbor cluster they share the most mirrors with; */
         static Dictionary<int, int> FindClusters(Dictionary<int, List<int>> neighbors) {
             List<int> rooms = neighbors.Keys.OrderBy(id => id).ToList();
             Dictionary<int, int> cluster = rooms.ToDictionary(id => id, id => id);
-            Dictionary<int, double> clusterDegree = rooms.ToDictionary(id => id, id => (double)neighbors[id].Count);
             double totalEdges = rooms.Sum(id => neighbors[id].Count) / 2.0;
 
             if (totalEdges == 0) return cluster;
 
-            for (int pass = 0; pass < 20; pass++) {
-                bool moved = false;
+            // The graph of the current level: links between its nodes (each way), and the mirrors inside each node;
+            Dictionary<int, Dictionary<int, double>> links = rooms.ToDictionary(id => id, id => neighbors[id].Where(n => n != id).GroupBy(n => n).ToDictionary(g => g.Key, g => (double)g.Count()));
+            Dictionary<int, double> inside = rooms.ToDictionary(id => id, id => 0.0);
 
-                foreach (int room in rooms) {
-                    int current = cluster[room];
-                    double degree = neighbors[room].Count;
+            for (int level = 0; level < 20; level++) {
+                List<int> nodes = links.Keys.OrderBy(id => id).ToList();
+                Dictionary<int, double> degree = nodes.ToDictionary(n => n, n => links[n].Values.Sum() + 2 * inside[n]);
+                Dictionary<int, int> community = nodes.ToDictionary(n => n, n => n);
+                Dictionary<int, double> communityDegree = new Dictionary<int, double>(degree);
+                bool any = false;
 
-                    if (degree == 0) continue;
+                for (int pass = 0; pass < 20; pass++) {
+                    bool moved = false;
 
-                    Dictionary<int, int> linksToCluster = new Dictionary<int, int>();
+                    foreach (int node in nodes) {
+                        if (links[node].Count == 0) continue;
 
-                    foreach (int neighbor in neighbors[room]) {
-                        int c = cluster[neighbor];
-                        linksToCluster[c] = linksToCluster.GetValueOrDefault(c) + 1;
-                    }
+                        int current = community[node];
+                        Dictionary<int, double> linksToCommunity = new Dictionary<int, double>();
 
-                    clusterDegree[current] -= degree;
+                        foreach ((int neighbor, double weight) in links[node]) {
+                            int c = community[neighbor];
+                            linksToCommunity[c] = linksToCommunity.GetValueOrDefault(c) + weight;
+                        }
 
-                    int best = current;
-                    double bestGain = Gain(linksToCluster.GetValueOrDefault(current), clusterDegree[current], degree, totalEdges);
+                        communityDegree[current] -= degree[node];
 
-                    foreach ((int candidate, int links) in linksToCluster.OrderBy(kvp => kvp.Key)) {
-                        double gain = Gain(links, clusterDegree[candidate], degree, totalEdges);
+                        int best = current;
+                        double bestGain = Gain(linksToCommunity.GetValueOrDefault(current), communityDegree[current], degree[node], totalEdges);
 
-                        if (gain > bestGain + 1e-12) {
-                            bestGain = gain;
-                            best = candidate;
+                        foreach ((int candidate, double weight) in linksToCommunity.OrderBy(kvp => kvp.Key)) {
+                            double gain = Gain(weight, communityDegree[candidate], degree[node], totalEdges);
+
+                            if (gain > bestGain + 1e-12) {
+                                bestGain = gain;
+                                best = candidate;
+                            }
+                        }
+
+                        communityDegree[best] += degree[node];
+
+                        if (best != current) {
+                            community[node] = best;
+                            moved = true;
                         }
                     }
 
-                    clusterDegree[best] += degree;
+                    if (!moved) break;
+                    any = true;
+                }
 
-                    if (best != current) {
-                        cluster[room] = best;
-                        moved = true;
+                if (!any) break;
+
+                // Each community becomes a node of the next level;
+                foreach (int room in rooms) cluster[room] = community[cluster[room]];
+                Dictionary<int, Dictionary<int, double>> nextLinks = new Dictionary<int, Dictionary<int, double>>();
+                Dictionary<int, double> nextInside = new Dictionary<int, double>();
+
+                foreach (int node in nodes) {
+                    int c = community[node];
+                    if (!nextLinks.ContainsKey(c)) { nextLinks[c] = new Dictionary<int, double>(); nextInside[c] = 0; }
+                    nextInside[c] += inside[node];
+
+                    foreach ((int neighbor, double weight) in links[node]) {
+                        int other = community[neighbor];
+                        if (other == c) nextInside[c] += weight / 2;
+                        else nextLinks[c][other] = nextLinks[c].GetValueOrDefault(other) + weight;
                     }
                 }
 
-                if (!moved) break;
+                links = nextLinks;
+                inside = nextInside;
             }
 
             MergeSmallClusters(cluster, neighbors);
@@ -178,18 +213,21 @@ namespace KatAMMapTracker {
         }
 
         // Gain(); Modularity gain of moving a room with the given degree into a cluster it has 'links' mirrors to;
-        static double Gain(int links, double clusterDegree, double degree, double totalEdges) {
+        static double Gain(double links, double clusterDegree, double degree, double totalEdges) {
             return links / totalEdges - clusterDegree * degree / (2 * totalEdges * totalEdges);
         }
 
+        /* MergeSmallClusters(); A cluster of a few rooms is placed on its own, a stray island of 3 or 4 rooms the eye loses among the
+         * big ones: clusters under MinimumSize join the cluster they share the most mirrors with, the smallest first, until none is left
+         * that has a neighbor (rooms with no mirrors stay alone, lined up under the map); */
         static void MergeSmallClusters(Dictionary<int, int> cluster, Dictionary<int, List<int>> neighbors) {
-            const int MinimumSize = 3;
+            const int MinimumSize = 6;
 
-            for (int pass = 0; pass < 5; pass++) {
+            for (int pass = 0; pass < 40; pass++) {
                 Dictionary<int, int> sizes = cluster.Values.GroupBy(c => c).ToDictionary(g => g.Key, g => g.Count());
                 bool merged = false;
 
-                foreach (int c in sizes.Where(kvp => kvp.Value < MinimumSize).Select(kvp => kvp.Key).OrderBy(c => c).ToList()) {
+                foreach (int c in sizes.Where(kvp => kvp.Value < MinimumSize).OrderBy(kvp => kvp.Value).ThenBy(kvp => kvp.Key).Select(kvp => kvp.Key).ToList()) {
                     List<int> rooms = cluster.Where(kvp => kvp.Value == c).Select(kvp => kvp.Key).ToList();
 
                     int target = rooms

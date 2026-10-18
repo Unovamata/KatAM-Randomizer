@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace KatAMMapTracker {
     // DoorKind; What takes Kirby to another room: a mirror (door), or a Warp Star or Fuse Cannon, which work like One-Way mirrors;
-    public enum DoorKind { Mirror, WarpStar, FuseCannon }
+    public enum DoorKind { Mirror, WarpStar, FuseCannon, Shard }
 
     // DoorInfo; A door in a room. Wide doors made of several objects pointing to the same room are merged in one;
     public sealed class DoorInfo {
@@ -42,7 +42,7 @@ namespace KatAMMapTracker {
         public int ShortIndex { get; init; }
 
         // Its entries in the room tables (long room parameters +0x18 tilemap, +0x1A collision and doors, +0x20 objects): in the game
-        // they're all ShortIndex's, but the ROM Expansion's rooms have their own (they share one doors list, ShortIndex 0x11F);
+        // they're all ShortIndex's, but the ROM Expansion's rooms have their own (each has its own doors list, ShortIndex 0x11F on);
         public int TilemapIndex { get; init; }
         public int CoverIndex { get; init; }
         public int ObjectIndex { get; init; }
@@ -229,7 +229,16 @@ namespace KatAMMapTracker {
             NightmareHub = Read16(block + 2);
             (CoverDataTable, RoomAppearanceTable, PaletteTable, TilesetTable, BackgroundTable, ObjectListTable, RoomAreaTable) =
                 (tables[0], tables[1], tables[2], tables[3], tables[4], tables[5], tables[6]);
+            // The boss rooms' shards ("SX" at +0xD8: u16 count, the table's address; 8 bytes each: u16 the boss room, u16 where the shard
+            // cutscene leaves Kirby, u8 x, u8 y, the landing + 1): a boss room has no door out, taking its shard is its way on;
+            int shards = ExpansionTable + 0xD8, table = ReadPointer(shards + 4);
+            if (Rom[shards] == 'S' && Rom[shards + 1] == 'X' && table >= 0)
+                for (int i = 0; i < Read16(shards + 2) && table + i * 8 + 8 <= Rom.Length; i++)
+                    ShardExits.Add((Read16(table + i * 8), Read16(table + i * 8 + 2), Rom[table + i * 8 + 4] - 1, Rom[table + i * 8 + 5] - 1));
         }
+
+        // ShardExits; The boss rooms' shards: (the boss room, where the shard takes Kirby, the landing cell);
+        readonly List<(int room, int destination, int x, int y)> ShardExits = new List<(int, int, int, int)>();
 
         /* NightmareStageOf(); A room's NiDL stage and room number (its area entry's padding, +0x4A: the stage + 1, 0 none; +0x4B the room
          * number, written by KatAMExpansionRooms.cs; older expanded ROMs had them at +0x48, +0x49, which the game reads), or -1; */
@@ -273,8 +282,8 @@ namespace KatAMMapTracker {
             for (int room = 0; room < MaxLongRoom; room++) {
                 int parameters = LongRoomParameters + room * LongRoomParameterSize;
                 int shortIndex = Read16(parameters + 0x24);
-                // The ROM Expansion's rooms share the doors list 0x11F, past the game's;
-                bool expansionRoom = RoomAreaTable >= 0 && shortIndex == MaxShortRoom;
+                // The ROM Expansion's rooms have doors lists past the game's (0x11F, the NiDL hub's, then one a room from 0x120);
+                bool expansionRoom = RoomAreaTable >= 0 && shortIndex >= MaxShortRoom && shortIndex < MaxShortRoom + 0x400;
 
                 if (shortIndex >= MaxShortRoom && !expansionRoom) continue;
 
@@ -311,8 +320,16 @@ namespace KatAMMapTracker {
         }
 
         /* AddLaunchers(); Warp Stars and Fuse Cannons, as One-Way doors from where they are to the room they send Kirby to
-         * (unless a mirror already leads there). Landing: Warp Star template +0x1A/+0x1C, Fuse Cannon +0x18/+0x19, in tiles; */
+         * (unless a mirror already leads there). Landing: Warp Star template +0x1A/+0x1C, Fuse Cannon +0x18/+0x19, in tiles. And the
+         * ROM Expansion's boss rooms' shards (ShardExits), One-Way from the room's middle; */
         void AddLaunchers() {
+            foreach ((int bossRoom, int destination, int x, int y) in ShardExits) {
+                if (!Rooms.TryGetValue(bossRoom, out RoomInfo room) || !Rooms.ContainsKey(destination) || room.Doors.Any(d => d.Destination == destination)) continue;
+                room.Doors.Add(new DoorInfo {
+                    Room = bossRoom, Destination = destination, Kind = DoorKind.Shard, X = room.Width * 4, Y = room.Height * 4,
+                    LandX = Math.Max(0, x) * 16 + 8, LandY = Math.Max(0, y) * 16 + 8, Tiles = new List<(int x, int y)> { (room.Width / 4, room.Height / 4) },
+                });
+            }
             foreach (RoomInfo room in Rooms.Values) {
                 foreach (RoomObject obj in room.Objects.Where(o => o.Destination >= 0)) {
                     if (obj.Destination == room.Id || !Rooms.ContainsKey(obj.Destination) || room.Doors.Any(d => d.Destination == obj.Destination)) continue;

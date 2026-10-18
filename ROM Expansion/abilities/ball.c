@@ -1,6 +1,7 @@
 /* Ball; NiDL's (from Bubbles), measured in NiDL: B makes Kirby hop (up to 20 pixels) and curl into a ball, which bounces once (about
  * 9 pixels) on landing and then rests, squashing. B again launches it (up to 37 pixels); it ends on landing. It can be steered left and
- * right (up to 1.87 pixels a frame) while in the air, and hurts what it touches, Kirby unhurt meanwhile; */
+ * right (up to 1.87 pixels a frame) while in the air, and hurts what it touches (Kirby can still be hurt: NiDL's guard made him
+ * untouchable); */
 #include "../abilities.h"
 #include "constants/songs.h"
 
@@ -77,7 +78,7 @@ void BallStart(struct Kirby *kirby) {
         kirby->base.flags &= ~1;
     BallJump(kirby, HOP_SPEED);
     PlaySfx(&kirby->base, SE_KIRBY_BOUNCE);
-    NidlAttackCreate(kirby, BallBall, 0x30000043, 3, TRUE, -10, -10, 10, 8);
+    NidlAttackCreate(kirby, BallBall, 0x30000043, 3, FALSE, -10, -10, 10, 8);
     kirby->stateFn = BallHop;
 }
 

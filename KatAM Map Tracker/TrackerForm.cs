@@ -18,7 +18,9 @@ namespace KatAMMapTracker {
                                    dynamicScalingItem = new ToolStripMenuItem("Dynamic Scaling") { CheckOnClick = true, Checked = true },
                                    entitiesItem = new ToolStripMenuItem("Show on Map"),
                                    chestContentsItem = new ToolStripMenuItem("Show Chest Contents (Spoilers)") { CheckOnClick = true },
-                                   mapsItem = new ToolStripMenuItem("Reveal Areas of Found Maps") { CheckOnClick = true };
+                                   mapsItem = new ToolStripMenuItem("Reveal Areas of Found Maps") { CheckOnClick = true },
+                                   // DEBUG: clicking a room warps Kirby into it (DebugWarp()); to be removed for the release;
+                                   debugWarpItem = new ToolStripMenuItem("Click a Room to Warp Kirby There") { CheckOnClick = true };
         MenuStrip menu;
         ToolStrip toolbar;
         StatusStrip statusBar;
@@ -77,6 +79,7 @@ namespace KatAMMapTracker {
 
             mapView.FollowDisabledByUser += () => followButton.Checked = false;
             mapView.ViewChanged += UpdateDiscoveryLabel;
+            mapView.RoomClicked += DebugWarp;
 
             server = new TrackerServer();
             server.RoomReported += (room, sessionStart) => BeginInvokeSafe(() => OnRoomReported(room, sessionStart));
@@ -149,11 +152,17 @@ namespace KatAMMapTracker {
             };
             view.DropDownItems.Add(mapsItem);
 
+            // DEBUG menu (to be removed for the release);
+            ToolStripMenuItem debug = new ToolStripMenuItem("Debug");
+            debugWarpItem.CheckedChanged += (s, e) => SaveViewSettings();
+            debug.DropDownItems.Add(debugWarpItem);
+
             ToolStripMenuItem help = new ToolStripMenuItem("Help");
             help.DropDownItems.Add("How to use...", null, (s, e) => ShowHelp());
 
             menu.Items.Add(file);
             menu.Items.Add(view);
+            menu.Items.Add(debug);
             menu.Items.Add(help);
             MainMenuStrip = menu;
             Controls.Add(menu);
@@ -266,6 +275,19 @@ namespace KatAMMapTracker {
             SaveViewSettings();
         }
 
+        /* DebugWarp(); DEBUG (to be removed for the release): with Debug > Click a Room to Warp Kirby There on, a click on a room sends the
+         * emulator script "WARP <room> <x> <y>", and it moves Kirby there as a door would: onto where a mirror into that room lands him,
+         * else the room's own default spawn (-1 -1); */
+        void DebugWarp(int room) {
+            if (!debugWarpItem.Checked || map == null || room == progress?.CurrentRoom) return;
+            DoorInfo door = map.Rooms.Values.SelectMany(r => r.Doors)
+                .Where(d => d.Destination == room && d.Room != room && d.LandX > 0)
+                .OrderBy(d => d.Kind == DoorKind.Mirror ? 0 : 1).ThenBy(d => d.Room).FirstOrDefault();
+            (int x, int y) spawn = door != null && door.Kind == DoorKind.Mirror ? ((door.LandX - 8) / 16, (door.LandY - 8) / 16) : (-1, -1);
+            bool sent = server.Send($"WARP {room:X} {spawn.x} {spawn.y}");
+            connectionLabel.Text = sent ? $"Debug: warping Kirby to room {room:X3}..." : "Debug: the emulator script isn't connected, so Kirby can't be warped.";
+        }
+
         // View settings (minimalist mode and dynamic scaling), as "key=value" lines in the settings folder;
         void LoadViewSettings() {
             try {
@@ -281,6 +303,7 @@ namespace KatAMMapTracker {
                 }
                 if (values.TryGetValue("chest_contents", out string contents)) chestContentsItem.Checked = contents == "1";
                 if (values.TryGetValue("area_maps", out string maps)) mapsItem.Checked = maps == "1";
+                if (values.TryGetValue("debug_warp", out string warp)) debugWarpItem.Checked = warp == "1";
                 if (values.TryGetValue("minimalist", out string minimalist) && minimalist == "1") Shown += (s, e) => SetMinimalist(true);
             }
             catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException || exception is ArgumentException) { }
@@ -294,6 +317,7 @@ namespace KatAMMapTracker {
                     $"dynamic_scaling={(dynamicScalingItem.Checked ? 1 : 0)}",
                     $"chest_contents={(chestContentsItem.Checked ? 1 : 0)}",
                     $"area_maps={(mapsItem.Checked ? 1 : 0)}",
+                    $"debug_warp={(debugWarpItem.Checked ? 1 : 0)}",
                 }.Concat(EntityCategories.Select(category => $"show_{category.key}={(entityKindItems[category.kind].Checked ? 1 : 0)}")));
             }
             catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException) { }

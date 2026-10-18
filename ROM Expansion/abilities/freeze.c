@@ -1,6 +1,6 @@
 /* Freeze; NiDL's (from Chilly), measured in NiDL: B wraps Kirby in ice crystals where he stands, for as long as it's held (16 frames at
  * least): 2 frames of the start, the breath (8 frames a loop), 2 frames of the end. What touches the ice freezes (KatAM's Ice's hit),
- * and Kirby is unhurt meanwhile; */
+ * and Kirby can still be hurt meanwhile (NiDL's guard made him untouchable); */
 #include "../abilities.h"
 #include "constants/songs.h"
 
@@ -37,7 +37,7 @@ static void FreezeIn(struct Kirby *kirby) {
     NidlMotion(kirby, FREEZE_MOTION_BREATH);
     kirby->base.counter = 0;
     PlaySfx(&kirby->base, SE_ABILITY_ICE_ATTACK);
-    NidlAttackCreate(kirby, FreezeBreathing, 0x20000203, 2, TRUE, -20, -32, 20, 24);
+    NidlAttackCreate(kirby, FreezeBreathing, 0x20000203, 2, FALSE, -20, -32, 20, 24);
     kirby->stateFn = FreezeBreath;
 }
 

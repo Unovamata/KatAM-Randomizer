@@ -56,7 +56,7 @@ gUnk_08350B30 0x8335304
 gUnk_08351648 0x8335e1c
 gUnk_08D60B64 0x8d2c014
 gUnk_08D60BE4 0x8d2c094
-gUnk_08D60EE4 0x8d2c37c  # a guess (by shift): Japan stores its HP bar names differently, and has no names patch, so it is never read
+gUnk_08D60EE4 0x8d2c394  # (its literal at 0x08034EE8; 0x18 past the shift's guess)
 gUnk_08D60FA4 0x8d2c43c
 gUnk_08D60FDC 0x8d2c474
 m4aSongNumStart 0x81500dc
@@ -77,8 +77,8 @@ AnimCount 938
 SpawnTable 0x8335850
 ObjectParameters2 0x83372a4
 HitFlashBranch 0x8085766
-NameSite1 0x0
-NameSite2 0x0
+NameSite1 0x8034e96
+NameSite2 0x8035ae0
 gUnk_02021590 0x2021590
 sub_08034C9C 0x8034c14
 sub_08035E28 0x8035da0
@@ -175,3 +175,48 @@ sub_08001408 0x8001408
 sub_080015A8 0x80015a8
 EwramInitHeap 0x8159034
 sub_08002EC4 0x8002ec4  # FillLevelInfo's call before sub_08031CE4 (find_symbols.py doesn't find it)
+CreateTitleScreen 0x8149c81
+gDispCnt 0x3003690
+gObjPalette 0x3002c60
+gPressedKeys 0x30039fc
+gVramHeapMaxTileSlots 0x3002488
+gVramHeapStartAddr 0x3002540
+iwram_end 0x3006cc4
+sub_08156D84 0x8156d44
+sub_08145B64 0x8145b00
+TitleScreenMain 0x8149d5d  # the main CreateTitleScreen passes TaskCreate
+gUnk_03002EC0 0x3002ec0
+gUnk_030039A4 0x30039a4
+gUnk_03006078 0x3006078
+gVisitedDoors 0x2028ca0
+sub_08002A5C 0x8002a5c
+sub_08002A80 0x8002a80
+sub_08002AD0 0x8002ad0
+sub_08002B30 0x8002b30
+sub_08002BA8 0x8002ba8
+sub_08002C18 0x8002c18
+gUnk_08D60A84 0x8d2bf94
+gUnk_0893CB44 0x890ccd0
+gUnk_03000010 0x3000010
+UpdateScreenDma 0x8151d84
+UpdateScreenCpuSet 0x8152138
+_call_via_r6 0x815a270
+CollectShard 0x8019d8c
+sub_0800AFC8 0x800afc4
+BonusCreateTomatoAt 0x81233dc
+HasShard 0x8019da4
+gUnk_08350E58 0x833562c
+sub_0809F840 0x809f7b8
+__modsi3 0x815a32c
+__udivsi3 0x815a3fc
+gAIKirbyState 0x203ad2c
+gTreasures 0x2038960
+sbClearFunctions 0x82da1d0
+_call_via_r0 0x815a258
+sub_0804C614 0x804c58c
+sub_08123FD4 0x8123edc
+sub_08123780 0x8123688
+sub_0809513C 0x80950b4
+_call_via_r2 0x815a260
+sub_0801C558 0x801c558
+sub_0801BD68 0x801bd68
