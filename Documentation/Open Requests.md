@@ -29,6 +29,56 @@ is done, move it to "Done" and say how it was checked. The design rules for door
 - **Nightmare's Power Orb**: port the Star Rod flying sequence, for the player and for all the helper Kirbys.
 - **Every boss** must play like NiDL's. Whispy Woods' face is done (see below); check the others against NiDL.
 
+### 6. Room 0x2FD: collision and cannons
+- Its collision is broken and its cannons are missing.
+
+### 7. Map viewer: goal rooms drawn by the room that leads to them
+- Goal rooms get their own icon beside each room whose goal mirror leads to them, as if each were a room of its own, instead of
+  one goal room every goal mirror's line crosses the map to. Fewer long lines over the map.
+
+### 8. Warp star rides: NiDL's animation
+- Room 0x2F9's warp star ride has no animation, and room 0x280 needs it too. Port NiDL's warp star animations, for every warp star
+  room, with support for the helper Kirbys (and any NPC riding along).
+
+### 9. Ability blocks: KatAM's grey ones, everywhere
+- NiDL's ability-only blocks (as in room 0x271) break with any ability. KatAM has its own grey ability blocks: every such block in
+  every NiDL room becomes KatAM's.
+
+### 10. Screen shake as KatAM's
+- The screen shakes far too much; something broke along the way. Match KatAM's screen shake.
+
+### 11. Room 0x29B: mini-boss room doors
+- It has 2 doors very close together. A room Kirby is thrown into for a mini-boss (or boss) fight: its way in is one-way and its
+  way out is one-way too.
+
+### 12. Room 0x298: give it a purpose
+- It's completely empty. Add something meaningful: a chest or a branching path.
+
+### 13. Map viewer: NiDL room spacing as KatAM's
+- The NiDL levels' spacing is nothing like KatAM's room-to-room spacing: rooms bleed into each other. The spacing between rooms
+  must be consistent (as KatAM's), as much as it can be. This is a rule (rulebook, section 11): enforce it harder.
+
+### 14. NiDL boss rematch: a Maxim Tomato, not the shard
+- A NiDL boss whose shard is already owned still drops the shard. The flow: the shard if Kirby doesn't have it; if he does, a Maxim
+  Tomato, and grabbing it takes him out to the hub, as the shard would.
+
+### 15. Grand Wheelie floats above the ground
+
+### 16. Bomb chains, for good
+- Rooms 0x304 and 0x2FD's bomb block chains are broken. Fix every room with bomb chains, checked against NiDL's own maps.
+
+### 17. NiDL consumables: once per visit
+- NiDL's loose items come back every time (exploitable). Keep which were taken in RAM, as KatAM does, so they don't reappear.
+
+### 18. Batteries in the NiDL rooms
+- Add batteries at valuable, rewarding places in the NiDL rooms.
+
+### 19. Rooms using 0x1B9's background: corrupted
+
+### 20. Room 0x147: falling doesn't kill Kirby
+- The owner asked whether that's expected. It isn't: the room has no fall-out exit (its only ways out are its two doors), so a fall
+  should cost a life. To look into.
+
 ## Done (rules to keep)
 
 - **NiDL chests, made by the ROM Expansion**: 28 consumable chests in the NiDL rooms (2 to 5 a level, none in the Fountain of
