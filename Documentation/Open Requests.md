@@ -62,8 +62,6 @@ is done, move it to "Done" and say how it was checked. The design rules for door
 - A NiDL boss whose shard is already owned still drops the shard. The flow: the shard if Kirby doesn't have it; if he does, a Maxim
   Tomato, and grabbing it takes him out to the hub, as the shard would.
 
-### 15. Grand Wheelie floats above the ground
-
 ### 16. Bomb chains, for good
 - Rooms 0x304 and 0x2FD's bomb block chains are broken. Fix every room with bomb chains, checked against NiDL's own maps.
 
@@ -77,6 +75,10 @@ is done, move it to "Done" and say how it was checked. The design rules for door
   should cost a life. To look into.
 
 ## Done (rules to keep)
+
+- **Grand Wheelie stands on the ground** (item 15): its terrain box ended 3 pixels under its drawn wheel. Tested in the emulator
+  (USA, a new game started in room 0xEE, his fight): before, 3 pixels of sky under the wheel; after, the wheel's edge on the ground's
+  first row. All three versions build.
 
 - **NiDL's loose items are taken once per visit**, as KatAM's (item 17): each has its own gone bit (template unk2 3, `rooms.c`'s
   `NIDL_TAKEN`: KatAM's 256 item numbers are all used), cleared with KatAM's (a game's start, a game over...). Tested in the
