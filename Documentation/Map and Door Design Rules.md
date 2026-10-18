@@ -54,7 +54,9 @@ after any change.
 - **The NiDL switch rooms have 2 hub doors**, in one of KatAM's two hub-door layouts:
   - **A** (`0x122`): doors at the top left and top right, the big switch between them;
   - **B** (`0x250`): one door at the top middle, one at the bottom middle.
-  Each switch room also has 1 regular door: its right floor mirror (rule 5).
+- **Every NiDL hub has 2 doors to its level's exploration map** (the owner's rule, for all hubs): each switch room's 2 floor
+  mirrors, both two-way, lead into 2 different branches of its level, so the level branches from its hub (rule 5). These are
+  its 2 regular doors; its hub doors are counted apart.
 - **The hubs stay interconnected the way they were approved**: each level's switch room reveals a hub door leading to
   (`LevelLinks`, `KatAMLinkDoors`):
 
@@ -88,8 +90,11 @@ after any change.
   sibling branches, a hidden two-way door between each level and the next, one one-way throw into another level, and links with the
   KatAM area paired with the level (rooms with few doors, far from them).
 - **Goal rooms keep their goal door alone**: no branch, no way back.
-- **A level's switch room is found by exploring**: a Mirra hidden in the second half of the level leads to it, one-way. Its right
-  floor mirror goes both ways to the stage before the boss.
+- **A level's switch room is found by exploring**: a Mirra hidden in the second half of the level leads to it, one-way, landing
+  off its floor mirrors (rule 3). Its right floor mirror goes both ways to the start of the stage before the boss; its left one
+  both ways to the start of a stage on another branch: the deepest stage off the way from the level's first stage to the boss's,
+  not the Mirra's own (else the nearest one on that way). Rainbow Resort's and the Fountain of Dreams' switch rooms, both in
+  Rainbow Resort, take different stages. `PlanDoors()`.
 
 ## 6. Mirras
 

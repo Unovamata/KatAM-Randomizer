@@ -36,14 +36,23 @@ is done, move it to "Done" and say how it was checked. The design rules for door
   frames) and affine sprites for KatAM's star and Kirby during the flight. Waiting on the owner: what exactly should match (the take-off,
   the flight across the sky, the landing), or a clip of it.
 
-### 32. NiDL hubs have only one two-way door
-- The owner: "All NiDL's hubs only have 1 2 way door."
-- Checked: each level's switch room (its hub) has its two hub doors, hidden until its big switch is pressed, and its floor mirror
-  (two-way, to a spot in the level); its way in is a hidden Mirra's one-way door. So until the switch is pressed, the only two-way
-  door in use is the floor mirror. Waiting on the owner: is that the bug (they should have two two-way doors from the start), or the
-  rule to keep (only one two-way door each)? It touches the approved hub design, so nothing changed yet.
-
 ## Done (rules to keep)
+
+- **NiDL hubs have 2 doors into their level** (item 32, the owner's answer: "NiDL's doors inside the hub rooms, should have 2
+  doors as this allows for branching paths inside the hub doors for NiDL, this is a rule that applies for all hubs. I'm talking
+  about the doors that go to the exploration map, not the ones that go to the hub."): each level's switch room now has 2 floor
+  mirrors into its level, both two-way: the right one to the start of the stage before the boss (as before), the left one to the
+  start of a stage on another branch (the deepest off the way to the boss stage, not the Mirra's stage). The hidden Mirra's way in
+  now lands off them: on the pedestal's left end beside the big switch (layout A), or 2 cells right of the left mirror (layout B,
+  where every floor cell is within 4 cells of a door: rule 3's fallback). Checked in the USA build's data: all 8 switch rooms
+  have both mirrors, each leading to a different stage and back onto the mirror. Logic checks pass on USA, European, Japanese and a
+  randomized USA ROM (280 rooms reached, 8 switches, nothing trapped, with and without drops). Tested in the emulator (USA,
+  expanded): new games started in 0x064 (layout A) and 0x0C9 (layout B), Kirby walked to the left mirror and pressed Up, arriving
+  in 0x097 and 0x0FD on the mirror back; Up there took him back onto the left mirror. The Mirra's doors in 0x09D and 0x0F6 were
+  taken with their cell set to the door in RAM, standing in for the Mirra breaking (a forced state; the trip itself was the game's):
+  Kirby landed in 0x064 on the pedestal at cell (6, 7), the switch not pressed, and in 0x0C9 at (3, 6). Not tested: breaking a
+  Mirra in a script. The start-up jumps set it off before Kirby could inhale it, and its door didn't open in those runs, on this
+  morning's build too, so not from this change. Worth a check by hand.
 
 - **Shard chests open only once opened** (item 23): a mirror shard chest used its shard's bit as its own, so it showed open, never
   opened, once the shard was owned from anywhere. Each shard chest now has a treasure index of its own (0x88 + k, the 16 chests at
