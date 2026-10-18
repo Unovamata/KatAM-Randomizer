@@ -40,15 +40,9 @@ is done, move it to "Done" and say how it was checked. The design rules for door
 ### 10. Screen shake as KatAM's
 - The screen shakes far too much; something broke along the way. Match KatAM's screen shake.
 
-### 12. Room 0x298: give it a purpose
-- It's completely empty. Add something meaningful: a chest or a branching path.
-
 ### 13. Map viewer: NiDL room spacing as KatAM's
 - The NiDL levels' spacing is nothing like KatAM's room-to-room spacing: rooms bleed into each other. The spacing between rooms
   must be consistent (as KatAM's), as much as it can be. This is a rule (rulebook, section 11): enforce it harder.
-
-### 18. Batteries in the NiDL rooms
-- Add batteries at valuable, rewarding places in the NiDL rooms.
 
 ### 19. Rooms using 0x1B9's background: corrupted
 
@@ -57,6 +51,19 @@ is done, move it to "Done" and say how it was checked. The design rules for door
   should cost a life. To look into.
 
 ## Done (rules to keep)
+
+- **No empty dead ends** (item 12, room 0x298): a dead end with nothing in it at all (no enemy, item or boss) always gets a chest,
+  over its level's count (0x298 and 0x150 got one: 30 NiDL chests). Tested in the emulator (USA, a new game started in 0x298, not a
+  playthrough): the chest stood at (136, 136); Kirby stopped on it and pressed Up, it opened, gave its Meat and its treasure bit (103)
+  was set. Logic and chest checks pass on all three versions, with and without dropping through thin floors.
+
+- **Batteries in the NiDL rooms** (item 18): KatAM's battery (object `0x62`) at rewarding spots, made with the rooms
+  (`PlanChests()`): the farthest floor behind breakable blocks, else the farthest of a dead end, a battery per 8 rooms of a level
+  (2 to 5; 19 in all), one a room at most, never in a chest's room, a boss room, a switch room or a mini-boss's fight area; taken once
+  per visit, as the rooms' items. Tested in the emulator (USA, a new game started in 0x236 beside it, the phone battery set to 1 by
+  RAM; not a playthrough): Kirby walked into it, the battery went to 2 and it was gone. Coming back to its room wasn't tried for the
+  battery itself (it uses the items' once-per-visit bit, tested for item 17). Logic checks pass on all three versions, with and
+  without dropping through thin floors.
 
 - **A mini-boss's room is one-way in and one-way out** (item 11, 0x29B): the doors into a room with a mini-boss and its own doors are
   one-way, their landings moved off the doors (to a floor nearby, else off the doors only within twice the reach, before anywhere in

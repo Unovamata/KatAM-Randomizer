@@ -137,7 +137,9 @@ after any change.
   ROM Expansion makes them when it ports the rooms, following KatAM's patterns, whether or not the ROM is randomized; the randomizer
   only reads them afterwards, as it reads KatAM's. A chest per 8 rooms of a level (2 to 5), one a room at most, at the best reward
   spots: a loose item behind breakable blocks, a dead end, far from where Kirby comes in; an item there becomes a chest holding it, a
-  dead end with none gets a new chest as far into the room as Kirby goes. Always on a floor the camera shows. `PlanChests()`.
+  dead end with none gets a new chest as far into the room as Kirby goes. A dead end with nothing in it at all (no enemy, item or
+  boss: 0x298) always gets one, over the level's count: no room is there for nothing. Always on a floor the camera shows.
+  `PlanChests()`.
 - **A chest is listed in its room's doors list**, or opening it hangs the game: the ported rooms' lists are rebuilt after the
   randomizer (`FinishRooms()`), and KatAM's chest lists go into the table the game reads (the expansion moved it).
 - **To the randomizer a chest is a consumable spot**: shuffled, a chest can land wherever a consumable was in the original game.
@@ -156,7 +158,9 @@ after any change.
   plays its cutscene, then the game goes back to the same room where Kirby was: no victory dance, no warp. `NidlShardDone()`.
 - **An owned shard never blocks the way**: a field shard already owned is a Maxim Tomato; a chest whose shard is owned shows open.
 - **NiDL's loose items are taken once per visit**, as KatAM's: once eaten they don't come back until the game forgets them.
-- **Batteries** go in the NiDL rooms too, at valuable, rewarding places.
+- **Batteries** go in the NiDL rooms too, at valuable, rewarding places: the farthest floor behind breakable blocks, else the
+  farthest floor of a dead end; a battery per 8 rooms of a level (2 to 5), one a room at most, never in a chest's room, a boss room,
+  a switch room or a mini-boss's fight area. Taken once per visit, as the items. `PlanChests()`.
 
 ## 11. The map viewer
 

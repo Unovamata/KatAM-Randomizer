@@ -1374,7 +1374,7 @@
                 return entry + 0x08000000;
             }
             List<int> doorLists = new List<int> { DoorsList(mainHubDoors, new List<NidlChest>()) };
-            doorLists.AddRange(rooms.Select(r => DoorsList(doors[r], chestsOf[r])));
+            doorLists.AddRange(rooms.Select(r => DoorsList(doors[r], chestsOf[r].Where(c => !c.Battery).ToList())));
             cursor = listCursor;
 
             // The tables, copied with the new entries;
@@ -3286,15 +3286,16 @@
 
         /* NidlChest; A consumable chest in a ported room (PlanChests()): where it stands (room pixels, the middle of a cell with a floor
          * under it, as KatAM's), what it holds (KatAM's chest items: 0 1UP, 1 Invincible Candy, 2 Maximum Tomato, 3 Meat, 4 Pep Brew,
-         * 5 Cherry), its treasure index (from FirstNidlChest), and the NiDL item it replaces (its record in the NiDL ROM; -1 a new one); */
-        public sealed record NidlChest(int X, int Y, byte Item, byte Index, int Replaces);
+         * 5 Cherry), its treasure index (from FirstNidlChest), and the NiDL item it replaces (its record in the NiDL ROM; -1 a new one); or
+         * a battery (KatAM's 0x62, the phone's) standing there, new; */
+        public sealed record NidlChest(int X, int Y, byte Item, byte Index, int Replaces, bool Battery = false);
         static Dictionary<NightmareRoom, List<NidlChest>> chestsOf = new Dictionary<NightmareRoom, List<NidlChest>>();
         public static IReadOnlyDictionary<NightmareRoom, List<NidlChest>> PortedChests => chestsOf;
         /* The treasure indices of the NiDL chests: KatAM's 84 chests use 0-83 (gTreasures.chestFields has 128 bits; 0x80 on are the shard
          * chests', KatAMItems.ShardChestIndex); the game's completion counts only KatAM's (rooms.c's NidlNumChestsCollected,
          * NIDL_CHESTS_FIRST); */
         public const int FirstNidlChest = 84, LastNidlChest = 127;
-        const byte SmallChestType = 0x80;
+        const byte SmallChestType = 0x80, BatteryType = 0x62;
         /* The NiDL items' gone bits (rooms.c's NIDL_TAKEN_KIND: template unk2, unk3 the item's number, 256 of them): KatAM keeps its items'
          * in gUnk_02023368, whose 256 numbers its own items use, so taken once they stay gone until the game clears them (a game's start,
          * a game over...); NiDL's come back otherwise each time Kirby enters the room; */
@@ -3313,10 +3314,13 @@
          * are ranked: a loose item behind breakable blocks (Kirby reaches it only by breaking some), a dead end (a room with one way in
          * and out), far from where Kirby comes in; a loose item there becomes a chest holding it, and a dead end with none gets a new chest,
          * as far into the room as Kirby goes. Never in a boss room, a switch room or the NiDL hub, nor in a mini-boss's fight area; a chest
-         * stands on a floor (solid ground, ice or a one-way floor) Kirby reaches. The Fountain of Dreams is all boss rooms: none there; */
+         * stands on a floor (solid ground, ice or a one-way floor) Kirby reaches. The Fountain of Dreams is all boss rooms: none there. A
+         * dead end with nothing in it (no enemy, item or boss) always gets a chest, past the level's few (0x298). Batteries too, as many
+         * as the chests a level gets, at the best spots left (the farthest floor behind breakable blocks, else the farthest in a dead
+         * end), one a room, none in a chest's; */
         static Dictionary<NightmareRoom, List<NidlChest>> PlanChests(byte[] nightmare, List<NightmareRoom> rooms, Dictionary<NightmareRoom, List<Door>> doors,
                                                                     List<Door> mainHubDoors, Dictionary<int, List<Door>> katamDoors) {
-            const int FarCells = 12, DoorClear = 3, MostRecords = 20;
+            const int FarCells = 12, DoorClear = 3, MostRecords = 20, EmptyRoom = 100;
             var plan = rooms.ToDictionary(r => r, r => new List<NidlChest>());
             var arrivals = doors.Values.SelectMany(list => list).Concat(mainHubDoors).Concat(katamDoors.Values.SelectMany(list => list)).Where(d => !d.Edge).ToList();
             int index = FirstNidlChest, dealt = 0;
@@ -3325,6 +3329,7 @@
                 if (levelRooms.Count == 0) continue;
                 int bossStage = levelRooms.Max(o => o.Stage);
                 var candidates = new List<(NightmareRoom room, int score, int distance, NidlChest chest)>();
+                var batterySpots = new List<(NightmareRoom room, int score, int distance, NidlChest battery)>();
                 foreach (NightmareRoom r in levelRooms.Where(o => o.Level != 7 && o.Stage != bossStage)) {
                     byte[] cells = RoomCells(nightmare, r.Record);
                     int roomWidth = ReadShort(nightmare, r.Record + 0x14);
@@ -3370,12 +3375,13 @@
                     }
 
                     // Its loose items: one at a reward spot becomes a chest holding it;
-                    int list = ReadInt(nightmare, r.Record + 0x48), records = 0;
+                    int list = ReadInt(nightmare, r.Record + 0x48), records = 0, things = 0;
                     for (int at = list == 0 ? r.Record : list - 0x08000000; at + 8 <= r.Record; at += 8) {
                         int category = nightmare[at] - 1;
                         int x = ReadShort(nightmare, at + 4) - r.X * 16, y = ReadShort(nightmare, at + 6) - r.Y * 16;
                         if (x < 0 || y < 0 || x >= r.Width * 16 || y >= r.Height * 16) continue;
                         records++;
+                        if (category is 0 or 2 or 3 or MinibossCategory or MetaKnightsCategory) things++;
                         if (category != 3 || !RoomItems.TryGetValue(nightmare[at + 1], out byte type)) continue;
                         var spot = OnFloor(x / 16, y / 16);
                         if (spot == null || !all.TryGetValue(spot.Value, out int far) || InFight(spot.Value.x, spot.Value.y)) continue;
@@ -3384,13 +3390,24 @@
                         if (score >= 2) candidates.Add((r, score, far, new NidlChest(spot.Value.x * 16 + 8, spot.Value.y * 16 + 8, ChestItems[type], 0, at)));
                     }
 
+                    // (a battery's spots: the farthest floor behind breakable blocks, the farthest in a dead end; off the doors);
+                    (int x, int y, int far)? Farthest(Func<(int, int), bool> where) =>
+                        all.Where(c => where(c.Key) && OnFloor(c.Key.Item1, c.Key.Item2) == c.Key && !NearDoor(c.Key.Item1, c.Key.Item2) && !InFight(c.Key.Item1, c.Key.Item2))
+                           .OrderByDescending(c => c.Value).ThenBy(c => c.Key.Item2).ThenBy(c => c.Key.Item1).Select(c => ((int x, int y, int far)?)(c.Key.Item1, c.Key.Item2, c.Value)).FirstOrDefault();
+                    if (records <= MostRecords && Farthest(c => !open.ContainsKey(c)) is (int bx, int by, int bfar))
+                        batterySpots.Add((r, 3 + (bfar >= FarCells ? 1 : 0), bfar, new NidlChest(bx * 16 + 8, by * 16 + 8, 0, 0, -1, Battery: true)));
+                    else if (deadEnd && records <= MostRecords && Farthest(c => true) is (int dx, int dy, int dfar))
+                        batterySpots.Add((r, 2 + (dfar >= FarCells ? 1 : 0), dfar, new NidlChest(dx * 16 + 8, dy * 16 + 8, 0, 0, -1, Battery: true)));
+
                     // A dead end with no item there: a new chest, as far into the room as Kirby goes (off the doors);
                     if (deadEnd && records <= MostRecords && !candidates.Any(c => c.room == r)) {
                         var best = all.Where(c => OnFloor(c.Key.Item1, c.Key.Item2) == c.Key && !NearDoor(c.Key.Item1, c.Key.Item2) && !InFight(c.Key.Item1, c.Key.Item2))
                                       .OrderByDescending(c => c.Value).ThenBy(c => c.Key.Item2).ThenBy(c => c.Key.Item1).Select(c => ((int x, int y, int far)?)(c.Key.Item1, c.Key.Item2, c.Value)).FirstOrDefault();
                         if (best != null) {
                             bool secret = !open.ContainsKey((best.Value.x, best.Value.y));
-                            candidates.Add((r, 2 + (secret ? 1 : 0) + (best.Value.far >= FarCells ? 1 : 0), best.Value.far, new NidlChest(best.Value.x * 16 + 8, best.Value.y * 16 + 8, 0xFF, 0, -1)));
+                            // (a dead end with nothing at all in it always gets one, past the level's few: 0x298, Orange Ocean 5-6);
+                            int score = things == 0 ? EmptyRoom : 2 + (secret ? 1 : 0) + (best.Value.far >= FarCells ? 1 : 0);
+                            candidates.Add((r, score, best.Value.far, new NidlChest(best.Value.x * 16 + 8, best.Value.y * 16 + 8, 0xFF, 0, -1)));
                         }
                     }
                 }
@@ -3398,11 +3415,19 @@
                 // The best spots, one a room;
                 int wanted = Math.Clamp(levelRooms.Count / 8, 2, 5);
                 foreach (var c in candidates.OrderByDescending(c => c.score).ThenByDescending(c => c.distance).ThenBy(c => c.room.Room)) {
-                    if (wanted == 0 || index > LastNidlChest) break;
-                    if (plan[c.room].Count > 0) continue;
+                    if (index > LastNidlChest) break;
+                    if (plan[c.room].Count > 0 || wanted == 0 && c.score < EmptyRoom) continue;
                     byte item = c.chest.Item != 0xFF ? c.chest.Item : KatAMChestItems[dealt++ * 17 % KatAMChestItems.Length];
                     plan[c.room].Add(c.chest with { Item = item, Index = (byte)index++ });
-                    wanted--;
+                    if (c.score < EmptyRoom) wanted--;
+                }
+                // Batteries: as many again, at the best spots left, one a room (none in a chest's);
+                int batteries = Math.Clamp(levelRooms.Count / 8, 2, 5);
+                foreach (var b in batterySpots.OrderByDescending(b => b.score).ThenByDescending(b => b.distance).ThenBy(b => b.room.Room)) {
+                    if (batteries == 0) break;
+                    if (plan[b.room].Count > 0) continue;
+                    plan[b.room].Add(b.battery);
+                    batteries--;
                 }
             }
             return plan;
@@ -3542,8 +3567,11 @@
 
             // The new chests (PlanChests());
             foreach (NidlChest chest in chests.Where(c => c.Replaces < 0)) {
-                templates.Add(ChestTemplate(chest, templates.Count));
-                if (!types.Contains(SmallChestType)) types.Add(SmallChestType);
+                // (and the batteries: taken once per visit, as the items);
+                byte[] template = chest.Battery ? ObjectTemplate(chest.X, chest.Y, templates.Count, BatteryType) : ChestTemplate(chest, templates.Count);
+                if (chest.Battery) { template[2] = TakenKind; template[3] = (byte)takenItems++; }
+                templates.Add(template);
+                if (!types.Contains(template[12])) types.Add(template[12]);
             }
 
             /* Warp stars and cannons (see Transport), as KatAM's: a warp star (0x84, warp_star.c: +0x1E the room, +0x1A, +0x1C the landing
