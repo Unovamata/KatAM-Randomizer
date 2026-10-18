@@ -16,9 +16,6 @@ is done, move it to "Done" and say how it was checked. The design rules for door
 - What the game shows must follow the save: load a save and the pause screen's maps show the doors and rooms that save visited.
   This is one of the owner's biggest complaints.
 
-### 4. NiDL Meta Knight fight keeps Kirby's own abilities
-- The fight starts with whatever abilities the player has. Don't give a sword, and don't add a sword pedestal.
-
 ### 5. Bosses as faithful 1:1 recreations of NiDL
 - **Heavy Mole**: rework the fight to match NiDL's, which needs the boss rooms to support scrolling (the screen moves through the
   dirt with the mole).
@@ -42,6 +39,13 @@ is done, move it to "Done" and say how it was checked. The design rules for door
   owner's details of what still goes wrong.
 
 ## Done (rules to keep)
+
+- **NiDL Meta Knight fight with Kirby's own powers** (item 4): Meta Knight no longer sets down a Sword statue (it stood in for NiDL's
+  "GET IT!"), and the duel no longer waits for Kirby to have a power: he waits 1.5 seconds in his cape once on the floor (or until
+  he's hit), then leaps down and fights. Nothing in the fight gives or takes an ability. Tested in the emulator (all three versions,
+  expanded, a new game started in room 0x29D with the helpers, not a playthrough): he drops to the floor in his cape, waits, casts
+  it off and duels; no statue appears and Kirby stays Normal. Not tried: entering with an ability through the level's door (the
+  fight's code never touches Kirby's ability).
 
 - **Unlock the Master Sword** (item 3): a Miscellaneous toggle. The Master Sword's stand in Central Circle (`OBJ_MASTER_SWORD_STAND`)
   is KatAM's own, which works and shows only once the game is beaten (`gAIKirbyState` 9999); the option drops both checks (as it

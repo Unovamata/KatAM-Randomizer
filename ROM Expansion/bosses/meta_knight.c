@@ -1,7 +1,7 @@
 /* Meta Knight; ported from Kirby: Nightmare in Dream Land (USA), boss object type 0x3D (spawn 0x080A55EC), as NiDL boss
  * NIDL_META_KNIGHT, Orange Ocean's (room 0x29D here, on NiDL's spot, (232, 56): his ledge in NiDL, he drops to the floor here). NiDL's Meta Knight waits there in his
- * cape and throws Kirby a sword ("GET IT!") before the duel; here he sets down KatAM's Sword statue (ThrowSword), and the duel starts
- * once Kirby has a power (or he's hit, or after 10 seconds). Then he leaps down and fights with Galaxia: his body is a streamed frame (0x08753BB4: 0-9 his cape, 21-52 his poses: 21-22
+ * cape and throws Kirby a sword ("GET IT!") before the duel; here Kirby fights with his own powers (no sword, no statue): he waits in
+ * his cape a moment once he stands on the floor (or until he's hit), then leaps down and fights with Galaxia: his body is a streamed frame (0x08753BB4: 0-9 his cape, 21-52 his poses: 21-22
  * stand masked, 33-35 leap, 45-48 dash; NiDL's others show his face bare, so standing, walking and slashing are 21-22 here), his
  * sword a sprite of its own (0x08753DA0's 16-23, eight ways, the descriptor's second palette, gold), which hurts (an attack object
  * following him, held as each pose holds it: sPoses). Its frames (KatAMExpansion.cs): 0-9 the cape, 10-41 the poses (NiDL's 21-52),
@@ -27,7 +27,7 @@
 #define GRAVITY 0x30
 #define MAX_FALL 0x500
 #define CLOSE 40
-#define WAIT_TIME 600
+#define WAIT_TIME 90                // In his cape on the floor, before the duel;
 
 enum { STATE_WAIT, STATE_LEAP_DOWN, STATE_WALK, STATE_SLASH, STATE_CROUCH, STATE_DASH, STATE_LEAP, STATE_REST };
 // Sword ways (facing right; mirrored facing left);
@@ -61,7 +61,6 @@ struct MetaKnight {
     u16 timer;
     u8 pose;
     u8 anim;
-    u16 starTimer;      // Until the Sword statue;
     u16 wait;
     s16 hp;             // His HP as the duel starts;
     bool8 started;
@@ -133,19 +132,6 @@ static void Sword(struct MetaKnight *m) {
     sword->sprite.palId = sword->filler6[0];
 }
 
-/* ThrowSword(); NiDL's "GET IT!": KatAM's Sword statue (object 0x95, subtype 0, as the NiDL switch rooms' and KatAM's hub rooms'),
- * which Kirby inhales for Sword, as often as he likes, set down on the floor beside him toward Kirby; */
-#define OBJ_SWORD_STATUE 0x95
-#define STATUE_X 56
-static void ThrowSword(struct MetaKnight *m) {
-    struct Object *obj = &m->n.obj;
-    s32 x = (obj->base.x >> 8) + ((obj->base.flags & 1) ? -STATUE_X : STATUE_X);
-
-    CreateObjTemplateAndObj(obj->base.unk56, 1, 0x24, x, (obj->base.y >> 8) - 2, 0, 0x1F, 0, 0, OBJ_SWORD_STATUE, 0, 0, 0, 0, 0, 0, 0,
-                            0, 0, 0, 0, 0, 0);
-    PlaySfx(&obj->base, SE_KIRBY_AIRSHOT);
-}
-
 static void Set(struct MetaKnight *m, u8 state) {
     m->state = state;
     m->timer = 0;
@@ -187,17 +173,10 @@ static void Update(struct MetaKnight *m) {
 
     switch (m->state) {
     case STATE_WAIT:
-        // On his ledge in his cape: a sword for Kirby, the duel once he has a power;
+        // In his cape, a moment once he stands on the floor (his spot is in the air here: NiDL's ledge isn't), or until he's hit;
         m->pose = POSE_CAPE;
         NidlFaceKirby(obj);
-        // (or once he's hit, or after WAIT_TIME: Kirby's helpers fight him too);
-        if (obj->kirby3->ability != KIRBY_ABILITY_NORMAL || obj->unk80 < m->hp || ++m->wait > WAIT_TIME) {
-            if (++m->timer > 30) Leap(m, STATE_LEAP_DOWN, LEAP_SPEED);
-            break;
-        }
-        m->timer = 0;
-        // Once he stands on the floor (his spot is in the air here: NiDL's ledge isn't), so the statue stands there too;
-        if ((obj->base.unk62 & 4) && m->starTimer && !--m->starTimer) ThrowSword(m);
+        if (obj->unk80 < m->hp || ((obj->base.unk62 & 4) && ++m->wait > WAIT_TIME)) Leap(m, STATE_LEAP_DOWN, LEAP_SPEED);
         break;
     case STATE_LEAP_DOWN:
         // He casts off his cape as he leaps (NiDL's 4-9, flapping);
@@ -275,14 +254,13 @@ static void MetaKnightMain(struct Object *obj) {
     Update(m);
 }
 
-// MetaKnightStart(); The duel starts: on his ledge, a sword for Kirby first;
+// MetaKnightStart(); The duel starts: in his cape on his ledge first;
 void MetaKnightStart(struct Object *obj) {
     struct MetaKnight *m = (struct MetaKnight *)obj;
 
     ObjectSetFunc(obj, -1, MetaKnightMain);
     if (m->started) return;
     m->started = TRUE;
-    m->starTimer = 30;
     m->wait = 0;
     m->hp = obj->unk80;
     Set(m, STATE_WAIT);
