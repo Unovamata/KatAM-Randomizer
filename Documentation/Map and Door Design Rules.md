@@ -130,7 +130,9 @@ after any change.
 
 - **Chests go where KatAM would put one**, as a reward for exploring (dead ends, secret rooms, behind blocks, the end of a branch),
   for a challenge, or as a surprise. Never in a boss room, a switch room or a mini-boss's fight area.
-- **NiDL chests**: some of NiDL's loose consumables turn into consumable chests, sparingly (a few per level, as KatAM has).
+- **NiDL chests**: some of NiDL's loose consumables turn into consumable chests, sparingly (a few per level, as KatAM has). The
+  ROM Expansion makes them when it ports the rooms, following KatAM's patterns, whether or not the ROM is randomized; the randomizer
+  only reads them afterwards, as it reads KatAM's.
 - **To the randomizer a chest is a consumable spot**: shuffled, a chest can land wherever a consumable was in the original game.
 - **Protected, never randomized**: big switches, levers and story progression chests (and the shard chests the randomizer makes).
 - **The chest options, top to bottom** (Chests & Items):

@@ -10,6 +10,9 @@ is done, move it to "Done" and say how it was checked. The design rules for door
 - **NiDL chests**: some of NiDL's own loose consumables become consumable chests, **sparingly** (a few per level, as KatAM has), at
   spots where KatAM would put a chest: a reward for exploring (a dead end, a secret room, behind breakable blocks, the end of a
   branch), for a challenge, or as a surprise. Never in a boss room, a switch room or a mini-boss's fight area.
+- **Made by the ROM Expansion, not the randomizer**: the chests are added (or loose consumables turned into chests) when the NiDL
+  rooms are ported ("Include Rooms"), following KatAM's patterns, so an expanded ROM has them whether or not anything is randomized.
+  The randomizer then only sees them as it sees KatAM's chests.
 - **The randomizer reads chests and consumables from the expanded ROM**: the ROM Expansion runs first (it already does), and the
   item reader must then see NiDL's rooms too (it only scans KatAM's today), so everything is randomized at once. Shuffled NiDL chests
   follow the same rules as KatAM's, and chest shards can use NiDL's chests as well.
