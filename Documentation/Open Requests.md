@@ -34,9 +34,18 @@ is done, move it to "Done" and say how it was checked. The design rules for door
   Minibosses") shake the screen as often as they do in KatAM.
 
 ### 22. Grey blocks: still a pain
-- The owner: "grey blocks are proving to be a pain." They're KatAM's silver metal blocks (`0xF5`) since item 9, but which
-  abilities break them was never seen in game (an ability given by RAM doesn't attack). Needs a real test with abilities, and the
-  owner's details of what still goes wrong.
+- The owner: "grey blocks are proving to be a pain." They're KatAM's silver metal blocks (`0xF5`) since item 9.
+- Tested with real abilities (USA, expanded; a test ROM with an ability statue put beside Kirby, who walked into it and got the
+  ability as from a pedestal, then walked to room 0x195's four metal blocks on the floor and attacked them, three rounds of B):
+  **Hammer, Burning, Fighter, Wheel, Missile and Master break them**, and **Stone** from above (turned to stone standing on one, he
+  fell through). **Beam, Laser, Fire, Ice, Spark, Throw, Parasol, Sword, Cutter, Cupid, Bomb and Smash don't** (Bomb and Smash also
+  tried with Up+B, Down+B and from on top); Tornado didn't in two tries (it spins away). Not tested: Sleep, Cook, UFO, Magic, Mini,
+  Crash (no statue for them) and the expansion's own abilities (Hi-Jump, Needle, Light, Ball, Freeze, Mike, Backdrop).
+- KatAM's own metal blocks (room 0x134, unchanged) gave the same results with the same test (Hammer and Burning broke them; Beam,
+  Bomb, Stone from the side, Smash and Sword didn't), so the NiDL rooms' grey blocks behave exactly as KatAM's. Nothing found broken;
+  what they guard is optional (the logic checks count them as walls).
+- Needs the owner: what still goes wrong (a room, what happened), or whether they should break with more abilities (KatAM's `0xF4`
+  blocks break with any ability's attack).
 
 ## Done (rules to keep)
 
