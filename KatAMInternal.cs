@@ -485,7 +485,7 @@ namespace KatAMInternal
         public GenerationOptions ConsumablesGenerationType { get; set; }
         public GenerationOptions MirrorShardsGenerationType { get; set; }
         public int amountOfMirrorShardsToAdd = 0;
-        // Shards in chests: amountOfChestShards copies (1-3) of the 8 shards, each in a chest that held a consumable ("ROM Expansion/chest.c",
+        // Shards in chests: amountOfChestShards copies (1-2) of the 8 shards, each in a chest that held a consumable ("ROM Expansion/chest.c",
         // KatAMExpansion.AddShardChests); independent of the field shards above (amountOfMirrorShardsToAdd), so both can be on;
         public bool MirrorShardsInChests { get; set; }
         public int amountOfChestShards = 1;

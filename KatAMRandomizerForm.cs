@@ -179,7 +179,7 @@ namespace KatAMRandomizer
             KatAMExpansion.FinishRooms(Processing.ROMData);
 
             // Mirror shards in chests, then Reduce flashing and Skip the tutorial, last: they put the expansion's code in when no NiDL ROM did;
-            if (settings.MirrorShardsInChests && settings.amountOfChestShards > 0) {
+            if (settings.MirrorShardsInChests && settings.amountOfChestShards > 0 && settings.ChestsGenerationType != GenerationOptions.No) {
                 byte[] chests = Processing.ROMData;
                 string chestsError = KatAMExpansion.AddShardChests(ref chests);
                 if (chestsError == null) Processing.ROMData = chests;
@@ -442,7 +442,7 @@ namespace KatAMRandomizer
         private void RadioMirrorShardsRandom_CheckedChanged(object sender, EventArgs e) {
             GroupMirrorShardsAmount.Enabled = false;
             settings.MirrorShardsGenerationType = GenerationOptions.Random;
-            settings.amountOfMirrorShardsToAdd = Utils.GetRandomRange(1, 5);
+            settings.amountOfMirrorShardsToAdd = Utils.GetRandomRange(1, 3);    // 1-2 copies of the 8;
         }
 
         private void RadioMirrorShardsCustom_CheckedChanged(object sender, EventArgs e) {
@@ -454,7 +454,7 @@ namespace KatAMRandomizer
             settings.amountOfMirrorShardsToAdd = TrackBarMirrorShardsAmount.Value;
         }
 
-        // TrackBarChestShardsAmount_Scroll(); How many copies of the 8 shards go in chests (1-3);
+        // TrackBarChestShardsAmount_Scroll(); How many copies of the 8 shards go in chests (1-2);
         private void TrackBarChestShardsAmount_Scroll(object sender, EventArgs e) {
             settings.amountOfChestShards = TrackBarChestShardsAmount.Value;
         }
@@ -464,7 +464,7 @@ namespace KatAMRandomizer
             settings.RandomizeBossShards = CheckboxBossShardsRandom.Checked;
         }
 
-        // CheckboxMirrorShardsInChests_CheckedChanged(); Shards in chests, 1-3 copies of the 8 (KatAMItems.AddShardsToChests, KatAMExpansion.AddShardChests);
+        // CheckboxMirrorShardsInChests_CheckedChanged(); Shards in chests, 1-2 copies of the 8 (KatAMItems.AddShardsToChests, KatAMExpansion.AddShardChests);
         private void CheckboxMirrorShardsInChests_CheckedChanged(object sender, EventArgs e) {
             settings.MirrorShardsInChests = CheckboxMirrorShardsInChests.Checked;
             TrackBarChestShardsAmount.Enabled = CheckboxMirrorShardsInChests.Checked;
@@ -472,8 +472,15 @@ namespace KatAMRandomizer
         }
 
         // Chests;
+        // ChestsExist(); "No Chests" is above every chest option: no chests at all, so no shards in chests either;
+        void ChestsExist(bool exist) {
+            CheckboxMirrorShardsInChests.Enabled = exist;
+            if (!exist) CheckboxMirrorShardsInChests.Checked = false;
+        }
+
         private void RadioChestsUnchanged_CheckedChanged(object sender, EventArgs e) {
             settings.ChestsGenerationType = GenerationOptions.Unchanged;
+            ChestsExist(true);
             GroupChestsProperties.Enabled = GroupChestsProperties.Enabled = false;
             RadioChestsPropertiesUnchanged.Checked = true;
         }
@@ -481,11 +488,13 @@ namespace KatAMRandomizer
         private void RadioChestsShuffle_CheckedChanged(object sender, EventArgs e) {
             settings.ChestsGenerationType = GenerationOptions.Shuffle;
             GroupChestsProperties.Enabled = true;
+            ChestsExist(true);
         }
 
         private void RadioChestsNo_CheckedChanged(object sender, EventArgs e) {
             settings.ChestsGenerationType = GenerationOptions.No;
             GroupChestsProperties.Enabled = false;
+            ChestsExist(false);
             RadioChestsPropertiesUnchanged.Checked = true;
             CheckboxChestsMoreHPUP.Checked = false;
             TrackBarHPUP.Value = 1;

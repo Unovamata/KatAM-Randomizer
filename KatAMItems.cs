@@ -141,12 +141,12 @@ namespace KatAMRandomizer
             return selectedEntity;
         }
 
-        /* AddShardsToChests(); The chest shards (Settings.MirrorShardsInChests, Settings.amountOfChestShards copies of the 8 shards, 1-3):
+        /* AddShardsToChests(); The chest shards (Settings.MirrorShardsInChests, Settings.amountOfChestShards copies of the 8 shards, 1-2):
          * chests that held a consumable (chestConsumableIDs, never a treasure) picked at random become chests holding a shard, n of
          * shard n (ShardChest + n, treasure index ShardChestIndex + n), as many whole copies as there are such chests; they're left out
          * of the rooms' chest lists (WriteChestTo9ROM: chest.c's chests aren't in them); */
         void AddShardsToChests() {
-            if (!Settings.MirrorShardsInChests || Settings.amountOfChestShards <= 0) return;
+            if (!Settings.MirrorShardsInChests || Settings.amountOfChestShards <= 0 || Settings.ChestsGenerationType == GenerationOptions.No) return;
 
             List<Entity> consumables = Utils.Shuffle(chestEntities.Where(c => !IsProgressionObject(c) && chestConsumableIDs.Contains(c.Behavior)).ToList());
             int copies = Math.Min(Settings.amountOfChestShards, consumables.Count / 8);
@@ -233,18 +233,19 @@ namespace KatAMRandomizer
 
             if (isAddingHPUps) HPUpsToAdd = Settings.HPUpsAdded;
 
-            // The chest shards first: they're progression from then on;
-            AddShardsToChests();
-            bool shardChests = chestEntities.Any(IsShardChest);
-
-            // Return if no chests must be written (but the rooms' chest lists, without the shard chests, if there are any);
+            /* "No Chests", above every chest option: no chests at all in the game (the consumables pass made them items) but the protected
+             * ones (big switches, levers, story progression chests), and no shard chests; the pause screen's chest lists then show only
+             * what's left; */
             if (chestGeneration == GenerationOptions.No) {
-                if (!shardChests) return;
-                foreach (Entity chest in chestEntities.Where(c => !IsShardChest(c))) AddChestToDictionary(chest);
+                foreach (Entity chest in chestEntities.Where(c => IsProgressionObject(c) && !IsShardChest(c))) AddChestToDictionary(chest);
                 WriteChestTo9ROM();
                 return;
             }
-            else if (chestProperties == GenerationOptions.Random) {
+
+            // The chest shards first: they're progression from then on;
+            AddShardsToChests();
+
+            if (chestProperties == GenerationOptions.Random) {
                 combinedTreasureIDs.AddRange(chestConsumableIDs);
                 combinedTreasureIDs.AddRange(chestTreasureIDs);
             }
@@ -298,11 +299,15 @@ namespace KatAMRandomizer
             chestDictionary[chest.Room].Add(chest);
         }
 
+        HashSet<int> takenSpots = new HashSet<int>();
+
         // ShuffleChest(); Take a chest entity and select a random entity to shuffle it to;
         void ShuffleChest(Entity chest) {
             if (chestGeneration != GenerationOptions.Shuffle) return;
 
+            // (a spot no other chest took: shuffling moves chests around, it never puts two on one spot, which would lose one);
             int replacedEntityIndex = ReturnReplaceableEntity();
+            while (!takenSpots.Add(replacedEntityIndex)) replacedEntityIndex = ReturnReplaceableEntity();
             Entity oldEntity = entities[replacedEntityIndex];
 
             chest.Address = oldEntity.Address;

@@ -11,6 +11,7 @@
 #include "chest.h"
 #include "bonus.h"
 #include "shard.h"
+#include "random.h"
 #include "code_0806F780.h"
 #include "object.h"
 #include "kirby.h"
@@ -23,6 +24,7 @@
 
 #define NIDL_CHEST_SHARD 0x40
 #define NIDL_CHEST_RISE 0x18    // how far above the chest's floor the shard floats (pixels);
+#define NIDL_SHARD_STAYS 0x8000 // template unk22: a shard that isn't a boss's (a chest's): after its cutscene Kirby stays (NidlShardDone);
 
 // NidlChest; Filled in by KatAMExpansionChests.cs: the trampoline running the detoured function;
 struct NidlChest {
@@ -57,7 +59,7 @@ void NidlChestOpen(struct Chest *chest) {
             sub_08031CE4(8);
     }
     CreateObjTemplateAndObj(chest->obj.base.unk56, 1, 0x24, chest->obj.base.x >> 8, (chest->obj.base.y >> 8) - NIDL_CHEST_RISE, 0, 0x1F,
-                            0, 0, OBJ_MIRROR_SHARD, shard, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+                            0, 0, OBJ_MIRROR_SHARD, shard, 0, 0, NIDL_SHARD_STAYS, 0, 0, 0, 0, 0, 0, 0, 0, 0);
     // As the item popups do once their item is given (sub_080029F4: lever walls count these);
     gUnk_02023510[gCurLevelInfo[chest->obj.base.unk56].unk65E]++;
     chest->obj.unk78 = NidlChestOpened;
@@ -133,4 +135,24 @@ void *NidlCreateShard(struct ObjectTemplate *template, u8 playerId) {
         shard->obj.unk83 = gNidlShard.bossShards[n];
     }
     return shard;
+}
+
+void sub_0801BD68(struct Shard *);
+
+/* NidlShardDone(); The shard's step once its cutscene ends (sub_0801C558, which jumps here: replaced whole, its work done here): a
+ * boss's shard starts the victory dance (sub_0801BD68, as sub_0801C558 does), which ends with Kirby taken out of the level (to
+ * Central Circle, or the NiDL hub for a NiDL boss); a shard that isn't a boss's (a room's own, its template in the ROM, or a
+ * chest's, NIDL_SHARD_STAYS) is simply gone, its shard collected by the cutscene, and Kirby plays on where he is: no dance, no
+ * trip out; */
+void NidlShardDone(struct Shard *shard) {
+    struct ObjectTemplate *template = shard->obj.objTemplate;
+
+    if ((u32)template >= 0x08000000 || (template->unk22 & NIDL_SHARD_STAYS)) {
+        shard->obj.base.flags |= 0x1000;
+        return;
+    }
+    shard->unkDC = (Rand16() & 1) + 2;
+    shard->unkE0 = 0;
+    shard->obj.unk78 = sub_0801BD68;
+    sub_0801BD68(shard);
 }

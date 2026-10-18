@@ -13,6 +13,8 @@ namespace KatAMRandomizer {
             // The trampoline goes in chest.c's room for it (gNidlChestTrampolines), its address in gNidlChest;
             int cursor = CodeAddress + version.CodeSymbols["gNidlChestTrampolines"], chest = CodeAddress + version.CodeSymbols["gNidlChest"];
             if (ReadInt(patched, chest) != 0) return null;  // (applied already);
+            string hooked = HookShards(patched, version);
+            if (hooked != null) return hooked;
             int open = Detour(patched, version.RomSymbols["sub_0800AFC8"], CodeAddress + 0x08000000 + version.CodeSymbols["NidlChestOpen"], ref cursor);
             if (open < 0) return $"The {version.Name} ROM's chest code doesn't match.";
             WriteInt(patched, chest, open + 0x08000000 + 1);
@@ -24,11 +26,19 @@ namespace KatAMRandomizer {
          * Returns an error, or null (the ROM unchanged on an error); */
         public static string OwnedFieldShards(ref byte[] rom) => PatchWithCode(ref rom, "Owned mirror shards as tomatoes", HookShards);
 
+        /* HookShards(); Object 0x65's spawn becomes NidlCreateShard (owned field shards as tomatoes, bosses' shard numbers), and the
+         * shard's step after its cutscene (sub_0801C558) jumps to NidlShardDone, which does its work itself (only bosses' shards take
+         * Kirby out of the level: a room's or a chest's leaves him where he is, without the victory dance; no trampoline: its first
+         * instructions keep the shard in r3, which the jump back would need); */
         static string HookShards(byte[] patched, KatAMExpansionCode.Version version) {
             int entry = version.SpawnTable + 0x65 * 4, shard = CodeAddress + version.CodeSymbols["gNidlShard"];
             int create = CodeAddress + 0x08000000 + version.CodeSymbols["NidlCreateShard"] + 1;
             if (ReadInt(patched, entry) == create) return null;  // (applied already);
             if (ReadInt(patched, entry) >> 24 != 0x08) return $"The {version.Name} ROM's mirror shard code doesn't match.";
+            int step = version.RomSymbols["sub_0801C558"];
+            if ((step & 3) != 0 || ReadShort(patched, step) != 0xB5F0) return $"The {version.Name} ROM's mirror shard code doesn't match.";
+            WriteShorts(patched, step, 0x4B00, 0x4718);    // ldr r3, [pc, #0]; bx r3;
+            WriteInt(patched, step + 4, CodeAddress + 0x08000000 + version.CodeSymbols["NidlShardDone"] + 1);
             WriteInt(patched, shard, ReadInt(patched, entry));
             WriteInt(patched, entry, create);
             return null;

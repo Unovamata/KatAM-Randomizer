@@ -126,16 +126,25 @@ after any change.
   doesn't reach anyway. `ThinFloors()`.
 - A one-way throw's landing never traps Kirby (rule 3), and breakable blocks a door lands Kirby inside start broken.
 
-## 10. Chests and items
+## 10. Chests, items and shards
 
-- Chests go where KatAM would put one, as a reward for exploring (dead ends, secret rooms, behind blocks, the end of a branch), for
-  a challenge, or as a surprise. Never in a boss room, a switch room or a mini-boss's fight area.
-- **NiDL chests are mostly added, not converted**: new chests go into the rooms; a loose consumable becomes a chest only sparingly.
-  NiDL has a lot of loose items, so converting them would flood the levels. A few chests per level, as KatAM has.
-- **Mirror shards the randomizer adds** come in two options, used separately or both at once:
-  - **field shards**: 1 to 5 copies of the 8 shards, lying in rooms, each replacing a consumable item;
-  - **chest shards**: 1 to 3 copies of the 8 shards, each in a chest that held a consumable (healing items, 1UPs and such), never a
-    treasure. Off: no shards in chests. Shard chests are left out of the pause screen's chest lists.
+- **Chests go where KatAM would put one**, as a reward for exploring (dead ends, secret rooms, behind blocks, the end of a branch),
+  for a challenge, or as a surprise. Never in a boss room, a switch room or a mini-boss's fight area.
+- **NiDL chests**: some of NiDL's loose consumables turn into consumable chests, sparingly (a few per level, as KatAM has).
+- **To the randomizer a chest is a consumable spot**: shuffled, a chest can land wherever a consumable was in the original game.
+- **Protected, never randomized**: big switches, levers and story progression chests (and the shard chests the randomizer makes).
+- **The chest options, top to bottom** (Chests & Items):
+  - **No Chests is above every other chest option**: no chests at all in the game (the protected ones aside), so no shards in
+    chests either (that option is greyed out). The pause screen's chest lists show only what's left.
+  - **Shuffle moves chests around, never two onto one spot** (one would be lost). Unchanged keeps them where they are.
+- **Mirror shards the randomizer adds**, two options, used separately or both at once:
+  - **Field shards**: Unchanged (none added), Random (1 or 2) or Custom (1 or 2). Each step adds one more copy of all 8 shards, each
+    copy as 8 shards lying in rooms, each one replacing a random loose item (never a chest).
+  - **Add shards in chests**: 1 or 2. Each step adds one more copy of all 8 shards, put into existing chests that held a consumable
+    (KatAM's, and NiDL's once they have them). Never a new chest, never a treasure chest, and never so many that the consumable
+    chests run out (2 copies take 16 of KatAM's 41).
+- **Only a boss's shard takes Kirby out of the level** (to Central Circle, or the NiDL hub). A shard from a chest or lying in a room
+  plays its cutscene and Kirby stays where he is: no victory dance, no trip out. `NidlShardDone()`.
 - **An owned shard never blocks the way**: a field shard already owned is a Maxim Tomato; a chest whose shard is owned shows open.
 
 ## 11. The map viewer

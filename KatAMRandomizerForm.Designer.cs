@@ -44,7 +44,6 @@
             TrackBarChestShardsAmount = new TrackBar();
             LabelChestShards1 = new Label();
             LabelChestShards2 = new Label();
-            LabelChestShards3 = new Label();
             LabelSeed = new Label();
             GroupRomInfo = new GroupBox();
             LabelStability = new Label();
@@ -1119,7 +1118,6 @@
             GroupConsumablesMirrorShards.Controls.Add(TrackBarChestShardsAmount);
             GroupConsumablesMirrorShards.Controls.Add(LabelChestShards1);
             GroupConsumablesMirrorShards.Controls.Add(LabelChestShards2);
-            GroupConsumablesMirrorShards.Controls.Add(LabelChestShards3);
             GroupConsumablesMirrorShards.Enabled = false;
             GroupConsumablesMirrorShards.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
             GroupConsumablesMirrorShards.Location = new Point(259, 20);
@@ -1170,13 +1168,13 @@
             CheckboxBossShardsRandom.UseVisualStyleBackColor = true;
             CheckboxBossShardsRandom.CheckedChanged += CheckboxBossShardsRandom_CheckedChanged;
             // 
-            // TrackBarChestShardsAmount: copies of the 8 shards in chests, 1-3;
+            // TrackBarChestShardsAmount: copies of the 8 shards in chests, 1-2;
             // 
             TrackBarChestShardsAmount.BackColor = SystemColors.ButtonHighlight;
             TrackBarChestShardsAmount.Enabled = false;
             TrackBarChestShardsAmount.Location = new Point(9, 405);
             TrackBarChestShardsAmount.Margin = new Padding(4, 5, 4, 5);
-            TrackBarChestShardsAmount.Maximum = 3;
+            TrackBarChestShardsAmount.Maximum = 2;
             TrackBarChestShardsAmount.Minimum = 1;
             TrackBarChestShardsAmount.Name = "TrackBarChestShardsAmount";
             TrackBarChestShardsAmount.Size = new Size(276, 45);
@@ -1185,7 +1183,7 @@
             TrackBarChestShardsAmount.Value = 1;
             TrackBarChestShardsAmount.Scroll += TrackBarChestShardsAmount_Scroll;
             // 
-            // LabelChestShards1, 2, 3
+            // LabelChestShards1, 2
             // 
             LabelChestShards1.AutoSize = true;
             LabelChestShards1.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
@@ -1197,26 +1195,16 @@
             LabelChestShards2.AutoSize = true;
             LabelChestShards2.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
             LabelChestShards2.ForeColor = SystemColors.ControlDark;
-            LabelChestShards2.Location = new Point(140, 382);
+            LabelChestShards2.Location = new Point(262, 382);
             LabelChestShards2.Name = "LabelChestShards2";
             LabelChestShards2.Size = new Size(22, 25);
             LabelChestShards2.Text = "2";
-            LabelChestShards3.AutoSize = true;
-            LabelChestShards3.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            LabelChestShards3.ForeColor = SystemColors.ControlDark;
-            LabelChestShards3.Location = new Point(262, 382);
-            LabelChestShards3.Name = "LabelChestShards3";
-            LabelChestShards3.Size = new Size(22, 25);
-            LabelChestShards3.Text = "3";
             // 
             // GroupMirrorShardsAmount
             // 
             GroupMirrorShardsAmount.Controls.Add(TrackBarMirrorShardsAmount);
-            GroupMirrorShardsAmount.Controls.Add(label5);
             GroupMirrorShardsAmount.Controls.Add(label1);
-            GroupMirrorShardsAmount.Controls.Add(label4);
             GroupMirrorShardsAmount.Controls.Add(label2);
-            GroupMirrorShardsAmount.Controls.Add(label3);
             GroupMirrorShardsAmount.Enabled = false;
             GroupMirrorShardsAmount.Location = new Point(9, 162);
             GroupMirrorShardsAmount.Margin = new Padding(4, 5, 4, 5);
@@ -1232,7 +1220,7 @@
             TrackBarMirrorShardsAmount.BackColor = SystemColors.ButtonHighlight;
             TrackBarMirrorShardsAmount.Location = new Point(9, 75);
             TrackBarMirrorShardsAmount.Margin = new Padding(4, 5, 4, 5);
-            TrackBarMirrorShardsAmount.Maximum = 5;
+            TrackBarMirrorShardsAmount.Maximum = 2;
             TrackBarMirrorShardsAmount.Minimum = 1;
             TrackBarMirrorShardsAmount.Name = "TrackBarMirrorShardsAmount";
             TrackBarMirrorShardsAmount.RightToLeft = RightToLeft.No;
@@ -1287,7 +1275,7 @@
             label2.Enabled = false;
             label2.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
             label2.ForeColor = SystemColors.ControlDark;
-            label2.Location = new Point(80, 52);
+            label2.Location = new Point(256, 52);
             label2.Margin = new Padding(4, 0, 4, 0);
             label2.Name = "label2";
             label2.Size = new Size(22, 25);
@@ -3353,7 +3341,6 @@
         private TrackBar TrackBarChestShardsAmount;
         private Label LabelChestShards1;
         private Label LabelChestShards2;
-        private Label LabelChestShards3;
         private CheckBox CheckboxMirrorShardsInChests;
         private Label LabelStability;
         private Label LabelCompatibility;

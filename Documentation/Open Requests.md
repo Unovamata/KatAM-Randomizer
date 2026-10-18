@@ -6,6 +6,14 @@ is done, move it to "Done" and say how it was checked. The design rules for door
 
 ## Still open
 
+### 0. From the latest review (not done yet)
+- **NiDL chests**: some of NiDL's loose consumables become consumable chests, sparingly.
+- **The randomizer reads chests and consumables from the expanded ROM**: the ROM Expansion runs first, so the randomizer sees
+  NiDL's rooms too (its items, its chests) and randomizes everything at once. Chest shards then use NiDL's chests as well.
+- **Title screen**: when the ROM Expansion is on, the random title parade can include its ported NiDL enemies.
+- **Generate the ROM in the background**: the progress bar at the bottom shows the progress, and the window's buttons are greyed
+  out until it's done.
+
 ### 1. Save door visits, and show them in game from the save
 - Which doors Kirby has been through (and which chest shards he's taken) must be kept in the save file, for KatAM's rooms and
   the NiDL rooms alike. Today the NiDL rooms' door visits aren't saved: they share one slot of the game's visited-doors table.
@@ -37,11 +45,15 @@ is done, move it to "Done" and say how it was checked. The design rules for door
 
 ## Done (rules to keep)
 
-- **Mirror shard options**: field shards (Unchanged, Random, Custom 1-5 copies of the 8, lying in rooms) and **Add shards in
-  chests** (off by default, 1-3 copies of the 8, each in a chest that held a consumable, never a treasure) work separately or both
-  at once. Off means no shards in chests. Shard chests are left out of the pause screen's chest lists. Checked: with 1 field copy and
-  3 chest copies, 8 field shards and 24 shard chests (3 of each shard), 17 consumable chests left; a converted chest opened in the
-  emulator and gave its shard; USA, European and Japanese builds.
+- **Mirror shard options**: field shards (Unchanged, Random or Custom, 1-2 copies of the 8, lying in rooms) and **Add shards in
+  chests** (off by default, 1-2 copies of the 8, injected into existing chests that held a consumable, never new chests) work
+  separately or both at once. Shard chests are left out of the pause screen's chest lists. Checked: with 1 field copy and 3 chest
+  copies (before the cap went to 2), 8 field shards and 24 shard chests; a converted chest opened in the emulator and gave its shard.
+- **Only boss shards take Kirby out of the level.** A shard from a chest or a room plays its cutscene and Kirby stays, with no
+  victory dance. Checked in the emulator: a field shard and a chest's shard (Kirby stayed in the room and moved after), and Kracko's
+  shard (danced, then Central Circle).
+- **No Chests** is above every chest option: no chests at all (the protected ones aside), no shard chests, the option greyed out,
+  and the pause screen's chest lists hold only what's left. **Shuffle** never puts two chests on one spot.
 - **NiDL boss shards send Kirby back to the NiDL hub**, onto that level's door, the way KatAM's go to Central Circle. The Power Orb's
   alone goes on to Nightmare's room (the rest of NiDL's final fight). NiDL's empty walk-out rooms after a boss (4 of them) are left
   out of the port, since nothing leads there any more. Checked: the shard exit table, the post-shard state run in the emulator from
