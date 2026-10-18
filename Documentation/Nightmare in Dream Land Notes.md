@@ -258,8 +258,16 @@ The master table (`0x0872FF30`) has 8-byte entries, `(kind, spawn function)`, so
 - Each ride is a script of its own (`0x0873FBC4`, init, and `0x0873FC2C`, per frame: 26 of them, picked by the record's variant;
   the rooms after the first run the ones after it, `0x08071E81` being the common landing dive): velocities (`+0x54`, `+0x58`, 16.16
   pixels a frame) held for so many frames, the trail of stars on and off (`0x0807186C`), sounds, then `0x08025F00`, the room change.
-- No affine sprites in the whole ride (OAM checked frame by frame): the star grows by its frames.
-- The current room's index is `0x03002468`; it changes as the 18-frame fade before a room change starts.
+- The star grows as Kirby gets on by its frames. Two rides also shrink it with Kirby, as they fly off into the distance (OAM read
+  every frame of all 6 rides; Vegetable Valley 2, Butter Building 4, Yogurt Yard 5 and Rainbow Resort 2 never scale): Ice Cream
+  Island 2's (stage 1-2, room 2: affine from its start, the size 1/1 until it climbs, to 2/3, then 1/4 at once out of view at the
+  sky's top, down to 1/10 as it drifts down to the room change and its fade) and Orange Ocean 3's sky (stage 5-3, room 5: 1/1 to
+  1/20 by the end of its fade). Affine matrices, pure scale (pa = pd = 256 / the size, pb = pc = 0, no double size): Kirby's
+  piece on matrix 1, the star's 4 16x16 pieces on matrix 0, the same value, each piece's middle moved in toward the star's (the
+  object's spot). The values frame by frame: `KatAMExpansionRooms.cs`, `NidlRides` ("scale"). The landing room shows the last value
+  for one more frame, under the fade's white.
+- The current room's index is `0x03002468`; it changes as the 18-frame fade before a room change starts. The fade is to white, and
+  the next room fades in from it.
 - Kirby tumbles off where the star goes: up 4 pixels a frame, slowing (2, then 1), down again as fast, half a pixel a frame on
   (a quarter in Orange Ocean 3's), one bounce off the floor. The rides themselves, frame by frame: `KatAMExpansionRooms.cs`, `NidlRides`.
 - Grape Garden 3-2's star (room 2, variant 13) doesn't take Kirby when he's put on it or walks into it: it's off until something

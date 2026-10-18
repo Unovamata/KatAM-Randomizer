@@ -37,22 +37,36 @@ is done, move it to "Done" and say how it was checked. The design rules for door
   emulator, for the 6 of the ported stars Kirby gets on in NiDL. Each runs a ride of its own: jumps 16 pixels up as Kirby gets on,
   bobs 32 down under him for 24 frames, flies its own path out of the room trailing stars, crosses the sky rooms on its way (each
   entered where NiDL's comes in), dives into the room it lands in, the orb bursts and Kirby tumbles off and bounces once to where he
-  stands. NiDL uses no affine sprites in the ride (no scaling or rotation registers in OAM, checked over 520 frames); the star's
-  "growing" is its frames (a 24-pixel star, then a 32x32 one with Kirby drawn on it), and the turning is Kirby's tumbling frames.
+  stands. The star's growing as Kirby gets on is its frames (a 24-pixel star, then a 32x32 one with Kirby drawn on it), and the
+  turning is Kirby's tumbling frames. Two rides also shrink the star and Kirby as they fly off into the distance (the owner asked
+  again: "I vividly remember NiDL's stars have some scaling of Kirby and the star going on, did you copy that?"; the first pass
+  had checked only Vegetable Valley 2's OAM): Ice Cream Island 2's (from 1/1 to 2/3 over its climb, then at once 1/4, to 1/10 by
+  its room change) and Orange Ocean 3's sky (from 1/1 to 1/20). NiDL scales them with affine matrices (pure scale: no rotation,
+  no double size), all their pieces (Kirby's, the star's 4) around the star's middle, each moved in toward it. OAM read every
+  frame of all 6 rides, to their end: the other 4 never scale.
   The ported stars now fly those rides (KatAM's star and rider, NiDL's paths): `NidlRides` holds each ride's moves, `WarpFlights()`
   makes them KatAM flights, and `warpstar.c` skips KatAM's 300-frame wait before take-off, takes the flight through more than one
-  room, and ends it where Kirby stands. Before, KatAM's star waited 300 frames, sank to the floor, and its sky rides were an arc
+  room, ends it where Kirby stands, and draws Kirby and his star at NiDL's size frame by frame where it shrinks them (each step
+  carries NiDL's matrix value; Kirby's drawing detoured, the riding star's task swapped). Before each room change the star flies
+  its moves in NiDL's 18-frame fade, with KatAM's own fade to white (the one KatAM's flights start before theirs): without it,
+  KatAM's room change loaded the next room on screen (3 frames of garbled tiles). Before, KatAM's star waited 300 frames, sank to
+  the floor, and its sky rides were an arc
   that took Kirby off the top of Vegetable Valley 2's sky. Tested in the emulator (USA, expanded; new games started in the stars'
   rooms, Kirby put on the star in RAM: the ride itself is the game's): Vegetable Valley 2 (0x74 → sky 0x7B → 0x7C), Ice Cream
   Island 2 (0xED → 0xEE), Butter Building 4 (0x150 → 0x151 → 0x152), Yogurt Yard 5 (0x240 → 0x241), Orange Ocean 3 (0x27E → sky
   0x280 → 0x27F) and Rainbow Resort 2 (0x2EB → sky 0x2F9 → 0x2EC): each goes through NiDL's rooms, comes into each where NiDL's star
   does (VV's sky at 164, 496 and its last room at 13, 16), and Kirby ends where NiDL's does (VV, ICI and YY at x 119, BB 90, OO 79,
   RR 122; KatAM's Kirby stands up to 4 pixels lower on the same floor). European and Japanese: VV and OO, and VV and RR, the same.
-  Logic checks pass on all three and a randomized USA ROM. Not the same as NiDL: the camera is KatAM's, which follows Kirby (NiDL's
-  scrolls the sky rooms at its own pace); the star and rider are KatAM's sprites; KatAM's room change shows the next room at once
-  (NiDL's star goes on moving through an 18-frame fade). Not tested: Grape Garden 3's star (stage 3-2, room 2: Kirby couldn't get
-  on it in NiDL, so it keeps the flight it had, without the wait); KatAM's own warp stars (the code leaves them as they were: they
-  have subtypes under 6 and their flights none of the marks).
+  The shrink and fade, tested the same way, OAM read every frame: ICI 2 and OO 3 draw Kirby and the star at NiDL's size frame by
+  frame (KatAM's ride 5 frames behind NiDL's in ICI as Kirby gets on, the sizes on the same spots: OO at 152, 208 both at
+  NiDL's 1024), compared with NiDL's frames in screenshots, on USA, European and Japanese; the screen goes white over the 18 fade
+  frames, the room changes under it, and the landing room fades in, no garbled tiles; all 6 rides still land where they did (the
+  4 others not scaled, as NiDL's). Logic checks pass on all three and a randomized USA ROM. Not the same as NiDL: the camera is
+  KatAM's, which follows Kirby (NiDL's scrolls the sky rooms at its own pace: its shrunken star sits higher on screen); the star
+  and rider are KatAM's sprites. Not tested: Grape Garden 3's star (stage 3-2, room 2: Kirby couldn't get on it in NiDL, so it
+  keeps the flight it had, without the wait); KatAM's own warp stars (the code leaves them as they were: they have subtypes under
+  6 and their flights none of the marks); riding a shrinking star with a copy ability (its hat is drawn by the same function, so
+  it's scaled with him, but no ability could be had in the rooms tested).
 
 - **NiDL hubs have 2 doors into their level** (item 32, the owner's answer: "NiDL's doors inside the hub rooms, should have 2
   doors as this allows for branching paths inside the hub doors for NiDL, this is a rule that applies for all hubs. I'm talking

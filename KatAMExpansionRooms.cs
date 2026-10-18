@@ -1454,12 +1454,17 @@
          *   rooms' gUnk_0893CB44 entries) and hops off, as at a flight's end;
          * • after it, each star's NiDL ride (Transport.Ride, NidlRides), its moves as NiDL's star makes them: a frame to where NiDL's
          *   star jumps as Kirby gets on (from the KatAM star's spot, where he is), then the star's moves, sparkling where it flies (2
-         *   pixels a frame and more); into each room after the first, a room change marked for "ROM Expansion/warpstar.c" (+8
+         *   pixels a frame and more); before each room change, the star's moves in NiDL's fade to white (RideLeg.Fade), KatAM's
+         *   own fade to white started on the first (effect 0, as KatAM's flights start it before their room change, which loads the
+         *   next room under the white); into each room after the first, a room change marked for "ROM Expansion/warpstar.c" (+8
          *   NIDL_RIDE_ROOM, +0xA the room, +0 and +2 the cell Kirby comes in at: KatAM's flights change room once, to the star's
          *   room), then a frame to where NiDL's star comes in, and its moves there; at the last room's end, Kirby hops off: the orb
          *   where the star goes, then his tumble as NiDL's (RideLeg.Hop, RideLeg.Bounce), as KatAM's hop-off draws it (tumbling,
          *   bouncing), to where he stands; the end (+8 NIDL_RIDE_HOP, not 0x80: warpstar.c ends the flight there) leaves him as he
-         *   is, facing where he went. The rooms'
+         *   is, facing where he went; where NiDL draws its star smaller (RideLeg.Scale: flying off into the distance), the steps carry
+         *   the size (+0xA: NiDL's matrix pa, 256 / the size in 8.8; 0 his own), warpstar.c drawing Kirby and his star at it. As
+         *   KatAM draws Kirby after his step's run (sub_080534D0, where it moves on to the next step on its last frame), a step
+         *   carries the size of the frame before it, so each frame is drawn at NiDL's size for it. The rooms'
          *   gUnk_0893CB44 entries (where Kirby comes back if he's lost after a flight) are the star's landing (DestX, DestY), and in
          *   the room a ride lands in, where Kirby hops off;
          * warpstar.c also makes the ported stars leave at once (KatAM's revs 300 frames with Kirby on it for the helpers); */
@@ -1467,6 +1472,8 @@
         // (Kirby's animations tumbling, KatAM's: 74, then 89 down to 75, round again; bouncing off the floor; the effect making the orb,
         // 0x292, where he hops off);
         const int Tumbling = 74, Bouncing = 20, HopOrb = 10;
+        // (a flight step's effect starting KatAM's fade to white, sub_0803CA20: its flights' before their room change);
+        const int FlightFade = 0;
         static void WarpFlights(byte[] rom, IReadOnlyDictionary<string, int> symbols, ref int cursor) {
             int table = symbols["gUnk_08D60A84"], arrivals = symbols["gUnk_0893CB44"], first = ReadInt(rom, table) - 0x08000000;
             if (rom[first + (FlightRise - 1) * FlightStep + 9] != 0x40) return;     // (its room change: +9, the flags);
@@ -1474,9 +1481,9 @@
             int flight = Allocate(ref cursor, (FlightRise + 2) * FlightStep, 4), moved = Allocate(ref cursor, (WarpFlight + 1 + rides.Count) * 4, 4);
             Array.Copy(rom, first, rom, flight, FlightRise * FlightStep);
             WriteShorts(rom, flight + FlightRise * FlightStep, 0, 0, 1, FlightRider);  // A frame still (it moves on to the end);
-            WriteShorts(rom, flight + FlightRise * FlightStep + 8, 0xFF);
+            WriteShorts(rom, flight + FlightRise * FlightStep + 8, 0xFF, 0);
             WriteShorts(rom, flight + (FlightRise + 1) * FlightStep, 0, 0, 0, FlightRider);   // The end: Kirby hops off;
-            WriteShorts(rom, flight + (FlightRise + 1) * FlightStep + 8, 0x80FF);
+            WriteShorts(rom, flight + (FlightRise + 1) * FlightStep + 8, 0x80FF, 0);
             Array.Copy(rom, table, rom, moved, WarpFlight * 4);
             WriteInt(rom, moved + WarpFlight * 4, flight + 0x08000000);
             Repoint(rom, table + 0x08000000, moved + 0x08000000);
@@ -1486,28 +1493,35 @@
             }
             foreach (Transport t in rides) {
                 List<byte[]> steps = new List<byte[]>();
-                void Step(int xSpeed, int ySpeed, int frames, int effect = 0xFF, int flags = 0, int room = 0, int animation = FlightRider) {
+                void Step(int xSpeed, int ySpeed, int frames, int effect = 0xFF, int flags = 0, int room = 0, int animation = FlightRider, int scale = 0) {
                     byte[] step = new byte[FlightStep];
                     WriteShorts(step, 0, xSpeed, ySpeed, frames, animation);
                     step[8] = (byte)effect;
                     step[9] = (byte)flags;
-                    WriteShort(step, 10, room);
+                    WriteShort(step, 10, effect == RideRoom ? room : scale);
                     steps.Add(step);
                 }
-                // (from where Kirby is, 8.8 pixels, to a spot: a frame; then the moves);
+                // (from where Kirby is, 8.8 pixels, to a spot: a frame; then the moves, and before a room change those in the fade, the
+                // fade started on its first, in steps of a move, an effect and a size: move k carries the size of the frame before it, the
+                // leg's start's for the first, RideLeg.Scale[k]);
                 void Move(int fromX, int fromY, int x, int y) => Step(x * 256 - fromX, fromY - y * 256, 1);
-                void Moves(RideLeg leg) {
-                    foreach ((int dx, int dy, int frames) in leg.Moves)
-                        Step(dx * 256, -dy * 256, frames, Math.Abs(dx) + Math.Abs(dy) >= 2 ? Sparkles : 0xFF);
+                void Moves(RideLeg leg, bool fade) {
+                    List<(int dx, int dy)> path = leg.Moves.Concat(fade ? leg.Fade : Array.Empty<(int dx, int dy, int frames)>()).SelectMany(m => Enumerable.Repeat((m.dx, m.dy), m.frames)).ToList();
+                    int fadeAt = fade ? leg.Moves.Sum(m => m.frames) : -1;
+                    int Effect(int k) => k == fadeAt ? FlightFade : Math.Abs(path[k].dx) + Math.Abs(path[k].dy) >= 2 ? Sparkles : 0xFF;
+                    for (int k = 0, n; k < path.Count; k += n) {
+                        for (n = 1; k + n < path.Count && path[k + n] == path[k] && Effect(k + n) == Effect(k) && leg.SizeAt(k + n) == leg.SizeAt(k); n++) { }
+                        Step(path[k].dx * 256, -path[k].dy * 256, n, Effect(k), scale: leg.SizeAt(k));
+                    }
                 }
                 Move(t.X * 256, t.Y * 256, t.Ride[0].X, t.Ride[0].Y);
-                Moves(t.Ride[0]);
+                Moves(t.Ride[0], t.Ride.Length > 1);
                 foreach (RideLeg leg in t.Ride.Skip(1)) {
                     // (KatAM's room change leaves Kirby at the cell's middle less 8 pixels, its top less 7: sub_080562D0);
                     int cellX = (leg.X + 16) / 16, cellY = (leg.Y + 15) / 16;
                     Step(cellX, cellY, 1, RideRoom, 0x40, leg.Room);
                     Move(cellX * 0x1000 - 0x800, cellY * 0x1000 - 0x701, leg.X, leg.Y);
-                    Moves(leg);
+                    Moves(leg, leg != t.Ride[^1]);
                 }
                 // (his tumble, a frame at a time, facing where he goes, then his bounce, to where he stands);
                 var hop = t.Ride[^1].Hop.SelectMany(m => Enumerable.Repeat((m.dx, m.dy), m.frames)).ToList();
@@ -1527,18 +1541,26 @@
         }
 
         /* WarpRideDetours(); "ROM Expansion/warpstar.c"'s detours (see WarpFlights()): KatAM's warp star's rev (sub_0800C270), a
-         * flight's room change (sub_08055D9C) and its step (sub_080534D0), their trampolines in gNidlRideTrampolines, their addresses
-         * in gNidlRide. Returns an error, or null; */
+         * flight's room change (sub_08055D9C) and its step (sub_080534D0), Kirby's drawing (sub_0803F46C), their trampolines in
+         * gNidlRideTrampolines, their addresses in gNidlRide; and the task of the star Kirby rides (sub_0808EEF4: its one pointer,
+         * sub_0808EDB8's, which starts it) becomes NidlRideStar, which runs it (its first instructions keep gCurTask in r3, which a
+         * detour's jump back would need). Returns an error, or null; */
         static string WarpRideDetours(byte[] rom, KatAMExpansionCode.Version version) {
             int cursor = CodeAddress + version.CodeSymbols["gNidlRideTrampolines"], ride = CodeAddress + version.CodeSymbols["gNidlRide"];
             if (ReadInt(rom, ride) != 0) return null;  // (applied already);
+            int starTask = version.RomSymbols["sub_0808EEF4"] + 0x08000000 + 1;
+            List<int> starPointers = Enumerable.Range(0, 0x400000 / 4).Select(i => i * 4).Where(at => ReadInt(rom, at) == starTask).ToList();
+            if (starPointers.Count != 1) return $"The {version.Name} ROM's warp star code doesn't match.";
             int rev = Detour(rom, version.RomSymbols["sub_0800C270"], CodeAddress + 0x08000000 + version.CodeSymbols["NidlRideRev"], ref cursor);
             int change = rev < 0 ? -1 : Detour(rom, version.RomSymbols["sub_08055D9C"], CodeAddress + 0x08000000 + version.CodeSymbols["NidlRideRoomChange"], ref cursor);
             int step = change < 0 ? -1 : Detour(rom, version.RomSymbols["sub_080534D0"], CodeAddress + 0x08000000 + version.CodeSymbols["NidlRideStep"], ref cursor);
-            if (rev < 0 || change < 0 || step < 0) return $"The {version.Name} ROM's warp star code doesn't match.";
+            int draw = step < 0 ? -1 : Detour(rom, version.RomSymbols["sub_0803F46C"], CodeAddress + 0x08000000 + version.CodeSymbols["NidlRideDraw"], ref cursor);
+            if (rev < 0 || change < 0 || step < 0 || draw < 0) return $"The {version.Name} ROM's warp star code doesn't match.";
             WriteInt(rom, ride, rev + 0x08000000 + 1);
             WriteInt(rom, ride + 4, change + 0x08000000 + 1);
             WriteInt(rom, ride + 8, step + 0x08000000 + 1);
+            WriteInt(rom, ride + 12, draw + 0x08000000 + 1);
+            WriteInt(rom, starPointers[0], CodeAddress + 0x08000000 + version.CodeSymbols["NidlRideStar"] + 1);
             return null;
         }
 
@@ -1707,21 +1729,29 @@
         static Dictionary<NightmareRoom, List<Transport>> transportsOf = new Dictionary<NightmareRoom, List<Transport>>();
         /* RideLeg; A room a warp star's ride goes through (NidlRides): the room (a ported part), where the star comes into it (its
          * middle, in the part's pixels), its moves frame by frame (pixels a frame, down positive, for so many frames) up to its room
-         * change, and where they end; */
+         * change, and where they end; its moves in the fade before the room change (NidlRides, after "/"); the size NiDL draws the
+         * star and Kirby at, frame by frame from the leg's start through the fade (its affine matrix's pa: 256 / the size, in 8.8),
+         * where it draws them smaller (null: their own size all along); */
         public sealed record RideLeg(int Room, int X, int Y, (int dx, int dy, int frames)[] Moves, (int dx, int dy, int frames)[] Hop = null,
-                                     (int dx, int dy, int frames)[] Bounce = null) {
+                                     (int dx, int dy, int frames)[] Bounce = null, int[] Scale = null, (int dx, int dy, int frames)[] Fade = null) {
             public (int x, int y) End => (X + Moves.Sum(m => m.dx * m.frames), Y + Moves.Sum(m => m.dy * m.frames));
+            // SizeAt(); The size at frame k from the start (Scale's pa), or 0 for the star's own;
+            public int SizeAt(int k) => Scale != null && k < Scale.Length && Scale[k] > 256 ? Scale[k] : 0;
         }
         /* NidlRides; NiDL's warp star rides as its stars fly them, recorded from NiDL frame by frame (each star runs a script of its own:
          * the warp star object, type 0x4A, 0x08071030, its flights picked by the record's variant, 0x0873FBC4; see "Documentation/Nightmare
          * in Dream Land Notes.md"): by the star's room (level, stage, room), each room the ride goes through: its index in the stage,
          * where the star is as it comes in (its middle: NiDL draws Kirby on the star as one 32x32 sprite there, as KatAM draws its rider),
-         * then its moves ("dx,dy" pixels a frame, down positive; "*n": for n frames) up to the room change (where NiDL's fade starts; what
-         * the star does in the fade, after "/", isn't flown: KatAM's room change shows the next room at once). The first room's starts
+         * then its moves ("dx,dy" pixels a frame, down positive; "*n": for n frames) up to the room change (where NiDL's fade to white
+         * starts), and after "/" its moves in the fade (18 frames, flown with KatAM's own fade to white, as its flights fade before their
+         * room change), up to where NiDL's star goes and the next room loads. The first room's starts
          * where NiDL's star jumps to as Kirby gets on (16 pixels up), then bobs down under him before it's off; the last room's ends where
          * Kirby hops off. Then "hop": his moves as he tumbles off it (NiDL's: up 4 pixels a frame, slowing, then down) to where he first
          * touches the floor, and "bounce": his bounce from there, to where he stands (NiDL's own Kirby stands up to 4 pixels higher than
-         * KatAM's on the same floor: he drops onto it).
+         * KatAM's on the same floor: he drops onto it). "scale": in the rides where NiDL draws the star and Kirby smaller as they fly off
+         * into the distance (its affine matrix's pa, 256 / the size in 8.8, all their pieces scaled around the star's middle), a leg's
+         * room, then the pa frame by frame from where the star comes in, through its fade ("pa*n": for n frames; 256 after them). NiDL's
+         * landing room shows the last pa for one more frame, under its fade's white: not taken.
          * Grape Garden 3's (3, 2, 2) isn't here: Kirby didn't get on it (it's off until something in its room is done) */
         static readonly Dictionary<(int level, int stage, int room), string[]> NidlRides = new Dictionary<(int, int, int), string[]> {
             // Vegetable Valley 2's;
@@ -1735,6 +1765,7 @@
             [(1, 1, 2)] = new[] {
                 "0 128,391 0,0 6,-3*6 2,-2*6 1,-1*6 -1,-1 -1,0 -1,-1 -1,0 -1,-1 -1,0 -2,-1 -2,0 -2,-1 -2,0 -2,-1 -2,0 -4,0*6 -6,1 -6,0 -6,1 -6,0 -6,1 -6,0 -4,1*6 -2,2*6 -1,3*6 0,2 1,2 0,2 1,2 0,2 1,2 1,1*6 2,1 2,0 2,1 2,0 2,1 2,0 4,1 4,0 4,1 4,0 4,1 4,0 2,1 2,0 2,1 2,0 2,1 2,0 1,1 1,0 1,1 1,0 1,1 1,0 1,1 1,0 1,1 1,0 1,1 1,0 1,1 1,0*7 0,0 1,-1 0,-1 1,-1 0,-1 1,-1 0,-1 1,-1 0,-1*2 0,-3*5 1,-3 -1,-3 0,-3*3 0,-5*4 -1,-5 0,-5 -1,-5 0,-5 -1,-5 0,-5 -1,-5 0,-5 -1,-5*9 0,-6 -1,-5 0,-6 -1,-5 0,-6 -1,-5 0,-6 0,-8*10 0,-10*4 0,-8*2 0,-6 0,-4*3 0,-6*16 0,0 1,0*3 0,0 1,0*3 0,0 1,0*3 0,0 1,0*3 0,0 1,0*3 0,0 1,0*3 0,0 1,0*3 0,0 1,0*3 0,0 1,0*3 0,0 1,0*3 0,0 1,0*3 0,0 1,0*3 0,1 0,0 0,1 0,0 0,1 0,0 0,1 0,0 0,1 0,0 0,1 0,0 0,1 0,0 0,1 0,0 0,1 0,0 0,1 0,0 0,1 0,0 0,1 0,0 0,1 0,0 0,1 0,0 0,1 0,0 0,1 0,0 0,1 0,0 0,1 0,0 0,1 0,0 0,1 0,0 0,1 0,0*2 0,1 0,0 0,1 0,0*2 0,1 0,0*2 0,1 0,0 0,1 0,0*2 0,1 0,0*2 0,1 0,0 0,1 0,0*2 0,1 0,0*2 0,1 0,0 0,1 0,0*2 0,1 0,0*2 0,1 0,0 0,1 0,0*2 0,1 0,0*3 0,1 0,0*3 0,1 0,0*3 0,1 0,0*3 0,1 0,0*3 0,1 0,0*3 0,1 0,0*3 0,1 0,0*3 0,1 0,0*3 0,1 0,0*4 0,1 0,0*7 0,1 0,0*7 0,1 0,0*7 0,1 0,0*7 0,1 0,0*9 0,1 0,0*15 0,1 0,0*15 0,1 0,0*4 / 0,0*11 0,1 0,0*6",
                 "3 12,14 1,2*58",
+                "scale 0 256*105 260*6 264*7 268*7 273*6 277*7 282*7 287*7 292*6 297*7 303*7 309*7 315*6 321*7 327*7 334*7 341*6 348*7 356*7 364*7 372*6 381*6 1024*21 1092*21 1170*22 1260*21 1365*21 1489*22 1638*21 1820*21 2048*22 2340*21 2730*4",
                 "hop 0,-4 1,-4 0,-4 1,-4 0,-4 1,-4 0,-4 1,-4 0,-2 1,-2 0,-2 1,-2 0,-2 1,-2 0,-2 1,-2 0,-1 1,-1 0,-1 1,-1 0,-1 1,-1 0,-1 1,-1 0,-1 1,0 0,-1 1,0 0,-1 1,0 0,-1 1,0 0,0 1,1 0,0 1,1 0,0 1,1 0,0 1,1 0,1 1,1 0,1 1,1 0,1 1,1 0,1 1,1 0,2 1,2 0,2 1,2 0,2 1,2 0,2 1,2 0,4 1,4 0,4 1,4 0,4 1,4 0,4 1,4 0,4 1,1",
                 "bounce 0,-1 1,-1 0,-1 1,-1 0,-1 1,-1 0,-1 1,-1 0,0 1,-1 0,0 1,-1 0,0 1,-1 0,0 1,-1 0,1 1,0 0,1 1,0 0,1 1,0 0,1 1,0 0,1 1,1 0,1 1,1 0,1 1,1 0,1 1,1 0,0*2 0,-2" },
             // Butter Building 4's;
@@ -1755,6 +1786,7 @@
                 "0 408,31 0,0*2 -8,2*8 -4,2*8 -2,1*8 -1,0 -1,1 -1,0 -1,1 -1,0 -1,1 -1,0 -1,1 1,-1 2,-1*7 3,-2 5,-2*7 7,-4 8,-4*3 10,-2*4 10,-1*4 8,0 8,1 8,0 8,2*4 7,4*4 6,6*4 5,8*2 3,8*2 2,6*4 1,4*4 0,2*2 -1,2*2 -3,1*5 -3,0 -4,1 -4,0 -2,0*4 -1,0*2 -3,0*2 -2,0 -2,-1 1,-16*4 2,-8*13 / 0,0*18",
                 "5 88,310 1,-2 0,-2 1,-2 0,-2 1,-2 0,-2 1,-2 0,-2 1,-2 0,-2 1,-2 0,-2 1,-2 0,-2 1,-2 0,-2 1,-2 0,-2 1,-2 0,-2 1,-2 0,-2 1,-2 0,-2 1,-2 0,-2 1,-2 0,-2 1,-2 0,-2 1,-2 0,-2 1,-2 0,-2 1,-2 0,-2 1,-2 0,-2 1,-2 0,-2 1,-2 0,-2 1,-2 0,-2 1,-2 0,-2 1,-2 0,-2 1,-1 0,-1 1,-1 0,-2 1,-1 0,-1 1,-1 0,-1 1,-1 0,-1 1,-1 0,-1 1,-1 0,-1 1,-1 0,-1 1,-1 0,-1 1,0 0,-1 1,-1 0,-1 1,0 0,-1 1,0 0,-1 1,0 0,-1 1,0 0,-1 1,0 0,-1 1,0 0,0 1,0 0,-1 1,0 0,0 1,0 0,-1 1,0 0,0 1,0 0,0 1,0 0,0 1,0 0,0 1,0 0,0 1,0 0,0 1,0 0,0 1,1 0,0 1,0 0,0 1,1 0,0 1,0 0,0 1,1 0,0 1,1 0,0 1,1 0,0 1,1 0,0 1,1 0,0 0,1 0,0 1,1 0,0 0,1 0,0 1,1 0,0 0,1 0,0 0,1 0,0 0,1 0,0 1,1 0,0 0,1 0,0 0,1 0,0 0,1 0,0 0,1 0,0 0,1 0,0 0,1 0,0 0,1 0,0 1,1 0,0 0,1 0,0 0,1 0,0 0,1 0,0 0,1 0,0 0,1 0,0 0,1 0,0 0,1 0,0 1,1 0,0 0,1 0,0 0,1 0,0 0,1 0,0 0,1 / 0,0 0,1 0,0 0,1 0,0 0,1 0,0 1,1 0,0 0,1 0,0 0,1 0,0 0,1 0,0 0,1 0,0*2",
                 "4 11,30 1,2*3 0,2 1,2*3 0,2 1,2*3 0,2 1,2*3 0,2 1,2*3 0,2 1,2*3 0,2 1,2*3 0,2 1,2*3 0,2 1,2*3 0,2 1,2*3 0,2 1,2*3 0,2 1,2*3 0,2 1,2*3 0,2 1,2*3 0,2 1,2*2",
+                "scale 5 256*2 260*2 264*3 268*3 273*3 277*4 282*3 287*3 292*3 297*3 303*4 309*3 315*3 321*3 327*3 334*4 341*3 348*3 356*3 364*3 372*4 381*3 390*3 399*3 409*3 420*4 431*3 442*3 455*3 468*3 481*4 496*3 512*3 528*3 546*3 564*4 585*3 606*3 630*3 655*3 682*4 712*3 744*3 780*3 819*3 862*4 910*3 963*3 1024*3 1092*3 1170*4 1260*3 1365*3 1489*3 1638*3 1820*4 2048*3 2340*3 2730*3 3276*3 4096*4 5461",
                 "hop 0,-4*3 1,-4 0,-4*3 1,-4 0,-2*3 1,-2 0,-2*3 1,-2 0,-1*3 1,-1 0,-1*3 1,-1 0,-1 0,0 0,-1 1,0 0,-1 0,0 0,-1 1,0 0,0 0,1 0,0 1,1 0,0 0,1 0,0 1,1 0,1*3 1,1 0,1*3 1,1 0,2*3 1,2 0,2*3 1,2 0,4*3 1,4 0,4*3 1,4 0,4 0,1",
                 "bounce 0,-1 1,-1 0,-1*3 1,-1 0,-1*2 0,0 1,-1 0,0 0,-1 0,0 1,-1 0,0 0,-1 0,1 1,0 0,1 0,0 0,1 1,0 0,1 0,0 0,1 1,1 0,1*3 1,1 0,1*2 0,0*2 0,-2" },
             // Rainbow Resort 2's;
@@ -1773,11 +1805,18 @@
                 int[] d = pair[0].Split(',').Select(int.Parse).ToArray();
                 return (d[0], d[1], pair.Length > 1 ? int.Parse(pair[1]) : 1);
             }).ToArray();
-            RideLeg[] ride = legs.Where(leg => !leg.StartsWith("hop ") && !leg.StartsWith("bounce ")).Select(leg => {
-                string[] words = leg.Split(" / ")[0].Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            // (a leg's sizes, by its room: "pa*n" for n frames);
+            Dictionary<string, int[]> scales = legs.Where(leg => leg.StartsWith("scale ")).Select(leg => leg.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+                .ToDictionary(words => words[1], words => words.Skip(2).SelectMany(word => {
+                    string[] pair = word.Split('*');
+                    return Enumerable.Repeat(int.Parse(pair[0]), pair.Length > 1 ? int.Parse(pair[1]) : 1);
+                }).ToArray());
+            RideLeg[] ride = legs.Where(leg => !leg.StartsWith("hop ") && !leg.StartsWith("bounce ") && !leg.StartsWith("scale ")).Select(leg => {
+                string[] halves = leg.Split(" / "), words = halves[0].Split(' ', StringSplitOptions.RemoveEmptyEntries);
                 int[] at = words[1].Split(',').Select(int.Parse).ToArray();
                 var part = partAt((star.level, star.stage, int.Parse(words[0])), at[0] / 16, at[1] / 16).part;
-                return new RideLeg(part.Room, at[0] - part.X * 16, at[1] - part.Y * 16, Moves(words.Skip(2)));
+                return new RideLeg(part.Room, at[0] - part.X * 16, at[1] - part.Y * 16, Moves(words.Skip(2)), Scale: scales.GetValueOrDefault(words[0]),
+                                   Fade: halves.Length > 1 ? Moves(halves[1].Split(' ', StringSplitOptions.RemoveEmptyEntries)) : Array.Empty<(int, int, int)>());
             }).ToArray();
             (int, int, int)[] Tail(string kind) => Moves(legs.First(leg => leg.StartsWith(kind + " ")).Split(' ', StringSplitOptions.RemoveEmptyEntries).Skip(1));
             ride[^1] = ride[^1] with { Hop = Tail("hop"), Bounce = Tail("bounce") };

@@ -114,7 +114,9 @@ after any change.
 - **A warp star flies NiDL's own ride**, as NiDL's star flies it, frame by frame: it's off as soon as Kirby is on (a jump up, a
   bob down under him, no wait), along its own path out of the room, through the sky rooms NiDL's goes through (each entered where
   NiDL's comes in), and into the room it lands in, where Kirby tumbles off as NiDL's does (the orb, his tumble and bounce) to
-  where NiDL's Kirby stands. The helpers on the star ride with him. `NidlRides`, `WarpFlights()`, `warpstar.c`.
+  where NiDL's Kirby stands. Kirby and the star are drawn at NiDL's size, frame by frame, where NiDL shrinks them (Ice Cream
+  Island 2, Orange Ocean 3), and the screen fades to white before each room change as NiDL's does. The helpers on the star ride
+  with him. `NidlRides`, `WarpFlights()`, `warpstar.c`.
 - No mirror is placed next to them (rule 2).
 
 ## 8. Bosses and mini-bosses
