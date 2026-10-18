@@ -130,6 +130,8 @@ after any change.
 
 - Chests go where KatAM would put one, as a reward for exploring (dead ends, secret rooms, behind blocks, the end of a branch), for
   a challenge, or as a surprise. Never in a boss room, a switch room or a mini-boss's fight area.
+- **NiDL chests are mostly added, not converted**: new chests go into the rooms; a loose consumable becomes a chest only sparingly.
+  NiDL has a lot of loose items, so converting them would flood the levels. A few chests per level, as KatAM has.
 - **Mirror shards the randomizer adds** come in two options, used separately or both at once:
   - **field shards**: 1 to 5 copies of the 8 shards, lying in rooms, each replacing a consumable item;
   - **chest shards**: 1 to 3 copies of the 8 shards, each in a chest that held a consumable (healing items, 1UPs and such), never a

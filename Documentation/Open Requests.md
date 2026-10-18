@@ -17,7 +17,10 @@ is done, move it to "Done" and say how it was checked. The design rules for door
   them: as a reward for exploring (a dead end, a secret room, behind breakable blocks, the end of a branch), for a challenge (a hard
   jump, a room full of enemies) or as a surprise.
 - Never in a boss room, a switch room or a mini-boss's fight area.
-- They then count as consumable chests for the randomizer (the shards in chests option may replace them).
+- **Mostly new chests added to the rooms** (appended to their object lists), at spots like the ones above. Replace one of the room's
+  own loose consumables with a chest **only sparingly**. NiDL's rooms have a lot of loose items, and turning them into chests would
+  flood the levels with chests. Keep KatAM's density: a few per level, each one worth finding.
+- They then count as consumable chests for the randomizer (the shards in chests option may use them).
 
 ### 3. Master Sword toggle
 - A randomizer option: the Master Sword in the hub is unlocked from the start of the game.
