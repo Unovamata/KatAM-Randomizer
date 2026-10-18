@@ -36,14 +36,16 @@ is done, move it to "Done" and say how it was checked. The design rules for door
 ### 22. Grey blocks: still a pain
 - The owner: "grey blocks are proving to be a pain." They're KatAM's silver metal blocks (`0xF5`) since item 9.
 - Tested with real abilities (USA, expanded; a test ROM with an ability statue put beside Kirby, who walked into it and got the
-  ability as from a pedestal, then walked to room 0x195's four metal blocks on the floor and attacked them, three rounds of B):
-  **Hammer, Burning, Fighter, Wheel, Missile and Master break them**, and **Stone** from above (turned to stone standing on one, he
-  fell through). **Beam, Laser, Fire, Ice, Spark, Throw, Parasol, Sword, Cutter, Cupid, Bomb and Smash don't** (Bomb and Smash also
-  tried with Up+B, Down+B and from on top); Tornado didn't in two tries (it spins away). Not tested: Sleep, Cook, UFO, Magic, Mini,
-  Crash (no statue for them) and the expansion's own abilities (Hi-Jump, Needle, Light, Ball, Freeze, Mike, Backdrop).
+  ability as from a pedestal, then walked to room 0x195's four metal blocks on the floor and attacked them: three rounds of B, then
+  three of forward+B): **Hammer, Burning, Fighter, Wheel, Missile, Master and Smash (its forward+B hammer) break them**, and
+  **Stone** from above (turned to stone standing on one, he fell through). **Throw** breaks them with something held (the owner saw
+  it; not tried here: nothing to grab beside those blocks). **Beam, Laser, Fire, Ice, Spark, Parasol, Sword, Cutter, Cupid and Bomb
+  don't**, with B or forward+B (Bomb also with Up+B, Down+B and from on top); Smash's plain B, Up+B, Down+B and Down+B from on top
+  don't either. Tornado didn't in three tries (it spins away). Not tested: Sleep, Cook, UFO, Magic, Mini, Crash (no statue for them)
+  and the expansion's own abilities (Hi-Jump, Needle, Light, Ball, Freeze, Mike, Backdrop).
 - KatAM's own metal blocks (room 0x134, unchanged) gave the same results with the same test (Hammer and Burning broke them; Beam,
-  Bomb, Stone from the side, Smash and Sword didn't), so the NiDL rooms' grey blocks behave exactly as KatAM's. Nothing found broken;
-  what they guard is optional (the logic checks count them as walls).
+  Bomb, Stone from the side, Smash's plain B and Sword didn't), so the NiDL rooms' grey blocks behave as KatAM's. Nothing found
+  broken; what they guard is optional (the logic checks count them as walls).
 - Needs the owner: what still goes wrong (a room, what happened), or whether they should break with more abilities (KatAM's `0xF4`
   blocks break with any ability's attack).
 
