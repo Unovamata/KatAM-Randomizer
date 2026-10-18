@@ -7,10 +7,10 @@ is done, move it to "Done" and say how it was checked. The design rules for door
 ## Still open
 
 ### 2. Save door visits, and show them in game from the save
-- Which doors Kirby has been through (and which chest shards he's taken) must be kept in the save file, for KatAM's rooms and
-  the NiDL rooms alike. Today the NiDL rooms' door visits aren't saved: they share one slot of the game's visited-doors table.
-- What the game shows must follow the save: load a save and the pause screen's maps show the doors and rooms that save visited.
-  This is one of the owner's biggest complaints.
+- Saving is done (see Done: "NiDL rooms' door visits in the save"). What's left: the pause screen has no area map for the NiDL
+  levels (the pause menu treats their rooms as the tutorial's), so a loaded save's NiDL visits show nowhere in game. KatAM's areas'
+  maps follow the save as they always did (`gVisitedDoors` is KatAM's own saved table). Showing the NiDL levels in the pause screen
+  needs area maps for them (graphics and the pause code's tables): a new feature; needs the owner's go-ahead on how it should look.
 
 ### 5. Bosses as faithful 1:1 recreations of NiDL
 - **Heavy Mole**: rework the fight to match NiDL's, which needs the boss rooms to support scrolling (the screen moves through the
@@ -46,6 +46,18 @@ is done, move it to "Done" and say how it was checked. The design rules for door
   blocks break with any ability's attack).
 
 ## Done (rules to keep)
+
+- **NiDL rooms' door visits in the save** (item 2): the ported rooms' visited doors (and rooms seen) were kept only in RAM, so a
+  reset lost them; they're now saved with each file, in SRAM after KatAM's own save (a copy for each of KatAM's 6, with a checksum),
+  written and read whenever KatAM writes and reads its world props, and cleared with them. KatAM's save layout is unchanged, so saves
+  load across ROMs with and without the expansion. NiDL chests (treasure indices 84-127) and every mirror shard were already in
+  KatAM's saved treasures. Tested in the emulator (USA, expanded, with a save file kept between runs): a new game started in 0x292,
+  Kirby went through its door into 0x298 and opened its chest (the game saves on a chest): both copies of file 1 held the bits (0x292's
+  door, 0x298 seen and its door), files 2 and 3 none; a second run from that save file (a fresh boot, file 1 continued) had the same
+  bits and the chest open; an empty save had none; the same save with the NiDL area wiped (as a ROM without the expansion leaves it)
+  loaded with the chest open and no NiDL visits. European and Japanese: a new game writes all 6 copies. Skip the Tutorial still starts
+  in Central Circle (its clear runs this one). Not tried: a long playthrough, a vanilla ROM loading a save made here (its area is
+  past what KatAM reads).
 
 - **NiDL enemies in the intro parade** (item 1): with the ROM Expansion and Random Intro Parade, 7 ported enemies join the parade's
   kinds: Blade Knight, Needlous, Starman and Gip as small walkers, Twizzy, Cool Spook and Bubbles as fliers, each animated with its

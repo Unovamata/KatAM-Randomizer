@@ -28,7 +28,8 @@
             int table = version.RomSymbols["sbClearFunctions"], skip = CodeAddress + version.CodeSymbols["gNidlSkip"];
             int clear = CodeAddress + 0x08000000 + version.CodeSymbols["NidlSkipClear"] + 1;
             if (ReadInt(patched, table + 4) == clear) return null;  // (applied already);
-            if (ReadInt(patched, table + 4) >> 24 != 0x08) return $"The {version.Name} ROM's save code doesn't match.";
+            // (KatAM's clear, or the ROM Expansion's, which runs it: rooms.c's NidlClearSave);
+            if (ReadInt(patched, table + 4) >> 24 is not (0x08 or 0x09)) return $"The {version.Name} ROM's save code doesn't match.";
 
             // (the room's object list, through the original tables: the ROM Expansion's copies point to the same lists);
             int objects = ReadShort(patched, version.RomSymbols["gRoomProps"] + TutorialChestRoom * 0x28 + 16 * 2);

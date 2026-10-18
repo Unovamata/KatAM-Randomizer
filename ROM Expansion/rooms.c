@@ -10,8 +10,8 @@
  * Each ported room has a doors list of its own (gUnk_08D640A4, from NIDL_DOORS_FIRST: a mirror looks its door up there every frame,
  * and one list for them all made NiDL's rooms lag), and KatAM keeps which of a list's doors were used (and whether its room was seen,
  * bit 15) in gVisitedDoors, a u16 per list, NIDL_DOORS_FIRST of them: the ported rooms' are kept here instead, after the heap
- * (NIDL_VISITED, not saved: their mirrors show as new again after a reset), by the functions reading and setting those bits
- * (sub_08002A5C, sub_08002A80, sub_08002AD0, sub_08002B30, sub_08002BA8, sub_08002C18); */
+ * (NIDL_VISITED), by the functions reading and setting those bits (sub_08002A5C, sub_08002A80, sub_08002AD0, sub_08002B30,
+ * sub_08002BA8, sub_08002C18), and saved with gVisitedDoors in SRAM of their own (NidlWriteSave: see there); */
 #include "global.h"
 #include "data.h"
 #include "functions.h"
@@ -24,6 +24,8 @@
 #include "multi_08030C94.h"
 #include "treasures.h"
 #include "nidl.h"
+#include "save.h"
+#include "agb_sram.h"
 
 #define BIG_BLOCKS 3584
 #define BIG_ZONES (BIG_BLOCKS + 4)
@@ -114,6 +116,75 @@ void BigSub_080027A8(void)
 {
     CpuFill32(0, gUnk_02023368, sizeof(gUnk_02023368));
     CpuFill32(0, Taken(), NIDL_TAKEN_SIZE);
+}
+
+/* The ported rooms' visited doors in the save: KatAM's SRAM (32 KB) holds the file info (2 copies) then each file's world props, 2
+ * copies each (gWorldProps, gVisitedDoors among them: 0x314 bytes a copy, to 0x1290 in all); the ported rooms' visited bits (Visited()'s
+ * area, without its magic word and the taken bits, which a visit clears anyway) go after, from NIDL_SAVE_BASE, a copy for each of
+ * KatAM's, with a checksum of their own. The game's own copies stay where and as they were, so a save from a ROM without the ROM
+ * Expansion loads as before (its ported rooms unvisited), and one from this ROM loads in another. KatAMExpansionRooms.cs detours
+ * WriteSaveSectionByOffset and VerifySaveByOffset (which reads a copy into the game's buffers: the file select reads each file, a
+ * game's start the chosen one) here (their trampolines in gNidlSaveTrampolines, gNidlSave), each doing the same with this copy after
+ * the game's, and points sbClearFunctions[1] (the world props' clear, which ClearSaveBuffer and InitSaveBuffers run after zeroing
+ * them) to NidlClearSave (the original in gNidlSave; Skip the Tutorial's clear runs this one after, the same way); */
+#define NIDL_SAVE_BASE 0x2000
+#define NIDL_SAVE_DATA (NIDL_VISITED_SIZE - NIDL_TAKEN_SIZE - 4)
+#define NIDL_SAVE_SIZE (8 + NIDL_SAVE_DATA)
+#define NIDL_SAVE_MAGIC 0x4E445653
+
+struct NidlSave {
+    s16 (*write)(enum SaveBufferType, u16);
+    s16 (*verify)(enum SaveBufferType, u16);
+    void (*clear)(void);
+};
+
+const struct NidlSave gNidlSave = { NULL, NULL, NULL };
+const u32 gNidlSaveTrampolines[32] = { 0 };
+
+static u8 *SaveCopy(u16 offset) {
+    return (u8 *)0xE000000 + NIDL_SAVE_BASE + offset * NIDL_SAVE_SIZE;
+}
+
+static u32 SaveSum(const u32 *data) {
+    u32 sum = NIDL_SAVE_MAGIC, i;
+
+    for (i = 0; i < NIDL_SAVE_DATA / 4; i++) sum = (sum << 1 | sum >> 31) + data[i];
+    return sum;
+}
+
+static void ClearVisited(void) {
+    CpuFill32(0, Area() + 1, NIDL_SAVE_DATA);
+}
+
+s16 NidlWriteSave(enum SaveBufferType type, u16 offset) {
+    s16 result = gNidlSave.write(type, offset);
+    u32 header[2];
+
+    if (result == 0 && type == SAVE_BUFFER_TYPE_WORLD_PROPS) {
+        header[0] = NIDL_SAVE_MAGIC;
+        header[1] = SaveSum(Area() + 1);
+        if (WriteSramEx((u8 *)header, SaveCopy(offset), sizeof(header)) || WriteSramEx((u8 *)(Area() + 1), SaveCopy(offset) + 8, NIDL_SAVE_DATA))
+            return -1;
+    }
+    return result;
+}
+
+// NidlVerifySave(); A good copy of the game's is read with this one: its visited bits, or none (a save without them, or a bad copy);
+s16 NidlVerifySave(enum SaveBufferType type, u16 offset) {
+    s16 result = gNidlSave.verify(type, offset);
+    u32 header[2];
+
+    if (result == 0 && type == SAVE_BUFFER_TYPE_WORLD_PROPS) {
+        ReadSram(SaveCopy(offset), (u8 *)header, sizeof(header));
+        ReadSram(SaveCopy(offset) + 8, (u8 *)(Area() + 1), NIDL_SAVE_DATA);
+        if (header[0] != NIDL_SAVE_MAGIC || header[1] != SaveSum(Area() + 1)) ClearVisited();
+    }
+    return result;
+}
+
+void NidlClearSave(void) {
+    gNidlSave.clear();
+    ClearVisited();
 }
 
 u32 BigSub_08002A5C(u16 roomId)

@@ -1066,6 +1066,19 @@
             }
             // (and the completion counts KatAM's chests only, not the NiDL rooms' (PlanChests()): rooms.c's NidlNumChestsCollected);
             Redirect(rom, version.RomSymbols["NumChestsCollected"], codeBase + version.CodeSymbols["NidlNumChestsCollected"]);
+            /* (and the ported rooms' visited doors are saved with the game's world props, in SRAM after them: rooms.c's NidlWriteSave;
+             * the game's functions that write and read them detoured there, their trampolines in gNidlSave, and the world props' clear,
+             * sbClearFunctions[1], pointed to NidlClearSave, the original after them); */
+            int saveTrampolines = CodeAddress + version.CodeSymbols["gNidlSaveTrampolines"], save = CodeAddress + version.CodeSymbols["gNidlSave"];
+            string[] saveFunctions = { "WriteSaveSectionByOffset", "VerifySaveByOffset" }, saveHooks = { "NidlWriteSave", "NidlVerifySave" };
+            for (int i = 0; i < saveFunctions.Length; i++) {
+                int trampoline = Detour(rom, version.RomSymbols[saveFunctions[i]], codeBase + version.CodeSymbols[saveHooks[i]], ref saveTrampolines);
+                if (trampoline < 0) return $"The {version.Name} ROM's save code doesn't match.";
+                WriteInt(rom, save + i * 4, trampoline + 0x08000000 + 1);
+            }
+            int clears = version.RomSymbols["sbClearFunctions"];
+            WriteInt(rom, save + 8, ReadInt(rom, clears + 4));
+            WriteInt(rom, clears + 4, codeBase + version.CodeSymbols["NidlClearSave"] + 1);
             return null;
         }
 

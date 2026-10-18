@@ -229,3 +229,7 @@ gUnk_02028BF0 0x2028bf0
 sub_0804BD98 0x804bdd4
 sub_080AA618 0x80aa660
 sub_080AAA64 0x80aaaac
+WriteSaveSectionByOffset 0x800aa1c
+VerifySaveByOffset 0x800ab08
+WriteSramEx 0x8159bf0
+ReadSram 0x8159ab8
