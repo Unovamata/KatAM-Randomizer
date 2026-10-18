@@ -45,7 +45,25 @@ is done, move it to "Done" and say how it was checked. The design rules for door
 - Needs the owner: what still goes wrong (a room, what happened), or whether they should break with more abilities (KatAM's `0xF4`
   blocks break with any ability's attack).
 
+### 23. Shard chests that show open
+- The owner sees chests open that were never opened. One cause is by design (the rulebook, section 10: "a chest whose shard is
+  owned shows open"): a mirror shard chest uses its shard's own bit, so owning that shard from a boss or the field makes its chest
+  look opened and empty. Proposal, needs the owner's go-ahead (a rule change): give each shard chest a chest bit of its own, and
+  have an opened chest whose shard is already owned give a Maxim Tomato, as owned field shards do.
+
 ## Done (rules to keep)
+
+- **Chests: what was wrong** (the owner's report: empty chests never opened, chests outside the camera, the viewer showing a Battery
+  in a chest that gave a Soda). Checked in the ROMs (USA unrandomized, randomized, and with every option on, chests shuffled): 114
+  chests, 114 different treasure indices, so no chest is a copy sharing another's bit; the NiDL chests (indices 84-127) are new
+  chests holding the game's own chest items. Found and fixed: (1) the Map Viewer read chest contents in the items' object order
+  (Cherry, Pep Brew, Meat, Tomato, Battery, 1UP) instead of the game's (1UP, Invincible Candy, Maxim Tomato, Meat, Pep Brew,
+  Cherry), so a Pep Brew chest showed as a Battery, and other chests showed the wrong item: no chest ever holds a Battery; (2) two
+  chests stood in a room's last column (0x06F, 0x0E9), half outside the camera: chests and batteries now never go in a room's first
+  or last column. Tested in the emulator (USA, a new game started in 0x06F, not a playthrough): its chest shows whole at the room's
+  end, and opening it gives a 1UP and sets only its own bit. Why a chest may still look empty unopened: a save from an older build
+  (the chests' indices were dealt differently then), and by design a mirror shard chest, which shows open once that shard is owned
+  from anywhere (a boss, a field shard): see item 23.
 
 - **NiDL rooms' door visits in the save** (item 2): the ported rooms' visited doors (and rooms seen) were kept only in RAM, so a
   reset lost them; they're now saved with each file, in SRAM after KatAM's own save (a copy for each of KatAM's 6, with a checksum),

@@ -140,7 +140,7 @@ after any change.
   only reads them afterwards, as it reads KatAM's. A chest per 8 rooms of a level (2 to 5), one a room at most, at the best reward
   spots: a loose item behind breakable blocks, a dead end, far from where Kirby comes in; an item there becomes a chest holding it, a
   dead end with none gets a new chest as far into the room as Kirby goes. A dead end with nothing in it at all (no enemy, item or
-  boss: 0x298) always gets one, over the level's count: no room is there for nothing. Always on a floor the camera shows.
+  boss: 0x298) always gets one, over the level's count: no room is there for nothing. Always on a floor the camera shows, whole: never in a room's first or last column, which the camera shows only half of.
   `PlanChests()`.
 - **A chest is listed in its room's doors list**, or opening it hangs the game: the ported rooms' lists are rebuilt after the
   randomizer (`FinishRooms()`), and KatAM's chest lists go into the table the game reads (the expansion moved it).

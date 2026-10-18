@@ -3461,8 +3461,11 @@
                     var doorCells = doors[r].Where(d => !d.Edge).Select(d => (x: d.X, y: d.Y)).Concat(transportsOf[r].Select(t => (x: t.X / 16, y: (t.Y - 1) / 16))).Concat(entries).ToList();
                     bool NearDoor(int cx, int cy) => doorCells.Any(c => Math.Abs(c.x - cx) <= DoorClear && Math.Abs(c.y - cy) <= 2);
                     bool deadEnd = doors[r].Count + transportsOf[r].Count <= 1;
-                    // (a chest stands on a floor, down to it from a spot, up to 6 cells, where the camera shows it, as a mirror: Shown());
+                    // (a chest stands on a floor, down to it from a spot, up to 6 cells, where the camera shows it, as a mirror: Shown(); and
+                    // whole across: KatAM's camera stops 8 pixels short of a room's sides, so never in its first or last column);
+                    int cameraWidth = Padded(r.Width, r.Height).width;
                     (int x, int y)? OnFloor(int cx, int cy) {
+                        if (cx < 1 || cx > cameraWidth - 2) return null;
                         for (int k = 0; k <= 6 && Air(cx, cy + k); k++)
                             if (Floor(cx, cy + k + 1)) return Shown(r, cy + k) ? (cx, cy + k) : null;
                         return null;
