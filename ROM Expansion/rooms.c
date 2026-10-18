@@ -40,23 +40,77 @@ void LoadLevelGfx(u8 playerId, const u16 **arg1, const u16 **arg2);
 const u8 gNidlRoomTops[0x400] = { 0 };
 
 #define NIDL_VISITED ((u32 *)((u8 *)gEwramHeap + NIDL_HEAP_SIZE))
+/* Taken(); The NiDL rooms' loose items taken (template unk2 NIDL_TAKEN_KIND, unk3 the item's number, from KatAMExpansionRooms.cs:
+ * KatAM's own 256 numbers, gUnk_02023368, are all used), the last bytes of NIDL_VISITED: as KatAM's, an item taken stays gone until
+ * the game clears them (sub_080027A8: a game's start, a game over...), so it's once per visit, not once per room entry; */
+#define NIDL_TAKEN_SIZE 0x20
+#define NIDL_TAKEN_KIND 3
 #define BIG_AREA ((u8 *)gEwramHeap + NIDL_HEAP_SIZE + NIDL_VISITED_SIZE)
 
 // Visited(); A room's doors list's visited bits (see above): KatAM's, or the ported rooms' here (cleared the first time: a magic word
 // first);
-static u16 *Visited(u16 roomId) {
-    u16 list = gRoomProps[roomId].doorsIdx;
+static u32 *Area(void) {
     u32 *area = NIDL_VISITED;
 
-    if (list < NIDL_DOORS_FIRST) return &gVisitedDoors[list];
     if (area[0] != NIDL_VISITED_MAGIC) {
         u32 i;
         for (i = 1; i < NIDL_VISITED_SIZE / 4; i++) area[i] = 0;
         area[0] = NIDL_VISITED_MAGIC;
     }
+    return area;
+}
+
+static u16 *Visited(u16 roomId) {
+    u16 list = gRoomProps[roomId].doorsIdx;
+    u32 *area;
+
+    if (list < NIDL_DOORS_FIRST) return &gVisitedDoors[list];
+    area = Area();
     list -= NIDL_DOORS_FIRST;
-    if (list >= NIDL_VISITED_SIZE / 2 - 2) list = NIDL_VISITED_SIZE / 2 - 3;
+    if (list >= (NIDL_VISITED_SIZE - NIDL_TAKEN_SIZE) / 2 - 2) list = (NIDL_VISITED_SIZE - NIDL_TAKEN_SIZE) / 2 - 3;
     return (u16 *)(area + 1) + list;
+}
+
+// Taken(); The NiDL items' taken bits (cleared the first time, as Visited()'s area);
+static u8 *Taken(void) {
+    return (u8 *)Area() + NIDL_VISITED_SIZE - NIDL_TAKEN_SIZE;
+}
+
+// BigSub_08001678(); An object's gone bit set or cleared (sub_08001678): KatAM's, or a NiDL item's (NIDL_TAKEN_KIND);
+void BigSub_08001678(u32 kind, u16 id, u8 slot, u32 set)
+{
+    u8 *bits;
+
+    switch (kind) {
+    case 0: bits = gUnk_02023358[slot]; break;
+    case 1: bits = gUnk_02023368; break;
+    case 2: bits = gUnk_02028BF0; break;
+    case NIDL_TAKEN_KIND: bits = Taken(); break;
+    default: return;
+    }
+    if (set)
+        bits[id >> 3] |= 1 << (id & 7);
+    else
+        bits[id >> 3] &= ~(1 << (id & 7));
+}
+
+// BigSub_080027E8(); Whether an object is gone (sub_080027E8), as above;
+u32 BigSub_080027E8(u32 kind, u16 id, u8 slot)
+{
+    switch (kind) {
+    case 0: return gUnk_02023358[slot][id / 8] >> (id & 7) & 1;
+    case 1: return gUnk_02023368[id / 8] >> (id & 7) & 1;
+    case 2: return gUnk_02028BF0[id / 8] >> (id & 7) & 1;
+    case NIDL_TAKEN_KIND: return Taken()[id / 8] >> (id & 7) & 1;
+    default: return 0;
+    }
+}
+
+// BigSub_080027A8(); KatAM's items come back (sub_080027A8: a game's start, a game over...), and the NiDL items with them;
+void BigSub_080027A8(void)
+{
+    CpuFill32(0, gUnk_02023368, sizeof(gUnk_02023368));
+    CpuFill32(0, Taken(), NIDL_TAKEN_SIZE);
 }
 
 u32 BigSub_08002A5C(u16 roomId)

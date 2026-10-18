@@ -67,9 +67,6 @@ is done, move it to "Done" and say how it was checked. The design rules for door
 ### 16. Bomb chains, for good
 - Rooms 0x304 and 0x2FD's bomb block chains are broken. Fix every room with bomb chains, checked against NiDL's own maps.
 
-### 17. NiDL consumables: once per visit
-- NiDL's loose items come back every time (exploitable). Keep which were taken in RAM, as KatAM does, so they don't reappear.
-
 ### 18. Batteries in the NiDL rooms
 - Add batteries at valuable, rewarding places in the NiDL rooms.
 
@@ -80,6 +77,12 @@ is done, move it to "Done" and say how it was checked. The design rules for door
   should cost a life. To look into.
 
 ## Done (rules to keep)
+
+- **NiDL's loose items are taken once per visit**, as KatAM's (item 17): each has its own gone bit (template unk2 3, `rooms.c`'s
+  `NIDL_TAKEN`: KatAM's 256 item numbers are all used), cleared with KatAM's (a game's start, a game over...). Tested in the
+  emulator (USA, a new game started in room 0xF7 on its 1UP, not a playthrough): eaten (lives 2 to 3), through the door to 0x100
+  and back onto its spot: it stayed gone (lives 3); the ROM before the change gave it again (lives 4). Logic checks pass on all
+  three versions.
 
 - **NiDL chests, made by the ROM Expansion**: 28 consumable chests in the NiDL rooms (2 to 5 a level, none in the Fountain of
   Dreams), at reward spots (an item behind breakable blocks or in a dead end becomes a chest holding it; dead ends with none get a new

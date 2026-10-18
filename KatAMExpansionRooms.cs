@@ -1052,6 +1052,7 @@
             "FillLevelInfo", "GetCollisionTile", "sub_08002434", "sub_08002470", "sub_080024F0", "sub_0800255C", "sub_080025AC",
             "sub_08002624", "sub_080026A8", "sub_08001408", "sub_080015A8",
             "sub_08002A5C", "sub_08002A80", "sub_08002AD0", "sub_08002B30", "sub_08002BA8", "sub_08002C18",
+            "sub_08001678", "sub_080027E8", "sub_080027A8",
         };
         static string BigRooms(byte[] rom, KatAMExpansionCode.Version version) {
             int codeBase = CodeAddress + 0x08000000, heap = version.RomSymbols["EwramInitHeap"], size = -1;
@@ -1137,6 +1138,7 @@
             try {
                 doors = PlanDoors(rom, symbols, nightmare, rooms, mainHub, out mainHubDoors, out katamDoors, out firstStart, out firstFacing);
                 chestsOf = PlanChests(nightmare, rooms, doors, mainHubDoors, katamDoors);
+                takenItems = 0;
             } catch (Exception exception) when (exception is IndexOutOfRangeException or ArgumentException or InvalidOperationException) {
                 return $"The Nightmare in Dream Land ROM doesn't match the {region.KatAM} release.";
             }
@@ -3267,6 +3269,12 @@
          * NIDL_CHESTS_FIRST); */
         public const int FirstNidlChest = 84, LastNidlChest = 127;
         const byte SmallChestType = 0x80;
+        /* The NiDL items' gone bits (rooms.c's NIDL_TAKEN_KIND: template unk2, unk3 the item's number, 256 of them): KatAM keeps its items'
+         * in gUnk_02023368, whose 256 numbers its own items use, so taken once they stay gone until the game clears them (a game's start,
+         * a game over...); NiDL's come back otherwise each time Kirby enters the room; */
+        const byte TakenKind = 3;
+        static int takenItems;
+        public static int TakenItems => takenItems;
         // A NiDL item as a chest's item (KatAM's 1UP, Invincible Candy, Maximum Tomato, Meat, Pep Brew, Cherry);
         static readonly Dictionary<byte, byte> ChestItems = new Dictionary<byte, byte> { [0x63] = 0, [0x64] = 1, [0x61] = 2, [0x60] = 3, [0x5F] = 4, [0x5E] = 5 };
         // KatAM's 41 consumable chests' items (18 1UPs, 7 Pep Brews, 6 Meats, 5 Maximum Tomatoes, 4 Cherries, an Invincible Candy), dealt
@@ -3483,6 +3491,8 @@
 
                 byte[] template = new byte[36];
                 template[0] = 0x01; template[1] = 0x24; template[3] = (byte)templates.Count;
+                // (an item is taken once per visit, as KatAM's: its own gone bit, rooms.c's NIDL_TAKEN_KIND and its number);
+                if (category == 3) { template[2] = TakenKind; template[3] = (byte)takenItems++; }
                 WriteShorts(template, 6, x, y);
                 template[10] = template[11] = template[13] = 0xFF;
                 template[12] = type; template[14] = behavior;
