@@ -6,10 +6,6 @@ is done, move it to "Done" and say how it was checked. The design rules for door
 
 ## Still open
 
-### 1. Title screen: NiDL enemies in the parade
-- When the ROM Expansion is on, the random title parade can include its ported NiDL enemies. The parade has its own character
-  table, so they need new entries there pointing at the expansion's sprites, within the intro's 16-palette limit.
-
 ### 2. Save door visits, and show them in game from the save
 - Which doors Kirby has been through (and which chest shards he's taken) must be kept in the save file, for KatAM's rooms and
   the NiDL rooms alike. Today the NiDL rooms' door visits aren't saved: they share one slot of the game's visited-doors table.
@@ -50,6 +46,14 @@ is done, move it to "Done" and say how it was checked. The design rules for door
   blocks break with any ability's attack).
 
 ## Done (rules to keep)
+
+- **NiDL enemies in the intro parade** (item 1): with the ROM Expansion and Random Intro Parade, 7 ported enemies join the parade's
+  kinds: Blade Knight, Needlous, Starman and Gip as small walkers, Twizzy, Cool Spook and Bubbles as fliers, each animated with its
+  NiDL walk or flight (a looping variant added to its anim), its own palette slot. The parade's type tables moved to the free space
+  with the new types; the randomizer's 16-palette and VRAM check counts them as any other type, so the limit holds. Tested in the
+  emulator (the intro from boot, screenshots every 5 frames): USA (seed 1234) showed Blade Knight and Gip walking and Twizzy flying,
+  European and Japanese (seed 77) Bubbles, Cool Spook, Starman and others; each in its own colours, facing the way it goes, on the
+  parade's line, nothing garbled. Logic checks pass on all three. Not tried: every seed (the check is the same as for KatAM's types).
 
 - **NiDL Meta Knight fight with Kirby's own powers** (item 4): Meta Knight no longer sets down a Sword statue (it stood in for NiDL's
   "GET IT!"), and the duel no longer waits for Kirby to have a power: he waits 1.5 seconds in his cape once on the floor (or until

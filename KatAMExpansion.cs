@@ -157,6 +157,19 @@ namespace KatAMRandomizer {
             FallingStar(),
         };
 
+        /* ParadeLoops; The ported enemies the intro's parade shows (KatAMTitleScreen.AddNidlTypes): their kind there (KatAMTitleScreen's
+         * Kinds: 0 small ground walkers, 2 fliers) and the loop their sprite plays (frame, frames shown: their walk or flight, as their
+         * C code plays it; "enemies/*.c"), an extra variant of their anim; */
+        static readonly Dictionary<string, (int kind, (int frame, int delay)[] loop)> ParadeLoops = new Dictionary<string, (int, (int, int)[])> {
+            ["Blade Knight"] = (0, new[] { (1, 6), (5, 8), (3, 5), (4, 11), (3, 6), (5, 8), (1, 5), (0, 11) }),
+            ["Needlous"] = (0, new[] { (0, 4), (1, 4), (2, 6), (1, 2) }),
+            ["Starman"] = (0, new[] { (0, 4), (4, 6), (6, 10), (5, 6), (0, 4), (1, 6), (2, 10), (3, 6) }),
+            ["Gip"] = (0, new[] { (2, 8), (3, 6), (0, 8), (1, 6) }),
+            ["Twizzy"] = (2, new[] { (0, 4), (1, 4) }),
+            ["Cool Spook"] = (2, new[] { (0, 12), (1, 12), (2, 12), (3, 12) }),
+            ["Bubbles"] = (2, new[] { (0, 20), (10, 2), (14, 4), (10, 2) }),
+        };
+
         static KatAMExpansion() {
             Enemies = Definitions.Where(e => !e.Hidden).Select(e => (e.Index, e.Name)).ToList();
             Minibosses = MinibossDefinitions.Select(m => (m.Index, m.Name)).ToList();
@@ -678,10 +691,13 @@ namespace KatAMRandomizer {
             (int animBase, int animId, int hurtTiles)[] minibossData = new (int, int, int)[allBosses.Count];
             List<(int animId, int variant)> animInfos = new List<(int, int)> { (HurtAnimID, 0), (HurtAnimID, 0) };
 
+            List<KatAMTitleScreen.NidlType> paradeTypes = new List<KatAMTitleScreen.NidlType>();
+
             /* AddAnim(); One anim (its ID: the next free one) for an enemy's or mini-boss's palettes, frames and hurt frame; its frames go
-             * to the type's AnimInfo table infos. Returns its first AnimInfo, anim ID and where its hurt frame went; */
+             * to the type's AnimInfo table infos. Returns its first AnimInfo, anim ID and where its hurt frame went. An enemy in the
+             * parade (ParadeLoops) gets a variant more, after its frames: its loop, and a parade type; */
             (int, int, int) AddAnim(List<byte[]> palettes, List<(byte[] tiles, ushort[] oams, short[] attributes, int palette)> frames, byte[] hurt,
-                                    List<(int animId, int variant)> infos) {
+                                    List<(int animId, int variant)> infos, string parade = null) {
                 int animId = HurtAnimID + animVariants.Count;
 
                 // Tiles and palettes are indexes from their table's base, so they are aligned to it;
@@ -697,10 +713,13 @@ namespace KatAMRandomizer {
                 int tileIndex = (tilesAt - tilesBase) / 32;
                 int oamCount = frames.Sum(f => f.oams.Length);
                 int attributesAt = Allocate(ref cursor, frames.Count * 12, 4), oamsAt = Allocate(ref cursor, oamCount * 2, 4);
-                int variantsAt = Allocate(ref cursor, frames.Count * 4, 4);
+                bool inParade = parade != null && ParadeLoops.ContainsKey(parade);
+                int variantsAt = Allocate(ref cursor, (frames.Count + (inParade ? 1 : 0)) * 4, 4);
+                int[] frameTiles = new int[frames.Count];
 
                 // Animation commands of every frame: GetPalette, GetTiles, ShowFrame and End (holds the frame);
                 for (int i = 0, tile = 0, oam = 0; i < frames.Count; i++) {
+                    frameTiles[i] = tile;
                     (byte[] tiles, ushort[] oams, short[] attributes, int palette) = frames[i];
                     int commands = Allocate(ref cursor, 36, 4);
 
@@ -714,6 +733,25 @@ namespace KatAMRandomizer {
                     oam += oams.Length;
                 }
 
+                /* The parade's loop: each step's GetPalette, GetTiles and ShowFrame (8 words), then JumpBack to the first; its type stands
+                 * on the line the parade walks on (its frames' lowest point: height - origin's y), as wide as its widest frame; */
+                if (inParade) {
+                    (int kind, (int frame, int delay)[] loop) = ParadeLoops[parade];
+                    int commands = Allocate(ref cursor, loop.Length * 32 + 8, 4);
+
+                    for (int s = 0; s < loop.Length; s++) {
+                        (int frame, int delay) = loop[s];
+                        int palette = frames[frame].palette;
+                        WriteInts(rom, commands + s * 32, -2, palette < 0 ? palette15Index : paletteIndexes[palette], 16, -1,
+                                  tileIndex + frameTiles[frame], frames[frame].tiles.Length / 32, delay, frame);
+                    }
+                    WriteInts(rom, commands + loop.Length * 32, -3, loop.Length * 8);
+                    WriteInt(rom, variantsAt + frames.Count * 4, commands + 0x08000000);
+                    var shown = loop.Select(s => frames[s.frame]).ToList();
+                    paradeTypes.Add(new KatAMTitleScreen.NidlType(kind, animId, frames.Count, shown.Max(f => f.tiles.Length / 32),
+                                                                  (shown.Max(f => (int)f.attributes[2]) + 7) & ~7, shown.Max(f => f.attributes[3] - f.attributes[5])));
+                }
+
                 int animBase = infos.Count;
                 for (int i = 0; i < frames.Count; i++) infos.Add((animId, i));
 
@@ -724,7 +762,7 @@ namespace KatAMRandomizer {
             }
 
             foreach ((Enemy enemy, byte[] palette, List<(byte[] tiles, ushort[] oams, short[] attributes, int palette)> frames, byte[] hurt) in built)
-                data.Add(AddAnim(new List<byte[]> { palette }, frames, hurt, animInfos));
+                data.Add(AddAnim(new List<byte[]> { palette }, frames, hurt, animInfos, enemy.Name));
 
             /* Per mini-boss type: its hurt anim (HurtOf: drawing the last tiles of the object's VRAM, after the type's biggest frame), then
              * its mini-bosses' anims; */
@@ -789,6 +827,10 @@ namespace KatAMRandomizer {
                 for (int i = 0; i < entries[t].Count; i++) WriteInt(rom, at + (HurtAnimID + i) * 4, entries[t][i] + 0x08000000);
                 WriteInt(rom, SpriteTables + t * 4, at + 0x08000000);
             }
+
+            // The intro's parade: the ported enemies' types (their anims are in place now);
+            int paradeAt = Allocate(ref cursor, KatAMTitleScreen.NidlTypesSize(paradeTypes.Count), 4);
+            KatAMTitleScreen.AddNidlTypes(rom, paradeAt, paradeTypes);
 
             int animInfosAt = Allocate(ref cursor, animInfos.Count * 4, 4);
             for (int i = 0; i < animInfos.Count; i++) {
