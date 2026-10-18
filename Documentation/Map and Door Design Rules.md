@@ -110,7 +110,7 @@ after any change.
 - **A shard only ever sends Kirby to a central hub**: KatAM's to Central Circle, NiDL's to the NiDL hub, onto that level's door
   there. Never into another level or room. The one exception is the Power Orb, whose fight goes on in Nightmare's room, as in NiDL.
   NiDL's empty walk-out rooms after a boss are left out of the port: nothing leads there any more.
-- **Which shard a boss leaves can be shuffled** (Bosses give random shards): KatAM's bosses always hold all 8 between them, so the
+- **Which shard a boss leaves can be shuffled** (Bosses Give Random Shards): KatAM's bosses always hold all 8 between them, so the
   game can be beaten from KatAM alone; NiDL's spread the 8 evenly. An owned shard is always a Maxim Tomato, never a cutscene in the way.
 - **Doors into boss rooms are one-way.** Nothing else (branches, links, Mirras) goes in a boss stage.
 - **A mini-boss's fight area has no door until it is beaten**: doors there show once the fight ends. No two-way door in a
@@ -140,7 +140,7 @@ after any change.
 - **Mirror shards the randomizer adds**, two options, used separately or both at once:
   - **Field shards**: Unchanged (none added), Random (1 or 2) or Custom (1 or 2). Each step adds one more copy of all 8 shards, each
     copy as 8 shards lying in rooms, each one replacing a random loose item (never a chest).
-  - **Add shards in chests**: 1 or 2. Each step adds one more copy of all 8 shards, put into existing chests that held a consumable
+  - **Add Shards in Chests**: 1 or 2. Each step adds one more copy of all 8 shards, put into existing chests that held a consumable
     (KatAM's, and NiDL's once they have them). Never a new chest, never a treasure chest, and never so many that the consumable
     chests run out (2 copies take 16 of KatAM's 41).
 - **Only a boss's shard takes Kirby out of the level** (to Central Circle, or the NiDL hub). A shard from a chest or lying in a room

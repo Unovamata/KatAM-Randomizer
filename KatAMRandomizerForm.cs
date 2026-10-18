@@ -221,7 +221,7 @@ namespace KatAMRandomizer
             KatAMExpansion.FinishRooms(Processing.ROMData);
 
             progress.Report((90, "Applying the options..."));
-            // Mirror shards in chests, then Reduce flashing and Skip the tutorial, last: they put the expansion's code in when no NiDL ROM did;
+            // Mirror shards in chests, then Reduce Flashing and Skip the Tutorial, last: they put the expansion's code in when no NiDL ROM did;
             if (settings.MirrorShardsInChests && settings.amountOfChestShards > 0 && settings.ChestsGenerationType != GenerationOptions.No) {
                 byte[] chests = Processing.ROMData;
                 string chestsError = KatAMExpansion.AddShardChests(ref chests);
@@ -229,12 +229,12 @@ namespace KatAMRandomizer
                 else messages.Add((chestsError, "Mirror shards in chests", MessageBoxIcon.Warning));
             }
 
-            // Bosses give random shards: KatAM's 8 shuffled, then NiDL's spread evenly;
+            // Bosses Give Random Shards: KatAM's 8 shuffled, then NiDL's spread evenly;
             if (settings.RandomizeBossShards) {
                 byte[] bosses = Processing.ROMData;
                 string bossesError = KatAMExpansion.RandomizeBossShards(ref bosses, settings.RandomEntity);
                 if (bossesError == null) Processing.ROMData = bosses;
-                else messages.Add((bossesError, "Bosses give random shards", MessageBoxIcon.Warning));
+                else messages.Add((bossesError, "Bosses Give Random Shards", MessageBoxIcon.Warning));
             }
 
             // The shards put in rooms: one already owned is a Maxim Tomato instead, so it never blocks the way;
@@ -249,14 +249,14 @@ namespace KatAMRandomizer
                 byte[] calmed = Processing.ROMData;
                 string flashingError = KatAMExpansion.ReduceFlashing(ref calmed);
                 if (flashingError == null) Processing.ROMData = calmed;
-                else messages.Add((flashingError, "Reduce flashing", MessageBoxIcon.Warning));
+                else messages.Add((flashingError, "Reduce Flashing", MessageBoxIcon.Warning));
             }
 
             if (settings.SkipTutorial) {
                 byte[] skipped = Processing.ROMData;
                 string skipError = KatAMExpansion.SkipTutorial(ref skipped);
                 if (skipError == null) Processing.ROMData = skipped;
-                else messages.Add((skipError, "Skip the tutorial", MessageBoxIcon.Warning));
+                else messages.Add((skipError, "Skip the Tutorial", MessageBoxIcon.Warning));
             }
 
             progress.Report((96, "Saving the ROM..."));
@@ -924,7 +924,7 @@ namespace KatAMRandomizer
                     return;
                 }
 
-                // Its content is included by kind; every ported enemy comes with "Include enemies";
+                // Its content is included by kind; every ported enemy comes with "Include Enemies";
                 nightmareROM = rom;
                 LabelExpansionNightmare.Text = Path.GetFileName(fileDialog.FileName);
                 CheckboxExpansionEnemies.Enabled = true;
@@ -947,7 +947,7 @@ namespace KatAMRandomizer
         // ButtonExpansionUnloadNightmare_Click(); Forgets the NiDL ROM: no ROM Expansion until one is loaded again;
         private void ButtonExpansionUnloadNightmare_Click(object sender, EventArgs e) {
             nightmareROM = null;
-            LabelExpansionNightmare.Text = "No ROM loaded";
+            LabelExpansionNightmare.Text = "No ROM Loaded";
             foreach (CheckBox box in new[] { CheckboxExpansionEnemies, CheckboxExpansionMinibosses, CheckboxExpansionRooms, CheckboxExpansionTitle }) {
                 box.Checked = false;
                 box.Enabled = false;

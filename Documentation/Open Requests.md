@@ -58,18 +58,20 @@ is done, move it to "Done" and say how it was checked. The design rules for door
   traps) on all three versions.
 - **Map viewer, unrandomized ROMs**: KatAM's map stays exactly the pause screen's (`MapVanilla`), and the NiDL levels go around it,
   never in its gaps. Checked: no NiDL level room inside KatAM's map (only the NiDL hub, beside Central Circle, as before).
-- **Bosses give random shards** is a toggle, off by default: KatAM's 8 bosses get the 8 shards shuffled, then the NiDL bosses
+- **Bosses Give Random Shards** is a toggle, off by default: KatAM's 8 bosses get the 8 shards shuffled, then the NiDL bosses
   spread the 8 evenly. Tested: Kracko's new shard dropped, was collected, and its rematch left a tomato (HP zeroed in RAM, not a
   real fight).
 - **Boss rooms have no doors out.** The shard is the only way out. A boss room is the end of a branch, and any one-way door that was
   in one was moved elsewhere. The logic checks confirm it.
 - **Hubs** have at most 2 regular doors; hub doors are counted apart. The world map and the interconnected hub links stay as
   approved.
-- **Skip the tutorial** (Miscellaneous > Game): a game starts as a continued save does, in Central Circle, with no intro, tutorial
+- **Skip the Tutorial** (Miscellaneous > Game): a game starts as a continued save does, in Central Circle, with no intro, tutorial
   or mirror cutscene, and the tutorial chest's item given once, even with a save made by another ROM.
 - **Debug click-to-warp** in the Map Viewer (Debug menu): clicking a room moves Kirby there. Debug only: remove it before release.
 - **Whispy Woods' face** is drawn as NiDL draws it.
 - **Warp stars** float where NiDL puts them; **cannons** sit on their fuse exactly as KatAM's do (slightly off-centre: the fuse
   enters the cannon's left half).
-- **Settings window**: Load and Save Settings on their own rows; Skip the tutorial in the Miscellaneous tab.
+- **Settings window**: Load and Save Settings on their own rows. Miscellaneous > Game holds Skip the Tutorial, Reduce Flashing,
+  Random Intro Parade and the NiDL title screen (greyed out until a NiDL ROM is loaded). Toggles and options use the base
+  randomizer's Title Case ("Add Shards in Chests", "Include Mini-Bosses").
 - **Map viewer, randomized ROMs**: whole clusters, no 2-4 room islands, levels packed tight.

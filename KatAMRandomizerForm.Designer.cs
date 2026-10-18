@@ -357,8 +357,6 @@
             // GroupSettings
             // 
             GroupSettings.Controls.Add(CheckboxOptionsSpoilerLog);
-            GroupSettings.Controls.Add(CheckboxOptionsTitleParade);
-            GroupSettings.Controls.Add(CheckboxOptionsReduceFlashing);
             GroupSettings.Controls.Add(ButtonSaveSettings);
             GroupSettings.Controls.Add(ButtonLoadSettings);
             GroupSettings.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
@@ -388,12 +386,12 @@
             // 
             CheckboxOptionsTitleParade.AutoSize = true;
             CheckboxOptionsTitleParade.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            CheckboxOptionsTitleParade.Location = new Point(9, 62);
+            CheckboxOptionsTitleParade.Location = new Point(14, 104);
             CheckboxOptionsTitleParade.Margin = new Padding(4, 5, 4, 5);
             CheckboxOptionsTitleParade.Name = "CheckboxOptionsTitleParade";
             CheckboxOptionsTitleParade.Size = new Size(200, 29);
             CheckboxOptionsTitleParade.TabIndex = 14;
-            CheckboxOptionsTitleParade.Text = "Random intro parade";
+            CheckboxOptionsTitleParade.Text = "Random Intro Parade";
             CheckboxOptionsTitleParade.UseVisualStyleBackColor = true;
             CheckboxOptionsTitleParade.CheckedChanged += CheckboxOptionsTitleParade_CheckedChanged;
             // 
@@ -401,12 +399,12 @@
             // 
             CheckboxOptionsReduceFlashing.AutoSize = true;
             CheckboxOptionsReduceFlashing.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            CheckboxOptionsReduceFlashing.Location = new Point(9, 94);
+            CheckboxOptionsReduceFlashing.Location = new Point(14, 71);
             CheckboxOptionsReduceFlashing.Margin = new Padding(4, 5, 4, 5);
             CheckboxOptionsReduceFlashing.Name = "CheckboxOptionsReduceFlashing";
             CheckboxOptionsReduceFlashing.Size = new Size(165, 29);
             CheckboxOptionsReduceFlashing.TabIndex = 15;
-            CheckboxOptionsReduceFlashing.Text = "Reduce flashing";
+            CheckboxOptionsReduceFlashing.Text = "Reduce Flashing";
             CheckboxOptionsReduceFlashing.UseVisualStyleBackColor = true;
             CheckboxOptionsReduceFlashing.CheckedChanged += CheckboxOptionsReduceFlashing_CheckedChanged;
             // 
@@ -419,7 +417,7 @@
             CheckboxOptionsSkipTutorial.Name = "CheckboxOptionsSkipTutorial";
             CheckboxOptionsSkipTutorial.Size = new Size(290, 29);
             CheckboxOptionsSkipTutorial.TabIndex = 16;
-            CheckboxOptionsSkipTutorial.Text = "Skip the tutorial";
+            CheckboxOptionsSkipTutorial.Text = "Skip the Tutorial";
             CheckboxOptionsSkipTutorial.UseVisualStyleBackColor = true;
             CheckboxOptionsSkipTutorial.CheckedChanged += CheckboxOptionsSkipTutorial_CheckedChanged;
             // 
@@ -1151,7 +1149,7 @@
             CheckboxMirrorShardsInChests.Name = "CheckboxMirrorShardsInChests";
             CheckboxMirrorShardsInChests.Size = new Size(260, 29);
             CheckboxMirrorShardsInChests.TabIndex = 5;
-            CheckboxMirrorShardsInChests.Text = "Add shards in chests";
+            CheckboxMirrorShardsInChests.Text = "Add Shards in Chests";
             CheckboxMirrorShardsInChests.UseVisualStyleBackColor = true;
             CheckboxMirrorShardsInChests.CheckedChanged += CheckboxMirrorShardsInChests_CheckedChanged;
             // 
@@ -1164,7 +1162,7 @@
             CheckboxBossShardsRandom.Name = "CheckboxBossShardsRandom";
             CheckboxBossShardsRandom.Size = new Size(260, 29);
             CheckboxBossShardsRandom.TabIndex = 6;
-            CheckboxBossShardsRandom.Text = "Bosses give random shards";
+            CheckboxBossShardsRandom.Text = "Bosses Give Random Shards";
             CheckboxBossShardsRandom.UseVisualStyleBackColor = true;
             CheckboxBossShardsRandom.CheckedChanged += CheckboxBossShardsRandom_CheckedChanged;
             // 
@@ -2638,6 +2636,9 @@
             // GroupMiscGame
             // 
             GroupMiscGame.Controls.Add(CheckboxOptionsSkipTutorial);
+            GroupMiscGame.Controls.Add(CheckboxOptionsReduceFlashing);
+            GroupMiscGame.Controls.Add(CheckboxOptionsTitleParade);
+            GroupMiscGame.Controls.Add(CheckboxExpansionTitle);
             GroupMiscGame.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
             GroupMiscGame.Location = new Point(567, 278);
             GroupMiscGame.Margin = new Padding(4, 5, 4, 5);
@@ -2877,7 +2878,6 @@
             GroupExpansionNightmare.Controls.Add(CheckboxExpansionEnemies);
             GroupExpansionNightmare.Controls.Add(CheckboxExpansionMinibosses);
             GroupExpansionNightmare.Controls.Add(CheckboxExpansionRooms);
-            GroupExpansionNightmare.Controls.Add(CheckboxExpansionTitle);
             GroupExpansionNightmare.Controls.Add(LabelExpansionEnemies);
             GroupExpansionNightmare.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
             GroupExpansionNightmare.Location = new Point(10, 10);
@@ -2933,7 +2933,7 @@
             LabelExpansionNightmare.Name = "LabelExpansionNightmare";
             LabelExpansionNightmare.Size = new Size(180, 25);
             LabelExpansionNightmare.TabIndex = 2;
-            LabelExpansionNightmare.Text = "No ROM loaded";
+            LabelExpansionNightmare.Text = "No ROM Loaded";
             // 
             // CheckboxExpansionEnemies
             // 
@@ -2944,7 +2944,7 @@
             CheckboxExpansionEnemies.Margin = new Padding(4, 5, 4, 5);
             CheckboxExpansionEnemies.Name = "CheckboxExpansionEnemies";
             CheckboxExpansionEnemies.TabIndex = 3;
-            CheckboxExpansionEnemies.Text = "Include enemies";
+            CheckboxExpansionEnemies.Text = "Include Enemies";
             CheckboxExpansionEnemies.UseVisualStyleBackColor = true;
             CheckboxExpansionEnemies.CheckedChanged += CheckboxExpansionEnemies_CheckedChanged;
             // 
@@ -2957,7 +2957,7 @@
             CheckboxExpansionMinibosses.Margin = new Padding(4, 5, 4, 5);
             CheckboxExpansionMinibosses.Name = "CheckboxExpansionMinibosses";
             CheckboxExpansionMinibosses.TabIndex = 4;
-            CheckboxExpansionMinibosses.Text = "Include mini-bosses";
+            CheckboxExpansionMinibosses.Text = "Include Mini-Bosses";
             CheckboxExpansionMinibosses.UseVisualStyleBackColor = true;
             CheckboxExpansionMinibosses.CheckedChanged += CheckboxExpansionMinibosses_CheckedChanged;
             // 
@@ -2970,7 +2970,7 @@
             CheckboxExpansionRooms.Margin = new Padding(4, 5, 4, 5);
             CheckboxExpansionRooms.Name = "CheckboxExpansionRooms";
             CheckboxExpansionRooms.TabIndex = 5;
-            CheckboxExpansionRooms.Text = "Include rooms";
+            CheckboxExpansionRooms.Text = "Include Rooms";
             CheckboxExpansionRooms.UseVisualStyleBackColor = true;
             CheckboxExpansionRooms.CheckedChanged += CheckboxExpansionRooms_CheckedChanged;
             // 
@@ -2979,11 +2979,11 @@
             CheckboxExpansionTitle.AutoSize = true;
             CheckboxExpansionTitle.Enabled = false;
             CheckboxExpansionTitle.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            CheckboxExpansionTitle.Location = new Point(16, 274);
+            CheckboxExpansionTitle.Location = new Point(14, 137);
             CheckboxExpansionTitle.Margin = new Padding(4, 5, 4, 5);
             CheckboxExpansionTitle.Name = "CheckboxExpansionTitle";
             CheckboxExpansionTitle.TabIndex = 6;
-            CheckboxExpansionTitle.Text = "Title screen: KatAM's intro or NiDL's Kirby swarm, picked at random";
+            CheckboxExpansionTitle.Text = "Random Title Screen: KatAM's Intro or NiDL's Kirby Swarm";
             CheckboxExpansionTitle.UseVisualStyleBackColor = true;
             CheckboxExpansionTitle.CheckedChanged += CheckboxExpansionTitle_CheckedChanged;
             // 
