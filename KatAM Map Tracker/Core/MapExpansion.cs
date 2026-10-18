@@ -22,7 +22,7 @@ namespace KatAMMapTracker {
      *   map) go after the levels, so the map still ends with them; */
     public static class MapExpansion {
         const int Grid = MapGraphics.TileSize;
-        const int Step = 6 * Grid, MinGap = 3 * Grid, LevelMargin = 128, LongRoom = 60, RoomMargin = 72, Fit = 2 * Grid;
+        const int Step = 6 * Grid, MinGap = 3 * Grid, LevelMargin = 128, LongRoom = 60, RoomMargin = 72, Fit = 2 * Grid, TightGap = 4 * Grid;
         public const int HubCluster = 19;
         public static int LevelCluster(int level) => 11 + level;
         public static bool IsLevelCluster(int cluster) => cluster >= 11 && cluster < 19;
@@ -46,8 +46,12 @@ namespace KatAMMapTracker {
             /* Each level on its own canvas: room centers relative to its top left; beside KatAM's original map, laid out as its area maps
              * are (LayoutLevel()); on a randomized map, a cluster as compact as KatAM's clusters there (ClusterLevel()), and packed as
              * close to the others as they are to each other (ClusterMargin); */
+            // (KatAM's areas' density on this map: the map space each room takes in its area's box, on average);
+            List<List<RoomPlacement>> areas = clusters.Where(c => layout.ContainsKey(c.Key)).GroupBy(c => c.Value).Where(a => a.Count() > 5)
+                .Select(a => a.Select(c => layout[c.Key]).ToList()).ToList();
+            double density = areas.Count == 0 ? 0 : areas.Average(a => (a.Max(p => p.X + p.Width) - a.Min(p => p.X)) * (a.Max(p => p.Y + p.Height) - a.Min(p => p.Y)) / a.Count);
             Dictionary<int, Dictionary<int, (double x, double y)>> levels = nightmare.Where(r => r.NightmareLevel >= 0).GroupBy(r => r.NightmareLevel)
-                .ToDictionary(level => level.Key, level => original ? LayoutLevel(level.ToList(), neighbors, SizeOf) : ClusterLevel(level.ToList(), neighbors, map, SizeOf));
+                .ToDictionary(level => level.Key, level => original ? Tighten(LayoutLevel(level.ToList(), neighbors, SizeOf), map, SizeOf, density) : ClusterLevel(level.ToList(), neighbors, map, SizeOf));
             double roomMargin = original ? RoomMargin : MapLayout.DefaultClusterMargin;
 
             (double width, double height) Bounds(Dictionary<int, (double x, double y)> centers) =>
@@ -63,6 +67,8 @@ namespace KatAMMapTracker {
             List<(double left, double top, double right, double bottom)> taken = clusters.Where(c => layout.ContainsKey(c.Key) && !under.Contains(c.Key)).GroupBy(c => c.Value)
                 .Select(area => (area.Min(c => layout[c.Key].X), area.Min(c => layout[c.Key].Y), area.Max(c => layout[c.Key].X + layout[c.Key].Width), area.Max(c => layout[c.Key].Y + layout[c.Key].Height)))
                 .ToList();
+            // (KatAM's original map is one block: the hub goes outside it, on the side nearest Central Circle, never in its gaps);
+            if (original) taken = new List<(double left, double top, double right, double bottom)> { main };
             foreach (RoomInfo hub in nightmare.Where(r => r.IsNightmareHub)) {
                 double size = SizeOf(hub);
                 (double x, double y) anchor = layout.TryGetValue(RomMap.CentralCircle, out RoomPlacement circle) ? (circle.CenterX, circle.CenterY)
@@ -111,12 +117,22 @@ namespace KatAMMapTracker {
                 foreach (int level in order) {
                     (double width, double height) = Bounds(levels[level]);
                     List<(double x, double y)> centers = levels[level].Values.ToList();
+                    // (the rooms placed it's linked to, KatAM's and the hub: the nearer it is to them, the shorter its lines);
+                    List<(double x, double y, double ox, double oy)> links = levels[level]
+                        .SelectMany(c => map.Rooms[c.Key].Doors.Select(d => d.Destination).Concat(map.Rooms.Values.Where(r => r.Doors.Any(d => d.Destination == c.Key)).Select(r => r.Id))
+                            .Where(other => layout.ContainsKey(other) && !levels[level].ContainsKey(other) && !under.Contains(other))
+                            .Select(other => (layout[other].CenterX, layout[other].CenterY, c.Value.x, c.Value.y)))
+                        .ToList();
+                    double Pull(double x, double y) => !original ? 0 : links.Sum(l => Math.Max(Math.Abs(x + l.ox - l.x), Math.Abs(y + l.oy - l.y)));
                     bool Free(double left, double top) => centers.All(c => !blocked.Contains(((int)Math.Round((left + c.x - originX) / Fit), (int)Math.Round((top + c.y - originY) / Fit))));
                     (double left, double top) best = (Snap(all.right + LevelMargin), all.top);
                     (double size, double distance) bestScore = (double.MaxValue, double.MaxValue);
+                    // (around KatAM's original map, each level hugs it, the nearest free spot first, so the levels surround it; then square);
+                    double Hug(double x, double y) => !original ? 0
+                        : Math.Max(0, Math.Max(Math.Max(main.left - (x + width), x - main.right), Math.Max(main.top - (y + height), y - main.bottom)));
                     for (double x = Snap(all.left - width - LevelMargin); x <= all.right + LevelMargin; x += Fit)
                         for (double y = Snap(all.top - height - LevelMargin); y <= all.bottom + LevelMargin; y += Fit) {
-                            double size = Square(Math.Max(all.right, x + width) - Math.Min(all.left, x), Math.Max(all.bottom, y + height) - Math.Min(all.top, y));
+                            double size = Hug(x, y) * 8 + Pull(x, y) * 0.5 + Square(Math.Max(all.right, x + width) - Math.Min(all.left, x), Math.Max(all.bottom, y + height) - Math.Min(all.top, y));
                             if (size > bestScore.size + 0.5) continue;
                             double distance = Math.Abs(x + width / 2 - middleX) + Math.Abs(y + height / 2 - middleY);
                             if (Math.Abs(size - bestScore.size) <= 0.5 && distance >= bestScore.distance) continue;
@@ -275,6 +291,37 @@ namespace KatAMMapTracker {
             int minX = cells.Values.Min(c => c.x), minY = cells.Values.Min(c => c.y);
             double margin = rooms.Max(sizeOf) / 2;
             return cells.ToDictionary(c => c.Key, c => (margin + (c.Value.x - minX) * Step, margin + (c.Value.y - minY) * Step));
+        }
+
+        /* Tighten(); A level laid out by its doors (LayoutLevel()) drawn together until it's as dense as KatAM's areas on the same map
+         * (`density`: the map space a room takes in its area's box, on average), not tighter: clusters come before routes (the owner's
+         * rule), so each pass moves each room a tile toward the level's middle, the nearest first, as long as it stays TightGap clear of
+         * every other room edge to edge (KatAM's usual gap between two rooms); the passes stop once the level's box has no more space per
+         * room than KatAM's, or none can move. The level keeps its shape, with fewer holes between its branches. Centers relative to the
+         * level's top left; */
+        static Dictionary<int, (double x, double y)> Tighten(Dictionary<int, (double x, double y)> centers, RomMap map, Func<RoomInfo, double> sizeOf, double density) {
+            Dictionary<int, (double x, double y)> at = new Dictionary<int, (double x, double y)>(centers);
+            Dictionary<int, double> size = at.Keys.ToDictionary(id => id, id => sizeOf(map.Rooms[id]));
+            double middleX = at.Values.Average(c => c.x), middleY = at.Values.Average(c => c.y);
+            bool Clear(int room, double x, double y) => at.All(o => o.Key == room
+                || Math.Max(Math.Abs(o.Value.x - x), Math.Abs(o.Value.y - y)) - (size[room] + size[o.Key]) / 2 >= TightGap);
+            double Density() => (at.Max(c => c.Value.x + size[c.Key] / 2) - at.Min(c => c.Value.x - size[c.Key] / 2))
+                                * (at.Max(c => c.Value.y + size[c.Key] / 2) - at.Min(c => c.Value.y - size[c.Key] / 2)) / at.Count;
+            for (bool moved = true; moved && Density() > density;) {
+                moved = false;
+                foreach (int room in at.Keys.OrderBy(id => Math.Abs(at[id].x - middleX) + Math.Abs(at[id].y - middleY)).ThenBy(id => id).ToList()) {
+                    (double x, double y) = at[room];
+                    int sx = Math.Sign(Math.Round((middleX - x) / Grid)), sy = Math.Sign(Math.Round((middleY - y) / Grid));
+                    foreach ((int dx, int dy) in new[] { (sx, sy), (sx, 0), (0, sy) }) {
+                        if ((dx == 0 && dy == 0) || !Clear(room, x + dx * Grid, y + dy * Grid)) continue;
+                        at[room] = (x + dx * Grid, y + dy * Grid);
+                        moved = true;
+                        break;
+                    }
+                }
+            }
+            double left = at.Min(c => c.Value.x - size[c.Key] / 2), top = at.Min(c => c.Value.y - size[c.Key] / 2);
+            return at.ToDictionary(c => c.Key, c => (c.Value.x - left, c.Value.y - top));
         }
 
         // ClusterLevel(); A level's rooms as one of a randomized map's clusters (MapLayout.LayoutCluster(): its grid, compact), centers
