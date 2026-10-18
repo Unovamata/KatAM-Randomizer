@@ -39,6 +39,13 @@ is done, move it to "Done" and say how it was checked. The design rules for door
 
 ### 10. Screen shake as KatAM's
 - The screen shakes far too much; something broke along the way. Match KatAM's screen shake.
+- Not reproduced yet; needs the owner's details (which room, what was happening). Checked so far: KatAM's shake itself runs the
+  same in NiDL rooms as in KatAM's (a strength-2 shake written into its task in RAM: the same 16 frames of 2 pixels in 0x0F0 and in
+  Central Circle); the expansion's code asks for a shake only when Grand Wheelie hits a wall and when Bugzzy slams Kirby, once each
+  (strength 3, as KatAM's mini-bosses); NiDL's Shotzos are KatAM's Shotzo (0x35), which doesn't shake, not its 8-way cannon (which
+  shakes on every shot); 600 frames of the 0x164 boss fight shook 4 times, each when Kirby was hit (62 frames). KatAM shakes on every
+  hit on an enemy (1), every enemy defeated and every hit on a boss (3), so randomized mini-bosses in enemy spots ("Include
+  Minibosses") shake the screen as often as they do in KatAM.
 
 ### 13. Map viewer: NiDL room spacing as KatAM's
 - The NiDL levels' spacing is nothing like KatAM's room-to-room spacing: rooms bleed into each other. The spacing between rooms
