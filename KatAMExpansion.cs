@@ -77,10 +77,13 @@ namespace KatAMRandomizer {
          * type (MinibossIDs). HurtShift
          * moves the hurt frame that many pixels down within it, for mini-bosses too tall for it, and every frame as much (the C code moves
          * its boxes as much down: DRAWN_LOWER in fire_lion.c, the same value). ExtraHurts follow the hurt frame (the C code picks one: the
-         * object's hurt). Icon: the frames the map tracker shows for it (frame 0 if none; see WriteMapTable); */
+         * object's hurt). Icon: the frames the map tracker shows for it (frame 0 if none; see WriteMapTable); IconOverRoom: its one icon
+         * frame is drawn over its room there (Whispy Woods' trunk is the room's tiles, only its face is a sprite); IconCells (instead of Icon):
+         * its icon's cells side by side, each its frames drawn on each other where the game draws them, from their origins (Kracko: its
+         * cloud's top, its bottom and its eye, sprites at one spot; Mr. Bright: his face over his body); */
         sealed record Miniboss(int Index, string Name, int NightmareIndex, int FrameTable, List<Part[]> Frames, Part[] Hurt,
                                (int type, int letter)[] Glyphs, byte[] Behaviors, int HurtShift = 0, byte Type = 0x40,
-                               List<Part[]> ExtraHurts = null, int[] Icon = null);
+                               List<Part[]> ExtraHurts = null, int[] Icon = null, bool IconOverRoom = false, int[][] IconCells = null);
 
         /* Mini-boss object types: an object's frame index is a byte, so the mini-bosses are spread over types 0x40-0x42 (all mini-bosses
          * to KatAM), each with its own AnimInfo table; the behavior byte picks the mini-boss either way; */
@@ -237,7 +240,7 @@ namespace KatAMRandomizer {
                     (0x00, 0), (0x23, 1), (0x26, 4), (0x04, 4), (0x02, 3), (0x05, 5), (-1, -1),   // "W" (Waddle Dee), "h" (Shooty), "i" (Cookin), "s" (Squishy), "p" (Blipper), "y" (Scarfy), space;
                     (0x00, 0), (0x1E, 1), (0x1E, 1), (0x1E, 2), (0x04, 4),                        // "W" (Waddle Dee), "o", "o", "d" (Noddy), "s" (Squishy);
                 },
-                new byte[0], Type: BossID, Icon: new[] { 17 });
+                new byte[0], Type: BossID, Icon: new[] { 4 }, IconOverRoom: true);
         }
 
         /* Kracko; NiDL boss 6 (type 0x41, Grape Garden's), its cloud fight. NiDL draws it with three palettes at once (the cloud's top 0,
@@ -260,7 +263,7 @@ namespace KatAMRandomizer {
 
             return new Miniboss(1, "Kracko", 36, 0x7543E8, frames, new[] { new Part(12, OnlyPalette: 0) },
                 new[] { (0x45, 0), (0x45, 1), (0x45, 2), (0x45, 3), (0x45, 4), (0x45, 5) },    // "Kracko" (KatAM's own Kracko);
-                new byte[0], Type: BossID);
+                new byte[0], Type: BossID, IconCells: new[] { new[] { 0, 3, 6 } });
         }
 
         /* Mr. Shine & Mr. Bright; NiDL boss 4 (type 0x3F, Butter Building's). Two frame tables of one descriptor: Mr. Shine's (0x08754210:
@@ -287,7 +290,7 @@ namespace KatAMRandomizer {
                     (0x04, 0), (0x23, 1), (0x26, 4), (0x26, 5), (0x02, 5), (-1, -1),               // "S" (Squishy), "h" (Shooty), "in" (Cookin), "e" (Blipper), space;
                     (0x28, 0), (0x01, 1), (0x26, 4), (0x11, 2), (0x23, 1), (0x01, 4),              // "B" (Bomber), "r" (Bronto Burt), "i", "g" (Big Waddle Dee), "h", "t" (Bronto Burt);
                 },
-                new byte[0], Type: BossID);
+                new byte[0], Type: BossID, IconCells: new[] { new[] { 0 }, new[] { 15, 39 } });
         }
 
         /* Meta Knight; NiDL boss 2 (type 0x3D, Orange Ocean's). His body is streamed frames (0x08753BB4: his cape 0-9, his poses 21-52,
@@ -305,7 +308,7 @@ namespace KatAMRandomizer {
                     (0x38, 0), (0x14, 4), (0x14, 2), (0x14, 5), (-1, -1),                          // "M" (Mr.Frosty), "eta" (Hot Head), space;
                     (0x1A, 5), (0x1A, 6), (0x1A, 7), (0x1A, 8), (0x1A, 9), (0x1A, 10),             // "Knight" (Sword Knight);
                 },
-                new byte[0], Type: BossID);
+                new byte[0], Type: BossID, IconCells: new[] { new[] { 0, 10 } });
         }
 
         /* Paint Roller; NiDL boss 1 (type 0x3C, Ice Cream Island's). His frames are streamed frames with two palettes each (0x08753994),
@@ -322,7 +325,7 @@ namespace KatAMRandomizer {
                     (0x16, 0), (0x2D, 1), (0x26, 4), (0x26, 5), (0x23, 4), (-1, -1),               // "P" (Pengy), "a" (Batty), "in" (Cookin), "t" (Shooty), space;
                     (0x17, 0), (0x1E, 1), (0x02, 1), (0x02, 1), (0x02, 5), (0x01, 1),              // "R" (Rocky), "o" (Noddy), "ll" (Blipper), "e", "r" (Bronto Burt);
                 },
-                new byte[0], Type: BossID2);
+                new byte[0], Type: BossID2, IconCells: new[] { new[] { 0, 41 } });
         }
 
         /* Heavy Mole; NiDL boss 3 (type 0x3E, Yogurt Yard's; mini-boss descriptor 33, five palettes). Frames as bosses/heavy_mole.c numbers
@@ -1298,9 +1301,12 @@ namespace KatAMRandomizer {
 
         /* WriteMapTable(); What the map tracker ("KatAM Map Tracker", Core/RomMap.cs) reads to tell an expanded ROM and draw its ported
          * mini-bosses, in the last 0x100 bytes of the ROM (MapTableAddress): "NIDLMAP" and a version byte (1), u16 entries, u16 entry
-         * size (32), then per mini-boss: object type, index (the behavior's high nibble), u16 0, the icon's address (file offset) and
+         * size (32), then per mini-boss: object type, index (the behavior's high nibble), u16 0 (or for an icon drawn over its room,
+         * IconOverRoom, its frame's origin x and y + 128), the icon's address (file offset) and
          * its name (24 bytes, ASCII, 0-padded). An icon is u16 width, u16 height, then a BGR555 color per pixel (| 0x8000 where it's
-         * drawn): its Icon frames in a grid as square as can be (the Meta-Knights' 2x2), each bottom-centered in its cell; */
+         * drawn): its Icon frames in a grid as square as can be (the Meta-Knights' 2x2), each bottom-centered in its cell. The bosses'
+         * entries are the same, in a table of their own (the map table's last free bytes, MapBosses, +0xCC: "BS", u16 count, its
+         * address); */
         static void WriteMapTable(byte[] rom, byte[] nightmare, NightmareRegion region,
                                   List<(List<byte[]> palettes, List<(byte[] tiles, ushort[] oams, short[] attributes, int palette)> frames, byte[] hurt)> built,
                                   ref int cursor) {
@@ -1309,47 +1315,68 @@ namespace KatAMRandomizer {
             System.Text.Encoding.ASCII.GetBytes("NIDLMAP\x01").CopyTo(rom, MapTableAddress);
             WriteShort(rom, MapTableAddress + 8, MinibossDefinitions.Count);
             WriteShort(rom, MapTableAddress + 10, EntrySize);
-            for (int i = 0; i < MinibossDefinitions.Count; i++) {
-                Miniboss m = MinibossDefinitions[i];
+            // (the bosses' entries, built as the mini-bosses' (AllBosses, after them), in a table of their own: the map table has no
+            // room for them; "BS", u16 count, its address at MapBosses);
+            int bosses = Allocate(ref cursor, BossDefinitions.Count * EntrySize, 4);
+            System.Text.Encoding.ASCII.GetBytes("BS").CopyTo(rom, MapBosses);
+            WriteShort(rom, MapBosses + 2, BossDefinitions.Count);
+            WriteInt(rom, MapBosses + 4, bosses + 0x08000000);
+            for (int i = 0; i < AllBosses.Count; i++) {
+                Miniboss m = AllBosses[i];
                 List<(byte[] tiles, ushort[] oams, short[] attributes, int palette)> frames = (m.Icon ?? new[] { 0 }).Select(f => built[i].frames[f]).ToList();
-                int columns = (int)Math.Ceiling(Math.Sqrt(frames.Count)), rows = (frames.Count + columns - 1) / columns;
-                int cellWidth = frames.Max(f => f.attributes[2]), cellHeight = frames.Max(f => f.attributes[3]);
+                // (its cells side by side, each its frames drawn on each other from their origins: a lone frame is itself);
+                List<List<(byte[] tiles, ushort[] oams, short[] attributes, int palette)>> cells = m.IconCells != null
+                    ? m.IconCells.Select(cell => cell.Select(f => built[i].frames[f]).ToList()).ToList() : frames.Select(f => new[] { f }.ToList()).ToList();
+                int columns = (int)Math.Ceiling(Math.Sqrt(cells.Count)), rows = (cells.Count + columns - 1) / columns;
+                (int minX, int minY, int width, int height) Box(List<(byte[] tiles, ushort[] oams, short[] attributes, int palette)> cell) {
+                    int minX = cell.Min(f => -f.attributes[4]), minY = cell.Min(f => -f.attributes[5]);
+                    return (minX, minY, cell.Max(f => f.attributes[2] - f.attributes[4]) - minX, cell.Max(f => f.attributes[3] - f.attributes[5]) - minY);
+                }
+                int cellWidth = cells.Max(c => Box(c).width), cellHeight = cells.Max(c => Box(c).height);
                 int width = columns * cellWidth + Gap * (columns - 1), height = rows * cellHeight + Gap * (rows - 1);
                 ushort[] pixels = new ushort[width * height];
 
-                for (int f = 0; f < frames.Count; f++) {
-                    (byte[] tiles, ushort[] oams, short[] attributes, int palette) = frames[f];
-                    byte[] colors = palette < 0 ? nightmare[region.Palette15..(region.Palette15 + 32)] : built[i].palettes[palette];
-                    int left = f % columns * (cellWidth + Gap) + (cellWidth - attributes[2]) / 2;
-                    int top = f / columns * (cellHeight + Gap) + cellHeight - attributes[3];
+                for (int c = 0; c < cells.Count; c++) {
+                    (int minX, int minY, int boxWidth, int boxHeight) = Box(cells[c]);
+                    foreach ((byte[] tiles, ushort[] oams, short[] attributes, int palette) in cells[c]) {
+                        byte[] colors = palette < 0 ? nightmare[region.Palette15..(region.Palette15 + 32)] : built[i].palettes[palette];
+                        int left = c % columns * (cellWidth + Gap) + (cellWidth - boxWidth) / 2 - attributes[4] - minX;
+                        int top = c / columns * (cellHeight + Gap) + cellHeight - boxHeight - attributes[5] - minY;
 
-                    // The first piece is on top, so they're drawn last to first;
-                    for (int p = oams.Length / 3 - 1; p >= 0; p--) {
-                        int shape = oams[p * 3] >> 14, size = oams[p * 3 + 1] >> 14, tile = oams[p * 3 + 2];
-                        int pieceY = oams[p * 3] & 0x3FFF, pieceX = oams[p * 3 + 1] & 0xFFF;
-                        bool flipH = (oams[p * 3 + 1] & 0x1000) != 0, flipV = (oams[p * 3 + 1] & 0x2000) != 0;
-                        int w = shape == 0 ? 8 << size : shape == 1 ? new[] { 16, 32, 32, 64 }[size] : new[] { 8, 8, 16, 32 }[size];
-                        int h = shape == 0 ? 8 << size : shape == 1 ? new[] { 8, 8, 16, 32 }[size] : new[] { 16, 32, 32, 64 }[size];
+                        // The first piece is on top, so they're drawn last to first;
+                        for (int p = oams.Length / 3 - 1; p >= 0; p--) {
+                            int shape = oams[p * 3] >> 14, size = oams[p * 3 + 1] >> 14, tile = oams[p * 3 + 2];
+                            int pieceY = oams[p * 3] & 0x3FFF, pieceX = oams[p * 3 + 1] & 0xFFF;
+                            bool flipH = (oams[p * 3 + 1] & 0x1000) != 0, flipV = (oams[p * 3 + 1] & 0x2000) != 0;
+                            int w = shape == 0 ? 8 << size : shape == 1 ? new[] { 16, 32, 32, 64 }[size] : new[] { 8, 8, 16, 32 }[size];
+                            int h = shape == 0 ? 8 << size : shape == 1 ? new[] { 8, 8, 16, 32 }[size] : new[] { 16, 32, 32, 64 }[size];
 
-                        for (int y = 0; y < h; y++) {
-                            for (int x = 0; x < w; x++) {
-                                int t = tile + y / 8 * (w / 8) + x / 8, b = tiles[t * 32 + y % 8 * 4 + x % 8 / 2];
-                                int color = (x & 1) != 0 ? b >> 4 : b & 0xF;
-                                int px = left + pieceX + (flipH ? w - 1 - x : x), py = top + pieceY + (flipV ? h - 1 - y : y);
+                            for (int y = 0; y < h; y++) {
+                                for (int x = 0; x < w; x++) {
+                                    int t = tile + y / 8 * (w / 8) + x / 8, b = tiles[t * 32 + y % 8 * 4 + x % 8 / 2];
+                                    int color = (x & 1) != 0 ? b >> 4 : b & 0xF;
+                                    int px = left + pieceX + (flipH ? w - 1 - x : x), py = top + pieceY + (flipV ? h - 1 - y : y);
 
-                                if (color != 0 && px < width && py < height) pixels[py * width + px] = (ushort)(ReadShort(colors, color * 2) | 0x8000);
+                                    if (color != 0 && px >= 0 && py >= 0 && px < width && py < height) pixels[py * width + px] = (ushort)(ReadShort(colors, color * 2) | 0x8000);
+                                }
                             }
                         }
                     }
                 }
 
-                int icon = Allocate(ref cursor, 4 + pixels.Length * 2, 4), entry = MapTableAddress + 12 + i * EntrySize;
+                int icon = Allocate(ref cursor, 4 + pixels.Length * 2, 4),
+                    entry = i < MinibossDefinitions.Count ? MapTableAddress + 12 + i * EntrySize : bosses + (i - MinibossDefinitions.Count) * EntrySize;
                 WriteShort(rom, icon, width);
                 WriteShort(rom, icon + 2, height);
                 for (int p = 0; p < pixels.Length; p++) WriteShort(rom, icon + 4 + p * 2, pixels[p]);
                 rom[entry] = m.Type;
                 rom[entry + 1] = (byte)m.Index;
                 WriteShort(rom, entry + 2, 0);
+                // (an icon drawn over its room: its frame's origin + 128, x then y, where the tracker draws it from the boss's spot);
+                if (m.IconOverRoom && frames.Count == 1) {
+                    rom[entry + 2] = (byte)(frames[0].attributes[4] + 128);
+                    rom[entry + 3] = (byte)(frames[0].attributes[5] + 128);
+                }
                 WriteInt(rom, entry + 4, icon);
                 Array.Clear(rom, entry + 8, 24);
                 System.Text.Encoding.ASCII.GetBytes(m.Name).CopyTo(rom, entry + 8);

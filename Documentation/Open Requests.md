@@ -39,16 +39,20 @@ is done, move it to "Done" and say how it was checked. The design rules for door
   hit on an enemy (1), every enemy defeated and every hit on a boss (3), so randomized mini-bosses in enemy spots ("Include
   Minibosses") shake the screen as often as they do in KatAM.
 
-### 21. Map viewer: NiDL bosses don't show
-- The ported bosses are object types `0x43`/`0x44` (the behavior's high nibble picks which); the viewer's boss table
-  (`MapEntities.Bosses`) only knows KatAM's `0x45`-`0x52`, so "Show on Map" never draws them.
-
 ### 22. Grey blocks: still a pain
 - The owner: "grey blocks are proving to be a pain." They're KatAM's silver metal blocks (`0xF5`) since item 9, but which
   abilities break them was never seen in game (an ability given by RAM doesn't attack). Needs a real test with abilities, and the
   owner's details of what still goes wrong.
 
 ## Done (rules to keep)
+
+- **NiDL bosses on the map viewer** (item 21): the nine ported bosses (types `0x43`/`0x44`) have map table entries of their own
+  ("BS" at `+0xCC`: the map table had no room left), read by the viewer as the mini-bosses' and shown with "Show on Map". Whispy
+  Woods' trunk is its room's tiles, so its icon is the room cropped around it with the face drawn where the game draws it (the
+  entry's spare bytes hold the face's origin); icons made of several sprites at one spot are stacked (Kracko's cloud and eye, Mr.
+  Bright's face on his body, Paint Roller's two palettes), and Mr. Shine and Mr. Bright are both shown. Checked with the viewer's
+  code outside the app (USA expanded ROM): every boss room's boss is found (rooms 0x003, 0x004, 0x09F, 0x104, 0x164, 0x1D1, 0x24C,
+  0x29D, 0x313), with its icon; Whispy's icon compared with an emulator screenshot of the fight. Not tried in the app.
 
 - **Room 0x147's camera one tile higher** (item 20; the owner: "camera can move 1 tile up"): the camera's top was stored as a wrong
   code (pixels / 8 + 1 for rooms.c's 0, 1, 2), so the 41 rooms meant to start a row down (NiDL's repeated top row) started two rows

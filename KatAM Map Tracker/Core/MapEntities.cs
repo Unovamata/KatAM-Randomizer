@@ -305,7 +305,8 @@ namespace KatAMMapTracker {
         public static Sprite Render(RomMap map, EntityIcon icon) {
             if (icon >= EntityIcon.Expansion) {
                 int i = icon - EntityIcon.Expansion;
-                return i < map.ExpansionMinibosses.Count ? map.ExpansionMinibosses[i].Icon : null;
+                if (i >= map.ExpansionMinibosses.Count) return null;
+                return map.ExpansionMinibosses[i].Origin != null ? RenderOverRoom(map, map.ExpansionMinibosses[i]) : map.ExpansionMinibosses[i].Icon;
             }
             if (icon == EntityIcon.KingGolem) return RenderKingGolem(map);
             if (icon == EntityIcon.DarkMindOrb) return RenderDarkMindOrb(map);
@@ -333,6 +334,32 @@ namespace KatAMMapTracker {
             }
 
             return new Sprite(KingGolemCropWidth, KingGolemCropHeight, pixels);
+        }
+
+        /* RenderOverRoom(); A ported boss whose body is its room's tiles (Whispy Woods' trunk): its room around it (no background), its
+         * icon over it where the game draws it (its Origin from the boss's spot), RoomPad pixels of the room around the icon; */
+        const int RoomPad = 24;
+        static Sprite RenderOverRoom(RomMap map, ExpansionMiniboss boss) {
+            Sprite face = boss.Icon;
+            if (face == null || boss.Origin is not (int ox, int oy)) return face;
+            foreach (RoomInfo info in map.Rooms.Values) {
+                RoomObject at = info.Objects.FirstOrDefault(o => o.Id == boss.Type && o.Behavior >> 4 == boss.Index);
+                if (at == null) continue;
+
+                int[] room = map.RenderRoom(info.Id, 8, out int roomWidth, out int roomHeight, false);
+                int left = at.X - ox - RoomPad, top = at.Y - oy - RoomPad, width = face.Width + 2 * RoomPad, height = face.Height + 2 * RoomPad;
+                int[] pixels = new int[width * height];
+                for (int y = 0; y < height; y++) {
+                    for (int x = 0; x < width; x++) {
+                        int roomX = left + x, roomY = top + y, faceX = x - RoomPad, faceY = y - RoomPad;
+                        int facePixel = faceX >= 0 && faceY >= 0 && faceX < face.Width && faceY < face.Height ? face.Pixels[faceY * face.Width + faceX] : 0;
+                        if (facePixel != 0) pixels[y * width + x] = facePixel;
+                        else if (roomX >= 0 && roomY >= 0 && roomX < roomWidth && roomY < roomHeight) pixels[y * width + x] = room[roomY * roomWidth + roomX];
+                    }
+                }
+                return new Sprite(width, height, pixels);
+            }
+            return face;
         }
 
         /* Dark Mind's second form, as it appears after the first one, before the chase: a 128x128 orb the game draws as an 8bpp
@@ -447,6 +474,11 @@ namespace KatAMMapTracker {
                 int i = map.ExpansionMinibosses.FindIndex(m => m.Type == id && m.Index == behavior >> 4);
                 if (i < 0) i = map.ExpansionMinibosses.FindIndex(m => m.Type == id);
                 if (i >= 0) return new MapEntity(EntityKind.MiniBoss, EntityIcon.Expansion + i, map.ExpansionMinibosses[i].Name);
+            }
+            // (and its bosses, types 0x43 and 0x44, the same way: the behavior's high nibble picks one, its low nibble is its shard);
+            if (map.IsExpanded && (id == 0x43 || id == 0x44)) {
+                int i = map.ExpansionMinibosses.FindIndex(m => m.Type == id && m.Index == behavior >> 4);
+                if (i >= 0) return new MapEntity(EntityKind.Boss, EntityIcon.Expansion + i, map.ExpansionMinibosses[i].Name);
             }
             if (Bosses.TryGetValue(id, out var boss)) return new MapEntity(EntityKind.Boss, boss.icon, boss.name);
             if (MiniBosses.TryGetValue(id, out var miniBoss)) return new MapEntity(EntityKind.MiniBoss, miniBoss.icon, miniBoss.name);
