@@ -39,7 +39,8 @@ namespace KatAMMapTracker {
      * • Room object IDs: 0x38-0x3F mini-bosses (0x40-0x42 too in expanded ROMs, see RomMap.ReadExpansion), 0x45-0x52 bosses, 0x5E-0x64 items, 0x65 Mirror Shard (behavior 0-7; 8 is the
      *   Dimensional Mirror), 0x80 & 0x81 small & big chests (behavior: what they hold), 0x84 Warp Star, 0x86 Big Switch,
      *   0x8A Fuse Cannon.
-     * • Chest contents: 0x00-0x05 the items 0x5E-0x63, 0x06 Vitality, 0x0A-0x13 area maps, 0x14-0x21 sprays, 0x28 the
+     * • Chest contents: 0x00-0x05 the items 1UP, Invincible Candy, Maxim Tomato, Meat, Pep Brew, Cherry (chest.c's sub_0800B97C, not the
+     *   items' object order), 0x06 Vitality, 0x0A-0x13 area maps, 0x14-0x21 sprays, 0x28 the
      *   Sound Player, 0x29-0x32 music, 0x40-0x47 mirror shards 1-8 (the randomizer's, "ROM Expansion/chest.c"), 0x63 the big
      *   treasures.
      * • Treasure sprites (sprays, music, maps, Vitality, Sound Player) come from the Collection Room, which shows them as
@@ -452,6 +453,9 @@ namespace KatAMMapTracker {
             (EntityIcon.Battery, "Battery"), (EntityIcon.OneUp, "1UP"), (EntityIcon.InvincibleCandy, "Invincible Candy"),
         };
 
+        // ChestItems; A chest's item (contents 0-5) as an index in Items: 1UP, Invincible Candy, Maxim Tomato, Meat, Pep Brew, Cherry;
+        static readonly int[] ChestItems = { 5, 6, 3, 2, 1, 0 };
+
         static readonly Dictionary<int, (EntityIcon icon, string name)> MiniBosses = new Dictionary<int, (EntityIcon, string)> {
             [0x38] = (EntityIcon.MrFrosty, "Mr. Frosty"), [0x39] = (EntityIcon.Bonkers, "Bonkers"), [0x3A] = (EntityIcon.PhanPhan, "Phan Phan"),
             [0x3B] = (EntityIcon.Batafire, "Batafire"), [0x3C] = (EntityIcon.BoxBoxer, "Box Boxer"), [0x3D] = (EntityIcon.Boxy, "Boxy"),
@@ -506,7 +510,10 @@ namespace KatAMMapTracker {
             EntityIcon chest = isBig ? EntityIcon.ChestBig : EntityIcon.ChestSmall;
             string size = isBig ? "Big" : "Small";
 
-            if (contents <= 0x05) return new MapEntity(EntityKind.Treasure, chest, $"{size} Chest: {Items[contents].name}", Items[contents].icon);
+            if (contents <= 0x05) {
+                (EntityIcon icon, string name) item = Items[ChestItems[contents]];
+                return new MapEntity(EntityKind.Treasure, chest, $"{size} Chest: {item.name}", item.icon);
+            }
 
             (string treasure, EntityIcon? icon) = contents switch {
                 0x06 => ("Vitality", EntityIcon.Vitality),

@@ -10,7 +10,8 @@ namespace KatAMMapTracker {
      * • Every room but the two being connected blocks the cells around it, leaving a gap between lines and squares.
      * • Diagonals cost the same as straight steps per cell, turns cost a little and sharp turns are not allowed,
      *   so lines bend around rooms with 45° turns. Cells already used by other lines cost a bit more, to spread them.
-     * • A hub's lines share one trunk (the owner's rule: the fewer lines out of a hub, the better): its connections are routed first,
+     * • A central hub's lines share one trunk (the owner's rule: the fewer lines out of a hub, the better; Central Circle and the NiDL
+     *   hub only, not the rooms linked to them): its connections are routed first,
      *   the longest first, and the cells its earlier lines take cost next to nothing to its later ones, so each follows the trunk as
      *   far as it goes its way and branches off near its room;
      * • If some connection can't be routed, the rooms and clusters are spread further apart and everything is retried; */
@@ -201,9 +202,8 @@ namespace KatAMMapTracker {
                 .OrderBy(c => Distance(Layout[c.a], Layout[c.b])).ThenBy(c => c.a).ThenBy(c => c.b)
                 .ToList();
 
-            // (a hub's lines first, the longest first, along one trunk: the NiDL hub and the NiDL levels' switch rooms, and on a
-            // randomized map KatAM's hubs too; an original map's KatAM lines stay the game's own);
-            HashSet<int> hubs = map.Rooms.Values.Where(r => r.IsHub && Layout.ContainsKey(r.Id) && (r.IsNightmareRoom || !IsOriginalLayout)).Select(r => r.Id).ToHashSet();
+            // (a central hub's lines first, the longest first, along one trunk: Central Circle and the NiDL hub, no other room);
+            HashSet<int> hubs = map.Rooms.Values.Where(r => (r.Id == RomMap.CentralCircle || r.IsNightmareHub) && Layout.ContainsKey(r.Id)).Select(r => r.Id).ToHashSet();
             HashSet<(int a, int b)> routed = new HashSet<(int a, int b)>();
             foreach (int hub in hubs.OrderByDescending(h => connections.Count(c => c.a == h || c.b == h)).ThenBy(h => h)) {
                 List<(int a, int b)> mine = connections.Where(c => (c.a == hub || c.b == hub) && !routed.Contains(c)).OrderByDescending(c => Distance(Layout[c.a], Layout[c.b])).ToList();

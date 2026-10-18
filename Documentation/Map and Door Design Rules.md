@@ -173,8 +173,9 @@ after any change.
 - **Clusters come before routes** (the owner's rule): a NiDL level is drawn as one cluster as dense as KatAM's areas on the same map
   (the same map space per room, on average), not spread out so its lines run straight; lines may wind and cross to keep it so.
   Not tighter than KatAM's either. `MapExpansion.Tighten()`.
-- **A hub's lines share one trunk**: the fewer lines out of a hub, the better. Its connections leave it along one line that branches
-  off near each room it leads to (the NiDL hub and the switch rooms; on a randomized map KatAM's hubs too). `MapPlan.RouteAll()`.
+- **A central hub's lines share one trunk**: the fewer lines out of a hub, the better. Central Circle's and the NiDL hub's
+  connections leave it along one line that branches off near each room it leads to. Only those two: other rooms linked to them
+  (switch rooms, level hubs, any room) keep a line of their own each. `MapPlan.RouteAll()`.
 - **Randomized ROMs**: clusters are enough, and **every cluster looks the same**: each NiDL level is laid out as compact as KatAM's
   clusters there (`MapLayout.LayoutCluster()`, its grid) and packed as close to the others as they are to each other.
   `MapExpansion.ClusterLevel()`.
