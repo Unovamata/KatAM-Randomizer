@@ -54,7 +54,7 @@ is done, move it to "Done" and say how it was checked. The design rules for door
   enemy.) The audit finds none now in USA, European, Japanese and a randomized USA ROM. Tested in the emulator (USA, expanded, new
   games started on the doors, Up pressed: a real door trip): 0x276's door into 0x277 had a Waddle Dee by the landing in the old build
   and none now; 0xF4's into 0x142 had a Bronto Burt and none now. Logic checks pass on all of them, with and without dropping through
-  thin floors; the door plan is unchanged. Not changed: 29 enemies stand exactly 4 cells from a landing, one past the rule's 3.
+  thin floors; the door plan is unchanged. Not changed: 38 enemies (KatAM's rooms included) stand exactly 4 cells from a landing, one past the rule's 3.
 
 - **Meta-Knights and Mr. Tick-Tock on the ground** (items 26, 27): their floor boxes reached further down than their frames' feet,
   so they stood on the box and floated: the knights 2 to 5 pixels (their box 12 pixels below their middle, the frames' feet at about
