@@ -29,11 +29,6 @@ is done, move it to "Done" and say how it was checked. The design rules for door
   hit on an enemy (1), every enemy defeated and every hit on a boss (3), so randomized mini-bosses in enemy spots ("Include
   Minibosses") shake the screen as often as they do in KatAM.
 
-### 23. Shard chests open only once opened
-- The owner: "Shard chests cannot be reopened once consumed." A mirror shard chest gets a chest bit of its own: it shows open only
-  once opened (and stays so); opened when its shard is already owned (from a boss or the field), it gives a Maxim Tomato instead,
-  as an owned field shard does. Today it uses its shard's bit, so it shows open, never opened, once the shard is owned elsewhere.
-
 ### 30. Warp stars: NiDL's scaling in their flight
 - NiDL's warp star flight scales the star (and Kirby) as it flies; KatAM's here doesn't.
 
@@ -41,6 +36,17 @@ is done, move it to "Done" and say how it was checked. The design rules for door
 - The owner: "All NiDL's hubs only have 1 2 way door."
 
 ## Done (rules to keep)
+
+- **Shard chests open only once opened** (item 23): a mirror shard chest used its shard's bit as its own, so it showed open, never
+  opened, once the shard was owned from anywhere. Each shard chest now has a treasure index of its own (0x88 + k, the 16 chests at
+  most: KatAM's `shardField` bits 8-23, which nothing else uses or counts). Opening one marks it, so it shows open once opened and
+  stays so. Opened when its shard is already owned (a boss's, the field's, the other copy's), it lets out a Maxim Tomato instead of
+  the shard, as an owned field shard is one. Tested in the emulator (USA, randomized with 2 copies of shards in chests; new games
+  started by the chests, Up to open: real openings; shard owned set in RAM for one case): 0x095's chest (shard 2) gave the shard and
+  set shard 2's bit and its own (index 137); with shard 2 already owned it gave a Maxim Tomato (Kirby's HP 1 to 6) and set its own bit.
+  With a save file kept between runs, rebooting showed 0x095's chest open. The other shard 2 chest (0x159, index 145) showed closed
+  with shard 2 owned, then gave a tomato and set only its own bit. European and Japanese builds give the 16 chests the same indices.
+  Logic checks pass on all three. Not tried: a vanilla ROM with only the shard chest option (the code is the same file).
 
 - **Blocks that stay after their bomb chain** (item 31): NiDL's data gives each breakable block the whole cell it leaves when broken
   (metatile and collision), but the port took only the metatile and always left air. In 0x248, NiDL's chain leaves the frames of
