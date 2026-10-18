@@ -40,7 +40,8 @@ after any change.
 - **Two-way doors are used sparingly**; most added connections are one-way throws, as KatAM's.
 - **A two-way door leads back where you came from**: it lands Kirby on (or right beside) the door that brings him back.
 - **A one-way door never throws Kirby onto a door, nor in front of a two-way one** (4 cells across, 2 up or down): its landing
-  moves to a floor nearby that the camera shows. `Crowded()`, `Clear()`.
+  moves to a floor nearby that the camera shows. `Crowded()`, `Clear()`. Where there's none, it lands off the doors only (twice as
+  far at most) before anywhere in the room: anywhere left a mini-boss room's way out landing Kirby cut off from the rest (0x29A's).
 - **NiDL's own two-way doors stay two-way**, and its one-way mirrors were made two-way, unless the way back lands somewhere
   unreachable.
 

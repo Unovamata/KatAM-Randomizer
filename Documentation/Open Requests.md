@@ -40,10 +40,6 @@ is done, move it to "Done" and say how it was checked. The design rules for door
 ### 10. Screen shake as KatAM's
 - The screen shakes far too much; something broke along the way. Match KatAM's screen shake.
 
-### 11. Room 0x29B: mini-boss room doors
-- It has 2 doors very close together. A room Kirby is thrown into for a mini-boss (or boss) fight: its way in is one-way and its
-  way out is one-way too.
-
 ### 12. Room 0x298: give it a purpose
 - It's completely empty. Add something meaningful: a chest or a branching path.
 
@@ -61,6 +57,13 @@ is done, move it to "Done" and say how it was checked. The design rules for door
   should cost a life. To look into.
 
 ## Done (rules to keep)
+
+- **A mini-boss's room is one-way in and one-way out** (item 11, 0x29B): the doors into a room with a mini-boss and its own doors are
+  one-way, their landings moved off the doors (to a floor nearby, else off the doors only within twice the reach, before anywhere in
+  the room: one landed Kirby cut off, 0x29A's into 0x224). 0x29B's two doors stay where NiDL has them (4 cells apart: they're its own).
+  102 doors became one-way (134 to 236). Tested in the emulator (USA, a new game started in 0x25F beside its door, not a playthrough):
+  through the door into 0x29B, Kirby landed 3 cells from its door, the two Poppy Bros. Sr. fighting, the doors hidden. Logic checks
+  pass on all three versions, with and without dropping through thin floors.
 
 - **NiDL's grey blocks are KatAM's silver metal blocks** (item 9, the owner's picture: room 0x134's), collision `0xF5`, which only
   some abilities break; they were `0xF4`, which any ability's attack breaks (KatAM's helpers' block code, `code_0800ECAC_2.c`, tries

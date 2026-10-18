@@ -2554,16 +2554,19 @@
 
             /* Which doors are one-way, for good: one is two-way when the door it lands Kirby on leads back onto it (or, NiDL's over a fall,
              * where Kirby lands beside them, the door beside the landing back beside it: up to 2 cells across, 3 up or down); KatAM draws
-             * the others as one-way mirrors (BuildObjects()); the doors into KatAM's rooms keep what they were made as; */
+             * the others as one-way mirrors (BuildObjects()); the doors into KatAM's rooms keep what they were made as. A mini-boss's room
+             * is one-way in and one-way out (0x29B's two doors, NiDL's, were two-way pairs): its doors and the doors into it are one-way,
+             * their landings off the doors (Clear(), below); */
             Dictionary<int, List<Door>> listOf = doors.ToDictionary(p => p.Key.Room, p => p.Value);
             listOf[mainHub] = mainHubDoors;
             foreach (var (room, list) in katamDoors) listOf[room] = list;
             bool Near(int x, int y, int toX, int toY) => Math.Abs(x - toX) <= 2 && Math.Abs(y - toY) <= 3;
             bool Back(int room, Door d) => listOf[d.Room].Any(e => !e.Edge && e.Room == room && Near(e.X, e.Y, d.DestX - 1, d.DestY - 1) && Near(e.DestX - 1, e.DestY - 1, d.X, d.Y));
+            bool Miniboss(int room) => partOf.TryGetValue(room, out NightmareRoom part) && MinibossRoom(part);
             foreach (var (room, list) in listOf)
                 for (int i = 0; i < list.Count; i++)
                     if (!list[i].Edge && list[i].Slot == 0 && listOf.ContainsKey(list[i].Room) && (partOf.ContainsKey(list[i].Room) || list[i].Room == mainHub))
-                        list[i] = list[i] with { OneWay = !Back(room, list[i]) };
+                        list[i] = list[i] with { OneWay = !Back(room, list[i]) || Miniboss(room) || Miniboss(list[i].Room) };
 
             // Blocks a door lands Kirby in are left broken (clearedBlocks);
             foreach (Door d in listOf.Values.SelectMany(list => list).Where(d => !d.Edge)) {
@@ -2595,8 +2598,11 @@
             /* No one-way door throws Kirby onto a door, nor in front of a two-way one (4 cells across, 2 up or down), as KatAM's: its landing
              * moves to a floor nearby away from them (up to ReturnReach cells, the camera showing it), else anywhere in the room
              * (RoomSpot()); not the boss stages' (Kirby lands by the next room's mirror there, as KatAM's boss rooms); */
-            bool Crowded(NightmareRoom r, int x, int y) => doors[r].Any(e => !e.Edge && (Math.Abs(e.X - x) <= 1 && Math.Abs(e.Y - y) <= 1 || !e.OneWay && Math.Abs(e.X - x) <= 4 && Math.Abs(e.Y - y) <= 2));
-            (int x, int y)? Clear(NightmareRoom r, int x, int y) {
+            bool Crowded(NightmareRoom r, int x, int y, bool near = false) => doors[r].Any(e => !e.Edge && (Math.Abs(e.X - x) <= 1 && Math.Abs(e.Y - y) <= 1 || !near && !e.OneWay && Math.Abs(e.X - x) <= 4 && Math.Abs(e.Y - y) <= 2));
+            // (near: a second try, off the doors only, twice as far, before anywhere in the room: a mini-boss room's way out landed
+            // Kirby out of reach of the rest, 0x29A's into 0x224);
+            (int x, int y)? Clear(NightmareRoom r, int x, int y, bool near = false) {
+                int reach = near ? 2 * ReturnReach : ReturnReach;
                 if (!cellsOf.TryGetValue(r, out byte[] cells)) cellsOf[r] = cells = Cells(r);
                 int width = ReadShort(nightmare, r.Record + 0x14);
                 bool Open(int cx, int cy) => cx >= 1 && cx < Math.Min(r.Width, r.FullWidth - 1) && cy >= 0 && cy < r.Height && OpenCell(cells, width, r.X + cx, r.Y + cy);
@@ -2607,14 +2613,14 @@
                 while (open.Count > 0) {
                     (int ox, int oy) = open.Dequeue();
                     foreach ((int nx, int ny) in new[] { (ox + 1, oy), (ox - 1, oy), (ox, oy + 1), (ox, oy - 1) })
-                        if (Math.Abs(nx - x) <= ReturnReach && Math.Abs(ny - y) <= ReturnReach && Open(nx, ny) && reached.Add((nx, ny))) open.Enqueue((nx, ny));
+                        if (Math.Abs(nx - x) <= reach && Math.Abs(ny - y) <= reach && Open(nx, ny) && reached.Add((nx, ny))) open.Enqueue((nx, ny));
                 }
                 (int x, int y)? best = null;
                 int bestDistance = int.MaxValue;
-                for (int cy = Math.Max(MirrorTop, y - ReturnReach); cy <= y + ReturnReach && cy + 1 < r.Height; cy++)
-                    for (int cx = x - ReturnReach; cx <= x + ReturnReach; cx++) {
+                for (int cy = Math.Max(MirrorTop, y - reach); cy <= y + reach && cy + 1 < r.Height; cy++)
+                    for (int cx = x - reach; cx <= x + reach; cx++) {
                         int distance = Math.Abs(cx - x) + 2 * Math.Abs(cy - y);
-                        if (distance < bestDistance && reached.Contains((cx, cy)) && Shown(r, cy) && Open(cx, cy - 1) && Floor(cx, cy + 1) && !Crowded(r, cx, cy)) {
+                        if (distance < bestDistance && reached.Contains((cx, cy)) && Shown(r, cy) && Open(cx, cy - 1) && Floor(cx, cy + 1) && !Crowded(r, cx, cy, near)) {
                             best = (cx, cy);
                             bestDistance = distance;
                         }
@@ -2625,7 +2631,7 @@
                 for (int i = 0; i < list.Count; i++) {
                     Door d = list[i];
                     if (!d.OneWay || d.Edge || d.Kind == DoorKind.Boss || !partOf.TryGetValue(d.Room, out NightmareRoom to) || IsBossRoom(to) || !Crowded(to, d.DestX - 1, d.DestY - 1)) continue;
-                    (int x, int y)? cell = Clear(to, d.DestX - 1, d.DestY - 1);
+                    (int x, int y)? cell = Clear(to, d.DestX - 1, d.DestY - 1) ?? Clear(to, d.DestX - 1, d.DestY - 1, near: true);
                     if (cell == null && RoomSpot(to, false, door: false) is (NightmareRoom, int, int) spot) cell = (spot.x, spot.y);
                     if (cell is (int x, int y)) list[i] = d with { DestX = x + 1, DestY = y + 1, Facing = Facing((to.Room, x + 1, y + 1)) };
                 }
