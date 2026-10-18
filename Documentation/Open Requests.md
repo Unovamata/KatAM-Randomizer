@@ -29,14 +29,30 @@ is done, move it to "Done" and say how it was checked. The design rules for door
   hit on an enemy (1), every enemy defeated and every hit on a boss (3), so randomized mini-bosses in enemy spots ("Include
   Minibosses") shake the screen as often as they do in KatAM.
 
-### 30. Warp stars: NiDL's scaling in their flight
-- NiDL's warp star flight scales the star (and Kirby) as it flies; KatAM's here doesn't.
-- Not started. The ported warp stars fly KatAM's flight 0 up to its room change, then land Kirby where the star says
-  (`WarpFlights()`). Copying NiDL's scaling needs NiDL's flight itself (when the star grows or shrinks, how much, over how many
-  frames) and affine sprites for KatAM's star and Kirby during the flight. Waiting on the owner: what exactly should match (the take-off,
-  the flight across the sky, the landing), or a clip of it.
-
 ## Done (rules to keep)
+
+- **Warp stars fly NiDL's own rides** (item 30; the owner: "The NiDL warp stars do this animation with scale and some places is
+  off. Some routines are a bit off so you should reference all the properties of scale, rotation, positioning, and states these
+  animations go off from since some are slightly off."): NiDL's warp star (object type 0x4A) was recorded frame by frame in an
+  emulator, for the 6 of the ported stars Kirby gets on in NiDL. Each runs a ride of its own: jumps 16 pixels up as Kirby gets on,
+  bobs 32 down under him for 24 frames, flies its own path out of the room trailing stars, crosses the sky rooms on its way (each
+  entered where NiDL's comes in), dives into the room it lands in, the orb bursts and Kirby tumbles off and bounces once to where he
+  stands. NiDL uses no affine sprites in the ride (no scaling or rotation registers in OAM, checked over 520 frames); the star's
+  "growing" is its frames (a 24-pixel star, then a 32x32 one with Kirby drawn on it), and the turning is Kirby's tumbling frames.
+  The ported stars now fly those rides (KatAM's star and rider, NiDL's paths): `NidlRides` holds each ride's moves, `WarpFlights()`
+  makes them KatAM flights, and `warpstar.c` skips KatAM's 300-frame wait before take-off, takes the flight through more than one
+  room, and ends it where Kirby stands. Before, KatAM's star waited 300 frames, sank to the floor, and its sky rides were an arc
+  that took Kirby off the top of Vegetable Valley 2's sky. Tested in the emulator (USA, expanded; new games started in the stars'
+  rooms, Kirby put on the star in RAM: the ride itself is the game's): Vegetable Valley 2 (0x74 → sky 0x7B → 0x7C), Ice Cream
+  Island 2 (0xED → 0xEE), Butter Building 4 (0x150 → 0x151 → 0x152), Yogurt Yard 5 (0x240 → 0x241), Orange Ocean 3 (0x27E → sky
+  0x280 → 0x27F) and Rainbow Resort 2 (0x2EB → sky 0x2F9 → 0x2EC): each goes through NiDL's rooms, comes into each where NiDL's star
+  does (VV's sky at 164, 496 and its last room at 13, 16), and Kirby ends where NiDL's does (VV, ICI and YY at x 119, BB 90, OO 79,
+  RR 122; KatAM's Kirby stands up to 4 pixels lower on the same floor). European and Japanese: VV and OO, and VV and RR, the same.
+  Logic checks pass on all three and a randomized USA ROM. Not the same as NiDL: the camera is KatAM's, which follows Kirby (NiDL's
+  scrolls the sky rooms at its own pace); the star and rider are KatAM's sprites; KatAM's room change shows the next room at once
+  (NiDL's star goes on moving through an 18-frame fade). Not tested: Grape Garden 3's star (stage 3-2, room 2: Kirby couldn't get
+  on it in NiDL, so it keeps the flight it had, without the wait); KatAM's own warp stars (the code leaves them as they were: they
+  have subtypes under 6 and their flights none of the marks).
 
 - **NiDL hubs have 2 doors into their level** (item 32, the owner's answer: "NiDL's doors inside the hub rooms, should have 2
   doors as this allows for branching paths inside the hub doors for NiDL, this is a rule that applies for all hubs. I'm talking
@@ -202,8 +218,9 @@ is done, move it to "Done" and say how it was checked. The design rules for door
   clusters like the middle ones, the map went from 3080x3416 to 2144x2480, every line routed, none touching; the unrandomized map's
   layout is unchanged. Not tried in the app.
 
-- **Warp star rides through NiDL's skies** (item 8, rooms 0x2F9 and 0x280): Kirby arrived on the sky room's bottom row and its edge
-  exit sent him straight on, a white flash. A warp star into a sky room now has a flight of its own (`SkyFlight()`): KatAM's flight
+- **Warp star rides through NiDL's skies** (item 8, rooms 0x2F9 and 0x280; replaced since by NiDL's own rides, item 30 above):
+  Kirby arrived on the sky room's bottom row and its edge
+  exit sent him straight on, a white flash. A warp star into a sky room got a flight of its own (`SkyFlight()`, gone): KatAM's flight
   up, then the star carries Kirby across the sky in an arc, trailing its sparkles, and out at the bottom into the next room (its
   bottom exit: the top row is out of Kirby's reach in KatAM). Tested in the emulator (USA, new games started beside the stars, not
   playthroughs): from 0x2EB, the star arced across 0x2F9 left to right and Kirby arrived in 0x2EC; from 0x27E, it rose through

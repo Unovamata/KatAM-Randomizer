@@ -246,3 +246,22 @@ The master table (`0x0872FF30`) has 8-byte entries, `(kind, spawn function)`, so
 - Explosions: `0x08073D2C` is the small one Foley and Scarfy explode with (40x40, hurts Kirby); `0x08074420` is Bomber's (128x128).
 - Free space from `0xF40000` (the randomizer's 9ROM lists) to the end of the 16 MB ROM. The expansion pads the ROM to 32 MB (the most the GBA maps, `0x08000000`-`0x09FFFFFF`; the game saves to SRAM, so no EEPROM range gets in the way) and puts everything at `0x09000000`.
 - The KatAM decompilation builds byte-identical to the USA ROM, so `katam.elf` gives every symbol to link new code against (`--just-symbols`); `ld` adds interworking veneers for the long calls.
+
+## Warp stars
+
+- The warp star is object type `0x4A` (spawn `0x08071030`, frames `0x08752D50`), from a room record of category 5 (byte 0), index 4.
+  Its states: init `0x0873FBAC`, per frame `0x0873FBB8` (3): 0 floats and twinkles (frames 9, 0, 10, 1, 4, 2, 12, 3..., a y speed
+  from `0x0873FB94` every 16 frames), 1 with Kirby on it, 2 its burst (frames `0x08752D8C`).
+- Kirby gets on (`0x080711D0`, from the per-frame function `0x08071098` when he touches it): the star shows frame 13 (32x32: Kirby
+  drawn on the star, its tiles `0x0825D2C8` copied for that player), jumps 16 pixels up, `0x02006160` takes its slot (the star
+  carrying him), Kirby's object hides.
+- Each ride is a script of its own (`0x0873FBC4`, init, and `0x0873FC2C`, per frame: 26 of them, picked by the record's variant;
+  the rooms after the first run the ones after it, `0x08071E81` being the common landing dive): velocities (`+0x54`, `+0x58`, 16.16
+  pixels a frame) held for so many frames, the trail of stars on and off (`0x0807186C`), sounds, then `0x08025F00`, the room change.
+- No affine sprites in the whole ride (OAM checked frame by frame): the star grows by its frames.
+- The current room's index is `0x03002468`; it changes as the 18-frame fade before a room change starts.
+- Kirby tumbles off where the star goes: up 4 pixels a frame, slowing (2, then 1), down again as fast, half a pixel a frame on
+  (a quarter in Orange Ocean 3's), one bounce off the floor. The rides themselves, frame by frame: `KatAMExpansionRooms.cs`, `NidlRides`.
+- Grape Garden 3-2's star (room 2, variant 13) doesn't take Kirby when he's put on it or walks into it: it's off until something
+  in its room is done (not looked into).
+

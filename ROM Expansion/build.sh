@@ -13,7 +13,7 @@ OUT=$(mktemp -d)
 trap 'rm -rf "$OUT"' EXIT
 
 objects=()
-for c in nidl.c nidl_miniboss.c nidl_boss.c nidl_data.c worldmap.c rooms.c title.c calm.c chest.c skip.c abilities.c abilities/*.c enemies/*.c minibosses/*.c bosses/*.c; do
+for c in nidl.c nidl_miniboss.c nidl_boss.c nidl_data.c worldmap.c rooms.c title.c calm.c chest.c skip.c warpstar.c abilities.c abilities/*.c enemies/*.c minibosses/*.c bosses/*.c; do
     o="$OUT/$(basename "${c%.c}").o"
     cpp -I "$D/tools/agbcc/include" -I "$D/tools/agbcc" -nostdinc -iquote "$D/include" -iquote . -DREVISION=0 -DENGLISH \
         -Wno-trigraphs -DMODERN=0 "$c" | "$D/tools/agbcc/bin/agbcc" -mthumb-interwork -Wimplicit -Wparentheses -O2 -fhex-asm -o "$OUT/a.s" -
@@ -71,6 +71,8 @@ codeNames = ['gNidlWorldMapDoors', 'NidlWorldMapUnlockSave', 'NidlWorldMapGetCoo
              'gNidlChest', 'gNidlChestTrampolines', 'NidlChestOpen', 'gNidlShard', 'NidlCreateShard', 'NidlShardDone',
              # Skip the tutorial (skip.c);
              'gNidlSkip', 'NidlSkipClear', 'NidlSkipStart', 'gNidlSkipTrampolines',
+             # The ported warp stars' rides (warpstar.c);
+             'gNidlRide', 'gNidlRideTrampolines', 'NidlRideRev', 'NidlRideRoomChange', 'NidlRideStep',
              # Bigger rooms (rooms.c): the replacements;
              'BigFillLevelInfo', 'BigGetCollisionTile', 'BigSub_08002434', 'BigSub_08002470', 'BigSub_080024F0', 'BigSub_0800255C', 'BigSub_080025AC', 'BigSub_08002624', 'BigSub_080026A8', 'BigSub_08001408', 'BigSub_080015A8',
              'gNidlRoomTops', 'NidlNumChestsCollected', 'gNidlSave', 'gNidlSaveTrampolines', 'NidlWriteSave', 'NidlVerifySave', 'NidlClearSave', 'BigSub_08001678', 'BigSub_080027E8', 'BigSub_080027A8', 'BigSub_08002A5C', 'BigSub_08002A80', 'BigSub_08002AD0', 'BigSub_08002B30', 'BigSub_08002BA8', 'BigSub_08002C18']
@@ -89,8 +91,9 @@ romNames = ['gUnk_0834C2AC', 'gUnk_0834C318', 'gUnk_083509D0', 'gUnk_08350A3C', 
             'NumChestsCollected',
             # The NiDL rooms' items, taken once per visit (rooms.c): the objects' gone bits;
             'sub_08001678', 'sub_080027E8', 'sub_080027A8',
-            # Warp stars in the NiDL rooms (KatAMExpansionRooms.cs): their flights, where a flight lands Kirby in each room;
-            'gUnk_08D60A84', 'gUnk_0893CB44',
+            # Warp stars in the NiDL rooms (KatAMExpansionRooms.cs): their flights, where a flight lands Kirby in each room; the
+            # warp star's rev, a flight's room change and its step (warpstar.c);
+            'gUnk_08D60A84', 'gUnk_0893CB44', 'sub_0800C270', 'sub_08055D9C', 'sub_080534D0',
             # Reduce flashing (calm.c): the VBlank's copies of the registers;
             'UpdateScreenDma', 'UpdateScreenCpuSet',
             # Mirror shards in chests (chest.c): a chest's opening;
