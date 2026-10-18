@@ -93,7 +93,7 @@ namespace KatAMMapTracker {
             foreach (RoomInfo room in map.Rooms.Values.Where(r => !r.IsNightmareRoom).OrderBy(r => r.Id)) {
                 foreach (DoorInfo door in room.Doors.Where(d => d.Kind == DoorKind.Mirror && !Nightmare(d.Destination))
                                                    .OrderBy(d => d.Destination).ThenBy(d => d.X).ThenBy(d => d.Y)) {
-                    Add(room.Id); Add(door.Destination);
+                    Add(room.Id); Add(RomMap.RealRoom(door.Destination));
                 }
             }
 

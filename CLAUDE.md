@@ -28,3 +28,10 @@ These are the owner's standing rules for any AI assistant working here. They hol
 - **Unrandomized ROMs (expanded or not): KatAM's map stays exactly KatAM's**, laid out as the in-game pause screen's area maps
   (`MapVanilla`). The NiDL levels are built **around** it, never in its gaps or moving it.
 - **Randomized ROMs:** clusters are enough (`MapLayout`), as tight as they go, with no rogue islands.
+
+## Settings window
+
+- **Toggles and options use the base randomizer's Title Case** ("Spoiler Log", "Add More HP UPs", "Include Minibosses"): every
+  word capitalized except short joining words ("Skip the Tutorial", "Add Shards in Chests"). Group titles and tabs too.
+- Options that change the game but no randomization pool (title screen, flashing, tutorial) go in **Miscellaneous**, not in
+  General Options or the ROM Expansion tab.

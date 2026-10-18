@@ -77,7 +77,7 @@ namespace KatAMRandomizer
             log.AppendLine($"Seed: {Seed}");
         }
 
-        // WriteBossShards(); Which shard each boss leaves, with "Bosses give random shards" (KatAMExpansion.RandomizeBossShards);
+        // WriteBossShards(); Which shard each boss leaves, with "Bosses Give Random Shards" (KatAMExpansion.RandomizeBossShards);
         void WriteBossShards() {
             if (!Settings.RandomizeBossShards || KatAMExpansion.BossShardLog.Count == 0) return;
             WriteSection("Boss Mirror Shards");

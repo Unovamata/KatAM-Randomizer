@@ -237,14 +237,14 @@ void GrandWheelieStart(struct Object *obj) {
     SetState(g, STATE_REV);
 }
 
-// GrandWheelieInit(); Its box, on the floor;
+// GrandWheelieInit(); Its box, on the floor: its terrain box ends where its wheel is drawn (15 below its spot; 18 floated it 3 pixels);
 void GrandWheelieInit(struct NidlObject *n) {
     struct GrandWheelie *g = (struct GrandWheelie *)n;
     struct Object *obj = &n->obj;
 
     g->count = 0;
     NidlSetFrame(n, FRAME_FRONT);
-    sub_0803E2B0(&obj->base, -16, -16, 16, 18);
-    ObjectSetBounds(&obj->base, -18, -16, 18, 20);
+    sub_0803E2B0(&obj->base, -16, -16, 16, 15);
+    ObjectSetBounds(&obj->base, -18, -16, 18, 17);
     NidlOnFloor(obj);
 }

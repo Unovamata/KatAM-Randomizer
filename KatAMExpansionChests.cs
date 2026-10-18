@@ -44,7 +44,7 @@ namespace KatAMRandomizer {
             return null;
         }
 
-        /* RandomizeBossShards(); The randomizer's "Bosses give random shards": KatAM's 8 bosses leave the 8 shards in a shuffled order (all
+        /* RandomizeBossShards(); The randomizer's "Bosses Give Random Shards": KatAM's 8 bosses leave the 8 shards in a shuffled order (all
          * of them still, so the game is beaten as before), then the ROM Expansion's NiDL bosses leave them again, spread as evenly as
          * they go (each shard at most once more than another, in a second shuffled order). For KatAM's: each boss's defeat (gUnk_08350E58's
          * handlers) asks HasShard about its own shard as a constant right before the call (movs r0, #n; bl HasShard), as King Golem's
@@ -58,7 +58,7 @@ namespace KatAMRandomizer {
                                                    "King Dedede", "Nightmare's Power Orb", "Nightmare" };
         public static List<string> BossShardLog { get; } = new List<string>();
 
-        public static string RandomizeBossShards(ref byte[] rom, Random random) => PatchWithCode(ref rom, "Bosses give random shards", (patched, version) => {
+        public static string RandomizeBossShards(ref byte[] rom, Random random) => PatchWithCode(ref rom, "Bosses Give Random Shards", (patched, version) => {
             string error = HookShards(patched, version);
             if (error != null) return error;
             int[] shards = Enumerable.Range(0, 8).OrderBy(_ => random.Next()).ToArray();

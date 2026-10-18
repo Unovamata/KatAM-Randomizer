@@ -284,8 +284,8 @@ namespace KatAMMapTracker {
                 .Where(d => d.Destination == room && d.Room != room && d.LandX > 0)
                 .OrderBy(d => d.Kind == DoorKind.Mirror ? 0 : 1).ThenBy(d => d.Room).FirstOrDefault();
             (int x, int y) spawn = door != null && door.Kind == DoorKind.Mirror ? ((door.LandX - 8) / 16, (door.LandY - 8) / 16) : (-1, -1);
-            bool sent = server.Send($"WARP {room:X} {spawn.x} {spawn.y}");
-            connectionLabel.Text = sent ? $"Debug: warping Kirby to room {room:X3}..." : "Debug: the emulator script isn't connected, so Kirby can't be warped.";
+            bool sent = server.Send($"WARP {RomMap.RealRoom(room):X} {spawn.x} {spawn.y}");
+            connectionLabel.Text = sent ? $"Debug: warping Kirby to room {RomMap.RealRoom(room):X3}..." : "Debug: the emulator script isn't connected, so Kirby can't be warped.";
         }
 
         // View settings (minimalist mode and dynamic scaling), as "key=value" lines in the settings folder;
@@ -423,7 +423,9 @@ namespace KatAMMapTracker {
             // The way Kirby reached the first room reported after connecting is unknown;
             if (sessionStart) previousRoom = -1;
 
-            // Rooms that aren't in the ROM (title screen, menus) are ignored, keeping the last real room;
+            // Rooms that aren't in the ROM (title screen, menus) are ignored, keeping the last real room; a goal game, the copy of it
+            // beside the room Kirby came from (RomMap.SplitGoalRooms());
+            room = map.ResolveRoom(room, previousRoom);
             if (!map.Rooms.ContainsKey(room)) return;
 
             bool changed = progress.EnterRoom(map, room, previousRoom);

@@ -489,7 +489,7 @@ namespace KatAMInternal
         // KatAMExpansion.AddShardChests); independent of the field shards above (amountOfMirrorShardsToAdd), so both can be on;
         public bool MirrorShardsInChests { get; set; }
         public int amountOfChestShards = 1;
-        // Bosses give random shards: KatAM's bosses leave the 8 shards shuffled, then NiDL's spread evenly (KatAMExpansion.RandomizeBossShards);
+        // Bosses Give Random Shards: KatAM's bosses leave the 8 shards shuffled, then NiDL's spread evenly (KatAMExpansion.RandomizeBossShards);
         public bool RandomizeBossShards { get; set; }
         public GenerationOptions ChestsGenerationType { get; set; }
         public GenerationOptions ChestsPropertiesType { get; set; }
@@ -534,9 +534,9 @@ namespace KatAMInternal
         public bool RandomizeTitleParade { get; set; }
         // Title screen: the intro picked at random between KatAM's and Nightmare in Dream Land's (needs a NiDL ROM loaded);
         public bool NightmareTitle { get; set; }
-        // Reduce flashing: KatAM's white screen flashes eased in like fades (KatAMExpansion.ReduceFlashing);
+        // Reduce Flashing: KatAM's white screen flashes eased in like fades (KatAMExpansion.ReduceFlashing);
         public bool ReduceFlashing { get; set; }
-        // Skip the tutorial: a new save starts in Central Circle with the tutorial's big chest's item (KatAMExpansion.SkipTutorial);
+        // Skip the Tutorial: a new save starts in Central Circle with the tutorial's big chest's item (KatAMExpansion.SkipTutorial);
         public bool SkipTutorial { get; set; }
 
         public Settings() {

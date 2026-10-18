@@ -259,7 +259,7 @@ namespace KatAMMapTracker {
         /* LayoutCluster(); Places the rooms of a cluster on a grid of cells, one room per cell;
          * Rooms are placed in breadth-first order from the most connected one, each in the free cell that best
          * lines up with the rooms it's connected to: straight or 45° neighbors are cheap, anything else costs more; */
-        static Dictionary<int, (int x, int y)> LayoutCluster(List<int> rooms, Dictionary<int, List<int>> neighbors, RomMap map) {
+        internal static Dictionary<int, (int x, int y)> LayoutCluster(List<int> rooms, Dictionary<int, List<int>> neighbors, RomMap map) {
             HashSet<int> inCluster = new HashSet<int>(rooms);
             Dictionary<int, (int x, int y)> cells = new Dictionary<int, (int x, int y)>();
             HashSet<(int x, int y)> used = new HashSet<(int x, int y)>();
