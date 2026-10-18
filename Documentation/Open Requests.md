@@ -34,10 +34,6 @@ is done, move it to "Done" and say how it was checked. The design rules for door
   once opened (and stays so); opened when its shard is already owned (from a boss or the field), it gives a Maxim Tomato instead,
   as an owned field shard does. Today it uses its shard's bit, so it shows open, never opened, once the shard is owned elsewhere.
 
-### 26. Meta-Knights float a few pixels off the ground
-
-### 27. Mr. Tick-Tock stands above the ground in 0xF8; check the others
-
 ### 29. Enemies at rooms' entrances
 - Against rule 2 ("no enemy stands on a door or right where a door lands Kirby"): enemies still stand at entrances.
 
@@ -51,6 +47,15 @@ is done, move it to "Done" and say how it was checked. The design rules for door
 - The owner: "All NiDL's hubs only have 1 2 way door."
 
 ## Done (rules to keep)
+
+- **Meta-Knights and Mr. Tick-Tock on the ground** (items 26, 27): their floor boxes reached further down than their frames' feet,
+  so they stood on the box and floated: the knights 2 to 5 pixels (their box 12 pixels below their middle, the frames' feet at about
+  9), Mr. Tick-Tock 5 (24 against 19). Their boxes (and hit boxes) now end at the feet. Measured in the emulator (USA, expanded, new
+  games started in the rooms; a sprite's lowest outline row against Kirby's on the same floor): the knights in 0xF5 went from 2-5 pixels
+  above the floor to within 1-2 pixels of it, over 12 frames of walking and leaping. Mr. Tick-Tock in 0xF8 went from 5 pixels up to
+  level with Kirby. The other three Mr. Tick-Tocks (0x135, 0x1D0, 0x2EF) stand level with Kirby too, and the Japanese build's in 0xF8
+  stands at the same spot. Logic checks pass on all three versions. Not changed: Bugzzy uses the same 24-pixel box as Mr. Tick-Tock
+  and may float the same way (not reported, not measured).
 
 - **Mini-boss doors in long rooms** (item 24): in 0x244 the door by Fire Lion's fight stood 2 cells past its screen, in the same
   walled space, so nothing hid it. Doors in a fight's area were also only shut once the fight's arena object came on screen, so in

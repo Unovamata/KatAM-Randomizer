@@ -1007,7 +1007,8 @@ void MetaKnightsStart(struct Object *obj) {
     obj->base.flags |= 0x400 | 0x200;
 }
 
-// MetaKnightsInit(); Meta Knight (on the floor, unseen, his line-up) or a knight (its graphics, palette and hurt frame);
+// MetaKnightsInit(); Meta Knight (on the floor, unseen, his line-up) or a knight (its graphics, palette and hurt frame); their box's
+// bottom where the knights' frames' feet are, 9 pixels down (at 12 they stood 2 to 5 above the floor);
 void MetaKnightsInit(struct NidlObject *n) {
     struct Object *obj = &n->obj;
     struct ObjectTemplate *template = obj->objTemplate;
@@ -1015,7 +1016,7 @@ void MetaKnightsInit(struct NidlObject *n) {
     struct MetaKnight *k = (struct MetaKnight *)n;
     u8 i;
 
-    ObjectSetBounds(&obj->base, -8, -12, 8, 12);
+    ObjectSetBounds(&obj->base, -8, -12, 8, 9);
     if (NidlIsMetaKnight(template)) {
         k->isKnight = TRUE;
         k->kind = (template->subtype2 - 1) & 3;
@@ -1037,7 +1038,7 @@ void MetaKnightsInit(struct NidlObject *n) {
         obj->unk80 = KNIGHT_HP;
         // They die as KatAM's enemies do, not as mini-bosses (object.c's 0x0809AF38);
         obj->base.unkC |= 0x800;
-        sub_0803E2B0(&obj->base, -10, -10, 10, 12);
+        sub_0803E2B0(&obj->base, -10, -10, 10, 9);
         NidlSetFrame(n, sFirstFrame[k->kind] + 4);
         return;
     }

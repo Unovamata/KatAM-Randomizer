@@ -421,7 +421,7 @@ void MrTickTockStart(struct Object *obj) {
     SetState(t, STATE_IDLE);
 }
 
-// MrTickTockInit(); Its box, on the floor;
+// MrTickTockInit(); Its box, on the floor (its bottom where its frames' feet are, 19 pixels down: at 24 it stood 5 above the floor);
 void MrTickTockInit(struct NidlObject *n) {
     struct MrTickTock *t = (struct MrTickTock *)n;
     struct Object *obj = &n->obj;
@@ -431,7 +431,7 @@ void MrTickTockInit(struct NidlObject *n) {
     t->gravity = 0x15;
     t->maxFall = MAX_FALL;
     NidlSetFrame(n, FRAME_IDLE);
-    sub_0803E2B0(&obj->base, -20, -18, 20, 22);
-    ObjectSetBounds(&obj->base, -22, -18, 22, 24);
+    sub_0803E2B0(&obj->base, -20, -18, 20, 17);
+    ObjectSetBounds(&obj->base, -22, -18, 22, 19);
     NidlOnFloor(obj);
 }
