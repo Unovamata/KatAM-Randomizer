@@ -39,6 +39,15 @@ is done, move it to "Done" and say how it was checked. The design rules for door
   hit on an enemy (1), every enemy defeated and every hit on a boss (3), so randomized mini-bosses in enemy spots ("Include
   Minibosses") shake the screen as often as they do in KatAM.
 
+### 21. Map viewer: NiDL bosses don't show
+- The ported bosses are object types `0x43`/`0x44` (the behavior's high nibble picks which); the viewer's boss table
+  (`MapEntities.Bosses`) only knows KatAM's `0x45`-`0x52`, so "Show on Map" never draws them.
+
+### 22. Grey blocks: still a pain
+- The owner: "grey blocks are proving to be a pain." They're KatAM's silver metal blocks (`0xF5`) since item 9, but which
+  abilities break them was never seen in game (an ability given by RAM doesn't attack). Needs a real test with abilities, and the
+  owner's details of what still goes wrong.
+
 ## Done (rules to keep)
 
 - **Room 0x147's camera one tile higher** (item 20; the owner: "camera can move 1 tile up"): the camera's top was stored as a wrong
