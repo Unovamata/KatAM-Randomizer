@@ -8,6 +8,8 @@
 #include "constants/kirby.h"
 #include "treasures.h"
 #include "bonus.h"
+#include "kirby.h"
+#include "random.h"
 
 static const struct NidlBoss sNidlBosses[NIDL_BOSS_COUNT] = {
     [NIDL_WHISPY_WOODS] = { WhispyWoodsInit, WhispyWoodsStart, 60 },
@@ -88,8 +90,8 @@ void NidlBossStart(struct Object *obj) {
 /* NidlBossDefeat(); gUnk_08350E58's entry for type 0x43, run as it explodes (as KatAM's bosses, sub_08087390...): its mirror shard
  * (the behavior's low nibble) in the middle of the screen, which Kirby takes as a boss's (the shard cutscene, then where
  * gNidlShardExits says for the room: the boss stage's way on, its room having no door out; KatAM's: Central Circle); a Maxim
- * Tomato instead when the shard is owned already (KatAM's bosses fought again leave one, sub_08088A38), and the shard again in a
- * room with no door out (one gNidlShardExits has); */
+ * Tomato instead, never the shard, when the shard is owned already (KatAM's bosses fought again leave one, sub_08088A38): in a
+ * room with no door out (one gNidlShardExits has), eating it takes Kirby where the shard would (NidlExitTomato()); */
 static const struct NidlShardExit *NidlShardExitOf(u16 room);
 
 void NidlBossDefeat(struct Object *obj) {
@@ -99,13 +101,34 @@ void NidlBossDefeat(struct Object *obj) {
     u8 shard = n->variant & 7;
 
     if (HasShard(shard)) {
-        BonusCreateTomatoAt(obj, x, y);
-        // (and the shard again, under it, in a room with no door out: taking it is still the way on);
-        if (NidlShardExitOf(obj->base.roomId))
-            CreateObjTemplateAndObj(obj->base.unk56, 1, 0x24, x, y + 0x18, 0, 0x1F, 0, 0, OBJ_MIRROR_SHARD, shard, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+        struct Object *tomato = BonusCreateTomatoAt(obj, x, y);
+        struct ObjectTemplate *template = (struct ObjectTemplate *)tomato->objTemplate;
+
+        // (its gone bit is NIDL_EXIT_KIND's, unk3 its template's slot, unk12 the room: rooms.c's BigSub_08001678 calls NidlExitTomato);
+        if (NidlShardExitOf(obj->base.roomId)) {
+            template->unk2 = NIDL_EXIT_KIND;
+            template->unk3 = template - gUnk_020229E0;
+            template->unk12 = obj->base.roomId;
+        }
         return;
     }
     CreateObjTemplateAndObj(obj->base.unk56, 1, 0x24, x, y, 0, 0x1F, 0, 0, OBJ_MIRROR_SHARD, shard, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+}
+
+/* NidlExitTomato(); A rematch's Maxim Tomato (NidlBossDefeat()) gone, from template slot `slot` (rooms.c's BigSub_08001678: its
+ * gone bit): its template slot freed (the game frees only those with unk2 0); eaten, every Kirby in its room dances and leaves, as
+ * after a boss's shard (sub_0804BD98, as a warp star's end does it: where he stands; then sub_0804C614 and NidlShardExit(): where the
+ * shard would take him); */
+void NidlExitTomato(u16 slot, u32 eaten) {
+    u16 room = gUnk_020229E0[slot].unk12, i;
+    u8 count = 0, index = 0, dance = (Rand16() & 1) + 2;
+
+    gUnk_020229D4 &= ~(1 << slot);
+    if (!eaten) return;
+    for (i = 0; i < 4; i++)
+        if (gKirbys[i].base.roomId == room) count++;
+    for (i = 0; i < 4; i++)
+        if (gKirbys[i].base.roomId == room) sub_0804BD98(&gKirbys[i], index++, count, dance, 0, gKirbys[i].base.y >> 12);
 }
 
 /* gNidlShardExits; Where Kirby goes once a boss's shard cutscene ends (KatAM: Central Circle, sub_0804C614's `roomId = 0x321`, which

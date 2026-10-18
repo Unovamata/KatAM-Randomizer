@@ -168,6 +168,9 @@ void *CreateNidlMiniboss(struct ObjectTemplate *, u8 playerId);
 void *CreateNidlBoss(struct ObjectTemplate *, u8 playerId);
 void NidlBossStart(struct Object *);
 void NidlBossDefeat(struct Object *);
+// A boss rematch's Maxim Tomato's gone bit kind (template unk2; rooms.c's BigSub_08001678 calls NidlExitTomato with it, nidl_boss.c);
+#define NIDL_EXIT_KIND 4
+void NidlExitTomato(u16 slot, u32 eaten);
 const struct NidlGraphics *NidlGraphicsOf(struct NidlObject *);
 u32 NidlHurtTiles(struct Object *);
 void NidlUploadHurtTiles(struct NidlObject *);

@@ -23,6 +23,7 @@
 #include "malloc_ewram.h"
 #include "multi_08030C94.h"
 #include "treasures.h"
+#include "nidl.h"
 
 #define BIG_BLOCKS 3584
 #define BIG_ZONES (BIG_BLOCKS + 4)
@@ -76,7 +77,8 @@ static u8 *Taken(void) {
     return (u8 *)Area() + NIDL_VISITED_SIZE - NIDL_TAKEN_SIZE;
 }
 
-// BigSub_08001678(); An object's gone bit set or cleared (sub_08001678): KatAM's, or a NiDL item's (NIDL_TAKEN_KIND);
+// BigSub_08001678(); An object's gone bit set or cleared (sub_08001678): KatAM's, a NiDL item's (NIDL_TAKEN_KIND), or a boss
+// rematch's tomato gone (NIDL_EXIT_KIND, nidl_boss.c);
 void BigSub_08001678(u32 kind, u16 id, u8 slot, u32 set)
 {
     u8 *bits;
@@ -86,6 +88,7 @@ void BigSub_08001678(u32 kind, u16 id, u8 slot, u32 set)
     case 1: bits = gUnk_02023368; break;
     case 2: bits = gUnk_02028BF0; break;
     case NIDL_TAKEN_KIND: bits = Taken(); break;
+    case NIDL_EXIT_KIND: NidlExitTomato(id, set); return;
     default: return;
     }
     if (set)

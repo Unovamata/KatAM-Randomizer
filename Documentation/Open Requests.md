@@ -58,10 +58,6 @@ is done, move it to "Done" and say how it was checked. The design rules for door
 - The NiDL levels' spacing is nothing like KatAM's room-to-room spacing: rooms bleed into each other. The spacing between rooms
   must be consistent (as KatAM's), as much as it can be. This is a rule (rulebook, section 11): enforce it harder.
 
-### 14. NiDL boss rematch: a Maxim Tomato, not the shard
-- A NiDL boss whose shard is already owned still drops the shard. The flow: the shard if Kirby doesn't have it; if he does, a Maxim
-  Tomato, and grabbing it takes him out to the hub, as the shard would.
-
 ### 16. Bomb chains, for good
 - Rooms 0x304 and 0x2FD's bomb block chains are broken. Fix every room with bomb chains, checked against NiDL's own maps.
 
@@ -75,6 +71,11 @@ is done, move it to "Done" and say how it was checked. The design rules for door
   should cost a life. To look into.
 
 ## Done (rules to keep)
+
+- **NiDL boss rematch: a Maxim Tomato, never the shard** (item 14): eating it gives the victory dance and takes Kirby where the shard
+  would (the NiDL hub, onto the level's door). Tested in the emulator (USA, a new game started in Mr. Shine & Mr. Bright's room
+  0x164 with shard 3 owned, the boss's HP zeroed in RAM, not a real fight): a tomato and no shard; Kirby walked into it, the Kirbys
+  danced, and he arrived in the NiDL hub (room 0x001). All three versions build.
 
 - **Grand Wheelie stands on the ground** (item 15): its terrain box ended 3 pixels under its drawn wheel. Tested in the emulator
   (USA, a new game started in room 0xEE, his fight): before, 3 pixels of sky under the wheel; after, the wheel's edge on the ground's
