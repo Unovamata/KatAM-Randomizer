@@ -3080,14 +3080,17 @@
                     int cell = (r.Y + y) * roomWidth + r.X + x, kind = cells[cell * 4 + 3];
                     if (kind >> 4 != 2) continue;
 
-                    int number = ReadShort(numbers, cell * 2), metatile = 0;
-                    // The numbers' metatiles: u32 each from the object data, up to 0xFFFFFFFF;
+                    int number = ReadShort(numbers, cell * 2), metatile = 0, leftKind = 0;
+                    // The numbers' cells: u32 each from the object data (metatile, attribute, collision), up to 0xFFFFFFFF;
                     for (int n = 0; data >= 0 && n <= number; n++) {
                         int value = ReadInt(nightmare, data + n * 4);
                         if (value == -1) { metatile = 0; break; }
-                        if (n == number) metatile = value & 0xFFFF;
+                        if (n == number) { metatile = value & 0xFFFF; leftKind = value >> 24 & 0xFF; }
                     }
-                    byte left = (byte)(Water(x - 1, y) || Water(x + 1, y) || Water(x, y - 1) || Water(x, y + 1) ? 0x48 : 0);
+                    // (what it leaves is that cell, its collision too: air (water by water), or NiDL's wall, floor, ladder, spikes, water,
+                    // or the block again, solid, which no other bomb breaks (room 0x248's frames of blocks: their look stayed, their
+                    // collision went);
+                    byte left = leftKind != 0 ? RoomCollision[leftKind] : (byte)(Water(x - 1, y) || Water(x + 1, y) || Water(x, y - 1) || Water(x, y + 1) ? 0x48 : 0);
                     byte block = BreakableBlock(kind);
                     collision[y * r.FullWidth + x] = block;
                     specials.AddRange(new byte[] { 1, block, (byte)x, (byte)y, 0x12, 0, 0xFF, 0xFF });

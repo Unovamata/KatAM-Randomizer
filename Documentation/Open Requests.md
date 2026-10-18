@@ -37,13 +37,21 @@ is done, move it to "Done" and say how it was checked. The design rules for door
 ### 30. Warp stars: NiDL's scaling in their flight
 - NiDL's warp star flight scales the star (and Kirby) as it flies; KatAM's here doesn't.
 
-### 31. Room 0x248: a block's tiles stay after its bomb block goes
-- The bomb block's chain removes a block's collision but not its tiles.
-
 ### 32. NiDL hubs have only one two-way door
 - The owner: "All NiDL's hubs only have 1 2 way door."
 
 ## Done (rules to keep)
+
+- **Blocks that stay after their bomb chain** (item 31): NiDL's data gives each breakable block the whole cell it leaves when broken
+  (metatile and collision), but the port took only the metatile and always left air. In 0x248, NiDL's chain leaves the frames of
+  blocks around the pink squares as blocks (only some of their cells open): the port drew them still there with no collision.
+  Broken blocks now leave NiDL's collision too: air (water by water) as before, or NiDL's wall, thin floor, ladder, spikes, water, or
+  the block again (solid: no other bomb breaks it). About 180 blocks in all leave something other than air. No visible block is left
+  drawn without its collision now; the only such records left are in rooms' bottom rows, which the camera doesn't show (0x23A, 0x2C4).
+  Tested in the emulator (USA, expanded, a new game started in 0x248 by an added Sword statue, Kirby attacking the bomb block: a
+  real chain): the old build left the frame cells air, the new one leaves them solid (0x0D) and opens the cells NiDL opens; both draw
+  the same. Logic checks pass on all three versions and a randomized ROM, with and without dropping through thin floors; the door
+  plan is unchanged.
 
 - **Enemies at rooms' entrances** (item 29): an audit of every room a door lands Kirby in found 7 enemies within 3 cells across (2 up or
   down) of a landing. Five were walkers in NiDL rooms (0x277, 0x278 twice, 0x27A, 0x2CB): their NiDL spot passed the check, then
