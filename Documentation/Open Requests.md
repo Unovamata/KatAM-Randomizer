@@ -6,35 +6,31 @@ is done, move it to "Done" and say how it was checked. The design rules for door
 
 ## Still open
 
-### 0. From the latest review (not done yet)
-- **NiDL chests**: some of NiDL's loose consumables become consumable chests, sparingly.
-- **The randomizer reads chests and consumables from the expanded ROM**: the ROM Expansion runs first, so the randomizer sees
-  NiDL's rooms too (its items, its chests) and randomizes everything at once. Chest shards then use NiDL's chests as well.
-- **Title screen**: when the ROM Expansion is on, the random title parade can include its ported NiDL enemies.
+### 1. NiDL chests, and the randomizer reading the expanded ROM
+- **NiDL chests**: some of NiDL's own loose consumables become consumable chests, **sparingly** (a few per level, as KatAM has), at
+  spots where KatAM would put a chest: a reward for exploring (a dead end, a secret room, behind breakable blocks, the end of a
+  branch), for a challenge, or as a surprise. Never in a boss room, a switch room or a mini-boss's fight area.
+- **The randomizer reads chests and consumables from the expanded ROM**: the ROM Expansion runs first (it already does), and the
+  item reader must then see NiDL's rooms too (it only scans KatAM's today), so everything is randomized at once. Shuffled NiDL chests
+  follow the same rules as KatAM's, and chest shards can use NiDL's chests as well.
 
-### 1. Save door visits, and show them in game from the save
+### 2. Title screen: NiDL enemies in the parade
+- When the ROM Expansion is on, the random title parade can include its ported NiDL enemies. The parade has its own character
+  table, so they need new entries there pointing at the expansion's sprites, within the intro's 16-palette limit.
+
+### 3. Save door visits, and show them in game from the save
 - Which doors Kirby has been through (and which chest shards he's taken) must be kept in the save file, for KatAM's rooms and
   the NiDL rooms alike. Today the NiDL rooms' door visits aren't saved: they share one slot of the game's visited-doors table.
 - What the game shows must follow the save: load a save and the pause screen's maps show the doors and rooms that save visited.
   This is one of the owner's biggest complaints.
 
-### 2. Consumable chests in the NiDL rooms
-- Add chests holding consumables (food, Maxim Tomatoes, 1UPs, candy, batteries and the like) to the NiDL rooms, the way KatAM uses
-  them: as a reward for exploring (a dead end, a secret room, behind breakable blocks, the end of a branch), for a challenge (a hard
-  jump, a room full of enemies) or as a surprise.
-- Never in a boss room, a switch room or a mini-boss's fight area.
-- **Mostly new chests added to the rooms** (appended to their object lists), at spots like the ones above. Replace one of the room's
-  own loose consumables with a chest **only sparingly**. NiDL's rooms have a lot of loose items, and turning them into chests would
-  flood the levels with chests. Keep KatAM's density: a few per level, each one worth finding.
-- They then count as consumable chests for the randomizer (the shards in chests option may use them).
-
-### 3. Master Sword toggle
+### 4. Master Sword toggle
 - A randomizer option: the Master Sword in the hub is unlocked from the start of the game.
 
-### 4. NiDL Meta Knight fight keeps Kirby's own abilities
+### 5. NiDL Meta Knight fight keeps Kirby's own abilities
 - The fight starts with whatever abilities the player has. Don't give a sword, and don't add a sword pedestal.
 
-### 5. Bosses as faithful 1:1 recreations of NiDL
+### 6. Bosses as faithful 1:1 recreations of NiDL
 - **Heavy Mole**: rework the fight to match NiDL's, which needs the boss rooms to support scrolling (the screen moves through the
   dirt with the mole).
 - **King Dedede**: he must inhale Kirby (and the helper Kirbys), swallow them and spit them out, as in NiDL.
