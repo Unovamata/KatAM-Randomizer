@@ -101,6 +101,8 @@ after any change.
   `0x143`, `0x1F6`, `0x33B`): x the right edge of the fuse cell the rope enters, y that cell's top. `TransportSpot()`.
 - **They always land Kirby safely**: on a floor, never in a pit or the room's hidden bottom rows. A cannon fires Kirby to the top of
   its room and he must fall onto a floor. `Land()`.
+- **A warp star into one of NiDL's warp star skies carries Kirby across it**, as NiDL's does (rooms 0x280 and 0x2F9): an arc over
+  the sky with the star's sparkles, out at its bottom into the next room; the helpers on the star ride with him. `SkyFlight()`.
 - No mirror is placed next to them (rule 2).
 
 ## 8. Bosses and mini-bosses

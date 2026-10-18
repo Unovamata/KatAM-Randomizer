@@ -1427,7 +1427,8 @@
         static void WarpFlights(byte[] rom, IReadOnlyDictionary<string, int> symbols, ref int cursor) {
             int table = symbols["gUnk_08D60A84"], arrivals = symbols["gUnk_0893CB44"], first = ReadInt(rom, table) - 0x08000000;
             if (rom[first + (FlightRise - 1) * FlightStep + 9] != 0x40) return;     // (its room change: +9, the flags);
-            int flight = Allocate(ref cursor, (FlightRise + 2) * FlightStep, 4), moved = Allocate(ref cursor, (WarpFlight + 1) * 4, 4);
+            List<NightmareRoom> rides = SkyRides();
+            int flight = Allocate(ref cursor, (FlightRise + 2) * FlightStep, 4), moved = Allocate(ref cursor, (WarpFlight + 1 + rides.Count) * 4, 4);
             Array.Copy(rom, first, rom, flight, FlightRise * FlightStep);
             WriteShorts(rom, flight + FlightRise * FlightStep, 0, 0, 1, 90);            // A frame still (it moves on to the end);
             WriteShorts(rom, flight + FlightRise * FlightStep + 8, 0xFF);
@@ -1440,6 +1441,52 @@
                 rom[arrivals + t.Room * 2] = (byte)t.DestX;
                 rom[arrivals + t.Room * 2 + 1] = (byte)t.DestY;
             }
+            for (int i = 0; i < rides.Count; i++) {
+                (List<(int x, int y, int effect)> path, int startX, int startY) = SkyFlight(rides[i]);
+                int sky = Allocate(ref cursor, (FlightRise + SkyPause + path.Count + 1) * FlightStep, 4), at = sky + FlightRise * FlightStep;
+                Array.Copy(rom, first, rom, sky, FlightRise * FlightStep);
+                for (int k = 0; k < SkyPause; k++, at += FlightStep) {
+                    WriteShorts(rom, at, 0, 0, 1, 90);
+                    WriteShorts(rom, at + 8, 0xFF);
+                }
+                foreach ((int x, int y, int effect) in path) {
+                    WriteShorts(rom, at, x, y, 1, 90);
+                    WriteShorts(rom, at + 8, effect);
+                    at += FlightStep;
+                }
+                WriteShorts(rom, at, 0, 0, 0, 90);
+                WriteShorts(rom, at + 8, 0x80FF);
+                WriteInt(rom, moved + (WarpFlight + 1 + i) * 4, sky + 0x08000000);
+                rom[arrivals + rides[i].Room * 2] = (byte)startX;
+                rom[arrivals + rides[i].Room * 2 + 1] = (byte)startY;
+            }
+        }
+
+        /* SkyFlight(); A sky ride's flight in its room (SkyRides()), after flight 0's rise and room change and SkyPause frames still: where
+         * Kirby comes in (the room's arrival spot, gUnk_0893CB44: the column + 1; KatAM's flights bring him in at the camera's lowest
+         * point, the room's height - 39, whatever its row says), and his speed frame by frame (8.8 pixels, up positive, as KatAM's
+         * flights; trailing the star's sparkles, effect 12): an arc, as a warp star's, rising in from the bottom, over the sky (to its
+         * middle in a wide sky, near its top in a tall one: Kirby never gets into a room's top row, so its top exits are out of reach)
+         * and down the other side, bobbing. The flight ends at the bottom and Kirby drops off it onto the room's bottom exit (kind 26:
+         * on to the next room), as NiDL's star carries him out of the sky; */
+        const int SkyPause = 20, SkySpeed = 0x280, SkyBob = 4;
+        static (List<(int x, int y, int effect)> path, int startX, int startY) SkyFlight(NightmareRoom sky) {
+            bool wide = sky.Width >= sky.Height;
+            double left = wide ? 8 : sky.Width * 4, right = wide ? (sky.Width - 1) * 16 : sky.Width * 12;
+            double bottom = sky.FullHeight * 16 - 39, peak = wide ? sky.Height * 5 : 3 * 16;
+            (double x, double y) At(double t) => (left + (right - left) * t, bottom - (bottom - peak) * Math.Sin(Math.PI * t) - SkyBob * Math.Sin(6 * Math.PI * t));
+            double length = 0;
+            for (int k = 0; k < 400; k++) {
+                var (ax, ay) = At(k / 400.0); var (bx, by) = At((k + 1) / 400.0);
+                length += Math.Sqrt((bx - ax) * (bx - ax) + (by - ay) * (by - ay));
+            }
+            int frames = (int)Math.Ceiling(length / (SkySpeed / 256.0));
+            List<(int x, int y, int effect)> path = new List<(int, int, int)>();
+            for (int k = 0; k < frames; k++) {
+                var (ax, ay) = At((double)k / frames); var (bx, by) = At((double)(k + 1) / frames);
+                path.Add(((int)Math.Round((bx - ax) * 256), (int)Math.Round((ay - by) * 256), 12));
+            }
+            return (path, (int)left / 16 + 1, sky.FullHeight - 3);
         }
 
         /* ExtendAreas(); Areas AreaBase... for the NiDL levels (see Areas):
@@ -1602,6 +1649,12 @@
          * Kirby (the room, the landing cell + 1); */
         public sealed record Transport(int X, int Y, bool Cannon, int Room, int DestX, int DestY);
         static Dictionary<NightmareRoom, List<Transport>> transportsOf = new Dictionary<NightmareRoom, List<Transport>>();
+        /* skyRooms; Rooms whose ways out are their top and bottom edges (NiDL's exits kind 26); SkyRides(), the ones a warp star flies
+         * Kirby to (NiDL's warp star skies: Orange Ocean 2's 0x280, Rainbow Resort 1's 0x2F9), where NiDL's star carries Kirby across
+         * the sky into the next room: here the star's flight does (SkyFlight()); */
+        static HashSet<NightmareRoom> skyRooms = new HashSet<NightmareRoom>();
+        static List<NightmareRoom> SkyRides() =>
+            skyRooms.Where(sky => transportsOf.Values.SelectMany(list => list).Any(t => !t.Cannon && t.Room == sky.Room)).OrderBy(sky => sky.Room).ToList();
         /* bossExitsOf; Where a boss room's shard takes Kirby (the room, the landing cell + 1), by its room (each part): a boss room has no
          * door out, as KatAM's: taking the shard its boss leaves is the way on (gNidlShardExits, "ROM Expansion/nidl_boss.c": where the
          * shard cutscene leaves Kirby, KatAM's Central Circle otherwise); */
@@ -1659,6 +1712,7 @@
                                                                out Dictionary<int, List<Door>> katamDoors, out (int room, int x, int y) firstStart, out byte firstFacing) {
             Dictionary<NightmareRoom, List<Door>> doors = rooms.ToDictionary(r => r, r => new List<Door>());
             transportsOf = rooms.ToDictionary(r => r, r => new List<Transport>());
+            skyRooms = new HashSet<NightmareRoom>();
             bossExitsOf = new Dictionary<NightmareRoom, (int, int, int)>();
             // HasBoss(); Whether a room (any of its parts) holds a ported boss (NiDL's category 2, RoomBosses);
             bool HasBoss(NightmareRoom r) {
@@ -2054,6 +2108,7 @@
                     }
                     else if (kind == 26 && byRoom.ContainsKey((s.level, s.stage, x))) {
                         byte[] cells = Cells(r);
+                        skyRooms.Add(PartAt(key, 0, 0).part);
                         // (landing on the room's first column, NiDL's warp star skies carrying Kirby on, Rainbow Resort's 0x2F9 into 0x2EC:
                         // where that room starts, not its corner);
                         var to = landX == 0 ? Target(Start((s.level, s.stage, x))) : Target(Land((s.level, s.stage, x), landX, landY, false));
@@ -3611,7 +3666,8 @@
                     WriteShort(template, 0x18, t.DestX << 8 | t.DestY);
                     template[0x22] = 2;
                 } else {
-                    template[14] = WarpFlight;
+                    // (its flight: WarpFlight, or a sky ride's, SkyFlight(), the next flights);
+                    template[14] = (byte)(WarpFlight + 1 + SkyRides().FindIndex(sky => sky.Room == t.Room));
                     WriteShorts(template, 0x1A, t.DestX, t.DestY, t.Room);
                 }
                 templates.Add(template);

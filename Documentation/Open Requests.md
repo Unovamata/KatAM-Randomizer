@@ -29,10 +29,6 @@ is done, move it to "Done" and say how it was checked. The design rules for door
 - **Nightmare's Power Orb**: port the Star Rod flying sequence, for the player and for all the helper Kirbys.
 - **Every boss** must play like NiDL's. Whispy Woods' face is done (see below); check the others against NiDL.
 
-### 8. Warp star rides: NiDL's animation
-- Room 0x2F9's warp star ride has no animation, and room 0x280 needs it too. Port NiDL's warp star animations, for every warp star
-  room, with support for the helper Kirbys (and any NPC riding along).
-
 ### 10. Screen shake as KatAM's
 - The screen shakes far too much; something broke along the way. Match KatAM's screen shake.
 - Not reproduced yet; needs the owner's details (which room, what was happening). Checked so far: KatAM's shake itself runs the
@@ -48,6 +44,16 @@ is done, move it to "Done" and say how it was checked. The design rules for door
   should cost a life. To look into.
 
 ## Done (rules to keep)
+
+- **Warp star rides through NiDL's skies** (item 8, rooms 0x2F9 and 0x280): Kirby arrived on the sky room's bottom row and its edge
+  exit sent him straight on, a white flash. A warp star into a sky room now has a flight of its own (`SkyFlight()`): KatAM's flight
+  up, then the star carries Kirby across the sky in an arc, trailing its sparkles, and out at the bottom into the next room (its
+  bottom exit: the top row is out of Kirby's reach in KatAM). Tested in the emulator (USA, new games started beside the stars, not
+  playthroughs): from 0x2EB, the star arced across 0x2F9 left to right and Kirby arrived in 0x2EC; from 0x27E, it rose through
+  0x280 to near its top, came down the other side and Kirby arrived in 0x27F; started with the helpers on the star, the pink,
+  yellow and green Kirbys rode it together and all arrived in 0x2EC. It's KatAM's own star and flight, drawn for these rooms, not
+  NiDL's ride animation (NiDL's star scrolls the sky past Kirby; KatAM's camera follows him). Logic and chest checks pass on all
+  three versions, with and without dropping through thin floors.
 
 - **Goal rooms drawn beside each room leading to them** (item 7): the map viewer splits each goal game (0x3D4-0x3D6: 9, 14 and 12
   rooms' goal mirrors lead to them) into a copy beside each of those rooms (`RomMap.SplitGoalRooms()`), in that room's NiDL level
