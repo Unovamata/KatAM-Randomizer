@@ -59,9 +59,11 @@ namespace KatAMRandomizer {
          * several frames); Common: from NiDL's shared object tiles (CommonTiles, its effects: Whispy Woods' puffs) instead; OnlyPalette:
          * only its pieces NiDL draws with that palette (its OAM's; NiDL draws Kracko with several at once, a KatAM sprite with one);
          * OrbShots: from the Power Orb's shots' own tiles and palette (OrbShotGraphics(): raw tiles the orb loads for them); StarRod: the
-         * shared tiles with the Star Rod's star over some (StarRodTiles()); */
+         * shared tiles with the Star Rod's star over some (StarRodTiles()); Shared: its pieces with the same tiles drawn from the same
+         * tiles of the frame (the Power Orb's slash: up to 17 pieces, 4 different ones); */
         sealed record Part(int Frame, Dictionary<int, int> Recolor = null, int Table = 0, bool Palette15 = false, int Palette = 0, int Descriptor = -1,
-                           int Dx = 0, int Dy = 0, bool Common = false, int OnlyPalette = -1, bool OrbShots = false, bool StarRod = false);
+                           int Dx = 0, int Dy = 0, bool Common = false, int OnlyPalette = -1, bool OrbShots = false, bool StarRod = false,
+                           bool Shared = false);
 
         /* Enemy; A ported enemy: its index (NIDL_* in nidl.h), name, NiDL object type and frame table, its frames (in the order the
          * C code numbers them), its hurt frame, palette changes, the letters of its name and the behavior bytes the randomizer uses; */
@@ -385,10 +387,12 @@ namespace KatAMRandomizer {
         /* Nightmare's Power Orb; NiDL boss 7 (type 0x42, the Fountain of Dreams' first; mini-boss descriptor 37): only the frames it uses
          * (type 0x44's 256 are shared): 0x087544B4's 4-7, spinning, 8-11 shrinking (11, the smallest, blinks as it charges), then its
          * shots' (its 20-29 and 39-42, OrbShots: the spinning star 20-23, squashed as it dashes 24-27, the crescents 28-29, the sparkles
-         * a dashing star trails 39-42), numbered from 0 (bosses/power_orb.c). Type 0x44. Hurt: its 0; */
+         * a dashing star trails 39-42), then the slash Kirby's swing makes in its intro (its 14-19, a line of pieces growing across the
+         * screen; Shared, 16 tiles; its second palette), numbered from 0 (bosses/power_orb.c). Type 0x44. Hurt: its 0; */
         static Miniboss PowerOrb() => new Miniboss(7, "Power Orb", 37, 0x7544B4,
             Enumerable.Range(4, 8).Select(f => new[] { new Part(f) })
-                .Concat(Enumerable.Range(20, 10).Concat(Enumerable.Range(39, 4)).Select(f => new[] { new Part(f, OrbShots: true) })).ToList(),
+                .Concat(Enumerable.Range(20, 10).Concat(Enumerable.Range(39, 4)).Select(f => new[] { new Part(f, OrbShots: true) }))
+                .Concat(Enumerable.Range(14, 6).Select(f => new[] { new Part(f, Shared: true) })).ToList(),
             new[] { new Part(0) },
             new[] {
                 (0x16, 0), (0x1E, 1), (0x1C, 1), (0x02, 5), (0x01, 1), (-1, -1),               // "P" (Pengy), "o" (Noddy), "w" (Twister), "e" (Blipper), "r" (Bronto Burt), space;
@@ -1071,11 +1075,15 @@ namespace KatAMRandomizer {
                 List<byte> frameTiles = new List<byte>();
                 List<ushort> oams = new List<ushort>();
 
+                bool shared = parts.Any(p => p.Shared);
                 foreach ((Piece piece, byte[] pieceTiles, int palette) in pieces) {
+                    int at = frameTiles.Count;
+                    for (int t = 0; shared && t + pieceTiles.Length <= frameTiles.Count; t += 32)
+                        if (frameTiles.Skip(t).Take(pieceTiles.Length).SequenceEqual(pieceTiles)) { at = t; break; }
                     oams.Add((ushort)((piece.Y - top) | piece.Shape << 14));
                     oams.Add((ushort)((piece.X + halfWidth) | piece.Size << 14 | piece.HFlip << 12 | piece.VFlip << 13));
-                    oams.Add((ushort)(frameTiles.Count / 32));
-                    frameTiles.AddRange(pieceTiles);
+                    oams.Add((ushort)(at / 32));
+                    if (at == frameTiles.Count) frameTiles.AddRange(pieceTiles);
                 }
 
                 if (pieces.Any(p => p.palette >= palettes.Count)) throw new InvalidOperationException("No such palette.");

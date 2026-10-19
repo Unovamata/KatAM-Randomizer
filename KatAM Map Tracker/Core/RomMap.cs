@@ -436,6 +436,14 @@ namespace KatAMMapTracker {
 
                 int id = Rom[address + 12], x = Read16(address + 6), y = Read16(address + 8);
 
+                /* (a ROM Expansion boss, types 0x43 and 0x44 (KatAM places none), standing outside its fight's screen, its template's area
+                 * (+0x1A, +0x1C: its left and top from it, +0x1E, +0x20: its size): at that screen's middle, where it fights; the Power
+                 * Orb stands at its room's bottom, where its intro starts); */
+                if (id is 0x43 or 0x44) {
+                    int left = x + (short)Read16(address + 0x1A), top = y + (short)Read16(address + 0x1C), width = Read16(address + 0x1E), height = Read16(address + 0x20);
+
+                    if (width > 0 && height > 0 && (x < left || x >= left + width || y < top || y >= top + height)) (x, y) = (left + width / 2, top + height / 2);
+                }
                 room.Objects.Add(id == WarpStarObject ? new RoomObject(id, Rom[address + 14], x, y, Read16(address + 0x1E), (short)Read16(address + 0x1A), (short)Read16(address + 0x1C))
                                : id == FuseCannonObject ? new RoomObject(id, Rom[address + 14], x, y, Read16(address + 0x12), Rom[address + 0x18], Rom[address + 0x19])
                                : new RoomObject(id, Rom[address + 14], x, y));

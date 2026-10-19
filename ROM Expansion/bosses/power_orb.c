@@ -4,7 +4,15 @@
  * space as they fight (0.2 pixels a frame, 513 pixels down: ArenaSink(), its arena's screen; NiDL's camera, 0x0300215C, from 8 to
  * 521), the orb, its shots and the Kirbys keeping their places on it. Its frames (0x087544B4, mini-boss descriptor 37; only those
  * it uses: KatAMExpansion.PowerOrb): NiDL's 4-7, the spinning orb (10 frames each), 8-11 it shrinking (its look as it attacks; 11
- * blinks as it charges), then its shots' (its 20-29 and 39-42, their own tiles), from FRAME_SHOT.
+ * blinks as it charges), then its shots' (its 20-29 and 39-42, their own tiles), from FRAME_SHOT, then the intro's slash (14-19).
+ * Its intro (STATE_ENTER), NiDL's, traced frame by frame from the room's first (as the fight, its speeds change in steps it keeps
+ * exactly): Kirby comes in at the room's bottom (KatAMExpansionRooms.cs: NiDL's start there; this and its arena stand there too,
+ * KatAM making objects only near the camera) and the screen rises from there to the fight's (sRiseSpeeds: 761 pixels, 4 a frame,
+ * slowing to 1 as it gets there: ArenaRise(), its arena's lock under its screen, the cameras right on it); 66 frames in, every
+ * Kirby flies up into it from below its left (abilities/star_rod.c's StarRodIntro(): NiDL's flight and frames) and the orb comes
+ * in from its top right, spinning, down to the left; Kirby swings at it (a slash across the screen: OrbSlash()), it pulses 5 times
+ * and spins fast as it loops round to its spot, and the fight starts there (319 frames in, NiDL's). Meanwhile it's untouchable and
+ * harmless and shoots nothing, and the Kirbys neither move nor shoot (the riders fly them).
  * What it does, traced frame by frame in NiDL's fight (its speeds change in steps it keeps exactly), from the right of the screen
  * ((192, 75) on it), round and round:
  * • it hovers (STATE_HOVER, 240 frames), bobbing 30 pixels up and down (speeds 1, 0.5, 0.125 pixels a frame, 10 frames each, 20 at
@@ -28,6 +36,7 @@
 #include "constants/songs.h"
 
 void ArenaSink(struct Object *, s32);
+void ArenaRise(struct Object *, s32);
 
 #define SPOT_X (192 << 8)
 #define SPOT_Y (75 << 8)
@@ -39,6 +48,16 @@ void ArenaSink(struct Object *, s32);
 #define ZIP_WAIT 8
 #define ZIP_SPEED 0x600
 #define ATTACK_LOOK 16
+// The intro (frames into it: the orb and the Kirbys show; it moves; Kirby's swing hits it; its pulses; its fast spin; the fight);
+#define INTRO_SHOW 66
+#define INTRO_MOVE 94
+#define INTRO_CLASH 202
+#define INTRO_PULSE 204
+#define INTRO_FAST 242
+#define INTRO_END 319
+#define INTRO_X (256 << 8)
+#define INTRO_Y (-8 << 8)
+#define INTRO_BELOW 761
 // Its frames (KatAMExpansion.PowerOrb): the spin, the shrink, then the shots' (NiDL's shot frames 0-9, then 19-22, from FRAME_SHOT);
 #define FRAME_SPIN 0
 #define FRAME_SHRINK 4
@@ -50,6 +69,12 @@ void ArenaSink(struct Object *, s32);
 #define SHOT_SPARKLE 10     // 10-13 (NiDL's 19-22), the sparkles a dashing star trails;
 #define SHOT_TILES 8         // (its biggest frame, a crescent: 16x32);
 #define SPARKLE_LIFE 16
+// The intro's slash (NiDL's 14-19, from FRAME_SLASH; its second palette): where it is on the fight's screen (NiDL's (144, 118) in
+// the room, the screen still rising past it);
+#define FRAME_SLASH (FRAME_SHOT + 14)
+#define SLASH_TILES 16
+#define SLASH_X 136
+#define SLASH_Y 110
 
 enum { STATE_ENTER, STATE_HOVER, STATE_ROAM, STATE_CHARGE, STATE_ZIP };
 enum { ATTACK_STREAM, ATTACK_FAN, ATTACK_PAIR, ATTACKS };
@@ -59,6 +84,7 @@ struct PowerOrb {
     struct NidlObject n;
     s32 sx, sy;         // Its spot on the fight's screen (8.8, from the screen's top left as it sinks);
     s32 sink;           // How far the screen has sunk (8.8);
+    s32 below;          // How far under its screen the intro's screen is (pixels);
     u16 timer;          // Frames into its state;
     u16 cooldown;       // Frames since its last timed shot;
     u8 state;
@@ -106,6 +132,17 @@ static const s16 sChargeY[2][4] = { { 0x200, 0x100, 0x80, 0x20 }, { 0x100, 0x80,
 static const u8 sZipRows[] = { 16, 112, 40, 136, 76 };
 // The lunge: x speeds (8.8) frame by frame;
 static const s16 sLunge[LUNGE_TIME] = { 0x800, 0x800, 0x400, 0x400, -0x400, -0x400, -0x800, -0x800 };
+// The intro's screen rising: pixels a frame and frames;
+static const u8 sRiseSpeeds[] = { 0, 8, 4, 3, 2, 1 };
+static const u8 sRiseTimes[] = { 2, 1, 141, 32, 32, 29 };
+/* The intro's moves from INTRO_MOVE: speeds (8.8, y down) and frames, from (256, -8) on the screen (above its right) down to the left,
+ * past Kirby, its swing knocking it back up to the right, then round to the left and back to its spot (192.5, 75.25); */
+static const s16 sIntroX[] = { -0x100, -0x100, -0x100, -0x100, 0x400, 0x200, 0x200, 0x100, 0x80, -0x200, -0x400, -0x400, -0x100, 0x100, 0x200, 0x400, 0x200, 0x80, 0x40 };
+static const s16 sIntroY[] = { 0x100, 0x80, 0x20, 0, -0x100, -0x100, -0x200, -0x100, -0x80, 0x80, 0xC0, 0x180, 0x180, 0x180, 0x180, 0xC0, -0x40, -0xC0, -0xC0 };
+static const u8 sIntroTimes[] = { 72, 10, 10, 16, 8, 8, 8, 6, 4, 6, 6, 11, 6, 6, 6, 6, 6, 6, 6 };
+// Its pulses (8 frames apart): the shrink's frames, 6 frames; the slash's frames, frame by frame;
+static const u8 sPulse[6] = { 0, 1, 3, 2, 1, 0 };
+static const u8 sSlash[] = { 0, 0, 1, 2, 3, 3, 4, 4, 5, 5 };
 
 static s32 ScreenLeft(struct Object *obj) {
     return (obj->objTemplate->x + obj->objTemplate->unk1A) << 8;
@@ -154,6 +191,39 @@ static void OrbSparkle(struct OrbShot *shot, bool8 up) {
     sparkle->unk3C = up ? -0x80 : 0x80;
     EffectObjectInitSprite(sparkle, &sparkle->sprite, 4, NidlGraphicsOf(&o->n)->animId, FRAME_SHOT + SHOT_SPARKLE, 0x1A);
     sparkle->sprite.palId = shot->palId;
+}
+
+// OrbSlash(); The slash Kirby's swing makes in the intro (NiDL's object 0xDC): growing across the screen from its spot, 10 frames;
+static void OrbSlashMain(void) {
+    struct EffectObject *slash = TaskGetStructPtr(gCurTask);
+
+    if (slash->flags & 0x1000) {
+        TaskDestroy(gCurTask);
+        return;
+    }
+    if (slash->unk4 >= ARRAY_COUNT(sSlash)) {
+        slash->flags |= 0x1000;
+        return;
+    }
+    // (facing right: KatAM draws effects mirrored otherwise, NiDL's as they are);
+    slash->flags |= 4 | 1;
+    slash->sprite.variant = FRAME_SLASH + sSlash[slash->unk4++];
+    EffectObjectPostUpdate(slash);
+}
+
+static void OrbSlash(struct PowerOrb *o) {
+    struct Task *t = TaskCreate(OrbSlashMain, sizeof(struct EffectObject), 0x3500, TASK_USE_EWRAM, ObjectBaseDestroy);
+    struct EffectObject *slash = TaskGetStructPtr(t);
+
+    ClearEffectObject(slash);
+    slash->header.kind = 3;
+    slash->x = ScreenLeft(&o->n.obj) + (SLASH_X << 8);
+    slash->y = ScreenTop(o) + (SLASH_Y << 8);
+    slash->parent = o;
+    slash->roomId = o->n.obj.base.roomId;
+    slash->unk4 = 0;
+    EffectObjectInitSprite(slash, &slash->sprite, SLASH_TILES, NidlGraphicsOf(&o->n)->animId, FRAME_SLASH, 0x1A);
+    slash->sprite.palId = NidlLoadPalette(&o->n, NidlGraphicsOf(&o->n)->animId | NIDL_THIRD_PALETTE, FRAME_SLASH);
 }
 
 /* OrbShotMain(); A star or crescent: an attack object like the enemies' stars (as Mr. Shine's crescents), moving with the screen as
@@ -354,6 +424,36 @@ static void Zip(struct PowerOrb *o) {
     }
 }
 
+/* Intro(); The intro's frame t (see above): the screen rising, the orb's place and look (hidden until INTRO_SHOW; spinning, 8 frames
+ * a frame; the pulses, the spin going on between them; spinning fast, 1 frame a frame); its frame, or -1 (hidden); */
+static s16 Intro(struct PowerOrb *o, u16 t) {
+    s32 n, moves;
+    u8 i;
+
+    for (n = t, i = 0, o->below = INTRO_BELOW; i < ARRAY_COUNT(sRiseTimes); n -= sRiseTimes[i++]) {
+        o->below -= sRiseSpeeds[i] * (n < sRiseTimes[i] ? n + 1 : sRiseTimes[i]);
+        if (n < sRiseTimes[i]) break;
+    }
+    o->sx = INTRO_X;
+    o->sy = INTRO_Y;
+    for (moves = t - INTRO_MOVE + 1, i = 0; moves > 0 && i < ARRAY_COUNT(sIntroTimes); moves -= sIntroTimes[i++]) {
+        n = moves < sIntroTimes[i] ? moves : sIntroTimes[i];
+        o->sx += sIntroX[i] * n;
+        o->sy += sIntroY[i] * n;
+    }
+    if (t < INTRO_SHOW) return -1;
+    if (t < INTRO_PULSE) return FRAME_SPIN + ((((t < INTRO_CLASH ? t : INTRO_CLASH - 1) - INTRO_SHOW) >> 3) & 3);
+    if (t < INTRO_FAST) return ((t - INTRO_PULSE) & 7) < 6 ? FRAME_SHRINK + sPulse[(t - INTRO_PULSE) & 7] : FRAME_SPIN + ((((t - INTRO_PULSE) >> 3) + 1) & 3);
+    return FRAME_SPIN + ((t - INTRO_FAST) & 3);
+}
+
+// PowerOrbIntro(); The intro's frame (-1: over) (abilities/star_rod.c's StarRodIntro());
+s32 PowerOrbIntro(struct Object *obj) {
+    struct PowerOrb *o = (struct PowerOrb *)obj;
+
+    return o->state == STATE_ENTER && o->timer ? o->timer - 1 : -1;
+}
+
 // Fly(); Every Kirby free in its room takes the Star Rod (again, coming back, or after a hit KatAM's states took him);
 static void Fly(struct Object *obj) {
     u8 i;
@@ -365,6 +465,7 @@ static void Fly(struct Object *obj) {
 static void PowerOrbMain(struct Object *obj) {
     struct PowerOrb *o = (struct PowerOrb *)obj;
     u8 i, frame;
+    s16 intro = 0;
 
     NidlUpdate(&o->n);
     obj->base.flags |= 4;
@@ -373,8 +474,8 @@ static void PowerOrbMain(struct Object *obj) {
     sub_08034E14(obj);
     Fly(obj);
 
-    // The screen sinks (its arena's, the camera with it);
-    if (o->sink < SINK_END) {
+    // The screen sinks (its arena's, the camera with it), once the intro's over;
+    if (o->state != STATE_ENTER && o->sink < SINK_END) {
         o->sink += SINK_SPEED;
         ArenaSink(obj, o->sink);
     }
@@ -382,14 +483,16 @@ static void PowerOrbMain(struct Object *obj) {
     o->timer++;
     switch (o->state) {
     case STATE_ENTER:
-        // (in from the left, as NiDL's: to its spot in 20 frames, then still 20);
-        if (o->timer <= 20) {
-            o->sx += (SPOT_X - (160 << 8)) / 20;
-            o->sy += (SPOT_Y - (82 << 8)) / 20;
-        }
-        if (o->timer >= 40) {
+        intro = Intro(o, o->timer - 1);
+        ArenaRise(obj, o->below << 8);
+        if (o->timer - 1 == INTRO_CLASH) OrbSlash(o);
+        if (o->timer - 1 >= INTRO_END) {
+            o->below = 0;
+            ArenaRise(obj, 0);
             o->sx = SPOT_X;
             o->sy = SPOT_Y;
+            o->spin = 0;
+            obj->base.flags &= ~(0x200 | 0x400);
             Next(o);
         }
         break;
@@ -443,6 +546,20 @@ static void PowerOrbMain(struct Object *obj) {
     obj->base.x = ScreenLeft(obj) + o->sx;
     obj->base.y = ScreenTop(o) + o->sy;
     obj->base.xspeed = obj->base.yspeed = 0;
+    // (the intro: on the screen as the camera shows it (its lock's last frame: ArenaRise()), untouchable, harmless, hidden until it
+    // shows);
+    if (o->state == STATE_ENTER) {
+        obj->base.x = gCurLevelInfo[obj->base.unk56].viewportPosition.x + o->sx;
+        obj->base.y = gCurLevelInfo[obj->base.unk56].viewportPosition.y + o->sy;
+        obj->base.flags |= 0x200;
+        if (intro < 0) {
+            obj->base.flags |= 0x400;
+            return;
+        }
+        obj->base.flags &= ~0x400;
+        NidlSetFrame(&o->n, intro);
+        return;
+    }
     // Touching it hurts (the flying Kirbys: it hits them itself);
     for (i = 0; i < gNumKirbys; i++)
         if (gKirbys[i].base.roomId == obj->base.roomId && StarRodTouches(&gKirbys[i], obj->base.x, obj->base.y, 18, 18)) StarRodHit(&gKirbys[i], obj->base.x);
@@ -463,14 +580,15 @@ void PowerOrbStart(struct Object *obj) {
     ObjectSetFunc(obj, -1, PowerOrbMain);
 }
 
-// PowerOrbInit(); Its boxes (40x40, through anything), its start (coming in from the screen's left of its spot);
+// PowerOrbInit(); Its boxes (40x40, through anything), its start (the intro's: hidden, over its screen's right);
 void PowerOrbInit(struct NidlObject *n) {
     struct PowerOrb *o = (struct PowerOrb *)n;
     struct Object *obj = &n->obj;
 
-    o->sx = 160 << 8;
-    o->sy = 82 << 8;
+    o->sx = INTRO_X;
+    o->sy = INTRO_Y;
     o->sink = 0;
+    o->below = INTRO_BELOW;
     o->cooldown = COOLDOWN;
     o->attack = ATTACK_STREAM;
     o->stream = o->streamTimer = 0;
@@ -479,7 +597,7 @@ void PowerOrbInit(struct NidlObject *n) {
     Set(o, STATE_ENTER);
     o->spin = 0;
     obj->base.xspeed = obj->base.yspeed = 0;
-    obj->base.flags |= 0x100;
+    obj->base.flags |= 0x100 | 0x400;
     obj->base.unk5C = (obj->base.unk5C & ~7) | 3 | 0xA0;
     sub_0803E2B0(&obj->base, -20, -20, 20, 20);
     ObjectSetBounds(&obj->base, -20, -20, 20, 20);

@@ -184,6 +184,7 @@ void NidlInitPalette(struct NidlObject *);
 void NidlSetFrame(struct NidlObject *, u8 frame);
 u8 NidlLoadPalette(struct NidlObject *, u16 key, u8 frame);
 #define NIDL_SECOND_PALETTE 0x2000
+#define NIDL_THIRD_PALETTE 0x4000
 void NidlPlay(struct NidlObject *, const s16 *sequence);
 void NidlAnimate(struct NidlObject *);
 void NidlUpdate(struct NidlObject *);

@@ -15,7 +15,8 @@
  * The helpers (CPU Kirbys) fly by the rider's own AI: a spot on the left, level with the orb or near it, shooting when in line;
  * KatAM's helper AI is kept still meanwhile (HoldAI()), and they're kept on the first player's screen (Viewer()). The fight's
  * screen sinks (NiDL's fall through space): everyone in it sinks with the camera's bounds (StarRodSink()). Kirby's ability before
- * is kept (STAR_ROD_SAVED) and given back after the shard's dance (StarRodRestore(), from NidlShardExit); */
+ * is kept (STAR_ROD_SAVED) and given back after the shard's dance (StarRodRestore(), from NidlShardExit).
+ * In the fight's intro (bosses/power_orb.c) the riders fly every Kirby up into its screen as NiDL's Kirby flies (StarRodIntro()); */
 #include "../abilities.h"
 #include "kirby.h"
 #include "code_0806F780.h"
@@ -29,6 +30,7 @@ void sub_0806EFF8(struct Kirby *);
 void sub_08088640(struct Kirby *, u8, u16);
 void sub_080880AC(struct Kirby *, u32);
 void sub_0800EE04(u8, u32);
+s32 PowerOrbIntro(struct Object *);
 
 // The ability Kirby had before the Star Rod (his padding byte after NIDL_MIKE_USES), given back after the fight;
 #define STAR_ROD_SAVED(kirby) (((u8 *)(kirby))[0x1A7])
@@ -57,6 +59,17 @@ void sub_0800EE04(u8, u32);
 
 // The knockback's speed (NiDL's, 8.8) frame by frame;
 static const u16 sKnockback[HURT_TIME] = { 0x1F8, 0x1F0, 0x1E8, 0x1E0, 0xF8, 0xF0, 0xE8, 0xE0, 0xD8, 0xD0, 0 };
+/* The intro's flight (NiDL's, frame by frame): his place on its screen from (8, 176), under its left, until INTRO_SHOW, then his
+ * speeds (8.8, y down) and frames, up past the orb's way in, swinging at it, back and down to (63.25, 95.75), where the fight starts;
+ * the helpers (and other players) sIntroGaps from him (by their number), behind him; his motion, NiDL's frames (STAR_ROD_MOTION_INTRO); */
+#define INTRO_SHOW 66
+#define INTRO_X 8
+#define INTRO_Y 176
+static const s16 sIntroX[] = { 0x100, 0x100, 0x100, 0x80, 0x80, 0x20, -0x20, 0, -0x100, -0x100, -0x80, -0x80, -0x20, 0, 0 };
+static const s16 sIntroY[] = { -0x200, -0x100, -0x80, 0x80, 0x100, 0x100, 0x100, 0, 0, 0x20, 0x80, 0x100, 0x80, 0x20, -0x80 };
+static const u8 sIntroTimes[] = { 58, 20, 20, 10, 10, 10, 10, 2, 16, 16, 16, 24, 6, 6, 14 };
+static const s8 sIntroGaps[4][2] = { { 0, 0 }, { -24, -12 }, { -20, 16 }, { -44, 2 } };
+
 // Its spin (each of its 4 frames for 3) and burst (NiDL's 0x0874C650 frames, one a frame, two sparkles crossing);
 static const u8 sSpin[12] = { 0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3 };
 static const u8 sBurst[BURST_TIME] = { 0, 0, 1, 6, 2, 7, 3, 8, 4, 9, 5, 10 };
@@ -386,6 +399,35 @@ static u8 Way(u16 keys) {
     return 0;
 }
 
+/* StarRodIntro(); The fight's intro, its frame t: his place on the screen as the camera shows it (hidden under it until INTRO_SHOW,
+ * then the flight; never left of its x 8, the room's wall), its motion; no flying, no shooting; */
+static void StarRodIntro(struct StarRodRider *r, s32 t, struct LevelInfo *level) {
+    struct Kirby *kirby = r->kirby;
+    const s8 *gap = sIntroGaps[kirby->base.unk56 & 3];
+    s32 x = INTRO_X << 8, y = INTRO_Y << 8, moves, n;
+    u8 i;
+
+    for (moves = t - INTRO_SHOW + 1, i = 0; moves > 0 && i < ARRAY_COUNT(sIntroTimes); moves -= sIntroTimes[i++]) {
+        n = moves < sIntroTimes[i] ? moves : sIntroTimes[i];
+        x += sIntroX[i] * n;
+        y += sIntroY[i] * n;
+    }
+    x += gap[0] << 8;
+    if (x < INTRO_X << 8) x = INTRO_X << 8;
+    if (t >= INTRO_SHOW || gap[1] > 0) y += gap[1] << 8;
+    kirby->base.x = level->viewportPosition.x + x;
+    kirby->base.y = level->viewportPosition.y + y;
+    kirby->base.xspeed = kirby->base.yspeed = 0;
+    kirby->base.flags &= ~1;
+    r->vx = r->vy = 0;
+    r->way = r->ending = r->slow = r->hurt = 0;
+    r->shot = SWING_TIME + 1;
+    // (its motion a frame early: KatAM shows a motion's first frame the frame after);
+    r->motion = t >= INTRO_SHOW - 1 ? STAR_ROD_MOTION_INTRO : STAR_ROD_MOTION_HOLD;
+    NidlMotion(kirby, r->motion);
+    r->lastTop = level->unk_S32Vec2_7C.y;
+}
+
 static void StarRodRiderMain(void) {
     struct StarRodRider *r = TaskGetStructPtr(gCurTask);
     struct Kirby *kirby = r->kirby;
@@ -410,6 +452,11 @@ static void StarRodRiderMain(void) {
     HoldAI(kirby);
     if (r->guarded) kirby->base.flags |= 0x8000;
     if (kirby->ability != NIDL_ABILITY_STAR_ROD) Give(kirby, NIDL_ABILITY_STAR_ROD);
+    // (the fight's intro: the flight up into its screen);
+    if (r->orb && PowerOrbIntro(r->orb) >= 0) {
+        StarRodIntro(r, PowerOrbIntro(r->orb), level);
+        return;
+    }
 
     x = (kirby->base.x - level->viewportPosition.x) >> 8;
     y = (kirby->base.y - level->viewportPosition.y) >> 8;

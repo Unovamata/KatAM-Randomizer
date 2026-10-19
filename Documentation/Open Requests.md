@@ -21,7 +21,9 @@ is done, move it to "Done" and say how it was checked. The design rules for door
   fight is a Star Rod flight in NiDL too (here still on the floor of his room).
 - **King Dedede's camera**: done (see Done: "King Dedede's camera is NiDL's").
 - **The Power Orb's camera and cinematics** (the owner: "power orb camera movements and transition cinematics have to be ported
-  as well."): NiDL's camera movements in the fight and its transition cinematics.
+  as well."): NiDL's camera movements in the fight and its transition cinematics. Done: the intro (the camera rising from the
+  room's bottom with every Kirby flying up to the orb, see item 34) and the fight's sinking screen. Still to do: the cinematics
+  after it (item 34).
 - **The helpers in the Star Rod fight** (the owner: "AI Kirbys should move up and down, left and right towards Power Orb to
   simulate that they are engaged in the fight and maybe open the door to avoiding its moves by chance, so disabling the flag so
   they get still ain't quite cutting it."): they keep moving towards the orb in every direction, and dodge its attacks now and
@@ -67,7 +69,19 @@ copy the cinematic before the Power Orb, the one where Kirby flies to the Power 
 Dimension Mirrors into the Power Orb's room: NiDL's flight up to the orb plays, then the fight). The camera is done: Nightmare's
 room's screen is NiDL's, held at (8, 216) over the floor Kirby lands on (it was centred on Nightmare, too high for Kirby to be in
 it, so it never locked); checked in the emulator in all three versions, Kirby on the floor at the screen's bottom left and
-Nightmare at its top, as NiDL's screen.
+Nightmare at its top, as NiDL's screen. The intro is done too: Kirby comes in at NiDL's start, at the room's bottom, and NiDL's
+intro plays, recorded from NiDL frame by frame (its room's natural start): the screen rises 761 pixels to the fight's (4 pixels a
+frame, slowing to 1), every Kirby flies up into it from under its left on NiDL's path with NiDL's frames (the helpers in formation
+behind the player), the orb comes in from above its right and down, Kirby swings at it (its slash across the screen), it pulses 5
+times and spins fast round to its spot, and the fight starts there, 319 frames in, as NiDL's (`power_orb.c`, `star_rod.c`'s
+`StarRodIntro()`, `arena.c`'s `ArenaRise()`; the rulebook's rule on where the orb's room is entered changed with it). Tested in the
+emulator: USA, through the NiDL hub's mirror and through Central Circle's (KatAM's 8 shards written into RAM), screenshots compared
+with NiDL's at the same frames (the camera, Kirby's and the orb's places and frames, the slash, all as NiDL's; the camera a frame
+behind the sprites, KatAM's camera running first); with the 3 helpers (their own starting spots written so they're in the hub);
+then the fight, the orb's HP set to 1 in RAM after the intro, beaten by a Star Rod star, its warp star boarded, the ride to
+Nightmare's room (the camera staying on the fight's screen after the orb's defeat, as before). European and Japanese: the intro
+through the NiDL hub's mirror, the same positions every frame as the USA one, and the fight after it. The background's own
+parallax isn't NiDL's (the room's background scrolls at the port's room-size rate), so its clouds pass a little later.
 
 **Still to do**: NiDL's cinematics (the orb's defeat, the ride into the moon, Nightmare's entrance and chase: recorded from NiDL
 frame by frame; the ending down from the moon: not recorded yet, NiDL's Nightmare takes no hit in the emulator so far), the helpers flying to the warp star themselves (they board it only if they reach it),

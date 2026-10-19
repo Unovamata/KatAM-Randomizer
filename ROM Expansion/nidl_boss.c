@@ -58,7 +58,8 @@ void *CreateNidlBoss(struct ObjectTemplate *template, u8 playerId) {
 }
 
 /* NidlBossWait(); Before the fight: until Kirby is in the template's area, then the HP bar shows and the boss music plays
- * (Macro_08100F18: gUnk_08352D80[0x43 - 0x38], the boss music); */
+ * (Macro_08100F18: gUnk_08352D80[0x43 - 0x38], the boss music); the Power Orb's as he comes in (its intro flies him up into its
+ * area, bosses/power_orb.c); */
 static void NidlBossWait(struct Object *obj) {
     struct NidlObject *n = (struct NidlObject *)obj;
 
@@ -66,7 +67,7 @@ static void NidlBossWait(struct Object *obj) {
     obj->base.flags |= 4;
     obj->kirby3 = FindTargetKirby(&obj->base);
     if ((obj->kirby3->base.unkC & 0x8000) || obj->base.roomId != obj->kirby3->base.roomId) return;
-    if (!Macro_08039430_2(&obj->kirby3->base, obj)) return;
+    if (n->enemy != NIDL_POWER_ORB && !Macro_08039430_2(&obj->kirby3->base, obj)) return;
     Macro_081003EC(obj, &obj->kirby3->base);
     obj->base.flags &= ~0x200;
     Macro_08100F18(obj);

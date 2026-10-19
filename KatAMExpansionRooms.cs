@@ -92,8 +92,8 @@
             [6] = (1, -1, -1, 0, 0),        // Kracko: the template's (its tower's bottom, where Kirby comes in), that screen;
         };
         /* The Power Orb's room (the Fountain of Dreams' first, 0x003): its fight is NiDL's Star Rod flight (bosses/power_orb.c), at the top
-         * of the fall, so Kirby comes in where NiDL's flies at its start (pixels; its screen's (63, 95), the fight's screen from (8, 8)),
-         * in the air: the fight starts at once and he flies; */
+         * of the fall, after NiDL's intro: Kirby comes in at NiDL's start, at the room's bottom, in the air, and flies up to the fight's
+         * screen (from (8, 8)) with the screen, the orb and its arena standing there too (KatAM makes objects only near the camera); */
         static readonly (int, int, int) StarRodRoom = (7, 0, 0);
         const byte PowerOrbBoss = 7;        // NIDL_POWER_ORB (nidl.h);
         const byte NightmareBoss = 8;       // NIDL_NIGHTMARE;
@@ -107,7 +107,6 @@
             return -1;
         }
         const int PowerOrbSink = 513;       // how far its screen sinks as they fight (bosses/power_orb.c's SINK_END);
-        const int StarRodStartX = 71, StarRodStartY = 103;
         /* The finale ("ROM Expansion/finale.c"): where Central Circle's and the NiDL hub's Dimension Mirrors take Kirby (the Power Orb's
          * room, where he starts it: PlanDoors()); the Fountain of Dreams hub's Amazing Mirror (finaleMirror: Central Circle's Dimension
          * Mirror as KatAM has it, leading to FinalRoom, taken before FinaleMirrors() points that one at the Power Orb's room), where a
@@ -1969,10 +1968,10 @@
              * nearest cell that leads out of the room, at the same height; */
             (NightmareRoom part, int x, int y) Start((int, int, int) key) {
                 NightmareRoom any = byRoom[key][0];
-                // (the Power Orb's room: where Kirby flies with the Star Rod in NiDL's fight, in space at its top, not on a floor;
+                // (the Power Orb's room: NiDL's start, at its bottom, in space, not on a floor, where its intro flies him up from;
                 // King Dedede's: NiDL's start, at its top, where Kirby drops in from, the camera following him down to the fight's
                 // screen, arena.c);
-                if (key == StarRodRoom) return PartAt(key, StarRodStartX / 16, StarRodStartY / 16);
+                if (key == StarRodRoom) return PartAt(key, ReadShort(nightmare, any.Record + 0x50) / 16, ReadShort(nightmare, any.Record + 0x52) / 16);
                 bool dropIn = BossIn(nightmare, any.Record) == DededeBoss;
                 return Land(key, ReadShort(nightmare, any.Record + 0x50) / 16, ReadShort(nightmare, any.Record + 0x52) / 16, !dropIn);
             }
@@ -3898,7 +3897,7 @@
                 }
 
                 byte type, behavior = 0;
-                bool miniboss = false, dropIn = false;
+                bool miniboss = false, dropIn = false, flyIn = false;
                 if (category == 0 && landings.Any(c => Math.Abs(x / 16 - c.x) <= LandingClear && Math.Abs(y / 16 - c.y) <= 2)) continue;
                 // (a Shotzo on blocks that break stays: NiDL's falls when they go, KatAM's stays where it is, but they're the room's cannons,
                 // as room 0x2FD's under its ceiling);
@@ -3936,6 +3935,7 @@
                 } else if (category == BossCategory && RoomBosses.TryGetValue(index, out (byte boss, int x, int y, int screenDx, int screenDy) spot)) {
                     type = BossTypeOf(spot.boss);
                     dropIn = spot.boss == DededeBoss;
+                    flyIn = spot.boss == PowerOrbBoss;
                     behavior = (byte)(spot.boss << 4 | r.Level & 7);
                     if (spot.x >= 0) (x, y) = (spot.x - r.X * 16, spot.y - r.Y * 16);
                     cameraLock = (x + spot.screenDx, y + spot.screenDy);
@@ -3975,6 +3975,12 @@
                 // A mini-boss fights on its screen: the camera stays there once Kirby is in it, as in NiDL;
                 if (miniboss) {
                     (int left, int top, int width, int height) = ArenaOf(r, cameraLock ?? (x, y), x, y, CameraTop(nightmare, r), IsBossType(type) ? HiddenRows * 16 : 0);
+                    // (the Power Orb stands where Kirby comes in, NiDL's start at the room's bottom, its arena with it, its screen the
+                    // same: its intro flies him up to it, KatAM making objects only near the camera; "ROM Expansion/bosses/power_orb.c");
+                    if (flyIn) {
+                        y = ReadShort(nightmare, r.Record + 0x52) - r.Y * 16;
+                        WriteShorts(template, 6, x, y);
+                    }
                     WriteShorts(template, 0x1A, left - x, top - y, width, height);
                 }
                 // and the camera stays there, its edges walls, until it's beaten: an arena object ("ROM Expansion/enemies/arena.c"), first,

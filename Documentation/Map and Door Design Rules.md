@@ -140,10 +140,12 @@ after any change.
   final boss sequence (unlocked by the 8 shards, as KatAM's), and a Maximum Tomato. The Power Orb's and Nightmare's rooms are
   never randomized.
 - **Doors into boss rooms are one-way.** Nothing else (branches, links, Mirras) goes in a boss stage.
-- **Two boss rooms are entered in the air**, the only landings off a floor, as NiDL's: the Power Orb's, at the top of the fall
-  where NiDL's Kirby flies at the fight's start (the fight is NiDL's Star Rod flight and takes every Kirby there at once, so nobody
-  falls; `StarRodRoom`), and King Dedede's, at NiDL's own start at the room's top, Kirby dropping in to the ring with the camera
-  following him down to the fight's screen (`DededeBoss`, `arena.c`).
+- **Two boss rooms are entered in the air**, the only landings off a floor, as NiDL's: the Power Orb's, at NiDL's own start at
+  the room's bottom, where NiDL's intro flies every Kirby up through space to the fight's screen at the top, the camera rising
+  with them (the fight is NiDL's Star Rod flight and takes every Kirby there at once, so nobody falls; `StarRodRoom`,
+  `power_orb.c`; the owner: "when entering the Amazing Mirror, you have to copy the cinematic before the Power Orb, the one where
+  Kirby flies to the Power Orb and then the battle can start"), and King Dedede's, at NiDL's own start at the room's top, Kirby
+  dropping in to the ring with the camera following him down to the fight's screen (`DededeBoss`, `arena.c`).
 - **A mini-boss's fight area has no door until it is beaten**: doors there show once the fight ends, whenever Kirby comes in (a
   long room's too, before the fight is on screen). The fight area for doors is its screen and the space it's fought in: the cells
   Kirby walks to from it, up to 4 cells across and 2 up or down (not past a wall). Those doors are built shut and open when the
