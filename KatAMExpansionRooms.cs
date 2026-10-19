@@ -109,12 +109,12 @@
         const int PowerOrbSink = 513;       // how far its screen sinks as they fight (bosses/power_orb.c's SINK_END);
         /* The finale ("ROM Expansion/finale.c"): where Central Circle's and the NiDL hub's Dimension Mirrors take Kirby (the Power Orb's
          * room, where he starts it: PlanDoors()); the Fountain of Dreams hub's Amazing Mirror (finaleMirror: Central Circle's Dimension
-         * Mirror as KatAM has it, leading to FinalRoom, taken before FinaleMirrors() points that one at the Power Orb's room), where a
-         * switch room's big switch stands (pixels: its middle, 18 above the pedestal's top, as KatAM's big mirror stands), and its
-         * Maximum Tomato (0x61), on the floor's right; */
+         * Mirror as KatAM has it, leading to FinalRoom, taken before FinaleMirrors() points that one at the Power Orb's room), in the
+         * middle of the room as the camera shows it (pixels: its spot, the camera showing 8-248 and 8-168; its sprite's middle 4 above),
+         * and its Maximum Tomato (0x61) under it, on the raised platform at the room's bottom middle (its top at 130); */
         static (int room, int x, int y) finaleEntry;
         static byte[] finaleMirror;
-        static readonly (int x, int y) FinaleMirrorAt = (128, 112), FinaleTomatoAt = (232, 136);
+        static readonly (int x, int y) FinaleMirrorAt = (128, 92), FinaleTomatoAt = (128, 121);
         const byte FinaleTomato = 0x61;
         // NiDL items (category 3): 1-Up, Maxim Tomato, Invincibility Candy, Energy Drink -> KatAM's 1UP, Maximum Tomato, Lollipop, Pep Brew;
         static readonly Dictionary<int, byte> RoomItems = new Dictionary<int, byte> { [1] = 0x63, [2] = 0x61, [3] = 0x64, [4] = 0x5F };
@@ -1030,7 +1030,8 @@
                 // 20 rows of it, from the top: its rows 47-66, the nebula with the stars over it, uncompressed);
                 if (level == 7) {
                     // (or, FountainInBack, King Dedede's arena's, Rainbow Resort's last stage, on the Fountain itself: its rows 15-34, the
-                    // grass and the Fountain, a column (8 pixels) right: its stem at x 128, the room's middle, under the doors);
+                    // grass and the Fountain, a column (8 pixels) left: the Fountain's middle at x 127, the room's middle, as the camera
+                    // shows it (measured in the emulator: a column right put it at 143));
                     bool inBack = Environment.GetEnvironmentVariable("SWITCH_ROOM_FOUNTAIN_BACK") is string back ? back == "1" : FountainInBack;
                     int dededeStage = rooms.Where(r => r.Level == 6).Max(r => r.Stage);
                     NightmareRoom framing = inBack ? rooms.Where(r => r.Level == 6 && r.Stage == dededeStage).OrderBy(r => r.Index).First() : fountain;
@@ -1042,7 +1043,7 @@
                     byte[] framed = new byte[6 + mapWidth * Rows * 2];
                     WriteShorts(framed, 0, mapWidth * Rows * 2, mapWidth, Rows);
                     // (as it is across: Shift columns right where a feature should be mid-screen, the camera showing columns 0.5-15.5);
-                    int Shift = inBack ? 1 : 0;
+                    int Shift = inBack ? -1 : 0;
                     for (int y = 0; y < Rows; y++)
                         for (int column = 0; column < mapWidth; column++) {
                             int row = FirstRow + y, x = (column - Shift + mapWidth) % mapWidth;
@@ -4036,9 +4037,9 @@
             }
 
             // A switch room's big switch (NiDL's own aren't ported: a level has one, see LevelSlot()) and ability statues (SwitchStatues);
-            // the Fountain of Dreams hub's, the finale's end, has none: an Amazing Mirror where it would be, to KatAM's final boss (as
+            // the Fountain of Dreams hub's, the finale's end, has none: an Amazing Mirror in the room's middle, to KatAM's final boss (as
             // Central Circle's Dimension Mirror led there: whole, and the way in, once KatAM's 8 shards are found), and a Maximum Tomato
-            // on the floor's right, away from where Kirby comes in (taken once per visit, as the items);
+            // under it, on the raised platform (taken once per visit, as the items);
             if (r.IsSwitchRoom && r.Level == 7 && finaleMirror != null) {
                 byte[] mirror = (byte[])finaleMirror.Clone();
                 mirror[3] = (byte)templates.Count;

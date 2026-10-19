@@ -53,8 +53,8 @@ shard (nor do they take part in Bosses Give Random Shards: NiDL's 7 others share
 back as it leaves (no shard dance gives it back any more). Nightmare beaten, the Kirbys dance and land in the Fountain of Dreams
 hub, on its floor's left. That room has lost its Mirra in from Rainbow Resort (0x30F), its two floor mirrors (to 0x2FE and 0x30A),
 its two hub doors (to 0xBF and the NiDL hub; their doors back are gone too) and its big switch: an Amazing Mirror (KatAM's
-Dimension Mirror, to 0x38D, whole once the 8 shards are found) stands where the switch was, and a Maximum Tomato on the floor's
-right. The Power Orb's and Nightmare's rooms were never randomized and still aren't (the randomizer reads none of the expansion's
+Dimension Mirror, to 0x38D, whole once the 8 shards are found) stands in the room's middle, and a Maximum Tomato under it on the
+raised platform (see the owner's next request below). The Power Orb's and Nightmare's rooms were never randomized and still aren't (the randomizer reads none of the expansion's
 boss or switch rooms' objects; the Fountain hub's tomato stays a tomato). Tested in the emulator (USA, with KatAM's 8 shards
 written into RAM where noted): Central Circle's mirror, after KatAM's opening scene, into the Power Orb's room at its start; the
 NiDL hub's mirror likewise; the orb's HP set to 1, beaten by a Star Rod star, its warp star where it died, Kirby flown onto it, the
@@ -82,6 +82,17 @@ then the fight, the orb's HP set to 1 in RAM after the intro, beaten by a Star R
 Nightmare's room (the camera staying on the fight's screen after the orb's defeat, as before). European and Japanese: the intro
 through the NiDL hub's mirror, the same positions every frame as the USA one, and the fight after it. The background's own
 parallax isn't NiDL's (the room's background scrolls at the port's room-size rate), so its clouds pass a little later.
+
+**The owner, after that** (the finale's list again, with): "The Fountain of dreams Mirror should be at the center of the room. The
+tomato should be at the bottom center of the room in top of the elevated platform.", "Kirby should keep the Star Rod in the
+Nightmare fight." and "Fountain of dreams BG is off centered in the hub."
+- The hub: done. The Amazing Mirror hangs in the middle of the room as the camera shows it (128, 92: its sprite's middle at the
+  screen's), in front of the Fountain; the tomato is under it, on the raised platform at the room's bottom middle (128, 121); the
+  background's Fountain was 15 pixels right of the middle (measured in the emulator: x 143, the room's middle 128), now a column
+  left of where it was, at 127. Kirby jumps up into the mirror (it hangs above the platform; KatAM's mirror takes him when he's
+  inside its box pressing Up, in the air too). Tested in the emulator (USA, 8 shards written into RAM): the room as Kirby arrives
+  (screenshot, the Fountain's and the mirror's middles measured), a jump from the platform and Up into the mirror, to 0x38D.
+- Kirby keeping the Star Rod in Nightmare's fight: NiDL's Nightmare is fought with the Star Rod too, flying (item 5); still to do.
 
 **Still to do**: NiDL's cinematics (the orb's defeat, the ride into the moon, Nightmare's entrance and chase: recorded from NiDL
 frame by frame; the ending down from the moon: not recorded yet, NiDL's Nightmare takes no hit in the emulator so far), the helpers flying to the warp star themselves (they board it only if they reach it),
