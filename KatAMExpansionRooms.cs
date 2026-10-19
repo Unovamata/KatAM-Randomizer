@@ -81,7 +81,7 @@
          * NiDL's spawn puts it on (-1: the template's), and the middle of its fight's screen from that spot. Its behavior's low nibble is
          * the mirror shard it leaves: its level's (0-7). The others aren't ported yet: their rooms stay empty, their mirror on; */
         static readonly Dictionary<int, (byte boss, int x, int y, int screenDx, int screenDy)> RoomBosses = new Dictionary<int, (byte, int, int, int, int)> {
-            [0] = (6, 200, 280, -80, 0),    // King Dedede: the ring's right (NiDL's (232, 296) is off its screen: he walks in);
+            [0] = (6, 200, 280, -56, 0),    // King Dedede: the ring's right (NiDL's (232, 296) is off its screen: he walks in); his screen NiDL's, held at (24, 168) the whole fight;
             [1] = (4, -1, -1, 0, 0),        // Paint Roller: the template's (24, 40), his easels (bosses/paint_roller.c) from it;
             [2] = (3, -1, -1, 0, 0),        // Meta Knight: the template's (232, 56), NiDL's ledge (he drops to the floor);
             [3] = (5, 200, 300, -64, -40),    // Heavy Mole: on the right of its screen (NiDL's (136, 264) its middle: it scrolls with the mole there);
@@ -96,6 +96,15 @@
          * in the air: the fight starts at once and he flies; */
         static readonly (int, int, int) StarRodRoom = (7, 0, 0);
         const byte PowerOrbBoss = 7;        // NIDL_POWER_ORB (nidl.h);
+        const byte DededeBoss = 6;          // NIDL_KING_DEDEDE: Kirby drops into his room from its top, the camera following (BossIn(), arena.c);
+        const int DropInY = 32;             // where a drop-in arena stands (pixels): at the room's top, where Kirby comes in;
+        // BossIn(); The ported boss (RoomBosses' boss) a NiDL room record holds, -1 none;
+        static int BossIn(byte[] nightmare, int record) {
+            int list = ReadInt(nightmare, record + 0x48);
+            for (int at = list == 0 ? record : list - 0x08000000; list != 0 && at + 8 <= record; at += 8)
+                if (nightmare[at] - 1 == BossCategory && RoomBosses.TryGetValue(nightmare[at + 1], out var spot)) return spot.boss;
+            return -1;
+        }
         const int PowerOrbSink = 513;       // how far its screen sinks as they fight (bosses/power_orb.c's SINK_END);
         const int StarRodStartX = 71, StarRodStartY = 103;
         // NiDL items (category 3): 1-Up, Maxim Tomato, Invincibility Candy, Energy Drink -> KatAM's 1UP, Maximum Tomato, Lollipop, Pep Brew;
@@ -1922,9 +1931,12 @@
              * nearest cell that leads out of the room, at the same height; */
             (NightmareRoom part, int x, int y) Start((int, int, int) key) {
                 NightmareRoom any = byRoom[key][0];
-                // (the Power Orb's room: where Kirby flies with the Star Rod in NiDL's fight, in space at its top, not on a floor);
+                // (the Power Orb's room: where Kirby flies with the Star Rod in NiDL's fight, in space at its top, not on a floor;
+                // King Dedede's: NiDL's start, at its top, where Kirby drops in from, the camera following him down to the fight's
+                // screen, arena.c);
                 if (key == StarRodRoom) return PartAt(key, StarRodStartX / 16, StarRodStartY / 16);
-                return Land(key, ReadShort(nightmare, any.Record + 0x50) / 16, ReadShort(nightmare, any.Record + 0x52) / 16, true);
+                bool dropIn = BossIn(nightmare, any.Record) == DededeBoss;
+                return Land(key, ReadShort(nightmare, any.Record + 0x50) / 16, ReadShort(nightmare, any.Record + 0x52) / 16, !dropIn);
             }
             // A cell Kirby arrives in (pixels / 16), down to the floor if drop, out of a closed pocket (see Start());
             (NightmareRoom part, int x, int y) Land((int, int, int) key, int x, int y, bool drop) {
@@ -3836,7 +3848,7 @@
                 }
 
                 byte type, behavior = 0;
-                bool miniboss = false;
+                bool miniboss = false, dropIn = false;
                 if (category == 0 && landings.Any(c => Math.Abs(x / 16 - c.x) <= LandingClear && Math.Abs(y / 16 - c.y) <= 2)) continue;
                 // (a Shotzo on blocks that break stays: NiDL's falls when they go, KatAM's stays where it is, but they're the room's cannons,
                 // as room 0x2FD's under its ceiling);
@@ -3873,6 +3885,7 @@
                     miniboss = true;
                 } else if (category == BossCategory && RoomBosses.TryGetValue(index, out (byte boss, int x, int y, int screenDx, int screenDy) spot)) {
                     type = BossTypeOf(spot.boss);
+                    dropIn = spot.boss == DededeBoss;
                     behavior = (byte)(spot.boss << 4 | r.Level & 7);
                     if (spot.x >= 0) (x, y) = (spot.x - r.X * 16, spot.y - r.Y * 16);
                     cameraLock = (x + spot.screenDx, y + spot.screenDy);
@@ -3919,6 +3932,16 @@
                 if (miniboss) {
                     byte[] arena = (byte[])template.Clone();
                     arena[12] = NightmareID; arena[14] = ArenaBehavior;
+                    // (subtype2 1: Kirby drops in from above its screen, the camera following him down to it, as NiDL's Dedede's: it
+                    // stands at the room's top, where he comes in, to be there from his first frame, KatAM making objects near the
+                    // camera; its screen the same);
+                    arena[0x10] = (byte)(dropIn ? 1 : 0);
+                    if (dropIn) {
+                        int left = x + (short)ReadShort(template, 0x1A), top = y + (short)ReadShort(template, 0x1C), width = ReadShort(template, 0x1E);
+                        int ax = left + width / 2, ay = DropInY;
+                        WriteShorts(arena, 6, ax, ay);
+                        WriteShorts(arena, 0x1A, left - ax, top - ay);
+                    }
                     templates.Add(arena);
                     if (!types.Contains(NightmareID)) types.Add(NightmareID);
                     template[3] = (byte)templates.Count;

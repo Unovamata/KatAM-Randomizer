@@ -51,10 +51,11 @@ after any change.
 
 - **A hub has at most 2 regular doors** (mirrors). Hub doors (`0x97`, the doors a big switch reveals) are counted apart and are
   not limited by this rule.
-- **The NiDL switch rooms have 2 hub doors**, in one of KatAM's two hub-door layouts:
+- **The NiDL switch rooms have 2 hub doors** (all but the Fountain of Dreams', which has no door but its Amazing Mirror and no
+  big switch: section 8), in one of KatAM's two hub-door layouts:
   - **A** (`0x122`): doors at the top left and top right, the big switch between them;
   - **B** (`0x250`): one door at the top middle, one at the bottom middle.
-- **Every NiDL hub has 2 doors to its level's exploration map** (the owner's rule, for all hubs): each switch room's 2 floor
+- **Every NiDL hub has 2 doors to its level's exploration map** (the owner's rule, for all hubs but the Fountain of Dreams'): each switch room's 2 floor
   mirrors, both two-way, lead into 2 different branches of its level, so the level branches from its hub (rule 5). These are
   its 2 regular doors; its hub doors are counted apart.
 - **The hubs stay interconnected the way they were approved**: each level's switch room reveals a hub door leading to
@@ -69,7 +70,7 @@ after any change.
   | Yogurt Yard | Cabbage Cavern West `0x250` |
   | Orange Ocean | Cabbage Cavern East `0xBF` |
   | Rainbow Resort | the NiDL hub |
-  | Fountain of Dreams | Cabbage Cavern East `0xBF` |
+  | Fountain of Dreams | none: no big switch (section 8); its world map path never opens |
 
   Each KatAM room in that list gets a hub door back.
 - **The world map is fixed as approved** (`worldmap.c`'s `gNidlWorldMapDoors`, one path per level's hub door). Neither the world
@@ -93,8 +94,8 @@ after any change.
 - **A level's switch room is found by exploring**: a Mirra hidden in the second half of the level leads to it, one-way, landing
   off its floor mirrors (rule 3). Its right floor mirror goes both ways to the start of the stage before the boss; its left one
   both ways to the start of a stage on another branch: the deepest stage off the way from the level's first stage to the boss's,
-  not the Mirra's own (else the nearest one on that way). Rainbow Resort's and the Fountain of Dreams' switch rooms, both in
-  Rainbow Resort, take different stages. `PlanDoors()`.
+  not the Mirra's own (else the nearest one on that way). The Fountain of Dreams' switch room has none of these: only Nightmare's
+  end leads there (section 8). `PlanDoors()`.
 
 ## 6. Mirras
 
@@ -126,13 +127,23 @@ after any change.
   instead, never the shard, and grabbing it takes Kirby out as the shard would. `bossExitsOf`,
   `gNidlShardExits`, `NidlShardExit()`.
 - **A shard only ever sends Kirby to a central hub**: KatAM's to Central Circle, NiDL's to the NiDL hub, onto that level's door
-  there. Never into another level or room. The one exception is the Power Orb, whose fight goes on in Nightmare's room, as in NiDL.
-  NiDL's empty walk-out rooms after a boss are left out of the port: nothing leads there any more.
+  there. Never into another level or room. NiDL's empty walk-out rooms after a boss are left out of the port: nothing leads there
+  any more.
 - **Which shard a boss leaves can be shuffled** (Bosses Give Random Shards): KatAM's bosses always hold all 8 between them, so the
-  game can be beaten from KatAM alone; NiDL's spread the 8 evenly. An owned shard is always a Maxim Tomato, never a cutscene in the way.
+  game can be beaten from KatAM alone; NiDL's 7 that leave one (not the Power Orb nor Nightmare) spread the 8 evenly. An owned
+  shard is always a Maxim Tomato, never a cutscene in the way.
+- **The Fountain of Dreams is the finale before KatAM's final boss**, reached only once KatAM has the 8 shards: Central Circle's
+  Dimension Mirror and the NiDL hub's lead to the Power Orb's room (nothing else leads in). The Power Orb and Nightmare leave no
+  shard: beaten, the Power Orb's cinematic plays, every Kirby goes to a warp star and rides it to Nightmare's room, where his
+  cinematic plays and the fight starts; beaten, Nightmare's (Kirby going down from the moon) plays and Kirby is in the Fountain
+  of Dreams hub (its switch room), which has no other door in or out and no big switch: only an Amazing Mirror to 0x38D, KatAM's
+  final boss sequence (unlocked by the 8 shards, as KatAM's), and a Maximum Tomato. The Power Orb's and Nightmare's rooms are
+  never randomized.
 - **Doors into boss rooms are one-way.** Nothing else (branches, links, Mirras) goes in a boss stage.
-- **The Power Orb's room is entered in the air**, the one landing off a floor: at the top of the fall, where NiDL's Kirby flies
-  at the fight's start. The fight is NiDL's Star Rod flight and takes every Kirby there at once, so nobody falls. `StarRodRoom`.
+- **Two boss rooms are entered in the air**, the only landings off a floor, as NiDL's: the Power Orb's, at the top of the fall
+  where NiDL's Kirby flies at the fight's start (the fight is NiDL's Star Rod flight and takes every Kirby there at once, so nobody
+  falls; `StarRodRoom`), and King Dedede's, at NiDL's own start at the room's top, Kirby dropping in to the ring with the camera
+  following him down to the fight's screen (`DededeBoss`, `arena.c`).
 - **A mini-boss's fight area has no door until it is beaten**: doors there show once the fight ends, whenever Kirby comes in (a
   long room's too, before the fight is on screen). The fight area for doors is its screen and the space it's fought in: the cells
   Kirby walks to from it, up to 4 cells across and 2 up or down (not past a wall). Those doors are built shut and open when the

@@ -11,7 +11,11 @@
  * mirrors (subtype 1) hide with them, as KatAM's hidden mirrors do. Once no mini-boss is alive in the room, it opens them: each
  * door record there whose cell has no other record (secret doors' blocks, Mirras' cells) gets its collision; so they show only
  * once the fight is won, whenever Kirby comes in (shut once it began, they showed in a long room before it came on screen).
- * A boss can make its screen sink (ArenaSink(): the Power Orb's, NiDL's fall through space), the camera with it; */
+ * A boss can make its screen sink (ArenaSink(): the Power Orb's, NiDL's fall through space), the camera with it. One whose template's
+ * subtype2 is 1 (King Dedede's) takes Kirby dropping in from above its screen, as NiDL's: from the first frame he's in the room over
+ * it, its lock rides above its screen, its x the screen's, its top DROP_VIEW above Kirby (never back up, never above the room's
+ * top) until it's down on the screen, as NiDL's camera follows him down (traced in NiDL: 2.5 pixels a frame, his fall, from 8 to
+ * 168); */
 #include "../nidl.h"
 #include "constants/object_types.h"
 
@@ -22,6 +26,8 @@
 #define WALL 8
 #define ARENA_REACH 4
 #define ARENA_REACH_Y 2
+#define DROP_VIEW (80 << 8)
+#define ROOM_TOP (8 << 8)
 
 struct Arena {
     struct NidlObject n;
@@ -32,13 +38,15 @@ struct Arena {
     bool8 opened;       // It opened the doors (once);
     s32 sink;           // How far its screen has sunk (8.8, ArenaSink());
     s32 lockedTop;      // The top it last held the cameras at (a sinking boss moves `sink` after it, the frame it's beaten too);
+    s32 rise;           // How far above its screen the lock is while Kirby drops in (8.8, subtype2 1);
 };
 
 // The camera's bounds: its template's area (Kirby's, BELOW more);
 #define ARENA_LEFT(a) ((a->n.obj.objTemplate->x + a->n.obj.objTemplate->unk1A) << 8)
-#define ARENA_TOP(a) (((a->n.obj.objTemplate->y + a->n.obj.objTemplate->unk1C) << 8) + a->sink)
+#define SCREEN_TOP(a) (((a->n.obj.objTemplate->y + a->n.obj.objTemplate->unk1C) << 8) + a->sink)
+#define ARENA_TOP(a) (SCREEN_TOP(a) - a->rise)
 #define ARENA_RIGHT(a) ((a->n.obj.objTemplate->x + a->n.obj.objTemplate->unk1A + a->n.obj.objTemplate->unk1E) << 8)
-#define ARENA_BOTTOM(a) (((a->n.obj.objTemplate->y + a->n.obj.objTemplate->unk1C + a->n.obj.objTemplate->unk20) << 8) + a->sink)
+#define ARENA_BOTTOM(a) (((a->n.obj.objTemplate->y + a->n.obj.objTemplate->unk1C + a->n.obj.objTemplate->unk20) << 8) + a->sink - a->rise)
 
 typedef char ArenaFits[sizeof(struct Arena) <= NIDL_OBJECT_SIZE ? 1 : -1];
 
@@ -120,16 +128,37 @@ static void UnlockCameras(struct Arena *a) {
     a->locked = 0;
 }
 
+/* DropRise(); How far above its screen the lock rides for a Kirby dropping in over it (subtype2 1): its top DROP_VIEW above him;
+ * -1: none dropping in (no Kirby in the room between its sides less than DROP_VIEW down on its screen); */
+static s32 DropRise(struct Arena *a) {
+    const struct ObjectTemplate *area = a->n.obj.objTemplate;
+    s32 top = SCREEN_TOP(a), rise;
+    u8 i;
+
+    if (area->subtype2 != 1) return -1;
+    for (i = 0; i < gNumKirbys; i++) {
+        struct Kirby *kirby = &gKirbys[i];
+
+        if (kirby->base.roomId != a->n.obj.base.roomId || kirby->base.x < ARENA_LEFT(a) || kirby->base.x > ARENA_RIGHT(a)) continue;
+        rise = top - (kirby->base.y - DROP_VIEW);
+        if (rise <= 0) continue;
+        return rise > top - ROOM_TOP ? top - ROOM_TOP : rise;
+    }
+    return -1;
+}
+
 static void ArenaMain(struct Object *obj) {
     struct Arena *a = (struct Arena *)obj;
     const struct ObjectTemplate *area = obj->objTemplate;
-    s32 left, right;
+    s32 left, right, rise;
     u8 i;
 
     obj->base.flags |= 0x200 | 0x400;
     obj->base.xspeed = obj->base.yspeed = 0;
 
-    if (!MinibossAlive(obj)) {
+    // (a Kirby dropping in comes before the boss: KatAM makes it only near the camera);
+    rise = DropRise(a);
+    if (rise <= 0 && !MinibossAlive(obj)) {
         if (!a->opened) {
             a->opened = TRUE;
             OpenDoors(a);
@@ -145,6 +174,17 @@ static void ArenaMain(struct Object *obj) {
 
         for (i = 0; i < 4; i++)
             if (gKirbys[i].base.roomId == obj->base.roomId && Macro_08039430_2(&gKirbys[i].base, obj)) a->active = TRUE;
+        // (a Kirby dropping in over it: held from his first frame, the camera snapped to where NiDL's is as he comes in);
+        if (rise > 0) {
+            a->active = TRUE;
+            a->rise = rise;
+            for (i = 0; i < gNumKirbys; i++) {
+                if (gKirbys[i].base.roomId != obj->base.roomId) continue;
+                LockCamera(a, i);
+                gCurLevelInfo[i].unk_S32Vec2_6C = gCurLevelInfo[i].unk_S32Vec2_7C;
+                gCurLevelInfo[i].unk_S32Vec2_74 = gCurLevelInfo[i].unk_S32Vec2_84;
+            }
+        }
         if (!a->active) return;
         a->saved7C = l->unk_S32Vec2_7C;
         a->saved84 = l->unk_S32Vec2_84;
@@ -154,13 +194,22 @@ static void ArenaMain(struct Object *obj) {
         a->savedAC = l->unkAC;
     }
 
+    // (the lock comes down with the Kirby dropping in, never back up);
+    if (a->rise > 0) a->rise = rise >= 0 && rise < a->rise ? rise : rise < 0 ? 0 : a->rise;
     left = (area->x + area->unk1A + WALL) << 8;
     right = (area->x + area->unk1A + area->unk1E - WALL) << 8;
     for (i = 0; i < 4; i++) {
         struct Kirby *kirby = &gKirbys[i];
 
         if (kirby->base.roomId != obj->base.roomId) continue;
-        if (i < gNumKirbys) LockCamera(a, kirby->base.unk56);
+        if (i < gNumKirbys) {
+            LockCamera(a, kirby->base.unk56);
+            // (dropping in, the camera right on the lock as it comes down, as NiDL's on Kirby, not easing after it);
+            if (a->rise > 0) {
+                gCurLevelInfo[kirby->base.unk56].unk_S32Vec2_6C = gCurLevelInfo[kirby->base.unk56].unk_S32Vec2_7C;
+                gCurLevelInfo[kirby->base.unk56].unk_S32Vec2_74 = gCurLevelInfo[kirby->base.unk56].unk_S32Vec2_84;
+            }
+        }
         if (kirby->base.x < left) {
             kirby->base.x = left;
             if (kirby->base.xspeed < 0) kirby->base.xspeed = 0;
@@ -203,4 +252,5 @@ void ArenaInit(struct NidlObject *n) {
     a->opened = FALSE;
     a->sink = 0;
     a->lockedTop = 0;
+    a->rise = 0;
 }

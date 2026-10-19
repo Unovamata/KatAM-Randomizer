@@ -19,6 +19,29 @@ is done, move it to "Done" and say how it was checked. The design rules for door
 - **Nightmare's Power Orb**: done (see Done: "The Power Orb's fight is NiDL's Star Rod flight").
 - **Every boss** must play like NiDL's. Whispy Woods' face is done (see below); check the others against NiDL. Nightmare's own
   fight is a Star Rod flight in NiDL too (here still on the floor of his room).
+- **King Dedede's camera**: done (see Done: "King Dedede's camera is NiDL's").
+- **The Power Orb's camera and cinematics** (the owner: "power orb camera movements and transition cinematics have to be ported
+  as well."): NiDL's camera movements in the fight and its transition cinematics.
+- **The helpers in the Star Rod fight** (the owner: "AI Kirbys should move up and down, left and right towards Power Orb to
+  simulate that they are engaged in the fight and maybe open the door to avoiding its moves by chance, so disabling the flag so
+  they get still ain't quite cutting it."): they keep moving towards the orb in every direction, and dodge its attacks now and
+  then; never just standing still.
+
+### 34. The Fountain of Dreams finale
+The owner: "Once Power Orb has been beaten the cinematic plays, all NPC Kirbys go to the warp star, cinematic plays, Nightmare
+boss room, nightmare cinematic, fight starts. Nightmare and Power Orb do not drop any shards. The amazing mirror teleports to the
+Nightmare fight. After beating nightmare, the player should be teleported to the Fountain of Wishes hub where there would be a
+maximum tomato and an amazing mirror warp to 0x38D." Asked what each part meant, the owner said:
+- Central Circle's Dimension Mirror and the NiDL hub's both take Kirby to the Power Orb's room, then Nightmare; they work as
+  KatAM's does, once KatAM has the 8 shards.
+- After the Power Orb: its cinematic, every helper Kirby goes to the warp star, the ride's cinematic, Nightmare's room, his
+  cinematic, then the fight. Neither drops a shard.
+- After Nightmare: NiDL's cinematic of Kirby going down from the moon, then the player is in the Fountain of Dreams hub (its
+  switch room).
+- The Fountain of Dreams hub loses all its doors (and its big switch, and every door elsewhere into it) for an Amazing Mirror to
+  0x38D, the start of KatAM's final boss sequence, unlocked as the other mirrors are, once KatAM has the 8 shards; a Maximum
+  Tomato is there.
+- The Power Orb's and Nightmare's rooms can't be randomized.
 
 ### 10. Screen shake as KatAM's
 - The screen shakes far too much; something broke along the way. Match KatAM's screen shake.
@@ -32,6 +55,17 @@ is done, move it to "Done" and say how it was checked. The design rules for door
 
 ## Done (rules to keep)
 
+- **King Dedede's camera is NiDL's** (item 5; the owner: "I noticed that DeDeDe's camera doesn't lock the same as NiDL."): NiDL's
+  fight was recorded in an emulator: Kirby drops into the room from its top, the camera following him down 2.5 pixels a frame (its
+  top 80 pixels above him) from the room's top to the ring's screen, then held there, (24, 168) to (264, 328), the whole fight.
+  Before, Kirby landed on the ring's floor with the screen already on it, and the screen was the ring's middle, not NiDL's. Now he
+  comes in at the room's top as NiDL's (`DededeBoss`, KatAMExpansionRooms.cs), the arena waits at the top for him (a drop-in arena:
+  `arena.c`) and its screen rises with him as he falls (85 pixels below its top, NiDL's 80: the look is the same) until it's NiDL's
+  screen, held from then on; King Dedede comes in from the ring's right as before. Tested in the emulator: new games started at the
+  top of his room 0x313 with no input, the camera and Kirby read every frame and screenshots compared with NiDL's: USA, European and
+  Japanese rev 1 builds all start at the top (8), follow the drop at 2.5 pixels a frame and hold at 168 (the fight's screen); the
+  logic checks (with and without dropping through thin floors) are unchanged: every room reached, all 8 big switches pressed,
+  nowhere trapped. Not tested: a whole fight to his defeat after the drop, or with helpers.
 - **The Power Orb's fight is NiDL's Star Rod flight, for Kirby and every helper** (item 5; the owner: "The Power Orb's Star Rod
   flying sequence, for the player and all helpers."): NiDL's fight was recorded frame by frame in an emulator (Kirby's flight and
   stars, the orb's states, shots and timings, its true camera). Now Kirby comes in at the top of the fall, in the air where NiDL's
