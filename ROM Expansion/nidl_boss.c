@@ -5,6 +5,7 @@
  * boss's screen, held by an arena, enemies/arena.c, until it's beaten), then the HP bar shows and the boss music plays. Graphics are
  * the mini-bosses' (one AnimInfo table for the type, its own palettes and anim ID, a 64x96 hurt frame); */
 #include "nidl.h"
+#include "abilities.h"
 #include "constants/kirby.h"
 #include "treasures.h"
 #include "bonus.h"
@@ -100,6 +101,8 @@ void NidlBossDefeat(struct Object *obj) {
     s32 x = (level->viewportPosition.x >> 8) + SHARD_X, y = (level->viewportPosition.y >> 8) + SHARD_Y;
     u8 shard = n->variant & 7;
 
+    // (the Power Orb's: the Kirbys flying with the Star Rod stop aiming at it, abilities/star_rod.c);
+    if (n->enemy == NIDL_POWER_ORB) StarRodFightOver(obj);
     if (HasShard(shard)) {
         struct Object *tomato = BonusCreateTomatoAt(obj, x, y);
         struct ObjectTemplate *template = (struct ObjectTemplate *)tomato->objTemplate;
@@ -154,9 +157,11 @@ static const struct NidlShardExit *NidlShardExitOf(u16 room) {
     return NULL;
 }
 
-// NidlShardExit(); The room and spot Kirby comes back to after the shard cutscene (sub_0804C614);
+// NidlShardExit(); The room and spot Kirby comes back to after the shard cutscene (sub_0804C614); his ability before the Star Rod, back;
 void NidlShardExit(struct Kirby *kirby) {
     const struct NidlShardExit *exit = NidlShardExitOf(kirby->base.roomId);
+
+    StarRodRestore(kirby);
 
     if (exit) {
         kirby->roomId = exit->exitRoom;

@@ -1,4 +1,4 @@
-/* NiDL abilities; What KatAM needs to know about abilities 27-31 (see abilities.h), and their HUD portraits; */
+/* NiDL abilities; What KatAM needs to know about abilities 27-34 (see abilities.h), and their HUD portraits; */
 #include "abilities.h"
 #include "main.h"
 #include "data.h"
@@ -20,6 +20,7 @@ const struct NidlAbilityTables gNidlAbilityTables = {
         [NIDL_ABILITY_HI_JUMP - NIDL_FIRST_ABILITY] = KIRBY_ABILITY_NORMAL,
         [NIDL_ABILITY_MIKE - NIDL_FIRST_ABILITY] = KIRBY_ABILITY_NORMAL,
         [NIDL_ABILITY_BACKDROP - NIDL_FIRST_ABILITY] = KIRBY_ABILITY_THROW,
+        [NIDL_ABILITY_STAR_ROD - NIDL_FIRST_ABILITY] = KIRBY_ABILITY_NORMAL,
     },
     .landB = {
         [NIDL_ABILITY_NEEDLE - NIDL_FIRST_ABILITY] = NeedleStart,
@@ -36,6 +37,7 @@ const struct NidlAbilityTables gNidlAbilityTables = {
         [NIDL_ABILITY_BALL - NIDL_FIRST_ABILITY] = NidlAbilitySetup,
         [NIDL_ABILITY_HI_JUMP - NIDL_FIRST_ABILITY] = NidlAbilitySetup,
         [NIDL_ABILITY_MIKE - NIDL_FIRST_ABILITY] = NidlAbilitySetup,
+        [NIDL_ABILITY_STAR_ROD - NIDL_FIRST_ABILITY] = NidlAbilitySetup,
     },
 };
 

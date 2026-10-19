@@ -57,9 +57,11 @@ namespace KatAMRandomizer {
         /* Part; A NiDL frame (from the enemy's frame table, or Table when the enemy has more than one), recolored, drawn with NiDL's
          * palette 15 or with another of the descriptor's palettes (Palette), Dx, Dy pixels from the others (NiDL draws some bosses as
          * several frames); Common: from NiDL's shared object tiles (CommonTiles, its effects: Whispy Woods' puffs) instead; OnlyPalette:
-         * only its pieces NiDL draws with that palette (its OAM's; NiDL draws Kracko with several at once, a KatAM sprite with one); */
+         * only its pieces NiDL draws with that palette (its OAM's; NiDL draws Kracko with several at once, a KatAM sprite with one);
+         * OrbShots: from the Power Orb's shots' own tiles and palette (OrbShotGraphics(): raw tiles the orb loads for them); StarRod: the
+         * shared tiles with the Star Rod's star over some (StarRodTiles()); */
         sealed record Part(int Frame, Dictionary<int, int> Recolor = null, int Table = 0, bool Palette15 = false, int Palette = 0, int Descriptor = -1,
-                           int Dx = 0, int Dy = 0, bool Common = false, int OnlyPalette = -1);
+                           int Dx = 0, int Dy = 0, bool Common = false, int OnlyPalette = -1, bool OrbShots = false, bool StarRod = false);
 
         /* Enemy; A ported enemy: its index (NIDL_* in nidl.h), name, NiDL object type and frame table, its frames (in the order the
          * C code numbers them), its hurt frame, palette changes, the letters of its name and the behavior bytes the randomizer uses; */
@@ -380,9 +382,13 @@ namespace KatAMRandomizer {
                 new byte[0], Type: BossID2);
         }
 
-        /* Nightmare's Power Orb; NiDL boss 7 (type 0x42, the Fountain of Dreams' first; mini-boss descriptor 37): 0x087544B4's 0-7, spinning
-         * (plain frames). Type 0x44. Hurt: its 0; */
-        static Miniboss PowerOrb() => new Miniboss(7, "Power Orb", 37, 0x7544B4, Enumerable.Range(0, 8).Select(f => new[] { new Part(f) }).ToList(),
+        /* Nightmare's Power Orb; NiDL boss 7 (type 0x42, the Fountain of Dreams' first; mini-boss descriptor 37): only the frames it uses
+         * (type 0x44's 256 are shared): 0x087544B4's 4-7, spinning, 8-11 shrinking (11, the smallest, blinks as it charges), then its
+         * shots' (its 20-29 and 39-42, OrbShots: the spinning star 20-23, squashed as it dashes 24-27, the crescents 28-29, the sparkles
+         * a dashing star trails 39-42), numbered from 0 (bosses/power_orb.c). Type 0x44. Hurt: its 0; */
+        static Miniboss PowerOrb() => new Miniboss(7, "Power Orb", 37, 0x7544B4,
+            Enumerable.Range(4, 8).Select(f => new[] { new Part(f) })
+                .Concat(Enumerable.Range(20, 10).Concat(Enumerable.Range(39, 4)).Select(f => new[] { new Part(f, OrbShots: true) })).ToList(),
             new[] { new Part(0) },
             new[] {
                 (0x16, 0), (0x1E, 1), (0x1C, 1), (0x02, 5), (0x01, 1), (-1, -1),               // "P" (Pengy), "o" (Noddy), "w" (Twister), "e" (Blipper), "r" (Bronto Burt), space;
@@ -423,10 +429,13 @@ namespace KatAMRandomizer {
             new byte[0], Descriptor: 34, Palette: 1, Hidden: true);
 
         /* Spit star; the star King Dedede spits the Kirbys he swallowed out in (NiDL object 0x70: frames of NiDL's shared effects,
-         * 0x0874C44C, with its shared tiles and palette 15): 4 the star, 35-37 its burst, then the sparkles of his inhale (45). Not
-         * hit; hurt: its star; */
+         * 0x0874C44C, with its shared tiles and palette 15): 4 the star, 35-37 its burst, then the sparkles of his inhale (45); and,
+         * from 5, the Star Rod's star (abilities/star_rod.c: NiDL's object 6, its 38-41 spinning, 42-43 its trail's sparkle, then its
+         * burst, 0x0874C650's 0-10). Not hit; hurt: its star; */
         static Enemy SpitStar() => new Enemy(17, "Spit Star", 0, 0x74C44C,
-            new[] { 4, 35, 36, 37, 45 }.Select(f => new[] { new Part(f, Palette15: true, Common: true) }).ToList(),
+            new[] { 4, 35, 36, 37, 45 }.Select(f => new[] { new Part(f, Palette15: true, Common: true) })
+                .Concat(new[] { 38, 39, 40, 41, 42, 43 }.Select(f => new[] { new Part(f, Palette15: true, StarRod: true) }))
+                .Concat(Enumerable.Range(0, 11).Select(f => new[] { new Part(f, Table: 0x74C650, Palette15: true, Common: true) })).ToList(),
             new[] { new Part(4, Palette15: true, Common: true) }, new Dictionary<int, ushort>(),
             new[] { (0x04, 0), (0x23, 4), (0x2D, 1), (0x01, 1) },   // "S" (Squishy), "t" (Shooty), "a" (Batty), "r" (Bronto Burt);
             new byte[0], Descriptor: 30, Hidden: true);
@@ -972,7 +981,7 @@ namespace KatAMRandomizer {
 
             string error = AddAbilities(rom, nightmare, region, version, ref cursor, motions, new Dictionary<string, int[]> {
                 ["gUnk_08D60FDC"] = hatTables.Select(table => table + 0x08000000).ToArray(),
-                ["gUnk_08350A3C"] = new[] { -1, -1, -1, -1, -1, -1, backdropPalette },
+                ["gUnk_08350A3C"] = new[] { -1, -1, -1, -1, -1, -1, backdropPalette, -1 },
             });
             // NiDL's title screen swarm (KatAMExpansionTitle.cs), before the rooms: FinishRooms() allocates after them;
             error ??= title ? AddTitle(rom, nightmare, version, ref cursor) : null;
@@ -1024,12 +1033,21 @@ namespace KatAMRandomizer {
 
             // Other descriptors' tiles and where their palettes went;
             Dictionary<int, (byte[] tiles, int palette)> others = new Dictionary<int, (byte[], int)>();
-            byte[] common = null;
+            byte[] common = null, starRod = null;
             List<(Piece, byte[], int)> Pieces(Part part) => PartOffset(part, UnmovedPieces(part).Where(p => part.OnlyPalette < 0 || p.Item1.Palette == part.OnlyPalette).ToList());
             List<(Piece, byte[], int)> PartOffset(Part part, List<(Piece, byte[], int)> pieces) =>
                 pieces.Select(p => (p.Item1 with { X = p.Item1.X + part.Dx, Y = p.Item1.Y + part.Dy }, p.Item2, p.Item3)).ToList();
             List<(Piece, byte[], int)> UnmovedPieces(Part part) {
+                if (part.StarRod) return PartPieces(nightmare, region, frameTable, part, starRod ??= StarRodTiles(nightmare, region), palettes);
                 if (part.Common) return PartPieces(nightmare, region, frameTable, part, common ??= CommonTiles(nightmare, region), palettes);
+                if (part.OrbShots) {
+                    if (!others.TryGetValue(OrbShotsKey, out (byte[] tiles, int palette) shots)) {
+                        (byte[] shotTiles, byte[] shotPalette) = OrbShotGraphics(nightmare);
+                        shots = others[OrbShotsKey] = (shotTiles, palettes.Count);
+                        palettes.Add(shotPalette);
+                    }
+                    return PartPieces(nightmare, region, frameTable, part, shots.tiles, palettes).Select(p => (p.Item1, p.Item2, shots.palette)).ToList();
+                }
                 if (part.Descriptor < 0) return PartPieces(nightmare, region, frameTable, part, tiles, palettes);
                 if (!others.TryGetValue(part.Descriptor, out (byte[] tiles, int palette) other)) {
                     int at = ReadInt(nightmare, region.Descriptors + MinibossDescriptors + part.Descriptor * 4) - 0x08000000;
@@ -1100,6 +1118,34 @@ namespace KatAMRandomizer {
          * either a frame's OAM records, drawn from the descriptor's tiles, or a streamed frame (Mr. Tick-Tock's): 12 bytes, pointers to
          * its OAM records, its palette (u16 0x20, then the colors; added to palettes) and its tiles, uploaded with the frame (rows of
          * VRAM, 32 tiles each: u16 bytes and the tiles, until 0xFFFF); */
+        /* StarRodTiles(); The shared tiles (CommonTiles()) as NiDL has them in the Star Rod's fights: the star it shoots (its shared frames
+         * 38-41) over rows 28-31, columns 7-13 (as its frames number them), raw tiles 7 a row the level loads there, 0x2328 after
+         * Palette15 in every release (USA 0x080D2AD0; checked by a tile of it); */
+        static readonly byte[] StarRodTile = Convert.FromHexString("00000000000000000060060000f44f0000effe0040eeee04f0eeee0fe4eeee4e");
+        static byte[] StarRodTiles(byte[] nightmare, NightmareRegion region) {
+            byte[] tiles = (byte[])CommonTiles(nightmare, region).Clone();
+            int at = region.Palette15 + 0x2328;
+            if (!nightmare[(at + 8 * 32)..(at + 9 * 32)].SequenceEqual(StarRodTile)) throw new InvalidOperationException("The Star Rod's star isn't in the Nightmare in Dream Land ROM.");
+            for (int row = 0; row < 4; row++)
+                Array.Copy(nightmare, at + row * 7 * 32, tiles, ((28 + row) * 16 + 7) * 32, 7 * 32);
+            return tiles;
+        }
+
+        /* OrbShotGraphics(); The Power Orb's shots' tiles (raw, 16 per row as the descriptors') and palette: the orb loads them from a
+         * descriptor of its own (USA 0x082FEFF4: palettes 1, tiles 0x37, 0x17, palette, tiles right after it), found by those values; */
+        const int OrbShotsKey = -2;
+        static (byte[] tiles, byte[] palette) OrbShotGraphics(byte[] nightmare) {
+            for (int at = 0; at + 16 <= nightmare.Length; at += 4) {
+                if (ReadInt(nightmare, at) != 0x00370001 || ReadInt(nightmare, at + 4) != 0x17) continue;
+                int palette = ReadInt(nightmare, at + 8) - 0x08000000, tiles = ReadInt(nightmare, at + 12) - 0x08000000;
+                if (tiles != palette + 0x20 || palette < 0 || tiles + 0x37 * 32 > nightmare.Length) continue;
+                byte[] block = new byte[256 * 32];
+                Array.Copy(nightmare, tiles, block, 0, 0x37 * 32);
+                return (block, nightmare[palette..(palette + 32)]);
+            }
+            throw new InvalidOperationException("The Power Orb's shots aren't in the Nightmare in Dream Land ROM.");
+        }
+
         /* CommonTiles(); NiDL's shared object tiles as its frames number them (16 per row, as the descriptors'): the LZ77 tiles after
          * palette 15 (USA 0x080D07C8, 256 tiles) are its tiles 256-511 (puff 0x0874C568's frames draw tiles 654-846: 2D VRAM, 32 a row);
          * the others, empty here, are the level's; */

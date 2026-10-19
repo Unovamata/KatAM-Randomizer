@@ -10,7 +10,8 @@
  * aren't doors (air, water), only their door records (kind 3, KatAM's door collision 0xFF, 0xFD in water) say they are, and their
  * mirrors (subtype 1) hide with them, as KatAM's hidden mirrors do. Once no mini-boss is alive in the room, it opens them: each
  * door record there whose cell has no other record (secret doors' blocks, Mirras' cells) gets its collision; so they show only
- * once the fight is won, whenever Kirby comes in (shut once it began, they showed in a long room before it came on screen); */
+ * once the fight is won, whenever Kirby comes in (shut once it began, they showed in a long room before it came on screen).
+ * A boss can make its screen sink (ArenaSink(): the Power Orb's, NiDL's fall through space), the camera with it; */
 #include "../nidl.h"
 #include "constants/object_types.h"
 
@@ -29,13 +30,15 @@ struct Arena {
     struct S32Vec2 saved7C, saved84;
     s32 savedA0, savedA4, savedA8, savedAC;
     bool8 opened;       // It opened the doors (once);
+    s32 sink;           // How far its screen has sunk (8.8, ArenaSink());
+    s32 lockedTop;      // The top it last held the cameras at (a sinking boss moves `sink` after it, the frame it's beaten too);
 };
 
 // The camera's bounds: its template's area (Kirby's, BELOW more);
 #define ARENA_LEFT(a) ((a->n.obj.objTemplate->x + a->n.obj.objTemplate->unk1A) << 8)
-#define ARENA_TOP(a) ((a->n.obj.objTemplate->y + a->n.obj.objTemplate->unk1C) << 8)
+#define ARENA_TOP(a) (((a->n.obj.objTemplate->y + a->n.obj.objTemplate->unk1C) << 8) + a->sink)
 #define ARENA_RIGHT(a) ((a->n.obj.objTemplate->x + a->n.obj.objTemplate->unk1A + a->n.obj.objTemplate->unk1E) << 8)
-#define ARENA_BOTTOM(a) ((a->n.obj.objTemplate->y + a->n.obj.objTemplate->unk1C + a->n.obj.objTemplate->unk20) << 8)
+#define ARENA_BOTTOM(a) (((a->n.obj.objTemplate->y + a->n.obj.objTemplate->unk1C + a->n.obj.objTemplate->unk20) << 8) + a->sink)
 
 typedef char ArenaFits[sizeof(struct Arena) <= NIDL_OBJECT_SIZE ? 1 : -1];
 
@@ -77,7 +80,7 @@ static void LockCamera(struct Arena *a, u8 i) {
     struct LevelInfo *l = &gCurLevelInfo[i];
 
     l->unk_S32Vec2_7C.x = l->unkA0 = ARENA_LEFT(a);
-    l->unk_S32Vec2_7C.y = l->unkA4 = ARENA_TOP(a);
+    l->unk_S32Vec2_7C.y = l->unkA4 = a->lockedTop = ARENA_TOP(a);
     l->unk_S32Vec2_84.x = l->unkA8 = ARENA_RIGHT(a);
     l->unk_S32Vec2_84.y = ARENA_BOTTOM(a);
     l->unkAC = ARENA_BOTTOM(a) + (BELOW << 8);
@@ -105,7 +108,7 @@ static void UnlockCameras(struct Arena *a) {
     for (i = 0; i < gNumKirbys; i++) {
         struct LevelInfo *l = &gCurLevelInfo[i];
 
-        if (!(a->locked & (1 << i)) || l->unk_S32Vec2_7C.x != ARENA_LEFT(a) || l->unk_S32Vec2_7C.y != ARENA_TOP(a)) continue;
+        if (!(a->locked & (1 << i)) || l->unk_S32Vec2_7C.x != ARENA_LEFT(a) || l->unk_S32Vec2_7C.y != a->lockedTop) continue;
         l->unk_S32Vec2_7C = l->unk_S32Vec2_6C = a->saved7C;
         l->unk_S32Vec2_84 = l->unk_S32Vec2_74 = a->saved84;
         l->unkA0 = l->unk90 = a->savedA0;
@@ -168,11 +171,27 @@ static void ArenaMain(struct Object *obj) {
     }
 }
 
-// ArenaStart(); Behavior start (also the engine's after a hit, which it never takes);
+// ArenaSink(); The arena in a boss's room sinks its screen to `sink` (8.8) below where it was;
+void ArenaSink(struct Object *boss, s32 sink) {
+    struct Task *t = &gTasks[0];
+    u8 n;
+
+    for (n = 0; n < MAX_TASK_NUM && t->next; n++) {
+        struct Object *other;
+
+        t = (struct Task *)(IWRAM_START + t->next);
+        other = TaskGetStructPtr(t);
+        if (other->base.header.kind != 1 || other->type != NIDL_TYPE || other->base.roomId != boss->base.roomId) continue;
+        if (((struct NidlObject *)other)->enemy == NIDL_ARENA) ((struct Arena *)other)->sink = sink;
+    }
+}
+
+// ArenaStart(); Behavior start (also the engine's after a hit, which it never takes); never culled off the screen (sub_0803D6B4: 128
+// pixels up or down, the Power Orb's screen above Kirby as he came in), as the bosses;
 void ArenaStart(struct Object *obj) {
     ObjectSetFunc(obj, 0, ArenaMain);
     obj->kirbyAbility = 0;
-    obj->base.flags |= 0x200 | 0x400;
+    obj->base.flags |= 0x200 | 0x400 | 0x2000000;
 }
 
 // ArenaInit(); Where its template is;
@@ -182,4 +201,6 @@ void ArenaInit(struct NidlObject *n) {
     a->active = FALSE;
     a->locked = 0;
     a->opened = FALSE;
+    a->sink = 0;
+    a->lockedTop = 0;
 }

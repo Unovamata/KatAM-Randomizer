@@ -131,6 +131,8 @@ after any change.
 - **Which shard a boss leaves can be shuffled** (Bosses Give Random Shards): KatAM's bosses always hold all 8 between them, so the
   game can be beaten from KatAM alone; NiDL's spread the 8 evenly. An owned shard is always a Maxim Tomato, never a cutscene in the way.
 - **Doors into boss rooms are one-way.** Nothing else (branches, links, Mirras) goes in a boss stage.
+- **The Power Orb's room is entered in the air**, the one landing off a floor: at the top of the fall, where NiDL's Kirby flies
+  at the fight's start. The fight is NiDL's Star Rod flight and takes every Kirby there at once, so nobody falls. `StarRodRoom`.
 - **A mini-boss's fight area has no door until it is beaten**: doors there show once the fight ends, whenever Kirby comes in (a
   long room's too, before the fight is on screen). The fight area for doors is its screen and the space it's fought in: the cells
   Kirby walks to from it, up to 4 cells across and 2 up or down (not past a wall). Those doors are built shut and open when the

@@ -128,10 +128,11 @@
             },
             null,           // Mike: no hat;
             null,           // Backdrop: no hat (it has Throw's body, headband included, see BuildBackdropPalette);
+            null,           // Star Rod: no hat (its motions draw the rod on the hat sprite);
         };
 
         // Per new ability, which pixels are its hat: null, the second layer's; else the first layer's of these colors (Ball's cap is drawn with Kirby);
-        static readonly int[][] HatColors = { null, null, null, new[] { 12, 13, 14 }, null, null, null };
+        static readonly int[][] HatColors = { null, null, null, new[] { 12, 13, 14 }, null, null, null, null };
 
         record KirbyFrame(List<Piece> Pieces, byte[] Palette1, byte[] Tiles1, byte[] Palette2, byte[] Tiles2);
 

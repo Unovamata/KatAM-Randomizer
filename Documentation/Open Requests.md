@@ -16,8 +16,9 @@ is done, move it to "Done" and say how it was checked. The design rules for door
 - **Heavy Mole**: rework the fight to match NiDL's, which needs the boss rooms to support scrolling (the screen moves through the
   dirt with the mole).
 - **King Dedede**: done (see Done: "King Dedede swallows and spits out the Kirbys").
-- **Nightmare's Power Orb**: port the Star Rod flying sequence, for the player and for all the helper Kirbys.
-- **Every boss** must play like NiDL's. Whispy Woods' face is done (see below); check the others against NiDL.
+- **Nightmare's Power Orb**: done (see Done: "The Power Orb's fight is NiDL's Star Rod flight").
+- **Every boss** must play like NiDL's. Whispy Woods' face is done (see below); check the others against NiDL. Nightmare's own
+  fight is a Star Rod flight in NiDL too (here still on the floor of his room).
 
 ### 10. Screen shake as KatAM's
 - The screen shakes far too much; something broke along the way. Match KatAM's screen shake.
@@ -30,6 +31,30 @@ is done, move it to "Done" and say how it was checked. The design rules for door
   Minibosses") shake the screen as often as they do in KatAM.
 
 ## Done (rules to keep)
+
+- **The Power Orb's fight is NiDL's Star Rod flight, for Kirby and every helper** (item 5; the owner: "The Power Orb's Star Rod
+  flying sequence, for the player and all helpers."): NiDL's fight was recorded frame by frame in an emulator (Kirby's flight and
+  stars, the orb's states, shots and timings, its true camera). Now Kirby comes in at the top of the fall, in the air where NiDL's
+  flies at its start, and every Kirby in the room takes the Star Rod (a new ability, 34: NiDL's frames of Kirby with the rod, its
+  star and HUD card) and flies over the screen shooting stars, as NiDL's (speeds, swing and shot timings, knockback); the screen
+  sinks 0.2 pixels a frame as they fight, as NiDL's camera does; the orb hovers, roams, charges and zips with NiDL's shots
+  (streams, fans, pairs, the charge's column of stars and its dash, the zip's crescents), 60 HP, 1 a star. The helpers fly by an
+  AI of their own (KatAM's helper AI held still meanwhile). Kirby's ability before the fight comes back after the shard's dance.
+  Before, the orb was fought on the floor at the bottom of the room. Fixed along the way: the star never damaged the orb (KatAM
+  only takes a hit from an attack with a kind bit; it has KatAM's star kind now); the game froze with helpers in the room (KatAM's
+  helper AI looks forever for a navigation zone inside the camera: the sinking fight has a zone all the way down now, and riding
+  helpers' AI is held); the camera stayed held after the orb was beaten mid-sink, so after the shard the Kirbys hung in the air
+  and never danced (a softlock); the ability card read NORMAL when the rod was given; the Japanese build's addresses of two HUD
+  functions were wrong (every NiDL ability's HUD update called into the middle of other code there). Tested in the emulator (new
+  games started in the Power Orb's room 0x003, the player held B or followed set inputs, the helpers KatAM's CPU Kirbys): USA solo,
+  the orb's HP read every 10 frames while Kirby shot (60 to 34 in 600 frames, 1 a hit); USA with 3 helpers, 2100 frames, no
+  freeze, the helpers flying, shooting, hurt, dying and coming back on the Star Rod, the player dying and coming back flying; USA,
+  EU and Japanese rev 1 with 3 helpers, the whole fight to its end: the orb beaten (frame 600), the player flies into the shard,
+  the cutscene, the Kirbys fall to the room's floor and dance, then Nightmare's room (2131-2133 frames), screenshots of the flight,
+  the stars, the HUD card (STAR ROD, スター・ロッド) and the dance; the ability coming back, with the saved ability set to Fire by a
+  RAM write mid-fight (a forced state). Logic checks on all three: 280 rooms reached, 8 big switches, no traps, with and without
+  drops. Not tested: a real playthrough into the room through its door, link play, a rematch with the shard owned (the Maxim
+  Tomato), winning solo, a helper called by phone after the orb is beaten.
 
 - **King Dedede swallows and spits out the Kirbys** (item 5; the owner: "King Dedede inhales, swallows and spits out Kirby and
   the helpers."): NiDL's fight was recorded frame by frame in an emulator (his state, frame and position, Kirby's, every object's).

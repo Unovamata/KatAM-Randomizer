@@ -87,10 +87,17 @@
             [3] = (5, 200, 300, -64, -40),    // Heavy Mole: on the right of its screen (NiDL's (136, 264) its middle: it scrolls with the mole there);
             [4] = (2, -1, -1, 0, 0),        // Mr. Shine & Mr. Bright: the template's (208, 104), on the floor of their one-screen room;
             [5] = (0, 206, 256, 0, 64),     // Whispy Woods: its face (0x080B2A00), the screen down to the floor under it;
-            [7] = (7, 160, 830, 0, 200),    // Nightmare's Power Orb: over the floor at the bottom of the fall (NiDL's (232, 24) is its top, in space);
+            [7] = (7, 208, 84, -80, -52),   // Nightmare's Power Orb: at the top of the fall, in space, as NiDL's (its screen from (8, 8): ArenaOf() puts its top 24 above; sinking as they fight, bosses/power_orb.c);
             [8] = (8, 150, 280, 0, 200),    // Nightmare: over the floor at the room's bottom (NiDL's (215, 72), in the sky);
             [6] = (1, -1, -1, 0, 0),        // Kracko: the template's (its tower's bottom, where Kirby comes in), that screen;
         };
+        /* The Power Orb's room (the Fountain of Dreams' first, 0x003): its fight is NiDL's Star Rod flight (bosses/power_orb.c), at the top
+         * of the fall, so Kirby comes in where NiDL's flies at its start (pixels; its screen's (63, 95), the fight's screen from (8, 8)),
+         * in the air: the fight starts at once and he flies; */
+        static readonly (int, int, int) StarRodRoom = (7, 0, 0);
+        const byte PowerOrbBoss = 7;        // NIDL_POWER_ORB (nidl.h);
+        const int PowerOrbSink = 513;       // how far its screen sinks as they fight (bosses/power_orb.c's SINK_END);
+        const int StarRodStartX = 71, StarRodStartY = 103;
         // NiDL items (category 3): 1-Up, Maxim Tomato, Invincibility Candy, Energy Drink -> KatAM's 1UP, Maximum Tomato, Lollipop, Pep Brew;
         static readonly Dictionary<int, byte> RoomItems = new Dictionary<int, byte> { [1] = 0x63, [2] = 0x61, [3] = 0x64, [4] = 0x5F };
         // KatAM song per NiDL level (Vegetable Valley ... Rainbow Resort, then the Fountain of Dreams);
@@ -1263,7 +1270,7 @@
                         }
                         chestLists.Add((r.Room, i, objectList));
                     }
-                    navigations.Add(BuildNavigation(rom, r, collision, navigationRoutes, Arenas(nightmare, r), ref cursor) + 0x08000000);
+                    navigations.Add(BuildNavigation(rom, r, collision, navigationRoutes, Arenas(nightmare, r, true), ref cursor) + 0x08000000);
 
                     /* Area and CPU helpers' routes (gUnk_08D6CD0C, written into the vanilla table's free entry), as room 0x397's (the
                      * Dimension Mirror's): no routes (+0, +0x48 their count: 0), flags 0x81 (+0x47: roaming helpers don't go through a
@@ -1915,6 +1922,8 @@
              * nearest cell that leads out of the room, at the same height; */
             (NightmareRoom part, int x, int y) Start((int, int, int) key) {
                 NightmareRoom any = byRoom[key][0];
+                // (the Power Orb's room: where Kirby flies with the Star Rod in NiDL's fight, in space at its top, not on a floor);
+                if (key == StarRodRoom) return PartAt(key, StarRodStartX / 16, StarRodStartY / 16);
                 return Land(key, ReadShort(nightmare, any.Record + 0x50) / 16, ReadShort(nightmare, any.Record + 0x52) / 16, true);
             }
             // A cell Kirby arrives in (pixels / 16), down to the floor if drop, out of a closed pocket (see Start());
@@ -4045,8 +4054,9 @@
             return cells;
         }
 
-        /* Arenas(); A room's (part's) mini-bosses' fight areas (ArenaOf(), pixels), as BuildObjects() gives them; */
-        static List<(int left, int top, int width, int height)> Arenas(byte[] nightmare, NightmareRoom r) {
+        /* Arenas(); A room's (part's) mini-bosses' fight areas (ArenaOf(), pixels), as BuildObjects() gives them; `sinking`, the Power
+         * Orb's down to where its screen stops sinking (BuildNavigation()); */
+        static List<(int left, int top, int width, int height)> Arenas(byte[] nightmare, NightmareRoom r, bool sinking = false) {
             List<(int, int, int, int)> arenas = new List<(int, int, int, int)>();
             int list = ReadInt(nightmare, r.Record + 0x48);
             (int x, int y)? cameraLock = null;
@@ -4061,7 +4071,9 @@
                     arenas.Add(ArenaOf(r, cameraLock ?? (x, y), x, y, CameraTop(nightmare, r)));
                 else if (category == BossCategory && RoomBosses.TryGetValue(index, out (byte boss, int x, int y, int screenDx, int screenDy) spot)) {
                     if (spot.x >= 0) (x, y) = (spot.x - r.X * 16, spot.y - r.Y * 16);
-                    arenas.Add(ArenaOf(r, (x + spot.screenDx, y + spot.screenDy), x, y, CameraTop(nightmare, r), HiddenRows * 16));
+                    var arena = ArenaOf(r, (x + spot.screenDx, y + spot.screenDy), x, y, CameraTop(nightmare, r), HiddenRows * 16);
+                    if (sinking && spot.boss == PowerOrbBoss) arena.height = Math.Min(arena.height + PowerOrbSink, r.FullHeight * 16 - arena.top);
+                    arenas.Add(arena);
                 }
             }
             return arenas;
@@ -4124,8 +4136,10 @@
          * them), +0x18 how many (32 at most: the table's size). The room is cut in blocks (8x6 cells, larger until there are 32 at
          * most), a zone per block Kirby can stand in (its point: the open cell over a floor nearest its middle), the others' cells
          * given to the nearest zone; blocks side by side are neighbours. A fight's area (Arenas(), where the camera is held) holds a
-         * zone's point: a called helper looks for one inside the camera's bounds, forever if there's none (sub_08010034); returns
-         * its address; */
+         * zone's point: a called helper looks for one inside the camera's bounds, forever if there's none (sub_08010034); one whose
+         * screen sinks (the Power Orb's, taller than a screen) a zone in each block down its middle (a block without one: the open
+         * cell nearest the block's middle; blocks under a screen high), all neighbours, so its bounds hold one he can reach as it
+         * sinks; returns its address; */
         static int BuildNavigation(byte[] rom, NightmareRoom r, byte[] collision, int routes, List<(int left, int top, int width, int height)> arenas, ref int cursor) {
             int width = r.FullWidth, height = r.FullHeight;
             bool Open(int x, int y) => x >= 0 && y >= 0 && x < width && y < height
@@ -4154,6 +4168,19 @@
             foreach (var arena in arenas) {
                 bool Inside(int x, int y) => x * 16 + 8 > arena.left && x * 16 + 8 < arena.left + arena.width
                                              && y * 16 + 8 > arena.top && y * 16 + 8 < arena.top + arena.height;
+                if (arena.height > 160) {
+                    // (a sinking fight's: down its middle column, a zone in each block without one, at the open cell nearest its middle);
+                    int column = (arena.left + arena.width / 2) / 16, bx = column / blockWidth;
+                    for (int by = arena.top / 16 / blockHeight; by * blockHeight * 16 < arena.top + arena.height && zones.Count < 32; by++) {
+                        if (zones.Any(z => z.bx == bx && z.by == by)) continue;
+                        int middle = by * blockHeight + blockHeight / 2;
+                        var cell = Enumerable.Range(by * blockHeight, blockHeight).SelectMany(y => Enumerable.Range(bx * blockWidth, blockWidth).Select(x => (x, y)))
+                                             .Where(c => c.x < width && c.y < height && Open(c.x, c.y) && Inside(c.x, c.y))
+                                             .OrderBy(c => (c.x - column) * (c.x - column) + (c.y - middle) * (c.y - middle)).Select(c => ((int, int)?)c).FirstOrDefault();
+                        if (cell != null) zones.Add((bx, by, cell.Value.Item1, cell.Value.Item2));
+                    }
+                    continue;
+                }
                 if (zones.Any(z => Inside(z.x, z.y))) continue;
                 int mx = (arena.left + arena.width / 2) / 16, my = (arena.top + arena.height / 2) / 16;
                 var cells = Enumerable.Range(0, height).SelectMany(y => Enumerable.Range(0, width).Select(x => (x, y))).Where(c => Inside(c.x, c.y)).ToList();
