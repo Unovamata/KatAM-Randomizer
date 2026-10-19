@@ -62,6 +62,13 @@ to 0x38D, Dark Meta Knight's room. The orb's warp star and Nightmare's end teste
 checks (with and without dropping through thin floors, all three versions) take the Dimension Mirror as the way in: every room
 reached, all 7 big switches pressed, nowhere trapped (the Fountain hub leads out through its Amazing Mirror).
 
+**The owner, later**: "Camera is too far up in the Nightmare room." and "Likewise, when entering the Amazing Mirror, you have to
+copy the cinematic before the Power Orb, the one where Kirby flies to the Power Orb and then the battle can start." (the
+Dimension Mirrors into the Power Orb's room: NiDL's flight up to the orb plays, then the fight). The camera is done: Nightmare's
+room's screen is NiDL's, held at (8, 216) over the floor Kirby lands on (it was centred on Nightmare, too high for Kirby to be in
+it, so it never locked); checked in the emulator in all three versions, Kirby on the floor at the screen's bottom left and
+Nightmare at its top, as NiDL's screen.
+
 **Still to do**: NiDL's cinematics (the orb's defeat, the ride into the moon, Nightmare's entrance and chase: recorded from NiDL
 frame by frame; the ending down from the moon: not recorded yet, NiDL's Nightmare takes no hit in the emulator so far), the helpers flying to the warp star themselves (they board it only if they reach it),
 and the helpers' Star Rod AI (item 5). Not tested yet: the whole finale with helpers.
