@@ -52,7 +52,7 @@ namespace KatAMRandomizer {
          * makes is given its new number by chest.c (gNidlShard +4, by the game's shard; HookShards); the pause screen's area maps show
          * a boss room's shard icon until the area's shard is owned (gAreaMapRoomIdsAndShards: {map room, boss room, shard} for each
          * area): the area's new one. For NiDL's: the low nibble of their templates' behavior (type 0x43 or 0x44 in the rooms' object
-         * lists: nidl_boss.c's NidlBossDefeat). BossShardLog lists who leaves what (the spoiler log). Returns an error, or null; */
+         * lists: nidl_boss.c's NidlBossDefeat), the 7 that leave one (not the finale's, the Power Orb and Nightmare). BossShardLog lists who leaves what (the spoiler log). Returns an error, or null; */
         static readonly string[] KatAMShardBosses = { "Kracko", "King Golem", "Master Hand & Crazy Hand", "Gobbler", "Wiz", "Moley", "Mega Titan", "Dark Meta Knight" };
         static readonly string[] NidlBossNames = { "Whispy Woods", "Kracko (NiDL)", "Mr. Shine & Mr. Bright", "Meta Knight", "Paint Roller", "Heavy Mole",
                                                    "King Dedede", "Nightmare's Power Orb", "Nightmare" };
@@ -105,7 +105,10 @@ namespace KatAMRandomizer {
                     int at = ReadInt(patched, list) - 0x08000000;
                     for (int k = 0; at >= 0 && at + 36 <= patched.Length && (patched[at] != 0 || patched[at + 1] != 0) && k < 256; at += 36, k++) {
                         if (!IsBossType(patched[at + 12])) continue;
-                        int boss = patched[at + 14] >> 4, shard = again[count++ % 8];
+                        // (but the finale's, the Power Orb and Nightmare, which leave none: "ROM Expansion/finale.c");
+                        int boss = patched[at + 14] >> 4;
+                        if (boss is PowerOrbBoss or NightmareBoss) continue;
+                        int shard = again[count++ % 8];
                         patched[at + 14] = (byte)(boss << 4 | shard);
                         BossShardLog.Add($"{(boss < NidlBossNames.Length ? NidlBossNames[boss] : $"NiDL boss {boss}")} (room 0x{room:X}): Mirror Shard #{shard + 1}");
                     }

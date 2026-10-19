@@ -96,6 +96,7 @@
          * in the air: the fight starts at once and he flies; */
         static readonly (int, int, int) StarRodRoom = (7, 0, 0);
         const byte PowerOrbBoss = 7;        // NIDL_POWER_ORB (nidl.h);
+        const byte NightmareBoss = 8;       // NIDL_NIGHTMARE;
         const byte DededeBoss = 6;          // NIDL_KING_DEDEDE: Kirby drops into his room from its top, the camera following (BossIn(), arena.c);
         const int DropInY = 32;             // where a drop-in arena stands (pixels): at the room's top, where Kirby comes in;
         // BossIn(); The ported boss (RoomBosses' boss) a NiDL room record holds, -1 none;
@@ -107,6 +108,15 @@
         }
         const int PowerOrbSink = 513;       // how far its screen sinks as they fight (bosses/power_orb.c's SINK_END);
         const int StarRodStartX = 71, StarRodStartY = 103;
+        /* The finale ("ROM Expansion/finale.c"): where Central Circle's and the NiDL hub's Dimension Mirrors take Kirby (the Power Orb's
+         * room, where he starts it: PlanDoors()); the Fountain of Dreams hub's Amazing Mirror (finaleMirror: Central Circle's Dimension
+         * Mirror as KatAM has it, leading to FinalRoom, taken before FinaleMirrors() points that one at the Power Orb's room), where a
+         * switch room's big switch stands (pixels: its middle, 18 above the pedestal's top, as KatAM's big mirror stands), and its
+         * Maximum Tomato (0x61), on the floor's right; */
+        static (int room, int x, int y) finaleEntry;
+        static byte[] finaleMirror;
+        static readonly (int x, int y) FinaleMirrorAt = (128, 112), FinaleTomatoAt = (232, 136);
+        const byte FinaleTomato = 0x61;
         // NiDL items (category 3): 1-Up, Maxim Tomato, Invincibility Candy, Energy Drink -> KatAM's 1UP, Maximum Tomato, Lollipop, Pep Brew;
         static readonly Dictionary<int, byte> RoomItems = new Dictionary<int, byte> { [1] = 0x63, [2] = 0x61, [3] = 0x64, [4] = 0x5F };
         // KatAM song per NiDL level (Vegetable Valley ... Rainbow Resort, then the Fountain of Dreams);
@@ -1180,6 +1190,7 @@
                 return $"The Nightmare in Dream Land ROM doesn't match the {region.KatAM} release.";
             }
 
+            finaleMirror = DimensionMirrorTemplate(rom, symbols);
             try {
                 for (int i = 0; i < rooms.Count; i++) {
                     NightmareRoom r = rooms[i];
@@ -1339,6 +1350,7 @@
                 WriteShort(rom, MapShardExits + 2, n);
                 WriteInt(rom, MapShardExits + 4, exits + 0x08000000);
             }
+            FinaleMirrors(rom, symbols, rooms, version);
 
             /* The KatAM rooms getting doors (Central Circle: its door to Nightmare in Dream Land; the KatAM rooms NiDL levels lead to: their
              * doors back) get collision and object list entries of their own (still their vanilla ones: the randomizer writes into them),
@@ -1507,6 +1519,11 @@
                 rom[arrivals + t.Room * 2] = (byte)t.DestX;
                 rom[arrivals + t.Room * 2 + 1] = (byte)t.DestY;
             }
+            // (the Power Orb's warp star, made as it's beaten, "ROM Expansion/finale.c": where it lands the Kirbys in Nightmare's room);
+            foreach (var (part, exit) in bossExitsOf.Where(e => (e.Key.Level, e.Key.Stage, e.Key.Index) == StarRodRoom)) {
+                rom[arrivals + exit.room * 2] = (byte)exit.x;
+                rom[arrivals + exit.room * 2 + 1] = (byte)exit.y;
+            }
             foreach (Transport t in rides) {
                 List<byte[]> steps = new List<byte[]>();
                 void Step(int xSpeed, int ySpeed, int frames, int effect = 0xFF, int flags = 0, int room = 0, int animation = FlightRider, int scale = 0) {
@@ -1554,6 +1571,25 @@
                 rom[arrivals + last.Room * 2] = (byte)(landing.x / 16 + 1);
                 rom[arrivals + last.Room * 2 + 1] = (byte)(landing.y / 16 + 1);
             }
+        }
+
+        /* FinaleMirrors(); The finale's way in and its warp star (see finaleEntry): Central Circle's Dimension Mirror (its shard object of
+         * subtype 8, KatAM's own template, written in place: +0x1E the room, +0x1A, +0x1C the landing cell + 1, shard.c's sub_0801BE4C)
+         * leads to the Power Orb's room, as the NiDL hub's copy (BuildMainHub()); gNidlFinale ("ROM Expansion/finale.c"): the Power
+         * Orb's room, where its warp star lands the Kirbys (Nightmare's room: bossExitsOf) and its flight (WarpFlight: up, then landing
+         * there, WarpFlights()); */
+        static void FinaleMirrors(byte[] rom, IReadOnlyDictionary<string, int> symbols, List<NightmareRoom> rooms, KatAMExpansionCode.Version version) {
+            int index = ReadShort(rom, symbols["gRoomProps"] + EntryRoom * 0x28 + 16 * 2);
+            int list = ReadInt(rom, symbols["gLevelObjLists"] + index * 4) - 0x08000000;
+            for (int at = ReadInt(rom, list) - 0x08000000; rom[at] != 0 || rom[at + 1] != 0; at += 36)
+                if (rom[at + 12] == ShardType && rom[at + 14] == 8) WriteShorts(rom, at + 0x1A, finaleEntry.x, finaleEntry.y, finaleEntry.room);
+            NightmareRoom orb = rooms.First(r => (r.Level, r.Stage, r.Index) == StarRodRoom);
+            (int room, int x, int y) ride = bossExitsOf[orb];
+            int finale = CodeAddress + version.CodeSymbols["gNidlFinale"];
+            WriteShorts(rom, finale, orb.Room, ride.room);
+            rom[finale + 4] = (byte)ride.x;
+            rom[finale + 5] = (byte)ride.y;
+            rom[finale + 6] = WarpFlight;
         }
 
         /* WarpRideDetours(); "ROM Expansion/warpstar.c"'s detours (see WarpFlights()): KatAM's warp star's rev (sub_0800C270), a
@@ -1847,6 +1883,8 @@
 
         // The KatAM room with the mirror to Nightmare in Dream Land: Central Circle, on its platform's left end (FinishRooms());
         const int EntryRoom = 0x321, EntryX = 11, EntryY = 14;
+        // The first room of KatAM's final boss sequence, where its Dimension Mirror led (the Fountain of Dreams hub's Amazing Mirror's now);
+        const int FinalRoom = 0x38D;
         /* EditedRoom; A KatAM room getting doors (FinishRooms()): its table entries of its own (collision, objects: 0 none; its doors
          * list's), its tilemap (file offset), the doors; */
         sealed record EditedRoom(int Room, int SolidityEntry, int ObjectsEntry, int DoorsEntry, int Tilemap, List<Door> Doors);
@@ -2332,10 +2370,13 @@
                     int next = byRoom.Keys.Where(k => k.Item1 == s.level && k.Item2 == s.stage && k.Item3 > key.Item3).Select(k => k.Item3).DefaultIfEmpty(-1).Min();
                     (int room, int x, int y) on = next >= 0 ? Target(Start((s.level, s.stage, next))) : After(s);
                     /* (a boss's room: no door out, its shard takes Kirby back to the NiDL hub, onto his level's door there, as KatAM's take
-                     * him to Central Circle (bossExitsOf); but for a fight in two rooms, the Power Orb's, which goes on to Nightmare's); */
+                     * him to Central Circle (bossExitsOf); but for the finale, the Fountain of Dreams', whose bosses leave no shard: the
+                     * Power Orb's warp star goes on to Nightmare's room ("ROM Expansion/finale.c"), and Nightmare's end to the Fountain of
+                     * Dreams hub, its only way in); */
                     if (HasBoss(byRoom[key][0])) {
                         bool goesOn = next >= 0 && HasBoss(byRoom[(s.level, s.stage, next)][0]);
-                        foreach (NightmareRoom part in byRoom[key]) bossExitsOf[part] = goesOn ? on : MainHubAt(MainHubDoors[s.level]);
+                        (int, int, int) beaten = s.level == 7 ? Target((SwitchRoomOf(7), SwitchArrival(7).x, SwitchArrival(7).y)) : MainHubAt(MainHubDoors[s.level]);
+                        foreach (NightmareRoom part in byRoom[key]) bossExitsOf[part] = goesOn ? on : beaten;
                     } else Add(Start(key), on, DoorKind.Boss, oneWay: true);
                 }
             }
@@ -2596,18 +2637,19 @@
             HashSet<(int level, int stage)> sideStages = new HashSet<(int, int)>();
             int StageDepth((int level, int stage) s) => parentOf.TryGetValue(s, out var p) ? 1 + StageDepth(p) : 0;
             for (int level = 0; level < 8; level++) {
+                // (the Fountain of Dreams' has none of them, nor any door: only Nightmare's end leads there, and only its Amazing Mirror
+                // out, to KatAM's final boss (BuildObjects()); the NiDL hub's door to it, and its path on the world map, never open);
+                if (level == 7) continue;
                 NightmareRoom switchRoom = SwitchRoomOf(level);
-                // The way in: a Mirra's, hidden in the level (SecretSpot(); the Fountain of Dreams, all boss stage: in Rainbow Resort's,
-                // another room), one-way, as KatAM's Mirras, onto its floor where Kirby starts it (SwitchArrival; off its floor mirrors,
-                // two-way: the crowded landings' pass below moves it on, as any one-way door's);
+                // The way in: a Mirra's, hidden in the level (SecretSpot()), one-way, as KatAM's Mirras, onto its floor where Kirby starts
+                // it (SwitchArrival; off its floor mirrors, two-way: the crowded landings' pass below moves it on, as any one-way door's);
                 (int x, int y)[] sides = SwitchSides(level);
-                (NightmareRoom part, int x, int y) secret = SecretSpot(level < 7 ? level : 6, secretRooms);
+                (NightmareRoom part, int x, int y) secret = SecretSpot(level, secretRooms);
                 secretRooms.Add(secret.part);
                 Add(secret, Target((switchRoom, SwitchArrival(level).x, SwitchArrival(level).y)), DoorKind.SwitchEntry, oneWay: true, hidden: true);
                 // its 2 floor mirrors (as KatAM's hubs, 2 ways into their area: the level branches from it), both ways: its right one
-                // with the start of the stage leading to its boss (the Fountain of Dreams', Rainbow Resort's), a shortcut earned by
-                // finding the room;
-                if (gates.TryGetValue(level < 7 ? level : 6, out var gate) && EntrySpot(gate) is (NightmareRoom, int, int) gateSpot) {
+                // with the start of the stage leading to its boss, a shortcut earned by finding the room;
+                if (gates.TryGetValue(level, out var gate) && EntrySpot(gate) is (NightmareRoom, int, int) gateSpot) {
                     Add((switchRoom, sides[1].x, sides[1].y), Target(gateSpot), DoorKind.SwitchFloor);
                     Add(gateSpot, Target((switchRoom, sides[1].x, sides[1].y)), DoorKind.SwitchFloor);
                     // its left one with the start of a stage on another branch (off the way from the level's first stage to that one,
@@ -2725,6 +2767,11 @@
              * into its first room, a throw from a room reached, of the same level if one takes it, as KatAM's one-way mirrors; */
             Dictionary<int, NightmareRoom> numbered = rooms.ToDictionary(r => r.Room, r => r);
             List<Door> hubDoors = mainHubDoors;
+            // (the finale: Central Circle's and the NiDL hub's Dimension Mirrors lead into the Power Orb's room, once KatAM's 8 shards
+            // are found, FinaleMirrors(); the Fountain of Dreams hub, where Nightmare's end leads, out of NiDL's rooms through its
+            // Amazing Mirror, to KatAM's final boss);
+            finaleEntry = StageStart((7, 0));
+            NightmareRoom fountainHub = SwitchRoomOf(7);
             // Reached(); The rooms Kirby gets to from the hub: from each cell he arrives in, through open cells (and breakable blocks),
             // to the doors, warp stars and cannons there (a door at a cell he reaches, or beside it); not through KatAM's rooms;
             HashSet<int> Reached() {
@@ -2736,6 +2783,7 @@
                     if (cells.Add((x, y))) open.Enqueue((room, x, y));
                 }
                 foreach (Door d in hubDoors) Arrive(d.Room, d.DestX - 1, d.DestY - 1);
+                Arrive(finaleEntry.room, finaleEntry.x - 1, finaleEntry.y - 1);
                 Dictionary<int, HashSet<(int, int)>> flooded = new Dictionary<int, HashSet<(int, int)>>();
                 while (open.Count > 0) {
                     var (room, sx, sy) = open.Dequeue();
@@ -2800,13 +2848,15 @@
                     bool Near(int dx, int dy) => Enumerable.Range(-1, 3).Any(ox => Enumerable.Range(-1, 3).Any(oy => seen.Contains((dx + ox, dy + oy))));
                     var leads = doors[r].Where(d => d.Edge ? seen.Contains((d.X, d.Y)) : Near(d.X, d.Y)).Select(d => (d.Room, d.DestX - 1, d.DestY - 1))
                                         .Concat(transportsOf[r].Where(t => Near(t.X / 16, (t.Y - 1) / 16)).Select(t => (t.Room, t.DestX - 1, t.DestY - 1)))
-                                        .Concat(bossExitsOf.TryGetValue(r, out var shard) ? new[] { (shard.room, shard.x - 1, shard.y - 1) } : new (int, int, int)[0]).ToList();
+                                        .Concat(bossExitsOf.TryGetValue(r, out var shard) ? new[] { (shard.room, shard.x - 1, shard.y - 1) } : new (int, int, int)[0])
+                                        .Concat(r == fountainHub ? new[] { (FinalRoom, 0, 0) } : new (int, int, int)[0]).ToList();
                     places.Add((r, seen, leads));
                     return placeOf[(room, x, y)] = places.Count - 1;
                 }
                 Queue<int> unvisited = new Queue<int>();
                 HashSet<int> visited = new HashSet<int>();
                 foreach (Door d in hubDoors) if (PlaceAt(d.Room, d.DestX - 1, d.DestY - 1) is int first && first >= 0 && visited.Add(first)) unvisited.Enqueue(first);
+                if (PlaceAt(finaleEntry.room, finaleEntry.x - 1, finaleEntry.y - 1) is int finale && finale >= 0 && visited.Add(finale)) unvisited.Enqueue(finale);
                 while (unvisited.Count > 0)
                     foreach (var (room, x, y) in places[unvisited.Dequeue()].leads)
                         if (PlaceAt(room, x, y) is int next && next >= 0 && visited.Add(next)) unvisited.Enqueue(next);
@@ -3980,9 +4030,24 @@
             }
 
             // A switch room's big switch (NiDL's own aren't ported: a level has one, see LevelSlot()) and ability statues (SwitchStatues);
-            if (r.IsSwitchRoom) {
+            // the Fountain of Dreams hub's, the finale's end, has none: an Amazing Mirror where it would be, to KatAM's final boss (as
+            // Central Circle's Dimension Mirror led there: whole, and the way in, once KatAM's 8 shards are found), and a Maximum Tomato
+            // on the floor's right, away from where Kirby comes in (taken once per visit, as the items);
+            if (r.IsSwitchRoom && r.Level == 7 && finaleMirror != null) {
+                byte[] mirror = (byte[])finaleMirror.Clone();
+                mirror[3] = (byte)templates.Count;
+                WriteShorts(mirror, 6, FinaleMirrorAt.x, FinaleMirrorAt.y);
+                templates.Add(mirror);
+                types.Add(ShardType);
+                byte[] tomato = ObjectTemplate(FinaleTomatoAt.x, FinaleTomatoAt.y, templates.Count, FinaleTomato);
+                tomato[2] = TakenKind; tomato[3] = (byte)takenItems++;
+                templates.Add(tomato);
+                if (!types.Contains(FinaleTomato)) types.Add(FinaleTomato);
+            } else if (r.IsSwitchRoom) {
                 templates.Add(BigSwitchTemplate(SwitchAt(r.Level).x, SwitchAt(r.Level).y, templates.Count, LevelSlot(r.Level), r.Level));
                 types.Add(BigSwitchType);
+            }
+            if (r.IsSwitchRoom) {
                 for (int i = 0; i < 2; i++) {
                     (byte type, byte subtype) = SwitchStatues[r.Level][i];
                     byte[] statue = ObjectTemplate(SwitchStatueXs(r.Level)[i], 48, templates.Count, type);

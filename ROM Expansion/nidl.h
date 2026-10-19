@@ -172,6 +172,11 @@ void NidlBossDefeat(struct Object *);
 // A boss rematch's Maxim Tomato's gone bit kind (template unk2; rooms.c's BigSub_08001678 calls NidlExitTomato with it, nidl_boss.c);
 #define NIDL_EXIT_KIND 4
 void NidlExitTomato(u16 slot, u32 eaten);
+void NidlDanceOut(u16 room);
+// The finale (finale.c): the Power Orb's and Nightmare's ends, the Power Orb's warp star;
+void PowerOrbBeaten(struct Object *orb);
+void NightmareBeaten(struct Object *nightmare);
+bool32 NidlFinaleStar(struct Object *star);
 const struct NidlGraphics *NidlGraphicsOf(struct NidlObject *);
 u32 NidlHurtTiles(struct Object *);
 void NidlUploadHurtTiles(struct NidlObject *);

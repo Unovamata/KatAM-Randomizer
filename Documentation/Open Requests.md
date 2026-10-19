@@ -43,6 +43,29 @@ maximum tomato and an amazing mirror warp to 0x38D." Asked what each part meant,
   Tomato is there.
 - The Power Orb's and Nightmare's rooms can't be randomized.
 
+**Done so far** (the finale's ways in and out; `finale.c`, `KatAMExpansionRooms.cs`' `FinaleMirrors()`): Central Circle's and the
+NiDL hub's Dimension Mirrors lead into the Power Orb's room, where its fight starts, once the 8 shards are found (KatAM's own
+mirror, its destination changed); the door that led there from Rainbow Resort (0xF7) is gone. The Power Orb and Nightmare leave no
+shard (nor do they take part in Bosses Give Random Shards: NiDL's 7 others share the shards). The Power Orb beaten, a warp star
+(KatAM's) comes where it was, waits for the helpers as KatAM's do, and every Kirby rides it to Nightmare's room, his own ability
+back as it leaves (no shard dance gives it back any more). Nightmare beaten, the Kirbys dance and land in the Fountain of Dreams
+hub, on its floor's left. That room has lost its Mirra in from Rainbow Resort (0x30F), its two floor mirrors (to 0x2FE and 0x30A),
+its two hub doors (to 0xBF and the NiDL hub; their doors back are gone too) and its big switch: an Amazing Mirror (KatAM's
+Dimension Mirror, to 0x38D, whole once the 8 shards are found) stands where the switch was, and a Maximum Tomato on the floor's
+right. The Power Orb's and Nightmare's rooms were never randomized and still aren't (the randomizer reads none of the expansion's
+boss or switch rooms' objects; the Fountain hub's tomato stays a tomato). Tested in the emulator (USA, with KatAM's 8 shards
+written into RAM where noted): Central Circle's mirror, after KatAM's opening scene, into the Power Orb's room at its start; the
+NiDL hub's mirror likewise; the orb's HP set to 1, beaten by a Star Rod star, its warp star where it died, Kirby flown onto it, the
+ride to Nightmare's room (his ability NORMAL again on landing); Nightmare's HP set to 1 and his guard lowered in RAM (test only:
+the port's Nightmare takes only strong hits), beaten by a slide, the dance, then the Fountain hub; its Amazing Mirror (8 shards)
+to 0x38D, Dark Meta Knight's room. The orb's warp star and Nightmare's end tested on the European and Japanese builds too. The logic
+checks (with and without dropping through thin floors, all three versions) take the Dimension Mirror as the way in: every room
+reached, all 7 big switches pressed, nowhere trapped (the Fountain hub leads out through its Amazing Mirror).
+
+**Still to do**: NiDL's cinematics (the orb's defeat, the ride into the moon, Nightmare's entrance and chase: recorded from NiDL
+frame by frame; the ending down from the moon: not recorded yet, NiDL's Nightmare takes no hit in the emulator so far), the helpers flying to the warp star themselves (they board it only if they reach it),
+and the helpers' Star Rod AI (item 5). Not tested yet: the whole finale with helpers.
+
 ### 10. Screen shake as KatAM's
 - The screen shakes far too much; something broke along the way. Match KatAM's screen shake.
 - Not reproduced yet; needs the owner's details (which room, what was happening). Checked so far: KatAM's shake itself runs the

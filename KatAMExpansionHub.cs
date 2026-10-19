@@ -4,7 +4,7 @@ namespace KatAMRandomizer {
      *   sky and its galaxies), cut down to 32x36 tiles and quantized to 3 palettes (6-8), one per band of rows (HubBackground);
      * • Palettes: Central Circle's scenery (palettes 4 and 5) tinted to the night (NightTint);
      * • Mirrors: its golden one (MainHubEntry) to Vegetable Valley's first room, the way in, a pink one (MainHubReturn, MirrorTwin()) back to Central Circle, and
-     *   Central Circle's Dimension Mirror (DimensionMirrorTemplate());
+     *   Central Circle's Dimension Mirror (DimensionMirrorTemplate(), to the Power Orb's room as Central Circle's: FinaleMirrors());
      * • Doors: as Central Circle's, special blocks (kind 1) its hub mirror objects (0x8C) break once their world slot is set, drawing
      *   the door over the 3x3 cells above its door cell (MainHubDoors: Central Circle's own doors' cells). Each level's door is its
      *   design (NidlDesigns: one of KatAM's door frames, anim 0x2C6, over its mirror, anim 0x2C5, as object 0x97 draws them; none of
@@ -176,6 +176,8 @@ namespace KatAMRandomizer {
             List<byte> types = templates.Count > 0 ? new List<byte> { HubMirrorType } : new List<byte>();
             byte[] dimensionMirror = DimensionMirrorTemplate(rom, symbols);
             if (dimensionMirror != null) {
+                // (to the Power Orb's room, as Central Circle's: the finale, FinaleMirrors());
+                WriteShorts(dimensionMirror, 0x1A, finaleEntry.x, finaleEntry.y, finaleEntry.room);
                 dimensionMirror[3] = (byte)templates.Count;
                 templates.Add(dimensionMirror);
                 types.Add(ShardType);
