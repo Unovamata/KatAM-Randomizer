@@ -18,12 +18,13 @@ is done, move it to "Done" and say how it was checked. The design rules for door
 - **King Dedede**: done (see Done: "King Dedede swallows and spits out the Kirbys").
 - **Nightmare's Power Orb**: done (see Done: "The Power Orb's fight is NiDL's Star Rod flight").
 - **Every boss** must play like NiDL's. Whispy Woods' face is done (see below); check the others against NiDL. Nightmare's own
-  fight is a Star Rod flight in NiDL too (here still on the floor of his room).
+  fight is on the ground with the Star Rod in NiDL, as here (item 34), but in his caped look, not the arms-out one the port uses.
 - **King Dedede's camera**: done (see Done: "King Dedede's camera is NiDL's").
 - **The Power Orb's camera and cinematics** (the owner: "power orb camera movements and transition cinematics have to be ported
   as well."): NiDL's camera movements in the fight and its transition cinematics. Done: the intro (the camera rising from the
   room's bottom with every Kirby flying up to the orb, see item 34), the fight's sinking screen, and its end (the orb beaten, the
-  warp star's ride into the moon, the screen rising to it: item 34). Still to do: Nightmare's cinematics (item 34).
+  warp star's ride into the moon, the screen rising to it: item 34), Nightmare's intro and his defeat (item 34). Still to do:
+  the ending down from the moon (item 34).
 - **The helpers in the Star Rod fight** (the owner: "AI Kirbys should move up and down, left and right towards Power Orb to
   simulate that they are engaged in the fight and maybe open the door to avoiding its moves by chance, so disabling the flag so
   they get still ain't quite cutting it."): they keep moving towards the orb in every direction, and dodge its attacks now and
@@ -150,7 +151,11 @@ objects, OAM, palettes, the room and the layers):
   credits. The port can play the ride down in its Power Orb's room. Nightmare's
 fight itself isn't NiDL's yet (item 5): NiDL fights him in his caped look (his body, 48-55, under his collar and cape, 96), the port
 in his arms-out one (8-15), so his look changes as the fight starts after his entrance. Not tested yet: the whole finale with
-helpers in one go.
+helpers in one go. Also open:
+- His fight's palettes: KatAM loads 7 sprite palettes a room and loads past them into the last slot; by his fight his intro's and
+  his own fill them, and his second and third palettes and his beams' take that last slot in turn, so one of them can show another's
+  colours during the fight (found while porting his defeat, which works round it; the fight itself not fixed yet).
+- His entrance: the helpers start shooting once they're up, before his light has grown into his shape (NiDL has no helpers).
 
 **The owner, on the finale's list** (asked whether the ending should have the narration and King Dedede and where it ends): "the
 cinematic after the orb is beaten, the helpers flying to the warp star by themselves, Nightmare's intro and chase, the ending down
