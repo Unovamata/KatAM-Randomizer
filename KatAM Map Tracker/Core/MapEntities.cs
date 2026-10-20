@@ -5,7 +5,7 @@ using System.Linq;
 namespace KatAMMapTracker {
     // EntityIcon; The in-game sprites the map can draw next to the rooms;
     public enum EntityIcon {
-        Cherry, PepBrew, Meat, MaximTomato, Battery, OneUp, InvincibleCandy, MirrorShard, ChestSmall, ChestBig, WarpStar, BigSwitch, FuseCannon,
+        Cherry, PepBrew, Meat, MaximTomato, Battery, OneUp, InvincibleCandy, MirrorShard, AmazingMirror, ChestSmall, ChestBig, WarpStar, BigSwitch, FuseCannon,
         MrFrosty, Bonkers, PhanPhan, Batafire, BoxBoxer, Boxy, MasterHandMini, Bombar,
         Kracko, KingGolem, MasterHand, Gobbler, Wiz, Moley, MegaTitan, DarkMetaKnight, DarkMind, DarkMindOrb,
 
@@ -21,15 +21,15 @@ namespace KatAMMapTracker {
     }
 
     // EntityKind; What an important object is, in drawing order (the first ones are the most important);
-    public enum EntityKind { Boss, MiniBoss, MirrorShard, BigSwitch, Treasure, Item, FuseCannon, WarpStar }
+    public enum EntityKind { Boss, MiniBoss, MirrorShard, BigSwitch, AmazingMirror, Treasure, Item, FuseCannon, WarpStar }
 
     /* MapEntity; An important object of a room: what it is, the sprite drawn for it and its name.
      * ContentIcon: for chests, the sprite of what they hold (null if unknown), shown when chest contents are spoiled; */
     // Destination: the room a Fuse Cannon or Warp Star sends Kirby to (-1 for the rest);
     public sealed record MapEntity(EntityKind Kind, EntityIcon Icon, string Name, EntityIcon? ContentIcon = null, int Destination = -1);
 
-    /* MapEntities; Which room objects are worth showing on the map (bosses, mini-bosses, mirror shards, big switches, treasure,
-     * items, fuse cannons and warp stars), and their in-game sprites, read from the ROM like the rest of the map graphics.
+    /* MapEntities; Which room objects are worth showing on the map (bosses, mini-bosses, mirror shards, big switches, the Amazing
+     * Mirror, treasure, items, fuse cannons and warp stars), and their in-game sprites, read from the ROM like the rest of the map graphics.
      *
      * The sprites were located by planting each object next to Kirby in an emulator and reading back the hardware sprites:
      * every sprite is a few OAM pieces, each one a run of consecutive 4bpp 8x8 tiles in the ROM (in 1D mapping order) with a
@@ -38,7 +38,8 @@ namespace KatAMMapTracker {
      * as a whole, translated below;
      *
      * • Room object IDs: 0x38-0x3F mini-bosses (0x40-0x42 too in expanded ROMs, see RomMap.ReadExpansion), 0x45-0x52 bosses, 0x5E-0x64 items, 0x65 Mirror Shard (behavior 0-7; 8 is the
-     *   Dimensional Mirror), 0x80 & 0x81 small & big chests (behavior: what they hold), 0x84 Warp Star, 0x86 Big Switch,
+     *   Amazing Mirror, Central Circle's Dimension Mirror and its copies: animation 0x2D3, variant 0 as it stands until the 8 shards
+     *   are found; +0x22 bit 0 hides it), 0x80 & 0x81 small & big chests (behavior: what they hold), 0x84 Warp Star, 0x86 Big Switch,
      *   0x8A Fuse Cannon.
      * • Chest contents: 0x00-0x05 the items 1UP, Invincible Candy, Maxim Tomato, Meat, Pep Brew, Cherry (chest.c's sub_0800B97C, not the
      *   items' object order), 0x06 Vitality, 0x0A-0x13 area maps, 0x14-0x21 sprays, 0x28 the
@@ -80,6 +81,11 @@ namespace KatAMMapTracker {
                 P(0, 16, 16, 8, 0, 0, 0x4A0D78, 0x608878),
                 P(16, 0, 8, 16, 0, 0, 0x4A0D78, 0x6088B8),
                 P(16, 16, 8, 8, 0, 0, 0x4A0D78, 0x5F0045),
+            },
+            [EntityIcon.AmazingMirror] = new[] {
+                P(0, 0, 64, 32, 0, 0, 0x4A0D78, 0x604918),
+                P(0, 32, 32, 16, 0, 0, 0x4A0D78, 0x604D18),
+                P(32, 32, 32, 16, 0, 0, 0x4A0D78, 0x604E18),
             },
             [EntityIcon.ChestSmall] = new[] {
                 P(0, 0, 16, 16, 0, 0, 0x4A0BB8, 0x603E98),
@@ -490,7 +496,8 @@ namespace KatAMMapTracker {
             if (id >= 0x5E && id <= 0x64) return new MapEntity(EntityKind.Item, Items[id - 0x5E].icon, Items[id - 0x5E].name);
 
             switch (id) {
-                case 0x65: return behavior < 8 ? new MapEntity(EntityKind.MirrorShard, EntityIcon.MirrorShard, "Mirror Shard") : null;
+                case 0x65: return behavior < 8 ? new MapEntity(EntityKind.MirrorShard, EntityIcon.MirrorShard, "Mirror Shard")
+                                : behavior == 8 ? new MapEntity(EntityKind.AmazingMirror, EntityIcon.AmazingMirror, "Amazing Mirror") : null;
                 case 0x80: case 0x81: return Chest(id == 0x81, behavior);
                 case 0x84: return new MapEntity(EntityKind.WarpStar, EntityIcon.WarpStar, "Warp Star", Destination: obj.Destination);
                 case 0x86: return new MapEntity(EntityKind.BigSwitch, EntityIcon.BigSwitch, "Big Switch");

@@ -289,11 +289,18 @@ Nightmare's room. Solo, the star left as soon as Kirby was on.
   hit on an enemy (1), every enemy defeated and every hit on a boss (3), so randomized mini-bosses in enemy spots ("Include
   Minibosses") shake the screen as often as they do in KatAM.
 
-### 37. The Amazing Mirror's icon on the map viewer
-- The owner: "Show Amazing Mirror Icon in maps where these are in the Map Viewer." The rooms with an Amazing Mirror get its icon on
-  the map viewer, as the other things in rooms have theirs.
-
 ## Done (rules to keep)
+
+- **The Amazing Mirror's icon on the map viewer** (item 37; the owner: "Show Amazing Mirror Icon in maps where these are in the Map
+  Viewer."): the rooms with an Amazing Mirror (object `0x65` behavior 8: Central Circle's Dimension Mirror, the final rooms'
+  `0x38F`, `0x391` and `0x393`, and with the ROM Expansion the NiDL hub's and the Fountain of Dreams hub's) show its sprite, as it
+  stands until the 8 shards are found (animation `0x2D3` variant 0: the grey frame and blue glass; the golden one is variant 0xC),
+  drawn big as bosses and Big Switches. "Amazing Mirrors" is a View > Show on Map kind of its own, on by default as Fuse Cannons and
+  Warp Stars (it's a way between rooms). A mirror the game hides (template `+0x22` bit 0: room `0x3B7`'s) gets none. Checked: the
+  sprite decoded from KatAM's animation tables in each version matches the viewer's pieces (Japanese addresses, translated); the
+  viewer's own code renders it the same in the USA, European and Japanese ROMs and lists those rooms (unexpanded and expanded); a
+  render of the whole map with icons shows it in each of them. Not tried: the viewer app itself on Windows (it builds; this
+  container has no Windows desktop).
 
 - **Mirras fall, and their door is where they fell** (item 36; the owner: "Mirras should be affected by gravity and spawn the door
   where they have fallen if they have."): KatAM turned the engine's gravity off for a Mirra (and kept it from moving at all), and

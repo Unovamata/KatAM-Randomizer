@@ -436,6 +436,9 @@ namespace KatAMMapTracker {
 
                 int id = Rom[address + 12], x = Read16(address + 6), y = Read16(address + 8);
 
+                // (an Amazing Mirror the game hides, +0x22 bit 0: shard.c's CreateShard draws it never);
+                if (id == 0x65 && Rom[address + 14] == 8 && (Rom[address + 0x22] & 1) != 0) continue;
+
                 /* (a ROM Expansion boss, types 0x43 and 0x44 (KatAM places none), standing outside its fight's screen, its template's area
                  * (+0x1A, +0x1C: its left and top from it, +0x1E, +0x20: its size): at that screen's middle, where it fights; the Power
                  * Orb stands at its room's bottom, where its intro starts); */

@@ -491,7 +491,7 @@ namespace KatAMMapTracker {
 
             // Fuse Cannons and Warp Stars not used yet (the room they send Kirby to wasn't visited) are faded like rooms not visited;
             List<(EntityIcon icon, bool isBig, bool faded)> icons = ShownEntities(room)
-                .Select(entity => (IconOf(entity), entity.Kind == EntityKind.Boss || entity.Kind == EntityKind.MiniBoss || entity.Kind == EntityKind.BigSwitch,
+                .Select(entity => (IconOf(entity), entity.Kind is EntityKind.Boss or EntityKind.MiniBoss or EntityKind.BigSwitch or EntityKind.AmazingMirror,
                                    faded || (entity.Destination >= 0 && !progress.VisitedRooms.Contains(entity.Destination))))
                 .GroupBy(icon => icon.Item1).Select(group => group.OrderBy(icon => icon.Item3).First()).Take(MaxEntityIcons).ToList();
 
@@ -512,7 +512,7 @@ namespace KatAMMapTracker {
             float left = square.X + square.Width / 2 - columns * cell / 2, top = square.Y + square.Height / 2 - rows * cell / 2;
 
             for (int i = 0; i < icons.Count; i++) {
-                // Alone in its room, a boss or Big Switch fills most of the square (they're mostly in the big rooms);
+                // Alone in its room, a boss, Big Switch or Amazing Mirror fills most of the square (they're mostly in the big rooms);
                 float box = !icons[i].isBig ? cell
                     : icons.Count == 1 ? Math.Max(cell * BigEntityIconScale, Math.Min(square.Width, square.Height) * LoneBigEntityIconScale)
                     : cell * BigEntityIconScale;

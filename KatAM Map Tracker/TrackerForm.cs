@@ -35,12 +35,14 @@ namespace KatAMMapTracker {
         string romPath, progressPath;
         int previousRoom = -1, lastReportedRoom = -1;
 
-        // The kinds of objects that can be shown in the rooms, with their menu names and settings keys; Off by default but the cannons and stars;
+        // The kinds of objects that can be shown in the rooms, with their menu names and settings keys; Off by default but the cannons, stars
+        // and Amazing Mirrors;
         static readonly (EntityKind kind, string name, string key)[] EntityCategories = {
             (EntityKind.Boss, "Bosses", "bosses"),
             (EntityKind.MiniBoss, "Mini-Bosses", "minibosses"),
             (EntityKind.BigSwitch, "Big Switches", "big_switches"),
             (EntityKind.MirrorShard, "Mirror Shards", "mirror_shards"),
+            (EntityKind.AmazingMirror, "Amazing Mirrors", "amazing_mirrors"),
             (EntityKind.Treasure, "Chests", "chests"),
             (EntityKind.Item, "Items (Food, 1UPs...)", "items"),
             (EntityKind.FuseCannon, "Fuse Cannons", "fuse_cannons"),
@@ -186,10 +188,10 @@ namespace KatAMMapTracker {
         }
 
         /* BuildEntityMenu(); View > Show on Map: which kinds of objects are drawn in the rooms, each on its own, off by default but
-         * Fuse Cannons and Warp Stars (they are ways between rooms), plus Show All and Hide All; */
+         * Fuse Cannons, Warp Stars and Amazing Mirrors (they are ways between rooms), plus Show All and Hide All; */
         void BuildEntityMenu() {
             foreach ((EntityKind kind, string name, string key) in EntityCategories) {
-                ToolStripMenuItem item = new ToolStripMenuItem(name) { CheckOnClick = true, Checked = kind == EntityKind.FuseCannon || kind == EntityKind.WarpStar };
+                ToolStripMenuItem item = new ToolStripMenuItem(name) { CheckOnClick = true, Checked = kind is EntityKind.FuseCannon or EntityKind.WarpStar or EntityKind.AmazingMirror };
                 item.CheckedChanged += (s, e) => {
                     UpdateShownEntityKinds();
                     SaveViewSettings();
