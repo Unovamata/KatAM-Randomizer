@@ -8,8 +8,9 @@
  *   rising to the moon, the orb and the star flying into it: PowerOrbEnd() again), keeping the Star Rod:
  *   NiDL's Nightmare is fought with it, on the ground (abilities/star_rod.c; NidlFinaleKeep(): never lost in his room);
  * • Nightmare beaten, NiDL's defeat (bosses/nightmare.c's NightmareEnd()), then every Kirby in his room is flown out (NidlEndingFlight():
- *   the fade to white) to the Fountain of Dreams hub (his room's way on, gNidlShardExits'), his ability before the Star Rod given back,
- *   where its Amazing Mirror leads to KatAM's final boss;
+ *   the fade to white), his ability before the Star Rod given back, to NiDL's ending down from the moon in the Power Orb's room
+ *   (ending.c: held there, NidlFinaleHold()), then to the Fountain of Dreams hub (his room's way on, gNidlShardExits'), where its
+ *   Amazing Mirror leads to KatAM's final boss;
  * gNidlFinale filled in by KatAMExpansion.cs; */
 #include "nidl.h"
 #include "abilities.h"
@@ -23,6 +24,8 @@ struct NidlFinale {
     u8 pad;
     const struct Unk_08353510 *ending;  // the ending's flight out of Nightmare's room (NidlEndingFlight()), NULL none;
 };
+
+#define ENDING_STEPS 7  // (the ending's flight's steps: KatAMExpansionRooms.cs, WarpFlights());
 
 const struct NidlFinale gNidlFinale = { 0 };
 
@@ -46,8 +49,8 @@ void NightmareBeaten(struct Object *nightmare) {
 }
 
 /* NidlEndingFlight(); Every Kirby in Nightmare's room (and still up) flown out where he is, his ability before the Star Rod back: the
- * ending's flight (KatAMExpansionRooms.cs, WarpFlights()), its fade to white, then the room his way on leads to (the Fountain of
- * Dreams hub); without it, the dance out (NidlDanceOut()); */
+ * ending's flight (KatAMExpansionRooms.cs, WarpFlights()), its fade to white, NiDL's ending down from the moon in the Power Orb's
+ * room (ending.c), then the room his way on leads to (the Fountain of Dreams hub); without it, the dance out (NidlDanceOut()); */
 void NidlEndingFlight(u16 room) {
     u8 i;
 
@@ -62,6 +65,12 @@ void NidlEndingFlight(u16 room) {
         StarRodRestore(kirby);
         sub_080531B4(kirby, gNidlFinale.ending);
     }
+}
+
+// NidlOnEnding(); Whether a Kirby's flying the ending's flight (on one of its steps);
+bool32 NidlOnEnding(struct Kirby *kirby) {
+    return gNidlFinale.ending != NULL && kirby->stateFn == sub_080534D0 && (const struct Unk_08353510 *)kirby->unk114 >= gNidlFinale.ending
+        && (const struct Unk_08353510 *)kirby->unk114 < gNidlFinale.ending + ENDING_STEPS;
 }
 
 // NidlFinaleStar(); Whether a warp star is the Power Orb's (it waits for the helpers, as KatAM's: warpstar.c);
@@ -117,16 +126,18 @@ void NidlFinaleHoldCamera(u16 room, s32 x, s32 y) {
 }
 
 // NidlFinaleRideSize(); The size the finale's riders are drawn at (warpstar.c): what its rides say (bosses/power_orb.c's end in the
-// Power Orb's room, bosses/nightmare.c's intro in Nightmare's);
+// Power Orb's room, or the ending's there, ending.c; bosses/nightmare.c's intro in Nightmare's);
 u32 NidlFinaleRideSize(u16 room) {
-    if (gNidlFinale.orbRoom && room == gNidlFinale.orbRoom) return PowerOrbRideSize(room);
+    if (gNidlFinale.orbRoom && room == gNidlFinale.orbRoom) return NidlEndingOn(room) ? NidlEndingRideSize(room) : PowerOrbRideSize(room);
     if (gNidlFinale.rideRoom && room == gNidlFinale.rideRoom) return NightmareRideSize(room);
     return 0;
 }
 
-// NidlFinaleHold(); A Kirby held on the finale's ride (warpstar.c, every frame): in Nightmare's room, his intro takes them;
+// NidlFinaleHold(); A Kirby held on the finale's ride (warpstar.c, every frame): in Nightmare's room, his intro takes them; on the
+// ending's flight in the Power Orb's room, the ending (ending.c; the Power Orb's own ride there its end moves, bosses/power_orb.c);
 void NidlFinaleHold(struct Kirby *kirby) {
     if (gNidlFinale.rideRoom && kirby->base.roomId == gNidlFinale.rideRoom) NightmareIntroRider(kirby);
+    else if (gNidlFinale.orbRoom && kirby->base.roomId == gNidlFinale.orbRoom && NidlOnEnding(kirby)) NidlEndingRider(kirby);
 }
 
 // NidlFinaleKeep(); Nightmare alive (bosses/nightmare.c): every Kirby in his room keeps the Star Rod (StarRodKeep());

@@ -65,6 +65,11 @@ static void NidlBossWait(struct Object *obj) {
 
     NidlUpdate(n);
     obj->base.flags |= 4;
+    // (the ending down from the moon in the Power Orb's room: not there meanwhile, ending.c);
+    if (n->enemy == NIDL_POWER_ORB && NidlEndingOn(obj->base.roomId)) {
+        obj->base.flags |= 0x400;
+        return;
+    }
     // (Nightmare's intro: hidden till it's over, bosses/nightmare.c);
     if (n->enemy == NIDL_NIGHTMARE) {
         if (NightmareIntroOn(obj->base.roomId)) {

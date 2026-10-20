@@ -30,16 +30,18 @@ namespace KatAMRandomizer {
         // Palette15: NiDL's shared object palette 15 (the level loads it; the Poppy Bros. Jr.'s ball and bomb are drawn with it);
         /* Cards: the ability cards (HUD portraits) by NiDL ability: palette pointers (CardPalettes + ability * CardPaletteStride) and tiles
          * pointers (CardTiles + ability * CardTileStride; Europe's are per language, English first); RoomTable: the rooms (see
-         * KatAMExpansionRooms.cs); */
+         * KatAMExpansionRooms.cs); EndingFrames: the frame table of NiDL's ending down from the moon (USA 0x08755708: the European one
+         * moved by neither shift; see EndingGraphics()); */
         sealed record NightmareRegion(string GameCode, int Descriptors, int FrameShift, string KatAM, int Palette15,
-                                      int CardPalettes, int CardPaletteStride, int CardTiles, int CardTileStride, int RoomTable, int LateShift);
+                                      int CardPalettes, int CardPaletteStride, int CardTiles, int CardTileStride, int RoomTable, int LateShift,
+                                      int EndingFrames);
         const int LateFrames = 0x753E3C;
         static int FrameAddress(NightmareRegion region, int usa) => usa + (usa >= LateFrames ? region.LateShift : region.FrameShift);
 
         static readonly NightmareRegion[] NightmareRegions = {
-            new NightmareRegion("A7KE", 0x73EEA0, 0, "USA", 0x0D07A8, 0x731A90, 8, 0x731A94, 8, 0x7E1D58, 0),
-            new NightmareRegion("A7KJ", 0x742DAC, 0x3A8C, "Japan", 0x0CFF60, 0x73599C, 8, 0x7359A0, 8, 0x7E60DC, 0x3A8C),     // Hoshi no Kirby: Yume no Izumi Deluxe;
-            new NightmareRegion("A7KP", 0x97B678, 0x23C7EC, "Europe", 0x0D3228, 0x96D770, 4, 0x96D7E0, 20, 0xBFD8E8, 0x23CA5C),
+            new NightmareRegion("A7KE", 0x73EEA0, 0, "USA", 0x0D07A8, 0x731A90, 8, 0x731A94, 8, 0x7E1D58, 0, 0x755708),
+            new NightmareRegion("A7KJ", 0x742DAC, 0x3A8C, "Japan", 0x0CFF60, 0x73599C, 8, 0x7359A0, 8, 0x7E60DC, 0x3A8C, 0x759194),     // Hoshi no Kirby: Yume no Izumi Deluxe;
+            new NightmareRegion("A7KP", 0x97B678, 0x23C7EC, "Europe", 0x0D3228, 0x96D770, 4, 0x96D7E0, 20, 0xBFD8E8, 0x23CA5C, 0x99288C),
         };
 
         static NightmareRegion RegionOf(byte[] rom) => rom == null || rom.Length < 0x800000 ? null
@@ -63,10 +65,11 @@ namespace KatAMRandomizer {
          * tiles of the frame (the Power Orb's slash: up to 17 pieces, 4 different ones); Tile: instead, one 8x8 tile of NiDL's (4 bits
          * a pixel, its palette 15's colors) around the origin (the dot NiDL draws the Power Orb as, far off in the moon); Cutscene: a
          * frame of NiDL's cutscene of Nightmare's arrival (CutsceneGraphics(): its own frame table, tiles and two palettes; 1 its first
-         * tiles, the comet's, 2 its second, the blue star's); */
+         * tiles, the comet's, 2 its second, the blue star's); Ending: a frame of NiDL's ending down from the moon (EndingGraphics(): the
+         * region's EndingFrames, its own tiles and five palettes); */
         sealed record Part(int Frame, Dictionary<int, int> Recolor = null, int Table = 0, bool Palette15 = false, int Palette = 0, int Descriptor = -1,
                            int Dx = 0, int Dy = 0, bool Common = false, int OnlyPalette = -1, bool OrbShots = false, bool StarRod = false,
-                           bool Shared = false, byte[] Tile = null, int Cutscene = 0);
+                           bool Shared = false, byte[] Tile = null, int Cutscene = 0, bool Ending = false);
 
         /* Enemy; A ported enemy: its index (NIDL_* in nidl.h), name, NiDL object type and frame table, its frames (in the order the
          * C code numbers them), its hurt frame, palette changes, the letters of its name and the behavior bytes the randomizer uses; */
@@ -415,8 +418,8 @@ namespace KatAMRandomizer {
          * draw them): the comet he arrives as and the blue star he throws (Cutscene, the cutscene's 0-5 and 6), the burst a blue star
          * makes (NiDL's shared effects' 0x0874CA78, its 0-22, with the shared tiles and palette 15), the puff as it hits Kirby's star
          * (the shared effects' 0x0874C9D8, 0-16), then his own light growing into his shape as he appears (his 67 down to 61, one
-         * palette each, then 60, his shape in white); then his defeat's (see below; those too only for his effects). Type 0x44. Hurt:
-         * his collar and arms (8); */
+         * palette each, then 60, his shape in white); then his defeat's and the ending's (see below; those too only for effects). Type
+         * 0x44. Hurt: his collar and arms (8); */
         static Miniboss Nightmare() {
             List<Part[]> frames = new List<Part[]>();
 
@@ -439,13 +442,19 @@ namespace KatAMRandomizer {
             frames.AddRange(Enumerable.Range(81, 8).Select(f => new[] { new Part(f) }));
             frames.AddRange(Enumerable.Range(13, 5).Select(f => new[] { new Part(f, Table: 0x754738) }));
             frames.AddRange(Enumerable.Range(0, 2).Select(palette => new[] { new Part(96, OnlyPalette: palette) }));
+            // (the ending down from the moon, "ROM Expansion/ending.c": 121-124 King Dedede flying by, the ending's frames 64, 66-68 (near,
+            // then far off: EndingGraphics()); 125-139 the moon's burst, NiDL's shared effects 0x0874CEE8's 0-14; 140-166 the warp star's
+            // trail, twinkles and small stars, 0x0874CF28's 0-26 (those two with the shared tiles and palette 15));
+            frames.AddRange(new[] { 64, 66, 67, 68 }.Select(f => new[] { new Part(f, Ending: true) }));
+            frames.AddRange(Enumerable.Range(0, 15).Select(f => new[] { new Part(f, Table: 0x74CEE8, Palette15: true, Common: true, Shared: true) }));
+            frames.AddRange(Enumerable.Range(0, 27).Select(f => new[] { new Part(f, Table: 0x74CF28, Palette15: true, Common: true, Shared: true) }));
 
             return new Miniboss(8, "Nightmare", 38, 0x75456C, frames, new[] { new Part(8, OnlyPalette: 0) },
                 new[] {
                     (0x1E, 0), (0x26, 4), (0x29, 8), (0x29, 9), (0x29, 10),                        // "N" (Noddy), "i" (Cookin), "ght" (Heavy Knight);
                     (0x28, 2), (0x2D, 1), (0x01, 1), (0x02, 5),                                    // "m" (Bomber), "a" (Batty), "r" (Bronto Burt), "e" (Blipper);
                 },
-                new byte[0], Type: BossID2, EffectOnly: 94);
+                new byte[0], Type: BossID2, EffectOnly: 140);
         }
 
         /* Apple; Whispy Woods' apples (NiDL object 0x7D, its own frame table 0x08754308: Whispy Woods' frames 18-37, its second palette).
@@ -1070,6 +1079,7 @@ namespace KatAMRandomizer {
             Dictionary<int, (byte[] tiles, int palette)> others = new Dictionary<int, (byte[], int)>();
             byte[] common = null, starRod = null;
             (int table, byte[][] tiles, byte[][] palettes)? cutscene = null;
+            (byte[] tiles, byte[][] palettes)? ending = null;
             List<(Piece, byte[], int)> Pieces(Part part) => PartOffset(part, UnmovedPieces(part).Where(p => part.OnlyPalette < 0 || p.Item1.Palette == part.OnlyPalette).ToList());
             List<(Piece, byte[], int)> PartOffset(Part part, List<(Piece, byte[], int)> pieces) =>
                 pieces.Select(p => (p.Item1 with { X = p.Item1.X + part.Dx, Y = p.Item1.Y + part.Dy }, p.Item2, p.Item3)).ToList();
@@ -1094,6 +1104,16 @@ namespace KatAMRandomizer {
                     // (its pieces' palettes: the first or the second, as their OAM's picks them);
                     return PartPieces(nightmare, region, cut.table, part, cut.tiles[part.Cutscene - 1], palettes)
                         .Select(p => (p.Item1, p.Item2, loaded.palette + (p.Item1.Palette & 1))).ToList();
+                }
+                if (part.Ending) {
+                    (byte[] tiles, byte[][] palettes) end = ending ??= EndingGraphics(nightmare);
+                    if (!others.TryGetValue(EndingKey, out (byte[] tiles, int palette) loaded)) {
+                        loaded = others[EndingKey] = (null, palettes.Count);
+                        palettes.AddRange(end.palettes);
+                    }
+                    // (its pieces' palettes: theirs of the five, as their OAM's picks them);
+                    return PartPieces(nightmare, region, region.EndingFrames, part, end.tiles, palettes)
+                        .Select(p => (p.Item1, p.Item2, loaded.palette + p.Item1.Palette % end.palettes.Length)).ToList();
                 }
                 if (part.Descriptor < 0) return PartPieces(nightmare, region, frameTable, part, tiles, palettes);
                 if (!others.TryGetValue(part.Descriptor, out (byte[] tiles, int palette) other)) {
@@ -1204,6 +1224,25 @@ namespace KatAMRandomizer {
             throw new InvalidOperationException("Nightmare's arrival isn't in the Nightmare in Dream Land ROM.");
         }
 
+        /* EndingGraphics(); The tiles (LZ77, 16 a row as the descriptors') and five palettes of NiDL's ending down from the moon (the warp
+         * star, Kirby, King Dedede), from the descriptor its code loads them by (USA 0x080C6CA0: the descriptor, then 0x02020000, where
+         * it decompresses the tiles, 0x06010000 and the palettes' 0x030015xx, its literals), found by those values and the descriptor's
+         * counts (5 palettes, 0x1CF tiles); */
+        const int EndingKey = -4;
+        static (byte[] tiles, byte[][] palettes) EndingGraphics(byte[] nightmare) {
+            for (int at = 0; at + 16 <= nightmare.Length; at += 4) {
+                if (ReadInt(nightmare, at + 4) != 0x02020000 || ReadInt(nightmare, at + 8) != 0x06010000 || ReadInt(nightmare, at + 12) >> 16 != 0x0300) continue;
+                int descriptor = ReadInt(nightmare, at) - 0x08000000;
+                if (descriptor < 0 || descriptor + 16 > nightmare.Length || ReadShort(nightmare, descriptor) != 5 || ReadShort(nightmare, descriptor + 2) != 0x1CF) continue;
+                int palette = ReadInt(nightmare, descriptor + 8) - 0x08000000, tiles = ReadInt(nightmare, descriptor + 12) - 0x08000000;
+                if (tiles < 0 || tiles >= nightmare.Length || nightmare[tiles] != 0x10) throw new InvalidOperationException("Not LZ77 tiles.");
+                byte[] block = DecompressLZ77(nightmare, tiles), padded = new byte[Math.Max(block.Length, 32 * 16 * 32)];
+                block.CopyTo(padded, 0);
+                return (padded, Enumerable.Range(0, 5).Select(p => nightmare[(palette + p * 32)..(palette + p * 32 + 32)]).ToArray());
+            }
+            throw new InvalidOperationException("NiDL's ending isn't in the Nightmare in Dream Land ROM.");
+        }
+
         /* OrbShotGraphics(); The Power Orb's shots' tiles (raw, 16 per row as the descriptors') and palette: the orb loads them from a
          * descriptor of its own (USA 0x082FEFF4: palettes 1, tiles 0x37, 0x17, palette, tiles right after it), found by those values; */
         const int OrbShotsKey = -2;
@@ -1231,7 +1270,7 @@ namespace KatAMRandomizer {
         }
 
         static List<(Piece, byte[], int)> PartPieces(byte[] nightmare, NightmareRegion region, int frameTable, Part part, byte[] tiles, List<byte[]> palettes) {
-            int table = part.Table != 0 ? FrameAddress(region, part.Table) : frameTable;
+            int table = part.Ending ? region.EndingFrames : part.Table != 0 ? FrameAddress(region, part.Table) : frameTable;
             int entry = ReadInt(nightmare, table + part.Frame * 4) - 0x08000000, records = entry;
             int palette = part.Palette15 ? -1 : part.Palette, width = 16;
             byte[] source = tiles;

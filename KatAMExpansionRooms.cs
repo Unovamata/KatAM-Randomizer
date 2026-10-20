@@ -1522,6 +1522,10 @@
         // room, its address, -1 none);
         static int finaleFlight = WarpFlight, endingFlight = -1;
         static readonly (int, int, int) NightmareBossRoom = (7, 0, 1);
+        // (the ending's: where its warp star comes out of the moon in the Power Orb's room, NiDL's moon room's 96, 50 on the screen at 8, 8;
+        // a flight step's flag facing Kirby left, sub_080534D0);
+        static readonly (int x, int y) MoonSpot = (104, 58);
+        const int FacingLeft = 1;
         // (Kirby's animations tumbling, KatAM's: 74, then 89 down to 75, round again; bouncing off the floor; the effect making the orb,
         // 0x292, where he hops off; standing);
         const int Tumbling = 74, Bouncing = 20, HopOrb = 10, Standing = 0;
@@ -1607,15 +1611,25 @@
             WriteShorts(rom, finale + 4 * FlightStep, 0, 0, 1, Standing, 0xFF, 0);
             WriteShorts(rom, finale + 5 * FlightStep, 0, 0, 0, Standing, RideHop, 0);
             WriteInt(rom, moved + finaleFlight * 4, finale + 0x08000000);
-            // (the ending's, "ROM Expansion/finale.c"'s NidlEndingFlight(): every Kirby in Nightmare's room once his defeat's over, where
-            // he stands: the fade to white, then the room his way on leads to (bossExitsOf: the Fountain of Dreams hub), a frame
-            // standing there and the end, as the rides', no hop);
-            foreach (var (part, exit) in bossExitsOf.Where(e => (e.Key.Level, e.Key.Stage, e.Key.Index) == NightmareBossRoom)) {
-                endingFlight = Allocate(ref cursor, 4 * FlightStep, 4);
+            /* (the ending's, "ROM Expansion/finale.c"'s NidlEndingFlight(): every Kirby in Nightmare's room once his defeat's over, where
+             * he stands: the fade to white; then NiDL's ending down from the moon, in the Power Orb's room (NiDL's moon room's cells:
+             * "ROM Expansion/ending.c"): a room change there (at the cell of MoonSpot, where the star comes out of the moon; the rider's
+             * animation from there on), a step marked NIDL_RIDE_FINALE where warpstar.c holds the Kirbys while ending.c moves them, on
+             * their warp stars (its size RideAsk: the ending says it, tiny, then bigger, or hidden); then, once the star's still, NiDL's
+             * cut: the fade to white (on the star, their own size, facing left as NiDL's star), a room change to where Nightmare's way
+             * on leads (bossExitsOf: the Fountain of Dreams hub; standing, warpstar.c letting the star go), a frame standing there and
+             * the end, as the rides', no hop); */
+            int orbRoom = bossExitsOf.Keys.FirstOrDefault(r => (r.Level, r.Stage, r.Index) == StarRodRoom)?.Room ?? -1;
+            foreach (var (part, exit) in bossExitsOf.Where(e => (e.Key.Level, e.Key.Stage, e.Key.Index) == NightmareBossRoom && orbRoom >= 0)) {
+                (int x, int y) moon = ((MoonSpot.x + 16) / 16, (MoonSpot.y + 15) / 16);
+                endingFlight = Allocate(ref cursor, 7 * FlightStep, 4);
                 WriteShorts(rom, endingFlight, 0, 0, RideFade, Standing, FlightFade, 0);
-                WriteShorts(rom, endingFlight + FlightStep, exit.x, exit.y, 1, Standing, RideRoom | 0x40 << 8, exit.room);
-                WriteShorts(rom, endingFlight + 2 * FlightStep, 0, 0, 1, Standing, 0xFF, 0);
-                WriteShorts(rom, endingFlight + 3 * FlightStep, 0, 0, 0, Standing, RideHop, 0);
+                WriteShorts(rom, endingFlight + FlightStep, moon.x, moon.y, 1, FlightRider, RideRoom | 0x40 << 8, orbRoom);
+                WriteShorts(rom, endingFlight + 2 * FlightStep, 0, 0, 1, FlightRider, RideFinale, RideAsk);
+                WriteShorts(rom, endingFlight + 3 * FlightStep, 0, 0, RideFade, FlightRider, FlightFade | FacingLeft << 8, RideAsk);
+                WriteShorts(rom, endingFlight + 4 * FlightStep, exit.x, exit.y, 1, Standing, RideRoom | 0x40 << 8, exit.room);
+                WriteShorts(rom, endingFlight + 5 * FlightStep, 0, 0, 1, Standing, 0xFF, 0);
+                WriteShorts(rom, endingFlight + 6 * FlightStep, 0, 0, 0, Standing, RideHop, 0);
             }
         }
 

@@ -23,8 +23,8 @@ is done, move it to "Done" and say how it was checked. The design rules for door
 - **The Power Orb's camera and cinematics** (the owner: "power orb camera movements and transition cinematics have to be ported
   as well."): NiDL's camera movements in the fight and its transition cinematics. Done: the intro (the camera rising from the
   room's bottom with every Kirby flying up to the orb, see item 34), the fight's sinking screen, and its end (the orb beaten, the
-  warp star's ride into the moon, the screen rising to it: item 34), Nightmare's intro and his defeat (item 34). Still to do:
-  the ending down from the moon (item 34).
+  warp star's ride into the moon, the screen rising to it: item 34), Nightmare's intro and his defeat, and the ending down from
+  the moon (item 34).
 - **The helpers in the Star Rod fight** (the owner: "AI Kirbys should move up and down, left and right towards Power Orb to
   simulate that they are engaged in the fight and maybe open the door to avoiding its moves by chance, so disabling the flag so
   they get still ain't quite cutting it."): they keep moving towards the orb in every direction, and dodge its attacks now and
@@ -129,19 +129,47 @@ up). Not matching NiDL: NiDL's flight off starts from where he was hit 52 frames
 **The owner, on the ending**: "Work on the The ending down from the moon: the crescent moon, the warp star ride down through the
 Power Orb's room, without the narration, King Dedede flying by, and cutting to the fountain of dreams before kirby throws the wand
 as a transition from the Power Orb/Nightmare fight into the Fountain of Dreams hub." Taken as: the moon turning to a crescent, the
-warp star with the Kirbys flying out of it and down through the Power Orb's room (its sky, as NiDL's moon room is that room), King
-Dedede flying by, no narration, and at NiDL's cut to the Fountain of Dreams (before Kirby throws the Star Rod onto it) the Fountain
-of Dreams hub instead.
+warp star with the Kirbys flying out of it and down through the Power Orb's room (NiDL's moon room has that room's cells), King
+Dedede flying by, no narration, and the cut to the Fountain of Dreams hub before Kirby throws the Star Rod. NiDL's throw is in the
+moon scene itself: once the star stops after its loop, Kirby jumps off it holding the rod up (frame 7434 of the recording below),
+lands lying on it, tosses the rod up off the screen (7540) and sits back down; NiDL cuts to the Fountain at 7649, where the rod
+falls onto it. So the cut comes as the star stops, before Kirby jumps (cutting at NiDL's own cut, as first written down here,
+would have shown the throw).
 
-**Still to do**: the ending down from the moon (after the defeat, before the hub). Recorded in NiDL (USA; Nightmare's HP held at 1 and Kirby kept beside him
-until a star hits, frame by frame, screenshots every 60 to 150 frames): his defeat (the hit at its frame 2246: the freeze and the
-burst, then he flies off right and dissolves into sparkles, his frames 76-88, about 900 frames), then a scene of its own (from 3164,
-about 4200 frames): the full moon, a burst in it leaving a crescent, Kirby on the warp star flying out of it and down through the
-night sky under NiDL's narration ("Our hero Kirby has fought bravely to recover the Star Rod..."), King Dedede flying by, the sky
-turning to Dream Land's dusk, then the Fountain of Dreams with the Star Rod back on it, a flash to white and the credits. Porting it
-needs NiDL's cutscene backgrounds and its text (or a room of its own for the ride down). The owner's next list keeps "the ending
-down from the moon" (no word on the narration or King Dedede: taken as NiDL has it). Recorded since (NiDL, frame by frame, its
-objects, OAM, palettes, the room and the layers):
+**The ending down from the moon: done** (`ROM Expansion/ending.c`; its flight, `KatAMExpansionRooms.cs`'s `WarpFlights()`). After
+Nightmare's defeat the Kirbys are flown (the fade to white) into the Power Orb's room, where NiDL's moon scene plays, traced frame by
+frame (its camera, its cutscene objects and its OAM), without the narration: the screen at the moon, shaking; the moon bursting (8
+sparkle clusters flying out from the bite's middle, a glow pulsing there, every frame as NiDL's) and turning to a crescent 12 frames
+in (NiDL's 33 tile changes, written into the room's tilemap); a twinkle, then the warp star with every Kirby coming out of the bite
+at a 16th of their size, growing 4/256 every 16 frames, up off the screen, round its top right and back in from the right at their
+size; its trail (the sparkles behind it, a puff every 10 frames, twinkles) and the small stars it throws out behind every 48 frames;
+the screen scrolling down 3/16 of a pixel a frame, through the clouds to Dream Land's dusk, as the star bobs along NiDL's path; King
+Dedede rising past it from below and flying away into the distance (NiDL's frames 64, 66-68, taken from the player's NiDL ROM as
+the rest); then, as the star stops after its loop (before Kirby jumps off to throw the Star Rod), the fade to white and the
+Fountain of Dreams hub, every Kirby standing on its floor. The Power Orb doesn't come out in its room meanwhile. Tested in the
+emulator (a new game in Central Circle before its Dimension Mirror with KatAM's 8 shards written into RAM, the mirror into the Power
+Orb's room, the orb's HP set to 1 in RAM and a star beating it, the ride to Nightmare's room and his intro, his HP held at 1 in RAM and
+Star Rod stars from set inputs beating him, his defeat, then the whole ending to the hub with no input; USA solo and with the 3
+helpers, European and Japanese rev 1 solo): USA screenshots beside NiDL's on the same frames, every 20 frames through the scene, and
+every frame through the burst's start (the port runs 432 frames behind the recording's numbering in that run): the burst (its
+sparkles, glow and flicker, the crescent on the same frame), the star's spot and size, its trail and small stars, the scroll and the
+clouds, King Dedede's spot and frames all match; every Kirby in the hub after the fade, 4289 frames after coming into the Power
+Orb's room. With the helpers the four ride the scene together (in KatAM's group formation on the star, as in the port's other
+rides), and that run was the whole finale with the helpers in one go (the orb's fight, the ride, Nightmare's intro, fight and
+defeat, the ending). European and Japanese: the burst, the crescent, the ride, King Dedede and the hub as the USA's (screenshots;
+the hub 4289 and 4290 frames after the room change). The logic checks pass on all three. Not as NiDL's: the Kirbys ride KatAM's warp star in KatAM's riding pose
+(NiDL's Kirby holds the Star Rod up as he rides; the riders here are KatAM's Kirbys, the helpers in their colours); KatAM's HUD stays
+on; the room's own music plays (NiDL plays its ending's); the background is the Power Orb room's (NiDL's moon room has the same
+picture mirrored left to right). Not tested: a Kirby knocked out or in another room when the flight starts (it flies only those in
+the room and up).
+
+Recorded in NiDL (USA; Nightmare's HP held at 1 and Kirby kept beside him until a star hits, frame by frame, screenshots every 60 to
+150 frames): his defeat (the hit at its frame 2246: the freeze and the burst, then he flies off right and dissolves into sparkles,
+his frames 76-88, about 900 frames), then a scene of its own (from 3164, about 4200 frames): the full moon, a burst in it leaving a
+crescent, Kirby on the warp star flying out of it and down through the night sky under NiDL's narration ("Our hero Kirby has fought
+bravely to recover the Star Rod..."), King Dedede flying by, the sky turning to Dream Land's dusk, then the Fountain of Dreams with
+the Star Rod back on it, a flash to white and the credits. Recorded since (NiDL, frame by frame, its objects, OAM, palettes, the
+room and the layers):
 - His defeat (NiDL's frames from the hit; his object, type 0x43, runs it all): 52 frames frozen in his hurt frame (the hit's flash
   and bursting stars), then he flies right from where he was on his frames 68-71 (3 frames each), 16 frames each at 4, 2, 1, 1/2
   and 1/4 pixels a frame (124 pixels), turns to light there (60 up to 67, 2 frames each), and comes back as light at (136, 282) in
@@ -155,10 +183,12 @@ objects, OAM, palettes, the room and the layers):
   foreground, the moon at its top, and the same background picture), the camera from its top (8) down 3/16 of a pixel a frame (to
   666 in 4400 frames), NiDL's cutscene objects (type 100) on it (Kirby on the warp star out of the moon, King Dedede), the
   narration on its top layer (BG0, off once the text is done), then the Fountain of Dreams scene (objects of type 101) and the
-  credits. The port can play the ride down in its Power Orb's room. Nightmare's
-fight itself isn't NiDL's yet (item 5): NiDL fights him in his caped look (his body, 48-55, under his collar and cape, 96), the port
-in his arms-out one (8-15), so his look changes as the fight starts after his entrance. Not tested yet: the whole finale with
-helpers in one go. Also open:
+  credits; the moon scene's own graphics (the warp star, Kirby with the Star Rod, King Dedede) are a descriptor its code loads
+  (USA `0x080C6CA0`: 5 palettes, 0x1CF tiles), its frame table `0x08755708` (the European one at `0x0899288C`, moved by neither of
+  the port's shifts).
+
+Nightmare's fight itself isn't NiDL's yet (item 5): NiDL fights him in his caped look (his body, 48-55, under his collar and cape,
+96), the port in his arms-out one (8-15), so his look changes as the fight starts after his entrance. Also open:
 - His fight's palettes: KatAM loads 7 sprite palettes a room and loads past them into the last slot; by his fight his intro's and
   his own fill them, and his second and third palettes and his beams' take that last slot in turn, so one of them can show another's
   colours during the fight (found while porting his defeat, which works round it; the fight itself not fixed yet).
@@ -169,8 +199,8 @@ cinematic after the orb is beaten, the helpers flying to the warp star by themse
 from the moon, and helpers that move toward the orb and dodge during the fight.", "The amazing mirror in the fountain of dreams hub
 should be further up and drop the pedestals." and "The shown sprite strip is cutoff in the power orb room compared to NiDL." (a
 screenshot of NiDL's Power Orb fight, the pink and purple cloud band along the screen's bottom circled).
-- The finale's list: every part of it stays wanted, the ending down from the moon included (still to do, above), and played
-  together with the helpers.
+- The finale's list: every part of it stays wanted, the ending down from the moon included (done since, above), and played
+  together with the helpers (the whole finale with the 3 helpers in one go: tested with the ending, above).
 - The hub's Amazing Mirror further up, and its two ability statues ("pedestals", on the top row) gone: done. The mirror hangs 24
   pixels higher (128, 68), under the ceiling where the statues stood, above the Fountain's bowl, which now shows under it; the
   statues (Smash and Burning) aren't placed in the Fountain of Dreams hub (the other switch rooms keep theirs). Kirby floats up

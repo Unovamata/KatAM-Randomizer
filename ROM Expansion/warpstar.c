@@ -6,7 +6,9 @@
  *   ported star's (its subtype NIDL_RIDE_FLIGHT and after) skips the wait;
  * • a flight's room change (sub_08055D9C, a flight step flagged 0x40): KatAM's flights change room once, to the star's room; a
  *   step marked NIDL_RIDE_ROOM (its +8) takes Kirby to the room in its +0xA instead, at the cell in its +0 and +2 (the step after
- *   it moves him to where NiDL's star comes in), so a ride goes on through several rooms;
+ *   it moves him to where NiDL's star comes in), so a ride goes on through several rooms; one where he comes in standing (its
+ *   animation not the rider's: the ending's, into the Fountain of Dreams hub) lets his star go there, quietly (KatAM's goes with a
+ *   sound once he's off it, sub_0808EEF4);
  * • a flight's step (sub_080534D0): a ride flies Kirby's tumble off the star as NiDL's (the orb where the star went, then KatAM's
  *   tumbling and bouncing animations) to where he stands, and ends there (its end step marked NIDL_RIDE_HOP, not 0x80: KatAM's
  *   hop-off would throw him off again): the flight's ending, KatAM's plain one (sub_080534D0: back to standing or falling), left as
@@ -29,6 +31,7 @@
 
 void sub_080534D0(struct Kirby *);  // a flight's step (kirby.c);
 void sub_0808EEF4(void);            // the star Kirby rides, following him (code_0806F780.c, sub_0808EDB8's task);
+void NidlRideStar(void);
 bool32 NidlFinaleStar(struct Object *);    // the Power Orb's warp star (finale.c);
 bool32 NidlFinaleAllAboard(struct Object *, u8);
 u32 NidlFinaleRideSize(u16 room);         // the finale's rides' size, and a Kirby held on one (finale.c);
@@ -44,6 +47,7 @@ void NidlFinaleHold(struct Kirby *);
 #define NIDL_RIDE_HIDDEN 0x8000 // (NidlFinaleRideSize(): not shown: too small, the orb's end draws a dot there, or off the screen);
 #define NIDL_RIDE_ALONE 0x4000  // (and: the Kirbys at their size, the star gone: Nightmare's intro, knocked off it);
 #define NIDL_RIDE_SIZED(pa) ((pa) && (pa) != NIDL_RIDE_HIDDEN && (pa) != NIDL_RIDE_ALONE)
+#define NIDL_RIDER 0x5A         // (Kirby's animations on a star: KatAM's 90, and 91; sub_0808EEF4 lets the star go on any other);
 
 // NidlRide; Filled in by KatAMExpansionRooms.cs: the trampolines running the detoured functions;
 struct NidlRide {
@@ -74,13 +78,30 @@ void NidlRideRev(struct WarpStar *ws) {
     gNidlRide.rev(ws);
 }
 
-// NidlRideRoomChange(); A room change (sub_08055D9C); on a ride's (its flight step marked), to the step's room and cell;
+// NidlRideDropStar(); The star a Kirby rides let go (its task ends: sub_0808EEF4 destroys it, without its sound);
+static void NidlRideDropStar(struct Kirby *kirby) {
+    struct Task *t = &gTasks[0];
+    u8 n;
+
+    for (n = 0; n < MAX_TASK_NUM && t->next; n++) {
+        struct EffectObject *star;
+
+        t = (struct Task *)(IWRAM_START + t->next);
+        if (t->main != NidlRideStar) continue;
+        star = TaskGetStructPtr(t);
+        if (star->parent == kirby) star->flags |= 0x1000;
+    }
+}
+
+// NidlRideRoomChange(); A room change (sub_08055D9C); on a ride's (its flight step marked), to the step's room and cell (coming in
+// standing, his star let go);
 void NidlRideRoomChange(struct Kirby *kirby) {
     const struct Unk_08353510 *step = kirby->unk114;
     if (kirby->stateFn == sub_080534D0 && step != NULL && step->unk9 & 0x40 && step->unk8 == NIDL_RIDE_ROOM) {
         kirby->roomId = ((const u16 *)step)[5];
         kirby->spawnLocation.x = step->unk0;
         kirby->spawnLocation.y = step->unk2;
+        if (step->unk6 != NIDL_RIDER && step->unk6 != NIDL_RIDER + 1) NidlRideDropStar(kirby);
     }
     gNidlRide.roomChange(kirby);
 }
