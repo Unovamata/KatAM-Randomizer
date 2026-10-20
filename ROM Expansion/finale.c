@@ -2,7 +2,9 @@
  * Circle's and the NiDL hub's Dimension Mirrors lead into the Power Orb's room once KatAM's 8 shards are found (KatAMExpansionRooms.cs,
  * FinaleMirrors()); its two bosses leave no shard:
  * • the Power Orb beaten (nidl_boss.c's NidlBossDefeat), a warp star (KatAM's own, object 0x84) comes where it was, to Nightmare's
- *   room; it waits for the helpers, as KatAM's (warpstar.c's NidlRideRev), and every Kirby rides it there, keeping the Star Rod:
+ *   room; it waits for the helpers, as KatAM's (warpstar.c's NidlRideRev), the helpers flying to it (abilities/star_rod.c's AI(),
+ *   NidlFinaleStarSpot()), but only until every Kirby is on it (NidlFinaleAllAboard()), and they all ride it there, keeping the
+ *   Star Rod:
  *   NiDL's Nightmare is fought with it, on the ground (abilities/star_rod.c; NidlFinaleKeep(): never lost in his room);
  * • Nightmare beaten, every Kirby in his room dances and leaves (as after a boss's shard, NidlDanceOut()), for the Fountain of
  *   Dreams hub (gNidlShardExits: his room's), his ability before the Star Rod given back (NidlShardExit()), where its Amazing Mirror
@@ -36,6 +38,35 @@ void NightmareBeaten(struct Object *nightmare) {
 // NidlFinaleStar(); Whether a warp star is the Power Orb's (it waits for the helpers, as KatAM's: warpstar.c);
 bool32 NidlFinaleStar(struct Object *star) {
     return gNidlFinale.orbRoom && star->base.roomId == gNidlFinale.orbRoom;
+}
+
+// NidlFinaleAllAboard(); Whether every Kirby still in a warp star's room (and not knocked out) rides it, `aboard` its riders (its
+// +0xB5: warpstar.c: then the Power Orb's is off, not waiting out KatAM's 300 frames);
+bool32 NidlFinaleAllAboard(struct Object *star, u8 aboard) {
+    u8 i;
+
+    for (i = 0; i < gNumKirbys; i++)
+        if (gKirbys[i].base.roomId == star->base.roomId && gKirbys[i].hp > 0 && !((aboard >> i) & 1)) return FALSE;
+    return TRUE;
+}
+
+// NidlFinaleStarSpot(); The Power Orb's warp star in a room (abilities/star_rod.c: the helpers fly to it): its spot (8.8); FALSE: none;
+bool32 NidlFinaleStarSpot(u16 room, s32 *x, s32 *y) {
+    struct Task *t = &gTasks[0];
+    u8 n;
+
+    if (!gNidlFinale.orbRoom || room != gNidlFinale.orbRoom) return FALSE;
+    for (n = 0; n < MAX_TASK_NUM && t->next; n++) {
+        struct Object *obj;
+
+        t = (struct Task *)(IWRAM_START + t->next);
+        obj = TaskGetStructPtr(t);
+        if (obj->base.header.kind != 1 || obj->type != OBJ_WARP_STAR || obj->base.roomId != room || (obj->base.flags & 0x1000)) continue;
+        *x = obj->base.x;
+        *y = obj->base.y;
+        return TRUE;
+    }
+    return FALSE;
 }
 
 // NidlFinaleKeep(); Nightmare alive (bosses/nightmare.c): every Kirby in his room keeps the Star Rod (StarRodKeep());

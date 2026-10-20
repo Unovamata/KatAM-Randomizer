@@ -54,7 +54,8 @@ maximum tomato and an amazing mirror warp to 0x38D." Asked what each part meant,
 NiDL hub's Dimension Mirrors lead into the Power Orb's room, where its fight starts, once the 8 shards are found (KatAM's own
 mirror, its destination changed); the door that led there from Rainbow Resort (0xF7) is gone. The Power Orb and Nightmare leave no
 shard (nor do they take part in Bosses Give Random Shards: NiDL's 7 others share the shards). The Power Orb beaten, a warp star
-(KatAM's) comes where it was, waits for the helpers as KatAM's do, and every Kirby rides it to Nightmare's room, his own ability
+(KatAM's) comes where it was, the helpers fly to it by themselves (they wait just left of it until the player is on, then board),
+it leaves as soon as every Kirby in the room is on it (KatAM's 5-second wait at most), and every Kirby rides it to Nightmare's room, his own ability
 back as it leaves (no shard dance gives it back any more). Nightmare beaten, the Kirbys dance and land in the Fountain of Dreams
 hub, on its floor's left. That room has lost its Mirra in from Rainbow Resort (0x30F), its two floor mirrors (to 0x2FE and 0x30A),
 its two hub doors (to 0xBF and the NiDL hub; their doors back are gone too) and its big switch: an Amazing Mirror (KatAM's
@@ -110,8 +111,14 @@ Nightmare fight." and "Fountain of dreams BG is off centered in the hub."
   tested: Kirby coming out with an ability other than Normal (none was held before the orb in these runs).
 
 **Still to do**: NiDL's cinematics (the orb's defeat, the ride into the moon, Nightmare's entrance and chase: recorded from NiDL
-frame by frame; the ending down from the moon: not recorded yet, NiDL's Nightmare takes no hit in the emulator so far), the helpers flying to the warp star themselves (they board it only if they reach it),
-and the helpers' Star Rod AI (item 5). Not tested yet: the whole finale with helpers.
+frame by frame; the ending down from the moon: not recorded yet, NiDL's Nightmare takes no hit in the emulator so far). Not tested
+yet: the whole finale with helpers in one go.
+
+**The helpers fly to the orb's warp star** (done): tested in the emulator (USA, European and Japanese rev 1; a new game started in
+the NiDL hub with the 3 helpers, its mirror into the Power Orb's room, the orb's HP set to 1 in RAM, Kirby killing it and flying
+onto the star by set inputs): the helpers came to the star by themselves, waited just left of it in a row, and boarded the moment
+Kirby did; the star left about 30 frames later, once all four were on (before: KatAM's full 300 frames), and all four landed in
+Nightmare's room. Solo, the star left as soon as Kirby was on.
 
 ### 10. Screen shake as KatAM's
 - The screen shakes far too much; something broke along the way. Match KatAM's screen shake.

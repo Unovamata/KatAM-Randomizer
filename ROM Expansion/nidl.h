@@ -177,6 +177,7 @@ void NidlDanceOut(u16 room);
 void PowerOrbBeaten(struct Object *orb);
 void NightmareBeaten(struct Object *nightmare);
 void NidlFinaleKeep(struct Object *nightmare);
+bool32 NidlFinaleStarSpot(u16 room, s32 *x, s32 *y);
 bool32 NidlFinaleStar(struct Object *star);
 const struct NidlGraphics *NidlGraphicsOf(struct NidlObject *);
 u32 NidlHurtTiles(struct Object *);

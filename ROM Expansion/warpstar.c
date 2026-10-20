@@ -25,6 +25,7 @@
 void sub_080534D0(struct Kirby *);  // a flight's step (kirby.c);
 void sub_0808EEF4(void);            // the star Kirby rides, following him (code_0806F780.c, sub_0808EDB8's task);
 bool32 NidlFinaleStar(struct Object *);    // the Power Orb's warp star (finale.c);
+bool32 NidlFinaleAllAboard(struct Object *, u8);
 
 #define NIDL_RIDE_FLIGHT 6    // the first warp star subtype (flight) of the ported warp stars (KatAMExpansionRooms.cs, WarpFlight);
 #define NIDL_RIDE_ROOM 0xFE   // a flight step's +8 on a room change (+9 0x40) to the room in its +0xA;
@@ -53,9 +54,10 @@ static const u8 sNidlRidePieces[3][4][2] = {
 };
 
 // NidlRideRev(); A warp star revving with Kirby on it (sub_0800C270): a ported one's off at once, as NiDL's (but the Power Orb's,
-// which waits for the helpers, as KatAM's: every Kirby rides it to Nightmare's room, finale.c);
+// which waits for the helpers, as KatAM's, until they're all on it: every Kirby rides it to Nightmare's room, finale.c);
 void NidlRideRev(struct WarpStar *ws) {
-    if (ws->unk0.unkB4 >= NIDL_RIDE_FLIGHT && ws->unkBC < NIDL_RIDE_REV && !NidlFinaleStar(&ws->unk0.obj))
+    if (ws->unk0.unkB4 >= NIDL_RIDE_FLIGHT && ws->unkBC < NIDL_RIDE_REV
+        && (!NidlFinaleStar(&ws->unk0.obj) || NidlFinaleAllAboard(&ws->unk0.obj, ws->unk0.unkB5)))
         ws->unkBC = NIDL_RIDE_REV;
     gNidlRide.rev(ws);
 }

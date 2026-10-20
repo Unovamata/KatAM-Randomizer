@@ -421,18 +421,30 @@ bool32 StarRodTouches(struct Kirby *kirby, s32 x, s32 y, s32 halfWidth, s32 half
  * before the orb (40 to 134 pixels left of it, 32 up or down from its row), a new one every 20 to 51 frames, so he's always on the
  * move toward it and around it, up, down, left and right, never right up to it (40 at least); shooting when in line (24 up or down
  * from its row); and a shot of its coming at him (PowerOrbShotNear()), half the time he dodges it, 16 frames up or down away from
- * it (then 24 frames before he may again); the boss beaten, none: he stays where he is, clear of the shard in the screen's middle
- * (the player's to take: the helpers don't take it); */
+ * it (then 24 frames before he may again); the orb beaten, to its warp star (finale.c's NidlFinaleStarSpot()): onto it once the
+ * player is (KatAM's star then waits for the helpers), until then just left of it (AI_STAR_GAP, and his place among the helpers); */
 #define AI_NEAR 40
 #define AI_DODGE 16
 #define AI_DODGE_WAIT 24
+#define AI_STAR_GAP 32
 static u16 AI(struct StarRodRider *r, s32 x, s32 y) {
     struct Kirby *kirby = r->kirby;
     struct LevelInfo *level = &gCurLevelInfo[Viewer(kirby->base.unk56, kirby->base.roomId)];
     s32 targetX, targetY, shotY;
     u16 keys = 0;
 
-    if (!r->orb) return 0;
+    if (!r->orb) {
+        if (!NidlFinaleStarSpot(kirby->base.roomId, &targetX, &targetY)) return 0;
+        targetX = (targetX - level->viewportPosition.x) >> 8;
+        targetY = (targetY - level->viewportPosition.y) >> 8;
+        if (gKirbys[0].stateFn == StarRodHeld && gKirbys[0].base.roomId == kirby->base.roomId)
+            targetX -= AI_STAR_GAP + kirby->base.unk56 * 12;
+        if (x < targetX - 2) keys |= 0x10;
+        else if (x > targetX + 2) keys |= 0x20;
+        if (y < targetY - 2) keys |= 0x80;
+        else if (y > targetY + 2) keys |= 0x40;
+        return keys;
+    }
     targetX = (r->orb->base.x - level->viewportPosition.x) >> 8;
     targetY = (r->orb->base.y - level->viewportPosition.y) >> 8;
     if (r->dodgeWait) r->dodgeWait--;
