@@ -984,6 +984,18 @@ namespace KatAMRandomizer {
                 Array.Copy(rom, ObjectParameters2 + like * 8, rom, ObjectParameters2 + type * 8, 8);
             }
 
+            /* Mirras (object 0x34) fall, and open their door where they are ("ROM Expansion/mirra.c"): its spawn becomes NidlCreateMirra
+             * (the original's address in gNidlMirra), and its door's opening (sub_080B11C0) jumps to NidlMirraOpen, which does its work
+             * itself (the ported rooms have a door at each cell a Mirra can land in: MirraLandings()); */
+            int mirraOpen = version.RomSymbols["sub_080B11C0"];
+            // (its first instruction, push {r4, r5, lr});
+            if (ReadInt(rom, SpawnTable + MirraType * 4) >> 24 != 0x08 || ReadShort(rom, mirraOpen) != 0xB530) return $"The ROM's data doesn't match the {version.Name} release.";
+            WriteInt(rom, CodeAddress + version.CodeSymbols["gNidlMirra"], ReadInt(rom, SpawnTable + MirraType * 4));
+            WriteInt(rom, SpawnTable + MirraType * 4, codeBase + version.CodeSymbols["NidlCreateMirra"] + 1);
+            if ((mirraOpen & 2) != 0) { WriteShort(rom, mirraOpen, 0x46C0); mirraOpen += 2; }    // (a nop: the jump's address word aligned);
+            WriteShorts(rom, mirraOpen, 0x4B00, 0x4718);    // ldr r3, [pc, #0]; bx r3;
+            WriteInt(rom, mirraOpen + 4, codeBase + version.CodeSymbols["NidlMirraOpen"] + 1);
+
             /* The HP bar's fill (0x08034F38): HP times gUnk_08351458[type - 0x38][players - 1], >> 8 (64: full). The table sits right before
              * gUnk_08351648 in every version, and holds a placeholder (8192) for types 0x40-0x44: the mini-bosses (30 HP) get Mr. Frosty's
              * 546 (30 HP as well, for one player) for any number of players; */

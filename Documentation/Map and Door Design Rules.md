@@ -101,6 +101,9 @@ after any change.
 
 - **As few as KatAM's**, at most one per room, never chained.
 - **Always one-way, always hidden, never in mid-air.**
+- **They fall** (the owner's request): KatAM's engine's gravity is on for them, so one standing on blocks that break drops onto
+  what's under them, and its door opens where it lands, not where it stood. A door is built at each cell a ported Mirra can land
+  in, shown once it opens there. `mirra.c`, `MirraLandings()`.
 - **Each leads to real progress** (a switch room, a shortcut to a later stage), never sideways.
 - Never in a boss room or a switch room. `MirraSpots()`.
 

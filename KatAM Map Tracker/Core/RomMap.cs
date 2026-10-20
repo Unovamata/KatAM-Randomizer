@@ -467,7 +467,11 @@ namespace KatAMMapTracker {
 
                 if (size == 0) break;
 
-                if (Rom[address] == DoorObjectType) {
+                // (a ported room's door where its Mirra can land, marked "ML" past the record: drawn where the Mirra stands, its own door;
+                // KatAMExpansionRooms.cs' MirraLandings());
+                bool mirraLanding = size >= 16 && Rom[address + 14] == 'M' && Rom[address + 15] == 'L';
+
+                if (Rom[address] == DoorObjectType && !mirraLanding) {
                     int destination = Read16(address + 8);
 
                     if (!doorTiles.ContainsKey(destination)) doorTiles[destination] = new List<(int x, int y)>();

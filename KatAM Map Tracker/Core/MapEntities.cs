@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace KatAMMapTracker {
     // EntityIcon; The in-game sprites the map can draw next to the rooms;

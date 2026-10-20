@@ -289,16 +289,29 @@ Nightmare's room. Solo, the star left as soon as Kirby was on.
   hit on an enemy (1), every enemy defeated and every hit on a boss (3), so randomized mini-bosses in enemy spots ("Include
   Minibosses") shake the screen as often as they do in KatAM.
 
-### 36. Mirras fall, and their door is where they fell
-- The owner: "Mirras should be affected by gravity and spawn the door where they have fallen if they have." A Mirra (object `0x34`)
-  floats where it's placed (KatAM turns gravity off for it) and, broken, opens the door hidden at its starting cell. It should fall
-  to the ground like other objects, and when broken open its door where it ended up.
-
 ### 37. The Amazing Mirror's icon on the map viewer
 - The owner: "Show Amazing Mirror Icon in maps where these are in the Map Viewer." The rooms with an Amazing Mirror get its icon on
   the map viewer, as the other things in rooms have theirs.
 
 ## Done (rules to keep)
+
+- **Mirras fall, and their door is where they fell** (item 36; the owner: "Mirras should be affected by gravity and spawn the door
+  where they have fallen if they have."): KatAM turned the engine's gravity off for a Mirra (and kept it from moving at all), and
+  opened its door at its starting cell. With the ROM Expansion, the Mirra's spawn turns its gravity back on (`mirra.c`'s
+  `NidlCreateMirra`), and its door's opening (`sub_080B11C0`, now `NidlMirraOpen`) opens the door of the cell the Mirra is in, or
+  of the one it's falling to. KatAM finds a door by its cell, so the ROM Expansion builds one at each cell a ported Mirra can land
+  in (`MirraLandings()`: two today, room `0xF6`'s Mirra on star blocks and `0x248`'s on a bomb chain), with a hidden mirror there.
+  KatAM's own 9 Mirras stand on solid ground, so they never fall and keep their door; ported ones on solid ground or thin floors
+  stay put too. Rulebook section 6 has the rule. Tested in the emulator in all three versions (expanded and randomized): in
+  `0x248`, Kirby slides into the bomb block 26 cells away, the chain breaks the blocks under the Mirra and it falls 4 cells to the
+  floor; Kirby (moved near by a RAM write, 4 cells off so it doesn't melt away) inhales a Waddle Dee and spits it at the Mirra: the
+  one-way mirror shows on the floor where it landed, and Up there takes Kirby to its room (`0x1F9`). KatAM's own Mirra in `0x75`
+  (USA): an air puff breaks it and its door opens at its usual spot, leading to `0x78` as before. The map viewer draws `0x248`'s
+  Mirra door at the Mirra's own cell (the landing doors are marked and left out). Logic checks on the three builds, with and without
+  dropping through thin floors: 280 of 280 rooms reached, the 7 big switches pressed, 0 trapped entries. Not tried: `0xF6`'s fall
+  (its star blocks, which a Mirra flees from close up), a Mirra hit while still falling (its door then opens at the landing cell
+  below it), KatAM's Mirras without the ROM Expansion (the change comes with it). Also found and fixed: the map viewer didn't build
+  (`MapEntities.cs` used `FirstOrDefault` without `using System.Linq`).
 
 - **Unlock the Ability Room** (item 35; the owner: "Add a toggle to unlock the ability room at the start."): a Miscellaneous toggle.
   Central Circle's door to the ability room (0x3CA) is a hub mirror object (`0x8C`) hidden under its wall until world slot `0x12` is

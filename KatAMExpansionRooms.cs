@@ -1273,13 +1273,14 @@
                     // Mirras (see MirraSpots()): not in a boss's room nor a switch room;
                     bool bossRoom = !r.IsSwitchRoom && (r.Level == 7 || r.Stage == rooms.Where(o => o.Level == r.Level && !o.IsSwitchRoom).Max(o => o.Stage));
                     var mirras = r.IsSwitchRoom || bossRoom ? new List<(int x, int y, bool door)>() : MirraSpots(r, doors[r], collision);
-                    int solidity = BuildSolidity(rom, nightmare, r, cells, collision, metatiles, doors[r], mirras, noSpecials, ref cursor);
+                    var falls = new List<(int x, int y, bool oneWay)>();
+                    int solidity = BuildSolidity(rom, nightmare, r, cells, collision, metatiles, doors[r], mirras, falls, symbols["gCollisionAttributes"], noSpecials, ref cursor);
                     solidities.Add(solidity + 0x08000000);
 
                     // (where doors land Kirby in it: no enemy waits there, BuildObjects());
                     var landings = doors.Values.SelectMany(list => list).Concat(mainHubDoors).Concat(katamDoors.Values.SelectMany(list => list))
                                         .Where(d => d.Room == r.Room && !d.Edge).Select(d => (d.DestX - 1, d.DestY - 1)).ToList();
-                    int objectList = BuildObjects(rom, nightmare, r, doors[r], mirras, landings, chestsOf[r], noTypes, ref cursor);
+                    int objectList = BuildObjects(rom, nightmare, r, doors[r], mirras, falls, landings, chestsOf[r], noTypes, ref cursor);
                     objects.Add(objectList + 0x08000000);
                     // (the randomizer's: its items and chests, but in a boss room, a switch room or a mini-boss's fight area; FinishRooms()
                     // lists its chests in its doors list, once the randomizer has moved them);
@@ -3359,12 +3360,17 @@
 
         const byte LinkCollision = 0xF3;   // KatAM's invisible chain link (gCollisionAttributes 0x41: not solid, a chain goes through);
         static byte BreakableBlock(int collision) => collision switch { 0x2D => 0xF2, 0x2E => 0xF1, 0x2F => 0xF5, _ => 0xF0 };
+        // The mark ending a door record of where a Mirra lands (BuildSolidity()), 2 bytes past KatAM's 14 (the game steps by the size):
+        // the map viewer leaves those doors out (RomMap.cs);
+        static readonly byte[] LandingMark = { 0x4D, 0x4C };
 
         /* BuildSolidity(); The room's (part's) SolidityMap: its RL collision and its special blocks: per breakable block, its KatAM
          * value, where it is, and what it leaves when broken (the 4 tilemap entries of the metatile NiDL's object data lists for the
-         * block's number, nothing or water); then its doors (see Door); returns its address; */
+         * block's number, nothing or water); then its doors (see Door), a Mirra's at each cell it can land in too (MirraLandings(),
+         * added to `falls`: BuildObjects() puts a mirror on each); `attributes`: gCollisionAttributes; returns its address; */
         static int BuildSolidity(byte[] rom, byte[] nightmare, NightmareRoom r, byte[] cells, byte[] collision, byte[] metatiles,
-                                 List<Door> doors, List<(int x, int y, bool door)> mirras, int noSpecials, ref int cursor) {
+                                 List<Door> doors, List<(int x, int y, bool door)> mirras, List<(int x, int y, bool oneWay)> falls, int attributes,
+                                 int noSpecials, ref int cursor) {
             int roomWidth = ReadShort(nightmare, r.Record + 0x14), data = ReadInt(nightmare, r.Record + 0x10) - 0x08000000;
             byte[] numbers = DecompressLZ77(nightmare, ReadInt(nightmare, r.Record + 0xC) - 0x08000000);
             List<byte> specials = new List<byte>();
@@ -3439,7 +3445,30 @@
             // (a door of a mini-boss's fight, ArenaCells(), is built shut, air or water, its record alone: the arena opens it once the
             // mini-boss is beaten, "ROM Expansion/enemies/arena.c"; it showed in a long room before the arena came on screen);
             HashSet<(int x, int y)> fightCells = ArenaCells(Arenas(nightmare, r), collision, r.FullWidth, r.Width, r.Height);
-            List<byte> secrets = new List<byte>();
+            List<byte> secrets = new List<byte>(), landingRecords = new List<byte>();
+
+            /* MirraLandings(); Where a Mirra standing at (x, y) can land, falling (mirra.c) once what it stands on breaks: each cell below
+             * it on top of what holds a falling object (KatAM's attributes: solid, a floor, thin ones too, or a slope), down to the first
+             * that can't break, with what that cell is then (its collision and look: a block that broke leaves its record's); */
+            bool Holds(byte value) {
+                uint attribute = (uint)ReadInt(rom, attributes + value * 4);
+                return (attribute & 0x204) != 0 || attribute >> 28 != 0 && (attribute & 1) == 0;
+            }
+            List<(int x, int y, byte then, ushort[] look)> MirraLandings(int x, int y) {
+                var landings = new List<(int x, int y, byte then, ushort[] look)>();
+                for (int below = y + 1; below < r.Height && below < 256; below++) {
+                    bool breakable = leaves.TryGetValue((x, below), out int leave);
+                    if (!breakable && !Holds(collision[below * r.FullWidth + x])) continue;
+                    if (below - 1 != y) {
+                        int cell = below - 1;
+                        landings.Add(leaves.TryGetValue((x, cell), out int left)
+                            ? (x, cell, specials[left], Enumerable.Range(0, 4).Select(q => (ushort)(specials[left - 8 + q * 2] | specials[left - 7 + q * 2] << 8)).ToArray())
+                            : (x, cell, collision[cell * r.FullWidth + x], Enumerable.Range(0, 4).Select(q => (ushort)ShiftPalette(ReadShort(metatiles, ReadShort(cells, ((r.Y + cell) * roomWidth + r.X + x) * 4) * 8 + q * 2))).ToArray()));
+                    }
+                    if (!breakable || Holds(specials[leave])) break;
+                }
+                return landings;
+            }
             for (int i = 0; i < doors.Count; i++) {
                 Door door = doors[i];
                 bool water = Water(door.X, door.Y) && collision[door.Y * r.FullWidth + door.X] != 0;
@@ -3458,6 +3487,18 @@
                     for (int q = 0; q < 4; q++) specials.AddRange(BitConverter.GetBytes((ushort)ShiftPalette(ReadShort(metatiles, own * 8 + q * 2))));
                     specials.AddRange(new byte[] { value, 0xFF });
                     doors[i] = door with { Secret = true };
+                    // (and the same where it lands if what it stands on breaks, "ROM Expansion/mirra.c" opening the one it's at: before
+                    // the room's other records, so a broken block's cell keeps its block's as its last, as the logic checks read them;
+                    // marked, so the map viewer draws the door where the Mirra stands);
+                    foreach ((int x, int y, byte then, ushort[] look) in MirraLandings(door.X, door.Y)) {
+                        byte landed = then is >= 0x34 and <= 0x48 ? (byte)0xFD : (byte)0xFF;
+                        landingRecords.AddRange(DoorRecord(door with { X = x, Y = y }, landed).Take(14).Concat(LandingMark));
+                        landingRecords[landingRecords.Count - 12] = (byte)(14 + LandingMark.Length);
+                        landingRecords.AddRange(new byte[] { 1, then, (byte)x, (byte)y, 0x12, 0, 0xFF, 0xFF });
+                        foreach (ushort entry in look) landingRecords.AddRange(BitConverter.GetBytes(entry));
+                        landingRecords.AddRange(new byte[] { landed, 0xFF });
+                        falls.Add((x, y, door.OneWay));
+                    }
                     continue;
                 } else if (door.Slot == 0 && !door.Edge && fightCells.Contains((door.X, door.Y))) {
                     collision[door.Y * r.FullWidth + door.X] = (byte)(water ? 0x48 : 0);
@@ -3477,6 +3518,7 @@
             }
 
             specials.InsertRange(0, secrets);
+            specials.InsertRange(0, landingRecords);
             byte[] compressed = CompressRL(collision);
             int collisionAt = Allocate(ref cursor, compressed.Length, 4);
             compressed.CopyTo(rom, collisionAt);
@@ -3968,7 +4010,7 @@
          * LandingClear cells across (2 up or down) of where a door lands Kirby (landings): KatAM lands him on the door, NiDL beside it,
          * and one there hit him as he came in; */
         static int BuildObjects(byte[] rom, byte[] nightmare, NightmareRoom r, List<Door> doors, List<(int x, int y, bool door)> mirras,
-                                List<(int x, int y)> landings, List<NidlChest> chests, int noTypes, ref int cursor) {
+                                List<(int x, int y, bool oneWay)> falls, List<(int x, int y)> landings, List<NidlChest> chests, int noTypes, ref int cursor) {
             const int LandingClear = 3, BomberType = 0x28;
             // KatAM's enemies that walk the floor (Waddle Dee, Noddy, Pengy, Sir Kibble, Waddle Doo, Sparky, Twister, Hot Head, Sword Knight);
             byte[] walkers = { 0x00, 0x1E, 0x16, 0x18, 0x12, 0x19, 0x1C, 0x14, 0x1A };
@@ -4185,6 +4227,14 @@
             foreach ((int x, int y, bool door) in mirras) {
                 templates.Add(ObjectTemplate(x * 16 + 8, y * 16, templates.Count, MirraType));
                 if (!types.Contains(MirraType)) types.Add(MirraType);
+            }
+            // (and a hidden mirror where each can land, BuildSolidity()'s MirraLandings(): showing once its door opens there);
+            foreach ((int x, int y, bool oneWay) in falls) {
+                byte[] mirror = MirrorTemplate(x, y, templates.Count);
+                mirror[14] = 1;
+                if (oneWay) mirror[0x23] |= 1;
+                templates.Add(mirror);
+                if (!types.Contains(MirrorType)) types.Add(MirrorType);
             }
 
             // KatAM keeps which of a room's objects are gone in 32 bits per room (gUnk_02023358), by number (31: none);
