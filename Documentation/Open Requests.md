@@ -110,10 +110,20 @@ Nightmare fight." and "Fountain of dreams BG is off centered in the hub."
   it, stars flying; nothing breaks). European and Japanese: in Nightmare's room, the rod kept through hits, stars hurting him. Not
   tested: Kirby coming out with an ability other than Normal (none was held before the orb in these runs).
 
-**Still to do**: the rest of Nightmare's intro (the orb turning into his comet, the screen dimming and its silhouette flash, the
-comet chasing the star and shooting blue stars, the star hit and Kirby knocked off it and falling, Nightmare coming down: recorded
-from NiDL frame by frame); the ending down from the moon (not recorded yet, NiDL's Nightmare takes no hit in the emulator so far).
-Not tested yet: the whole finale with helpers in one go.
+**Still to do**: the rest of Nightmare's intro (the star hit and Kirby knocked off it, tumbling up and falling to the floor, then
+Nightmare coming down: recorded from NiDL frame by frame); the ending down from the moon (not recorded yet, NiDL's Nightmare takes
+no hit in the emulator so far). Not tested yet: the whole finale with helpers in one go.
+
+**Nightmare's intro, the comet and the blue stars** (done; `bosses/nightmare.c`'s intro effects): as NiDL's cutscene, recorded
+frame by frame (its objects' spots, speeds, frames and sizes, the OAM's affine matrices, the palette RAM): his comet far off in the
+sky (NiDL's own cutscene graphics, found in the NiDL ROM by `KatAMExpansion.cs`'s `CutsceneGraphics()`), the dark orb drifting left
+and waking up, then off to the right; the screen flashing as it wakes (the room's palettes brighter, the sprites' darker, NiDL's
+exact colors; with "Reduce Flashing" on, a steady fade up and down without the flicker); the 12 blue stars it throws (each its
+moves, growing and spinning, blinking out; their tables replayed against the recording, every frame the same) and the 6 bursts on
+them. Tested in the emulator (USA, European and Japanese rev 1; as the Power Orb's end, with the 3 helpers): screenshots side by
+side with NiDL's at 14 moments (the comet, the flash, the stars and bursts in the same spots within a frame); the screen's
+brightness every 2 frames through the flash (132 frames, NiDL's flicker and steps; and with "Reduce Flashing": the steady steps);
+the intro ends on the same frame as before (no slowdown). The logic checks pass on all three.
 
 **Nightmare's intro, the star's arrival** (done; `bosses/nightmare.c`'s `NightmareIntroRider()`): as NiDL's, recorded frame by
 frame: the screen from his room's top down to the fight's screen (a pixel a frame, then a pixel every 4 frames), the star flying

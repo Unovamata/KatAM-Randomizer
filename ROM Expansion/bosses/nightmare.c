@@ -316,13 +316,6 @@ static void NightmareMain(struct Object *obj) {
 
 void sub_080534D0(struct Kirby *);
 
-struct NightmareIntro {
-    struct EffectObject e;
-    s32 camY;           // The screen's top (8.8, the room's);
-    s32 sx, sy;         // The star on the screen (8.8, its middle: Kirby's spot on it);
-    u16 t;              // Frames since it began;
-};
-
 // The star's moves on the screen frame by frame from the second (x + 8, (y + 8) << 4, pixels);
 // (909 frames)
 static const u8 sIntroStar[909] = {
@@ -365,6 +358,351 @@ static const u8 sIntroStar[909] = {
     0x68, 0x68, 0x68, 0x68, 0x68, 0x86, 0x96, 0x86, 0x96, 0x86, 0x96, 0x86, 0x96, 0x86, 0x96, 0x86, 0x96, 0x86, 0x96, 0x86, 0x96, 0x7A, 0x8A, 0x7A,
     0x8A, 0x7A, 0x8A, 0x7A, 0x8A, 0x7A, 0x8A, 0x7A, 0x8A, 0x7A, 0x8A, 0x7A, 0x8A, 0xA9, 0xA9, 0xA9, 0xA9, 0xA9, 0xA9, 0xA9, 0xA9,
 };
+
+/* Its effects (NiDL's cutscene, frame by frame as the star's: t; KatAMExpansion.cs's frames after his beams, drawn by sprites of the
+ * intro's own, IntroSprite()): the comet he comes as, far off in the sky (FRAME_COMET: the dark orb, then waking up, CometFrame();
+ * drifting left, then off right, CometSpeed()), the screen flashing as it wakes (FlashLevel(): the room's palettes brighter, the
+ * sprites' darker, Flash(); steady with "Reduce Flashing"), the blue stars it throws (FRAME_BLUE_STAR, sBlueStars: each its moves,
+ * growing and spinning by an affine matrix, Spin(), blinking out at the end; all drawn from one sprite) and the bursts they make
+ * (FRAME_BURST, sBursts: on their star); */
+#define FRAME_COMET 27
+#define FRAME_BLUE_STAR 33
+#define FRAME_BURST 34
+#define COMET_TILES 16
+#define BLUE_STAR_TILES 64
+#define BURST_TILES 48
+#define COMET_X (207 << 8 | 0xA0)
+#define COMET_Y (256 << 8)
+#define COMET_GONE 596
+#define BURST_FRAMES 23
+#define INTRO_KEY_A 0x8000      // The comet's palettes' keys (| his anim ID: KatAM takes its low 12 bits);
+#define INTRO_KEY_B 0xA000
+#define INTRO_MATRIX 1          // The blue stars' affine matrices: 1-5 (KatAM's own use 0, the rides' 7, 15, 23, 31);
+#define INTRO_MATRICES 5
+#define FLASH_BG (14 * 16)      // The flash's colors: the room's (BG palettes 0-13: not the HUD's 14 and 15), then the sprites';
+#define FLASH_COLORS (FLASH_BG + 0x100)
+
+// BlueStarLife; A blue star: from t `start`, at (x, y) on the screen (1/8 pixels, its middle), its size ((scale + 1) / 64) and turn
+// (64ths), blinking out from `blink` frames on (hidden, shown, ...), gone after `end`; its moves: `runs` runs from `run`;
+struct BlueStarLife {
+    u16 start;
+    s16 x, y;
+    u8 scale, angle, blink, end, run, runs;
+};
+
+// BlueStarRun; `frames` frames of the same moves (1/8 pixels), size and turn steps (the size kept within 0-63);
+struct BlueStarRun {
+    u8 frames;
+    s8 xs, ys, scale, angle;
+};
+
+// BlueStar; A blue star as it goes: where it is and was a frame ago (a burst follows it a frame behind), its size, turn, run and
+// frames left of it;
+struct BlueStar {
+    s16 x, y, lastX, lastY;
+    u8 scale, angle, run, left;
+};
+
+// The blue stars, traced from NiDL's (type 0x63 objects: their speeds and steps are its own; replayed and checked frame by frame);
+// (12 lives)
+static const struct BlueStarLife sBlueStars[12] = {
+    { 562, 1312, 256, 8, 2, 21, 30, 0, 8 },
+    { 613, 1952, 256, 8, 2, 21, 30, 8, 8 },
+    { 614, 1568, 352, 5, 2, 56, 65, 16, 8 },
+    { 638, 1872, 544, 62, 62, 36, 45, 24, 8 },
+    { 638, 959, 928, 61, 62, 28, 37, 32, 6 },
+    { 638, 1279, -224, 62, 2, 28, 37, 38, 5 },
+    { 670, 1920, 640, 62, 62, 35, 68, 43, 8 },
+    { 702, 1920, 96, 5, 2, 56, 65, 51, 14 },
+    { 734, 1952, 648, 62, 62, 64, 63, 65, 8 },
+    { 734, 2000, 448, 5, 34, 21, 30, 73, 8 },
+    { 782, 1920, 288, 5, 34, 56, 65, 81, 14 },
+    { 863, 1952, 16, 5, 6, 76, 93, 95, 6 },
+};
+// (101 runs)
+static const struct BlueStarRun sBlueStarRuns[101] = {
+    { 2, -32, -64, 5, 2 }, { 3, -32, -32, 5, 2 }, { 3, -32, -8, 5, 2 }, { 3, -32, -4, 5, 2 }, { 3, 0, 0, 0, 1 }, { 3, 0, 4, 0, 1 },
+    { 3, 0, 8, 0, 1 }, { 10, -64, 16, 0, 1 }, { 2, -32, -64, 5, 2 }, { 3, -32, -32, 5, 2 }, { 3, -32, -8, 5, 2 }, { 3, -32, -4, 5, 2 },
+    { 3, 0, 0, 0, 1 }, { 3, 0, 4, 0, 1 }, { 3, 0, 8, 0, 1 }, { 10, -64, 16, 0, 1 }, { 11, -32, 32, 2, 2 }, { 10, -32, 16, 2, 2 },
+    { 8, -32, 8, 2, 2 }, { 8, -16, 4, 2, 2 }, { 8, -16, -4, 0, 1 }, { 6, -16, -8, 0, 1 }, { 4, -16, -16, 0, 1 }, { 10, -8, -32, 0, 1 },
+    { 7, -48, 32, -1, -2 }, { 3, -32, 16, -1, -2 }, { 5, -48, -16, -1, -2 }, { 6, -32, -32, -1, -1 }, { 3, -48, -16, -1, -1 },
+    { 6, -32, 16, -1, -1 }, { 5, -48, 32, -1, -1 }, { 10, -32, 8, -1, -1 }, { 11, -1, -32, -2, -2 }, { 4, -4, -16, -2, -1 },
+    { 4, -4, 0, -2, -1 }, { 4, -8, 4, -2, -1 }, { 4, -8, 8, -2, -1 }, { 10, -8, 16, -2, -1 }, { 11, -1, 32, -1, 2 }, { 4, -4, 16, -1, 1 },
+    { 4, -4, 0, -1, 1 }, { 4, -8, -4, -1, 1 }, { 14, -8, -8, -1, 1 }, { 7, -64, -64, -1, -2 }, { 7, -48, -32, -1, -2 },
+    { 6, -32, -16, -1, -2 }, { 5, -24, -8, -1, -1 }, { 4, -16, -4, -1, -1 }, { 3, -10, 0, -1, -1 }, { 2, -6, 4, -1, -1 },
+    { 34, -4, 8, 0, -1 }, { 3, -64, -32, 2, 2 }, { 4, -48, -16, 2, 2 }, { 4, -32, -8, 2, 2 }, { 4, -24, -4, 2, 2 }, { 4, -16, 0, 2, 2 },
+    { 4, -10, 4, 2, 2 }, { 4, -8, 6, 2, 2 }, { 4, -6, 8, 2, 2 }, { 4, -4, 10, 0, 1 }, { 4, 0, 16, 0, 1 }, { 4, 4, 24, 0, 1 },
+    { 4, 8, 32, 0, 1 }, { 4, 16, 32, 0, 1 }, { 14, 32, 32, 0, 1 }, { 7, -32, 8, -1, -2 }, { 12, -32, 4, -1, -2 }, { 4, -32, -4, -1, -2 },
+    { 4, -32, -4, -1, -1 }, { 8, -32, -8, -1, -1 }, { 8, -32, -4, -1, -1 }, { 18, -32, 4, -1, -1 }, { 2, -32, 8, -1, -1 },
+    { 2, -32, 64, 2, 2 }, { 3, -32, 32, 2, 2 }, { 3, -32, 8, 2, 2 }, { 3, -32, 4, 2, 2 }, { 3, 0, 0, 2, 2 }, { 3, 0, -4, 2, 2 },
+    { 3, 0, -8, 2, 2 }, { 10, -64, -16, 2, 2 }, { 3, -64, 32, 2, 2 }, { 4, -48, 16, 2, 2 }, { 4, -32, 8, 2, 2 }, { 4, -24, 4, 2, 2 },
+    { 4, -16, 0, 2, 2 }, { 4, -10, -4, 2, 2 }, { 4, -8, -6, 2, 2 }, { 4, -6, -8, 2, 2 }, { 4, -4, -10, 2, 2 }, { 4, 0, -16, 2, 2 },
+    { 4, 4, -24, 2, 2 }, { 4, 8, -32, 2, 2 }, { 4, 16, -32, 2, 2 }, { 14, 32, -32, 2, 2 }, { 15, -32, 16, 2, 2 }, { 28, -32, 8, 2, 1 },
+    { 8, 1, 8, 0, 1 }, { 8, 4, 8, 0, 1 }, { 16, 8, 8, 0, 1 }, { 18, 16, 16, 0, 1 },
+};
+
+// The bursts (NiDL's type 0x97): on a blue star (sBlueStars), at its age then;
+static const u8 sBursts[][2] = { { 4, 12 }, { 5, 12 }, { 3, 16 }, { 6, 21 }, { 8, 24 }, { 11, 44 } };
+
+// A quarter turn's sines (64ths of a turn; 8.8);
+static const u16 sQuarterSine[17] = { 0, 25, 50, 74, 98, 121, 142, 162, 181, 198, 213, 226, 237, 245, 251, 255, 256 };
+
+// (calm.c's detours: filled in only with "Reduce Flashing" on);
+struct NidlCalm {
+    void (*updateScreenDma)(void);
+    void (*updateScreenCpuSet)(void);
+};
+extern const struct NidlCalm gNidlCalm;
+
+struct NightmareIntro {
+    struct EffectObject e;      // (its sprite: the comet's);
+    s32 camY;                   // The screen's top (8.8, the room's);
+    s32 sx, sy;                 // The star on the screen (8.8, its middle: Kirby's spot on it);
+    s32 cometX;                 // The comet's x (8.8, the room's);
+    u16 t;                      // Frames since it began;
+    u8 palA, palB, burstPal;    // The comet's palettes' slots (the blue star's is the first), the bursts' (0: not loaded yet);
+    u8 level;                   // The flash on screen (0: none);
+    struct EffectObject *stars; // The blue stars' sprite, the bursts' (NULL: none);
+    struct EffectObject *bursts[ARRAY_COUNT(sBursts)];
+    struct BlueStar blue[ARRAY_COUNT(sBlueStars)];
+    u16 colors[FLASH_COLORS];   // The palettes under the flash, the game's own;
+};
+
+static s32 Sine(u8 angle) {
+    angle &= 63;
+    if (angle < 16) return sQuarterSine[angle];
+    if (angle < 32) return sQuarterSine[32 - angle];
+    if (angle < 48) return -(s32)sQuarterSine[angle - 32];
+    return -(s32)sQuarterSine[64 - angle];
+}
+
+// CometSpeed(); The comet's move at t (8.8, right): drifting left, slower, then off right;
+static s32 CometSpeed(u16 t) {
+    if (t <= 433) return -0x20;
+    if (t <= 561) return -0x8;
+    return t <= 577 ? 0x200 : 0x400;
+}
+
+// CometFrame(); Its frame at t: the dark orb, then each of the next five from every 36 frames on, two frames at a time with the one
+// before it;
+static u8 CometFrame(u16 t) {
+    u8 k;
+
+    if (t < 254) return 0;
+    if (t >= 422) return 5;
+    if (t >= 416) return 4;
+    k = (t - 254) / 36 + 1;
+    return (t - 254) & 2 ? k - 1 : k;
+}
+
+// FlashLevel(); The flash at t (0-3): brighter three times, each two frames on and two at the one below, then held and fading;
+static u8 FlashLevel(u16 t) {
+    u16 from;
+    u8 high;
+
+    if (t < 291 || t >= 423) return 0;
+    if (t >= 419) return 1;
+    if (t >= 415) return 2;
+    if (t >= 397) return 3;
+    if (t >= 361 && t < 365) return 2;
+    if (t >= 365) {
+        from = 365;
+        high = 3;
+    } else if (t >= 329) {
+        from = 329;
+        high = 2;
+    } else {
+        from = 291;
+        high = 1;
+    }
+    // (with "Reduce Flashing", the one below, without the flicker);
+    return gNidlCalm.updateScreenDma != NULL || (t - from) & 2 ? high - 1 : high;
+}
+
+/* FlashMap(); A flash level's channels (0-31): the room's toward white by 3/8, 3/4 or all the way, the sprites' toward black by 1/4,
+ * 1/2 or all the way (level 0: as they are); */
+static void FlashMap(u8 level, u8 *room, u8 *sprites) {
+    u8 c;
+
+    for (c = 0; c < 32; c++) {
+        room[c] = level == 3 ? 31 : c + (((31 - c) * level * 3) >> 3);
+        sprites[c] = level == 3 ? 0 : (c * (4 - level)) >> 2;
+    }
+}
+
+#define FLASHED(color, map) ((map)[(color) & 0x1F] | (map)[((color) >> 5) & 0x1F] << 5 | (map)[((color) >> 10) & 0x1F] << 10)
+
+/* Flash(); The palettes at a flash's level (0: as they are), as it changes, the game's own kept under it (a color that isn't what the
+ * flash made of it is the game's, new); only on the screen of a player in the room; */
+static void Flash(struct NightmareIntro *intro, u8 level) {
+    u8 room[32], sprites[32], lastRoom[32], lastSprites[32];
+    u16 i, *color;
+
+    if (gKirbys[gLocalPlayerId].base.roomId != intro->e.roomId) {
+        intro->level = 0;
+        return;
+    }
+    if (level == intro->level) return;
+    FlashMap(level, room, sprites);
+    FlashMap(intro->level, lastRoom, lastSprites);
+    for (i = 0; i < FLASH_COLORS; i++) {
+        color = i >= FLASH_BG ? &gObjPalette[i - FLASH_BG] : &gBgPalette[i];
+        if (!intro->level || *color != (i >= FLASH_BG ? FLASHED(intro->colors[i], lastSprites) : FLASHED(intro->colors[i], lastRoom)))
+            intro->colors[i] = *color;
+        *color = i >= FLASH_BG ? FLASHED(intro->colors[i], sprites) : FLASHED(intro->colors[i], room);
+    }
+    intro->level = level;
+    gMainFlags |= MAIN_FLAG_BG_PALETTE_SYNC_ENABLE | MAIN_FLAG_OBJ_PALETTE_SYNC_ENABLE;
+}
+
+// IntroPalette(); A palette's slot, loaded under `key` as the frame `frame` of the anim in its low 12 bits has it (as
+// NidlLoadPalette()), or 0 (not yet: the local player isn't in the room);
+static u8 IntroPalette(u16 room, u16 key, u8 frame) {
+    u8 palId = sub_0803DF24(key);
+
+    if (palId == 0xFF) {
+        if (gKirbys[gLocalPlayerId].base.roomId != room) return 0;
+        sub_0803DFAC(key, frame);
+        palId = sub_0803DF24(key);
+    }
+    return palId == 0xFF ? 0 : palId;
+}
+
+static void IntroSpriteMain(void) {
+    struct EffectObject *e = TaskGetStructPtr(gCurTask);
+
+    if (e->flags & 0x1000) TaskDestroy(gCurTask);
+}
+
+// IntroSprite(); A sprite of the intro's (`tiles` tiles of VRAM, frame `frame` first): a task of its own (KatAM frees its VRAM with it),
+// drawn by the intro (IntroDraw()), gone with it (its flag 0x1000);
+static struct EffectObject *IntroSprite(u16 room, u16 tiles, u8 frame) {
+    struct Task *t = TaskCreate(IntroSpriteMain, sizeof(struct EffectObject), 0x3500, TASK_USE_EWRAM, ObjectBaseDestroy);
+    struct EffectObject *e = TaskGetStructPtr(t);
+
+    ClearEffectObject(e);
+    e->header.kind = 3;
+    e->roomId = room;
+    e->parent = NULL;
+    e->flags |= 0x400;
+    EffectObjectInitSprite(e, &e->sprite, tiles, gNidlData.bosses[NIDL_NIGHTMARE].animId, frame, 0x1A);
+    return e;
+}
+
+// IntroDraw(); A sprite of the intro's at (x, y) (8.8, the room's), frame `frame`, palette `palId`;
+static void IntroDraw(struct EffectObject *e, s32 x, s32 y, u8 frame, u8 palId) {
+    e->x = x;
+    e->y = y;
+    e->sprite.variant = frame;
+    e->sprite.palId = palId;
+    // (facing right: KatAM draws effects mirrored otherwise, NiDL's as they are);
+    e->flags = (e->flags & ~0x400) | 4 | 1;
+    EffectObjectPostUpdate(e);
+}
+
+// Release(); A sprite of the intro's let go (its task ends);
+static void Release(struct EffectObject **e) {
+    if (*e == NULL) return;
+    (*e)->flags |= 0x1000;
+    *e = NULL;
+}
+
+/* Spin(); The OAM pieces drawn since `first` (a blue star's 64x64 one, around its middle) turned and sized by affine matrix `matrix`,
+ * as NiDL's: turn `angle` (64ths), size (scale + 1) / 64 (cos, -sin, sin, cos over the size; a flipped piece's row negated); */
+static void Spin(u32 first, u8 angle, u8 scale, u32 matrix) {
+    s32 c = Sine(angle + 16) * 64 / (scale + 1), s = Sine(angle) * 64 / (scale + 1);
+    u16 *m = &gOamBuffer[matrix * 16 + 3];
+    u32 attr1 = 0;
+
+    for (; first < gUnk_030024F0; first++) {
+        OamData *oam = &gUnk_030031C0[first];
+
+        attr1 = oam->all.attr1;
+        oam->all.attr0 |= 0x100;
+        oam->all.attr1 = (attr1 & ~0x3E00) | (matrix << 9);
+    }
+    m[0] = attr1 & 0x1000 ? -c : c;
+    m[4] = attr1 & 0x1000 ? s : -s;
+    m[8] = attr1 & 0x2000 ? -s : s;
+    m[12] = attr1 & 0x2000 ? -c : c;
+}
+
+// Comet(); The comet at t (shown till it's off the screen's right);
+static void Comet(struct NightmareIntro *intro, u16 t) {
+    u8 frame;
+
+    if (t) intro->cometX += CometSpeed(t);
+    if (t > COMET_GONE) return;
+    frame = CometFrame(t);
+    IntroDraw(&intro->e, intro->cometX, COMET_Y, FRAME_COMET + frame, frame < 3 ? intro->palA : intro->palB);
+}
+
+// BlueStars(); The blue stars at t: each moved on and drawn (from the one sprite, a matrix each);
+static void BlueStars(struct NightmareIntro *intro, u16 t) {
+    u8 i, drawn = 0;
+
+    for (i = 0; i < ARRAY_COUNT(sBlueStars); i++) {
+        const struct BlueStarLife *life = &sBlueStars[i];
+        struct BlueStar *b = &intro->blue[i];
+        const struct BlueStarRun *run;
+        s32 scale;
+        u16 age;
+        u32 first;
+
+        if (t < life->start || t > life->start + life->end) continue;
+        age = t - life->start;
+        if (!age) {
+            b->x = b->lastX = life->x;
+            b->y = b->lastY = life->y;
+            b->scale = life->scale;
+            b->angle = life->angle;
+            b->run = life->run;
+            b->left = sBlueStarRuns[b->run].frames;
+        } else {
+            run = &sBlueStarRuns[b->run];
+            b->lastX = b->x;
+            b->lastY = b->y;
+            b->x += run->xs;
+            b->y += run->ys;
+            scale = b->scale + run->scale;
+            b->scale = scale < 0 ? 0 : scale > 63 ? 63 : scale;
+            b->angle = (b->angle + run->angle) & 63;
+            if (!--b->left && b->run + 1 < life->run + life->runs) b->left = sBlueStarRuns[++b->run].frames;
+        }
+        if ((age >= life->blink && !((age - life->blink) & 1)) || drawn >= INTRO_MATRICES) continue;
+        if (intro->stars == NULL) intro->stars = IntroSprite(intro->e.roomId, BLUE_STAR_TILES, FRAME_BLUE_STAR);
+        first = gUnk_030024F0;
+        IntroDraw(intro->stars, INTRO_CAM_X + (b->x << 5), intro->camY + (b->y << 5), FRAME_BLUE_STAR, intro->palA);
+        Spin(first, b->angle, b->scale, INTRO_MATRIX + drawn++);
+    }
+}
+
+// Bursts(); The bursts at t: on their star (a frame behind it from their second), a frame of the burst, then one of its sparkles,
+// each in turn;
+static void Bursts(struct NightmareIntro *intro, u16 t) {
+    u8 i;
+
+    for (i = 0; i < ARRAY_COUNT(sBursts); i++) {
+        const struct BlueStar *b = &intro->blue[sBursts[i][0]];
+        u16 from = sBlueStars[sBursts[i][0]].start + sBursts[i][1], k;
+
+        if (t == from + BURST_FRAMES) Release(&intro->bursts[i]);
+        if (t < from || t >= from + BURST_FRAMES) continue;
+        k = t - from;
+        if (intro->bursts[i] == NULL) intro->bursts[i] = IntroSprite(intro->e.roomId, BURST_TILES, FRAME_BURST);
+        IntroDraw(intro->bursts[i], INTRO_CAM_X + ((k ? b->lastX : b->x) << 5), intro->camY + ((k ? b->lastY : b->y) << 5),
+                  FRAME_BURST + (k & 1 ? 12 + k / 2 : k / 2), intro->burstPal);
+    }
+}
+
+// IntroEnd(); Its effects gone, the palettes back;
+static void IntroEnd(struct NightmareIntro *intro) {
+    u8 i;
+
+    Flash(intro, 0);
+    Release(&intro->stars);
+    for (i = 0; i < ARRAY_COUNT(sBursts); i++) Release(&intro->bursts[i]);
+}
 
 static void NightmareIntroMain(void);
 
@@ -416,12 +754,14 @@ static void NightmareIntroMain(void) {
     u8 i;
 
     if (e->flags & 0x1000) {
+        IntroEnd(intro);
         TaskDestroy(gCurTask);
         return;
     }
     for (i = 0; i < gNumKirbys; i++)
         if (gKirbys[i].base.roomId == e->roomId) break;
     if (i >= gNumKirbys || t > INTRO_ENDS) {
+        IntroEnd(intro);
         e->flags |= 0x1000;
         return;
     }
@@ -448,6 +788,14 @@ static void NightmareIntroMain(void) {
             kirby->base.counter = ((const struct Unk_08353510 *)kirby->unk114)->unk4;
         }
     }
+    // (its effects; their palettes once a player's in the room);
+    if (!intro->palA) intro->palA = IntroPalette(e->roomId, gNidlData.bosses[NIDL_NIGHTMARE].animId | INTRO_KEY_A, FRAME_COMET);
+    if (!intro->palB) intro->palB = IntroPalette(e->roomId, gNidlData.bosses[NIDL_NIGHTMARE].animId | INTRO_KEY_B, FRAME_COMET + 3);
+    if (!intro->burstPal) intro->burstPal = IntroPalette(e->roomId, gNidlData.enemies[NIDL_SPIT_STAR].animId, 0);
+    Comet(intro, t);
+    Flash(intro, FlashLevel(t));
+    BlueStars(intro, t);
+    Bursts(intro, t);
     intro->t++;
 }
 
@@ -455,6 +803,7 @@ static void NightmareIntroMain(void) {
 void NightmareIntroRider(struct Kirby *kirby) {
     struct Task *t;
     struct NightmareIntro *intro;
+    u8 i;
 
     if (IntroOf(kirby->base.roomId) != NULL) return;
     t = TaskCreate(NightmareIntroMain, sizeof(struct NightmareIntro), 0x3500, TASK_USE_EWRAM, ObjectBaseDestroy);
@@ -468,6 +817,12 @@ void NightmareIntroRider(struct Kirby *kirby) {
     intro->sx = INTRO_STAR_X;
     intro->sy = INTRO_STAR_Y;
     intro->t = 0;
+    intro->cometX = COMET_X;
+    intro->palA = intro->palB = intro->burstPal = 0;
+    intro->level = 0;
+    intro->stars = NULL;
+    for (i = 0; i < ARRAY_COUNT(sBursts); i++) intro->bursts[i] = NULL;
+    EffectObjectInitSprite(&intro->e, &intro->e.sprite, COMET_TILES, gNidlData.bosses[NIDL_NIGHTMARE].animId, FRAME_COMET, 0x1A);
 }
 
 // NightmareStart(); The fight starts (and after a hit: back where he was);

@@ -180,6 +180,7 @@ sub_08002EC4 0x8002ec4  # FillLevelInfo's call before sub_08031CE4 (find_symbols
 CreateTitleScreen 0x8149c81
 gDispCnt 0x3003690
 gObjPalette 0x3002c60
+gBgPalette 0x30037a0
 gPressedKeys 0x30039fc
 gVramHeapMaxTileSlots 0x3002488
 gVramHeapStartAddr 0x3002540

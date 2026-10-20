@@ -61,10 +61,12 @@ namespace KatAMRandomizer {
          * OrbShots: from the Power Orb's shots' own tiles and palette (OrbShotGraphics(): raw tiles the orb loads for them); StarRod: the
          * shared tiles with the Star Rod's star over some (StarRodTiles()); Shared: its pieces with the same tiles drawn from the same
          * tiles of the frame (the Power Orb's slash: up to 17 pieces, 4 different ones); Tile: instead, one 8x8 tile of NiDL's (4 bits
-         * a pixel, its palette 15's colors) around the origin (the dot NiDL draws the Power Orb as, far off in the moon); */
+         * a pixel, its palette 15's colors) around the origin (the dot NiDL draws the Power Orb as, far off in the moon); Cutscene: a
+         * frame of NiDL's cutscene of Nightmare's arrival (CutsceneGraphics(): its own frame table, tiles and two palettes; 1 its first
+         * tiles, the comet's, 2 its second, the blue star's); */
         sealed record Part(int Frame, Dictionary<int, int> Recolor = null, int Table = 0, bool Palette15 = false, int Palette = 0, int Descriptor = -1,
                            int Dx = 0, int Dy = 0, bool Common = false, int OnlyPalette = -1, bool OrbShots = false, bool StarRod = false,
-                           bool Shared = false, byte[] Tile = null);
+                           bool Shared = false, byte[] Tile = null, int Cutscene = 0);
 
         /* Enemy; A ported enemy: its index (NIDL_* in nidl.h), name, NiDL object type and frame table, its frames (in the order the
          * C code numbers them), its hurt frame, palette changes, the letters of its name and the behavior bytes the randomizer uses; */
@@ -409,20 +411,25 @@ namespace KatAMRandomizer {
 
         /* Nightmare; NiDL boss 8 (type 0x43, the Fountain of Dreams' last; mini-boss descriptor 38). His frames are streamed frames with
          * three palettes (0x0875456C's 8-15, cut by palette: 0-7 the first's pieces, 8-15 the second's, 16-23 the third's; bosses/
-         * nightmare.c draws them as three sprites), then his beams (61-63, their own palette). Type 0x44. Hurt: his collar and arms (8); */
+         * nightmare.c draws them as three sprites), then his beams (61-63, their own palette), then his intro's (EffectOnly: its effects
+         * draw them): the comet he arrives as and the blue star he throws (Cutscene, the cutscene's 0-5 and 6), the burst a blue star
+         * makes (NiDL's shared effects' 0x0874CA78, its 0-22, with the shared tiles and palette 15). Type 0x44. Hurt: his collar and
+         * arms (8); */
         static Miniboss Nightmare() {
             List<Part[]> frames = new List<Part[]>();
 
             for (int palette = 0; palette < 3; palette++)
                 frames.AddRange(Enumerable.Range(8, 8).Select(f => new[] { new Part(f, OnlyPalette: palette) }));
             frames.AddRange(Enumerable.Range(61, 3).Select(f => new[] { new Part(f) }));
+            frames.AddRange(Enumerable.Range(0, 7).Select(f => new[] { new Part(f, Cutscene: f < 6 ? 1 : 2) }));
+            frames.AddRange(Enumerable.Range(0, 23).Select(f => new[] { new Part(f, Table: 0x74CA78, Palette15: true, Common: true) }));
 
             return new Miniboss(8, "Nightmare", 38, 0x75456C, frames, new[] { new Part(8, OnlyPalette: 0) },
                 new[] {
                     (0x1E, 0), (0x26, 4), (0x29, 8), (0x29, 9), (0x29, 10),                        // "N" (Noddy), "i" (Cookin), "ght" (Heavy Knight);
                     (0x28, 2), (0x2D, 1), (0x01, 1), (0x02, 5),                                    // "m" (Bomber), "a" (Batty), "r" (Bronto Burt), "e" (Blipper);
                 },
-                new byte[0], Type: BossID2);
+                new byte[0], Type: BossID2, EffectOnly: 30);
         }
 
         /* Apple; Whispy Woods' apples (NiDL object 0x7D, its own frame table 0x08754308: Whispy Woods' frames 18-37, its second palette).
@@ -1046,6 +1053,7 @@ namespace KatAMRandomizer {
             // Other descriptors' tiles and where their palettes went;
             Dictionary<int, (byte[] tiles, int palette)> others = new Dictionary<int, (byte[], int)>();
             byte[] common = null, starRod = null;
+            (int table, byte[][] tiles, byte[][] palettes)? cutscene = null;
             List<(Piece, byte[], int)> Pieces(Part part) => PartOffset(part, UnmovedPieces(part).Where(p => part.OnlyPalette < 0 || p.Item1.Palette == part.OnlyPalette).ToList());
             List<(Piece, byte[], int)> PartOffset(Part part, List<(Piece, byte[], int)> pieces) =>
                 pieces.Select(p => (p.Item1 with { X = p.Item1.X + part.Dx, Y = p.Item1.Y + part.Dy }, p.Item2, p.Item3)).ToList();
@@ -1060,6 +1068,16 @@ namespace KatAMRandomizer {
                         palettes.Add(shotPalette);
                     }
                     return PartPieces(nightmare, region, frameTable, part, shots.tiles, palettes).Select(p => (p.Item1, p.Item2, shots.palette)).ToList();
+                }
+                if (part.Cutscene != 0) {
+                    (int table, byte[][] tiles, byte[][] palettes) cut = cutscene ??= CutsceneGraphics(nightmare);
+                    if (!others.TryGetValue(CutsceneKey, out (byte[] tiles, int palette) loaded)) {
+                        loaded = others[CutsceneKey] = (null, palettes.Count);
+                        palettes.AddRange(cut.palettes);
+                    }
+                    // (its pieces' palettes: the first or the second, as their OAM's picks them);
+                    return PartPieces(nightmare, region, cut.table, part, cut.tiles[part.Cutscene - 1], palettes)
+                        .Select(p => (p.Item1, p.Item2, loaded.palette + (p.Item1.Palette & 1))).ToList();
                 }
                 if (part.Descriptor < 0) return PartPieces(nightmare, region, frameTable, part, tiles, palettes);
                 if (!others.TryGetValue(part.Descriptor, out (byte[] tiles, int palette) other)) {
@@ -1146,6 +1164,28 @@ namespace KatAMRandomizer {
             for (int row = 0; row < 4; row++)
                 Array.Copy(nightmare, at + row * 7 * 32, tiles, ((28 + row) * 16 + 7) * 32, 7 * 32);
             return tiles;
+        }
+
+        /* CutsceneGraphics(); The frame table, tiles (the comet's, the blue star's: LZ77, 16 a row as the descriptors') and two palettes
+         * of NiDL's cutscene of Nightmare's arrival, from where its code loads them (USA 0x08075264: the table, the palettes, 0x030015B0,
+         * the first tiles, 0x02020000, 0x06013000, the second tiles, 0x06014000, its literals), found by those values; */
+        const int CutsceneKey = -3;
+        static (int table, byte[][] tiles, byte[][] palettes) CutsceneGraphics(byte[] nightmare) {
+            for (int at = 20; at + 12 <= nightmare.Length; at += 4) {
+                if (ReadInt(nightmare, at) != 0x06013000 || ReadInt(nightmare, at + 8) != 0x06014000 || ReadInt(nightmare, at - 12) != 0x030015B0
+                    || ReadInt(nightmare, at - 4) != 0x02020000) continue;
+                int table = ReadInt(nightmare, at - 20) - 0x08000000, palette = ReadInt(nightmare, at - 16) - 0x08000000;
+                int[] blocks = { ReadInt(nightmare, at - 8) - 0x08000000, ReadInt(nightmare, at + 4) - 0x08000000 };
+                if (blocks.Any(b => b < 0 || b >= nightmare.Length || nightmare[b] != 0x10)) throw new InvalidOperationException("Not LZ77 tiles.");
+                // (as many tiles as 8 rows of 16 hold: the frames' pieces reach row 7);
+                byte[][] tiles = blocks.Select(b => {
+                    byte[] block = DecompressLZ77(nightmare, b), padded = new byte[Math.Max(block.Length, 8 * 16 * 32)];
+                    block.CopyTo(padded, 0);
+                    return padded;
+                }).ToArray();
+                return (table, tiles, new[] { nightmare[palette..(palette + 32)], nightmare[(palette + 32)..(palette + 64)] });
+            }
+            throw new InvalidOperationException("Nightmare's arrival isn't in the Nightmare in Dream Land ROM.");
         }
 
         /* OrbShotGraphics(); The Power Orb's shots' tiles (raw, 16 per row as the descriptors') and palette: the orb loads them from a
