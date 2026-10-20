@@ -11,7 +11,6 @@ owner's go-ahead on how they should look first.
 ## 5. Bosses as faithful 1:1 recreations of NiDL
 - **Heavy Mole**: rework the fight to match NiDL's. It needs boss rooms that scroll (the screen following the mole through the dirt).
 - **The other bosses**: check each against NiDL and fix what differs.
-- **Nightmare**: NiDL fights him in his caped look; the port uses his arms-out one, so his look changes as the fight starts.
 
 ## 34. The Fountain of Dreams finale: what's left
 - **Smaller differences from NiDL**: in the ending the Kirbys ride in KatAM's pose (NiDL's Kirby holds the Star Rod up); KatAM's

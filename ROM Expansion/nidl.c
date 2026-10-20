@@ -131,7 +131,10 @@ void NidlStart(struct Object *);
  * not, after the enemy died); the bar is emptied and the object let go of here, as the HUD does for a defeated one; */
 void NidlDestroy(struct Task *task) {
     u8 *hud = gUnk_03000010 ? TaskGetStructPtr(gUnk_03000010) : NULL;
+    struct NidlObject *n = TaskGetStructPtr(task);
 
+    // (Nightmare's fight's task lets go of him, bosses/nightmare.c);
+    if (NidlIsBoss(&n->obj) && n->enemy == NIDL_NIGHTMARE) NightmareGone(&n->obj);
     if (hud && *(void **)(hud + 0x1C) == TaskGetStructPtr(task)) {
         hud[0xA] = 0;
         *(void **)(hud + 0x1C) = NULL;

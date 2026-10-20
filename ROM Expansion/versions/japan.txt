@@ -263,3 +263,6 @@ gBgScrollRegs 0x3003680
 gUnk_03002484 0x3002484
 gUnk_030036C8 0x30036c8
 gUnk_030039A0 0x30039a0
+DisplaySprite 0x815600c
+gUnk_0203AD40 0x203ad40
+LoadObjPaletteWithTransformation 0x815824c

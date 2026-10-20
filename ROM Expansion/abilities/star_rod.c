@@ -116,6 +116,7 @@ struct StarRodStar {
     u8 spin;
     bool8 left;             // Flying left (shot by a Kirby facing left, on the ground);
     bool8 sinks;            // Sinking with the fight's screen (the Power Orb's: shot flying);
+    bool8 blocked;          // On Nightmare's box (bosses/nightmare.c's NightmareBlocks()): bursting the frame after, as a hit;
 };
 
 static void StarRodRiderMain(void);
@@ -207,7 +208,7 @@ static void StarRodStarMain(void) {
             return;
         }
         base->sprite.variant = FRAME_BURST + sBurst[star->burst - 1];
-    } else if (base->flags & 0x40000) {
+    } else if ((base->flags & 0x40000) || star->blocked) {
         // (it hit: still, bursting, hitting nothing more);
         star->burst = 1;
         base->flags |= 0x400;
@@ -222,6 +223,8 @@ static void StarRodStarMain(void) {
         if (++star->spin >= ARRAY_COUNT(sSpin)) star->spin = 0;
         base->sprite.variant = FRAME_STAR + sSpin[star->spin];
         SetPointerSomething(base);
+        // (Nightmare's box: NiDL's stars burst on it whatever, his hits KatAM's, only while he can take them);
+        if (!star->sinks) star->blocked = NightmareBlocks(base->roomId, base->x, base->y);
     }
     ++base->counter;
     Macro_08107BA8_4(base, &base->sprite, &sprite, STAR_TILES, &base->sprite);
@@ -260,6 +263,7 @@ static void StarRodShoot(struct Kirby *kirby, s32 dx, s32 dy, bool8 sinks) {
     star->lastTop = gCurLevelInfo[Viewer(base->unk56, base->roomId)].unk_S32Vec2_7C.y;
     star->burst = 0;
     star->spin = 0;
+    star->blocked = FALSE;
     star->palId = Palette(base, FRAME_STAR);
     ObjectBaseInitSprite(base, &base->sprite, STAR_TILES, gNidlData.enemies[NIDL_SPIT_STAR].animId, FRAME_STAR, 0xA);
     base->sprite.palId = star->palId;

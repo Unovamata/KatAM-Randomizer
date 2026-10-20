@@ -60,11 +60,11 @@ versions = [('usa', 'USA', 'B8KE', 0), ('europe', 'Europe', 'B8KP', 0), ('japan'
 names = ['CreateNidlEnemy', 'NidlStart', 'NidlCopyName', 'gNidlData']
 patched = ['SpriteTables', 'AnimCount', 'SpawnTable', 'gUnk_08351648', 'ObjectParameters2', 'gUnk_08D60EE4', 'HitFlashBranch', 'NameSite1', 'NameSite2']
 # The abilities' (see abilities.h): code symbols, and the KatAM tables and functions it relocates or hooks;
-codeNames = ['gNidlWorldMapDoors', 'NidlWorldMapUnlockSave', 'NidlWorldMapGetCoorFromRoom', 'NidlWorldMapDrawKirbys', 'NidlWorldMapUnlock0', 'NidlWorldMapUnlock1', 'NidlWorldMapUnlock2', 'NidlWorldMapUnlock3', 'NidlWorldMapUnlock4', 'NidlWorldMapUnlock5', 'NidlWorldMapUnlock6', 'NidlWorldMapUnlock7', 'NidlGetKirbyRoomFlagIndex', 'gNidlRoomFlagIndexOriginal', 'gNidlHubRoom', 'gNidlAbilityTables', 'gNidlAbilityData', 'NidlAbilityPortrait', 'NidlAbilityHudTimer', 'NidlSwallow', 'NidlKirbyHit', 'gNidlKirbyHitOriginal', 'CreateNidlMiniboss', 'NidlMinibossStart',
+codeNames = ['gNidlWorldMapDoors', 'NidlWorldMapUnlockSave', 'NidlWorldMapGetCoorFromRoom', 'NidlWorldMapDrawKirbys', 'NidlWorldMapUnlock0', 'NidlWorldMapUnlock1', 'NidlWorldMapUnlock2', 'NidlWorldMapUnlock3', 'NidlWorldMapUnlock4', 'NidlWorldMapUnlock5', 'NidlWorldMapUnlock6', 'NidlWorldMapUnlock7', 'NidlGetKirbyRoomFlagIndex', 'gNidlRoomFlagIndexOriginal', 'gNidlHubRoom', 'gNidlAbilityTables', 'gNidlAbilityData', 'NidlAbilityPortrait', 'NidlAbilityHudTimer', 'NidlDisplaySprite', 'NidlSwallow', 'NidlKirbyHit', 'gNidlKirbyHitOriginal', 'CreateNidlMiniboss', 'NidlMinibossStart',
              # The bosses (nidl_boss.c);
              'CreateNidlBoss', 'NidlBossStart', 'NidlBossDefeat', 'gNidlShardExits', 'NidlShardExit',
              # The finale (finale.c);
-             'gNidlFinale', 'gNidlCloudSpeeds',
+             'gNidlFinale', 'gNidlCloudSpeeds', 'gNidlNightmareFight',
              # The NiDL title screen (title.c);
              'gNidlTitle', 'CreateNidlTitle',
              # Reduce flashing (calm.c);
@@ -114,6 +114,8 @@ romNames = ['gUnk_0834C2AC', 'gUnk_0834C318', 'gUnk_083509D0', 'gUnk_08350A3C', 
             'sub_080AA618', 'sub_080AAA64',
             # Unlock the Ability Room (unlock.c): the hub mirror's creation, holding its init's address;
             'CreateSpecialHubMirror', 'SpecialHubMirrorInit',
+            # The Star Rod's glow (abilities.c): every sprite's drawing;
+            'DisplaySprite',
             # Mirras (mirra.c): their door's opening; where they land (KatAMExpansionRooms.cs' MirraLandings()): what holds objects;
             'sub_080B11C0', 'gCollisionAttributes',
             # The ported rooms' visited doors in the save (rooms.c): what writes and reads the game's (and sbClearFunctions above);

@@ -1,7 +1,8 @@
-/* NiDL abilities; What KatAM needs to know about abilities 27-34 (see abilities.h), and their HUD portraits; */
+/* NiDL abilities; What KatAM needs to know about abilities 27-34 (see abilities.h), their HUD portraits, and the Star Rod's glow; */
 #include "abilities.h"
 #include "main.h"
 #include "data.h"
+#include "palette.h"
 #include "code_0806F780.h"
 #include "constants/songs.h"
 
@@ -80,6 +81,44 @@ void NidlAbilityPortrait(u32 vram, u8 palette, u8 id) {
 void NidlAbilityHudTimer(struct Kirby *kirby, u8 portrait, u16 frames) {
     if (portrait >= NIDL_FIRST_ABILITY) portrait += NIDL_SPECIAL_PORTRAIT_SHIFT;
     gNidlAbilityData.hudTimerOriginal(kirby, portrait, frames);
+}
+
+/* StarRodPalette(); The rod's palette (Kirby's second, with NiDL's Star Rod: 0x0803DB74, as his drawing starts), on a cycle of 10
+ * frames: bright for 2 (0x08226254), halfway for 1, then his own for 7 (written once); the hat's here, on KatAM's frame counter; */
+static void StarRodPalette(struct Sprite *sprite) {
+    u32 step = gUnk_0203AD40 % 10;
+    const u16 *colors = gNidlAbilityData.rodPalettes + (step < 2 ? 0 : step - 1) * 16;
+
+    if (step > 3) return;
+    if (gMainFlags & MAIN_FLAG_OBJ_PALETTE_TRANSFORMATION_ENABLE) LoadObjPaletteWithTransformation(colors, sprite->palId * 16, 16);
+    else {
+        CpuCopy16(colors, gObjPalette + sprite->palId * 16, 16 * sizeof(u16));
+        gMainFlags |= MAIN_FLAG_OBJ_PALETTE_SYNC_ENABLE;
+    }
+}
+
+/* NidlDisplaySprite(); DisplaySprite (detoured), every sprite's drawing: a Star Rod hat's (the rod's) is drawn as NiDL draws its Kirby
+ * with the Star Rod: its palette on a cycle (StarRodPalette()), and a frame, one frame in four (NiDL's frame counter's, 0x03001EA4, a
+ * multiple of 4), as its glowing version, the same with the rod's star glowing (Kirby's drawing, 0x0803DE6C: frame + 0x83); on
+ * KatAM's frame counter (gUnk_0203AD40, a game frame each); the glowing frames' tiles are loaded with the frame's
+ * (KatAMExpansionHats.cs, AddGlows()); */
+void NidlDisplaySprite(struct Sprite *sprite) {
+    const struct NidlAbilityData *data = &gNidlAbilityData;
+    u32 frame = sprite->unk4;
+    u8 i;
+
+    for (i = 0; i < 2; i++) {
+        if (sprite->animId != data->glows[i].anim || !sprite->animId) continue;
+        StarRodPalette(sprite);
+        if (!(gUnk_0203AD40 & 3) && frame - data->glows[i].first < data->glows[i].count) {
+            sprite->unk4 = frame + data->glows[i].count;
+            data->displaySpriteOriginal(sprite);
+            sprite->unk4 = frame;
+            return;
+        }
+        break;
+    }
+    data->displaySpriteOriginal(sprite);
 }
 
 // NidlAttackMain(); Follows Kirby, hitting every few frames (Burning's, sub_08079714), until his state isn't the ability's;

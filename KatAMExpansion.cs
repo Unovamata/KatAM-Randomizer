@@ -32,17 +32,18 @@ namespace KatAMRandomizer {
          * pointers (CardTiles + ability * CardTileStride; Europe's are per language, English first); RoomTable: the rooms (see
          * KatAMExpansionRooms.cs); EndingFrames: the frame table of NiDL's ending down from the moon (USA 0x08755708: the European one
          * moved by neither shift; see EndingGraphics()); CloudSpeeds: the Power Orb's room's cloud bands' speeds (USA 0x087561CC, moved
-         * by neither shift either; KatAMExpansionRooms.cs, CloudRows); */
+         * by neither shift either; KatAMExpansionRooms.cs, CloudRows); FightColors: Nightmare's fight's four palettes (USA 0x08334480: his
+         * cape's two, which his draw blends, and his tornado's two, which it alternates; KatAMExpansionNightmare.cs); */
         sealed record NightmareRegion(string GameCode, int Descriptors, int FrameShift, string KatAM, int Palette15,
                                       int CardPalettes, int CardPaletteStride, int CardTiles, int CardTileStride, int RoomTable, int LateShift,
-                                      int EndingFrames, int CloudSpeeds);
+                                      int EndingFrames, int CloudSpeeds, int FightColors);
         const int LateFrames = 0x753E3C;
         static int FrameAddress(NightmareRegion region, int usa) => usa + (usa >= LateFrames ? region.LateShift : region.FrameShift);
 
         static readonly NightmareRegion[] NightmareRegions = {
-            new NightmareRegion("A7KE", 0x73EEA0, 0, "USA", 0x0D07A8, 0x731A90, 8, 0x731A94, 8, 0x7E1D58, 0, 0x755708, 0x7561CC),
-            new NightmareRegion("A7KJ", 0x742DAC, 0x3A8C, "Japan", 0x0CFF60, 0x73599C, 8, 0x7359A0, 8, 0x7E60DC, 0x3A8C, 0x759194, 0x759C68),     // Hoshi no Kirby: Yume no Izumi Deluxe;
-            new NightmareRegion("A7KP", 0x97B678, 0x23C7EC, "Europe", 0x0D3228, 0x96D770, 4, 0x96D7E0, 20, 0xBFD8E8, 0x23CA5C, 0x99288C, 0x994DA0),
+            new NightmareRegion("A7KE", 0x73EEA0, 0, "USA", 0x0D07A8, 0x731A90, 8, 0x731A94, 8, 0x7E1D58, 0, 0x755708, 0x7561CC, 0x334480),
+            new NightmareRegion("A7KJ", 0x742DAC, 0x3A8C, "Japan", 0x0CFF60, 0x73599C, 8, 0x7359A0, 8, 0x7E60DC, 0x3A8C, 0x759194, 0x759C68, 0x333C38),     // Hoshi no Kirby: Yume no Izumi Deluxe;
+            new NightmareRegion("A7KP", 0x97B678, 0x23C7EC, "Europe", 0x0D3228, 0x96D770, 4, 0x96D7E0, 20, 0xBFD8E8, 0x23CA5C, 0x99288C, 0x994DA0, 0x33B56C),
         };
 
         static NightmareRegion RegionOf(byte[] rom) => rom == null || rom.Length < 0x800000 ? null
@@ -415,7 +416,9 @@ namespace KatAMRandomizer {
 
         /* Nightmare; NiDL boss 8 (type 0x43, the Fountain of Dreams' last; mini-boss descriptor 38). His frames are streamed frames with
          * three palettes (0x0875456C's 8-15, cut by palette: 0-7 the first's pieces, 8-15 the second's, 16-23 the third's; bosses/
-         * nightmare.c draws them as three sprites), then his beams (61-63, their own palette), then his intro's (EffectOnly: its effects
+         * nightmare.c draws them as three sprites; his fight has an anim of its own, KatAMExpansionNightmare.cs: these are his hurt frame and
+         * his palettes), then his beams (61-63, their own palette; drawn no more, NiDL's fight has none: kept so the frames after keep their
+         * numbers), then his intro's (EffectOnly: its effects
          * draw them): the comet he arrives as and the blue star he throws (Cutscene, the cutscene's 0-5 and 6), the burst a blue star
          * makes (NiDL's shared effects' 0x0874CA78, its 0-22, with the shared tiles and palette 15), the puff as it hits Kirby's star
          * (the shared effects' 0x0874C9D8, 0-16), then his own light growing into his shape as he appears (his 67 down to 61, one
@@ -866,15 +869,25 @@ namespace KatAMRandomizer {
 
             if (animInfos.Count > 256) throw new InvalidOperationException("The ported enemies have more than 256 frames.");
 
+            // Nightmare's fight: an anim of its own, only for his sprites (KatAMExpansionNightmare.cs);
+            try {
+                (List<byte[]> fightPalettes, List<(byte[] tiles, ushort[] oams, short[] attributes, int palette)> fightFrames, byte[] fightTable) =
+                    NightmareFight(nightmare, region);
+                (int _, int fightAnim, int _) = AddAnim(fightPalettes, fightFrames, new byte[0], new List<(int, int)>(), effectOnly: fightFrames.Count);
+                WriteNightmareFight(rom, nightmare, region, CodeAddress + version.CodeSymbols["gNidlNightmareFight"], fightAnim, fightFrames, fightTable);
+            } catch (Exception exception) when (exception is IndexOutOfRangeException or ArgumentException or InvalidOperationException) {
+                return $"The Nightmare in Dream Land ROM doesn't match the {region.KatAM} release.";
+            }
+
             // The new abilities' hats and motions (anims after the enemies');
-            int[] hatTables, motions, hatPalettes = new int[NewAbilities];
+            int[] hatTables, motions, hatPalettes = new int[NewAbilities], glows = new int[7];
             int backdropPalette;
             bool[][] paletteUsed = new bool[NewAbilities][];
             try {
                 hatTables = BuildHats(rom, nightmare, region, version.RomSymbols["gUnk_0834C5D4"], anims, attrTable, oamTable, tilesBase, paletteBase, ref cursor, HurtAnimID,
-                                      animVariants, animAttributes, animOams, hatPalettes, paletteUsed);
+                                      animVariants, animAttributes, animOams, hatPalettes, paletteUsed, glows);
                 motions = BuildMotions(rom, nightmare, region, hatTables, hatPalettes, paletteUsed, tilesBase, ref cursor, HurtAnimID, animVariants,
-                                       animAttributes, animOams);
+                                       animAttributes, animOams, glows);
                 backdropPalette = BuildBackdropPalette(rom, nightmare, region, version.RomSymbols["gUnk_08350A3C"], anims, attrTable, oamTable, paletteBase,
                                                        ref cursor, HurtAnimID, animVariants, animAttributes, animOams);
             } catch (Exception exception) when (exception is IndexOutOfRangeException or ArgumentException) {
@@ -1036,7 +1049,7 @@ namespace KatAMRandomizer {
                 ApplyNamePatch(rom, sites[i], length, sites[i] + literal, fromTypePointer, codeBase + version.NidlCopyName);
             }
 
-            string error = AddAbilities(rom, nightmare, region, version, ref cursor, motions, new Dictionary<string, int[]> {
+            string error = AddAbilities(rom, nightmare, region, version, ref cursor, motions, glows, new Dictionary<string, int[]> {
                 ["gUnk_08D60FDC"] = hatTables.Select(table => table + 0x08000000).ToArray(),
                 ["gUnk_08350A3C"] = new[] { -1, -1, -1, -1, -1, -1, backdropPalette, -1 },
             });

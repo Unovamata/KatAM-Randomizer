@@ -70,16 +70,17 @@ static void NidlBossWait(struct Object *obj) {
         obj->base.flags |= 0x400;
         return;
     }
-    // (Nightmare's intro: hidden till it's over, bosses/nightmare.c);
+    // (Nightmare's intro: hidden till his light shows where he appears, his fight's first appearance, bosses/nightmare.c; the Kirbys
+    // still knocked down then, held by it);
     if (n->enemy == NIDL_NIGHTMARE) {
-        if (NightmareIntroOn(obj->base.roomId)) {
+        if (NightmareIntroHolds(obj->base.roomId)) {
             obj->base.flags |= 0x400;
             return;
         }
         obj->base.flags &= ~0x400;
     }
     obj->kirby3 = FindTargetKirby(&obj->base);
-    if ((obj->kirby3->base.unkC & 0x8000) || obj->base.roomId != obj->kirby3->base.roomId) return;
+    if (((obj->kirby3->base.unkC & 0x8000) && n->enemy != NIDL_NIGHTMARE) || obj->base.roomId != obj->kirby3->base.roomId) return;
     if (n->enemy != NIDL_POWER_ORB && !Macro_08039430_2(&obj->kirby3->base, obj)) return;
     Macro_081003EC(obj, &obj->kirby3->base);
     obj->base.flags &= ~0x200;
