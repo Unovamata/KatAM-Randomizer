@@ -104,9 +104,10 @@ namespace KatAMRandomizer
         }
 
         /* Mirror shards in chests ("ROM Expansion/chest.c", KatAMExpansion.AddShardChests): a small chest holding ShardChest + n holds
-         * mirror shard n; its treasure index is ShardChestIndex + n, where HasChest reads gTreasures' shard bits, so it's open once
-         * shard n is owned; */
-        public const byte ShardChest = 0x40, ShardChestIndex = 0x80;
+         * mirror shard n (a Maxim Tomato once n is owned); its treasure index is its own, ShardChestIndex + k (the 16 chests at most,
+         * 2 copies of the 8), where HasChest reads gTreasures.shardField's bits 8-23 (unused: the shards are its bits 0-7), so it's
+         * open once it's been opened, and only then; */
+        public const byte ShardChest = 0x40, ShardChestIndex = 0x88;
 
         // ShuffleMirrorShard(); Take an entity and convert it to a mirror shard lying in its room (the field shards);
         void ShuffleMirrorShards(byte currentShardBehaviour) {
@@ -143,7 +144,7 @@ namespace KatAMRandomizer
 
         /* AddShardsToChests(); The chest shards (Settings.MirrorShardsInChests, Settings.amountOfChestShards copies of the 8 shards, 1-2):
          * chests that held a consumable (chestConsumableIDs, never a treasure) picked at random become chests holding a shard, n of
-         * shard n (ShardChest + n, treasure index ShardChestIndex + n), as many whole copies as there are such chests; they're left out
+         * shard n (ShardChest + n, treasure index ShardChestIndex + k, the k-th such chest's own), as many whole copies as there are such chests; they're left out
          * of the rooms' chest lists (WriteChestTo9ROM: chest.c's chests aren't in them); */
         void AddShardsToChests() {
             if (!Settings.MirrorShardsInChests || Settings.amountOfChestShards <= 0 || Settings.ChestsGenerationType == GenerationOptions.No) return;
@@ -157,7 +158,7 @@ namespace KatAMRandomizer
                 chest.Name = "Mirror Shard";
                 chest.Behavior = (byte)(ShardChest + shard);
                 chest.Speed = 0;
-                chest.Properties[0] = (byte)(ShardChestIndex + shard);
+                chest.Properties[0] = (byte)(ShardChestIndex + k);
                 Utils.WriteObjectToROM(chest);
             }
         }

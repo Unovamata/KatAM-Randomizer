@@ -33,7 +33,9 @@ after any change.
 - NiDL's own door halls (Butter Building's tower floors, Rainbow Resort's rooms of doors) keep all their doors, drawn as NiDL's
   own doorways without mirrors, past these limits.
 - **Secret doors stay hidden until uncovered**: a door behind breakable blocks or in a hidden spot only shows once Kirby finds it.
-- **Enemies keep away from doors**: no enemy stands on a door or right where a door lands Kirby.
+- **Enemies keep away from doors**: no enemy stands on a door or right where a door lands Kirby (3 cells across, 2 up or
+  down), counted where the enemy ends up (a walker dropped onto the floor below its spot), in the NiDL rooms and in KatAM's
+  rooms the NiDL doors land in (KatAM's enemy there is left out). `BuildObjects()`, `KatAMSpot()`, `FinishRooms()`.
 
 ## 3. One-way and two-way
 
@@ -49,10 +51,13 @@ after any change.
 
 - **A hub has at most 2 regular doors** (mirrors). Hub doors (`0x97`, the doors a big switch reveals) are counted apart and are
   not limited by this rule.
-- **The NiDL switch rooms have 2 hub doors**, in one of KatAM's two hub-door layouts:
+- **The NiDL switch rooms have 2 hub doors** (all but the Fountain of Dreams', which has no door but its Amazing Mirror and no
+  big switch: section 8), in one of KatAM's two hub-door layouts:
   - **A** (`0x122`): doors at the top left and top right, the big switch between them;
   - **B** (`0x250`): one door at the top middle, one at the bottom middle.
-  Each switch room also has 1 regular door: its right floor mirror (rule 5).
+- **Every NiDL hub has 2 doors to its level's exploration map** (the owner's rule, for all hubs but the Fountain of Dreams'): each switch room's 2 floor
+  mirrors, both two-way, lead into 2 different branches of its level, so the level branches from its hub (rule 5). These are
+  its 2 regular doors; its hub doors are counted apart.
 - **The hubs stay interconnected the way they were approved**: each level's switch room reveals a hub door leading to
   (`LevelLinks`, `KatAMLinkDoors`):
 
@@ -65,7 +70,7 @@ after any change.
   | Yogurt Yard | Cabbage Cavern West `0x250` |
   | Orange Ocean | Cabbage Cavern East `0xBF` |
   | Rainbow Resort | the NiDL hub |
-  | Fountain of Dreams | Cabbage Cavern East `0xBF` |
+  | Fountain of Dreams | none: no big switch (section 8); its world map path never opens |
 
   Each KatAM room in that list gets a hub door back.
 - **The world map is fixed as approved** (`worldmap.c`'s `gNidlWorldMapDoors`, one path per level's hub door). Neither the world
@@ -73,6 +78,9 @@ after any change.
 - **Hub doors are always two-way and never lead to a Mirra.**
 - The NiDL hub (a Central Circle copy at night) has one door per level, as Central Circle has one per area. It is reached
   through a golden mirror in Central Circle (beside Central Circle's own), and a pink mirror in the NiDL hub leads back.
+- **The NiDL hub has Central Circle's ability room door**, at the same spot (top left, cell 3, 4), drawn and opened as Central
+  Circle's (KatAM's own switch, world slot 0x12), leading to the ability room (0x3CA) as Central Circle's does; the way out of the
+  ability room is KatAM's, to Central Circle.
 
 ## 5. Levels, stages and the order of things
 
@@ -83,13 +91,19 @@ after any change.
   sibling branches, a hidden two-way door between each level and the next, one one-way throw into another level, and links with the
   KatAM area paired with the level (rooms with few doors, far from them).
 - **Goal rooms keep their goal door alone**: no branch, no way back.
-- **A level's switch room is found by exploring**: a Mirra hidden in the second half of the level leads to it, one-way. Its right
-  floor mirror goes both ways to the stage before the boss.
+- **A level's switch room is found by exploring**: a Mirra hidden in the second half of the level leads to it, one-way, landing
+  off its floor mirrors (rule 3). Its right floor mirror goes both ways to the start of the stage before the boss; its left one
+  both ways to the start of a stage on another branch: the deepest stage off the way from the level's first stage to the boss's,
+  not the Mirra's own (else the nearest one on that way). The Fountain of Dreams' switch room has none of these: only Nightmare's
+  end leads there (section 8). `PlanDoors()`.
 
 ## 6. Mirras
 
 - **As few as KatAM's**, at most one per room, never chained.
 - **Always one-way, always hidden, never in mid-air.**
+- **They fall** (the owner's request): KatAM's engine's gravity is on for them, so one standing on blocks that break drops onto
+  what's under them, and its door opens where it lands, not where it stood. A door is built at each cell a ported Mirra can land
+  in, shown once it opens there. `mirra.c`, `MirraLandings()`.
 - **Each leads to real progress** (a switch room, a shortcut to a later stage), never sideways.
 - Never in a boss room or a switch room. `MirraSpots()`.
 
@@ -101,8 +115,12 @@ after any change.
   `0x143`, `0x1F6`, `0x33B`): x the right edge of the fuse cell the rope enters, y that cell's top. `TransportSpot()`.
 - **They always land Kirby safely**: on a floor, never in a pit or the room's hidden bottom rows. A cannon fires Kirby to the top of
   its room and he must fall onto a floor. `Land()`.
-- **A warp star into one of NiDL's warp star skies carries Kirby across it**, as NiDL's does (rooms 0x280 and 0x2F9): an arc over
-  the sky with the star's sparkles, out at its bottom into the next room; the helpers on the star ride with him. `SkyFlight()`.
+- **A warp star flies NiDL's own ride**, as NiDL's star flies it, frame by frame: it's off as soon as Kirby is on (a jump up, a
+  bob down under him, no wait), along its own path out of the room, through the sky rooms NiDL's goes through (each entered where
+  NiDL's comes in), and into the room it lands in, where Kirby tumbles off as NiDL's does (the orb, his tumble and bounce) to
+  where NiDL's Kirby stands. Kirby and the star are drawn at NiDL's size, frame by frame, where NiDL shrinks them (Ice Cream
+  Island 2, Orange Ocean 3), and the screen fades to white before each room change as NiDL's does. The helpers on the star ride
+  with him. `NidlRides`, `WarpFlights()`, `warpstar.c`.
 - No mirror is placed next to them (rule 2).
 
 ## 8. Bosses and mini-bosses
@@ -112,14 +130,30 @@ after any change.
   instead, never the shard, and grabbing it takes Kirby out as the shard would. `bossExitsOf`,
   `gNidlShardExits`, `NidlShardExit()`.
 - **A shard only ever sends Kirby to a central hub**: KatAM's to Central Circle, NiDL's to the NiDL hub, onto that level's door
-  there. Never into another level or room. The one exception is the Power Orb, whose fight goes on in Nightmare's room, as in NiDL.
-  NiDL's empty walk-out rooms after a boss are left out of the port: nothing leads there any more.
+  there. Never into another level or room. NiDL's empty walk-out rooms after a boss are left out of the port: nothing leads there
+  any more.
 - **Which shard a boss leaves can be shuffled** (Bosses Give Random Shards): KatAM's bosses always hold all 8 between them, so the
-  game can be beaten from KatAM alone; NiDL's spread the 8 evenly. An owned shard is always a Maxim Tomato, never a cutscene in the way.
+  game can be beaten from KatAM alone; NiDL's 7 that leave one (not the Power Orb nor Nightmare) spread the 8 evenly. An owned
+  shard is always a Maxim Tomato, never a cutscene in the way.
+- **The Fountain of Dreams is the finale before KatAM's final boss**, reached only once KatAM has the 8 shards: Central Circle's
+  Dimension Mirror and the NiDL hub's lead to the Power Orb's room (nothing else leads in). The Power Orb and Nightmare leave no
+  shard: beaten, the Power Orb's cinematic plays, every Kirby goes to a warp star and rides it to Nightmare's room, where his
+  cinematic plays and the fight starts; beaten, Nightmare's (Kirby going down from the moon) plays and Kirby is in the Fountain
+  of Dreams hub (its switch room), which has no other door in or out and no big switch: only an Amazing Mirror to 0x38D, KatAM's
+  final boss sequence (unlocked by the 8 shards, as KatAM's), and a Maximum Tomato. The Power Orb's and Nightmare's rooms are
+  never randomized.
 - **Doors into boss rooms are one-way.** Nothing else (branches, links, Mirras) goes in a boss stage.
-- **A mini-boss's fight area has no door until it is beaten**: doors there show once the fight ends. No two-way door in a
-  mini-boss's room; a door into one throws Kirby in, one-way, and its way out is one-way too, never
-  right beside the way in. `Arenas()`, `InArena()`.
+- **Two boss rooms are entered in the air**, the only landings off a floor, as NiDL's: the Power Orb's, at NiDL's own start at
+  the room's bottom, where NiDL's intro flies every Kirby up through space to the fight's screen at the top, the camera rising
+  with them (the fight is NiDL's Star Rod flight and takes every Kirby there at once, so nobody falls; `StarRodRoom`,
+  `power_orb.c`; the owner: "when entering the Amazing Mirror, you have to copy the cinematic before the Power Orb, the one where
+  Kirby flies to the Power Orb and then the battle can start"), and King Dedede's, at NiDL's own start at the room's top, Kirby
+  dropping in to the ring with the camera following him down to the fight's screen (`DededeBoss`, `arena.c`).
+- **A mini-boss's fight area has no door until it is beaten**: doors there show once the fight ends, whenever Kirby comes in (a
+  long room's too, before the fight is on screen). The fight area for doors is its screen and the space it's fought in: the cells
+  Kirby walks to from it, up to 4 cells across and 2 up or down (not past a wall). Those doors are built shut and open when the
+  mini-boss is beaten. No two-way door in a mini-boss's room; a door into one throws Kirby in, one-way, and its way out is one-way
+  too, never right beside the way in. `Arenas()`, `InArena()`, `ArenaCells()`, `arena.c`.
 
 ## 9. Every place gets you back out
 
@@ -140,7 +174,7 @@ after any change.
   only reads them afterwards, as it reads KatAM's. A chest per 8 rooms of a level (2 to 5), one a room at most, at the best reward
   spots: a loose item behind breakable blocks, a dead end, far from where Kirby comes in; an item there becomes a chest holding it, a
   dead end with none gets a new chest as far into the room as Kirby goes. A dead end with nothing in it at all (no enemy, item or
-  boss: 0x298) always gets one, over the level's count: no room is there for nothing. Always on a floor the camera shows.
+  boss: 0x298) always gets one, over the level's count: no room is there for nothing. Always on a floor the camera shows, whole: never in a room's first or last column, which the camera shows only half of.
   `PlanChests()`.
 - **A chest is listed in its room's doors list**, or opening it hangs the game: the ported rooms' lists are rebuilt after the
   randomizer (`FinishRooms()`), and KatAM's chest lists go into the table the game reads (the expansion moved it).
@@ -167,7 +201,15 @@ after any change.
 ## 11. The map viewer
 
 - **Unrandomized ROMs (expanded or not): KatAM's map stays exactly KatAM's**, as the pause screen's area maps draw it
-  (`MapVanilla`), and the NiDL levels go **around** it: never in its gaps, never moving it. `MapExpansion.Place(original)`.
+  (`MapVanilla`), and the NiDL levels go **around** it: never in its gaps, never moving it. Each level hugs KatAM's map, the nearest
+  free spot first (then the one nearest the rooms it links to, then the squarest map), so the levels surround it on every side; the
+  NiDL hub sits just outside it, on the side nearest Central Circle. `MapExpansion.Place(original)`.
+- **Clusters come before routes** (the owner's rule): a NiDL level is drawn as one cluster as dense as KatAM's areas on the same map
+  (the same map space per room, on average), not spread out so its lines run straight; lines may wind and cross to keep it so.
+  Not tighter than KatAM's either. `MapExpansion.Tighten()`.
+- **A central hub's lines share one trunk**: the fewer lines out of a hub, the better. Central Circle's and the NiDL hub's
+  connections leave it along one line that branches off near each room it leads to. Only those two: other rooms linked to them
+  (switch rooms, level hubs, any room) keep a line of their own each. `MapPlan.RouteAll()`.
 - **Randomized ROMs**: clusters are enough, and **every cluster looks the same**: each NiDL level is laid out as compact as KatAM's
   clusters there (`MapLayout.LayoutCluster()`, its grid) and packed as close to the others as they are to each other.
   `MapExpansion.ClusterLevel()`.

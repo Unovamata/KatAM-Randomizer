@@ -2,11 +2,13 @@
  * NIDL_CHEST_SHARD + n (an item id KatAM doesn't use) holds mirror shard n. Opening one (sub_0800AFC8, detoured here by
  * KatAMExpansionChests.cs; other chests run the original) collects the shard, so dying before touching it loses nothing, and lets
  * out of the chest the game's own shard object (subtype n, as the boss of shard n drops it), which Kirby takes as a boss's: the
- * shard cutscene, then out of the level. The randomizer gives these chests the treasure index (template unk11) 0x80 + n: HasChest
- * reads past chestFields into gTreasures.shardField there, so the chest is open exactly when shard n is owned, wherever it came
- * from, and NumChestsCollected (the first 0x80) doesn't count it. They aren't in the rooms' 1E8 chest lists (so the pause map
- * doesn't show them): this doesn't mark them there (sub_08002B30 would never find them). This file works without the rest of the
- * expansion: the option copies the code even when no NiDL ROM is loaded; */
+ * shard cutscene. Opened once shard n is owned (from a boss, the field, another chest), it lets out a Maxim Tomato instead, as an
+ * owned field shard is one. Each such chest has a treasure index (template unk11) of its own, 0x88 + k (KatAMItems.cs, ShardChestIndex):
+ * HasChest reads it, as this marks it, past chestFields, in gTreasures.shardField's bits 8-23, which nothing else uses
+ * (NumShardsCollected counts bits 0-7, NumChestsCollected the first 0x80 indices), so the chest shows open once it's been opened,
+ * and only then. They aren't in the rooms' 1E8 chest lists (so the pause map doesn't show them): this doesn't mark them there
+ * (sub_08002B30 would never find them). This file works without the rest of the expansion: the option copies the code even when no
+ * NiDL ROM is loaded; */
 #include "global.h"
 #include "chest.h"
 #include "bonus.h"
@@ -41,25 +43,32 @@ static void NidlChestOpened(struct Chest *chest) {
     chest->obj.base.flags |= 4;
 }
 
-// NidlChestOpen(); A Kirby opened the chest (chest.c, sub_0800AFC8);
+// NidlChestOpen(); A Kirby opened the chest (chest.c, sub_0800AFC8): its own index marked, its shard, or a Maxim Tomato once it's owned;
 void NidlChestOpen(struct Chest *chest) {
     u16 shard = chest->unkE0 - NIDL_CHEST_SHARD;
+    bool32 owned;
 
     if (shard >= 8) {
         gNidlChest.open(chest);
         return;
     }
     chest->obj.unk83 = 1;
+    owned = HasShard(shard);
+    gTreasures.chestFields[chest->unkE2 >> 3] |= 1 << (chest->unkE2 & 7);
     CollectShard(shard);
-    PlaySfx(&chest->obj.base, SE_CHEST_OPEN);
+    PlaySfx(&chest->obj.base, owned ? SE_CHEST_COLLECT_ITEM : SE_CHEST_OPEN);
     if (!(gUnk_0203AD10 & 0x10)) {
         if (!(gUnk_0203AD10 & 2) || gLocalPlayerId == gUnk_0203AD24)
             UpdateSaveBufferByOffset(SAVE_BUFFER_TYPE_WORLD_PROPS, gSaveID > 2 ? 0 : gSaveID);
         else
             sub_08031CE4(8);
     }
-    CreateObjTemplateAndObj(chest->obj.base.unk56, 1, 0x24, chest->obj.base.x >> 8, (chest->obj.base.y >> 8) - NIDL_CHEST_RISE, 0, 0x1F,
-                            0, 0, OBJ_MIRROR_SHARD, shard, 0, 0, NIDL_SHARD_STAYS, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+    if (owned)
+        CreateObjTemplateAndObj(chest->obj.base.unk56, 1, 0x24, chest->obj.base.x >> 8, (chest->obj.base.y >> 8) - NIDL_CHEST_RISE, 0, 0x1F,
+                                0, 0, OBJ_TOMATO, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+    else
+        CreateObjTemplateAndObj(chest->obj.base.unk56, 1, 0x24, chest->obj.base.x >> 8, (chest->obj.base.y >> 8) - NIDL_CHEST_RISE, 0, 0x1F,
+                                0, 0, OBJ_MIRROR_SHARD, shard, 0, 0, NIDL_SHARD_STAYS, 0, 0, 0, 0, 0, 0, 0, 0, 0);
     // As the item popups do once their item is given (sub_080029F4: lever walls count these);
     gUnk_02023510[gCurLevelInfo[chest->obj.base.unk56].unk65E]++;
     chest->obj.unk78 = NidlChestOpened;

@@ -4,13 +4,16 @@ namespace KatAMRandomizer {
      *   sky and its galaxies), cut down to 32x36 tiles and quantized to 3 palettes (6-8), one per band of rows (HubBackground);
      * • Palettes: Central Circle's scenery (palettes 4 and 5) tinted to the night (NightTint);
      * • Mirrors: its golden one (MainHubEntry) to Vegetable Valley's first room, the way in, a pink one (MainHubReturn, MirrorTwin()) back to Central Circle, and
-     *   Central Circle's Dimension Mirror (DimensionMirrorTemplate());
+     *   Central Circle's Dimension Mirror (DimensionMirrorTemplate(), to the Power Orb's room as Central Circle's: FinaleMirrors());
      * • Doors: as Central Circle's, special blocks (kind 1) its hub mirror objects (0x8C) break once their world slot is set, drawing
      *   the door over the 3x3 cells above its door cell (MainHubDoors: Central Circle's own doors' cells). Each level's door is its
      *   design (NidlDesigns: one of KatAM's door frames, anim 0x2C6, over its mirror, anim 0x2C5, as object 0x97 draws them; none of
      *   Central Circle's), drawn over the room's tiles there into new tiles (the ones Central Circle's tilemap doesn't use) with
      *   their colors in a palette of their own: 0-2 (Central Circle's tilemap only uses palette 0's transparent color, its doors
-     *   palettes 1 and 2) and 9-13 (the background's palette block carries them); */
+     *   palettes 1 and 2) and 9-13 (the background's palette block carries them);
+ * • The ability room's door: Central Circle's own (AbilityRoomDoor()), where Central Circle has it, shown by the same world slot
+ *   (KatAM's switch); its tiles and colors are kept out of the ones the doors take, its tiles in palettes the doors took (its
+ *   mirror's, palette 0) recolored into those palettes' new colors; */
     internal static partial class KatAMExpansion {
         // The door palettes, per level;
         static readonly int[] DoorPalettes = { 1, 2, 0, 9, 10, 11, 12, 13 };
@@ -23,7 +26,7 @@ namespace KatAMRandomizer {
 
         static void BuildMainHub(byte[] rom, byte[] nightmare, IReadOnlyDictionary<string, int> symbols, int spriteTables, int hub, List<Door> hubDoors,
                                  int backgroundRecord, int[] tableSizes, List<int> infos, List<int> palettes, List<int> tilemaps, List<int> solidities,
-                                 List<int> backgrounds, List<int> objects, int noTypes, ref int cursor) {
+                                 List<int> backgrounds, List<int> objects, int noTypes, ref int cursor, out Door abilityRoomDoor) {
             int roomProps = symbols["gRoomProps"], roomInfos = symbols["gUnk_08D6CD0C"];
             int Props(int field) => ReadShort(rom, roomProps + EntryRoom * 0x28 + field * 2);
             int Entry(string table, int index) => ReadInt(rom, symbols[table] + index * 4) - 0x08000000;
@@ -40,8 +43,11 @@ namespace KatAMRandomizer {
             int[] colors = new int[96];
             for (int i = 0; i < 96; i++) colors[i] = ReadShort(rom, sourceColors + i * 2) & 0x7FFF;
             for (int i = 4 * 16 + 1; i < 96; i++) if (i % 16 != 0) colors[i] = NightTint(colors[i]);
+            (byte[] mirrorTemplate, List<byte[]> abilityBlocks, byte[] abilityDoor) = AbilityRoomDoor(rom, symbols, ReadInt(rom, solidity + 4) - 0x08000000);
+            List<int> abilityEntries = abilityBlocks.SelectMany(b => Enumerable.Range(0, 4).Select(q => ReadShort(b, 8 + q * 2))).ToList();
+            int[] sourceDoorColors = (int[])colors.Clone();
             // Its pink mirror back to Central Circle (MainHubReturn), as Central Circle's to here (not in the doors' palettes 0-2);
-            MirrorTwin(map, columns, tiles, colors, Enumerable.Empty<int>(), CycledColors(rom, paletteEntry), 3);
+            MirrorTwin(map, columns, tiles, colors, abilityEntries, CycledColors(rom, paletteEntry), 3);
             int[][] doorColors = new int[8][];
             // A pixel of the room's tilemap (RGB555, or -1: transparent);
             int RoomPixel(int x, int y) {
@@ -52,7 +58,7 @@ namespace KatAMRandomizer {
             }
 
             // The doors: their designs drawn over the room's pixels (bottom center on the door cell's), the tiles they touch made anew;
-            HashSet<int> usedTiles = Enumerable.Range(0, map.Length / 2).Select(i => ReadShort(map, i * 2) & 0x3FF).ToHashSet();
+            HashSet<int> usedTiles = Enumerable.Range(0, map.Length / 2).Select(i => ReadShort(map, i * 2) & 0x3FF).Concat(abilityEntries.Select(e => e & 0x3FF)).ToHashSet();
             Queue<int> freeTiles = new Queue<int>(Enumerable.Range(1, tiles.Length / 32 - 1).Where(t => !usedTiles.Contains(t)));
             byte[] sourceTiles = (byte[])tiles.Clone();
             Dictionary<(int x, int y), int[]> drawn = new Dictionary<(int, int), int[]>();
@@ -104,6 +110,25 @@ namespace KatAMRandomizer {
                 if (DoorPalettes[level] >= HubBackgroundPalette) continue;
                 for (int i = 0; i < 15; i++) colors[DoorPalettes[level] * 16 + 1 + i] = i < doorColors[level].Length ? doorColors[level][i] : 0;
             }
+            // The ability room's door: its tiles in a door's palette, copies in that palette's new colors;
+            Dictionary<int, int> recolored = new Dictionary<int, int>();
+            foreach (byte[] block in abilityBlocks) {
+                for (int q = 0; q < 4; q++) {
+                    int entry = ReadShort(block, 8 + q * 2), palette = entry >> 12, level = Array.IndexOf(DoorPalettes, palette);
+                    if ((entry & 0x3FF) == 0 || level < 0 || palette >= HubBackgroundPalette) continue;
+                    if (!recolored.TryGetValue(entry & 0xF3FF, out int copy)) {
+                        if (freeTiles.Count == 0) continue;
+                        int tile = freeTiles.Dequeue(), source = entry & 0x3FF;
+                        for (int i = 0; i < 32; i++) {
+                            int low = sourceTiles[source * 32 + i] & 0xF, high = sourceTiles[source * 32 + i] >> 4;
+                            int Recolor(int index) => index == 0 ? 0 : 1 + NearestColor(doorColors[level], sourceDoorColors[palette * 16 + index]);
+                            tiles[tile * 32 + i] = (byte)(Recolor(low) | Recolor(high) << 4);
+                        }
+                        recolored[entry & 0xF3FF] = copy = palette << 12 | tile;
+                    }
+                    WriteShort(block, 8 + q * 2, copy | entry & 0x0C00);
+                }
+            }
 
             int infoAt = Allocate(ref cursor, 16, 4), tilesAt = AllocateCompressed(rom, CompressLZ77(tiles), ref cursor);
             Array.Copy(rom, info, rom, infoAt, 16);
@@ -140,9 +165,19 @@ namespace KatAMRandomizer {
                 }
                 templates.Add(HubMirrorTemplate(door.X, door.Y - 1, templates.Count, door.Slot));
             }
+            abilityRoomDoor = null;
+            if (mirrorTemplate != null) {
+                abilityRoomDoor = new Door(abilityDoor[2], abilityDoor[3], ReadShort(abilityDoor, 8), abilityDoor[10], abilityDoor[11], abilityDoor[12], Slot: AbilityRoomSlot);
+                foreach (byte[] block in abilityBlocks) specials.AddRange(block);
+                specials.AddRange(abilityDoor);
+                mirrorTemplate[3] = (byte)templates.Count;
+                templates.Add(mirrorTemplate);
+            }
             List<byte> types = templates.Count > 0 ? new List<byte> { HubMirrorType } : new List<byte>();
             byte[] dimensionMirror = DimensionMirrorTemplate(rom, symbols);
             if (dimensionMirror != null) {
+                // (to the Power Orb's room, as Central Circle's: the finale, FinaleMirrors());
+                WriteShorts(dimensionMirror, 0x1A, finaleEntry.x, finaleEntry.y, finaleEntry.room);
                 dimensionMirror[3] = (byte)templates.Count;
                 templates.Add(dimensionMirror);
                 types.Add(ShardType);
@@ -180,6 +215,28 @@ namespace KatAMRandomizer {
             Array.Copy(rom, ReadInt(rom, roomInfos + 0x397 * 4) - 0x08000000, rom, roomInfo, 0x4C);
             WriteShort(rom, roomInfo + 0x44, hub);
             WriteInt(rom, roomInfos + hub * 4, roomInfo + 0x08000000);
+        }
+
+        /* AbilityRoomDoor(); Central Circle's door to the ability room: its hub mirror object (0x8C) of world slot AbilityRoomSlot (KatAM's
+         * own switch), the special blocks over the 3x3 cells above its door cell (the cell below the object's) that draw it, and its
+         * door record (kind 3), as Central Circle has them; null and none if it's not there; */
+        const byte AbilityRoomSlot = 0x12;
+        static (byte[] template, List<byte[]> blocks, byte[] door) AbilityRoomDoor(byte[] rom, IReadOnlyDictionary<string, int> symbols, int specials) {
+            int index = ReadShort(rom, symbols["gRoomProps"] + EntryRoom * 0x28 + 16 * 2);
+            int list = ReadInt(rom, symbols["gLevelObjLists"] + index * 4) - 0x08000000;
+            byte[] template = null;
+            for (int at = ReadInt(rom, list) - 0x08000000; rom[at] != 0 || rom[at + 1] != 0; at += 36)
+                if (rom[at + 12] == HubMirrorType && rom[at + 4] == AbilityRoomSlot) template = rom.Skip(at).Take(36).ToArray();
+            List<byte[]> blocks = new List<byte[]>();
+            byte[] door = null;
+            if (template == null) return (null, blocks, null);
+            int doorX = ReadShort(template, 6) / 16, doorY = ReadShort(template, 8) / 16 + 1;
+            for (int at = specials; rom[at + 4] != 0; at += rom[at + 4]) {
+                byte[] record = rom.Skip(at).Take(rom[at + 4]).ToArray();
+                if (record[0] == 1 && record.Length >= 16 && Math.Abs(record[2] - doorX) <= 1 && record[3] >= doorY - 2 && record[3] <= doorY) blocks.Add(record);
+                else if (record[0] == 3 && record[2] == doorX && record[3] == doorY) door = record;
+            }
+            return door == null ? (null, new List<byte[]>(), null) : (template, blocks, door);
         }
 
         /* DimensionMirrorTemplate(); Central Circle's Dimension Mirror: its mirror shard object (0x65) of subtype 8 (shard.c, CreateShard:

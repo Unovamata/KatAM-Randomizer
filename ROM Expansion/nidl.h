@@ -58,11 +58,12 @@ enum {
     NIDL_GIP,
     NIDL_APPLE,     // Whispy Woods' apples (enemies/apple.c), behavior NIDL_SPECIAL << 4 | 1: no room has them;
     NIDL_STAR,      // Mr. Shine's falling stars (enemies/star.c), behavior NIDL_SPECIAL << 4 | 2: no room has them;
+    NIDL_SPIT_STAR, // The star King Dedede spits the Kirbys he swallowed out in (enemies/spit_star.c), behavior NIDL_SPECIAL << 4 | 3;
     NIDL_ENEMY_COUNT,
 };
 /* The behavior's high nibble 15 (NIDL_SPECIAL) holds what isn't a room's enemy, by its low nibble: 0 a mini-boss fight's walls in
  * NiDL rooms (NIDL_ARENA, enemies/arena.c, with Broom Hatter's graphics, never shown), 1 an apple (NIDL_APPLE), 2 a falling star
- * (NIDL_STAR); */
+ * (NIDL_STAR), 3 King Dedede's spit star (NIDL_SPIT_STAR); */
 #define NIDL_SPECIAL 15
 #define NIDL_ARENA NIDL_ENEMY_COUNT
 
@@ -171,6 +172,27 @@ void NidlBossDefeat(struct Object *);
 // A boss rematch's Maxim Tomato's gone bit kind (template unk2; rooms.c's BigSub_08001678 calls NidlExitTomato with it, nidl_boss.c);
 #define NIDL_EXIT_KIND 4
 void NidlExitTomato(u16 slot, u32 eaten);
+void NidlDanceOut(u16 room);
+// The finale (finale.c): the Power Orb's and Nightmare's ends, the Power Orb's warp star;
+void PowerOrbBeaten(struct Object *orb);
+void NidlFinaleStarAt(u8 player, s32 x, s32 y);
+void PowerOrbEnd(struct Object *orb);
+void NightmareBeaten(struct Object *nightmare);
+void NightmareEnd(struct Object *nightmare);
+void NidlEndingFlight(u16 room);
+bool32 NidlOnEnding(struct Kirby *kirby);
+// The ending down from the moon (ending.c);
+void NidlEndingRider(struct Kirby *kirby);
+u32 NidlEndingRideSize(u16 room);
+bool32 NidlEndingOn(u16 room);
+void NidlFinaleKeep(struct Object *nightmare);
+bool32 NidlFinaleStarSpot(u16 room, s32 *x, s32 *y);
+bool32 NidlFinaleStar(struct Object *star);
+void NidlFinaleHoldCamera(u16 room, s32 x, s32 y);
+u32 PowerOrbRideSize(u16 room);
+u32 NightmareRideSize(u16 room);
+bool32 NightmareIntroOn(u16 room);
+void NightmareIntroRider(struct Kirby *kirby);
 const struct NidlGraphics *NidlGraphicsOf(struct NidlObject *);
 u32 NidlHurtTiles(struct Object *);
 void NidlUploadHurtTiles(struct NidlObject *);
@@ -178,6 +200,7 @@ void NidlInitPalette(struct NidlObject *);
 void NidlSetFrame(struct NidlObject *, u8 frame);
 u8 NidlLoadPalette(struct NidlObject *, u16 key, u8 frame);
 #define NIDL_SECOND_PALETTE 0x2000
+#define NIDL_THIRD_PALETTE 0x4000
 void NidlPlay(struct NidlObject *, const s16 *sequence);
 void NidlAnimate(struct NidlObject *);
 void NidlUpdate(struct NidlObject *);
@@ -232,6 +255,9 @@ void AppleInit(struct NidlObject *);
 void AppleStart(struct Object *);
 void StarInit(struct NidlObject *);
 void StarStart(struct Object *);
+void SpitStarInit(struct NidlObject *);
+void SpitStarStart(struct Object *);
+void SpitStarCarry(struct Object *star, u8 kirbys, bool8 left);
 
 // Mini-bosses;
 void PoppyBrosSrInit(struct NidlObject *);

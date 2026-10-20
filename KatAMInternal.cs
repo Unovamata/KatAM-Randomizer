@@ -538,6 +538,10 @@ namespace KatAMInternal
         public bool ReduceFlashing { get; set; }
         // Skip the Tutorial: a new save starts in Central Circle with the tutorial's big chest's item (KatAMExpansion.SkipTutorial);
         public bool SkipTutorial { get; set; }
+        // Unlock the Master Sword: its stand in Central Circle works from the start, not only after the game is beaten (KatAMExpansion.UnlockMasterSword);
+        public bool UnlockMasterSword { get; set; }
+        // Unlock the Ability Room: Central Circle's door to it open from the start, not only once the 15 big switches are pressed (KatAMExpansion.UnlockAbilityRoom);
+        public bool UnlockAbilityRoom { get; set; }
 
         public Settings() {
             Random seedGenerator = new Random();

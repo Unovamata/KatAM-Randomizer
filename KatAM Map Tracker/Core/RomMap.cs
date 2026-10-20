@@ -75,7 +75,8 @@ namespace KatAMMapTracker {
 
     /* ExpansionMiniboss; A mini-boss the randomizer's ROM Expansion ported from Nightmare in Dream Land: its object type (0x40-0x42), its
      * index (the behavior's high nibble picks it), its name and its sprite; */
-    public sealed record ExpansionMiniboss(int Type, int Index, string Name, Sprite Icon);
+    // Origin: for an icon drawn over its room (Whispy Woods: its trunk is the room's tiles), where its top-left is from the boss's spot;
+    public sealed record ExpansionMiniboss(int Type, int Index, string Name, Sprite Icon, (int x, int y)? Origin = null);
 
     /* RomVersion; The Japanese, American and European versions of the game hold the same data at different addresses.
      * Every block of data is moved as a whole, so the Japanese addresses below are translated with the shift of their block:
@@ -195,25 +196,35 @@ namespace KatAMMapTracker {
             int count = Read16(ExpansionTable + 8), entrySize = Read16(ExpansionTable + 10);
 
             IsExpanded = true;
-            for (int i = 0; i < count && entrySize >= 32 && ExpansionTable + 12 + (i + 1) * entrySize <= Rom.Length; i++) {
-                int entry = ExpansionTable + 12 + i * entrySize, icon = Read32(entry + 4);
-                string name = System.Text.Encoding.ASCII.GetString(Rom, entry + 8, 24).TrimEnd('\0');
-                Sprite sprite = null;
+            for (int i = 0; i < count && entrySize >= 32 && ExpansionTable + 12 + (i + 1) * entrySize <= Rom.Length; i++)
+                ReadExpansionEntry(ExpansionTable + 12 + i * entrySize);
+            // (the ported bosses' entries, the same, in a table of their own: "BS" at +0xCC, u16 count, its address; types 0x43, 0x44);
+            int bosses = ExpansionTable + 0xCC, table = ReadPointer(bosses + 4);
+            if (Rom[bosses] == 'B' && Rom[bosses + 1] == 'S' && table >= 0)
+                for (int i = 0; i < Read16(bosses + 2) && table + (i + 1) * entrySize <= Rom.Length; i++) ReadExpansionEntry(table + i * entrySize);
+        }
 
-                if (icon >= 0 && icon + 4 <= Rom.Length) {
-                    int width = Read16(icon), height = Read16(icon + 2);
+        // ReadExpansionEntry(); A ported mini-boss's or boss's map table entry (see ReadExpansion());
+        void ReadExpansionEntry(int entry) {
+            int icon = Read32(entry + 4);
+            string name = System.Text.Encoding.ASCII.GetString(Rom, entry + 8, 24).TrimEnd('\0');
+            Sprite sprite = null;
 
-                    if (width > 0 && height > 0 && icon + 4 + width * height * 2 <= Rom.Length) {
-                        int[] pixels = new int[width * height];
-                        for (int p = 0; p < pixels.Length; p++) {
-                            int color = Read16(icon + 4 + p * 2);
-                            if ((color & 0x8000) != 0) pixels[p] = ToArgb(color & 0x7FFF);
-                        }
-                        sprite = new Sprite(width, height, pixels);
+            if (icon >= 0 && icon + 4 <= Rom.Length) {
+                int width = Read16(icon), height = Read16(icon + 2);
+
+                if (width > 0 && height > 0 && icon + 4 + width * height * 2 <= Rom.Length) {
+                    int[] pixels = new int[width * height];
+                    for (int p = 0; p < pixels.Length; p++) {
+                        int color = Read16(icon + 4 + p * 2);
+                        if ((color & 0x8000) != 0) pixels[p] = ToArgb(color & 0x7FFF);
                     }
+                    sprite = new Sprite(width, height, pixels);
                 }
-                ExpansionMinibosses.Add(new ExpansionMiniboss(Rom[entry], Rom[entry + 1], name, sprite));
             }
+            // (+2, +3: an icon drawn over its room, its frame's origin + 128; 0 none);
+            (int x, int y)? origin = Rom[entry + 2] != 0 || Rom[entry + 3] != 0 ? (Rom[entry + 2] - 128, Rom[entry + 3] - 128) : null;
+            ExpansionMinibosses.Add(new ExpansionMiniboss(Rom[entry], Rom[entry + 1], name, sprite, origin));
         }
 
         /* ReadExpansionRooms(); An expanded ROM with the Nightmare in Dream Land rooms (KatAMExpansionRooms.cs) has its rooms block
@@ -425,6 +436,17 @@ namespace KatAMMapTracker {
 
                 int id = Rom[address + 12], x = Read16(address + 6), y = Read16(address + 8);
 
+                // (an Amazing Mirror the game hides, +0x22 bit 0: shard.c's CreateShard draws it never);
+                if (id == 0x65 && Rom[address + 14] == 8 && (Rom[address + 0x22] & 1) != 0) continue;
+
+                /* (a ROM Expansion boss, types 0x43 and 0x44 (KatAM places none), standing outside its fight's screen, its template's area
+                 * (+0x1A, +0x1C: its left and top from it, +0x1E, +0x20: its size): at that screen's middle, where it fights; the Power
+                 * Orb stands at its room's bottom, where its intro starts); */
+                if (id is 0x43 or 0x44) {
+                    int left = x + (short)Read16(address + 0x1A), top = y + (short)Read16(address + 0x1C), width = Read16(address + 0x1E), height = Read16(address + 0x20);
+
+                    if (width > 0 && height > 0 && (x < left || x >= left + width || y < top || y >= top + height)) (x, y) = (left + width / 2, top + height / 2);
+                }
                 room.Objects.Add(id == WarpStarObject ? new RoomObject(id, Rom[address + 14], x, y, Read16(address + 0x1E), (short)Read16(address + 0x1A), (short)Read16(address + 0x1C))
                                : id == FuseCannonObject ? new RoomObject(id, Rom[address + 14], x, y, Read16(address + 0x12), Rom[address + 0x18], Rom[address + 0x19])
                                : new RoomObject(id, Rom[address + 14], x, y));
@@ -448,7 +470,11 @@ namespace KatAMMapTracker {
 
                 if (size == 0) break;
 
-                if (Rom[address] == DoorObjectType) {
+                // (a ported room's door where its Mirra can land, marked "ML" past the record: drawn where the Mirra stands, its own door;
+                // KatAMExpansionRooms.cs' MirraLandings());
+                bool mirraLanding = size >= 16 && Rom[address + 14] == 'M' && Rom[address + 15] == 'L';
+
+                if (Rom[address] == DoorObjectType && !mirraLanding) {
                     int destination = Read16(address + 8);
 
                     if (!doorTiles.ContainsKey(destination)) doorTiles[destination] = new List<(int x, int y)>();

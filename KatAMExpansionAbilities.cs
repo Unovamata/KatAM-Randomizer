@@ -1,15 +1,16 @@
 ﻿namespace KatAMRandomizer {
-    /* KatAMExpansion's abilities: NiDL's Needle, Freeze, Light, Ball, Hi-Jump, Mike and Backdrop, as KatAM abilities 27-33 (see "ROM
-     * Expansion/abilities.h").
+    /* KatAMExpansion's abilities: NiDL's Needle, Freeze, Light, Ball, Hi-Jump, Mike and Backdrop, as KatAM abilities 27-33, and its Star
+     * Rod, 34, which only the Power Orb's fight gives (see "ROM Expansion/abilities.h").
      * • Every table KatAM indexes by ability is copied to the expansion with 34 entries (AbilityTables), and the game's code (literal pools
      *   in 0x08000000-0x08160000) points to the copy. The new entries are gNidlAbilityTables', or the base ability's.
      * • The ability field is widened to 6 bits (WidenAbilityField); swallowing (sub_080547C4) is detoured to NidlSwallow;
-     * • sub_080356AC (HUD portraits) and sub_08088640 (special portraits) are detoured to the C code (see Detour); */
+     * • sub_080356AC (HUD portraits) and sub_08088640 (special portraits) are detoured to the C code (see Detour), and sub_0804A728 (Kirby
+     *   hit), so the Star Rod isn't lost to a hit; */
     internal static partial class KatAMExpansion {
-        const int FirstAbility = 27, NewAbilities = 7, AbilitySlots = FirstAbility + NewAbilities, PortraitTiles = 30;
+        const int FirstAbility = 27, NewAbilities = 8, AbilitySlots = FirstAbility + NewAbilities, PortraitTiles = 30;
 
-        // NiDL's IDs of the new abilities (Needle, Freeze, Light, Ball, Hi-Jump, Mike, Backdrop), for their cards;
-        static readonly int[] NightmareAbilities = { 12, 14, 21, 18, 15, 7, 22 };
+        // NiDL's IDs of the new abilities (Needle, Freeze, Light, Ball, Hi-Jump, Mike, Backdrop, Star Rod), for their cards;
+        static readonly int[] NightmareAbilities = { 12, 14, 21, 18, 15, 7, 22, 25 };
 
         // gNidlAbilityTables' fields: base (a byte each, padded), then the B on land, B in water and setup functions;
         const int LandBField = (NewAbilities + 3) & ~3, WaterBField = LandBField + NewAbilities * 4, SetupField = WaterBField + NewAbilities * 4;
@@ -69,6 +70,11 @@
             WriteShort(rom, randomType, 0x3B);
             if (Detour(rom, version.RomSymbols["sub_080547C4"], codeBase + version.CodeSymbols["NidlSwallow"], ref cursor) < 0
                 || !WidenAbilityField(rom)) return $"The {version.Name} ROM's swallowing code doesn't match.";
+
+            // Kirby hit (sub_0804A728): the Star Rod isn't lost to a hit (NidlKirbyHit, "ROM Expansion/abilities.c");
+            int hit = Detour(rom, version.RomSymbols["sub_0804A728"], codeBase + version.CodeSymbols["NidlKirbyHit"], ref cursor);
+            if (hit < 0) return $"The {version.Name} ROM's hit code doesn't match.";
+            WriteInt(rom, CodeAddress + version.CodeSymbols["gNidlKirbyHitOriginal"], hit + 0x08000000 + 1);
 
             /* Portraits: NiDL's ability cards, the same 5x6 tiles as KatAM's (the name, then the picture), stored as two groups of 16 tiles
              * (rows 0, 2, 4, then 1, 3, 5); KatAM's are row by row; */

@@ -30,16 +30,18 @@ namespace KatAMRandomizer {
         // Palette15: NiDL's shared object palette 15 (the level loads it; the Poppy Bros. Jr.'s ball and bomb are drawn with it);
         /* Cards: the ability cards (HUD portraits) by NiDL ability: palette pointers (CardPalettes + ability * CardPaletteStride) and tiles
          * pointers (CardTiles + ability * CardTileStride; Europe's are per language, English first); RoomTable: the rooms (see
-         * KatAMExpansionRooms.cs); */
+         * KatAMExpansionRooms.cs); EndingFrames: the frame table of NiDL's ending down from the moon (USA 0x08755708: the European one
+         * moved by neither shift; see EndingGraphics()); */
         sealed record NightmareRegion(string GameCode, int Descriptors, int FrameShift, string KatAM, int Palette15,
-                                      int CardPalettes, int CardPaletteStride, int CardTiles, int CardTileStride, int RoomTable, int LateShift);
+                                      int CardPalettes, int CardPaletteStride, int CardTiles, int CardTileStride, int RoomTable, int LateShift,
+                                      int EndingFrames);
         const int LateFrames = 0x753E3C;
         static int FrameAddress(NightmareRegion region, int usa) => usa + (usa >= LateFrames ? region.LateShift : region.FrameShift);
 
         static readonly NightmareRegion[] NightmareRegions = {
-            new NightmareRegion("A7KE", 0x73EEA0, 0, "USA", 0x0D07A8, 0x731A90, 8, 0x731A94, 8, 0x7E1D58, 0),
-            new NightmareRegion("A7KJ", 0x742DAC, 0x3A8C, "Japan", 0x0CFF60, 0x73599C, 8, 0x7359A0, 8, 0x7E60DC, 0x3A8C),     // Hoshi no Kirby: Yume no Izumi Deluxe;
-            new NightmareRegion("A7KP", 0x97B678, 0x23C7EC, "Europe", 0x0D3228, 0x96D770, 4, 0x96D7E0, 20, 0xBFD8E8, 0x23CA5C),
+            new NightmareRegion("A7KE", 0x73EEA0, 0, "USA", 0x0D07A8, 0x731A90, 8, 0x731A94, 8, 0x7E1D58, 0, 0x755708),
+            new NightmareRegion("A7KJ", 0x742DAC, 0x3A8C, "Japan", 0x0CFF60, 0x73599C, 8, 0x7359A0, 8, 0x7E60DC, 0x3A8C, 0x759194),     // Hoshi no Kirby: Yume no Izumi Deluxe;
+            new NightmareRegion("A7KP", 0x97B678, 0x23C7EC, "Europe", 0x0D3228, 0x96D770, 4, 0x96D7E0, 20, 0xBFD8E8, 0x23CA5C, 0x99288C),
         };
 
         static NightmareRegion RegionOf(byte[] rom) => rom == null || rom.Length < 0x800000 ? null
@@ -57,9 +59,17 @@ namespace KatAMRandomizer {
         /* Part; A NiDL frame (from the enemy's frame table, or Table when the enemy has more than one), recolored, drawn with NiDL's
          * palette 15 or with another of the descriptor's palettes (Palette), Dx, Dy pixels from the others (NiDL draws some bosses as
          * several frames); Common: from NiDL's shared object tiles (CommonTiles, its effects: Whispy Woods' puffs) instead; OnlyPalette:
-         * only its pieces NiDL draws with that palette (its OAM's; NiDL draws Kracko with several at once, a KatAM sprite with one); */
+         * only its pieces NiDL draws with that palette (its OAM's; NiDL draws Kracko with several at once, a KatAM sprite with one);
+         * OrbShots: from the Power Orb's shots' own tiles and palette (OrbShotGraphics(): raw tiles the orb loads for them); StarRod: the
+         * shared tiles with the Star Rod's star over some (StarRodTiles()); Shared: its pieces with the same tiles drawn from the same
+         * tiles of the frame (the Power Orb's slash: up to 17 pieces, 4 different ones); Tile: instead, one 8x8 tile of NiDL's (4 bits
+         * a pixel, its palette 15's colors) around the origin (the dot NiDL draws the Power Orb as, far off in the moon); Cutscene: a
+         * frame of NiDL's cutscene of Nightmare's arrival (CutsceneGraphics(): its own frame table, tiles and two palettes; 1 its first
+         * tiles, the comet's, 2 its second, the blue star's); Ending: a frame of NiDL's ending down from the moon (EndingGraphics(): the
+         * region's EndingFrames, its own tiles and five palettes); */
         sealed record Part(int Frame, Dictionary<int, int> Recolor = null, int Table = 0, bool Palette15 = false, int Palette = 0, int Descriptor = -1,
-                           int Dx = 0, int Dy = 0, bool Common = false, int OnlyPalette = -1);
+                           int Dx = 0, int Dy = 0, bool Common = false, int OnlyPalette = -1, bool OrbShots = false, bool StarRod = false,
+                           bool Shared = false, byte[] Tile = null, int Cutscene = 0, bool Ending = false);
 
         /* Enemy; A ported enemy: its index (NIDL_* in nidl.h), name, NiDL object type and frame table, its frames (in the order the
          * C code numbers them), its hurt frame, palette changes, the letters of its name and the behavior bytes the randomizer uses; */
@@ -77,10 +87,13 @@ namespace KatAMRandomizer {
          * type (MinibossIDs). HurtShift
          * moves the hurt frame that many pixels down within it, for mini-bosses too tall for it, and every frame as much (the C code moves
          * its boxes as much down: DRAWN_LOWER in fire_lion.c, the same value). ExtraHurts follow the hurt frame (the C code picks one: the
-         * object's hurt). Icon: the frames the map tracker shows for it (frame 0 if none; see WriteMapTable); */
+         * object's hurt). Icon: the frames the map tracker shows for it (frame 0 if none; see WriteMapTable); IconOverRoom: its one icon
+         * frame is drawn over its room there (Whispy Woods' trunk is the room's tiles, only its face is a sprite); IconCells (instead of Icon):
+         * its icon's cells side by side, each its frames drawn on each other where the game draws them, from their origins (Kracko: its
+         * cloud's top, its bottom and its eye, sprites at one spot; Mr. Bright: his face over his body); */
         sealed record Miniboss(int Index, string Name, int NightmareIndex, int FrameTable, List<Part[]> Frames, Part[] Hurt,
                                (int type, int letter)[] Glyphs, byte[] Behaviors, int HurtShift = 0, byte Type = 0x40,
-                               List<Part[]> ExtraHurts = null, int[] Icon = null);
+                               List<Part[]> ExtraHurts = null, int[] Icon = null, bool IconOverRoom = false, int[][] IconCells = null, int EffectOnly = 0);
 
         /* Mini-boss object types: an object's frame index is a byte, so the mini-bosses are spread over types 0x40-0x42 (all mini-bosses
          * to KatAM), each with its own AnimInfo table; the behavior byte picks the mini-boss either way; */
@@ -96,7 +109,7 @@ namespace KatAMRandomizer {
         static readonly MinibossHurt BigHurt = new MinibossHurt(64, 96, 32, 48, new[] { (0, 3, 0, 0, 0), (1, 3, 0, 64, 64) }),
                                      KnightHurt = new MinibossHurt(32, 64, 16, 28, new[] { (2, 3, 0, 0, 0) });
         static MinibossHurt HurtOf(byte type) => type == 0x42 ? KnightHurt : BigHurt;    // (and the bosses', 0x43);
-        const int EnemyCount = 17;  // NIDL_ENEMY_COUNT: gNidlData's mini-bosses follow its enemies;
+        const int EnemyCount = 18;  // NIDL_ENEMY_COUNT: gNidlData's mini-bosses follow its enemies;
         const int MinibossCount = 6;    // NIDL_MINIBOSS_COUNT: gNidlData's bosses follow its mini-bosses;
 
         /* Bosses (object type 0x43, see "ROM Expansion/nidl_boss.c"): Miniboss records too (their index is NIDL_* bosses in nidl.h), built
@@ -152,6 +165,20 @@ namespace KatAMRandomizer {
             Gip(),
             Apple(),
             FallingStar(),
+            SpitStar(),
+        };
+
+        /* ParadeLoops; The ported enemies the intro's parade shows (KatAMTitleScreen.AddNidlTypes): their kind there (KatAMTitleScreen's
+         * Kinds: 0 small ground walkers, 2 fliers) and the loop their sprite plays (frame, frames shown: their walk or flight, as their
+         * C code plays it; "enemies/*.c"), an extra variant of their anim; */
+        static readonly Dictionary<string, (int kind, (int frame, int delay)[] loop)> ParadeLoops = new Dictionary<string, (int, (int, int)[])> {
+            ["Blade Knight"] = (0, new[] { (1, 6), (5, 8), (3, 5), (4, 11), (3, 6), (5, 8), (1, 5), (0, 11) }),
+            ["Needlous"] = (0, new[] { (0, 4), (1, 4), (2, 6), (1, 2) }),
+            ["Starman"] = (0, new[] { (0, 4), (4, 6), (6, 10), (5, 6), (0, 4), (1, 6), (2, 10), (3, 6) }),
+            ["Gip"] = (0, new[] { (2, 8), (3, 6), (0, 8), (1, 6) }),
+            ["Twizzy"] = (2, new[] { (0, 4), (1, 4) }),
+            ["Cool Spook"] = (2, new[] { (0, 12), (1, 12), (2, 12), (3, 12) }),
+            ["Bubbles"] = (2, new[] { (0, 20), (10, 2), (14, 4), (10, 2) }),
         };
 
         static KatAMExpansion() {
@@ -237,7 +264,7 @@ namespace KatAMRandomizer {
                     (0x00, 0), (0x23, 1), (0x26, 4), (0x04, 4), (0x02, 3), (0x05, 5), (-1, -1),   // "W" (Waddle Dee), "h" (Shooty), "i" (Cookin), "s" (Squishy), "p" (Blipper), "y" (Scarfy), space;
                     (0x00, 0), (0x1E, 1), (0x1E, 1), (0x1E, 2), (0x04, 4),                        // "W" (Waddle Dee), "o", "o", "d" (Noddy), "s" (Squishy);
                 },
-                new byte[0], Type: BossID, Icon: new[] { 17 });
+                new byte[0], Type: BossID, Icon: new[] { 4 }, IconOverRoom: true);
         }
 
         /* Kracko; NiDL boss 6 (type 0x41, Grape Garden's), its cloud fight. NiDL draws it with three palettes at once (the cloud's top 0,
@@ -260,7 +287,7 @@ namespace KatAMRandomizer {
 
             return new Miniboss(1, "Kracko", 36, 0x7543E8, frames, new[] { new Part(12, OnlyPalette: 0) },
                 new[] { (0x45, 0), (0x45, 1), (0x45, 2), (0x45, 3), (0x45, 4), (0x45, 5) },    // "Kracko" (KatAM's own Kracko);
-                new byte[0], Type: BossID);
+                new byte[0], Type: BossID, IconCells: new[] { new[] { 0, 3, 6 } });
         }
 
         /* Mr. Shine & Mr. Bright; NiDL boss 4 (type 0x3F, Butter Building's). Two frame tables of one descriptor: Mr. Shine's (0x08754210:
@@ -287,7 +314,7 @@ namespace KatAMRandomizer {
                     (0x04, 0), (0x23, 1), (0x26, 4), (0x26, 5), (0x02, 5), (-1, -1),               // "S" (Squishy), "h" (Shooty), "in" (Cookin), "e" (Blipper), space;
                     (0x28, 0), (0x01, 1), (0x26, 4), (0x11, 2), (0x23, 1), (0x01, 4),              // "B" (Bomber), "r" (Bronto Burt), "i", "g" (Big Waddle Dee), "h", "t" (Bronto Burt);
                 },
-                new byte[0], Type: BossID);
+                new byte[0], Type: BossID, IconCells: new[] { new[] { 0 }, new[] { 15, 39 } });
         }
 
         /* Meta Knight; NiDL boss 2 (type 0x3D, Orange Ocean's). His body is streamed frames (0x08753BB4: his cape 0-9, his poses 21-52,
@@ -305,7 +332,7 @@ namespace KatAMRandomizer {
                     (0x38, 0), (0x14, 4), (0x14, 2), (0x14, 5), (-1, -1),                          // "M" (Mr.Frosty), "eta" (Hot Head), space;
                     (0x1A, 5), (0x1A, 6), (0x1A, 7), (0x1A, 8), (0x1A, 9), (0x1A, 10),             // "Knight" (Sword Knight);
                 },
-                new byte[0], Type: BossID);
+                new byte[0], Type: BossID, IconCells: new[] { new[] { 0, 10 } });
         }
 
         /* Paint Roller; NiDL boss 1 (type 0x3C, Ice Cream Island's). His frames are streamed frames with two palettes each (0x08753994),
@@ -322,7 +349,7 @@ namespace KatAMRandomizer {
                     (0x16, 0), (0x2D, 1), (0x26, 4), (0x26, 5), (0x23, 4), (-1, -1),               // "P" (Pengy), "a" (Batty), "in" (Cookin), "t" (Shooty), space;
                     (0x17, 0), (0x1E, 1), (0x02, 1), (0x02, 1), (0x02, 5), (0x01, 1),              // "R" (Rocky), "o" (Noddy), "ll" (Blipper), "e", "r" (Bronto Burt);
                 },
-                new byte[0], Type: BossID2);
+                new byte[0], Type: BossID2, IconCells: new[] { new[] { 0, 41 } });
         }
 
         /* Heavy Mole; NiDL boss 3 (type 0x3E, Yogurt Yard's; mini-boss descriptor 33, five palettes). Frames as bosses/heavy_mole.c numbers
@@ -349,7 +376,7 @@ namespace KatAMRandomizer {
          * bosses/dedede.c's sFrames), the first palette's pieces, then the same, the second's (drawn as two sprites). Type 0x44. Hurt:
          * standing (4), its first palette's pieces; */
         static Miniboss KingDedede() {
-            int[] used = { 4, 5, 6, 7, 13, 14, 15, 16, 17, 18, 19, 24, 25, 26, 27, 28, 34, 35, 36, 39, 41, 42, 43 };
+            int[] used = { 4, 5, 6, 7, 13, 14, 15, 16, 17, 18, 19, 24, 25, 26, 27, 28, 29, 34, 35, 36, 39, 41, 42, 43 };
             List<Part[]> frames = new List<Part[]>();
 
             for (int palette = 0; palette < 2; palette++)
@@ -363,32 +390,71 @@ namespace KatAMRandomizer {
                 new byte[0], Type: BossID2);
         }
 
-        /* Nightmare's Power Orb; NiDL boss 7 (type 0x42, the Fountain of Dreams' first; mini-boss descriptor 37): 0x087544B4's 0-7, spinning
-         * (plain frames). Type 0x44. Hurt: its 0; */
-        static Miniboss PowerOrb() => new Miniboss(7, "Power Orb", 37, 0x7544B4, Enumerable.Range(0, 8).Select(f => new[] { new Part(f) }).ToList(),
+        // OrbDot; The Power Orb's end's dot: 3 black pixels across (NiDL's palette 15's color 7), as NiDL loads it with the orb's end (its
+        // VRAM's tile 28); (a property: the bosses' list is made before the static fields after it);
+        static byte[] OrbDot => Convert.FromHexString("0000000000000000000000000000770000007707000077000000000000000000");
+        /* Nightmare's Power Orb; NiDL boss 7 (type 0x42, the Fountain of Dreams' first; mini-boss descriptor 37): only the frames it uses
+         * (type 0x44's 256 are shared): 0x087544B4's 4-7, spinning, 8-11 shrinking (11, the smallest, blinks as it charges), then its
+         * shots' (its 20-29 and 39-42, OrbShots: the spinning star 20-23, squashed as it dashes 24-27, the crescents 28-29, the sparkles
+         * a dashing star trails 39-42), then the slash Kirby's swing makes in its intro (its 14-19, a line of pieces growing across the
+         * screen; Shared, 16 tiles; its second palette), then its end's dot (OrbDot: NiDL draws the orb and the star with its Kirbys so
+         * far off in the moon; EffectOnly, only its end's effect draws it, as type 0x44's 256 frames are full), numbered from 0
+         * (bosses/power_orb.c). Type 0x44. Hurt: its 0; */
+        static Miniboss PowerOrb() => new Miniboss(7, "Power Orb", 37, 0x7544B4,
+            Enumerable.Range(4, 8).Select(f => new[] { new Part(f) })
+                .Concat(Enumerable.Range(20, 10).Concat(Enumerable.Range(39, 4)).Select(f => new[] { new Part(f, OrbShots: true) }))
+                .Concat(Enumerable.Range(14, 6).Select(f => new[] { new Part(f, Shared: true) }))
+                .Concat(new[] { new[] { new Part(0, Tile: OrbDot) } }).ToList(),
             new[] { new Part(0) },
             new[] {
                 (0x16, 0), (0x1E, 1), (0x1C, 1), (0x02, 5), (0x01, 1), (-1, -1),               // "P" (Pengy), "o" (Noddy), "w" (Twister), "e" (Blipper), "r" (Bronto Burt), space;
                 (0x1B, 2), (0x01, 1), (0x28, 3),                                                // "O" (UFO), "r", "b" (Bomber);
             },
-            new byte[0], Type: BossID2);
+            new byte[0], Type: BossID2, EffectOnly: 1);
 
         /* Nightmare; NiDL boss 8 (type 0x43, the Fountain of Dreams' last; mini-boss descriptor 38). His frames are streamed frames with
          * three palettes (0x0875456C's 8-15, cut by palette: 0-7 the first's pieces, 8-15 the second's, 16-23 the third's; bosses/
-         * nightmare.c draws them as three sprites), then his beams (61-63, their own palette). Type 0x44. Hurt: his collar and arms (8); */
+         * nightmare.c draws them as three sprites), then his beams (61-63, their own palette), then his intro's (EffectOnly: its effects
+         * draw them): the comet he arrives as and the blue star he throws (Cutscene, the cutscene's 0-5 and 6), the burst a blue star
+         * makes (NiDL's shared effects' 0x0874CA78, its 0-22, with the shared tiles and palette 15), the puff as it hits Kirby's star
+         * (the shared effects' 0x0874C9D8, 0-16), then his own light growing into his shape as he appears (his 67 down to 61, one
+         * palette each, then 60, his shape in white); then his defeat's and the ending's (see below; those too only for effects). Type
+         * 0x44. Hurt: his collar and arms (8); */
         static Miniboss Nightmare() {
             List<Part[]> frames = new List<Part[]>();
 
             for (int palette = 0; palette < 3; palette++)
                 frames.AddRange(Enumerable.Range(8, 8).Select(f => new[] { new Part(f, OnlyPalette: palette) }));
             frames.AddRange(Enumerable.Range(61, 3).Select(f => new[] { new Part(f) }));
+            frames.AddRange(Enumerable.Range(0, 7).Select(f => new[] { new Part(f, Cutscene: f < 6 ? 1 : 2) }));
+            frames.AddRange(Enumerable.Range(0, 23).Select(f => new[] { new Part(f, Table: 0x74CA78, Palette15: true, Common: true) }));
+            frames.AddRange(Enumerable.Range(0, 17).Select(f => new[] { new Part(f, Table: 0x74C9D8, Palette15: true, Common: true) }));
+            frames.AddRange(Enumerable.Range(60, 8).Reverse().Select(f => new[] { new Part(f) }));
+            // (his defeat, bosses/nightmare.c's NightmareEnd(): 82-93 NiDL's 68-71, flying off, cut by palette; 94-95 50-51, caped (his
+            // third palette); 96-105 76-80, spreading out, cut by palette (the first two); 106-113 81-88, breaking up (81 his first
+            // palette, 82-88 his light's); 114-118 the light over him, frames 13-17 of 0x08754738, his descriptor's tiles and first palette;
+            // 119-120 96, his top half over his caped body as NiDL draws it with 48-55, cut by palette (his first two));
+            for (int palette = 0; palette < 3; palette++)
+                frames.AddRange(Enumerable.Range(68, 4).Select(f => new[] { new Part(f, OnlyPalette: palette) }));
+            frames.AddRange(Enumerable.Range(50, 2).Select(f => new[] { new Part(f) }));
+            for (int palette = 0; palette < 2; palette++)
+                frames.AddRange(Enumerable.Range(76, 5).Select(f => new[] { new Part(f, OnlyPalette: palette) }));
+            frames.AddRange(Enumerable.Range(81, 8).Select(f => new[] { new Part(f) }));
+            frames.AddRange(Enumerable.Range(13, 5).Select(f => new[] { new Part(f, Table: 0x754738) }));
+            frames.AddRange(Enumerable.Range(0, 2).Select(palette => new[] { new Part(96, OnlyPalette: palette) }));
+            // (the ending down from the moon, "ROM Expansion/ending.c": 121-124 King Dedede flying by, the ending's frames 64, 66-68 (near,
+            // then far off: EndingGraphics()); 125-139 the moon's burst, NiDL's shared effects 0x0874CEE8's 0-14; 140-166 the warp star's
+            // trail, twinkles and small stars, 0x0874CF28's 0-26 (those two with the shared tiles and palette 15));
+            frames.AddRange(new[] { 64, 66, 67, 68 }.Select(f => new[] { new Part(f, Ending: true) }));
+            frames.AddRange(Enumerable.Range(0, 15).Select(f => new[] { new Part(f, Table: 0x74CEE8, Palette15: true, Common: true, Shared: true) }));
+            frames.AddRange(Enumerable.Range(0, 27).Select(f => new[] { new Part(f, Table: 0x74CF28, Palette15: true, Common: true, Shared: true) }));
 
             return new Miniboss(8, "Nightmare", 38, 0x75456C, frames, new[] { new Part(8, OnlyPalette: 0) },
                 new[] {
                     (0x1E, 0), (0x26, 4), (0x29, 8), (0x29, 9), (0x29, 10),                        // "N" (Noddy), "i" (Cookin), "ght" (Heavy Knight);
                     (0x28, 2), (0x2D, 1), (0x01, 1), (0x02, 5),                                    // "m" (Bomber), "a" (Batty), "r" (Bronto Burt), "e" (Blipper);
                 },
-                new byte[0], Type: BossID2);
+                new byte[0], Type: BossID2, EffectOnly: 140);
         }
 
         /* Apple; Whispy Woods' apples (NiDL object 0x7D, its own frame table 0x08754308: Whispy Woods' frames 18-37, its second palette).
@@ -404,6 +470,18 @@ namespace KatAMRandomizer {
             new[] { new Part(38, Palette: 1) }, new Dictionary<int, ushort>(),
             new[] { (0x04, 0), (0x23, 4), (0x2D, 1), (0x01, 1) },   // "S" (Squishy), "t" (Shooty), "a" (Batty), "r" (Bronto Burt);
             new byte[0], Descriptor: 34, Palette: 1, Hidden: true);
+
+        /* Spit star; the star King Dedede spits the Kirbys he swallowed out in (NiDL object 0x70: frames of NiDL's shared effects,
+         * 0x0874C44C, with its shared tiles and palette 15): 4 the star, 35-37 its burst, then the sparkles of his inhale (45); and,
+         * from 5, the Star Rod's star (abilities/star_rod.c: NiDL's object 6, its 38-41 spinning, 42-43 its trail's sparkle, then its
+         * burst, 0x0874C650's 0-10). Not hit; hurt: its star; */
+        static Enemy SpitStar() => new Enemy(17, "Spit Star", 0, 0x74C44C,
+            new[] { 4, 35, 36, 37, 45 }.Select(f => new[] { new Part(f, Palette15: true, Common: true) })
+                .Concat(new[] { 38, 39, 40, 41, 42, 43 }.Select(f => new[] { new Part(f, Palette15: true, StarRod: true) }))
+                .Concat(Enumerable.Range(0, 11).Select(f => new[] { new Part(f, Table: 0x74C650, Palette15: true, Common: true) })).ToList(),
+            new[] { new Part(4, Palette15: true, Common: true) }, new Dictionary<int, ushort>(),
+            new[] { (0x04, 0), (0x23, 4), (0x2D, 1), (0x01, 1) },   // "S" (Squishy), "t" (Shooty), "a" (Batty), "r" (Bronto Burt);
+            new byte[0], Descriptor: 30, Hidden: true);
 
         /* Poppy Bros. Sr.; NiDL mini-boss 1 (type 0x32). Frames: every body frame (NiDL's 4-9, hopping) with every head frame over it (12-19,
          * drawn by its head object in NiDL), then its hands (20-25) and its bomb (26-30, NiDL's second palette). Hurt: NiDL's 10;
@@ -675,10 +753,14 @@ namespace KatAMRandomizer {
             (int animBase, int animId, int hurtTiles)[] minibossData = new (int, int, int)[allBosses.Count];
             List<(int animId, int variant)> animInfos = new List<(int, int)> { (HurtAnimID, 0), (HurtAnimID, 0) };
 
+            List<KatAMTitleScreen.NidlType> paradeTypes = new List<KatAMTitleScreen.NidlType>();
+
             /* AddAnim(); One anim (its ID: the next free one) for an enemy's or mini-boss's palettes, frames and hurt frame; its frames go
-             * to the type's AnimInfo table infos. Returns its first AnimInfo, anim ID and where its hurt frame went; */
+             * to the type's AnimInfo table infos (but the last effectOnly: only its effects draw them, by the anim's variants). Returns its
+             * first AnimInfo, anim ID and where its hurt frame went. An enemy in the parade (ParadeLoops) gets a variant more, after its
+             * frames: its loop, and a parade type; */
             (int, int, int) AddAnim(List<byte[]> palettes, List<(byte[] tiles, ushort[] oams, short[] attributes, int palette)> frames, byte[] hurt,
-                                    List<(int animId, int variant)> infos) {
+                                    List<(int animId, int variant)> infos, string parade = null, int effectOnly = 0) {
                 int animId = HurtAnimID + animVariants.Count;
 
                 // Tiles and palettes are indexes from their table's base, so they are aligned to it;
@@ -694,10 +776,13 @@ namespace KatAMRandomizer {
                 int tileIndex = (tilesAt - tilesBase) / 32;
                 int oamCount = frames.Sum(f => f.oams.Length);
                 int attributesAt = Allocate(ref cursor, frames.Count * 12, 4), oamsAt = Allocate(ref cursor, oamCount * 2, 4);
-                int variantsAt = Allocate(ref cursor, frames.Count * 4, 4);
+                bool inParade = parade != null && ParadeLoops.ContainsKey(parade);
+                int variantsAt = Allocate(ref cursor, (frames.Count + (inParade ? 1 : 0)) * 4, 4);
+                int[] frameTiles = new int[frames.Count];
 
                 // Animation commands of every frame: GetPalette, GetTiles, ShowFrame and End (holds the frame);
                 for (int i = 0, tile = 0, oam = 0; i < frames.Count; i++) {
+                    frameTiles[i] = tile;
                     (byte[] tiles, ushort[] oams, short[] attributes, int palette) = frames[i];
                     int commands = Allocate(ref cursor, 36, 4);
 
@@ -711,8 +796,27 @@ namespace KatAMRandomizer {
                     oam += oams.Length;
                 }
 
+                /* The parade's loop: each step's GetPalette, GetTiles and ShowFrame (8 words), then JumpBack to the first; its type stands
+                 * on the line the parade walks on (its frames' lowest point: height - origin's y), as wide as its widest frame; */
+                if (inParade) {
+                    (int kind, (int frame, int delay)[] loop) = ParadeLoops[parade];
+                    int commands = Allocate(ref cursor, loop.Length * 32 + 8, 4);
+
+                    for (int s = 0; s < loop.Length; s++) {
+                        (int frame, int delay) = loop[s];
+                        int palette = frames[frame].palette;
+                        WriteInts(rom, commands + s * 32, -2, palette < 0 ? palette15Index : paletteIndexes[palette], 16, -1,
+                                  tileIndex + frameTiles[frame], frames[frame].tiles.Length / 32, delay, frame);
+                    }
+                    WriteInts(rom, commands + loop.Length * 32, -3, loop.Length * 8);
+                    WriteInt(rom, variantsAt + frames.Count * 4, commands + 0x08000000);
+                    var shown = loop.Select(s => frames[s.frame]).ToList();
+                    paradeTypes.Add(new KatAMTitleScreen.NidlType(kind, animId, frames.Count, shown.Max(f => f.tiles.Length / 32),
+                                                                  (shown.Max(f => (int)f.attributes[2]) + 7) & ~7, shown.Max(f => f.attributes[3] - f.attributes[5])));
+                }
+
                 int animBase = infos.Count;
-                for (int i = 0; i < frames.Count; i++) infos.Add((animId, i));
+                for (int i = 0; i < frames.Count - effectOnly; i++) infos.Add((animId, i));
 
                 animVariants.Add(variantsAt);
                 animAttributes.Add(attributesAt);
@@ -721,7 +825,7 @@ namespace KatAMRandomizer {
             }
 
             foreach ((Enemy enemy, byte[] palette, List<(byte[] tiles, ushort[] oams, short[] attributes, int palette)> frames, byte[] hurt) in built)
-                data.Add(AddAnim(new List<byte[]> { palette }, frames, hurt, animInfos));
+                data.Add(AddAnim(new List<byte[]> { palette }, frames, hurt, animInfos, enemy.Name));
 
             /* Per mini-boss type: its hurt anim (HurtOf: drawing the last tiles of the object's VRAM, after the type's biggest frame), then
              * its mini-bosses' anims; */
@@ -754,7 +858,7 @@ namespace KatAMRandomizer {
                 List<(int animId, int variant)> infos = minibossAnimInfos[type] = Enumerable.Repeat((typeHurtAnimID, 0), 3).ToList();
                 foreach (int i in ofType) {
                     (List<byte[]> palettes, List<(byte[] tiles, ushort[] oams, short[] attributes, int palette)> frames, byte[] hurt) = builtMinibosses[i];
-                    minibossData[i] = AddAnim(palettes, frames, hurt, infos);
+                    minibossData[i] = AddAnim(palettes, frames, hurt, infos, effectOnly: allBosses[i].EffectOnly);
                 }
                 if (infos.Count > 256) throw new InvalidOperationException($"The ported mini-bosses of type 0x{type:X2} have more than 256 frames.");
             }
@@ -786,6 +890,10 @@ namespace KatAMRandomizer {
                 for (int i = 0; i < entries[t].Count; i++) WriteInt(rom, at + (HurtAnimID + i) * 4, entries[t][i] + 0x08000000);
                 WriteInt(rom, SpriteTables + t * 4, at + 0x08000000);
             }
+
+            // The intro's parade: the ported enemies' types (their anims are in place now);
+            int paradeAt = Allocate(ref cursor, KatAMTitleScreen.NidlTypesSize(paradeTypes.Count), 4);
+            KatAMTitleScreen.AddNidlTypes(rom, paradeAt, paradeTypes);
 
             int animInfosAt = Allocate(ref cursor, animInfos.Count * 4, 4);
             for (int i = 0; i < animInfos.Count; i++) {
@@ -876,6 +984,18 @@ namespace KatAMRandomizer {
                 Array.Copy(rom, ObjectParameters2 + like * 8, rom, ObjectParameters2 + type * 8, 8);
             }
 
+            /* Mirras (object 0x34) fall, and open their door where they are ("ROM Expansion/mirra.c"): its spawn becomes NidlCreateMirra
+             * (the original's address in gNidlMirra), and its door's opening (sub_080B11C0) jumps to NidlMirraOpen, which does its work
+             * itself (the ported rooms have a door at each cell a Mirra can land in: MirraLandings()); */
+            int mirraOpen = version.RomSymbols["sub_080B11C0"];
+            // (its first instruction, push {r4, r5, lr});
+            if (ReadInt(rom, SpawnTable + MirraType * 4) >> 24 != 0x08 || ReadShort(rom, mirraOpen) != 0xB530) return $"The ROM's data doesn't match the {version.Name} release.";
+            WriteInt(rom, CodeAddress + version.CodeSymbols["gNidlMirra"], ReadInt(rom, SpawnTable + MirraType * 4));
+            WriteInt(rom, SpawnTable + MirraType * 4, codeBase + version.CodeSymbols["NidlCreateMirra"] + 1);
+            if ((mirraOpen & 2) != 0) { WriteShort(rom, mirraOpen, 0x46C0); mirraOpen += 2; }    // (a nop: the jump's address word aligned);
+            WriteShorts(rom, mirraOpen, 0x4B00, 0x4718);    // ldr r3, [pc, #0]; bx r3;
+            WriteInt(rom, mirraOpen + 4, codeBase + version.CodeSymbols["NidlMirraOpen"] + 1);
+
             /* The HP bar's fill (0x08034F38): HP times gUnk_08351458[type - 0x38][players - 1], >> 8 (64: full). The table sits right before
              * gUnk_08351648 in every version, and holds a placeholder (8192) for types 0x40-0x44: the mini-bosses (30 HP) get Mr. Frosty's
              * 546 (30 HP as well, for one player) for any number of players; */
@@ -917,7 +1037,7 @@ namespace KatAMRandomizer {
 
             string error = AddAbilities(rom, nightmare, region, version, ref cursor, motions, new Dictionary<string, int[]> {
                 ["gUnk_08D60FDC"] = hatTables.Select(table => table + 0x08000000).ToArray(),
-                ["gUnk_08350A3C"] = new[] { -1, -1, -1, -1, -1, -1, backdropPalette },
+                ["gUnk_08350A3C"] = new[] { -1, -1, -1, -1, -1, -1, backdropPalette, -1 },
             });
             // NiDL's title screen swarm (KatAMExpansionTitle.cs), before the rooms: FinishRooms() allocates after them;
             error ??= title ? AddTitle(rom, nightmare, version, ref cursor) : null;
@@ -969,12 +1089,44 @@ namespace KatAMRandomizer {
 
             // Other descriptors' tiles and where their palettes went;
             Dictionary<int, (byte[] tiles, int palette)> others = new Dictionary<int, (byte[], int)>();
-            byte[] common = null;
+            byte[] common = null, starRod = null;
+            (int table, byte[][] tiles, byte[][] palettes)? cutscene = null;
+            (byte[] tiles, byte[][] palettes)? ending = null;
             List<(Piece, byte[], int)> Pieces(Part part) => PartOffset(part, UnmovedPieces(part).Where(p => part.OnlyPalette < 0 || p.Item1.Palette == part.OnlyPalette).ToList());
             List<(Piece, byte[], int)> PartOffset(Part part, List<(Piece, byte[], int)> pieces) =>
                 pieces.Select(p => (p.Item1 with { X = p.Item1.X + part.Dx, Y = p.Item1.Y + part.Dy }, p.Item2, p.Item3)).ToList();
             List<(Piece, byte[], int)> UnmovedPieces(Part part) {
+                if (part.Tile != null) return new List<(Piece, byte[], int)> { (new Piece(-4, -4, 8, 8, 0, 0, 0, 0, 0), part.Tile, -1) };
+                if (part.StarRod) return PartPieces(nightmare, region, frameTable, part, starRod ??= StarRodTiles(nightmare, region), palettes);
                 if (part.Common) return PartPieces(nightmare, region, frameTable, part, common ??= CommonTiles(nightmare, region), palettes);
+                if (part.OrbShots) {
+                    if (!others.TryGetValue(OrbShotsKey, out (byte[] tiles, int palette) shots)) {
+                        (byte[] shotTiles, byte[] shotPalette) = OrbShotGraphics(nightmare);
+                        shots = others[OrbShotsKey] = (shotTiles, palettes.Count);
+                        palettes.Add(shotPalette);
+                    }
+                    return PartPieces(nightmare, region, frameTable, part, shots.tiles, palettes).Select(p => (p.Item1, p.Item2, shots.palette)).ToList();
+                }
+                if (part.Cutscene != 0) {
+                    (int table, byte[][] tiles, byte[][] palettes) cut = cutscene ??= CutsceneGraphics(nightmare);
+                    if (!others.TryGetValue(CutsceneKey, out (byte[] tiles, int palette) loaded)) {
+                        loaded = others[CutsceneKey] = (null, palettes.Count);
+                        palettes.AddRange(cut.palettes);
+                    }
+                    // (its pieces' palettes: the first or the second, as their OAM's picks them);
+                    return PartPieces(nightmare, region, cut.table, part, cut.tiles[part.Cutscene - 1], palettes)
+                        .Select(p => (p.Item1, p.Item2, loaded.palette + (p.Item1.Palette & 1))).ToList();
+                }
+                if (part.Ending) {
+                    (byte[] tiles, byte[][] palettes) end = ending ??= EndingGraphics(nightmare);
+                    if (!others.TryGetValue(EndingKey, out (byte[] tiles, int palette) loaded)) {
+                        loaded = others[EndingKey] = (null, palettes.Count);
+                        palettes.AddRange(end.palettes);
+                    }
+                    // (its pieces' palettes: theirs of the five, as their OAM's picks them);
+                    return PartPieces(nightmare, region, region.EndingFrames, part, end.tiles, palettes)
+                        .Select(p => (p.Item1, p.Item2, loaded.palette + p.Item1.Palette % end.palettes.Length)).ToList();
+                }
                 if (part.Descriptor < 0) return PartPieces(nightmare, region, frameTable, part, tiles, palettes);
                 if (!others.TryGetValue(part.Descriptor, out (byte[] tiles, int palette) other)) {
                     int at = ReadInt(nightmare, region.Descriptors + MinibossDescriptors + part.Descriptor * 4) - 0x08000000;
@@ -998,11 +1150,15 @@ namespace KatAMRandomizer {
                 List<byte> frameTiles = new List<byte>();
                 List<ushort> oams = new List<ushort>();
 
+                bool shared = parts.Any(p => p.Shared);
                 foreach ((Piece piece, byte[] pieceTiles, int palette) in pieces) {
+                    int at = frameTiles.Count;
+                    for (int t = 0; shared && t + pieceTiles.Length <= frameTiles.Count; t += 32)
+                        if (frameTiles.Skip(t).Take(pieceTiles.Length).SequenceEqual(pieceTiles)) { at = t; break; }
                     oams.Add((ushort)((piece.Y - top) | piece.Shape << 14));
                     oams.Add((ushort)((piece.X + halfWidth) | piece.Size << 14 | piece.HFlip << 12 | piece.VFlip << 13));
-                    oams.Add((ushort)(frameTiles.Count / 32));
-                    frameTiles.AddRange(pieceTiles);
+                    oams.Add((ushort)(at / 32));
+                    if (at == frameTiles.Count) frameTiles.AddRange(pieceTiles);
                 }
 
                 if (pieces.Any(p => p.palette >= palettes.Count)) throw new InvalidOperationException("No such palette.");
@@ -1045,6 +1201,75 @@ namespace KatAMRandomizer {
          * either a frame's OAM records, drawn from the descriptor's tiles, or a streamed frame (Mr. Tick-Tock's): 12 bytes, pointers to
          * its OAM records, its palette (u16 0x20, then the colors; added to palettes) and its tiles, uploaded with the frame (rows of
          * VRAM, 32 tiles each: u16 bytes and the tiles, until 0xFFFF); */
+        /* StarRodTiles(); The shared tiles (CommonTiles()) as NiDL has them in the Star Rod's fights: the star it shoots (its shared frames
+         * 38-41) over rows 28-31, columns 7-13 (as its frames number them), raw tiles 7 a row the level loads there, 0x2328 after
+         * Palette15 in every release (USA 0x080D2AD0; checked by a tile of it); */
+        static readonly byte[] StarRodTile = Convert.FromHexString("00000000000000000060060000f44f0000effe0040eeee04f0eeee0fe4eeee4e");
+        static byte[] StarRodTiles(byte[] nightmare, NightmareRegion region) {
+            byte[] tiles = (byte[])CommonTiles(nightmare, region).Clone();
+            int at = region.Palette15 + 0x2328;
+            if (!nightmare[(at + 8 * 32)..(at + 9 * 32)].SequenceEqual(StarRodTile)) throw new InvalidOperationException("The Star Rod's star isn't in the Nightmare in Dream Land ROM.");
+            for (int row = 0; row < 4; row++)
+                Array.Copy(nightmare, at + row * 7 * 32, tiles, ((28 + row) * 16 + 7) * 32, 7 * 32);
+            return tiles;
+        }
+
+        /* CutsceneGraphics(); The frame table, tiles (the comet's, the blue star's: LZ77, 16 a row as the descriptors') and two palettes
+         * of NiDL's cutscene of Nightmare's arrival, from where its code loads them (USA 0x08075264: the table, the palettes, 0x030015B0,
+         * the first tiles, 0x02020000, 0x06013000, the second tiles, 0x06014000, its literals), found by those values; */
+        const int CutsceneKey = -3;
+        static (int table, byte[][] tiles, byte[][] palettes) CutsceneGraphics(byte[] nightmare) {
+            for (int at = 20; at + 12 <= nightmare.Length; at += 4) {
+                if (ReadInt(nightmare, at) != 0x06013000 || ReadInt(nightmare, at + 8) != 0x06014000 || ReadInt(nightmare, at - 12) != 0x030015B0
+                    || ReadInt(nightmare, at - 4) != 0x02020000) continue;
+                int table = ReadInt(nightmare, at - 20) - 0x08000000, palette = ReadInt(nightmare, at - 16) - 0x08000000;
+                int[] blocks = { ReadInt(nightmare, at - 8) - 0x08000000, ReadInt(nightmare, at + 4) - 0x08000000 };
+                if (blocks.Any(b => b < 0 || b >= nightmare.Length || nightmare[b] != 0x10)) throw new InvalidOperationException("Not LZ77 tiles.");
+                // (as many tiles as 8 rows of 16 hold: the frames' pieces reach row 7);
+                byte[][] tiles = blocks.Select(b => {
+                    byte[] block = DecompressLZ77(nightmare, b), padded = new byte[Math.Max(block.Length, 8 * 16 * 32)];
+                    block.CopyTo(padded, 0);
+                    return padded;
+                }).ToArray();
+                return (table, tiles, new[] { nightmare[palette..(palette + 32)], nightmare[(palette + 32)..(palette + 64)] });
+            }
+            throw new InvalidOperationException("Nightmare's arrival isn't in the Nightmare in Dream Land ROM.");
+        }
+
+        /* EndingGraphics(); The tiles (LZ77, 16 a row as the descriptors') and five palettes of NiDL's ending down from the moon (the warp
+         * star, Kirby, King Dedede), from the descriptor its code loads them by (USA 0x080C6CA0: the descriptor, then 0x02020000, where
+         * it decompresses the tiles, 0x06010000 and the palettes' 0x030015xx, its literals), found by those values and the descriptor's
+         * counts (5 palettes, 0x1CF tiles); */
+        const int EndingKey = -4;
+        static (byte[] tiles, byte[][] palettes) EndingGraphics(byte[] nightmare) {
+            for (int at = 0; at + 16 <= nightmare.Length; at += 4) {
+                if (ReadInt(nightmare, at + 4) != 0x02020000 || ReadInt(nightmare, at + 8) != 0x06010000 || ReadInt(nightmare, at + 12) >> 16 != 0x0300) continue;
+                int descriptor = ReadInt(nightmare, at) - 0x08000000;
+                if (descriptor < 0 || descriptor + 16 > nightmare.Length || ReadShort(nightmare, descriptor) != 5 || ReadShort(nightmare, descriptor + 2) != 0x1CF) continue;
+                int palette = ReadInt(nightmare, descriptor + 8) - 0x08000000, tiles = ReadInt(nightmare, descriptor + 12) - 0x08000000;
+                if (tiles < 0 || tiles >= nightmare.Length || nightmare[tiles] != 0x10) throw new InvalidOperationException("Not LZ77 tiles.");
+                byte[] block = DecompressLZ77(nightmare, tiles), padded = new byte[Math.Max(block.Length, 32 * 16 * 32)];
+                block.CopyTo(padded, 0);
+                return (padded, Enumerable.Range(0, 5).Select(p => nightmare[(palette + p * 32)..(palette + p * 32 + 32)]).ToArray());
+            }
+            throw new InvalidOperationException("NiDL's ending isn't in the Nightmare in Dream Land ROM.");
+        }
+
+        /* OrbShotGraphics(); The Power Orb's shots' tiles (raw, 16 per row as the descriptors') and palette: the orb loads them from a
+         * descriptor of its own (USA 0x082FEFF4: palettes 1, tiles 0x37, 0x17, palette, tiles right after it), found by those values; */
+        const int OrbShotsKey = -2;
+        static (byte[] tiles, byte[] palette) OrbShotGraphics(byte[] nightmare) {
+            for (int at = 0; at + 16 <= nightmare.Length; at += 4) {
+                if (ReadInt(nightmare, at) != 0x00370001 || ReadInt(nightmare, at + 4) != 0x17) continue;
+                int palette = ReadInt(nightmare, at + 8) - 0x08000000, tiles = ReadInt(nightmare, at + 12) - 0x08000000;
+                if (tiles != palette + 0x20 || palette < 0 || tiles + 0x37 * 32 > nightmare.Length) continue;
+                byte[] block = new byte[256 * 32];
+                Array.Copy(nightmare, tiles, block, 0, 0x37 * 32);
+                return (block, nightmare[palette..(palette + 32)]);
+            }
+            throw new InvalidOperationException("The Power Orb's shots aren't in the Nightmare in Dream Land ROM.");
+        }
+
         /* CommonTiles(); NiDL's shared object tiles as its frames number them (16 per row, as the descriptors'): the LZ77 tiles after
          * palette 15 (USA 0x080D07C8, 256 tiles) are its tiles 256-511 (puff 0x0874C568's frames draw tiles 654-846: 2D VRAM, 32 a row);
          * the others, empty here, are the level's; */
@@ -1057,7 +1282,7 @@ namespace KatAMRandomizer {
         }
 
         static List<(Piece, byte[], int)> PartPieces(byte[] nightmare, NightmareRegion region, int frameTable, Part part, byte[] tiles, List<byte[]> palettes) {
-            int table = part.Table != 0 ? FrameAddress(region, part.Table) : frameTable;
+            int table = part.Ending ? region.EndingFrames : part.Table != 0 ? FrameAddress(region, part.Table) : frameTable;
             int entry = ReadInt(nightmare, table + part.Frame * 4) - 0x08000000, records = entry;
             int palette = part.Palette15 ? -1 : part.Palette, width = 16;
             byte[] source = tiles;
@@ -1298,9 +1523,12 @@ namespace KatAMRandomizer {
 
         /* WriteMapTable(); What the map tracker ("KatAM Map Tracker", Core/RomMap.cs) reads to tell an expanded ROM and draw its ported
          * mini-bosses, in the last 0x100 bytes of the ROM (MapTableAddress): "NIDLMAP" and a version byte (1), u16 entries, u16 entry
-         * size (32), then per mini-boss: object type, index (the behavior's high nibble), u16 0, the icon's address (file offset) and
+         * size (32), then per mini-boss: object type, index (the behavior's high nibble), u16 0 (or for an icon drawn over its room,
+         * IconOverRoom, its frame's origin x and y + 128), the icon's address (file offset) and
          * its name (24 bytes, ASCII, 0-padded). An icon is u16 width, u16 height, then a BGR555 color per pixel (| 0x8000 where it's
-         * drawn): its Icon frames in a grid as square as can be (the Meta-Knights' 2x2), each bottom-centered in its cell; */
+         * drawn): its Icon frames in a grid as square as can be (the Meta-Knights' 2x2), each bottom-centered in its cell. The bosses'
+         * entries are the same, in a table of their own (the map table's last free bytes, MapBosses, +0xCC: "BS", u16 count, its
+         * address); */
         static void WriteMapTable(byte[] rom, byte[] nightmare, NightmareRegion region,
                                   List<(List<byte[]> palettes, List<(byte[] tiles, ushort[] oams, short[] attributes, int palette)> frames, byte[] hurt)> built,
                                   ref int cursor) {
@@ -1309,47 +1537,68 @@ namespace KatAMRandomizer {
             System.Text.Encoding.ASCII.GetBytes("NIDLMAP\x01").CopyTo(rom, MapTableAddress);
             WriteShort(rom, MapTableAddress + 8, MinibossDefinitions.Count);
             WriteShort(rom, MapTableAddress + 10, EntrySize);
-            for (int i = 0; i < MinibossDefinitions.Count; i++) {
-                Miniboss m = MinibossDefinitions[i];
+            // (the bosses' entries, built as the mini-bosses' (AllBosses, after them), in a table of their own: the map table has no
+            // room for them; "BS", u16 count, its address at MapBosses);
+            int bosses = Allocate(ref cursor, BossDefinitions.Count * EntrySize, 4);
+            System.Text.Encoding.ASCII.GetBytes("BS").CopyTo(rom, MapBosses);
+            WriteShort(rom, MapBosses + 2, BossDefinitions.Count);
+            WriteInt(rom, MapBosses + 4, bosses + 0x08000000);
+            for (int i = 0; i < AllBosses.Count; i++) {
+                Miniboss m = AllBosses[i];
                 List<(byte[] tiles, ushort[] oams, short[] attributes, int palette)> frames = (m.Icon ?? new[] { 0 }).Select(f => built[i].frames[f]).ToList();
-                int columns = (int)Math.Ceiling(Math.Sqrt(frames.Count)), rows = (frames.Count + columns - 1) / columns;
-                int cellWidth = frames.Max(f => f.attributes[2]), cellHeight = frames.Max(f => f.attributes[3]);
+                // (its cells side by side, each its frames drawn on each other from their origins: a lone frame is itself);
+                List<List<(byte[] tiles, ushort[] oams, short[] attributes, int palette)>> cells = m.IconCells != null
+                    ? m.IconCells.Select(cell => cell.Select(f => built[i].frames[f]).ToList()).ToList() : frames.Select(f => new[] { f }.ToList()).ToList();
+                int columns = (int)Math.Ceiling(Math.Sqrt(cells.Count)), rows = (cells.Count + columns - 1) / columns;
+                (int minX, int minY, int width, int height) Box(List<(byte[] tiles, ushort[] oams, short[] attributes, int palette)> cell) {
+                    int minX = cell.Min(f => -f.attributes[4]), minY = cell.Min(f => -f.attributes[5]);
+                    return (minX, minY, cell.Max(f => f.attributes[2] - f.attributes[4]) - minX, cell.Max(f => f.attributes[3] - f.attributes[5]) - minY);
+                }
+                int cellWidth = cells.Max(c => Box(c).width), cellHeight = cells.Max(c => Box(c).height);
                 int width = columns * cellWidth + Gap * (columns - 1), height = rows * cellHeight + Gap * (rows - 1);
                 ushort[] pixels = new ushort[width * height];
 
-                for (int f = 0; f < frames.Count; f++) {
-                    (byte[] tiles, ushort[] oams, short[] attributes, int palette) = frames[f];
-                    byte[] colors = palette < 0 ? nightmare[region.Palette15..(region.Palette15 + 32)] : built[i].palettes[palette];
-                    int left = f % columns * (cellWidth + Gap) + (cellWidth - attributes[2]) / 2;
-                    int top = f / columns * (cellHeight + Gap) + cellHeight - attributes[3];
+                for (int c = 0; c < cells.Count; c++) {
+                    (int minX, int minY, int boxWidth, int boxHeight) = Box(cells[c]);
+                    foreach ((byte[] tiles, ushort[] oams, short[] attributes, int palette) in cells[c]) {
+                        byte[] colors = palette < 0 ? nightmare[region.Palette15..(region.Palette15 + 32)] : built[i].palettes[palette];
+                        int left = c % columns * (cellWidth + Gap) + (cellWidth - boxWidth) / 2 - attributes[4] - minX;
+                        int top = c / columns * (cellHeight + Gap) + cellHeight - boxHeight - attributes[5] - minY;
 
-                    // The first piece is on top, so they're drawn last to first;
-                    for (int p = oams.Length / 3 - 1; p >= 0; p--) {
-                        int shape = oams[p * 3] >> 14, size = oams[p * 3 + 1] >> 14, tile = oams[p * 3 + 2];
-                        int pieceY = oams[p * 3] & 0x3FFF, pieceX = oams[p * 3 + 1] & 0xFFF;
-                        bool flipH = (oams[p * 3 + 1] & 0x1000) != 0, flipV = (oams[p * 3 + 1] & 0x2000) != 0;
-                        int w = shape == 0 ? 8 << size : shape == 1 ? new[] { 16, 32, 32, 64 }[size] : new[] { 8, 8, 16, 32 }[size];
-                        int h = shape == 0 ? 8 << size : shape == 1 ? new[] { 8, 8, 16, 32 }[size] : new[] { 16, 32, 32, 64 }[size];
+                        // The first piece is on top, so they're drawn last to first;
+                        for (int p = oams.Length / 3 - 1; p >= 0; p--) {
+                            int shape = oams[p * 3] >> 14, size = oams[p * 3 + 1] >> 14, tile = oams[p * 3 + 2];
+                            int pieceY = oams[p * 3] & 0x3FFF, pieceX = oams[p * 3 + 1] & 0xFFF;
+                            bool flipH = (oams[p * 3 + 1] & 0x1000) != 0, flipV = (oams[p * 3 + 1] & 0x2000) != 0;
+                            int w = shape == 0 ? 8 << size : shape == 1 ? new[] { 16, 32, 32, 64 }[size] : new[] { 8, 8, 16, 32 }[size];
+                            int h = shape == 0 ? 8 << size : shape == 1 ? new[] { 8, 8, 16, 32 }[size] : new[] { 16, 32, 32, 64 }[size];
 
-                        for (int y = 0; y < h; y++) {
-                            for (int x = 0; x < w; x++) {
-                                int t = tile + y / 8 * (w / 8) + x / 8, b = tiles[t * 32 + y % 8 * 4 + x % 8 / 2];
-                                int color = (x & 1) != 0 ? b >> 4 : b & 0xF;
-                                int px = left + pieceX + (flipH ? w - 1 - x : x), py = top + pieceY + (flipV ? h - 1 - y : y);
+                            for (int y = 0; y < h; y++) {
+                                for (int x = 0; x < w; x++) {
+                                    int t = tile + y / 8 * (w / 8) + x / 8, b = tiles[t * 32 + y % 8 * 4 + x % 8 / 2];
+                                    int color = (x & 1) != 0 ? b >> 4 : b & 0xF;
+                                    int px = left + pieceX + (flipH ? w - 1 - x : x), py = top + pieceY + (flipV ? h - 1 - y : y);
 
-                                if (color != 0 && px < width && py < height) pixels[py * width + px] = (ushort)(ReadShort(colors, color * 2) | 0x8000);
+                                    if (color != 0 && px >= 0 && py >= 0 && px < width && py < height) pixels[py * width + px] = (ushort)(ReadShort(colors, color * 2) | 0x8000);
+                                }
                             }
                         }
                     }
                 }
 
-                int icon = Allocate(ref cursor, 4 + pixels.Length * 2, 4), entry = MapTableAddress + 12 + i * EntrySize;
+                int icon = Allocate(ref cursor, 4 + pixels.Length * 2, 4),
+                    entry = i < MinibossDefinitions.Count ? MapTableAddress + 12 + i * EntrySize : bosses + (i - MinibossDefinitions.Count) * EntrySize;
                 WriteShort(rom, icon, width);
                 WriteShort(rom, icon + 2, height);
                 for (int p = 0; p < pixels.Length; p++) WriteShort(rom, icon + 4 + p * 2, pixels[p]);
                 rom[entry] = m.Type;
                 rom[entry + 1] = (byte)m.Index;
                 WriteShort(rom, entry + 2, 0);
+                // (an icon drawn over its room: its frame's origin + 128, x then y, where the tracker draws it from the boss's spot);
+                if (m.IconOverRoom && frames.Count == 1) {
+                    rom[entry + 2] = (byte)(frames[0].attributes[4] + 128);
+                    rom[entry + 3] = (byte)(frames[0].attributes[5] + 128);
+                }
                 WriteInt(rom, entry + 4, icon);
                 Array.Clear(rom, entry + 8, 24);
                 System.Text.Encoding.ASCII.GetBytes(m.Name).CopyTo(rom, entry + 8);

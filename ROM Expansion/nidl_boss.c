@@ -5,6 +5,7 @@
  * boss's screen, held by an arena, enemies/arena.c, until it's beaten), then the HP bar shows and the boss music plays. Graphics are
  * the mini-bosses' (one AnimInfo table for the type, its own palettes and anim ID, a 64x96 hurt frame); */
 #include "nidl.h"
+#include "abilities.h"
 #include "constants/kirby.h"
 #include "treasures.h"
 #include "bonus.h"
@@ -57,15 +58,29 @@ void *CreateNidlBoss(struct ObjectTemplate *template, u8 playerId) {
 }
 
 /* NidlBossWait(); Before the fight: until Kirby is in the template's area, then the HP bar shows and the boss music plays
- * (Macro_08100F18: gUnk_08352D80[0x43 - 0x38], the boss music); */
+ * (Macro_08100F18: gUnk_08352D80[0x43 - 0x38], the boss music); the Power Orb's as he comes in (its intro flies him up into its
+ * area, bosses/power_orb.c); */
 static void NidlBossWait(struct Object *obj) {
     struct NidlObject *n = (struct NidlObject *)obj;
 
     NidlUpdate(n);
     obj->base.flags |= 4;
+    // (the ending down from the moon in the Power Orb's room: not there meanwhile, ending.c);
+    if (n->enemy == NIDL_POWER_ORB && NidlEndingOn(obj->base.roomId)) {
+        obj->base.flags |= 0x400;
+        return;
+    }
+    // (Nightmare's intro: hidden till it's over, bosses/nightmare.c);
+    if (n->enemy == NIDL_NIGHTMARE) {
+        if (NightmareIntroOn(obj->base.roomId)) {
+            obj->base.flags |= 0x400;
+            return;
+        }
+        obj->base.flags &= ~0x400;
+    }
     obj->kirby3 = FindTargetKirby(&obj->base);
     if ((obj->kirby3->base.unkC & 0x8000) || obj->base.roomId != obj->kirby3->base.roomId) return;
-    if (!Macro_08039430_2(&obj->kirby3->base, obj)) return;
+    if (n->enemy != NIDL_POWER_ORB && !Macro_08039430_2(&obj->kirby3->base, obj)) return;
     Macro_081003EC(obj, &obj->kirby3->base);
     obj->base.flags &= ~0x200;
     Macro_08100F18(obj);
@@ -91,7 +106,8 @@ void NidlBossStart(struct Object *obj) {
  * (the behavior's low nibble) in the middle of the screen, which Kirby takes as a boss's (the shard cutscene, then where
  * gNidlShardExits says for the room: the boss stage's way on, its room having no door out; KatAM's: Central Circle); a Maxim
  * Tomato instead, never the shard, when the shard is owned already (KatAM's bosses fought again leave one, sub_08088A38): in a
- * room with no door out (one gNidlShardExits has), eating it takes Kirby where the shard would (NidlExitTomato()); */
+ * room with no door out (one gNidlShardExits has), eating it takes Kirby where the shard would (NidlExitTomato()). The finale's
+ * bosses leave none (finale.c): the Power Orb its warp star, Nightmare the way to the Fountain of Dreams hub; */
 static const struct NidlShardExit *NidlShardExitOf(u16 room);
 
 void NidlBossDefeat(struct Object *obj) {
@@ -100,6 +116,16 @@ void NidlBossDefeat(struct Object *obj) {
     s32 x = (level->viewportPosition.x >> 8) + SHARD_X, y = (level->viewportPosition.y >> 8) + SHARD_Y;
     u8 shard = n->variant & 7;
 
+    // (the Power Orb's: the Kirbys flying with the Star Rod stop aiming at it, abilities/star_rod.c);
+    if (n->enemy == NIDL_POWER_ORB) {
+        StarRodFightOver(obj);
+        PowerOrbBeaten(obj);
+        return;
+    }
+    if (n->enemy == NIDL_NIGHTMARE) {
+        NightmareBeaten(obj);
+        return;
+    }
     if (HasShard(shard)) {
         struct Object *tomato = BonusCreateTomatoAt(obj, x, y);
         struct ObjectTemplate *template = (struct ObjectTemplate *)tomato->objTemplate;
@@ -116,15 +142,19 @@ void NidlBossDefeat(struct Object *obj) {
 }
 
 /* NidlExitTomato(); A rematch's Maxim Tomato (NidlBossDefeat()) gone, from template slot `slot` (rooms.c's BigSub_08001678: its
- * gone bit): its template slot freed (the game frees only those with unk2 0); eaten, every Kirby in its room dances and leaves, as
- * after a boss's shard (sub_0804BD98, as a warp star's end does it: where he stands; then sub_0804C614 and NidlShardExit(): where the
- * shard would take him); */
+ * gone bit): its template slot freed (the game frees only those with unk2 0); eaten, every Kirby in its room dances and leaves
+ * (NidlDanceOut()); */
 void NidlExitTomato(u16 slot, u32 eaten) {
-    u16 room = gUnk_020229E0[slot].unk12, i;
+    gUnk_020229D4 &= ~(1 << slot);
+    if (eaten) NidlDanceOut(gUnk_020229E0[slot].unk12);
+}
+
+/* NidlDanceOut(); Every Kirby in a room dances and leaves, as after a boss's shard (sub_0804BD98, as a warp star's end does it: where
+ * he stands; then sub_0804C614 and NidlShardExit(): where the shard would take him); */
+void NidlDanceOut(u16 room) {
+    u16 i;
     u8 count = 0, index = 0, dance = (Rand16() & 1) + 2;
 
-    gUnk_020229D4 &= ~(1 << slot);
-    if (!eaten) return;
     for (i = 0; i < 4; i++)
         if (gKirbys[i].base.roomId == room) count++;
     for (i = 0; i < 4; i++)
@@ -154,9 +184,11 @@ static const struct NidlShardExit *NidlShardExitOf(u16 room) {
     return NULL;
 }
 
-// NidlShardExit(); The room and spot Kirby comes back to after the shard cutscene (sub_0804C614);
+// NidlShardExit(); The room and spot Kirby comes back to after the shard cutscene (sub_0804C614); his ability before the Star Rod, back;
 void NidlShardExit(struct Kirby *kirby) {
     const struct NidlShardExit *exit = NidlShardExitOf(kirby->base.roomId);
+
+    StarRodRestore(kirby);
 
     if (exit) {
         kirby->roomId = exit->exitRoom;

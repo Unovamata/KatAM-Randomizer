@@ -10,6 +10,10 @@ namespace KatAMMapTracker {
      * • Every room but the two being connected blocks the cells around it, leaving a gap between lines and squares.
      * • Diagonals cost the same as straight steps per cell, turns cost a little and sharp turns are not allowed,
      *   so lines bend around rooms with 45° turns. Cells already used by other lines cost a bit more, to spread them.
+     * • A central hub's lines share one trunk (the owner's rule: the fewer lines out of a hub, the better; Central Circle and the NiDL
+     *   hub only, not the rooms linked to them): its connections are routed first,
+     *   the longest first, and the cells its earlier lines take cost next to nothing to its later ones, so each follows the trunk as
+     *   far as it goes its way and branches off near its room;
      * • If some connection can't be routed, the rooms and clusters are spread further apart and everything is retried; */
     public sealed class MapPlan {
         public Dictionary<int, RoomPlacement> Layout { get; private set; }
@@ -26,7 +30,7 @@ namespace KatAMMapTracker {
         // Line half thickness (8) plus a gap, so lines never touch the squares;
         const int Clearance = 16;
 
-        const double TurnCost45 = 0.6, TurnCost90 = 2.5, UsedCellCost = 0.35, OutsideCost = 0.25, ForeignLevelCost = 1.5;
+        const double TurnCost45 = 0.6, TurnCost90 = 2.5, UsedCellCost = 0.35, OutsideCost = 0.25, ForeignLevelCost = 1.5, TrunkCost = 0.1;
         const int MaxExpansions = 2000000;
 
         static readonly (int x, int y)[] Directions = {
@@ -132,6 +136,7 @@ namespace KatAMMapTracker {
         int originX, originY, columns, rows;
         int[] blockOwnerA, blockOwnerB; // Up to two rooms blocking a cell (-1 none, -2 more than two);
         float[] usedCost, outsideCost;
+        HashSet<int> trunk; // The cells the hub being routed has lines through (null: not routing a hub's lines);
         int[] levelAt; // The NiDL level cluster whose box a cell is in (MapExpansion: -1 none);
 
         // A* state arrays, reused by every search; A state is valid for the current search when its stamp matches;
@@ -197,7 +202,25 @@ namespace KatAMMapTracker {
                 .OrderBy(c => Distance(Layout[c.a], Layout[c.b])).ThenBy(c => c.a).ThenBy(c => c.b)
                 .ToList();
 
+            // (a central hub's lines first, the longest first, along one trunk: Central Circle and the NiDL hub, no other room);
+            HashSet<int> hubs = map.Rooms.Values.Where(r => (r.Id == RomMap.CentralCircle || r.IsNightmareHub) && Layout.ContainsKey(r.Id)).Select(r => r.Id).ToHashSet();
+            HashSet<(int a, int b)> routed = new HashSet<(int a, int b)>();
+            foreach (int hub in hubs.OrderByDescending(h => connections.Count(c => c.a == h || c.b == h)).ThenBy(h => h)) {
+                List<(int a, int b)> mine = connections.Where(c => (c.a == hub || c.b == hub) && !routed.Contains(c)).OrderByDescending(c => Distance(Layout[c.a], Layout[c.b])).ToList();
+                if (mine.Count < 3) continue;
+                trunk = new HashSet<int>();
+                foreach ((int a, int b) in mine) {
+                    List<(int x, int y)> cells = FindPath(a, b);
+                    routed.Add((a, b));
+                    if (cells == null) { UnroutedConnections++; continue; }
+                    foreach ((int x, int y) in cells) if (trunk.Add(y * columns + x)) usedCost[y * columns + x] += (float)UsedCellCost;
+                    Paths[MapRoutes.ConnectionKey(a, b)] = Simplify(cells).Select(c => ((double)originX + c.x * Grid, (double)originY + c.y * Grid)).ToList();
+                }
+                trunk = null;
+            }
+
             foreach ((int a, int b) in connections) {
+                if (routed.Contains((a, b))) continue;
                 List<(int x, int y)> cells = FindPath(a, b);
 
                 if (cells == null) {
@@ -255,9 +278,11 @@ namespace KatAMMapTracker {
             int fromLevel = Clusters != null && Clusters.TryGetValue(from, out int fc) ? fc : -1, toLevel = Clusters != null && Clusters.TryGetValue(to, out int tc) ? tc : -1;
             PriorityQueue<int, float> open = new PriorityQueue<int, float>();
 
+            // (along a hub's trunk a cell costs TrunkCost: the estimate can't be more, or the trunk isn't found);
+            float least = trunk != null ? (float)TrunkCost : 1;
             float Heuristic(int x, int y) {
                 int dx = Math.Abs(x - goalX), dy = Math.Abs(y - goalY);
-                return Math.Max(dx, dy);
+                return Math.Max(dx, dy) * least;
             }
 
             // State = cell * 9 + direction (8 = no direction yet, at the start);
@@ -292,7 +317,8 @@ namespace KatAMMapTracker {
 
                     int level = levelAt[ny * columns + nx];
                     float foreign = level >= 0 && level != fromLevel && level != toLevel ? (float)ForeignLevelCost : 0;
-                    float step = 1 + usedCost[ny * columns + nx] + outsideCost[ny * columns + nx] + foreign + (turn == 1 ? (float)TurnCost45 : turn == 2 ? (float)TurnCost90 : 0);
+                    float step = trunk != null && trunk.Contains(ny * columns + nx) ? (float)TrunkCost + (turn == 0 ? 0 : (float)TurnCost45)
+                        : 1 + usedCost[ny * columns + nx] + outsideCost[ny * columns + nx] + foreign + (turn == 1 ? (float)TurnCost45 : turn == 2 ? (float)TurnCost90 : 0);
                     int next = (ny * columns + nx) * 9 + d;
                     float total = current + step;
 

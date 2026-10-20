@@ -1,10 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace KatAMMapTracker {
     // EntityIcon; The in-game sprites the map can draw next to the rooms;
     public enum EntityIcon {
-        Cherry, PepBrew, Meat, MaximTomato, Battery, OneUp, InvincibleCandy, MirrorShard, ChestSmall, ChestBig, WarpStar, BigSwitch, FuseCannon,
+        Cherry, PepBrew, Meat, MaximTomato, Battery, OneUp, InvincibleCandy, MirrorShard, AmazingMirror, ChestSmall, ChestBig, WarpStar, BigSwitch, FuseCannon,
         MrFrosty, Bonkers, PhanPhan, Batafire, BoxBoxer, Boxy, MasterHandMini, Bombar,
         Kracko, KingGolem, MasterHand, Gobbler, Wiz, Moley, MegaTitan, DarkMetaKnight, DarkMind, DarkMindOrb,
 
@@ -20,15 +21,15 @@ namespace KatAMMapTracker {
     }
 
     // EntityKind; What an important object is, in drawing order (the first ones are the most important);
-    public enum EntityKind { Boss, MiniBoss, MirrorShard, BigSwitch, Treasure, Item, FuseCannon, WarpStar }
+    public enum EntityKind { Boss, MiniBoss, MirrorShard, BigSwitch, AmazingMirror, Treasure, Item, FuseCannon, WarpStar }
 
     /* MapEntity; An important object of a room: what it is, the sprite drawn for it and its name.
      * ContentIcon: for chests, the sprite of what they hold (null if unknown), shown when chest contents are spoiled; */
     // Destination: the room a Fuse Cannon or Warp Star sends Kirby to (-1 for the rest);
     public sealed record MapEntity(EntityKind Kind, EntityIcon Icon, string Name, EntityIcon? ContentIcon = null, int Destination = -1);
 
-    /* MapEntities; Which room objects are worth showing on the map (bosses, mini-bosses, mirror shards, big switches, treasure,
-     * items, fuse cannons and warp stars), and their in-game sprites, read from the ROM like the rest of the map graphics.
+    /* MapEntities; Which room objects are worth showing on the map (bosses, mini-bosses, mirror shards, big switches, the Amazing
+     * Mirror, treasure, items, fuse cannons and warp stars), and their in-game sprites, read from the ROM like the rest of the map graphics.
      *
      * The sprites were located by planting each object next to Kirby in an emulator and reading back the hardware sprites:
      * every sprite is a few OAM pieces, each one a run of consecutive 4bpp 8x8 tiles in the ROM (in 1D mapping order) with a
@@ -37,9 +38,11 @@ namespace KatAMMapTracker {
      * as a whole, translated below;
      *
      * • Room object IDs: 0x38-0x3F mini-bosses (0x40-0x42 too in expanded ROMs, see RomMap.ReadExpansion), 0x45-0x52 bosses, 0x5E-0x64 items, 0x65 Mirror Shard (behavior 0-7; 8 is the
-     *   Dimensional Mirror), 0x80 & 0x81 small & big chests (behavior: what they hold), 0x84 Warp Star, 0x86 Big Switch,
+     *   Amazing Mirror, Central Circle's Dimension Mirror and its copies: animation 0x2D3, variant 1, the golden frame and blue glass
+     *   of the whole mirror once the 8 shards are found; +0x22 bit 0 hides it), 0x80 & 0x81 small & big chests (behavior: what they hold), 0x84 Warp Star, 0x86 Big Switch,
      *   0x8A Fuse Cannon.
-     * • Chest contents: 0x00-0x05 the items 0x5E-0x63, 0x06 Vitality, 0x0A-0x13 area maps, 0x14-0x21 sprays, 0x28 the
+     * • Chest contents: 0x00-0x05 the items 1UP, Invincible Candy, Maxim Tomato, Meat, Pep Brew, Cherry (chest.c's sub_0800B97C, not the
+     *   items' object order), 0x06 Vitality, 0x0A-0x13 area maps, 0x14-0x21 sprays, 0x28 the
      *   Sound Player, 0x29-0x32 music, 0x40-0x47 mirror shards 1-8 (the randomizer's, "ROM Expansion/chest.c"), 0x63 the big
      *   treasures.
      * • Treasure sprites (sprays, music, maps, Vitality, Sound Player) come from the Collection Room, which shows them as
@@ -78,6 +81,11 @@ namespace KatAMMapTracker {
                 P(0, 16, 16, 8, 0, 0, 0x4A0D78, 0x608878),
                 P(16, 0, 8, 16, 0, 0, 0x4A0D78, 0x6088B8),
                 P(16, 16, 8, 8, 0, 0, 0x4A0D78, 0x5F0045),
+            },
+            [EntityIcon.AmazingMirror] = new[] {
+                P(0, 0, 64, 32, 0, 0, 0x4A0D98, 0x604F18),
+                P(0, 32, 32, 16, 0, 0, 0x4A0D98, 0x605318),
+                P(32, 32, 32, 16, 0, 0, 0x4A0D98, 0x605418),
             },
             [EntityIcon.ChestSmall] = new[] {
                 P(0, 0, 16, 16, 0, 0, 0x4A0BB8, 0x603E98),
@@ -305,7 +313,8 @@ namespace KatAMMapTracker {
         public static Sprite Render(RomMap map, EntityIcon icon) {
             if (icon >= EntityIcon.Expansion) {
                 int i = icon - EntityIcon.Expansion;
-                return i < map.ExpansionMinibosses.Count ? map.ExpansionMinibosses[i].Icon : null;
+                if (i >= map.ExpansionMinibosses.Count) return null;
+                return map.ExpansionMinibosses[i].Origin != null ? RenderOverRoom(map, map.ExpansionMinibosses[i]) : map.ExpansionMinibosses[i].Icon;
             }
             if (icon == EntityIcon.KingGolem) return RenderKingGolem(map);
             if (icon == EntityIcon.DarkMindOrb) return RenderDarkMindOrb(map);
@@ -333,6 +342,32 @@ namespace KatAMMapTracker {
             }
 
             return new Sprite(KingGolemCropWidth, KingGolemCropHeight, pixels);
+        }
+
+        /* RenderOverRoom(); A ported boss whose body is its room's tiles (Whispy Woods' trunk): its room around it (no background), its
+         * icon over it where the game draws it (its Origin from the boss's spot), RoomPad pixels of the room around the icon; */
+        const int RoomPad = 24;
+        static Sprite RenderOverRoom(RomMap map, ExpansionMiniboss boss) {
+            Sprite face = boss.Icon;
+            if (face == null || boss.Origin is not (int ox, int oy)) return face;
+            foreach (RoomInfo info in map.Rooms.Values) {
+                RoomObject at = info.Objects.FirstOrDefault(o => o.Id == boss.Type && o.Behavior >> 4 == boss.Index);
+                if (at == null) continue;
+
+                int[] room = map.RenderRoom(info.Id, 8, out int roomWidth, out int roomHeight, false);
+                int left = at.X - ox - RoomPad, top = at.Y - oy - RoomPad, width = face.Width + 2 * RoomPad, height = face.Height + 2 * RoomPad;
+                int[] pixels = new int[width * height];
+                for (int y = 0; y < height; y++) {
+                    for (int x = 0; x < width; x++) {
+                        int roomX = left + x, roomY = top + y, faceX = x - RoomPad, faceY = y - RoomPad;
+                        int facePixel = faceX >= 0 && faceY >= 0 && faceX < face.Width && faceY < face.Height ? face.Pixels[faceY * face.Width + faceX] : 0;
+                        if (facePixel != 0) pixels[y * width + x] = facePixel;
+                        else if (roomX >= 0 && roomY >= 0 && roomX < roomWidth && roomY < roomHeight) pixels[y * width + x] = room[roomY * roomWidth + roomX];
+                    }
+                }
+                return new Sprite(width, height, pixels);
+            }
+            return face;
         }
 
         /* Dark Mind's second form, as it appears after the first one, before the chase: a 128x128 orb the game draws as an 8bpp
@@ -425,6 +460,9 @@ namespace KatAMMapTracker {
             (EntityIcon.Battery, "Battery"), (EntityIcon.OneUp, "1UP"), (EntityIcon.InvincibleCandy, "Invincible Candy"),
         };
 
+        // ChestItems; A chest's item (contents 0-5) as an index in Items: 1UP, Invincible Candy, Maxim Tomato, Meat, Pep Brew, Cherry;
+        static readonly int[] ChestItems = { 5, 6, 3, 2, 1, 0 };
+
         static readonly Dictionary<int, (EntityIcon icon, string name)> MiniBosses = new Dictionary<int, (EntityIcon, string)> {
             [0x38] = (EntityIcon.MrFrosty, "Mr. Frosty"), [0x39] = (EntityIcon.Bonkers, "Bonkers"), [0x3A] = (EntityIcon.PhanPhan, "Phan Phan"),
             [0x3B] = (EntityIcon.Batafire, "Batafire"), [0x3C] = (EntityIcon.BoxBoxer, "Box Boxer"), [0x3D] = (EntityIcon.Boxy, "Boxy"),
@@ -448,12 +486,18 @@ namespace KatAMMapTracker {
                 if (i < 0) i = map.ExpansionMinibosses.FindIndex(m => m.Type == id);
                 if (i >= 0) return new MapEntity(EntityKind.MiniBoss, EntityIcon.Expansion + i, map.ExpansionMinibosses[i].Name);
             }
+            // (and its bosses, types 0x43 and 0x44, the same way: the behavior's high nibble picks one, its low nibble is its shard);
+            if (map.IsExpanded && (id == 0x43 || id == 0x44)) {
+                int i = map.ExpansionMinibosses.FindIndex(m => m.Type == id && m.Index == behavior >> 4);
+                if (i >= 0) return new MapEntity(EntityKind.Boss, EntityIcon.Expansion + i, map.ExpansionMinibosses[i].Name);
+            }
             if (Bosses.TryGetValue(id, out var boss)) return new MapEntity(EntityKind.Boss, boss.icon, boss.name);
             if (MiniBosses.TryGetValue(id, out var miniBoss)) return new MapEntity(EntityKind.MiniBoss, miniBoss.icon, miniBoss.name);
             if (id >= 0x5E && id <= 0x64) return new MapEntity(EntityKind.Item, Items[id - 0x5E].icon, Items[id - 0x5E].name);
 
             switch (id) {
-                case 0x65: return behavior < 8 ? new MapEntity(EntityKind.MirrorShard, EntityIcon.MirrorShard, "Mirror Shard") : null;
+                case 0x65: return behavior < 8 ? new MapEntity(EntityKind.MirrorShard, EntityIcon.MirrorShard, "Mirror Shard")
+                                : behavior == 8 ? new MapEntity(EntityKind.AmazingMirror, EntityIcon.AmazingMirror, "Amazing Mirror") : null;
                 case 0x80: case 0x81: return Chest(id == 0x81, behavior);
                 case 0x84: return new MapEntity(EntityKind.WarpStar, EntityIcon.WarpStar, "Warp Star", Destination: obj.Destination);
                 case 0x86: return new MapEntity(EntityKind.BigSwitch, EntityIcon.BigSwitch, "Big Switch");
@@ -474,7 +518,10 @@ namespace KatAMMapTracker {
             EntityIcon chest = isBig ? EntityIcon.ChestBig : EntityIcon.ChestSmall;
             string size = isBig ? "Big" : "Small";
 
-            if (contents <= 0x05) return new MapEntity(EntityKind.Treasure, chest, $"{size} Chest: {Items[contents].name}", Items[contents].icon);
+            if (contents <= 0x05) {
+                (EntityIcon icon, string name) item = Items[ChestItems[contents]];
+                return new MapEntity(EntityKind.Treasure, chest, $"{size} Chest: {item.name}", item.icon);
+            }
 
             (string treasure, EntityIcon? icon) = contents switch {
                 0x06 => ("Vitality", EntityIcon.Vitality),

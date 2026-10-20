@@ -28,7 +28,8 @@
             int table = version.RomSymbols["sbClearFunctions"], skip = CodeAddress + version.CodeSymbols["gNidlSkip"];
             int clear = CodeAddress + 0x08000000 + version.CodeSymbols["NidlSkipClear"] + 1;
             if (ReadInt(patched, table + 4) == clear) return null;  // (applied already);
-            if (ReadInt(patched, table + 4) >> 24 != 0x08) return $"The {version.Name} ROM's save code doesn't match.";
+            // (KatAM's clear, or the ROM Expansion's, which runs it: rooms.c's NidlClearSave);
+            if (ReadInt(patched, table + 4) >> 24 is not (0x08 or 0x09)) return $"The {version.Name} ROM's save code doesn't match.";
 
             // (the room's object list, through the original tables: the ROM Expansion's copies point to the same lists);
             int objects = ReadShort(patched, version.RomSymbols["gRoomProps"] + TutorialChestRoom * 0x28 + 16 * 2);
@@ -45,6 +46,38 @@
             WriteInt(patched, skip + 8, start + 0x08000000 + 1);
             WriteInt(patched, table + 4, clear);
             return null;
+        });
+
+        /* UnlockMasterSword(); The "Unlock the Master Sword" option: the Master Sword's stand in Central Circle (OBJ_MASTER_SWORD_STAND)
+         * only works and shows once the game is beaten (gAIKirbyState >= AI_KIRBY_STATE_UNK1); both checks (as it runs, sub_080AA618,
+         * and as it's drawn, sub_080AAA64) are dropped, so it's there from the start. Returns an error, or null; */
+        const int SwordRunCheck = 0x14, SwordDrawCheck = 0x14;
+        public static string UnlockMasterSword(ref byte[] rom) => PatchWithCode(ref rom, "Unlock the Master Sword", (patched, version) => {
+            int run = version.RomSymbols["sub_080AA618"] + SwordRunCheck, draw = version.RomSymbols["sub_080AAA64"] + SwordDrawCheck;
+            if (ReadShort(patched, run) == 0x46C0 && ReadShort(patched, draw) == 0xE004) return null;  // (applied already);
+            // (bls past the stand's work, bhi past its hiding: a nop, and an always taken b);
+            if (ReadShort(patched, run) != 0xD950 || ReadShort(patched, draw) != 0xD804) return $"The {version.Name} ROM's Master Sword code doesn't match.";
+            WriteShort(patched, run, 0x46C0);
+            WriteShort(patched, draw, 0xE004);
+            return null;
+        });
+
+        /* UnlockAbilityRoom(); The "Unlock the Ability Room" option ("ROM Expansion/unlock.c"): Central Circle's door to the ability room
+         * (and the NiDL hub's copy) is a hub mirror object (0x8C) waiting for world slot 0x12, which KatAM sets once all 15 big switches
+         * are pressed; the hub mirror's init (SpecialHubMirrorInit, its address in CreateSpecialHubMirror's literal pool, as the object's
+         * unk78) becomes NidlHubMirrorInit, which sets that slot first, the original kept in gNidlUnlock. Returns an error, or null; */
+        public static string UnlockAbilityRoom(ref byte[] rom) => PatchWithCode(ref rom, "Unlock the Ability Room", (patched, version) => {
+            int create = version.RomSymbols["CreateSpecialHubMirror"], init = version.RomSymbols["SpecialHubMirrorInit"] + 0x08000000 + 1;
+            int hook = CodeAddress + 0x08000000 + version.CodeSymbols["NidlHubMirrorInit"] + 1, unlock = CodeAddress + version.CodeSymbols["gNidlUnlock"];
+            // (its literal pool: words after its code, within 0x100 bytes of its start; USA 0x0801E37C);
+            for (int at = (create + 3) & ~3; at < create + 0x100; at += 4) {
+                if (ReadInt(patched, at) == hook) return null;  // (applied already);
+                if (ReadInt(patched, at) != init) continue;
+                WriteInt(patched, unlock, init);
+                WriteInt(patched, at, hook);
+                return null;
+            }
+            return $"The {version.Name} ROM's hub mirror code doesn't match.";
         });
 
         /* PatchWithCode(); Runs `patch` on a copy of the ROM holding the expansion's code, which it puts in when the ROM Expansion
