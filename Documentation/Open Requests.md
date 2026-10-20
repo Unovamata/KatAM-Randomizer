@@ -110,7 +110,14 @@ Nightmare fight." and "Fountain of dreams BG is off centered in the hub."
   it, stars flying; nothing breaks). European and Japanese: in Nightmare's room, the rod kept through hits, stars hurting him. Not
   tested: Kirby coming out with an ability other than Normal (none was held before the orb in these runs).
 
-**Still to do**: the ending down from the moon (not recorded yet, NiDL's Nightmare takes no hit in the emulator so far). Nightmare's
+**Still to do**: the ending down from the moon. Now recorded in NiDL (USA; Nightmare's HP held at 1 and Kirby kept beside him
+until a star hits, frame by frame, screenshots every 60 to 150 frames): his defeat (the hit at its frame 2246: the freeze and the
+burst, then he flies off right and dissolves into sparkles, his frames 76-88, about 900 frames), then a scene of its own (from 3164,
+about 4200 frames): the full moon, a burst in it leaving a crescent, Kirby on the warp star flying out of it and down through the
+night sky under NiDL's narration ("Our hero Kirby has fought bravely to recover the Star Rod..."), King Dedede flying by, the sky
+turning to Dream Land's dusk, then the Fountain of Dreams with the Star Rod back on it, a flash to white and the credits. Porting it
+needs NiDL's cutscene backgrounds and its text (or a room of its own for the ride down), so it waits for the owner's word on how much
+of it (the narration, King Dedede, the Fountain's scene) and where it plays. Nightmare's
 fight itself isn't NiDL's yet (item 5): NiDL fights him in his caped look (his body, 48-55, under his collar and cape, 96), the port
 in his arms-out one (8-15), so his look changes as the fight starts after his entrance. Not tested yet: the whole finale with
 helpers in one go.
