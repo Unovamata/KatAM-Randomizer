@@ -116,8 +116,23 @@ burst, then he flies off right and dissolves into sparkles, his frames 76-88, ab
 about 4200 frames): the full moon, a burst in it leaving a crescent, Kirby on the warp star flying out of it and down through the
 night sky under NiDL's narration ("Our hero Kirby has fought bravely to recover the Star Rod..."), King Dedede flying by, the sky
 turning to Dream Land's dusk, then the Fountain of Dreams with the Star Rod back on it, a flash to white and the credits. Porting it
-needs NiDL's cutscene backgrounds and its text (or a room of its own for the ride down), so it waits for the owner's word on how much
-of it (the narration, King Dedede, the Fountain's scene) and where it plays. Nightmare's
+needs NiDL's cutscene backgrounds and its text (or a room of its own for the ride down). The owner's next list keeps "the ending
+down from the moon" (no word on the narration or King Dedede: taken as NiDL has it). Recorded since (NiDL, frame by frame, its
+objects, OAM, palettes, the room and the layers):
+- His defeat (NiDL's frames from the hit; his object, type 0x43, runs it all): 52 frames frozen in his hurt frame (the hit's flash
+  and bursting stars), then he flies right from where he was on his frames 68-71 (3 frames each), 16 frames each at 4, 2, 1, 1/2
+  and 1/4 pixels a frame (124 pixels), turns to light there (60 up to 67, 2 frames each), and comes back as light at (136, 282) in
+  his room (66 down to 60), caped (50 for 5 frames, 51 for 10), then spreads out (76/77, 2 frames each, 40 frames), blinking:
+  78/79 (60 frames), 80/81 (60), 82/85 (120), 83/84 (64), 86-88, gone 535 frames after the hit; from 280 to 430 a light over him
+  (frames 13-17 of NiDL's table 0x08754738, the descriptor's own tiles and first palette). Frames 68-71 use his three palettes,
+  76-80 the first two, 50-51 the third, 81 the first, 82-88 his light's (the ones the port loads already). Kirby stays free (he
+  walks and jumps holding the Star Rod). From 714 to 910 bursts along the floor (NiDL's shared burst, y 352), then the fade to
+  white and the moon.
+- The moon scene is a room of its own, the finale stage's third (16x68 cells, no objects): the Power Orb's room again (the same
+  foreground, the moon at its top, and the same background picture), the camera from its top (8) down 3/16 of a pixel a frame (to
+  666 in 4400 frames), NiDL's cutscene objects (type 100) on it (Kirby on the warp star out of the moon, King Dedede), the
+  narration on its top layer (BG0, off once the text is done), then the Fountain of Dreams scene (objects of type 101) and the
+  credits. The port can play the ride down in its Power Orb's room. Nightmare's
 fight itself isn't NiDL's yet (item 5): NiDL fights him in his caped look (his body, 48-55, under his collar and cape, 96), the port
 in his arms-out one (8-15), so his look changes as the fight starts after his entrance. Not tested yet: the whole finale with
 helpers in one go.
