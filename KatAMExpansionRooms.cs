@@ -281,6 +281,7 @@
             chestLists = new List<(int, int, int)>();
             chestsOf = new Dictionary<NightmareRoom, List<NidlChest>>();
             DoorsTable = -1;
+            endingFlight = -1;
         }
 
         /* NightmareRooms(); NiDL's level rooms, split where KatAM can't hold them whole. Left out: the levels' hub lists (hub, museum,
@@ -1517,8 +1518,10 @@
         const int WarpFlight = 6, FlightStep = 12, FlightRise = 201, RideRoom = 0xFE, RideHop = 0xFD, Sparkles = 12, FlightRider = 90;
         // (RideHidden: a step's flag hiding Kirby, sub_080534D0: the Power Orb's star's fade, the star and its Kirbys a dot by then);
         const int RideFinale = 0xFC, RideAsk = 0xFFFF, RideFade = 18, RideHidden = 4;
-        // (the Power Orb's warp star's flight, after the rides: WarpFlights(), FinaleMirrors());
-        static int finaleFlight = WarpFlight;
+        // (the Power Orb's warp star's flight, after the rides: WarpFlights(), FinaleMirrors(); the ending's flight out of Nightmare's
+        // room, its address, -1 none);
+        static int finaleFlight = WarpFlight, endingFlight = -1;
+        static readonly (int, int, int) NightmareBossRoom = (7, 0, 1);
         // (Kirby's animations tumbling, KatAM's: 74, then 89 down to 75, round again; bouncing off the floor; the effect making the orb,
         // 0x292, where he hops off; standing);
         const int Tumbling = 74, Bouncing = 20, HopOrb = 10, Standing = 0;
@@ -1604,6 +1607,16 @@
             WriteShorts(rom, finale + 4 * FlightStep, 0, 0, 1, Standing, 0xFF, 0);
             WriteShorts(rom, finale + 5 * FlightStep, 0, 0, 0, Standing, RideHop, 0);
             WriteInt(rom, moved + finaleFlight * 4, finale + 0x08000000);
+            // (the ending's, "ROM Expansion/finale.c"'s NidlEndingFlight(): every Kirby in Nightmare's room once his defeat's over, where
+            // he stands: the fade to white, then the room his way on leads to (bossExitsOf: the Fountain of Dreams hub), a frame
+            // standing there and the end, as the rides', no hop);
+            foreach (var (part, exit) in bossExitsOf.Where(e => (e.Key.Level, e.Key.Stage, e.Key.Index) == NightmareBossRoom)) {
+                endingFlight = Allocate(ref cursor, 4 * FlightStep, 4);
+                WriteShorts(rom, endingFlight, 0, 0, RideFade, Standing, FlightFade, 0);
+                WriteShorts(rom, endingFlight + FlightStep, exit.x, exit.y, 1, Standing, RideRoom | 0x40 << 8, exit.room);
+                WriteShorts(rom, endingFlight + 2 * FlightStep, 0, 0, 1, Standing, 0xFF, 0);
+                WriteShorts(rom, endingFlight + 3 * FlightStep, 0, 0, 0, Standing, RideHop, 0);
+            }
         }
 
         /* FinaleMirrors(); The finale's way in and its warp star (see finaleEntry): Central Circle's Dimension Mirror (its shard object of
@@ -1623,6 +1636,7 @@
             rom[finale + 4] = (byte)ride.x;
             rom[finale + 5] = (byte)ride.y;
             rom[finale + 6] = (byte)finaleFlight;
+            if (endingFlight >= 0) WriteInt(rom, finale + 8, endingFlight + 0x08000000);
         }
 
         /* WarpRideDetours(); "ROM Expansion/warpstar.c"'s detours (see WarpFlights()): KatAM's warp star's rev (sub_0800C270), a

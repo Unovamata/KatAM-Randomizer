@@ -415,7 +415,8 @@ namespace KatAMRandomizer {
          * draw them): the comet he arrives as and the blue star he throws (Cutscene, the cutscene's 0-5 and 6), the burst a blue star
          * makes (NiDL's shared effects' 0x0874CA78, its 0-22, with the shared tiles and palette 15), the puff as it hits Kirby's star
          * (the shared effects' 0x0874C9D8, 0-16), then his own light growing into his shape as he appears (his 67 down to 61, one
-         * palette each, then 60, his shape in white). Type 0x44. Hurt: his collar and arms (8); */
+         * palette each, then 60, his shape in white); then his defeat's (see below; those too only for his effects). Type 0x44. Hurt:
+         * his collar and arms (8); */
         static Miniboss Nightmare() {
             List<Part[]> frames = new List<Part[]>();
 
@@ -426,13 +427,25 @@ namespace KatAMRandomizer {
             frames.AddRange(Enumerable.Range(0, 23).Select(f => new[] { new Part(f, Table: 0x74CA78, Palette15: true, Common: true) }));
             frames.AddRange(Enumerable.Range(0, 17).Select(f => new[] { new Part(f, Table: 0x74C9D8, Palette15: true, Common: true) }));
             frames.AddRange(Enumerable.Range(60, 8).Reverse().Select(f => new[] { new Part(f) }));
+            // (his defeat, bosses/nightmare.c's NightmareEnd(): 82-93 NiDL's 68-71, flying off, cut by palette; 94-95 50-51, caped (his
+            // third palette); 96-105 76-80, spreading out, cut by palette (the first two); 106-113 81-88, breaking up (81 his first
+            // palette, 82-88 his light's); 114-118 the light over him, frames 13-17 of 0x08754738, his descriptor's tiles and first palette;
+            // 119-120 96, his top half over his caped body as NiDL draws it with 48-55, cut by palette (his first two));
+            for (int palette = 0; palette < 3; palette++)
+                frames.AddRange(Enumerable.Range(68, 4).Select(f => new[] { new Part(f, OnlyPalette: palette) }));
+            frames.AddRange(Enumerable.Range(50, 2).Select(f => new[] { new Part(f) }));
+            for (int palette = 0; palette < 2; palette++)
+                frames.AddRange(Enumerable.Range(76, 5).Select(f => new[] { new Part(f, OnlyPalette: palette) }));
+            frames.AddRange(Enumerable.Range(81, 8).Select(f => new[] { new Part(f) }));
+            frames.AddRange(Enumerable.Range(13, 5).Select(f => new[] { new Part(f, Table: 0x754738) }));
+            frames.AddRange(Enumerable.Range(0, 2).Select(palette => new[] { new Part(96, OnlyPalette: palette) }));
 
             return new Miniboss(8, "Nightmare", 38, 0x75456C, frames, new[] { new Part(8, OnlyPalette: 0) },
                 new[] {
                     (0x1E, 0), (0x26, 4), (0x29, 8), (0x29, 9), (0x29, 10),                        // "N" (Noddy), "i" (Cookin), "ght" (Heavy Knight);
                     (0x28, 2), (0x2D, 1), (0x01, 1), (0x02, 5),                                    // "m" (Bomber), "a" (Batty), "r" (Bronto Burt), "e" (Blipper);
                 },
-                new byte[0], Type: BossID2, EffectOnly: 55);
+                new byte[0], Type: BossID2, EffectOnly: 94);
         }
 
         /* Apple; Whispy Woods' apples (NiDL object 0x7D, its own frame table 0x08754308: Whispy Woods' frames 18-37, its second palette).

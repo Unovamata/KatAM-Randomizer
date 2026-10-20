@@ -110,7 +110,22 @@ Nightmare fight." and "Fountain of dreams BG is off centered in the hub."
   it, stars flying; nothing breaks). European and Japanese: in Nightmare's room, the rod kept through hits, stars hurting him. Not
   tested: Kirby coming out with an ability other than Normal (none was held before the orb in these runs).
 
-**Still to do**: the ending down from the moon. Now recorded in NiDL (USA; Nightmare's HP held at 1 and Kirby kept beside him
+**Nightmare's defeat** (done; `bosses/nightmare.c`'s `NightmareEnd()`, `finale.c`'s `NidlEndingFlight()`): NiDL's, from the recording
+below: KatAM's freeze and burst, then 24 frames after it (as the Power Orb's end) he flies off right from where he was, slowing (4, 2,
+1, 1/2, 1/4 pixels a frame, 16 frames each), turns to light, comes back as light at (136, 282), caped with his top half over him (NiDL
+draws his frame 96 with his body frames), spreads out and breaks up into light, blinking, with the light over him, all on NiDL's frames
+for NiDL's times and mirrored as NiDL draws him; bursts go off along the floor; then every Kirby still in the room is flown out where
+he stands (a flight: KatAM's fade to white, then the Fountain of Dreams hub) with his ability from before the Power Orb back. The
+Kirbys stay free through it (NiDL's walks and jumps holding the Star Rod); the screen stays put. No dance any more. KatAM loads only 7
+sprite palettes a room and his fight fills them (his second and third palettes and his beams' even shared the last slot), so the
+defeat puts his palettes into the intro's leftover slots. Tested in the emulator (a new game in the NiDL hub, its mirror into the
+Power Orb's room, the orb's HP set to 1 in RAM and beaten, the ride to Nightmare's room and his intro, then his HP held at 1 in RAM
+and Star Rod stars by set inputs; USA solo and with the 3 helpers, European and Japanese rev 1 solo): screenshots beside NiDL's at the same moments (his caped shape, the spread, the breakup, the light over him, the bursts, the
+fade, all as NiDL's; his spot when he comes back the same to the pixel), every Kirby landing in the Fountain hub. The logic checks
+pass on all three. Not tested: a Kirby knocked out or in another room when the flight starts (it flies only those in the room and
+up). Not matching NiDL: NiDL's flight off starts from where he was hit 52 frames after it; KatAM's own burst comes first here.
+
+**Still to do**: the ending down from the moon (after the defeat, before the hub). Recorded in NiDL (USA; Nightmare's HP held at 1 and Kirby kept beside him
 until a star hits, frame by frame, screenshots every 60 to 150 frames): his defeat (the hit at its frame 2246: the freeze and the
 burst, then he flies off right and dissolves into sparkles, his frames 76-88, about 900 frames), then a scene of its own (from 3164,
 about 4200 frames): the full moon, a burst in it leaving a crescent, Kirby on the warp star flying out of it and down through the

@@ -178,6 +178,8 @@ void PowerOrbBeaten(struct Object *orb);
 void NidlFinaleStarAt(u8 player, s32 x, s32 y);
 void PowerOrbEnd(struct Object *orb);
 void NightmareBeaten(struct Object *nightmare);
+void NightmareEnd(struct Object *nightmare);
+void NidlEndingFlight(u16 room);
 void NidlFinaleKeep(struct Object *nightmare);
 bool32 NidlFinaleStarSpot(u16 room, s32 *x, s32 *y);
 bool32 NidlFinaleStar(struct Object *star);

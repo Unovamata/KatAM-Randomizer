@@ -7,9 +7,9 @@
  *   only until every Kirby is on it (NidlFinaleAllAboard()), and they all ride it there, NiDL's ride (up off the screen, the screen
  *   rising to the moon, the orb and the star flying into it: PowerOrbEnd() again), keeping the Star Rod:
  *   NiDL's Nightmare is fought with it, on the ground (abilities/star_rod.c; NidlFinaleKeep(): never lost in his room);
- * • Nightmare beaten, every Kirby in his room dances and leaves (as after a boss's shard, NidlDanceOut()), for the Fountain of
- *   Dreams hub (gNidlShardExits: his room's), his ability before the Star Rod given back (NidlShardExit()), where its Amazing Mirror
- *   leads to KatAM's final boss;
+ * • Nightmare beaten, NiDL's defeat (bosses/nightmare.c's NightmareEnd()), then every Kirby in his room is flown out (NidlEndingFlight():
+ *   the fade to white) to the Fountain of Dreams hub (his room's way on, gNidlShardExits'), his ability before the Star Rod given back,
+ *   where its Amazing Mirror leads to KatAM's final boss;
  * gNidlFinale filled in by KatAMExpansion.cs; */
 #include "nidl.h"
 #include "abilities.h"
@@ -21,9 +21,13 @@ struct NidlFinale {
     u8 rideX, rideY;    // and the cell they land in + 1, as a door's;
     u8 flight;          // the star's flight (warpstar.c; its first step NIDL_RIDE_FINALE, bosses/power_orb.c);
     u8 pad;
+    const struct Unk_08353510 *ending;  // the ending's flight out of Nightmare's room (NidlEndingFlight()), NULL none;
 };
 
 const struct NidlFinale gNidlFinale = { 0 };
+
+void sub_080531B4(struct Kirby *, const struct Unk_08353510 *);   // a flight's start (kirby.c);
+void sub_080534D0(struct Kirby *);                                 // a flight's step;
 
 // PowerOrbBeaten(); The Power Orb's end (NidlBossDefeat()): NiDL's (bosses/power_orb.c);
 void PowerOrbBeaten(struct Object *orb) {
@@ -36,9 +40,28 @@ void NidlFinaleStarAt(u8 player, s32 x, s32 y) {
                             0, 0, 0, gNidlFinale.rideX, gNidlFinale.rideY, gNidlFinale.rideRoom, 0, 0, 0, 0, 0, 0);
 }
 
-// NightmareBeaten(); Nightmare's end (NidlBossDefeat()): the Kirbys dance and leave, for the Fountain of Dreams hub;
+// NightmareBeaten(); Nightmare's end (NidlBossDefeat()): NiDL's (bosses/nightmare.c), then the Kirbys are flown out (NidlEndingFlight());
 void NightmareBeaten(struct Object *nightmare) {
-    NidlDanceOut(nightmare->base.roomId);
+    NightmareEnd(nightmare);
+}
+
+/* NidlEndingFlight(); Every Kirby in Nightmare's room (and still up) flown out where he is, his ability before the Star Rod back: the
+ * ending's flight (KatAMExpansionRooms.cs, WarpFlights()), its fade to white, then the room his way on leads to (the Fountain of
+ * Dreams hub); without it, the dance out (NidlDanceOut()); */
+void NidlEndingFlight(u16 room) {
+    u8 i;
+
+    if (gNidlFinale.ending == NULL) {
+        NidlDanceOut(room);
+        return;
+    }
+    for (i = 0; i < gNumKirbys; i++) {
+        struct Kirby *kirby = &gKirbys[i];
+
+        if (kirby->base.roomId != room || kirby->hp <= 0 || kirby->stateFn == sub_080534D0) continue;
+        StarRodRestore(kirby);
+        sub_080531B4(kirby, gNidlFinale.ending);
+    }
 }
 
 // NidlFinaleStar(); Whether a warp star is the Power Orb's (it waits for the helpers, as KatAM's: warpstar.c);

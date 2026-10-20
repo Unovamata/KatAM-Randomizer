@@ -946,3 +946,274 @@ void NightmareInit(struct NidlObject *n) {
     sub_0803E2B0(&obj->base, -20, -40, 20, 32);
     ObjectSetBounds(&obj->base, -16, -16, 16, 16);
 }
+
+/* His defeat (NightmareEnd(), as KatAM's explosion bursts him: finale.c's NightmareBeaten()): NiDL's, traced frame by frame (his
+ * object's frames and spots, the light over him, the floor's bursts), run by a task of its own (KatAM's explosion takes him away,
+ * as its bosses'), the Kirbys free (NiDL's walks and jumps about with the Star Rod), drawn mirrored as NiDL draws him through it:
+ * • DEFEAT_BACK frames after he bursts (as the Power Orb's end), he flies off right from where he was (NiDL's 68-71, 3 frames
+ *   each), 16 frames each at 4, 2, 1, 1/2 and 1/4 pixels a frame; there he turns to light (60 up to 67) and comes back as light at
+ *   DEFEAT_SPOT (66 down to 60), caped (50, 51, his top half over them: 96, as NiDL draws his body frames), then spreads out and
+ *   breaks up, blinking (76-88: sDefeat, from his light on, NiDL's
+ *   frame or NONE and how long), gone 535 frames after the hit; a light over him meanwhile (sDefeatLight: 0x08754738's 13-17);
+ * • the floor's bursts (sFloorBursts: when, from his flight's start, and where; NiDL's shared burst, as his intro's), then every
+ *   Kirby still in his room is flown out (finale.c's NidlEndingFlight(): the fade to white, then the Fountain of Dreams hub);
+ * the screen's held where the fight left it (NiDL's doesn't move); */
+#define FRAME_FLEE 82           // His frames flying off (NiDL's 68-71: the first palette's pieces, then the second's, the third's);
+#define FRAME_CAPED 94          // (50, 51: his third palette);
+#define FRAME_SPREAD 96         // (76-80: the first palette's pieces, then the second's);
+#define FRAME_BREAK 106         // (81-88: 81 his first palette, 82-88 his light's);
+#define FRAME_GLOW 114          // The light over him (0x08754738's 13-17, his descriptor's first palette);
+#define FRAME_TOP 119           // His top half over his caped body (96: the first palette's pieces, then the second's);
+#define DEFEAT_KEY_GLOW 0xE000  // The light over him's palette's key (| his anim ID);
+#define DEFEAT_BACK 24
+#define DEFEAT_FLIGHT 80
+#define DEFEAT_SPEEDS 16        // (frames at each speed flying off: 4, 2, 1, 1/2, 1/4 pixels a frame);
+#define DEFEAT_REAPPEAR 16      // (frames into sDefeat: back, at DEFEAT_SPOT);
+#define DEFEAT_SPOT_X (136 << 8)
+#define DEFEAT_SPOT_Y (282 << 8)
+#define DEFEAT_GLOW_FROM 227
+#define DEFEAT_FLOOR_Y (352 << 8)
+#define DEFEAT_OUT 840          // (from his flight's start: the Kirbys flown out);
+#define DEFEAT_BURSTS 4         // (at once, at most);
+#define DEFEAT_TILES LIGHT_TILES
+#define DEFEAT_B_TILES 64
+#define DEFEAT_C_TILES 72
+#define GLOW_TILES 48
+#define NONE 0xFF
+
+static const u8 sDefeat[][2] = {
+    { 60, 2 }, { 61, 2 }, { 62, 2 }, { 63, 2 }, { 64, 2 }, { 65, 2 }, { 66, 2 }, { 67, 4 }, { 66, 2 }, { 65, 2 }, { 64, 2 }, { 63, 2 },
+    { 62, 2 }, { 61, 2 }, { 60, 2 }, { 50, 5 }, { 51, 10 }, { 76, 2 }, { 77, 2 }, { 76, 2 }, { 77, 2 }, { 76, 2 }, { 77, 2 }, { 76, 2 },
+    { 77, 2 }, { 76, 2 }, { 77, 2 }, { 76, 2 }, { 77, 2 }, { 76, 2 }, { 77, 2 }, { 76, 2 }, { 77, 2 }, { 76, 2 }, { 77, 2 }, { 76, 2 },
+    { 77, 2 }, { 78, 2 }, { NONE, 1 }, { 79, 2 }, { NONE, 1 }, { 78, 2 }, { NONE, 1 }, { 79, 2 }, { NONE, 1 }, { 78, 2 }, { NONE, 1 }, { 79, 2 },
+    { NONE, 1 }, { 78, 2 }, { NONE, 1 }, { 79, 2 }, { NONE, 1 }, { 78, 2 }, { NONE, 1 }, { 79, 2 }, { NONE, 1 }, { 78, 2 }, { NONE, 1 }, { 79, 2 },
+    { NONE, 1 }, { 78, 2 }, { NONE, 1 }, { 79, 2 }, { NONE, 1 }, { 78, 2 }, { NONE, 1 }, { 79, 2 }, { NONE, 1 }, { 78, 2 }, { NONE, 1 }, { 79, 2 },
+    { NONE, 1 }, { 78, 2 }, { NONE, 1 }, { 79, 2 }, { NONE, 1 }, { 80, 2 }, { NONE, 1 }, { 81, 2 }, { NONE, 1 }, { 80, 2 }, { NONE, 1 }, { 81, 2 },
+    { NONE, 1 }, { 80, 2 }, { NONE, 1 }, { 81, 2 }, { NONE, 1 }, { 80, 2 }, { NONE, 1 }, { 81, 2 }, { NONE, 1 }, { 80, 2 }, { NONE, 1 }, { 81, 2 },
+    { NONE, 1 }, { 80, 2 }, { NONE, 1 }, { 81, 2 }, { NONE, 1 }, { 80, 2 }, { NONE, 1 }, { 81, 2 }, { NONE, 1 }, { 80, 2 }, { NONE, 1 }, { 81, 2 },
+    { NONE, 1 }, { 80, 2 }, { NONE, 1 }, { 81, 2 }, { NONE, 1 }, { 80, 2 }, { NONE, 1 }, { 81, 2 }, { NONE, 1 }, { 82, 2 }, { NONE, 2 }, { 85, 2 },
+    { NONE, 2 }, { 82, 2 }, { NONE, 2 }, { 85, 2 }, { NONE, 2 }, { 82, 2 }, { NONE, 2 }, { 85, 2 }, { NONE, 2 }, { 82, 2 }, { NONE, 2 }, { 85, 2 },
+    { NONE, 2 }, { 82, 2 }, { NONE, 2 }, { 85, 2 }, { NONE, 2 }, { 82, 2 }, { NONE, 2 }, { 85, 2 }, { NONE, 2 }, { 82, 2 }, { NONE, 2 }, { 85, 2 },
+    { NONE, 2 }, { 82, 2 }, { NONE, 2 }, { 85, 2 }, { NONE, 2 }, { 82, 2 }, { NONE, 2 }, { 85, 2 }, { NONE, 2 }, { 82, 2 }, { NONE, 2 }, { 85, 2 },
+    { NONE, 2 }, { 82, 2 }, { NONE, 2 }, { 85, 2 }, { NONE, 2 }, { 82, 2 }, { NONE, 2 }, { 85, 2 }, { NONE, 2 }, { 82, 2 }, { NONE, 2 }, { 85, 2 },
+    { NONE, 2 }, { 82, 2 }, { NONE, 2 }, { 85, 2 }, { NONE, 2 }, { 82, 2 }, { NONE, 2 }, { 85, 2 }, { NONE, 2 }, { 83, 2 }, { NONE, 2 }, { 84, 2 },
+    { NONE, 2 }, { 83, 2 }, { NONE, 2 }, { 84, 2 }, { NONE, 2 }, { 83, 2 }, { NONE, 2 }, { 84, 2 }, { NONE, 2 }, { 83, 2 }, { NONE, 2 }, { 84, 2 },
+    { NONE, 2 }, { 83, 2 }, { NONE, 2 }, { 84, 2 }, { NONE, 2 }, { 83, 2 }, { NONE, 2 }, { 84, 2 }, { NONE, 2 }, { 83, 2 }, { NONE, 2 }, { 84, 2 },
+    { NONE, 2 }, { 83, 2 }, { NONE, 2 }, { 84, 2 }, { NONE, 2 }, { 86, 2 }, { NONE, 2 }, { 87, 2 }, { NONE, 2 }, { 88, 2 }, { NONE, 10 },
+};
+
+static const u8 sDefeatLight[][2] = {
+    { 16, 2 }, { NONE, 2 }, { 16, 2 }, { NONE, 2 }, { 16, 2 }, { NONE, 2 }, { 16, 2 }, { NONE, 2 }, { 16, 2 }, { NONE, 2 }, { 16, 2 }, { NONE, 2 },
+    { 16, 2 }, { NONE, 2 }, { 16, 2 }, { NONE, 2 }, { 16, 2 }, { NONE, 2 }, { 16, 2 }, { NONE, 2 }, { 13, 2 }, { NONE, 1 }, { 14, 2 }, { 13, 2 },
+    { NONE, 1 }, { 14, 2 }, { 13, 2 }, { NONE, 1 }, { 14, 2 }, { 13, 2 }, { NONE, 1 }, { 14, 2 }, { 13, 2 }, { NONE, 1 }, { 14, 2 }, { 13, 2 },
+    { NONE, 1 }, { 14, 2 }, { 13, 2 }, { NONE, 1 }, { 14, 2 }, { 13, 2 }, { NONE, 1 }, { 14, 2 }, { 13, 2 }, { NONE, 1 }, { 14, 2 }, { 13, 2 },
+    { NONE, 1 }, { 14, 4 }, { NONE, 1 }, { 13, 2 }, { 14, 2 }, { NONE, 1 }, { 13, 2 }, { 14, 2 }, { NONE, 1 }, { 13, 2 }, { 14, 2 }, { NONE, 1 },
+    { 13, 2 }, { 14, 2 }, { NONE, 1 }, { 13, 2 }, { 14, 2 }, { NONE, 1 }, { 13, 2 }, { 14, 2 }, { NONE, 1 }, { 13, 2 }, { 14, 2 }, { NONE, 1 },
+    { 13, 2 }, { 14, 2 }, { NONE, 1 }, { 13, 2 }, { 14, 2 }, { NONE, 1 }, { 13, 2 }, { 15, 2 }, { 14, 2 }, { 13, 2 }, { 16, 2 }, { 17, 2 },
+};
+
+static const s16 sFloorBursts[][2] = {
+    { 661, 88 }, { 691, 232 }, { 706, 216 }, { 706, 56 }, { 736, 200 }, { 746, 120 }, { 756, 40 }, { 766, 224 }, { 811, 88 }, { 811, 208 }, { 841, 232 },
+};
+
+extern u16 gUnk_02022E60[];     // The keys of the palettes loaded in OBJ slots 8-14 (KatAM's sub_0803DF24, sub_0803DFAC), and how many;
+extern u8 gUnk_02022EA0;
+void sub_0803D280(u8, u8);
+
+/* DefeatPalette(); A palette of his defeat's, as frame `frame` of his anim has it: loaded into the slot of `take` (one of his intro's,
+ * done with), else its slot if `key`'s loaded, else as the game loads one; `force` loads it again where it is (KatAM keeps 7 a
+ * room, slots 8-14, and loads past them into the last: by his fight, his intro's and his own fill them, his second and third
+ * palettes taking the last in turn, its colours the last's), or 0 (not yet: the local player isn't in the room); */
+static u8 DefeatPalette(u16 room, u16 key, u8 frame, u16 take, bool8 force) {
+    struct Sprite sprite;
+    u8 i, slot = 0xFF;
+
+    if (gKirbys[gLocalPlayerId].base.roomId != room) return 0;
+    for (i = 0; i < gUnk_02022EA0 && slot == 0xFF && take; i++)
+        if (gUnk_02022E60[i] == take) slot = i + 8, force = TRUE;
+    for (i = 0; i < gUnk_02022EA0 && slot == 0xFF; i++)
+        if (gUnk_02022E60[i] == key) slot = i + 8;
+    if (slot == 0xFF) return IntroPalette(room, key, frame);
+    if (force) {
+        gUnk_02022E60[slot - 8] = key;
+        SpriteSomething(&sprite, 0x6000000, key & 0xFFF, frame, 0xFF, 0, 0, 0, 0, 0x10, slot, 0x80000);
+    }
+    return slot;
+}
+
+struct NightmareEnd {
+    struct EffectObject e;
+    s32 x, y;                   // Where he is (8.8, the room's): where he burst, then flying off;
+    s32 camX, camY;             // The screen, held where the fight left it (NiDL's doesn't move), 8.8;
+    u16 t;                      // Frames since he burst;
+    u16 run, left;              // sDefeat's run, and its frames left;
+    u16 glowRun, glowLeft;      // sDefeatLight's;
+    u8 palA, palB, palC, lightPal, glowPal, burstPal;
+    struct EffectObject *layers[3], *glow, *bursts[DEFEAT_BURSTS];
+};
+
+// DefeatDraw(); A sprite of his defeat's at (x, y) (8.8, the room's), frame `frame`, palette `palId`, mirrored or not;
+static void DefeatDraw(struct EffectObject *e, s32 x, s32 y, u8 frame, u8 palId, bool8 mirrored) {
+    e->x = x;
+    e->y = y;
+    e->sprite.variant = frame;
+    e->sprite.palId = palId;
+    // (KatAM draws effects mirrored unless they face right: NiDL draws him mirrored, its effects as they are);
+    e->flags = (e->flags & ~0x401) | 4 | (mirrored ? 0 : 1);
+    EffectObjectPostUpdate(e);
+}
+
+// DefeatLayer(); His sprite `which` (0 his first palette's pieces and the frames of one palette, 1 and 2 his second's and third's,
+// 2 his caped body too), made as it's needed, in front of or behind the others as his own (his body in front of his collar, the
+// cape's ends and his caped body behind);
+static struct EffectObject *DefeatLayer(struct NightmareEnd *end, u8 which) {
+    static const u8 sTiles[3] = { DEFEAT_TILES, DEFEAT_B_TILES, DEFEAT_C_TILES };
+    static const u8 sOrder[3] = { 0x1B, 0x1A, 0x1C };
+
+    if (end->layers[which] == NULL) {
+        end->layers[which] = IntroSprite(end->e.roomId, sTiles[which], FRAME_FLEE);
+        end->layers[which]->sprite.unk14 = sOrder[which] << 6;
+    }
+    return end->layers[which];
+}
+
+// DefeatFrame(); His frame `frame` (NiDL's) at (x, y): its palettes' pieces, each sprite one palette, those it hasn't let go;
+static void DefeatFrame(struct NightmareEnd *end, u8 frame, s32 x, s32 y) {
+    u8 i;
+
+    if (frame >= 68 && frame <= 71) {
+        DefeatDraw(DefeatLayer(end, 0), x, y, FRAME_FLEE + frame - 68, end->palA, TRUE);
+        DefeatDraw(DefeatLayer(end, 1), x, y, FRAME_FLEE + 4 + frame - 68, end->palB, TRUE);
+        DefeatDraw(DefeatLayer(end, 2), x, y, FRAME_FLEE + 8 + frame - 68, end->palC, TRUE);
+        return;
+    }
+    if (frame == 50 || frame == 51) {
+        DefeatDraw(DefeatLayer(end, 0), x, y, FRAME_TOP, end->palA, TRUE);
+        DefeatDraw(DefeatLayer(end, 1), x, y, FRAME_TOP + 1, end->palB, TRUE);
+        DefeatDraw(DefeatLayer(end, 2), x, y, FRAME_CAPED + frame - 50, end->palC, TRUE);
+        return;
+    }
+    for (i = 1; i < 3; i++)
+        if (!(frame >= 76 && frame <= 80 && i == 1)) Release(&end->layers[i]);
+    if (frame >= 60 && frame <= 67) DefeatDraw(DefeatLayer(end, 0), x, y, FRAME_LIGHT + 67 - frame, end->lightPal, TRUE);
+    else if (frame >= 76 && frame <= 80) {
+        DefeatDraw(DefeatLayer(end, 0), x, y, FRAME_SPREAD + frame - 76, end->palA, TRUE);
+        DefeatDraw(DefeatLayer(end, 1), x, y, FRAME_SPREAD + 5 + frame - 76, end->palB, TRUE);
+    } else if (frame >= 81 && frame <= 88) {
+        DefeatDraw(DefeatLayer(end, 0), x, y, FRAME_BREAK + frame - 81, frame == 81 ? end->palA : end->lightPal, TRUE);
+    }
+}
+
+// DefeatBursts(); The floor's bursts at k (frames since his flight's start): each a frame of the burst, then one of its sparkles,
+// in turn (as his intro's), a sprite of their own each (the next one's sprite after it: at most DEFEAT_BURSTS at once);
+static void DefeatBursts(struct NightmareEnd *end, u16 k) {
+    u8 i;
+
+    for (i = 0; i < ARRAY_COUNT(sFloorBursts); i++) {
+        u16 a = k - sFloorBursts[i][0];
+        struct EffectObject **e = &end->bursts[i % DEFEAT_BURSTS];
+
+        if (k < sFloorBursts[i][0] || a > BURST_FRAMES) continue;
+        if (a == BURST_FRAMES) {
+            Release(e);
+            continue;
+        }
+        if (*e == NULL) *e = IntroSprite(end->e.roomId, BURST_TILES, FRAME_BURST);
+        DefeatDraw(*e, sFloorBursts[i][1] << 8, DEFEAT_FLOOR_Y, FRAME_BURST + (a & 1 ? 12 + a / 2 : a / 2), end->burstPal, FALSE);
+    }
+}
+
+// DefeatGone(); Its sprites let go;
+static void DefeatGone(struct NightmareEnd *end) {
+    u8 i;
+
+    for (i = 0; i < 3; i++) Release(&end->layers[i]);
+    Release(&end->glow);
+    for (i = 0; i < DEFEAT_BURSTS; i++) Release(&end->bursts[i]);
+}
+
+static void NightmareEndMain(void) {
+    struct NightmareEnd *end = TaskGetStructPtr(gCurTask);
+    struct EffectObject *e = &end->e;
+    u16 animId = gNidlData.bosses[NIDL_NIGHTMARE].animId, k;
+    u8 i;
+
+    if (e->flags & 0x1000) {
+        DefeatGone(end);
+        TaskDestroy(gCurTask);
+        return;
+    }
+    // (gone with the room: every Kirby left it);
+    for (i = 0; i < gNumKirbys; i++)
+        if (gKirbys[i].base.roomId == e->roomId) break;
+    if (i >= gNumKirbys) {
+        DefeatGone(end);
+        e->flags |= 0x1000;
+        return;
+    }
+    e->flags |= 4 | 0x400;
+    NidlFinaleHoldCamera(e->roomId, end->camX, end->camY);
+    // (his palettes, his light's, his glow's and the bursts', once a player's in the room: his second loaded again, his third and
+    // the glow's where his intro's comet's and blue star's were);
+    if (!end->palA) end->palA = DefeatPalette(e->roomId, animId, FRAME_FLEE, 0, FALSE);
+    if (!end->palC) end->palC = DefeatPalette(e->roomId, animId | NIDL_THIRD_PALETTE, FRAME_CAPED, animId | INTRO_KEY_A, FALSE);
+    if (!end->palB) end->palB = DefeatPalette(e->roomId, animId | NIDL_SECOND_PALETTE, FRAME_FLEE + 4, 0, TRUE);
+    if (!end->lightPal) end->lightPal = DefeatPalette(e->roomId, animId | INTRO_KEY_LIGHT, FRAME_LIGHT, 0, FALSE);
+    if (!end->glowPal) end->glowPal = DefeatPalette(e->roomId, animId | DEFEAT_KEY_GLOW, FRAME_GLOW, animId | INTRO_KEY_B, FALSE);
+    if (!end->burstPal) end->burstPal = IntroPalette(e->roomId, gNidlData.enemies[NIDL_SPIT_STAR].animId, 0);
+    k = end->t++;
+    if (k < DEFEAT_BACK) return;
+    k -= DEFEAT_BACK;
+    // (flying off: 4 pixels a frame, half that every DEFEAT_SPEEDS frames);
+    if (k < DEFEAT_FLIGHT) {
+        end->x += 0x400 >> (k / DEFEAT_SPEEDS);
+        DefeatFrame(end, 68 + (k / 3) % 4, end->x, end->y);
+    } else if (end->run < ARRAY_COUNT(sDefeat)) {
+        u8 frame = sDefeat[end->run][0];
+
+        if (!end->left) end->left = sDefeat[end->run][1];
+        if (k - DEFEAT_FLIGHT == DEFEAT_REAPPEAR) {
+            end->x = DEFEAT_SPOT_X;
+            end->y = DEFEAT_SPOT_Y;
+        }
+        if (frame != NONE) DefeatFrame(end, frame, end->x, end->y);
+        if (!--end->left) end->run++;
+    } else {
+        for (i = 0; i < 3; i++) Release(&end->layers[i]);
+    }
+    // (the light over him);
+    if (k >= DEFEAT_GLOW_FROM && end->glowRun < ARRAY_COUNT(sDefeatLight)) {
+        u8 frame = sDefeatLight[end->glowRun][0];
+
+        if (!end->glowLeft) end->glowLeft = sDefeatLight[end->glowRun][1];
+        if (frame != NONE) {
+            if (end->glow == NULL) end->glow = IntroSprite(e->roomId, GLOW_TILES, FRAME_GLOW);
+            DefeatDraw(end->glow, DEFEAT_SPOT_X, DEFEAT_SPOT_Y, FRAME_GLOW + frame - 13, end->glowPal, FALSE);
+        }
+        if (!--end->glowLeft && ++end->glowRun >= ARRAY_COUNT(sDefeatLight)) Release(&end->glow);
+    }
+    DefeatBursts(end, k);
+    if (k == DEFEAT_OUT) NidlEndingFlight(e->roomId);
+}
+
+// NightmareEnd(); He's beaten (finale.c's NightmareBeaten(), as KatAM's explosion bursts him): his defeat (see above);
+void NightmareEnd(struct Object *obj) {
+    struct Task *t = TaskCreate(NightmareEndMain, sizeof(struct NightmareEnd), 0x3500, TASK_USE_EWRAM, ObjectBaseDestroy);
+    struct NightmareEnd *end = TaskGetStructPtr(t);
+    u8 i;
+
+    ClearEffectObject(&end->e);
+    end->e.header.kind = 3;
+    end->e.roomId = obj->base.roomId;
+    end->e.parent = NULL;
+    end->e.flags |= 0x400;
+    end->x = obj->base.x;
+    end->y = obj->base.y;
+    end->camX = gCurLevelInfo[obj->base.unk56].viewportPosition.x;
+    end->camY = gCurLevelInfo[obj->base.unk56].viewportPosition.y;
+    end->t = end->run = end->left = end->glowRun = end->glowLeft = 0;
+    end->palA = end->palB = end->palC = end->lightPal = end->glowPal = end->burstPal = 0;
+    for (i = 0; i < 3; i++) end->layers[i] = NULL;
+    end->glow = NULL;
+    for (i = 0; i < DEFEAT_BURSTS; i++) end->bursts[i] = NULL;
+}
