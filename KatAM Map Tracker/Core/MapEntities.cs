@@ -38,8 +38,8 @@ namespace KatAMMapTracker {
      * as a whole, translated below;
      *
      * • Room object IDs: 0x38-0x3F mini-bosses (0x40-0x42 too in expanded ROMs, see RomMap.ReadExpansion), 0x45-0x52 bosses, 0x5E-0x64 items, 0x65 Mirror Shard (behavior 0-7; 8 is the
-     *   Amazing Mirror, Central Circle's Dimension Mirror and its copies: animation 0x2D3, variant 0 as it stands until the 8 shards
-     *   are found; +0x22 bit 0 hides it), 0x80 & 0x81 small & big chests (behavior: what they hold), 0x84 Warp Star, 0x86 Big Switch,
+     *   Amazing Mirror, Central Circle's Dimension Mirror and its copies: animation 0x2D3, variant 1, the golden frame and blue glass
+     *   of the whole mirror once the 8 shards are found; +0x22 bit 0 hides it), 0x80 & 0x81 small & big chests (behavior: what they hold), 0x84 Warp Star, 0x86 Big Switch,
      *   0x8A Fuse Cannon.
      * • Chest contents: 0x00-0x05 the items 1UP, Invincible Candy, Maxim Tomato, Meat, Pep Brew, Cherry (chest.c's sub_0800B97C, not the
      *   items' object order), 0x06 Vitality, 0x0A-0x13 area maps, 0x14-0x21 sprays, 0x28 the
@@ -83,9 +83,9 @@ namespace KatAMMapTracker {
                 P(16, 16, 8, 8, 0, 0, 0x4A0D78, 0x5F0045),
             },
             [EntityIcon.AmazingMirror] = new[] {
-                P(0, 0, 64, 32, 0, 0, 0x4A0D78, 0x604918),
-                P(0, 32, 32, 16, 0, 0, 0x4A0D78, 0x604D18),
-                P(32, 32, 32, 16, 0, 0, 0x4A0D78, 0x604E18),
+                P(0, 0, 64, 32, 0, 0, 0x4A0D98, 0x604F18),
+                P(0, 32, 32, 16, 0, 0, 0x4A0D98, 0x605318),
+                P(32, 32, 32, 16, 0, 0, 0x4A0D98, 0x605418),
             },
             [EntityIcon.ChestSmall] = new[] {
                 P(0, 0, 16, 16, 0, 0, 0x4A0BB8, 0x603E98),
