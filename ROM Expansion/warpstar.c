@@ -42,6 +42,8 @@ void NidlFinaleHold(struct Kirby *);
 #define NIDL_RIDE_FINALE 0xFC // a flight step's +8: the Power Orb's ride's first, Kirby held on it (bosses/power_orb.c moves him);
 #define NIDL_RIDE_ASK 0xFFFF  // a flight step's +0xA: the size the finale's ride says (NidlFinaleRideSize());
 #define NIDL_RIDE_HIDDEN 0x8000 // (NidlFinaleRideSize(): not shown: too small, the orb's end draws a dot there, or off the screen);
+#define NIDL_RIDE_ALONE 0x4000  // (and: the Kirbys at their size, the star gone: Nightmare's intro, knocked off it);
+#define NIDL_RIDE_SIZED(pa) ((pa) && (pa) != NIDL_RIDE_HIDDEN && (pa) != NIDL_RIDE_ALONE)
 
 // NidlRide; Filled in by KatAMExpansionRooms.cs: the trampolines running the detoured functions;
 struct NidlRide {
@@ -172,7 +174,7 @@ void NidlRideDraw(struct Kirby *kirby) {
     u32 first = gUnk_030024F0, pa = NidlRideSize(kirby);
 
     gNidlRide.draw(kirby);
-    if (pa && pa != NIDL_RIDE_HIDDEN) NidlShrink(first, kirby->base.sprite.x, kirby->base.sprite.y, pa, NIDL_RIDE_MATRIX);
+    if (NIDL_RIDE_SIZED(pa)) NidlShrink(first, kirby->base.sprite.x, kirby->base.sprite.y, pa, NIDL_RIDE_MATRIX);
 }
 
 // NidlRideStar(); The task of the star Kirby rides (sub_0808EEF4, which draws it where he is); its size his (see above);
@@ -182,9 +184,9 @@ void NidlRideStar(void) {
     u32 first = gUnk_030024F0, pa = kirby != NULL ? NidlRideSize(kirby) : 0;
 
     // (hidden: EffectObjectPostUpdate draws it only without its flag 0x400; the Power Orb's ride's, shown again);
-    if (pa == NIDL_RIDE_HIDDEN) star->flags |= 0x400;
+    if (pa == NIDL_RIDE_HIDDEN || pa == NIDL_RIDE_ALONE) star->flags |= 0x400;
     else if (kirby != NULL && kirby->stateFn == sub_080534D0 && kirby->unk114 != NULL && ((const u16 *)kirby->unk114)[5] == NIDL_RIDE_ASK)
         star->flags &= ~0x400;
     sub_0808EEF4();
-    if (pa && pa != NIDL_RIDE_HIDDEN) NidlShrink(first, star->sprite.x, star->sprite.y, pa, NIDL_RIDE_MATRIX);
+    if (NIDL_RIDE_SIZED(pa)) NidlShrink(first, star->sprite.x, star->sprite.y, pa, NIDL_RIDE_MATRIX);
 }

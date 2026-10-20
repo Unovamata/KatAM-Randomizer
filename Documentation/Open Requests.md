@@ -110,9 +110,22 @@ Nightmare fight." and "Fountain of dreams BG is off centered in the hub."
   it, stars flying; nothing breaks). European and Japanese: in Nightmare's room, the rod kept through hits, stars hurting him. Not
   tested: Kirby coming out with an ability other than Normal (none was held before the orb in these runs).
 
-**Still to do**: the rest of Nightmare's intro (the star hit and Kirby knocked off it, tumbling up and falling to the floor, then
-Nightmare coming down: recorded from NiDL frame by frame); the ending down from the moon (not recorded yet, NiDL's Nightmare takes
-no hit in the emulator so far). Not tested yet: the whole finale with helpers in one go.
+**Still to do**: the ending down from the moon (not recorded yet, NiDL's Nightmare takes no hit in the emulator so far). Nightmare's
+fight itself isn't NiDL's yet (item 5): NiDL fights him in his caped look (his body, 48-55, under his collar and cape, 96), the port
+in his arms-out one (8-15), so his look changes as the fight starts after his entrance. Not tested yet: the whole finale with
+helpers in one go.
+
+**Nightmare's intro, the hit and his entrance** (done; `bosses/nightmare.c`'s `Knock()`, `Puff()`, `Light()`): as NiDL's, recorded
+frame by frame: the last blue star bursts on the warp star, which is gone the next frame (the Kirbys drawn without it), a puff where
+it was (NiDL's shared effect), and the Kirbys are knocked off: NiDL's tumble up and down to the floor, its bounce and its slide back
+(KatAM's tumbling animations, as the rides' tumbles, then Kirby's back to us, KatAM's door pose: NiDL's has the Star Rod held out to
+the right, the port's rod is held up, the Star Rod's pose for that body), the helpers spreading out to the player's right as they
+fly; 260 frames after the hit they're up and theirs again (the flight ends standing, facing Nightmare, no hop), as his light grows
+into his white shape where NiDL's appears (113, 280: his own frames 67 down to 60, two frames each); the fight starts there.
+Tested in the emulator (USA, European and Japanese rev 1; as the Power Orb's end, with the 3 helpers, and USA alone): screenshots
+side by side with NiDL's (the hit, the tumble, the slide, the light, his spot) and every frame's spots in the log (the tumble's path
+as NiDL's to the pixel, the slide back to x 101, every Kirby standing on the floor once up); the fight after it (the helpers
+shooting, his beams). The logic checks pass on all three.
 
 **Nightmare's intro, the comet and the blue stars** (done; `bosses/nightmare.c`'s intro effects): as NiDL's cutscene, recorded
 frame by frame (its objects' spots, speeds, frames and sizes, the OAM's affine matrices, the palette RAM): his comet far off in the

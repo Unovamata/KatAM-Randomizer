@@ -1509,8 +1509,8 @@
         // (the Power Orb's warp star's flight, after the rides: WarpFlights(), FinaleMirrors());
         static int finaleFlight = WarpFlight;
         // (Kirby's animations tumbling, KatAM's: 74, then 89 down to 75, round again; bouncing off the floor; the effect making the orb,
-        // 0x292, where he hops off);
-        const int Tumbling = 74, Bouncing = 20, HopOrb = 10;
+        // 0x292, where he hops off; standing);
+        const int Tumbling = 74, Bouncing = 20, HopOrb = 10, Standing = 0;
         // (a flight step's effect starting KatAM's fade to white, sub_0803CA20: its flights' before their room change);
         const int FlightFade = 0;
         static void WarpFlights(byte[] rom, IReadOnlyDictionary<string, int> symbols, ref int cursor) {
@@ -1582,15 +1582,16 @@
                 rom[arrivals + last.Room * 2] = (byte)(landing.x / 16 + 1);
                 rom[arrivals + last.Room * 2 + 1] = (byte)(landing.y / 16 + 1);
             }
-            // (the Power Orb's: held, then the fade, WarpFlight's room change, held again in Nightmare's room, then WarpFlight's frame
-            // still and hop off);
+            // (the Power Orb's: held, then the fade, WarpFlight's room change, held again in Nightmare's room (his intro knocks them off
+            // the star there and lays them on the floor), then a frame standing and the end, facing him: as the rides', no hop);
             finaleFlight = WarpFlight + 1 + rides.Count;
             int finale = Allocate(ref cursor, 6 * FlightStep, 4);
             WriteShorts(rom, finale, 0, 0, 1, FlightRider, RideFinale, RideAsk);
             WriteShorts(rom, finale + FlightStep, 0, 0, RideFade, FlightRider, FlightFade | RideHidden << 8, RideAsk);
             Array.Copy(rom, flight + (FlightRise - 1) * FlightStep, rom, finale + 2 * FlightStep, FlightStep);
             WriteShorts(rom, finale + 3 * FlightStep, 0, 0, 1, FlightRider, RideFinale, RideAsk);
-            Array.Copy(rom, flight + FlightRise * FlightStep, rom, finale + 4 * FlightStep, 2 * FlightStep);
+            WriteShorts(rom, finale + 4 * FlightStep, 0, 0, 1, Standing, 0xFF, 0);
+            WriteShorts(rom, finale + 5 * FlightStep, 0, 0, 0, Standing, RideHop, 0);
             WriteInt(rom, moved + finaleFlight * 4, finale + 0x08000000);
         }
 

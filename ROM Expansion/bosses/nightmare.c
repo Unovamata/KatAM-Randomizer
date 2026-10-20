@@ -300,8 +300,12 @@ static void NightmareMain(struct Object *obj) {
  * screen from the room's top (34) down a pixel a frame for 158 frames, then a pixel every 4 frames down to its bottom (216, the
  * fight's screen; finale.c's NidlFinaleHoldCamera()), the star flying down into it with the Kirbys (sIntroStar: its moves on the
  * screen, from (0, -35) above its top left; hidden and kept on the screen till it shows, NightmareRideSize(): KatAM points at helpers
- * off it), then about it; 910 frames in, they leave it (its flight's end: KatAM's hop off), and the fight starts (he waits till then,
- * hidden: NightmareIntroOn(), nidl_boss.c); */
+ * off it), then about it; 910 frames in, a blue star hits it (see below): the star's gone (NightmareRideSize(): NIDL_RIDE_ALONE,
+ * warpstar.c draws the Kirbys without it), and the Kirbys are knocked off, held still (Knock(): NiDL's tumble up and down to the
+ * floor, its bounce, then its slide back, KatAM's tumbling animations as the rides' and the Star Rod's back view; the helpers
+ * spreading out to the right of the player as they fly); 260 frames on they're up, the flight ends (its last steps: a frame standing,
+ * then the end, facing him, KatAMExpansionRooms.cs) and they're the players' again, as his light grows into his shape where he
+ * appears; then the fight starts (he waits till then, hidden: NightmareIntroOn(), nidl_boss.c); */
 #define INTRO_CAM_X (8 << 8)
 #define INTRO_CAM_Y (35 << 8)
 #define INTRO_CAM_FAST 158
@@ -310,9 +314,13 @@ static void NightmareMain(struct Object *obj) {
 #define INTRO_STAR_Y (-35 << 8)
 #define INTRO_OFF (-16 << 8)
 #define INTRO_ON_SCREEN (24 << 8)
-#define INTRO_ENDS 910
+#define INTRO_HIT 910
+#define INTRO_LIGHT 1169
+#define INTRO_STANDS 1170
+#define INTRO_ENDS 1184
 #define NIDL_RIDE_FINALE 0xFC
 #define NIDL_RIDE_HIDDEN 0x8000
+#define NIDL_RIDE_ALONE 0x4000
 
 void sub_080534D0(struct Kirby *);
 
@@ -381,6 +389,19 @@ static const u8 sIntroStar[909] = {
 #define INTRO_MATRICES 5
 #define FLASH_BG (14 * 16)      // The flash's colors: the room's (BG palettes 0-13: not the HUD's 14 and 15), then the sprites';
 #define FLASH_COLORS (FLASH_BG + 0x100)
+#define FRAME_PUFF 57           // The puff as the star's hit (0-16, NiDL's shared effect's), his light (NiDL's 67 down to 61, then 60);
+#define FRAME_LIGHT 74
+#define PUFF_TILES 40
+#define LIGHT_TILES 121
+#define INTRO_KEY_LIGHT 0xC000
+#define ENTRANCE_X (113 << 8)   // Where he appears (NiDL's spot: the fight starts there);
+#define ENTRANCE_Y (280 << 8)
+#define ANIM_TUMBLING 74        // Kirby's tumble (KatAM's: 74, then 89 down to 75, round again: NiDL's 96, then 111 down to 97);
+#define ANIM_SLIDE 42           // Kirby's back, the Star Rod held out (NiDL's 0x1009: the Star Rod's poses, KatAMExpansionHats.cs);
+#define KNOCK_TUMBLE 154        // The tumble's and bounce's frames, then the slide's (to 258);
+#define KNOCK_TURN 258
+#define KNOCK_SPREAD 24         // The helpers' spread (pixels apart, over the tumble's first 64 frames);
+#define KNOCK_SPREAD_TIME 64
 
 // BlueStarLife; A blue star: from t `start`, at (x, y) on the screen (1/8 pixels, its middle), its size ((scale + 1) / 64) and turn
 // (64ths), blinking out from `blink` frames on (hidden, shown, ...), gone after `end`; its moves: `runs` runs from `run`;
@@ -444,6 +465,12 @@ static const struct BlueStarRun sBlueStarRuns[101] = {
 // The bursts (NiDL's type 0x97): on a blue star (sBlueStars), at its age then;
 static const u8 sBursts[][2] = { { 4, 12 }, { 5, 12 }, { 3, 16 }, { 6, 21 }, { 8, 24 }, { 11, 44 } };
 
+// The tumble off the star and the bounce: runs of moves (frames, x and y a frame in 1/32 pixels), NiDL's Kirby's;
+static const s8 sKnock[][3] = {
+    { 12, 32, -128 }, { 4, 32, -64 }, { 4, 32, -32 }, { 4, 16, -16 }, { 4, 16, -4 }, { 4, 16, -1 }, { 4, 16, 1 }, { 4, 16, 4 },
+    { 8, 16, 16 }, { 16, 16, 32 }, { 50, 16, 64 }, { 8, 0, -64 }, { 12, 0, -32 }, { 12, 0, 32 }, { 8, 0, 64 },
+};
+
 // A quarter turn's sines (64ths of a turn; 8.8);
 static const u16 sQuarterSine[17] = { 0, 25, 50, 74, 98, 121, 142, 162, 181, 198, 213, 226, 237, 245, 251, 255, 256 };
 
@@ -462,8 +489,12 @@ struct NightmareIntro {
     u16 t;                      // Frames since it began;
     u8 palA, palB, burstPal;    // The comet's palettes' slots (the blue star's is the first), the bursts' (0: not loaded yet);
     u8 level;                   // The flash on screen (0: none);
-    struct EffectObject *stars; // The blue stars' sprite, the bursts' (NULL: none);
+    u8 lightPal;                // His light's palette's slot (0: not loaded yet);
+    s32 knockX, knockY;         // The knocked-off player's spot (8.8, the room's; the helpers' to his right), the star's then;
+    s32 hitX, hitY;
+    struct EffectObject *stars; // The blue stars' sprite, the bursts', the puff's, his light's (NULL: none);
     struct EffectObject *bursts[ARRAY_COUNT(sBursts)];
+    struct EffectObject *puff, *light;
     struct BlueStar blue[ARRAY_COUNT(sBlueStars)];
     u16 colors[FLASH_COLORS];   // The palettes under the flash, the game's own;
 };
@@ -640,6 +671,7 @@ static void Comet(struct NightmareIntro *intro, u16 t) {
 // BlueStars(); The blue stars at t: each moved on and drawn (from the one sprite, a matrix each);
 static void BlueStars(struct NightmareIntro *intro, u16 t) {
     u8 i, drawn = 0;
+    bool8 over = TRUE;
 
     for (i = 0; i < ARRAY_COUNT(sBlueStars); i++) {
         const struct BlueStarLife *life = &sBlueStars[i];
@@ -649,6 +681,7 @@ static void BlueStars(struct NightmareIntro *intro, u16 t) {
         u16 age;
         u32 first;
 
+        if (t <= life->start + life->end) over = FALSE;
         if (t < life->start || t > life->start + life->end) continue;
         age = t - life->start;
         if (!age) {
@@ -675,6 +708,8 @@ static void BlueStars(struct NightmareIntro *intro, u16 t) {
         IntroDraw(intro->stars, INTRO_CAM_X + (b->x << 5), intro->camY + (b->y << 5), FRAME_BLUE_STAR, intro->palA);
         Spin(first, b->angle, b->scale, INTRO_MATRIX + drawn++);
     }
+    // (its sprite let go once they're all gone);
+    if (over) Release(&intro->stars);
 }
 
 // Bursts(); The bursts at t: on their star (a frame behind it from their second), a frame of the burst, then one of its sparkles,
@@ -695,6 +730,46 @@ static void Bursts(struct NightmareIntro *intro, u16 t) {
     }
 }
 
+/* Knock(); The knocked-off player's spot at t (from INTRO_HIT on, the star's spot then): NiDL's tumble up and down to the floor, the
+ * bounce, then the slide back (a pixel right, a pixel right, two left, two left, ...) till he turns round; */
+static void Knock(struct NightmareIntro *intro, u16 t) {
+    u16 k = t - INTRO_HIT, n = 0;
+    u8 r;
+
+    if (!k) {
+        intro->knockX = intro->hitX = INTRO_CAM_X + intro->sx;
+        intro->knockY = intro->hitY = intro->camY + intro->sy;
+    }
+    if (k < KNOCK_TUMBLE) {
+        for (r = 0; k >= n + sKnock[r][0]; r++) n += sKnock[r][0];
+        intro->knockX += sKnock[r][1] << 3;
+        intro->knockY += sKnock[r][2] << 3;
+    } else if (k < KNOCK_TURN) {
+        intro->knockX += (k - KNOCK_TUMBLE) & 2 ? -0x200 : 0x100;
+    }
+}
+
+// Puff(); The puff where the star's hit (NiDL's: its burst and stars, two frames on its first, then out a while, then its rings);
+static void Puff(struct NightmareIntro *intro, u16 t) {
+    u16 a = t - INTRO_HIT;
+
+    if (t < INTRO_HIT) return;
+    if (a >= 22) {
+        Release(&intro->puff);
+        return;
+    }
+    if (a >= 12 && a < 16) return;
+    if (intro->puff == NULL) intro->puff = IntroSprite(intro->e.roomId, PUFF_TILES, FRAME_PUFF);
+    IntroDraw(intro->puff, intro->hitX, intro->hitY, FRAME_PUFF + (a < 2 ? 0 : a < 12 ? a - 1 : a - 5), intro->burstPal);
+}
+
+// Light(); His light where he appears, growing into his shape, two frames each (then the fight starts, he's there);
+static void Light(struct NightmareIntro *intro, u16 t) {
+    if (t < INTRO_LIGHT) return;
+    if (intro->light == NULL) intro->light = IntroSprite(intro->e.roomId, LIGHT_TILES, FRAME_LIGHT);
+    IntroDraw(intro->light, ENTRANCE_X, ENTRANCE_Y, FRAME_LIGHT + ((t - INTRO_LIGHT) >> 1), intro->lightPal);
+}
+
 // IntroEnd(); Its effects gone, the palettes back;
 static void IntroEnd(struct NightmareIntro *intro) {
     u8 i;
@@ -702,6 +777,8 @@ static void IntroEnd(struct NightmareIntro *intro) {
     Flash(intro, 0);
     Release(&intro->stars);
     for (i = 0; i < ARRAY_COUNT(sBursts); i++) Release(&intro->bursts[i]);
+    Release(&intro->puff);
+    Release(&intro->light);
 }
 
 static void NightmareIntroMain(void);
@@ -732,12 +809,14 @@ bool32 NightmareIntroOn(u16 room) {
     return IntroOf(room) != NULL;
 }
 
-// NightmareRideSize(); The size the star and its Kirbys are drawn at (finale.c's NidlFinaleRideSize()): theirs, or hidden over the
-// screen;
+// NightmareRideSize(); The size the star and its Kirbys are drawn at (finale.c's NidlFinaleRideSize()): theirs, hidden over the
+// screen, or the Kirbys alone (the star's hit);
 u32 NightmareRideSize(u16 room) {
     struct NightmareIntro *intro = IntroOf(room);
 
-    return intro != NULL && intro->sy <= INTRO_OFF ? NIDL_RIDE_HIDDEN : 0;
+    if (intro == NULL) return 0;
+    if (intro->t >= INTRO_HIT) return NIDL_RIDE_ALONE;
+    return intro->sy <= INTRO_OFF ? NIDL_RIDE_HIDDEN : 0;
 }
 
 // IntroRider(); Whether a Kirby rides the star in (on its flight's step held: warpstar.c);
@@ -776,14 +855,24 @@ static void NightmareIntroMain(void) {
         intro->sy += ((code >> 4) - 8) << 8;
     }
     NidlFinaleHoldCamera(e->roomId, INTRO_CAM_X, intro->camY);
+    if (t >= INTRO_HIT) Knock(intro, t);
     for (i = 0; i < gNumKirbys; i++) {
         struct Kirby *kirby = &gKirbys[i];
+        u16 k = t - INTRO_HIT;
 
         if (!IntroRider(kirby, e->roomId)) continue;
-        kirby->base.x = INTRO_CAM_X + intro->sx;
-        kirby->base.y = intro->camY + (intro->sy <= INTRO_OFF ? INTRO_ON_SCREEN : intro->sy);
-        // (off the star: its flight's end, KatAM's hop off);
-        if (t == INTRO_ENDS) {
+        if (t < INTRO_HIT) {
+            kirby->base.x = INTRO_CAM_X + intro->sx;
+            kirby->base.y = intro->camY + (intro->sy <= INTRO_OFF ? INTRO_ON_SCREEN : intro->sy);
+            continue;
+        }
+        // (knocked off: the player's spot, the helpers' to his right; tumbling, then his back to us, facing right as NiDL's);
+        kirby->base.x = intro->knockX + i * KNOCK_SPREAD * (k < KNOCK_SPREAD_TIME ? k : KNOCK_SPREAD_TIME) * 0x100 / KNOCK_SPREAD_TIME;
+        kirby->base.y = intro->knockY;
+        kirby->animationIndex = k < KNOCK_TUMBLE ? ANIM_TUMBLING + ((13 - k) & 15) : ANIM_SLIDE;
+        kirby->base.flags &= ~1;
+        // (up: the flight's end, a frame standing, then theirs again);
+        if (t == INTRO_STANDS) {
             kirby->unk114++;
             kirby->base.counter = ((const struct Unk_08353510 *)kirby->unk114)->unk4;
         }
@@ -792,10 +881,13 @@ static void NightmareIntroMain(void) {
     if (!intro->palA) intro->palA = IntroPalette(e->roomId, gNidlData.bosses[NIDL_NIGHTMARE].animId | INTRO_KEY_A, FRAME_COMET);
     if (!intro->palB) intro->palB = IntroPalette(e->roomId, gNidlData.bosses[NIDL_NIGHTMARE].animId | INTRO_KEY_B, FRAME_COMET + 3);
     if (!intro->burstPal) intro->burstPal = IntroPalette(e->roomId, gNidlData.enemies[NIDL_SPIT_STAR].animId, 0);
+    if (!intro->lightPal) intro->lightPal = IntroPalette(e->roomId, gNidlData.bosses[NIDL_NIGHTMARE].animId | INTRO_KEY_LIGHT, FRAME_LIGHT);
     Comet(intro, t);
     Flash(intro, FlashLevel(t));
     BlueStars(intro, t);
     Bursts(intro, t);
+    Puff(intro, t);
+    Light(intro, t);
     intro->t++;
 }
 
@@ -818,9 +910,10 @@ void NightmareIntroRider(struct Kirby *kirby) {
     intro->sy = INTRO_STAR_Y;
     intro->t = 0;
     intro->cometX = COMET_X;
-    intro->palA = intro->palB = intro->burstPal = 0;
+    intro->palA = intro->palB = intro->burstPal = intro->lightPal = 0;
     intro->level = 0;
-    intro->stars = NULL;
+    intro->knockX = intro->knockY = intro->hitX = intro->hitY = 0;
+    intro->stars = intro->puff = intro->light = NULL;
     for (i = 0; i < ARRAY_COUNT(sBursts); i++) intro->bursts[i] = NULL;
     EffectObjectInitSprite(&intro->e, &intro->e.sprite, COMET_TILES, gNidlData.bosses[NIDL_NIGHTMARE].animId, FRAME_COMET, 0x1A);
 }
@@ -837,7 +930,7 @@ void NightmareStart(struct Object *obj) {
     NightmarePart(m, 2);
 }
 
-// NightmareInit(); His boxes (his collar and body), through anything;
+// NightmareInit(); His boxes (his collar and body), through anything; his spot, where his intro has him appear;
 void NightmareInit(struct NidlObject *n) {
     struct Nightmare *m = (struct Nightmare *)n;
     struct Object *obj = &n->obj;
@@ -846,6 +939,8 @@ void NightmareInit(struct NidlObject *n) {
     m->hidden = FALSE;
     m->anim = 0;
     m->lastMove = 0xFF;
+    obj->base.x = ENTRANCE_X;
+    obj->base.y = ENTRANCE_Y;
     obj->base.flags |= 0x100;
     obj->base.unk5C = (obj->base.unk5C & ~7) | 3 | 0xA0;
     sub_0803E2B0(&obj->base, -20, -40, 20, 32);
