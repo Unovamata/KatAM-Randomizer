@@ -195,6 +195,7 @@ u32 NightmareRideSize(u16 room);
 bool32 NightmareIntroOn(u16 room);
 bool32 NightmareIntroHolds(u16 room);
 bool32 NightmareBlocks(u16 room, s32 x, s32 y);
+bool32 NightmareTarget(u16 room, s32 x, s32 y, bool8 *left, s32 *gap);
 void NightmareGone(struct Object *nightmare);
 void NightmareIntroRider(struct Kirby *kirby);
 const struct NidlGraphics *NidlGraphicsOf(struct NidlObject *);

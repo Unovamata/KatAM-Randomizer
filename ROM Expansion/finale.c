@@ -12,6 +12,7 @@
  *   (ending.c: held there, NidlFinaleHold()), then to the Fountain of Dreams hub (his room's way on, gNidlShardExits'), where its
  *   Amazing Mirror leads to KatAM's final boss;
  * • the Power Orb's room's cloud bands drift sideways, NiDL's line scroll (NidlCloudsStart(), see there), in its fight and the ending;
+ *   Nightmare's room's background drifts left (DriftMain());
  * gNidlFinale and gNidlCloudSpeeds filled in by KatAMExpansion.cs; */
 #include "nidl.h"
 #include "abilities.h"
@@ -143,12 +144,16 @@ void NidlFinaleHold(struct Kirby *kirby) {
     else if (gNidlFinale.orbRoom && kirby->base.roomId == gNidlFinale.orbRoom && NidlOnEnding(kirby)) NidlEndingRider(kirby);
 }
 
-// NidlFinaleKeep(); Nightmare alive (bosses/nightmare.c): every Kirby in his room keeps the Star Rod (StarRodKeep());
+// NidlFinaleKeep(); Nightmare alive (bosses/nightmare.c): every Kirby in his room keeps the Star Rod (StarRodKeep()), and the helpers
+// swing it at him (StarRodAim());
 void NidlFinaleKeep(struct Object *nightmare) {
     u8 i;
 
     for (i = 0; i < gNumKirbys; i++)
-        if (gKirbys[i].base.roomId == nightmare->base.roomId) StarRodKeep(&gKirbys[i]);
+        if (gKirbys[i].base.roomId == nightmare->base.roomId) {
+            StarRodKeep(&gKirbys[i]);
+            StarRodAim(&gKirbys[i]);
+        }
 }
 
 /* The Power Orb's room's cloud bands drift sideways, each at its own speed, as NiDL's (its room's line scroll, 0x080B6B08, armed every
@@ -210,12 +215,47 @@ static void CloudsMain(void) {
     gUnk_030039A0 = sizeof(u16);
 }
 
+/* Nightmare's room's background drifts left as NiDL's, on and on (its room's line scroll, 0x080B6C40: every line's horizontal scroll
+ * 4 pixels a frame on, from 0 as the room came in, round its 512 pixels, BG3's whole width, every 128 frames): KatAM's background
+ * scroll (sub_080019F8, the level's task) adds an offset of the room's (LevelInfo +0x3C, 0 as a room comes in) and draws the columns
+ * it brings in, the background repeating past its edge (KatAMExpansionRooms.cs: NiDL's, 512 pixels wide); a task after the level's
+ * sets it for the next frame; */
+#define DRIFT_SPEED 4
+#define DRIFT_PERIOD 128
+
+struct Drift {
+    u16 t;          // Frames since the room came in (0-127);
+};
+
+static void DriftMain(void) {
+    struct Drift *drift = TaskGetStructPtr(gCurTask);
+    struct Unk_08002E48 *view = TaskGetStructPtr(gUnk_02023354);
+    struct LevelInfo *level = &gCurLevelInfo[view->unk0];
+
+    if (level->currentRoom != gNidlFinale.rideRoom) {
+        TaskDestroy(gCurTask);
+        return;
+    }
+    if (++drift->t >= DRIFT_PERIOD) drift->t = 0;
+    level->unk3C = drift->t * DRIFT_SPEED << 8;
+}
+
 // NidlCloudsStart(); A room's come in on the screen (rooms.c's BigFillLevelInfo()): the Power Orb's, its clouds from the start;
+// Nightmare's, its drift;
 void NidlCloudsStart(u16 room) {
     struct Task *t = &gTasks[0];
     struct Clouds *clouds;
     u8 n;
 
+    if (gNidlFinale.rideRoom && room == gNidlFinale.rideRoom) {
+        for (n = 0; n < MAX_TASK_NUM && t->next; n++) {
+            t = (struct Task *)(IWRAM_START + t->next);
+            if (t->main == DriftMain) break;
+        }
+        if (t->main != DriftMain) t = TaskCreate(DriftMain, sizeof(struct Drift), CLOUD_PRIORITY, TASK_USE_IWRAM, NULL);
+        ((struct Drift *)TaskGetStructPtr(t))->t = 0;
+        return;
+    }
     if (!gNidlFinale.orbRoom || room != gNidlFinale.orbRoom) return;
     for (n = 0; n < MAX_TASK_NUM && t->next; n++) {
         t = (struct Task *)(IWRAM_START + t->next);

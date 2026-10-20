@@ -266,3 +266,4 @@ gUnk_030039A0 0x30039a0
 DisplaySprite 0x8156988
 gUnk_0203AD40 0x203ad40
 LoadObjPaletteWithTransformation 0x8158bc8
+sub_0801519C 0x80151c4

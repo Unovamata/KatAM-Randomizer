@@ -22,7 +22,8 @@
  * rod (its hat: NiDL's ground set, KatAMExpansionHats.cs), and B swings it (StarRodSwingStart(): NiDL's, traced frame by frame, 16
  * frames, a star shot on the 5th, 20 pixels ahead the way he faces and 4 down, on at 4 pixels a frame; once a press, on the ground
  * standing still, in the air falling; a helper only once the fight has started, after Nightmare's intro); he keeps it there
- * (StarRodKeep(); a hit doesn't take it, abilities.c's NidlKirbyHit()); */
+ * (StarRodKeep(); a hit doesn't take it, abilities.c's NidlKirbyHit()); the helpers swing it at Nightmare by an aim of their own
+ * (StarRodAim(): KatAM's helper AI never goes for him up over the floor); */
 #include "../abilities.h"
 #include "kirby.h"
 #include "code_0806F780.h"
@@ -37,6 +38,7 @@ void sub_0806EFF8(struct Kirby *);
 void sub_08088640(struct Kirby *, u8, u16);
 void sub_080880AC(struct Kirby *, u32);
 void sub_0800EE04(u8, u32);
+void sub_0801519C(struct Unk_02038590 *);  // (KatAM's helper AI's own action, its default);
 s32 PowerOrbIntro(struct Object *);
 bool32 PowerOrbShotNear(struct Object *, s32, s32, s32 *);
 
@@ -365,6 +367,67 @@ void StarRodSwingStart(struct Kirby *kirby) {
         kirby->base.flags &= ~1;
     if (kirby->base.unk62 & 4) kirby->base.xspeed = 0;
     kirby->stateFn = StarRodSwing;
+}
+
+/* Nightmare's fight: KatAM's helper AI only goes for what's within 48 pixels of a helper's height (sub_08010590), never Nightmare over
+ * the floor; StarRodAim() puts an action of its own in its action slot (its last; KatAM's own, sub_0801519C, back after), pressing what a
+ * player would: AIShoot(), B and the way to him, when the helper's star would meet him where he takes hits (NightmareTarget()), or
+ * AIJump(), A held (a jump: AIM_JUMP pixels up, held AIM_RISE frames) when it would at some height on the way up, then B there; */
+#define AIM_JUMP 54
+#define AIM_RISE 22
+#define AIM_STEP 8
+#define AIM_CLEAR 8         // (no jump with his box nearer: his touch);
+
+// AimFrom(); Whether a helper's star would meet him shot `up` pixels higher (NightmareTarget()), which way, and how far he is;
+static bool32 AimFrom(struct Kirby *kirby, s32 up, bool8 *left, s32 *gap) {
+    return NightmareTarget(kirby->base.roomId, kirby->base.x, kirby->base.y + ((GROUND_STAR_Y - up) << 8), left, gap);
+}
+
+static void AIShoot(struct Unk_02038590 *ai) {
+    bool8 left;
+    s32 gap;
+
+    if (AimFrom(ai->unk40, 0, &left, &gap)) ai->unk9E |= B_BUTTON | (left ? DPAD_LEFT : DPAD_RIGHT);
+    ai->unk0[3] = sub_0801519C;
+}
+
+static void AIJump(struct Unk_02038590 *ai) {
+    bool8 left;
+    s32 gap;
+
+    if (ai->unkDE && AimFrom(ai->unk40, 0, &left, &gap)) {
+        ai->unk9E |= B_BUTTON | (left ? DPAD_LEFT : DPAD_RIGHT);
+        ai->unk0[3] = sub_0801519C;
+    } else if (ai->unkDE++ < AIM_RISE) {
+        ai->unk9E |= A_BUTTON;
+    } else {
+        ai->unk0[3] = sub_0801519C;
+    }
+}
+
+/* StarRodAim(); A helper in Nightmare's fight (finale.c's NidlFinaleKeep(), each frame): on the floor, a swing at him now and then
+ * (an 8th of a chance each frame) when he's in line, or a jump (a 16th) when he'd be on the way up, not right over the helper; in the
+ * air (a jump of his own), a swing when he's in line; none while one's under way or his swing's not over; */
+void StarRodAim(struct Kirby *kirby) {
+    struct Unk_02038590 *ai = &gUnk_02038590[kirby->base.unk56];
+    bool8 left;
+    s32 gap, up;
+
+    if (kirby->base.unk56 < gNumHumanPlayers || kirby->ability != NIDL_ABILITY_STAR_ROD || kirby->stateFn == StarRodSwing || kirby->hp <= 0
+        || ai->unk0[3] == AIShoot || ai->unk0[3] == AIJump) return;
+    if (AimFrom(kirby, 0, &left, &gap)) {
+        if (!(kirby->base.unk62 & 4) || !(Rand16() & 7)) ai->unk0[3] = AIShoot;
+        return;
+    }
+    if (!(kirby->base.unk62 & 4)) return;
+    for (up = AIM_STEP; up <= AIM_JUMP; up += AIM_STEP) {
+        if (!AimFrom(kirby, up, &left, &gap)) continue;
+        if (gap >= AIM_CLEAR && !(Rand16() & 15)) {
+            ai->unkDE = 0;
+            ai->unk0[3] = AIJump;
+        }
+        return;
+    }
 }
 
 /* StarRodKeep(); Nightmare's fight: a Kirby in his room keeps the Star Rod, given again (his ability before it still kept for after)
