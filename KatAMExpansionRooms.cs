@@ -110,11 +110,12 @@
         /* The finale ("ROM Expansion/finale.c"): where Central Circle's and the NiDL hub's Dimension Mirrors take Kirby (the Power Orb's
          * room, where he starts it: PlanDoors()); the Fountain of Dreams hub's Amazing Mirror (finaleMirror: Central Circle's Dimension
          * Mirror as KatAM has it, leading to FinalRoom, taken before FinaleMirrors() points that one at the Power Orb's room), in the
-         * middle of the room as the camera shows it (pixels: its spot, the camera showing 8-248 and 8-168; its sprite's middle 4 above),
-         * and its Maximum Tomato (0x61) under it, on the raised platform at the room's bottom middle (its top at 130); */
+         * middle of the room as the camera shows it, high up under the ceiling, where the other switch rooms' ability statues stand
+         * (pixels: its spot, the camera showing 8-248 and 8-168; its sprite's middle 4 above), and its Maximum Tomato (0x61) under it,
+         * on the raised platform at the room's bottom middle (its top at 130); */
         static (int room, int x, int y) finaleEntry;
         static byte[] finaleMirror;
-        static readonly (int x, int y) FinaleMirrorAt = (128, 92), FinaleTomatoAt = (128, 121);
+        static readonly (int x, int y) FinaleMirrorAt = (128, 68), FinaleTomatoAt = (128, 121);
         const byte FinaleTomato = 0x61;
         // NiDL items (category 3): 1-Up, Maxim Tomato, Invincibility Candy, Energy Drink -> KatAM's 1UP, Maximum Tomato, Lollipop, Pep Brew;
         static readonly Dictionary<int, byte> RoomItems = new Dictionary<int, byte> { [1] = 0x63, [2] = 0x61, [3] = 0x64, [4] = 0x5F };
@@ -207,7 +208,8 @@
          * Cutter, Cupid: subtype1), with the level's abilities: Vegetable Valley Beam (Waddle Doo) and Sword (Sword Knight), Ice Cream
          * Island Parasol and Fire (the beach's), Butter Building Cutter (Sir Kibble) and Hammer, Grape Garden Tornado (Twister) and
          * Spark (Sparky), Yogurt Yard Stone and Throw, Orange Ocean Laser (Laser Ball) and Wheel, Rainbow Resort Ice (Chilly) and
-         * Cupid, the Fountain of Dreams Smash and Burning; between the hub doors (layout A, as 0x122's) or beside the top one (B, 0x250's); */
+         * Cupid, the Fountain of Dreams Smash and Burning (not placed while its hub is the finale's end: FinaleMirrorAt); between the
+         * hub doors (layout A, as 0x122's) or beside the top one (B, 0x250's); */
         static readonly (byte type, byte subtype)[][] SwitchStatues = {
             new[] { ((byte)0x92, (byte)0), ((byte)0x95, (byte)0) }, new[] { ((byte)0x94, (byte)0), ((byte)0x92, (byte)3) },
             new[] { ((byte)0x95, (byte)1), ((byte)0x93, (byte)6) }, new[] { ((byte)0x92, (byte)7), ((byte)0x93, (byte)2) },
@@ -1311,7 +1313,16 @@
                     rom[CodeAddress + version.CodeSymbols["gNidlRoomTops"] + r.Room] = (byte)(top == 8 ? 0 : top / 16 + 1);
                     (int rateX, int rateY) = BackgroundRates(ReadShort(nightmare, backgroundMap + 2) * 8, ReadShort(nightmare, backgroundMap + 4) * 8,
                                                              r.FullWidth * 16, r.FullHeight * 16, top);
-                    WriteShorts(rom, roomProps + r.Room * 0x28, LevelSongs[r.Level], 0, 0, 0x100, 0x100, 0, 0, rateX, rateY, RoomFlags,
+                    /* The Power Orb's room: its background drawn at the camera's spot, as NiDL draws it there (measured in NiDL: through its
+                     * intro and fight the background's row at the screen's top is the camera's y), its top at the room's top (props unk0C:
+                     * KatAM bottom-aligns it), so the cloud band comes up under the room's starry sky as in NiDL, its dark top showing,
+                     * not 176 pixels higher behind the sky's straight bottom edge; */
+                    int backgroundDown = 0;
+                    if (BossIn(nightmare, r.Record) == PowerOrbBoss) {
+                        rateX = rateY = 0x100;
+                        backgroundDown = ReadShort(nightmare, backgroundMap + 4) * 8 - r.FullHeight * 16;
+                    }
+                    WriteShorts(rom, roomProps + r.Room * 0x28, LevelSongs[r.Level], 0, 0, 0x100, 0x100, 0, backgroundDown, rateX, rateY, RoomFlags,
                                 info, palette, tableSizes[12] + i, tableSizes[13] + i, 0xFFFF, background, tableSizes[16] + i,
                                 tableSizes[17] + i, FirstDoorsList + i, 0);
                 }
@@ -3641,8 +3652,10 @@
                 return pixels;
             }
 
-            /* Tiles the same but flipped share one (KatAM's tilemap flips them); past KatAM's limit (BackgroundTiles: one of NiDL's
-             * backgrounds), the least used share the most alike of those kept; */
+            /* Tiles the same but flipped share one (KatAM's tilemap flips them); past KatAM's limit (BackgroundTiles: three of NiDL's
+             * backgrounds, the Power Orb's sky 56 tiles over), one at a time, the tile that changes the picture least shares the kept
+             * tile most like it (in its own colours, times how often it's drawn: near copies among the stars, not whole rows drawn
+             * once, as the least used went, garbling the foot of the orb sky's trees and the Fountain of Dreams' floor's last rows); */
             Dictionary<string, (int tile, int flip)> kept = new Dictionary<string, (int, int)>();
             Dictionary<int, (int tile, int flip)> same = new Dictionary<int, (int, int)>();
             Dictionary<int, int> uses = mapEntries.GroupBy(e => e & 0x3FF).ToDictionary(g => g.Key, g => g.Count());
@@ -3653,20 +3666,59 @@
                 if (match == null) kept[Convert.ToBase64String(Pixels(tile, 0))] = (tile, 0);
                 same[tile] = match ?? (tile, 0);
             }
-            List<int> distinct = same.Where(t => t.Value.tile == t.Key).Select(t => t.Key).ToList();     // Most used first;
-            List<int> chosen = distinct.Take(BackgroundTiles).ToList();
-            foreach (int tile in distinct.Skip(BackgroundTiles)) {
-                byte[] pixels = Pixels(tile, 0);
-                (int tile, int flip) best = (chosen[0], 0);
-                int bestDistance = int.MaxValue;
-                foreach (int candidate in chosen)
-                    for (int flip = 0; flip < 4; flip++) {
-                        byte[] other = Pixels(candidate, flip);
-                        int distance = 0;
-                        for (int i = 0; i < 64 && distance < bestDistance; i++) distance += Math.Abs(pixels[i] - other[i]);
-                        if (distance < bestDistance) { bestDistance = distance; best = (candidate, flip); }
+            List<int> chosen = same.Where(t => t.Value.tile == t.Key).Select(t => t.Key).ToList();     // Most used first;
+            if (chosen.Count > BackgroundTiles) {
+                // Each tile's colours: the palette it's drawn with most (NiDL's 8-15, the palette ending at 15: BackgroundPalette());
+                int length = Math.Min(0x100, (int)ReadShort(nightmare, paletteAddress));
+                int[] Rgb(int palette, int index) {
+                    int offset = (palette - 8) * 32 + index * 2 - (0x100 - length), color = offset < 0 ? 0 : ReadShort(nightmare, paletteAddress + 2 + offset);
+                    return new[] { color & 31, color >> 5 & 31, color >> 10 & 31 };
+                }
+                int[][,] difference = new int[16][,];
+                for (int palette = 8; palette < 16; palette++) {
+                    difference[palette] = new int[16, 16];
+                    for (int a = 0; a < 16; a++)
+                        for (int b = 0; b < 16; b++)
+                            difference[palette][a, b] = Rgb(palette, a).Zip(Rgb(palette, b), (x, y) => Math.Abs(x - y)).Sum();
+                }
+                Dictionary<int, int> paletteOf = mapEntries.GroupBy(e => same[e & 0x3FF].tile).ToDictionary(g => g.Key,
+                                                     g => Math.Max(8, g.GroupBy(e => e >> 12).OrderByDescending(p => p.Count()).First().Key));
+                Dictionary<int, int> drawn = mapEntries.GroupBy(e => same[e & 0x3FF].tile).ToDictionary(g => g.Key, g => g.Count());
+                Dictionary<int, byte[][]> flips = chosen.ToDictionary(t => t, t => Enumerable.Range(0, 4).Select(f => Pixels(t, f)).ToArray());
+                HashSet<int> keep = new HashSet<int>(chosen);
+                // (the kept tile most like one, the flip to draw it with, and the cost: its colours' difference times its uses);
+                Dictionary<int, (int tile, int flip, long cost)> nearest = new Dictionary<int, (int, int, long)>();
+                (int, int, long) Nearest(int tile) {
+                    (int tile, int flip, long cost) best = (-1, 0, long.MaxValue);
+                    byte[] pixels = flips[tile][0];
+                    int[,] diff = difference[paletteOf[tile]];
+                    foreach (int other in keep) {
+                        if (other == tile) continue;
+                        for (int flip = 0; flip < 4; flip++) {
+                            byte[] them = flips[other][flip];
+                            long cost = 0;
+                            for (int i = 0; i < 64 && cost < best.cost; i++) cost += diff[pixels[i], them[i]] * drawn[tile];
+                            if (cost < best.cost) best = (other, flip, cost);
+                        }
                     }
-                foreach (int t in same.Keys.Where(t => same[t].tile == tile).ToList()) same[t] = (best.tile, best.flip ^ same[t].flip);
+                    return best;
+                }
+                foreach (int tile in chosen) nearest[tile] = Nearest(tile);
+                Dictionary<int, (int tile, int flip)> merged = new Dictionary<int, (int, int)>();
+                while (keep.Count > BackgroundTiles) {
+                    int drop = keep.OrderBy(t => nearest[t].cost).ThenBy(t => drawn[t]).First();
+                    keep.Remove(drop);
+                    merged[drop] = (nearest[drop].tile, nearest[drop].flip);
+                    // (those that were to share it, or already share it, look again among the kept);
+                    foreach (int t in keep.Where(t => nearest[t].tile == drop).ToList()) nearest[t] = Nearest(t);
+                    foreach (int t in merged.Keys.Where(t => merged[t].tile == drop).ToList()) {
+                        var n = Nearest(t);
+                        merged[t] = (n.Item1, n.Item2);
+                    }
+                }
+                foreach (int t in same.Keys.ToList())
+                    if (merged.TryGetValue(same[t].tile, out var into)) same[t] = (into.tile, into.flip ^ same[t].flip);
+                chosen = chosen.Where(keep.Contains).ToList();
             }
             Dictionary<int, int> number = chosen.Select((tile, n) => (tile, n)).ToDictionary(t => t.tile, t => t.n);
             List<byte> usedTiles = new List<byte>();
@@ -4059,10 +4111,11 @@
             }
 
             // A switch room's big switch (NiDL's own aren't ported: a level has one, see LevelSlot()) and ability statues (SwitchStatues);
-            // the Fountain of Dreams hub's, the finale's end, has none: an Amazing Mirror in the room's middle, to KatAM's final boss (as
-            // Central Circle's Dimension Mirror led there: whole, and the way in, once KatAM's 8 shards are found), and a Maximum Tomato
-            // under it, on the raised platform (taken once per visit, as the items);
-            if (r.IsSwitchRoom && r.Level == 7 && finaleMirror != null) {
+            // the Fountain of Dreams hub's, the finale's end, has neither: an Amazing Mirror in the room's middle, high up, to KatAM's
+            // final boss (as Central Circle's Dimension Mirror led there: whole, and the way in, once KatAM's 8 shards are found), and a
+            // Maximum Tomato under it, on the raised platform (taken once per visit, as the items);
+            bool finaleHub = r.IsSwitchRoom && r.Level == 7 && finaleMirror != null;
+            if (finaleHub) {
                 byte[] mirror = (byte[])finaleMirror.Clone();
                 mirror[3] = (byte)templates.Count;
                 WriteShorts(mirror, 6, FinaleMirrorAt.x, FinaleMirrorAt.y);
@@ -4076,7 +4129,7 @@
                 templates.Add(BigSwitchTemplate(SwitchAt(r.Level).x, SwitchAt(r.Level).y, templates.Count, LevelSlot(r.Level), r.Level));
                 types.Add(BigSwitchType);
             }
-            if (r.IsSwitchRoom) {
+            if (r.IsSwitchRoom && !finaleHub) {
                 for (int i = 0; i < 2; i++) {
                     (byte type, byte subtype) = SwitchStatues[r.Level][i];
                     byte[] statue = ObjectTemplate(SwitchStatueXs(r.Level)[i], 48, templates.Count, type);

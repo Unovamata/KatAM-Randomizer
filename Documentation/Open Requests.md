@@ -86,14 +86,14 @@ with NiDL's at the same frames (the camera, Kirby's and the orb's places and fra
 behind the sprites, KatAM's camera running first); with the 3 helpers (their own starting spots written so they're in the hub);
 then the fight, the orb's HP set to 1 in RAM after the intro, beaten by a Star Rod star, its warp star boarded, the ride to
 Nightmare's room (the camera staying on the fight's screen after the orb's defeat, as before). European and Japanese: the intro
-through the NiDL hub's mirror, the same positions every frame as the USA one, and the fight after it. The background's own
-parallax isn't NiDL's (the room's background scrolls at the port's room-size rate), so its clouds pass a little later.
+through the NiDL hub's mirror, the same positions every frame as the USA one, and the fight after it. The background now scrolls
+as NiDL's up and down (see the cloud band below); NiDL's cloud bands also drift sideways, each at its own speed, the port's don't.
 
 **The owner, after that** (the finale's list again, with): "The Fountain of dreams Mirror should be at the center of the room. The
 tomato should be at the bottom center of the room in top of the elevated platform.", "Kirby should keep the Star Rod in the
 Nightmare fight." and "Fountain of dreams BG is off centered in the hub."
-- The hub: done. The Amazing Mirror hangs in the middle of the room as the camera shows it (128, 92: its sprite's middle at the
-  screen's), in front of the Fountain; the tomato is under it, on the raised platform at the room's bottom middle (128, 121); the
+- The hub: done. The Amazing Mirror hangs in the middle of the room as the camera shows it (then 128, 92: its sprite's middle at
+  the screen's; since moved up, see the owner's next request below), in front of the Fountain; the tomato is under it, on the raised platform at the room's bottom middle (128, 121); the
   background's Fountain was 15 pixels right of the middle (measured in the emulator: x 143, the room's middle 128), now a column
   left of where it was, at 127. Kirby jumps up into the mirror (it hangs above the platform; KatAM's mirror takes him when he's
   inside its box pressing Up, in the air too). Tested in the emulator (USA, 8 shards written into RAM): the room as Kirby arrives
@@ -121,6 +121,36 @@ of it (the narration, King Dedede, the Fountain's scene) and where it plays. Nig
 fight itself isn't NiDL's yet (item 5): NiDL fights him in his caped look (his body, 48-55, under his collar and cape, 96), the port
 in his arms-out one (8-15), so his look changes as the fight starts after his entrance. Not tested yet: the whole finale with
 helpers in one go.
+
+**The owner, on the finale's list** (asked whether the ending should have the narration and King Dedede and where it ends): "the
+cinematic after the orb is beaten, the helpers flying to the warp star by themselves, Nightmare's intro and chase, the ending down
+from the moon, and helpers that move toward the orb and dodge during the fight.", "The amazing mirror in the fountain of dreams hub
+should be further up and drop the pedestals." and "The shown sprite strip is cutoff in the power orb room compared to NiDL." (a
+screenshot of NiDL's Power Orb fight, the pink and purple cloud band along the screen's bottom circled).
+- The finale's list: every part of it stays wanted, the ending down from the moon included (still to do, above), and played
+  together with the helpers.
+- The hub's Amazing Mirror further up, and its two ability statues ("pedestals", on the top row) gone: done. The mirror hangs 24
+  pixels higher (128, 68), under the ceiling where the statues stood, above the Fountain's bowl, which now shows under it; the
+  statues (Smash and Burning) aren't placed in the Fountain of Dreams hub (the other switch rooms keep theirs). Kirby floats up
+  into it (a jump from the platform no longer reaches it). Tested in the emulator (USA, European and Japanese rev 1; a new game
+  started in the hub, KatAM's 8 shards written into RAM): the room as Kirby arrives (screenshots), then by set inputs a jump
+  onto the platform, a float up under the mirror and Up: into it, to 0x38D, Dark Meta Knight's room.
+- The Power Orb's room's cloud band: done. NiDL draws this room's background at the camera's spot (measured in NiDL by matching
+  its screenshots to the background: through the intro and the fight, the background's row at the screen's top is the camera's
+  y), its top at the room's top; KatAM bottom-aligns backgrounds, so the port's sat 176 pixels higher, and the room's starry sky
+  (its foreground, opaque, with the moon, ending in a straight edge) hid the band's dark purple top: the band started pink at a
+  hard line. Now the room's background is drawn as NiDL's (`KatAMExpansionRooms.cs`, the room's props), and the band comes up
+  under the sky with its dark top fading in, where NiDL shows it. With it, the background's tiles past KatAM's 900 (this one has
+  956) are merged by how little the picture changes (in their own colours, times how often they're drawn): before, the 56 least
+  used went, whole rows drawn once, the foot of the trees at the room's bottom, which the intro now shows (they came out as
+  blocks); the same rule tidies the two other backgrounds over 900 (the Fountain of Dreams' floor's last rows, Nightmare's
+  room's bottom row; a few dozen star pixels elsewhere change). Tested in the emulator (USA, European and Japanese rev 1; a new
+  game in the NiDL hub, its mirror into the room, the fight left running with Kirby's HP topped up in RAM): screenshots beside
+  NiDL's at the same camera heights (254 and 276-278: the band in the same place, its dark top showing; the intro at 697: the
+  trees in the same place), the background's row at the screen's top matched to the camera's (278 at 278); the orb's end after
+  it (USA: beaten by a star with its HP set to 1, the ride to the moon and into Nightmare's room). Not matching NiDL yet: its
+  cloud bands drift sideways, each at its own speed; the port's stand still. KatAM's HUD, taller than NiDL's, covers the band's
+  bottom.
 
 **Nightmare's intro, the hit and his entrance** (done; `bosses/nightmare.c`'s `Knock()`, `Puff()`, `Light()`): as NiDL's, recorded
 frame by frame: the last blue star bursts on the warp star, which is gone the next frame (the Kirbys drawn without it), a puff where
