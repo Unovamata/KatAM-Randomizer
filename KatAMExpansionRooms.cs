@@ -1498,8 +1498,10 @@
          * • after them, the Power Orb's warp star's ("ROM Expansion/finale.c", FinaleFlight): a step marked NIDL_RIDE_FINALE (+8 0xFC),
          *   where warpstar.c holds the Kirbys while the orb's end ("ROM Expansion/bosses/power_orb.c", PowerOrbEnd()) flies them NiDL's
          *   ride, up off the screen and into the moon, until it moves them on: NiDL's fade to white (18 frames, KatAM's started on its
-         *   first; Kirby hidden, RideHidden: the star and its Kirbys are a dot by then), then WarpFlight's end (the room change: Nightmare's room, where the Kirbys land, bossExitsOf; a frame still; the
-         *   hop off). Its first two steps' size (+0xA) is RideAsk: the orb's end says it (smaller and smaller, then hidden);
+         *   first; Kirby hidden, RideHidden: the star and its Kirbys are a dot by then), then WarpFlight's room change (Nightmare's
+         *   room, where the Kirbys land, bossExitsOf), another NIDL_RIDE_FINALE step where Nightmare's intro moves them ("ROM
+         *   Expansion/bosses/nightmare.c"), then WarpFlight's end (a frame still; the hop off). Its held and fade steps' size (+0xA) is
+         *   RideAsk: the rides say it (smaller and smaller, then hidden, or hidden off the screen);
          * warpstar.c also makes the ported stars leave at once (KatAM's revs 300 frames with Kirby on it for the helpers); */
         const int WarpFlight = 6, FlightStep = 12, FlightRise = 201, RideRoom = 0xFE, RideHop = 0xFD, Sparkles = 12, FlightRider = 90;
         // (RideHidden: a step's flag hiding Kirby, sub_080534D0: the Power Orb's star's fade, the star and its Kirbys a dot by then);
@@ -1580,12 +1582,15 @@
                 rom[arrivals + last.Room * 2] = (byte)(landing.x / 16 + 1);
                 rom[arrivals + last.Room * 2 + 1] = (byte)(landing.y / 16 + 1);
             }
-            // (the Power Orb's: held, then the fade, then WarpFlight's room change, frame still and hop off);
+            // (the Power Orb's: held, then the fade, WarpFlight's room change, held again in Nightmare's room, then WarpFlight's frame
+            // still and hop off);
             finaleFlight = WarpFlight + 1 + rides.Count;
-            int finale = Allocate(ref cursor, 5 * FlightStep, 4);
+            int finale = Allocate(ref cursor, 6 * FlightStep, 4);
             WriteShorts(rom, finale, 0, 0, 1, FlightRider, RideFinale, RideAsk);
             WriteShorts(rom, finale + FlightStep, 0, 0, RideFade, FlightRider, FlightFade | RideHidden << 8, RideAsk);
-            Array.Copy(rom, flight + (FlightRise - 1) * FlightStep, rom, finale + 2 * FlightStep, 3 * FlightStep);
+            Array.Copy(rom, flight + (FlightRise - 1) * FlightStep, rom, finale + 2 * FlightStep, FlightStep);
+            WriteShorts(rom, finale + 3 * FlightStep, 0, 0, 1, FlightRider, RideFinale, RideAsk);
+            Array.Copy(rom, flight + FlightRise * FlightStep, rom, finale + 4 * FlightStep, 2 * FlightStep);
             WriteInt(rom, moved + finaleFlight * 4, finale + 0x08000000);
         }
 

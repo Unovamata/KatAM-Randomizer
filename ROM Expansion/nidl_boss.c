@@ -65,6 +65,14 @@ static void NidlBossWait(struct Object *obj) {
 
     NidlUpdate(n);
     obj->base.flags |= 4;
+    // (Nightmare's intro: hidden till it's over, bosses/nightmare.c);
+    if (n->enemy == NIDL_NIGHTMARE) {
+        if (NightmareIntroOn(obj->base.roomId)) {
+            obj->base.flags |= 0x400;
+            return;
+        }
+        obj->base.flags &= ~0x400;
+    }
     obj->kirby3 = FindTargetKirby(&obj->base);
     if ((obj->kirby3->base.unkC & 0x8000) || obj->base.roomId != obj->kirby3->base.roomId) return;
     if (n->enemy != NIDL_POWER_ORB && !Macro_08039430_2(&obj->kirby3->base, obj)) return;

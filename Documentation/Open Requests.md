@@ -110,9 +110,18 @@ Nightmare fight." and "Fountain of dreams BG is off centered in the hub."
   it, stars flying; nothing breaks). European and Japanese: in Nightmare's room, the rod kept through hits, stars hurting him. Not
   tested: Kirby coming out with an ability other than Normal (none was held before the orb in these runs).
 
-**Still to do**: Nightmare's cinematics (his entrance and chase as the star comes into his room: recorded from NiDL frame by frame;
-the ending down from the moon: not recorded yet, NiDL's Nightmare takes no hit in the emulator so far). Not tested yet: the whole
-finale with helpers in one go.
+**Still to do**: the rest of Nightmare's intro (the orb turning into his comet, the screen dimming and its silhouette flash, the
+comet chasing the star and shooting blue stars, the star hit and Kirby knocked off it and falling, Nightmare coming down: recorded
+from NiDL frame by frame); the ending down from the moon (not recorded yet, NiDL's Nightmare takes no hit in the emulator so far).
+Not tested yet: the whole finale with helpers in one go.
+
+**Nightmare's intro, the star's arrival** (done; `bosses/nightmare.c`'s `NightmareIntroRider()`): as NiDL's, recorded frame by
+frame: the screen from his room's top down to the fight's screen (a pixel a frame, then a pixel every 4 frames), the star flying
+down into it with the Kirbys along NiDL's path, then about the screen until they hop off (KatAM's hop, for now) 910 frames in, when
+the fight starts; Nightmare waits hidden until then (his fight started the moment the Kirbys came in, as they land in his screen
+for a frame first: he now waits while a Kirby in his room rides a warp star). Tested in the emulator (USA, European and Japanese
+rev 1; as the Power Orb's end, with the 3 helpers): the whole arrival, the hop off, then the fight with all four Kirbys holding the
+Star Rod (screenshots); the logic checks pass on all three.
 
 **The Power Orb's end is NiDL's** (done; `bosses/power_orb.c`'s `PowerOrbEnd()`): recorded in NiDL frame by frame (the orb's, the
 warp star's and Kirby's spots, the camera, the sprites' sizes in OAM, twice: the orb beaten at the fight's start and 1200 frames

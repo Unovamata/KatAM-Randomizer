@@ -75,6 +75,37 @@ bool32 NidlFinaleStarSpot(u16 room, s32 *x, s32 *y) {
     return FALSE;
 }
 
+/* NidlFinaleHoldCamera(); The screen held at (x, y) (8.8, the room's: its top left) for every player in a room, as an arena's lock,
+ * right on it, the Kirbys' bounds a screen above and below it (the finale's rides: bosses/power_orb.c's end, Nightmare's intro); */
+void NidlFinaleHoldCamera(u16 room, s32 x, s32 y) {
+    u8 i;
+
+    for (i = 0; i < gNumKirbys; i++) {
+        struct LevelInfo *l = &gCurLevelInfo[i];
+
+        if (gKirbys[i].base.roomId != room) continue;
+        l->unk_S32Vec2_7C.x = l->unk_S32Vec2_6C.x = l->unkA0 = l->unk90 = x;
+        l->unk_S32Vec2_7C.y = l->unk_S32Vec2_6C.y = y;
+        l->unk_S32Vec2_84.x = l->unk_S32Vec2_74.x = l->unkA8 = l->unk98 = x + (DISPLAY_WIDTH << 8);
+        l->unk_S32Vec2_84.y = l->unk_S32Vec2_74.y = y + (DISPLAY_HEIGHT << 8);
+        l->unkA4 = l->unk94 = y - (DISPLAY_HEIGHT << 8);
+        l->unkAC = l->unk9C = y + (DISPLAY_HEIGHT << 9);
+    }
+}
+
+// NidlFinaleRideSize(); The size the finale's riders are drawn at (warpstar.c): what its rides say (bosses/power_orb.c's end in the
+// Power Orb's room, bosses/nightmare.c's intro in Nightmare's);
+u32 NidlFinaleRideSize(u16 room) {
+    if (gNidlFinale.orbRoom && room == gNidlFinale.orbRoom) return PowerOrbRideSize(room);
+    if (gNidlFinale.rideRoom && room == gNidlFinale.rideRoom) return NightmareRideSize(room);
+    return 0;
+}
+
+// NidlFinaleHold(); A Kirby held on the finale's ride (warpstar.c, every frame): in Nightmare's room, his intro takes them;
+void NidlFinaleHold(struct Kirby *kirby) {
+    if (gNidlFinale.rideRoom && kirby->base.roomId == gNidlFinale.rideRoom) NightmareIntroRider(kirby);
+}
+
 // NidlFinaleKeep(); Nightmare alive (bosses/nightmare.c): every Kirby in his room keeps the Star Rod (StarRodKeep());
 void NidlFinaleKeep(struct Object *nightmare) {
     u8 i;

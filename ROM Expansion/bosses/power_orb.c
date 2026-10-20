@@ -777,23 +777,6 @@ static void EndDraw(struct OrbEnd *end, s32 x, s32 y, u8 frame, u32 pa) {
     if (pa) NidlShrink(first, e->sprite.x, e->sprite.y, pa, END_MATRIX);
 }
 
-// EndHold(); The screen held at camX, camY for every player in the room (as an arena's lock, right on it), the Kirbys' bounds too;
-static void EndHold(struct OrbEnd *end) {
-    u8 i;
-
-    for (i = 0; i < gNumKirbys; i++) {
-        struct LevelInfo *l = &gCurLevelInfo[i];
-
-        if (gKirbys[i].base.roomId != end->e.roomId) continue;
-        l->unk_S32Vec2_7C.x = l->unk_S32Vec2_6C.x = l->unkA0 = l->unk90 = end->camX;
-        l->unk_S32Vec2_7C.y = l->unk_S32Vec2_6C.y = end->camY;
-        l->unk_S32Vec2_84.x = l->unk_S32Vec2_74.x = l->unkA8 = l->unk98 = end->camX + (DISPLAY_WIDTH << 8);
-        l->unk_S32Vec2_84.y = l->unk_S32Vec2_74.y = end->camY + (DISPLAY_HEIGHT << 8);
-        l->unkA4 = l->unk94 = end->camY - (DISPLAY_HEIGHT << 8);
-        l->unkAC = l->unk9C = end->camY + (DISPLAY_HEIGHT << 9);
-    }
-}
-
 // EndRider(); Whether a Kirby rides its star (on its flight's first step, held there: warpstar.c);
 static bool32 EndRider(struct Kirby *kirby, u16 room) {
     const struct Unk_08353510 *step = kirby->unk114;
@@ -886,7 +869,7 @@ static void OrbEndMain(void) {
     }
     e->flags |= 4 | 0x400;
     EndRide(end);
-    EndHold(end);
+    NidlFinaleHoldCamera(e->roomId, end->camX, end->camY);
     k = end->t++;
     if (k == END_BACK) {
         NidlFinaleStarAt(end->player, end->x0, end->y0 + (END_STAR_Y << 8));
