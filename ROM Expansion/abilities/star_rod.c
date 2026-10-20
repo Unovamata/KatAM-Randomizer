@@ -12,7 +12,8 @@
  * 0x8000, as KatAM's warp star rider and abilities.c's attacks), and the orb and its shots hit him themselves (StarRodHit(): NiDL's
  * knockback, 1 HP, KatAM's flashing after a hit as in its own last fight's shooter, sub_08052E2C); his HP at 0, KatAM's death takes
  * him (sub_0803FBB4), and the rider goes, as when any other state takes him (the shard's dance); back in the room, he flies again.
- * The helpers (CPU Kirbys) fly by the rider's own AI: a spot on the left, level with the orb or near it, shooting when in line;
+ * The helpers (CPU Kirbys) fly by the rider's own AI (AI()): engaged in the fight, always on the move, to spots up, down, left and
+ * right before the orb, now nearer, now farther, shooting when in line, and dodging its shots now and then;
  * KatAM's helper AI is kept still meanwhile (HoldAI()), and they're kept on the first player's screen (Viewer()). The fight's
  * screen sinks (NiDL's fall through space): everyone in it sinks with the camera's bounds (StarRodSink()). Kirby's ability before
  * is kept (STAR_ROD_SAVED) and given back after the shard's dance (StarRodRestore(), from NidlShardExit).
@@ -35,6 +36,7 @@ void sub_08088640(struct Kirby *, u8, u16);
 void sub_080880AC(struct Kirby *, u32);
 void sub_0800EE04(u8, u32);
 s32 PowerOrbIntro(struct Object *);
+bool32 PowerOrbShotNear(struct Object *, s32, s32, s32 *);
 
 // The ability Kirby had before the Star Rod (his padding byte after NIDL_MIKE_USES), given back after the fight;
 #define STAR_ROD_SAVED(kirby) (((u8 *)(kirby))[0x1A7])
@@ -99,6 +101,9 @@ struct StarRodRider {
     s32 unk68;
     u8 aiTimer;             // The helpers' AI: frames to the next spot, the spot (screen pixels);
     s16 aiX, aiY;
+    u8 dodge;               // and frames of dodging a shot left, which way (up), frames before he may dodge again;
+    bool8 dodgeUp;
+    u8 dodgeWait;
 };
 
 struct StarRodStar {
@@ -304,6 +309,8 @@ void StarRodStart(struct Kirby *kirby, struct Object *orb) {
     r->way = r->ending = r->slow = r->hurt = 0;
     r->hurtRight = FALSE;
     r->aiTimer = 0;
+    r->dodge = r->dodgeWait = 0;
+    r->dodgeUp = FALSE;
     r->motion = STAR_ROD_MOTION_HOLD;
     if (kirby->ability != NIDL_ABILITY_STAR_ROD) {
         STAR_ROD_SAVED(kirby) = kirby->ability;
@@ -410,26 +417,49 @@ bool32 StarRodTouches(struct Kirby *kirby, s32 x, s32 y, s32 halfWidth, s32 half
     return kirby->stateFn == StarRodHeld && dx > -(halfWidth + 8) && dx < halfWidth + 8 && dy > -(halfHeight + 11) && dy < halfHeight + 6;
 }
 
-/* AI(); A helper's buttons (KatAM's key bits: A 1, B 2, right 0x10, left 0x20, up 0x40, down 0x80): to a spot, shooting in line;
- * the boss beaten, none: he stays where he is, clear of the shard in the screen's middle (the player's to take: the helpers don't
- * take it); */
+/* AI(); A helper's buttons (KatAM's key bits: A 1, B 2, right 0x10, left 0x20, up 0x40, down 0x80), engaged in the fight: to a spot
+ * before the orb (40 to 134 pixels left of it, 32 up or down from its row), a new one every 20 to 51 frames, so he's always on the
+ * move toward it and around it, up, down, left and right, never right up to it (40 at least); shooting when in line (24 up or down
+ * from its row); and a shot of its coming at him (PowerOrbShotNear()), half the time he dodges it, 16 frames up or down away from
+ * it (then 24 frames before he may again); the boss beaten, none: he stays where he is, clear of the shard in the screen's middle
+ * (the player's to take: the helpers don't take it); */
+#define AI_NEAR 40
+#define AI_DODGE 16
+#define AI_DODGE_WAIT 24
 static u16 AI(struct StarRodRider *r, s32 x, s32 y) {
     struct Kirby *kirby = r->kirby;
     struct LevelInfo *level = &gCurLevelInfo[Viewer(kirby->base.unk56, kirby->base.roomId)];
-    s32 targetY;
+    s32 targetX, targetY, shotY;
     u16 keys = 0;
 
     if (!r->orb) return 0;
+    targetX = (r->orb->base.x - level->viewportPosition.x) >> 8;
     targetY = (r->orb->base.y - level->viewportPosition.y) >> 8;
+    if (r->dodgeWait) r->dodgeWait--;
+    if (!r->dodge && !r->dodgeWait && PowerOrbShotNear(r->orb, kirby->base.x, kirby->base.y, &shotY)) {
+        r->dodgeWait = AI_DODGE_WAIT;
+        if (Rand16() & 1) {
+            r->dodge = AI_DODGE;
+            r->dodgeUp = shotY > kirby->base.y || y > BOTTOM - 24;
+            if (y < TOP + 24) r->dodgeUp = FALSE;
+        }
+    }
+    if (r->dodge) {
+        r->dodge--;
+        keys = r->dodgeUp ? 0x40 : 0x80;
+        if (x > targetX - AI_NEAR) keys |= 0x20;
+        return keys;
+    }
     if (!r->aiTimer--) {
-        r->aiTimer = 40 + (Rand16() & 63);
-        r->aiX = 24 + (Rand16() & 63) + kirby->base.unk56 * 8;
-        r->aiY = targetY + (s16)(Rand16() & 31) - 16;
+        r->aiTimer = 20 + (Rand16() & 31);
+        r->aiX = targetX - AI_NEAR - (Rand16() & 63) - (Rand16() & 31);
+        r->aiY = targetY + (s16)(Rand16() & 63) - 32;
+        if (r->aiX < LEFT) r->aiX = LEFT;
         if (r->aiY < TOP) r->aiY = TOP;
         if (r->aiY > BOTTOM) r->aiY = BOTTOM;
     }
-    if (x < r->aiX - 4) keys |= 0x10;
-    else if (x > r->aiX + 4) keys |= 0x20;
+    if (x < r->aiX - 4 && x < targetX - AI_NEAR) keys |= 0x10;
+    else if (x > r->aiX + 4 || x > targetX - AI_NEAR) keys |= 0x20;
     if (y < r->aiY - 4) keys |= 0x80;
     else if (y > r->aiY + 4) keys |= 0x40;
     if (y > targetY - 24 && y < targetY + 24) keys |= 2;

@@ -27,7 +27,12 @@ is done, move it to "Done" and say how it was checked. The design rules for door
 - **The helpers in the Star Rod fight** (the owner: "AI Kirbys should move up and down, left and right towards Power Orb to
   simulate that they are engaged in the fight and maybe open the door to avoiding its moves by chance, so disabling the flag so
   they get still ain't quite cutting it."): they keep moving towards the orb in every direction, and dodge its attacks now and
-  then; never just standing still.
+  then; never just standing still. Done: each helper flies to a new spot before the orb every 20 to 51 frames (40 to 134 pixels
+  left of it, 32 up or down from its row, never nearer than 40), shooting when in line with it, and when one of its shots comes at
+  him (72 pixels ahead, in his row), half the time he dodges it, 16 frames up or down away from it. Tested in the emulator (USA,
+  the 3 helpers through the orb's intro and 740 frames of the fight): before, the helpers moved 47-53% of the frames, staying at
+  the screen's left (x 36-109); now 70-78%, all over the screen's height (y 18-133) and up to the orb (x 56-150, the orb at
+  174-210), shooting it (screenshots). The European and Japanese builds: built and checked by the logic checks only.
 
 ### 34. The Fountain of Dreams finale
 The owner: "Once Power Orb has been beaten the cinematic plays, all NPC Kirbys go to the warp star, cinematic plays, Nightmare

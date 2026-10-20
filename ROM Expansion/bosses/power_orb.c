@@ -447,6 +447,29 @@ static s16 Intro(struct PowerOrb *o, u16 t) {
     return FRAME_SPIN + ((t - INTRO_FAST) & 3);
 }
 
+/* PowerOrbShotNear(); Whether one of its shots is coming at a spot (8.8, the room's): ahead of it (to its right, moving left) within
+ * 72 pixels, in its row (20 up or down); its y in `shotY` (abilities/star_rod.c: the helpers dodge it now and then); */
+bool32 PowerOrbShotNear(struct Object *obj, s32 x, s32 y, s32 *shotY) {
+    struct Task *t = &gTasks[0];
+    u8 n;
+
+    for (n = 0; n < MAX_TASK_NUM && t->next; n++) {
+        struct OrbShot *shot;
+        s32 dx, dy;
+
+        t = (struct Task *)(IWRAM_START + t->next);
+        if (t->main != OrbShotMain) continue;
+        shot = TaskGetStructPtr(t);
+        if (shot->base.parent != obj || shot->base.roomId != obj->base.roomId || (shot->base.flags & 0x1000) || shot->vx >= 0) continue;
+        dx = (shot->base.x - x) >> 8;
+        dy = (shot->base.y - y) >> 8;
+        if (dx < 0 || dx > 72 || dy < -20 || dy > 20) continue;
+        *shotY = shot->base.y;
+        return TRUE;
+    }
+    return FALSE;
+}
+
 // PowerOrbIntro(); The intro's frame (-1: over) (abilities/star_rod.c's StarRodIntro());
 s32 PowerOrbIntro(struct Object *obj) {
     struct PowerOrb *o = (struct PowerOrb *)obj;
