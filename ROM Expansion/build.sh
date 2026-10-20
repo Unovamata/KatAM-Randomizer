@@ -13,7 +13,7 @@ OUT=$(mktemp -d)
 trap 'rm -rf "$OUT"' EXIT
 
 objects=()
-for c in nidl.c nidl_miniboss.c nidl_boss.c finale.c ending.c nidl_data.c worldmap.c rooms.c title.c calm.c chest.c skip.c warpstar.c abilities.c abilities/*.c enemies/*.c minibosses/*.c bosses/*.c; do
+for c in nidl.c nidl_miniboss.c nidl_boss.c finale.c ending.c nidl_data.c worldmap.c rooms.c title.c calm.c chest.c skip.c unlock.c warpstar.c abilities.c abilities/*.c enemies/*.c minibosses/*.c bosses/*.c; do
     o="$OUT/$(basename "${c%.c}").o"
     cpp -I "$D/tools/agbcc/include" -I "$D/tools/agbcc" -nostdinc -iquote "$D/include" -iquote . -DREVISION=0 -DENGLISH \
         -Wno-trigraphs -DMODERN=0 "$c" | "$D/tools/agbcc/bin/agbcc" -mthumb-interwork -Wimplicit -Wparentheses -O2 -fhex-asm -o "$OUT/a.s" -
@@ -73,6 +73,8 @@ codeNames = ['gNidlWorldMapDoors', 'NidlWorldMapUnlockSave', 'NidlWorldMapGetCoo
              'gNidlChest', 'gNidlChestTrampolines', 'NidlChestOpen', 'gNidlShard', 'NidlCreateShard', 'NidlShardDone',
              # Skip the tutorial (skip.c);
              'gNidlSkip', 'NidlSkipClear', 'NidlSkipStart', 'gNidlSkipTrampolines',
+             # Unlock the ability room (unlock.c);
+             'gNidlUnlock', 'NidlHubMirrorInit',
              # The ported warp stars' rides (warpstar.c);
              'gNidlRide', 'gNidlRideTrampolines', 'NidlRideRev', 'NidlRideRoomChange', 'NidlRideStep', 'NidlRideDraw', 'NidlRideStar',
              # Bigger rooms (rooms.c): the replacements;
@@ -108,6 +110,8 @@ romNames = ['gUnk_0834C2AC', 'gUnk_0834C318', 'gUnk_083509D0', 'gUnk_08350A3C', 
             'gUnk_08350E58',
             # Unlock the Master Sword (KatAMExpansionCalm.cs): the stand's post-game checks, as it runs and as it's drawn;
             'sub_080AA618', 'sub_080AAA64',
+            # Unlock the Ability Room (unlock.c): the hub mirror's creation, holding its init's address;
+            'CreateSpecialHubMirror', 'SpecialHubMirrorInit',
             # The ported rooms' visited doors in the save (rooms.c): what writes and reads the game's (and sbClearFunctions above);
             'WriteSaveSectionByOffset', 'VerifySaveByOffset']
 print('namespace KatAMRandomizer {')

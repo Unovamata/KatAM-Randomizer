@@ -289,7 +289,28 @@ Nightmare's room. Solo, the star left as soon as Kirby was on.
   hit on an enemy (1), every enemy defeated and every hit on a boss (3), so randomized mini-bosses in enemy spots ("Include
   Minibosses") shake the screen as often as they do in KatAM.
 
+### 36. Mirras fall, and their door is where they fell
+- The owner: "Mirras should be affected by gravity and spawn the door where they have fallen if they have." A Mirra (object `0x34`)
+  floats where it's placed (KatAM turns gravity off for it) and, broken, opens the door hidden at its starting cell. It should fall
+  to the ground like other objects, and when broken open its door where it ended up.
+
+### 37. The Amazing Mirror's icon on the map viewer
+- The owner: "Show Amazing Mirror Icon in maps where these are in the Map Viewer." The rooms with an Amazing Mirror get its icon on
+  the map viewer, as the other things in rooms have theirs.
+
 ## Done (rules to keep)
+
+- **Unlock the Ability Room** (item 35; the owner: "Add a toggle to unlock the ability room at the start."): a Miscellaneous toggle.
+  Central Circle's door to the ability room (0x3CA) is a hub mirror object (`0x8C`) hidden under its wall until world slot `0x12` is
+  set, which KatAM does once the 15 big switches are pressed; with the option, the hub mirror's init (`unlock.c`'s
+  `NidlHubMirrorInit`, in place of `SpecialHubMirrorInit`) sets that slot first, so the door is open the first time Kirby sees it,
+  on a new save or an old one. It works with and without the ROM Expansion (the NiDL hub's copy of the door opens with it too).
+  Tested in the emulator in all three versions: unexpanded with Skip the Tutorial (a new game; Kirby moved to the door by a RAM
+  write, then Up: the ability room at frame 271, and back to Central Circle by its door), and expanded and randomized, started in the
+  NiDL hub (the door there, Up into the ability room); without the option the door isn't there in either room. Applying it twice
+  changes nothing. Logic checks on the expanded builds, with and without dropping through thin floors: 280 of 280 rooms reached, the
+  7 big switches pressed, 0 trapped entries. Not tried: a whole playthrough pressing the 15 switches with the option on (the door's
+  scene then has nothing left to open).
 
 - **King Dedede's camera is NiDL's** (item 5; the owner: "I noticed that DeDeDe's camera doesn't lock the same as NiDL."): NiDL's
   fight was recorded in an emulator: Kirby drops into the room from its top, the camera following him down 2.5 pixels a frame (its

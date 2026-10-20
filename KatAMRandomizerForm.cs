@@ -267,6 +267,13 @@ namespace KatAMRandomizer
                 else messages.Add((swordError, "Unlock the Master Sword", MessageBoxIcon.Warning));
             }
 
+            if (settings.UnlockAbilityRoom) {
+                byte[] opened = Processing.ROMData;
+                string roomError = KatAMExpansion.UnlockAbilityRoom(ref opened);
+                if (roomError == null) Processing.ROMData = opened;
+                else messages.Add((roomError, "Unlock the Ability Room", MessageBoxIcon.Warning));
+            }
+
             progress.Report((96, "Saving the ROM..."));
             File.WriteAllBytes(destinationPath, Processing.ROMData);
 
@@ -304,6 +311,11 @@ namespace KatAMRandomizer
         // CheckboxOptionsMasterSword_CheckedChanged(); The Master Sword's stand in Central Circle works from the start (KatAMExpansion.UnlockMasterSword);
         private void CheckboxOptionsMasterSword_CheckedChanged(object sender, EventArgs e) {
             settings.UnlockMasterSword = CheckboxOptionsMasterSword.Checked;
+        }
+
+        // CheckboxOptionsAbilityRoom_CheckedChanged(); Central Circle's door to the ability room open from the start (KatAMExpansion.UnlockAbilityRoom);
+        private void CheckboxOptionsAbilityRoom_CheckedChanged(object sender, EventArgs e) {
+            settings.UnlockAbilityRoom = CheckboxOptionsAbilityRoom.Checked;
         }
 
         /* Settings files; The state of every option (radio buttons, checkboxes, track bars and numeric boxes, by name) and the seed.

@@ -148,6 +148,8 @@ sub_080027E8 0x80027e8
 sub_080027A8 0x80027a8
 sub_080AA618 0x80aa618
 sub_080AAA64 0x80aaa64
+CreateSpecialHubMirror 0x801e2cc
+SpecialHubMirrorInit 0x801e590
 WriteSaveSectionByOffset 0x800a9f4
 VerifySaveByOffset 0x800aae0
 WriteSramEx 0x81592b4

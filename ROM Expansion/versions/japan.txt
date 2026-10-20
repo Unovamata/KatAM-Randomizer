@@ -232,6 +232,8 @@ gUnk_02028BF0 0x2028bf0
 sub_0804BD98 0x804bd10
 sub_080AA618 0x80aa590
 sub_080AAA64 0x80aa9dc
+CreateSpecialHubMirror 0x801e2cc
+SpecialHubMirrorInit 0x801e590
 WriteSaveSectionByOffset 0x800a9f0
 VerifySaveByOffset 0x800aadc
 WriteSramEx 0x8159274

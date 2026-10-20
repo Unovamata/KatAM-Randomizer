@@ -62,6 +62,24 @@
             return null;
         });
 
+        /* UnlockAbilityRoom(); The "Unlock the Ability Room" option ("ROM Expansion/unlock.c"): Central Circle's door to the ability room
+         * (and the NiDL hub's copy) is a hub mirror object (0x8C) waiting for world slot 0x12, which KatAM sets once all 15 big switches
+         * are pressed; the hub mirror's init (SpecialHubMirrorInit, its address in CreateSpecialHubMirror's literal pool, as the object's
+         * unk78) becomes NidlHubMirrorInit, which sets that slot first, the original kept in gNidlUnlock. Returns an error, or null; */
+        public static string UnlockAbilityRoom(ref byte[] rom) => PatchWithCode(ref rom, "Unlock the Ability Room", (patched, version) => {
+            int create = version.RomSymbols["CreateSpecialHubMirror"], init = version.RomSymbols["SpecialHubMirrorInit"] + 0x08000000 + 1;
+            int hook = CodeAddress + 0x08000000 + version.CodeSymbols["NidlHubMirrorInit"] + 1, unlock = CodeAddress + version.CodeSymbols["gNidlUnlock"];
+            // (its literal pool: words after its code, within 0x100 bytes of its start; USA 0x0801E37C);
+            for (int at = (create + 3) & ~3; at < create + 0x100; at += 4) {
+                if (ReadInt(patched, at) == hook) return null;  // (applied already);
+                if (ReadInt(patched, at) != init) continue;
+                WriteInt(patched, unlock, init);
+                WriteInt(patched, at, hook);
+                return null;
+            }
+            return $"The {version.Name} ROM's hub mirror code doesn't match.";
+        });
+
         /* PatchWithCode(); Runs `patch` on a copy of the ROM holding the expansion's code, which it puts in when the ROM Expansion
          * didn't (its free space still empty; the ROM padded to 32 MB, as the expansion's). `rom` becomes the copy unless there's an
          * error (returned, or null); `option` names what needs it in errors; */
