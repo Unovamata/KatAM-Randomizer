@@ -126,6 +126,13 @@ fade, all as NiDL's; his spot when he comes back the same to the pixel), every K
 pass on all three. Not tested: a Kirby knocked out or in another room when the flight starts (it flies only those in the room and
 up). Not matching NiDL: NiDL's flight off starts from where he was hit 52 frames after it; KatAM's own burst comes first here.
 
+**The owner, on the ending**: "Work on the The ending down from the moon: the crescent moon, the warp star ride down through the
+Power Orb's room, without the narration, King Dedede flying by, and cutting to the fountain of dreams before kirby throws the wand
+as a transition from the Power Orb/Nightmare fight into the Fountain of Dreams hub." Taken as: the moon turning to a crescent, the
+warp star with the Kirbys flying out of it and down through the Power Orb's room (its sky, as NiDL's moon room is that room), King
+Dedede flying by, no narration, and at NiDL's cut to the Fountain of Dreams (before Kirby throws the Star Rod onto it) the Fountain
+of Dreams hub instead.
+
 **Still to do**: the ending down from the moon (after the defeat, before the hub). Recorded in NiDL (USA; Nightmare's HP held at 1 and Kirby kept beside him
 until a star hits, frame by frame, screenshots every 60 to 150 frames): his defeat (the hit at its frame 2246: the freeze and the
 burst, then he flies off right and dissolves into sparkles, his frames 76-88, about 900 frames), then a scene of its own (from 3164,
