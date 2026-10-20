@@ -2,10 +2,11 @@
  * Circle's and the NiDL hub's Dimension Mirrors lead into the Power Orb's room once KatAM's 8 shards are found (KatAMExpansionRooms.cs,
  * FinaleMirrors()); its two bosses leave no shard:
  * • the Power Orb beaten (nidl_boss.c's NidlBossDefeat), a warp star (KatAM's own, object 0x84) comes where it was, to Nightmare's
- *   room; it waits for the helpers, as KatAM's (warpstar.c's NidlRideRev), and every Kirby rides it there, his ability before the
- *   Star Rod given back as it takes him away (NidlFinaleRoomChange(), as the shard's dance gave it back);
+ *   room; it waits for the helpers, as KatAM's (warpstar.c's NidlRideRev), and every Kirby rides it there, keeping the Star Rod:
+ *   NiDL's Nightmare is fought with it, on the ground (abilities/star_rod.c; NidlFinaleKeep(): never lost in his room);
  * • Nightmare beaten, every Kirby in his room dances and leaves (as after a boss's shard, NidlDanceOut()), for the Fountain of
- *   Dreams hub (gNidlShardExits: his room's), where its Amazing Mirror leads to KatAM's final boss;
+ *   Dreams hub (gNidlShardExits: his room's), his ability before the Star Rod given back (NidlShardExit()), where its Amazing Mirror
+ *   leads to KatAM's final boss;
  * gNidlFinale filled in by KatAMExpansion.cs; */
 #include "nidl.h"
 #include "abilities.h"
@@ -37,8 +38,10 @@ bool32 NidlFinaleStar(struct Object *star) {
     return gNidlFinale.orbRoom && star->base.roomId == gNidlFinale.orbRoom;
 }
 
-// NidlFinaleRoomChange(); A Kirby's flight changing room (warpstar.c's NidlRideRoomChange): out of the Power Orb's room, his ability
-// before the Star Rod back (abilities/star_rod.c);
-void NidlFinaleRoomChange(struct Kirby *kirby) {
-    if (gNidlFinale.orbRoom && kirby->base.roomId == gNidlFinale.orbRoom) StarRodRestore(kirby);
+// NidlFinaleKeep(); Nightmare alive (bosses/nightmare.c): every Kirby in his room keeps the Star Rod (StarRodKeep());
+void NidlFinaleKeep(struct Object *nightmare) {
+    u8 i;
+
+    for (i = 0; i < gNumKirbys; i++)
+        if (gKirbys[i].base.roomId == nightmare->base.roomId) StarRodKeep(&gKirbys[i]);
 }

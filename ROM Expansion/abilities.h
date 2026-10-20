@@ -1,5 +1,5 @@
 /* NiDL abilities; Copy abilities ported from Kirby: Nightmare in Dream Land, as KatAM abilities 27-33 (KatAM has 0-26), and its Star Rod
- * (34), which only the Power Orb's fight gives (abilities/star_rod.c):
+ * (34), which only the finale's fights give, the Power Orb's and Nightmare's (abilities/star_rod.c):
  * • Ability field: KatAM keeps the ability Kirby is getting (transitioningAbility) in 5 bits, with 3 flags above. It's widened to 6
  *   bits (NIDL_ABILITY_MASK): the "random" flag moves from 0x20 to 0x40, and the 0x40 flag ("several things in the mouth", which makes
  *   the spat star bigger) to the unused unkF1. KatAMExpansion.cs patches every "& 0x1F" read of it to "& 0x3F", the random flag's
@@ -69,7 +69,7 @@ enum { HI_JUMP_MOTION_RISE };
 enum { MIKE_MOTION_1, MIKE_MOTION_2, MIKE_MOTION_3, MIKE_MOTION_1_END, MIKE_MOTION_2_END, MIKE_MOTION_3_END };
 enum { STAR_ROD_MOTION_HOLD, STAR_ROD_MOTION_SHOOT, STAR_ROD_MOTION_RIGHT, STAR_ROD_MOTION_LEFT, STAR_ROD_MOTION_UP, STAR_ROD_MOTION_DOWN,
        STAR_ROD_MOTION_RIGHT_END, STAR_ROD_MOTION_LEFT_END, STAR_ROD_MOTION_UP_END, STAR_ROD_MOTION_DOWN_END, STAR_ROD_MOTION_HURT,
-       STAR_ROD_MOTION_INTRO };
+       STAR_ROD_MOTION_INTRO, STAR_ROD_MOTION_SWING };
 
 // NidlMotion(); Plays one of the ability's motions;
 #define NidlMotion(kirby, motion) ((kirby)->animationIndex = NIDL_MOTION_SLOT + (motion))
@@ -95,6 +95,7 @@ void NidlAbilityPortrait(u32 vram, u8 palette, u8 id);
 void NidlAbilityHudTimer(struct Kirby *, u8 portrait, u16 frames);
 void NidlAbilitySetup(struct Kirby *);
 void NidlSwallow(struct Kirby *, u8 ability);
+void NidlKirbyHit(struct Kirby *);
 
 /* NidlAttack; An attack box that follows Kirby while `alive` says so (his state is the ability's), making him unhurt (`guard`) meanwhile.
  * `effect` is the hit's kind (unk68, like gUnk_082DDFC8's: 0x200 freezes, 0x2000 cuts...), `damage` its strength (unk63); */
@@ -119,8 +120,11 @@ void NidlFlash(struct Kirby *, const u8 *levels, u16 count);
 // Mike's uses so far (Kirby's padding byte after unk1A5; reset by NidlAbilitySetup on getting Mike);
 #define NIDL_MIKE_USES(kirby) (((u8 *)(kirby))[0x1A6])
 
-// Star Rod (abilities/star_rod.c): the Power Orb's fight (bosses/power_orb.c) flies every Kirby in its room with it;
+// Star Rod (abilities/star_rod.c): the Power Orb's fight (bosses/power_orb.c) flies every Kirby in its room with it; Nightmare's
+// (bosses/nightmare.c) is fought with it on the ground (StarRodSwingStart: B; StarRodKeep: never lost there);
 void StarRodHeld(struct Kirby *);
+void StarRodSwingStart(struct Kirby *);
+void StarRodKeep(struct Kirby *);
 bool32 StarRodCanFly(struct Kirby *);
 void StarRodStart(struct Kirby *, struct Object *orb);
 void StarRodRestore(struct Kirby *);

@@ -1,12 +1,13 @@
 /* Nightmare; ported from Kirby: Nightmare in Dream Land (USA), boss object type 0x43 (spawn 0x080AA288), as NiDL boss NIDL_NIGHTMARE,
- * the Fountain of Dreams' last (room 0x004 here). NiDL fights him with Kirby flying with the Star Rod as the screen scrolls; here the
- * fight is on the room's floor, at its bottom, Nightmare flying above Kirby. His frames are streamed frames with three palettes
+ * the Fountain of Dreams' last (room 0x004 here). NiDL fights him on the ground with the Star Rod (Kirby walks, jumps and swings it,
+ * shooting stars); so does every Kirby in his room here (abilities/star_rod.c; kept, finale.c's NidlFinaleKeep()), on the room's floor,
+ * at its bottom, Nightmare flying above Kirby. His frames are streamed frames with three palettes
  * (0x0875456C's 8-15: his collar and arms, his body and its starry tornado, the ends of his cape), so his object draws the first
  * palette's pieces and two sprites follow it with the others' (NightmarePart); his beams (61-63) are attack objects with their own
  * palette. Its frames (KatAMExpansion.cs): 0-7 NiDL's 8-15 (the first palette's pieces), 8-15 the same (the second's), 16-23 the same
  * (the third's), 24-26 the beams.
  * What he does (NiDL's moves, as a fight on the ground): he floats above Kirby, his tornado swaying, and every so often fires a fan of
- * stars at him (enemies/star.c: Kirby inhales them and spits them back at him, KatAM's bosses take only the stronger attacks), sends a
+ * stars at him (enemies/star.c: a Kirby without the Star Rod inhales them and spits them back at him), sends a
  * beam along the floor, swoops down at him and back up, or vanishes and comes back on the other side. Touching him hurts, as do his
  * beams; */
 #include "../nidl.h"
@@ -288,6 +289,8 @@ static void NightmareMain(struct Object *obj) {
     sub_08034E14(obj);
     m->anim++;
     NidlFaceKirby(obj);
+    // (every Kirby in his room fights him with the Star Rod, finale.c);
+    NidlFinaleKeep(obj);
     Update(m);
     NidlSetFrame(&m->n, (m->anim / 6) & 7);
 }

@@ -29,6 +29,7 @@ const struct NidlAbilityTables gNidlAbilityTables = {
         [NIDL_ABILITY_BALL - NIDL_FIRST_ABILITY] = BallStart,
         [NIDL_ABILITY_HI_JUMP - NIDL_FIRST_ABILITY] = HiJumpStart,
         [NIDL_ABILITY_MIKE - NIDL_FIRST_ABILITY] = MikeStart,
+        [NIDL_ABILITY_STAR_ROD - NIDL_FIRST_ABILITY] = StarRodSwingStart,
     },
     .setup = {
         [NIDL_ABILITY_NEEDLE - NIDL_FIRST_ABILITY] = NidlAbilitySetup,
@@ -173,6 +174,18 @@ void NidlAbilityEnd(struct Kirby *kirby) {
         sub_08044EA8(kirby);
     else
         sub_0803FE74(kirby);
+}
+
+/* NidlKirbyHit(); sub_0804A728 (detoured): Kirby hit. The Star Rod isn't lost to a hit (NiDL's last fight: KatAM's would drop it as an
+ * ability star and leave him Normal, sub_080A9038), so KatAM's runs with him Normal and he has it again after; */
+void (*gNidlKirbyHitOriginal)(struct Kirby *) = NULL;
+
+void NidlKirbyHit(struct Kirby *kirby) {
+    bool8 rod = kirby->ability == NIDL_ABILITY_STAR_ROD;
+
+    if (rod) kirby->ability = KIRBY_ABILITY_NORMAL;
+    gNidlKirbyHitOriginal(kirby);
+    if (rod) kirby->ability = NIDL_ABILITY_STAR_ROD;
 }
 
 /* NidlSwallow(); sub_080547C4 (detoured, never returning to it): something is swallowed, giving `ability` (| the ability star flag

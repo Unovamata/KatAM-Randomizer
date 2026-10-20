@@ -128,7 +128,19 @@
             },
             null,           // Mike: no hat;
             null,           // Backdrop: no hat (it has Throw's body, headband included, see BuildBackdropPalette);
-            null,           // Star Rod: no hat (its motions draw the rod on the hat sprite);
+            new int[] {     // Star Rod: the rod, NiDL's ground set (its last fight, Nightmare's): standing, crouching, walking, running, the
+                            // jump, floating..., matched by body (the rest by the closest body, or none); its motions draw on the hat sprite too;
+                0xfed, 0xfed, 0xfed, 0xfed, 0xfed, 0xfee, 0xfee, 0xfee, 0xfee, 0xfee, -1, 0xff4,
+                0xfef, 0xff0, 0xff1, 0xff2, 0xff3, 0xff4, 0xff5, 0xff6, 0xff7, 0xff8, 0xff9, 0xffa,
+                0xffb, 0xffc, 0xffd, 0xffe, 0xfff, 0x1000, 0x1001, 0x1002, -1, 0x1008, 0x1009, 0x100d,
+                0x100f, 0x1011, 0x1007, 0x1008, 0x1006, 0x1005, 0x1009, 0x100a, 0x100b, 0x100c, 0x100d, 0x100e,
+                0x100f, 0x1010, 0x1011, 0x1012, 0x1013, 0x1014, 0x1015, 0x1016, 0x1017, 0x1018, 0x1019, -1,
+                0x1004, 0x1005, 0xfed, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+                0x1018, 0x1018, 0x1018, 0x1019, 0x101a, 0x101b, 0x101c, -1, -1, 0x101a, -1, 0x1005,
+                -1, 0x1023, -1, -1, -1, -1, -1, -1, -1, 0x1023, -1, -1,
+                -1, 0x101d, 0x101e, -1, -1, -1, 0xff8, 0xff8, 0xfef, 0xff8, -1, 0xffa,
+                0xff8, 0xff8, -1, 0xfff, -1, -1, -1, -1, 0xff3, 0xff4,
+            },
         };
 
         // Per new ability, which pixels are its hat: null, the second layer's; else the first layer's of these colors (Ball's cap is drawn with Kirby);

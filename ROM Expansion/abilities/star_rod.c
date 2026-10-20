@@ -16,7 +16,11 @@
  * KatAM's helper AI is kept still meanwhile (HoldAI()), and they're kept on the first player's screen (Viewer()). The fight's
  * screen sinks (NiDL's fall through space): everyone in it sinks with the camera's bounds (StarRodSink()). Kirby's ability before
  * is kept (STAR_ROD_SAVED) and given back after the shard's dance (StarRodRestore(), from NidlShardExit).
- * In the fight's intro (bosses/power_orb.c) the riders fly every Kirby up into its screen as NiDL's Kirby flies (StarRodIntro()); */
+ * In the fight's intro (bosses/power_orb.c) the riders fly every Kirby up into its screen as NiDL's Kirby flies (StarRodIntro()).
+ * Nightmare's fight (bosses/nightmare.c), NiDL's last, is fought with it on the ground: Kirby walks, runs, jumps and floats with the
+ * rod (its hat: NiDL's ground set, KatAMExpansionHats.cs), and B swings it (StarRodSwingStart(): NiDL's, traced frame by frame, 16
+ * frames, a star shot on the 5th, 20 pixels ahead the way he faces and 4 down, on at 4 pixels a frame; once a press, on the ground
+ * standing still, in the air falling); he keeps it there (StarRodKeep(); a hit doesn't take it, abilities.c's NidlKirbyHit()); */
 #include "../abilities.h"
 #include "kirby.h"
 #include "code_0806F780.h"
@@ -56,6 +60,11 @@ s32 PowerOrbIntro(struct Object *);
 #define FRAME_STAR 5
 #define FRAME_TRAIL 9
 #define FRAME_BURST 11
+// The swing on the ground (Nightmare's fight): its frames, the frame it shoots on, the star's place from Kirby;
+#define GROUND_SWING_TIME 16
+#define GROUND_SHOOT_AT 4
+#define GROUND_STAR_X 20
+#define GROUND_STAR_Y 4
 
 // The knockback's speed (NiDL's, 8.8) frame by frame;
 static const u16 sKnockback[HURT_TIME] = { 0x1F8, 0x1F0, 0x1E8, 0x1E0, 0xF8, 0xF0, 0xE8, 0xE0, 0xD8, 0xD0, 0 };
@@ -98,6 +107,8 @@ struct StarRodStar {
     u8 palId;
     u8 burst;               // Frames since it hit (0: flying);
     u8 spin;
+    bool8 left;             // Flying left (shot by a Kirby facing left, on the ground);
+    bool8 sinks;            // Sinking with the fight's screen (the Power Orb's: shot flying);
 };
 
 static void StarRodRiderMain(void);
@@ -149,8 +160,9 @@ static void StarRodTrailMain(void) {
         return;
     }
     trail->flags |= 4;
-    trail->x = star->base.x - (TRAIL_X << 8);
+    trail->x = star->base.x + (star->left ? TRAIL_X << 8 : -(TRAIL_X << 8));
     trail->y = star->base.y;
+    if (star->left) trail->flags |= 1;
     trail->sprite.variant = FRAME_TRAIL + ((star->base.counter >> 1) & 1);
     trail->sprite.palId = star->palId;
     EffectObjectPostUpdate(trail);
@@ -162,7 +174,7 @@ static void StarRodTrail(struct StarRodStar *star) {
 
     ClearEffectObject(trail);
     trail->header.kind = 3;
-    trail->x = star->base.x - (TRAIL_X << 8);
+    trail->x = star->base.x + (star->left ? TRAIL_X << 8 : -(TRAIL_X << 8));
     trail->y = star->base.y;
     trail->parent = star;
     trail->roomId = star->base.roomId;
@@ -170,7 +182,7 @@ static void StarRodTrail(struct StarRodStar *star) {
     trail->sprite.palId = star->palId;
 }
 
-/* StarRodStarMain(); A star: on right, spinning (3 frames a frame of 4), hitting what it touches (an attack of Kirby's, as his star
+/* StarRodStarMain(); A star: on right (or left), spinning (3 frames a frame of 4), hitting what it touches (an attack of Kirby's, as his star
  * in KatAM's last fight, sub_0808466C: KatAM takes its strength, 1, off a boss, as NiDL's star does off its 60), then bursting; gone
  * off the screen; */
 static void StarRodStarMain(void) {
@@ -181,7 +193,7 @@ static void StarRodStarMain(void) {
 
     if (ObjectPreUpdate(base)) return;
     base->flags |= 4;
-    base->y += StarRodSink(Viewer(base->unk56, base->roomId), &star->lastTop);
+    if (star->sinks) base->y += StarRodSink(Viewer(base->unk56, base->roomId), &star->lastTop);
     if (star->burst) {
         if (++star->burst > BURST_TIME) {
             base->flags |= 0x1000;
@@ -194,9 +206,9 @@ static void StarRodStarMain(void) {
         base->flags |= 0x400;
         base->sprite.variant = FRAME_BURST + sBurst[0];
     } else {
-        base->x += STAR_SPEED;
+        base->x += star->left ? -STAR_SPEED : STAR_SPEED;
         sx = (base->x - gCurLevelInfo[Viewer(base->unk56, base->roomId)].viewportPosition.x) >> 8;
-        if (sx > 240 + 32) {
+        if (sx > 240 + 32 || sx < -32) {
             base->flags |= 0x1000;
             return;
         }
@@ -210,15 +222,19 @@ static void StarRodStarMain(void) {
     sub_0806F8BC(base);
 }
 
-static void StarRodShoot(struct Kirby *kirby) {
+// StarRodShoot(); A star, `dx` ahead of him the way he faces and `dy` down; flying (`sinks`), with the fight's screen;
+static void StarRodShoot(struct Kirby *kirby, s32 dx, s32 dy, bool8 sinks) {
     struct Task *t = TaskCreate(StarRodStarMain, sizeof(struct StarRodStar), 0x3500, TASK_USE_EWRAM, ObjectBaseDestroy);
     struct StarRodStar *star = TaskGetStructPtr(t);
     struct ObjectBase *base = &star->base;
 
     ClearObjectBase(base);
     base->header.kind = 2;
-    base->x = kirby->base.x + (STAR_X << 8);
-    base->y = kirby->base.y;
+    star->left = kirby->base.flags & 1;
+    star->sinks = sinks;
+    base->x = kirby->base.x + (star->left ? -(dx << 8) : dx << 8);
+    base->y = kirby->base.y + (dy << 8);
+    if (star->left) base->flags |= 1;
     base->parent = kirby;
     base->counter = 0;
     base->roomId = kirby->base.roomId;
@@ -306,6 +322,36 @@ void StarRodStart(struct Kirby *kirby, struct Object *orb) {
     kirby->stateFn = StarRodHeld;
     NidlMotion(kirby, STAR_ROD_MOTION_HOLD);
     HoldAI(kirby);
+}
+
+/* StarRodSwingStart(); The B button with the Star Rod on the ground or in the air (Nightmare's fight); StarRodSwing(), its frames: the
+ * star on GROUND_SHOOT_AT, standing still on the ground, falling in the air, then back to standing or falling; */
+static void StarRodSwing(struct Kirby *kirby) {
+    if (NidlAbilityInWater(kirby)) return;
+    NidlAbilityGravity(kirby);
+    if (kirby->base.counter == GROUND_SHOOT_AT) StarRodShoot(kirby, GROUND_STAR_X, GROUND_STAR_Y, FALSE);
+    if (++kirby->base.counter >= GROUND_SWING_TIME) NidlAbilityEnd(kirby);
+}
+
+void StarRodSwingStart(struct Kirby *kirby) {
+    NidlMotion(kirby, STAR_ROD_MOTION_SWING);
+    kirby->base.counter = 0;
+    kirby->idleTimer = 0;
+    kirby->base.flags &= ~(2 | 0x40);
+    if (kirby->movementState & 0x20)
+        kirby->base.flags |= 1;
+    if (kirby->movementState & 0x10)
+        kirby->base.flags &= ~1;
+    if (kirby->base.unk62 & 4) kirby->base.xspeed = 0;
+    kirby->stateFn = StarRodSwing;
+}
+
+/* StarRodKeep(); Nightmare's fight: a Kirby in his room keeps the Star Rod, given again (his ability before it still kept for after)
+ * whenever KatAM took it (his death, Select throwing it away), once he's free (not dying, nothing in his mouth...); */
+void StarRodKeep(struct Kirby *kirby) {
+    if (kirby->ability == NIDL_ABILITY_STAR_ROD || Macro_0810B1F4(&kirby->base) || kirby->hp <= 0 || kirby->unk110
+        || (kirby->base.flags & 0x3800B80)) return;
+    Give(kirby, NIDL_ABILITY_STAR_ROD);
 }
 
 // StarRodRestore(); His ability before the Star Rod, back (NidlShardExit: the shard's dance over, as he leaves the room);
@@ -497,7 +543,7 @@ static void StarRodRiderMain(void) {
     // The swing: pressed once the last one's over, or held every REPEAT_TIME frames; its star on its SHOOT_AT-th frame;
     if (r->shot < 0xFFFF) r->shot++;
     if (((pressed & 3) && r->shot > SWING_TIME) || ((keys & 3) && r->shot >= REPEAT_TIME)) r->shot = 0;
-    if (r->shot == SHOOT_AT) StarRodShoot(kirby);
+    if (r->shot == SHOOT_AT) StarRodShoot(kirby, STAR_X, 0, TRUE);
 
     // The motion: the swing; else the way he flies, its end played when he lets go or turns;
     way = Way(keys);

@@ -176,6 +176,7 @@ void NidlDanceOut(u16 room);
 // The finale (finale.c): the Power Orb's and Nightmare's ends, the Power Orb's warp star;
 void PowerOrbBeaten(struct Object *orb);
 void NightmareBeaten(struct Object *nightmare);
+void NidlFinaleKeep(struct Object *nightmare);
 bool32 NidlFinaleStar(struct Object *star);
 const struct NidlGraphics *NidlGraphicsOf(struct NidlObject *);
 u32 NidlHurtTiles(struct Object *);

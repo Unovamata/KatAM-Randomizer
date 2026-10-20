@@ -50,7 +50,8 @@ namespace KatAMRandomizer {
             new Motion(4, 0, Frames(new[] { (0xB2D, 2), (0xB2E, 2) }, Frames(0xB2F, 0xB31, 2)), 2),
             /* Star Rod (the Power Orb's fight): held up; the swing that shoots a star; flying right, left, up, down, each then held; their
              * ends, back to holding it up; hurt (as recorded in NiDL's fight, frame by frame); the fight's intro, NiDL's whole flight up
-             * to the orb (flying up, then down, the swing at it, the rod held out, a swing, held up; "ROM Expansion/abilities/star_rod.c"); */
+             * to the orb (flying up, then down, the swing at it, the rod held out, a swing, held up; "ROM Expansion/abilities/star_rod.c");
+             * the swing on the ground or in the air, in Nightmare's fight (its star on the 5th frame); */
             new Motion(7, 0, new[] { (0x103F, 1) }, -1),
             new Motion(7, 1, Frames(new[] { (0x1040, 4) }, Frames(0x1041, 0x104F, 1), new[] { (0x1050, 2), (0x103F, 1) }), -1),
             new Motion(7, 2, new[] { (0x1057, 1), (0x1058, 2), (0x1059, 1) }, -1),
@@ -65,6 +66,7 @@ namespace KatAMRandomizer {
             new Motion(7, 11, new[] { (0x1056, 78), (0x1055, 8), (0x1054, 12), (0x1051, 4), (0x1052, 4), (0x1053, 28), (0x1040, 1), (0x1042, 1),
                                       (0x1045, 1), (0x1048, 1), (0x104B, 1), (0x104E, 1), (0x105D, 64), (0x105E, 2), (0x105F, 2), (0x1041, 1),
                                       (0x1044, 1), (0x1045, 1), (0x1048, 3), (0x1049, 1), (0x104C, 1), (0x104D, 1), (0x104F, 1), (0x103F, 1) }, -1),
+            new Motion(7, 12, Frames(new[] { (0x1026, 1), (0x1027, 1) }, Frames(0x1029, 0x1034, 1), new[] { (0x1035, 2) }), -1),
         };
 
         // NiDL's plain Kirby palette colors 1-11, the same as KatAM's (the player's palette);

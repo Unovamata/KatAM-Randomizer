@@ -92,7 +92,17 @@ Nightmare fight." and "Fountain of dreams BG is off centered in the hub."
   left of where it was, at 127. Kirby jumps up into the mirror (it hangs above the platform; KatAM's mirror takes him when he's
   inside its box pressing Up, in the air too). Tested in the emulator (USA, 8 shards written into RAM): the room as Kirby arrives
   (screenshot, the Fountain's and the mirror's middles measured), a jump from the platform and Up into the mirror, to 0x38D.
-- Kirby keeping the Star Rod in Nightmare's fight: NiDL's Nightmare is fought with the Star Rod too, flying (item 5); still to do.
+- Kirby keeping the Star Rod in Nightmare's fight: done. NiDL's Nightmare is fought with the Star Rod on the ground (recorded in
+  NiDL: Kirby walks, runs, jumps holding the rod up and B swings it, shooting a star; frames `0xFED`-`0x1035`). Every Kirby rides the
+  orb's warp star into Nightmare's room keeping it, and keeps it there: the rod shows in every pose NiDL has one for (its hat,
+  matched to KatAM's poses), B swings it as NiDL's (16 frames, the star on the 5th, 20 ahead, 4 pixels a frame, either way), a hit
+  doesn't take it (KatAM's hit handler detoured) and anything else that does (death, Select) gives it back; after Nightmare, the
+  ability from before the orb comes back. Tested in the emulator (USA): from the NiDL hub's mirror through the orb's intro, fight
+  and warp star into Nightmare's room, the Star Rod still held on landing; in Nightmare's room, walking (the rod on his head),
+  swings both ways and in the air (screenshots), three hits taken with the rod kept, two stars taking Nightmare from 60 to 58 HP;
+  his HP set to 1 in RAM and a star finishing him, the dance, the Fountain hub; with the 3 helpers in the room (every Kirby holding
+  it, stars flying; nothing breaks). European and Japanese: in Nightmare's room, the rod kept through hits, stars hurting him. Not
+  tested: Kirby coming out with an ability other than Normal (none was held before the orb in these runs).
 
 **Still to do**: NiDL's cinematics (the orb's defeat, the ride into the moon, Nightmare's entrance and chase: recorded from NiDL
 frame by frame; the ending down from the moon: not recorded yet, NiDL's Nightmare takes no hit in the emulator so far), the helpers flying to the warp star themselves (they board it only if they reach it),
