@@ -31,17 +31,18 @@ namespace KatAMRandomizer {
         /* Cards: the ability cards (HUD portraits) by NiDL ability: palette pointers (CardPalettes + ability * CardPaletteStride) and tiles
          * pointers (CardTiles + ability * CardTileStride; Europe's are per language, English first); RoomTable: the rooms (see
          * KatAMExpansionRooms.cs); EndingFrames: the frame table of NiDL's ending down from the moon (USA 0x08755708: the European one
-         * moved by neither shift; see EndingGraphics()); */
+         * moved by neither shift; see EndingGraphics()); CloudSpeeds: the Power Orb's room's cloud bands' speeds (USA 0x087561CC, moved
+         * by neither shift either; KatAMExpansionRooms.cs, CloudRows); */
         sealed record NightmareRegion(string GameCode, int Descriptors, int FrameShift, string KatAM, int Palette15,
                                       int CardPalettes, int CardPaletteStride, int CardTiles, int CardTileStride, int RoomTable, int LateShift,
-                                      int EndingFrames);
+                                      int EndingFrames, int CloudSpeeds);
         const int LateFrames = 0x753E3C;
         static int FrameAddress(NightmareRegion region, int usa) => usa + (usa >= LateFrames ? region.LateShift : region.FrameShift);
 
         static readonly NightmareRegion[] NightmareRegions = {
-            new NightmareRegion("A7KE", 0x73EEA0, 0, "USA", 0x0D07A8, 0x731A90, 8, 0x731A94, 8, 0x7E1D58, 0, 0x755708),
-            new NightmareRegion("A7KJ", 0x742DAC, 0x3A8C, "Japan", 0x0CFF60, 0x73599C, 8, 0x7359A0, 8, 0x7E60DC, 0x3A8C, 0x759194),     // Hoshi no Kirby: Yume no Izumi Deluxe;
-            new NightmareRegion("A7KP", 0x97B678, 0x23C7EC, "Europe", 0x0D3228, 0x96D770, 4, 0x96D7E0, 20, 0xBFD8E8, 0x23CA5C, 0x99288C),
+            new NightmareRegion("A7KE", 0x73EEA0, 0, "USA", 0x0D07A8, 0x731A90, 8, 0x731A94, 8, 0x7E1D58, 0, 0x755708, 0x7561CC),
+            new NightmareRegion("A7KJ", 0x742DAC, 0x3A8C, "Japan", 0x0CFF60, 0x73599C, 8, 0x7359A0, 8, 0x7E60DC, 0x3A8C, 0x759194, 0x759C68),     // Hoshi no Kirby: Yume no Izumi Deluxe;
+            new NightmareRegion("A7KP", 0x97B678, 0x23C7EC, "Europe", 0x0D3228, 0x96D770, 4, 0x96D7E0, 20, 0xBFD8E8, 0x23CA5C, 0x99288C, 0x994DA0),
         };
 
         static NightmareRegion RegionOf(byte[] rom) => rom == null || rom.Length < 0x800000 ? null

@@ -21,7 +21,8 @@
  * Nightmare's fight (bosses/nightmare.c), NiDL's last, is fought with it on the ground: Kirby walks, runs, jumps and floats with the
  * rod (its hat: NiDL's ground set, KatAMExpansionHats.cs), and B swings it (StarRodSwingStart(): NiDL's, traced frame by frame, 16
  * frames, a star shot on the 5th, 20 pixels ahead the way he faces and 4 down, on at 4 pixels a frame; once a press, on the ground
- * standing still, in the air falling); he keeps it there (StarRodKeep(); a hit doesn't take it, abilities.c's NidlKirbyHit()); */
+ * standing still, in the air falling; a helper only once the fight has started, after Nightmare's intro); he keeps it there
+ * (StarRodKeep(); a hit doesn't take it, abilities.c's NidlKirbyHit()); */
 #include "../abilities.h"
 #include "kirby.h"
 #include "code_0806F780.h"
@@ -29,6 +30,7 @@
 #include "random.h"
 #include "constants/songs.h"
 
+void sub_08034C9C(u8);
 void sub_08035E28(u8);
 void sub_08035E9C(struct ObjectBase *);
 void sub_0806EFF8(struct Kirby *);
@@ -270,7 +272,13 @@ static void StarRodShoot(struct Kirby *kirby, s32 dx, s32 dy, bool8 sinks) {
 static void Give(struct Kirby *kirby, u8 ability) {
     kirby->ability = ability;
     if (gLocalPlayerId == kirby->base.unk56) sub_08035E28(ability);
-    sub_08035E9C(&kirby->base);
+    // (the HUD's card: KatAM's shows an ability's name and picture as long as he has it, but the Star Rod's name alone, its picture
+    // in the way of the fights; Normal's name alone, as KatAM shows it once an ability's lost);
+    if (ability == NIDL_ABILITY_STAR_ROD || ability == KIRBY_ABILITY_NORMAL) {
+        if (gLocalPlayerId == kirby->base.unk56) sub_08034C9C(2);
+    } else {
+        sub_08035E9C(&kirby->base);
+    }
     sub_0806F260(kirby);
     sub_0806EFF8(kirby);
 }
@@ -341,6 +349,8 @@ static void StarRodSwing(struct Kirby *kirby) {
 }
 
 void StarRodSwingStart(struct Kirby *kirby) {
+    // (a helper holds his fire till the fight starts: he's up while Nightmare's light still grows into his shape, bosses/nightmare.c);
+    if (kirby->base.unk56 >= gNumHumanPlayers && NightmareIntroOn(kirby->base.roomId)) return;
     NidlMotion(kirby, STAR_ROD_MOTION_SWING);
     kirby->base.counter = 0;
     kirby->idleTimer = 0;

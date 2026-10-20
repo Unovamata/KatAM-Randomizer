@@ -14,10 +14,6 @@ owner's go-ahead on how they should look first.
 - **Nightmare**: NiDL fights him in his caped look; the port uses his arms-out one, so his look changes as the fight starts.
 
 ## 34. The Fountain of Dreams finale: what's left
-- **Nightmare's palettes**: KatAM loads 7 sprite palettes a room. In his fight, his second and third palettes and his beams' share
-  the last slot, so one of them can show another's colours.
-- **Nightmare's entrance**: the helpers start shooting before his light has grown into his shape (NiDL has no helpers).
-- **The Power Orb's room**: NiDL's cloud bands drift sideways, each at its own speed; the port's stand still.
 - **Smaller differences from NiDL**: in the ending the Kirbys ride in KatAM's pose (NiDL's Kirby holds the Star Rod up); KatAM's
   HUD stays on (in the Power Orb's room it covers the cloud band's bottom); the room's own music plays, not NiDL's ending music;
   the ending's background is NiDL's mirrored left to right; at Nightmare's defeat his flight off starts after KatAM's burst, not 52

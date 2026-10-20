@@ -162,7 +162,8 @@ void *CreateNidlEnemy(struct ObjectTemplate *template, u8 playerId) {
     sNidlEnemies[enemy].init(n);
     NidlSetFrame(n, 0);
     ObjectInitSprite(&n->obj);
-    NidlInitPalette(n);
+    // (the arena's never drawn: no palette, KatAM keeps only 7 a room);
+    if (enemy != NIDL_ARENA) NidlInitPalette(n);
     NidlUploadHurtTiles(n);
     n->enemy = enemy;
     NidlStart(&n->obj);

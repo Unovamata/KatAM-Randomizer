@@ -11,9 +11,12 @@
  *   the fade to white), his ability before the Star Rod given back, to NiDL's ending down from the moon in the Power Orb's room
  *   (ending.c: held there, NidlFinaleHold()), then to the Fountain of Dreams hub (his room's way on, gNidlShardExits'), where its
  *   Amazing Mirror leads to KatAM's final boss;
- * gNidlFinale filled in by KatAMExpansion.cs; */
+ * • the Power Orb's room's cloud bands drift sideways, NiDL's line scroll (NidlCloudsStart(), see there), in its fight and the ending;
+ * gNidlFinale and gNidlCloudSpeeds filled in by KatAMExpansion.cs; */
 #include "nidl.h"
 #include "abilities.h"
+#include "data.h"
+#include "main.h"
 #include "constants/object_types.h"
 
 struct NidlFinale {
@@ -146,4 +149,81 @@ void NidlFinaleKeep(struct Object *nightmare) {
 
     for (i = 0; i < gNumKirbys; i++)
         if (gKirbys[i].base.roomId == nightmare->base.roomId) StarRodKeep(&gKirbys[i]);
+}
+
+/* The Power Orb's room's cloud bands drift sideways, each at its own speed, as NiDL's (its room's line scroll, 0x080B6B08, armed every
+ * VBlank by 0x080B60A8: an HBlank DMA of each line's BG2 and BG3 horizontal scroll): a line's background row (the room's: its
+ * background's drawn at the camera, bosses/power_orb.c) gives its speed, gNidlCloudSpeeds (NiDL's table, a byte a row of 8 pixels:
+ * 0 the starry sky, then 1-8 half pixels a frame down the cloud bands; KatAMExpansionRooms.cs copies it from the player's NiDL ROM),
+ * times the frames since the room came in (0-511, then 0 again: every band's back where it was, 256 pixels on), halved; NiDL's
+ * ending down from the moon (ending.c, here too) runs it backwards (0x080B6D04: its moon room's background is the orb room's
+ * mirrored, so its bands drift right). KatAM has the same HBlank DMA (main.c's VBlankIntr): a task after the level's (its camera
+ * and background scroll, priority 0x7FFF) fills the table the next VBlank shows (gUnk_03002484) with BG0's (the room's background)
+ * horizontal scroll, as Sonic Advance's line effects do. KatAM draws a background too big for VRAM a screen at a time, but every
+ * row whole (it wraps a row round, sub_08153184), and NiDL's is 256 pixels wide: a line's scroll shows its row as NiDL's; */
+#define CLOUD_ROWS 144      // (KatAMExpansionRooms.cs's CloudRows: 1152 pixels, the room's 936 and more);
+#define CLOUD_PERIOD 512
+#define CLOUD_PRIORITY 0x8000
+
+const u8 gNidlCloudSpeeds[CLOUD_ROWS] = { 0 };
+
+struct Clouds {
+    u16 t;          // Frames since the room came in (0-511);
+    bool8 ending;   // The ending's (its Kirbys on its flight, all through it: NidlOnEnding());
+    u8 sky;         // The rows of starry sky over the first band (NidlCloudsStart());
+};
+
+/* (the game's heaviest frames, the room coming in and the fight, have no time to spare: a row of 8 lines at a time, the same scroll,
+ * and none while the screen's all sky, every line's scroll BG0's own, as the fight's first half: no table, no HBlank DMA); */
+static void CloudsMain(void) {
+    struct Clouds *clouds = TaskGetStructPtr(gCurTask);
+    struct Unk_08002E48 *view = TaskGetStructPtr(gUnk_02023354);
+    struct LevelInfo *level = &gCurLevelInfo[view->unk0];
+    u16 *line = (u16 *)gUnk_03002484, *end = line + DISPLAY_HEIGHT;
+    s32 t = clouds->t, y = level->unkC0[2].scrollY, x = gBgScrollRegs[0][0];
+    u8 i;
+
+    if (level->currentRoom != gNidlFinale.orbRoom) {
+        TaskDestroy(gCurTask);
+        return;
+    }
+    for (i = 0; i < gNumKirbys && !clouds->ending; i++)
+        clouds->ending = gKirbys[i].base.roomId == level->currentRoom && NidlOnEnding(&gKirbys[i]);
+    if (clouds->ending) t = CLOUD_PERIOD - t;
+    if (++clouds->t >= CLOUD_PERIOD) clouds->t = 0;
+    if ((y + DISPLAY_HEIGHT - 1) >> 3 < clouds->sky) return;
+    y >>= 3;
+    for (line -= level->unkC0[2].scrollY & 7; line < end; y++) {
+        u16 *rowEnd = line + 8, scroll = x + ((y < CLOUD_ROWS ? gNidlCloudSpeeds[y] : 0) * t >> 1);
+
+        if (line < (u16 *)gUnk_03002484) line = (u16 *)gUnk_03002484;
+        if (rowEnd > end) rowEnd = end;
+        if (rowEnd - line == 8) {
+            line[0] = line[1] = line[2] = line[3] = line[4] = line[5] = line[6] = line[7] = scroll;
+            line = rowEnd;
+        } else {
+            while (line < rowEnd) *line++ = scroll;
+        }
+    }
+    gMainFlags |= 4;
+    gUnk_030036C8 = REG_ADDR_BG0HOFS;
+    gUnk_030039A0 = sizeof(u16);
+}
+
+// NidlCloudsStart(); A room's come in on the screen (rooms.c's BigFillLevelInfo()): the Power Orb's, its clouds from the start;
+void NidlCloudsStart(u16 room) {
+    struct Task *t = &gTasks[0];
+    struct Clouds *clouds;
+    u8 n;
+
+    if (!gNidlFinale.orbRoom || room != gNidlFinale.orbRoom) return;
+    for (n = 0; n < MAX_TASK_NUM && t->next; n++) {
+        t = (struct Task *)(IWRAM_START + t->next);
+        if (t->main == CloudsMain) break;
+    }
+    if (t->main != CloudsMain) t = TaskCreate(CloudsMain, sizeof(struct Clouds), CLOUD_PRIORITY, TASK_USE_IWRAM, NULL);
+    clouds = TaskGetStructPtr(t);
+    clouds->t = 0;
+    clouds->ending = FALSE;
+    for (clouds->sky = 0; clouds->sky < CLOUD_ROWS && gNidlCloudSpeeds[clouds->sky] == 0; clouds->sky++);
 }

@@ -190,6 +190,7 @@ bool32 NidlFinaleStarSpot(u16 room, s32 *x, s32 *y);
 bool32 NidlFinaleStar(struct Object *star);
 void NidlFinaleHoldCamera(u16 room, s32 x, s32 y);
 u32 PowerOrbRideSize(u16 room);
+void NidlCloudsStart(u16 room);
 u32 NightmareRideSize(u16 room);
 bool32 NightmareIntroOn(u16 room);
 void NightmareIntroRider(struct Kirby *kirby);

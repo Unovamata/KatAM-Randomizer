@@ -25,6 +25,7 @@
 #define STAR_SPEED 0x1C0
 #define BEAM_SPEED 0x200
 #define BEAM_LIFE 150
+#define BEAM_PALETTE 0x6000     // His beams' palette's key (| his anim ID);
 
 enum { STATE_FLOAT, STATE_STARS, STATE_BEAM, STATE_SWOOP, STATE_RISE, STATE_VANISH, STATE_GONE, STATE_APPEAR };
 
@@ -52,7 +53,7 @@ static s32 ScreenY(struct Object *obj) {
 static u16 Key(struct Nightmare *m, u8 frame) {
     u16 animId = NidlGraphicsOf(&m->n)->animId;
 
-    if (frame >= FRAME_BEAM) return animId | 0x6000;
+    if (frame >= FRAME_BEAM) return animId | BEAM_PALETTE;
     if (frame >= FRAMES * 2) return animId | 0x4000;
     if (frame >= FRAMES) return animId | NIDL_SECOND_PALETTE;
     return animId;
@@ -918,6 +919,39 @@ void NightmareIntroRider(struct Kirby *kirby) {
     EffectObjectInitSprite(&intro->e, &intro->e.sprite, COMET_TILES, gNidlData.bosses[NIDL_NIGHTMARE].animId, FRAME_COMET, 0x1A);
 }
 
+extern u16 gUnk_02022E60[];     // The keys of the palettes loaded in OBJ slots 8-14 (KatAM's sub_0803DF24, sub_0803DFAC), and how many;
+extern u8 gUnk_02022EA0;
+void sub_0803D280(u8, u8);      // A palette slot's colours into the copy KatAM puts back after a flash;
+
+// TakePalette(); The palette `key` (its anim's frame `frame`'s) loaded into the slot of `from`, if that one's loaded and `key` isn't;
+static void TakePalette(u16 room, u16 from, u16 key, u8 frame) {
+    struct Sprite sprite;
+    u8 i;
+
+    if (gKirbys[gLocalPlayerId].base.roomId != room) return;
+    for (i = 0; i < gUnk_02022EA0; i++)
+        if (gUnk_02022E60[i] == key) return;
+    for (i = 0; i < gUnk_02022EA0; i++) {
+        if (gUnk_02022E60[i] != from) continue;
+        gUnk_02022E60[i] = key;
+        SpriteSomething(&sprite, 0x6000000, key & 0xFFF, frame, 0xFF, 0, 0, 0, 0, 0x10, i + 8, 0x80000);
+        // (and in the copy KatAM puts back after a flash, his hits', as sub_0803DFAC does);
+        sub_0803D280((i + 8) * 0x10, 0x10);
+        return;
+    }
+}
+
+/* FightPalettes(); The fight's palettes where his intro's were: KatAM keeps 7 a room (slots 8-14) and loads past them into the last,
+ * so his third palette, his beams' and his stars' took that one in turn, his cape's ends showing the beams' colours. His intro done
+ * with, its comet's two and his light's take them (his second gets a slot of its own); */
+static void FightPalettes(struct Nightmare *m) {
+    u16 animId = NidlGraphicsOf(&m->n)->animId, room = m->n.obj.base.roomId;
+
+    TakePalette(room, animId | INTRO_KEY_A, animId | NIDL_THIRD_PALETTE, FRAMES * 2);
+    TakePalette(room, animId | INTRO_KEY_B, animId | BEAM_PALETTE, FRAME_BEAM);
+    TakePalette(room, animId | INTRO_KEY_LIGHT, gNidlData.enemies[NIDL_STAR].animId, 0);
+}
+
 // NightmareStart(); The fight starts (and after a hit: back where he was);
 void NightmareStart(struct Object *obj) {
     struct Nightmare *m = (struct Nightmare *)obj;
@@ -925,6 +959,7 @@ void NightmareStart(struct Object *obj) {
     ObjectSetFunc(obj, -1, NightmareMain);
     if (m->started) return;
     m->started = TRUE;
+    FightPalettes(m);
     Set(m, STATE_FLOAT);
     NightmarePart(m, 1);
     NightmarePart(m, 2);
@@ -1016,14 +1051,10 @@ static const s16 sFloorBursts[][2] = {
     { 661, 88 }, { 691, 232 }, { 706, 216 }, { 706, 56 }, { 736, 200 }, { 746, 120 }, { 756, 40 }, { 766, 224 }, { 811, 88 }, { 811, 208 }, { 841, 232 },
 };
 
-extern u16 gUnk_02022E60[];     // The keys of the palettes loaded in OBJ slots 8-14 (KatAM's sub_0803DF24, sub_0803DFAC), and how many;
-extern u8 gUnk_02022EA0;
-void sub_0803D280(u8, u8);
-
-/* DefeatPalette(); A palette of his defeat's, as frame `frame` of his anim has it: loaded into the slot of `take` (one of his intro's,
+/* DefeatPalette(); A palette of his defeat's, as frame `frame` of his anim has it: loaded into the slot of `take` (one of his fight's,
  * done with), else its slot if `key`'s loaded, else as the game loads one; `force` loads it again where it is (KatAM keeps 7 a
- * room, slots 8-14, and loads past them into the last: by his fight, his intro's and his own fill them, his second and third
- * palettes taking the last in turn, its colours the last's), or 0 (not yet: the local player isn't in the room); */
+ * room, slots 8-14, and loads past them into the last: his fight's fill them, FightPalettes()), or 0 (not yet: the local player
+ * isn't in the room); */
 static u8 DefeatPalette(u16 room, u16 key, u8 frame, u16 take, bool8 force) {
     struct Sprite sprite;
     u8 i, slot = 0xFF;
@@ -1037,6 +1068,7 @@ static u8 DefeatPalette(u16 room, u16 key, u8 frame, u16 take, bool8 force) {
     if (force) {
         gUnk_02022E60[slot - 8] = key;
         SpriteSomething(&sprite, 0x6000000, key & 0xFFF, frame, 0xFF, 0, 0, 0, 0, 0x10, slot, 0x80000);
+        sub_0803D280(slot * 0x10, 0x10);
     }
     return slot;
 }
@@ -1153,17 +1185,21 @@ static void NightmareEndMain(void) {
     }
     e->flags |= 4 | 0x400;
     NidlFinaleHoldCamera(e->roomId, end->camX, end->camY);
-    // (his palettes, his light's, his glow's and the bursts', once a player's in the room: his second loaded again, his third and
-    // the glow's where his intro's comet's and blue star's were);
+    // (his palettes and the bursts', once a player's in the room: his second loaded again, his third where his fight had it,
+    // FightPalettes(), else where his intro's comet's was);
     if (!end->palA) end->palA = DefeatPalette(e->roomId, animId, FRAME_FLEE, 0, FALSE);
     if (!end->palC) end->palC = DefeatPalette(e->roomId, animId | NIDL_THIRD_PALETTE, FRAME_CAPED, animId | INTRO_KEY_A, FALSE);
     if (!end->palB) end->palB = DefeatPalette(e->roomId, animId | NIDL_SECOND_PALETTE, FRAME_FLEE + 4, 0, TRUE);
-    if (!end->lightPal) end->lightPal = DefeatPalette(e->roomId, animId | INTRO_KEY_LIGHT, FRAME_LIGHT, 0, FALSE);
-    if (!end->glowPal) end->glowPal = DefeatPalette(e->roomId, animId | DEFEAT_KEY_GLOW, FRAME_GLOW, animId | INTRO_KEY_B, FALSE);
     if (!end->burstPal) end->burstPal = IntroPalette(e->roomId, gNidlData.enemies[NIDL_SPIT_STAR].animId, 0);
     k = end->t++;
     if (k < DEFEAT_BACK) return;
     k -= DEFEAT_BACK;
+    // (his light's and the glow's as they're first needed, where his stars' and his beams' were: his stars went with him, his beams
+    // are gone by then);
+    if (!end->lightPal && k >= DEFEAT_FLIGHT)
+        end->lightPal = DefeatPalette(e->roomId, animId | INTRO_KEY_LIGHT, FRAME_LIGHT, gNidlData.enemies[NIDL_STAR].animId, FALSE);
+    if (!end->glowPal && k >= DEFEAT_GLOW_FROM)
+        end->glowPal = DefeatPalette(e->roomId, animId | DEFEAT_KEY_GLOW, FRAME_GLOW, animId | BEAM_PALETTE, FALSE);
     // (flying off: 4 pixels a frame, half that every DEFEAT_SPEEDS frames);
     if (k < DEFEAT_FLIGHT) {
         end->x += 0x400 >> (k / DEFEAT_SPEEDS);
