@@ -1,10 +1,11 @@
 /* Finale; The Fountain of Dreams, the finale before KatAM's final boss (see "Documentation/Map and Door Design Rules.md"): Central
  * Circle's and the NiDL hub's Dimension Mirrors lead into the Power Orb's room once KatAM's 8 shards are found (KatAMExpansionRooms.cs,
  * FinaleMirrors()); its two bosses leave no shard:
- * • the Power Orb beaten (nidl_boss.c's NidlBossDefeat), a warp star (KatAM's own, object 0x84) comes where it was, to Nightmare's
- *   room; it waits for the helpers, as KatAM's (warpstar.c's NidlRideRev), the helpers flying to it (abilities/star_rod.c's AI(),
- *   NidlFinaleStarSpot()), but only until every Kirby is on it (NidlFinaleAllAboard()), and they all ride it there, keeping the
- *   Star Rod:
+ * • the Power Orb beaten (nidl_boss.c's NidlBossDefeat), NiDL's end of its fight (bosses/power_orb.c's PowerOrbEnd()): it flies
+ *   off, and a warp star (KatAM's own, object 0x84) comes where it was (NidlFinaleStarAt()), to Nightmare's room; it waits for the
+ *   helpers, as KatAM's (warpstar.c's NidlRideRev), the helpers flying to it (abilities/star_rod.c's AI(), NidlFinaleStarSpot()), but
+ *   only until every Kirby is on it (NidlFinaleAllAboard()), and they all ride it there, NiDL's ride (up off the screen, the screen
+ *   rising to the moon, the orb and the star flying into it: PowerOrbEnd() again), keeping the Star Rod:
  *   NiDL's Nightmare is fought with it, on the ground (abilities/star_rod.c; NidlFinaleKeep(): never lost in his room);
  * • Nightmare beaten, every Kirby in his room dances and leaves (as after a boss's shard, NidlDanceOut()), for the Fountain of
  *   Dreams hub (gNidlShardExits: his room's), his ability before the Star Rod given back (NidlShardExit()), where its Amazing Mirror
@@ -18,15 +19,20 @@ struct NidlFinale {
     u16 orbRoom;        // the Power Orb's room;
     u16 rideRoom;       // where its warp star takes the Kirbys: Nightmare's room,
     u8 rideX, rideY;    // and the cell they land in + 1, as a door's;
-    u8 flight;          // the star's flight (warpstar.c);
+    u8 flight;          // the star's flight (warpstar.c; its first step NIDL_RIDE_FINALE, bosses/power_orb.c);
     u8 pad;
 };
 
 const struct NidlFinale gNidlFinale = { 0 };
 
-// PowerOrbBeaten(); The Power Orb's end (NidlBossDefeat()): its warp star where it was;
+// PowerOrbBeaten(); The Power Orb's end (NidlBossDefeat()): NiDL's (bosses/power_orb.c);
 void PowerOrbBeaten(struct Object *orb) {
-    CreateObjTemplateAndObj(orb->base.unk56, 1, 0x24, orb->base.x >> 8, orb->base.y >> 8, 0, 0x1F, 0, 0, OBJ_WARP_STAR, gNidlFinale.flight,
+    PowerOrbEnd(orb);
+}
+
+// NidlFinaleStarAt(); The Power Orb's warp star at (x, y) (8.8; PowerOrbEnd());
+void NidlFinaleStarAt(u8 player, s32 x, s32 y) {
+    CreateObjTemplateAndObj(player, 1, 0x24, x >> 8, y >> 8, 0, 0x1F, 0, 0, OBJ_WARP_STAR, gNidlFinale.flight,
                             0, 0, 0, gNidlFinale.rideX, gNidlFinale.rideY, gNidlFinale.rideRoom, 0, 0, 0, 0, 0, 0);
 }
 

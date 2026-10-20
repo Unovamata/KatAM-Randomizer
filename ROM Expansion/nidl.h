@@ -175,6 +175,8 @@ void NidlExitTomato(u16 slot, u32 eaten);
 void NidlDanceOut(u16 room);
 // The finale (finale.c): the Power Orb's and Nightmare's ends, the Power Orb's warp star;
 void PowerOrbBeaten(struct Object *orb);
+void NidlFinaleStarAt(u8 player, s32 x, s32 y);
+void PowerOrbEnd(struct Object *orb);
 void NightmareBeaten(struct Object *nightmare);
 void NidlFinaleKeep(struct Object *nightmare);
 bool32 NidlFinaleStarSpot(u16 room, s32 *x, s32 *y);

@@ -22,8 +22,8 @@ is done, move it to "Done" and say how it was checked. The design rules for door
 - **King Dedede's camera**: done (see Done: "King Dedede's camera is NiDL's").
 - **The Power Orb's camera and cinematics** (the owner: "power orb camera movements and transition cinematics have to be ported
   as well."): NiDL's camera movements in the fight and its transition cinematics. Done: the intro (the camera rising from the
-  room's bottom with every Kirby flying up to the orb, see item 34) and the fight's sinking screen. Still to do: the cinematics
-  after it (item 34).
+  room's bottom with every Kirby flying up to the orb, see item 34), the fight's sinking screen, and its end (the orb beaten, the
+  warp star's ride into the moon, the screen rising to it: item 34). Still to do: Nightmare's cinematics (item 34).
 - **The helpers in the Star Rod fight** (the owner: "AI Kirbys should move up and down, left and right towards Power Orb to
   simulate that they are engaged in the fight and maybe open the door to avoiding its moves by chance, so disabling the flag so
   they get still ain't quite cutting it."): they keep moving towards the orb in every direction, and dodge its attacks now and
@@ -110,9 +110,27 @@ Nightmare fight." and "Fountain of dreams BG is off centered in the hub."
   it, stars flying; nothing breaks). European and Japanese: in Nightmare's room, the rod kept through hits, stars hurting him. Not
   tested: Kirby coming out with an ability other than Normal (none was held before the orb in these runs).
 
-**Still to do**: NiDL's cinematics (the orb's defeat, the ride into the moon, Nightmare's entrance and chase: recorded from NiDL
-frame by frame; the ending down from the moon: not recorded yet, NiDL's Nightmare takes no hit in the emulator so far). Not tested
-yet: the whole finale with helpers in one go.
+**Still to do**: Nightmare's cinematics (his entrance and chase as the star comes into his room: recorded from NiDL frame by frame;
+the ending down from the moon: not recorded yet, NiDL's Nightmare takes no hit in the emulator so far). Not tested yet: the whole
+finale with helpers in one go.
+
+**The Power Orb's end is NiDL's** (done; `bosses/power_orb.c`'s `PowerOrbEnd()`): recorded in NiDL frame by frame (the orb's, the
+warp star's and Kirby's spots, the camera, the sprites' sizes in OAM, twice: the orb beaten at the fight's start and 1200 frames
+in). KatAM's freeze, flashes and burst stay (NiDL's are the same); 24 frames after the burst the orb is back, wobbling, and flies
+off up to the right, and the warp star comes 11 pixels under where it was. With every Kirby on, the star flies NiDL's launch up off
+the screen; 21 frames in, the screen rises to the room's top (NiDL's easing: 1.25 pixels a frame, a 16th more each frame, slowing
+in the last stretch), the star hidden just over it; then the orb, a quarter of its size and smaller every 20 frames, flies into the
+moon, the star with the Kirbys 60 frames behind it the same way, both then black dots (NiDL's 8x8 dot, rebuilt from its VRAM), and
+410 frames after the orb the fade to white and Nightmare's room. The screen is held where the fight left it until the ride: before,
+beaten after the screen had sunk (any fight longer than a few seconds), the camera went back up to the fight's first screen and took
+the Kirbys flying with the Star Rod up with it, leaving the warp star below, out of reach (a softlock; reproduced in the emulator,
+the orb beaten 1000 frames into the fight). Tested in the emulator (USA, European and Japanese rev 1; a new game started in the NiDL
+hub, its mirror into the Power Orb's room, the orb's HP set to 1 in RAM, Kirby killing it and flying onto the star by set inputs):
+beaten at the fight's start with the 3 helpers (all four board, ride, shrink into the moon and land in Nightmare's room; KatAM's
+arrows pointing at off-screen helpers don't show while the star waits above the screen), and solo; beaten 1000 frames in, solo (the
+screen stays at 211, Kirby reaches the star, the screen rises 203 pixels to the top before the moon). Screenshots compared with
+NiDL's frame by frame (the burst, the flight off, the launch, the moon, the dots, the fade). Not tested: the end with helpers after
+a long fight; the helpers' own reaching of a star placed far from them.
 
 **The helpers fly to the orb's warp star** (done): tested in the emulator (USA, European and Japanese rev 1; a new game started in
 the NiDL hub with the 3 helpers, its mirror into the Power Orb's room, the orb's HP set to 1 in RAM, Kirby killing it and flying

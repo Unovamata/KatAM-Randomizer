@@ -1495,8 +1495,17 @@
          *   carries the size of the frame before it, so each frame is drawn at NiDL's size for it. The rooms'
          *   gUnk_0893CB44 entries (where Kirby comes back if he's lost after a flight) are the star's landing (DestX, DestY), and in
          *   the room a ride lands in, where Kirby hops off;
+         * • after them, the Power Orb's warp star's ("ROM Expansion/finale.c", FinaleFlight): a step marked NIDL_RIDE_FINALE (+8 0xFC),
+         *   where warpstar.c holds the Kirbys while the orb's end ("ROM Expansion/bosses/power_orb.c", PowerOrbEnd()) flies them NiDL's
+         *   ride, up off the screen and into the moon, until it moves them on: NiDL's fade to white (18 frames, KatAM's started on its
+         *   first; Kirby hidden, RideHidden: the star and its Kirbys are a dot by then), then WarpFlight's end (the room change: Nightmare's room, where the Kirbys land, bossExitsOf; a frame still; the
+         *   hop off). Its first two steps' size (+0xA) is RideAsk: the orb's end says it (smaller and smaller, then hidden);
          * warpstar.c also makes the ported stars leave at once (KatAM's revs 300 frames with Kirby on it for the helpers); */
         const int WarpFlight = 6, FlightStep = 12, FlightRise = 201, RideRoom = 0xFE, RideHop = 0xFD, Sparkles = 12, FlightRider = 90;
+        // (RideHidden: a step's flag hiding Kirby, sub_080534D0: the Power Orb's star's fade, the star and its Kirbys a dot by then);
+        const int RideFinale = 0xFC, RideAsk = 0xFFFF, RideFade = 18, RideHidden = 4;
+        // (the Power Orb's warp star's flight, after the rides: WarpFlights(), FinaleMirrors());
+        static int finaleFlight = WarpFlight;
         // (Kirby's animations tumbling, KatAM's: 74, then 89 down to 75, round again; bouncing off the floor; the effect making the orb,
         // 0x292, where he hops off);
         const int Tumbling = 74, Bouncing = 20, HopOrb = 10;
@@ -1506,7 +1515,7 @@
             int table = symbols["gUnk_08D60A84"], arrivals = symbols["gUnk_0893CB44"], first = ReadInt(rom, table) - 0x08000000;
             if (rom[first + (FlightRise - 1) * FlightStep + 9] != 0x40) return;     // (its room change: +9, the flags);
             List<Transport> rides = transportsOf.Values.SelectMany(list => list).Where(t => !t.Cannon && t.Ride != null).OrderBy(t => t.Flight).ToList();
-            int flight = Allocate(ref cursor, (FlightRise + 2) * FlightStep, 4), moved = Allocate(ref cursor, (WarpFlight + 1 + rides.Count) * 4, 4);
+            int flight = Allocate(ref cursor, (FlightRise + 2) * FlightStep, 4), moved = Allocate(ref cursor, (WarpFlight + 2 + rides.Count) * 4, 4);
             Array.Copy(rom, first, rom, flight, FlightRise * FlightStep);
             WriteShorts(rom, flight + FlightRise * FlightStep, 0, 0, 1, FlightRider);  // A frame still (it moves on to the end);
             WriteShorts(rom, flight + FlightRise * FlightStep + 8, 0xFF, 0);
@@ -1571,13 +1580,20 @@
                 rom[arrivals + last.Room * 2] = (byte)(landing.x / 16 + 1);
                 rom[arrivals + last.Room * 2 + 1] = (byte)(landing.y / 16 + 1);
             }
+            // (the Power Orb's: held, then the fade, then WarpFlight's room change, frame still and hop off);
+            finaleFlight = WarpFlight + 1 + rides.Count;
+            int finale = Allocate(ref cursor, 5 * FlightStep, 4);
+            WriteShorts(rom, finale, 0, 0, 1, FlightRider, RideFinale, RideAsk);
+            WriteShorts(rom, finale + FlightStep, 0, 0, RideFade, FlightRider, FlightFade | RideHidden << 8, RideAsk);
+            Array.Copy(rom, flight + (FlightRise - 1) * FlightStep, rom, finale + 2 * FlightStep, 3 * FlightStep);
+            WriteInt(rom, moved + finaleFlight * 4, finale + 0x08000000);
         }
 
         /* FinaleMirrors(); The finale's way in and its warp star (see finaleEntry): Central Circle's Dimension Mirror (its shard object of
          * subtype 8, KatAM's own template, written in place: +0x1E the room, +0x1A, +0x1C the landing cell + 1, shard.c's sub_0801BE4C)
          * leads to the Power Orb's room, as the NiDL hub's copy (BuildMainHub()); gNidlFinale ("ROM Expansion/finale.c"): the Power
-         * Orb's room, where its warp star lands the Kirbys (Nightmare's room: bossExitsOf) and its flight (WarpFlight: up, then landing
-         * there, WarpFlights()); */
+         * Orb's room, where its warp star lands the Kirbys (Nightmare's room: bossExitsOf) and its flight (finaleFlight: NiDL's ride,
+         * then landing there, WarpFlights()); */
         static void FinaleMirrors(byte[] rom, IReadOnlyDictionary<string, int> symbols, List<NightmareRoom> rooms, KatAMExpansionCode.Version version) {
             int index = ReadShort(rom, symbols["gRoomProps"] + EntryRoom * 0x28 + 16 * 2);
             int list = ReadInt(rom, symbols["gLevelObjLists"] + index * 4) - 0x08000000;
@@ -1589,7 +1605,7 @@
             WriteShorts(rom, finale, orb.Room, ride.room);
             rom[finale + 4] = (byte)ride.x;
             rom[finale + 5] = (byte)ride.y;
-            rom[finale + 6] = WarpFlight;
+            rom[finale + 6] = (byte)finaleFlight;
         }
 
         /* WarpRideDetours(); "ROM Expansion/warpstar.c"'s detours (see WarpFlights()): KatAM's warp star's rev (sub_0800C270), a

@@ -75,6 +75,8 @@ void ArenaRise(struct Object *, s32);
 #define SLASH_TILES 16
 #define SLASH_X 136
 #define SLASH_Y 110
+// Its end's dot (PowerOrbEnd(): the orb, and the star with its Kirbys, far off in the moon; NiDL's palette 15);
+#define FRAME_DOT (FRAME_SLASH + 6)
 
 enum { STATE_ENTER, STATE_HOVER, STATE_ROAM, STATE_CHARGE, STATE_ZIP };
 enum { ATTACK_STREAM, ATTACK_FAN, ATTACK_PAIR, ATTACKS };
@@ -596,6 +598,346 @@ static void PowerOrbMain(struct Object *obj) {
         frame = FRAME_SMALL;
     }
     NidlSetFrame(&o->n, frame);
+}
+
+/* The orb beaten (PowerOrbEnd()): NiDL's end of the fight, traced frame by frame (its object's last states, its warp star's and
+ * the camera's, 0x0300215C), run by a task of its own (KatAM's explosion takes the orb away, as its bosses):
+ * • 24 frames after it bursts, it's back where it was, wobbling (its shrink's frames, and two of its spin's every 8), and flies off
+ *   up to the right (sFleeY, a pixel right a frame), and its warp star comes, 11 pixels under where it was (finale.c's
+ *   NidlFinaleStarAt());
+ * • the warp star off, every Kirby on it (its flight's first step NIDL_RIDE_FINALE: warpstar.c holds them on it, this moves them),
+ *   it flies NiDL's launch up off the screen (sLaunch, then on with its last two moves till it's 32 pixels over the screen); 21
+ *   frames in, the screen rises to the room's top (1.25 pixels a frame, a 16th more each frame, never more than a 16th of the way
+ *   left, nor under an 8th), the star kept 34 pixels over it;
+ * • 2 frames after the screen's at the top, the orb, small (a quarter of its size, smaller every 20 frames: sMoonSizes), flies into
+ *   the moon (sMoonOrb, from (136, -15) on the screen), then too small, a dot (FRAME_DOT, NiDL's); 60 frames after it, the star
+ *   with the Kirbys, the same way (sMoonStar; warpstar.c draws them at its size, PowerOrbRideSize()), then a dot too; 410 frames
+ *   after the orb came in, the star's flight goes on to its fade to white (18 frames), then Nightmare's room;
+ * the screen's held where the fight left it till then (its arena gone, the camera would go back to the fight's first screen,
+ * the star left under it, and the Kirbys flying with the Star Rod, kept on the screen, with it); */
+#define END_TILES 36
+#define END_BACK 24
+#define END_STAR_Y 11
+#define END_CAMERA 21
+#define END_SPEED 0x140
+#define END_SPEEDUP 0x10
+#define END_SLOWEST 0x20
+#define END_ABOVE (-32 << 8)
+#define END_HELD (-34 << 8)
+#define END_OFF (-16 << 8)
+#define END_ON_SCREEN (24 << 8)
+#define END_TOP (8 << 8)
+#define END_MOON_X (136 << 8)
+#define END_MOON_Y (-15 << 8)
+#define END_MOON_WAIT 2
+#define END_STAR_LATE 60
+#define END_FADE 410
+#define END_DOT_KEY 0x6000
+#define END_MATRIX 6        // (its affine matrices: 6, then 14, 22, 30 for pieces flipped; warpstar.c's riders use 7...);
+#define NIDL_RIDE_FINALE 0xFC
+#define NIDL_RIDE_HIDDEN 0x8000
+
+void sub_080534D0(struct Kirby *);
+void NidlShrink(u32 first, s32 x, s32 y, u32 pa, u32 matrix);
+
+enum { END_HIDDEN, END_FLEE, END_GONE };
+
+struct OrbEnd {
+    struct EffectObject e;
+    s32 camX, camY, camSpeed;   // The held screen's top left (8.8, the room's) and its speed rising;
+    s32 x0, y0;                 // Where it was beaten (8.8);
+    s32 orbX, orbY;             // The orb, and the ride's star (Kirby's spot on it), 8.8;
+    s32 starX, starY;
+    u16 t;                      // Frames since it burst;
+    u16 ride;                   // Frames since the star went off (0: not yet);
+    u16 top;                    // Frames since the screen got to the top (0: not yet);
+    u16 moon;                   // Frames since the orb came into the moon (0: not yet);
+    u16 animId;
+    u8 player;
+    u8 phase;
+    u8 palId, dotPalId;
+    bool8 above;                // The star's over the screen, kept there;
+};
+
+// The flee: its y (pixels from where it was beaten) frame by frame, x 2 pixels right of it, a pixel more each frame;
+static const s16 sFleeY[] = { 10, 10, 9, 9, 8, 8, 7, 6, 5, 3, 3, 1, -1, -2, -4, -6, -8, -10, -13, -15, -17, -20, -23, -26, -29, -32, -35, -39,
+                              -43, -46, -49, -54, -58, -62, -67, -70, -75, -80, -85, -90, -94, -100, -105, -111, -117, -121, -127, -134, -140,
+                              -146, -152, -158, -165, -172, -179, -185, -192, -200, -207 };
+// (its wobble: NiDL's frames 8, 9, 11, 10, 9, 8 as its shrink's, then two of its spin's);
+static const u8 sFleeFrames[6] = { 0, 1, 3, 2, 1, 0 };
+// The launch: the star's moves (pixels, down positive) frame by frame from its second;
+static const s8 sLaunch[][2] = { { 1, -1 }, { 2, 0 }, { 1, -1 }, { 2, 0 }, { 1, -1 }, { 2, -2 }, { 1, -2 }, { 2, -2 }, { 1, -3 }, { 2, -4 }, { 1, -4 },
+                                 { 2, -4 }, { 1, -5 }, { 2, -6 }, { 1, -6 }, { 2, -6 }, { 1, -6 }, { 2, -6 }, { 1, -6 }, { 2, -6 }, { 1, -6 }, { 2, -8 },
+                                 { 1, -7 }, { 2, -7 }, { 1, -7 }, { 2, -7 }, { 1, -8 } };
+// Into the moon: the size (its matrix's pa: 256 / the size, 8.8) and frames, from a quarter, then a dot;
+static const u16 sMoonSizes[][2] = { { 1024, 19 }, { 1092, 20 }, { 1170, 20 }, { 1260, 19 }, { 1365, 20 }, { 1489, 20 }, { 1638, 19 }, { 1820, 20 },
+                                     { 2048, 20 }, { 2340, 19 }, { 2730, 20 } };
+// Into the moon: the moves frame by frame, a pixel or none each way, 4 bits a frame (x + 1, (y + 1) << 2), low first: the orb's,
+// then the star's (NiDL's own: it catches up with the orb in the moon's middle);
+// (426 frames)
+static const u8 sMoonOrb[213] = {
+    0x84, 0x84, 0x84, 0x84, 0x84, 0x84, 0x84, 0x84, 0x84, 0x84, 0x84, 0x84, 0x84, 0x84, 0x94, 0x84, 0x94, 0x84, 0x94, 0x84, 0x94, 0x84, 0x94, 0x84,
+    0x94, 0x84, 0x94, 0x94, 0x94, 0x94, 0x94, 0x94, 0x94, 0x94, 0x94, 0x94, 0x94, 0x94, 0x94, 0x94, 0x94, 0x94, 0x95, 0x94, 0x95, 0x94, 0x95, 0x94,
+    0x55, 0x95, 0x55, 0x95, 0x54, 0x95, 0x55, 0x95, 0x55, 0x95, 0x55, 0x95, 0x55, 0x95, 0x55, 0x95, 0x55, 0x95, 0x55, 0x95, 0x56, 0x95, 0x55, 0x95,
+    0x65, 0x95, 0x55, 0x95, 0x65, 0x55, 0x55, 0x95, 0x65, 0x55, 0x55, 0x95, 0x65, 0x55, 0x55, 0x95, 0x65, 0x55, 0x55, 0x95, 0x65, 0x55, 0x55, 0x95,
+    0x65, 0x55, 0x55, 0x95, 0x65, 0x55, 0x55, 0x95, 0x65, 0x55, 0x55, 0x95, 0x65, 0x55, 0x55, 0x95, 0x65, 0x55, 0x55, 0x95, 0x65, 0x55, 0x55, 0x95,
+    0x65, 0x55, 0x55, 0x95, 0x65, 0x55, 0x55, 0x95, 0x65, 0x55, 0x55, 0x55, 0xA5, 0x55, 0x55, 0x55, 0x65, 0x55, 0x55, 0x55, 0xA5, 0x55, 0x55, 0x55,
+    0x65, 0x55, 0x55, 0x55, 0xA5, 0x55, 0x55, 0x55, 0x65, 0x55, 0x55, 0x55, 0xA5, 0x55, 0x55, 0x55, 0x65, 0x55, 0x55, 0x55, 0xA5, 0x55, 0x55, 0x55,
+    0x65, 0x55, 0x55, 0x55, 0xA5, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x65, 0x55, 0x55, 0x55, 0x55,
+    0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x65, 0x95, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55,
+};
+// (366 frames)
+static const u8 sMoonStar[183] = {
+    0x84, 0x84, 0x84, 0x84, 0x84, 0x84, 0x84, 0x84, 0x84, 0x84, 0x84, 0x84, 0x84, 0x84, 0x94, 0x84, 0x94, 0x84, 0x94, 0x84, 0x94, 0x84, 0x94, 0x84,
+    0x94, 0x84, 0x94, 0x94, 0x94, 0x94, 0x94, 0x94, 0x94, 0x94, 0x94, 0x94, 0x94, 0x94, 0x94, 0x94, 0x94, 0x94, 0x95, 0x94, 0x95, 0x94, 0x95, 0x94,
+    0x55, 0x95, 0x55, 0x95, 0x54, 0x95, 0x55, 0x95, 0x55, 0x95, 0x55, 0x95, 0x55, 0x95, 0x55, 0x95, 0x55, 0x95, 0x55, 0x95, 0x56, 0x95, 0x55, 0x95,
+    0x65, 0x95, 0x55, 0x95, 0x65, 0x55, 0x55, 0x95, 0x65, 0x55, 0x55, 0x95, 0x65, 0x55, 0x55, 0x95, 0x65, 0x55, 0x55, 0x95, 0x65, 0x55, 0x55, 0x95,
+    0x65, 0x55, 0x55, 0x95, 0x65, 0x55, 0x55, 0x95, 0x65, 0x55, 0x55, 0x95, 0x65, 0x55, 0x55, 0x95, 0x65, 0x55, 0x55, 0x95, 0x65, 0x55, 0x55, 0x95,
+    0x65, 0x55, 0x55, 0x95, 0x65, 0x55, 0x55, 0x95, 0x65, 0x55, 0x55, 0x95, 0x65, 0x55, 0x55, 0x55, 0x65, 0x55, 0x55, 0x95, 0x65, 0x55, 0x55, 0x55,
+    0x65, 0x55, 0x55, 0x95, 0x65, 0x55, 0x55, 0x55, 0x65, 0x55, 0x55, 0x95, 0x65, 0x55, 0x55, 0x55, 0x65, 0x55, 0x55, 0x95, 0x65, 0x55, 0x55, 0x55,
+    0x65, 0x55, 0x55, 0x95, 0x65, 0x55, 0x55, 0x55, 0x65, 0x55, 0x55, 0x95, 0x65, 0x55, 0x55,
+};
+
+// MoonSize(); The size k frames into the moon (sMoonSizes), 0 past it (a dot);
+static u32 MoonSize(u16 k) {
+    u8 i;
+
+    for (i = 0; i < ARRAY_COUNT(sMoonSizes); i++) {
+        if (k < sMoonSizes[i][1]) return sMoonSizes[i][0];
+        k -= sMoonSizes[i][1];
+    }
+    return 0;
+}
+
+// MoonMove(); Frame k's move of a path into the moon (sMoonOrb, sMoonStar), none past it;
+static void MoonMove(const u8 *path, u16 frames, u16 k, s32 *x, s32 *y) {
+    u8 code;
+
+    if (k >= frames) return;
+    code = k & 1 ? path[k >> 1] >> 4 : path[k >> 1] & 0xF;
+    *x += ((code & 3) - 1) << 8;
+    *y += (((code >> 2) & 3) - 1) << 8;
+}
+
+static void OrbEndMain(void);
+
+// OrbEndOf(); The orb's end in a room (its task), or NULL;
+static struct OrbEnd *OrbEndOf(u16 room) {
+    struct Task *t = &gTasks[0];
+    u8 n;
+
+    for (n = 0; n < MAX_TASK_NUM && t->next; n++) {
+        struct OrbEnd *end;
+
+        t = (struct Task *)(IWRAM_START + t->next);
+        if (t->main != OrbEndMain) continue;
+        end = TaskGetStructPtr(t);
+        if (end->e.roomId == room && !(end->e.flags & 0x1000)) return end;
+    }
+    return NULL;
+}
+
+/* PowerOrbRideSize(); The size the ride's star and its Kirbys are drawn at (warpstar.c: on its flight's first steps): its matrix's
+ * pa, 0 their own, NIDL_RIDE_HIDDEN too small to show (the orb's end draws a dot there), or off the screen's top (kept on it,
+ * hidden: KatAM would point at the helpers there); */
+u32 PowerOrbRideSize(u16 room) {
+    struct OrbEnd *end = OrbEndOf(room);
+    u32 pa;
+
+    if (end == NULL) return 0;
+    if (end->moon <= END_STAR_LATE) return end->ride && end->starY - end->camY <= END_OFF ? NIDL_RIDE_HIDDEN : 0;
+    pa = MoonSize(end->moon - 1 - END_STAR_LATE);
+    return pa ? pa : NIDL_RIDE_HIDDEN;
+}
+
+// EndPalette(); A palette's slot, loaded under `key` as frame `frame` has it (as NidlLoadPalette(): the orb's gone);
+static u8 EndPalette(struct OrbEnd *end, u16 key, u8 frame) {
+    u8 palId = sub_0803DF24(key);
+
+    if (palId == 0xFF) {
+        if (gKirbys[gLocalPlayerId].base.roomId != end->e.roomId) return 0;
+        sub_0803DFAC(key, frame);
+        palId = sub_0803DF24(key);
+    }
+    return palId == 0xFF ? 0 : palId;
+}
+
+// EndDraw(); The orb's sprite at (x, y) (8.8), frame `frame`, at the size of `pa` (0 its own);
+static void EndDraw(struct OrbEnd *end, s32 x, s32 y, u8 frame, u32 pa) {
+    struct EffectObject *e = &end->e;
+    u32 first = gUnk_030024F0;
+
+    e->x = x;
+    e->y = y;
+    e->sprite.variant = frame;
+    e->sprite.palId = frame == FRAME_DOT ? end->dotPalId : end->palId;
+    // (facing right: KatAM draws effects mirrored otherwise, NiDL's as they are);
+    e->flags = (e->flags & ~0x400) | 4 | 1;
+    EffectObjectPostUpdate(e);
+    if (pa) NidlShrink(first, e->sprite.x, e->sprite.y, pa, END_MATRIX);
+}
+
+// EndHold(); The screen held at camX, camY for every player in the room (as an arena's lock, right on it), the Kirbys' bounds too;
+static void EndHold(struct OrbEnd *end) {
+    u8 i;
+
+    for (i = 0; i < gNumKirbys; i++) {
+        struct LevelInfo *l = &gCurLevelInfo[i];
+
+        if (gKirbys[i].base.roomId != end->e.roomId) continue;
+        l->unk_S32Vec2_7C.x = l->unk_S32Vec2_6C.x = l->unkA0 = l->unk90 = end->camX;
+        l->unk_S32Vec2_7C.y = l->unk_S32Vec2_6C.y = end->camY;
+        l->unk_S32Vec2_84.x = l->unk_S32Vec2_74.x = l->unkA8 = l->unk98 = end->camX + (DISPLAY_WIDTH << 8);
+        l->unk_S32Vec2_84.y = l->unk_S32Vec2_74.y = end->camY + (DISPLAY_HEIGHT << 8);
+        l->unkA4 = l->unk94 = end->camY - (DISPLAY_HEIGHT << 8);
+        l->unkAC = l->unk9C = end->camY + (DISPLAY_HEIGHT << 9);
+    }
+}
+
+// EndRider(); Whether a Kirby rides its star (on its flight's first step, held there: warpstar.c);
+static bool32 EndRider(struct Kirby *kirby, u16 room) {
+    const struct Unk_08353510 *step = kirby->unk114;
+
+    return kirby->base.roomId == room && kirby->stateFn == sub_080534D0 && step != NULL && step->unk8 == NIDL_RIDE_FINALE && !(step->unk9 & 0x40);
+}
+
+// EndRide(); The star's ride (see above): the riders moved with it, the screen rising, the orb and the star into the moon, the fade;
+static void EndRide(struct OrbEnd *end) {
+    struct Kirby *lead = NULL;
+    u16 k;
+    u8 i;
+
+    for (i = 0; i < gNumKirbys; i++)
+        if (EndRider(&gKirbys[i], end->e.roomId) && lead == NULL) lead = &gKirbys[i];
+    if (!end->ride) {
+        if (lead == NULL) return;
+        end->starX = lead->base.x;
+        end->starY = lead->base.y;
+    }
+    k = end->ride++;
+    // (its launch, up off the screen, then held over it);
+    if (!end->moon && !end->above && k) {
+        u16 at = k - 1 < ARRAY_COUNT(sLaunch) ? k - 1 : ARRAY_COUNT(sLaunch) - 2 + ((k - 1 - ARRAY_COUNT(sLaunch)) & 1);
+
+        end->starX += sLaunch[at][0] << 8;
+        end->starY += sLaunch[at][1] << 8;
+        if (end->starY - end->camY <= END_ABOVE) end->above = TRUE;
+    }
+    // (the screen rising to the room's top);
+    if (k >= END_CAMERA && !end->top) {
+        s32 left = end->camY - END_TOP;
+
+        end->camSpeed = end->camSpeed ? end->camSpeed + END_SPEEDUP : END_SPEED;
+        if (end->camSpeed > left >> 4) end->camSpeed = left >> 4;
+        if (end->camSpeed < END_SLOWEST) end->camSpeed = END_SLOWEST;
+        end->camY = end->camSpeed < left ? end->camY - end->camSpeed : END_TOP;
+        if (end->camY == END_TOP) end->top = 1;
+    } else if (end->top) {
+        end->top++;
+    }
+    if (end->above && !end->moon) end->starY = end->camY + END_HELD;
+    // (into the moon: the orb, then the star);
+    if (end->top == END_MOON_WAIT + 1) {
+        end->moon = 1;
+        end->orbX = end->camX + END_MOON_X;
+        end->orbY = end->camY + END_MOON_Y;
+    } else if (end->moon) {
+        MoonMove(sMoonOrb, ARRAY_COUNT(sMoonOrb) * 2, end->moon - 1, &end->orbX, &end->orbY);
+        if (end->moon - 1 == END_STAR_LATE) {
+            end->starX = end->camX + END_MOON_X;
+            end->starY = end->camY + END_MOON_Y;
+        } else if (end->moon - 1 > END_STAR_LATE) {
+            MoonMove(sMoonStar, ARRAY_COUNT(sMoonStar) * 2, end->moon - 2 - END_STAR_LATE, &end->starX, &end->starY);
+        }
+        end->moon++;
+    }
+    for (i = 0; i < gNumKirbys; i++) {
+        struct Kirby *kirby = &gKirbys[i];
+
+        if (!EndRider(kirby, end->e.roomId)) continue;
+        kirby->base.x = end->starX;
+        kirby->base.y = end->starY;
+        // (off the screen, hidden, they're kept on it: KatAM points at helpers off it, hidden or not);
+        if (end->starY - end->camY <= END_OFF && end->moon <= END_STAR_LATE) kirby->base.y = end->camY + END_ON_SCREEN;
+        // (on to the fade: its flight's next step);
+        if (end->moon == END_FADE + 2) {
+            kirby->unk114++;
+            kirby->base.counter = ((const struct Unk_08353510 *)kirby->unk114)->unk4;
+        }
+    }
+}
+
+static void OrbEndMain(void) {
+    struct OrbEnd *end = TaskGetStructPtr(gCurTask);
+    struct EffectObject *e = &end->e;
+    u16 k;
+    u8 i;
+
+    if (e->flags & 0x1000) {
+        TaskDestroy(gCurTask);
+        return;
+    }
+    // (gone with the room: every Kirby left it);
+    for (i = 0; i < gNumKirbys; i++)
+        if (gKirbys[i].base.roomId == e->roomId) break;
+    if (i >= gNumKirbys) {
+        e->flags |= 0x1000;
+        return;
+    }
+    e->flags |= 4 | 0x400;
+    EndRide(end);
+    EndHold(end);
+    k = end->t++;
+    if (k == END_BACK) {
+        NidlFinaleStarAt(end->player, end->x0, end->y0 + (END_STAR_Y << 8));
+        end->phase = END_FLEE;
+    }
+    // (back, wobbling, flying off up to the right);
+    if (end->phase == END_FLEE) {
+        k -= END_BACK;
+        if (k >= ARRAY_COUNT(sFleeY)) {
+            end->phase = END_GONE;
+        } else {
+            end->orbX = end->x0 + ((2 + k) << 8);
+            end->orbY = end->y0 + (sFleeY[k] << 8);
+            EndDraw(end, end->orbX, end->orbY, (k & 7) < 6 ? FRAME_SHRINK + sFleeFrames[k & 7] : FRAME_SPIN + (((k >> 3) + 1) & 3), 0);
+        }
+    }
+    // (into the moon, smaller and smaller, then a dot; the star's dot after it, warpstar.c hiding it and its Kirbys);
+    if (end->moon > 1) {
+        u32 pa = MoonSize(end->moon - 2);
+
+        EndDraw(end, end->orbX, end->orbY, pa ? FRAME_SPIN : FRAME_DOT, pa);
+        if (!pa && end->moon - 2 > END_STAR_LATE && !MoonSize(end->moon - 2 - END_STAR_LATE)) EndDraw(end, end->starX, end->starY, FRAME_DOT, 0);
+    }
+}
+
+// PowerOrbEnd(); The orb beaten (finale.c's PowerOrbBeaten(), as KatAM's explosion bursts it): its end (see above);
+void PowerOrbEnd(struct Object *obj) {
+    struct PowerOrb *o = (struct PowerOrb *)obj;
+    struct Task *t = TaskCreate(OrbEndMain, sizeof(struct OrbEnd), 0x3500, TASK_USE_EWRAM, ObjectBaseDestroy);
+    struct OrbEnd *end = TaskGetStructPtr(t);
+    struct EffectObject *e = &end->e;
+
+    ClearEffectObject(e);
+    e->header.kind = 3;
+    e->x = end->x0 = end->orbX = obj->base.x;
+    e->y = end->y0 = end->orbY = obj->base.y;
+    e->parent = NULL;
+    e->roomId = obj->base.roomId;
+    end->player = obj->base.unk56;
+    e->flags |= 0x400;
+    end->camX = ScreenLeft(obj);
+    end->camY = ScreenTop(o);
+    end->camSpeed = 0;
+    end->starX = end->starY = 0;
+    end->t = end->ride = end->top = end->moon = 0;
+    end->phase = END_HIDDEN;
+    end->above = FALSE;
+    end->animId = NidlGraphicsOf(&o->n)->animId;
+    EffectObjectInitSprite(e, &e->sprite, END_TILES, end->animId, FRAME_SPIN, 0x1A);
+    end->palId = EndPalette(end, end->animId, FRAME_SPIN);
+    end->dotPalId = EndPalette(end, end->animId | END_DOT_KEY, FRAME_DOT);
 }
 
 // PowerOrbStart(); The fight starts (also the engine's after a hit: it goes on where it was);

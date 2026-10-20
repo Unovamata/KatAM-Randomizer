@@ -14,7 +14,11 @@
  * • Kirby's drawing (sub_0803F46C), and the star he rides (sub_0808EEF4's task, its function swapped for NidlRideStar): where a
  *   ride's step has a size (its +0xA, NiDL's: the star flying off into the distance), both are drawn at that size around the
  *   star's middle, as NiDL draws its star and rider (all their pieces scaled by one affine matrix, each moved in toward the
- *   middle); */
+ *   middle);
+ * The Power Orb's star (finale.c) flies a ride of its own: its flight's first step (NIDL_RIDE_FINALE) holds the Kirbys on it while
+ * the orb's end (bosses/power_orb.c's PowerOrbEnd()) moves them, NiDL's ride up off the screen and into the moon, smaller and smaller
+ * (that step and the fade's after it ask it their size: NIDL_RIDE_ASK, PowerOrbRideSize()), hidden at last (Kirby's flag 0x400, the
+ * star's: the orb's end draws a dot there), until it moves them on to the fade (hidden too: its flag 4); */
 #include "global.h"
 #include "kirby.h"
 #include "warp_star.h"
@@ -26,12 +30,16 @@ void sub_080534D0(struct Kirby *);  // a flight's step (kirby.c);
 void sub_0808EEF4(void);            // the star Kirby rides, following him (code_0806F780.c, sub_0808EDB8's task);
 bool32 NidlFinaleStar(struct Object *);    // the Power Orb's warp star (finale.c);
 bool32 NidlFinaleAllAboard(struct Object *, u8);
+u32 PowerOrbRideSize(u16 room);           // the Power Orb's ride's size (bosses/power_orb.c);
 
 #define NIDL_RIDE_FLIGHT 6    // the first warp star subtype (flight) of the ported warp stars (KatAMExpansionRooms.cs, WarpFlight);
 #define NIDL_RIDE_ROOM 0xFE   // a flight step's +8 on a room change (+9 0x40) to the room in its +0xA;
 #define NIDL_RIDE_REV 0x12C   // how long KatAM's warp star revs (sub_0800C270: launched once its count passes this);
 #define NIDL_RIDE_HOP 0xFD    // a flight's end step's +8: a ride's end, Kirby standing where he tumbled to;
 #define NIDL_RIDE_MATRIX 7    // the affine matrices of a drawn ride: 7, then 15, 23, 31 for pieces flipped (KatAM's own use 0);
+#define NIDL_RIDE_FINALE 0xFC // a flight step's +8: the Power Orb's ride's first, Kirby held on it (bosses/power_orb.c moves him);
+#define NIDL_RIDE_ASK 0xFFFF  // a flight step's +0xA: the size the Power Orb's ride says (PowerOrbRideSize());
+#define NIDL_RIDE_HIDDEN 0x8000 // (PowerOrbRideSize(): too small to show, the orb's end draws a dot there);
 
 // NidlRide; Filled in by KatAMExpansionRooms.cs: the trampolines running the detoured functions;
 struct NidlRide {
@@ -77,6 +85,14 @@ void NidlRideRoomChange(struct Kirby *kirby) {
 // him (sub_080534D0's flight end with the 0x80 flag);
 void NidlRideStep(struct Kirby *kirby) {
     const struct Unk_08353510 *step = kirby->unk114;
+    // (the Power Orb's ride: held, the orb's end moving him; hidden when it says, as a flight step's flag 4 hides him);
+    if (step != NULL && step->unk8 == NIDL_RIDE_FINALE && !(step->unk9 & 0x40)) {
+        kirby->base.flags |= 4;
+        kirby->base.xspeed = kirby->base.yspeed = 0;
+        if (PowerOrbRideSize(kirby->base.roomId) == NIDL_RIDE_HIDDEN) kirby->base.flags |= 0x400;
+        else kirby->base.flags &= ~0x400;
+        return;
+    }
     gNidlRide.step(kirby);
     if (step != NULL && kirby->unk114 == step + 1 && step[1].unk4 == 0 && step[1].unk8 == NIDL_RIDE_HOP && kirby->stateFn != sub_080534D0) {
         kirby->base.flags &= ~0x8000;
@@ -103,13 +119,15 @@ static u32 NidlRideSize(struct Kirby *kirby) {
     if (kirby->stateFn != sub_080534D0 || step == NULL) return 0;
     if (step->unk9 & 0x40 && step->unk8 == NIDL_RIDE_ROOM) step--;  // (a room change's +0xA is its room: the size before it);
     pa = ((const u16 *)step)[5];
+    if (pa == NIDL_RIDE_ASK) return PowerOrbRideSize(kirby->base.roomId);
     return pa > 0x100 && pa < 0x8000 ? pa : 0;
 }
 
-/* NidlRideShrink(); The OAM pieces drawn since `first` (gUnk_030031C0, up to gUnk_030024F0) at the size of `pa` around (x, y), the
- * star's middle on screen: each piece scaled by an affine matrix (its flips are its matrix's: attr1 bits 12, 13 become its bits 3,
- * 4) and its middle moved in toward (x, y) by as much, as NiDL draws its star and rider; */
-static void NidlRideShrink(u32 first, s32 x, s32 y, u32 pa) {
+/* NidlShrink(); The OAM pieces drawn since `first` (gUnk_030031C0, up to gUnk_030024F0) at the size of `pa` around (x, y), the
+ * star's middle on screen: each piece scaled by an affine matrix (`matrix`, then +8, +16, +24 for its flips: attr1 bits 12, 13
+ * become its bits 3, 4) and its middle moved in toward (x, y) by as much, as NiDL draws its star and rider (and the Power Orb going
+ * into the moon, bosses/power_orb.c); */
+void NidlShrink(u32 first, s32 x, s32 y, u32 pa, u32 matrix) {
     u32 i, size = 0, bit, rest = 0x10000;
 
     if (first >= gUnk_030024F0) return;
@@ -135,14 +153,14 @@ static void NidlRideShrink(u32 first, s32 x, s32 y, u32 pa) {
         px = x * 2 + (((px * 2 + w - x * 2) * (s32)size) >> 8);
         py = y * 2 + (((py * 2 + h - y * 2) * (s32)size) >> 8);
         oam->all.attr0 = (attr0 & ~0x3FF) | 0x100 | (((py - h) >> 1) & 0xFF);
-        oam->all.attr1 = (attr1 & ~0xFFF) | (NIDL_RIDE_MATRIX << 9) | (((px - w) >> 1) & 0x1FF);
+        oam->all.attr1 = (attr1 & ~0xFFF) | (matrix << 9) | (((px - w) >> 1) & 0x1FF);
     }
     for (i = 0; i < 4; i++) {
-        u16 *matrix = &gOamBuffer[(NIDL_RIDE_MATRIX + i * 8) * 16 + 3];
-        matrix[0] = i & 1 ? -pa : pa;
-        matrix[4] = 0;
-        matrix[8] = 0;
-        matrix[12] = i & 2 ? -pa : pa;
+        u16 *m = &gOamBuffer[(matrix + i * 8) * 16 + 3];
+        m[0] = i & 1 ? -pa : pa;
+        m[4] = 0;
+        m[8] = 0;
+        m[12] = i & 2 ? -pa : pa;
     }
 }
 
@@ -151,7 +169,7 @@ void NidlRideDraw(struct Kirby *kirby) {
     u32 first = gUnk_030024F0, pa = NidlRideSize(kirby);
 
     gNidlRide.draw(kirby);
-    if (pa) NidlRideShrink(first, kirby->base.sprite.x, kirby->base.sprite.y, pa);
+    if (pa && pa != NIDL_RIDE_HIDDEN) NidlShrink(first, kirby->base.sprite.x, kirby->base.sprite.y, pa, NIDL_RIDE_MATRIX);
 }
 
 // NidlRideStar(); The task of the star Kirby rides (sub_0808EEF4, which draws it where he is); its size his (see above);
@@ -160,6 +178,10 @@ void NidlRideStar(void) {
     struct Kirby *kirby = star->parent;
     u32 first = gUnk_030024F0, pa = kirby != NULL ? NidlRideSize(kirby) : 0;
 
+    // (hidden: EffectObjectPostUpdate draws it only without its flag 0x400; the Power Orb's ride's, shown again);
+    if (pa == NIDL_RIDE_HIDDEN) star->flags |= 0x400;
+    else if (kirby != NULL && kirby->stateFn == sub_080534D0 && kirby->unk114 != NULL && ((const u16 *)kirby->unk114)[5] == NIDL_RIDE_ASK)
+        star->flags &= ~0x400;
     sub_0808EEF4();
-    if (pa) NidlRideShrink(first, star->sprite.x, star->sprite.y, pa);
+    if (pa && pa != NIDL_RIDE_HIDDEN) NidlShrink(first, star->sprite.x, star->sprite.y, pa, NIDL_RIDE_MATRIX);
 }
