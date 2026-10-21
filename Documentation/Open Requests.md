@@ -63,6 +63,35 @@ Left:
   changed; ask the owner.
 - **Nightmare's intro**: Kirby's pose (NiDL's holds the Star Rod up), KatAM's HUD, NiDL's random twinkling stars.
 
+## 37. Mini-bosses and Mike: the owner's list
+The owner's list: mini-boss cameras locking in the wrong places (check every NiDL mini-boss's against NiDL's, not mid room);
+Poppy Bros. Jr.'s bombs not inhalable (a softlock); the Meta-Knights inhalable only once beaten; every mini-boss's projectiles
+inhalable; the Meta-Knights invincible while invisible; Mike's last song stuttering, its white flashes going on after the ability's
+lost and through rooms; Mike with no start-up time as NiDL's. Done, checked by script in the emulator (not played by hand):
+- **Cameras**: each fight's screen is where NiDL holds its camera, measured in NiDL in every mini-boss room (USA) and matched in
+  the port: 0x07C (320, 8), 0x09B (16, 8), 0x0EE (336, 8), 0x0F8 (216, 8), 0x1C3 (200, 8), 0x23E (24, 8), 0x242 and 0x244 (264,
+  24), 0x29B (24, 8), the 16x11 rooms (8, 8), the Meta-Knights' rooms 0x0F5, 0x155, 0x1CA, 0x29C (24, following Kirby 8-24 up and
+  down), 0x27C (following Kirby 30-225 across, at 181). They locked on the room's first camera lock record, which is only the
+  trigger NiDL's camera reacts to (0x07C's 49 pixels right of NiDL's, Fire Lion's 48 and 56 off).
+- **Inhaling**: Poppy Bros. Sr.'s bomb (0x07C), the knights alive (0x0F5: Meta Knight's bar goes down), Mr. Tick-Tock's note
+  (0x135), Fire Lion's flames (0x2F4, 0x242), each pulled in, a mouthful and spat out (USA); Poppy Bros. Jr.'s bomb, pulled in
+  with its rider and swallowed (room 0x101, all three versions). The thrown ball and bomb now bounce away as they came off (they
+  stopped dead, the bomb going off by Kirby). Not inhaled: Mr. Tick-Tock's rings (around it as it rings) and the Mace Knight's mace
+  (on its chain).
+- **Knights while invisible**: untouchable while they blink in (18 frames). Checked with Kirby's inhale: a knight's fade stretched to
+  200 frames by a RAM write, it blinked in front of the inhale for 90 frames and was never pulled; without the write it was
+  pulled in at once.
+- **Mike's flashes**: two flash tasks were made each song, one with garbage for its length (a C macro reading its argument twice):
+  now one, 28, 28 and 32 frames, then off, nothing after the third song (Mike given by a RAM write, all three versions).
+- **Found on the way**: the new fight areas moved the planned doors, and the layout left Grape Garden's first stage with no way in
+  (the door planner took bomb chains as breakable from either side); fixed, every room reached again in all three versions.
+
+Left:
+- **Mike's start-up time**: the port's wind-ups are within a frame of NiDL's (24, 34, 42 frames against NiDL's 25, 33, 43; whole
+  songs 56, 67, 78 against 61, 69, 79). Ask the owner what NiDL has that the port lacks.
+- **Not tested**: the fights played by hand; a hit with an ability on a knight blinking in (only the inhale was tested: Kirby kept
+  getting stuck in a Sword move in the scripted runs); a spat star hurting Poppy Bros. Sr. (a Bronto Burt got in the way).
+
 ## 10. Screen shake as KatAM's
 The owner: the screen shakes far too much. Not reproduced: KatAM's shake runs the same in the NiDL rooms as in KatAM's, and
 nothing found shakes more often than in KatAM. Needs the owner's details (which room, what was happening).

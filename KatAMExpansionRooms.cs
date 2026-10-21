@@ -68,7 +68,7 @@
         };
         /* NiDL mini-bosses (category 6, Miniboss.NightmareIndex) -> KatAM type and behavior (0: Bonkers, 3: Mr. Frosty, 7: Phan Phan;
          * the rest ported, NiDL's variant in the low nibble when the port has it); Meta Knight's event (category 7, its variant the
-         * knights' line-up) is the Meta-Knights. Each fight's screen is where its camera lock (category 5, index 0) is (see ArenaOf()); */
+         * knights' line-up) is the Meta-Knights. Each fight's screen is where NiDL holds its camera (see MinibossScreen()); */
         static readonly Dictionary<int, (byte type, byte behavior)> RoomMinibosses = new Dictionary<int, (byte, byte)> {
             [0] = (0x39, 0), [1] = (0x40, 0x00), [2] = (0x40, 0x20), [3] = (0x38, 0), [4] = (0x40, 0x10), [5] = (0x41, 0x30),
             [6] = (0x41, 0x40), [7] = (0x3A, 0),
@@ -2843,7 +2843,9 @@
             // Amazing Mirror, to KatAM's final boss);
             finaleEntry = StageStart((7, 0));
             NightmareRoom fountainHub = SwitchRoomOf(7);
-            // Reached(); The rooms Kirby gets to from the hub: from each cell he arrives in, through open cells (and breakable blocks),
+            // Reached(); The rooms Kirby gets to from the hub: from each cell he arrives in, through open cells (and breakable blocks:
+            // a bomb chain's only once he gets to its bomb block, as the logic checks have it; room 0x1B2's way back from 0x1C5 lands
+            // him walled in by a chain whose bomb block is outside, and Grape Garden's first stage, reached past it, was cut off),
             // to the doors, warp stars and cannons there (a door at a cell he reaches, or beside it); not through KatAM's rooms;
             HashSet<int> Reached() {
                 Dictionary<int, HashSet<(int, int)>> arrived = new Dictionary<int, HashSet<(int, int)>>();
@@ -2855,21 +2857,37 @@
                 }
                 foreach (Door d in hubDoors) Arrive(d.Room, d.DestX - 1, d.DestY - 1);
                 Arrive(finaleEntry.room, finaleEntry.x - 1, finaleEntry.y - 1);
-                Dictionary<int, HashSet<(int, int)>> flooded = new Dictionary<int, HashSet<(int, int)>>();
+                Dictionary<int, HashSet<(int, int)>> flooded = new Dictionary<int, HashSet<(int, int)>>(), setOffs = new Dictionary<int, HashSet<(int, int)>>();
                 while (open.Count > 0) {
                     var (room, sx, sy) = open.Dequeue();
                     NightmareRoom r = numbered[room];
                     if (!flooded.TryGetValue(room, out var seen)) flooded[room] = seen = new HashSet<(int, int)>();
+                    if (!setOffs.TryGetValue(room, out var setOff)) setOffs[room] = setOff = new HashSet<(int, int)>();
                     if (!partCells.TryGetValue(r, out byte[] cells)) partCells[r] = cells = Cells(r);
                     int width = ReadShort(nightmare, r.Record + 0x14);
-                    bool Open(int x, int y) => x >= 0 && y >= 0 && x < r.Width && y < r.Height && OpenCell(cells, width, r.X + x, r.Y + y, true);
+                    HashSet<int> links = linkCells.TryGetValue(r.Record, out var known) ? known : new HashSet<int>();
+                    bool In(int x, int y) => x >= 0 && y >= 0 && x < r.Width && y < r.Height;
+                    int Kind(int x, int y) => cells[((r.Y + y) * width + r.X + x) * 4 + 3];
+                    bool Open(int x, int y) => In(x, y) && (Kind(x, y) == 0x2D ? setOff.Contains((x, y)) : OpenCell(cells, width, r.X + x, r.Y + y, true));
+                    bool Chain(int x, int y) => In(x, y) && (Kind(x, y) is 0x2D or 0x2E || links.Contains((r.Y + y) * width + r.X + x));
                     Queue<(int x, int y)> cellsOpen = new Queue<(int, int)>();
                     sx = Math.Clamp(sx, 0, r.Width - 1); sy = Math.Clamp(sy, 0, r.Height - 1);
                     if (seen.Add((sx, sy))) cellsOpen.Enqueue((sx, sy));
                     while (cellsOpen.Count > 0) {
-                        var (x, y) = cellsOpen.Dequeue();
-                        foreach (var (nx, ny) in new[] { (x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1) })
-                            if (Open(nx, ny) && seen.Add((nx, ny))) cellsOpen.Enqueue((nx, ny));
+                        while (cellsOpen.Count > 0) {
+                            var (x, y) = cellsOpen.Dequeue();
+                            foreach (var (nx, ny) in new[] { (x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1) })
+                                if (Open(nx, ny) && seen.Add((nx, ny))) cellsOpen.Enqueue((nx, ny));
+                        }
+                        // (the bomb blocks he gets to set off their chains, through its links: the blocks by a cell he's at open);
+                        Stack<(int x, int y)> fuse = new Stack<(int, int)>(seen.Where(c => Kind(c.Item1, c.Item2) == 0x2E && setOff.Add(c)));
+                        while (fuse.Count > 0) {
+                            var (x, y) = fuse.Pop();
+                            foreach (var (nx, ny) in new[] { (x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1) })
+                                if (Chain(nx, ny) && setOff.Add((nx, ny))) fuse.Push((nx, ny));
+                        }
+                        foreach (var (x, y) in setOff.Where(c => !seen.Contains(c) && Kind(c.Item1, c.Item2) == 0x2D).ToList())
+                            if (new[] { (x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1) }.Any(seen.Contains) && seen.Add((x, y))) cellsOpen.Enqueue((x, y));
                     }
                     bool Near(int x, int y) => Enumerable.Range(-1, 3).Any(dx => Enumerable.Range(-1, 3).Any(dy => seen.Contains((x + dx, y + dy))));
                     foreach (Door d in doors[r]) if (d.Edge ? seen.Contains((d.X, d.Y)) : Near(d.X, d.Y)) Arrive(d.Room, d.DestX - 1, d.DestY - 1);
@@ -4027,9 +4045,6 @@
             List<byte> types = new List<byte>();
             int list = ReadInt(nightmare, r.Record + 0x48);
             (int x, int y)? cameraLock = null;
-            for (int at = list == 0 ? r.Record : list - 0x08000000; at + 8 <= r.Record; at += 8)
-                if (nightmare[at] - 1 == CameraLockCategory && nightmare[at + 1] == 0)
-                    cameraLock = (ReadShort(nightmare, at + 4) - r.X * 16, ReadShort(nightmare, at + 6) - r.Y * 16);
 
             byte[] cells = RoomCells(nightmare, r.Record);
             int roomWidth = ReadShort(nightmare, r.Record + 0x14);
@@ -4128,7 +4143,9 @@
                 template[12] = type; template[14] = behavior;
                 // A mini-boss fights on its screen: the camera stays there once Kirby is in it, as in NiDL;
                 if (miniboss) {
-                    (int left, int top, int width, int height) = ArenaOf(r, cameraLock ?? (x, y), x, y, CameraTop(nightmare, r), IsBossType(type) ? HiddenRows * 16 : 0);
+                    (int left, int top, int width, int height) = category == BossCategory
+                        ? ArenaOf(r, cameraLock ?? (x, y), x, y, CameraTop(nightmare, r), IsBossType(type) ? HiddenRows * 16 : 0)
+                        : MinibossScreen(nightmare, r, x, y);
                     // (the Power Orb stands where Kirby comes in, NiDL's start at the room's bottom, its arena with it, its screen the
                     // same: its intro flies him up to it, KatAM making objects only near the camera; "ROM Expansion/bosses/power_orb.c");
                     if (flyIn) {
@@ -4316,16 +4333,12 @@
         static List<(int left, int top, int width, int height)> Arenas(byte[] nightmare, NightmareRoom r, bool sinking = false) {
             List<(int, int, int, int)> arenas = new List<(int, int, int, int)>();
             int list = ReadInt(nightmare, r.Record + 0x48);
-            (int x, int y)? cameraLock = null;
-            for (int at = list == 0 ? r.Record : list - 0x08000000; at + 8 <= r.Record; at += 8)
-                if (nightmare[at] - 1 == CameraLockCategory && nightmare[at + 1] == 0)
-                    cameraLock = (ReadShort(nightmare, at + 4) - r.X * 16, ReadShort(nightmare, at + 6) - r.Y * 16);
             for (int at = list == 0 ? r.Record : list - 0x08000000; at + 8 <= r.Record; at += 8) {
                 int category = nightmare[at] - 1, index = nightmare[at + 1];
                 int x = ReadShort(nightmare, at + 4) - r.X * 16, y = ReadShort(nightmare, at + 6) - r.Y * 16;
                 if (x < 0 || y < 0 || x >= r.Width * 16 || y >= r.Height * 16) continue;
                 if (category == MinibossCategory && RoomMinibosses.ContainsKey(index) || category == MetaKnightsCategory)
-                    arenas.Add(ArenaOf(r, cameraLock ?? (x, y), x, y, CameraTop(nightmare, r)));
+                    arenas.Add(MinibossScreen(nightmare, r, x, y));
                 else if (category == BossCategory && RoomBosses.TryGetValue(index, out (byte boss, int x, int y, int screenDx, int screenDy) spot)) {
                     if (spot.x >= 0) (x, y) = (spot.x - r.X * 16, spot.y - r.Y * 16);
                     var arena = ArenaOf(r, (x + spot.screenDx, y + spot.screenDy), x, y, CameraTop(nightmare, r), HiddenRows * 16);
@@ -4336,8 +4349,35 @@
             return arenas;
         }
 
-        /* ArenaOf(); A mini-boss's fight area: the screen around NiDL's camera lock (its x the screen's middle, its y near the top), moved
-         * to hold the mini-boss too, inside what KatAM's camera shows of the room (8 pixels in from its sides, cameraTop (CameraTop())
+        /* MinibossScreen(); A mini-boss's (or the Meta-Knights') fight area, where NiDL holds its camera (measured in NiDL, every
+         * fight): sideways, the room's camera stop (category 5, index 2: NiDL's camera goes no further right than its x, the fight's
+         * screen's left, held there both ways once it's on), else a room up to 18 cells wide is held in its middle, a wider one not at
+         * all; up and down, NiDL's camera follows Kirby in a room up to 12 cells tall (its 8 to 8 from its bottom: Fire Lion's pit, the
+         * Meta-Knights' rooms), and in a taller one shows the screen on the mini-boss's floor; */
+        static (int left, int top, int width, int height) MinibossScreen(byte[] nightmare, NightmareRoom r, int x, int y) {
+            const int ScreenWidth = 240, ScreenHeight = 160, Edge = 8, StopIndex = 2, MaxHeldWidth = 18, MaxFreeHeight = 12, FloorView = 83;
+            int width = r.Width * 16, height = r.Height * 16, list = ReadInt(nightmare, r.Record + 0x48);
+            int? stop = null;
+            for (int at = list == 0 ? r.Record : list - 0x08000000; at + 8 <= r.Record; at += 8) {
+                int sx = ReadShort(nightmare, at + 4) - r.X * 16, sy = ReadShort(nightmare, at + 6) - r.Y * 16;
+                if (nightmare[at] - 1 != CameraLockCategory || nightmare[at + 1] != StopIndex || sx < 0 || sy < 0 || sx >= width || sy >= height) continue;
+                if (stop == null || Math.Abs(sx - x) < Math.Abs(stop.Value - x)) stop = sx;
+            }
+            int left, right, top, bottom;
+            if (stop != null || r.Width <= MaxHeldWidth) {
+                left = Math.Clamp(stop ?? (width - ScreenWidth) / 2, Edge, Math.Max(Edge, width - Edge - ScreenWidth));
+                right = left + ScreenWidth;
+            } else (left, right) = (Edge, width - Edge);
+            if (r.Height <= MaxFreeHeight) (top, bottom) = (Edge, Math.Max(Edge + ScreenHeight, height - Edge));
+            else {
+                top = Math.Clamp(y - FloorView, Edge, height - Edge - ScreenHeight);
+                bottom = top + ScreenHeight;
+            }
+            return (left, top, right - left, bottom - top);
+        }
+
+        /* ArenaOf(); A boss's fight area: the screen around its camera lock (RoomBosses: its x the screen's middle, its y near the top),
+         * moved to hold the boss too, inside what KatAM's camera shows of the room (8 pixels in from its sides, cameraTop (CameraTop())
          * from its top, 40 from its bottom; see Padded()); a boss's may go `below` more (the room's hidden rows: down to where KatAM's
          * camera stops, so its floor shows: Whispy Woods'); */
         static (int left, int top, int width, int height) ArenaOf(NightmareRoom r, (int x, int y) cameraLock, int x, int y, int cameraTop, int below = 0) {

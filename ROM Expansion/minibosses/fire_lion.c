@@ -125,6 +125,8 @@ static void FlameMain(void) {
     struct ObjectBase *flame = TaskGetStructPtr(gCurTask);
 
     if (ObjectPreUpdate(flame)) return;
+    // (Kirby can inhale it, nidl.c: what he fights with when he has no power);
+    if (NidlInhaled(flame, FLAME_TILES)) return;
     flame->flags |= 4;
     if (++flame->counter > FLAME_TIME) {
         flame->flags |= 0x1000;

@@ -223,6 +223,8 @@ static void BombMain(void) {
     struct ObjectBase *bomb = TaskGetStructPtr(gCurTask);
 
     if (ObjectPreUpdate(bomb)) return;
+    // (Kirby can inhale it, nidl.c: what he fights with when he has no power);
+    if (NidlInhaled(bomb, BOMB_TILES)) return;
     bomb->flags |= 4;
     if (!(bomb->flags & 0x200)) SetPointerSomething(bomb);
     bomb->yspeed -= BOMB_GRAVITY;

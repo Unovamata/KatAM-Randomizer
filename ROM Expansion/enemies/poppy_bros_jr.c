@@ -302,6 +302,12 @@ static void PoppyBrosJrMain(struct Object *obj) {
         if (!p->rider) CreateRider(p);
         break;
     case STATE_THROWN:
+        // (inhaled as an enemy, KatAM's 0x0809C380, once it's in a Kirby's inhale: KatAM's own inhale never caught the ball or bomb
+        // that came off, in its box or not);
+        if ((obj->base.unk6C = NidlInhaler(&obj->base)) != NULL) {
+            sub_0809C380(obj);
+            break;
+        }
         // 0x08082338: two bounces away from Kirby, spinning, then it stops (the bomb explodes);
         obj->base.yspeed -= sThrownGravity[p->bounce];
         if (obj->base.yspeed < -0x300) obj->base.yspeed = -0x300;
@@ -319,6 +325,10 @@ static void PoppyBrosJrMain(struct Object *obj) {
         }
         break;
     case STATE_STOPPED:
+        if ((obj->base.unk6C = NidlInhaler(&obj->base)) != NULL) {
+            sub_0809C380(obj);
+            break;
+        }
         NidlFall(obj);
         break;
     }
@@ -345,8 +355,12 @@ void PoppyBrosJrStart(struct Object *obj) {
         break;
     case VARIANT_THROWN_BALL:
     case VARIANT_THROWN_BOMB:
-        if (p->state != STATE_THROWN) p->state = STATE_STOPPED;
-        obj->base.xspeed = 0;
+        // (still bouncing away, as Init sent it, 0.5 a frame: it stopped dead here, the bomb going off in Kirby's face; after a hit,
+        // it lies where it is);
+        if (p->state != STATE_THROWN) {
+            p->state = STATE_STOPPED;
+            obj->base.xspeed = 0;
+        }
         break;
     default:
         // Rolling the ball: forward at 0.5 (in place for variants 5 and 6);

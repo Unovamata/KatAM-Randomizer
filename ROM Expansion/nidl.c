@@ -3,6 +3,7 @@
 #include "nidl.h"
 #include "constants/kirby.h"
 #include "abilities.h"
+#include "code_0806F780.h"
 
 extern const u8 *const gUnk_08D60EE4[];  // HP bar names per language: 64x8 (0x100 bytes) per object type;
 extern struct Task *gUnk_03000010;       // The HUD's task (its data: +0x0A the HP bar's length, +0x1C the object it shows);
@@ -198,6 +199,83 @@ void NidlCopyName(struct Object *obj) {
     else
         name = gUnk_08D60EE4[gLanguage] + obj->type * 0x100;
     CpuSet(name, (void *)0x060077A0, 0x80);
+}
+
+/* NidlInhaled(); A mini-boss's projectile (an attack object: KatAM inhales only objects) inhaled as KatAM's enemies are (object.c's
+ * 0x0809C380 and 0x0809C48C): once it's in a Kirby's inhale (0x08071FC0's box, 4 to 48 pixels ahead, 18 up to 16 down, while he
+ * inhales), it's pulled in, harmless, and swallowed, a mouthful that gives nothing (spat back as a star: what Kirby fights a
+ * mini-boss with when he has no power); he stops inhaling first, it's gone in a puff. Drawn while it's pulled in (`tiles`, its
+ * sprite's), TRUE: its own moves are skipped; */
+#define INHALE_AHEAD 4
+#define INHALE_WIDTH 44
+#define INHALE_UP 18
+#define INHALE_DOWN 16
+#define INHALE_PULL 42
+#define INHALE_CATCH 0x1200
+
+static bool32 Inhaling(struct Kirby *kirby, bool32 pulling) {
+    u16 anim = kirby->animationIndex;
+
+    return kirby->hp > 0 && (anim == 0x1A || anim == 0x1B || anim == 0x6A || anim == 0x6B || (pulling && anim == 0x1C));
+}
+
+// NidlInhaler(); The Kirby whose inhale `p`'s box is in (see NidlInhaled()), or NULL;
+struct Kirby *NidlInhaler(struct ObjectBase *p) {
+    struct Kirby *kirby;
+    s32 cx, cy, left, top;
+    u8 i;
+
+    if (p->flags & 0x1000) return NULL;
+    cx = p->x + ((p->flags & 1) ? -(p->unk38 + p->unk3A) : p->unk38 + p->unk3A) * 0x100;
+    cy = p->y + (p->unk39 + p->unk3B) * 0x100;
+    for (i = 0; i < gNumKirbys; i++) {
+        kirby = &gKirbys[i];
+        if (kirby->base.roomId != p->roomId || !Inhaling(kirby, FALSE)) continue;
+        left = kirby->base.x + ((kirby->base.flags & 1) ? -(INHALE_AHEAD + INHALE_WIDTH) : INHALE_AHEAD) * 0x100;
+        top = kirby->base.y - INHALE_UP * 0x100;
+        if (cx + p->unk3A * 0x100 >= left && cx - p->unk3A * 0x100 <= left + INHALE_WIDTH * 0x100
+            && cy + p->unk3B * 0x100 >= top && cy - p->unk3B * 0x100 <= kirby->base.y + INHALE_DOWN * 0x100)
+            return kirby;
+    }
+    return NULL;
+}
+
+bool32 NidlInhaled(struct ObjectBase *p, u16 tiles) {
+    struct Sprite sprite;
+    struct Kirby *kirby;
+
+    if (!(p->unkC & 0x400)) {
+        if (!(kirby = NidlInhaler(p))) return FALSE;
+        if (!kirby->base.header.kind) kirby->inhaling++;
+        p->unk6C = kirby;
+        p->unkC |= 0x400;
+        p->flags |= 0x200;
+        p->counter = 0;
+        p->xspeed = p->x - kirby->base.x;
+        p->yspeed = p->y - kirby->base.y;
+    }
+    kirby = p->unk6C;
+    if (!Inhaling(kirby, TRUE)) {
+        if (!kirby->base.header.kind && kirby->inhaling) kirby->inhaling--;
+        CreateEffectObject(p, 0, 0x292, 0);
+        p->flags |= 0x1000;
+        return TRUE;
+    }
+    // (faster and faster in toward him, as 0x0809C48C, his mouthful once it's there: the frame after it's caught, at the soonest);
+    p->counter += INHALE_PULL;
+    if (p->xspeed > 0) p->xspeed -= p->counter;
+    else p->xspeed += p->counter;
+    p->yspeed -= p->yspeed / 8;
+    p->x = kirby->base.x + p->xspeed;
+    p->y = kirby->base.y + p->yspeed;
+    if (p->counter > INHALE_PULL && abs(p->xspeed) < INHALE_CATCH) {
+        NidlSwallow(kirby, KIRBY_ABILITY_NORMAL);
+        p->flags |= 0x1000;
+        return TRUE;
+    }
+    Macro_08107BA8_4(p, &p->sprite, &sprite, tiles, &p->sprite);
+    sub_0806F8BC(p);
+    return TRUE;
 }
 
 // NidlFaceKirby(); 0x08063E14: faces the closest Kirby;

@@ -296,9 +296,13 @@ static void NidlFlashMain(void) {
 
 void NidlFlash(struct Kirby *kirby, const u8 *levels, u16 count) {
     struct NidlFlash *flash;
+    struct Task *task;
 
     if (gLocalPlayerId != kirby->base.unk56 || gBldRegs.bldCnt != 0) return;
-    flash = TaskGetStructPtr(TaskCreate(NidlFlashMain, sizeof(struct NidlFlash), 0x3500, TASK_USE_IWRAM, NULL));
+    // (the task first: TaskGetStructPtr is a macro reading its argument twice, which made two tasks, one with whatever was in its
+    // memory for its levels and count: Mike's flashes going on for minutes, through rooms, the ability long gone);
+    task = TaskCreate(NidlFlashMain, sizeof(struct NidlFlash), 0x3500, TASK_USE_IWRAM, NULL);
+    flash = TaskGetStructPtr(task);
     flash->levels = levels;
     flash->count = count;
     flash->timer = 0;

@@ -278,3 +278,4 @@ DisplaySprite 0x8156988
 gUnk_0203AD40 0x203ad40
 LoadObjPaletteWithTransformation 0x8158bc8
 sub_0801519C 0x80151c4
+sub_0809C380 0x809c3c8
