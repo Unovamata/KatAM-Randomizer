@@ -292,6 +292,7 @@ void KrackoInit(struct NidlObject *);
 void KrackoStart(struct Object *);
 void ShineBrightInit(struct NidlObject *);
 void ShineBrightStart(struct Object *);
+void ShineBrightGone(struct Object *);
 void MetaKnightInit(struct NidlObject *);
 void MetaKnightStart(struct Object *);
 void MetaKnightGone(struct Object *);

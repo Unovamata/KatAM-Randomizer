@@ -297,31 +297,78 @@ namespace KatAMRandomizer {
                 new byte[0], Type: BossID, IconCells: new[] { new[] { 0, 3, 6 } });
         }
 
-        /* Mr. Shine & Mr. Bright; NiDL boss 4 (type 0x3F, Butter Building's). Two frame tables of one descriptor: Mr. Shine's (0x08754210:
-         * his body 10-18, the moon 4-9, the crescent 20-27, the fireball 28-29, the sun's beam 34-35, with the descriptor's palettes 0, 1
-         * and 2; the falling star is an enemy, FallingStar) and Mr. Bright's (0x0875412C: his flaming body, streamed frames with their own
-         * palette, facing 21-32 and rolling 33-44; his face and hands 4-15, drawn over it; the sun 16-19). Frames as bosses/shine_bright.c numbers
-         * them: 0-8 Mr. Shine, 9-14 the moon, 15-38 Mr. Bright's body, 39-50 his face, 51-54 the sun, 55-62 the crescent, 63-64 the
-         * fireball, 65-66 the beam (two of its frames, stacked). Hurt: Mr. Shine cracked (0); */
-        static Miniboss ShineAndBright() {
-            const int Shine = 0x754210, Bright = 0x75412C;
-            List<Part[]> frames = new List<Part[]>();
+        /* Mr. Shine & Mr. Bright; NiDL boss 4 (type 0x3F, Butter Building's; descriptor 34: palette 0 Mr. Shine's, 1 Mr. Bright's, 2 the
+         * sun's beam's). Only their sprites draw these frames (EffectOnly: bosses/shine_bright.c draws NiDL's objects as sprites), numbered
+         * there as ShineBrightFrames lays them out: Mr. Shine (0x08754210's 4-19: the moon 4-9, his body 10-19), his crescent (0x08754260's
+         * 4-7), Mr. Bright's fireball (0x08754280's 0-3, palette 1), the beam and its sparkles (0x08754290's 0-5, palette 2), Mr. Bright
+         * (0x0875412C's 4-20: his face and hands, the sun 16-19, palette 1), his flames (NiDL's object of their own, streamed frames:
+         * 0x0875412C's 21-26 and 33-38, 0x087541E0's 0-5), then NiDL's shared effects (its tiles, palette 15): Mr. Shine's dash trail
+         * (0x0874CCA4's 0, 2, 4), Mr. Bright's fire trail (0x0874C718's even 0-18), the beam's sparks (0x0874CCBC's 4-13) and the puff
+         * of a shot that hits (0x0874C9D8's 0-16). Frame 0 is the object's own (never shown: its sprites are it). WriteShineBrightFight()
+         * tells the C code their sizes and NiDL's colours. The falling star is an enemy of its own (FallingStar()). Hurt: Mr. Shine cracked
+         * (0); */
+        static (int table, int[] frames, int palette, bool common)[] ShineBrightFrames => new[] {
+            (0x754210, Enumerable.Range(4, 16).ToArray(), 0, false),
+            (0x754260, new[] { 4, 5, 6, 7 }, 0, false),
+            (0x754280, new[] { 0, 1, 2, 3 }, 1, false),
+            (0x754290, new[] { 0, 1, 2, 3, 4, 5 }, 2, false),
+            (0x75412C, Enumerable.Range(4, 17).ToArray(), 1, false),
+            (0x75412C, new[] { 21, 22, 23, 24, 25, 26, 33, 34, 35, 36, 37, 38 }, 1, false),
+            (0x7541E0, new[] { 0, 1, 2, 3, 4, 5 }, 1, false),
+            (0x74CCA4, new[] { 0, 2, 4 }, -1, true),
+            (0x74C718, new[] { 0, 2, 4, 6, 8, 10, 12, 14, 16, 18 }, -1, true),
+            (0x74CCBC, Enumerable.Range(4, 10).ToArray(), -1, true),
+            (0x74C9D8, Enumerable.Range(0, 17).ToArray(), -1, true),
+        };
+        // (where each of ShineBrightFrames' groups starts; Mr. Bright's flames are two of them, one sprite);
+        static int ShineBrightAt(int group) => 1 + ShineBrightFrames.Take(group).Sum(g => g.frames.Length);
 
-            frames.AddRange(Enumerable.Range(10, 9).Select(f => new[] { new Part(f) }));
-            frames.AddRange(Enumerable.Range(4, 6).Select(f => new[] { new Part(f) }));
-            frames.AddRange(Enumerable.Range(21, 24).Select(f => new[] { new Part(f, Table: Bright) }));
-            frames.AddRange(Enumerable.Range(4, 12).Select(f => new[] { new Part(f, Table: Bright) }));
-            frames.AddRange(Enumerable.Range(16, 4).Select(f => new[] { new Part(f, Table: Bright) }));
-            frames.AddRange(Enumerable.Range(20, 8).Select(f => new[] { new Part(f) }));
-            frames.AddRange(Enumerable.Range(28, 2).Select(f => new[] { new Part(f, Palette: 1) }));
-            frames.AddRange(new[] { 34, 35 }.Select(f => new[] { new Part(f, Palette: 2, Dy: 48), new Part(f, Palette: 2, Dy: 64) }));
+        static Miniboss ShineAndBright() {
+            const int Shine = 0x754210;
+            List<Part[]> frames = new List<Part[]> { new[] { new Part(10) } };
+
+            foreach ((int table, int[] numbers, int palette, bool common) in ShineBrightFrames)
+                frames.AddRange(numbers.Select(f => new[] { common ? new Part(f, Table: table, Palette15: true, Common: true) : new Part(f, Table: table, Palette: palette) }));
 
             return new Miniboss(2, "Mr. Shine & Mr. Bright", 34, Shine, frames, new[] { new Part(0) },
                 new[] {
                     (0x04, 0), (0x23, 1), (0x26, 4), (0x26, 5), (0x02, 5), (-1, -1),               // "S" (Squishy), "h" (Shooty), "in" (Cookin), "e" (Blipper), space;
                     (0x28, 0), (0x01, 1), (0x26, 4), (0x11, 2), (0x23, 1), (0x01, 4),              // "B" (Bomber), "r" (Bronto Burt), "i", "g" (Big Waddle Dee), "h", "t" (Bronto Burt);
                 },
-                new byte[0], Type: BossID, IconCells: new[] { new[] { 0 }, new[] { 15, 39 } });
+                // (the icon: Mr. Shine standing (10), Mr. Bright's flames (21) with his face over them (4));
+                new byte[0], Type: BossID, EffectOnly: frames.Count - 1,
+                IconCells: new[] { new[] { 1 + 10 - 4 }, new[] { ShineBrightAt(5), ShineBrightAt(4) } });
+        }
+
+        /* WriteShineBrightFight(); gNidlShineBright ("ROM Expansion/bosses/shine_bright.c"): u8 [16] the VRAM tiles of each of
+         * ShineBrightFrames' groups' biggest frame (Mr. Bright's flames: both of theirs); u16 [7][16] NiDL's colours: Mr. Shine's glow, the
+         * four palettes it goes round (0x0874850C's), his hurt flash's and Mr. Bright's (right after them), Mr. Bright's own (his flames');
+         * u16 [3][128] the room's background colours by day, at sunset and by night (NiDL's three rooms of Butter Building's last stage,
+         * 0x087328BC's: rooms 1, 0, 2; their +0x28 palettes, KatAM's BG palettes 6-13: KatAMExpansionRooms.cs' BuildBackground()); */
+        static void WriteShineBrightFight(byte[] rom, byte[] nightmare, NightmareRegion region, int at,
+                                          List<(byte[] tiles, ushort[] oams, short[] attributes, int palette)> frames) {
+            int Tiles(int from, int count) => frames.Skip(from).Take(count).Max(f => f.tiles.Length / 32);
+
+            for (int g = 0; g < ShineBrightFrames.Length; g++) rom[at + g] = (byte)Tiles(ShineBrightAt(g), ShineBrightFrames[g].frames.Length);
+            int colors = at + 16, glow = FrameAddress(region, 0x74850C), flames = FrameAddress(region, 0x754180);
+            int[] palettes = Enumerable.Range(0, 4).Select(p => ReadInt(nightmare, glow + p * 4) - 0x08000000).ToArray();
+            if (palettes.Any(p => p < 0 || p + 0xC0 > nightmare.Length) || palettes[1] != palettes[0] + 0x20)
+                throw new InvalidOperationException("Not Mr. Shine's palettes.");
+            for (int p = 0; p < 4; p++) Array.Copy(nightmare, palettes[p], rom, colors + p * 32, 32);
+            Array.Copy(nightmare, palettes[0] + 0x80, rom, colors + 4 * 32, 64);
+            // (Mr. Bright's: his flames' streamed frame's, u16 0x20 then the colours);
+            int entry = ReadInt(nightmare, flames) - 0x08000000, palette = ReadInt(nightmare, entry + 4) - 0x08000000;
+            if (ReadShort(nightmare, palette) != 0x20) throw new InvalidOperationException("Not Mr. Bright's palette.");
+            Array.Copy(nightmare, palette + 2, rom, colors + 6 * 32, 32);
+            // The three rooms (level 2, stage 6: its room list; their background palettes' last 128 colours);
+            int rooms = ReadInt(nightmare, region.RoomTable + 2 * 0x20 + 6 * 4) - 0x08000000;
+            int[] byTime = { 1, 0, 2 };
+            for (int t = 0; t < 3; t++) {
+                int room = ReadInt(nightmare, rooms + byTime[t] * 4) - 0x08000000;
+                int background = ReadInt(nightmare, room + 0x28) - 0x08000000, length = ReadShort(nightmare, background);
+                if (length != 0x100) throw new InvalidOperationException("Not Butter Building's sky.");
+                Array.Copy(nightmare, background + 2, rom, at + 16 + 7 * 32 + t * 256, 256);
+            }
         }
 
         /* Meta Knight; NiDL boss 2 (type 0x3D, Orange Ocean's). His frames are NiDL's streamed frames (0x08753BB4: 0-9 caped, 10-20
@@ -537,12 +584,15 @@ namespace KatAMRandomizer {
             new[] { (0x2D, 1), (0x02, 3), (0x02, 3), (0x02, 1), (0x02, 5) },   // "a" (Batty), "pp", "l", "e" (Blipper);
             new byte[0], Descriptor: 35, Palette: 1, Hidden: true);
 
-        /* Falling star; Mr. Shine's from the sky (Mr. Shine & Mr. Bright's frame table 0x08754210, frames 38-43, its second palette), an
-         * enemy so Kirby can inhale it and spit it back. Hurt: its 38; */
-        static Enemy FallingStar() => new Enemy(16, "Falling Star", 0, 0x754210, Enumerable.Range(38, 6).Select(f => new[] { new Part(f, Palette: 1) }).ToList(),
-            new[] { new Part(38, Palette: 1) }, new Dictionary<int, ushort>(),
+        /* Falling star; Mr. Shine's from the sky (NiDL's type 0x7F's third: its blink, 0x087542A8's 4 and 5, Mr. Shine & Mr. Bright's first
+         * palette; then the star, NiDL's shared 0x0874C44C's 4-7, spinning, its tiles and palette 15), an enemy so Kirby can inhale it and
+         * spit it back. Hurt: the star; */
+        static Enemy FallingStar() => new Enemy(16, "Falling Star", 0, 0x7542A8,
+            new[] { 4, 5 }.Select(f => new[] { new Part(f) })
+                .Concat(new[] { 4, 5, 6, 7 }.Select(f => new[] { new Part(f, Table: 0x74C44C, Palette15: true, Common: true) })).ToList(),
+            new[] { new Part(4, Table: 0x74C44C, Palette15: true, Common: true) }, new Dictionary<int, ushort>(),
             new[] { (0x04, 0), (0x23, 4), (0x2D, 1), (0x01, 1) },   // "S" (Squishy), "t" (Shooty), "a" (Batty), "r" (Bronto Burt);
-            new byte[0], Descriptor: 34, Palette: 1, Hidden: true);
+            new byte[0], Descriptor: 34, Palette: 0, Hidden: true);
 
         /* Spit star; the star King Dedede spits the Kirbys he swallowed out in (NiDL object 0x70: frames of NiDL's shared effects,
          * 0x0874C44C, with its shared tiles and palette 15): 4 the star, 35-37 its burst, then the sparkles of his inhale (45); and,
@@ -950,6 +1000,9 @@ namespace KatAMRandomizer {
                 int metaKnight = allBosses.FindIndex(m => m.Type == BossID && m.Name == "Meta Knight");
                 WriteMetaKnightFight(rom, nightmare, region, CodeAddress + version.CodeSymbols["gNidlMetaKnightFight"], builtMinibosses[metaKnight].palettes,
                                      builtMinibosses[metaKnight].frames);
+                // (Mr. Shine & Mr. Bright's sprites' sizes, colours, their room's skies: "ROM Expansion/bosses/shine_bright.c", gNidlShineBright);
+                int shineBright = allBosses.FindIndex(m => m.Type == BossID && m.Index == 2);
+                WriteShineBrightFight(rom, nightmare, region, CodeAddress + version.CodeSymbols["gNidlShineBright"], builtMinibosses[shineBright].frames);
             } catch (Exception exception) when (exception is IndexOutOfRangeException or ArgumentException or InvalidOperationException) {
                 return $"The Nightmare in Dream Land ROM doesn't match the {region.KatAM} release.";
             }

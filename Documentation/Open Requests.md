@@ -174,6 +174,42 @@ Left:
 - **His knockout**: KatAM's (its flash and burst, 24 frames) before NiDL's defeat, where NiDL holds him 53 frames on a dark screen.
 - **Not tested**: played by hand; helpers and other players in the fight.
 
+## 40. Mr. Shine & Mr. Bright's fight 1:1 from NiDL
+The owner: recreate Mr. Shine & Mr. Bright's fight (Butter Building's boss) 1:1 from NiDL's, as Meta Knight's was (NiDL's scripts
+written out in C, checked frame by frame against recordings), with their graphics, palette cycles, the day, sunset and night
+background fade and the beam's darkening. Done: the whole fight from NiDL's code (see the ROM Expansion README's row). Checked by
+script in the emulator (not played by hand), NiDL's recorded fight (USA) against KatAM's with NiDL's random seed and Kirby's spot fed
+in every frame:
+- **The fight**: their states, frames, spots and facing and every shot's and effect's kind, frame and spot the same on all 3570
+  frames of a fight with Kirby standing still (his HP held; moved out of the beam once): the intro, both in the sky and on the
+  ground, the trades, the falling stars, crescents, fireballs, dashes and trails, the beam with its sparkles, sparks and darkening,
+  the sky's fades. A second fight the same on all 1770 frames.
+- **Hits**: NiDL's hits (Kirby's spit stars) given to KatAM's object on the matching frames: Mr. Bright beaten first (2370 frames
+  the same but for one byte nothing shows); Mr. Shine then Mr. Bright, through the walk to the middle and the shiver. The defeat
+  starts a frame apart, KatAM's explosion takes them about a frame before NiDL's burst does.
+- **A real hit**: Kirby inhales a falling star and spits it at Mr. Bright (his HP set to 1 by a RAM write): beaten once (it caught a
+  bug where one star beat both, now fixed), the room held 27 frames, then he goes up and Mr. Shine comes down to the ground.
+- **Looks**: screenshots side by side at matching frames: their sprites, Mr. Shine's glow, the warning flashes (frame by frame, with
+  KatAM's flash clock set to NiDL's phase), the sun, the beam, the sky and the darkening as NiDL's.
+- **All three versions**: the European and Japanese builds match NiDL's recording on all 3570 frames as the USA one does. Logic
+  checks on all three: every room reached, every big switch pressed, nowhere Kirby is trapped, with and without dropping through
+  thin floors.
+
+Left:
+- **Their bursts**: when one is beaten, KatAM's hit stars stand in for NiDL's effects (`0x95`, `0xA2`); the last burst is KatAM's
+  explosion, not NiDL's eight stars, so shots still in the air fall on instead of popping, and KatAM holds Kirby still during it.
+- **Sounds**: KatAM's nearest ones.
+- **Not modelled**: NiDL's 31 frames without hits after a hurt; Kirby's box for their shots while he floats (fitted standing and
+  knocked back).
+- **The flashes' phase**: NiDL's run on its frame counter since power-on, so when they flash differs from game to game; the port's
+  count from the fight's start.
+- **The room's background**: at their fight's camera its two back layers sit about 4 pixels further right than NiDL's (the room
+  port's background scrolling, not changed here); the room's foreground colours show a step brighter than NiDL's (the room's data
+  is NiDL's, but KatAM's fade in from white, as the tests entered the room, stops a step short of it). Ask the owner before
+  changing either.
+- **Not tested**: played by hand; Kirby hit by their attacks against NiDL frame by frame (KatAM's own hit reaction; the recordings
+  kept him out of the beam); helpers and other players in the fight.
+
 ## 10. Screen shake as KatAM's
 The owner: the screen shakes far too much. Not reproduced: KatAM's shake runs the same in the NiDL rooms as in KatAM's, and
 nothing found shakes more often than in KatAM. Needs the owner's details (which room, what was happening).

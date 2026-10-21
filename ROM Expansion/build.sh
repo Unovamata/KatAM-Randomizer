@@ -64,7 +64,7 @@ codeNames = ['gNidlWorldMapDoors', 'NidlWorldMapUnlockSave', 'NidlWorldMapGetCoo
              # The bosses (nidl_boss.c);
              'CreateNidlBoss', 'NidlBossStart', 'NidlBossDefeat', 'gNidlShardExits', 'NidlShardExit',
              # The finale (finale.c);
-             'gNidlFinale', 'gNidlCloudSpeeds', 'gNidlNightmareFight', 'gNidlMetaKnightFight', 'gNidlPowerOrbColors',
+             'gNidlFinale', 'gNidlCloudSpeeds', 'gNidlNightmareFight', 'gNidlMetaKnightFight', 'gNidlShineBright', 'gNidlPowerOrbColors',
              # The NiDL title screen (title.c);
              'gNidlTitle', 'CreateNidlTitle',
              # Reduce flashing (calm.c);

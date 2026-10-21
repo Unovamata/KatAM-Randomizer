@@ -1,20 +1,30 @@
 /* Falling star; Mr. Shine's from the sky (bosses/shine_bright.c), ported from Kirby: Nightmare in Dream Land (USA) (its frames
- * 0x08754210's 38-43, Mr. Shine & Mr. Bright's third palette), as NIDL_STAR: no room has them, Mr. Shine makes them (behavior
- * NIDL_SPECIAL << 4 | 2) and sets their speed. Being a type 0x31 object, Kirby inhales one (it gives nothing) and spits it back as a
- * star, as in NiDL: what Kirby hits the boss with when he has no power (KatAM's bosses take only the stronger attacks). It flies
- * straight on, spinning, through anything, until it's off the screen (KatAM's despawn, as the enemies'); */
+ * 0x087542A8's 4, 5, the blink, and NiDL's shared star 0x0874C44C's 4-7), as NIDL_STAR: no room has them, Mr. Shine's fight makes
+ * them (behavior NIDL_SPECIAL << 4 | 2) and moves them as NiDL's (its blink, its fall, its spin, gone off the screen: its frames, its
+ * palette). Being a type 0x31 object, Kirby inhales one (it gives nothing) and spits it back as a star, as in NiDL: what Kirby hits
+ * the boss with when he has no power (KatAM's bosses take only the stronger attacks). Let go (the fight over), it falls on as it was
+ * going, spinning, through anything, until it's off the screen (KatAM's despawn, as the enemies'); */
 #include "../nidl.h"
 
-#define SPIN_TIME 4
-#define SPIN_FRAMES 6
+#define SPIN_TIME 3
+#define SPIN_FIRST 2
+#define SPIN_LAST 5
 
 static void StarMain(struct Object *obj) {
     struct NidlObject *n = (struct NidlObject *)obj;
+    u8 k = obj->unk83 - n->animBase;
 
     NidlUpdate(n);
     obj->base.flags |= 4;
     obj->kirby3 = FindTargetKirby(&obj->base);
-    NidlSetFrame(n, (++obj->base.counter / SPIN_TIME) % SPIN_FRAMES);
+    // (Mr. Shine's fight moves it, its frames: counter 0; let go, 1 on: it spins its way, NiDL's 0x08064BCC: its frames 2-5 round
+    // every 3 frames);
+    if (!obj->base.counter || ++obj->base.counter <= SPIN_TIME) return;
+    obj->base.counter = 1;
+    if (k < SPIN_FIRST || k > SPIN_LAST) k = SPIN_FIRST;
+    else if (obj->base.flags & 1) k = k == SPIN_LAST ? SPIN_FIRST : k + 1;
+    else k = k == SPIN_FIRST ? SPIN_LAST : k - 1;
+    NidlSetFrame(n, k);
 }
 
 // StarStart(); Behavior start, also after a hit (it flies on as it is);
@@ -22,12 +32,12 @@ void StarStart(struct Object *obj) {
     ObjectSetFunc(obj, -1, StarMain);
 }
 
-// StarInit(); Its boxes (16x16), through anything;
+// StarInit(); Its boxes (NiDL's: 10x10), through anything;
 void StarInit(struct NidlObject *n) {
     struct Object *obj = &n->obj;
 
     obj->base.flags |= 0x100;
     obj->base.counter = 0;
-    sub_0803E2B0(&obj->base, -6, -6, 6, 6);
-    ObjectSetBounds(&obj->base, -6, -6, 6, 6);
+    sub_0803E2B0(&obj->base, -5, -5, 5, 5);
+    ObjectSetBounds(&obj->base, -5, -5, 5, 5);
 }
