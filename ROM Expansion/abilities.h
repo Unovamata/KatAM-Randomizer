@@ -135,6 +135,7 @@ void StarRodAim(struct Kirby *);
 bool32 StarRodCanFly(struct Kirby *);
 void StarRodStart(struct Kirby *, struct Object *orb);
 void StarRodRestore(struct Kirby *);
+void StarRodEnd(struct Kirby *);
 void StarRodFightOver(struct Object *orb);
 s32 StarRodSink(u8 player, s32 *lastTop);
 void StarRodHit(struct Kirby *, s32 x);

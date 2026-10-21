@@ -12,6 +12,7 @@
  *   3 times in 63 frames), throwing small stars out behind (15-26: every 48 frames, off to the right faster and faster);
  * • the screen scrolling down (3/16 of a pixel a frame) as the star bobs along (sEndStar, its moves frame by frame, every Kirby on
  *   it with his own warp star, facing left), King Dedede flying up past it and away (sEndDedede: NiDL's ending's frames 64, 66-68);
+ *   all of it twice as fast as NiDL's (RIDE_SPEED: NiDL's has its narration to read; the trail and small stars at their own pace);
  * • the star still after its loop (NiDL's next: Kirby jumps off it to throw the Star Rod), the flight goes on: NiDL's cut, the fade
  *   to white, then the Fountain of Dreams hub (warpstar.c lets the warp stars go there);
  * The Power Orb isn't there meanwhile (nidl_boss.c), nor the room's camera its arena's: the screen is held (finale.c's
@@ -59,6 +60,7 @@ void sub_080534D0(struct Kirby *);  // a flight's step (kirby.c);
 #define END_SIZE_MORE 4
 #define END_SIZE_EVERY 16
 #define END_SCROLL 930          // (the screen scrolling down after it, 3/16 of a pixel a frame);
+#define RIDE_SPEED 2            // (from there on, NiDL's frames this many a frame: the ride down sped up, its moves and the screen's with it);
 #define END_DEDEDE 2291         // (King Dedede at END_DEDEDE_X, Y on the screen, then sEndDedede's moves; far off from END_DEDEDE_FAR);
 #define END_DEDEDE_X 223
 #define END_DEDEDE_Y 207
@@ -104,6 +106,7 @@ struct EndSpark {
 struct Ending {
     struct EffectObject e;
     u16 t;                      // Frames since the Kirbys came into the room;
+    u16 u;                      // NiDL's frame they're at (RIDE_SPEED a frame on the ride down), as last moved;
     s16 starX, starY;           // The warp star on the screen (pixels, NiDL's), its move this frame;
     s8 starDx, starDy;
     s16 dededeX, dededeY;       // King Dedede on the screen;
@@ -639,8 +642,9 @@ static void EndSparks(struct Ending *end, u16 t) {
     }
 }
 
-// EndDedede(); King Dedede flying by at t (sEndDedede);
-static void EndDedede(struct Ending *end, u16 t) {
+// EndDedede(); King Dedede flying by at NiDL's frame t, from the frame after `from` (sEndDedede);
+static void EndDedede(struct Ending *end, u16 from, u16 t) {
+    u16 k;
     u8 code, frame;
 
     if (t < END_DEDEDE) return;
@@ -648,13 +652,15 @@ static void EndDedede(struct Ending *end, u16 t) {
         EndRelease(&end->dedede);
         return;
     }
-    if (t == END_DEDEDE) {
-        end->dededeX = END_DEDEDE_X;
-        end->dededeY = END_DEDEDE_Y;
-    } else {
-        code = sEndDedede[t - END_DEDEDE - 1];
-        end->dededeX += (s8)(code << 4) >> 4;
-        end->dededeY += (s8)code >> 4;
+    for (k = from < END_DEDEDE ? END_DEDEDE : from; k <= t; k++) {
+        if (k == END_DEDEDE) {
+            end->dededeX = END_DEDEDE_X;
+            end->dededeY = END_DEDEDE_Y;
+        } else {
+            code = sEndDedede[k - END_DEDEDE - 1];
+            end->dededeX += (s8)(code << 4) >> 4;
+            end->dededeY += (s8)code >> 4;
+        }
     }
     frame = t < END_DEDEDE_FAR ? 0 : 1 + (t - END_DEDEDE_FAR) / END_DEDEDE_TURN;
     if (frame > 3) frame = 3;
@@ -665,7 +671,7 @@ static void EndDedede(struct Ending *end, u16 t) {
 static void EndingMain(void) {
     struct Ending *end = TaskGetStructPtr(gCurTask);
     struct EffectObject *e = &end->e;
-    u16 animId = gNidlData.bosses[NIDL_NIGHTMARE].animId, t;
+    u16 animId = gNidlData.bosses[NIDL_NIGHTMARE].animId, t, u, from, k;
     s32 top;
     u8 i, code;
 
@@ -684,34 +690,38 @@ static void EndingMain(void) {
     }
     e->flags |= 4 | 0x400;
     t = end->t++;
+    // (NiDL's frames since the last: one a frame, RIDE_SPEED on the ride down);
+    u = t <= END_SCROLL ? t : END_SCROLL + (t - END_SCROLL) * RIDE_SPEED;
+    from = t ? end->u + 1 : 0;
+    end->u = u;
     // (the screen: at the moon, shaking, then scrolling down);
-    top = END_TOP + (t > END_SCROLL ? (t - END_SCROLL) * 3 >> 4 : 0) + EndShake(t);
+    top = END_TOP + (u > END_SCROLL ? (u - END_SCROLL) * 3 >> 4 : 0) + EndShake(u);
     NidlFinaleHoldCamera(e->roomId, END_CAM_X, top << 8);
     // (the palettes, once the local player's in the room: the shared effects' palette 15, as the bursts' in Nightmare's defeat);
     if (!end->fxPal) end->fxPal = EndPalette(e->roomId, gNidlData.enemies[NIDL_SPIT_STAR].animId, 0);
     if (!end->dededePal) end->dededePal = EndPalette(e->roomId, animId | KEY_DEDEDE, FRAME_DEDEDE);
     if (!end->farPal) end->farPal = EndPalette(e->roomId, animId | KEY_DEDEDE_FAR, FRAME_DEDEDE + 1);
     if (t == END_CRESCENT) EndCrescent(e->roomId);
-    // (the warp star: out of the moon, then its moves);
+    // (the warp star: out of the moon, then its moves, each of NiDL's frames since the last);
     end->starDx = end->starDy = 0;
-    if (t == END_STAR) {
-        end->starX = END_STAR_X;
-        end->starY = END_STAR_Y;
-    } else if (t > END_STAR && t - END_STAR - 1 < ARRAY_COUNT(sEndStar)) {
-        code = sEndStar[t - END_STAR - 1];
-        end->starDx = (s8)(code << 4) >> 4;
-        end->starDy = (s8)code >> 4;
-        end->starX += end->starDx;
-        end->starY += end->starDy;
-    } else if (t < END_STAR) {
-        end->starX = END_STAR_X;
-        end->starY = END_STAR_Y;
+    for (k = from; k <= u; k++) {
+        if (k <= END_STAR) {
+            end->starX = END_STAR_X;
+            end->starY = END_STAR_Y;
+        } else if (k - END_STAR - 1 < ARRAY_COUNT(sEndStar)) {
+            code = sEndStar[k - END_STAR - 1];
+            end->starDx += (s8)(code << 4) >> 4;
+            end->starDy += (s8)code >> 4;
+            end->starX += (s8)(code << 4) >> 4;
+            end->starY += (s8)code >> 4;
+        }
     }
-    EndRiders(end, t);
-    EndBurst(end, t);
+    EndRiders(end, u);
+    EndBurst(end, u);
+    // (its trail and small stars on the game's frames: their own pace, sped up or not);
     EndTrail(end, t);
     EndSparks(end, t);
-    EndDedede(end, t);
+    EndDedede(end, from, u);
 }
 
 /* NidlEndingRider(); A Kirby held on the ending's ride (finale.c's NidlFinaleHold(), every frame): its task made, as the first one
@@ -734,12 +744,15 @@ void NidlEndingRider(struct Kirby *kirby) {
 }
 
 /* NidlEndingRideSize(); The size the ending's warp stars and their Kirbys are drawn at (warpstar.c: their steps ask it): its matrix's
- * pa (256 / the size, 8.8), 0 their own, NIDL_RIDE_HIDDEN not shown (in the moon, off the screen, or the ending not there yet); */
+ * pa (256 / the size, 8.8), 0 their own, NIDL_RIDE_HIDDEN not shown (in the moon, off the screen, or the ending not there yet); as
+ * the Kirbys were last moved (EndRiders(), end->u: the stars are drawn before it moves them, kept on the screen while hidden, which
+ * showed a star there for a frame as they came back); */
 u32 NidlEndingRideSize(u16 room) {
     struct Ending *end = EndingOf(room);
+    u16 t;
 
-    if (end == NULL || EndHidden(end->t)) return NIDL_RIDE_HIDDEN;
-    if (end->t < END_FULL) return 0x10000 / (END_SIZE_FIRST + END_SIZE_MORE * ((end->t - END_STAR) / END_SIZE_EVERY));
+    if (end == NULL || !end->t || EndHidden(t = end->u)) return NIDL_RIDE_HIDDEN;
+    if (t < END_FULL) return 0x10000 / (END_SIZE_FIRST + END_SIZE_MORE * ((t - END_STAR) / END_SIZE_EVERY));
     return 0;
 }
 
