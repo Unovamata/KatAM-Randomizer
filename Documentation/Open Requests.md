@@ -121,6 +121,32 @@ Left:
   through them) and its middle a solid block: change it as 0xC9's? Ask the owner.
 - **Not tested**: played by hand; the randomized map viewer layout (the rows are made the same way).
 
+## 39. Meta Knight's fight 1:1 from NiDL
+The owner: recreate Meta Knight's fight (Orange Ocean's boss) 1:1 from NiDL's, keeping the rule that he throws Kirby no sword (Kirby
+fights with his own powers). Done: his intro, duel and defeat from NiDL's code (see the ROM Expansion README's Meta Knight row).
+Checked by script in the emulator (not played by hand):
+- **The duel**: against NiDL's recorded fights (USA), his state, frame, spot and facing on every frame: about 27,000 frames with
+  Kirby standing still, in the air, high up and far left (every state but 16 and 23). With Kirby walking it matches but for the
+  test's Kirby walking faster than NiDL's.
+- **Hits**: a fight replayed from NiDL's recording (Kirby's spot, NiDL's random numbers and its hits' HP fed in): the same 5 hurts
+  and 2 guards on the same frames. One hit's first jitter step (and its mosaic) shows a frame late: KatAM sees a hit a frame after
+  NiDL does.
+- **Beaten**: Sword Kirby slashing at him (his HP set to 10 by a RAM write): guards, hurts, KatAM's flash and burst, then NiDL's
+  defeat, all of it from his landing to his flight off (221 frames) as NiDL's; the hop before it is as long as where he is makes
+  it. The shard after.
+- **All three versions**: given the same random seed, the European and Japanese builds match the USA one on every frame (the duel,
+  560 frames; a fight with real hits to the knockout; the defeat). Without it, the Japanese build's seed differs from the start, as
+  the game's own random numbers do, so he picks other moves.
+
+Left:
+- **The camera**: KatAM's camera shows this room 16 pixels lower than NiDL's (the room's hidden top row), so his highest leaps go
+  off the top of the screen. Change the fight's screen to NiDL's? Ask the owner.
+- **The thrust's screen shake**: NiDL's thrust down calls a screen shake as he lands (`0x080261D4`, not looked at in NiDL); not
+  ported (item 10: the owner finds the shakes too strong). Ask the owner.
+- **Not ported**: NiDL's hit kinds 4 and 6 (states 16 and 23: inhaled, a hit on his box 0), which none of KatAM's attacks are.
+- **His knockout**: KatAM's (its flash and burst, 24 frames) before NiDL's defeat, where NiDL holds him 53 frames on a dark screen.
+- **Not tested**: played by hand; helpers and other players in the fight.
+
 ## 10. Screen shake as KatAM's
 The owner: the screen shakes far too much. Not reproduced: KatAM's shake runs the same in the NiDL rooms as in KatAM's, and
 nothing found shakes more often than in KatAM. Needs the owner's details (which room, what was happening).

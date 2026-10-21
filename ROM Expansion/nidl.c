@@ -136,6 +136,8 @@ void NidlDestroy(struct Task *task) {
 
     // (Nightmare's fight's task lets go of him, bosses/nightmare.c);
     if (NidlIsBoss(&n->obj) && n->enemy == NIDL_NIGHTMARE) NightmareGone(&n->obj);
+    // (and Meta Knight's duel's, bosses/meta_knight.c);
+    if (NidlIsBoss(&n->obj) && n->enemy == NIDL_META_KNIGHT) MetaKnightGone(&n->obj);
     if (hud && *(void **)(hud + 0x1C) == TaskGetStructPtr(task)) {
         hud[0xA] = 0;
         *(void **)(hud + 0x1C) = NULL;

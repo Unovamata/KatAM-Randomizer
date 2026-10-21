@@ -279,3 +279,6 @@ gUnk_0203AD40 0x203ad40
 LoadObjPaletteWithTransformation 0x815824c
 sub_0801519C 0x8015198
 sub_0809C380 0x809c2f8
+gBgCntRegs 0x3002eb0
+sub_0809D8C8 0x809d840
+gHeldKeys 0x3002e90

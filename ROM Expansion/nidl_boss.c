@@ -113,9 +113,6 @@ static const struct NidlShardExit *NidlShardExitOf(u16 room);
 
 void NidlBossDefeat(struct Object *obj) {
     struct NidlObject *n = (struct NidlObject *)obj;
-    struct LevelInfo *level = &gCurLevelInfo[obj->base.unk56];
-    s32 x = (level->viewportPosition.x >> 8) + SHARD_X, y = (level->viewportPosition.y >> 8) + SHARD_Y;
-    u8 shard = n->variant & 7;
 
     // (the Power Orb's: the Kirbys flying with the Star Rod stop aiming at it, abilities/star_rod.c);
     if (n->enemy == NIDL_POWER_ORB) {
@@ -127,19 +124,35 @@ void NidlBossDefeat(struct Object *obj) {
         NightmareBeaten(obj);
         return;
     }
+    // (Meta Knight's: NiDL's defeat first, his shard after it, bosses/meta_knight.c);
+    if (n->enemy == NIDL_META_KNIGHT) {
+        MetaKnightBeaten(obj);
+        return;
+    }
+    NidlBossShard(obj->base.unk56, obj->base.roomId, n->variant & 7);
+}
+
+// NidlBossShard(); A boss's mirror shard `shard` in room `room` (its Maxim Tomato, the shard owned), as NidlBossDefeat() says;
+void NidlBossShard(u8 unk56, u16 room, u8 shard) {
+    struct LevelInfo *level = &gCurLevelInfo[unk56];
+    s32 x = (level->viewportPosition.x >> 8) + SHARD_X, y = (level->viewportPosition.y >> 8) + SHARD_Y;
+
     if (HasShard(shard)) {
-        struct Object *tomato = BonusCreateTomatoAt(obj, x, y);
+        struct Object *tomato = CreateObjTemplateAndObj(unk56, 1, 0x24, x, y, 0, 0x1F, 0, 0, OBJ_TOMATO, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                                        0, 0);
         struct ObjectTemplate *template = (struct ObjectTemplate *)tomato->objTemplate;
 
-        // (its gone bit is NIDL_EXIT_KIND's, unk3 its template's slot, unk12 the room: rooms.c's BigSub_08001678 calls NidlExitTomato);
-        if (NidlShardExitOf(obj->base.roomId)) {
+        // (BonusCreateTomatoAt()'s; its gone bit is NIDL_EXIT_KIND's, unk3 its template's slot, unk12 the room: rooms.c's
+        // BigSub_08001678 calls NidlExitTomato);
+        tomato->base.flags |= 0x2000000;
+        if (NidlShardExitOf(room)) {
             template->unk2 = NIDL_EXIT_KIND;
             template->unk3 = template - gUnk_020229E0;
-            template->unk12 = obj->base.roomId;
+            template->unk12 = room;
         }
         return;
     }
-    CreateObjTemplateAndObj(obj->base.unk56, 1, 0x24, x, y, 0, 0x1F, 0, 0, OBJ_MIRROR_SHARD, shard, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+    CreateObjTemplateAndObj(unk56, 1, 0x24, x, y, 0, 0x1F, 0, 0, OBJ_MIRROR_SHARD, shard, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 }
 
 /* NidlExitTomato(); A rematch's Maxim Tomato (NidlBossDefeat()) gone, from template slot `slot` (rooms.c's BigSub_08001678: its

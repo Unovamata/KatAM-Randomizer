@@ -26,12 +26,12 @@ The Japanese (`A7KJ`) and European (`A7KP`) ROMs have the same enemy data: their
 | `+0x3E` | Bit 15: horizontal flip |
 | `+0x43` | Facing (s8): `1` right, `-1` left |
 | `+0x48` / `+0x4A` | X / Y in pixels (s16) |
-| `+0x00` | Motion function (`0x080656B4` adds the accelerations to the velocities, caps them and moves; 0 freezes the object) |
+| `+0x00` | Motion function (`0x080656B4` adds the accelerations to the velocities, caps them and moves: X both ways, Y only falling, a rise is never capped; 0 freezes the object) |
 | `+0x4C` / `+0x50` | X / Y in 16.16 |
 | `+0x54` / `+0x58` | X / Y velocity, 16.16 pixels per frame |
 | `+0x5C` / `+0x60` | X / Y acceleration |
 | `+0x64` / `+0x68` | X / Y speed limit (`0x80000000` none) |
-| `+0x7A` | Set by the collisions when landing |
+| `+0x7A` | Set by the collisions when landing (once the whole pixel of Y is into the floor: Y is then put in the middle of its pixel, `.5`, the velocity left as it is); never cleared by them, only by the scripts, so it stays set while the object stands |
 | `+0x73` | Variant (from the room object) |
 | `+0x8C` | Pointer to a sub-structure (`+0x1A`: extra sprite frame, e.g. broom dust, `0xFFFF` none) |
 
@@ -40,7 +40,7 @@ The Japanese (`A7KJ`) and European (`A7KP`) ROMs have the same enemy data: their
 | Address | What it does |
 |---|---|
 | `0x080061C0(vx, vy)` | Sets velocity, mirrored by facing; `0x5A5A5A5A` keeps a component |
-| `0x080062C4` | Stops: zeroes velocities, accelerations |
+| `0x080062C4` | Stops: zeroes velocities, accelerations, and takes off the speed limits (`0x80000000`) |
 | `0x08006304` | Applies the facing to the sprite flip |
 | `0x08006338(f)` | Sets frame `f` and applies the flip |
 | `0x0800617C(f)` | Sets frame `f` (or `f | 1` when facing left), flip unchanged |
@@ -235,6 +235,7 @@ Most enemies' first frames (0-3) are their hurt frames. Frames are drawn around 
 
 - King Dedede (`0x3B`, spawn `0x0809FC44`, frames `0x087538E0`): the inhale is states 8 and 9 (`0x080A11E0`, `0x080A13D4`): mouth opening (24 for 8 frames, 25 for 20), then sucking (26, 27: 4 and 6 frames) up to 90 frames with sparkles flying in (`0x080A00EC`, 3 at once, the shared effects' frame 45); a catch box object (`0xB7`, 40x28 pixels, 38 ahead and 10 down) catches Kirby, drawn into the mouth in 6 frames; puffed up (28) he shakes 2 pixels each way 4 times, 30 frames in all, turns to the room's middle and spits him out (29, 51 frames) in a star, object `0x70` (spawn `0x080A498C`, states `0x087489B4`): it flies 4 pixels a frame along the floor until a wall, lets Kirby out hurt (1 HP, `0x080A49CC`) bouncing back up off the wall, and bursts. In the recorded fight, catch to release took 75 frames.
 - Shared effects' frame table `0x0874C44C` (common tiles, palette 15): 0-7 the spit star (4 is the one drawn), 35-37 and 42-44 sparkles and bursts, 45 the small sparkle of Dedede's inhale.
+- Meta Knight (`0x3D`, spawn `0x080A55EC`, frames `0x08753BB4`, effects `0x08753DA0`): 24 states (scripts `0x08748EBC`, a function every frame after each, `0x08748F1C`, main `0x080A56B0`); his guard roll `0x080A720C` (a chance in 16 by his HP's quarter), hurt `0x0806619C` (13 frames frozen, jittering, his hurt colors 2 frames in 4: USA `0x082F427C`, the layers in mosaic); his defeat is type `0x3D`'s second object (`0x080A73B4`, `0x080A7438`): down to the floor, a hop (2 pixels a frame to the screen's middle, or with Kirby there the quarter on his own side; up at `(distance >> 2) << 13`, `0x2000` down, limit 3 pixels), stop, his mask breaks, a leap (-4.25 up, 0.25 down, no limit after the stop), his cape, off up 7 pixels a frame. Recorded: HP 0 at frame 1239, frozen on a dark screen to 1291, the defeat from 1292. NiDL's camera in his room is at (8, 8). See `ROM Expansion/bosses/meta_knight.c`.
 - Power Orb (`0x42`, spawn `0x080AE3BC`, frames `0x087544B4`): the Star Rod flight. Kirby holds the rod and flies over the screen facing right, 2 pixels a frame the way the D-pad points (diagonals 1.41 each way), a quarter of that for 5 frames when let go, kept on the screen's x 16-224, y 18-132; A or B swings the rod (21 frames) and shoots a star on its 10th, 28 pixels ahead, flying right at 4 pixels a frame (held: every 31 frames); a hit knocks him back 2 pixels a frame, slowing, for 10 frames. The true camera (`0x0300215C`) sinks 0.2 pixels a frame from 8 to 521 as they fight (the background scrolling is that, not a fixed camera). The orb, from the right of the screen ((192, 75) on it), runs its states in turn (hover 240 frames, roam 240, charge 120, zip 192: hover, roam, charge, roam, zip, hover, charge, roam...); its timed shots come 140 frames or more apart (`0x080AF144`), a stream of 3 stars, a fan of 3, a pair; it has 60 HP, a Star Rod star takes 1. The Star Rod's HUD card is card 25; the star's tiles are a raw block in the shared graphics (palette 15's block + `0x2328`), the orb's shots' tiles found by their first tile. See `ROM Expansion/bosses/power_orb.c` and `abilities/star_rod.c` for the traced numbers.
 
 ## Spawn functions

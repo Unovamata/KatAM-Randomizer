@@ -34,17 +34,18 @@ namespace KatAMRandomizer {
          * moved by neither shift; see EndingGraphics()); CloudSpeeds: the Power Orb's room's cloud bands' speeds (USA 0x087561CC, moved
          * by neither shift either; KatAMExpansionRooms.cs, CloudRows); FightColors: Nightmare's fight's four palettes (USA 0x08334480: his
          * cape's two, which his draw blends, and his tornado's two, which it alternates; KatAMExpansionNightmare.cs); OrbColors: the Power
-         * Orb's two palettes, which its fight blends (USA 0x082FE0E4; "ROM Expansion/bosses/power_orb.c", gNidlPowerOrbColors); */
+         * Orb's two palettes, which its fight blends (USA 0x082FE0E4; "ROM Expansion/bosses/power_orb.c", gNidlPowerOrbColors);
+         * MetaKnightFlash: Meta Knight's hurt flash's colors (USA 0x082F427C; "ROM Expansion/bosses/meta_knight.c", gNidlMetaKnightFight); */
         sealed record NightmareRegion(string GameCode, int Descriptors, int FrameShift, string KatAM, int Palette15,
                                       int CardPalettes, int CardPaletteStride, int CardTiles, int CardTileStride, int RoomTable, int LateShift,
-                                      int EndingFrames, int CloudSpeeds, int FightColors, int OrbColors);
+                                      int EndingFrames, int CloudSpeeds, int FightColors, int OrbColors, int MetaKnightFlash);
         const int LateFrames = 0x753E3C;
         static int FrameAddress(NightmareRegion region, int usa) => usa + (usa >= LateFrames ? region.LateShift : region.FrameShift);
 
         static readonly NightmareRegion[] NightmareRegions = {
-            new NightmareRegion("A7KE", 0x73EEA0, 0, "USA", 0x0D07A8, 0x731A90, 8, 0x731A94, 8, 0x7E1D58, 0, 0x755708, 0x7561CC, 0x334480, 0x2FE0E4),
-            new NightmareRegion("A7KJ", 0x742DAC, 0x3A8C, "Japan", 0x0CFF60, 0x73599C, 8, 0x7359A0, 8, 0x7E60DC, 0x3A8C, 0x759194, 0x759C68, 0x333C38, 0x2FD89C),     // Hoshi no Kirby: Yume no Izumi Deluxe;
-            new NightmareRegion("A7KP", 0x97B678, 0x23C7EC, "Europe", 0x0D3228, 0x96D770, 4, 0x96D7E0, 20, 0xBFD8E8, 0x23CA5C, 0x99288C, 0x994DA0, 0x33B56C, 0x3051D0),
+            new NightmareRegion("A7KE", 0x73EEA0, 0, "USA", 0x0D07A8, 0x731A90, 8, 0x731A94, 8, 0x7E1D58, 0, 0x755708, 0x7561CC, 0x334480, 0x2FE0E4, 0x2F427C),
+            new NightmareRegion("A7KJ", 0x742DAC, 0x3A8C, "Japan", 0x0CFF60, 0x73599C, 8, 0x7359A0, 8, 0x7E60DC, 0x3A8C, 0x759194, 0x759C68, 0x333C38, 0x2FD89C, 0x2F3A34),     // Hoshi no Kirby: Yume no Izumi Deluxe;
+            new NightmareRegion("A7KP", 0x97B678, 0x23C7EC, "Europe", 0x0D3228, 0x96D770, 4, 0x96D7E0, 20, 0xBFD8E8, 0x23CA5C, 0x99288C, 0x994DA0, 0x33B56C, 0x3051D0, 0x2FB368),
         };
 
         static NightmareRegion RegionOf(byte[] rom) => rom == null || rom.Length < 0x800000 ? null
@@ -70,10 +71,12 @@ namespace KatAMRandomizer {
          * a pixel, its palette 15's colors) around the origin (the dot NiDL draws the Power Orb as, far off in the moon); Cutscene: a
          * frame of NiDL's cutscene of Nightmare's arrival (CutsceneGraphics(): its own frame table, tiles and two palettes; 1 its first
          * tiles, the comet's, 2 its second, the blue star's); Ending: a frame of NiDL's ending down from the moon (EndingGraphics(): the
-         * region's EndingFrames, its own tiles and five palettes); */
+         * region's EndingFrames, its own tiles and five palettes); Layer (with OnlyPalette): 1 only its pieces NiDL draws before (in front
+         * of) the frame's first piece of another palette, 2 only those after it (behind: Meta Knight's Galaxia, in front of his body or
+         * behind it); */
         sealed record Part(int Frame, Dictionary<int, int> Recolor = null, int Table = 0, bool Palette15 = false, int Palette = 0, int Descriptor = -1,
                            int Dx = 0, int Dy = 0, bool Common = false, int OnlyPalette = -1, bool OrbShots = false, bool StarRod = false,
-                           bool Shared = false, byte[] Tile = null, int Cutscene = 0, bool Ending = false, bool OrbMoon = false);
+                           bool Shared = false, byte[] Tile = null, int Cutscene = 0, bool Ending = false, bool OrbMoon = false, int Layer = 0);
 
         /* Enemy; A ported enemy: its index (NIDL_* in nidl.h), name, NiDL object type and frame table, its frames (in the order the
          * C code numbers them), its hurt frame, palette changes, the letters of its name and the behavior bytes the randomizer uses; */
@@ -321,22 +324,78 @@ namespace KatAMRandomizer {
                 new byte[0], Type: BossID, IconCells: new[] { new[] { 0 }, new[] { 15, 39 } });
         }
 
-        /* Meta Knight; NiDL boss 2 (type 0x3D, Orange Ocean's). His body is streamed frames (0x08753BB4: his cape 0-9, his poses 21-52,
-         * each with its own palette), Galaxia a frame of the sword table (0x08753DA0: 16-23, eight ways, the descriptor's second palette,
-         * gold). Frames as bosses/meta_knight.c numbers them: 0-9 the cape, 10-41 the poses, 42-49 the sword. Hurt: standing (21); */
+        /* Meta Knight; NiDL boss 2 (type 0x3D, Orange Ocean's). His frames are NiDL's streamed frames (0x08753BB4: 0-9 caped, 10-20
+         * drawing Galaxia, 21-59 his defeat, 60-122 his duel), each with two palettes (his body's, the descriptor's first; Galaxia's and
+         * its slashes', its second), cut by palette and by layer ("ROM Expansion/bosses/meta_knight.c" draws them as three sprites):
+         * frame 0 his object's own (NiDL's 4, caped, till his intro starts), 1-123 his body in NiDL's 0-122, then Galaxia's pieces NiDL
+         * draws in front of his body (MetaKnightFront: the frames that have them), then those behind it (MetaKnightBack; 95 has both);
+         * then his effects (EffectOnly: only his sprites draw them, type 0x43's 256 frames being shared): his cape, the spark (the
+         * descriptor's third palette) and his mask (0x08753DA0's 0-3; 13-15, 36-38; 26-34), NiDL's shared dust behind his slashes and
+         * his thrust's (0x0874CB90's 0-3, 6-9: right and left by turns; 0x0874C828's 0-23). WriteMetaKnightFight() tells the C code
+         * where they are (properties: BossDefinitions is built before the class's fields). Hurt: standing (60), his body; */
+        static int[] MetaKnightFront => new[] {
+            10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 23, 60, 61, 62, 63, 64, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 80, 81, 88, 90, 91, 93, 95,
+            96, 97, 98, 99, 100, 101, 102, 103, 104, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122,
+        };
+        static int[] MetaKnightBack => new[] { 65, 66, 77, 78, 79, 82, 83, 84, 85, 86, 87, 89, 92, 94, 95, 105, 106 };
+        static (int frame, int palette)[] MetaKnightEffects => new[] {
+            (0, 0), (1, 0), (2, 0), (3, 0), (13, 2), (14, 2), (15, 2), (36, 2), (37, 2), (38, 2),
+            (26, 0), (27, 0), (28, 0), (29, 0), (30, 0), (31, 0), (32, 0), (33, 0), (34, 0),
+        };
+        static int[] MetaKnightDust => new[] { 0, 1, 2, 3, 6, 7, 8, 9 };
+        const int MetaKnightFrames = 123, MetaKnightLanding = 24;
+        static int MetaKnightFrontAt => 1 + MetaKnightFrames;
+        static int MetaKnightBackAt => MetaKnightFrontAt + MetaKnightFront.Length;
+        static int MetaKnightEffectsAt => MetaKnightBackAt + MetaKnightBack.Length;
+
         static Miniboss MetaKnight() {
-            List<Part[]> frames = new List<Part[]>();
+            List<Part[]> frames = new List<Part[]> { new[] { new Part(4) } };
 
-            frames.AddRange(Enumerable.Range(0, 10).Select(f => new[] { new Part(f) }));
-            frames.AddRange(Enumerable.Range(21, 32).Select(f => new[] { new Part(f) }));
-            frames.AddRange(Enumerable.Range(16, 8).Select(f => new[] { new Part(f, Table: 0x753DA0, Palette: 1) }));
+            frames.AddRange(Enumerable.Range(0, MetaKnightFrames).Select(f => new[] { new Part(f, OnlyPalette: 0) }));
+            frames.AddRange(MetaKnightFront.Select(f => new[] { new Part(f, OnlyPalette: 1, Layer: 1) }));
+            frames.AddRange(MetaKnightBack.Select(f => new[] { new Part(f, OnlyPalette: 1, Layer: 2) }));
+            frames.AddRange(MetaKnightEffects.Select(e => new[] { new Part(e.frame, Table: 0x753DA0, Palette: e.palette) }));
+            frames.AddRange(MetaKnightDust.Select(f => new[] { new Part(f, Table: 0x74CB90, Palette15: true, Common: true) }));
+            frames.AddRange(Enumerable.Range(0, MetaKnightLanding).Select(f => new[] { new Part(f, Table: 0x74C828, Palette15: true, Common: true) }));
 
-            return new Miniboss(3, "Meta Knight", 32, 0x753BB4, frames, new[] { new Part(21) },
+            return new Miniboss(3, "Meta Knight", 32, 0x753BB4, frames, new[] { new Part(60, OnlyPalette: 0) },
                 new[] {
                     (0x38, 0), (0x14, 4), (0x14, 2), (0x14, 5), (-1, -1),                          // "M" (Mr.Frosty), "eta" (Hot Head), space;
                     (0x1A, 5), (0x1A, 6), (0x1A, 7), (0x1A, 8), (0x1A, 9), (0x1A, 10),             // "Knight" (Sword Knight);
                 },
-                new byte[0], Type: BossID, IconCells: new[] { new[] { 0, 10 } });
+                new byte[0], Type: BossID, EffectOnly: frames.Count - 1,
+                IconCells: new[] { new[] { 1 + 60, MetaKnightFrontAt + Array.IndexOf(MetaKnightFront, 60) } });
+        }
+
+        /* WriteMetaKnightFight(); gNidlMetaKnightFight ("ROM Expansion/bosses/meta_knight.c"): u8 [123] per NiDL frame the frame of
+         * Galaxia's pieces in front of his body, u8 [123] behind it (0xFF: none); u8 his cape's, the spark's, his mask's, the dust's and
+         * his thrust's dust's first frames; u8 [4] the VRAM tiles of his body's biggest frame, Galaxia's in front, behind, his effects';
+         * (a pad byte) u16 [16] his body's colors, u16 [16] his hurt flash's (NiDL's: his body's with other colors but its last four); */
+        static void WriteMetaKnightFight(byte[] rom, byte[] nightmare, NightmareRegion region, int at, List<byte[]> palettes,
+                                         List<(byte[] tiles, ushort[] oams, short[] attributes, int palette)> frames) {
+            int Tiles(int from, int count) => frames.Skip(from).Take(count).Max(f => f.tiles.Length / 32);
+            byte[] body = palettes[frames[1].palette];
+
+            if (Enumerable.Range(0, 4).Any(c => ReadShort(nightmare, region.MetaKnightFlash + 24 + c * 2) != ReadShort(body, 24 + c * 2)))
+                throw new InvalidOperationException("Not Meta Knight's hurt flash.");
+            for (int f = 0; f < MetaKnightFrames; f++) {
+                int front = Array.IndexOf(MetaKnightFront, f), back = Array.IndexOf(MetaKnightBack, f);
+                rom[at + f] = (byte)(front < 0 ? 0xFF : MetaKnightFrontAt + front);
+                rom[at + MetaKnightFrames + f] = (byte)(back < 0 ? 0xFF : MetaKnightBackAt + back);
+            }
+            int effects = MetaKnightEffectsAt, dust = effects + MetaKnightEffects.Length, landing = dust + MetaKnightDust.Length;
+            int g = at + 2 * MetaKnightFrames;
+            rom[g] = (byte)effects;
+            rom[g + 1] = (byte)(effects + 4);
+            rom[g + 2] = (byte)(effects + 10);
+            rom[g + 3] = (byte)dust;
+            rom[g + 4] = (byte)landing;
+            rom[g + 5] = (byte)Tiles(0, MetaKnightFrontAt);
+            rom[g + 6] = (byte)Tiles(MetaKnightFrontAt, MetaKnightFront.Length);
+            rom[g + 7] = (byte)Tiles(MetaKnightBackAt, MetaKnightBack.Length);
+            rom[g + 8] = (byte)Tiles(effects, frames.Count - effects);
+            Array.Copy(body, 0, rom, at + 256, 32);
+            Array.Copy(nightmare, region.MetaKnightFlash, rom, at + 256 + 32, 32);
         }
 
         /* Paint Roller; NiDL boss 1 (type 0x3C, Ice Cream Island's). His frames are streamed frames with two palettes each (0x08753994),
@@ -887,6 +946,10 @@ namespace KatAMRandomizer {
                 WriteNightmareFight(rom, nightmare, region, CodeAddress + version.CodeSymbols["gNidlNightmareFight"], fightAnim, fightFrames, fightTable);
                 // (the Power Orb's two palettes, which its fight blends: "ROM Expansion/bosses/power_orb.c", gNidlPowerOrbColors);
                 Array.Copy(nightmare, region.OrbColors, rom, CodeAddress + version.CodeSymbols["gNidlPowerOrbColors"], 2 * 16 * 2);
+                // (Meta Knight's sprites' frames and colors: "ROM Expansion/bosses/meta_knight.c", gNidlMetaKnightFight);
+                int metaKnight = allBosses.FindIndex(m => m.Type == BossID && m.Name == "Meta Knight");
+                WriteMetaKnightFight(rom, nightmare, region, CodeAddress + version.CodeSymbols["gNidlMetaKnightFight"], builtMinibosses[metaKnight].palettes,
+                                     builtMinibosses[metaKnight].frames);
             } catch (Exception exception) when (exception is IndexOutOfRangeException or ArgumentException or InvalidOperationException) {
                 return $"The Nightmare in Dream Land ROM doesn't match the {region.KatAM} release.";
             }
@@ -1118,7 +1181,12 @@ namespace KatAMRandomizer {
             byte[] common = null, starRod = null;
             (int table, byte[][] tiles, byte[][] palettes)? cutscene = null;
             (byte[] tiles, byte[][] palettes)? ending = null;
-            List<(Piece, byte[], int)> Pieces(Part part) => PartOffset(part, UnmovedPieces(part).Where(p => part.OnlyPalette < 0 || p.Item1.Palette == part.OnlyPalette).ToList());
+            List<(Piece, byte[], int)> Pieces(Part part) => PartOffset(part, Layered(part, UnmovedPieces(part)).Where(p => part.OnlyPalette < 0 || p.Item1.Palette == part.OnlyPalette).ToList());
+            List<(Piece, byte[], int)> Layered(Part part, List<(Piece, byte[], int)> pieces) {
+                int other = pieces.FindIndex(p => p.Item1.Palette != part.OnlyPalette);
+                if (part.Layer == 0 || other < 0) return part.Layer == 2 ? new List<(Piece, byte[], int)>() : pieces;
+                return part.Layer == 1 ? pieces.Take(other).ToList() : pieces.Skip(other).ToList();
+            }
             List<(Piece, byte[], int)> PartOffset(Part part, List<(Piece, byte[], int)> pieces) =>
                 pieces.Select(p => (p.Item1 with { X = p.Item1.X + part.Dx, Y = p.Item1.Y + part.Dy }, p.Item2, p.Item3)).ToList();
             List<(Piece, byte[], int)> UnmovedPieces(Part part) {

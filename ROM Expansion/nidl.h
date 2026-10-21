@@ -169,6 +169,7 @@ void *CreateNidlMiniboss(struct ObjectTemplate *, u8 playerId);
 void *CreateNidlBoss(struct ObjectTemplate *, u8 playerId);
 void NidlBossStart(struct Object *);
 void NidlBossDefeat(struct Object *);
+void NidlBossShard(u8 unk56, u16 room, u8 shard);
 // A boss rematch's Maxim Tomato's gone bit kind (template unk2; rooms.c's BigSub_08001678 calls NidlExitTomato with it, nidl_boss.c);
 #define NIDL_EXIT_KIND 4
 void NidlExitTomato(u16 slot, u32 eaten);
@@ -293,6 +294,8 @@ void ShineBrightInit(struct NidlObject *);
 void ShineBrightStart(struct Object *);
 void MetaKnightInit(struct NidlObject *);
 void MetaKnightStart(struct Object *);
+void MetaKnightGone(struct Object *);
+void MetaKnightBeaten(struct Object *);
 void PaintRollerInit(struct NidlObject *);
 void PaintRollerStart(struct Object *);
 void HeavyMoleInit(struct NidlObject *);
