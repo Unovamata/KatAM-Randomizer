@@ -266,6 +266,7 @@ void AppleInit(struct NidlObject *);
 void AppleStart(struct Object *);
 void StarInit(struct NidlObject *);
 void StarStart(struct Object *);
+void StarFree(struct Object *);
 void SpitStarInit(struct NidlObject *);
 void SpitStarStart(struct Object *);
 void SpitStarCarry(struct Object *star, u8 kirbys, bool8 left);

@@ -155,6 +155,7 @@ static void Debris(struct HeavyMole *m) {
     star->base.yspeed = -STAR_SPEED;
     star->base.parent = obj;
     star->unk7C = sub_0809F840;
+    StarFree(star);
 }
 
 // Way(); The way (of the six) toward Kirby for an arm;

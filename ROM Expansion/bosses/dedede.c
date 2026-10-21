@@ -155,6 +155,7 @@ static void Star(struct KingDedede *d, s32 dx, s16 xspeed) {
     star->base.yspeed = 0;
     star->base.parent = obj;
     star->unk7C = sub_0809F840;
+    StarFree(star);
 }
 
 /* Catch(); A Kirby in front of his mouth goes into KatAM's grab (as Gobbler's catch: sub_080E588C; the grab's start, sub_0804E09C,
