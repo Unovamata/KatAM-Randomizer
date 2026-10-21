@@ -16,7 +16,9 @@
  * subtype2 is 1 (King Dedede's) takes Kirby dropping in from above its screen, as NiDL's: from the first frame he's in the room over
  * it, its lock rides above its screen, its x the screen's, its top DROP_VIEW above Kirby (never back up, never above the room's
  * top) until it's down on the screen, as NiDL's camera follows him down (traced in NiDL: 2.5 pixels a frame, his fall, from 8 to
- * 168); */
+ * 168). One whose subtype2 is 2 is in a screen's room, where NiDL's camera never moves (8, 8; KatAM's room is taller, padded below,
+ * and its camera went down 16 with Kirby: Meta Knight's at 24): it holds the camera on its screen whenever a Kirby is in the room,
+ * right on it (not easing there), before the fight, through it and after it (its walls only while it's on); */
 #include "../nidl.h"
 #include "constants/object_types.h"
 
@@ -29,6 +31,7 @@
 #define ARENA_REACH_Y 2
 #define DROP_VIEW (80 << 8)
 #define ROOM_TOP (8 << 8)
+#define ONE_SCREEN 2
 
 struct Arena {
     struct NidlObject n;
@@ -179,6 +182,15 @@ static void ArenaMain(struct Object *obj) {
     obj->base.flags |= 0x200 | 0x400;
     obj->base.xspeed = obj->base.yspeed = 0;
 
+    // (a screen's room: the cameras of the Kirbys in it on its screen, as NiDL's, fight or not);
+    if (area->subtype2 == ONE_SCREEN) {
+        for (i = 0; i < gNumKirbys; i++) {
+            if (gKirbys[i].base.roomId != obj->base.roomId) continue;
+            LockCamera(a, i);
+            gCurLevelInfo[i].unk_S32Vec2_6C = gCurLevelInfo[i].unk_S32Vec2_7C;
+            gCurLevelInfo[i].unk_S32Vec2_74 = gCurLevelInfo[i].unk_S32Vec2_84;
+        }
+    }
     // (a Kirby dropping in comes before the boss: KatAM makes it only near the camera; its boss's own lock, ArenaRise(), holds it);
     rise = a->held ? 0 : DropRise(a);
     if (rise <= 0 && !a->held && !MinibossAlive(obj)) {
@@ -186,6 +198,8 @@ static void ArenaMain(struct Object *obj) {
             a->opened = TRUE;
             OpenDoors(a);
         }
+        // (a screen's room: still held, the fight over);
+        if (area->subtype2 == ONE_SCREEN) return;
         if (a->active) {
             UnlockCameras(a);
             obj->base.flags |= 0x1000;

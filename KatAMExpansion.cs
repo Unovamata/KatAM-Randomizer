@@ -27,7 +27,7 @@ namespace KatAMRandomizer {
         /* NiDL: graphics descriptor per enemy (type - 8): tile count (+2), palette (+8), LZ77 tiles (+12). The frame tables (and every
          * NiDL address in the enemies' notes) are the USA ones; the Japanese and European ROMs have the same data, moved by FrameShift
          * (the European one's from Mr. Bright's table, 0x08753E3C, on, LateFrames, by LateShift: FrameAddress()); */
-        // Palette15: NiDL's shared object palette 15 (the level loads it; the Poppy Bros. Jr.'s ball and bomb are drawn with it);
+        // Palette15: NiDL's shared object palette 15 (the level loads it; the Poppy Bros. Jr.'s apple and Maxim Tomato are drawn with it);
         /* Cards: the ability cards (HUD portraits) by NiDL ability: palette pointers (CardPalettes + ability * CardPaletteStride) and tiles
          * pointers (CardTiles + ability * CardTileStride; Europe's are per language, English first); RoomTable: the rooms (see
          * KatAMExpansionRooms.cs); EndingFrames: the frame table of NiDL's ending down from the moon (USA 0x08755708: the European one
@@ -687,9 +687,9 @@ namespace KatAMRandomizer {
             },
             new byte[0], new byte[] { 0x00, 0x01 });
 
-        // Poppy Bros. Jr.; NiDL types 0x26-0x28 (one tile sheet). Frames: NiDL's 4 to 7, then the ball's 9 to 16 (type 0x27's table) and
-        // the bomb's (type 0x28's). Variants: 0 hops, 1 jumps in, 2 hops in place, 3 and 4 ride a ball or a bomb, 5 and 6 in place;
-        // 7 and 8 (the ball or bomb that comes off when Kirby inhales the rider) are only spawned;
+        // Poppy Bros. Jr.; NiDL types 0x26-0x28 (one tile sheet). Frames: NiDL's 4 to 7, then the apple's 9 to 16 (type 0x27's table)
+        // and the Maxim Tomato's (type 0x28's). Variants: 0 hops, 1 jumps in, 2 hops in place, 3 and 4 ride an apple or a Maxim Tomato,
+        // 5 and 6 in place; 7 and 8 (the apple or tomato that comes off when Kirby inhales the rider) are only spawned;
         static Enemy PoppyBrosJr() => new Enemy(13, "Poppy Bros. Jr.", 0x26, 0x7528D0,
             Enumerable.Range(4, 4).Select(f => new[] { new Part(f) })
                 .Concat(Enumerable.Range(9, 8).Select(f => new[] { new Part(f, null, 0x7528F0, true) }))

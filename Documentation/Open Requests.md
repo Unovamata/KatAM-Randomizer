@@ -85,10 +85,32 @@ lost and through rooms; Mike with no start-up time as NiDL's. Done, checked by s
   now one, 28, 28 and 32 frames, then off, nothing after the third song (Mike given by a RAM write, all three versions).
 - **Found on the way**: the new fight areas moved the planned doors, and the layout left Grape Garden's first stage with no way in
   (the door planner took bomb chains as breakable from either side); fixed, every room reached again in all three versions.
+- **Mike's start-up time** (the owner: as NiDL's): NiDL's Mike recorded frame by frame (its script `0x080455C8`, B pressed for each
+  use) and matched: from the press, the start 25, 33 and 43 frames (24, 34, 42 before), the songs 32 frames (28, 28, 32), the end
+  5 (Kirby back on the 62nd, 70th and 80th frame, as NiDL's), the third use's jump NiDL's heights frame by frame, the flashes on
+  NiDL's frames (1st-3rd, 5th-7th, every other one to the 15th, the 19th and 23rd of each song; they went on and off every 4).
+  Checked by script (Mike given by RAM writes): the USA, European and Japanese builds the same on all 480 frames (the counter,
+  Kirby's height, the 36 flash frames, the ability gone after the third song).
+- **Poppy Bros. Jr.'s bombs** (the owner: as NiDL's): recorded in NiDL (USA), the "bomb" is a Maxim Tomato (type 0x28; 0x27's is
+  an apple). Inhaled, the rider lets the tomato off: it bounces twice away from Kirby, untouchable (Kirby goes through it, his
+  inhale doesn't take it), and where it stops it becomes a Maxim Tomato item; the apple lies there as an enemy (it hurts, is beaten,
+  is inhaled). Beaten, the rider goes as any enemy does and Poppy Bros. Jr. jumps off at once, untouchable for 30 frames or till he
+  lands (the port waited 30 frames before jumping). The port blew the tomato up and let Kirby inhale it while it bounced; now as
+  NiDL's: KatAM's Maxim Tomato where it stops, the bounces NiDL's frame by frame (from where it lies: 2.25 up when it comes off, 7.5
+  at the top, down after 15 frames, 0.875 up the frame after, 3.5 at the second top, one more frame along the floor, then the
+  tomato; the first bounce was lost before, the engine's start zeroing it). Checked by script: room 0x276 (its rider inhaled: the
+  same path and tomato in the USA, European and Japanese builds; Kirby inhaled and ate the tomato), the same rider made an apple in
+  a test ROM (it stopped, Kirby inhaled it; Kirby put on it by RAM writes while it bounced: nothing, and as it stopped it hurt him
+  and was beaten), room 0x101 (a rider touched: beaten, Poppy Bros. Jr. jumped off at once, untouchable 30 frames).
 
 Left:
-- **Mike's start-up time**: the port's wind-ups are within a frame of NiDL's (24, 34, 42 frames against NiDL's 25, 33, 43; whole
-  songs 56, 67, 78 against 61, 69, 79). Ask the owner what NiDL has that the port lacks.
+- **Mini-boss cameras in rooms bigger than a screen** (the owner: cameras always exactly NiDL's): the fight's screen is NiDL's,
+  but the way there isn't yet: NiDL's camera follows Kirby with no easing, slides to the fight's screen 2 pixels a frame once the
+  room's trigger object (type 4) comes on, and in the tall rooms 0x09B and 0x27C goes on following him up and down (the port holds
+  it); 0x244 has two holds. Being worked on.
+- **Mike's colours**: his megaphone and hat colours, and the flash (NiDL's screen goes yellow, the port's brightens to white).
+- **Poppy Bros. Jr.**: the tomato or apple comes off a frame after KatAM's inhale takes the rider (NiDL's the same frame), at 0.5
+  a frame (NiDL's 0.496 to 0.498, from a small random angle); KatAM's Maxim Tomato, not NiDL's blinking one.
 - **Not tested**: the fights played by hand; a hit with an ability on a knight blinking in (only the inhale was tested: Kirby kept
   getting stuck in a Sword move in the scripted runs); a spat star hurting Poppy Bros. Sr. (a Bronto Burt got in the way).
 
@@ -102,7 +124,8 @@ said; not played by hand):
   0x1F9's rose to 0 before). The NiDL hub, Central Circle's copy, scrolls with Kirby as Central Circle does (it's bigger than a screen).
 - **Room 0xC9**: its floating platform is all a thin floor: Kirby jumps up through it anywhere, drops through its ledges (Down, or
   Down and B), and the big switch stands on its middle (KatAM's one-way floor there: on one he drops through, the switch fell to the
-  ground). Orange Ocean's hub (0x25A) has the same layout, its ledges KatAM's one-way floors and its middle solid: not changed.
+  ground). Orange Ocean's hub (0x25A) has the same layout, its ledges KatAM's one-way floors and its middle solid: not changed (the owner:
+  leave it).
 - **The Fountain of Dreams hub**: the Master Sword's stand on the middle platform (shown, and giving Master, once the game is beaten,
   as Central Circle's; checked with the beaten state forced by a RAM write: Kirby walked into it and got Master), the Maxim Tomato
   on the floor's right.
@@ -117,8 +140,6 @@ said; not played by hand):
   hub, then KatAM's last rooms (checked on the original layout's render).
 
 Left:
-- **Orange Ocean's hub (0x25A)**: same layout as 0xC9's, its little side platforms drawn but KatAM's one-way floors (Kirby can't drop
-  through them) and its middle a solid block: change it as 0xC9's? Ask the owner.
 - **Not tested**: played by hand; the randomized map viewer layout (the rows are made the same way).
 
 ## 39. Meta Knight's fight 1:1 from NiDL
@@ -138,11 +159,17 @@ Checked by script in the emulator (not played by hand):
   560 frames; a fight with real hits to the knockout; the defeat). Without it, the Japanese build's seed differs from the start, as
   the game's own random numbers do, so he picks other moves.
 
+- **The camera** (the owner: cameras always exactly NiDL's): NiDL's camera never moves in a screen's room (8, 8); KatAM's room is
+  taller (padded below) and its camera sank 16 pixels with Kirby (24). Now the fight's arena holds it at NiDL's (8, 8) from Kirby's
+  first frame in the room, through the fight and after it, right on it (not easing there), in every 16x11 room with a fight: Meta
+  Knight's (0x29D), Mr. Shine & Mr. Bright's (0x164), the 16x11 mini-boss rooms. Checked by script: 0x29D at (8, 8) on every frame
+  of Kirby's entry, the fight, his knockout and defeat (760 frames; NiDL's screenshots the same), and on every logged frame of a run
+  in all three builds; 0x164 at (8, 8) through the fight and Kirby's defeat (USA); 0x135 (Mr. Tick-Tock) at (8, 8), its fight ended
+  by a RAM write: its door opened and took Kirby to 0x131, whose camera was its own.
+
 Left:
-- **The camera**: KatAM's camera shows this room 16 pixels lower than NiDL's (the room's hidden top row), so his highest leaps go
-  off the top of the screen. Change the fight's screen to NiDL's? Ask the owner.
 - **The thrust's screen shake**: NiDL's thrust down calls a screen shake as he lands (`0x080261D4`, not looked at in NiDL); not
-  ported (item 10: the owner finds the shakes too strong). Ask the owner.
+  ported yet. The owner: keep it, to be done later.
 - **Not ported**: NiDL's hit kinds 4 and 6 (states 16 and 23: inhaled, a hit on his box 0), which none of KatAM's attacks are.
 - **His knockout**: KatAM's (its flash and burst, 24 frames) before NiDL's defeat, where NiDL holds him 53 frames on a dark screen.
 - **Not tested**: played by hand; helpers and other players in the fight.

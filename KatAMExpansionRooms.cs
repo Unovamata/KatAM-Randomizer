@@ -4107,7 +4107,7 @@
                 }
                 else if (category == 0 && PortedEnemies.TryGetValue(index, out int ported)) {
                     type = NightmareID;
-                    // Poppy Bros. Jr. on an apple or with a bomb: their variants in poppy_bros_jr.c;
+                    // Poppy Bros. Jr. on an apple or a Maxim Tomato: their variants in poppy_bros_jr.c;
                     if (index == 31) variant = variant == 0 ? 3 : variant == 1 ? 7 : 5;
                     else if (index == 32) variant = variant == 0 ? 4 : variant == 1 ? 8 : 6;
                     behavior = (byte)(ported << 4 | (variant & 0xF));
@@ -4176,8 +4176,9 @@
                     arena[12] = NightmareID; arena[14] = ArenaBehavior;
                     // (subtype2 1: Kirby drops in from above its screen, the camera following him down to it, as NiDL's Dedede's: it
                     // stands at the room's top, where he comes in, to be there from his first frame, KatAM making objects near the
-                    // camera; its screen the same);
-                    arena[0x10] = (byte)(dropIn ? 1 : 0);
+                    // camera; its screen the same. 2: a screen's room, where NiDL's camera never moves (8, 8): held there from Kirby's
+                    // first frame in the room, and after the fight, as NiDL's; KatAM's taller room, padded (Padded()), let it sink 16);
+                    arena[0x10] = (byte)(dropIn ? 1 : OneScreen(r) ? 2 : 0);
                     if (dropIn) {
                         int left = x + (short)ReadShort(template, 0x1A), top = y + (short)ReadShort(template, 0x1C), width = ReadShort(template, 0x1E);
                         int ax = left + width / 2, ay = DropInY;
@@ -4401,9 +4402,14 @@
         /* ArenaOf(); A boss's fight area: the screen around its camera lock (RoomBosses: its x the screen's middle, its y near the top),
          * moved to hold the boss too, inside what KatAM's camera shows of the room (8 pixels in from its sides, cameraTop (CameraTop())
          * from its top, 40 from its bottom; see Padded()); a boss's may go `below` more (the room's hidden rows: down to where KatAM's
-         * camera stops, so its floor shows: Whispy Woods'); */
+         * camera stops, so its floor shows: Whispy Woods'), never lower than NiDL's own camera (a screen's room, Meta Knight's and Mr.
+         * Shine & Mr. Bright's: (8, 8), where KatAM's padded room took it to 24); */
+        // OneScreen(); A room NiDL's camera never moves in: a screen's (16x11 cells: its camera at (8, 8));
+        static bool OneScreen(NightmareRoom r) => r.Width * 16 <= 256 && r.Height * 16 <= 176;
         static (int left, int top, int width, int height) ArenaOf(NightmareRoom r, (int x, int y) cameraLock, int x, int y, int cameraTop, int below = 0) {
             const int ScreenWidth = 240, ScreenHeight = 160, Edge = 8, Margin = 24;
+            // (never lower than NiDL's own camera goes in the room: 8 above its bottom; KatAM's room is taller, Padded());
+            int lowest = Math.Max(Edge, r.Height * 16 - Edge - ScreenHeight);
             int Bottom = 40 - below;
             int width = Math.Min(ScreenWidth, r.FullWidth * 16 - 2 * Edge), height = Math.Min(ScreenHeight, r.FullHeight * 16 - Edge - Bottom);
             int left = cameraLock.x - width / 2, top = cameraLock.y - Margin;
@@ -4411,6 +4417,7 @@
             top = Math.Clamp(top, y + Margin - height, y - Margin);
             left = Math.Clamp(left, Edge, r.FullWidth * 16 - Edge - width);
             top = Math.Clamp(top, Math.Min(cameraTop, r.FullHeight * 16 - Bottom - height), r.FullHeight * 16 - Bottom - height);
+            top = Math.Min(top, lowest);
             return (left, top, width, height);
         }
 
