@@ -39,7 +39,9 @@ void sub_08088640(struct Kirby *, u8, u16);
 void sub_080880AC(struct Kirby *, u32);
 void sub_0800EE04(u8, u32);
 void sub_0801519C(struct Unk_02038590 *);  // (KatAM's helper AI's own action, its default);
+void sub_08056C2C(struct Kirby *);          // (KatAM's phone call);
 s32 PowerOrbIntro(struct Object *);
+s32 PowerOrbGround(struct Object *);
 bool32 PowerOrbShotNear(struct Object *, s32, s32, s32 *);
 
 // The ability Kirby had before the Star Rod (his padding byte after NIDL_MIKE_USES), given back after the fight;
@@ -119,6 +121,7 @@ struct StarRodStar {
     bool8 left;             // Flying left (shot by a Kirby facing left, on the ground);
     bool8 sinks;            // Sinking with the fight's screen (the Power Orb's: shot flying);
     bool8 blocked;          // On Nightmare's box (bosses/nightmare.c's NightmareBlocks()): bursting the frame after, as a hit;
+    u8 hitIn;               // On the Power Orb (StarRodHits()): frames till it bursts, flying on till then (NiDL's: it learns late);
 };
 
 static void StarRodRiderMain(void);
@@ -210,12 +213,13 @@ static void StarRodStarMain(void) {
             return;
         }
         base->sprite.variant = FRAME_BURST + sBurst[star->burst - 1];
-    } else if ((base->flags & 0x40000) || star->blocked) {
-        // (it hit: still, bursting, hitting nothing more);
+    } else if ((base->flags & 0x40000) || star->blocked || star->hitIn == 1) {
+        // (it hit: still, bursting, hitting nothing more: no box);
         star->burst = 1;
-        base->flags |= 0x400;
+        base->flags |= 0x200;
         base->sprite.variant = FRAME_BURST + sBurst[0];
     } else {
+        if (star->hitIn) star->hitIn--;
         base->x += star->left ? -STAR_SPEED : STAR_SPEED;
         sx = (base->x - gCurLevelInfo[Viewer(base->unk56, base->roomId)].viewportPosition.x) >> 8;
         if (sx > 240 + 32 || sx < -32) {
@@ -232,6 +236,31 @@ static void StarRodStarMain(void) {
     Macro_08107BA8_4(base, &base->sprite, &sprite, STAR_TILES, &base->sprite);
     base->sprite.palId = star->palId;
     sub_0806F8BC(base);
+}
+
+/* StarRodHits(); The Power Orb's hits (bosses/power_orb.c, each frame once it's moved; it runs before them): how many flying stars in
+ * its room will be `reach` pixels or less from (x, y) (8.8) each way once they move this frame; each flies on 2 frames more, then
+ * bursts (NiDL's star learns of its hit a frame late, then bursts the frame after); */
+#define HIT_FLIES_ON 3
+u8 StarRodHits(u16 room, s32 x, s32 y, s32 reach) {
+    struct Task *t = &gTasks[0];
+    u8 n, hits = 0;
+
+    for (n = 0; n < MAX_TASK_NUM && t->next; n++) {
+        struct StarRodStar *star;
+        s32 dx, dy;
+
+        t = (struct Task *)(IWRAM_START + t->next);
+        if (t->main != StarRodStarMain) continue;
+        star = TaskGetStructPtr(t);
+        if (!star->sinks || star->burst || star->hitIn || star->base.roomId != room || (star->base.flags & 0x1000)) continue;
+        dx = ((star->base.x + (star->left ? -STAR_SPEED : STAR_SPEED)) >> 8) - (x >> 8);
+        dy = (star->base.y >> 8) - (y >> 8);
+        if (dx < -reach || dx > reach || dy < -reach || dy > reach) continue;
+        star->hitIn = HIT_FLIES_ON;
+        hits++;
+    }
+    return hits;
 }
 
 // StarRodShoot(); A star, `dx` ahead of him the way he faces and `dy` down; flying (`sinks`), with the fight's screen;
@@ -266,6 +295,7 @@ static void StarRodShoot(struct Kirby *kirby, s32 dx, s32 dy, bool8 sinks) {
     star->burst = 0;
     star->spin = 0;
     star->blocked = FALSE;
+    star->hitIn = 0;
     star->palId = Palette(base, FRAME_STAR);
     ObjectBaseInitSprite(base, &base->sprite, STAR_TILES, gNidlData.enemies[NIDL_SPIT_STAR].animId, FRAME_STAR, 0xA);
     base->sprite.palId = star->palId;
@@ -593,6 +623,42 @@ static void StarRodIntro(struct StarRodRider *r, s32 t, struct LevelInfo *level)
     r->lastTop = level->unk_S32Vec2_7C.y;
 }
 
+// AllHere(); Whether every Kirby is in his room (KatAM's Macro_0803FF64_5: no helper to call);
+static bool32 AllHere(struct Kirby *kirby) {
+    u8 i;
+
+    for (i = 0; i < gNumKirbys; i++)
+        if (gKirbys[i].base.roomId != kirby->base.roomId) return FALSE;
+    return TRUE;
+}
+
+/* Call(); R, as KatAM's own states take it (Macro_0803FF64_7, in the air too): the phone, calling the helpers (sub_08056C2C), if the
+ * room and his battery let him; its state takes him then (the room frozen meanwhile), the Star Rod again after (Fly()); */
+static bool32 Call(struct Kirby *kirby) {
+    const struct RoomProps *room = &gRoomProps[kirby->base.roomId];
+    u8 i;
+
+    if (!(kirby->unk11A & R_BUTTON) || kirby->ability == KIRBY_ABILITY_MINI) return FALSE;
+    for (i = 1; i < 9; i++)
+        if (gUnk_0835105C[i] == kirby->base.roomId && *GetStateSlot(STATE_SLOT_SESSION, i, 0)) return FALSE;
+    for (i = 9; i < 14; i++)
+        if (gUnk_0835105C[i] == kirby->base.roomId && *GetStateSlot(STATE_SLOT_SESSION, i + 3, 0)) return FALSE;
+    if (gUnk_02021580 < gNumKirbys) {
+        if (!(kirby->base.unkC & 0x10000) && (gKirbys[gUnk_02021580].base.unkC & 0x10000)) {
+            if (!kirby->lives || !(room->priorityFlags & 0x10)) return FALSE;
+        } else if (AllHere(kirby) || (kirby->base.unkC & 0x10000) || gKirbys[gUnk_02021580].base.roomId == kirby->base.roomId
+                   || !(room->priorityFlags & 0x10)) {
+            return FALSE;
+        }
+    } else {
+        if ((!kirby->battery && !(kirby->base.unkC & 0x10000)) || (gUnk_0203AD20 & 2) || !(room->priorityFlags & 8)
+            || kirby->base.unk56 >= gNumHumanPlayers || (AllHere(kirby) && !(kirby->base.unkC & 0x10000))) return FALSE;
+        if (kirby->base.unkC & 0x10000) PlaySfx(&kirby->base, SE_PAUSE_MENU_ACTIVATE);
+    }
+    sub_08056C2C(kirby);
+    return TRUE;
+}
+
 static void StarRodRiderMain(void) {
     struct StarRodRider *r = TaskGetStructPtr(gCurTask);
     struct Kirby *kirby = r->kirby;
@@ -626,6 +692,8 @@ static void StarRodRiderMain(void) {
     x = (kirby->base.x - level->viewportPosition.x) >> 8;
     y = (kirby->base.y - level->viewportPosition.y) >> 8;
     if (kirby->base.unk56 < gNumHumanPlayers) {
+        // (calling the helpers: the phone's state takes him, his rider goes once it's over);
+        if (Call(kirby)) return;
         keys = kirby->movementState;
         pressed = kirby->unk11A;
     } else {
@@ -688,6 +756,9 @@ static void StarRodRiderMain(void) {
     if (x > RIGHT) kirby->base.x = level->viewportPosition.x + (RIGHT << 8);
     if (y < TOP) kirby->base.y = level->viewportPosition.y + (TOP << 8);
     if (y > BOTTOM) kirby->base.y = level->viewportPosition.y + (BOTTOM << 8);
+    // (and over the ground as it rises into view at the fall's end, however high that pushes him: bosses/power_orb.c);
+    if (r->orb && (kirby->base.y - level->viewportPosition.y) >> 8 > (y = PowerOrbGround(r->orb)))
+        kirby->base.y = level->viewportPosition.y + (y << 8);
     kirby->base.xspeed = kirby->base.yspeed = 0;
     kirby->base.flags &= ~1;
 }

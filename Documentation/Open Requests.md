@@ -18,6 +18,21 @@ owner's go-ahead on how they should look first.
   the ending's background is NiDL's mirrored left to right; at Nightmare's defeat his flight off starts after KatAM's burst, not 52
   frames after the hit as in NiDL.
 
+## 35. The Power Orb's fight frame by frame as NiDL's
+The owner: no change of look when it's hit, allies can't be called, the foreground shakes oddly, there should be no screen shake;
+check the whole fight frame by frame and make it 1:1. Done: its look when hit, calling the helpers, the foreground steady and no
+screen shake, its moves, dash and escape, the fall on to the ground and the time limit, its palette pulse, its shots and their
+trails, its burst when beaten. Checked against NiDL's recording (USA, Kirby idle with his HP held, NiDL's looks forced to repeat
+by a test ROM): its shots and their trails at the same spot and frame on every frame of fight frames 0-4000, the cameras the same
+on all 4006 frames, frames 100-866 differing only around Kirby; the finale played through by script in all three versions (the
+orb's HP set to 1 by a RAM write) with Nightmare's fight still matching NiDL's on all 4399 frames. Left:
+- **The intro**: the orb's path is about 1 pixel left and 2-3 up of NiDL's for 60 frames, and Kirby's swing and its slash come a
+  frame early.
+- **Lag**: 3 more lag frames over the fight than without the trails.
+- **KatAM's own**: the door's fade leaves the background a step bright for the fight's first 89 frames; Kirby's art and pose, and
+  the Star Rod tip's glow coming at another time.
+- **Not tested**: the fight played by hand.
+
 ## 10. Screen shake as KatAM's
 The owner: the screen shakes far too much. Not reproduced: KatAM's shake runs the same in the NiDL rooms as in KatAM's, and
 nothing found shakes more often than in KatAM. Needs the owner's details (which room, what was happening).

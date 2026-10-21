@@ -139,6 +139,7 @@ void StarRodFightOver(struct Object *orb);
 s32 StarRodSink(u8 player, s32 *lastTop);
 void StarRodHit(struct Kirby *, s32 x);
 bool32 StarRodTouches(struct Kirby *, s32 x, s32 y, s32 halfWidth, s32 halfHeight);
+u8 StarRodHits(u16 room, s32 x, s32 y, s32 reach);
 
 // Abilities (abilities/*.c): B on land;
 void NeedleStart(struct Kirby *);

@@ -107,7 +107,7 @@
                 if (nightmare[at] - 1 == BossCategory && RoomBosses.TryGetValue(nightmare[at + 1], out var spot)) return spot.boss;
             return -1;
         }
-        const int PowerOrbSink = 513;       // how far its screen sinks as they fight (bosses/power_orb.c's SINK_END);
+        const int PowerOrbSink = 881;       // how far its screen sinks as they fight, down to the ground (bosses/power_orb.c's SINK_END);
         /* The finale ("ROM Expansion/finale.c"): where Central Circle's and the NiDL hub's Dimension Mirrors take Kirby (the Power Orb's
          * room, where he starts it: PlanDoors()); the Fountain of Dreams hub's Amazing Mirror (finaleMirror: Central Circle's Dimension
          * Mirror as KatAM has it, leading to FinalRoom, taken before FinaleMirrors() points that one at the Power Orb's room), in the
