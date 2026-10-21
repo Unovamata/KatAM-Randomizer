@@ -310,6 +310,8 @@ static void WeaponMain(void) {
     u8 frame;
 
     if (ObjectPreUpdate(base)) return;
+    // (Kirby can inhale it, nidl.c: what he fights with when he has no power);
+    if (NidlInhaled(base, WEAPON_TILES)) return;
     base->flags |= 4;
     if (++base->counter > WEAPON_TIME || base->y > ViewTop() + 0xC400) {
         base->flags |= 0x1000;
@@ -756,9 +758,11 @@ static void KnightMain(struct Object *obj) {
     NidlUpdate(&k->n);
     obj->kirby3 = FindTargetKirby(&obj->base);
     obj->base.flags |= 4;
+    // (fading in, blinking: untouchable, as NiDL's, till it's all there);
     if (k->fade) {
         k->fade--;
         obj->base.flags = (k->fade & 2) ? obj->base.flags | 0x400 : obj->base.flags & ~0x400;
+        obj->base.flags = k->fade ? obj->base.flags | 0x200 : obj->base.flags & ~(0x200 | 0x400);
     }
     obj->base.yspeed -= k->gravity;
     if (obj->base.yspeed < -MAX_FALL) obj->base.yspeed = -MAX_FALL;
@@ -1036,8 +1040,11 @@ void MetaKnightsInit(struct NidlObject *n) {
         k->step = 0;
         k->timer = 1;
         obj->unk80 = KNIGHT_HP;
-        // They die as KatAM's enemies do, not as mini-bosses (object.c's 0x0809AF38);
+        // They die as KatAM's enemies do, not as mini-bosses (object.c's 0x0809AF38), and Kirby can inhale them as an enemy (KatAM's
+        // weight 1, not a mini-boss's 3 with its "not inhaled" bit, 0x20, and its 0x108000), as NiDL's: what he fights the others
+        // with when he has no power (they give nothing, as NiDL's: their variant data's byte 12, 0x08747D5C...);
         obj->base.unkC |= 0x800;
+        obj->base.unk5C = (obj->base.unk5C & ~(7 | 0x20 | 0x108000)) | 1;
         sub_0803E2B0(&obj->base, -10, -10, 10, 9);
         NidlSetFrame(n, sFirstFrame[k->kind] + 4);
         return;

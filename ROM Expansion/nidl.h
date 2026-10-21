@@ -212,6 +212,8 @@ void NidlAnimate(struct NidlObject *);
 void NidlUpdate(struct NidlObject *);
 void NidlFall(struct Object *);
 void NidlFaceKirby(struct Object *);
+bool32 NidlInhaled(struct ObjectBase *, u16 tiles);  // a mini-boss's projectile inhaled (nidl.c);
+struct Kirby *NidlInhaler(struct ObjectBase *);
 bool32 NidlIsFloor(struct Object *, s32 x, s32 y);
 void NidlStopAtLedge(struct Object *);
 bool32 NidlIsWater(struct Object *, s32 dy);

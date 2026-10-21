@@ -171,6 +171,8 @@ static void NoteMain(void) {
     struct ObjectBase *note = TaskGetStructPtr(gCurTask);
 
     if (ObjectPreUpdate(note)) return;
+    // (Kirby can inhale it, nidl.c: what he fights with when he has no power);
+    if (NidlInhaled(note, NOTE_TILES)) return;
     note->flags |= 4;
     if (!(note->flags & 0x200)) SetPointerSomething(note);
     note->yspeed -= NOTE_GRAVITY;
