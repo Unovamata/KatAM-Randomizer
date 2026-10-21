@@ -112,12 +112,14 @@
          * room, where he starts it: PlanDoors()); the Fountain of Dreams hub's Amazing Mirror (finaleMirror: Central Circle's Dimension
          * Mirror as KatAM has it, leading to FinalRoom, taken before FinaleMirrors() points that one at the Power Orb's room), in the
          * middle of the room as the camera shows it, high up under the ceiling, where the other switch rooms' ability statues stand
-         * (pixels: its spot, the camera showing 8-248 and 8-168; its sprite's middle 4 above), and its Maximum Tomato (0x61) under it,
-         * on the raised platform at the room's bottom middle (its top at 130); */
+         * (pixels: its spot, the camera showing 8-248 and 8-168; its sprite's middle 4 above); under it, on the raised platform at the
+         * room's bottom middle (its top at 128), KatAM's Master Sword stand (0x98, as Central Circle's, 16 pixels over the floor: it gives
+         * Master once the game is beaten, or from the start with "Unlock the Master Sword"), and its Maximum Tomato (0x61) on the floor's
+         * right, where Kirby lands on its left (the owner's); */
         static (int room, int x, int y) finaleEntry;
         static byte[] finaleMirror;
-        static readonly (int x, int y) FinaleMirrorAt = (128, 68), FinaleTomatoAt = (128, 121);
-        const byte FinaleTomato = 0x61;
+        static readonly (int x, int y) FinaleMirrorAt = (128, 68), FinaleSwordAt = (128, 112), FinaleTomatoAt = (200, 137);
+        const byte FinaleTomato = 0x61, MasterSwordStand = 0x98;
         // NiDL items (category 3): 1-Up, Maxim Tomato, Invincibility Candy, Energy Drink -> KatAM's 1UP, Maximum Tomato, Lollipop, Pep Brew;
         static readonly Dictionary<int, byte> RoomItems = new Dictionary<int, byte> { [1] = 0x63, [2] = 0x61, [3] = 0x64, [4] = 0x5F };
         // KatAM song per NiDL level (Vegetable Valley ... Rainbow Resort, then the Fountain of Dreams);
@@ -203,6 +205,8 @@
         static (int x, int y) SwitchLinkDoor(int level) => LayoutB(level) ? (8, 8) : (3, 3);
         static (int x, int y) SwitchHubDoor(int level) => LayoutB(level) ? (8, 3) : (12, 3);
         static (int x, int y) SwitchAt(int level) => LayoutB(level) ? (128, 96) : (128, 128);
+        const int SwitchDrop = 4;
+        static bool SwitchPedestal(int level, int x, int y) => LayoutB(level) ? y == 6 && x >= 6 && x <= 9 : y == 8 && x >= 5 && x <= 10;
         static (int x, int y) SwitchArrival(int level) => LayoutB(level) ? (3, 6) : (3, 8);
         /* SwitchStatues: the ability statues on each switch room's top row, as KatAM's hub rooms' (objects 0x92: Beam, Burning, Laser,
          * Fire, Stone, Fighter, Bomb, Tornado; 0x93: Wheel, Ice, Spark, Missile, Smash, Throw, Hammer; 0x94: Parasol; 0x95: Sword,
@@ -544,6 +548,11 @@
         static readonly Dictionary<int, (int x, int y)[]> SwitchExtraGround = new Dictionary<int, (int, int)[]>();
         // NoLedges; The levels whose switch rooms (layout B) have no ledges beside the pedestal;
         static readonly HashSet<int> NoLedges = new HashSet<int> { 3 };
+        // ThinPlatforms; The levels whose switch rooms (layout B) draw the ledges and the pedestal as one floating platform: all of it a
+        // thin floor Kirby jumps up through, the ledges one he drops through too (NiDL's 0x11, KatAM's 0x0E, ThinFloors() leaving them
+        // so), the pedestal KatAM's he doesn't (0x0F: the big switch stands on it; on 0x0E it fell to the ground), as it looks (the
+        // owner's: Ice Cream Island's, 0xC9, had a solid block in its middle and ledges Kirby couldn't drop through);
+        static readonly HashSet<int> ThinPlatforms = new HashSet<int> { 1 };
         // UnmirroredFill; The levels whose switch rooms' ground inside isn't mirrored (see BuildSwitchRooms());
         static readonly HashSet<int> UnmirroredFill = new HashSet<int> { 1 };
         /* ForeignDecorations; Levels whose switch rooms take decorations (SwitchDecorations' * metatiles) from another level's last
@@ -738,14 +747,15 @@
                 bool Solid(int x, int y) => y == 0 || y >= SwitchFloor || Pedestal(x, y) || extra.Contains((x, y)) || Pillared(x, y) || (b
                     ? (y <= 3 && (x <= 1 || x >= SwitchWidth - 2)) || (y >= 4 && (x == 0 || x == SwitchWidth - 1)) || (y >= 7 && (x <= 3 || x >= SwitchWidth - 4))
                     : y <= 5 && (x <= 1 || x >= SwitchWidth - 2));
-                bool Pedestal(int x, int y) => b ? y == 6 && x >= 6 && x <= 9 : y == 8 && x >= 5 && x <= 10;
+                bool Pedestal(int x, int y) => SwitchPedestal(level, x, y);
                 // (none in NoLedges' rooms: Grape Garden's, its castle shown whole behind);
                 bool Ledge(int x, int y) => b && y == 6 && (x == 4 || x == 5 || x == 10 || x == 11) && !NoLedges.Contains(level) && Environment.GetEnvironmentVariable($"SWITCH_ROOM_NO_LEDGES_{level}") == null;
                 // (past the room's edges solid, as the level's);
                 int TargetClass(int x, int y) => x < 0 || y < 0 || x >= SwitchWidth || y >= SwitchHeight ? Earth : Ledge(x, y) ? OneWay : Solid(x, y) ? Earth : Air;
+                bool Thin(int x, int y) => TargetClass(x, y) == OneWay || ThinPlatforms.Contains(level) && Pedestal(x, y);
                 for (int y = 0; y < SwitchHeight; y++)
                     for (int x = 0; x < SwitchWidth; x++)
-                        Set(x, y, air, (byte)(TargetClass(x, y) == Earth ? 0x01 : TargetClass(x, y) == OneWay ? 0x11 : 0x00));
+                        Set(x, y, air, (byte)(Thin(x, y) ? 0x11 : TargetClass(x, y) == Earth ? 0x01 : 0x00));
                 int Current(int x, int y) => ReadShort(cells, (y * SwitchWidth + x) * 4);
                 bool[] taken = new bool[SwitchWidth * SwitchHeight];
 
@@ -1266,11 +1276,16 @@
                             collision[y * r.FullWidth + x] = padding && kind >> 4 == 2 ? (byte)0x0D : !padding && kind is >= 0x38 and <= 0x3D ? FuseCollision[kind - 0x38] : RoomCollision[kind];
                         }
                     }
-                    // Thin floors Kirby needn't drop through (ThinFloors());
+                    // Thin floors Kirby needn't drop through (ThinFloors(); not a ThinPlatforms switch room's floating platform);
                     var arrivals = doors.Values.SelectMany(list => list).Concat(mainHubDoors).Concat(katamDoors.Values.SelectMany(list => list))
                                         .Where(d => d.Room == r.Room).Select(d => (d.DestX - 1, d.DestY - 1))
                                         .Concat(transportsOf.Values.SelectMany(list => list).Where(t => t.Room == r.Room).Select(t => (t.DestX - 1, t.DestY - 1))).ToList();
-                    ThinFloors(r, collision, arrivals, doors[r].Select(d => (d.X, d.Y)).Concat(transportsOf[r].Select(t => (t.X / 16, (t.Y - 1) / 16))).ToList());
+                    if (!(r.IsSwitchRoom && ThinPlatforms.Contains(r.Level)))
+                        ThinFloors(r, collision, arrivals, doors[r].Select(d => (d.X, d.Y)).Concat(transportsOf[r].Select(t => (t.X / 16, (t.Y - 1) / 16))).ToList());
+                    else
+                        for (int y = 0; y < r.Height; y++)
+                            for (int x = 0; x < r.Width; x++)
+                                if (SwitchPedestal(r.Level, x, y)) collision[y * r.FullWidth + x] = 0x0F;
                     // Mirras (see MirraSpots()): not in a boss's room nor a switch room;
                     bool bossRoom = !r.IsSwitchRoom && (r.Level == 7 || r.Stage == rooms.Where(o => o.Level == r.Level && !o.IsSwitchRoom).Max(o => o.Stage));
                     var mirras = r.IsSwitchRoom || bossRoom ? new List<(int x, int y, bool door)>() : MirraSpots(r, doors[r], collision);
@@ -1310,10 +1325,10 @@
                     rom[roomInfo + 0x4A] = (byte)(r.Stage + 1); rom[roomInfo + 0x4B] = (byte)r.Index;
                     WriteInt(rom, roomInfos + r.Room * 4, roomInfo + 0x08000000);
 
-                    // The camera's top (CameraTop()); the background spans the room once, both ways (BackgroundRates()); the Fountain
-                    // of Dreams hub's KatAM's (8 pixels down): a screen's room, so its camera stays put, as KatAM's hub rooms' (the owner's;
-                    // from the room's top it rose 8 pixels as Kirby flew up);
-                    int top = r.IsSwitchRoom && r.Level == 7 ? 8 : CameraTop(nightmare, r);
+                    // The camera's top (CameraTop()); the background spans the room once, both ways (BackgroundRates()); the level
+                    // hubs' KatAM's (8 pixels down): a screen's rooms, so their cameras stay put, as KatAM's hub rooms' (the owner's; from
+                    // the room's top they rose 8 pixels as Kirby flew up);
+                    int top = r.IsSwitchRoom ? 8 : CameraTop(nightmare, r);
                     // (rooms.c's code: 0 KatAM's 8 pixels, 1 the room's top, 2 a row down; it was top / 8 + 1, two rows down, 0x147);
                     rom[CodeAddress + version.CodeSymbols["gNidlRoomTops"] + r.Room] = (byte)(top == 8 ? 0 : top / 16 + 1);
                     (int rateX, int rateY) = BackgroundRates(ReadShort(nightmare, backgroundMap + 2) * 8, ReadShort(nightmare, backgroundMap + 4) * 8,
@@ -4208,8 +4223,9 @@
 
             // A switch room's big switch (NiDL's own aren't ported: a level has one, see LevelSlot()) and ability statues (SwitchStatues);
             // the Fountain of Dreams hub's, the finale's end, has neither: an Amazing Mirror in the room's middle, high up, to KatAM's
-            // final boss (as Central Circle's Dimension Mirror led there: whole, and the way in, once KatAM's 8 shards are found), and a
-            // Maximum Tomato under it, on the raised platform (taken once per visit, as the items);
+            // final boss (as Central Circle's Dimension Mirror led there: whole, and the way in, once KatAM's 8 shards are found), the
+            // Master Sword's stand under it, on the raised platform, and a Maximum Tomato on the floor's right (taken once per visit, as
+            // the items);
             bool finaleHub = r.IsSwitchRoom && r.Level == 7 && finaleMirror != null;
             if (finaleHub) {
                 byte[] mirror = (byte[])finaleMirror.Clone();
@@ -4217,12 +4233,18 @@
                 WriteShorts(mirror, 6, FinaleMirrorAt.x, FinaleMirrorAt.y);
                 templates.Add(mirror);
                 types.Add(ShardType);
+                byte[] stand = ObjectTemplate(FinaleSwordAt.x, FinaleSwordAt.y, templates.Count, MasterSwordStand);
+                stand[14] = stand[15] = 0;
+                templates.Add(stand);
+                if (!types.Contains(MasterSwordStand)) types.Add(MasterSwordStand);
                 byte[] tomato = ObjectTemplate(FinaleTomatoAt.x, FinaleTomatoAt.y, templates.Count, FinaleTomato);
                 tomato[2] = TakenKind; tomato[3] = (byte)takenItems++;
                 templates.Add(tomato);
                 if (!types.Contains(FinaleTomato)) types.Add(FinaleTomato);
             } else if (r.IsSwitchRoom) {
-                templates.Add(BigSwitchTemplate(SwitchAt(r.Level).x, SwitchAt(r.Level).y, templates.Count, LevelSlot(r.Level), r.Level));
+                // (over a ThinPlatforms pedestal, a little above it: it falls on to it, as a one-way floor only holds what lands on it from
+                // above; at its top, its feet on it, it fell through to the ground);
+                templates.Add(BigSwitchTemplate(SwitchAt(r.Level).x, SwitchAt(r.Level).y - (ThinPlatforms.Contains(r.Level) ? SwitchDrop : 0), templates.Count, LevelSlot(r.Level), r.Level));
                 types.Add(BigSwitchType);
             }
             if (r.IsSwitchRoom && !finaleHub) {

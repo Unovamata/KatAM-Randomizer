@@ -12,7 +12,8 @@
  *   3 times in 63 frames), throwing small stars out behind (15-26: every 48 frames, off to the right faster and faster);
  * • the screen scrolling down (3/16 of a pixel a frame) as the star bobs along (sEndStar, its moves frame by frame, every Kirby on
  *   it with his own warp star, facing left), King Dedede flying up past it and away (sEndDedede: NiDL's ending's frames 64, 66-68);
- *   all of it twice as fast as NiDL's (RIDE_SPEED: NiDL's has its narration to read; the trail and small stars at their own pace);
+ *   all of it four times as fast as NiDL's (RIDE_SPEED: NiDL's has its narration to read; twice, the owner found it slow; the trail
+ *   and small stars at their own pace);
  * • the star still after its loop (NiDL's next: Kirby jumps off it to throw the Star Rod), the flight goes on: NiDL's cut, the fade
  *   to white, then the Fountain of Dreams hub (warpstar.c lets the warp stars go there);
  * The Power Orb isn't there meanwhile (nidl_boss.c), nor the room's camera its arena's: the screen is held (finale.c's
@@ -60,7 +61,7 @@ void sub_080534D0(struct Kirby *);  // a flight's step (kirby.c);
 #define END_SIZE_MORE 4
 #define END_SIZE_EVERY 16
 #define END_SCROLL 930          // (the screen scrolling down after it, 3/16 of a pixel a frame);
-#define RIDE_SPEED 2            // (from there on, NiDL's frames this many a frame: the ride down sped up, its moves and the screen's with it);
+#define RIDE_SPEED 4            // (from there on, NiDL's frames this many a frame: the ride down sped up, its moves and the screen's with it);
 #define END_DEDEDE 2291         // (King Dedede at END_DEDEDE_X, Y on the screen, then sEndDedede's moves; far off from END_DEDEDE_FAR);
 #define END_DEDEDE_X 223
 #define END_DEDEDE_Y 207

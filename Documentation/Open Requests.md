@@ -92,6 +92,35 @@ Left:
 - **Not tested**: the fights played by hand; a hit with an ability on a knight blinking in (only the inhale was tested: Kirby kept
   getting stuck in a Sword move in the scripted runs); a spat star hurting Poppy Bros. Sr. (a Bronto Burt got in the way).
 
+## 38. Hubs, the finale and the map order: the owner's list
+The owner's list: the NiDL hubs' cameras locked as KatAM's; room 0xC9's pass-through platforms not letting Kirby through and an
+odd solid box in its middle; the Fountain of Dreams hub's Maxim Tomato to the right and the Master Sword's stand in its middle;
+Nightmare's fight lagging as he calls up his particles; a faster cinematic after Nightmare; the Power Orb's room, Nightmare's and
+the Fountain of Dreams hub before KatAM's last rooms in the map viewer's order. Done, checked by script in the emulator (USA unless
+said; not played by hand):
+- **Hub cameras**: the level hubs' cameras stay at (8, 8) as Kirby flies to their tops (0x064, 0x0C9, 0x1F9, 0x002; 0x064's and
+  0x1F9's rose to 0 before). The NiDL hub, Central Circle's copy, scrolls with Kirby as Central Circle does (it's bigger than a screen).
+- **Room 0xC9**: its floating platform is all a thin floor: Kirby jumps up through it anywhere, drops through its ledges (Down, or
+  Down and B), and the big switch stands on its middle (KatAM's one-way floor there: on one he drops through, the switch fell to the
+  ground). Orange Ocean's hub (0x25A) has the same layout, its ledges KatAM's one-way floors and its middle solid: not changed.
+- **The Fountain of Dreams hub**: the Master Sword's stand on the middle platform (shown, and giving Master, once the game is beaten,
+  as Central Circle's; checked with the beaten state forced by a RAM write: Kirby walked into it and got Master), the Maxim Tomato
+  on the floor's right.
+- **Nightmare's lag**: the helpers' aim walked the whole task list for every height they tried (7% of a frame with three helpers),
+  and each Star Rod star walked it every frame for his box: now found once. With three helpers and every Kirby shooting, the
+  scripted fight's lag frames went from 350 to 100 (USA, European), 367 to 135 (Japanese); alone, 5 before and after. Nightmare's
+  fight still matches NiDL's on all 4399 frames (all three versions). What's left of the lag is KatAM's own sprite drawing and
+  collisions with that many stars and sparkles out (his charge, his hand, his knockback).
+- **After Nightmare**: the ride down from the moon four times as fast as NiDL's (it was twice): from his room to the hub, 2620
+  frames down to 1790 (about 44 seconds to 30), in all three versions.
+- **Map viewer**: the Fountain of Dreams' three rooms lead the bottom row (the game's end), the Power Orb's room, Nightmare's, the
+  hub, then KatAM's last rooms (checked on the original layout's render).
+
+Left:
+- **Orange Ocean's hub (0x25A)**: same layout as 0xC9's, its little side platforms drawn but KatAM's one-way floors (Kirby can't drop
+  through them) and its middle a solid block: change it as 0xC9's? Ask the owner.
+- **Not tested**: played by hand; the randomized map viewer layout (the rows are made the same way).
+
 ## 10. Screen shake as KatAM's
 The owner: the screen shakes far too much. Not reproduced: KatAM's shake runs the same in the NiDL rooms as in KatAM's, and
 nothing found shakes more often than in KatAM. Needs the owner's details (which room, what was happening).

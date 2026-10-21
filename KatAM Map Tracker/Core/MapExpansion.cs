@@ -19,13 +19,16 @@ namespace KatAMMapTracker {
      *   its stage's rooms, else by the level's way in, so a stage's map stays together.
      *   Each level is a cluster of its own (11 + level, as its area), the hub too (19).
      * • KatAM's rooms the map lines up under itself (the tutorial and the game's end: rooms no mirror links to Central Circle's
-     *   map) go after the levels, so the map still ends with them; */
+     *   map) go after the levels, so the map still ends with them; the Fountain of Dreams (the Power Orb's room, Nightmare's, its
+     *   hub: the finale, its Amazing Mirror to KatAM's final boss) leads the game's end's row, as it's played (the owner's: the
+     *   rows are in the order the game goes); */
     public static class MapExpansion {
         const int Grid = MapGraphics.TileSize;
         const int Step = 6 * Grid, MinGap = 3 * Grid, LevelMargin = 128, LongRoom = 60, RoomMargin = 72, Fit = 2 * Grid, TightGap = 4 * Grid;
         public const int HubCluster = 19;
         public static int LevelCluster(int level) => 11 + level;
         public static bool IsLevelCluster(int cluster) => cluster >= 11 && cluster < 19;
+        const int FinaleLevel = 7;
 
         // Place(); Adds the NiDL rooms of 'map' to 'layout' (KatAM's rooms, placed) and their clusters to 'clusters';
         public static void Place(RomMap map, Dictionary<int, RoomPlacement> layout, Dictionary<int, int> clusters, bool original = false) {
@@ -43,6 +46,27 @@ namespace KatAMMapTracker {
 
             double SizeOf(RoomInfo room) => MapGraphics.SizeOf(MapGraphics.ShapeOf(room));
 
+            /* KatAM's rooms lined up under its map (UnderKatAM(): not linked to Central Circle's map), the game's end's row last; the
+             * finale's rooms (the Fountain of Dreams level) first in that row, as they're played (the Power Orb's room, Nightmare's,
+             * the hub), KatAM's after them, as far apart as they are (and their rooms clear of each other); */
+            HashSet<int> under = UnderKatAM(map, layout);
+            List<RoomInfo> finale = nightmare.Where(r => r.NightmareLevel == FinaleLevel).OrderBy(r => r.NightmareStage).ThenBy(r => r.NightmareIndex).ThenBy(r => r.Id).ToList();
+            bool finaleInRow = under.Count > 0 && finale.Count > 0;
+            if (finaleInRow) {
+                double endY = under.Max(r => layout[r].CenterY);
+                List<int> endRow = under.Where(r => Math.Abs(layout[r].CenterY - endY) < 1).OrderBy(r => layout[r].CenterX).ToList();
+                List<double> gaps = endRow.Zip(endRow.Skip(1), (a, b) => layout[b].CenterX - layout[a].CenterX).Where(g => g > 0).ToList();
+                double step = gaps.Count > 0 ? gaps.Min() : Step, x = layout[endRow[0]].CenterX, last = 0;
+                foreach (RoomInfo room in finale) {
+                    if (last > 0) x += Math.Max(step, (last + SizeOf(room)) / 2 + MinGap);
+                    Put(room, x, endY, LevelCluster(FinaleLevel));
+                    under.Add(room.Id);
+                    last = SizeOf(room);
+                }
+                double shift = x + Math.Max(step, (last + endRow.Max(r => layout[r].Width)) / 2 + MinGap) - layout[endRow[0]].CenterX;
+                foreach (int room in endRow) layout[room] = layout[room] with { X = layout[room].X + shift };
+            }
+
             /* Each level on its own canvas: room centers relative to its top left; beside KatAM's original map, laid out as its area maps
              * are (LayoutLevel()); on a randomized map, a cluster as compact as KatAM's clusters there (ClusterLevel()), and packed as
              * close to the others as they are to each other (ClusterMargin); */
@@ -50,15 +74,14 @@ namespace KatAMMapTracker {
             List<List<RoomPlacement>> areas = clusters.Where(c => layout.ContainsKey(c.Key)).GroupBy(c => c.Value).Where(a => a.Count() > 5)
                 .Select(a => a.Select(c => layout[c.Key]).ToList()).ToList();
             double density = areas.Count == 0 ? 0 : areas.Average(a => (a.Max(p => p.X + p.Width) - a.Min(p => p.X)) * (a.Max(p => p.Y + p.Height) - a.Min(p => p.Y)) / a.Count);
-            Dictionary<int, Dictionary<int, (double x, double y)>> levels = nightmare.Where(r => r.NightmareLevel >= 0).GroupBy(r => r.NightmareLevel)
+            Dictionary<int, Dictionary<int, (double x, double y)>> levels = nightmare.Where(r => r.NightmareLevel >= 0 && !(finaleInRow && r.NightmareLevel == FinaleLevel)).GroupBy(r => r.NightmareLevel)
                 .ToDictionary(level => level.Key, level => original ? Tighten(LayoutLevel(level.ToList(), neighbors, SizeOf), map, SizeOf, density) : ClusterLevel(level.ToList(), neighbors, map, SizeOf));
             double roomMargin = original ? RoomMargin : MapLayout.DefaultClusterMargin;
 
             (double width, double height) Bounds(Dictionary<int, (double x, double y)> centers) =>
                 (centers.Max(c => c.Value.x + SizeOf(map.Rooms[c.Key]) / 2), centers.Max(c => c.Value.y + SizeOf(map.Rooms[c.Key]) / 2));
 
-            // KatAM's map, without the rooms lined up under it (UnderKatAM(): not linked to Central Circle's map);
-            HashSet<int> under = UnderKatAM(map, layout);
+            // KatAM's map, without the rooms lined up under it;
             List<RoomPlacement> katam = layout.Where(p => !under.Contains(p.Key)).Select(p => p.Value).ToList();
             (double left, double top, double right, double bottom) main = katam.Count == 0 ? (0, 0, 0, 0)
                 : (katam.Min(p => p.X), katam.Min(p => p.Y), katam.Max(p => p.X + p.Width), katam.Max(p => p.Y + p.Height));

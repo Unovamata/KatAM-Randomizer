@@ -121,6 +121,7 @@ struct StarRodStar {
     bool8 left;             // Flying left (shot by a Kirby facing left, on the ground);
     bool8 sinks;            // Sinking with the fight's screen (the Power Orb's: shot flying);
     bool8 blocked;          // On Nightmare's box (bosses/nightmare.c's NightmareBlocks()): bursting the frame after, as a hit;
+    void *fight;            // His fight (NightmareFightOf(), once it's on: NULL till then, and once it's over, StarRodForget());
     u8 hitIn;               // On the Power Orb (StarRodHits()): frames till it bursts, flying on till then (NiDL's: it learns late);
 };
 
@@ -230,7 +231,10 @@ static void StarRodStarMain(void) {
         base->sprite.variant = FRAME_STAR + sSpin[star->spin];
         SetPointerSomething(base);
         // (Nightmare's box: NiDL's stars burst on it whatever, his hits KatAM's, only while he can take them);
-        if (!star->sinks) star->blocked = NightmareBlocks(base->roomId, base->x, base->y);
+        if (!star->sinks) {
+            if (star->fight == NULL) star->fight = NightmareFightOf(base->roomId);
+            star->blocked = NightmareBlocks(star->fight, base->x, base->y);
+        }
     }
     ++base->counter;
     Macro_08107BA8_4(base, &base->sprite, &sprite, STAR_TILES, &base->sprite);
@@ -298,12 +302,25 @@ static void StarRodShoot(struct Kirby *kirby, s32 dx, s32 dy, bool8 sinks) {
     star->spin = 0;
     star->blocked = FALSE;
     star->hitIn = 0;
+    star->fight = NULL;
     star->palId = Palette(base, FRAME_STAR);
     ObjectBaseInitSprite(base, &base->sprite, STAR_TILES, gNidlData.enemies[NIDL_SPIT_STAR].animId, FRAME_STAR, 0xA);
     base->sprite.palId = star->palId;
     // (the helpers' in the Power Orb's fight without their sparkle, fewer effects for its four flying Kirbys: the player's keep it);
     if (!sinks || kirby->base.unk56 < gNumHumanPlayers) StarRodTrail(star);
     PlaySfx(&kirby->base, SE_KIRBY_STARSHOT_1);
+}
+
+// StarRodForget(); Nightmare's fight (`fight`) is over: the stars still flying let go of it (bosses/nightmare.c's FightMain());
+void StarRodForget(void *fight) {
+    struct Task *t = &gTasks[0];
+    u8 n;
+
+    for (n = 0; n < MAX_TASK_NUM && t->next; n++) {
+        t = (struct Task *)(IWRAM_START + t->next);
+        if (t->main == StarRodStarMain && ((struct StarRodStar *)TaskGetStructPtr(t))->fight == fight)
+            ((struct StarRodStar *)TaskGetStructPtr(t))->fight = NULL;
+    }
 }
 
 /* Give(); His ability, with its motions and hat (as an ability star gives one: sub_0806F260, sub_0806EFF8) and its HUD card (as
@@ -411,16 +428,17 @@ void StarRodSwingStart(struct Kirby *kirby) {
 #define AIM_STEP 8
 #define AIM_CLEAR 8         // (no jump with his box nearer: his touch);
 
-// AimFrom(); Whether a helper's star would meet him shot `up` pixels higher (NightmareTarget()), which way, and how far he is;
-static bool32 AimFrom(struct Kirby *kirby, s32 up, bool8 *left, s32 *gap) {
-    return NightmareTarget(kirby->base.roomId, kirby->base.x, kirby->base.y + ((GROUND_STAR_Y - up) << 8), left, gap);
+// AimFrom(); Whether a helper's star would meet him (`fight`, NightmareFightIn()'s) shot `up` pixels higher (NightmareTarget()),
+// which way, and how far he is;
+static bool32 AimFrom(void *fight, struct Kirby *kirby, s32 up, bool8 *left, s32 *gap) {
+    return NightmareTarget(fight, kirby->base.x, kirby->base.y + ((GROUND_STAR_Y - up) << 8), left, gap);
 }
 
 static void AIShoot(struct Unk_02038590 *ai) {
     bool8 left;
     s32 gap;
 
-    if (AimFrom(ai->unk40, 0, &left, &gap)) ai->unk9E |= B_BUTTON | (left ? DPAD_LEFT : DPAD_RIGHT);
+    if (AimFrom(NightmareFightIn(ai->unk40->base.roomId), ai->unk40, 0, &left, &gap)) ai->unk9E |= B_BUTTON | (left ? DPAD_LEFT : DPAD_RIGHT);
     ai->unk0[3] = sub_0801519C;
 }
 
@@ -428,7 +446,7 @@ static void AIJump(struct Unk_02038590 *ai) {
     bool8 left;
     s32 gap;
 
-    if (ai->unkDE && AimFrom(ai->unk40, 0, &left, &gap)) {
+    if (ai->unkDE && AimFrom(NightmareFightIn(ai->unk40->base.roomId), ai->unk40, 0, &left, &gap)) {
         ai->unk9E |= B_BUTTON | (left ? DPAD_LEFT : DPAD_RIGHT);
         ai->unk0[3] = sub_0801519C;
     } else if (ai->unkDE++ < AIM_RISE) {
@@ -443,18 +461,19 @@ static void AIJump(struct Unk_02038590 *ai) {
  * air (a jump of his own), a swing when he's in line; none while one's under way or his swing's not over; */
 void StarRodAim(struct Kirby *kirby) {
     struct Unk_02038590 *ai = &gUnk_02038590[kirby->base.unk56];
+    void *fight;
     bool8 left;
     s32 gap, up;
 
     if (kirby->base.unk56 < gNumHumanPlayers || kirby->ability != NIDL_ABILITY_STAR_ROD || kirby->stateFn == StarRodSwing || kirby->hp <= 0
-        || ai->unk0[3] == AIShoot || ai->unk0[3] == AIJump) return;
-    if (AimFrom(kirby, 0, &left, &gap)) {
+        || ai->unk0[3] == AIShoot || ai->unk0[3] == AIJump || (fight = NightmareFightIn(kirby->base.roomId)) == NULL) return;
+    if (AimFrom(fight, kirby, 0, &left, &gap)) {
         if (!(kirby->base.unk62 & 4) || !(Rand16() & 7)) ai->unk0[3] = AIShoot;
         return;
     }
     if (!(kirby->base.unk62 & 4)) return;
     for (up = AIM_STEP; up <= AIM_JUMP; up += AIM_STEP) {
-        if (!AimFrom(kirby, up, &left, &gap)) continue;
+        if (!AimFrom(fight, kirby, up, &left, &gap)) continue;
         if (gap >= AIM_CLEAR && !(Rand16() & 15)) {
             ai->unkDE = 0;
             ai->unk0[3] = AIJump;
