@@ -11,6 +11,8 @@
         const int KirbyFrameTable = 0x74CFEC;   // NiDL USA (+ region.FrameShift);
         const int AnimationIndexes = 0xB9;      // Entries of a hat table (one per entry of the body table);
         const int HatTiles = 16;                // VRAM for a hat frame (KatAM's biggest hats use 16; NiDL's here need at most 15);
+        const int HatVram = 48;                 // The hat sprite's VRAM (Kirby's 0x800 bytes from his body's 16 tiles on);
+        const int StarRod = 7, StarRodGlow = 0x83;  // The Star Rod (of the new abilities), and its frames' glowing versions (frame + 0x83);
         // Kirby's animation indexes while he calls his helpers: taking out his phone, dialing, then ringing (sub_080572A0, sub_080573D0);
         static readonly int[] CallAnimations = { 97, 98, 99 };
 
@@ -206,7 +208,8 @@
                 return Enumerable.Range(2, 14).Where(i => !kirbyColors.Contains(ReadShort(frame.Palette2, i * 2))).OrderBy(i => Distance((ushort)ReadShort(frame.Palette2, i * 2))).First();
             }
 
-            foreach (Piece piece in frame.Pieces) {
+            // (back to front: NiDL's first piece is on top, as the Star Rod's star over its glow);
+            foreach (Piece piece in Enumerable.Reverse(frame.Pieces)) {
                 bool second = piece.Tile >= 0x40;
                 byte[] tiles = second ? frame.Tiles2 : frame.Tiles1;
                 if (tiles == null || second != (colors == null)) continue;
@@ -296,11 +299,12 @@
         /* BuildHats(); Each new ability's hat anim (added to the anim lists, after the enemies'), and its hat table (an AnimInfo per animation
          * index: the anim and variant i) for gUnk_08D60FDC, with its palette's offset and which of its colors the hat uses (`hatPalettes`,
          * `paletteUsed`, for BuildMotions). Light's hat is empty (its motions draw on the hat sprite, see BuildMotions).
+         * The Star Rod's frames have glowing versions (AddGlows(); its anim, first frame and count in `glows`' first three);
          * `bodyTable` is gUnk_0834C5D4 (Normal's, which they use; KatAM's own hat tables have up to 118 entries, these have one per
          * body table entry, the frames without a match hatless); */
         static int[] BuildHats(byte[] rom, byte[] nightmare, NightmareRegion region, int bodyTable, int anims, int attrTable, int oamTable, int tilesBase, int paletteBase,
                                ref int cursor, int firstAnimId, List<int> animVariants, List<int> animAttributes, List<int> animOams,
-                               int[] hatPalettes, bool[][] paletteUsed) {
+                               int[] hatPalettes, bool[][] paletteUsed, int[] glows) {
             int[] hatTables = new int[NewAbilities];
             Dictionary<(int, int), (int nidl, int dx, int dy)> matches = BodyMatches.ToDictionary(m => (m.anim, m.frame), m => (m.nidl, m.dx, m.dy));
             HashSet<int> kirbyColors = PlainKirby(nightmare, region).Skip(2).Take(10).Select(c => (int)c).ToHashSet();
@@ -312,6 +316,7 @@
                 Dictionary<(int, int), int> frameIndexes = new Dictionary<(int, int), int>();
                 Dictionary<string, int> sameFrames = new Dictionary<string, int>();
                 List<(byte[] tiles, ushort[] oams, short[] attributes)> frames = new List<(byte[], ushort[], short[])> { (new byte[0], new ushort[0], new short[] { 0, 0, 0, 0, 0, 0 }) };
+                List<(byte[] tiles, ushort[] oams, short[] attributes)> glowing = new List<(byte[], ushort[], short[])> { frames[0] };
                 byte[] palette = null;
 
                 int HatFrameIndex(int bodyAnim, int bodyFrame) {
@@ -323,10 +328,15 @@
 
                     KirbyFrame frame = ReadKirbyFrame(nightmare, region, HatFrames[k][m.nidl]);
                     palette ??= HatColors[k] == null ? frame.Palette2 : frame.Palette1;
-                    var hat = HatFrame(frame, m.dx, m.dy, HatColors[k], body, kirbyColors, BodyCoverage(rom, anims, attrTable, oamTable, tilesBase, bodyAnim, bodyFrame));
+                    bool[,] covered = BodyCoverage(rom, anims, attrTable, oamTable, tilesBase, bodyAnim, bodyFrame);
+                    var hat = HatFrame(frame, m.dx, m.dy, HatColors[k], body, kirbyColors, covered);
                     // (one frame per look: body frames alike share theirs);
                     string look = Convert.ToBase64String(hat.tiles) + string.Join(",", hat.oams) + "/" + string.Join(",", hat.attributes);
-                    if (!sameFrames.TryGetValue(look, out index)) { frames.Add(hat); sameFrames[look] = index = frames.Count - 1; }
+                    if (!sameFrames.TryGetValue(look, out index)) {
+                        frames.Add(hat);
+                        glowing.Add(k == StarRod ? HatFrame(ReadKirbyFrame(nightmare, region, HatFrames[k][m.nidl] + StarRodGlow), m.dx, m.dy, HatColors[k], body, kirbyColors, covered) : hat);
+                        sameFrames[look] = index = frames.Count - 1;
+                    }
                     return frameIndexes[(bodyAnim, bodyFrame)] = index;
                 }
 
@@ -337,6 +347,10 @@
                 for (int i = 0; i < AnimationIndexes; i++) {
                     int bodyAnim = ReadShort(rom, bodyTable + i * 4), bodyVariant = rom[bodyTable + i * 4 + 2];
                     variants[i] = HatCommands(rom, anims, bodyAnim, bodyVariant, CallAnimations.Contains(i) ? (anim, frame) => 0 : HatFrameIndex);
+                }
+                if (k == StarRod) {
+                    glows[0] = animId;
+                    (glows[1], glows[2]) = AddGlows(frames, glowing, 0);
                 }
 
                 // Data: tiles (aligned to the tiles base), palette, attributes, OAM, commands;
@@ -387,6 +401,28 @@
             }
 
             return hatTables;
+        }
+
+        /* AddGlows(); The Star Rod's glow: NiDL draws a Star Rod frame of Kirby's (0xFED on), one frame in four, as the frame 0x83 on, the
+         * same with its star glowing (Kirby's drawing, 0x0803DE6C; "ROM Expansion/abilities.c"'s NidlDisplaySprite() does it here). Each
+         * frame from `first` on gets its glowing version (`glowing`, the same index) added after the frames, `count` on; its tiles go after
+         * the frame's, which loads both (within the hat's VRAM; one that doesn't fit, or doesn't glow, its version is the frame itself).
+         * Returns (first, count); */
+        static (int first, int count) AddGlows(List<(byte[] tiles, ushort[] oams, short[] attributes)> frames,
+                                               List<(byte[] tiles, ushort[] oams, short[] attributes)> glowing, int first) {
+            int count = frames.Count - first;
+            for (int i = first; i < first + count; i++) {
+                (byte[] tiles, ushort[] oams, short[] attributes) = frames[i];
+                (byte[] glowTiles, ushort[] glowOams, short[] glowAttributes) = glowing[i];
+                bool same = glowTiles.SequenceEqual(tiles) && glowOams.SequenceEqual(oams) && glowAttributes.SequenceEqual(attributes);
+                if (same || (tiles.Length + glowTiles.Length) / 32 > HatVram) {
+                    frames.Add((new byte[0], oams, attributes));
+                    continue;
+                }
+                frames[i] = (tiles.Concat(glowTiles).ToArray(), oams, attributes);
+                frames.Add((new byte[0], glowOams.Select((word, w) => w % 3 == 2 ? (ushort)(word + tiles.Length / 32) : word).ToArray(), glowAttributes));
+            }
+            return (first, count);
         }
 
         /* HatCommands(); A body variant's commands for the hat: GetTiles and GetPalette dropped, ShowFrame(delay, frame) as (delay, -1000 - hat

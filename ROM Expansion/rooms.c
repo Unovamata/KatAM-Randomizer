@@ -752,8 +752,10 @@ void BigFillLevelInfo(u8 playerId, u16 roomId, const u16 **arg2, const u16 **arg
         levelInfo->unk662 = 0x180;
         levelInfo->unk664 = 0x180;
 
-        if (playerId == var1->unk0)
+        if (playerId == var1->unk0) {
             LoadLevelGfx(playerId, arg2, arg3);
+            NidlCloudsStart(roomId);
+        }
 
         sub_08001D18(playerId);
         levelInfo->viewportPositionUnmodified.x = levelInfo->viewportPosition.x;

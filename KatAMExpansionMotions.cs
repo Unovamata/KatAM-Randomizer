@@ -51,7 +51,9 @@ namespace KatAMRandomizer {
             /* Star Rod (the Power Orb's fight): held up; the swing that shoots a star; flying right, left, up, down, each then held; their
              * ends, back to holding it up; hurt (as recorded in NiDL's fight, frame by frame); the fight's intro, NiDL's whole flight up
              * to the orb (flying up, then down, the swing at it, the rod held out, a swing, held up; "ROM Expansion/abilities/star_rod.c");
-             * the swing on the ground or in the air, in Nightmare's fight (its star on the 5th frame); */
+             * the swing on the ground or in the air, in Nightmare's fight (its star on the 5th frame); in his intro, knocked off the warp
+             * star: tumbling, the rod turning with him (96 and 111 down to 97, a frame each, from the one before NiDL's first, 109: KatAM
+             * steps it as it starts), then fallen, his back to us, the rod held out ("ROM Expansion/bosses/nightmare.c"); */
             new Motion(7, 0, new[] { (0x103F, 1) }, -1),
             new Motion(7, 1, Frames(new[] { (0x1040, 4) }, Frames(0x1041, 0x104F, 1), new[] { (0x1050, 2), (0x103F, 1) }), -1),
             new Motion(7, 2, new[] { (0x1057, 1), (0x1058, 2), (0x1059, 1) }, -1),
@@ -67,6 +69,8 @@ namespace KatAMRandomizer {
                                       (0x1045, 1), (0x1048, 1), (0x104B, 1), (0x104E, 1), (0x105D, 64), (0x105E, 2), (0x105F, 2), (0x1041, 1),
                                       (0x1044, 1), (0x1045, 1), (0x1048, 3), (0x1049, 1), (0x104C, 1), (0x104D, 1), (0x104F, 1), (0x103F, 1) }, -1),
             new Motion(7, 12, Frames(new[] { (0x1026, 1), (0x1027, 1) }, Frames(0x1029, 0x1034, 1), new[] { (0x1035, 2) }), -1),
+            new Motion(7, 13, Enumerable.Range(0, 16).Select(i => (0x1060 + ((14 - i) & 15), 1)).ToArray(), 0),
+            new Motion(7, 14, new[] { (0x1009, 1) }, -1),
         };
 
         // NiDL's plain Kirby palette colors 1-11, the same as KatAM's (the player's palette);
@@ -85,14 +89,17 @@ namespace KatAMRandomizer {
         }
 
         /* MotionFrame(); A NiDL frame cut into the body's frame (player palette indexes) and the hat's pixels (RGB555 + 1; 0: none), see the
-         * summary; */
-        static ((byte[], ushort[], short[]) body, int[,] hat) MotionFrame(byte[] nightmare, NightmareRegion region, int frame, ushort[] plain) {
+         * summary, and whether the body went to the hat (`allHat`: it does, whether it fits or not); */
+        static ((byte[], ushort[], short[]) body, int[,] hat, bool allHat) MotionFrame(byte[] nightmare, NightmareRegion region, int frame, ushort[] plain,
+                                                                                    bool allHat = false) {
             const int Size = 128, Center = 64;
             int entry = ReadInt(nightmare, KirbyFrameTable + region.FrameShift + frame * 4) - 0x08000000;
             int first = ReadInt(nightmare, entry), address = (first & ~1) - 0x08000000;
             bool twoLayers = (first & 1) != 0;
             ushort[] palette1 = FramePalette(nightmare, ReadInt(nightmare, entry + 4)), palette2 = twoLayers ? FramePalette(nightmare, ReadInt(nightmare, entry + 12)) : null;
             byte[] tiles1 = KirbyTiles(nightmare, ReadInt(nightmare, entry + 8)), tiles2 = twoLayers ? KirbyTiles(nightmare, ReadInt(nightmare, entry + 16)) : null;
+            // (NiDL's shared object palette 15: the Star Rod's sparkles, drawn with Kirby);
+            ushort[] palette15 = Enumerable.Range(0, 16).Select(c => (ushort)ReadShort(nightmare, region.Palette15 + c * 2)).ToArray();
             bool plainBank0 = Enumerable.Range(2, 10).All(i => palette1[i] == plain[i]);
 
             int[,] body = new int[Size, Size], colors = new int[Size, Size];   // colors: RGB555 + 1 (0: none);
@@ -107,10 +114,10 @@ namespace KatAMRandomizer {
             // Drawn back to front (the first OAM entry is on top);
             for (int p = pieces.Count - 1; p >= 0; p--) {
                 var piece = pieces[p];
-                bool second = twoLayers && piece.tile >= 0x40;
+                bool second = twoLayers && piece.tile >= 0x40, shared = !second && piece.bank == 15;
                 byte[] tiles = second ? tiles2 : tiles1;
-                ushort[] palette = second ? palette2 : palette1;
-                int bank = second ? 0 : piece.bank & 1;
+                ushort[] palette = second ? palette2 : shared ? palette15 : palette1;
+                int bank = second || shared ? 0 : piece.bank & 1;
 
                 for (int py = 0; py < piece.h; py++) {
                     for (int px = 0; px < piece.w; px++) {
@@ -125,7 +132,7 @@ namespace KatAMRandomizer {
                         // Kirby's pixels: the first layer's plain colors 1-11, and the second layer's in plain Kirby's colors (NiDL's Kirby is
                         // always pink, so Needle's spiked ball, drawn on the second layer, has his body's colors: the player's in KatAM);
                         int plainIndex = second ? Array.IndexOf(plain, palette[value], 2, 10) : -1;
-                        bool isKirby = !second && bank == 0 && plainBank0 && value <= 11 || plainIndex >= 2;
+                        bool isKirby = !second && !shared && bank == 0 && plainBank0 && value <= 11 || plainIndex >= 2;
                         body[x, y] = !isKirby ? 0 : plainIndex >= 2 ? plainIndex : value;
                         colors[x, y] = isKirby ? 0 : palette[bank * 16 + value] + 1;
                     }
@@ -134,14 +141,15 @@ namespace KatAMRandomizer {
 
             // The body, unless it doesn't fit: then everything is the hat's;
             var bodyFrame = CutFrame(body, BodyTiles);
-            if (CountCells(body) > BodyTiles) {
+            if (allHat || CountCells(body) > BodyTiles) {
+                allHat = true;
                 for (int y = 0; y < Size; y++)
                     for (int x = 0; x < Size; x++)
                         if (body[x, y] != 0) { colors[x, y] = plain[body[x, y]] + 1; body[x, y] = 0; }
                 bodyFrame = CutFrame(body, BodyTiles);
             }
 
-            return (bodyFrame, colors);
+            return (bodyFrame, colors, allHat);
         }
 
         static int ColorDistance(int a, int b) {
@@ -241,27 +249,62 @@ namespace KatAMRandomizer {
             return firstAnimId + animVariants.Count - 1;
         }
 
+        /* StarRodPalettes(); NiDL's Star Rod palette cycle (its Kirby's second palette, the rod's: 0x0803DB74): its own (frame 0xFED's
+         * second), then bright (0x08226254: kept right after its own, 1A46 for its unused color 0), then halfway (each channel's average,
+         * as its blend, 0x08003014, at 128 of 256). Writes the Star Rod hat's palette (`hat`, which has NiDL's colors) bright, halfway and
+         * as it is, and returns where; */
+        static int StarRodPalettes(byte[] rom, byte[] nightmare, NightmareRegion region, ushort[] hat, ref int cursor) {
+            int entry = ReadInt(nightmare, KirbyFrameTable + region.FrameShift + 0xFED * 4) - 0x08000000;
+            ushort[] own = FramePalette(nightmare, ReadInt(nightmare, entry + 12));
+            byte[] colors = own.Skip(1).Take(15).SelectMany(c => BitConverter.GetBytes(c)).ToArray();
+            int at = -1;
+            for (int i = 0, found; at < 0 && (found = nightmare.AsSpan(i).IndexOf(colors)) >= 0; i += found + 1) {
+                int bright = i + found - 2 + 32;
+                if (ReadShort(nightmare, bright + 8 * 2) == own[8] && ReadShort(nightmare, bright + 11 * 2) == own[11]
+                    && Enumerable.Range(1, 15).Any(c => ReadShort(nightmare, bright + c * 2) != own[c])) at = bright;
+            }
+            if (at < 0) throw new ArgumentException("The Star Rod's bright palette");
+
+            int written = Allocate(ref cursor, 3 * 32, 4);
+            for (int c = 0; c < 16; c++) {
+                int nidl = own[c] == hat[c] ? c : Array.IndexOf(own, hat[c], 1);
+                ushort bright = c == 0 || nidl < 1 ? hat[c] : (ushort)ReadShort(nightmare, at + nidl * 2);
+                int half = 0;
+                for (int shift = 0; shift < 15; shift += 5) half |= ((bright >> shift & 31) + (hat[c] >> shift & 31)) / 2 << shift;
+                WriteShort(rom, written + c * 2, bright);
+                WriteShort(rom, written + 32 + c * 2, half);
+                WriteShort(rom, written + 64 + c * 2, hat[c]);
+            }
+            return written;
+        }
+
         /* BuildMotions(); The body and hat motion anims (a variant per motion, in Motions' order), each ability's hat table entries at its
-         * motion slots, and the body's AnimInfos for gNidlAbilityData.motions (NIDL_ABILITY_COUNT x MotionSlots, 0: none); */
+         * motion slots, and the body's AnimInfos for gNidlAbilityData.motions (NIDL_ABILITY_COUNT x MotionSlots, 0: none). The Star Rod's
+         * hat frames (its motions are the last) have glowing versions, as its hat's (AddGlows(): the hat anim, first frame and count in
+         * `glows`' 3-5; the glow on the hat, over the frame's own body), and its hat's palette its cycle (StarRodPalettes(): `glows`' 6); */
         static int[] BuildMotions(byte[] rom, byte[] nightmare, NightmareRegion region, int[] hatTables, int[] hatPalettes, bool[][] paletteUsed,
-                                  int tilesBase, ref int cursor, int firstAnimId, List<int> animVariants, List<int> animAttributes, List<int> animOams) {
+                                  int tilesBase, ref int cursor, int firstAnimId, List<int> animVariants, List<int> animAttributes, List<int> animOams,
+                                  int[] glows) {
             int place = cursor;     // (Local functions can't use `cursor`);
             ushort[] plain = PlainKirby(nightmare, region);
             int bodyAnim = firstAnimId + animVariants.Count, hatAnim = bodyAnim + 1;
             Dictionary<int, int> frameIndexes = new Dictionary<int, int>();
             List<(byte[] tiles, ushort[] oams, short[] attributes)> bodies = new List<(byte[], ushort[], short[])>(), hats = new List<(byte[], ushort[], short[])>();
-            List<int[,]> hatPixels = new List<int[,]>();
+            List<int[,]> hatPixels = new List<int[,]>(), glowPixels = new List<int[,]>();
             List<int> frameAbility = new List<int>();
 
             foreach (Motion motion in Motions)
                 foreach ((int frame, int _) in motion.Frames) {
                     if (frameIndexes.ContainsKey(frame)) continue;
-                    var (body, hat) = MotionFrame(nightmare, region, frame, plain);
+                    var (body, hat, allHat) = MotionFrame(nightmare, region, frame, plain);
                     frameIndexes[frame] = bodies.Count;
                     bodies.Add(body);
                     hatPixels.Add(hat);
+                    glowPixels.Add(motion.Ability == StarRod ? MotionFrame(nightmare, region, frame + StarRodGlow, plain, allHat).hat : hat);
                     frameAbility.Add(motion.Ability);
                 }
+            int glowFirst = frameAbility.IndexOf(StarRod);
+            if (glowFirst < 0 || frameAbility.Skip(glowFirst).Any(a => a != StarRod)) throw new ArgumentException("The Star Rod's motions aren't the last");
 
             /* The hat's palette: KatAM loads the ability's hat palette for Kirby's hat sprite (its anims' GetPalette don't count), so the motions
              * get the colors the hat doesn't use, for their most used colors (the ones the hat has already are shared); the rest take the
@@ -273,7 +316,7 @@ namespace KatAMRandomizer {
                 Dictionary<int, int> uses = new Dictionary<int, int>();
                 for (int i = 0; i < hatPixels.Count; i++)
                     if (frameAbility[i] == k)
-                        foreach (int pixel in hatPixels[i])
+                        foreach (int pixel in hatPixels[i].Cast<int>().Concat(glowPixels[i] != hatPixels[i] ? glowPixels[i].Cast<int>() : Enumerable.Empty<int>()))
                             if (pixel != 0) uses[pixel - 1] = uses.GetValueOrDefault(pixel - 1) + 1;
                 Queue<int> wanted = new Queue<int>(uses.OrderByDescending(u => u.Value).ThenBy(u => u.Key).Select(u => u.Key)
                                                        .Where(color => !Enumerable.Range(1, 15).Any(c => paletteUsed[k][c] && palettes[k][c] == color)));
@@ -284,14 +327,20 @@ namespace KatAMRandomizer {
                 }
                 for (int c = 0; c < 16; c++) WriteShort(rom, hatPalettes[k] + c * 2, palettes[k][c]);
             }
-            for (int i = 0; i < hatPixels.Count; i++) {
-                ushort[] palette = palettes[frameAbility[i]];
-                int[,] pixels = hatPixels[i], indexes = new int[pixels.GetLength(0), pixels.GetLength(1)];
+            glows[6] = StarRodPalettes(rom, nightmare, region, palettes[StarRod], ref place);
+            (byte[], ushort[], short[]) HatOf(int[,] pixels, ushort[] palette) {
+                int[,] indexes = new int[pixels.GetLength(0), pixels.GetLength(1)];
                 for (int y = 0; y < pixels.GetLength(1); y++)
                     for (int x = 0; x < pixels.GetLength(0); x++)
                         if (pixels[x, y] != 0) indexes[x, y] = 1 + Enumerable.Range(1, 15).OrderBy(c => ColorDistance(palette[c], pixels[x, y] - 1)).First() - 1;
-                hats.Add(CutFrame(indexes, MotionHatTiles));
+                return CutFrame(indexes, MotionHatTiles);
             }
+            List<(byte[] tiles, ushort[] oams, short[] attributes)> glowing = new List<(byte[], ushort[], short[])>();
+            for (int i = 0; i < hatPixels.Count; i++) {
+                hats.Add(HatOf(hatPixels[i], palettes[frameAbility[i]]));
+                glowing.Add(glowPixels[i] != hatPixels[i] ? HatOf(glowPixels[i], palettes[frameAbility[i]]) : hats[i]);
+            }
+            (glows[4], glows[5]) = AddGlows(hats, glowing, glowFirst);
 
             // Data: per anim, tiles (aligned to the tiles base), attributes and OAM;
             (int tileIndex, int[] frameTile) WriteFrames(List<(byte[] tiles, ushort[] oams, short[] attributes)> frames) {
@@ -340,6 +389,7 @@ namespace KatAMRandomizer {
 
             animVariants.Add(WriteVariants(bodies, bodyData, false));
             animVariants.Add(WriteVariants(hats, hatData, true));
+            glows[3] = hatAnim;
 
             int[] bodyInfos = new int[NewAbilities * MotionSlots];
             for (int m = 0; m < Motions.Length; m++) {

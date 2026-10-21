@@ -240,18 +240,28 @@ static void ArenaMain(struct Object *obj) {
     }
 }
 
-// ArenaSink(); The arena in a boss's room sinks its screen to `sink` (8.8) below where it was;
+/* ArenaSink(); The arena in a boss's room sinks its screen to `sink` (8.8) below where it was, the cameras right on it that frame (as
+ * NiDL's, the Power Orb's 8 + its sink: KatAM's own ease after the lock's would have them 2 frames late, its background a pixel off); */
 void ArenaSink(struct Object *boss, s32 sink) {
     struct Task *t = &gTasks[0];
-    u8 n;
+    u8 n, i;
 
     for (n = 0; n < MAX_TASK_NUM && t->next; n++) {
         struct Object *other;
+        struct Arena *a;
 
         t = (struct Task *)(IWRAM_START + t->next);
         other = TaskGetStructPtr(t);
         if (other->base.header.kind != 1 || other->type != NIDL_TYPE || other->base.roomId != boss->base.roomId) continue;
-        if (((struct NidlObject *)other)->enemy == NIDL_ARENA) ((struct Arena *)other)->sink = sink;
+        if (((struct NidlObject *)other)->enemy != NIDL_ARENA) continue;
+        a = (struct Arena *)other;
+        a->sink = sink;
+        for (i = 0; i < gNumKirbys; i++) {
+            if (!(a->locked & (1 << i))) continue;
+            LockCamera(a, i);
+            gCurLevelInfo[i].unk_S32Vec2_6C = gCurLevelInfo[i].unk_S32Vec2_7C;
+            gCurLevelInfo[i].unk_S32Vec2_74 = gCurLevelInfo[i].unk_S32Vec2_84;
+        }
     }
 }
 

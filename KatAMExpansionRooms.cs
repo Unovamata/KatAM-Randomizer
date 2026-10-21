@@ -96,6 +96,7 @@
          * screen (from (8, 8)) with the screen, the orb and its arena standing there too (KatAM makes objects only near the camera); */
         static readonly (int, int, int) StarRodRoom = (7, 0, 0);
         const byte PowerOrbBoss = 7;        // NIDL_POWER_ORB (nidl.h);
+        const int CloudRows = 144;          // CLOUD_ROWS ("ROM Expansion/finale.c");
         const byte NightmareBoss = 8;       // NIDL_NIGHTMARE;
         const byte DededeBoss = 6;          // NIDL_KING_DEDEDE: Kirby drops into his room from its top, the camera following (BossIn(), arena.c);
         const int DropInY = 32;             // where a drop-in arena stands (pixels): at the room's top, where Kirby comes in;
@@ -106,7 +107,7 @@
                 if (nightmare[at] - 1 == BossCategory && RoomBosses.TryGetValue(nightmare[at + 1], out var spot)) return spot.boss;
             return -1;
         }
-        const int PowerOrbSink = 513;       // how far its screen sinks as they fight (bosses/power_orb.c's SINK_END);
+        const int PowerOrbSink = 881;       // how far its screen sinks as they fight, down to the ground (bosses/power_orb.c's SINK_END);
         /* The finale ("ROM Expansion/finale.c"): where Central Circle's and the NiDL hub's Dimension Mirrors take Kirby (the Power Orb's
          * room, where he starts it: PlanDoors()); the Fountain of Dreams hub's Amazing Mirror (finaleMirror: Central Circle's Dimension
          * Mirror as KatAM has it, leading to FinalRoom, taken before FinaleMirrors() points that one at the Power Orb's room), in the
@@ -1323,6 +1324,8 @@
                     if (BossIn(nightmare, r.Record) == PowerOrbBoss) {
                         rateX = rateY = 0x100;
                         backgroundDown = ReadShort(nightmare, backgroundMap + 4) * 8 - r.FullHeight * 16;
+                        // Its cloud bands' speeds, NiDL's (a byte a row of 8 pixels: "ROM Expansion/finale.c", gNidlCloudSpeeds);
+                        Array.Copy(nightmare, region.CloudSpeeds, rom, CodeAddress + version.CodeSymbols["gNidlCloudSpeeds"], CloudRows);
                     }
                     WriteShorts(rom, roomProps + r.Room * 0x28, LevelSongs[r.Level], 0, 0, 0x100, 0x100, 0, backgroundDown, rateX, rateY, RoomFlags,
                                 info, palette, tableSizes[12] + i, tableSizes[13] + i, 0xFFFF, background, tableSizes[16] + i,

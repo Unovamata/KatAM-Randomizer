@@ -69,7 +69,7 @@ enum { HI_JUMP_MOTION_RISE };
 enum { MIKE_MOTION_1, MIKE_MOTION_2, MIKE_MOTION_3, MIKE_MOTION_1_END, MIKE_MOTION_2_END, MIKE_MOTION_3_END };
 enum { STAR_ROD_MOTION_HOLD, STAR_ROD_MOTION_SHOOT, STAR_ROD_MOTION_RIGHT, STAR_ROD_MOTION_LEFT, STAR_ROD_MOTION_UP, STAR_ROD_MOTION_DOWN,
        STAR_ROD_MOTION_RIGHT_END, STAR_ROD_MOTION_LEFT_END, STAR_ROD_MOTION_UP_END, STAR_ROD_MOTION_DOWN_END, STAR_ROD_MOTION_HURT,
-       STAR_ROD_MOTION_INTRO, STAR_ROD_MOTION_SWING };
+       STAR_ROD_MOTION_INTRO, STAR_ROD_MOTION_SWING, STAR_ROD_MOTION_TUMBLE, STAR_ROD_MOTION_FALLEN };
 
 // NidlMotion(); Plays one of the ability's motions;
 #define NidlMotion(kirby, motion) ((kirby)->animationIndex = NIDL_MOTION_SLOT + (motion))
@@ -83,6 +83,11 @@ struct NidlAbilityData {
         const u8 *tiles;                                // PORTRAIT_SIZE bytes, laid out like KatAM's portraits;
     } portraits[NIDL_ABILITY_COUNT];
     struct AnimInfo motions[NIDL_ABILITY_COUNT][NIDL_MOTION_SLOTS]; // Body animations of the motions (0: none), see NidlAbilitySetup;
+    void (*displaySpriteOriginal)(struct Sprite *);
+    struct {
+        u16 anim, first, count, unused;                 // The Star Rod's hats (its own, its motions'): frames first on, then their glowing
+    } glows[2];                                         // versions, count frames on (see NidlDisplaySprite);
+    const u16 *rodPalettes;                             // Its hat's palette bright, halfway, and its own (16 colors each);
 };
 
 extern const struct NidlAbilityData gNidlAbilityData;
@@ -93,6 +98,7 @@ extern const struct NidlAbilityData gNidlAbilityData;
 void NidlAbilityPortrait(u32 vram, u8 palette, u8 id);
 
 void NidlAbilityHudTimer(struct Kirby *, u8 portrait, u16 frames);
+void NidlDisplaySprite(struct Sprite *);
 void NidlAbilitySetup(struct Kirby *);
 void NidlSwallow(struct Kirby *, u8 ability);
 void NidlKirbyHit(struct Kirby *);
@@ -125,6 +131,7 @@ void NidlFlash(struct Kirby *, const u8 *levels, u16 count);
 void StarRodHeld(struct Kirby *);
 void StarRodSwingStart(struct Kirby *);
 void StarRodKeep(struct Kirby *);
+void StarRodAim(struct Kirby *);
 bool32 StarRodCanFly(struct Kirby *);
 void StarRodStart(struct Kirby *, struct Object *orb);
 void StarRodRestore(struct Kirby *);
@@ -132,6 +139,7 @@ void StarRodFightOver(struct Object *orb);
 s32 StarRodSink(u8 player, s32 *lastTop);
 void StarRodHit(struct Kirby *, s32 x);
 bool32 StarRodTouches(struct Kirby *, s32 x, s32 y, s32 halfWidth, s32 halfHeight);
+u8 StarRodHits(u16 room, s32 x, s32 y, s32 reach);
 
 // Abilities (abilities/*.c): B on land;
 void NeedleStart(struct Kirby *);
