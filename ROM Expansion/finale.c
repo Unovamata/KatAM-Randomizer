@@ -52,7 +52,7 @@ void NightmareBeaten(struct Object *nightmare) {
     NightmareEnd(nightmare);
 }
 
-/* NidlEndingFlight(); Every Kirby in Nightmare's room (and still up) flown out where he is, his ability before the Star Rod back: the
+/* NidlEndingFlight(); Every Kirby in Nightmare's room (and still up) flown out where he is, the Star Rod gone (Normal): the
  * ending's flight (KatAMExpansionRooms.cs, WarpFlights()), its fade to white, NiDL's ending down from the moon in the Power Orb's
  * room (ending.c), then the room his way on leads to (the Fountain of Dreams hub); without it, the dance out (NidlDanceOut()); */
 void NidlEndingFlight(u16 room) {
@@ -66,7 +66,7 @@ void NidlEndingFlight(u16 room) {
         struct Kirby *kirby = &gKirbys[i];
 
         if (kirby->base.roomId != room || kirby->hp <= 0 || kirby->stateFn == sub_080534D0) continue;
-        StarRodRestore(kirby);
+        StarRodEnd(kirby);
         sub_080531B4(kirby, gNidlFinale.ending);
     }
 }
@@ -75,6 +75,16 @@ void NidlEndingFlight(u16 room) {
 bool32 NidlOnEnding(struct Kirby *kirby) {
     return gNidlFinale.ending != NULL && kirby->stateFn == sub_080534D0 && (const struct Unk_08353510 *)kirby->unk114 >= gNidlFinale.ending
         && (const struct Unk_08353510 *)kirby->unk114 < gNidlFinale.ending + ENDING_STEPS;
+}
+
+/* NidlFinaleFlight(); Whether a Kirby's on one of the finale's flights (the Power Orb's ride to Nightmare's room and his intro there,
+ * the ending's flight down to the Fountain of Dreams hub): its cutscenes, without the pause (NiDL's have none; KatAM's pause menu
+ * opened as a flight's fade changes rooms loads over the new room's graphics, garbled: warpstar.c's NidlRideStep() takes START); */
+bool32 NidlFinaleFlight(struct Kirby *kirby) {
+    u16 room = kirby->base.roomId;
+
+    return kirby->stateFn == sub_080534D0 && (NidlOnEnding(kirby) || (gNidlFinale.orbRoom && room == gNidlFinale.orbRoom)
+                                              || (gNidlFinale.rideRoom && room == gNidlFinale.rideRoom));
 }
 
 // NidlFinaleStar(); Whether a warp star is the Power Orb's (it waits for the helpers, as KatAM's: warpstar.c);
@@ -238,12 +248,14 @@ static void CloudsMain(void) {
 }
 
 /* Nightmare's room's background drifts left as NiDL's, on and on (its room's line scroll, 0x080B6C40: every line's horizontal scroll
- * 4 pixels a frame on, from 0 as the room came in, round its 512 pixels, BG3's whole width, every 128 frames): KatAM's background
+ * 4 pixels a frame on, from 0 as the room came in, round its 512 pixels, BG3's whole width, every 128 frames; DRIFT_AHEAD frames
+ * behind here, so it's where NiDL's is through his intro and fight): KatAM's background
  * scroll (sub_080019F8, the level's task) adds an offset of the room's (LevelInfo +0x3C, 0 as a room comes in) and draws the columns
  * it brings in, the background repeating past its edge (KatAMExpansionRooms.cs: NiDL's, 512 pixels wide); a task after the level's
  * sets it for the next frame; */
 #define DRIFT_SPEED 4
 #define DRIFT_PERIOD 128
+#define DRIFT_AHEAD 4   // (frames: KatAM's room comes in that much sooner before his intro than NiDL's; measured against NiDL's);
 
 struct Drift {
     u16 t;          // Frames since the room came in (0-127);
@@ -275,7 +287,7 @@ void NidlCloudsStart(u16 room) {
             if (t->main == DriftMain) break;
         }
         if (t->main != DriftMain) t = TaskCreate(DriftMain, sizeof(struct Drift), CLOUD_PRIORITY, TASK_USE_IWRAM, NULL);
-        ((struct Drift *)TaskGetStructPtr(t))->t = 0;
+        ((struct Drift *)TaskGetStructPtr(t))->t = DRIFT_PERIOD - DRIFT_AHEAD;
         return;
     }
     if (!gNidlFinale.orbRoom || room != gNidlFinale.orbRoom) return;

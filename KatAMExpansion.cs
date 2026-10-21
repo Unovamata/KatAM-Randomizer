@@ -63,7 +63,8 @@ namespace KatAMRandomizer {
          * palette 15 or with another of the descriptor's palettes (Palette), Dx, Dy pixels from the others (NiDL draws some bosses as
          * several frames); Common: from NiDL's shared object tiles (CommonTiles, its effects: Whispy Woods' puffs) instead; OnlyPalette:
          * only its pieces NiDL draws with that palette (its OAM's; NiDL draws Kracko with several at once, a KatAM sprite with one);
-         * OrbShots: from the Power Orb's shots' own tiles and palette (OrbShotGraphics(): raw tiles the orb loads for them); StarRod: the
+         * OrbShots: from the Power Orb's shots' own tiles and palette (OrbShotGraphics(): raw tiles the orb loads for them); OrbMoon: a
+         * frame of the Power Orb's picture flying into the moon (OrbMoonGraphics(): its own frame table, tiles and palette); StarRod: the
          * shared tiles with the Star Rod's star over some (StarRodTiles()); Shared: its pieces with the same tiles drawn from the same
          * tiles of the frame (the Power Orb's slash: up to 17 pieces, 4 different ones); Tile: instead, one 8x8 tile of NiDL's (4 bits
          * a pixel, its palette 15's colors) around the origin (the dot NiDL draws the Power Orb as, far off in the moon); Cutscene: a
@@ -72,7 +73,7 @@ namespace KatAMRandomizer {
          * region's EndingFrames, its own tiles and five palettes); */
         sealed record Part(int Frame, Dictionary<int, int> Recolor = null, int Table = 0, bool Palette15 = false, int Palette = 0, int Descriptor = -1,
                            int Dx = 0, int Dy = 0, bool Common = false, int OnlyPalette = -1, bool OrbShots = false, bool StarRod = false,
-                           bool Shared = false, byte[] Tile = null, int Cutscene = 0, bool Ending = false);
+                           bool Shared = false, byte[] Tile = null, int Cutscene = 0, bool Ending = false, bool OrbMoon = false);
 
         /* Enemy; A ported enemy: its index (NIDL_* in nidl.h), name, NiDL object type and frame table, its frames (in the order the
          * C code numbers them), its hurt frame, palette changes, the letters of its name and the behavior bytes the randomizer uses; */
@@ -404,7 +405,9 @@ namespace KatAMRandomizer {
          * the screen; Shared, 16 tiles; its second palette), and its end's: the dot (OrbDot: NiDL draws the orb and the star with its
          * Kirbys so far off in the moon), the eight stars it bursts into (NiDL's shared effects' 0x0874CC60, its 0-8) and the sparkle in
          * their middle (0x0874CA78's 0-22; those two with the shared tiles and palette 15), then its shots' afterimages (its 30-38,
-         * OrbShots: a star's 30-33, a dashing star's 34-37, a crescent's 38), numbered from 0 (bosses/power_orb.c). Type 0x44. Hurt: its 0; */
+         * OrbShots: a star's 30-33, a dashing star's 34-37, a crescent's 38), then its picture flying into the moon (OrbMoon, its 0: 48x48,
+         * bigger than its spin's 40x40, drawn at a quarter of its size and less), numbered from 0 (bosses/power_orb.c). Type 0x44. Hurt:
+         * its 0; */
         static Miniboss PowerOrb() => new Miniboss(7, "Power Orb", 37, 0x7544B4,
             Enumerable.Range(4, 10).Select(f => new[] { new Part(f) })
                 .Concat(Enumerable.Range(20, 10).Concat(Enumerable.Range(39, 4)).Select(f => new[] { new Part(f, OrbShots: true) }))
@@ -412,13 +415,14 @@ namespace KatAMRandomizer {
                 .Concat(new[] { new[] { new Part(0, Tile: OrbDot) } })
                 .Concat(Enumerable.Range(0, 9).Select(f => new[] { new Part(f, Table: 0x74CC60, Palette15: true, Common: true) }))
                 .Concat(Enumerable.Range(0, 23).Select(f => new[] { new Part(f, Table: 0x74CA78, Palette15: true, Common: true) }))
-                .Concat(Enumerable.Range(30, 9).Select(f => new[] { new Part(f, OrbShots: true) })).ToList(),
+                .Concat(Enumerable.Range(30, 9).Select(f => new[] { new Part(f, OrbShots: true) }))
+                .Concat(new[] { new[] { new Part(0, OrbMoon: true) } }).ToList(),
             new[] { new Part(0) },
             new[] {
                 (0x16, 0), (0x1E, 1), (0x1C, 1), (0x02, 5), (0x01, 1), (-1, -1),               // "P" (Pengy), "o" (Noddy), "w" (Twister), "e" (Blipper), "r" (Bronto Burt), space;
                 (0x1B, 2), (0x01, 1), (0x28, 3),                                                // "O" (UFO), "r", "b" (Bomber);
             },
-            new byte[0], Type: BossID2, EffectOnly: 62);
+            new byte[0], Type: BossID2, EffectOnly: 63);
 
         /* Nightmare; NiDL boss 8 (type 0x43, the Fountain of Dreams' last; mini-boss descriptor 38). His frames are streamed frames with
          * three palettes (0x0875456C's 8-15, cut by palette: 0-7 the first's pieces, 8-15 the second's, 16-23 the third's; bosses/
@@ -1129,6 +1133,15 @@ namespace KatAMRandomizer {
                     }
                     return PartPieces(nightmare, region, frameTable, part, shots.tiles, palettes).Select(p => (p.Item1, p.Item2, shots.palette)).ToList();
                 }
+                if (part.OrbMoon) {
+                    (byte[] moonTiles, byte[] moonPalette, int moonTable) = OrbMoonGraphics(nightmare);
+                    int moonPaletteAt = palettes.FindIndex(p => p.SequenceEqual(moonPalette));
+                    if (moonPaletteAt < 0) {
+                        moonPaletteAt = palettes.Count;
+                        palettes.Add(moonPalette);
+                    }
+                    return PartPieces(nightmare, region, moonTable, part, moonTiles, palettes).Select(p => (p.Item1, p.Item2, moonPaletteAt)).ToList();
+                }
                 if (part.Cutscene != 0) {
                     (int table, byte[][] tiles, byte[][] palettes) cut = cutscene ??= CutsceneGraphics(nightmare);
                     if (!others.TryGetValue(CutsceneKey, out (byte[] tiles, int palette) loaded)) {
@@ -1290,6 +1303,22 @@ namespace KatAMRandomizer {
                 return (block, nightmare[palette..(palette + 32)]);
             }
             throw new InvalidOperationException("The Power Orb's shots aren't in the Nightmare in Dream Land ROM.");
+        }
+
+        /* OrbMoonGraphics(); The Power Orb's picture flying into the moon: its tiles (raw, 16 per row as the descriptors'), first palette
+         * (the orb's own colors) and frame table (0: the orb, 1: the dot): a descriptor of its own (USA 0x082FFDF0: palettes 2, tiles
+         * 0x36, 2, palettes, tiles right after them, frame table), found by those values; */
+        static (byte[] tiles, byte[] palette, int frameTable) OrbMoonGraphics(byte[] nightmare) {
+            for (int at = 0; at + 20 <= nightmare.Length; at += 4) {
+                if (ReadInt(nightmare, at) != 0x00360002 || ReadInt(nightmare, at + 4) != 2) continue;
+                int palette = ReadInt(nightmare, at + 8) - 0x08000000, tiles = ReadInt(nightmare, at + 12) - 0x08000000;
+                int frameTable = ReadInt(nightmare, at + 16) - 0x08000000;
+                if (tiles != palette + 0x40 || palette < 0 || tiles + 0x36 * 32 > nightmare.Length || frameTable < 0 || frameTable >= nightmare.Length) continue;
+                byte[] block = new byte[256 * 32];
+                Array.Copy(nightmare, tiles, block, 0, 0x36 * 32);
+                return (block, nightmare[palette..(palette + 32)], frameTable);
+            }
+            throw new InvalidOperationException("The Power Orb's flight into the moon isn't in the Nightmare in Dream Land ROM.");
         }
 
         /* CommonTiles(); NiDL's shared object tiles as its frames number them (16 per row, as the descriptors'): the LZ77 tiles after

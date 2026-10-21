@@ -220,6 +220,10 @@ struct NightmareIntro {
     struct EffectObject *puff;
     struct BlueStar blue[ARRAY_COUNT(sBlueStars)];
     u16 colors[FLASH_COLORS];   // The palettes under the flash, the game's own;
+    u16 flashed[2][FLASH_COLORS];   // Them at two flash levels (flashLevels: 0 none), made once, the flicker taking turns (Flash());
+    u8 flashLevels[2];
+    u16 flashMade[2];           // How many of their colors are made (FlashAhead(): a quarter a frame, ahead of when they show);
+    u8 flashSlot;               // The one on screen (when level isn't 0);
 };
 
 static s32 Sine(u8 angle) {
@@ -286,25 +290,86 @@ static void FlashMap(u8 level, u8 *room, u8 *sprites) {
 
 #define FLASHED(color, map) ((map)[(color) & 0x1F] | (map)[((color) >> 5) & 0x1F] << 5 | (map)[((color) >> 10) & 0x1F] << 10)
 
+// FlashMake(); A slot's level's colors made, from the made ones on, `count` of them (the game's own at that level);
+static void FlashMake(struct NightmareIntro *intro, u8 slot, u16 count) {
+    u8 room[32], sprites[32];
+    u16 i, end = intro->flashMade[slot] + count;
+
+    if (end > FLASH_COLORS) end = FLASH_COLORS;
+    FlashMap(intro->flashLevels[slot], room, sprites);
+    for (i = intro->flashMade[slot]; i < end; i++)
+        intro->flashed[slot][i] = i >= FLASH_BG ? FLASHED(intro->colors[i], sprites) : FLASHED(intro->colors[i], room);
+    intro->flashMade[slot] = end;
+}
+
+/* FlashAhead(); At t, the next level the flash shows within 4 frames made ahead, a quarter of its colors a frame, in a slot whose level
+ * doesn't show till then (see Flash()); */
+static void FlashAhead(struct NightmareIntro *intro, u16 t) {
+    u8 level = FlashLevel(t + 4), slot, k;
+
+    if (!level || gKirbys[gLocalPlayerId].base.roomId != intro->e.roomId) return;
+    slot = intro->flashLevels[0] == level ? 0 : intro->flashLevels[1] == level ? 1 : 2;
+    if (slot == 2) {
+        for (slot = 0; slot < 2; slot++) {
+            if (!intro->flashLevels[slot]) break;
+            for (k = 0; k < 4 && FlashLevel(t + k) != intro->flashLevels[slot]; k++)
+                ;
+            if (k >= 4 && (!intro->level || slot != intro->flashSlot)) break;
+        }
+        if (slot >= 2) return;
+        intro->flashLevels[slot] = level;
+        intro->flashMade[slot] = 0;
+        // (the game's own colors, as they are with no flash on: what it's made from);
+        if (!intro->level) {
+            CpuCopy16(gBgPalette, intro->colors, FLASH_BG * sizeof(u16));
+            CpuCopy16(gObjPalette, intro->colors + FLASH_BG, (FLASH_COLORS - FLASH_BG) * sizeof(u16));
+        }
+    }
+    if (intro->flashMade[slot] < FLASH_COLORS) FlashMake(intro, slot, FLASH_COLORS / 4);
+}
+
 /* Flash(); The palettes at a flash's level (0: as they are), as it changes, the game's own kept under it (a color that isn't what the
- * flash made of it is the game's, new); only on the screen of a player in the room; */
+ * flash made of it is the game's, new: kept, and made again at the levels kept); only on the screen of a player in the room. Each
+ * level's palettes are made once, ahead (FlashAhead()), and kept (two: the flicker takes turns between two), copied in as it changes
+ * (made every 2 frames, the 480 colors took 105k cycles, and with KatAM's own every 11 frames the intro lagged then); */
 static void Flash(struct NightmareIntro *intro, u8 level) {
-    u8 room[32], sprites[32], lastRoom[32], lastSprites[32];
-    u16 i, *color;
+    u8 room[2][32], sprites[2][32];
+    u16 i, *color, *shown;
+    u8 slot, k;
 
     if (gKirbys[gLocalPlayerId].base.roomId != intro->e.roomId) {
         intro->level = 0;
         return;
     }
     if (level == intro->level) return;
-    FlashMap(level, room, sprites);
-    FlashMap(intro->level, lastRoom, lastSprites);
+    for (k = 0; k < 2; k++)
+        if (intro->flashLevels[k]) FlashMap(intro->flashLevels[k], room[k], sprites[k]);
+    // (the game's own changes since: kept, and made at the levels kept);
+    shown = intro->level ? intro->flashed[intro->flashSlot] : intro->colors;
     for (i = 0; i < FLASH_COLORS; i++) {
         color = i >= FLASH_BG ? &gObjPalette[i - FLASH_BG] : &gBgPalette[i];
-        if (!intro->level || *color != (i >= FLASH_BG ? FLASHED(intro->colors[i], lastSprites) : FLASHED(intro->colors[i], lastRoom)))
-            intro->colors[i] = *color;
-        *color = i >= FLASH_BG ? FLASHED(intro->colors[i], sprites) : FLASHED(intro->colors[i], room);
+        if (*color == shown[i]) continue;
+        intro->colors[i] = *color;
+        for (k = 0; k < 2; k++)
+            if (intro->flashLevels[k] && i < intro->flashMade[k])
+                intro->flashed[k][i] = i >= FLASH_BG ? FLASHED(*color, sprites[k]) : FLASHED(*color, room[k]);
     }
+    if (level) {
+        // (its palettes, made ahead, or now: in the slot not on screen);
+        slot = intro->flashLevels[0] == level ? 0 : intro->flashLevels[1] == level ? 1 : 2;
+        if (slot == 2) {
+            slot = intro->level && intro->flashSlot == 0 ? 1 : 0;
+            intro->flashLevels[slot] = level;
+            intro->flashMade[slot] = 0;
+        }
+        if (intro->flashMade[slot] < FLASH_COLORS) FlashMake(intro, slot, FLASH_COLORS);
+        intro->flashSlot = slot;
+        shown = intro->flashed[slot];
+    } else {
+        shown = intro->colors;
+    }
+    CpuCopy16(shown, gBgPalette, FLASH_BG * sizeof(u16));
+    CpuCopy16(shown + FLASH_BG, gObjPalette, (FLASH_COLORS - FLASH_BG) * sizeof(u16));
     intro->level = level;
     gMainFlags |= MAIN_FLAG_BG_PALETTE_SYNC_ENABLE | MAIN_FLAG_OBJ_PALETTE_SYNC_ENABLE;
 }
@@ -612,6 +677,7 @@ static void NightmareIntroMain(void) {
     if (!intro->burstPal) intro->burstPal = IntroPalette(e->roomId, gNidlData.enemies[NIDL_SPIT_STAR].animId, 0);
     if (!intro->lightPal) intro->lightPal = IntroPalette(e->roomId, gNidlData.bosses[NIDL_NIGHTMARE].animId | INTRO_KEY_LIGHT, FRAME_LIGHT);
     Comet(intro, t);
+    FlashAhead(intro, t);
     Flash(intro, FlashLevel(t));
     BlueStars(intro, t);
     Bursts(intro, t);
@@ -640,6 +706,9 @@ void NightmareIntroRider(struct Kirby *kirby) {
     intro->cometX = COMET_X;
     intro->palA = intro->palB = intro->burstPal = intro->lightPal = 0;
     intro->level = 0;
+    intro->flashLevels[0] = intro->flashLevels[1] = 0;
+    intro->flashMade[0] = intro->flashMade[1] = 0;
+    intro->flashSlot = 0;
     intro->knockX = intro->knockY = intro->hitX = intro->hitY = 0;
     intro->stars = intro->puff = NULL;
     for (i = 0; i < ARRAY_COUNT(sBursts); i++) intro->bursts[i] = NULL;

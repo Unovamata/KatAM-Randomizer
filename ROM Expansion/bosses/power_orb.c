@@ -121,6 +121,7 @@ void sub_08088640(struct Kirby *, u8, u16);
 #define FRAME_BURST (FRAME_DOT + 1)
 #define FRAME_SPARKLE (FRAME_BURST + 9)
 #define FRAME_TRAIL (FRAME_SPARKLE + 23)   // (its shots' afterimages, their tiles and palette: NiDL's 30-38, OrbTrail());
+#define FRAME_MOON (FRAME_TRAIL + 9)       // (its picture flying into the moon: NiDL's own, 48x48, with its palette);
 #define BURST_TILES 8
 #define SPARKLE_TILES 48
 
@@ -839,18 +840,13 @@ static void Dash(struct PowerOrb *o) {
     if (++o->step >= ARRAY_COUNT(sDashBack) && o->phase) Next(o);
 }
 
-/* Pulse(); Its colors this frame (see gNidlPowerOrbColors), in gObjPalette and the copy KatAM puts back after a flash (as Nightmare's,
- * bosses/nightmare.c), when they change (every 3 frames: KatAM's busiest frames here are near too long); */
-static void Pulse(struct PowerOrb *o) {
+/* PulseColors(); Its colors `amount` 256ths of the way to the darker ones (see gNidlPowerOrbColors), in gObjPalette's palette palId
+ * and the copy KatAM puts back after a flash (as Nightmare's, bosses/nightmare.c); */
+static void PulseColors(u8 palId, s32 amount) {
     const u16 *a = gNidlPowerOrbColors[0], *b = gNidlPowerOrbColors[1];
-    struct Object *obj = &o->n.obj;
-    s32 amount = sPulse256[o->pulse / 3], i;
-    u16 *colors;
-    bool8 change = o->pulse % 3 == 0;
+    u16 *colors = &gObjPalette[palId * 16];
+    s32 i;
 
-    if (++o->pulse >= PULSE_TIME) o->pulse = 0;
-    if (!change || gKirbys[gLocalPlayerId].base.roomId != obj->base.roomId || !obj->base.sprite.palId) return;
-    colors = &gObjPalette[obj->base.sprite.palId * 16];
     for (i = 0; i < 16; i++) {
         s32 r = a[i] & 0x1F, g = a[i] & 0x3E0, bl = a[i] & 0x7C00;
 
@@ -859,8 +855,19 @@ static void Pulse(struct PowerOrb *o) {
         bl += ((b[i] & 0x7C00) - bl) * amount >> 8;
         colors[i] = (r & 0x1F) | (g & 0x3E0) | (bl & 0x7C00);
     }
-    sub_0803D280(obj->base.sprite.palId * 16, 16);
+    sub_0803D280(palId * 16, 16);
     gMainFlags |= MAIN_FLAG_OBJ_PALETTE_SYNC_ENABLE;
+}
+
+// Pulse(); Its colors this frame (PulseColors()), when they change (every 3 frames: KatAM's busiest frames here are near too long);
+static void Pulse(struct PowerOrb *o) {
+    struct Object *obj = &o->n.obj;
+    s32 amount = sPulse256[o->pulse / 3];
+    bool8 change = o->pulse % 3 == 0;
+
+    if (++o->pulse >= PULSE_TIME) o->pulse = 0;
+    if (!change || gKirbys[gLocalPlayerId].base.roomId != obj->base.roomId || !obj->base.sprite.palId) return;
+    PulseColors(obj->base.sprite.palId, amount);
 }
 
 // Zip(); To each row at 6 pixels a frame (after a wait, ZIP_WAIT frames), a wait, a lunge as it shoots a crescent; then on to hovering;
@@ -995,6 +1002,8 @@ static void OrbDeathMain(void) {
 
     if (k == DEATH_FLASH) sub_080860A8(&obj->base, gUnk_08350E34);
     if (k == DEATH_FREEZE) sub_08033540(d->player);
+    // (its colors pulsing on through the freeze, as NiDL's: its end goes on with them, PowerOrbEnd());
+    if (k > DEATH_FREEZE && k <= DEATH_BURST) Pulse(d->o);
     if (k == DEATH_BURST) {
         OrbShotsGone(d->o);
         obj->base.flags |= 0x400;
@@ -1217,8 +1226,9 @@ static void PowerOrbMain(struct Object *obj) {
  *   it flies NiDL's launch up off the screen (sLaunch, then on with its last two moves till it's 32 pixels over the screen); 21
  *   frames in, the screen rises to the room's top (1.25 pixels a frame, a 16th more each frame, never more than a 16th of the way
  *   left, nor under an 8th), the star kept 34 pixels over it;
- * • 2 frames after the screen's at the top, the orb, small (a quarter of its size, smaller every 20 frames: sMoonSizes), flies into
- *   the moon (sMoonOrb, from (136, -15) on the screen), then too small, a dot (FRAME_DOT, NiDL's); 60 frames after it, the star
+ * • 2 frames after the screen's at the top, the orb (NiDL's picture of it for this, FRAME_MOON, its colors no longer pulsing), small
+ *   (a quarter of its size, smaller every 20 frames: sMoonSizes; its pieces placed as NiDL's, warpstar.c's NidlShrinkPieces()), flies
+ *   into the moon (sMoonOrb, from (137, -16) on the screen), then too small, a dot (FRAME_DOT, NiDL's); 60 frames after it, the star
  *   with the Kirbys, the same way (sMoonStar; warpstar.c draws them at its size, PowerOrbRideSize()), then a dot too; 410 frames
  *   after the orb came in, the star's flight goes on to its fade to white (18 frames), then Nightmare's room;
  * the screen's held where the fight left it till then (its arena gone, the camera would go back to the fight's first screen,
@@ -1237,6 +1247,8 @@ static void PowerOrbMain(struct Object *obj) {
 #define END_TOP (8 << 8)
 #define END_MOON_X (136 << 8)
 #define END_MOON_Y (-15 << 8)
+#define END_ORB_X (137 << 8)
+#define END_ORB_Y (-17 << 8)
 #define END_MOON_WAIT 2
 #define END_STAR_LATE 60
 #define END_FADE 410
@@ -1246,7 +1258,7 @@ static void PowerOrbMain(struct Object *obj) {
 #define NIDL_RIDE_HIDDEN 0x8000
 
 void sub_080534D0(struct Kirby *);
-void NidlShrink(u32 first, s32 x, s32 y, u32 pa, u32 matrix);
+void NidlShrinkPieces(u32 first, s32 x, s32 y, u32 pa, u32 matrix);
 
 enum { END_HIDDEN, END_FLEE, END_GONE };
 
@@ -1264,6 +1276,7 @@ struct OrbEnd {
     u8 player;
     u8 phase;
     u8 palId, dotPalId;
+    u8 pulse;                   // Frames into its colors' pulse (as the fight's, Pulse(): on till it flies into the moon);
     bool8 above;                // The star's over the screen, kept there;
 };
 
@@ -1280,19 +1293,21 @@ static const s8 sLaunch[][2] = { { 1, -1 }, { 2, 0 }, { 1, -1 }, { 2, 0 }, { 1, 
 // Into the moon: the size (its matrix's pa: 256 / the size, 8.8) and frames, from a quarter, then a dot;
 static const u16 sMoonSizes[][2] = { { 1024, 19 }, { 1092, 20 }, { 1170, 20 }, { 1260, 19 }, { 1365, 20 }, { 1489, 20 }, { 1638, 19 }, { 1820, 20 },
                                      { 2048, 20 }, { 2340, 19 }, { 2730, 20 } };
-// Into the moon: the moves frame by frame, a pixel or none each way, 4 bits a frame (x + 1, (y + 1) << 2), low first: the orb's,
-// then the star's (NiDL's own: it catches up with the orb in the moon's middle);
-// (426 frames)
-static const u8 sMoonOrb[213] = {
-    0x84, 0x84, 0x84, 0x84, 0x84, 0x84, 0x84, 0x84, 0x84, 0x84, 0x84, 0x84, 0x84, 0x84, 0x94, 0x84, 0x94, 0x84, 0x94, 0x84, 0x94, 0x84, 0x94, 0x84,
-    0x94, 0x84, 0x94, 0x94, 0x94, 0x94, 0x94, 0x94, 0x94, 0x94, 0x94, 0x94, 0x94, 0x94, 0x94, 0x94, 0x94, 0x94, 0x95, 0x94, 0x95, 0x94, 0x95, 0x94,
-    0x55, 0x95, 0x55, 0x95, 0x54, 0x95, 0x55, 0x95, 0x55, 0x95, 0x55, 0x95, 0x55, 0x95, 0x55, 0x95, 0x55, 0x95, 0x55, 0x95, 0x56, 0x95, 0x55, 0x95,
-    0x65, 0x95, 0x55, 0x95, 0x65, 0x55, 0x55, 0x95, 0x65, 0x55, 0x55, 0x95, 0x65, 0x55, 0x55, 0x95, 0x65, 0x55, 0x55, 0x95, 0x65, 0x55, 0x55, 0x95,
-    0x65, 0x55, 0x55, 0x95, 0x65, 0x55, 0x55, 0x95, 0x65, 0x55, 0x55, 0x95, 0x65, 0x55, 0x55, 0x95, 0x65, 0x55, 0x55, 0x95, 0x65, 0x55, 0x55, 0x95,
-    0x65, 0x55, 0x55, 0x95, 0x65, 0x55, 0x55, 0x95, 0x65, 0x55, 0x55, 0x55, 0xA5, 0x55, 0x55, 0x55, 0x65, 0x55, 0x55, 0x55, 0xA5, 0x55, 0x55, 0x55,
-    0x65, 0x55, 0x55, 0x55, 0xA5, 0x55, 0x55, 0x55, 0x65, 0x55, 0x55, 0x55, 0xA5, 0x55, 0x55, 0x55, 0x65, 0x55, 0x55, 0x55, 0xA5, 0x55, 0x55, 0x55,
-    0x65, 0x55, 0x55, 0x55, 0xA5, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x65, 0x55, 0x55, 0x55, 0x55,
-    0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x65, 0x95, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55,
+// Into the moon: the moves frame by frame, a pixel or none each way, 4 bits a frame (x + 1, (y + 1) << 2), low first: the orb's
+// (NiDL's object's spot frame by frame, its first still, then its dot's), then the star's (NiDL's own: it catches up with the orb in
+// the moon's middle);
+// (435 frames)
+static const u8 sMoonOrb[218] = {
+    0x85, 0x84, 0x84, 0x84, 0x84, 0x84, 0x84, 0x84, 0x84, 0x84, 0x84, 0x84, 0x84, 0x84, 0x84, 0x94, 0x84, 0x94, 0x84, 0x94, 0x84, 0x94, 0x84, 0x94,
+    0x84, 0x94, 0x84, 0x94, 0x94, 0x94, 0x94, 0x94, 0x94, 0x94, 0x94, 0x94, 0x94, 0x94, 0x94, 0x94, 0x94, 0x94, 0x94, 0x95, 0x94, 0x95, 0x94, 0x95,
+    0x94, 0x55, 0x95, 0x55, 0x95, 0x54, 0x95, 0x55, 0x95, 0x55, 0x95, 0x55, 0x95, 0x55, 0x95, 0x55, 0x95, 0x55, 0x95, 0x55, 0x95, 0x56, 0x95, 0x55,
+    0x95, 0x65, 0x95, 0x55, 0x95, 0x65, 0x55, 0x55, 0x95, 0x65, 0x55, 0x55, 0x95, 0x65, 0x55, 0x55, 0x95, 0x65, 0x55, 0x55, 0x95, 0x65, 0x55, 0x55,
+    0x95, 0x65, 0x55, 0x55, 0x95, 0x65, 0x55, 0x55, 0x95, 0x65, 0x55, 0x55, 0x95, 0x65, 0x55, 0x55, 0x95, 0x65, 0x55, 0x55, 0x95, 0x65, 0x55, 0x55,
+    0x95, 0x65, 0x55, 0x55, 0x95, 0x65, 0x55, 0x55, 0x95, 0x65, 0x55, 0x55, 0x55, 0xA5, 0x55, 0x55, 0x55, 0x65, 0x55, 0x55, 0x55, 0xA5, 0x55, 0x55,
+    0x55, 0x65, 0x55, 0x55, 0x55, 0xA5, 0x55, 0x55, 0x55, 0x65, 0x55, 0x55, 0x55, 0xA5, 0x55, 0x55, 0x55, 0x65, 0x55, 0x55, 0x55, 0xA5, 0x55, 0x55,
+    0x55, 0x65, 0x55, 0x55, 0x55, 0xA5, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x65, 0x55, 0x55, 0x55,
+    0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x65, 0x95, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55,
+    0x55, 0x55,
 };
 // (366 frames)
 static const u8 sMoonStar[183] = {
@@ -1376,13 +1391,15 @@ static void EndDraw(struct OrbEnd *end, s32 x, s32 y, u8 frame, u32 pa) {
     u32 first = gUnk_030024F0;
 
     e->x = x;
-    e->y = y;
+    // (the dot a pixel lower: NiDL's own tile, not a frame of its, KatAMExpansion's Piece puts a pixel lower than NiDL's);
+    e->y = frame == FRAME_DOT ? y + 0x100 : y;
     e->sprite.variant = frame;
     e->sprite.palId = frame == FRAME_DOT ? end->dotPalId : end->palId;
     // (facing right: KatAM draws effects mirrored otherwise, NiDL's as they are);
     e->flags = (e->flags & ~0x400) | 4 | 1;
     EffectObjectPostUpdate(e);
-    if (pa) NidlShrink(first, e->sprite.x, e->sprite.y, pa, END_MATRIX);
+    // (around its spot as NiDL's: its frames are a pixel lower, KatAMExpansion's Piece);
+    if (pa) NidlShrinkPieces(first, e->sprite.x, e->sprite.y + 1, pa, END_MATRIX);
 }
 
 // EndRider(); Whether a Kirby rides its star (on its flight's first step, held there: warpstar.c);
@@ -1430,8 +1447,8 @@ static void EndRide(struct OrbEnd *end) {
     // (into the moon: the orb, then the star);
     if (end->top == END_MOON_WAIT + 1) {
         end->moon = 1;
-        end->orbX = end->camX + END_MOON_X;
-        end->orbY = end->camY + END_MOON_Y;
+        end->orbX = end->camX + END_ORB_X;
+        end->orbY = end->camY + END_ORB_Y;
     } else if (end->moon) {
         MoonMove(sMoonOrb, ARRAY_COUNT(sMoonOrb) * 2, end->moon - 1, &end->orbX, &end->orbY);
         if (end->moon - 1 == END_STAR_LATE) {
@@ -1478,6 +1495,16 @@ static void OrbEndMain(void) {
     e->flags |= 4 | 0x400;
     EndRide(end);
     NidlFinaleHoldCamera(e->roomId, end->camX, end->camY);
+    // (its colors pulsing on as in its fight till it flies into the moon, then its own: NiDL's picture of it there has them);
+    if (end->moon < 2) {
+        s32 amount = sPulse256[end->pulse / 3];
+        bool8 change = end->pulse % 3 == 0;
+
+        if (++end->pulse >= PULSE_TIME) end->pulse = 0;
+        if (change && end->palId && gKirbys[gLocalPlayerId].base.roomId == e->roomId) PulseColors(end->palId, amount);
+    } else if (end->moon == 2 && end->palId && gKirbys[gLocalPlayerId].base.roomId == e->roomId) {
+        PulseColors(end->palId, 0);
+    }
     k = end->t++;
     if (k == END_BACK) {
         NidlFinaleStarAt(end->player, end->x0, end->y0 + (END_STAR_Y << 8));
@@ -1501,7 +1528,7 @@ static void OrbEndMain(void) {
     if (end->moon > 1) {
         u32 pa = MoonSize(end->moon - 2);
 
-        EndDraw(end, end->orbX, end->orbY, pa ? FRAME_SPIN : FRAME_DOT, pa);
+        EndDraw(end, end->orbX, end->orbY, pa ? FRAME_MOON : FRAME_DOT, pa);
         if (!pa && end->moon - 2 > END_STAR_LATE && !MoonSize(end->moon - 2 - END_STAR_LATE)) EndDraw(end, end->starX, end->starY, FRAME_DOT, 0);
     }
 }
@@ -1597,6 +1624,7 @@ void PowerOrbEnd(struct Object *obj) {
     end->t = end->ride = end->top = end->moon = 0;
     end->phase = END_HIDDEN;
     end->above = FALSE;
+    end->pulse = o->pulse;
     end->animId = NidlGraphicsOf(&o->n)->animId;
     EffectObjectInitSprite(e, &e->sprite, END_TILES, end->animId, FRAME_SPIN, 0x1A);
     end->palId = EndPalette(end, end->animId, FRAME_SPIN);

@@ -285,6 +285,8 @@ static void StarRodShoot(struct Kirby *kirby, s32 dx, s32 dy, bool8 sinks) {
      * the target's unk94 to its strength, never under 1 (sub_0809AA10): the orb's -2, so 1; but through walls, no gravity; not its
      * 0x4000, VRAM shared by its anim and first frame, sub_0803DE54: its frames change); */
     base->flags |= 0xA0000000 | 0x140;
+    // (the Power Orb's: no box, the orb takes their hits itself, StarRodHits(); KatAM's collisions would check them every frame);
+    if (sinks) base->flags |= 0x200;
     base->unk68 |= 0x20000043;
     base->unk64 = 0x280;
     base->unk66 = 0x280;
@@ -299,7 +301,8 @@ static void StarRodShoot(struct Kirby *kirby, s32 dx, s32 dy, bool8 sinks) {
     star->palId = Palette(base, FRAME_STAR);
     ObjectBaseInitSprite(base, &base->sprite, STAR_TILES, gNidlData.enemies[NIDL_SPIT_STAR].animId, FRAME_STAR, 0xA);
     base->sprite.palId = star->palId;
-    StarRodTrail(star);
+    // (the helpers' in the Power Orb's fight without their sparkle, fewer effects for its four flying Kirbys: the player's keep it);
+    if (!sinks || kirby->base.unk56 < gNumHumanPlayers) StarRodTrail(star);
     PlaySfx(&kirby->base, SE_KIRBY_STARSHOT_1);
 }
 
@@ -472,6 +475,11 @@ void StarRodKeep(struct Kirby *kirby) {
 void StarRodRestore(struct Kirby *kirby) {
     if (kirby->ability != NIDL_ABILITY_STAR_ROD) return;
     Give(kirby, STAR_ROD_SAVED(kirby) < NIDL_ABILITY_END && STAR_ROD_SAVED(kirby) != NIDL_ABILITY_STAR_ROD ? STAR_ROD_SAVED(kirby) : KIRBY_ABILITY_NORMAL);
+}
+
+// StarRodEnd(); The Star Rod gone, Normal (Nightmare beaten: NiDL's Kirby flies off as he is, without the ability he had before);
+void StarRodEnd(struct Kirby *kirby) {
+    if (kirby->ability == NIDL_ABILITY_STAR_ROD) Give(kirby, KIRBY_ABILITY_NORMAL);
 }
 
 // StarRodFightOver(); The boss beaten (NidlBossDefeat): the riders stop aiming at it;

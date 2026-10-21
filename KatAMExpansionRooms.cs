@@ -1310,8 +1310,10 @@
                     rom[roomInfo + 0x4A] = (byte)(r.Stage + 1); rom[roomInfo + 0x4B] = (byte)r.Index;
                     WriteInt(rom, roomInfos + r.Room * 4, roomInfo + 0x08000000);
 
-                    // The camera's top (CameraTop()); the background spans the room once, both ways (BackgroundRates());
-                    int top = CameraTop(nightmare, r);
+                    // The camera's top (CameraTop()); the background spans the room once, both ways (BackgroundRates()); the Fountain
+                    // of Dreams hub's KatAM's (8 pixels down): a screen's room, so its camera stays put, as KatAM's hub rooms' (the owner's;
+                    // from the room's top it rose 8 pixels as Kirby flew up);
+                    int top = r.IsSwitchRoom && r.Level == 7 ? 8 : CameraTop(nightmare, r);
                     // (rooms.c's code: 0 KatAM's 8 pixels, 1 the room's top, 2 a row down; it was top / 8 + 1, two rows down, 0x147);
                     rom[CodeAddress + version.CodeSymbols["gNidlRoomTops"] + r.Room] = (byte)(top == 8 ? 0 : top / 16 + 1);
                     (int rateX, int rateY) = BackgroundRates(ReadShort(nightmare, backgroundMap + 2) * 8, ReadShort(nightmare, backgroundMap + 4) * 8,
@@ -1326,6 +1328,10 @@
                         backgroundDown = ReadShort(nightmare, backgroundMap + 4) * 8 - r.FullHeight * 16;
                         // Its cloud bands' speeds, NiDL's (a byte a row of 8 pixels: "ROM Expansion/finale.c", gNidlCloudSpeeds);
                         Array.Copy(nightmare, region.CloudSpeeds, rom, CodeAddress + version.CodeSymbols["gNidlCloudSpeeds"], CloudRows);
+                    } else if (BossIn(nightmare, r.Record) == NightmareBoss) {
+                        // Nightmare's room: its background a row up, where NiDL draws it (KatAM bottom-aligns it, and the room is a row
+                        // taller than NiDL's: HiddenRows, Padded()), as measured against NiDL's through his intro and fight;
+                        backgroundDown = -HiddenRows * 16;
                     }
                     WriteShorts(rom, roomProps + r.Room * 0x28, LevelSongs[r.Level], 0, 0, 0x100, 0x100, 0, backgroundDown, rateX, rateY, RoomFlags,
                                 info, palette, tableSizes[12] + i, tableSizes[13] + i, 0xFFFF, background, tableSizes[16] + i,

@@ -36,6 +36,7 @@ bool32 NidlFinaleStar(struct Object *);    // the Power Orb's warp star (finale.
 bool32 NidlFinaleAllAboard(struct Object *, u8);
 u32 NidlFinaleRideSize(u16 room);         // the finale's rides' size, and a Kirby held on one (finale.c);
 void NidlFinaleHold(struct Kirby *);
+bool32 NidlFinaleFlight(struct Kirby *);  // the finale's flights, without the pause (finale.c);
 
 #define NIDL_RIDE_FLIGHT 6    // the first warp star subtype (flight) of the ported warp stars (KatAMExpansionRooms.cs, WarpFlight);
 #define NIDL_RIDE_ROOM 0xFE   // a flight step's +8 on a room change (+9 0x40) to the room in its +0xA;
@@ -110,6 +111,9 @@ void NidlRideRoomChange(struct Kirby *kirby) {
 // him (sub_080534D0's flight end with the 0x80 flag);
 void NidlRideStep(struct Kirby *kirby) {
     const struct Unk_08353510 *step = kirby->unk114;
+
+    // (no pause on the finale's flights, its cutscenes: START taken before Kirby's update checks it, finale.c's NidlFinaleFlight());
+    if (NidlFinaleFlight(kirby)) kirby->unk11A &= ~START_BUTTON;
     // (the Power Orb's ride: held, the orb's end moving him; hidden when it says, as a flight step's flag 4 hides him);
     if (step != NULL && step->unk8 == NIDL_RIDE_FINALE && !(step->unk9 & 0x40)) {
         kirby->base.flags |= 4;
@@ -149,11 +153,12 @@ static u32 NidlRideSize(struct Kirby *kirby) {
     return pa > 0x100 && pa < 0x8000 ? pa : 0;
 }
 
-/* NidlShrink(); The OAM pieces drawn since `first` (gUnk_030031C0, up to gUnk_030024F0) at the size of `pa` around (x, y), the
- * star's middle on screen: each piece scaled by an affine matrix (`matrix`, then +8, +16, +24 for its flips: attr1 bits 12, 13
- * become its bits 3, 4) and its middle moved in toward (x, y) by as much, as NiDL draws its star and rider (and the Power Orb going
- * into the moon, bosses/power_orb.c); */
-void NidlShrink(u32 first, s32 x, s32 y, u32 pa, u32 matrix) {
+/* Shrink(); The OAM pieces drawn since `first` (gUnk_030031C0, up to gUnk_030024F0) at the size of `pa` around (x, y), the
+ * sprite's spot on screen: each piece scaled by an affine matrix (`matrix`, then +8, +16, +24 for its flips: attr1 bits 12, 13
+ * become its bits 3, 4) and moved in toward (x, y): its middle by as much (NidlShrink(): as NiDL draws its star and rider on its
+ * rides), or as NiDL's own sprites place theirs (NidlShrinkPieces(), 0x08001E38: its corner's offset scaled, half a pixel toward
+ * the spot, less half of how much it shrinks); */
+static void Shrink(u32 first, s32 x, s32 y, u32 pa, u32 matrix, bool32 pieces) {
     u32 i, size = 0, bit, rest = 0x10000;
 
     if (first >= gUnk_030024F0) return;
@@ -175,11 +180,18 @@ void NidlShrink(u32 first, s32 x, s32 y, u32 pa, u32 matrix) {
         if (px >= 256) px -= 512;
         py = attr0 & 0xFF;
         if (py >= 160) py -= 256;
-        // (its middle, in half pixels, moved in toward the star's);
-        px = x * 2 + (((px * 2 + w - x * 2) * (s32)size) >> 8);
-        py = y * 2 + (((py * 2 + h - y * 2) * (s32)size) >> 8);
-        oam->all.attr0 = (attr0 & ~0x3FF) | 0x100 | (((py - h) >> 1) & 0xFF);
-        oam->all.attr1 = (attr1 & ~0xFFF) | (matrix << 9) | (((px - w) >> 1) & 0x1FF);
+        if (pieces) {
+            px = (px - x) * (s32)size;
+            py = (py - y) * (s32)size;
+            px = x + ((px >= 0 ? px - 0x80 : px + 0x80) >> 8) - (w / 2 - ((w / 2 * size) >> 8));
+            py = y + ((py >= 0 ? py - 0x80 : py + 0x80) >> 8) - (h / 2 - ((h / 2 * size) >> 8));
+        } else {
+            // (its middle, in half pixels, moved in toward the star's);
+            px = (x * 2 + (((px * 2 + w - x * 2) * (s32)size) >> 8) - w) >> 1;
+            py = (y * 2 + (((py * 2 + h - y * 2) * (s32)size) >> 8) - h) >> 1;
+        }
+        oam->all.attr0 = (attr0 & ~0x3FF) | 0x100 | (py & 0xFF);
+        oam->all.attr1 = (attr1 & ~0xFFF) | (matrix << 9) | (px & 0x1FF);
     }
     for (i = 0; i < 4; i++) {
         u16 *m = &gOamBuffer[(matrix + i * 8) * 16 + 3];
@@ -188,6 +200,16 @@ void NidlShrink(u32 first, s32 x, s32 y, u32 pa, u32 matrix) {
         m[8] = 0;
         m[12] = i & 2 ? -pa : pa;
     }
+}
+
+// NidlShrink(); Shrink(), its pieces' middles moved in (see above): the rides' star and rider;
+void NidlShrink(u32 first, s32 x, s32 y, u32 pa, u32 matrix) {
+    Shrink(first, x, y, pa, matrix, FALSE);
+}
+
+// NidlShrinkPieces(); Shrink(), its pieces placed as NiDL's sprites' (see above): the Power Orb's and its star's flights into the moon;
+void NidlShrinkPieces(u32 first, s32 x, s32 y, u32 pa, u32 matrix) {
+    Shrink(first, x, y, pa, matrix, TRUE);
 }
 
 // NidlRideDraw(); Kirby's drawing (sub_0803F46C); on a ride's step with a size, at that size (see above);

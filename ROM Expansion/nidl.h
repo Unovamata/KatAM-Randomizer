@@ -181,6 +181,7 @@ void NightmareBeaten(struct Object *nightmare);
 void NightmareEnd(struct Object *nightmare);
 void NidlEndingFlight(u16 room);
 bool32 NidlOnEnding(struct Kirby *kirby);
+bool32 NidlFinaleFlight(struct Kirby *kirby);
 // The ending down from the moon (ending.c);
 void NidlEndingRider(struct Kirby *kirby);
 u32 NidlEndingRideSize(u16 room);

@@ -158,11 +158,18 @@ namespace KatAMRandomizer {
             return distance;
         }
 
-        static int CountCells(int[,] canvas) => CutFrame(canvas, int.MaxValue).oams.Length / 3;
+        static int CountCells(int[,] canvas) => CutFrame(canvas, int.MaxValue).tiles.Length / 32;
+
+        // OAM's shapes in 8x8 cells (wide, high; its shape and size bits), the biggest first;
+        static readonly (int w, int h, int shape, int size)[] PieceShapes = {
+            (8, 8, 0, 3), (8, 4, 1, 3), (4, 8, 2, 3), (4, 4, 0, 2), (4, 2, 1, 2), (2, 4, 2, 2), (4, 1, 1, 1), (1, 4, 2, 1), (2, 2, 0, 1), (2, 1, 1, 0),
+            (1, 2, 2, 0), (1, 1, 0, 0),
+        };
 
         /* CutFrame(); A canvas (128x128, origin at its center; 0: transparent) as a KatAM frame: its 8x8 cells with pixels (at most
          * maxTiles), on the grid (one of the 64 offsets from the top left) needing the fewest (Needle's spiked ball in the air needs 50 on
-         * the top left's, 48 on its best: the hat's VRAM), the box widened to be centered on the origin so it flips about it; */
+         * the top left's, 48 on its best: the hat's VRAM), drawn in big OAM pieces where they can be, the box widened to be centered on the
+         * origin so it flips about it; */
         static (byte[] tiles, ushort[] oams, short[] attributes) CutFrame(int[,] canvas, int maxTiles) {
             const int Size = 128, Center = 64;
             int left = Size, right = 0, top = Size, bottom = 0;
@@ -195,11 +202,12 @@ namespace KatAMRandomizer {
             int gridLeft = left - best.ox, gridTop = top - best.oy, gridRight = gridLeft + (right - gridLeft + 7) / 8 * 8;
 
             int halfWidth = Math.Max(Center - gridLeft, gridRight - Center);
-            List<byte> output = new List<byte>();
-            List<ushort> oams = new List<ushort>();
+            int columns = (right - gridLeft + 7) / 8, rows = (bottom - gridTop + 7) / 8, kept = 0;
+            byte[,][] cells = new byte[columns, rows][];
 
-            for (int cy = gridTop; cy < bottom; cy += 8) {
-                for (int cx = gridLeft; cx < right; cx += 8) {
+            for (int row = 0; row < rows; row++) {
+                for (int column = 0; column < columns; column++) {
+                    int cx = gridLeft + column * 8, cy = gridTop + row * 8;
                     byte[] cell = new byte[32];
                     bool any = false;
                     for (int y = 0; y < 8; y++)
@@ -209,13 +217,34 @@ namespace KatAMRandomizer {
                             cell[y * 4 + x / 2] |= (byte)(value << (x % 2 * 4));
                             any = true;
                         }
-                    if (!any || oams.Count / 3 >= maxTiles) continue;
-                    oams.Add((ushort)(cy - gridTop));
-                    oams.Add((ushort)(cx - Center + halfWidth));
-                    oams.Add((ushort)(output.Count / 32));
-                    output.AddRange(cell);
+                    if (!any || kept >= maxTiles) continue;
+                    cells[column, row] = cell;
+                    kept++;
                 }
             }
+
+            /* The cells as OAM pieces, the biggest shapes first where every cell they cover has pixels (the same tiles, in fewer pieces:
+             * KatAM's DisplaySprite takes its time per piece, and NiDL's frames on four Kirbys made dozens each); */
+            List<byte> output = new List<byte>();
+            List<ushort> oams = new List<ushort>();
+            bool[,] used = new bool[columns, rows];
+            foreach ((int w, int h, int shape, int size) in PieceShapes)
+                for (int row = 0; row + h <= rows; row++)
+                    for (int column = 0; column + w <= columns; column++) {
+                        bool fits = true;
+                        for (int dy = 0; dy < h && fits; dy++)
+                            for (int dx = 0; dx < w && fits; dx++)
+                                fits = cells[column + dx, row + dy] != null && !used[column + dx, row + dy];
+                        if (!fits) continue;
+                        oams.Add((ushort)(row * 8 | shape << 14));
+                        oams.Add((ushort)((gridLeft + column * 8 - Center + halfWidth) | size << 14));
+                        oams.Add((ushort)(output.Count / 32));
+                        for (int dy = 0; dy < h; dy++)
+                            for (int dx = 0; dx < w; dx++) {
+                                output.AddRange(cells[column + dx, row + dy]);
+                                used[column + dx, row + dy] = true;
+                            }
+                    }
 
             return (output.ToArray(), oams.ToArray(), new short[] { 0, (short)(oams.Count / 3), (short)(halfWidth * 2), (short)(bottom - gridTop), (short)halfWidth, (short)(Center - gridTop) });
         }

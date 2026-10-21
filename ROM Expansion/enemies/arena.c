@@ -258,6 +258,12 @@ void ArenaSink(struct Object *boss, s32 sink) {
         a->sink = sink;
         for (i = 0; i < gNumKirbys; i++) {
             if (!(a->locked & (1 << i))) continue;
+            // (a Kirby gone from the room, a helper lost and back in another: its camera's that room's now; held here, KatAM's helper
+            // AI looks there for a zone inside these bounds forever, sub_08010034; coming back, it's locked anew);
+            if (gKirbys[i].base.roomId != boss->base.roomId) {
+                a->locked &= ~(1 << i);
+                continue;
+            }
             LockCamera(a, i);
             gCurLevelInfo[i].unk_S32Vec2_6C = gCurLevelInfo[i].unk_S32Vec2_7C;
             gCurLevelInfo[i].unk_S32Vec2_74 = gCurLevelInfo[i].unk_S32Vec2_84;
