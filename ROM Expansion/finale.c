@@ -168,6 +168,7 @@ void NidlFinaleKeep(struct Object *nightmare) {
  * row whole (it wraps a row round, sub_08153184), and NiDL's is 256 pixels wide: a line's scroll shows its row as NiDL's; */
 #define CLOUD_ROWS 144      // (KatAMExpansionRooms.cs's CloudRows: 1152 pixels, the room's 936 and more);
 #define CLOUD_PERIOD 512
+#define CLOUD_LATE 6        // (the fight's: NiDL's frames start 6 after the room comes in here, traced; the ending's as it comes in);
 #define CLOUD_PRIORITY 0x8000
 
 const u8 gNidlCloudSpeeds[CLOUD_ROWS] = { 0 };
@@ -176,7 +177,27 @@ struct Clouds {
     u16 t;          // Frames since the room came in (0-511);
     bool8 ending;   // The ending's (its Kirbys on its flight, all through it: NidlOnEnding());
     u8 sky;         // The rows of starry sky over the first band (NidlCloudsStart());
+    u8 fade;        // The room's fade in (RoomColors()): 0 not seen yet, 1 under way, 2 over;
 };
+
+extern u16 gUnk_02022120[0x100];    // The BG palettes as loaded, under KatAM's palette effects (sub_0803A1F4 copies it back);
+
+/* RoomColors(); The room's own colors once its fade in from the door is over: KatAM's stops a step short of them (its last step,
+ * 0x0803A1F4's, is left until another palette effect copies them back, a few hundred frames on), NiDL's ends on them; */
+static void RoomColors(struct Clouds *clouds) {
+    bool8 fading = FALSE;
+    u8 i;
+
+    for (i = 0; i < ARRAY_COUNT(gUnk_02022930.unk80); i++)
+        if (gUnk_02022930.unk80[i] && gUnk_02022930.unk80[i]->unk6) fading = TRUE;
+    if (fading) {
+        clouds->fade = 1;
+    } else if (clouds->fade == 1) {
+        CpuCopy16(gUnk_02022120, gBgPalette, sizeof(gUnk_02022120));
+        gMainFlags |= MAIN_FLAG_BG_PALETTE_SYNC_ENABLE;
+        clouds->fade = 2;
+    }
+}
 
 /* (the game's heaviest frames, the room coming in and the fight, have no time to spare: a row of 8 lines at a time, the same scroll,
  * and none while the screen's all sky, every line's scroll BG0's own, as the fight's first half: no table, no HBlank DMA); */
@@ -192,6 +213,7 @@ static void CloudsMain(void) {
         TaskDestroy(gCurTask);
         return;
     }
+    if (clouds->fade < 2) RoomColors(clouds);
     for (i = 0; i < gNumKirbys && !clouds->ending; i++)
         clouds->ending = gKirbys[i].base.roomId == level->currentRoom && NidlOnEnding(&gKirbys[i]);
     if (clouds->ending) t = CLOUD_PERIOD - t;
@@ -263,7 +285,8 @@ void NidlCloudsStart(u16 room) {
     }
     if (t->main != CloudsMain) t = TaskCreate(CloudsMain, sizeof(struct Clouds), CLOUD_PRIORITY, TASK_USE_IWRAM, NULL);
     clouds = TaskGetStructPtr(t);
-    clouds->t = 0;
+    clouds->t = NidlEndingOn(room) ? 0 : CLOUD_PERIOD - CLOUD_LATE;
     clouds->ending = FALSE;
+    clouds->fade = 0;
     for (clouds->sky = 0; clouds->sky < CLOUD_ROWS && gNidlCloudSpeeds[clouds->sky] == 0; clouds->sky++);
 }

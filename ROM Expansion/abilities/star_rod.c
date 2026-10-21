@@ -617,8 +617,8 @@ static void StarRodIntro(struct StarRodRider *r, s32 t, struct LevelInfo *level)
     r->vx = r->vy = 0;
     r->way = r->ending = r->slow = r->hurt = 0;
     r->shot = SWING_TIME + 1;
-    // (its motion a frame early: KatAM shows a motion's first frame the frame after);
-    r->motion = t >= INTRO_SHOW - 1 ? STAR_ROD_MOTION_INTRO : STAR_ROD_MOTION_HOLD;
+    // (its motion from the frame he shows: its first frame on the frame after, NiDL's);
+    r->motion = t >= INTRO_SHOW ? STAR_ROD_MOTION_INTRO : STAR_ROD_MOTION_HOLD;
     NidlMotion(kirby, r->motion);
     r->lastTop = level->unk_S32Vec2_7C.y;
 }

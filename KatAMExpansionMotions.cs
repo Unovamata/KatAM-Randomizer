@@ -98,6 +98,8 @@ namespace KatAMRandomizer {
             bool twoLayers = (first & 1) != 0;
             ushort[] palette1 = FramePalette(nightmare, ReadInt(nightmare, entry + 4)), palette2 = twoLayers ? FramePalette(nightmare, ReadInt(nightmare, entry + 12)) : null;
             byte[] tiles1 = KirbyTiles(nightmare, ReadInt(nightmare, entry + 8)), tiles2 = twoLayers ? KirbyTiles(nightmare, ReadInt(nightmare, entry + 16)) : null;
+            // (NiDL's shared object palette 15: the Star Rod's sparkles, drawn with Kirby);
+            ushort[] palette15 = Enumerable.Range(0, 16).Select(c => (ushort)ReadShort(nightmare, region.Palette15 + c * 2)).ToArray();
             bool plainBank0 = Enumerable.Range(2, 10).All(i => palette1[i] == plain[i]);
 
             int[,] body = new int[Size, Size], colors = new int[Size, Size];   // colors: RGB555 + 1 (0: none);
@@ -112,10 +114,10 @@ namespace KatAMRandomizer {
             // Drawn back to front (the first OAM entry is on top);
             for (int p = pieces.Count - 1; p >= 0; p--) {
                 var piece = pieces[p];
-                bool second = twoLayers && piece.tile >= 0x40;
+                bool second = twoLayers && piece.tile >= 0x40, shared = !second && piece.bank == 15;
                 byte[] tiles = second ? tiles2 : tiles1;
-                ushort[] palette = second ? palette2 : palette1;
-                int bank = second ? 0 : piece.bank & 1;
+                ushort[] palette = second ? palette2 : shared ? palette15 : palette1;
+                int bank = second || shared ? 0 : piece.bank & 1;
 
                 for (int py = 0; py < piece.h; py++) {
                     for (int px = 0; px < piece.w; px++) {
@@ -130,7 +132,7 @@ namespace KatAMRandomizer {
                         // Kirby's pixels: the first layer's plain colors 1-11, and the second layer's in plain Kirby's colors (NiDL's Kirby is
                         // always pink, so Needle's spiked ball, drawn on the second layer, has his body's colors: the player's in KatAM);
                         int plainIndex = second ? Array.IndexOf(plain, palette[value], 2, 10) : -1;
-                        bool isKirby = !second && bank == 0 && plainBank0 && value <= 11 || plainIndex >= 2;
+                        bool isKirby = !second && !shared && bank == 0 && plainBank0 && value <= 11 || plainIndex >= 2;
                         body[x, y] = !isKirby ? 0 : plainIndex >= 2 ? plainIndex : value;
                         colors[x, y] = isKirby ? 0 : palette[bank * 16 + value] + 1;
                     }

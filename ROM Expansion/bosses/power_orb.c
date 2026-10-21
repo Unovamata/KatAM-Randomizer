@@ -10,12 +10,12 @@
  * afterimages (30-38). They're drawn where NiDL draws them: a pixel up from KatAM's enemies' (KatAMExpansion.cs builds NiDL's frames a
  * pixel lower, to stand as KatAM's), the way NiDL's face (KatAM's flag 1), its shots over it and their trails under it (NiDL's
  * layers: its shots' 9, its 0xB, their sparkles' 0xC, their afterimages' 0xD).
- * Its intro (STATE_ENTER), NiDL's, traced frame by frame from the room's first (as the fight, its speeds change in steps it keeps
- * exactly): Kirby comes in at the room's bottom (KatAMExpansionRooms.cs: NiDL's start there; this and its arena stand there too,
+ * Its intro (STATE_ENTER), NiDL's, traced frame by frame from the room's first (the orb's path on the screen frame by frame,
+ * sIntroMoves): Kirby comes in at the room's bottom (KatAMExpansionRooms.cs: NiDL's start there; this and its arena stand there too,
  * KatAM making objects only near the camera) and the screen rises from there to the fight's (sRiseSpeeds: 761 pixels, 4 a frame,
  * slowing to 1 as it gets there: ArenaRise(), its arena's lock under its screen, the cameras right on it); 66 frames in, every
- * Kirby flies up into it from below its left (abilities/star_rod.c's StarRodIntro(): NiDL's flight and frames) and the orb comes
- * in from its top right, spinning, down to the left; Kirby swings at it (a slash across the screen: OrbSlash()), it pulses 5 times
+ * Kirby flies up into it from below its left (abilities/star_rod.c's StarRodIntro(): NiDL's flight and frames) and a frame later
+ * the orb comes in from its top right, spinning, down to the left; Kirby swings at it (a slash across the screen: OrbSlash()), it pulses 5 times
  * and spins fast as it loops round to its spot, and the fight starts there (319 frames in, NiDL's). Meanwhile it's untouchable and
  * harmless and shoots nothing, and the Kirbys neither move nor shoot (the riders fly them).
  * What it does, traced frame by frame in NiDL's fight (its speeds change in steps it keeps exactly), from its spot on the screen's
@@ -89,14 +89,14 @@ void sub_08088640(struct Kirby *, u8, u16);
 #define DEATH_THAW 53
 #define DEATH_PRIORITY 0x3600
 // The intro (frames into it: the orb and the Kirbys show; it moves; Kirby's swing hits it; its pulses; its fast spin; the fight);
-#define INTRO_SHOW 66
-#define INTRO_MOVE 94
-#define INTRO_CLASH 202
-#define INTRO_PULSE 204
-#define INTRO_FAST 242
+#define INTRO_SHOW 67
+#define INTRO_MOVE 95
+#define INTRO_CLASH 203
+#define INTRO_PULSE 205
+#define INTRO_FAST 243
 #define INTRO_END 319
 #define INTRO_X (256 << 8)
-#define INTRO_Y (-8 << 8)
+#define INTRO_Y (-4 << 8)
 #define INTRO_BELOW 761
 // Its frames (KatAMExpansion.PowerOrb): the spin, the shrink, its look when hit, then the shots' (NiDL's shot frames 0-9, then 19-22,
 // from FRAME_SHOT);
@@ -240,11 +240,20 @@ static const s16 sLunge[LUNGE_TIME] = { 0x800, 0x800, 0x400, 0x400, -0x400, -0x4
 // The intro's screen rising: pixels a frame and frames;
 static const u8 sRiseSpeeds[] = { 0, 8, 4, 3, 2, 1 };
 static const u8 sRiseTimes[] = { 2, 1, 141, 32, 32, 29 };
-/* The intro's moves from INTRO_MOVE: speeds (8.8, y down) and frames, from (256, -8) on the screen (above its right) down to the left,
- * past Kirby, its swing knocking it back up to the right, then round to the left and back to its spot (192.5, 75.25); */
-static const s16 sIntroX[] = { -0x100, -0x100, -0x100, -0x100, 0x400, 0x200, 0x200, 0x100, 0x80, -0x200, -0x400, -0x400, -0x100, 0x100, 0x200, 0x400, 0x200, 0x80, 0x40 };
-static const s16 sIntroY[] = { 0x100, 0x80, 0x20, 0, -0x100, -0x100, -0x200, -0x100, -0x80, 0x80, 0xC0, 0x180, 0x180, 0x180, 0x180, 0xC0, -0x40, -0xC0, -0xC0 };
-static const u8 sIntroTimes[] = { 72, 10, 10, 16, 8, 8, 8, 6, 4, 6, 6, 11, 6, 6, 6, 6, 6, 6, 6 };
+/* The intro's moves on the screen frame by frame from INTRO_MOVE (x + 8, (y + 8) << 4, pixels: NiDL's spot less its camera, traced
+ * frame by frame, the camera's rise in it), from (256, -4) on the screen (above its right) down to the left, past Kirby, its swing
+ * knocking it back up to the right, then round to the left and back to its spot (192, 75); */
+static const u8 sIntroMoves[] = {
+    0x97, 0x97, 0x97, 0x97, 0x97, 0x97, 0x97, 0x97, 0x97, 0x97, 0x97, 0x97, 0x97, 0x97, 0x97, 0x97, 0x97, 0x97, 0x97, 0x97, 0x97, 0x97, 0x97, 0x97,
+    0x97, 0x97, 0x97, 0x97, 0x97, 0x97, 0x97, 0x97, 0x97, 0x97, 0x97, 0x97, 0x97, 0x97, 0x97, 0x97, 0x97, 0x97, 0x97, 0x97, 0x97, 0x97, 0x97, 0x97,
+    0x97, 0x97, 0x87, 0x97, 0x97, 0x97, 0x97, 0x97, 0x97, 0x97, 0x97, 0x97, 0x97, 0x97, 0x97, 0x97, 0x97, 0x97, 0x97, 0x97, 0x97, 0x97, 0x97, 0x97,
+    0x87, 0x97, 0x87, 0x97, 0x87, 0x97, 0x87, 0x97, 0x87, 0x97, 0x77, 0x87, 0x87, 0x87, 0x87, 0x87, 0x87, 0x97, 0x87, 0x87, 0x87, 0x87, 0x87, 0x87,
+    0x87, 0x87, 0x87, 0x87, 0x87, 0x87, 0x87, 0x87, 0x87, 0x87, 0x87, 0x87, 0x7C, 0x7C, 0x7C, 0x7C, 0x7C, 0x7C, 0x6C, 0x7C, 0x7A, 0x7A, 0x7A, 0x7A,
+    0x7A, 0x7A, 0x7A, 0x7A, 0x6A, 0x6A, 0x6A, 0x6A, 0x6A, 0x6A, 0x6A, 0x6A, 0x79, 0x79, 0x79, 0x79, 0x79, 0x79, 0x78, 0x89, 0x78, 0x89, 0x86, 0x86,
+    0x86, 0x96, 0x86, 0x96, 0x94, 0x84, 0x94, 0x94, 0x94, 0x84, 0xA4, 0x94, 0xA4, 0x94, 0xA4, 0x94, 0xA4, 0x94, 0xA4, 0x94, 0xA4, 0x97, 0xA7, 0x97,
+    0xA7, 0x97, 0xA7, 0x99, 0xA9, 0x99, 0xA9, 0x99, 0xA9, 0x9A, 0xAA, 0x9A, 0xAA, 0x9A, 0xAA, 0x9C, 0x8C, 0x9C, 0x9C, 0x9C, 0x8C, 0x8A, 0x8A, 0x8A,
+    0x7A, 0x8A, 0x8A, 0x78, 0x79, 0x88, 0x79, 0x78, 0x79, 0x88, 0x78, 0x78, 0x79, 0x88, 0x78,
+};
 // Its pulses (8 frames apart): the shrink's frames, 6 frames; the slash's frames, frame by frame;
 static const u8 sPulse[6] = { 0, 1, 3, 2, 1, 0 };
 static const u8 sSlash[] = { 0, 0, 1, 2, 3, 3, 4, 4, 5, 5 };
@@ -909,10 +918,9 @@ static s16 Intro(struct PowerOrb *o, u16 t) {
     }
     o->sx = INTRO_X;
     o->sy = INTRO_Y;
-    for (moves = t - INTRO_MOVE + 1, i = 0; moves > 0 && i < ARRAY_COUNT(sIntroTimes); moves -= sIntroTimes[i++]) {
-        n = moves < sIntroTimes[i] ? moves : sIntroTimes[i];
-        o->sx += sIntroX[i] * n;
-        o->sy += sIntroY[i] * n;
+    for (moves = t - INTRO_MOVE + 1, n = 0; n < moves && n < ARRAY_COUNT(sIntroMoves); n++) {
+        o->sx += ((sIntroMoves[n] & 0xF) - 8) << 8;
+        o->sy += ((sIntroMoves[n] >> 4) - 8) << 8;
     }
     if (t < INTRO_SHOW) return -1;
     if (t < INTRO_PULSE) return FRAME_SPIN + ((((t < INTRO_CLASH ? t : INTRO_CLASH - 1) - INTRO_SHOW) >> 3) & 3);
@@ -1097,6 +1105,8 @@ static void PowerOrbMain(struct Object *obj) {
             ArenaRise(obj, 0);
             o->sx = SPOT_X;
             o->sy = SPOT_Y;
+            // (shown this frame where the intro left it, a pixel over its spot: NiDL's fight moves it from the next);
+            o->lag = -0x100;
             obj->base.flags &= ~0x400;
             Next(o);
         }
