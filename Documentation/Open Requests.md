@@ -455,8 +455,20 @@ randomizer puts in an enemy's spot.
   emulator (by script, all three versions): Kirby put in front of the Fountain of Dreams switch room's top door (RAM write) and
   entering it for real; before, 65 frames of garbage, then the pan; now the sky from the fade in, the pan down, and the fight's
   screen as before (camera y 168, background 108; compared with NiDL's recorded fight). Not tested: played by hand.
-- **Nightmare's defeat**: may show a wrong palette.
-- **The cinematic on the way to the Fountain of Dreams**: Dedede flies too fast; keep his normal flying speed.
+- **Nightmare's defeat**: may show a wrong palette. Not reproduced: NiDL's own defeat recorded for it (its finale script, his
+  HP written down so a star beats him), against five of ours (USA by the finale script, his HP written down to one star's worth,
+  beaten during two different moves; the European and Japanese builds too): the hit's grey and red flashes, his flight off
+  right, his light, the 15 frames caped (in his fight's dark colors, as NiDL's), the silver spread, the pink break-up and the
+  floor's bursts all show the same colors, frame for frame. The palette slots hold the right palettes throughout (dumped), and
+  nothing writes to his first palette's slot during the defeat (watched). Needs the owner's details: when in the defeat, what it
+  looked like (a screenshot if possible), and which version.
+- **The cinematic on the way to the Fountain of Dreams** (done): King Dedede flew by four times too fast: the whole ride down
+  from the moon runs four of NiDL's frames a game frame (the owner's earlier ask), and his flight with it. He now has his own
+  clock, a NiDL frame a game frame (NiDL's speed, "ROM Expansion/ending.c"), the ride, the star and the screen as fast as before;
+  his flight (731 frames) is timed to end as the star settles, so the ride keeps its length and he's seen whole: in from the
+  bottom right, up beside the star, then small and far off just before the fade. Checked in the emulator (by script, all three
+  versions): the finale script through Nightmare's fight (his HP written down to one star's worth) into the ride; Dedede in view
+  for 12 seconds instead of 3, the fade and the Fountain of Dreams hub at the same frame as before. Not tested: played by hand.
 - **Map Viewer**: show Nightmare's entire sprite.
 
 ## 10. Screen shake as KatAM's
