@@ -469,7 +469,13 @@ randomizer puts in an enemy's spot.
   bottom right, up beside the star, then small and far off just before the fade. Checked in the emulator (by script, all three
   versions): the finale script through Nightmare's fight (his HP written down to one star's worth) into the ride; Dedede in view
   for 12 seconds instead of 3, the fade and the Fountain of Dreams hub at the same frame as before. Not tested: played by hand.
-- **Map Viewer**: show Nightmare's entire sprite.
+- **Map Viewer: Nightmare's entire sprite** (done): his icon was one piece of a frame (his collar and arms, no cape or
+  tornado). It's now his whole hovering pose, caped, as the fight shows him most (his body, his top half over it, his collar on
+  top), with the tornado and cape in the fight's own colors (KatAMExpansion.cs, Nightmare(): IconCells, IconFightColors).
+  Checked (all three versions): the icon pulled from the built ROMs, and the Map Viewer's own code (its ROM reader and icon
+  renderer, run outside the window) giving his room the 96x128 icon, the same in all three; compared by eye with a screenshot of
+  his fight. Not tested: the Map Viewer window itself (it needs Windows; it scales every icon to fit its room and trims empty
+  edges, whatever its size).
 
 ## 10. Screen shake as KatAM's
 The owner: the screen shakes far too much. Not reproduced: KatAM's shake runs the same in the NiDL rooms as in KatAM's, and

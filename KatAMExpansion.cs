@@ -100,10 +100,12 @@ namespace KatAMRandomizer {
          * object's hurt). Icon: the frames the map tracker shows for it (frame 0 if none; see WriteMapTable); IconOverRoom: its one icon
          * frame is drawn over its room there (Whispy Woods' trunk is the room's tiles, only its face is a sprite); IconCells (instead of Icon):
          * its icon's cells side by side, each its frames drawn on each other where the game draws them, from their origins (Kracko: its
-         * cloud's top, its bottom and its eye, sprites at one spot; Mr. Bright: his face over his body); */
+         * cloud's top, its bottom and its eye, sprites at one spot; Mr. Bright: his face over his body); IconFightColors: Nightmare's
+         * tornado and cape in the colors his fight draws them in (NiDL's C and A, FightColors), not his frames' own; */
         sealed record Miniboss(int Index, string Name, int NightmareIndex, int FrameTable, List<Part[]> Frames, Part[] Hurt,
                                (int type, int letter)[] Glyphs, byte[] Behaviors, int HurtShift = 0, byte Type = 0x40,
-                               List<Part[]> ExtraHurts = null, int[] Icon = null, bool IconOverRoom = false, int[][] IconCells = null, int EffectOnly = 0);
+                               List<Part[]> ExtraHurts = null, int[] Icon = null, bool IconOverRoom = false, int[][] IconCells = null, int EffectOnly = 0,
+                               bool IconFightColors = false);
 
         /* Mini-boss object types: an object's frame index is a byte, so the mini-bosses are spread over types 0x40-0x42 (all mini-bosses
          * to KatAM), each with its own AnimInfo table; the behavior byte picks the mini-boss either way; */
@@ -726,7 +728,10 @@ namespace KatAMRandomizer {
                     (0x1E, 0), (0x26, 4), (0x29, 8), (0x29, 9), (0x29, 10),                        // "N" (Noddy), "i" (Cookin), "ght" (Heavy Knight);
                     (0x28, 2), (0x2D, 1), (0x01, 1), (0x02, 5),                                    // "m" (Bomber), "a" (Batty), "r" (Bronto Burt), "e" (Blipper);
                 },
-                new byte[0], Type: BossID2, EffectOnly: 140);
+                new byte[0], Type: BossID2, EffectOnly: 140,
+                // (the map tracker's icon: his hover, caped (50, his top half 96 over it as NiDL draws it, his collar's pieces on top), in
+                // his fight's colors);
+                IconCells: new[] { new[] { 94, 120, 119 } }, IconFightColors: true);
         }
 
         /* Apple; Whispy Woods' apples (NiDL object 0x7D, its own frame table 0x08754308: Whispy Woods' frames 18-37, its second palette).
@@ -1973,6 +1978,9 @@ namespace KatAMRandomizer {
                     (int minX, int minY, int boxWidth, int boxHeight) = Box(cells[c]);
                     foreach ((byte[] tiles, ushort[] oams, short[] attributes, int palette) in cells[c]) {
                         byte[] colors = palette < 0 ? nightmare[region.Palette15..(region.Palette15 + 32)] : built[i].palettes[palette];
+                        // (Nightmare's tornado and cape, his frame 8's second and third palettes, as his fight draws them: NiDL's C and A);
+                        int fight = m.IconFightColors ? Array.FindIndex(StreamedPalettes(nightmare, region, 8), p => p.SequenceEqual(colors)) : -1;
+                        if (fight == 1 || fight == 2) colors = nightmare[(region.FightColors + (fight == 1 ? 64 : 0))..(region.FightColors + (fight == 1 ? 96 : 32))];
                         int left = c % columns * (cellWidth + Gap) + (cellWidth - boxWidth) / 2 - attributes[4] - minX;
                         int top = c / columns * (cellHeight + Gap) + cellHeight - boxHeight - attributes[5] - minY;
 
