@@ -445,7 +445,16 @@ randomizer puts in an enemy's spot.
   songs; his hat palette stays his own every frame (it was overwritten by the rod's as soon as B was pressed). Needle the same
   way (USA): its spikes keep its palette. The Star Rod, taken from its stand in the NiDL hub (USA): it still cycles its colors
   and glows, held and swinging. Not tested: played by hand; Freeze, Light, Ball and Hi-Jump one by one (same code path).
-- **Dedede's fight**: the Fountain of Dreams background is corrupted on the fight's first frames.
+- **Dedede's fight** (done): the Fountain of Dreams background was garbage (the Fountain at the screen's top, a teal band and
+  stray rows under it) for the first second in his room, while the camera waited at the room's top before coming down to the
+  fight. KatAM put the background 21 pixels above its own top there (the room's scroll rate is made for KatAM's camera range,
+  and his fight's screen is held lower than KatAM's camera goes), and KatAM doesn't draw rows above a background's top. His room
+  now has a rate that brings the background from its top, with the camera at the room's top, to where it was on the fight's
+  screen (`KatAMExpansionRooms.cs`, `DededeScreenY`): same fight screen as before (background row 108, NiDL's view), nothing
+  garbled on the way down. The pink and cyan streams in the sky are NiDL's own (they're in NiDL's fight too). Checked in the
+  emulator (by script, all three versions): Kirby put in front of the Fountain of Dreams switch room's top door (RAM write) and
+  entering it for real; before, 65 frames of garbage, then the pan; now the sky from the fade in, the pan down, and the fight's
+  screen as before (camera y 168, background 108; compared with NiDL's recorded fight). Not tested: played by hand.
 - **Nightmare's defeat**: may show a wrong palette.
 - **The cinematic on the way to the Fountain of Dreams**: Dedede flies too fast; keep his normal flying speed.
 - **Map Viewer**: show Nightmare's entire sprite.

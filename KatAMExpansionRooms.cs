@@ -109,6 +109,7 @@
         const int CloudRows = 144;          // CLOUD_ROWS ("ROM Expansion/finale.c");
         const byte NightmareBoss = 8;       // NIDL_NIGHTMARE;
         const byte DededeBoss = 6;          // NIDL_KING_DEDEDE: Kirby drops into his room from its top, the camera following (BossIn(), arena.c);
+        const int DededeScreenY = 168;      // His fight's screen's top, held the whole fight (bosses/dedede.c's NIDL_SCREEN_Y);
         /* Kracko's fight starts at its tower's bottom (its eye chasing Kirby up, the camera following him) and goes on at the top, where NiDL
          * locks its camera as it comes near (8, 16: "ROM Expansion/bosses/kracko.c"'s LOCK_TOP): its arena's screen, which waits for it to say
          * (subtype2 3, BossLocksArena; arena.c's ArenaGo()); */
@@ -1365,6 +1366,19 @@
                         // Nightmare's room: its background a row up, where NiDL draws it (KatAM bottom-aligns it, and the room is a row
                         // taller than NiDL's: HiddenRows, Padded()), as measured against NiDL's through his intro and fight;
                         backgroundDown = -HiddenRows * 16;
+                    } else if (BossIn(nightmare, r.Record) == DededeBoss) {
+                        /* King Dedede's room: its camera goes from the room's top (Kirby drops in) to his fight's screen, held past
+                         * KatAM's lowest (DededeScreenY). KatAM puts the background's top at (its height - 160) - unk0C - (the room's
+                         * height - 160 - the camera's y) * the rate's top 12 bits / 16 (0x080019F8, in 256ths of a pixel); with the
+                         * room's rates it was 21 pixels over its top while the camera waited at the room's top, which KatAM doesn't
+                         * draw (its rows are fetched from outside the map: garbage until the camera moved down). The fight's screen
+                         * keeps its background where it was (`fight`), and the rate is the one that reaches it from 0 at the room's
+                         * top, unk0C making up the rest (rounded up: its pixel the same); */
+                        int span = (ReadShort(nightmare, backgroundMap + 4) * 8 - 160) * 0x100;
+                        int below = (r.FullHeight * 16 - 160 - DededeScreenY) * 16;
+                        int fight = span - below * (rateY >> 4), steps = fight / ((DededeScreenY - top) * 16);
+                        rateY = steps << 4;
+                        backgroundDown = (span - below * steps - fight + 0xFF) / 0x100;
                     }
                     // (Heavy Mole's room: its background still, at NiDL's (8, 0), its screen scrolling and looping: HeavyMoleRoom);
                     int backgroundLeft = 0;
