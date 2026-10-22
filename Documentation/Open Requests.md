@@ -252,6 +252,49 @@ Left:
 - **Not tested**: played by hand; his hammer and breath hitting Kirby against NiDL frame by frame (KatAM's own hit reaction); helpers
   in the fight; the real hit and the defeat in the European and Japanese builds (only the recordings).
 
+## 42. Paint Roller's fight 1:1 from NiDL
+The owner: recreate Paint Roller's fight (Ice Cream Island's boss) 1:1 from NiDL's, as Meta Knight's, Mr. Shine & Mr. Bright's and
+King Dedede's were (NiDL's code written out in C, checked frame by frame against recordings), with his graphics, paintings, effects,
+hurt and defeat. Done: the whole fight from NiDL's code (see the ROM Expansion README's row). Checked by script in the emulator (not
+played by hand), NiDL's recorded fights (USA) against KatAM's with NiDL's random seed and Kirby's spot fed in every frame:
+- **The fight**: his state, frame, spot and facing and every child's kind, frame and spot (his paintings blinking, on the easel and
+  come to life: the car, the Waddle Dee, the microphone, the baseball, the bomb and its blast, the cloud and its lightning, the
+  parasol and its puff; his skate dust and its puffs) the same on every frame for 6000 frames from the room's start (Kirby standing
+  by the left wall), but for the touches under Left. This found NiDL's object order (by group, then slot; those created during a
+  frame run after the others: his dust takes his spot from before his move, but on the frame it's made) and the parasol's end (its
+  frame kept a frame, its hurt frame the next, then the puff).
+- **A hit**: NiDL's spit star given to KatAM's object a frame after NiDL's hit (KatAM sees its hits a frame late): his hurt (13
+  frames, jittering, flashing, his hit stars about him), then his skating on, the same but for the hit's own frame (NiDL's first
+  jitter shows a frame sooner; KatAM's two steps the next frame catch up). Found: NiDL makes his move in the frame he's hit, then
+  the hurt's first step.
+- **The defeat**: Kirby with Sword slashing as he skates by (his HP set to 1 by a RAM write): his NiDL defeat frame through KatAM's
+  explosion, then the shard falls.
+- **Inhaling**: Kirby inhaling (B held, Down to swallow; no NiDL data fed): the parasol gave Parasol, the baseball Ball, the car
+  Wheel, the microphone Mike, the bomb Crash (his HP held under half by a RAM write, where the bomb and the Kirby painting come
+  up), the Kirby painting and the Waddle Dee nothing.
+- **Looks**: screenshots side by side at matching frames (his dust, a painting on the easel, the parasol, the cloud and its
+  lightning, the bomb's fuse and blast): the same, the room's view too. Found: the paintings drew behind his dust (KatAM's enemy
+  depth); now NiDL's depths (the paintings in front of his effects, the blast and the puffs in front of Kirby). The map viewer's
+  icon (rendered from the built ROM): him standing.
+- **All three versions**: the European and Japanese builds match the 6000-frame recording as the USA one does (the Japanese reaches
+  the fight 2 frames sooner in the script). Logic checks on all three: every room reached, every big switch pressed, nowhere Kirby
+  is trapped, with and without dropping through thin floors.
+
+Left:
+- **A painting touching Kirby**: NiDL's paintings get knocked back (20 frames) and burst in white (`0x98`); here they're KatAM
+  enemies and die KatAM's way at once, as the other ported enemies (4 touches in the recording). Ask the owner whether NiDL's
+  should be ported.
+- **Kirby's box**: KatAM's Kirby's own box reaches 2 pixels lower than NiDL's, so a painting passing just under him can touch him
+  where NiDL's doesn't (the parasol at frame 672 of the recording; for the comparison Kirby's box was set to NiDL's there by a RAM
+  write). The other ported fights work the same way (NiDL's boxes against KatAM's Kirby).
+- **His defeat's start**: KatAM's explosion stands in for NiDL's red flash and burst of stars, as for the other bosses.
+- **Sounds**: KatAM's nearest. **The flashes' phase**: as King Dedede's (counted from the fight's start).
+- **KatAM's skipped frames**: KatAM skips a whole frame now and then (the frame after `BigFillLevelInfo`; frame 194 and 4582 of the
+  recording); KatAM's own, not the fight's (the script feeds NiDL's data past them).
+- **Not tested**: played by hand; the cloud inhaled (it flies out of reach of a Kirby on the floor; Spark by the same table); hit
+  stars from real hits against NiDL (only the fed hit); helpers in the fight; the defeat and inhaling in the European and Japanese
+  builds (only the recordings).
+
 ## 10. Screen shake as KatAM's
 The owner: the screen shakes far too much. Not reproduced: KatAM's shake runs the same in the NiDL rooms as in KatAM's, and
 nothing found shakes more often than in KatAM. Needs the owner's details (which room, what was happening).

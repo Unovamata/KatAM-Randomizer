@@ -29,6 +29,8 @@ static const struct NidlEnemy sNidlEnemies[NIDL_ENEMY_COUNT + 1] = {
     [NIDL_APPLE] = { AppleInit, AppleStart, 1, 0 },
     [NIDL_STAR] = { StarInit, StarStart, 1, 0 },
     [NIDL_SPIT_STAR] = { SpitStarInit, SpitStarStart, 1, 0 },
+    [NIDL_PAINTING] = { PaintingInit, PaintingStart, 1, 0 },
+    [NIDL_PAINTING_2] = { PaintingInit, PaintingStart, 1, 0 },
     [NIDL_ARENA] = { ArenaInit, ArenaStart, 1, 0 },
 };
 
@@ -142,6 +144,8 @@ void NidlDestroy(struct Task *task) {
     if (NidlIsBoss(&n->obj) && n->enemy == NIDL_SHINE_BRIGHT) ShineBrightGone(&n->obj);
     // (and King Dedede's, bosses/dedede.c);
     if (NidlIsBoss(&n->obj) && n->enemy == NIDL_KING_DEDEDE) KingDededeGone(&n->obj);
+    // (and Paint Roller's, bosses/paint_roller.c);
+    if (NidlIsBoss(&n->obj) && n->enemy == NIDL_PAINT_ROLLER) PaintRollerGone(&n->obj);
     if (hud && *(void **)(hud + 0x1C) == TaskGetStructPtr(task)) {
         hud[0xA] = 0;
         *(void **)(hud + 0x1C) = NULL;
@@ -155,7 +159,7 @@ void *CreateNidlEnemy(struct ObjectTemplate *template, u8 playerId) {
     u8 enemy = template->subtype1 >> 4;
 
     if (enemy == NIDL_SPECIAL) {
-        static const u8 sSpecials[] = { NIDL_ARENA, NIDL_APPLE, NIDL_STAR, NIDL_SPIT_STAR };
+        static const u8 sSpecials[] = { NIDL_ARENA, NIDL_APPLE, NIDL_STAR, NIDL_SPIT_STAR, NIDL_PAINTING, NIDL_PAINTING_2 };
         enemy = (template->subtype1 & 0xF) < ARRAY_COUNT(sSpecials) ? sSpecials[template->subtype1 & 0xF] : NIDL_ARENA;
     }
     if (enemy > NIDL_ARENA) enemy = 0;
