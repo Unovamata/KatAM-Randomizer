@@ -86,8 +86,9 @@ struct NidlAbilityData {
     struct AnimInfo motions[NIDL_ABILITY_COUNT][NIDL_MOTION_SLOTS]; // Body animations of the motions (0: none), see NidlAbilitySetup;
     void (*displaySpriteOriginal)(struct Sprite *);
     struct {
-        u16 anim, first, count, unused;                 // The Star Rod's anims (its hat's, its motions', its stand's): frames first on, then
-    } glows[3];                                         // their glowing versions, count frames on (see NidlDisplaySprite);
+        u16 anim, first, count, unused;                 // The Star Rod's anims (its hat's, its motions', its stand's): its frames first on
+    } glows[3];                                         // (the motions' anim is every ability's: the rod's are the last), then their
+                                                        // glowing versions, count frames on (see NidlDisplaySprite);
     const u16 *rodPalettes;                             // Its hat's palette bright, halfway, and its own (16 colors each);
 };
 

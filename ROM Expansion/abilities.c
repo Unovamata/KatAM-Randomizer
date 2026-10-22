@@ -101,16 +101,17 @@ static void StarRodPalette(struct Sprite *sprite) {
  * draws its Kirby with the Star Rod: its palette on a cycle (StarRodPalette()), and a frame, one frame in four (NiDL's frame counter's,
  * 0x03001EA4, a multiple of 4), as its glowing version, the same with the rod's star glowing (Kirby's drawing, 0x0803DE6C: frame + 0x83); on
  * KatAM's frame counter (gUnk_0203AD40, a game frame each); the glowing frames' tiles are loaded with the frame's
- * (KatAMExpansionHats.cs, AddGlows()); */
+ * (KatAMExpansionHats.cs, AddGlows()). Only the Star Rod's frames: the motions' anim is every new ability's (Mike's songs and the
+ * others' moves aren't the rod's colors); */
 void NidlDisplaySprite(struct Sprite *sprite) {
     const struct NidlAbilityData *data = &gNidlAbilityData;
     u32 frame = sprite->unk4;
     u8 i;
 
     for (i = 0; i < ARRAY_COUNT(data->glows); i++) {
-        if (sprite->animId != data->glows[i].anim || !sprite->animId) continue;
+        if (sprite->animId != data->glows[i].anim || !sprite->animId || frame - data->glows[i].first >= data->glows[i].count) continue;
         StarRodPalette(sprite);
-        if (!(gUnk_0203AD40 & 3) && frame - data->glows[i].first < data->glows[i].count) {
+        if (!(gUnk_0203AD40 & 3)) {
             sprite->unk4 = frame + data->glows[i].count;
             data->displaySpriteOriginal(sprite);
             sprite->unk4 = frame;

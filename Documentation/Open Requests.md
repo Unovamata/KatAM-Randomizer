@@ -436,7 +436,15 @@ randomizer puts in an enemy's spot.
   Central Circle's stand for real (the Unlock the Master Sword option) and brought into his room by RAM warp, took 11 with its
   slash (attack strength 8 read from RAM); Nightmare's fight played by the finale script, Kirby firing: 60, 50, 40, 30, 20, 10.
   Not tested: played by hand; the rod against other bosses; Nightmare's last hit (the run ended at 10 HP).
-- **Mike**: wrong palette when it's activated.
+- **Mike** (done): his songs showed in the Star Rod's colors (white and pink megaphone, cap and microphone off). All the new
+  abilities' moves share one hat animation, and the Star Rod's glow (`NidlDisplaySprite`, "ROM Expansion/abilities.c") took any
+  sprite of that animation for the rod, cycling the rod's palette over the hat's. Now only the rod's own frames glow and cycle,
+  so Mike's songs keep NiDL's colors (yellow megaphone, black and white cap, grey microphone, green and yellow crest); the same
+  fix covers Needle, Freeze, Light, Ball and Hi-Jump, whose moves had the same fault. Checked in the emulator (by script, in all
+  three versions): Mike taken for real, by swallowing an enemy in a test build where every enemy gives Mike, then all three
+  songs; his hat palette stays his own every frame (it was overwritten by the rod's as soon as B was pressed). Needle the same
+  way (USA): its spikes keep its palette. The Star Rod, taken from its stand in the NiDL hub (USA): it still cycles its colors
+  and glows, held and swinging. Not tested: played by hand; Freeze, Light, Ball and Hi-Jump one by one (same code path).
 - **Dedede's fight**: the Fountain of Dreams background is corrupted on the fight's first frames.
 - **Nightmare's defeat**: may show a wrong palette.
 - **The cinematic on the way to the Fountain of Dreams**: Dedede flies too fast; keep his normal flying speed.
