@@ -1322,6 +1322,13 @@ namespace KatAMRandomizer {
                 Array.Copy(rom, ObjectParameters2 + like * 8, rom, ObjectParameters2 + type * 8, 8);
             }
 
+            /* The helpers against them ("ROM Expansion/nidl_miniboss.c"): what KatAM's helper AI goes for (sub_08010590) jumps to
+             * NidlHelperTarget, which runs it (its trampoline, in gNidlHelperTargetOriginal) and sends a helper with no power after their
+             * projectiles; */
+            int helperTarget = Detour(rom, version.RomSymbols["sub_08010590"], codeBase + version.CodeSymbols["NidlHelperTarget"], ref cursor);
+            if (helperTarget < 0) return $"The ROM's data doesn't match the {version.Name} release.";
+            WriteInt(rom, CodeAddress + version.CodeSymbols["gNidlHelperTargetOriginal"], helperTarget + 0x08000000 + 1);
+
             /* The Star Rod's stand in the NiDL hub (object 0x9A, which KatAM leaves empty: "ROM Expansion/abilities/star_rod_stand.c"): its
              * spawn, and parameters as the Master Sword's stand's (0x98) but for its ability, its palette key and anim (BuildRodStand()'s:
              * an AnimInfo, its variant 0) and VRAM tiles; its second parameters are the Master Sword stand's; */

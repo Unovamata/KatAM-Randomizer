@@ -95,3 +95,41 @@ void NidlMinibossStart(struct Object *obj) {
     NidlSetFrame(n, 0);
     obj->base.xspeed = 0;
 }
+
+/* NidlHelperTarget(); What a helper goes for (KatAM's helper AI, sub_08010590, detoured: gNidlHelperTargetOriginal runs it), within
+ * reachX and reachY of him: a helper with no power hurts a mini-boss only with what he inhales and spits back at it (Mr. Frosty's ice
+ * cubes, objects, which the AI looks through), and the ported mini-bosses' projectiles are attack objects, which it never sees. So a
+ * helper with no power and nothing in his mouth (flags 0x80; 0x40: he's inhaling) who goes for a ported mini-boss goes for the
+ * nearest of their projectiles he could inhale (sThrowables: NidlInhaled()) in that reach instead, as for an object: inhaled,
+ * swallowed, spat back at the mini-boss (his pick with his mouth full); */
+static void (*const sThrowables[])(void) = { PoppyBrosSrBombMain, MrTickTockNoteMain, FireLionFlameMain, MetaKnightsWeaponMain };
+
+struct Object *(*gNidlHelperTargetOriginal)(struct Unk_02038590 *, s32, s32) = NULL;
+
+struct Object *NidlHelperTarget(struct Unk_02038590 *ai, s32 reachX, s32 reachY) {
+    struct Object *target = gNidlHelperTargetOriginal(ai, reachX, reachY);
+    struct Kirby *kirby = ai->unk40;
+    struct ObjectBase *nearest = NULL;
+    struct Task *t = &gTasks[0];
+    s32 dx, dy, best = 0;
+    u8 i, j;
+
+    if (!target || !NidlIsMiniboss(target) || kirby->ability != KIRBY_ABILITY_NORMAL || (kirby->base.flags & 0x80)) return target;
+    for (i = 0; i < MAX_TASK_NUM && t->next; i++) {
+        struct ObjectBase *p;
+
+        t = (struct Task *)(IWRAM_START + t->next);
+        for (j = 0; j < ARRAY_COUNT(sThrowables) && t->main != sThrowables[j]; j++);
+        if (j == ARRAY_COUNT(sThrowables)) continue;
+        p = TaskGetStructPtr(t);
+        // (not one going, or in a Kirby's inhale already);
+        if ((p->flags & 0x1000) || (p->unkC & 0x400) || p->roomId != kirby->base.roomId) continue;
+        dx = abs(p->x - kirby->base.x);
+        dy = abs(p->y - kirby->base.y);
+        if (dx <= reachX && dy <= reachY && (!nearest || dx + dy < best)) {
+            nearest = p;
+            best = dx + dy;
+        }
+    }
+    return nearest ? (struct Object *)nearest : target;
+}

@@ -292,6 +292,11 @@ void FireLionStart(struct Object *);
 void MetaKnightsInit(struct NidlObject *);
 void MetaKnightsStart(struct Object *);
 void MetaKnightsDestroy(struct Task *);
+// Their projectiles a Kirby can inhale (NidlInhaled()): what their tasks run, for the helpers (nidl_miniboss.c's NidlHelperTarget());
+void PoppyBrosSrBombMain(void);
+void MrTickTockNoteMain(void);
+void FireLionFlameMain(void);
+void MetaKnightsWeaponMain(void);
 
 // Bosses;
 void WhispyWoodsInit(struct NidlObject *);

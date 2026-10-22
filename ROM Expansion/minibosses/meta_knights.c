@@ -300,9 +300,9 @@ static u8 KnightPalette(struct MetaKnight *k) {
     return k->n.obj.base.sprite.palId;
 }
 
-/* WeaponMain(); A thrown axe, javelin or trident (an attack object, like the enemies' stars), falling as NiDL's, gone once it's
+/* MetaKnightsWeaponMain(); A thrown axe, javelin or trident (an attack object, like the enemies' stars), falling as NiDL's, gone once it's
  * off the screen; */
-static void WeaponMain(void) {
+void MetaKnightsWeaponMain(void) {
     struct Sprite sprite;
     struct Weapon *w = TaskGetStructPtr(gCurTask);
     struct ObjectBase *base = &w->base;
@@ -385,18 +385,18 @@ static void Throw(struct MetaKnight *k) {
 
     switch (k->kind) {
     case AXE:
-        w = Weapon(k, WeaponMain, 20, 0, sAxeFrames[0]);
+        w = Weapon(k, MetaKnightsWeaponMain, 20, 0, sAxeFrames[0]);
         xspeed = 0x380;
         yspeed = 0x25;
         break;
     case JAVELIN:
-        w = Weapon(k, WeaponMain, 0, 0, sFirstFrame[JAVELIN] + 55);
+        w = Weapon(k, MetaKnightsWeaponMain, 0, 0, sFirstFrame[JAVELIN] + 55);
         xspeed = 0x200;
         yspeed = KirbyDy(obj) < -16 ? 0x380 : 0x100;
         w->gravity = 0x17;
         break;
     default:
-        w = Weapon(k, WeaponMain, 12, -20, sFirstFrame[TRIDENT] + 59);
+        w = Weapon(k, MetaKnightsWeaponMain, 12, -20, sFirstFrame[TRIDENT] + 59);
         if (k->n.variant == 1) {
             xspeed = sTridentSpeeds[sLedgeThrows[k->throws]][0];
             yspeed = sTridentSpeeds[sLedgeThrows[k->throws]][1];

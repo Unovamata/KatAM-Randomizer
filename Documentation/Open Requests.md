@@ -397,6 +397,28 @@ Left:
   a saved game with the rod; Nightmare's fight with a rod taken at the stand (after it Kirby is Normal, as before: the stand gives
   it again).
 
+## 46. Helpers against the ported mini-bosses
+The owner: the helpers (CPU Kirbys) don't know what to do with the ported mini-bosses. Found: with no ability, KatAM's helper AI
+hurts a mini-boss only by inhaling what it throws and spitting it back, and it only looks at objects; the ported mini-bosses'
+projectiles are attack objects, so the Normal helpers never went for them (helpers with an ability did fight). Done: a helper with
+no ability and nothing in his mouth who goes for a ported mini-boss now goes for its nearest projectile he can inhale (Poppy Bros.
+Sr.'s bombs, Mr. Tick-Tock's notes, Fire Lion's flames, the knights' axes, javelins and tridents), inhales it and spits it back at
+the mini-boss. Checked in the emulator (USA, by script: a new game started in each arena with three Normal helpers, Kirby standing
+still, the mini-boss's HP read every 3 seconds for 30 seconds), before, then after:
+- **Poppy Bros. Sr.** (0x2EE): 30 HP the whole time; now beaten in 24 seconds (screenshots: the helpers inhale the bombs and spit
+  stars at him).
+- **Mr. Tick-Tock** (0x2EF): 30 the whole time; now beaten in 9 seconds, the room's doors open after.
+- **Fire Lion** (0x2F4, 0x2F8): 30 the whole time; now one hit (30 to 20). KatAM's own Mr. Frosty gets the same from Normal
+  helpers in this test: one hit in 30 seconds.
+- **Bugzzy** (0x2F3, 0x2F7), **Grand Wheelie** (0x306), **the Meta-Knights** (0x0F5, 0x155): exactly the same before and after
+  (the helpers already inhale the enemies Bugzzy and Grand Wheelie call, and the knights themselves).
+- **All three versions**: built; in the European and Japanese ones Poppy Bros. Sr. and Mr. Tick-Tock were beaten the same way.
+  Logic checks on all three: every room reached, every big switch pressed, nowhere Kirby is trapped, with and without dropping
+  through thin floors (the same as before).
+
+Not tested: played by hand; with Kirby fighting too; helpers with an ability (their code isn't changed); a ported mini-boss the
+randomizer puts in an enemy's spot.
+
 ## 10. Screen shake as KatAM's
 The owner: the screen shakes far too much. Not reproduced: KatAM's shake runs the same in the NiDL rooms as in KatAM's, and
 nothing found shakes more often than in KatAM. Needs the owner's details (which room, what was happening).

@@ -164,9 +164,9 @@ static void StopRings(struct MrTickTock *t) {
     t->rings = NULL;
 }
 
-/* NoteMain(); A note (type 0x77, 0x0809B9F0): an attack object falling with gravity 0x30, hopping once where it lands (2.625 up),
+/* MrTickTockNoteMain(); A note (type 0x77, 0x0809B9F0): an attack object falling with gravity 0x30, hopping once where it lands (2.625 up),
  * gone when it lands again; counter: its landings; */
-static void NoteMain(void) {
+void MrTickTockNoteMain(void) {
     struct Sprite sprite;
     struct ObjectBase *note = TaskGetStructPtr(gCurTask);
 
@@ -197,7 +197,7 @@ static void NoteMain(void) {
 // Note(); 0x08099EE4: 16 pixels to one side (by the note's number), at one of 4 speeds;
 static void Note(struct MrTickTock *t) {
     struct Object *obj = &t->n.obj;
-    struct Task *task = TaskCreate(NoteMain, sizeof(struct ObjectBase), 0x3500, TASK_USE_EWRAM, ObjectBaseDestroy);
+    struct Task *task = TaskCreate(MrTickTockNoteMain, sizeof(struct ObjectBase), 0x3500, TASK_USE_EWRAM, ObjectBaseDestroy);
     struct ObjectBase *note = TaskGetStructPtr(task);
     s16 speed = sNoteSpeeds[Rand16() & 3];
 
