@@ -146,6 +146,8 @@ void NidlDestroy(struct Task *task) {
     if (NidlIsBoss(&n->obj) && n->enemy == NIDL_KING_DEDEDE) KingDededeGone(&n->obj);
     // (and Paint Roller's, bosses/paint_roller.c);
     if (NidlIsBoss(&n->obj) && n->enemy == NIDL_PAINT_ROLLER) PaintRollerGone(&n->obj);
+    // (and Kracko's, bosses/kracko.c);
+    if (NidlIsBoss(&n->obj) && n->enemy == NIDL_KRACKO) KrackoGone(&n->obj);
     if (hud && *(void **)(hud + 0x1C) == TaskGetStructPtr(task)) {
         hud[0xA] = 0;
         *(void **)(hud + 0x1C) = NULL;

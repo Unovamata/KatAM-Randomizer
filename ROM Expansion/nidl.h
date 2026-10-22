@@ -297,6 +297,7 @@ void WhispyWoodsInit(struct NidlObject *);
 void WhispyWoodsStart(struct Object *);
 void KrackoInit(struct NidlObject *);
 void KrackoStart(struct Object *);
+void KrackoGone(struct Object *);
 void ShineBrightInit(struct NidlObject *);
 void ShineBrightStart(struct Object *);
 void ShineBrightGone(struct Object *);

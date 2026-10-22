@@ -89,7 +89,7 @@
             [5] = (0, 206, 256, 0, 64),     // Whispy Woods: its face (0x080B2A00), the screen down to the floor under it;
             [7] = (7, 208, 84, -80, -52),   // Nightmare's Power Orb: at the top of the fall, in space, as NiDL's (its screen from (8, 8): ArenaOf() puts its top 24 above; sinking as they fight, bosses/power_orb.c);
             [8] = (8, 150, 280, -22, 200),  // Nightmare: over the floor at the room's bottom (NiDL's (215, 72), in the sky); his screen NiDL's, held at (8, 216) (Kirby lands in it);
-            [6] = (1, -1, -1, 0, 0),        // Kracko: the template's (its tower's bottom, where Kirby comes in), that screen;
+            [6] = (1, -1, -1, 0, 0),        // Kracko: the template's (its tower's bottom, where Kirby comes in: its fight starts there), its arena KrackoTop;
         };
         /* The Power Orb's room (the Fountain of Dreams' first, 0x003): its fight is NiDL's Star Rod flight (bosses/power_orb.c), at the top
          * of the fall, after NiDL's intro: Kirby comes in at NiDL's start, at the room's bottom, in the air, and flies up to the fight's
@@ -99,6 +99,12 @@
         const int CloudRows = 144;          // CLOUD_ROWS ("ROM Expansion/finale.c");
         const byte NightmareBoss = 8;       // NIDL_NIGHTMARE;
         const byte DededeBoss = 6;          // NIDL_KING_DEDEDE: Kirby drops into his room from its top, the camera following (BossIn(), arena.c);
+        /* Kracko's fight starts at its tower's bottom (its eye chasing Kirby up, the camera following him) and goes on at the top, where NiDL
+         * locks its camera as it comes near (8, 16: "ROM Expansion/bosses/kracko.c"'s LOCK_TOP): its arena's screen, which waits for it to say
+         * (subtype2 3, BossLocksArena; arena.c's ArenaGo()); */
+        const byte KrackoBoss = 1;          // NIDL_KRACKO;
+        static readonly (int left, int top, int width, int height) KrackoTop = (8, 16, 240, 160);
+        const byte BossLocksArena = 3;
         const int DropInY = 32;             // where a drop-in arena stands (pixels): at the room's top, where Kirby comes in;
         // BossIn(); The ported boss (RoomBosses' boss) a NiDL room record holds, -1 none;
         static int BossIn(byte[] nightmare, int record) {
@@ -4081,7 +4087,7 @@
                 }
 
                 byte type, behavior = 0;
-                bool miniboss = false, dropIn = false, flyIn = false;
+                bool miniboss = false, dropIn = false, flyIn = false, krackoArena = false;
                 if (category == 0 && landings.Any(c => Math.Abs(x / 16 - c.x) <= LandingClear && Math.Abs(y / 16 - c.y) <= 2)) continue;
                 // (a Shotzo on blocks that break stays: NiDL's falls when they go, KatAM's stays where it is, but they're the room's cannons,
                 // as room 0x2FD's under its ceiling);
@@ -4119,6 +4125,7 @@
                 } else if (category == BossCategory && RoomBosses.TryGetValue(index, out (byte boss, int x, int y, int screenDx, int screenDy) spot)) {
                     type = BossTypeOf(spot.boss);
                     dropIn = spot.boss == DededeBoss;
+                    krackoArena = spot.boss == KrackoBoss;
                     flyIn = spot.boss == PowerOrbBoss;
                     behavior = (byte)(spot.boss << 4 | r.Level & 7);
                     if (spot.x >= 0) (x, y) = (spot.x - r.X * 16, spot.y - r.Y * 16);
@@ -4178,7 +4185,9 @@
                     // stands at the room's top, where he comes in, to be there from his first frame, KatAM making objects near the
                     // camera; its screen the same. 2: a screen's room, where NiDL's camera never moves (8, 8): held there from Kirby's
                     // first frame in the room, and after the fight, as NiDL's; KatAM's taller room, padded (Padded()), let it sink 16);
-                    arena[0x10] = (byte)(dropIn ? 1 : OneScreen(r) ? 2 : 0);
+                    arena[0x10] = (byte)(dropIn ? 1 : OneScreen(r) ? 2 : krackoArena ? BossLocksArena : 0);
+                    // (Kracko's: the tower's top, standing with its boss at the bottom, KatAM making objects near the camera);
+                    if (krackoArena) WriteShorts(arena, 0x1A, KrackoTop.left - x, KrackoTop.top - y, KrackoTop.width, KrackoTop.height);
                     if (dropIn) {
                         int left = x + (short)ReadShort(template, 0x1A), top = y + (short)ReadShort(template, 0x1C), width = ReadShort(template, 0x1E);
                         int ax = left + width / 2, ay = DropInY;
@@ -4364,7 +4373,8 @@
                     arenas.Add(MinibossScreen(nightmare, r, x, y));
                 else if (category == BossCategory && RoomBosses.TryGetValue(index, out (byte boss, int x, int y, int screenDx, int screenDy) spot)) {
                     if (spot.x >= 0) (x, y) = (spot.x - r.X * 16, spot.y - r.Y * 16);
-                    var arena = ArenaOf(r, (x + spot.screenDx, y + spot.screenDy), x, y, CameraTop(nightmare, r), HiddenRows * 16);
+                    var arena = spot.boss == KrackoBoss ? KrackoTop
+                        : ArenaOf(r, (x + spot.screenDx, y + spot.screenDy), x, y, CameraTop(nightmare, r), HiddenRows * 16);
                     if (sinking && spot.boss == PowerOrbBoss) arena.height = Math.Min(arena.height + PowerOrbSink, r.FullHeight * 16 - arena.top);
                     arenas.Add(arena);
                 }
@@ -4533,6 +4543,20 @@
             // Neighbours (blocks side by side), and the way to each zone (breadth first);
             List<int>[] neighbours = zones.Select(z => new[] { (1, 0), (-1, 0), (0, 1), (0, -1) }
                 .Where(d => zoneOf.ContainsKey((z.bx + d.Item1, z.by + d.Item2))).Select(d => zoneOf[(z.bx + d.Item1, z.by + d.Item2)]).ToList()).ToArray();
+            // (zones no way joins, blocks without a floor between them: the nearest two of the first zone's and the rest made neighbours,
+            // till every zone is reached; a helper off the screen looks for a zone inside the camera's bounds it has a way to, forever if
+            // there's none, sub_08010034: Kracko's tower, its camera held at the top, its helpers below, froze the game);
+            while (true) {
+                HashSet<int> reached = new HashSet<int> { 0 };
+                Queue<int> todo = new Queue<int>(reached);
+                while (todo.Count > 0) foreach (int n in neighbours[todo.Dequeue()]) if (reached.Add(n)) todo.Enqueue(n);
+                if (reached.Count == zones.Count) break;
+                int Distance(int i, int j) => (zones[i].x - zones[j].x) * (zones[i].x - zones[j].x) + (zones[i].y - zones[j].y) * (zones[i].y - zones[j].y);
+                var (a, b) = reached.SelectMany(i => Enumerable.Range(0, zones.Count).Where(j => !reached.Contains(j)).Select(j => (i, j)))
+                                    .Where(p => neighbours[p.i].Count < 8 && neighbours[p.j].Count < 8).MinBy(p => Distance(p.i, p.j));
+                neighbours[a].Add(b);
+                neighbours[b].Add(a);
+            }
             int records = Allocate(ref cursor, zones.Count * 0x34, 4);
             for (int i = 0; i < zones.Count; i++) {
                 int record = records + i * 0x34;

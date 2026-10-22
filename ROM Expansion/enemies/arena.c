@@ -18,7 +18,11 @@
  * top) until it's down on the screen, as NiDL's camera follows him down (traced in NiDL: 2.5 pixels a frame, his fall, from 8 to
  * 168). One whose subtype2 is 2 is in a screen's room, where NiDL's camera never moves (8, 8; KatAM's room is taller, padded below,
  * and its camera went down 16 with Kirby: Meta Knight's at 24): it holds the camera on its screen whenever a Kirby is in the room,
- * right on it (not easing there), before the fight, through it and after it (its walls only while it's on); */
+ * right on it (not easing there), before the fight, through it and after it (its walls only while it's on). One whose subtype2 is 3
+ * waits for its boss (Kracko's, at its tower's top: its fight starts at the bottom, its eye chasing Kirby up, the camera following
+ * him, as NiDL's) to say the camera locks there (ArenaGo(): NiDL's lock as its camera comes near the top), a Kirby on its screen;
+ * once locked, it holds the camera there after the fight too, while a Kirby is on its screen (NiDL's lock is the room's camera's, not
+ * its boss's; the tower's top is solid, so none falls off it), and gives it back for good once none is (put elsewhere in the room); */
 #include "../nidl.h"
 #include "constants/object_types.h"
 
@@ -32,6 +36,7 @@
 #define DROP_VIEW (80 << 8)
 #define ROOM_TOP (8 << 8)
 #define ONE_SCREEN 2
+#define BOSS_LOCKS 3
 
 struct Arena {
     struct NidlObject n;
@@ -45,6 +50,7 @@ struct Arena {
     s32 rise;           // How far above its screen the lock is while Kirby drops in (8.8, subtype2 1); under it (negative), its boss's
                         // (ArenaRise());
     bool8 held;         // Its boss holds the lock off its screen (ArenaRise());
+    bool8 go;           // Its boss let it lock the camera (subtype2 BOSS_LOCKS: ArenaGo());
 };
 
 // The camera's bounds: its template's area (Kirby's, BELOW more);
@@ -191,6 +197,8 @@ static void ArenaMain(struct Object *obj) {
             gCurLevelInfo[i].unk_S32Vec2_74 = gCurLevelInfo[i].unk_S32Vec2_84;
         }
     }
+    // (one its boss locks: nothing till it says, while it's alive);
+    if (area->subtype2 == BOSS_LOCKS && !a->go && MinibossAlive(obj)) return;
     // (a Kirby dropping in comes before the boss: KatAM makes it only near the camera; its boss's own lock, ArenaRise(), holds it);
     rise = a->held ? 0 : DropRise(a);
     if (rise <= 0 && !a->held && !MinibossAlive(obj)) {
@@ -198,8 +206,17 @@ static void ArenaMain(struct Object *obj) {
             a->opened = TRUE;
             OpenDoors(a);
         }
-        // (a screen's room: still held, the fight over);
+        // (a screen's room, or its boss's lock at its tower's top while a Kirby's on it: still held, the fight over);
         if (area->subtype2 == ONE_SCREEN) return;
+        if (area->subtype2 == BOSS_LOCKS && a->active) {
+            for (i = 0; i < gNumKirbys; i++)
+                if (gKirbys[i].base.roomId == obj->base.roomId && Macro_08039430_2(&gKirbys[i].base, obj)) break;
+            if (i < gNumKirbys) {
+                for (i = 0; i < gNumKirbys; i++)
+                    if (gKirbys[i].base.roomId == obj->base.roomId) LockCamera(a, i);
+                return;
+            }
+        }
         if (a->active) {
             UnlockCameras(a);
             obj->base.flags |= 0x1000;
@@ -316,6 +333,21 @@ void ArenaRise(struct Object *boss, s32 below) {
     }
 }
 
+// ArenaGo(); The arena in a boss's room (subtype2 BOSS_LOCKS) may lock the camera on its screen now, a Kirby on it;
+void ArenaGo(struct Object *boss) {
+    struct Task *t = &gTasks[0];
+    u8 n;
+
+    for (n = 0; n < MAX_TASK_NUM && t->next; n++) {
+        struct Object *other;
+
+        t = (struct Task *)(IWRAM_START + t->next);
+        other = TaskGetStructPtr(t);
+        if (other->base.header.kind != 1 || other->type != NIDL_TYPE || other->base.roomId != boss->base.roomId) continue;
+        if (((struct NidlObject *)other)->enemy == NIDL_ARENA) ((struct Arena *)other)->go = TRUE;
+    }
+}
+
 // ArenaStart(); Behavior start (also the engine's after a hit, which it never takes); never culled off the screen (sub_0803D6B4: 128
 // pixels up or down, the Power Orb's screen above Kirby as he came in), as the bosses;
 void ArenaStart(struct Object *obj) {
@@ -335,4 +367,5 @@ void ArenaInit(struct NidlObject *n) {
     a->lockedTop = 0;
     a->rise = 0;
     a->held = FALSE;
+    a->go = FALSE;
 }

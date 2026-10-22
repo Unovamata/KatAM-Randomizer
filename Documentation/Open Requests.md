@@ -295,6 +295,42 @@ Left:
   stars from real hits against NiDL (only the fed hit); helpers in the fight; the defeat and inhaling in the European and Japanese
   builds (only the recordings).
 
+## 43. Kracko's fight 1:1 from NiDL, and its stage's lag
+The owner: recreate Kracko's fight (Grape Garden's boss) 1:1 from NiDL's; and its stage lags a lot, can that be solved? Done: the
+whole fight from NiDL's code, both its parts, the eye chasing Kirby up the tower and the cloud at the top (see the ROM Expansion
+README's row). Checked by script in the emulator (not played by hand):
+- **The fight**: NiDL's recorded run (USA, Kirby floating up the tower) against KatAM's test build with NiDL's random seed, Kirby's
+  spot, whether he's floating or landed and NiDL's camera fed in every frame: its state, spot, speed, frame and work fields and its
+  orbs', cloud's and bolts' frames and spots the same on every frame for 3000 frames: the eye's drift, turns and lunges, its rise,
+  the camera's lock at the top, the cloud forming, the lightning, the swoop, the bob, a Waddle Doo dropped.
+- **A hit**: a new NiDL recording, Kirby inhaling the Doo and spitting the star at the cloud; the same hit given to KatAM's test
+  build a frame after NiDL's: its freeze (13 frames, jittering, its eye spinning, its cloud puffing fast), then its lightning going
+  on, the same but for the hit's own frame (KatAM sees hits a frame late), the eye's spin phase (NiDL's from its power-on clock) and
+  one frame's bolts (NiDL's landing dust took a random number first). Found and fixed: NiDL makes no hit stars for Kracko (the port
+  had them); NiDL's hurt step runs after every object's turn; its cloud sees the new mode in the hit's own frame.
+- **Real play** (the normal build, nothing fed): Kirby flying up the tower: the eye chases him, rises, the camera locks at the top,
+  the cloud forms, then lightning, swoop, bob, Doo, sweep. Kirby inhaling the Doo and spitting the star: a real hit (60 to 50 HP,
+  NiDL's 10); then, its HP set to 10 by a RAM write, a real killing blow: KatAM's freeze on NiDL's defeat frame, the explosion, the
+  shard, Kirby taking it, the cutscene, his dance, and the NiDL hub's door. Found and fixed: KatAM's HUD showed Kracko's HP bar
+  whenever the eye touched Kirby (NiDL shows none till the cloud forms: the eye's touch is now an attack box of its own, still 1 HP
+  a touch); the camera let go at the defeat (now held while a Kirby's on the top screen, as NiDL's).
+- **Helpers**: the three helpers in the tower froze the game as the camera locked at the top with them below (KatAM's helper AI
+  looks forever for a zone it can reach inside the camera, and the tower's zones were in separate groups). Every room's zones are
+  now joined (22 of the 279 NiDL rooms were split; KatAM's own rooms unchanged): the helpers come in at the top and fight.
+- **All three versions**: the European build plays the same run frame for frame; the Japanese one runs at its own timing (the
+  inputs retimed); both through the real hit, the kill, the shard and the hub. Logic checks on all three: every room reached, every
+  big switch pressed, nowhere Kirby is trapped, with and without dropping through thin floors.
+- **Lag**: not reproduced. The new fight, Kirby flying up and through the cloud's attacks (3400 frames): 1 lag frame (the room
+  loading); with the three helpers fighting it: 3. KatAM's own Kracko measured 5 in 2400 before.
+
+Left:
+- **The lag the owner sees**: ask when it lags (the climb, the cloud, the lightning), on which emulator or console, with helpers out
+  or not, and on which seed.
+- **The eye's spin and the flashes' phase**: from the fight's start (NiDL's from power-on, so they differ from game to game there
+  too). **Its defeat's start**: KatAM's explosion stands in for NiDL's. **Sounds**: KatAM's nearest.
+- **Not tested**: played by hand; a real saved game (the script starts a new game in the tower; there the shard took Kirby to the
+  NiDL hub after his dance); attacks other than the spit star; two players.
+
 ## 10. Screen shake as KatAM's
 The owner: the screen shakes far too much. Not reproduced: KatAM's shake runs the same in the NiDL rooms as in KatAM's, and
 nothing found shakes more often than in KatAM. Needs the owner's details (which room, what was happening).

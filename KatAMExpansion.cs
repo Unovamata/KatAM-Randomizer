@@ -279,27 +279,42 @@ namespace KatAMRandomizer {
                 new byte[0], Type: BossID, Icon: new[] { 4 }, IconOverRoom: true);
         }
 
-        /* Kracko; NiDL boss 6 (type 0x41, Grape Garden's), its cloud fight. NiDL draws it with three palettes at once (the cloud's top 0,
-         * its bottom 1, the eye and lightning 2), a KatAM sprite has one: its object draws the cloud's top, two more sprites follow it
-         * (bosses/kracko.c), so the cloud's frames are cut by palette. Frames: the cloud's top (NiDL's 12, then 13 and 14, its spikes out),
-         * 0-2; its bottom, 3-5; its eye (4-11: looking right, then each eighth of a turn clockwise; NiDL's own object, at the cloud's
-         * middle), 6-13; its lightning bolts (14-29), one or more of the lightning object's segments (0x0C5, its table 0x08754448: 4-11
-         * run down) stacked 16 pixels apart, 1-8 of them, two of each (jagged differently). Hurt: the cloud's top; */
+        /* Kracko; NiDL boss 6 (type 0x41, Grape Garden's; mini-boss descriptor 36, three palettes: 0 its cloud's top, 1 its bottom, its
+         * orbs and puffs, 2 its eye and its lightning's bolts). Only its sprites draw these frames (EffectOnly: "ROM Expansion/bosses/
+         * kracko.c" draws NiDL's objects as sprites), numbered as KrackoGroups lays them out: frame 0 its object's own (NiDL's 4, never
+         * shown), then its eye (0x087543E8's 0-11), its cloud's top (12-14, the first palette's pieces: NiDL draws it with two palettes, a
+         * KatAM sprite with one), its bottom (12-14, the second's), its puffs and orbs (15-23), its bolts (24-36). WriteKrackoFight() tells
+         * the C code where they are. Hurt: its eye (4); */
+        static (int first, int count)[] KrackoGroups => new[] { (1, 12), (13, 3), (16, 3), (19, 9), (28, 13) };
         static Miniboss Kracko() {
-            int[] jitter = { 0, 2, -2, 1, -1, 3, -3, 1 };
-            List<Part[]> frames = new List<Part[]>();
+            List<Part[]> frames = new List<Part[]> { new[] { new Part(4, Palette: 2) } };
 
-            for (int palette = 0; palette < 2; palette++)
-                frames.AddRange(new[] { 12, 13, 14 }.Select(cloud => new[] { new Part(cloud, Palette: palette, OnlyPalette: palette) }));
-            frames.AddRange(Enumerable.Range(4, 8).Select(eye => new[] { new Part(eye, Palette: 2) }));
-            for (int length = 1; length <= 8; length++)
-                for (int jag = 0; jag < 2; jag++)
-                    frames.Add(Enumerable.Range(0, length).Select(k => new Part(4 + (k * 5 + jag * 3) % 8, Table: 0x754448, Palette: 2,
-                                                                                    Dx: jitter[(k + jag * 3) % 8], Dy: 8 + 16 * k)).ToArray());
+            frames.AddRange(Enumerable.Range(0, 12).Select(f => new[] { new Part(f, Palette: 2) }));
+            frames.AddRange(Enumerable.Range(12, 3).Select(f => new[] { new Part(f, Palette: 0, OnlyPalette: 0) }));
+            frames.AddRange(Enumerable.Range(12, 3).Select(f => new[] { new Part(f, Palette: 1, OnlyPalette: 1) }));
+            frames.AddRange(Enumerable.Range(15, 9).Select(f => new[] { new Part(f, Palette: 1) }));
+            frames.AddRange(Enumerable.Range(24, 13).Select(f => new[] { new Part(f, Palette: f == 36 ? 0 : 2) }));
 
-            return new Miniboss(1, "Kracko", 36, 0x7543E8, frames, new[] { new Part(12, OnlyPalette: 0) },
+            return new Miniboss(1, "Kracko", 36, 0x7543E8, frames, new[] { new Part(4, Palette: 2) },
                 new[] { (0x45, 0), (0x45, 1), (0x45, 2), (0x45, 3), (0x45, 4), (0x45, 5) },    // "Kracko" (KatAM's own Kracko);
-                new byte[0], Type: BossID, IconCells: new[] { new[] { 0, 3, 6 } });
+                new byte[0], Type: BossID, EffectOnly: frames.Count - 1,
+                IconCells: new[] { new[] { KrackoGroups[1].first, KrackoGroups[2].first, KrackoGroups[0].first + 4 } });
+        }
+
+        /* WriteKrackoFight(); gNidlKracko ("ROM Expansion/bosses/kracko.c"): u8 [5] its groups' first frames (KrackoGroups'), u8 [5] the VRAM
+         * tiles of each group's biggest frame; u16 [3][16] its three palettes' colours (NiDL's order: its cloud's top, its bottom, its eye);
+         * u16 [48] its hurt flash's, the three (NiDL's: the 48 colours after its descriptor, USA 0x082FD438); */
+        static void WriteKrackoFight(byte[] rom, byte[] nightmare, int at, int descriptor, List<byte[]> palettes,
+                                     List<(byte[] tiles, ushort[] oams, short[] attributes, int palette)> frames) {
+            int groups = KrackoGroups.Length, colors = groups * 2;
+            for (int g = 0; g < groups; g++) {
+                (int first, int count) = KrackoGroups[g];
+                rom[at + g] = (byte)first;
+                rom[at + groups + g] = (byte)frames.Skip(first).Take(count).Max(f => f.tiles.Length / 32);
+            }
+            int[] firstOfPalette = { KrackoGroups[1].first, KrackoGroups[2].first, KrackoGroups[0].first };
+            for (int p = 0; p < 3; p++) Array.Copy(palettes[frames[firstOfPalette[p]].palette], 0, rom, at + colors + p * 32, 32);
+            Array.Copy(nightmare, descriptor + 0x14, rom, at + colors + 96, 96);
         }
 
         /* Mr. Shine & Mr. Bright; NiDL boss 4 (type 0x3F, Butter Building's; descriptor 34: palette 0 Mr. Shine's, 1 Mr. Bright's, 2 the
@@ -1134,6 +1149,11 @@ namespace KatAMRandomizer {
                 int dedede = allBosses.FindIndex(m => m.Type == BossID2 && m.Index == 6);
                 WriteKingDededeFight(rom, nightmare, region, CodeAddress + version.CodeSymbols["gNidlKingDedede"], builtMinibosses[dedede].palettes,
                                      builtMinibosses[dedede].frames);
+                // (Kracko's sprites' frames, sizes, colours: "ROM Expansion/bosses/kracko.c", gNidlKracko);
+                int kracko = allBosses.FindIndex(m => m.Type == BossID && m.Index == 1);
+                WriteKrackoFight(rom, nightmare, CodeAddress + version.CodeSymbols["gNidlKracko"],
+                                 ReadInt(nightmare, region.Descriptors + MinibossDescriptors + allBosses[kracko].NightmareIndex * 4) - 0x08000000,
+                                 builtMinibosses[kracko].palettes, builtMinibosses[kracko].frames);
                 // (Paint Roller's sprites' frames, sizes, colours: "ROM Expansion/bosses/paint_roller.c", gNidlPaintRoller);
                 int paintRoller = allBosses.FindIndex(m => m.Type == BossID2 && m.Index == 4);
                 WritePaintRollerFight(rom, nightmare, CodeAddress + version.CodeSymbols["gNidlPaintRoller"],
