@@ -369,6 +369,34 @@ Left:
   players; the loop at 768 on the European and Japanese builds (Kirby has to be kept alive that far: only the USA test build does
   that); the lag with helpers.
 
+## 45. The Star Rod in the NiDL hub, as the Master Sword in Central Circle
+The owner: the Star Rod should be there for good in the NiDL hub, as the Master Sword is in Central Circle. Done: the rod stands in
+the golden pedestal under the hub's Dimension Mirror (where Central Circle has the Master Sword's stand), from the start, with no
+option; it works as the Master Sword's stand: a player's Kirby with no ability who touches it takes it (KatAM's get-ability pose,
+the HUD card with its name and picture), the stand is empty while a player has it or it's out as an ability star (Select), and it
+comes back with KatAM's puff once neither is. Its picture is NiDL's rod held straight up (frame `0x1023`), glowing and cycling its
+colors as on Kirby. Taken there, it's Kirby's everywhere (see the ROM Expansion README's Star Rod row). Checked in the emulator
+(USA, by script, not played by hand):
+- **The stand** (a new game started in the hub): the rod in the pedestal; Kirby walks into it and gets it (ability 34, the card);
+  B swings it and shoots a star; Select drops it as a star, the stand stays empty until that star is gone (about 12 seconds), then
+  the rod is back.
+- **In a level**: through the hub's golden mirror into Vegetable Valley with it: Kirby walks, jumps and swings; its stars took a
+  Sparky's HP down and beat it; Sparky's hit didn't take the rod.
+- **A boss** (forced: Kirby moved from the hub into Whispy Woods' room with the tracker's debug warp, by RAM writes, after taking
+  the rod for real): its stars beat Whispy Woods; Kirby took the shard, danced, and came back to the hub still holding the rod.
+- **The Power Orb's fight** (forced the same way, into its room): Kirby flies with the rod as before, the card without its picture.
+- **All three versions**: built; the stand, the pick-up, a swing, the drop and the rod's return checked in each. Logic checks on
+  all three: every room reached, every big switch pressed, nowhere Kirby is trapped, with and without dropping through thin floors
+  (the same as before).
+
+Left:
+- **Seen, not changed (for the owner)**: the rod isn't drawn in the poses its hat has no NiDL frame for (swimming, climbing a
+  ladder and a few others: `KatAMExpansionHats.cs`' `HatFrames`); its stars fly through walls (as in the finale's fights);
+  outside the fights the HUD card shows the rod's picture, as for any ability (in the fights its name alone, as before).
+- **Not tested**: played by hand; losing it to a death; two players (one rod, as one Master Sword); helpers (they never take it);
+  a saved game with the rod; Nightmare's fight with a rod taken at the stand (after it Kirby is Normal, as before: the stand gives
+  it again).
+
 ## 10. Screen shake as KatAM's
 The owner: the screen shakes far too much. Not reproduced: KatAM's shake runs the same in the NiDL rooms as in KatAM's, and
 nothing found shakes more often than in KatAM. Needs the owner's details (which room, what was happening).

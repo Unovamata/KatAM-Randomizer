@@ -310,7 +310,7 @@ namespace KatAMRandomizer {
         /* BuildMotions(); The body and hat motion anims (a variant per motion, in Motions' order), each ability's hat table entries at its
          * motion slots, and the body's AnimInfos for gNidlAbilityData.motions (NIDL_ABILITY_COUNT x MotionSlots, 0: none). The Star Rod's
          * hat frames (its motions are the last) have glowing versions, as its hat's (AddGlows(): the hat anim, first frame and count in
-         * `glows`' 3-5; the glow on the hat, over the frame's own body), and its hat's palette its cycle (StarRodPalettes(): `glows`' 6); */
+         * `glows`' 3-5; the glow on the hat, over the frame's own body), and its hat's palette its cycle (StarRodPalettes(): `glows`' 9); */
         static int[] BuildMotions(byte[] rom, byte[] nightmare, NightmareRegion region, int[] hatTables, int[] hatPalettes, bool[][] paletteUsed,
                                   int tilesBase, ref int cursor, int firstAnimId, List<int> animVariants, List<int> animAttributes, List<int> animOams,
                                   int[] glows) {
@@ -356,7 +356,7 @@ namespace KatAMRandomizer {
                 }
                 for (int c = 0; c < 16; c++) WriteShort(rom, hatPalettes[k] + c * 2, palettes[k][c]);
             }
-            glows[6] = StarRodPalettes(rom, nightmare, region, palettes[StarRod], ref place);
+            glows[9] = StarRodPalettes(rom, nightmare, region, palettes[StarRod], ref place);
             (byte[], ushort[], short[]) HatOf(int[,] pixels, ushort[] palette) {
                 int[,] indexes = new int[pixels.GetLength(0), pixels.GetLength(1)];
                 for (int y = 0; y < pixels.GetLength(1); y++)
@@ -430,6 +430,99 @@ namespace KatAMRandomizer {
             }
             cursor = place;
             return bodyInfos;
+        }
+
+        /* BuildRodStand(); The Star Rod on its own, upright, for its stand in the NiDL hub ("ROM Expansion/abilities/star_rod_stand.c"):
+         * NiDL's rod held straight up (RodStandFrame's second layer, the rod alone), its bottom's middle at the frame's origin (the stand's
+         * spot, on the floor), in the Star Rod hat's colors (`hatPalette`, the closest of them), and its glowing version (AddGlows(): `glows`'
+         * 6-8): RodStandFrame's own (+ StarRodGlow) is the same frame, so it's the held rod's glow (RodHeldFrame's, the hat's when Kirby
+         * stands), the glowing frame's pixels round the star that aren't the plain one's, laid round the upright rod's star. One anim, its
+         * variant the hat's palette (as KatAM's objects load theirs, by their anim: ObjectInitSprite) and the frame; returns its anim ID
+         * and the VRAM tiles it needs; */
+        const int RodStandFrame = 0x1023, RodHeldFrame = 0xFED, RodGlowReach = 10;
+        static (int animId, int tiles) BuildRodStand(byte[] rom, byte[] nightmare, NightmareRegion region, int hatPalette, int paletteBase, int tilesBase,
+                                                     ref int cursor, int firstAnimId, List<int> animVariants, List<int> animAttributes, List<int> animOams,
+                                                     int[] glows) {
+            const int Size = 128, Center = 64;
+            int[,] rod = RodPixels(nightmare, region, RodStandFrame), held = RodPixels(nightmare, region, RodHeldFrame),
+                   heldGlow = RodPixels(nightmare, region, RodHeldFrame + StarRodGlow);
+            // (a star's tip: its top row's middle);
+            (int x, int y) Tip(int[,] pixels) {
+                for (int y = 0; y < Size; y++) {
+                    List<int> xs = Enumerable.Range(0, Size).Where(x => pixels[x, y] != 0).ToList();
+                    if (xs.Count > 0) return ((xs.Min() + xs.Max()) / 2, y);
+                }
+                throw new ArgumentException("The Star Rod's frames");
+            }
+            (int rodX, int rodY) = Tip(rod);
+            (int heldX, int heldY) = Tip(held);
+            int[,] glow = (int[,])rod.Clone();
+            for (int y = 0; y < Size; y++)
+                for (int x = 0; x < Size; x++) {
+                    int toX = x + rodX - heldX, toY = y + rodY - heldY;
+                    if (heldGlow[x, y] == 0 || heldGlow[x, y] == held[x, y] || Math.Abs(x - heldX) > RodGlowReach || y - heldY > 2 * RodGlowReach
+                        || toX < 0 || toY < 0 || toX >= Size || toY >= Size) continue;
+                    glow[toX, toY] = heldGlow[x, y];
+                }
+
+            // (moved: the rod's bottom row's middle to just over the origin; in the hat's colors);
+            int bottom = Enumerable.Range(0, Size).Last(y => Enumerable.Range(0, Size).Any(x => rod[x, y] != 0));
+            List<int> bottomXs = Enumerable.Range(0, Size).Where(x => rod[x, bottom] != 0).ToList();
+            int dx = Center - (bottomXs.Min() + bottomXs.Max() + 1) / 2, dy = Center - 1 - bottom;
+            ushort[] palette = Enumerable.Range(0, 16).Select(c => (ushort)ReadShort(rom, hatPalette + c * 2)).ToArray();
+            (byte[], ushort[], short[]) Frame(int[,] pixels) {
+                int[,] indexes = new int[Size, Size];
+                for (int y = 0; y < Size; y++)
+                    for (int x = 0; x < Size; x++)
+                        if (pixels[x, y] != 0 && x + dx >= 0 && y + dy >= 0 && x + dx < Size && y + dy < Size)
+                            indexes[x + dx, y + dy] = Enumerable.Range(1, 15).OrderBy(c => ColorDistance(palette[c], pixels[x, y] - 1)).First();
+                return CutFrame(indexes, MotionHatTiles);
+            }
+            List<(byte[] tiles, ushort[] oams, short[] attributes)> frames = new List<(byte[], ushort[], short[])> { Frame(rod) },
+                glowing = new List<(byte[], ushort[], short[])> { Frame(glow) };
+            (glows[7], glows[8]) = AddGlows(frames, glowing, 0);
+            glows[6] = firstAnimId + animVariants.Count;
+
+            // Data: tiles (aligned to the tiles base), attributes, OAM; the variant: GetPalette, GetTiles (both frames'), ShowFrame, End;
+            int tilesAt = Allocate(ref cursor, frames[0].tiles.Length, 32, tilesBase);
+            int attributesAt = Allocate(ref cursor, frames.Count * 12, 4), oamsAt = Allocate(ref cursor, frames.Sum(f => f.oams.Length) * 2, 4);
+            frames[0].tiles.CopyTo(rom, tilesAt);
+            for (int i = 0, oam = 0; i < frames.Count; oam += frames[i].oams.Length, i++) {
+                WriteShorts(rom, attributesAt + i * 12, (short)(oam / 3), frames[i].attributes[1], frames[i].attributes[2], frames[i].attributes[3],
+                            frames[i].attributes[4], frames[i].attributes[5]);
+                for (int o = 0; o < frames[i].oams.Length; o++) WriteShort(rom, oamsAt + (oam + o) * 2, frames[i].oams[o]);
+            }
+            int[] words = { -2, (hatPalette - paletteBase) / 32, 16, -1, (tilesAt - tilesBase) / 32, frames[0].tiles.Length / 32, 1, 0, -4 };
+            int variantAt = Allocate(ref cursor, words.Length * 4, 4), variantsAt = Allocate(ref cursor, 4, 4);
+            for (int w = 0; w < words.Length; w++) WriteInt(rom, variantAt + w * 4, words[w]);
+            WriteInt(rom, variantsAt, variantAt + 0x08000000);
+            animVariants.Add(variantsAt);
+            animAttributes.Add(attributesAt);
+            animOams.Add(oamsAt);
+            return (glows[6], frames[0].tiles.Length / 32);
+        }
+
+        // RodPixels(); A NiDL Kirby frame's second layer (the Star Rod's: the rod alone) as RGB555 + 1 (0: none), its origin at the middle;
+        static int[,] RodPixels(byte[] nightmare, NightmareRegion region, int frame) {
+            const int Size = 128, Center = 64;
+            KirbyFrame source = ReadKirbyFrame(nightmare, region, frame);
+            int[,] pixels = new int[Size, Size];
+            if (source.Tiles2 == null) throw new ArgumentException("The Star Rod's frames");
+
+            // (back to front: NiDL's first piece is on top);
+            foreach (Piece piece in Enumerable.Reverse(source.Pieces)) {
+                if (piece.Tile < 0x40) continue;
+                for (int py = 0; py < piece.Height; py++)
+                    for (int px = 0; px < piece.Width; px++) {
+                        int tile = piece.Tile - 0x40 + py / 8 * 32 + px / 8;
+                        int value = source.Tiles2[tile * 32 + py % 8 * 4 + px % 8 / 2] >> (px % 2 * 4) & 0xF;
+                        int x = Center + piece.X + (piece.HFlip != 0 ? piece.Width - 1 - px : px);
+                        int y = Center + piece.Y + (piece.VFlip != 0 ? piece.Height - 1 - py : py);
+                        if (value == 0 || x < 0 || y < 0 || x >= Size || y >= Size) continue;
+                        pixels[x, y] = ReadShort(source.Palette2, value * 2) + 1;
+                    }
+            }
+            return pixels;
         }
     }
 }

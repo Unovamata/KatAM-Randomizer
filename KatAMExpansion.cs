@@ -1201,14 +1201,17 @@ namespace KatAMRandomizer {
             }
 
             // The new abilities' hats and motions (anims after the enemies');
-            int[] hatTables, motions, hatPalettes = new int[NewAbilities], glows = new int[7];
+            int[] hatTables, motions, hatPalettes = new int[NewAbilities], glows = new int[10];
             int backdropPalette;
+            (int animId, int tiles) rodStand;
             bool[][] paletteUsed = new bool[NewAbilities][];
             try {
                 hatTables = BuildHats(rom, nightmare, region, version.RomSymbols["gUnk_0834C5D4"], anims, attrTable, oamTable, tilesBase, paletteBase, ref cursor, HurtAnimID,
                                       animVariants, animAttributes, animOams, hatPalettes, paletteUsed, glows);
                 motions = BuildMotions(rom, nightmare, region, hatTables, hatPalettes, paletteUsed, tilesBase, ref cursor, HurtAnimID, animVariants,
                                        animAttributes, animOams, glows);
+                rodStand = BuildRodStand(rom, nightmare, region, hatPalettes[StarRod], paletteBase, tilesBase, ref cursor, HurtAnimID, animVariants,
+                                         animAttributes, animOams, glows);
                 backdropPalette = BuildBackdropPalette(rom, nightmare, region, version.RomSymbols["gUnk_08350A3C"], anims, attrTable, oamTable, paletteBase,
                                                        ref cursor, HurtAnimID, animVariants, animAttributes, animOams);
             } catch (Exception exception) when (exception is IndexOutOfRangeException or ArgumentException) {
@@ -1318,6 +1321,19 @@ namespace KatAMRandomizer {
                 WriteInt(rom, minibossParameters + 20, minibossAnimInfosAt[type] + 0x08000000);
                 Array.Copy(rom, ObjectParameters2 + like * 8, rom, ObjectParameters2 + type * 8, 8);
             }
+
+            /* The Star Rod's stand in the NiDL hub (object 0x9A, which KatAM leaves empty: "ROM Expansion/abilities/star_rod_stand.c"): its
+             * spawn, and parameters as the Master Sword's stand's (0x98) but for its ability, its palette key and anim (BuildRodStand()'s:
+             * an AnimInfo, its variant 0) and VRAM tiles; its second parameters are the Master Sword stand's; */
+            int rodStandParameters = ObjectParameters + RodStandType * 0x18, rodStandAnims = Allocate(ref cursor, 4, 4);
+            WriteInt(rom, SpawnTable + RodStandType * 4, codeBase + version.CodeSymbols["NidlCreateRodStand"] + 1);
+            Array.Copy(rom, ObjectParameters + MasterSwordStand * 0x18, rom, rodStandParameters, 0x18);
+            WriteShort(rom, rodStandParameters + 6, FirstAbility + StarRod);
+            WriteShort(rom, rodStandParameters + 8, rodStand.animId);
+            WriteInt(rom, rodStandParameters + 12, rodStand.tiles);
+            WriteInt(rom, rodStandParameters + 20, rodStandAnims + 0x08000000);
+            WriteInt(rom, rodStandAnims, rodStand.animId);
+            Array.Copy(rom, ObjectParameters2 + MasterSwordStand * 8, rom, ObjectParameters2 + RodStandType * 8, 8);
 
             /* Mirras (object 0x34) fall, and open their door where they are ("ROM Expansion/mirra.c"): its spawn becomes NidlCreateMirra
              * (the original's address in gNidlMirra), and its door's opening (sub_080B11C0) jumps to NidlMirraOpen, which does its work

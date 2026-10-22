@@ -77,6 +77,8 @@ codeNames = ['gNidlWorldMapDoors', 'NidlWorldMapUnlockSave', 'NidlWorldMapGetCoo
              'gNidlUnlock', 'NidlHubMirrorInit',
              # Mirras fall, and open their door where they are (mirra.c);
              'gNidlMirra', 'NidlCreateMirra', 'NidlMirraOpen',
+             # The Star Rod's stand in the NiDL hub (abilities/star_rod_stand.c);
+             'NidlCreateRodStand',
              # The ported warp stars' rides (warpstar.c);
              'gNidlRide', 'gNidlRideTrampolines', 'NidlRideRev', 'NidlRideRoomChange', 'NidlRideStep', 'NidlRideDraw', 'NidlRideStar',
              # Bigger rooms (rooms.c): the replacements;

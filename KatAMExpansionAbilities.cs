@@ -36,8 +36,8 @@
 
         /* AddAbilities(); Relocates the ability tables, detours the HUD portraits and fills gNidlAbilityData. `newEntries[table]`, when
          * given, replaces the base ability's entries of AbilityTables[table] (hats, Backdrop's palette; -1: the base's); `motions`, BuildMotions' body AnimInfos;
-         * `glows`, the Star Rod's hats' glowing frames (anim, first frame, count: its hat's, its motions'; AddGlows()), then its palettes
-         * (StarRodPalettes()); */
+         * `glows`, the Star Rod's glowing frames (anim, first frame, count: its hat's, its motions', its stand's; AddGlows()), then its
+         * palettes (StarRodPalettes()); */
         static string AddAbilities(byte[] rom, byte[] nightmare, NightmareRegion region, KatAMExpansionCode.Version version, ref int cursor,
                                    int[] motions, int[] glows, Dictionary<string, int[]> newEntries) {
             int codeBase = CodeAddress + 0x08000000;
@@ -101,8 +101,8 @@
             int display = Detour(rom, version.RomSymbols["DisplaySprite"], codeBase + version.CodeSymbols["NidlDisplaySprite"], ref cursor), after = data + 8 + NewAbilities * 8 + motions.Length * 4;
             if (display < 0) return $"The {version.Name} ROM's sprite code doesn't match.";
             WriteInt(rom, after, display + 0x08000000 + 1);
-            for (int i = 0; i < 6; i++) WriteShort(rom, after + 4 + i / 3 * 8 + i % 3 * 2, glows[i]);
-            WriteInt(rom, after + 20, glows[6] + 0x08000000);
+            for (int i = 0; i < 9; i++) WriteShort(rom, after + 4 + i / 3 * 8 + i % 3 * 2, glows[i]);
+            WriteInt(rom, after + 28, glows[9] + 0x08000000);
             return null;
         }
 

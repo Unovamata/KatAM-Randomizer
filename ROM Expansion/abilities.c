@@ -97,9 +97,9 @@ static void StarRodPalette(struct Sprite *sprite) {
     }
 }
 
-/* NidlDisplaySprite(); DisplaySprite (detoured), every sprite's drawing: a Star Rod hat's (the rod's) is drawn as NiDL draws its Kirby
- * with the Star Rod: its palette on a cycle (StarRodPalette()), and a frame, one frame in four (NiDL's frame counter's, 0x03001EA4, a
- * multiple of 4), as its glowing version, the same with the rod's star glowing (Kirby's drawing, 0x0803DE6C: frame + 0x83); on
+/* NidlDisplaySprite(); DisplaySprite (detoured), every sprite's drawing: a Star Rod hat's (the rod's), and its stand's, is drawn as NiDL
+ * draws its Kirby with the Star Rod: its palette on a cycle (StarRodPalette()), and a frame, one frame in four (NiDL's frame counter's,
+ * 0x03001EA4, a multiple of 4), as its glowing version, the same with the rod's star glowing (Kirby's drawing, 0x0803DE6C: frame + 0x83); on
  * KatAM's frame counter (gUnk_0203AD40, a game frame each); the glowing frames' tiles are loaded with the frame's
  * (KatAMExpansionHats.cs, AddGlows()); */
 void NidlDisplaySprite(struct Sprite *sprite) {
@@ -107,7 +107,7 @@ void NidlDisplaySprite(struct Sprite *sprite) {
     u32 frame = sprite->unk4;
     u8 i;
 
-    for (i = 0; i < 2; i++) {
+    for (i = 0; i < ARRAY_COUNT(data->glows); i++) {
         if (sprite->animId != data->glows[i].anim || !sprite->animId) continue;
         StarRodPalette(sprite);
         if (!(gUnk_0203AD40 & 3) && frame - data->glows[i].first < data->glows[i].count) {

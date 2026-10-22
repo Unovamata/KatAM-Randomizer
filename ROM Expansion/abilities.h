@@ -1,5 +1,6 @@
 /* NiDL abilities; Copy abilities ported from Kirby: Nightmare in Dream Land, as KatAM abilities 27-33 (KatAM has 0-26), and its Star Rod
- * (34), which only the finale's fights give, the Power Orb's and Nightmare's (abilities/star_rod.c):
+ * (34), which the finale's fights give, the Power Orb's and Nightmare's (abilities/star_rod.c), and its stand in the NiDL hub
+ * (abilities/star_rod_stand.c):
  * • Ability field: KatAM keeps the ability Kirby is getting (transitioningAbility) in 5 bits, with 3 flags above. It's widened to 6
  *   bits (NIDL_ABILITY_MASK): the "random" flag moves from 0x20 to 0x40, and the 0x40 flag ("several things in the mouth", which makes
  *   the spat star bigger) to the unused unkF1. KatAMExpansion.cs patches every "& 0x1F" read of it to "& 0x3F", the random flag's
@@ -85,8 +86,8 @@ struct NidlAbilityData {
     struct AnimInfo motions[NIDL_ABILITY_COUNT][NIDL_MOTION_SLOTS]; // Body animations of the motions (0: none), see NidlAbilitySetup;
     void (*displaySpriteOriginal)(struct Sprite *);
     struct {
-        u16 anim, first, count, unused;                 // The Star Rod's hats (its own, its motions'): frames first on, then their glowing
-    } glows[2];                                         // versions, count frames on (see NidlDisplaySprite);
+        u16 anim, first, count, unused;                 // The Star Rod's anims (its hat's, its motions', its stand's): frames first on, then
+    } glows[3];                                         // their glowing versions, count frames on (see NidlDisplaySprite);
     const u16 *rodPalettes;                             // Its hat's palette bright, halfway, and its own (16 colors each);
 };
 
@@ -125,6 +126,11 @@ void NidlFlash(struct Kirby *, const u8 *levels, u16 count);
 
 // Mike's uses so far (Kirby's padding byte after unk1A5; reset by NidlAbilitySetup on getting Mike);
 #define NIDL_MIKE_USES(kirby) (((u8 *)(kirby))[0x1A6])
+/* The ability Kirby had before the Power Orb's fight gave him the Star Rod (his padding byte after NIDL_MIKE_USES), | STAR_ROD_FROM_FIGHT,
+ * given back after the shard's dance; without the flag (0: none), the Star Rod is his own (the hub's stand's, abilities/star_rod_stand.c,
+ * or a saved game's), kept; */
+#define STAR_ROD_SAVED(kirby) (((u8 *)(kirby))[0x1A7])
+#define STAR_ROD_FROM_FIGHT 0x80
 
 // Star Rod (abilities/star_rod.c): the Power Orb's fight (bosses/power_orb.c) flies every Kirby in its room with it; Nightmare's
 // (bosses/nightmare.c) is fought with it on the ground (StarRodSwingStart: B; StarRodKeep: never lost there);
@@ -142,6 +148,8 @@ s32 StarRodSink(u8 player, s32 *lastTop);
 void StarRodHit(struct Kirby *, s32 x);
 bool32 StarRodTouches(struct Kirby *, s32 x, s32 y, s32 halfWidth, s32 halfHeight);
 u8 StarRodHits(u16 room, s32 x, s32 y, s32 reach);
+// (and the NiDL hub's stand, object 0x9A's spawn: abilities/star_rod_stand.c);
+void *NidlCreateRodStand(struct ObjectTemplate *, u8 playerId);
 
 // Abilities (abilities/*.c): B on land;
 void NeedleStart(struct Kirby *);
