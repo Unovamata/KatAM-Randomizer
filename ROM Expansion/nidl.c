@@ -148,6 +148,8 @@ void NidlDestroy(struct Task *task) {
     if (NidlIsBoss(&n->obj) && n->enemy == NIDL_PAINT_ROLLER) PaintRollerGone(&n->obj);
     // (and Kracko's, bosses/kracko.c);
     if (NidlIsBoss(&n->obj) && n->enemy == NIDL_KRACKO) KrackoGone(&n->obj);
+    // (and Heavy Mole's, bosses/heavy_mole.c);
+    if (NidlIsBoss(&n->obj) && n->enemy == NIDL_HEAVY_MOLE) HeavyMoleGone(&n->obj);
     if (hud && *(void **)(hud + 0x1C) == TaskGetStructPtr(task)) {
         hud[0xA] = 0;
         *(void **)(hud + 0x1C) = NULL;
@@ -225,7 +227,8 @@ void NidlCopyName(struct Object *obj) {
 #define INHALE_PULL 42
 #define INHALE_CATCH 0x1200
 
-static bool32 Inhaling(struct Kirby *kirby, bool32 pulling) {
+// NidlInhaling(); A Kirby inhaling (pulling: or still holding what's pulled in);
+bool32 NidlInhaling(struct Kirby *kirby, bool32 pulling) {
     u16 anim = kirby->animationIndex;
 
     return kirby->hp > 0 && (anim == 0x1A || anim == 0x1B || anim == 0x6A || anim == 0x6B || (pulling && anim == 0x1C));
@@ -242,7 +245,7 @@ struct Kirby *NidlInhaler(struct ObjectBase *p) {
     cy = p->y + (p->unk39 + p->unk3B) * 0x100;
     for (i = 0; i < gNumKirbys; i++) {
         kirby = &gKirbys[i];
-        if (kirby->base.roomId != p->roomId || !Inhaling(kirby, FALSE)) continue;
+        if (kirby->base.roomId != p->roomId || !NidlInhaling(kirby, FALSE)) continue;
         left = kirby->base.x + ((kirby->base.flags & 1) ? -(INHALE_AHEAD + INHALE_WIDTH) : INHALE_AHEAD) * 0x100;
         top = kirby->base.y - INHALE_UP * 0x100;
         if (cx + p->unk3A * 0x100 >= left && cx - p->unk3A * 0x100 <= left + INHALE_WIDTH * 0x100
@@ -267,7 +270,7 @@ bool32 NidlInhaled(struct ObjectBase *p, u16 tiles) {
         p->yspeed = p->y - kirby->base.y;
     }
     kirby = p->unk6C;
-    if (!Inhaling(kirby, TRUE)) {
+    if (!NidlInhaling(kirby, TRUE)) {
         if (!kirby->base.header.kind && kirby->inhaling) kirby->inhaling--;
         CreateEffectObject(p, 0, 0x292, 0);
         p->flags |= 0x1000;

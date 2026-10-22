@@ -533,23 +533,55 @@ namespace KatAMRandomizer {
             Array.Copy(nightmare, descriptor + 0x14, rom, at + 204, 64);
         }
 
-        /* Heavy Mole; NiDL boss 3 (type 0x3E, Yogurt Yard's; mini-boss descriptor 33, five palettes). Frames as bosses/heavy_mole.c numbers
-         * them: 0-7 the body (0x08753E3C's 0-7, the first palette), 8-43 its arms (26-61: six ways of six, the second palette), 44-67 the
-         * fired balls (64-87: six ways of four, the second palette). Type 0x44. Hurt: its body (0); */
+        /* Heavy Mole; NiDL boss 3 (type 0x3E, Yogurt Yard's; mini-boss descriptor 33, five palettes: 0 its body, eye and hatch, 1 its drill
+         * and arms, 2 and 3 its missiles, 3 its dirt clods, 4 a piece of its hatch). Only its sprites draw these frames (EffectOnly:
+         * "ROM Expansion/bosses/heavy_mole.c" draws NiDL's objects as sprites), numbered as HeavyMoleGroups lays them out: frame 0 its
+         * object's own (NiDL's 4, never shown), then (0x08753E3C's, 188 frames: its arms' table 0x08753E8C is its 20 on, its missiles'
+         * 0x087540AC and 0x087540EC its 156 and 172 on) its body (0-7), its drill (8-10), its eye (11-13), its hatch (14-16, the first
+         * palette's pieces: frame 14's piece in the fifth is off the screen, at -128, -93), its dirt clods (17-19), its arms and their rods
+         * (20-155: arm frames 0-125, rods 126-135), its missile 0x7B's third palette's pieces (156-171), its fourth's (156-171), its
+         * missile 0x7C (172-187); NiDL's shared hit stars (0x0874CBC8's 0-1), dirt debris (0x0874CD54's 0-4, a broken cell's) and burst
+         * (0x0874C9D8's 0-16, a missile on Kirby). WriteHeavyMoleFight() tells the C code where they are.
+         * Hurt: its body (4); */
+        static (int first, int count)[] HeavyMoleGroups => new[] { (1, 8), (9, 3), (12, 3), (15, 3), (18, 3), (21, 136), (157, 16), (173, 16), (189, 16), (205, 2), (207, 5), (212, 17) };
         static Miniboss HeavyMole() {
-            List<Part[]> frames = new List<Part[]>();
+            List<Part[]> frames = new List<Part[]> { new[] { new Part(4) } };
 
             frames.AddRange(Enumerable.Range(0, 8).Select(f => new[] { new Part(f) }));
-            frames.AddRange(Enumerable.Range(26, 36).Select(f => new[] { new Part(f, Palette: 1) }));
-            for (int way = 0; way < 6; way++)
-                frames.AddRange(Enumerable.Range(64 + way * 4, 4).Select(f => new[] { new Part(f, Palette: 1) }));
+            frames.AddRange(Enumerable.Range(8, 3).Select(f => new[] { new Part(f, Palette: 1) }));
+            frames.AddRange(Enumerable.Range(11, 3).Select(f => new[] { new Part(f) }));
+            frames.AddRange(Enumerable.Range(14, 3).Select(f => new[] { new Part(f, OnlyPalette: 0) }));
+            frames.AddRange(Enumerable.Range(17, 3).Select(f => new[] { new Part(f, Palette: 3) }));
+            frames.AddRange(Enumerable.Range(20, 136).Select(f => new[] { new Part(f, Palette: 1) }));
+            frames.AddRange(Enumerable.Range(156, 16).Select(f => new[] { new Part(f, Palette: 2, OnlyPalette: 2) }));
+            frames.AddRange(Enumerable.Range(156, 16).Select(f => new[] { new Part(f, Palette: 3, OnlyPalette: 3) }));
+            frames.AddRange(Enumerable.Range(172, 16).Select(f => new[] { new Part(f, Palette: 3) }));
+            frames.AddRange(new[] { 0, 1 }.Select(f => new[] { new Part(f, Table: 0x74CBC8, Palette15: true, Common: true) }));
+            frames.AddRange(Enumerable.Range(0, 5).Select(f => new[] { new Part(f, Table: 0x74CD54, Palette15: true, Common: true) }));
+            frames.AddRange(Enumerable.Range(0, 17).Select(f => new[] { new Part(f, Table: 0x74C9D8, Palette15: true, Common: true) }));
 
-            return new Miniboss(5, "Heavy Mole", 33, 0x753E3C, frames, new[] { new Part(0) },
+            return new Miniboss(5, "Heavy Mole", 33, 0x753E3C, frames, new[] { new Part(4) },
                 new[] {
                     (0x29, 0), (0x29, 1), (0x29, 2), (0x29, 3), (0x29, 4), (-1, -1),               // "Heavy" (Heavy Knight), space;
                     (0x38, 0), (0x1E, 1), (0x02, 1), (0x02, 5),                                    // "M" (Mr.Frosty), "o" (Noddy), "le" (Blipper);
                 },
-                new byte[0], Type: BossID2);
+                new byte[0], Type: BossID2, EffectOnly: frames.Count - 1);
+        }
+
+        /* WriteHeavyMoleFight(); gNidlHeavyMole ("ROM Expansion/bosses/heavy_mole.c"): u8 [12] its groups' first frames (HeavyMoleGroups'),
+         * u8 [12] the VRAM tiles of each group's biggest frame; u16 [4][16] its first four palettes' colours; u16 [32] its hurt flash's,
+         * its first two (NiDL's: the 32 colours after its descriptor, USA 0x082F65D4); */
+        static void WriteHeavyMoleFight(byte[] rom, byte[] nightmare, int at, int descriptor, List<byte[]> palettes,
+                                        List<(byte[] tiles, ushort[] oams, short[] attributes, int palette)> frames) {
+            int groups = HeavyMoleGroups.Length, colors = groups * 2;
+            for (int g = 0; g < groups; g++) {
+                (int first, int count) = HeavyMoleGroups[g];
+                rom[at + g] = (byte)first;
+                rom[at + groups + g] = (byte)frames.Skip(first).Take(count).Max(f => f.tiles.Length / 32);
+            }
+            int[] firstOfPalette = { HeavyMoleGroups[0].first, HeavyMoleGroups[1].first, HeavyMoleGroups[6].first, HeavyMoleGroups[4].first };
+            for (int p = 0; p < 4; p++) Array.Copy(palettes[frames[firstOfPalette[p]].palette], 0, rom, at + colors + p * 32, 32);
+            Array.Copy(nightmare, descriptor + 0x14, rom, at + colors + 128, 64);
         }
 
         /* King Dedede; NiDL boss 0 (type 0x3B, Rainbow Resort's; mini-boss descriptor 30 holds his breath). His frames are streamed frames
@@ -1154,6 +1186,11 @@ namespace KatAMRandomizer {
                 WriteKrackoFight(rom, nightmare, CodeAddress + version.CodeSymbols["gNidlKracko"],
                                  ReadInt(nightmare, region.Descriptors + MinibossDescriptors + allBosses[kracko].NightmareIndex * 4) - 0x08000000,
                                  builtMinibosses[kracko].palettes, builtMinibosses[kracko].frames);
+                // (Heavy Mole's sprites' frames, sizes, colours: "ROM Expansion/bosses/heavy_mole.c", gNidlHeavyMole);
+                int heavyMole = allBosses.FindIndex(m => m.Type == BossID2 && m.Index == 5);
+                WriteHeavyMoleFight(rom, nightmare, CodeAddress + version.CodeSymbols["gNidlHeavyMole"],
+                                    ReadInt(nightmare, region.Descriptors + MinibossDescriptors + allBosses[heavyMole].NightmareIndex * 4) - 0x08000000,
+                                    builtMinibosses[heavyMole].palettes, builtMinibosses[heavyMole].frames);
                 // (Paint Roller's sprites' frames, sizes, colours: "ROM Expansion/bosses/paint_roller.c", gNidlPaintRoller);
                 int paintRoller = allBosses.FindIndex(m => m.Type == BossID2 && m.Index == 4);
                 WritePaintRollerFight(rom, nightmare, CodeAddress + version.CodeSymbols["gNidlPaintRoller"],

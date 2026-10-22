@@ -64,7 +64,7 @@ codeNames = ['gNidlWorldMapDoors', 'NidlWorldMapUnlockSave', 'NidlWorldMapGetCoo
              # The bosses (nidl_boss.c);
              'CreateNidlBoss', 'NidlBossStart', 'NidlBossDefeat', 'gNidlShardExits', 'NidlShardExit',
              # The finale (finale.c);
-             'gNidlFinale', 'gNidlCloudSpeeds', 'gNidlNightmareFight', 'gNidlMetaKnightFight', 'gNidlShineBright', 'gNidlKingDedede', 'gNidlPaintRoller', 'gNidlKracko', 'gNidlPowerOrbColors',
+             'gNidlFinale', 'gNidlCloudSpeeds', 'gNidlNightmareFight', 'gNidlMetaKnightFight', 'gNidlShineBright', 'gNidlKingDedede', 'gNidlPaintRoller', 'gNidlKracko', 'gNidlHeavyMole', 'gNidlPowerOrbColors',
              # The NiDL title screen (title.c);
              'gNidlTitle', 'CreateNidlTitle',
              # Reduce flashing (calm.c);
@@ -81,7 +81,7 @@ codeNames = ['gNidlWorldMapDoors', 'NidlWorldMapUnlockSave', 'NidlWorldMapGetCoo
              'gNidlRide', 'gNidlRideTrampolines', 'NidlRideRev', 'NidlRideRoomChange', 'NidlRideStep', 'NidlRideDraw', 'NidlRideStar',
              # Bigger rooms (rooms.c): the replacements;
              'BigFillLevelInfo', 'BigGetCollisionTile', 'BigSub_08002434', 'BigSub_08002470', 'BigSub_080024F0', 'BigSub_0800255C', 'BigSub_080025AC', 'BigSub_08002624', 'BigSub_080026A8', 'BigSub_08001408', 'BigSub_080015A8',
-             'gNidlRoomTops', 'NidlNumChestsCollected', 'gNidlSave', 'gNidlSaveTrampolines', 'NidlWriteSave', 'NidlVerifySave', 'NidlClearSave', 'BigSub_08001678', 'BigSub_080027E8', 'BigSub_080027A8', 'BigSub_08002A5C', 'BigSub_08002A80', 'BigSub_08002AD0', 'BigSub_08002B30', 'BigSub_08002BA8', 'BigSub_08002C18']
+             'gNidlRoomTops', 'gNidlGridRoom', 'NidlNumChestsCollected', 'gNidlSave', 'gNidlSaveTrampolines', 'NidlWriteSave', 'NidlVerifySave', 'NidlClearSave', 'BigSub_08001678', 'BigSub_080027E8', 'BigSub_080027A8', 'BigSub_08002A5C', 'BigSub_08002A80', 'BigSub_08002AD0', 'BigSub_08002B30', 'BigSub_08002BA8', 'BigSub_08002C18']
 romNames = ['gUnk_0834C2AC', 'gUnk_0834C318', 'gUnk_083509D0', 'gUnk_08350A3C', 'gUnk_08D60FDC', 'gUnk_082DDE84', 'gUnk_082DDEF0',
             'gUnk_082DDF5C', 'gUnk_0834C4B0', 'gUnk_08350AAC', 'gUnk_08350B30', 'sub_080356AC', 'sub_08088640', 'gUnk_08D60B64', 'gUnk_08D60BE4',
             'sub_080547C4', 'sub_0804A728', 'SwallowSpecialSite', 'sub_08123FD4', 'HasShard', 'sub_0801C558', 'gUnk_08351648', 'gUnk_0834C5D4', 'gUnk_08D610B4',

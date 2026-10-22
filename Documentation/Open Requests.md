@@ -9,7 +9,6 @@ tutorial's), so those visits show nowhere in game. Needs area maps for them (gra
 owner's go-ahead on how they should look first.
 
 ## 5. Bosses as faithful 1:1 recreations of NiDL
-- **Heavy Mole**: rework the fight to match NiDL's. It needs boss rooms that scroll (the screen following the mole through the dirt).
 - **The other bosses**: check each against NiDL and fix what differs.
 
 ## 34. The Fountain of Dreams finale: what's left
@@ -330,6 +329,45 @@ Left:
   too). **Its defeat's start**: KatAM's explosion stands in for NiDL's. **Sounds**: KatAM's nearest.
 - **Not tested**: played by hand; a real saved game (the script starts a new game in the tower; there the shard took Kirby to the
   NiDL hub after his dance); attacks other than the spit star; two players.
+
+## 44. Heavy Mole's fight 1:1 from NiDL
+The owner: recreate Heavy Mole's fight (Yogurt Yard's boss) 1:1 from NiDL's. Done: the whole fight from NiDL's code, the screen
+scrolling with it through the dirt and looping every 512 pixels, NiDL's pocket where Kirby comes in, the dirt dug as NiDL's (see the
+ROM Expansion README's row). Checked by script in the emulator (not played by hand):
+- **The fight**: NiDL's recorded fight (USA) against KatAM's test build with NiDL's random seed and frame count fed in and Kirby kept
+  40 pixels behind it: its state, frame, spot and work fields, every child's kind, frame and spot (its arms, drill, hatch, eye,
+  clods, missiles, their bursts) and the camera the same on every frame for 1777 frames; the loop at 768 as NiDL's (the screen
+  goes on with no seam); 7000 frames without a crash.
+- **A hit**: a NiDL recording with a hit; the same hit given to KatAM's test build on NiDL's frame: its hurt (23 frames: flashing,
+  jittering, hit stars, its steps, hatch and eye held) the same on every frame for 1777 frames (its missiles left out: Kirby's spot
+  differs).
+- **Real play** (the test build with nothing fed: the normal game but for its frame dump): a new game started in room 0x249, Kirby
+  going through its mirror: he lands in the pocket at (40, 297) (NiDL's 293.5: its Kirby's spot is 4 higher) and the fight starts;
+  he jumps into its first missile, inhales it, jumps and spits it: a real hit (60 to 50 HP). Then, the missile held in his mouth
+  and its HP set to 10 (the test build's fed hit: a forced state), the spit star kills it: KatAM's freeze and explosion, the shard,
+  Kirby flying to it, the cutscene, back in the room, the NiDL hub. Kirby left behind can stand under the screen's bottom (17
+  pixels, as the arena lets him) and falls off once the screen leaves him: he loses a life and the fight starts again.
+- **Lag**: its special blocks are a grid (`gNidlGridRoom`, looked up at once: KatAM's walk through its 2112 records took most of a
+  frame a block, the big lag); the dirt's crust drawn from rows of bits, the screen's scan four cells at a time, the turns' order
+  sorted once, one break sound a dig, debris sprites kept for the next ones (each new one a task, VRAM and tiles). Its recorded
+  fight (1954 frames, no helpers): 7 frames dropped (768 before; one is KatAM's room load), each where several cells break at once.
+  Screenshots with and without the kept sprites are the same.
+- **All three versions**: built; the European and Japanese ones run the fight 7000 frames (digging, missiles, arms, Kirby's deaths
+  and the fight starting again) without a crash. Logic checks on all three: every room reached, every big switch pressed, nowhere
+  Kirby is trapped, with and without dropping through thin floors (the same as before but for the door into this room, which lands
+  in NiDL's pocket now).
+
+Found, not changed (for the owner): after the shard's cutscene, KatAM puts Kirby back in the room for his victory dance at its own
+table's spot for that shard (`gUnk_08352DBE`: row 9 here), which in this room is inside the dirt: he falls through it to the
+pocket's floor (about 90 frames) before dancing. A fix would have Kirby dance where he stands after any NiDL boss (as
+`NidlDanceOut()` does); it changes every NiDL boss's shard, so it waits for the owner's word.
+
+Left:
+- **KatAM's own**: KatAM sees a hit a frame after NiDL; the inhale's reach and pull are KatAM's, and Kirby's knock-back when hurt.
+- **Sounds**: KatAM's with NiDL's notes (its hatch's ends differently).
+- **Not tested**: played by hand; a real saved game; attacks other than the spit star (an ability digging the dirt); helpers; two
+  players; the loop at 768 on the European and Japanese builds (Kirby has to be kept alive that far: only the USA test build does
+  that); the lag with helpers.
 
 ## 10. Screen shake as KatAM's
 The owner: the screen shakes far too much. Not reproduced: KatAM's shake runs the same in the NiDL rooms as in KatAM's, and

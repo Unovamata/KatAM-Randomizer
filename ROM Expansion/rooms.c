@@ -42,6 +42,12 @@ void LoadLevelGfx(u8 playerId, const u16 **arg1, const u16 **arg2);
  * row repeats the one under it, which NiDL never showed); */
 const u8 gNidlRoomTops[0x400] = { 0 };
 
+/* gNidlGridRoom; The room whose special blocks are a grid (KatAMExpansionRooms.cs, HeavyMoleRoom: Heavy Mole's, all dirt, 2112 blocks,
+ * the time KatAM's walk through its list takes to find one most of a frame): a record (0x12 bytes) per cell, row by row, first, so a
+ * cell's record is found at its place (Grid()); 0xFFFF none (not const: read as it's set, as gNidlHubRoom); */
+u16 gNidlGridRoom = 0xFFFF;
+#define GRID_RECORD 0x12
+
 #define NIDL_VISITED ((u32 *)((u8 *)gEwramHeap + NIDL_HEAP_SIZE))
 /* Taken(); The NiDL rooms' loose items taken (template unk2 NIDL_TAKEN_KIND, unk3 the item's number, from KatAMExpansionRooms.cs:
  * KatAM's own 256 numbers, gUnk_02023368, are all used), the last bytes of NIDL_VISITED: as KatAM's, an item taken stays gone until
@@ -453,12 +459,35 @@ u8 BigSub_0800255C(u8 playerId, u16 x, u16 y, u8 value)
     return old;
 }
 
+// NidlTilemap(); The tilemap of a player's room (its slot's: BigTilemap()), as bosses/heavy_mole.c draws the dirt's crust into it;
+u16 *NidlTilemap(u8 playerId)
+{
+    return BigTilemap(gCurLevelInfo[playerId].unk65E);
+}
+
+// NidlCollision(); The collision of a player's room (its slot's: BigCollision()), as bosses/heavy_mole.c reads its dirt;
+u8 *NidlCollision(u8 playerId)
+{
+    return BigCollision(gCurLevelInfo[playerId].unk65E);
+}
+
+// Grid(); A cell's special block in gNidlGridRoom (its records a grid);
+static inline union LevelInfo_1E0 Grid(struct LevelInfo *var0, u8 x, u8 y)
+{
+    union LevelInfo_1E0 var1 = var0->unk1E0;
+
+    var1.pat1 = (void *) var1.pat1 + (y * (var0->roomWidth / 16) + x) * GRID_RECORD;
+    return var1;
+}
+
 union LevelInfo_1E0 BigSub_080025AC(u8 playerId, u8 x, u8 y)
 {
     struct LevelInfo *var0 = gCurLevelInfo + playerId;
     union LevelInfo_1E0 var1 = var0->unk1E0;
     u8 var2 = BigCollision(var0->unk65E)[y * (var0->roomWidth / 16) + x];
 
+    if (var0->currentRoom == gNidlGridRoom)
+        return Grid(var0, x, y);
     for (;;) {
         if (
             var1.pat1->unk01 == var2 &&
@@ -478,6 +507,8 @@ union LevelInfo_1E0 BigSub_08002624(u8 playerId, u8 x, u8 y, u8 arg3)
     union LevelInfo_1E0 var1 = var0->unk1E0;
     u8 var2 = BigCollision(var0->unk65E)[y * (var0->roomWidth / 16) + x];
 
+    if (var0->currentRoom == gNidlGridRoom)
+        return Grid(var0, x, y);
     for (;;) {
         if (
             var1.pat1->unk01 == var2 &&

@@ -84,7 +84,7 @@
             [0] = (6, 200, 280, -56, 0),    // King Dedede: the ring's right (his object made here; the fight puts him on NiDL's spot, (232, 271.5): bosses/dedede.c's KingDededeInit()); his screen NiDL's, held at (24, 168) the whole fight;
             [1] = (4, -1, -1, 0, 0),        // Paint Roller: the template's (24, 40), his easels (bosses/paint_roller.c) from it;
             [2] = (3, -1, -1, 0, 0),        // Meta Knight: the template's (232, 56), NiDL's ledge (he drops to the floor);
-            [3] = (5, 200, 300, -64, -40),    // Heavy Mole: on the right of its screen (NiDL's (136, 264) its middle: it scrolls with the mole there);
+            [3] = (5, 184, 261, -56, -56),  // Heavy Mole: NiDL's spot as its fight starts (176 across on its screen, the screen's middle's height), its screen NiDL's then, (8, 181); scrolling with it (bosses/heavy_mole.c);
             [4] = (2, -1, -1, 0, 0),        // Mr. Shine & Mr. Bright: the template's (208, 104), on the floor of their one-screen room;
             [5] = (0, 206, 256, 0, 64),     // Whispy Woods: its face (0x080B2A00), the screen down to the floor under it;
             [7] = (7, 208, 84, -80, -52),   // Nightmare's Power Orb: at the top of the fall, in space, as NiDL's (its screen from (8, 8): ArenaOf() puts its top 24 above; sinking as they fight, bosses/power_orb.c);
@@ -95,6 +95,16 @@
          * of the fall, after NiDL's intro: Kirby comes in at NiDL's start, at the room's bottom, in the air, and flies up to the fight's
          * screen (from (8, 8)) with the screen, the orb and its arena standing there too (KatAM makes objects only near the camera); */
         static readonly (int, int, int) StarRodRoom = (7, 0, 0);
+        /* Heavy Mole's room (Yogurt Yard's boss room): NiDL's is all dirt (0x2F, DirtBlock here: BuildSolidity()) but the pocket its room
+         * load opens (0x08027F44: rows 13-18, columns 0-16, nothing there), where Kirby comes in; the fight digs the rest as it goes
+         * ("ROM Expansion/bosses/heavy_mole.c"), the screen scrolling and looping every 512 pixels. Its special blocks are a grid, a record
+         * per cell row by row first (BuildSolidity()), which rooms.c looks up at once (gNidlGridRoom: 2112 blocks, KatAM's walk through its
+         * list took most of a frame a block); its background still, at (8, 0), as NiDL's; its helpers' zones a block's middle each
+         * (BuildNavigation(): the camera's bounds always hold one, wherever the fight takes it); gridRecord its NiDL record; */
+        static readonly (int level, int stage, int index) HeavyMoleRoom = (4, 6, 0);
+        static readonly (int left, int top, int right, int bottom) HeavyMolePocket = (0, 13, 16, 18);
+        const int HeavyMoleBackgroundX = 8;
+        static int gridRecord = -1;
         const byte PowerOrbBoss = 7;        // NIDL_POWER_ORB (nidl.h);
         const int CloudRows = 144;          // CLOUD_ROWS ("ROM Expansion/finale.c");
         const byte NightmareBoss = 8;       // NIDL_NIGHTMARE;
@@ -1152,6 +1162,7 @@
 
             try {
                 rooms = NightmareRooms(nightmare, region.RoomTable);
+                gridRecord = rooms.FirstOrDefault(r => (r.Level, r.Stage, r.Index) == HeavyMoleRoom)?.Record ?? -1;
                 rooms.AddRange(BuildSwitchRooms(ref nightmare, rooms));
             } catch (Exception exception) when (exception is IndexOutOfRangeException or ArgumentException or InvalidOperationException) {
                 return $"The Nightmare in Dream Land ROM doesn't match the {region.KatAM} release.";
@@ -1337,6 +1348,7 @@
                     int top = r.IsSwitchRoom ? 8 : CameraTop(nightmare, r);
                     // (rooms.c's code: 0 KatAM's 8 pixels, 1 the room's top, 2 a row down; it was top / 8 + 1, two rows down, 0x147);
                     rom[CodeAddress + version.CodeSymbols["gNidlRoomTops"] + r.Room] = (byte)(top == 8 ? 0 : top / 16 + 1);
+                    if (r.Record == gridRecord) WriteShort(rom, CodeAddress + version.CodeSymbols["gNidlGridRoom"], r.Room);
                     (int rateX, int rateY) = BackgroundRates(ReadShort(nightmare, backgroundMap + 2) * 8, ReadShort(nightmare, backgroundMap + 4) * 8,
                                                              r.FullWidth * 16, r.FullHeight * 16, top);
                     /* The Power Orb's room: its background drawn at the camera's spot, as NiDL draws it there (measured in NiDL: through its
@@ -1354,7 +1366,13 @@
                         // taller than NiDL's: HiddenRows, Padded()), as measured against NiDL's through his intro and fight;
                         backgroundDown = -HiddenRows * 16;
                     }
-                    WriteShorts(rom, roomProps + r.Room * 0x28, LevelSongs[r.Level], 0, 0, 0x100, 0x100, 0, backgroundDown, rateX, rateY, RoomFlags,
+                    // (Heavy Mole's room: its background still, at NiDL's (8, 0), its screen scrolling and looping: HeavyMoleRoom);
+                    int backgroundLeft = 0;
+                    if (r.Record == gridRecord) {
+                        rateX = rateY = 0;
+                        backgroundLeft = HeavyMoleBackgroundX;
+                    }
+                    WriteShorts(rom, roomProps + r.Room * 0x28, LevelSongs[r.Level], 0, 0, 0x100, 0x100, backgroundLeft, backgroundDown, rateX, rateY, RoomFlags,
                                 info, palette, tableSizes[12] + i, tableSizes[13] + i, 0xFFFF, background, tableSizes[16] + i,
                                 tableSizes[17] + i, FirstDoorsList + i, 0);
                 }
@@ -3308,7 +3326,7 @@
          * (0x2E), the blocks a bomb block sets off 0xF2 (0x2D, touching it and each other: KatAM breaks them as a chain from the bomb
          * block), metal blocks 0xF5 (0x2F, NiDL's grey ones: KatAM's silver metal blocks, as room 0x134's, which only some abilities break;
          * 0xF4 breaks with any ability's attack: code_0800ECAC_2.c's helpers try type 0 and 1 blocks only), but where a room has more
-         * than MetalBlocks of them (Heavy Mole's dirt, which any attack digs through) star blocks (RoomCells()); */
+         * than MetalBlocks of them star blocks (RoomCells()); Heavy Mole's dirt (gridRecord) DirtBlock; */
         /* RoomCells(); A NiDL room's cells (u32 each: metatile, attribute, collision), its bomb chains as NiDL's: a chain's blocks are
          * NiDL's own (its bomb blocks only where NiDL has them: Kirby arriving on a chain's far side leaves by the two-way door he came
          * through, and the logic checks find every room reached and nowhere trapped). A chain without a bomb block is star blocks. NiDL's
@@ -3362,9 +3380,15 @@
             }
             linkCells[record] = links;
 
-            // (Heavy Mole's dirt: star blocks);
+            // (Heavy Mole's dirt: star blocks, its records DirtBlock, BuildSolidity(); its pocket, HeavyMolePocket, open);
             if (Enumerable.Range(0, width * height).Count(i => Kind(i) == 0x2F) > MetalBlocks)
                 for (int i = 0; i < width * height; i++) if (Kind(i) == 0x2F) cells[i * 4 + 3] = 0x24;
+            if (record == gridRecord)
+                for (int y = HeavyMolePocket.top; y <= HeavyMolePocket.bottom; y++)
+                    for (int x = HeavyMolePocket.left; x <= HeavyMolePocket.right; x++) {
+                        WriteShort(cells, (y * width + x) * 4, 0);
+                        cells[(y * width + x) * 4 + 2] = cells[(y * width + x) * 4 + 3] = 0;
+                    }
 
             // (blocks a door lands Kirby in, PlanDoors()'s clearedBlocks: what breaking them leaves, air; before the chains: one whose bomb
             // block starts broken so is star blocks, 0x27C's);
@@ -3408,6 +3432,9 @@
 
         const byte LinkCollision = 0xF3;   // KatAM's invisible chain link (gCollisionAttributes 0x41: not solid, a chain goes through);
         static byte BreakableBlock(int collision) => collision switch { 0x2D => 0xF2, 0x2E => 0xF1, 0x2F => 0xF5, _ => 0xF0 };
+        // Heavy Mole's dirt: any ability's attack digs through it, but Kirby can't inhale it (NiDL's: what he inhales are its missiles;
+        // "ROM Expansion/bosses/heavy_mole.c" digs it, DIRT);
+        const byte DirtBlock = 0xF4;
         // The mark ending a door record of where a Mirra lands (BuildSolidity()), 2 bytes past KatAM's 14 (the game steps by the size):
         // the map viewer leaves those doors out (RomMap.cs);
         static readonly byte[] LandingMark = { 0x4D, 0x4C };
@@ -3424,11 +3451,21 @@
             List<byte> specials = new List<byte>();
             Dictionary<(int x, int y), int> leaves = new Dictionary<(int, int), int>();
             bool Water(int x, int y) => x >= 0 && y >= 0 && x < r.FullWidth && y < r.FullHeight && collision[y * r.FullWidth + x] is >= 0x34 and <= 0x48;
+            // (Heavy Mole's room: its records a grid, every cell of the room as KatAM holds it, row by row, first: HeavyMoleRoom);
+            bool grid = r.Record == gridRecord;
 
-            for (int y = 0; y < r.Height && y < 256; y++) {
-                for (int x = 0; x < r.Width && x < 256; x++) {
-                    int cell = (r.Y + y) * roomWidth + r.X + x, kind = cells[cell * 4 + 3];
-                    if (kind >> 4 != 2) continue;
+            for (int y = 0; y < (grid ? r.FullHeight : r.Height) && y < 256; y++) {
+                for (int x = 0; x < (grid ? r.FullWidth : r.Width) && x < 256; x++) {
+                    int cell = (r.Y + Math.Min(y, r.Height - 1)) * roomWidth + r.X + Math.Min(x, r.Width - 1), kind = cells[cell * 4 + 3];
+                    if (kind >> 4 != 2) {
+                        // (a grid's other cells: a record of themselves, never applied);
+                        if (!grid) continue;
+                        byte own = collision[y * r.FullWidth + x];
+                        specials.AddRange(new byte[] { 1, own, (byte)x, (byte)y, 0x12, 0, 0xFF, 0xFF });
+                        for (int q = 0; q < 4; q++) specials.AddRange(BitConverter.GetBytes((ushort)ShiftPalette(ReadShort(metatiles, ReadShort(cells, cell * 4) * 8 + q * 2))));
+                        specials.AddRange(new byte[] { own, 0xFF });
+                        continue;
+                    }
 
                     int number = ReadShort(numbers, cell * 2), metatile = 0, leftKind = 0;
                     // The numbers' cells: u32 each from the object data (metatile, attribute, collision), up to 0xFFFFFFFF;
@@ -3441,7 +3478,7 @@
                     // or the block again, solid, which no other bomb breaks (room 0x248's frames of blocks: their look stayed, their
                     // collision went);
                     byte left = leftKind != 0 ? RoomCollision[leftKind] : (byte)(Water(x - 1, y) || Water(x + 1, y) || Water(x, y - 1) || Water(x, y + 1) ? 0x48 : 0);
-                    byte block = BreakableBlock(kind);
+                    byte block = grid ? DirtBlock : BreakableBlock(kind);
                     collision[y * r.FullWidth + x] = block;
                     specials.AddRange(new byte[] { 1, block, (byte)x, (byte)y, 0x12, 0, 0xFF, 0xFF });
                     for (int q = 0; q < 4; q++) specials.AddRange(BitConverter.GetBytes((ushort)ShiftPalette(ReadShort(metatiles, metatile * 8 + q * 2))));
@@ -3565,6 +3602,8 @@
                 specials.AddRange(new byte[] { value, 0xFF });
             }
 
+            // (a grid's records stay first: rooms.c finds a cell's at its place);
+            if (grid && (secrets.Count > 0 || landingRecords.Count > 0)) throw new InvalidOperationException("Heavy Mole's room has records before its grid");
             specials.InsertRange(0, secrets);
             specials.InsertRange(0, landingRecords);
             byte[] compressed = CompressRL(collision);
@@ -4481,6 +4520,8 @@
             bool Open(int x, int y) => x >= 0 && y >= 0 && x < width && y < height
                                        && collision[y * width + x] is 0x00 or 0x48 or 0x20 or 0x21 or 0xFC or 0xFD or 0xFE or 0xFF;
             bool Standable(int x, int y) => Open(x, y) && y + 1 < height && !Open(x, y + 1);
+            // (Heavy Mole's room, all dirt the fight digs: a zone at each block's middle, HeavyMoleRoom);
+            bool grid = r.Record == gridRecord;
 
             int blockWidth = 8, blockHeight = 6;
             List<(int bx, int by, int x, int y)> zones;
@@ -4492,7 +4533,7 @@
                         for (int y = by * blockHeight; y < Math.Min(height, (by + 1) * blockHeight); y++)
                             for (int x = bx * blockWidth; x < Math.Min(width, (bx + 1) * blockWidth); x++) {
                                 int distance = (x - cx) * (x - cx) + (y - cy) * (y - cy);
-                                if (Standable(x, y) && distance < best) { best = distance; px = x; py = y; }
+                                if ((grid || Standable(x, y)) && distance < best) { best = distance; px = x; py = y; }
                             }
                         if (px >= 0) zones.Add((bx, by, px, py));
                     }
