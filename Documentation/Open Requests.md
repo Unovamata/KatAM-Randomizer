@@ -3,11 +3,6 @@
 What the owner has asked for that is still to do. When an item is finished, take it out. The design rules for doors, mirrors and
 hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
 
-## 2. The NiDL levels on the pause screen
-The ported rooms' visited doors are saved, but the pause screen has no area maps for the NiDL levels (it treats their rooms as the
-tutorial's), so those visits show nowhere in game. Needs area maps for them (graphics and the pause code's tables). Get the
-owner's go-ahead on how they should look first.
-
 ## 5. Bosses as faithful 1:1 recreations of NiDL
 - **The other bosses**: check each against NiDL and fix what differs.
 
@@ -418,6 +413,26 @@ still, the mini-boss's HP read every 3 seconds for 30 seconds), before, then aft
 
 Not tested: played by hand; with Kirby fighting too; helpers with an ability (their code isn't changed); a ported mini-boss the
 randomizer puts in an enemy's spot.
+
+## 47. The owner's list: pause maps, Star Rod, Mike, Dedede, Nightmare, Map Viewer
+- **Pause screen maps** (done; this also settles the old item 2, the NiDL levels' area maps: there are none): with the ROM
+  Expansion, SELECT on the pause screen switches between the help screen and the world map only; the area maps' data is wiped
+  (`KatAMPauseScreens.DropAreaMaps()`): their backgrounds, room layouts, frame, area titles and shard and map room tiles, 62,190
+  bytes in the USA version, 62,088 in the Japanese one, 78,213 in the European one, ready for something else (the ranges are in
+  the code's comment). Kept: the room squares, lines, arrows and colors the Map Viewer draws with, the world map's own graphics
+  and every sprite. Checked in the emulator (USA by script, in Rainbow Route's Central Circle): before, Help, Rainbow Route's
+  area map, world map, Help; now Help, world map, Help, world map, back to the game, the world map drawn as before. The same in
+  the European (English) and Japanese builds. A build with and without it differs only in the one changed instruction, the 10
+  background table entries and the wiped ranges; the kept graphics are byte for byte the original ROM's, and so are the other
+  languages' world map frames between the European area titles. Not tested: the European version in its other languages
+  (their data is untouched), pausing in a NiDL room (unchanged: as before, its rooms count as the tutorial's), the Map Viewer
+  app itself (it reads only the kept graphics).
+- **Star Rod damage**: as the Master Sword's; balance the NiDL final boss so the fight stays in check with it.
+- **Mike**: wrong palette when it's activated.
+- **Dedede's fight**: the Fountain of Dreams background is corrupted on the fight's first frames.
+- **Nightmare's defeat**: may show a wrong palette.
+- **The cinematic on the way to the Fountain of Dreams**: Dedede flies too fast; keep his normal flying speed.
+- **Map Viewer**: show Nightmare's entire sprite.
 
 ## 10. Screen shake as KatAM's
 The owner: the screen shakes far too much. Not reproduced: KatAM's shake runs the same in the NiDL rooms as in KatAM's, and
