@@ -119,8 +119,8 @@ static bool8 Landed(struct FireLion *f) {
     return f->airborne && (obj->base.unk62 & 4) && obj->base.yspeed <= 0;
 }
 
-/* FlameMain(); A flame (its fire bits, 53-56): an attack object flying straight for FLAME_TIME frames; */
-static void FlameMain(void) {
+/* FireLionFlameMain(); A flame (its fire bits, 53-56): an attack object flying straight for FLAME_TIME frames; */
+void FireLionFlameMain(void) {
     struct Sprite sprite;
     struct ObjectBase *flame = TaskGetStructPtr(gCurTask);
 
@@ -143,7 +143,7 @@ static void FlameMain(void) {
 
 static void Flame(struct FireLion *f, s32 dx, s32 dy, s16 xspeed, s16 yspeed) {
     struct Object *obj = &f->n.obj;
-    struct Task *t = TaskCreate(FlameMain, sizeof(struct ObjectBase), 0x3500, TASK_USE_EWRAM, ObjectBaseDestroy);
+    struct Task *t = TaskCreate(FireLionFlameMain, sizeof(struct ObjectBase), 0x3500, TASK_USE_EWRAM, ObjectBaseDestroy);
     struct ObjectBase *flame = TaskGetStructPtr(t);
     bool8 left = obj->base.flags & 1;
 

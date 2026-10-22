@@ -59,11 +59,13 @@ enum {
     NIDL_APPLE,     // Whispy Woods' apples (enemies/apple.c), behavior NIDL_SPECIAL << 4 | 1: no room has them;
     NIDL_STAR,      // Mr. Shine's falling stars (enemies/star.c), behavior NIDL_SPECIAL << 4 | 2: no room has them;
     NIDL_SPIT_STAR, // The star King Dedede spits the Kirbys he swallowed out in (enemies/spit_star.c), behavior NIDL_SPECIAL << 4 | 3;
+    NIDL_PAINTING,  // Paint Roller's paintings (enemies/painting.c): those of his descriptor's first palette, behavior NIDL_SPECIAL << 4 | 4;
+    NIDL_PAINTING_2, // and of its second, behavior NIDL_SPECIAL << 4 | 5;
     NIDL_ENEMY_COUNT,
 };
 /* The behavior's high nibble 15 (NIDL_SPECIAL) holds what isn't a room's enemy, by its low nibble: 0 a mini-boss fight's walls in
  * NiDL rooms (NIDL_ARENA, enemies/arena.c, with Broom Hatter's graphics, never shown), 1 an apple (NIDL_APPLE), 2 a falling star
- * (NIDL_STAR), 3 King Dedede's spit star (NIDL_SPIT_STAR); */
+ * (NIDL_STAR), 3 King Dedede's spit star (NIDL_SPIT_STAR), 4 and 5 Paint Roller's paintings (NIDL_PAINTING, NIDL_PAINTING_2); */
 #define NIDL_SPECIAL 15
 #define NIDL_ARENA NIDL_ENEMY_COUNT
 
@@ -169,6 +171,7 @@ void *CreateNidlMiniboss(struct ObjectTemplate *, u8 playerId);
 void *CreateNidlBoss(struct ObjectTemplate *, u8 playerId);
 void NidlBossStart(struct Object *);
 void NidlBossDefeat(struct Object *);
+void NidlBossShard(u8 unk56, u16 room, u8 shard);
 // A boss rematch's Maxim Tomato's gone bit kind (template unk2; rooms.c's BigSub_08001678 calls NidlExitTomato with it, nidl_boss.c);
 #define NIDL_EXIT_KIND 4
 void NidlExitTomato(u16 slot, u32 eaten);
@@ -195,8 +198,10 @@ void NidlCloudsStart(u16 room);
 u32 NightmareRideSize(u16 room);
 bool32 NightmareIntroOn(u16 room);
 bool32 NightmareIntroHolds(u16 room);
-bool32 NightmareBlocks(u16 room, s32 x, s32 y);
-bool32 NightmareTarget(u16 room, s32 x, s32 y, bool8 *left, s32 *gap);
+void *NightmareFightOf(u16 room);
+bool32 NightmareBlocks(void *fight, s32 x, s32 y);
+void *NightmareFightIn(u16 room);
+bool32 NightmareTarget(void *fight, s32 x, s32 y, bool8 *left, s32 *gap);
 void NightmareGone(struct Object *nightmare);
 void NightmareIntroRider(struct Kirby *kirby);
 const struct NidlGraphics *NidlGraphicsOf(struct NidlObject *);
@@ -214,6 +219,7 @@ void NidlFall(struct Object *);
 void NidlFaceKirby(struct Object *);
 bool32 NidlInhaled(struct ObjectBase *, u16 tiles);  // a mini-boss's projectile inhaled (nidl.c);
 struct Kirby *NidlInhaler(struct ObjectBase *);
+bool32 NidlInhaling(struct Kirby *, bool32 pulling);
 bool32 NidlIsFloor(struct Object *, s32 x, s32 y);
 void NidlStopAtLedge(struct Object *);
 bool32 NidlIsWater(struct Object *, s32 dy);
@@ -263,9 +269,14 @@ void AppleInit(struct NidlObject *);
 void AppleStart(struct Object *);
 void StarInit(struct NidlObject *);
 void StarStart(struct Object *);
+void StarFree(struct Object *);
 void SpitStarInit(struct NidlObject *);
 void SpitStarStart(struct Object *);
 void SpitStarCarry(struct Object *star, u8 kirbys, bool8 left);
+void PaintingInit(struct NidlObject *);
+void PaintingStart(struct Object *);
+struct Object *PaintingCreate(u8 unk56, s32 x, s32 y, u8 painting);
+bool32 PaintingDriven(struct Object *painting);
 
 // Mini-bosses;
 void PoppyBrosSrInit(struct NidlObject *);
@@ -281,22 +292,37 @@ void FireLionStart(struct Object *);
 void MetaKnightsInit(struct NidlObject *);
 void MetaKnightsStart(struct Object *);
 void MetaKnightsDestroy(struct Task *);
+// Their projectiles a Kirby can inhale (NidlInhaled()): what their tasks run, for the helpers (nidl_miniboss.c's NidlHelperTarget());
+void PoppyBrosSrBombMain(void);
+void MrTickTockNoteMain(void);
+void FireLionFlameMain(void);
+void MetaKnightsWeaponMain(void);
 
 // Bosses;
 void WhispyWoodsInit(struct NidlObject *);
 void WhispyWoodsStart(struct Object *);
 void KrackoInit(struct NidlObject *);
 void KrackoStart(struct Object *);
+void KrackoGone(struct Object *);
 void ShineBrightInit(struct NidlObject *);
 void ShineBrightStart(struct Object *);
+void ShineBrightGone(struct Object *);
 void MetaKnightInit(struct NidlObject *);
 void MetaKnightStart(struct Object *);
+void MetaKnightGone(struct Object *);
+void MetaKnightBeaten(struct Object *);
 void PaintRollerInit(struct NidlObject *);
 void PaintRollerStart(struct Object *);
+void PaintRollerGone(struct Object *);
 void HeavyMoleInit(struct NidlObject *);
 void HeavyMoleStart(struct Object *);
+void HeavyMoleGone(struct Object *);
+u16 *NidlTilemap(u8 playerId);
+u8 *NidlCollision(u8 playerId);
 void KingDededeInit(struct NidlObject *);
 void KingDededeStart(struct Object *);
+void KingDededeGone(struct Object *);
+void KingDededeBeaten(struct Object *);
 void PowerOrbInit(struct NidlObject *);
 void PowerOrbStart(struct Object *);
 void NightmareInit(struct NidlObject *);

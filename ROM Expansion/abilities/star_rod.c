@@ -5,18 +5,20 @@
  * 4 pixels a frame, spinning, with a sparkle behind it, until it hits something, where it bursts, or leaves the screen; held, it
  * shoots again every 31 frames; pressed again, once the swing ends. A hit knocks him back 2 pixels a frame, slowing, then half that,
  * for 10 frames (11 hurt).
- * Here the Star Rod is ability NIDL_ABILITY_STAR_ROD, which only this fight gives: its motions are NiDL's frames of Kirby with the
- * rod (KatAMExpansionMotions.cs; the rod on the hat sprite, as Light's lamp), its HUD card NiDL's. Each flying Kirby has a rider (a
- * task) that flies him: his state is StarRodHeld, which does nothing, and the rider moves him, plays his motions and shoots. KatAM's
- * own damage would drop his ability as a star (sub_080A9038, on every hit), so he's guarded from it while the boss is alive (flags
- * 0x8000, as KatAM's warp star rider and abilities.c's attacks), and the orb and its shots hit him themselves (StarRodHit(): NiDL's
- * knockback, 1 HP, KatAM's flashing after a hit as in its own last fight's shooter, sub_08052E2C); his HP at 0, KatAM's death takes
- * him (sub_0803FBB4), and the rider goes, as when any other state takes him (the shard's dance); back in the room, he flies again.
+ * Here the Star Rod is ability NIDL_ABILITY_STAR_ROD, which this fight gives (Nightmare's too, and the NiDL hub's stand, from the start:
+ * star_rod_stand.c): its motions are NiDL's frames of Kirby with the rod (KatAMExpansionMotions.cs; the rod on the hat sprite, as
+ * Light's lamp), its HUD card NiDL's. Each flying Kirby has a rider (a task) that flies him: his state is StarRodHeld, which does
+ * nothing, and the rider moves him, plays his motions and shoots. KatAM's own damage would drop his ability as a star (sub_080A9038, on
+ * every hit), so he's guarded from it while the boss is alive (flags 0x8000, as KatAM's warp star rider and abilities.c's attacks), and
+ * the orb and its shots hit him themselves (StarRodHit(): NiDL's knockback, 1 HP, KatAM's flashing after a hit as in its own last
+ * fight's shooter, sub_08052E2C); his HP at 0, KatAM's death takes him (sub_0803FBB4), and the rider goes, as when any other state
+ * takes him (the shard's dance); back in the room, he flies again.
  * The helpers (CPU Kirbys) fly by the rider's own AI (AI()): engaged in the fight, always on the move, to spots up, down, left and
  * right before the orb, now nearer, now farther, shooting when in line, and dodging its shots now and then;
  * KatAM's helper AI is kept still meanwhile (HoldAI()), and they're kept on the first player's screen (Viewer()). The fight's
  * screen sinks (NiDL's fall through space): everyone in it sinks with the camera's bounds (StarRodSink()). Kirby's ability before
- * is kept (STAR_ROD_SAVED) and given back after the shard's dance (StarRodRestore(), from NidlShardExit).
+ * is kept (STAR_ROD_SAVED) and given back after the shard's dance (StarRodRestore(), from NidlShardExit; his own Star Rod, from the hub's
+ * stand, kept).
  * In the fight's intro (bosses/power_orb.c) the riders fly every Kirby up into its screen as NiDL's Kirby flies (StarRodIntro()).
  * Nightmare's fight (bosses/nightmare.c), NiDL's last, is fought with it on the ground: Kirby walks, runs, jumps and floats with the
  * rod (its hat: NiDL's ground set, KatAMExpansionHats.cs), and B swings it (StarRodSwingStart(): NiDL's, traced frame by frame, 16
@@ -43,9 +45,6 @@ void sub_08056C2C(struct Kirby *);          // (KatAM's phone call);
 s32 PowerOrbIntro(struct Object *);
 s32 PowerOrbGround(struct Object *);
 bool32 PowerOrbShotNear(struct Object *, s32, s32, s32 *);
-
-// The ability Kirby had before the Star Rod (his padding byte after NIDL_MIKE_USES), given back after the fight;
-#define STAR_ROD_SAVED(kirby) (((u8 *)(kirby))[0x1A7])
 
 #define SPEED 0x200
 #define DIAGONAL 0x16A
@@ -121,6 +120,7 @@ struct StarRodStar {
     bool8 left;             // Flying left (shot by a Kirby facing left, on the ground);
     bool8 sinks;            // Sinking with the fight's screen (the Power Orb's: shot flying);
     bool8 blocked;          // On Nightmare's box (bosses/nightmare.c's NightmareBlocks()): bursting the frame after, as a hit;
+    void *fight;            // His fight (NightmareFightOf(), once it's on: NULL till then, and once it's over, StarRodForget());
     u8 hitIn;               // On the Power Orb (StarRodHits()): frames till it bursts, flying on till then (NiDL's: it learns late);
 };
 
@@ -230,7 +230,10 @@ static void StarRodStarMain(void) {
         base->sprite.variant = FRAME_STAR + sSpin[star->spin];
         SetPointerSomething(base);
         // (Nightmare's box: NiDL's stars burst on it whatever, his hits KatAM's, only while he can take them);
-        if (!star->sinks) star->blocked = NightmareBlocks(base->roomId, base->x, base->y);
+        if (!star->sinks) {
+            if (star->fight == NULL) star->fight = NightmareFightOf(base->roomId);
+            star->blocked = NightmareBlocks(star->fight, base->x, base->y);
+        }
     }
     ++base->counter;
     Macro_08107BA8_4(base, &base->sprite, &sprite, STAR_TILES, &base->sprite);
@@ -298,12 +301,25 @@ static void StarRodShoot(struct Kirby *kirby, s32 dx, s32 dy, bool8 sinks) {
     star->spin = 0;
     star->blocked = FALSE;
     star->hitIn = 0;
+    star->fight = NULL;
     star->palId = Palette(base, FRAME_STAR);
     ObjectBaseInitSprite(base, &base->sprite, STAR_TILES, gNidlData.enemies[NIDL_SPIT_STAR].animId, FRAME_STAR, 0xA);
     base->sprite.palId = star->palId;
     // (the helpers' in the Power Orb's fight without their sparkle, fewer effects for its four flying Kirbys: the player's keep it);
     if (!sinks || kirby->base.unk56 < gNumHumanPlayers) StarRodTrail(star);
     PlaySfx(&kirby->base, SE_KIRBY_STARSHOT_1);
+}
+
+// StarRodForget(); Nightmare's fight (`fight`) is over: the stars still flying let go of it (bosses/nightmare.c's FightMain());
+void StarRodForget(void *fight) {
+    struct Task *t = &gTasks[0];
+    u8 n;
+
+    for (n = 0; n < MAX_TASK_NUM && t->next; n++) {
+        t = (struct Task *)(IWRAM_START + t->next);
+        if (t->main == StarRodStarMain && ((struct StarRodStar *)TaskGetStructPtr(t))->fight == fight)
+            ((struct StarRodStar *)TaskGetStructPtr(t))->fight = NULL;
+    }
 }
 
 /* Give(); His ability, with its motions and hat (as an ability star gives one: sub_0806F260, sub_0806EFF8) and its HUD card (as
@@ -359,10 +375,9 @@ void StarRodStart(struct Kirby *kirby, struct Object *orb) {
     r->dodge = r->dodgeWait = 0;
     r->dodgeUp = FALSE;
     r->motion = STAR_ROD_MOTION_HOLD;
-    if (kirby->ability != NIDL_ABILITY_STAR_ROD) {
-        STAR_ROD_SAVED(kirby) = kirby->ability;
-        Give(kirby, NIDL_ABILITY_STAR_ROD);
-    }
+    if (kirby->ability != NIDL_ABILITY_STAR_ROD) STAR_ROD_SAVED(kirby) = kirby->ability | STAR_ROD_FROM_FIGHT;
+    // (given even to one who has it, from the hub's stand: the HUD's card without its picture, as in the fight);
+    Give(kirby, NIDL_ABILITY_STAR_ROD);
     r->guarded = TRUE;
     r->unk68 = kirby->base.unk68;
     kirby->base.unk68 = 0x80;
@@ -411,16 +426,17 @@ void StarRodSwingStart(struct Kirby *kirby) {
 #define AIM_STEP 8
 #define AIM_CLEAR 8         // (no jump with his box nearer: his touch);
 
-// AimFrom(); Whether a helper's star would meet him shot `up` pixels higher (NightmareTarget()), which way, and how far he is;
-static bool32 AimFrom(struct Kirby *kirby, s32 up, bool8 *left, s32 *gap) {
-    return NightmareTarget(kirby->base.roomId, kirby->base.x, kirby->base.y + ((GROUND_STAR_Y - up) << 8), left, gap);
+// AimFrom(); Whether a helper's star would meet him (`fight`, NightmareFightIn()'s) shot `up` pixels higher (NightmareTarget()),
+// which way, and how far he is;
+static bool32 AimFrom(void *fight, struct Kirby *kirby, s32 up, bool8 *left, s32 *gap) {
+    return NightmareTarget(fight, kirby->base.x, kirby->base.y + ((GROUND_STAR_Y - up) << 8), left, gap);
 }
 
 static void AIShoot(struct Unk_02038590 *ai) {
     bool8 left;
     s32 gap;
 
-    if (AimFrom(ai->unk40, 0, &left, &gap)) ai->unk9E |= B_BUTTON | (left ? DPAD_LEFT : DPAD_RIGHT);
+    if (AimFrom(NightmareFightIn(ai->unk40->base.roomId), ai->unk40, 0, &left, &gap)) ai->unk9E |= B_BUTTON | (left ? DPAD_LEFT : DPAD_RIGHT);
     ai->unk0[3] = sub_0801519C;
 }
 
@@ -428,7 +444,7 @@ static void AIJump(struct Unk_02038590 *ai) {
     bool8 left;
     s32 gap;
 
-    if (ai->unkDE && AimFrom(ai->unk40, 0, &left, &gap)) {
+    if (ai->unkDE && AimFrom(NightmareFightIn(ai->unk40->base.roomId), ai->unk40, 0, &left, &gap)) {
         ai->unk9E |= B_BUTTON | (left ? DPAD_LEFT : DPAD_RIGHT);
         ai->unk0[3] = sub_0801519C;
     } else if (ai->unkDE++ < AIM_RISE) {
@@ -443,18 +459,19 @@ static void AIJump(struct Unk_02038590 *ai) {
  * air (a jump of his own), a swing when he's in line; none while one's under way or his swing's not over; */
 void StarRodAim(struct Kirby *kirby) {
     struct Unk_02038590 *ai = &gUnk_02038590[kirby->base.unk56];
+    void *fight;
     bool8 left;
     s32 gap, up;
 
     if (kirby->base.unk56 < gNumHumanPlayers || kirby->ability != NIDL_ABILITY_STAR_ROD || kirby->stateFn == StarRodSwing || kirby->hp <= 0
-        || ai->unk0[3] == AIShoot || ai->unk0[3] == AIJump) return;
-    if (AimFrom(kirby, 0, &left, &gap)) {
+        || ai->unk0[3] == AIShoot || ai->unk0[3] == AIJump || (fight = NightmareFightIn(kirby->base.roomId)) == NULL) return;
+    if (AimFrom(fight, kirby, 0, &left, &gap)) {
         if (!(kirby->base.unk62 & 4) || !(Rand16() & 7)) ai->unk0[3] = AIShoot;
         return;
     }
     if (!(kirby->base.unk62 & 4)) return;
     for (up = AIM_STEP; up <= AIM_JUMP; up += AIM_STEP) {
-        if (!AimFrom(kirby, up, &left, &gap)) continue;
+        if (!AimFrom(fight, kirby, up, &left, &gap)) continue;
         if (gap >= AIM_CLEAR && !(Rand16() & 15)) {
             ai->unkDE = 0;
             ai->unk0[3] = AIJump;
@@ -471,14 +488,19 @@ void StarRodKeep(struct Kirby *kirby) {
     Give(kirby, NIDL_ABILITY_STAR_ROD);
 }
 
-// StarRodRestore(); His ability before the Star Rod, back (NidlShardExit: the shard's dance over, as he leaves the room);
+// StarRodRestore(); His ability before the fight's Star Rod, back (NidlShardExit: the shard's dance over, as he leaves the room); his own
+// Star Rod (no STAR_ROD_FROM_FIGHT: the hub's stand's, abilities/star_rod_stand.c), kept;
 void StarRodRestore(struct Kirby *kirby) {
-    if (kirby->ability != NIDL_ABILITY_STAR_ROD) return;
-    Give(kirby, STAR_ROD_SAVED(kirby) < NIDL_ABILITY_END && STAR_ROD_SAVED(kirby) != NIDL_ABILITY_STAR_ROD ? STAR_ROD_SAVED(kirby) : KIRBY_ABILITY_NORMAL);
+    u8 saved = STAR_ROD_SAVED(kirby) & ~STAR_ROD_FROM_FIGHT;
+
+    if (kirby->ability != NIDL_ABILITY_STAR_ROD || !(STAR_ROD_SAVED(kirby) & STAR_ROD_FROM_FIGHT)) return;
+    STAR_ROD_SAVED(kirby) = 0;
+    Give(kirby, saved < NIDL_ABILITY_END && saved != NIDL_ABILITY_STAR_ROD ? saved : KIRBY_ABILITY_NORMAL);
 }
 
 // StarRodEnd(); The Star Rod gone, Normal (Nightmare beaten: NiDL's Kirby flies off as he is, without the ability he had before);
 void StarRodEnd(struct Kirby *kirby) {
+    STAR_ROD_SAVED(kirby) = 0;
     if (kirby->ability == NIDL_ABILITY_STAR_ROD) Give(kirby, KIRBY_ABILITY_NORMAL);
 }
 

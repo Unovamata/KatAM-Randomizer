@@ -81,24 +81,40 @@
          * NiDL's spawn puts it on (-1: the template's), and the middle of its fight's screen from that spot. Its behavior's low nibble is
          * the mirror shard it leaves: its level's (0-7). The others aren't ported yet: their rooms stay empty, their mirror on; */
         static readonly Dictionary<int, (byte boss, int x, int y, int screenDx, int screenDy)> RoomBosses = new Dictionary<int, (byte, int, int, int, int)> {
-            [0] = (6, 200, 280, -56, 0),    // King Dedede: the ring's right (NiDL's (232, 296) is off its screen: he walks in); his screen NiDL's, held at (24, 168) the whole fight;
+            [0] = (6, 200, 280, -56, 0),    // King Dedede: the ring's right (his object made here; the fight puts him on NiDL's spot, (232, 271.5): bosses/dedede.c's KingDededeInit()); his screen NiDL's, held at (24, 168) the whole fight;
             [1] = (4, -1, -1, 0, 0),        // Paint Roller: the template's (24, 40), his easels (bosses/paint_roller.c) from it;
             [2] = (3, -1, -1, 0, 0),        // Meta Knight: the template's (232, 56), NiDL's ledge (he drops to the floor);
-            [3] = (5, 200, 300, -64, -40),    // Heavy Mole: on the right of its screen (NiDL's (136, 264) its middle: it scrolls with the mole there);
+            [3] = (5, 184, 261, -56, -56),  // Heavy Mole: NiDL's spot as its fight starts (176 across on its screen, the screen's middle's height), its screen NiDL's then, (8, 181); scrolling with it (bosses/heavy_mole.c);
             [4] = (2, -1, -1, 0, 0),        // Mr. Shine & Mr. Bright: the template's (208, 104), on the floor of their one-screen room;
             [5] = (0, 206, 256, 0, 64),     // Whispy Woods: its face (0x080B2A00), the screen down to the floor under it;
             [7] = (7, 208, 84, -80, -52),   // Nightmare's Power Orb: at the top of the fall, in space, as NiDL's (its screen from (8, 8): ArenaOf() puts its top 24 above; sinking as they fight, bosses/power_orb.c);
             [8] = (8, 150, 280, -22, 200),  // Nightmare: over the floor at the room's bottom (NiDL's (215, 72), in the sky); his screen NiDL's, held at (8, 216) (Kirby lands in it);
-            [6] = (1, -1, -1, 0, 0),        // Kracko: the template's (its tower's bottom, where Kirby comes in), that screen;
+            [6] = (1, -1, -1, 0, 0),        // Kracko: the template's (its tower's bottom, where Kirby comes in: its fight starts there), its arena KrackoTop;
         };
         /* The Power Orb's room (the Fountain of Dreams' first, 0x003): its fight is NiDL's Star Rod flight (bosses/power_orb.c), at the top
          * of the fall, after NiDL's intro: Kirby comes in at NiDL's start, at the room's bottom, in the air, and flies up to the fight's
          * screen (from (8, 8)) with the screen, the orb and its arena standing there too (KatAM makes objects only near the camera); */
         static readonly (int, int, int) StarRodRoom = (7, 0, 0);
+        /* Heavy Mole's room (Yogurt Yard's boss room): NiDL's is all dirt (0x2F, DirtBlock here: BuildSolidity()) but the pocket its room
+         * load opens (0x08027F44: rows 13-18, columns 0-16, nothing there), where Kirby comes in; the fight digs the rest as it goes
+         * ("ROM Expansion/bosses/heavy_mole.c"), the screen scrolling and looping every 512 pixels. Its special blocks are a grid, a record
+         * per cell row by row first (BuildSolidity()), which rooms.c looks up at once (gNidlGridRoom: 2112 blocks, KatAM's walk through its
+         * list took most of a frame a block); its background still, at (8, 0), as NiDL's; its helpers' zones a block's middle each
+         * (BuildNavigation(): the camera's bounds always hold one, wherever the fight takes it); gridRecord its NiDL record; */
+        static readonly (int level, int stage, int index) HeavyMoleRoom = (4, 6, 0);
+        static readonly (int left, int top, int right, int bottom) HeavyMolePocket = (0, 13, 16, 18);
+        const int HeavyMoleBackgroundX = 8;
+        static int gridRecord = -1;
         const byte PowerOrbBoss = 7;        // NIDL_POWER_ORB (nidl.h);
         const int CloudRows = 144;          // CLOUD_ROWS ("ROM Expansion/finale.c");
         const byte NightmareBoss = 8;       // NIDL_NIGHTMARE;
         const byte DededeBoss = 6;          // NIDL_KING_DEDEDE: Kirby drops into his room from its top, the camera following (BossIn(), arena.c);
+        /* Kracko's fight starts at its tower's bottom (its eye chasing Kirby up, the camera following him) and goes on at the top, where NiDL
+         * locks its camera as it comes near (8, 16: "ROM Expansion/bosses/kracko.c"'s LOCK_TOP): its arena's screen, which waits for it to say
+         * (subtype2 3, BossLocksArena; arena.c's ArenaGo()); */
+        const byte KrackoBoss = 1;          // NIDL_KRACKO;
+        static readonly (int left, int top, int width, int height) KrackoTop = (8, 16, 240, 160);
+        const byte BossLocksArena = 3;
         const int DropInY = 32;             // where a drop-in arena stands (pixels): at the room's top, where Kirby comes in;
         // BossIn(); The ported boss (RoomBosses' boss) a NiDL room record holds, -1 none;
         static int BossIn(byte[] nightmare, int record) {
@@ -112,12 +128,14 @@
          * room, where he starts it: PlanDoors()); the Fountain of Dreams hub's Amazing Mirror (finaleMirror: Central Circle's Dimension
          * Mirror as KatAM has it, leading to FinalRoom, taken before FinaleMirrors() points that one at the Power Orb's room), in the
          * middle of the room as the camera shows it, high up under the ceiling, where the other switch rooms' ability statues stand
-         * (pixels: its spot, the camera showing 8-248 and 8-168; its sprite's middle 4 above), and its Maximum Tomato (0x61) under it,
-         * on the raised platform at the room's bottom middle (its top at 130); */
+         * (pixels: its spot, the camera showing 8-248 and 8-168; its sprite's middle 4 above); under it, on the raised platform at the
+         * room's bottom middle (its top at 128), KatAM's Master Sword stand (0x98, as Central Circle's, 16 pixels over the floor: it gives
+         * Master once the game is beaten, or from the start with "Unlock the Master Sword"), and its Maximum Tomato (0x61) on the floor's
+         * right, where Kirby lands on its left (the owner's); */
         static (int room, int x, int y) finaleEntry;
         static byte[] finaleMirror;
-        static readonly (int x, int y) FinaleMirrorAt = (128, 68), FinaleTomatoAt = (128, 121);
-        const byte FinaleTomato = 0x61;
+        static readonly (int x, int y) FinaleMirrorAt = (128, 68), FinaleSwordAt = (128, 112), FinaleTomatoAt = (200, 137);
+        const byte FinaleTomato = 0x61, MasterSwordStand = 0x98;
         // NiDL items (category 3): 1-Up, Maxim Tomato, Invincibility Candy, Energy Drink -> KatAM's 1UP, Maximum Tomato, Lollipop, Pep Brew;
         static readonly Dictionary<int, byte> RoomItems = new Dictionary<int, byte> { [1] = 0x63, [2] = 0x61, [3] = 0x64, [4] = 0x5F };
         // KatAM song per NiDL level (Vegetable Valley ... Rainbow Resort, then the Fountain of Dreams);
@@ -203,6 +221,8 @@
         static (int x, int y) SwitchLinkDoor(int level) => LayoutB(level) ? (8, 8) : (3, 3);
         static (int x, int y) SwitchHubDoor(int level) => LayoutB(level) ? (8, 3) : (12, 3);
         static (int x, int y) SwitchAt(int level) => LayoutB(level) ? (128, 96) : (128, 128);
+        const int SwitchDrop = 4;
+        static bool SwitchPedestal(int level, int x, int y) => LayoutB(level) ? y == 6 && x >= 6 && x <= 9 : y == 8 && x >= 5 && x <= 10;
         static (int x, int y) SwitchArrival(int level) => LayoutB(level) ? (3, 6) : (3, 8);
         /* SwitchStatues: the ability statues on each switch room's top row, as KatAM's hub rooms' (objects 0x92: Beam, Burning, Laser,
          * Fire, Stone, Fighter, Bomb, Tornado; 0x93: Wheel, Ice, Spark, Missile, Smash, Throw, Hammer; 0x94: Parasol; 0x95: Sword,
@@ -544,6 +564,11 @@
         static readonly Dictionary<int, (int x, int y)[]> SwitchExtraGround = new Dictionary<int, (int, int)[]>();
         // NoLedges; The levels whose switch rooms (layout B) have no ledges beside the pedestal;
         static readonly HashSet<int> NoLedges = new HashSet<int> { 3 };
+        // ThinPlatforms; The levels whose switch rooms (layout B) draw the ledges and the pedestal as one floating platform: all of it a
+        // thin floor Kirby jumps up through, the ledges one he drops through too (NiDL's 0x11, KatAM's 0x0E, ThinFloors() leaving them
+        // so), the pedestal KatAM's he doesn't (0x0F: the big switch stands on it; on 0x0E it fell to the ground), as it looks (the
+        // owner's: Ice Cream Island's, 0xC9, had a solid block in its middle and ledges Kirby couldn't drop through);
+        static readonly HashSet<int> ThinPlatforms = new HashSet<int> { 1 };
         // UnmirroredFill; The levels whose switch rooms' ground inside isn't mirrored (see BuildSwitchRooms());
         static readonly HashSet<int> UnmirroredFill = new HashSet<int> { 1 };
         /* ForeignDecorations; Levels whose switch rooms take decorations (SwitchDecorations' * metatiles) from another level's last
@@ -738,14 +763,15 @@
                 bool Solid(int x, int y) => y == 0 || y >= SwitchFloor || Pedestal(x, y) || extra.Contains((x, y)) || Pillared(x, y) || (b
                     ? (y <= 3 && (x <= 1 || x >= SwitchWidth - 2)) || (y >= 4 && (x == 0 || x == SwitchWidth - 1)) || (y >= 7 && (x <= 3 || x >= SwitchWidth - 4))
                     : y <= 5 && (x <= 1 || x >= SwitchWidth - 2));
-                bool Pedestal(int x, int y) => b ? y == 6 && x >= 6 && x <= 9 : y == 8 && x >= 5 && x <= 10;
+                bool Pedestal(int x, int y) => SwitchPedestal(level, x, y);
                 // (none in NoLedges' rooms: Grape Garden's, its castle shown whole behind);
                 bool Ledge(int x, int y) => b && y == 6 && (x == 4 || x == 5 || x == 10 || x == 11) && !NoLedges.Contains(level) && Environment.GetEnvironmentVariable($"SWITCH_ROOM_NO_LEDGES_{level}") == null;
                 // (past the room's edges solid, as the level's);
                 int TargetClass(int x, int y) => x < 0 || y < 0 || x >= SwitchWidth || y >= SwitchHeight ? Earth : Ledge(x, y) ? OneWay : Solid(x, y) ? Earth : Air;
+                bool Thin(int x, int y) => TargetClass(x, y) == OneWay || ThinPlatforms.Contains(level) && Pedestal(x, y);
                 for (int y = 0; y < SwitchHeight; y++)
                     for (int x = 0; x < SwitchWidth; x++)
-                        Set(x, y, air, (byte)(TargetClass(x, y) == Earth ? 0x01 : TargetClass(x, y) == OneWay ? 0x11 : 0x00));
+                        Set(x, y, air, (byte)(Thin(x, y) ? 0x11 : TargetClass(x, y) == Earth ? 0x01 : 0x00));
                 int Current(int x, int y) => ReadShort(cells, (y * SwitchWidth + x) * 4);
                 bool[] taken = new bool[SwitchWidth * SwitchHeight];
 
@@ -1136,6 +1162,7 @@
 
             try {
                 rooms = NightmareRooms(nightmare, region.RoomTable);
+                gridRecord = rooms.FirstOrDefault(r => (r.Level, r.Stage, r.Index) == HeavyMoleRoom)?.Record ?? -1;
                 rooms.AddRange(BuildSwitchRooms(ref nightmare, rooms));
             } catch (Exception exception) when (exception is IndexOutOfRangeException or ArgumentException or InvalidOperationException) {
                 return $"The Nightmare in Dream Land ROM doesn't match the {region.KatAM} release.";
@@ -1266,11 +1293,16 @@
                             collision[y * r.FullWidth + x] = padding && kind >> 4 == 2 ? (byte)0x0D : !padding && kind is >= 0x38 and <= 0x3D ? FuseCollision[kind - 0x38] : RoomCollision[kind];
                         }
                     }
-                    // Thin floors Kirby needn't drop through (ThinFloors());
+                    // Thin floors Kirby needn't drop through (ThinFloors(); not a ThinPlatforms switch room's floating platform);
                     var arrivals = doors.Values.SelectMany(list => list).Concat(mainHubDoors).Concat(katamDoors.Values.SelectMany(list => list))
                                         .Where(d => d.Room == r.Room).Select(d => (d.DestX - 1, d.DestY - 1))
                                         .Concat(transportsOf.Values.SelectMany(list => list).Where(t => t.Room == r.Room).Select(t => (t.DestX - 1, t.DestY - 1))).ToList();
-                    ThinFloors(r, collision, arrivals, doors[r].Select(d => (d.X, d.Y)).Concat(transportsOf[r].Select(t => (t.X / 16, (t.Y - 1) / 16))).ToList());
+                    if (!(r.IsSwitchRoom && ThinPlatforms.Contains(r.Level)))
+                        ThinFloors(r, collision, arrivals, doors[r].Select(d => (d.X, d.Y)).Concat(transportsOf[r].Select(t => (t.X / 16, (t.Y - 1) / 16))).ToList());
+                    else
+                        for (int y = 0; y < r.Height; y++)
+                            for (int x = 0; x < r.Width; x++)
+                                if (SwitchPedestal(r.Level, x, y)) collision[y * r.FullWidth + x] = 0x0F;
                     // Mirras (see MirraSpots()): not in a boss's room nor a switch room;
                     bool bossRoom = !r.IsSwitchRoom && (r.Level == 7 || r.Stage == rooms.Where(o => o.Level == r.Level && !o.IsSwitchRoom).Max(o => o.Stage));
                     var mirras = r.IsSwitchRoom || bossRoom ? new List<(int x, int y, bool door)>() : MirraSpots(r, doors[r], collision);
@@ -1310,12 +1342,13 @@
                     rom[roomInfo + 0x4A] = (byte)(r.Stage + 1); rom[roomInfo + 0x4B] = (byte)r.Index;
                     WriteInt(rom, roomInfos + r.Room * 4, roomInfo + 0x08000000);
 
-                    // The camera's top (CameraTop()); the background spans the room once, both ways (BackgroundRates()); the Fountain
-                    // of Dreams hub's KatAM's (8 pixels down): a screen's room, so its camera stays put, as KatAM's hub rooms' (the owner's;
-                    // from the room's top it rose 8 pixels as Kirby flew up);
-                    int top = r.IsSwitchRoom && r.Level == 7 ? 8 : CameraTop(nightmare, r);
+                    // The camera's top (CameraTop()); the background spans the room once, both ways (BackgroundRates()); the level
+                    // hubs' KatAM's (8 pixels down): a screen's rooms, so their cameras stay put, as KatAM's hub rooms' (the owner's; from
+                    // the room's top they rose 8 pixels as Kirby flew up);
+                    int top = r.IsSwitchRoom ? 8 : CameraTop(nightmare, r);
                     // (rooms.c's code: 0 KatAM's 8 pixels, 1 the room's top, 2 a row down; it was top / 8 + 1, two rows down, 0x147);
                     rom[CodeAddress + version.CodeSymbols["gNidlRoomTops"] + r.Room] = (byte)(top == 8 ? 0 : top / 16 + 1);
+                    if (r.Record == gridRecord) WriteShort(rom, CodeAddress + version.CodeSymbols["gNidlGridRoom"], r.Room);
                     (int rateX, int rateY) = BackgroundRates(ReadShort(nightmare, backgroundMap + 2) * 8, ReadShort(nightmare, backgroundMap + 4) * 8,
                                                              r.FullWidth * 16, r.FullHeight * 16, top);
                     /* The Power Orb's room: its background drawn at the camera's spot, as NiDL draws it there (measured in NiDL: through its
@@ -1333,7 +1366,13 @@
                         // taller than NiDL's: HiddenRows, Padded()), as measured against NiDL's through his intro and fight;
                         backgroundDown = -HiddenRows * 16;
                     }
-                    WriteShorts(rom, roomProps + r.Room * 0x28, LevelSongs[r.Level], 0, 0, 0x100, 0x100, 0, backgroundDown, rateX, rateY, RoomFlags,
+                    // (Heavy Mole's room: its background still, at NiDL's (8, 0), its screen scrolling and looping: HeavyMoleRoom);
+                    int backgroundLeft = 0;
+                    if (r.Record == gridRecord) {
+                        rateX = rateY = 0;
+                        backgroundLeft = HeavyMoleBackgroundX;
+                    }
+                    WriteShorts(rom, roomProps + r.Room * 0x28, LevelSongs[r.Level], 0, 0, 0x100, 0x100, backgroundLeft, backgroundDown, rateX, rateY, RoomFlags,
                                 info, palette, tableSizes[12] + i, tableSizes[13] + i, 0xFFFF, background, tableSizes[16] + i,
                                 tableSizes[17] + i, FirstDoorsList + i, 0);
                 }
@@ -3287,7 +3326,7 @@
          * (0x2E), the blocks a bomb block sets off 0xF2 (0x2D, touching it and each other: KatAM breaks them as a chain from the bomb
          * block), metal blocks 0xF5 (0x2F, NiDL's grey ones: KatAM's silver metal blocks, as room 0x134's, which only some abilities break;
          * 0xF4 breaks with any ability's attack: code_0800ECAC_2.c's helpers try type 0 and 1 blocks only), but where a room has more
-         * than MetalBlocks of them (Heavy Mole's dirt, which any attack digs through) star blocks (RoomCells()); */
+         * than MetalBlocks of them star blocks (RoomCells()); Heavy Mole's dirt (gridRecord) DirtBlock; */
         /* RoomCells(); A NiDL room's cells (u32 each: metatile, attribute, collision), its bomb chains as NiDL's: a chain's blocks are
          * NiDL's own (its bomb blocks only where NiDL has them: Kirby arriving on a chain's far side leaves by the two-way door he came
          * through, and the logic checks find every room reached and nowhere trapped). A chain without a bomb block is star blocks. NiDL's
@@ -3341,9 +3380,15 @@
             }
             linkCells[record] = links;
 
-            // (Heavy Mole's dirt: star blocks);
+            // (Heavy Mole's dirt: star blocks, its records DirtBlock, BuildSolidity(); its pocket, HeavyMolePocket, open);
             if (Enumerable.Range(0, width * height).Count(i => Kind(i) == 0x2F) > MetalBlocks)
                 for (int i = 0; i < width * height; i++) if (Kind(i) == 0x2F) cells[i * 4 + 3] = 0x24;
+            if (record == gridRecord)
+                for (int y = HeavyMolePocket.top; y <= HeavyMolePocket.bottom; y++)
+                    for (int x = HeavyMolePocket.left; x <= HeavyMolePocket.right; x++) {
+                        WriteShort(cells, (y * width + x) * 4, 0);
+                        cells[(y * width + x) * 4 + 2] = cells[(y * width + x) * 4 + 3] = 0;
+                    }
 
             // (blocks a door lands Kirby in, PlanDoors()'s clearedBlocks: what breaking them leaves, air; before the chains: one whose bomb
             // block starts broken so is star blocks, 0x27C's);
@@ -3387,6 +3432,9 @@
 
         const byte LinkCollision = 0xF3;   // KatAM's invisible chain link (gCollisionAttributes 0x41: not solid, a chain goes through);
         static byte BreakableBlock(int collision) => collision switch { 0x2D => 0xF2, 0x2E => 0xF1, 0x2F => 0xF5, _ => 0xF0 };
+        // Heavy Mole's dirt: any ability's attack digs through it, but Kirby can't inhale it (NiDL's: what he inhales are its missiles;
+        // "ROM Expansion/bosses/heavy_mole.c" digs it, DIRT);
+        const byte DirtBlock = 0xF4;
         // The mark ending a door record of where a Mirra lands (BuildSolidity()), 2 bytes past KatAM's 14 (the game steps by the size):
         // the map viewer leaves those doors out (RomMap.cs);
         static readonly byte[] LandingMark = { 0x4D, 0x4C };
@@ -3403,11 +3451,21 @@
             List<byte> specials = new List<byte>();
             Dictionary<(int x, int y), int> leaves = new Dictionary<(int, int), int>();
             bool Water(int x, int y) => x >= 0 && y >= 0 && x < r.FullWidth && y < r.FullHeight && collision[y * r.FullWidth + x] is >= 0x34 and <= 0x48;
+            // (Heavy Mole's room: its records a grid, every cell of the room as KatAM holds it, row by row, first: HeavyMoleRoom);
+            bool grid = r.Record == gridRecord;
 
-            for (int y = 0; y < r.Height && y < 256; y++) {
-                for (int x = 0; x < r.Width && x < 256; x++) {
-                    int cell = (r.Y + y) * roomWidth + r.X + x, kind = cells[cell * 4 + 3];
-                    if (kind >> 4 != 2) continue;
+            for (int y = 0; y < (grid ? r.FullHeight : r.Height) && y < 256; y++) {
+                for (int x = 0; x < (grid ? r.FullWidth : r.Width) && x < 256; x++) {
+                    int cell = (r.Y + Math.Min(y, r.Height - 1)) * roomWidth + r.X + Math.Min(x, r.Width - 1), kind = cells[cell * 4 + 3];
+                    if (kind >> 4 != 2) {
+                        // (a grid's other cells: a record of themselves, never applied);
+                        if (!grid) continue;
+                        byte own = collision[y * r.FullWidth + x];
+                        specials.AddRange(new byte[] { 1, own, (byte)x, (byte)y, 0x12, 0, 0xFF, 0xFF });
+                        for (int q = 0; q < 4; q++) specials.AddRange(BitConverter.GetBytes((ushort)ShiftPalette(ReadShort(metatiles, ReadShort(cells, cell * 4) * 8 + q * 2))));
+                        specials.AddRange(new byte[] { own, 0xFF });
+                        continue;
+                    }
 
                     int number = ReadShort(numbers, cell * 2), metatile = 0, leftKind = 0;
                     // The numbers' cells: u32 each from the object data (metatile, attribute, collision), up to 0xFFFFFFFF;
@@ -3420,7 +3478,7 @@
                     // or the block again, solid, which no other bomb breaks (room 0x248's frames of blocks: their look stayed, their
                     // collision went);
                     byte left = leftKind != 0 ? RoomCollision[leftKind] : (byte)(Water(x - 1, y) || Water(x + 1, y) || Water(x, y - 1) || Water(x, y + 1) ? 0x48 : 0);
-                    byte block = BreakableBlock(kind);
+                    byte block = grid ? DirtBlock : BreakableBlock(kind);
                     collision[y * r.FullWidth + x] = block;
                     specials.AddRange(new byte[] { 1, block, (byte)x, (byte)y, 0x12, 0, 0xFF, 0xFF });
                     for (int q = 0; q < 4; q++) specials.AddRange(BitConverter.GetBytes((ushort)ShiftPalette(ReadShort(metatiles, metatile * 8 + q * 2))));
@@ -3544,6 +3602,8 @@
                 specials.AddRange(new byte[] { value, 0xFF });
             }
 
+            // (a grid's records stay first: rooms.c finds a cell's at its place);
+            if (grid && (secrets.Count > 0 || landingRecords.Count > 0)) throw new InvalidOperationException("Heavy Mole's room has records before its grid");
             specials.InsertRange(0, secrets);
             specials.InsertRange(0, landingRecords);
             byte[] compressed = CompressRL(collision);
@@ -4066,7 +4126,7 @@
                 }
 
                 byte type, behavior = 0;
-                bool miniboss = false, dropIn = false, flyIn = false;
+                bool miniboss = false, dropIn = false, flyIn = false, krackoArena = false;
                 if (category == 0 && landings.Any(c => Math.Abs(x / 16 - c.x) <= LandingClear && Math.Abs(y / 16 - c.y) <= 2)) continue;
                 // (a Shotzo on blocks that break stays: NiDL's falls when they go, KatAM's stays where it is, but they're the room's cannons,
                 // as room 0x2FD's under its ceiling);
@@ -4092,7 +4152,7 @@
                 }
                 else if (category == 0 && PortedEnemies.TryGetValue(index, out int ported)) {
                     type = NightmareID;
-                    // Poppy Bros. Jr. on an apple or with a bomb: their variants in poppy_bros_jr.c;
+                    // Poppy Bros. Jr. on an apple or a Maxim Tomato: their variants in poppy_bros_jr.c;
                     if (index == 31) variant = variant == 0 ? 3 : variant == 1 ? 7 : 5;
                     else if (index == 32) variant = variant == 0 ? 4 : variant == 1 ? 8 : 6;
                     behavior = (byte)(ported << 4 | (variant & 0xF));
@@ -4104,6 +4164,7 @@
                 } else if (category == BossCategory && RoomBosses.TryGetValue(index, out (byte boss, int x, int y, int screenDx, int screenDy) spot)) {
                     type = BossTypeOf(spot.boss);
                     dropIn = spot.boss == DededeBoss;
+                    krackoArena = spot.boss == KrackoBoss;
                     flyIn = spot.boss == PowerOrbBoss;
                     behavior = (byte)(spot.boss << 4 | r.Level & 7);
                     if (spot.x >= 0) (x, y) = (spot.x - r.X * 16, spot.y - r.Y * 16);
@@ -4161,8 +4222,11 @@
                     arena[12] = NightmareID; arena[14] = ArenaBehavior;
                     // (subtype2 1: Kirby drops in from above its screen, the camera following him down to it, as NiDL's Dedede's: it
                     // stands at the room's top, where he comes in, to be there from his first frame, KatAM making objects near the
-                    // camera; its screen the same);
-                    arena[0x10] = (byte)(dropIn ? 1 : 0);
+                    // camera; its screen the same. 2: a screen's room, where NiDL's camera never moves (8, 8): held there from Kirby's
+                    // first frame in the room, and after the fight, as NiDL's; KatAM's taller room, padded (Padded()), let it sink 16);
+                    arena[0x10] = (byte)(dropIn ? 1 : OneScreen(r) ? 2 : krackoArena ? BossLocksArena : 0);
+                    // (Kracko's: the tower's top, standing with its boss at the bottom, KatAM making objects near the camera);
+                    if (krackoArena) WriteShorts(arena, 0x1A, KrackoTop.left - x, KrackoTop.top - y, KrackoTop.width, KrackoTop.height);
                     if (dropIn) {
                         int left = x + (short)ReadShort(template, 0x1A), top = y + (short)ReadShort(template, 0x1C), width = ReadShort(template, 0x1E);
                         int ax = left + width / 2, ay = DropInY;
@@ -4208,8 +4272,9 @@
 
             // A switch room's big switch (NiDL's own aren't ported: a level has one, see LevelSlot()) and ability statues (SwitchStatues);
             // the Fountain of Dreams hub's, the finale's end, has neither: an Amazing Mirror in the room's middle, high up, to KatAM's
-            // final boss (as Central Circle's Dimension Mirror led there: whole, and the way in, once KatAM's 8 shards are found), and a
-            // Maximum Tomato under it, on the raised platform (taken once per visit, as the items);
+            // final boss (as Central Circle's Dimension Mirror led there: whole, and the way in, once KatAM's 8 shards are found), the
+            // Master Sword's stand under it, on the raised platform, and a Maximum Tomato on the floor's right (taken once per visit, as
+            // the items);
             bool finaleHub = r.IsSwitchRoom && r.Level == 7 && finaleMirror != null;
             if (finaleHub) {
                 byte[] mirror = (byte[])finaleMirror.Clone();
@@ -4217,12 +4282,18 @@
                 WriteShorts(mirror, 6, FinaleMirrorAt.x, FinaleMirrorAt.y);
                 templates.Add(mirror);
                 types.Add(ShardType);
+                byte[] stand = ObjectTemplate(FinaleSwordAt.x, FinaleSwordAt.y, templates.Count, MasterSwordStand);
+                stand[14] = stand[15] = 0;
+                templates.Add(stand);
+                if (!types.Contains(MasterSwordStand)) types.Add(MasterSwordStand);
                 byte[] tomato = ObjectTemplate(FinaleTomatoAt.x, FinaleTomatoAt.y, templates.Count, FinaleTomato);
                 tomato[2] = TakenKind; tomato[3] = (byte)takenItems++;
                 templates.Add(tomato);
                 if (!types.Contains(FinaleTomato)) types.Add(FinaleTomato);
             } else if (r.IsSwitchRoom) {
-                templates.Add(BigSwitchTemplate(SwitchAt(r.Level).x, SwitchAt(r.Level).y, templates.Count, LevelSlot(r.Level), r.Level));
+                // (over a ThinPlatforms pedestal, a little above it: it falls on to it, as a one-way floor only holds what lands on it from
+                // above; at its top, its feet on it, it fell through to the ground);
+                templates.Add(BigSwitchTemplate(SwitchAt(r.Level).x, SwitchAt(r.Level).y - (ThinPlatforms.Contains(r.Level) ? SwitchDrop : 0), templates.Count, LevelSlot(r.Level), r.Level));
                 types.Add(BigSwitchType);
             }
             if (r.IsSwitchRoom && !finaleHub) {
@@ -4341,7 +4412,8 @@
                     arenas.Add(MinibossScreen(nightmare, r, x, y));
                 else if (category == BossCategory && RoomBosses.TryGetValue(index, out (byte boss, int x, int y, int screenDx, int screenDy) spot)) {
                     if (spot.x >= 0) (x, y) = (spot.x - r.X * 16, spot.y - r.Y * 16);
-                    var arena = ArenaOf(r, (x + spot.screenDx, y + spot.screenDy), x, y, CameraTop(nightmare, r), HiddenRows * 16);
+                    var arena = spot.boss == KrackoBoss ? KrackoTop
+                        : ArenaOf(r, (x + spot.screenDx, y + spot.screenDy), x, y, CameraTop(nightmare, r), HiddenRows * 16);
                     if (sinking && spot.boss == PowerOrbBoss) arena.height = Math.Min(arena.height + PowerOrbSink, r.FullHeight * 16 - arena.top);
                     arenas.Add(arena);
                 }
@@ -4379,9 +4451,14 @@
         /* ArenaOf(); A boss's fight area: the screen around its camera lock (RoomBosses: its x the screen's middle, its y near the top),
          * moved to hold the boss too, inside what KatAM's camera shows of the room (8 pixels in from its sides, cameraTop (CameraTop())
          * from its top, 40 from its bottom; see Padded()); a boss's may go `below` more (the room's hidden rows: down to where KatAM's
-         * camera stops, so its floor shows: Whispy Woods'); */
+         * camera stops, so its floor shows: Whispy Woods'), never lower than NiDL's own camera (a screen's room, Meta Knight's and Mr.
+         * Shine & Mr. Bright's: (8, 8), where KatAM's padded room took it to 24); */
+        // OneScreen(); A room NiDL's camera never moves in: a screen's (16x11 cells: its camera at (8, 8));
+        static bool OneScreen(NightmareRoom r) => r.Width * 16 <= 256 && r.Height * 16 <= 176;
         static (int left, int top, int width, int height) ArenaOf(NightmareRoom r, (int x, int y) cameraLock, int x, int y, int cameraTop, int below = 0) {
             const int ScreenWidth = 240, ScreenHeight = 160, Edge = 8, Margin = 24;
+            // (never lower than NiDL's own camera goes in the room: 8 above its bottom; KatAM's room is taller, Padded());
+            int lowest = Math.Max(Edge, r.Height * 16 - Edge - ScreenHeight);
             int Bottom = 40 - below;
             int width = Math.Min(ScreenWidth, r.FullWidth * 16 - 2 * Edge), height = Math.Min(ScreenHeight, r.FullHeight * 16 - Edge - Bottom);
             int left = cameraLock.x - width / 2, top = cameraLock.y - Margin;
@@ -4389,6 +4466,7 @@
             top = Math.Clamp(top, y + Margin - height, y - Margin);
             left = Math.Clamp(left, Edge, r.FullWidth * 16 - Edge - width);
             top = Math.Clamp(top, Math.Min(cameraTop, r.FullHeight * 16 - Bottom - height), r.FullHeight * 16 - Bottom - height);
+            top = Math.Min(top, lowest);
             return (left, top, width, height);
         }
 
@@ -4442,6 +4520,8 @@
             bool Open(int x, int y) => x >= 0 && y >= 0 && x < width && y < height
                                        && collision[y * width + x] is 0x00 or 0x48 or 0x20 or 0x21 or 0xFC or 0xFD or 0xFE or 0xFF;
             bool Standable(int x, int y) => Open(x, y) && y + 1 < height && !Open(x, y + 1);
+            // (Heavy Mole's room, all dirt the fight digs: a zone at each block's middle, HeavyMoleRoom);
+            bool grid = r.Record == gridRecord;
 
             int blockWidth = 8, blockHeight = 6;
             List<(int bx, int by, int x, int y)> zones;
@@ -4453,7 +4533,7 @@
                         for (int y = by * blockHeight; y < Math.Min(height, (by + 1) * blockHeight); y++)
                             for (int x = bx * blockWidth; x < Math.Min(width, (bx + 1) * blockWidth); x++) {
                                 int distance = (x - cx) * (x - cx) + (y - cy) * (y - cy);
-                                if (Standable(x, y) && distance < best) { best = distance; px = x; py = y; }
+                                if ((grid || Standable(x, y)) && distance < best) { best = distance; px = x; py = y; }
                             }
                         if (px >= 0) zones.Add((bx, by, px, py));
                     }
@@ -4504,6 +4584,20 @@
             // Neighbours (blocks side by side), and the way to each zone (breadth first);
             List<int>[] neighbours = zones.Select(z => new[] { (1, 0), (-1, 0), (0, 1), (0, -1) }
                 .Where(d => zoneOf.ContainsKey((z.bx + d.Item1, z.by + d.Item2))).Select(d => zoneOf[(z.bx + d.Item1, z.by + d.Item2)]).ToList()).ToArray();
+            // (zones no way joins, blocks without a floor between them: the nearest two of the first zone's and the rest made neighbours,
+            // till every zone is reached; a helper off the screen looks for a zone inside the camera's bounds it has a way to, forever if
+            // there's none, sub_08010034: Kracko's tower, its camera held at the top, its helpers below, froze the game);
+            while (true) {
+                HashSet<int> reached = new HashSet<int> { 0 };
+                Queue<int> todo = new Queue<int>(reached);
+                while (todo.Count > 0) foreach (int n in neighbours[todo.Dequeue()]) if (reached.Add(n)) todo.Enqueue(n);
+                if (reached.Count == zones.Count) break;
+                int Distance(int i, int j) => (zones[i].x - zones[j].x) * (zones[i].x - zones[j].x) + (zones[i].y - zones[j].y) * (zones[i].y - zones[j].y);
+                var (a, b) = reached.SelectMany(i => Enumerable.Range(0, zones.Count).Where(j => !reached.Contains(j)).Select(j => (i, j)))
+                                    .Where(p => neighbours[p.i].Count < 8 && neighbours[p.j].Count < 8).MinBy(p => Distance(p.i, p.j));
+                neighbours[a].Add(b);
+                neighbours[b].Add(a);
+            }
             int records = Allocate(ref cursor, zones.Count * 0x34, 4);
             for (int i = 0; i < zones.Count; i++) {
                 int record = records + i * 0x34;

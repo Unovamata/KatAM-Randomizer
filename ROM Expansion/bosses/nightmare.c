@@ -1683,6 +1683,7 @@ static void FightMain(void) {
         }
         if (obj) ((struct Nightmare *)obj)->f = NULL;
         Orphan(f);
+        StarRodForget(f);
         TaskDestroy(gCurTask);
         return;
     }
@@ -2018,61 +2019,78 @@ static void NightmareMain(struct Object *obj) {
     Boxes(f);
 }
 
-/* NightmareBlocks(); A Star Rod star (abilities/star_rod.c) at (x, y) touching his body box (+-8): it bursts on it (NiDL's keep their
- * boxes, his even while he's gone; only his frames 0-35 take hits: KatAM's, Boxes()); */
-bool32 NightmareBlocks(u16 room, s32 x, s32 y) {
+/* NightmareFightOf(); His fight in that room, whatever it's doing (a Star Rod star's, abilities/star_rod.c: found once, kept in the
+ * star, StarRodForget() as it ends), or NULL; */
+void *NightmareFightOf(u16 room) {
     struct Task *t = &gTasks[0];
     u8 n;
 
     for (n = 0; n < MAX_TASK_NUM && t->next; n++) {
-        struct Fight *f;
-        const s8 *box;
-        s32 dx, dy, left, right;
-
         t = (struct Task *)(IWRAM_START + t->next);
-        if (t->main != FightMain) continue;
-        f = TaskGetStructPtr(t);
-        if (f->obj == NULL || f->obj->base.roomId != room || f->obj->unk78 != NightmareMain || f->box == BOX_NONE) continue;
-        box = sBodyBoxes[f->box];
-        dx = (x - f->obj->base.x) >> 8;
-        dy = (y - f->obj->base.y) >> 8;
-        left = f->facing == -1 ? -box[2] : box[0];
-        right = f->facing == -1 ? -box[0] : box[2];
-        if (dx + 8 > left && dx - 8 < right && dy + 8 > box[1] && dy - 8 < box[3]) return TRUE;
+        if (t->main == FightMain && ((struct Fight *)TaskGetStructPtr(t))->obj != NULL
+            && ((struct Fight *)TaskGetStructPtr(t))->obj->base.roomId == room)
+            return TaskGetStructPtr(t);
     }
-    return FALSE;
+    return NULL;
 }
 
-/* NightmareTarget(); Whether a Star Rod star shot now from x at height y (abilities/star_rod.c's helpers, StarRodAim()) would meet him
- * where he takes hits (his box, +-8 as NightmareBlocks(), past where the star comes out, within TARGET_REACH), which way, and how
- * far his box is (pixels; under 0: over x); */
-#define TARGET_REACH 160
-#define TARGET_STAR_X 20
-bool32 NightmareTarget(u16 room, s32 x, s32 y, bool8 *left, s32 *gap) {
+/* NightmareBlocks(); A Star Rod star (abilities/star_rod.c) at (x, y) touching his body box (+-8), his fight `fight`
+ * (NightmareFightOf()'s): it bursts on it (NiDL's keep their boxes, his even while he's gone; only his frames 0-35 take hits: KatAM's,
+ * Boxes()); each star walking the task list every frame for his fight cost 7000 cycles a frame with four Kirbys shooting; */
+bool32 NightmareBlocks(void *fight, s32 x, s32 y) {
+    struct Fight *f = fight;
+    const s8 *box;
+    s32 dx, dy, left, right;
+
+    if (f == NULL || f->obj == NULL || f->obj->unk78 != NightmareMain || f->box == BOX_NONE) return FALSE;
+    box = sBodyBoxes[f->box];
+    dx = (x - f->obj->base.x) >> 8;
+    dy = (y - f->obj->base.y) >> 8;
+    left = f->facing == -1 ? -box[2] : box[0];
+    right = f->facing == -1 ? -box[0] : box[2];
+    return dx + 8 > left && dx - 8 < right && dy + 8 > box[1] && dy - 8 < box[3];
+}
+
+/* NightmareFightIn(); His fight in that room, where he takes hits now (abilities/star_rod.c's helpers, StarRodAim(): found once a
+ * frame, then NightmareTarget() for each height they try; walking the task list for every one took 7% of a frame with three helpers,
+ * and his fight lagged every other frame as his stars flew), or NULL; */
+void *NightmareFightIn(u16 room) {
     struct Task *t = &gTasks[0];
     u8 n;
 
     for (n = 0; n < MAX_TASK_NUM && t->next; n++) {
         struct Fight *f;
-        const s8 *box;
-        s32 dy, from, to;
 
         t = (struct Task *)(IWRAM_START + t->next);
         if (t->main != FightMain) continue;
         f = TaskGetStructPtr(t);
         if (f->obj == NULL || f->obj->base.roomId != room || f->obj->unk78 != NightmareMain || f->box == BOX_NONE
             || (f->obj->base.flags & 0x200)) continue;
-        box = sBodyBoxes[f->box];
-        dy = (y - f->obj->base.y) >> 8;
-        if (dy + 8 <= box[1] || dy - 8 >= box[3]) continue;
-        from = (f->obj->base.x >> 8) + (f->facing == -1 ? -box[2] : box[0]) - 8 - (x >> 8);
-        to = (f->obj->base.x >> 8) + (f->facing == -1 ? -box[0] : box[2]) + 8 - (x >> 8);
-        *left = from + to < 0;
-        if (*left ? to < -TARGET_REACH || from > -TARGET_STAR_X : from > TARGET_REACH || to < TARGET_STAR_X) continue;
-        *gap = *left ? -to : from;
-        return TRUE;
+        return f;
     }
-    return FALSE;
+    return NULL;
+}
+
+/* NightmareTarget(); Whether a Star Rod star shot now from x at height y would meet him (`fight`, NightmareFightIn()'s) where he takes
+ * hits (his box, +-8 as NightmareBlocks(), past where the star comes out, within TARGET_REACH), which way, and how far his box is
+ * (pixels; under 0: over x); */
+#define TARGET_REACH 160
+#define TARGET_STAR_X 20
+bool32 NightmareTarget(void *fight, s32 x, s32 y, bool8 *left, s32 *gap) {
+    struct Fight *f = fight;
+    const s8 *box;
+    s32 dy, from, to;
+
+    if (f == NULL) return FALSE;
+    box = sBodyBoxes[f->box];
+    dy = (y - f->obj->base.y) >> 8;
+    if (dy + 8 <= box[1] || dy - 8 >= box[3]) return FALSE;
+    from = (f->obj->base.x >> 8) + (f->facing == -1 ? -box[2] : box[0]) - 8 - (x >> 8);
+    to = (f->obj->base.x >> 8) + (f->facing == -1 ? -box[0] : box[2]) + 8 - (x >> 8);
+    *left = from + to < 0;
+    if (*left ? to < -TARGET_REACH || from > -TARGET_STAR_X : from > TARGET_REACH || to < TARGET_STAR_X) return FALSE;
+    *gap = *left ? -to : from;
+    return TRUE;
 }
 
 // NightmareGone(); His object's gone (nidl.c's NidlDestroy()): his fight's task lets go of it;

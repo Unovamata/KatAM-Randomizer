@@ -216,9 +216,9 @@ static void CreateHands(struct PoppyBrosSr *p) {
     p->hands = h;
 }
 
-/* BombMain(); The thrown bomb (0x08093BD4): an attack object like the enemies' stars, falling with gravity 1/8; it bounces once
+/* PoppyBrosSrBombMain(); The thrown bomb (0x08093BD4): an attack object like the enemies' stars, falling with gravity 1/8; it bounces once
  * and explodes (KatAM's small explosion) when it lands again; */
-static void BombMain(void) {
+void PoppyBrosSrBombMain(void) {
     struct Sprite sprite;
     struct ObjectBase *bomb = TaskGetStructPtr(gCurTask);
 
@@ -248,7 +248,7 @@ static void BombMain(void) {
 
 static void Bomb(struct PoppyBrosSr *p, u8 palId) {
     struct Object *obj = &p->n.obj;
-    struct Task *t = TaskCreate(BombMain, sizeof(struct ObjectBase), 0x3500, TASK_USE_EWRAM, ObjectBaseDestroy);
+    struct Task *t = TaskCreate(PoppyBrosSrBombMain, sizeof(struct ObjectBase), 0x3500, TASK_USE_EWRAM, ObjectBaseDestroy);
     struct ObjectBase *bomb = TaskGetStructPtr(t);
 
     ClearObjectBase(bomb);

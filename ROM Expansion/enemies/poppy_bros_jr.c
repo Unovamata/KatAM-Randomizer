@@ -6,41 +6,47 @@
  *     (then 0x1500, falling at 3.0 at most, 0x08081B5C), frames 5, 4, 5 for 4, 12, 4, then 6 until it lands. Landing
  *     (0x08081E64) counts the hops: every other one it turns around one time in 3, for one hop. Walls turn it around
  *     (0x08081F38). (In rooms where 0x03005554 is set, it walks instead, 0x08081BC4: not ported.)
- *   - Variant 1 starts as variant 0 jumping in (0x08081C78): 30 frames without moving, then 2.0 up (gravity 0x1500; frames 6,
- *     5, 4, 5 for 3, 4, 12, 4, then 6) and hops once it lands. It's what jumps off a defeated ball (below).
+ *   - Variant 1 jumps in at once (0x08081C78): 2.0 straight up (gravity 0x1500; frames 6, 5, 4, 5 for 3, 4, 12, 4, then 6), and
+ *     hops once it lands. obj+0x30 is set to 30 for it (0x080819F4): untouchable that long (its per frame, 0x08081A74, skips
+ *     0x08068E04, its contact with Kirby, while it's set), or till it lands (0x08081CE0). It's what jumps off a defeated rider.
  *   - Variant 2 (0x08081DB4) hops in place.
- * • Types 0x27 (a ball) and 0x28 (a bomb), variants 0x08741604 (0: 0x080820B8, states 0x08741610; 1: the ball or bomb alone,
- *   0x080822B0, 0x08741618; 2: 0x0808248C, in place):
- *   - Variant 0 rolls the ball forward at 0.5 (0x08082270), which spins (frames 9-16, every 8, 0x080825EC) with Poppy Bros. Jr.
+ * • Types 0x27 (an apple) and 0x28 (a Maxim Tomato), variants 0x08741604 (0: 0x080820B8, states 0x08741610; 1: the apple or
+ *   tomato alone, 0x080822B0, 0x08741618; 2: 0x0808248C, in place):
+ *   - Variant 0 rolls the apple forward at 0.5 (0x08082270), which spins (frames 9-16, every 8, 0x080825EC) with Poppy Bros. Jr.
  *     hopping on top of it (a second sprite 16 pixels up, 0x08082554: frame 7 for 4, then 1.5 up with gravity 0x1800, frames 6,
- *     5, 4, 5 for 2, 2, 16, 6, then 6 until it's back on the ball). Walls turn it around (0x080826BC).
- *   - Inhaled (obj+0x7C 3 or 4, 0x08082108), the ball or bomb comes off (category 0, type 0x27 or 0x28, variant 1) and Kirby
- *     swallows Poppy Bros. Jr. alone (frame table 0x087528D0). Defeated (obj+0x7C 1), Poppy Bros. Jr. jumps off: type 0x26,
- *     variant 1, 14 pixels up.
- *   - The ball or bomb alone (0x08082338) bounces away from Kirby at 0.5 (0x0806421C), 2.0 up then 1.0 up (gravity 0x4000,
- *     0x2000; 0x087415F4, 0x087415FC), spinning every 4 frames (0x08082458), then stops; the bomb explodes (category 6, 2).
+ *     5, 4, 5 for 2, 2, 16, 6, then 6 until it's back on the apple). Walls turn it around (0x080826BC).
+ *   - Inhaled (obj+0x7C 3 or 4, 0x08082108), the apple or tomato comes off (category 0, type 0x27 or 0x28, variant 1) and Kirby
+ *     swallows Poppy Bros. Jr. alone (frame table 0x087528D0). Defeated (obj+0x7C 1), the rider goes as any enemy does and
+ *     Poppy Bros. Jr. jumps off: type 0x26, variant 1, 14 pixels up.
+ *   - The apple or tomato alone (0x08082338) bounces away from Kirby at 0.5 (0x0806421C), 2.0 up then 1.0 up (gravity 0x4000,
+ *     0x2000; 0x087415F4, 0x087415FC), spinning every 4 frames (0x08082458), then stops. Bouncing, it touches nothing (its per
+ *     frame, 0x08082300, calls 0x08068E04 only once it has stopped): Kirby goes through it and can't inhale it. Stopped, the
+ *     apple lies there as an enemy (it hurts, is beaten and inhaled as any); the tomato becomes a Maxim Tomato (0x08082436:
+ *     category 6, index 2, type 0x46, an item) where it stopped. (Recorded in NiDL, USA: the rider inhaled, touched, the apple
+ *     alone walked through while it bounced, touched and inhaled once stopped.)
  * • Water defeats them all (0x08081F50, 0x080826C8).
- * Here the rider is an effect object drawing the enemy's own frames; the bomb's explosion is KatAM's small one (Foley's); */
+ * Here the rider is an effect object drawing the enemy's own frames; the tomato becomes KatAM's own Maxim Tomato; */
 #include "../nidl.h"
 #include "code_0806F780.h"
 #include "task.h"
+#include "object.h"
 
-// Frames: NiDL's 4 to 7 (Poppy Bros. Jr.), then the ball's 9 to 16 (type 0x27) and the bomb's 9 to 16 (type 0x28). Its hurt frame
-// is NiDL's 3;
+// Frames: NiDL's 4 to 7 (Poppy Bros. Jr.), then the apple's 9 to 16 (type 0x27) and the tomato's 9 to 16 (type 0x28). Its hurt
+// frame is NiDL's 3;
 #define FRAME(nidl) ((nidl) - 4)
-#define FRAME_BALL 4
-#define FRAME_BOMB 12
-#define BALL_FRAMES 8
+#define FRAME_APPLE 4
+#define FRAME_TOMATO 12
+#define SPIN_FRAMES 8
 
 enum {
-    VARIANT_HOP, VARIANT_JUMP_IN, VARIANT_HOP_IN_PLACE, VARIANT_BALL, VARIANT_BOMB, VARIANT_BALL_IN_PLACE, VARIANT_BOMB_IN_PLACE,
-    VARIANT_THROWN_BALL, VARIANT_THROWN_BOMB,
+    VARIANT_HOP, VARIANT_JUMP_IN, VARIANT_HOP_IN_PLACE, VARIANT_APPLE, VARIANT_TOMATO, VARIANT_APPLE_IN_PLACE, VARIANT_TOMATO_IN_PLACE,
+    VARIANT_THROWN_APPLE, VARIANT_THROWN_TOMATO,
 };
 
 #define HOP_SPEED 0x80
 #define HOP_HEIGHT 0xCD
 #define HOP_FLOAT 6
-#define JUMP_IN_WAIT 30
+#define JUMP_IN_UNTOUCHABLE 30
 #define JUMP_IN_HEIGHT 0x200
 #define ROLL_SPEED 0x80
 #define RIDER_HOP 0x180
@@ -54,12 +60,12 @@ enum {
 // The hop's frames (after the crouch), and the jump in's;
 static const s16 sHop[] = { FRAME(5), 4, FRAME(4), 12, FRAME(5), 4, FRAME(6), 1, NIDL_END };
 static const s16 sJumpIn[] = { FRAME(6), 3, FRAME(5), 4, FRAME(4), 12, FRAME(5), 4, FRAME(6), 1, NIDL_END };
-// The rider's frames from the hop off the ball on, with how long; then 6 until it lands;
+// The rider's frames from the hop off the apple on, with how long; then 6 until it lands;
 static const s16 sRiderHop[] = { FRAME(6), 2, FRAME(5), 2, FRAME(4), 16, FRAME(5), 6, FRAME(6), 1, NIDL_END };
 static const s16 sThrownBounces[] = { 0x200, 0x100 };
 static const s16 sThrownGravity[] = { 0x40, 0x20 };
 
-enum { STATE_CROUCH, STATE_HOP, STATE_JUMP_IN_WAIT, STATE_JUMP_IN, STATE_ROLL, STATE_THROWN, STATE_STOPPED };
+enum { STATE_CROUCH, STATE_HOP, STATE_JUMP_IN_START, STATE_JUMP_IN, STATE_ROLL, STATE_THROWN, STATE_STOPPED };
 
 struct PoppyBrosJr {
     struct NidlObject n;
@@ -70,13 +76,14 @@ struct PoppyBrosJr {
     u8 spin;
     u8 spinTimer;
     u8 bounce;
-    bool8 spawned;          // The ball came off, or Poppy Bros. Jr. jumped off;
+    bool8 spawned;          // The apple or tomato came off, or Poppy Bros. Jr. jumped off;
     struct EffectObject *rider;
     u8 riderFrame;
-    u8 riderPalette;        // Poppy Bros. Jr.'s palette (the ball and bomb use NiDL's palette 15);
+    u8 riderPalette;        // Poppy Bros. Jr.'s palette (the apple and tomato use NiDL's palette 15);
     u8 riderStep;
     u8 riderTimer;
     bool8 riderUp;
+    u8 untouchable;         // Frames the jump in has left untouchable (NiDL's obj+0x30);
     s16 riderY;             // 8.8, negative is up;
     s16 riderSpeed;
     struct ObjectTemplate spawn;    // The template of what it spawned as (the engine keeps a pointer to it);
@@ -85,14 +92,14 @@ struct PoppyBrosJr {
 typedef char sPoppyFits[sizeof(struct PoppyBrosJr) <= NIDL_OBJECT_SIZE ? 1 : -1];
 
 static bool8 Rides(struct PoppyBrosJr *p) {
-    return p->n.variant >= VARIANT_BALL && p->n.variant <= VARIANT_BOMB_IN_PLACE;
+    return p->n.variant >= VARIANT_APPLE && p->n.variant <= VARIANT_TOMATO_IN_PLACE;
 }
 
-static bool8 Bomb(struct PoppyBrosJr *p) {
-    return p->n.variant == VARIANT_BOMB || p->n.variant == VARIANT_BOMB_IN_PLACE || p->n.variant == VARIANT_THROWN_BOMB;
+static bool8 Tomato(struct PoppyBrosJr *p) {
+    return p->n.variant == VARIANT_TOMATO || p->n.variant == VARIANT_TOMATO_IN_PLACE || p->n.variant == VARIANT_THROWN_TOMATO;
 }
 
-/* RiderMain(); Poppy Bros. Jr. on top of the ball: an effect object drawing its parent's frame riderFrame, RIDER_UP pixels up
+/* RiderMain(); Poppy Bros. Jr. on top of the apple: an effect object drawing its parent's frame riderFrame, RIDER_UP pixels up
  * and riderY higher; hidden while the parent is hurt or inhaled, gone with it; */
 static void RiderMain(void) {
     struct Sprite sprite;
@@ -164,15 +171,18 @@ static struct PoppyBrosJr *Spawn(struct Object *obj, u8 variant, s32 dy) {
     return spawned;
 }
 
-/* RiderWatch(); The rider's pre-callback (obj->unk7C, called every frame even while inhaled or defeated): inhaled, the ball or
- * bomb comes off (0x08082108); defeated, Poppy Bros. Jr. jumps off; */
+/* RiderWatch(); The rider's pre-callback (obj->unk7C, called every frame even while inhaled or defeated): inhaled, the apple or
+ * tomato comes off (0x08082108); defeated, Poppy Bros. Jr. jumps off; */
 static void RiderWatch(struct Object *obj) {
     struct PoppyBrosJr *p = (struct PoppyBrosJr *)obj;
 
     if (p->spawned) return;
     if (obj->base.unkC & 0x400) {
+        struct PoppyBrosJr *thrown = Spawn(obj, Tomato(p) ? VARIANT_THROWN_TOMATO : VARIANT_THROWN_APPLE, 0);
+
         p->spawned = TRUE;
-        Spawn(obj, Bomb(p) ? VARIANT_THROWN_BOMB : VARIANT_THROWN_BALL, 0);
+        // (half a pixel up: NiDL's comes off at the rider's whole pixel, obj+0x48, half a pixel above where it lies);
+        if (thrown) thrown->n.obj.base.y -= 0x80;
     } else if (obj->unk80 <= 0) {
         p->spawned = TRUE;
         Spawn(obj, VARIANT_JUMP_IN, 14);
@@ -215,10 +225,10 @@ static void Landed(struct PoppyBrosJr *p) {
     Crouch(p);
 }
 
-// RiderHop(); 0x08082554 and 0x080825EC: Poppy Bros. Jr. hopping on the ball;
+// RiderHop(); 0x08082554 and 0x080825EC: Poppy Bros. Jr. hopping on the apple;
 static void RiderHop(struct PoppyBrosJr *p) {
     if (!p->riderUp) {
-        // Crouched on the ball (frame 7 for 4), then off;
+        // Crouched on the apple (frame 7 for 4), then off;
         if (--p->riderTimer) return;
         p->riderUp = TRUE;
         p->riderSpeed = -RIDER_HOP;
@@ -242,16 +252,49 @@ static void RiderHop(struct PoppyBrosJr *p) {
     }
 }
 
-// Spin(); The ball's (or bomb's) frames, one step every `step` frames;
+// Spin(); The apple's (or tomato's) frames, one step every `step` frames;
 static void Spin(struct PoppyBrosJr *p, u8 step) {
     if (--p->spinTimer) return;
     p->spinTimer = step;
-    if (++p->spin == BALL_FRAMES) p->spin = 0;
-    NidlSetFrame(&p->n, (Bomb(p) ? FRAME_BOMB : FRAME_BALL) + p->spin);
+    if (++p->spin == SPIN_FRAMES) p->spin = 0;
+    NidlSetFrame(&p->n, (Tomato(p) ? FRAME_TOMATO : FRAME_APPLE) + p->spin);
 }
 
 static void Bounce(struct PoppyBrosJr *p) {
     p->n.obj.base.yspeed = sThrownBounces[p->bounce];
+}
+
+// JumpIn(); 0x08081C78: straight up at once, untouchable for 30 frames or till it lands (NiDL's obj+0x30);
+static void JumpIn(struct PoppyBrosJr *p) {
+    struct Object *obj = &p->n.obj;
+
+    p->state = STATE_JUMP_IN;
+    p->timer = 0;
+    p->untouchable = JUMP_IN_UNTOUCHABLE;
+    obj->base.flags |= 0x200;
+    obj->base.xspeed = 0;
+    obj->base.yspeed = JUMP_IN_HEIGHT;
+    NidlPlay(&p->n, sJumpIn);
+}
+
+static void Touchable(struct PoppyBrosJr *p) {
+    p->untouchable = 0;
+    p->n.obj.base.flags &= ~0x200;
+}
+
+// Stopped(); 0x080823EE: the apple lies there, an enemy again; the tomato becomes a Maxim Tomato where it is (NiDL's type 0x46,
+// 0x08082436), KatAM's own (as a chest's, chest.c), and is gone;
+static void Stopped(struct PoppyBrosJr *p) {
+    struct Object *obj = &p->n.obj;
+
+    obj->base.xspeed = obj->base.yspeed = 0;
+    p->state = STATE_STOPPED;
+    Touchable(p);
+    if (Tomato(p)) {
+        CreateObjTemplateAndObj(obj->base.unk56, 1, 0x24, obj->base.x >> 8, obj->base.y >> 8, 0, 0x1F, 0, 0, OBJ_TOMATO, 0, 0, 0, 0,
+                                0, 0, 0, 0, 0, 0, 0, 0, 0);
+        obj->base.flags |= 0x1000;
+    }
 }
 
 static void PoppyBrosJrMain(struct Object *obj) {
@@ -259,6 +302,7 @@ static void PoppyBrosJrMain(struct Object *obj) {
 
     NidlUpdate(&p->n);
     obj->base.flags |= 4;
+    if (p->untouchable && !--p->untouchable) Touchable(p);
 
     switch (p->state) {
     case STATE_CROUCH:
@@ -279,17 +323,11 @@ static void PoppyBrosJrMain(struct Object *obj) {
         }
         if ((obj->base.unk62 & 4) && obj->base.yspeed <= 0 && !p->timer) {
             obj->base.yspeed = 0;
-            if (p->state == STATE_JUMP_IN) Crouch(p);
-            else Landed(p);
+            if (p->state == STATE_JUMP_IN) {
+                Touchable(p);
+                Crouch(p);
+            } else Landed(p);
         }
-        break;
-    case STATE_JUMP_IN_WAIT:
-        // 0x08081CE0: no physics for 30 frames;
-        obj->base.xspeed = obj->base.yspeed = 0;
-        if (--p->timer) break;
-        p->state = STATE_JUMP_IN;
-        obj->base.yspeed = JUMP_IN_HEIGHT;
-        NidlPlay(&p->n, sJumpIn);
         break;
     case STATE_ROLL:
         NidlFall(obj);
@@ -302,29 +340,25 @@ static void PoppyBrosJrMain(struct Object *obj) {
         if (!p->rider) CreateRider(p);
         break;
     case STATE_THROWN:
-        // (inhaled as an enemy, KatAM's 0x0809C380, once it's in a Kirby's inhale: KatAM's own inhale never caught the ball or bomb
-        // that came off, in its box or not);
-        if ((obj->base.unk6C = NidlInhaler(&obj->base)) != NULL) {
-            sub_0809C380(obj);
+        // 0x08082338: two bounces away from Kirby, spinning, untouchable, then it stops (down the second time, it goes on along the
+        // floor for a frame first, as NiDL's);
+        if (p->bounce == ARRAY_COUNT(sThrownBounces)) {
+            Stopped(p);
             break;
         }
-        // 0x08082338: two bounces away from Kirby, spinning, then it stops (the bomb explodes);
         obj->base.yspeed -= sThrownGravity[p->bounce];
         if (obj->base.yspeed < -0x300) obj->base.yspeed = -0x300;
         Spin(p, THROWN_SPIN_STEP);
         if (!(obj->base.unk62 & 4) || obj->base.yspeed > 0) break;
         if (++p->bounce < ARRAY_COUNT(sThrownBounces)) {
+            // (its gravity at once: NiDL's moves 0.875 up the frame after it lands);
             Bounce(p);
-            break;
-        }
-        obj->base.xspeed = obj->base.yspeed = 0;
-        p->state = STATE_STOPPED;
-        if (Bomb(p)) {
-            obj->base.flags |= 0x1000;
-            sub_08073D2C(&obj->base);
-        }
+            obj->base.yspeed -= sThrownGravity[p->bounce];
+        } else obj->base.yspeed = 0;
         break;
     case STATE_STOPPED:
+        // (inhaled as an enemy, KatAM's 0x0809C380, once it's in a Kirby's inhale: KatAM's own inhale never caught the apple that
+        // came off, in its box or not);
         if ((obj->base.unk6C = NidlInhaler(&obj->base)) != NULL) {
             sub_0809C380(obj);
             break;
@@ -340,32 +374,35 @@ void PoppyBrosJrStart(struct Object *obj) {
 
     ObjectSetFunc(obj, 0, PoppyBrosJrMain);
     obj->base.yspeed = 0;
-    // The ball and the bomb: NiDL's palette 15 (0x08081FC4 sets it in obj+0x40, keeping Poppy Bros. Jr.'s for the rider), a second
-    // palette its ball frames load;
+    // The apple and the tomato: NiDL's palette 15 (0x08081FC4 sets it in obj+0x40, keeping Poppy Bros. Jr.'s for the rider), a
+    // second palette their frames load;
     p->riderPalette = NidlLoadPalette(&p->n, gNidlData.enemies[p->n.enemy].animId, 0);
-    if (Rides(p) || p->n.variant == VARIANT_THROWN_BALL || p->n.variant == VARIANT_THROWN_BOMB)
-        obj->base.sprite.palId = NidlLoadPalette(&p->n, gNidlData.enemies[p->n.enemy].animId | NIDL_SECOND_PALETTE, FRAME_BALL);
+    if (Rides(p) || p->n.variant == VARIANT_THROWN_APPLE || p->n.variant == VARIANT_THROWN_TOMATO)
+        obj->base.sprite.palId = NidlLoadPalette(&p->n, gNidlData.enemies[p->n.enemy].animId | NIDL_SECOND_PALETTE, FRAME_APPLE);
     switch (p->n.variant) {
     case VARIANT_JUMP_IN:
-        if (p->state == STATE_JUMP_IN_WAIT || p->state == STATE_JUMP_IN) return;
+        // (as Init set it: the jump starts; after a hit, mid-jump: it falls on);
+        if (p->state == STATE_JUMP_IN_START) JumpIn(p);
+        if (p->state == STATE_JUMP_IN) return;
         // Fallthrough;
     case VARIANT_HOP:
     case VARIANT_HOP_IN_PLACE:
         Crouch(p);
         break;
-    case VARIANT_THROWN_BALL:
-    case VARIANT_THROWN_BOMB:
-        // (still bouncing away, as Init sent it, 0.5 a frame: it stopped dead here, the bomb going off in Kirby's face; after a hit,
-        // it lies where it is);
-        if (p->state != STATE_THROWN) {
+    case VARIANT_THROWN_APPLE:
+    case VARIANT_THROWN_TOMATO:
+        // (bouncing away, as Init sent it, 0.5 a frame: its first bounce here, as the engine's start zeroes yspeed (it lost its first
+        // bounce); after a hit, once it's stopped, it lies where it is);
+        if (p->state == STATE_THROWN) Bounce(p);
+        else {
             p->state = STATE_STOPPED;
             obj->base.xspeed = 0;
         }
         break;
     default:
-        // Rolling the ball: forward at 0.5 (in place for variants 5 and 6);
+        // Rolling the apple or tomato: forward at 0.5 (in place for variants 5 and 6);
         p->state = STATE_ROLL;
-        obj->base.xspeed = p->n.variant == VARIANT_BALL || p->n.variant == VARIANT_BOMB ? ((obj->base.flags & 1) ? -ROLL_SPEED : ROLL_SPEED) : 0;
+        obj->base.xspeed = p->n.variant == VARIANT_APPLE || p->n.variant == VARIANT_TOMATO ? ((obj->base.flags & 1) ? -ROLL_SPEED : ROLL_SPEED) : 0;
         break;
     }
 }
@@ -376,6 +413,7 @@ void PoppyBrosJrInit(struct NidlObject *n) {
     struct Object *obj = &n->obj;
 
     p->spawned = FALSE;
+    p->untouchable = 0;
     p->rider = NULL;
     p->hops = 0;
     p->turned = FALSE;
@@ -394,25 +432,27 @@ void PoppyBrosJrInit(struct NidlObject *n) {
         p->state = STATE_ROLL;
     } else {
         sub_0803E2B0(&obj->base, -5, -5, 5, 7);
-        ObjectSetBounds(&obj->base, -6, -6, 6, 9);
+        // (the apple or tomato alone lies as low as the rider, as NiDL's: their floor box is the same, obj+0x42);
+        if (n->variant == VARIANT_THROWN_APPLE || n->variant == VARIANT_THROWN_TOMATO) ObjectSetBounds(&obj->base, -7, -7, 7, 8);
+        else ObjectSetBounds(&obj->base, -6, -6, 6, 9);
         p->state = STATE_CROUCH;
     }
     if (n->variant == VARIANT_JUMP_IN) {
-        // 0x080819F4: variant 1 waits 30 frames, then jumps in;
-        p->state = STATE_JUMP_IN_WAIT;
-        p->timer = JUMP_IN_WAIT;
+        // 0x080819F4: variant 1 jumps in (PoppyBrosJrStart(), once the engine's start is done);
+        p->state = STATE_JUMP_IN_START;
         NidlSetFrame(n, FRAME(6));
         return;
     }
-    if (n->variant == VARIANT_THROWN_BALL || n->variant == VARIANT_THROWN_BOMB) {
-        // 0x08082338: away from Kirby;
+    if (n->variant == VARIANT_THROWN_APPLE || n->variant == VARIANT_THROWN_TOMATO) {
+        // 0x08082338: away from Kirby, untouchable till it stops; its spin's first step after 4 frames (0x08082458);
         obj->base.flags ^= 1;
+        obj->base.flags |= 0x200;
         p->state = STATE_THROWN;
+        p->spinTimer = THROWN_SPIN_STEP;
         obj->base.xspeed = (obj->base.flags & 1) ? -THROWN_SPEED : THROWN_SPEED;
-        Bounce(p);
-        NidlSetFrame(n, (Bomb(p) ? FRAME_BOMB : FRAME_BALL));
+        NidlSetFrame(n, (Tomato(p) ? FRAME_TOMATO : FRAME_APPLE));
         return;
     }
-    if (Rides(p)) NidlSetFrame(n, Bomb(p) ? FRAME_BOMB : FRAME_BALL);
+    if (Rides(p)) NidlSetFrame(n, Tomato(p) ? FRAME_TOMATO : FRAME_APPLE);
     obj->base.unk4C = obj->base.y = ((obj->base.y + (obj->base.unk3F * 0x100)) & 0xfffff000) - (obj->base.unk3F * 0x100) - 1;
 }

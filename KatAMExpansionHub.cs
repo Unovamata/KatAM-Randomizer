@@ -5,6 +5,7 @@ namespace KatAMRandomizer {
      * • Palettes: Central Circle's scenery (palettes 4 and 5) tinted to the night (NightTint);
      * • Mirrors: its golden one (MainHubEntry) to Vegetable Valley's first room, the way in, a pink one (MainHubReturn, MirrorTwin()) back to Central Circle, and
      *   Central Circle's Dimension Mirror (DimensionMirrorTemplate(), to the Power Orb's room as Central Circle's: FinaleMirrors());
+     * • The Star Rod on a stand where Central Circle has the Master Sword's, there from the start (RodStandTemplate());
      * • Doors: as Central Circle's, special blocks (kind 1) its hub mirror objects (0x8C) break once their world slot is set, drawing
      *   the door over the 3x3 cells above its door cell (MainHubDoors: Central Circle's own doors' cells). Each level's door is its
      *   design (NidlDesigns: one of KatAM's door frames, anim 0x2C6, over its mirror, anim 0x2C5, as object 0x97 draws them; none of
@@ -182,6 +183,9 @@ namespace KatAMRandomizer {
                 templates.Add(dimensionMirror);
                 types.Add(ShardType);
             }
+            // (the Star Rod's stand, where Central Circle has the Master Sword's: RodStandTemplate());
+            byte[] rodStand = RodStandTemplate(rom, symbols, templates.Count);
+            if (rodStand != null) templates.Add(rodStand);
             specials.AddRange(new byte[] { 0, 0, 0, 0, 0, 0, 0xFF, 0xFF });
             int tilemapAt = Allocate(ref cursor, 0x20, 4), mapAt = AllocateCompressed(rom, CompressLZ77(hubMap), ref cursor);
             Array.Copy(rom, tilemapEntry, rom, tilemapAt, 0x20);
@@ -248,6 +252,21 @@ namespace KatAMRandomizer {
             int list = ReadInt(rom, symbols["gLevelObjLists"] + index * 4) - 0x08000000;
             for (int at = ReadInt(rom, list) - 0x08000000; rom[at] != 0 || rom[at + 1] != 0; at += 36)
                 if (rom[at + 12] == ShardType && rom[at + 14] == 8) return rom.Skip(at).Take(36).ToArray();
+            return null;
+        }
+
+        /* RodStandTemplate(); The Star Rod's stand (object 0x9A, "ROM Expansion/abilities/star_rod_stand.c": the Star Rod there from the start,
+         * as the Master Sword is in Central Circle once the game's beaten, or with the "Unlock the Master Sword" option), where Central
+         * Circle's Master Sword stand is (MasterSwordStand, its object list's), in the golden pedestal the hub has from Central Circle's
+         * tiles under it (its spot: the rod's foot, 2 pixels into the pedestal, whose top is 11 under the sword's spot); null if it's
+         * not there; */
+        const byte RodStandType = 0x9A;
+        const int SwordStandFoot = 13;
+        static byte[] RodStandTemplate(byte[] rom, IReadOnlyDictionary<string, int> symbols, int number) {
+            int index = ReadShort(rom, symbols["gRoomProps"] + EntryRoom * 0x28 + 16 * 2);
+            int list = ReadInt(rom, symbols["gLevelObjLists"] + index * 4) - 0x08000000;
+            for (int at = ReadInt(rom, list) - 0x08000000; rom[at] != 0 || rom[at + 1] != 0; at += 36)
+                if (rom[at + 12] == MasterSwordStand) return ObjectTemplate(ReadShort(rom, at + 6), ReadShort(rom, at + 8) + SwordStandFoot, number, RodStandType);
             return null;
         }
 
