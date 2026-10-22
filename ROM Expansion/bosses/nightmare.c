@@ -731,9 +731,10 @@ void NightmareIntroRider(struct Kirby *kirby) {
  * under a third of his HP)), 3 the tornado (state 8: down at Kirby, steering after him; under a third of his HP up off the screen and
  * down through it at 8 pixels a frame) and 4 the swoop (state 9: down and back up across the screen). Between them he hovers (state
  * 1: 15 to 60 frames, NiDL's draws), vanishes (state 3) and reappears (state 2), every fourth time three times quickly (state 10).
- * KatAM's damage, NiDL's numbers: 60 HP, a star 10 (unk94: KatAM's strength 1 + 9), and only in his frames 4-35 (his cape thrown
- * open, his tornado, his hand out: NiDL's 0x08749380), within that frame's box (sBodyBoxes); else no box (flag 0x200); hit, he faces
- * the Kirby whose star it was (NiDL's faces its Kirby) and is knocked back (state 11, NiDL's 0x080AB854). The Star Rod's stars burst on his box whatever (NightmareBlocks():
+ * KatAM's damage, NiDL's numbers: 60 HP, a star 10 (unk94 2 + the star's strength 8, the Master Sword's), and only in his frames
+ * 4-35 (his cape thrown open, his tornado, his hand out: NiDL's 0x08749380), within that frame's box (sBodyBoxes); else no box (flag
+ * 0x200); hit, he faces the Kirby whose star it was (NiDL's faces its Kirby) and is knocked back (state 11, NiDL's 0x080AB854).
+ * The Star Rod's stars burst on his box whatever (NightmareBlocks():
  * NiDL keeps it, even while he's gone, abilities/star_rod.c); his touch hurts (NiDL's companion: sTouches, two attack objects).
  * His graphics (KatAMExpansionNightmare.cs, gNidlNightmareFight): NiDL draws his body frame and his top half over it with four
  * palettes (his collar, his tornado: C and D by turns every two frames, his cape: A and B blended to and fro over 64 frames, his
@@ -773,7 +774,7 @@ const struct NidlNightmareFight gNidlNightmareFight = { 0 };
 #define HIT_KNOCKED 1               // NiDL's 0x02007D00;
 #define HIT_DYING 2
 #define MAX_HP 60
-#define STAR_STRENGTH 9             // (+ KatAM's star's 1: NiDL's 10);
+#define STAR_STRENGTH 2             // (+ the Star Rod star's 8, abilities/star_rod.c: NiDL's 10, his 60 HP in 6 stars);
 #define FRONT_ORDER 0x18            // Sprite priorities (NiDL's: his effects 7-9 in front of him, 11, the hand's sparkles 12 behind);
 #define SPARKLE_ORDER 0x19
 #define BODY_ORDER 0x1A

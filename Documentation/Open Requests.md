@@ -427,7 +427,15 @@ randomizer puts in an enemy's spot.
   languages' world map frames between the European area titles. Not tested: the European version in its other languages
   (their data is untouched), pausing in a NiDL room (unchanged: as before, its rooms count as the tutorial's), the Map Viewer
   app itself (it reads only the kept graphics).
-- **Star Rod damage**: as the Master Sword's; balance the NiDL final boss so the fight stays in check with it.
+- **Star Rod damage** (done): its stars hit with the Master Sword slash's strength, 8 (`sub_08075DB0`'s; it was 1), still as stars
+  (KatAM adds the target's star modifier; the sword adds its fire and cut modifiers instead, so the two differ only where those
+  differ: Mr. Frosty, weak to fire, takes 11 from the sword's slash and 8 from a star). Nightmare is kept NiDL's: his star
+  modifier goes from 9 to 2, so a star still takes 10 of his 60 HP, 6 stars as before (his HP bar's fill is tuned to 60). The
+  Power Orb counts its hits itself (one per star), so its fight doesn't change. Checked in the emulator (USA, by script): Mr.
+  Frosty took 1 per Star Rod star before, 8 now (30, 22, 14, 6, beaten; the rod given by RAM write); the Master Sword, taken from
+  Central Circle's stand for real (the Unlock the Master Sword option) and brought into his room by RAM warp, took 11 with its
+  slash (attack strength 8 read from RAM); Nightmare's fight played by the finale script, Kirby firing: 60, 50, 40, 30, 20, 10.
+  Not tested: played by hand; the rod against other bosses; Nightmare's last hit (the run ended at 10 HP).
 - **Mike**: wrong palette when it's activated.
 - **Dedede's fight**: the Fountain of Dreams background is corrupted on the fight's first frames.
 - **Nightmare's defeat**: may show a wrong palette.
