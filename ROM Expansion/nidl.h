@@ -304,6 +304,8 @@ void HeavyMoleInit(struct NidlObject *);
 void HeavyMoleStart(struct Object *);
 void KingDededeInit(struct NidlObject *);
 void KingDededeStart(struct Object *);
+void KingDededeGone(struct Object *);
+void KingDededeBeaten(struct Object *);
 void PowerOrbInit(struct NidlObject *);
 void PowerOrbStart(struct Object *);
 void NightmareInit(struct NidlObject *);

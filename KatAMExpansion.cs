@@ -35,17 +35,18 @@ namespace KatAMRandomizer {
          * by neither shift either; KatAMExpansionRooms.cs, CloudRows); FightColors: Nightmare's fight's four palettes (USA 0x08334480: his
          * cape's two, which his draw blends, and his tornado's two, which it alternates; KatAMExpansionNightmare.cs); OrbColors: the Power
          * Orb's two palettes, which its fight blends (USA 0x082FE0E4; "ROM Expansion/bosses/power_orb.c", gNidlPowerOrbColors);
-         * MetaKnightFlash: Meta Knight's hurt flash's colors (USA 0x082F427C; "ROM Expansion/bosses/meta_knight.c", gNidlMetaKnightFight); */
+         * MetaKnightFlash: Meta Knight's hurt flash's colors (USA 0x082F427C; "ROM Expansion/bosses/meta_knight.c", gNidlMetaKnightFight);
+         * DededeFlash: King Dedede's (USA 0x082D8638; "ROM Expansion/bosses/dedede.c", gNidlKingDedede); */
         sealed record NightmareRegion(string GameCode, int Descriptors, int FrameShift, string KatAM, int Palette15,
                                       int CardPalettes, int CardPaletteStride, int CardTiles, int CardTileStride, int RoomTable, int LateShift,
-                                      int EndingFrames, int CloudSpeeds, int FightColors, int OrbColors, int MetaKnightFlash);
+                                      int EndingFrames, int CloudSpeeds, int FightColors, int OrbColors, int MetaKnightFlash, int DededeFlash);
         const int LateFrames = 0x753E3C;
         static int FrameAddress(NightmareRegion region, int usa) => usa + (usa >= LateFrames ? region.LateShift : region.FrameShift);
 
         static readonly NightmareRegion[] NightmareRegions = {
-            new NightmareRegion("A7KE", 0x73EEA0, 0, "USA", 0x0D07A8, 0x731A90, 8, 0x731A94, 8, 0x7E1D58, 0, 0x755708, 0x7561CC, 0x334480, 0x2FE0E4, 0x2F427C),
-            new NightmareRegion("A7KJ", 0x742DAC, 0x3A8C, "Japan", 0x0CFF60, 0x73599C, 8, 0x7359A0, 8, 0x7E60DC, 0x3A8C, 0x759194, 0x759C68, 0x333C38, 0x2FD89C, 0x2F3A34),     // Hoshi no Kirby: Yume no Izumi Deluxe;
-            new NightmareRegion("A7KP", 0x97B678, 0x23C7EC, "Europe", 0x0D3228, 0x96D770, 4, 0x96D7E0, 20, 0xBFD8E8, 0x23CA5C, 0x99288C, 0x994DA0, 0x33B56C, 0x3051D0, 0x2FB368),
+            new NightmareRegion("A7KE", 0x73EEA0, 0, "USA", 0x0D07A8, 0x731A90, 8, 0x731A94, 8, 0x7E1D58, 0, 0x755708, 0x7561CC, 0x334480, 0x2FE0E4, 0x2F427C, 0x2D8638),
+            new NightmareRegion("A7KJ", 0x742DAC, 0x3A8C, "Japan", 0x0CFF60, 0x73599C, 8, 0x7359A0, 8, 0x7E60DC, 0x3A8C, 0x759194, 0x759C68, 0x333C38, 0x2FD89C, 0x2F3A34, 0x2D7DF0),     // Hoshi no Kirby: Yume no Izumi Deluxe;
+            new NightmareRegion("A7KP", 0x97B678, 0x23C7EC, "Europe", 0x0D3228, 0x96D770, 4, 0x96D7E0, 20, 0xBFD8E8, 0x23CA5C, 0x99288C, 0x994DA0, 0x33B56C, 0x3051D0, 0x2FB368, 0x2DB0B8),
         };
 
         static NightmareRegion RegionOf(byte[] rom) => rom == null || rom.Length < 0x800000 ? null
@@ -73,7 +74,8 @@ namespace KatAMRandomizer {
          * tiles, the comet's, 2 its second, the blue star's); Ending: a frame of NiDL's ending down from the moon (EndingGraphics(): the
          * region's EndingFrames, its own tiles and five palettes); Layer (with OnlyPalette): 1 only its pieces NiDL draws before (in front
          * of) the frame's first piece of another palette, 2 only those after it (behind: Meta Knight's Galaxia, in front of his body or
-         * behind it); */
+         * behind it); 3 only its pieces up to its last one over a later piece of another palette (their pixels: NiDL draws it in front of
+         * that one), 4 only those after it (King Dedede's second palette's, in front of his body or behind it); */
         sealed record Part(int Frame, Dictionary<int, int> Recolor = null, int Table = 0, bool Palette15 = false, int Palette = 0, int Descriptor = -1,
                            int Dx = 0, int Dy = 0, bool Common = false, int OnlyPalette = -1, bool OrbShots = false, bool StarRod = false,
                            bool Shared = false, byte[] Tile = null, int Cutscene = 0, bool Ending = false, bool OrbMoon = false, int Layer = 0);
@@ -481,23 +483,72 @@ namespace KatAMRandomizer {
                 new byte[0], Type: BossID2);
         }
 
-        /* King Dedede; NiDL boss 0 (type 0x3B, Rainbow Resort's; mini-boss descriptor 30 holds only his effects). His frames are streamed
-         * frames (0x087538E0), with the same two palettes in every one, cut by palette as Paint Roller's: the ones he uses (used,
-         * bosses/dedede.c's sFrames), the first palette's pieces, then the same, the second's (drawn as two sprites). Type 0x44. Hurt:
-         * standing (4), its first palette's pieces; */
-        static Miniboss KingDedede() {
-            int[] used = { 4, 5, 6, 7, 13, 14, 15, 16, 17, 18, 19, 24, 25, 26, 27, 28, 29, 34, 35, 36, 39, 41, 42, 43 };
-            List<Part[]> frames = new List<Part[]>();
+        /* King Dedede; NiDL boss 0 (type 0x3B, Rainbow Resort's; mini-boss descriptor 30 holds his breath). His frames are streamed frames
+         * (0x087538E0), with the same two palettes in every one, cut by palette and by layer ("ROM Expansion/bosses/dedede.c" draws them as
+         * three sprites): frame 0 his object's own (NiDL's 4, never shown: his sprites are him), 1-40 his body in NiDL's 4-43 (the first
+         * palette's pieces), then the second palette's pieces NiDL draws in front of his body (DededeFront: the frames that have them;
+         * Layer 3: up to the last one over his body), then the others (DededeBack, behind it); then his effects (EffectOnly: only his
+         * sprites draw them, type 0x44's 256 frames being shared): NiDL's shared dust (0x0874CB90's 0-9: right and left by pairs;
+         * 0x0874C500's 0), his hit stars (0x0874CBC8's 0-1), his breath (0x08753990's 0, the descriptor's) and his inhale's sparkle
+         * (0x0874C44C's 45). WriteKingDededeFight() tells the C code where they are. Type 0x44. Hurt: standing (4), its first palette's
+         * pieces; */
+        static int[] DededeFront => new[] { 5, 6, 7, 8, 9, 13, 14, 15, 17, 19, 20, 21, 22, 23, 25, 28, 29, 30, 31, 32, 33, 34, 35, 37, 38, 39, 41, 42, 43 };
+        static int[] DededeBack => new[] {
+            4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 35, 36, 37, 38, 39, 40, 41, 42, 43,
+        };
+        const int DededeFrames = 40;
+        static int DededeFrontAt => 1 + DededeFrames;
+        static int DededeBackAt => DededeFrontAt + DededeFront.Length;
+        static int DededeEffectsAt => DededeBackAt + DededeBack.Length;
+        static (int table, int[] frames, bool common)[] DededeEffects => new[] {
+            (0x74CB90, Enumerable.Range(0, 10).ToArray(), true),
+            (0x74C500, new[] { 0 }, true),
+            (0x74CBC8, new[] { 0, 1 }, true),
+            (0x753990, new[] { 0 }, false),
+            (0x74C44C, new[] { 45 }, true),
+        };
 
-            for (int palette = 0; palette < 2; palette++)
-                frames.AddRange(used.Select(f => new[] { new Part(f, OnlyPalette: palette) }));
+        static Miniboss KingDedede() {
+            List<Part[]> frames = new List<Part[]> { new[] { new Part(4, OnlyPalette: 0) } };
+
+            frames.AddRange(Enumerable.Range(4, DededeFrames).Select(f => new[] { new Part(f, OnlyPalette: 0) }));
+            frames.AddRange(DededeFront.Select(f => new[] { new Part(f, OnlyPalette: 1, Layer: 3) }));
+            frames.AddRange(DededeBack.Select(f => new[] { new Part(f, OnlyPalette: 1, Layer: 4) }));
+            foreach ((int table, int[] numbers, bool common) in DededeEffects)
+                frames.AddRange(numbers.Select(f => new[] { common ? new Part(f, Table: table, Palette15: true, Common: true) : new Part(f, Table: table) }));
 
             return new Miniboss(6, "King Dedede", 30, 0x7538E0, frames, new[] { new Part(4, OnlyPalette: 0) },
                 new[] {
                     (0x46, 0), (0x46, 1), (0x46, 2), (0x46, 3), (-1, -1),                          // "King" (King Golem), space;
                     (0x32, 0), (0x02, 5), (0x00, 2), (0x02, 5), (0x00, 2), (0x02, 5),              // "D" (Droppy), "e" (Blipper), "d" (Waddle Dee);
                 },
-                new byte[0], Type: BossID2);
+                new byte[0], Type: BossID2, EffectOnly: frames.Count - 1);
+        }
+
+        /* WriteKingDededeFight(); gNidlKingDedede ("ROM Expansion/bosses/dedede.c"): u8 [44] per NiDL frame the frame of his second palette's
+         * pieces in front of his body, u8 [44] behind it (0xFF: none); u8 [8] his effects' first frames (DededeEffects'); u8 [8] the VRAM
+         * tiles of his body's biggest frame, the front's, the back's, his effects'; u16 [16] his body's colours, u16 [16] his hurt flash's
+         * (NiDL's: region.DededeFlash); */
+        static void WriteKingDededeFight(byte[] rom, byte[] nightmare, NightmareRegion region, int at, List<byte[]> palettes,
+                                         List<(byte[] tiles, ushort[] oams, short[] attributes, int palette)> frames) {
+            int Tiles(int from, int count) => frames.Skip(from).Take(count).Max(f => f.tiles.Length / 32);
+
+            for (int f = 0; f < 44; f++) {
+                int front = Array.IndexOf(DededeFront, f), back = Array.IndexOf(DededeBack, f);
+                rom[at + f] = (byte)(f < 4 || front < 0 ? 0xFF : DededeFrontAt + front);
+                rom[at + 44 + f] = (byte)(f < 4 || back < 0 ? 0xFF : DededeBackAt + back);
+            }
+            int fx = DededeEffectsAt;
+            for (int e = 0; e < DededeEffects.Length; e++) {
+                rom[at + 88 + e] = (byte)fx;
+                fx += DededeEffects[e].frames.Length;
+            }
+            rom[at + 96] = (byte)Tiles(1, DededeFrames);
+            rom[at + 97] = (byte)Tiles(DededeFrontAt, DededeFront.Length);
+            rom[at + 98] = (byte)Tiles(DededeBackAt, DededeBack.Length);
+            rom[at + 99] = (byte)Tiles(DededeEffectsAt, frames.Count - DededeEffectsAt);
+            Array.Copy(palettes[frames[1].palette], 0, rom, at + 104, 32);
+            Array.Copy(nightmare, region.DededeFlash, rom, at + 136, 32);
         }
 
         // OrbDot; The Power Orb's end's dot: 3 black pixels across (NiDL's palette 15's color 7), as NiDL loads it with the orb's end (its
@@ -585,11 +636,12 @@ namespace KatAMRandomizer {
             new byte[0], Descriptor: 35, Palette: 1, Hidden: true);
 
         /* Falling star; Mr. Shine's from the sky (NiDL's type 0x7F's third: its blink, 0x087542A8's 4 and 5, Mr. Shine & Mr. Bright's first
-         * palette; then the star, NiDL's shared 0x0874C44C's 4-7, spinning, its tiles and palette 15), an enemy so Kirby can inhale it and
-         * spit it back. Hurt: the star; */
+         * palette; then the star, NiDL's shared 0x0874C44C's 4-7, spinning, its tiles and palette 15; from 6, King Dedede's, NiDL's shared
+         * 0x0874CCBC's 4-13: bosses/dedede.c), an enemy so Kirby can inhale it and spit it back. Hurt: the star; */
         static Enemy FallingStar() => new Enemy(16, "Falling Star", 0, 0x7542A8,
             new[] { 4, 5 }.Select(f => new[] { new Part(f) })
-                .Concat(new[] { 4, 5, 6, 7 }.Select(f => new[] { new Part(f, Table: 0x74C44C, Palette15: true, Common: true) })).ToList(),
+                .Concat(new[] { 4, 5, 6, 7 }.Select(f => new[] { new Part(f, Table: 0x74C44C, Palette15: true, Common: true) }))
+                .Concat(Enumerable.Range(4, 10).Select(f => new[] { new Part(f, Table: 0x74CCBC, Palette15: true, Common: true) })).ToList(),
             new[] { new Part(4, Table: 0x74C44C, Palette15: true, Common: true) }, new Dictionary<int, ushort>(),
             new[] { (0x04, 0), (0x23, 4), (0x2D, 1), (0x01, 1) },   // "S" (Squishy), "t" (Shooty), "a" (Batty), "r" (Bronto Burt);
             new byte[0], Descriptor: 34, Palette: 0, Hidden: true);
@@ -1003,6 +1055,10 @@ namespace KatAMRandomizer {
                 // (Mr. Shine & Mr. Bright's sprites' sizes, colours, their room's skies: "ROM Expansion/bosses/shine_bright.c", gNidlShineBright);
                 int shineBright = allBosses.FindIndex(m => m.Type == BossID && m.Index == 2);
                 WriteShineBrightFight(rom, nightmare, region, CodeAddress + version.CodeSymbols["gNidlShineBright"], builtMinibosses[shineBright].frames);
+                // (King Dedede's sprites' frames, sizes, colours: "ROM Expansion/bosses/dedede.c", gNidlKingDedede);
+                int dedede = allBosses.FindIndex(m => m.Type == BossID2 && m.Index == 6);
+                WriteKingDededeFight(rom, nightmare, region, CodeAddress + version.CodeSymbols["gNidlKingDedede"], builtMinibosses[dedede].palettes,
+                                     builtMinibosses[dedede].frames);
             } catch (Exception exception) when (exception is IndexOutOfRangeException or ArgumentException or InvalidOperationException) {
                 return $"The Nightmare in Dream Land ROM doesn't match the {region.KatAM} release.";
             }
@@ -1236,6 +1292,15 @@ namespace KatAMRandomizer {
             (byte[] tiles, byte[][] palettes)? ending = null;
             List<(Piece, byte[], int)> Pieces(Part part) => PartOffset(part, Layered(part, UnmovedPieces(part)).Where(p => part.OnlyPalette < 0 || p.Item1.Palette == part.OnlyPalette).ToList());
             List<(Piece, byte[], int)> Layered(Part part, List<(Piece, byte[], int)> pieces) {
+                if (part.Layer >= 3) {
+                    List<HashSet<(int, int)>> opaque = pieces.Select(p => OpaquePixels(p.Item1, p.Item2)).ToList();
+                    int last = -1;
+                    for (int i = 0; i < pieces.Count; i++)
+                        if (pieces[i].Item1.Palette == part.OnlyPalette
+                            && Enumerable.Range(i + 1, pieces.Count - i - 1).Any(j => pieces[j].Item1.Palette != part.OnlyPalette && opaque[i].Overlaps(opaque[j])))
+                            last = i;
+                    return pieces.Where((p, i) => part.Layer == 3 ? i <= last : i > last).ToList();
+                }
                 int other = pieces.FindIndex(p => p.Item1.Palette != part.OnlyPalette);
                 if (part.Layer == 0 || other < 0) return part.Layer == 2 ? new List<(Piece, byte[], int)>() : pieces;
                 return part.Layer == 1 ? pieces.Take(other).ToList() : pieces.Skip(other).ToList();
@@ -1520,6 +1585,20 @@ namespace KatAMRandomizer {
             }
 
             return output.ToArray();
+        }
+
+        // OpaquePixels(); A piece's drawn pixels (PieceTiles()' tiles: not colour 0), in its frame (its flips);
+        static HashSet<(int, int)> OpaquePixels(Piece piece, byte[] tiles) {
+            HashSet<(int, int)> pixels = new HashSet<(int, int)>();
+
+            for (int y = 0; y < piece.Height; y++) {
+                for (int x = 0; x < piece.Width; x++) {
+                    int tile = (y / 8) * (piece.Width / 8) + x / 8, b = tile * 32 + (y % 8) * 4 + (x % 8) / 2;
+                    if (b >= tiles.Length || ((x & 1) != 0 ? tiles[b] >> 4 : tiles[b] & 0xF) == 0) continue;
+                    pixels.Add((piece.X + (piece.HFlip != 0 ? piece.Width - 1 - x : x), piece.Y + (piece.VFlip != 0 ? piece.Height - 1 - y : y)));
+                }
+            }
+            return pixels;
         }
 
         /* ApplyNamePatch(); Replaces a name copy with: r0 = the object, then a call to NidlCopyName (its address goes in the literal the

@@ -81,7 +81,7 @@
          * NiDL's spawn puts it on (-1: the template's), and the middle of its fight's screen from that spot. Its behavior's low nibble is
          * the mirror shard it leaves: its level's (0-7). The others aren't ported yet: their rooms stay empty, their mirror on; */
         static readonly Dictionary<int, (byte boss, int x, int y, int screenDx, int screenDy)> RoomBosses = new Dictionary<int, (byte, int, int, int, int)> {
-            [0] = (6, 200, 280, -56, 0),    // King Dedede: the ring's right (NiDL's (232, 296) is off its screen: he walks in); his screen NiDL's, held at (24, 168) the whole fight;
+            [0] = (6, 200, 280, -56, 0),    // King Dedede: the ring's right (his object made here; the fight puts him on NiDL's spot, (232, 271.5): bosses/dedede.c's KingDededeInit()); his screen NiDL's, held at (24, 168) the whole fight;
             [1] = (4, -1, -1, 0, 0),        // Paint Roller: the template's (24, 40), his easels (bosses/paint_roller.c) from it;
             [2] = (3, -1, -1, 0, 0),        // Meta Knight: the template's (232, 56), NiDL's ledge (he drops to the floor);
             [3] = (5, 200, 300, -64, -40),    // Heavy Mole: on the right of its screen (NiDL's (136, 264) its middle: it scrolls with the mole there);

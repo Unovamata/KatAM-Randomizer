@@ -129,6 +129,11 @@ void NidlBossDefeat(struct Object *obj) {
         MetaKnightBeaten(obj);
         return;
     }
+    // (King Dedede's: NiDL's defeat first, his shard after it, bosses/dedede.c);
+    if (n->enemy == NIDL_KING_DEDEDE) {
+        KingDededeBeaten(obj);
+        return;
+    }
     NidlBossShard(obj->base.unk56, obj->base.roomId, n->variant & 7);
 }
 

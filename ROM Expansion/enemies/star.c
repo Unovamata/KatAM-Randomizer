@@ -1,10 +1,10 @@
 /* Falling star; Mr. Shine's from the sky (bosses/shine_bright.c), ported from Kirby: Nightmare in Dream Land (USA) (its frames
  * 0x087542A8's 4, 5, the blink, and NiDL's shared star 0x0874C44C's 4-7), as NIDL_STAR: no room has them, Mr. Shine's fight makes
  * them (behavior NIDL_SPECIAL << 4 | 2) and moves them as NiDL's (its blink, its fall, its spin, gone off the screen: its frames, its
- * palette). Being a type 0x31 object, Kirby inhales one (it gives nothing) and spits it back as a star, as in NiDL: what Kirby hits
- * the boss with when he has no power (KatAM's bosses take only the stronger attacks). Let go (the fight over), or one nothing drives
- * (Heavy Mole's, King Dedede's: StarFree()), it flies on at its speed, spinning, through anything, until it's off the screen (KatAM's
- * despawn, as the enemies'); */
+ * palette); King Dedede's fight the stars he knocks out (bosses/dedede.c: its frames 6-15, NiDL's shared 0x0874CCBC's 4-13). Being a
+ * type 0x31 object, Kirby inhales one (it gives nothing) and spits it back as a star, as in NiDL: what Kirby hits the boss with when he
+ * has no power (KatAM's bosses take only the stronger attacks). Let go (the fight over), or one nothing drives (Heavy Mole's:
+ * StarFree()), it flies on at its speed, spinning, through anything, until it's off the screen (KatAM's despawn, as the enemies'); */
 #include "../nidl.h"
 
 #define SPIN_TIME 3
@@ -33,7 +33,7 @@ void StarStart(struct Object *obj) {
     ObjectSetFunc(obj, -1, StarMain);
 }
 
-// StarFree(); A star nothing drives (Heavy Mole's, King Dedede's): spinning its way from the start, moving at its speed;
+// StarFree(); A star nothing drives (Heavy Mole's): spinning its way from the start, moving at its speed;
 void StarFree(struct Object *obj) {
     obj->base.counter = 1;
     NidlSetFrame((struct NidlObject *)obj, SPIN_FIRST);

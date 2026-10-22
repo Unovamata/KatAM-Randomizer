@@ -210,6 +210,48 @@ Left:
 - **Not tested**: played by hand; Kirby hit by their attacks against NiDL frame by frame (KatAM's own hit reaction; the recordings
   kept him out of the beam); helpers and other players in the fight.
 
+## 41. King Dedede's fight 1:1 from NiDL
+The owner: recreate King Dedede's fight (Rainbow Resort's boss) 1:1 from NiDL's, as Meta Knight's and Mr. Shine & Mr. Bright's
+were (NiDL's code written out in C, checked frame by frame against recordings), with his graphics, effects, the inhale, the hammer,
+the stars and the defeat. Done: the whole fight from NiDL's code (see the ROM Expansion README's row). Checked by script in the
+emulator (not played by hand), NiDL's recorded fights (USA) against KatAM's with NiDL's random seed and Kirby's spot fed in every
+frame:
+- **The fight**: his state, frame, spot, facing and mirroring and every child's kind, frame and spot (his stars, dust, breath, hit
+  stars, his hammer's and inhale's boxes) the same on every frame from the intro's end, in four fights: Kirby still by the left wall
+  (2746 frames: walks, belly slides, big jumps and their stars, hammer swings, the inhale catching nothing, puffing up, floating and
+  bouncing, the breath), Kirby on the right (1246) and Kirby high up while he floats (1446).
+- **A hit and a catch**: the fourth fight (746 frames): NiDL's hit (a spit star) given to KatAM's object on the matching frame: his
+  hurt (15 frames on frame 8, jittering, his hit stars about him), then the walk, the inhale catching Kirby on NiDL's frame, the
+  swallow and the spit, all the same; but for a star NiDL's Kirby inhales (54 frames), which stays in KatAM's run (its Kirby is only
+  placed). This found that NiDL's hurt freezes only his own script (the port had held the whole room), that his hit stars follow his
+  spot from before his own turn, that he takes no hits for 31 frames after one, that on the ground he's put back on a floor within a
+  tile under his feet, and the swallow's shake (-2 then +2).
+- **The recorded Kirby**: NiDL's harness Kirby is inert (never hurt, no box of its own), so for these runs KatAM's Kirby was made a
+  point and Dedede's touch harmless (RAM writes); the inhale's reach was traced with it (19 pixels from the box's middle caught, 20
+  not). In the game the box meets Kirby's own KatAM box.
+- **A real hit**: Kirby inhaled the star Dedede's hammer knocked out and spat it at him: 10 of his 60 HP gone, his hurt and hit stars.
+- **The defeat**: Kirby with Sword slashing beside him (his HP set to 1 by a RAM write): KatAM's explosion, then his defeat as NiDL's
+  (17 frames to frame 10, the slide 2, 1 and 0.5 pixels a frame, 28 in all, the daze's frames on NiDL's frames), on the ground and
+  beaten in the air.
+- **Looks**: screenshots side by side at matching frames: his sprites, his stars' frames (their blue flash too), his hurt flash
+  (frame by frame, with KatAM's flash clock set to NiDL's phase).
+- **All three versions**: the European and Japanese builds match NiDL's four recordings as the USA one does (the Japanese reaches the
+  fight a frame sooner). Logic checks on all three: every room reached, every big switch pressed, nowhere Kirby is trapped, with and
+  without dropping through thin floors.
+
+Left:
+- **His defeat's start**: KatAM's explosion stands in for NiDL's grey flashing screen and burst of eight stars (`0x9B`), as for the
+  other bosses.
+- **Sounds**: KatAM's nearest.
+- **The flashes' phase**: NiDL's run on its frame counter since power-on, so when they flash differs from game to game; the port's
+  count from the fight's start.
+- **Not traced**: NiDL's Kirby's own box (the recordings' Kirby has none; KatAM's is used for the catch and his touch); whether NiDL
+  takes a hit on the 31st frame after one (a frame either way); a Kirby blinking after a hit isn't caught (assumed).
+- **The camera**: KatAM's screen in his room sits 8 pixels left of and 16 above NiDL's (24, 168) (screenshots matched), so the left
+  star of a pair shows at its edge where NiDL's is off the screen. The fight cameras (see 39) don't cover this room yet: ask the owner.
+- **Not tested**: played by hand; his hammer and breath hitting Kirby against NiDL frame by frame (KatAM's own hit reaction); helpers
+  in the fight; the real hit and the defeat in the European and Japanese builds (only the recordings).
+
 ## 10. Screen shake as KatAM's
 The owner: the screen shakes far too much. Not reproduced: KatAM's shake runs the same in the NiDL rooms as in KatAM's, and
 nothing found shakes more often than in KatAM. Needs the owner's details (which room, what was happening).

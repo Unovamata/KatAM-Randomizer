@@ -140,6 +140,8 @@ void NidlDestroy(struct Task *task) {
     if (NidlIsBoss(&n->obj) && n->enemy == NIDL_META_KNIGHT) MetaKnightGone(&n->obj);
     // (and Mr. Shine & Mr. Bright's, bosses/shine_bright.c);
     if (NidlIsBoss(&n->obj) && n->enemy == NIDL_SHINE_BRIGHT) ShineBrightGone(&n->obj);
+    // (and King Dedede's, bosses/dedede.c);
+    if (NidlIsBoss(&n->obj) && n->enemy == NIDL_KING_DEDEDE) KingDededeGone(&n->obj);
     if (hud && *(void **)(hud + 0x1C) == TaskGetStructPtr(task)) {
         hud[0xA] = 0;
         *(void **)(hud + 0x1C) = NULL;
