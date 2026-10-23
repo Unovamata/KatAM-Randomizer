@@ -66,7 +66,7 @@ enum { NEEDLE_MOTION_OUT, NEEDLE_MOTION_IN, NEEDLE_MOTION_AIR };
 enum { FREEZE_MOTION_EDGE, FREEZE_MOTION_BREATH };
 enum { LIGHT_MOTION_SHINE };
 enum { BALL_MOTION_HOP, BALL_MOTION_FALL, BALL_MOTION_SQUASH, BALL_MOTION_REST, BALL_MOTION_LAUNCH, BALL_MOTION_ROLL };
-enum { HI_JUMP_MOTION_RISE };
+enum { HI_JUMP_MOTION_CROUCH, HI_JUMP_MOTION_RISE };    // (the rise: NiDL's five sets by his speed sideways, RISE + 0-4);
 enum { MIKE_MOTION_1, MIKE_MOTION_2, MIKE_MOTION_3, MIKE_MOTION_1_END, MIKE_MOTION_2_END, MIKE_MOTION_3_END };
 enum { STAR_ROD_MOTION_HOLD, STAR_ROD_MOTION_SHOOT, STAR_ROD_MOTION_RIGHT, STAR_ROD_MOTION_LEFT, STAR_ROD_MOTION_UP, STAR_ROD_MOTION_DOWN,
        STAR_ROD_MOTION_RIGHT_END, STAR_ROD_MOTION_LEFT_END, STAR_ROD_MOTION_UP_END, STAR_ROD_MOTION_DOWN_END, STAR_ROD_MOTION_HURT,
@@ -90,6 +90,8 @@ struct NidlAbilityData {
     } glows[3];                                         // (the motions' anim is every ability's: the rod's are the last), then their
                                                         // glowing versions, count frames on (see NidlDisplaySprite);
     const u16 *rodPalettes;                             // Its hat's palette bright, halfway, and its own (16 colors each);
+    const u16 *hiJumpFlash;                             // The Hi-Jump's glow: the body's colors (1-11 of 16), then its hat's (16);
+    u16 hiJumpFx;                                       // Its effects' anim (KatAMExpansion.cs, HiJumpEffects);
 };
 
 extern const struct NidlAbilityData gNidlAbilityData;
@@ -105,13 +107,15 @@ void NidlAbilitySetup(struct Kirby *);
 void NidlSwallow(struct Kirby *, u8 ability);
 void NidlKirbyHit(struct Kirby *);
 
-/* NidlAttack; An attack box that follows Kirby while `alive` says so (his state is the ability's), making him unhurt (`guard`) meanwhile.
- * `effect` is the hit's kind (unk68, like gUnk_082DDFC8's: 0x200 freezes, 0x2000 cuts...), `damage` its strength (unk63); */
+/* NidlAttack; An attack box that follows Kirby while `alive` says so (his state is the ability's), making him unhurt (`guard`) meanwhile;
+ * or, with `frames` set, stays where it was made for that many frames (an effect's: Hi-Jump's burst). `effect` is the hit's kind (unk68,
+ * like gUnk_082DDFC8's: 0x200 freezes, 0x2000 cuts...), `damage` its strength (unk63); */
 struct NidlAttack {
     struct ObjectBase base;
     bool32 (*alive)(struct Kirby *);
     bool8 guard;
     u8 rehit;           // Frames until it can hit again (2 by default, as Burning's);
+    u8 frames;          // Frames left where it was made (0: following Kirby, as `alive` says);
     u32 kirbyUnk68;     // Kirby's base.unk68 before the guard, put back after;
 };
 

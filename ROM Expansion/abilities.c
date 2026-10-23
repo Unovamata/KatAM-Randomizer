@@ -122,13 +122,13 @@ void NidlDisplaySprite(struct Sprite *sprite) {
     data->displaySpriteOriginal(sprite);
 }
 
-// NidlAttackMain(); Follows Kirby, hitting every few frames (Burning's, sub_08079714), until his state isn't the ability's;
+// NidlAttackMain(); Follows Kirby, hitting every few frames (Burning's, sub_08079714), until his state isn't the ability's (or its frames are up);
 static void NidlAttackMain(void) {
     struct NidlAttack *attack = TaskGetStructPtr(gCurTask);
     struct Kirby *kirby = attack->base.parent;
 
     if (ObjectPreUpdate(&attack->base)) return;
-    if (!attack->alive(kirby)) {
+    if (attack->frames ? !--attack->frames : !attack->alive(kirby)) {
         if (attack->guard) {
             kirby->base.flags &= ~0x8000;
             kirby->base.unk68 = attack->kirbyUnk68;
@@ -141,6 +141,7 @@ static void NidlAttackMain(void) {
         attack->base.flags &= ~0x40000;
         attack->base.counter = 0;
     }
+    if (attack->frames) return;
     attack->base.x = kirby->base.x;
     attack->base.y = kirby->base.y;
     attack->base.flags = (attack->base.flags & ~1) | (kirby->base.flags & 1);
@@ -157,6 +158,7 @@ struct NidlAttack *NidlAttackCreate(struct Kirby *kirby, bool32 (*alive)(struct 
     attack->alive = alive;
     attack->guard = guard;
     attack->rehit = 2;
+    attack->frames = 0;
     attack->kirbyUnk68 = kirby->base.unk68;
     attack->base.header.kind = 2;
     attack->base.x = kirby->base.x;

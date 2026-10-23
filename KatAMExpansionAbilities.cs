@@ -37,7 +37,7 @@
         /* AddAbilities(); Relocates the ability tables, detours the HUD portraits and fills gNidlAbilityData. `newEntries[table]`, when
          * given, replaces the base ability's entries of AbilityTables[table] (hats, Backdrop's palette; -1: the base's); `motions`, BuildMotions' body AnimInfos;
          * `glows`, the Star Rod's glowing frames (anim, first frame, count: its hat's, its motions', its stand's; AddGlows()), then its
-         * palettes (StarRodPalettes()); */
+         * palettes (StarRodPalettes()), then the Hi-Jump's glow (HiJumpFlash()) and its effects' anim (HiJumpEffects); */
         static string AddAbilities(byte[] rom, byte[] nightmare, NightmareRegion region, KatAMExpansionCode.Version version, ref int cursor,
                                    int[] motions, int[] glows, Dictionary<string, int[]> newEntries) {
             int codeBase = CodeAddress + 0x08000000;
@@ -97,12 +97,15 @@
             // The motions' body animations (gNidlAbilityData.motions, after the portraits);
             for (int i = 0; i < motions.Length; i++) WriteInt(rom, data + 8 + NewAbilities * 8 + i * 4, motions[i]);
 
-            // The Star Rod's glow: DisplaySprite's trampoline, the glowing frames, the palettes (gNidlAbilityData.displaySpriteOriginal, glows and rodPalettes, after the motions);
+            /* The Star Rod's glow: DisplaySprite's trampoline, the glowing frames, the palettes (gNidlAbilityData.displaySpriteOriginal, glows and
+             * rodPalettes, after the motions); then the Hi-Jump's glow and effects' anim (hiJumpFlash, hiJumpFx); */
             int display = Detour(rom, version.RomSymbols["DisplaySprite"], codeBase + version.CodeSymbols["NidlDisplaySprite"], ref cursor), after = data + 8 + NewAbilities * 8 + motions.Length * 4;
             if (display < 0) return $"The {version.Name} ROM's sprite code doesn't match.";
             WriteInt(rom, after, display + 0x08000000 + 1);
             for (int i = 0; i < 9; i++) WriteShort(rom, after + 4 + i / 3 * 8 + i % 3 * 2, glows[i]);
             WriteInt(rom, after + 28, glows[9] + 0x08000000);
+            WriteInt(rom, after + 32, glows[10] + 0x08000000);
+            WriteShort(rom, after + 36, glows[11]);
             return null;
         }
 

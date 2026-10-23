@@ -46,8 +46,15 @@ namespace KatAMRandomizer {
             new Motion(5, 3, new[] { (0x670, 5) }, -1),
             new Motion(5, 4, new[] { (0x679, 5) }, -1),
             new Motion(5, 5, new[] { (0x683, 5) }, -1),
-            // Hi-Jump: the rise (cape flapping, held);
-            new Motion(4, 0, Frames(new[] { (0xB2D, 2), (0xB2E, 2) }, Frames(0xB2F, 0xB31, 2)), 2),
+            /* Hi-Jump: the crouch (held), then the rise, its cape flapping, in NiDL's five sets by his speed sideways (0x0804A3FA: up to
+             * 0.25, 1.0, 1.25, 1.75 and more, leaning further), each a frame every 3 (NiDL's beat; "ROM Expansion/abilities/hi_jump.c"
+             * picks the set and starts it on the beat); */
+            new Motion(4, 0, new[] { (0xB2D, 1) }, -1),
+            new Motion(4, 1, Frames(0xB2E, 0xB31, 3), 0),
+            new Motion(4, 2, Frames(0xB32, 0xB35, 3), 0),
+            new Motion(4, 3, Frames(0xB36, 0xB39, 3), 0),
+            new Motion(4, 4, Frames(0xB3A, 0xB3D, 3), 0),
+            new Motion(4, 5, Frames(0xB3E, 0xB41, 3), 0),
             /* Star Rod (the Power Orb's fight): held up; the swing that shoots a star; flying right, left, up, down, each then held; their
              * ends, back to holding it up; hurt (as recorded in NiDL's fight, frame by frame); the fight's intro, NiDL's whole flight up
              * to the orb (flying up, then down, the swing at it, the rod held out, a swing, held up; "ROM Expansion/abilities/star_rod.c");
@@ -307,6 +314,27 @@ namespace KatAMRandomizer {
             return written;
         }
 
+        /* HiJumpFlash(); The colors Kirby's Hi-Jump frames glow in as he rises (NiDL's 32 at the region's HiJumpFlash, 0x0804A29A: his frames'
+         * own, 0x081F1F48's, bright yellow, for both their 16-color halves): the body's (its colors 1-11, the plain Kirby's, which the body
+         * keeps as NiDL's frames number them), then the Hi-Jump hat's (`hat`: each its color in NiDL's frames, the closest when it isn't
+         * one of them, bright). Writes those 32 colors (0 for the body's unused) and returns where; */
+        const int HiJump = 4;
+        static int HiJumpFlash(byte[] rom, byte[] nightmare, NightmareRegion region, ushort[] hat, ref int cursor) {
+            int entry = ReadInt(nightmare, KirbyFrameTable + region.FrameShift + 0xB2E * 4) - 0x08000000;
+            ushort[] own = FramePalette(nightmare, ReadInt(nightmare, entry + 4));
+            ushort[] flash = Enumerable.Range(0, 32).Select(c => (ushort)ReadShort(nightmare, region.HiJumpFlash + c * 2)).ToArray();
+            if (Enumerable.Range(1, 11).Count(c => flash[c] != own[c]) < 6) throw new ArgumentException("The Hi-Jump's glow isn't in the Nightmare in Dream Land ROM");
+
+            int written = Allocate(ref cursor, 64, 4);
+            for (int c = 1; c < 12; c++) WriteShort(rom, written + c * 2, flash[c]);
+            for (int c = 1; c < 16; c++) {
+                int nidl = Array.IndexOf(own, hat[c], 1);
+                if (nidl < 0) nidl = Enumerable.Range(1, 31).OrderBy(i => ColorDistance(own[i], hat[c])).First();
+                WriteShort(rom, written + 32 + c * 2, flash[nidl]);
+            }
+            return written;
+        }
+
         /* BuildMotions(); The body and hat motion anims (a variant per motion, in Motions' order), each ability's hat table entries at its
          * motion slots, and the body's AnimInfos for gNidlAbilityData.motions (NIDL_ABILITY_COUNT x MotionSlots, 0: none). The Star Rod's
          * hat frames (its motions are the last) have glowing versions, as its hat's (AddGlows(): the hat anim, first frame and count in
@@ -357,6 +385,7 @@ namespace KatAMRandomizer {
                 for (int c = 0; c < 16; c++) WriteShort(rom, hatPalettes[k] + c * 2, palettes[k][c]);
             }
             glows[9] = StarRodPalettes(rom, nightmare, region, palettes[StarRod], ref place);
+            glows[10] = HiJumpFlash(rom, nightmare, region, palettes[HiJump], ref place);
             (byte[], ushort[], short[]) HatOf(int[,] pixels, ushort[] palette) {
                 int[,] indexes = new int[pixels.GetLength(0), pixels.GetLength(1)];
                 for (int y = 0; y < pixels.GetLength(1); y++)

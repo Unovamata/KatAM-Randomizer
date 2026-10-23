@@ -36,17 +36,19 @@ namespace KatAMRandomizer {
          * cape's two, which his draw blends, and his tornado's two, which it alternates; KatAMExpansionNightmare.cs); OrbColors: the Power
          * Orb's two palettes, which its fight blends (USA 0x082FE0E4; "ROM Expansion/bosses/power_orb.c", gNidlPowerOrbColors);
          * MetaKnightFlash: Meta Knight's hurt flash's colors (USA 0x082F427C; "ROM Expansion/bosses/meta_knight.c", gNidlMetaKnightFight);
-         * DededeFlash: King Dedede's (USA 0x082D8638; "ROM Expansion/bosses/dedede.c", gNidlKingDedede); */
+         * DededeFlash: King Dedede's (USA 0x082D8638; "ROM Expansion/bosses/dedede.c", gNidlKingDedede); HiJumpFlash: the 32 colors
+         * Kirby's Hi-Jump frames glow in as he rises (USA 0x081F59F0; KatAMExpansionMotions.cs, HiJumpFlash()); */
         sealed record NightmareRegion(string GameCode, int Descriptors, int FrameShift, string KatAM, int Palette15,
                                       int CardPalettes, int CardPaletteStride, int CardTiles, int CardTileStride, int RoomTable, int LateShift,
-                                      int EndingFrames, int CloudSpeeds, int FightColors, int OrbColors, int MetaKnightFlash, int DededeFlash);
+                                      int EndingFrames, int CloudSpeeds, int FightColors, int OrbColors, int MetaKnightFlash, int DededeFlash,
+                                      int HiJumpFlash);
         const int LateFrames = 0x753E3C;
         static int FrameAddress(NightmareRegion region, int usa) => usa + (usa >= LateFrames ? region.LateShift : region.FrameShift);
 
         static readonly NightmareRegion[] NightmareRegions = {
-            new NightmareRegion("A7KE", 0x73EEA0, 0, "USA", 0x0D07A8, 0x731A90, 8, 0x731A94, 8, 0x7E1D58, 0, 0x755708, 0x7561CC, 0x334480, 0x2FE0E4, 0x2F427C, 0x2D8638),
-            new NightmareRegion("A7KJ", 0x742DAC, 0x3A8C, "Japan", 0x0CFF60, 0x73599C, 8, 0x7359A0, 8, 0x7E60DC, 0x3A8C, 0x759194, 0x759C68, 0x333C38, 0x2FD89C, 0x2F3A34, 0x2D7DF0),     // Hoshi no Kirby: Yume no Izumi Deluxe;
-            new NightmareRegion("A7KP", 0x97B678, 0x23C7EC, "Europe", 0x0D3228, 0x96D770, 4, 0x96D7E0, 20, 0xBFD8E8, 0x23CA5C, 0x99288C, 0x994DA0, 0x33B56C, 0x3051D0, 0x2FB368, 0x2DB0B8),
+            new NightmareRegion("A7KE", 0x73EEA0, 0, "USA", 0x0D07A8, 0x731A90, 8, 0x731A94, 8, 0x7E1D58, 0, 0x755708, 0x7561CC, 0x334480, 0x2FE0E4, 0x2F427C, 0x2D8638, 0x1F59F0),
+            new NightmareRegion("A7KJ", 0x742DAC, 0x3A8C, "Japan", 0x0CFF60, 0x73599C, 8, 0x7359A0, 8, 0x7E60DC, 0x3A8C, 0x759194, 0x759C68, 0x333C38, 0x2FD89C, 0x2F3A34, 0x2D7DF0, 0x1F51A8),     // Hoshi no Kirby: Yume no Izumi Deluxe;
+            new NightmareRegion("A7KP", 0x97B678, 0x23C7EC, "Europe", 0x0D3228, 0x96D770, 4, 0x96D7E0, 20, 0xBFD8E8, 0x23CA5C, 0x99288C, 0x994DA0, 0x33B56C, 0x3051D0, 0x2FB368, 0x2DB0B8, 0x1F8470),
         };
 
         static NightmareRegion RegionOf(byte[] rom) => rom == null || rom.Length < 0x800000 ? null
@@ -764,6 +766,14 @@ namespace KatAMRandomizer {
             new[] { (0x04, 0), (0x23, 4), (0x2D, 1), (0x01, 1) },   // "S" (Squishy), "t" (Shooty), "a" (Batty), "r" (Bronto Burt);
             new byte[0], Descriptor: 30, Hidden: true);
 
+        /* HiJumpEffects; Hi-Jump's effects ("ROM Expansion/abilities/hi_jump.c"), an anim of their own (the enemies' has no room): NiDL's
+         * Kirby effect 0x2A's frames 0x08751F0C's 16-29 (0-13: the star and sparkles under him), then NiDL's shared 0x0874C804's 0-8
+         * (14-22: the puff of a stopped Hi-Jump), 9-14 (23-28: the crouch's dust, left and right in turn) and 25-33 (29-37: the burst
+         * as he takes off), all with the shared tiles and palette 15; */
+        static readonly List<Part[]> HiJumpEffects = Enumerable.Range(16, 14).Select(f => new[] { new Part(f, Table: 0x751F0C, Palette15: true, Common: true) })
+            .Concat(Enumerable.Range(0, 15).Concat(Enumerable.Range(25, 9)).Select(f => new[] { new Part(f, Table: 0x74C804, Palette15: true, Common: true) }))
+            .ToList();
+
         /* Paintings; Paint Roller's (NiDL object 0x74, each painting its own frame table, drawn from his descriptor's tiles, 31): enemies so
          * Kirby can inhale them for their ability ("ROM Expansion/bosses/paint_roller.c" moves them; enemies/painting.c). One palette an
          * enemy, so two: PaintingA those drawn with the descriptor's first palette, the Kirby (0x08753AC8's 4-7), the bomb (0x08753B04's
@@ -1206,7 +1216,7 @@ namespace KatAMRandomizer {
             }
 
             // The new abilities' hats and motions (anims after the enemies');
-            int[] hatTables, motions, hatPalettes = new int[NewAbilities], glows = new int[10];
+            int[] hatTables, motions, hatPalettes = new int[NewAbilities], glows = new int[12];
             int backdropPalette;
             (int animId, int tiles) rodStand;
             bool[][] paletteUsed = new bool[NewAbilities][];
@@ -1219,6 +1229,11 @@ namespace KatAMRandomizer {
                                          animAttributes, animOams, glows);
                 backdropPalette = BuildBackdropPalette(rom, nightmare, region, version.RomSymbols["gUnk_08350A3C"], anims, attrTable, oamTable, paletteBase,
                                                        ref cursor, HurtAnimID, animVariants, animAttributes, animOams);
+                // (Hi-Jump's effects, an anim of their own: HiJumpEffects; its ID in `glows`' last, for gNidlAbilityData.hiJumpFx);
+                (List<byte[]> fxPalettes, List<(byte[] tiles, ushort[] oams, short[] attributes, int palette)> fxFrames, byte[] _) =
+                    BuildGraphics(nightmare, region, ReadInt(nightmare, region.Descriptors + MinibossDescriptors + SpitStar().Descriptor * 4) - 0x08000000,
+                                  SpitStar().FrameTable, HiJumpEffects, new List<Part[]>(), new Dictionary<int, ushort>(), 32, 32, HurtOriginX, HurtOriginY);
+                glows[11] = AddAnim(fxPalettes, fxFrames, new byte[0], new List<(int, int)>(), effectOnly: fxFrames.Count).Item2;
             } catch (Exception exception) when (exception is IndexOutOfRangeException or ArgumentException) {
                 return $"The Nightmare in Dream Land ROM doesn't match the {region.KatAM} release.";
             }

@@ -477,6 +477,30 @@ randomizer puts in an enemy's spot.
   his fight. Not tested: the Map Viewer window itself (it needs Windows; it scales every icon to fit its room and trims empty
   edges, whatever its size).
 
+## 48. Hi-Jump 1:1 from NiDL
+The owner: a 1:1 implementation of the Hi-Jump ability. Done ("ROM Expansion/abilities/hi_jump.c", rewritten from NiDL's code:
+its script `0x08049F98`, its every-frame code `0x0804A258`, its effects `0x08059570`; recordings of NiDL's Kirby, frame by frame):
+the crouch (4 frames, the sink, the dust puffing out both ways), the rise (23 frames at 4.16 pixels, then NiDL's slowing and its
+last 5 frames, 148 pixels in all), the steering (0.25 a frame up to 2.0, the input a frame late as NiDL's, slowing by 0.055), the
+five sets of cape poses by his speed on the cape's beat, the glow (NiDL's yellow, 4 frames in 8, body and hat; none with Reduce
+Flashing), the star and sparkles falling under him, the take-off burst and its box, B again (that frame's move, a puff with its
+box, then the fall from still), a ceiling or the room's top ending the rise at once (the room's top used to let him push on
+against it), and the fall (somersault first, B doing nothing till he lands, A floating). NiDL's frames and effects are exported
+by KatAMExpansion.cs (HiJumpEffects; the flash palette per version). Kept as before (README): no guard, KatAM-scale strengths,
+KatAM's closest take-off sound, KatAM's own fall and its bounce after a long fall (NiDL bounces too).
+Checked in the emulator (USA, by script): Hi-Jump taken for real (a build where every enemy gives it, the first enemy of room
+0x65 swallowed), then Kirby's state dumped every frame and set against NiDL's recordings of the same inputs: standing, steering
+left then right, B again (too early and in time), from a walk, from a jump, B in the fall, A in the fall. Positions and speeds
+match NiDL's to the subpixel, a frame earlier (KatAM takes B the frame it's pressed, NiDL the next). A full rise with no room top
+in the way (room 0x67, the ability byte written: a forced state) gives NiDL's 148 pixels and its fall at the 51st frame.
+Screenshots side by side with NiDL's, frame by frame: crouch, dust, poses, burst, star and sparkles the same (the dust is now in
+front of Kirby: it was behind him, so its first frame was hidden). The glow's colors, written every frame, flash and come back;
+with Reduce Flashing they don't change. European and Japanese builds: Hi-Jump taken the same way, the same frames and speeds,
+screenshots right. Logic checks on all three: every room reached, every big switch pressed, nowhere Kirby is trapped, with and
+without dropping through thin floors.
+Not tested: played by hand; a Hi-Jump into a ceiling tile (the room's top was; both end the rise through the same check); hitting
+an enemy during the rise; in water (it does what KatAM's abilities do, unchanged).
+
 ## 10. Screen shake as KatAM's
 The owner: the screen shakes far too much. Not reproduced: KatAM's shake runs the same in the NiDL rooms as in KatAM's, and
 nothing found shakes more often than in KatAM. Needs the owner's details (which room, what was happening).
