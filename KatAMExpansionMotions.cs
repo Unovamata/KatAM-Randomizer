@@ -9,7 +9,7 @@ namespace KatAMRandomizer {
      *   frame when Kirby isn't plain or doesn't fit) to the hat sprite, which has VRAM for 48, in the colors its
      *   hat palette has free; */
     internal static partial class KatAMExpansion {
-        const int MotionSlot = 0x4A, MotionSlots = 16;  // Animation indexes 0x4A-0x59 (copy abilities' own; below AnimationIndexes);
+        const int MotionSlot = 0x67, MotionSlots = 16;  // Animation indexes 0x67-0x76 (KatAM's copy abilities' attacks; not its tumble, 0x4A-0x59);
         const int BodyTiles = 16, MotionHatTiles = 48;
         const int MotionDx = 0, MotionDy = -3;          // NiDL's Kirby frames -> KatAM's (BodyMatches' usual offset);
 

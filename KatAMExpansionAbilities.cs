@@ -5,8 +5,9 @@
      *   in 0x08000000-0x08160000) points to the copy. The new entries are gNidlAbilityTables', or the base ability's.
      * • The ability field is widened to 6 bits (WidenAbilityField); swallowing (sub_080547C4) is detoured to NidlSwallow;
      * • sub_080356AC (HUD portraits) and sub_08088640 (special portraits) are detoured to the C code (see Detour), and sub_0804A728 (Kirby
-     *   hit), so the Star Rod isn't lost to a hit, and DisplaySprite (every sprite's drawing), so the Star Rod's hat glows as NiDL's
-     *   (NidlDisplaySprite, AddGlows()); */
+     *   hit), so the Star Rod isn't lost to a hit, DisplaySprite (every sprite's drawing), so the Star Rod's hat glows as NiDL's
+     *   (NidlDisplaySprite, AddGlows()), and sub_08038B34 (Kirbys standing on one another), so the Star Rod's flying Kirbys fly through
+     *   one another (NidlKirbyStack); */
     internal static partial class KatAMExpansion {
         const int FirstAbility = 27, NewAbilities = 8, AbilitySlots = FirstAbility + NewAbilities, PortraitTiles = 30;
 
@@ -78,6 +79,11 @@
             int hit = Detour(rom, version.RomSymbols["sub_0804A728"], codeBase + version.CodeSymbols["NidlKirbyHit"], ref cursor);
             if (hit < 0) return $"The {version.Name} ROM's hit code doesn't match.";
             WriteInt(rom, CodeAddress + version.CodeSymbols["gNidlKirbyHitOriginal"], hit + 0x08000000 + 1);
+
+            // Kirbys standing on one another (sub_08038B34): not the Star Rod's flying Kirbys (NidlKirbyStack, "ROM Expansion/abilities/star_rod.c");
+            int stack = Detour(rom, version.RomSymbols["sub_08038B34"], codeBase + version.CodeSymbols["NidlKirbyStack"], ref cursor);
+            if (stack < 0) return $"The {version.Name} ROM's Kirby collision code doesn't match.";
+            WriteInt(rom, CodeAddress + version.CodeSymbols["gNidlKirbyStackOriginal"], stack + 0x08000000 + 1);
 
             /* Portraits: NiDL's ability cards, the same 5x6 tiles as KatAM's (the name, then the picture), stored as two groups of 16 tiles
              * (rows 0, 2, 4, then 1, 3, 5); KatAM's are row by row; */

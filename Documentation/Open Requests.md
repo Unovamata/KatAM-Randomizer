@@ -501,6 +501,34 @@ without dropping through thin floors.
 Not tested: played by hand; a Hi-Jump into a ceiling tile (the room's top was; both end the rise through the same check); hitting
 an enemy during the rise; in water (it does what KatAM's abilities do, unchanged).
 
+## 49. The Star Rod's layering and its spin
+The owner: with the Star Rod there are layering issues, and when Kirby spins the rod's animation looks off, for example hopping off
+the warp star from room 0x74 (through 0x7B) into 0x7C. Done:
+- The spin: the new abilities' attack poses were played at animation indexes 74-89, which are also KatAM's tumble (a warp star's
+  hop-off, cutscenes), so every new ability tumbled in its own attack poses (the Star Rod's: held up, the swing, flying). They're
+  moved to 103-118 (KatAM's copy abilities' attacks, which only those abilities' own states play), and the Star Rod's tumble is now
+  NiDL's own, the rod turning with Kirby (NiDL's frames 0x1060-0x106F, the ones Nightmare's intro plays; KatAM's tumble body matches
+  them to the pixel, a step behind). The other new abilities' tumble keeps their usual hat (NiDL has no tumble frames for them).
+- The layering: KatAM always draws the hat over the body, but NiDL draws the Star Rod behind Kirby in 33 of its frames (walking,
+  running, the jump, floating...). The rod's pieces NiDL puts behind him are now cut where KatAM's body covers them. Only the Star
+  Rod's hat: the other hats have 1-4 such frames each and are left as they were (say if they should follow too).
+- Side effect, kept as before: KatAM's Kirbys standing on one another's heads skips the tumble's indexes, so moving the poses would
+  have let the Power Orb's flying Kirbys stack (drawn a pixel or two off, taken as landed). That function is detoured so they're still
+  left out. The new abilities' attacks elsewhere now take part in it, as KatAM's own attacks do.
+Checked in the emulator (USA, by script; the room change to 0x74 is the tracker's debug warp, a forced state, the Star Rod taken for
+real at the NiDL hub's stand, the ride and the hop-off real): the tumble in 0x7C plays KatAM's tumble with the rod turning a step a
+frame, the right way round. In the hub, walking, falling, jumping, floating, crouching and sliding, set against the last commit:
+what changed is the rod's pixels over Kirby, now behind him as in NiDL's own frames (checked on six poses). Needle, Freeze, Light, Ball, Hi-Jump and Mike (each taken for
+real, a build where every enemy gives it): the same inputs on the last commit's build and this one give the same play and
+pixel-identical screenshots, the poses only at their new indexes; the Star Rod's swing (ground, air, facing left) the same. The
+finale (the Power Orb's fight, the ride, Nightmare's intro; scripted inputs with some RAM writes, as before): every Kirby's state
+the same as the last commit's frame by frame, the screenshots the same except the helpers' rods behind their heads after the
+knock. European and Japanese builds: the same ride and tumble (the Japanese one's rod glow on another beat, the frame counter
+offset by its menu). Logic checks on all three: every room reached, every big switch pressed, nowhere Kirby is trapped, with and
+without dropping through thin floors.
+Not tested: played by hand; the cutscene tumbles (KatAM's cutscene_trigger.c) and other tumbles with the Star Rod; a new ability
+standing on another Kirby, or stood on, in multiplayer.
+
 ## 10. Screen shake as KatAM's
 The owner: the screen shakes far too much. Not reproduced: KatAM's shake runs the same in the NiDL rooms as in KatAM's, and
 nothing found shakes more often than in KatAM. Needs the owner's details (which room, what was happening).

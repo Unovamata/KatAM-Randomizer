@@ -132,6 +132,25 @@ void StarRodHeld(struct Kirby *kirby) {
     kirby->base.flags |= 4;
 }
 
+/* NidlKirbyStack(); sub_08038B34 (detoured), every frame: KatAM's Kirbys standing on one another's heads, every two in a room. It leaves
+ * out a Kirby tumbling (animation indexes 74-89) or with flags 0x3800F00 (riding a warp star...), and here the flying Kirbys too
+ * (StarRodHeld): they fly through one another, as NiDL's (stood on, one was drawn a pixel or two lower and taken as landed), marked with
+ * one of those flags while it runs. The motions were at 74-89 once, which left them out; */
+void (*gNidlKirbyStackOriginal)(void) = NULL;
+
+void NidlKirbyStack(void) {
+    u8 marked = 0, i;
+
+    for (i = 0; i < gNumKirbys; i++) {
+        if (gKirbys[i].stateFn != StarRodHeld || gKirbys[i].base.flags & 0x100) continue;
+        gKirbys[i].base.flags |= 0x100;
+        marked |= 1 << i;
+    }
+    gNidlKirbyStackOriginal();
+    for (i = 0; i < gNumKirbys; i++)
+        if (marked & 1 << i) gKirbys[i].base.flags &= ~0x100;
+}
+
 // Palette(); The spit star anim's palette (NiDL's palette 15), loaded once its room is the local player's;
 static u8 Palette(struct ObjectBase *base, u8 frame) {
     u16 key = gNidlData.enemies[NIDL_SPIT_STAR].animId;

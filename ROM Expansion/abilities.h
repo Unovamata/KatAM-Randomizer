@@ -58,8 +58,10 @@ struct NidlAbilityTables {
 extern const struct NidlAbilityTables gNidlAbilityTables;
 
 /* Motions; The new abilities' attack poses, NiDL's frames (KatAMExpansionMotions.cs builds them): played at animation indexes
- * NIDL_MOTION_SLOT on (copy abilities' own), which NidlAbilitySetup points to them. Numbered per ability, as in Motions there; */
-#define NIDL_MOTION_SLOT 0x4A
+ * NIDL_MOTION_SLOT on (KatAM's copy abilities' attacks, 103-118, which only their own states play; not 74-89, KatAM's tumble, which
+ * a warp star's hop-off and cutscenes play for every ability), which NidlAbilitySetup points to them. Numbered per ability, as in
+ * Motions there; */
+#define NIDL_MOTION_SLOT 0x67
 #define NIDL_MOTION_SLOTS 16
 
 enum { NEEDLE_MOTION_OUT, NEEDLE_MOTION_IN, NEEDLE_MOTION_AIR };
@@ -140,6 +142,7 @@ void NidlFlash(struct Kirby *, const u8 *levels, u16 count);
 // Star Rod (abilities/star_rod.c): the Power Orb's fight (bosses/power_orb.c) flies every Kirby in its room with it; Nightmare's
 // (bosses/nightmare.c) is fought with it on the ground (StarRodSwingStart: B; StarRodKeep: never lost there);
 void StarRodHeld(struct Kirby *);
+void NidlKirbyStack(void);
 void StarRodSwingStart(struct Kirby *);
 void StarRodKeep(struct Kirby *);
 void StarRodAim(struct Kirby *);
