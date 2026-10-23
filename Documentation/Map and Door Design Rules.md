@@ -140,7 +140,8 @@ after any change.
   shard: beaten, the Power Orb's cinematic plays, every Kirby goes to a warp star and rides it to Nightmare's room, where his
   cinematic plays and the fight starts; beaten, Nightmare's (Kirby going down from the moon) plays and Kirby is in the Fountain
   of Dreams hub (its switch room), which has no other door in or out and no big switch: only an Amazing Mirror to 0x38D, KatAM's
-  final boss sequence (unlocked by the 8 shards, as KatAM's), and a Maximum Tomato. The Power Orb's and Nightmare's rooms are
+  final boss sequence (unlocked by the 8 shards, as KatAM's), the Master Sword's stand, a Maximum Tomato, and a Cutter and a Sword
+  statue on its sides (the owner's). The Power Orb's and Nightmare's rooms are
   never randomized.
 - **Doors into boss rooms are one-way.** Nothing else (branches, links, Mirras) goes in a boss stage.
 - **Two boss rooms are entered in the air**, the only landings off a floor, as NiDL's: the Power Orb's, at NiDL's own start at

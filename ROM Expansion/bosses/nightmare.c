@@ -773,7 +773,6 @@ const struct NidlNightmareFight gNidlNightmareFight = { 0 };
 #define PC_END 0xFFFF
 #define HIT_KNOCKED 1               // NiDL's 0x02007D00;
 #define HIT_DYING 2
-#define MAX_HP 60
 #define STAR_STRENGTH 2             // (+ the Star Rod star's 8, abilities/star_rod.c: NiDL's 10, his 60 HP in 6 stars);
 #define FRONT_ORDER 0x18            // Sprite priorities (NiDL's: his effects 7-9 in front of him, 11, the hand's sparkles 12 behind);
 #define SPARKLE_ORDER 0x19
@@ -886,6 +885,7 @@ struct Fight {
     u16 seed;                           // NiDL's random numbers' (0x03000FB4);
     u16 t;                              // Frames since his fight started (his palettes' cycle: NiDL's 0x03001EA4);
     s16 hp;                             // His HP last frame (less now: hit);
+    s16 maxHp;                          // His HP at the start (NiDL's 60 for one player; his moves change under a third of it);
     u8 pal[PALS];
 };
 
@@ -1276,7 +1276,7 @@ static void State6(struct Fight *f) {
     }
     Stop(f);
     PlayAnim(f, sHandOut);
-    high = f->obj->unk80 > MAX_HP / 3;
+    high = f->obj->unk80 > f->maxHp / 3;
     f->shotWait = sShotWaits[high];
     f->shotCount = sShotCounts[high];
     f->handDone = FALSE;
@@ -1314,7 +1314,7 @@ static void State7(struct Fight *f) {
     PlayAnim(f, sPointing);
     PlaySfx(&f->obj->base, SE_DARK_MIND_LASER_SHOT);
     for (f->loop = 0; f->loop < 6; f->loop++) {
-        if (f->obj->unk80 <= MAX_HP / 3 && (f->loop & 1)) {
+        if (f->obj->unk80 <= f->maxHp / 3 && (f->loop & 1)) {
             Shot(f, 1, 0, 0x30, 0x10);
             Shot(f, 2, 0, 0x30, 0x10);
         } else {
@@ -1347,7 +1347,7 @@ static void State8(struct Fight *f) {
     SCRIPT;
     f->count = 1;
     PlayAnim(f, sTornado);
-    if (f->obj->unk80 > MAX_HP / 3) {
+    if (f->obj->unk80 > f->maxHp / 3) {
         WAIT(60);
         f->vy = 0xA0;
         for (f->loop = 0; f->loop < 10; f->loop++) {
@@ -2136,7 +2136,7 @@ void NightmareStart(struct Object *obj) {
     f->custom = FALSE;
     f->seed = Rand16() & 0xFFF;
     f->t = 0;
-    f->hp = obj->unk80;
+    f->hp = f->maxHp = obj->unk80;
     for (i = 0; i < PALS; i++) f->pal[i] = 0;
     f->touches[0] = Touch(f, 0);
     f->touches[1] = Touch(f, 1);

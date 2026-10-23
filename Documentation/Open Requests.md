@@ -529,6 +529,53 @@ without dropping through thin floors.
 Not tested: played by hand; the cutscene tumbles (KatAM's cutscene_trigger.c) and other tumbles with the Star Rod; a new ability
 standing on another Kirby, or stood on, in multiplayer.
 
+## 50. The owner's list: Shine & Bright's shake, bosses' HP, Kracko with helpers, the Fountain hub's pedestals
+- **Mr. Shine & Mr. Bright's shake** (done): the screen shook from their first wall hit to the fight's end. The port asked KatAM's
+  shake for strength 4, NiDL's number, but KatAM's 4 is an endless shake (it loops until stopped) where NiDL's 4 is a timed one (24
+  frames). NiDL's shake is now mapped onto KatAM's (`NidlShake()`, nidl_boss.c): NiDL's 1-3 are KatAM's 1-3, its 4 is KatAM's 3 (the
+  same steps, a pixel smaller), its looping 5-7 KatAM's 4, its 0 stops it. King Dedede's fight asked for 4 the same way (his
+  landings, his defeat): fixed with it. Checked in the emulator (USA, the fight played with Kirby standing still, the shake offset
+  read every frame): before, it never stopped after frame 529; now only short shakes (16-22 frames each). King Dedede's (his room,
+  Kirby still): before, from frame 280 to the end; now only short ones. Europe and Japan: Mr. Shine & Mr. Bright's fight, only short
+  shakes (11 in 2500 frames each).
+- **NiDL's bosses' HP** (done): their hits are KatAM's (they take damage as KatAM's Kracko does), but their HP was 60 whatever the
+  number of players, where KatAM's bosses get more with more players, and Mr. Shine and Mr. Bright had 60 each, twice NiDL's 30
+  (12 spit stars for the fight, the others 6). Now every NiDL boss has KatAM's Kracko and King Golem's HP: 60, 80, 100, 110 for 1-4
+  players (NiDL's 60 for one, 6 spit stars, as KatAM's first bosses), the HP bar's fill scaled to match (Kracko's); Mr. Shine and Mr.
+  Bright NiDL's 30 each (3 stars each, 6 for the fight, as NiDL's); the Power Orb's spin speed and Nightmare's moves follow their HP
+  out of their starting HP rather than a fixed 60. Mini-bosses are unchanged. Checked in the emulator (USA, by script): Mr. Shine &
+  Mr. Bright start at 60 on the bar; Kirby's own spit stars (falling stars inhaled, B mashed): 60, 40, 20, 0, the first beaten in 3
+  stars, risen cracked into the sky, the other down at full HP (with the helpers in the room too: the one beaten took 3 hits); the
+  last one's defeat, the burst and the shard in the middle of the screen (his HP written down: a forced
+  hit). The finale (Power Orb and Nightmare's fights, scripted as before): every Kirby the same frame by frame as before but for code
+  addresses. Europe: the same 60, 40, 20, 0. Japan: 60 at the start (no hit landed in the run). The HP bar's table checked in all
+  three ROMs.
+  Not tested: 2-4 players (needs a link); the second of Mr. Shine & Mr. Bright beaten by a real hit; the other bosses' fights again
+  (their one-player HP and thresholds are unchanged).
+- **Kracko with helpers** (done): with helpers in the room, a Kirby beaten up on the tower's top didn't reload the room (KatAM keeps
+  it while another Kirby is in it) and came back at the tower's bottom, where he came in, 2000 pixels under the fight: his camera
+  went down with him and the cloud with it (its moves are the screen's), the fight running on up there. Now a player beaten in the
+  fight on the top while another Kirby is still up in the room comes back on the top, where he was (his spawn moved there for that
+  one return, then his own again). Beaten alone, KatAM reloads the room and the fight starts over from the bottom, as before (and as
+  NiDL's stage). Checked in the emulator (USA, new game in the tower with the 3 helpers in it, Kirby climbing by script, beaten by
+  Kracko for real): before, back at the bottom with the cloud following his screen; now back on the top 240 frames after, the camera
+  still locked up there, the fight going on (Kracko hit him again). Alone (his HP held for the climb only): beaten up top, back at
+  the bottom with the eye there and the room's enemies reloaded, as before.
+  Not tested: Europe and Japan; 2-4 players; a helper beaten (helpers go home in a real game; the test game's start room is the
+  tower, so they came back at its bottom); the same in other tall boss rooms (Heavy Mole's scrolling one, the Power Orb's, King
+  Dedede's), not reported.
+- **The Fountain of Dreams hub's pedestals** (done): a Cutter statue on the left and a Sword statue on the right (KatAM's ability
+  statues, as in the other switch rooms), as high as theirs (y 48), where layout A's hub doors stand in the others (x 56 and 200: this
+  hub has none), either side of the Amazing Mirror. The rulebook's line on the hub now lists them (section 8; an older request had
+  taken the hub's own statues out). With the statues in the room, KatAM's food glint showed as a blue ring around the Maximum Tomato
+  every 20 frames (never before them, nor in KatAM's own room 0x72 with statues and a tomato): the tomato's glint is now off, so it
+  looks as before. Checked in the emulator (USA, new game in the hub): both statues shown; Kirby floated into the left one for real,
+  the ability pause, Cutter; into the right one, Sword; no ring on the tomato from frame 100 to 1200. Europe and Japan: the statues
+  and the tomato as in the USA build (a screenshot each). Logic checks on all three: every room reached, every big switch pressed,
+  nowhere Kirby is trapped, with and without dropping through thin floors.
+  Not tested: the Map Viewer app (it reads the room's objects from the ROM).
+
 ## 10. Screen shake as KatAM's
-The owner: the screen shakes far too much. Not reproduced: KatAM's shake runs the same in the NiDL rooms as in KatAM's, and
-nothing found shakes more often than in KatAM. Needs the owner's details (which room, what was happening).
+The owner: the screen shakes far too much. Not reproduced at first: KatAM's shake runs the same in the NiDL rooms as in KatAM's.
+Found later (50): Mr. Shine & Mr. Bright's fight and King Dedede's asked KatAM for an endless shake where NiDL's is timed; fixed.
+Anything else that shakes too much: tell where.

@@ -20,6 +20,7 @@
 
 void sub_0803D280(u8, u8);
 void ArenaGo(struct Object *);
+void sub_08055D9C(struct Kirby *);
 extern struct Task *gUnk_03000010;       // The HUD's task (its data: +0x0A the HP bar's length, +0x1C the object it shows);
 
 /* gNidlKracko; Filled in by KatAMExpansion.cs (WriteKrackoFight()): the first KatAM frame of each of its groups (FX_*: its eye, NiDL's
@@ -63,6 +64,8 @@ enum { PAL_TOP, PAL_BOTTOM, PAL_EYE, PALS };
 #define DARK_STEP 8                 // NiDL's darkening (type 0xAE, 0x08065C14: its backgrounds' colours to black, a step a frame,
 #define DARKEST 128                 // of 256);
 #define DOOS 2                      // Its Waddle Does out at once at most (NiDL's g+8: another while there's one or none);
+#define TOP_SPAWN_Y 9               // The cell row a Kirby beaten up top comes back in (KatAM's spawn: y = row * 16 - 7; 137, over the
+                                    // tower's top, where Kirbys stand at 152: Respawns());
 
 /* NiDL's objects (Actor.kind): it, then its children (NiDL's slots on); */
 enum { K_NONE, K_KRACKO, K_CHILD, K_BOLT, K_BOLT2, K_BOLT3 };
@@ -209,6 +212,8 @@ struct Fight {
     u8 groups[ACTORS * 2];
     u8 queued;
     bool8 listing;
+    u8 respawns;                        // The players coming back on the tower's top (bit per player: Respawns());
+    struct S16Vec2 spawns[4];           // and their own spawns (KatAM's: where they came in), given back after;
 };
 
 enum { BOX_NONE, BOX_EYE, BOX_FORMING, BOX_CLOUD };
@@ -1589,6 +1594,7 @@ static void DrawActor(struct Fight *f, struct Actor *a) {
 
 static void KrackoMain(struct Object *obj);
 static void LetGo(struct Fight *f);
+static void Respawns(struct Fight *f);
 
 /* FightMain(); The fight's task: its sprites and its children's, its palettes, its backgrounds' darkening; as KatAM's explosion takes it,
  * its bolts gone (its frame held, its cloud with it); gone with it; */
@@ -1599,6 +1605,8 @@ static void FightMain(void) {
     u8 i;
 
     if (obj == NULL || (obj->base.flags & 0x1000)) {
+        f->over = TRUE;
+        Respawns(f);
         LetGo(f);
         f->darkening = 0;
         Darken(f);
@@ -1645,6 +1653,40 @@ static void LetGo(struct Fight *f) {
     f->eyeBox = NULL;
 }
 
+/* Respawns(); A player beaten in the fight on the tower's top (the camera locked there) while another Kirby is still up in the room:
+ * KatAM keeps the room, the fight with it, and brings him back where he came in (his spawn: sub_08055920, then the room change,
+ * sub_08055D9C), the tower's bottom, out of the fight's reach (its moves are the screen's, the screen his camera's: it went down
+ * with him). His spawn is the tower's top where he was till he's back, then his own again; beaten alone, KatAM loads the room again
+ * and the fight starts over from the bottom, as NiDL's stage (his own spawn, untouched); */
+static void Respawns(struct Fight *f) {
+    u8 i, j;
+
+    for (i = 0; i < gNumHumanPlayers; i++) {
+        struct Kirby *k = &gKirbys[i];
+        bool32 others = FALSE;
+
+        if (f->released && !f->over && k->roomId == f->room && (k->hp <= 0 || k->stateFn == sub_08055D9C)) {
+            for (j = 0; j < gNumKirbys; j++)
+                if (j != i && InRoom(f, &gKirbys[j]) && gKirbys[j].stateFn != sub_08055D9C) others = TRUE;
+            if (others) {
+                if (!(f->respawns & (1 << i))) {
+                    s32 x = KirbyX(k);
+
+                    f->respawns |= 1 << i;
+                    f->spawns[i] = k->spawnLocation;
+                    k->spawnLocation.x = ((x < 24 ? 24 : x > 216 ? 216 : x) + 8) >> 4;
+                    k->spawnLocation.y = TOP_SPAWN_Y;
+                }
+                continue;
+            }
+        }
+        if (f->respawns & (1 << i)) {
+            k->spawnLocation = f->spawns[i];
+            f->respawns &= ~(1 << i);
+        }
+    }
+}
+
 /* The fight (KrackoMain()): NiDL's each frame: a hit taken first (Hit(): KatAM's come between frames); each of NiDL's objects in its
  * order (Turns(): by group, then slot; hurt, its own script held), its hurt's step, the bolts' boxes, KatAM's object where it is
  * (Body()). Its two parts:
@@ -1661,7 +1703,7 @@ static void LetGo(struct Fight *f) {
  *   its sweep across (1.25, bobbing), its lightning (the screen darker, a bolt every 4 frames across it), its swoop to the floor and
  *   back up. Hit (KatAM's attacks: KatAM's bosses take only the stronger ones), it freezes 13 frames, jittering, flashing in its hurt
  *   colours, its eye spinning (no hit stars: NiDL's makes none); no more hits for 31 frames. Touching it hurts (its box NiDL's: -32,
- *   -20 to 32, 20), its bolts too (-7, -7 to 7, 7 each). 60 HP (NiDL's 60); */
+ *   -20 to 32, 20), its bolts too (-7, -7 to 7, 7 each). 60 HP for one player (NiDL's 60; nidl_boss.c); */
 static void KrackoMain(struct Object *obj) {
     struct Kracko *k = (struct Kracko *)obj;
     struct Fight *f = k->f;
@@ -1671,6 +1713,7 @@ static void KrackoMain(struct Object *obj) {
     obj->base.flags |= 4 | 0x400;
     obj->kirby3 = FindTargetKirby(&obj->base);
     if (f == NULL) return;
+    Respawns(f);
     // The HP bar goes to whatever is hit; it takes it back, once its cloud shows it (ShowBar()); none before (HideBar());
     if (f->box == BOX_FORMING || f->box == BOX_CLOUD) sub_08034E14(obj);
     else HideBar(obj);

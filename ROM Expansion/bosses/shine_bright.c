@@ -580,7 +580,7 @@ static void Beaten(struct Fight *f, struct Actor *a) {
     f->player = f->obj->base.unk56;
     f->freeze = BEATEN_FREEZE;
     sub_08033540(f->player);
-    RequestScreenShake(4, &f->obj->base);
+    NidlShake(4, &f->obj->base);
     BeatenEffects(f, a);
     Sound(f, SFX_BEATEN);
     if (a->child != NONE) {
@@ -1159,7 +1159,7 @@ static void Shine13(struct Fight *f, struct Actor *a) {
     a->state = 13;
     Stop(a);
     Sound(f, SFX_WALL);
-    RequestScreenShake(4, &f->obj->base);
+    NidlShake(4, &f->obj->base);
     a->landed = FALSE;
     SetFrame(a, 14);
     VelX(a, -0x8000);
@@ -1513,7 +1513,7 @@ static void Bright13(struct Fight *f, struct Actor *a) {
     a->state = 13;
     Stop(a);
     Sound(f, SFX_WALL);
-    RequestScreenShake(4, &f->obj->base);
+    NidlShake(4, &f->obj->base);
     a->landed = FALSE;
     a->v1C = Play(a, sBrightDizzy);
     VelX(a, -0x8000);
@@ -2543,7 +2543,8 @@ static void HurtStep(struct Fight *f, struct Actor *a) {
     }
 }
 
-/* Hit(); A hit took HP off KatAM's object (the one on the ground: f->ground; KatAM's, between frames): its HP; out, beaten (Beaten());
+/* Hit(); A hit took HP off KatAM's object (the one on the ground: f->ground; KatAM's, between frames): its HP (twice the hit's, NiDL's
+ * 30 each on the HP bar's 60); out, beaten (Beaten());
  * else hurt (its first step as the hit's frame ends, KatAM's hit a frame later: two steps this frame); its state's function not run
  * this frame (0x080692FC); */
 static void Hit(struct Fight *f) {
@@ -2556,7 +2557,8 @@ static void Hit(struct Fight *f) {
         return;
     }
     a = &f->a[f->ground];
-    a->hp = obj->unk80;
+    // (NiDL's 30 HP each, kept on the HP bar's 60 as the other bosses' (nidl_boss.c): a hit takes its HP twice over);
+    a->hp = obj->unk80 = f->hp - (f->hp - obj->unk80) * 2;
     f->hit = TRUE;
     if (a->hp <= 0) {
         a->hp = 0;

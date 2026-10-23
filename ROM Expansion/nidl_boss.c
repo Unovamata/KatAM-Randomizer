@@ -11,18 +11,30 @@
 #include "bonus.h"
 #include "kirby.h"
 #include "random.h"
+#include "code_0806F780.h"
+
+/* Their HP by the number of players as KatAM's bosses' (gUnk_08351530), from NiDL's 60 (a spit star takes 10: 6 stars, as KatAM's
+ * Kracko and King Golem, whose 60, 80, 100 and 110 they all take; its HP bar's fill, KatAMExpansion.cs, is Kracko's); Mr. Shine and
+ * Mr. Bright have NiDL's 30 each (bosses/shine_bright.c takes their hits twice over, their HP bar's fill tuned to 60); the Power Orb
+ * counts its hits itself, a Star Rod star each (bosses/power_orb.c); */
+#define NIDL_BOSS_HP { 60, 80, 100, 110 }
 
 static const struct NidlBoss sNidlBosses[NIDL_BOSS_COUNT] = {
-    [NIDL_WHISPY_WOODS] = { WhispyWoodsInit, WhispyWoodsStart, 60 },
-    [NIDL_KRACKO] = { KrackoInit, KrackoStart, 60 },
-    [NIDL_SHINE_BRIGHT] = { ShineBrightInit, ShineBrightStart, 60 },
-    [NIDL_META_KNIGHT] = { MetaKnightInit, MetaKnightStart, 60 },
-    [NIDL_PAINT_ROLLER] = { PaintRollerInit, PaintRollerStart, 60 },
-    [NIDL_HEAVY_MOLE] = { HeavyMoleInit, HeavyMoleStart, 60 },
-    [NIDL_KING_DEDEDE] = { KingDededeInit, KingDededeStart, 60 },
-    [NIDL_POWER_ORB] = { PowerOrbInit, PowerOrbStart, 60 },
-    [NIDL_NIGHTMARE] = { NightmareInit, NightmareStart, 60 },
+    [NIDL_WHISPY_WOODS] = { WhispyWoodsInit, WhispyWoodsStart, NIDL_BOSS_HP },
+    [NIDL_KRACKO] = { KrackoInit, KrackoStart, NIDL_BOSS_HP },
+    [NIDL_SHINE_BRIGHT] = { ShineBrightInit, ShineBrightStart, NIDL_BOSS_HP },
+    [NIDL_META_KNIGHT] = { MetaKnightInit, MetaKnightStart, NIDL_BOSS_HP },
+    [NIDL_PAINT_ROLLER] = { PaintRollerInit, PaintRollerStart, NIDL_BOSS_HP },
+    [NIDL_HEAVY_MOLE] = { HeavyMoleInit, HeavyMoleStart, NIDL_BOSS_HP },
+    [NIDL_KING_DEDEDE] = { KingDededeInit, KingDededeStart, NIDL_BOSS_HP },
+    [NIDL_POWER_ORB] = { PowerOrbInit, PowerOrbStart, NIDL_BOSS_HP },
+    [NIDL_NIGHTMARE] = { NightmareInit, NightmareStart, NIDL_BOSS_HP },
 };
+
+// NidlBossHp(); A boss's HP at the start, for the number of players;
+s16 NidlBossHp(u8 boss) {
+    return sNidlBosses[boss].hp[gNumHumanPlayers - 1];
+}
 
 // Where a boss leaves its shard: the middle of its screen (the camera's, KatAM's 240x160), a little up;
 #define SHARD_X 120
@@ -43,7 +55,7 @@ void *CreateNidlBoss(struct ObjectTemplate *template, u8 playerId) {
     n->sequence = NULL;
     n->activated = FALSE;
     n->hurt = 0;
-    obj->unk80 = sNidlBosses[boss].hp;
+    obj->unk80 = NidlBossHp(boss);
     // As the mini-bosses: water doesn't defeat it, untouchable until the fight starts;
     obj->base.unkC |= 1;
     obj->base.flags |= 0x2000000 | 0x200 | 0x200000;
@@ -158,6 +170,16 @@ void NidlBossShard(u8 unk56, u16 room, u8 shard) {
         return;
     }
     CreateObjTemplateAndObj(unk56, 1, 0x24, x, y, 0, 0x1F, 0, 0, OBJ_MIRROR_SHARD, shard, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+}
+
+/* NidlShake(); NiDL's screen shake (0x080261D4) as KatAM's (RequestScreenShake): NiDL's levels 1-4 are timed (14, 18, 24 and 24
+ * frames, its tables at 0x08732884), 5-7 the same steps looping until stopped, 0 stops it, more than 7 does nothing; KatAM's 1-3 are
+ * NiDL's 1-3 (its 3 NiDL's 4's steps, a pixel smaller) and its 4 the loop of 2, so NiDL's 4 is KatAM's 3, 5-7 its 4 (asked for 4,
+ * KatAM shook until the fight's end: Mr. Shine & Mr. Bright's wall hits); */
+void NidlShake(u16 level, struct ObjectBase *obj) {
+    if (level > 7) return;
+    if (!level) sub_080700D8(obj);
+    else RequestScreenShake(level >= 5 ? 4 : level == 4 ? 3 : level, obj);
 }
 
 /* NidlExitTomato(); A rematch's Maxim Tomato (NidlBossDefeat()) gone, from template slot `slot` (rooms.c's BigSub_08001678: its

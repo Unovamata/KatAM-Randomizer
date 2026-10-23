@@ -131,12 +131,16 @@
          * middle of the room as the camera shows it, high up under the ceiling, where the other switch rooms' ability statues stand
          * (pixels: its spot, the camera showing 8-248 and 8-168; its sprite's middle 4 above); under it, on the raised platform at the
          * room's bottom middle (its top at 128), KatAM's Master Sword stand (0x98, as Central Circle's, 16 pixels over the floor: it gives
-         * Master once the game is beaten, or from the start with "Unlock the Master Sword"), and its Maximum Tomato (0x61) on the floor's
-         * right, where Kirby lands on its left (the owner's); */
+         * Master once the game is beaten, or from the start with "Unlock the Master Sword"), its Maximum Tomato (0x61) on the floor's
+         * right, where Kirby lands on its left, and a Cutter and a Sword statue on its sides (the owner's: FinaleStatues); */
         static (int room, int x, int y) finaleEntry;
         static byte[] finaleMirror;
         static readonly (int x, int y) FinaleMirrorAt = (128, 68), FinaleSwordAt = (128, 112), FinaleTomatoAt = (200, 137);
         const byte FinaleTomato = 0x61, MasterSwordStand = 0x98;
+        /* FinaleStatues: the Fountain of Dreams hub's ability statues (the owner's: "a cut and sword pedestals on both sides of the hub"),
+         * Cutter on its left, Sword on its right (0x95: subtype1 1 and 0), as high as the other switch rooms' (their top row, 48), where
+         * layout A's hub doors stand in the others (cells 3 and 12: it has none), either side of the Amazing Mirror; */
+        static readonly (int x, int y, byte type, byte subtype)[] FinaleStatues = { (56, 48, 0x95, 1), (200, 48, 0x95, 0) };
         // NiDL items (category 3): 1-Up, Maxim Tomato, Invincibility Candy, Energy Drink -> KatAM's 1UP, Maximum Tomato, Lollipop, Pep Brew;
         static readonly Dictionary<int, byte> RoomItems = new Dictionary<int, byte> { [1] = 0x63, [2] = 0x61, [3] = 0x64, [4] = 0x5F };
         // KatAM song per NiDL level (Vegetable Valley ... Rainbow Resort, then the Fountain of Dreams);
@@ -230,7 +234,7 @@
          * Cutter, Cupid: subtype1), with the level's abilities: Vegetable Valley Beam (Waddle Doo) and Sword (Sword Knight), Ice Cream
          * Island Parasol and Fire (the beach's), Butter Building Cutter (Sir Kibble) and Hammer, Grape Garden Tornado (Twister) and
          * Spark (Sparky), Yogurt Yard Stone and Throw, Orange Ocean Laser (Laser Ball) and Wheel, Rainbow Resort Ice (Chilly) and
-         * Cupid, the Fountain of Dreams Smash and Burning (not placed while its hub is the finale's end: FinaleMirrorAt); between the
+         * Cupid, the Fountain of Dreams Smash and Burning (not placed while its hub is the finale's end: FinaleStatues instead); between the
          * hub doors (layout A, as 0x122's) or beside the top one (B, 0x250's); */
         static readonly (byte type, byte subtype)[][] SwitchStatues = {
             new[] { ((byte)0x92, (byte)0), ((byte)0x95, (byte)0) }, new[] { ((byte)0x94, (byte)0), ((byte)0x92, (byte)3) },
@@ -4287,8 +4291,8 @@
             // A switch room's big switch (NiDL's own aren't ported: a level has one, see LevelSlot()) and ability statues (SwitchStatues);
             // the Fountain of Dreams hub's, the finale's end, has neither: an Amazing Mirror in the room's middle, high up, to KatAM's
             // final boss (as Central Circle's Dimension Mirror led there: whole, and the way in, once KatAM's 8 shards are found), the
-            // Master Sword's stand under it, on the raised platform, and a Maximum Tomato on the floor's right (taken once per visit, as
-            // the items);
+            // Master Sword's stand under it, on the raised platform, a Maximum Tomato on the floor's right (taken once per visit, as
+            // the items), and its own statues on its sides (FinaleStatues);
             bool finaleHub = r.IsSwitchRoom && r.Level == 7 && finaleMirror != null;
             if (finaleHub) {
                 byte[] mirror = (byte[])finaleMirror.Clone();
@@ -4302,8 +4306,18 @@
                 if (!types.Contains(MasterSwordStand)) types.Add(MasterSwordStand);
                 byte[] tomato = ObjectTemplate(FinaleTomatoAt.x, FinaleTomatoAt.y, templates.Count, FinaleTomato);
                 tomato[2] = TakenKind; tomato[3] = (byte)takenItems++;
+                // (no glint, its template's unk22 4: KatAM's food makes one, sub_0809513C, drawn from its VRAM at 0x06012000, and with the
+                // statues in the room it showed as a door's blue ring around the tomato every 20 frames; none before them, nor in KatAM's
+                // room 0x72, statues and a Maximum Tomato too);
+                tomato[0x22] |= 4;
                 templates.Add(tomato);
                 if (!types.Contains(FinaleTomato)) types.Add(FinaleTomato);
+                foreach (var (x, y, type, subtype) in FinaleStatues) {
+                    byte[] statue = ObjectTemplate(x, y, templates.Count, type);
+                    statue[14] = subtype; statue[15] = 0;
+                    templates.Add(statue);
+                    if (!types.Contains(type)) types.Add(type);
+                }
             } else if (r.IsSwitchRoom) {
                 // (over a ThinPlatforms pedestal, a little above it: it falls on to it, as a one-way floor only holds what lands on it from
                 // above; at its top, its feet on it, it fell through to the ground);

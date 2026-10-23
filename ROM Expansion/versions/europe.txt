@@ -116,6 +116,7 @@ m4aSongNumStartOrChange 0x8150a84
 gUnk_08D610B4 0x8d6b514
 CreateObject 0x800a888
 RequestScreenShake 0x806feac
+sub_080700D8 0x8070120
 gUnk_020229D4 0x20229d4
 gUnk_020229E0 0x20229e0
 sub_0804E09C 0x804e0d8

@@ -368,9 +368,9 @@ static void Sound(struct Fight *f, u16 sfx) {
     PlaySfx(&f->obj->base, sfx);
 }
 
-// Shake(); NiDL's 0x080261D4: the screen shakes (KatAM's);
+// Shake(); NiDL's 0x080261D4: the screen shakes (NidlShake(): NiDL's levels as KatAM's);
 static void Shake(struct Fight *f, u16 n) {
-    RequestScreenShake(n, &f->obj->base);
+    NidlShake(n, &f->obj->base);
 }
 
 /* Their objects: Spawn() takes NiDL's lowest free slot (0x08005904), a child of `parent` at its spot or at (x, y) (0x08064CDC: `dx`
@@ -2062,7 +2062,7 @@ static void EndScript(struct DededeEnd *end) {
     end->timer = 120;
     END_WAIT(16);
     shake.roomId = end->e.roomId;
-    RequestScreenShake(4, &shake);
+    NidlShake(4, &shake);
     SetFrame(a, 10);
     a->v20 = 0x20000;
     for (a->loop = 0; a->loop < 3; a->loop++) {

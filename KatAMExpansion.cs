@@ -1379,9 +1379,10 @@ namespace KatAMRandomizer {
              * 546 (30 HP as well, for one player) for any number of players; */
             int hpBar = version.RomSymbols["gUnk_08351648"] - 0x1F0;
             if (ReadShort(rom, hpBar + 8 * 8) != 8192) return $"The ROM's data doesn't match the {version.Name} release.";
-            // (and the bosses, 60 HP as KatAM's, the 273 of Kracko's for one player);
+            // (and the bosses, whose HP is Kracko's for any number of players, nidl_boss.c: Kracko's 273, 204, 163 and 148);
             foreach (byte type in minibossAnimInfosAt.Keys)
-                for (int players = 0; players < 4; players++) WriteShort(rom, hpBar + (type - FrostyID) * 8 + players * 2, IsBossType(type) ? 273 : 546);
+                for (int players = 0; players < 4; players++)
+                    WriteShort(rom, hpBar + (type - FrostyID) * 8 + players * 2, IsBossType(type) ? ReadShort(rom, hpBar + (KrackoID - FrostyID) * 8 + players * 2) : 546);
 
             /* A boss's defeat runs gUnk_08350E58[type - 0x43] as it explodes (KatAM's bosses leave their shard there): type 0x43's (none)
              * and 0x44's (none) are the bosses' NidlBossDefeat; */
