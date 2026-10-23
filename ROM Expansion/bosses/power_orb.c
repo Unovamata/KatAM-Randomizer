@@ -210,7 +210,7 @@ static const struct OrbStep *const sDashWays[3] = { sDashMiddle, sDashHigh, sDas
 static const u8 sDashSteps[3] = { ARRAY_COUNT(sDashMiddle), ARRAY_COUNT(sDashHigh), ARRAY_COUNT(sDashLow) };
 static const u8 sDashWhoosh[3] = { 7, 5, 5 };
 /* Its looks (NiDL's frame sequences, 0x0874AD74...: its frames (FRAME_SPIN...) and how long each shows), with: SEQ_LOOP, back to the
- * start; SEQ_TURN, an attack look's turn done (0x080AF178); SEQ_HP, as long as its HP / 8 + 1 (0x080AF100: it spins faster as it
+ * start; SEQ_TURN, an attack look's turn done (0x080AF178); SEQ_HP, as long as its HP (its share of NiDL's 60) / 8 + 1 (0x080AF100: it spins faster as it
  * weakens); SEQ_DASH, on to sDashSpin, from its second frame (NiDL's dash look ends calling into the middle of its code, which sets
  * 0x0874B07C going); */
 #define SEQ_LOOP 0xFF
@@ -709,7 +709,7 @@ static void SeqRun(struct PowerOrb *o) {
             o->seqAt = 2;
         } else {
             o->frame = at;
-            o->seqLeft = o->seq[o->seqAt + 1] == SEQ_HP ? (o->n.obj.unk80 >> 3) + 1 : o->seq[o->seqAt + 1];
+            o->seqLeft = o->seq[o->seqAt + 1] == SEQ_HP ? (o->n.obj.unk80 * 60 / NidlBossHp(NIDL_POWER_ORB) >> 3) + 1 : o->seq[o->seqAt + 1];
             o->seqAt += 2;
             return;
         }

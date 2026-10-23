@@ -3,11 +3,6 @@
 What the owner has asked for that is still to do. When an item is finished, take it out. The design rules for doors, mirrors and
 hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
 
-## 2. The NiDL levels on the pause screen
-The ported rooms' visited doors are saved, but the pause screen has no area maps for the NiDL levels (it treats their rooms as the
-tutorial's), so those visits show nowhere in game. Needs area maps for them (graphics and the pause code's tables). Get the
-owner's go-ahead on how they should look first.
-
 ## 5. Bosses as faithful 1:1 recreations of NiDL
 - **The other bosses**: check each against NiDL and fix what differs.
 
@@ -419,6 +414,168 @@ still, the mini-boss's HP read every 3 seconds for 30 seconds), before, then aft
 Not tested: played by hand; with Kirby fighting too; helpers with an ability (their code isn't changed); a ported mini-boss the
 randomizer puts in an enemy's spot.
 
+## 47. The owner's list: pause maps, Star Rod, Mike, Dedede, Nightmare, Map Viewer
+- **Pause screen maps** (done; this also settles the old item 2, the NiDL levels' area maps: there are none): with the ROM
+  Expansion, SELECT on the pause screen switches between the help screen and the world map only; the area maps' data is wiped
+  (`KatAMPauseScreens.DropAreaMaps()`): their backgrounds, room layouts, frame, area titles and shard and map room tiles, 62,190
+  bytes in the USA version, 62,088 in the Japanese one, 78,213 in the European one, ready for something else (the ranges are in
+  the code's comment). Kept: the room squares, lines, arrows and colors the Map Viewer draws with, the world map's own graphics
+  and every sprite. Checked in the emulator (USA by script, in Rainbow Route's Central Circle): before, Help, Rainbow Route's
+  area map, world map, Help; now Help, world map, Help, world map, back to the game, the world map drawn as before. The same in
+  the European (English) and Japanese builds. A build with and without it differs only in the one changed instruction, the 10
+  background table entries and the wiped ranges; the kept graphics are byte for byte the original ROM's, and so are the other
+  languages' world map frames between the European area titles. Not tested: the European version in its other languages
+  (their data is untouched), pausing in a NiDL room (unchanged: as before, its rooms count as the tutorial's), the Map Viewer
+  app itself (it reads only the kept graphics).
+- **Star Rod damage** (done): its stars hit with the Master Sword slash's strength, 8 (`sub_08075DB0`'s; it was 1), still as stars
+  (KatAM adds the target's star modifier; the sword adds its fire and cut modifiers instead, so the two differ only where those
+  differ: Mr. Frosty, weak to fire, takes 11 from the sword's slash and 8 from a star). Nightmare is kept NiDL's: his star
+  modifier goes from 9 to 2, so a star still takes 10 of his 60 HP, 6 stars as before (his HP bar's fill is tuned to 60). The
+  Power Orb counts its hits itself (one per star), so its fight doesn't change. Checked in the emulator (USA, by script): Mr.
+  Frosty took 1 per Star Rod star before, 8 now (30, 22, 14, 6, beaten; the rod given by RAM write); the Master Sword, taken from
+  Central Circle's stand for real (the Unlock the Master Sword option) and brought into his room by RAM warp, took 11 with its
+  slash (attack strength 8 read from RAM); Nightmare's fight played by the finale script, Kirby firing: 60, 50, 40, 30, 20, 10.
+  Not tested: played by hand; the rod against other bosses; Nightmare's last hit (the run ended at 10 HP).
+- **Mike** (done): his songs showed in the Star Rod's colors (white and pink megaphone, cap and microphone off). All the new
+  abilities' moves share one hat animation, and the Star Rod's glow (`NidlDisplaySprite`, "ROM Expansion/abilities.c") took any
+  sprite of that animation for the rod, cycling the rod's palette over the hat's. Now only the rod's own frames glow and cycle,
+  so Mike's songs keep NiDL's colors (yellow megaphone, black and white cap, grey microphone, green and yellow crest); the same
+  fix covers Needle, Freeze, Light, Ball and Hi-Jump, whose moves had the same fault. Checked in the emulator (by script, in all
+  three versions): Mike taken for real, by swallowing an enemy in a test build where every enemy gives Mike, then all three
+  songs; his hat palette stays his own every frame (it was overwritten by the rod's as soon as B was pressed). Needle the same
+  way (USA): its spikes keep its palette. The Star Rod, taken from its stand in the NiDL hub (USA): it still cycles its colors
+  and glows, held and swinging. Not tested: played by hand; Freeze, Light, Ball and Hi-Jump one by one (same code path).
+- **Dedede's fight** (done): the Fountain of Dreams background was garbage (the Fountain at the screen's top, a teal band and
+  stray rows under it) for the first second in his room, while the camera waited at the room's top before coming down to the
+  fight. KatAM put the background 21 pixels above its own top there (the room's scroll rate is made for KatAM's camera range,
+  and his fight's screen is held lower than KatAM's camera goes), and KatAM doesn't draw rows above a background's top. His room
+  now has a rate that brings the background from its top, with the camera at the room's top, to where it was on the fight's
+  screen (`KatAMExpansionRooms.cs`, `DededeScreenY`): same fight screen as before (background row 108, NiDL's view), nothing
+  garbled on the way down. The pink and cyan streams in the sky are NiDL's own (they're in NiDL's fight too). Checked in the
+  emulator (by script, all three versions): Kirby put in front of the Fountain of Dreams switch room's top door (RAM write) and
+  entering it for real; before, 65 frames of garbage, then the pan; now the sky from the fade in, the pan down, and the fight's
+  screen as before (camera y 168, background 108; compared with NiDL's recorded fight). Not tested: played by hand.
+- **Nightmare's defeat**: may show a wrong palette. Not reproduced: NiDL's own defeat recorded for it (its finale script, his
+  HP written down so a star beats him), against five of ours (USA by the finale script, his HP written down to one star's worth,
+  beaten during two different moves; the European and Japanese builds too): the hit's grey and red flashes, his flight off
+  right, his light, the 15 frames caped (in his fight's dark colors, as NiDL's), the silver spread, the pink break-up and the
+  floor's bursts all show the same colors, frame for frame. The palette slots hold the right palettes throughout (dumped), and
+  nothing writes to his first palette's slot during the defeat (watched). Needs the owner's details: when in the defeat, what it
+  looked like (a screenshot if possible), and which version.
+- **The cinematic on the way to the Fountain of Dreams** (done): King Dedede flew by four times too fast: the whole ride down
+  from the moon runs four of NiDL's frames a game frame (the owner's earlier ask), and his flight with it. He now has his own
+  clock, a NiDL frame a game frame (NiDL's speed, "ROM Expansion/ending.c"), the ride, the star and the screen as fast as before;
+  his flight (731 frames) is timed to end as the star settles, so the ride keeps its length and he's seen whole: in from the
+  bottom right, up beside the star, then small and far off just before the fade. Checked in the emulator (by script, all three
+  versions): the finale script through Nightmare's fight (his HP written down to one star's worth) into the ride; Dedede in view
+  for 12 seconds instead of 3, the fade and the Fountain of Dreams hub at the same frame as before. Not tested: played by hand.
+- **Map Viewer: Nightmare's entire sprite** (done): his icon was one piece of a frame (his collar and arms, no cape or
+  tornado). It's now his whole hovering pose, caped, as the fight shows him most (his body, his top half over it, his collar on
+  top), with the tornado and cape in the fight's own colors (KatAMExpansion.cs, Nightmare(): IconCells, IconFightColors).
+  Checked (all three versions): the icon pulled from the built ROMs, and the Map Viewer's own code (its ROM reader and icon
+  renderer, run outside the window) giving his room the 96x128 icon, the same in all three; compared by eye with a screenshot of
+  his fight. Not tested: the Map Viewer window itself (it needs Windows; it scales every icon to fit its room and trims empty
+  edges, whatever its size).
+
+## 48. Hi-Jump 1:1 from NiDL
+The owner: a 1:1 implementation of the Hi-Jump ability. Done ("ROM Expansion/abilities/hi_jump.c", rewritten from NiDL's code:
+its script `0x08049F98`, its every-frame code `0x0804A258`, its effects `0x08059570`; recordings of NiDL's Kirby, frame by frame):
+the crouch (4 frames, the sink, the dust puffing out both ways), the rise (23 frames at 4.16 pixels, then NiDL's slowing and its
+last 5 frames, 148 pixels in all), the steering (0.25 a frame up to 2.0, the input a frame late as NiDL's, slowing by 0.055), the
+five sets of cape poses by his speed on the cape's beat, the glow (NiDL's yellow, 4 frames in 8, body and hat; none with Reduce
+Flashing), the star and sparkles falling under him, the take-off burst and its box, B again (that frame's move, a puff with its
+box, then the fall from still), a ceiling or the room's top ending the rise at once (the room's top used to let him push on
+against it), and the fall (somersault first, B doing nothing till he lands, A floating). NiDL's frames and effects are exported
+by KatAMExpansion.cs (HiJumpEffects; the flash palette per version). Kept as before (README): no guard, KatAM-scale strengths,
+KatAM's closest take-off sound, KatAM's own fall and its bounce after a long fall (NiDL bounces too).
+Checked in the emulator (USA, by script): Hi-Jump taken for real (a build where every enemy gives it, the first enemy of room
+0x65 swallowed), then Kirby's state dumped every frame and set against NiDL's recordings of the same inputs: standing, steering
+left then right, B again (too early and in time), from a walk, from a jump, B in the fall, A in the fall. Positions and speeds
+match NiDL's to the subpixel, a frame earlier (KatAM takes B the frame it's pressed, NiDL the next). A full rise with no room top
+in the way (room 0x67, the ability byte written: a forced state) gives NiDL's 148 pixels and its fall at the 51st frame.
+Screenshots side by side with NiDL's, frame by frame: crouch, dust, poses, burst, star and sparkles the same (the dust is now in
+front of Kirby: it was behind him, so its first frame was hidden). The glow's colors, written every frame, flash and come back;
+with Reduce Flashing they don't change. European and Japanese builds: Hi-Jump taken the same way, the same frames and speeds,
+screenshots right. Logic checks on all three: every room reached, every big switch pressed, nowhere Kirby is trapped, with and
+without dropping through thin floors.
+Not tested: played by hand; a Hi-Jump into a ceiling tile (the room's top was; both end the rise through the same check); hitting
+an enemy during the rise; in water (it does what KatAM's abilities do, unchanged).
+
+## 49. The Star Rod's layering and its spin
+The owner: with the Star Rod there are layering issues, and when Kirby spins the rod's animation looks off, for example hopping off
+the warp star from room 0x74 (through 0x7B) into 0x7C. Done:
+- The spin: the new abilities' attack poses were played at animation indexes 74-89, which are also KatAM's tumble (a warp star's
+  hop-off, cutscenes), so every new ability tumbled in its own attack poses (the Star Rod's: held up, the swing, flying). They're
+  moved to 103-118 (KatAM's copy abilities' attacks, which only those abilities' own states play), and the Star Rod's tumble is now
+  NiDL's own, the rod turning with Kirby (NiDL's frames 0x1060-0x106F, the ones Nightmare's intro plays; KatAM's tumble body matches
+  them to the pixel, a step behind). The other new abilities' tumble keeps their usual hat (NiDL has no tumble frames for them).
+- The layering: KatAM always draws the hat over the body, but NiDL draws the Star Rod behind Kirby in 33 of its frames (walking,
+  running, the jump, floating...). The rod's pieces NiDL puts behind him are now cut where KatAM's body covers them. Only the Star
+  Rod's hat: the other hats have 1-4 such frames each and are left as they were (say if they should follow too).
+- Side effect, kept as before: KatAM's Kirbys standing on one another's heads skips the tumble's indexes, so moving the poses would
+  have let the Power Orb's flying Kirbys stack (drawn a pixel or two off, taken as landed). That function is detoured so they're still
+  left out. The new abilities' attacks elsewhere now take part in it, as KatAM's own attacks do.
+Checked in the emulator (USA, by script; the room change to 0x74 is the tracker's debug warp, a forced state, the Star Rod taken for
+real at the NiDL hub's stand, the ride and the hop-off real): the tumble in 0x7C plays KatAM's tumble with the rod turning a step a
+frame, the right way round. In the hub, walking, falling, jumping, floating, crouching and sliding, set against the last commit:
+what changed is the rod's pixels over Kirby, now behind him as in NiDL's own frames (checked on six poses). Needle, Freeze, Light, Ball, Hi-Jump and Mike (each taken for
+real, a build where every enemy gives it): the same inputs on the last commit's build and this one give the same play and
+pixel-identical screenshots, the poses only at their new indexes; the Star Rod's swing (ground, air, facing left) the same. The
+finale (the Power Orb's fight, the ride, Nightmare's intro; scripted inputs with some RAM writes, as before): every Kirby's state
+the same as the last commit's frame by frame, the screenshots the same except the helpers' rods behind their heads after the
+knock. European and Japanese builds: the same ride and tumble (the Japanese one's rod glow on another beat, the frame counter
+offset by its menu). Logic checks on all three: every room reached, every big switch pressed, nowhere Kirby is trapped, with and
+without dropping through thin floors.
+Not tested: played by hand; the cutscene tumbles (KatAM's cutscene_trigger.c) and other tumbles with the Star Rod; a new ability
+standing on another Kirby, or stood on, in multiplayer.
+
+## 50. The owner's list: Shine & Bright's shake, bosses' HP, Kracko with helpers, the Fountain hub's pedestals
+- **Mr. Shine & Mr. Bright's shake** (done): the screen shook from their first wall hit to the fight's end. The port asked KatAM's
+  shake for strength 4, NiDL's number, but KatAM's 4 is an endless shake (it loops until stopped) where NiDL's 4 is a timed one (24
+  frames). NiDL's shake is now mapped onto KatAM's (`NidlShake()`, nidl_boss.c): NiDL's 1-3 are KatAM's 1-3, its 4 is KatAM's 3 (the
+  same steps, a pixel smaller), its looping 5-7 KatAM's 4, its 0 stops it. King Dedede's fight asked for 4 the same way (his
+  landings, his defeat): fixed with it. Checked in the emulator (USA, the fight played with Kirby standing still, the shake offset
+  read every frame): before, it never stopped after frame 529; now only short shakes (16-22 frames each). King Dedede's (his room,
+  Kirby still): before, from frame 280 to the end; now only short ones. Europe and Japan: Mr. Shine & Mr. Bright's fight, only short
+  shakes (11 in 2500 frames each).
+- **NiDL's bosses' HP** (done): their hits are KatAM's (they take damage as KatAM's Kracko does), but their HP was 60 whatever the
+  number of players, where KatAM's bosses get more with more players, and Mr. Shine and Mr. Bright had 60 each, twice NiDL's 30
+  (12 spit stars for the fight, the others 6). Now every NiDL boss has KatAM's Kracko and King Golem's HP: 60, 80, 100, 110 for 1-4
+  players (NiDL's 60 for one, 6 spit stars, as KatAM's first bosses), the HP bar's fill scaled to match (Kracko's); Mr. Shine and Mr.
+  Bright NiDL's 30 each (3 stars each, 6 for the fight, as NiDL's); the Power Orb's spin speed and Nightmare's moves follow their HP
+  out of their starting HP rather than a fixed 60. Mini-bosses are unchanged. Checked in the emulator (USA, by script): Mr. Shine &
+  Mr. Bright start at 60 on the bar; Kirby's own spit stars (falling stars inhaled, B mashed): 60, 40, 20, 0, the first beaten in 3
+  stars, risen cracked into the sky, the other down at full HP (with the helpers in the room too: the one beaten took 3 hits); the
+  last one's defeat, the burst and the shard in the middle of the screen (his HP written down: a forced
+  hit). The finale (Power Orb and Nightmare's fights, scripted as before): every Kirby the same frame by frame as before but for code
+  addresses. Europe: the same 60, 40, 20, 0. Japan: 60 at the start (no hit landed in the run). The HP bar's table checked in all
+  three ROMs.
+  Not tested: 2-4 players (needs a link); the second of Mr. Shine & Mr. Bright beaten by a real hit; the other bosses' fights again
+  (their one-player HP and thresholds are unchanged).
+- **Kracko with helpers** (done): with helpers in the room, a Kirby beaten up on the tower's top didn't reload the room (KatAM keeps
+  it while another Kirby is in it) and came back at the tower's bottom, where he came in, 2000 pixels under the fight: his camera
+  went down with him and the cloud with it (its moves are the screen's), the fight running on up there. Now a player beaten in the
+  fight on the top while another Kirby is still up in the room comes back on the top, where he was (his spawn moved there for that
+  one return, then his own again). Beaten alone, KatAM reloads the room and the fight starts over from the bottom, as before (and as
+  NiDL's stage). Checked in the emulator (USA, new game in the tower with the 3 helpers in it, Kirby climbing by script, beaten by
+  Kracko for real): before, back at the bottom with the cloud following his screen; now back on the top 240 frames after, the camera
+  still locked up there, the fight going on (Kracko hit him again). Alone (his HP held for the climb only): beaten up top, back at
+  the bottom with the eye there and the room's enemies reloaded, as before.
+  Not tested: Europe and Japan; 2-4 players; a helper beaten (helpers go home in a real game; the test game's start room is the
+  tower, so they came back at its bottom); the same in other tall boss rooms (Heavy Mole's scrolling one, the Power Orb's, King
+  Dedede's), not reported.
+- **The Fountain of Dreams hub's pedestals** (done): a Cutter statue on the left and a Sword statue on the right (KatAM's ability
+  statues, as in the other switch rooms), as high as theirs (y 48), where layout A's hub doors stand in the others (x 56 and 200: this
+  hub has none), either side of the Amazing Mirror. The rulebook's line on the hub now lists them (section 8; an older request had
+  taken the hub's own statues out). With the statues in the room, KatAM's food glint showed as a blue ring around the Maximum Tomato
+  every 20 frames (never before them, nor in KatAM's own room 0x72 with statues and a tomato): the tomato's glint is now off, so it
+  looks as before. Checked in the emulator (USA, new game in the hub): both statues shown; Kirby floated into the left one for real,
+  the ability pause, Cutter; into the right one, Sword; no ring on the tomato from frame 100 to 1200. Europe and Japan: the statues
+  and the tomato as in the USA build (a screenshot each). Logic checks on all three: every room reached, every big switch pressed,
+  nowhere Kirby is trapped, with and without dropping through thin floors.
+  Not tested: the Map Viewer app (it reads the room's objects from the ROM).
+
 ## 10. Screen shake as KatAM's
-The owner: the screen shakes far too much. Not reproduced: KatAM's shake runs the same in the NiDL rooms as in KatAM's, and
-nothing found shakes more often than in KatAM. Needs the owner's details (which room, what was happening).
+The owner: the screen shakes far too much. Not reproduced at first: KatAM's shake runs the same in the NiDL rooms as in KatAM's.
+Found later (50): Mr. Shine & Mr. Bright's fight and King Dedede's asked KatAM for an endless shake where NiDL's is timed; fixed.
+Anything else that shakes too much: tell where.

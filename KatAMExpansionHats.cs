@@ -145,6 +145,17 @@
             },
         };
 
+        /* The Star Rod's tumble (KatAM's anim 0x2c, frames 0-15, animation indexes 74-89: knocked off a warp star, tumbling in cutscenes):
+         * NiDL's own, the rod turning with him (0x1060-0x106F, Nightmare's intro's, STAR_ROD_MOTION_TUMBLE), not a matched body's: KatAM's
+         * frame v is NiDL's 0x1060 + v - 1 (both turning clockwise as the index goes down), the same body to the pixel at these offsets,
+         * as KatAM shows it (its flipped frames are turns: not mirrored again); */
+        static readonly (int anim, int frame, int nidl, int dx, int dy)[] StarRodTumble = {
+            (0x2c, 0, 0x106f, 0, 0), (0x2c, 1, 0x1060, 0, 0), (0x2c, 2, 0x1061, 0, 0), (0x2c, 3, 0x1062, 0, 0), (0x2c, 4, 0x1063, 0, 0),
+            (0x2c, 5, 0x1064, 0, 0), (0x2c, 6, 0x1065, 1, 0), (0x2c, 7, 0x1066, 0, 0), (0x2c, 8, 0x1067, 0, 0), (0x2c, 9, 0x1068, 0, 0),
+            (0x2c, 10, 0x1069, 0, 1), (0x2c, 11, 0x106a, 0, 0), (0x2c, 12, 0x106b, 0, 0), (0x2c, 13, 0x106c, 0, 0), (0x2c, 14, 0x106d, 0, 0),
+            (0x2c, 15, 0x106e, 0, 0),
+        };
+
         // Per new ability, which pixels are its hat: null, the second layer's; else the first layer's of these colors (Ball's cap is drawn with Kirby);
         static readonly int[][] HatColors = { null, null, null, new[] { 12, 13, 14 }, null, null, null, null };
 
@@ -196,12 +207,14 @@
          * drawn on a canvas and cut into 8x8 pieces (CutFrame); NiDL's Kirby is always pink, so its hats (Needle's) draw parts of his
          * body in his colors (kirbyColors: plain Kirby's 2-11), which KatAM's hat palette would keep pink on every Kirby: they're left to
          * the body where KatAM's body frame covers them (`covered`, BodyCoverage()), else drawn in the hat's nearest other color (KatAM's
-         * Kirby is shaped a little differently: Needle's head between its spikes showed the room through); */
+         * Kirby is shaped a little differently: Needle's head between its spikes showed the room through). `layered` (the Star Rod's):
+         * NiDL draws some of its hat's pieces after Kirby's, under him (the rod behind his body as he walks, runs, jumps...), and KatAM
+         * the hat over the body: they're cut where KatAM's body frame covers them; */
         static (byte[] tiles, ushort[] oams, short[] attributes) HatFrame(KirbyFrame frame, int dx, int dy, int[] colors, (int flags, int w, int h, int ox, int oy) body,
-                                                                          HashSet<int> kirbyColors, bool[,] covered) {
-            const int Size = 128, Center = 64;
+                                                                          HashSet<int> kirbyColors, bool[,] covered, bool layered = false) {
+            const int Size = 128, Center = 64, Behind = 0x100;
             int[,] canvas = new int[Size, Size];
-            // (a body pixel is kept as -its color until the body's coverage is known, after mirroring);
+            // (a body pixel is kept as -its color, a pixel behind him as Behind + its color, until the body's coverage is known, after mirroring);
             int Nearest(int value) {
                 ushort c = (ushort)ReadShort(frame.Palette2, value * 2);
                 int Distance(ushort o) => Enumerable.Range(0, 3).Sum(i => (c >> i * 5 & 31) - (o >> i * 5 & 31) is int d ? d * d : 0);
@@ -209,10 +222,12 @@
             }
 
             // (back to front: NiDL's first piece is on top, as the Star Rod's star over its glow);
-            foreach (Piece piece in Enumerable.Reverse(frame.Pieces)) {
+            for (int p = frame.Pieces.Count - 1; p >= 0; p--) {
+                Piece piece = frame.Pieces[p];
                 bool second = piece.Tile >= 0x40;
                 byte[] tiles = second ? frame.Tiles2 : frame.Tiles1;
                 if (tiles == null || second != (colors == null)) continue;
+                bool behind = layered && second && frame.Pieces.Take(p).Any(above => above.Tile < 0x40);
 
                 for (int py = 0; py < piece.Height; py++) {
                     for (int px = 0; px < piece.Width; px++) {
@@ -221,6 +236,7 @@
                         if (value == 0 || (colors != null && !colors.Contains(value))) continue;
                         // (the second layer's pixels in plain Kirby's colors are his body, which KatAM's body frame draws in the player's colors);
                         if (second && kirbyColors.Contains(ReadShort(frame.Palette2, value * 2))) value = -value;
+                        else if (behind) value += Behind;
 
                         int x = Center + piece.X + dx + (piece.HFlip != 0 ? piece.Width - 1 - px : px);
                         int y = Center + piece.Y + dy + (piece.VFlip != 0 ? piece.Height - 1 - py : py);
@@ -245,6 +261,7 @@
             for (int y = 0; y < Size; y++)
                 for (int x = 0; x < Size; x++)
                     if (canvas[x, y] < 0) canvas[x, y] = covered[x, y] ? 0 : Nearest(-canvas[x, y]);
+                    else if (canvas[x, y] >= Behind) canvas[x, y] = covered[x, y] ? 0 : canvas[x, y] - Behind;
             return CutFrame(canvas, HatTiles);
         }
 
@@ -307,6 +324,7 @@
                                int[] hatPalettes, bool[][] paletteUsed, int[] glows) {
             int[] hatTables = new int[NewAbilities];
             Dictionary<(int, int), (int nidl, int dx, int dy)> matches = BodyMatches.ToDictionary(m => (m.anim, m.frame), m => (m.nidl, m.dx, m.dy));
+            Dictionary<(int, int), (int nidl, int dx, int dy)> tumble = StarRodTumble.ToDictionary(m => (m.anim, m.frame), m => (m.nidl, m.dx, m.dy));
             HashSet<int> kirbyColors = PlainKirby(nightmare, region).Skip(2).Take(10).Select(c => (int)c).ToHashSet();
 
             for (int k = 0; k < NewAbilities; k++) {
@@ -320,21 +338,27 @@
                 byte[] palette = null;
 
                 int HatFrameIndex(int bodyAnim, int bodyFrame) {
-                    if (HatFrames[k] == null || !matches.TryGetValue((bodyAnim, bodyFrame), out (int nidl, int dx, int dy) m) || m.nidl >= HatFrames[k].Length || HatFrames[k][m.nidl] < 0) return 0;
+                    // (the hat's NiDL frame: the Star Rod's own tumble, else the ability's frame with the matched body);
+                    (int nidl, int dx, int dy) m = default;
+                    int nidlFrame;
+                    bool turned = k == StarRod && tumble.TryGetValue((bodyAnim, bodyFrame), out m);
+                    if (turned) nidlFrame = m.nidl;
+                    else if (HatFrames[k] != null && matches.TryGetValue((bodyAnim, bodyFrame), out m) && m.nidl < HatFrames[k].Length && HatFrames[k][m.nidl] >= 0) nidlFrame = HatFrames[k][m.nidl];
+                    else return 0;
                     int attributes = ReadInt(rom, attrTable + bodyAnim * 4) - 0x08000000 + bodyFrame * 12;
-                    var body = (ReadShort(rom, attributes) & 0xC000, (int)(short)ReadShort(rom, attributes + 4), (int)(short)ReadShort(rom, attributes + 6),
+                    var body = (turned ? 0 : ReadShort(rom, attributes) & 0xC000, (int)(short)ReadShort(rom, attributes + 4), (int)(short)ReadShort(rom, attributes + 6),
                                 (int)(short)ReadShort(rom, attributes + 8), (int)(short)ReadShort(rom, attributes + 10));
                     if (frameIndexes.TryGetValue((bodyAnim, bodyFrame), out int index)) return index;
 
-                    KirbyFrame frame = ReadKirbyFrame(nightmare, region, HatFrames[k][m.nidl]);
+                    KirbyFrame frame = ReadKirbyFrame(nightmare, region, nidlFrame);
                     palette ??= HatColors[k] == null ? frame.Palette2 : frame.Palette1;
                     bool[,] covered = BodyCoverage(rom, anims, attrTable, oamTable, tilesBase, bodyAnim, bodyFrame);
-                    var hat = HatFrame(frame, m.dx, m.dy, HatColors[k], body, kirbyColors, covered);
+                    var hat = HatFrame(frame, m.dx, m.dy, HatColors[k], body, kirbyColors, covered, k == StarRod);
                     // (one frame per look: body frames alike share theirs);
                     string look = Convert.ToBase64String(hat.tiles) + string.Join(",", hat.oams) + "/" + string.Join(",", hat.attributes);
                     if (!sameFrames.TryGetValue(look, out index)) {
                         frames.Add(hat);
-                        glowing.Add(k == StarRod ? HatFrame(ReadKirbyFrame(nightmare, region, HatFrames[k][m.nidl] + StarRodGlow), m.dx, m.dy, HatColors[k], body, kirbyColors, covered) : hat);
+                        glowing.Add(k == StarRod ? HatFrame(ReadKirbyFrame(nightmare, region, nidlFrame + StarRodGlow), m.dx, m.dy, HatColors[k], body, kirbyColors, covered, true) : hat);
                         sameFrames[look] = index = frames.Count - 1;
                     }
                     return frameIndexes[(bodyAnim, bodyFrame)] = index;

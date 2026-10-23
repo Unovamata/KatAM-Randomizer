@@ -144,7 +144,7 @@ struct NidlMiniboss {
 struct NidlBoss {
     void (*init)(struct NidlObject *);  // Bounds and position, after InitObject;
     void (*start)(struct Object *);     // Behavior start once the fight starts;
-    s16 hp;
+    s16 hp[4];                          // Its HP by the number of players (KatAM's bosses', gUnk_08351530: 1-4);
 };
 
 // NidlGraphics; Where an enemy's or mini-boss's graphics went;
@@ -172,6 +172,8 @@ void *CreateNidlBoss(struct ObjectTemplate *, u8 playerId);
 void NidlBossStart(struct Object *);
 void NidlBossDefeat(struct Object *);
 void NidlBossShard(u8 unk56, u16 room, u8 shard);
+void NidlShake(u16 level, struct ObjectBase *obj);
+s16 NidlBossHp(u8 boss);
 // A boss rematch's Maxim Tomato's gone bit kind (template unk2; rooms.c's BigSub_08001678 calls NidlExitTomato with it, nidl_boss.c);
 #define NIDL_EXIT_KIND 4
 void NidlExitTomato(u16 slot, u32 eaten);

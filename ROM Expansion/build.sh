@@ -60,7 +60,7 @@ versions = [('usa', 'USA', 'B8KE', 0), ('europe', 'Europe', 'B8KP', 0), ('japan'
 names = ['CreateNidlEnemy', 'NidlStart', 'NidlCopyName', 'gNidlData']
 patched = ['SpriteTables', 'AnimCount', 'SpawnTable', 'gUnk_08351648', 'ObjectParameters2', 'gUnk_08D60EE4', 'HitFlashBranch', 'NameSite1', 'NameSite2']
 # The abilities' (see abilities.h): code symbols, and the KatAM tables and functions it relocates or hooks;
-codeNames = ['gNidlWorldMapDoors', 'NidlWorldMapUnlockSave', 'NidlWorldMapGetCoorFromRoom', 'NidlWorldMapDrawKirbys', 'NidlWorldMapUnlock0', 'NidlWorldMapUnlock1', 'NidlWorldMapUnlock2', 'NidlWorldMapUnlock3', 'NidlWorldMapUnlock4', 'NidlWorldMapUnlock5', 'NidlWorldMapUnlock6', 'NidlWorldMapUnlock7', 'NidlGetKirbyRoomFlagIndex', 'gNidlRoomFlagIndexOriginal', 'gNidlHubRoom', 'gNidlAbilityTables', 'gNidlAbilityData', 'NidlAbilityPortrait', 'NidlAbilityHudTimer', 'NidlDisplaySprite', 'NidlSwallow', 'NidlKirbyHit', 'gNidlKirbyHitOriginal', 'CreateNidlMiniboss', 'NidlMinibossStart',
+codeNames = ['gNidlWorldMapDoors', 'NidlWorldMapUnlockSave', 'NidlWorldMapGetCoorFromRoom', 'NidlWorldMapDrawKirbys', 'NidlWorldMapUnlock0', 'NidlWorldMapUnlock1', 'NidlWorldMapUnlock2', 'NidlWorldMapUnlock3', 'NidlWorldMapUnlock4', 'NidlWorldMapUnlock5', 'NidlWorldMapUnlock6', 'NidlWorldMapUnlock7', 'NidlGetKirbyRoomFlagIndex', 'gNidlRoomFlagIndexOriginal', 'gNidlHubRoom', 'gNidlAbilityTables', 'gNidlAbilityData', 'NidlAbilityPortrait', 'NidlAbilityHudTimer', 'NidlDisplaySprite', 'NidlSwallow', 'NidlKirbyHit', 'gNidlKirbyHitOriginal', 'NidlKirbyStack', 'gNidlKirbyStackOriginal', 'CreateNidlMiniboss', 'NidlMinibossStart',
              # The helpers against the ported mini-bosses (nidl_miniboss.c);
              'NidlHelperTarget', 'gNidlHelperTargetOriginal',
              # The bosses (nidl_boss.c);
@@ -88,7 +88,7 @@ codeNames = ['gNidlWorldMapDoors', 'NidlWorldMapUnlockSave', 'NidlWorldMapGetCoo
              'gNidlRoomTops', 'gNidlGridRoom', 'NidlNumChestsCollected', 'gNidlSave', 'gNidlSaveTrampolines', 'NidlWriteSave', 'NidlVerifySave', 'NidlClearSave', 'BigSub_08001678', 'BigSub_080027E8', 'BigSub_080027A8', 'BigSub_08002A5C', 'BigSub_08002A80', 'BigSub_08002AD0', 'BigSub_08002B30', 'BigSub_08002BA8', 'BigSub_08002C18']
 romNames = ['gUnk_0834C2AC', 'gUnk_0834C318', 'gUnk_083509D0', 'gUnk_08350A3C', 'gUnk_08D60FDC', 'gUnk_082DDE84', 'gUnk_082DDEF0',
             'gUnk_082DDF5C', 'gUnk_0834C4B0', 'gUnk_08350AAC', 'gUnk_08350B30', 'sub_080356AC', 'sub_08088640', 'gUnk_08D60B64', 'gUnk_08D60BE4',
-            'sub_080547C4', 'sub_0804A728', 'SwallowSpecialSite', 'sub_08123FD4', 'HasShard', 'sub_0801C558', 'gUnk_08351648', 'gUnk_0834C5D4', 'gUnk_08D610B4',
+            'sub_080547C4', 'sub_0804A728', 'sub_08038B34', 'SwallowSpecialSite', 'sub_08123FD4', 'HasShard', 'sub_0801C558', 'gUnk_08351648', 'gUnk_0834C5D4', 'gUnk_08D610B4',
             # The rooms' tables (see KatAMExpansionRooms.cs);
             'gRoomProps', 'gForegroundInfo', 'gForegroundPalettes', 'gForegroundTilemaps', 'gSolidityMaps', 'gRoomTiledBGs', 'gLevelObjLists',
             'gUnk_08D63C28', 'gUnk_08D6CD0C', 'gUnk_08D640A4', 'gUnk_08D6DCAC', 'AreaPlates', 'WorldMapUnlockSave', 'WorldMapGetCoorFromRoom', 'WorldMapDrawKirbys', 'gUnk_0834BD94', 'gWorldMapDotCoors', 'sWorldMapLineCoors', 'gUnk_08357B8C', 'sub_08039600', 'GetKirbyRoomFlagIndex',

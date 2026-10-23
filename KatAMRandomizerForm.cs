@@ -180,8 +180,9 @@ namespace KatAMRandomizer
                 foreach (byte type in KatAMExpansion.MinibossIDs) Processing.parameters[type] = "Nightmare in Dream Land Mini-boss";
 
                 /* Only with the ROM Expansion: every pause help screen shows the base one, which frees the space of the rest (and shows
-                 * the new abilities' portraits); */
+                 * the new abilities' portraits); the pause screen has the world map only, and the area maps' data is freed too; */
                 KatAMPauseScreens.Apply(Processing.ROMData);
+                KatAMPauseScreens.DropAreaMaps(Processing.ROMData);
             } else {
                 Processing.parameters[KatAMExpansion.NightmareID] = Processing.enemiesDictionary[KatAMExpansion.NightmareID].Name;
                 foreach (byte type in KatAMExpansion.MinibossIDs)

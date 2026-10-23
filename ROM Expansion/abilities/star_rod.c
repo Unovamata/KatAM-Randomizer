@@ -60,6 +60,7 @@ bool32 PowerOrbShotNear(struct Object *, s32, s32, s32 *);
 #define HURT_TIME 11
 #define STAR_X 28
 #define STAR_SPEED 0x400
+#define STAR_STRENGTH 8      // (the Master Sword's slash's, sub_08075DB0's; bosses/nightmare.c keeps his fight NiDL's);
 #define STAR_TILES 18        // (its burst's biggest frame: the star itself 16);
 #define TRAIL_X 20
 #define BURST_TIME 12
@@ -129,6 +130,25 @@ static void StarRodRiderMain(void);
 // StarRodHeld(); A flying Kirby's state: his rider moves him;
 void StarRodHeld(struct Kirby *kirby) {
     kirby->base.flags |= 4;
+}
+
+/* NidlKirbyStack(); sub_08038B34 (detoured), every frame: KatAM's Kirbys standing on one another's heads, every two in a room. It leaves
+ * out a Kirby tumbling (animation indexes 74-89) or with flags 0x3800F00 (riding a warp star...), and here the flying Kirbys too
+ * (StarRodHeld): they fly through one another, as NiDL's (stood on, one was drawn a pixel or two lower and taken as landed), marked with
+ * one of those flags while it runs. The motions were at 74-89 once, which left them out; */
+void (*gNidlKirbyStackOriginal)(void) = NULL;
+
+void NidlKirbyStack(void) {
+    u8 marked = 0, i;
+
+    for (i = 0; i < gNumKirbys; i++) {
+        if (gKirbys[i].stateFn != StarRodHeld || gKirbys[i].base.flags & 0x100) continue;
+        gKirbys[i].base.flags |= 0x100;
+        marked |= 1 << i;
+    }
+    gNidlKirbyStackOriginal();
+    for (i = 0; i < gNumKirbys; i++)
+        if (marked & 1 << i) gKirbys[i].base.flags &= ~0x100;
 }
 
 // Palette(); The spit star anim's palette (NiDL's palette 15), loaded once its room is the local player's;
@@ -285,15 +305,15 @@ static void StarRodShoot(struct Kirby *kirby, s32 dx, s32 dy, bool8 sinks) {
     base->unk56 = kirby->base.unk56;
     if (Macro_0810B1F4(base)) base->flags |= 0x2000;
     /* (as sub_0808466C's: its kind 0x40, which KatAM's hits need (sub_080365C8: a kind the target isn't immune to), and which adds
-     * the target's unk94 to its strength, never under 1 (sub_0809AA10): the orb's -2, so 1; but through walls, no gravity; not its
-     * 0x4000, VRAM shared by its anim and first frame, sub_0803DE54: its frames change); */
+     * the target's unk94 to its strength, never under 1 (sub_0809AA10); but through walls, no gravity; not its 0x4000, VRAM shared
+     * by its anim and first frame, sub_0803DE54: its frames change); */
     base->flags |= 0xA0000000 | 0x140;
     // (the Power Orb's: no box, the orb takes their hits itself, StarRodHits(); KatAM's collisions would check them every frame);
     if (sinks) base->flags |= 0x200;
     base->unk68 |= 0x20000043;
     base->unk64 = 0x280;
     base->unk66 = 0x280;
-    base->unk63 = 1;
+    base->unk63 = STAR_STRENGTH;
     sub_0803E2B0(base, -8, -8, 8, 8);
     ObjectSetBounds(base, -8, -8, 8, 8);
     star->lastTop = gCurLevelInfo[Viewer(base->unk56, base->roomId)].unk_S32Vec2_7C.y;

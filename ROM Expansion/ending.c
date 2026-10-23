@@ -13,7 +13,8 @@
  * • the screen scrolling down (3/16 of a pixel a frame) as the star bobs along (sEndStar, its moves frame by frame, every Kirby on
  *   it with his own warp star, facing left), King Dedede flying up past it and away (sEndDedede: NiDL's ending's frames 64, 66-68);
  *   all of it four times as fast as NiDL's (RIDE_SPEED: NiDL's has its narration to read; twice, the owner found it slow; the trail
- *   and small stars at their own pace);
+ *   and small stars at their own pace) but King Dedede, at NiDL's speed (sped up, the owner found him far too fast), his flight by
+ *   timed to end as the star settles (END_SETTLE_T);
  * • the star still after its loop (NiDL's next: Kirby jumps off it to throw the Star Rod), the flight goes on: NiDL's cut, the fade
  *   to white, then the Fountain of Dreams hub (warpstar.c lets the warp stars go there);
  * The Power Orb isn't there meanwhile (nidl_boss.c), nor the room's camera its arena's: the screen is held (finale.c's
@@ -68,6 +69,7 @@ void sub_080534D0(struct Kirby *);  // a flight's step (kirby.c);
 #define END_DEDEDE_FAR 2939
 #define END_DEDEDE_TURN 12      // (his far-off frames' each);
 #define END_SETTLE 4259         // (the star still: on to the fade);
+#define END_SETTLE_T (END_SCROLL + (END_SETTLE - END_SCROLL + RIDE_SPEED - 1) / RIDE_SPEED)    // (the game's frame it's still on);
 #define END_LEFT 16             // (the Kirbys hidden, kept on the screen: KatAM points at the helpers off it, hidden or not);
 #define END_RIGHT_EDGE 224
 #define END_UPPER 24
@@ -722,7 +724,11 @@ static void EndingMain(void) {
     // (its trail and small stars on the game's frames: their own pace, sped up or not);
     EndTrail(end, t);
     EndSparks(end, t);
-    EndDedede(end, from, u);
+    // (King Dedede on NiDL's frames a frame, not the ride's: his flight by, sEndDedede, ending as the star settles);
+    if (t + ARRAY_COUNT(sEndDedede) >= END_SETTLE_T) {
+        k = END_DEDEDE + t + ARRAY_COUNT(sEndDedede) - END_SETTLE_T;
+        EndDedede(end, k, k);
+    }
 }
 
 /* NidlEndingRider(); A Kirby held on the ending's ride (finale.c's NidlFinaleHold(), every frame): its task made, as the first one

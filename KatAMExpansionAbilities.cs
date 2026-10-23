@@ -5,8 +5,9 @@
      *   in 0x08000000-0x08160000) points to the copy. The new entries are gNidlAbilityTables', or the base ability's.
      * • The ability field is widened to 6 bits (WidenAbilityField); swallowing (sub_080547C4) is detoured to NidlSwallow;
      * • sub_080356AC (HUD portraits) and sub_08088640 (special portraits) are detoured to the C code (see Detour), and sub_0804A728 (Kirby
-     *   hit), so the Star Rod isn't lost to a hit, and DisplaySprite (every sprite's drawing), so the Star Rod's hat glows as NiDL's
-     *   (NidlDisplaySprite, AddGlows()); */
+     *   hit), so the Star Rod isn't lost to a hit, DisplaySprite (every sprite's drawing), so the Star Rod's hat glows as NiDL's
+     *   (NidlDisplaySprite, AddGlows()), and sub_08038B34 (Kirbys standing on one another), so the Star Rod's flying Kirbys fly through
+     *   one another (NidlKirbyStack); */
     internal static partial class KatAMExpansion {
         const int FirstAbility = 27, NewAbilities = 8, AbilitySlots = FirstAbility + NewAbilities, PortraitTiles = 30;
 
@@ -37,7 +38,7 @@
         /* AddAbilities(); Relocates the ability tables, detours the HUD portraits and fills gNidlAbilityData. `newEntries[table]`, when
          * given, replaces the base ability's entries of AbilityTables[table] (hats, Backdrop's palette; -1: the base's); `motions`, BuildMotions' body AnimInfos;
          * `glows`, the Star Rod's glowing frames (anim, first frame, count: its hat's, its motions', its stand's; AddGlows()), then its
-         * palettes (StarRodPalettes()); */
+         * palettes (StarRodPalettes()), then the Hi-Jump's glow (HiJumpFlash()) and its effects' anim (HiJumpEffects); */
         static string AddAbilities(byte[] rom, byte[] nightmare, NightmareRegion region, KatAMExpansionCode.Version version, ref int cursor,
                                    int[] motions, int[] glows, Dictionary<string, int[]> newEntries) {
             int codeBase = CodeAddress + 0x08000000;
@@ -79,6 +80,11 @@
             if (hit < 0) return $"The {version.Name} ROM's hit code doesn't match.";
             WriteInt(rom, CodeAddress + version.CodeSymbols["gNidlKirbyHitOriginal"], hit + 0x08000000 + 1);
 
+            // Kirbys standing on one another (sub_08038B34): not the Star Rod's flying Kirbys (NidlKirbyStack, "ROM Expansion/abilities/star_rod.c");
+            int stack = Detour(rom, version.RomSymbols["sub_08038B34"], codeBase + version.CodeSymbols["NidlKirbyStack"], ref cursor);
+            if (stack < 0) return $"The {version.Name} ROM's Kirby collision code doesn't match.";
+            WriteInt(rom, CodeAddress + version.CodeSymbols["gNidlKirbyStackOriginal"], stack + 0x08000000 + 1);
+
             /* Portraits: NiDL's ability cards, the same 5x6 tiles as KatAM's (the name, then the picture), stored as two groups of 16 tiles
              * (rows 0, 2, 4, then 1, 3, 5); KatAM's are row by row; */
             for (int k = 0; k < NewAbilities; k++) {
@@ -97,12 +103,15 @@
             // The motions' body animations (gNidlAbilityData.motions, after the portraits);
             for (int i = 0; i < motions.Length; i++) WriteInt(rom, data + 8 + NewAbilities * 8 + i * 4, motions[i]);
 
-            // The Star Rod's glow: DisplaySprite's trampoline, the glowing frames, the palettes (gNidlAbilityData.displaySpriteOriginal, glows and rodPalettes, after the motions);
+            /* The Star Rod's glow: DisplaySprite's trampoline, the glowing frames, the palettes (gNidlAbilityData.displaySpriteOriginal, glows and
+             * rodPalettes, after the motions); then the Hi-Jump's glow and effects' anim (hiJumpFlash, hiJumpFx); */
             int display = Detour(rom, version.RomSymbols["DisplaySprite"], codeBase + version.CodeSymbols["NidlDisplaySprite"], ref cursor), after = data + 8 + NewAbilities * 8 + motions.Length * 4;
             if (display < 0) return $"The {version.Name} ROM's sprite code doesn't match.";
             WriteInt(rom, after, display + 0x08000000 + 1);
             for (int i = 0; i < 9; i++) WriteShort(rom, after + 4 + i / 3 * 8 + i % 3 * 2, glows[i]);
             WriteInt(rom, after + 28, glows[9] + 0x08000000);
+            WriteInt(rom, after + 32, glows[10] + 0x08000000);
+            WriteShort(rom, after + 36, glows[11]);
             return null;
         }
 
