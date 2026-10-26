@@ -273,10 +273,13 @@ namespace KatAMRandomizer
                 else messages.Add((roomError, "Unlock the Ability Room", MessageBoxIcon.Warning));
             }
 
-            // Starting Lives and Random Starting HP (the HP picked from the seed here, last, so the rest of the randomization stays the same);
-            if (settings.StartingLives != 2 || settings.RandomStartingHP) {
-                int startingHP = settings.RandomStartingHP ? settings.RandomEntity.Next(settings.StartingHPMin, settings.StartingHPMax + 1) : 6;
-                string kirbyError = KatAMExpansion.StartingKirby(Processing.ROMData, settings.StartingLives, startingHP);
+            // Starting Lives and Random Starting HP (what's random picked from the seed here, last, so the rest of the randomization stays the same);
+            if (settings.StartingLives != 2 || settings.RandomStartingLives || settings.RandomStartingHP) {
+                int lives = settings.RandomStartingLives ? settings.RandomEntity.Next(Settings.MinStartingLives, Settings.MaxStartingLives + 1)
+                                                         : Math.Clamp(settings.StartingLives, Settings.MinStartingLives, Settings.MaxStartingLives);
+                int min = Math.Clamp(settings.StartingHPMin, Settings.MinStartingHP, Settings.MaxStartingHP), max = Math.Clamp(settings.StartingHPMax, min, Settings.MaxStartingHP);
+                int startingHP = settings.RandomStartingHP ? settings.RandomEntity.Next(min, max + 1) : 6;
+                string kirbyError = KatAMExpansion.StartingKirby(Processing.ROMData, lives, startingHP);
                 if (kirbyError != null) messages.Add((kirbyError, "Starting Lives and Random Starting HP", MessageBoxIcon.Warning));
             }
 
@@ -324,12 +327,18 @@ namespace KatAMRandomizer
             settings.UnlockAbilityRoom = CheckboxOptionsAbilityRoom.Checked;
         }
 
-        // NumericOptionsStartingLives_ValueChanged(); The lives Kirby starts with, and gets back after a game over (KatAMExpansion.StartingKirby; the game's 2);
+        // NumericOptionsStartingLives_ValueChanged(); The lives Kirby starts with, and gets back after a game over: a custom amount, 1-5 (KatAMExpansion.StartingKirby; the game's 2);
         private void NumericOptionsStartingLives_ValueChanged(object sender, EventArgs e) {
             settings.StartingLives = (int)NumericOptionsStartingLives.Value;
         }
 
-        // CheckboxOptionsRandomStartingHP_CheckedChanged(); Kirby's HP without HP Ups picked between Min HP and Max HP (KatAMExpansion.StartingKirby; the game's 6);
+        // CheckboxOptionsRandomStartingLives_CheckedChanged(); The lives picked from the seed, 1-5, instead of the amount above;
+        private void CheckboxOptionsRandomStartingLives_CheckedChanged(object sender, EventArgs e) {
+            settings.RandomStartingLives = CheckboxOptionsRandomStartingLives.Checked;
+            LabelOptionsStartingLives.Enabled = NumericOptionsStartingLives.Enabled = !settings.RandomStartingLives;
+        }
+
+        // CheckboxOptionsRandomStartingHP_CheckedChanged(); Kirby's HP without HP Ups picked between Min HP and Max HP, 3-6 (KatAMExpansion.StartingKirby; the game's 6);
         private void CheckboxOptionsRandomStartingHP_CheckedChanged(object sender, EventArgs e) {
             settings.RandomStartingHP = CheckboxOptionsRandomStartingHP.Checked;
             foreach (Control control in new Control[] { LabelOptionsStartingHPMin, NumericOptionsStartingHPMin, LabelOptionsStartingHPMax, NumericOptionsStartingHPMax })

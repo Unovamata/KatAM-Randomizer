@@ -83,8 +83,8 @@
         /* StartingKirby(); The "Starting Lives" and "Random Starting HP" options, in KatAM's own code (no ROM Expansion needed): a new
          * game's Kirby gets `kirby->lives = 2` and `maxHp = NumVitalitiesCollected() + 6` (sub_0803EA90), a game over gives the 2 lives
          * back (sub_0804FBFC twice, sub_080506A8) and an HP Up's chest works the HP out again (sub_0800B97C, with helpers and without):
-         * each `movs r0, #2` takes `lives`, each `adds r0, #6` takes `hp` (the HUD shows 2 digits of lives; its HP bar fits about 34,
-         * so the form keeps HP to 20, HP Ups on top). Returns an error, or null; */
+         * each `movs r0, #2` takes `lives` (the owner's: 1-5), each `adds r0, #6` takes `hp` (the owner's: 3-6; the HUD's HP bar fits
+         * about 34, HP Ups on top). Returns an error, or null; */
         static readonly (string function, int offset, int next)[] LivesSites = {
             ("sub_0803EA90", 0x96, 0x7010), ("sub_0804FBFC", 0x3E0, 0x7008), ("sub_0804FBFC", 0x5A8, 0x7008), ("sub_080506A8", 0x14A, 0x7018) };
         static readonly (string function, int offset, int next)[] HPSites = {

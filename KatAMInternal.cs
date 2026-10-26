@@ -555,12 +555,16 @@ namespace KatAMInternal
         public bool UnlockMasterSword { get; set; }
         // Unlock the Ability Room: Central Circle's door to it open from the start, not only once the 15 big switches are pressed (KatAMExpansion.UnlockAbilityRoom);
         public bool UnlockAbilityRoom { get; set; }
-        // Starting Lives: the lives Kirby starts with, and gets back after a game over (KatAMExpansion.StartingKirby; the game's 2);
+        // Starting Lives: the lives Kirby starts with, and gets back after a game over, a custom amount or (Random Starting Lives) picked
+        // from the seed, both 1-5 (KatAMExpansion.StartingKirby; the game's 2);
+        public const int MinStartingLives = 1, MaxStartingLives = 5;
         public int StartingLives { get; set; } = 2;
-        // Random Starting HP: Kirby's HP without HP Ups, between StartingHPMin and StartingHPMax (KatAMExpansion.StartingKirby; the game's 6);
+        public bool RandomStartingLives { get; set; }
+        // Random Starting HP: Kirby's HP without HP Ups, between StartingHPMin and StartingHPMax, within 3-6 (KatAMExpansion.StartingKirby; the game's 6);
+        public const int MinStartingHP = 3, MaxStartingHP = 6;
         public bool RandomStartingHP { get; set; }
         public int StartingHPMin { get; set; } = 3;
-        public int StartingHPMax { get; set; } = 9;
+        public int StartingHPMax { get; set; } = 6;
 
         public Settings() {
             Random seedGenerator = new Random();

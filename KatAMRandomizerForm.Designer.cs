@@ -43,6 +43,7 @@
             CheckboxOptionsAbilityRoom = new CheckBox();
             LabelOptionsStartingLives = new Label();
             NumericOptionsStartingLives = new NumericUpDown();
+            CheckboxOptionsRandomStartingLives = new CheckBox();
             CheckboxOptionsRandomStartingHP = new CheckBox();
             LabelOptionsStartingHPMin = new Label();
             NumericOptionsStartingHPMin = new NumericUpDown();
@@ -2938,6 +2939,7 @@
             // 
             GroupMiscGame.Controls.Add(LabelOptionsStartingLives);
             GroupMiscGame.Controls.Add(NumericOptionsStartingLives);
+            GroupMiscGame.Controls.Add(CheckboxOptionsRandomStartingLives);
             GroupMiscGame.Controls.Add(CheckboxOptionsRandomStartingHP);
             GroupMiscGame.Controls.Add(LabelOptionsStartingHPMin);
             GroupMiscGame.Controls.Add(NumericOptionsStartingHPMin);
@@ -2975,23 +2977,36 @@
             NumericOptionsStartingLives.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
             NumericOptionsStartingLives.Location = new Point(470, 38);
             NumericOptionsStartingLives.Margin = new Padding(4, 5, 4, 5);
-            NumericOptionsStartingLives.Maximum = new decimal(new int[] { 99, 0, 0, 0 });
-            NumericOptionsStartingLives.Minimum = new decimal(new int[] { 0, 0, 0, 0 });
+            NumericOptionsStartingLives.Maximum = new decimal(new int[] { 5, 0, 0, 0 });
+            NumericOptionsStartingLives.Minimum = new decimal(new int[] { 1, 0, 0, 0 });
             NumericOptionsStartingLives.Name = "NumericOptionsStartingLives";
             NumericOptionsStartingLives.Size = new Size(67, 31);
             NumericOptionsStartingLives.TabIndex = 7;
             NumericOptionsStartingLives.Value = new decimal(new int[] { 2, 0, 0, 0 });
             NumericOptionsStartingLives.ValueChanged += NumericOptionsStartingLives_ValueChanged;
             // 
+            // CheckboxOptionsRandomStartingLives
+            // 
+            CheckboxOptionsRandomStartingLives.AutoSize = true;
+            CheckboxOptionsRandomStartingLives.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            CheckboxOptionsRandomStartingLives.Location = new Point(334, 71);
+            CheckboxOptionsRandomStartingLives.Margin = new Padding(4, 5, 4, 5);
+            CheckboxOptionsRandomStartingLives.Name = "CheckboxOptionsRandomStartingLives";
+            CheckboxOptionsRandomStartingLives.Size = new Size(228, 29);
+            CheckboxOptionsRandomStartingLives.TabIndex = 8;
+            CheckboxOptionsRandomStartingLives.Text = "Random Starting Lives";
+            CheckboxOptionsRandomStartingLives.UseVisualStyleBackColor = true;
+            CheckboxOptionsRandomStartingLives.CheckedChanged += CheckboxOptionsRandomStartingLives_CheckedChanged;
+            // 
             // CheckboxOptionsRandomStartingHP
             // 
             CheckboxOptionsRandomStartingHP.AutoSize = true;
             CheckboxOptionsRandomStartingHP.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            CheckboxOptionsRandomStartingHP.Location = new Point(334, 71);
+            CheckboxOptionsRandomStartingHP.Location = new Point(334, 170);
             CheckboxOptionsRandomStartingHP.Margin = new Padding(4, 5, 4, 5);
             CheckboxOptionsRandomStartingHP.Name = "CheckboxOptionsRandomStartingHP";
             CheckboxOptionsRandomStartingHP.Size = new Size(198, 29);
-            CheckboxOptionsRandomStartingHP.TabIndex = 8;
+            CheckboxOptionsRandomStartingHP.TabIndex = 9;
             CheckboxOptionsRandomStartingHP.Text = "Random Starting HP";
             CheckboxOptionsRandomStartingHP.UseVisualStyleBackColor = true;
             CheckboxOptionsRandomStartingHP.CheckedChanged += CheckboxOptionsRandomStartingHP_CheckedChanged;
@@ -3000,7 +3015,7 @@
             // 
             LabelOptionsStartingHPMin.AutoSize = true;
             LabelOptionsStartingHPMin.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            LabelOptionsStartingHPMin.Location = new Point(330, 107);
+            LabelOptionsStartingHPMin.Location = new Point(330, 206);
             LabelOptionsStartingHPMin.Margin = new Padding(4, 0, 4, 0);
             LabelOptionsStartingHPMin.Name = "LabelOptionsStartingHPMin";
             LabelOptionsStartingHPMin.Size = new Size(74, 25);
@@ -3011,10 +3026,10 @@
             // NumericOptionsStartingHPMin
             // 
             NumericOptionsStartingHPMin.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            NumericOptionsStartingHPMin.Location = new Point(406, 104);
+            NumericOptionsStartingHPMin.Location = new Point(406, 203);
             NumericOptionsStartingHPMin.Margin = new Padding(4, 5, 4, 5);
-            NumericOptionsStartingHPMin.Maximum = new decimal(new int[] { 20, 0, 0, 0 });
-            NumericOptionsStartingHPMin.Minimum = new decimal(new int[] { 1, 0, 0, 0 });
+            NumericOptionsStartingHPMin.Maximum = new decimal(new int[] { 6, 0, 0, 0 });
+            NumericOptionsStartingHPMin.Minimum = new decimal(new int[] { 3, 0, 0, 0 });
             NumericOptionsStartingHPMin.Name = "NumericOptionsStartingHPMin";
             NumericOptionsStartingHPMin.Size = new Size(60, 31);
             NumericOptionsStartingHPMin.TabIndex = 10;
@@ -3026,7 +3041,7 @@
             // 
             LabelOptionsStartingHPMax.AutoSize = true;
             LabelOptionsStartingHPMax.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            LabelOptionsStartingHPMax.Location = new Point(474, 107);
+            LabelOptionsStartingHPMax.Location = new Point(474, 206);
             LabelOptionsStartingHPMax.Margin = new Padding(4, 0, 4, 0);
             LabelOptionsStartingHPMax.Name = "LabelOptionsStartingHPMax";
             LabelOptionsStartingHPMax.Size = new Size(77, 25);
@@ -3037,14 +3052,14 @@
             // NumericOptionsStartingHPMax
             // 
             NumericOptionsStartingHPMax.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            NumericOptionsStartingHPMax.Location = new Point(553, 104);
+            NumericOptionsStartingHPMax.Location = new Point(553, 203);
             NumericOptionsStartingHPMax.Margin = new Padding(4, 5, 4, 5);
-            NumericOptionsStartingHPMax.Maximum = new decimal(new int[] { 20, 0, 0, 0 });
-            NumericOptionsStartingHPMax.Minimum = new decimal(new int[] { 1, 0, 0, 0 });
+            NumericOptionsStartingHPMax.Maximum = new decimal(new int[] { 6, 0, 0, 0 });
+            NumericOptionsStartingHPMax.Minimum = new decimal(new int[] { 3, 0, 0, 0 });
             NumericOptionsStartingHPMax.Name = "NumericOptionsStartingHPMax";
             NumericOptionsStartingHPMax.Size = new Size(60, 31);
             NumericOptionsStartingHPMax.TabIndex = 12;
-            NumericOptionsStartingHPMax.Value = new decimal(new int[] { 9, 0, 0, 0 });
+            NumericOptionsStartingHPMax.Value = new decimal(new int[] { 6, 0, 0, 0 });
             NumericOptionsStartingHPMax.Visible = false;
             NumericOptionsStartingHPMax.ValueChanged += NumericOptionsStartingHPMax_ValueChanged;
             // 
@@ -3764,6 +3779,7 @@
         private CheckBox CheckboxOptionsAbilityRoom;
         private Label LabelOptionsStartingLives;
         private NumericUpDown NumericOptionsStartingLives;
+        private CheckBox CheckboxOptionsRandomStartingLives;
         private CheckBox CheckboxOptionsRandomStartingHP;
         private Label LabelOptionsStartingHPMin;
         private NumericUpDown NumericOptionsStartingHPMin;
