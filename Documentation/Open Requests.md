@@ -355,7 +355,7 @@ ROM Expansion README's row). Checked by script in the emulator (not played by ha
 Found, not changed (for the owner): after the shard's cutscene, KatAM puts Kirby back in the room for his victory dance at its own
 table's spot for that shard (`gUnk_08352DBE`: row 9 here), which in this room is inside the dirt: he falls through it to the
 pocket's floor (about 90 frames) before dancing. A fix would have Kirby dance where he stands after any NiDL boss (as
-`NidlDanceOut()` does); it changes every NiDL boss's shard, so it waits for the owner's word.
+`NidlDanceOut()` does); it changes every NiDL boss's shard, so it waits for the owner's word. (51: done, the dance on the ground under the shard.)
 
 Left:
 - **KatAM's own**: KatAM sees a hit a frame after NiDL; the inhale's reach and pull are KatAM's, and Kirby's knock-back when hurt.
@@ -574,6 +574,48 @@ standing on another Kirby, or stood on, in multiplayer.
   and the tomato as in the USA build (a screenshot each). Logic checks on all three: every room reached, every big switch pressed,
   nowhere Kirby is trapped, with and without dropping through thin floors.
   Not tested: the Map Viewer app (it reads the room's objects from the ROM).
+
+## 51. The owner's list: the final boss's graphics and pause, the Star Rod's unlock, Meta Knight's shard, the NiDL hub's top
+All done. Checked in the emulator by script (not played by hand); what was forced is said.
+- **The final boss battle: garbled graphics; pausing breaks the screen** (both the same fault): Dark Mind's last room (0x397, Kirby
+  on the warp star) showed rows of font letters over its sky, and unpausing there turned the screen white with stray pieces.
+  KatAM's code loads that room's background itself from entry 34 of the room background table (`gRoomTiledBGs`, the credits'
+  second background), which no room names; the expansion's copy of the table stopped at the last entry a room names (33) and its
+  first NiDL background took 34's place. All of KatAM's 36 entries are kept now, the NiDL ones after (`KatAMRoomTiledBGs`).
+  Checked (game started in 0x397, so the fight's start is forced): the room as the unmodified game's (screenshots side by side);
+  paused and unpaused twice: the fight comes back each time (before the fix: the white screen, reproduced). Also checked, nothing
+  wrong found: Nightmare's fight and the Power Orb's (the finale recording, every 10 frames), paused and unpaused up to three
+  times in each (the pause there is KatAM's ability help page, as in its own final rooms); Dark Mind's first form (0x38E) and Dark
+  Meta Knight's room (0x38D), paused twice.
+- **The Star Rod**: its stand in the NiDL hub is there once the game is beaten, as the Master Sword's (KatAM's ending sets it:
+  `gAIKirbyState` from `AI_KIRBY_STATE_UNK1` on); before, the pedestal is empty and touching it does nothing. Checked: a new game
+  in the hub: empty, Kirby walks through it with no ability; the same with the game beaten (forced: the state written in RAM): the
+  rod's there and Kirby takes it (ability 34). The "Unlock the Master Sword" option is still the sword's alone.
+- **Meta Knight's room: the shard killed Kirby**: after a boss's shard cutscene KatAM stands every Kirby in the room at its table's
+  spot for that shard (`gUnk_08352DBE`, made for that shard's KatAM boss room) for the victory dance; Meta Knight gave shard 5,
+  whose spot (46, 17) is past his room's corner: Kirby was out of the room and died, and the fight started over. A NiDL boss's
+  shard now has the dance on the ground under the shard, each Kirby on the ground under him (`chest.c`'s `NidlShardDance()`; KatAM's
+  8 boss rooms keep its table), and the shard's step after its cutscene goes to the expansion's code with the NiDL rooms loaded,
+  not only with a shard option on (it was hooked only then: without the options NiDL bosses' shards went to KatAM's table). This
+  also settles 44's dance inside Heavy Mole's dirt. Checked: Meta Knight (his HP set to 1 by RAM, then real sword hits; Kirby
+  jumped into the shard): Kirby dances on the floor, then lands in the NiDL hub; Whispy Woods (HP set to 1, real hits, Kirby moved
+  onto the shard by RAM): the same. The hook is in all three versions.
+- **The NiDL hub: garbled tiles high up**: at the room's top its background stood 22 pixels above its first row and KatAM wraps
+  that at 65536, not at its 288 rows' height, so the screen's bottom showed rows from the background's middle. Its y scroll rate
+  is now for the camera's whole climb (KatAM's camera stops 40 pixels above the room's bottom, `KatAMExpansionHub.cs`). Checked:
+  Kirby flown to the room's top: the starry top of the background, no garbled band (before: the band, reproduced).
+- **All three versions**: built; in the European and Japanese ones room 0x397 is clean, the hub's top is clean and the rod stand is
+  empty on a new game. Logic checks on all three: every room reached, every big switch pressed, nowhere Kirby is trapped, with and
+  without dropping through thin floors (the doors the check can't reach are the same as before).
+
+Left:
+- **Not tested**: played by hand; the other NiDL bosses' shard dances (Heavy Mole, Kracko, Paint Roller, Mr. Shine & Mr. Bright,
+  King Dedede: same code, their rooms not run); the dance with helpers or two players; the shard dance in the European and
+  Japanese builds (only the hook's presence checked); the rod's unlock after a real ending (forced only).
+- **Seen, not changed (for the owner)**: the NiDL rooms' background rates come from the same formula the hub's did
+  (`BackgroundRates()`), which leaves out those 40 pixels, so at a tall room's very top its background can start a little above
+  its first row too (the hub's case); only the hub was reported and it's the only one changed. Say if the rooms should be
+  checked and changed as well.
 
 ## 10. Screen shake as KatAM's
 The owner: the screen shakes far too much. Not reproduced at first: KatAM's shake runs the same in the NiDL rooms as in KatAM's.

@@ -148,13 +148,66 @@ void *NidlCreateShard(struct ObjectTemplate *template, u8 playerId) {
 
 void sub_0801BD68(struct Shard *);
 
+#define DANCE_MARGIN 72 // (pixels: four dancers stand 64 either side of the spot, sub_0804BD98's gUnk_0834C384)
+
+/* FloorRow(); The first row at or below `row` in column `x` with ground in it (any tile but an empty one: gCollisionAttributes
+ * bit 0), from the top of the ground there if `row` is in it, or -1 if the column has none down to the room's bottom; */
+static s32 FloorRow(u8 playerId, s32 x, s32 row) {
+    struct LevelInfo *level = &gCurLevelInfo[playerId];
+    s32 rows = level->roomHeight / 16;
+
+    if (x < 0 || x >= level->roomWidth / 16 || row < 0) return -1;
+    if (row < rows && !(gCollisionAttributes[GetCollisionTile(playerId, x, row)] & 1)) {
+        while (row > 0 && !(gCollisionAttributes[GetCollisionTile(playerId, x, row - 1)] & 1)) row--;
+        return row;
+    }
+    for (; row < rows; row++)
+        if (!(gCollisionAttributes[GetCollisionTile(playerId, x, row)] & 1)) return row;
+    return -1;
+}
+
+/* NidlShardDance(); A NiDL boss's shard after its cutscene (its room not one of KatAM's boss rooms): sub_0801BD68's victory dance,
+ * each Kirby in the room once, on the ground under the shard, each dancer on the ground under him (KatAM's spot is its table's for
+ * the shard, gUnk_08352DBE: made for that shard's KatAM boss room, it can be in the ground or past the room's edge of a NiDL boss's,
+ * where Kirby died: Meta Knight's with shard 5, (46, 17), past its corner); none under the shard, KatAM's dance; */
+static void NidlShardDance(struct Shard *shard) {
+    struct LevelInfo *level = &gCurLevelInfo[shard->obj.base.unk56];
+    u16 room = shard->obj.base.roomId, i;
+    u8 order[4], count = 0;
+    s32 x = shard->unkD8, row, own;
+
+    if (level->roomWidth >= 2 * DANCE_MARGIN) {
+        if (x < DANCE_MARGIN) x = DANCE_MARGIN;
+        if (x > level->roomWidth - DANCE_MARGIN) x = level->roomWidth - DANCE_MARGIN;
+    }
+    row = FloorRow(shard->obj.base.unk56, x >> 4, shard->unkDA >> 4);
+    if (row < 0) {
+        sub_0801BD68(shard);
+        return;
+    }
+    for (i = 0; i < 4; i++)
+        if (gKirbys[i].base.roomId == room) order[i] = count++;
+    for (i = 0; i < 4; i++) {
+        struct Kirby *kirby = &gKirbys[i];
+
+        if (kirby->base.roomId != room || (shard->unkE0 >> i) & 1) continue;
+        // (sub_0804BD98 stands him at the spot's x + his place in the row - 128, on the ground of row `row`);
+        sub_0804BD98(kirby, order[i], count, shard->unkDC, (x >> 4) - 8, row);
+        own = FloorRow(shard->obj.base.unk56, kirby->base.x >> 12, row);
+        if (own >= 0) kirby->base.y = own * 0x1000 - 0x800;
+        shard->unkE0 |= 1 << i;
+    }
+}
+
 /* NidlShardDone(); The shard's step once its cutscene ends (sub_0801C558, which jumps here: replaced whole, its work done here): a
- * boss's shard starts the victory dance (sub_0801BD68, as sub_0801C558 does), which ends with Kirby taken out of the level (to
- * Central Circle, or the NiDL hub for a NiDL boss); a shard that isn't a boss's (a room's own, its template in the ROM, or a
- * chest's, NIDL_SHARD_STAYS) is simply gone, its shard collected by the cutscene, and Kirby plays on where he is: no dance, no
- * trip out; */
+ * boss's shard starts the victory dance (sub_0801BD68, as sub_0801C558 does; a NiDL boss's, NidlShardDance()), which ends with Kirby
+ * taken out of the level (to Central Circle, or the NiDL hub for a NiDL boss); a shard that isn't a boss's (a room's own, its
+ * template in the ROM, or a chest's, NIDL_SHARD_STAYS) is simply gone, its shard collected by the cutscene, and Kirby plays on where
+ * he is: no dance, no trip out; */
 void NidlShardDone(struct Shard *shard) {
     struct ObjectTemplate *template = shard->obj.objTemplate;
+    void (*dance)(struct Shard *) = NidlShardDance;
+    u8 i;
 
     if ((u32)template >= 0x08000000 || (template->unk22 & NIDL_SHARD_STAYS)) {
         shard->obj.base.flags |= 0x1000;
@@ -162,6 +215,8 @@ void NidlShardDone(struct Shard *shard) {
     }
     shard->unkDC = (Rand16() & 1) + 2;
     shard->unkE0 = 0;
-    shard->obj.unk78 = sub_0801BD68;
-    sub_0801BD68(shard);
+    for (i = 0; i < 8; i++)
+        if (shard->obj.base.roomId == sBossRooms[i]) dance = sub_0801BD68;
+    shard->obj.unk78 = dance;
+    dance(shard);
 }

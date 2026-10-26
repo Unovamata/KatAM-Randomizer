@@ -1374,6 +1374,12 @@ namespace KatAMRandomizer {
             WriteShorts(rom, mirraOpen, 0x4B00, 0x4718);    // ldr r3, [pc, #0]; bx r3;
             WriteInt(rom, mirraOpen + 4, codeBase + version.CodeSymbols["NidlMirraOpen"] + 1);
 
+            /* A boss's shard once its cutscene ends: its step (sub_0801C558) jumps to NidlShardDone ("ROM Expansion/chest.c", HookShards(),
+             * as the shard options hook it), which has a NiDL boss's victory dance on the ground under the shard: KatAM's spot for it is its
+             * table's for the shard (gUnk_08352DBE), made for that shard's KatAM boss room (Meta Knight's with shard 5: past the room's
+             * corner, where Kirby died, the owner's); */
+            if (HookShards(rom, version) is string shardError) return shardError;
+
             /* The HP bar's fill (0x08034F38): HP times gUnk_08351458[type - 0x38][players - 1], >> 8 (64: full). The table sits right before
              * gUnk_08351648 in every version, and holds a placeholder (8192) for types 0x40-0x44: the mini-bosses (30 HP) get Mr. Frosty's
              * 546 (30 HP as well, for one player) for any number of players; */

@@ -152,6 +152,8 @@
          * 1-99, Vegetable Valley 100-199 ... Rainbow Resort 700-799. The HUD shows the area's plate (its name, AreaPlates) in its corner,
          * and the CPU helpers' routes are per area (gUnk_08D6DCAC); both only had areas 0-10: see ExtendAreas(); */
         const int AreaBase = 11, MapRoomsBlock = MapTableAddress + 0xE0, MapShardExits = MapTableAddress + 0xD8, MapBosses = MapTableAddress + 0xCC;
+        // KatAM's gRoomTiledBGs entries (the credits' last three, 33-35, no room's props name; all three versions);
+        const int KatAMRoomTiledBGs = 36;
         static readonly int[] LevelHundreds = { 1, 2, 3, 4, 5, 6, 7, 0 };
         static readonly (string first, string second)[] LevelNames = {
             ("VEGETABLE", "VALLEY"), ("ICE CREAM", "ISLAND"), ("BUTTER", "BUILDING"), ("GRAPE", "GARDEN"), ("YOGURT", "YARD"),
@@ -1185,6 +1187,11 @@
                     if (index != 0xFFFF) tableSizes[field] = Math.Max(tableSizes[field], index + 1);
                 }
             }
+            /* gRoomTiledBGs' last entries too, which no room's props name: KatAM's code loads entry 34 (the credits' second background) itself
+             * for Dark Mind's last room (0x397, code_080023A4.c: gRoomTiledBGs[34]); the copy stopped at the last one a room names (33), and
+             * the first NiDL background took 34's place (the owner's garbled final boss battle: a NiDL room's background drawn over its
+             * sky); all of KatAM's 36 are kept, the NiDL ones after them; */
+            tableSizes[15] = Math.Max(tableSizes[15], KatAMRoomTiledBGs);
 
             int Props(int room, int field) => ReadShort(rom, roomProps + room * 0x28 + field * 2);
             int Entry(string table, int index) => ReadInt(rom, symbols[table] + index * 4) - 0x08000000;

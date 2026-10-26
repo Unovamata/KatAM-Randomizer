@@ -1,5 +1,6 @@
 /* Star Rod stand; The Star Rod on its own, upright, in the NiDL hub where Central Circle has the Master Sword's stand (KatAMExpansionHub.cs),
- * there from the start: object type 0x9A (OBJ_EMPTY_9A, which KatAM's spawn table leaves empty: KatAMExpansion.cs points it here, and
+ * there once the game is beaten, as the Master Sword's (gAIKirbyState from AI_KIRBY_STATE_UNK1 on: KatAM's ending sets it; the owner's):
+ * object type 0x9A (OBJ_EMPTY_9A, which KatAM's spawn table leaves empty: KatAMExpansion.cs points it here, and
  * gives it parameters: the Master Sword stand's, with the Star Rod, and the rod's anim, KatAMExpansionMotions.cs's BuildRodStand()).
  * It's the Master Sword's stand (ability_objects.c's sub_080AA618 and sub_080AAA64) with the Star Rod: a player's Kirby (not a helper)
  * with no ability who touches it takes it, in KatAM's pose for getting an ability (sub_08054C0C); it's gone while a player's Kirby has the
@@ -37,17 +38,22 @@ static bool32 Held(void) {
     return FALSE;
 }
 
-// RodStandHide(); Before it runs and is drawn (unk7C, as sub_080AAA64): hidden and untouchable while the Star Rod is out (Held());
+// Locked(); Not there before the game is beaten, as the Master Sword's stand (sub_080AA618, sub_080AAA64);
+#define Locked() (gAIKirbyState < AI_KIRBY_STATE_UNK1)
+
+// RodStandHide(); Before it runs and is drawn (unk7C, as sub_080AAA64): hidden and untouchable before the game is beaten (Locked()) and
+// while the Star Rod is out (Held());
 static void RodStandHide(struct Object *obj) {
-    if (Held()) obj->base.flags |= 0x600;
+    if (Locked() || Held()) obj->base.flags |= 0x600;
 }
 
-/* RodStandMain(); Each frame (unk78, as sub_080AA618): back, with KatAM's puff (effect 0x292), once the Star Rod isn't out (Held()); a
- * player's Kirby touching it with no ability, free (not dying, nothing in his mouth...: sub_08054C0C's checks), takes it; */
+/* RodStandMain(); Each frame (unk78, as sub_080AA618): once the game is beaten (Locked()), back, with KatAM's puff (effect 0x292), once
+ * the Star Rod isn't out (Held()); a player's Kirby touching it with no ability, free (not dying, nothing in his mouth...: sub_08054C0C's
+ * checks), takes it; */
 static void RodStandMain(struct Object *obj) {
     struct Kirby *kirby;
 
-    if (Held()) return;
+    if (Locked() || Held()) return;
     if (obj->base.flags & 0x400) CreateEffectObject(&obj->base, 0, 0x292, 0);
     obj->base.flags &= ~0x600;
     obj->base.flags |= 4;
