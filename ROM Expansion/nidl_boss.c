@@ -237,7 +237,7 @@ void NidlDanceOut(u16 room) {
 struct NidlShardExit {
     u16 room, exitRoom;
     u8 x, y;    // the landing cell + 1, as a door's;
-    u16 pad;
+    u8 left, right; // the cells of its ground either side, up to 2 (the NiDL hub's; 0 elsewhere): a Kirby on each (NidlShardExit());
 };
 
 const struct NidlShardExit gNidlShardExits[NIDL_SHARD_EXITS] = { { 0 } };
@@ -251,15 +251,27 @@ static const struct NidlShardExit *NidlShardExitOf(u16 room) {
     return NULL;
 }
 
-// NidlShardExit(); The room and spot Kirby comes back to after the shard cutscene (sub_0804C614); his ability before the Star Rod, back;
+/* NidlShardExit(); The room and spot Kirby comes back to after the shard cutscene (sub_0804C614); his ability before the Star Rod, back;
+ * the first Kirby (the player) on the landing, the others on its ground either side, each on his own cell, the second left of it, the
+ * third right, the fourth further (or with the third, the ground ending): KatAM put them all on the one cell and they pushed each other
+ * apart, the first furthest left, off a pillar's top in the NiDL hub (Kracko's, Grape Garden's door, with helpers: falling as if
+ * through it, the owner's); */
 void NidlShardExit(struct Kirby *kirby) {
+    static const s8 sides[] = { 0, -1, 1, -2, 2 };
     const struct NidlShardExit *exit = NidlShardExitOf(kirby->base.roomId);
+    u8 i, n = 0, which = kirby - gKirbys;
+    s8 side = 0;
 
     StarRodRestore(kirby);
 
     if (exit) {
+        for (i = 0; i < sizeof(sides); i++) {
+            if (sides[i] < -exit->left || sides[i] > exit->right) continue;
+            side = sides[i];
+            if (n++ == which) break;
+        }
         kirby->roomId = exit->exitRoom;
-        kirby->spawnLocation.x = exit->x;
+        kirby->spawnLocation.x = exit->x + side;
         kirby->spawnLocation.y = exit->y;
         return;
     }

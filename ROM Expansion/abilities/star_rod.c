@@ -28,6 +28,7 @@
  * (StarRodAim(): KatAM's helper AI never goes for him up over the floor); */
 #include "../abilities.h"
 #include "kirby.h"
+#include "data.h"
 #include "code_0806F780.h"
 #include "task.h"
 #include "random.h"
@@ -395,7 +396,13 @@ void StarRodStart(struct Kirby *kirby, struct Object *orb) {
     r->dodge = r->dodgeWait = 0;
     r->dodgeUp = FALSE;
     r->motion = STAR_ROD_MOTION_HOLD;
-    if (kirby->ability != NIDL_ABILITY_STAR_ROD) STAR_ROD_SAVED(kirby) = kirby->ability | STAR_ROD_FROM_FIGHT;
+    if (kirby->ability != NIDL_ABILITY_STAR_ROD) {
+        STAR_ROD_SAVED(kirby) = kirby->ability | STAR_ROD_FROM_FIGHT;
+        // (a Master Sword it takes the place of is put away: KatAM's flag that one is out, gUnk_0203AD34, down, as when Kirby loses
+        // it (sub_0804F894); left up, never given back after Nightmare (StarRodEnd()), it kept the final fights' sword from falling
+        // (Dark Mind's, Shadow Kirby's) and its stands hidden, the owner's; StarRodRestore() puts it up again with the sword);
+        if (kirby->ability == KIRBY_ABILITY_MASTER) gUnk_0203AD34 = 0;
+    }
     // (given even to one who has it, from the hub's stand: the HUD's card without its picture, as in the fight);
     Give(kirby, NIDL_ABILITY_STAR_ROD);
     r->guarded = TRUE;
@@ -515,6 +522,8 @@ void StarRodRestore(struct Kirby *kirby) {
 
     if (kirby->ability != NIDL_ABILITY_STAR_ROD || !(STAR_ROD_SAVED(kirby) & STAR_ROD_FROM_FIGHT)) return;
     STAR_ROD_SAVED(kirby) = 0;
+    // (the Master Sword back: out again, as KatAM has it once Kirby gets it, sub_0805C618);
+    if (saved == KIRBY_ABILITY_MASTER) gUnk_0203AD34 = 1;
     Give(kirby, saved < NIDL_ABILITY_END && saved != NIDL_ABILITY_STAR_ROD ? saved : KIRBY_ABILITY_NORMAL);
 }
 

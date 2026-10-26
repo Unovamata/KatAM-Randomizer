@@ -28,6 +28,7 @@
 #include "constants/object_types.h"
 
 void sub_08088640(struct Kirby *, u8, u16);
+void sub_08055D9C(struct Kirby *);
 
 /* The camera's bounds (unk_S32Vec2_7C, unk_S32Vec2_84) are what it may show: the arena's area, the screen, so the camera stays put
  * (as KatAM's scroll locks, 15 x 10 cells); Kirby's (unkA0-unkAC) are that and 39 pixels more below (the room's own: 8, 8,
@@ -49,6 +50,7 @@ struct Arena {
     bool8 held;         // Its boss holds the lock off its screen (ArenaRise());
     bool8 go;           // Its boss let it lock the camera (subtype2 BOSS_LOCKS: ArenaGo());
     bool8 boss;         // Its fight is a boss's (NidlIsBoss(), MinibossAlive()): the camera stays on its screen after it;
+    u8 back;            // The players beaten in its room, their camera put right on it once they're back (bit per player);
     s16 wall;           // How far inside its sides Kirby is kept (8.8, ArenaScroll(); 0: WALL);
     struct S32Vec2 saved7C, saved84;
     s32 savedA0, savedA4, savedA8, savedAC;
@@ -275,12 +277,22 @@ static void ArenaMain(struct Object *obj) {
 
         if (kirby->base.roomId != obj->base.roomId) continue;
         if (i < gNumKirbys) {
-            LockCamera(a, kirby->base.unk56);
-            // (dropping in, the camera right on the lock as it comes down, as NiDL's on Kirby, not easing after it);
-            if (a->rise) {
-                gCurLevelInfo[kirby->base.unk56].unk_S32Vec2_6C = gCurLevelInfo[kirby->base.unk56].unk_S32Vec2_7C;
-                gCurLevelInfo[kirby->base.unk56].unk_S32Vec2_74 = gCurLevelInfo[kirby->base.unk56].unk_S32Vec2_84;
-                if (a->held) HoldBounds(kirby->base.unk56);
+            // (one beaten, brought back in the room (another Kirby in it: KatAM's respawn, sub_08055D9C, his level's bounds the
+            // room's again): his lock forgotten till he's back, then his camera right on it, not easing back over the room's height
+            // (Kracko's, a helper still up there: 56 below the tower's top for 900 frames, the owner's); still locked while he falls
+            // beaten, the screen where the fight had it);
+            if (kirby->stateFn == sub_08055D9C) {
+                a->locked &= ~(1 << i);
+                a->back |= 1 << i;
+            } else {
+                LockCamera(a, kirby->base.unk56);
+                // (dropping in, the camera right on the lock as it comes down, as NiDL's on Kirby, not easing after it);
+                if (a->rise || (a->back & (1 << i))) {
+                    gCurLevelInfo[kirby->base.unk56].unk_S32Vec2_6C = gCurLevelInfo[kirby->base.unk56].unk_S32Vec2_7C;
+                    gCurLevelInfo[kirby->base.unk56].unk_S32Vec2_74 = gCurLevelInfo[kirby->base.unk56].unk_S32Vec2_84;
+                    if (a->held) HoldBounds(kirby->base.unk56);
+                }
+                a->back &= ~(1 << i);
             }
         }
         // (a scrolling screen, ArenaScroll(): Kirby a pixel or more behind its side, pushed against a wall, is crushed, as NiDL's;
@@ -431,6 +443,7 @@ void ArenaInit(struct NidlObject *n) {
     a->held = FALSE;
     a->go = FALSE;
     a->boss = FALSE;
+    a->back = 0;
     a->scroll = 0;
     a->wall = 0;
 }

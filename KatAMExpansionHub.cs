@@ -27,7 +27,8 @@ namespace KatAMRandomizer {
 
         static void BuildMainHub(byte[] rom, byte[] nightmare, IReadOnlyDictionary<string, int> symbols, int spriteTables, int hub, List<Door> hubDoors,
                                  int backgroundRecord, int[] tableSizes, List<int> infos, List<int> palettes, List<int> tilemaps, List<int> solidities,
-                                 List<int> backgrounds, List<int> objects, int noTypes, ref int cursor, out Door abilityRoomDoor) {
+                                 List<int> backgrounds, List<int> objects, int noTypes, ref int cursor, out Door abilityRoomDoor,
+                                 out byte[] hubCollision, out int hubWidth) {
             int roomProps = symbols["gRoomProps"], roomInfos = symbols["gUnk_08D6CD0C"];
             int Props(int field) => ReadShort(rom, roomProps + EntryRoom * 0x28 + field * 2);
             int Entry(string table, int index) => ReadInt(rom, symbols[table] + index * 4) - 0x08000000;
@@ -192,6 +193,7 @@ namespace KatAMRandomizer {
             WriteInt(rom, tilemapAt + 0x18, mapAt + 0x08000000);
             WriteShort(rom, tilemapAt + 0x1E, hub);
             int collisionAt = AllocateCompressed(rom, CompressRL(collision), ref cursor), specialsAt = AllocateCompressed(rom, specials.ToArray(), ref cursor);
+            (hubCollision, hubWidth) = (collision, width);
             int solidityAt = Allocate(ref cursor, 8, 4);
             WriteInts(rom, solidityAt, collisionAt + 0x08000000, specialsAt + 0x08000000);
             int objectList = WriteObjectList(rom, templates, types, noTypes, ref cursor);
