@@ -36,6 +36,32 @@ s16 NidlBossHp(u8 boss) {
     return sNidlBosses[boss].hp[gNumHumanPlayers - 1];
 }
 
+void sub_0809F974(struct Object *);
+
+/* NidlBossHitMore(); A hit that took HP off a boss (KatAM's, between frames: from `hp` to its object's, not out) takes `times` halves
+ * of it instead, rounded up (Heavy Mole's and Paint Roller's 3: their 60 on the HP bar's 60, as the other bosses' (its fill is theirs,
+ * one for both their types), down as 40's, KatAM's bigger mini-bosses' (gUnk_08351530): a spit star's 10 takes 15, 4 of them, a
+ * sword's 1 takes 2; the owner's: too much HP); out, KatAM's defeat as its own killing hit's (sub_0809AF38: frozen, sub_0809F974; its
+ * explosion) and TRUE: the boss's frame ends there; */
+bool32 NidlBossHitMore(struct Object *obj, s16 hp, u8 times) {
+    s32 left = hp - ((hp - obj->unk80) * times + 1) / 2;
+
+    if (obj->unk80 <= 0 || obj->unk80 >= hp) return FALSE;
+    if (left > 0) {
+        obj->unk80 = left;
+        return FALSE;
+    }
+    obj->unk80 = 0;
+    obj->base.unk68 &= 7;
+    obj->base.unk5C |= 0x80;
+    if (!(obj->objTemplate->unk22 & 4)) sub_08086C48(obj);
+    PlaySfx(&obj->base, SE_MINIBOSS_PRE_EXPLODE);
+    obj->base.flags |= 0x200;
+    obj->unk78 = sub_0809F974;
+    sub_08088528(obj);
+    return TRUE;
+}
+
 // Where a boss leaves its shard: the middle of its screen (the camera's, KatAM's 240x160), a little up;
 #define SHARD_X 120
 #define SHARD_Y 72

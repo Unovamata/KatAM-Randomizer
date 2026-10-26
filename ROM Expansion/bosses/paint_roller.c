@@ -53,6 +53,7 @@ enum { G_BODY, G_FRONT, G_BACK, G_FX };
 #define KIRBY_DY 4                  // (NiDL's Kirby stands 4 pixels higher: KatAM's Kirby's spot, NiDL's: KirbyY());
 #define INTRO_TIME 128              // His intro (0x080664E0): NiDL's HP bar filling, KatAM's own fill meanwhile;
 #define GUARD_TIME 31               // Frames he takes no hits after one (NiDL's +0x75; KatAM's 0x8000: its attacks pass him by);
+#define HIT_HALVES 3                // A hit takes half again his HP (nidl_boss.c's NidlBossHitMore(): 60 on the HP bar, down as 40);
 #define HURT_TIME 13                // NiDL's hurt (0x0806619C, 13): frozen, jittering, flashing;
 #define PAINT_TIME 60               // A painting shown on its easel before it comes to life (each painting's script);
 #define PARASOL_TIME 256            // The parasol's time, then gone (0x080B14FC: its +0x2C from -32);
@@ -1547,7 +1548,7 @@ static void LetGo(struct Fight *f) {
  * Spark), the parasol (after Kirby, 256 frames, Parasol); NiDL's terrain for the walkers and the bomb; gone 64 pixels off NiDL's screen.
  * Hit (KatAM's attacks: KatAM's bosses take only the stronger ones), he freezes 13 frames, jittering, flashing in his hurt colours, his
  * hit stars; a stand's then over; no more hits for 31 frames. His box (NiDL's: -12, -12 to 8, 12) hurts Kirby as KatAM's enemies do,
- * the lightning's and the blast's too. 60 HP (NiDL's 60); */
+ * the lightning's and the blast's too. 60 HP (NiDL's 60), a hit taking half again his HP (as 40: 4 spit stars, NidlBossHitMore()); */
 static void PaintRollerMain(struct Object *obj) {
     struct PaintRoller *p = (struct PaintRoller *)obj;
     struct Fight *f = p->f;
@@ -1564,8 +1565,9 @@ static void PaintRollerMain(struct Object *obj) {
     f->lastY = f->a[A_ROLLER].iy;
     if (f->guard && !--f->guard) obj->base.flags &= ~0x8000;
     if (!f->over && obj->unk80 < f->hp) {
-        // (one through all the same: its HP back);
+        // (one through all the same: its HP back; one that takes half again its HP out: KatAM's defeat, nidl_boss.c);
         if (f->guard) obj->unk80 = f->hp;
+        else if (NidlBossHitMore(obj, f->hp, HIT_HALVES)) return;
         else Hit(f);
     }
     f->hp = obj->unk80;

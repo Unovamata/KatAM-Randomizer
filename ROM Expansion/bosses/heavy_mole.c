@@ -24,6 +24,7 @@
 
 void sub_0803D280(u8, u8);
 void ArenaScroll(struct Object *, s32, s32, s32);
+void sub_08055D9C(struct Kirby *);
 
 /* gNidlHeavyMole; Filled in by KatAMExpansion.cs (WriteHeavyMoleFight()): the first KatAM frame of each of its groups (G_*: its body,
  * NiDL's 0-7; its drill, 8-10; its eye, 11-13; its hatch, 14-16; its clods, 17-19; its arms, 20-155; its missile 0x7B's third palette's
@@ -51,6 +52,7 @@ enum { PAL_BODY, PAL_ARMS, PAL_MISSILE, PAL_CLODS, PAL_COMMON, PALS };
 #define PC_END 0xFFFF
 #define NONE -1
 #define GUARD_TIME 31               // Frames it takes no hits after one (NiDL's +0x75; KatAM's 0x8000: its attacks pass it by);
+#define HIT_HALVES 3                // A hit takes half again its HP (nidl_boss.c's NidlBossHitMore(): 60 on the HP bar, down as 40);
 #define HURT_TIME 23                // NiDL's hurt (0x0806619C, 23): jittering, flashing, its steps held (0x080ADB58);
 #define SCREEN_W 240
 #define SCREEN_H 160
@@ -243,6 +245,8 @@ struct Fight {
     bool8 listing;
     struct EffectObject *spare[SPARE_DEBRIS];   // Debris sprites kept hidden for the next debris (making them lags: Destroy());
     u8 spares;
+    u8 respawns;                        // The players coming back on the screen (bit per player: Respawns());
+    struct S16Vec2 spawns[4];           // and their own spawns (KatAM's: where they came in), given back after;
 };
 
 /* The scripts: WAIT() resumes them that many frames on; STOP_SCRIPT() parks them (NiDL's 0x08006138); the variables they keep across
@@ -1582,6 +1586,7 @@ static void DrawActor(struct Fight *f, struct Actor *a) {
 }
 
 static void HeavyMoleMain(struct Object *obj);
+static void Respawns(struct Fight *f);
 
 // LetGo(); Its children gone (their sprites, their boxes);
 static void LetGo(struct Fight *f) {
@@ -1600,6 +1605,8 @@ static void FightMain(void) {
     u8 i;
 
     if (obj == NULL || (obj->base.flags & 0x1000)) {
+        f->over = TRUE;
+        Respawns(f);
         LetGo(f);
         Release(&f->body);
         if (obj) ((struct HeavyMole *)obj)->f = NULL;
@@ -1650,7 +1657,8 @@ static void FightMain(void) {
  *   balls hurt Kirby (and dig), as do its missiles (which dig too) and touching it.
  * • Hit (KatAM's attacks: KatAM's bosses take only the stronger ones), it flashes in its hurt colours, jittering, its hit stars about it,
  *   its steps held 23 frames (the screen goes on, it with it), its hatch and eye too (its eye shut); no more hits for 31 frames. 60 HP
- *   (NiDL's 60).
+ *   (NiDL's 60), a hit taking half again its HP (as 40: 4 spit stars, NidlBossHitMore()). Its missiles spat back are one way to hit
+ *   it; any of KatAM's attacks that reach it are another.
  * • The screen pushes Kirby along (9.5 inside its sides, as NiDL's: traced); he falls off its bottom (the arena's). Every 512 pixels the
  *   room's (1024 x 512: KatAM's own) the screen goes back to where it was (NiDL's), the dirt there dug as it was (Break()), Kirby, it
  *   and everything with it; */
@@ -1663,14 +1671,16 @@ static void HeavyMoleMain(struct Object *obj) {
     obj->base.flags |= 4 | 0x400;
     obj->kirby3 = FindTargetKirby(&obj->base);
     if (f == NULL) return;
+    Respawns(f);
     // (the HP bar goes to whatever is hit; it takes it back);
     sub_08034E14(obj);
     obj->base.xspeed = obj->base.yspeed = 0;
     f->frameCount++;
     if (f->guard && !--f->guard) obj->base.flags &= ~0x8000;
     if (!f->over && obj->unk80 < f->hp) {
-        // (one through all the same: its HP back);
+        // (one through all the same: its HP back; one that takes half again its HP out: KatAM's defeat, nidl_boss.c);
         if (f->guard) obj->unk80 = f->hp;
+        else if (NidlBossHitMore(obj, f->hp, HIT_HALVES)) return;
         else Hit(f);
     }
     f->hp = obj->unk80;
@@ -1690,6 +1700,52 @@ static void HeavyMoleMain(struct Object *obj) {
     Scan(f);
     Camera(f);
     Body(f);
+}
+
+/* Respawns(); A Kirby beaten in the fight while another is still in the room: KatAM keeps the room, the fight with it, and brings him
+ * back where he came in (his spawn: sub_08055920, then the room change, sub_08055D9C, sub_080562D0 putting him 8 left of his spawn
+ * cell's right, 7 over its bottom), the room's start, which the screen has scrolled past: there its arena took him for crushed (behind
+ * its side, enemies/arena.c) and beat him again as he came back, over and over, the screen white (the owner's). Till he's back, his
+ * spawn is on the screen: a Kirby still up's spot (following him, the screen going on), or, all of them down, the mole's tunnel 40
+ * behind it (its height, 30 inside the screen); then his own again (as Kracko's, bosses/kracko.c). Beaten alone in the room, KatAM
+ * loads it again and the fight starts over, as NiDL's (his own spawn, untouched); */
+static void Respawns(struct Fight *f) {
+    struct Actor *mole = &f->a[A_MOLE];
+    u8 i, j;
+
+    for (i = 0; i < gNumKirbys; i++) {
+        struct Kirby *k = &gKirbys[i], *up = NULL;
+        bool32 others = FALSE;
+
+        if (!f->over && k->roomId == f->room && (k->hp <= 0 || k->stateFn == sub_08055D9C)) {
+            for (j = 0; j < gNumKirbys; j++) {
+                if (j == i || gKirbys[j].base.roomId != f->room) continue;
+                others = TRUE;
+                if (gKirbys[j].hp > 0 && gKirbys[j].stateFn != sub_08055D9C) up = &gKirbys[j];
+            }
+            if (others) {
+                if (!(f->respawns & (1 << i))) {
+                    f->respawns |= 1 << i;
+                    f->spawns[i] = k->spawnLocation;
+                }
+                if (up) {
+                    k->spawnLocation.x = (up->base.x >> 12) + 1;
+                    k->spawnLocation.y = up->base.y >> 12;
+                } else {
+                    s32 x = mole->ix - 40;
+
+                    if (x < f->camLeft + 30) x = f->camLeft + 30;
+                    k->spawnLocation.x = (x >> 4) + 1;
+                    k->spawnLocation.y = (mole->iy >> 4) + 1;
+                }
+                continue;
+            }
+        }
+        if (f->respawns & (1 << i)) {
+            k->spawnLocation = f->spawns[i];
+            f->respawns &= ~(1 << i);
+        }
+    }
 }
 
 // HeavyMoleGone(); Its object's gone (nidl.c's NidlDestroy()): the fight's task lets go of it;

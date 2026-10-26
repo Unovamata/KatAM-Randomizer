@@ -174,6 +174,7 @@ void NidlBossDefeat(struct Object *);
 void NidlBossShard(u8 unk56, u16 room, u8 shard);
 void NidlShake(u16 level, struct ObjectBase *obj);
 s16 NidlBossHp(u8 boss);
+bool32 NidlBossHitMore(struct Object *obj, s16 hp, u8 times);
 // A boss rematch's Maxim Tomato's gone bit kind (template unk2; rooms.c's BigSub_08001678 calls NidlExitTomato with it, nidl_boss.c);
 #define NIDL_EXIT_KIND 4
 void NidlExitTomato(u16 slot, u32 eaten);

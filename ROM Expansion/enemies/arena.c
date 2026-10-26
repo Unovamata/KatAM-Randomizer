@@ -48,6 +48,7 @@ struct Arena {
     bool8 opened;       // It opened the doors (once);
     bool8 held;         // Its boss holds the lock off its screen (ArenaRise());
     bool8 go;           // Its boss let it lock the camera (subtype2 BOSS_LOCKS: ArenaGo());
+    bool8 boss;         // Its fight is a boss's (NidlIsBoss(), MinibossAlive()): the camera stays on its screen after it;
     s16 wall;           // How far inside its sides Kirby is kept (8.8, ArenaScroll(); 0: WALL);
     struct S32Vec2 saved7C, saved84;
     s32 savedA0, savedA4, savedA8, savedAC;
@@ -95,7 +96,10 @@ static bool8 MinibossAlive(struct Object *arena) {
         t = (struct Task *)(IWRAM_START + t->next);
         other = TaskGetStructPtr(t);
         if (other->base.header.kind != 1 || !ObjType38To52(other)) continue;
-        if (other->base.roomId == arena->base.roomId && !(other->base.flags & 0x1000) && other->unk80 > 0) return TRUE;
+        if (other->base.roomId == arena->base.roomId && !(other->base.flags & 0x1000) && other->unk80 > 0) {
+            if (NidlIsBoss(other)) ((struct Arena *)arena)->boss = TRUE;
+            return TRUE;
+        }
     }
     return FALSE;
 }
@@ -226,6 +230,16 @@ static void ArenaMain(struct Object *obj) {
             }
         }
         if (a->active) {
+            // (a boss's: the bounds it gives back are its screen's, the camera staying where the fight had it, as NiDL's (the room's,
+            // 16 higher for KatAM's rows padded below, put it up there as Whispy Woods was beaten, and over the room's top where King
+            // Dedede's lock had ridden as Kirby dropped in, Kirby held in the air under it, his shard's dance never ending, the
+            // owner's); no door out of a boss's room, its shard the way out; Kracko's lets go once none is on its screen, as above);
+            if (a->boss && area->subtype2 != BOSS_LOCKS) {
+                a->rise = 0;
+                for (i = 0; i < gNumKirbys; i++)
+                    if ((a->locked & (1 << i)) && gKirbys[i].base.roomId == obj->base.roomId) LockCamera(a, i);
+                SaveBounds(a, &gCurLevelInfo[obj->base.unk56]);
+            }
             UnlockCameras(a);
             obj->base.flags |= 0x1000;
         }
@@ -416,6 +430,7 @@ void ArenaInit(struct NidlObject *n) {
     a->rise = 0;
     a->held = FALSE;
     a->go = FALSE;
+    a->boss = FALSE;
     a->scroll = 0;
     a->wall = 0;
 }
