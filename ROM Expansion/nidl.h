@@ -126,7 +126,6 @@ struct NidlObject {
 struct NidlEnemy {
     void (*init)(struct NidlObject *);  // Bounds and position, after InitObject;
     void (*start)(struct Object *);     // Behavior start, also after recovering from a hit;
-    s16 hp;
     u16 ability;
 };
 
@@ -134,7 +133,6 @@ struct NidlEnemy {
 struct NidlMiniboss {
     void (*init)(struct NidlObject *);  // Bounds and position, after InitObject;
     void (*start)(struct Object *);     // Behavior start once the fight starts, also after recovering from a hit;
-    s16 hp;
     u16 ability;
     s8 hurtShift;   // Pixels its frames and hurt frame are drawn lower (to fit the hurt frame; the same as KatAMExpansion.cs's); its boxes are as much lower;
     u8 type;        // Its object type (NIDL_MINIBOSS_TYPE or _2; the same as KatAMExpansion.cs's);
@@ -144,8 +142,14 @@ struct NidlMiniboss {
 struct NidlBoss {
     void (*init)(struct NidlObject *);  // Bounds and position, after InitObject;
     void (*start)(struct Object *);     // Behavior start once the fight starts;
-    s16 hp[4];                          // Its HP by the number of players (KatAM's bosses', gUnk_08351530: 1-4);
 };
+
+/* Their HP, each in a table of its own the randomizer's HP options write (KatAMHP.cs): the enemies' (nidl.c), the mini-bosses'
+ * (nidl_miniboss.c), the bosses' by the number of players (nidl_boss.c: KatAM's bosses', gUnk_08351530: 1-4); */
+extern const s16 gNidlEnemyHp[];
+extern const s16 gNidlMinibossHp[];
+extern const s16 gNidlBossHp[][4];
+s16 NidlMaxHp(struct Object *obj);
 
 // NidlGraphics; Where an enemy's or mini-boss's graphics went;
 struct NidlGraphics {
@@ -174,6 +178,8 @@ void NidlBossDefeat(struct Object *);
 void NidlBossShard(u8 unk56, u16 room, u8 shard);
 void NidlShake(u16 level, struct ObjectBase *obj);
 s16 NidlBossHp(u8 boss);
+bool32 NidlBossHitMore(struct Object *obj, s16 hp, u8 times);
+void NidlBossHitShake(struct Object *obj);
 // A boss rematch's Maxim Tomato's gone bit kind (template unk2; rooms.c's BigSub_08001678 calls NidlExitTomato with it, nidl_boss.c);
 #define NIDL_EXIT_KIND 4
 void NidlExitTomato(u16 slot, u32 eaten);
@@ -204,6 +210,7 @@ void *NightmareFightOf(u16 room);
 bool32 NightmareBlocks(void *fight, s32 x, s32 y);
 void *NightmareFightIn(u16 room);
 bool32 NightmareTarget(void *fight, s32 x, s32 y, bool8 *left, s32 *gap);
+u8 *NightmareAimWait(void *fight, u8 player);
 void NightmareGone(struct Object *nightmare);
 void NightmareIntroRider(struct Kirby *kirby);
 const struct NidlGraphics *NidlGraphicsOf(struct NidlObject *);

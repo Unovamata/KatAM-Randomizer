@@ -19,21 +19,59 @@
  * counts its hits itself, a Star Rod star each (bosses/power_orb.c); */
 #define NIDL_BOSS_HP { 60, 80, 100, 110 }
 
+const s16 gNidlBossHp[NIDL_BOSS_COUNT][4] = {
+    [NIDL_WHISPY_WOODS] = NIDL_BOSS_HP,
+    [NIDL_KRACKO] = NIDL_BOSS_HP,
+    [NIDL_SHINE_BRIGHT] = NIDL_BOSS_HP,
+    [NIDL_META_KNIGHT] = NIDL_BOSS_HP,
+    [NIDL_PAINT_ROLLER] = NIDL_BOSS_HP,
+    [NIDL_HEAVY_MOLE] = NIDL_BOSS_HP,
+    [NIDL_KING_DEDEDE] = NIDL_BOSS_HP,
+    [NIDL_POWER_ORB] = NIDL_BOSS_HP,
+    [NIDL_NIGHTMARE] = NIDL_BOSS_HP,
+};
+
 static const struct NidlBoss sNidlBosses[NIDL_BOSS_COUNT] = {
-    [NIDL_WHISPY_WOODS] = { WhispyWoodsInit, WhispyWoodsStart, NIDL_BOSS_HP },
-    [NIDL_KRACKO] = { KrackoInit, KrackoStart, NIDL_BOSS_HP },
-    [NIDL_SHINE_BRIGHT] = { ShineBrightInit, ShineBrightStart, NIDL_BOSS_HP },
-    [NIDL_META_KNIGHT] = { MetaKnightInit, MetaKnightStart, NIDL_BOSS_HP },
-    [NIDL_PAINT_ROLLER] = { PaintRollerInit, PaintRollerStart, NIDL_BOSS_HP },
-    [NIDL_HEAVY_MOLE] = { HeavyMoleInit, HeavyMoleStart, NIDL_BOSS_HP },
-    [NIDL_KING_DEDEDE] = { KingDededeInit, KingDededeStart, NIDL_BOSS_HP },
-    [NIDL_POWER_ORB] = { PowerOrbInit, PowerOrbStart, NIDL_BOSS_HP },
-    [NIDL_NIGHTMARE] = { NightmareInit, NightmareStart, NIDL_BOSS_HP },
+    [NIDL_WHISPY_WOODS] = { WhispyWoodsInit, WhispyWoodsStart },
+    [NIDL_KRACKO] = { KrackoInit, KrackoStart },
+    [NIDL_SHINE_BRIGHT] = { ShineBrightInit, ShineBrightStart },
+    [NIDL_META_KNIGHT] = { MetaKnightInit, MetaKnightStart },
+    [NIDL_PAINT_ROLLER] = { PaintRollerInit, PaintRollerStart },
+    [NIDL_HEAVY_MOLE] = { HeavyMoleInit, HeavyMoleStart },
+    [NIDL_KING_DEDEDE] = { KingDededeInit, KingDededeStart },
+    [NIDL_POWER_ORB] = { PowerOrbInit, PowerOrbStart },
+    [NIDL_NIGHTMARE] = { NightmareInit, NightmareStart },
 };
 
 // NidlBossHp(); A boss's HP at the start, for the number of players;
 s16 NidlBossHp(u8 boss) {
-    return sNidlBosses[boss].hp[gNumHumanPlayers - 1];
+    return gNidlBossHp[boss][gNumHumanPlayers - 1];
+}
+
+void sub_0809F974(struct Object *);
+
+/* NidlBossHitMore(); A hit that took HP off a boss (KatAM's, between frames: from `hp` to its object's, not out) takes `times` halves
+ * of it instead, rounded up (Heavy Mole's and Paint Roller's 3: their 60 on the HP bar's 60, as the other bosses' (its fill is theirs,
+ * one for both their types), down as 40's, KatAM's bigger mini-bosses' (gUnk_08351530): a spit star's 10 takes 15, 4 of them, a
+ * sword's 1 takes 2; the owner's: too much HP); out, KatAM's defeat as its own killing hit's (sub_0809AF38: frozen, sub_0809F974; its
+ * explosion) and TRUE: the boss's frame ends there; */
+bool32 NidlBossHitMore(struct Object *obj, s16 hp, u8 times) {
+    s32 left = hp - ((hp - obj->unk80) * times + 1) / 2;
+
+    if (obj->unk80 <= 0 || obj->unk80 >= hp) return FALSE;
+    if (left > 0) {
+        obj->unk80 = left;
+        return FALSE;
+    }
+    obj->unk80 = 0;
+    obj->base.unk68 &= 7;
+    obj->base.unk5C |= 0x80;
+    if (!(obj->objTemplate->unk22 & 4)) sub_08086C48(obj);
+    PlaySfx(&obj->base, SE_MINIBOSS_PRE_EXPLODE);
+    obj->base.flags |= 0x200;
+    obj->unk78 = sub_0809F974;
+    sub_08088528(obj);
+    return TRUE;
 }
 
 // Where a boss leaves its shard: the middle of its screen (the camera's, KatAM's 240x160), a little up;
@@ -182,6 +220,15 @@ void NidlShake(u16 level, struct ObjectBase *obj) {
     else RequestScreenShake(level >= 5 ? 4 : level == 4 ? 3 : level, obj);
 }
 
+/* NidlBossHitShake(); A hit on a ported boss that it lives through shakes the screen a little, as one on KatAM's own bosses does
+ * (sub_0809AF38's RequestScreenShake(3): 24 frames, a pixel or three each way; the owner's: the small vibration on a boss hit,
+ * missing). KatAM's own hit gives it when it can (asked again, the shake starts over: the same); it gives none to an object with
+ * unkC 0x800 (Mr. Shine and Mr. Bright) or to an attack with unk68 0x800000. Not the Power Orb's: its hits shake its foreground,
+ * not the screen (bosses/power_orb.c, the owner's); */
+void NidlBossHitShake(struct Object *obj) {
+    if (obj->unk80 > 0) RequestScreenShake(3, &obj->base);
+}
+
 /* NidlExitTomato(); A rematch's Maxim Tomato (NidlBossDefeat()) gone, from template slot `slot` (rooms.c's BigSub_08001678: its
  * gone bit): its template slot freed (the game frees only those with unk2 0); eaten, every Kirby in its room dances and leaves
  * (NidlDanceOut()); */
@@ -211,7 +258,7 @@ void NidlDanceOut(u16 room) {
 struct NidlShardExit {
     u16 room, exitRoom;
     u8 x, y;    // the landing cell + 1, as a door's;
-    u16 pad;
+    u8 left, right; // the cells of its ground either side, up to 2 (the NiDL hub's; 0 elsewhere): a Kirby on each (NidlShardExit());
 };
 
 const struct NidlShardExit gNidlShardExits[NIDL_SHARD_EXITS] = { { 0 } };
@@ -225,15 +272,27 @@ static const struct NidlShardExit *NidlShardExitOf(u16 room) {
     return NULL;
 }
 
-// NidlShardExit(); The room and spot Kirby comes back to after the shard cutscene (sub_0804C614); his ability before the Star Rod, back;
+/* NidlShardExit(); The room and spot Kirby comes back to after the shard cutscene (sub_0804C614); his ability before the Star Rod, back;
+ * the first Kirby (the player) on the landing, the others on its ground either side, each on his own cell, the second left of it, the
+ * third right, the fourth further (or with the third, the ground ending): KatAM put them all on the one cell and they pushed each other
+ * apart, the first furthest left, off a pillar's top in the NiDL hub (Kracko's, Grape Garden's door, with helpers: falling as if
+ * through it, the owner's); */
 void NidlShardExit(struct Kirby *kirby) {
+    static const s8 sides[] = { 0, -1, 1, -2, 2 };
     const struct NidlShardExit *exit = NidlShardExitOf(kirby->base.roomId);
+    u8 i, n = 0, which = kirby - gKirbys;
+    s8 side = 0;
 
     StarRodRestore(kirby);
 
     if (exit) {
+        for (i = 0; i < sizeof(sides); i++) {
+            if (sides[i] < -exit->left || sides[i] > exit->right) continue;
+            side = sides[i];
+            if (n++ == which) break;
+        }
         kirby->roomId = exit->exitRoom;
-        kirby->spawnLocation.x = exit->x;
+        kirby->spawnLocation.x = exit->x + side;
         kirby->spawnLocation.y = exit->y;
         return;
     }

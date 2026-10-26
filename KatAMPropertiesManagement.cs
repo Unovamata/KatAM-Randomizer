@@ -147,6 +147,11 @@ namespace KatAM_Randomizer {
             RandomizeAbilityProperties(MinibossesInhaleAbilityType, Processing.minibossesDictionary, 
                                        minibossAbilityIndexes, shuffleAbilities);
 
+            // HP: the enemies' in their properties, the mini-bosses' and bosses' in their own tables (and the ROM Expansion's: KatAMHP.cs);
+            KatAMHP.Enemies(propertiesDictionary, modifiedProperties);
+            KatAMHP.Minibosses();
+            KatAMHP.Bosses();
+
             foreach (Properties property in modifiedProperties) {
                 Utils.WritePropertiesToROM(property);
             }

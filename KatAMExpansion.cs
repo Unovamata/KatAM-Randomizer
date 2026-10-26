@@ -1374,15 +1374,27 @@ namespace KatAMRandomizer {
             WriteShorts(rom, mirraOpen, 0x4B00, 0x4718);    // ldr r3, [pc, #0]; bx r3;
             WriteInt(rom, mirraOpen + 4, codeBase + version.CodeSymbols["NidlMirraOpen"] + 1);
 
-            /* The HP bar's fill (0x08034F38): HP times gUnk_08351458[type - 0x38][players - 1], >> 8 (64: full). The table sits right before
-             * gUnk_08351648 in every version, and holds a placeholder (8192) for types 0x40-0x44: the mini-bosses (30 HP) get Mr. Frosty's
-             * 546 (30 HP as well, for one player) for any number of players; */
-            int hpBar = version.RomSymbols["gUnk_08351648"] - 0x1F0;
-            if (ReadShort(rom, hpBar + 8 * 8) != 8192) return $"The ROM's data doesn't match the {version.Name} release.";
-            // (and the bosses, whose HP is Kracko's for any number of players, nidl_boss.c: Kracko's 273, 204, 163 and 148);
-            foreach (byte type in minibossAnimInfosAt.Keys)
-                for (int players = 0; players < 4; players++)
-                    WriteShort(rom, hpBar + (type - FrostyID) * 8 + players * 2, IsBossType(type) ? ReadShort(rom, hpBar + (KrackoID - FrostyID) * 8 + players * 2) : 546);
+            /* A boss's shard once its cutscene ends: its step (sub_0801C558) jumps to NidlShardDone ("ROM Expansion/chest.c", HookShards(),
+             * as the shard options hook it), which has a NiDL boss's victory dance on the ground under the shard: KatAM's spot for it is its
+             * table's for the shard (gUnk_08352DBE), made for that shard's KatAM boss room (Meta Knight's with shard 5: past the room's
+             * corner, where Kirby died, the owner's); */
+            if (HookShards(rom, version) is string shardError) return shardError;
+
+            /* The HP bar's fill: HP times its type's factor, >> 8 (64: full), the factor 0x4000 / the HP at the start (gUnk_08351458[type -
+             * 0x38][players - 1] for types 0x38-0x52, Dark Mind's first form's gUnk_08351628, gUnk_083513E8[type] for the rest), worked
+             * out as an object takes the bar (0x08034E14) and every frame after (0x0803533C). The ported objects share their types, so no
+             * one factor fits them (the HP options change their HP too): both are NidlHpBarFill's ("ROM Expansion/nidl.c"), from each
+             * one's own HP and the tables for KatAM's: `(the object in r0); ldr r1, =NidlHpBarFill; bl _call_via_r1; lsls r1, r0, #16; b`
+             * to where the game stores it; */
+            foreach (var (function, offset, objectToR0, branch, original) in new[] {
+                         ("sub_08034E14", 0xE4, 0x4660, 0xE03D, "217808 1C3838 0006000E 1A2830D8 4F29"),    // (mov r0, ip; b 0x08034F80);
+                         ("sub_0803533C", 0x18, 0x1C28, 0xE033, "2C1C8234 2278101C 38380006 000E1A28") }) { // (adds r0, r5, #0; b 0x080353C8);
+                int site = version.RomSymbols[function] + offset, call = version.RomSymbols["_call_via_r1"] - (site + 4 + 4);
+                if (!rom.AsSpan(site, 16).SequenceEqual(Convert.FromHexString(original.Replace(" ", ""))))
+                    return $"The {version.Name} ROM's HP bar code doesn't match.";
+                WriteShorts(rom, site, objectToR0, 0x4902, 0xF000 | (call >> 12 & 0x7FF), 0xF800 | (call >> 1 & 0x7FF), 0x0401, branch);
+                WriteInt(rom, site + 12, codeBase + version.CodeSymbols["NidlHpBarFill"] + 1);
+            }
 
             /* A boss's defeat runs gUnk_08350E58[type - 0x43] as it explodes (KatAM's bosses leave their shard there): type 0x43's (none)
              * and 0x44's (none) are the bosses' NidlBossDefeat; */

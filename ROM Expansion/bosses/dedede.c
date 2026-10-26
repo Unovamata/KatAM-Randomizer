@@ -1930,7 +1930,10 @@ static void KingDededeMain(struct Object *obj) {
     if (!f->over && obj->unk80 < f->hp) {
         // (one through all the same: its HP back);
         if (f->guard) obj->unk80 = f->hp;
-        else Hit(f);
+        else {
+            NidlBossHitShake(obj);
+            Hit(f);
+        }
     }
     f->hp = obj->unk80;
     if (f->guard) obj->base.flags |= 0x8000;

@@ -5,7 +5,7 @@ namespace KatAMRandomizer {
      * • Palettes: Central Circle's scenery (palettes 4 and 5) tinted to the night (NightTint);
      * • Mirrors: its golden one (MainHubEntry) to Vegetable Valley's first room, the way in, a pink one (MainHubReturn, MirrorTwin()) back to Central Circle, and
      *   Central Circle's Dimension Mirror (DimensionMirrorTemplate(), to the Power Orb's room as Central Circle's: FinaleMirrors());
-     * • The Star Rod on a stand where Central Circle has the Master Sword's, there from the start (RodStandTemplate());
+     * • The Star Rod on a stand where Central Circle has the Master Sword's, there once the game is beaten (RodStandTemplate());
      * • Doors: as Central Circle's, special blocks (kind 1) its hub mirror objects (0x8C) break once their world slot is set, drawing
      *   the door over the 3x3 cells above its door cell (MainHubDoors: Central Circle's own doors' cells). Each level's door is its
      *   design (NidlDesigns: one of KatAM's door frames, anim 0x2C6, over its mirror, anim 0x2C5, as object 0x97 draws them; none of
@@ -27,7 +27,8 @@ namespace KatAMRandomizer {
 
         static void BuildMainHub(byte[] rom, byte[] nightmare, IReadOnlyDictionary<string, int> symbols, int spriteTables, int hub, List<Door> hubDoors,
                                  int backgroundRecord, int[] tableSizes, List<int> infos, List<int> palettes, List<int> tilemaps, List<int> solidities,
-                                 List<int> backgrounds, List<int> objects, int noTypes, ref int cursor, out Door abilityRoomDoor) {
+                                 List<int> backgrounds, List<int> objects, int noTypes, ref int cursor, out Door abilityRoomDoor,
+                                 out byte[] hubCollision, out int hubWidth) {
             int roomProps = symbols["gRoomProps"], roomInfos = symbols["gUnk_08D6CD0C"];
             int Props(int field) => ReadShort(rom, roomProps + EntryRoom * 0x28 + field * 2);
             int Entry(string table, int index) => ReadInt(rom, symbols[table] + index * 4) - 0x08000000;
@@ -192,16 +193,21 @@ namespace KatAMRandomizer {
             WriteInt(rom, tilemapAt + 0x18, mapAt + 0x08000000);
             WriteShort(rom, tilemapAt + 0x1E, hub);
             int collisionAt = AllocateCompressed(rom, CompressRL(collision), ref cursor), specialsAt = AllocateCompressed(rom, specials.ToArray(), ref cursor);
+            (hubCollision, hubWidth) = (collision, width);
             int solidityAt = Allocate(ref cursor, 8, 4);
             WriteInts(rom, solidityAt, collisionAt + 0x08000000, specialsAt + 0x08000000);
             int objectList = WriteObjectList(rom, templates, types, noTypes, ref cursor);
 
             int background = HubBackground(rom, nightmare, backgroundRecord, hub, doorColors, ref cursor);
 
-            // Props (Central Circle's, with the new entries), its area info (Central Circle's); the background spans the room once (BackgroundRates());
+            /* Props (Central Circle's, with the new entries), its area info (Central Circle's); the background spans the room once (BackgroundRates()),
+             * its y rate for the camera's whole climb: KatAM draws it at the camera's distance from the room's bottom, which is 40 pixels at the
+             * camera's lowest, so at the room's top that distance is the room's height - 168 (BackgroundRates() takes the height - 208: at the top
+             * the background stood 22 pixels above its first row, and KatAM wraps that at 65536, not at its 288 rows' height: the screen's bottom
+             * strip showed rows from its middle, the owner's garbled tiles high up); */
             int props = roomProps + hub * 0x28, roomHeight = collision.Length / width * 16, backgroundHeight = ReadShort(rom, background + 2) * 8;
             Array.Copy(rom, roomProps + EntryRoom * 0x28, rom, props, 0x28);
-            (int rateX, int rateY) = BackgroundRates(ReadShort(rom, background) * 8, backgroundHeight, width * 16, roomHeight);
+            (int rateX, int rateY) = BackgroundRates(ReadShort(rom, background) * 8, backgroundHeight, width * 16, roomHeight + 40);
             WriteShorts(rom, props + 7 * 2, rateX, rateY);
             WriteShorts(rom, props + 10 * 2, tableSizes[10] + infos.Count, tableSizes[11] + palettes.Count, tableSizes[12] + tilemaps.Count, tableSizes[13] + solidities.Count);
             WriteShort(rom, props + 15 * 2, tableSizes[15] + backgrounds.Count);
@@ -255,8 +261,8 @@ namespace KatAMRandomizer {
             return null;
         }
 
-        /* RodStandTemplate(); The Star Rod's stand (object 0x9A, "ROM Expansion/abilities/star_rod_stand.c": the Star Rod there from the start,
-         * as the Master Sword is in Central Circle once the game's beaten, or with the "Unlock the Master Sword" option), where Central
+        /* RodStandTemplate(); The Star Rod's stand (object 0x9A, "ROM Expansion/abilities/star_rod_stand.c": the Star Rod there once the game's
+         * beaten, as the Master Sword is in Central Circle; the "Unlock the Master Sword" option is the sword's alone), where Central
          * Circle's Master Sword stand is (MasterSwordStand, its object list's), in the golden pedestal the hub has from Central Circle's
          * tiles under it (its spot: the rod's foot, 2 pixels into the pedestal, whose top is 11 under the sword's spot); null if it's
          * not there; */

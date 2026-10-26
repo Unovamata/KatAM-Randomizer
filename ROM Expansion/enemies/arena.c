@@ -28,6 +28,7 @@
 #include "constants/object_types.h"
 
 void sub_08088640(struct Kirby *, u8, u16);
+void sub_08055D9C(struct Kirby *);
 
 /* The camera's bounds (unk_S32Vec2_7C, unk_S32Vec2_84) are what it may show: the arena's area, the screen, so the camera stays put
  * (as KatAM's scroll locks, 15 x 10 cells); Kirby's (unkA0-unkAC) are that and 39 pixels more below (the room's own: 8, 8,
@@ -48,6 +49,8 @@ struct Arena {
     bool8 opened;       // It opened the doors (once);
     bool8 held;         // Its boss holds the lock off its screen (ArenaRise());
     bool8 go;           // Its boss let it lock the camera (subtype2 BOSS_LOCKS: ArenaGo());
+    bool8 boss;         // Its fight is a boss's (NidlIsBoss(), MinibossAlive()): the camera stays on its screen after it;
+    u8 back;            // The players beaten in its room, their camera put right on it once they're back (bit per player);
     s16 wall;           // How far inside its sides Kirby is kept (8.8, ArenaScroll(); 0: WALL);
     struct S32Vec2 saved7C, saved84;
     s32 savedA0, savedA4, savedA8, savedAC;
@@ -95,7 +98,10 @@ static bool8 MinibossAlive(struct Object *arena) {
         t = (struct Task *)(IWRAM_START + t->next);
         other = TaskGetStructPtr(t);
         if (other->base.header.kind != 1 || !ObjType38To52(other)) continue;
-        if (other->base.roomId == arena->base.roomId && !(other->base.flags & 0x1000) && other->unk80 > 0) return TRUE;
+        if (other->base.roomId == arena->base.roomId && !(other->base.flags & 0x1000) && other->unk80 > 0) {
+            if (NidlIsBoss(other)) ((struct Arena *)arena)->boss = TRUE;
+            return TRUE;
+        }
     }
     return FALSE;
 }
@@ -226,6 +232,16 @@ static void ArenaMain(struct Object *obj) {
             }
         }
         if (a->active) {
+            // (a boss's: the bounds it gives back are its screen's, the camera staying where the fight had it, as NiDL's (the room's,
+            // 16 higher for KatAM's rows padded below, put it up there as Whispy Woods was beaten, and over the room's top where King
+            // Dedede's lock had ridden as Kirby dropped in, Kirby held in the air under it, his shard's dance never ending, the
+            // owner's); no door out of a boss's room, its shard the way out; Kracko's lets go once none is on its screen, as above);
+            if (a->boss && area->subtype2 != BOSS_LOCKS) {
+                a->rise = 0;
+                for (i = 0; i < gNumKirbys; i++)
+                    if ((a->locked & (1 << i)) && gKirbys[i].base.roomId == obj->base.roomId) LockCamera(a, i);
+                SaveBounds(a, &gCurLevelInfo[obj->base.unk56]);
+            }
             UnlockCameras(a);
             obj->base.flags |= 0x1000;
         }
@@ -261,12 +277,22 @@ static void ArenaMain(struct Object *obj) {
 
         if (kirby->base.roomId != obj->base.roomId) continue;
         if (i < gNumKirbys) {
-            LockCamera(a, kirby->base.unk56);
-            // (dropping in, the camera right on the lock as it comes down, as NiDL's on Kirby, not easing after it);
-            if (a->rise) {
-                gCurLevelInfo[kirby->base.unk56].unk_S32Vec2_6C = gCurLevelInfo[kirby->base.unk56].unk_S32Vec2_7C;
-                gCurLevelInfo[kirby->base.unk56].unk_S32Vec2_74 = gCurLevelInfo[kirby->base.unk56].unk_S32Vec2_84;
-                if (a->held) HoldBounds(kirby->base.unk56);
+            // (one beaten, brought back in the room (another Kirby in it: KatAM's respawn, sub_08055D9C, his level's bounds the
+            // room's again): his lock forgotten till he's back, then his camera right on it, not easing back over the room's height
+            // (Kracko's, a helper still up there: 56 below the tower's top for 900 frames, the owner's); still locked while he falls
+            // beaten, the screen where the fight had it);
+            if (kirby->stateFn == sub_08055D9C) {
+                a->locked &= ~(1 << i);
+                a->back |= 1 << i;
+            } else {
+                LockCamera(a, kirby->base.unk56);
+                // (dropping in, the camera right on the lock as it comes down, as NiDL's on Kirby, not easing after it);
+                if (a->rise || (a->back & (1 << i))) {
+                    gCurLevelInfo[kirby->base.unk56].unk_S32Vec2_6C = gCurLevelInfo[kirby->base.unk56].unk_S32Vec2_7C;
+                    gCurLevelInfo[kirby->base.unk56].unk_S32Vec2_74 = gCurLevelInfo[kirby->base.unk56].unk_S32Vec2_84;
+                    if (a->held) HoldBounds(kirby->base.unk56);
+                }
+                a->back &= ~(1 << i);
             }
         }
         // (a scrolling screen, ArenaScroll(): Kirby a pixel or more behind its side, pushed against a wall, is crushed, as NiDL's;
@@ -416,6 +442,8 @@ void ArenaInit(struct NidlObject *n) {
     a->rise = 0;
     a->held = FALSE;
     a->go = FALSE;
+    a->boss = FALSE;
+    a->back = 0;
     a->scroll = 0;
     a->wall = 0;
 }

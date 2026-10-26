@@ -214,7 +214,10 @@ static void WhispyWoodsMain(struct Object *obj) {
     obj->base.flags |= 4;
     obj->base.xspeed = obj->base.yspeed = 0;
     obj->kirby3 = FindTargetKirby(&obj->base);
-    if (obj->unk80 < w->hp) w->hit = HIT_TIME;
+    if (obj->unk80 < w->hp) {
+        w->hit = HIT_TIME;
+        NidlBossHitShake(obj);
+    }
     w->hp = obj->unk80;
     // The HP bar goes to whatever is hit (0x08034E14: an apple too); it takes it back, as Meta Knight does;
     sub_08034E14(obj);

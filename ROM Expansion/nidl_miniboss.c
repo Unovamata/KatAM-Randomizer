@@ -9,13 +9,24 @@
 #include "constants/kirby.h"
 #include "abilities.h"
 
+/* Their HP (the HP bar's full: KatAM's Mr. Frosty's 30); the Meta-Knights' is what their knights have left (minibosses/meta_knights.c's
+ * MAX_HP, the same 30), not randomized; */
+const s16 gNidlMinibossHp[NIDL_MINIBOSS_COUNT] = {
+    [NIDL_POPPY_BROS_SR] = 30,
+    [NIDL_MR_TICK_TOCK] = 30,
+    [NIDL_GRAND_WHEELIE] = 30,
+    [NIDL_BUGZZY] = 30,
+    [NIDL_FIRE_LION] = 30,
+    [NIDL_META_KNIGHTS] = 30,
+};
+
 static const struct NidlMiniboss sNidlMinibosses[NIDL_MINIBOSS_COUNT] = {
-    [NIDL_POPPY_BROS_SR] = { PoppyBrosSrInit, PoppyBrosSrStart, 30, KIRBY_ABILITY_CRASH, 0, NIDL_MINIBOSS_TYPE },
-    [NIDL_MR_TICK_TOCK] = { MrTickTockInit, MrTickTockStart, 30, NIDL_ABILITY_MIKE, 0, NIDL_MINIBOSS_TYPE },
-    [NIDL_GRAND_WHEELIE] = { GrandWheelieInit, GrandWheelieStart, 30, KIRBY_ABILITY_WHEEL, 0, NIDL_MINIBOSS_TYPE },
-    [NIDL_BUGZZY] = { BugzzyInit, BugzzyStart, 30, NIDL_ABILITY_BACKDROP, 0, NIDL_MINIBOSS_TYPE_2 },
-    [NIDL_FIRE_LION] = { FireLionInit, FireLionStart, 30, KIRBY_ABILITY_BURNING, 12, NIDL_MINIBOSS_TYPE_2 },
-    [NIDL_META_KNIGHTS] = { MetaKnightsInit, MetaKnightsStart, 30, 0, 0, NIDL_MINIBOSS_TYPE_3 },
+    [NIDL_POPPY_BROS_SR] = { PoppyBrosSrInit, PoppyBrosSrStart, KIRBY_ABILITY_CRASH, 0, NIDL_MINIBOSS_TYPE },
+    [NIDL_MR_TICK_TOCK] = { MrTickTockInit, MrTickTockStart, NIDL_ABILITY_MIKE, 0, NIDL_MINIBOSS_TYPE },
+    [NIDL_GRAND_WHEELIE] = { GrandWheelieInit, GrandWheelieStart, KIRBY_ABILITY_WHEEL, 0, NIDL_MINIBOSS_TYPE },
+    [NIDL_BUGZZY] = { BugzzyInit, BugzzyStart, NIDL_ABILITY_BACKDROP, 0, NIDL_MINIBOSS_TYPE_2 },
+    [NIDL_FIRE_LION] = { FireLionInit, FireLionStart, KIRBY_ABILITY_BURNING, 12, NIDL_MINIBOSS_TYPE_2 },
+    [NIDL_META_KNIGHTS] = { MetaKnightsInit, MetaKnightsStart, 0, 0, NIDL_MINIBOSS_TYPE_3 },
 };
 
 void NidlMinibossStart(struct Object *);
@@ -43,7 +54,7 @@ void *CreateNidlMiniboss(struct ObjectTemplate *template, u8 playerId) {
     n->sequence = NULL;
     n->activated = FALSE;
     n->hurt = 0;
-    obj->unk80 = sNidlMinibosses[boss].hp;
+    obj->unk80 = gNidlMinibossHp[boss];
     // As Mr. Frosty (0x080CB6E8): water doesn't defeat it, untouchable until the fight starts, its touch hurts like a mini-boss's;
     obj->base.unkC |= 1;
     obj->base.flags |= 0x2000000 | 0x200 | 0x200000;

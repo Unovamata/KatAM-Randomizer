@@ -509,6 +509,10 @@ namespace KatAMInternal
         public bool isEnemyIncludingMixInhaleAbility { get; set; }
         public GenerationOptions EnemiesHPType { get; set; }
         public bool isEnemyHPPercentageModified { get; set; }
+        // HP (KatAMHP.cs): Random picks between Min and Max; the percentage (-50 to 50) goes on top of any of them when it's on;
+        public int EnemiesHPPercentage { get; set; }
+        public int EnemiesHPMin { get; set; } = 1;
+        public int EnemiesHPMax { get; set; } = 10;
         public GenerationOptions MinibossesGenerationType { get; set; }
         public GenerationOptions MinibossesPropertiesSpeedType { get; set; }
         public GenerationOptions MinibossesPropertiesBehaviorType { get; set; }
@@ -518,6 +522,15 @@ namespace KatAMInternal
         public bool isMinibossIncludingMixInhaleAbility { get; set; }
         public GenerationOptions MinibossesHPType { get; set; }
         public bool isMinibossHPPercentageModified { get; set; }
+        public int MinibossesHPPercentage { get; set; }
+        public int MinibossesHPMin { get; set; } = 20;
+        public int MinibossesHPMax { get; set; } = 60;
+        // Bosses' HP (KatAMHP.cs), for one player (the others' as the game scales each boss's);
+        public GenerationOptions BossesHPType { get; set; }
+        public bool isBossHPPercentageModified { get; set; }
+        public int BossesHPPercentage { get; set; }
+        public int BossesHPMin { get; set; } = 30;
+        public int BossesHPMax { get; set; } = 120;
         public GenerationOptions PedestalsGenerationType { get; set; }
         public bool isAddingRandomPedestal;
         public bool isBanningParasol;
@@ -542,6 +555,16 @@ namespace KatAMInternal
         public bool UnlockMasterSword { get; set; }
         // Unlock the Ability Room: Central Circle's door to it open from the start, not only once the 15 big switches are pressed (KatAMExpansion.UnlockAbilityRoom);
         public bool UnlockAbilityRoom { get; set; }
+        // Starting Lives: the lives Kirby starts with, and gets back after a game over, a custom amount or (Random Starting Lives) picked
+        // from the seed, both 1-5 (KatAMExpansion.StartingKirby; the game's 2);
+        public const int MinStartingLives = 1, MaxStartingLives = 5;
+        public int StartingLives { get; set; } = 2;
+        public bool RandomStartingLives { get; set; }
+        // Random Starting HP: Kirby's HP without HP Ups, between StartingHPMin and StartingHPMax, within 3-6 (KatAMExpansion.StartingKirby; the game's 6);
+        public const int MinStartingHP = 3, MaxStartingHP = 6;
+        public bool RandomStartingHP { get; set; }
+        public int StartingHPMin { get; set; } = 3;
+        public int StartingHPMax { get; set; } = 6;
 
         public Settings() {
             Random seedGenerator = new Random();

@@ -152,6 +152,8 @@
          * 1-99, Vegetable Valley 100-199 ... Rainbow Resort 700-799. The HUD shows the area's plate (its name, AreaPlates) in its corner,
          * and the CPU helpers' routes are per area (gUnk_08D6DCAC); both only had areas 0-10: see ExtendAreas(); */
         const int AreaBase = 11, MapRoomsBlock = MapTableAddress + 0xE0, MapShardExits = MapTableAddress + 0xD8, MapBosses = MapTableAddress + 0xCC;
+        // KatAM's gRoomTiledBGs entries (the credits' last three, 33-35, no room's props name; all three versions);
+        const int KatAMRoomTiledBGs = 36;
         static readonly int[] LevelHundreds = { 1, 2, 3, 4, 5, 6, 7, 0 };
         static readonly (string first, string second)[] LevelNames = {
             ("VEGETABLE", "VALLEY"), ("ICE CREAM", "ISLAND"), ("BUTTER", "BUILDING"), ("GRAPE", "GARDEN"), ("YOGURT", "YARD"),
@@ -1185,6 +1187,11 @@
                     if (index != 0xFFFF) tableSizes[field] = Math.Max(tableSizes[field], index + 1);
                 }
             }
+            /* gRoomTiledBGs' last entries too, which no room's props name: KatAM's code loads entry 34 (the credits' second background) itself
+             * for Dark Mind's last room (0x397, code_080023A4.c: gRoomTiledBGs[34]); the copy stopped at the last one a room names (33), and
+             * the first NiDL background took 34's place (the owner's garbled final boss battle: a NiDL room's background drawn over its
+             * sky); all of KatAM's 36 are kept, the NiDL ones after them; */
+            tableSizes[15] = Math.Max(tableSizes[15], KatAMRoomTiledBGs);
 
             int Props(int room, int field) => ReadShort(rom, roomProps + room * 0x28 + field * 2);
             int Entry(string table, int index) => ReadInt(rom, symbols[table] + index * 4) - 0x08000000;
@@ -1402,11 +1409,13 @@
             if (WarpRideDetours(rom, version) is string rideError) return rideError;
 
             BuildMainHub(rom, nightmare, symbols, version.SpriteTables, mainHub, mainHubDoors, rooms.First(r => r.Level == 7 && r.Stage == 0 && r.Index == 0).Record, tableSizes,
-                         infos, palettes, tilemaps, solidities, backgrounds, objects, noTypes, ref cursor, out Door abilityDoor);
+                         infos, palettes, tilemaps, solidities, backgrounds, objects, noTypes, ref cursor, out Door abilityDoor,
+                         out byte[] hubCollision, out int hubWidth);
             WriteShort(rom, CodeAddress + version.CodeSymbols["gNidlHubRoom"], mainHub);
             /* The boss rooms' shards (bossExitsOf): gNidlShardExits ("ROM Expansion/nidl_boss.c"), and sub_0804C614's `kirby->roomId = 0x321`
              * and spawn spot (after the shard cutscene) a call to NidlShardExit(): `adds r0, r4, #0; ldr r1, =NidlShardExit; bl
-             * _call_via_r1; b` past the spot's stores, the 0x321 literal holding the address; */
+             * _call_via_r1; b` past the spot's stores, the 0x321 literal holding the address; in the NiDL hub, with the cells of the
+             * door's ground either side of it (up to 2 each: HubGroundBeside()), each Kirby landing on his own; */
             {
                 int exits = CodeAddress + version.CodeSymbols["gNidlShardExits"], site = version.RomSymbols["sub_0804C614"] + 0x174;
                 int literal = version.RomSymbols["sub_0804C614"] + 0x1B4;
@@ -1418,6 +1427,8 @@
                     WriteShorts(rom, exits + n * 8, part.Room, exit.room);
                     rom[exits + n * 8 + 4] = (byte)exit.x;
                     rom[exits + n * 8 + 5] = (byte)exit.y;
+                    if (exit.room == mainHub)
+                        (rom[exits + n * 8 + 6], rom[exits + n * 8 + 7]) = HubGroundBeside(rom, hubCollision, hubWidth, symbols["gCollisionAttributes"], exit.x - 1, exit.y - 1);
                     n++;
                 }
                 int call = version.RomSymbols["_call_via_r1"] - (site + 0x08000000 + 4 + 4);
@@ -2021,6 +2032,19 @@
         // enemies off them, as BuildObjects() the ported rooms', 3 cells across, 2 up or down);
         static Dictionary<int, List<(int x, int y)>> katamLandings = new Dictionary<int, List<(int, int)>>();
         static int finishCursor;
+
+        /* HubGroundBeside(); How many cells of ground the NiDL hub has either side of a landing cell (x, y), up to 2 each (`collision`: its
+         * collision map, `width` cells across; `attributes`: gCollisionAttributes, bit 0 a cell Kirby goes through): an empty cell with
+         * ground under it, as the landing's (a door on a pillar's top, (28, 11): one each side; KatAM puts every Kirby a shard brings back on
+         * the one cell, then they push each other apart, the first, the player, off the left end: NidlShardExit() gives each his own); */
+        static (byte left, byte right) HubGroundBeside(byte[] rom, byte[] collision, int width, int attributes, int x, int y) {
+            bool Empty(int cx, int cy) => (ReadInt(rom, attributes + collision[cy * width + cx] * 4) & 1) != 0;
+            bool Stands(int cx) => cx >= 0 && cx < width && (y + 1) * width + cx < collision.Length && Empty(cx, y) && !Empty(cx, y + 1);
+            byte left = 0, right = 0;
+            while (left < 2 && Stands(x - left - 1)) left++;
+            while (right < 2 && Stands(x + right + 1)) right++;
+            return (left, right);
+        }
 
         /* TransportSpot(); Where a warp star or cannon stands (NiDL's room pixels): a warp star where NiDL's does (in a cell's middle: it
          * floats, bobbing, as NiDL's); a cannon on its fuse, as KatAM's own (rooms 0x7E, 0x143, 0x1F6, 0x33B: x the right edge of the

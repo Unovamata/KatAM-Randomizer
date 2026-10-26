@@ -1722,7 +1722,10 @@ static void KrackoMain(struct Object *obj) {
     if (!f->over && obj->unk80 < f->hp) {
         // (one through all the same, or before its cloud takes hits: its HP back);
         if (f->guard || f->box != BOX_CLOUD) obj->unk80 = f->hp;
-        else Hit(f);
+        else {
+            NidlBossHitShake(obj);
+            Hit(f);
+        }
     }
     f->hp = obj->unk80;
     Turns(f);
