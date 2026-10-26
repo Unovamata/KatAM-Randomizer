@@ -2010,7 +2010,10 @@ static void NightmareMain(struct Object *obj) {
     f->t++;
     for (i = 0; i < 4; i++)
         if (f->aimWait[i]) f->aimWait[i]--;
-    if (obj->unk80 < f->hp) Hit(f);
+    if (obj->unk80 < f->hp) {
+        NidlBossHitShake(obj);
+        Hit(f);
+    }
     f->hp = obj->unk80;
     if (f->restart) {
         f->restart = FALSE;

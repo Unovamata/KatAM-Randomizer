@@ -210,8 +210,6 @@ namespace KatAMRandomizer
 
             // Randomize mirrors;
             // Veto rooms without at least one exit for the first mirror;
-            // Randomize HP values on Enemies;
-            // Randomize HP values on Bosses;
             // Fix the way behaviors and speeds are loaded when including minibosses in enemy generation;
             // Consider Mirras for mirror randomization;
 
@@ -275,6 +273,13 @@ namespace KatAMRandomizer
                 else messages.Add((roomError, "Unlock the Ability Room", MessageBoxIcon.Warning));
             }
 
+            // Starting Lives and Random Starting HP (the HP picked from the seed here, last, so the rest of the randomization stays the same);
+            if (settings.StartingLives != 2 || settings.RandomStartingHP) {
+                int startingHP = settings.RandomStartingHP ? settings.RandomEntity.Next(settings.StartingHPMin, settings.StartingHPMax + 1) : 6;
+                string kirbyError = KatAMExpansion.StartingKirby(Processing.ROMData, settings.StartingLives, startingHP);
+                if (kirbyError != null) messages.Add((kirbyError, "Starting Lives and Random Starting HP", MessageBoxIcon.Warning));
+            }
+
             progress.Report((96, "Saving the ROM..."));
             File.WriteAllBytes(destinationPath, Processing.ROMData);
 
@@ -317,6 +322,37 @@ namespace KatAMRandomizer
         // CheckboxOptionsAbilityRoom_CheckedChanged(); Central Circle's door to the ability room open from the start (KatAMExpansion.UnlockAbilityRoom);
         private void CheckboxOptionsAbilityRoom_CheckedChanged(object sender, EventArgs e) {
             settings.UnlockAbilityRoom = CheckboxOptionsAbilityRoom.Checked;
+        }
+
+        // NumericOptionsStartingLives_ValueChanged(); The lives Kirby starts with, and gets back after a game over (KatAMExpansion.StartingKirby; the game's 2);
+        private void NumericOptionsStartingLives_ValueChanged(object sender, EventArgs e) {
+            settings.StartingLives = (int)NumericOptionsStartingLives.Value;
+        }
+
+        // CheckboxOptionsRandomStartingHP_CheckedChanged(); Kirby's HP without HP Ups picked between Min HP and Max HP (KatAMExpansion.StartingKirby; the game's 6);
+        private void CheckboxOptionsRandomStartingHP_CheckedChanged(object sender, EventArgs e) {
+            settings.RandomStartingHP = CheckboxOptionsRandomStartingHP.Checked;
+            foreach (Control control in new Control[] { LabelOptionsStartingHPMin, NumericOptionsStartingHPMin, LabelOptionsStartingHPMax, NumericOptionsStartingHPMax })
+                control.Visible = settings.RandomStartingHP;
+        }
+
+        private void NumericOptionsStartingHPMin_ValueChanged(object sender, EventArgs e) {
+            settings.StartingHPMin = KeepRange(NumericOptionsStartingHPMin, NumericOptionsStartingHPMax, true);
+        }
+
+        private void NumericOptionsStartingHPMax_ValueChanged(object sender, EventArgs e) {
+            settings.StartingHPMax = KeepRange(NumericOptionsStartingHPMax, NumericOptionsStartingHPMin, false);
+        }
+
+        // KeepRange(); A Min or Max box's value, the other moved along so Min never goes over Max;
+        static int KeepRange(NumericUpDown changed, NumericUpDown other, bool isMin) {
+            if (isMin ? other.Value < changed.Value : other.Value > changed.Value) other.Value = changed.Value;
+            return (int)changed.Value;
+        }
+
+        // ShowHPRange(); An HP group's Min HP and Max HP, there only when its HP is Random;
+        static void ShowHPRange(RadioButton random, params Control[] controls) {
+            foreach (Control control in controls) control.Visible = random.Checked;
         }
 
         /* Settings files; The state of every option (radio buttons, checkboxes, track bars and numeric boxes, by name) and the seed.
@@ -735,29 +771,39 @@ namespace KatAMRandomizer
             settings.isEnemyIncludingMixInhaleAbility = CheckboxEnemyPropertiesAbilityMix.Checked;
         }
 
-        // HP;
+        // HP (KatAMHP.cs);
         private void RadioEnemyPropertiesHPUnchanged_CheckedChanged(object sender, EventArgs e) {
             settings.EnemiesHPType = GenerationOptions.Unchanged;
+            ShowEnemyHPRange();
         }
 
         private void RadioEnemyPropertiesHPShuffle_CheckedChanged(object sender, EventArgs e) {
             settings.EnemiesHPType = GenerationOptions.Shuffle;
+            ShowEnemyHPRange();
         }
 
         private void RadioEnemyPropertiesHPRandom_CheckedChanged(object sender, EventArgs e) {
             settings.EnemiesHPType = GenerationOptions.Random;
+            ShowEnemyHPRange();
         }
 
-        private void CheckboxEnemyPropertiesHPPercentage_CheckedChanged(object sender, EventArgs e) {
+        void ShowEnemyHPRange() => ShowHPRange(RadioEnemyPropertiesHPRandom, LabelEnemyPropertiesHPMin, NumericEnemyPropertiesHPMin, LabelEnemyPropertiesHPMax, NumericEnemyPropertiesHPMax);
 
+        private void CheckboxEnemyPropertiesHPPercentage_CheckedChanged(object sender, EventArgs e) {
+            settings.isEnemyHPPercentageModified = CheckboxEnemyPropertiesHPPercentage.Checked;
+            TrackbarEnemyPropertiesHPPercentage.Enabled = settings.isEnemyHPPercentageModified;
+        }
+
+        private void TrackbarEnemyPropertiesHPPercentage_Scroll(object sender, EventArgs e) {
+            settings.EnemiesHPPercentage = TrackbarEnemyPropertiesHPPercentage.Value;
         }
 
         private void NumericEnemyPropertiesHPMin_ValueChanged(object sender, EventArgs e) {
-
+            settings.EnemiesHPMin = KeepRange(NumericEnemyPropertiesHPMin, NumericEnemyPropertiesHPMax, true);
         }
 
         private void NumericEnemyPropertiesHPMax_ValueChanged(object sender, EventArgs e) {
-
+            settings.EnemiesHPMax = KeepRange(NumericEnemyPropertiesHPMax, NumericEnemyPropertiesHPMin, false);
         }
 
 
@@ -821,21 +867,78 @@ namespace KatAMRandomizer
             settings.MinibossesInhaleAbilityType = GenerationOptions.Shuffle;
         }
 
-        // HP;
+        // HP (KatAMHP.cs);
         private void RadioMinibossPropertiesHPUnchanged_CheckedChanged(object sender, EventArgs e) {
             settings.MinibossesHPType = GenerationOptions.Unchanged;
+            ShowMinibossHPRange();
         }
 
         private void RadioMinibossPropertiesHPShuffle_CheckedChanged(object sender, EventArgs e) {
             settings.MinibossesHPType = GenerationOptions.Shuffle;
+            ShowMinibossHPRange();
         }
 
         private void RadioMinibossPropertiesHPRandom_CheckedChanged(object sender, EventArgs e) {
             settings.MinibossesHPType = GenerationOptions.Random;
+            ShowMinibossHPRange();
         }
 
+        void ShowMinibossHPRange() => ShowHPRange(RadioMinibossPropertiesHPRandom, LabelMinibossPropertiesHPMin, NumericMinibossPropertiesHPMin, LabelMinibossPropertiesHPMax, NumericMinibossPropertiesHPMax);
+
         private void CheckboxMinibossPropertiesHPPercentage_CheckedChanged(object sender, EventArgs e) {
-            settings.isEnemyHPPercentageModified = CheckboxMinibossPropertiesHPPercentage.Checked;
+            settings.isMinibossHPPercentageModified = CheckboxMinibossPropertiesHPPercentage.Checked;
+            TrackbarMinibossPropertiesHPPercentage.Enabled = settings.isMinibossHPPercentageModified;
+        }
+
+        private void TrackbarMinibossPropertiesHPPercentage_Scroll(object sender, EventArgs e) {
+            settings.MinibossesHPPercentage = TrackbarMinibossPropertiesHPPercentage.Value;
+        }
+
+        private void NumericMinibossPropertiesHPMin_ValueChanged(object sender, EventArgs e) {
+            settings.MinibossesHPMin = KeepRange(NumericMinibossPropertiesHPMin, NumericMinibossPropertiesHPMax, true);
+        }
+
+        private void NumericMinibossPropertiesHPMax_ValueChanged(object sender, EventArgs e) {
+            settings.MinibossesHPMax = KeepRange(NumericMinibossPropertiesHPMax, NumericMinibossPropertiesHPMin, false);
+        }
+
+
+        //////////////////////////////////////////////////////////////////////////////////////////////
+
+
+        // Bosses: HP (KatAMHP.cs);
+        private void RadioBossPropertiesHPUnchanged_CheckedChanged(object sender, EventArgs e) {
+            settings.BossesHPType = GenerationOptions.Unchanged;
+            ShowBossHPRange();
+        }
+
+        private void RadioBossPropertiesHPShuffle_CheckedChanged(object sender, EventArgs e) {
+            settings.BossesHPType = GenerationOptions.Shuffle;
+            ShowBossHPRange();
+        }
+
+        private void RadioBossPropertiesHPRandom_CheckedChanged(object sender, EventArgs e) {
+            settings.BossesHPType = GenerationOptions.Random;
+            ShowBossHPRange();
+        }
+
+        void ShowBossHPRange() => ShowHPRange(RadioBossPropertiesHPRandom, LabelBossPropertiesHPMin, NumericBossPropertiesHPMin, LabelBossPropertiesHPMax, NumericBossPropertiesHPMax);
+
+        private void CheckboxBossPropertiesHPPercentage_CheckedChanged(object sender, EventArgs e) {
+            settings.isBossHPPercentageModified = CheckboxBossPropertiesHPPercentage.Checked;
+            TrackbarBossPropertiesHPPercentage.Enabled = settings.isBossHPPercentageModified;
+        }
+
+        private void TrackbarBossPropertiesHPPercentage_Scroll(object sender, EventArgs e) {
+            settings.BossesHPPercentage = TrackbarBossPropertiesHPPercentage.Value;
+        }
+
+        private void NumericBossPropertiesHPMin_ValueChanged(object sender, EventArgs e) {
+            settings.BossesHPMin = KeepRange(NumericBossPropertiesHPMin, NumericBossPropertiesHPMax, true);
+        }
+
+        private void NumericBossPropertiesHPMax_ValueChanged(object sender, EventArgs e) {
+            settings.BossesHPMax = KeepRange(NumericBossPropertiesHPMax, NumericBossPropertiesHPMin, false);
         }
 
 

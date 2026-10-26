@@ -2905,7 +2905,10 @@ static void ShineBrightMain(struct Object *obj) {
     if (f == NULL) return;
     obj->base.xspeed = obj->base.yspeed = 0;
     f->hit = FALSE;
-    if (!f->over && obj->unk80 < f->hp) Hit(f);
+    if (!f->over && obj->unk80 < f->hp) {
+        NidlBossHitShake(obj);
+        Hit(f);
+    }
     // (a killing blow: the room held still from this frame on, as NiDL's from the end of its hit's frame);
     if (f->freeze) {
         Ground(f);

@@ -19,21 +19,33 @@
  * counts its hits itself, a Star Rod star each (bosses/power_orb.c); */
 #define NIDL_BOSS_HP { 60, 80, 100, 110 }
 
+const s16 gNidlBossHp[NIDL_BOSS_COUNT][4] = {
+    [NIDL_WHISPY_WOODS] = NIDL_BOSS_HP,
+    [NIDL_KRACKO] = NIDL_BOSS_HP,
+    [NIDL_SHINE_BRIGHT] = NIDL_BOSS_HP,
+    [NIDL_META_KNIGHT] = NIDL_BOSS_HP,
+    [NIDL_PAINT_ROLLER] = NIDL_BOSS_HP,
+    [NIDL_HEAVY_MOLE] = NIDL_BOSS_HP,
+    [NIDL_KING_DEDEDE] = NIDL_BOSS_HP,
+    [NIDL_POWER_ORB] = NIDL_BOSS_HP,
+    [NIDL_NIGHTMARE] = NIDL_BOSS_HP,
+};
+
 static const struct NidlBoss sNidlBosses[NIDL_BOSS_COUNT] = {
-    [NIDL_WHISPY_WOODS] = { WhispyWoodsInit, WhispyWoodsStart, NIDL_BOSS_HP },
-    [NIDL_KRACKO] = { KrackoInit, KrackoStart, NIDL_BOSS_HP },
-    [NIDL_SHINE_BRIGHT] = { ShineBrightInit, ShineBrightStart, NIDL_BOSS_HP },
-    [NIDL_META_KNIGHT] = { MetaKnightInit, MetaKnightStart, NIDL_BOSS_HP },
-    [NIDL_PAINT_ROLLER] = { PaintRollerInit, PaintRollerStart, NIDL_BOSS_HP },
-    [NIDL_HEAVY_MOLE] = { HeavyMoleInit, HeavyMoleStart, NIDL_BOSS_HP },
-    [NIDL_KING_DEDEDE] = { KingDededeInit, KingDededeStart, NIDL_BOSS_HP },
-    [NIDL_POWER_ORB] = { PowerOrbInit, PowerOrbStart, NIDL_BOSS_HP },
-    [NIDL_NIGHTMARE] = { NightmareInit, NightmareStart, NIDL_BOSS_HP },
+    [NIDL_WHISPY_WOODS] = { WhispyWoodsInit, WhispyWoodsStart },
+    [NIDL_KRACKO] = { KrackoInit, KrackoStart },
+    [NIDL_SHINE_BRIGHT] = { ShineBrightInit, ShineBrightStart },
+    [NIDL_META_KNIGHT] = { MetaKnightInit, MetaKnightStart },
+    [NIDL_PAINT_ROLLER] = { PaintRollerInit, PaintRollerStart },
+    [NIDL_HEAVY_MOLE] = { HeavyMoleInit, HeavyMoleStart },
+    [NIDL_KING_DEDEDE] = { KingDededeInit, KingDededeStart },
+    [NIDL_POWER_ORB] = { PowerOrbInit, PowerOrbStart },
+    [NIDL_NIGHTMARE] = { NightmareInit, NightmareStart },
 };
 
 // NidlBossHp(); A boss's HP at the start, for the number of players;
 s16 NidlBossHp(u8 boss) {
-    return sNidlBosses[boss].hp[gNumHumanPlayers - 1];
+    return gNidlBossHp[boss][gNumHumanPlayers - 1];
 }
 
 void sub_0809F974(struct Object *);
@@ -206,6 +218,15 @@ void NidlShake(u16 level, struct ObjectBase *obj) {
     if (level > 7) return;
     if (!level) sub_080700D8(obj);
     else RequestScreenShake(level >= 5 ? 4 : level == 4 ? 3 : level, obj);
+}
+
+/* NidlBossHitShake(); A hit on a ported boss that it lives through shakes the screen a little, as one on KatAM's own bosses does
+ * (sub_0809AF38's RequestScreenShake(3): 24 frames, a pixel or three each way; the owner's: the small vibration on a boss hit,
+ * missing). KatAM's own hit gives it when it can (asked again, the shake starts over: the same); it gives none to an object with
+ * unkC 0x800 (Mr. Shine and Mr. Bright) or to an attack with unk68 0x800000. Not the Power Orb's: its hits shake its foreground,
+ * not the screen (bosses/power_orb.c, the owner's); */
+void NidlBossHitShake(struct Object *obj) {
+    if (obj->unk80 > 0) RequestScreenShake(3, &obj->base);
 }
 
 /* NidlExitTomato(); A rematch's Maxim Tomato (NidlBossDefeat()) gone, from template slot `slot` (rooms.c's BigSub_08001678: its

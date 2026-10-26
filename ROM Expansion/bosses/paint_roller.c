@@ -1568,7 +1568,10 @@ static void PaintRollerMain(struct Object *obj) {
         // (one through all the same: its HP back; one that takes half again its HP out: KatAM's defeat, nidl_boss.c);
         if (f->guard) obj->unk80 = f->hp;
         else if (NidlBossHitMore(obj, f->hp, HIT_HALVES)) return;
-        else Hit(f);
+        else {
+            NidlBossHitShake(obj);
+            Hit(f);
+        }
     }
     f->hp = obj->unk80;
     if (f->guard) obj->base.flags |= 0x8000;

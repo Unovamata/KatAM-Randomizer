@@ -2,6 +2,7 @@
  * (see nidl.h); */
 #include "nidl.h"
 #include "constants/kirby.h"
+#include "constants/object_types.h"
 #include "abilities.h"
 #include "code_0806F780.h"
 
@@ -10,28 +11,52 @@ extern struct Task *gUnk_03000010;       // The HUD's task (its data: +0x0A the 
 
 /* HP as KatAM's enemies': 4 for the ones that give an ability (KatAM's Sword Knight, Hot Head, Sparky...), 2 for the others
  * (NiDL's 1 and 2 die to any attack); */
+const s16 gNidlEnemyHp[NIDL_ENEMY_COUNT + 1] = {
+    [NIDL_BROOM_HATTER] = 2,
+    [NIDL_CAPPY] = 2,
+    [NIDL_TWIZZY] = 2,
+    [NIDL_BUBBLES] = 4,
+    [NIDL_SLIPPY] = 2,
+    [NIDL_KABU] = 2,
+    [NIDL_COCONUT] = 2,
+    [NIDL_CONER] = 2,
+    [NIDL_STARMAN] = 4,
+    [NIDL_NEEDLOUS] = 4,
+    [NIDL_BLADE_KNIGHT] = 4,
+    [NIDL_CHILLY] = 4,
+    [NIDL_COOL_SPOOK] = 4,
+    [NIDL_POPPY_BROS_JR] = 2,
+    [NIDL_GIP] = 2,
+    [NIDL_APPLE] = 1,
+    [NIDL_STAR] = 1,
+    [NIDL_SPIT_STAR] = 1,
+    [NIDL_PAINTING] = 1,
+    [NIDL_PAINTING_2] = 1,
+    [NIDL_ARENA] = 1,
+};
+
 static const struct NidlEnemy sNidlEnemies[NIDL_ENEMY_COUNT + 1] = {
-    [NIDL_BROOM_HATTER] = { BroomHatterInit, BroomHatterStart, 2, 0 },
-    [NIDL_CAPPY] = { CappyInit, CappyStart, 2, 0 },
-    [NIDL_TWIZZY] = { TwizzyInit, TwizzyStart, 2, 0 },
-    [NIDL_BUBBLES] = { BubblesInit, BubblesStart, 4, NIDL_ABILITY_BALL },
-    [NIDL_SLIPPY] = { SlippyInit, SlippyStart, 2, 0 },
-    [NIDL_KABU] = { KabuInit, KabuStart, 2, 0 },
-    [NIDL_COCONUT] = { CoconutInit, CoconutStart, 2, 0 },
-    [NIDL_CONER] = { ConerInit, ConerStart, 2, 0 },
-    [NIDL_STARMAN] = { StarmanInit, StarmanStart, 4, NIDL_ABILITY_HI_JUMP },
-    [NIDL_NEEDLOUS] = { NeedlousInit, NeedlousStart, 4, NIDL_ABILITY_NEEDLE },
-    [NIDL_BLADE_KNIGHT] = { BladeKnightInit, BladeKnightStart, 4, KIRBY_ABILITY_SWORD },
-    [NIDL_CHILLY] = { ChillyInit, ChillyStart, 4, NIDL_ABILITY_FREEZE },
-    [NIDL_COOL_SPOOK] = { CoolSpookInit, CoolSpookStart, 4, NIDL_ABILITY_LIGHT },
-    [NIDL_POPPY_BROS_JR] = { PoppyBrosJrInit, PoppyBrosJrStart, 2, 0 },
-    [NIDL_GIP] = { GipInit, GipStart, 2, 0 },
-    [NIDL_APPLE] = { AppleInit, AppleStart, 1, 0 },
-    [NIDL_STAR] = { StarInit, StarStart, 1, 0 },
-    [NIDL_SPIT_STAR] = { SpitStarInit, SpitStarStart, 1, 0 },
-    [NIDL_PAINTING] = { PaintingInit, PaintingStart, 1, 0 },
-    [NIDL_PAINTING_2] = { PaintingInit, PaintingStart, 1, 0 },
-    [NIDL_ARENA] = { ArenaInit, ArenaStart, 1, 0 },
+    [NIDL_BROOM_HATTER] = { BroomHatterInit, BroomHatterStart, 0 },
+    [NIDL_CAPPY] = { CappyInit, CappyStart, 0 },
+    [NIDL_TWIZZY] = { TwizzyInit, TwizzyStart, 0 },
+    [NIDL_BUBBLES] = { BubblesInit, BubblesStart, NIDL_ABILITY_BALL },
+    [NIDL_SLIPPY] = { SlippyInit, SlippyStart, 0 },
+    [NIDL_KABU] = { KabuInit, KabuStart, 0 },
+    [NIDL_COCONUT] = { CoconutInit, CoconutStart, 0 },
+    [NIDL_CONER] = { ConerInit, ConerStart, 0 },
+    [NIDL_STARMAN] = { StarmanInit, StarmanStart, NIDL_ABILITY_HI_JUMP },
+    [NIDL_NEEDLOUS] = { NeedlousInit, NeedlousStart, NIDL_ABILITY_NEEDLE },
+    [NIDL_BLADE_KNIGHT] = { BladeKnightInit, BladeKnightStart, KIRBY_ABILITY_SWORD },
+    [NIDL_CHILLY] = { ChillyInit, ChillyStart, NIDL_ABILITY_FREEZE },
+    [NIDL_COOL_SPOOK] = { CoolSpookInit, CoolSpookStart, NIDL_ABILITY_LIGHT },
+    [NIDL_POPPY_BROS_JR] = { PoppyBrosJrInit, PoppyBrosJrStart, 0 },
+    [NIDL_GIP] = { GipInit, GipStart, 0 },
+    [NIDL_APPLE] = { AppleInit, AppleStart, 0 },
+    [NIDL_STAR] = { StarInit, StarStart, 0 },
+    [NIDL_SPIT_STAR] = { SpitStarInit, SpitStarStart, 0 },
+    [NIDL_PAINTING] = { PaintingInit, PaintingStart, 0 },
+    [NIDL_PAINTING_2] = { PaintingInit, PaintingStart, 0 },
+    [NIDL_ARENA] = { ArenaInit, ArenaStart, 0 },
 };
 
 // NidlSetFrame(); Shows one of the enemy's frames (its own numbering);
@@ -176,7 +201,7 @@ void *CreateNidlEnemy(struct ObjectTemplate *template, u8 playerId) {
     n->sequence = NULL;
     n->activated = FALSE;
     n->hurt = 0;
-    n->obj.unk80 = sNidlEnemies[enemy].hp;
+    n->obj.unk80 = gNidlEnemyHp[enemy];
     sNidlEnemies[enemy].init(n);
     NidlSetFrame(n, 0);
     ObjectInitSprite(&n->obj);
@@ -213,6 +238,38 @@ void NidlCopyName(struct Object *obj) {
     else
         name = gUnk_08D60EE4[gLanguage] + obj->type * 0x100;
     CpuSet(name, (void *)0x060077A0, 0x80);
+}
+
+// NidlMaxHp(); A ported object's HP at the start (its table's: the randomizer's HP options may have changed it);
+s16 NidlMaxHp(struct Object *obj) {
+    struct NidlObject *n = (struct NidlObject *)obj;
+
+    if (NidlIsBoss(obj)) return NidlBossHp(n->enemy);
+    return NidlIsMiniboss(obj) ? gNidlMinibossHp[n->enemy] : gNidlEnemyHp[n->enemy];
+}
+
+/* NidlHpBarFill(); The HP bar's fill for the object it shows, 0x4000 full (worked out as an object takes the bar, 0x08034E14, and
+ * every frame after, 0x0803533C: both patched to call this at 0x08034EF8 and 0x08035354, KatAMExpansion.cs): HP times 0x4000 / its
+ * HP at the start. KatAM's own objects keep the game's tables of that factor (the regular enemies' gUnk_083513E8; those of types
+ * 0x38-0x52, by the number of players, gUnk_08351458 and Dark Mind's first form's gUnk_08351628, by its part), the ported ones get
+ * theirs from their own HP, as the types they share hold no one HP; */
+extern const u16 gUnk_083513E8[];
+extern const u16 gUnk_08351458[][4];
+extern const u16 gUnk_08351628[][4];
+
+u16 NidlHpBarFill(struct Object *obj) {
+    u8 players = gNumHumanPlayers - 1;
+    s32 max;
+
+    if (obj->type == NIDL_TYPE || NidlIsMiniboss(obj) || NidlIsBoss(obj)) {
+        max = NidlMaxHp(obj);
+        return max > 0 ? obj->unk80 * (0x4000 / max) : 0;
+    }
+    if ((u8)(obj->type - 0x38) <= 0x1A) {
+        if (obj->type == OBJ_DARK_MIND_FORM_1) return obj->unk80 * gUnk_08351628[obj->subtype][players];
+        return obj->unk80 * gUnk_08351458[obj->type - 0x38][players];
+    }
+    return obj->unk80 * gUnk_083513E8[obj->type];
 }
 
 /* NidlInhaled(); A mini-boss's projectile (an attack object: KatAM inhales only objects) inhaled as KatAM's enemies are (object.c's

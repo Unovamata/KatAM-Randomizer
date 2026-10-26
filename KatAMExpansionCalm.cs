@@ -80,6 +80,30 @@
             return $"The {version.Name} ROM's hub mirror code doesn't match.";
         });
 
+        /* StartingKirby(); The "Starting Lives" and "Random Starting HP" options, in KatAM's own code (no ROM Expansion needed): a new
+         * game's Kirby gets `kirby->lives = 2` and `maxHp = NumVitalitiesCollected() + 6` (sub_0803EA90), a game over gives the 2 lives
+         * back (sub_0804FBFC twice, sub_080506A8) and an HP Up's chest works the HP out again (sub_0800B97C, with helpers and without):
+         * each `movs r0, #2` takes `lives`, each `adds r0, #6` takes `hp` (the HUD shows 2 digits of lives; its HP bar fits about 34,
+         * so the form keeps HP to 20, HP Ups on top). Returns an error, or null; */
+        static readonly (string function, int offset, int next)[] LivesSites = {
+            ("sub_0803EA90", 0x96, 0x7010), ("sub_0804FBFC", 0x3E0, 0x7008), ("sub_0804FBFC", 0x5A8, 0x7008), ("sub_080506A8", 0x14A, 0x7018) };
+        static readonly (string function, int offset, int next)[] HPSites = {
+            ("sub_0803EA90", 0x82, 0x4A34), ("sub_0800B97C", 0x176, 0x4A22), ("sub_0800B97C", 0x21E, 0x4A24) };
+        public static string StartingKirby(byte[] rom, int lives, int hp) {
+            KatAMExpansionCode.Version version = VersionOf(rom);
+
+            if (version == null) return "Starting Lives and Random Starting HP support the USA, European and Japanese (revision 1) versions of Kirby & the Amazing Mirror.";
+            // (movs r0, #n and adds r0, #n: their immediate in the low byte);
+            foreach (var (sites, opcode) in new[] { (LivesSites, 0x2000), (HPSites, 0x3000) })
+                foreach (var (function, offset, next) in sites) {
+                    int at = version.RomSymbols[function] + offset;
+                    if ((ReadShort(rom, at) & 0xFF00) != opcode || ReadShort(rom, at + 2) != next) return $"The {version.Name} ROM's Kirby code doesn't match.";
+                }
+            foreach (var (function, offset, _) in LivesSites) rom[version.RomSymbols[function] + offset] = (byte)lives;
+            foreach (var (function, offset, _) in HPSites) rom[version.RomSymbols[function] + offset] = (byte)hp;
+            return null;
+        }
+
         /* PatchWithCode(); Runs `patch` on a copy of the ROM holding the expansion's code, which it puts in when the ROM Expansion
          * didn't (its free space still empty; the ROM padded to 32 MB, as the expansion's). `rom` becomes the copy unless there's an
          * error (returned, or null); `option` names what needs it in errors; */
@@ -98,6 +122,16 @@
             string error = patch(patched, version);
             if (error == null) rom = patched;
             return error;
+        }
+
+        // CodeSymbolOf(); Where one of the ROM Expansion code's symbols is in the ROM, or -1 when its code isn't in it (KatAMHP.cs: its HP tables);
+        public static int CodeSymbolOf(byte[] rom, string name) {
+            KatAMExpansionCode.Version version = VersionOf(rom);
+
+            if (version == null || rom.Length < ExpandedSize || !version.CodeSymbols.TryGetValue(name, out int offset)) return -1;
+            for (int i = CodeAddress; i < CodeAddress + version.Code.Length; i++)
+                if (rom[i] != 0xFF) return CodeAddress + offset;
+            return -1;
         }
     }
 }

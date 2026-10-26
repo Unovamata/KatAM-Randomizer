@@ -1651,7 +1651,10 @@ static void MetaKnightMain(struct Object *obj) {
     if (f == NULL) return;
     obj->base.xspeed = obj->base.yspeed = 0;
     f->flash = FALSE;
-    if (obj->unk80 < f->hp) Hit(f);
+    if (obj->unk80 < f->hp) {
+        NidlBossHitShake(obj);
+        Hit(f);
+    }
     f->hp = obj->unk80;
     if (f->hurt) {
         Hurt(f);

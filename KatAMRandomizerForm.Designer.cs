@@ -41,6 +41,13 @@
             CheckboxOptionsSkipTutorial = new CheckBox();
             CheckboxOptionsMasterSword = new CheckBox();
             CheckboxOptionsAbilityRoom = new CheckBox();
+            LabelOptionsStartingLives = new Label();
+            NumericOptionsStartingLives = new NumericUpDown();
+            CheckboxOptionsRandomStartingHP = new CheckBox();
+            LabelOptionsStartingHPMin = new Label();
+            NumericOptionsStartingHPMin = new NumericUpDown();
+            LabelOptionsStartingHPMax = new Label();
+            NumericOptionsStartingHPMax = new NumericUpDown();
             CheckboxMirrorShardsInChests = new CheckBox();
             CheckboxBossShardsRandom = new CheckBox();
             TrackBarChestShardsAmount = new TrackBar();
@@ -112,9 +119,9 @@
             tabPage3 = new TabPage();
             GroupEnemiesProperties = new GroupBox();
             GroupEnemiesPropertiesHP = new GroupBox();
-            label17 = new Label();
+            LabelEnemyPropertiesHPMax = new Label();
             NumericEnemyPropertiesHPMax = new NumericUpDown();
-            label16 = new Label();
+            LabelEnemyPropertiesHPMin = new Label();
             NumericEnemyPropertiesHPMin = new NumericUpDown();
             label6 = new Label();
             label7 = new Label();
@@ -147,16 +154,16 @@
             tabPage4 = new TabPage();
             groupBox1 = new GroupBox();
             groupBox4 = new GroupBox();
-            label18 = new Label();
-            numericUpDown1 = new NumericUpDown();
-            label19 = new Label();
-            numericUpDown2 = new NumericUpDown();
+            LabelMinibossPropertiesHPMax = new Label();
+            NumericMinibossPropertiesHPMax = new NumericUpDown();
+            LabelMinibossPropertiesHPMin = new Label();
+            NumericMinibossPropertiesHPMin = new NumericUpDown();
             label11 = new Label();
             label12 = new Label();
             label13 = new Label();
             label14 = new Label();
             label15 = new Label();
-            trackBar2 = new TrackBar();
+            TrackbarMinibossPropertiesHPPercentage = new TrackBar();
             CheckboxMinibossPropertiesHPPercentage = new CheckBox();
             RadioMinibossPropertiesHPRandom = new RadioButton();
             RadioMinibossPropertiesHPShuffle = new RadioButton();
@@ -200,6 +207,22 @@
             RadioAbilityPedestalsRandom = new RadioButton();
             RadioAbilityPedestalShuffle = new RadioButton();
             RadioAbilityPedestalsUnchanged = new RadioButton();
+            TabBosses = new TabPage();
+            GroupBossesPropertiesHP = new GroupBox();
+            LabelBossPropertiesHPMax = new Label();
+            NumericBossPropertiesHPMax = new NumericUpDown();
+            LabelBossPropertiesHPMin = new Label();
+            NumericBossPropertiesHPMin = new NumericUpDown();
+            LabelBossPropertiesHPPlus50 = new Label();
+            LabelBossPropertiesHPMinus50 = new Label();
+            LabelBossPropertiesHPPlus25 = new Label();
+            LabelBossPropertiesHPMinus25 = new Label();
+            LabelBossPropertiesHPZero = new Label();
+            TrackbarBossPropertiesHPPercentage = new TrackBar();
+            CheckboxBossPropertiesHPPercentage = new CheckBox();
+            RadioBossPropertiesHPRandom = new RadioButton();
+            RadioBossPropertiesHPShuffle = new RadioButton();
+            RadioBossPropertiesHPUnchanged = new RadioButton();
             TabMiscellaneous = new TabPage();
             GroupMiscGame = new GroupBox();
             TabExpansion = new TabPage();
@@ -263,18 +286,26 @@
             tabPage4.SuspendLayout();
             groupBox1.SuspendLayout();
             groupBox4.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)numericUpDown1).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)numericUpDown2).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)trackBar2).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)NumericMinibossPropertiesHPMax).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)NumericMinibossPropertiesHPMin).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)TrackbarMinibossPropertiesHPPercentage).BeginInit();
             groupBox5.SuspendLayout();
             groupBox6.SuspendLayout();
             GroupMinibosses.SuspendLayout();
+            TabBosses.SuspendLayout();
+            GroupBossesPropertiesHP.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)NumericBossPropertiesHPMax).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)NumericBossPropertiesHPMin).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)TrackbarBossPropertiesHPPercentage).BeginInit();
             tabPage5.SuspendLayout();
             groupBox3.SuspendLayout();
             GroupEnemiesPropertiesInhaleAbility.SuspendLayout();
             GroupAbilityPedestals.SuspendLayout();
             TabMiscellaneous.SuspendLayout();
             GroupMiscGame.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)NumericOptionsStartingLives).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)NumericOptionsStartingHPMin).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)NumericOptionsStartingHPMax).BeginInit();
             TabExpansion.SuspendLayout();
             GroupExpansionNightmare.SuspendLayout();
             GroupMapElements.SuspendLayout();
@@ -554,6 +585,7 @@
             tabControl1.Controls.Add(tabPage2);
             tabControl1.Controls.Add(tabPage3);
             tabControl1.Controls.Add(tabPage4);
+            tabControl1.Controls.Add(TabBosses);
             tabControl1.Controls.Add(tabPage5);
             tabControl1.Controls.Add(TabMiscellaneous);
             tabControl1.Controls.Add(TabExpansion);
@@ -1420,9 +1452,9 @@
             // 
             // GroupEnemiesPropertiesHP
             // 
-            GroupEnemiesPropertiesHP.Controls.Add(label17);
+            GroupEnemiesPropertiesHP.Controls.Add(LabelEnemyPropertiesHPMax);
             GroupEnemiesPropertiesHP.Controls.Add(NumericEnemyPropertiesHPMax);
-            GroupEnemiesPropertiesHP.Controls.Add(label16);
+            GroupEnemiesPropertiesHP.Controls.Add(LabelEnemyPropertiesHPMin);
             GroupEnemiesPropertiesHP.Controls.Add(NumericEnemyPropertiesHPMin);
             GroupEnemiesPropertiesHP.Controls.Add(label6);
             GroupEnemiesPropertiesHP.Controls.Add(label7);
@@ -1443,49 +1475,55 @@
             GroupEnemiesPropertiesHP.TabStop = false;
             GroupEnemiesPropertiesHP.Text = "HP";
             // 
-            // label17
+            // LabelEnemyPropertiesHPMax
             // 
-            label17.AutoSize = true;
-            label17.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            label17.Location = new Point(179, 165);
-            label17.Margin = new Padding(4, 0, 4, 0);
-            label17.Name = "label17";
-            label17.Size = new Size(77, 25);
-            label17.TabIndex = 16;
-            label17.Text = "Max HP:";
-            label17.Visible = false;
+            LabelEnemyPropertiesHPMax.AutoSize = true;
+            LabelEnemyPropertiesHPMax.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            LabelEnemyPropertiesHPMax.Location = new Point(179, 165);
+            LabelEnemyPropertiesHPMax.Margin = new Padding(4, 0, 4, 0);
+            LabelEnemyPropertiesHPMax.Name = "LabelEnemyPropertiesHPMax";
+            LabelEnemyPropertiesHPMax.Size = new Size(77, 25);
+            LabelEnemyPropertiesHPMax.TabIndex = 16;
+            LabelEnemyPropertiesHPMax.Text = "Max HP:";
+            LabelEnemyPropertiesHPMax.Visible = false;
             // 
             // NumericEnemyPropertiesHPMax
             // 
             NumericEnemyPropertiesHPMax.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
             NumericEnemyPropertiesHPMax.Location = new Point(261, 162);
             NumericEnemyPropertiesHPMax.Margin = new Padding(4, 5, 4, 5);
+            NumericEnemyPropertiesHPMax.Maximum = new decimal(new int[] { 99, 0, 0, 0 });
+            NumericEnemyPropertiesHPMax.Minimum = new decimal(new int[] { 1, 0, 0, 0 });
             NumericEnemyPropertiesHPMax.Name = "NumericEnemyPropertiesHPMax";
             NumericEnemyPropertiesHPMax.Size = new Size(67, 31);
             NumericEnemyPropertiesHPMax.TabIndex = 15;
+            NumericEnemyPropertiesHPMax.Value = new decimal(new int[] { 10, 0, 0, 0 });
             NumericEnemyPropertiesHPMax.Visible = false;
             NumericEnemyPropertiesHPMax.ValueChanged += NumericEnemyPropertiesHPMax_ValueChanged;
             // 
-            // label16
+            // LabelEnemyPropertiesHPMin
             // 
-            label16.AutoSize = true;
-            label16.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            label16.Location = new Point(11, 165);
-            label16.Margin = new Padding(4, 0, 4, 0);
-            label16.Name = "label16";
-            label16.Size = new Size(74, 25);
-            label16.TabIndex = 14;
-            label16.Text = "Min HP:";
-            label16.Visible = false;
+            LabelEnemyPropertiesHPMin.AutoSize = true;
+            LabelEnemyPropertiesHPMin.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            LabelEnemyPropertiesHPMin.Location = new Point(11, 165);
+            LabelEnemyPropertiesHPMin.Margin = new Padding(4, 0, 4, 0);
+            LabelEnemyPropertiesHPMin.Name = "LabelEnemyPropertiesHPMin";
+            LabelEnemyPropertiesHPMin.Size = new Size(74, 25);
+            LabelEnemyPropertiesHPMin.TabIndex = 14;
+            LabelEnemyPropertiesHPMin.Text = "Min HP:";
+            LabelEnemyPropertiesHPMin.Visible = false;
             // 
             // NumericEnemyPropertiesHPMin
             // 
             NumericEnemyPropertiesHPMin.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
             NumericEnemyPropertiesHPMin.Location = new Point(91, 162);
             NumericEnemyPropertiesHPMin.Margin = new Padding(4, 5, 4, 5);
+            NumericEnemyPropertiesHPMin.Maximum = new decimal(new int[] { 99, 0, 0, 0 });
+            NumericEnemyPropertiesHPMin.Minimum = new decimal(new int[] { 1, 0, 0, 0 });
             NumericEnemyPropertiesHPMin.Name = "NumericEnemyPropertiesHPMin";
             NumericEnemyPropertiesHPMin.Size = new Size(67, 31);
             NumericEnemyPropertiesHPMin.TabIndex = 13;
+            NumericEnemyPropertiesHPMin.Value = new decimal(new int[] { 1, 0, 0, 0 });
             NumericEnemyPropertiesHPMin.Visible = false;
             NumericEnemyPropertiesHPMin.ValueChanged += NumericEnemyPropertiesHPMin_ValueChanged;
             // 
@@ -1557,6 +1595,7 @@
             // TrackbarEnemyPropertiesHPPercentage
             // 
             TrackbarEnemyPropertiesHPPercentage.BackColor = SystemColors.ButtonHighlight;
+            TrackbarEnemyPropertiesHPPercentage.Enabled = false;
             TrackbarEnemyPropertiesHPPercentage.Location = new Point(11, 363);
             TrackbarEnemyPropertiesHPPercentage.Margin = new Padding(4, 5, 4, 5);
             TrackbarEnemyPropertiesHPPercentage.Maximum = 50;
@@ -1565,6 +1604,7 @@
             TrackbarEnemyPropertiesHPPercentage.RightToLeft = RightToLeft.No;
             TrackbarEnemyPropertiesHPPercentage.Size = new Size(321, 69);
             TrackbarEnemyPropertiesHPPercentage.TabIndex = 7;
+            TrackbarEnemyPropertiesHPPercentage.Scroll += TrackbarEnemyPropertiesHPPercentage_Scroll;
             // 
             // CheckboxEnemyPropertiesHPPercentage
             // 
@@ -1905,16 +1945,16 @@
             // 
             // groupBox4
             // 
-            groupBox4.Controls.Add(label18);
-            groupBox4.Controls.Add(numericUpDown1);
-            groupBox4.Controls.Add(label19);
-            groupBox4.Controls.Add(numericUpDown2);
+            groupBox4.Controls.Add(LabelMinibossPropertiesHPMax);
+            groupBox4.Controls.Add(NumericMinibossPropertiesHPMax);
+            groupBox4.Controls.Add(LabelMinibossPropertiesHPMin);
+            groupBox4.Controls.Add(NumericMinibossPropertiesHPMin);
             groupBox4.Controls.Add(label11);
             groupBox4.Controls.Add(label12);
             groupBox4.Controls.Add(label13);
             groupBox4.Controls.Add(label14);
             groupBox4.Controls.Add(label15);
-            groupBox4.Controls.Add(trackBar2);
+            groupBox4.Controls.Add(TrackbarMinibossPropertiesHPPercentage);
             groupBox4.Controls.Add(CheckboxMinibossPropertiesHPPercentage);
             groupBox4.Controls.Add(RadioMinibossPropertiesHPRandom);
             groupBox4.Controls.Add(RadioMinibossPropertiesHPShuffle);
@@ -1928,49 +1968,57 @@
             groupBox4.TabStop = false;
             groupBox4.Text = "HP";
             // 
-            // label18
+            // LabelMinibossPropertiesHPMax
             // 
-            label18.AutoSize = true;
-            label18.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            label18.Location = new Point(179, 165);
-            label18.Margin = new Padding(4, 0, 4, 0);
-            label18.Name = "label18";
-            label18.Size = new Size(77, 25);
-            label18.TabIndex = 20;
-            label18.Text = "Max HP:";
-            label18.Visible = false;
+            LabelMinibossPropertiesHPMax.AutoSize = true;
+            LabelMinibossPropertiesHPMax.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            LabelMinibossPropertiesHPMax.Location = new Point(179, 165);
+            LabelMinibossPropertiesHPMax.Margin = new Padding(4, 0, 4, 0);
+            LabelMinibossPropertiesHPMax.Name = "LabelMinibossPropertiesHPMax";
+            LabelMinibossPropertiesHPMax.Size = new Size(77, 25);
+            LabelMinibossPropertiesHPMax.TabIndex = 20;
+            LabelMinibossPropertiesHPMax.Text = "Max HP:";
+            LabelMinibossPropertiesHPMax.Visible = false;
             // 
-            // numericUpDown1
+            // NumericMinibossPropertiesHPMax
             // 
-            numericUpDown1.Font = new Font("Segoe UI", 9F);
-            numericUpDown1.Location = new Point(261, 162);
-            numericUpDown1.Margin = new Padding(4, 5, 4, 5);
-            numericUpDown1.Name = "numericUpDown1";
-            numericUpDown1.Size = new Size(67, 31);
-            numericUpDown1.TabIndex = 19;
-            numericUpDown1.Visible = false;
+            NumericMinibossPropertiesHPMax.Font = new Font("Segoe UI", 9F);
+            NumericMinibossPropertiesHPMax.Location = new Point(261, 162);
+            NumericMinibossPropertiesHPMax.Margin = new Padding(4, 5, 4, 5);
+            NumericMinibossPropertiesHPMax.Maximum = new decimal(new int[] { 999, 0, 0, 0 });
+            NumericMinibossPropertiesHPMax.Minimum = new decimal(new int[] { 1, 0, 0, 0 });
+            NumericMinibossPropertiesHPMax.Name = "NumericMinibossPropertiesHPMax";
+            NumericMinibossPropertiesHPMax.Size = new Size(67, 31);
+            NumericMinibossPropertiesHPMax.TabIndex = 19;
+            NumericMinibossPropertiesHPMax.Value = new decimal(new int[] { 60, 0, 0, 0 });
+            NumericMinibossPropertiesHPMax.Visible = false;
+            NumericMinibossPropertiesHPMax.ValueChanged += NumericMinibossPropertiesHPMax_ValueChanged;
             // 
-            // label19
+            // LabelMinibossPropertiesHPMin
             // 
-            label19.AutoSize = true;
-            label19.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            label19.Location = new Point(11, 165);
-            label19.Margin = new Padding(4, 0, 4, 0);
-            label19.Name = "label19";
-            label19.Size = new Size(74, 25);
-            label19.TabIndex = 18;
-            label19.Text = "Min HP:";
-            label19.Visible = false;
+            LabelMinibossPropertiesHPMin.AutoSize = true;
+            LabelMinibossPropertiesHPMin.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            LabelMinibossPropertiesHPMin.Location = new Point(11, 165);
+            LabelMinibossPropertiesHPMin.Margin = new Padding(4, 0, 4, 0);
+            LabelMinibossPropertiesHPMin.Name = "LabelMinibossPropertiesHPMin";
+            LabelMinibossPropertiesHPMin.Size = new Size(74, 25);
+            LabelMinibossPropertiesHPMin.TabIndex = 18;
+            LabelMinibossPropertiesHPMin.Text = "Min HP:";
+            LabelMinibossPropertiesHPMin.Visible = false;
             // 
-            // numericUpDown2
+            // NumericMinibossPropertiesHPMin
             // 
-            numericUpDown2.Font = new Font("Segoe UI", 9F);
-            numericUpDown2.Location = new Point(91, 162);
-            numericUpDown2.Margin = new Padding(4, 5, 4, 5);
-            numericUpDown2.Name = "numericUpDown2";
-            numericUpDown2.Size = new Size(67, 31);
-            numericUpDown2.TabIndex = 17;
-            numericUpDown2.Visible = false;
+            NumericMinibossPropertiesHPMin.Font = new Font("Segoe UI", 9F);
+            NumericMinibossPropertiesHPMin.Location = new Point(91, 162);
+            NumericMinibossPropertiesHPMin.Margin = new Padding(4, 5, 4, 5);
+            NumericMinibossPropertiesHPMin.Maximum = new decimal(new int[] { 999, 0, 0, 0 });
+            NumericMinibossPropertiesHPMin.Minimum = new decimal(new int[] { 1, 0, 0, 0 });
+            NumericMinibossPropertiesHPMin.Name = "NumericMinibossPropertiesHPMin";
+            NumericMinibossPropertiesHPMin.Size = new Size(67, 31);
+            NumericMinibossPropertiesHPMin.TabIndex = 17;
+            NumericMinibossPropertiesHPMin.Value = new decimal(new int[] { 20, 0, 0, 0 });
+            NumericMinibossPropertiesHPMin.Visible = false;
+            NumericMinibossPropertiesHPMin.ValueChanged += NumericMinibossPropertiesHPMin_ValueChanged;
             // 
             // label11
             // 
@@ -2037,17 +2085,19 @@
             label15.TabIndex = 10;
             label15.Text = "0";
             // 
-            // trackBar2
+            // TrackbarMinibossPropertiesHPPercentage
             // 
-            trackBar2.BackColor = SystemColors.ButtonHighlight;
-            trackBar2.Location = new Point(11, 363);
-            trackBar2.Margin = new Padding(4, 5, 4, 5);
-            trackBar2.Maximum = 50;
-            trackBar2.Minimum = -50;
-            trackBar2.Name = "trackBar2";
-            trackBar2.RightToLeft = RightToLeft.No;
-            trackBar2.Size = new Size(321, 69);
-            trackBar2.TabIndex = 7;
+            TrackbarMinibossPropertiesHPPercentage.BackColor = SystemColors.ButtonHighlight;
+            TrackbarMinibossPropertiesHPPercentage.Enabled = false;
+            TrackbarMinibossPropertiesHPPercentage.Location = new Point(11, 363);
+            TrackbarMinibossPropertiesHPPercentage.Margin = new Padding(4, 5, 4, 5);
+            TrackbarMinibossPropertiesHPPercentage.Maximum = 50;
+            TrackbarMinibossPropertiesHPPercentage.Minimum = -50;
+            TrackbarMinibossPropertiesHPPercentage.Name = "TrackbarMinibossPropertiesHPPercentage";
+            TrackbarMinibossPropertiesHPPercentage.RightToLeft = RightToLeft.No;
+            TrackbarMinibossPropertiesHPPercentage.Size = new Size(321, 69);
+            TrackbarMinibossPropertiesHPPercentage.TabIndex = 7;
+            TrackbarMinibossPropertiesHPPercentage.Scroll += TrackbarMinibossPropertiesHPPercentage_Scroll;
             // 
             // CheckboxMinibossPropertiesHPPercentage
             // 
@@ -2284,6 +2334,229 @@
             RadioMinibossesUnchanged.Text = "Unchanged";
             RadioMinibossesUnchanged.UseVisualStyleBackColor = true;
             RadioMinibossesUnchanged.CheckedChanged += RadioMinibossesUnchanged_CheckedChanged;
+            // 
+            // TabBosses
+            // 
+            TabBosses.Controls.Add(GroupBossesPropertiesHP);
+            TabBosses.Location = new Point(4, 29);
+            TabBosses.Margin = new Padding(4, 5, 4, 5);
+            TabBosses.Name = "TabBosses";
+            TabBosses.Padding = new Padding(4, 5, 4, 5);
+            TabBosses.Size = new Size(1206, 564);
+            TabBosses.TabIndex = 4;
+            TabBosses.Text = "Bosses";
+            TabBosses.UseVisualStyleBackColor = true;
+            // 
+            // GroupBossesPropertiesHP
+            // 
+            GroupBossesPropertiesHP.Controls.Add(LabelBossPropertiesHPMax);
+            GroupBossesPropertiesHP.Controls.Add(NumericBossPropertiesHPMax);
+            GroupBossesPropertiesHP.Controls.Add(LabelBossPropertiesHPMin);
+            GroupBossesPropertiesHP.Controls.Add(NumericBossPropertiesHPMin);
+            GroupBossesPropertiesHP.Controls.Add(LabelBossPropertiesHPPlus50);
+            GroupBossesPropertiesHP.Controls.Add(LabelBossPropertiesHPMinus50);
+            GroupBossesPropertiesHP.Controls.Add(LabelBossPropertiesHPPlus25);
+            GroupBossesPropertiesHP.Controls.Add(LabelBossPropertiesHPMinus25);
+            GroupBossesPropertiesHP.Controls.Add(LabelBossPropertiesHPZero);
+            GroupBossesPropertiesHP.Controls.Add(TrackbarBossPropertiesHPPercentage);
+            GroupBossesPropertiesHP.Controls.Add(CheckboxBossPropertiesHPPercentage);
+            GroupBossesPropertiesHP.Controls.Add(RadioBossPropertiesHPRandom);
+            GroupBossesPropertiesHP.Controls.Add(RadioBossPropertiesHPShuffle);
+            GroupBossesPropertiesHP.Controls.Add(RadioBossPropertiesHPUnchanged);
+            GroupBossesPropertiesHP.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            GroupBossesPropertiesHP.Location = new Point(13, 10);
+            GroupBossesPropertiesHP.Margin = new Padding(4, 5, 4, 5);
+            GroupBossesPropertiesHP.Name = "GroupBossesPropertiesHP";
+            GroupBossesPropertiesHP.Padding = new Padding(4, 5, 4, 5);
+            GroupBossesPropertiesHP.Size = new Size(387, 530);
+            GroupBossesPropertiesHP.TabIndex = 6;
+            GroupBossesPropertiesHP.TabStop = false;
+            GroupBossesPropertiesHP.Text = "HP";
+            // 
+            // LabelBossPropertiesHPMax
+            // 
+            LabelBossPropertiesHPMax.AutoSize = true;
+            LabelBossPropertiesHPMax.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            LabelBossPropertiesHPMax.Location = new Point(179, 165);
+            LabelBossPropertiesHPMax.Margin = new Padding(4, 0, 4, 0);
+            LabelBossPropertiesHPMax.Name = "LabelBossPropertiesHPMax";
+            LabelBossPropertiesHPMax.Size = new Size(77, 25);
+            LabelBossPropertiesHPMax.TabIndex = 20;
+            LabelBossPropertiesHPMax.Text = "Max HP:";
+            LabelBossPropertiesHPMax.Visible = false;
+            // 
+            // NumericBossPropertiesHPMax
+            // 
+            NumericBossPropertiesHPMax.Font = new Font("Segoe UI", 9F);
+            NumericBossPropertiesHPMax.Location = new Point(261, 162);
+            NumericBossPropertiesHPMax.Margin = new Padding(4, 5, 4, 5);
+            NumericBossPropertiesHPMax.Maximum = new decimal(new int[] { 999, 0, 0, 0 });
+            NumericBossPropertiesHPMax.Minimum = new decimal(new int[] { 1, 0, 0, 0 });
+            NumericBossPropertiesHPMax.Name = "NumericBossPropertiesHPMax";
+            NumericBossPropertiesHPMax.Size = new Size(67, 31);
+            NumericBossPropertiesHPMax.TabIndex = 19;
+            NumericBossPropertiesHPMax.Value = new decimal(new int[] { 120, 0, 0, 0 });
+            NumericBossPropertiesHPMax.Visible = false;
+            NumericBossPropertiesHPMax.ValueChanged += NumericBossPropertiesHPMax_ValueChanged;
+            // 
+            // LabelBossPropertiesHPMin
+            // 
+            LabelBossPropertiesHPMin.AutoSize = true;
+            LabelBossPropertiesHPMin.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            LabelBossPropertiesHPMin.Location = new Point(11, 165);
+            LabelBossPropertiesHPMin.Margin = new Padding(4, 0, 4, 0);
+            LabelBossPropertiesHPMin.Name = "LabelBossPropertiesHPMin";
+            LabelBossPropertiesHPMin.Size = new Size(74, 25);
+            LabelBossPropertiesHPMin.TabIndex = 18;
+            LabelBossPropertiesHPMin.Text = "Min HP:";
+            LabelBossPropertiesHPMin.Visible = false;
+            // 
+            // NumericBossPropertiesHPMin
+            // 
+            NumericBossPropertiesHPMin.Font = new Font("Segoe UI", 9F);
+            NumericBossPropertiesHPMin.Location = new Point(91, 162);
+            NumericBossPropertiesHPMin.Margin = new Padding(4, 5, 4, 5);
+            NumericBossPropertiesHPMin.Maximum = new decimal(new int[] { 999, 0, 0, 0 });
+            NumericBossPropertiesHPMin.Minimum = new decimal(new int[] { 1, 0, 0, 0 });
+            NumericBossPropertiesHPMin.Name = "NumericBossPropertiesHPMin";
+            NumericBossPropertiesHPMin.Size = new Size(67, 31);
+            NumericBossPropertiesHPMin.TabIndex = 17;
+            NumericBossPropertiesHPMin.Value = new decimal(new int[] { 30, 0, 0, 0 });
+            NumericBossPropertiesHPMin.Visible = false;
+            NumericBossPropertiesHPMin.ValueChanged += NumericBossPropertiesHPMin_ValueChanged;
+            // 
+            // LabelBossPropertiesHPPlus50
+            // 
+            LabelBossPropertiesHPPlus50.AutoSize = true;
+            LabelBossPropertiesHPPlus50.Enabled = false;
+            LabelBossPropertiesHPPlus50.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            LabelBossPropertiesHPPlus50.ForeColor = SystemColors.ControlDark;
+            LabelBossPropertiesHPPlus50.Location = new Point(301, 412);
+            LabelBossPropertiesHPPlus50.Margin = new Padding(4, 0, 4, 0);
+            LabelBossPropertiesHPPlus50.Name = "LabelBossPropertiesHPPlus50";
+            LabelBossPropertiesHPPlus50.Size = new Size(32, 25);
+            LabelBossPropertiesHPPlus50.TabIndex = 12;
+            LabelBossPropertiesHPPlus50.Text = "50";
+            // 
+            // LabelBossPropertiesHPMinus50
+            // 
+            LabelBossPropertiesHPMinus50.AutoSize = true;
+            LabelBossPropertiesHPMinus50.Enabled = false;
+            LabelBossPropertiesHPMinus50.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            LabelBossPropertiesHPMinus50.ForeColor = SystemColors.ControlDark;
+            LabelBossPropertiesHPMinus50.Location = new Point(10, 412);
+            LabelBossPropertiesHPMinus50.Margin = new Padding(4, 0, 4, 0);
+            LabelBossPropertiesHPMinus50.Name = "LabelBossPropertiesHPMinus50";
+            LabelBossPropertiesHPMinus50.Size = new Size(39, 25);
+            LabelBossPropertiesHPMinus50.TabIndex = 8;
+            LabelBossPropertiesHPMinus50.Text = "-50";
+            // 
+            // LabelBossPropertiesHPPlus25
+            // 
+            LabelBossPropertiesHPPlus25.AutoSize = true;
+            LabelBossPropertiesHPPlus25.Enabled = false;
+            LabelBossPropertiesHPPlus25.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            LabelBossPropertiesHPPlus25.ForeColor = SystemColors.ControlDark;
+            LabelBossPropertiesHPPlus25.Location = new Point(231, 412);
+            LabelBossPropertiesHPPlus25.Margin = new Padding(4, 0, 4, 0);
+            LabelBossPropertiesHPPlus25.Name = "LabelBossPropertiesHPPlus25";
+            LabelBossPropertiesHPPlus25.Size = new Size(32, 25);
+            LabelBossPropertiesHPPlus25.TabIndex = 11;
+            LabelBossPropertiesHPPlus25.Text = "25";
+            // 
+            // LabelBossPropertiesHPMinus25
+            // 
+            LabelBossPropertiesHPMinus25.AutoSize = true;
+            LabelBossPropertiesHPMinus25.Enabled = false;
+            LabelBossPropertiesHPMinus25.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            LabelBossPropertiesHPMinus25.ForeColor = SystemColors.ControlDark;
+            LabelBossPropertiesHPMinus25.Location = new Point(83, 412);
+            LabelBossPropertiesHPMinus25.Margin = new Padding(4, 0, 4, 0);
+            LabelBossPropertiesHPMinus25.Name = "LabelBossPropertiesHPMinus25";
+            LabelBossPropertiesHPMinus25.Size = new Size(39, 25);
+            LabelBossPropertiesHPMinus25.TabIndex = 9;
+            LabelBossPropertiesHPMinus25.Text = "-25";
+            // 
+            // LabelBossPropertiesHPZero
+            // 
+            LabelBossPropertiesHPZero.AutoSize = true;
+            LabelBossPropertiesHPZero.Enabled = false;
+            LabelBossPropertiesHPZero.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            LabelBossPropertiesHPZero.ForeColor = SystemColors.ControlDark;
+            LabelBossPropertiesHPZero.Location = new Point(164, 412);
+            LabelBossPropertiesHPZero.Margin = new Padding(4, 0, 4, 0);
+            LabelBossPropertiesHPZero.Name = "LabelBossPropertiesHPZero";
+            LabelBossPropertiesHPZero.Size = new Size(22, 25);
+            LabelBossPropertiesHPZero.TabIndex = 10;
+            LabelBossPropertiesHPZero.Text = "0";
+            // 
+            // TrackbarBossPropertiesHPPercentage
+            // 
+            TrackbarBossPropertiesHPPercentage.BackColor = SystemColors.ButtonHighlight;
+            TrackbarBossPropertiesHPPercentage.Enabled = false;
+            TrackbarBossPropertiesHPPercentage.Location = new Point(11, 363);
+            TrackbarBossPropertiesHPPercentage.Margin = new Padding(4, 5, 4, 5);
+            TrackbarBossPropertiesHPPercentage.Maximum = 50;
+            TrackbarBossPropertiesHPPercentage.Minimum = -50;
+            TrackbarBossPropertiesHPPercentage.Name = "TrackbarBossPropertiesHPPercentage";
+            TrackbarBossPropertiesHPPercentage.RightToLeft = RightToLeft.No;
+            TrackbarBossPropertiesHPPercentage.Size = new Size(321, 69);
+            TrackbarBossPropertiesHPPercentage.TabIndex = 7;
+            TrackbarBossPropertiesHPPercentage.Scroll += TrackbarBossPropertiesHPPercentage_Scroll;
+            // 
+            // CheckboxBossPropertiesHPPercentage
+            // 
+            CheckboxBossPropertiesHPPercentage.AutoSize = true;
+            CheckboxBossPropertiesHPPercentage.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            CheckboxBossPropertiesHPPercentage.Location = new Point(14, 322);
+            CheckboxBossPropertiesHPPercentage.Margin = new Padding(4, 5, 4, 5);
+            CheckboxBossPropertiesHPPercentage.Name = "CheckboxBossPropertiesHPPercentage";
+            CheckboxBossPropertiesHPPercentage.Size = new Size(228, 29);
+            CheckboxBossPropertiesHPPercentage.TabIndex = 6;
+            CheckboxBossPropertiesHPPercentage.Text = "Percentage HP Modifier:";
+            CheckboxBossPropertiesHPPercentage.UseVisualStyleBackColor = true;
+            CheckboxBossPropertiesHPPercentage.CheckedChanged += CheckboxBossPropertiesHPPercentage_CheckedChanged;
+            // 
+            // RadioBossPropertiesHPRandom
+            // 
+            RadioBossPropertiesHPRandom.AutoSize = true;
+            RadioBossPropertiesHPRandom.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            RadioBossPropertiesHPRandom.Location = new Point(14, 120);
+            RadioBossPropertiesHPRandom.Margin = new Padding(4, 5, 4, 5);
+            RadioBossPropertiesHPRandom.Name = "RadioBossPropertiesHPRandom";
+            RadioBossPropertiesHPRandom.Size = new Size(105, 29);
+            RadioBossPropertiesHPRandom.TabIndex = 5;
+            RadioBossPropertiesHPRandom.Text = "Random";
+            RadioBossPropertiesHPRandom.UseVisualStyleBackColor = true;
+            RadioBossPropertiesHPRandom.CheckedChanged += RadioBossPropertiesHPRandom_CheckedChanged;
+            // 
+            // RadioBossPropertiesHPShuffle
+            // 
+            RadioBossPropertiesHPShuffle.AutoSize = true;
+            RadioBossPropertiesHPShuffle.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            RadioBossPropertiesHPShuffle.Location = new Point(14, 78);
+            RadioBossPropertiesHPShuffle.Margin = new Padding(4, 5, 4, 5);
+            RadioBossPropertiesHPShuffle.Name = "RadioBossPropertiesHPShuffle";
+            RadioBossPropertiesHPShuffle.Size = new Size(92, 29);
+            RadioBossPropertiesHPShuffle.TabIndex = 4;
+            RadioBossPropertiesHPShuffle.Text = "Shuffle";
+            RadioBossPropertiesHPShuffle.UseVisualStyleBackColor = true;
+            RadioBossPropertiesHPShuffle.CheckedChanged += RadioBossPropertiesHPShuffle_CheckedChanged;
+            // 
+            // RadioBossPropertiesHPUnchanged
+            // 
+            RadioBossPropertiesHPUnchanged.AutoSize = true;
+            RadioBossPropertiesHPUnchanged.Checked = true;
+            RadioBossPropertiesHPUnchanged.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            RadioBossPropertiesHPUnchanged.Location = new Point(14, 37);
+            RadioBossPropertiesHPUnchanged.Margin = new Padding(4, 5, 4, 5);
+            RadioBossPropertiesHPUnchanged.Name = "RadioBossPropertiesHPUnchanged";
+            RadioBossPropertiesHPUnchanged.Size = new Size(127, 29);
+            RadioBossPropertiesHPUnchanged.TabIndex = 3;
+            RadioBossPropertiesHPUnchanged.TabStop = true;
+            RadioBossPropertiesHPUnchanged.Text = "Unchanged";
+            RadioBossPropertiesHPUnchanged.UseVisualStyleBackColor = true;
+            RadioBossPropertiesHPUnchanged.CheckedChanged += RadioBossPropertiesHPUnchanged_CheckedChanged;
             // 
             // tabPage5
             // 
@@ -2663,6 +2936,13 @@
             // 
             // GroupMiscGame
             // 
+            GroupMiscGame.Controls.Add(LabelOptionsStartingLives);
+            GroupMiscGame.Controls.Add(NumericOptionsStartingLives);
+            GroupMiscGame.Controls.Add(CheckboxOptionsRandomStartingHP);
+            GroupMiscGame.Controls.Add(LabelOptionsStartingHPMin);
+            GroupMiscGame.Controls.Add(NumericOptionsStartingHPMin);
+            GroupMiscGame.Controls.Add(LabelOptionsStartingHPMax);
+            GroupMiscGame.Controls.Add(NumericOptionsStartingHPMax);
             GroupMiscGame.Controls.Add(CheckboxOptionsAbilityRoom);
             GroupMiscGame.Controls.Add(CheckboxOptionsMasterSword);
             GroupMiscGame.Controls.Add(CheckboxOptionsSkipTutorial);
@@ -2678,6 +2958,95 @@
             GroupMiscGame.TabIndex = 2;
             GroupMiscGame.TabStop = false;
             GroupMiscGame.Text = "Game";
+            // 
+            // LabelOptionsStartingLives
+            // 
+            LabelOptionsStartingLives.AutoSize = true;
+            LabelOptionsStartingLives.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            LabelOptionsStartingLives.Location = new Point(330, 41);
+            LabelOptionsStartingLives.Margin = new Padding(4, 0, 4, 0);
+            LabelOptionsStartingLives.Name = "LabelOptionsStartingLives";
+            LabelOptionsStartingLives.Size = new Size(135, 25);
+            LabelOptionsStartingLives.TabIndex = 6;
+            LabelOptionsStartingLives.Text = "Starting Lives:";
+            // 
+            // NumericOptionsStartingLives
+            // 
+            NumericOptionsStartingLives.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            NumericOptionsStartingLives.Location = new Point(470, 38);
+            NumericOptionsStartingLives.Margin = new Padding(4, 5, 4, 5);
+            NumericOptionsStartingLives.Maximum = new decimal(new int[] { 99, 0, 0, 0 });
+            NumericOptionsStartingLives.Minimum = new decimal(new int[] { 0, 0, 0, 0 });
+            NumericOptionsStartingLives.Name = "NumericOptionsStartingLives";
+            NumericOptionsStartingLives.Size = new Size(67, 31);
+            NumericOptionsStartingLives.TabIndex = 7;
+            NumericOptionsStartingLives.Value = new decimal(new int[] { 2, 0, 0, 0 });
+            NumericOptionsStartingLives.ValueChanged += NumericOptionsStartingLives_ValueChanged;
+            // 
+            // CheckboxOptionsRandomStartingHP
+            // 
+            CheckboxOptionsRandomStartingHP.AutoSize = true;
+            CheckboxOptionsRandomStartingHP.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            CheckboxOptionsRandomStartingHP.Location = new Point(334, 71);
+            CheckboxOptionsRandomStartingHP.Margin = new Padding(4, 5, 4, 5);
+            CheckboxOptionsRandomStartingHP.Name = "CheckboxOptionsRandomStartingHP";
+            CheckboxOptionsRandomStartingHP.Size = new Size(198, 29);
+            CheckboxOptionsRandomStartingHP.TabIndex = 8;
+            CheckboxOptionsRandomStartingHP.Text = "Random Starting HP";
+            CheckboxOptionsRandomStartingHP.UseVisualStyleBackColor = true;
+            CheckboxOptionsRandomStartingHP.CheckedChanged += CheckboxOptionsRandomStartingHP_CheckedChanged;
+            // 
+            // LabelOptionsStartingHPMin
+            // 
+            LabelOptionsStartingHPMin.AutoSize = true;
+            LabelOptionsStartingHPMin.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            LabelOptionsStartingHPMin.Location = new Point(330, 107);
+            LabelOptionsStartingHPMin.Margin = new Padding(4, 0, 4, 0);
+            LabelOptionsStartingHPMin.Name = "LabelOptionsStartingHPMin";
+            LabelOptionsStartingHPMin.Size = new Size(74, 25);
+            LabelOptionsStartingHPMin.TabIndex = 9;
+            LabelOptionsStartingHPMin.Text = "Min HP:";
+            LabelOptionsStartingHPMin.Visible = false;
+            // 
+            // NumericOptionsStartingHPMin
+            // 
+            NumericOptionsStartingHPMin.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            NumericOptionsStartingHPMin.Location = new Point(406, 104);
+            NumericOptionsStartingHPMin.Margin = new Padding(4, 5, 4, 5);
+            NumericOptionsStartingHPMin.Maximum = new decimal(new int[] { 20, 0, 0, 0 });
+            NumericOptionsStartingHPMin.Minimum = new decimal(new int[] { 1, 0, 0, 0 });
+            NumericOptionsStartingHPMin.Name = "NumericOptionsStartingHPMin";
+            NumericOptionsStartingHPMin.Size = new Size(60, 31);
+            NumericOptionsStartingHPMin.TabIndex = 10;
+            NumericOptionsStartingHPMin.Value = new decimal(new int[] { 3, 0, 0, 0 });
+            NumericOptionsStartingHPMin.Visible = false;
+            NumericOptionsStartingHPMin.ValueChanged += NumericOptionsStartingHPMin_ValueChanged;
+            // 
+            // LabelOptionsStartingHPMax
+            // 
+            LabelOptionsStartingHPMax.AutoSize = true;
+            LabelOptionsStartingHPMax.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            LabelOptionsStartingHPMax.Location = new Point(474, 107);
+            LabelOptionsStartingHPMax.Margin = new Padding(4, 0, 4, 0);
+            LabelOptionsStartingHPMax.Name = "LabelOptionsStartingHPMax";
+            LabelOptionsStartingHPMax.Size = new Size(77, 25);
+            LabelOptionsStartingHPMax.TabIndex = 11;
+            LabelOptionsStartingHPMax.Text = "Max HP:";
+            LabelOptionsStartingHPMax.Visible = false;
+            // 
+            // NumericOptionsStartingHPMax
+            // 
+            NumericOptionsStartingHPMax.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            NumericOptionsStartingHPMax.Location = new Point(553, 104);
+            NumericOptionsStartingHPMax.Margin = new Padding(4, 5, 4, 5);
+            NumericOptionsStartingHPMax.Maximum = new decimal(new int[] { 20, 0, 0, 0 });
+            NumericOptionsStartingHPMax.Minimum = new decimal(new int[] { 1, 0, 0, 0 });
+            NumericOptionsStartingHPMax.Name = "NumericOptionsStartingHPMax";
+            NumericOptionsStartingHPMax.Size = new Size(60, 31);
+            NumericOptionsStartingHPMax.TabIndex = 12;
+            NumericOptionsStartingHPMax.Value = new decimal(new int[] { 9, 0, 0, 0 });
+            NumericOptionsStartingHPMax.Visible = false;
+            NumericOptionsStartingHPMax.ValueChanged += NumericOptionsStartingHPMax_ValueChanged;
             // 
             // GroupMapElements
             // 
@@ -3138,15 +3507,21 @@
             groupBox1.ResumeLayout(false);
             groupBox4.ResumeLayout(false);
             groupBox4.PerformLayout();
-            ((System.ComponentModel.ISupportInitialize)numericUpDown1).EndInit();
-            ((System.ComponentModel.ISupportInitialize)numericUpDown2).EndInit();
-            ((System.ComponentModel.ISupportInitialize)trackBar2).EndInit();
+            ((System.ComponentModel.ISupportInitialize)NumericMinibossPropertiesHPMax).EndInit();
+            ((System.ComponentModel.ISupportInitialize)NumericMinibossPropertiesHPMin).EndInit();
+            ((System.ComponentModel.ISupportInitialize)TrackbarMinibossPropertiesHPPercentage).EndInit();
             groupBox5.ResumeLayout(false);
             groupBox5.PerformLayout();
             groupBox6.ResumeLayout(false);
             groupBox6.PerformLayout();
             GroupMinibosses.ResumeLayout(false);
             GroupMinibosses.PerformLayout();
+            TabBosses.ResumeLayout(false);
+            GroupBossesPropertiesHP.ResumeLayout(false);
+            GroupBossesPropertiesHP.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)NumericBossPropertiesHPMax).EndInit();
+            ((System.ComponentModel.ISupportInitialize)NumericBossPropertiesHPMin).EndInit();
+            ((System.ComponentModel.ISupportInitialize)TrackbarBossPropertiesHPPercentage).EndInit();
             tabPage5.ResumeLayout(false);
             groupBox3.ResumeLayout(false);
             groupBox3.PerformLayout();
@@ -3158,6 +3533,9 @@
             TabExpansion.ResumeLayout(false);
             GroupExpansionNightmare.ResumeLayout(false);
             GroupExpansionNightmare.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)NumericOptionsStartingLives).EndInit();
+            ((System.ComponentModel.ISupportInitialize)NumericOptionsStartingHPMin).EndInit();
+            ((System.ComponentModel.ISupportInitialize)NumericOptionsStartingHPMax).EndInit();
             GroupMiscGame.ResumeLayout(false);
             GroupMiscGame.PerformLayout();
             GroupMapElements.ResumeLayout(false);
@@ -3192,6 +3570,22 @@
         private TabPage tabPage2;
         private TabPage tabPage3;
         private TabPage tabPage4;
+        private TabPage TabBosses;
+        private GroupBox GroupBossesPropertiesHP;
+        private Label LabelBossPropertiesHPPlus50;
+        private Label LabelBossPropertiesHPMinus50;
+        private Label LabelBossPropertiesHPPlus25;
+        private Label LabelBossPropertiesHPMinus25;
+        private Label LabelBossPropertiesHPZero;
+        private TrackBar TrackbarBossPropertiesHPPercentage;
+        private CheckBox CheckboxBossPropertiesHPPercentage;
+        private RadioButton RadioBossPropertiesHPRandom;
+        private RadioButton RadioBossPropertiesHPShuffle;
+        private RadioButton RadioBossPropertiesHPUnchanged;
+        private Label LabelBossPropertiesHPMax;
+        private NumericUpDown NumericBossPropertiesHPMax;
+        private Label LabelBossPropertiesHPMin;
+        private NumericUpDown NumericBossPropertiesHPMin;
         private TabPage tabPage5;
         private TabPage TabMiscellaneous;
         private TabPage TabExpansion;
@@ -3303,7 +3697,7 @@
         private Label label13;
         private Label label14;
         private Label label15;
-        private TrackBar trackBar2;
+        private TrackBar TrackbarMinibossPropertiesHPPercentage;
         private CheckBox CheckboxMinibossPropertiesHPPercentage;
         private RadioButton RadioMinibossPropertiesHPRandom;
         private RadioButton RadioMinibossPropertiesHPShuffle;
@@ -3321,14 +3715,14 @@
         private RadioButton RadioMinibossesRandom;
         private RadioButton RadioMinibossesShuffle;
         private RadioButton RadioMinibossesUnchanged;
-        private Label label17;
+        private Label LabelEnemyPropertiesHPMax;
         private NumericUpDown NumericEnemyPropertiesHPMax;
-        private Label label16;
+        private Label LabelEnemyPropertiesHPMin;
         private NumericUpDown NumericEnemyPropertiesHPMin;
-        private Label label18;
-        private NumericUpDown numericUpDown1;
-        private Label label19;
-        private NumericUpDown numericUpDown2;
+        private Label LabelMinibossPropertiesHPMax;
+        private NumericUpDown NumericMinibossPropertiesHPMax;
+        private Label LabelMinibossPropertiesHPMin;
+        private NumericUpDown NumericMinibossPropertiesHPMin;
         private CheckBox CheckboxEnemiesRandomizeMinibosses;
         private CheckBox CheckboxEnemyPropertiesUnusedBehaviors;
         private GroupBox groupBox3;
@@ -3368,6 +3762,13 @@
         private CheckBox CheckboxOptionsSkipTutorial;
         private CheckBox CheckboxOptionsMasterSword;
         private CheckBox CheckboxOptionsAbilityRoom;
+        private Label LabelOptionsStartingLives;
+        private NumericUpDown NumericOptionsStartingLives;
+        private CheckBox CheckboxOptionsRandomStartingHP;
+        private Label LabelOptionsStartingHPMin;
+        private NumericUpDown NumericOptionsStartingHPMin;
+        private Label LabelOptionsStartingHPMax;
+        private NumericUpDown NumericOptionsStartingHPMax;
         private GroupBox GroupMiscGame;
         private CheckBox CheckboxBossShardsRandom;
         private TrackBar TrackBarChestShardsAmount;
