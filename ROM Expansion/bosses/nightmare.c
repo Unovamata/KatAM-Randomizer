@@ -886,6 +886,7 @@ struct Fight {
     u16 t;                              // Frames since his fight started (his palettes' cycle: NiDL's 0x03001EA4);
     s16 hp;                             // His HP last frame (less now: hit);
     s16 maxHp;                          // His HP at the start (NiDL's 60 for one player; his moves change under a third of it);
+    u8 aimWait[4];                      // Each helper's frames before his next swing at him (abilities/star_rod.c's StarRodAim());
     u8 pal[PALS];
 };
 
@@ -1996,6 +1997,7 @@ static void Orphan(struct Fight *f) {
 static void NightmareMain(struct Object *obj) {
     struct Nightmare *m = (struct Nightmare *)obj;
     struct Fight *f = m->f;
+    u8 i;
 
     NidlUpdate(&m->n);
     obj->base.flags |= 4 | 0x400;
@@ -2006,6 +2008,8 @@ static void NightmareMain(struct Object *obj) {
     NidlFinaleKeep(obj);
     if (f == NULL) return;
     f->t++;
+    for (i = 0; i < 4; i++)
+        if (f->aimWait[i]) f->aimWait[i]--;
     if (obj->unk80 < f->hp) Hit(f);
     f->hp = obj->unk80;
     if (f->restart) {
@@ -2094,6 +2098,11 @@ bool32 NightmareTarget(void *fight, s32 x, s32 y, bool8 *left, s32 *gap) {
     return TRUE;
 }
 
+// NightmareAimWait(); A helper's (player) frames before his next swing at him (`fight`, NightmareFightIn()'s), counted down by his fight;
+u8 *NightmareAimWait(void *fight, u8 player) {
+    return &((struct Fight *)fight)->aimWait[player & 3];
+}
+
 // NightmareGone(); His object's gone (nidl.c's NidlDestroy()): his fight's task lets go of it;
 void NightmareGone(struct Object *obj) {
     struct Nightmare *m = (struct Nightmare *)obj;
@@ -2129,6 +2138,7 @@ void NightmareStart(struct Object *obj) {
     f->move = -1;
     f->waitIndex = f->capes = f->vanishes = 0;
     f->shotWait = f->shotCount = f->shotWay = 0;
+    for (i = 0; i < 4; i++) f->aimWait[i] = 0;
     f->hit = 0;
     f->diving = f->handDone = FALSE;
     f->charge = 0;

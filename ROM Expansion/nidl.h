@@ -205,6 +205,7 @@ void *NightmareFightOf(u16 room);
 bool32 NightmareBlocks(void *fight, s32 x, s32 y);
 void *NightmareFightIn(u16 room);
 bool32 NightmareTarget(void *fight, s32 x, s32 y, bool8 *left, s32 *gap);
+u8 *NightmareAimWait(void *fight, u8 player);
 void NightmareGone(struct Object *nightmare);
 void NightmareIntroRider(struct Kirby *kirby);
 const struct NidlGraphics *NidlGraphicsOf(struct NidlObject *);

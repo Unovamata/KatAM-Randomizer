@@ -14,7 +14,8 @@
  * fight's shooter, sub_08052E2C); his HP at 0, KatAM's death takes him (sub_0803FBB4), and the rider goes, as when any other state
  * takes him (the shard's dance); back in the room, he flies again.
  * The helpers (CPU Kirbys) fly by the rider's own AI (AI()): engaged in the fight, always on the move, to spots up, down, left and
- * right before the orb, now nearer, now farther, shooting when in line, and dodging its shots now and then;
+ * right before the orb, now nearer, now farther, shooting when in line, a swing every 2 seconds or so (the player's fight, not
+ * theirs: the owner's), and dodging its shots now and then;
  * KatAM's helper AI is kept still meanwhile (HoldAI()), and they're kept on the first player's screen (Viewer()). The fight's
  * screen sinks (NiDL's fall through space): everyone in it sinks with the camera's bounds (StarRodSink()). Kirby's ability before
  * is kept (STAR_ROD_SAVED) and given back after the shard's dance (StarRodRestore(), from NidlShardExit; his own Star Rod, from the hub's
@@ -25,7 +26,7 @@
  * frames, a star shot on the 5th, 20 pixels ahead the way he faces and 4 down, on at 4 pixels a frame; once a press, on the ground
  * standing still, in the air falling; a helper only once the fight has started, after Nightmare's intro); he keeps it there
  * (StarRodKeep(); a hit doesn't take it, abilities.c's NidlKirbyHit()); the helpers swing it at Nightmare by an aim of their own
- * (StarRodAim(): KatAM's helper AI never goes for him up over the floor); */
+ * (StarRodAim(): KatAM's helper AI never goes for him up over the floor), a few seconds between swings; */
 #include "../abilities.h"
 #include "kirby.h"
 #include "data.h"
@@ -111,6 +112,7 @@ struct StarRodRider {
     u8 dodge;               // and frames of dodging a shot left, which way (up), frames before he may dodge again;
     bool8 dodgeUp;
     u8 dodgeWait;
+    u8 aiFireWait;          // and frames from a swing before he swings again (AI_FIRE_WAIT on);
 };
 
 struct StarRodStar {
@@ -393,7 +395,7 @@ void StarRodStart(struct Kirby *kirby, struct Object *orb) {
     r->way = r->ending = r->slow = r->hurt = 0;
     r->hurtRight = FALSE;
     r->aiTimer = 0;
-    r->dodge = r->dodgeWait = 0;
+    r->dodge = r->dodgeWait = r->aiFireWait = 0;
     r->dodgeUp = FALSE;
     r->motion = STAR_ROD_MOTION_HOLD;
     if (kirby->ability != NIDL_ABILITY_STAR_ROD) {
@@ -447,11 +449,18 @@ void StarRodSwingStart(struct Kirby *kirby) {
 /* Nightmare's fight: KatAM's helper AI only goes for what's within 48 pixels of a helper's height (sub_08010590), never Nightmare over
  * the floor; StarRodAim() puts an action of its own in its action slot (its last; KatAM's own, sub_0801519C, back after), pressing what a
  * player would: AIShoot(), B and the way to him, when the helper's star would meet him where he takes hits (NightmareTarget()), or
- * AIJump(), A held (a jump: AIM_JUMP pixels up, held AIM_RISE frames) when it would at some height on the way up, then B there; */
+ * AIJump(), A held (a jump: AIM_JUMP pixels up, held AIM_RISE frames) when it would at some height on the way up, then B there; each
+ * swing a moment after he sees him in line (0 to AIM_REACT - 1 frames: unkDE, a jump's in its high byte, its rise in the low one), at
+ * wherever he is then (seen in line, every swing took a hit: 6 of 7 in a minute); */
 #define AIM_JUMP 54
 #define AIM_RISE 22
 #define AIM_STEP 8
 #define AIM_CLEAR 8         // (no jump with his box nearer: his touch);
+#define AIM_REACT 32
+#define AIM_WAIT 120        // (frames at least from one swing or jump at him to the next, and up to 63 more: NightmareAimWait());
+#define AIM_SHOOT_ODDS 31   // (a chance each frame of a swing when he's in line, on the floor, 1 in this + 1; in the air, a jump's);
+#define AIM_AIR_ODDS 3
+#define AIM_JUMP_ODDS 63    // (and of a jump when he'd be in line on the way up);
 
 // AimFrom(); Whether a helper's star would meet him (`fight`, NightmareFightIn()'s) shot `up` pixels higher (NightmareTarget()),
 // which way, and how far he is;
@@ -463,27 +472,43 @@ static void AIShoot(struct Unk_02038590 *ai) {
     bool8 left;
     s32 gap;
 
-    if (AimFrom(NightmareFightIn(ai->unk40->base.roomId), ai->unk40, 0, &left, &gap)) ai->unk9E |= B_BUTTON | (left ? DPAD_LEFT : DPAD_RIGHT);
+    if (ai->unkDE) {
+        ai->unkDE--;
+        return;
+    }
+    ai->unk9E |= B_BUTTON;
+    if (AimFrom(NightmareFightIn(ai->unk40->base.roomId), ai->unk40, 0, &left, &gap)) ai->unk9E |= left ? DPAD_LEFT : DPAD_RIGHT;
     ai->unk0[3] = sub_0801519C;
 }
 
 static void AIJump(struct Unk_02038590 *ai) {
     bool8 left;
     s32 gap;
+    u8 rise = ai->unkDE, wait = ai->unkDE >> 8;
+    bool32 inLine = AimFrom(NightmareFightIn(ai->unk40->base.roomId), ai->unk40, 0, &left, &gap);
 
-    if (ai->unkDE && AimFrom(NightmareFightIn(ai->unk40->base.roomId), ai->unk40, 0, &left, &gap)) {
-        ai->unk9E |= B_BUTTON | (left ? DPAD_LEFT : DPAD_RIGHT);
+    if (rise && !wait && inLine) wait = 1 + (Rand16() & (AIM_REACT - 1));
+    if (wait && !--wait) {
+        ai->unk9E |= B_BUTTON;
+        if (inLine) ai->unk9E |= left ? DPAD_LEFT : DPAD_RIGHT;
         ai->unk0[3] = sub_0801519C;
-    } else if (ai->unkDE++ < AIM_RISE) {
-        ai->unk9E |= A_BUTTON;
-    } else {
-        ai->unk0[3] = sub_0801519C;
+        return;
     }
+    if (rise < AIM_RISE) {
+        ai->unk9E |= A_BUTTON;
+        rise++;
+    } else if (!wait) {
+        ai->unk0[3] = sub_0801519C;
+        return;
+    }
+    ai->unkDE = rise | wait << 8;
 }
 
 /* StarRodAim(); A helper in Nightmare's fight (finale.c's NidlFinaleKeep(), each frame): on the floor, a swing at him now and then
- * (an 8th of a chance each frame) when he's in line, or a jump (a 16th) when he'd be on the way up, not right over the helper; in the
- * air (a jump of his own), a swing when he's in line; none while one's under way or his swing's not over; */
+ * (a 32nd of a chance each frame) when he's in line, or a jump (a 64th) when he'd be on the way up, not right over the helper; in the
+ * air (a jump of his own), a swing when he's in line (a quarter); none while one's under way or his swing's not over, nor for
+ * AIM_WAIT to 63 more frames after one. He takes hits only now and then, and the first helper's swing then took it: at an 8th, a
+ * 16th and every frame, three helpers beat him in 50 seconds, the player looking on (the owner's: too strong, the player's fight); */
 void StarRodAim(struct Kirby *kirby) {
     struct Unk_02038590 *ai = &gUnk_02038590[kirby->base.unk56];
     void *fight;
@@ -492,16 +517,22 @@ void StarRodAim(struct Kirby *kirby) {
 
     if (kirby->base.unk56 < gNumHumanPlayers || kirby->ability != NIDL_ABILITY_STAR_ROD || kirby->stateFn == StarRodSwing || kirby->hp <= 0
         || ai->unk0[3] == AIShoot || ai->unk0[3] == AIJump || (fight = NightmareFightIn(kirby->base.roomId)) == NULL) return;
+    if (*NightmareAimWait(fight, kirby->base.unk56)) return;
     if (AimFrom(fight, kirby, 0, &left, &gap)) {
-        if (!(kirby->base.unk62 & 4) || !(Rand16() & 7)) ai->unk0[3] = AIShoot;
+        if (!(Rand16() & ((kirby->base.unk62 & 4) ? AIM_SHOOT_ODDS : AIM_AIR_ODDS))) {
+            ai->unkDE = Rand16() & (AIM_REACT - 1);
+            ai->unk0[3] = AIShoot;
+            *NightmareAimWait(fight, kirby->base.unk56) = AIM_WAIT + (Rand16() & 63);
+        }
         return;
     }
     if (!(kirby->base.unk62 & 4)) return;
     for (up = AIM_STEP; up <= AIM_JUMP; up += AIM_STEP) {
         if (!AimFrom(fight, kirby, up, &left, &gap)) continue;
-        if (gap >= AIM_CLEAR && !(Rand16() & 15)) {
+        if (gap >= AIM_CLEAR && !(Rand16() & AIM_JUMP_ODDS)) {
             ai->unkDE = 0;
             ai->unk0[3] = AIJump;
+            *NightmareAimWait(fight, kirby->base.unk56) = AIM_WAIT + (Rand16() & 63);
         }
         return;
     }
@@ -586,13 +617,16 @@ bool32 StarRodTouches(struct Kirby *kirby, s32 x, s32 y, s32 halfWidth, s32 half
 /* AI(); A helper's buttons (KatAM's key bits: A 1, B 2, right 0x10, left 0x20, up 0x40, down 0x80), engaged in the fight: to a spot
  * before the orb (40 to 134 pixels left of it, 32 up or down from its row), a new one every 20 to 51 frames, so he's always on the
  * move toward it and around it, up, down, left and right, never right up to it (40 at least); shooting when in line (24 up or down
- * from its row); and a shot of its coming at him (PowerOrbShotNear()), half the time he dodges it, 16 frames up or down away from
- * it (then 24 frames before he may again); the orb beaten, to its warp star (finale.c's NidlFinaleStarSpot()): onto it once the
- * player is (KatAM's star then waits for the helpers), until then just left of it (AI_STAR_GAP, and his place among the helpers); */
+ * from its row), once in AI_FIRE_WAIT to 63 more frames (held, the rod would swing every 31: three helpers took the orb's 60 HP in
+ * 20 seconds, the player looking on: the owner's, too strong); and a shot of its coming at him (PowerOrbShotNear()), half the time
+ * he dodges it, 16 frames up or down away from it (then 24 frames before he may again); the orb beaten, to its warp star
+ * (finale.c's NidlFinaleStarSpot()): onto it once the player is (KatAM's star then waits for the helpers), until then just left of
+ * it (AI_STAR_GAP, and his place among the helpers); */
 #define AI_NEAR 40
 #define AI_DODGE 16
 #define AI_DODGE_WAIT 24
 #define AI_STAR_GAP 32
+#define AI_FIRE_WAIT 64
 static u16 AI(struct StarRodRider *r, s32 x, s32 y) {
     struct Kirby *kirby = r->kirby;
     struct LevelInfo *level = &gCurLevelInfo[Viewer(kirby->base.unk56, kirby->base.roomId)];
@@ -640,7 +674,10 @@ static u16 AI(struct StarRodRider *r, s32 x, s32 y) {
     else if (x > r->aiX + 4 || x > targetX - AI_NEAR) keys |= 0x20;
     if (y < r->aiY - 4) keys |= 0x80;
     else if (y > r->aiY + 4) keys |= 0x40;
-    if (y > targetY - 24 && y < targetY + 24) keys |= 2;
+    if (y > targetY - 24 && y < targetY + 24 && r->shot >= r->aiFireWait) {
+        keys |= 2;
+        r->aiFireWait = AI_FIRE_WAIT + (Rand16() & 63);
+    }
     return keys;
 }
 
