@@ -189,8 +189,14 @@ void NidlBossDefeat(struct Object *obj) {
 
 // NidlBossShard(); A boss's mirror shard `shard` in room `room` (its Maxim Tomato, the shard owned), as NidlBossDefeat() says;
 void NidlBossShard(u8 unk56, u16 room, u8 shard) {
+    NidlBossShardAt(unk56, room, shard, SHARD_X, SHARD_Y);
+}
+
+/* NidlBossShardAt(); The same, at (`screenX`, `screenY`) on the camera's screen (King Dedede's: where the Fountain of Dreams behind
+ * his fight doesn't hide it, bosses/dedede.c); */
+void NidlBossShardAt(u8 unk56, u16 room, u8 shard, s32 screenX, s32 screenY) {
     struct LevelInfo *level = &gCurLevelInfo[unk56];
-    s32 x = (level->viewportPosition.x >> 8) + SHARD_X, y = (level->viewportPosition.y >> 8) + SHARD_Y;
+    s32 x = (level->viewportPosition.x >> 8) + screenX, y = (level->viewportPosition.y >> 8) + screenY;
 
     if (HasShard(shard)) {
         struct Object *tomato = CreateObjTemplateAndObj(unk56, 1, 0x24, x, y, 0, 0x1F, 0, 0, OBJ_TOMATO, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,

@@ -176,6 +176,7 @@ void *CreateNidlBoss(struct ObjectTemplate *, u8 playerId);
 void NidlBossStart(struct Object *);
 void NidlBossDefeat(struct Object *);
 void NidlBossShard(u8 unk56, u16 room, u8 shard);
+void NidlBossShardAt(u8 unk56, u16 room, u8 shard, s32 screenX, s32 screenY);
 void NidlShake(u16 level, struct ObjectBase *obj);
 s16 NidlBossHp(u8 boss);
 bool32 NidlBossHitMore(struct Object *obj, s16 hp, u8 times);

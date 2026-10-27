@@ -3,7 +3,8 @@
  * frame after it, 0x08748F1C; its main 0x080A56B0), checked frame by frame against NiDL's recorded fight (its states, frames, spots and
  * speeds): his intro (state 0), his duel (see "His duel" below) and his defeat (MetaKnightEnd(), as KatAM's explosion bursts him:
  * NiDL's unmasked Meta Knight, type 0x3D's second object, 0x080A73B4). NiDL throws Kirby a sword before the duel and as he leaves;
- * here Kirby fights with his own powers (no sword thrown);
+ * here Kirby fights with his own powers (no sword thrown), and his slashes and his thrust into the ground knock out stars that Kirby,
+ * with none, inhales and spits back at him (Star(): not NiDL's, as King Dedede's);
  * His graphics (KatAMExpansion.cs, MetaKnight()): NiDL's streamed frames (0x08753BB4: 0-9 caped, 10-20 drawing Galaxia, 21-59 his
  * defeat, 60-122 his duel), drawn with two palettes (his body's; Galaxia's and its slashes'); KatAM's sprites have one: three sprites
  * (his body, Galaxia's pieces in front of it, behind it: gNidlMetaKnightFight), his effects NiDL's own frames (0x08753DA0's: his cape,
@@ -55,6 +56,11 @@ const struct NidlMetaKnightFight gNidlMetaKnightFight = { { 0 } };
 #define MOSAIC_LAYERS 0x6           // (KatAM's room layers: BG1 and BG2, gBgCntRegs; not the HUD's);
 #define REG_MOSAIC_ADDR 0x0400004C
 #define FLY_OFF_Y 10                // His defeat: flying off up to the room's y 10 (NiDL's);
+#define STARS 4                     // His stars at once (Star()), their frames (enemies/star.c's: NiDL's shared 0x0874CCBC's 4-13 from its
+#define STAR_FRAMES 6               // 6, King Dedede's), how far ahead of him and down they come out;
+#define STAR_AHEAD 32
+#define STAR_DOWN 4
+#define WALL_X 16                   // (none past 16 in from the screen's sides: out of Kirby's reach, in the walls);
 
 enum { PAL_BODY, PAL_SWORD, PAL_SPARK, PAL_DUST, PALS };
 enum { FX_CAPE, FX_SPARK, FX_DUST, FX_LANDING, FX_LANDING_LEFT, FX_LANDING_RIGHT, FX_MASK, FX_MASK_HALF };
@@ -148,6 +154,12 @@ struct Fight {
     u8 walls;                           // The room's walls touching him last frame;
     s32 floorY;                         // The floor's y under him (his defeat lands there);
     u8 pal[PALS];
+    struct FightStar {
+        struct Object *obj;             // (NULL: none; KatAM's star enemy, enemies/star.c: inhaled, it's Kirby's);
+        s32 x, y;                       // 8.8;
+        s16 vx, vy;
+        u8 step, wait;                  // Its step (sStarSteps) and that step's frames left;
+    } stars[STARS];
 };
 
 // Rand(); NiDL's (0x08002EE8): 0 to n - 1;
@@ -331,6 +343,9 @@ static void Countdown(struct Fight *f) {
 }
 
 static void Effect(struct Fight *f, u8 kind, s32 x, s32 y, s8 facing);
+static void Star(struct Fight *f, s32 x, s32 y, s8 facing);
+static void SlashStar(struct Fight *f);
+static void ReleaseStars(struct Fight *f);
 
 /* The scripts: WAIT() resumes them that many frames on; SET_STATE() ends them (NiDL's setState and endScript), the state starting as
  * the frame functions start it (Begin()); the variables they keep across waits are the Fight's; */
@@ -712,6 +727,9 @@ static void State15(struct Fight *f) {
     Stop(f);
     PlaySfx(&obj->base, SE_INTRO_CUTSCENE_DMK_LANDING);
     Effect(f, FX_LANDING, obj->base.x, obj->base.y + 3 * 0x100, 1);
+    // (a star either way, as King Dedede's landing: not NiDL's);
+    Star(f, X(f) + STAR_AHEAD, Y(f) + STAR_DOWN, 1);
+    Star(f, X(f) - STAR_AHEAD, Y(f) + STAR_DOWN, -1);
     f->boxSet = 0;
     f->frame = 113;
     WAIT(12);
@@ -747,12 +765,13 @@ static void State18(struct Fight *f) {
     f->pc = PC_END;
 }
 
-// Dust(); A slash: the dust behind him (NiDL's type 0x91);
+// Dust(); A slash: the dust behind him (NiDL's type 0x91), a star ahead (SlashStar(): not NiDL's);
 static void Dust(struct Fight *f) {
     struct Object *obj = f->obj;
 
     PlaySfx(&obj->base, SE_DMK_SWORD_SLASH_ATTACK);
     Effect(f, FX_DUST, obj->base.x - f->facing * 8 * 0x100, obj->base.y + 8 * 0x100, f->facing);
+    SlashStar(f);
 }
 
 // State19(); A slash (0x080A6754): 88 12 frames, 89-96 a frame each, 97 24, standing (60) 28 (lunging: Lunge()), then back to his
@@ -1373,12 +1392,14 @@ static void FightMain(void) {
         for (i = 0; i < PARTS; i++) Release(&f->parts[i]);
         if (f->sword) f->sword->flags |= 0x1000;
         f->sword = NULL;
+        ReleaseStars(f);
         if (obj) ((struct MetaKnight *)obj)->f = NULL;
         TaskDestroy(gCurTask);
         return;
     }
     Palettes(f);
     if (obj->unk78 != MetaKnightMain) {
+        ReleaseStars(f);
         if (f->hurt && gKirbys[gLocalPlayerId].base.roomId == obj->base.roomId) Mosaic(0, FALSE);
         f->hurt = 0;
         f->flash = FALSE;
@@ -1617,6 +1638,107 @@ static void Effect(struct Fight *f, u8 kind, s32 x, s32 y, s8 facing) {
     FxCreate(f->obj->base.roomId, kind, x, y, facing, 0, pal);
 }
 
+/* His stars (not NiDL's: NiDL throws Kirby a sword for the duel; here Kirby fights with his own powers, the owner's, and with none he
+ * had nothing to hit him with): his slashes and his thrust into the ground knock stars out, as King Dedede's landings and his
+ * hammer do (bosses/dedede.c's Stars(): KatAM's star enemy, enemies/star.c, which Kirby inhales and spits back at him as a star),
+ * moving as King Dedede's (NiDL's type 0x8B, 0x08067258): out 2 pixels a frame his way and up 1.5, 6 frames; then 0.5 and 0.5, 12
+ * frames; still, twinkling, till its 75th frame, gone. Each step: its frame (King Dedede's star's: 4-13), its frames, its speed (1:
+ * slower, 2: still); */
+static const u8 sStarSteps[][3] = {
+    { 13, 2, 0 }, { 12, 2, 0 }, { 11, 2, 0 },
+    { 8, 1, 1 }, { 4, 3, 0 }, { 10, 1, 0 }, { 5, 3, 0 }, { 9, 1, 0 }, { 6, 3, 0 }, { 10, 1, 2 }, { 7, 3, 0 },
+    { 8, 1, 0 }, { 4, 3, 0 }, { 10, 1, 0 }, { 5, 3, 0 }, { 9, 1, 0 }, { 6, 3, 0 }, { 10, 1, 0 }, { 7, 3, 0 },
+    { 8, 1, 0 }, { 4, 3, 0 }, { 10, 1, 0 }, { 5, 3, 0 }, { 9, 1, 0 }, { 6, 3, 0 }, { 10, 1, 0 }, { 7, 3, 0 },
+    { 8, 1, 0 }, { 4, 3, 0 }, { 10, 1, 0 }, { 5, 3, 0 }, { 9, 1, 0 }, { 6, 3, 0 }, { 10, 1, 0 }, { 7, 3, 0 },
+    { 11, 2, 0 }, { 12, 2, 0 }, { 13, 1, 0 },
+};
+#define STAR_STEPS (sizeof(sStarSteps) / sizeof(sStarSteps[0]))
+
+// StarSet(); A star's step `step` starts: its frame, its frames, its speed;
+static void StarSet(struct Fight *f, struct FightStar *s, u8 step) {
+    s->step = step;
+    s->wait = sStarSteps[step][1];
+    if (sStarSteps[step][2] == 1) {
+        s->vx = s->vx < 0 ? -0x80 : 0x80;
+        s->vy = -0x80;
+    } else if (sStarSteps[step][2] == 2) {
+        s->vx = s->vy = 0;
+    }
+    NidlSetFrame((struct NidlObject *)s->obj, STAR_FRAMES + sStarSteps[step][0] - 4);
+}
+
+// Star(); A star out of his attack at (x, y) (pixels), going `facing`'s way (none when all STARS are out, or past the screen's sides);
+static void Star(struct Fight *f, s32 x, s32 y, s8 facing) {
+    struct Object *obj = f->obj, *star;
+    struct FightStar *s;
+    u8 i;
+
+    if (x < ScreenX(obj) + WALL_X || x > ScreenX(obj) + 240 - WALL_X) return;
+    for (i = 0; i < STARS && f->stars[i].obj; i++) ;
+    if (i >= STARS) return;
+    s = &f->stars[i];
+    star = CreateObjTemplateAndObj(obj->base.unk56, 1, 0x24, x, y, 0, 0x1F, 0, 0, NIDL_TYPE, NIDL_SPECIAL << 4 | 2, 0, 0, 0, 0, 0, 0, 0,
+                                   0, 0, 0, 0, 0);
+    if (star == NULL) return;
+    // (KatAM's despawn off the screen not its while the fight drives it);
+    star->base.flags |= 0x2000000;
+    s->obj = star;
+    s->x = x << 8;
+    s->y = y << 8;
+    s->vx = facing == -1 ? -0x200 : 0x200;
+    s->vy = -0x180;
+    StarSet(f, s, 0);
+}
+
+// SlashStar(); A slash's star, STAR_AHEAD ahead of him his way, on the floor;
+static void SlashStar(struct Fight *f) {
+    Star(f, X(f) + f->facing * STAR_AHEAD, Y(f) + STAR_DOWN, f->facing);
+}
+
+// DriveStars(); His stars each frame: gone or inhaled, let go; else their step, their move, their frame and palette (his dust's: NiDL's
+// shared palette 15, as King Dedede's);
+static void DriveStars(struct Fight *f) {
+    u8 i;
+
+    for (i = 0; i < STARS; i++) {
+        struct FightStar *s = &f->stars[i];
+        struct Object *star = s->obj;
+
+        if (star == NULL) continue;
+        if ((star->base.flags & 0x1000) || (star->base.unkC & 0x400)) {
+            s->obj = NULL;
+            continue;
+        }
+        if (s->wait && !--s->wait) {
+            if (s->step + 1 >= STAR_STEPS) {
+                star->base.flags |= 0x1000;
+                s->obj = NULL;
+                continue;
+            }
+            StarSet(f, s, s->step + 1);
+        }
+        s->x += s->vx;
+        s->y += s->vy;
+        star->base.x = s->x;
+        star->base.y = s->y;
+        star->base.xspeed = star->base.yspeed = 0;
+        star->base.sprite.palId = f->pal[PAL_DUST];
+        star->base.flags |= 1;
+    }
+}
+
+// ReleaseStars(); His stars gone (his duel over), but those Kirby inhaled;
+static void ReleaseStars(struct Fight *f) {
+    u8 i;
+
+    for (i = 0; i < STARS; i++) {
+        struct Object *star = f->stars[i].obj;
+
+        if (star && !(star->base.flags & 0x1000) && !(star->base.unkC & 0x400)) star->base.flags |= 0x1000;
+        f->stars[i].obj = NULL;
+    }
+}
+
 /* His duel (MetaKnightMain()): NiDL's main each frame (0x080A56B0): a hit taken first (Hit(): KatAM's come between frames); hurt, frozen
  * (Hurt()); else his script (WAIT() resumes it that many frames on), his move (Move()), his state's function (Frame()), his box
  * (Boxes()). His states:
@@ -1629,9 +1751,10 @@ static void Effect(struct Fight *f, u8 kind, s32 x, s32 y, s8 facing) {
  * • 7: running at Kirby (82-87, 1.75 pixels a frame), within 43 pixels one slash, two or three (sRunMoves, by his HP);
  * • 8, 9, 11, 12, 14, 16: leaps (crouched 20 frames, up 3.2 or 2.4 pixels a frame, 1.5 ahead or straight up), falling a move (13 his
  *   spin, 15 his thrust down, 17 his up-slash: sAirMoves, by where Kirby is), landed crouched (10);
- * • 13: his spin (114-121, twice, four times high up) falling; 15: his thrust down (111-113), the ground's dust; 17, 18: his up-slash,
- *   in the air or not (98-104, a hop up);
- * • 19, 20, 21: one, two, three slashes, lunging (2 pixels a frame 8 frames, 1 8; the third 2, 1.5, 0.75), the dust behind him;
+ * • 13: his spin (114-121, twice, four times high up) falling; 15: his thrust down (111-113), the ground's dust, a star either way
+ *   (Star()); 17, 18: his up-slash, in the air or not (98-104, a hop up);
+ * • 19, 20, 21: one, two, three slashes, lunging (2 pixels a frame 8 frames, 1 8; the third 2, 1.5, 0.75), the dust behind him, a
+ *   star ahead (SlashStar());
  * • 22: a hit guarded (in his moves: a chance in 16 by his HP's quarter, 2 at full HP to 5 under a quarter; its HP given back), the
  *   spark, knocked back; 23: inhaled, holding out 60 frames, then free (his box 1) running or leaping (sFreeMoves).
  * Hurt (not guarded), he freezes 13 frames, jittering, flashing in his hurt colors (Colors()), the room's layers mosaic (Hurt()). His
@@ -1659,6 +1782,7 @@ static void MetaKnightMain(struct Object *obj) {
     if (f->hurt) {
         Hurt(f);
         Boxes(f);
+        DriveStars(f);
         return;
     }
     if (f->restart) {
@@ -1671,6 +1795,7 @@ static void MetaKnightMain(struct Object *obj) {
     Move(f);
     Frame(f);
     Boxes(f);
+    DriveStars(f);
     // (Galaxia's box from his leap down on: NiDL's companion);
     if (f->sword == NULL && f->state != 0) f->sword = Sword(f);
 }
@@ -1726,6 +1851,7 @@ void MetaKnightStart(struct Object *obj) {
     f->walls = 0;
     f->floorY = obj->base.y;
     for (i = 0; i < PALS; i++) f->pal[i] = 0;
+    for (i = 0; i < STARS; i++) f->stars[i].obj = NULL;
     // (his own sprite's never shown again, his duel's task's are him: its VRAM theirs; unkC 0x200 keeps KatAM from giving it VRAM
     // again, flag 8 from animating it);
     obj->base.unkC |= 0x200;

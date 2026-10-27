@@ -2029,7 +2029,13 @@ void KingDededeInit(struct NidlObject *n) {
 /* His defeat (DededeEnd(), as KatAM's explosion bursts him: NiDL's type 0x3B's second object, 0x080A150C: its states 0x080A1590,
  * 0x080A18D4), traced frame by frame: beaten (9), facing Kirby, down to the floor; 16 frames on, the screen shakes, he slides his
  * way (10: 2, 1, 0.5 pixels a frame, 8 frames each), dazed (11, 12: sDaze); 120 frames from his landing on, and 84 more (NiDL's
- * story's start: not here), his shard (NidlBossShard()); dazed till Kirby leaves the room; */
+ * story's start: not here), his shard (NidlBossShardAt()); dazed till Kirby leaves the room; */
+// Where his shard goes on the screen (EndScript()): x the side away from him, y over the Fountain of Dreams behind the fight;
+#define SHARD_MIDDLE 120
+#define SHARD_LEFT 56
+#define SHARD_RIGHT 184
+#define SHARD_TOP 40
+
 struct DededeEnd {
     struct EffectObject e;              // (the task's own: never shown);
     struct EffectObject *parts[3];
@@ -2079,7 +2085,11 @@ static void EndScript(struct DededeEnd *end) {
     while (end->timer > 0) END_WAIT(1);
     END_WAIT(24);
     END_WAIT(60);
-    NidlBossShard(end->unk56, end->e.roomId, end->shard);
+    // (up in the night sky, on the screen's side away from him: at the screen's middle, the shard sat in the Fountain of Dreams'
+    // cup behind the fight and looked part of it, and his Maxim Tomato fell where he lay dazed, drawn over it: the owner's, no
+    // shard seen);
+    NidlBossShardAt(end->unk56, end->e.roomId, end->shard,
+                    a->ix - (gCurLevelInfo[end->unk56].viewportPosition.x >> 8) < SHARD_MIDDLE ? SHARD_RIGHT : SHARD_LEFT, SHARD_TOP);
     for (;;) END_WAIT(1);
     END_SCRIPT_END;
 }

@@ -110,6 +110,7 @@
         const byte NightmareBoss = 8;       // NIDL_NIGHTMARE;
         const byte DededeBoss = 6;          // NIDL_KING_DEDEDE: Kirby drops into his room from its top, the camera following (BossIn(), arena.c);
         const int DededeScreenY = 168;      // His fight's screen's top, held the whole fight (bosses/dedede.c's NIDL_SCREEN_Y);
+        const int DropRoomTop = 8;          // The highest the camera's held as Kirby drops in (arena.c's ROOM_TOP);
         /* Kracko's fight starts at its tower's bottom (its eye chasing Kirby up, the camera following him) and goes on at the top, where NiDL
          * locks its camera as it comes near (8, 16: "ROM Expansion/bosses/kracko.c"'s LOCK_TOP): its arena's screen, which waits for it to say
          * (subtype2 3, BossLocksArena; arena.c's ArenaGo()); */
@@ -4451,8 +4452,9 @@
             return cells;
         }
 
-        /* Arenas(); A room's (part's) mini-bosses' fight areas (ArenaOf(), pixels), as BuildObjects() gives them; `sinking`, the Power
-         * Orb's down to where its screen stops sinking (BuildNavigation()); */
+        /* Arenas(); A room's (part's) mini-bosses' fight areas (ArenaOf(), pixels), as BuildObjects() gives them; `sinking`, all the
+         * camera's held on (BuildNavigation()): the Power Orb's down to where its screen stops sinking, King Dedede's up to the room's
+         * top, where its lock rides as Kirby drops in (arena.c's DROP_VIEW, ROOM_TOP); */
         static List<(int left, int top, int width, int height)> Arenas(byte[] nightmare, NightmareRoom r, bool sinking = false) {
             List<(int, int, int, int)> arenas = new List<(int, int, int, int)>();
             int list = ReadInt(nightmare, r.Record + 0x48);
@@ -4467,6 +4469,7 @@
                     var arena = spot.boss == KrackoBoss ? KrackoTop
                         : ArenaOf(r, (x + spot.screenDx, y + spot.screenDy), x, y, CameraTop(nightmare, r), HiddenRows * 16);
                     if (sinking && spot.boss == PowerOrbBoss) arena.height = Math.Min(arena.height + PowerOrbSink, r.FullHeight * 16 - arena.top);
+                    if (sinking && spot.boss == DededeBoss) arena = (arena.left, DropRoomTop, arena.width, arena.height + arena.top - DropRoomTop);
                     arenas.Add(arena);
                 }
             }
@@ -4564,9 +4567,10 @@
          * most), a zone per block Kirby can stand in (its point: the open cell over a floor nearest its middle), the others' cells
          * given to the nearest zone; blocks side by side are neighbours. A fight's area (Arenas(), where the camera is held) holds a
          * zone's point: a called helper looks for one inside the camera's bounds, forever if there's none (sub_08010034); one whose
-         * screen sinks (the Power Orb's, taller than a screen) a zone in each block down its middle (a block without one: the open
-         * cell nearest the block's middle; blocks under a screen high), all neighbours, so its bounds hold one he can reach as it
-         * sinks; returns its address; */
+         * screen sinks (the Power Orb's, taller than a screen) or rises (King Dedede's: from the room's top, as Kirby drops in, a
+         * helper in the room froze the game) a zone in each block down its middle (a block without one: the open cell nearest the
+         * block's middle; blocks under a screen high), all neighbours, so its bounds hold one he can reach as it moves; returns its
+         * address; */
         static int BuildNavigation(byte[] rom, NightmareRoom r, byte[] collision, int routes, List<(int left, int top, int width, int height)> arenas, ref int cursor) {
             int width = r.FullWidth, height = r.FullHeight;
             bool Open(int x, int y) => x >= 0 && y >= 0 && x < width && y < height
@@ -4598,7 +4602,7 @@
                 bool Inside(int x, int y) => x * 16 + 8 > arena.left && x * 16 + 8 < arena.left + arena.width
                                              && y * 16 + 8 > arena.top && y * 16 + 8 < arena.top + arena.height;
                 if (arena.height > 160) {
-                    // (a sinking fight's: down its middle column, a zone in each block without one, at the open cell nearest its middle);
+                    // (a sinking or rising fight's: down its middle column, a zone in each block without one, at the open cell nearest its middle);
                     int column = (arena.left + arena.width / 2) / 16, bx = column / blockWidth;
                     for (int by = arena.top / 16 / blockHeight; by * blockHeight * 16 < arena.top + arena.height && zones.Count < 32; by++) {
                         if (zones.Any(z => z.bx == bx && z.by == by)) continue;
