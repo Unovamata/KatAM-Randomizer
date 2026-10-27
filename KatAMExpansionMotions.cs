@@ -60,7 +60,9 @@ namespace KatAMRandomizer {
              * to the orb (flying up, then down, the swing at it, the rod held out, a swing, held up; "ROM Expansion/abilities/star_rod.c");
              * the swing on the ground or in the air, in Nightmare's fight (its star on the 5th frame); in his intro, knocked off the warp
              * star: tumbling, the rod turning with him (96 and 111 down to 97, a frame each, from the one before NiDL's first, 109: KatAM
-             * steps it as it starts), then fallen, his back to us, the rod held out ("ROM Expansion/bosses/nightmare.c"); */
+             * steps it as it starts), then fallen, his back to us, the rod held out ("ROM Expansion/bosses/nightmare.c"); the jump's spin
+             * (NiDL's Kirby with the rod spins from his jump's first frame till he lands, the rod sweeping a rainbow arc, 0xFE5-0xFEC a
+             * frame each, as recorded in its fight; played at KatAM's jump's animation indexes, StarRodJumpIndexes); */
             new Motion(7, 0, new[] { (0x103F, 1) }, -1),
             new Motion(7, 1, Frames(new[] { (0x1040, 4) }, Frames(0x1041, 0x104F, 1), new[] { (0x1050, 2), (0x103F, 1) }), -1),
             new Motion(7, 2, new[] { (0x1057, 1), (0x1058, 2), (0x1059, 1) }, -1),
@@ -78,7 +80,14 @@ namespace KatAMRandomizer {
             new Motion(7, 12, Frames(new[] { (0x1026, 1), (0x1027, 1) }, Frames(0x1029, 0x1034, 1), new[] { (0x1035, 2) }), -1),
             new Motion(7, 13, Enumerable.Range(0, 16).Select(i => (0x1060 + ((14 - i) & 15), 1)).ToArray(), 0),
             new Motion(7, 14, new[] { (0x1009, 1) }, -1),
+            new Motion(7, 15, Frames(0xFE5, 0xFEC, 1), 0),
         };
+        /* KatAM's jump's animation indexes, its rise (15) and its flip (16: its fall, sub_08044FD4, goes on to 17 once the flip's anim ends,
+         * which a looping one never does, so it lasts till he lands, as NiDL's spin; walking off a ledge is 17 at once, no spin), which the
+         * Star Rod plays its spin at ("ROM Expansion/abilities.c"'s NidlAbilitySetup(): the body; its hat table here); the spin motion; */
+        static readonly int[] StarRodJumpIndexes = { 15, 16 };
+        const int StarRodSpin = 15;
+        const int StarRodGlowFirst = 0xFED;   // (NiDL's frames with a glowing version, + StarRodGlow: the spin's, before, have none);
 
         // NiDL's plain Kirby palette colors 1-11, the same as KatAM's (the player's palette);
         static ushort[] PlainKirby(byte[] nightmare, NightmareRegion region) {
@@ -338,7 +347,8 @@ namespace KatAMRandomizer {
         /* BuildMotions(); The body and hat motion anims (a variant per motion, in Motions' order), each ability's hat table entries at its
          * motion slots, and the body's AnimInfos for gNidlAbilityData.motions (NIDL_ABILITY_COUNT x MotionSlots, 0: none). The Star Rod's
          * hat frames (its motions are the last) have glowing versions, as its hat's (AddGlows(): the hat anim, first frame and count in
-         * `glows`' 3-5; the glow on the hat, over the frame's own body), and its hat's palette its cycle (StarRodPalettes(): `glows`' 9); */
+         * `glows`' 3-5; the glow on the hat, over the frame's own body), and its hat's palette its cycle (StarRodPalettes(): `glows`' 9)
+         * but on its spin's frames (the last, from `glows`' 12 on); */
         static int[] BuildMotions(byte[] rom, byte[] nightmare, NightmareRegion region, int[] hatTables, int[] hatPalettes, bool[][] paletteUsed,
                                   int tilesBase, ref int cursor, int firstAnimId, List<int> animVariants, List<int> animAttributes, List<int> animOams,
                                   int[] glows) {
@@ -357,7 +367,7 @@ namespace KatAMRandomizer {
                     frameIndexes[frame] = bodies.Count;
                     bodies.Add(body);
                     hatPixels.Add(hat);
-                    glowPixels.Add(motion.Ability == StarRod ? MotionFrame(nightmare, region, frame + StarRodGlow, plain, allHat).hat : hat);
+                    glowPixels.Add(motion.Ability == StarRod && frame >= StarRodGlowFirst ? MotionFrame(nightmare, region, frame + StarRodGlow, plain, allHat).hat : hat);
                     frameAbility.Add(motion.Ability);
                 }
             int glowFirst = frameAbility.IndexOf(StarRod);
@@ -399,6 +409,9 @@ namespace KatAMRandomizer {
                 glowing.Add(glowPixels[i] != hatPixels[i] ? HatOf(glowPixels[i], palettes[frameAbility[i]]) : hats[i]);
             }
             (glows[4], glows[5]) = AddGlows(hats, glowing, glowFirst);
+            // (the spin's frames, the last: in the rod's own colors, NidlDisplaySprite());
+            glows[12] = frameIndexes[Motions.First(m => m.Ability == StarRod && m.Number == StarRodSpin).Frames[0].frame];
+            if (Enumerable.Range(glows[12], frameAbility.Count - glows[12]).Any(i => frameAbility[i] != StarRod)) throw new ArgumentException("The Star Rod's spin isn't last");
 
             // Data: per anim, tiles (aligned to the tiles base), attributes and OAM;
             (int tileIndex, int[] frameTile) WriteFrames(List<(byte[] tiles, ushort[] oams, short[] attributes)> frames) {
@@ -456,6 +469,12 @@ namespace KatAMRandomizer {
                 if (hatTables[ability] == 0) continue;
                 WriteShort(rom, hatTables[ability] + (MotionSlot + number) * 4, hatAnim);
                 rom[hatTables[ability] + (MotionSlot + number) * 4 + 2] = (byte)m;
+                // (the Star Rod's spin: its jump's indexes too);
+                if (ability == StarRod && number == StarRodSpin)
+                    foreach (int index in StarRodJumpIndexes) {
+                        WriteShort(rom, hatTables[ability] + index * 4, hatAnim);
+                        rom[hatTables[ability] + index * 4 + 2] = (byte)m;
+                    }
             }
             cursor = place;
             return bodyInfos;

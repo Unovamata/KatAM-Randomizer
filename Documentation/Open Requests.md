@@ -44,9 +44,11 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
   three versions). Needs the owner's details: when in the defeat, what it looked like (a screenshot if possible), which version.
 
 ## 45. The Star Rod: questions for the owner
-- The rod isn't drawn in the poses its hat has no NiDL frame for (swimming, climbing a ladder and a few others:
-  `KatAMExpansionHats.cs`' `HatFrames`); its stars fly through walls (as in the finale's fights); outside the fights the HUD card
-  shows the rod's picture, as for any ability.
+- Its stars fly through walls (as in the finale's fights); outside the fights the HUD card shows the rod's picture, as for any
+  ability.
+- NiDL's Kirby with the rod (Nightmare's fight) neither floats nor slides: A in the air keeps him spinning, Down + A stands him up.
+  Ours still floats and slides as KatAM's Kirby does, with the rod held (his jump is NiDL's spin now, till he lands). Say if he
+  should do as NiDL's.
 - Only the Star Rod's hat is drawn behind Kirby where NiDL draws it behind him; the other new abilities' hats have 1-4 such
   frames each and are left as they were. Say if they should follow too.
 - Its stand unlocks with KatAM's ending (as the Master Sword's). Should beating Nightmare unlock it instead, and should the

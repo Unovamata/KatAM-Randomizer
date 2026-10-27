@@ -72,7 +72,10 @@ enum { HI_JUMP_MOTION_CROUCH, HI_JUMP_MOTION_RISE };    // (the rise: NiDL's fiv
 enum { MIKE_MOTION_1, MIKE_MOTION_2, MIKE_MOTION_3, MIKE_MOTION_1_END, MIKE_MOTION_2_END, MIKE_MOTION_3_END };
 enum { STAR_ROD_MOTION_HOLD, STAR_ROD_MOTION_SHOOT, STAR_ROD_MOTION_RIGHT, STAR_ROD_MOTION_LEFT, STAR_ROD_MOTION_UP, STAR_ROD_MOTION_DOWN,
        STAR_ROD_MOTION_RIGHT_END, STAR_ROD_MOTION_LEFT_END, STAR_ROD_MOTION_UP_END, STAR_ROD_MOTION_DOWN_END, STAR_ROD_MOTION_HURT,
-       STAR_ROD_MOTION_INTRO, STAR_ROD_MOTION_SWING, STAR_ROD_MOTION_TUMBLE, STAR_ROD_MOTION_FALLEN };
+       STAR_ROD_MOTION_INTRO, STAR_ROD_MOTION_SWING, STAR_ROD_MOTION_TUMBLE, STAR_ROD_MOTION_FALLEN, STAR_ROD_MOTION_SPIN };
+// KatAM's jump's animation indexes (its rise, its flip: held till he lands when its anim loops), the Star Rod's spin's too;
+#define KIRBY_JUMP_RISE 15
+#define KIRBY_JUMP_FLIP 16
 
 // NidlMotion(); Plays one of the ability's motions;
 #define NidlMotion(kirby, motion) ((kirby)->animationIndex = NIDL_MOTION_SLOT + (motion))
@@ -88,9 +91,10 @@ struct NidlAbilityData {
     struct AnimInfo motions[NIDL_ABILITY_COUNT][NIDL_MOTION_SLOTS]; // Body animations of the motions (0: none), see NidlAbilitySetup;
     void (*displaySpriteOriginal)(struct Sprite *);
     struct {
-        u16 anim, first, count, unused;                 // The Star Rod's anims (its hat's, its motions', its stand's): its frames first on
+        u16 anim, first, count, plain;                  // The Star Rod's anims (its hat's, its motions', its stand's): its frames first on
     } glows[3];                                         // (the motions' anim is every ability's: the rod's are the last), then their
-                                                        // glowing versions, count frames on (see NidlDisplaySprite);
+                                                        // glowing versions, count frames on (see NidlDisplaySprite); from `plain` on
+                                                        // (0: none), its own colors, no glow (the motions': the jump's spin);
     const u16 *rodPalettes;                             // Its hat's palette bright, halfway, and its own (16 colors each);
     const u16 *hiJumpFlash;                             // The Hi-Jump's glow: the body's colors (1-11 of 16), then its hat's (16);
     u16 hiJumpFx;                                       // Its effects' anim (KatAMExpansion.cs, HiJumpEffects);

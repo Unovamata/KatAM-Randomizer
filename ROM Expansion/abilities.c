@@ -44,7 +44,9 @@ const struct NidlAbilityTables gNidlAbilityTables = {
 };
 
 /* NidlAbilitySetup(); gUnk_083509D0's (on getting the ability): points the player's motion slots to the ability's motions (the rest
- * are Normal's, which losing the ability restores, like for KatAM's abilities); */
+ * are Normal's, which losing the ability restores, sub_0806E4EC, like for KatAM's abilities, which set some of theirs here too); the
+ * Star Rod's jump (its rise and flip) is its spin, as NiDL's Kirby with the rod spins from his jump till he lands (the flip held
+ * while its anim loops; its hat table's the same, KatAMExpansionMotions.cs); */
 void NidlAbilitySetup(struct Kirby *kirby) {
     struct AnimInfo *dst = gUnk_02021590[kirby->base.unk56] + NIDL_MOTION_SLOT;
     const struct AnimInfo *src = gNidlAbilityData.motions[kirby->ability - NIDL_FIRST_ABILITY];
@@ -54,6 +56,11 @@ void NidlAbilitySetup(struct Kirby *kirby) {
         if (!src[i].animId) continue;
         dst[i].animId = src[i].animId;
         dst[i].variant = src[i].variant;
+    }
+    if (kirby->ability == NIDL_ABILITY_STAR_ROD && src[STAR_ROD_MOTION_SPIN].animId) {
+        dst = gUnk_02021590[kirby->base.unk56];
+        dst[KIRBY_JUMP_RISE].animId = dst[KIRBY_JUMP_FLIP].animId = src[STAR_ROD_MOTION_SPIN].animId;
+        dst[KIRBY_JUMP_RISE].variant = dst[KIRBY_JUMP_FLIP].variant = src[STAR_ROD_MOTION_SPIN].variant;
     }
     if (kirby->ability == NIDL_ABILITY_MIKE) NIDL_MIKE_USES(kirby) = 0;
 }
@@ -84,10 +91,11 @@ void NidlAbilityHudTimer(struct Kirby *kirby, u8 portrait, u16 frames) {
 }
 
 /* StarRodPalette(); The rod's palette (Kirby's second, with NiDL's Star Rod: 0x0803DB74, as his drawing starts), on a cycle of 10
- * frames: bright for 2 (0x08226254), halfway for 1, then his own for 7 (written once); the hat's here, on KatAM's frame counter; */
-static void StarRodPalette(struct Sprite *sprite) {
+ * frames: bright for 2 (0x08226254), halfway for 1, then his own for 7 (written once); the hat's here, on KatAM's frame counter. `own`:
+ * his own throughout (the jump's spin: NiDL's arc never brightens, and its colors are the hat palette's, the rod's among them); */
+static void StarRodPalette(struct Sprite *sprite, bool32 own) {
     u32 step = gUnk_0203AD40 % 10;
-    const u16 *colors = gNidlAbilityData.rodPalettes + (step < 2 ? 0 : step - 1) * 16;
+    const u16 *colors = gNidlAbilityData.rodPalettes + (own ? 2 : step < 2 ? 0 : step - 1) * 16;
 
     if (step > 3) return;
     if (gMainFlags & MAIN_FLAG_OBJ_PALETTE_TRANSFORMATION_ENABLE) LoadObjPaletteWithTransformation(colors, sprite->palId * 16, 16);
@@ -110,7 +118,12 @@ void NidlDisplaySprite(struct Sprite *sprite) {
 
     for (i = 0; i < ARRAY_COUNT(data->glows); i++) {
         if (sprite->animId != data->glows[i].anim || !sprite->animId || frame - data->glows[i].first >= data->glows[i].count) continue;
-        StarRodPalette(sprite);
+        // (the spin's frames: no cycle, no glow);
+        if (data->glows[i].plain && frame >= data->glows[i].plain) {
+            StarRodPalette(sprite, TRUE);
+            break;
+        }
+        StarRodPalette(sprite, FALSE);
         if (!(gUnk_0203AD40 & 3)) {
             sprite->unk4 = frame + data->glows[i].count;
             data->displaySpriteOriginal(sprite);

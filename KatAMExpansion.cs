@@ -1216,7 +1216,7 @@ namespace KatAMRandomizer {
             }
 
             // The new abilities' hats and motions (anims after the enemies');
-            int[] hatTables, motions, hatPalettes = new int[NewAbilities], glows = new int[12];
+            int[] hatTables, motions, hatPalettes = new int[NewAbilities], glows = new int[13];
             int backdropPalette;
             (int animId, int tiles) rodStand;
             bool[][] paletteUsed = new bool[NewAbilities][];

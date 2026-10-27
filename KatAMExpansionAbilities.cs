@@ -109,6 +109,7 @@
             if (display < 0) return $"The {version.Name} ROM's sprite code doesn't match.";
             WriteInt(rom, after, display + 0x08000000 + 1);
             for (int i = 0; i < 9; i++) WriteShort(rom, after + 4 + i / 3 * 8 + i % 3 * 2, glows[i]);
+            WriteShort(rom, after + 4 + 8 + 6, glows[12]);    // (the motions' `plain`: the jump's spin's first frame);
             WriteInt(rom, after + 28, glows[9] + 0x08000000);
             WriteInt(rom, after + 32, glows[10] + 0x08000000);
             WriteShort(rom, after + 36, glows[11]);
