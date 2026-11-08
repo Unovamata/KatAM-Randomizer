@@ -313,7 +313,7 @@ switches on the ID (0x00-0x47): each case allocates the enemy's object (its own 
 | 0x39 | kracko | Mecha-Kracko (ported: `squeak/mecha_kracko.c`) |
 | 0x3A | mrsMoley_cmn | Mrs. Moley (ported: `squeak/mrs_moley.c`) |
 | 0x3B | yadgaine | Yadgaine (ported: `squeak/yadgaine.c`) |
-| 0x3C | bohboh | Bohboh |
+| 0x3C | bohboh | Bohboh (ported: `squeak/bohboh.c`) |
 | 0x3D | dancho00, dancho01 | Daroach (his boss fight: `dan_dmg`, `prmBB07Ml0`/`Sl0`, its graphics loaded near `0x021270F0`) |
 | 0x3E, 0x3F, 0x46 | darkZERO_cmn | Dark Nebula / Dark Daroach (to be matched) |
 
@@ -460,6 +460,37 @@ ahead of the leg that knocked it), 5 a small rock 33, 6 a big one 32, 7 a gordo 
 through everything), 8 Daroach (`demo_dancho`'s 1-5, off at -2.0, 2.0)). `.rca`'s animations are the `.cea`'s two behind. Its
 stage `map/a4s7s2` (`a4s7.mxi`'s part 2: `30_f`/`30_b`, `pa_30`, `d_viw_14`; its spawn in `a4s7s2.doe`: 0x3B at 64, 160), 64 by 15
 tiles, its width set to 512000 pixels: the camera's lock (`0x02035C04`) moves on with the scroll for good.
+
+**Bohboh** (boss 0x3C, ported: `squeak/bohboh.c`): its body `0x02111370` (`EnemyBaseCtor(0x3C)`, `enemy/bohboh`, its hurt palettes
+`bo_bo_dmg`; vtable `0x02181770`: +0x34 per frame `0x02111568`, +0x30 its hit `0x02110F98` (none while +0x1F8, its 32 safe frames,
+or while it holds Kirby, +0x164), +0x2C its touch `0x021111CC` (kind 6 on a player: it grabs him, `0x0210EB40`), +0x18 its hurt flash
+`0x02110D98`, +0x84 `0x02110D50` (lets what it holds go with damage), +0x3C `0x0210E1FC`), flags 0x200 and 0x20000 (through the terrain,
+not held in the stage), params `prmBB06Ml0` (+0x08 0.1 gravity, +0x0C 32 safe frames, +0x14/+0x18 the intro's 60 frames and 2.0,
++0x1C..+0x24 coming in from 80 out and 80 over a point in 60 frames, +0x30/+0x34 its waits 30 and 60, +0x38/+0x3C the points right and
+left of the middle (+1), +0x44..+0x50 its leap (3.0 across, 3.5 down, 0.11 up a frame; 8 frames to settle), +0x58 its charge 2.0,
++0x5C a fire every 30 frames, +0x64 its pass 2.0, +0x70..+0x7C its swoop (60 frames backing 0.4 and rising 0.2, then 4.0 at Kirby's
+feet), +0x80 60 frames out of view, +0x84..+0x90 its dive (0.2 back, 2.0 up, 0.2 gravity), +0x94 120 frames in the lava, +0x98..+0xA0
+its rise (0.5 up, 60 frames, its flare 20), +0xA4..+0xB4 its grab (60 frames' carry, thrown at 5.0 down to point 2 (+0xAC 3), 6 damage,
+Kirby's 120 safe frames)), `Pl0` (+0x00 its short wait 50 in 100; +0x08..+0x10 and +0x18..+0x24 its picks with two of the stage's
+enemies out or more, and fewer; +0x2C its swoop after a charge or pass 30; +0x34/+0x38 a drop every 40 + rand(20) frames in the lava;
++0x3C an enemy 30 in 100), `Sl0` (350 HP). Its states `0x0210E16C`-`0x02110C7C`: intro `0x02110C7C`-`0x021109F4` (its animation 4,
+small, far off), wait `0x021108EC`/`0x02110898`, picks `0x02110828` (`0x0220A224`: the stage's records out), `0x0211072C`/`0x02110654`;
+leap `0x021104D8`-`0x02110290`, charge `0x02110150`-`0x0210FEF8`, pass `0x0210FE4C`-`0x0210FB48`, after them `0x0210FA6C`/`0x0210F9C0`,
+swoop `0x0210F874`-`0x0210F380`, dive `0x0210F288`/`0x0210F15C` (into the lava: `0x022098F8` 5 under it), the lava `0x0210EEE0` (drops
+from the camera's top-left + rand(256) across: `0x0220A230(stage, 1 + rand(4))` the stage's records 1-4, a Waddle Dee, Pengy, Sir
+Kibble and Hot Head, one of each out at most; else `0x02127824(1, ...)`), rise `0x0210EE18`-`0x0210EC98`, grab `0x0210EB40`-
+`0x0210E788`, defeat `0x0210E730`-`0x0210E294`. What it brings in (`0x02127750`, vtable `0x02183980`, its own `prmBB06Ml0`): kind 0
+its fire (`0x021278CC`, at its spot: `.cea`'s 12, 0.1 gravity, bursting on the ground through the stage's effect 6), 1 a fire from
+the top (11, alike, `0x020B48E0`'s 6), 2 the lava's hurt (`0x0212737C`, made by its intro at the camera's middle and the floor:
+`.cea`'s 18, no cell; `.rca`'s box kind 2, 128 across and 10 high, hurting Kirby, and Bohboh as it dives in: 20). `.mca`: 0 flying,
+1 carrying (its claws, `.cea`'s 9), 2 rising out of the lava, 3 its flare. `.rca`'s animations are the `.cea`'s one on; its hurt
+boxes (0x102) only in its animations 0, 7 (its dive) and 8 (in the lava); its swoop (6) has two grabbing boxes (0x101 kind 6); its far
+flight (4) and throw (10) none. Its stage `map/a5s7s2` (`a5s7.mxi`'s part 2: `09_f`/`09_b`, no palette, `d_viw_0F`; its spawn in
+`a5s7s2.doe`: 0x3C at 36, 236; records 1-4 the enemies it drops), 34 by 26 tiles, the camera held at 272, 136 (its middle), the floor
+and the lava's top at 80 up: its points 0 (356, 176), 1 (200, 176), 2 (272, 44, in the lava), linked 0 and 1 (the table after the
+points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a5s7s1.mxp` and `a5s7s2.mxp` are stored uncompressed
+(the other stages' are RLE): loading them by repointing the stage table needs a test ROM with them compressed; Kirby goes in through
+`a5s7s1`'s door at (134, 545).
 
 **Mrs. Moley** (boss 0x3A, ported: `squeak/mrs_moley.c`): the factory's case makes her (`0x02025962`, `enemy/mrsMoley_cmn`, a null brain), her body `0x0212CF40` (vtable `0x02183F60`: +0x34 per frame `0x0212D198`, +0x30 her hit `0x0212C73C`, +0x2C her touch `0x0212CD2C`, +0x18 her hurt flash `0x0212A89C`: `morly_dmg`'s palettes every 3 frames for 20), params `PrmBB04Ml0` (89 words: +0/+4 her waits under a hole, 40 and 30 after going down by choice; +8 70, her attack chance; +0xC 20 frames before she picks; +0x10..+0x24 the hole she comes up in by Kirby's side; +0x28 20 safe frames; +0x2C..+0x38 her dive: 10 frames, 5.0 up, 140 frames over Kirby, 0.2 gravity; +0x44..+0x5C her crash: 60 frames' shake, 20 HP lost, 20 HP her last stand, 160 frames, her hop 1.2 up, 0.06 gravity; +0x64..+0x134 her things' speeds; +0x13C/+0x140 her extra throws, rand(3); +0x144..+0x15C her things' weights), `PrmBB04Sl0` HP 300. She's drawn from three sprite files, `0x02022F00(this, key, slot)`'s third argument the file: 0 `mrsMoley_cmn` (her small back self's animations 3-7, her big front self's 8-12, stuck 13, defeat 14-15), 1 `_ext00` (her dive: sparkles, jumping out, rising, upside down; landing; crawling, hopping, in a hole, sinking; and with `0x3000000|n` its `.mca`'s composites), 2 `_ext01` (her throw; its `.mca`'s composites the thing in her hand). Her states `0x0212A9C8`-`0x0212C68C`, her modes (`+0x1FC`: 0 the middle back hole, 1 a back hole, 2 a front hole: only then can she be hit) and phases (`+0x1F8`: 1 after choosing to go down, 2 her last stand: always attacking, from the middle). What she throws (`0x02129958(kind, her, offset, way, frames)`, `0x021292EC`, `_ext01`): kinds 0 a rock, 1 a stone, 2 a pebble, 3 a bolt (380 frames), 4 a ring (Wheel), 5 a bomb (Bomb; flashing its last 60), 6 a can (Fire), 7 a saw (Cutter), 8 and 9 grit (harmless, through the floor after a bounce); their flight `0x02127A50` (bouncing: up again at the speed thrown, less each bounce by its own, forward less by its own; bursting after its frames, on Kirby, `0x02129260`, or hit, `0x021291C8`); the abilities through `0x0203A9C4(…, ability)`. Her dirt (`0x0212A624(kind, her, spot, way)`, `0x0212A404`, `_ext00`): 0 the petals' burst, 1 and 2 petals (way 0 falling slowly; 1-6 knocked off, facing right 1-3, left 4-6), 3 her shadow (on Kirby 120 frames, then under her till she lands). Her stage is `map/a2s7s2.mxp` (her spawn in `a2s7s2.doe`: 0x3A at 244, 408), 18 by 30 tiles: its points (`0x02209CC0`) 0 (40, 408) and 1 (248, 408) the front holes, 2 (152, 392) the middle one, 3 (232, 396) and 4 (72, 396) the back ones; its zones (`0x02209C7C`) 0 the left 80 pixels, 1 the right 80, 5 between, 4 and 3 the back holes' tiles, 6 everything over 224 (184 pixels over the front holes: her leap ends 32 pixels over it); Kirby stands at 416, 8 pixels under the holes.
 - **Stage files** (`map/*.mxp`, NDS RLE, type 0x30): `MaD\0`, 8 bytes, then 13 section offsets (`u32` from +0x0C): section 0 the width and height in tiles (bytes); 3-5 and 6-8 the tile grids (16 and 32 bits a tile); 9 the zone grid (a byte a tile), then a `u16` count and 8 bytes a point (`u8` kind, a byte, `u16` x, y and a size, pixels from the top), then the points' table; `.doe` the objects (16 bytes each after a 16-byte header: `u16` the enemy, x, y in pixels from the top, then its bytes). A stage's `.mxi` (`map/aNsM.mxi`) lists its parts' files (`MA` the map, `FB`/`BB` the graphics, `DE` the objects, `PL` a palette, `3D` the background); loaded, its table sits at the stage info (`*(*0x02229F1C + 0x40)` + 0x10, 0x1C bytes a part). To load a stage in the DS emulator, repoint that table's strings to the stage's files and let Kirby lose a life (the stage restarts from its first part): Mrs. Moley's stage was recorded this way from a save in 1-1.

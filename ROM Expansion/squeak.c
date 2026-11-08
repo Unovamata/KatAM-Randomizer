@@ -59,6 +59,8 @@ const s16 gSqueakEnemyHp[SQUEAK_ENEMY_COUNT] = {
     [SQUEAK_YADGAINE_THING] = 1,
     [SQUEAK_YADGAINE_GORDO] = 1,
     [SQUEAK_YADGAINE_DAROACH] = 1,
+    [SQUEAK_BOHBOH] = 70,           // Squeak Squad's 350 (prmBB06Sl0.kgb); KatAM's bosses' 60 for one player as Mrs. Moley's 300 is;
+    [SQUEAK_BOHBOH_THING] = 1,
 };
 
 static const struct SqueakCharacter sSqueakCharacters[SQUEAK_ENEMY_COUNT] = {
@@ -109,6 +111,8 @@ static const struct SqueakCharacter sSqueakCharacters[SQUEAK_ENEMY_COUNT] = {
     [SQUEAK_YADGAINE_THING] = { YadgaineThingInit, YadgaineThingStart, 0, FALSE },
     [SQUEAK_YADGAINE_GORDO] = { YadgaineGordoInit, YadgaineGordoStart, 0, FALSE },
     [SQUEAK_YADGAINE_DAROACH] = { YadgaineDaroachInit, YadgaineDaroachStart, 0, FALSE },
+    [SQUEAK_BOHBOH] = { BohbohInit, BohbohStart, 0, FALSE, TRUE },
+    [SQUEAK_BOHBOH_THING] = { BohbohThingInit, BohbohThingStart, 0, FALSE },
 };
 
 /* SqueakAnimFor(); The anim and variant an object shows (variant << 16 | anim ID), for the game's object drawing (sub_0809A7A4,

@@ -69,6 +69,8 @@ enum {
     SQUEAK_YADGAINE_THING,      // What it throws and knocks down (Squeak Squad's kind the variant: its shot, blocks, rocks);
     SQUEAK_YADGAINE_GORDO,      // A gordo falling in its fight (enemy/gordo);
     SQUEAK_YADGAINE_DAROACH,    // Daroach bringing it in (drawn with his graphics);
+    SQUEAK_BOHBOH,              // A boss (on a mini-boss type, as the mid-bosses);
+    SQUEAK_BOHBOH_THING,        // What it brings in (the variant: its fire, a fire from the top, the lava's hurt);
     SQUEAK_ENEMY_COUNT,
 };
 
@@ -444,5 +446,9 @@ void YadgaineGordoInit(struct SqueakObject *);
 void YadgaineGordoStart(struct Object *);
 void YadgaineDaroachInit(struct SqueakObject *);
 void YadgaineDaroachStart(struct Object *);
+void BohbohInit(struct SqueakObject *);
+void BohbohStart(struct Object *);
+void BohbohThingInit(struct SqueakObject *);
+void BohbohThingStart(struct Object *);
 
 #endif

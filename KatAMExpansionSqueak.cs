@@ -345,6 +345,9 @@ namespace KatAMRandomizer {
         static readonly (int type, int letter)[] YadgaineGlyphs = { (HandDrawn, 0), (0x14, 5), (0x14, 6), (0x16, 3), (0x14, 5), (0x08, 2),
                                                                     (0x01, 3), (0x14, 4) };
 
+        // "B", "o" (Bronto Burt), "h" (Chip), "b" (Sir Kibble), "o" (Bronto Burt), "h" (Chip);
+        static readonly (int type, int letter)[] BohbohGlyphs = { (0x01, 0), (0x01, 2), (0x08, 1), (0x18, 5), (0x01, 2), (0x08, 1) };
+
         static readonly (int type, int letter)[] DaroachGlyphs = { (0x00, 6), (0x14, 5), (0x01, 1), (0x01, 2), (0x14, 5), (0x17, 2), (0x08, 1) };
 
         // "S" (Squishy), "p", "i" (Chip), "n", "n" (Bronto Burt), "i" (Chip);
@@ -502,6 +505,12 @@ namespace KatAMRandomizer {
             new SqueakEnemy(45, "Yadgaine's gordo", "gordo", new[] { 0, 0, 0 }, new (int, int)[0], OnlyAnims: new[] { 3 }),
             // Daroach bringing it in (0x0212E198's kind 8: demo_dancho's animations 1-5), drawn with his graphics, no name;
             new SqueakEnemy(46, "Daroach (Yadgaine's)", "demo_dancho", new[] { 1, 1, 1 }, new (int, int)[0], GraphicsOf: 34),
+            /* Bohboh (a boss, enemy 0x3C: 0x02111370, on mini-boss type 0x40 as the mid-bosses), drawn with enemy/bohboh: all its
+             * animations, its .mca's composites (flying, carrying Kirby, rising out of the lava, its flare: its flames' part drawn on top,
+             * the character's own); its hurt look its dive (cell 29) and in the lava (31); */
+            new SqueakEnemy(47, "Bohboh", "bohboh", new[] { 29, 31, 29 }, BohbohGlyphs, MidbossType: 0x40),
+            // What it brings in (0x02127750: its fire, bohboh's animation 12; a fire from the top, 11; the lava's hurt draws nothing), no name;
+            new SqueakEnemy(48, "Bohboh's thing", "bohboh", new[] { 0, 0, 0 }, new (int, int)[0], OnlyAnims: new[] { 12, 11 }),
         };
 
         public static IReadOnlyList<(int index, string name)> SqueakEnemies => SqueakDefinitions.Select(e => (e.Index, e.Name)).ToList();

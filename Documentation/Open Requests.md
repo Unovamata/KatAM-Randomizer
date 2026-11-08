@@ -241,7 +241,25 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
     alongside in the framework: each ported object's sprite takes as many tiles as its own frames need (not its type's
     biggest), so a boss's legs and showers of things fit KatAM's heap; HP-bar names can have a letter no KatAM name has
     (Yadgaine's "Y", drawn in their style).
-    Next: Bohboh (0x3C), Daroach (0x3D), Meta Knight (0x37), Dark Daroach and Dark Nebula (0x3E, 0x3F, 0x46).
+    Bohboh (0x3C) is ported (`squeak/bohboh.c`): its intro (far off in the background across the view, then in big to its
+    point), its waits and picks (by how many of the stage's enemies are out), its leap from point to point, its charge and its
+    pass dropping fires every 30 frames (the pass back far off in the background), its swoop at Kirby's feet that grabs him,
+    carries him to the other point and throws him down into the lava (hurt), its dive when the swoop ends in the lava (20 of its
+    350 HP: 4 of 70 here), its 120 frames in the lava (the only time it can be hit, with its dive) while fires and the stage's
+    enemies (a Waddle Dee, Pengy, Sir Kibble and Hot Head, KatAM's own, one of each at most) fall from the view's top, its rise
+    and flare. Recorded on the DS in its own stage (a5s7s2, reached through a5s7s1's door; its maps are stored uncompressed, so
+    the stage-loading trick needs a test ROM with them compressed) and checked in KatAM (USA, room 0x323): every move's speeds
+    and frames, the grab, carry and throw (a helper and Kirby taken; Kirby hurt in the lava), the dives into the lava (4 HP each
+    time), the lava phase's fires and enemies (a Sir Kibble and a Waddle Dee dropped), hits landing only in the lava (the
+    helpers' 10), KatAM's defeat when a dive takes its last HP (HP written down to 4 by a RAM write), the HP bar's name. Not
+    tested: a whole fight played through by hand, EU and Japanese builds (built and logic-checked, not played).
+    For the owner to decide: the lava. Squeak Squad's stage draws a lava pool 128 pixels across the middle of the arena, and
+    Bohboh brings in an invisible object over it that hurts whoever touches it (and makes the lava's "floor" its dives and Kirby's
+    throw end in). KatAM's rooms have no lava, so here that hurting strip is invisible on the floor's middle, as ported 1:1. It can
+    stay, be made harmless (kept only as the line its dives and throws end in), or be shown somehow. Also: KatAM's view is 32
+    pixels shorter than the DS's, so at its two points (96 over the floor, as on the DS) the top of its flames can go past the
+    view's top in rooms whose floor sits high in the view.
+    Next: Daroach (0x3D), Meta Knight (0x37), Dark Daroach and Dark Nebula (0x3E, 0x3F, 0x46).
   - Left: those bosses; the randomizer options (a Squeak Squad ROM in the ROM Expansion tab, the enemy pool). The Squeak Squad-only
     enemies, the shared enemies' Squeak Squad behaviors, its mid-bosses and the Squeaks are all done.
 
