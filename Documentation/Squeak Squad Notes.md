@@ -382,6 +382,23 @@ made by `0x020ABF10(kind, body, offset)`: 0/1 shurikens (`0x020AB970`, flag 0x20
 knocked off (`0x020ABCD0`, `0x020ABBD0`, `0x020ABB1C`, bursting at `0x020AB908`). Its rage (`0x020A9C68`, `0x020A9A74`) waits on the
 stage's mode 2 (Kirby carrying the stage's chest), with `spin_col_ang`'s palette.
 
+**Doc** (enemy 0x43, ported: `squeak/doc.c`): its body `0x020DD82C` (vtable `0x0217C874`; per frame `0x020DD674`), its routine
+from `0x020D8F14` (`0x020D8934` chest or Kirby, `0x020D84F4` the attack's path, `0x020D8418` its pick: 5/40/35/20), its flight
+`0x020DAC0C`/`0x020DA91C` (a quadratic Bezier, the control point beside the middle by 0.6 of the other axis' distance, its time the
+distance over its pace's speed) and hover `0x020DA774`/`0x020DA590` (one circle 68 frames, two 116: the first quarter, 1.6 out
+slowing by 0.05, drifts it about 21 pixels each way; the DS recording's (+20, +21.5) after a hover). Its spots: beside Kirby
+`0x020D78F8` (odds by where Doc is from him) and the screen's corners `0x020D76EC` (odds by its last spot). Params `prmDB02Ml0`
+(+0x2F0: its things' spots, gravity, the knockout's speeds, waits, paces), `Sl0` (HP 120). The body switches sprites through
+`+0xE4` (0 `doc`, 1 `doc_at1`); `doc_at1.mca`'s compositions 0-3 are the claw (with the bomb), the two gun shots (ball and
+rings) and the cannon's smoke. Its hit handler `0x020DD0AC`: dizzy (`+0x240`) a treat roll only; `+0x1C0` 2 (from the knockout
+`0x020DC5F0` till the saucer's called, `0x020DB4F4`) ignores hits; a chest touch takes it; kinds 3-5 brace it (`0x020D7114`);
+else damage, a knockout at 90% HP (`0x020DC5F0`-`0x020DB4C4`), else a flinch (`0x020DCDE8`). Its things: `0x020DF354`, made by
+`0x020DF530(kind, doc, offset)` (vtable `0x0217CBCC`): 0/1 bolts (13.0, at 0 or 325 degrees), 2 the bomb (falls to Kirby's
+height, bursts), 3 the missile, 4/5 the lid, 6 the empty saucer, 7 a burst. Their hit handler `0x020B4964` (the attack things'
+base, Spinni's too) takes no grab and passes the rest to `0x02013050`: they go through Kirby. Its DS palettes: `doc` 0 and
+`doc_at1` 0 (its body), `doc` 1 and `doc_at1` 1 (the saucer, the same colors), `doc_at1` 2 (the gun's rings, the same as the
+common effects'), 3 (the arm, ball, bolts and smoke), 4 (the bomb): 57 colors, 5 KatAM palettes at least.
+
 The Squeaks (Squeakers, Doc, Spinni, Storo, Daroach) and Parasol are created elsewhere. Their files: Squeakers `enemy/chun` (and `chun_blue`, `chun_green`, `chun_yellow` palettes; `prmDE01`, loaded at `0x020EC5F4`: its body near `0x020EC5xx`; its 3 palettes loaded by `0x020E8C80`; a thrown Squeaker, on the thrown-things base `0x020B49D8`, `0x020ED208`), Spinni `enemy/spin`, `spin_at` (`prmDB01`, `0x020AB764`, `0x020ABFC4`), Doc `enemy/doc`, `doc_at1` (`prmDB02`, `0x020DD8FC`, `0x020DF5E4`), Storo `enemy/stron`, `stron_atack` (`prmDB03`, `0x020E44A4`), Daroach `enemy/dancho00`, `dancho01` (`prmDB04`, the boss code near `0x02134D64`). Copy abilities KatAM lacks (Ninja, Bubble,
 Animal, Ghost, Metal): the owner decides; meanwhile those enemies give none.
 

@@ -53,6 +53,8 @@ enum {
     SQUEAK_SQUEAKER_BOMB,       // Their bombs (thrown by them, drawn with their graphics; the variant the big one);
     SQUEAK_SPINNI,              // The Squeak Squad's Spinni (the variant 1: no change of pace);
     SQUEAK_SPINNI_THROWN,       // What it throws (its shurikens, its slash, its claws knocked off: the variant; drawn with its graphics);
+    SQUEAK_DOC,                 // The Squeak Squad's Doc, in his flying saucer;
+    SQUEAK_DOC_THING,           // What it makes (its bolts, bomb, missile, its saucer's lid, its empty saucer: the variant);
     SQUEAK_ENEMY_COUNT,
 };
 
@@ -71,7 +73,7 @@ enum { SQUEAK_STAR_AHEAD = 1, SQUEAK_STAR_BEHIND };
 #define SQUEAK_HURT_VARIANTS 3
 
 // Room every ported character gets (SqueakObject and its own fields);
-#define SQUEAK_OBJECT_SIZE 0x170
+#define SQUEAK_OBJECT_SIZE 0x1A0
 
 // SQUEAK_SPEED(); A Squeak Squad speed or position (20.12 fixed point) in KatAM's units (24.8);
 #define SQUEAK_SPEED(value) ((value) >> 4)
@@ -123,7 +125,14 @@ struct SqueakComposite {
     const struct SqueakCompositeStep *step;
 };
 
-// SqueakGraphics; Where a character's graphics went (KatAMExpansionSqueak.cs's SqueakGraphicsSize: 20 bytes);
+/* SqueakPaletteKey; A palette's slot (SqueakLoadPalette): its key and the frame of the key's anim it's loaded from; sprites in the
+ * same colors share one (KatAMExpansionSqueak.cs's SqueakPaletteKey: KatAM keeps 7 palettes for a room's enemies); */
+struct SqueakPaletteKey {
+    u16 key;
+    u16 variant;
+};
+
+// SqueakGraphics; Where a character's graphics went (KatAMExpansionSqueak.cs's SqueakGraphicsSize: 24 bytes);
 struct SqueakGraphics {
     u16 animId;                 // Its anim ID (and palette key);
     u8 cells;                   // Its cells (variants SQUEAK_HURT_VARIANTS on);
@@ -134,6 +143,7 @@ struct SqueakGraphics {
     u16 tiles;                  // The most tiles one of its frames takes (a part's VRAM);
     const struct SqueakComposition *composition;
     const struct SqueakComposite *composite;
+    const struct SqueakPaletteKey *palette;     // Per animation its palette, its cells in different ones (Doc's things); else NULL;
 };
 
 // Squeak Squad's effects the characters show (KatAMExpansionSqueak.cs's SqueakEffectDefinitions: an animation of effect/efc_cmn*);
@@ -145,31 +155,41 @@ enum {
     SQUEAK_FX_STARS,            // 0x020B48E0's type 3 (efc_cmn0's animation 7): a star burst (Bio Spark's kunai stuck in a wall);
     SQUEAK_FX_LAND,             // 0x020219C4's types 1 and 2 (efc_cmn0's animations 23 and 22): a mid-boss's landing puffs;
     SQUEAK_FX_LAND_BIG,
+    SQUEAK_FX_DOC_BALL,         // Doc's composite animations' other parts (doc_at1's animations 4, 5, 11, 12, 18, 26);
+    SQUEAK_FX_DOC_RINGS,
+    SQUEAK_FX_DOC_BALL_LOW,
+    SQUEAK_FX_DOC_RINGS_LOW,
+    SQUEAK_FX_DOC_BOMB,
+    SQUEAK_FX_DOC_SMOKE,
     SQUEAK_FX_COUNT,
 };
 
-// SqueakEffect; An effect: its anim (its frames: the cells its animation shows), the most tiles a frame takes, its animation;
+// SqueakEffect; An effect: its anim (its frames: the cells its animation shows), the most tiles a frame takes, its animation, its palette;
 struct SqueakEffect {
     u16 animId;
     u16 tiles;
     struct SqueakAnim anim;
+    struct SqueakPaletteKey palette;
 };
 
 // SqueakData; Filled in by KatAMExpansionSqueak.cs once the graphics are built;
-/* SqueakLayer; A character's layer (KatAMExpansionSqueak.cs's LayerPalettes: the pieces of its cells in other palettes than its own,
- * a weapon in its hands): an anim of its own (its own palette), its frames' most tiles, per cell its frame + 1 (0: none; | 0x80: drawn
- * in front of the character, its first piece on the DS being one of them); a character without one: anim ID 0; */
+/* SqueakLayer; A character's layer (KatAMExpansionSqueak.cs's Layers: the pieces of its cells in other palettes than its own, a
+ * weapon in its hands, Doc's saucer): an anim of its own (its own palette), its frames' most tiles, per cell its frame + 1 (0: none; | 0x80: drawn
+ * in front of the character, its first piece on the DS being one of them), its palette; a character without one: anim ID 0; */
+#define SQUEAK_LAYERS 2
+
 struct SqueakLayer {
     u16 animId;
     u16 tiles;
     const u8 *cell;
+    struct SqueakPaletteKey palette;
 };
 
 struct SqueakData {
     const u8 *names;            // One 64x8 HP bar name (0x100 bytes) per character;
     const struct SqueakEffect *effects;
     struct SqueakGraphics enemies[SQUEAK_ENEMY_COUNT];
-    const struct SqueakLayer *layers;   // One per character;
+    const struct SqueakLayer *layers;   // SQUEAK_LAYERS per character;
 };
 
 extern const struct SqueakData gSqueakData;
@@ -202,9 +222,9 @@ struct SqueakObject {
     u8 composite;               // The composite animation playing (SqueakPlayComposite), SQUEAK_NO_COMPOSITE while a plain one plays;
     void *follower;             // The effect following it (SqueakSpawnEffect's `follow`), let go when it's destroyed;
     void *parts;                // The composition's other parts (SqueakPartFx, a chain: SqueakAnimate places them);
-    void *layer;                // Its layer's sprite (SqueakShowLayer), while its cell has one;
+    void *layer[2];             // Its layers' sprites (SqueakShowLayer), while its cell has one;
     u32 compositeTime;          // The frames since the composite animation started;
-    s32 vars[16];               // The character's own;
+    s32 vars[28];               // The character's own;
     struct ObjectTemplate spawn;    // Its template, when another character spawned it (SqueakSpawn);
     bool8 activated;            // A mid-boss: its fight has started;
 };
@@ -284,6 +304,8 @@ bool32 SqueakInWater(struct SqueakObject *);
 void SqueakFaceKirby(struct SqueakObject *, s32 distance);
 bool32 SqueakKirbyWithin(struct SqueakObject *, s32 dx, s32 dy);
 void SqueakSpawnEffect(struct SqueakObject *, u8 effect, s32 dx, s32 dy, bool8 follow);
+void SqueakHoldEffect(struct SqueakObject *, u8 effect, s32 dx, s32 dy);
+void SqueakEndHeldEffect(struct SqueakObject *);
 void SqueakSplash(struct SqueakObject *, bool8 out);
 bool32 SqueakTouches(struct SqueakObject *, u8 side, s32 dy, bool8 both);
 struct SqueakObject *SqueakSpawn(struct SqueakObject *, u8 enemy, u8 variant, s32 dx, s32 dy);
@@ -367,5 +389,10 @@ void SpinniStart(struct Object *);
 void SpinniGone(struct SqueakObject *);
 void SpinniThrownInit(struct SqueakObject *);
 void SpinniThrownStart(struct Object *);
+void DocInit(struct SqueakObject *);
+void DocStart(struct Object *);
+void DocGone(struct SqueakObject *);
+void DocThingInit(struct SqueakObject *);
+void DocThingStart(struct Object *);
 
 #endif

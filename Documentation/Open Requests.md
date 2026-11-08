@@ -147,7 +147,21 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
     300 frames; room 0x23A, the chest taken mid-dive, carried home, gone with it). Not tested:
     a treat (hit while dizzy, one in five), its pace off the screen, variant 1, against a DS recording; EU and Japanese builds
     built and logic-checked, not played. Not ported: its sounds, light-hit flinch and its own defeat (KatAM's), the dizzy stars,
-    the stages' routes and tunnels, its rage when Kirby carries the stage's chest. Next: Doc, Storo, then Daroach.
+    the stages' routes and tunnels, its rage when Kirby carries the stage's chest. Its thrown things now go through Kirby as on
+    the DS (his body doesn't hurt them nor shows their HP bar: they share Doc's things' hit handler `0x020B4964`). Doc is ported
+    (`squeak/doc.c`, its things with it: bolts, bomb, missile, lid, empty saucer; drawn from its two sprites in one character, its
+    saucer and robot arm two layers, its composite attacks' other parts held effects; the framework's new `Layers` groups,
+    `SqueakHoldEffect`, and palette slots shared by color, `SqueakPaletteKey`, since KatAM keeps only 7 a room and Doc's sprites
+    would take 10): its flights along curves and hovers, its routine (chests first, else beside Kirby or a corner, then 5% hover,
+    40% gun, 35% claw, 20% cannon), its pace, the inhale brace, the flinch (KatAM's hurt held on the spot in the place of its
+    shake, then the hop), the knockout at 90% HP (untouchable till it lies dizzy: the lid over Kirby, tiny Doc popping out, dizzy
+    120 frames, the saucer coming back), its chest theft. Checked in KatAM (USA: room 0x323, flights, hovers, gun, claw bomb
+    hitting Kirby without an HP bar, cannon smoke, colors against the DS files, the inhale brace, a slide hit's flinch, the
+    knockout with its HP set to 22 by a RAM write before a real slide hit, the saucer's return; room 0x23A, the chest taken and
+    gone with it; the hover against a DS recording). Not tested: the low bolt, the missile, a treat, a hit while dizzy, its pace
+    off the screen; EU and Japanese builds built and logic-checked, not played. Not ported: its sounds, screen shakes, elemental
+    hurt poses, its own defeat (KatAM's), dizzy stars, anger when Kirby carries the stage's chest, the stages' routes. Next:
+    Storo, then Daroach.
   - Framework: a looping animation's end is now a pulse on its loop frames, and a composite's ends a frame later, as on the DS
     (logged: Bubble Head's composites and bubble). Bio Spark changed with it (its brain's three waits in the slash now take a loop
     each, 6 frames, as on the DS: checked in KatAM), and Cret's ball now drops after its drop composite's 20 frames, a frame later

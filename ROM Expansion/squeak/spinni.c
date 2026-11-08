@@ -1133,4 +1133,8 @@ void SpinniThrownInit(struct SqueakObject *s) {
     sub_0803E2B0(&s->obj.base, -7, -9, 8, 9);
     ObjectSetBounds(&s->obj.base, -5, -5, 5, 5);
     T_HARM(s) = s->obj.base.unk68;
+    /* (Kirby's body doesn't hurt it, nor shows its HP bar, 0x080365C8's flag 0x1000000: Squeak Squad's attack things go through him,
+     * their hit handler 0x020B4964 taking no touch); */
+    s->obj.base.unk5C |= 0x80;
+    s->obj.base.flags |= 0x1000000;
 }

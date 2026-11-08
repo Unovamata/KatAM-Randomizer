@@ -177,7 +177,7 @@ namespace KatAMRandomizer {
         }
 
         // The size of squeak.h's SqueakGraphics, an entry of gSqueakData.enemies;
-        const int SqueakGraphicsSize = 20;
+        const int SqueakGraphicsSize = 24;
 
         // The type Squeak Squad's characters share (squeak.h's SQUEAK_TYPE: KatAM's last free regular enemy type);
         public const byte SqueakID = 0x2C;
@@ -200,21 +200,28 @@ namespace KatAMRandomizer {
          * of its own after its cells (squeak.c's SqueakUsePalette); MergeColors: colors drawn as others (from, to), so a character a
          * color or two over KatAM's 15 gets one palette. A character drawn from two files (ExtraFile: the second sprite Squeak Squad's
          * body switches to, its +0xE4) has the second's cells and animations after the first's (OnlyAnims counting them on: the
-         * first's count plus theirs) and its palettes after the first's; LayerPalettes (those merged palettes' indexes): the pieces
-         * drawn with them go to a layer of their own, another sprite with its own palette shown with the cell (squeak.c's
-         * SqueakShowLayer: a weapon in a character's hands in other colors than its own); */
+         * first's count plus theirs) and its palettes after the first's; Layers (up to two groups of those merged palettes' indexes):
+         * the pieces drawn with a group go to a layer of their own, another sprite with its own palette shown with the cell (squeak.c's
+         * SqueakShowLayer: a weapon in a character's hands in other colors than its own, Doc's saucer); */
         internal sealed record SqueakEnemy(int Index, string Name, string File, int[] HurtCells, (int type, int letter)[] Glyphs, int GraphicsOf = -1,
                                             byte MidbossType = 0, int[] OnlyAnims = null, string[] Palettes = null,
                                             (ushort from, ushort to)[] MergeColors = null, string ExtraFile = null,
-                                            int[] LayerPalettes = null);
-        internal sealed record SqueakBuilt(SqueakEnemy Enemy, int AnimId, SqueakCharacter Character, int Tiles, SqueakLayerBuilt Layer = null);
-        // A character's layer (LayerPalettes): its anim, the most tiles a frame takes, per cell its frame + 1 (0: none; | 0x80: in front);
-        internal sealed record SqueakLayerBuilt(int AnimId, int Tiles, byte[] Cells);
+                                            int[][] Layers = null);
+        /* AnimPalettes: a character whose cells are in Squeak Squad's different palettes (Doc's things), per animation the palette its
+         * sprite takes (SqueakPaletteKey); */
+        internal sealed record SqueakBuilt(SqueakEnemy Enemy, int AnimId, SqueakCharacter Character, int Tiles, List<SqueakLayerBuilt> Layers = null,
+                                           List<SqueakPaletteKey> AnimPalettes = null);
+        // A character's layer (Layers): its anim, the most tiles a frame takes, per cell its frame + 1 (0: none; | 0x80: in front);
+        internal sealed record SqueakLayerBuilt(int AnimId, int Tiles, byte[] Cells, SqueakPaletteKey Palette);
+        /* A palette's slot (squeak.c's SqueakLoadPalette): the key and frame of the first sprite built with it, those after it with the same
+         * colors taking it too (one of the 7 palette slots KatAM keeps for a room's enemies, not one each: sub_0803DFAC); */
+        internal sealed record SqueakPaletteKey(int Key, int Variant);
 
         /* Squeak Squad's effects the ported characters show (squeak.h's SQUEAK_FX_*): an animation of <File>.* ("folder/name"; 0x02021900's
-         * types name effect/efc_cmn* ones through the table at 0x02157DF8), each its own anim of the cells it shows; */
+         * types name effect/efc_cmn* ones through the table at 0x02157DF8), each its own anim of the cells it shows (in Squeak Squad's
+         * palette, its slot shared with any other sprite in it: SqueakPaletteKey); */
         internal sealed record SqueakEffect(int Index, string File, int Anim);
-        internal sealed record SqueakEffectBuilt(SqueakEffect Effect, int AnimId, List<int> Cells, SqueakAnim Anim, int Tiles);
+        internal sealed record SqueakEffectBuilt(SqueakEffect Effect, int AnimId, List<int> Cells, SqueakAnim Anim, int Tiles, SqueakPaletteKey Palette);
 
         static readonly List<SqueakEffect> SqueakEffectDefinitions = new List<SqueakEffect> {
             new SqueakEffect(0, "effect/efc_cmn0", 19),     // Type 3: the dust puff (Gold Waddle Dee's steps, Perara's launch);
@@ -226,18 +233,34 @@ namespace KatAMRandomizer {
             new SqueakEffect(4, "effect/efc_cmn0", 7),     // 0x020B48E0's type 3: a star burst (Bio Spark's kunai stuck in a wall);
             new SqueakEffect(5, "effect/efc_cmn0", 23),    // 0x020219C4's type 1: a mid-boss's landing puff (Gao Gao's);
             new SqueakEffect(6, "effect/efc_cmn0", 22),    // 0x020219C4's type 2: its big landing puff;
+            /* Doc's composite animations' other parts (doc_at1.mca: its compositions 1 and 2, the ball and rings of its gun's shots;
+             * 0, the bomb in its claw; 3, its cannon's smoke, looping while it fires): doc_at1's animations 4, 5, 11, 12, 18 and 26 (in
+             * its palettes 3, 2, 3, 2, 4 and 3: their slots shared with Doc's layer and things in them); */
+            new SqueakEffect(7, "enemy/doc_at1", 4),
+            new SqueakEffect(8, "enemy/doc_at1", 5),
+            new SqueakEffect(9, "enemy/doc_at1", 11),
+            new SqueakEffect(10, "enemy/doc_at1", 12),
+            new SqueakEffect(11, "enemy/doc_at1", 18),
+            new SqueakEffect(12, "enemy/doc_at1", 26),
         };
 
-        /* SqueakEffectBuild(); An effect's cells (those its animation shows, in its order) as KatAM frames and their palettes, the anim
-         * added by `addAnim` (palettes, frames: its anim ID and the most tiles a frame takes); */
-        static SqueakEffectBuilt SqueakEffectBuild(byte[] squeak, SqueakEffect effect,
-                                                   Func<List<byte[]>, List<(byte[] tiles, ushort[] oams, short[] attributes, int palette)>, int> addAnim) {
-            string[] path = effect.File.Split('/');
-            SqueakCharacter character = ReadSqueakCharacter(squeak, path[1], path[0]);
-            SqueakAnim anim = character.Anims[effect.Anim];
-            List<int> cells = anim.Steps.Select(s => s.Cell).Distinct().ToList();
-            (List<(byte[] tiles, ushort[] oams, short[] attributes, int palette)> frames, List<byte[]> palettes) = SqueakFrames(character, cells: cells);
-            return new SqueakEffectBuilt(effect, addAnim(palettes, frames), cells, anim, frames.Max(f => f.tiles.Length / 32));
+        /* SqueakEffectsBuild(); Each effect's cells (those its animation shows, in its order) as KatAM frames and their palette, the anim
+         * added by `addAnim` (palettes, frames: its anim ID), its palette's slot by `share` (its palette, anim ID, frame); */
+        static List<SqueakEffectBuilt> SqueakEffectsBuild(byte[] squeak, List<SqueakEffect> effects,
+                                                          Func<List<byte[]>, List<(byte[] tiles, ushort[] oams, short[] attributes, int palette)>, int> addAnim,
+                                                          Func<byte[], int, int, SqueakPaletteKey> share) {
+            List<SqueakEffectBuilt> built = new List<SqueakEffectBuilt>();
+            foreach (SqueakEffect effect in effects) {
+                string[] path = effect.File.Split('/');
+                SqueakCharacter character = ReadSqueakCharacter(squeak, path[1], path[0]);
+                SqueakAnim anim = character.Anims[effect.Anim];
+                List<int> cells = anim.Steps.Select(s => s.Cell).Distinct().ToList();
+                (List<(byte[] tiles, ushort[] oams, short[] attributes, int palette)> frames, List<byte[]> palettes) = SqueakFrames(character, cells: cells);
+                int animId = addAnim(palettes, frames), first = cells.IndexOf(anim.Steps[0].Cell);
+                built.Add(new SqueakEffectBuilt(effect, animId, cells, anim, frames.Max(f => f.tiles.Length / 32),
+                                                share(palettes[frames[first].palette], animId, first)));
+            }
+            return built;
         }
 
         // "C", "i", "p" (Chip), "r" (Bronto Burt), "m" (Bomber);
@@ -266,6 +289,9 @@ namespace KatAMRandomizer {
         // "S", "q", "u" (Squishy), "e", "a" (Hot Head), "k" (Glunk), "e" (Hot Head), "r" (Bronto Burt);
         static readonly (int type, int letter)[] SqueakerGlyphs = { (0x04, 0), (0x04, 1), (0x04, 2), (0x14, 4), (0x14, 5), (0x03, 4), (0x14, 4),
                                                                     (0x01, 1) };
+
+        // "D" (Waddle Dee), "o" (Bronto Burt), "c" (Rocky);
+        static readonly (int type, int letter)[] DocGlyphs = { (0x00, 6), (0x01, 2), (0x17, 2) };
 
         // "S" (Squishy), "p", "i" (Chip), "n", "n" (Bronto Burt), "i" (Chip);
         static readonly (int type, int letter)[] SpinniGlyphs = { (0x04, 0), (0x08, 3), (0x08, 2), (0x01, 3), (0x01, 3), (0x08, 2) };
@@ -353,9 +379,20 @@ namespace KatAMRandomizer {
              * shuriken in its hands (spin_at's palettes 1 and 2, the merged 8 and 9) a layer of its own; */
             new SqueakEnemy(29, "Spinni", "spin", new[] { 42, 43, 43 }, SpinniGlyphs, ExtraFile: "spin_at",
                             OnlyAnims: new[] { 1, 2, 4, 5, 6, 7, 8, 14, 15, 17, 18, 19, 20, 21, 27, 28, 30, 31, 33, 34, 35, 36, 37, 39, 40, 43, 44, 56 },
-                            LayerPalettes: new[] { 8, 9 }),
+                            Layers: new[] { new[] { 8, 9 } }),
             // What it throws (0x020ABE08, drawn with spin_at's: its shuriken 16, slash 28, claws 12 and 13), no name;
             new SqueakEnemy(30, "Spinni's shuriken", "spin_at", new[] { 0, 0, 0 }, new (int, int)[0], OnlyAnims: new[] { 16, 28, 12, 13 }),
+            /* Doc (the Squeak Squad's, enemy 0x43: 0x020DD82C), drawn from doc and doc_at1 (its robot arm's attacks: the sprite its body
+             * switches to, here doc's animations 0-22, then doc_at1's from 23): the animations its code plays (squeak/doc.c's, in its
+             * order; doc_at1.mca's composites as its own part, their other parts as effects), its hurt animations doc's 3 and 4
+             * (0x1000003, 0x1000004: cells 5 and 6), its saucer (doc's palette 1, doc_at1's: the merged 1 and 9) and its arm's parts
+             * (doc_at1's palette 3: 11) layers of their own; */
+            new SqueakEnemy(31, "Doc", "doc", new[] { 5, 6, 6 }, DocGlyphs, ExtraFile: "doc_at1",
+                            OnlyAnims: new[] { 1, 2, 3, 4, 13, 14, 16, 17, 18, 21, 22, 24, 25, 26, 31, 32, 33, 40, 42, 43, 47, 48, 50, 51 },
+                            Layers: new[] { new[] { 1, 9 }, new[] { 11 } }),
+            // What it makes (0x020DF354, drawn from doc_at1, then doc: its bolts 6 and 13, missile 15 and 16, bomb 21 and 29, lid 20, saucer 19), no name;
+            new SqueakEnemy(32, "Doc's thing", "doc_at1", new[] { 0, 0, 0 }, new (int, int)[0], ExtraFile: "doc",
+                            OnlyAnims: new[] { 6, 13, 15, 16, 21, 29, 50, 49 }),
         };
 
         public static IReadOnlyList<(int index, string name)> SqueakEnemies => SqueakDefinitions.Select(e => (e.Index, e.Name)).ToList();
@@ -423,17 +460,19 @@ namespace KatAMRandomizer {
                 WriteInt(rom, at + 4, steps + 0x08000000);
             }
 
-            /* gSqueakData: names, the effects (anim ID, tiles, their animation: its cells are the effect's frames), then per character
-             * squeak.h's SqueakGraphics (20 bytes: anim ID, cells, animations, its SqueakAnim table, then compositions, composite
-             * animations, the most tiles a frame takes, the SqueakComposition and SqueakComposite tables); */
+            /* gSqueakData: names, the effects (16 bytes: anim ID, tiles, their animation: its cells are the effect's frames, their palette's
+             * key and frame), then per character squeak.h's SqueakGraphics (24 bytes: anim ID, cells, animations, its SqueakAnim table, then
+             * compositions, composite animations, the most tiles a frame takes, the SqueakComposition and SqueakComposite tables, its
+             * animations' palettes); */
             int data = CodeAddress + version.CodeSymbols["gSqueakData"], namesAt = Allocate(ref localCursor, SqueakDefinitions.Count * 0x100, 4);
             WriteInt(rom, data, namesAt + 0x08000000);
-            int effectTable = Allocate(ref localCursor, Math.Max(1, SqueakEffectDefinitions.Count) * 12, 4);
+            int effectTable = Allocate(ref localCursor, Math.Max(1, SqueakEffectDefinitions.Count) * 16, 4);
             WriteInt(rom, data + 4, effectTable + 0x08000000);
             foreach (SqueakEffectBuilt e in effects) {
-                int at = effectTable + e.Effect.Index * 12;
+                int at = effectTable + e.Effect.Index * 16;
                 WriteShorts(rom, at, e.AnimId, e.Tiles);
                 WriteAnim(at + 4, e.Anim, c => e.Cells.IndexOf(c));
+                WriteShorts(rom, at + 12, e.Palette.Key, e.Palette.Variant);
             }
             foreach (SqueakBuilt b in built) {
                 ComposeName(rom, version, b.Enemy.Glyphs).CopyTo(rom, namesAt + b.Enemy.Index * 0x100);
@@ -477,16 +516,26 @@ namespace KatAMRandomizer {
                 WriteShort(rom, entry + 10, b.Tiles);
                 WriteInt(rom, entry + 12, compositionTable == 0 ? 0 : compositionTable + 0x08000000);
                 WriteInt(rom, entry + 16, compositeTable == 0 ? 0 : compositeTable + 0x08000000);
+                // (its animations' palettes: 4 bytes each, key, frame; none: its own);
+                int animPalettes = 0;
+                if (b.AnimPalettes != null) {
+                    animPalettes = Allocate(ref localCursor, b.AnimPalettes.Count * 4, 4);
+                    for (int a = 0; a < b.AnimPalettes.Count; a++) WriteShorts(rom, animPalettes + a * 4, b.AnimPalettes[a].Key, b.AnimPalettes[a].Variant);
+                }
+                WriteInt(rom, entry + 20, animPalettes == 0 ? 0 : animPalettes + 0x08000000);
             }
-            /* The layers (squeak.h's SqueakLayer, 8 bytes per character, after the characters' entries: anim ID, tiles, per cell its
-             * layer frame + 1, | 0x80 in front; none: 0); */
-            int layerTable = Allocate(ref localCursor, SqueakDefinitions.Count * 8, 4);
-            for (int i = 0; i < SqueakDefinitions.Count * 8; i++) rom[layerTable + i] = 0;
-            foreach (SqueakBuilt b in built.Where(b => b.Layer != null)) {
-                int cellsAt = Allocate(ref localCursor, b.Layer.Cells.Length, 4);
-                b.Layer.Cells.CopyTo(rom, cellsAt);
-                WriteShorts(rom, layerTable + b.Enemy.Index * 8, b.Layer.AnimId, b.Layer.Tiles);
-                WriteInt(rom, layerTable + b.Enemy.Index * 8 + 4, cellsAt + 0x08000000);
+            /* The layers (squeak.h's SqueakLayer, two of 12 bytes per character, after the characters' entries: anim ID, tiles, per cell
+             * its layer frame + 1, | 0x80 in front; none: 0; its palette's key and frame); */
+            int layerTable = Allocate(ref localCursor, SqueakDefinitions.Count * 24, 4);
+            for (int i = 0; i < SqueakDefinitions.Count * 24; i++) rom[layerTable + i] = 0;
+            foreach (SqueakBuilt b in built.Where(b => b.Layers != null)) {
+                for (int k = 0; k < b.Layers.Count && k < 2; k++) {
+                    int cellsAt = Allocate(ref localCursor, b.Layers[k].Cells.Length, 4), at = layerTable + b.Enemy.Index * 24 + k * 12;
+                    b.Layers[k].Cells.CopyTo(rom, cellsAt);
+                    WriteShorts(rom, at, b.Layers[k].AnimId, b.Layers[k].Tiles);
+                    WriteInt(rom, at + 4, cellsAt + 0x08000000);
+                    WriteShorts(rom, at + 8, b.Layers[k].Palette.Key, b.Layers[k].Palette.Variant);
+                }
             }
             WriteInt(rom, data + 8 + SqueakDefinitions.Count * SqueakGraphicsSize, layerTable + 0x08000000);
             cursor = localCursor;
@@ -595,10 +644,13 @@ namespace KatAMRandomizer {
                     }
                     colorMap[(palette, color)] = index;
                 }
-                // (a character with all its colors in its first palette keeps them where they are);
-                bool kept = used.All(u => u.palette == 0);
+                /* (a character with all its colors in its first palette keeps them where they are; so does one in any one palette, or in
+                 * palettes of the same colors, without other colors: Squeak Squad's palette as it is, shared with others in it); */
+                int keptPalette = used.All(u => u.palette == 0) ? 0
+                                  : alternates == null && used.All(u => character.Palettes[u.palette].SequenceEqual(character.Palettes[used[0].palette])) ? used[0].palette : -1;
+                bool kept = keptPalette >= 0;
                 if (kept) {
-                    colors = character.Palettes[0].ToList();
+                    colors = character.Palettes[keptPalette].ToList();
                     colorMap = used.ToDictionary(u => u, u => u.color);
                 }
                 palettes.Add(PaletteBytes(colors));

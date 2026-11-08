@@ -1243,11 +1243,19 @@ namespace KatAMRandomizer {
             // Squeak Squad's characters (KatAMExpansionSqueak.cs): an anim each (its hurt frames, then its cells);
             List<SqueakBuilt> squeakBuilt = new List<SqueakBuilt>();
             List<SqueakEffectBuilt> squeakEffects = new List<SqueakEffectBuilt>();
+            /* (each palette's slot: the first sprite's with its colors, those after it with the same taking it: KatAM keeps 7 palettes for
+             * a room's enemies, Doc's sprites would take 6 of their own); */
+            Dictionary<string, SqueakPaletteKey> squeakPalettes = new Dictionary<string, SqueakPaletteKey>();
+            SqueakPaletteKey SharePalette(byte[] palette, int key, int variant) {
+                string colors = Convert.ToHexString(palette, 2, palette.Length - 2);
+                if (!squeakPalettes.TryGetValue(colors, out SqueakPaletteKey shared)) squeakPalettes[colors] = shared = new SqueakPaletteKey(key, variant);
+                return shared;
+            }
             if (squeak != null) {
                 try {
-                    foreach (SqueakEffect effect in SqueakEffectDefinitions)
-                        squeakEffects.Add(SqueakEffectBuild(squeak, effect,
-                                                            (palettes, frames) => AddAnim(palettes, frames, new byte[0], new List<(int, int)>(), effectOnly: frames.Count).Item2));
+                    squeakEffects = SqueakEffectsBuild(squeak, SqueakEffectDefinitions,
+                                                       (palettes, frames) => AddAnim(palettes, frames, new byte[0], new List<(int, int)>(), effectOnly: frames.Count).Item2,
+                                                       SharePalette);
                     foreach (SqueakEnemy enemy in SqueakDefinitions) {
                         // (a character drawn with another's graphics, a thing it throws: that one's anim);
                         if (enemy.GraphicsOf >= 0) {
@@ -1260,10 +1268,11 @@ namespace KatAMRandomizer {
                         // (a second file's graphics after the first's: Squeak Squad's body switching sprites);
                         if (enemy.ExtraFile != null) character = SqueakMerge(character, ReadSqueakCharacter(squeak, enemy.ExtraFile, file.Length > 1 ? file[0] : "enemy"));
                         if (enemy.OnlyAnims != null) character = SqueakKeepAnims(character, enemy.OnlyAnims);
-                        // (the pieces in its layer's palettes drawn by a layer of their own: an anim with its own palette, a frame per cell with any);
-                        SqueakLayerBuilt layerBuilt = null;
-                        if (enemy.LayerPalettes != null) {
-                            SqueakCharacter layer = SqueakSplitLayer(character, enemy.LayerPalettes, true);
+                        /* (the pieces in each layer's palettes drawn by a layer of their own: an anim with its own palette, a frame per cell
+                         * with any; the character itself keeps the pieces in none); */
+                        List<SqueakLayerBuilt> layersBuilt = new List<SqueakLayerBuilt>();
+                        foreach (int[] group in enemy.Layers ?? new int[0][]) {
+                            SqueakCharacter layer = SqueakSplitLayer(character, group, true);
                             List<int> layerCells = Enumerable.Range(0, layer.Cells.Count).Where(c => layer.Cells[c].Pieces.Count > 0).ToList();
                             (List<(byte[] tiles, ushort[] oams, short[] attributes, int palette)> layerFrames, List<byte[]> layerPalettes) =
                                 SqueakFrames(layer, cells: layerCells);
@@ -1272,12 +1281,13 @@ namespace KatAMRandomizer {
                             for (int k = 0; k < layerCells.Count; k++) {
                                 int cell = layerCells[k];
                                 List<SqueakPiece> pieces = character.Cells[cell].Pieces;
-                                bool front = pieces.Count > 0 && enemy.LayerPalettes.Contains(pieces[0].Attr2 >> 12);
+                                bool front = pieces.Count > 0 && group.Contains(pieces[0].Attr2 >> 12);
                                 perCell[cell] = (byte)((k + 1) | (front ? 0x80 : 0));
                             }
-                            layerBuilt = new SqueakLayerBuilt(layerAnim, layerFrames.Max(f => f.tiles.Length / 32), perCell);
-                            character = SqueakSplitLayer(character, enemy.LayerPalettes, false);
+                            layersBuilt.Add(new SqueakLayerBuilt(layerAnim, layerFrames.Max(f => f.tiles.Length / 32), perCell,
+                                                                 SharePalette(layerPalettes[layerFrames[0].palette], layerAnim, 0)));
                         }
+                        if (enemy.Layers != null) character = SqueakSplitLayer(character, enemy.Layers.SelectMany(g => g).ToArray(), false);
                         // (its other colors: their palettes, and a frame each after its cells, drawn with them: squeak.c's SqueakUsePalette);
                         List<List<ushort[]>> alternates = enemy.Palettes?.Select(p => (file.Length > 1 ? ReadSqueakCharacter(squeak, file[1], file[0], p)
                                                                                                          : ReadSqueakCharacter(squeak, enemy.File, palette: p)).Palettes).ToList();
@@ -1290,7 +1300,22 @@ namespace KatAMRandomizer {
                             withHurts.Add((frames[0].tiles, frames[0].oams, frames[0].attributes, palettes.Count - 1));
                         }
                         (int _, int animId, int _) = AddAnim(palettes, withHurts, new byte[0], new List<(int, int)>(), effectOnly: withHurts.Count);
-                        squeakBuilt.Add(new SqueakBuilt(enemy, animId, character, withHurts.Max(f => f.tiles.Length / 32), layerBuilt));
+                        /* (its cells in Squeak Squad's different palettes: per animation the one of its first cell, a key of its own for each
+                         * (its anim ID | n << 13: sub_0803DFAC loads anim ID & 0xFFF's frame) unless another sprite has the same colors); */
+                        List<SqueakPaletteKey> animPalettes = null;
+                        if (frames.Select(f => f.palette).Distinct().Count() > 1) {
+                            List<int> own = new List<int>();
+                            animPalettes = character.Anims.Select(a => {
+                                int palette = frames[a.Steps.Count > 0 ? a.Steps[0].Cell : 0].palette;
+                                if (!own.Contains(palette)) own.Add(palette);
+                                return SharePalette(palettes[palette], animId | own.IndexOf(palette) + 1 << 13,
+                                                    enemy.HurtCells.Length + frames.FindIndex(f => f.palette == palette));
+                            }).ToList();
+                            if (own.Count > 7) throw new InvalidOperationException($"{enemy.Name} takes too many palettes.");
+                        } else {
+                            SharePalette(palettes[0], animId, enemy.HurtCells.Length);
+                        }
+                        squeakBuilt.Add(new SqueakBuilt(enemy, animId, character, withHurts.Max(f => f.tiles.Length / 32), layersBuilt, animPalettes));
                     }
                 } catch (Exception exception) when (exception is IndexOutOfRangeException or ArgumentException or InvalidOperationException) {
                     return "The Squeak Squad ROM's graphics couldn't be read.";
