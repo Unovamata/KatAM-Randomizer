@@ -979,7 +979,7 @@ namespace KatAMRandomizer {
 
         /* AddEnemies(); Adds every ported enemy as object type 0x31, expanding the ROM to 32 MB (rom is replaced by the bigger one).
          * Returns null when done, or why it couldn't be done (rom is left as it was); */
-        public static string AddEnemies(ref byte[] rom, byte[] nightmare, bool rooms = true, bool title = false) {
+        public static string AddEnemies(ref byte[] rom, byte[] nightmare, bool rooms = true, bool title = false, byte[] squeak = null) {
             KatAMExpansionCode.Version version = VersionOf(rom);
             NightmareRegion region = RegionOf(nightmare);
 
@@ -992,7 +992,8 @@ namespace KatAMRandomizer {
             byte[] original = rom;
 
             rom = Expand(rom);
-            string error = AddEnemiesTo(rom, nightmare, region, version, rooms, title);
+            if (squeak != null && !IsSqueakSquad(squeak)) return "That isn't a Kirby: Squeak Squad ROM.";
+            string error = AddEnemiesTo(rom, nightmare, region, version, rooms, title, squeak);
             if (error != null) rom = original;
             return error;
         }
@@ -1006,7 +1007,8 @@ namespace KatAMRandomizer {
             return expanded;
         }
 
-        static string AddEnemiesTo(byte[] rom, byte[] nightmare, NightmareRegion region, KatAMExpansionCode.Version version, bool rooms, bool title) {
+        static string AddEnemiesTo(byte[] rom, byte[] nightmare, NightmareRegion region, KatAMExpansionCode.Version version, bool rooms, bool title,
+                                   byte[] squeak) {
             int HurtAnimID = version.AnimCount,     // The first free anim ID (the vanilla table's size);
                 SpriteTables = version.SpriteTables, SpawnTable = version.SpawnTable, ObjectParameters = version.ObjectParameters,
                 ObjectParameters2 = version.ObjectParameters2, HitFlashBranch = version.HitFlashBranch;
@@ -1238,6 +1240,22 @@ namespace KatAMRandomizer {
                 return $"The Nightmare in Dream Land ROM doesn't match the {region.KatAM} release.";
             }
 
+            // Squeak Squad's characters (KatAMExpansionSqueak.cs): an anim each (its hurt frames, then its cells);
+            List<SqueakBuilt> squeakBuilt = new List<SqueakBuilt>();
+            if (squeak != null) {
+                try {
+                    foreach (SqueakEnemy enemy in SqueakDefinitions) {
+                        SqueakCharacter character = ReadSqueakCharacter(squeak, enemy.File);
+                        (List<(byte[] tiles, ushort[] oams, short[] attributes, int palette)> frames, List<byte[]> palettes) = SqueakFrames(character);
+                        var withHurts = enemy.HurtCells.Select(c => frames[c]).Concat(frames).ToList();
+                        (int _, int animId, int _) = AddAnim(palettes, withHurts, new byte[0], new List<(int, int)>(), effectOnly: withHurts.Count);
+                        squeakBuilt.Add(new SqueakBuilt(enemy, animId, character, withHurts.Max(f => f.tiles.Length / 32)));
+                    }
+                } catch (Exception exception) when (exception is IndexOutOfRangeException or ArgumentException or InvalidOperationException) {
+                    return "The Squeak Squad ROM's graphics couldn't be read.";
+                }
+            }
+
             // Extended anims, attrs and oamData tables (indexed by anim ID);
             int[] tables = { anims, attrTable, oamTable };
             List<int>[] entries = { animVariants, animAttributes, animOams };
@@ -1322,6 +1340,9 @@ namespace KatAMRandomizer {
             WriteInt(rom, parameters + 16, codeBase + version.NidlStart + 1);
             WriteInt(rom, parameters + 20, animInfosAt + 0x08000000);
             Array.Copy(rom, ObjectParameters2, rom, ObjectParameters2 + NightmareID * 8, 8);
+
+            // Object type 0x2C, Squeak Squad's characters (KatAMExpansionSqueak.cs);
+            if (squeakBuilt.Count > 0 && WriteSqueak(rom, version, ref cursor, squeakBuilt) is string squeakError) return squeakError;
 
             /* Object types 0x40-0x42: spawn function and parameters, as Mr. Frosty's (type 0x38: score, HP) but for its hurt frames (0 &
              * 1), no ability (the code sets each mini-boss's), no palette key, VRAM tiles (the type's biggest frame, then the hurt frame),

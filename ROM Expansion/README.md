@@ -230,3 +230,30 @@ With "Random Title Screen: KatAM's Intro or NiDL's Kirby Swarm", the seed picks 
 - **In KatAM** (`title.c`): KatAM's intro (`sub_08145B64`, LogoEnd's only call, detoured to `CreateNidlTitle`) is replaced: KatAM's logo stays up and the swarm runs over it, frame for frame as NiDL's (checked against NiDL's sprites), drawn with KatAM's OAM slots (`sub_08156D84`) in palette 15. At frame 210, when the swarm covers most of the screen, KatAM's own title screen starts under it (`CreateTitleScreen`; KatAM's logo and title share VRAM, so there's no wipe), its fade from white leaving the sprites out. A, B or Start before then skip to the title, as NiDL's waits do. The swarm ends with its last Kirby, when the title screen's task is gone, or when it takes A or Start (after its 0x4A frames). NiDL's `0x9C` is KatAM's dash sound; `0x10D` is the stampede KatAM's own intro plays (`SE_INTRO_AMBIENT_2`, every 5 frames while 24 Kirbys or more are on the screen).
 - **VRAM**: the European title screen's sprites take 416 tiles (the others' 28), so the 55 poses (880 tiles) don't fit beside them. At most 36 are on the screen at once, so they go through 36 slots (576 tiles): a pose takes the slot drawn longest ago (none this frame), loaded through KatAM's VBlank DMA queue (`gUnk_03002EC0`, as `bg.c`'s), so it changes when the frame's sprites show.
 
+
+## Squeak Squad characters
+
+Characters of Kirby: Squeak Squad (Nintendo DS) are ported the same way, from the player's own Squeak Squad ROM (any release; the
+graphics are never shipped): `squeak.h`, `squeak.c`, `squeak/*.c`, `KatAMExpansionSqueak.cs`. Research notes (formats, addresses,
+how Squeak Squad's enemies work): [Squeak Squad Notes](../Documentation/Squeak%20Squad%20Notes.md).
+
+- **Object type 0x2C** (KatAM's last free regular enemy type): the template's behavior byte picks the character (`SQUEAK_*`), its
+  `unk12` byte the variant. Its spawn, parameters and start are written as type 0x31's are (`WriteSqueak`).
+- **An anim per character, 256 frames each**: KatAM gives an object the frame its type's AnimInfo table lists for its frame index
+  (`unk83`), at most 256 per type. The object drawing (`sub_0809A7A4`, USA `0x0809A824`) is patched to ask `SqueakAnimFor`: type
+  0x2C objects show their character's own anim, with the frame index as the variant. Variants 0-2 are the hurt frame (the type's
+  hurt indexes 0 and 1, and 2), then one per cell of the character's `.cea`.
+- **Graphics** (`KatAMExpansionSqueak.cs`): the NDS file system's `enemy/<name>.cga` (tiles), `.cla` (palettes), `.cea` (cells and
+  animations). Each cell is drawn from its DS OAM pieces onto a canvas (the character's origin, its feet, at the center) and cut
+  into KatAM pieces (`CutFrame`). A character's colors go in one palette when they fit in 15.
+- **Animations**: Squeak Squad's own (cell, frames) steps, in `gSqueakData`, played by `SqueakPlay`/`SqueakAnimate` (a looping
+  animation still flags that it got through once, as Squeak Squad's flag 8 that characters wait for).
+- **Moves**: Squeak Squad's enemies are a body driven by a brain (a virtual pad: a direction, A and B); both are ported, state for
+  state. A state function returning TRUE runs the next one in the same frame, as Squeak Squad's dispatcher does (`SqueakRun`).
+  Speeds and positions are Squeak Squad's 20.12 (`SQUEAK_SPEED` converts), Y up as KatAM's speeds; terrain is KatAM's.
+- **On the ground**: Squeak Squad's spawn records stand a character on the ground; `SqueakStandOnFloor` puts its feet on the first
+  floor below its template's cell.
+
+| Character | Squeak Squad | File | What it does |
+| --- | --- | --- | --- |
+| Perara | enemy 0x0D | `squeak/perara.c` | Hovers; on the ground it waits for Kirby within 60 pixels, crouches (58 frames), launches 70 pixels up and floats down swaying; checked against the DS game frame by frame (crouch, launch, apex, sway start). |

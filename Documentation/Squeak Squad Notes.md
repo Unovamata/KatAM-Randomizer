@@ -21,7 +21,7 @@ Each character has a set of files of HAL's own formats, all little-endian:
 | `.cga` | `BCGA` | Tiles, 4 bits a pixel: a 0x14-byte header (`+0x10`: the tiles' size), then the tiles. |
 | `.cla` | `BCLA` | A palette: a 12-byte header (`+8`: the number of colors, 16), then the colors (BGR555). Some characters have more than one (`chun_blue`, `chun_green`, `chun_yellow`: the Squeakers). `_dmg.cla`: a damage palette. |
 | `.cea` | `BCEA` | Cells and animations (below). |
-| `.rca` | `BRCA` | Not decoded yet (likely the hit boxes). |
+| `.rca` | `BRCA` | Body boxes: lists of (left, top, right, bottom) in pixels from the feet, Y up (Perara's first: -5, 10, 5, 0), loaded per animation frame by `0x02014010`. |
 | `.mca` | | Not decoded yet (the bigger characters). |
 
 ### `.cea`
@@ -116,3 +116,35 @@ y in pixels from the room's bottom (`*0x02229F1C + 0x60` is the room's height, `
 The first room of Prism Plains' first stage holds a Waddle Dee (x 636), a Waddle Doo (x 1128) and a Sparky (x 1512). To watch any
 enemy, the test harness loads a save state after Kirby lands there and rewrites the first record (ID, x, y, parameters): the enemy
 appears next to him.
+
+## How an enemy works
+
+Squeak Squad is C++. An enemy is two objects, a **body** (its moves; Waddle Dee's 0x24C bytes, Perara's 0x260) and a **brain** (0xB8:
+a virtual pad that the body reads). Their code was read with Ghidra's decompiler (headless, the ARM9 loaded at 0x02000000 as
+ARMv5T, literal pools made read-only so constants fold).
+
+- **States**: a member-function pointer at `+0x114` (`+0x118`: its adjustment, odd for a virtual one: `{0x3C, 1}` is the vtable's
+  `+0x3C`, the "start" state) and a counter at `+0x128` (set to -1 on every change, raised before each run). The dispatcher
+  (`vtable +0x34`, Perara's `0x0206E5A4`) runs the state again while it returns 1: entry functions set things up, set the state that
+  runs every frame and return 1, so both run in the same frame (checked with breakpoints in the DS emulator).
+- **Physics** (all 20.12, a frame; **Y up**: the stage's y grows upwards): `+0x74` x, `+0x78` y, `+0x8C` speed x (forward:
+  `+0x14` bit 2 means facing left, and it is negated then), `+0x90` speed y, `+0x94`/`+0x98` speed caps, `+0x9C`/`+0xA0`
+  acceleration, `+0xA4`/`+0xA8` friction, `+0x84` the distance down to the floor (under 1: on the ground). `0x02013D18` moves:
+  acceleration, caps (`0x02013460`), friction (`0x02013370`), terrain (`0x0201355C`). `0x02023468` stops everything,
+  `0x02023410(v)` caps the speed up at `v`, `0x020132B4` turns around.
+- **Flags** (`+0x14`): bit 2 facing left, bit 3 the animation got through once, bit 6 in the air.
+- **Animations**: the sprite object's `vtable +8` with `0x1000000 | animation` plays one of the character's own (`.cea`).
+  `0x02021A88` keeps the hurt animations (Perara: 7 and 8).
+- **Parameters**: each `Params` object (`0x020213B8`, then `0x020212CC` loads its file) points at its values at `+0x0C`. The body
+  keeps the movement ones twice: `+0x224` (`Ml0`) when the brain's `+8` is 3 (normal), else `+0x254` (`MlG`).
+- **Brain**: `+0x10` its body, `+0x14` direction (-1: turn around), `+0x38`/`+0x1C` button A, `+0x3C`/`+0x20` button B, `+0x74`
+  its own state (one run a frame). Helpers: `0x0206FF08` faces Kirby, `0x0206FF64` Kirby within some distance across,
+  `0x0206FF94` within a box. The brain runs before the body each frame.
+- **Random numbers**: a 64-bit LCG at `0x01FF8120` (`0x0200C7EC` multiplies); `random(0, 100)` picks weighted choices.
+- **Effects and sounds**: `0x02021900` spawns an effect (type, offset), `0x02013EE8` plays a sound.
+
+## Test harness (DS emulator)
+
+`py-desmume` with a save state after Kirby lands in Prism Plains' first room. The first stage record is rewritten (ID, x, y,
+parameters) and the enemy spawns next to Kirby; breakpoints on its state functions and its fields above give its moves frame by
+frame, to compare with the port in KatAM (mGBA, same fields in KatAM units).

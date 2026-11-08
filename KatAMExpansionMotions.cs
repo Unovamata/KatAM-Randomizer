@@ -1,4 +1,4 @@
-namespace KatAMRandomizer {
+﻿namespace KatAMRandomizer {
     /* KatAMExpansion's ability motions: the new abilities' attack poses (Needle's spikes, Freeze's ice, Ball's rolling...), which KatAM's
      * Kirby doesn't have, are NiDL's frames (see "ROM Expansion/abilities.h").
      * • Each motion is a sequence of NiDL Kirby frames, played at an animation index of the ability (MotionSlot + its number): the C code's
@@ -182,12 +182,12 @@ namespace KatAMRandomizer {
             (1, 2, 2, 0), (1, 1, 0, 0),
         };
 
-        /* CutFrame(); A canvas (128x128, origin at its center; 0: transparent) as a KatAM frame: its 8x8 cells with pixels (at most
+        /* CutFrame(); A canvas (128x128 unless size says otherwise, origin at its center; 0: transparent) as a KatAM frame: its 8x8 cells with pixels (at most
          * maxTiles), on the grid (one of the 64 offsets from the top left) needing the fewest (Needle's spiked ball in the air needs 50 on
          * the top left's, 48 on its best: the hat's VRAM), drawn in big OAM pieces where they can be, the box widened to be centered on the
          * origin so it flips about it; */
-        static (byte[] tiles, ushort[] oams, short[] attributes) CutFrame(int[,] canvas, int maxTiles) {
-            const int Size = 128, Center = 64;
+        static (byte[] tiles, ushort[] oams, short[] attributes) CutFrame(int[,] canvas, int maxTiles, int canvasSize = 128) {
+            int Size = canvasSize, Center = canvasSize / 2;
             int left = Size, right = 0, top = Size, bottom = 0;
 
             for (int y = 0; y < Size; y++)
