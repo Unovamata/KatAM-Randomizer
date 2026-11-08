@@ -137,8 +137,17 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
     bombs, the blasts) and in KatAM (USA: room 0x323, red, blue and green ones throwing; room 0x23A, a yellow one taking the chest,
     escaping with it, and inhaled while carrying it: the chest falls back and opens again). Not tested: a treat dropped (one hit
     in five), a big chest taken, the stolen chest back in a later visit, a Squeaker's way over walls; EU and Japanese builds built
-    and logic-checked but not played. Not ported: its sounds, the stages' routes and tunnels the DS Squeakers follow. Next: Spinni,
-    Doc, Storo, then Daroach.
+    and logic-checked but not played. Not ported: its sounds, the stages' routes and tunnels the DS Squeakers follow. Spinni is
+    ported (`squeak/spinni.c`, its shurikens, slash and claws with it; drawn from its two sprites in one character, its weapon a
+    layer in its own colors: the framework's new `ExtraFile` and `LayerPalettes`): its brain (chests, Kirby, its spot; its pace
+    every 60 frames), runs, jumps and long hops, shuriken throw and dive kick, the inhale it runs from, the knockback at 90% HP
+    with its dizzy spell (hits then do no damage, only a treat roll), its chest theft. Checked in KatAM (USA: room 0x323, its waits,
+    throws, dive kicks and slash, the knockback, dizzy and get-up, the inhale, Kirby's slide into it while dizzy (no damage, still
+    dizzy); screenshots of the layer, shuriken and claws; the claws (a 50% roll) with the random seed set by a RAM write, gone after
+    300 frames; room 0x23A, the chest taken mid-dive, carried home, gone with it). Not tested:
+    a treat (hit while dizzy, one in five), its pace off the screen, variant 1, against a DS recording; EU and Japanese builds
+    built and logic-checked, not played. Not ported: its sounds, light-hit flinch and its own defeat (KatAM's), the dizzy stars,
+    the stages' routes and tunnels, its rage when Kirby carries the stage's chest. Next: Doc, Storo, then Daroach.
   - Framework: a looping animation's end is now a pulse on its loop frames, and a composite's ends a frame later, as on the DS
     (logged: Bubble Head's composites and bubble). Bio Spark changed with it (its brain's three waits in the slash now take a loop
     each, 6 frames, as on the DS: checked in KatAM), and Cret's ball now drops after its drop composite's 20 frames, a frame later

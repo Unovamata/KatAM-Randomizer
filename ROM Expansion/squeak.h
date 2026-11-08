@@ -51,6 +51,8 @@ enum {
     SQUEAK_BUBOO_BUBBLE,        // Its bubbles (blown and dropped by it, drawn with its graphics);
     SQUEAK_SQUEAKER,            // The Squeak Squad's Squeakers (their colors the variant);
     SQUEAK_SQUEAKER_BOMB,       // Their bombs (thrown by them, drawn with their graphics; the variant the big one);
+    SQUEAK_SPINNI,              // The Squeak Squad's Spinni (the variant 1: no change of pace);
+    SQUEAK_SPINNI_THROWN,       // What it throws (its shurikens, its slash, its claws knocked off: the variant; drawn with its graphics);
     SQUEAK_ENEMY_COUNT,
 };
 
@@ -69,7 +71,7 @@ enum { SQUEAK_STAR_AHEAD = 1, SQUEAK_STAR_BEHIND };
 #define SQUEAK_HURT_VARIANTS 3
 
 // Room every ported character gets (SqueakObject and its own fields);
-#define SQUEAK_OBJECT_SIZE 0x168
+#define SQUEAK_OBJECT_SIZE 0x170
 
 // SQUEAK_SPEED(); A Squeak Squad speed or position (20.12 fixed point) in KatAM's units (24.8);
 #define SQUEAK_SPEED(value) ((value) >> 4)
@@ -154,10 +156,20 @@ struct SqueakEffect {
 };
 
 // SqueakData; Filled in by KatAMExpansionSqueak.cs once the graphics are built;
+/* SqueakLayer; A character's layer (KatAMExpansionSqueak.cs's LayerPalettes: the pieces of its cells in other palettes than its own,
+ * a weapon in its hands): an anim of its own (its own palette), its frames' most tiles, per cell its frame + 1 (0: none; | 0x80: drawn
+ * in front of the character, its first piece on the DS being one of them); a character without one: anim ID 0; */
+struct SqueakLayer {
+    u16 animId;
+    u16 tiles;
+    const u8 *cell;
+};
+
 struct SqueakData {
     const u8 *names;            // One 64x8 HP bar name (0x100 bytes) per character;
     const struct SqueakEffect *effects;
     struct SqueakGraphics enemies[SQUEAK_ENEMY_COUNT];
+    const struct SqueakLayer *layers;   // One per character;
 };
 
 extern const struct SqueakData gSqueakData;
@@ -190,6 +202,7 @@ struct SqueakObject {
     u8 composite;               // The composite animation playing (SqueakPlayComposite), SQUEAK_NO_COMPOSITE while a plain one plays;
     void *follower;             // The effect following it (SqueakSpawnEffect's `follow`), let go when it's destroyed;
     void *parts;                // The composition's other parts (SqueakPartFx, a chain: SqueakAnimate places them);
+    void *layer;                // Its layer's sprite (SqueakShowLayer), while its cell has one;
     u32 compositeTime;          // The frames since the composite animation started;
     s32 vars[16];               // The character's own;
     struct ObjectTemplate spawn;    // Its template, when another character spawned it (SqueakSpawn);
@@ -335,10 +348,24 @@ void BubooInit(struct SqueakObject *);
 void BubooStart(struct Object *);
 void BubooBubbleInit(struct SqueakObject *);
 void BubooBubbleStart(struct Object *);
+// The Squeaks' chest thefts (squeak/squeakers.c);
+struct Chest;
+struct Chest *SqueakNearestChest(struct SqueakObject *, bool8 *any);
+struct Chest *SqueakHeldChest(struct Chest **held);
+void SqueakChestFeet(struct Chest *, s32 *x, s32 *y);
+struct Chest *SqueakTouchedChest(struct SqueakObject *);
+void SqueakCarryChest(struct SqueakObject *, struct Chest **held, s32 *sway, s32 dx, s32 dy);
+void SqueakTakeChest(struct Chest **held, s32 *sway, struct Chest *);
+void SqueakDropChest(struct SqueakObject *, struct Chest **held);
 void SqueakerInit(struct SqueakObject *);
 void SqueakerStart(struct Object *);
 void SqueakerGone(struct SqueakObject *);
 void SqueakerBombInit(struct SqueakObject *);
 void SqueakerBombStart(struct Object *);
+void SpinniInit(struct SqueakObject *);
+void SpinniStart(struct Object *);
+void SpinniGone(struct SqueakObject *);
+void SpinniThrownInit(struct SqueakObject *);
+void SpinniThrownStart(struct Object *);
 
 #endif

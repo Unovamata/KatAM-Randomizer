@@ -39,6 +39,8 @@ const s16 gSqueakEnemyHp[SQUEAK_ENEMY_COUNT] = {
     [SQUEAK_BUBOO_BUBBLE] = 1,      // (any hit ends it, as Squeak Squad's);
     [SQUEAK_SQUEAKER] = 2,          // Squeak Squad's: 10 (prmDE01Sl0.kgb);
     [SQUEAK_SQUEAKER_BOMB] = 1,     // (KatAM's: any hit breaks it);
+    [SQUEAK_SPINNI] = 12,           // Squeak Squad's: 60 (prmDB01Sl0.kgb);
+    [SQUEAK_SPINNI_THROWN] = 1,
 };
 
 static const struct SqueakCharacter sSqueakCharacters[SQUEAK_ENEMY_COUNT] = {
@@ -71,6 +73,8 @@ static const struct SqueakCharacter sSqueakCharacters[SQUEAK_ENEMY_COUNT] = {
     [SQUEAK_BUBOO_BUBBLE] = { BubooBubbleInit, BubooBubbleStart, 0, FALSE },
     [SQUEAK_SQUEAKER] = { SqueakerInit, SqueakerStart, 0, FALSE },
     [SQUEAK_SQUEAKER_BOMB] = { SqueakerBombInit, SqueakerBombStart, 0, FALSE },
+    [SQUEAK_SPINNI] = { SpinniInit, SpinniStart, 0, FALSE },
+    [SQUEAK_SPINNI_THROWN] = { SpinniThrownInit, SpinniThrownStart, 0, FALSE },
 };
 
 /* SqueakAnimFor(); The anim and variant an object shows (variant << 16 | anim ID), for the game's object drawing (sub_0809A7A4,
@@ -91,6 +95,8 @@ void SqueakSetCell(struct SqueakObject *s, u8 cell) {
 
 static void SqueakReleaseParts(struct SqueakObject *s);
 static void SqueakShowComposite(struct SqueakObject *s);
+static void SqueakShowLayer(struct SqueakObject *s);
+static u8 SqueakLoadPalette(u16 key, u8 variant, u16 roomId);
 
 // SqueakPlay(); Starts one of the character's Squeak Squad animations, from its first step;
 void SqueakPlay(struct SqueakObject *s, u8 anim) {
@@ -149,6 +155,7 @@ void SqueakAnimate(struct SqueakObject *s) {
     }
     s->obj.base.objBase54 = SqueakTurned(s, a->step[s->step].x);
     s->obj.base.objBase55 = a->step[s->step].y;
+    SqueakShowLayer(s);
 }
 
 /* SqueakAnimTime(); The frames the animation has shown since it started (Squeak Squad's time in it, which its .rca boxes go by): its
@@ -271,6 +278,76 @@ static void SqueakReleaseParts(struct SqueakObject *s) {
         p->next = NULL;
     }
     s->parts = NULL;
+}
+
+/* Layers: a character's cell with pieces in other palettes (KatAMExpansionSqueak.cs's LayerPalettes) has them drawn by a sprite of
+ * their own (its anim, its own palette), where the character is, with its step's offset, facing as it, in front of it or behind as the
+ * DS draws them; */
+struct SqueakLayerFx {
+    struct EffectObject e;
+    struct SqueakObject *owner;
+    u8 frame;                   // Its layer frame + 1 (0: none this frame);
+    bool8 front;
+};
+
+// SqueakLayerDestroy(); A layer's end (its own, or the room's): its character lets go of it;
+static void SqueakLayerDestroy(struct Task *t) {
+    struct SqueakLayerFx *l = TaskGetStructPtr(t);
+
+    if (l->owner && l->owner->layer == l) l->owner->layer = NULL;
+    ObjectBaseDestroy(t);
+}
+
+// SqueakLayerMain(); Draws the layer's frame where its character is (none while it has none, or the character isn't drawn);
+static void SqueakLayerMain(void) {
+    struct SqueakLayerFx *l = TaskGetStructPtr(gCurTask);
+    struct SqueakObject *s = l->owner;
+
+    if ((l->e.flags & 0x1000) || s == NULL) {
+        TaskDestroy(gCurTask);
+        return;
+    }
+    if (l->frame == 0 || s->obj.unk83 < SQUEAK_HURT_VARIANTS || (s->obj.base.flags & 0x400)) return;
+    l->e.x = s->obj.base.x;
+    l->e.y = s->obj.base.y;
+    l->e.sprite.variant = l->frame - 1;
+    // (KatAM draws a lower order in front: the character's own, one less or more);
+    l->e.sprite.unk14 = l->front ? s->obj.base.sprite.unk14 - 0x40 : s->obj.base.sprite.unk14 + 0x40;
+    // (KatAM flips a frame when flag 1 is set: its frames face left, Squeak Squad's cells right, flipped when facing left);
+    l->e.flags = (l->e.flags & ~0x401) | 4 | (s->obj.base.flags & 1 ? 0 : 1);
+    l->e.objBase54 = s->obj.base.objBase54;
+    l->e.objBase55 = s->obj.base.objBase55;
+    EffectObjectPostUpdate(&l->e);
+}
+
+// SqueakShowLayer(); Its cell's layer frame this frame (its sprite made the first time one shows, its own palette loaded);
+static void SqueakShowLayer(struct SqueakObject *s) {
+    const struct SqueakLayer *layer = gSqueakData.layers ? &gSqueakData.layers[s->enemy] : NULL;
+    struct SqueakLayerFx *l = s->layer;
+    u8 frame = 0;
+    struct Task *t;
+
+    if (layer == NULL || layer->animId == 0) return;
+    if (s->obj.unk83 >= SQUEAK_HURT_VARIANTS && s->obj.unk83 - SQUEAK_HURT_VARIANTS < gSqueakData.enemies[s->enemy].cells)
+        frame = layer->cell[s->obj.unk83 - SQUEAK_HURT_VARIANTS];
+    if (l == NULL) {
+        if ((frame & 0x7F) == 0 || gKirbys[gLocalPlayerId].base.roomId != s->obj.base.roomId) return;
+        t = TaskCreate(SqueakLayerMain, sizeof(struct SqueakLayerFx), 0x3500, TASK_USE_EWRAM, SqueakLayerDestroy);
+        if (t == NULL) return;
+        l = TaskGetStructPtr(t);
+        ClearEffectObject(&l->e);
+        l->e.header.kind = 3;
+        l->e.roomId = s->obj.base.roomId;
+        l->e.parent = NULL;
+        l->e.x = s->obj.base.x;
+        l->e.y = s->obj.base.y;
+        l->owner = s;
+        EffectObjectInitSprite(&l->e, &l->e.sprite, layer->tiles, layer->animId, 0, 0x1A);
+        l->e.sprite.palId = SqueakLoadPalette(layer->animId, 0, s->obj.base.roomId);
+        s->layer = l;
+    }
+    l->frame = frame & 0x7F;
+    l->front = (frame & 0x80) != 0;
 }
 
 /* SqueakShowComposite(); The composite animation at its time: the composition its step shows, and each part's cell and offset (the
@@ -822,8 +899,10 @@ static void SqueakDestroy(struct Task *t) {
     struct SqueakObject *s = TaskGetStructPtr(t);
 
     if (s->follower) ((struct SqueakFx *)s->follower)->owner = NULL;
+    if (s->layer) ((struct SqueakLayerFx *)s->layer)->owner = NULL;
     SqueakReleaseParts(s);
     if (s->enemy == SQUEAK_SQUEAKER) SqueakerGone(s);
+    if (s->enemy == SQUEAK_SPINNI) SpinniGone(s);
     NidlDestroy(t);
 }
 
@@ -851,6 +930,7 @@ static struct SqueakObject *SqueakCreate(struct ObjectTemplate *template, u8 pla
     s->moved = FALSE;
     s->terrain = s->water = 0;
     s->follower = NULL;
+    s->layer = NULL;
     s->composite = SQUEAK_NO_COMPOSITE;
     s->parts = NULL;
     s->compositeTime = 0;

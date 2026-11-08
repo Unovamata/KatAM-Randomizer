@@ -244,8 +244,9 @@ static bool32 ChestClosed(struct SqueakObject *s, struct Object *obj) {
     return IsChest(obj) && obj->base.roomId == s->obj.base.roomId && !(obj->base.flags & 0x1000) && !(obj->unk83 & 1);
 }
 
-// NearestChest(); 0x020CF348: the nearest closed chest no Squeaker holds; `any`: there's a closed chest in the room at all;
-static struct Chest *NearestChest(struct SqueakObject *s, bool8 *any) {
+/* SqueakNearestChest(); 0x020CF348: the nearest closed chest no Squeak holds; `any`: there's a closed chest in the room at all (the
+ * Squeaks' chest thefts: Squeakers, Spinni); */
+struct Chest *SqueakNearestChest(struct SqueakObject *s, bool8 *any) {
     struct Chest *nearest = NULL;
     u32 best = 0xFFFFFFFF;
     u8 i;
@@ -273,17 +274,21 @@ static struct Chest *NearestChest(struct SqueakObject *s, bool8 *any) {
     return nearest;
 }
 
-/* Held(); The chest it holds, if it still does: still a chest, there and held (the room's end may have freed it, and its memory hold
- * another object since); */
-static struct Chest *Held(struct SqueakObject *s) {
-    struct Chest *chest = CHEST(s);
+/* SqueakHeldChest(); The chest `*held`, if it's still held: still a chest, there and held (the room's end may have freed it, and its
+ * memory hold another object since); else none (`*held` cleared); */
+struct Chest *SqueakHeldChest(struct Chest **held) {
+    struct Chest *chest = *held;
 
-    if (chest && (!IsChest(&chest->obj) || chest->obj.unk78 != ChestHeld || (chest->obj.base.flags & 0x1000))) chest = CHEST(s) = NULL;
+    if (chest && (!IsChest(&chest->obj) || chest->obj.unk78 != ChestHeld || (chest->obj.base.flags & 0x1000))) chest = *held = NULL;
     return chest;
 }
 
-// ChestFeet(); A chest's spot as Squeak Squad's (its feet; 20.12, Y up);
-static void ChestFeet(struct Chest *chest, s32 *x, s32 *y) {
+static struct Chest *Held(struct SqueakObject *s) {
+    return SqueakHeldChest(&CHEST(s));
+}
+
+// SqueakChestFeet(); A chest's spot as Squeak Squad's (its feet; 20.12, Y up);
+void SqueakChestFeet(struct Chest *chest, s32 *x, s32 *y) {
     *x = chest->obj.base.x << 4;
     *y = -(chest->obj.base.y + chest->obj.base.unk3F * 0x100) << 4;
 }
@@ -298,8 +303,8 @@ static void HitBox(struct ObjectBase *b, s32 *r) {
     r[3] = y + b->unk3B * 0x100;
 }
 
-// TouchedChest(); A closed chest no one holds touching its box (a chest's touch, kind 0x1001);
-static struct Chest *TouchedChest(struct SqueakObject *s) {
+// SqueakTouchedChest(); A closed chest no one holds touching its box (a chest's touch, kind 0x1001);
+struct Chest *SqueakTouchedChest(struct SqueakObject *s) {
     s32 r[4];
     u8 i;
 
@@ -321,50 +326,64 @@ static struct Chest *TouchedChest(struct SqueakObject *s) {
 /* Carry(); Its vtable +0x78 (0x020E9640) and the held thing's +0x10 (0x02012FB0): the chest it holds at (dx, dy) from it (Squeak
  * Squad's units, x ahead: turned with it), its feet there, plus its sway: behind its moves 1.5 pixels a frame, 6 at most, back 0.5 a
  * frame once it stops (at once within 1.5); facing as it; */
-static void Carry(struct SqueakObject *s, s32 dx, s32 dy) {
-    struct Chest *chest = Held(s);
+// (a sway: behind the move, back once it stops, at most SWAY_MAX);
+static s32 Sway(s32 sway, s32 v) {
+    if (v > 0) sway -= SWAY;
+    else if (v < 0) sway += SWAY;
+    else if (sway > SWAY) sway -= SWAY_BACK;
+    else if (sway < -SWAY) sway += SWAY_BACK;
+    else sway = 0;
+    if (sway > SWAY_MAX) sway = SWAY_MAX;
+    if (sway < -SWAY_MAX) sway = -SWAY_MAX;
+    return sway;
+}
+
+/* SqueakCarryChest(); The chest `*held` at (dx, dy) from its carrier, plus its sway (sway[2], the carrier's: Squeakers' 0x240,
+ * Spinni's 0x22C); */
+void SqueakCarryChest(struct SqueakObject *s, struct Chest **held, s32 *sway, s32 dx, s32 dy) {
+    struct Chest *chest = SqueakHeldChest(held);
     s32 x, y;
 
     if (chest == NULL) return;
-    if (s->vx > 0) SWAY_X(s) -= SWAY;
-    else if (s->vx < 0) SWAY_X(s) += SWAY;
-    else if (SWAY_X(s) > SWAY) SWAY_X(s) -= SWAY_BACK;
-    else if (SWAY_X(s) < -SWAY) SWAY_X(s) += SWAY_BACK;
-    else SWAY_X(s) = 0;
-    if (s->vy > 0) SWAY_Y(s) -= SWAY;
-    else if (s->vy < 0) SWAY_Y(s) += SWAY;
-    else if (SWAY_Y(s) > SWAY) SWAY_Y(s) -= SWAY_BACK;
-    else if (SWAY_Y(s) < -SWAY) SWAY_Y(s) += SWAY_BACK;
-    else SWAY_Y(s) = 0;
-    if (SWAY_X(s) > SWAY_MAX) SWAY_X(s) = SWAY_MAX;
-    if (SWAY_X(s) < -SWAY_MAX) SWAY_X(s) = -SWAY_MAX;
-    if (SWAY_Y(s) > SWAY_MAX) SWAY_Y(s) = SWAY_MAX;
-    if (SWAY_Y(s) < -SWAY_MAX) SWAY_Y(s) = -SWAY_MAX;
-    x = dx + SWAY_X(s);
-    y = dy + SWAY_Y(s);
+    sway[0] = Sway(sway[0], s->vx);
+    sway[1] = Sway(sway[1], s->vy);
+    x = dx + sway[0];
+    y = dy + sway[1];
     chest->obj.base.x = s->obj.base.x + SQUEAK_SPEED(s->obj.base.flags & 1 ? -x : x);
     chest->obj.base.y = s->obj.base.y - SQUEAK_SPEED(y) - chest->obj.base.unk3F * 0x100;
     chest->obj.base.flags = (chest->obj.base.flags & ~1) | (s->obj.base.flags & 1);
 }
 
-// Take(); 0x020A2BB0: it holds the chest (its own function kept, ChestHeld run instead);
-static void Take(struct SqueakObject *s, struct Chest *chest) {
-    CHEST(s) = chest;
-    chest->unkDC = (u32)chest->obj.unk78;
-    chest->obj.unk78 = ChestHeld;
-    SWAY_X(s) = SWAY_Y(s) = 0;
+static void Carry(struct SqueakObject *s, s32 dx, s32 dy) {
+    SqueakCarryChest(s, &CHEST(s), &SWAY_X(s), dx, dy);
 }
 
-// Drop(); 0x020A2A48: it lets go of its chest where it is (Squeak Squad's: at its spot), falling (ChestDropped);
-static void Drop(struct SqueakObject *s) {
-    struct Chest *chest = Held(s);
+// SqueakTakeChest(); 0x020A2BB0: `*held` the chest (its own function kept, ChestHeld run instead), its sway still;
+void SqueakTakeChest(struct Chest **held, s32 *sway, struct Chest *chest) {
+    *held = chest;
+    chest->unkDC = (u32)chest->obj.unk78;
+    chest->obj.unk78 = ChestHeld;
+    sway[0] = sway[1] = 0;
+}
+
+static void Take(struct SqueakObject *s, struct Chest *chest) {
+    SqueakTakeChest(&CHEST(s), &SWAY_X(s), chest);
+}
+
+// SqueakDropChest(); 0x020A2A48: its carrier lets go of the chest `*held` where it is (Squeak Squad's: at its spot), falling (ChestDropped);
+void SqueakDropChest(struct SqueakObject *s, struct Chest **held) {
+    struct Chest *chest = SqueakHeldChest(held);
 
     if (chest == NULL) return;
-    CHEST(s) = NULL;
+    *held = NULL;
     chest->obj.base.x = s->obj.base.x;
     chest->obj.base.y = s->obj.base.y - chest->obj.base.unk3F * 0x100;
     chest->obj.unkA0 = 0;
     chest->obj.unk78 = ChestDropped;
+}
+
+static void Drop(struct SqueakObject *s) {
+    SqueakDropChest(s, &CHEST(s));
 }
 
 /* Treat(); 0x020E9528 (hit: one time in five, not within 40 frames of the last): Squeak Squad's foods 9-14 popping up from it at 2.2,
@@ -749,14 +768,14 @@ static void Think(struct SqueakObject *s) {
     u8 aim, color = Color(s);
     u32 roll;
 
-    if (!CHEST(s)) chest = NearestChest(s, &any);
+    if (!CHEST(s)) chest = SqueakNearestChest(s, &any);
     if (CHEST(s) || !any) {
         aim = AIM_HOLE;
         tx = HOME_X(s);
         ty = HOME_Y(s);
     } else if (chest) {
         aim = AIM_CHEST;
-        ChestFeet(chest, &tx, &ty);
+        SqueakChestFeet(chest, &tx, &ty);
     } else {
         aim = AIM_KIRBY;
         tx = kx;
@@ -859,7 +878,7 @@ static void SqueakerMain(struct Object *obj) {
     SqueakRun(s, Body);
     SqueakFinishFrame(s);
     SqueakAnimate(s);
-    if (!CHEST(s) && s->state != BODY_ESCAPING && (chest = TouchedChest(s)) != NULL) {
+    if (!CHEST(s) && s->state != BODY_ESCAPING && (chest = SqueakTouchedChest(s)) != NULL) {
         if (REGRAB_COUNT(s) > 0) {
             REGRAB_COUNT(s)--;
         } else {

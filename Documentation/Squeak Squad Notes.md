@@ -367,6 +367,21 @@ there a pixel a frame, waits, and goes in (`0x020EAD78`, `0x020EACF0`: `0x020A29
 lands (`0x020ECE44`, `0x020ECE14`), the big one lit 192 frames then blasting 9 times round its spot (`0x020EC9F4`, `0x020EC7DC`).
 Flag 0x200000 (`0x020EA2EC`-`0x020EAC30`): the route's tunnels, with their own animations (18-23).
 
+**Spinni** (enemy 0x42, ported: `squeak/spinni.c`): its body `0x020AB6D0` (vtable `0x02174DF8`), brain `0x020A5BB0` (states
+`0x020A5B2C`, `0x020A5AC4`, `0x020A5850` the think, `0x020A57B4`/`0x020A5780` the attack press; `0x020A54F4` the pad toward a target:
+across beyond 8 pixels, or always on a floor or under a ceiling; a higher target: up, then 4 frames on A, a jump when it's higher
+than it's away, else down and A, a long hop; a wall: up and A to a higher target, down to a lower, nothing to a level one; Kirby
+within 64 by 32 without a chest: still). Params `prmDB01Ml0` (its words 3 run 1.4, 5 jump 4.0, 6 gravity, 7 fall cap, 8 and 9 the
+take and hole pauses, 15 the pace period, 18/19/22/23 the paces, 25-33 its things), `Pl0` (the sight, 64 by 33), `Sl0` (HP 60). The
+body switches sprites through `+0xE4` (0 `spin`, 1 `spin_at`). Its pace (`0x020A9E14`, `0x020A9EC0`) uses `0x02209D00`, the
+camera's view (relative to the camera's middle, ±128 by ±96 on the DS, plus the margins of the table at `0x022275F4`: mode 0 48
+pixels either side, 16 above, 48 below; mode 4 none), also its shuriken's end (mode 0). Its hit handler `0x020AAEA0`: kinds 3-5
+(inhale) brace it (`0x020A65F4`, `0x020A6484`), a chest touch takes it (`0x020A9984`: all speeds zeroed, 48 frames still), else
+damage, the phase moving at 90% HP (knockback `0x020A6C20`-`0x020A6910`, dizzy `0x020A6794`) and at 0. Its things: `0x020ABE08`,
+made by `0x020ABF10(kind, body, offset)`: 0/1 shurikens (`0x020AB970`, flag 0x200), 2 the slash (`0x020ABA60`), 3 its claws
+knocked off (`0x020ABCD0`, `0x020ABBD0`, `0x020ABB1C`, bursting at `0x020AB908`). Its rage (`0x020A9C68`, `0x020A9A74`) waits on the
+stage's mode 2 (Kirby carrying the stage's chest), with `spin_col_ang`'s palette.
+
 The Squeaks (Squeakers, Doc, Spinni, Storo, Daroach) and Parasol are created elsewhere. Their files: Squeakers `enemy/chun` (and `chun_blue`, `chun_green`, `chun_yellow` palettes; `prmDE01`, loaded at `0x020EC5F4`: its body near `0x020EC5xx`; its 3 palettes loaded by `0x020E8C80`; a thrown Squeaker, on the thrown-things base `0x020B49D8`, `0x020ED208`), Spinni `enemy/spin`, `spin_at` (`prmDB01`, `0x020AB764`, `0x020ABFC4`), Doc `enemy/doc`, `doc_at1` (`prmDB02`, `0x020DD8FC`, `0x020DF5E4`), Storo `enemy/stron`, `stron_atack` (`prmDB03`, `0x020E44A4`), Daroach `enemy/dancho00`, `dancho01` (`prmDB04`, the boss code near `0x02134D64`). Copy abilities KatAM lacks (Ninja, Bubble,
 Animal, Ghost, Metal): the owner decides; meanwhile those enemies give none.
 

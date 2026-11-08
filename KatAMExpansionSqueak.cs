@@ -85,6 +85,29 @@ namespace KatAMRandomizer {
             public List<SqueakComposite> Composites = new List<SqueakComposite>();
         }
 
+        /* SqueakMerge(); Two files' graphics as one character: the second's tiles, palettes, cells and animations after the first's (its
+         * cells' tiles and pieces' palettes moved on); */
+        static SqueakCharacter SqueakMerge(SqueakCharacter a, SqueakCharacter b) {
+            int tiles = a.Tiles.Length / 32, cells = a.Cells.Count, palettes = a.Palettes.Count;
+
+            if (palettes + b.Palettes.Count > 16) throw new InvalidOperationException("Too many palettes to merge.");
+            return new SqueakCharacter {
+                Tiles = a.Tiles.Concat(b.Tiles).ToArray(),
+                Palettes = a.Palettes.Concat(b.Palettes).ToList(),
+                Cells = a.Cells.Concat(b.Cells.Select(c => new SqueakCell(c.Tile + tiles,
+                                                                          c.Pieces.Select(p => p with { Attr2 = p.Attr2 + (palettes << 12) }).ToList()))).ToList(),
+                Anims = a.Anims.Concat(b.Anims.Select(an => an with { Steps = an.Steps.Select(st => st with { Cell = st.Cell + cells }).ToList() })).ToList(),
+            };
+        }
+
+        /* SqueakSplitLayer(); The character's cells without the pieces of `palettes` (layer: FALSE) or with only them (TRUE), its
+         * animations kept; */
+        static SqueakCharacter SqueakSplitLayer(SqueakCharacter c, int[] palettes, bool layer) =>
+            new SqueakCharacter {
+                Tiles = c.Tiles, Palettes = c.Palettes, Anims = c.Anims,
+                Cells = c.Cells.Select(cell => new SqueakCell(cell.Tile, cell.Pieces.Where(p => palettes.Contains(p.Attr2 >> 12) == layer).ToList())).ToList(),
+            };
+
         /* SqueakKeepAnims(); The character with only these animations (as its 0, 1...) and the cells they show (renumbered in the order
          * they first show), its tiles and palettes as they were; */
         static SqueakCharacter SqueakKeepAnims(SqueakCharacter character, int[] anims) {
@@ -175,11 +198,18 @@ namespace KatAMRandomizer {
  * a character throws (spawned as a character of its own) can be drawn with that character's graphics (GraphicsOf: its index).
          * A character in other colors (Palettes: the other .cla files of its folder, "chun_blue") gets one palette more each, in a frame
          * of its own after its cells (squeak.c's SqueakUsePalette); MergeColors: colors drawn as others (from, to), so a character a
-         * color or two over KatAM's 15 gets one palette; */
+         * color or two over KatAM's 15 gets one palette. A character drawn from two files (ExtraFile: the second sprite Squeak Squad's
+         * body switches to, its +0xE4) has the second's cells and animations after the first's (OnlyAnims counting them on: the
+         * first's count plus theirs) and its palettes after the first's; LayerPalettes (those merged palettes' indexes): the pieces
+         * drawn with them go to a layer of their own, another sprite with its own palette shown with the cell (squeak.c's
+         * SqueakShowLayer: a weapon in a character's hands in other colors than its own); */
         internal sealed record SqueakEnemy(int Index, string Name, string File, int[] HurtCells, (int type, int letter)[] Glyphs, int GraphicsOf = -1,
                                             byte MidbossType = 0, int[] OnlyAnims = null, string[] Palettes = null,
-                                            (ushort from, ushort to)[] MergeColors = null);
-        internal sealed record SqueakBuilt(SqueakEnemy Enemy, int AnimId, SqueakCharacter Character, int Tiles);
+                                            (ushort from, ushort to)[] MergeColors = null, string ExtraFile = null,
+                                            int[] LayerPalettes = null);
+        internal sealed record SqueakBuilt(SqueakEnemy Enemy, int AnimId, SqueakCharacter Character, int Tiles, SqueakLayerBuilt Layer = null);
+        // A character's layer (LayerPalettes): its anim, the most tiles a frame takes, per cell its frame + 1 (0: none; | 0x80: in front);
+        internal sealed record SqueakLayerBuilt(int AnimId, int Tiles, byte[] Cells);
 
         /* Squeak Squad's effects the ported characters show (squeak.h's SQUEAK_FX_*): an animation of <File>.* ("folder/name"; 0x02021900's
          * types name effect/efc_cmn* ones through the table at 0x02157DF8), each its own anim of the cells it shows; */
@@ -236,6 +266,9 @@ namespace KatAMRandomizer {
         // "S", "q", "u" (Squishy), "e", "a" (Hot Head), "k" (Glunk), "e" (Hot Head), "r" (Bronto Burt);
         static readonly (int type, int letter)[] SqueakerGlyphs = { (0x04, 0), (0x04, 1), (0x04, 2), (0x14, 4), (0x14, 5), (0x03, 4), (0x14, 4),
                                                                     (0x01, 1) };
+
+        // "S" (Squishy), "p", "i" (Chip), "n", "n" (Bronto Burt), "i" (Chip);
+        static readonly (int type, int letter)[] SpinniGlyphs = { (0x04, 0), (0x08, 3), (0x08, 2), (0x01, 3), (0x01, 3), (0x08, 2) };
 
         static readonly List<SqueakEnemy> SqueakDefinitions = new List<SqueakEnemy> {
             // Perara: hurt animations 7 and 8 (0x02021A88's 0x1000007, 0x1000008);
@@ -314,6 +347,15 @@ namespace KatAMRandomizer {
                             Palettes: new[] { "chun_blue", "chun_green", "chun_yellow" }, MergeColors: new (ushort, ushort)[] { (0x7FBC, 0x7FFF) }),
             // Their bombs (0x020ED208, drawn with chun's: its animations 33 and 39-41, cells 55, 67 and 68), no name;
             new SqueakEnemy(28, "Squeaker's bomb", "chun", new[] { 0, 0, 0 }, new (int, int)[0], OnlyAnims: new[] { 33, 39, 40, 41 }),
+            /* Spinni (the Squeak Squad's, enemy 0x42: 0x020AB6D0), drawn from spin and spin_at (its attacks and hurt poses: the sprite
+             * its body switches to, here spin's animations 0-28, then spin_at's from 29): the animations its code plays (squeak/spinni.c's,
+             * in its order), its hurt animations spin_at's 13 and 14 (0x100000D, 0x100000E: cells 42 and 43 of the two), the
+             * shuriken in its hands (spin_at's palettes 1 and 2, the merged 8 and 9) a layer of its own; */
+            new SqueakEnemy(29, "Spinni", "spin", new[] { 42, 43, 43 }, SpinniGlyphs, ExtraFile: "spin_at",
+                            OnlyAnims: new[] { 1, 2, 4, 5, 6, 7, 8, 14, 15, 17, 18, 19, 20, 21, 27, 28, 30, 31, 33, 34, 35, 36, 37, 39, 40, 43, 44, 56 },
+                            LayerPalettes: new[] { 8, 9 }),
+            // What it throws (0x020ABE08, drawn with spin_at's: its shuriken 16, slash 28, claws 12 and 13), no name;
+            new SqueakEnemy(30, "Spinni's shuriken", "spin_at", new[] { 0, 0, 0 }, new (int, int)[0], OnlyAnims: new[] { 16, 28, 12, 13 }),
         };
 
         public static IReadOnlyList<(int index, string name)> SqueakEnemies => SqueakDefinitions.Select(e => (e.Index, e.Name)).ToList();
@@ -436,6 +478,17 @@ namespace KatAMRandomizer {
                 WriteInt(rom, entry + 12, compositionTable == 0 ? 0 : compositionTable + 0x08000000);
                 WriteInt(rom, entry + 16, compositeTable == 0 ? 0 : compositeTable + 0x08000000);
             }
+            /* The layers (squeak.h's SqueakLayer, 8 bytes per character, after the characters' entries: anim ID, tiles, per cell its
+             * layer frame + 1, | 0x80 in front; none: 0); */
+            int layerTable = Allocate(ref localCursor, SqueakDefinitions.Count * 8, 4);
+            for (int i = 0; i < SqueakDefinitions.Count * 8; i++) rom[layerTable + i] = 0;
+            foreach (SqueakBuilt b in built.Where(b => b.Layer != null)) {
+                int cellsAt = Allocate(ref localCursor, b.Layer.Cells.Length, 4);
+                b.Layer.Cells.CopyTo(rom, cellsAt);
+                WriteShorts(rom, layerTable + b.Enemy.Index * 8, b.Layer.AnimId, b.Layer.Tiles);
+                WriteInt(rom, layerTable + b.Enemy.Index * 8 + 4, cellsAt + 0x08000000);
+            }
+            WriteInt(rom, data + 8 + SqueakDefinitions.Count * SqueakGraphicsSize, layerTable + 0x08000000);
             cursor = localCursor;
 
             int call = version.RomSymbols["_call_via_r1"] - (site + 4 + 4);
