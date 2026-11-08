@@ -8,10 +8,13 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
   1 Prism Plains (green fields by the castle) to Moonlight Mansion; 2 Nature Notch (underground, by the caves) to Rainbow Route
   South; 3 Cushy Cloud (the cloud over the hills) to Rainbow Route East; 4 Jam Jungle (the dark forest) to Rainbow Route West;
   5 Vocal Volcano (Mustard Mountain's slope) to Rainbow Route North; 6 Ice Island (the ice tower) to Peppermint Palace East;
-  7 Secret Sea (out at sea) to Cabbage Cavern East; 8 Gamble Galaxy (space) to Candy Constellation.
+  7 Secret Sea (out at sea past Olive Ocean, clear of the QUIT text: the owner's sketch, as its own level map is open sea) to
+  Olive Ocean; 8 Gamble Galaxy (space) to Candy Constellation.
 - The owner's rules for it: never connected to a NiDL hub (either game can be on alone), and no 3 exits in a chain. Read as: each
-  Squeak Squad door's path leads to a KatAM door that leads straight to Central Circle; never to a NiDL door or another Squeak
-  Squad door. Its own hub is reached from Central Circle, not through the NiDL hub.
+  Squeak Squad door's path leads to a KatAM door, never to a NiDL door or another Squeak Squad door; all but Secret Sea's lead
+  to one that goes straight to Central Circle. Its own hub is reached from Central Circle, not through the NiDL hub.
+- The Fountain of Dreams' world map door comes off the map (the owner: end-game only, its path never opens), with the Squeak
+  Squad doors.
 
 ## 5. Bosses as faithful 1:1 recreations of NiDL
 - **The other bosses**: check each against NiDL and fix what differs.
