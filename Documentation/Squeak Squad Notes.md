@@ -173,6 +173,16 @@ kind 0, lands (`0x02073980`), and flies off (`0x02073B50`, `0x02073A88`: through
 parasol (object `0xA2`, `parasol.c`) does the same for its Waddle Dee, Waddle Doo and Shotzo (`shotzo.s`' `sub_0811B44C`), so it
 stays KatAM's.
 
+Big Metalun (mid-boss 0x34: body `0x0210C4F8`, `EnemyBaseCtor(…, 0x34)`, its hurt anims both 0x100000A; brain `0x0210A940`;
+`prmMB10Ml0` 0x667, 0x2B9, 0x399A, 60, 180, -0x1000, 0x2667, 0x52; `Pl0` 50, 0x30000, 0x30000, 32, 50, 25, 50; `Sl0` HP 300;
+`enemy/bigmetalum` and `bigmetalum_dmg`, the hurt flash's palette, loaded by `0x0210A508`). Its brain (one state a frame, Squeak
+Squad's random 0-99 from the LCG at `0x01FF8120`): `0x0210A868` faces Kirby; `0x0210A7F8` rests 60, 120 or 180 frames (30, 50, 20
+in 100; `0x0210A7D0` counts at `+0x98`); `0x0210A754` walks 1, 2 or 4 steps (30, 50, 20: its `else if < 80` never picks 3) and
+`0x0210A708` waits for the body's steps (`+0x208`) to reach them and its step to end (`+0x204` 0), a wall ahead turning it round;
+`0x0210A6F0`, `0x0210A6D0` press B (the charge) for up to 180 frames (`0x0210A688`, a wall ending it); `0x0210A650` waits for the
+body to settle (`+0x204` 0), turns and faces Kirby; `0x0210A5D0` then charges again after 60 frames (30 in 100: `0x0210A5A8`) or
+starts over.
+
 ### The stage's water splashes
 
 The stage's map object (`*0x02229F1C + 0x48`, vtable `+0xB4`, `0x02215A10`) splashes: type 0 into the water, 1 out of it. Only at
