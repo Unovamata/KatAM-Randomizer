@@ -100,6 +100,9 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
     variants (logged on both, Kirby pinned away) and the ones KatAM lacks ported as the Waddle Dee's. Done: Bronto Burt (all five
     are KatAM's own: two waves, the straight flight, the perch, the drop from the screen's top). Still to compare: the other 25,
     Blipper and the swimmers in water (a DS save state in water first).
+  - Mid-bosses (Squeak Squad's 0x33-0x36: Gao Gao, Big Metalun, Tedhaun, Buboo; its other four, Mr. Frosty, Bonkers, Box Boxer and
+    Boxy, are KatAM's own): their framework is in (on the mini-boss types 0x40-0x42 NiDL's use; tested in KatAM with Big Metalun:
+    the wait, the camera lock, the HP bar and its name). Big Metalun's brain and body are being ported; the other three next.
   - Framework: a looping animation's end is now a pulse on its loop frames, and a composite's ends a frame later, as on the DS
     (logged: Bubble Head's composites and bubble). Bio Spark changed with it (its brain's three waits in the slash now take a loop
     each, 6 frames, as on the DS: checked in KatAM), and Cret's ball now drops after its drop composite's 20 frames, a frame later

@@ -154,7 +154,8 @@ namespace KatAMRandomizer {
         /* A Squeak Squad character: its index (squeak.h's SQUEAK_*), name, files (enemy/<File>.*), the cells its hurt frames show (its
          * hurt animations': SqueakHurtVariants), and its HP bar name, made of the letters of KatAM's names (object type, letter); a thing
  * a character throws (spawned as a character of its own) can be drawn with that character's graphics (GraphicsOf: its index); */
-        internal sealed record SqueakEnemy(int Index, string Name, string File, int[] HurtCells, (int type, int letter)[] Glyphs, int GraphicsOf = -1);
+        internal sealed record SqueakEnemy(int Index, string Name, string File, int[] HurtCells, (int type, int letter)[] Glyphs, int GraphicsOf = -1,
+                                            byte MidbossType = 0);
         internal sealed record SqueakBuilt(SqueakEnemy Enemy, int AnimId, SqueakCharacter Character, int Tiles);
 
         /* Squeak Squad's effects the ported characters show (squeak.h's SQUEAK_FX_*): an animation of <File>.* ("folder/name"; 0x02021900's
@@ -251,6 +252,11 @@ namespace KatAMRandomizer {
             // Metalun: hurt animations 7 and 8 (0x020526AC's 0x1000007, 0x1000008: cells 24 and 25);
             new SqueakEnemy(19, "Metalun", "metalum", new[] { 24, 25, 25 },
                             new[] { (0x2B, 0), (0x14, 4), (0x14, 2), (0x14, 5), (0x03, 1), (0x03, 2), (0x01, 3) }),   // "M" (Metal Guardian), "e", "t", "a" (Hot Head), "l", "u" (Glunk), "n" (Bronto Burt);
+            /* Big Metalun (a mid-boss, on mini-boss type 0x41, squeak.h's SQUEAK_MIDBOSS): its hurt animations both 10 (0x0210C4F8's
+             * 0x100000A: cell 32), the defeated one too; */
+            new SqueakEnemy(20, "Big Metalun", "bigmetalum", new[] { 32, 32, 32 },
+                            new[] { (0x11, 0), (0x11, 1), (0x11, 2), (-1, 0), (0x2B, 0), (0x14, 4), (0x14, 2), (0x14, 5), (0x03, 1), (0x03, 2),
+                                    (0x01, 3) }, MidbossType: 0x41),   // "Big" (Big Waddle Dee), " ", "Metalun" (as Metalun's);
         };
 
         public static IReadOnlyList<(int index, string name)> SqueakEnemies => SqueakDefinitions.Select(e => (e.Index, e.Name)).ToList();
@@ -263,6 +269,7 @@ namespace KatAMRandomizer {
          * lsls r1, r0, #16; lsrs r1, r1, #16; mov r8, r1; strh r1, [r6, #12]; lsrs r0, r0, #16; strb r0, [r6, #26]; b +0x38`;
          * the same in every version; */
         static string WriteSqueak(byte[] rom, KatAMExpansionCode.Version version, ref int cursor, List<SqueakBuilt> built,
+                                  IReadOnlyDictionary<byte, int> minibossTiles,
                                   List<SqueakEffectBuilt> effects) {
             int codeBase = CodeAddress + 0x08000000, parameters = version.ObjectParameters + SqueakID * 0x18;
             int site = version.RomSymbols["sub_0809A7A4"] + 0x80;
@@ -287,7 +294,11 @@ namespace KatAMRandomizer {
             WriteShort(rom, parameters + 6, 0);
             WriteShort(rom, parameters + 8, 0);
             WriteShort(rom, parameters + 10, 0);
-            WriteInt(rom, parameters + 12, built.Max(b => b.Tiles));
+            // (type 0x2C's VRAM for its biggest frame: the mid-bosses' are their mini-bosses types', which have to hold theirs);
+            WriteInt(rom, parameters + 12, built.Where(b => b.Enemy.MidbossType == 0).Max(b => b.Tiles));
+            foreach (SqueakBuilt midboss in built.Where(b => b.Enemy.MidbossType != 0))
+                if (!minibossTiles.TryGetValue(midboss.Enemy.MidbossType, out int typeTiles) || midboss.Tiles > typeTiles)
+                    return $"{midboss.Enemy.Name}'s frames don't fit mini-boss type 0x{midboss.Enemy.MidbossType:X2}'s VRAM.";
             WriteInt(rom, parameters + 16, codeBase + version.CodeSymbols["SqueakStart"] + 1);
             int animInfo = Allocate(ref cursor, 4, 4);
             WriteShort(rom, animInfo, built[0].AnimId);

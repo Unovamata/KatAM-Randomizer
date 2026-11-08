@@ -30,6 +30,7 @@ const s16 gSqueakEnemyHp[SQUEAK_ENEMY_COUNT] = {
     [SQUEAK_ACCHI_FIRE] = 1,
     [SQUEAK_BUN] = 7,               // Squeak Squad's: 35 (prmCE28Sl0.kgb);
     [SQUEAK_METALUN] = 10,          // Squeak Squad's: 50 (prmCE29Sl0.kgb);
+    [SQUEAK_BIG_METALUN] = 64,      // Squeak Squad's: 300 (prmMB10Sl0.kgb), its other mid-bosses' 140 being KatAM's Mr. Frosty's 30;
 };
 
 static const struct SqueakCharacter sSqueakCharacters[SQUEAK_ENEMY_COUNT] = {
@@ -53,6 +54,7 @@ static const struct SqueakCharacter sSqueakCharacters[SQUEAK_ENEMY_COUNT] = {
     [SQUEAK_ACCHI_FIRE] = { AcchiFireInit, AcchiFireStart, 0, FALSE },
     [SQUEAK_BUN] = { BunInit, BunStart, KIRBY_ABILITY_THROW, FALSE },
     [SQUEAK_METALUN] = { MetalunInit, MetalunStart, 0, FALSE },
+    [SQUEAK_BIG_METALUN] = { BigMetalunInit, BigMetalunStart, 0, FALSE, TRUE },
 };
 
 /* SqueakAnimFor(); The anim and variant an object shows (variant << 16 | anim ID), for the game's object drawing (sub_0809A7A4,
@@ -61,7 +63,7 @@ static const struct SqueakCharacter sSqueakCharacters[SQUEAK_ENEMY_COUNT] = {
 u32 SqueakAnimFor(struct Object *obj) {
     const struct AnimInfo *info;
 
-    if (obj->type == SQUEAK_TYPE) return gSqueakData.enemies[((struct SqueakObject *)obj)->enemy].animId | obj->unk83 << 16;
+    if (SqueakIsSqueak(obj)) return gSqueakData.enemies[((struct SqueakObject *)obj)->enemy].animId | obj->unk83 << 16;
     info = &gUnk_08351648[obj->type].unk14[obj->unk83];
     return info->animId | info->variant << 16;
 }
@@ -801,10 +803,10 @@ static void SqueakDestroy(struct Task *t) {
 // (SqueakObject fits the room every character gets);
 typedef char SqueakObjectFits[sizeof(struct SqueakObject) <= SQUEAK_OBJECT_SIZE ? 1 : -1];
 
-void *CreateSqueakEnemy(struct ObjectTemplate *template, u8 playerId) {
+// SqueakCreate(); A character's object (its start not run yet): InitObject, its fields, HP, init, sprite, own palette, first cell;
+static struct SqueakObject *SqueakCreate(struct ObjectTemplate *template, u8 playerId, u8 enemy) {
     struct Task *task = TaskCreate(ObjectMain, SQUEAK_OBJECT_SIZE, 0x1000, TASK_USE_EWRAM, SqueakDestroy);
     struct SqueakObject *s = TaskGetStructPtr(task);
-    u8 enemy = template->subtype1 < SQUEAK_ENEMY_COUNT ? template->subtype1 : 0;
     u8 i;
 
     InitObject(&s->obj, template, playerId);
@@ -818,6 +820,7 @@ void *CreateSqueakEnemy(struct ObjectTemplate *template, u8 playerId) {
     s->stateTimer = 0;
     s->brain = 0;
     s->started = FALSE;
+    s->activated = FALSE;
     s->moved = FALSE;
     s->terrain = s->water = 0;
     s->follower = NULL;
@@ -835,17 +838,76 @@ void *CreateSqueakEnemy(struct ObjectTemplate *template, u8 playerId) {
     ObjectInitSprite(&s->obj);
     s->obj.base.sprite.palId = SqueakLoadPalette(gSqueakData.enemies[enemy].animId, SQUEAK_HURT_VARIANTS, s->obj.base.roomId);
     SqueakSetCell(s, 0);
+    return s;
+}
+
+// CreateSqueakEnemy(); Type 0x2C's spawn: the character the behavior byte asks for (an unknown one, or a mid-boss, the first);
+void *CreateSqueakEnemy(struct ObjectTemplate *template, u8 playerId) {
+    u8 enemy = template->subtype1;
+    struct SqueakObject *s;
+
+    if (enemy >= SQUEAK_ENEMY_COUNT || sSqueakCharacters[enemy].midboss) enemy = 0;
+    s = SqueakCreate(template, playerId, enemy);
+    SqueakStart(&s->obj);
+    return s;
+}
+
+/* CreateSqueakMidboss(); A mid-boss (a mini-boss type's spawn, CreateNidlMiniboss, hands its SQUEAK_MIDBOSS behavior bytes over): as
+ * NiDL's and Mr. Frosty (0x080CB6E8), water doesn't defeat it, it's untouchable till the fight starts, its touch hurts as a
+ * mini-boss's, it faces Kirby; an unknown character, the first mid-boss; */
+void *CreateSqueakMidboss(struct ObjectTemplate *template, u8 playerId) {
+    u8 enemy = template->subtype1 & ~SQUEAK_MIDBOSS;
+    struct SqueakObject *s;
+
+    if (enemy >= SQUEAK_ENEMY_COUNT || !sSqueakCharacters[enemy].midboss) enemy = SQUEAK_BIG_METALUN;
+    s = SqueakCreate(template, playerId, enemy);
+    s->obj.base.unkC |= 1;
+    s->obj.base.flags |= 0x2000000 | 0x200 | 0x200000;
+    s->obj.base.unk5C = (s->obj.base.unk5C & ~7) | 3 | 0xA0;
+    s->obj.base.sprite.unk14 = 0x6C0;
+    NidlFaceKirby(&s->obj);
     SqueakStart(&s->obj);
     return s;
 }
 
 // SqueakStart(); The type's behavior start (the game calls it again after a hit);
+/* SqueakMidbossWait(); A mid-boss before its fight (Mr. Frosty's 0x080CB7E8, as NiDL's: NidlMinibossWait): its animation going,
+ * falling as the engine would, facing Kirby till he's in the template's area; then the camera stays there, the HP bar shows, the
+ * mini-boss music plays and it starts; */
+static void SqueakMidbossWait(struct Object *obj) {
+    struct SqueakObject *s = (struct SqueakObject *)obj;
+
+    obj->base.flags |= 4;
+    SqueakAnimate(s);
+    NidlFall(obj);
+    obj->kirby3 = FindTargetKirby(&obj->base);
+    if ((obj->kirby3->base.unkC & 0x8000) || obj->base.roomId != obj->kirby3->base.roomId) return;
+    NidlFaceKirby(obj);
+    if (!Macro_08039430_2(&obj->kirby3->base, obj)) return;
+    Macro_081003EC(obj, &obj->kirby3->base);
+    obj->base.flags &= ~0x200;
+    Macro_08100F18(obj);
+    s->activated = TRUE;
+    SqueakStart(obj);
+}
+
+/* SqueakMidbossUpdate(); A mid-boss in its fight stays in the area the camera is locked to (as NiDL's, NidlUpdate, and KatAM's own:
+ * ObjXSomething), called first each frame; */
+void SqueakMidbossUpdate(struct SqueakObject *s) {
+    if (s->activated && s->obj.unkA8 > s->obj.unkA4) ObjXSomething(&s->obj);
+}
+
 void SqueakStart(struct Object *obj) {
     struct SqueakObject *s = (struct SqueakObject *)obj;
 
     obj->kirbyAbility = sSqueakCharacters[s->enemy].ability;
     // The engine's gravity off (flag 0x40, and 0x20, which keeps it on once falling): Squeak Squad's characters have their own;
     obj->base.flags = (obj->base.flags | 0x40) & ~0x20;
+    if (sSqueakCharacters[s->enemy].midboss && !s->activated) {
+        ObjectSetFunc(obj, -1, SqueakMidbossWait);
+        obj->base.xspeed = 0;
+        return;
+    }
     sSqueakCharacters[s->enemy].start(obj);
     s->started = TRUE;
 }

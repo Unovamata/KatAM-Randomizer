@@ -42,8 +42,18 @@ enum {
     SQUEAK_ACCHI_FIRE,          // Acchi's fire (spat by it, drawn with its graphics);
     SQUEAK_BUN,
     SQUEAK_METALUN,
+    SQUEAK_BIG_METALUN,         // A mid-boss (on a mini-boss type, see below);
     SQUEAK_ENEMY_COUNT,
 };
+
+/* Mid-bosses: on the mini-boss types NiDL's use (0x40-0x42, which KatAM treats as mini-bosses everywhere: HP bar, music, camera,
+ * defeat), told from NiDL's by the template's behavior byte, SQUEAK_MIDBOSS | the character (NiDL's are under 0x60); its unk12 byte
+ * the variant. Created by CreateSqueakMidboss (the mini-bosses' spawn hands them over), they wait facing Kirby till he's in the
+ * template's area, then the camera locks there, the HP bar shows and the mini-boss music plays, as KatAM's own mini-bosses do; */
+#define SQUEAK_MIDBOSS 0x80
+#define SqueakIsMidboss(obj) (NidlIsMiniboss(obj) && (obj)->objTemplate->subtype1 >= SQUEAK_MIDBOSS)
+// SqueakIsSqueak(); An object that's a Squeak Squad character (SqueakObject): on its own type or a mid-boss;
+#define SqueakIsSqueak(obj) ((obj)->type == SQUEAK_TYPE || SqueakIsMidboss(obj))
 
 // Variants before the cells' (see above);
 #define SQUEAK_HURT_VARIANTS 3
@@ -171,6 +181,7 @@ struct SqueakObject {
     u32 compositeTime;          // The frames since the composite animation started;
     s32 vars[16];               // The character's own;
     struct ObjectTemplate spawn;    // Its template, when another character spawned it (SqueakSpawn);
+    bool8 activated;            // A mid-boss: its fight has started;
 };
 
 // SqueakTouches()' sides (the stage's vtable +0x18's: 1 up, 2 down, 4 left, 8 right);
@@ -188,6 +199,7 @@ struct SqueakCharacter {
     void (*start)(struct Object *);         // Behavior start, also after recovering from a hit;
     u16 ability;
     bool8 swims;                // It has moves in water (KatAM's engine drowns the others, unkC 1 unset: sub_0809D710);
+    bool8 midboss;              // A mid-boss: created on a mini-boss type only (CreateSqueakMidboss);
 };
 
 extern const s16 gSqueakEnemyHp[];
@@ -217,6 +229,8 @@ struct SqueakBoxes {
 
 void *CreateSqueakEnemy(struct ObjectTemplate *, u8 playerId);
 void SqueakStart(struct Object *);
+void *CreateSqueakMidboss(struct ObjectTemplate *, u8 playerId);
+void SqueakMidbossUpdate(struct SqueakObject *);
 u32 SqueakAnimFor(struct Object *);
 const u8 *SqueakName(struct Object *);
 s16 SqueakMaxHp(struct Object *);
@@ -294,5 +308,7 @@ void BunInit(struct SqueakObject *);
 void BunStart(struct Object *);
 void MetalunInit(struct SqueakObject *);
 void MetalunStart(struct Object *);
+void BigMetalunInit(struct SqueakObject *);
+void BigMetalunStart(struct Object *);
 
 #endif

@@ -230,7 +230,7 @@ void NidlStart(struct Object *obj) {
 void NidlCopyName(struct Object *obj) {
     const u8 *name;
 
-    if (obj->type == SQUEAK_TYPE)
+    if (SqueakIsSqueak(obj))
         name = SqueakName(obj);
     else if (obj->type == NIDL_TYPE)
         name = gNidlData.names + ((struct NidlObject *)obj)->enemy * 0x100;
@@ -265,7 +265,7 @@ u16 NidlHpBarFill(struct Object *obj) {
     s32 max;
 
     if (obj->type == SQUEAK_TYPE || obj->type == NIDL_TYPE || NidlIsMiniboss(obj) || NidlIsBoss(obj)) {
-        max = obj->type == SQUEAK_TYPE ? SqueakMaxHp(obj) : NidlMaxHp(obj);
+        max = SqueakIsSqueak(obj) ? SqueakMaxHp(obj) : NidlMaxHp(obj);
         return max > 0 ? obj->unk80 * (0x4000 / max) : 0;
     }
     if ((u8)(obj->type - 0x38) <= 0x1A) {

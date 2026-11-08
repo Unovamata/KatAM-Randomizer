@@ -1352,7 +1352,9 @@ namespace KatAMRandomizer {
             Array.Copy(rom, ObjectParameters2, rom, ObjectParameters2 + NightmareID * 8, 8);
 
             // Object type 0x2C, Squeak Squad's characters (KatAMExpansionSqueak.cs);
-            if (squeakBuilt.Count > 0 && WriteSqueak(rom, version, ref cursor, squeakBuilt, squeakEffects) is string squeakError) return squeakError;
+            if (squeakBuilt.Count > 0 && WriteSqueak(rom, version, ref cursor, squeakBuilt,
+                                                     minibossFrameTiles.ToDictionary(p => p.Key, p => p.Value + HurtOf(p.Key).Tiles), squeakEffects)
+                                         is string squeakError) return squeakError;
 
             /* Object types 0x40-0x42: spawn function and parameters, as Mr. Frosty's (type 0x38: score, HP) but for its hurt frames (0 &
              * 1), no ability (the code sets each mini-boss's), no palette key, VRAM tiles (the type's biggest frame, then the hurt frame),
