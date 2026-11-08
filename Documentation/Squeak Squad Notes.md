@@ -367,19 +367,19 @@ NiDL's natives were); one it lacks is ported onto KatAM's own object (`ROM Expan
 | 0x05 | Gordo | 0x0204D2F4 | 0x0204C614 | 0 0x0204C42C (bob), 1 0x0204C2E8 (across, at Kirby), 2 0x0204C164 (up and down), 3 0x0204BFBC (up and down, 64-frame timer), 4 0x0204BF00 (circle) | 0-3 KatAM's own (0, 2, 1, 3); 4 ported (KatAM's 5) |
 | 0x06 | Snooter | 0x02054C5C | 0x02052D98 | 0 (and any but 1) 0x02052C60 (looks round 2-3 times, 67 frames apart, walks 120 at 0.25), 1 0x02052ABC (faces Kirby, stands); a hit (body `+0x1F8`): 0x020529F8, 0x020529A4 (walks 300 frames, then faces Kirby) | 0 KatAM's own (look round, crawl, swallow, spit; its rush after a hit); 1 ported (KatAM's 5: stands) |
 | 0x07 | Chip | 0x020333F0 | 0x02031CBC | 0 (and any but 1, 5) 0x02031BF0 (random hops in place or forward, small or big, facing Kirby), 1 and 5 0x02031A6C (the same, some backward) | KatAM's own: its hoppers face Kirby and hop at random (its 1 turning round at random too); logged on the DS: 0.5 across, 0.95 or 2.05 up, about 117 frames apart |
-| 0x08 | Batty | 0x0204BB60 | 0x0204AF2C | two | to compare |
-| 0x09 | Blockin | 0x0204A414 | 0x020495F4 | one | to compare |
-| 0x0A | Big Waddle Dee | 0x020358F4 | 0x02035048 | one | to compare |
-| 0x13 | Shotzo | 0x0205E680 | 0x0205D15C | six | to compare (its parasol is KatAM's) |
-| 0x14 | Waddle Doo | 0x020600CC | 0x0205EDF8 | five | to compare (its parasol is KatAM's) |
-| 0x15 | Hot Head | 0x0203D8E8 | 0x0203CA3C | three | to compare |
-| 0x16 | Flamer | 0x02092790 | 0x0208FC34 | six | to compare |
-| 0x17 | Pengy | 0x020625B0 | 0x0206147C | three | to compare |
-| 0x18 | Sparky | 0x02034C34 | 0x02033B80 | three | to compare |
+| 0x08 | Batty | 0x0204BB60 | 0x0204AF2C | 1 0x0204A984, others 0x0204AD34: wait (a flutter) till Kirby is near, chase him (`+0xB0`'s frames), fly back home and wait (1: 30 frames at home first) | KatAM's own: it wakes when Kirby is near, chases him and flies home (logged: the flutter, the dive at Kirby) |
+| 0x09 | Blockin | 0x0204A414 | 0x020495F4 | one (0x0204951C, 0x02049420: a block till woken, body `+0x1FC`, then steering at Kirby; past its time, A and B) | KatAM's own: a block that wakes (stood on or inhaled) and flies at Kirby (logged: still with Kirby 30 pixels away) |
+| 0x0A | Big Waddle Dee | 0x020358F4 | 0x02035048 | one (0x02034F7C: walks, 0.25) | KatAM's own walk (logged) |
+| 0x13 | Shotzo | 0x0205E680 | 0x0205D15C | 0 and 6 0x0205CC10 (turns its barrel to Kirby, five directions), 1-5 0x0205CA90 (fixed barrel, a shot on a timer; the parasol ones) | KatAM's own: fixed and aiming Shotzos; its parasol is KatAM's |
+| 0x14 | Waddle Doo | 0x020600CC | 0x0205EDF8 | 0, 5, 6 0x0205ED20 and 3 0x0205EB20 (walks 120 frames, then a beam or a jump at random, odds apart), 1 0x0205EC04 (stands), 2 0x0205EBD0 (stands, beams every 252 frames), 4 0x0205EA04 (a parasol, then 3's) | KatAM's own: 0 walks and beams or jumps at random, 1 a parasol, 2 stands, 3 stands and beams on a timer (logged: the walk, beam and jump frames) |
+| 0x15 | Hot Head | 0x0203D8E8 | 0x0203CA3C | 0 and 3 0x0203C970 (walks 0.25, fireballs or its flame at Kirby), 1 0x0203C5DC (faces Kirby, stands), 2 0x0203C5B4 (stands, a fireball every 164 frames) | KatAM's own: 0 walks and attacks, 1 stands and attacks, 2 stands (logged) |
+| 0x16 | Flamer | 0x02092790 | 0x0208FC34 | 0, 2, 4 (crawl round the terrain, then a fireball dash) and 1, 3, 5 (crawl at Kirby), each its own brain (0x0208FA98, 0x0208F6C4, 0x0208F620, 0x0208F250, 0x0208F1AC, 0x0208EEAC) | KatAM's own crawl and fireball dash (logged on flat ground only: the pairs alike) |
+| 0x17 | Pengy | 0x020625B0 | 0x0206147C | 0, 3, 4, 6 0x020613B0 (slides 1.0, stops, breathes ice), 1 and 5 0x020611D4 (stands), 2 0x020611AC (stands, watching) | KatAM's own: walks and breathes ice at random, or stands (logged) |
+| 0x18 | Sparky | 0x02034C34 | 0x02033B80 | 0 and 3-6 0x02033AB4 (hops 2.7 up, sparks), 1 0x02033820 and 2 0x020337F8 (stand) | KatAM's own: hops and sparks at Kirby near, or stands (logged) |
 | 0x19 | Twister | 0x02045AFC | 0x02044B20 | two | to compare |
-| 0x1A | Sword Knight | 0x0203FC54 | 0x0203E7E8 | three | to compare |
+| 0x1A | Sword Knight | 0x0203FC54 | 0x0203E7E8 | 0 and 3-6 0x0203E628 (dashes 2.0 and slashes), 1 0x0203E0C8 (stands and slashes), 2 0x0203DBE8 (stands) | KatAM's own walking, standing slashers and idle one (logged) |
 | 0x1C | Cupie | 0x020668C4 | 0x02063604 | six | to compare |
-| 0x1D | Sir Kibble | 0x02068FD0 | 0x020682B8 | four | to compare |
+| 0x1D | Sir Kibble | 0x02068FD0 | 0x020682B8 | 0 and 4-6 0x020681E8 (stands, a cutter every 165 frames), 1 0x02067FE0 and 2 0x02067D70 (walk 0.5, throw), 3 0x02067AD8 (stands) | KatAM's own standing and walking throwers (logged) |
 | 0x1E | Laser Ball | 0x02057CEC | 0x020572E0 | two | to compare |
 | 0x1F | Foley | 0x0205A030 | 0x02059320 | five | to compare |
 | 0x20 | Wheelie | 0x0204745C | 0x0204626C | two | to compare |
