@@ -173,6 +173,8 @@ kind 0, lands (`0x02073980`), and flies off (`0x02073B50`, `0x02073A88`: through
 parasol (object `0xA2`, `parasol.c`) does the same for its Waddle Dee, Waddle Doo and Shotzo (`shotzo.s`' `sub_0811B44C`), so it
 stays KatAM's.
 
+Squeak Squad's Gordo 4 (body state `0x0204CB84`, then `0x0204C9E0`) flies a circle: from 180 degrees, 3 a frame (`+0x200`, 20.12 degrees; 360 wraps to 0 and clears its velocity after the move), its velocity forward the negated cosine and up the negated sine (its sine table `0x0215CE20`, 4096 sine and cosine pairs, 1.0 = 0x1000), through the terrain: 1.0, a 19.1-pixel radius, 120 frames a lap (logged: x 140.39-178.58, y 120-158.19 from a spawn at 160, 120). Its wall check flips `+0x1FC`, which only picks the velocity's sign when 0 (set to 1, never 0): it never turns. Squeak Squad's spawn Y counts from the stage's bottom (240 - Y) and its Y is up: a test spawn under 80 is in the ground.
+
 Squeak Squad's Glunk (body `0x0205B478`, brain `0x0205A51C`, `prmNE04Pl0.kgb` and `Pl1.kgb`, the spawn's second byte picking `Pl1`) has one brain: it presses B every P0 + 2 frames (`0x0205A2EC`, `0x0205A2D4`: 240, or 120), counting from its start. Its body shoots on B standing (`0x0205B1DC` on land, `0x0205A9B8` in water) or in the air (`0x0205AD70`, `0x0205ABA0`): its 12-frame shooting animation 5 times, a shot (`0x0205BAFC`) at the end of each (`0x0205A828`, `0x0205AF10`, its shots counted at `+0x1F8` against `Pl0`'s `+0x30`, checked first), standing again the frame after the fifth. Logged (Kirby pinned away): volleys 241 and 121 frames after the spawn, then 242 and 122 apart, 61 frames long, shots 12 frames in and 12 apart. Standing in water with its spot no longer water it hops (`0x0205ADDC`: its shooting pose, 2.5 up), falls (`0x0205AC58`, its sway) and stands where it lands (land or water: its vtable `+0x80`).
 
 Big Metalun (mid-boss 0x34: body `0x0210C4F8`, `EnemyBaseCtor(…, 0x34)`, its hurt anims both 0x100000A; brain `0x0210A940`;
@@ -361,8 +363,8 @@ NiDL's natives were); one it lacks is ported onto KatAM's own object (`ROM Expan
 | 0x01 | Bronto Burt | 0x02029060 | 0x0202637C | 0 0x02026298 (a wave, 53 pixels up, 144 frames), 1 0x0202625C (a smaller wave), 2 0x0202622C (straight, to 1.0), 3 0x020261E4 (perched till Kirby is near), 4 0x02026110 (hidden till Kirby passes, then from the screen's top 48 pixels ahead of him: `0x02028BB4`) | all KatAM's: 0 and 1 its waves (0, 1), 2 its straight flight (4), 3 its perch (5), 4 its drop from the screen's top (2) |
 | 0x02 | Blipper | 0x0208EBCC | 0x0208C2A8 | five | to compare in water (no DS save state in water yet) |
 | 0x03 | Glunk | 0x0205B478 | 0x0205A51C | one (B every `Pl0`'s 240 + 2 frames, `Pl1`'s 120 + 2 when the spawn's second byte is 1) | KatAM's 0 and 1 are other beats (a pose every 3 sway loops; 5 shots every 190 frames); ported (KatAM's 5 and 6), with its hop out of water |
-| 0x04 | Scarfy | 0x020490D4 | 0x02047974 | one | to compare |
-| 0x05 | Gordo | 0x0204D2F4 | 0x0204C614 | five | to compare |
+| 0x04 | Scarfy | 0x020490D4 | 0x02047974 | one (0x0204784C waits facing Kirby; inhaled, body `+0x204`, 0x02047740 holds B and steers at him, A past its time) | KatAM's own: inhaled it turns into its cyclops, backs off and dives at Kirby, bursting on him (logged on the DS: 1.0 back 30 frames, then 1.2 at him) |
+| 0x05 | Gordo | 0x0204D2F4 | 0x0204C614 | 0 0x0204C42C (bob), 1 0x0204C2E8 (across, at Kirby), 2 0x0204C164 (up and down), 3 0x0204BFBC (up and down, 64-frame timer), 4 0x0204BF00 (circle) | 0-3 KatAM's own (0, 2, 1, 3); 4 ported (KatAM's 5) |
 | 0x06 | Snooter | 0x02054C5C | 0x02052D98 | two | to compare |
 | 0x07 | Chip | 0x020333F0 | 0x02031CBC | two | to compare |
 | 0x08 | Batty | 0x0204BB60 | 0x0204AF2C | two | to compare |

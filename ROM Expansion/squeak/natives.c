@@ -29,7 +29,13 @@
  *   (0x0205AC58, its sway) and stands on landing (or in water again). Its new variants (subtype1: KatAM's Glunk reads subtype2
  *   alone, its templates' subtype1 0 or 1): 5 its Pl0, 6 its Pl1: KatAM's Glunk (its sway and pose, its bullets and their puff:
  *   6.0 up, 9 frames; Squeak Squad's shot 8.0 up, 8 frames) on Squeak Squad's beat and hop (KatAM's gravity), its brain counting
- *   on through hits and volleys as Squeak Squad's does. */
+ *   on through hits and volleys as Squeak Squad's does.
+ * • Gordo (object 0x06; Squeak Squad's enemy 0x05: body 0x0204D2F4, brain 0x0204C614, its brains by variant 0x0204C42C, 0x0204C2E8,
+ *   0x0204C164, 0x0204BFBC, 0x0204BF00). KatAM's variants (its subtype1): 0 bobs in place, 1 goes up and down between floor and
+ *   ceiling, 2 side to side between walls, 3 a slow 288-frame dive and climb. Squeak Squad's: 0 bobs (KatAM's 0), 1 flies across
+ *   (KatAM's 2), 2 up and down (KatAM's 1), 3 up and down on a 64-frame timer (KatAM's 3); its 4 circles (0x0204CB84, 0x0204C9E0:
+ *   3 degrees a frame from 180 at 1.0, a 19-pixel radius, 120 frames a lap; logged), new: KatAM's 5, through everything, facing left
+ *   as Squeak Squad spawns it (logged with Kirby on either side). */
 #include "global.h"
 #include "object.h"
 #include "functions.h"
@@ -43,8 +49,10 @@ struct SqueakNatives {
     void (*waddleDeeStart)(struct Object *);   // Its type's resume after a hit or bump (gUnk_08351648[0].unk10, sub_080A3CF0);
     void *(*glunk)(struct ObjectTemplate *, u8);
     void (*glunkStart)(struct Object *);        // (gUnk_08351648[3].unk10, sub_080AF610);
+    void *(*gordo)(struct ObjectTemplate *, u8);
+    void (*gordoStart)(struct Object *);        // (gUnk_08351648[6].unk10, sub_0809FC58);
 };
-const struct SqueakNatives gSqueakNatives = { NULL, NULL, NULL, NULL };
+const struct SqueakNatives gSqueakNatives = { NULL, NULL, NULL, NULL, NULL, NULL };
 
 // Waddle Dee's new variants (subtype1) and anims (its AnimInfos, 0x308's: ObjectSetFunc's index);
 enum { WADDLE_DEE_PATROL = 5, WADDLE_DEE_JUMP_AT, WADDLE_DEE_HOP };
@@ -344,5 +352,79 @@ void *SqueakCreateGlunk(struct ObjectTemplate *template, u8 playerId) {
     obj->unkA4 = 0;
     obj->unkA6 = FALSE;
     if (template->subtype1 == GLUNK_SQUEAK_PL0 || template->subtype1 == GLUNK_SQUEAK_PL1) SqueakGlunkStart(obj);
+    return obj;
+}
+
+/* Gordo's new variant (subtype1: past KatAM's own templates' 0-2 and its code's 3) and its circle: Squeak Squad's velocity at each
+ * 3-degree step of its angle (its body's -cos and -sin from its sine table, 0x0215CE20, in its 20.12 units, forward and up, as
+ * KatAM's yspeed: logged; 357's from its move, as it clears its velocity once it wraps), from 0 degrees; its circle starts at 180
+ * (0x0204CB84): forward, then up; */
+#define GORDO_SQUEAK_CIRCLE 5
+#define GORDO_STEPS 120
+#define GORDO_START_STEP 60
+static const s16 sGordoCircle[GORDO_STEPS][2] = {
+    { -4096, 0 }, { -4090, -214 }, { -4074, -426 }, { -4046, -638 }, { -4007, -848 }, { -3958, -1056 },
+    { -3897, -1261 }, { -3826, -1462 }, { -3742, -1666 }, { -3650, -1858 }, { -3548, -2046 }, { -3437, -2228 },
+    { -3316, -2405 }, { -3186, -2574 }, { -3048, -2737 }, { -2896, -2896 }, { -2741, -3043 }, { -2579, -3182 },
+    { -2410, -3312 }, { -2234, -3433 }, { -2052, -3545 }, { -1864, -3647 }, { -1671, -3739 }, { -1468, -3824 },
+    { -1267, -3895 }, { -1062, -3956 }, { -854, -4006 }, { -644, -4045 }, { -433, -4073 }, { -220, -4090 },
+    { 0, -4096 }, { 214, -4090 }, { 426, -4074 }, { 638, -4046 }, { 848, -4007 }, { 1056, -3958 },
+    { 1261, -3897 }, { 1462, -3826 }, { 1666, -3742 }, { 1858, -3650 }, { 2046, -3548 }, { 2228, -3437 },
+    { 2405, -3316 }, { 2574, -3186 }, { 2737, -3048 }, { 2896, -2896 }, { 3043, -2741 }, { 3182, -2579 },
+    { 3312, -2410 }, { 3433, -2234 }, { 3545, -2052 }, { 3647, -1864 }, { 3739, -1671 }, { 3824, -1468 },
+    { 3895, -1267 }, { 3956, -1062 }, { 4006, -854 }, { 4045, -644 }, { 4073, -433 }, { 4090, -220 },
+    { 4096, 0 }, { 4090, 214 }, { 4074, 426 }, { 4046, 638 }, { 4007, 848 }, { 3958, 1056 },
+    { 3897, 1261 }, { 3826, 1462 }, { 3742, 1666 }, { 3650, 1858 }, { 3548, 2046 }, { 3437, 2228 },
+    { 3316, 2405 }, { 3186, 2574 }, { 3048, 2737 }, { 2896, 2896 }, { 2741, 3043 }, { 2579, 3182 },
+    { 2410, 3312 }, { 2234, 3433 }, { 2052, 3545 }, { 1864, 3647 }, { 1671, 3739 }, { 1468, 3824 },
+    { 1267, 3895 }, { 1062, 3956 }, { 854, 4006 }, { 644, 4045 }, { 433, 4073 }, { 220, 4090 },
+    { 0, 4096 }, { -214, 4090 }, { -426, 4074 }, { -638, 4046 }, { -848, 4007 }, { -1056, 3958 },
+    { -1261, 3897 }, { -1462, 3826 }, { -1666, 3742 }, { -1858, 3650 }, { -2046, 3548 }, { -2228, 3437 },
+    { -2405, 3316 }, { -2574, 3186 }, { -2737, 3048 }, { -2896, 2896 }, { -3043, 2741 }, { -3182, 2579 },
+    { -3312, 2410 }, { -3433, 2234 }, { -3545, 2052 }, { -3647, 1864 }, { -3739, 1671 }, { -3824, 1468 },
+    { -3895, 1267 }, { -3956, 1062 }, { -4006, 854 }, { -4045, 644 }, { -4073, 433 }, { -4090, 220 },
+};
+
+/* Its fields: the step (unkA4) and the 4 bits of Squeak Squad's precision KatAM's positions lack (unkA0 across, unkA2 down: its
+ * steps are 1/4096 of a pixel, KatAM's 1/256), so its circle closes as Squeak Squad's does; */
+static void GordoCircle(struct Object *);
+
+/* GordoCircle(); 0x0204C9E0: each frame its step's velocity, forward (its facing) and up, then the next step (360 degrees: 0 again).
+ * Through everything, as Squeak Squad's (its wall check, 0x800, flips a sign its velocity doesn't read: never turns); */
+static void GordoCircle(struct Object *obj) {
+    s32 dx = sGordoCircle[obj->unkA4][0], dy = sGordoCircle[obj->unkA4][1];
+
+    obj->base.flags |= 4;
+    if (obj->base.flags & 1) dx = -dx;
+    dx += (s16)obj->unkA0;
+    dy += (s16)obj->unkA2;
+    obj->base.xspeed = dx >> 4;
+    obj->base.yspeed = dy >> 4;
+    obj->unkA0 = dx - ((dx >> 4) << 4);
+    obj->unkA2 = dy - ((dy >> 4) << 4);
+    if (++obj->unkA4 >= GORDO_STEPS) obj->unkA4 = 0;
+}
+
+/* SqueakGordoStart(); Object 0x06's resume after a hit or bump: the circle goes on from its step (Squeak Squad's state stays, idle
+ * while hit, 0x02021B5C); KatAM's own variants, KatAM's (it slows to a stop); */
+void SqueakGordoStart(struct Object *obj) {
+    if (obj->objTemplate->subtype1 != GORDO_SQUEAK_CIRCLE) {
+        gSqueakNatives.gordoStart(obj);
+        return;
+    }
+    ObjectSetFunc(obj, 0, GordoCircle);
+}
+
+/* SqueakCreateGordo(); Object 0x06's spawn: KatAM's Gordo (its type 0's bob set up, then replaced), facing left as Squeak Squad's
+ * spawns it (it doesn't face Kirby: logged with him on either side), through everything; */
+void *SqueakCreateGordo(struct ObjectTemplate *template, u8 playerId) {
+    struct Object *obj = gSqueakNatives.gordo(template, playerId);
+
+    if (obj->type != OBJ_GORDO || template->subtype1 != GORDO_SQUEAK_CIRCLE) return obj;
+    obj->base.flags |= 1 | 0x100;
+    obj->unkA0 = 0;
+    obj->unkA2 = 0;
+    obj->unkA4 = GORDO_START_STEP;
+    ObjectSetFunc(obj, 0, GordoCircle);
     return obj;
 }

@@ -163,6 +163,7 @@ namespace KatAMRandomizer {
         static readonly (byte type, string spawn, string start)[] SqueakNativeTypes = {
             (0x00, "SqueakCreateWaddleDee", "SqueakWaddleDeeStart"),    // Waddle Dee;
             (0x03, "SqueakCreateGlunk", "SqueakGlunkStart"),            // Glunk;
+            (0x06, "SqueakCreateGordo", "SqueakGordoStart"),            // Gordo;
         };
         // The hurt frames every character's anim starts with (squeak.h's SQUEAK_HURT_VARIANTS: the type's hurt indexes 0 and 1, and 2);
         const int SqueakHurtVariants = 3;
