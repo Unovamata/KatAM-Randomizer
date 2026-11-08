@@ -281,6 +281,42 @@ Bonkers, Box Boxer, Boxy. The others get a full port (body and brain constructor
 The Squeaks (Squeakers, Doc, Spinni, Storo, Daroach) and Parasol are created elsewhere. Copy abilities KatAM lacks (Ninja, Bubble,
 Animal, Ghost, Metal): the owner decides; meanwhile those enemies give none.
 
+Squeak Squad's brains for the enemies KatAM has (their body and brain constructors from the factory; each brain's first state per
+variant, the spawn's first byte), against KatAM's own variants: a brain whose behavior KatAM's enemy has is left to KatAM's (as
+NiDL's natives were); one it lacks is ported onto KatAM's own object (`ROM Expansion/squeak/natives.c`). Compared by logging both
+(the DS with Kirby pinned away, `kss/emu/enelog.py`; KatAM in room 0x323, `sq/cmpnat.sh`):
+
+| ID | Enemy | Body | Brain | Brains (first states) | Against KatAM's |
+| --- | --- | --- | --- | --- | --- |
+| 0x00 | Waddle Dee | 0x0202A9D0 | 0x02029760 | 0 0x02029694, 1 0x020295EC, 2 0x020294E8, 3 0x02029484, 4 0x020293C8, 5 0x020293F0 | 0, 4, 5 KatAM's 0, 3, 4; 1-3 ported (KatAM's 5-7) |
+| 0x01 | Bronto Burt | 0x02029060 | 0x0202637C | 0 0x02026298 (a wave, 53 pixels up, 144 frames), 1 0x0202625C (a smaller wave), 2 0x0202622C (straight, to 1.0), 3 0x020261E4 (perched till Kirby is near), 4 0x02026110 (hidden till Kirby passes, then from the screen's top 48 pixels ahead of him: `0x02028BB4`) | all KatAM's: 0 and 1 its waves (0, 1), 2 its straight flight (4), 3 its perch (5), 4 its drop from the screen's top (2) |
+| 0x02 | Blipper | 0x0208EBCC | 0x0208C2A8 | five | to compare in water (no DS save state in water yet) |
+| 0x03 | Glunk | 0x0205B478 | 0x0205A51C | one | to compare |
+| 0x04 | Scarfy | 0x020490D4 | 0x02047974 | one | to compare |
+| 0x05 | Gordo | 0x0204D2F4 | 0x0204C614 | five | to compare |
+| 0x06 | Snooter | 0x02054C5C | 0x02052D98 | two | to compare |
+| 0x07 | Chip | 0x020333F0 | 0x02031CBC | two | to compare |
+| 0x08 | Batty | 0x0204BB60 | 0x0204AF2C | two | to compare |
+| 0x09 | Blockin | 0x0204A414 | 0x020495F4 | one | to compare |
+| 0x0A | Big Waddle Dee | 0x020358F4 | 0x02035048 | one | to compare |
+| 0x13 | Shotzo | 0x0205E680 | 0x0205D15C | six | to compare (its parasol is KatAM's) |
+| 0x14 | Waddle Doo | 0x020600CC | 0x0205EDF8 | five | to compare (its parasol is KatAM's) |
+| 0x15 | Hot Head | 0x0203D8E8 | 0x0203CA3C | three | to compare |
+| 0x16 | Flamer | 0x02092790 | 0x0208FC34 | six | to compare |
+| 0x17 | Pengy | 0x020625B0 | 0x0206147C | three | to compare |
+| 0x18 | Sparky | 0x02034C34 | 0x02033B80 | three | to compare |
+| 0x19 | Twister | 0x02045AFC | 0x02044B20 | two | to compare |
+| 0x1A | Sword Knight | 0x0203FC54 | 0x0203E7E8 | three | to compare |
+| 0x1C | Cupie | 0x020668C4 | 0x02063604 | six | to compare |
+| 0x1D | Sir Kibble | 0x02068FD0 | 0x020682B8 | four | to compare |
+| 0x1E | Laser Ball | 0x02057CEC | 0x020572E0 | two | to compare |
+| 0x1F | Foley | 0x0205A030 | 0x02059320 | five | to compare |
+| 0x20 | Wheelie | 0x0204745C | 0x0204626C | two | to compare |
+| 0x21 | UFO | 0x02050E94 | 0x02050248 | two | to compare |
+| 0x22 | Noddy | 0x02043F00 | 0x020430CC | two | to compare |
+| 0x23 | Boxin | 0x0204F868 | 0x0204DE08 | two | to compare |
+| 0x24 | Heavy Knight | 0x02042B80 | 0x0204101C | three | to compare |
+
 ## Stage objects
 
 The stage's objects are 16-byte records: `*(*0x02229F1C + 0x90)` holds a `u16` count and, at `+4`, a pointer to them. A record:

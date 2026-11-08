@@ -96,6 +96,10 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
     either side, jump once at Kirby within 48, jump every 122 frames), on KatAM's own object (its walk, jump and hurt). Checked
     against the DS by logging and tested in KatAM (room 0x323, USA: turn points, counts, the jump trigger and timer, the resume
     after a bump; screenshots). Not tested: a ledge or wall in their walk, a hit.
+  - The other enemies KatAM has: their Squeak Squad brains are listed in the notes' table, each to be compared with KatAM's own
+    variants (logged on both, Kirby pinned away) and the ones KatAM lacks ported as the Waddle Dee's. Done: Bronto Burt (all five
+    are KatAM's own: two waves, the straight flight, the perch, the drop from the screen's top). Still to compare: the other 25,
+    Blipper and the swimmers in water (a DS save state in water first).
   - Framework: a looping animation's end is now a pulse on its loop frames, and a composite's ends a frame later, as on the DS
     (logged: Bubble Head's composites and bubble). Bio Spark changed with it (its brain's three waits in the slash now take a loop
     each, 6 frames, as on the DS: checked in KatAM), and Cret's ball now drops after its drop composite's 20 frames, a frame later
