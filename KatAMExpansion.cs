@@ -1316,7 +1316,8 @@ namespace KatAMRandomizer {
                         } else {
                             SharePalette(palettes[0], animId, enemy.HurtCells.Length);
                         }
-                        squeakBuilt.Add(new SqueakBuilt(enemy, animId, character, withHurts.Max(f => f.tiles.Length / 32), layersBuilt, animPalettes));
+                        squeakBuilt.Add(new SqueakBuilt(enemy, animId, character, withHurts.Max(f => f.tiles.Length / 32), layersBuilt, animPalettes,
+                                                        frames.Select(f => f.tiles.Length / 32).ToList()));
                     }
                 } catch (Exception exception) when (exception is IndexOutOfRangeException or ArgumentException or InvalidOperationException) {
                     return "The Squeak Squad ROM's graphics couldn't be read.";

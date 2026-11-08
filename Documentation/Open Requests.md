@@ -186,8 +186,18 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
     by KatAM's terrain). Checked in KatAM: Cret drifts across room 0x323 and stops at its left edge.
   - Still to do for those: their sounds (Squeak Squad's are the DS's own: KatAM's nearest, or the owner's call); the enemy base
     class's own states (bumping into Kirby, the shared state in water of the ones that don't swim).
-  - Left: the bosses (0x37-0x3F and 0x46: Meta Knight, King Dedede, 0x39, Mrs. Moley, Yadgaine, Bohboh, Daroach, Dark Nebula /
-    Dark Daroach); the randomizer options (a Squeak Squad ROM in the ROM Expansion tab, the enemy pool). The Squeak Squad-only
+  - Bosses (0x37-0x3F, 0x46), on the mid-bosses' framework (mini-boss type 0x40: camera, HP bar, music, KatAM's defeat; where the
+    randomizer puts them is with its options, below). King Dedede (0x38) is ported (`squeak/king_dedede.c`): his picks, walk, jump,
+    hammer walk and swing, hammer jump, float and air puff, inhale (Kirby caught, chewed and spat out in Squeak Squad's star, let
+    out hurt past the arena's side), summon (a parasol Waddle Dee over Kirby), hurt pose and 60 safe frames. The framework now
+    sizes each composite part's VRAM by its own frames, gives each part its animation's palette, keeps the `.mca` through layers
+    (Dedede's inhale crashed the game without it) and can move a composition's body part first (`BodyLast`). Checked against a DS
+    recording (intro, idles, picks, hammer walks and swings, the summon's length) and in KatAM (USA, room 0x323: every move, the
+    inhale from a natural pick, the others' first frames set by RAM writes; Sword hits; the defeat from HP set to 1 by a RAM write).
+    Not tested: a jump forward, a fall off a ledge's landing stars against the DS, the summon from a natural pick, helpers caught,
+    EU and Japanese builds (built and logic-checked, not played). Next: Mrs. Moley (0x3A), Mecha-Kracko (0x39), Yadgaine (0x3B),
+    Bohboh (0x3C), Daroach (0x3D), Meta Knight (0x37), Dark Daroach and Dark Nebula (0x3E, 0x3F, 0x46).
+  - Left: those bosses; the randomizer options (a Squeak Squad ROM in the ROM Expansion tab, the enemy pool). The Squeak Squad-only
     enemies, the shared enemies' Squeak Squad behaviors, its mid-bosses and the Squeaks are all done.
 
 ## 5. Bosses as faithful 1:1 recreations of NiDL

@@ -45,6 +45,8 @@ const s16 gSqueakEnemyHp[SQUEAK_ENEMY_COUNT] = {
     [SQUEAK_DOC_THING] = 1,
     [SQUEAK_STORO] = 26,            // Squeak Squad's: 130 (PrmDB03Sl0.kgb);
     [SQUEAK_DAROACH] = 1,           // (untouchable: Squeak Squad's has no HP, prmDB04 none);
+    [SQUEAK_KING_DEDEDE] = 60,      // Squeak Squad's: 200 (prmBB02Ml0.kgb); KatAM's bosses' for one player (Kracko's, King Golem's);
+    [SQUEAK_DEDEDE_PUFF] = 1,
 };
 
 static const struct SqueakCharacter sSqueakCharacters[SQUEAK_ENEMY_COUNT] = {
@@ -83,6 +85,8 @@ static const struct SqueakCharacter sSqueakCharacters[SQUEAK_ENEMY_COUNT] = {
     [SQUEAK_DOC_THING] = { DocThingInit, DocThingStart, 0, FALSE },
     [SQUEAK_STORO] = { StoroInit, StoroStart, 0, FALSE },
     [SQUEAK_DAROACH] = { DaroachInit, DaroachStart, 0, FALSE },
+    [SQUEAK_KING_DEDEDE] = { SqueakDededeInit, SqueakDededeStart, 0, FALSE, TRUE },
+    [SQUEAK_DEDEDE_PUFF] = { DededePuffInit, DededePuffStart, 0, FALSE },
 };
 
 /* SqueakAnimFor(); The anim and variant an object shows (variant << 16 | anim ID), for the game's object drawing (sub_0809A7A4,
@@ -125,6 +129,11 @@ void SqueakPlay(struct SqueakObject *s, u8 anim) {
 /* SqueakPlayComposite(); Starts one of the character's composite animations (.mca: the sprite object's vtable +8 with 0x3000000 |
  * the animation), from its first frame; */
 void SqueakPlayComposite(struct SqueakObject *s, u8 composite) {
+    // (a character without it: none played, its end at once);
+    if (composite >= gSqueakData.enemies[s->enemy].composites) {
+        s->animEnded = TRUE;
+        return;
+    }
     s->composite = composite;
     s->compositeTime = 0;
     s->animEnded = FALSE;
@@ -214,6 +223,7 @@ struct SqueakPartFx {
     s8 dx, dy;                  // Where it's drawn (pixels from the character, turned);
     u8 cell;                    // Its cell (the character's frame, variants SQUEAK_HURT_VARIANTS on);
     u8 index;                   // Its part (1 on);
+    u8 palId;                   // Its palette: its animation's (a character in several palettes: Dedede's sparkles), else 0xFF: its character's;
 };
 
 // SqueakPartDestroy(); A part's end (its own, or the room's): its character lets go of it;
@@ -245,7 +255,7 @@ static void SqueakPartMain(void) {
     p->e.x = s->obj.base.x;
     p->e.y = s->obj.base.y;
     p->e.sprite.variant = p->cell + SQUEAK_HURT_VARIANTS;
-    p->e.sprite.palId = s->obj.base.sprite.palId;
+    p->e.sprite.palId = p->palId != 0xFF ? p->palId : s->obj.base.sprite.palId;
     // (KatAM flips a frame when flag 1 is set: its frames face left, Squeak Squad's cells right, flipped when facing left);
     p->e.flags = (p->e.flags & ~0x401) | 4 | (s->obj.base.flags & 1 ? 0 : 1);
     p->e.objBase54 = p->dx;
@@ -253,8 +263,9 @@ static void SqueakPartMain(void) {
     EffectObjectPostUpdate(&p->e);
 }
 
-// SqueakCreatePart(); A sprite for part `index` of the character's compositions;
-static struct SqueakPartFx *SqueakCreatePart(struct SqueakObject *s, u8 index) {
+/* SqueakCreatePart(); A sprite for part `index` of the character's compositions, `tiles` of VRAM (its frames', not the character's
+ * biggest: King Dedede's sparkles); */
+static struct SqueakPartFx *SqueakCreatePart(struct SqueakObject *s, u8 index, u8 tiles) {
     const struct SqueakGraphics *g = &gSqueakData.enemies[s->enemy];
     struct Task *t;
     struct SqueakPartFx *p;
@@ -274,7 +285,8 @@ static struct SqueakPartFx *SqueakCreatePart(struct SqueakObject *s, u8 index) {
     p->dx = p->dy = 0;
     p->cell = 0;
     p->index = index;
-    EffectObjectInitSprite(&p->e, &p->e.sprite, g->tiles, g->animId, SQUEAK_HURT_VARIANTS, 0x1A + index < 0x1F ? 0x1A + index : 0x1F);
+    p->palId = 0xFF;
+    EffectObjectInitSprite(&p->e, &p->e.sprite, tiles ? tiles : g->tiles, g->animId, SQUEAK_HURT_VARIANTS, 0x1A + index < 0x1F ? 0x1A + index : 0x1F);
     p->e.sprite.palId = s->obj.base.sprite.palId;
     return p;
 }
@@ -394,13 +406,17 @@ static void SqueakShowComposite(struct SqueakObject *s) {
         s32 x = SqueakTurned(s, part->x + step->x), y = part->y + step->y;
 
         if (i == 0) {
+            if (g->palette != NULL)
+                s->obj.base.sprite.palId = SqueakLoadPalette(g->palette[part->anim].key, g->palette[part->anim].variant, s->obj.base.roomId);
             SqueakSetCell(s, step->cell);
             s->obj.base.objBase54 = x;
             s->obj.base.objBase55 = y;
             continue;
         }
-        if (*link == NULL) *link = SqueakCreatePart(s, i);
+        if (*link == NULL) *link = SqueakCreatePart(s, i, part->tiles);
         if ((p = *link) == NULL) break;
+        // (a character in several palettes: the part's animation's own);
+        if (g->palette != NULL) p->palId = SqueakLoadPalette(g->palette[part->anim].key, g->palette[part->anim].variant, s->obj.base.roomId);
         p->cell = step->cell;
         p->dx = x;
         p->dy = y;
@@ -954,6 +970,7 @@ static void SqueakDestroy(struct Task *t) {
     if (s->enemy == SQUEAK_DOC) DocGone(s);
     if (s->enemy == SQUEAK_STORO) StoroGone(s);
     if (s->enemy == SQUEAK_DAROACH) DaroachGone(s);
+    if (s->enemy == SQUEAK_KING_DEDEDE) SqueakDededeGone(s);
     NidlDestroy(t);
 }
 

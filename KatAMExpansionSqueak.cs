@@ -101,10 +101,10 @@ namespace KatAMRandomizer {
         }
 
         /* SqueakSplitLayer(); The character's cells without the pieces of `palettes` (layer: FALSE) or with only them (TRUE), its
-         * animations kept; */
+         * animations and composite ones (.mca) kept; */
         static SqueakCharacter SqueakSplitLayer(SqueakCharacter c, int[] palettes, bool layer) =>
             new SqueakCharacter {
-                Tiles = c.Tiles, Palettes = c.Palettes, Anims = c.Anims,
+                Tiles = c.Tiles, Palettes = c.Palettes, Anims = c.Anims, Compositions = c.Compositions, Composites = c.Composites,
                 Cells = c.Cells.Select(cell => new SqueakCell(cell.Tile, cell.Pieces.Where(p => palettes.Contains(p.Attr2 >> 12) == layer).ToList())).ToList(),
             };
 
@@ -203,15 +203,17 @@ namespace KatAMRandomizer {
          * counting them on: the files before's counts plus theirs) and their palettes after the first's; Layers (up to two groups of those merged palettes' indexes):
          * the pieces drawn with a group go to a layer of their own, another sprite with its own palette shown with the cell (squeak.c's
          * SqueakShowLayer: a weapon in a character's hands in other colors than its own, Doc's saucer); Canvas: the frames' canvas
-         * (pixels a side), its spot in the middle (Storo's raised mallet, 96 pixels over its feet, needs 192); */
+         * (pixels a side), its spot in the middle (Storo's raised mallet, 96 pixels over its feet, needs 192); BodyLast: its .mca's
+         * compositions list its body last (King Dedede's: its sparkles first, drawn over it), moved first here, the part the
+         * character's own sprite shows (with its layers), the others behind it; */
         internal sealed record SqueakEnemy(int Index, string Name, string File, int[] HurtCells, (int type, int letter)[] Glyphs, int GraphicsOf = -1,
                                             byte MidbossType = 0, int[] OnlyAnims = null, string[] Palettes = null,
                                             (ushort from, ushort to)[] MergeColors = null, string ExtraFile = null,
-                                            int[][] Layers = null, int Canvas = 128);
+                                            int[][] Layers = null, int Canvas = 128, bool BodyLast = false);
         /* AnimPalettes: a character whose cells are in Squeak Squad's different palettes (Doc's things), per animation the palette its
          * sprite takes (SqueakPaletteKey); */
         internal sealed record SqueakBuilt(SqueakEnemy Enemy, int AnimId, SqueakCharacter Character, int Tiles, List<SqueakLayerBuilt> Layers = null,
-                                           List<SqueakPaletteKey> AnimPalettes = null);
+                                           List<SqueakPaletteKey> AnimPalettes = null, List<int> CellTiles = null);
         // A character's layer (Layers): its anim, the most tiles a frame takes, per cell its frame + 1 (0: none; | 0x80: in front);
         internal sealed record SqueakLayerBuilt(int AnimId, int Tiles, byte[] Cells, SqueakPaletteKey Palette);
         /* A palette's slot (squeak.c's SqueakLoadPalette): the key and frame of the first sprite built with it, those after it with the same
@@ -297,6 +299,10 @@ namespace KatAMRandomizer {
         // "S" (Squishy), "t", "o" (Hot Head), "r" (Bronto Burt), "o" (Hot Head);
         static readonly (int type, int letter)[] StoroGlyphs = { (0x04, 0), (0x14, 2), (0x14, 1), (0x01, 1), (0x14, 1) };
 
+        // "K" (Sir Kibble), "i" (Chip), "n" (Bronto Burt), "g" (Pengy), " ", "D", "e", "d", "e", "d", "e" (Waddle Dee, Hot Head);
+        static readonly (int type, int letter)[] KingDededeGlyphs = { (0x18, 3), (0x08, 2), (0x01, 3), (0x16, 3), (-1, 0), (0x00, 6), (0x14, 4),
+                                                                      (0x00, 2), (0x14, 4), (0x00, 2), (0x14, 4) };
+
         // "D" (Waddle Dee), "a" (Hot Head), "r", "o" (Bronto Burt), "a" (Hot Head), "c" (Rocky), "h" (Chip);
         static readonly (int type, int letter)[] DaroachGlyphs = { (0x00, 6), (0x14, 5), (0x01, 1), (0x01, 2), (0x14, 5), (0x17, 2), (0x08, 1) };
 
@@ -363,9 +369,9 @@ namespace KatAMRandomizer {
                             new[] { (0x03, 0), (0x14, 5), (0x01, 2), (-1, 0), (0x03, 0), (0x14, 5), (0x01, 2) },
                             MidbossType: 0x40),   // "G" (Glunk), "a" (Hot Head), "o" (Bronto Burt);
             /* The star a mid-boss knocks out (0x0212389C's kinds 1 and 2, 0x021236A0: efc_cmn0's animations 11-13, the cells they show;
-             * its hurt frames its first); */
+             * its hurt frames its first), and the one King Dedede spits Kirby out in (kind 0: efc_cmn0's animation 5, its 3); */
             new SqueakEnemy(22, "Star", "effect/efc_cmn0", new[] { 0, 0, 0 },
-                            new[] { (0x04, 0), (0x14, 2), (0x14, 5), (0x01, 1) }, OnlyAnims: new[] { 11, 12, 13 }),   // as Starman's;
+                            new[] { (0x04, 0), (0x14, 2), (0x14, 5), (0x01, 1) }, OnlyAnims: new[] { 11, 12, 13, 5 }),   // as Starman's;
             // Tedhaun (a mid-boss, on mini-boss type 0x42): its hurt animations both 6 (0x02103B4C's 0x1000006: cell 24); its ghosts (0x02104E34) drawn with its graphics (its animation 9);
             new SqueakEnemy(23, "Tedhaun", "tedhaun", new[] { 24, 24, 24 }, TedhaunGlyphs, MidbossType: 0x42),
             new SqueakEnemy(24, "Tedhaun's ghost", "tedhaun", new[] { 29, 29, 29 }, new (int, int)[0], GraphicsOf: 23),   // (no name: the HP bar a hit ghost takes shows none);
@@ -409,6 +415,13 @@ namespace KatAMRandomizer {
             /* Daroach in a stage's scene (enemy 0x45: 0x02134DA8, made by 0x020A51A8 with enemy/demo_dancho): its animations 1-5 (hovering,
              * his cape, held, pointing, flying off); never hurt (no hurt animations: his hovering frame); */
             new SqueakEnemy(34, "Daroach", "demo_dancho", new[] { 1, 1, 1 }, DaroachGlyphs, OnlyAnims: new[] { 1, 2, 3, 4, 5 }),
+            /* King Dedede (a boss, enemy 0x38: 0x020E7E58, on mini-boss type 0x40 as the mid-bosses): all of dedede's animations (its .mca's
+             * inhale and summon use its sparkles' ones), its hurt animation 38 (0x1000026: cell 41), the pieces in its palette 1 (its
+             * hands, hammer, face: 27 colors with palette 0's) a layer, a frame big enough for its hammer over its head; */
+            new SqueakEnemy(35, "King Dedede", "dedede", new[] { 41, 41, 41 }, KingDededeGlyphs, MidbossType: 0x40,
+                            Layers: new[] { new[] { 1 } }, Canvas: 192, BodyLast: true),
+            // The air it lets out after floating (0x0212EAA0: its animation 20), no name;
+            new SqueakEnemy(36, "King Dedede's puff", "dedede", new[] { 28, 28, 28 }, new (int, int)[0], GraphicsOf: 35),
         };
 
         public static IReadOnlyList<(int index, string name)> SqueakEnemies => SqueakDefinitions.Select(e => (e.Index, e.Name)).ToList();
@@ -506,13 +519,22 @@ namespace KatAMRandomizer {
                 List<List<SqueakPart>> compositions = b.Character.Compositions;
                 List<SqueakComposite> composites = b.Character.Composites;
                 int compositionTable = 0, compositeTable = 0;
+                if (b.Enemy.BodyLast)
+                    compositions = compositions.Select(c => c.Count > 1 ? new[] { c[^1] }.Concat(c.Take(c.Count - 1)).ToList() : c).ToList();
+                /* (each part's sprite takes the tiles its frames need, the most of any composition's part in its place: squeak.c's
+                 * SqueakCreatePart; its own sprite, part 0, the character's); */
+                int[] partTiles = new int[compositions.Count == 0 ? 0 : compositions.Max(c => c.Count)];
+                foreach (List<SqueakPart> c in compositions)
+                    for (int i = 0; i < c.Count; i++)
+                        foreach (var step in b.Character.Anims[c[i].Anim].Steps)
+                            partTiles[i] = Math.Max(partTiles[i], b.CellTiles != null && step.Cell < b.CellTiles.Count ? b.CellTiles[step.Cell] : b.Tiles);
                 if (compositions.Count > 0) {
                     compositionTable = Allocate(ref localCursor, compositions.Count * 8, 4);
                     for (int c = 0; c < compositions.Count; c++) {
                         int parts = Allocate(ref localCursor, Math.Max(1, compositions[c].Count) * 8, 4);
                         for (int i = 0; i < compositions[c].Count; i++) {
                             SqueakPart part = compositions[c][i];
-                            WriteShorts(rom, parts + i * 8, part.Anim, part.Absolute ? 1 : 0, part.X, part.Y);
+                            WriteShorts(rom, parts + i * 8, part.Anim, (part.Absolute ? 1 : 0) | Math.Min(255, Math.Max(1, partTiles[i])) << 8, part.X, part.Y);
                         }
                         rom[compositionTable + c * 8] = (byte)compositions[c].Count;
                         WriteInt(rom, compositionTable + c * 8 + 4, parts + 0x08000000);

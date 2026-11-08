@@ -57,6 +57,8 @@ enum {
     SQUEAK_DOC_THING,           // What it makes (its bolts, bomb, missile, its saucer's lid, its empty saucer: the variant);
     SQUEAK_STORO,               // The Squeak Squad's strongman, with his mallet;
     SQUEAK_DAROACH,             // The Squeak Squad's leader in a stage's scene (variant bit 0: facing right);
+    SQUEAK_KING_DEDEDE,         // A boss (on a mini-boss type, as the mid-bosses);
+    SQUEAK_DEDEDE_PUFF,         // The air he lets out after floating (drawn with his graphics);
     SQUEAK_ENEMY_COUNT,
 };
 
@@ -65,8 +67,9 @@ enum {
  * the variant. Created by CreateSqueakMidboss (the mini-bosses' spawn hands them over), they wait facing Kirby till he's in the
  * template's area, then the camera locks there, the HP bar shows and the mini-boss music plays, as KatAM's own mini-bosses do; */
 #define SQUEAK_MIDBOSS 0x80
-// SQUEAK_STAR's variants: flying off forward or back (Squeak Squad's kinds 1 and 2, 0x0212389C);
-enum { SQUEAK_STAR_AHEAD = 1, SQUEAK_STAR_BEHIND };
+/* SQUEAK_STAR's variants: the star a boss spits Kirby out in (Squeak Squad's kind 0: King Dedede's; SqueakStarCarry() puts the Kirbys
+ * he swallowed in it), and flying off forward or back (kinds 1 and 2, 0x0212389C); */
+enum { SQUEAK_STAR_SPIT, SQUEAK_STAR_AHEAD, SQUEAK_STAR_BEHIND };
 #define SqueakIsMidboss(obj) (NidlIsMiniboss(obj) && (obj)->objTemplate->subtype1 >= SQUEAK_MIDBOSS)
 // SqueakIsSqueak(); An object that's a Squeak Squad character (SqueakObject): on its own type or a mid-boss;
 #define SqueakIsSqueak(obj) ((obj)->type == SQUEAK_TYPE || SqueakIsMidboss(obj))
@@ -101,7 +104,7 @@ struct SqueakAnim {
 struct SqueakPart {
     u16 anim;
     bool8 absolute;
-    u8 unused;
+    u8 tiles;                   // The tiles its sprite takes (the most a frame of any composition's part in its place needs);
     s16 x;
     s16 y;
 };
@@ -364,6 +367,7 @@ void GaoGaoInit(struct SqueakObject *);
 void GaoGaoStart(struct Object *);
 void SqueakStarInit(struct SqueakObject *);
 void SqueakStarStart(struct Object *);
+void SqueakStarCarry(struct SqueakObject *, u8 kirbys);
 void TedhaunInit(struct SqueakObject *);
 void TedhaunStart(struct Object *);
 void TedhaunGhostInit(struct SqueakObject *);
@@ -402,5 +406,10 @@ void StoroGone(struct SqueakObject *);
 void DaroachInit(struct SqueakObject *);
 void DaroachStart(struct Object *);
 void DaroachGone(struct SqueakObject *);
+void SqueakDededeInit(struct SqueakObject *);
+void SqueakDededeStart(struct Object *);
+void SqueakDededeGone(struct SqueakObject *);
+void DededePuffInit(struct SqueakObject *);
+void DededePuffStart(struct Object *);
 
 #endif
