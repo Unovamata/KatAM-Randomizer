@@ -297,6 +297,9 @@ namespace KatAMRandomizer {
         // "S" (Squishy), "t", "o" (Hot Head), "r" (Bronto Burt), "o" (Hot Head);
         static readonly (int type, int letter)[] StoroGlyphs = { (0x04, 0), (0x14, 2), (0x14, 1), (0x01, 1), (0x14, 1) };
 
+        // "D" (Waddle Dee), "a" (Hot Head), "r", "o" (Bronto Burt), "a" (Hot Head), "c" (Rocky), "h" (Chip);
+        static readonly (int type, int letter)[] DaroachGlyphs = { (0x00, 6), (0x14, 5), (0x01, 1), (0x01, 2), (0x14, 5), (0x17, 2), (0x08, 1) };
+
         // "S" (Squishy), "p", "i" (Chip), "n", "n" (Bronto Burt), "i" (Chip);
         static readonly (int type, int letter)[] SpinniGlyphs = { (0x04, 0), (0x08, 3), (0x08, 2), (0x01, 3), (0x01, 3), (0x08, 2) };
 
@@ -403,6 +406,9 @@ namespace KatAMRandomizer {
             new SqueakEnemy(33, "Storo", "stron", new[] { 50, 51, 51 }, StoroGlyphs, ExtraFile: "stron_atack,stron_dmg",
                             OnlyAnims: new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 17, 19, 20 },
                             Layers: new[] { new[] { 5 }, new[] { 1, 3 } }, Canvas: 192),
+            /* Daroach in a stage's scene (enemy 0x45: 0x02134DA8, made by 0x020A51A8 with enemy/demo_dancho): its animations 1-5 (hovering,
+             * his cape, held, pointing, flying off); never hurt (no hurt animations: his hovering frame); */
+            new SqueakEnemy(34, "Daroach", "demo_dancho", new[] { 1, 1, 1 }, DaroachGlyphs, OnlyAnims: new[] { 1, 2, 3, 4, 5 }),
         };
 
         public static IReadOnlyList<(int index, string name)> SqueakEnemies => SqueakDefinitions.Select(e => (e.Index, e.Name)).ToList();

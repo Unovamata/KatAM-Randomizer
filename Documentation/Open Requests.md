@@ -169,7 +169,14 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
     by a RAM write before a real slide hit; room 0x23A the chest theft). Not tested: the inhale, a treat, a hit while dizzy, the
     get-up branch, variants 1 and 2; EU and Japanese builds built and logic-checked, not played. To check: whether Kirby's body
     hurts Spinni and Doc on the DS (Storo's doesn't; theirs still take KatAM's touch damage); knocked or hopping Squeaks can pass
-    a room's open edge (KatAM rooms without a wall there), walking back after. Next: Daroach.
+    a room's open edge (KatAM rooms without a wall there), walking back after. Daroach in a stage (enemy 0x45, `squeak/daroach.c`;
+    drawn with `demo_dancho`, which has no boxes) is ported: his scene takes Kirby's controls (KatAM's cutscene flag), hovers 60
+    frames, swirls his cape, holds it 20, points, gives the controls back and flies off backward and up, gone for the rest of the
+    visit. Checked against a DS recording (timings, Kirby frozen while the scene plays, the flight and when he's gone) and in KatAM
+    (USA: room 0x23A, Kirby holding right stays put till the flight starts at the DS's frame, then walks on; variant 1 faces right
+    and flies the other way; the room's spawned bits unchanged after he's gone, so he doesn't come back on that visit). Not
+    tested: helpers in his room, Kirby hurt during the scene; EU and Japanese builds built and logic-checked, not played. His boss
+    fight (enemy 0x3D: `dancho00`, `dancho01`, `prmBB07`) is with the bosses below.
   - Framework: a looping animation's end is now a pulse on its loop frames, and a composite's ends a frame later, as on the DS
     (logged: Bubble Head's composites and bubble). Bio Spark changed with it (its brain's three waits in the slash now take a loop
     each, 6 frames, as on the DS: checked in KatAM), and Cret's ball now drops after its drop composite's 20 frames, a frame later
@@ -179,8 +186,9 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
     by KatAM's terrain). Checked in KatAM: Cret drifts across room 0x323 and stops at its left edge.
   - Still to do for those: their sounds (Squeak Squad's are the DS's own: KatAM's nearest, or the owner's call); the enemy base
     class's own states (bumping into Kirby, the shared state in water of the ones that don't swim).
-  - Left: the other Squeak Squad-only enemies, the Squeak Squad behaviors of shared enemies, the mid-bosses, the Squeaks and the
-    bosses; the randomizer options (a Squeak Squad ROM in the ROM Expansion tab, the enemy pool).
+  - Left: the Squeak Squad behaviors of shared enemies and the bosses (0x37-0x3F and 0x46: Meta Knight, King Dedede, 0x39, Mrs.
+    Moley, Yadgaine, Bohboh, Daroach, Dark Nebula / Dark Daroach); the randomizer options (a Squeak Squad ROM in the ROM Expansion
+    tab, the enemy pool). The Squeak Squad-only enemies, its mid-bosses and the Squeaks are all ported.
 
 ## 5. Bosses as faithful 1:1 recreations of NiDL
 - **The other bosses**: check each against NiDL and fix what differs.

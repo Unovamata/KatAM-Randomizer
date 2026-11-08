@@ -44,6 +44,7 @@ const s16 gSqueakEnemyHp[SQUEAK_ENEMY_COUNT] = {
     [SQUEAK_DOC] = 24,              // Squeak Squad's: 120 (PrmDB02Sl0.kgb);
     [SQUEAK_DOC_THING] = 1,
     [SQUEAK_STORO] = 26,            // Squeak Squad's: 130 (PrmDB03Sl0.kgb);
+    [SQUEAK_DAROACH] = 1,           // (untouchable: Squeak Squad's has no HP, prmDB04 none);
 };
 
 static const struct SqueakCharacter sSqueakCharacters[SQUEAK_ENEMY_COUNT] = {
@@ -81,6 +82,7 @@ static const struct SqueakCharacter sSqueakCharacters[SQUEAK_ENEMY_COUNT] = {
     [SQUEAK_DOC] = { DocInit, DocStart, 0, FALSE },
     [SQUEAK_DOC_THING] = { DocThingInit, DocThingStart, 0, FALSE },
     [SQUEAK_STORO] = { StoroInit, StoroStart, 0, FALSE },
+    [SQUEAK_DAROACH] = { DaroachInit, DaroachStart, 0, FALSE },
 };
 
 /* SqueakAnimFor(); The anim and variant an object shows (variant << 16 | anim ID), for the game's object drawing (sub_0809A7A4,
@@ -951,6 +953,7 @@ static void SqueakDestroy(struct Task *t) {
     if (s->enemy == SQUEAK_SPINNI) SpinniGone(s);
     if (s->enemy == SQUEAK_DOC) DocGone(s);
     if (s->enemy == SQUEAK_STORO) StoroGone(s);
+    if (s->enemy == SQUEAK_DAROACH) DaroachGone(s);
     NidlDestroy(t);
 }
 
