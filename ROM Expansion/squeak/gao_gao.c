@@ -75,8 +75,8 @@ enum { ANIM_STILL, ANIM_STAND, ANIM_JUMP, ANIM_LAND, ANIM_CROUCH, ANIM_SPIN, ANI
 // prmMB09Pl0.kgb and the brain's own;
 #define FACE_DISTANCE 0x1000
 #define REST 60
-// KatAM's screen shakes (RequestScreenShake): 12 frames (its shortest), 18;
-#define SHAKE_SHORT 5
+// KatAM's screen shakes (RequestScreenShake 1-3: 14, 18, 24 frames; 4-6 on till stopped): 14 frames (its shortest), 18;
+#define SHAKE_SHORT 1
 #define SHAKE_LAND 2
 
 enum {

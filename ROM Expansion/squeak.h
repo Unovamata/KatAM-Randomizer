@@ -59,6 +59,9 @@ enum {
     SQUEAK_DAROACH,             // The Squeak Squad's leader in a stage's scene (variant bit 0: facing right);
     SQUEAK_KING_DEDEDE,         // A boss (on a mini-boss type, as the mid-bosses);
     SQUEAK_DEDEDE_PUFF,         // The air he lets out after floating (drawn with his graphics);
+    SQUEAK_MRS_MOLEY,           // A boss (on a mini-boss type, as the mid-bosses);
+    SQUEAK_MOLEY_THING,         // What she throws (Squeak Squad's kind the variant: rocks, a bolt, a ring, a bomb, a can, a saw, pebbles);
+    SQUEAK_MOLEY_DIRT,          // Her dirt (Squeak Squad's kind the variant's low bits: the petals' burst, petals, her shadow; their way 4 on);
     SQUEAK_ENEMY_COUNT,
 };
 
@@ -411,5 +414,11 @@ void SqueakDededeStart(struct Object *);
 void SqueakDededeGone(struct SqueakObject *);
 void DededePuffInit(struct SqueakObject *);
 void DededePuffStart(struct Object *);
+void MrsMoleyInit(struct SqueakObject *);
+void MrsMoleyStart(struct Object *);
+void MoleyThingInit(struct SqueakObject *);
+void MoleyThingStart(struct Object *);
+void MoleyDirtInit(struct SqueakObject *);
+void MoleyDirtStart(struct Object *);
 
 #endif

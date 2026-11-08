@@ -14,7 +14,7 @@
  * • Body: it stands (anim 1: 0x0210BC40, 0x0210BB4C), B charging, forward walking, back turning it round; off the ground it falls
  *   (anim 7, gravity 0x2B9, no faster than 3.6: 0x0210B7F0, 0x0210B718; Squeak Squad's air control is the other mode's only), lands
  *   (anim 7 again, 0x0210B6B8) and stands. Its walk (anim 2: 0x0210BA88, 0x0210B8F0) moves it only on its steps' frames, 142 a step:
- *   1 pixel on frames 0 and 8, 3 on 20, 2 on 30, a stomp on 38 (the screen shaking 12 frames: KatAM's 12-frame shake, 5), 2 on 79,
+ *   1 pixel on frames 0 and 8, 3 on 20, 2 on 30, a stomp on 38 (the screen shaking 12 frames: KatAM's 14-frame shake, 1), 2 on 79,
  *   91, 101 and 109 (with a stomp on 109); its steps counted at 142. Its charge (0x0210B5F8: B): it stops (anim 9), sparkles (anim 8),
  *   curls up (anim 3), sits still as a ball (anim 4) 30, 60 or 120 frames (20, 60, 20 in 100: 0x0210B330, 0x0210B238), then rolls
  *   (anim 5) at 4.0 (0x0210B0B4) till it reaches the limits its stage keeps it in the way it rolls (here KatAM's mini-boss's:
@@ -46,8 +46,9 @@ enum { ANIM_STILL, ANIM_STAND, ANIM_WALK, ANIM_CURL, ANIM_BALL, ANIM_ROLL, ANIM_
 #define FACE_DISTANCE 0x1000
 #define CHARGE_WAIT 180
 #define AGAIN_WAIT 60
-// KatAM's screen shakes (RequestScreenShake): 12 frames, 24 (its longest plain one), 14;
-#define SHAKE_STOMP 5
+/* KatAM's screen shakes (RequestScreenShake 1-3: 14, 18, 24 frames; 4-6 shake on till sub_080700D8 stops them, 5 was taken for a
+ * 12-frame one and shook the screen till the fight's end): 14 frames, 24 (its longest timed one), 14; */
+#define SHAKE_STOMP 1
 #define SHAKE_BONK 3
 #define SHAKE_STAND 1
 

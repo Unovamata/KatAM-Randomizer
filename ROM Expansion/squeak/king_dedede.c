@@ -100,7 +100,7 @@ enum { COMPOSITE_INHALE, COMPOSITE_SUMMON };
 #define PUFF_Y 0x10000
 #define DEES 5                          // 0x020E749C: its Waddle Dees out at most;
 #define SUMMON_DEE 3                    // KatAM's Waddle Dee with a parasol (Squeak Squad's 4);
-#define SHAKE 5                         // KatAM's shortest screen shake (Squeak Squad's 2 for 8 frames);
+#define SHAKE 1                         // KatAM's shortest timed shake, 14 frames (Squeak Squad's 2 for 8; KatAM's 4-6 never stop);
 
 enum {
     BODY_INTRO, BODY_START, BODY_PICK, BODY_IDLE_ENTRY, BODY_IDLE, BODY_WALK_ENTRY, BODY_WALK, BODY_JUMP_ENTRY, BODY_JUMP_CROUCH,

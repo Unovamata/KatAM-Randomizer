@@ -1268,7 +1268,7 @@ namespace KatAMRandomizer {
                         // (a second file's graphics after the first's: Squeak Squad's body switching sprites);
                         foreach (string extra in (enemy.ExtraFile ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries))
                             character = SqueakMerge(character, ReadSqueakCharacter(squeak, extra, file.Length > 1 ? file[0] : "enemy"));
-                        if (enemy.OnlyAnims != null) character = SqueakKeepAnims(character, enemy.OnlyAnims);
+                        if (enemy.OnlyAnims != null) character = SqueakKeepAnims(character, enemy.OnlyAnims, enemy.KeepComposites);
                         /* (the pieces in each layer's palettes drawn by a layer of their own: an anim with its own palette, a frame per cell
                          * with any; the character itself keeps the pieces in none); */
                         List<SqueakLayerBuilt> layersBuilt = new List<SqueakLayerBuilt>();
@@ -1314,7 +1314,11 @@ namespace KatAMRandomizer {
                             }).ToList();
                             if (own.Count > 7) throw new InvalidOperationException($"{enemy.Name} takes too many palettes.");
                         } else {
-                            SharePalette(palettes[0], animId, enemy.HurtCells.Length);
+                            /* (one palette: the slot of an earlier sprite with its colors, if any, for each of its animations: Mrs.
+                             * Moley's dirt takes hers, KatAM's 7 slots full otherwise; a character in other colors keeps its own, the
+                             * key SqueakUsePalette's alternates count from); */
+                            SqueakPaletteKey shared = SharePalette(palettes[0], animId, enemy.HurtCells.Length);
+                            if (shared.Key != animId && enemy.Palettes == null) animPalettes = character.Anims.Select(_ => shared).ToList();
                         }
                         squeakBuilt.Add(new SqueakBuilt(enemy, animId, character, withHurts.Max(f => f.tiles.Length / 32), layersBuilt, animPalettes,
                                                         frames.Select(f => f.tiles.Length / 32).ToList()));

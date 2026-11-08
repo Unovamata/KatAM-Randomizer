@@ -898,7 +898,7 @@ static bool32 Ghost(struct SqueakObject *g) {
         SqueakMove(g);
         break;
     case GHOST_BURST:       // 0x02103E1C, 0x02103E7C: it bursts and is gone;
-        RequestScreenShake(5, b);
+        RequestScreenShake(1, b);       // (KatAM's shortest timed shake, 14 frames: 4-6 shake on till stopped);
         SqueakSpawnEffect(g, SQUEAK_FX_BURST, 0, 0, FALSE);
         b->flags |= 0x1000;
         break;

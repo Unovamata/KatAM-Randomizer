@@ -86,17 +86,35 @@ namespace KatAMRandomizer {
         }
 
         /* SqueakMerge(); Two files' graphics as one character: the second's tiles, palettes, cells and animations after the first's (its
-         * cells' tiles and pieces' palettes moved on); */
+         * cells' tiles and pieces' palettes moved on), and its composite animations (.mca) after the first's (their parts' animations
+         * and steps' compositions moved on). Palettes that don't all fit share: the second's palettes the same as one of the first's
+         * are that one (Mrs. Moley's three files have the same 16); */
         static SqueakCharacter SqueakMerge(SqueakCharacter a, SqueakCharacter b) {
-            int tiles = a.Tiles.Length / 32, cells = a.Cells.Count, palettes = a.Palettes.Count;
+            int tiles = a.Tiles.Length / 32, cells = a.Cells.Count, anims = a.Anims.Count, compositions = a.Compositions.Count;
+            List<ushort[]> palettes = a.Palettes.ToList();
+            int[] paletteOf;
 
-            if (palettes + b.Palettes.Count > 16) throw new InvalidOperationException("Too many palettes to merge.");
+            if (palettes.Count + b.Palettes.Count <= 16) {
+                paletteOf = Enumerable.Range(palettes.Count, b.Palettes.Count).ToArray();
+                palettes.AddRange(b.Palettes);
+            } else {
+                paletteOf = b.Palettes.Select(p => {
+                    int same = palettes.FindIndex(q => q.SequenceEqual(p));
+                    if (same >= 0) return same;
+                    palettes.Add(p);
+                    return palettes.Count - 1;
+                }).ToArray();
+            }
+            if (palettes.Count > 16) throw new InvalidOperationException("Too many palettes to merge.");
             return new SqueakCharacter {
                 Tiles = a.Tiles.Concat(b.Tiles).ToArray(),
-                Palettes = a.Palettes.Concat(b.Palettes).ToList(),
+                Palettes = palettes,
                 Cells = a.Cells.Concat(b.Cells.Select(c => new SqueakCell(c.Tile + tiles,
-                                                                          c.Pieces.Select(p => p with { Attr2 = p.Attr2 + (palettes << 12) }).ToList()))).ToList(),
+                    c.Pieces.Select(p => p with { Attr2 = p.Attr2 & 0xFFF | paletteOf[p.Attr2 >> 12] << 12 }).ToList()))).ToList(),
                 Anims = a.Anims.Concat(b.Anims.Select(an => an with { Steps = an.Steps.Select(st => st with { Cell = st.Cell + cells }).ToList() })).ToList(),
+                Compositions = a.Compositions.Concat(b.Compositions.Select(c => c.Select(part => part with { Anim = part.Anim + anims }).ToList())).ToList(),
+                Composites = a.Composites.Concat(b.Composites.Select(cm => cm with {
+                    Steps = cm.Steps.Select(st => (st.Composition + compositions, st.Frames)).ToList() })).ToList(),
             };
         }
 
@@ -109,13 +127,23 @@ namespace KatAMRandomizer {
             };
 
         /* SqueakKeepAnims(); The character with only these animations (as its 0, 1...) and the cells they show (renumbered in the order
-         * they first show), its tiles and palettes as they were; */
-        static SqueakCharacter SqueakKeepAnims(SqueakCharacter character, int[] anims) {
+         * they first show), its tiles and palettes as they were. Its composite animations are kept (keepComposites: Mrs. Moley's, their
+         * parts' animations then among those kept, renumbered), else dropped; */
+        static SqueakCharacter SqueakKeepAnims(SqueakCharacter character, int[] anims, bool keepComposites = false) {
             List<int> cells = anims.SelectMany(a => character.Anims[a].Steps.Select(s => s.Cell)).Distinct().ToList();
+            int Kept(int anim) {
+                int at = Array.IndexOf(anims, anim);
+                if (at < 0) throw new InvalidOperationException($"A composite animation's part plays animation {anim}, not kept.");
+                return at;
+            }
             return new SqueakCharacter {
                 Tiles = character.Tiles, Palettes = character.Palettes, Cells = cells.Select(c => character.Cells[c]).ToList(),
                 Anims = anims.Select(a => character.Anims[a] with {
                     Steps = character.Anims[a].Steps.Select(s => s with { Cell = cells.IndexOf(s.Cell) }).ToList() }).ToList(),
+                Compositions = keepComposites
+                    ? character.Compositions.Select(c => c.Select(part => part with { Anim = Kept(part.Anim) }).ToList()).ToList()
+                    : new List<List<SqueakPart>>(),
+                Composites = keepComposites ? character.Composites : new List<SqueakComposite>(),
             };
         }
 
@@ -205,11 +233,12 @@ namespace KatAMRandomizer {
          * SqueakShowLayer: a weapon in a character's hands in other colors than its own, Doc's saucer); Canvas: the frames' canvas
          * (pixels a side), its spot in the middle (Storo's raised mallet, 96 pixels over its feet, needs 192); BodyLast: its .mca's
          * compositions list its body last (King Dedede's: its sparkles first, drawn over it), moved first here, the part the
-         * character's own sprite shows (with its layers), the others behind it; */
+         * character's own sprite shows (with its layers), the others behind it; KeepComposites: OnlyAnims keeps its files' .mca
+         * composite animations (their parts' animations among those kept: Mrs. Moley's, from her other two files); */
         internal sealed record SqueakEnemy(int Index, string Name, string File, int[] HurtCells, (int type, int letter)[] Glyphs, int GraphicsOf = -1,
                                             byte MidbossType = 0, int[] OnlyAnims = null, string[] Palettes = null,
                                             (ushort from, ushort to)[] MergeColors = null, string ExtraFile = null,
-                                            int[][] Layers = null, int Canvas = 128, bool BodyLast = false);
+                                            int[][] Layers = null, int Canvas = 128, bool BodyLast = false, bool KeepComposites = false);
         /* AnimPalettes: a character whose cells are in Squeak Squad's different palettes (Doc's things), per animation the palette its
          * sprite takes (SqueakPaletteKey); */
         internal sealed record SqueakBuilt(SqueakEnemy Enemy, int AnimId, SqueakCharacter Character, int Tiles, List<SqueakLayerBuilt> Layers = null,
@@ -302,6 +331,10 @@ namespace KatAMRandomizer {
         // "K" (Sir Kibble), "i" (Chip), "n" (Bronto Burt), "g" (Pengy), " ", "D", "e", "d", "e", "d", "e" (Waddle Dee, Hot Head);
         static readonly (int type, int letter)[] KingDededeGlyphs = { (0x18, 3), (0x08, 2), (0x01, 3), (0x16, 3), (-1, 0), (0x00, 6), (0x14, 4),
                                                                       (0x00, 2), (0x14, 4), (0x00, 2), (0x14, 4) };
+
+        // "M", "r" (Mr. Frosty), "s" (Squishy), "." (Mr. Frosty), " ", "Moley" (KatAM's Moley);
+        static readonly (int type, int letter)[] MrsMoleyGlyphs = { (0x38, 0), (0x38, 1), (0x04, 4), (0x38, 2), (-1, 0), (0x4A, 0), (0x4A, 1),
+                                                                    (0x4A, 2), (0x4A, 3), (0x4A, 4) };
 
         // "D" (Waddle Dee), "a" (Hot Head), "r", "o" (Bronto Burt), "a" (Hot Head), "c" (Rocky), "h" (Chip);
         static readonly (int type, int letter)[] DaroachGlyphs = { (0x00, 6), (0x14, 5), (0x01, 1), (0x01, 2), (0x14, 5), (0x17, 2), (0x08, 1) };
@@ -422,6 +455,23 @@ namespace KatAMRandomizer {
                             Layers: new[] { new[] { 1 } }, Canvas: 192, BodyLast: true),
             // The air it lets out after floating (0x0212EAA0: its animation 20), no name;
             new SqueakEnemy(36, "King Dedede's puff", "dedede", new[] { 28, 28, 28 }, new (int, int)[0], GraphicsOf: 35),
+            /* Mrs. Moley (a boss, enemy 0x3A: 0x0212CF40, on mini-boss type 0x40 as the mid-bosses), drawn from mrsMoley_cmn, _ext00 and
+             * _ext01 (the sprites her body switches to: 0x02022F00's slots 0-2; their palettes the same, shared), the animations her code
+             * plays (squeak/mrs_moley.c's, in its order: cmn's 15, her hurt animation (0x100000F: cells 36-38, here 0-2), 3-13; ext00's
+             * 1-8 and 13-16; ext01's 1-3 and the things in her hand), with both .mca's composites (ext00's dive and landing, ext01's
+             * throws: the thing first, moved behind her); a frame big enough for her plunge (ext00's cell 15, 79 pixels tall); */
+            new SqueakEnemy(37, "Mrs. Moley", "mrsMoley_cmn", new[] { 0, 0, 0 }, MrsMoleyGlyphs, MidbossType: 0x40,
+                            ExtraFile: "mrsMoley_ext00,mrsMoley_ext01",
+                            OnlyAnims: new[] { 15, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 17, 18, 19, 20, 21, 22, 23, 24, 29, 30, 31, 32, 34, 35, 36,
+                                               37, 39, 41, 43, 46, 48, 50 },
+                            Canvas: 192, BodyLast: true, KeepComposites: true),
+            /* What she throws (0x021292EC, drawn from mrsMoley_ext01: by Squeak Squad's kind, its animations 5, 14, 21, 7, 9, 11, 16, 18,
+             * the pebbles 19 and 20, and the bomb's flashing 12), no name; */
+            new SqueakEnemy(38, "Mrs. Moley's thing", "mrsMoley_ext01", new[] { 0, 0, 0 }, new (int, int)[0],
+                            OnlyAnims: new[] { 5, 14, 21, 7, 9, 11, 16, 18, 19, 20, 12 }),
+            // Her dirt (0x0212A404, drawn from mrsMoley_ext00: the petals' burst 8, the petals 9 and 10, her shadow 11 and 12), no name;
+            new SqueakEnemy(39, "Mrs. Moley's dirt", "mrsMoley_ext00", new[] { 0, 0, 0 }, new (int, int)[0],
+                            OnlyAnims: new[] { 8, 9, 10, 11, 12 }),
         };
 
         public static IReadOnlyList<(int index, string name)> SqueakEnemies => SqueakDefinitions.Select(e => (e.Index, e.Name)).ToList();

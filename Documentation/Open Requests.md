@@ -195,8 +195,21 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
     recording (intro, idles, picks, hammer walks and swings, the summon's length) and in KatAM (USA, room 0x323: every move, the
     inhale from a natural pick, the others' first frames set by RAM writes; Sword hits; the defeat from HP set to 1 by a RAM write).
     Not tested: a jump forward, a fall off a ledge's landing stars against the DS, the summon from a natural pick, helpers caught,
-    EU and Japanese builds (built and logic-checked, not played). Next: Mrs. Moley (0x3A), Mecha-Kracko (0x39), Yadgaine (0x3B),
-    Bohboh (0x3C), Daroach (0x3D), Meta Knight (0x37), Dark Daroach and Dark Nebula (0x3E, 0x3F, 0x46).
+    EU and Japanese builds (built and logic-checked, not played).
+    Mrs. Moley (0x3A) is ported (`squeak/mrs_moley.c`): her front and back holes and the middle one (her own stage's, `a2s7s2`,
+    laid on KatAM's camera view), her pop-ups and looks, 2-4 throws (rocks, a stone, a pebble, a bolt, a ring for Wheel, a bomb for
+    Bomb, a can for Fire, a saw for Cutter; grit out of the holes), hiding and coming up by Kirby's side, her dive from the back
+    (the leap out of sight, petals, her shadow on Kirby, the upside-down plunge: into a hole she sinks, into the middle she's stuck,
+    hurt, struggles and hops into the hole away from Kirby), her last stand at 4 HP (the middle hole, always diving), hits only in
+    front (20 safe frames, two petals knocked off). Recorded on the DS in her own stage (loaded into the emulator by repointing
+    the stage's files) and checked in KatAM (USA, room 0x323): the pops, throws (Kirby hurt by them), hides, back holes, both
+    dive endings with Squeak Squad's frame counts, the shadow, Sword hits and the safe frames, swallowing a ring (Wheel), her last
+    stand and the crash taking her last HP into KatAM's defeat (HP set to 3 by a RAM write). Not tested: the bomb's, can's and
+    saw's abilities (the ring's path, the same code), a helper's hit's petals, EU and Japanese builds (built and logic-checked,
+    not played). Fixed alongside: King Dedede, Big Metalun, Gao Gao and Tedhaun asked for KatAM's screen shake 5, which never
+    stops (shook the screen till the fight's end: KatAM's timed 14-frame one now; checked with Dedede's landing).
+    Next: Mecha-Kracko (0x39), Yadgaine (0x3B), Bohboh (0x3C), Daroach (0x3D), Meta Knight (0x37), Dark Daroach and Dark Nebula
+    (0x3E, 0x3F, 0x46).
   - Left: those bosses; the randomizer options (a Squeak Squad ROM in the ROM Expansion tab, the enemy pool). The Squeak Squad-only
     enemies, the shared enemies' Squeak Squad behaviors, its mid-bosses and the Squeaks are all done.
 

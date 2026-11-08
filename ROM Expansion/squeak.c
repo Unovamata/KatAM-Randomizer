@@ -47,6 +47,9 @@ const s16 gSqueakEnemyHp[SQUEAK_ENEMY_COUNT] = {
     [SQUEAK_DAROACH] = 1,           // (untouchable: Squeak Squad's has no HP, prmDB04 none);
     [SQUEAK_KING_DEDEDE] = 60,      // Squeak Squad's: 200 (prmBB02Ml0.kgb); KatAM's bosses' for one player (Kracko's, King Golem's);
     [SQUEAK_DEDEDE_PUFF] = 1,
+    [SQUEAK_MRS_MOLEY] = 60,        // Squeak Squad's: 300 (prmBB04Sl0.kgb); KatAM's bosses' for one player;
+    [SQUEAK_MOLEY_THING] = 1,       // (any hit breaks it, as Squeak Squad's: 0x021291C8);
+    [SQUEAK_MOLEY_DIRT] = 1,
 };
 
 static const struct SqueakCharacter sSqueakCharacters[SQUEAK_ENEMY_COUNT] = {
@@ -87,6 +90,9 @@ static const struct SqueakCharacter sSqueakCharacters[SQUEAK_ENEMY_COUNT] = {
     [SQUEAK_DAROACH] = { DaroachInit, DaroachStart, 0, FALSE },
     [SQUEAK_KING_DEDEDE] = { SqueakDededeInit, SqueakDededeStart, 0, FALSE, TRUE },
     [SQUEAK_DEDEDE_PUFF] = { DededePuffInit, DededePuffStart, 0, FALSE },
+    [SQUEAK_MRS_MOLEY] = { MrsMoleyInit, MrsMoleyStart, 0, FALSE, TRUE },
+    [SQUEAK_MOLEY_THING] = { MoleyThingInit, MoleyThingStart, 0, FALSE },
+    [SQUEAK_MOLEY_DIRT] = { MoleyDirtInit, MoleyDirtStart, 0, FALSE },
 };
 
 /* SqueakAnimFor(); The anim and variant an object shows (variant << 16 | anim ID), for the game's object drawing (sub_0809A7A4,
