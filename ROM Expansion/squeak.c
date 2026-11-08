@@ -37,6 +37,8 @@ const s16 gSqueakEnemyHp[SQUEAK_ENEMY_COUNT] = {
     [SQUEAK_TEDHAUN_GHOST] = 1,     // (any hit ends it, as Squeak Squad's);
     [SQUEAK_BUBOO] = 30,            // Squeak Squad's: 140 (prmMB12Sl0.kgb);
     [SQUEAK_BUBOO_BUBBLE] = 1,      // (any hit ends it, as Squeak Squad's);
+    [SQUEAK_SQUEAKER] = 2,          // Squeak Squad's: 10 (prmDE01Sl0.kgb);
+    [SQUEAK_SQUEAKER_BOMB] = 1,     // (KatAM's: any hit breaks it);
 };
 
 static const struct SqueakCharacter sSqueakCharacters[SQUEAK_ENEMY_COUNT] = {
@@ -67,6 +69,8 @@ static const struct SqueakCharacter sSqueakCharacters[SQUEAK_ENEMY_COUNT] = {
     [SQUEAK_TEDHAUN_GHOST] = { TedhaunGhostInit, TedhaunGhostStart, 0, FALSE },
     [SQUEAK_BUBOO] = { BubooInit, BubooStart, 0, FALSE, TRUE },
     [SQUEAK_BUBOO_BUBBLE] = { BubooBubbleInit, BubooBubbleStart, 0, FALSE },
+    [SQUEAK_SQUEAKER] = { SqueakerInit, SqueakerStart, 0, FALSE },
+    [SQUEAK_SQUEAKER_BOMB] = { SqueakerBombInit, SqueakerBombStart, 0, FALSE },
 };
 
 /* SqueakAnimFor(); The anim and variant an object shows (variant << 16 | anim ID), for the game's object drawing (sub_0809A7A4,
@@ -346,6 +350,16 @@ static u8 SqueakLoadPalette(u16 key, u8 variant, u16 roomId) {
         }
     }
     return palId;
+}
+
+/* SqueakUsePalette(); One of the character's other palettes (KatAMExpansionSqueak.cs's Palettes: `alternate` 1 the first; 0 its own),
+ * the one of its frame after its cells, under a key of its own (its anim ID | alternate << 13: sub_0803DFAC loads anim ID & 0xFFF); */
+void SqueakUsePalette(struct SqueakObject *s, u8 alternate) {
+    const struct SqueakGraphics *g = &gSqueakData.enemies[s->enemy];
+
+    if (alternate == 0) return;
+    s->obj.base.sprite.palId = SqueakLoadPalette(g->animId | alternate << 13, SQUEAK_HURT_VARIANTS + g->cells + alternate - 1,
+                                                 s->obj.base.roomId);
 }
 
 /* SqueakStandOnFloor(); Squeak Squad's spawn records stand a character on the ground; KatAM's templates are anywhere in the cell
@@ -809,6 +823,7 @@ static void SqueakDestroy(struct Task *t) {
 
     if (s->follower) ((struct SqueakFx *)s->follower)->owner = NULL;
     SqueakReleaseParts(s);
+    if (s->enemy == SQUEAK_SQUEAKER) SqueakerGone(s);
     NidlDestroy(t);
 }
 

@@ -130,6 +130,15 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
     0x323, USA: the weave, the circle, the little and big bubbles (screenshots), an inhale popping the big one, its Waddle Dee
     walking on, the five hits, the crab and its bubbles, the new cluster, the defeat by a real hit; the hits before it by RAM
     writes); not tested: a real mini-boss room, Sword hits on the cluster. All four Squeak Squad-only mid-bosses are now ported.
+  - The Squeaks (Squeakers, Spinni, Doc, Storo, Daroach): the Squeakers are ported (`squeak/squeakers.c`, their bombs with them, in
+    their four colors: the framework's new palette variants), with their treasure-chest thefts on KatAM's chests (each heads for
+    the room's nearest closed chest, takes it, carries it to the spot it was placed at, Squeak Squad's escape hole having no KatAM
+    equivalent, and goes in with it; hit, it drops it). Checked against the DS (logs and screenshots of the brain's waits, both
+    bombs, the blasts) and in KatAM (USA: room 0x323, red, blue and green ones throwing; room 0x23A, a yellow one taking the chest,
+    escaping with it, and inhaled while carrying it: the chest falls back and opens again). Not tested: a treat dropped (one hit
+    in five), a big chest taken, the stolen chest back in a later visit, a Squeaker's way over walls; EU and Japanese builds built
+    and logic-checked but not played. Not ported: its sounds, the stages' routes and tunnels the DS Squeakers follow. Next: Spinni,
+    Doc, Storo, then Daroach.
   - Framework: a looping animation's end is now a pulse on its loop frames, and a composite's ends a frame later, as on the DS
     (logged: Bubble Head's composites and bubble). Bio Spark changed with it (its brain's three waits in the slash now take a loop
     each, 6 frames, as on the DS: checked in KatAM), and Cret's ball now drops after its drop composite's 20 frames, a frame later

@@ -351,6 +351,22 @@ palette for its hurt flash). The others get a full port (body and brain construc
 | 0x36 | Buboo (mid-boss) | 0x02108EAC (0x274) | 0x02105938 (0xC8) | yes |
 | 0x37-0x46 | the bosses | Meta Knight 0x02116C7C, Dedede 0x020E7E58, 0x39 0x02132D7C, Mrs. Moley 0x0212CF40, Yadgaine 0x0211A4E8, Bohboh 0x02111370, 0x3D 0x02126F48, Dark Nebula / Dark Daroach 0x0211B680, 0x02122CD0, 0x021376EC | | |
 
+**Squeakers** (enemy 0x40, ported: `squeak/squeakers.c`): the stage's spawn list makes them (its body `0x020EC504`, base
+`0x020A4F54(..., 0x40)`, vtable `0x0217DB64`; its spawn byte 8 the color, 0-3; brain `0x020E9444`, its states `0x020E8E7C`-`0x020E9378`;
+body states `0x020E9528`-`0x020EC4BC`; params `prmDE01Pl0/Ml0/Sl0`). Its brain's target (`0x020E8F9C`): the stage's chests (the
+category 0x2000 registry: `0x020CF348`, the best by `0x020CF320`'s score), with none or one in its hands its escape hole (the
+stage's route manager `0x02209560`: `0x0220997C` the hole's node, `0x02209C7C` a spot's part of the stage, `0x02209BFC` the next node
+on the way; its stage mode 2, `0x020A2BF8`: Kirby carries the stage's chest, all chase him). Its touch handler `0x020EC168` takes a
+chest (touch kind 0x1001: `0x020A2BB0` holds it, `+0x16C`, `+0x1F4`, `+0x1EC` its carrying animations), its hits drop it
+(`0x020A2A48`: the chest let go where it is, 40 frames before it's taken again) and maybe a treat (`0x020E9528`: 20%, items 9-14 of
+`0x0203B0B8`, the foods, healing 4). The chest is carried at `vtable +0x78` (`0x020E9640`: an offset behind it plus a sway) through the
+held thing's `+0x10` (`0x02012FB0`: holder's spot plus the offset turned with it). At its hole (`0x020EAF8C`, `0x020EAE0C`) it walks
+there a pixel a frame, waits, and goes in (`0x020EAD78`, `0x020EACF0`: `0x020A2968` hands the chest to the registry). Its bombs:
+`0x020ED308` makes them (`0x020ED208`, kind 0 small, 1 big; drawn with `enemy/chun`'s animations 33, 39-41), launched by
+`0x020ECF88`/`0x020ECC60` (3.4 at 30 degrees, its random adjustments added up as the code does), the small one blasting where it
+lands (`0x020ECE44`, `0x020ECE14`), the big one lit 192 frames then blasting 9 times round its spot (`0x020EC9F4`, `0x020EC7DC`).
+Flag 0x200000 (`0x020EA2EC`-`0x020EAC30`): the route's tunnels, with their own animations (18-23).
+
 The Squeaks (Squeakers, Doc, Spinni, Storo, Daroach) and Parasol are created elsewhere. Their files: Squeakers `enemy/chun` (and `chun_blue`, `chun_green`, `chun_yellow` palettes; `prmDE01`, loaded at `0x020EC5F4`: its body near `0x020EC5xx`; its 3 palettes loaded by `0x020E8C80`; a thrown Squeaker, on the thrown-things base `0x020B49D8`, `0x020ED208`), Spinni `enemy/spin`, `spin_at` (`prmDB01`, `0x020AB764`, `0x020ABFC4`), Doc `enemy/doc`, `doc_at1` (`prmDB02`, `0x020DD8FC`, `0x020DF5E4`), Storo `enemy/stron`, `stron_atack` (`prmDB03`, `0x020E44A4`), Daroach `enemy/dancho00`, `dancho01` (`prmDB04`, the boss code near `0x02134D64`). Copy abilities KatAM lacks (Ninja, Bubble,
 Animal, Ghost, Metal): the owner decides; meanwhile those enemies give none.
 

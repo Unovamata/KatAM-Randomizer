@@ -172,9 +172,13 @@ namespace KatAMRandomizer {
         /* A Squeak Squad character: its index (squeak.h's SQUEAK_*), name, files (enemy/<File>.*, or "folder/name"; OnlyAnims: only those
          * animations of them, as its 0, 1..., and the cells they show, in order), the cells its hurt frames show (its
          * hurt animations': SqueakHurtVariants), and its HP bar name, made of the letters of KatAM's names (object type, letter); a thing
- * a character throws (spawned as a character of its own) can be drawn with that character's graphics (GraphicsOf: its index); */
+ * a character throws (spawned as a character of its own) can be drawn with that character's graphics (GraphicsOf: its index).
+         * A character in other colors (Palettes: the other .cla files of its folder, "chun_blue") gets one palette more each, in a frame
+         * of its own after its cells (squeak.c's SqueakUsePalette); MergeColors: colors drawn as others (from, to), so a character a
+         * color or two over KatAM's 15 gets one palette; */
         internal sealed record SqueakEnemy(int Index, string Name, string File, int[] HurtCells, (int type, int letter)[] Glyphs, int GraphicsOf = -1,
-                                            byte MidbossType = 0, int[] OnlyAnims = null);
+                                            byte MidbossType = 0, int[] OnlyAnims = null, string[] Palettes = null,
+                                            (ushort from, ushort to)[] MergeColors = null);
         internal sealed record SqueakBuilt(SqueakEnemy Enemy, int AnimId, SqueakCharacter Character, int Tiles);
 
         /* Squeak Squad's effects the ported characters show (squeak.h's SQUEAK_FX_*): an animation of <File>.* ("folder/name"; 0x02021900's
@@ -228,6 +232,10 @@ namespace KatAMRandomizer {
 
         // "B" (Bronto Burt), "u" (Glunk), "b" (Bomber), "o", "o" (Bronto Burt);
         static readonly (int type, int letter)[] BubooGlyphs = { (0x01, 0), (0x03, 2), (0x28, 3), (0x01, 2), (0x01, 2) };
+
+        // "S", "q", "u" (Squishy), "e", "a" (Hot Head), "k" (Glunk), "e" (Hot Head), "r" (Bronto Burt);
+        static readonly (int type, int letter)[] SqueakerGlyphs = { (0x04, 0), (0x04, 1), (0x04, 2), (0x14, 4), (0x14, 5), (0x03, 4), (0x14, 4),
+                                                                    (0x01, 1) };
 
         static readonly List<SqueakEnemy> SqueakDefinitions = new List<SqueakEnemy> {
             // Perara: hurt animations 7 and 8 (0x02021A88's 0x1000007, 0x1000008);
@@ -298,6 +306,14 @@ namespace KatAMRandomizer {
             // Buboo (a mid-boss, on mini-boss type 0x41): its hurt animations both 17 (0x02108EAC's 0x1000011: cell 39); its bubbles (0x02109E00) drawn with its graphics;
             new SqueakEnemy(25, "Buboo", "buboo", new[] { 39, 39, 39 }, BubooGlyphs, MidbossType: 0x41),
             new SqueakEnemy(26, "Buboo's bubble", "buboo", new[] { 52, 52, 52 }, new (int, int)[0], GraphicsOf: 25),   // (no name, as Tedhaun's ghosts);
+            /* Squeakers (the Squeak Squad's, enemy 0x40: 0x020EC504): the animations its code plays (squeak/squeakers.c's, in its order),
+             * its hurt animations 28 and 29 (0x100001C, 0x100001D: cells 46 and 47, here 27 and 28), in four colors (their .cla files:
+             * red, then the spawn byte's 1-3); the near-white of the bomb in its hands (0x7FBC) drawn white, for one palette; */
+            new SqueakEnemy(27, "Squeaker", "chun", new[] { 27, 28, 28 }, SqueakerGlyphs,
+                            OnlyAnims: new[] { 1, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 24, 25, 26, 27, 28, 29, 35, 36, 37, 38, 48 },
+                            Palettes: new[] { "chun_blue", "chun_green", "chun_yellow" }, MergeColors: new (ushort, ushort)[] { (0x7FBC, 0x7FFF) }),
+            // Their bombs (0x020ED208, drawn with chun's: its animations 33 and 39-41, cells 55, 67 and 68), no name;
+            new SqueakEnemy(28, "Squeaker's bomb", "chun", new[] { 0, 0, 0 }, new (int, int)[0], OnlyAnims: new[] { 33, 39, 40, 41 }),
         };
 
         public static IReadOnlyList<(int index, string name)> SqueakEnemies => SqueakDefinitions.Select(e => (e.Index, e.Name)).ToList();
@@ -490,7 +506,10 @@ namespace KatAMRandomizer {
          * the pieces of the others left out); */
         static (List<(byte[] tiles, ushort[] oams, short[] attributes, int palette)> frames, List<byte[]> palettes) SqueakFrames(SqueakCharacter character,
                                                                                                                                 int size = 128,
-                                                                                                                                List<int> cells = null) {
+                                                                                                                                List<int> cells = null,
+                                                                                                                                List<List<ushort[]>> alternates = null,
+                                                                                                                                List<byte[]> alternatePalettes = null,
+                                                                                                                                (ushort from, ushort to)[] merge = null) {
             cells ??= Enumerable.Range(0, character.Cells.Count).ToList();
             List<(int palette, int color)> used = SqueakUsedColors(character, cells).Where(u => u.palette < character.Palettes.Count).ToList();
             List<byte[]> palettes = new List<byte[]>();
@@ -503,12 +522,19 @@ namespace KatAMRandomizer {
                 return bytes;
             }
 
-            if (used.Select(u => character.Palettes[u.palette][u.color]).Distinct().Count() <= 15) {
+            // (a color as drawn: `merge`'s other color for it);
+            ushort Value(int palette, int color) {
+                ushort value = character.Palettes[palette][color];
+                foreach ((ushort from, ushort to) in merge ?? new (ushort, ushort)[0])
+                    if (value == from) return to;
+                return value;
+            }
+            if (used.Select(u => Value(u.palette, u.color)).Distinct().Count() <= 15) {
                 // One palette: color 0 (transparent) the first palette's, then each color used once;
                 List<ushort> colors = new List<ushort> { character.Palettes[0][0] };
                 Dictionary<(int, int), int> colorMap = new Dictionary<(int, int), int>();
                 foreach ((int palette, int color) in used) {
-                    ushort value = character.Palettes[palette][color];
+                    ushort value = Value(palette, color);
                     int index = colors.IndexOf(value, 1);
                     if (index < 0) {
                         index = colors.Count;
@@ -517,16 +543,31 @@ namespace KatAMRandomizer {
                     colorMap[(palette, color)] = index;
                 }
                 // (a character with all its colors in its first palette keeps them where they are);
-                if (used.All(u => u.palette == 0)) {
+                bool kept = used.All(u => u.palette == 0);
+                if (kept) {
                     colors = character.Palettes[0].ToList();
                     colorMap = used.ToDictionary(u => u, u => u.color);
                 }
                 palettes.Add(PaletteBytes(colors));
+                // Its other colors: the same places, each the value of its other palette file's (the first one's where colors are one);
+                foreach (List<ushort[]> alternate in alternates ?? new List<List<ushort[]>>()) {
+                    if (kept) {
+                        alternatePalettes.Add(PaletteBytes(alternate[0]));
+                        continue;
+                    }
+                    ushort[] other = colors.ToArray();
+                    HashSet<int> set = new HashSet<int>();
+                    other[0] = alternate[0][0];
+                    foreach ((int palette, int color) in used)
+                        if (set.Add(colorMap[(palette, color)])) other[colorMap[(palette, color)]] = alternate[palette][color];
+                    alternatePalettes.Add(PaletteBytes(other));
+                }
                 foreach (int cell in cells) {
                     (byte[] tiles, ushort[] oams, short[] attributes) = CutFrame(SqueakCanvas(character, cell, colorMap, size), int.MaxValue, size);
                     frames.Add((tiles, oams, attributes, 0));
                 }
             } else {
+                if (alternates != null) throw new InvalidOperationException("A character with other colors needs one palette.");
                 foreach (ushort[] palette in character.Palettes) palettes.Add(PaletteBytes(palette));
                 foreach (int cell in cells) {
                     int palette = character.Cells[cell].Pieces.Count > 0 ? character.Cells[cell].Pieces[0].Attr2 >> 12 : 0;

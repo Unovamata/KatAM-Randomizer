@@ -1258,8 +1258,17 @@ namespace KatAMRandomizer {
                         string[] file = enemy.File.Split('/');
                         SqueakCharacter character = file.Length > 1 ? ReadSqueakCharacter(squeak, file[1], file[0]) : ReadSqueakCharacter(squeak, enemy.File);
                         if (enemy.OnlyAnims != null) character = SqueakKeepAnims(character, enemy.OnlyAnims);
-                        (List<(byte[] tiles, ushort[] oams, short[] attributes, int palette)> frames, List<byte[]> palettes) = SqueakFrames(character);
+                        // (its other colors: their palettes, and a frame each after its cells, drawn with them: squeak.c's SqueakUsePalette);
+                        List<List<ushort[]>> alternates = enemy.Palettes?.Select(p => (file.Length > 1 ? ReadSqueakCharacter(squeak, file[1], file[0], p)
+                                                                                                         : ReadSqueakCharacter(squeak, enemy.File, palette: p)).Palettes).ToList();
+                        List<byte[]> alternatePalettes = alternates != null ? new List<byte[]>() : null;
+                        (List<(byte[] tiles, ushort[] oams, short[] attributes, int palette)> frames, List<byte[]> palettes) =
+                            SqueakFrames(character, alternates: alternates, alternatePalettes: alternatePalettes, merge: enemy.MergeColors);
                         var withHurts = enemy.HurtCells.Select(c => frames[c]).Concat(frames).ToList();
+                        foreach (byte[] alternate in alternatePalettes ?? new List<byte[]>()) {
+                            palettes.Add(alternate);
+                            withHurts.Add((frames[0].tiles, frames[0].oams, frames[0].attributes, palettes.Count - 1));
+                        }
                         (int _, int animId, int _) = AddAnim(palettes, withHurts, new byte[0], new List<(int, int)>(), effectOnly: withHurts.Count);
                         squeakBuilt.Add(new SqueakBuilt(enemy, animId, character, withHurts.Max(f => f.tiles.Length / 32)));
                     }

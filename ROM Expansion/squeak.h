@@ -49,6 +49,8 @@ enum {
     SQUEAK_TEDHAUN_GHOST,       // Its little ghosts (drawn with its graphics);
     SQUEAK_BUBOO,               // A mid-boss;
     SQUEAK_BUBOO_BUBBLE,        // Its bubbles (blown and dropped by it, drawn with its graphics);
+    SQUEAK_SQUEAKER,            // The Squeak Squad's Squeakers (their colors the variant);
+    SQUEAK_SQUEAKER_BOMB,       // Their bombs (thrown by them, drawn with their graphics; the variant the big one);
     SQUEAK_ENEMY_COUNT,
 };
 
@@ -245,6 +247,7 @@ u32 SqueakAnimFor(struct Object *);
 const u8 *SqueakName(struct Object *);
 s16 SqueakMaxHp(struct Object *);
 void SqueakSetCell(struct SqueakObject *, u8 cell);
+void SqueakUsePalette(struct SqueakObject *, u8 alternate);
 void SqueakPlay(struct SqueakObject *, u8 anim);
 void SqueakPlayComposite(struct SqueakObject *, u8 composite);
 void SqueakAnimate(struct SqueakObject *);
@@ -332,5 +335,10 @@ void BubooInit(struct SqueakObject *);
 void BubooStart(struct Object *);
 void BubooBubbleInit(struct SqueakObject *);
 void BubooBubbleStart(struct Object *);
+void SqueakerInit(struct SqueakObject *);
+void SqueakerStart(struct Object *);
+void SqueakerGone(struct SqueakObject *);
+void SqueakerBombInit(struct SqueakObject *);
+void SqueakerBombStart(struct Object *);
 
 #endif
