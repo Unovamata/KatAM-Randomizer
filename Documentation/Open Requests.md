@@ -186,9 +186,9 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
     by KatAM's terrain). Checked in KatAM: Cret drifts across room 0x323 and stops at its left edge.
   - Still to do for those: their sounds (Squeak Squad's are the DS's own: KatAM's nearest, or the owner's call); the enemy base
     class's own states (bumping into Kirby, the shared state in water of the ones that don't swim).
-  - Left: the Squeak Squad behaviors of shared enemies and the bosses (0x37-0x3F and 0x46: Meta Knight, King Dedede, 0x39, Mrs.
-    Moley, Yadgaine, Bohboh, Daroach, Dark Nebula / Dark Daroach); the randomizer options (a Squeak Squad ROM in the ROM Expansion
-    tab, the enemy pool). The Squeak Squad-only enemies, its mid-bosses and the Squeaks are all ported.
+  - Left: the bosses (0x37-0x3F and 0x46: Meta Knight, King Dedede, 0x39, Mrs. Moley, Yadgaine, Bohboh, Daroach, Dark Nebula /
+    Dark Daroach); the randomizer options (a Squeak Squad ROM in the ROM Expansion tab, the enemy pool). The Squeak Squad-only
+    enemies, the shared enemies' Squeak Squad behaviors, its mid-bosses and the Squeaks are all done.
 
 ## 5. Bosses as faithful 1:1 recreations of NiDL
 - **The other bosses**: check each against NiDL and fix what differs.
