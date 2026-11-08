@@ -110,6 +110,11 @@ so a one-frame A still counts (logged on the DS). `0x020B48E0(obj, type)` shows 
 `0x0215908C` (types 0-5 `efc_cmn0`'s animations 3, 4, 7, 7, 17, 2; 6 `efc_cmn1`'s 1). `biospark.rca`'s animations are the
 `.cea`'s one on (its first is an extra), found by their frame totals and confirmed on the DS by the jump's grab boxes.
 
+Starman's brain (`0x02084370` on, before its constructor's range) presses only B; its body reads A at `+0x38` and B at `+0x20`
+(the setter writes both B's, `+0x20` and `+0x3C`), so its A moves never run. Variant 2's rocket holds up and B 34 frames but its
+lift-off animation lasts 38: its flapping starts with B let go, and it skids (logged on the DS). Its flying caps its height at the
+camera's top (the stage object's `+0x70`); variant 0 passes through the terrain (`vtable +0x40`, `0x02084C20`).
+
 ### The stage's water splashes
 
 The stage's map object (`*0x02229F1C + 0x48`, vtable `+0xB4`, `0x02215A10`) splashes: type 0 into the water, 1 out of it. Only at
@@ -206,7 +211,7 @@ Bonkers, Box Boxer, Boxy. The others get a full port (body and brain constructor
 | 0x10 | Cret | 0x02073044 (0x284) | 0x020705AC (0xC8) | yes |
 | 0x11 | Uja | 0x020840C8 (0x294) | 0x02080AD0 (0xC4) | yes |
 | 0x25 | Bio Spark | 0x0207CF18 (0x264) | 0x0207A284 (0xB4) | yes |
-| 0x26 | Starman | 0x020877B8 (0x24C) | 0x02084B10 (0xD0) | |
+| 0x26 | Starman | 0x020877B8 (0x24C) | 0x02084B10 (0xD0) | yes |
 | 0x27 | Bubble Head | 0x020968D0 (0x244) | 0x02095980 (0xB8) | |
 | 0x28 | Gaw Gaw | 0x020B0068 (0x260) | 0x020AC780 (0xBC) | |
 | 0x2A | Acchi | 0x0206B1F0 (0x25C) | 0x02069D6C (0xB8) | |

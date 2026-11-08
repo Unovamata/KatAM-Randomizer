@@ -34,6 +34,7 @@ enum {
     SQUEAK_BIO_SPARK,
     SQUEAK_BIO_SPARK_KUNAI,     // Bio Spark's kunai and leaf (thrown and left by it, drawn with its graphics);
     SQUEAK_BIO_SPARK_LEAF,
+    SQUEAK_STARMAN,
     SQUEAK_ENEMY_COUNT,
 };
 
@@ -269,5 +270,7 @@ void BioSparkKunaiInit(struct SqueakObject *);
 void BioSparkKunaiStart(struct Object *);
 void BioSparkLeafInit(struct SqueakObject *);
 void BioSparkLeafStart(struct Object *);
+void SqueakStarmanInit(struct SqueakObject *);
+void SqueakStarmanStart(struct Object *);
 
 #endif

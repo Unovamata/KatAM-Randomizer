@@ -223,6 +223,9 @@ namespace KatAMRandomizer {
             new SqueakEnemy(9, "Bio Spark", "biospark", new[] { 2, 10, 10 }, BioSparkGlyphs),
             new SqueakEnemy(10, "Bio Spark", "biospark", new[] { 11, 11, 11 }, BioSparkGlyphs, GraphicsOf: 9),
             new SqueakEnemy(11, "Bio Spark", "biospark", new[] { 12, 12, 12 }, BioSparkGlyphs, GraphicsOf: 9),
+            // Starman: hurt animations 10 and 11 (0x020877B8's 0x100000A, 0x100000B: cells 15 and 17);
+            new SqueakEnemy(12, "Starman", "starman", new[] { 15, 17, 17 },
+                            new[] { (0x04, 0), (0x14, 2), (0x14, 5), (0x01, 1), (0x28, 2), (0x14, 5), (0x01, 3) }),   // "S" (Squishy), "t", "a" (Hot Head), "r", "n" (Bronto Burt), "m" (Bomber);
         };
 
         public static IReadOnlyList<(int index, string name)> SqueakEnemies => SqueakDefinitions.Select(e => (e.Index, e.Name)).ToList();
