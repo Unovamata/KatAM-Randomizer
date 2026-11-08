@@ -3,6 +3,16 @@
 What the owner has asked for that is still to do. When an item is finished, take it out. The design rules for doors, mirrors and
 hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
 
+## 52. Kirby: Squeak Squad in Amazing Mirror
+- First step, the world map: a door per Squeak Squad level, as NiDL's 8. Mock-up proposed, waiting for the owner's choice:
+  1 Prism Plains (green fields by the castle) to Moonlight Mansion; 2 Nature Notch (underground, by the caves) to Rainbow Route
+  South; 3 Cushy Cloud (the cloud over the hills) to Rainbow Route East; 4 Jam Jungle (the dark forest) to Rainbow Route West;
+  5 Vocal Volcano (Mustard Mountain's slope) to Rainbow Route North; 6 Ice Island (the ice tower) to Peppermint Palace East;
+  7 Secret Sea (out at sea) to Cabbage Cavern East; 8 Gamble Galaxy (space) to Candy Constellation.
+- The owner's rules for it: never connected to a NiDL hub (either game can be on alone), and no 3 exits in a chain. Read as: each
+  Squeak Squad door's path leads to a KatAM door that leads straight to Central Circle; never to a NiDL door or another Squeak
+  Squad door. Its own hub is reached from Central Circle, not through the NiDL hub.
+
 ## 5. Bosses as faithful 1:1 recreations of NiDL
 - **The other bosses**: check each against NiDL and fix what differs.
 - **Differences left in the recreated fights** (KatAM's own engine, not changed): KatAM sees a hit a frame after NiDL; each boss's
