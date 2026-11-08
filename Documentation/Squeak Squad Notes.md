@@ -69,6 +69,19 @@ end of the line solid (`0x0220FDEC`); mode 2: both. `+0x38` and `+0x3C` (`0x0220
 or left edge is into a wall (negative) or 0x10000 (none): Crimp shifts its probes by it. Tiles are 16 pixels; a tile's word has
 its kind in bits 14-15 (`0x4000` solid).
 
+### Inhaled, bitten and thrown
+
+An enemy's hit reaction (body vtable `+0x30`) gets the attack's kind first: 3-5 are Kirby's inhale pulling it, and its touch
+reaction (Maiga's `0x020A1F90`) gets kind 6 when it reaches the inhale's mouth (logged on the DS: Kirby holding B,
+Maiga takes kind 3 seven frames, then touch kind 6); kind 0 is Kirby's body, which hurts both (Kirby lost 4 of 36 HP, Maiga was
+beaten). Maiga overrides both: pulled, it slides at the inhaler at 2.0 a frame (`0x020A116C`, its own speed, not the engine's
+pull); at the mouth it holds Kirby (`0x020A0D84`): it sets his position each frame (his vtable `+0x10`, 8 pixels ahead of it,
+bobbing up 2 pixels when its count is 0 in 8, down when 2), counts 1 a frame and 4 more each frame one of his pad's fields
+(`+0xE8`'s `+0x14` across, `+0x18` up and down, `+0x1C`, `+0x20` the buttons) changed, and at 120 sets him 3 pixels higher with
+VX -0x299A, VY 0, AY -0x2B8 and `+0xEC` (his untouchable frames) 30; his own thrown state (`0x0207FBE9`) hurts him when he lands
+(6 of 36 HP), then the usual knock-back (VX -0x1B34) and 120 untouchable frames. KatAM has the same thrown state: a hold table
+entry with flag 2 (`sub_0804F32C`: thrown, tumbling, hurt on landing, 1 HP).
+
 ### The stage's water splashes
 
 The stage's map object (`*0x02229F1C + 0x48`, vtable `+0xB4`, `0x02215A10`) splashes: type 0 into the water, 1 out of it. Only at
@@ -161,7 +174,7 @@ Bonkers, Box Boxer, Boxy. The others get a full port (body and brain constructor
 | 0x0C | Crimp | 0x020CE310 (0x248) | 0x020CC53C (0xBC) | yes |
 | 0x0D | Perara | 0x0206FD54 (0x260) | 0x0206E85C (0xB8) | yes |
 | 0x0E | Gold Waddle Dee | 0x020B6764 (0x250) | 0x020B4EF4 (0xC0) | yes |
-| 0x0F | Maiga | 0x020A2108 (0x26C) | 0x020A0B58 (0xB4) | |
+| 0x0F | Maiga | 0x020A2108 (0x26C) | 0x020A0B58 (0xB4) | yes |
 | 0x10 | Cret | 0x02073044 (0x284) | 0x020705AC (0xC8) | |
 | 0x11 | Uja | 0x020840C8 (0x294) | 0x02080AD0 (0xC4) | |
 | 0x25 | Bio Spark | 0x0207CF18 (0x264) | 0x0207A284 (0xB4) | |

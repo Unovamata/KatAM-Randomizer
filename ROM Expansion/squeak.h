@@ -27,6 +27,7 @@ enum {
     SQUEAK_GUSSA,
     SQUEAK_CRIMP,
     SQUEAK_CRIMP_ROCK,          // Crimp's rock (spawned by it, drawn with its graphics);
+    SQUEAK_MAIGA,
     SQUEAK_ENEMY_COUNT,
 };
 
@@ -219,5 +220,7 @@ void CrimpInit(struct SqueakObject *);
 void CrimpStart(struct Object *);
 void CrimpRockInit(struct SqueakObject *);
 void CrimpRockStart(struct Object *);
+void MaigaInit(struct SqueakObject *);
+void MaigaStart(struct Object *);
 
 #endif

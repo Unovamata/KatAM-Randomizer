@@ -199,6 +199,9 @@ namespace KatAMRandomizer {
             // Crimp: hurt animations 9 and 10 (0x020CE310's 0x1000009, 0x100000A); its rock (0x020CBF94) is drawn with its graphics;
             new SqueakEnemy(3, "Crimp", "climb", new[] { 10, 11, 11 }, CrimpGlyphs),
             new SqueakEnemy(4, "Crimp", "climb", new[] { 22, 22, 22 }, CrimpGlyphs, GraphicsOf: 3),
+            // Maiga: hurt cells 11 and 12 (its animations 6 and 7, and 13 and 14 the same);
+            new SqueakEnemy(5, "Maiga", "maiga", new[] { 11, 12, 12 },
+                            new[] { (0x27, 0), (0x14, 5), (0x27, 1), (0x16, 3), (0x14, 5) }),   // "M", "i" (Minny), "a" (Hot Head), "g" (Pengy);
         };
 
         public static IReadOnlyList<(int index, string name)> SqueakEnemies => SqueakDefinitions.Select(e => (e.Index, e.Name)).ToList();
