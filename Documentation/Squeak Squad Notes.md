@@ -239,7 +239,15 @@ switches on the ID (0x00-0x47): each case allocates the enemy's object (its own 
 | 0x2A | acchi | Acchi |
 | 0x2B | bun | Bun |
 | 0x2C | metalum | Metalun |
-| 0x2D-0x36 | | The mid-bosses (graphics loaded elsewhere; to be matched) |
+| 0x2D | frosty | Mr. Frosty (mid-boss; KatAM has it) |
+| 0x2E | bonkers | Bonkers (mid-boss; KatAM has it) |
+| 0x2F, 0x32 | | (the default case: a Waddle Dee) |
+| 0x30 | vowfighter | Box Boxer (mid-boss; KatAM has it) |
+| 0x31 | boxy | Boxy (mid-boss; KatAM has it) |
+| 0x33 | gaogao | Gao Gao (mid-boss) |
+| 0x34 | bigmetalum | Big Metalun (mid-boss) |
+| 0x35 | tedhaun | Tedhaun (mid-boss) |
+| 0x36 | buboo | Buboo (mid-boss) |
 | 0x37 | metaknight_cmn | Meta Knight |
 | 0x38 | dedede | King Dedede |
 | 0x39 | | (Mecha-Kracko?) |
@@ -257,7 +265,9 @@ Shotzos hold) and the Squeaks (spin, doc, stron, chun) are created elsewhere.
 Squeak Squad's enemies KatAM has (its own objects, with only the Squeak Squad behaviors it lacks to add): Waddle Dee, Bronto Burt,
 Blipper, Glunk, Scarfy, Gordo, Snooter, Chip, Batty, Blockin, Big Waddle Dee, Shotzo, Waddle Doo, Hot Head, Flamer, Pengy, Sparky,
 Twister, Sword Knight, Cupie, Sir Kibble, Laser Ball, Foley, Wheelie, UFO, Noddy, Boxin, Heavy Knight; mid-bosses Mr. Frosty,
-Bonkers, Box Boxer, Boxy. The others get a full port (body and brain constructors, from the factory; sizes in bytes):
+Bonkers, Box Boxer, Boxy (Squeak Squad's 0x2D Mr. Frosty 0x020F4294, 0x2E Bonkers 0x020D4C10, 0x30 Box Boxer 0x020FD418, 0x31 Boxy
+0x020F8B78; each mid-boss's files: `param/prmMBnnMl0`, `Pl0`, `Sl0` (HP: Big Metalun's 300), `enemy/<name>` with a `_dmg.cla`
+palette for its hurt flash). The others get a full port (body and brain constructors, from the factory; sizes in bytes):
 
 | ID | Enemy | Body | Brain | Ported |
 | --- | --- | --- | --- | --- |
@@ -275,7 +285,10 @@ Bonkers, Box Boxer, Boxy. The others get a full port (body and brain constructor
 | 0x2A | Acchi | 0x0206B1F0 (0x25C) | 0x02069D6C (0xB8) | yes |
 | 0x2B | Bun | 0x02056AA4 (0x250) | 0x02055470 (0xB4) | yes |
 | 0x2C | Metalun | 0x020526AC (0x248) | 0x0205155C (0xB8) | yes |
-| 0x2D-0x36 | the mid-bosses | 0x020F4294, 0x020D4C10, 0x020FD418, 0x020F8B78, 0x02100300, 0x0210C4F8, 0x02103B4C, 0x02108EAC | | |
+| 0x33 | Gao Gao (mid-boss) | 0x02100300 (0x254) | 0x020FE364 (0xD8) | |
+| 0x34 | Big Metalun (mid-boss) | 0x0210C4F8 (0x24C) | 0x0210A940 (0xBC) | |
+| 0x35 | Tedhaun (mid-boss) | 0x02103B4C (0x2AC) | 0x02100FE8 (0xCC) | |
+| 0x36 | Buboo (mid-boss) | 0x02108EAC (0x274) | 0x02105938 (0xC8) | |
 | 0x37-0x46 | the bosses | Meta Knight 0x02116C7C, Dedede 0x020E7E58, 0x39 0x02132D7C, Mrs. Moley 0x0212CF40, Yadgaine 0x0211A4E8, Bohboh 0x02111370, 0x3D 0x02126F48, Dark Nebula / Dark Daroach 0x0211B680, 0x02122CD0, 0x021376EC | | |
 
 The Squeaks (Squeakers, Doc, Spinni, Storo, Daroach) and Parasol are created elsewhere. Copy abilities KatAM lacks (Ninja, Bubble,
