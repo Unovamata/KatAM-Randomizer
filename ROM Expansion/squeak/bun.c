@@ -539,6 +539,8 @@ static void BunMain(struct Object *obj) {
     SqueakAnimate(s);
     LAST_BOX(s) = BOX(s);
     SqueakSetBoxes(s, &sBunBoxData, HOLDING(s) ? 0 : HARM(s), &BOX(s));
+    // (its +0x18 bit 2 also takes it out of every attack's reach: 0x0201322C, untouchable);
+    if (HOLDING(s)) SqueakUntouchable(s, TRUE);
     // (holding Kirby, his body doesn't hurt it, as KatAM's grabbers' and Gaw Gaw's);
     if (HELD(s)) obj->base.unk5C |= 0x80;
     else obj->base.unk5C &= ~0x80;

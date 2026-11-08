@@ -172,7 +172,10 @@ static const struct SqueakBoxAnim sSqueakerBoxAnims[] = {
     [ANIM_BIG_THROW] = { sSqueakerBody, 1 },
     [ANIM_TAKE] = { sSqueakerBody, 1 },
 };
-static const struct SqueakBoxes sSqueakerBoxData = { sSqueakerBoxes, sSqueakerBoxAnims, ARRAY_COUNT(sSqueakerBoxAnims) };
+// (chun.rca's boxes flagged 0x8000 as it takes the chest, chun's 48: untouchable);
+static const struct SqueakBoxes sSqueakerBoxData = {
+    sSqueakerBoxes, sSqueakerBoxAnims, ARRAY_COUNT(sSqueakerBoxAnims), { SQUEAK_ANIM_LO(ANIM_TAKE) },
+};
 
 static const struct SqueakBox sBombBoxes[] = {
     { { -6, -6, 7, 6 }, TRUE, 0 },
@@ -188,7 +191,8 @@ static const struct SqueakBoxAnim sBombBoxAnims[] = {
     [BOMB_ANIM_WICK] = { sBombBig, 1 },
     [BOMB_ANIM_BLAST] = { sBombBlast, 1 },
 };
-static const struct SqueakBoxes sBombBoxData = { sBombBoxes, sBombBoxAnims, ARRAY_COUNT(sBombBoxAnims) };
+// (chun.rca's box flagged 0x8000 in its blast, chun's 41: untouchable);
+static const struct SqueakBoxes sBombBoxData = { sBombBoxes, sBombBoxAnims, ARRAY_COUNT(sBombBoxAnims), { SQUEAK_ANIM_LO(BOMB_ANIM_BLAST) } };
 
 /* The bombs' launch (0x020ECF88, 0x020ECC60: 3.4 at 30 degrees, its draw under 20 +10, under 40 +5, under 60 -5, and under 80 -10
  * too, as its code adds them: 30, 25, 15, 20, 30 degrees), as 0x020ECD90 makes them (its sine table, 0x0215CE20); */

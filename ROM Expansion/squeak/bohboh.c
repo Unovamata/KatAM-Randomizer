@@ -28,14 +28,16 @@
  *   - Its swoop (0x0210F874-0x0210F380): it backs up (0.4 back, 0.2 up, 60 frames: animation 5), then dives at Kirby's feet at 4.0
  *     (animation 6, its grabbing boxes); out of view 1, 60 frames, in big to the point on its side of the middle. Into the lava, it
  *     dives (0x0210F288: 0.2 back, 2.0 up, 0.2 gravity), the lava hurting it (20 of its HP), and sits in it 120 frames (0x0210EEE0:
- *     where it can be hit, as in its dive; every 40 + rand(20) frames something falls from a spot across the view's top: one of the
- *     stage's enemies 30 in 100 (a Waddle Dee, a Pengy, a Sir Kibble, a Hot Head, one of each at most: KatAM's own), else a fire
- *     (0x02127824's kind 1: 0.1 gravity, bursting on the ground)); then it rises to the point on its side (0.5 up: .mca's 2), in 60
- *     frames more turns to the middle, and after a flare (.mca's 3, 20 frames) waits.
+ *     untouchable in its dive, hit by its own box in the lava; every 40 + rand(20) frames something falls from a spot across the
+ *     view's top: one of the stage's enemies 30 in 100 (a Waddle Dee, a Pengy, a Sir Kibble, a Hot Head, one of each at most:
+ *     KatAM's own), else a fire (0x02127824's kind 1: 0.1 gravity, bursting on the ground)); then it rises to the point on its side
+ *     (0.5 up: .mca's 2), in 60 frames more turns to the middle, and after a flare (.mca's 3, 20 frames) waits.
  *   - Grabbing Kirby in its swoop (0x021111CC: its touch's kind 6; 0x0210EB40-0x0210E788): it carries him 22 pixels under it to the
  *     other point (60 frames: .mca's 1), throws him down at 5.0 toward point 2 (animation 10), and once he's in the lava lets him go
  *     hurt (0x02110D50: 6 of his HP). It can't be hit while it holds him.
- * • Hit (0x02110F98): only in its dive and in the lava (bohboh.rca's hurt boxes: animations 7 and 8); 32 frames safe after.
+ * • Hit (0x02110F98): anywhere but far off (its animation 4) and in its dive (7) (bohboh.rca's hurt boxes there flagged 0x8000:
+ *   Squeak Squad's 0x0201322C, untouchable; where an animation has none, its sprite's first box, animation 0's, is hit: 0x02014218,
+ *   as recorded), nor while it holds Kirby; 32 frames safe after.
  * • The lava's hurt (0x0212737C: an object of its own over the lava, 128 pixels across and 10 high at the floor, hurting what touches
  *   it; the stage's lava isn't in KatAM's rooms, so here it shows nothing, as on the DS).
  * Not ported: its sounds, the camera's shakes, its hit flash (enemy/bo_bo_dmg's palettes: KatAM's), the lava (the stage's tiles, its
@@ -154,11 +156,11 @@ static const struct Kirby_110 sThrown[] = { { 0, 0, -1, 0xFF, 0x57, 0x600 }, { 0
 static const struct Kirby_110 sHurt[] = { { 0, 13, -1, 1, 0, 0x402 }, { 0, 0, 0, 1, 0, 0 } };
 static const struct Kirby_110 sLetGo[] = { { 0, 0, -1, 1, 0, 0x401 }, { 0, 0, 0, 1, 0, 0 } };
 
-/* bohboh.rca (KatAM's: x ahead, y down, pixels from its spot): its touch's box (tag 0x101 kind 0) and where it's hit (0x102: only in
- * its animations 0, 7 and 8), its swoop's grabbing boxes (0x101 kind 6); none in its far flight (4) and its throw (10); */
-enum { BOX_BODY, BOX_STILL, BOX_SWOOP, BOX_DIVE, BOX_LAVA, BOX_NONE };
+/* bohboh.rca (KatAM's: x ahead, y down, pixels from its spot): its touch's box (tag 0x101 kind 0) and where it's hit (0x102: its own
+ * in its animations 0, 4, 7 and 8, else animation 0's, the sprite's first: 0x02014218), its swoop's grabbing boxes (0x101 kind 6);
+ * none far off (4: its box flagged, 100 pixels over it) and in its throw (10); */
+enum { BOX_STILL, BOX_SWOOP, BOX_DIVE, BOX_LAVA, BOX_NONE };
 static const struct SqueakBox sBohbohBoxes[] = {
-    [BOX_BODY] = { { -17, -35, 15, -5 }, TRUE, 0 },
     [BOX_STILL] = { { -25, -42, 20, -5 }, TRUE, 0 },
     [BOX_SWOOP] = { { -25, -42, 16, -12 }, TRUE, 2, { { 16, -42, 31, 6 }, { -25, -12, 16, 6 } } },
     [BOX_DIVE] = { { -36, -52, 28, -5 }, TRUE, 0 },
@@ -388,10 +390,10 @@ static void LetGo(struct SqueakObject *s, const struct Kirby_110 *how) {
     s->obj.base.unk6C = NULL;
 }
 
-// Hittable(); bohboh.rca's hurt boxes: its animations 0, 7 and 8 (its dive, the lava), not holding Kirby, not just hit;
+/* Hittable(); 0x0201322C: not far off nor diving (bohboh.rca's boxes there flagged 0x8000; its composites hit by animation 0's box,
+ * as recorded), and 0x02110F98: not holding Kirby, not just hit; */
 static bool32 Hittable(struct SqueakObject *s) {
-    return s->composite == SQUEAK_NO_COMPOSITE && (s->anim == ANIM_STILL || s->anim == ANIM_DIVE || s->anim == ANIM_LAVA)
-           && !HELD(s) && SAFE(s) == 0;
+    return (s->composite != SQUEAK_NO_COMPOSITE || (s->anim != ANIM_FAR && s->anim != ANIM_DIVE)) && !HELD(s) && SAFE(s) == 0;
 }
 
 // Hurt(); The lava's hurt as it dives in (0x0212737C's box: its 20), KatAM's mini-boss defeat if it's its last (Mrs. Moley's crash);
@@ -866,16 +868,15 @@ static void Hit(struct SqueakObject *s) {
     LAST_HP(s) = obj->unk80;
 }
 
-/* Boxes(); Its box by its animation (bohboh.rca's: a composite's its body's, .mca's parts 1 on), hit only where it can be (KatAM's
- * level 3; else 6, as Gordo's: no attack hurts it); none far off and in its throw; */
+/* Boxes(); Its box by its animation (bohboh.rca's: its touch's and where it's hit, animation 0's where it has none of its own, as a
+ * composite's), hit only where it can be (KatAM's level 3; else 6, as Gordo's: no attack hurts it); none far off and in its throw; */
 static void Boxes(struct SqueakObject *s) {
     struct ObjectBase *base = &s->obj.base;
     const struct SqueakBox *b;
-    u8 box = BOX_BODY;
+    u8 box = BOX_STILL;
 
     if (s->composite == SQUEAK_NO_COMPOSITE) {
         switch (s->anim) {
-        case ANIM_STILL: box = BOX_STILL; break;
         case ANIM_FAR: case ANIM_THROW: case ANIM_CLAWS: box = BOX_NONE; break;
         case ANIM_SWOOP: box = BOX_SWOOP; break;
         case ANIM_DIVE: box = BOX_DIVE; break;

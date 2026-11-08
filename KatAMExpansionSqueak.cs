@@ -89,12 +89,15 @@ namespace KatAMRandomizer {
          * cells' tiles and pieces' palettes moved on), and its composite animations (.mca) after the first's (their parts' animations
          * and steps' compositions moved on). Palettes that don't all fit share: the second's palettes the same as one of the first's
          * are that one (Mrs. Moley's three files have the same 16); */
-        static SqueakCharacter SqueakMerge(SqueakCharacter a, SqueakCharacter b) {
+        static SqueakCharacter SqueakMerge(SqueakCharacter a, SqueakCharacter b, bool sharePalettes = false) {
             int tiles = a.Tiles.Length / 32, cells = a.Cells.Count, anims = a.Anims.Count, compositions = a.Compositions.Count;
             List<ushort[]> palettes = a.Palettes.ToList();
             int[] paletteOf;
 
-            if (palettes.Count + b.Palettes.Count <= 16) {
+            // (the second's pieces in the first's palettes, by index: one palette object for both, Squeak Squad's);
+            if (sharePalettes) {
+                paletteOf = Enumerable.Range(0, b.Palettes.Count).Select(p => Math.Min(p, palettes.Count - 1)).ToArray();
+            } else if (palettes.Count + b.Palettes.Count <= 16) {
                 paletteOf = Enumerable.Range(palettes.Count, b.Palettes.Count).ToArray();
                 palettes.AddRange(b.Palettes);
             } else {
@@ -234,11 +237,14 @@ namespace KatAMRandomizer {
          * (pixels a side), its spot in the middle (Storo's raised mallet, 96 pixels over its feet, needs 192); BodyLast: its .mca's
          * compositions list its body last (King Dedede's: its sparkles first, drawn over it), moved first here, the part the
          * character's own sprite shows (with its layers), the others behind it; KeepComposites: OnlyAnims keeps its files' .mca
-         * composite animations (their parts' animations among those kept: Mrs. Moley's, from her other two files); */
+         * composite animations (their parts' animations among those kept: Mrs. Moley's, from her other two files); SharePalettes:
+         * its other files' cells drawn with the first's palettes, their indexes kept (Squeak Squad's body loading every sprite into one
+         * palette object: Daroach's); PaletteFile: every file's cells in another .cla's colors (Dark Daroach's, dancho01's); */
         internal sealed record SqueakEnemy(int Index, string Name, string File, int[] HurtCells, (int type, int letter)[] Glyphs, int GraphicsOf = -1,
                                             byte MidbossType = 0, int[] OnlyAnims = null, string[] Palettes = null,
                                             (ushort from, ushort to)[] MergeColors = null, string ExtraFile = null,
-                                            int[][] Layers = null, int Canvas = 128, bool BodyLast = false, bool KeepComposites = false);
+                                            int[][] Layers = null, int Canvas = 128, bool BodyLast = false, bool KeepComposites = false,
+                                            bool SharePalettes = false, string PaletteFile = null);
         /* AnimPalettes: a character whose cells are in Squeak Squad's different palettes (Doc's things), per animation the palette its
          * sprite takes (SqueakPaletteKey); */
         internal sealed record SqueakBuilt(SqueakEnemy Enemy, int AnimId, SqueakCharacter Character, int Tiles, List<SqueakLayerBuilt> Layers = null,
@@ -349,6 +355,9 @@ namespace KatAMRandomizer {
         static readonly (int type, int letter)[] BohbohGlyphs = { (0x01, 0), (0x01, 2), (0x08, 1), (0x18, 5), (0x01, 2), (0x08, 1) };
 
         static readonly (int type, int letter)[] DaroachGlyphs = { (0x00, 6), (0x14, 5), (0x01, 1), (0x01, 2), (0x14, 5), (0x17, 2), (0x08, 1) };
+        // "D" (Waddle Dee), "a" (Hot Head), "r" (Bronto Burt), "k" (KatAM's Kracko), " ", "Daroach";
+        static readonly (int type, int letter)[] DarkDaroachGlyphs = { (0x00, 6), (0x14, 5), (0x01, 1), (0x45, 4), (-1, 0), (0x00, 6), (0x14, 5),
+                                                                       (0x01, 1), (0x01, 2), (0x14, 5), (0x17, 2), (0x08, 1) };
 
         // "S" (Squishy), "p", "i" (Chip), "n", "n" (Bronto Burt), "i" (Chip);
         static readonly (int type, int letter)[] SpinniGlyphs = { (0x04, 0), (0x08, 3), (0x08, 2), (0x01, 3), (0x01, 3), (0x08, 2) };
@@ -511,6 +520,19 @@ namespace KatAMRandomizer {
             new SqueakEnemy(47, "Bohboh", "bohboh", new[] { 29, 31, 29 }, BohbohGlyphs, MidbossType: 0x40),
             // What it brings in (0x02127750: its fire, bohboh's animation 12; a fire from the top, 11; the lava's hurt draws nothing), no name;
             new SqueakEnemy(48, "Bohboh's thing", "bohboh", new[] { 0, 0, 0 }, new (int, int)[0], OnlyAnims: new[] { 12, 11 }),
+            /* Daroach (a boss, enemy 0x3D: 0x02126F48, on mini-boss type 0x40 as the mid-bosses), drawn from dancho00 and dancho01 (his
+             * wand's poses and beam: the sprite his body switches to, its +0xE4, here dancho00's animations 0-29, then dancho01's from 30;
+             * both in dancho00's palettes, Squeak Squad's one palette object), their .mca's composites (dancho00's 0-7: his star throw,
+             * his bombs' fire, the star; dancho01's from 8: his wand's charge and beam, its body listed last, as the others'); his hurt
+             * look his float (0x1000001: cell 2); */
+            new SqueakEnemy(49, "Daroach", "dancho00", new[] { 2, 2, 2 }, DaroachGlyphs, MidbossType: 0x40, ExtraFile: "dancho01",
+                            SharePalettes: true, BodyLast: true),
+            // What he brings in (his stars 0x02124894, bombs 0x02124290, his beam's reach), drawn with his graphics, no name;
+            new SqueakEnemy(50, "Daroach's thing", "dancho00", new[] { 0, 0, 0 }, new (int, int)[0], GraphicsOf: 49),
+            // Dark Daroach (0x3D with its parameter 1, a8s4s2's: dancho01's palette for both sprites, 0x02126F48's +0x1F8), as Daroach;
+            new SqueakEnemy(51, "Dark Daroach", "dancho00", new[] { 2, 2, 2 }, DarkDaroachGlyphs, MidbossType: 0x40, ExtraFile: "dancho01",
+                            SharePalettes: true, BodyLast: true, PaletteFile: "dancho01"),
+            new SqueakEnemy(52, "Dark Daroach's thing", "dancho00", new[] { 0, 0, 0 }, new (int, int)[0], GraphicsOf: 51),
         };
 
         public static IReadOnlyList<(int index, string name)> SqueakEnemies => SqueakDefinitions.Select(e => (e.Index, e.Name)).ToList();

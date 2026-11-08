@@ -314,8 +314,8 @@ switches on the ID (0x00-0x47): each case allocates the enemy's object (its own 
 | 0x3A | mrsMoley_cmn | Mrs. Moley (ported: `squeak/mrs_moley.c`) |
 | 0x3B | yadgaine | Yadgaine (ported: `squeak/yadgaine.c`) |
 | 0x3C | bohboh | Bohboh (ported: `squeak/bohboh.c`) |
-| 0x3D | dancho00, dancho01 | Daroach (his boss fight: `dan_dmg`, `prmBB07Ml0`/`Sl0`, its graphics loaded near `0x021270F0`) |
-| 0x3E, 0x3F, 0x46 | darkZERO_cmn | Dark Nebula / Dark Daroach (to be matched) |
+| 0x3D | dancho00, dancho01 | Daroach and Dark Daroach (his boss fight, parameter 0 and 1: ported, `squeak/daroach_boss.c`) |
+| 0x3E, 0x3F, 0x46 | darkZERO_cmn | Dark Nebula (0x3F, 0x46; 0x3E in the stages' records too: to be matched); Dark Daroach is 0x3D's parameter 1 |
 
 0x12, 0x1B, 0x29, 0x2F, 0x32, 0x40-0x45 and 0x47 fall to the default case. Parasol (the parasol some Waddle Dees, Waddle Doos and
 Shotzos hold) and the Squeaks (spin, doc, stron, chun) are created elsewhere.
@@ -483,9 +483,10 @@ Kibble and Hot Head, one of each out at most; else `0x02127824(1, ...)`), rise `
 its fire (`0x021278CC`, at its spot: `.cea`'s 12, 0.1 gravity, bursting on the ground through the stage's effect 6), 1 a fire from
 the top (11, alike, `0x020B48E0`'s 6), 2 the lava's hurt (`0x0212737C`, made by its intro at the camera's middle and the floor:
 `.cea`'s 18, no cell; `.rca`'s box kind 2, 128 across and 10 high, hurting Kirby, and Bohboh as it dives in: 20). `.mca`: 0 flying,
-1 carrying (its claws, `.cea`'s 9), 2 rising out of the lava, 3 its flare. `.rca`'s animations are the `.cea`'s one on; its hurt
-boxes (0x102) only in its animations 0, 7 (its dive) and 8 (in the lava); its swoop (6) has two grabbing boxes (0x101 kind 6); its far
-flight (4) and throw (10) none. Its stage `map/a5s7s2` (`a5s7.mxi`'s part 2: `09_f`/`09_b`, no palette, `d_viw_0F`; its spawn in
+1 carrying (its claws, `.cea`'s 9), 2 rising out of the lava, 3 its flare. `.rca`'s animations are the `.cea`'s one on; its own hurt
+boxes (0x102) in its animations 0, 4 (far off), 7 (its dive) and 8 (in the lava), those of 4 and 7 flagged 0x8000 (untouchable: see
+"Where it's hit" below; elsewhere animation 0's box is hit, as recorded); its swoop (6) has two grabbing boxes (0x101 kind 6); its far
+flight (4) and throw (10) no touch. Its stage `map/a5s7s2` (`a5s7.mxi`'s part 2: `09_f`/`09_b`, no palette, `d_viw_0F`; its spawn in
 `a5s7s2.doe`: 0x3C at 36, 236; records 1-4 the enemies it drops), 34 by 26 tiles, the camera held at 272, 136 (its middle), the floor
 and the lava's top at 80 up: its points 0 (356, 176), 1 (200, 176), 2 (272, 44, in the lava), linked 0 and 1 (the table after the
 points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a5s7s1.mxp` and `a5s7s2.mxp` are stored uncompressed
@@ -586,6 +587,36 @@ ARMv5T, literal pools made read-only so constants fold).
 - **Effects and sounds**: `0x02021900` spawns an effect (offset, facing, type): types 0-5 are `effect/efc_cmn0`'s animations,
   6-16 `efc_cmn1`'s, by the table at `0x02157DF8` (type 3, the dust puff: `efc_cmn0` animation 19). Its last parameter makes the
   effect follow the character (`0x020218C0`: each frame, the character's position plus the offset). `0x02013EE8` plays a sound.
+
+## Where it's hit (0x0201322C)
+
+The collision pass (`0x0201B79C`) takes an object's attackers only while `0x0201322C` says it can be hit: not with its +0x18 bit 2
+(value 4: set by the grabbers' and holders' touch, Bio Spark's, Bun's, Gaw Gaw's, King Dedede's catch, cleared after), not while its
++0xEC safe timer runs, and only with a 0x102 box whose first entry's flag word (its record's `u16` at +2) lacks 0x8000. Its box: the
+frame's own (`+0xF4` list, +0x128 on, count +0x24C), else its default (+8 on, count +0x248), which `0x02014218` copies from the frame its
+sprite shows when loaded into slot 0 (animation 0's first: `LoadBoxes` twice, then the 0x102 and 0x202 lists copied). So a frame with
+no 0x102 of its own is still hit, by animation 0's box, and a composite (`.mca`) whose parts' animations have none (Mecha-Kracko's) is
+hit by it in every pose. The flag word's other bits: byte 0 the inhale it takes (0 any, 1 not the weak one, 2 only the strongest,
+3 none: `0x02013050`), 1 and 2 grabs and kind 7 refused (`0x02126B8C`). Recorded per state on the DS (`hitline.py`: the test's
+inputs each frame): Daroach hittable everywhere but his warp (flag), Bohboh everywhere but far off and in its dive (flag; its own
+handler refuses while it holds Kirby and 32 frames after a hit), Mecha-Kracko in all its first form's states (by its default box),
+Mrs. Moley as the port has her (untouchable in the back holes, down a hole, in her dives). Flagged animations of the ported characters:
+Bio Spark's kunai (15) and hidden pose from its second frame (16), Buboo's bubbles' pops (3, 6), Squeakers' grab of the chest (chun's
+48) and their bomb's blast (41), Tedhaun's grab and hold (2, 3), King Dedede's chew, spit and hurt (29, 30, 38-41), Cret's ball on
+the ground (11: the port's already intangible), Mrs. Moley's back and hole poses, Daroach's warp (2, 3) and his bomb's blast (21).
+
+**Daroach** (boss 0x3D, ported: `squeak/daroach_boss.c`): his body `0x02126F48` (vtable `0x02183680`: +0x3C his idle `0x02126658`,
++0x30 his hit `0x02126B8C`, +0x2C his touch `0x02126E00`; params `prmBB07Ml0`/`Sl0`, 400 HP), +0x1F8 his parameter (0 in a6s7s2, 1 in
+a8s4s2: Dark Daroach, his palette object filled from `dancho01.cla` for both sprites, his moves' other branches; 0 again in the
+arena's a9s7s2, 1 in a9s9s2), +0x200 his point (4 at first), +0xB8 his warps left, +0xB4 his wait. His sprites: slot 0 `dancho00`,
+slot 1 `dancho01` (his wand: its raise 1, aim 3, lowering 16, `.mca`'s 0/1 its charge, 2/3 the beam: 16 parts out to 248 pixels).
+States `0x02124DCC`-`0x021267EC` (in the port's comments); his zones `0x0212688C` (the stage's grid at Kirby; out: his point on
+Kirby's side, Kirby's side's low point or 4, the low point across, 2 from the top points else 1). The beam's box is on its part 48
+ahead (`dancho01.rca`'s 12: 31 to 332 ahead, 5 over to 4 under; Dark Daroach's 14: to 320, 15 over to 14 under); his own touch box is
+missing in his charge's 7 frames of 8 and his beam's 2 of 6 (the composites' body's `.rca` frames shorter than its `.cea`'s). His
+stars (`0x02124894`, vtable `0x02183640`: touch `0x02124844` sets +0x12C, bursting it; hit only by inhales) and bomb
+(`0x02124290`, vtable `0x021835C0`; `0x0203A9C4`'s 9, Bomb; touch sets +0x12C, unused). `0x020B48E0`'s effect types: 0 `efc_cmn0`'s 3,
+1 its 4, 2 and 3 its 7, 4 its 17, 5 its 2, 6 `efc_cmn1`'s 1. Recorded on the DS in a6s7s2 (`load.py`: the stage table repointed).
 
 ## Test harness (DS emulator)
 

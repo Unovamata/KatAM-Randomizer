@@ -61,6 +61,10 @@ const s16 gSqueakEnemyHp[SQUEAK_ENEMY_COUNT] = {
     [SQUEAK_YADGAINE_DAROACH] = 1,
     [SQUEAK_BOHBOH] = 70,           // Squeak Squad's 350 (prmBB06Sl0.kgb); KatAM's bosses' 60 for one player as Mrs. Moley's 300 is;
     [SQUEAK_BOHBOH_THING] = 1,
+    [SQUEAK_DAROACH_BOSS] = 80,     // Squeak Squad's 400 (prmBB07Sl0.kgb), as Bohboh's 350 is 70;
+    [SQUEAK_DAROACH_BOSS_THING] = 1,
+    [SQUEAK_DARK_DAROACH] = 80,     // (the same parameters);
+    [SQUEAK_DARK_DAROACH_THING] = 1,
 };
 
 static const struct SqueakCharacter sSqueakCharacters[SQUEAK_ENEMY_COUNT] = {
@@ -113,6 +117,10 @@ static const struct SqueakCharacter sSqueakCharacters[SQUEAK_ENEMY_COUNT] = {
     [SQUEAK_YADGAINE_DAROACH] = { YadgaineDaroachInit, YadgaineDaroachStart, 0, FALSE },
     [SQUEAK_BOHBOH] = { BohbohInit, BohbohStart, 0, FALSE, TRUE },
     [SQUEAK_BOHBOH_THING] = { BohbohThingInit, BohbohThingStart, 0, FALSE },
+    [SQUEAK_DAROACH_BOSS] = { DaroachBossInit, DaroachBossStart, 0, FALSE, TRUE },
+    [SQUEAK_DAROACH_BOSS_THING] = { DaroachBossThingInit, DaroachBossThingStart, 0, FALSE },
+    [SQUEAK_DARK_DAROACH] = { DaroachBossInit, DaroachBossStart, 0, FALSE, TRUE },
+    [SQUEAK_DARK_DAROACH_THING] = { DaroachBossThingInit, DaroachBossThingStart, 0, FALSE },
 };
 
 /* SqueakAnimFor(); The anim and variant an object shows (variant << 16 | anim ID), for the game's object drawing (sub_0809A7A4,
@@ -246,7 +254,7 @@ struct SqueakPartFx {
     struct EffectObject e;
     struct SqueakObject *owner; // Placed by it (SqueakShowComposite) each frame; gone with it or its composite animation;
     struct SqueakPartFx *next;
-    s8 dx, dy;                  // Where it's drawn (pixels from the character, turned);
+    s16 dx, dy;                 // Where it's drawn (pixels from the character, turned: Daroach's beam's parts reach 248);
     u8 cell;                    // Its cell (the character's frame, variants SQUEAK_HURT_VARIANTS on);
     u8 index;                   // Its part (1 on);
     u8 palId;                   // Its palette: its animation's (a character in several palettes: Dedede's sparkles), else 0xFF: its character's;
@@ -287,14 +295,15 @@ static void SqueakPartMain(void) {
         p->e.sprite.tilesVram = VramMalloc(p->tiles);
         if (!SqueakVramOk(p->e.sprite.tilesVram)) return;
     }
-    p->e.x = s->obj.base.x;
-    p->e.y = s->obj.base.y;
+    // (its offset added to its spot, past the drawing offset's reach of 127 pixels);
+    p->e.x = s->obj.base.x + (p->dx << 8);
+    p->e.y = s->obj.base.y + (p->dy << 8);
     p->e.sprite.variant = p->cell + SQUEAK_HURT_VARIANTS;
     p->e.sprite.palId = p->palId != 0xFF ? p->palId : s->obj.base.sprite.palId;
     // (KatAM flips a frame when flag 1 is set: its frames face left, Squeak Squad's cells right, flipped when facing left);
     p->e.flags = (p->e.flags & ~0x401) | 4 | (s->obj.base.flags & 1 ? 0 : 1);
-    p->e.objBase54 = p->dx;
-    p->e.objBase55 = p->dy;
+    p->e.objBase54 = 0;
+    p->e.objBase55 = 0;
     EffectObjectPostUpdate(&p->e);
 }
 
@@ -938,15 +947,31 @@ static void SqueakHitBoxAt(struct ObjectBase *b, s32 *r) {
     r[3] = y + b->unk3B * 0x100;
 }
 
+/* SqueakUntouchable(); Squeak Squad's 0x0201322C (an object no attack takes: its hit box flagged 0x8000, as the .rca's in some
+ * animations): KatAM's hit level held at 6 (as Gordo's: no attack hurts it, nor inhales it; its touch still hurts), or given back; */
+void SqueakUntouchable(struct SqueakObject *s, bool32 untouchable) {
+    struct ObjectBase *base = &s->obj.base;
+
+    if (untouchable) {
+        if (!s->level) s->level = (base->unk5C & 7) | 0x80;
+        base->unk5C = (base->unk5C & ~7) | 6;
+    } else if (s->level) {
+        base->unk5C = (base->unk5C & ~7) | (s->level & 7);
+        s->level = 0;
+    }
+}
+
 /* SqueakSetBoxes(); This frame's boxes (the .rca's, at its animation's time; Squeak Squad's LoadBoxes, 0x02014010): KatAM's hit box
  * (sub_0803E2B0's: where it's hit, where its touch hurts; KatAM turns it with its facing), its touch's harm on (`harm`, KatAM's unk68
- * from InitObject) or off, `index` the box's; an animation without boxes leaves them as they were; */
+ * from InitObject) or off, `index` the box's; an animation without boxes leaves them as they were; untouchable in the animations
+ * whose boxes are flagged (SqueakUntouchable()); */
 void SqueakSetBoxes(struct SqueakObject *s, const struct SqueakBoxes *boxes, s16 harm, u8 *index) {
     const struct SqueakBoxAnim *frames;
     const struct SqueakBox *box;
     u32 time = SqueakAnimTime(s), total = 0;
     u8 i;
 
+    SqueakUntouchable(s, s->composite == SQUEAK_NO_COMPOSITE && s->anim < 64 && ((boxes->untouchable[s->anim >> 5] >> (s->anim & 31)) & 1));
     if (s->anim >= boxes->anims) return;
     frames = &boxes->anim[s->anim];
     if (frames->count == 0) return;
@@ -1042,6 +1067,7 @@ static struct SqueakObject *SqueakCreate(struct ObjectTemplate *template, u8 pla
     s->brain = 0;
     s->started = FALSE;
     s->activated = FALSE;
+    s->level = 0;
     s->moved = FALSE;
     s->terrain = s->water = 0;
     s->follower = NULL;

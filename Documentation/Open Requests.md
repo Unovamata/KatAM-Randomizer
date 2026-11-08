@@ -245,21 +245,39 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
     point), its waits and picks (by how many of the stage's enemies are out), its leap from point to point, its charge and its
     pass dropping fires every 30 frames (the pass back far off in the background), its swoop at Kirby's feet that grabs him,
     carries him to the other point and throws him down into the lava (hurt), its dive when the swoop ends in the lava (20 of its
-    350 HP: 4 of 70 here), its 120 frames in the lava (the only time it can be hit, with its dive) while fires and the stage's
+    350 HP: 4 of 70 here), its 120 frames in the lava while fires and the stage's
     enemies (a Waddle Dee, Pengy, Sir Kibble and Hot Head, KatAM's own, one of each at most) fall from the view's top, its rise
     and flare. Recorded on the DS in its own stage (a5s7s2, reached through a5s7s1's door; its maps are stored uncompressed, so
     the stage-loading trick needs a test ROM with them compressed) and checked in KatAM (USA, room 0x323): every move's speeds
     and frames, the grab, carry and throw (a helper and Kirby taken; Kirby hurt in the lava), the dives into the lava (4 HP each
-    time), the lava phase's fires and enemies (a Sir Kibble and a Waddle Dee dropped), hits landing only in the lava (the
-    helpers' 10), KatAM's defeat when a dive takes its last HP (HP written down to 4 by a RAM write), the HP bar's name. Not
-    tested: a whole fight played through by hand, EU and Japanese builds (built and logic-checked, not played).
+    time), the lava phase's fires and enemies (a Sir Kibble and a Waddle Dee dropped), hits landing in the lava (the helpers'
+    10), KatAM's defeat when a dive takes its last HP (HP written down to 4 by a RAM write), the HP bar's name. Not tested: a
+    whole fight played through by hand, EU and Japanese builds (built and logic-checked, not played).
+    Corrected since (Squeak Squad's hit test read from its code, `0x0201322C`, and checked per state on the DS): a frame with no
+    hit box of its own is hit by the character's first box, and only boxes flagged 0x8000 (and grabs and holds, and the safe
+    frames after a hit) make it untouchable. So Bohboh is hittable everywhere but far off and in its dive (not only in the lava
+    and its dive, as first ported); Mecha-Kracko in all its poses, its field and bolts too (not only in its cloud). The framework
+    now marks the flagged animations (`SqueakBoxes`' `untouchable`): King Dedede's chew, spit and hurt (and from his catch on),
+    Tedhaun's grab and hold, Buboo's bubbles' pops, the Squeakers' grab of the chest and their bomb's blast, Bio Spark's kunai and
+    hiding (and from its grab to its landing), Bun's and Gaw Gaw's holds. Checked in KatAM by its hit level each frame (Bohboh: 6
+    in its dive, the safe frames and its holds, 3 elsewhere; a forced log, not hits landed); the others built, not replayed.
     For the owner to decide: the lava. Squeak Squad's stage draws a lava pool 128 pixels across the middle of the arena, and
     Bohboh brings in an invisible object over it that hurts whoever touches it (and makes the lava's "floor" its dives and Kirby's
     throw end in). KatAM's rooms have no lava, so here that hurting strip is invisible on the floor's middle, as ported 1:1. It can
     stay, be made harmless (kept only as the line its dives and throws end in), or be shown somehow. Also: KatAM's view is 32
     pixels shorter than the DS's, so at its two points (96 over the floor, as on the DS) the top of its flames can go past the
     view's top in rooms whose floor sits high in the view.
-    Next: Daroach (0x3D), Meta Knight (0x37), Dark Daroach and Dark Nebula (0x3E, 0x3F, 0x46).
+    Daroach and Dark Daroach (0x3D, parameter 0 and 1) are ported (`squeak/daroach_boss.c`): his idle and picks by Kirby's zone,
+    his warps (and chains of three), hops, his beam (a hop to Kirby's height, the charge following him, 120 frames of beam reaching
+    31 to 332 pixels ahead; Dark Daroach's taller and backing off), his bomb (Dark Daroach's lands, waits 180 frames and burns a
+    column 120 frames), his three stars (bouncing, gone after 100 frames or on touching Kirby, inhaled to spit back), untouchable
+    in his warp, 10 frames safe after a hit, HP 80 (Squeak Squad's 400); Dark Daroach in dancho01's darker colors with his name on
+    the HP bar. Recorded on the DS in his stage (a6s7s2: his moves; his hit test per state) and checked in KatAM (USA, room 0x323):
+    the picks, warps, hops, beams (Kirby hurt by the beam at 80 pixels; the beam's 16 parts drawn), bombs (Dark Daroach's whole
+    sequence), stars, Dark Daroach's look. Hits checked by forced HP drops (kept and 10 safe frames while hittable, undone in his
+    warp), not by an attack landed (Kirby's slide doesn't hurt mini-bosses, KatAM's 0x80; no ability attack was scripted). Not
+    tested: a whole fight by hand, his defeat, EU and Japanese builds (built and logic-checked, not played).
+    Next: Meta Knight (0x37), Dark Nebula (0x3F, 0x46), and what 0x3E is (it's in normal stages' records too).
   - Left: those bosses; the randomizer options (a Squeak Squad ROM in the ROM Expansion tab, the enemy pool). The Squeak Squad-only
     enemies, the shared enemies' Squeak Squad behaviors, its mid-bosses and the Squeaks are all done.
 

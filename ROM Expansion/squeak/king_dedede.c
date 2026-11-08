@@ -179,7 +179,11 @@ static const struct SqueakBoxAnim sDededeBoxAnims[] = {
     { sDededeAnim32, 1 }, { NULL, 0 }, { NULL, 0 }, { NULL, 0 }, { NULL, 0 }, { NULL, 0 }, { sDededeAnim38, 1 }, { sDededeAnim39, 1 },
     { sDededeAnim39, 1 }, { sDededeAnim41, 1 },
 };
-static const struct SqueakBoxes sDededeBoxData = { sDededeBoxes, sDededeBoxAnims, ARRAY_COUNT(sDededeBoxAnims) };
+// (dedede.rca's boxes flagged 0x8000 in its chewing and spitting, 29 and 30, and its hurt, 38-41: untouchable);
+static const struct SqueakBoxes sDededeBoxData = {
+    sDededeBoxes, sDededeBoxAnims, ARRAY_COUNT(sDededeBoxAnims),
+    { SQUEAK_ANIM_LO(ANIM_CHEW) | SQUEAK_ANIM_LO(ANIM_SPIT), SQUEAK_ANIM_HI(38) | SQUEAK_ANIM_HI(39) | SQUEAK_ANIM_HI(40) | SQUEAK_ANIM_HI(41) },
+};
 
 /* The grab's scripts (bosses/dedede.c's: x ahead, y, priority, frames, Kirby's animation, flags: 0x400 held, 0x40 hidden, 0x200 left
  * where he is, 0x10 KatAM's hurt): drawn to its mouth (Pull() moves him), then hidden in it; let out hurt (a hit, its defeat). A
@@ -714,13 +718,13 @@ static bool32 Body(struct SqueakObject *s) {
 }
 
 /* Hit(); 0x020E79B0 (KatAM's mini-bosses take hits without a hurt state of their own: a fall of its HP is the hit): SAFE_TIME frames
- * safe after one (KatAM's damage undone), its hurt pose, a Kirby it holds let out; */
+ * safe after one (KatAM's damage undone, as while it's untouchable: SqueakUntouchable), its hurt pose, a Kirby it holds let out; */
 static void Hit(struct SqueakObject *s) {
     struct Object *obj = &s->obj;
 
     if (SAFE(s) > 0) SAFE(s)--;
     if (obj->unk80 < LAST_HP(s) && obj->unk80 > 0 && !(obj->base.flags & 0x1000)) {
-        if (SAFE(s) > 0) {
+        if (SAFE(s) > 0 || s->level) {
             obj->unk80 = LAST_HP(s);
         } else {
             SAFE(s) = SAFE_TIME;
@@ -741,6 +745,8 @@ static void SqueakDededeMain(struct Object *obj) {
     SqueakFinishFrame(s);
     SqueakAnimate(s);
     SqueakSetBoxes(s, &sDededeBoxData, HARM(s), &BOX(s));
+    // (from its catch on, its +0x18 bit 2 takes it out of every attack's reach: 0x020E7C5C, 0x0201322C, untouchable);
+    if (HELD(s)) SqueakUntouchable(s, TRUE);
 }
 
 // SqueakDededeGone(); Its end (squeak.c's SqueakDestroy: beaten, or its room left): a Kirby it holds let out;

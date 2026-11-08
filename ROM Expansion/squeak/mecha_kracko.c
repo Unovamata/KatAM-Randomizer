@@ -25,9 +25,11 @@
  * • Its first form's last hit (0x02132990: Squeak Squad's base pause, 0x020216E8, 0x02021648: 60 frames) breaks its cloud
  *   (0x02130C64, 0x02130BB0: .mca's 4, its core alone, .mca's 0), it shakes 60 frames (0x02130ABC: 4 pixels down and up, every other
  *   frame), its cloud gathers again (.mca's 1, 0x02130A2C) and its second form's HP fills the bar; it goes back to its spot and
- *   swoops in its electric field. Hit only in its cloud (.mca's 2 and 3: kracko.rca's hurt box); its field and bolts hurt Kirby,
- *   nothing hurts them (KatAM's level 6, as Gordo's); while its HP is out (its pause, its cloud breaking and gathering) it's
- *   untouchable (Squeak Squad's touch hurts none then).
+ *   swoops in its electric field. Hit in all its poses: its composites' parts have no hit boxes of their own (kracko.rca has none
+ *   for their animations), so its sprite's first box is hit (animation 0's, its cloud: 0x02014218, 0x0201322C; as recorded in its
+ *   first form); its field and bolts hurt Kirby (KatAM's one box for its touch and its hits: theirs then, as the framework's union
+ *   of the two); while its HP is out (its pause, its cloud breaking and gathering) it's untouchable (Squeak Squad's hit handler
+ *   and touch take nothing then).
  * Not ported: its sounds, its hit flash (enemy/kracko_dmg isn't in the game: its hurt palette its own, no flash), the stage's slowdown
  * in its pause (0x020216E8: the time object's speed), its low sweep and defeat filling the arena's missing cloud-floor tiles
  * (0x02216CB8: KatAM's rooms have none), its own defeat (0x02130924, 0x02130648, 0x02130584, 0x02130510: KatAM's mini-boss defeat),
@@ -105,7 +107,7 @@ enum {
 #define EYE(s) ((s)->vars[9])
 #define ENEMY(s, i) (*(struct Object **)&(s)->vars[12 + (i)])
 
-// kracko.rca (left, top, right, bottom; Y up): its cloud's hurt box (.mca's 2, 3); its field's (6) and bolts' (7) attack boxes by frame;
+// kracko.rca (left, top, right, bottom; Y up): its cloud's hurt box (animation 0's); its field's (6) and bolts' (7) attack boxes by frame;
 static const s16 sCloudBox[4] = { -37, 26, 34, -26 };
 static const s16 sFieldBoxes[][4] = {
     { -64, 37, 59, -38 }, { -46, 61, 45, -30 }, { -34, 39, 64, -40 }, { -43, 28, 45, -57 }, { -61, 43, 52, -38 }, { -45, 56, 40, -35 },
@@ -270,9 +272,9 @@ static bool32 Changing(struct SqueakObject *s) {
     return s->state >= MK_KO && s->state <= MK_GATHER;
 }
 
-// Hittable(); Its cloud (.mca's 2 and 3: kracko.rca's hurt box), its HP not out;
+// Hittable(); Its HP not out (anywhere else: its sprite's first box, 0x0201322C);
 static bool32 Hittable(struct SqueakObject *s) {
-    return (s->composite == COMPOSITE_IDLE || s->composite == COMPOSITE_MOVE) && !Changing(s);
+    return !Changing(s);
 }
 
 static bool32 MechaKracko(struct SqueakObject *s) {
@@ -602,8 +604,8 @@ static void Hit(struct SqueakObject *s) {
 }
 
 /* Boxes(); Its box by its composite's frame (kracko.rca's, KatAM's Y down, within KatAM's reach of 127 pixels: its bolts' ends under
- * the floor): its cloud hit and hurting, its field and bolts hurting only (KatAM's level 6, as Gordo's: no attack hurts it), none
- * while its cloud breaks and gathers or its HP is out (untouchable); */
+ * the floor): its cloud hit and hurting, its field and bolts hurting and hit (KatAM's one box), none while its cloud breaks and
+ * gathers or its HP is out (untouchable: KatAM's level 6, as Gordo's); */
 static void Boxes(struct SqueakObject *s) {
     struct ObjectBase *base = &s->obj.base;
     const s16 *b;

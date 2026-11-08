@@ -71,6 +71,10 @@ enum {
     SQUEAK_YADGAINE_DAROACH,    // Daroach bringing it in (drawn with his graphics);
     SQUEAK_BOHBOH,              // A boss (on a mini-boss type, as the mid-bosses);
     SQUEAK_BOHBOH_THING,        // What it brings in (the variant: its fire, a fire from the top, the lava's hurt);
+    SQUEAK_DAROACH_BOSS,        // A boss (on a mini-boss type, as the mid-bosses): Daroach, enemy 0x3D;
+    SQUEAK_DAROACH_BOSS_THING,  // What he brings in (the variant: his stars, his bomb, his beam's reach);
+    SQUEAK_DARK_DAROACH,        // Enemy 0x3D with its parameter 1 (his other moves, dancho01's colors), as Daroach;
+    SQUEAK_DARK_DAROACH_THING,
     SQUEAK_ENEMY_COUNT,
 };
 
@@ -244,6 +248,7 @@ struct SqueakObject {
     s32 vars[27];               // The character's own;
     struct ObjectTemplate spawn;    // Its template, when another character spawned it (SqueakSpawn);
     bool8 activated;            // A mid-boss: its fight has started;
+    u8 level;                   // Its KatAM hit level (unk5C's 7) while SqueakUntouchable holds it at 6, | 0x80; 0 when not held;
     s16 maxHp;                  // Its HP bar's full HP, when not its table's (0: the table's: SqueakMaxHp), and the HP under the bar's
     s16 hpBase;                 // empty (a boss's next form's, held back: Mecha-Kracko's);
 };
@@ -289,7 +294,11 @@ struct SqueakBoxes {
     const struct SqueakBox *box;
     const struct SqueakBoxAnim *anim;
     u8 anims;
+    u32 untouchable[2];         // The animations (bits: 0-31, 32-63) whose .rca hit boxes are flagged 0x8000: no attack takes it (0x0201322C);
 };
+// SQUEAK_ANIM_LO(), SQUEAK_ANIM_HI(); An animation's bit in SqueakBoxes' untouchable words;
+#define SQUEAK_ANIM_LO(a) ((a) < 32 ? 1u << ((a) & 31) : 0)
+#define SQUEAK_ANIM_HI(a) ((a) >= 32 ? 1u << ((a) & 31) : 0)
 
 void *CreateSqueakEnemy(struct ObjectTemplate *, u8 playerId);
 void SqueakStart(struct Object *);
@@ -331,6 +340,7 @@ bool32 SqueakTouches(struct SqueakObject *, u8 side, s32 dy, bool8 both);
 struct SqueakObject *SqueakSpawn(struct SqueakObject *, u8 enemy, u8 variant, s32 dx, s32 dy);
 bool32 SqueakInLevel(struct SqueakObject *);
 void SqueakSetBoxes(struct SqueakObject *, const struct SqueakBoxes *, s16 harm, u8 *index);
+void SqueakUntouchable(struct SqueakObject *, bool32 untouchable);
 bool32 SqueakKirbyFree(struct Kirby *);
 struct Kirby *SqueakGrabbing(struct SqueakObject *, const struct SqueakBox *);
 struct Kirby *SqueakTouchingKirby(struct SqueakObject *);
@@ -450,5 +460,9 @@ void BohbohInit(struct SqueakObject *);
 void BohbohStart(struct Object *);
 void BohbohThingInit(struct SqueakObject *);
 void BohbohThingStart(struct Object *);
+void DaroachBossInit(struct SqueakObject *);
+void DaroachBossStart(struct Object *);
+void DaroachBossThingInit(struct SqueakObject *);
+void DaroachBossThingStart(struct Object *);
 
 #endif

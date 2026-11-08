@@ -1264,10 +1264,12 @@ namespace KatAMRandomizer {
                             continue;
                         }
                         string[] file = enemy.File.Split('/');
-                        SqueakCharacter character = file.Length > 1 ? ReadSqueakCharacter(squeak, file[1], file[0]) : ReadSqueakCharacter(squeak, enemy.File);
+                        SqueakCharacter character = file.Length > 1 ? ReadSqueakCharacter(squeak, file[1], file[0], enemy.PaletteFile)
+                                                                    : ReadSqueakCharacter(squeak, enemy.File, palette: enemy.PaletteFile);
                         // (a second file's graphics after the first's: Squeak Squad's body switching sprites);
                         foreach (string extra in (enemy.ExtraFile ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries))
-                            character = SqueakMerge(character, ReadSqueakCharacter(squeak, extra, file.Length > 1 ? file[0] : "enemy"));
+                            character = SqueakMerge(character, ReadSqueakCharacter(squeak, extra, file.Length > 1 ? file[0] : "enemy", enemy.PaletteFile),
+                                                    enemy.SharePalettes);
                         if (enemy.OnlyAnims != null) character = SqueakKeepAnims(character, enemy.OnlyAnims, enemy.KeepComposites);
                         /* (the pieces in each layer's palettes drawn by a layer of their own: an anim with its own palette, a frame per cell
                          * with any; the character itself keeps the pieces in none); */

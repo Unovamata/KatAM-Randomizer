@@ -138,7 +138,8 @@ static const struct SqueakBoxAnim sTedhaunBoxAnims[] = {
     { sTedhaunAnim5, 1 }, { sTedhaunAnim6, 1 }, { sTedhaunAnim7, 1 }, { sTedhaunAnim8, 1 }, { sTedhaunAnim9, 1 },
     { sTedhaunAnim10, 1 }, { sTedhaunAnim11, 1 },
 };
-static const struct SqueakBoxes sTedhaunBoxData = { sTedhaunBoxes, sTedhaunBoxAnims, 12 };
+// (tedhaun.rca's boxes flagged 0x8000 in its grab and hold, 2 and 3: untouchable);
+static const struct SqueakBoxes sTedhaunBoxData = { sTedhaunBoxes, sTedhaunBoxAnims, 12, { SQUEAK_ANIM_LO(ANIM_GRAB) | SQUEAK_ANIM_LO(ANIM_HOLD) } };
 
 /* Kirby held (kirby->unk110), facing it, 8 pixels ahead of it and 8 under its spot (his feet: KatAM's spot 7 over them), shaken 2
  * pixels up and down (0x0210232C: up on its frames 0 of 8, down on 2); thrown 2.8 ahead and 0.8 up (KatAM's 16ths: his back) hurt as

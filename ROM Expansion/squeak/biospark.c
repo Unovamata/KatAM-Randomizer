@@ -194,7 +194,8 @@ static const struct SqueakBoxAnim sBioBoxAnims[] = {
     { sBioAnim22, 1 },
     { sBioAnim23, 1 },
 };
-static const struct SqueakBoxes sBioBoxData = { sBioBoxes, sBioBoxAnims, 24 };
+// (biospark.rca's box flagged 0x8000 on its kunai, 15, and hidden from its second frame on, 16: untouchable);
+static const struct SqueakBoxes sBioBoxData = { sBioBoxes, sBioBoxAnims, 24, { SQUEAK_ANIM_LO(ANIM_KUNAI) } };
 
 /* Kirby held (kirby->unk110), facing it (KatAM's hold faces him as it: turned round): 8 pixels ahead of it, 8 up while it grabs him,
  * level with it while it carries him; in KatAM's grabbers' pose (0x57, Mr. Frosty's, Box Boxer's), behind it; each followed by an
@@ -741,6 +742,8 @@ static void BioSparkMain(struct Object *obj) {
     izuna = s->state >= BODY_IZUNA_ENTRY;
     SqueakSetBoxes(s, &sBioBoxData, izuna ? 0 : HARM(s), &BOX(s));
     if (izuna) obj->base.unk68 = 0;
+    // (that bit also takes it out of every attack's reach, 0x0201322C: untouchable; hidden, its box flagged from its second frame);
+    if (izuna || (s->anim == ANIM_HIDDEN && SqueakAnimTime(s) >= 1)) SqueakUntouchable(s, TRUE);
     kirby = obj->unk80 > 0 && !izuna ? SqueakGrabbing(s, &sBioBoxes[BOX(s)]) : NULL;
     if (kirby) Grab(s, kirby);
     /* Holding a Kirby, his body (KatAM's attack kind 0x80, its touch) doesn't hurt it (as KatAM's mini-bosses that hold him); nor

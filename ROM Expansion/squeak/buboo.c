@@ -191,7 +191,8 @@ static const struct SqueakBoxAnim sBubooBoxAnims[] = {
     { sBubooAnim12, 1 }, { sBubooAnim13, 2 }, { sBubooAnim14, 1 }, { sBubooAnim15, 1 }, { sBubooAnim16, 3 }, { sBubooAnim17, 1 },
     { sBubooAnim18, 1 }, { sBubooAnim19, 1 }, { sBubooAnim20, 1 },
 };
-static const struct SqueakBoxes sBubooBoxData = { sBubooBoxes, sBubooBoxAnims, 21 };
+// (buboo.rca's boxes flagged 0x8000 in its bubbles' pops, 3 and 6: untouchable);
+static const struct SqueakBoxes sBubooBoxData = { sBubooBoxes, sBubooBoxAnims, 21, { SQUEAK_ANIM_LO(ANIM_BIG_POP) | SQUEAK_ANIM_LO(ANIM_SMALL_POP) } };
 
 static s32 Roll(void) {
     return Rand16() * 100 >> 16;

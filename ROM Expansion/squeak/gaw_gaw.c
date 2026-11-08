@@ -716,6 +716,8 @@ static void GawGawMain(struct Object *obj) {
     // (holding Kirby, its touch doesn't hurt: its +0x18 bit 2, set by the grab, let go by the throw);
     SqueakSetBoxes(s, &sGawBoxData, HELD(s) ? 0 : HARM(s), &BOX(s));
     if (HELD(s)) obj->base.unk68 = 0;
+    // (that bit also takes it out of every attack's reach: 0x0201322C, untouchable);
+    if (HELD(s)) SqueakUntouchable(s, TRUE);
     kirby = obj->unk80 > 0 && !HELD(s) ? SqueakGrabbing(s, &sGawBoxes[BOX(s)]) : NULL;
     if (kirby) Grab(s, kirby);
     // (holding Kirby, his body doesn't hurt it, as KatAM's grabbers' and Bio Spark's);
