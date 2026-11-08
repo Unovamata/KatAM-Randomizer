@@ -168,6 +168,7 @@ namespace KatAMRandomizer {
             new SqueakEffect(1, "m_efc/clay", 4),
             new SqueakEffect(2, "m_efc/clay", 5),
             new SqueakEffect(3, "effect/efc_cmn1", 1),     // 0x020B48E0's type 6: a thing bursting (Crimp's rock);
+            new SqueakEffect(4, "effect/efc_cmn0", 7),     // 0x020B48E0's type 3: a star burst (Bio Spark's kunai stuck in a wall);
         };
 
         /* SqueakEffectBuild(); An effect's cells (those its animation shows, in its order) as KatAM frames and their palettes, the anim
@@ -187,6 +188,10 @@ namespace KatAMRandomizer {
 
         // "C" (Chip), "r" (Bronto Burt), "e", "t" (Hot Head);
         static readonly (int type, int letter)[] CretGlyphs = { (0x08, 0), (0x01, 1), (0x14, 4), (0x14, 2) };
+
+        // "B", "o", "r" (Bronto Burt), "i" (Minny), " ", "S" (Squishy), "p" (Chip), "a" (Hot Head), "k" (Glunk);
+        static readonly (int type, int letter)[] BioSparkGlyphs = { (0x01, 0), (0x27, 1), (0x01, 2), (-1, 0), (0x04, 0), (0x08, 3), (0x14, 5),
+                                                                    (0x01, 1), (0x03, 4) };
 
         static readonly List<SqueakEnemy> SqueakDefinitions = new List<SqueakEnemy> {
             // Perara: hurt animations 7 and 8 (0x02021A88's 0x1000007, 0x1000008);
@@ -213,6 +218,11 @@ namespace KatAMRandomizer {
             // 59, 45 and 55, as its state set them);
             new SqueakEnemy(8, "Uja", "uja", new[] { 60, 60, 60 },
                             new[] { (0x1B, 0), (0x10, 0), (0x14, 5) }),   // "U" (UFO), "J" (Jack: KatAM's names have no small j), "a" (Hot Head);
+            // Bio Spark: hurt animations 21 and 22 (0x0207CF18's 0x1000015, 0x1000016: cells 2 and 10); its kunai and leaf (0x0207D770,
+            // the class it throws both with) are drawn with its graphics (biospark.cea's animations 15 and 20);
+            new SqueakEnemy(9, "Bio Spark", "biospark", new[] { 2, 10, 10 }, BioSparkGlyphs),
+            new SqueakEnemy(10, "Bio Spark", "biospark", new[] { 11, 11, 11 }, BioSparkGlyphs, GraphicsOf: 9),
+            new SqueakEnemy(11, "Bio Spark", "biospark", new[] { 12, 12, 12 }, BioSparkGlyphs, GraphicsOf: 9),
         };
 
         public static IReadOnlyList<(int index, string name)> SqueakEnemies => SqueakDefinitions.Select(e => (e.Index, e.Name)).ToList();

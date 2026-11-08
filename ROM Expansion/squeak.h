@@ -31,6 +31,9 @@ enum {
     SQUEAK_CRET,
     SQUEAK_CRET_BALL,           // Cret's ball (dropped by it, drawn with its graphics);
     SQUEAK_UJA,
+    SQUEAK_BIO_SPARK,
+    SQUEAK_BIO_SPARK_KUNAI,     // Bio Spark's kunai and leaf (thrown and left by it, drawn with its graphics);
+    SQUEAK_BIO_SPARK_LEAF,
     SQUEAK_ENEMY_COUNT,
 };
 
@@ -109,6 +112,7 @@ enum {
     SQUEAK_FX_SPLASH_IN,        // The stage's splashes (SqueakSplash): into the water (m_efc's animation 4), out of it (5);
     SQUEAK_FX_SPLASH_OUT,
     SQUEAK_FX_BURST,            // 0x020B48E0's type 6 (efc_cmn1's animation 1): a thing bursting (Crimp's rock);
+    SQUEAK_FX_STARS,            // 0x020B48E0's type 3 (efc_cmn0's animation 7): a star burst (Bio Spark's kunai stuck in a wall);
     SQUEAK_FX_COUNT,
 };
 
@@ -180,6 +184,29 @@ struct SqueakCharacter {
 
 extern const s16 gSqueakEnemyHp[];
 
+/* Boxes per animation frame (a character's .rca, by Squeak Squad's LoadBoxes, 0x02014010; KatAM's units: pixels from its spot, x
+ * ahead, y down; the tables made by boxes.py): the box KatAM's collisions use (sub_0803E2B0's: where it's hit, where its touch
+ * hurts), whether that hurts, its grabbing boxes (tag 0x101 kind 6); each animation's frames (time, box); */
+struct SqueakBox {
+    s8 box[4];
+    bool8 harms;
+    u8 grabs;
+    s8 grab[3][4];
+};
+struct SqueakBoxFrame {
+    u8 frames;
+    u8 box;
+};
+struct SqueakBoxAnim {
+    const struct SqueakBoxFrame *frame;
+    u8 count;
+};
+struct SqueakBoxes {
+    const struct SqueakBox *box;
+    const struct SqueakBoxAnim *anim;
+    u8 anims;
+};
+
 void *CreateSqueakEnemy(struct ObjectTemplate *, u8 playerId);
 void SqueakStart(struct Object *);
 u32 SqueakAnimFor(struct Object *);
@@ -213,6 +240,9 @@ void SqueakSplash(struct SqueakObject *, bool8 out);
 bool32 SqueakTouches(struct SqueakObject *, u8 side, s32 dy, bool8 both);
 struct SqueakObject *SqueakSpawn(struct SqueakObject *, u8 enemy, u8 variant, s32 dx, s32 dy);
 bool32 SqueakInLevel(struct SqueakObject *);
+void SqueakSetBoxes(struct SqueakObject *, const struct SqueakBoxes *, s16 harm, u8 *index);
+bool32 SqueakKirbyFree(struct Kirby *);
+struct Kirby *SqueakGrabbing(struct SqueakObject *, const struct SqueakBox *);
 
 // The characters (squeak/*.c);
 void PeraraInit(struct SqueakObject *);
@@ -233,5 +263,11 @@ void CretBallInit(struct SqueakObject *);
 void CretBallStart(struct Object *);
 void UjaInit(struct SqueakObject *);
 void UjaStart(struct Object *);
+void BioSparkInit(struct SqueakObject *);
+void BioSparkStart(struct Object *);
+void BioSparkKunaiInit(struct SqueakObject *);
+void BioSparkKunaiStart(struct Object *);
+void BioSparkLeafInit(struct SqueakObject *);
+void BioSparkLeafStart(struct Object *);
 
 #endif

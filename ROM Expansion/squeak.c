@@ -19,6 +19,9 @@ const s16 gSqueakEnemyHp[SQUEAK_ENEMY_COUNT] = {
     [SQUEAK_CRET] = 2,              // Squeak Squad's: 10 (prmNE17Sl0.kgb);
     [SQUEAK_CRET_BALL] = 1,         // (KatAM's: any hit breaks it);
     [SQUEAK_UJA] = 8,               // Squeak Squad's: 40 (prmNE18Sl0.kgb);
+    [SQUEAK_BIO_SPARK] = 4,         // Squeak Squad's: 20 (prmCE18Sl0.kgb);
+    [SQUEAK_BIO_SPARK_KUNAI] = 1,   // (KatAM's: any hit breaks it);
+    [SQUEAK_BIO_SPARK_LEAF] = 1,
 };
 
 static const struct SqueakCharacter sSqueakCharacters[SQUEAK_ENEMY_COUNT] = {
@@ -31,6 +34,9 @@ static const struct SqueakCharacter sSqueakCharacters[SQUEAK_ENEMY_COUNT] = {
     [SQUEAK_CRET] = { CretInit, CretStart, 0, FALSE },
     [SQUEAK_CRET_BALL] = { CretBallInit, CretBallStart, 0, FALSE },
     [SQUEAK_UJA] = { UjaInit, UjaStart, 0, FALSE },
+    [SQUEAK_BIO_SPARK] = { BioSparkInit, BioSparkStart, 0, FALSE },
+    [SQUEAK_BIO_SPARK_KUNAI] = { BioSparkKunaiInit, BioSparkKunaiStart, 0, FALSE },
+    [SQUEAK_BIO_SPARK_LEAF] = { BioSparkLeafInit, BioSparkLeafStart, 0, FALSE },
 };
 
 /* SqueakAnimFor(); The anim and variant an object shows (variant << 16 | anim ID), for the game's object drawing (sub_0809A7A4,
@@ -670,6 +676,79 @@ bool32 SqueakInLevel(struct SqueakObject *s) {
 
     return s->obj.base.x >= level->levelMinPosition.x && s->obj.base.x <= level->levelMaxPosition.x
            && s->obj.base.y >= level->levelMinPosition.y && s->obj.base.y <= level->levelMaxPosition.y;
+}
+
+// SqueakBoxAt(); A box of the character's (KatAM's: x ahead, y down, pixels from its spot) in the room, as it faces;
+static void SqueakBoxAt(struct SqueakObject *s, const s8 *b, s32 *r) {
+    s32 x = s->obj.base.x, y = s->obj.base.y;
+
+    if (s->obj.base.flags & 1) {
+        r[0] = x - b[2] * 0x100;
+        r[2] = x - b[0] * 0x100;
+    } else {
+        r[0] = x + b[0] * 0x100;
+        r[2] = x + b[2] * 0x100;
+    }
+    r[1] = y + b[1] * 0x100;
+    r[3] = y + b[3] * 0x100;
+}
+
+// SqueakHitBoxAt(); An object's hit box (sub_0803E2B0's: its center's offset and half sizes, turned with its facing) in the room;
+static void SqueakHitBoxAt(struct ObjectBase *b, s32 *r) {
+    s32 x = b->x + ((b->flags & 1) ? -(b->unk38 + b->unk3A) : b->unk38 + b->unk3A) * 0x100, y = b->y + (b->unk39 + b->unk3B) * 0x100;
+
+    r[0] = x - b->unk3A * 0x100;
+    r[2] = x + b->unk3A * 0x100;
+    r[1] = y - b->unk3B * 0x100;
+    r[3] = y + b->unk3B * 0x100;
+}
+
+/* SqueakSetBoxes(); This frame's boxes (the .rca's, at its animation's time; Squeak Squad's LoadBoxes, 0x02014010): KatAM's hit box
+ * (sub_0803E2B0's: where it's hit, where its touch hurts; KatAM turns it with its facing), its touch's harm on (`harm`, KatAM's unk68
+ * from InitObject) or off, `index` the box's; an animation without boxes leaves them as they were; */
+void SqueakSetBoxes(struct SqueakObject *s, const struct SqueakBoxes *boxes, s16 harm, u8 *index) {
+    const struct SqueakBoxAnim *frames;
+    const struct SqueakBox *box;
+    u32 time = SqueakAnimTime(s), total = 0;
+    u8 i;
+
+    if (s->anim >= boxes->anims) return;
+    frames = &boxes->anim[s->anim];
+    if (frames->count == 0) return;
+    for (i = 0; i < frames->count; i++) total += frames->frame[i].frames;
+    if (gSqueakData.enemies[s->enemy].anim[s->anim].loops) time %= total;
+    for (i = 0; i < frames->count - 1 && time >= frames->frame[i].frames; i++) time -= frames->frame[i].frames;
+    *index = frames->frame[i].box;
+    box = &boxes->box[*index];
+    sub_0803E2B0(&s->obj.base, box->box[0], box->box[1], box->box[2], box->box[3]);
+    s->obj.base.unk68 = box->harms ? harm : 0;
+}
+
+/* SqueakKirbyFree(); A Kirby KatAM's grabbers can take (Box Boxer's sub_080C8548, Gobbler's), and not flashing from a hurt (unk5C's
+ * 6); */
+bool32 SqueakKirbyFree(struct Kirby *kirby) {
+    return !kirby->base.header.kind && kirby->hp > 0 && kirby->animationIndex != 0x27 && kirby->animationIndex <= 0x7A
+           && !kirby->unk110 && !(kirby->base.flags & 0x3800B00) && (kirby->base.unk5C & 7) < 6;
+}
+
+/* SqueakGrabbing(); Squeak Squad's touch reaction of kind 6 (its grabbing boxes touching Kirby): a Kirby free to grab (in its room)
+ * whose hit box touches one of `box`'s grabbing boxes; */
+struct Kirby *SqueakGrabbing(struct SqueakObject *s, const struct SqueakBox *box) {
+    struct Kirby *kirby;
+    s32 r[4], h[4];
+    u8 i, k;
+
+    if (box->grabs == 0) return NULL;
+    for (k = 0; k < gNumKirbys; k++) {
+        kirby = &gKirbys[k];
+        if (kirby->base.roomId != s->obj.base.roomId || !SqueakKirbyFree(kirby)) continue;
+        SqueakHitBoxAt(&kirby->base, h);
+        for (i = 0; i < box->grabs; i++) {
+            SqueakBoxAt(s, box->grab[i], r);
+            if (h[2] >= r[0] && h[0] <= r[2] && h[3] >= r[1] && h[1] <= r[3]) return kirby;
+        }
+    }
+    return NULL;
 }
 
 // SqueakDestroy(); A character's end: the effect following it stays where it is, its parts go;

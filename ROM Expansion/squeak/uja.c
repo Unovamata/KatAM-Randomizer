@@ -101,29 +101,12 @@ enum {
 #define KEYS(s) ((s)->vars[6])          // 0x238-0x244: the held Kirby's pad last frame;
 #define BRAIN_WAIT(s) ((s)->vars[7])    // The brain's 0x9C;
 #define HARM(s) ((s)->vars[8])          // KatAM's unk68 from InitObject: its touch's harm;
-#define GRABS(s) ((s)->vars[9])         // This frame's box: sBoxes' index;
+#define GRABS(s) (*(u8 *)&(s)->vars[9]) // This frame's box: sUjaBoxes' index;
 #define HELD(s) (*(struct Kirby **)&(s)->vars[10])  // 0x164;
 #define GUARD(s) ((s)->vars[11])        // Frames left of THROW_GUARD;
 
-// A frame's boxes (KatAM's: x ahead, y down, pixels from its spot): the one KatAM's collisions use; whether that hurts; the grabbing ones;
-struct UjaBox {
-    s8 box[4];
-    bool8 harms;
-    u8 grabs;
-    s8 grab[3][4];
-};
-struct UjaFrame {
-    u8 frames;
-    u8 box;
-};
-struct UjaFrames {
-    const struct UjaFrame *frame;
-    u8 count;
-};
-
-/* The frames' boxes (uja.rca: its animations' frames, each one's tags and boxes, as KatAM's; made by the notes' rca layout) and each
- * animation's frames (time, box); */
-static const struct UjaBox sBoxes[] = {
+/* Its boxes (uja.rca: its animations' frames, each one's tags and boxes, as KatAM's; boxes.py, by the notes' rca layout); */
+static const struct SqueakBox sUjaBoxes[] = {
     { { -15, -15, -4, -5 }, TRUE, 0 },
     { { -13, -18, -2, -8 }, TRUE, 0 },
     { { -10, -20, 1, -10 }, TRUE, 0 },
@@ -184,59 +167,60 @@ static const struct UjaBox sBoxes[] = {
     { { -16, -19, 10, 1 }, FALSE, 0 },
     { { -21, -26, 4, -7 }, FALSE, 0 },
 };
-static const struct UjaFrame sAnim1[] = { { 8, 0 }, { 8, 1 }, { 12, 2 }, { 16, 3 } };
-static const struct UjaFrame sAnim2[] = { { 16, 4 } };
-static const struct UjaFrame sAnim3[] = { { 16, 5 } };
-static const struct UjaFrame sAnim4[] = { { 12, 6 } };
-static const struct UjaFrame sAnim5[] = { { 16, 7 } };
-static const struct UjaFrame sAnim6[] = { { 16, 8 } };
-static const struct UjaFrame sAnim7[] = { { 1, 9 }, { 15, 10 } };
-static const struct UjaFrame sAnim8[] = { { 12, 11 } };
-static const struct UjaFrame sAnim9[] = { { 12, 12 } };
-static const struct UjaFrame sAnim10[] = { { 12, 13 } };
-static const struct UjaFrame sAnim11[] = { { 12, 14 } };
-static const struct UjaFrame sAnim12[] = { { 8, 14 } };
-static const struct UjaFrame sAnim13[] = { { 5, 15 } };
-static const struct UjaFrame sAnim14[] = { { 5, 16 } };
-static const struct UjaFrame sAnim15[] = { { 1, 17 }, { 4, 17 } };
-static const struct UjaFrame sAnim16[] = { { 8, 18 } };
-static const struct UjaFrame sAnim17[] = { { 4, 19 }, { 2, 20 }, { 3, 21 }, { 6, 21 }, { 1, 22 }, { 1, 23 }, { 1, 24 }, { 1, 25 }, { 1, 26 }, { 1, 27 }, { 16, 28 }, { 4, 29 } };
-static const struct UjaFrame sAnim18[] = { { 4, 30 }, { 2, 31 }, { 3, 32 }, { 6, 33 }, { 1, 34 }, { 1, 35 }, { 1, 36 }, { 1, 37 }, { 1, 38 }, { 1, 39 }, { 16, 40 }, { 4, 41 } };
-static const struct UjaFrame sAnim19[] = { { 4, 42 }, { 2, 43 }, { 3, 44 }, { 5, 45 }, { 1, 45 }, { 1, 46 }, { 1, 47 }, { 1, 48 }, { 1, 49 }, { 1, 50 }, { 1, 51 }, { 16, 52 }, { 4, 53 } };
-static const struct UjaFrame sAnim20[] = { { 1, 54 } };
-static const struct UjaFrame sAnim21[] = { { 1, 55 } };
-static const struct UjaFrame sAnim22[] = { { 1, 56 } };
-static const struct UjaFrame sAnim23[] = { { 1, 57 } };
-static const struct UjaFrame sAnim24[] = { { 1, 58 } };
-static const struct UjaFrame sAnim25[] = { { 8, 18 } };
-static const struct UjaFrames sFrames[] = {
+static const struct SqueakBoxFrame sUjaAnim1[] = { { 8, 0 }, { 8, 1 }, { 12, 2 }, { 16, 3 } };
+static const struct SqueakBoxFrame sUjaAnim2[] = { { 16, 4 } };
+static const struct SqueakBoxFrame sUjaAnim3[] = { { 16, 5 } };
+static const struct SqueakBoxFrame sUjaAnim4[] = { { 12, 6 } };
+static const struct SqueakBoxFrame sUjaAnim5[] = { { 16, 7 } };
+static const struct SqueakBoxFrame sUjaAnim6[] = { { 16, 8 } };
+static const struct SqueakBoxFrame sUjaAnim7[] = { { 1, 9 }, { 15, 10 } };
+static const struct SqueakBoxFrame sUjaAnim8[] = { { 12, 11 } };
+static const struct SqueakBoxFrame sUjaAnim9[] = { { 12, 12 } };
+static const struct SqueakBoxFrame sUjaAnim10[] = { { 12, 13 } };
+static const struct SqueakBoxFrame sUjaAnim11[] = { { 12, 14 } };
+static const struct SqueakBoxFrame sUjaAnim12[] = { { 8, 14 } };
+static const struct SqueakBoxFrame sUjaAnim13[] = { { 5, 15 } };
+static const struct SqueakBoxFrame sUjaAnim14[] = { { 5, 16 } };
+static const struct SqueakBoxFrame sUjaAnim15[] = { { 1, 17 }, { 4, 17 } };
+static const struct SqueakBoxFrame sUjaAnim16[] = { { 8, 18 } };
+static const struct SqueakBoxFrame sUjaAnim17[] = { { 4, 19 }, { 2, 20 }, { 3, 21 }, { 6, 21 }, { 1, 22 }, { 1, 23 }, { 1, 24 }, { 1, 25 }, { 1, 26 }, { 1, 27 }, { 16, 28 }, { 4, 29 } };
+static const struct SqueakBoxFrame sUjaAnim18[] = { { 4, 30 }, { 2, 31 }, { 3, 32 }, { 6, 33 }, { 1, 34 }, { 1, 35 }, { 1, 36 }, { 1, 37 }, { 1, 38 }, { 1, 39 }, { 16, 40 }, { 4, 41 } };
+static const struct SqueakBoxFrame sUjaAnim19[] = { { 4, 42 }, { 2, 43 }, { 3, 44 }, { 5, 45 }, { 1, 45 }, { 1, 46 }, { 1, 47 }, { 1, 48 }, { 1, 49 }, { 1, 50 }, { 1, 51 }, { 16, 52 }, { 4, 53 } };
+static const struct SqueakBoxFrame sUjaAnim20[] = { { 1, 54 } };
+static const struct SqueakBoxFrame sUjaAnim21[] = { { 1, 55 } };
+static const struct SqueakBoxFrame sUjaAnim22[] = { { 1, 56 } };
+static const struct SqueakBoxFrame sUjaAnim23[] = { { 1, 57 } };
+static const struct SqueakBoxFrame sUjaAnim24[] = { { 1, 58 } };
+static const struct SqueakBoxFrame sUjaAnim25[] = { { 8, 18 } };
+static const struct SqueakBoxAnim sUjaBoxAnims[] = {
     { NULL, 0 },
-    { sAnim1, 4 },
-    { sAnim2, 1 },
-    { sAnim3, 1 },
-    { sAnim4, 1 },
-    { sAnim5, 1 },
-    { sAnim6, 1 },
-    { sAnim7, 2 },
-    { sAnim8, 1 },
-    { sAnim9, 1 },
-    { sAnim10, 1 },
-    { sAnim11, 1 },
-    { sAnim12, 1 },
-    { sAnim13, 1 },
-    { sAnim14, 1 },
-    { sAnim15, 2 },
-    { sAnim16, 1 },
-    { sAnim17, 12 },
-    { sAnim18, 12 },
-    { sAnim19, 13 },
-    { sAnim20, 1 },
-    { sAnim21, 1 },
-    { sAnim22, 1 },
-    { sAnim23, 1 },
-    { sAnim24, 1 },
-    { sAnim25, 1 },
+    { sUjaAnim1, 4 },
+    { sUjaAnim2, 1 },
+    { sUjaAnim3, 1 },
+    { sUjaAnim4, 1 },
+    { sUjaAnim5, 1 },
+    { sUjaAnim6, 1 },
+    { sUjaAnim7, 2 },
+    { sUjaAnim8, 1 },
+    { sUjaAnim9, 1 },
+    { sUjaAnim10, 1 },
+    { sUjaAnim11, 1 },
+    { sUjaAnim12, 1 },
+    { sUjaAnim13, 1 },
+    { sUjaAnim14, 1 },
+    { sUjaAnim15, 2 },
+    { sUjaAnim16, 1 },
+    { sUjaAnim17, 12 },
+    { sUjaAnim18, 12 },
+    { sUjaAnim19, 13 },
+    { sUjaAnim20, 1 },
+    { sUjaAnim21, 1 },
+    { sUjaAnim22, 1 },
+    { sUjaAnim23, 1 },
+    { sUjaAnim24, 1 },
+    { sUjaAnim25, 1 },
 };
+static const struct SqueakBoxes sUjaBoxData = { sUjaBoxes, sUjaBoxAnims, 26 };
 
 /* Kirby held (kirby->unk110): where it is (his feet at its spot), 4 pixels up while it closes on him; behind it, in KatAM's grabbers'
  * pose (0x57, Mr. Frosty's, Box Boxer's); each followed by an end the hold never reaches; */
@@ -346,12 +330,6 @@ static bool32 Shifting(struct SqueakObject *s, u8 anim, u8 hurt, u8 next) {
     Float(s, FALSE);
     TIMER(s)--;
     return FALSE;
-}
-
-// KirbyFree(); A Kirby KatAM's grabbers can take (Box Boxer's sub_080C8548, Gobbler's), and not flashing from a hurt (unk5C's 6);
-static bool32 KirbyFree(struct Kirby *kirby) {
-    return !kirby->base.header.kind && kirby->hp > 0 && kirby->animationIndex != 0x27 && kirby->animationIndex <= 0x7A
-           && !kirby->unk110 && !(kirby->base.flags & 0x3800B00) && (kirby->base.unk5C & 7) < 6;
 }
 
 // StillHeld(); The Kirby it holds is still held by it (KatAM's hold lets him go on its own when it's beaten);
@@ -728,69 +706,6 @@ static void Brain(struct SqueakObject *s) {
     }
 }
 
-// BoxAt(); A box of its (KatAM's: x ahead) in the room, as it faces;
-static void BoxAt(struct SqueakObject *s, const s8 *b, s32 *r) {
-    s32 x = s->obj.base.x, y = s->obj.base.y;
-
-    if (s->obj.base.flags & 1) {
-        r[0] = x - b[2] * 0x100;
-        r[2] = x - b[0] * 0x100;
-    } else {
-        r[0] = x + b[0] * 0x100;
-        r[2] = x + b[2] * 0x100;
-    }
-    r[1] = y + b[1] * 0x100;
-    r[3] = y + b[3] * 0x100;
-}
-
-/* Boxes(); This frame's boxes (uja.rca's, at its animation's time): KatAM's hit box (sub_0803E2B0's: where it's hit, where its touch
- * hurts; KatAM turns it with its facing), its harm on or off; */
-static void Boxes(struct SqueakObject *s) {
-    const struct UjaFrames *frames = &sFrames[s->anim];
-    const struct UjaBox *box;
-    u32 time = SqueakAnimTime(s), total = 0;
-    u8 i;
-
-    if (frames->count == 0) return;
-    for (i = 0; i < frames->count; i++) total += frames->frame[i].frames;
-    if (gSqueakData.enemies[s->enemy].anim[s->anim].loops) time %= total;
-    for (i = 0; i < frames->count - 1 && time >= frames->frame[i].frames; i++) time -= frames->frame[i].frames;
-    GRABS(s) = frames->frame[i].box;
-    box = &sBoxes[GRABS(s)];
-    sub_0803E2B0(&s->obj.base, box->box[0], box->box[1], box->box[2], box->box[3]);
-    s->obj.base.unk68 = box->harms ? HARM(s) : 0;
-}
-
-// HitBoxAt(); An object's hit box (sub_0803E2B0's: its center's offset and half sizes, turned with its facing) in the room;
-static void HitBoxAt(struct ObjectBase *b, s32 *r) {
-    s32 x = b->x + ((b->flags & 1) ? -(b->unk38 + b->unk3A) : b->unk38 + b->unk3A) * 0x100, y = b->y + (b->unk39 + b->unk3B) * 0x100;
-
-    r[0] = x - b->unk3A * 0x100;
-    r[2] = x + b->unk3A * 0x100;
-    r[1] = y - b->unk3B * 0x100;
-    r[3] = y + b->unk3B * 0x100;
-}
-
-// Grabbing(); A Kirby free to grab in one of this frame's grabbing boxes (his hit box touching it);
-static struct Kirby *Grabbing(struct SqueakObject *s) {
-    const struct UjaBox *box = &sBoxes[GRABS(s)];
-    struct Kirby *kirby;
-    s32 r[4], h[4];
-    u8 i, k;
-
-    if (box->grabs == 0 || s->obj.unk80 <= 0 || HELD(s)) return NULL;
-    for (k = 0; k < gNumKirbys; k++) {
-        kirby = &gKirbys[k];
-        if (kirby->base.roomId != s->obj.base.roomId || !KirbyFree(kirby)) continue;
-        HitBoxAt(&kirby->base, h);
-        for (i = 0; i < box->grabs; i++) {
-            BoxAt(s, box->grab[i], r);
-            if (h[2] >= r[0] && h[0] <= r[2] && h[3] >= r[1] && h[1] <= r[3]) return kirby;
-        }
-    }
-    return NULL;
-}
-
 static void UjaMain(struct Object *obj) {
     struct SqueakObject *s = (struct SqueakObject *)obj;
     struct Kirby *kirby;
@@ -799,8 +714,8 @@ static void UjaMain(struct Object *obj) {
     SqueakRun(s, Body);
     SqueakFinishFrame(s);
     SqueakAnimate(s);
-    Boxes(s);
-    kirby = Grabbing(s);
+    SqueakSetBoxes(s, &sUjaBoxData, HARM(s), &GRABS(s));
+    kirby = s->obj.unk80 > 0 && !HELD(s) ? SqueakGrabbing(s, &sUjaBoxes[GRABS(s)]) : NULL;
     if (kirby) Grab(s, kirby);
     /* Holding a Kirby, his body (KatAM's attack kind 0x80, its touch) doesn't hurt it (as KatAM's mini-bosses that hold him); the
      * Kirby it threw is untouchable THROW_GUARD frames (Squeak Squad's 0xEC): it's untouchable then (KatAM's 0x200, as Maiga's: KatAM's
@@ -837,7 +752,7 @@ void UjaStart(struct Object *obj) {
 }
 
 /* UjaInit(); Its body box (uja.rca's, every frame's: 5 pixels either side, 8 to 18 over its spot: KatAM's bounds); its hit box (the
- * puff's) and harm set each frame (Boxes()); */
+ * puff's) and harm set each frame (SqueakSetBoxes()); */
 void UjaInit(struct SqueakObject *s) {
     sub_0803E2B0(&s->obj.base, -12, -30, 13, -9);
     ObjectSetBounds(&s->obj.base, -5, -18, 5, -8);

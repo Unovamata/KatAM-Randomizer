@@ -93,6 +93,23 @@ smothers him (anim 25) 120 frames (5 fewer each frame his pad's fields change), 
 120: his hurt takes 6 of 36 at once and knocks him back at 0x1B34 (the way Uja came: he faces as it). Inhaled (kinds 3-5) it's
 pulled in and swallowed as a Waddle Dee is (Kirby's states the same: `0x0201A195`, `0x0201A099`, then standing).
 
+Bio Spark (`0x0207CDD4`) grabs on touch kind 6 too: `biospark.rca`'s kind 6 boxes are in its jump (animation 2, its hands; that
+animation has no kind 0 box, so the jump doesn't hurt by touch). Its izuna (`0x0207AF94` on) sets its flag 0x200 each frame and its
+`+0x18` bit 2 (its touch harmless; the kunai's stuck state sets 2, 4 and 8): Kirby 8 pixels ahead of it, 8 up (`vtable +0x10` of the
+held, offset turned with its facing, Kirby facing it), 12 frames; up at 8.0 for 32 frames or till it's 16 pixels over the camera's
+top (the stage object's `+0x6C`/`+0x70`, `0x0220A3E4`: the screen's left and top, y up), Kirby level with it; then still 33 frames
+(`0x0207AA34` doesn't move it); then down at 8.0 till it's under 4 pixels over where it grabbed him (`0x02023158`: its `+0x1A0`,
+`+0x1A4`), where its flag 0x200 goes and the ground, or the terrain at its feet (its middle and its body box's sides), lands it.
+Landing, it hits Kirby with kind 0x8001 (`vtable +0x84`, `0x02021BC8`: damage 6): Kirby's hit reaction (`0x0201917C`) takes that
+kind into his state `vtable +0x100` with the damage kept at `+0xC0`, and he loses it only when he lands (logged: 32 to 26 HP 37
+frames on); Bio Spark sets his speeds (back 0x2000, up 0x2CCD, falling 0x2B8) and `+0xEC` 120, and shakes the screen
+(`0x02035FC4(…, 4, 12, 2)`: logged as the camera's top jumping 3 pixels for 12 frames). Its first brain state for variant 2 is a
+veneer (`0x02079A80` jumps to `0x02079A78`, which only lets the pad go). Its pad reader (`0x0207A594`) takes B at once but the
+rest only once the pad's been non-neutral 4 frames running; its brain leaves the direction pressed while it waits on the ground,
+so a one-frame A still counts (logged on the DS). `0x020B48E0(obj, type)` shows an effect where a thrown thing ends: its table at
+`0x0215908C` (types 0-5 `efc_cmn0`'s animations 3, 4, 7, 7, 17, 2; 6 `efc_cmn1`'s 1). `biospark.rca`'s animations are the
+`.cea`'s one on (its first is an extra), found by their frame totals and confirmed on the DS by the jump's grab boxes.
+
 ### The stage's water splashes
 
 The stage's map object (`*0x02229F1C + 0x48`, vtable `+0xB4`, `0x02215A10`) splashes: type 0 into the water, 1 out of it. Only at
@@ -188,7 +205,7 @@ Bonkers, Box Boxer, Boxy. The others get a full port (body and brain constructor
 | 0x0F | Maiga | 0x020A2108 (0x26C) | 0x020A0B58 (0xB4) | yes |
 | 0x10 | Cret | 0x02073044 (0x284) | 0x020705AC (0xC8) | yes |
 | 0x11 | Uja | 0x020840C8 (0x294) | 0x02080AD0 (0xC4) | yes |
-| 0x25 | Bio Spark | 0x0207CF18 (0x264) | 0x0207A284 (0xB4) | |
+| 0x25 | Bio Spark | 0x0207CF18 (0x264) | 0x0207A284 (0xB4) | yes |
 | 0x26 | Starman | 0x020877B8 (0x24C) | 0x02084B10 (0xD0) | |
 | 0x27 | Bubble Head | 0x020968D0 (0x244) | 0x02095980 (0xB8) | |
 | 0x28 | Gaw Gaw | 0x020B0068 (0x260) | 0x020AC780 (0xBC) | |
