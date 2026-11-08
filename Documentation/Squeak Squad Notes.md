@@ -399,6 +399,20 @@ base, Spinni's too) takes no grab and passes the rest to `0x02013050`: they go t
 `doc_at1` 0 (its body), `doc` 1 and `doc_at1` 1 (the saucer, the same colors), `doc_at1` 2 (the gun's rings, the same as the
 common effects'), 3 (the arm, ball, bolts and smoke), 4 (the bomb): 57 colors, 5 KatAM palettes at least.
 
+**Storo** (enemy 0x44, ported: `squeak/storo.c`): its body `0x020E43C0` (vtable `0x0217CF88`: +0x3C start `0x020E1DF0`, +0x30 hit
+`0x020E3BA8`, +0x24 `0x020E3898`, +0x18 per frame `0x020E4220`), no pad brain: its states move it. Its start: anger pending
+(`+0x254` 1) its palette fade; else by the stage's Squeak chase mode (`0x0220A350`): off, home; on, its chest in hands home, else
+Kirby (within 64 pixels, or no chest) or the chest (`0x020E1D24`). A leg: `0x020E14F4` (20 frames standing), `0x020E0F00` (walking at
+its pace, `0x020E253C`; turning once in 120 frames; more vertical than across 120 frames, the jump `0x020E0DAC`; Kirby within 64 by
+64, 50% mallet `0x020E0380`, else body slam `0x020E0AB8`; home within 32, into its hole `0x020E1B30`). The mallet's star and the
+slam's: `0x0212389C` (kinds 1 ahead, 2 behind) through `0x020A25A0`/`0x020A25C4`. Params `prmDB03Ml0`/`Ml1` (30 words: +8 the
+knockout's HP percent 20/30, +0xC walk, +0x10..+0x18 the jump, +0x1C/+0x20 the attacks' waits, +0x24..+0x44 the slam and bounce,
++0x48/+0x4C the take and hole pauses, +0x54..+0x74 the pace). Its hit handler: dizzy or HP 0 a treat roll; `+0x1C0` 2 (from a flinch
+or knockout till it lands) ignores hits; kinds 3-5 curl it (`0x020E004C`, `0x020DFE68`); a chest touch takes it unless its mallet's
+out (`+0x23C` 7); damage with its element (fire, ice, spark poses and sounds), the knockout `0x020E2FF0`-`0x020E270C` at 20% HP,
+else the flinch `0x020E35B4`-`0x020E32C8`. Its sprites: `stron`, `stron_atack` (its mallet), `stron_dmg` (hurt poses, `.mca` the
+ice), palette 0 the same in all three. On the DS, Kirby held inside it doesn't lower its HP.
+
 The Squeaks (Squeakers, Doc, Spinni, Storo, Daroach) and Parasol are created elsewhere. Their files: Squeakers `enemy/chun` (and `chun_blue`, `chun_green`, `chun_yellow` palettes; `prmDE01`, loaded at `0x020EC5F4`: its body near `0x020EC5xx`; its 3 palettes loaded by `0x020E8C80`; a thrown Squeaker, on the thrown-things base `0x020B49D8`, `0x020ED208`), Spinni `enemy/spin`, `spin_at` (`prmDB01`, `0x020AB764`, `0x020ABFC4`), Doc `enemy/doc`, `doc_at1` (`prmDB02`, `0x020DD8FC`, `0x020DF5E4`), Storo `enemy/stron`, `stron_atack` (`prmDB03`, `0x020E44A4`), Daroach `enemy/dancho00`, `dancho01` (`prmDB04`, the boss code near `0x02134D64`). Copy abilities KatAM lacks (Ninja, Bubble,
 Animal, Ghost, Metal): the owner decides; meanwhile those enemies give none.
 

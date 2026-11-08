@@ -1266,7 +1266,8 @@ namespace KatAMRandomizer {
                         string[] file = enemy.File.Split('/');
                         SqueakCharacter character = file.Length > 1 ? ReadSqueakCharacter(squeak, file[1], file[0]) : ReadSqueakCharacter(squeak, enemy.File);
                         // (a second file's graphics after the first's: Squeak Squad's body switching sprites);
-                        if (enemy.ExtraFile != null) character = SqueakMerge(character, ReadSqueakCharacter(squeak, enemy.ExtraFile, file.Length > 1 ? file[0] : "enemy"));
+                        foreach (string extra in (enemy.ExtraFile ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries))
+                            character = SqueakMerge(character, ReadSqueakCharacter(squeak, extra, file.Length > 1 ? file[0] : "enemy"));
                         if (enemy.OnlyAnims != null) character = SqueakKeepAnims(character, enemy.OnlyAnims);
                         /* (the pieces in each layer's palettes drawn by a layer of their own: an anim with its own palette, a frame per cell
                          * with any; the character itself keeps the pieces in none); */
@@ -1275,7 +1276,7 @@ namespace KatAMRandomizer {
                             SqueakCharacter layer = SqueakSplitLayer(character, group, true);
                             List<int> layerCells = Enumerable.Range(0, layer.Cells.Count).Where(c => layer.Cells[c].Pieces.Count > 0).ToList();
                             (List<(byte[] tiles, ushort[] oams, short[] attributes, int palette)> layerFrames, List<byte[]> layerPalettes) =
-                                SqueakFrames(layer, cells: layerCells);
+                                SqueakFrames(layer, cells: layerCells, size: enemy.Canvas);
                             (int _, int layerAnim, int _) = AddAnim(layerPalettes, layerFrames, new byte[0], new List<(int, int)>(), effectOnly: layerFrames.Count);
                             byte[] perCell = new byte[character.Cells.Count];
                             for (int k = 0; k < layerCells.Count; k++) {
@@ -1293,7 +1294,7 @@ namespace KatAMRandomizer {
                                                                                                          : ReadSqueakCharacter(squeak, enemy.File, palette: p)).Palettes).ToList();
                         List<byte[]> alternatePalettes = alternates != null ? new List<byte[]>() : null;
                         (List<(byte[] tiles, ushort[] oams, short[] attributes, int palette)> frames, List<byte[]> palettes) =
-                            SqueakFrames(character, alternates: alternates, alternatePalettes: alternatePalettes, merge: enemy.MergeColors);
+                            SqueakFrames(character, enemy.Canvas, alternates: alternates, alternatePalettes: alternatePalettes, merge: enemy.MergeColors);
                         var withHurts = enemy.HurtCells.Select(c => frames[c]).Concat(frames).ToList();
                         foreach (byte[] alternate in alternatePalettes ?? new List<byte[]>()) {
                             palettes.Add(alternate);

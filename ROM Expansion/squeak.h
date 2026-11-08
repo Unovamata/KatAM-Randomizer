@@ -55,6 +55,7 @@ enum {
     SQUEAK_SPINNI_THROWN,       // What it throws (its shurikens, its slash, its claws knocked off: the variant; drawn with its graphics);
     SQUEAK_DOC,                 // The Squeak Squad's Doc, in his flying saucer;
     SQUEAK_DOC_THING,           // What it makes (its bolts, bomb, missile, its saucer's lid, its empty saucer: the variant);
+    SQUEAK_STORO,               // The Squeak Squad's strongman, with his mallet;
     SQUEAK_ENEMY_COUNT,
 };
 
@@ -394,5 +395,8 @@ void DocStart(struct Object *);
 void DocGone(struct SqueakObject *);
 void DocThingInit(struct SqueakObject *);
 void DocThingStart(struct Object *);
+void StoroInit(struct SqueakObject *);
+void StoroStart(struct Object *);
+void StoroGone(struct SqueakObject *);
 
 #endif

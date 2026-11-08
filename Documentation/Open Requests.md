@@ -160,8 +160,16 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
     knockout with its HP set to 22 by a RAM write before a real slide hit, the saucer's return; room 0x23A, the chest taken and
     gone with it; the hover against a DS recording). Not tested: the low bolt, the missile, a treat, a hit while dizzy, its pace
     off the screen; EU and Japanese builds built and logic-checked, not played. Not ported: its sounds, screen shakes, elemental
-    hurt poses, its own defeat (KatAM's), dizzy stars, anger when Kirby carries the stage's chest, the stages' routes. Next:
-    Storo, then Daroach.
+    hurt poses, its own defeat (KatAM's), dizzy stars, anger when Kirby carries the stage's chest, the stages' routes. Storo is
+    ported (`squeak/storo.c`; drawn from its three sprites in one character: the framework's `ExtraFile` now takes several files
+    and `Canvas` a bigger frame for its raised mallet; its shockwaves Gao Gao's stars, which now go through Kirby too): its legs
+    toward its chest, Kirby or home, the climbing jump, its mallet and body slam, its pace, the inhale curl, the flinch, the
+    knockout at 20% HP with its dizzy spell, its chest theft. Kirby's body doesn't hurt it: checked on the DS (Kirby held inside
+    it 120 frames, its HP stayed). Checked in KatAM (USA: room 0x323 legs, mallet, slam, flinch, the knockout with its HP set to 6
+    by a RAM write before a real slide hit; room 0x23A the chest theft). Not tested: the inhale, a treat, a hit while dizzy, the
+    get-up branch, variants 1 and 2; EU and Japanese builds built and logic-checked, not played. To check: whether Kirby's body
+    hurts Spinni and Doc on the DS (Storo's doesn't; theirs still take KatAM's touch damage); knocked or hopping Squeaks can pass
+    a room's open edge (KatAM rooms without a wall there), walking back after. Next: Daroach.
   - Framework: a looping animation's end is now a pulse on its loop frames, and a composite's ends a frame later, as on the DS
     (logged: Bubble Head's composites and bubble). Bio Spark changed with it (its brain's three waits in the slash now take a loop
     each, 6 frames, as on the DS: checked in KatAM), and Cret's ball now drops after its drop composite's 20 frames, a frame later

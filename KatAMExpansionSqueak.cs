@@ -198,15 +198,16 @@ namespace KatAMRandomizer {
  * a character throws (spawned as a character of its own) can be drawn with that character's graphics (GraphicsOf: its index).
          * A character in other colors (Palettes: the other .cla files of its folder, "chun_blue") gets one palette more each, in a frame
          * of its own after its cells (squeak.c's SqueakUsePalette); MergeColors: colors drawn as others (from, to), so a character a
-         * color or two over KatAM's 15 gets one palette. A character drawn from two files (ExtraFile: the second sprite Squeak Squad's
-         * body switches to, its +0xE4) has the second's cells and animations after the first's (OnlyAnims counting them on: the
-         * first's count plus theirs) and its palettes after the first's; Layers (up to two groups of those merged palettes' indexes):
+         * color or two over KatAM's 15 gets one palette. A character drawn from more files (ExtraFile, comma-separated: the other sprites
+         * Squeak Squad's body switches to, its +0xE4) has their cells and animations after the first's, in that order (OnlyAnims
+         * counting them on: the files before's counts plus theirs) and their palettes after the first's; Layers (up to two groups of those merged palettes' indexes):
          * the pieces drawn with a group go to a layer of their own, another sprite with its own palette shown with the cell (squeak.c's
-         * SqueakShowLayer: a weapon in a character's hands in other colors than its own, Doc's saucer); */
+         * SqueakShowLayer: a weapon in a character's hands in other colors than its own, Doc's saucer); Canvas: the frames' canvas
+         * (pixels a side), its spot in the middle (Storo's raised mallet, 96 pixels over its feet, needs 192); */
         internal sealed record SqueakEnemy(int Index, string Name, string File, int[] HurtCells, (int type, int letter)[] Glyphs, int GraphicsOf = -1,
                                             byte MidbossType = 0, int[] OnlyAnims = null, string[] Palettes = null,
                                             (ushort from, ushort to)[] MergeColors = null, string ExtraFile = null,
-                                            int[][] Layers = null);
+                                            int[][] Layers = null, int Canvas = 128);
         /* AnimPalettes: a character whose cells are in Squeak Squad's different palettes (Doc's things), per animation the palette its
          * sprite takes (SqueakPaletteKey); */
         internal sealed record SqueakBuilt(SqueakEnemy Enemy, int AnimId, SqueakCharacter Character, int Tiles, List<SqueakLayerBuilt> Layers = null,
@@ -292,6 +293,9 @@ namespace KatAMRandomizer {
 
         // "D" (Waddle Dee), "o" (Bronto Burt), "c" (Rocky);
         static readonly (int type, int letter)[] DocGlyphs = { (0x00, 6), (0x01, 2), (0x17, 2) };
+
+        // "S" (Squishy), "t", "o" (Hot Head), "r" (Bronto Burt), "o" (Hot Head);
+        static readonly (int type, int letter)[] StoroGlyphs = { (0x04, 0), (0x14, 2), (0x14, 1), (0x01, 1), (0x14, 1) };
 
         // "S" (Squishy), "p", "i" (Chip), "n", "n" (Bronto Burt), "i" (Chip);
         static readonly (int type, int letter)[] SpinniGlyphs = { (0x04, 0), (0x08, 3), (0x08, 2), (0x01, 3), (0x01, 3), (0x08, 2) };
@@ -393,6 +397,12 @@ namespace KatAMRandomizer {
             // What it makes (0x020DF354, drawn from doc_at1, then doc: its bolts 6 and 13, missile 15 and 16, bomb 21 and 29, lid 20, saucer 19), no name;
             new SqueakEnemy(32, "Doc's thing", "doc_at1", new[] { 0, 0, 0 }, new (int, int)[0], ExtraFile: "doc",
                             OnlyAnims: new[] { 6, 13, 15, 16, 21, 29, 50, 49 }),
+            /* Storo: stron's animations 1-13, stron_atack's 3 (its mallet), stron_dmg's 1 and 2 (its hurt poses, KatAM's hurt frames
+             * too); its body in the three files' palette 0 (the same colors), the mallet's wood (stron_atack's 1) and stron's sparkles
+             * (1 and 3) layers; */
+            new SqueakEnemy(33, "Storo", "stron", new[] { 50, 51, 51 }, StoroGlyphs, ExtraFile: "stron_atack,stron_dmg",
+                            OnlyAnims: new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 17, 19, 20 },
+                            Layers: new[] { new[] { 5 }, new[] { 1, 3 } }, Canvas: 192),
         };
 
         public static IReadOnlyList<(int index, string name)> SqueakEnemies => SqueakDefinitions.Select(e => (e.Index, e.Name)).ToList();

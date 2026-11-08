@@ -65,8 +65,11 @@ void SqueakStarStart(struct Object *obj) {
     if (!((struct SqueakObject *)obj)->started) SqueakSetState((struct SqueakObject *)obj, STATE_START);
 }
 
-// SqueakStarInit(); Its box (8 pixels round its middle);
+/* SqueakStarInit(); Its box (8 pixels round its middle); Kirby's body doesn't hurt it, nor shows its HP bar (0x080365C8's flag
+ * 0x1000000), as Doc's and Spinni's things: Squeak Squad's attack things go through him; */
 void SqueakStarInit(struct SqueakObject *s) {
     sub_0803E2B0(&s->obj.base, -8, -8, 8, 8);
     ObjectSetBounds(&s->obj.base, -8, -8, 8, 8);
+    s->obj.base.unk5C |= 0x80;
+    s->obj.base.flags |= 0x1000000;
 }
