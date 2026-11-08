@@ -152,6 +152,14 @@ reaction at 94). It holds Kirby through his `vtable +0x10` (the holder, an offse
 overhead, 8, 11, 17 and 4 in the swing, from `0x02158660`; the swing's offsets from `0x02186A44`), and throws him with VX 0x499A,
 AY -0x2B8 (he moves from his next update, logged 16 then 20.6 pixels ahead); he loses 6 HP as he lands. Swallowed, it gives Throw.
 
+Metalun's brain constructor (`0x0205155C`) puts it in mode 3 (`0x0201B688(…, 3, -1)`, the brain's `+8`), so its body's other mode
+(A jumps, B stops the charge) never comes up. Its charge (`0x02051A4C`, `0x020517F0`, anim 5 twice) counts its frames at `+0x1FC`
+up to 0x9C and starts over: it lurches 2.0 on counts 0, 25, 51, 77, 103 and 129 and 8.0 on 5, 31, 57, 83, 109 and 135 (logged: 2
+and 8 pixels), stomping (sound 0x14B) with `0x02035FC4(…, 3, 4, 2)`, a 4-frame shake, on the ground but on count 0. Its walk
+(`0x02052230`) counts at `+0x1F8`: 4.0 on 29, 37, 69 and 75, the count started over after 75, the walk itself over at its 80-frame
+animation's end. The DS stops updating it well off the screen (logged: still 150 frames with Kirby 190 pixels away). Swallowed, it
+gives Metal.
+
 ### The stage's water splashes
 
 The stage's map object (`*0x02229F1C + 0x48`, vtable `+0xB4`, `0x02215A10`) splashes: type 0 into the water, 1 out of it. Only at
@@ -253,12 +261,12 @@ Bonkers, Box Boxer, Boxy. The others get a full port (body and brain constructor
 | 0x28 | Gaw Gaw | 0x020B0068 (0x260) | 0x020AC780 (0xBC) | yes |
 | 0x2A | Acchi | 0x0206B1F0 (0x25C) | 0x02069D6C (0xB8) | yes |
 | 0x2B | Bun | 0x02056AA4 (0x250) | 0x02055470 (0xB4) | yes |
-| 0x2C | Metalun | 0x020526AC (0x248) | 0x0205155C (0xB8) | |
+| 0x2C | Metalun | 0x020526AC (0x248) | 0x0205155C (0xB8) | yes |
 | 0x2D-0x36 | the mid-bosses | 0x020F4294, 0x020D4C10, 0x020FD418, 0x020F8B78, 0x02100300, 0x0210C4F8, 0x02103B4C, 0x02108EAC | | |
 | 0x37-0x46 | the bosses | Meta Knight 0x02116C7C, Dedede 0x020E7E58, 0x39 0x02132D7C, Mrs. Moley 0x0212CF40, Yadgaine 0x0211A4E8, Bohboh 0x02111370, 0x3D 0x02126F48, Dark Nebula / Dark Daroach 0x0211B680, 0x02122CD0, 0x021376EC | | |
 
 The Squeaks (Squeakers, Doc, Spinni, Storo, Daroach) and Parasol are created elsewhere. Copy abilities KatAM lacks (Ninja, Bubble,
-Animal, Ghost): the owner decides; meanwhile those enemies give none.
+Animal, Ghost, Metal): the owner decides; meanwhile those enemies give none.
 
 ## Stage objects
 

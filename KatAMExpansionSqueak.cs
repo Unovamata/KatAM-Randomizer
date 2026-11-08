@@ -247,6 +247,9 @@ namespace KatAMRandomizer {
             // Bun: hurt animations 10 and 11 (0x02056AA4's 0x100000A, 0x100000B: cells 22 and 23);
             new SqueakEnemy(18, "Bun", "bun", new[] { 22, 23, 23 },
                             new[] { (0x01, 0), (0x03, 2), (0x01, 3) }),   // "B", "n" (Bronto Burt), "u" (Glunk);
+            // Metalun: hurt animations 7 and 8 (0x020526AC's 0x1000007, 0x1000008: cells 24 and 25);
+            new SqueakEnemy(19, "Metalun", "metalum", new[] { 24, 25, 25 },
+                            new[] { (0x2B, 0), (0x14, 4), (0x14, 2), (0x14, 5), (0x03, 1), (0x03, 2), (0x01, 3) }),   // "M" (Metal Guardian), "e", "t", "a" (Hot Head), "l", "u" (Glunk), "n" (Bronto Burt);
         };
 
         public static IReadOnlyList<(int index, string name)> SqueakEnemies => SqueakDefinitions.Select(e => (e.Index, e.Name)).ToList();

@@ -41,6 +41,7 @@ enum {
     SQUEAK_ACCHI,
     SQUEAK_ACCHI_FIRE,          // Acchi's fire (spat by it, drawn with its graphics);
     SQUEAK_BUN,
+    SQUEAK_METALUN,
     SQUEAK_ENEMY_COUNT,
 };
 
@@ -291,5 +292,7 @@ void AcchiFireInit(struct SqueakObject *);
 void AcchiFireStart(struct Object *);
 void BunInit(struct SqueakObject *);
 void BunStart(struct Object *);
+void MetalunInit(struct SqueakObject *);
+void MetalunStart(struct Object *);
 
 #endif
