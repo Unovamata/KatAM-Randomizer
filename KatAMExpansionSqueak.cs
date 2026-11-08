@@ -219,6 +219,9 @@ namespace KatAMRandomizer {
         // "T" (Twister), "e", "d" (Waddle Dee), "h" (Chip), "a" (Hot Head), "u" (Glunk), "n" (Bronto Burt);
         static readonly (int type, int letter)[] TedhaunGlyphs = { (0x1C, 0), (0x14, 4), (0x00, 2), (0x08, 1), (0x14, 5), (0x03, 2), (0x01, 3) };
 
+        // "B" (Bronto Burt), "u" (Glunk), "b" (Bomber), "o", "o" (Bronto Burt);
+        static readonly (int type, int letter)[] BubooGlyphs = { (0x01, 0), (0x03, 2), (0x28, 3), (0x01, 2), (0x01, 2) };
+
         static readonly List<SqueakEnemy> SqueakDefinitions = new List<SqueakEnemy> {
             // Perara: hurt animations 7 and 8 (0x02021A88's 0x1000007, 0x1000008);
             new SqueakEnemy(0, "Perara", "perara", new[] { 18, 19, 19 },
@@ -285,6 +288,9 @@ namespace KatAMRandomizer {
             // Tedhaun (a mid-boss, on mini-boss type 0x42): its hurt animations both 6 (0x02103B4C's 0x1000006: cell 24); its ghosts (0x02104E34) drawn with its graphics (its animation 9);
             new SqueakEnemy(23, "Tedhaun", "tedhaun", new[] { 24, 24, 24 }, TedhaunGlyphs, MidbossType: 0x42),
             new SqueakEnemy(24, "Tedhaun's ghost", "tedhaun", new[] { 29, 29, 29 }, new (int, int)[0], GraphicsOf: 23),   // (no name: the HP bar a hit ghost takes shows none);
+            // Buboo (a mid-boss, on mini-boss type 0x41): its hurt animations both 17 (0x02108EAC's 0x1000011: cell 39); its bubbles (0x02109E00) drawn with its graphics;
+            new SqueakEnemy(25, "Buboo", "buboo", new[] { 39, 39, 39 }, BubooGlyphs, MidbossType: 0x41),
+            new SqueakEnemy(26, "Buboo's bubble", "buboo", new[] { 52, 52, 52 }, new (int, int)[0], GraphicsOf: 25),   // (no name, as Tedhaun's ghosts);
         };
 
         public static IReadOnlyList<(int index, string name)> SqueakEnemies => SqueakDefinitions.Select(e => (e.Index, e.Name)).ToList();

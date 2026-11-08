@@ -36,6 +36,7 @@ gMainFlags 0x3002440
 gRngVal 0x30068d8
 gSpriteTables 0x3003674
 gSongTable 0x8b64334
+gSineTable 0x8d6a278
 gTasks 0x30019f0
 gUnk_02021580 0x2021580
 gUnk_02022120 0x2022120

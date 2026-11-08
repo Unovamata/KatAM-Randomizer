@@ -214,6 +214,19 @@ ghost's destructor frees its spot). Its ghosts (`0x02104F74`, `0x02104E34`, kind
 `squeak/tedhaun.c`. Its brain's B (`0x02100BC4`, `0x02100B44`) waits for its ghosts to be ready before the call but not after: its body's
 wind-up (28 frames) leaves them ready, so it picks again 3 frames after B.
 
+Buboo (mid-boss 0x36: body `0x02108EAC`, vtable `0x02180A78`; brain `0x02105938`, start `0x02105830`, runner `0x0210586C`; `prmMB12Ml0`
+(57 values: its flights at `+0x30`-`+0x3C`, the weave's `+0x48`-`+0x54`, the bob's `+0x5C`/`+0x64`, its spots `+0x40`-`+0x7C`, its
+bubbles' `+0xAC`-`+0xD0`, the crab's `+0xD8`-`+0xE0`), `Pl0` (19), `Sl0` HP 140). Its brain presses B (`0x02105224`: `+0x3C` and
+`+0x20`) and A (`0x02105234`: `+0x38` and `+0x1C`) and lets go of all while the crab is out (the body's `+0x208` 0: `0x0210523C`). Its
+body: `+0x204` busy, `+0x208` the cluster, `+0x20C` its hits (5 burst it: `0x021088D4`), `+0x1F8` 36 frames safe, `+0x23C` and `+0x240`
+the bob's base speed and frames, `+0x1A0`/`+0x1A4` its spot. The circle (`0x02107080`) moves along an angle (`+0x230`, 20.12 degrees)
+turned `20480 - 2048 * k` a frame (`k`, `+0x22C`, one more each half turn: float maths on `0x0200A1E0`, `0x0200BCB0`, `0x0200C19C`,
+`0x0200B970`, `0x0200BBE4`). Its bubbles (`0x02109E00`, vtable `0x02180CE4`; kinds 0 little, 1 the crab's, 2 big, 3 the defeat's) are
+thrown things (`0x020B49D8`), not enemies; the big one holds an enemy made by `0x0202467C` with the template's type 0 (Waddle Dee) at
+its `+0x134`. `0x0201B76C(list, kind, n)` counts the stage's objects of a kind. The sine table at `0x0215CE20` is 4096 (sine, cosine)
+pairs in 4.12, indexed by the 16-bit angle (degrees in 20.12 times 65536/360, rounded, `>> 12`) `>> 4`; KatAM's `gSineTable` (1024 a
+turn, 2.14) stands in.
+
 ### The stage's water splashes
 
 The stage's map object (`*0x02229F1C + 0x48`, vtable `+0xB4`, `0x02215A10`) splashes: type 0 into the water, 1 out of it. Only at
@@ -329,7 +342,7 @@ palette for its hurt flash). The others get a full port (body and brain construc
 | 0x33 | Gao Gao (mid-boss) | 0x02100300 (0x254) | 0x020FE364 (0xD8) | yes |
 | 0x34 | Big Metalun (mid-boss) | 0x0210C4F8 (0x24C) | 0x0210A940 (0xBC) | yes |
 | 0x35 | Tedhaun (mid-boss) | 0x02103B4C (0x2AC) | 0x02100FE8 (0xCC) | yes |
-| 0x36 | Buboo (mid-boss) | 0x02108EAC (0x274) | 0x02105938 (0xC8) | |
+| 0x36 | Buboo (mid-boss) | 0x02108EAC (0x274) | 0x02105938 (0xC8) | yes |
 | 0x37-0x46 | the bosses | Meta Knight 0x02116C7C, Dedede 0x020E7E58, 0x39 0x02132D7C, Mrs. Moley 0x0212CF40, Yadgaine 0x0211A4E8, Bohboh 0x02111370, 0x3D 0x02126F48, Dark Nebula / Dark Daroach 0x0211B680, 0x02122CD0, 0x021376EC | | |
 
 The Squeaks (Squeakers, Doc, Spinni, Storo, Daroach) and Parasol are created elsewhere. Copy abilities KatAM lacks (Ninja, Bubble,

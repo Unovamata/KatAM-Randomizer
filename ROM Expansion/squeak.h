@@ -47,6 +47,8 @@ enum {
     SQUEAK_STAR,                // The star a mid-boss knocks out (effect/efc_cmn0's; its variants SQUEAK_STAR_*);
     SQUEAK_TEDHAUN,             // A mid-boss;
     SQUEAK_TEDHAUN_GHOST,       // Its little ghosts (drawn with its graphics);
+    SQUEAK_BUBOO,               // A mid-boss;
+    SQUEAK_BUBOO_BUBBLE,        // Its bubbles (blown and dropped by it, drawn with its graphics);
     SQUEAK_ENEMY_COUNT,
 };
 
@@ -326,5 +328,9 @@ void TedhaunInit(struct SqueakObject *);
 void TedhaunStart(struct Object *);
 void TedhaunGhostInit(struct SqueakObject *);
 void TedhaunGhostStart(struct Object *);
+void BubooInit(struct SqueakObject *);
+void BubooStart(struct Object *);
+void BubooBubbleInit(struct SqueakObject *);
+void BubooBubbleStart(struct Object *);
 
 #endif

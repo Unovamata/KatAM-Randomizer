@@ -35,6 +35,8 @@ const s16 gSqueakEnemyHp[SQUEAK_ENEMY_COUNT] = {
     [SQUEAK_STAR] = 1,
     [SQUEAK_TEDHAUN] = 30,          // Squeak Squad's: 140 (prmMB11Sl0.kgb);
     [SQUEAK_TEDHAUN_GHOST] = 1,     // (any hit ends it, as Squeak Squad's);
+    [SQUEAK_BUBOO] = 30,            // Squeak Squad's: 140 (prmMB12Sl0.kgb);
+    [SQUEAK_BUBOO_BUBBLE] = 1,      // (any hit ends it, as Squeak Squad's);
 };
 
 static const struct SqueakCharacter sSqueakCharacters[SQUEAK_ENEMY_COUNT] = {
@@ -63,6 +65,8 @@ static const struct SqueakCharacter sSqueakCharacters[SQUEAK_ENEMY_COUNT] = {
     [SQUEAK_STAR] = { SqueakStarInit, SqueakStarStart, 0, FALSE },
     [SQUEAK_TEDHAUN] = { TedhaunInit, TedhaunStart, 0, FALSE, TRUE },
     [SQUEAK_TEDHAUN_GHOST] = { TedhaunGhostInit, TedhaunGhostStart, 0, FALSE },
+    [SQUEAK_BUBOO] = { BubooInit, BubooStart, 0, FALSE, TRUE },
+    [SQUEAK_BUBOO_BUBBLE] = { BubooBubbleInit, BubooBubbleStart, 0, FALSE },
 };
 
 /* SqueakAnimFor(); The anim and variant an object shows (variant << 16 | anim ID), for the game's object drawing (sub_0809A7A4,
