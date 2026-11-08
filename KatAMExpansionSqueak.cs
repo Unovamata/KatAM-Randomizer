@@ -147,6 +147,7 @@ namespace KatAMRandomizer {
 
         // The type Squeak Squad's characters share (squeak.h's SQUEAK_TYPE: KatAM's last free regular enemy type);
         public const byte SqueakID = 0x2C;
+        const byte WaddleDeeType = 0x00;    // KatAM's own Waddle Dee, given Squeak Squad's extra variants (squeak/natives.c);
         // The hurt frames every character's anim starts with (squeak.h's SQUEAK_HURT_VARIANTS: the type's hurt indexes 0 and 1, and 2);
         const int SqueakHurtVariants = 3;
 
@@ -270,6 +271,16 @@ namespace KatAMRandomizer {
             if (!rom.AsSpan(site, original.Length).SequenceEqual(original)) return $"The {version.Name} ROM's object drawing doesn't match.";
 
             WriteInt(rom, version.SpawnTable + SqueakID * 4, codeBase + version.CodeSymbols["CreateSqueakEnemy"] + 1);
+            /* KatAM's own enemies with Squeak Squad's extra behaviors (squeak/natives.c): the Waddle Dee's spawn (object 0x00) becomes
+             * SqueakCreateWaddleDee and its type's resume after a hit or bump (its parameters' +16) SqueakWaddleDeeStart, KatAM's own
+             * kept in gSqueakNatives for them to call; */
+            int waddleDee = version.SpawnTable + WaddleDeeType * 4, waddleDeeStart = version.ObjectParameters + WaddleDeeType * 0x18 + 16;
+            if (ReadInt(rom, waddleDee) >> 24 != 0x08 || ReadInt(rom, waddleDeeStart) >> 24 != 0x08)
+                return $"The {version.Name} ROM's spawn table doesn't match.";
+            WriteInt(rom, CodeAddress + version.CodeSymbols["gSqueakNatives"], ReadInt(rom, waddleDee));
+            WriteInt(rom, CodeAddress + version.CodeSymbols["gSqueakNatives"] + 4, ReadInt(rom, waddleDeeStart));
+            WriteInt(rom, waddleDee, codeBase + version.CodeSymbols["SqueakCreateWaddleDee"] + 1);
+            WriteInt(rom, waddleDeeStart, codeBase + version.CodeSymbols["SqueakWaddleDeeStart"] + 1);
             rom[parameters] = 0;
             rom[parameters + 1] = 1;
             Array.Copy(rom, version.ObjectParameters + 2, rom, parameters + 2, 4);

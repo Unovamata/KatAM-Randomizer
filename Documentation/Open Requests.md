@@ -18,7 +18,7 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
 - **The whole cast, 1:1** (the owner: "I don't want you to finish until you complete the entire cast of enemies and their
   behaviors. If there's a behavior that's not in KatAM, port it 1:1."): every regular enemy, every mid-boss, the Squeaks and
   every boss of the USA release (the owner chose "everything"). Enemies KatAM already has keep KatAM's own object, as NiDL's
-  natives do, and only the Squeak Squad behaviors KatAM lacks are ported (Gold Waddle Dee falling straight, Parasol Shotzo...);
+  natives do, and only the Squeak Squad behaviors KatAM lacks are ported (the Waddle Dee's patrol and jumps...);
   the ones KatAM lacks get a full port with Squeak Squad's graphics. Research notes: [Squeak Squad Notes](Squeak%20Squad%20Notes.md).
   - Ported so far, checked against the DS game frame by frame: Perara, Gold Waddle Dee (all six variants' code; tested in KatAM:
     variants 0 and 3, the ledge and water).
@@ -89,6 +89,13 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
     for KatAM's own one-frame stalls; the charge's frames against DS screenshots; inhaled and swallowed: no ability, as KatAM has
     no Metal). Not tested: its fall and landing, a wall or a ledge in the charge, its stomps' shake length (KatAM's shortest, 14
     frames, against the DS's 4).
+  - Parasol: KatAM has it already (object 0xA2, held by its Waddle Dees, Waddle Doos and Shotzos; KatAM's Shotzo has a parasol
+    too, so "Parasol Shotzo" isn't one KatAM lacks, as these notes once said): its code does what Squeak Squad's does (held while
+    floating, let go on landing or a hit, flying off, or kept), so it stays KatAM's.
+  - Waddle Dee (KatAM's own, `squeak/natives.c`): Squeak Squad's three brains KatAM's lacks are its variants 5-7 (patrol 24 pixels
+    either side, jump once at Kirby within 48, jump every 122 frames), on KatAM's own object (its walk, jump and hurt). Checked
+    against the DS by logging and tested in KatAM (room 0x323, USA: turn points, counts, the jump trigger and timer, the resume
+    after a bump; screenshots). Not tested: a ledge or wall in their walk, a hit.
   - Framework: a looping animation's end is now a pulse on its loop frames, and a composite's ends a frame later, as on the DS
     (logged: Bubble Head's composites and bubble). Bio Spark changed with it (its brain's three waits in the slash now take a loop
     each, 6 frames, as on the DS: checked in KatAM), and Cret's ball now drops after its drop composite's 20 frames, a frame later

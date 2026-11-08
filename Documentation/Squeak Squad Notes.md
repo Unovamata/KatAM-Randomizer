@@ -160,6 +160,19 @@ and 8 pixels), stomping (sound 0x14B) with `0x02035FC4(…, 3, 4, 2)`, a 4-frame
 animation's end. The DS stops updating it well off the screen (logged: still 150 frames with Kirby 190 pixels away). Swallowed, it
 gives Metal.
 
+Squeak Squad's Waddle Dee (body `0x0202A9D0`, brain `0x02029760`, `prmNE01Pl0.kgb`: 24, 48 pixels, 120 frames; `prmNE01Ml0` walks
+at 0.25, `Ml1`, when the spawn's second byte is 1, at 0.5) has six brains: 0 walks, turning at walls (`0x02029694`); 1 patrols 24
+pixels either side of where it started (`0x020295EC`, `0x02029540`, `0x02029508`); 2 jumps once when Kirby is within 48 pixels
+across (`0x020294E8`, `0x020294B8`, then `0x020294B0`: A let go, walking on); 3 jumps 120 frames on (`0x02029484`, `0x0202944C`,
+`0x0202941C`: again once landed); 4 and 5 start under a parasol (the body's first states `0x02029F24` and `0x02029DD0`: its
+parasol, kind 0 or 1, from `0x020299C4`), then walk (`0x020293C8`) or stand (`0x020293F0`, `0x0202934C`: no direction). Its body
+turns a frame after the brain asks (logged: a step more the old way), and its A crouches 32 frames before the leap (logged; 2.5
+up, 0.1 gravity, 49 frames in the air). The parasol (`0x020741A8`, made by `0x0207426C` for the Waddle Dee, Shotzo `0x0205D6E4`
+and Waddle Doo `0x0205EFDC`; its params `prmCE08Ml0`/`MlG`) follows its holder (`0x02073C40`), lets go when the holder is hurt or,
+kind 0, lands (`0x02073980`), and flies off (`0x02073B50`, `0x02073A88`: through the terrain, gone off the screen); KatAM's own
+parasol (object `0xA2`, `parasol.c`) does the same for its Waddle Dee, Waddle Doo and Shotzo (`shotzo.s`' `sub_0811B44C`), so it
+stays KatAM's.
+
 ### The stage's water splashes
 
 The stage's map object (`*0x02229F1C + 0x48`, vtable `+0xB4`, `0x02215A10`) splashes: type 0 into the water, 1 out of it. Only at
