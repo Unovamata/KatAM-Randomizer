@@ -224,7 +224,24 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
     bolts drew other sprites' tiles), and a mid-boss keeps its bar's full HP and a held-back part of its HP of its own.
     Seen: Kirby flashing after a hit hurts a mid-boss he touches (KatAM's body touch with his level 6 over its 3; every ported
     mid-boss alike; left as it is).
-    Next: Yadgaine (0x3B), Bohboh (0x3C), Daroach (0x3D), Meta Knight (0x37), Dark Daroach and Dark Nebula (0x3E, 0x3F, 0x46).
+    Yadgaine (0x3B) is ported (`squeak/yadgaine.c`): its chase (Squeak Squad's endless scrolling stage: here the screen stays and
+    the scroll is taken out of everything of the fight, Yadgaine and its things moving at their speed less the scroll's and the
+    Kirbys carried back at its speed; its front a wall that pushes Kirby), Daroach bringing it in, the intro and rush in, its
+    rounds and picks (dash forward, back, swipe, lunge, shot with its puff and capsule, short and long pauses), the rocks and
+    gordos falling over the view's right, its two legs (their own HP; a hit on its body goes to them too; broken for good,
+    hurting by touch), the debris blocks its resting feet knock up (solid tiles once landed, stepping back as the screen would
+    scroll, broken under it), its second form after 72 damage (its cracked body, no-leg picks). Recorded on the DS in its own
+    stage and checked in KatAM (USA, room 0x323): the intro's 120 and 150 frames, the rush's 64, every move's speeds and frames,
+    the rocks, gordo and blocks, Sword hits (the same damage on its back leg, 20 safe frames), the legs' broken look and the
+    second form (HP written down by a RAM write, 63 damage at once), KatAM's defeat at 0 HP with its legs gone. Not tested: a
+    whole fight played through by hand, standing on a landed block, helpers' hits on the legs, EU and Japanese builds (built
+    and logic-checked, not played). Not ported (KatAM can't hold it): its green spiked shell, which Squeak Squad draws on a
+    background layer from its stage's tiles (154 by 208 pixels, 312 tiles; KatAM's 512-tile sprite heap is near full in a fight
+    and its background tiles and palettes are all taken); also the floor crumbling behind it, the DS's camera jolts. Fixed
+    alongside in the framework: each ported object's sprite takes as many tiles as its own frames need (not its type's
+    biggest), so a boss's legs and showers of things fit KatAM's heap; HP-bar names can have a letter no KatAM name has
+    (Yadgaine's "Y", drawn in their style).
+    Next: Bohboh (0x3C), Daroach (0x3D), Meta Knight (0x37), Dark Daroach and Dark Nebula (0x3E, 0x3F, 0x46).
   - Left: those bosses; the randomizer options (a Squeak Squad ROM in the ROM Expansion tab, the enemy pool). The Squeak Squad-only
     enemies, the shared enemies' Squeak Squad behaviors, its mid-bosses and the Squeaks are all done.
 

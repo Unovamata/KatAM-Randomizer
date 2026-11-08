@@ -54,6 +54,11 @@ const s16 gSqueakEnemyHp[SQUEAK_ENEMY_COUNT] = {
     [SQUEAK_MECHA_KRACKO] = 64,     // Squeak Squad's: 320, then 400 (prmBB03Sl0.kgb); KatAM's bosses' 60 for one player as Mrs. Moley's
                                     // 300 (its second form's 80, squeak/mecha_kracko.c);
     [SQUEAK_MECHA_KRACKO_EYE] = 1,
+    [SQUEAK_YADGAINE] = 80,         // Squeak Squad's 400 (prmBB05Sl0.kgb); KatAM's bosses' 60 for one player as Mrs. Moley's 300 is;
+    [SQUEAK_YADGAINE_LEG] = 58,     // Its back leg's 290 (its front one's 220: 44, yadgaine.c);
+    [SQUEAK_YADGAINE_THING] = 1,
+    [SQUEAK_YADGAINE_GORDO] = 1,
+    [SQUEAK_YADGAINE_DAROACH] = 1,
 };
 
 static const struct SqueakCharacter sSqueakCharacters[SQUEAK_ENEMY_COUNT] = {
@@ -99,6 +104,11 @@ static const struct SqueakCharacter sSqueakCharacters[SQUEAK_ENEMY_COUNT] = {
     [SQUEAK_MOLEY_DIRT] = { MoleyDirtInit, MoleyDirtStart, 0, FALSE },
     [SQUEAK_MECHA_KRACKO] = { MechaKrackoInit, MechaKrackoStart, 0, FALSE, TRUE },
     [SQUEAK_MECHA_KRACKO_EYE] = { MechaKrackoEyeInit, MechaKrackoEyeStart, 0, FALSE },
+    [SQUEAK_YADGAINE] = { YadgaineInit, YadgaineStart, 0, FALSE, TRUE },
+    [SQUEAK_YADGAINE_LEG] = { YadgaineLegInit, YadgaineLegStart, 0, FALSE },
+    [SQUEAK_YADGAINE_THING] = { YadgaineThingInit, YadgaineThingStart, 0, FALSE },
+    [SQUEAK_YADGAINE_GORDO] = { YadgaineGordoInit, YadgaineGordoStart, 0, FALSE },
+    [SQUEAK_YADGAINE_DAROACH] = { YadgaineDaroachInit, YadgaineDaroachStart, 0, FALSE },
 };
 
 /* SqueakAnimFor(); The anim and variant an object shows (variant << 16 | anim ID), for the game's object drawing (sub_0809A7A4,
@@ -1045,6 +1055,12 @@ static struct SqueakObject *SqueakCreate(struct ObjectTemplate *template, u8 pla
     // (the type's AnimInfo table has one entry: ObjectInitSprite reads it; the patched drawing shows the character's own frames);
     s->obj.unk83 = 0;
     ObjectInitSprite(&s->obj);
+    /* (its sprite as many tiles as its own frames take, not its type's, the most any character's take: a boss's legs and things
+     * spawned by the dozen would fill KatAM's 512-tile heap; the drawing copies a frame's tiles into it, its first part's too); */
+    if (SqueakVramOk(s->obj.base.sprite.tilesVram) && gSqueakData.enemies[enemy].tiles > 0) {
+        VramFree(s->obj.base.sprite.tilesVram);
+        s->obj.base.sprite.tilesVram = VramMalloc(gSqueakData.enemies[enemy].tiles);
+    }
     if (gSqueakData.enemies[enemy].palette != NULL)
         s->obj.base.sprite.palId = SqueakLoadPalette(gSqueakData.enemies[enemy].palette[0].key, gSqueakData.enemies[enemy].palette[0].variant,
                                                      s->obj.base.roomId);

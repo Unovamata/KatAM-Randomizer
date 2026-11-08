@@ -341,6 +341,10 @@ namespace KatAMRandomizer {
         static readonly (int type, int letter)[] MechaKrackoGlyphs = { (0x38, 0), (0x14, 4), (0x17, 2), (0x08, 1), (0x14, 5), (0x2F, 4),
                                                                        (0x45, 0), (0x45, 1), (0x45, 2), (0x45, 3), (0x45, 4), (0x45, 5) };
 
+        // "Y" (drawn: no name of the game's has one), "a", "d" (Hot Head), "g" (Pengy), "a" (Hot Head), "i" (Chip), "n" (Bronto Burt), "e";
+        static readonly (int type, int letter)[] YadgaineGlyphs = { (HandDrawn, 0), (0x14, 5), (0x14, 6), (0x16, 3), (0x14, 5), (0x08, 2),
+                                                                    (0x01, 3), (0x14, 4) };
+
         static readonly (int type, int letter)[] DaroachGlyphs = { (0x00, 6), (0x14, 5), (0x01, 1), (0x01, 2), (0x14, 5), (0x17, 2), (0x08, 1) };
 
         // "S" (Squishy), "p", "i" (Chip), "n", "n" (Bronto Burt), "i" (Chip);
@@ -485,6 +489,19 @@ namespace KatAMRandomizer {
              * an eye's VRAM, as type 0x2C's characters take the biggest frame's of theirs), no name; */
             new SqueakEnemy(41, "Mecha-Kracko's eye", "kracko", new[] { 0, 0, 0 }, new (int, int)[0],
                             OnlyAnims: new[] { 8, 9, 10, 11, 12, 13, 14, 15 }),
+            /* Yadgaine (a boss, enemy 0x3B: 0x0211A4E8, on mini-boss type 0x40 as the mid-bosses), drawn with enemy/yadgaine: all its
+             * animations, its .mca's composites (its body 0 and 1, its legs 2-15); its hurt look its head (cell 3); a frame big enough
+             * for its raised legs (114 pixels over it, 65 either side). Its shell isn't in its sprites (the stage draws it); */
+            new SqueakEnemy(42, "Yadgaine", "yadgaine", new[] { 3, 3, 3 }, YadgaineGlyphs, MidbossType: 0x40, Canvas: 256),
+            // Its legs (0x021185FC, 0x02117C44: its .mca's composites 2-15), drawn with its graphics, no name;
+            new SqueakEnemy(43, "Yadgaine's leg", "yadgaine", new[] { 9, 9, 9 }, new (int, int)[0], GraphicsOf: 42),
+            /* What it throws and knocks down (0x0212E248: its big and small rocks 32 and 33, a block 34, its shot's puff 35 and capsule
+             * 36), no name; */
+            new SqueakEnemy(44, "Yadgaine's thing", "yadgaine", new[] { 0, 0, 0 }, new (int, int)[0], OnlyAnims: new[] { 32, 33, 34, 35, 36 }),
+            // A gordo falling in its fight (0x0212E198's kind 7: enemy/gordo's animation 3), no name;
+            new SqueakEnemy(45, "Yadgaine's gordo", "gordo", new[] { 0, 0, 0 }, new (int, int)[0], OnlyAnims: new[] { 3 }),
+            // Daroach bringing it in (0x0212E198's kind 8: demo_dancho's animations 1-5), drawn with his graphics, no name;
+            new SqueakEnemy(46, "Daroach (Yadgaine's)", "demo_dancho", new[] { 1, 1, 1 }, new (int, int)[0], GraphicsOf: 34),
         };
 
         public static IReadOnlyList<(int index, string name)> SqueakEnemies => SqueakDefinitions.Select(e => (e.Index, e.Name)).ToList();

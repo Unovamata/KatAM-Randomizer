@@ -64,6 +64,11 @@ enum {
     SQUEAK_MOLEY_DIRT,          // Her dirt (Squeak Squad's kind the variant's low bits: the petals' burst, petals, her shadow; their way 4 on);
     SQUEAK_MECHA_KRACKO,        // A boss (on a mini-boss type, as the mid-bosses);
     SQUEAK_MECHA_KRACKO_EYE,    // Its eye (drawn with its graphics, over it, looking at Kirby);
+    SQUEAK_YADGAINE,            // A boss (on a mini-boss type, as the mid-bosses);
+    SQUEAK_YADGAINE_LEG,        // Its legs (drawn with its graphics; the variant 0 its back one, 1 its front one);
+    SQUEAK_YADGAINE_THING,      // What it throws and knocks down (Squeak Squad's kind the variant: its shot, blocks, rocks);
+    SQUEAK_YADGAINE_GORDO,      // A gordo falling in its fight (enemy/gordo);
+    SQUEAK_YADGAINE_DAROACH,    // Daroach bringing it in (drawn with his graphics);
     SQUEAK_ENEMY_COUNT,
 };
 
@@ -429,5 +434,15 @@ void MechaKrackoInit(struct SqueakObject *);
 void MechaKrackoStart(struct Object *);
 void MechaKrackoEyeInit(struct SqueakObject *);
 void MechaKrackoEyeStart(struct Object *);
+void YadgaineInit(struct SqueakObject *);
+void YadgaineStart(struct Object *);
+void YadgaineLegInit(struct SqueakObject *);
+void YadgaineLegStart(struct Object *);
+void YadgaineThingInit(struct SqueakObject *);
+void YadgaineThingStart(struct Object *);
+void YadgaineGordoInit(struct SqueakObject *);
+void YadgaineGordoStart(struct Object *);
+void YadgaineDaroachInit(struct SqueakObject *);
+void YadgaineDaroachStart(struct Object *);
 
 #endif

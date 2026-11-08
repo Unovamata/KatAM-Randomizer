@@ -1998,11 +1998,28 @@ namespace KatAMRandomizer {
             throw new InvalidOperationException($"Letter {index} of object 0x{type:X2}'s name wasn't found.");
         }
 
+        /* HandLetter(); A letter none of the game's names has (glyph type HandDrawn), drawn in their style: 6 rows, the fill 8, joints
+         * softened with 15 (as their "W" and "M"); the outline added as theirs. 0 "Y" (Yadgaine); */
+        internal const int HandDrawn = -2;
+        static readonly string[][] HandLetters = {
+            new[] { ".....", "#...#", "#...#", "+#.#+", ".+#+.", "..#..", "..#..", "....." },
+        };
+
+        static int[,] HandLetter(int index) {
+            string[] rows = HandLetters[index];
+            int[,] pixels = new int[8, rows[0].Length];
+
+            for (int y = 0; y < 8; y++)
+                for (int x = 0; x < rows[y].Length; x++) pixels[y, x] = rows[y][x] == '#' ? 8 : rows[y][x] == '+' ? 15 : 0;
+            return pixels;
+        }
+
         // ComposeName(); A name image (8 tiles) made of letters of the game's English names (none in the Japanese game: an empty one);
         static byte[] ComposeName(byte[] rom, KatAMExpansionCode.Version version, (int type, int letter)[] glyphs) {
             if (version.GameCode == "B8KJ") return new byte[0x100];
             int english = ReadInt(rom, version.Names + EnglishNames * 4) - 0x08000000;
-            List<int[,]> letters = glyphs.Select(g => g.type < 0 ? null : Letter(rom, english, g.type, g.letter)).ToList();
+            List<int[,]> letters = glyphs.Select(g => g.type == HandDrawn ? HandLetter(g.letter) : g.type < 0 ? null
+                                                   : Letter(rom, english, g.type, g.letter)).ToList();
 
             int width = 0;
             for (int i = 0; i < letters.Count; i++) {
