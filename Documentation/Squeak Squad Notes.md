@@ -82,6 +82,11 @@ VX -0x299A, VY 0, AY -0x2B8 and `+0xEC` (his untouchable frames) 30; his own thr
 (6 of 36 HP), then the usual knock-back (VX -0x1B34) and 120 untouchable frames. KatAM has the same thrown state: a hold table
 entry with flag 2 (`sub_0804F32C`: thrown, tumbling, hurt on landing, 1 HP).
 
+Cret (`0x02072E3C`) is not pulled at all: it blows back (animation 3), and still inhaled once that has played, its cloud comes off
+(animations 4 and 5, then 20 frames) and it pops (`0x02070C54`): Squeak Squad's random 0-99 under 30 spawns enemy 5 (Gordo,
+factory record ID 5), else an item (`0x0203B210`: 6 food healing 9999, the Maxim Tomato; 7 heals 24 of 36; 8, 12; 9, 6; 1 the
+1-UP; logged on the DS with the roll forced at `0x02070CA8`).
+
 ### The stage's water splashes
 
 The stage's map object (`*0x02229F1C + 0x48`, vtable `+0xB4`, `0x02215A10`) splashes: type 0 into the water, 1 out of it. Only at
@@ -175,7 +180,7 @@ Bonkers, Box Boxer, Boxy. The others get a full port (body and brain constructor
 | 0x0D | Perara | 0x0206FD54 (0x260) | 0x0206E85C (0xB8) | yes |
 | 0x0E | Gold Waddle Dee | 0x020B6764 (0x250) | 0x020B4EF4 (0xC0) | yes |
 | 0x0F | Maiga | 0x020A2108 (0x26C) | 0x020A0B58 (0xB4) | yes |
-| 0x10 | Cret | 0x02073044 (0x284) | 0x020705AC (0xC8) | |
+| 0x10 | Cret | 0x02073044 (0x284) | 0x020705AC (0xC8) | yes |
 | 0x11 | Uja | 0x020840C8 (0x294) | 0x02080AD0 (0xC4) | |
 | 0x25 | Bio Spark | 0x0207CF18 (0x264) | 0x0207A284 (0xB4) | |
 | 0x26 | Starman | 0x020877B8 (0x24C) | 0x02084B10 (0xD0) | |

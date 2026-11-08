@@ -34,6 +34,10 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
     bite, bob, release, throw) and tested in KatAM (room 0x323, USA): the hops, the pull, the bite on Kirby and on a helper,
     mashing free (42 frames with A every 2 frames), the throw and the hurt landing. Not tested: a hit on it while it bites, a
     helper's mashing.
+  - Cret: ported from its code with its ball (all four brains, its three loops, the drop, the blow-back and pop). Checked against
+    the DS by logging (drift, bob, the inhale's timing, the pop's spawns) and tested in KatAM (room 0x323, USA): variant 0's drift,
+    variant 1's loop and drop, variant 2 inhaled to the pop. Not tested: loops A and B, the fly-away, the ball's burst on screen,
+    what the pop leaves in KatAM.
   - Still to do for those: their sounds (Squeak Squad's are the DS's own: KatAM's nearest, or the owner's call); the enemy base
     class's own states (bumping into Kirby, the shared state in water of the ones that don't swim).
   - Left: the other Squeak Squad-only enemies, the Squeak Squad behaviors of shared enemies, the mid-bosses, the Squeaks and the

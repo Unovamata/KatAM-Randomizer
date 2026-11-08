@@ -185,6 +185,9 @@ namespace KatAMRandomizer {
         // "C", "i", "p" (Chip), "r" (Bronto Burt), "m" (Bomber);
         static readonly (int type, int letter)[] CrimpGlyphs = { (0x08, 0), (0x01, 1), (0x08, 2), (0x28, 2), (0x08, 3) };
 
+        // "C" (Chip), "r" (Bronto Burt), "e", "t" (Hot Head);
+        static readonly (int type, int letter)[] CretGlyphs = { (0x08, 0), (0x01, 1), (0x14, 4), (0x14, 2) };
+
         static readonly List<SqueakEnemy> SqueakDefinitions = new List<SqueakEnemy> {
             // Perara: hurt animations 7 and 8 (0x02021A88's 0x1000007, 0x1000008);
             new SqueakEnemy(0, "Perara", "perara", new[] { 18, 19, 19 },
@@ -202,6 +205,10 @@ namespace KatAMRandomizer {
             // Maiga: hurt cells 11 and 12 (its animations 6 and 7, and 13 and 14 the same);
             new SqueakEnemy(5, "Maiga", "maiga", new[] { 11, 12, 12 },
                             new[] { (0x27, 0), (0x14, 5), (0x27, 1), (0x16, 3), (0x14, 5) }),   // "M", "i" (Minny), "a" (Hot Head), "g" (Pengy);
+            // Cret: hurt cells 14 and 15 (its animations 6 and 7: 0x02073044's 0x1000006, 0x1000007); its ball (0x02073764) is drawn
+            // with its graphics (cret.cea's animations 9 and 11, cells 16-31);
+            new SqueakEnemy(6, "Cret", "cret", new[] { 14, 15, 15 }, CretGlyphs),
+            new SqueakEnemy(7, "Cret", "cret", new[] { 16, 16, 16 }, CretGlyphs, GraphicsOf: 6),
         };
 
         public static IReadOnlyList<(int index, string name)> SqueakEnemies => SqueakDefinitions.Select(e => (e.Index, e.Name)).ToList();

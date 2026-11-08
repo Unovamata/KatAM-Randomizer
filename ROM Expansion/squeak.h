@@ -28,6 +28,8 @@ enum {
     SQUEAK_CRIMP,
     SQUEAK_CRIMP_ROCK,          // Crimp's rock (spawned by it, drawn with its graphics);
     SQUEAK_MAIGA,
+    SQUEAK_CRET,
+    SQUEAK_CRET_BALL,           // Cret's ball (dropped by it, drawn with its graphics);
     SQUEAK_ENEMY_COUNT,
 };
 
@@ -222,5 +224,9 @@ void CrimpRockInit(struct SqueakObject *);
 void CrimpRockStart(struct Object *);
 void MaigaInit(struct SqueakObject *);
 void MaigaStart(struct Object *);
+void CretInit(struct SqueakObject *);
+void CretStart(struct Object *);
+void CretBallInit(struct SqueakObject *);
+void CretBallStart(struct Object *);
 
 #endif
