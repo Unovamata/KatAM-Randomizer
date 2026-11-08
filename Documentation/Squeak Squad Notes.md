@@ -32,7 +32,9 @@ Each character has a set of files of HAL's own formats, all little-endian:
   OAM (`attr0`, `attr1`, `attr2`, padding: the DS's own OAM, with the tile number in `attr2` counted in 4-tile steps from the
   cell's first tile).
 - Animations: `u16` count, `u16` 0x0C, `u32`, then one `u32` offset (from the animations' offset) per animation. An animation:
-  `u16` frames, `u16` flags (1 loops), `u32` total length, then 8 bytes a frame: `u16` cell, `u16` frames shown, `u32`.
+  `u8` frames, `u8` flags (1 loops), `u16`, `u32` total length, then 8 bytes a frame: `u16` cell, `u16` frames shown, `s16` x and
+  `s16` y: where the cell is drawn, in pixels (y down), added to its position when the OAM is built (`0x01FF8720`, in ITCM).
+- The cells face right (KatAM's enemies' frames face left).
 - Waddle Dee: 10 cells of 12 tiles (120 tiles, the `.cga`'s 0xF00 bytes); animation 1 walks (cells 0-4-1, 11 or 8 frames each,
   looping), animation 2 the same 4 frames each.
 
@@ -130,18 +132,28 @@ ARMv5T, literal pools made read-only so constants fold).
 - **Physics** (all 20.12, a frame; **Y up**: the stage's y grows upwards): `+0x74` x, `+0x78` y, `+0x8C` speed x (forward:
   `+0x14` bit 2 means facing left, and it is negated then), `+0x90` speed y, `+0x94`/`+0x98` speed caps, `+0x9C`/`+0xA0`
   acceleration, `+0xA4`/`+0xA8` friction, `+0x84` the distance down to the floor (under 1: on the ground). `0x02013D18` moves:
-  acceleration, caps (`0x02013460`), friction (`0x02013370`), terrain (`0x0201355C`). `0x02023468` stops everything,
-  `0x02023410(v)` caps the speed up at `v`, `0x020132B4` turns around.
-- **Flags** (`+0x14`): bit 2 facing left, bit 3 the animation got through once, bit 6 in the air.
+  acceleration, caps (`0x02013460`), friction (`0x02013370`), terrain (`0x0201355C`); the states check the ground right after.
+  `0x02023468` stops everything, `0x02023410(v)` caps the fall at `v`, `0x020233EC(a, v)` sinks at `a` down to `v`.
+  `0x020132B4` turns around: the facing bit, the speed and acceleration across, the walls ahead and behind swap, and the brain's
+  direction is negated (its vtable `+0x10`, `0x02013368`: a "turn round", -1, becomes 1). The turn's frame still moves the old way.
+- **Flags** (`+0x14`): bit 2 facing left, bit 3 the animation got through once, bit 6 in the air, `0x400` touching a wall, `0x800`
+  a wall ahead, `0x1000` a wall behind (`0x0201355C`), `0x200000` in water.
+- **Base class** (vtable): `+0x34` the dispatcher, `+0x3C` the start state, `+0x80` checked first by each state (the shared one,
+  `0x02021408`: in water, the shared state `+0x6C`; Gold Waddle Dee's own, `0x020B5078`, swims), `+0x88` whether the brain runs.
+  Bumping into Kirby runs the base class's `+0x48` and `+0x50` states.
 - **Animations**: the sprite object's `vtable +8` with `0x1000000 | animation` plays one of the character's own (`.cea`).
   `0x02021A88` keeps the hurt animations (Perara: 7 and 8).
 - **Parameters**: each `Params` object (`0x020213B8`, then `0x020212CC` loads its file) points at its values at `+0x0C`. The body
   keeps the movement ones twice: `+0x224` (`Ml0`) when the brain's `+8` is 3 (normal), else `+0x254` (`MlG`).
-- **Brain**: `+0x10` its body, `+0x14` direction (-1: turn around), `+0x38`/`+0x1C` button A, `+0x3C`/`+0x20` button B, `+0x74`
-  its own state (one run a frame). Helpers: `0x0206FF08` faces Kirby, `0x0206FF64` Kirby within some distance across,
-  `0x0206FF94` within a box. The brain runs before the body each frame.
+- **Brain**: `+0x8` 3 for the enemies' brains (the body's "normal mode": the other reads `MlG` and lets A jump in the air), `+0x10`
+  its body, `+0x14` direction (1 forward, -1 turn around, 0 none; it holds until changed), `+0x18` up/down, `+0x38`/`+0x1C` button
+  A, `+0x3C`/`+0x20` button B, `+0x74` its own state (one run a frame; states are member-function pointers in data tables). Helpers:
+  `0x0206FF08` faces Kirby (each enemy has its own copy: unchanged when he's ahead), `0x0206FF64` Kirby within some distance
+  across, `0x0206FF94` within a box. The brain runs before the body each frame. The spawn record's first parameter byte picks the
+  brain's first state (Gold Waddle Dee: 0x020B4EF4's switch).
 - **Random numbers**: a 64-bit LCG at `0x01FF8120` (`0x0200C7EC` multiplies); `random(0, 100)` picks weighted choices.
-- **Effects and sounds**: `0x02021900` spawns an effect (type, offset), `0x02013EE8` plays a sound.
+- **Effects and sounds**: `0x02021900` spawns an effect (offset, facing, type): types 0-5 are `effect/efc_cmn0`'s animations,
+  6-16 `efc_cmn1`'s, by the table at `0x02157DF8` (type 3, the dust puff: `efc_cmn0` animation 19). `0x02013EE8` plays a sound.
 
 ## Test harness (DS emulator)
 

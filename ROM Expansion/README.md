@@ -246,14 +246,23 @@ how Squeak Squad's enemies work): [Squeak Squad Notes](../Documentation/Squeak%2
 - **Graphics** (`KatAMExpansionSqueak.cs`): the NDS file system's `enemy/<name>.cga` (tiles), `.cla` (palettes), `.cea` (cells and
   animations). Each cell is drawn from its DS OAM pieces onto a canvas (the character's origin, its feet, at the center) and cut
   into KatAM pieces (`CutFrame`). A character's colors go in one palette when they fit in 15.
-- **Animations**: Squeak Squad's own (cell, frames) steps, in `gSqueakData`, played by `SqueakPlay`/`SqueakAnimate` (a looping
-  animation still flags that it got through once, as Squeak Squad's flag 8 that characters wait for).
+- **Animations**: Squeak Squad's own (cell, frames, offset) steps, in `gSqueakData`, played by `SqueakPlay`/`SqueakAnimate` (a
+  looping animation still flags that it got through once, as Squeak Squad's flag 8 that characters wait for). A step's offset
+  moves its drawing (Squeak Squad adds it to the cell's position when it builds the OAM; KatAM's `objBase54`/`55`). The cells are
+  mirrored left to right: Squeak Squad's face right, KatAM's enemies' frames left (KatAM flips them when the object faces right).
 - **Moves**: Squeak Squad's enemies are a body driven by a brain (a virtual pad: a direction, A and B); both are ported, state for
   state. A state function returning TRUE runs the next one in the same frame, as Squeak Squad's dispatcher does (`SqueakRun`).
   Speeds and positions are Squeak Squad's 20.12 (`SQUEAK_SPEED` converts), Y up as KatAM's speeds; terrain is KatAM's.
+- **Squeak Squad's engine** (`squeak.c`, its enemies' shared functions): `SqueakMove` (acceleration, speed caps, friction, then the
+  move and the terrain there and then, as Squeak Squad's states check the ground right after moving: KatAM's own move and terrain,
+  `sub_0809D8C8`, which `ObjectMain` runs after the object's function, and `SqueakFinishFrame` leaves it nothing to move again),
+  `SqueakStop`, `SqueakCapFall`, `SqueakSinkTo`, `SqueakTurnAround` (the brain's -1, "turn round", becomes 1 once done, as Squeak
+  Squad's), the ground, a wall ahead, water (as its last move met them: KatAM's `unk62` and `unk58`), facing Kirby and Kirby within
+  a box. Characters with moves in water are flagged swimmers (KatAM's engine drowns the others, `unkC` 1).
 - **On the ground**: Squeak Squad's spawn records stand a character on the ground; `SqueakStandOnFloor` puts its feet on the first
   floor below its template's cell.
 
 | Character | Squeak Squad | File | What it does |
 | --- | --- | --- | --- |
 | Perara | enemy 0x0D | `squeak/perara.c` | Hovers; on the ground it waits for Kirby within 60 pixels, crouches (58 frames), launches 70 pixels up and floats down swaying; checked against the DS game frame by frame (crouch, launch, apex, sway start). |
+| Gold Waddle Dee | enemy 0x0E | `squeak/gold_waddle_dee.c` | Walks at 1.25 (turning at walls), and per its variant (the template's `unk12`, Squeak Squad's spawn byte) patrols 24 pixels either side, jumps once at Kirby within 48 pixels, jumps every 121 frames, or stands; off a ledge it stops 5 frames in the air ("whoa") and falls; swims in water (1.2 across, sinking at 0.9) and jumps out. HP 6 (Squeak Squad's 30, three Waddle Dees'). Checked against the DS game (walk speed and animation, wall turn every other frame, jump arc, ledge hover, landing frame); its dust puffs and sounds aren't ported yet. |

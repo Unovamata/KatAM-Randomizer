@@ -50,62 +50,28 @@ enum { BODY_AIR_ENTRY, BODY_AIR, BODY_WALK_ENTRY, BODY_WALK, BODY_LAND_ENTRY, BO
 // Brain states (one each frame);
 enum { BRAIN_START, BRAIN_WAIT, BRAIN_WATCH, BRAIN_GROUND, BRAIN_JUMPED, BRAIN_FLOAT };
 
-// Squeak Squad's physics, and the rest of the body's and brain's fields, in vars (squeak.h's SqueakObject);
-#define VX(s) ((s)->vars[0])
-#define VY(s) ((s)->vars[1])
-#define AX(s) ((s)->vars[2])
-#define AY(s) ((s)->vars[3])
-#define WAIT(s) ((s)->vars[4])          // 0x20C: frames to wait between sways;
-#define TIMER(s) ((s)->vars[5])         // 0x208 (the launch), 0x210 (the sway's start);
-#define PAD_DIR(s) ((s)->vars[6])       // The brain's pad: direction (-1: turn around), A, B;
-#define PAD_A(s) ((s)->vars[7])
-#define PAD_B(s) ((s)->vars[8])
-#define BRAIN(s) ((s)->vars[9])
-#define BRAIN_TIMER(s) ((s)->vars[10])  // 0x98;
-#define BRAIN_WAIT_TIMER(s) ((s)->vars[11])  // 0x9C;
-#define PHASE(s) ((s)->vars[12])        // 0x214: 1 in the air, 2 on the ground, 3 moving across, 4 jumping, 5 floating;
-#define WALK(s) ((s)->vars[13])         // 0x1F8: its speed across in the air;
-#define BOB_TIMER(s) ((s)->vars[14])    // 0x200;
+// The body's and brain's own fields (squeak.h's SqueakObject has the physics and the pad);
+#define WAIT(s) ((s)->vars[0])          // 0x20C: frames to wait between sways;
+#define TIMER(s) ((s)->vars[1])         // 0x208 (the launch), 0x210 (the sway's start);
+#define BRAIN_TIMER(s) ((s)->vars[2])   // 0x98;
+#define BRAIN_WAIT_TIMER(s) ((s)->vars[3])  // 0x9C;
+#define PHASE(s) ((s)->vars[4])         // 0x214: 1 in the air, 2 on the ground, 3 moving across, 4 jumping, 5 floating;
+#define WALK(s) ((s)->vars[5])          // 0x1F8: its speed across in the air;
+#define BOB_TIMER(s) ((s)->vars[6])     // 0x200;
+#define VX(s) ((s)->vx)
+#define VY(s) ((s)->vy)
+#define AX(s) ((s)->ax)
+#define AY(s) ((s)->ay)
+#define PAD_DIR(s) ((s)->padDir)
+#define PAD_A(s) ((s)->padA)
+#define PAD_B(s) ((s)->padB)
+#define BRAIN(s) ((s)->brain)
 
-// The KatAM position in Squeak Squad's units: x, and y up;
-#define SQ_X(obj) ((obj)->base.x << 4)
-#define SQ_Y(obj) (-(obj)->base.y << 4)
-
-// Move(); 0x02013D18: speed += acceleration, then the engine moves it (on KatAM's terrain);
-static void Move(struct SqueakObject *s) {
-    struct Object *obj = &s->obj;
-
-    VX(s) += AX(s);
-    VY(s) += AY(s);
-    obj->base.xspeed = SQUEAK_SPEED(obj->base.flags & 1 ? -VX(s) : VX(s));
-    obj->base.yspeed = SQUEAK_SPEED(VY(s));
-}
-
-// OnGround(); 0x84 (its distance to the floor) under 1;
-static bool32 OnGround(struct SqueakObject *s) {
-    return (s->obj.base.unk62 & 4) && VY(s) <= 0;
-}
-
-// Stop(); 0x02023468: no speed, no acceleration;
-static void Stop(struct SqueakObject *s) {
-    VX(s) = VY(s) = AX(s) = AY(s) = 0;
-    s->obj.base.xspeed = s->obj.base.yspeed = 0;
-}
-
-// CapUp(); 0x02023410: no faster than 2.4 up;
-static void CapUp(struct SqueakObject *s) {
-    if (VY(s) <= MAX_UP) {
-        VY(s) = MAX_UP;
-        AY(s) = 0;
-    }
-}
-
-// TurnAround(); 0x020132B4;
-static void TurnAround(struct SqueakObject *s) {
-    s->obj.base.flags ^= 1;
-    VX(s) = -VX(s);
-    AX(s) = -AX(s);
-}
+#define Move SqueakMove
+#define Stop SqueakStop
+#define OnGround SqueakOnGround
+#define TurnAround SqueakTurnAround
+#define CapUp(s) SqueakCapFall(s, MAX_UP)
 
 /* Bob(); 0x0206E938: in the air it bobs, 20 frames up then 20 down (each frame 0x4CD and 0x19A of acceleration from still), across
  * at its speed across; */
@@ -311,27 +277,15 @@ static bool32 Body(struct SqueakObject *s) {
     return FALSE;
 }
 
-// KirbyWithin(); 0x0206FF94 / 0x0206FF64: the closest Kirby within (dx, dy) of it (dy 0: any height);
-static bool32 KirbyWithin(struct Object *obj, s32 dx, s32 dy) {
-    s32 x = SQ_X(obj->kirby3) - SQ_X(obj), y = SQ_Y(obj->kirby3) - SQ_Y(obj);
-
-    if (x <= -dx || x >= dx) return FALSE;
-    return dy == 0 || (y > -dy && y < dy);
-}
-
 static void Brain(struct SqueakObject *s) {
-    struct Object *obj = &s->obj;
-
     switch (BRAIN(s)) {
     case BRAIN_START:   // 0x0206E790: turn to face Kirby;
-        if (SQ_X(obj->kirby3) > SQ_X(obj) + 0x1000) PAD_DIR(s) = obj->base.flags & 1 ? -1 : 0;
-        else if (SQ_X(obj->kirby3) < SQ_X(obj) - 0x1000) PAD_DIR(s) = obj->base.flags & 1 ? 0 : -1;
-        else PAD_DIR(s) = 0;
+        SqueakFaceKirby(s, 0x1000);
         BRAIN(s) = BRAIN_WAIT;
         break;
     case BRAIN_WAIT:    // 0x0206E75C;
         PAD_DIR(s) = 0;
-        if (KirbyWithin(obj, WAKE_X, WAKE_Y)) {
+        if (SqueakKirbyWithin(s, WAKE_X, WAKE_Y)) {
             PAD_B(s) = 1;
             BRAIN(s) = BRAIN_WATCH;
         }
@@ -345,7 +299,7 @@ static void Brain(struct SqueakObject *s) {
         if (PHASE(s) == 1) BRAIN(s) = BRAIN_FLOAT;
         break;
     case BRAIN_GROUND:  // 0x0206E670;
-        if (KirbyWithin(obj, JUMP_X, 0) || BRAIN_WAIT_TIMER(s) < 1) {
+        if (SqueakKirbyWithin(s, JUMP_X, 0) || BRAIN_WAIT_TIMER(s) < 1) {
             BRAIN_WAIT_TIMER(s) = 0;
             BRAIN_TIMER(s) = FLOAT_WAIT;
             PAD_A(s) = 1;
@@ -379,6 +333,7 @@ static void PeraraMain(struct Object *obj) {
 
     Brain(s);
     SqueakRun(s, Body);
+    SqueakFinishFrame(s);
     SqueakAnimate(s);
 }
 
@@ -386,9 +341,8 @@ void PeraraStart(struct Object *obj) {
     struct SqueakObject *s = (struct SqueakObject *)obj;
 
     ObjectSetFunc(obj, 0, PeraraMain);
-    BRAIN(s) = BRAIN_START;
-    PAD_DIR(s) = PAD_A(s) = PAD_B(s) = 0;
-    WALK(s) = BOB_TIMER(s) = 0;
+    // (after a hit only the body starts over, at vtable +0x3C; the brain goes on);
+    if (!s->started) BRAIN(s) = BRAIN_START;
     SqueakSetState(s, BODY_AIR_ENTRY);
 }
 

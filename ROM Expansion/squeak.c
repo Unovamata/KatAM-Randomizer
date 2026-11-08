@@ -10,10 +10,12 @@ void NidlDestroy(struct Task *task);
 // HP as KatAM's enemies' (NiDL's ported ones' too): 4 for the ones that give an ability, 2 for the others;
 const s16 gSqueakEnemyHp[SQUEAK_ENEMY_COUNT] = {
     [SQUEAK_PERARA] = 2,
+    [SQUEAK_GOLD_WADDLE_DEE] = 6,   // Squeak Squad's: 30, a Waddle Dee's 10 (Perara's too);
 };
 
 static const struct SqueakCharacter sSqueakCharacters[SQUEAK_ENEMY_COUNT] = {
-    [SQUEAK_PERARA] = { PeraraInit, PeraraStart, 0 },
+    [SQUEAK_PERARA] = { PeraraInit, PeraraStart, 0, FALSE },
+    [SQUEAK_GOLD_WADDLE_DEE] = { GoldWaddleDeeInit, GoldWaddleDeeStart, 0, TRUE },
 };
 
 /* SqueakAnimFor(); The anim and variant an object shows (variant << 16 | anim ID), for the game's object drawing (sub_0809A7A4,
@@ -45,25 +47,27 @@ void SqueakPlay(struct SqueakObject *s, u8 anim) {
 
 /* SqueakAnimate(); Steps the animation, once per frame: a step shows its cell its frames, then the next; after the last, a looping
  * animation starts over, the others hold their last step. Either way animEnded tells the animation got through once (Squeak
- * Squad's flag 8, which characters wait for); */
+ * Squad's flag 8, which characters wait for). The step's offset moves the drawing (Squeak Squad adds it to the cell's position when
+ * it builds the OAM, 0x01FF8720; KatAM's objBase54/55, which the drawing clears once used); */
 void SqueakAnimate(struct SqueakObject *s) {
     const struct SqueakAnim *a = &gSqueakData.enemies[s->enemy].anim[s->anim];
 
-    if ((s->animEnded && !a->loops) || (s->timer && --s->timer)) return;
-    if (s->step + 1 >= a->steps) {
-        s->animEnded = TRUE;
-        if (!a->loops) return;
-        s->step = 0;
-    } else {
-        s->step++;
+    if (!(s->animEnded && !a->loops) && !(s->timer && --s->timer)) {
+        if (s->step + 1 < a->steps) {
+            s->step++;
+            s->timer = a->step[s->step].frames;
+            SqueakSetCell(s, a->step[s->step].cell);
+        } else {
+            s->animEnded = TRUE;
+            if (a->loops) {
+                s->step = 0;
+                s->timer = a->step[0].frames;
+                SqueakSetCell(s, a->step[0].cell);
+            }
+        }
     }
-    s->timer = a->step[s->step].frames;
-    SqueakSetCell(s, a->step[s->step].cell);
-}
-
-// SqueakStepExtra(); The third word of the animation's step showing (Squeak Squad moves some characters with it);
-s32 SqueakStepExtra(struct SqueakObject *s) {
-    return gSqueakData.enemies[s->enemy].anim[s->anim].step[s->step].extra;
+    s->obj.base.objBase54 = a->step[s->step].x;
+    s->obj.base.objBase55 = a->step[s->step].y;
 }
 
 /* SqueakSetState(); A new state for the character's own code; its timer counts the times the state ran (0 the first: Squeak Squad
@@ -111,9 +115,143 @@ void SqueakStandOnFloor(struct Object *obj) {
     for (i = 0; i < 5; i++, y += 0x1000) {
         if (NidlIsFloor(obj, obj->base.x, y + 0x1000)) {
             obj->base.unk4C = obj->base.y = y + 0x1000 - 1;
+            ((struct SqueakObject *)obj)->terrain = 4;
             return;
         }
     }
+}
+
+/* Squeak Squad's engine: the functions its enemies share, on SqueakObject's fields (speeds 20.12 a frame, Y up, x forward: facing
+ * left, KatAM's flag 1, turns it round); */
+
+/* SqueakMove(); 0x02013D18: acceleration and the caps (0x02013460), friction (0x02013370), then the move on the terrain (0x0201355C),
+ * there and then as Squeak Squad's (its states check the ground right after moving): KatAM's own, ObjectMain's after the object's
+ * function (position, then sub_0809D8C8's terrain: unk62's floor and walls, unk58's water); SqueakFinishFrame() leaves it nothing
+ * to move again; */
+void SqueakMove(struct SqueakObject *s) {
+    struct ObjectBase *base = &s->obj.base;
+
+    s->vx += s->ax;
+    s->vy += s->ay;
+    if (s->maxVx > 0) {
+        if (s->vx > s->maxVx) s->vx = s->maxVx;
+        if (s->vx < -s->maxVx) s->vx = -s->maxVx;
+    }
+    if (s->maxVy > 0) {
+        if (s->vy > s->maxVy) s->vy = s->maxVy;
+        if (s->vy < -s->maxVy) s->vy = -s->maxVy;
+    }
+    if (s->fx > 0) {
+        if (s->vx > 0) {
+            if ((s->vx -= s->fx) < 0) s->vx = 0;
+        } else if (s->vx < 0 && (s->vx += s->fx) > 0) {
+            s->vx = 0;
+        }
+    }
+    if (s->fy > 0) {
+        if (s->vy > 0) {
+            if ((s->vy -= s->fy) < 0) s->vy = 0;
+        } else if (s->vy < 0 && (s->vy += s->fy) > 0) {
+            s->vy = 0;
+        }
+    }
+    base->xspeed = SQUEAK_SPEED(base->flags & 1 ? -s->vx : s->vx);
+    base->yspeed = SQUEAK_SPEED(s->vy);
+    if (!(base->flags & 0x800)) {
+        base->unk48 = base->x;
+        base->unk4C = base->y;
+        base->x += base->xspeed;
+        base->y -= base->yspeed;
+    }
+    if (!(base->flags & 0x100)) sub_0809D8C8(base);
+    s->terrain = base->unk62;
+    s->water = base->unk58;
+    s->moved = TRUE;
+}
+
+/* SqueakFinishFrame(); After the character's frame: moved already (SqueakMove), ObjectMain's move after its function moves it no more
+ * (only by what pushes it, unk98/unk9A); */
+void SqueakFinishFrame(struct SqueakObject *s) {
+    if (s->moved) s->obj.base.xspeed = s->obj.base.yspeed = 0;
+    s->moved = FALSE;
+}
+
+// SqueakStop(); 0x02023468: no speed, acceleration, caps or friction;
+void SqueakStop(struct SqueakObject *s) {
+    s->vx = s->vy = s->ax = s->ay = s->maxVx = s->maxVy = s->fx = s->fy = 0;
+    s->obj.base.xspeed = s->obj.base.yspeed = 0;
+}
+
+// SqueakCapFall(); 0x02023410: falls no faster than `cap` (negative: down); TRUE once there;
+bool32 SqueakCapFall(struct SqueakObject *s, s32 cap) {
+    if (s->vy <= cap) {
+        s->vy = cap;
+        s->ay = 0;
+        return TRUE;
+    }
+    return FALSE;
+}
+
+// SqueakSinkTo(); 0x020233EC: sinks at `accel` down to `cap`; TRUE once there;
+bool32 SqueakSinkTo(struct SqueakObject *s, s32 accel, s32 cap) {
+    if (s->vy <= cap) {
+        s->vy = cap;
+        s->ay = 0;
+        return TRUE;
+    }
+    s->ay = accel;
+    return FALSE;
+}
+
+/* SqueakTurnAround(); 0x020132B4: faces the other way, its speed and acceleration across with it; the brain's direction too (its
+ * vtable +0x10, 0x02013368: a turn asked for, -1, is done), and the walls ahead and behind (flags 0x800 and 0x1000) swap; */
+void SqueakTurnAround(struct SqueakObject *s) {
+    u8 walls = s->terrain;
+
+    s->obj.base.flags ^= 1;
+    s->padDir = -s->padDir;
+    s->vx = -s->vx;
+    s->ax = -s->ax;
+    s->terrain = (walls & ~3) | (walls & 1) << 1 | (walls & 2) >> 1;
+}
+
+// SqueakOnGround(); 0x84 (its distance down to the floor, from its last move) under 1;
+bool32 SqueakOnGround(struct SqueakObject *s) {
+    return (s->terrain & 4) && s->vy <= 0;
+}
+
+// SqueakWallAhead(); Squeak Squad's flag 0x800 (0x0201355C): its last move met a wall in front of it (KatAM's unk62 1);
+bool32 SqueakWallAhead(struct SqueakObject *s) {
+    return s->terrain & 1;
+}
+
+// SqueakInWater(); Squeak Squad's flag 0x200000: in water at its last move (KatAM's unk58 2, as its Blipper reads it);
+bool32 SqueakInWater(struct SqueakObject *s) {
+    return s->water & 2;
+}
+
+/* SqueakFaceKirby(); 0x0206FF08 (each enemy has its own copy: Gold Waddle Dee's 0x020B6918): Kirby more than `distance` behind it,
+ * its pad turns it round; within `distance` across, no direction; ahead, the direction stays as it was; */
+void SqueakFaceKirby(struct SqueakObject *s, s32 distance) {
+    struct Object *obj = &s->obj;
+    s32 kirby = SQ_X(obj->kirby3), x = SQ_X(obj);
+
+    if (kirby > x + distance) {
+        if (obj->base.flags & 1) s->padDir = -1;
+    } else if (kirby < x - distance) {
+        if (!(obj->base.flags & 1)) s->padDir = -1;
+    } else {
+        s->padDir = 0;
+    }
+}
+
+// SqueakKirbyWithin(); 0x0206FF94 / 0x0206FF64: the closest Kirby within (dx, dy) of it (dy 0: any height);
+bool32 SqueakKirbyWithin(struct SqueakObject *s, s32 dx, s32 dy) {
+    struct Object *obj = &s->obj;
+    s32 x = SQ_X(obj->kirby3) - SQ_X(obj), y = SQ_Y(obj->kirby3) - SQ_Y(obj);
+
+    if (x <= -dx || x >= dx) return FALSE;
+    return dy == 0 || (y > -dy && y < dy);
 }
 
 void *CreateSqueakEnemy(struct ObjectTemplate *template, u8 playerId) {
@@ -131,9 +269,16 @@ void *CreateSqueakEnemy(struct ObjectTemplate *template, u8 playerId) {
     s->animEnded = TRUE;
     s->state = 0;
     s->stateTimer = 0;
+    s->brain = 0;
+    s->started = FALSE;
+    s->moved = FALSE;
+    s->terrain = s->water = 0;
+    SqueakStop(s);
+    s->padDir = s->padY = s->padA = s->padB = 0;
     for (i = 0; i < ARRAY_COUNT(s->vars); i++) s->vars[i] = 0;
     s->obj.unk80 = gSqueakEnemyHp[enemy];
     sSqueakCharacters[enemy].init(s);
+    if (sSqueakCharacters[enemy].swims) s->obj.base.unkC |= 1;
     // (the type's AnimInfo table has one entry: ObjectInitSprite reads it; the patched drawing shows the character's own frames);
     s->obj.unk83 = 0;
     ObjectInitSprite(&s->obj);
@@ -151,6 +296,7 @@ void SqueakStart(struct Object *obj) {
     // The engine's gravity off (flag 0x40, and 0x20, which keeps it on once falling): Squeak Squad's characters have their own;
     obj->base.flags = (obj->base.flags | 0x40) & ~0x20;
     sSqueakCharacters[s->enemy].start(obj);
+    s->started = TRUE;
 }
 
 // SqueakName(); A character's HP bar name (NidlCopyName shows it);

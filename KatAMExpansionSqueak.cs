@@ -65,8 +65,8 @@ namespace KatAMRandomizer {
         internal sealed record SqueakPiece(int Attr0, int Attr1, int Attr2);
         // A cell: its first tile and pieces;
         internal sealed record SqueakCell(int Tile, List<SqueakPiece> Pieces);
-        // An animation step: the cell, how many frames it shows, and its third word (some characters move with it, Chip's hop);
-        internal sealed record SqueakStep(int Cell, int Frames, int Extra);
+        // An animation step: the cell, how many frames it shows, and where it's drawn (x, y: pixels added to the position, y down);
+        internal sealed record SqueakStep(int Cell, int Frames, short X, short Y);
         internal sealed record SqueakAnim(bool Loops, List<SqueakStep> Steps);
 
         // A character's graphics: tiles, palettes (16 colors each), cells and animations;
@@ -105,7 +105,8 @@ namespace KatAMRandomizer {
             character.Anims = Enumerable.Range(0, ReadShort(cea, anims)).Select(a => {
                 int at = anims + ReadInt(cea, anims + 8 + a * 4);
                 return new SqueakAnim(cea[at + 1] != 0, Enumerable.Range(0, cea[at])
-                    .Select(s => new SqueakStep(ReadShort(cea, at + 8 + s * 8), ReadShort(cea, at + 10 + s * 8), ReadInt(cea, at + 12 + s * 8))).ToList());
+                    .Select(s => new SqueakStep(ReadShort(cea, at + 8 + s * 8), ReadShort(cea, at + 10 + s * 8),
+                                                   (short)ReadShort(cea, at + 12 + s * 8), (short)ReadShort(cea, at + 14 + s * 8))).ToList());
             }).ToList();
             return character;
         }
@@ -124,6 +125,10 @@ namespace KatAMRandomizer {
             // Perara: hurt animations 7 and 8 (0x02021A88's 0x1000007, 0x1000008);
             new SqueakEnemy(0, "Perara", "perara", new[] { 18, 19, 19 },
                             new[] { (0x16, 0), (0x14, 4), (0x01, 1), (0x14, 5), (0x01, 1), (0x14, 5) }),   // "P" (Pengy), "e", "a" (Hot Head), "r" (Bronto Burt);
+            // Gold Waddle Dee: hurt animations 13 and 14 (0x020B6764's 0x100000D, 0x100000E);
+            new SqueakEnemy(1, "Gold Waddle Dee", "gwaddledee", new[] { 9, 10, 10 },
+                            new[] { (0x03, 0), (0x01, 2), (0x03, 1), (0x00, 2), (-1, 0), (0x00, 0), (0x00, 1), (0x00, 2), (0x00, 3), (0x00, 4),
+                                    (0x00, 5), (-1, 0), (0x00, 6), (0x00, 7), (0x00, 8) }),   // "G" (Glunk), "o" (Bronto Burt), "l" (Glunk), "d", "Waddle Dee";
         };
 
         public static IReadOnlyList<(int index, string name)> SqueakEnemies => SqueakDefinitions.Select(e => (e.Index, e.Name)).ToList();
@@ -169,8 +174,7 @@ namespace KatAMRandomizer {
                     int steps = Allocate(ref cursor, Math.Max(1, anims[a].Steps.Count) * 8, 4);
                     for (int i = 0; i < anims[a].Steps.Count; i++) {
                         SqueakStep step = anims[a].Steps[i];
-                        WriteShorts(rom, steps + i * 8, step.Cell, step.Frames);
-                        WriteInt(rom, steps + i * 8 + 4, step.Extra);
+                        WriteShorts(rom, steps + i * 8, step.Cell, step.Frames, step.X, step.Y);
                     }
                     rom[table + a * 8] = (byte)anims[a].Steps.Count;
                     rom[table + a * 8 + 1] = (byte)(anims[a].Loops ? 1 : 0);
@@ -199,7 +203,8 @@ namespace KatAMRandomizer {
 
         /* SqueakCanvas(); One of a character's cells drawn on a canvas (size x size, the character's origin at its center; values:
          * colors + 1 of `colorMap`, which maps (palette, color) to the KatAM palette's color; 0 transparent), the pieces drawn back to
-         * front as the DS does (the first piece on top). Pieces of palettes `colorMap` lacks are left out; */
+         * front as the DS does (the first piece on top). Pieces of palettes `colorMap` lacks are left out. Mirrored: Squeak Squad's cells
+         * face right, KatAM's enemies' frames left (KatAM flips them, about the origin, when the object faces right); */
         static int[,] SqueakCanvas(SqueakCharacter character, int cell, Dictionary<(int palette, int color), int> colorMap, int size = 128) {
             int[,] canvas = new int[size, size];
             int center = size / 2;
@@ -219,7 +224,7 @@ namespace KatAMRandomizer {
                         int tile = firstTile + py / 8 * (w / 8) + px / 8, at = tile * 32 + py % 8 * 4 + px % 8 / 2;
                         int value = at < character.Tiles.Length ? character.Tiles[at] >> (px % 2 * 4) & 15 : 0;
                         if (value == 0 || !colorMap.TryGetValue((palette, value), out int color)) continue;
-                        int cx = center + x + (hflip ? w - 1 - px : px), cy = center + y + (vflip ? h - 1 - py : py);
+                        int cx = center - 1 - (x + (hflip ? w - 1 - px : px)), cy = center + y + (vflip ? h - 1 - py : py);
                         if (cx >= 0 && cy >= 0 && cx < size && cy < size) canvas[cx, cy] = color;
                     }
             }
