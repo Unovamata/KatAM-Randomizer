@@ -15,6 +15,11 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
   to one that goes straight to Central Circle. Its own hub is reached from Central Circle, not through the NiDL hub.
 - The Fountain of Dreams' world map door comes off the map (the owner: end-game only, its path never opens), with the Squeak
   Squad doors.
+- **The whole cast, 1:1** (the owner: "I don't want you to finish until you complete the entire cast of enemies and their
+  behaviors. If there's a behavior that's not in KatAM, port it 1:1."): every regular enemy, every mid-boss, the Squeaks and
+  every boss of the USA release (the owner chose "everything"). Enemies KatAM already has keep KatAM's own object, as NiDL's
+  natives do, and only the Squeak Squad behaviors KatAM lacks are ported (Gold Waddle Dee falling straight, Parasol Shotzo...);
+  the ones KatAM lacks get a full port with Squeak Squad's graphics. Research notes: [Squeak Squad Notes](Squeak%20Squad%20Notes.md).
 
 ## 5. Bosses as faithful 1:1 recreations of NiDL
 - **The other bosses**: check each against NiDL and fix what differs.
