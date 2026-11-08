@@ -173,6 +173,8 @@ kind 0, lands (`0x02073980`), and flies off (`0x02073B50`, `0x02073A88`: through
 parasol (object `0xA2`, `parasol.c`) does the same for its Waddle Dee, Waddle Doo and Shotzo (`shotzo.s`' `sub_0811B44C`), so it
 stays KatAM's.
 
+Squeak Squad's Glunk (body `0x0205B478`, brain `0x0205A51C`, `prmNE04Pl0.kgb` and `Pl1.kgb`, the spawn's second byte picking `Pl1`) has one brain: it presses B every P0 + 2 frames (`0x0205A2EC`, `0x0205A2D4`: 240, or 120), counting from its start. Its body shoots on B standing (`0x0205B1DC` on land, `0x0205A9B8` in water) or in the air (`0x0205AD70`, `0x0205ABA0`): its 12-frame shooting animation 5 times, a shot (`0x0205BAFC`) at the end of each (`0x0205A828`, `0x0205AF10`, its shots counted at `+0x1F8` against `Pl0`'s `+0x30`, checked first), standing again the frame after the fifth. Logged (Kirby pinned away): volleys 241 and 121 frames after the spawn, then 242 and 122 apart, 61 frames long, shots 12 frames in and 12 apart. Standing in water with its spot no longer water it hops (`0x0205ADDC`: its shooting pose, 2.5 up), falls (`0x0205AC58`, its sway) and stands where it lands (land or water: its vtable `+0x80`).
+
 Big Metalun (mid-boss 0x34: body `0x0210C4F8`, `EnemyBaseCtor(…, 0x34)`, its hurt anims both 0x100000A; brain `0x0210A940`;
 `prmMB10Ml0` 0x667, 0x2B9, 0x399A, 60, 180, -0x1000, 0x2667, 0x52; `Pl0` 50, 0x30000, 0x30000, 32, 50, 25, 50; `Sl0` HP 300;
 `enemy/bigmetalum` and `bigmetalum_dmg`, the hurt flash's palette, loaded by `0x0210A508`). Its brain (one state a frame, Squeak
@@ -358,7 +360,7 @@ NiDL's natives were); one it lacks is ported onto KatAM's own object (`ROM Expan
 | 0x00 | Waddle Dee | 0x0202A9D0 | 0x02029760 | 0 0x02029694, 1 0x020295EC, 2 0x020294E8, 3 0x02029484, 4 0x020293C8, 5 0x020293F0 | 0, 4, 5 KatAM's 0, 3, 4; 1-3 ported (KatAM's 5-7) |
 | 0x01 | Bronto Burt | 0x02029060 | 0x0202637C | 0 0x02026298 (a wave, 53 pixels up, 144 frames), 1 0x0202625C (a smaller wave), 2 0x0202622C (straight, to 1.0), 3 0x020261E4 (perched till Kirby is near), 4 0x02026110 (hidden till Kirby passes, then from the screen's top 48 pixels ahead of him: `0x02028BB4`) | all KatAM's: 0 and 1 its waves (0, 1), 2 its straight flight (4), 3 its perch (5), 4 its drop from the screen's top (2) |
 | 0x02 | Blipper | 0x0208EBCC | 0x0208C2A8 | five | to compare in water (no DS save state in water yet) |
-| 0x03 | Glunk | 0x0205B478 | 0x0205A51C | one | to compare |
+| 0x03 | Glunk | 0x0205B478 | 0x0205A51C | one (B every `Pl0`'s 240 + 2 frames, `Pl1`'s 120 + 2 when the spawn's second byte is 1) | KatAM's 0 and 1 are other beats (a pose every 3 sway loops; 5 shots every 190 frames); ported (KatAM's 5 and 6), with its hop out of water |
 | 0x04 | Scarfy | 0x020490D4 | 0x02047974 | one | to compare |
 | 0x05 | Gordo | 0x0204D2F4 | 0x0204C614 | five | to compare |
 | 0x06 | Snooter | 0x02054C5C | 0x02052D98 | two | to compare |

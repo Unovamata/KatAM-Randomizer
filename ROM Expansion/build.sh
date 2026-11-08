@@ -62,7 +62,7 @@ patched = ['SpriteTables', 'AnimCount', 'SpawnTable', 'gUnk_08351648', 'ObjectPa
 # The abilities' (see abilities.h): code symbols, and the KatAM tables and functions it relocates or hooks;
 codeNames = ['gNidlWorldMapDoors', 'NidlWorldMapUnlockSave', 'NidlWorldMapGetCoorFromRoom', 'NidlWorldMapDrawKirbys', 'NidlWorldMapUnlock0', 'NidlWorldMapUnlock1', 'NidlWorldMapUnlock2', 'NidlWorldMapUnlock3', 'NidlWorldMapUnlock4', 'NidlWorldMapUnlock5', 'NidlWorldMapUnlock6', 'NidlWorldMapUnlock7', 'NidlGetKirbyRoomFlagIndex', 'gNidlRoomFlagIndexOriginal', 'gNidlHubRoom', 'gNidlAbilityTables', 'gNidlAbilityData', 'NidlAbilityPortrait', 'NidlAbilityHudTimer', 'NidlDisplaySprite', 'NidlSwallow', 'NidlKirbyHit', 'gNidlKirbyHitOriginal', 'NidlKirbyStack', 'gNidlKirbyStackOriginal', 'CreateNidlMiniboss', 'NidlMinibossStart',
              # The Squeak Squad characters (squeak.c): their type's spawn and start, the anim lookup the object drawing calls, the data;
-             'CreateSqueakEnemy', 'SqueakStart', 'SqueakAnimFor', 'gSqueakData', 'gSqueakEnemyHp', 'gSqueakNatives', 'SqueakCreateWaddleDee', 'SqueakWaddleDeeStart',
+             'CreateSqueakEnemy', 'SqueakStart', 'SqueakAnimFor', 'gSqueakData', 'gSqueakEnemyHp', 'gSqueakNatives', 'SqueakCreateWaddleDee', 'SqueakWaddleDeeStart', 'SqueakCreateGlunk', 'SqueakGlunkStart',
              # The helpers against the ported mini-bosses (nidl_miniboss.c);
              'NidlHelperTarget', 'gNidlHelperTargetOriginal',
              # The bosses (nidl_boss.c);

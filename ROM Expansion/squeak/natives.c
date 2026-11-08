@@ -17,7 +17,19 @@
  *   6, its 2 (0x020294E8, 0x020294B8, 0x020294B0): the first frame Kirby is within 48 pixels across (any height) it jumps, once, and
  *     walks on for good;
  *   7, its 3 (0x02029484, 0x0202944C, 0x0202941C): it walks and jumps 122 frames after it starts, then 122 frames after the frame it
- *     lands, each time. */
+ *     lands, each time.
+ * • Glunk (object 0x03; Squeak Squad's enemy 0x03: body 0x0205B478, brain 0x0205A51C, prmNE04Pl0.kgb and Pl1.kgb). KatAM's variants
+ *   (its subtype2): 0 strikes its shooting pose every 3 loops of its sway and never shoots, 1 shoots 5 bullets 12 frames apart every
+ *   2 loops (a volley every 190 frames, logged). Squeak Squad's brain presses B every P0 + 2 frames (0x0205A2EC, 0x0205A2D4: Pl0's
+ *   240, Pl1's 120, the spawn's second byte 1) from its start; its body shoots on B standing (on land 0x0205B1DC, in water
+ *   0x0205A9B8) or in the air (0x0205AD70, 0x0205ABA0): its shooting animation (12 frames) 5 times, a shot (0x0205BAFC) at the end
+ *   of each (0x0205A828, 0x0205AF10), and the frame after the fifth it stands again (KatAM's volley: the same 5 and 12 frames;
+ *   logged on the DS: volleys 241 and 121 frames after the spawn, then 242 and 122 apart, 61 frames long, shots 12 frames in and
+ *   12 apart). Standing in water with its spot no longer water, it hops (0x0205ADDC: its shooting pose, 2.5 up), falls
+ *   (0x0205AC58, its sway) and stands on landing (or in water again). Its new variants (subtype1: KatAM's Glunk reads subtype2
+ *   alone, its templates' subtype1 0 or 1): 5 its Pl0, 6 its Pl1: KatAM's Glunk (its sway and pose, its bullets and their puff:
+ *   6.0 up, 9 frames; Squeak Squad's shot 8.0 up, 8 frames) on Squeak Squad's beat and hop (KatAM's gravity), its brain counting
+ *   on through hits and volleys as Squeak Squad's does. */
 #include "global.h"
 #include "object.h"
 #include "functions.h"
@@ -29,8 +41,10 @@
 struct SqueakNatives {
     void *(*waddleDee)(struct ObjectTemplate *, u8);
     void (*waddleDeeStart)(struct Object *);   // Its type's resume after a hit or bump (gUnk_08351648[0].unk10, sub_080A3CF0);
+    void *(*glunk)(struct ObjectTemplate *, u8);
+    void (*glunkStart)(struct Object *);        // (gUnk_08351648[3].unk10, sub_080AF610);
 };
-const struct SqueakNatives gSqueakNatives = { NULL, NULL };
+const struct SqueakNatives gSqueakNatives = { NULL, NULL, NULL, NULL };
 
 // Waddle Dee's new variants (subtype1) and anims (its AnimInfos, 0x308's: ObjectSetFunc's index);
 enum { WADDLE_DEE_PATROL = 5, WADDLE_DEE_JUMP_AT, WADDLE_DEE_HOP };
@@ -199,5 +213,136 @@ void *SqueakCreateWaddleDee(struct ObjectTemplate *template, u8 playerId) {
     obj->unkA4 = JUMP_WAIT;
     obj->unkA6 = PHASE_LOOK;
     if (template->subtype1 >= WADDLE_DEE_PATROL && template->subtype1 <= WADDLE_DEE_HOP) SqueakWaddleDeeStart(obj);
+    return obj;
+}
+
+/* Glunk's new variants (subtype1) and KatAM's anims for it (its AnimInfos: 0 its sway, 1 its shooting pose); its brain's wait for
+ * each (P0: B every P0 + 2 frames); */
+enum { GLUNK_SQUEAK_PL0 = 5, GLUNK_SQUEAK_PL1 };   // past KatAM's own templates' 0 and 1 (its Glunk reads subtype2 alone);
+enum { GLUNK_SWAY, GLUNK_POSE };
+static const u16 sGlunkWaits[] = { 240, 120 };
+#define GLUNK_SHOTS 5
+#define GLUNK_SHOT_GAP 12
+#define GLUNK_HOP 0x280         // Squeak Squad's 2.5 up (prmNE04Ml0.kgb +0x20);
+
+// KatAM's Glunk's bullet and the puff with it (glunk.c's sub_080AEF14, sub_080AF204);
+void sub_080AEF14(struct Object *);
+void sub_080AF204(struct Object *);
+
+/* Their fields: the brain's frames (unkA4) and its B let go the next frame (unkA6); the body's stand (unkA2: on land, in water);
+ * the volley's frames to its next shot (counter) and shots (unk85), as KatAM's; */
+enum { GLUNK_LAND, GLUNK_WATER };
+static void GlunkStand(struct Object *);
+static void GlunkVolley(struct Object *);
+static void GlunkHopUp(struct Object *);
+static void GlunkHopDown(struct Object *);
+
+// GlunkBrain(); 0x0205A2EC, 0x0205A2D4: TRUE the frame it presses B (its frames past its wait); the next frame it lets go;
+static bool32 GlunkBrain(struct Object *obj) {
+    if (obj->unkA6) {
+        obj->unkA6 = FALSE;
+        return FALSE;
+    }
+    if (obj->unkA4 >= sGlunkWaits[obj->objTemplate->subtype1 - GLUNK_SQUEAK_PL0]) {
+        obj->unkA4 = 0;
+        obj->unkA6 = TRUE;
+        return TRUE;
+    }
+    obj->unkA4++;
+    return FALSE;
+}
+
+// GlunkShoot(); B (0x0205A918, 0x0205B014): its pose, a shot at the end of each GLUNK_SHOT_GAP frames;
+static void GlunkShoot(struct Object *obj) {
+    ObjectSetFunc(obj, GLUNK_POSE, GlunkVolley);
+    obj->base.counter = GLUNK_SHOT_GAP;
+    obj->unk85 = 0;
+}
+
+// GlunkStands(); 0x0205B1DC on land (in water: its water stand, 0x0205AAE4), 0x0205A9B8 in water (its spot not water: its hop),
+// with its brain's B this frame;
+static void GlunkStands(struct Object *obj, bool32 b) {
+    if (b) {
+        GlunkShoot(obj);
+        return;
+    }
+    if (obj->base.unk58 & 2) {
+        obj->unkA2 = GLUNK_WATER;
+    } else if (obj->unkA2 == GLUNK_WATER) {
+        ObjectSetFunc(obj, GLUNK_POSE, GlunkHopUp);
+        obj->base.yspeed = GLUNK_HOP;
+    }
+}
+
+// GlunkStand(); its brain's frame, then GlunkStands;
+static void GlunkStand(struct Object *obj) {
+    obj->base.flags |= 4;
+    GlunkStands(obj, GlunkBrain(obj));
+}
+
+/* GlunkVolley(); 0x0205A828, 0x0205AF10: GLUNK_SHOTS shots, its brain counting on; the frame after its last (its shots counted
+ * first, 0x0205AF32), it stands (0x3C or 0x0205AAE4: that frame too, its state's TRUE); */
+static void GlunkVolley(struct Object *obj) {
+    bool32 b;
+
+    obj->base.flags |= 4;
+    b = GlunkBrain(obj);
+    if (obj->unk85 >= GLUNK_SHOTS) {
+        ObjectSetFunc(obj, GLUNK_SWAY, GlunkStand);
+        GlunkStands(obj, b);
+        return;
+    }
+    if (--obj->base.counter > 0) return;
+    sub_080AEF14(obj);
+    sub_080AF204(obj);
+    obj->base.counter = GLUNK_SHOT_GAP;
+    obj->unk85++;
+}
+
+// GlunkHopUp(); 0x0205AD70: rising (B shoots); then falling (0x0205AC58: its sway);
+static void GlunkHopUp(struct Object *obj) {
+    obj->base.flags |= 4;
+    if (GlunkBrain(obj)) {
+        GlunkShoot(obj);
+        return;
+    }
+    if (obj->base.yspeed < 0) ObjectSetFunc(obj, GLUNK_SWAY, GlunkHopDown);
+}
+
+// GlunkHopDown(); 0x0205ABA0: falling (B shoots; in water, its water stand: its vtable +0x80); landed, it stands (0x3C);
+static void GlunkHopDown(struct Object *obj) {
+    obj->base.flags |= 4;
+    if (GlunkBrain(obj)) {
+        GlunkShoot(obj);
+        return;
+    }
+    if (obj->base.unk58 & 2) {
+        obj->unkA2 = GLUNK_WATER;
+        obj->unk78 = GlunkStand;
+    } else if (obj->base.unk62 & 4) {
+        obj->unkA2 = GLUNK_LAND;
+        obj->unk78 = GlunkStand;
+    }
+}
+
+/* SqueakGlunkStart(); Object 0x03's resume after a hit or bump (and the new variants' start): theirs stand (Squeak Squad's body
+ * starts over, 0x0205B2BC: on land), their brain going on; KatAM's own variants, KatAM's; */
+void SqueakGlunkStart(struct Object *obj) {
+    if (obj->objTemplate->subtype1 != GLUNK_SQUEAK_PL0 && obj->objTemplate->subtype1 != GLUNK_SQUEAK_PL1) {
+        gSqueakNatives.glunkStart(obj);
+        return;
+    }
+    obj->unkA2 = GLUNK_LAND;
+    ObjectSetFunc(obj, GLUNK_SWAY, GlunkStand);
+}
+
+// SqueakCreateGlunk(); Object 0x03's spawn: KatAM's Glunk, then the new variants' brain from its start (0x0205A334);
+void *SqueakCreateGlunk(struct ObjectTemplate *template, u8 playerId) {
+    struct Object *obj = gSqueakNatives.glunk(template, playerId);
+
+    if (obj->type != OBJ_GLUNK) return obj;
+    obj->unkA4 = 0;
+    obj->unkA6 = FALSE;
+    if (template->subtype1 == GLUNK_SQUEAK_PL0 || template->subtype1 == GLUNK_SQUEAK_PL1) SqueakGlunkStart(obj);
     return obj;
 }

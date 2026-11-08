@@ -96,9 +96,14 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
     either side, jump once at Kirby within 48, jump every 122 frames), on KatAM's own object (its walk, jump and hurt). Checked
     against the DS by logging and tested in KatAM (room 0x323, USA: turn points, counts, the jump trigger and timer, the resume
     after a bump; screenshots). Not tested: a ledge or wall in their walk, a hit.
+  - Glunk (KatAM's own, `squeak/natives.c`): Squeak Squad's beat is its variants 5 (a volley every 242 frames) and 6 (every 122),
+    on KatAM's own Glunk (its sway, pose and bullets), with its hop out of water. Checked against the DS by logging (both beats:
+    the volleys' frames, shots and 61-frame length) and in KatAM (room 0x323, USA: the same frames; KatAM's own variants
+    unchanged); the hop tested in forced states (RAM writes: room 0xCA's underwater Glunk lifted out of the water, falling back
+    in; a land Glunk set to "in water", landing on land). Not tested: a real exit from the water, B in the air, a hit.
   - The other enemies KatAM has: their Squeak Squad brains are listed in the notes' table, each to be compared with KatAM's own
     variants (logged on both, Kirby pinned away) and the ones KatAM lacks ported as the Waddle Dee's. Done: Bronto Burt (all five
-    are KatAM's own: two waves, the straight flight, the perch, the drop from the screen's top). Still to compare: the other 25,
+    are KatAM's own: two waves, the straight flight, the perch, the drop from the screen's top) and Glunk. Still to compare: the other 24,
     Blipper and the swimmers in water (a DS save state in water first).
   - Mid-bosses (Squeak Squad's 0x33-0x36: Gao Gao, Big Metalun, Tedhaun, Buboo; its other four, Mr. Frosty, Bonkers, Box Boxer and
     Boxy, are KatAM's own): their framework is in (on the mini-boss types 0x40-0x42 NiDL's use; tested in KatAM with Big Metalun:
