@@ -4,6 +4,7 @@
 #include "constants/kirby.h"
 #include "constants/object_types.h"
 #include "abilities.h"
+#include "code_0806F780.h"
 
 void NidlDestroy(struct Task *task);
 
@@ -88,15 +89,14 @@ void SqueakRun(struct SqueakObject *s, bool32 (*state)(struct SqueakObject *)) {
     } while (state(s) && --guard);
 }
 
-/* SqueakLoadPalette(); The character's palette slot: its anim ID is the key (the type has none), as NidlLoadPalette does for NiDL's
- * enemies (KatAM keeps 7 enemy palettes a room); */
-static u8 SqueakLoadPalette(struct SqueakObject *s) {
-    u16 key = gSqueakData.enemies[s->enemy].animId;
+/* SqueakLoadPalette(); A character's or effect's palette slot: its anim ID is the key (the type has none), as NidlLoadPalette does
+ * for NiDL's enemies (KatAM keeps 7 enemy palettes a room); the palette is the one of the anim's frame `variant`; */
+static u8 SqueakLoadPalette(u16 key, u8 variant, u16 roomId) {
     u8 palId = sub_0803DF24(key);
 
     if (palId == 0xFF) {
-        if (gKirbys[gLocalPlayerId].base.roomId == s->obj.base.roomId) {
-            sub_0803DFAC(key, SQUEAK_HURT_VARIANTS);
+        if (gKirbys[gLocalPlayerId].base.roomId == roomId) {
+            sub_0803DFAC(key, variant);
             palId = sub_0803DF24(key);
         } else {
             palId = 0;
@@ -254,8 +254,102 @@ bool32 SqueakKirbyWithin(struct SqueakObject *s, s32 dx, s32 dy) {
     return dy == 0 || (y > -dy && y < dy);
 }
 
+/* Squeak Squad's effects (0x02021900, its effect manager 0x02039B28): an effect object playing an effect's animation once where it
+ * was spawned, facing as its character, then gone; */
+struct SqueakFx {
+    struct EffectObject e;
+    struct SqueakObject *owner; // Followed (0x020218C0: its position plus the offset each frame), till it's gone;
+    s32 dx, dy;
+    u8 effect;
+    u8 step;
+    u16 timer;
+    bool8 left;
+    u8 palId;
+};
+
+// SqueakFxDestroy(); An effect's end (its own, or the room's): its character lets go of it;
+static void SqueakFxDestroy(struct Task *t) {
+    struct SqueakFx *fx = TaskGetStructPtr(t);
+
+    if (fx->owner && fx->owner->follower == fx) fx->owner->follower = NULL;
+    ObjectBaseDestroy(t);
+}
+
+static void SqueakFxMain(void) {
+    struct SqueakFx *fx = TaskGetStructPtr(gCurTask);
+    const struct SqueakAnim *a = &gSqueakData.effects[fx->effect].anim;
+    const struct SqueakStep *step;
+
+    if (fx->e.flags & 0x1000) {
+        TaskDestroy(gCurTask);
+        return;
+    }
+    if (fx->timer && --fx->timer == 0) {
+        if (fx->step + 1 >= a->steps && !a->loops) {
+            fx->e.flags |= 0x1000;
+            return;
+        }
+        fx->step = fx->step + 1 >= a->steps ? 0 : fx->step + 1;
+        fx->timer = a->step[fx->step].frames;
+    }
+    if (fx->owner) {
+        fx->e.x = fx->owner->obj.base.x + SQUEAK_SPEED(fx->dx);
+        fx->e.y = fx->owner->obj.base.y - SQUEAK_SPEED(fx->dy);
+    }
+    step = &a->step[fx->step];
+    fx->e.sprite.variant = step->cell;
+    fx->e.sprite.palId = fx->palId;
+    // (KatAM flips a frame when flag 1 is set: its frames face left, Squeak Squad's cells right, flipped when facing left);
+    fx->e.flags = (fx->e.flags & ~0x401) | 4 | (fx->left ? 0 : 1);
+    fx->e.objBase54 = step->x;
+    fx->e.objBase55 = step->y;
+    EffectObjectPostUpdate(&fx->e);
+}
+
+/* SqueakSpawnEffect(); 0x02021900: an effect at the character's position plus (dx, dy) (Squeak Squad's units: 20.12, Y up; not
+ * turned with the character, as Squeak Squad's), facing as the character; `follow`: it stays there as the character moves (its last
+ * parameter, 0x020218C0); */
+void SqueakSpawnEffect(struct SqueakObject *s, u8 effect, s32 dx, s32 dy, bool8 follow) {
+    const struct SqueakEffect *d = &gSqueakData.effects[effect];
+    struct Task *t;
+    struct SqueakFx *fx;
+
+    if (gKirbys[gLocalPlayerId].base.roomId != s->obj.base.roomId) return;
+    t = TaskCreate(SqueakFxMain, sizeof(struct SqueakFx), 0x3500, TASK_USE_EWRAM, SqueakFxDestroy);
+    if (t == NULL) return;
+    fx = TaskGetStructPtr(t);
+    ClearEffectObject(&fx->e);
+    fx->e.header.kind = 3;
+    fx->e.roomId = s->obj.base.roomId;
+    fx->e.parent = NULL;
+    fx->e.x = s->obj.base.x + SQUEAK_SPEED(dx);
+    fx->e.y = s->obj.base.y - SQUEAK_SPEED(dy);
+    fx->owner = NULL;
+    fx->dx = dx;
+    fx->dy = dy;
+    if (follow) {
+        if (s->follower) ((struct SqueakFx *)s->follower)->owner = NULL;
+        fx->owner = s;
+        s->follower = fx;
+    }
+    fx->effect = effect;
+    fx->step = 0;
+    fx->timer = d->anim.step[0].frames;
+    fx->left = s->obj.base.flags & 1;
+    fx->palId = SqueakLoadPalette(d->animId, d->anim.step[0].cell, s->obj.base.roomId);
+    EffectObjectInitSprite(&fx->e, &fx->e.sprite, d->tiles, d->animId, d->anim.step[0].cell, 0x1A);
+}
+
+// SqueakDestroy(); A character's end: the effect following it stays where it is;
+static void SqueakDestroy(struct Task *t) {
+    struct SqueakObject *s = TaskGetStructPtr(t);
+
+    if (s->follower) ((struct SqueakFx *)s->follower)->owner = NULL;
+    NidlDestroy(t);
+}
+
 void *CreateSqueakEnemy(struct ObjectTemplate *template, u8 playerId) {
-    struct Task *task = TaskCreate(ObjectMain, SQUEAK_OBJECT_SIZE, 0x1000, TASK_USE_EWRAM, NidlDestroy);
+    struct Task *task = TaskCreate(ObjectMain, SQUEAK_OBJECT_SIZE, 0x1000, TASK_USE_EWRAM, SqueakDestroy);
     struct SqueakObject *s = TaskGetStructPtr(task);
     u8 enemy = template->subtype1 < SQUEAK_ENEMY_COUNT ? template->subtype1 : 0;
     u8 i;
@@ -273,6 +367,7 @@ void *CreateSqueakEnemy(struct ObjectTemplate *template, u8 playerId) {
     s->started = FALSE;
     s->moved = FALSE;
     s->terrain = s->water = 0;
+    s->follower = NULL;
     SqueakStop(s);
     s->padDir = s->padY = s->padA = s->padB = 0;
     for (i = 0; i < ARRAY_COUNT(s->vars); i++) s->vars[i] = 0;
@@ -282,7 +377,7 @@ void *CreateSqueakEnemy(struct ObjectTemplate *template, u8 playerId) {
     // (the type's AnimInfo table has one entry: ObjectInitSprite reads it; the patched drawing shows the character's own frames);
     s->obj.unk83 = 0;
     ObjectInitSprite(&s->obj);
-    s->obj.base.sprite.palId = SqueakLoadPalette(s);
+    s->obj.base.sprite.palId = SqueakLoadPalette(gSqueakData.enemies[enemy].animId, SQUEAK_HURT_VARIANTS, s->obj.base.roomId);
     SqueakSetCell(s, 0);
     SqueakStart(&s->obj);
     return s;

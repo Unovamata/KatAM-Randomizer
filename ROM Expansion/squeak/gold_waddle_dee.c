@@ -12,7 +12,7 @@
  * • Body: stands (anim 1) and walks (anim 3) at 1.25, a puff of dust every 20 frames; A jumps (anim 4, then 5) at 2.5 up, falling
  *   0x19A a frame, no faster than 2.4; walking off a ledge it stops in the air for 5 frames (anim 2, "whoa"), then falls. In water it
  *   sinks (0x07B a frame, to 0.9) or swims (anim 12, 10 up, 11 down) at 1.2 the way its pad says, and jumps out once out of it.
- * Not ported: the dust (effect 3, 0x02021900) and sounds (0x6C jump, 0x118 ledge, 0x134, 0x139 landing, 9 step), and the other mode
+ * Not ported: its sounds (0x6C jump, 0x118 ledge, 0x134, 0x139 landing, 9 step), and the other mode
  * (the brain's +8 not 3; never so for this brain): A in the air jumps again; */
 #include "../squeak.h"
 
@@ -156,7 +156,8 @@ static bool32 Body(struct SqueakObject *s) {
             SqueakSetState(s, BODY_LEDGE_ENTRY);
             return FALSE;
         }
-        // (every 20 frames from the first, Squeak Squad's dust behind it, effect 3, and sound 9);
+        // (every 20 frames from the first, a puff of dust, and sound 9);
+        if (COUNTER(s) % DUST_EVERY == 0) SqueakSpawnEffect(s, SQUEAK_FX_DUST, 0, 0, FALSE);
         COUNTER(s)++;
         return FALSE;
     case BODY_JUMP_ENTRY:   // 0x020B61AC;

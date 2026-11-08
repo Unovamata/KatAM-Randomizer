@@ -90,14 +90,17 @@ namespace KatAMRandomizer {
             int colors = ReadInt(cla, 8);
             for (int p = 0; p < colors / 16; p++) character.Palettes.Add(Enumerable.Range(0, 16).Select(c => (ushort)ReadShort(cla, 12 + (p * 16 + c) * 2)).ToArray());
 
-            // Cells: a count, then 8 bytes each (pieces, first piece, first tile, tiles) after an 8-byte head; the pieces' list (a count,
-            // then 8 bytes each) is at the head's offset from the cells';
-            int cells = ReadInt(cea, 0x0C), anims = ReadInt(cea, 0x10), pieceList = cells + ReadInt(cea, cells + 4);
+            /* Cells: a count, then each one's entry after an 8-byte head; the pieces' list (a count, then 8 bytes each) is at the head's
+             * offset from the cells'. With the header's flag 8 (the characters' files), an entry is 8 bytes (pieces, first piece, first
+             * tile, tiles): each cell has its own tiles; without it (the shared effects' files), 4 bytes (pieces, first piece): the
+             * pieces count their tiles from the file's first; */
+            bool ownTiles = (cea[8] & 8) != 0;
+            int cells = ReadInt(cea, 0x0C), anims = ReadInt(cea, 0x10), pieceList = cells + ReadInt(cea, cells + 4), entrySize = ownTiles ? 8 : 4;
             List<SqueakPiece> pieces = Enumerable.Range(0, ReadInt(cea, pieceList))
                 .Select(i => new SqueakPiece(ReadShort(cea, pieceList + 4 + i * 8), ReadShort(cea, pieceList + 6 + i * 8), ReadShort(cea, pieceList + 8 + i * 8))).ToList();
             character.Cells = Enumerable.Range(0, ReadShort(cea, cells)).Select(c => {
-                int entry = cells + 8 + c * 8;
-                return new SqueakCell(ReadShort(cea, entry + 4), pieces.GetRange(ReadShort(cea, entry + 2), ReadShort(cea, entry)));
+                int entry = cells + 8 + c * entrySize;
+                return new SqueakCell(ownTiles ? ReadShort(cea, entry + 4) : 0, pieces.GetRange(ReadShort(cea, entry + 2), ReadShort(cea, entry)));
             }).ToList();
 
             // Animations: a count, then each one's offset (from the animations') after an 8-byte head; one: its step count (a byte), loop
@@ -121,6 +124,26 @@ namespace KatAMRandomizer {
         internal sealed record SqueakEnemy(int Index, string Name, string File, int[] HurtCells, (int type, int letter)[] Glyphs);
         internal sealed record SqueakBuilt(SqueakEnemy Enemy, int AnimId, SqueakCharacter Character, int Tiles);
 
+        /* Squeak Squad's effects the ported characters show (squeak.h's SQUEAK_FX_*): an animation of effect/<File>.* (0x02021900's types
+         * name them through the table at 0x02157DF8), each its own anim of the cells it shows; */
+        internal sealed record SqueakEffect(int Index, string File, int Anim);
+        internal sealed record SqueakEffectBuilt(SqueakEffect Effect, int AnimId, List<int> Cells, SqueakAnim Anim, int Tiles);
+
+        static readonly List<SqueakEffect> SqueakEffectDefinitions = new List<SqueakEffect> {
+            new SqueakEffect(0, "efc_cmn0", 19),    // Type 3: the dust puff (Gold Waddle Dee's steps, Perara's launch);
+        };
+
+        /* SqueakEffectBuild(); An effect's cells (those its animation shows, in its order) as KatAM frames and their palettes, the anim
+         * added by `addAnim` (palettes, frames: its anim ID and the most tiles a frame takes); */
+        static SqueakEffectBuilt SqueakEffectBuild(byte[] squeak, SqueakEffect effect,
+                                                   Func<List<byte[]>, List<(byte[] tiles, ushort[] oams, short[] attributes, int palette)>, int> addAnim) {
+            SqueakCharacter character = ReadSqueakCharacter(squeak, effect.File, "effect");
+            SqueakAnim anim = character.Anims[effect.Anim];
+            List<int> cells = anim.Steps.Select(s => s.Cell).Distinct().ToList();
+            (List<(byte[] tiles, ushort[] oams, short[] attributes, int palette)> frames, List<byte[]> palettes) = SqueakFrames(character, cells: cells);
+            return new SqueakEffectBuilt(effect, addAnim(palettes, frames), cells, anim, frames.Max(f => f.tiles.Length / 32));
+        }
+
         static readonly List<SqueakEnemy> SqueakDefinitions = new List<SqueakEnemy> {
             // Perara: hurt animations 7 and 8 (0x02021A88's 0x1000007, 0x1000008);
             new SqueakEnemy(0, "Perara", "perara", new[] { 18, 19, 19 },
@@ -140,7 +163,8 @@ namespace KatAMRandomizer {
          * variant to show: at +0x80, where it read the type's AnimInfo, `adds r0, r7, #0; ldr r1, =SqueakAnimFor; bl _call_via_r1;
          * lsls r1, r0, #16; lsrs r1, r1, #16; mov r8, r1; strh r1, [r6, #12]; lsrs r0, r0, #16; strb r0, [r6, #26]; b +0x38`;
          * the same in every version; */
-        static string WriteSqueak(byte[] rom, KatAMExpansionCode.Version version, ref int cursor, List<SqueakBuilt> built) {
+        static string WriteSqueak(byte[] rom, KatAMExpansionCode.Version version, ref int cursor, List<SqueakBuilt> built,
+                                  List<SqueakEffectBuilt> effects) {
             int codeBase = CodeAddress + 0x08000000, parameters = version.ObjectParameters + SqueakID * 0x18;
             int site = version.RomSymbols["sub_0809A7A4"] + 0x80;
             byte[] original = Convert.FromHexString("3D1C8235297848004018C000143280183B1C8333197800688900091809888846B181297848004018C000801819780068890009188878B076");
@@ -163,30 +187,43 @@ namespace KatAMRandomizer {
             WriteInt(rom, parameters + 20, animInfo + 0x08000000);
             Array.Copy(rom, version.ObjectParameters2, rom, version.ObjectParameters2 + SqueakID * 8, 8);
 
-            // gSqueakData: names, then per character (anim ID, cells, animations, its SqueakAnim table);
-            int data = CodeAddress + version.CodeSymbols["gSqueakData"], namesAt = Allocate(ref cursor, SqueakDefinitions.Count * 0x100, 4);
+            // A SqueakAnim (8 bytes: steps, loops, its steps' address) at `at`, its steps' cells through `cell`;
+            int localCursor = cursor;
+            void WriteAnim(int at, SqueakAnim anim, Func<int, int> cell) {
+                int steps = Allocate(ref localCursor, Math.Max(1, anim.Steps.Count) * 8, 4);
+                for (int i = 0; i < anim.Steps.Count; i++) {
+                    SqueakStep step = anim.Steps[i];
+                    WriteShorts(rom, steps + i * 8, cell(step.Cell), step.Frames, step.X, step.Y);
+                }
+                rom[at] = (byte)anim.Steps.Count;
+                rom[at + 1] = (byte)(anim.Loops ? 1 : 0);
+                WriteShort(rom, at + 2, 0);
+                WriteInt(rom, at + 4, steps + 0x08000000);
+            }
+
+            /* gSqueakData: names, the effects (anim ID, tiles, their animation: its cells are the effect's frames), then per character
+             * (anim ID, cells, animations, its SqueakAnim table); */
+            int data = CodeAddress + version.CodeSymbols["gSqueakData"], namesAt = Allocate(ref localCursor, SqueakDefinitions.Count * 0x100, 4);
             WriteInt(rom, data, namesAt + 0x08000000);
+            int effectTable = Allocate(ref localCursor, Math.Max(1, SqueakEffectDefinitions.Count) * 12, 4);
+            WriteInt(rom, data + 4, effectTable + 0x08000000);
+            foreach (SqueakEffectBuilt e in effects) {
+                int at = effectTable + e.Effect.Index * 12;
+                WriteShorts(rom, at, e.AnimId, e.Tiles);
+                WriteAnim(at + 4, e.Anim, c => e.Cells.IndexOf(c));
+            }
             foreach (SqueakBuilt b in built) {
                 ComposeName(rom, version, b.Enemy.Glyphs).CopyTo(rom, namesAt + b.Enemy.Index * 0x100);
                 List<SqueakAnim> anims = b.Character.Anims;
-                int table = Allocate(ref cursor, anims.Count * 8, 4);
-                for (int a = 0; a < anims.Count; a++) {
-                    int steps = Allocate(ref cursor, Math.Max(1, anims[a].Steps.Count) * 8, 4);
-                    for (int i = 0; i < anims[a].Steps.Count; i++) {
-                        SqueakStep step = anims[a].Steps[i];
-                        WriteShorts(rom, steps + i * 8, step.Cell, step.Frames, step.X, step.Y);
-                    }
-                    rom[table + a * 8] = (byte)anims[a].Steps.Count;
-                    rom[table + a * 8 + 1] = (byte)(anims[a].Loops ? 1 : 0);
-                    WriteShort(rom, table + a * 8 + 2, 0);
-                    WriteInt(rom, table + a * 8 + 4, steps + 0x08000000);
-                }
-                int entry = data + 4 + b.Enemy.Index * 8;
+                int table = Allocate(ref localCursor, anims.Count * 8, 4);
+                for (int a = 0; a < anims.Count; a++) WriteAnim(table + a * 8, anims[a], c => c);
+                int entry = data + 8 + b.Enemy.Index * 8;
                 WriteShort(rom, entry, b.AnimId);
                 rom[entry + 2] = (byte)b.Character.Cells.Count;
                 rom[entry + 3] = (byte)anims.Count;
                 WriteInt(rom, entry + 4, table + 0x08000000);
             }
+            cursor = localCursor;
 
             int call = version.RomSymbols["_call_via_r1"] - (site + 4 + 4);
             WriteShorts(rom, site, 0x1C38, 0x4905, 0xF000 | (call >> 12 & 0x7FF), 0xF800 | (call >> 1 & 0x7FF), 0x0401, 0x0C09, 0x4688, 0x81B1, 0x0C00,
@@ -250,13 +287,14 @@ namespace KatAMRandomizer {
             return used.OrderBy(u => u.Item1).ThenBy(u => u.Item2).ToList();
         }
 
-        /* SqueakFrames(); A character's cells as KatAM frames (tiles, OAM pieces, attributes, palette index) and the palettes they use
+        /* SqueakFrames(); A character's cells (all, or `cells`) as KatAM frames (tiles, OAM pieces, attributes, palette index) and the palettes they use
          * (32 bytes each). Characters whose cells draw with at most 15 colors in all get one palette (the colors of every palette they
          * use, merged); the others one per palette of the .cla, each cell with its own (cells mixing palettes keep their first's colors,
          * the pieces of the others left out); */
         static (List<(byte[] tiles, ushort[] oams, short[] attributes, int palette)> frames, List<byte[]> palettes) SqueakFrames(SqueakCharacter character,
-                                                                                                                                int size = 128) {
-            List<int> cells = Enumerable.Range(0, character.Cells.Count).ToList();
+                                                                                                                                int size = 128,
+                                                                                                                                List<int> cells = null) {
+            cells ??= Enumerable.Range(0, character.Cells.Count).ToList();
             List<(int palette, int color)> used = SqueakUsedColors(character, cells).Where(u => u.palette < character.Palettes.Count).ToList();
             List<byte[]> palettes = new List<byte[]>();
             List<(byte[], ushort[], short[], int)> frames = new List<(byte[], ushort[], short[], int)>();

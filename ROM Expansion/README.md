@@ -259,10 +259,13 @@ how Squeak Squad's enemies work): [Squeak Squad Notes](../Documentation/Squeak%2
   `SqueakStop`, `SqueakCapFall`, `SqueakSinkTo`, `SqueakTurnAround` (the brain's -1, "turn round", becomes 1 once done, as Squeak
   Squad's), the ground, a wall ahead, water (as its last move met them: KatAM's `unk62` and `unk58`), facing Kirby and Kirby within
   a box. Characters with moves in water are flagged swimmers (KatAM's engine drowns the others, `unkC` 1).
+- **Effects** (`SqueakSpawnEffect`): Squeak Squad's shared effects (`effect/efc_cmn0`, `efc_cmn1`), each the cells one of its
+  animations shows as an anim of its own (`SqueakEffectDefinitions`), played once by an effect object at the character's spot plus
+  an offset, facing as it does, and following it when Squeak Squad's does (`0x020218C0`). So far: the dust puff (type 3).
 - **On the ground**: Squeak Squad's spawn records stand a character on the ground; `SqueakStandOnFloor` puts its feet on the first
   floor below its template's cell.
 
 | Character | Squeak Squad | File | What it does |
 | --- | --- | --- | --- |
-| Perara | enemy 0x0D | `squeak/perara.c` | Hovers; on the ground it waits for Kirby within 60 pixels, crouches (58 frames), launches 70 pixels up and floats down swaying; checked against the DS game frame by frame (crouch, launch, apex, sway start). |
-| Gold Waddle Dee | enemy 0x0E | `squeak/gold_waddle_dee.c` | Walks at 1.25 (turning at walls), and per its variant (the template's `unk12`, Squeak Squad's spawn byte) patrols 24 pixels either side, jumps once at Kirby within 48 pixels, jumps every 121 frames, or stands; off a ledge it stops 5 frames in the air ("whoa") and falls; swims in water (1.2 across, sinking at 0.9) and jumps out. HP 6 (Squeak Squad's 30, three Waddle Dees'). Checked against the DS game (walk speed and animation, wall turn every other frame, jump arc, ledge hover, landing frame); its dust puffs and sounds aren't ported yet. |
+| Perara | enemy 0x0D | `squeak/perara.c` | Hovers; on the ground it waits for Kirby within 60 pixels, crouches (58 frames), launches 70 pixels up (two puffs of dust, one rising with it) and floats down swaying; checked against the DS game frame by frame (crouch, launch, apex, sway start). |
+| Gold Waddle Dee | enemy 0x0E | `squeak/gold_waddle_dee.c` | Walks at 1.25 (turning at walls), and per its variant (the template's `unk12`, Squeak Squad's spawn byte) patrols 24 pixels either side, jumps once at Kirby within 48 pixels, jumps every 121 frames, or stands; off a ledge it stops 5 frames in the air ("whoa") and falls; swims in water (1.2 across, sinking at 0.9) and jumps out. HP 6 (Squeak Squad's 30, three Waddle Dees'). Checked against the DS game (walk speed and animation, wall turn every other frame, jump arc, ledge hover, landing frame, the dust puff every 20 steps); its sounds aren't ported yet. |

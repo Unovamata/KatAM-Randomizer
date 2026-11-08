@@ -11,7 +11,7 @@
  *   across while sinking at 0.6, then slows back while rising to 0.4, and the other way; between sways it may wait 0, 8, 16 or 24
  *   frames (10, 40, 25 and 25 in 100, 0x0206EAD0). Landing settles it. A direction held in the air (0x0206F854) moves it across, up
  *   to 1.2, bobbing (0x0206E938: 20 frames up, 20 down);
- * Not ported: the puffs at the launch (0x02021900, effect 3) and its sound (0x131); */
+ * Not ported: its sound (0x131); */
 #include "../squeak.h"
 #include "random.h"
 
@@ -217,10 +217,12 @@ static bool32 Body(struct SqueakObject *s) {
         VY(s) = LAUNCH_SPEED;
         SqueakSetState(s, BODY_CROUCH);
         return TRUE;
-    case BODY_CROUCH:       // 0x0206F5E4: launches once anim 4 is over;
+    case BODY_CROUCH:       // 0x0206F5E4: launches once anim 4 is over, two puffs of dust (2 pixels up, and 2 down following it);
         if (s->animEnded) {
             SqueakPlay(s, ANIM_LAUNCH);
             SqueakSetState(s, BODY_LAUNCH);
+            SqueakSpawnEffect(s, SQUEAK_FX_DUST, 0, 0x2000, FALSE);
+            SqueakSpawnEffect(s, SQUEAK_FX_DUST, 0, -0x2000, TRUE);
             return FALSE;
         }
         TIMER(s) = LAUNCH_DELAY;

@@ -58,9 +58,23 @@ struct SqueakGraphics {
     const struct SqueakAnim *anim;
 };
 
+// Squeak Squad's effects the characters show (KatAMExpansionSqueak.cs's SqueakEffectDefinitions: an animation of effect/efc_cmn*);
+enum {
+    SQUEAK_FX_DUST,             // 0x02021900's type 3 (efc_cmn0's animation 19): a puff of dust;
+    SQUEAK_FX_COUNT,
+};
+
+// SqueakEffect; An effect: its anim (its frames: the cells its animation shows), the most tiles a frame takes, its animation;
+struct SqueakEffect {
+    u16 animId;
+    u16 tiles;
+    struct SqueakAnim anim;
+};
+
 // SqueakData; Filled in by KatAMExpansionSqueak.cs once the graphics are built;
 struct SqueakData {
     const u8 *names;            // One 64x8 HP bar name (0x100 bytes) per character;
+    const struct SqueakEffect *effects;
     struct SqueakGraphics enemies[SQUEAK_ENEMY_COUNT];
 };
 
@@ -92,7 +106,8 @@ struct SqueakObject {
     u8 terrain;                 // What its last move met (SqueakMove): KatAM's unk62 (floor 4, wall ahead 1, behind 2) and unk58 (2: water);
     u8 water;
     u8 unused;
-    s32 vars[19];               // The character's own;
+    void *follower;             // The effect following it (SqueakSpawnEffect's `follow`), let go when it's destroyed;
+    s32 vars[18];               // The character's own;
 };
 
 // The position in Squeak Squad's units (20.12, Y up);
@@ -133,6 +148,7 @@ bool32 SqueakWallAhead(struct SqueakObject *);
 bool32 SqueakInWater(struct SqueakObject *);
 void SqueakFaceKirby(struct SqueakObject *, s32 distance);
 bool32 SqueakKirbyWithin(struct SqueakObject *, s32 dx, s32 dy);
+void SqueakSpawnEffect(struct SqueakObject *, u8 effect, s32 dx, s32 dy, bool8 follow);
 
 // The characters (squeak/*.c);
 void PeraraInit(struct SqueakObject *);

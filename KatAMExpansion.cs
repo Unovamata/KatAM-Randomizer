@@ -1242,8 +1242,12 @@ namespace KatAMRandomizer {
 
             // Squeak Squad's characters (KatAMExpansionSqueak.cs): an anim each (its hurt frames, then its cells);
             List<SqueakBuilt> squeakBuilt = new List<SqueakBuilt>();
+            List<SqueakEffectBuilt> squeakEffects = new List<SqueakEffectBuilt>();
             if (squeak != null) {
                 try {
+                    foreach (SqueakEffect effect in SqueakEffectDefinitions)
+                        squeakEffects.Add(SqueakEffectBuild(squeak, effect,
+                                                            (palettes, frames) => AddAnim(palettes, frames, new byte[0], new List<(int, int)>(), effectOnly: frames.Count).Item2));
                     foreach (SqueakEnemy enemy in SqueakDefinitions) {
                         SqueakCharacter character = ReadSqueakCharacter(squeak, enemy.File);
                         (List<(byte[] tiles, ushort[] oams, short[] attributes, int palette)> frames, List<byte[]> palettes) = SqueakFrames(character);
@@ -1342,7 +1346,7 @@ namespace KatAMRandomizer {
             Array.Copy(rom, ObjectParameters2, rom, ObjectParameters2 + NightmareID * 8, 8);
 
             // Object type 0x2C, Squeak Squad's characters (KatAMExpansionSqueak.cs);
-            if (squeakBuilt.Count > 0 && WriteSqueak(rom, version, ref cursor, squeakBuilt) is string squeakError) return squeakError;
+            if (squeakBuilt.Count > 0 && WriteSqueak(rom, version, ref cursor, squeakBuilt, squeakEffects) is string squeakError) return squeakError;
 
             /* Object types 0x40-0x42: spawn function and parameters, as Mr. Frosty's (type 0x38: score, HP) but for its hurt frames (0 &
              * 1), no ability (the code sets each mini-boss's), no palette key, VRAM tiles (the type's biggest frame, then the hurt frame),

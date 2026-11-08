@@ -22,8 +22,8 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
   the ones KatAM lacks get a full port with Squeak Squad's graphics. Research notes: [Squeak Squad Notes](Squeak%20Squad%20Notes.md).
   - Ported so far, checked against the DS game frame by frame: Perara, Gold Waddle Dee (all six variants' code; tested in KatAM:
     variants 0 and 3, the ledge and water).
-  - Still to do for those: Squeak Squad's effects (Gold Waddle Dee's dust, Perara's puffs: `effect/efc_cmn0`) and their sounds;
-    the enemy base class's own states (bumping into Kirby, the shared state in water of the ones that don't swim).
+  - Still to do for those: their sounds (Squeak Squad's are the DS's own: KatAM's nearest, or the owner's call); the enemy base
+    class's own states (bumping into Kirby, the shared state in water of the ones that don't swim).
   - Left: the other Squeak Squad-only enemies, the Squeak Squad behaviors of shared enemies, the mid-bosses, the Squeaks and the
     bosses; the randomizer options (a Squeak Squad ROM in the ROM Expansion tab, the enemy pool).
 
