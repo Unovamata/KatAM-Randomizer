@@ -216,6 +216,9 @@ namespace KatAMRandomizer {
         // "A" (Rocky's R: the names' font draws R and A alike, as KatAM's Spanish "Anemonia"), "c" (Rocky), "h", "i" (Chip);
         static readonly (int type, int letter)[] AcchiGlyphs = { (0x17, 0), (0x17, 2), (0x17, 2), (0x08, 1), (0x08, 2) };
 
+        // "T" (Twister), "e", "d" (Waddle Dee), "h" (Chip), "a" (Hot Head), "u" (Glunk), "n" (Bronto Burt);
+        static readonly (int type, int letter)[] TedhaunGlyphs = { (0x1C, 0), (0x14, 4), (0x00, 2), (0x08, 1), (0x14, 5), (0x03, 2), (0x01, 3) };
+
         static readonly List<SqueakEnemy> SqueakDefinitions = new List<SqueakEnemy> {
             // Perara: hurt animations 7 and 8 (0x02021A88's 0x1000007, 0x1000008);
             new SqueakEnemy(0, "Perara", "perara", new[] { 18, 19, 19 },
@@ -279,6 +282,9 @@ namespace KatAMRandomizer {
              * its hurt frames its first); */
             new SqueakEnemy(22, "Star", "effect/efc_cmn0", new[] { 0, 0, 0 },
                             new[] { (0x04, 0), (0x14, 2), (0x14, 5), (0x01, 1) }, OnlyAnims: new[] { 11, 12, 13 }),   // as Starman's;
+            // Tedhaun (a mid-boss, on mini-boss type 0x42): its hurt animations both 6 (0x02103B4C's 0x1000006: cell 24); its ghosts (0x02104E34) drawn with its graphics (its animation 9);
+            new SqueakEnemy(23, "Tedhaun", "tedhaun", new[] { 24, 24, 24 }, TedhaunGlyphs, MidbossType: 0x42),
+            new SqueakEnemy(24, "Tedhaun's ghost", "tedhaun", new[] { 29, 29, 29 }, new (int, int)[0], GraphicsOf: 23),   // (no name: the HP bar a hit ghost takes shows none);
         };
 
         public static IReadOnlyList<(int index, string name)> SqueakEnemies => SqueakDefinitions.Select(e => (e.Index, e.Name)).ToList();

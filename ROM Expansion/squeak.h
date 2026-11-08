@@ -45,6 +45,8 @@ enum {
     SQUEAK_BIG_METALUN,         // A mid-boss (on a mini-boss type, see below);
     SQUEAK_GAO_GAO,             // A mid-boss;
     SQUEAK_STAR,                // The star a mid-boss knocks out (effect/efc_cmn0's; its variants SQUEAK_STAR_*);
+    SQUEAK_TEDHAUN,             // A mid-boss;
+    SQUEAK_TEDHAUN_GHOST,       // Its little ghosts (drawn with its graphics);
     SQUEAK_ENEMY_COUNT,
 };
 
@@ -320,5 +322,9 @@ void GaoGaoInit(struct SqueakObject *);
 void GaoGaoStart(struct Object *);
 void SqueakStarInit(struct SqueakObject *);
 void SqueakStarStart(struct Object *);
+void TedhaunInit(struct SqueakObject *);
+void TedhaunStart(struct Object *);
+void TedhaunGhostInit(struct SqueakObject *);
+void TedhaunGhostStart(struct Object *);
 
 #endif

@@ -108,7 +108,10 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
     it. Gao Gao is ported (`squeak/gao_gao.c`, with Squeak Squad's inhalable star, `squeak/squeak_star.c`): checked against the DS
     by logging (jumps, hop, spin, pant, the brain) and in KatAM (room 0x323, USA: the same frames, the drill, a star inhaled, Sword
     hits, the defeat with its HP lowered by a RAM write; screenshots); not tested: the drill on the DS past its test stage's top, the
-    landing's stars on screen, a real mini-boss room. Tedhaun and Buboo next.
+    landing's stars on screen, a real mini-boss room. Tedhaun is ported (`squeak/tedhaun.c`, its three ghosts with it): checked in KatAM
+    (room 0x323, USA: the circle, the grab, carry, hold and throw, the ghosts' spots and sweeps, the call, Sword hits, the defeat);
+    not checked against a DS recording (its DS test stage is too short for its moves: its code followed), nor its ghosts' bursts
+    after its defeat. Buboo next.
   - Framework: a looping animation's end is now a pulse on its loop frames, and a composite's ends a frame later, as on the DS
     (logged: Bubble Head's composites and bubble). Bio Spark changed with it (its brain's three waits in the slash now take a loop
     each, 6 frames, as on the DS: checked in KatAM), and Cret's ball now drops after its drop composite's 20 frames, a frame later

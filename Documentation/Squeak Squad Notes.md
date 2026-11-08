@@ -204,6 +204,16 @@ and with `stars` makes two stars, `0x0212389C` kinds 1 and 2 at 32 pixels either
 `0x02123358`) through its animation 11, hang 100 frames in 12 (`0x02123268`, `0x02123218`), fade in 13 (`0x02123184`) and are gone;
 other kinds fly at 4.0 (5) or do `0x0212312C` (6, the defeat's slide dust).
 
+Tedhaun (mid-boss 0x35: body `0x02103B4C`, vtable `0x0218042C`; brain `0x02100FE8`, vtable `0x02180410`; `prmMB11Ml0` (63 values:
+its flight, bob, circle, chase and carry speeds at `+0x20`-`+0x68` and `+0xEC`-`+0xF8`, its ghosts' at `+0x70`-`+0xE4`), `Sl0` HP 140).
+Its brain presses A (`0x021009E8`) and B (`0x021009D8`); its body (`0x02103114`, `0x021013FC`) reads B (its call, `0x021029CC`), A
+with up or down (circling, `0x02102E94`), A alone (chasing, `0x02102C0C`), its pad (flying, `0x02103070`, `0x02101490`). The circle
+(`0x02101FB8`, `0x02101E20`, `0x02101CC8`, `0x02101B28`) steers two speeds (`+0x220`, `+0x224`) round; its float bobs
+(`0x02101170`). Its three ghost spots (`+0x254`, `+0x258`, `+0x25C`, 12 bytes each) refill 20 frames after their ghost is gone (the
+ghost's destructor frees its spot). Its ghosts (`0x02104F74`, `0x02104E34`, kinds 0 and 1, its own graphics' animation 9): see
+`squeak/tedhaun.c`. Its brain's B (`0x02100BC4`, `0x02100B44`) waits for its ghosts to be ready before the call but not after: its body's
+wind-up (28 frames) leaves them ready, so it picks again 3 frames after B.
+
 ### The stage's water splashes
 
 The stage's map object (`*0x02229F1C + 0x48`, vtable `+0xB4`, `0x02215A10`) splashes: type 0 into the water, 1 out of it. Only at
@@ -318,7 +328,7 @@ palette for its hurt flash). The others get a full port (body and brain construc
 | 0x2C | Metalun | 0x020526AC (0x248) | 0x0205155C (0xB8) | yes |
 | 0x33 | Gao Gao (mid-boss) | 0x02100300 (0x254) | 0x020FE364 (0xD8) | yes |
 | 0x34 | Big Metalun (mid-boss) | 0x0210C4F8 (0x24C) | 0x0210A940 (0xBC) | yes |
-| 0x35 | Tedhaun (mid-boss) | 0x02103B4C (0x2AC) | 0x02100FE8 (0xCC) | |
+| 0x35 | Tedhaun (mid-boss) | 0x02103B4C (0x2AC) | 0x02100FE8 (0xCC) | yes |
 | 0x36 | Buboo (mid-boss) | 0x02108EAC (0x274) | 0x02105938 (0xC8) | |
 | 0x37-0x46 | the bosses | Meta Knight 0x02116C7C, Dedede 0x020E7E58, 0x39 0x02132D7C, Mrs. Moley 0x0212CF40, Yadgaine 0x0211A4E8, Bohboh 0x02111370, 0x3D 0x02126F48, Dark Nebula / Dark Daroach 0x0211B680, 0x02122CD0, 0x021376EC | | |
 
