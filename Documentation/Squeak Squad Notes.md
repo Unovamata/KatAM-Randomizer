@@ -173,6 +173,8 @@ kind 0, lands (`0x02073980`), and flies off (`0x02073B50`, `0x02073A88`: through
 parasol (object `0xA2`, `parasol.c`) does the same for its Waddle Dee, Waddle Doo and Shotzo (`shotzo.s`' `sub_0811B44C`), so it
 stays KatAM's.
 
+Squeak Squad's UFO (body `0x02050E94`, brain `0x02050248`; its body's parameters, `+0x228`: 2.0, 3.0 as a float, 8.0, 0.3, 0.1, 4.0, 16.0; its brain's, `+0xAC`: 30, 30, 96, 48, 156, 4, 64.0, 2.0, 60) hovers (`0x02050AD8`, `0x02050368`: 24 frames at 0.3 forward and 0.1 up, 24 back and down, a frame still and it turns round), and its brain 0 (`0x02050054`) waits 48, 96 or 156 frames (30, 30, 40 in 100: `0x0204FFC0`, `0x0204FF8C`) and presses A: the body (`0x02050794`, `0x02050698`) darts at 3.0 to one of 16 spots round Kirby (`0x021868A4`: 16, -38; 36, -32; 50, -24; 56, -8; and their mirrors, Y up), its next spot 3 to 9 on round the 16 (its RNG 0-9: under 6, that plus 3; else plus 6), its velocity aimed once (atan2, cos, sin), stopping within 8 pixels of it. After 4 darts (`0x0204FF2C`) it flies at 2.0 (8 ways, `0x020509D8`) to Kirby's height 64 pixels to his side (`0x0204FE38`, within 2), faces him and presses B (`0x0204FE20`): its shooting animation (`0x02050524`), a shot (`0x02069718`) 18 frames in, then 60 frames from the B (`0x0204FDE8`) flying forward at 2.0 once the shot is done; then darting again. Logged (Kirby pinned 80 pixels away). KatAM's UFO is the same scheme with its own numbers.
+
 Squeak Squad's Gordo 4 (body state `0x0204CB84`, then `0x0204C9E0`) flies a circle: from 180 degrees, 3 a frame (`+0x200`, 20.12 degrees; 360 wraps to 0 and clears its velocity after the move), its velocity forward the negated cosine and up the negated sine (its sine table `0x0215CE20`, 4096 sine and cosine pairs, 1.0 = 0x1000), through the terrain: 1.0, a 19.1-pixel radius, 120 frames a lap (logged: x 140.39-178.58, y 120-158.19 from a spawn at 160, 120). Its wall check flips `+0x1FC`, which only picks the velocity's sign when 0 (set to 1, never 0): it never turns. Squeak Squad's spawn Y counts from the stage's bottom (240 - Y) and its Y is up: a test spawn under 80 is in the ground.
 
 Squeak Squad's Glunk (body `0x0205B478`, brain `0x0205A51C`, `prmNE04Pl0.kgb` and `Pl1.kgb`, the spawn's second byte picking `Pl1`) has one brain: it presses B every P0 + 2 frames (`0x0205A2EC`, `0x0205A2D4`: 240, or 120), counting from its start. Its body shoots on B standing (`0x0205B1DC` on land, `0x0205A9B8` in water) or in the air (`0x0205AD70`, `0x0205ABA0`): its 12-frame shooting animation 5 times, a shot (`0x0205BAFC`) at the end of each (`0x0205A828`, `0x0205AF10`, its shots counted at `+0x1F8` against `Pl0`'s `+0x30`, checked first), standing again the frame after the fifth. Logged (Kirby pinned away): volleys 241 and 121 frames after the spawn, then 242 and 122 apart, 61 frames long, shots 12 frames in and 12 apart. Standing in water with its spot no longer water it hops (`0x0205ADDC`: its shooting pose, 2.5 up), falls (`0x0205AC58`, its sway) and stands where it lands (land or water: its vtable `+0x80`).
@@ -376,17 +378,17 @@ NiDL's natives were); one it lacks is ported onto KatAM's own object (`ROM Expan
 | 0x16 | Flamer | 0x02092790 | 0x0208FC34 | 0, 2, 4 (crawl round the terrain, then a fireball dash) and 1, 3, 5 (crawl at Kirby), each its own brain (0x0208FA98, 0x0208F6C4, 0x0208F620, 0x0208F250, 0x0208F1AC, 0x0208EEAC) | KatAM's own crawl and fireball dash (logged on flat ground only: the pairs alike) |
 | 0x17 | Pengy | 0x020625B0 | 0x0206147C | 0, 3, 4, 6 0x020613B0 (slides 1.0, stops, breathes ice), 1 and 5 0x020611D4 (stands), 2 0x020611AC (stands, watching) | KatAM's own: walks and breathes ice at random, or stands (logged) |
 | 0x18 | Sparky | 0x02034C34 | 0x02033B80 | 0 and 3-6 0x02033AB4 (hops 2.7 up, sparks), 1 0x02033820 and 2 0x020337F8 (stand) | KatAM's own: hops and sparks at Kirby near, or stands (logged) |
-| 0x19 | Twister | 0x02045AFC | 0x02044B20 | two | to compare |
+| 0x19 | Twister | 0x02045AFC | 0x02044B20 | 1 0x020441F0 (stands), others 0x020446EC (spins at Kirby near, 2.0 back and forth) | KatAM's own (logged) |
 | 0x1A | Sword Knight | 0x0203FC54 | 0x0203E7E8 | 0 and 3-6 0x0203E628 (dashes 2.0 and slashes), 1 0x0203E0C8 (stands and slashes), 2 0x0203DBE8 (stands) | KatAM's own walking, standing slashers and idle one (logged) |
-| 0x1C | Cupie | 0x020668C4 | 0x02063604 | six | to compare |
+| 0x1C | Cupie | 0x020668C4 | 0x02063604 | each its own: 0 0x02063528 (a 40-pixel loop), 1 0x02063330 (a bigger loop), 2 0x02063138 (a rising loop), 3 0x02062F4C and 4 0x02062D38 (drop and hover, shooting), 5 0x02062A78 (a diamond of straight dives) | KatAM's own: its Cupies fly loops too (0 a big oval, 1 up and down, 2 a flat oval; 3 and 4 drop and shoot), the shapes apart (logged on both) |
 | 0x1D | Sir Kibble | 0x02068FD0 | 0x020682B8 | 0 and 4-6 0x020681E8 (stands, a cutter every 165 frames), 1 0x02067FE0 and 2 0x02067D70 (walk 0.5, throw), 3 0x02067AD8 (stands) | KatAM's own standing and walking throwers (logged) |
-| 0x1E | Laser Ball | 0x02057CEC | 0x020572E0 | two | to compare |
-| 0x1F | Foley | 0x0205A030 | 0x02059320 | five | to compare |
-| 0x20 | Wheelie | 0x0204745C | 0x0204626C | two | to compare |
-| 0x21 | UFO | 0x02050E94 | 0x02050248 | two | to compare |
-| 0x22 | Noddy | 0x02043F00 | 0x020430CC | two | to compare |
-| 0x23 | Boxin | 0x0204F868 | 0x0204DE08 | two | to compare |
-| 0x24 | Heavy Knight | 0x02042B80 | 0x0204101C | three | to compare |
+| 0x1E | Laser Ball | 0x02057CEC | 0x020572E0 | 1 0x02056D70 (hovers), others 0x02056F3C (closes in, fires, flies off) | KatAM's own (logged) |
+| 0x1F | Foley | 0x0205A030 | 0x02059320 | 0, 3, 4 (hang and bob), 1 (swings down at Kirby), 2 (dives at Kirby), each its own brain (0x02059138, 0x02058C30, 0x02058AEC; 0x02058FA0; 0x02058E04) | KatAM's own hanging and falling leaves (logged) |
+| 0x20 | Wheelie | 0x0204745C | 0x0204626C | 1 0x02045D98 (stands), others 0x02045F7C (rolls at Kirby, 3.4) | KatAM's own (logged) |
+| 0x21 | UFO | 0x02050E94 | 0x02050248 | 1 0x0204FCAC (faces Kirby, hovers), others 0x02050054 (darts round Kirby, then shoots beside him) | KatAM's own: its UFO (`sub_080C4ACC`, `sub_080C4B70`) darts to spots of a 16-spot table round Kirby, its next spot a few on at random, then flies beside him (56 pixels, after 3 darts; Squeak Squad's 64, after 4) and fires |
+| 0x22 | Noddy | 0x02043F00 | 0x020430CC | 1 0x02042EC0 (sleeps, yawns), others 0x02042F64 (walks 0.25) | KatAM's own (logged) |
+| 0x23 | Boxin | 0x0204F868 | 0x0204DE08 | 1 0x0204DA08, others 0x0204DD3C (alike near Kirby: hops back and punches) | KatAM's own (logged) |
+| 0x24 | Heavy Knight | 0x02042B80 | 0x0204101C | 1 0x02040658 (stands and slashes), others 0x02040E08 (charges 2.0 and slashes) | KatAM's own (logged) |
 
 ## Stage objects
 
