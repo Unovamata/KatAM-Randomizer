@@ -244,6 +244,9 @@ namespace KatAMRandomizer {
             // graphics (acchi.cea's animations 11 and 13-15, cells 23-49);
             new SqueakEnemy(16, "Acchi", "acchi", new[] { 17, 18, 18 }, AcchiGlyphs),
             new SqueakEnemy(17, "Acchi", "acchi", new[] { 23, 23, 23 }, AcchiGlyphs, GraphicsOf: 16),
+            // Bun: hurt animations 10 and 11 (0x02056AA4's 0x100000A, 0x100000B: cells 22 and 23);
+            new SqueakEnemy(18, "Bun", "bun", new[] { 22, 23, 23 },
+                            new[] { (0x01, 0), (0x03, 2), (0x01, 3) }),   // "B", "n" (Bronto Burt), "u" (Glunk);
         };
 
         public static IReadOnlyList<(int index, string name)> SqueakEnemies => SqueakDefinitions.Select(e => (e.Index, e.Name)).ToList();

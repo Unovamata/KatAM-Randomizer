@@ -144,6 +144,14 @@ the timer 120 set, 119 after it). Its touch reaction (`0x0206BB38`) puts it out 
 has it too, and ignores inhales (kinds 3-5); Kirby's body never reached it (no reaction logged as it burned him). The `.rca`'s
 animations 1-8 are the `.cea`'s 8-15 (its 9-15 the `.mca`'s composites). Swallowed, it gives Fire (logged: the HUD's "FIRE").
 
+Bun's brain (params at `+0xA8`, timer at `+0x98`) presses B (`0x02054EE8`: `+0x20` and `+0x3C`) and runs with its pad forward and
+`+0x44` (`0x02054EF8`). Its grab reaction (vtable `+0x2C`, `0x0205695C`, kind 6) fires 19 frames after the reach starts though the
+reach's grab box (`bun.rca`'s, on the `.cea` animation's frames 18-20) is there from its 18th: touch reactions run in the next
+frame's collision pass, before the updates, and the boxes' time lags the animation's by a frame (logged: reach at frame 75, the
+reaction at 94). It holds Kirby through his `vtable +0x10` (the holder, an offset turned with it, a held pose: 3 carried, 4
+overhead, 8, 11, 17 and 4 in the swing, from `0x02158660`; the swing's offsets from `0x02186A44`), and throws him with VX 0x499A,
+AY -0x2B8 (he moves from his next update, logged 16 then 20.6 pixels ahead); he loses 6 HP as he lands. Swallowed, it gives Throw.
+
 ### The stage's water splashes
 
 The stage's map object (`*0x02229F1C + 0x48`, vtable `+0xB4`, `0x02215A10`) splashes: type 0 into the water, 1 out of it. Only at
@@ -244,7 +252,7 @@ Bonkers, Box Boxer, Boxy. The others get a full port (body and brain constructor
 | 0x27 | Bubble Head | 0x020968D0 (0x244) | 0x02095980 (0xB8) | yes |
 | 0x28 | Gaw Gaw | 0x020B0068 (0x260) | 0x020AC780 (0xBC) | yes |
 | 0x2A | Acchi | 0x0206B1F0 (0x25C) | 0x02069D6C (0xB8) | yes |
-| 0x2B | Bun | 0x02056AA4 (0x250) | 0x02055470 (0xB4) | |
+| 0x2B | Bun | 0x02056AA4 (0x250) | 0x02055470 (0xB4) | yes |
 | 0x2C | Metalun | 0x020526AC (0x248) | 0x0205155C (0xB8) | |
 | 0x2D-0x36 | the mid-bosses | 0x020F4294, 0x020D4C10, 0x020FD418, 0x020F8B78, 0x02100300, 0x0210C4F8, 0x02103B4C, 0x02108EAC | | |
 | 0x37-0x46 | the bosses | Meta Knight 0x02116C7C, Dedede 0x020E7E58, 0x39 0x02132D7C, Mrs. Moley 0x0212CF40, Yadgaine 0x0211A4E8, Bohboh 0x02111370, 0x3D 0x02126F48, Dark Nebula / Dark Daroach 0x0211B680, 0x02122CD0, 0x021376EC | | |
