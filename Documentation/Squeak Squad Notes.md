@@ -181,7 +181,12 @@ in 100; `0x0210A7D0` counts at `+0x98`); `0x0210A754` walks 1, 2 or 4 steps (30,
 `0x0210A708` waits for the body's steps (`+0x208`) to reach them and its step to end (`+0x204` 0), a wall ahead turning it round;
 `0x0210A6F0`, `0x0210A6D0` press B (the charge) for up to 180 frames (`0x0210A688`, a wall ending it); `0x0210A650` waits for the
 body to settle (`+0x204` 0), turns and faces Kirby; `0x0210A5D0` then charges again after 60 frames (30 in 100: `0x0210A5A8`) or
-starts over.
+starts over. Its body's roll (`0x0210B0B4`) stops at the stage's limits, the camera object's (`*(*0x021867AC + 4)`, `0x02035BA4(0)`)
+`+0x5C` and `+0x64` (logged: 16 and 1584 in a 1600-pixel stage, `+0x60` and `+0x68` 8 and 216 the top and bottom, all four fixed as
+the camera moves), at a wall (flag 0x800) or after 1000 frames (`+0x20C`), the bonk setting the daze's 180 (`Ml0`'s fifth value);
+logged, the walk's 284 frames for two steps, the bonk at x 16, the daze 180 and the stand-up 7. KatAM's port stops it where KatAM
+keeps its mini-bosses instead (`ObjXSomething`: its box 8 pixels inside the mini-boss's `unkA4`/`unkA8`, the camera lock's area or
+else the room's limits).
 
 ### The stage's water splashes
 
@@ -296,7 +301,7 @@ palette for its hurt flash). The others get a full port (body and brain construc
 | 0x2B | Bun | 0x02056AA4 (0x250) | 0x02055470 (0xB4) | yes |
 | 0x2C | Metalun | 0x020526AC (0x248) | 0x0205155C (0xB8) | yes |
 | 0x33 | Gao Gao (mid-boss) | 0x02100300 (0x254) | 0x020FE364 (0xD8) | |
-| 0x34 | Big Metalun (mid-boss) | 0x0210C4F8 (0x24C) | 0x0210A940 (0xBC) | |
+| 0x34 | Big Metalun (mid-boss) | 0x0210C4F8 (0x24C) | 0x0210A940 (0xBC) | yes |
 | 0x35 | Tedhaun (mid-boss) | 0x02103B4C (0x2AC) | 0x02100FE8 (0xCC) | |
 | 0x36 | Buboo (mid-boss) | 0x02108EAC (0x274) | 0x02105938 (0xC8) | |
 | 0x37-0x46 | the bosses | Meta Knight 0x02116C7C, Dedede 0x020E7E58, 0x39 0x02132D7C, Mrs. Moley 0x0212CF40, Yadgaine 0x0211A4E8, Bohboh 0x02111370, 0x3D 0x02126F48, Dark Nebula / Dark Daroach 0x0211B680, 0x02122CD0, 0x021376EC | | |

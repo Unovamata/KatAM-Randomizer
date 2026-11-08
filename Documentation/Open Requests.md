@@ -102,7 +102,10 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
     Blipper and the swimmers in water (a DS save state in water first).
   - Mid-bosses (Squeak Squad's 0x33-0x36: Gao Gao, Big Metalun, Tedhaun, Buboo; its other four, Mr. Frosty, Bonkers, Box Boxer and
     Boxy, are KatAM's own): their framework is in (on the mini-boss types 0x40-0x42 NiDL's use; tested in KatAM with Big Metalun:
-    the wait, the camera lock, the HP bar and its name). Big Metalun's brain and body are being ported; the other three next.
+    the wait, the camera lock, the HP bar and its name). Big Metalun is ported (`squeak/big_metalun.c`): its brain and body checked
+    against the DS by logging and in KatAM (room 0x323, USA: the same frames, the bonk at its area's edge and at a wall, Sword hits,
+    the defeat with its HP lowered by a RAM write; screenshots); not tested: a fall, a real mini-boss room's camera lock, swallowing
+    it. Gao Gao, Tedhaun and Buboo next.
   - Framework: a looping animation's end is now a pulse on its loop frames, and a composite's ends a frame later, as on the DS
     (logged: Bubble Head's composites and bubble). Bio Spark changed with it (its brain's three waits in the slash now take a loop
     each, 6 frames, as on the DS: checked in KatAM), and Cret's ball now drops after its drop composite's 20 frames, a frame later
