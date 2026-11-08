@@ -1255,7 +1255,9 @@ namespace KatAMRandomizer {
                             squeakBuilt.Add(of with { Enemy = enemy });
                             continue;
                         }
-                        SqueakCharacter character = ReadSqueakCharacter(squeak, enemy.File);
+                        string[] file = enemy.File.Split('/');
+                        SqueakCharacter character = file.Length > 1 ? ReadSqueakCharacter(squeak, file[1], file[0]) : ReadSqueakCharacter(squeak, enemy.File);
+                        if (enemy.OnlyAnims != null) character = SqueakKeepAnims(character, enemy.OnlyAnims);
                         (List<(byte[] tiles, ushort[] oams, short[] attributes, int palette)> frames, List<byte[]> palettes) = SqueakFrames(character);
                         var withHurts = enemy.HurtCells.Select(c => frames[c]).Concat(frames).ToList();
                         (int _, int animId, int _) = AddAnim(palettes, withHurts, new byte[0], new List<(int, int)>(), effectOnly: withHurts.Count);

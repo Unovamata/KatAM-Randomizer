@@ -31,6 +31,8 @@ const s16 gSqueakEnemyHp[SQUEAK_ENEMY_COUNT] = {
     [SQUEAK_BUN] = 7,               // Squeak Squad's: 35 (prmCE28Sl0.kgb);
     [SQUEAK_METALUN] = 10,          // Squeak Squad's: 50 (prmCE29Sl0.kgb);
     [SQUEAK_BIG_METALUN] = 64,      // Squeak Squad's: 300 (prmMB10Sl0.kgb), its other mid-bosses' 140 being KatAM's Mr. Frosty's 30;
+    [SQUEAK_GAO_GAO] = 30,          // Squeak Squad's: 140 (prmMB09Sl0.kgb), KatAM's Mr. Frosty's 30;
+    [SQUEAK_STAR] = 1,
 };
 
 static const struct SqueakCharacter sSqueakCharacters[SQUEAK_ENEMY_COUNT] = {
@@ -55,6 +57,8 @@ static const struct SqueakCharacter sSqueakCharacters[SQUEAK_ENEMY_COUNT] = {
     [SQUEAK_BUN] = { BunInit, BunStart, KIRBY_ABILITY_THROW, FALSE },
     [SQUEAK_METALUN] = { MetalunInit, MetalunStart, 0, FALSE },
     [SQUEAK_BIG_METALUN] = { BigMetalunInit, BigMetalunStart, 0, FALSE, TRUE },
+    [SQUEAK_GAO_GAO] = { GaoGaoInit, GaoGaoStart, 0, FALSE, TRUE },
+    [SQUEAK_STAR] = { SqueakStarInit, SqueakStarStart, 0, FALSE },
 };
 
 /* SqueakAnimFor(); The anim and variant an object shows (variant << 16 | anim ID), for the game's object drawing (sub_0809A7A4,

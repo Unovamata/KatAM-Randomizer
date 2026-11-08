@@ -188,6 +188,22 @@ logged, the walk's 284 frames for two steps, the bonk at x 16, the daze 180 and 
 keeps its mini-bosses instead (`ObjXSomething`: its box 8 pixels inside the mini-boss's `unkA4`/`unkA8`, the camera lock's area or
 else the room's limits).
 
+Gao Gao (mid-boss 0x33: body `0x02100300`, vtable `0x0217FF88`, its hurt anims both 0x1000009; brain `0x020FE364`, vtable
+`0x0217FF6C`, its states `0x020FDD74`-`0x020FE274`; `prmMB09Ml0` 0x1334 (the jump across), 0x800, 0x2800 (the jump up), 0x19A
+(gravity), 0x1CCD and 0x800 (the hop back), 0x3CCD, 0x2800, 2, 0x399A (the fall's cap), 0x1000, 20, 0x1000, 0x2000, -0x1000 and
+0x2667 (the defeat's hop), 82; `Pl0` 50, 0x30000, 0x30000, 32, 50, 25, 50; `Sl0` HP 140; `enemy/gaogao`, `gaogao_dmg` loaded by
+`0x020FDCC4`). Its brain presses A (brain `+0x38`/`+0x1C`: `0x020FDD6C` sets, `0x020FDD64` clears) and B (`+0x3C`/`+0x20`:
+`0x020FDD5C`, `0x020FDD54`); its body (`0x020FF940`) reads B first (with up the drill, `0x020FEDB8`; else the spin, `0x020FF160`), then
+A (with down the hop back, `0x020FF534`; else the jump, `0x020FF88C`). Its counters `+0x9C`, `+0xA0`, `+0xA4` (jumps in place,
+forward, back) are never set before use (logged: a fresh one attacked after its first jump). The drill (`0x020FEB14`) waits till its
+feet reach the stage object's `+0x70` (`*0x02229F1C`, `0x0220A3E4`: the camera's top; `+0x6C` its left), then lands over Kirby or
+the camera's left plus 54, 128 or 202. Its stars and puffs: `0x02021864(obj, big, stars)` puffs (`0x020219C4`'s type 2 if big, else 1)
+and with `stars` makes two stars, `0x0212389C` kinds 1 and 2 at 32 pixels either side; `0x0202181C` the jump's dust (type 3 or 4).
+`0x020219C4`'s types name animations through `0x02157DF8` (1: efc_cmn0's 23, 2: 22, 3: 19, 4: 20; 15: efc_cmn1's 5). The star
+(`0x021236A0`, vtable `0x02183310`, `effect/efc_cmn0`): kinds 1 and 3 fly 3.0 forward and up, 2 and 4 back and up (`0x0212344C`,
+`0x02123358`) through its animation 11, hang 100 frames in 12 (`0x02123268`, `0x02123218`), fade in 13 (`0x02123184`) and are gone;
+other kinds fly at 4.0 (5) or do `0x0212312C` (6, the defeat's slide dust).
+
 ### The stage's water splashes
 
 The stage's map object (`*0x02229F1C + 0x48`, vtable `+0xB4`, `0x02215A10`) splashes: type 0 into the water, 1 out of it. Only at
@@ -300,7 +316,7 @@ palette for its hurt flash). The others get a full port (body and brain construc
 | 0x2A | Acchi | 0x0206B1F0 (0x25C) | 0x02069D6C (0xB8) | yes |
 | 0x2B | Bun | 0x02056AA4 (0x250) | 0x02055470 (0xB4) | yes |
 | 0x2C | Metalun | 0x020526AC (0x248) | 0x0205155C (0xB8) | yes |
-| 0x33 | Gao Gao (mid-boss) | 0x02100300 (0x254) | 0x020FE364 (0xD8) | |
+| 0x33 | Gao Gao (mid-boss) | 0x02100300 (0x254) | 0x020FE364 (0xD8) | yes |
 | 0x34 | Big Metalun (mid-boss) | 0x0210C4F8 (0x24C) | 0x0210A940 (0xBC) | yes |
 | 0x35 | Tedhaun (mid-boss) | 0x02103B4C (0x2AC) | 0x02100FE8 (0xCC) | |
 | 0x36 | Buboo (mid-boss) | 0x02108EAC (0x274) | 0x02105938 (0xC8) | |

@@ -85,6 +85,17 @@ namespace KatAMRandomizer {
             public List<SqueakComposite> Composites = new List<SqueakComposite>();
         }
 
+        /* SqueakKeepAnims(); The character with only these animations (as its 0, 1...) and the cells they show (renumbered in the order
+         * they first show), its tiles and palettes as they were; */
+        static SqueakCharacter SqueakKeepAnims(SqueakCharacter character, int[] anims) {
+            List<int> cells = anims.SelectMany(a => character.Anims[a].Steps.Select(s => s.Cell)).Distinct().ToList();
+            return new SqueakCharacter {
+                Tiles = character.Tiles, Palettes = character.Palettes, Cells = cells.Select(c => character.Cells[c]).ToList(),
+                Anims = anims.Select(a => character.Anims[a] with {
+                    Steps = character.Anims[a].Steps.Select(s => s with { Cell = cells.IndexOf(s.Cell) }).ToList() }).ToList(),
+            };
+        }
+
         // ReadSqueakCharacter(); A character's graphics from its files (folder/name.cga, .cla, .cea; palette: another .cla, "name_blue");
         static SqueakCharacter ReadSqueakCharacter(byte[] rom, string name, string folder = "enemy", string palette = null) {
             byte[] cga = SqueakFile(rom, $"{folder}/{name}.cga"), cla = SqueakFile(rom, $"{folder}/{palette ?? name}.cla"),
@@ -151,11 +162,12 @@ namespace KatAMRandomizer {
         // The hurt frames every character's anim starts with (squeak.h's SQUEAK_HURT_VARIANTS: the type's hurt indexes 0 and 1, and 2);
         const int SqueakHurtVariants = 3;
 
-        /* A Squeak Squad character: its index (squeak.h's SQUEAK_*), name, files (enemy/<File>.*), the cells its hurt frames show (its
+        /* A Squeak Squad character: its index (squeak.h's SQUEAK_*), name, files (enemy/<File>.*, or "folder/name"; OnlyAnims: only those
+         * animations of them, as its 0, 1..., and the cells they show, in order), the cells its hurt frames show (its
          * hurt animations': SqueakHurtVariants), and its HP bar name, made of the letters of KatAM's names (object type, letter); a thing
  * a character throws (spawned as a character of its own) can be drawn with that character's graphics (GraphicsOf: its index); */
         internal sealed record SqueakEnemy(int Index, string Name, string File, int[] HurtCells, (int type, int letter)[] Glyphs, int GraphicsOf = -1,
-                                            byte MidbossType = 0);
+                                            byte MidbossType = 0, int[] OnlyAnims = null);
         internal sealed record SqueakBuilt(SqueakEnemy Enemy, int AnimId, SqueakCharacter Character, int Tiles);
 
         /* Squeak Squad's effects the ported characters show (squeak.h's SQUEAK_FX_*): an animation of <File>.* ("folder/name"; 0x02021900's
@@ -171,6 +183,8 @@ namespace KatAMRandomizer {
             new SqueakEffect(2, "m_efc/clay", 5),
             new SqueakEffect(3, "effect/efc_cmn1", 1),     // 0x020B48E0's type 6: a thing bursting (Crimp's rock);
             new SqueakEffect(4, "effect/efc_cmn0", 7),     // 0x020B48E0's type 3: a star burst (Bio Spark's kunai stuck in a wall);
+            new SqueakEffect(5, "effect/efc_cmn0", 23),    // 0x020219C4's type 1: a mid-boss's landing puff (Gao Gao's);
+            new SqueakEffect(6, "effect/efc_cmn0", 22),    // 0x020219C4's type 2: its big landing puff;
         };
 
         /* SqueakEffectBuild(); An effect's cells (those its animation shows, in its order) as KatAM frames and their palettes, the anim
@@ -257,6 +271,14 @@ namespace KatAMRandomizer {
             new SqueakEnemy(20, "Big Metalun", "bigmetalum", new[] { 32, 32, 32 },
                             new[] { (0x11, 0), (0x11, 1), (0x11, 2), (-1, 0), (0x2B, 0), (0x14, 4), (0x14, 2), (0x14, 5), (0x03, 1), (0x03, 2),
                                     (0x01, 3) }, MidbossType: 0x41),   // "Big" (Big Waddle Dee), " ", "Metalun" (as Metalun's);
+            // Gao Gao (a mid-boss, on mini-boss type 0x40): its hurt animations both 9 (0x02100300's 0x1000009: cell 28);
+            new SqueakEnemy(21, "Gao Gao", "gaogao", new[] { 28, 28, 28 },
+                            new[] { (0x03, 0), (0x14, 5), (0x01, 2), (-1, 0), (0x03, 0), (0x14, 5), (0x01, 2) },
+                            MidbossType: 0x40),   // "G" (Glunk), "a" (Hot Head), "o" (Bronto Burt);
+            /* The star a mid-boss knocks out (0x0212389C's kinds 1 and 2, 0x021236A0: efc_cmn0's animations 11-13, the cells they show;
+             * its hurt frames its first); */
+            new SqueakEnemy(22, "Star", "effect/efc_cmn0", new[] { 0, 0, 0 },
+                            new[] { (0x04, 0), (0x14, 2), (0x14, 5), (0x01, 1) }, OnlyAnims: new[] { 11, 12, 13 }),   // as Starman's;
         };
 
         public static IReadOnlyList<(int index, string name)> SqueakEnemies => SqueakDefinitions.Select(e => (e.Index, e.Name)).ToList();

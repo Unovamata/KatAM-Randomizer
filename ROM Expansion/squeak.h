@@ -43,6 +43,8 @@ enum {
     SQUEAK_BUN,
     SQUEAK_METALUN,
     SQUEAK_BIG_METALUN,         // A mid-boss (on a mini-boss type, see below);
+    SQUEAK_GAO_GAO,             // A mid-boss;
+    SQUEAK_STAR,                // The star a mid-boss knocks out (effect/efc_cmn0's; its variants SQUEAK_STAR_*);
     SQUEAK_ENEMY_COUNT,
 };
 
@@ -51,6 +53,8 @@ enum {
  * the variant. Created by CreateSqueakMidboss (the mini-bosses' spawn hands them over), they wait facing Kirby till he's in the
  * template's area, then the camera locks there, the HP bar shows and the mini-boss music plays, as KatAM's own mini-bosses do; */
 #define SQUEAK_MIDBOSS 0x80
+// SQUEAK_STAR's variants: flying off forward or back (Squeak Squad's kinds 1 and 2, 0x0212389C);
+enum { SQUEAK_STAR_AHEAD = 1, SQUEAK_STAR_BEHIND };
 #define SqueakIsMidboss(obj) (NidlIsMiniboss(obj) && (obj)->objTemplate->subtype1 >= SQUEAK_MIDBOSS)
 // SqueakIsSqueak(); An object that's a Squeak Squad character (SqueakObject): on its own type or a mid-boss;
 #define SqueakIsSqueak(obj) ((obj)->type == SQUEAK_TYPE || SqueakIsMidboss(obj))
@@ -131,6 +135,8 @@ enum {
     SQUEAK_FX_SPLASH_OUT,
     SQUEAK_FX_BURST,            // 0x020B48E0's type 6 (efc_cmn1's animation 1): a thing bursting (Crimp's rock);
     SQUEAK_FX_STARS,            // 0x020B48E0's type 3 (efc_cmn0's animation 7): a star burst (Bio Spark's kunai stuck in a wall);
+    SQUEAK_FX_LAND,             // 0x020219C4's types 1 and 2 (efc_cmn0's animations 23 and 22): a mid-boss's landing puffs;
+    SQUEAK_FX_LAND_BIG,
     SQUEAK_FX_COUNT,
 };
 
@@ -310,5 +316,9 @@ void MetalunInit(struct SqueakObject *);
 void MetalunStart(struct Object *);
 void BigMetalunInit(struct SqueakObject *);
 void BigMetalunStart(struct Object *);
+void GaoGaoInit(struct SqueakObject *);
+void GaoGaoStart(struct Object *);
+void SqueakStarInit(struct SqueakObject *);
+void SqueakStarStart(struct Object *);
 
 #endif
