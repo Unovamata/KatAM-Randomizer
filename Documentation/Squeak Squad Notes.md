@@ -21,8 +21,8 @@ Each character has a set of files of HAL's own formats, all little-endian:
 | `.cga` | `BCGA` | Tiles, 4 bits a pixel: a 0x14-byte header (`+0x10`: the tiles' size), then the tiles. |
 | `.cla` | `BCLA` | A palette: a 12-byte header (`+8`: the number of colors, 16), then the colors (BGR555). Some characters have more than one (`chun_blue`, `chun_green`, `chun_yellow`: the Squeakers). `_dmg.cla`: a damage palette. |
 | `.cea` | `BCEA` | Cells and animations (below). |
-| `.rca` | `BRCA` | Body boxes: lists of (left, top, right, bottom) in pixels from the feet, Y up (Perara's first: -5, 10, 5, 0), loaded per animation frame by `0x02014010`. |
-| `.mca` | | Not decoded yet (the bigger characters). |
+| `.rca` | `BRCA` | Body boxes: lists of (left, top, right, bottom) in pixels from the feet, Y up (Perara's first: -5, 10, 5, 0), loaded per animation frame by `0x02014010`. At `+0x28` a table per animation (`.cea`'s, then `.mca`'s: Gussa's 23 = 19 + 4), each `u16` frames-with-boxes, `u16`, `u16` the box list, `u16` frames; at the header's `+0x14` the lists (count, first box), at `+0x18` the boxes. |
+| `.mca` | `BMCA` | Composite animations (below): the bigger characters, and Gussa, Cret, Bubble Head, Acchi. |
 
 ### `.cea`
 
@@ -38,6 +38,33 @@ Each character has a set of files of HAL's own formats, all little-endian:
 - The header's byte at `+8`: with flag 8 (the characters' files, `0x0B`) a cell's entry is 8 bytes as above; without it (the
   shared effects' `efc_cmn0`/`efc_cmn1`, `0x03`) it is 4 bytes (OAMs, first OAM), and the OAMs count their tiles from the file's
   first.
+- A frame's x offset turns with the character: facing left, it's drawn mirrored (Uja's animation 2, x 8, draws 8 pixels to the left
+  of it then; checked in the DS emulator).
+
+### `.mca`
+
+Compositions of the character's own `.cea` animations, played together: the sprite object's `vtable +8` with `0x3000000 |
+animation` (`0x1000000 |` plays a `.cea` one).
+
+- Header: `BMCA`, a word, `+8` the compositions' offset, `+0xC` the animations' offset.
+- Compositions: `u32` count, then per composition `u32` parts and `u32` their offset (from the compositions'); a part is 8 bytes:
+  `u16` the `.cea` animation, `u16` its timing, `s16` x, `s16` y (pixels, y down, as the character faces right; mirrored when it
+  faces left, `0x01FFA640`).
+- Animations: `u16` count, `u16` 0x18, `u32`, then a `u32` offset (from the animations') per animation; one: `u8` steps, `u8` loops,
+  `u16`, `u32` length, then 8 bytes a step: `u16` composition, `u16` frames, a word (always 0).
+- A part's timing (read at `0x01FF9BC6`, `0x01FF9EBE`, `0x01FFA6D0`): 0, its animation plays at the composite animation's time
+  within it (Gussa's body: 0 to 23, over again); 1, at the frames since the composite animation started (it goes on counting;
+  the part's own animation loops at its own length). Checked with breakpoints in the DS emulator.
+- The first part is drawn on top (Kracko's eye, part 0, over its cloud). The parts are drawn last to first.
+- Some characters' parts loop at lengths whose combinations run long (Dedede's composite 0: 371,280 frames before it repeats), so
+  the port plays them live, a sprite per part, rather than as frames drawn ahead of time.
+
+### The stage's water splashes
+
+The stage's map object (`*0x02229F1C + 0x48`, vtable `+0xB4`, `0x02215A10`) splashes: type 0 into the water, 1 out of it. Only at
+the surface (`0x02215860`: the character's tile water and one beside, above or below it not, or the other way round); placed
+6 pixels into the top water tile (`0x02215954`). The splash is the stage's material file's (`m_efc/clay`, `sand` or `snow`, named at
+`*0x0222C104`) animation 4 (in) or 5 (out), the same in all three; at most one every 6 frames (`0x0221BCA0`).
 - Waddle Dee: 10 cells of 12 tiles (120 tiles, the `.cga`'s 0xF00 bytes); animation 1 walks (cells 0-4-1, 11 or 8 frames each,
   looping), animation 2 the same 4 frames each.
 
@@ -110,6 +137,35 @@ switches on the ID (0x00-0x47): each case allocates the enemy's object (its own 
 
 0x12, 0x1B, 0x29, 0x2F, 0x32, 0x40-0x45 and 0x47 fall to the default case. Parasol (the parasol some Waddle Dees, Waddle Doos and
 Shotzos hold) and the Squeaks (spin, doc, stron, chun) are created elsewhere.
+
+## The cast to port
+
+Squeak Squad's enemies KatAM has (its own objects, with only the Squeak Squad behaviors it lacks to add): Waddle Dee, Bronto Burt,
+Blipper, Glunk, Scarfy, Gordo, Snooter, Chip, Batty, Blockin, Big Waddle Dee, Shotzo, Waddle Doo, Hot Head, Flamer, Pengy, Sparky,
+Twister, Sword Knight, Cupie, Sir Kibble, Laser Ball, Foley, Wheelie, UFO, Noddy, Boxin, Heavy Knight; mid-bosses Mr. Frosty,
+Bonkers, Box Boxer, Boxy. The others get a full port (body and brain constructors, from the factory; sizes in bytes):
+
+| ID | Enemy | Body | Brain | Ported |
+| --- | --- | --- | --- | --- |
+| 0x0B | Gussa | 0x0206E364 (0x250) | 0x0206C3D0 (0xC0) | yes |
+| 0x0C | Crimp | 0x020CE310 (0x248) | 0x020CC53C (0xBC) | |
+| 0x0D | Perara | 0x0206FD54 (0x260) | 0x0206E85C (0xB8) | yes |
+| 0x0E | Gold Waddle Dee | 0x020B6764 (0x250) | 0x020B4EF4 (0xC0) | yes |
+| 0x0F | Maiga | 0x020A2108 (0x26C) | 0x020A0B58 (0xB4) | |
+| 0x10 | Cret | 0x02073044 (0x284) | 0x020705AC (0xC8) | |
+| 0x11 | Uja | 0x020840C8 (0x294) | 0x02080AD0 (0xC4) | |
+| 0x25 | Bio Spark | 0x0207CF18 (0x264) | 0x0207A284 (0xB4) | |
+| 0x26 | Starman | 0x020877B8 (0x24C) | 0x02084B10 (0xD0) | |
+| 0x27 | Bubble Head | 0x020968D0 (0x244) | 0x02095980 (0xB8) | |
+| 0x28 | Gaw Gaw | 0x020B0068 (0x260) | 0x020AC780 (0xBC) | |
+| 0x2A | Acchi | 0x0206B1F0 (0x25C) | 0x02069D6C (0xB8) | |
+| 0x2B | Bun | 0x02056AA4 (0x250) | 0x02055470 (0xB4) | |
+| 0x2C | Metalun | 0x020526AC (0x248) | 0x0205155C (0xB8) | |
+| 0x2D-0x36 | the mid-bosses | 0x020F4294, 0x020D4C10, 0x020FD418, 0x020F8B78, 0x02100300, 0x0210C4F8, 0x02103B4C, 0x02108EAC | | |
+| 0x37-0x46 | the bosses | Meta Knight 0x02116C7C, Dedede 0x020E7E58, 0x39 0x02132D7C, Mrs. Moley 0x0212CF40, Yadgaine 0x0211A4E8, Bohboh 0x02111370, 0x3D 0x02126F48, Dark Nebula / Dark Daroach 0x0211B680, 0x02122CD0, 0x021376EC | | |
+
+The Squeaks (Squeakers, Doc, Spinni, Storo, Daroach) and Parasol are created elsewhere. Copy abilities KatAM lacks (Ninja, Bubble,
+Animal, Ghost): the owner decides; meanwhile those enemies give none.
 
 ## Stage objects
 

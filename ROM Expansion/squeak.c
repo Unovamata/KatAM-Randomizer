@@ -12,11 +12,13 @@ void NidlDestroy(struct Task *task);
 const s16 gSqueakEnemyHp[SQUEAK_ENEMY_COUNT] = {
     [SQUEAK_PERARA] = 2,
     [SQUEAK_GOLD_WADDLE_DEE] = 6,   // Squeak Squad's: 30, a Waddle Dee's 10 (Perara's too);
+    [SQUEAK_GUSSA] = 2,             // Squeak Squad's: 10 (prmNE12Sl0.kgb);
 };
 
 static const struct SqueakCharacter sSqueakCharacters[SQUEAK_ENEMY_COUNT] = {
     [SQUEAK_PERARA] = { PeraraInit, PeraraStart, 0, FALSE },
     [SQUEAK_GOLD_WADDLE_DEE] = { GoldWaddleDeeInit, GoldWaddleDeeStart, 0, TRUE },
+    [SQUEAK_GUSSA] = { GussaInit, GussaStart, 0, TRUE },
 };
 
 /* SqueakAnimFor(); The anim and variant an object shows (variant << 16 | anim ID), for the game's object drawing (sub_0809A7A4,
@@ -35,10 +37,15 @@ void SqueakSetCell(struct SqueakObject *s, u8 cell) {
     s->obj.unk83 = cell + SQUEAK_HURT_VARIANTS;
 }
 
+static void SqueakReleaseParts(struct SqueakObject *s);
+static void SqueakShowComposite(struct SqueakObject *s);
+
 // SqueakPlay(); Starts one of the character's Squeak Squad animations, from its first step;
 void SqueakPlay(struct SqueakObject *s, u8 anim) {
     const struct SqueakAnim *a = &gSqueakData.enemies[s->enemy].anim[anim];
 
+    SqueakReleaseParts(s);
+    s->composite = SQUEAK_NO_COMPOSITE;
     s->anim = anim;
     s->step = 0;
     s->animEnded = FALSE;
@@ -46,13 +53,32 @@ void SqueakPlay(struct SqueakObject *s, u8 anim) {
     SqueakSetCell(s, a->step[0].cell);
 }
 
+/* SqueakPlayComposite(); Starts one of the character's composite animations (.mca: the sprite object's vtable +8 with 0x3000000 |
+ * the animation), from its first frame; */
+void SqueakPlayComposite(struct SqueakObject *s, u8 composite) {
+    s->composite = composite;
+    s->compositeTime = 0;
+    s->animEnded = FALSE;
+    SqueakShowComposite(s);
+}
+
+// SqueakTurned(); An offset across as the character faces (Squeak Squad's are as it faces right: KatAM's flag 1 unset);
+static s32 SqueakTurned(struct SqueakObject *s, s32 x) {
+    return s->obj.base.flags & 1 ? -x : x;
+}
+
 /* SqueakAnimate(); Steps the animation, once per frame: a step shows its cell its frames, then the next; after the last, a looping
  * animation starts over, the others hold their last step. Either way animEnded tells the animation got through once (Squeak
  * Squad's flag 8, which characters wait for). The step's offset moves the drawing (Squeak Squad adds it to the cell's position when
- * it builds the OAM, 0x01FF8720; KatAM's objBase54/55, which the drawing clears once used); */
+ * it builds the OAM, 0x01FF8720, turned with the character as the cell; KatAM's objBase54/55, which the drawing clears once used); */
 void SqueakAnimate(struct SqueakObject *s) {
     const struct SqueakAnim *a = &gSqueakData.enemies[s->enemy].anim[s->anim];
 
+    if (s->composite != SQUEAK_NO_COMPOSITE) {
+        s->compositeTime++;
+        SqueakShowComposite(s);
+        return;
+    }
     if (!(s->animEnded && !a->loops) && !(s->timer && --s->timer)) {
         if (s->step + 1 < a->steps) {
             s->step++;
@@ -67,8 +93,162 @@ void SqueakAnimate(struct SqueakObject *s) {
             }
         }
     }
-    s->obj.base.objBase54 = a->step[s->step].x;
+    s->obj.base.objBase54 = SqueakTurned(s, a->step[s->step].x);
     s->obj.base.objBase55 = a->step[s->step].y;
+}
+
+// SqueakLength(); An animation's frames in all;
+static u32 SqueakLength(const struct SqueakAnim *a) {
+    u32 total = 0;
+    u8 i;
+
+    for (i = 0; i < a->steps; i++) total += a->step[i].frames;
+    return total;
+}
+
+// SqueakStepAt(); The step an animation shows `time` frames in (a looping one starts over, the others hold their last step);
+static const struct SqueakStep *SqueakStepAt(const struct SqueakAnim *a, u32 time) {
+    u32 total = SqueakLength(a);
+    u8 i;
+
+    if (total == 0) return &a->step[0];
+    if (a->loops) time %= total;
+    for (i = 0; i < a->steps; i++) {
+        if (time < a->step[i].frames) return &a->step[i];
+        time -= a->step[i].frames;
+    }
+    return &a->step[a->steps - 1];
+}
+
+/* Composite animations (.mca): a composition's parts are the character's own animations, played at once where the composition puts
+ * them (0x01FFA640: they turn with the character), each at the time the part asks for (0x01FFA6CC: the frames since the composite
+ * animation started, or its time within it), the first on top. The character's own sprite shows the first part, a SqueakPartFx
+ * each of the others, drawn behind it in their order (KatAM draws a lower order in front: 0x1A, the enemies', then 0x1B, ...); */
+struct SqueakPartFx {
+    struct EffectObject e;
+    struct SqueakObject *owner; // Placed by it (SqueakShowComposite) each frame; gone with it or its composite animation;
+    struct SqueakPartFx *next;
+    s8 dx, dy;                  // Where it's drawn (pixels from the character, turned);
+    u8 cell;                    // Its cell (the character's frame, variants SQUEAK_HURT_VARIANTS on);
+    u8 index;                   // Its part (1 on);
+};
+
+// SqueakPartDestroy(); A part's end (its own, or the room's): its character lets go of it;
+static void SqueakPartDestroy(struct Task *t) {
+    struct SqueakPartFx *p = TaskGetStructPtr(t), **link;
+
+    if (p->owner) {
+        for (link = (struct SqueakPartFx **)&p->owner->parts; *link; link = &(*link)->next) {
+            if (*link == p) {
+                *link = p->next;
+                break;
+            }
+        }
+    }
+    ObjectBaseDestroy(t);
+}
+
+/* SqueakPartMain(); Draws a part where its character placed it, facing as it, with its palette; none while the character shows
+ * KatAM's hurt frames (they're its whole), or isn't drawn; */
+static void SqueakPartMain(void) {
+    struct SqueakPartFx *p = TaskGetStructPtr(gCurTask);
+    struct SqueakObject *s = p->owner;
+
+    if ((p->e.flags & 0x1000) || s == NULL) {
+        TaskDestroy(gCurTask);
+        return;
+    }
+    if (s->composite == SQUEAK_NO_COMPOSITE || s->obj.unk83 < SQUEAK_HURT_VARIANTS || (s->obj.base.flags & 0x400)) return;
+    p->e.x = s->obj.base.x;
+    p->e.y = s->obj.base.y;
+    p->e.sprite.variant = p->cell + SQUEAK_HURT_VARIANTS;
+    p->e.sprite.palId = s->obj.base.sprite.palId;
+    // (KatAM flips a frame when flag 1 is set: its frames face left, Squeak Squad's cells right, flipped when facing left);
+    p->e.flags = (p->e.flags & ~0x401) | 4 | (s->obj.base.flags & 1 ? 0 : 1);
+    p->e.objBase54 = p->dx;
+    p->e.objBase55 = p->dy;
+    EffectObjectPostUpdate(&p->e);
+}
+
+// SqueakCreatePart(); A sprite for part `index` of the character's compositions;
+static struct SqueakPartFx *SqueakCreatePart(struct SqueakObject *s, u8 index) {
+    const struct SqueakGraphics *g = &gSqueakData.enemies[s->enemy];
+    struct Task *t;
+    struct SqueakPartFx *p;
+
+    if (gKirbys[gLocalPlayerId].base.roomId != s->obj.base.roomId) return NULL;
+    t = TaskCreate(SqueakPartMain, sizeof(struct SqueakPartFx), 0x3500, TASK_USE_EWRAM, SqueakPartDestroy);
+    if (t == NULL) return NULL;
+    p = TaskGetStructPtr(t);
+    ClearEffectObject(&p->e);
+    p->e.header.kind = 3;
+    p->e.roomId = s->obj.base.roomId;
+    p->e.parent = NULL;
+    p->e.x = s->obj.base.x;
+    p->e.y = s->obj.base.y;
+    p->owner = s;
+    p->next = NULL;
+    p->dx = p->dy = 0;
+    p->cell = 0;
+    p->index = index;
+    EffectObjectInitSprite(&p->e, &p->e.sprite, g->tiles, g->animId, SQUEAK_HURT_VARIANTS, 0x1A + index < 0x1F ? 0x1A + index : 0x1F);
+    p->e.sprite.palId = s->obj.base.sprite.palId;
+    return p;
+}
+
+// SqueakReleaseParts(); Lets go of the parts (each ends itself on its next frame);
+static void SqueakReleaseParts(struct SqueakObject *s) {
+    struct SqueakPartFx *p, *next;
+
+    for (p = s->parts; p != NULL; p = next) {
+        next = p->next;
+        p->owner = NULL;
+        p->next = NULL;
+    }
+    s->parts = NULL;
+}
+
+/* SqueakShowComposite(); The composite animation at its time: the composition its step shows, and each part's cell and offset (the
+ * first the character's own, the others its SqueakPartFx, made or let go as the composition has them); animEnded once its frames
+ * went by (flag 8); */
+static void SqueakShowComposite(struct SqueakObject *s) {
+    const struct SqueakGraphics *g = &gSqueakData.enemies[s->enemy];
+    const struct SqueakComposite *c = &g->composite[s->composite];
+    const struct SqueakComposition *composition;
+    struct SqueakPartFx **link = (struct SqueakPartFx **)&s->parts, *p;
+    u32 total = 0, time = s->compositeTime, local;
+    u8 i;
+
+    for (i = 0; i < c->steps; i++) total += c->step[i].frames;
+    if (total && time + 1 >= total) s->animEnded = TRUE;
+    local = total == 0 ? 0 : c->loops ? time % total : time < total ? time : total - 1;
+    time = local;
+    for (i = 0; i + 1 < c->steps && time >= c->step[i].frames; i++) time -= c->step[i].frames;
+    composition = &g->composition[c->step[i].composition];
+    for (i = 0; i < composition->parts; i++) {
+        const struct SqueakPart *part = &composition->part[i];
+        const struct SqueakStep *step = SqueakStepAt(&g->anim[part->anim], part->absolute ? s->compositeTime : local);
+        s32 x = SqueakTurned(s, part->x + step->x), y = part->y + step->y;
+
+        if (i == 0) {
+            SqueakSetCell(s, step->cell);
+            s->obj.base.objBase54 = x;
+            s->obj.base.objBase55 = y;
+            continue;
+        }
+        if (*link == NULL) *link = SqueakCreatePart(s, i);
+        if ((p = *link) == NULL) break;
+        p->cell = step->cell;
+        p->dx = x;
+        p->dy = y;
+        link = &p->next;
+    }
+    // (the parts this composition doesn't have);
+    for (p = *link; p != NULL; p = *link) {
+        *link = p->next;
+        p->owner = NULL;
+        p->next = NULL;
+    }
 }
 
 /* SqueakSetState(); A new state for the character's own code; its timer counts the times the state ran (0 the first: Squeak Squad
@@ -225,6 +405,11 @@ bool32 SqueakWallAhead(struct SqueakObject *s) {
     return s->terrain & 1;
 }
 
+// SqueakCeiling(); Squeak Squad's flag 0x2000 (0x0201355C): its last move met a ceiling (KatAM's unk62 8);
+bool32 SqueakCeiling(struct SqueakObject *s) {
+    return s->terrain & 8;
+}
+
 // SqueakInWater(); Squeak Squad's flag 0x200000: in water at its last move (KatAM's unk58 2, as its Blipper reads it);
 bool32 SqueakInWater(struct SqueakObject *s) {
     return s->water & 2;
@@ -301,30 +486,45 @@ static void SqueakFxMain(void) {
     fx->e.sprite.palId = fx->palId;
     // (KatAM flips a frame when flag 1 is set: its frames face left, Squeak Squad's cells right, flipped when facing left);
     fx->e.flags = (fx->e.flags & ~0x401) | 4 | (fx->left ? 0 : 1);
-    fx->e.objBase54 = step->x;
+    fx->e.objBase54 = fx->left ? -step->x : step->x;
     fx->e.objBase55 = step->y;
     EffectObjectPostUpdate(&fx->e);
+}
+
+// SqueakEffectAt(); An effect at (x, y) (KatAM's units), facing left or right, playing from its first step;
+static struct SqueakFx *SqueakEffectAt(struct SqueakObject *s, u8 effect, s32 x, s32 y, bool8 left) {
+    const struct SqueakEffect *d = &gSqueakData.effects[effect];
+    struct Task *t;
+    struct SqueakFx *fx;
+
+    if (gKirbys[gLocalPlayerId].base.roomId != s->obj.base.roomId) return NULL;
+    t = TaskCreate(SqueakFxMain, sizeof(struct SqueakFx), 0x3500, TASK_USE_EWRAM, SqueakFxDestroy);
+    if (t == NULL) return NULL;
+    fx = TaskGetStructPtr(t);
+    ClearEffectObject(&fx->e);
+    fx->e.header.kind = 3;
+    fx->e.roomId = s->obj.base.roomId;
+    fx->e.parent = NULL;
+    fx->e.x = x;
+    fx->e.y = y;
+    fx->owner = NULL;
+    fx->dx = fx->dy = 0;
+    fx->effect = effect;
+    fx->step = 0;
+    fx->timer = d->anim.step[0].frames;
+    fx->left = left;
+    fx->palId = SqueakLoadPalette(d->animId, d->anim.step[0].cell, s->obj.base.roomId);
+    EffectObjectInitSprite(&fx->e, &fx->e.sprite, d->tiles, d->animId, d->anim.step[0].cell, 0x1A);
+    return fx;
 }
 
 /* SqueakSpawnEffect(); 0x02021900: an effect at the character's position plus (dx, dy) (Squeak Squad's units: 20.12, Y up; not
  * turned with the character, as Squeak Squad's), facing as the character; `follow`: it stays there as the character moves (its last
  * parameter, 0x020218C0); */
 void SqueakSpawnEffect(struct SqueakObject *s, u8 effect, s32 dx, s32 dy, bool8 follow) {
-    const struct SqueakEffect *d = &gSqueakData.effects[effect];
-    struct Task *t;
-    struct SqueakFx *fx;
+    struct SqueakFx *fx = SqueakEffectAt(s, effect, s->obj.base.x + SQUEAK_SPEED(dx), s->obj.base.y - SQUEAK_SPEED(dy), s->obj.base.flags & 1);
 
-    if (gKirbys[gLocalPlayerId].base.roomId != s->obj.base.roomId) return;
-    t = TaskCreate(SqueakFxMain, sizeof(struct SqueakFx), 0x3500, TASK_USE_EWRAM, SqueakFxDestroy);
-    if (t == NULL) return;
-    fx = TaskGetStructPtr(t);
-    ClearEffectObject(&fx->e);
-    fx->e.header.kind = 3;
-    fx->e.roomId = s->obj.base.roomId;
-    fx->e.parent = NULL;
-    fx->e.x = s->obj.base.x + SQUEAK_SPEED(dx);
-    fx->e.y = s->obj.base.y - SQUEAK_SPEED(dy);
-    fx->owner = NULL;
+    if (fx == NULL) return;
     fx->dx = dx;
     fx->dy = dy;
     if (follow) {
@@ -332,21 +532,48 @@ void SqueakSpawnEffect(struct SqueakObject *s, u8 effect, s32 dx, s32 dy, bool8 
         fx->owner = s;
         s->follower = fx;
     }
-    fx->effect = effect;
-    fx->step = 0;
-    fx->timer = d->anim.step[0].frames;
-    fx->left = s->obj.base.flags & 1;
-    fx->palId = SqueakLoadPalette(d->animId, d->anim.step[0].cell, s->obj.base.roomId);
-    EffectObjectInitSprite(&fx->e, &fx->e.sprite, d->tiles, d->animId, d->anim.step[0].cell, 0x1A);
 }
 
-// SqueakDestroy(); A character's end: the effect following it stays where it is;
+// SqueakWaterTile(); A tile (16 pixels square) of the character's room is water (KatAM's collision attribute 2), inside the level;
+static bool32 SqueakWaterTile(struct Object *obj, s32 tx, s32 ty) {
+    struct LevelInfo *level = &gCurLevelInfo[obj->base.unk56];
+
+    if (tx < 0 || ty < 0 || tx << 12 > level->levelMaxPosition.x || ty << 12 > level->levelMaxPosition.y) return FALSE;
+    return (gCollisionAttributes[GetCollisionTile(obj->base.unk56, tx, ty)] & 2) != 0;
+}
+
+/* SqueakSplash(); The stage's splash where the character is (its vtable +0xB4, 0x02215A10: type 0 into the water, 1 out of it): only
+ * at the surface (0x02215860: its tile water and one beside, above or below it not, or the other way round); placed on it
+ * (0x02215954: 6 pixels into the top water tile; the bottom of a water tile with no water below; the top of a dry tile under water),
+ * across where the character is; facing right (the effect manager, 0x02039B28, isn't told a facing). Not ported: Squeak Squad
+ * spawns one at most every 6 frames among all splashes (its counter in the stage's effects, 0x0221BCA0), Kirby's too; */
+void SqueakSplash(struct SqueakObject *s, bool8 out) {
+    struct Object *obj = &s->obj;
+    s32 tx = obj->base.x >> 12, ty = obj->base.y >> 12, y = obj->base.y;
+    bool32 here = SqueakWaterTile(obj, tx, ty), up = SqueakWaterTile(obj, tx, ty - 1), down = SqueakWaterTile(obj, tx, ty + 1),
+           side = SqueakWaterTile(obj, tx - 1, ty) + SqueakWaterTile(obj, tx + 1, ty);
+
+    if (here ? up && down && side == 2 : !up && !down && side == 0) return;
+    if (here) {
+        if (!up) y = (ty * 16 + 6) << 8;
+        else if (!down) y = (ty * 16 + 16) << 8;
+    } else if (up) {
+        y = ty * 16 << 8;
+    }
+    SqueakEffectAt(s, out ? SQUEAK_FX_SPLASH_OUT : SQUEAK_FX_SPLASH_IN, obj->base.x, y, FALSE);
+}
+
+// SqueakDestroy(); A character's end: the effect following it stays where it is, its parts go;
 static void SqueakDestroy(struct Task *t) {
     struct SqueakObject *s = TaskGetStructPtr(t);
 
     if (s->follower) ((struct SqueakFx *)s->follower)->owner = NULL;
+    SqueakReleaseParts(s);
     NidlDestroy(t);
 }
+
+// (SqueakObject fits the room every character gets);
+typedef char SqueakObjectFits[sizeof(struct SqueakObject) <= SQUEAK_OBJECT_SIZE ? 1 : -1];
 
 void *CreateSqueakEnemy(struct ObjectTemplate *template, u8 playerId) {
     struct Task *task = TaskCreate(ObjectMain, SQUEAK_OBJECT_SIZE, 0x1000, TASK_USE_EWRAM, SqueakDestroy);
@@ -368,6 +595,9 @@ void *CreateSqueakEnemy(struct ObjectTemplate *template, u8 playerId) {
     s->moved = FALSE;
     s->terrain = s->water = 0;
     s->follower = NULL;
+    s->composite = SQUEAK_NO_COMPOSITE;
+    s->parts = NULL;
+    s->compositeTime = 0;
     SqueakStop(s);
     s->padDir = s->padY = s->padA = s->padB = 0;
     for (i = 0; i < ARRAY_COUNT(s->vars); i++) s->vars[i] = 0;

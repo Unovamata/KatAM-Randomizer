@@ -7,7 +7,9 @@
  * • Variants 0-2: its hurt frame (the type's hurt indexes, 0 and 1, and 2, a defeated mini-boss's, sub_0809D1E0), then one variant
  *   per cell of its .cea (SqueakSetCell), in Squeak Squad's order.
  * • Palettes: the anim ID is the palette key (NidlLoadPalette), so each character has its own palette slot.
- * • Animations: Squeak Squad's own, (cell, frames, offset) steps, played by SqueakPlay/SqueakAnimate as Squeak Squad does.
+ * • Animations: Squeak Squad's own, (cell, frames, offset) steps, played by SqueakPlay/SqueakAnimate as Squeak Squad does; the
+ *   offsets turn with the character, as Squeak Squad's (they're its x as it faces right). A character with an .mca also has
+ *   composite animations (SqueakPlayComposite): compositions of its animations played together, each part its own sprite.
  * • Speeds: Squeak Squad's are 20.12 fixed point a frame (0x1000 a pixel), KatAM's 24.8 (0x100): SQUEAK_SPEED converts. Both run
  *   at 60 frames a second.
  * The tables filled by KatAMExpansionSqueak.cs (anims, animations, names) are in gSqueakData; */
@@ -22,6 +24,7 @@
 enum {
     SQUEAK_PERARA,
     SQUEAK_GOLD_WADDLE_DEE,
+    SQUEAK_GUSSA,
     SQUEAK_ENEMY_COUNT,
 };
 
@@ -50,17 +53,55 @@ struct SqueakAnim {
     const struct SqueakStep *step;
 };
 
-// SqueakGraphics; Where a character's graphics went;
+/* A composite animation's part (.mca): the character's animation it plays, at what time (absolute: the frames since the composite
+ * animation started; else its time within it), where (pixels added to the position as it faces right, y down); */
+struct SqueakPart {
+    u16 anim;
+    bool8 absolute;
+    u8 unused;
+    s16 x;
+    s16 y;
+};
+
+// A composition: its parts, drawn together (the first on top, the character's own sprite; the others SqueakPartFx effects);
+struct SqueakComposition {
+    u8 parts;
+    u8 unused[3];
+    const struct SqueakPart *part;
+};
+
+// A composite animation's step: the composition, for how many frames;
+struct SqueakCompositeStep {
+    u16 composition;
+    u16 frames;
+};
+
+// A composite animation: its steps, and whether it loops (once over, it holds its last step);
+struct SqueakComposite {
+    u8 steps;
+    bool8 loops;
+    u16 unused;
+    const struct SqueakCompositeStep *step;
+};
+
+// SqueakGraphics; Where a character's graphics went (KatAMExpansionSqueak.cs's SqueakGraphicsSize: 20 bytes);
 struct SqueakGraphics {
     u16 animId;                 // Its anim ID (and palette key);
     u8 cells;                   // Its cells (variants SQUEAK_HURT_VARIANTS on);
     u8 anims;                   // Its animations;
     const struct SqueakAnim *anim;
+    u8 compositions;            // Its .mca's compositions and composite animations (SqueakPlayComposite), if it has one;
+    u8 composites;
+    u16 tiles;                  // The most tiles one of its frames takes (a part's VRAM);
+    const struct SqueakComposition *composition;
+    const struct SqueakComposite *composite;
 };
 
 // Squeak Squad's effects the characters show (KatAMExpansionSqueak.cs's SqueakEffectDefinitions: an animation of effect/efc_cmn*);
 enum {
     SQUEAK_FX_DUST,             // 0x02021900's type 3 (efc_cmn0's animation 19): a puff of dust;
+    SQUEAK_FX_SPLASH_IN,        // The stage's splashes (SqueakSplash): into the water (m_efc's animation 4), out of it (5);
+    SQUEAK_FX_SPLASH_OUT,
     SQUEAK_FX_COUNT,
 };
 
@@ -105,10 +146,14 @@ struct SqueakObject {
     bool8 moved;                // SqueakMove moved it this frame (SqueakFinishFrame);
     u8 terrain;                 // What its last move met (SqueakMove): KatAM's unk62 (floor 4, wall ahead 1, behind 2) and unk58 (2: water);
     u8 water;
-    u8 unused;
+    u8 composite;               // The composite animation playing (SqueakPlayComposite), SQUEAK_NO_COMPOSITE while a plain one plays;
     void *follower;             // The effect following it (SqueakSpawnEffect's `follow`), let go when it's destroyed;
-    s32 vars[18];               // The character's own;
+    void *parts;                // The composition's other parts (SqueakPartFx, a chain: SqueakAnimate places them);
+    u32 compositeTime;          // The frames since the composite animation started;
+    s32 vars[16];               // The character's own;
 };
+
+#define SQUEAK_NO_COMPOSITE 0xFF
 
 // The position in Squeak Squad's units (20.12, Y up);
 #define SQ_X(obj) ((obj)->base.x << 4)
@@ -131,6 +176,7 @@ const u8 *SqueakName(struct Object *);
 s16 SqueakMaxHp(struct Object *);
 void SqueakSetCell(struct SqueakObject *, u8 cell);
 void SqueakPlay(struct SqueakObject *, u8 anim);
+void SqueakPlayComposite(struct SqueakObject *, u8 composite);
 void SqueakAnimate(struct SqueakObject *);
 void SqueakSetState(struct SqueakObject *, u8 state);
 void SqueakRun(struct SqueakObject *, bool32 (*state)(struct SqueakObject *));
@@ -145,15 +191,19 @@ bool32 SqueakSinkTo(struct SqueakObject *, s32 accel, s32 cap);
 void SqueakTurnAround(struct SqueakObject *);
 bool32 SqueakOnGround(struct SqueakObject *);
 bool32 SqueakWallAhead(struct SqueakObject *);
+bool32 SqueakCeiling(struct SqueakObject *);
 bool32 SqueakInWater(struct SqueakObject *);
 void SqueakFaceKirby(struct SqueakObject *, s32 distance);
 bool32 SqueakKirbyWithin(struct SqueakObject *, s32 dx, s32 dy);
 void SqueakSpawnEffect(struct SqueakObject *, u8 effect, s32 dx, s32 dy, bool8 follow);
+void SqueakSplash(struct SqueakObject *, bool8 out);
 
 // The characters (squeak/*.c);
 void PeraraInit(struct SqueakObject *);
 void PeraraStart(struct Object *);
 void GoldWaddleDeeInit(struct SqueakObject *);
 void GoldWaddleDeeStart(struct Object *);
+void GussaInit(struct SqueakObject *);
+void GussaStart(struct Object *);
 
 #endif

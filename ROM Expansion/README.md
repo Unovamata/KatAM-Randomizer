@@ -248,8 +248,15 @@ how Squeak Squad's enemies work): [Squeak Squad Notes](../Documentation/Squeak%2
   into KatAM pieces (`CutFrame`). A character's colors go in one palette when they fit in 15.
 - **Animations**: Squeak Squad's own (cell, frames, offset) steps, in `gSqueakData`, played by `SqueakPlay`/`SqueakAnimate` (a
   looping animation still flags that it got through once, as Squeak Squad's flag 8 that characters wait for). A step's offset
-  moves its drawing (Squeak Squad adds it to the cell's position when it builds the OAM; KatAM's `objBase54`/`55`). The cells are
-  mirrored left to right: Squeak Squad's face right, KatAM's enemies' frames left (KatAM flips them when the object faces right).
+  moves its drawing (Squeak Squad adds it to the cell's position when it builds the OAM; KatAM's `objBase54`/`55`), across turned
+  with the character as Squeak Squad's (its offsets are as it faces right). The cells are mirrored left to right: Squeak Squad's
+  face right, KatAM's enemies' frames left (KatAM flips them when the object faces right).
+- **Composite animations** (`.mca`, `SqueakPlayComposite`): a character with an `.mca` also plays compositions of its own
+  animations, each part where the composition puts it (turned with the character) and at its own time (the frames since the
+  composite animation started, or its time within it). Part 0 is the character's own sprite, on top; each other part is a
+  `SqueakPartFx` effect object drawn behind it in their order, placed by the character every frame, hidden while KatAM shows its
+  hurt frames, gone with the composite animation or the character. They're played live (not drawn into frames ahead of time): some
+  characters' parts loop at lengths whose combinations would run to thousands of frames.
 - **Moves**: Squeak Squad's enemies are a body driven by a brain (a virtual pad: a direction, A and B); both are ported, state for
   state. A state function returning TRUE runs the next one in the same frame, as Squeak Squad's dispatcher does (`SqueakRun`).
   Speeds and positions are Squeak Squad's 20.12 (`SQUEAK_SPEED` converts), Y up as KatAM's speeds; terrain is KatAM's.
@@ -261,11 +268,14 @@ how Squeak Squad's enemies work): [Squeak Squad Notes](../Documentation/Squeak%2
   a box. Characters with moves in water are flagged swimmers (KatAM's engine drowns the others, `unkC` 1).
 - **Effects** (`SqueakSpawnEffect`): Squeak Squad's shared effects (`effect/efc_cmn0`, `efc_cmn1`), each the cells one of its
   animations shows as an anim of its own (`SqueakEffectDefinitions`), played once by an effect object at the character's spot plus
-  an offset, facing as it does, and following it when Squeak Squad's does (`0x020218C0`). So far: the dust puff (type 3).
+  an offset, facing as it does, and following it when Squeak Squad's does (`0x020218C0`). So far: the dust puff (type 3), and the
+  water's splashes (`SqueakSplash`: the stage's `m_efc` file's animations 4 into the water and 5 out of it, the same in its clay,
+  sand and snow files), placed on the surface as Squeak Squad's stage does (`0x02215A10`).
 - **On the ground**: Squeak Squad's spawn records stand a character on the ground; `SqueakStandOnFloor` puts its feet on the first
   floor below its template's cell.
 
 | Character | Squeak Squad | File | What it does |
 | --- | --- | --- | --- |
 | Perara | enemy 0x0D | `squeak/perara.c` | Hovers; on the ground it waits for Kirby within 60 pixels, crouches (58 frames), launches 70 pixels up (two puffs of dust, one rising with it) and floats down swaying; checked against the DS game frame by frame (crouch, launch, apex, sway start). |
+| Gussa | enemy 0x0B | `squeak/gussa.c` | A fish: floats and swims at 0.8 (composite animations: body, tail and fin); lines up with Kirby within 96 pixels across, dashes at him at 1.3 (300 frames or till a wall: it bonks and springs back), then swims back where it started (variant 0) or rests 200 frames and dashes again (variant 1); out of the water it leaps out at 4.0, splashing, and lies or wriggles on land. HP 2 (Squeak Squad's 10, a Waddle Dee's). Checked in KatAM (room 0x83's water): the line-up, dash, bonk, return, leap and splashes, the parts' sprites and their clean-up; not yet against a DS recording of it in water (no water save state). Its sound (the bonk) isn't ported. |
 | Gold Waddle Dee | enemy 0x0E | `squeak/gold_waddle_dee.c` | Walks at 1.25 (turning at walls), and per its variant (the template's `unk12`, Squeak Squad's spawn byte) patrols 24 pixels either side, jumps once at Kirby within 48 pixels, jumps every 121 frames, or stands; off a ledge it stops 5 frames in the air ("whoa") and falls; swims in water (1.2 across, sinking at 0.9) and jumps out. HP 6 (Squeak Squad's 30, three Waddle Dees'). Checked against the DS game (walk speed and animation, wall turn every other frame, jump arc, ledge hover, landing frame, the dust puff every 20 steps); its sounds aren't ported yet. |

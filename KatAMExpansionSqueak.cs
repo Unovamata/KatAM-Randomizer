@@ -68,13 +68,21 @@ namespace KatAMRandomizer {
         // An animation step: the cell, how many frames it shows, and where it's drawn (x, y: pixels added to the position, y down);
         internal sealed record SqueakStep(int Cell, int Frames, short X, short Y);
         internal sealed record SqueakAnim(bool Loops, List<SqueakStep> Steps);
+        /* A part of a composition (.mca): the .cea animation it plays, the time it plays it at (Absolute: the frames since the
+         * composite animation started; else its time within it, 0x01FFA6CC's 0 and 1), and where (pixels, as the character faces
+         * right, y down); */
+        internal sealed record SqueakPart(int Anim, bool Absolute, short X, short Y);
+        // A composite animation: compositions (their parts drawn together, the first on top), each a number of frames;
+        internal sealed record SqueakComposite(bool Loops, List<(int Composition, int Frames)> Steps);
 
-        // A character's graphics: tiles, palettes (16 colors each), cells and animations;
+        // A character's graphics: tiles, palettes (16 colors each), cells and animations, and its composite ones (.mca), if any;
         internal sealed class SqueakCharacter {
             public byte[] Tiles;
             public List<ushort[]> Palettes;
             public List<SqueakCell> Cells;
             public List<SqueakAnim> Anims;
+            public List<List<SqueakPart>> Compositions = new List<List<SqueakPart>>();
+            public List<SqueakComposite> Composites = new List<SqueakComposite>();
         }
 
         // ReadSqueakCharacter(); A character's graphics from its files (folder/name.cga, .cla, .cea; palette: another .cla, "name_blue");
@@ -111,8 +119,31 @@ namespace KatAMRandomizer {
                     .Select(s => new SqueakStep(ReadShort(cea, at + 8 + s * 8), ReadShort(cea, at + 10 + s * 8),
                                                    (short)ReadShort(cea, at + 12 + s * 8), (short)ReadShort(cea, at + 14 + s * 8))).ToList());
             }).ToList();
+
+            /* Composite animations (.mca, "BMCA"): the compositions at +8 (a count, then each one's parts and their offset from the
+             * compositions'; a part: its .cea animation, how it's timed, x, y), the animations at +0xC (a count, then each one's
+             * offset from the animations' after an 8-byte head; one: its step count (a byte), loop flag (a byte), 2 bytes, its
+             * length, then 8 bytes a step: composition, frames, a word); */
+            byte[] mca = SqueakFile(rom, $"{folder}/{name}.mca");
+            if (mca != null && Encoding.ASCII.GetString(mca, 0, 4) == "BMCA") {
+                int compositions = ReadInt(mca, 8), composites = ReadInt(mca, 0x0C);
+                character.Compositions = Enumerable.Range(0, ReadInt(mca, compositions)).Select(c => {
+                    int at = compositions + ReadInt(mca, compositions + 8 + c * 8);
+                    return Enumerable.Range(0, ReadInt(mca, compositions + 4 + c * 8))
+                        .Select(p => new SqueakPart(ReadShort(mca, at + p * 8), ReadShort(mca, at + 2 + p * 8) != 0,
+                                                    (short)ReadShort(mca, at + 4 + p * 8), (short)ReadShort(mca, at + 6 + p * 8))).ToList();
+                }).ToList();
+                character.Composites = Enumerable.Range(0, ReadShort(mca, composites)).Select(a => {
+                    int at = composites + ReadInt(mca, composites + 8 + a * 4);
+                    return new SqueakComposite(mca[at + 1] != 0, Enumerable.Range(0, mca[at])
+                        .Select(s => (ReadShort(mca, at + 8 + s * 8), ReadShort(mca, at + 10 + s * 8))).ToList());
+                }).ToList();
+            }
             return character;
         }
+
+        // The size of squeak.h's SqueakGraphics, an entry of gSqueakData.enemies;
+        const int SqueakGraphicsSize = 20;
 
         // The type Squeak Squad's characters share (squeak.h's SQUEAK_TYPE: KatAM's last free regular enemy type);
         public const byte SqueakID = 0x2C;
@@ -124,20 +155,25 @@ namespace KatAMRandomizer {
         internal sealed record SqueakEnemy(int Index, string Name, string File, int[] HurtCells, (int type, int letter)[] Glyphs);
         internal sealed record SqueakBuilt(SqueakEnemy Enemy, int AnimId, SqueakCharacter Character, int Tiles);
 
-        /* Squeak Squad's effects the ported characters show (squeak.h's SQUEAK_FX_*): an animation of effect/<File>.* (0x02021900's types
-         * name them through the table at 0x02157DF8), each its own anim of the cells it shows; */
+        /* Squeak Squad's effects the ported characters show (squeak.h's SQUEAK_FX_*): an animation of <File>.* ("folder/name"; 0x02021900's
+         * types name effect/efc_cmn* ones through the table at 0x02157DF8), each its own anim of the cells it shows; */
         internal sealed record SqueakEffect(int Index, string File, int Anim);
         internal sealed record SqueakEffectBuilt(SqueakEffect Effect, int AnimId, List<int> Cells, SqueakAnim Anim, int Tiles);
 
         static readonly List<SqueakEffect> SqueakEffectDefinitions = new List<SqueakEffect> {
-            new SqueakEffect(0, "efc_cmn0", 19),    // Type 3: the dust puff (Gold Waddle Dee's steps, Perara's launch);
+            new SqueakEffect(0, "effect/efc_cmn0", 19),     // Type 3: the dust puff (Gold Waddle Dee's steps, Perara's launch);
+            /* The splashes of the stage's water (its vtable +0xB4, 0x02215A10: type 0 into the water, 1 out of it; the stage's m_efc file's
+             * animations 4 and 5, the same in clay, sand and snow); */
+            new SqueakEffect(1, "m_efc/clay", 4),
+            new SqueakEffect(2, "m_efc/clay", 5),
         };
 
         /* SqueakEffectBuild(); An effect's cells (those its animation shows, in its order) as KatAM frames and their palettes, the anim
          * added by `addAnim` (palettes, frames: its anim ID and the most tiles a frame takes); */
         static SqueakEffectBuilt SqueakEffectBuild(byte[] squeak, SqueakEffect effect,
                                                    Func<List<byte[]>, List<(byte[] tiles, ushort[] oams, short[] attributes, int palette)>, int> addAnim) {
-            SqueakCharacter character = ReadSqueakCharacter(squeak, effect.File, "effect");
+            string[] path = effect.File.Split('/');
+            SqueakCharacter character = ReadSqueakCharacter(squeak, path[1], path[0]);
             SqueakAnim anim = character.Anims[effect.Anim];
             List<int> cells = anim.Steps.Select(s => s.Cell).Distinct().ToList();
             (List<(byte[] tiles, ushort[] oams, short[] attributes, int palette)> frames, List<byte[]> palettes) = SqueakFrames(character, cells: cells);
@@ -152,6 +188,9 @@ namespace KatAMRandomizer {
             new SqueakEnemy(1, "Gold Waddle Dee", "gwaddledee", new[] { 9, 10, 10 },
                             new[] { (0x03, 0), (0x01, 2), (0x03, 1), (0x00, 2), (-1, 0), (0x00, 0), (0x00, 1), (0x00, 2), (0x00, 3), (0x00, 4),
                                     (0x00, 5), (-1, 0), (0x00, 6), (0x00, 7), (0x00, 8) }),   // "G" (Glunk), "o" (Bronto Burt), "l" (Glunk), "d", "Waddle Dee";
+            // Gussa: hurt animations 17 and 18 (0x0206E364's 0x1000011, 0x1000012);
+            new SqueakEnemy(2, "Gussa", "gussa", new[] { 11, 12, 12 },
+                            new[] { (0x03, 0), (0x03, 2), (0x04, 4), (0x04, 4), (0x14, 5) }),   // "G", "u" (Glunk), "s" (Squishy), "a" (Hot Head);
         };
 
         public static IReadOnlyList<(int index, string name)> SqueakEnemies => SqueakDefinitions.Select(e => (e.Index, e.Name)).ToList();
@@ -202,7 +241,8 @@ namespace KatAMRandomizer {
             }
 
             /* gSqueakData: names, the effects (anim ID, tiles, their animation: its cells are the effect's frames), then per character
-             * (anim ID, cells, animations, its SqueakAnim table); */
+             * squeak.h's SqueakGraphics (20 bytes: anim ID, cells, animations, its SqueakAnim table, then compositions, composite
+             * animations, the most tiles a frame takes, the SqueakComposition and SqueakComposite tables); */
             int data = CodeAddress + version.CodeSymbols["gSqueakData"], namesAt = Allocate(ref localCursor, SqueakDefinitions.Count * 0x100, 4);
             WriteInt(rom, data, namesAt + 0x08000000);
             int effectTable = Allocate(ref localCursor, Math.Max(1, SqueakEffectDefinitions.Count) * 12, 4);
@@ -217,11 +257,43 @@ namespace KatAMRandomizer {
                 List<SqueakAnim> anims = b.Character.Anims;
                 int table = Allocate(ref localCursor, anims.Count * 8, 4);
                 for (int a = 0; a < anims.Count; a++) WriteAnim(table + a * 8, anims[a], c => c);
-                int entry = data + 8 + b.Enemy.Index * 8;
+                int entry = data + 8 + b.Enemy.Index * SqueakGraphicsSize;
                 WriteShort(rom, entry, b.AnimId);
                 rom[entry + 2] = (byte)b.Character.Cells.Count;
                 rom[entry + 3] = (byte)anims.Count;
                 WriteInt(rom, entry + 4, table + 0x08000000);
+
+                // Compositions (8 bytes: parts, 3 bytes, its parts: 8 bytes each, anim, timing, 1 byte, x, y) and composite animations
+                // (8 bytes: steps, loops, 2 bytes, its steps: 4 bytes each, composition, frames);
+                List<List<SqueakPart>> compositions = b.Character.Compositions;
+                List<SqueakComposite> composites = b.Character.Composites;
+                int compositionTable = 0, compositeTable = 0;
+                if (compositions.Count > 0) {
+                    compositionTable = Allocate(ref localCursor, compositions.Count * 8, 4);
+                    for (int c = 0; c < compositions.Count; c++) {
+                        int parts = Allocate(ref localCursor, Math.Max(1, compositions[c].Count) * 8, 4);
+                        for (int i = 0; i < compositions[c].Count; i++) {
+                            SqueakPart part = compositions[c][i];
+                            WriteShorts(rom, parts + i * 8, part.Anim, part.Absolute ? 1 : 0, part.X, part.Y);
+                        }
+                        rom[compositionTable + c * 8] = (byte)compositions[c].Count;
+                        WriteInt(rom, compositionTable + c * 8 + 4, parts + 0x08000000);
+                    }
+                    compositeTable = Allocate(ref localCursor, Math.Max(1, composites.Count) * 8, 4);
+                    for (int a = 0; a < composites.Count; a++) {
+                        int steps = Allocate(ref localCursor, Math.Max(1, composites[a].Steps.Count) * 4, 4);
+                        for (int i = 0; i < composites[a].Steps.Count; i++)
+                            WriteShorts(rom, steps + i * 4, composites[a].Steps[i].Composition, composites[a].Steps[i].Frames);
+                        rom[compositeTable + a * 8] = (byte)composites[a].Steps.Count;
+                        rom[compositeTable + a * 8 + 1] = (byte)(composites[a].Loops ? 1 : 0);
+                        WriteInt(rom, compositeTable + a * 8 + 4, steps + 0x08000000);
+                    }
+                }
+                rom[entry + 8] = (byte)compositions.Count;
+                rom[entry + 9] = (byte)composites.Count;
+                WriteShort(rom, entry + 10, b.Tiles);
+                WriteInt(rom, entry + 12, compositionTable == 0 ? 0 : compositionTable + 0x08000000);
+                WriteInt(rom, entry + 16, compositeTable == 0 ? 0 : compositeTable + 0x08000000);
             }
             cursor = localCursor;
 
