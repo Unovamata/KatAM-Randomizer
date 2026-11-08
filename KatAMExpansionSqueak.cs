@@ -209,6 +209,10 @@ namespace KatAMRandomizer {
             // with its graphics (cret.cea's animations 9 and 11, cells 16-31);
             new SqueakEnemy(6, "Cret", "cret", new[] { 14, 15, 15 }, CretGlyphs),
             new SqueakEnemy(7, "Cret", "cret", new[] { 16, 16, 16 }, CretGlyphs, GraphicsOf: 6),
+            // Uja: hurt cell 60 (the puff's animation 24, 0x020840C8's 0x1000018; squeak/uja.c shows the glove's and sword's, cells 58 and
+            // 59, 45 and 55, as its state set them);
+            new SqueakEnemy(8, "Uja", "uja", new[] { 60, 60, 60 },
+                            new[] { (0x1B, 0), (0x10, 0), (0x14, 5) }),   // "U" (UFO), "J" (Jack: KatAM's names have no small j), "a" (Hot Head);
         };
 
         public static IReadOnlyList<(int index, string name)> SqueakEnemies => SqueakDefinitions.Select(e => (e.Index, e.Name)).ToList();

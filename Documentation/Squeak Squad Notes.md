@@ -21,7 +21,7 @@ Each character has a set of files of HAL's own formats, all little-endian:
 | `.cga` | `BCGA` | Tiles, 4 bits a pixel: a 0x14-byte header (`+0x10`: the tiles' size), then the tiles. |
 | `.cla` | `BCLA` | A palette: a 12-byte header (`+8`: the number of colors, 16), then the colors (BGR555). Some characters have more than one (`chun_blue`, `chun_green`, `chun_yellow`: the Squeakers). `_dmg.cla`: a damage palette. |
 | `.cea` | `BCEA` | Cells and animations (below). |
-| `.rca` | `BRCA` | Body boxes: lists of (left, top, right, bottom) in pixels from the feet, Y up (Perara's first: -5, 10, 5, 0), loaded per animation frame by `0x02014010`. At `+0x28` a table per animation (`.cea`'s, then `.mca`'s: Gussa's 23 = 19 + 4), each `u16` frames-with-boxes, `u16`, `u16` the box list, `u16` frames; at the header's `+0x14` the lists (count, first box), at `+0x18` the boxes. |
+| `.rca` | `BRCA` | Boxes per animation frame, loaded by `LoadBoxes` (`0x02014010`). Header words at `+4`: `0x30`, 1, then the offsets of the animations (`+0x28`: a `u16` count, one less than its entries, a `u16`, then each animation's offset; an animation: a `u16` count, a `u16`, then (frame set, frames) `u16` pairs, its time), the frame sets (`+0x10`: a `u32` count, a `u32`, the offsets; a set: a `u32` count, then (box list, tag set) `u16` pairs), the box lists (`+0x14`: count, then (boxes, first box) `u16` pairs), the boxes (`+0x18`: a `u16`, a `u16` count, then (left, top, right, bottom) `s16`, pixels from the feet, x ahead, Y up; Perara's first -5, 10, 5, 0), the tag sets (`+0x1C`: count, offsets; a set: `u32` count, `u16` record indexes) and the records (`+0x20`: count, offsets; a record: `u16` tag, `u16` size, its data). Tags: 0x101 an attack (the body's `+0xF0` list: data `u32` kind first, 0 hurting by touch, 6 grabbing, then the damage at `+8`: Uja's 4, 6, 9), 0x102 where it's hit (`+0xF4`), 0x201 and 0x202 the body (`+0xF8`, `+0xFC`). At run time the box is turned with the facing (x negated). |
 | `.mca` | `BMCA` | Composite animations (below): the bigger characters, and Gussa, Cret, Bubble Head, Acchi. |
 
 ### `.cea`
@@ -86,6 +86,12 @@ Cret (`0x02072E3C`) is not pulled at all: it blows back (animation 3), and still
 (animations 4 and 5, then 20 frames) and it pops (`0x02070C54`): Squeak Squad's random 0-99 under 30 spawns enemy 5 (Gordo,
 factory record ID 5), else an item (`0x0203B210`: 6 food healing 9999, the Maxim Tomato; 7 heals 24 of 36; 8, 12; 9, 6; 1 the
 1-UP; logged on the DS with the roll forced at `0x02070CA8`).
+
+Uja (`0x02083F2C`) grabs on touch kind 6, which is its own grabbing boxes (`uja.rca`'s kind 6, the glove's fingers) touching
+Kirby, inhaling or not (on the DS it took a standing Kirby): it moves to his spot, closes on him (anims 13-15, him 4 pixels up),
+smothers him (anim 25) 120 frames (5 fewer each frame his pad's fields change), then sets his VX -0x499A, AY -0x2B8 and `+0xEC`
+120: his hurt takes 6 of 36 at once and knocks him back at 0x1B34 (the way Uja came: he faces as it). Inhaled (kinds 3-5) it's
+pulled in and swallowed as a Waddle Dee is (Kirby's states the same: `0x0201A195`, `0x0201A099`, then standing).
 
 ### The stage's water splashes
 
@@ -181,7 +187,7 @@ Bonkers, Box Boxer, Boxy. The others get a full port (body and brain constructor
 | 0x0E | Gold Waddle Dee | 0x020B6764 (0x250) | 0x020B4EF4 (0xC0) | yes |
 | 0x0F | Maiga | 0x020A2108 (0x26C) | 0x020A0B58 (0xB4) | yes |
 | 0x10 | Cret | 0x02073044 (0x284) | 0x020705AC (0xC8) | yes |
-| 0x11 | Uja | 0x020840C8 (0x294) | 0x02080AD0 (0xC4) | |
+| 0x11 | Uja | 0x020840C8 (0x294) | 0x02080AD0 (0xC4) | yes |
 | 0x25 | Bio Spark | 0x0207CF18 (0x264) | 0x0207A284 (0xB4) | |
 | 0x26 | Starman | 0x020877B8 (0x24C) | 0x02084B10 (0xD0) | |
 | 0x27 | Bubble Head | 0x020968D0 (0x244) | 0x02095980 (0xB8) | |
@@ -223,8 +229,10 @@ ARMv5T, literal pools made read-only so constants fold).
   `0x02023468` stops everything, `0x02023410(v)` caps the fall at `v`, `0x020233EC(a, v)` sinks at `a` down to `v`.
   `0x020132B4` turns around: the facing bit, the speed and acceleration across, the walls ahead and behind swap, and the brain's
   direction is negated (its vtable `+0x10`, `0x02013368`: a "turn round", -1, becomes 1). The turn's frame still moves the old way.
-- **Flags** (`+0x14`): bit 2 facing left, bit 3 the animation got through once, bit 6 in the air, `0x400` touching a wall, `0x800`
-  a wall ahead, `0x1000` a wall behind (`0x0201355C`), `0x200000` in water.
+- **Flags** (`+0x14`): bit 2 facing left, bit 3 the animation got through once, bit 6 in the air, `0x100` no terrain at all, `0x200`
+  through the terrain (`0x0201355C` meets it, sets the flags below, but neither adds the push out of it to the move nor snaps to
+  the floor; the stage's edges still hold the spot unless `0x20000`: Cret's and Uja's states set it, vtable `+0x40`), `0x400`
+  touching a wall, `0x800` a wall ahead, `0x1000` a wall behind, `0x200000` in water.
 - **Base class** (vtable): `+0x34` the dispatcher, `+0x3C` the start state, `+0x80` checked first by each state (the shared one,
   `0x02021408`: in water, the shared state `+0x6C`; Gold Waddle Dee's own, `0x020B5078`, swims), `+0x88` whether the brain runs.
   Bumping into Kirby runs the base class's `+0x48` and `+0x50` states.

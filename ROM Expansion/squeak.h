@@ -30,6 +30,7 @@ enum {
     SQUEAK_MAIGA,
     SQUEAK_CRET,
     SQUEAK_CRET_BALL,           // Cret's ball (dropped by it, drawn with its graphics);
+    SQUEAK_UJA,
     SQUEAK_ENEMY_COUNT,
 };
 
@@ -194,6 +195,8 @@ void SqueakStandOnFloor(struct Object *);
 
 // Squeak Squad's engine (its enemies' shared functions);
 void SqueakMove(struct SqueakObject *);
+void SqueakThroughTerrain(struct SqueakObject *, bool32 through);
+u32 SqueakAnimTime(struct SqueakObject *);
 void SqueakFinishFrame(struct SqueakObject *);
 void SqueakStop(struct SqueakObject *);
 bool32 SqueakCapFall(struct SqueakObject *, s32 cap);
@@ -228,5 +231,7 @@ void CretInit(struct SqueakObject *);
 void CretStart(struct Object *);
 void CretBallInit(struct SqueakObject *);
 void CretBallStart(struct Object *);
+void UjaInit(struct SqueakObject *);
+void UjaStart(struct Object *);
 
 #endif

@@ -18,6 +18,7 @@ const s16 gSqueakEnemyHp[SQUEAK_ENEMY_COUNT] = {
     [SQUEAK_MAIGA] = 2,             // Squeak Squad's: 10 (prmNE16Sl0.kgb);
     [SQUEAK_CRET] = 2,              // Squeak Squad's: 10 (prmNE17Sl0.kgb);
     [SQUEAK_CRET_BALL] = 1,         // (KatAM's: any hit breaks it);
+    [SQUEAK_UJA] = 8,               // Squeak Squad's: 40 (prmNE18Sl0.kgb);
 };
 
 static const struct SqueakCharacter sSqueakCharacters[SQUEAK_ENEMY_COUNT] = {
@@ -29,6 +30,7 @@ static const struct SqueakCharacter sSqueakCharacters[SQUEAK_ENEMY_COUNT] = {
     [SQUEAK_MAIGA] = { MaigaInit, MaigaStart, 0, FALSE },
     [SQUEAK_CRET] = { CretInit, CretStart, 0, FALSE },
     [SQUEAK_CRET_BALL] = { CretBallInit, CretBallStart, 0, FALSE },
+    [SQUEAK_UJA] = { UjaInit, UjaStart, 0, FALSE },
 };
 
 /* SqueakAnimFor(); The anim and variant an object shows (variant << 16 | anim ID), for the game's object drawing (sub_0809A7A4,
@@ -105,6 +107,17 @@ void SqueakAnimate(struct SqueakObject *s) {
     }
     s->obj.base.objBase54 = SqueakTurned(s, a->step[s->step].x);
     s->obj.base.objBase55 = a->step[s->step].y;
+}
+
+/* SqueakAnimTime(); The frames the animation has shown since it started (Squeak Squad's time in it, which its .rca boxes go by): its
+ * steps' before this one and this one's so far; */
+u32 SqueakAnimTime(struct SqueakObject *s) {
+    const struct SqueakAnim *a = &gSqueakData.enemies[s->enemy].anim[s->anim];
+    u32 time = a->step[s->step].frames - s->timer;
+    u8 i;
+
+    for (i = 0; i < s->step; i++) time += a->step[i].frames;
+    return time;
 }
 
 // SqueakLength(); An animation's frames in all;
@@ -314,6 +327,25 @@ void SqueakStandOnFloor(struct Object *obj) {
 /* Squeak Squad's engine: the functions its enemies share, on SqueakObject's fields (speeds 20.12 a frame, Y up, x forward: facing
  * left, KatAM's flag 1, turns it round); */
 
+/* SqueakHoldInStage(); Squeak Squad's flag 0x200 (0x0201355C, KatAM's 0x100 here: SqueakThroughTerrain()): the terrain is met but
+ * doesn't stop the character (the push out of it isn't added to its move, nor the snap to the floor); the stage's edges still hold
+ * its spot (unless flag 0x20000); */
+static void SqueakHoldInStage(struct ObjectBase *base) {
+    struct LevelInfo *level = &gCurLevelInfo[base->unk56];
+
+    if (base->x < level->levelMinPosition.x) base->x = level->levelMinPosition.x;
+    if (base->x > level->levelMaxPosition.x) base->x = level->levelMaxPosition.x;
+    if (base->y < level->levelMinPosition.y) base->y = level->levelMinPosition.y;
+    if (base->y > level->levelMaxPosition.y) base->y = level->levelMaxPosition.y;
+    base->unk62 = 0;
+}
+
+// SqueakThroughTerrain(); Its flag 0x200 set (`through`) or cleared: SqueakMove() takes it through the terrain;
+void SqueakThroughTerrain(struct SqueakObject *s, bool32 through) {
+    if (through) s->obj.base.flags |= 0x100;
+    else s->obj.base.flags &= ~0x100;
+}
+
 /* SqueakMove(); 0x02013D18: acceleration and the caps (0x02013460), friction (0x02013370), then the move on the terrain (0x0201355C),
  * there and then as Squeak Squad's (its states check the ground right after moving): KatAM's own, ObjectMain's after the object's
  * function (position, then sub_0809D8C8's terrain: unk62's floor and walls, unk58's water); SqueakFinishFrame() leaves it nothing
@@ -353,7 +385,11 @@ void SqueakMove(struct SqueakObject *s) {
         base->x += base->xspeed;
         base->y -= base->yspeed;
     }
-    if (!(base->flags & 0x100)) sub_0809D8C8(base);
+    if (!(base->flags & 0x100)) {
+        sub_0809D8C8(base);
+    } else {
+        SqueakHoldInStage(base);
+    }
     s->terrain = base->unk62;
     s->water = base->unk58;
     s->moved = TRUE;

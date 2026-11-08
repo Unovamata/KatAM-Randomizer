@@ -10,8 +10,8 @@
  *   2 (0x020701D8): hovers; once Kirby is within 32 pixels across and 160 up or down, it watches him (facing him every 30 frames)
  *     for 180 frames, turns round, and 10 frames later flies away (pad up/down 5).
  *   (Pad up/down 3, loop B, no brain of Cret's asks for: ported all the same.)
- * • Body (riding its cloud; every state sets its flag 0x200 through vtable +0x40, 0x020709F4, whose effect wasn't pinned down:
- *   KatAM's terrain stops it here):
+ * • Body (riding its cloud; every state sets its flag 0x200 through vtable +0x40, 0x020709F4: it passes through the terrain, the
+ *   stage's edges holding it; SqueakThroughTerrain()):
  *   hovering (0x02072BEC): anim 1, bobbing (0x020707E8: 0.1 up for 20 frames, 0.1 down for 20, then a frame still; 0x19A + 0x67
  *     a frame), its speeds slowing by 0xA4 a frame (0x02070890);
  *   drifting (0x02072A48, any pad direction): forward speeds up by 0xA4 a frame to 0.8 (0x02070958), up/down too; turning reverses
@@ -537,6 +537,7 @@ void CretStart(struct Object *obj) {
     struct SqueakObject *s = (struct SqueakObject *)obj;
 
     ObjectSetFunc(obj, 0, CretMain);
+    SqueakThroughTerrain(s, TRUE);
     if (!s->started) s->brain = s->variant < ARRAY_COUNT(sFirstBrain) ? sFirstBrain[s->variant] : BRAIN_DRIFT_FACE;
     BLOWING(s) = INHALED(s) = FALSE;
     SqueakSetState(s, BODY_START);

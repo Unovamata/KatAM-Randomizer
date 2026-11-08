@@ -38,6 +38,14 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
     the DS by logging (drift, bob, the inhale's timing, the pop's spawns) and tested in KatAM (room 0x323, USA): variant 0's drift,
     variant 1's loop and drop, variant 2 inhaled to the pop. Not tested: loops A and B, the fly-away, the ball's burst on screen,
     what the pop leaves in KatAM.
+  - Uja: ported from its code (both forms: the sword and its lunges, the glove and its grab, smother and throw; the puff, its bob
+    and flight). Checked against the DS by logging (timing, distances, the grab, the throw's damage and direction, the inhale, its
+    boxes per frame) and tested in KatAM (room 0x323, USA; the Kirby input lock left by the test's room start cleared by RAM write):
+    the glove's grab, close, smother (120 frames), throw (1 HP) and flight; the sword's stop at 40 pixels, lunges every 44 frames,
+    pointing up and the upward lunge hurting Kirby; KatAM's inhale; the glove's hurt frames. Not tested: the downward forms, a hit
+    while it holds Kirby, Kirby mashing free.
+  - Cret and Uja pass through the terrain, held in the stage (Squeak Squad's flag 0x200, pinned down with Uja: Cret had been stopped
+    by KatAM's terrain). Checked in KatAM: Cret drifts across room 0x323 and stops at its left edge.
   - Still to do for those: their sounds (Squeak Squad's are the DS's own: KatAM's nearest, or the owner's call); the enemy base
     class's own states (bumping into Kirby, the shared state in water of the ones that don't swim).
   - Left: the other Squeak Squad-only enemies, the Squeak Squad behaviors of shared enemies, the mid-bosses, the Squeaks and the
