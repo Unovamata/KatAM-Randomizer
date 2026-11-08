@@ -151,8 +151,9 @@ namespace KatAMRandomizer {
         const int SqueakHurtVariants = 3;
 
         /* A Squeak Squad character: its index (squeak.h's SQUEAK_*), name, files (enemy/<File>.*), the cells its hurt frames show (its
-         * hurt animations': SqueakHurtVariants), and its HP bar name, made of the letters of KatAM's names (object type, letter); */
-        internal sealed record SqueakEnemy(int Index, string Name, string File, int[] HurtCells, (int type, int letter)[] Glyphs);
+         * hurt animations': SqueakHurtVariants), and its HP bar name, made of the letters of KatAM's names (object type, letter); a thing
+ * a character throws (spawned as a character of its own) can be drawn with that character's graphics (GraphicsOf: its index); */
+        internal sealed record SqueakEnemy(int Index, string Name, string File, int[] HurtCells, (int type, int letter)[] Glyphs, int GraphicsOf = -1);
         internal sealed record SqueakBuilt(SqueakEnemy Enemy, int AnimId, SqueakCharacter Character, int Tiles);
 
         /* Squeak Squad's effects the ported characters show (squeak.h's SQUEAK_FX_*): an animation of <File>.* ("folder/name"; 0x02021900's
@@ -166,6 +167,7 @@ namespace KatAMRandomizer {
              * animations 4 and 5, the same in clay, sand and snow); */
             new SqueakEffect(1, "m_efc/clay", 4),
             new SqueakEffect(2, "m_efc/clay", 5),
+            new SqueakEffect(3, "effect/efc_cmn1", 1),     // 0x020B48E0's type 6: a thing bursting (Crimp's rock);
         };
 
         /* SqueakEffectBuild(); An effect's cells (those its animation shows, in its order) as KatAM frames and their palettes, the anim
@@ -180,6 +182,9 @@ namespace KatAMRandomizer {
             return new SqueakEffectBuilt(effect, addAnim(palettes, frames), cells, anim, frames.Max(f => f.tiles.Length / 32));
         }
 
+        // "C", "i", "p" (Chip), "r" (Bronto Burt), "m" (Bomber);
+        static readonly (int type, int letter)[] CrimpGlyphs = { (0x08, 0), (0x01, 1), (0x08, 2), (0x28, 2), (0x08, 3) };
+
         static readonly List<SqueakEnemy> SqueakDefinitions = new List<SqueakEnemy> {
             // Perara: hurt animations 7 and 8 (0x02021A88's 0x1000007, 0x1000008);
             new SqueakEnemy(0, "Perara", "perara", new[] { 18, 19, 19 },
@@ -191,6 +196,9 @@ namespace KatAMRandomizer {
             // Gussa: hurt animations 17 and 18 (0x0206E364's 0x1000011, 0x1000012);
             new SqueakEnemy(2, "Gussa", "gussa", new[] { 11, 12, 12 },
                             new[] { (0x03, 0), (0x03, 2), (0x04, 4), (0x04, 4), (0x14, 5) }),   // "G", "u" (Glunk), "s" (Squishy), "a" (Hot Head);
+            // Crimp: hurt animations 9 and 10 (0x020CE310's 0x1000009, 0x100000A); its rock (0x020CBF94) is drawn with its graphics;
+            new SqueakEnemy(3, "Crimp", "climb", new[] { 10, 11, 11 }, CrimpGlyphs),
+            new SqueakEnemy(4, "Crimp", "climb", new[] { 22, 22, 22 }, CrimpGlyphs, GraphicsOf: 3),
         };
 
         public static IReadOnlyList<(int index, string name)> SqueakEnemies => SqueakDefinitions.Select(e => (e.Index, e.Name)).ToList();

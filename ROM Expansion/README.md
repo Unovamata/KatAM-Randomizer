@@ -270,7 +270,11 @@ how Squeak Squad's enemies work): [Squeak Squad Notes](../Documentation/Squeak%2
   animations shows as an anim of its own (`SqueakEffectDefinitions`), played once by an effect object at the character's spot plus
   an offset, facing as it does, and following it when Squeak Squad's does (`0x020218C0`). So far: the dust puff (type 3), and the
   water's splashes (`SqueakSplash`: the stage's `m_efc` file's animations 4 into the water and 5 out of it, the same in its clay,
-  sand and snow files), placed on the surface as Squeak Squad's stage does (`0x02215A10`).
+  sand and snow files), placed on the surface as Squeak Squad's stage does (`0x02215A10`), and a thing bursting (`efc_cmn1`'s
+  animation 1, `0x020B48E0`'s type 6).
+- **Probes and thrown things**: `SqueakTouches` is the stage's box test (its vtable `+0x18`: the box's edge on a side, either or
+  both ends solid) on KatAM's tiles; `SqueakSpawn` makes another character (a thrown rock) with its own template copy, drawn with
+  its thrower's graphics when the C# list says so (`GraphicsOf`).
 - **On the ground**: Squeak Squad's spawn records stand a character on the ground; `SqueakStandOnFloor` puts its feet on the first
   floor below its template's cell.
 
@@ -278,4 +282,5 @@ how Squeak Squad's enemies work): [Squeak Squad Notes](../Documentation/Squeak%2
 | --- | --- | --- | --- |
 | Perara | enemy 0x0D | `squeak/perara.c` | Hovers; on the ground it waits for Kirby within 60 pixels, crouches (58 frames), launches 70 pixels up (two puffs of dust, one rising with it) and floats down swaying; checked against the DS game frame by frame (crouch, launch, apex, sway start). |
 | Gussa | enemy 0x0B | `squeak/gussa.c` | A fish: floats and swims at 0.8 (composite animations: body, tail and fin); lines up with Kirby within 96 pixels across, dashes at him at 1.3 (300 frames or till a wall: it bonks and springs back), then swims back where it started (variant 0) or rests 200 frames and dashes again (variant 1); out of the water it leaps out at 4.0, splashing, and lies or wriggles on land. HP 2 (Squeak Squad's 10, a Waddle Dee's). Checked in KatAM (room 0x83's water): the line-up, dash, bonk, return, leap and splashes, the parts' sprites and their clean-up; not yet against a DS recording of it in water (no water save state). Its sound (the bonk) isn't ported. |
+| Crimp | enemy 0x0C | `squeak/crimp.c` | Clings to walls, its back to them (pushing into them at 1.0), climbs up and down at 0.3 and turns back 14 pixels before a wall's end, at a ceiling or the ground; throws a rock (20 frames into its throw, 18 pixels ahead, 1.6 on, falling 0.2 a frame; it bursts on whatever it hits) when Kirby is within 64 pixels, then waits 160 frames; on the ground it stands, off it it falls (2.4 at most) and grabs the wall it meets. HP 2 (Squeak Squad's 10), its rock 1. Checked in KatAM (room 0x323's star block: grab, cling, climbing a short wall, the throw, rock and burst); not yet against a DS recording, nor on a tall wall. Its sounds aren't ported. |
 | Gold Waddle Dee | enemy 0x0E | `squeak/gold_waddle_dee.c` | Walks at 1.25 (turning at walls), and per its variant (the template's `unk12`, Squeak Squad's spawn byte) patrols 24 pixels either side, jumps once at Kirby within 48 pixels, jumps every 121 frames, or stands; off a ledge it stops 5 frames in the air ("whoa") and falls; swims in water (1.2 across, sinking at 0.9) and jumps out. HP 6 (Squeak Squad's 30, three Waddle Dees'). Checked against the DS game (walk speed and animation, wall turn every other frame, jump arc, ledge hover, landing frame, the dust puff every 20 steps); its sounds aren't ported yet. |

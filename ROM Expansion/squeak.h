@@ -25,6 +25,8 @@ enum {
     SQUEAK_PERARA,
     SQUEAK_GOLD_WADDLE_DEE,
     SQUEAK_GUSSA,
+    SQUEAK_CRIMP,
+    SQUEAK_CRIMP_ROCK,          // Crimp's rock (spawned by it, drawn with its graphics);
     SQUEAK_ENEMY_COUNT,
 };
 
@@ -32,7 +34,7 @@ enum {
 #define SQUEAK_HURT_VARIANTS 3
 
 // Room every ported character gets (SqueakObject and its own fields);
-#define SQUEAK_OBJECT_SIZE 0x140
+#define SQUEAK_OBJECT_SIZE 0x168
 
 // SQUEAK_SPEED(); A Squeak Squad speed or position (20.12 fixed point) in KatAM's units (24.8);
 #define SQUEAK_SPEED(value) ((value) >> 4)
@@ -102,6 +104,7 @@ enum {
     SQUEAK_FX_DUST,             // 0x02021900's type 3 (efc_cmn0's animation 19): a puff of dust;
     SQUEAK_FX_SPLASH_IN,        // The stage's splashes (SqueakSplash): into the water (m_efc's animation 4), out of it (5);
     SQUEAK_FX_SPLASH_OUT,
+    SQUEAK_FX_BURST,            // 0x020B48E0's type 6 (efc_cmn1's animation 1): a thing bursting (Crimp's rock);
     SQUEAK_FX_COUNT,
 };
 
@@ -151,7 +154,11 @@ struct SqueakObject {
     void *parts;                // The composition's other parts (SqueakPartFx, a chain: SqueakAnimate places them);
     u32 compositeTime;          // The frames since the composite animation started;
     s32 vars[16];               // The character's own;
+    struct ObjectTemplate spawn;    // Its template, when another character spawned it (SqueakSpawn);
 };
+
+// SqueakTouches()' sides (the stage's vtable +0x18's: 1 up, 2 down, 4 left, 8 right);
+enum { SQUEAK_UP = 1, SQUEAK_DOWN = 2, SQUEAK_LEFT = 4, SQUEAK_RIGHT = 8 };
 
 #define SQUEAK_NO_COMPOSITE 0xFF
 
@@ -197,6 +204,9 @@ void SqueakFaceKirby(struct SqueakObject *, s32 distance);
 bool32 SqueakKirbyWithin(struct SqueakObject *, s32 dx, s32 dy);
 void SqueakSpawnEffect(struct SqueakObject *, u8 effect, s32 dx, s32 dy, bool8 follow);
 void SqueakSplash(struct SqueakObject *, bool8 out);
+bool32 SqueakTouches(struct SqueakObject *, u8 side, s32 dy, bool8 both);
+struct SqueakObject *SqueakSpawn(struct SqueakObject *, u8 enemy, u8 variant, s32 dx, s32 dy);
+bool32 SqueakInLevel(struct SqueakObject *);
 
 // The characters (squeak/*.c);
 void PeraraInit(struct SqueakObject *);
@@ -205,5 +215,9 @@ void GoldWaddleDeeInit(struct SqueakObject *);
 void GoldWaddleDeeStart(struct Object *);
 void GussaInit(struct SqueakObject *);
 void GussaStart(struct Object *);
+void CrimpInit(struct SqueakObject *);
+void CrimpStart(struct Object *);
+void CrimpRockInit(struct SqueakObject *);
+void CrimpRockStart(struct Object *);
 
 #endif

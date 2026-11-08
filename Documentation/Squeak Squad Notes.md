@@ -59,6 +59,16 @@ animation` (`0x1000000 |` plays a `.cea` one).
 - Some characters' parts loop at lengths whose combinations run long (Dedede's composite 0: 371,280 frames before it repeats), so
   the port plays them live, a sprite per part, rather than as frames drawn ahead of time.
 
+### The stage's box tests
+
+The stage's map object (`*0x02229F1C + 0x48`, from `0x02209560`) answers the enemies' own probes. Its vtable `+0x18(side, mode,
+box, position)` (`0x0221022C`) places the box (normalized) at the position and tests a line just past one edge: 1 up (one unit
+above the top), 2 down (the bottom edge; mode 1 also counts the floor under the position, `0x0220FCF8`), 4 left and 8 right (one
+unit beside the box; when the position is solid and the box starts at the feet, the bottom end is raised a unit). Mode 1: either
+end of the line solid (`0x0220FDEC`); mode 2: both. `+0x38` and `+0x3C` (`0x0220DCEC`, `0x0220DBB4`) give how far the box's right
+or left edge is into a wall (negative) or 0x10000 (none): Crimp shifts its probes by it. Tiles are 16 pixels; a tile's word has
+its kind in bits 14-15 (`0x4000` solid).
+
 ### The stage's water splashes
 
 The stage's map object (`*0x02229F1C + 0x48`, vtable `+0xB4`, `0x02215A10`) splashes: type 0 into the water, 1 out of it. Only at
@@ -148,7 +158,7 @@ Bonkers, Box Boxer, Boxy. The others get a full port (body and brain constructor
 | ID | Enemy | Body | Brain | Ported |
 | --- | --- | --- | --- | --- |
 | 0x0B | Gussa | 0x0206E364 (0x250) | 0x0206C3D0 (0xC0) | yes |
-| 0x0C | Crimp | 0x020CE310 (0x248) | 0x020CC53C (0xBC) | |
+| 0x0C | Crimp | 0x020CE310 (0x248) | 0x020CC53C (0xBC) | yes |
 | 0x0D | Perara | 0x0206FD54 (0x260) | 0x0206E85C (0xB8) | yes |
 | 0x0E | Gold Waddle Dee | 0x020B6764 (0x250) | 0x020B4EF4 (0xC0) | yes |
 | 0x0F | Maiga | 0x020A2108 (0x26C) | 0x020A0B58 (0xB4) | |

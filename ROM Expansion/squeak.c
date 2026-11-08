@@ -13,12 +13,16 @@ const s16 gSqueakEnemyHp[SQUEAK_ENEMY_COUNT] = {
     [SQUEAK_PERARA] = 2,
     [SQUEAK_GOLD_WADDLE_DEE] = 6,   // Squeak Squad's: 30, a Waddle Dee's 10 (Perara's too);
     [SQUEAK_GUSSA] = 2,             // Squeak Squad's: 10 (prmNE12Sl0.kgb);
+    [SQUEAK_CRIMP] = 2,             // Squeak Squad's: 10 (prmNE13Sl0.kgb);
+    [SQUEAK_CRIMP_ROCK] = 1,        // (KatAM's: any hit breaks it);
 };
 
 static const struct SqueakCharacter sSqueakCharacters[SQUEAK_ENEMY_COUNT] = {
     [SQUEAK_PERARA] = { PeraraInit, PeraraStart, 0, FALSE },
     [SQUEAK_GOLD_WADDLE_DEE] = { GoldWaddleDeeInit, GoldWaddleDeeStart, 0, TRUE },
     [SQUEAK_GUSSA] = { GussaInit, GussaStart, 0, TRUE },
+    [SQUEAK_CRIMP] = { CrimpInit, CrimpStart, 0, FALSE },
+    [SQUEAK_CRIMP_ROCK] = { CrimpRockInit, CrimpRockStart, 0, FALSE },
 };
 
 /* SqueakAnimFor(); The anim and variant an object shows (variant << 16 | anim ID), for the game's object drawing (sub_0809A7A4,
@@ -561,6 +565,69 @@ void SqueakSplash(struct SqueakObject *s, bool8 out) {
         y = ty * 16 << 8;
     }
     SqueakEffectAt(s, out ? SQUEAK_FX_SPLASH_OUT : SQUEAK_FX_SPLASH_IN, obj->base.x, y, FALSE);
+}
+
+/* SqueakTouches(); The stage's vtable +0x18 (0x0221022C): the character's box (KatAM's bounds), `dy` up from where it is (Squeak
+ * Squad's units), touches something solid on that side: a line just past the box's edge (up: one unit above it; down: its bottom
+ * edge; left, right: one unit beside it, its bottom raised a unit when the character's spot is solid and its box starts at its feet),
+ * either end solid (`both`: both ends, its mode 2); */
+bool32 SqueakTouches(struct SqueakObject *s, u8 side, s32 dy, bool8 both) {
+    struct ObjectBase *b = &s->obj.base;
+    s32 x = b->x, y = b->y - SQUEAK_SPEED(dy);
+    s32 left = x + b->unk3C * 0x100, top = y + b->unk3D * 0x100, right = x + b->unk3E * 0x100, bottom = y + b->unk3F * 0x100;
+    s32 x0 = left, y0 = bottom, x1 = right, y1 = bottom;
+    bool32 a, c;
+
+    switch (side) {
+    case SQUEAK_UP:
+        y0 = y1 = top - 1;
+        break;
+    case SQUEAK_DOWN:
+        break;
+    case SQUEAK_LEFT:
+    case SQUEAK_RIGHT:
+        x0 = x1 = side == SQUEAK_LEFT ? left - 1 : right + 1;
+        y1 = top;
+        if (b->unk3F == 0 && NidlIsFloor(&s->obj, x, y)) y0--;
+        break;
+    }
+    a = NidlIsFloor(&s->obj, x0, y0);
+    c = NidlIsFloor(&s->obj, x1, y1);
+    return both ? a && c : a || c;
+}
+
+/* SqueakSpawn(); Another character (`enemy`, `variant`) at (dx, dy) from this one (Squeak Squad's units, dx forward), facing as it
+ * (Squeak Squad's turn the new one round when the thrower faces left), with its own template copy: its room slot none (31), so it
+ * doesn't count as the room's; */
+struct SqueakObject *SqueakSpawn(struct SqueakObject *s, u8 enemy, u8 variant, s32 dx, s32 dy) {
+    struct ObjectTemplate template;
+    struct SqueakObject *spawned;
+
+    if (!s->obj.objTemplate || gKirbys[gLocalPlayerId].base.roomId != s->obj.base.roomId) return NULL;
+    template = *s->obj.objTemplate;
+    template.x = (s->obj.base.x + SQUEAK_SPEED(s->obj.base.flags & 1 ? -dx : dx)) >> 8;
+    template.y = (s->obj.base.y - SQUEAK_SPEED(dy)) >> 8;
+    template.type = SQUEAK_TYPE;
+    template.subtype1 = enemy;
+    template.unk12 = variant;
+    template.unk2 = 0;
+    template.unk3 = 31;
+    spawned = CreateSqueakEnemy(&template, s->obj.base.unk56);
+    if (spawned == NULL) return NULL;
+    spawned->spawn = template;
+    spawned->obj.objTemplate = &spawned->spawn;
+    spawned->obj.base.x = s->obj.base.x + SQUEAK_SPEED(s->obj.base.flags & 1 ? -dx : dx);
+    spawned->obj.base.y = s->obj.base.y - SQUEAK_SPEED(dy);
+    spawned->obj.base.flags = (spawned->obj.base.flags & ~1) | (s->obj.base.flags & 1);
+    return spawned;
+}
+
+// SqueakInLevel(); 0x02209D00: the character is inside the stage (KatAM's level bounds);
+bool32 SqueakInLevel(struct SqueakObject *s) {
+    struct LevelInfo *level = &gCurLevelInfo[s->obj.base.unk56];
+
+    return s->obj.base.x >= level->levelMinPosition.x && s->obj.base.x <= level->levelMaxPosition.x
+           && s->obj.base.y >= level->levelMinPosition.y && s->obj.base.y <= level->levelMaxPosition.y;
 }
 
 // SqueakDestroy(); A character's end: the effect following it stays where it is, its parts go;

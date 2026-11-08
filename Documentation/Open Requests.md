@@ -26,6 +26,9 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
     sprite) and the water's splashes. Tested in KatAM (room 0x83's water, USA): line-up, dash, bonk, return, leaping out and
     falling back in with splashes, its parts drawn and cleaned up, both variants; checked against the DS only for its drawing on
     land (no DS save state in water yet).
+  - Crimp: ported from its code with its rock (the framework now has box probes and spawned characters). Tested in KatAM (room
+    0x323, USA): grabbing and climbing the star block's side, the throw, the rock and its burst; not against a DS recording, nor on
+    a tall wall.
   - Still to do for those: their sounds (Squeak Squad's are the DS's own: KatAM's nearest, or the owner's call); the enemy base
     class's own states (bumping into Kirby, the shared state in water of the ones that don't swim).
   - Left: the other Squeak Squad-only enemies, the Squeak Squad behaviors of shared enemies, the mid-bosses, the Squeaks and the
