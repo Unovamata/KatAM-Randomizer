@@ -5,6 +5,7 @@
 #include "constants/object_types.h"
 #include "abilities.h"
 #include "code_0806F780.h"
+#include "malloc_vram.h"
 
 void NidlDestroy(struct Task *task);
 
@@ -50,6 +51,9 @@ const s16 gSqueakEnemyHp[SQUEAK_ENEMY_COUNT] = {
     [SQUEAK_MRS_MOLEY] = 60,        // Squeak Squad's: 300 (prmBB04Sl0.kgb); KatAM's bosses' for one player;
     [SQUEAK_MOLEY_THING] = 1,       // (any hit breaks it, as Squeak Squad's: 0x021291C8);
     [SQUEAK_MOLEY_DIRT] = 1,
+    [SQUEAK_MECHA_KRACKO] = 64,     // Squeak Squad's: 320, then 400 (prmBB03Sl0.kgb); KatAM's bosses' 60 for one player as Mrs. Moley's
+                                    // 300 (its second form's 80, squeak/mecha_kracko.c);
+    [SQUEAK_MECHA_KRACKO_EYE] = 1,
 };
 
 static const struct SqueakCharacter sSqueakCharacters[SQUEAK_ENEMY_COUNT] = {
@@ -93,6 +97,8 @@ static const struct SqueakCharacter sSqueakCharacters[SQUEAK_ENEMY_COUNT] = {
     [SQUEAK_MRS_MOLEY] = { MrsMoleyInit, MrsMoleyStart, 0, FALSE, TRUE },
     [SQUEAK_MOLEY_THING] = { MoleyThingInit, MoleyThingStart, 0, FALSE },
     [SQUEAK_MOLEY_DIRT] = { MoleyDirtInit, MoleyDirtStart, 0, FALSE },
+    [SQUEAK_MECHA_KRACKO] = { MechaKrackoInit, MechaKrackoStart, 0, FALSE, TRUE },
+    [SQUEAK_MECHA_KRACKO_EYE] = { MechaKrackoEyeInit, MechaKrackoEyeStart, 0, FALSE },
 };
 
 /* SqueakAnimFor(); The anim and variant an object shows (variant << 16 | anim ID), for the game's object drawing (sub_0809A7A4,
@@ -230,7 +236,11 @@ struct SqueakPartFx {
     u8 cell;                    // Its cell (the character's frame, variants SQUEAK_HURT_VARIANTS on);
     u8 index;                   // Its part (1 on);
     u8 palId;                   // Its palette: its animation's (a character in several palettes: Dedede's sparkles), else 0xFF: its character's;
+    u16 tiles;                  // Its VRAM's tiles (its part's frames');
 };
+
+// SqueakVramOk(); A sprite's VRAM was got (KatAM's VramMalloc gives ewram_end when it's full: the sprite would draw what's there);
+#define SqueakVramOk(vram) ((u32)(vram) >= (u32)OBJ_VRAM0 && (u32)(vram) < (u32)OBJ_VRAM0 + OBJ_VRAM0_SIZE)
 
 // SqueakPartDestroy(); A part's end (its own, or the room's): its character lets go of it;
 static void SqueakPartDestroy(struct Task *t) {
@@ -258,6 +268,11 @@ static void SqueakPartMain(void) {
         return;
     }
     if (s->composite == SQUEAK_NO_COMPOSITE || s->obj.unk83 < SQUEAK_HURT_VARIANTS || (s->obj.base.flags & 0x400)) return;
+    // (VRAM full when it was made, other sprites' let go of a frame later: asked for again, not drawn till it's got);
+    if (!SqueakVramOk(p->e.sprite.tilesVram)) {
+        p->e.sprite.tilesVram = VramMalloc(p->tiles);
+        if (!SqueakVramOk(p->e.sprite.tilesVram)) return;
+    }
     p->e.x = s->obj.base.x;
     p->e.y = s->obj.base.y;
     p->e.sprite.variant = p->cell + SQUEAK_HURT_VARIANTS;
@@ -269,8 +284,8 @@ static void SqueakPartMain(void) {
     EffectObjectPostUpdate(&p->e);
 }
 
-/* SqueakCreatePart(); A sprite for part `index` of the character's compositions, `tiles` of VRAM (its frames', not the character's
- * biggest: King Dedede's sparkles); */
+/* SqueakCreatePart(); A sprite for part `index` of the character's compositions, `tiles` of VRAM (its part's frames', not the
+ * character's biggest: King Dedede's sparkles); */
 static struct SqueakPartFx *SqueakCreatePart(struct SqueakObject *s, u8 index, u8 tiles) {
     const struct SqueakGraphics *g = &gSqueakData.enemies[s->enemy];
     struct Task *t;
@@ -292,7 +307,8 @@ static struct SqueakPartFx *SqueakCreatePart(struct SqueakObject *s, u8 index, u
     p->cell = 0;
     p->index = index;
     p->palId = 0xFF;
-    EffectObjectInitSprite(&p->e, &p->e.sprite, tiles ? tiles : g->tiles, g->animId, SQUEAK_HURT_VARIANTS, 0x1A + index < 0x1F ? 0x1A + index : 0x1F);
+    p->tiles = tiles ? tiles : g->tiles;
+    EffectObjectInitSprite(&p->e, &p->e.sprite, p->tiles, g->animId, SQUEAK_HURT_VARIANTS, 0x1A + index < 0x1F ? 0x1A + index : 0x1F);
     p->e.sprite.palId = s->obj.base.sprite.palId;
     return p;
 }
@@ -418,6 +434,17 @@ static void SqueakShowComposite(struct SqueakObject *s) {
             s->obj.base.objBase54 = x;
             s->obj.base.objBase55 = y;
             continue;
+        }
+        /* (a part whose VRAM isn't this composition's part's frames' size: a new one, the old let go of, its VRAM free a frame
+         * later; KatAM's VRAM heap in a stage is 512 tiles, Mecha-Kracko's bolts take seven parts); */
+        if ((p = *link) != NULL && p->tiles != part->tiles) {
+            *link = p->next;
+            p->owner = NULL;
+            p->next = NULL;
+            p = SqueakCreatePart(s, i, part->tiles);
+            if (p == NULL) break;
+            p->next = *link;
+            *link = p;
         }
         if (*link == NULL) *link = SqueakCreatePart(s, i, part->tiles);
         if ((p = *link) == NULL) break;
@@ -1012,6 +1039,7 @@ static struct SqueakObject *SqueakCreate(struct ObjectTemplate *template, u8 pla
     s->padDir = s->padY = s->padA = s->padB = 0;
     for (i = 0; i < ARRAY_COUNT(s->vars); i++) s->vars[i] = 0;
     s->obj.unk80 = gSqueakEnemyHp[enemy];
+    s->maxHp = s->hpBase = 0;
     sSqueakCharacters[enemy].init(s);
     if (sSqueakCharacters[enemy].swims) s->obj.base.unkC |= 1;
     // (the type's AnimInfo table has one entry: ObjectInitSprite reads it; the patched drawing shows the character's own frames);
@@ -1102,7 +1130,14 @@ const u8 *SqueakName(struct Object *obj) {
     return gSqueakData.names + ((struct SqueakObject *)obj)->enemy * 0x100;
 }
 
-// SqueakMaxHp(); A character's HP at the start (its table's: the randomizer's HP options may have changed it);
+// SqueakMaxHp(); A character's full HP bar (its table's HP at the start, the randomizer's HP options may have changed; or its own);
 s16 SqueakMaxHp(struct Object *obj) {
-    return gSqueakEnemyHp[((struct SqueakObject *)obj)->enemy];
+    struct SqueakObject *s = (struct SqueakObject *)obj;
+
+    return s->maxHp > 0 ? s->maxHp : gSqueakEnemyHp[s->enemy];
+}
+
+// SqueakHpBase(); The HP under its bar's empty (a next form's, held back);
+s16 SqueakHpBase(struct Object *obj) {
+    return ((struct SqueakObject *)obj)->hpBase;
 }

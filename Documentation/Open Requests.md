@@ -208,8 +208,23 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
     saw's abilities (the ring's path, the same code), a helper's hit's petals, EU and Japanese builds (built and logic-checked,
     not played). Fixed alongside: King Dedede, Big Metalun, Gao Gao and Tedhaun asked for KatAM's screen shake 5, which never
     stops (shook the screen till the fight's end: KatAM's timed 14-frame one now; checked with Dedede's landing).
-    Next: Mecha-Kracko (0x39), Yadgaine (0x3B), Bohboh (0x3C), Daroach (0x3D), Meta Knight (0x37), Dark Daroach and Dark Nebula
-    (0x3E, 0x3F, 0x46).
+    Mecha-Kracko (0x39) is ported (`squeak/mecha_kracko.c`): its side spots, low line and off-view points (its own stage's,
+    `a3s7s2`, from the camera's middle and the floor), the intro, waits, wave, swoop and enemy drops (a Starman, Waddle Dee or
+    Waddle Doo, fewer with more out) of its first form; the pause, the cloud breaking, the shudder and the cloud gathering when
+    its first form's HP runs out (its second form's HP, held back under the bar's, fills it); the dive into its electric field,
+    the bolts crossing, the low sweep under the floor's line and the field swoop of its second form; its eye, a sprite of its
+    own looking at Kirby in 8 ways; hit only in its cloud, its field and bolts hurting without being hurt (KatAM's level 6, as
+    Gordo). Recorded on the DS in its own stage (its second form forced by a RAM write) and checked in KatAM (USA, room 0x323):
+    the first form's moves and drops, the change and every second-form move with Squeak Squad's frame counts and paths, Sword
+    and body hits landing only in the cloud (none in 507 field frames and 137 bolt frames with Kirby beside it), its bar taken
+    back after its enemies are hit, KatAM's defeat at 0 HP with the eye gone. The change was forced (HP written down to the held
+    back 80), the defeat too (HP 5). Not tested: a whole fight played through by hand, helpers' hits, EU and Japanese builds
+    (built and logic-checked, not played). Fixed alongside in the framework: a part sprite takes its own frames' VRAM (rebuilt
+    when another composition needs more or less) and asks again when KatAM's 512-tile heap is full (Mecha-Kracko's field and
+    bolts drew other sprites' tiles), and a mid-boss keeps its bar's full HP and a held-back part of its HP of its own.
+    Seen: Kirby flashing after a hit hurts a mid-boss he touches (KatAM's body touch with his level 6 over its 3; every ported
+    mid-boss alike; left as it is).
+    Next: Yadgaine (0x3B), Bohboh (0x3C), Daroach (0x3D), Meta Knight (0x37), Dark Daroach and Dark Nebula (0x3E, 0x3F, 0x46).
   - Left: those bosses; the randomizer options (a Squeak Squad ROM in the ROM Expansion tab, the enemy pool). The Squeak Squad-only
     enemies, the shared enemies' Squeak Squad behaviors, its mid-bosses and the Squeaks are all done.
 

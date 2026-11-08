@@ -337,6 +337,10 @@ namespace KatAMRandomizer {
                                                                     (0x4A, 2), (0x4A, 3), (0x4A, 4) };
 
         // "D" (Waddle Dee), "a" (Hot Head), "r", "o" (Bronto Burt), "a" (Hot Head), "c" (Rocky), "h" (Chip);
+        // "M" (Mr. Frosty), "e" (Hot Head), "c" (Rocky), "h" (Chip), "a" (Hot Head), "-" (Bang-Bang), "Kracko" (KatAM's Kracko);
+        static readonly (int type, int letter)[] MechaKrackoGlyphs = { (0x38, 0), (0x14, 4), (0x17, 2), (0x08, 1), (0x14, 5), (0x2F, 4),
+                                                                       (0x45, 0), (0x45, 1), (0x45, 2), (0x45, 3), (0x45, 4), (0x45, 5) };
+
         static readonly (int type, int letter)[] DaroachGlyphs = { (0x00, 6), (0x14, 5), (0x01, 1), (0x01, 2), (0x14, 5), (0x17, 2), (0x08, 1) };
 
         // "S" (Squishy), "p", "i" (Chip), "n", "n" (Bronto Burt), "i" (Chip);
@@ -472,6 +476,15 @@ namespace KatAMRandomizer {
             // Her dirt (0x0212A404, drawn from mrsMoley_ext00: the petals' burst 8, the petals 9 and 10, her shadow 11 and 12), no name;
             new SqueakEnemy(39, "Mrs. Moley's dirt", "mrsMoley_ext00", new[] { 0, 0, 0 }, new (int, int)[0],
                             OnlyAnims: new[] { 8, 9, 10, 11, 12 }),
+            /* Mecha-Kracko (a boss, enemy 0x39: 0x02132D7C, on mini-boss type 0x40 as the mid-bosses), drawn with enemy/kracko: all its
+             * animations, its .mca's composites (its cloud over its core, its field, its bolts: the first part drawn on top, the
+             * character's own), its hurt look its cloud (cell 1: Squeak Squad's is .mca's 2, 0x3000002); a frame big enough for its bolts
+             * (139 pixels under it); */
+            new SqueakEnemy(40, "Mecha-Kracko", "kracko", new[] { 1, 1, 1 }, MechaKrackoGlyphs, MidbossType: 0x40, Canvas: 288),
+            /* Its eye (0x0213025C: kracko's animations 8-15, looking at Kirby; only those, not drawn with its graphics: its sprite takes
+             * an eye's VRAM, as type 0x2C's characters take the biggest frame's of theirs), no name; */
+            new SqueakEnemy(41, "Mecha-Kracko's eye", "kracko", new[] { 0, 0, 0 }, new (int, int)[0],
+                            OnlyAnims: new[] { 8, 9, 10, 11, 12, 13, 14, 15 }),
         };
 
         public static IReadOnlyList<(int index, string name)> SqueakEnemies => SqueakDefinitions.Select(e => (e.Index, e.Name)).ToList();
@@ -571,20 +584,17 @@ namespace KatAMRandomizer {
                 int compositionTable = 0, compositeTable = 0;
                 if (b.Enemy.BodyLast)
                     compositions = compositions.Select(c => c.Count > 1 ? new[] { c[^1] }.Concat(c.Take(c.Count - 1)).ToList() : c).ToList();
-                /* (each part's sprite takes the tiles its frames need, the most of any composition's part in its place: squeak.c's
-                 * SqueakCreatePart; its own sprite, part 0, the character's); */
-                int[] partTiles = new int[compositions.Count == 0 ? 0 : compositions.Max(c => c.Count)];
-                foreach (List<SqueakPart> c in compositions)
-                    for (int i = 0; i < c.Count; i++)
-                        foreach (var step in b.Character.Anims[c[i].Anim].Steps)
-                            partTiles[i] = Math.Max(partTiles[i], b.CellTiles != null && step.Cell < b.CellTiles.Count ? b.CellTiles[step.Cell] : b.Tiles);
+                /* (each part's sprite takes the tiles its own frames need: squeak.c's SqueakCreatePart, a part sprite too small for
+                 * another composition's part in its place made again; its own sprite, part 0, the character's); */
+                int PartTiles(SqueakPart part) => b.Character.Anims[part.Anim].Steps
+                    .Select(step => b.CellTiles != null && step.Cell < b.CellTiles.Count ? b.CellTiles[step.Cell] : b.Tiles).DefaultIfEmpty(0).Max();
                 if (compositions.Count > 0) {
                     compositionTable = Allocate(ref localCursor, compositions.Count * 8, 4);
                     for (int c = 0; c < compositions.Count; c++) {
                         int parts = Allocate(ref localCursor, Math.Max(1, compositions[c].Count) * 8, 4);
                         for (int i = 0; i < compositions[c].Count; i++) {
                             SqueakPart part = compositions[c][i];
-                            WriteShorts(rom, parts + i * 8, part.Anim, (part.Absolute ? 1 : 0) | Math.Min(255, Math.Max(1, partTiles[i])) << 8, part.X, part.Y);
+                            WriteShorts(rom, parts + i * 8, part.Anim, (part.Absolute ? 1 : 0) | Math.Min(255, Math.Max(1, PartTiles(part))) << 8, part.X, part.Y);
                         }
                         rom[compositionTable + c * 8] = (byte)compositions[c].Count;
                         WriteInt(rom, compositionTable + c * 8 + 4, parts + 0x08000000);

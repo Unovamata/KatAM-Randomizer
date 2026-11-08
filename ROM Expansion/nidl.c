@@ -255,18 +255,20 @@ s16 NidlMaxHp(struct Object *obj) {
  * every frame after, 0x0803533C: both patched to call this at 0x08034EF8 and 0x08035354, KatAMExpansion.cs): HP times 0x4000 / its
  * HP at the start. KatAM's own objects keep the game's tables of that factor (the regular enemies' gUnk_083513E8; those of types
  * 0x38-0x52, by the number of players, gUnk_08351458 and Dark Mind's first form's gUnk_08351628, by its part), the ported ones get
- * theirs from their own HP, as the types they share hold no one HP; */
+ * theirs from their own HP, as the types they share hold no one HP (a Squeak Squad boss with a second form: the HP over its next
+ * form's, SqueakHpBase, of its first's, SqueakMaxHp); */
 extern const u16 gUnk_083513E8[];
 extern const u16 gUnk_08351458[][4];
 extern const u16 gUnk_08351628[][4];
 
 u16 NidlHpBarFill(struct Object *obj) {
     u8 players = gNumHumanPlayers - 1;
-    s32 max;
+    s32 max, hp;
 
     if (obj->type == SQUEAK_TYPE || obj->type == NIDL_TYPE || NidlIsMiniboss(obj) || NidlIsBoss(obj)) {
         max = SqueakIsSqueak(obj) ? SqueakMaxHp(obj) : NidlMaxHp(obj);
-        return max > 0 ? obj->unk80 * (0x4000 / max) : 0;
+        hp = obj->unk80 - (SqueakIsSqueak(obj) ? SqueakHpBase(obj) : 0);
+        return max > 0 && hp > 0 ? hp * (0x4000 / max) : 0;
     }
     if ((u8)(obj->type - 0x38) <= 0x1A) {
         if (obj->type == OBJ_DARK_MIND_FORM_1) return obj->unk80 * gUnk_08351628[obj->subtype][players];

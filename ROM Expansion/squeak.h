@@ -62,6 +62,8 @@ enum {
     SQUEAK_MRS_MOLEY,           // A boss (on a mini-boss type, as the mid-bosses);
     SQUEAK_MOLEY_THING,         // What she throws (Squeak Squad's kind the variant: rocks, a bolt, a ring, a bomb, a can, a saw, pebbles);
     SQUEAK_MOLEY_DIRT,          // Her dirt (Squeak Squad's kind the variant's low bits: the petals' burst, petals, her shadow; their way 4 on);
+    SQUEAK_MECHA_KRACKO,        // A boss (on a mini-boss type, as the mid-bosses);
+    SQUEAK_MECHA_KRACKO_EYE,    // Its eye (drawn with its graphics, over it, looking at Kirby);
     SQUEAK_ENEMY_COUNT,
 };
 
@@ -107,7 +109,7 @@ struct SqueakAnim {
 struct SqueakPart {
     u16 anim;
     bool8 absolute;
-    u8 tiles;                   // The tiles its sprite takes (the most a frame of any composition's part in its place needs);
+    u8 tiles;                   // The tiles its sprite takes (the most a frame of its animation needs);
     s16 x;
     s16 y;
 };
@@ -232,9 +234,11 @@ struct SqueakObject {
     void *parts;                // The composition's other parts (SqueakPartFx, a chain: SqueakAnimate places them);
     void *layer[2];             // Its layers' sprites (SqueakShowLayer), while its cell has one;
     u32 compositeTime;          // The frames since the composite animation started;
-    s32 vars[28];               // The character's own;
+    s32 vars[27];               // The character's own;
     struct ObjectTemplate spawn;    // Its template, when another character spawned it (SqueakSpawn);
     bool8 activated;            // A mid-boss: its fight has started;
+    s16 maxHp;                  // Its HP bar's full HP, when not its table's (0: the table's: SqueakMaxHp), and the HP under the bar's
+    s16 hpBase;                 // empty (a boss's next form's, held back: Mecha-Kracko's);
 };
 
 // SqueakTouches()' sides (the stage's vtable +0x18's: 1 up, 2 down, 4 left, 8 right);
@@ -287,6 +291,7 @@ void SqueakMidbossUpdate(struct SqueakObject *);
 u32 SqueakAnimFor(struct Object *);
 const u8 *SqueakName(struct Object *);
 s16 SqueakMaxHp(struct Object *);
+s16 SqueakHpBase(struct Object *);
 void SqueakSetCell(struct SqueakObject *, u8 cell);
 void SqueakUsePalette(struct SqueakObject *, u8 alternate);
 void SqueakPlay(struct SqueakObject *, u8 anim);
@@ -420,5 +425,9 @@ void MoleyThingInit(struct SqueakObject *);
 void MoleyThingStart(struct Object *);
 void MoleyDirtInit(struct SqueakObject *);
 void MoleyDirtStart(struct Object *);
+void MechaKrackoInit(struct SqueakObject *);
+void MechaKrackoStart(struct Object *);
+void MechaKrackoEyeInit(struct SqueakObject *);
+void MechaKrackoEyeStart(struct Object *);
 
 #endif
