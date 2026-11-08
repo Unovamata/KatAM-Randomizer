@@ -37,6 +37,7 @@ enum {
     SQUEAK_STARMAN,
     SQUEAK_BUBBLE_HEAD,
     SQUEAK_BUBBLE_HEAD_BUBBLE,  // Bubble Head's bubbles (blown by it, drawn with its graphics);
+    SQUEAK_GAW_GAW,
     SQUEAK_ENEMY_COUNT,
 };
 
@@ -279,5 +280,7 @@ void BubbleHeadInit(struct SqueakObject *);
 void BubbleHeadStart(struct Object *);
 void BubbleHeadBubbleInit(struct SqueakObject *);
 void BubbleHeadBubbleStart(struct Object *);
+void GawGawInit(struct SqueakObject *);
+void GawGawStart(struct Object *);
 
 #endif

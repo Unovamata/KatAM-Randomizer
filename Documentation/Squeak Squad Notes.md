@@ -126,6 +126,13 @@ A body's `+0x14` flag 8 is set every frame from its sprite's update (`0x02014590
 animation and answers whether it looped this frame, ended or isn't playing): a looping animation's flag pulses on its loop
 frames (logged: Bubble Head's bubble every 8 frames, Bio Spark's slash brain waiting one 6-frame loop each wait).
 
+Gaw Gaw's brain keeps its body's pointer at `+0x98` and its timers at `+0x9C` and `+0xA0` (its params at `+0xB0`). Variant 1's
+look (`0x020AC4E0`) tests Kirby "within" its params' 72.0 and 18.0, floats (`0x42900000`, `0x41900000`) read as whole numbers, so
+always: its random walk (`0x020AC37C`) is never reached. A state function's return value is r0 as it leaves, so a "void" entry can
+run the next state at once or not: Gaw Gaw's walk entry (`0x020AF7F0`) leaves 0 (the walk starts the next frame: logged), its wall
+jump's (`0x020AF5B0`) 1. Its hold (`0x020AE118`...) puts Kirby 8 pixels ahead each frame through his `vtable +0x10`; its throw
+gives him speeds (2.3 back, 2.1 up, falling 0x2B8) and he loses 6 HP as he lands (logged: 36 to 30).
+
 ### The stage's water splashes
 
 The stage's map object (`*0x02229F1C + 0x48`, vtable `+0xB4`, `0x02215A10`) splashes: type 0 into the water, 1 out of it. Only at
@@ -224,7 +231,7 @@ Bonkers, Box Boxer, Boxy. The others get a full port (body and brain constructor
 | 0x25 | Bio Spark | 0x0207CF18 (0x264) | 0x0207A284 (0xB4) | yes |
 | 0x26 | Starman | 0x020877B8 (0x24C) | 0x02084B10 (0xD0) | yes |
 | 0x27 | Bubble Head | 0x020968D0 (0x244) | 0x02095980 (0xB8) | yes |
-| 0x28 | Gaw Gaw | 0x020B0068 (0x260) | 0x020AC780 (0xBC) | |
+| 0x28 | Gaw Gaw | 0x020B0068 (0x260) | 0x020AC780 (0xBC) | yes |
 | 0x2A | Acchi | 0x0206B1F0 (0x25C) | 0x02069D6C (0xB8) | |
 | 0x2B | Bun | 0x02056AA4 (0x250) | 0x02055470 (0xB4) | |
 | 0x2C | Metalun | 0x020526AC (0x248) | 0x0205155C (0xB8) | |

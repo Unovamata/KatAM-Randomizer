@@ -234,6 +234,9 @@ namespace KatAMRandomizer {
             // drawn with its graphics (bubblehead.cea's animation 25, cells 52-55);
             new SqueakEnemy(13, "Bubble Head", "bubblehead", new[] { 13, 14, 14 }, BubbleHeadGlyphs),
             new SqueakEnemy(14, "Bubble Head", "bubblehead", new[] { 53, 53, 53 }, BubbleHeadGlyphs, GraphicsOf: 13),
+            // Gaw Gaw: hurt animation 24 (0x020B0068's 0x1000018, both: cell 53);
+            new SqueakEnemy(15, "Gaw Gaw", "gawgaw", new[] { 53, 53, 53 },
+                            new[] { (0x03, 0), (0x14, 5), (0x1A, 1), (-1, 0), (0x03, 0), (0x14, 5), (0x1A, 1) }),   // "G" (Glunk), "a" (Hot Head), "w" (Sword Knight);
         };
 
         public static IReadOnlyList<(int index, string name)> SqueakEnemies => SqueakDefinitions.Select(e => (e.Index, e.Name)).ToList();
