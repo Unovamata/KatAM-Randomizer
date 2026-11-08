@@ -26,6 +26,8 @@ const s16 gSqueakEnemyHp[SQUEAK_ENEMY_COUNT] = {
     [SQUEAK_BUBBLE_HEAD] = 4,       // Squeak Squad's: 20 (prmCE21Sl0.kgb);
     [SQUEAK_BUBBLE_HEAD_BUBBLE] = 1,
     [SQUEAK_GAW_GAW] = 4,           // Squeak Squad's: 20 (prmCE22Sl0.kgb);
+    [SQUEAK_ACCHI] = 6,             // Squeak Squad's: 30 (prmCE27Sl0.kgb);
+    [SQUEAK_ACCHI_FIRE] = 1,
 };
 
 static const struct SqueakCharacter sSqueakCharacters[SQUEAK_ENEMY_COUNT] = {
@@ -45,6 +47,8 @@ static const struct SqueakCharacter sSqueakCharacters[SQUEAK_ENEMY_COUNT] = {
     [SQUEAK_BUBBLE_HEAD] = { BubbleHeadInit, BubbleHeadStart, 0, FALSE },
     [SQUEAK_BUBBLE_HEAD_BUBBLE] = { BubbleHeadBubbleInit, BubbleHeadBubbleStart, 0, FALSE },
     [SQUEAK_GAW_GAW] = { GawGawInit, GawGawStart, 0, FALSE },
+    [SQUEAK_ACCHI] = { AcchiInit, AcchiStart, KIRBY_ABILITY_FIRE, FALSE },
+    [SQUEAK_ACCHI_FIRE] = { AcchiFireInit, AcchiFireStart, 0, FALSE },
 };
 
 /* SqueakAnimFor(); The anim and variant an object shows (variant << 16 | anim ID), for the game's object drawing (sub_0809A7A4,

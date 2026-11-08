@@ -197,6 +197,9 @@ namespace KatAMRandomizer {
         static readonly (int type, int letter)[] BubbleHeadGlyphs = { (0x01, 0), (0x03, 2), (0x28, 3), (0x28, 3), (0x03, 1), (0x14, 4), (-1, 0),
                                                                       (0x14, 0), (0x14, 4), (0x14, 5), (0x14, 6) };
 
+        // "A" (Rocky's R: the names' font draws R and A alike, as KatAM's Spanish "Anemonia"), "c" (Rocky), "h", "i" (Chip);
+        static readonly (int type, int letter)[] AcchiGlyphs = { (0x17, 0), (0x17, 2), (0x17, 2), (0x08, 1), (0x08, 2) };
+
         static readonly List<SqueakEnemy> SqueakDefinitions = new List<SqueakEnemy> {
             // Perara: hurt animations 7 and 8 (0x02021A88's 0x1000007, 0x1000008);
             new SqueakEnemy(0, "Perara", "perara", new[] { 18, 19, 19 },
@@ -237,6 +240,10 @@ namespace KatAMRandomizer {
             // Gaw Gaw: hurt animation 24 (0x020B0068's 0x1000018, both: cell 53);
             new SqueakEnemy(15, "Gaw Gaw", "gawgaw", new[] { 53, 53, 53 },
                             new[] { (0x03, 0), (0x14, 5), (0x1A, 1), (-1, 0), (0x03, 0), (0x14, 5), (0x1A, 1) }),   // "G" (Glunk), "a" (Hot Head), "w" (Sword Knight);
+            // Acchi: hurt animations 8 and 9 (0x0206B1F0's 0x1000008, 0x1000009: cells 17 and 18); its fire (0x0206BCA0) is drawn with its
+            // graphics (acchi.cea's animations 11 and 13-15, cells 23-49);
+            new SqueakEnemy(16, "Acchi", "acchi", new[] { 17, 18, 18 }, AcchiGlyphs),
+            new SqueakEnemy(17, "Acchi", "acchi", new[] { 23, 23, 23 }, AcchiGlyphs, GraphicsOf: 16),
         };
 
         public static IReadOnlyList<(int index, string name)> SqueakEnemies => SqueakDefinitions.Select(e => (e.Index, e.Name)).ToList();

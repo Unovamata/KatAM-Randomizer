@@ -133,6 +133,17 @@ run the next state at once or not: Gaw Gaw's walk entry (`0x020AF7F0`) leaves 0 
 jump's (`0x020AF5B0`) 1. Its hold (`0x020AE118`...) puts Kirby 8 pixels ahead each frame through his `vtable +0x10`; its throw
 gives him speeds (2.3 back, 2.1 up, falling 0x2B8) and he loses 6 HP as he lands (logged: 36 to 30).
 
+Acchi's brain keeps its timers at `+0x98` and `+0x9C` (its params at `+0xAC`) and never sets them when it's made: the memory's
+leftovers (logged: `0x6C630039`), so variant 0's first rest (`0x02069B3C`, which waits for `+0x98` to reach 60) ends at once; after
+a low shot the rest isn't set back to 0 (59 frames), after a lob it is (60). Its fire (`0x0206BCA0`, a projectile like Bubble
+Head's bubbles: its first update runs twice in the next frame, logged 4 pixels across) has its terrain box (the `.rca`'s tag
+0x202: 3 pixels round its middle flying) and flies through the terrain (flags 0x200 and 0x20000): it lands when that box's bottom
+meets the floor (its distance down, `+0x84`, under 1, or `+0x14` bit 0x4000, the floor side met), its top a ceiling (0x2000), or
+its middle is in the terrain (the stage's `vtable +0x1C`, a 1-pixel box); landed, it chains to its burn the same frame (logged:
+the timer 120 set, 119 after it). Its touch reaction (`0x0206BB38`) puts it out under an attack with flag 0x400 when its own box
+has it too, and ignores inhales (kinds 3-5); Kirby's body never reached it (no reaction logged as it burned him). The `.rca`'s
+animations 1-8 are the `.cea`'s 8-15 (its 9-15 the `.mca`'s composites). Swallowed, it gives Fire (logged: the HUD's "FIRE").
+
 ### The stage's water splashes
 
 The stage's map object (`*0x02229F1C + 0x48`, vtable `+0xB4`, `0x02215A10`) splashes: type 0 into the water, 1 out of it. Only at
@@ -232,7 +243,7 @@ Bonkers, Box Boxer, Boxy. The others get a full port (body and brain constructor
 | 0x26 | Starman | 0x020877B8 (0x24C) | 0x02084B10 (0xD0) | yes |
 | 0x27 | Bubble Head | 0x020968D0 (0x244) | 0x02095980 (0xB8) | yes |
 | 0x28 | Gaw Gaw | 0x020B0068 (0x260) | 0x020AC780 (0xBC) | yes |
-| 0x2A | Acchi | 0x0206B1F0 (0x25C) | 0x02069D6C (0xB8) | |
+| 0x2A | Acchi | 0x0206B1F0 (0x25C) | 0x02069D6C (0xB8) | yes |
 | 0x2B | Bun | 0x02056AA4 (0x250) | 0x02055470 (0xB4) | |
 | 0x2C | Metalun | 0x020526AC (0x248) | 0x0205155C (0xB8) | |
 | 0x2D-0x36 | the mid-bosses | 0x020F4294, 0x020D4C10, 0x020FD418, 0x020F8B78, 0x02100300, 0x0210C4F8, 0x02103B4C, 0x02108EAC | | |
