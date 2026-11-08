@@ -23,6 +23,8 @@ const s16 gSqueakEnemyHp[SQUEAK_ENEMY_COUNT] = {
     [SQUEAK_BIO_SPARK_KUNAI] = 1,   // (KatAM's: any hit breaks it);
     [SQUEAK_BIO_SPARK_LEAF] = 1,
     [SQUEAK_STARMAN] = 2,           // Squeak Squad's: 10 (prmCE20Sl0.kgb);
+    [SQUEAK_BUBBLE_HEAD] = 4,       // Squeak Squad's: 20 (prmCE21Sl0.kgb);
+    [SQUEAK_BUBBLE_HEAD_BUBBLE] = 1,
 };
 
 static const struct SqueakCharacter sSqueakCharacters[SQUEAK_ENEMY_COUNT] = {
@@ -39,6 +41,8 @@ static const struct SqueakCharacter sSqueakCharacters[SQUEAK_ENEMY_COUNT] = {
     [SQUEAK_BIO_SPARK_KUNAI] = { BioSparkKunaiInit, BioSparkKunaiStart, 0, FALSE },
     [SQUEAK_BIO_SPARK_LEAF] = { BioSparkLeafInit, BioSparkLeafStart, 0, FALSE },
     [SQUEAK_STARMAN] = { SqueakStarmanInit, SqueakStarmanStart, 0, FALSE },
+    [SQUEAK_BUBBLE_HEAD] = { BubbleHeadInit, BubbleHeadStart, 0, FALSE },
+    [SQUEAK_BUBBLE_HEAD_BUBBLE] = { BubbleHeadBubbleInit, BubbleHeadBubbleStart, 0, FALSE },
 };
 
 /* SqueakAnimFor(); The anim and variant an object shows (variant << 16 | anim ID), for the game's object drawing (sub_0809A7A4,
@@ -88,8 +92,9 @@ static s32 SqueakTurned(struct SqueakObject *s, s32 x) {
 }
 
 /* SqueakAnimate(); Steps the animation, once per frame: a step shows its cell its frames, then the next; after the last, a looping
- * animation starts over, the others hold their last step. Either way animEnded tells the animation got through once (Squeak
- * Squad's flag 8, which characters wait for). The step's offset moves the drawing (Squeak Squad adds it to the cell's position when
+ * animation starts over, the others hold their last step. animEnded is Squeak Squad's flag 8, which characters wait for (its body's
+ * update sets it each frame from the sprite's, 0x02014590 asking vtable +0x1C, 0x01FFA8B8): a held animation's from the frame it got
+ * through on; a looping one's only on the frames it starts over (a pulse: waiting on it twice waits for two loops). The step's offset moves the drawing (Squeak Squad adds it to the cell's position when
  * it builds the OAM, 0x01FF8720, turned with the character as the cell; KatAM's objBase54/55, which the drawing clears once used); */
 void SqueakAnimate(struct SqueakObject *s) {
     const struct SqueakAnim *a = &gSqueakData.enemies[s->enemy].anim[s->anim];
@@ -99,6 +104,7 @@ void SqueakAnimate(struct SqueakObject *s) {
         SqueakShowComposite(s);
         return;
     }
+    if (a->loops) s->animEnded = FALSE;
     if (!(s->animEnded && !a->loops) && !(s->timer && --s->timer)) {
         if (s->step + 1 < a->steps) {
             s->step++;
@@ -240,8 +246,9 @@ static void SqueakReleaseParts(struct SqueakObject *s) {
 }
 
 /* SqueakShowComposite(); The composite animation at its time: the composition its step shows, and each part's cell and offset (the
- * first the character's own, the others its SqueakPartFx, made or let go as the composition has them); animEnded once its frames
- * went by (flag 8); */
+ * first the character's own, the others its SqueakPartFx, made or let go as the composition has them); animEnded (flag 8) once its
+ * frames went by (as a plain animation's: a composite of 4 frames started at frame t is done at t + 4, as recorded: Bubble Head's),
+ * a looping one's on each frame it starts over; */
 static void SqueakShowComposite(struct SqueakObject *s) {
     const struct SqueakGraphics *g = &gSqueakData.enemies[s->enemy];
     const struct SqueakComposite *c = &g->composite[s->composite];
@@ -251,7 +258,8 @@ static void SqueakShowComposite(struct SqueakObject *s) {
     u8 i;
 
     for (i = 0; i < c->steps; i++) total += c->step[i].frames;
-    if (total && time + 1 >= total) s->animEnded = TRUE;
+    if (c->loops) s->animEnded = total && time && time % total == 0;
+    else if (total && time >= total) s->animEnded = TRUE;
     local = total == 0 ? 0 : c->loops ? time % total : time < total ? time : total - 1;
     time = local;
     for (i = 0; i + 1 < c->steps && time >= c->step[i].frames; i++) time -= c->step[i].frames;
@@ -749,6 +757,24 @@ struct Kirby *SqueakGrabbing(struct SqueakObject *s, const struct SqueakBox *box
             SqueakBoxAt(s, box->grab[i], r);
             if (h[2] >= r[0] && h[0] <= r[2] && h[3] >= r[1] && h[1] <= r[3]) return kirby;
         }
+    }
+    return NULL;
+}
+
+/* SqueakTouchingKirby(); A Kirby (in its room, not beaten) whose hit box touches the character's (sub_0803E2B0's, in whole pixels,
+ * edges touching: where KatAM's touch hurts him, as recorded): Squeak Squad's touch reaction to his body's attack (Bubble Head's
+ * bubbles pop on it, 0x02096E68's flag 0x400); */
+struct Kirby *SqueakTouchingKirby(struct SqueakObject *s) {
+    struct Kirby *kirby;
+    s32 r[4], h[4];
+    u8 k;
+
+    SqueakHitBoxAt(&s->obj.base, r);
+    for (k = 0; k < gNumKirbys; k++) {
+        kirby = &gKirbys[k];
+        if (kirby->base.roomId != s->obj.base.roomId || kirby->hp <= 0) continue;
+        SqueakHitBoxAt(&kirby->base, h);
+        if (h[2] >> 8 >= r[0] >> 8 && h[0] >> 8 <= r[2] >> 8 && h[3] >> 8 >= r[1] >> 8 && h[1] >> 8 <= r[3] >> 8) return kirby;
     }
     return NULL;
 }

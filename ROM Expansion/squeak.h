@@ -35,6 +35,8 @@ enum {
     SQUEAK_BIO_SPARK_KUNAI,     // Bio Spark's kunai and leaf (thrown and left by it, drawn with its graphics);
     SQUEAK_BIO_SPARK_LEAF,
     SQUEAK_STARMAN,
+    SQUEAK_BUBBLE_HEAD,
+    SQUEAK_BUBBLE_HEAD_BUBBLE,  // Bubble Head's bubbles (blown by it, drawn with its graphics);
     SQUEAK_ENEMY_COUNT,
 };
 
@@ -142,7 +144,7 @@ struct SqueakObject {
     u8 anim;                    // The Squeak Squad animation playing, its step and the frames left on it;
     u8 step;
     u16 timer;
-    bool8 animEnded;            // The animation got through once (Squeak Squad's flag 8; a looping one goes on);
+    bool8 animEnded;            // Squeak Squad's flag 8: a held animation got through; a looping one started over this frame;
     u8 state;                   // The character's own state, and its timer (Squeak Squad's: frames since the state started);
     u16 stateTimer;
     u8 brain;                   // Its brain's state (one run a frame);
@@ -244,6 +246,7 @@ bool32 SqueakInLevel(struct SqueakObject *);
 void SqueakSetBoxes(struct SqueakObject *, const struct SqueakBoxes *, s16 harm, u8 *index);
 bool32 SqueakKirbyFree(struct Kirby *);
 struct Kirby *SqueakGrabbing(struct SqueakObject *, const struct SqueakBox *);
+struct Kirby *SqueakTouchingKirby(struct SqueakObject *);
 
 // The characters (squeak/*.c);
 void PeraraInit(struct SqueakObject *);
@@ -272,5 +275,9 @@ void BioSparkLeafInit(struct SqueakObject *);
 void BioSparkLeafStart(struct Object *);
 void SqueakStarmanInit(struct SqueakObject *);
 void SqueakStarmanStart(struct Object *);
+void BubbleHeadInit(struct SqueakObject *);
+void BubbleHeadStart(struct Object *);
+void BubbleHeadBubbleInit(struct SqueakObject *);
+void BubbleHeadBubbleStart(struct Object *);
 
 #endif

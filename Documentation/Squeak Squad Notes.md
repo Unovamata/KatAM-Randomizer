@@ -115,6 +115,17 @@ Starman's brain (`0x02084370` on, before its constructor's range) presses only B
 lift-off animation lasts 38: its flapping starts with B let go, and it skids (logged on the DS). Its flying caps its height at the
 camera's top (the stage object's `+0x70`); variant 0 passes through the terrain (`vtable +0x40`, `0x02084C20`).
 
+Bubble Head's brain releases pad up (its "Kirby 16 pixels above" shot) 3 frames after B, but its body blows the bubble 5 frames
+after B (the shot's composite 5, 4 frames, then 6), so its upward bubble (kind 2: 1.5 forward, 0.55 up) never comes out (logged on
+the DS with Kirby held 40 pixels above). Its stream and bubbles hit with kind 8 (damage 8): Kirby's ordinary hurt (logged: 36 to 28
+HP, knocked back at 1.7). A bubble (`0x0209702C`) touched by an attack with flag 0x400, as Kirby's body's, pops (`0x02096E68`): it
+goes on as it was till its animation's next loop, then a star burst (`0x020B48E0`'s type 3); it ignores inhales (kinds 3-5).
+Created during its blower's update, its first update runs twice in the next frame (its sprite's time 2 after it, 3.2 moved).
+The bubble's pop sets its `+0x14` bit 1 and raises it 8 pixels (`0x02096BC8`), which the floor's snap takes back on the ground.
+A body's `+0x14` flag 8 is set every frame from its sprite's update (`0x02014590`: `vtable +0x1C`, `0x01FFA8B8`, which steps the
+animation and answers whether it looped this frame, ended or isn't playing): a looping animation's flag pulses on its loop
+frames (logged: Bubble Head's bubble every 8 frames, Bio Spark's slash brain waiting one 6-frame loop each wait).
+
 ### The stage's water splashes
 
 The stage's map object (`*0x02229F1C + 0x48`, vtable `+0xB4`, `0x02215A10`) splashes: type 0 into the water, 1 out of it. Only at
@@ -212,7 +223,7 @@ Bonkers, Box Boxer, Boxy. The others get a full port (body and brain constructor
 | 0x11 | Uja | 0x020840C8 (0x294) | 0x02080AD0 (0xC4) | yes |
 | 0x25 | Bio Spark | 0x0207CF18 (0x264) | 0x0207A284 (0xB4) | yes |
 | 0x26 | Starman | 0x020877B8 (0x24C) | 0x02084B10 (0xD0) | yes |
-| 0x27 | Bubble Head | 0x020968D0 (0x244) | 0x02095980 (0xB8) | |
+| 0x27 | Bubble Head | 0x020968D0 (0x244) | 0x02095980 (0xB8) | yes |
 | 0x28 | Gaw Gaw | 0x020B0068 (0x260) | 0x020AC780 (0xBC) | |
 | 0x2A | Acchi | 0x0206B1F0 (0x25C) | 0x02069D6C (0xB8) | |
 | 0x2B | Bun | 0x02056AA4 (0x250) | 0x02055470 (0xB4) | |

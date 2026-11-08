@@ -193,6 +193,10 @@ namespace KatAMRandomizer {
         static readonly (int type, int letter)[] BioSparkGlyphs = { (0x01, 0), (0x27, 1), (0x01, 2), (-1, 0), (0x04, 0), (0x08, 3), (0x14, 5),
                                                                     (0x01, 1), (0x03, 4) };
 
+        // "B" (Bronto Burt), "u", "l" (Glunk), "b" (Bomber), "e", " ", "H", "e", "a", "d" (Hot Head);
+        static readonly (int type, int letter)[] BubbleHeadGlyphs = { (0x01, 0), (0x03, 2), (0x28, 3), (0x28, 3), (0x03, 1), (0x14, 4), (-1, 0),
+                                                                      (0x14, 0), (0x14, 4), (0x14, 5), (0x14, 6) };
+
         static readonly List<SqueakEnemy> SqueakDefinitions = new List<SqueakEnemy> {
             // Perara: hurt animations 7 and 8 (0x02021A88's 0x1000007, 0x1000008);
             new SqueakEnemy(0, "Perara", "perara", new[] { 18, 19, 19 },
@@ -226,6 +230,10 @@ namespace KatAMRandomizer {
             // Starman: hurt animations 10 and 11 (0x020877B8's 0x100000A, 0x100000B: cells 15 and 17);
             new SqueakEnemy(12, "Starman", "starman", new[] { 15, 17, 17 },
                             new[] { (0x04, 0), (0x14, 2), (0x14, 5), (0x01, 1), (0x28, 2), (0x14, 5), (0x01, 3) }),   // "S" (Squishy), "t", "a" (Hot Head), "r", "n" (Bronto Burt), "m" (Bomber);
+            // Bubble Head: hurt animations 8 and 9 (0x020968D0's 0x1000008, 0x1000009: cells 13 and 14); its bubbles (0x0209702C) are
+            // drawn with its graphics (bubblehead.cea's animation 25, cells 52-55);
+            new SqueakEnemy(13, "Bubble Head", "bubblehead", new[] { 13, 14, 14 }, BubbleHeadGlyphs),
+            new SqueakEnemy(14, "Bubble Head", "bubblehead", new[] { 53, 53, 53 }, BubbleHeadGlyphs, GraphicsOf: 13),
         };
 
         public static IReadOnlyList<(int index, string name)> SqueakEnemies => SqueakDefinitions.Select(e => (e.Index, e.Name)).ToList();

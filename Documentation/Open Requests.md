@@ -57,6 +57,17 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
     flapping; variant 0's hover) and tested in KatAM (room 0x323, USA; the helpers and Kirby held aside by RAM writes): the same,
     and variant 1's climb to the screen's top and dive onto Kirby. Not tested: the hard dive at a ceiling, the climb away, the
     bounce. Its ability (Squeak Squad's copy enemy; KatAM's Hi-Jump is NiDL's Starman's) is the owner's call.
+  - Bubble Head: ported from its code with its bubbles (its brains, walk, the big blow's stream, the single bubble, the jump its
+    brains never use). Checked against the DS by logging (every timing frame for frame: the shot, the big blow, the bubble's flight,
+    first frame, pop and star burst; kind 8's damage, an ordinary hurt) and tested in KatAM (room 0x323, USA; helpers and Kirby
+    held by RAM writes): the same timings, a bubble hurting Kirby and popping, the wall pop, the stage's edge, the instant pop inside
+    a cloud mound, the stream hurting Kirby, variants 1 and 2; screenshots. Not tested: the ceiling and time-out pops, Kirby's
+    attacks on its bubbles. Its ability (Squeak Squad's Bubble; none in KatAM) is the owner's call.
+  - Framework: a looping animation's end is now a pulse on its loop frames, and a composite's ends a frame later, as on the DS
+    (logged: Bubble Head's composites and bubble). Bio Spark changed with it (its brain's three waits in the slash now take a loop
+    each, 6 frames, as on the DS: checked in KatAM), and Cret's ball now drops after its drop composite's 20 frames, a frame later
+    (by the same rule; not logged again: its drop didn't come up on the DS in the test); the others wait on animations they just
+    started.
   - Cret and Uja pass through the terrain, held in the stage (Squeak Squad's flag 0x200, pinned down with Uja: Cret had been stopped
     by KatAM's terrain). Checked in KatAM: Cret drifts across room 0x323 and stops at its left edge.
   - Still to do for those: their sounds (Squeak Squad's are the DS's own: KatAM's nearest, or the owner's call); the enemy base
