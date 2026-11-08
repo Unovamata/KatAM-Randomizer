@@ -326,7 +326,7 @@ Squeak Squad's enemies KatAM has (its own objects, with only the Squeak Squad be
 Blipper, Glunk, Scarfy, Gordo, Snooter, Chip, Batty, Blockin, Big Waddle Dee, Shotzo, Waddle Doo, Hot Head, Flamer, Pengy, Sparky,
 Twister, Sword Knight, Cupie, Sir Kibble, Laser Ball, Foley, Wheelie, UFO, Noddy, Boxin, Heavy Knight; mid-bosses Mr. Frosty,
 Bonkers, Box Boxer, Boxy (Squeak Squad's 0x2D Mr. Frosty 0x020F4294, 0x2E Bonkers 0x020D4C10, 0x30 Box Boxer 0x020FD418, 0x31 Boxy
-0x020F8B78; each mid-boss's files: `param/prmMBnnMl0`, `Pl0`, `Sl0` (HP: Big Metalun's 300), `enemy/<name>` with a `_dmg.cla`
+0x020F8B78; one brain each, their fight started by body `+0x218` (Mr. Frosty) or `+0x210` (the others): logged, their moves are KatAM's own mid-bosses' (Mr. Frosty's hops, slide and leap; Bonkers' back-step, swing, dash, leap and hops; Box Boxer's back-step, punch dash at 5.6 and hops; Boxy's leaps and slides at 2.5), so they stay KatAM's; each mid-boss's files: `param/prmMBnnMl0`, `Pl0`, `Sl0` (HP: Big Metalun's 300), `enemy/<name>` with a `_dmg.cla`
 palette for its hurt flash). The others get a full port (body and brain constructors, from the factory; sizes in bytes):
 
 | ID | Enemy | Body | Brain | Ported |
@@ -363,7 +363,7 @@ NiDL's natives were); one it lacks is ported onto KatAM's own object (`ROM Expan
 | --- | --- | --- | --- | --- | --- |
 | 0x00 | Waddle Dee | 0x0202A9D0 | 0x02029760 | 0 0x02029694, 1 0x020295EC, 2 0x020294E8, 3 0x02029484, 4 0x020293C8, 5 0x020293F0 | 0, 4, 5 KatAM's 0, 3, 4; 1-3 ported (KatAM's 5-7) |
 | 0x01 | Bronto Burt | 0x02029060 | 0x0202637C | 0 0x02026298 (a wave, 53 pixels up, 144 frames), 1 0x0202625C (a smaller wave), 2 0x0202622C (straight, to 1.0), 3 0x020261E4 (perched till Kirby is near), 4 0x02026110 (hidden till Kirby passes, then from the screen's top 48 pixels ahead of him: `0x02028BB4`) | all KatAM's: 0 and 1 its waves (0, 1), 2 its straight flight (4), 3 its perch (5), 4 its drop from the screen's top (2) |
-| 0x02 | Blipper | 0x0208EBCC | 0x0208C2A8 | five | to compare in water (no DS save state in water yet) |
+| 0x02 | Blipper | 0x0208EBCC | 0x0208C2A8 | 0 and 5 0x0208C138 (steers at Kirby), 1 0x0208C10C (holds), 2 0x0208C074 (up and down, turning at walls), 3 0x0208BF94 and 4 0x0208BE78 (close in, then leap at Kirby) | KatAM's own five (`blipper.c`: its 0-4 split the same way); compared by their code, not logged (no DS save state in water) |
 | 0x03 | Glunk | 0x0205B478 | 0x0205A51C | one (B every `Pl0`'s 240 + 2 frames, `Pl1`'s 120 + 2 when the spawn's second byte is 1) | KatAM's 0 and 1 are other beats (a pose every 3 sway loops; 5 shots every 190 frames); ported (KatAM's 5 and 6), with its hop out of water |
 | 0x04 | Scarfy | 0x020490D4 | 0x02047974 | one (0x0204784C waits facing Kirby; inhaled, body `+0x204`, 0x02047740 holds B and steers at him, A past its time) | KatAM's own: inhaled it turns into its cyclops, backs off and dives at Kirby, bursting on him (logged on the DS: 1.0 back 30 frames, then 1.2 at him) |
 | 0x05 | Gordo | 0x0204D2F4 | 0x0204C614 | 0 0x0204C42C (bob), 1 0x0204C2E8 (across, at Kirby), 2 0x0204C164 (up and down), 3 0x0204BFBC (up and down, 64-frame timer), 4 0x0204BF00 (circle) | 0-3 KatAM's own (0, 2, 1, 3); 4 ported (KatAM's 5) |

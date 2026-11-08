@@ -111,8 +111,9 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
     the DS with Kirby inhaling it).
   - The other enemies KatAM has: their Squeak Squad brains are listed in the notes' table, each to be compared with KatAM's own
     variants (logged on both, Kirby pinned away) and the ones KatAM lacks ported as the Waddle Dee's. Done: Bronto Burt (all five
-    are KatAM's own: two waves, the straight flight, the perch, the drop from the screen's top), Glunk, Scarfy, Gordo, Snooter, Chip, Batty, Blockin, Big Waddle Dee, Shotzo, Waddle Doo, Hot Head, Flamer, Pengy, Sparky, Sword Knight, Sir Kibble, Twister, Cupie, Laser Ball, Foley, Wheelie, UFO, Noddy, Boxin and Heavy Knight (KatAM's own but for the ported Glunk, Gordo and Snooter variants). Still to compare:
-    Blipper and the swimmers in water (a DS save state in water first).
+    are KatAM's own: two waves, the straight flight, the perch, the drop from the screen's top), Glunk, Scarfy, Gordo, Snooter, Chip, Batty, Blockin, Big Waddle Dee, Shotzo, Waddle Doo, Hot Head, Flamer, Pengy, Sparky, Sword Knight, Sir Kibble, Twister, Cupie, Laser Ball, Foley, Wheelie, UFO, Noddy, Boxin, Heavy Knight and Blipper (by its code: no DS save state in water) (KatAM's own but for the ported Glunk, Gordo and Snooter
+    variants). Every shared enemy is compared, and the shared mid-bosses (Mr. Frosty, Bonkers, Box Boxer, Boxy: their moves logged
+    on the DS are KatAM's own mid-bosses').
   - Mid-bosses (Squeak Squad's 0x33-0x36: Gao Gao, Big Metalun, Tedhaun, Buboo; its other four, Mr. Frosty, Bonkers, Box Boxer and
     Boxy, are KatAM's own): their framework is in (on the mini-boss types 0x40-0x42 NiDL's use; tested in KatAM with Big Metalun:
     the wait, the camera lock, the HP bar and its name). Big Metalun is ported (`squeak/big_metalun.c`): its brain and body checked
