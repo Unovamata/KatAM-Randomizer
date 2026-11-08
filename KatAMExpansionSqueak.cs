@@ -122,31 +122,35 @@ namespace KatAMRandomizer {
         }
 
         /* SqueakSplitLayer(); The character's cells without the pieces of `palettes` (layer: FALSE) or with only them (TRUE), its
-         * animations and composite ones (.mca) kept; */
-        static SqueakCharacter SqueakSplitLayer(SqueakCharacter c, int[] palettes, bool layer) =>
-            new SqueakCharacter {
+         * animations and composite ones (.mca) kept; `whole` (WholeCells: the layers' groups), a cell drawn wholly with one group's
+         * palettes stays whole, the character's own (none of it the layer's); */
+        static SqueakCharacter SqueakSplitLayer(SqueakCharacter c, int[] palettes, bool layer, int[][] whole = null) {
+            bool Whole(SqueakCell cell) => whole != null && cell.Pieces.Count > 0
+                                           && whole.Any(g => cell.Pieces.All(p => g.Contains(p.Attr2 >> 12)));
+            return new SqueakCharacter {
                 Tiles = c.Tiles, Palettes = c.Palettes, Anims = c.Anims, Compositions = c.Compositions, Composites = c.Composites,
-                Cells = c.Cells.Select(cell => new SqueakCell(cell.Tile, cell.Pieces.Where(p => palettes.Contains(p.Attr2 >> 12) == layer).ToList())).ToList(),
+                Cells = c.Cells.Select(cell => new SqueakCell(cell.Tile, Whole(cell) ? (layer ? new List<SqueakPiece>() : cell.Pieces)
+                                                                       : cell.Pieces.Where(p => palettes.Contains(p.Attr2 >> 12) == layer).ToList())).ToList(),
             };
+        }
 
         /* SqueakKeepAnims(); The character with only these animations (as its 0, 1...) and the cells they show (renumbered in the order
          * they first show), its tiles and palettes as they were. Its composite animations are kept (keepComposites: Mrs. Moley's, their
-         * parts' animations then among those kept, renumbered), else dropped; */
+         * parts' animations then among those kept, renumbered; those with a part not kept left out, the others renumbered: Meta Knight's),
+         * else dropped; */
         static SqueakCharacter SqueakKeepAnims(SqueakCharacter character, int[] anims, bool keepComposites = false) {
             List<int> cells = anims.SelectMany(a => character.Anims[a].Steps.Select(s => s.Cell)).Distinct().ToList();
-            int Kept(int anim) {
-                int at = Array.IndexOf(anims, anim);
-                if (at < 0) throw new InvalidOperationException($"A composite animation's part plays animation {anim}, not kept.");
-                return at;
-            }
+            List<int> compositions = keepComposites
+                ? Enumerable.Range(0, character.Compositions.Count).Where(c => character.Compositions[c].All(part => anims.Contains(part.Anim))).ToList()
+                : new List<int>();
+            List<SqueakComposite> composites = character.Composites.Where(cm => cm.Steps.All(st => compositions.Contains(st.Composition)))
+                .Select(cm => cm with { Steps = cm.Steps.Select(st => (compositions.IndexOf(st.Composition), st.Frames)).ToList() }).ToList();
             return new SqueakCharacter {
                 Tiles = character.Tiles, Palettes = character.Palettes, Cells = cells.Select(c => character.Cells[c]).ToList(),
                 Anims = anims.Select(a => character.Anims[a] with {
                     Steps = character.Anims[a].Steps.Select(s => s with { Cell = cells.IndexOf(s.Cell) }).ToList() }).ToList(),
-                Compositions = keepComposites
-                    ? character.Compositions.Select(c => c.Select(part => part with { Anim = Kept(part.Anim) }).ToList()).ToList()
-                    : new List<List<SqueakPart>>(),
-                Composites = keepComposites ? character.Composites : new List<SqueakComposite>(),
+                Compositions = compositions.Select(c => character.Compositions[c].Select(part => part with { Anim = Array.IndexOf(anims, part.Anim) }).ToList()).ToList(),
+                Composites = keepComposites ? composites : new List<SqueakComposite>(),
             };
         }
 
@@ -239,18 +243,22 @@ namespace KatAMRandomizer {
          * character's own sprite shows (with its layers), the others behind it; KeepComposites: OnlyAnims keeps its files' .mca
          * composite animations (their parts' animations among those kept: Mrs. Moley's, from her other two files); SharePalettes:
          * its other files' cells drawn with the first's palettes, their indexes kept (Squeak Squad's body loading every sprite into one
-         * palette object: Daroach's); PaletteFile: every file's cells in another .cla's colors (Dark Daroach's, dancho01's); */
+         * palette object: Daroach's); PaletteFile: every file's cells in another .cla's colors (Dark Daroach's, dancho01's);
+         * WholeCells: a cell drawn wholly with one layer's palettes stays the character's own (its composites' parts, KatAM's hurt
+         * frames show no layer), and the palettes its cells draw with together are merged into one when their colors fit in 15 (Meta
+         * Knight's: his body the character's own, his sword a layer; his sword's flourishes alone in its frames, his wave's two
+         * palettes one); */
         internal sealed record SqueakEnemy(int Index, string Name, string File, int[] HurtCells, (int type, int letter)[] Glyphs, int GraphicsOf = -1,
                                             byte MidbossType = 0, int[] OnlyAnims = null, string[] Palettes = null,
                                             (ushort from, ushort to)[] MergeColors = null, string ExtraFile = null,
                                             int[][] Layers = null, int Canvas = 128, bool BodyLast = false, bool KeepComposites = false,
-                                            bool SharePalettes = false, string PaletteFile = null);
+                                            bool SharePalettes = false, string PaletteFile = null, bool WholeCells = false);
         /* AnimPalettes: a character whose cells are in Squeak Squad's different palettes (Doc's things), per animation the palette its
          * sprite takes (SqueakPaletteKey); */
         internal sealed record SqueakBuilt(SqueakEnemy Enemy, int AnimId, SqueakCharacter Character, int Tiles, List<SqueakLayerBuilt> Layers = null,
                                            List<SqueakPaletteKey> AnimPalettes = null, List<int> CellTiles = null);
-        // A character's layer (Layers): its anim, the most tiles a frame takes, per cell its frame + 1 (0: none; | 0x80: in front);
-        internal sealed record SqueakLayerBuilt(int AnimId, int Tiles, byte[] Cells, SqueakPaletteKey Palette);
+        // A character's layer (Layers): its anim, the most tiles a frame takes, per cell its frame + 1 (0: none; | 0x8000: in front);
+        internal sealed record SqueakLayerBuilt(int AnimId, int Tiles, ushort[] Cells, SqueakPaletteKey Palette);
         /* A palette's slot (squeak.c's SqueakLoadPalette): the key and frame of the first sprite built with it, those after it with the same
          * colors taking it too (one of the 7 palette slots KatAM keeps for a room's enemies, not one each: sub_0803DFAC); */
         internal sealed record SqueakPaletteKey(int Key, int Variant);
@@ -355,6 +363,9 @@ namespace KatAMRandomizer {
         static readonly (int type, int letter)[] BohbohGlyphs = { (0x01, 0), (0x01, 2), (0x08, 1), (0x18, 5), (0x01, 2), (0x08, 1) };
 
         static readonly (int type, int letter)[] DaroachGlyphs = { (0x00, 6), (0x14, 5), (0x01, 1), (0x01, 2), (0x14, 5), (0x17, 2), (0x08, 1) };
+        // "M" (Mr. Frosty), "eta" (Hot Head), " ", "Knight" (Sword Knight), as NiDL's Meta Knight's;
+        static readonly (int type, int letter)[] MetaKnightGlyphs = { (0x38, 0), (0x14, 4), (0x14, 2), (0x14, 5), (-1, -1), (0x1A, 5),
+                                                                      (0x1A, 6), (0x1A, 7), (0x1A, 8), (0x1A, 9), (0x1A, 10) };
         // "D" (Waddle Dee), "a" (Hot Head), "r" (Bronto Burt), "k" (KatAM's Kracko), " ", "Daroach";
         static readonly (int type, int letter)[] DarkDaroachGlyphs = { (0x00, 6), (0x14, 5), (0x01, 1), (0x45, 4), (-1, 0), (0x00, 6), (0x14, 5),
                                                                        (0x01, 1), (0x01, 2), (0x14, 5), (0x17, 2), (0x08, 1) };
@@ -533,6 +544,28 @@ namespace KatAMRandomizer {
             new SqueakEnemy(51, "Dark Daroach", "dancho00", new[] { 2, 2, 2 }, DarkDaroachGlyphs, MidbossType: 0x40, ExtraFile: "dancho01",
                             SharePalettes: true, BodyLast: true, PaletteFile: "dancho01"),
             new SqueakEnemy(52, "Dark Daroach's thing", "dancho00", new[] { 0, 0, 0 }, new (int, int)[0], GraphicsOf: 51),
+            /* Meta Knight (a boss, enemy 0x37: 0x02116C7C, on mini-boss type 0x40 as the mid-bosses), drawn from metaknight_cmn and
+             * metaknight_ext (the sprite his body switches to, its +0xE4: his sword's big moves), both in cmn's palettes (Squeak Squad's
+             * one palette object): the animations his code plays (squeak/meta_knight_kss.c's, in its order: cmn's 1, 2, 4-14, 16, 18-25,
+             * 28; ext's 1-11, 13-17, 19-25: under KatAM's 253 frames), their .mca's composites (cmn's 0, 1 and 3, which he doesn't play;
+             * ext's 0-3: his thrust's landing, his beams' ready, his sword raised, his call; the body listed last, as the others'); his
+             * body (palette 0) his own, his sword (palette 1) a layer and his wave's light (palettes 2 and 3) another, a frame drawn
+             * wholly with one of those his own (his sword's flourishes); his hurt look cmn's 25 (cell 98, here too); */
+            new SqueakEnemy(53, "Meta Knight", "metaknight_cmn", new[] { 98, 98, 98 }, MetaKnightGlyphs, MidbossType: 0x40,
+                            ExtraFile: "metaknight_ext", SharePalettes: true, BodyLast: true, Canvas: 192, KeepComposites: true,
+                            OnlyAnims: new[] { 1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16, 18, 19, 20, 21, 22, 23, 24, 25, 28,
+                                               40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 52, 53, 54, 55, 56, 58, 59, 60, 61, 62, 63, 64 },
+                            Layers: new[] { new[] { 1 }, new[] { 2, 3 } }, WholeCells: true),
+            /* His tornado (0x02111CFC: metaknight_ext.mca's composites 4 and 5, their parts 26-30 and 32-36), no name; a frame big
+             * enough for it (128 up); */
+            new SqueakEnemy(54, "Meta Knight's tornado", "metaknight_ext", new[] { 0, 0, 0 }, new (int, int)[0], Canvas: 256,
+                            KeepComposites: true, OnlyAnims: new[] { 26, 27, 28, 29, 30, 32, 33, 34, 35, 36 }),
+            /* His beam (0x02111F90: metaknight_ext's 12), his wave (0x02111E44: its 18, its two palettes one) and the sparkles about Kirby
+             * in his tornado (0x021115C4: its 31), each its own (its VRAM its own frames', not the tornado's), no name; */
+            new SqueakEnemy(55, "Meta Knight's beam", "metaknight_ext", new[] { 0, 0, 0 }, new (int, int)[0], OnlyAnims: new[] { 12 }),
+            new SqueakEnemy(56, "Meta Knight's wave", "metaknight_ext", new[] { 0, 0, 0 }, new (int, int)[0], OnlyAnims: new[] { 18 },
+                            WholeCells: true),
+            new SqueakEnemy(57, "Meta Knight's sparkle", "metaknight_ext", new[] { 0, 0, 0 }, new (int, int)[0], OnlyAnims: new[] { 31 }),
         };
 
         public static IReadOnlyList<(int index, string name)> SqueakEnemies => SqueakDefinitions.Select(e => (e.Index, e.Name)).ToList();
@@ -671,13 +704,13 @@ namespace KatAMRandomizer {
                 WriteInt(rom, entry + 20, animPalettes == 0 ? 0 : animPalettes + 0x08000000);
             }
             /* The layers (squeak.h's SqueakLayer, two of 12 bytes per character, after the characters' entries: anim ID, tiles, per cell
-             * its layer frame + 1, | 0x80 in front; none: 0; its palette's key and frame); */
+             * (a u16) its layer frame + 1, | 0x8000 in front; none: 0; its palette's key and frame); */
             int layerTable = Allocate(ref localCursor, SqueakDefinitions.Count * 24, 4);
             for (int i = 0; i < SqueakDefinitions.Count * 24; i++) rom[layerTable + i] = 0;
             foreach (SqueakBuilt b in built.Where(b => b.Layers != null)) {
                 for (int k = 0; k < b.Layers.Count && k < 2; k++) {
-                    int cellsAt = Allocate(ref localCursor, b.Layers[k].Cells.Length, 4), at = layerTable + b.Enemy.Index * 24 + k * 12;
-                    b.Layers[k].Cells.CopyTo(rom, cellsAt);
+                    int cellsAt = Allocate(ref localCursor, b.Layers[k].Cells.Length * 2, 4), at = layerTable + b.Enemy.Index * 24 + k * 12;
+                    for (int c = 0; c < b.Layers[k].Cells.Length; c++) WriteShort(rom, cellsAt + c * 2, b.Layers[k].Cells[c]);
                     WriteShorts(rom, at, b.Layers[k].AnimId, b.Layers[k].Tiles);
                     WriteInt(rom, at + 4, cellsAt + 0x08000000);
                     WriteShorts(rom, at + 8, b.Layers[k].Palette.Key, b.Layers[k].Palette.Variant);
@@ -751,13 +784,15 @@ namespace KatAMRandomizer {
         /* SqueakFrames(); A character's cells (all, or `cells`) as KatAM frames (tiles, OAM pieces, attributes, palette index) and the palettes they use
          * (32 bytes each). Characters whose cells draw with at most 15 colors in all get one palette (the colors of every palette they
          * use, merged); the others one per palette of the .cla, each cell with its own (cells mixing palettes keep their first's colors,
-         * the pieces of the others left out); */
+         * the pieces of the others left out; `mergeShared`: palettes a cell draws with together merged into one, after the .cla's, when
+         * their colors fit in 15); */
         static (List<(byte[] tiles, ushort[] oams, short[] attributes, int palette)> frames, List<byte[]> palettes) SqueakFrames(SqueakCharacter character,
                                                                                                                                 int size = 128,
                                                                                                                                 List<int> cells = null,
                                                                                                                                 List<List<ushort[]>> alternates = null,
                                                                                                                                 List<byte[]> alternatePalettes = null,
-                                                                                                                                (ushort from, ushort to)[] merge = null) {
+                                                                                                                                (ushort from, ushort to)[] merge = null,
+                                                                                                                                bool mergeShared = false) {
             cells ??= Enumerable.Range(0, character.Cells.Count).ToList();
             List<(int palette, int color)> used = SqueakUsedColors(character, cells).Where(u => u.palette < character.Palettes.Count).ToList();
             List<byte[]> palettes = new List<byte[]>();
@@ -820,9 +855,43 @@ namespace KatAMRandomizer {
             } else {
                 if (alternates != null) throw new InvalidOperationException("A character with other colors needs one palette.");
                 foreach (ushort[] palette in character.Palettes) palettes.Add(PaletteBytes(palette));
+                /* (mergeShared: the palettes drawn together in a cell, a group each, while their colors fit in 15: the group's palette after
+                 * the .cla's, its colors each used once); */
+                int[] group = Enumerable.Range(0, character.Palettes.Count).ToArray();
+                int Root(int p) => group[p] == p ? p : Root(group[p]);
+                List<(int palette, int color)> GroupColors(int root) => used.Where(u => Root(u.palette) == root).ToList();
+                if (mergeShared) {
+                    foreach (int cell in cells) {
+                        List<int> drawn = character.Cells[cell].Pieces.Select(p => p.Attr2 >> 12).Where(p => p < character.Palettes.Count).Distinct().ToList();
+                        for (int i = 1; i < drawn.Count; i++) {
+                            int a = Root(drawn[0]), b = Root(drawn[i]);
+                            if (a == b) continue;
+                            if (GroupColors(a).Concat(GroupColors(b)).Select(u => Value(u.palette, u.color)).Distinct().Count() > 15) continue;
+                            group[b] = a;
+                        }
+                    }
+                }
+                Dictionary<int, (int palette, Dictionary<(int, int), int> colorMap)> merged = new Dictionary<int, (int, Dictionary<(int, int), int>)>();
+                foreach (int root in Enumerable.Range(0, character.Palettes.Count).Where(p => Root(p) == p
+                                                                                              && Enumerable.Range(0, character.Palettes.Count).Count(q => Root(q) == p) > 1)) {
+                    List<ushort> colors = new List<ushort> { character.Palettes[root][0] };
+                    Dictionary<(int, int), int> colorMap = new Dictionary<(int, int), int>();
+                    foreach ((int palette, int color) in GroupColors(root)) {
+                        ushort value = Value(palette, color);
+                        int index = colors.IndexOf(value, 1);
+                        if (index < 0) {
+                            index = colors.Count;
+                            colors.Add(value);
+                        }
+                        colorMap[(palette, color)] = index;
+                    }
+                    palettes.Add(PaletteBytes(colors));
+                    merged[root] = (palettes.Count - 1, colorMap);
+                }
                 foreach (int cell in cells) {
                     int palette = character.Cells[cell].Pieces.Count > 0 ? character.Cells[cell].Pieces[0].Attr2 >> 12 : 0;
                     Dictionary<(int, int), int> colorMap = Enumerable.Range(1, 15).ToDictionary(c => (palette, c), c => c);
+                    if (palette < character.Palettes.Count && merged.TryGetValue(Root(palette), out var m)) (palette, colorMap) = m;
                     (byte[] tiles, ushort[] oams, short[] attributes) = CutFrame(SqueakCanvas(character, cell, colorMap, size), int.MaxValue, size);
                     frames.Add((tiles, oams, attributes, palette));
                 }

@@ -308,7 +308,7 @@ switches on the ID (0x00-0x47): each case allocates the enemy's object (its own 
 | 0x34 | bigmetalum | Big Metalun (mid-boss) |
 | 0x35 | tedhaun | Tedhaun (mid-boss) |
 | 0x36 | buboo | Buboo (mid-boss) |
-| 0x37 | metaknight_cmn | Meta Knight |
+| 0x37 | metaknight_cmn, metaknight_ext | Meta Knight (ported: `squeak/meta_knight_kss.c`) |
 | 0x38 | dedede | King Dedede |
 | 0x39 | kracko | Mecha-Kracko (ported: `squeak/mecha_kracko.c`) |
 | 0x3A | mrsMoley_cmn | Mrs. Moley (ported: `squeak/mrs_moley.c`) |
@@ -617,6 +617,30 @@ missing in his charge's 7 frames of 8 and his beam's 2 of 6 (the composites' bod
 stars (`0x02124894`, vtable `0x02183640`: touch `0x02124844` sets +0x12C, bursting it; hit only by inhales) and bomb
 (`0x02124290`, vtable `0x021835C0`; `0x0203A9C4`'s 9, Bomb; touch sets +0x12C, unused). `0x020B48E0`'s effect types: 0 `efc_cmn0`'s 3,
 1 its 4, 2 and 3 its 7, 4 its 17, 5 its 2, 6 `efc_cmn1`'s 1. Recorded on the DS in a6s7s2 (`load.py`: the stage table repointed).
+
+**Meta Knight** (boss 0x37, ported: `squeak/meta_knight_kss.c`): his body `0x02116C7C` (vtable `0x02181E80`: +0x3C his idle
+`0x02116300`, +0x34 per frame `0x02116ED4`, +0x30 his hit `0x021166BC`, +0x2C his touch `0x02116ACC`, +0x24 a spat star on him
+`0x021164F4`, +0x18 his flash and intro `0x02113018`; params `PrmBB01Ml0` (moves), `PrmBB01Sl0` (400 HP)). +0x228 his mode (1 a walk
+at Kirby, 2 back, 3 a run, 4-6 following, 7-9 picking), +0x22C a follow's frames, +0x230 his safe frames (20 after a hit, 13 after
+a dodge; they count down each hit too), his hit streak. His sprites: slot 0 `metaknight_cmn` (his body: 0x02022F00's slot 0), slot
+1 `metaknight_ext` (+0xE4: his sword's big moves, its `.mca`'s composites 0-5: the thrust's landing, the beam's ready, the wave's
+raise, the tornado's call, the tornado itself and its end). Both in `metaknight_cmn`'s colors; his cells mix his body's palette
+(0) and his sword's (1, and 2-3 its glows) piece by piece, so the port keeps them whole in his sword's layer (`WholeCells`). States
+`0x02113A48`-`0x02116468`; picks `0x02113190` (the port's `Pick`); his arena zones `0x02209C7C` (the stage's grid from the view's
+middle less 144; values in the port's header). His things (`0x021122F8`, kind 0 beam `0x02111F90`, 1 wave `0x02111E44`, 2 tornado
+`0x02111CFC`; their hit handler `0x021120B8` returns 0, nothing hurts them): the tornado's box (0x101, kind 6, 191 up) catches Kirby
+(`0x02111A84`), holds and lifts him (`0x021119B0`: 2 pixels a frame, 140 over the floor at most, sparkles every 12 frames), and lets
+him go hurt after 34 frames (`0x0211190C`: 10 HP). His stars: `0x0212389C`'s kinds 3 and 4 (16 pixels ahead or behind; brain
+`0x0203A9C4`'s 16, Sword). His sword's reach: the kind 0 boxes of `metaknight_cmn.rca` and `metaknight_ext.rca` on his slashes'
+frames. Recorded on the DS in his stage (`a7s7s2`, `load.py`: the stage table repointed; `rec_mk.py`, hooking the things'
+constructors `0x021121D8`, `0x02112CD0` and the star's `0x021236A0`): his intro, walks, runs, jumps, slashes, his drop through the
+thin floor, beams, wave, tornado (Kirby caught and lifted), thrust.
+
+**Composite parts' first frame**: a part's sprite is made on the cell it shows (`SqueakCreatePart`'s `cell`). KatAM's sprite init
+(`EffectObjectInitSprite` → `sub_08155128`) queues its first frame's tiles at once; made on the character's cell 0, a part with a
+small VRAM block got cell 0's tiles (Meta Knight's tornado: its 103-tile column) written over the blocks after its own, and a
+sprite there that didn't change frames kept the garbage (his sword's layer, from his tornado's call to its end). Found by dumping
+the upload queue (`gUnk_03002EC0`, 64 entries: source, VRAM, size) on the frame the layer's tiles changed.
 
 ## Test harness (DS emulator)
 

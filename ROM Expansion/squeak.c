@@ -65,6 +65,11 @@ const s16 gSqueakEnemyHp[SQUEAK_ENEMY_COUNT] = {
     [SQUEAK_DAROACH_BOSS_THING] = 1,
     [SQUEAK_DARK_DAROACH] = 80,     // (the same parameters);
     [SQUEAK_DARK_DAROACH_THING] = 1,
+    [SQUEAK_META_KNIGHT] = 80,      // Squeak Squad's 400 (PrmBB01Sl0.kgb), as Daroach's;
+    [SQUEAK_META_KNIGHT_THING] = 1,
+    [SQUEAK_META_KNIGHT_BEAM] = 1,
+    [SQUEAK_META_KNIGHT_WAVE] = 1,
+    [SQUEAK_META_KNIGHT_SPARKLE] = 1,
 };
 
 static const struct SqueakCharacter sSqueakCharacters[SQUEAK_ENEMY_COUNT] = {
@@ -121,6 +126,11 @@ static const struct SqueakCharacter sSqueakCharacters[SQUEAK_ENEMY_COUNT] = {
     [SQUEAK_DAROACH_BOSS_THING] = { DaroachBossThingInit, DaroachBossThingStart, 0, FALSE },
     [SQUEAK_DARK_DAROACH] = { DaroachBossInit, DaroachBossStart, 0, FALSE, TRUE },
     [SQUEAK_DARK_DAROACH_THING] = { DaroachBossThingInit, DaroachBossThingStart, 0, FALSE },
+    [SQUEAK_META_KNIGHT] = { SqueakMetaKnightInit, SqueakMetaKnightStart, 0, FALSE, TRUE },
+    [SQUEAK_META_KNIGHT_THING] = { SqueakMetaKnightThingInit, SqueakMetaKnightThingStart, 0, FALSE },
+    [SQUEAK_META_KNIGHT_BEAM] = { SqueakMetaKnightThingInit, SqueakMetaKnightThingStart, 0, FALSE },
+    [SQUEAK_META_KNIGHT_WAVE] = { SqueakMetaKnightThingInit, SqueakMetaKnightThingStart, 0, FALSE },
+    [SQUEAK_META_KNIGHT_SPARKLE] = { SqueakMetaKnightThingInit, SqueakMetaKnightThingStart, 0, FALSE },
 };
 
 /* SqueakAnimFor(); The anim and variant an object shows (variant << 16 | anim ID), for the game's object drawing (sub_0809A7A4,
@@ -308,8 +318,9 @@ static void SqueakPartMain(void) {
 }
 
 /* SqueakCreatePart(); A sprite for part `index` of the character's compositions, `tiles` of VRAM (its part's frames', not the
- * character's biggest: King Dedede's sparkles); */
-static struct SqueakPartFx *SqueakCreatePart(struct SqueakObject *s, u8 index, u8 tiles) {
+ * character's biggest: King Dedede's sparkles), made on `cell`, the one it shows (KatAM's sprite copies its first frame's tiles as
+ * it's made: another cell's, bigger than its VRAM, would write over the sprites after it, Meta Knight's sword under his tornado's); */
+static struct SqueakPartFx *SqueakCreatePart(struct SqueakObject *s, u8 index, u8 tiles, u8 cell) {
     const struct SqueakGraphics *g = &gSqueakData.enemies[s->enemy];
     struct Task *t;
     struct SqueakPartFx *p;
@@ -327,11 +338,11 @@ static struct SqueakPartFx *SqueakCreatePart(struct SqueakObject *s, u8 index, u
     p->owner = s;
     p->next = NULL;
     p->dx = p->dy = 0;
-    p->cell = 0;
+    p->cell = cell;
     p->index = index;
     p->palId = 0xFF;
     p->tiles = tiles ? tiles : g->tiles;
-    EffectObjectInitSprite(&p->e, &p->e.sprite, p->tiles, g->animId, SQUEAK_HURT_VARIANTS, 0x1A + index < 0x1F ? 0x1A + index : 0x1F);
+    EffectObjectInitSprite(&p->e, &p->e.sprite, p->tiles, g->animId, cell + SQUEAK_HURT_VARIANTS, 0x1A + index < 0x1F ? 0x1A + index : 0x1F);
     p->e.sprite.palId = s->obj.base.sprite.palId;
     return p;
 }
@@ -354,7 +365,7 @@ static void SqueakReleaseParts(struct SqueakObject *s) {
 struct SqueakLayerFx {
     struct EffectObject e;
     struct SqueakObject *owner;
-    u8 frame;                   // Its layer frame + 1 (0: none this frame);
+    u16 frame;                  // Its layer frame + 1 (0: none this frame);
     u8 index;                   // Which of the character's layers (0, 1);
     bool8 front;
 };
@@ -393,7 +404,8 @@ static void SqueakLayerMain(void) {
 static void SqueakShowLayer(struct SqueakObject *s) {
     const struct SqueakLayer *layer;
     struct SqueakLayerFx *l;
-    u8 frame, k;
+    u16 frame;
+    u8 k;
     struct Task *t;
 
     if (gSqueakData.layers == NULL) return;
@@ -405,7 +417,7 @@ static void SqueakShowLayer(struct SqueakObject *s) {
         if (s->obj.unk83 >= SQUEAK_HURT_VARIANTS && s->obj.unk83 - SQUEAK_HURT_VARIANTS < gSqueakData.enemies[s->enemy].cells)
             frame = layer->cell[s->obj.unk83 - SQUEAK_HURT_VARIANTS];
         if (l == NULL) {
-            if ((frame & 0x7F) == 0 || gKirbys[gLocalPlayerId].base.roomId != s->obj.base.roomId) continue;
+            if ((frame & 0x7FFF) == 0 || gKirbys[gLocalPlayerId].base.roomId != s->obj.base.roomId) continue;
             t = TaskCreate(SqueakLayerMain, sizeof(struct SqueakLayerFx), 0x3500, TASK_USE_EWRAM, SqueakLayerDestroy);
             if (t == NULL) continue;
             l = TaskGetStructPtr(t);
@@ -421,8 +433,8 @@ static void SqueakShowLayer(struct SqueakObject *s) {
             l->e.sprite.palId = SqueakLoadPalette(layer->palette.key, layer->palette.variant, s->obj.base.roomId);
             s->layer[k] = l;
         }
-        l->frame = frame & 0x7F;
-        l->front = (frame & 0x80) != 0;
+        l->frame = frame & 0x7FFF;
+        l->front = (frame & 0x8000) != 0;
     }
 }
 
@@ -456,6 +468,8 @@ static void SqueakShowComposite(struct SqueakObject *s) {
             SqueakSetCell(s, step->cell);
             s->obj.base.objBase54 = x;
             s->obj.base.objBase55 = y;
+            // (its layers, as its cell's: Meta Knight's sword over his body in his composites);
+            SqueakShowLayer(s);
             continue;
         }
         /* (a part whose VRAM isn't this composition's part's frames' size: a new one, the old let go of, its VRAM free a frame
@@ -464,12 +478,12 @@ static void SqueakShowComposite(struct SqueakObject *s) {
             *link = p->next;
             p->owner = NULL;
             p->next = NULL;
-            p = SqueakCreatePart(s, i, part->tiles);
+            p = SqueakCreatePart(s, i, part->tiles, step->cell);
             if (p == NULL) break;
             p->next = *link;
             *link = p;
         }
-        if (*link == NULL) *link = SqueakCreatePart(s, i, part->tiles);
+        if (*link == NULL) *link = SqueakCreatePart(s, i, part->tiles, step->cell);
         if ((p = *link) == NULL) break;
         // (a character in several palettes: the part's animation's own);
         if (g->palette != NULL) p->palId = SqueakLoadPalette(g->palette[part->anim].key, g->palette[part->anim].variant, s->obj.base.roomId);

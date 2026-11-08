@@ -1274,29 +1274,31 @@ namespace KatAMRandomizer {
                         /* (the pieces in each layer's palettes drawn by a layer of their own: an anim with its own palette, a frame per cell
                          * with any; the character itself keeps the pieces in none); */
                         List<SqueakLayerBuilt> layersBuilt = new List<SqueakLayerBuilt>();
+                        int[][] whole = enemy.WholeCells ? enemy.Layers : null;
                         foreach (int[] group in enemy.Layers ?? new int[0][]) {
-                            SqueakCharacter layer = SqueakSplitLayer(character, group, true);
+                            SqueakCharacter layer = SqueakSplitLayer(character, group, true, whole);
                             List<int> layerCells = Enumerable.Range(0, layer.Cells.Count).Where(c => layer.Cells[c].Pieces.Count > 0).ToList();
                             (List<(byte[] tiles, ushort[] oams, short[] attributes, int palette)> layerFrames, List<byte[]> layerPalettes) =
                                 SqueakFrames(layer, cells: layerCells, size: enemy.Canvas);
                             (int _, int layerAnim, int _) = AddAnim(layerPalettes, layerFrames, new byte[0], new List<(int, int)>(), effectOnly: layerFrames.Count);
-                            byte[] perCell = new byte[character.Cells.Count];
+                            ushort[] perCell = new ushort[character.Cells.Count];
                             for (int k = 0; k < layerCells.Count; k++) {
                                 int cell = layerCells[k];
                                 List<SqueakPiece> pieces = character.Cells[cell].Pieces;
                                 bool front = pieces.Count > 0 && group.Contains(pieces[0].Attr2 >> 12);
-                                perCell[cell] = (byte)((k + 1) | (front ? 0x80 : 0));
+                                perCell[cell] = (ushort)((k + 1) | (front ? 0x8000 : 0));
                             }
                             layersBuilt.Add(new SqueakLayerBuilt(layerAnim, layerFrames.Max(f => f.tiles.Length / 32), perCell,
                                                                  SharePalette(layerPalettes[layerFrames[0].palette], layerAnim, 0)));
                         }
-                        if (enemy.Layers != null) character = SqueakSplitLayer(character, enemy.Layers.SelectMany(g => g).ToArray(), false);
+                        if (enemy.Layers != null) character = SqueakSplitLayer(character, enemy.Layers.SelectMany(g => g).ToArray(), false, whole);
                         // (its other colors: their palettes, and a frame each after its cells, drawn with them: squeak.c's SqueakUsePalette);
                         List<List<ushort[]>> alternates = enemy.Palettes?.Select(p => (file.Length > 1 ? ReadSqueakCharacter(squeak, file[1], file[0], p)
                                                                                                          : ReadSqueakCharacter(squeak, enemy.File, palette: p)).Palettes).ToList();
                         List<byte[]> alternatePalettes = alternates != null ? new List<byte[]>() : null;
                         (List<(byte[] tiles, ushort[] oams, short[] attributes, int palette)> frames, List<byte[]> palettes) =
-                            SqueakFrames(character, enemy.Canvas, alternates: alternates, alternatePalettes: alternatePalettes, merge: enemy.MergeColors);
+                            SqueakFrames(character, enemy.Canvas, alternates: alternates, alternatePalettes: alternatePalettes, merge: enemy.MergeColors,
+                                         mergeShared: enemy.WholeCells);
                         var withHurts = enemy.HurtCells.Select(c => frames[c]).Concat(frames).ToList();
                         foreach (byte[] alternate in alternatePalettes ?? new List<byte[]>()) {
                             palettes.Add(alternate);
@@ -1309,7 +1311,9 @@ namespace KatAMRandomizer {
                         if (frames.Select(f => f.palette).Distinct().Count() > 1) {
                             List<int> own = new List<int>();
                             animPalettes = character.Anims.Select(a => {
-                                int palette = frames[a.Steps.Count > 0 ? a.Steps[0].Cell : 0].palette;
+                                // (its first cell with pieces': an empty one draws nothing, Meta Knight's tornado starts with one);
+                                SqueakStep first = a.Steps.FirstOrDefault(st => character.Cells[st.Cell].Pieces.Count > 0) ?? a.Steps.FirstOrDefault();
+                                int palette = frames[first != null ? first.Cell : 0].palette;
                                 if (!own.Contains(palette)) own.Add(palette);
                                 return SharePalette(palettes[palette], animId | own.IndexOf(palette) + 1 << 13,
                                                     enemy.HurtCells.Length + frames.FindIndex(f => f.palette == palette));

@@ -2,8 +2,9 @@
  * here its 0-2), as SQUEAK_STAR: harmless, Kirby inhales it (it gives nothing) and spits it back as a star, what he fights a mid-boss
  * with when he has no power. Variant SQUEAK_STAR_AHEAD flies off forward and up, SQUEAK_STAR_BEHIND back and up (3.0 and 3.0: 0x0212344C,
  * 0x02123358) through everything as it appears (its animation 0), then hangs there blinking (animation 1) 100 frames (0x02123268,
- * 0x02123218) and fades (animation 2, 0x02123184, 0x02123160). Not ported: Squeak Squad doesn't hold it in the stage (here
- * SqueakMove's hold).
+ * 0x02123218) and fades (animation 2, 0x02123184, 0x02123160). Variants SQUEAK_STAR_SWORD_AHEAD and _BEHIND (kinds 3 and 4, Meta
+ * Knight's: 0x021236A0's brain 0x0203A9C4(16)) as those, a Sword when inhaled. Not ported: Squeak Squad doesn't hold it in the stage
+ * (here SqueakMove's hold).
  * Variant SQUEAK_STAR_SPIT (Squeak Squad's kind 0: 0x021235BC, 0x021234F0; efc_cmn0's animation 5, here its 3, spinning) is the star
  * King Dedede spits the Kirby he swallowed out in (squeak/dedede.c, SqueakStarCarry()): 4.0 a frame forward through everything (its
  * flags 0x100, 0x200), the Kirbys inside it moving with it; out of the arena (Squeak Squad's 256 pixels from the area's left: here
@@ -11,6 +12,7 @@
  * KatAM's grab script, as the NiDL spit star's: enemies/spit_star.c), and it flies on till it's out of the camera's view. */
 #include "../squeak.h"
 #include "kirby.h"
+#include "constants/kirby.h"
 
 enum { ANIM_APPEAR, ANIM_BLINK, ANIM_FADE, ANIM_SPIT };
 enum { STATE_START, STATE_APPEAR, STATE_BLINK, STATE_FADE, STATE_SPIT };
@@ -100,7 +102,7 @@ static bool32 Star(struct SqueakObject *s) {
             SqueakSetState(s, STATE_SPIT);
             return TRUE;
         }
-        s->vx = s->variant == SQUEAK_STAR_BEHIND ? -SPEED : SPEED;
+        s->vx = s->variant == SQUEAK_STAR_BEHIND || s->variant == SQUEAK_STAR_SWORD_BEHIND ? -SPEED : SPEED;
         s->vy = SPEED;
         SqueakPlay(s, ANIM_APPEAR);
         SqueakSetState(s, STATE_APPEAR);
@@ -152,6 +154,8 @@ static void SqueakStarMain(struct Object *obj) {
 // SqueakStarStart(); Its start (and after a hit: it goes on), through everything, harmless; the spat star untouchable;
 void SqueakStarStart(struct Object *obj) {
     ObjectSetFunc(obj, -1, SqueakStarMain);
+    // (kinds 3 and 4: a Sword, 0x0203A9C4's 16; the others nothing, 0x0203A82C's 0);
+    if (((struct SqueakObject *)obj)->variant >= SQUEAK_STAR_SWORD_AHEAD) obj->kirbyAbility = KIRBY_ABILITY_SWORD;
     SqueakThroughTerrain((struct SqueakObject *)obj, TRUE);
     obj->base.unk68 = 0;
     if (((struct SqueakObject *)obj)->variant == SQUEAK_STAR_SPIT) obj->base.flags |= 0x200;

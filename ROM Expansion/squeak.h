@@ -75,6 +75,11 @@ enum {
     SQUEAK_DAROACH_BOSS_THING,  // What he brings in (the variant: his stars, his bomb, his beam's reach);
     SQUEAK_DARK_DAROACH,        // Enemy 0x3D with its parameter 1 (his other moves, dancho01's colors), as Daroach;
     SQUEAK_DARK_DAROACH_THING,
+    SQUEAK_META_KNIGHT,         // A boss (on a mini-boss type, as the mid-bosses): Meta Knight, enemy 0x37;
+    SQUEAK_META_KNIGHT_THING,   // What he brings in (the variant): his tornado;
+    SQUEAK_META_KNIGHT_BEAM,    // His beam, his wave, the tornado's sparkles (and his sword's reach, drawing nothing): each drawn
+    SQUEAK_META_KNIGHT_WAVE,    // with its own frames (VRAM the size of its own, not the tornado's);
+    SQUEAK_META_KNIGHT_SPARKLE,
     SQUEAK_ENEMY_COUNT,
 };
 
@@ -84,8 +89,9 @@ enum {
  * template's area, then the camera locks there, the HP bar shows and the mini-boss music plays, as KatAM's own mini-bosses do; */
 #define SQUEAK_MIDBOSS 0x80
 /* SQUEAK_STAR's variants: the star a boss spits Kirby out in (Squeak Squad's kind 0: King Dedede's; SqueakStarCarry() puts the Kirbys
- * he swallowed in it), and flying off forward or back (kinds 1 and 2, 0x0212389C); */
-enum { SQUEAK_STAR_SPIT, SQUEAK_STAR_AHEAD, SQUEAK_STAR_BEHIND };
+ * he swallowed in it), and flying off forward or back (kinds 1 and 2, 0x0212389C); kinds 3 and 4 as 1 and 2, a Sword when inhaled
+ * (0x0203A9C4's 16: Meta Knight's); */
+enum { SQUEAK_STAR_SPIT, SQUEAK_STAR_AHEAD, SQUEAK_STAR_BEHIND, SQUEAK_STAR_SWORD_AHEAD, SQUEAK_STAR_SWORD_BEHIND };
 #define SqueakIsMidboss(obj) (NidlIsMiniboss(obj) && (obj)->objTemplate->subtype1 >= SQUEAK_MIDBOSS)
 // SqueakIsSqueak(); An object that's a Squeak Squad character (SqueakObject): on its own type or a mid-boss;
 #define SqueakIsSqueak(obj) ((obj)->type == SQUEAK_TYPE || SqueakIsMidboss(obj))
@@ -195,14 +201,14 @@ struct SqueakEffect {
 
 // SqueakData; Filled in by KatAMExpansionSqueak.cs once the graphics are built;
 /* SqueakLayer; A character's layer (KatAMExpansionSqueak.cs's Layers: the pieces of its cells in other palettes than its own, a
- * weapon in its hands, Doc's saucer): an anim of its own (its own palette), its frames' most tiles, per cell its frame + 1 (0: none; | 0x80: drawn
+ * weapon in its hands, Doc's saucer): an anim of its own (its own palette), its frames' most tiles, per cell its frame + 1 (0: none; | 0x8000: drawn
  * in front of the character, its first piece on the DS being one of them), its palette; a character without one: anim ID 0; */
 #define SQUEAK_LAYERS 2
 
 struct SqueakLayer {
     u16 animId;
     u16 tiles;
-    const u8 *cell;
+    const u16 *cell;            // Per cell its layer frame + 1 (0: none), | 0x8000 drawn in front;
     struct SqueakPaletteKey palette;
 };
 
@@ -464,5 +470,9 @@ void DaroachBossInit(struct SqueakObject *);
 void DaroachBossStart(struct Object *);
 void DaroachBossThingInit(struct SqueakObject *);
 void DaroachBossThingStart(struct Object *);
+void SqueakMetaKnightInit(struct SqueakObject *);
+void SqueakMetaKnightStart(struct Object *);
+void SqueakMetaKnightThingInit(struct SqueakObject *);
+void SqueakMetaKnightThingStart(struct Object *);
 
 #endif

@@ -277,7 +277,24 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
     sequence), stars, Dark Daroach's look. Hits checked by forced HP drops (kept and 10 safe frames while hittable, undone in his
     warp), not by an attack landed (Kirby's slide doesn't hurt mini-bosses, KatAM's 0x80; no ability attack was scripted). Not
     tested: a whole fight by hand, his defeat, EU and Japanese builds (built and logic-checked, not played).
-    Next: Meta Knight (0x37), Dark Nebula (0x3F, 0x46), and what 0x3E is (it's in normal stages' records too).
+    Meta Knight (0x37) is ported (`squeak/meta_knight_kss.c`): his intro (150 frames, the screen rumbling), his walks, back-offs,
+    runs and follows, his picks by Kirby's place (ahead and close: follow, back, dash, double slash, thrust, tornado, beams; above:
+    up slash, wave, jump; his zone: tornado, beams, follow, walk, run; elsewhere: walk, run, a drop through the thin floor, a jump),
+    jumps, hops, falls, backflips, his dash, up slash and double slash (his sword's reach hurting on their frames), his thrust (the
+    landing's stars, a Sword when inhaled), his beams (one or three), his wave, his tornado (it catches Kirby, lifts him 2 pixels a
+    frame with sparkles, lets him go hurt), his dodges and counter-hops, 20 safe frames after a hit, HP 80 (Squeak Squad's 400);
+    his sword drawn over his body as on the DS. Recorded on the DS in his stage (a7s7s2) and checked in KatAM (USA, room 0x323):
+    each move forced by a RAM write to its state and compared to the DS recordings (beams hitting Kirby; the tornado catching Kirby
+    and a helper; the thrust's stars), then two unforced fights of 3600 and 5000 frames (Kirby idle, with and without helpers):
+    walks, runs, jumps, falls, dashes, double slashes, thrusts, beams (one and three) and a tornado picked on their own, Kirby hurt
+    by them and once beaten, the helpers' hits taking 10 each (80 to 24; hits in the safe frames undone); his defeat (HP written
+    down to 2 by a RAM write, then a helper's hit: KatAM's mini-boss defeat, his stars burst, gone). A fix found on the way, for
+    every character with composite parts: a part's sprite is now made on the cell it shows (made on cell 0, his tornado's
+    103-tile frame ran over his sword layer's VRAM and garbled it while the tornado was out). Not tested: a dodge or counter-hop
+    in a real fight (the helpers' hits came outside the modes he dodges in), the wave picked on its own (Kirby never above him;
+    tested forced), the drop through a thin floor in KatAM (room 0x323 has none), a whole fight by hand, EU and Japanese builds
+    (built and logic-checked, not played).
+    Next: Dark Nebula (0x3F, 0x46), and what 0x3E is (it's in normal stages' records too).
   - Left: those bosses; the randomizer options (a Squeak Squad ROM in the ROM Expansion tab, the enemy pool). The Squeak Squad-only
     enemies, the shared enemies' Squeak Squad behaviors, its mid-bosses and the Squeaks are all done.
 
