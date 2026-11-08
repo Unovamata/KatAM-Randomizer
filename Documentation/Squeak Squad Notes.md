@@ -351,7 +351,7 @@ palette for its hurt flash). The others get a full port (body and brain construc
 | 0x36 | Buboo (mid-boss) | 0x02108EAC (0x274) | 0x02105938 (0xC8) | yes |
 | 0x37-0x46 | the bosses | Meta Knight 0x02116C7C, Dedede 0x020E7E58, 0x39 0x02132D7C, Mrs. Moley 0x0212CF40, Yadgaine 0x0211A4E8, Bohboh 0x02111370, 0x3D 0x02126F48, Dark Nebula / Dark Daroach 0x0211B680, 0x02122CD0, 0x021376EC | | |
 
-The Squeaks (Squeakers, Doc, Spinni, Storo, Daroach) and Parasol are created elsewhere. Copy abilities KatAM lacks (Ninja, Bubble,
+The Squeaks (Squeakers, Doc, Spinni, Storo, Daroach) and Parasol are created elsewhere. Their files: Squeakers `enemy/chun` (and `chun_blue`, `chun_green`, `chun_yellow` palettes; `prmDE01`, loaded at `0x020EC5F4`: its body near `0x020EC5xx`; its 3 palettes loaded by `0x020E8C80`; a thrown Squeaker, on the thrown-things base `0x020B49D8`, `0x020ED208`), Spinni `enemy/spin`, `spin_at` (`prmDB01`, `0x020AB764`, `0x020ABFC4`), Doc `enemy/doc`, `doc_at1` (`prmDB02`, `0x020DD8FC`, `0x020DF5E4`), Storo `enemy/stron`, `stron_atack` (`prmDB03`, `0x020E44A4`), Daroach `enemy/dancho00`, `dancho01` (`prmDB04`, the boss code near `0x02134D64`). Copy abilities KatAM lacks (Ninja, Bubble,
 Animal, Ghost, Metal): the owner decides; meanwhile those enemies give none.
 
 Squeak Squad's brains for the enemies KatAM has (their body and brain constructors from the factory; each brain's first state per
