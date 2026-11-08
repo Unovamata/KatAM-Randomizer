@@ -309,3 +309,4 @@ sub_080AEF14 0x80aef5c
 sub_080AF204 0x80af24c
 sub_0803533C 0x8035378
 _call_via_r7 0x815abf0
+sub_080ACBEC 0x80acc34

@@ -104,11 +104,14 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
   - Gordo (KatAM's own, `squeak/natives.c`): Squeak Squad's circle (its Gordo 4) is its variant 5 (a 19-pixel radius, 120 frames
     a lap, through everything); its other four are KatAM's. Checked against the DS by logging and in KatAM (room 0x323, USA: 251
     frames of its path within 1/100 of a pixel of the DS's; KatAM's own variants unchanged). Not tested: a hit or bump.
+  - Snooter (KatAM's own, `squeak/natives.c`): Squeak Squad's standing brain is its variant 5 (faces Kirby, stands; KatAM's
+    swallow, spit and rush kept, then it stands again). Checked against the DS by logging and in KatAM (room 0x323, USA: standing,
+    a swallow and spit, a Sword hit's rush, the rush's end forced by RAM writes). Not tested: a real rush to its end, eating an object.
   - Scarfy: Squeak Squad's one brain is KatAM's own (inhaled, it turns, backs off and dives at Kirby, bursting on him: logged on
     the DS with Kirby inhaling it).
   - The other enemies KatAM has: their Squeak Squad brains are listed in the notes' table, each to be compared with KatAM's own
     variants (logged on both, Kirby pinned away) and the ones KatAM lacks ported as the Waddle Dee's. Done: Bronto Burt (all five
-    are KatAM's own: two waves, the straight flight, the perch, the drop from the screen's top), Glunk, Scarfy and Gordo. Still to compare: the other 22,
+    are KatAM's own: two waves, the straight flight, the perch, the drop from the screen's top), Glunk, Scarfy, Gordo, Snooter and Chip (its random hops are KatAM's own). Still to compare: the other 20,
     Blipper and the swimmers in water (a DS save state in water first).
   - Mid-bosses (Squeak Squad's 0x33-0x36: Gao Gao, Big Metalun, Tedhaun, Buboo; its other four, Mr. Frosty, Bonkers, Box Boxer and
     Boxy, are KatAM's own): their framework is in (on the mini-boss types 0x40-0x42 NiDL's use; tested in KatAM with Big Metalun:

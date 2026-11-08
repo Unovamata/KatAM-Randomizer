@@ -365,8 +365,8 @@ NiDL's natives were); one it lacks is ported onto KatAM's own object (`ROM Expan
 | 0x03 | Glunk | 0x0205B478 | 0x0205A51C | one (B every `Pl0`'s 240 + 2 frames, `Pl1`'s 120 + 2 when the spawn's second byte is 1) | KatAM's 0 and 1 are other beats (a pose every 3 sway loops; 5 shots every 190 frames); ported (KatAM's 5 and 6), with its hop out of water |
 | 0x04 | Scarfy | 0x020490D4 | 0x02047974 | one (0x0204784C waits facing Kirby; inhaled, body `+0x204`, 0x02047740 holds B and steers at him, A past its time) | KatAM's own: inhaled it turns into its cyclops, backs off and dives at Kirby, bursting on him (logged on the DS: 1.0 back 30 frames, then 1.2 at him) |
 | 0x05 | Gordo | 0x0204D2F4 | 0x0204C614 | 0 0x0204C42C (bob), 1 0x0204C2E8 (across, at Kirby), 2 0x0204C164 (up and down), 3 0x0204BFBC (up and down, 64-frame timer), 4 0x0204BF00 (circle) | 0-3 KatAM's own (0, 2, 1, 3); 4 ported (KatAM's 5) |
-| 0x06 | Snooter | 0x02054C5C | 0x02052D98 | two | to compare |
-| 0x07 | Chip | 0x020333F0 | 0x02031CBC | two | to compare |
+| 0x06 | Snooter | 0x02054C5C | 0x02052D98 | 0 (and any but 1) 0x02052C60 (looks round 2-3 times, 67 frames apart, walks 120 at 0.25), 1 0x02052ABC (faces Kirby, stands); a hit (body `+0x1F8`): 0x020529F8, 0x020529A4 (walks 300 frames, then faces Kirby) | 0 KatAM's own (look round, crawl, swallow, spit; its rush after a hit); 1 ported (KatAM's 5: stands) |
+| 0x07 | Chip | 0x020333F0 | 0x02031CBC | 0 (and any but 1, 5) 0x02031BF0 (random hops in place or forward, small or big, facing Kirby), 1 and 5 0x02031A6C (the same, some backward) | KatAM's own: its hoppers face Kirby and hop at random (its 1 turning round at random too); logged on the DS: 0.5 across, 0.95 or 2.05 up, about 117 frames apart |
 | 0x08 | Batty | 0x0204BB60 | 0x0204AF2C | two | to compare |
 | 0x09 | Blockin | 0x0204A414 | 0x020495F4 | one | to compare |
 | 0x0A | Big Waddle Dee | 0x020358F4 | 0x02035048 | one | to compare |

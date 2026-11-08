@@ -159,11 +159,12 @@ namespace KatAMRandomizer {
         // The type Squeak Squad's characters share (squeak.h's SQUEAK_TYPE: KatAM's last free regular enemy type);
         public const byte SqueakID = 0x2C;
         /* KatAM's own enemies given Squeak Squad's extra variants (squeak/natives.c): their object type, and the spawn and resume that
-         * take over their type's (KatAM's own kept in gSqueakNatives, in this order); */
+         * take over their type's (KatAM's own kept in gSqueakNatives, in this order; no resume: KatAM's stays); */
         static readonly (byte type, string spawn, string start)[] SqueakNativeTypes = {
             (0x00, "SqueakCreateWaddleDee", "SqueakWaddleDeeStart"),    // Waddle Dee;
             (0x03, "SqueakCreateGlunk", "SqueakGlunkStart"),            // Glunk;
             (0x06, "SqueakCreateGordo", "SqueakGordoStart"),            // Gordo;
+            (0x07, "SqueakCreateSnooter", null),                        // Snooter (its resume, its rush, stays KatAM's);
         };
         // The hurt frames every character's anim starts with (squeak.h's SQUEAK_HURT_VARIANTS: the type's hurt indexes 0 and 1, and 2);
         const int SqueakHurtVariants = 3;
@@ -329,7 +330,7 @@ namespace KatAMRandomizer {
                 WriteInt(rom, CodeAddress + version.CodeSymbols["gSqueakNatives"] + n * 8, ReadInt(rom, spawnAt));
                 WriteInt(rom, CodeAddress + version.CodeSymbols["gSqueakNatives"] + n * 8 + 4, ReadInt(rom, startAt));
                 WriteInt(rom, spawnAt, codeBase + version.CodeSymbols[spawn] + 1);
-                WriteInt(rom, startAt, codeBase + version.CodeSymbols[start] + 1);
+                if (start != null) WriteInt(rom, startAt, codeBase + version.CodeSymbols[start] + 1);
             }
             rom[parameters] = 0;
             rom[parameters + 1] = 1;

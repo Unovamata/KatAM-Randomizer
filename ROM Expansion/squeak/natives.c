@@ -35,7 +35,14 @@
  *   ceiling, 2 side to side between walls, 3 a slow 288-frame dive and climb. Squeak Squad's: 0 bobs (KatAM's 0), 1 flies across
  *   (KatAM's 2), 2 up and down (KatAM's 1), 3 up and down on a 64-frame timer (KatAM's 3); its 4 circles (0x0204CB84, 0x0204C9E0:
  *   3 degrees a frame from 180 at 1.0, a 19-pixel radius, 120 frames a lap; logged), new: KatAM's 5, through everything, facing left
- *   as Squeak Squad spawns it (logged with Kirby on either side). */
+ *   as Squeak Squad spawns it (logged with Kirby on either side).
+ * • Snooter (object 0x07, 0x0E angry; Squeak Squad's enemy 0x06: body 0x02054C5C, brain 0x02052D98, prmNE07). KatAM's: it looks
+ *   round each loop of its idle, crawls at random, swallows Kirby (or eats an object) with its mouth, chews and spits him out, and
+ *   rushes 300 frames after a hit. Squeak Squad's brain 0 (0x02052C60) is the same (it looks round 2 or 3 times, 67 frames apart,
+ *   walks 120 frames at 0.25; logged), its swallow and spit too (logged: Kirby swallowed at 15 pixels, spat out with damage 100 frames
+ *   later), and a hit (body +0x1F8) sends brain 1 walking 300 frames (0x020529F8, 0x020529A4; brain 0: 0x02052B30). Its brain 1
+ *   (0x02052ABC, 0x02052A50) is new: KatAM's 5: it faces Kirby and stands where it is (no looking round, no crawling; logged 700
+ *   frames), and after its walk faces him and stands again (here after KatAM's rush). */
 #include "global.h"
 #include "object.h"
 #include "functions.h"
@@ -51,8 +58,10 @@ struct SqueakNatives {
     void (*glunkStart)(struct Object *);        // (gUnk_08351648[3].unk10, sub_080AF610);
     void *(*gordo)(struct ObjectTemplate *, u8);
     void (*gordoStart)(struct Object *);        // (gUnk_08351648[6].unk10, sub_0809FC58);
+    void *(*snooter)(struct ObjectTemplate *, u8);
+    void (*snooterStart)(struct Object *);      // (gUnk_08351648[7].unk10, sub_080ACBA4: its rush; kept, not taken over);
 };
-const struct SqueakNatives gSqueakNatives = { NULL, NULL, NULL, NULL, NULL, NULL };
+const struct SqueakNatives gSqueakNatives = { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL };
 
 // Waddle Dee's new variants (subtype1) and anims (its AnimInfos, 0x308's: ObjectSetFunc's index);
 enum { WADDLE_DEE_PATROL = 5, WADDLE_DEE_JUMP_AT, WADDLE_DEE_HOP };
@@ -426,5 +435,46 @@ void *SqueakCreateGordo(struct ObjectTemplate *template, u8 playerId) {
     obj->unkA2 = 0;
     obj->unkA4 = GORDO_START_STEP;
     ObjectSetFunc(obj, 0, GordoCircle);
+    return obj;
+}
+
+/* Snooter's new variant (subtype1: KatAM's own templates' 0, which its Snooter doesn't read); KatAM's Snooter's idle (looking
+ * round each loop of its animation, then crawling at random: snooter.c), where KatAM's own code puts it back after a swallow, a
+ * spit, a meal or its rush; */
+#define SNOOTER_SQUEAK_STAND 5
+void sub_080ACBEC(struct Object *);
+
+// Its field: its rush seen (unkA6: KatAM's angry Snooter, type 0x0E, after a hit);
+static void SnooterStand(struct Object *);
+
+// SnooterStand(); 0x02052A50: it stands where it is, facing where it faces (its brain: no direction, B held);
+static void SnooterStand(struct Object *obj) {
+    obj->base.flags |= 4;
+}
+
+/* SnooterWatch(); Its pre-callback: KatAM's own code done with it (its swallow and spit, a meal, its rush after a hit) puts its idle
+ * back: it stands instead; after its rush, facing Kirby (0x020529A4 then 0x02052ABC: Squeak Squad's walk after a hit, then it faces
+ * him and stands); */
+static void SnooterWatch(struct Object *obj) {
+    if (obj->type == OBJ_SNOOTER_2) obj->unkA6 = TRUE;
+    if (obj->unk78 != sub_080ACBEC) return;
+    if (obj->unkA6) {
+        obj->unkA6 = FALSE;
+        obj->kirby3 = FindTargetKirby(&obj->base);
+        if (obj->base.x > obj->kirby3->base.x) obj->base.flags |= 1;
+        else obj->base.flags &= ~1;
+    }
+    ObjectSetFunc(obj, 0, SnooterStand);
+}
+
+/* SqueakCreateSnooter(); Object 0x07's spawn: KatAM's Snooter (facing Kirby, as Squeak Squad's 0x02052ABC), then the new variant
+ * stands instead of looking round and crawling; KatAM's swallow, spit, meals and rush stay KatAM's; */
+void *SqueakCreateSnooter(struct ObjectTemplate *template, u8 playerId) {
+    struct Object *obj = gSqueakNatives.snooter(template, playerId);
+
+    if (obj->type != OBJ_SNOOTER_1 || template->subtype1 != SNOOTER_SQUEAK_STAND) return obj;
+    obj->unkA6 = FALSE;
+    obj->unk7C = SnooterWatch;
+    ObjectSetFunc(obj, 0, SnooterStand);
     return obj;
 }
