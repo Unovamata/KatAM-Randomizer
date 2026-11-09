@@ -572,6 +572,50 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
     switch_small, thunder_cloud, warp_star). On the DS: Prism Plains 4's third room's switch is a small red button and its shutter
     a stone pillar from the ceiling; Vocal Volcano 5's second room's fire columns spout from the lava. Not in KatAM yet: the port
     leaves the shutters' ways open (their cells are air: the shutter is an object), nothing blocks.
+  - The gimmicks talk to each other: a gimmick sends a message to others by their index in the room's list (`0x0221CE2C`: the
+    targets' indices, how many, the message's kind); each takes it or not by its state (vtable slot 16) and acts on it (slot 17).
+    A message to a gimmick not made yet is dropped (the manager's table of made gimmicks, `+0x1C`, is NULL there). Each class's
+    constructor, by type, from the factory's jump table (`0x0221D5B8`): 0 `0x022254AC`, 1 `0x022249C8`, 2 `0x02224EFC`, 3
+    `0x022219C4`, 4 `0x02223D78`, 5 `0x02220C00`, 6 `0x0221EE04`, 7 `0x02220094`, 8 `0x02221740`, 9 `0x022233B0`, 0xA
+    `0x022237A4`, 0xB `0x02224730`, 0xC `0x02220710`, 0xD `0x02225BC0`, 0xE `0x02222078`, 0xF `0x0222277C`, 0x10 `0x02223900`, 0x11
+    `0x02221BA4`, 0x12 `0x022202E4`, 0x13 `0x022240E8`, 0x14 `0x02224B88`, 0x15 `0x0221E5A4`, 0x16 `0x02222A50`, 0x17
+    `0x02224384`, 0x18 `0x02226384`, 0x19 `0x02225E9C`, 0x1A `0x0222684C`. A state n runs vtable slot n + 3 (slot 2 returns the
+    state as it is), returning the next state.
+    - The switch (0) sends kind 0 (`0x022252F0`: its first byte's high nibble how many targets, then their indices); its targets
+      in the 8 worlds' files (the unused rooms too): shutters (65 switches), switch block groups (16), relays (9), bubbles (4),
+      a path (1).
+    - A trigger area (0x15, `0x0221E5A4`, vtable `0x02228F48`): its parameter's u16: bits 0-6 its width, 7-13 its height (blocks of
+      16 pixels: the box x 0 to w, y -h to 0 in the DS's world, whose y goes up: on the screen from its spot right and down; 4-3-6's
+      are under the holes its shutters close, which shut over Kirby once he's dropped through), 14-15 how many targets (1-3), its bytes 2-4 their
+      indices. A body moving into it (message kind 5) fires it once (state 1, `0x0221E4EC`: sends kind 2 to its targets); it fires
+      again only after the body has left (state 0, `0x0221E520`, clears its flag when no body touched it that frame). 4-3-6's two
+      close the shutters over the holes above them once Kirby's dropped through; 4-3-2's start a relay; 8-1-9's close five pairs of
+      floor shutters one by one up its shaft.
+    - A delay relay (0x16, `0x02222A50`, vtable `0x02229608`): its first byte's low 7 bits how many targets (up to 5), bit 7 that
+      it takes kind 4 only (the other relays kinds 0-2); bytes 1-5 the targets' indices, then a u16 each, the frames before its
+      message goes. A message while it's idle (`0x022229B0`: the kind kept, 4 sent on as 2) starts it (`0x02222930`): each target's
+      wait set, a target with none (or not made) sent its message at once; then each frame (`0x022228C0`) each wait counts down
+      and the message goes as it runs out. 3-6-6's switch starts two that lower its spikes at once; 4-3-2's, started by a trigger
+      area, send its boulders down (gimmick 6, placed over the room's top) 140 and 360 frames later. The Squeakers' treasure rooms'
+      0x16 (bit 7 set) wait for kind 4 (the Squeak Lair's events, not ported).
+    - The shutters (2, `0x02224EFC`, vtable `0x02229B24`): its parameter's u16: bits 0-2 its look (`0x02227EA4`, 0x14 bytes each: 0-2
+      `yakumono/shutter`, a stone pillar, at 0, 90 and 270 degrees; 3-6 `yakumono/shutter_needle`, spikes, at 0, 180, 270 and 90;
+      the rooms use 0-4), bit 3 that it starts open, bits 4-15 the frames it stays changed (0: for good). Its box (the constructor's
+      cases, around its spot): the pillar 1 by 2 blocks (turned 2 by 1), the spikes 2 by 1 and a pixel (`0xFFFEF000` to `0x10000`).
+      Its animations (`0x02227E7C`, by bit 3: start 0 / 2, change 1 / 3, hold 2 / 0, change back 3 / 1): 0 shut (the pillar; the
+      spikes up), 1 opening (the pillar crumbles up into its top; the spikes sink), 2 open, 3 shutting. Its states: 0 waiting; a
+      message (kinds 0 or 2, taken in states 0 and 4 only: `0x02224EA4`) starts 1 (its change's animation, sound 0x14B and a quake
+      for the pillar, 0x2D for the spikes); 2 when it's over, the other animation held, the wait set: 3 for good (no wait) or 4
+      counting down (a message then sets it again, `0x02224E70`); at 0 the change back and 5, then 0. Checked in the DS emulator:
+      1-5-1's shut pillar stops Kirby at its side (x 394, its box from 400); 3-6-6's raised spikes knock him back.
+  - The fire columns (7, `0x02220094`, vtable `0x022290EC`; `yakumono/fire_long`: animations 0 the pilot flame, 1 flaring up, 2
+    the column, 3 dying down): its parameter's first u16: bits 0-3 its look's turn (`0x02227B30`: 0 up, 1 at 180 degrees, 2 at
+    270, 3 at 90), bits 4-15 the frames it burns (0: for good); its second: bits 0-3 its mode (0 out, waiting for a message; 1
+    lit, waiting; 2 burning by itself: `0x02227AF8`, `0x02227AFC` its start), bits 4-15 the frames it stays out (0: for good).
+    Its states (slots 3-7): 0 waiting (a message, kinds 0 or 2, lights one out, puts out one lit: `0x0221FF14`); 1 out
+    (`0x0221FE88`: its wait, then flaring up); 2 flaring (`0x0221FE24`: then the column, sound 0x69); 3 lit (`0x0221FDC4`: its
+    time, then dying down); 4 dying (`0x0221FD68`: then its pilot flame and, by its mode, `0x02227B08`, 0 waiting or 1 out). Its
+    box: 1 by 4 blocks around its spot (turned, 4 by 1). The rooms' (2-5-2, 5-2, 5-5, 7-5-1, 8-1): modes 0 and 2, all four turns.
   - The barrel (0x0F; `yakumono/barrel`, its animations: 0 open with its lid and a down arrow, 1 the lid closing, 2 closed, 3 the
     lid opening, 4 shaking, 5 bursting, its hoops and staves flying, 6 burning, 7 its pieces): one holding something (its table's
     second byte not 0xFF: the food or ability as the bubbles', its first byte's high nibble 1 a food, 0 an ability) starts

@@ -440,7 +440,7 @@ namespace KatAMRandomizer {
                                             (ushort from, ushort to)[] MergeColors = null, string ExtraFile = null,
                                             int[][] Layers = null, int Canvas = 128, bool BodyLast = false, bool KeepComposites = false,
                                             bool SharePalettes = false, string PaletteFile = null, bool WholeCells = false,
-                                            (int Num, int Den) Scale = default, int ShiftY = 0);
+                                            (int Num, int Den) Scale = default, int ShiftY = 0, int Rotate = 0);
         /* AnimPalettes: a character whose cells are in Squeak Squad's different palettes (Doc's things), per animation the palette its
          * sprite takes (SqueakPaletteKey); */
         internal sealed record SqueakBuilt(SqueakEnemy Enemy, int AnimId, SqueakCharacter Character, int Tiles, List<SqueakLayerBuilt> Layers = null,
@@ -578,6 +578,11 @@ namespace KatAMRandomizer {
         const int SqueakPlatinumChest = 69, BigChestTiles = 16;
         // The switch's (squeak.h's SQUEAK_SWITCH), in the hammer peg's 4 tiles (object 0x8D's: chest.c's SqueakCreateSwitch);
         const int SqueakSwitch = 70, HammerPegTiles = 4;
+        /* The shutters' (squeak.h's SQUEAK_SHUTTER on: gimmick 2's looks, 0x02227EA4, turned as the DS turns them; their objects take
+         * VRAM of their own, squeak/gimmicks.c); */
+        const int SqueakShutter = 71, SqueakShutter90 = 72, SqueakShutter270 = 73, SqueakNeedle = 74, SqueakNeedle180 = 75;
+        // (the fire columns', squeak.h's SQUEAK_FIRE on: gimmick 7's looks, 0x02227B30, turned as the DS turns them);
+        const int SqueakFireColumn = 76, SqueakFire180 = 77, SqueakFire270 = 78, SqueakFire90 = 79;
 
         static readonly List<SqueakEnemy> SqueakDefinitions = new List<SqueakEnemy> {
             // Perara: hurt animations 7 and 8 (0x02021A88's 0x1000007, 0x1000008);
@@ -812,6 +817,20 @@ namespace KatAMRandomizer {
              * down, 3 coming up, 0x02227F30): its animations 0 and 2, its variants 3 (up) and 4 (pressed), shown by object 0x8D
              * where a Squeak Squad room has one (squeak.c's SqueakAnimFor(), chest.c's SqueakCreateSwitch()); no name; */
             new SqueakEnemy(SqueakSwitch, "Switch", "yakumono/switch_small", new[] { 0, 0, 0 }, new (int, int)[0], OnlyAnims: new[] { 0, 2 }),
+            /* The shutters (gimmick 2: its parameter's low 3 bits its look, 0x02227EA4: 0-2 yakumono/shutter, a stone pillar, at 0, 90
+             * and 270 degrees, 3-6 yakumono/shutter_needle, spikes, at 0, 180, 270 and 90; the rooms use 0-4): every cell, the DS's
+             * animations 0 shut, 1 opening, 2 open, 3 shutting; no name; */
+            new SqueakEnemy(SqueakShutter, "Shutter", "yakumono/shutter", new[] { 0, 0, 0 }, new (int, int)[0]),
+            new SqueakEnemy(SqueakShutter90, "Shutter", "yakumono/shutter", new[] { 0, 0, 0 }, new (int, int)[0], Rotate: 90),
+            new SqueakEnemy(SqueakShutter270, "Shutter", "yakumono/shutter", new[] { 0, 0, 0 }, new (int, int)[0], Rotate: 270),
+            new SqueakEnemy(SqueakNeedle, "Spikes", "yakumono/shutter_needle", new[] { 0, 0, 0 }, new (int, int)[0]),
+            new SqueakEnemy(SqueakNeedle180, "Spikes", "yakumono/shutter_needle", new[] { 0, 0, 0 }, new (int, int)[0], Rotate: 180),
+            /* The fire columns (gimmick 7: its parameter's low 4 bits its look, 0x02227B30, yakumono/fire_long at 0, 180, 270 and 90
+             * degrees): every cell, the DS's animations 0 the pilot flame, 1 flaring up, 2 the column, 3 dying down; no name; */
+            new SqueakEnemy(SqueakFireColumn, "Fire", "yakumono/fire_long", new[] { 0, 0, 0 }, new (int, int)[0]),
+            new SqueakEnemy(SqueakFire180, "Fire", "yakumono/fire_long", new[] { 0, 0, 0 }, new (int, int)[0], Rotate: 180),
+            new SqueakEnemy(SqueakFire270, "Fire", "yakumono/fire_long", new[] { 0, 0, 0 }, new (int, int)[0], Rotate: 270),
+            new SqueakEnemy(SqueakFire90, "Fire", "yakumono/fire_long", new[] { 0, 0, 0 }, new (int, int)[0], Rotate: 90),
         };
 
         /* The randomizer's Squeak Squad pools (the ROM Expansion tab). SqueakPool; A character the randomizer places: its index (SQUEAK_*
@@ -1105,6 +1124,23 @@ namespace KatAMRandomizer {
             return used.OrderBy(u => u.Item1).ThenBy(u => u.Item2).ToList();
         }
 
+        /* SqueakTurned(); A cell's canvas turned about its middle by `degrees` clockwise (90, 180, 270; 0 as it is), as the DS turns a
+         * gimmick's sprite (its look's angle: a shutter's 0x5A, 90 degrees, puts the top of its pillar on its right: SqueakFrames()'s
+         * `rotate`, its canvas mirrored, turns it the other way, the object shown facing right); a pixel's square (dx, dy) to (dx + 1,
+         * dy + 1) from the middle goes to (-dy - 1, dx) at 90 degrees; */
+        static int[,] SqueakTurned(int[,] canvas, int degrees) {
+            if (degrees % 360 == 0) return canvas;
+            int size = canvas.GetLength(0), c = size / 2;
+            int[,] turned = new int[size, size];
+            for (int x = 0; x < size; x++)
+                for (int y = 0; y < size; y++) {
+                    int dx = x - c, dy = y - c;
+                    (int nx, int ny) = (degrees % 360) switch { 90 => (c - dy - 1, c + dx), 180 => (c - dx - 1, c - dy - 1), _ => (c + dy, c - dx - 1) };
+                    if (nx >= 0 && ny >= 0 && nx < size && ny < size) turned[nx, ny] = canvas[x, y];
+                }
+            return turned;
+        }
+
         /* SqueakFrames(); A character's cells (all, or `cells`) as KatAM frames (tiles, OAM pieces, attributes, palette index) and the palettes they use
          * (32 bytes each). Characters whose cells draw with at most 15 colors in all get one palette (the colors of every palette they
          * use, merged); the others one per palette of the .cla, each cell with its own (cells mixing palettes keep their first's colors,
@@ -1117,7 +1153,8 @@ namespace KatAMRandomizer {
                                                                                                                                 List<byte[]> alternatePalettes = null,
                                                                                                                                 (ushort from, ushort to)[] merge = null,
                                                                                                                                 bool mergeShared = false,
-                                                                                                                                (int num, int den) scale = default) {
+                                                                                                                                (int num, int den) scale = default,
+                                                                                                                                int rotate = 0) {
             cells ??= Enumerable.Range(0, character.Cells.Count).ToList();
             List<(int palette, int color)> used = SqueakUsedColors(character, cells).Where(u => u.palette < character.Palettes.Count).ToList();
             List<byte[]> palettes = new List<byte[]>();
@@ -1126,7 +1163,8 @@ namespace KatAMRandomizer {
             /* (a cell drawn, at `scale` of its size if it's drawn smaller: SqueakShrink, its pixels by its frame's palette's
              * brightness); */
             int[,] Drawn(int cell, Dictionary<(int, int), int> colorMap, byte[] palette) {
-                int[,] canvas = SqueakCanvas(character, cell, colorMap, size);
+                // (the canvas is the DS's look mirrored, KatAM's frames facing left: turned the other way, then shown facing right);
+                int[,] canvas = SqueakTurned(SqueakCanvas(character, cell, colorMap, size), (360 - rotate) % 360);
                 if (scale.num == 0) return canvas;
                 int center = size / 2;
                 int[,] small = new int[size, size];

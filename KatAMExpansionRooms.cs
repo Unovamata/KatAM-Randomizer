@@ -1128,7 +1128,7 @@
          * buffers that big, the first in KatAM's own, the others' collision and zones in KatAM's tilemap buffer and their tilemaps at
          * the end of the EWRAM heap): the game's functions using those buffers jump to rooms.c's copies, and the heap (EwramInitHeap's
          * size, 0x20080) shrinks to NidlHeapSize (the game used under 6 KB of it in every room and fight measured); */
-        const int BigRoomBlocks = 4032, VanillaHeapSize = 0x20080, NidlHeapSize = 0x7C80;   // rooms.c's BIG_BLOCKS, NIDL_HEAP_SIZE;
+        const int BigRoomBlocks = 4032, VanillaHeapSize = 0x20080, NidlHeapSize = 0x7B80;   // rooms.c's BIG_BLOCKS, NIDL_HEAP_SIZE (0x100 less for squeak/gimmicks.c's messages);
         // (and the ported rooms' doors lists, from FirstDoorsList, their visited doors in rooms.c's NIDL_VISITED: the functions reading them);
         static readonly string[] BigRoomFunctions = {
             "FillLevelInfo", "GetCollisionTile", "sub_08002434", "sub_08002470", "sub_080024F0", "sub_0800255C", "sub_080025AC",

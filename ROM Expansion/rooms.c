@@ -26,13 +26,14 @@
 #include "multi_08030C94.h"
 #include "treasures.h"
 #include "nidl.h"
+#include "squeak.h"
 #include "save.h"
 #include "agb_sram.h"
 
 #define BIG_BLOCKS 4032         // Squeak Squad's biggest room (Cushy Cloud 1's first, 96 x 42): KatAMExpansionRooms.cs's BigRoomBlocks;
 #define BIG_ZONES (BIG_BLOCKS + 4)
 #define BIG_TILEMAP (BIG_BLOCKS * 8)
-#define NIDL_HEAP_SIZE 0x7C80   // 0x20080 - NIDL_VISITED_SIZE - 3 * BIG_TILEMAP: KatAMExpansionRooms.cs's NidlHeapSize;
+#define NIDL_HEAP_SIZE 0x7B80   // 0x20080 - NIDL_VISITED_SIZE - 3 * BIG_TILEMAP - SQUEAK_MAIL_SIZE: KatAMExpansionRooms.cs's NidlHeapSize;
 #define NIDL_VISITED_SIZE 0xA00  // NiDL's and Squeak Squad's rooms' lists (1190), Squeak Squad's world slots and chests, the taken bits;
 #define NIDL_DOORS_FIRST 0x120  // ARRAY_COUNT(gVisitedDoors): KatAMExpansionRooms.cs's FirstDoorsList;
 #define NIDL_VISITED_MAGIC 0x4E494456
@@ -64,6 +65,12 @@ u16 gNidlGridRoom = 0xFFFF;
 #define NIDL_TAKEN_KIND 3
 #define SQUEAK_TAKEN_KIND 5
 #define BIG_AREA ((u8 *)gEwramHeap + NIDL_HEAP_SIZE + NIDL_VISITED_SIZE)
+/* SqueakMailOf(); The Squeak Squad gimmicks' messages of the room in a slot (squeak/gimmicks.c), the heap's last 0x100 bytes, after
+ * the slots' tilemaps (not saved: cleared as a room is loaded in its slot); */
+#define SQUEAK_MAIL_SIZE 0x100
+struct SqueakMail *SqueakMailOf(u8 slot) {
+    return (struct SqueakMail *)(BIG_AREA + 3 * BIG_TILEMAP) + (slot & 3);
+}
 
 // Visited(); A room's doors list's visited bits (see above): KatAM's, or the ported rooms' here (cleared the first time: a magic word
 // first);
@@ -805,6 +812,8 @@ void BigFillLevelInfo(u8 playerId, u16 roomId, const u16 **arg2, const u16 **arg
                 gUnk_02026D50[levelInfo->unk65E] |= 4;
 
             gUnk_02023518[levelInfo->unk65E] = gRoomProps[roomId].songIdx;
+            // (its Squeak Squad gimmicks' messages cleared and their task made: squeak/gimmicks.c);
+            SqueakGimmicksLoaded(playerId, roomId, levelInfo->unk65E);
 
             {
                 u8 j;

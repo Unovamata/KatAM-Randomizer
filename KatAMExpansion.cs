@@ -1313,7 +1313,7 @@ namespace KatAMRandomizer {
                         List<byte[]> alternatePalettes = alternates != null ? new List<byte[]>() : null;
                         (List<(byte[] tiles, ushort[] oams, short[] attributes, int palette)> frames, List<byte[]> palettes) =
                             SqueakFrames(character, enemy.Canvas, alternates: alternates, alternatePalettes: alternatePalettes, merge: enemy.MergeColors,
-                                         mergeShared: enemy.WholeCells, scale: enemy.Scale);
+                                         mergeShared: enemy.WholeCells, scale: enemy.Scale, rotate: enemy.Rotate);
                         var withHurts = enemy.HurtCells.Select(c => frames[c]).Concat(frames).ToList();
                         foreach (byte[] alternate in alternatePalettes ?? new List<byte[]>()) {
                             palettes.Add(alternate);

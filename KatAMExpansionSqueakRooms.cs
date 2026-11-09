@@ -732,9 +732,10 @@ namespace KatAMRandomizer {
             bool Flagged(int cx, int cy) => cx >= 0 && cy >= 0 && cx < width && cy < height && (map.Collision(6, cx, cy) & 0x1000) != 0;
             bool Stake(int cx, int cy) => cx >= 0 && cy >= 0 && cx < width && cy < height && map.Collision(6, cx, cy) >> 24 == 0x39
                                           && (map.Collision(6, cx, cy) & 0xC000) == 0x4000;
-            // (a switch's block groups: chains too, their trigger the switch, chest.c's SqueakCreateSwitch, see SqueakSwitchTargets());
+            // (the block groups a switch, a trigger area or a relay sends a message: chains too, broken by the room's gimmick task,
+            // squeak/gimmicks.c, see SqueakSwitchTargets());
             List<SqueakGimmick> gimmicks = map.Gimmicks();
-            HashSet<(int x, int y)> switched = gimmicks.Where(g => g.Type == SqueakSwitchGimmick).SelectMany(g => SqueakSwitchTargets(gimmicks, g)).ToHashSet();
+            HashSet<(int x, int y)> switched = gimmicks.SelectMany(g => SqueakSwitchTargets(gimmicks, g)).ToHashSet();
             for (int y = 0; y < height; y++)
                 for (int x = 0; x < width; x++) {
                     if (!Flagged(x, y) || chains.Contains((x, y))) continue;
@@ -1183,18 +1184,51 @@ namespace KatAMRandomizer {
         // (a switch: gimmick 0, KatAM's object 0x8D with its template's unk11 squeak.h's SQUEAK_SWITCH_OBJECT, chest.c's SqueakCreateSwitch);
         const byte HammerPegType = 0x8D, SqueakSwitchObject = 0x9C;
         const int SqueakSwitchGimmick = 0, SqueakSwitchBlocks = 0x10;
+        // (the gimmicks that talk to others: squeak/gimmicks.c; its shutters on object 0x8D with their template's unk11 SqueakShutterObject);
+        const int SqueakShutterGimmick = 2, SqueakFireGimmick = 7, SqueakTriggerArea = 0x15, SqueakRelay = 0x16, SqueakMailGimmicks = 60;
+        const byte SqueakShutterObject = 0x9B, SqueakFireObject = 0x9A;
 
         /* SqueakSwitchTargets(); The block groups a switch sets off (0x022252F0: its parameter's first byte's high nibble the count of
          * its targets, then each one's index in the room's gimmick list), the cells of those that are switch block groups (gimmick
          * 0x10: its spot in the group; 3-4-8's switch by the tower, index 2, names 5, the group in the beam over it); the others
          * (shutters, gimmick 2) are left out, KatAM's shutters being open; */
-        static IEnumerable<(int x, int y)> SqueakSwitchTargets(List<SqueakGimmick> gimmicks, SqueakGimmick button) {
-            if (button.Parameters == null || button.Parameters.Length == 0) yield break;
-            int count = button.Parameters[0] >> 4;
-            for (int k = 1; k <= count && k < button.Parameters.Length; k++) {
-                int index = button.Parameters[k];
+        static IEnumerable<(int x, int y)> SqueakSwitchTargets(List<SqueakGimmick> gimmicks, SqueakGimmick sender) {
+            foreach (int index in SqueakMessageTargets(sender))
                 if (index < gimmicks.Count && gimmicks[index].Type == SqueakSwitchBlocks) yield return (gimmicks[index].X / 16, gimmicks[index].Y / 16);
+        }
+
+        /* SqueakMessageTargets(); The gimmicks (their indices in the room's list) a gimmick sends messages to (squeak/gimmicks.c): a
+         * switch's (its first byte's high nibble how many, then their indices), a trigger area's (its parameter's bits 14-15 how
+         * many, its bytes 2-4 their indices), a relay's (its first byte's low 7 bits how many, its bytes 1-5 their indices); */
+        static IEnumerable<int> SqueakMessageTargets(SqueakGimmick sender) {
+            byte[] p = sender.Parameters;
+            if (p == null || p.Length == 0) yield break;
+            (int count, int first, int most) = sender.Type switch {
+                SqueakSwitchGimmick => (p[0] >> 4, 1, 3),
+                SqueakTriggerArea => (p.Length > 1 ? p[1] >> 6 : 0, 2, 3),
+                SqueakRelay => (p[0] & 0x7F, 1, 5),
+                _ => (0, 0, 0) };
+            for (int k = 0; k < count && k < most && first + k < p.Length; k++) yield return p[first + k];
+        }
+
+        /* SqueakGimmickList(); A room's gimmicks its task runs (squeak/gimmicks.c's gSqueakGimmickRooms: trigger areas, relays, and the
+         * block groups made chains, `chains`): a count, then 24 bytes each (type, index, x, y, the parameters' first 18 bytes); null
+         * none; */
+        static byte[] SqueakGimmickList(List<SqueakGimmick> gimmicks, IReadOnlySet<(int x, int y)> chains) {
+            List<byte> list = new List<byte> { 0, 0, 0, 0 };
+            for (int i = 0; i < gimmicks.Count && i < SqueakMailGimmicks; i++) {
+                SqueakGimmick g = gimmicks[i];
+                if (!(g.Type is SqueakTriggerArea or SqueakRelay || g.Type == SqueakSwitchBlocks && chains.Contains((g.X / 16, g.Y / 16)))) continue;
+                byte[] entry = new byte[24];
+                entry[0] = (byte)g.Type;
+                entry[1] = (byte)i;
+                WriteShort(entry, 2, g.X);
+                WriteShort(entry, 4, g.Y);
+                g.Parameters?.Take(18).ToArray().CopyTo(entry, 6);
+                list.AddRange(entry);
+                list[0]++;
             }
+            return list[0] == 0 ? null : list.ToArray();
         }
         static readonly Dictionary<int, byte> SqueakFuseCells = new Dictionary<int, byte> {
             [0xC] = 0x22, [0x5] = 0x23, [0x6] = 0x24, [0x3] = 0x25, [0x9] = 0x26, [0xA] = 0x27 };
@@ -1368,6 +1402,8 @@ namespace KatAMRandomizer {
             int paletteCycles = ReadInt(rom, Entry("gForegroundPalettes", Props(0x323, 11)) + 4),        // Unused (no cycles), but read;
                 navigationRoutes = Entry("gUnk_08D63C28", Props(0x3C9, 17));                                  // Its 4 generic route lists;
             int noTypes = Allocate(ref here, 4, 4), squeakTaken = 0, squeakChests = 0, squeakCannons = 0, squeakSwitches = 0;
+            // (per room its gimmicks' list for their task, squeak/gimmicks.c's gSqueakGimmickRooms: 0 none);
+            int[] gimmickLists = new int[files.Count];
             // (the arenas are NiDL's type's objects: only with its enemies, CreateNidlEnemy its spawn);
             bool arenas = ReadInt(rom, version.SpawnTable + NightmareID * 4) == CodeAddress + 0x08000000 + version.CreateNidlEnemy + 1;
             WriteInt(rom, noTypes, 0xFF);
@@ -1614,16 +1650,46 @@ namespace KatAMRandomizer {
                     byte bossShard = bossRooms.TryGetValue(SqueakFirstRoom + i, out int bossWorld) ? (byte)bossWorld : (byte)0;
                     (List<byte[]> templates, List<byte> types) = SqueakObjects(squeak, f, map, collision, arenas, doorCells, bossShard, ref squeakTaken, ref squeakChests);
                     // (its cannons: an eight-direction cannon for each of gimmick 0xB, and its fuse cannon with its fuse; its switches);
-                    foreach (SqueakGimmick g in gimmicks) {
+                    // (the gimmicks that talk to each other: their task's list, its index in the room's list each one's);
+                    if (SqueakGimmickList(gimmicks, chains) is byte[] gimmickList) {
+                        gimmickLists[i] = Allocate(ref here, gimmickList.Length, 4);
+                        gimmickList.CopyTo(rom, gimmickLists[i]);
+                    }
+                    for (int gi = 0; gi < gimmicks.Count; gi++) {
+                        SqueakGimmick g = gimmicks[gi];
                         if (g.Type == SqueakSwitchGimmick) {
-                            // (its block groups' cells, chains: chest.c's SqueakCreateSwitch; a switch only for shutters isn't made, the
-                            // shutters being open);
-                            List<(int x, int y)> targets = SqueakSwitchTargets(gimmicks, g).Where(c => chains.Contains(c)).Take(3).ToList();
-                            if (targets.Count == 0) continue;
+                            /* (its targets, by their index in the room's list: squeak/gimmicks.c, its unk14 and unk16 its parameter's 4
+                             * bytes; a switch none of whose targets is ported isn't made: a bubble, a path); */
+                            if (gi >= SqueakMailGimmicks || g.Parameters == null || g.Parameters.Length < 4
+                                || !SqueakMessageTargets(g).Any(t => t < gimmicks.Count && t < SqueakMailGimmicks
+                                                                     && (gimmicks[t].Type is SqueakShutterGimmick or SqueakFireGimmick or SqueakTriggerArea or SqueakRelay
+                                                                         || gimmicks[t].Type == SqueakSwitchBlocks && chains.Contains((gimmicks[t].X / 16, gimmicks[t].Y / 16)))))
+                                continue;
                             byte[] button = ObjectTemplate(g.X, g.Y, templates.Count, HammerPegType);
                             button[0x11] = SqueakSwitchObject;
-                            for (int k = 0; k < 3; k++) WriteShort(button, 0x14 + k * 2, k < targets.Count ? targets[k].x | targets[k].y << 8 : 0xFFFF);
+                            button[0x12] = (byte)gi;
+                            WriteShort(button, 0x14, g.Parameters[0] | g.Parameters[1] << 8);
+                            WriteShort(button, 0x16, g.Parameters[2] | g.Parameters[3] << 8);
                             templates.Add(button);
+                            if (!types.Contains(HammerPegType)) types.Add(HammerPegType);
+                            squeakSwitches++;
+                        } else if (g.Type == SqueakShutterGimmick && gi < SqueakMailGimmicks) {
+                            // (a shutter: its index and its parameter, squeak/gimmicks.c's SqueakCreateShutter);
+                            byte[] shutter = ObjectTemplate(g.X, g.Y, templates.Count, HammerPegType);
+                            shutter[0x11] = SqueakShutterObject;
+                            shutter[0x12] = (byte)gi;
+                            WriteShort(shutter, 0x14, g.Word(0));
+                            templates.Add(shutter);
+                            if (!types.Contains(HammerPegType)) types.Add(HammerPegType);
+                            squeakSwitches++;
+                        } else if (g.Type == SqueakFireGimmick && gi < SqueakMailGimmicks && g.Parameters?.Length >= 4) {
+                            // (a fire column: its index and its two words, squeak/gimmicks.c's SqueakCreateFire);
+                            byte[] fire = ObjectTemplate(g.X, g.Y, templates.Count, HammerPegType);
+                            fire[0x11] = SqueakFireObject;
+                            fire[0x12] = (byte)gi;
+                            WriteShort(fire, 0x14, g.Word(0));
+                            WriteShort(fire, 0x16, g.Word(1));
+                            templates.Add(fire);
                             if (!types.Contains(HammerPegType)) types.Add(HammerPegType);
                             squeakSwitches++;
                         } else if (g.Type == SqueakTurnCannon) {
@@ -1838,6 +1904,10 @@ namespace KatAMRandomizer {
             }
             for (int w = 0; w < SqueakWorlds; w++) rom[worlds + firstSwitchRoom - SqueakFirstRoom + w] = (byte)(w + 1);
             WriteInt(rom, MapSqueakBlock, mapBlock + 0x08000000);
+            // (the gimmicks' lists, squeak/gimmicks.c's gSqueakGimmickRooms: a pointer a room from SqueakFirstRoom, and how many);
+            int gimmickTable = Allocate(ref here, files.Count * 4, 4);
+            for (int k = 0; k < files.Count; k++) WriteInt(rom, gimmickTable + k * 4, gimmickLists[k] == 0 ? 0 : gimmickLists[k] + 0x08000000);
+            WriteInts(rom, CodeAddress + version.CodeSymbols["gSqueakGimmickRooms"], gimmickTable + 0x08000000, files.Count);
             // (the chests' spawn and opening, chest.c's);
             if (squeakChests > 0 && HookSqueakChests(rom, version) is string chestError) return chestError;
             // (the fixed cannons' wait, chest.c's);

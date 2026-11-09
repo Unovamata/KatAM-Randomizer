@@ -92,7 +92,16 @@ enum {
     SQUEAK_DARK_NEBULA_BURN,    // The floor his flames set burning;
     SQUEAK_DARK_STAR,           // Enemy 0x3E: the dark star Kirby chases before Dark Nebula;
     SQUEAK_PLATINUM_CHEST,      // Graphics only: Squeak Squad's big chest, drawn by KatAM's big chest in its rooms (SqueakAnimFor());
-    SQUEAK_SWITCH,              // Graphics only: Squeak Squad's small star switch (chest.c's SqueakCreateSwitch), up and pressed;
+    SQUEAK_SWITCH,              // Graphics only: Squeak Squad's small star switch (squeak/gimmicks.c), up and pressed;
+    SQUEAK_SHUTTER,             // Graphics only: the shutters (squeak/gimmicks.c), a stone pillar upright, turned 90 and 270 degrees,
+    SQUEAK_SHUTTER_90,          // and spikes up and down; each its every cell, the DS's animations 0 shut, 1 opening, 2 open, 3 shutting;
+    SQUEAK_SHUTTER_270,
+    SQUEAK_NEEDLE,
+    SQUEAK_NEEDLE_180,
+    SQUEAK_FIRE,                // Graphics only: the fire columns (squeak/gimmicks.c), up, down, and turned 270 and 90 degrees;
+    SQUEAK_FIRE_180,
+    SQUEAK_FIRE_270,
+    SQUEAK_FIRE_90,
     SQUEAK_ENEMY_COUNT,
 };
 
@@ -118,8 +127,24 @@ enum { SQUEAK_STAR_SPIT, SQUEAK_STAR_AHEAD, SQUEAK_STAR_BEHIND, SQUEAK_STAR_SWOR
 // (a fixed cannon's template unk11, chest.c's SqueakCreateCannon; the frames it waits with a Kirby in it, as Squeak Squad's);
 #define SQUEAK_CANNON 0x9E
 #define SQUEAK_CANNON_TURNING 0x9D
-// (a switch's template unk11, on object 0x8D: chest.c's SqueakCreateSwitch);
+// (a switch's and a shutter's template unk11, on object 0x8D: squeak/gimmicks.c's SqueakCreateSwitch);
 #define SQUEAK_SWITCH_OBJECT 0x9C
+#define SQUEAK_SHUTTER_OBJECT 0x9B
+#define SQUEAK_FIRE_OBJECT 0x9A
+/* The gimmicks' messages (squeak/gimmicks.c): per loaded room's slot (gCurLevelInfo[].unk65E) its room, how many times a room was
+ * loaded in it, and a byte per gimmick of the room's list, the kind + 1 of the message waiting for it (rooms.c keeps them after the
+ * EWRAM heap: SqueakMailOf()); */
+#define SQUEAK_MAIL_GIMMICKS 60
+struct SqueakMail {
+    u16 room;
+    u8 generation;
+    u8 unused;
+    u8 box[SQUEAK_MAIL_GIMMICKS];
+};
+struct SqueakMail *SqueakMailOf(u8 slot);
+void SqueakGimmicksLoaded(u8 playerId, u16 roomId, u8 slot);
+void SqueakSendMail(u8 slot, u8 index, u8 kind);
+u32 SqueakGimmickAnim(struct Object *obj);
 #define SQUEAK_CANNON_WAIT 35
 // (how long a cannon's shot flies at most, frames: Squeak Squad's carries Kirby on until he hits something or a cannon catches him);
 #define SQUEAK_CANNON_FLIGHT 150
