@@ -232,17 +232,20 @@ namespace KatAMRandomizer {
         }
 
         /* SqueakShell(); Yadgaine's shell, which Squeak Squad's stage draws on a background layer from its own map and tiles (0x0220B0B4;
-         * KatAM's backgrounds are full in a fight), as one KatAM frame at half its size, drawn twice as big by the GBA's sprite scaling
-         * (yadgaine.c's Shell): 79 tiles of KatAM's 512-tile sprite heap, not the 312 it takes as it is. Its stage's map, map/a4s7s2.mxp
+         * KatAM's backgrounds are full in a fight), as one KatAM frame at two thirds of its size, drawn half as big again by the GBA's
+         * sprite scaling (yadgaine.c's Shell): 133 tiles of KatAM's 512-tile sprite heap, not the 288 it takes as it is (half its size,
+         * 79 tiles, was too coarse beside its body's own pixels). Its stage's map, map/a4s7s2.mxp
          * (RLE), has its sections' offsets at +0xC: the map's width (the first's first byte), its blocks (the third's, after 2 bytes:
          * 16x16 pixels, 4 tile entries each: tile, flips, palette - 6) and the shell's 16 by 13 blocks (the fifth's top left); their
          * tiles and palettes are map/30_b.bin's (+0x210, +0x10). Only what its fight ever shows (columns 14 on, rows 27 to 171: the rest
-         * is left of the screen, over it or under the floor); each 2x2 block of pixels becomes one: its darkest where an outline crosses
-         * it (dark: a weighted brightness under 300 of 2550), else its most common color, transparent when under half of it is drawn.
-         * The blocks are laid so the origin (the body's feet: column 128, row 171) is a block's corner, at the canvas' middle; it faces
-         * as on the DS (yadgaine.c never turns it: the GBA's scaling flipped would leave a gap in each piece); */
+         * is left of the screen, over it or under the floor); each stored pixel its darkest where an outline crosses a quarter of it
+         * (dark: a weighted brightness under 300 of 2550), else the color covering the most of it, transparent when under half of it
+         * is drawn. The origin (the body's feet: column 128, row 171) a stored pixel's corner, at the canvas' middle; it faces as on
+         * the DS (yadgaine.c never turns it: the GBA's scaling flipped would leave a gap in each piece); */
         const string YadgaineShellFile = "stage:a4s7s2";
         const int ShellLeft = 14, ShellTop = 27, ShellBottom = 171, ShellOriginX = 128, ShellOriginY = 171;
+        // How much bigger the shell's drawn than it's stored (yadgaine.c's SHELL_NUM, SHELL_DEN);
+        const int ShellScaleNum = 3, ShellScaleDen = 2;
         static (List<(byte[] tiles, ushort[] oams, short[] attributes, int palette)> frames, List<byte[]> palettes) SqueakShell(byte[] rom) {
             byte[] packed = SqueakFile(rom, "map/a4s7s2.mxp"), bg = SqueakFile(rom, "map/30_b.bin");
             if (packed == null || bg == null || packed[0] != 0x30) throw new InvalidOperationException("Squeak Squad's map/a4s7s2 is missing.");
@@ -277,29 +280,43 @@ namespace KatAMRandomizer {
                     }
                 }
 
-            // Half its size: a pixel of 2x2 (columns 2i, 2i + 1, rows 2j - 1, 2j: the origin's at a block's corner);
-            const int Size = 256, Center = Size / 2;
+            /* Two thirds of its size (ShellScale: a stored pixel ShellScale.num / ShellScale.den of the picture's each way; stored pixel i
+             * covers the picture's columns [128 + i * 3/2, 128 + (i + 1) * 3/2), its rows likewise from 171: the origin a stored pixel's
+             * corner), each from the picture's pixels it covers, weighted by how much of them it covers (in 1/den-pixel units); */
+            const int Size = 256, Center = Size / 2, Num = ShellScaleNum, Den = ShellScaleDen;
             int Brightness(int color) => (color & 31) * 8 * 3 + (color >> 5 & 31) * 8 * 6 + (color >> 10 & 31) * 8;
+            int Overlap(int pixel, int from) => Math.Max(0, Math.Min(pixel * Den + Den, from + Num) - Math.Max(pixel * Den, from));
             List<ushort> colors = new List<ushort> { 0 };
             int[,] canvas = new int[Size, Size];
-            for (int j = 0; j <= Height / 2; j++)
-                for (int i = 0; i < Width / 2; i++) {
-                    List<int> drawn = new List<int>();
-                    int inside = 0;
-                    foreach ((int x, int y) in new[] { (2 * i, 2 * j - 1), (2 * i + 1, 2 * j - 1), (2 * i, 2 * j), (2 * i + 1, 2 * j) }) {
-                        if (y < 0 || y >= Height) continue;
-                        inside++;
-                        if (picture[x, y] is int color) drawn.Add(color);
-                    }
-                    if (drawn.Count == 0 || drawn.Count * 2 < inside) continue;
-                    int darkest = drawn.OrderBy(Brightness).First();
-                    int value = Brightness(darkest) < 300 ? darkest : drawn.GroupBy(c => c).OrderByDescending(g => g.Count()).ThenBy(g => drawn.IndexOf(g.Key)).First().Key;
+            for (int j = -(ShellOriginY * Den / Num + 1); j <= (Height - ShellOriginY) * Den / Num + 1; j++)
+                for (int i = -(ShellOriginX * Den / Num + 1); i <= (Width - ShellOriginX) * Den / Num + 1; i++) {
+                    int left = ShellOriginX * Den + i * Num, top = ShellOriginY * Den + j * Num, inside = 0;
+                    Dictionary<int, int> drawn = new Dictionary<int, int>();
+                    List<int> order = new List<int>();
+                    for (int y = Math.Max(0, top / Den - 1); y <= (top + Num) / Den && y < Height; y++)
+                        for (int x = Math.Max(0, left / Den - 1); x <= (left + Num) / Den && x < Width; x++) {
+                            int weight = Overlap(x, left) * Overlap(y, top);
+                            if (weight == 0) continue;
+                            inside += weight;
+                            if (picture[x, y] is not int color) continue;
+                            if (!drawn.ContainsKey(color)) {
+                                drawn[color] = 0;
+                                order.Add(color);
+                            }
+                            drawn[color] += weight;
+                        }
+                    int opaque = drawn.Values.Sum();
+                    if (opaque == 0 || opaque * 2 < inside) continue;
+                    // (its darkest where an outline crosses a quarter of it, else the color covering the most of it);
+                    int darkest = order.OrderBy(Brightness).First();
+                    int value = Brightness(darkest) < 300 && drawn[darkest] * 4 >= Num * Num ? darkest
+                              : order.OrderByDescending(c => drawn[c]).ThenBy(c => order.IndexOf(c)).First();
                     int index = colors.IndexOf((ushort)value, 1);
                     if (index < 0) {
                         index = colors.Count;
                         colors.Add((ushort)value);
                     }
-                    canvas[Center + i - ShellOriginX / 2, Center + j - (ShellOriginY + 1) / 2] = index;
+                    canvas[Center + i, Center + j] = index;
                 }
             if (colors.Count > 16) throw new InvalidOperationException("Yadgaine's shell has more than 15 colors.");
 

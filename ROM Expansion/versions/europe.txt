@@ -312,3 +312,5 @@ sub_0803533C 0x8035378
 _call_via_r7 0x815abf0
 sub_080ACBEC 0x80acc34
 VramGetTotalAllocatedTiles 0x8157afc
+gUnk_03002450 0x3002450
+gUnk_03006080 0x3006080

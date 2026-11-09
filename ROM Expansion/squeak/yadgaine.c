@@ -35,8 +35,9 @@
  *   damage on it (Sl0's 360) and its second form: its cracked body (.mca's 1). Its shell's box (yadgaine.rca's 35: 197 pixels
  *   behind its middle) is behind its wall.
  * • Its shell (the stage draws it on a background layer from its own tiles, 0x0220B0B4: 154 by 208 pixels, 312 tiles; KatAM's
- *   backgrounds' tiles and palettes are full in a fight): a sprite at half its size (80 tiles), drawn twice as big by the GBA's
- *   sprite scaling, only what its fight shows of it (see Shell() below). Its fight is near the GBA's limits without it (KatAM's
+ *   backgrounds' tiles and palettes are full in a fight): a sprite at two thirds of its size (134 tiles), drawn half as big again
+ *   by the GBA's sprite scaling, only what its fight shows of it (see Shell() below; at half its size, twice as big, it was too
+ *   coarse beside its body). Its fight is near the GBA's limits without it (KatAM's
  *   sprite heap at 428 of 512 tiles when two rock bursts are out, its 7 enemy palettes all taken, its frames near the end of the
  *   CPU's time): Squeak Squad's effects wait for room in the heap (squeak.c's SQUEAK_FX_ROOM: a rock's burst left out when it
  *   would leave too little for KatAM's own), the shell takes Daroach's palette slot once he's gone, and is drawn by hand.
@@ -457,19 +458,25 @@ static void Boxes(struct SqueakObject *s) {
 }
 
 /* Its shell: the stage's own picture on the DS (a background layer from its own tiles, 0x0220B0B4: KatAM's backgrounds' tiles and
- * palettes are full in a fight), here KatAMExpansionSqueak.cs's SqueakShell, a frame at half its size (80 tiles of the 512 of KatAM's
- * sprite heap in a stage, not 312), drawn twice as big by the GBA's sprite scaling: its pieces affine and double-sized, with a matrix
- * of 0.5 (SHELL_MATRIX: a pixel of the frame two of the screen's, each way), each twice as far from its spot. Its tiles and palette
+ * palettes are full in a fight), here KatAMExpansionSqueak.cs's SqueakShell, a frame at two thirds of its size (134 tiles of the
+ * 512 of KatAM's sprite heap in a stage, not 288), drawn half as big again by the GBA's sprite scaling: its pieces affine and
+ * double-sized, with a matrix of 2/3 (SHELL_MATRIX, SHELL_PA: a pixel of the frame one and a half of the screen's, each way), each
+ * half as far again from its spot (half its size, twice as big, was too coarse beside its body's own pixels). Its tiles and palette
  * are loaded once (KatAM's sprite running its anim's first step, its colors as KatAM loads a slot's); after, it's drawn by hand: its pieces (read once from its frame)
- * written into KatAM's OAM, no sprite drawing of KatAM's each frame (DisplaySprite: half its cost; the fight is near the end of the
- * GBA's frame already). Where the DS has it: the picture's column 128, row 171 at its feet, bobbing with its body (BOB); behind it
+ * written into KatAM's OAM buffer together, no sprite drawing of KatAM's each frame (DisplaySprite, sub_08156D84 a piece: over twice
+ * its cost; the fight is near the end of the GBA's frame already). Where the DS has it: the picture's column 128, row 171 at its feet, bobbing with its body (BOB); behind it
  * and its legs (the last of KatAM's sprite layers) and the room's foreground (OAM priority 3, a background layer's: as the DS's);
- * shown with it, from its coming in (Daroach gone by then: his palette slot it takes, as KatAM's 7 enemy palettes are full in its
+ * shown with it till it's beaten, from its coming in (Daroach gone by then: his palette slot it takes, as KatAM's 7 enemy palettes are full in its
  * fight, its own 4 of them); never turned (it never does, and a scaled piece flipped would leave a gap: the GBA's scaling samples
  * it a pixel off); */
 #define SHELL_MATRIX 3      // (KatAM's own use 0, Nightmare's intro 1-5, the Power Orb's end 6, the rides 7: not in its fight);
+/* Drawn SHELL_NUM / SHELL_DEN as big as it's stored (KatAMExpansionSqueak.cs's ShellScaleNum, ShellScaleDen): its matrix's step
+ * SHELL_PA / 256 a pixel (256 * 2/3 is 170.67: a hair bigger, its pieces overlapping by a pixel, never a gap between them); */
+#define SHELL_NUM 3
+#define SHELL_DEN 2
+#define SHELL_PA 170
 #define SHELL_LAYER 0x1F
-#define SHELL_PIECES 16
+#define SHELL_PIECES 32
 
 struct ShellPiece {
     s16 dx, dy;             // Its double-sized box's top left from the frame's spot (pixels);
@@ -492,6 +499,23 @@ static const u8 sShellPieces[3][4][2] = {
     { { 8, 16 }, { 8, 32 }, { 16, 32 }, { 32, 64 } },
 };
 
+/* ShellScaled(); A piece's double-sized box's corner from the frame's spot, its own corner `at` pixels from it in the frame, `w` of
+ * the frame's pixels across: its middle SHELL_NUM / SHELL_DEN as far, rounded down (the same way for every piece: their spots are
+ * all 8 apart), less w; */
+static s32 ShellScaled(s32 at, s32 w) {
+    s32 middle = SHELL_NUM * (2 * at + w), d = 2 * SHELL_DEN;
+
+    return (middle >= 0 ? middle / d : -((-middle + d - 1) / d)) - w;
+}
+
+// ShellFar(); How far a piece's middle is from its body's (SHELL_BODY_Y over its feet), across and up;
+#define SHELL_BODY_Y 48
+static s32 ShellFar(const struct ShellPiece *p) {
+    s32 x = p->dx + p->w / 2, y = p->dy + p->h / 2 + SHELL_BODY_Y;
+
+    return (x < 0 ? -x : x) + (y < 0 ? -y : y);
+}
+
 static void ShellDestroy(struct Task *t) {
     struct YadgaineShell *sh = TaskGetStructPtr(t);
 
@@ -503,7 +527,7 @@ static void ShellMain(void) {
     struct YadgaineShell *sh = TaskGetStructPtr(gCurTask);
     struct SqueakObject *s = sh->owner;
     const struct ShellPiece *p;
-    u32 tiles;
+    u32 tiles, first, n;
     s32 ox, oy;
     u16 *m;
     u8 i;
@@ -516,28 +540,40 @@ static void ShellMain(void) {
         sh->e.flags |= 0x1000;
         return;
     }
-    if (!SHOWN(s) || (s->obj.base.flags & 0x400) || gKirbys[gLocalPlayerId].base.roomId != s->obj.base.roomId) return;
+    /* (not drawn once it's beaten, as its legs: KatAM's defeat's stars would take the GBA's sprite time on its lines, the shell,
+     * drawn last, cut in bands); */
+    if (!SHOWN(s) || (s->obj.base.flags & 0x400) || s->obj.unk80 <= 0 || gKirbys[gLocalPlayerId].base.roomId != s->obj.base.roomId) return;
     // (its spot on the screen, as KatAM's sprites': the camera's view and the screen's shake);
     ox = (s->obj.base.x >> 8) - (gCurLevelInfo[gLocalPlayerId].viewportPosition.x >> 8) + gUnk_0203AD18[0];
     oy = (s->obj.base.y >> 8) + BOB(s) - (gCurLevelInfo[gLocalPlayerId].viewportPosition.y >> 8) + gUnk_0203AD18[1];
     tiles = ((sh->e.sprite.tilesVram - 0x6010000) >> 5) | sh->e.sprite.palId << 12 | 3 << 10;
-    for (i = 0, p = sh->piece; i < sh->pieces; i++, p++) {
+    /* (its pieces in KatAM's OAM buffer at once, as sub_08156D84 adds one at a time: the next free entries, each linked to the next,
+     * the last to SHELL_LAYER's list's end; 128 at most); */
+    first = n = gUnk_030024F0;
+    for (i = 0, p = sh->piece; i < sh->pieces && n < 128; i++, p++) {
         s32 x = ox + p->dx, y = oy + p->dy;
         OamData *oam;
 
         // (one off the screen left out: the GBA wraps its spot, 8 bits down, 9 across);
         if (x <= -p->w || x >= DISPLAY_WIDTH || y <= -p->h || y >= DISPLAY_HEIGHT) continue;
-        oam = sub_08156D84(SHELL_LAYER);
-        if (oam == iwram_end) break;
+        oam = &gUnk_030031C0[n++];
         oam->all.attr0 = p->attr0 | (y & 0xFF);
         oam->all.attr1 = p->attr1 | (x & 0x1FF);
         oam->all.attr2 = tiles + p->tile;
+        oam->split.fractional = n;
+    }
+    if (n > first) {
+        gUnk_030031C0[n - 1].split.fractional = 0xFF;
+        if (gUnk_03002450[SHELL_LAYER] == 0xFF) gUnk_03002450[SHELL_LAYER] = first;
+        else gUnk_030031C0[gUnk_03006080[SHELL_LAYER]].split.fractional = first;
+        gUnk_03006080[SHELL_LAYER] = n - 1;
+        gUnk_030024F0 = n;
     }
     m = &gOamBuffer[SHELL_MATRIX * 16 + 3];
-    m[0] = 0x80;
+    m[0] = SHELL_PA;
     m[4] = 0;
     m[8] = 0;
-    m[12] = 0x80;
+    m[12] = SHELL_PA;
 }
 
 /* Shell(); Its shell (see above), made as it comes in: its VRAM, its palette (Daroach's slot, his key given its own, when he's gone:
@@ -592,12 +628,25 @@ static void Shell(struct SqueakObject *s) {
         if (shape > 2) continue;
         p->w = sShellPieces[shape][size][0] * 2;
         p->h = sShellPieces[shape][size][1] * 2;
-        p->dx = ((oams[1] & 0x1FF) - frame->offsetX) * 2;
-        p->dy = ((oams[0] & 0xFF) - frame->offsetY) * 2;
+        // (its double-sized box centered where its middle is drawn: SHELL_NUM / SHELL_DEN as far from the frame's spot);
+        p->dx = ShellScaled((oams[1] & 0x1FF) - frame->offsetX, p->w / 2);
+        p->dy = ShellScaled((oams[0] & 0xFF) - frame->offsetY, p->h / 2);
         p->attr0 = (oams[0] & 0xC000) | 0x300;
         p->attr1 = (oams[1] & 0xC000) | SHELL_MATRIX << 9;
         p->tile = oams[2] & 0x3FF;
         sh->pieces = i + 1;
+    }
+    /* (the pieces farthest from its body first, those behind it last: on a line with more sprites than the GBA has time for, the
+     * last ones in KatAM's OAM, the shell's last pieces, aren't drawn; behind its body that doesn't show); */
+    for (i = 1; i < sh->pieces; i++) {
+        struct ShellPiece key = sh->piece[i];
+        u8 j = i;
+
+        while (j > 0 && ShellFar(&sh->piece[j - 1]) < ShellFar(&key)) {
+            sh->piece[j] = sh->piece[j - 1];
+            j--;
+        }
+        sh->piece[j] = key;
     }
 }
 

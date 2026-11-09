@@ -236,14 +236,20 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
     second form (HP written down by a RAM write, 63 damage at once), KatAM's defeat at 0 HP with its legs gone. Not tested: a
     whole fight played through by hand, standing on a landed block, helpers' hits on the legs, EU and Japanese builds (built
     and logic-checked, not played). Its green spiked shell (Squeak Squad's background layer, 154 by 208 pixels, 312 tiles), as
-    the owner asked: cut to what its fight shows, at half its size (80 tiles) and drawn twice as big by the GBA's sprite
-    scaling, its pieces written into KatAM's OAM by hand; Squeak Squad's effects wait for room in KatAM's sprite heap (a rock's
-    burst left out when two would leave too little for KatAM's own), the shell takes Daroach's palette slot once he's gone.
-    Checked in the emulator (USA, room 0x323, the fight from its start, 1,500 frames, Kirby idle with helpers: a forced start,
-    not a playthrough): its place and look beside the DS's, 138 lag frames against 133 without it, no sprite drawn from missing
-    VRAM, KatAM's 7 enemy palettes holding, about 2 of 11 rock bursts left out, the shell cut on a few lines of 2 frames of
-    1,200 (the GBA's sprite time per line); European and Japanese builds: its look in the same fight. Not tested: a fight
-    played by hand (Kirby's own attacks' effects in the tight heap). Not ported: the floor crumbling behind it, the DS's camera
+    the owner asked: cut to what its fight shows, then (the owner: half size was too coarse beside its body) at two thirds of
+    its size (134 tiles) drawn half as big again by the GBA's sprite scaling, its pieces written into KatAM's OAM by hand;
+    Squeak Squad's effects wait for room in KatAM's sprite heap (a rock's burst left out when it would leave too little for
+    KatAM's own), the shell takes Daroach's palette slot once he's gone, goes when it's beaten (as its legs). Checked in the
+    emulator (USA, room 0x323, the fight from its start, 1,500 frames, Kirby idle with helpers: a forced start, not a
+    playthrough): its place and look beside the DS's and the half-size one, 131 lag frames against 133 without it, no sprite
+    drawn from missing VRAM, KatAM's 7 enemy palettes holding, the GBA's sprite time per line passed only as Kirby was beaten
+    (one line of the shell cut on one frame); European and Japanese builds: its look in the same fight. Not tested: a fight
+    played by hand (Kirby's own attacks' effects in the tight heap).
+  - **Owner's call**: Yadgaine's rock bursts with the sharper shell: its 134 tiles leave KatAM's sprite heap room for a rock's
+    burst (64 tiles) only with a rock or so in the air, so most are left out (4 of 11 shown in the test; 9 with the half-size
+    shell). The choices: rocks of a kind share one block of sprite memory (they'd spin in step; about 32 tiles back), a
+    smaller margin kept for KatAM's own effects (48 tiles now: Kirby's attacks drawn from bad VRAM if it's too small), or left
+    as it is. Not ported: the floor crumbling behind it, the DS's camera
     jolts. Fixed
     alongside in the framework: each ported object's sprite takes as many tiles as its own frames need (not its type's
     biggest), so a boss's legs and showers of things fit KatAM's heap; HP-bar names can have a letter no KatAM name has
