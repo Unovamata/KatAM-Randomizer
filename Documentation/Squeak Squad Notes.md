@@ -582,6 +582,22 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
     Squad's, 256 each). Checked in the GBA emulator (forced starts, not a playthrough): Prism Plains 1's first two rooms (the star
     blocks inhaled away), Cushy Cloud 1's first (the biggest; the helpers' room loaded in another slot at once), Secret Sea 1's third (water),
     a ladder climbed in Cushy Cloud 6's second.
+  - **Their objects in KatAM** (`SqueakObjects()`): a spawn's spot is its feet (y from the room's top), KatAM's templates 8 pixels
+    over them (its own enemies' and items' stand a cell's half over a floor: measured on every room of the USA ROM). Enemies KatAM
+    has (`SqueakNatives`) get KatAM's type, the spawn's first byte picking the behavior (the brains table above: KatAM's own where
+    it has that brain, `squeak/natives.c`'s where not; Glunk's by the second byte); the ported characters (`SqueakCharacters`)
+    type 0x2C, the first byte their variant (Daroach's scene: his second byte his facing); mid-bosses and bosses
+    (`SqueakBosses`, and KatAM's own Mr. Frosty, Bonkers, Box Boxer, Boxy) their mini-boss type, after an arena object
+    (`enemies/arena.c`, NiDL's type) holding the camera on their screen (`SqueakArena()`: across a room two screens wide at
+    most, else round the spot; 32 pixels of floor under it; from Kirby's first frame in a room a screen big, 288 by 240).
+    0x3D with its second byte 1 is Dark Daroach; Dark Nebula's coming (0x46) is left out (his fight's port, 0x3F, does both).
+    Items: 1UPs (kinds 1, 3), Invincible Candy (4), Maximum Tomato (5), Meat (6), Pep Brew (7), Cherry (8, and the "?" 0x15),
+    taken once per visit (rooms.c's kinds 5-7); an ability (kinds 0x17 on, or a floating bubble's 0/1 and ability) is the
+    enemy giving it (`SqueakAbilityEnemies`), standing on the floor under it (10 cells down at most), or a Cherry when none
+    does (12, 18, 26). The floating bubbles' foods by the item maker's IDs: 1 the 1UP, 6 Maximum Tomato, 7 Pep Brew, 8 Meat, others
+    a Cherry (IDs 2-5 and 9-18 not yet seen in the game: the rooms they're in, the stages' treasure rooms, fill them only after an
+    event). Not yet: chests (treasure numbers at `+0xD`) and the chase spawns (flag 4). KatAM draws every placed item with its
+    glow (effect 0x2BB, `sub_0809513C`, one frame in four).
 - **Stage files** (`map/*.mxp`, NDS RLE, type 0x30): `MaD\0`, 8 bytes, then 13 section offsets (`u32` from +0x0C): section 0 the width and height in tiles (bytes); 3-5 and 6-8 the tile grids (16 and 32 bits a tile); 9 the zone grid (a byte a tile), then a `u16` count and 8 bytes a point (`u8` kind, a byte, `u16` x, y and a size, pixels from the top), then the points' table; `.doe` the objects (an enemy list and an item list: see "Stage rooms, for porting them"). A stage's `.mxi` (`map/aNsM.mxi`) lists its parts' files (`MA` the map, `FB`/`BB` the graphics, `DE` the objects, `PL` a palette, `3D` the background); loaded, its table sits at the stage info (`*(*0x02229F1C + 0x40)` + 0x10, 0x1C bytes a part). To load a stage in the DS emulator, repoint that table's strings to the stage's files and let Kirby lose a life (the stage restarts from its first part): Mrs. Moley's stage was recorded this way from a save in 1-1.
 - **Ability numbers** (`0x0203A9C4`'s, from the factory's cases): 1 Fire (Hot Head, Acchi, Flamer), 2 Ice (Pengy), 3 Spark (Sparky), 4 Beam (Waddle Doo), 5 Tornado (Twister), 7 Cutter (Sir Kibble), 8 Laser (Laser Ball), 9 Bomb (Foley), 10 Wheel (Wheelie), 11 UFO, 13 (Cupie), 14 Sleep (Noddy), 15 (Starman), 16 Sword (Sword Knight, Heavy Knight), 17 (Bun), 19 (Bio Spark), 20 (Boxin), 21 (Gaw Gaw), 22 Bubble (Bubble Head), 23 Metal (Metalun).
 

@@ -563,7 +563,215 @@ namespace KatAMRandomizer {
             if (id is 0x40 or 0x44 or 0x48 or 0x4C && liquid == 0) return KatAMSpikes;
             return KatAMAir;
         }
-            /* Squeak Squad's rooms in the ROM (AddSqueakRooms()): the 8 worlds' stages (SqueakWorldRooms(), the test stages left out), each
+
+        /* Squeak Squad's enemies KatAM has (the notes' table of their brains against KatAM's own): its object type and, by the spawn's
+         * first parameter byte (Squeak Squad's brain), the behavior (KatAM's own where it has that brain, else squeak/natives.c's;
+         * past the list, the first). Glunk's is by the second byte (Squeak Squad's Pl1, 5 or 6), Waddle Dee's 4 holds a parasol (KatAM's
+         * 3); the last four are KatAM's own mid-bosses (Mr. Frosty, Bonkers, Box Boxer, Boxy); */
+        static readonly Dictionary<int, (byte type, byte[] behaviors)> SqueakNatives = new Dictionary<int, (byte, byte[])> {
+            [0x00] = (0x00, new byte[] { 0, 5, 6, 7, 3, 4 }),       // Waddle Dee;
+            [0x01] = (0x01, new byte[] { 0, 1, 4, 5, 2 }),          // Bronto Burt;
+            [0x02] = (0x02, new byte[] { 0, 1, 2, 3, 4 }),          // Blipper;
+            [0x03] = (0x03, new byte[] { 5 }),                      // Glunk;
+            [0x04] = (0x05, new byte[] { 0 }),                      // Scarfy;
+            [0x05] = (0x06, new byte[] { 0, 2, 1, 3, 5 }),          // Gordo;
+            [0x06] = (0x07, new byte[] { 0, 5 }),                   // Snooter;
+            [0x07] = (0x08, new byte[] { 0 }),                      // Chip;
+            [0x08] = (0x2D, new byte[] { 0 }),                      // Batty;
+            [0x09] = (0x0D, new byte[] { 0 }),                      // Blockin;
+            [0x0A] = (0x11, new byte[] { 0 }),                      // Big Waddle Dee;
+            [0x13] = (0x35, new byte[] { 0, 2, 2, 2, 2, 2 }),       // Shotzo (aiming, fixed);
+            [0x14] = (0x12, new byte[] { 0, 2, 3, 0, 1 }),          // Waddle Doo;
+            [0x15] = (0x14, new byte[] { 0, 2, 1 }),                // Hot Head;
+            [0x16] = (0x13, new byte[] { 0 }),                      // Flamer;
+            [0x17] = (0x16, new byte[] { 0, 1, 1, 0, 0, 1 }),       // Pengy;
+            [0x18] = (0x19, new byte[] { 0, 1, 1 }),                // Sparky;
+            [0x19] = (0x1C, new byte[] { 0, 1 }),                   // Twister;
+            [0x1A] = (0x1A, new byte[] { 0, 1, 2 }),                // Sword Knight;
+            [0x1C] = (0x0C, new byte[] { 0, 1, 2, 3, 4 }),          // Cupie;
+            [0x1D] = (0x18, new byte[] { 0, 1, 1, 2 }),             // Sir Kibble;
+            [0x1E] = (0x15, new byte[] { 0, 1 }),                   // Laser Ball;
+            [0x1F] = (0x22, new byte[] { 0, 1, 2 }),                // Foley;
+            [0x20] = (0x1D, new byte[] { 0, 1 }),                   // Wheelie;
+            [0x21] = (0x1B, new byte[] { 0, 1 }),                   // UFO;
+            [0x22] = (0x1E, new byte[] { 0, 1 }),                   // Noddy;
+            [0x23] = (0x25, new byte[] { 0 }),                      // Boxin;
+            [0x24] = (0x29, new byte[] { 0, 1 }),                   // Heavy Knight;
+            [0x2D] = (0x38, new byte[] { 0 }),                      // Mr. Frosty;
+            [0x2E] = (0x39, new byte[] { 0 }),                      // Bonkers;
+            [0x30] = (0x3C, new byte[] { 0 }),                      // Box Boxer;
+            [0x31] = (0x3D, new byte[] { 0 }),                      // Boxy;
+        };
+        static readonly HashSet<byte> KatAMMidbossTypes = new HashSet<byte> { 0x38, 0x39, 0x3C, 0x3D };
+        /* Squeak Squad's own characters (type 0x2C, the behavior byte the character, squeak.h's SQUEAK_*, the spawn's first byte its
+         * variant: each picks its brain as Squeak Squad's does), and its mid-bosses and bosses (on their mini-boss type, SQUEAK_MIDBOSS |
+         * the character): 0x3D is Dark Daroach when its second byte is 1; Dark Nebula's coming (0x46, a8s4s5) is his fight's start here
+         * (0x3F, a8s4s6: squeak/dark_nebula.c does both); */
+        static readonly Dictionary<int, int> SqueakCharacters = new Dictionary<int, int> {
+            [0x0B] = 2, [0x0C] = 3, [0x0D] = 0, [0x0E] = 1, [0x0F] = 5, [0x10] = 6, [0x11] = 8, [0x25] = 9, [0x26] = 12, [0x27] = 13,
+            [0x28] = 15, [0x2A] = 16, [0x2B] = 18, [0x2C] = 19, [0x3E] = 68, [0x40] = 27, [0x42] = 29, [0x43] = 31, [0x44] = 33, [0x45] = 34,
+        };
+        static readonly Dictionary<int, int> SqueakBosses = new Dictionary<int, int> {
+            [0x33] = 21, [0x34] = 20, [0x35] = 23, [0x36] = 25, [0x37] = 53, [0x38] = 35, [0x39] = 40, [0x3A] = 37, [0x3B] = 42, [0x3C] = 47,
+            [0x3D] = 49, [0x3F] = 58,
+        };
+        const int DarkDaroachIndex = 51;
+        // The spawn flags (+0xB): 4, a chase spawn (only once the stage's treasure is carried: not made yet);
+        const int SqueakChaseSpawn = 4;
+
+        /* The items (.doe item kinds, the item maker's IDs in the floating bubbles): KatAM's 1UP, Invincible Candy, Maximum Tomato, Meat,
+         * Pep Brew (the energy drink) and Cherry; a bubble holding the 1UP's look (kind 1) the 1UP, the "?" bubble (0x15) and the
+         * bubbles' other foods a Cherry. An ability (kinds 0x17-0x30, the ability the kind less 0x16; a bubble's 0 or 1 and the ability)
+         * is the enemy that gives it (SqueakAbilityEnemies: KatAM's, or Squeak Squad's own); an ability none gives, food; */
+        const byte KatAMCherry = 0x5E, KatAMPepBrew = 0x5F, KatAMMeat = 0x60, KatAMTomato = 0x61, KatAMOneUp = 0x63, KatAMCandy = 0x64;
+        static readonly Dictionary<int, byte> SqueakItemKinds = new Dictionary<int, byte> {
+            [1] = KatAMOneUp, [3] = KatAMOneUp, [4] = KatAMCandy, [5] = KatAMTomato, [6] = KatAMMeat, [7] = KatAMPepBrew, [8] = KatAMCherry,
+            [0x15] = KatAMCherry,
+        };
+        static readonly Dictionary<int, byte> SqueakBubbleItems = new Dictionary<int, byte> {
+            [1] = KatAMOneUp, [6] = KatAMTomato, [7] = KatAMPepBrew, [8] = KatAMMeat,
+        };
+        // (its object type, behavior, variant);
+        static readonly Dictionary<int, (byte type, byte behavior, byte variant)> SqueakAbilityEnemies = new Dictionary<int, (byte, byte, byte)> {
+            [1] = (0x14, 0, 0), [2] = (0x16, 0, 0), [3] = (0x19, 0, 0), [4] = (0x12, 0, 0), [5] = (0x1C, 0, 0), [6] = (0x00, 3, 0),
+            [7] = (0x18, 0, 0), [8] = (0x15, 0, 0), [9] = (0x22, 0, 0), [10] = (0x1D, 0, 0), [11] = (0x1B, 0, 0), [13] = (0x0C, 0, 0),
+            [14] = (0x1E, 0, 0), [15] = (SqueakID, 12, 1), [16] = (0x1A, 0, 0), [17] = (SqueakID, 18, 0), [19] = (SqueakID, 9, 0),
+            [20] = (0x25, 0, 0), [21] = (SqueakID, 15, 0), [22] = (SqueakID, 13, 0), [23] = (SqueakID, 19, 0),
+        };
+        const int SqueakAbilityKinds = 0x16, SqueakChestSmall = 0x11, SqueakChestBig = 0x14, SqueakBubbleGimmick = 0x11;
+        // The Squeak Squad items' gone bits (rooms.c's kinds 5-7: SQUEAK_TAKEN_KIND on, 256 numbers each);
+        const byte SqueakTakenKind = 5;
+
+        /* SqueakObjects(); A room's objects as KatAM templates: its .doe's enemies, mid-bosses, bosses and items, and its floating
+         * bubbles (section 10's gimmick 0x11). Spots: Squeak Squad's are the feet (y from the room's top), KatAM's 8 pixels over them
+         * (its own enemies' and items' on a floor). A mid-boss or boss fights on a screen: its template's area (SqueakArena()), KatAM's
+         * camera held there by an arena object (Boss()). Not yet: the chase spawns, the chests (their treasures); */
+        static (List<byte[]> templates, List<byte> types) SqueakObjects(byte[] squeak, SqueakRoomFiles f, SqueakMap map, byte[] collision, bool arenas,
+                                                                         ref int taken) {
+            List<byte[]> templates = new List<byte[]>();
+            List<byte> types = new List<byte>();
+            int width = map.Width, height = map.Height;
+            bool Open(int cx, int cy) => cx >= 0 && cy >= 0 && cx < width && cy < height &&
+                                         collision[cy * width + cx] is KatAMAir or KatAMLadder or (>= 0x34 and <= KatAMWater);
+            // (an enemy a bubble held stands on the floor under it, up to 10 cells down; over a pit it stays);
+            int OnFloor(int x, int y) {
+                for (int cy = y / 16; cy < height && cy <= y / 16 + 10; cy++)
+                    if (!Open(x / 16, cy)) return cy == y / 16 ? y : cy * 16;
+                return y;
+            }
+            void Add(byte[] template) {
+                templates.Add(template);
+                if (!types.Contains(template[12])) types.Add(template[12]);
+            }
+            void Enemy(int x, int y, byte type, byte behavior, byte variant = 0) {
+                byte[] template = ObjectTemplate(x, y - 8, templates.Count, type);
+                template[14] = behavior;
+                template[0x12] = variant;
+                Add(template);
+            }
+            /* A mid-boss or boss and, first, its arena (enemies/arena.c: it holds the camera on the fight's screen, from Kirby's first
+             * frame in a room a screen big, as Squeak Squad's arenas: subtype2 ONE_SCREEN). The arena is NiDL's type's (0x31): without
+             * the NiDL ROM, none yet (the camera follows Kirby); */
+            void Boss(int x, int y, byte type, byte behavior) {
+                byte[] template = ObjectTemplate(x, y - 8, templates.Count + 1, type);
+                template[14] = behavior;
+                SqueakArena(template, map, collision);
+                if (!arenas) {
+                    template[3] = (byte)templates.Count;
+                    Add(template);
+                    return;
+                }
+                byte[] arena = (byte[])template.Clone();
+                arena[3] = (byte)templates.Count;
+                arena[12] = NightmareID; arena[14] = ArenaBehavior;
+                arena[0x10] = (byte)(width * 16 <= SqueakScreenRoom.width && height * 16 <= SqueakScreenRoom.height ? 2 : 0);
+                Add(arena);
+                Add(template);
+            }
+            int takenAt = taken;
+            void Item(int x, int y, byte type) {
+                byte[] template = ObjectTemplate(x, y - 8, templates.Count, type);
+                template[2] = (byte)(SqueakTakenKind + takenAt / 256);
+                template[3] = (byte)(takenAt++ % 256);
+                Add(template);
+            }
+            void Ability(int x, int y, int ability) {
+                if (SqueakAbilityEnemies.TryGetValue(ability, out var enemy)) Enemy(x, OnFloor(x, y), enemy.type, enemy.behavior, enemy.variant);
+                else Item(x, y, KatAMCherry);
+            }
+
+            byte[] objects = f.Objects == null ? null : SqueakFileAnyCase(squeak, f.Objects);
+            if (objects != null) {
+                for (int i = 0, count = ReadShort(objects, 12); i < count; i++) {
+                    int at = 14 + i * 16, id = ReadShort(objects, at + 2), x = ReadShort(objects, at + 4), y = ReadShort(objects, at + 6);
+                    int v = objects[at + 8], w = objects[at + 9], flags = objects[at + 0xB];
+                    if ((flags & SqueakChaseSpawn) != 0) continue;
+                    if (SqueakNatives.TryGetValue(id, out var native)) {
+                        byte behavior = v < native.behaviors.Length ? native.behaviors[v] : native.behaviors[0];
+                        if (id == 0x03 && w == 1) behavior = 6;
+                        if (KatAMMidbossTypes.Contains(native.type)) Boss(x, y, native.type, behavior);
+                        else Enemy(x, y, native.type, behavior);
+                    } else if (SqueakCharacters.TryGetValue(id, out int character)) {
+                        // (Daroach's scene: his second byte his facing, 0 left; squeak.h's variant bit 0 right);
+                        byte variant = (byte)(id == 0x45 ? (w != 0 ? 1 : 0) : v);
+                        Enemy(x, y, SqueakID, (byte)character, variant);
+                    } else if (SqueakBosses.TryGetValue(id, out int boss)) {
+                        if (id == 0x3D && w == 1) boss = DarkDaroachIndex;
+                        Boss(x, y, SqueakDefinitionOf(boss).MidbossType, (byte)(SqueakMidbossFlag | boss));
+                    }
+                }
+                int items = ReadShort(objects, 6);
+                for (int i = 0, count = items + 2 <= objects.Length ? ReadShort(objects, items) : 0; i < count; i++) {
+                    int at = items + 2 + i * 16, kind = ReadShort(objects, at + 2), x = ReadShort(objects, at + 4), y = ReadShort(objects, at + 6);
+                    if ((objects[at + 0xB] & SqueakChaseSpawn) != 0) continue;
+                    if (SqueakItemKinds.TryGetValue(kind, out byte item)) Item(x, y, item);
+                    else if (kind > SqueakAbilityKinds) Ability(x, y, kind - SqueakAbilityKinds);
+                }
+            }
+
+            // The floating bubbles (the gimmicks' entries: type, index, x, y; their table: 0x10 or 0x11 and a food, 0 or 1 and an ability);
+            int gimmicks = map.Section(10) + 2;
+            if (map.Section(10) > 0 && gimmicks + 8 <= map.Data.Length) {
+                int entries = ReadShort(map.Data, gimmicks), tables = ReadShort(map.Data, gimmicks + 2);
+                int entryCount = map.Data[gimmicks + 6], tableCount = map.Data[gimmicks + 7];
+                byte[] Parameters(int type, int index) {
+                    for (int j = 0; j < tableCount; j++) {
+                        int table = gimmicks + ReadShort(map.Data, gimmicks + tables + j * 2), size = ReadShort(map.Data, table + 2);
+                        if (map.Data[table] == type && index < map.Data[table + 1]) return map.Data[(table + 4 + index * size)..(table + 4 + index * size + size)];
+                    }
+                    return null;
+                }
+                for (int e = 0; e < entryCount; e++) {
+                    int at = gimmicks + entries + e * 8;
+                    if (map.Data[at] != SqueakBubbleGimmick || Parameters(map.Data[at], map.Data[at + 1]) is not byte[] held || held.Length < 2) continue;
+                    int x = ReadShort(map.Data, at + 2), y = ReadShort(map.Data, at + 4);
+                    if ((held[0] & 0x10) != 0) Item(x, y, SqueakBubbleItems.GetValueOrDefault(held[1], KatAMCherry));
+                    else Ability(x, y, held[1]);
+                }
+            }
+            taken = takenAt;
+            return (templates, types);
+        }
+
+        /* SqueakArena(); A mid-boss's or boss's fight area (its template's +0x1A: left and top from its spot, width, height): a screen
+         * (KatAM's 240 by 160, the room's if smaller, 8 pixels in from its sides) across the room's middle when the room is two screens
+         * wide at most, else round its spot; its bottom 32 pixels under the floor it stands on (the HUD over half of that). Squeak
+         * Squad's arenas are rooms a screen big (SqueakScreenRoom: 288 by 240 pixels, the DS's 256 by 192 and a margin); */
+        static readonly (int width, int height) SqueakScreenRoom = (288, 240);
+        static void SqueakArena(byte[] template, SqueakMap map, byte[] collision) {
+            const int ScreenWidth = 240, ScreenHeight = 160, Edge = 8, UnderFloor = 32, ArenaRoom = 36;
+            int width = map.Width * 16, height = map.Height * 16, x = ReadShort(template, 6), y = ReadShort(template, 8);
+            int arenaWidth = Math.Min(ScreenWidth, width - 2 * Edge), arenaHeight = Math.Min(ScreenHeight, height - 2 * Edge);
+            int left = map.Width <= ArenaRoom ? (width - arenaWidth) / 2 : x - arenaWidth / 2;
+            int floor = y / 16;
+            while (floor < map.Height && collision[floor * map.Width + Math.Clamp(x / 16, 0, map.Width - 1)] is KatAMAir or KatAMLadder or (>= 0x34 and <= KatAMWater)) floor++;
+            int top = floor * 16 + UnderFloor - arenaHeight;
+            left = Math.Clamp(left, Edge, width - Edge - arenaWidth);
+            top = Math.Clamp(top, Edge, height - Edge - arenaHeight);
+            WriteShorts(template, 0x1A, left - x, top - y, arenaWidth, arenaHeight);
+        }
+
+        /* Squeak Squad's rooms in the ROM (AddSqueakRooms()): the 8 worlds' stages (SqueakWorldRooms(), the test stages left out), each
          * room whole, numbered from SqueakFirstRoom up (past KatAM's 0x3D7 rooms, its goal games' 0x3D4-0x3DD among them). The three
          * tables with a row per room, gRoomProps, gUnk_08D6CD0C (room info: area, CPU helpers' routes) and gUnk_0893CB44 (where a warp
          * star's flight lands), move, grown to the last room (the rows between KatAM's and Squeak Squad's free), every reference to
@@ -596,8 +804,8 @@ namespace KatAMRandomizer {
 
         /* AddSqueakRooms(); Every Squeak Squad room into KatAM (see above): its foreground (ConvertSqueakForeground(), its star blocks'
          * cells drawn bare for what they leave), its far view as its background (shared by the rooms showing it), its collision
-         * (SqueakCollision(): a star block a special block record, leaving air, or water in water), its CPU helpers' zones; no objects
-         * nor doors yet; */
+         * (SqueakCollision(): a star block a special block record, leaving air, or water in water), its CPU helpers' zones, its
+         * objects (SqueakObjects()); no doors yet; */
         static string AddSqueakRooms(byte[] rom, byte[] squeak, KatAMExpansionCode.Version version, ref int cursor) {
             IReadOnlyDictionary<string, int> symbols = version.RomSymbols;
             int here = cursor;      // (the cursor, which the local functions can't take by reference);
@@ -623,7 +831,9 @@ namespace KatAMRandomizer {
             int Entry(string table, int index) => ReadInt(rom, symbols[table] + index * 4) - 0x08000000;
             int paletteCycles = ReadInt(rom, Entry("gForegroundPalettes", Props(0x323, 11)) + 4),        // Unused (no cycles), but read;
                 navigationRoutes = Entry("gUnk_08D63C28", Props(0x3C9, 17));                                  // Its 4 generic route lists;
-            int noTypes = Allocate(ref here, 4, 4);
+            int noTypes = Allocate(ref here, 4, 4), squeakTaken = 0;
+            // (the arenas are NiDL's type's objects: only with its enemies, CreateNidlEnemy its spawn);
+            bool arenas = ReadInt(rom, version.SpawnTable + NightmareID * 4) == CodeAddress + 0x08000000 + version.CreateNidlEnemy + 1;
             WriteInt(rom, noTypes, 0xFF);
 
             // Each table's new entries, after NiDL's or KatAM's (the doors lists after KatAM's shared one: from FirstDoorsList, so their
@@ -742,7 +952,9 @@ namespace KatAMRandomizer {
                     int solidity = Allocate(ref here, 8, 4);
                     WriteInts(rom, solidity, collisionAt + 0x08000000, specialsAt + 0x08000000);
 
-                    int objects = WriteObjectList(rom, new List<byte[]>(), new List<byte>(), noTypes, ref here);
+                    (List<byte[]> templates, List<byte> types) = SqueakObjects(squeak, f, map, collision, arenas, ref squeakTaken);
+                    if (squeakTaken > 3 * 256) return "Too many Squeak Squad items for their gone bits.";
+                    int objects = WriteObjectList(rom, templates, types, noTypes, ref here);
                     int navigation = BuildNavigation(rom, width, height, false, collision, navigationRoutes, new List<(int, int, int, int)>(), ref here);
                     int doors = DoorsList(new List<byte>(), 0);
 

@@ -386,11 +386,20 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
       two rooms (drawing, background panning, slopes, star blocks inhaled away), Cushy Cloud 1's first (the biggest), Secret Sea
       1's third (water), a ladder in Cushy Cloud 6's second; NiDL's mirrors all swept again (no change), 3 versions built and
       the logic checks run (with and without drops).
-    - Left: the objects (enemies, food, chests, ability bubbles as enemies; the chase spawns after the stage's treasure, the
-      Squeakers among them), the doors, the gimmicks, tile animations, the areas; then the hub, the levels by the rulebook,
-      bosses, the option, map viewer, logic checks.
-  - Ability bubbles whose ability no regular enemy gives (Hammer, Bonkers' in KatAM; Squeak Squad's ability numbers 18 and 26)
-    become food (the owner: "In the case of bubbles without no regular enemy, you can swap them out for food.").
+    - Objects in the ROM (`SqueakObjects()`): every room's enemies (KatAM's own with Squeak Squad's brains as their behaviors,
+      the ported characters with their variants), mid-bosses and bosses (each fight held on its screen by NiDL's arena object),
+      food and 1UPs (taken once per visit, as KatAM's), and the ability spots and floating bubbles as the enemy giving that
+      ability (on the floor under the bubble). Checked in the GBA emulator (forced starts, not a playthrough): Prism Plains 1's
+      Waddle Dee, cherry and 1UP, its tutorial's Sword spot as a Sword Knight, Gao Gao in its arena room (5-3) and in a wide room
+      (2-3: the camera held on its screen), King Dedede's fight (its screen held from the start); all 493 rooms started at
+      Squeak Squad's own Kirby start and run 720 frames walking and inhaling both ways (no stall, Kirby stays in the room);
+      Europe and Japan built and 11 rooms run the same way.
+    - Left: the chests (Squeak Squad's 125 need treasure bits of their own: KatAM's 128 are all used, NiDL's from 84), the chase
+      spawns after the stage's treasure (the Squeakers among them), the arenas without the NiDL ROM (NiDL's type holds the
+      camera), the doors, the gimmicks, tile animations, the areas; then the hub, the levels by the rulebook, bosses, the option,
+      map viewer, logic checks.
+  - Ability bubbles whose ability no regular enemy gives (Hammer, Bonkers' in KatAM; Squeak Squad's ability numbers 12, 18 and
+    26) become food (the owner: "In the case of bubbles without no regular enemy, you can swap them out for food.").
 - **Map items for each area** (the owner, with the rooms): KatAM's map item, its sprite recolored to each NiDL and Squeak Squad
   area's theme, one per area, so the map viewer shows the area once its map is found.
 - **The Collection Room scrolls left and right** (the owner, with the rooms: "the collection room should be scrollable left and
