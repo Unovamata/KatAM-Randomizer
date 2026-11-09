@@ -549,6 +549,7 @@ namespace KatAMInternal
         public List<int> SqueakMinibosses { get; set; } = new List<int>();
         // ROM Expansion: Squeak Squad's behaviors of KatAM's own enemies join their behaviors (KatAMExpansion.SqueakNativeBehaviors);
         public bool SqueakBehaviors { get; set; }
+        public bool SqueakRooms { get; set; }
         // Title screen: the intro's parading characters swapped (KatAMTitleScreen.RandomizeParade);
         public bool RandomizeTitleParade { get; set; }
         // Title screen: the intro picked at random between KatAM's and Nightmare in Dream Land's (needs a NiDL ROM loaded);

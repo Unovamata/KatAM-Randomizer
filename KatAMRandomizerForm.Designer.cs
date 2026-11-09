@@ -245,6 +245,7 @@
             CheckboxExpansionSqueakEnemies = new CheckBox();
             CheckboxExpansionSqueakMinibosses = new CheckBox();
             CheckboxExpansionSqueakBehaviors = new CheckBox();
+            CheckboxExpansionSqueakRooms = new CheckBox();
             LabelExpansionSqueakEnemies = new Label();
             GroupMapElements = new GroupBox();
             GroupMapElementStoneDoors = new GroupBox();
@@ -3432,13 +3433,14 @@
             GroupExpansionSqueak.Controls.Add(CheckboxExpansionSqueakEnemies);
             GroupExpansionSqueak.Controls.Add(CheckboxExpansionSqueakMinibosses);
             GroupExpansionSqueak.Controls.Add(CheckboxExpansionSqueakBehaviors);
+            GroupExpansionSqueak.Controls.Add(CheckboxExpansionSqueakRooms);
             GroupExpansionSqueak.Controls.Add(LabelExpansionSqueakEnemies);
             GroupExpansionSqueak.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
             GroupExpansionSqueak.Location = new Point(10, 550);
             GroupExpansionSqueak.Margin = new Padding(4, 5, 4, 5);
             GroupExpansionSqueak.Name = "GroupExpansionSqueak";
             GroupExpansionSqueak.Padding = new Padding(4, 5, 4, 5);
-            GroupExpansionSqueak.Size = new Size(1160, 576);
+            GroupExpansionSqueak.Size = new Size(1160, 610);
             GroupExpansionSqueak.TabIndex = 1;
             GroupExpansionSqueak.TabStop = false;
             GroupExpansionSqueak.Text = "Kirby: Squeak Squad";
@@ -3451,7 +3453,7 @@
             LabelExpansionSqueakDescription.Name = "LabelExpansionSqueakDescription";
             LabelExpansionSqueakDescription.Size = new Size(1126, 130);
             LabelExpansionSqueakDescription.TabIndex = 0;
-            LabelExpansionSqueakDescription.Text = "Adds characters ported from Kirby: Squeak Squad to the enemy and mini-boss pools: its enemies and the Squeaks, and its mid-bosses. Their graphics are taken from your own Squeak Squad ROM (Nintendo DS, any release), loaded with or without a Nightmare in Dream Land ROM. Enemies appear when enemies are randomized, mid-bosses when mini-bosses are, each as often as any of the game's own. Include Behaviors gives KatAM's own Waddle Dee, Glunk, Gordo and Snooter the moves Squeak Squad gives them, when behaviors are randomized. The ROM is expanded to 32 MB to fit them.";
+            LabelExpansionSqueakDescription.Text = "Adds characters ported from Kirby: Squeak Squad to the enemy and mini-boss pools: its enemies and the Squeaks, and its mid-bosses. Their graphics are taken from your own Squeak Squad ROM (Nintendo DS, any release), loaded with or without a Nightmare in Dream Land ROM. Enemies appear when enemies are randomized, mid-bosses when mini-bosses are, each as often as any of the game's own. Include Behaviors gives KatAM's own Waddle Dee, Glunk, Gordo and Snooter the moves Squeak Squad gives them, when behaviors are randomized. Include Rooms adds its 8 worlds' stages, laid out as KatAM's levels, with a hub of their own reached from Central Circle. The ROM is expanded to 32 MB to fit them.";
             // 
             // ButtonExpansionLoadSqueak
             // 
@@ -3528,10 +3530,23 @@
             CheckboxExpansionSqueakBehaviors.UseVisualStyleBackColor = true;
             CheckboxExpansionSqueakBehaviors.CheckedChanged += CheckboxExpansionSqueakBehaviors_CheckedChanged;
             // 
+            // CheckboxExpansionSqueakRooms
+            // 
+            CheckboxExpansionSqueakRooms.AutoSize = true;
+            CheckboxExpansionSqueakRooms.Enabled = false;
+            CheckboxExpansionSqueakRooms.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            CheckboxExpansionSqueakRooms.Location = new Point(16, 324);
+            CheckboxExpansionSqueakRooms.Margin = new Padding(4, 5, 4, 5);
+            CheckboxExpansionSqueakRooms.Name = "CheckboxExpansionSqueakRooms";
+            CheckboxExpansionSqueakRooms.TabIndex = 6;
+            CheckboxExpansionSqueakRooms.Text = "Include Rooms";
+            CheckboxExpansionSqueakRooms.UseVisualStyleBackColor = true;
+            CheckboxExpansionSqueakRooms.CheckedChanged += CheckboxExpansionSqueakRooms_CheckedChanged;
+            // 
             // LabelExpansionSqueakEnemies
             // 
             LabelExpansionSqueakEnemies.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            LabelExpansionSqueakEnemies.Location = new Point(16, 338);
+            LabelExpansionSqueakEnemies.Location = new Point(16, 372);
             LabelExpansionSqueakEnemies.Margin = new Padding(4, 0, 4, 0);
             LabelExpansionSqueakEnemies.Name = "LabelExpansionSqueakEnemies";
             LabelExpansionSqueakEnemies.Size = new Size(1126, 220);
@@ -3751,6 +3766,7 @@
         private CheckBox CheckboxExpansionSqueakEnemies;
         private CheckBox CheckboxExpansionSqueakMinibosses;
         private CheckBox CheckboxExpansionSqueakBehaviors;
+        private CheckBox CheckboxExpansionSqueakRooms;
         private Label LabelExpansionSqueakEnemies;
         private Label LabelGameRegion;
         private GroupBox GroupMiscSprayPalettes;

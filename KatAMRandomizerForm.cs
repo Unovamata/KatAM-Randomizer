@@ -112,7 +112,7 @@ namespace KatAMRandomizer
          * Squeak Squad's, or both; */
         private string AddExpansion(bool nightmareTitle, bool nightmare, bool squeak) {
             byte[] rom = Processing.ROMData;
-            string error = KatAMExpansion.AddEnemies(ref rom, nightmare ? nightmareROM : null, settings.NightmareRooms, nightmareTitle, squeak ? squeakROM : null);
+            string error = KatAMExpansion.AddEnemies(ref rom, nightmare ? nightmareROM : null, settings.NightmareRooms, nightmareTitle, squeak ? squeakROM : null, settings.SqueakRooms);
 
             Processing.ROMData = rom;
             return error;
@@ -170,10 +170,10 @@ namespace KatAMRandomizer
             progress.Report((5, "Adding the ROM Expansion..."));
             // (NiDL's content and Squeak Squad's: either can be added alone);
             bool addingNightmare = settings.NightmareEnemies.Count > 0 || settings.NightmareMinibosses.Count > 0 || settings.NightmareRooms || nightmareTitle,
-                 addingSqueak = settings.SqueakEnemies.Count > 0 || settings.SqueakMinibosses.Count > 0 || settings.SqueakBehaviors;
+                 addingSqueak = settings.SqueakEnemies.Count > 0 || settings.SqueakMinibosses.Count > 0 || settings.SqueakBehaviors || settings.SqueakRooms;
             if (addingNightmare || addingSqueak) {
                 string error = addingNightmare && nightmareROM == null ? "Load a Nightmare in Dream Land ROM in the ROM Expansion tab, or turn its enemies, mini-bosses and rooms off."
-                             : addingSqueak && squeakROM == null ? "Load a Squeak Squad ROM in the ROM Expansion tab, or turn its characters and behaviors off."
+                             : addingSqueak && squeakROM == null ? "Load a Squeak Squad ROM in the ROM Expansion tab, or turn its characters, behaviors and rooms off."
                              : AddExpansion(nightmareTitle, addingNightmare, addingSqueak);
 
                 if (error != null) {
@@ -1156,7 +1156,7 @@ namespace KatAMRandomizer
                 // Its content is included by kind: every ported enemy comes with "Include Enemies";
                 squeakROM = rom;
                 LabelExpansionSqueak.Text = Path.GetFileName(fileDialog.FileName);
-                foreach (CheckBox box in new[] { CheckboxExpansionSqueakEnemies, CheckboxExpansionSqueakMinibosses, CheckboxExpansionSqueakBehaviors }) {
+                foreach (CheckBox box in new[] { CheckboxExpansionSqueakEnemies, CheckboxExpansionSqueakMinibosses, CheckboxExpansionSqueakBehaviors, CheckboxExpansionSqueakRooms }) {
                     box.Enabled = true;
                     box.Checked = true;
                     RaiseControlEvent(box, "OnCheckedChanged");
@@ -1171,13 +1171,14 @@ namespace KatAMRandomizer
         private void ButtonExpansionUnloadSqueak_Click(object sender, EventArgs e) {
             squeakROM = null;
             LabelExpansionSqueak.Text = "No ROM Loaded";
-            foreach (CheckBox box in new[] { CheckboxExpansionSqueakEnemies, CheckboxExpansionSqueakMinibosses, CheckboxExpansionSqueakBehaviors }) {
+            foreach (CheckBox box in new[] { CheckboxExpansionSqueakEnemies, CheckboxExpansionSqueakMinibosses, CheckboxExpansionSqueakBehaviors, CheckboxExpansionSqueakRooms }) {
                 box.Checked = false;
                 box.Enabled = false;
             }
             settings.SqueakEnemies = new List<int>();
             settings.SqueakMinibosses = new List<int>();
             settings.SqueakBehaviors = false;
+            settings.SqueakRooms = false;
             ButtonExpansionUnloadSqueak.Enabled = false;
             UpdateExpansionLabel();
         }
@@ -1204,6 +1205,12 @@ namespace KatAMRandomizer
             UpdateExpansionLabel();
         }
 
+        // CheckboxExpansionSqueakRooms_CheckedChanged(); Squeak Squad's rooms: its 8 worlds' stages, its hub from Central Circle;
+        private void CheckboxExpansionSqueakRooms_CheckedChanged(object sender, EventArgs e) {
+            settings.SqueakRooms = squeakROM != null && CheckboxExpansionSqueakRooms.Checked;
+            UpdateExpansionLabel();
+        }
+
         // UpdateExpansionLabel(); What the ROM Expansion adds;
         private void UpdateExpansionLabel() {
             List<string> lines = new List<string>();
@@ -1217,6 +1224,7 @@ namespace KatAMRandomizer
 
             if (settings.SqueakEnemies.Count > 0) squeakLines.Add("Enemies: " + string.Join(", ", KatAMExpansion.SqueakEnemies.Select(enemy => enemy.name)) + ".");
             if (settings.SqueakMinibosses.Count > 0) squeakLines.Add("Mini-bosses: " + string.Join(", ", KatAMExpansion.SqueakMidbosses.Select(midboss => midboss.name)) + ".");
+            if (settings.SqueakRooms) squeakLines.Add("Rooms: every stage room of Squeak Squad's 8 worlds, connected by mirrors, with a hub of their own reached from Central Circle.");
             if (settings.SqueakBehaviors) squeakLines.Add("Behaviors: Waddle Dee (a patrol, a jump at Kirby, a jump on a timer), Glunk (Squeak Squad's two beats), Gordo (circles), Snooter (stands facing Kirby).");
             LabelExpansionSqueakEnemies.Text = string.Join(Environment.NewLine + Environment.NewLine, squeakLines);
         }
