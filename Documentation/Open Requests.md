@@ -456,10 +456,10 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
     - The levels and the hub (`KatAMExpansionSqueakLevels.cs`; the rulebook's rules 4 and 5, their Squeak Squad bullets): each
       world's stages laid out as a tree by the rulebook (branch doors and their mirrors back, the goals: the deepest to the boss
       stage, the others into goal games or the next world, shortcuts, a hidden two-way door into the next world's first stage),
-      136 KatAM mirrors in all (the DS's own doors as they are). The hub: a copy of Central Circle (room 0x5EB, after the worlds'
+      136 KatAM mirrors in all (the DS's own doors as they are). The hub: a copy of Central Circle (room 0x5E9, after the worlds'
       rooms), reached by a new mirror on Central Circle's floor (11, 18) and back (both provisional, the owner's to place and
       color); its Rainbow Route mirror leads to Prism Plains 1's start. 5-7 (a copy of 5-6) left out. Checked: the rooms' door
-      graph (the DS's doors, rides and the new mirrors, terrain not counted) reaches 359 of the 491 rooms from Prism Plains 1; the
+      graph (the DS's doors, rides and the new mirrors, terrain not counted) reached 359 of the 491 rooms from Prism Plains 1; the
       rest are the stages' Squeak rooms (after each goal: treasure rooms and hideouts, for the Squeak Lair doors) and 1-1's fifth
       room; in the GBA emulator (Kirby held on each door, Up): Central Circle's new door to the hub and back, the hub's way in, and
       every planned door, 146: 144 lead where they should; 1-2-1's (17, 8) works once the Sword Knight from the ability bubble
@@ -467,7 +467,19 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
       Daroach's arena, shut till he's beaten (not fought in the test). No enemy now stands within 3 cells across, 2 up or down of
       a door or a landing in these rooms (the rulebook's rule 2, as the NiDL rooms': `SqueakObjects()` leaves it out), which
       fixed 4 of the first sweep's 7 failures; 8-4's rooms between its fights take the DS's warp star rides (3 to 4 to 5), no
-      mirror (one dropped Kirby under 8-4-4's floor). Still to do here: the bosses' shards back to the hub, the hub's world doors (each
+      mirror (one dropped Kirby under 8-4-4's floor).
+    - The bosses' shards (the rulebook's rule 8): each world's boss, beaten in its boss room, leaves a shard (KatAM's 8, one a
+      world; the Bosses Give Random Shards option shuffles them as NiDL's: checked, all 8 found and logged), whose cutscene takes
+      Kirby to the Squeak Squad hub, at the world's spot (Central Circle's door of the area of its number), standing; with or
+      without the NiDL ROM (the exits' hook, `HookShardExit()`). 8-4-8 and 8-4-9, copies of Dark Nebula's room and the one before
+      it, are left out (his fight once, in 8-4-6, the shard there); 2-8-7's goal door, the only one naming a room (one its stage
+      doesn't have), is a goal again (2-8's last rooms had no way out). The room graph now: 365 of the 489 rooms reached, none of
+      them without a way out. Checked in the GBA emulator (USA): 1-7's boss room, King Dedede beaten (forced: his HP set to 1, the
+      rest of the fight played), the shard appears; Kirby put on it (forced), the cutscene plays, he dances and lands in the hub
+      (0x5E9) on the first world's spot; the same in the European ROM. Not checked yet: the other 7 bosses' rooms (Dark Nebula's:
+      his HP written to 0 skips KatAM's defeat, which only a hit starts, so that run proved nothing; the scripted Sword didn't reach
+      him), a real fight, the tomato when the shard is owned, Japan in the emulator. Seen there: Dark Nebula's room (8-4-6) shows
+      a black band on its right, past its background (to look into). Still to do here: the hub's world doors (each
       world's switch room, big switch and the world map's path, on bits of the expansion's save: the free world slots are 6),
       Mirras into the switch rooms, links with KatAM's areas, the logic checks with terrain over these rooms, the map viewer,
       the window's option.

@@ -883,10 +883,12 @@ namespace KatAMRandomizer {
          * (its own enemies' and items' on a floor). A mid-boss or boss fights on a screen: its template's area (SqueakArena()), KatAM's
          * camera held there by an arena object (Boss()). Chests: KatAM's (see SqueakChestIndex). No enemy stands on a door or where
          * one lands Kirby (`doorCells`: SqueakDoorClear cells across, 2 up or down, at its spot or the floor under it), as the NiDL
-         * rooms' (the rulebook's rule 2, BuildObjects()): it's left out. Not yet: the chase spawns, the chests' Squeak Squad treasures; */
+         * rooms' (the rulebook's rule 2, BuildObjects()): it's left out. A world's boss in its boss room (`bossShard`: the shard it leaves
+         * + 1, its template's unk11, "ROM Expansion/squeak.h"'s SqueakBossShard) leaves it as it goes, the way out to the hub (the
+         * rulebook's rule 8). Not yet: the chase spawns, the chests' Squeak Squad treasures; */
         const int SqueakDoorClear = 3;
         static (List<byte[]> templates, List<byte> types) SqueakObjects(byte[] squeak, SqueakRoomFiles f, SqueakMap map, byte[] collision, bool arenas,
-                                                                         List<(int x, int y)> doorCells, ref int taken, ref int chests) {
+                                                                         List<(int x, int y)> doorCells, byte bossShard, ref int taken, ref int chests) {
             List<byte[]> templates = new List<byte[]>();
             List<byte> types = new List<byte>();
             int width = map.Width, height = map.Height;
@@ -913,9 +915,10 @@ namespace KatAMRandomizer {
             /* A mid-boss or boss and, first, its arena (enemies/arena.c: it holds the camera on the fight's screen, from Kirby's first
              * frame in a room a screen big, as Squeak Squad's arenas: subtype2 ONE_SCREEN). The arena is NiDL's type's (0x31): without
              * the NiDL ROM, none yet (the camera follows Kirby); */
-            void Boss(int x, int y, byte type, byte behavior) {
+            void Boss(int x, int y, byte type, byte behavior, byte shard = 0) {
                 byte[] template = ObjectTemplate(x, y - 8, templates.Count + 1, type);
                 template[14] = behavior;
+                template[0x11] = shard;
                 SqueakArena(template, map, collision);
                 if (!arenas) {
                     template[3] = (byte)templates.Count;
@@ -958,7 +961,7 @@ namespace KatAMRandomizer {
                         Enemy(x, y, SqueakID, (byte)character, variant);
                     } else if (SqueakBosses.TryGetValue(id, out int boss)) {
                         if (id == 0x3D && w == 1) boss = DarkDaroachIndex;
-                        Boss(x, y, SqueakDefinitionOf(boss).MidbossType, (byte)(SqueakMidbossFlag | boss));
+                        Boss(x, y, SqueakDefinitionOf(boss).MidbossType, (byte)(SqueakMidbossFlag | boss), id >= 0x37 ? bossShard : (byte)0);
                     }
                 }
                 int items = ReadShort(objects, 6);
@@ -1048,6 +1051,9 @@ namespace KatAMRandomizer {
         const byte SqueakCameraTop = 0x81;
         // (and 5-7, a copy of Vocal Volcano's boss stage, 5-6's two rooms with Bohboh: left out as the Arena's copies of the boss rooms);
         static readonly HashSet<(int area, int stage)> SqueakTestStages = new HashSet<(int, int)> { (1, 8), (1, 9), (2, 9), (5, 7) };
+        /* (and 8-4's last two rooms: 8-4-8, a copy of 8-4-6, Dark Nebula's fight (the same map and objects), and 8-4-9, of 8-4-7, the room
+         * before it (the same, its door to 8-4-8): his fight once, in 8-4-6, his shard there; nothing in the stage leads to the copies); */
+        static readonly HashSet<(int area, int stage, int room)> SqueakCopiedRooms = new HashSet<(int, int, int)> { (8, 4, 8), (8, 4, 9) };
 
         /* roomTables; The room tables' copies AddRooms() made (where, how many entries, and how many fit: SqueakTableRoom more), null
          * without NiDL's rooms (ForgetRooms()); */
@@ -1066,7 +1072,8 @@ namespace KatAMRandomizer {
             List<SqueakRoomFiles> rooms = new List<SqueakRoomFiles>();
             for (int area = 1; area <= 8; area++)
                 for (int stage = 0; stage <= 12; stage++)
-                    if (!SqueakTestStages.Contains((area, stage))) rooms.AddRange(SqueakStageRooms(squeak, area, stage));
+                    if (!SqueakTestStages.Contains((area, stage)))
+                        rooms.AddRange(SqueakStageRooms(squeak, area, stage).Where(f => !SqueakCopiedRooms.Contains((f.Area, f.Stage, f.Index))));
             return rooms;
         }
 
@@ -1493,7 +1500,9 @@ namespace KatAMRandomizer {
                     // (its doors, the DS's and the levels', and where the levels' doors land Kirby in it: no enemy there);
                     List<(int x, int y)> doorCells = doorsOf[i].Select(d => (d.X, d.Y)).Concat(planned[i].Select(d => (d.X, d.Y)))
                         .Concat(planned.Values.SelectMany(list => list).Where(d => d.Room == SqueakFirstRoom + i).Select(d => (d.DestX - 1, d.DestY - 1))).ToList();
-                    (List<byte[]> templates, List<byte> types) = SqueakObjects(squeak, f, map, collision, arenas, doorCells, ref squeakTaken, ref squeakChests);
+                    // (its world's shard, + 1, if it's the world's boss room: KatAM's 8, one a world, the randomizer's option shuffling them);
+                    byte bossShard = bossRooms.TryGetValue(SqueakFirstRoom + i, out int bossWorld) ? (byte)bossWorld : (byte)0;
+                    (List<byte[]> templates, List<byte> types) = SqueakObjects(squeak, f, map, collision, arenas, doorCells, bossShard, ref squeakTaken, ref squeakChests);
                     // (its cannons: an eight-direction cannon for each of gimmick 0xB, and its fuse cannon with its fuse);
                     foreach (SqueakGimmick g in gimmicks) {
                         if (g.Type == SqueakTurnCannon) {
@@ -1571,7 +1580,8 @@ namespace KatAMRandomizer {
                     squeakRooms.Add(new SqueakPortedRoom(f, room, width, height));
                 }
                 if (BuildSqueakHub(rom, symbols, nidlRooms, roomProps, newProps, newInfos, roomInfos, SqueakFirstRoom + files.Count, worldStarts[1],
-                                   navigationRoutes, noTypes, Add, DoorsList, ref here) is string hubError) return hubError;
+                                   navigationRoutes, noTypes, Add, DoorsList, out byte[] hubCollision, out int hubWidth, ref here) is string hubError) return hubError;
+                if (SqueakShardExits(rom, version, symbols, SqueakFirstRoom + files.Count, bossRooms, hubCollision, hubWidth) is string exitError) return exitError;
             } catch (Exception exception) when (exception is IndexOutOfRangeException or ArgumentException or InvalidOperationException) {
                 return $"The Squeak Squad ROM's rooms couldn't be read ({exception.Message}).";
             }

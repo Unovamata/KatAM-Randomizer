@@ -122,6 +122,10 @@ enum { SQUEAK_STAR_SPIT, SQUEAK_STAR_AHEAD, SQUEAK_STAR_BEHIND, SQUEAK_STAR_SWOR
 #define SQUEAK_CANNON_FLIGHT 150
 // (the first of the Squeak Squad rooms' ids, KatAMExpansionSqueakRooms.cs' SqueakFirstRoom: chest.c's SqueakCannonArrival);
 #define SQUEAK_FIRST_ROOM 0x400
+/* (a world's boss, in its boss room: its template's unk11 is the mirror shard it leaves + 1, KatAMExpansionSqueakRooms.cs; beaten, as
+ * it goes, the shard comes, or a Maxim Tomato, as NiDL's bosses', nidl_boss.c's NidlBossShard(): the way out to the Squeak Squad hub,
+ * gNidlShardExits; SqueakDestroy()); */
+#define SqueakBossShard(obj) ((obj)->objTemplate->unk11)
 #define SQUEAK_CHEST_CLOSED SQUEAK_HURT_VARIANTS
 
 // Room every ported character gets (SqueakObject and its own fields);

@@ -333,6 +333,10 @@ how Squeak Squad's enemies work): [Squeak Squad Notes](../Documentation/Squeak%2
   `SqueakStop`, `SqueakCapFall`, `SqueakSinkTo`, `SqueakTurnAround` (the brain's -1, "turn round", becomes 1 once done, as Squeak
   Squad's), the ground, a wall ahead, water (as its last move met them: KatAM's `unk62` and `unk58`), facing Kirby and Kirby within
   a box. Characters with moves in water are flagged swimmers (KatAM's engine drowns the others, `unkC` 1).
+- **A world's boss leaves its shard** (`SqueakDestroy`, `SqueakBossShard`): in its boss room its template's `unk11` is the shard
+  + 1 (`KatAMExpansionSqueakRooms.cs`); beaten (no HP left, the player in the room), as it goes it leaves the shard through NiDL's
+  `NidlBossShard` (a Maxim Tomato if owned), and `gNidlShardExits` takes Kirby to the Squeak Squad hub after its cutscene.
+  `SqueakSpawn`'s copies of a template never carry it.
 - **Effects** (`SqueakSpawnEffect`): Squeak Squad's shared effects (`effect/efc_cmn0`, `efc_cmn1`), each the cells one of its
   animations shows as an anim of its own (`SqueakEffectDefinitions`), played once by an effect object at the character's spot plus
   an offset, facing as it does, and following it when Squeak Squad's does (`0x020218C0`). So far: the dust puff (type 3), and the

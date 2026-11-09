@@ -93,7 +93,8 @@ namespace KatAMRandomizer {
          * makes is given its new number by chest.c (gNidlShard +4, by the game's shard; HookShards); the pause screen's area maps show
          * a boss room's shard icon until the area's shard is owned (gAreaMapRoomIdsAndShards: {map room, boss room, shard} for each
          * area): the area's new one. For NiDL's: the low nibble of their templates' behavior (type 0x43 or 0x44 in the rooms' object
-         * lists: nidl_boss.c's NidlBossDefeat), the 7 that leave one (not the finale's, the Power Orb and Nightmare). BossShardLog lists who leaves what (the spoiler log). Returns an error, or null; */
+         * lists: nidl_boss.c's NidlBossDefeat), the 7 that leave one (not the finale's, the Power Orb and Nightmare); then the Squeak Squad
+         * worlds' 8 bosses, the same way. BossShardLog lists who leaves what (the spoiler log). Returns an error, or null; */
         static readonly string[] KatAMShardBosses = { "Kracko", "King Golem", "Master Hand & Crazy Hand", "Gobbler", "Wiz", "Moley", "Mega Titan", "Dark Meta Knight" };
         static readonly string[] NidlBossNames = { "Whispy Woods", "Kracko (NiDL)", "Mr. Shine & Mr. Bright", "Meta Knight", "Paint Roller", "Heavy Mole",
                                                    "King Dedede", "Nightmare's Power Orb", "Nightmare" };
@@ -154,6 +155,20 @@ namespace KatAMRandomizer {
                         BossShardLog.Add($"{(boss < NidlBossNames.Length ? NidlBossNames[boss] : $"NiDL boss {boss}")} (room 0x{room:X}): Mirror Shard #{shard + 1}");
                     }
                 }
+            }
+
+            /* The Squeak Squad worlds' bosses (KatAMExpansionSqueakRooms.cs): each world's in its boss room, its template (KatAM's header
+             * 01 24, a mini-boss type, SQUEAK_MIDBOSS | the character) holding its shard + 1 at +0x11 ("ROM Expansion/squeak.h"'s
+             * SqueakBossShard): a third shuffle, spread as NiDL's; */
+            int[] third = Enumerable.Range(0, 8).OrderBy(_ => random.Next()).ToArray();
+            int squeakBosses = 0;
+            for (int at = CodeAddress; at + 36 <= patched.Length; at += 4) {
+                if (patched[at] != 1 || patched[at + 1] != 0x24 || patched[at + 12] is < 0x40 or > 0x42 || patched[at + 14] < SqueakMidbossFlag
+                    || patched[at + 0x11] is < 1 or > 8) continue;
+                int shard = third[squeakBosses++ % 8], character = patched[at + 14] & ~SqueakMidbossFlag;
+                patched[at + 0x11] = (byte)(shard + 1);
+                string name = SqueakDefinitions.FirstOrDefault(e => e.Index == character)?.Name ?? $"Squeak Squad boss {character}";
+                BossShardLog.Add($"{name} (Squeak Squad): Mirror Shard #{shard + 1}");
             }
             return null;
         });

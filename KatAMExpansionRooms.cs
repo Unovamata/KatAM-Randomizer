@@ -1427,15 +1427,13 @@
                          infos, palettes, tilemaps, solidities, backgrounds, objects, noTypes, ref cursor, out Door abilityDoor,
                          out byte[] hubCollision, out int hubWidth);
             WriteShort(rom, CodeAddress + version.CodeSymbols["gNidlHubRoom"], mainHub);
-            /* The boss rooms' shards (bossExitsOf): gNidlShardExits ("ROM Expansion/nidl_boss.c"), and sub_0804C614's `kirby->roomId = 0x321`
-             * and spawn spot (after the shard cutscene) a call to NidlShardExit(): `adds r0, r4, #0; ldr r1, =NidlShardExit; bl
-             * _call_via_r1; b` past the spot's stores, the 0x321 literal holding the address; in the NiDL hub, with the cells of the
-             * door's ground either side of it (up to 2 each: HubGroundBeside()), each Kirby landing on his own; */
+            /* The boss rooms' shards (bossExitsOf): gNidlShardExits ("ROM Expansion/nidl_boss.c"), read by NidlShardExit() after the shard
+             * cutscene (HookShardExit()); in the NiDL hub, with the cells of the door's ground either side of it (up to 2 each:
+             * HubGroundBeside()), each Kirby landing on his own; */
             {
-                int exits = CodeAddress + version.CodeSymbols["gNidlShardExits"], site = version.RomSymbols["sub_0804C614"] + 0x174;
-                int literal = version.RomSymbols["sub_0804C614"] + 0x1B4;
-                if (ReadShort(rom, site) != 0x2083 || ReadInt(rom, literal) != 0x321)
-                    return $"The {region.KatAM} ROM's shard code doesn't match.";
+                int exits = CodeAddress + version.CodeSymbols["gNidlShardExits"];
+                string hookError = HookShardExit(rom, version);
+                if (hookError != null) return hookError;
                 int n = 0;
                 foreach (var (part, exit) in bossExitsOf.OrderBy(e => e.Key.Room)) {
                     if (n >= 24) break;
@@ -1446,10 +1444,6 @@
                         (rom[exits + n * 8 + 6], rom[exits + n * 8 + 7]) = HubGroundBeside(rom, hubCollision, hubWidth, symbols["gCollisionAttributes"], exit.x - 1, exit.y - 1);
                     n++;
                 }
-                int call = version.RomSymbols["_call_via_r1"] - (site + 0x08000000 + 4 + 4);
-                WriteShorts(rom, site, 0x1C20, 0x4900 | (literal - ((site + 2 + 4) & ~3)) / 4, 0xF000 | (call >> 12 & 0x7FF), 0xF800 | (call >> 1 & 0x7FF),
-                            0xE000 | ((0x198 - (0x174 + 8) - 4) / 2 & 0x7FF));
-                WriteInt(rom, literal, CodeAddress + 0x08000000 + version.CodeSymbols["NidlShardExit"] + 1);
                 // (for the map tracker, in the map table after its mini-bosses: "SX", u16 the exits, the table's address);
                 System.Text.Encoding.ASCII.GetBytes("SX").CopyTo(rom, MapShardExits);
                 WriteShort(rom, MapShardExits + 2, n);
@@ -2059,6 +2053,22 @@
         // enemies off them, as BuildObjects() the ported rooms', 3 cells across, 2 up or down);
         static Dictionary<int, List<(int x, int y)>> katamLandings = new Dictionary<int, List<(int, int)>>();
         static int finishCursor;
+
+        /* HookShardExit(); sub_0804C614's `kirby->roomId = 0x321` and spawn spot (after a shard's cutscene) a call to NidlShardExit()
+         * (gNidlShardExits: where a ported boss's shard takes Kirby): `adds r0, r4, #0; ldr r1, =NidlShardExit; bl _call_via_r1; b` past
+         * the spot's stores, the 0x321 literal holding the address. Once: the NiDL rooms' bosses and Squeak Squad's both use it (with or
+         * without the NiDL ROM); */
+        static string HookShardExit(byte[] rom, KatAMExpansionCode.Version version) {
+            int site = version.RomSymbols["sub_0804C614"] + 0x174, literal = version.RomSymbols["sub_0804C614"] + 0x1B4;
+            int exit = CodeAddress + 0x08000000 + version.CodeSymbols["NidlShardExit"] + 1;
+            if (ReadInt(rom, literal) == exit) return null;
+            if (ReadShort(rom, site) != 0x2083 || ReadInt(rom, literal) != 0x321) return $"The {version.Name} ROM's shard code doesn't match.";
+            int call = version.RomSymbols["_call_via_r1"] - (site + 0x08000000 + 4 + 4);
+            WriteShorts(rom, site, 0x1C20, 0x4900 | (literal - ((site + 2 + 4) & ~3)) / 4, 0xF000 | (call >> 12 & 0x7FF), 0xF800 | (call >> 1 & 0x7FF),
+                        0xE000 | ((0x198 - (0x174 + 8) - 4) / 2 & 0x7FF));
+            WriteInt(rom, literal, exit);
+            return null;
+        }
 
         /* HubGroundBeside(); How many cells of ground the NiDL hub has either side of a landing cell (x, y), up to 2 each (`collision`: its
          * collision map, `width` cells across; `attributes`: gCollisionAttributes, bit 0 a cell Kirby goes through): an empty cell with

@@ -39,7 +39,10 @@ namespace KatAMRandomizer {
         const int CentralCircle = 0x321;
         static string BuildSqueakHub(byte[] rom, IReadOnlyDictionary<string, int> symbols, bool nidlRooms, int roomProps, int newProps, int newInfos,
                                      int roomInfos, int hub, (int room, int x, int y) wayIn, int navigationRoutes, int noTypes,
-                                     Func<string, int, int> add, Func<List<byte>, int, int> doorsList, ref int cursor) {
+                                     Func<string, int, int> add, Func<List<byte>, int, int> doorsList, out byte[] hubCollision, out int hubWidth,
+                                     ref int cursor) {
+            hubCollision = null;
+            hubWidth = 0;
             int Props(int field) => ReadShort(rom, roomProps + CentralCircle * 0x28 + field * 2);
             int Table(string table) => nidlRooms ? roomTables[table].at : symbols[table];
             int Current(string table, int index) => ReadInt(rom, Table(table) + index * 4) - 0x08000000;
@@ -52,7 +55,7 @@ namespace KatAMRandomizer {
                 }
                 return fallback;
             }
-            int width = ReadShort(rom, Current("gForegroundTilemaps", Props(12))) / 2;
+            int width = hubWidth = ReadShort(rom, Current("gForegroundTilemaps", Props(12))) / 2;
 
             // Central Circle's collision and special records, as they are now;
             int solidity = Current("gSolidityMaps", Props(13));
@@ -66,7 +69,7 @@ namespace KatAMRandomizer {
                 return "Central Circle has no floor for the Squeak Squad door.";
 
             // The hub: Central Circle's cells, its doors air, and its two doors;
-            byte[] hubCollision = collision.Select(v => v >= 0xFC ? KatAMAir : v).ToArray();
+            hubCollision = collision.Select(v => v >= 0xFC ? KatAMAir : v).ToArray();
             Door wayInDoor = new Door(MainHubEntry.x, MainHubEntry.y, wayIn.room, wayIn.x, wayIn.y, 1);
             Door backDoor = new Door(SqueakHubDoor.x, SqueakHubDoor.y, CentralCircle, SqueakHubDoor.x + 1, SqueakHubDoor.y + 1, Facing(SqueakHubDoor.x + 1, width));
             List<byte> hubSpecials = new List<byte>();
@@ -131,6 +134,33 @@ namespace KatAMRandomizer {
             return null;
         }
 
+        /* SqueakShardExits(); Where each world's boss's shard takes Kirby (the rulebook's rule 8: a shard only ever sends Kirby to a central
+         * hub, onto the level's door there): gNidlShardExits' entries after the NiDL bosses' ("ROM Expansion/nidl_boss.c", NidlShardExit()
+         * after the shard's cutscene, HookShardExit()), the Squeak Squad hub, at the world's door's spot (Central Circle's door of the area
+         * of its number, MainHubDoors, as the NiDL hub's levels': the world doors themselves come with the switch rooms), each Kirby on his
+         * own cell of its ground (HubGroundBeside()); */
+        const int ShardExitCount = 24;
+        static string SqueakShardExits(byte[] rom, KatAMExpansionCode.Version version, IReadOnlyDictionary<string, int> symbols, int hub,
+                                       Dictionary<int, int> bossRooms, byte[] hubCollision, int hubWidth) {
+            if (HookShardExit(rom, version) is string error) return error;
+            int exits = CodeAddress + version.CodeSymbols["gNidlShardExits"], n = 0;
+            while (n < ShardExitCount && ReadShort(rom, exits + n * 8) != 0) n++;
+            foreach ((int room, int world) in bossRooms.OrderBy(b => b.Key)) {
+                if (n >= ShardExitCount) return "Too many boss rooms for the shards' exits.";
+                (int x, int y) spot = MainHubDoors[(world - 1) % MainHubDoors.Length];
+                WriteShorts(rom, exits + n * 8, room, hub);
+                rom[exits + n * 8 + 4] = (byte)(spot.x + 1);
+                rom[exits + n * 8 + 5] = (byte)(spot.y + 1);
+                (rom[exits + n * 8 + 6], rom[exits + n * 8 + 7]) = HubGroundBeside(rom, hubCollision, hubWidth, symbols["gCollisionAttributes"], spot.x, spot.y);
+                n++;
+            }
+            // (the map tracker's count of them, "SX": AddRooms() writes it with the NiDL rooms);
+            System.Text.Encoding.ASCII.GetBytes("SX").CopyTo(rom, MapShardExits);
+            WriteShort(rom, MapShardExits + 2, n);
+            WriteInt(rom, MapShardExits + 4, exits + 0x08000000);
+            return null;
+        }
+
         // SqueakPlanRoom; What the plan knows of a Squeak Squad room: its place, size, KatAM collision, the DS's doors, its fights, its warp
         // stars and cannons (cells);
         internal sealed class SqueakPlanRoom {
@@ -149,8 +179,10 @@ namespace KatAMRandomizer {
         // (a cell Kirby stands on: solid, slopes, thin floors, a ladder's top, blocks);
         static bool SqueakFloor(byte v) => v is (>= 0x05 and <= 0x1B) or KatAMLadderTop or (>= KatAMStarBlock and <= KatAMMetalBlock);
         // SqueakGoal(); Whether a DS door is its stage's goal; SqueakArrival(), where its doors land Kirby (no room, not a goal);
-        static bool SqueakGoal(SqueakDoor d) => d.Room == SqueakNoRoom && d.Flags == SqueakGoalFlags;
-        static bool SqueakArrival(SqueakDoor d) => d.Room == SqueakNoRoom && d.Flags != SqueakGoalFlags;
+        /* (a goal: flags 0x23, with bit 7 too (4-4-9's: as the doors' 0x90), whatever its room (2-8-7's names room 13 of a stage of 7, the
+         * only one of the 48 that names one: the DS's goal all the same); a room's start: no room, not a goal); */
+        static bool SqueakGoal(SqueakDoor d) => (d.Flags & 0x7F) == SqueakGoalFlags;
+        static bool SqueakArrival(SqueakDoor d) => d.Room == SqueakNoRoom && !SqueakGoal(d);
 
         /* PlanSqueakLevels(); The mirrors to add to each room (by its index), from SqueakLayoutSeed; each world's way in (its first
          * stage's start: the room, cell + 1) and the boss rooms (their room ids, by world); */

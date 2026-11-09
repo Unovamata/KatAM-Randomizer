@@ -946,6 +946,7 @@ struct SqueakObject *SqueakSpawn(struct SqueakObject *s, u8 enemy, u8 variant, s
     template.unk12 = variant;
     template.unk2 = 0;
     template.unk3 = 31;
+    template.unk11 = 0;     // (not a boss's shard: SqueakBossShard);
     spawned = CreateSqueakEnemy(&template, s->obj.base.unk56);
     if (spawned == NULL) return NULL;
     spawned->spawn = template;
@@ -1071,9 +1072,14 @@ struct Kirby *SqueakTouchingKirby(struct SqueakObject *s) {
     return NULL;
 }
 
-// SqueakDestroy(); A character's end: the effect following it stays where it is, its parts go;
+/* SqueakDestroy(); A character's end: the effect following it stays where it is, its parts go; a world's boss beaten (no HP left, the
+ * player still in its room: not the room's end) leaves its shard (SqueakBossShard), the boss room's way out, as it goes after its
+ * defeat, as NiDL's bosses as they explode; */
 static void SqueakDestroy(struct Task *t) {
     struct SqueakObject *s = TaskGetStructPtr(t);
+
+    if (s->obj.objTemplate && SqueakBossShard(&s->obj) && s->obj.unk80 <= 0 && gKirbys[0].base.roomId == s->obj.base.roomId)
+        NidlBossShard(s->obj.base.unk56, s->obj.base.roomId, SqueakBossShard(&s->obj) - 1);
 
     if (s->follower) ((struct SqueakFx *)s->follower)->owner = NULL;
     if (s->layer[0]) ((struct SqueakLayerFx *)s->layer[0])->owner = NULL;

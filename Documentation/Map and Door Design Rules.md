@@ -115,7 +115,8 @@ after any change.
   - a goal room keeps the DS's own doors (they're drawn in its tiles) but gets no new one (the owner to confirm);
   - each world's boss stage (1-7, 2-7, 3-7, 4-7, 5-6, 6-7, 7-7, 8-4; 5-7, a copy of 5-6, is left out as the Arena's copies are)
     is entered only through the deepest stage's goal; the final stage's rooms the DS reaches by cutscenes between its fights are
-    chained by one-way mirrors from each fight's room to the next (where no warp star ride of the DS's leads on);
+    chained by one-way mirrors from each fight's room to the next (where no warp star ride of the DS's leads on); its last two
+    rooms, copies of Dark Nebula's room and the one before it, are left out, so he's fought once;
   - the hidden two-way door between worlds leads into the next world's first stage;
   - the rooms a stage reaches only through its Squeaks (after its goal: the gold-pile treasure rooms and the hideouts where
     Spinni, Doc or Storo fight for a stolen chest) are left to the Squeak Lair doors (rule 9 holds once those are made).
@@ -157,11 +158,13 @@ after any change.
   that was in a boss room goes elsewhere. A boss whose shard is owned leaves a Maxim Tomato
   instead, never the shard, and grabbing it takes Kirby out as the shard would. `bossExitsOf`,
   `gNidlShardExits`, `NidlShardExit()`.
-- **A shard only ever sends Kirby to a central hub**: KatAM's to Central Circle, NiDL's to the NiDL hub, onto that level's door
-  there. Never into another level or room. NiDL's empty walk-out rooms after a boss are left out of the port: nothing leads there
+- **A shard only ever sends Kirby to a central hub**: KatAM's to Central Circle, NiDL's to the NiDL hub, Squeak Squad's to the
+  Squeak Squad hub (each world's boss, its last fight in its boss stage, leaves one: the world's spot there is Central Circle's
+  door of the area of its number, where its world door will be), onto that level's door there. Never into another level or room. NiDL's empty walk-out rooms after a boss are left out of the port: nothing leads there
   any more.
 - **Which shard a boss leaves can be shuffled** (Bosses Give Random Shards): KatAM's bosses always hold all 8 between them, so the
-  game can be beaten from KatAM alone; NiDL's 7 that leave one (not the Power Orb nor Nightmare) spread the 8 evenly. An owned
+  game can be beaten from KatAM alone; NiDL's 7 that leave one (not the Power Orb nor Nightmare) spread the 8 evenly, and so do
+  Squeak Squad's 8 (one each by default, world by world). An owned
   shard is always a Maxim Tomato, never a cutscene in the way.
 - **The Fountain of Dreams is the finale before KatAM's final boss**, reached only once KatAM has the 8 shards: Central Circle's
   Dimension Mirror and the NiDL hub's lead to the Power Orb's room (nothing else leads in). The Power Orb and Nightmare leave no
