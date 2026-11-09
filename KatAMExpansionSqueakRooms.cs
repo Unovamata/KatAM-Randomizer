@@ -9,21 +9,8 @@ namespace KatAMRandomizer {
         // KatAM's foreground: its tiles (char block 2 up to its screen blocks) and palettes;
         const int ForegroundTiles = 768, ForegroundPalettes = 6;
 
-        /* SqueakFileAnyCase(); A file by its path, its case ignored: a stage's .mxi names its files in lower case ("map/0d_f.bin"),
-         * some of them stored in upper case ("map/0D_f.bin"); */
-        static byte[] SqueakFileAnyCase(byte[] rom, string path) {
-            byte[] file = SqueakFile(rom, path);
-            if (file != null) return file;
-            int slash = path.LastIndexOf('/');
-            string folder = path.Substring(0, slash + 1), name = path.Substring(slash + 1);
-            foreach (string variant in new[] { name.ToUpperInvariant(), CapitalizedPrefix(name) }) {
-                file = SqueakFile(rom, folder + variant);
-                if (file != null) return file;
-            }
-            return null;
-        }
-        // (a tileset's name: its two hex digits in upper case, "0d_f.bin" -> "0D_f.bin");
-        static string CapitalizedPrefix(string name) => name.Length > 2 && name[2] == '_' ? name.Substring(0, 2).ToUpperInvariant() + name.Substring(2) : name;
+        // SqueakFileAnyCase(); A file by its path, its case ignored (a stage's .mxi names "map/0d_f.bin", stored as "map/0D_f.bin");
+        static byte[] SqueakFileAnyCase(byte[] rom, string path) => SqueakFile(rom, path) ?? SqueakFile(rom, path, true);
 
         /* SqueakUnpack(); A map file's data: NDS RLE (0x30: a flag byte, bit 7 a run of the next byte, its low bits + 3 times, else its
          * low bits + 1 bytes as they are), or stored plain ("MaD"); */
@@ -304,6 +291,218 @@ namespace KatAMRandomizer {
                 tilemap[c] = (ushort)(number[target] | (h ? 0x400 : 0) | (v ? 0x800 : 0) | tiles[target].palette << 12);
             }
             return new SqueakForeground(tileData, paletteColors, tilemap, columns, rows, mergedColors, mergedTiles);
+        }
+
+        /* SqueakFarViewPicture(); A far view (map/d_viw_NN.nsbtx: a TEX0 block, one 256-color texture, 512 or 256 pixels wide, 256 tall,
+         * or 256 by 512) as the DS shows it: its top 192 rows (the rest repeats its last row, the plane's smeared edge; the tall one, a
+         * climb's, all of it); colors BGR555 (a TEX0's dictionaries: a header, 4 bytes a name's hash, the entries, 16 bytes a name); */
+        static int[,] SqueakFarViewPicture(byte[] file) {
+            int tex0 = ReadInt(file, 0x10);
+            int textureInfo = tex0 + ReadShort(file, tex0 + 0x0E), textureData = tex0 + ReadInt(file, tex0 + 0x14);
+            int paletteInfo = tex0 + ReadInt(file, tex0 + 0x34), paletteData = tex0 + ReadInt(file, tex0 + 0x38);
+            int Entry(int dictionary) => dictionary + 4 + 8 + 4 * file[dictionary + 1] + 4;
+            int parameters = ReadInt(file, Entry(textureInfo));
+            int width = 8 << (parameters >> 20 & 7), height = 8 << (parameters >> 23 & 7), format = parameters >> 26 & 7;
+            if (format != 4) throw new InvalidOperationException("A Squeak Squad far view isn't the 256-color texture expected.");
+            int pixels = textureData + (parameters & 0xFFFF) * 8, colors = paletteData + (ReadShort(file, Entry(paletteInfo)) & 0x1FFF) * 8;
+            int shown = height > width ? height : Math.Min(height, 192);
+            int[,] picture = new int[width, shown];
+            for (int y = 0; y < shown; y++)
+                for (int x = 0; x < width; x++) picture[x, y] = ReadShort(file, colors + file[pixels + y * width + x] * 2) & 0x7FFF;
+            return picture;
+        }
+
+        // A converted far view: KatAM's background tiles (4 bits a pixel), 8 palettes (KatAM's 6-13, color 0 unused) and map (width x
+        // height tiles, palettes 6-13);
+        internal sealed record SqueakBackground(byte[] Tiles, ushort[] Palettes, ushort[] Map, int Width, int Height, int MergedTiles);
+
+        /* ConvertSqueakFarView(); A far view as KatAM's background, its 900 tiles and 8 palettes of 15 colors: shrunk to `scale` (its
+         * colors averaged over the pixels each covers: a 512-pixel view at 3/4 is 48 tiles wide), at least `minHeight` tall (the last
+         * row repeated, as the DS's smeared edge: KatAM's camera shows 160 rows); the tiles grouped by their colors into 8 palettes,
+         * each palette the 15 colors that draw its tiles best (k-means), each tile then drawn with the palette that draws it best, a
+         * few rounds; past 900 tiles, the two most alike made one (as BuildBackground()); */
+        static SqueakBackground ConvertSqueakFarView(int[,] picture, double scale = 0.75, int minHeight = 160, int maxTiles = BackgroundTiles) {
+            int sourceWidth = picture.GetLength(0), sourceHeight = picture.GetLength(1);
+            int width = (int)Math.Round(sourceWidth * scale / 8) * 8, height = Math.Max((int)Math.Round(sourceHeight * scale / 8) * 8, (minHeight + 7) / 8 * 8);
+            int shrunkHeight = Math.Min(height, (int)Math.Round(sourceHeight * scale));
+            // (each pixel the average of the source pixels it covers, weighted by how much of each);
+            double[,,] image = new double[width, height, 3];
+            double step = 1 / scale;
+            for (int y = 0; y < height; y++)
+                for (int x = 0; x < width; x++) {
+                    double y0 = Math.Min(y, shrunkHeight - 1) * step, x0 = x * step, r = 0, g = 0, b = 0, total = 0;
+                    for (int sy = (int)y0; sy < Math.Min(sourceHeight, (int)Math.Ceiling(y0 + step)); sy++)
+                        for (int sx = (int)x0; sx < Math.Min(sourceWidth, (int)Math.Ceiling(x0 + step)); sx++) {
+                            double weight = (Math.Min(sx + 1, x0 + step) - Math.Max(sx, x0)) * (Math.Min(sy + 1, y0 + step) - Math.Max(sy, y0));
+                            if (weight <= 0) continue;
+                            int c = picture[sx, sy];
+                            r += (c & 31) * weight; g += (c >> 5 & 31) * weight; b += (c >> 10 & 31) * weight; total += weight;
+                        }
+                    image[x, y, 0] = r / total; image[x, y, 1] = g / total; image[x, y, 2] = b / total;
+                }
+
+            int columns = width / 8, rows = height / 8, tileCount = columns * rows;
+            const int Palettes = 8, Colors = 15;
+            static double Distance(double r1, double g1, double b1, double r2, double g2, double b2) =>
+                3 * (r1 - r2) * (r1 - r2) + 4 * (g1 - g2) * (g1 - g2) + 2 * (b1 - b2) * (b1 - b2);
+            double[][] TilePixels(int t) {
+                double[][] p = new double[64][];
+                for (int i = 0; i < 64; i++) {
+                    int x = t % columns * 8 + i % 8, y = t / columns * 8 + i / 8;
+                    p[i] = new[] { image[x, y, 0], image[x, y, 1], image[x, y, 2] };
+                }
+                return p;
+            }
+            double[][][] tilePixels = Enumerable.Range(0, tileCount).Select(TilePixels).ToArray();
+
+            // k-means of colors: `count` centers for the pixels given (started from the most spread);
+            static double[][] Centers(List<double[]> points, int count, double[][] start = null) {
+                if (points.Count == 0) return Enumerable.Range(0, count).Select(_ => new double[3]).ToArray();
+                double[][] centers = start?.Select(c => (double[])c.Clone()).ToArray() ?? new double[count][];
+                if (start == null) {
+                    centers[0] = (double[])points[0].Clone();
+                    double[] nearest = points.Select(p => Distance(p[0], p[1], p[2], centers[0][0], centers[0][1], centers[0][2])).ToArray();
+                    for (int k = 1; k < count; k++) {
+                        int far = Array.IndexOf(nearest, nearest.Max());
+                        centers[k] = (double[])points[far].Clone();
+                        for (int i = 0; i < points.Count; i++)
+                            nearest[i] = Math.Min(nearest[i], Distance(points[i][0], points[i][1], points[i][2], centers[k][0], centers[k][1], centers[k][2]));
+                    }
+                }
+                for (int round = 0; round < 8; round++) {
+                    double[][] sums = new double[count][];
+                    int[] counts = new int[count];
+                    for (int k = 0; k < count; k++) sums[k] = new double[3];
+                    foreach (double[] p in points) {
+                        int best = 0;
+                        double bestDistance = double.MaxValue;
+                        for (int k = 0; k < count; k++) {
+                            double d = Distance(p[0], p[1], p[2], centers[k][0], centers[k][1], centers[k][2]);
+                            if (d < bestDistance) { bestDistance = d; best = k; }
+                        }
+                        counts[best]++;
+                        for (int c = 0; c < 3; c++) sums[best][c] += p[c];
+                    }
+                    for (int k = 0; k < count; k++)
+                        if (counts[k] > 0) centers[k] = sums[k].Select(s => s / counts[k]).ToArray();
+                }
+                return centers;
+            }
+
+            /* The tiles grouped by their colors (k-means of their dark half's and light half's averages: a tile of greens and greys
+             * isn't a tile of its average's), then palettes and groups refined in turn; */
+            double[] Feature(double[][] p) {
+                double[][] sorted = p.OrderBy(q => q[0] * 3 + q[1] * 4 + q[2] * 2).ToArray();
+                return Enumerable.Range(0, 3).Select(c => sorted.Take(32).Average(q => q[c])).Concat(Enumerable.Range(0, 3).Select(c => sorted.Skip(32).Average(q => q[c]))).ToArray();
+            }
+            double[][] features = tilePixels.Select(Feature).ToArray();
+            static double FeatureDistance(double[] a, double[] b) => Distance(a[0], a[1], a[2], b[0], b[1], b[2]) + Distance(a[3], a[4], a[5], b[3], b[4], b[5]);
+            double[][] groupCenters = new double[Palettes][];
+            groupCenters[0] = features[0];
+            double[] nearestCenter = features.Select(f => FeatureDistance(f, groupCenters[0])).ToArray();
+            for (int k = 1; k < Palettes; k++) {
+                groupCenters[k] = features[Array.IndexOf(nearestCenter, nearestCenter.Max())];
+                for (int t = 0; t < tileCount; t++) nearestCenter[t] = Math.Min(nearestCenter[t], FeatureDistance(features[t], groupCenters[k]));
+            }
+            int[] group = new int[tileCount];
+            for (int round = 0; round < 10; round++) {
+                for (int t = 0; t < tileCount; t++) group[t] = Enumerable.Range(0, Palettes).OrderBy(k => FeatureDistance(features[t], groupCenters[k])).First();
+                for (int k = 0; k < Palettes; k++) {
+                    double[][] members = Enumerable.Range(0, tileCount).Where(t => group[t] == k).Select(t => features[t]).ToArray();
+                    if (members.Length > 0) groupCenters[k] = Enumerable.Range(0, 6).Select(c => members.Average(m => m[c])).ToArray();
+                }
+            }
+            double[][][] palettes = new double[Palettes][][];
+            double TileError(int t, double[][] palette) {
+                double sum = 0;
+                foreach (double[] p in tilePixels[t]) sum += palette.Min(c => Distance(p[0], p[1], p[2], c[0], c[1], c[2]));
+                return sum;
+            }
+            for (int round = 0; round < 8; round++) {
+                for (int k = 0; k < Palettes; k++) {
+                    List<double[]> points = Enumerable.Range(0, tileCount).Where(t => group[t] == k).SelectMany(t => tilePixels[t]).ToList();
+                    palettes[k] = Centers(points, Colors, round == 0 ? null : palettes[k]);
+                }
+                for (int t = 0; t < tileCount; t++)
+                    group[t] = Enumerable.Range(0, Palettes).OrderBy(k => TileError(t, palettes[k])).First();
+            }
+
+            // KatAM's colors (BGR555), each tile's indexes, the same tiles (flipped too) one;
+            ushort[] paletteColors = new ushort[Palettes * 16];
+            for (int k = 0; k < Palettes; k++)
+                for (int c = 0; c < Colors; c++) {
+                    int r = Math.Clamp((int)Math.Round(palettes[k][c][0]), 0, 31), g = Math.Clamp((int)Math.Round(palettes[k][c][1]), 0, 31),
+                        b = Math.Clamp((int)Math.Round(palettes[k][c][2]), 0, 31);
+                    paletteColors[k * 16 + 1 + c] = (ushort)(r | g << 5 | b << 10);
+                }
+            byte[] Indexes(int t) => tilePixels[t].Select(p => (byte)(1 + Enumerable.Range(0, Colors).OrderBy(c =>
+                Distance(p[0], p[1], p[2], paletteColors[group[t] * 16 + 1 + c] & 31, paletteColors[group[t] * 16 + 1 + c] >> 5 & 31, paletteColors[group[t] * 16 + 1 + c] >> 10 & 31)).First())).ToArray();
+            static byte[] Flip(byte[] t, bool h, bool v) {
+                byte[] f = new byte[64];
+                for (int y = 0; y < 8; y++)
+                    for (int x = 0; x < 8; x++) f[y * 8 + x] = t[(v ? 7 - y : y) * 8 + (h ? 7 - x : x)];
+                return f;
+            }
+            List<(int palette, byte[] indexes)> tiles = new List<(int, byte[])>();
+            List<int> uses = new List<int>();
+            Dictionary<string, (int tile, bool h, bool v)> tileOf = new Dictionary<string, (int, bool, bool)>();
+            (int tile, bool h, bool v)[] mapTiles = new (int, bool, bool)[tileCount];
+            for (int t = 0; t < tileCount; t++) {
+                byte[] indexes = Indexes(t);
+                (int tile, bool h, bool v) found = (-1, false, false);
+                foreach ((bool h, bool v) in new[] { (false, false), (true, false), (false, true), (true, true) })
+                    if (tileOf.TryGetValue(Convert.ToBase64String(Flip(indexes, h, v)) + group[t], out var at)) { found = (at.tile, h ^ at.h, v ^ at.v); break; }
+                if (found.tile < 0) {
+                    found = (tiles.Count, false, false);
+                    tileOf[Convert.ToBase64String(indexes) + group[t]] = found;
+                    tiles.Add((group[t], indexes));
+                    uses.Add(0);
+                }
+                mapTiles[t] = found;
+                uses[found.tile]++;
+            }
+
+            // Past KatAM's 900: the two most alike of a palette made one, the less used taking the other's place;
+            int[] target = Enumerable.Range(0, tiles.Count).ToArray();
+            int Target(int t) { while (target[t] != t) t = target[t]; return t; }
+            int live = tiles.Count, merged = 0;
+            while (live > maxTiles) {
+                (int a, int b, double d) best = (-1, -1, double.MaxValue);
+                List<int> alive = Enumerable.Range(0, tiles.Count).Where(t => target[t] == t).ToList();
+                foreach (IGrouping<int, int> sameGroup in alive.GroupBy(t => tiles[t].palette)) {
+                    List<int> list = sameGroup.ToList();
+                    for (int i = 0; i < list.Count; i++)
+                        for (int j = i + 1; j < list.Count; j++) {
+                            byte[] a = tiles[list[i]].indexes, b = tiles[list[j]].indexes;
+                            double d = 0;
+                            for (int p = 0; p < 64 && d < best.d; p++) {
+                                int ca = paletteColors[sameGroup.Key * 16 + a[p]], cb = paletteColors[sameGroup.Key * 16 + b[p]];
+                                d += Distance(ca & 31, ca >> 5 & 31, ca >> 10 & 31, cb & 31, cb >> 5 & 31, cb >> 10 & 31) * Math.Min(uses[list[i]], uses[list[j]]);
+                            }
+                            if (d < best.d) best = (list[i], list[j], d);
+                        }
+                }
+                if (best.a < 0) break;
+                (int keep, int drop) = uses[best.a] >= uses[best.b] ? (best.a, best.b) : (best.b, best.a);
+                target[drop] = keep;
+                uses[keep] += uses[drop];
+                live--;
+                merged++;
+            }
+            int[] number = new int[tiles.Count];
+            List<byte[]> kept = new List<byte[]>();
+            for (int t = 0; t < tiles.Count; t++)
+                if (Target(t) == t) { number[t] = kept.Count; kept.Add(tiles[t].indexes); }
+            byte[] tileData = new byte[kept.Count * 32];
+            for (int t = 0; t < kept.Count; t++)
+                for (int i = 0; i < 64; i += 2) tileData[t * 32 + i / 2] = (byte)(kept[t][i] | kept[t][i + 1] << 4);
+            ushort[] map = new ushort[tileCount];
+            for (int t = 0; t < tileCount; t++) {
+                (int tile, bool h, bool v) = mapTiles[t];
+                int into = Target(tile);
+                map[t] = (ushort)(number[into] | (h ? 0x400 : 0) | (v ? 0x800 : 0) | (6 + tiles[into].palette) << 12);
+            }
+            return new SqueakBackground(tileData, paletteColors, map, columns, rows, merged);
         }
     }
 }

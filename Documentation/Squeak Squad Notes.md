@@ -549,6 +549,10 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
     `u8` kind, `u16` x, y from the top, `u8` the stage's room it leads to and `u8` that room's door (`0xFF`: none). Kind 6 is where
     Kirby starts, 4 a door, 0x40-0x42 and 0x80-0xC1 other entrances (pipes, edges); flags 0x10 a way on, 0x90 back the way Kirby
     came, 0x23 with no room the stage's goal, 2 and 4 secret ways.
+  - The far views (`map/d_viw_NN.nsbtx`, 39 of them): a BTX0 file, its TEX0 block (+0x10) holding one 256-color texture (format 4)
+    and its palette: 512 by 256 pixels (33), 256 by 256 (5) or 256 by 512 (d_viw_0C, a climb's); a painted panorama, its top 192
+    rows what the DS shows (the rest its last row smeared down). In KatAM: shrunk to 3/4 (48 tiles wide, 20 tall with the smear),
+    fitted to 8 palettes of 15 colors in at most 900 tiles (`ConvertSqueakFarView()`: all 39 fit, at most 10 tiles shared).
   - Section 12, the foreground's tile animations: 12 bytes, then `u16` count and 12 bytes each (`u16` the first tile, `u8` frames,
     a byte, the frames' durations).
 - **Stage files** (`map/*.mxp`, NDS RLE, type 0x30): `MaD\0`, 8 bytes, then 13 section offsets (`u32` from +0x0C): section 0 the width and height in tiles (bytes); 3-5 and 6-8 the tile grids (16 and 32 bits a tile); 9 the zone grid (a byte a tile), then a `u16` count and 8 bytes a point (`u8` kind, a byte, `u16` x, y and a size, pixels from the top), then the points' table; `.doe` the objects (an enemy list and an item list: see "Stage rooms, for porting them"). A stage's `.mxi` (`map/aNsM.mxi`) lists its parts' files (`MA` the map, `FB`/`BB` the graphics, `DE` the objects, `PL` a palette, `3D` the background); loaded, its table sits at the stage info (`*(*0x02229F1C + 0x40)` + 0x10, 0x1C bytes a part). To load a stage in the DS emulator, repoint that table's strings to the stage's files and let Kirby lose a life (the stage restarts from its first part): Mrs. Moley's stage was recorded this way from a save in 1-1.

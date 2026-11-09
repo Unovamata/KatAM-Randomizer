@@ -23,8 +23,8 @@ namespace KatAMRandomizer {
         /* SqueakFile(); A file of the ROM's file system by its path ("enemy/waddledee.cga"), or null. The FNT starts with 8 bytes per
          * directory (its entries' offset from the FNT, its first file's ID, ...), the root's first; an entry is a byte (its name's
          * length, bit 7 a directory), the name, and for a directory its ID (0xF000 + its index); the FAT holds each file's start and
-         * end; */
-        static byte[] SqueakFile(byte[] rom, string path) {
+         * end; ignoreCase: names matched without their case (a stage's .mxi names its files in lower case, some stored in upper); */
+        static byte[] SqueakFile(byte[] rom, string path, bool ignoreCase = false) {
             int fnt = ReadInt(rom, 0x40), fat = ReadInt(rom, 0x48), directory = 0;
             string[] parts = path.Split('/');
 
@@ -43,7 +43,7 @@ namespace KatAMRandomizer {
                         sub = ReadShort(rom, at) & 0xFFF;
                         at += 2;
                     }
-                    if (name == parts[p]) {
+                    if (string.Equals(name, parts[p], ignoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal)) {
                         if (p == parts.Length - 1) {
                             if (isDirectory) return null;
                             int start = ReadInt(rom, fat + file * 8), end = ReadInt(rom, fat + file * 8 + 4);
