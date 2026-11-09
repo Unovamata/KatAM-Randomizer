@@ -294,7 +294,22 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
     in a real fight (the helpers' hits came outside the modes he dodges in), the wave picked on its own (Kirby never above him;
     tested forced), the drop through a thin floor in KatAM (room 0x323 has none), a whole fight by hand, EU and Japanese builds
     (built and logic-checked, not played).
-    Next: Dark Nebula (0x3F, 0x46), and what 0x3E is (it's in normal stages' records too).
+    Dark Nebula (0x46 and 0x3F) is ported (`squeak/dark_nebula.c`): his coming (the dark star flying in, forming, his eye opening,
+    looking, glinting), his start (the black star, his eye's twinkle, the screen whitening to his form and clearing), his three
+    forms and their picks: fire (dashes; the fireball, its burst, fire wall, flames along the floor and the floor tiles they set
+    burning), spark (waves; bolts to the view's corners and the cage), ice (orbit; the ice pillar), the four shared star moves,
+    his eye's shots, the form change (3-5 moves, then 240 frames, a swoop to the top middle, the twinkle and whitening), 60 safe
+    frames after a hit, HP 60 (Squeak Squad's 300). Recorded on the DS in his stage (a8s4s6) and checked against it move by move
+    (each forced by a RAM write in both games from the same spot: his spots, states and things frame by frame, screenshots side by
+    side), then in KatAM (USA, room 0x323): an unforced fight of 2400 frames with helpers (fire and ice forms, the form change),
+    and his defeat (HP written down to 2 by a RAM write, then a helper's hit: KatAM's mini-boss defeat, gone). Approximated: the
+    floor's burning time (the DS's average, 47 frames; 42-52 there, its own timing not found). Not ported: his sounds, the stage's
+    background tinted by his form, the fire's heat (harmless on the DS), stars turned back by reflecting attacks (KatAM has none),
+    his own defeat (KatAM's instead). Not tested: a whole fight by hand, EU and Japanese builds (built and logic-checked, not
+    played).
+    Next: 0x3E, the dark star Kirby chases through a8s4s3 and a8s4s4 before the fight (it bounces in, hops away from Kirby, then
+    flies the stage's route, Bezier legs between its nodes, and off out of view). KatAM's rooms have no such route: it will fly
+    legs laid out from where it's placed, the same shapes and timings.
   - Left: those bosses; the randomizer options (a Squeak Squad ROM in the ROM Expansion tab, the enemy pool). The Squeak Squad-only
     enemies, the shared enemies' Squeak Squad behaviors, its mid-bosses and the Squeaks are all done.
 

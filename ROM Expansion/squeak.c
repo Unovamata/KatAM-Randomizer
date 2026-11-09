@@ -70,6 +70,16 @@ const s16 gSqueakEnemyHp[SQUEAK_ENEMY_COUNT] = {
     [SQUEAK_META_KNIGHT_BEAM] = 1,
     [SQUEAK_META_KNIGHT_WAVE] = 1,
     [SQUEAK_META_KNIGHT_SPARKLE] = 1,
+    [SQUEAK_DARK_NEBULA] = 60,      // Squeak Squad's 300 (prmLB02Sl0.kgb), as Mecha-Kracko's 320 is 64;
+    [SQUEAK_DARK_NEBULA_EYE] = 1,
+    [SQUEAK_DARK_NEBULA_TWINKLE] = 1,
+    [SQUEAK_DARK_NEBULA_AURA] = 1,
+    [SQUEAK_DARK_NEBULA_SHOT] = 1,
+    [SQUEAK_DARK_NEBULA_FIREBALL] = 10, // Its 50 (prmLB02Ml0's 105th);
+    [SQUEAK_DARK_NEBULA_FIRE] = 1,
+    [SQUEAK_DARK_NEBULA_ICE] = 1,
+    [SQUEAK_DARK_NEBULA_BOLT] = 1,
+    [SQUEAK_DARK_NEBULA_BURN] = 1,
 };
 
 static const struct SqueakCharacter sSqueakCharacters[SQUEAK_ENEMY_COUNT] = {
@@ -131,6 +141,16 @@ static const struct SqueakCharacter sSqueakCharacters[SQUEAK_ENEMY_COUNT] = {
     [SQUEAK_META_KNIGHT_BEAM] = { SqueakMetaKnightThingInit, SqueakMetaKnightThingStart, 0, FALSE },
     [SQUEAK_META_KNIGHT_WAVE] = { SqueakMetaKnightThingInit, SqueakMetaKnightThingStart, 0, FALSE },
     [SQUEAK_META_KNIGHT_SPARKLE] = { SqueakMetaKnightThingInit, SqueakMetaKnightThingStart, 0, FALSE },
+    [SQUEAK_DARK_NEBULA] = { SqueakDarkNebulaInit, SqueakDarkNebulaStart, 0, FALSE, TRUE },
+    [SQUEAK_DARK_NEBULA_EYE] = { SqueakDarkNebulaThingInit, SqueakDarkNebulaThingStart, 0, FALSE },
+    [SQUEAK_DARK_NEBULA_TWINKLE] = { SqueakDarkNebulaThingInit, SqueakDarkNebulaThingStart, 0, FALSE },
+    [SQUEAK_DARK_NEBULA_AURA] = { SqueakDarkNebulaThingInit, SqueakDarkNebulaThingStart, 0, FALSE },
+    [SQUEAK_DARK_NEBULA_SHOT] = { SqueakDarkNebulaThingInit, SqueakDarkNebulaThingStart, 0, FALSE },
+    [SQUEAK_DARK_NEBULA_FIREBALL] = { SqueakDarkNebulaThingInit, SqueakDarkNebulaThingStart, 0, FALSE },
+    [SQUEAK_DARK_NEBULA_FIRE] = { SqueakDarkNebulaThingInit, SqueakDarkNebulaThingStart, 0, FALSE },
+    [SQUEAK_DARK_NEBULA_ICE] = { SqueakDarkNebulaThingInit, SqueakDarkNebulaThingStart, 0, FALSE },
+    [SQUEAK_DARK_NEBULA_BOLT] = { SqueakDarkNebulaThingInit, SqueakDarkNebulaThingStart, 0, FALSE },
+    [SQUEAK_DARK_NEBULA_BURN] = { SqueakDarkNebulaThingInit, SqueakDarkNebulaThingStart, 0, FALSE },
 };
 
 /* SqueakAnimFor(); The anim and variant an object shows (variant << 16 | anim ID), for the game's object drawing (sub_0809A7A4,
@@ -1057,6 +1077,10 @@ static void SqueakDestroy(struct Task *t) {
     if (s->enemy == SQUEAK_STORO) StoroGone(s);
     if (s->enemy == SQUEAK_DAROACH) DaroachGone(s);
     if (s->enemy == SQUEAK_KING_DEDEDE) SqueakDededeGone(s);
+    if (s->enemy == SQUEAK_DARK_NEBULA) DarkNebulaGone(s);
+    /* (his burning floor's tiles share his one VRAM block: not theirs to let go of, dark_nebula.c; KatAM's mark of a sprite with
+     * none, which VramFree leaves be, is what VramMalloc gives when the tiles asked for are more than the heap's: ewram_end); */
+    if (s->enemy == SQUEAK_DARK_NEBULA_BURN) s->obj.base.sprite.tilesVram = VramMalloc(0x2000);
     NidlDestroy(t);
 }
 

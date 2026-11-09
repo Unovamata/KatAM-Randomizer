@@ -80,6 +80,16 @@ enum {
     SQUEAK_META_KNIGHT_BEAM,    // His beam, his wave, the tornado's sparkles (and his sword's reach, drawing nothing): each drawn
     SQUEAK_META_KNIGHT_WAVE,    // with its own frames (VRAM the size of its own, not the tornado's);
     SQUEAK_META_KNIGHT_SPARKLE,
+    SQUEAK_DARK_NEBULA,         // A boss (on a mini-boss type, as the mid-bosses): Dark Nebula, enemies 0x46 (his coming) and 0x3F;
+    SQUEAK_DARK_NEBULA_EYE,     // His eye (Squeak Squad's +0x1F8), its twinkle, his flames (+0x1FC): each drawn by a sprite of its own;
+    SQUEAK_DARK_NEBULA_TWINKLE,
+    SQUEAK_DARK_NEBULA_AURA,
+    SQUEAK_DARK_NEBULA_SHOT,    // His stars, sparks and flames (and his cage's hurting sides, drawing nothing);
+    SQUEAK_DARK_NEBULA_FIREBALL,
+    SQUEAK_DARK_NEBULA_FIRE,    // His fireball's burst and its fire wall;
+    SQUEAK_DARK_NEBULA_ICE,     // His ice pillar;
+    SQUEAK_DARK_NEBULA_BOLT,    // His bolts and their cage;
+    SQUEAK_DARK_NEBULA_BURN,    // The floor his flames set burning;
     SQUEAK_ENEMY_COUNT,
 };
 
@@ -474,5 +484,10 @@ void SqueakMetaKnightInit(struct SqueakObject *);
 void SqueakMetaKnightStart(struct Object *);
 void SqueakMetaKnightThingInit(struct SqueakObject *);
 void SqueakMetaKnightThingStart(struct Object *);
+void SqueakDarkNebulaInit(struct SqueakObject *);
+void SqueakDarkNebulaStart(struct Object *);
+void SqueakDarkNebulaThingInit(struct SqueakObject *);
+void SqueakDarkNebulaThingStart(struct Object *);
+void DarkNebulaGone(struct SqueakObject *);
 
 #endif

@@ -1264,8 +1264,9 @@ namespace KatAMRandomizer {
                             continue;
                         }
                         string[] file = enemy.File.Split('/');
-                        SqueakCharacter character = file.Length > 1 ? ReadSqueakCharacter(squeak, file[1], file[0], enemy.PaletteFile)
-                                                                    : ReadSqueakCharacter(squeak, enemy.File, palette: enemy.PaletteFile);
+                        SqueakCharacter character = enemy.File.StartsWith("raw:") ? ReadSqueakRaw(squeak, enemy.File[4..])
+                                                  : file.Length > 1 ? ReadSqueakCharacter(squeak, file[1], file[0], enemy.PaletteFile)
+                                                  : ReadSqueakCharacter(squeak, enemy.File, palette: enemy.PaletteFile);
                         // (a second file's graphics after the first's: Squeak Squad's body switching sprites);
                         foreach (string extra in (enemy.ExtraFile ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries))
                             character = SqueakMerge(character, ReadSqueakCharacter(squeak, extra, file.Length > 1 ? file[0] : "enemy", enemy.PaletteFile),
@@ -2005,10 +2006,11 @@ namespace KatAMRandomizer {
         }
 
         /* HandLetter(); A letter none of the game's names has (glyph type HandDrawn), drawn in their style: 6 rows, the fill 8, joints
-         * softened with 15 (as their "W" and "M"); the outline added as theirs. 0 "Y" (Yadgaine); */
+         * softened with 15 (as their "W" and "M"); the outline added as theirs. 0 "Y" (Yadgaine), 1 "N" (Dark Nebula); */
         internal const int HandDrawn = -2;
         static readonly string[][] HandLetters = {
             new[] { ".....", "#...#", "#...#", "+#.#+", ".+#+.", "..#..", "..#..", "....." },
+            new[] { ".....", "#...#", "##..#", "#+#.#", "#.+##", "#..##", "#...#", "....." },
         };
 
         static int[,] HandLetter(int index) {

@@ -315,7 +315,7 @@ switches on the ID (0x00-0x47): each case allocates the enemy's object (its own 
 | 0x3B | yadgaine | Yadgaine (ported: `squeak/yadgaine.c`) |
 | 0x3C | bohboh | Bohboh (ported: `squeak/bohboh.c`) |
 | 0x3D | dancho00, dancho01 | Daroach and Dark Daroach (his boss fight, parameter 0 and 1: ported, `squeak/daroach_boss.c`) |
-| 0x3E, 0x3F, 0x46 | darkZERO_cmn | Dark Nebula (0x3F, 0x46; 0x3E in the stages' records too: to be matched); Dark Daroach is 0x3D's parameter 1 |
+| 0x3E, 0x3F, 0x46 | darkZERO_cmn, darkZERO_ext | Dark Nebula (0x46 his coming, 0x3F his fight: ported, `squeak/dark_nebula.c`); 0x3E the dark star Kirby chases through a8s4s3 and a8s4s4 (along the stage's route nodes); Dark Daroach is 0x3D's parameter 1 |
 
 0x12, 0x1B, 0x29, 0x2F, 0x32, 0x40-0x45 and 0x47 fall to the default case. Parasol (the parasol some Waddle Dees, Waddle Doos and
 Shotzos hold) and the Squeaks (spin, doc, stron, chun) are created elsewhere.
@@ -635,6 +635,34 @@ him go hurt after 34 frames (`0x0211190C`: 10 HP). His stars: `0x0212389C`'s kin
 frames. Recorded on the DS in his stage (`a7s7s2`, `load.py`: the stage table repointed; `rec_mk.py`, hooking the things'
 constructors `0x021121D8`, `0x02112CD0` and the star's `0x021236A0`): his intro, walks, runs, jumps, slashes, his drop through the
 thin floor, beams, wave, tornado (Kirby caught and lifted), thrust.
+
+**Dark Nebula** (bosses 0x46 and 0x3F, ported: `squeak/dark_nebula.c`): 0x46 (`0x021376EC`, in a8s4s5) his coming: the dark
+star (`darkZERO_cmn`'s 1) from 360 pixels left at 3.0 for 120 frames (`0x0213756C`), its spin three times (`0x02137430`), forming
+(ext's 22, `0x02137338`), his eye opening (ext's `.mca` 1, `0x02137264`), looking (`.mca` 2, three loops, `0x02137188`) and glinting
+(`.mca` 3, `0x021370B4`), 24 frames, then the stage switches to a8s4s6 (`0x0220A3EC`). 0x3F (`0x02122CD0`, vtable `0x02182FB8`:
++0x34 per frame `0x0212301C`, +0x30 his hit `0x021228C4`, +0x18 each frame `0x02122804`; params `prmLB02Ml0` (150 values),
+`prmLB02Pl0` (30), `prmLB02Sl0` (300 HP)) his fight; his states `0x0211CD00`-`0x021226E8`. +0x1F8 his eye (`0x0211C4E0`, vtable
+`0x02182EEC`; its +0x38 mode: 0 still, 1 shooting (`0x0211BEB4`: each frame 1 in 100 a star at 1.5 at Kirby's 24 pixels ahead,
+else 4 in 100 at Kirby at 2.0), 2 half shut, 3 twinkle (its end: the form flash `0x021220D0`), 4 blink, 5-6 beaten), +0x1FC his
+flames (`0x0211B98C`, following him), +0x200 his blink after a hit (60 frames), +0x208 a timer, +0x20C shots left, +0x210 his
+side, +0x224 his form (1 fire, 2 spark, 3 ice; 0 none), +0x228 the next, +0x22C its delay (240), +0x230 moves before a change
+(3-5). Spots are from the camera view (its left +0x1C, top +0x20 of Camera(0); y up): a8s4s6 is 288 by 240, the floor 80 up, the
+view's top 144 over it. Start `0x021226E8` (the black star, cmn's 2, a form at random, 50 frames) → `0x021225B4` (shake, eye
+twinkle) → `0x021220D0` (the screen whitens, `0x0203C174`, 60 frames) → `0x02121E4C` (his form: cmn's 7, 8, 6; clearing 60) →
+idle `0x02121CB8` (40) → pick `0x02121A64` by form (PL[3]-PL[11]): fire his dashes `0x02121994` / shared `0x021204DC` / his
+fireball `0x0211EBE4`; spark his wave `0x02121480` / shared / his bolts `0x0211E850`; ice his orbit `0x02120C54` / shared / his
+pillar `0x0211E290`. Shared (rand >> 30): a row `0x02120220`, a rain `0x0211FC28`, four `0x0211F628`, a drop `0x0211F0EC`. Each
+move ends in `0x021224F0` (the count; past it `0x021222E4` picks the next form); `0x02122804` then swoops him to (130, 33) in 20
+frames (`0x0212222C`, `0x021221C8`), 30 frames (`0x02122164`), the twinkle and flash. His things (`0x0212FDC4`, 0x160 bytes, kind
+at +0x130; their hit `0x0212FC08`): 0 star (cmn's 9), 1 the fireball (`0x0212F89C`: 50 HP, 5 frames safe after a hit; broken, 5
+sparks), 2 its burst (`0x0212F448`: cmn's 12, its fire wall ext's `.mca` 0 50-69 frames, cmn's 19), 3 flames along the floor (cmn's
+11 at 2.6; `0x0212F194`: the stage's vtable +0x90, `0x02216BD8`, sets the 16-pixel floor tile it's over burning: the stage's fire
+tile, `map/25_f.bin`'s, hurting; recorded 42-52 frames each, 47 on average), 4 the fire's heat (`0x0212F138`: a grab box only,
+harmless), 5 bolts (ext's 1-4 by direction), 6 the cage (ext's `.mca` 0), 7 the ice pillar (cmn's 20), 8 sparks (cmn's 11,
+blinking, 20 frames). Recorded on the DS in his stage (`load_dn.py`: the stage table repointed to a8s4s6; `rec_dn.py`; `force2.py`:
+a state written at frame 200, his spot and his things' each frame, screenshots), each move compared with KatAM's forced the same
+way (`cmp.py`). The DS drops frames now and then (lag frames in its recordings, found by hooking his per-frame function); KatAM
+holds every object still while Kirby is hurt (its hit pause), so its logs skip those frames.
 
 **Composite parts' first frame**: a part's sprite is made on the cell it shows (`SqueakCreatePart`'s `cell`). KatAM's sprite init
 (`EffectObjectInitSprite` → `sub_08155128`) queues its first frame's tiles at once; made on the character's cell 0, a part with a
