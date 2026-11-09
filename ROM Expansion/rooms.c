@@ -33,7 +33,7 @@
 #define BIG_ZONES (BIG_BLOCKS + 4)
 #define BIG_TILEMAP (BIG_BLOCKS * 8)
 #define NIDL_HEAP_SIZE 0x7C80   // 0x20080 - NIDL_VISITED_SIZE - 3 * BIG_TILEMAP: KatAMExpansionRooms.cs's NidlHeapSize;
-#define NIDL_VISITED_SIZE 0xA00  // NiDL's and Squeak Squad's rooms' lists (1214), then the taken bits;
+#define NIDL_VISITED_SIZE 0xA00  // NiDL's and Squeak Squad's rooms' lists (1206), Squeak Squad's chests, then the taken bits;
 #define NIDL_DOORS_FIRST 0x120  // ARRAY_COUNT(gVisitedDoors): KatAMExpansionRooms.cs's FirstDoorsList;
 #define NIDL_VISITED_MAGIC 0x4E494456
 
@@ -59,6 +59,7 @@ u16 gNidlGridRoom = 0xFFFF;
  * each: KatAMExpansionSqueakRooms.cs), the last bytes of NIDL_VISITED: as KatAM's, an item taken stays gone until the game clears
  * them (sub_080027A8: a game's start, a game over...), so it's once per visit, not once per room entry; */
 #define NIDL_TAKEN_SIZE 0x80
+#define SQUEAK_CHESTS_SIZE 0x10
 #define NIDL_TAKEN_KIND 3
 #define SQUEAK_TAKEN_KIND 5
 #define BIG_AREA ((u8 *)gEwramHeap + NIDL_HEAP_SIZE + NIDL_VISITED_SIZE)
@@ -83,13 +84,28 @@ static u16 *Visited(u16 roomId) {
     if (list < NIDL_DOORS_FIRST) return &gVisitedDoors[list];
     area = Area();
     list -= NIDL_DOORS_FIRST;
-    if (list >= (NIDL_VISITED_SIZE - NIDL_TAKEN_SIZE) / 2 - 2) list = (NIDL_VISITED_SIZE - NIDL_TAKEN_SIZE) / 2 - 3;
+    if (list >= (NIDL_VISITED_SIZE - NIDL_TAKEN_SIZE - SQUEAK_CHESTS_SIZE) / 2 - 2)
+        list = (NIDL_VISITED_SIZE - NIDL_TAKEN_SIZE - SQUEAK_CHESTS_SIZE) / 2 - 3;
     return (u16 *)(area + 1) + list;
 }
 
 // Taken(); The NiDL items' taken bits (cleared the first time, as Visited()'s area), then Squeak Squad's, 32 bytes a kind;
 static u8 *Taken(void) {
     return (u8 *)Area() + NIDL_VISITED_SIZE - NIDL_TAKEN_SIZE;
+}
+
+/* SqueakChestOpened(), SqueakCollectChest(); Squeak Squad's chests opened (chest.c's SQUEAK_CHEST: the chest's number its
+ * template's unk12), 128 bits, the visited area's last bytes before the taken bits: saved with the visited doors; */
+static u8 *SqueakChests(void) {
+    return (u8 *)Area() + NIDL_VISITED_SIZE - NIDL_TAKEN_SIZE - SQUEAK_CHESTS_SIZE;
+}
+
+bool32 SqueakChestOpened(u8 n) {
+    return SqueakChests()[n >> 3] >> (n & 7) & 1;
+}
+
+void SqueakCollectChest(u8 n) {
+    SqueakChests()[n >> 3] |= 1 << (n & 7);
 }
 
 static u8 *TakenOf(u32 kind) {
@@ -235,6 +251,7 @@ void BigSub_08002B30(u16 roomId, s16 x, s16 y)
     u16 i;
 
     for (i = 0; ; i++) {
+        if (entry->unk01 == 0) return;     // (the list's end, {0, 0, 0xFF, 0xFF}: not in it);
         if (entry->unk00 == 1 && entry->unk04 == x && entry->unk06 == y) {
             *Visited(roomId) |= 1 << i;
             return;
@@ -249,6 +266,7 @@ u32 BigSub_08002BA8(u16 roomId, u16 room, u8 x, u8 y)
     u16 i;
 
     for (i = 0; ; i++) {
+        if (entry->unk01 == 0) return 0;     // (the list's end, {0, 0, 0xFF, 0xFF}: not in it);
         if (entry->unk00 == 2 && entry->unk04 == room && entry->unk06 == x && entry->unk07 == y)
             return *Visited(roomId) >> i & 1;
         entry = (void *)entry + entry->unk01;
@@ -261,6 +279,7 @@ void BigSub_08002C18(u16 roomId, u16 room, u8 x, u8 y)
     u16 i;
 
     for (i = 0; ; i++) {
+        if (entry->unk01 == 0) return;     // (the list's end, {0, 0, 0xFF, 0xFF}: not in it);
         if (entry->unk00 == 2 && entry->unk04 == room && entry->unk06 == x && entry->unk07 == y) {
             *Visited(roomId) |= 1 << i;
             return;

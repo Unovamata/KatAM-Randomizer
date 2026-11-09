@@ -578,7 +578,7 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
     tilemap array after slot 0's tilemap and their tilemaps at the heap's end (the heap 0x7C80 bytes: the game used under 6 KB of it
     in every room and fight measured, the title and pause screens too); `gNidlRoomTops`' `ROOM_FULL_BOTTOM` lets the camera go down
     to 8 pixels from the room's bottom (KatAM's 40 hide its last rows: the DS shows them, and these rooms get no padding). Doors
-    lists past KatAM's keep their visited doors in rooms.c's area (1214 lists), the items' taken bits too (kinds 5-7 for Squeak
+    lists past KatAM's keep their visited doors in rooms.c's area (1206 lists), the items' taken bits too (kinds 5-7 for Squeak
     Squad's, 256 each). Checked in the GBA emulator (forced starts, not a playthrough): Prism Plains 1's first two rooms (the star
     blocks inhaled away), Cushy Cloud 1's first (the biggest; the helpers' room loaded in another slot at once), Secret Sea 1's third (water),
     a ladder climbed in Cushy Cloud 6's second.
@@ -596,8 +596,27 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
     enemy giving it (`SqueakAbilityEnemies`), standing on the floor under it (10 cells down at most), or a Cherry when none
     does (12, 18, 26). The floating bubbles' foods by the item maker's IDs: 1 the 1UP, 6 Maximum Tomato, 7 Pep Brew, 8 Meat, others
     a Cherry (IDs 2-5 and 9-18 not yet seen in the game: the rooms they're in, the stages' treasure rooms, fill them only after an
-    event). Not yet: chests (treasure numbers at `+0xD`) and the chase spawns (flag 4). KatAM draws every placed item with its
-    glow (effect 0x2BB, `sub_0809513C`, one frame in four).
+    event). Not yet: the chase spawns (flag 4). KatAM draws every placed item with its glow (effect 0x2BB, `sub_0809513C`, one
+    frame in four).
+  - **The treasures** (the chests' `+0xD`, 0-119): which is which goes by its range, not a table: the stage result's info screen
+    (overlay 9, `0x0220AC70`, the 14 `result/infoNN.scr`) is picked by it: 0-4 Star Seals, 5 the Sound Player, 6-13 Vitality
+    ("collect two to extend your life"), 14-20 Secret Door Keys, 21-27 Ghost Medals, 28-50 Ability Scrolls, 51-61 music, 62-69
+    Boss Battle Badges (the boss rooms' chests), 70-87 Spray Paints, 88-92 Copy Palettes, 93-99 the Secret Map's pieces, 100-118
+    Graphic Pieces, 119 the Shortcake; 13 the Bubble Items (not a treasure). On the DS a chest is swallowed into Kirby's stomach
+    and opened at the stage's end; its treasure shown then. Treasure 0 is in 5 chests (Prism Plains 1's fifth room and the secret
+    stage 2-8), 66 in two (Bohboh's two rooms).
+  - **Their chests in KatAM**: KatAM's small and big chests (objects 0x80, 0x81), their treasure index `0x9F` (`chest.c`'s
+    `SQUEAK_CHEST`: `gTreasures.shardField`'s bit 31, which nothing reads), their own number (0-127, in the rooms' order) in the
+    template's `+0x12`, whether opened in `rooms.c`'s saved area (`SqueakChestOpened`, 16 bytes before the taken bits); their spawn
+    `SqueakCreateChest` (it shows one opened open), their opening `NidlChestOpen` (it sets its bit). Each is in its room's 9ROM
+    list too ({1, 8, 0xFF, 0xFF, x, y}, first, counted in the list's entry): opening a chest marks it there (`sub_08002B30`),
+    which never ends without it (the game hangs, its VBlank counter still running); `rooms.c`'s versions of it and of the doors'
+    lookups now stop at the list's end. Each holds a consumable for now (KatAM's chest items in turn); the chests of the
+    treasures the owner listed (Ability Scrolls, Spray Paints, the Secret Map, Vitality) are to hold those. The chase spawns'
+    22 chests (flag 4) aren't placed yet.
+  - **Tutorial signs**: the three in Prism Plains 2 (its first, third and fifth rooms: "Tap to pop!", "Find treasure and move on.",
+    "Mix bubbles!") are front-layer blocks without collision, 16 by 11 cells; left out (`SqueakSigns()`: no other room has such a
+    block), the owner: KatAM skips them.
 - **Stage files** (`map/*.mxp`, NDS RLE, type 0x30): `MaD\0`, 8 bytes, then 13 section offsets (`u32` from +0x0C): section 0 the width and height in tiles (bytes); 3-5 and 6-8 the tile grids (16 and 32 bits a tile); 9 the zone grid (a byte a tile), then a `u16` count and 8 bytes a point (`u8` kind, a byte, `u16` x, y and a size, pixels from the top), then the points' table; `.doe` the objects (an enemy list and an item list: see "Stage rooms, for porting them"). A stage's `.mxi` (`map/aNsM.mxi`) lists its parts' files (`MA` the map, `FB`/`BB` the graphics, `DE` the objects, `PL` a palette, `3D` the background); loaded, its table sits at the stage info (`*(*0x02229F1C + 0x40)` + 0x10, 0x1C bytes a part). To load a stage in the DS emulator, repoint that table's strings to the stage's files and let Kirby lose a life (the stage restarts from its first part): Mrs. Moley's stage was recorded this way from a save in 1-1.
 - **Ability numbers** (`0x0203A9C4`'s, from the factory's cases): 1 Fire (Hot Head, Acchi, Flamer), 2 Ice (Pengy), 3 Spark (Sparky), 4 Beam (Waddle Doo), 5 Tornado (Twister), 7 Cutter (Sir Kibble), 8 Laser (Laser Ball), 9 Bomb (Foley), 10 Wheel (Wheelie), 11 UFO, 13 (Cupie), 14 Sleep (Noddy), 15 (Starman), 16 Sword (Sword Knight, Heavy Knight), 17 (Bun), 19 (Bio Spark), 20 (Boxin), 21 (Gaw Gaw), 22 Bubble (Bubble Head), 23 Metal (Metalun).
 

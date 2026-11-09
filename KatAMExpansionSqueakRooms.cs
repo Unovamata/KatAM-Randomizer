@@ -132,6 +132,30 @@ namespace KatAMRandomizer {
             return pixels;
         }
 
+        /* SqueakSigns(); The cells of a room's tutorial signs ("Tap to pop!", "Find treasure and move on.", "Mix bubbles!": Prism Plains 2's
+         * first, third and fifth rooms), left out (the owner: KatAM skips them): front-layer blocks without collision in a block at least
+         * 10 by 6 cells, 4 in 5 of them filled (only those three in the 8 worlds, 16 by 11 each); */
+        static HashSet<(int x, int y)> SqueakSigns(SqueakMap map) {
+            HashSet<(int x, int y)> cells = new HashSet<(int, int)>(), signs = new HashSet<(int, int)>(), seen = new HashSet<(int, int)>();
+            for (int y = 0; y < map.Height; y++)
+                for (int x = 0; x < map.Width; x++)
+                    if (map.Block(3, x, y) != 0 && map.Collision(6, x, y) == 0) cells.Add((x, y));
+            foreach ((int x, int y) start in cells) {
+                if (!seen.Add(start)) continue;
+                List<(int x, int y)> part = new List<(int, int)>();
+                Stack<(int x, int y)> stack = new Stack<(int, int)>(new[] { start });
+                while (stack.Count > 0) {
+                    (int x, int y) = stack.Pop();
+                    part.Add((x, y));
+                    foreach ((int, int) next in new[] { (x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1) })
+                        if (cells.Contains(next) && seen.Add(next)) stack.Push(next);
+                }
+                int width = part.Max(c => c.x) - part.Min(c => c.x) + 1, height = part.Max(c => c.y) - part.Min(c => c.y) + 1;
+                if (width >= 10 && height >= 6 && part.Count * 5 > width * height * 4) signs.UnionWith(part);
+            }
+            return signs;
+        }
+
         // SqueakColorDistance(); How far apart two BGR555 colors look (weighted RGB, as the eye sees green most, blue least);
         static int SqueakColorDistance(int a, int b) {
             int r = (a & 31) - (b & 31), g = (a >> 5 & 31) - (b >> 5 & 31), bl = (a >> 10 & 31) - (b >> 10 & 31);
@@ -165,7 +189,7 @@ namespace KatAMRandomizer {
          * rooms, the busiest), the two most alike tiles of a palette become one (the less used takes the other's place) until they
          * fit (the owner allows compressing tilesets); */
         static SqueakForeground ConvertSqueakForeground(SqueakMap map, SqueakTileset front, SqueakTileset main, int maxTiles = ForegroundTiles,
-                                                        IReadOnlyList<(int x, int y)> bare = null) {
+                                                        IReadOnlyList<(int x, int y)> bare = null, IReadOnlySet<(int x, int y)> signs = null) {
             int columns = map.Width * 2, rows = map.Height * 2;
             // The pictures, and each tile's picture (flips found later, once the colors are final), the bare blocks' after the room's;
             List<int[]> pictures = new List<int[]>();
@@ -180,7 +204,8 @@ namespace KatAMRandomizer {
             }
             int[] cellPicture = new int[columns * rows];
             for (int ty = 0; ty < rows; ty++)
-                for (int tx = 0; tx < columns; tx++) cellPicture[ty * columns + tx] = Picture(SqueakRoomTile(map, front, main, tx, ty));
+                for (int tx = 0; tx < columns; tx++)
+                    cellPicture[ty * columns + tx] = Picture(SqueakRoomTile(map, front, main, tx, ty, signs != null && signs.Contains((tx / 2, ty / 2))));
             bare ??= new List<(int, int)>();
             int[] barePicture = bare.SelectMany(b => Enumerable.Range(0, 4).Select(q => Picture(SqueakRoomTile(map, front, main, b.x * 2 + (q & 1), b.y * 2 + q / 2, true)))).ToArray();
             int[] uses = new int[pictures.Count];
@@ -639,15 +664,29 @@ namespace KatAMRandomizer {
             [20] = (0x25, 0, 0), [21] = (SqueakID, 15, 0), [22] = (SqueakID, 13, 0), [23] = (SqueakID, 19, 0),
         };
         const int SqueakAbilityKinds = 0x16, SqueakChestSmall = 0x11, SqueakChestBig = 0x14, SqueakBubbleGimmick = 0x11;
+        /* Squeak Squad's chests as KatAM's, small and big (0x80, 0x81), their treasure index chest.c's SQUEAK_CHEST, their own number
+         * (0-127, in the rooms' order) in the template's +0x12 (rooms.c keeps which are open, saved). Their treasures (the treasure
+         * number at the item's +0xD; the stage result's info screens, overlay 9's 0x0220AC70: by its range) aren't in KatAM yet: each
+         * holds a consumable (KatAM's chest items, dealt in turn as the NiDL rooms' new chests); the ranges of the ones to carry Squeak
+         * Squad's items (SqueakTreasureItems: the owner's list) are kept for them; */
+        const byte SqueakChestIndex = 0x9F, KatAMBigChestType = 0x81;
+        const int SqueakChestsMax = 128;
+        static readonly (int first, int last, string name, bool item)[] SqueakTreasures = {
+            (0, 4, "Star Seal", false), (5, 5, "Sound Player", false), (6, 13, "Vitality", true), (14, 20, "Secret Door Key", false),
+            (21, 27, "Ghost Medal", false), (28, 50, "Ability Scroll", true), (51, 61, "Music", false), (62, 69, "Boss Battle Badge", false),
+            (70, 87, "Spray Paint", true), (88, 92, "Copy Palette", false), (93, 99, "Secret Map", true), (100, 118, "Graphic Piece", false),
+            (119, 119, "Shortcake", false),
+        };
         // The Squeak Squad items' gone bits (rooms.c's kinds 5-7: SQUEAK_TAKEN_KIND on, 256 numbers each);
         const byte SqueakTakenKind = 5;
 
         /* SqueakObjects(); A room's objects as KatAM templates: its .doe's enemies, mid-bosses, bosses and items, and its floating
          * bubbles (section 10's gimmick 0x11). Spots: Squeak Squad's are the feet (y from the room's top), KatAM's 8 pixels over them
          * (its own enemies' and items' on a floor). A mid-boss or boss fights on a screen: its template's area (SqueakArena()), KatAM's
-         * camera held there by an arena object (Boss()). Not yet: the chase spawns, the chests (their treasures); */
+         * camera held there by an arena object (Boss()). Chests: KatAM's (see SqueakChestIndex). Not yet: the chase spawns, the chests'
+         * Squeak Squad treasures; */
         static (List<byte[]> templates, List<byte> types) SqueakObjects(byte[] squeak, SqueakRoomFiles f, SqueakMap map, byte[] collision, bool arenas,
-                                                                         ref int taken) {
+                                                                         ref int taken, ref int chests) {
             List<byte[]> templates = new List<byte[]>();
             List<byte> types = new List<byte>();
             int width = map.Width, height = map.Height;
@@ -688,7 +727,7 @@ namespace KatAMRandomizer {
                 Add(arena);
                 Add(template);
             }
-            int takenAt = taken;
+            int takenAt = taken, chestAt = chests;
             void Item(int x, int y, byte type) {
                 byte[] template = ObjectTemplate(x, y - 8, templates.Count, type);
                 template[2] = (byte)(SqueakTakenKind + takenAt / 256);
@@ -724,7 +763,14 @@ namespace KatAMRandomizer {
                 for (int i = 0, count = items + 2 <= objects.Length ? ReadShort(objects, items) : 0; i < count; i++) {
                     int at = items + 2 + i * 16, kind = ReadShort(objects, at + 2), x = ReadShort(objects, at + 4), y = ReadShort(objects, at + 6);
                     if ((objects[at + 0xB] & SqueakChaseSpawn) != 0) continue;
-                    if (SqueakItemKinds.TryGetValue(kind, out byte item)) Item(x, y, item);
+                    if (kind is SqueakChestSmall or SqueakChestBig) {
+                        byte[] chest = ObjectTemplate(x, y - 8, templates.Count, kind == SqueakChestBig ? KatAMBigChestType : SmallChestType);
+                        chest[14] = KatAMChestItems[chestAt * 17 % KatAMChestItems.Length];
+                        chest[0x11] = SqueakChestIndex;
+                        chest[0x12] = (byte)chestAt++;
+                        Add(chest);
+                    }
+                    else if (SqueakItemKinds.TryGetValue(kind, out byte item)) Item(x, y, item);
                     else if (kind > SqueakAbilityKinds) Ability(x, y, kind - SqueakAbilityKinds);
                 }
             }
@@ -750,6 +796,7 @@ namespace KatAMRandomizer {
                 }
             }
             taken = takenAt;
+            chests = chestAt;
             return (templates, types);
         }
 
@@ -780,6 +827,8 @@ namespace KatAMRandomizer {
          * entries after NiDL's, in the room AddRooms() leaves in its copies (roomTables; without NiDL's rooms, copies of KatAM's).
          * The randomizer and the map viewer read KatAM's own rows, which stay as they were; */
         const int SqueakFirstRoom = 0x400, SqueakTableRoom = 1024;
+        // (rooms.c's visited doors: (NIDL_VISITED_SIZE - NIDL_TAKEN_SIZE - SQUEAK_CHESTS_SIZE) / 2 - 2 lists past KatAM's);
+        const int VisitedLists = (0xA00 - 0x80 - 0x10) / 2 - 2;
         // (rooms.c's gNidlRoomTops: the camera from the room's top, 1, down to 8 pixels from its bottom, ROOM_FULL_BOTTOM);
         const byte SqueakCameraTop = 0x81;
         static readonly HashSet<(int area, int stage)> SqueakTestStages = new HashSet<(int, int)> { (1, 8), (1, 9), (2, 9) };
@@ -831,7 +880,7 @@ namespace KatAMRandomizer {
             int Entry(string table, int index) => ReadInt(rom, symbols[table] + index * 4) - 0x08000000;
             int paletteCycles = ReadInt(rom, Entry("gForegroundPalettes", Props(0x323, 11)) + 4),        // Unused (no cycles), but read;
                 navigationRoutes = Entry("gUnk_08D63C28", Props(0x3C9, 17));                                  // Its 4 generic route lists;
-            int noTypes = Allocate(ref here, 4, 4), squeakTaken = 0;
+            int noTypes = Allocate(ref here, 4, 4), squeakTaken = 0, squeakChests = 0;
             // (the arenas are NiDL's type's objects: only with its enemies, CreateNidlEnemy its spawn);
             bool arenas = ReadInt(rom, version.SpawnTable + NightmareID * 4) == CodeAddress + 0x08000000 + version.CreateNidlEnemy + 1;
             WriteInt(rom, noTypes, 0xFF);
@@ -897,7 +946,7 @@ namespace KatAMRandomizer {
                     }
 
                     // Foreground: its tiles, palettes and tilemap;
-                    SqueakForeground foreground = ConvertSqueakForeground(map, front, main, ForegroundTiles, blocks);
+                    SqueakForeground foreground = ConvertSqueakForeground(map, front, main, ForegroundTiles, blocks, SqueakSigns(map));
                     int tilesAt = AllocateCompressed(rom, CompressLZ77(foreground.Tiles), ref here);
                     int info = Allocate(ref here, 16, 4);
                     WriteInts(rom, info, tilesAt + 0x08000000, 0, 0);
@@ -952,11 +1001,16 @@ namespace KatAMRandomizer {
                     int solidity = Allocate(ref here, 8, 4);
                     WriteInts(rom, solidity, collisionAt + 0x08000000, specialsAt + 0x08000000);
 
-                    (List<byte[]> templates, List<byte> types) = SqueakObjects(squeak, f, map, collision, arenas, ref squeakTaken);
+                    (List<byte[]> templates, List<byte> types) = SqueakObjects(squeak, f, map, collision, arenas, ref squeakTaken, ref squeakChests);
                     if (squeakTaken > 3 * 256) return "Too many Squeak Squad items for their gone bits.";
+                    if (squeakChests > SqueakChestsMax) return "Too many Squeak Squad chests for their bits.";
                     int objects = WriteObjectList(rom, templates, types, noTypes, ref here);
                     int navigation = BuildNavigation(rom, width, height, false, collision, navigationRoutes, new List<(int, int, int, int)>(), ref here);
-                    int doors = DoorsList(new List<byte>(), 0);
+                    /* (its chests in its 9ROM list, first, as KatAM's: {1, 8, 0xFF, 0xFF, the template's x, y}, and counted: opening one
+                     * marks it there, sub_08002B30 looking it up by its spot, never ending without it); */
+                    List<byte[]> chestTemplates = templates.Where(t => t[12] is SmallChestType or KatAMBigChestType && t[0x11] == SqueakChestIndex).ToList();
+                    List<byte> nineROM = chestTemplates.SelectMany(t => ChestEntry(ReadShort(t, 6), ReadShort(t, 8))).ToList();
+                    int doors = DoorsList(nineROM, chestTemplates.Count);
 
                     // Room info: room 0x397's (no routes, the helpers' flags), its room; the map viewer's +0x4A, +0x4B: stage, room;
                     int roomInfo = Allocate(ref here, 0x4C, 4);
@@ -969,6 +1023,7 @@ namespace KatAMRandomizer {
                     rom[CodeAddress + version.CodeSymbols["gNidlRoomTops"] + room] = SqueakCameraTop;
                     int doorsIndex = Add("gUnk_08D640A4", doors);
                     if (doorsIndex < FirstDoorsList) return "Squeak Squad's doors lists start too early.";
+                    if (doorsIndex >= FirstDoorsList + VisitedLists) return "Too many doors lists for rooms.c's visited doors.";
                     WriteShorts(rom, newProps + room * 0x28, LevelSongs[(f.Area - 1) % LevelSongs.Length], 0, 0, 0x100, 0x100, 0, backgroundDown, rateX, rateY, RoomFlags,
                                 Add("gForegroundInfo", info), Add("gForegroundPalettes", palette), Add("gForegroundTilemaps", tilemapEntry),
                                 Add("gSolidityMaps", solidity), 0xFFFF, background, Add("gLevelObjLists", objects), Add("gUnk_08D63C28", navigation),
@@ -999,6 +1054,8 @@ namespace KatAMRandomizer {
             RepointEverywhere(rom, version, arrivals, newArrivals);
             // (the map viewer's rooms block names the room info table: its copy now);
             if (nidlRooms) WriteInt(rom, MapRoomsBlock + 4 + 6 * 4, newInfos + 0x08000000);
+            // (the chests' spawn and opening, chest.c's);
+            if (squeakChests > 0 && HookSqueakChests(rom, version) is string chestError) return chestError;
             cursor = finishCursor = here;
             return null;
         }

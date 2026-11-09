@@ -394,10 +394,19 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
       (2-3: the camera held on its screen), King Dedede's fight (its screen held from the start); all 493 rooms started at
       Squeak Squad's own Kirby start and run 720 frames walking and inhaling both ways (no stall, Kirby stays in the room);
       Europe and Japan built and 11 rooms run the same way.
-    - Left: the chests (Squeak Squad's 125 need treasure bits of their own: KatAM's 128 are all used, NiDL's from 84), the chase
-      spawns after the stage's treasure (the Squeakers among them), the arenas without the NiDL ROM (NiDL's type holds the
-      camera), the doors, the gimmicks, tile animations, the areas; then the hub, the levels by the rulebook, bosses, the option,
-      map viewer, logic checks.
+    - Chests: KatAM's small and big chests where Squeak Squad's are, their opened bits saved of their own (KatAM's 128 are all
+      used), mapped in their rooms' 9ROM lists (unmapped, opening one hangs the game: the owner's warning too). Each holds a
+      consumable for now. Which treasure each held is known (by its number's range: the notes' "The treasures"). Checked in the
+      GBA emulator (forced starts): Kirby started on each of the 103 placed chests and pressing Up: every one opened, the game
+      running on and Kirby in the room; a big chest's 1UP taken (lives 2 to 3); KatAM's own chest (room 0x6C) still opens.
+      The tutorial signs (Prism Plains 2's "Tap to pop!", "Find treasure and move on.", "Mix bubbles!") are left out (the owner:
+      "no need to bring" them; checked in its three rooms). The room sweep now also opens the pause screen in each room it
+      can't tell is running (a VBlank counter keeps counting through a hang): all 493 live. Europe and Japan: 10 chests opened
+      and 13 rooms run the same way; the 3 versions built and the logic checks unchanged (with and without drops).
+    - Left: the chests' Squeak Squad treasures (Ability Scrolls, Spray Paints, the Secret Map's pieces, Vitality halves: with
+      their items, below), the chase spawns after the stage's treasure (the Squeakers among them, and 22 chests), the arenas
+      without the NiDL ROM (NiDL's type holds the camera), the doors, the gimmicks, tile animations, the areas; then the hub,
+      the levels by the rulebook, bosses, the option, map viewer, logic checks.
   - Ability bubbles whose ability no regular enemy gives (Hammer, Bonkers' in KatAM; Squeak Squad's ability numbers 12, 18 and
     26) become food (the owner: "In the case of bubbles without no regular enemy, you can swap them out for food.").
 - **Map items for each area** (the owner, with the rooms): KatAM's map item, its sprite recolored to each NiDL and Squeak Squad

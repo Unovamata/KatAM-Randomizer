@@ -12,14 +12,34 @@ namespace KatAMRandomizer {
         public static string AddShardChests(ref byte[] rom) => PatchWithCode(ref rom, "Mirror shards in chests", (patched, version) => {
             // The trampoline goes in chest.c's room for it (gNidlChestTrampolines), its address in gNidlChest;
             int cursor = CodeAddress + version.CodeSymbols["gNidlChestTrampolines"], chest = CodeAddress + version.CodeSymbols["gNidlChest"];
-            if (ReadInt(patched, chest) != 0) return null;  // (applied already);
             string hooked = HookShards(patched, version);
             if (hooked != null) return hooked;
+            if (ReadInt(patched, chest) != 0) return null;  // (applied already, or by HookSqueakChests);
             int open = Detour(patched, version.RomSymbols["sub_0800AFC8"], CodeAddress + 0x08000000 + version.CodeSymbols["NidlChestOpen"], ref cursor);
             if (open < 0) return $"The {version.Name} ROM's chest code doesn't match.";
             WriteInt(patched, chest, open + 0x08000000 + 1);
             return null;
         });
+
+        /* HookSqueakChests(); Squeak Squad's chests (chest.c's SQUEAK_CHEST): the chests' spawn (objects 0x80 and 0x81, the game's CreateChest,
+         * kept in gSqueakChest) becomes SqueakCreateChest, which shows one already opened open, and their opening is chest.c's (as
+         * AddShardChests detours it), which sets its own bit; */
+        static string HookSqueakChests(byte[] patched, KatAMExpansionCode.Version version) {
+            int small = version.SpawnTable + 0x80 * 4, big = version.SpawnTable + 0x81 * 4, kept = CodeAddress + version.CodeSymbols["gSqueakChest"];
+            int create = CodeAddress + 0x08000000 + version.CodeSymbols["SqueakCreateChest"] + 1;
+            if (ReadInt(patched, small) != create) {
+                if (ReadInt(patched, small) >> 24 != 0x08 || ReadInt(patched, big) != ReadInt(patched, small)) return $"The {version.Name} ROM's chest code doesn't match.";
+                WriteInt(patched, kept, ReadInt(patched, small));
+                WriteInt(patched, small, create);
+                WriteInt(patched, big, create);
+            }
+            int cursor = CodeAddress + version.CodeSymbols["gNidlChestTrampolines"], chest = CodeAddress + version.CodeSymbols["gNidlChest"];
+            if (ReadInt(patched, chest) != 0) return null;  // (detoured already: AddShardChests);
+            int open = Detour(patched, version.RomSymbols["sub_0800AFC8"], CodeAddress + 0x08000000 + version.CodeSymbols["NidlChestOpen"], ref cursor);
+            if (open < 0) return $"The {version.Name} ROM's chest code doesn't match.";
+            WriteInt(patched, chest, open + 0x08000000 + 1);
+            return null;
+        }
 
         /* OwnedFieldShards(); For the shards the randomizer puts in rooms (not in chests): their spawn (object 0x65's, the spawn table's)
          * becomes chest.c's NidlCreateShard, which makes one already owned a Maxim Tomato (the original's address in gNidlShard).

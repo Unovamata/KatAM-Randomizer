@@ -38,6 +38,22 @@ const struct NidlChest gNidlChest = { NULL };
 // Room for the trampoline KatAMExpansionChests.cs writes (so the option needs no other free space);
 const u32 gNidlChestTrampolines[8] = { 0 };
 
+/* Squeak Squad's chests (KatAMExpansionSqueakRooms.cs): KatAM's small and big chests, their treasure index (template unk11)
+ * SQUEAK_CHEST, gTreasures.shardField's bit 31, which nothing reads (HasChest's index there is never set: SqueakCreateChest clears
+ * it), their own number (0-127) in template unk12, whether opened in rooms.c's saved area (SqueakChestOpened). Their spawn
+ * (objects 0x80, 0x81) is SqueakCreateChest, the game's CreateChest in gSqueakChest; */
+#define SQUEAK_CHEST 0x9F
+#define SQUEAK_CHEST_BIT (1u << 31)
+
+bool32 SqueakChestOpened(u8);
+void SqueakCollectChest(u8);
+
+struct SqueakChest {
+    void *(*create)(struct ObjectTemplate *, u8);
+};
+
+const struct SqueakChest gSqueakChest = { NULL };
+
 // NidlChestOpened(); Open and emptied, as the game's own chests once their item is out (sub_0800BD9C);
 static void NidlChestOpened(struct Chest *chest) {
     chest->obj.base.flags |= 4;
@@ -48,6 +64,13 @@ void NidlChestOpen(struct Chest *chest) {
     u16 shard = chest->unkE0 - NIDL_CHEST_SHARD;
     bool32 owned;
 
+    // (a Squeak Squad chest: its own bit, set before the game's opening saves; the game's sets SQUEAK_CHEST's, cleared after it);
+    if (chest->unkE2 == SQUEAK_CHEST) {
+        SqueakCollectChest(chest->obj.objTemplate->unk12);
+        gNidlChest.open(chest);
+        gTreasures.shardField &= ~SQUEAK_CHEST_BIT;
+        return;
+    }
     if (shard >= 8) {
         gNidlChest.open(chest);
         return;
@@ -72,6 +95,21 @@ void NidlChestOpen(struct Chest *chest) {
     // As the item popups do once their item is given (sub_080029F4: lever walls count these);
     gUnk_02023510[gCurLevelInfo[chest->obj.base.unk56].unk65E]++;
     chest->obj.unk78 = NidlChestOpened;
+}
+
+/* SqueakCreateChest(); A chest (objects 0x80, 0x81) as the game makes it; one of Squeak Squad's (SQUEAK_CHEST) shows open, emptied
+ * and counted (sub_0800BD4C's: lever walls count the room's open chests) once its own bit is set; */
+void *SqueakCreateChest(struct ObjectTemplate *template, u8 playerId) {
+    struct Chest *chest;
+
+    gTreasures.shardField &= ~SQUEAK_CHEST_BIT;
+    chest = gSqueakChest.create(template, playerId);
+    if (template->unk11 == SQUEAK_CHEST && SqueakChestOpened(template->unk12)) {
+        chest->obj.unk83 = 1;
+        chest->obj.unk78 = NidlChestOpened;
+        gUnk_02023510[gCurLevelInfo[chest->obj.base.unk56].unk65E]++;
+    }
+    return chest;
 }
 
 /* Field shards: the shards the randomizer puts in rooms instead of in chests (object 0x65, subtype n, from the room's own object
