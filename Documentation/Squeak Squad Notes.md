@@ -574,6 +574,14 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
     second byte not 0xFF: the food or ability as the bubbles', its first byte's high nibble 1 a food, 0 an ability) starts
     closed; an empty one open (Kirby can get in: message 7 while empty, then 8 out; 10 shakes it). Message 11 (an attack, not
     with its 0x1000 flag) bursts it (sound 0x51), leaving what it holds (`0x0220A200` a food, `0x0220A2A4` an ability).
+  - The grass tufts (0xE; ctor `0x02222078`, vtable `0x02229500`; `yakumono/grass_A_S` and `grass_A_L`, `0x02227C28`'s 0x14-byte
+    entries by its table's first byte's low nibble: 0 small, 1 large): its box (-1.0, 0) to (1.0, 3.0) small, (-2.0, 0) to (2.0,
+    3.5) large; it takes messages 7 and 8 (`+0x48`, `+0x4C`). Its messages (`0x02221F90`): 5, a body moving through it (the
+    box saved at +0x5C..+0x68: it rustles, `0x02221DFC`, its timer from `0x02227C1C` by size, sound 0x58, then back, 0x56/0x57 by
+    size), 0xB an attack (its flags' bit 0: cut, state 5 `0x02221C64`), 0xC another. Cut (`0x02221C64`), it lets out what it
+    holds (its table's second byte, not 0xFF: by the first byte's high nibble, 0 an ability `0x0220A2A4`, 1 a food
+    `0x0220A200`, as the barrel's and the bubbles'), plays its cut animation (sound 0x59) and stays cut; one that held something
+    grows back after 600 frames (`0x02221F58`: +0x6C counts to 0x258). Not ported yet.
   - Section 11, the doors: `u16` count, then 10 bytes a door: `u16` its number (the collision's `0x80 + n` marks it), `u8` flags,
     `u8` kind, `u16` x, y from the top (the middle of the cell Kirby stands in: a floor under it, but for a door high in Gao Gao's
     room in Nature Notch 3), `u8` the stage's room it leads to (0-based, the `.mxi`'s order) and `u8` that room's door (its number;
