@@ -515,8 +515,10 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
     tile's own). Both of a room's tilesets carry the same 16 palettes; a few are flat placeholders a stage never draws with.
   - A collision word (`0x0220FDEC`, `0x0220FF0C`, `0x02209880` and the tests at `0x02216540`-`0x02217050`, and the tiles each
     marks): bits 14-15 its kind (0 air, 1 solid `0x4000`, 2 a thin floor `0x8000`, 3 a slope `0xC000`); a slope's low byte its
-    shape: the low nibble its height in pixels at the block's middle, from its bottom, the high nibble the shape (mod 8: 1 a half
-    slope rising right, 2 a 45° one, 6 and 7 the same falling; 4-12 ceilings, the rest floors); bits 8-13 flags: `0x100` a ladder
+    shape (read off every room's cells, what lies above, below and beside each code; the low nibble how deep the slope's edge is
+    at the block's middle, from its top): floors 0x14 and 0x1C the upper and lower halves of a slope falling right, 0x28 a 45° one
+    falling, 0xE8 rising, 0xF4 and 0xFC the upper and lower halves rising; ceilings 0x68 and 0xA8 (45°, solid on the left, on the
+    right), 0x74 and 0x7C, 0x94 and 0x9C (halves); thin floors the same floor codes with 0x200; bits 8-13 flags: `0x100` a ladder
     (`0x8100` its top), `0x200` a thin floor Kirby jumps through, `0x300` another thin floor, `0x400` (front layer) a cover over a
     secret way, cleared when Kirby is under it, `0x800` burnt by fire, `0x1000` set off by a bomb block, `0x2000` not yet known;
     bits 16-23 an id: `0x80` on doors (the room's door numbers, main layer), cannon fuses (`0x83`-`0x8C`, front layer), a big star

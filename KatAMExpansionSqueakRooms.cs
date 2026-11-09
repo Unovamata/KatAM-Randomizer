@@ -504,5 +504,57 @@ namespace KatAMRandomizer {
             }
             return new SqueakBackground(tileData, paletteColors, map, columns, rows, merged);
         }
+        /* KatAM's slope codes for Squeak Squad's (a slope's low byte: bits 4-5 its shape, 1 a half slope, 2 a 45° one; the low nibble
+         * how deep its edge is at the block's middle, from its top; the top bits which way, read off every room: what lies above,
+         * below and beside each code's cells): floors 0x14 and 0x1C the upper and lower halves falling right, 0x28 falling, 0xE8
+         * rising, 0xF4 and 0xFC the upper and lower halves rising; ceilings 0x68 and 0xA8 (solid on the left, on the right), 0x74
+         * and 0x7C, 0x94 and 0x9C their halves. KatAM's (gCollisionAttributes' top nibble, its height maps 0x08350C38: from a
+         * block's bottom, x its column) 1 x/2, 2 x/2 + 7, 3 x, 4 15 - x, 5 (15 - x)/2, 6 (15 - x)/2 + 7; ceilings 7-12 the same
+         * upside down: codes 0x05, 0x06, 0x0B, 0x0C, 0x08, 0x07; 0x04, 0x03, 0x0A, 0x09, 0x01, 0x02; in water 0x34-0x43; thin
+         * (dropped through) 0x10-0x13, 0x18, 0x19; */
+        static readonly Dictionary<int, (byte solid, byte water, byte thin)> SqueakSlopes = new Dictionary<int, (byte, byte, byte)> {
+            [0x14] = (0x07, 0x42, 0x12), [0x1C] = (0x08, 0x43, 0x13), [0x28] = (0x0C, 0x3A, 0x19), [0xE8] = (0x0B, 0x38, 0x18),
+            [0xF4] = (0x06, 0x41, 0x11), [0xFC] = (0x05, 0x40, 0x10), [0x68] = (0x0A, 0x36, 0x0A), [0xA8] = (0x09, 0x34, 0x09),
+            [0x74] = (0x04, 0x3F, 0x04), [0x7C] = (0x03, 0x3E, 0x03), [0x94] = (0x01, 0x3C, 0x01), [0x9C] = (0x02, 0x3D, 0x02),
+        };
+        const byte KatAMAir = 0x00, KatAMSolid = 0x0D, KatAMThin = 0x0E, KatAMFirmThin = 0x0F, KatAMLadder = 0x21, KatAMLadderTop = 0x20,
+                   KatAMSpikes = 0x1C, KatAMWater = 0x48, KatAMStarBlock = 0xF0;
+
+        /* SqueakCellWord(); A cell's collision as Squeak Squad reads it (0x0220FDEC): the main terrain's grid (section 7), else, where
+         * that cell is empty, the front layer's (section 6); */
+        static uint SqueakCellWord(SqueakMap map, int x, int y) {
+            uint main = map.Collision(7, x, y);
+            return main != 0 ? main : map.Collision(6, x, y);
+        }
+
+        /* SqueakCollision(); KatAM's collision for a Squeak Squad cell (see the notes' collision word): its kind (bits 14-15: air, solid,
+         * thin, slope), its flags (bits 8-13: 0x100 a ladder, on a thin floor its top; 0x200 a thin floor dropped through, 0x300 one
+         * that isn't), its block (bits 24-26: 4 a star block, 5 a big one: breakable, KatAMStarBlock, what they leave the main layer's
+         * cell; 2 an electric zapper: spikes), the ids on air (0x40-0x4C, without the rope's 0x38 above them: spikes; doors' 0x80 and
+         * up: air, the doors are objects) and its liquid (bits 30-31, on air: 1 water, 2 lava, which hurts as spikes do; with block 2,
+         * fire jets: air). Ropes and chains (top byte 0x38, ids 0x40-0x46) are climbed as ladders. Currents (ids 0x10-0x3C) aren't
+         * moved yet: still air or water; */
+        static byte SqueakCollision(uint word) {
+            int kind = (int)(word >> 14 & 3), flags = (int)(word >> 8 & 0x3F) << 8, block = (int)(word >> 24 & 7), id = (int)(word >> 16 & 0xFF);
+            int liquid = (int)(word >> 30), shape = (int)(word & 0xFF);
+            bool rope = (word >> 24) == 0x38 && id is >= 0x40 and <= 0x46;
+            switch (kind) {
+                case 1:
+                    if (block is 4 or 5) return KatAMStarBlock;
+                    if (block == 2) return KatAMSpikes;
+                    return KatAMSolid;
+                case 2:
+                    if ((flags & 0x100) != 0 && (flags & 0x200) == 0) return KatAMLadderTop;
+                    if (SqueakSlopes.TryGetValue(shape, out var thin)) return thin.thin;
+                    return (flags & 0x300) == 0x300 ? KatAMFirmThin : KatAMThin;
+                case 3:
+                    return SqueakSlopes.TryGetValue(shape, out var slope) ? (liquid == 1 ? slope.water : slope.solid) : KatAMSolid;
+            }
+            if (rope || (flags & 0x100) != 0) return KatAMLadder;
+            if (liquid == 2) return KatAMSpikes;
+            if (liquid == 1 && block != 2) return KatAMWater;
+            if (id is 0x40 or 0x44 or 0x48 or 0x4C && liquid == 0) return KatAMSpikes;
+            return KatAMAir;
+        }
     }
 }
