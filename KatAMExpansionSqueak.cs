@@ -616,6 +616,9 @@ namespace KatAMRandomizer {
             /* The floor his flames set burning (the stage's fire tile, 0x02216BD8: a 16x16 picture of the stages' own tiles, the same in
              * every stage's map/*_f.bin, its palette 3 there: 0x70); */
             new SqueakEnemy(67, "Burning floor", "raw:map/25_f.bin@5490,70,16,16", new[] { 0, 0, 0 }, new (int, int)[0]),
+            /* The dark star Kirby chases before Dark Nebula (enemy 0x3E: 0x0211B680), darkZERO_cmn's animation 1 (the small spinning
+             * star), no name (nothing hits it); */
+            new SqueakEnemy(68, "Dark star", "darkZERO_cmn", new[] { 0, 0, 0 }, new (int, int)[0], OnlyAnims: new[] { 1 }),
         };
 
         public static IReadOnlyList<(int index, string name)> SqueakEnemies => SqueakDefinitions.Select(e => (e.Index, e.Name)).ToList();

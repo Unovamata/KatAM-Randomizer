@@ -307,11 +307,21 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
     background tinted by his form, the fire's heat (harmless on the DS), stars turned back by reflecting attacks (KatAM has none),
     his own defeat (KatAM's instead). Not tested: a whole fight by hand, EU and Japanese builds (built and logic-checked, not
     played).
-    Next: 0x3E, the dark star Kirby chases through a8s4s3 and a8s4s4 before the fight (it bounces in, hops away from Kirby, then
-    flies the stage's route, Bezier legs between its nodes, and off out of view). KatAM's rooms have no such route: it will fly
-    legs laid out from where it's placed, the same shapes and timings.
-  - Left: those bosses; the randomizer options (a Squeak Squad ROM in the ROM Expansion tab, the enemy pool). The Squeak Squad-only
-    enemies, the shared enemies' Squeak Squad behaviors, its mid-bosses and the Squeaks are all done.
+    The dark star (0x3E, the one Kirby chases through a8s4s3 and a8s4s4 to Dark Nebula) is ported (`squeak/dark_star.c`): it
+    appears facing away from Kirby and heads past him (120 frames drifting and bouncing), then hops ahead of him at his speed +
+    0.88, waiting while it's more than 64 pixels ahead and keeping to his height; at the room's end it waits for him, then loops
+    (five Bezier legs), flies off out of view and loops again. Harmless and untouchable, as on the DS. Recorded on the DS in both
+    stages (Kirby driven by a script) and checked in KatAM (USA, room 0x323: the drift, the hops and their waits, a hop frame by
+    frame against the DS's, the end and its loop both ways, Kirby touching and inhaling it). **Owner's call**: Squeak Squad's route
+    is its stage's own (points and zones in the map); KatAM's rooms have none, so the corridor's route is laid on the room it's
+    in: its line under the floor it first bounces on, its end and loop at the room's side it heads for (where the DS's camera
+    locks on the stage's end, KatAM's camera just follows Kirby, so part of the loop can be off the screen). The shaft's route
+    (a8s4s4: the same moves going up) isn't ported. Say if the star should do something else in KatAM's rooms. Not tested: EU
+    and Japanese builds (built and logic-checked, not played); where the randomizer would put it (the Squeak Squad options aren't
+    in the randomizer yet).
+  - Left: the randomizer options (a Squeak Squad ROM in the ROM Expansion tab, the enemy pool). The whole cast is ported: the Squeak
+    Squad-only enemies, the shared enemies' Squeak Squad behaviors, its mid-bosses, the Squeaks, the bosses (0x37-0x3D), Dark
+    Nebula (0x3F, 0x46) and the dark star (0x3E).
 
 ## 5. Bosses as faithful 1:1 recreations of NiDL
 - **The other bosses**: check each against NiDL and fix what differs.

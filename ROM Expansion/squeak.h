@@ -90,6 +90,7 @@ enum {
     SQUEAK_DARK_NEBULA_ICE,     // His ice pillar;
     SQUEAK_DARK_NEBULA_BOLT,    // His bolts and their cage;
     SQUEAK_DARK_NEBULA_BURN,    // The floor his flames set burning;
+    SQUEAK_DARK_STAR,           // Enemy 0x3E: the dark star Kirby chases before Dark Nebula;
     SQUEAK_ENEMY_COUNT,
 };
 
@@ -489,5 +490,9 @@ void SqueakDarkNebulaStart(struct Object *);
 void SqueakDarkNebulaThingInit(struct SqueakObject *);
 void SqueakDarkNebulaThingStart(struct Object *);
 void DarkNebulaGone(struct SqueakObject *);
+
+// squeak/dark_star.c;
+void SqueakDarkStarInit(struct SqueakObject *);
+void SqueakDarkStarStart(struct Object *);
 
 #endif

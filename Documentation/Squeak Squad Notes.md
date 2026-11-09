@@ -315,7 +315,7 @@ switches on the ID (0x00-0x47): each case allocates the enemy's object (its own 
 | 0x3B | yadgaine | Yadgaine (ported: `squeak/yadgaine.c`) |
 | 0x3C | bohboh | Bohboh (ported: `squeak/bohboh.c`) |
 | 0x3D | dancho00, dancho01 | Daroach and Dark Daroach (his boss fight, parameter 0 and 1: ported, `squeak/daroach_boss.c`) |
-| 0x3E, 0x3F, 0x46 | darkZERO_cmn, darkZERO_ext | Dark Nebula (0x46 his coming, 0x3F his fight: ported, `squeak/dark_nebula.c`); 0x3E the dark star Kirby chases through a8s4s3 and a8s4s4 (along the stage's route nodes); Dark Daroach is 0x3D's parameter 1 |
+| 0x3E, 0x3F, 0x46 | darkZERO_cmn, darkZERO_ext | Dark Nebula (0x46 his coming, 0x3F his fight: ported, `squeak/dark_nebula.c`); 0x3E the dark star Kirby chases through a8s4s3 and a8s4s4 (ported: `squeak/dark_star.c`); Dark Daroach is 0x3D's parameter 1 |
 
 0x12, 0x1B, 0x29, 0x2F, 0x32, 0x40-0x45 and 0x47 fall to the default case. Parasol (the parasol some Waddle Dees, Waddle Doos and
 Shotzos hold) and the Squeaks (spin, doc, stron, chun) are created elsewhere.
@@ -663,6 +663,25 @@ blinking, 20 frames). Recorded on the DS in his stage (`load_dn.py`: the stage t
 a state written at frame 200, his spot and his things' each frame, screenshots), each move compared with KatAM's forced the same
 way (`cmp.py`). The DS drops frames now and then (lag frames in its recordings, found by hooking his per-frame function); KatAM
 holds every object still while Kirby is hurt (its hit pause), so its logs skip those frames.
+
+**The dark star** (enemy 0x3E, ported: `squeak/dark_star.c`): its body `0x0211B680` (`EnemyBaseCtor(0x3E)`, vtable `0x021828F8`,
+`darkZERO_cmn`'s animation 1; params `PrmLB01Ml0` 14336, 615, 16384, 615 (3.5 and 0.15: stored as 20.12, 615 not 614),
+`PrmLB01Pl0` 120, 90, 64 px, 16 px, 4137, 10, 90, 60, 30, `PrmLB01Sl0` 10 HP). Its .rca has only a body box (0x202) on animation 1:
+no attack, no hurt. It faces away from Kirby when made (`0x0201AE58`'s offsets are in the object's facing) and its speeds are in
+its facing's frame (negative: backward). States: `0x0211B4C8` start (1.2 backward, 0.03 gravity), `0x0211B418` drift (120 frames;
+on a floor 3.5 up, 0.15 gravity), `0x0211AED8` hop (3.5 up, 0.15; across `-(|Kirby's vx| + 0.88)`, 0 when more than PL[2] ahead;
+in the route's end zone within 128 of its end point: vtable +0x3C), `0x0211AE38` hopping (a new hop on `vy <= -3.5`, within 12
+of the route's line, `0x0211A97C`, or below Kirby), `0x0211B37C`/`0x0211B2EC` the end (still till `+0x264`, set by `0x0211AA50`
+from the camera's +0x84 bit 8: the camera locked on a stage zone; then from the zone's point + 1), `0x0211ACBC` a leg (P0 where
+it is, P1 and P2 the next two points; PL[6], PL[7], then PL[8] frames; sound 0x1C9 for the first 4), `0x0211AAE0` along it
+(quadratic Bezier, t = frames / its frames; at its end, P2 and the next leg the frame after), past the last point
+`0x0211AA74` (speed `(P2 - P1) / (2 frames)` per axis, through everything, till out of view: margins 1), then +0x3C again. The
+camera is `0x02035BA4(0)` (`*(0x021867AC) + 4`). **Stage routes**: a stage file's section 9 is a zone byte per tile (the
+`0x02209C7C` lookup: the zone's point), then a `u16` count and 8-byte points (`0x02209CC0`: `u8` index, a byte, `u16` x, y from
+the top, size; 255 marks the end), then a point-by-point table. a8s4s3 (1664 by 240): points 0-7 at y 168 from x 272 to 1416, 8
+the end (1596, 148), 9-18 the end's loop; its spawn (8, 68) at the left end; the camera locks on 1392-1648 when Kirby reaches
+1388. a8s4s4 (288 by 1216): 0-7 zigzag up from (256, 944) to (140, 224), 8 the end (192, 64), 9-16 a loop of four legs; its
+spawn (24, 964). Recorded in both (`kss/ds/load_st.py`, `rec_ds.py`: Kirby driven by a script).
 
 **Composite parts' first frame**: a part's sprite is made on the cell it shows (`SqueakCreatePart`'s `cell`). KatAM's sprite init
 (`EffectObjectInitSprite` → `sub_08155128`) queues its first frame's tiles at once; made on the character's cell 0, a part with a
