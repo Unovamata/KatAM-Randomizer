@@ -237,6 +237,15 @@
             CheckboxExpansionRooms = new CheckBox();
             CheckboxExpansionTitle = new CheckBox();
             LabelExpansionEnemies = new Label();
+            GroupExpansionSqueak = new GroupBox();
+            LabelExpansionSqueakDescription = new Label();
+            ButtonExpansionLoadSqueak = new Button();
+            ButtonExpansionUnloadSqueak = new Button();
+            LabelExpansionSqueak = new Label();
+            CheckboxExpansionSqueakEnemies = new CheckBox();
+            CheckboxExpansionSqueakMinibosses = new CheckBox();
+            CheckboxExpansionSqueakBehaviors = new CheckBox();
+            LabelExpansionSqueakEnemies = new Label();
             GroupMapElements = new GroupBox();
             GroupMapElementStoneDoors = new GroupBox();
             MapElementsStoneDoorsUnchanged = new RadioButton();
@@ -309,6 +318,7 @@
             ((System.ComponentModel.ISupportInitialize)NumericOptionsStartingHPMax).BeginInit();
             TabExpansion.SuspendLayout();
             GroupExpansionNightmare.SuspendLayout();
+            GroupExpansionSqueak.SuspendLayout();
             GroupMapElements.SuspendLayout();
             GroupMapElementStoneDoors.SuspendLayout();
             GroupMiscSprayPalettes.SuspendLayout();
@@ -3273,7 +3283,9 @@
             // 
             // TabExpansion
             // 
+            TabExpansion.AutoScroll = true;
             TabExpansion.Controls.Add(GroupExpansionNightmare);
+            TabExpansion.Controls.Add(GroupExpansionSqueak);
             TabExpansion.Location = new Point(4, 29);
             TabExpansion.Margin = new Padding(4, 5, 4, 5);
             TabExpansion.Name = "TabExpansion";
@@ -3298,7 +3310,7 @@
             GroupExpansionNightmare.Margin = new Padding(4, 5, 4, 5);
             GroupExpansionNightmare.Name = "GroupExpansionNightmare";
             GroupExpansionNightmare.Padding = new Padding(4, 5, 4, 5);
-            GroupExpansionNightmare.Size = new Size(1184, 530);
+            GroupExpansionNightmare.Size = new Size(1160, 530);
             GroupExpansionNightmare.TabIndex = 0;
             GroupExpansionNightmare.TabStop = false;
             GroupExpansionNightmare.Text = "Kirby: Nightmare in Dream Land";
@@ -3309,7 +3321,7 @@
             LabelExpansionDescription.Location = new Point(16, 34);
             LabelExpansionDescription.Margin = new Padding(4, 0, 4, 0);
             LabelExpansionDescription.Name = "LabelExpansionDescription";
-            LabelExpansionDescription.Size = new Size(1150, 80);
+            LabelExpansionDescription.Size = new Size(1126, 80);
             LabelExpansionDescription.TabIndex = 0;
             LabelExpansionDescription.Text = "Adds enemies and mini-bosses ported from Kirby: Nightmare in Dream Land to the enemy and mini-boss pools. Their graphics are taken from your own Nightmare in Dream Land ROM, which must be from the same region as the Kirby & the Amazing Mirror ROM: USA with USA, European with European, Japanese (revision 1) with Japanese. European games show the enemies' English names in every language; Japanese games show no names. Pick what to include once the ROM is loaded (rooms: every Nightmare in Dream Land level room, connected by mirrors). Enemies appear when enemies are randomized, mini-bosses when mini-bosses are, each as often as any of the game's own. The ROM is expanded to 32 MB to fit them.";
             // 
@@ -3407,9 +3419,124 @@
             LabelExpansionEnemies.Location = new Point(16, 318);
             LabelExpansionEnemies.Margin = new Padding(4, 0, 4, 0);
             LabelExpansionEnemies.Name = "LabelExpansionEnemies";
-            LabelExpansionEnemies.Size = new Size(1150, 196);
+            LabelExpansionEnemies.Size = new Size(1126, 196);
             LabelExpansionEnemies.TabIndex = 6;
             LabelExpansionEnemies.Text = "";
+            // 
+            // GroupExpansionSqueak
+            // 
+            GroupExpansionSqueak.Controls.Add(LabelExpansionSqueakDescription);
+            GroupExpansionSqueak.Controls.Add(ButtonExpansionLoadSqueak);
+            GroupExpansionSqueak.Controls.Add(ButtonExpansionUnloadSqueak);
+            GroupExpansionSqueak.Controls.Add(LabelExpansionSqueak);
+            GroupExpansionSqueak.Controls.Add(CheckboxExpansionSqueakEnemies);
+            GroupExpansionSqueak.Controls.Add(CheckboxExpansionSqueakMinibosses);
+            GroupExpansionSqueak.Controls.Add(CheckboxExpansionSqueakBehaviors);
+            GroupExpansionSqueak.Controls.Add(LabelExpansionSqueakEnemies);
+            GroupExpansionSqueak.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            GroupExpansionSqueak.Location = new Point(10, 550);
+            GroupExpansionSqueak.Margin = new Padding(4, 5, 4, 5);
+            GroupExpansionSqueak.Name = "GroupExpansionSqueak";
+            GroupExpansionSqueak.Padding = new Padding(4, 5, 4, 5);
+            GroupExpansionSqueak.Size = new Size(1160, 576);
+            GroupExpansionSqueak.TabIndex = 1;
+            GroupExpansionSqueak.TabStop = false;
+            GroupExpansionSqueak.Text = "Kirby: Squeak Squad";
+            // 
+            // LabelExpansionSqueakDescription
+            // 
+            LabelExpansionSqueakDescription.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            LabelExpansionSqueakDescription.Location = new Point(16, 34);
+            LabelExpansionSqueakDescription.Margin = new Padding(4, 0, 4, 0);
+            LabelExpansionSqueakDescription.Name = "LabelExpansionSqueakDescription";
+            LabelExpansionSqueakDescription.Size = new Size(1126, 130);
+            LabelExpansionSqueakDescription.TabIndex = 0;
+            LabelExpansionSqueakDescription.Text = "Adds characters ported from Kirby: Squeak Squad to the enemy and mini-boss pools: its enemies and the Squeaks, and its mid-bosses. Their graphics are taken from your own Squeak Squad ROM (Nintendo DS, any release), loaded with or without a Nightmare in Dream Land ROM. Enemies appear when enemies are randomized, mid-bosses when mini-bosses are, each as often as any of the game's own. Include Behaviors gives KatAM's own Waddle Dee, Glunk, Gordo and Snooter the moves Squeak Squad gives them, when behaviors are randomized. The ROM is expanded to 32 MB to fit them.";
+            // 
+            // ButtonExpansionLoadSqueak
+            // 
+            ButtonExpansionLoadSqueak.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            ButtonExpansionLoadSqueak.Location = new Point(16, 170);
+            ButtonExpansionLoadSqueak.Margin = new Padding(4, 5, 4, 5);
+            ButtonExpansionLoadSqueak.Name = "ButtonExpansionLoadSqueak";
+            ButtonExpansionLoadSqueak.Size = new Size(320, 38);
+            ButtonExpansionLoadSqueak.TabIndex = 1;
+            ButtonExpansionLoadSqueak.Text = "Load Squeak Squad ROM";
+            ButtonExpansionLoadSqueak.UseVisualStyleBackColor = true;
+            ButtonExpansionLoadSqueak.Click += ButtonExpansionLoadSqueak_Click;
+            // 
+            // ButtonExpansionUnloadSqueak
+            // 
+            ButtonExpansionUnloadSqueak.Enabled = false;
+            ButtonExpansionUnloadSqueak.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            ButtonExpansionUnloadSqueak.Location = new Point(344, 170);
+            ButtonExpansionUnloadSqueak.Margin = new Padding(4, 5, 4, 5);
+            ButtonExpansionUnloadSqueak.Name = "ButtonExpansionUnloadSqueak";
+            ButtonExpansionUnloadSqueak.Size = new Size(120, 38);
+            ButtonExpansionUnloadSqueak.TabIndex = 7;
+            ButtonExpansionUnloadSqueak.Text = "Unload";
+            ButtonExpansionUnloadSqueak.UseVisualStyleBackColor = true;
+            ButtonExpansionUnloadSqueak.Click += ButtonExpansionUnloadSqueak_Click;
+            // 
+            // LabelExpansionSqueak
+            // 
+            LabelExpansionSqueak.AutoSize = true;
+            LabelExpansionSqueak.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            LabelExpansionSqueak.Location = new Point(476, 176);
+            LabelExpansionSqueak.Margin = new Padding(4, 0, 4, 0);
+            LabelExpansionSqueak.Name = "LabelExpansionSqueak";
+            LabelExpansionSqueak.Size = new Size(180, 25);
+            LabelExpansionSqueak.TabIndex = 2;
+            LabelExpansionSqueak.Text = "No ROM Loaded";
+            // 
+            // CheckboxExpansionSqueakEnemies
+            // 
+            CheckboxExpansionSqueakEnemies.AutoSize = true;
+            CheckboxExpansionSqueakEnemies.Enabled = false;
+            CheckboxExpansionSqueakEnemies.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            CheckboxExpansionSqueakEnemies.Location = new Point(16, 222);
+            CheckboxExpansionSqueakEnemies.Margin = new Padding(4, 5, 4, 5);
+            CheckboxExpansionSqueakEnemies.Name = "CheckboxExpansionSqueakEnemies";
+            CheckboxExpansionSqueakEnemies.TabIndex = 3;
+            CheckboxExpansionSqueakEnemies.Text = "Include Enemies";
+            CheckboxExpansionSqueakEnemies.UseVisualStyleBackColor = true;
+            CheckboxExpansionSqueakEnemies.CheckedChanged += CheckboxExpansionSqueakEnemies_CheckedChanged;
+            // 
+            // CheckboxExpansionSqueakMinibosses
+            // 
+            CheckboxExpansionSqueakMinibosses.AutoSize = true;
+            CheckboxExpansionSqueakMinibosses.Enabled = false;
+            CheckboxExpansionSqueakMinibosses.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            CheckboxExpansionSqueakMinibosses.Location = new Point(16, 256);
+            CheckboxExpansionSqueakMinibosses.Margin = new Padding(4, 5, 4, 5);
+            CheckboxExpansionSqueakMinibosses.Name = "CheckboxExpansionSqueakMinibosses";
+            CheckboxExpansionSqueakMinibosses.TabIndex = 4;
+            CheckboxExpansionSqueakMinibosses.Text = "Include Mini-Bosses";
+            CheckboxExpansionSqueakMinibosses.UseVisualStyleBackColor = true;
+            CheckboxExpansionSqueakMinibosses.CheckedChanged += CheckboxExpansionSqueakMinibosses_CheckedChanged;
+            // 
+            // CheckboxExpansionSqueakBehaviors
+            // 
+            CheckboxExpansionSqueakBehaviors.AutoSize = true;
+            CheckboxExpansionSqueakBehaviors.Enabled = false;
+            CheckboxExpansionSqueakBehaviors.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            CheckboxExpansionSqueakBehaviors.Location = new Point(16, 290);
+            CheckboxExpansionSqueakBehaviors.Margin = new Padding(4, 5, 4, 5);
+            CheckboxExpansionSqueakBehaviors.Name = "CheckboxExpansionSqueakBehaviors";
+            CheckboxExpansionSqueakBehaviors.TabIndex = 5;
+            CheckboxExpansionSqueakBehaviors.Text = "Include Behaviors";
+            CheckboxExpansionSqueakBehaviors.UseVisualStyleBackColor = true;
+            CheckboxExpansionSqueakBehaviors.CheckedChanged += CheckboxExpansionSqueakBehaviors_CheckedChanged;
+            // 
+            // LabelExpansionSqueakEnemies
+            // 
+            LabelExpansionSqueakEnemies.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            LabelExpansionSqueakEnemies.Location = new Point(16, 338);
+            LabelExpansionSqueakEnemies.Margin = new Padding(4, 0, 4, 0);
+            LabelExpansionSqueakEnemies.Name = "LabelExpansionSqueakEnemies";
+            LabelExpansionSqueakEnemies.Size = new Size(1126, 220);
+            LabelExpansionSqueakEnemies.TabIndex = 8;
+            LabelExpansionSqueakEnemies.Text = "";
             // 
             // tabPage6
             // 
@@ -3548,6 +3675,8 @@
             TabExpansion.ResumeLayout(false);
             GroupExpansionNightmare.ResumeLayout(false);
             GroupExpansionNightmare.PerformLayout();
+            GroupExpansionSqueak.ResumeLayout(false);
+            GroupExpansionSqueak.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)NumericOptionsStartingLives).EndInit();
             ((System.ComponentModel.ISupportInitialize)NumericOptionsStartingHPMin).EndInit();
             ((System.ComponentModel.ISupportInitialize)NumericOptionsStartingHPMax).EndInit();
@@ -3614,6 +3743,15 @@
         private CheckBox CheckboxExpansionRooms;
         private CheckBox CheckboxExpansionTitle;
         private Label LabelExpansionEnemies;
+        private GroupBox GroupExpansionSqueak;
+        private Label LabelExpansionSqueakDescription;
+        private Button ButtonExpansionLoadSqueak;
+        private Button ButtonExpansionUnloadSqueak;
+        private Label LabelExpansionSqueak;
+        private CheckBox CheckboxExpansionSqueakEnemies;
+        private CheckBox CheckboxExpansionSqueakMinibosses;
+        private CheckBox CheckboxExpansionSqueakBehaviors;
+        private Label LabelExpansionSqueakEnemies;
         private Label LabelGameRegion;
         private GroupBox GroupMiscSprayPalettes;
         private RadioButton RadioSprayUnchanged;

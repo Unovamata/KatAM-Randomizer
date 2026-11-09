@@ -239,7 +239,24 @@ graphics are never shipped): `squeak.h`, `squeak.c`, `squeak/*.c`, `KatAMExpansi
 how Squeak Squad's enemies work): [Squeak Squad Notes](../Documentation/Squeak%20Squad%20Notes.md).
 
 - **Object type 0x2C** (KatAM's last free regular enemy type): the template's behavior byte picks the character (`SQUEAK_*`), its
-  `unk12` byte the variant. Its spawn, parameters and start are written as type 0x31's are (`WriteSqueak`).
+  `unk12` byte the variant. Its spawn, parameters and start are written as type 0x31's are (`WriteSqueak`). The randomizer's
+  "Nothing" (what it takes out) was type 0x2C: it's type 0x53 now, as empty in the three releases (`Utils.Nothing`).
+- **With or without NiDL** (the owner: either game can be on alone): `AddEnemies` takes a NiDL ROM, a Squeak Squad ROM or both.
+  Without NiDL's, only the code and what Squeak Squad's characters need go in (type 0x2C, the mini-boss types its mid-bosses take,
+  their hurt anims and VRAM sized for its biggest mid-boss of each type, the HP bar, helper and blink patches); NiDL's enemies,
+  mini-bosses, bosses, abilities, rooms, title, Star Rod stand, Mirras and shard hooks stay out, and the pause screens stay
+  KatAM's. With NiDL's, the ROM is byte for byte what it was before Squeak Squad could be added alone.
+- **In the randomizer** (the ROM Expansion tab's "Kirby: Squeak Squad" group; `KatAMExpansionSqueak.cs`'s pools,
+  `KatAMEnemiesBase.cs`): Include Enemies puts type 0x2C in the enemy pool once per character (as NiDL's type 0x31), the
+  behavior byte the character and `Properties[1]` (the template's `unk12`) one of its variants for the spot: ground spots, flying
+  enemies' (Perara, Cret, Uja, Starman 0) and underwater ones' (Gussa, Gold Waddle Dee 0 and 5). Include Mini-Bosses (Big Metalun,
+  Gao Gao, Tedhaun, Buboo) puts their mini-boss types (`MidbossType`) in the mini-boss pool, behavior `SQUEAK_MIDBOSS | index`,
+  each as likely as NiDL's on the same type. Include Behaviors adds `natives.c`'s new variants (Waddle Dee 5-7, Glunk 5-6, Gordo
+  5, Snooter 5) to those enemies' behaviors. Left out of the pools: what a character throws or brings in, Daroach's stage scene,
+  the dark star (its route is a stage's) and the bosses: tried in KatAM's mini-boss rooms, Mecha-Kracko and Mrs. Moley fit, but
+  Yadgaine (at its arena's edge) and Dark Nebula (above the locked camera) were mostly off-screen. The HP options take
+  `gSqueakEnemyHp` by pool (`KatAMHP.cs`, only with the characters in the ROM: `HasSqueakSquad`; NiDL's tables only with NiDL's:
+  `HasNightmare`); the spoiler log names each "(Squeak Squad)".
 - **An anim per character, 256 frames each**: KatAM gives an object the frame its type's AnimInfo table lists for its frame index
   (`unk83`), at most 256 per type. The object drawing (`sub_0809A7A4`, USA `0x0809A824`) is patched to ask `SqueakAnimFor`: type
   0x2C objects show their character's own anim, with the frame index as the variant. Variants 0-2 are the hurt frame (the type's

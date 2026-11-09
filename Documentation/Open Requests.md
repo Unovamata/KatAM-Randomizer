@@ -317,11 +317,27 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
     in: its line under the floor it first bounces on, its end and loop at the room's side it heads for (where the DS's camera
     locks on the stage's end, KatAM's camera just follows Kirby, so part of the loop can be off the screen). The shaft's route
     (a8s4s4: the same moves going up) isn't ported. Say if the star should do something else in KatAM's rooms. Not tested: EU
-    and Japanese builds (built and logic-checked, not played); where the randomizer would put it (the Squeak Squad options aren't
-    in the randomizer yet).
-  - Left: the randomizer options (a Squeak Squad ROM in the ROM Expansion tab, the enemy pool). The whole cast is ported: the Squeak
-    Squad-only enemies, the shared enemies' Squeak Squad behaviors, its mid-bosses, the Squeaks, the bosses (0x37-0x3D), Dark
-    Nebula (0x3F, 0x46) and the dark star (0x3E).
+    and Japanese builds (built and logic-checked, not played); the randomizer doesn't place it (its route is a stage's).
+  - The whole cast is ported: the Squeak Squad-only enemies, the shared enemies' Squeak Squad behaviors, its mid-bosses, the
+    Squeaks, the bosses (0x37-0x3D), Dark Nebula (0x3F, 0x46) and the dark star (0x3E).
+  - **Randomizer options: done** (the ROM Expansion tab's "Kirby: Squeak Squad" group, under NiDL's: Load Squeak Squad ROM, Unload,
+    Include Enemies, Include Mini-Bosses, Include Behaviors; see the READMEs). A Squeak Squad ROM works with or without a NiDL ROM
+    (the owner's rule): alone, only what its characters need goes in. Checked: NiDL + Squeak Squad's expansion byte for byte as
+    before; NiDL-only randomizations (random behaviors and HP, two seeds) byte for byte as before; Squeak Squad-only and NiDL +
+    Squeak Squad randomizations of the USA, European and Japanese releases (all 18 enemies placed by spot: flyers in flying spots,
+    Gussa in water spots; the 4 mid-bosses on their mini-boss types; the natives' new behaviors; HP options on their HP table
+    only); the three releases with both built and logic-checked (every room reached, every big switch, nothing trapped, with and
+    without thin-floor drops). In the emulator (a new game started in the room: a forced start, not a playthrough; USA, Squeak
+    Squad only): Big Metalun, Gao Gao, Tedhaun and Buboo fight in their randomized KatAM mini-boss rooms (HP bar, camera); Gussa
+    swims in Cabbage Cavern's water; a room of flyers. Not tested: the window itself (it can't run here: compiled only), the
+    spoiler log (compiled only), a whole playthrough.
+  - **Owner's call**: Squeak Squad's bosses aren't in the pools. Tried in KatAM's mini-boss rooms, Mecha-Kracko and Mrs. Moley fit,
+    but Yadgaine (at its arena's edge, a leg showing) and Dark Nebula (above the locked camera) were mostly off-screen. They could
+    go in mini-boss rooms whose arena fits them, or wait for Squeak Squad's own rooms.
+  - **Owner's call**: Yadgaine's look in its fight: Squeak Squad draws its green spiked shell as a background layer (154x208
+    pixels, 312 tiles), which KatAM's port doesn't draw. The choices: the shell as sprites (tight: 180-276 sprite tiles free in a
+    fight against about 350 needed, so hidden parts cut), on BG2 (free in all 35 mini-boss rooms, but BG VRAM and the 16 BG
+    palettes are full: part of the room's background would have to go during the fight), or left as it is.
 
 ## 5. Bosses as faithful 1:1 recreations of NiDL
 - **The other bosses**: check each against NiDL and fix what differs.

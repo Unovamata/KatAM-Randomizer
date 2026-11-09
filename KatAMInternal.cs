@@ -543,6 +543,12 @@ namespace KatAMInternal
         // ROM Expansion: the ported Nightmare in Dream Land mini-bosses to add (KatAMExpansion.Minibosses indexes);
         public List<int> NightmareMinibosses { get; set; } = new List<int>();
         public bool NightmareRooms { get; set; }
+        // ROM Expansion: the ported Kirby: Squeak Squad characters to add: its enemies (type 0x2C) and its mid-bosses (on the mini-boss
+        // types; KatAMExpansion.SqueakEnemies, SqueakMidbosses indexes);
+        public List<int> SqueakEnemies { get; set; } = new List<int>();
+        public List<int> SqueakMinibosses { get; set; } = new List<int>();
+        // ROM Expansion: Squeak Squad's behaviors of KatAM's own enemies join their behaviors (KatAMExpansion.SqueakNativeBehaviors);
+        public bool SqueakBehaviors { get; set; }
         // Title screen: the intro's parading characters swapped (KatAMTitleScreen.RandomizeParade);
         public bool RandomizeTitleParade { get; set; }
         // Title screen: the intro picked at random between KatAM's and Nightmare in Dream Land's (needs a NiDL ROM loaded);
@@ -917,7 +923,8 @@ namespace KatAMInternal
             return vetoedRooms.Contains(destination);
         }
 
-        public static byte Nothing = 0x2C;
+        // Nothing: an empty object type (its spawn makes nothing) for what the randomizer takes out; not 0x2C, the ROM Expansion's Squeak Squad characters;
+        public static byte Nothing = 0x53;
 
         // Big switch object; Each one unlocks the Central Circle mirror to an area, so they must never be randomized or removed;
         public const byte BigSwitch = 0x86;

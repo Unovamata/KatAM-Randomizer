@@ -621,7 +621,85 @@ namespace KatAMRandomizer {
             new SqueakEnemy(68, "Dark star", "darkZERO_cmn", new[] { 0, 0, 0 }, new (int, int)[0], OnlyAnims: new[] { 1 }),
         };
 
-        public static IReadOnlyList<(int index, string name)> SqueakEnemies => SqueakDefinitions.Select(e => (e.Index, e.Name)).ToList();
+        /* The randomizer's Squeak Squad pools (the ROM Expansion tab). SqueakPool; A character the randomizer places: its index (SQUEAK_*
+         * in squeak.h), its variants (the template's unk12: KatAMEnemiesBase writes it in its Properties[1]) in a ground spot, in a
+         * flying enemy's spot, in an underwater one (none: not there), and, for a mid-boss, its mini-boss type (MidbossType; its
+         * behavior byte SQUEAK_MIDBOSS | its index). The rest of the cast (what a character throws or brings in, Daroach's stage scene,
+         * the dark star's route) isn't placed on its own, nor are the bosses: in KatAM's mini-boss rooms some don't fit the camera
+         * (Yadgaine and Dark Nebula mostly off-screen in the arenas tried), so they wait for rooms of their own (the owner's call);
+         * • Enemies (squeak/*.c, each file's "Brain"): Perara floats where it's placed; Gold Waddle Dee 0-3 and 5 (4 is 0 again) and
+         *   swims (0 forward, 5 still); Gussa only in water (out of it it falls); Crimp, Maiga, Spinni one brain; Cret 0-3 and Uja 0-1 fly
+         *   from wherever they are, in a flying enemy's spot too; Bio Spark 0-2; Starman 1-3 on the ground, 0 hovers; Bubble Head 0-2 (5 is 1 again); Gaw Gaw 0, 1, 3
+         *   (2 is 0); Acchi, Bun, Metalun 0-2; the Squeakers in their four colors; Doc (it flies, but
+         *   only from ground spots: the flying spots' pool is small, and a Squeak would fill it); Storo 0-2;
+         * • Mid-bosses: Big Metalun, Gao Gao, Tedhaun, Buboo; */
+        sealed record SqueakPool(int Index, byte[] Variants, byte[] Flying = null, byte[] Water = null);
+        static readonly byte[] SqueakV0 = { 0 }, SqueakV01 = { 0, 1 }, SqueakV012 = { 0, 1, 2 }, SqueakV0123 = { 0, 1, 2, 3 };
+        static readonly List<SqueakPool> SqueakEnemyPool = new List<SqueakPool> {
+            new SqueakPool(0, SqueakV0, Flying: SqueakV0),                                      // Perara;
+            new SqueakPool(1, new byte[] { 0, 1, 2, 3, 5 }, Water: new byte[] { 0, 5 }),        // Gold Waddle Dee;
+            new SqueakPool(2, new byte[0], Water: SqueakV01),                                   // Gussa;
+            new SqueakPool(3, SqueakV0),                                                        // Crimp;
+            new SqueakPool(5, SqueakV0),                                                        // Maiga;
+            new SqueakPool(6, SqueakV0123, Flying: SqueakV0123),                                // Cret;
+            new SqueakPool(8, SqueakV01, Flying: SqueakV01),                                    // Uja;
+            new SqueakPool(9, SqueakV012),                                                      // Bio Spark;
+            new SqueakPool(12, new byte[] { 1, 2, 3 }, Flying: SqueakV0),                       // Starman;
+            new SqueakPool(13, SqueakV012),                                                     // Bubble Head;
+            new SqueakPool(15, new byte[] { 0, 1, 3 }),                                         // Gaw Gaw;
+            new SqueakPool(16, SqueakV012),                                                     // Acchi;
+            new SqueakPool(18, SqueakV012),                                                     // Bun;
+            new SqueakPool(19, SqueakV012),                                                     // Metalun;
+            new SqueakPool(27, SqueakV0123),                                                    // Squeaker;
+            new SqueakPool(29, SqueakV0),                                                       // Spinni;
+            new SqueakPool(31, SqueakV0),                                                       // Doc (flies from a ground spot: a Squeak, not one of the few flyers);
+            new SqueakPool(33, SqueakV012),                                                     // Storo;
+        };
+        static readonly int[] SqueakMidbossPool = { 20, 21, 23, 25 };
+
+        static SqueakEnemy SqueakDefinitionOf(int index) => SqueakDefinitions.First(e => e.Index == index);
+        static string SqueakPoolName(int index) => SqueakDefinitionOf(index).Name;
+
+        // The pools' characters (index, name) for the settings and the window: its enemies and mid-bosses;
+        public static IReadOnlyList<(int index, string name)> SqueakEnemies => SqueakEnemyPool.Select(p => (p.Index, SqueakPoolName(p.Index))).ToList();
+        public static IReadOnlyList<(int index, string name)> SqueakMidbosses => SqueakMidbossPool.Select(i => (i, SqueakPoolName(i))).ToList();
+
+        /* SqueakGroupsOf(); The characters picked as the randomizer places them in type 0x2C's spots: one (behavior, its variants) per
+         * character that can be there (a ground spot, a flying enemy's or an underwater one's); */
+        public static List<(byte behavior, byte[] variants)> SqueakGroupsOf(IEnumerable<int> enemies, bool flying = false, bool water = false) =>
+            SqueakEnemyPool.Where(p => enemies.Contains(p.Index))
+                           .Select(p => ((byte)p.Index, (water ? p.Water : flying ? p.Flying : p.Variants) ?? Array.Empty<byte>()))
+                           .Where(group => group.Item2.Length > 0).ToList();
+
+        // SqueakMidbossGroupsOf(); The mid-bosses picked on a mini-boss type: their behavior bytes (SQUEAK_MIDBOSS | index), variant 0;
+        public static List<(byte behavior, byte[] variants)> SqueakMidbossGroupsOf(IEnumerable<int> characters, byte type) =>
+            SqueakDefinitions.Where(e => e.MidbossType == type && characters.Contains(e.Index) && SqueakMidbossPool.Contains(e.Index))
+                             .Select(e => ((byte)(SqueakMidbossFlag | e.Index), SqueakV0)).ToList();
+        const int SqueakMidbossFlag = 0x80;     // SQUEAK_MIDBOSS (squeak.h);
+
+        // IsSqueakMidbossBehavior(); A mini-boss type's behavior byte that picks a Squeak Squad mid-boss or boss (NiDL's are under 0x60);
+        public static bool IsSqueakMidbossBehavior(byte behavior) => behavior >= SqueakMidbossFlag;
+
+        // SqueakNameOf(); The Squeak Squad character a behavior byte picks (type 0x2C's, or a mini-boss type's SQUEAK_MIDBOSS | index);
+        public static string SqueakNameOf(byte behavior) {
+            int index = behavior & ~SqueakMidbossFlag;
+            return SqueakDefinitions.FirstOrDefault(e => e.Index == index)?.Name ?? SqueakDefinitions[0].Name;
+        }
+
+        /* SqueakNativeBehaviors; The behaviors Squeak Squad gives KatAM's own enemies that KatAM's lack ("ROM Expansion/squeak/natives.c":
+         * their subtype1): Waddle Dee's 5-7 (patrol, a jump at Kirby, a jump on a timer), Glunk's 5-6 (Squeak Squad's two beats), Gordo's
+         * 5 (circles), Snooter's 5 (stands facing Kirby); */
+        public static readonly IReadOnlyDictionary<byte, byte[]> SqueakNativeBehaviors = new Dictionary<byte, byte[]> {
+            [0x00] = new byte[] { 5, 6, 7 },
+            [0x03] = new byte[] { 5, 6 },
+            [0x06] = new byte[] { 5 },
+            [0x07] = new byte[] { 5 },
+        };
+
+        /* The HP options: the pools' characters' HP (gSqueakEnemyHp, one HP for any number of players), by pool (KatAMHP.cs): its enemies
+         * and mid-bosses; */
+        public static IReadOnlyList<int> SqueakEnemyHpIndexes => SqueakEnemyPool.Select(p => p.Index).ToList();
+        public static IReadOnlyList<int> SqueakMidbossHpIndexes => SqueakMidbossPool;
 
         /* WriteSqueak(); Object type 0x2C as type 0x31 is for NiDL's: spawn function and parameters (hurt frames 0 & 1, Waddle Dee's score
          * and HP, no ability, no palette key: each character loads its own, VRAM for the biggest frame, behavior start, one AnimInfo:

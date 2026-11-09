@@ -211,7 +211,11 @@ namespace KatAMRandomizer
                 case 0x65: return $"{ObjectName(id)} #{behavior + 1}";
             }
 
-            // ROM Expansion enemies: the behavior picks which one;
+            // ROM Expansion enemies: the behavior picks which one (Squeak Squad's named as theirs: some share a name with NiDL's);
+            Settings settings = Settings.GetInstance();
+            if (id == KatAMExpansion.SqueakID && settings?.SqueakEnemies.Count > 0) return $"{KatAMExpansion.SqueakNameOf(behavior)} (Squeak Squad)";
+            if (KatAMExpansion.MinibossIDs.Contains(id) && KatAMExpansion.IsSqueakMidbossBehavior(behavior) && settings?.SqueakMinibosses.Count > 0)
+                return $"{KatAMExpansion.SqueakNameOf(behavior)} (Squeak Squad)";
             if (id == KatAMExpansion.NightmareID && Settings.GetInstance()?.NightmareEnemies.Count > 0) return KatAMExpansion.NameOf(behavior);
             if (KatAMExpansion.MinibossIDs.Contains(id) && Settings.GetInstance()?.NightmareMinibosses.Count > 0) return KatAMExpansion.MinibossNameOf(behavior);
 

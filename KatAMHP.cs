@@ -11,7 +11,8 @@ namespace KatAMRandomizer {
      *   base randomizer keeps its own: RomRegion.Parameters.)
      * • The ROM Expansion's ported enemies, mini-bosses and bosses have their own tables ("ROM Expansion/nidl.c", nidl_miniboss.c,
      *   nidl_boss.c: gNidlEnemyHp, gNidlMinibossHp, gNidlBossHp by the number of players), the HP bar working their fill out from them
-     *   (NidlHpBarFill); with its code in the ROM they join KatAM's in the same pools.
+     *   (NidlHpBarFill); with them in the ROM they join KatAM's in the same pools. Squeak Squad's characters too (squeak.c's
+     *   gSqueakEnemyHp, one HP each), by pool: its enemies and mid-bosses (KatAMExpansionSqueak.cs's pools).
      * • Mini-bosses' and bosses' HP is shuffled and picked for one player: with more, each one's is scaled as the game scales it (KatAM's
      *   Mr. Frosty: 30, 40, 48 and 54); NiDL's mini-bosses have one HP for any number of players; */
     internal static class KatAMHP {
@@ -35,6 +36,18 @@ namespace KatAMRandomizer {
         const int NidlEnemies = 15, NidlMinibosses = 5, NidlBosses = 9;
 
         static short Read16(byte[] rom, long address) => (short)(rom[address] | (rom[address + 1] << 8));
+
+        // NidlTable(), SqueakTable(); A table of NiDL's or Squeak Squad's HP, or -1 when those characters aren't in the ROM;
+        static int NidlTable(byte[] rom, string name) => KatAMExpansion.HasNightmare(rom) ? KatAMExpansion.CodeSymbolOf(rom, name) : -1;
+        static int SqueakTable(byte[] rom) => KatAMExpansion.HasSqueakSquad(rom) ? KatAMExpansion.CodeSymbolOf(rom, "gSqueakEnemyHp") : -1;
+
+        // SqueakHP(); Squeak Squad's characters' HP (indexes), none without them; WriteSqueakHP() writes theirs from `hp` at `from`;
+        static List<int> SqueakHP(byte[] rom, int table, IReadOnlyList<int> indexes) =>
+            table < 0 ? new List<int>() : indexes.Select(i => (int)Read16(rom, table + i * 2)).ToList();
+        static void WriteSqueakHP(int table, IReadOnlyList<int> indexes, List<int> hp, int from) {
+            if (table < 0) return;
+            for (int i = 0; i < indexes.Count; i++) Write16(table + indexes[i] * 2, hp[from + i]);
+        }
         static void Write16(long address, int value) => Utils.WriteToROM(address, BitConverter.GetBytes((ushort)value));
 
         // Fill(); The HP bar's fill factor for an HP (0x4000 full);
@@ -70,10 +83,12 @@ namespace KatAMRandomizer {
 
             byte[] rom = Processing.ROMData;
             List<byte> types = Processing.enemiesDictionary.Keys.Where(type => !fixedEnemies.Contains(type) && properties.ContainsKey(type)).ToList();
-            int nidl = KatAMExpansion.CodeSymbolOf(rom, "gNidlEnemyHp");
+            int nidl = NidlTable(rom, "gNidlEnemyHp"), squeak = SqueakTable(rom);
             List<int> hp = types.Select(type => (int)properties[type].HP).ToList();
 
             if (nidl >= 0) hp.AddRange(Enumerable.Range(0, NidlEnemies).Select(i => (int)Read16(rom, nidl + i * 2)));
+            int squeakFrom = hp.Count;
+            hp.AddRange(SqueakHP(rom, squeak, KatAMExpansion.SqueakEnemyHpIndexes));
             List<int> newHP = NewHP(hp, settings.EnemiesHPType, settings.EnemiesHPMin, settings.EnemiesHPMax, settings.isEnemyHPPercentageModified, settings.EnemiesHPPercentage);
 
             for (int i = 0; i < types.Count; i++) {
@@ -86,6 +101,7 @@ namespace KatAMRandomizer {
             }
             if (nidl >= 0)
                 for (int i = 0; i < NidlEnemies; i++) Write16(nidl + i * 2, newHP[types.Count + i]);
+            WriteSqueakHP(squeak, KatAMExpansion.SqueakEnemyHpIndexes, newHP, squeakFrom);
         }
 
         // Minibosses(); The mini-bosses' HP: KatAM's (types 0x38-0x3F) by the number of players, with their HP bar's fill; the ROM Expansion's;
@@ -97,15 +113,18 @@ namespace KatAMRandomizer {
             long table = RomRegion.Current.Parameters(BossHP);
             List<byte> types = Processing.minibossesDictionary.Keys.ToList();
             List<short[]> rows = types.Select(type => Row(rom, table + (type - FirstBossType) * 8)).ToList();
-            int nidl = KatAMExpansion.CodeSymbolOf(rom, "gNidlMinibossHp");
+            int nidl = NidlTable(rom, "gNidlMinibossHp"), squeak = SqueakTable(rom);
             List<int> hp = rows.Select(row => (int)row[0]).ToList();
 
             if (nidl >= 0) hp.AddRange(Enumerable.Range(0, NidlMinibosses).Select(i => (int)Read16(rom, nidl + i * 2)));
+            int squeakFrom = hp.Count;
+            hp.AddRange(SqueakHP(rom, squeak, KatAMExpansion.SqueakMidbossHpIndexes));
             List<int> newHP = NewHP(hp, settings.MinibossesHPType, settings.MinibossesHPMin, settings.MinibossesHPMax, settings.isMinibossHPPercentageModified, settings.MinibossesHPPercentage);
 
             for (int i = 0; i < types.Count; i++) WriteRow(types[i], Scaled(rows[i], newHP[i]));
             if (nidl >= 0)
                 for (int i = 0; i < NidlMinibosses; i++) Write16(nidl + i * 2, newHP[types.Count + i]);
+            WriteSqueakHP(squeak, KatAMExpansion.SqueakMidbossHpIndexes, newHP, squeakFrom);
         }
 
         /* Bosses(); The bosses' HP: KatAM's (types 0x45-0x52; Dark Mind's first form, all its parts scaled alike) by the number of players,
@@ -119,7 +138,7 @@ namespace KatAMRandomizer {
             List<byte> types = Processing.bossesDictionary.Keys.Where(type => type != DarkMindForm1).ToList();
             List<short[]> rows = types.Select(type => Row(rom, table + (type - FirstBossType) * 8)).ToList();
             List<short[]> darkMindRows = Enumerable.Range(0, 4).Select(part => Row(rom, darkMind + part * 8)).ToList();
-            int nidl = KatAMExpansion.CodeSymbolOf(rom, "gNidlBossHp");
+            int nidl = NidlTable(rom, "gNidlBossHp");
             List<short[]> nidlRows = nidl < 0 ? new List<short[]>() : Enumerable.Range(0, NidlBosses).Select(i => Row(rom, nidl + i * 8)).ToList();
             List<int> hp = rows.Concat(darkMindRows.Take(1)).Concat(nidlRows).Select(row => (int)row[0]).ToList();
             List<int> newHP = NewHP(hp, settings.BossesHPType, settings.BossesHPMin, settings.BossesHPMax, settings.isBossHPPercentageModified, settings.BossesHPPercentage);
