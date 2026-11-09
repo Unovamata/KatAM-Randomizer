@@ -382,8 +382,8 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
       star blocks), overlaid on converted rooms to check it lines up.
     - Left: the objects (enemies, food, chests, ability bubbles as enemies), the gimmicks, tile animations, writing the rooms into
       the ROM and testing them in the emulator; then the hub, the levels by the rulebook, bosses, map viewer, logic checks.
-  - **Owner's call** (later, with the objects): ability bubbles whose ability no regular enemy gives (Hammer, Bonkers' in KatAM;
-    two abilities of Squeak Squad's own, ability numbers 18 and 26): which enemy, or food.
+  - Ability bubbles whose ability no regular enemy gives (Hammer, Bonkers' in KatAM; Squeak Squad's ability numbers 18 and 26)
+    become food (the owner: "In the case of bubbles without no regular enemy, you can swap them out for food.").
 - **Map items for each area** (the owner, with the rooms): KatAM's map item, its sprite recolored to each NiDL and Squeak Squad
   area's theme, one per area, so the map viewer shows the area once its map is found.
 - **The Collection Room scrolls left and right** (the owner, with the rooms: "the collection room should be scrollable left and
