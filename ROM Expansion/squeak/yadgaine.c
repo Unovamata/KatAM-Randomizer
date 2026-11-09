@@ -34,14 +34,22 @@
  *   whose HP is out stays broken, hurting by touch, untouchable. Its body 20 frames safe after a hit (KatAM's damage undone); 72
  *   damage on it (Sl0's 360) and its second form: its cracked body (.mca's 1). Its shell's box (yadgaine.rca's 35: 197 pixels
  *   behind its middle) is behind its wall.
- * Not ported: its shell (the stage draws it on a background layer from its own tiles, 0x0220B0B4: 154 by 208 pixels, 312 tiles,
- * more than KatAM's 512-tile sprite heap holds with it, and KatAM's backgrounds' tiles and palettes are full in a fight), the floor
- * crumbling behind it (the stage's tiles), the screen not scrolling, its sounds, the DS's camera jolts as it walks, steps and
+ * • Its shell (the stage draws it on a background layer from its own tiles, 0x0220B0B4: 154 by 208 pixels, 312 tiles; KatAM's
+ *   backgrounds' tiles and palettes are full in a fight): a sprite at half its size (80 tiles), drawn twice as big by the GBA's
+ *   sprite scaling, only what its fight shows of it (see Shell() below). Its fight is near the GBA's limits without it (KatAM's
+ *   sprite heap at 428 of 512 tiles when two rock bursts are out, its 7 enemy palettes all taken, its frames near the end of the
+ *   CPU's time): Squeak Squad's effects wait for room in the heap (squeak.c's SQUEAK_FX_ROOM: a rock's burst left out when it
+ *   would leave too little for KatAM's own), the shell takes Daroach's palette slot once he's gone, and is drawn by hand.
+ * Not ported: the floor crumbling behind it (the stage's tiles), the screen not scrolling, its sounds, the DS's camera jolts as it walks, steps and
  * throws (0x02035F60, 0x02035FC4), its hit flash (yadgaine_dmg's palettes), Squeak Squad's damage less from some attacks (80 in
  * 100, 60 with its legs broken), its own defeat (0x02118E94: KatAM's mini-boss defeat), its walk-off when Kirby is beaten (+0x3C,
  * 0x02118A80), its boss music. */
 #include "../squeak.h"
 #include "kirby.h"
+#include "main.h"
+#include "data.h"
+#include "sprite.h"
+#include "code_0806F780.h"
 #include "constants/object_types.h"
 
 void RequestScreenShake(u16, struct ObjectBase *);
@@ -125,6 +133,11 @@ enum {
 #define LEG(s, i) (*(struct SqueakObject **)&(s)->vars[12 + (i)])
 #define CRACKED(s) ((s)->vars[14])
 #define SCROLLS(s) ((s)->vars[15])      // This state scrolls (0x02035C04);
+#define SHELL(s) (*(struct YadgaineShell **)&(s)->vars[16])
+#define BOB(s) ((s)->vars[17])          // Its body's step's offset down this frame (the DS's shell follows it);
+#define DAROACH(s) (*(struct SqueakObject **)&(s)->vars[18])
+
+static void Shell(struct SqueakObject *s);
 
 static u32 Random(u32 n) {
     return Rand16() * n >> 16;
@@ -237,7 +250,7 @@ static bool32 Yadgaine(struct SqueakObject *s) {
         s->obj.base.y = FLOOR(s);
         SCROLL(s) = 0;
         TIMER(s) = INTRO_TIME;
-        Spawn(s, SQUEAK_YADGAINE_DAROACH, 0, s->obj.base.x, s->obj.base.y - (DAROACH_UP << 8));
+        DAROACH(s) = Spawn(s, SQUEAK_YADGAINE_DAROACH, 0, s->obj.base.x, s->obj.base.y - (DAROACH_UP << 8));
         SqueakPlayComposite(s, COMPOSITE_BODY);
         SqueakSetState(s, YG_INTRO);
         return TRUE;
@@ -254,6 +267,7 @@ static bool32 Yadgaine(struct SqueakObject *s) {
         if (--TIMER(s) < 1) {
             s->obj.base.flags &= ~0x400;
             SHOWN(s) = TRUE;
+            Shell(s);
             SqueakPlayComposite(s, COMPOSITE_BODY);
             SetLegs(s, LEG_WALK_ON);
             SqueakStop(s);
@@ -442,6 +456,157 @@ static void Boxes(struct SqueakObject *s) {
     base->unk68 = HARM(s);
 }
 
+/* Its shell: the stage's own picture on the DS (a background layer from its own tiles, 0x0220B0B4: KatAM's backgrounds' tiles and
+ * palettes are full in a fight), here KatAMExpansionSqueak.cs's SqueakShell, a frame at half its size (80 tiles of the 512 of KatAM's
+ * sprite heap in a stage, not 312), drawn twice as big by the GBA's sprite scaling: its pieces affine and double-sized, with a matrix
+ * of 0.5 (SHELL_MATRIX: a pixel of the frame two of the screen's, each way), each twice as far from its spot. Its tiles and palette
+ * are loaded once (KatAM's sprite running its anim's first step, its colors as KatAM loads a slot's); after, it's drawn by hand: its pieces (read once from its frame)
+ * written into KatAM's OAM, no sprite drawing of KatAM's each frame (DisplaySprite: half its cost; the fight is near the end of the
+ * GBA's frame already). Where the DS has it: the picture's column 128, row 171 at its feet, bobbing with its body (BOB); behind it
+ * and its legs (the last of KatAM's sprite layers) and the room's foreground (OAM priority 3, a background layer's: as the DS's);
+ * shown with it, from its coming in (Daroach gone by then: his palette slot it takes, as KatAM's 7 enemy palettes are full in its
+ * fight, its own 4 of them); never turned (it never does, and a scaled piece flipped would leave a gap: the GBA's scaling samples
+ * it a pixel off); */
+#define SHELL_MATRIX 3      // (KatAM's own use 0, Nightmare's intro 1-5, the Power Orb's end 6, the rides 7: not in its fight);
+#define SHELL_LAYER 0x1F
+#define SHELL_PIECES 16
+
+struct ShellPiece {
+    s16 dx, dy;             // Its double-sized box's top left from the frame's spot (pixels);
+    u16 attr0, attr1;       // Its shape, size;
+    u16 tile;               // Its first tile in the frame's;
+    u8 w, h;                // Its box (pixels);
+};
+
+struct YadgaineShell {
+    struct EffectObject e;
+    struct SqueakObject *owner;     // (NULL once it's gone: SqueakDestroy's YadgaineGone);
+    u8 pieces;
+    struct ShellPiece piece[SHELL_PIECES];
+};
+
+// The GBA's OAM sizes in pixels, by shape and size;
+static const u8 sShellPieces[3][4][2] = {
+    { { 8, 8 }, { 16, 16 }, { 32, 32 }, { 64, 64 } },
+    { { 16, 8 }, { 32, 8 }, { 32, 16 }, { 64, 32 } },
+    { { 8, 16 }, { 8, 32 }, { 16, 32 }, { 32, 64 } },
+};
+
+static void ShellDestroy(struct Task *t) {
+    struct YadgaineShell *sh = TaskGetStructPtr(t);
+
+    if (sh->owner && SHELL(sh->owner) == sh) SHELL(sh->owner) = NULL;
+    ObjectBaseDestroy(t);
+}
+
+static void ShellMain(void) {
+    struct YadgaineShell *sh = TaskGetStructPtr(gCurTask);
+    struct SqueakObject *s = sh->owner;
+    const struct ShellPiece *p;
+    u32 tiles;
+    s32 ox, oy;
+    u16 *m;
+    u8 i;
+
+    if (sh->e.flags & 0x1000) {
+        TaskDestroy(gCurTask);
+        return;
+    }
+    if (s == NULL) {
+        sh->e.flags |= 0x1000;
+        return;
+    }
+    if (!SHOWN(s) || (s->obj.base.flags & 0x400) || gKirbys[gLocalPlayerId].base.roomId != s->obj.base.roomId) return;
+    // (its spot on the screen, as KatAM's sprites': the camera's view and the screen's shake);
+    ox = (s->obj.base.x >> 8) - (gCurLevelInfo[gLocalPlayerId].viewportPosition.x >> 8) + gUnk_0203AD18[0];
+    oy = (s->obj.base.y >> 8) + BOB(s) - (gCurLevelInfo[gLocalPlayerId].viewportPosition.y >> 8) + gUnk_0203AD18[1];
+    tiles = ((sh->e.sprite.tilesVram - 0x6010000) >> 5) | sh->e.sprite.palId << 12 | 3 << 10;
+    for (i = 0, p = sh->piece; i < sh->pieces; i++, p++) {
+        s32 x = ox + p->dx, y = oy + p->dy;
+        OamData *oam;
+
+        // (one off the screen left out: the GBA wraps its spot, 8 bits down, 9 across);
+        if (x <= -p->w || x >= DISPLAY_WIDTH || y <= -p->h || y >= DISPLAY_HEIGHT) continue;
+        oam = sub_08156D84(SHELL_LAYER);
+        if (oam == iwram_end) break;
+        oam->all.attr0 = p->attr0 | (y & 0xFF);
+        oam->all.attr1 = p->attr1 | (x & 0x1FF);
+        oam->all.attr2 = tiles + p->tile;
+    }
+    m = &gOamBuffer[SHELL_MATRIX * 16 + 3];
+    m[0] = 0x80;
+    m[4] = 0;
+    m[8] = 0;
+    m[12] = 0x80;
+}
+
+/* Shell(); Its shell (see above), made as it comes in: its VRAM, its palette (Daroach's slot, his key given its own, when he's gone:
+ * else a slot of its own), its tiles and colors loaded by its anim's first step, its pieces read from its frame; */
+static void Shell(struct SqueakObject *s) {
+    const struct SqueakEffect *d = &gSqueakData.effects[SQUEAK_FX_YADGAINE_SHELL];
+    const struct SpriteAttributes_Sub *frame;
+    const u16 *oams;
+    struct YadgaineShell *sh;
+    struct Task *t;
+    u16 daroach = gSqueakData.enemies[SQUEAK_YADGAINE_DAROACH].animId;
+    u8 i, palId = 0xFF;
+
+    if (SHELL(s) || d->tiles == 0 || gKirbys[gLocalPlayerId].base.roomId != s->obj.base.roomId) return;
+    t = TaskCreate(ShellMain, sizeof(struct YadgaineShell), 0x3500, TASK_USE_EWRAM, ShellDestroy);
+    if (t == NULL) return;
+    sh = TaskGetStructPtr(t);
+    ClearEffectObject(&sh->e);
+    sh->e.header.kind = 3;
+    sh->e.roomId = s->obj.base.roomId;
+    sh->e.parent = NULL;
+    sh->e.x = s->obj.base.x;
+    sh->e.y = s->obj.base.y;
+    sh->owner = s;
+    sh->pieces = 0;
+    SHELL(s) = sh;
+    EffectObjectInitSprite(&sh->e, &sh->e.sprite, d->tiles, d->animId, d->anim.step[0].cell, SHELL_LAYER);
+    if (!SqueakVramOk(sh->e.sprite.tilesVram)) {
+        sh->e.flags |= 0x1000;
+        return;
+    }
+    // (Daroach's slot its key, its colors loaded into it as sub_0803DFAC loads a slot's);
+    if (!Alive(DAROACH(s), SQUEAK_YADGAINE_DAROACH) && sub_0803DF24(d->palette.key) == 0xFF)
+        for (i = 0; i < gUnk_02022EA0; i++)
+            if (gUnk_02022E60[i] == daroach) {
+                struct Sprite colors;
+
+                gUnk_02022E60[i] = d->palette.key;
+                palId = i + 8;
+                SpriteSomething(&colors, 0x6000000, d->palette.key & 0xFFF, d->palette.variant, 0xFF, 0, 0, 0, 0, 0x10, palId, 0x80000);
+                break;
+            }
+    sh->e.sprite.palId = palId != 0xFF ? palId : SqueakLoadPalette(d->palette.key, d->palette.variant, s->obj.base.roomId);
+    // (its tiles: queued by its anim's first step, which EffectObjectInitSprite ran, its frame's shown);
+    if (sh->e.sprite.unk4 >> 28) return;
+    frame = &gSpriteTables->attrs[d->animId].sub[sh->e.sprite.unk4];
+    oams = gSpriteTables->oamData[d->animId] + (frame->bitfield & 0x3FFF) * 3;
+    for (i = 0; i < frame->numSubframes && i < SHELL_PIECES; i++, oams += 3) {
+        struct ShellPiece *p = &sh->piece[i];
+        u8 shape = oams[0] >> 14, size = oams[1] >> 14;
+
+        if (shape > 2) continue;
+        p->w = sShellPieces[shape][size][0] * 2;
+        p->h = sShellPieces[shape][size][1] * 2;
+        p->dx = ((oams[1] & 0x1FF) - frame->offsetX) * 2;
+        p->dy = ((oams[0] & 0xFF) - frame->offsetY) * 2;
+        p->attr0 = (oams[0] & 0xC000) | 0x300;
+        p->attr1 = (oams[1] & 0xC000) | SHELL_MATRIX << 9;
+        p->tile = oams[2] & 0x3FF;
+        sh->pieces = i + 1;
+    }
+}
+
+// YadgaineGone(); It's gone (squeak.c's SqueakDestroy): its shell goes too;
+void YadgaineGone(struct SqueakObject *s) {
+    if (SHELL(s)) SHELL(s)->owner = NULL;
+    SHELL(s) = NULL;
+}
+
 // Legs(); Its legs, made at its fight's start, behind it (its back one) and in front (its front one);
 static void Legs(struct SqueakObject *s) {
     u8 i;
@@ -479,6 +644,7 @@ static void YadgaineMain(struct Object *obj) {
     sub_08034E14(obj);
     SqueakFinishFrame(s);
     SqueakAnimate(s);
+    BOB(s) = obj->base.objBase55;
     Boxes(s);
 }
 
@@ -509,6 +675,9 @@ void YadgaineInit(struct SqueakObject *s) {
     SqueakStandOnFloor(obj);
     FLOOR(s) = obj->base.y;
     LEG(s, 0) = LEG(s, 1) = NULL;
+    SHELL(s) = NULL;
+    DAROACH(s) = NULL;
+    BOB(s) = 0;
     obj->base.flags |= 0x400;
     obj->base.unk62 |= 4;
     SqueakPlayComposite(s, COMPOSITE_BODY);

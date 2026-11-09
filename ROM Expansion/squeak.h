@@ -199,6 +199,7 @@ enum {
     SQUEAK_FX_DOC_RINGS_LOW,
     SQUEAK_FX_DOC_BOMB,
     SQUEAK_FX_DOC_SMOKE,
+    SQUEAK_FX_YADGAINE_SHELL,   // Yadgaine's shell (its stage's picture: KatAMExpansionSqueak.cs's SqueakShell, at half its size);
     SQUEAK_FX_COUNT,
 };
 
@@ -326,7 +327,10 @@ const u8 *SqueakName(struct Object *);
 s16 SqueakMaxHp(struct Object *);
 s16 SqueakHpBase(struct Object *);
 void SqueakSetCell(struct SqueakObject *, u8 cell);
+// SqueakVramOk(); A sprite's VRAM was got (KatAM's VramMalloc gives ewram_end when it's full: the sprite would draw what's there);
+#define SqueakVramOk(vram) ((u32)(vram) >= (u32)OBJ_VRAM0 && (u32)(vram) < (u32)OBJ_VRAM0 + OBJ_VRAM0_SIZE)
 void SqueakUsePalette(struct SqueakObject *, u8 alternate);
+u8 SqueakLoadPalette(u16 key, u8 variant, u16 roomId);
 void SqueakPlay(struct SqueakObject *, u8 anim);
 void SqueakPlayComposite(struct SqueakObject *, u8 composite);
 void SqueakAnimate(struct SqueakObject *);
@@ -490,6 +494,7 @@ void SqueakDarkNebulaStart(struct Object *);
 void SqueakDarkNebulaThingInit(struct SqueakObject *);
 void SqueakDarkNebulaThingStart(struct Object *);
 void DarkNebulaGone(struct SqueakObject *);
+void YadgaineGone(struct SqueakObject *);
 
 // squeak/dark_star.c;
 void SqueakDarkStarInit(struct SqueakObject *);

@@ -174,7 +174,6 @@ void SqueakSetCell(struct SqueakObject *s, u8 cell) {
 static void SqueakReleaseParts(struct SqueakObject *s);
 static void SqueakShowComposite(struct SqueakObject *s);
 static void SqueakShowLayer(struct SqueakObject *s);
-static u8 SqueakLoadPalette(u16 key, u8 variant, u16 roomId);
 
 // SqueakPlay(); Starts one of the character's Squeak Squad animations, from its first step;
 void SqueakPlay(struct SqueakObject *s, u8 anim) {
@@ -292,9 +291,6 @@ struct SqueakPartFx {
     u8 palId;                   // Its palette: its animation's (a character in several palettes: Dedede's sparkles), else 0xFF: its character's;
     u16 tiles;                  // Its VRAM's tiles (its part's frames');
 };
-
-// SqueakVramOk(); A sprite's VRAM was got (KatAM's VramMalloc gives ewram_end when it's full: the sprite would draw what's there);
-#define SqueakVramOk(vram) ((u32)(vram) >= (u32)OBJ_VRAM0 && (u32)(vram) < (u32)OBJ_VRAM0 + OBJ_VRAM0_SIZE)
 
 // SqueakPartDestroy(); A part's end (its own, or the room's): its character lets go of it;
 static void SqueakPartDestroy(struct Task *t) {
@@ -542,7 +538,7 @@ void SqueakRun(struct SqueakObject *s, bool32 (*state)(struct SqueakObject *)) {
 
 /* SqueakLoadPalette(); A character's or effect's palette slot: its anim ID is the key (the type has none), as NidlLoadPalette does
  * for NiDL's enemies (KatAM keeps 7 enemy palettes a room); the palette is the one of the anim's frame `variant`; */
-static u8 SqueakLoadPalette(u16 key, u8 variant, u16 roomId) {
+u8 SqueakLoadPalette(u16 key, u8 variant, u16 roomId) {
     u8 palId = sub_0803DF24(key);
 
     if (palId == 0xFF) {
@@ -745,6 +741,8 @@ bool32 SqueakKirbyWithin(struct SqueakObject *s, s32 dx, s32 dy) {
 
 /* Squeak Squad's effects (0x02021900, its effect manager 0x02039B28): an effect object playing an effect's animation once where it
  * was spawned, facing as its character, then gone; */
+#define SQUEAK_FX_ROOM 48     // Tiles of KatAM's sprite heap an effect leaves free (KatAM's own effects: its stars, its abilities');
+
 struct SqueakFx {
     struct EffectObject e;
     struct SqueakObject *owner; // Followed (0x020218C0: its position plus the offset each frame), till it's gone;
@@ -812,6 +810,9 @@ static struct SqueakFx *SqueakEffectAt(struct SqueakObject *s, u8 effect, s32 x,
     struct SqueakFx *fx;
 
     if (gKirbys[gLocalPlayerId].base.roomId != s->obj.base.roomId) return NULL;
+    /* (none when KatAM's sprite heap couldn't hold it and still SQUEAK_FX_ROOM tiles for KatAM's own effects, which draw whatever is
+     * in VRAM when they get none: Yadgaine's fight, its shell in, two of its rocks' bursts at once fill it); */
+    if (VramGetTotalAllocatedTiles() + d->tiles + SQUEAK_FX_ROOM > gVramHeapMaxTileSlots) return NULL;
     t = TaskCreate(SqueakFxMain, sizeof(struct SqueakFx), 0x3500, TASK_USE_EWRAM, SqueakFxDestroy);
     if (t == NULL) return NULL;
     fx = TaskGetStructPtr(t);
@@ -830,6 +831,8 @@ static struct SqueakFx *SqueakEffectAt(struct SqueakObject *s, u8 effect, s32 x,
     fx->held = FALSE;
     fx->palId = SqueakLoadPalette(d->palette.key, d->palette.variant, s->obj.base.roomId);
     EffectObjectInitSprite(&fx->e, &fx->e.sprite, d->tiles, d->animId, d->anim.step[0].cell, 0x1A);
+    // (none drawn when its VRAM couldn't be got: gone at its first run);
+    if (!SqueakVramOk(fx->e.sprite.tilesVram)) fx->e.flags |= 0x1000 | 0x400;
     return fx;
 }
 
@@ -1080,6 +1083,7 @@ static void SqueakDestroy(struct Task *t) {
     if (s->enemy == SQUEAK_DAROACH) DaroachGone(s);
     if (s->enemy == SQUEAK_KING_DEDEDE) SqueakDededeGone(s);
     if (s->enemy == SQUEAK_DARK_NEBULA) DarkNebulaGone(s);
+    if (s->enemy == SQUEAK_YADGAINE) YadgaineGone(s);
     /* (his burning floor's tiles share his one VRAM block: not theirs to let go of, dark_nebula.c; KatAM's mark of a sprite with
      * none, which VramFree leaves be, is what VramMalloc gives when the tiles asked for are more than the heap's: ewram_end); */
     if (s->enemy == SQUEAK_DARK_NEBULA_BURN) s->obj.base.sprite.tilesVram = VramMalloc(0x2000);
@@ -1126,9 +1130,10 @@ static struct SqueakObject *SqueakCreate(struct ObjectTemplate *template, u8 pla
     s->obj.unk83 = 0;
     ObjectInitSprite(&s->obj);
     /* (its sprite as many tiles as its own frames take, not its type's, the most any character's take: a boss's legs and things
-     * spawned by the dozen would fill KatAM's 512-tile heap; the drawing copies a frame's tiles into it, its first part's too); */
-    if (SqueakVramOk(s->obj.base.sprite.tilesVram) && gSqueakData.enemies[enemy].tiles > 0) {
-        VramFree(s->obj.base.sprite.tilesVram);
+     * spawned by the dozen would fill KatAM's 512-tile heap; the drawing copies a frame's tiles into it, its first part's too. Its
+     * own asked for when its type's couldn't be got: the heap without that many in one piece, Yadgaine's rocks with its shell in); */
+    if (gSqueakData.enemies[enemy].tiles > 0) {
+        if (SqueakVramOk(s->obj.base.sprite.tilesVram)) VramFree(s->obj.base.sprite.tilesVram);
         s->obj.base.sprite.tilesVram = VramMalloc(gSqueakData.enemies[enemy].tiles);
     }
     if (gSqueakData.enemies[enemy].palette != NULL)

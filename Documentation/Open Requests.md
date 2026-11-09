@@ -235,9 +235,16 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
     the rocks, gordo and blocks, Sword hits (the same damage on its back leg, 20 safe frames), the legs' broken look and the
     second form (HP written down by a RAM write, 63 damage at once), KatAM's defeat at 0 HP with its legs gone. Not tested: a
     whole fight played through by hand, standing on a landed block, helpers' hits on the legs, EU and Japanese builds (built
-    and logic-checked, not played). Not ported (KatAM can't hold it): its green spiked shell, which Squeak Squad draws on a
-    background layer from its stage's tiles (154 by 208 pixels, 312 tiles; KatAM's 512-tile sprite heap is near full in a fight
-    and its background tiles and palettes are all taken); also the floor crumbling behind it, the DS's camera jolts. Fixed
+    and logic-checked, not played). Its green spiked shell (Squeak Squad's background layer, 154 by 208 pixels, 312 tiles), as
+    the owner asked: cut to what its fight shows, at half its size (80 tiles) and drawn twice as big by the GBA's sprite
+    scaling, its pieces written into KatAM's OAM by hand; Squeak Squad's effects wait for room in KatAM's sprite heap (a rock's
+    burst left out when two would leave too little for KatAM's own), the shell takes Daroach's palette slot once he's gone.
+    Checked in the emulator (USA, room 0x323, the fight from its start, 1,500 frames, Kirby idle with helpers: a forced start,
+    not a playthrough): its place and look beside the DS's, 138 lag frames against 133 without it, no sprite drawn from missing
+    VRAM, KatAM's 7 enemy palettes holding, about 2 of 11 rock bursts left out, the shell cut on a few lines of 2 frames of
+    1,200 (the GBA's sprite time per line); European and Japanese builds: its look in the same fight. Not tested: a fight
+    played by hand (Kirby's own attacks' effects in the tight heap). Not ported: the floor crumbling behind it, the DS's camera
+    jolts. Fixed
     alongside in the framework: each ported object's sprite takes as many tiles as its own frames need (not its type's
     biggest), so a boss's legs and showers of things fit KatAM's heap; HP-bar names can have a letter no KatAM name has
     (Yadgaine's "Y", drawn in their style).
@@ -334,10 +341,6 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
   - **Owner's call**: Squeak Squad's bosses aren't in the pools. Tried in KatAM's mini-boss rooms, Mecha-Kracko and Mrs. Moley fit,
     but Yadgaine (at its arena's edge, a leg showing) and Dark Nebula (above the locked camera) were mostly off-screen. They could
     go in mini-boss rooms whose arena fits them, or wait for Squeak Squad's own rooms.
-  - **Owner's call**: Yadgaine's look in its fight: Squeak Squad draws its green spiked shell as a background layer (154x208
-    pixels, 312 tiles), which KatAM's port doesn't draw. The choices: the shell as sprites (tight: 180-276 sprite tiles free in a
-    fight against about 350 needed, so hidden parts cut), on BG2 (free in all 35 mini-boss rooms, but BG VRAM and the 16 BG
-    palettes are full: part of the room's background would have to go during the fight), or left as it is.
 
 ## 5. Bosses as faithful 1:1 recreations of NiDL
 - **The other bosses**: check each against NiDL and fix what differs.

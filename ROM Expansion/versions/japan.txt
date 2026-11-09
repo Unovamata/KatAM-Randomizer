@@ -311,3 +311,4 @@ sub_080AF204 0x80af17c
 sub_0803533C 0x8035300
 _call_via_r7 0x815a274
 sub_080ACBEC 0x80acb64
+VramGetTotalAllocatedTiles 0x8157180

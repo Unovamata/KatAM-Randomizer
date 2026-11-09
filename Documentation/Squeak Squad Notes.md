@@ -454,7 +454,11 @@ then 11 / 14 then 15, 4 still; broken `.mca`'s 4/5; +0x30 their hit, +0x28 their
 terrain, `0x022110A8` walking (a camera jolt) and `0x0221116C` resting (a jolt and the block chance)); a third, `0x02117280`
 (`.cea`'s 37, `prmBB06Ml0` loaded over its own), holds its shell's box (`.rca`'s 35: 197 behind, 208 up) and places the stage's
 background layer 3 (`0x02211540`, `0x02211534`: its shell, drawn by `0x0220AF90`/`0x0220B0B4` from the stage's second layer, 16 by 13
-tiles; `0x022114F4` turns BG3 on). What it throws and knocks down (`0x0212E248`/`0x0212E198`, the class `0x02184338`, kinds: 0 its
+tiles; `0x022114F4` turns BG3 on). The shell's picture: `map/a4s7s2.mxp` (RLE, type 0x30), its sections' offsets at +0xC: the
+map's width (the first's first byte), its 16x16 blocks (the third's, after 2 bytes: 4 tile entries each, tile, flips, palette - 6)
+and the shell's 16 by 13 blocks (the fifth's top left); tiles and palettes `map/30_b.bin` (+0x210, +0x10), one 16-color palette
+(14 colors used). Placed on the screen with its column 128, row 171 at the body's feet plus its body's step's offset down
+(`.mca`'s 0, part 0: `.cea`'s 3, its steps 0-3 down); in a fight only columns 14 on and rows 27-171 ever show. What it throws and knocks down (`0x0212E248`/`0x0212E198`, the class `0x02184338`, kinds: 0 its
 shot's puff `.cea`'s 35, 1 its capsule 36, 2-4 blocks 34 (landed, a solid rectangle in the stage's list `0x0222C018`, broken 32
 ahead of the leg that knocked it), 5 a small rock 33, 6 a big one 32, 7 a gordo (`enemy/gordo`'s 3: bouncing once, 2.5 up, then
 through everything), 8 Daroach (`demo_dancho`'s 1-5, off at -2.0, 2.0)). `.rca`'s animations are the `.cea`'s two behind. Its

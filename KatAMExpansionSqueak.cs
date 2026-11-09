@@ -231,6 +231,84 @@ namespace KatAMRandomizer {
             };
         }
 
+        /* SqueakShell(); Yadgaine's shell, which Squeak Squad's stage draws on a background layer from its own map and tiles (0x0220B0B4;
+         * KatAM's backgrounds are full in a fight), as one KatAM frame at half its size, drawn twice as big by the GBA's sprite scaling
+         * (yadgaine.c's Shell): 79 tiles of KatAM's 512-tile sprite heap, not the 312 it takes as it is. Its stage's map, map/a4s7s2.mxp
+         * (RLE), has its sections' offsets at +0xC: the map's width (the first's first byte), its blocks (the third's, after 2 bytes:
+         * 16x16 pixels, 4 tile entries each: tile, flips, palette - 6) and the shell's 16 by 13 blocks (the fifth's top left); their
+         * tiles and palettes are map/30_b.bin's (+0x210, +0x10). Only what its fight ever shows (columns 14 on, rows 27 to 171: the rest
+         * is left of the screen, over it or under the floor); each 2x2 block of pixels becomes one: its darkest where an outline crosses
+         * it (dark: a weighted brightness under 300 of 2550), else its most common color, transparent when under half of it is drawn.
+         * The blocks are laid so the origin (the body's feet: column 128, row 171) is a block's corner, at the canvas' middle; it faces
+         * as on the DS (yadgaine.c never turns it: the GBA's scaling flipped would leave a gap in each piece); */
+        const string YadgaineShellFile = "stage:a4s7s2";
+        const int ShellLeft = 14, ShellTop = 27, ShellBottom = 171, ShellOriginX = 128, ShellOriginY = 171;
+        static (List<(byte[] tiles, ushort[] oams, short[] attributes, int palette)> frames, List<byte[]> palettes) SqueakShell(byte[] rom) {
+            byte[] packed = SqueakFile(rom, "map/a4s7s2.mxp"), bg = SqueakFile(rom, "map/30_b.bin");
+            if (packed == null || bg == null || packed[0] != 0x30) throw new InvalidOperationException("Squeak Squad's map/a4s7s2 is missing.");
+
+            // (RLE: a flag byte, bit 7 a run of the next byte, (its low bits) + 3 times, else (its low bits) + 1 bytes as they are);
+            byte[] map = new byte[ReadInt(packed, 0) >> 8];
+            for (int at = 4, length = 0; length < map.Length;) {
+                int flag = packed[at++];
+                if ((flag & 0x80) != 0) {
+                    for (int n = (flag & 0x7F) + 3; n > 0 && length < map.Length; n--) map[length++] = packed[at];
+                    at++;
+                } else {
+                    for (int n = (flag & 0x7F) + 1; n > 0 && length < map.Length; n--) map[length++] = packed[at++];
+                }
+            }
+            int width = map[ReadInt(map, 0x0C)], blocks = ReadInt(map, 0x0C + 2 * 4) + 2, grid = ReadInt(map, 0x0C + 4 * 4);
+            const int Columns = 16, Rows = 13, Width = Columns * 16, Height = Rows * 16;
+            int?[,] picture = new int?[Width, Height];
+            for (int by = 0; by < Rows; by++)
+                for (int bx = 0; bx < Columns; bx++) {
+                    int block = ReadShort(map, grid + (by * width + bx) * 2);
+                    for (int k = 0; k < 4; k++) {
+                        int entry = ReadShort(map, blocks + block * 8 + k * 2), tile = entry & 0x3FF, palette = (entry >> 12) + 6;
+                        bool hflip = (entry & 0x400) != 0, vflip = (entry & 0x800) != 0;
+                        for (int y = 0; y < 8; y++)
+                            for (int x = 0; x < 8; x++) {
+                                int color = bg[0x210 + tile * 32 + y * 4 + x / 2] >> (x % 2 * 4) & 15;
+                                int px = bx * 16 + k % 2 * 8 + (hflip ? 7 - x : x), py = by * 16 + k / 2 * 8 + (vflip ? 7 - y : y);
+                                if (color != 0 && px >= ShellLeft && py >= ShellTop && py <= ShellBottom)
+                                    picture[px, py] = ReadShort(bg, 0x10 + (palette * 16 + color) * 2);
+                            }
+                    }
+                }
+
+            // Half its size: a pixel of 2x2 (columns 2i, 2i + 1, rows 2j - 1, 2j: the origin's at a block's corner);
+            const int Size = 256, Center = Size / 2;
+            int Brightness(int color) => (color & 31) * 8 * 3 + (color >> 5 & 31) * 8 * 6 + (color >> 10 & 31) * 8;
+            List<ushort> colors = new List<ushort> { 0 };
+            int[,] canvas = new int[Size, Size];
+            for (int j = 0; j <= Height / 2; j++)
+                for (int i = 0; i < Width / 2; i++) {
+                    List<int> drawn = new List<int>();
+                    int inside = 0;
+                    foreach ((int x, int y) in new[] { (2 * i, 2 * j - 1), (2 * i + 1, 2 * j - 1), (2 * i, 2 * j), (2 * i + 1, 2 * j) }) {
+                        if (y < 0 || y >= Height) continue;
+                        inside++;
+                        if (picture[x, y] is int color) drawn.Add(color);
+                    }
+                    if (drawn.Count == 0 || drawn.Count * 2 < inside) continue;
+                    int darkest = drawn.OrderBy(Brightness).First();
+                    int value = Brightness(darkest) < 300 ? darkest : drawn.GroupBy(c => c).OrderByDescending(g => g.Count()).ThenBy(g => drawn.IndexOf(g.Key)).First().Key;
+                    int index = colors.IndexOf((ushort)value, 1);
+                    if (index < 0) {
+                        index = colors.Count;
+                        colors.Add((ushort)value);
+                    }
+                    canvas[Center + i - ShellOriginX / 2, Center + j - (ShellOriginY + 1) / 2] = index;
+                }
+            if (colors.Count > 16) throw new InvalidOperationException("Yadgaine's shell has more than 15 colors.");
+
+            byte[] paletteBytes = new byte[32];
+            for (int c = 0; c < colors.Count; c++) WriteShort(paletteBytes, c * 2, colors[c]);
+            (byte[] tiles, ushort[] oams, short[] attributes) = CutFrame(canvas, int.MaxValue, Size);
+            return (new List<(byte[], ushort[], short[], int)> { (tiles, oams, attributes, 0) }, new List<byte[]> { paletteBytes });
+        }
+
         // The size of squeak.h's SqueakGraphics, an entry of gSqueakData.enemies;
         const int SqueakGraphicsSize = 24;
 
@@ -308,6 +386,7 @@ namespace KatAMRandomizer {
             new SqueakEffect(10, "enemy/doc_at1", 12),
             new SqueakEffect(11, "enemy/doc_at1", 18),
             new SqueakEffect(12, "enemy/doc_at1", 26),
+            new SqueakEffect(13, YadgaineShellFile, 0),     // Yadgaine's shell (the stage's: SqueakShell);
         };
 
         /* SqueakEffectsBuild(); Each effect's cells (those its animation shows, in its order) as KatAM frames and their palette, the anim
@@ -317,6 +396,14 @@ namespace KatAMRandomizer {
                                                           Func<byte[], int, int, SqueakPaletteKey> share) {
             List<SqueakEffectBuilt> built = new List<SqueakEffectBuilt>();
             foreach (SqueakEffect effect in effects) {
+                // (Yadgaine's shell: the stage's picture, one still frame);
+                if (effect.File == YadgaineShellFile) {
+                    (List<(byte[] tiles, ushort[] oams, short[] attributes, int palette)> shell, List<byte[]> shellPalettes) = SqueakShell(squeak);
+                    int shellAnim = addAnim(shellPalettes, shell);
+                    built.Add(new SqueakEffectBuilt(effect, shellAnim, new List<int> { 0 }, new SqueakAnim(true, new List<SqueakStep> { new SqueakStep(0, 1, 0, 0) }),
+                                                    shell[0].tiles.Length / 32, share(shellPalettes[0], shellAnim, 0)));
+                    continue;
+                }
                 string[] path = effect.File.Split('/');
                 SqueakCharacter character = ReadSqueakCharacter(squeak, path[1], path[0]);
                 SqueakAnim anim = character.Anims[effect.Anim];
@@ -538,7 +625,8 @@ namespace KatAMRandomizer {
                             OnlyAnims: new[] { 8, 9, 10, 11, 12, 13, 14, 15 }),
             /* Yadgaine (a boss, enemy 0x3B: 0x0211A4E8, on mini-boss type 0x40 as the mid-bosses), drawn with enemy/yadgaine: all its
              * animations, its .mca's composites (its body 0 and 1, its legs 2-15); its hurt look its head (cell 3); a frame big enough
-             * for its raised legs (114 pixels over it, 65 either side). Its shell isn't in its sprites (the stage draws it); */
+             * for its raised legs (114 pixels over it, 65 either side). Its shell isn't in its sprites (the stage draws it): its own effect,
+             * SqueakShell; */
             new SqueakEnemy(42, "Yadgaine", "yadgaine", new[] { 3, 3, 3 }, YadgaineGlyphs, MidbossType: 0x40, Canvas: 256),
             // Its legs (0x021185FC, 0x02117C44: its .mca's composites 2-15), drawn with its graphics, no name;
             new SqueakEnemy(43, "Yadgaine's leg", "yadgaine", new[] { 9, 9, 9 }, new (int, int)[0], GraphicsOf: 42),
