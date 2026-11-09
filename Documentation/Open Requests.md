@@ -350,6 +350,34 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
   - **Owner's call**: Squeak Squad's bosses aren't in the pools. Tried in KatAM's mini-boss rooms, Mecha-Kracko and Mrs. Moley fit,
     but Yadgaine (at its arena's edge, a leg showing) and Dark Nebula (above the locked camera) were mostly off-screen. They could
     go in mini-boss rooms whose arena fits them, or wait for Squeak Squad's own rooms.
+- **Squeak Squad's rooms** (the owner: "port all Squeak Squad rooms along with their backgrounds, and tilesets. Some Squeak
+  Squad rooms are bigger than the limit allowed by KatAM, so make sure that these fit in the game without segmenting them.
+  Reference the map guide we generated for NiDL's maps. Replace all bubbles with their respective item counterparts. Likewise,
+  replace the enemies with the already ported ones. You can compress tilesets or backgrounds so they don't lag the GBA out."):
+  - Scope (the owner's pick): the 8 worlds' stages only, about 480 rooms (the stages list 579; left out, as NiDL's were: the
+    test rooms of flat placeholder tiles, Prism Plains' stages 8 and 9 and the like, and area 9, the Arena's copies of the boss
+    rooms). Every room whole: the biggest is 4,032 blocks (Cushy Cloud 1's first, 96 by 42), over the 3,584 KatAM's rooms were
+    raised to for NiDL (`rooms.c`'s BIG_BLOCKS), so that's raised again rather than splitting any.
+  - Joined to the game (the owner's pick): a hub of its own as NiDL's, reached from Central Circle, never from the NiDL hub;
+    each world a level laid out by the rulebook; the bosses' shards back to that hub. The world map unchanged in this pass (the
+    owner's pick when asked with the hub; the world-map mock-up above stays open).
+  - Bubbles: food ones become KatAM's matching food, ability ones food too (the owner's pick).
+  - Chests (the owner): Squeak Squad's levels have their own, so none are added. Those holding ability scrolls, Squeak Squad
+    spray paints, the secret map that unlocks Squeak Squad's ability room, and vitality halves hold those items, added from
+    Squeak Squad (part of this request, after the rooms); the other chests hold consumables.
+  - Done only when every room is ported to KatAM's engine 1:1 along with those items and the map items below (the owner: "You
+    will not finish until all rooms are ported to KatAM's engine 1:1 along with the items requested.").
+  - Enemies: the ported ones (and KatAM's own where Squeak Squad's are KatAM's).
+  - Squeak Squad's far backgrounds are 3D textures on the DS (`map/d_viw_*.nsbtx`, 40 of them), not tiles: they're drawn
+    into KatAM's background layer, reduced to fit (the owner allows compressing tilesets and backgrounds).
+- **Map items for each area** (the owner, with the rooms): KatAM's map item, its sprite recolored to each NiDL and Squeak Squad
+  area's theme, one per area, so the map viewer shows the area once its map is found.
+- **The Collection Room scrolls left and right** (the owner, with the rooms: "the collection room should be scrollable left and
+  right to accommodate for all these new items"): the pause screen's Collection Room (KatAM's 10 by 4 grid of spray paints,
+  music, maps, the vitality heart, the cell phone) gets more columns, scrolled sideways, for the new maps, Squeak Squad's spray
+  paints, ability scrolls, its secret map and vitality halves.
+- **ROM size** (the owner: "if needed, expand the ROM size to fit all this new content but only if needed"): 32 MB is the most
+  the GBA maps (0x08000000-0x09FFFFFF), and the expansion is already there, so it can't grow; about 10 MB of it is free.
 
 ## 5. Bosses as faithful 1:1 recreations of NiDL
 - **The other bosses**: check each against NiDL and fix what differs.
