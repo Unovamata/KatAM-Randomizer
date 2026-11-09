@@ -1815,6 +1815,29 @@ namespace KatAMRandomizer {
             RepointEverywhere(rom, version, arrivals, newArrivals);
             // (the map viewer's rooms block names the room info table: its copy now);
             if (nidlRooms) WriteInt(rom, MapRoomsBlock + 4 + 6 * 4, newInfos + 0x08000000);
+            /* The map viewer's Squeak Squad rooms block (KatAM Map Tracker's RomMap.ReadSqueakRooms(); the map table's +0xD4, free
+             * till now, points at it): "SQ", u16 the first room, u16 the rooms (the worlds', the hub, the switch rooms), u16 the hub,
+             * u16 the first switch room, u16 0, then the tables the game uses (gRoomProps, gUnk_08D6CD0C, gSolidityMaps,
+             * gForegroundTilemaps, gForegroundPalettes, gForegroundInfo, gRoomTiledBGs, gLevelObjLists), then a byte a room: its world
+             * (1-8; the hub 0; a switch room its world's), and one more: its stage (0 the hub and the switch rooms); */
+            int mapBlock = Allocate(ref here, 12 + 8 * 4 + (rows - SqueakFirstRoom) * 2, 4);
+            System.Text.Encoding.ASCII.GetBytes("SQ").CopyTo(rom, mapBlock);
+            WriteShort(rom, mapBlock + 2, SqueakFirstRoom);
+            WriteShort(rom, mapBlock + 4, rows - SqueakFirstRoom);
+            WriteShort(rom, mapBlock + 6, hubRoom);
+            WriteShort(rom, mapBlock + 8, firstSwitchRoom);
+            WriteShort(rom, mapBlock + 10, 0);
+            WriteInts(rom, mapBlock + 12, new[] { newProps, newInfos }.Concat(new[] { "gSolidityMaps", "gForegroundTilemaps", "gForegroundPalettes",
+                "gForegroundInfo", "gRoomTiledBGs", "gLevelObjLists" }.Select(t => squeakTables[t])).Select(a => a + 0x08000000).ToArray());
+            int worlds = mapBlock + 12 + 8 * 4, stages = worlds + (rows - SqueakFirstRoom);
+            // (free space is 0xFF: the hub's and the switch rooms' bytes are 0 unless set below);
+            Array.Clear(rom, worlds, (rows - SqueakFirstRoom) * 2);
+            for (int i = 0; i < files.Count; i++) {
+                rom[worlds + i] = (byte)files[i].Area;
+                rom[stages + i] = (byte)files[i].Stage;
+            }
+            for (int w = 0; w < SqueakWorlds; w++) rom[worlds + firstSwitchRoom - SqueakFirstRoom + w] = (byte)(w + 1);
+            WriteInt(rom, MapSqueakBlock, mapBlock + 0x08000000);
             // (the chests' spawn and opening, chest.c's);
             if (squeakChests > 0 && HookSqueakChests(rom, version) is string chestError) return chestError;
             // (the fixed cannons' wait, chest.c's);

@@ -529,15 +529,20 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
         (gimmicks 0x13 and 0x1A, not identified yet, maybe the Squeaks' events), 6-1-4's and 7-3-2's paths (gimmick 4) and 6-3-3's
         groups with no switch. 7-3-1's door to 7-3-5 sits in a pocket of clouds the DS seals too (pushed into the wall at its
         height on the DS, Kirby stops), and 4-4-10's upper door is a twin of its lower one, never entered: Squeak Squad's own.
+    - The map viewer (`KatAM Map Tracker`, `RomMap.ReadSqueakRooms()`; the ROM's map table points at the rooms' tables and each
+      room's world and stage): the Squeak Squad worlds laid out as the NiDL levels, around KatAM's map on an unrandomized ROM (KatAM's
+      own pause-screen layout kept, the NiDL levels and the worlds beside it), as tight clusters on a randomized one; the Squeak Squad
+      hub a hub square beside Central Circle; the rooms drawn with their tiles. Checked with the tracker's own layout code headless
+      (not the window, which needs Windows to build): USA ROM, unrandomized and with mirrors randomized, every room placed (the 498
+      in their 9 clusters), no lines crossing rooms, the rooms' previews drawn (1-1-1, a world 4 room, the hub, a switch room).
     - Still to do here: the rest of the logic checks above (they need the owner's call on metal and fire walls on the way:
-      see the questions in the list of pending requests), the map viewer.
+      see the questions in the list of pending requests).
     - Gimmicks (section 10): counted and read (the notes: 26 classes, their graphics, the barrel's states decoded); warp stars,
       cannons and the switches with their block groups in KatAM (above), the others not yet. Their cells are open where the
       DS's object is (a shutter's pillar), so nothing blocks a way meanwhile.
     - Left: the chests' Squeak Squad treasures (Ability Scrolls, Spray Paints, the Secret Map's pieces, Vitality halves: with
       their items, below), the chase spawns after the stage's treasure (the Squeakers among them, and 22 chests), the arenas
-      without the NiDL ROM (NiDL's type holds the camera), the gimmicks, the areas; then the option, map viewer, logic checks with
-      terrain.
+      without the NiDL ROM (NiDL's type holds the camera), the gimmicks, the areas.
   - Ability bubbles whose ability no regular enemy gives (Hammer, Bonkers' in KatAM; Squeak Squad's ability numbers 12, 18 and
     26) become food (the owner: "In the case of bubbles without no regular enemy, you can swap them out for food.").
 - **Map items for each area** (the owner, with the rooms): KatAM's map item, its sprite recolored to each NiDL and Squeak Squad

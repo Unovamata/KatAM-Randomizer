@@ -25,9 +25,10 @@ namespace KatAMMapTracker {
     public static class MapExpansion {
         const int Grid = MapGraphics.TileSize;
         const int Step = 6 * Grid, MinGap = 3 * Grid, LevelMargin = 128, LongRoom = 60, RoomMargin = 72, Fit = 2 * Grid, TightGap = 4 * Grid;
-        public const int HubCluster = 19;
-        public static int LevelCluster(int level) => 11 + level;
-        public static bool IsLevelCluster(int cluster) => cluster >= 11 && cluster < 19;
+        public const int HubCluster = 19, SqueakHubCluster = 28;
+        // (the Squeak Squad worlds are levels 8-15, clusters 20-27, after the NiDL hub's: RoomInfo.SqueakWorld);
+        public static int LevelCluster(int level) => level < 8 ? 11 + level : 12 + level;
+        public static bool IsLevelCluster(int cluster) => cluster >= 11 && cluster < 19 || cluster >= 20 && cluster < 28;
         const int FinaleLevel = 7;
 
         // Place(); Adds the NiDL rooms of 'map' to 'layout' (KatAM's rooms, placed) and their clusters to 'clusters';
@@ -92,7 +93,7 @@ namespace KatAMMapTracker {
                 .ToList();
             // (KatAM's original map is one block: the hub goes outside it, on the side nearest Central Circle, never in its gaps);
             if (original) taken = new List<(double left, double top, double right, double bottom)> { main };
-            foreach (RoomInfo hub in nightmare.Where(r => r.IsNightmareHub)) {
+            foreach (RoomInfo hub in nightmare.Where(r => r.IsNightmareHub || r.IsSqueakHub)) {
                 double size = SizeOf(hub);
                 (double x, double y) anchor = layout.TryGetValue(RomMap.CentralCircle, out RoomPlacement circle) ? (circle.CenterX, circle.CenterY)
                     : ((main.left + main.right) / 2, (main.top + main.bottom) / 2);
@@ -106,7 +107,7 @@ namespace KatAMMapTracker {
                     }
                 }
                 taken.Add((best.left, best.top, best.left + size, best.top + size));
-                Put(hub, best.left + size / 2, best.top + size / 2, HubCluster);
+                Put(hub, best.left + size / 2, best.top + size / 2, hub.IsSqueakHub ? SqueakHubCluster : HubCluster);
                 main = (Math.Min(main.left, best.left), Math.Min(main.top, best.top), Math.Max(main.right, best.left + size), Math.Max(main.bottom, best.top + size));
             }
 

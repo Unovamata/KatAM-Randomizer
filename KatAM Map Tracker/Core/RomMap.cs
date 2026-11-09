@@ -53,14 +53,18 @@ namespace KatAMMapTracker {
         // Its NiDL stage (0-7, 8 the level's switch room) and its room number in the stage, or -1 (older expanded ROMs have none);
         public int NightmareStage { get; init; } = -1;
         public int NightmareIndex { get; init; } = -1;
-        public bool IsNightmareRoom => NightmareLevel >= 0 || IsNightmareHub;
+        /* A Squeak Squad room's world (1-8) or -1 (RomMap.ReadSqueakRooms()); its hub. Its world is laid out as a NiDL level (its
+         * NightmareLevel 7 + the world: 8-15, MapExpansion's clusters 20-27), its hub as the NiDL hub (the cluster 28); */
+        public int SqueakWorld { get; init; } = -1;
+        public bool IsSqueakHub { get; init; }
+        public bool IsNightmareRoom => NightmareLevel >= 0 || IsNightmareHub || IsSqueakHub;
 
         // Room parameter +0x00; Area/theme of the room. 4 are the hubs, 0x25 the boss & goal game rooms;
         public int Area { get; init; }
 
         // A ROM Expansion level's switch room (its big switch, object 0x86): a hub, as KatAM's mini hubs;
         public bool IsNightmareSwitchRoom => NightmareLevel >= 0 && Objects.Any(o => o.Id == 0x86);
-        public bool IsHub => Area == 4 || IsNightmareHub || IsNightmareSwitchRoom;
+        public bool IsHub => Area == 4 || IsNightmareHub || IsSqueakHub || IsNightmareSwitchRoom;
         public bool IsPathEnder => Area == 0x25;
 
         // Room size in 8x8 tiles;
@@ -134,7 +138,9 @@ namespace KatAMMapTracker {
             BackgroundTable,
             ObjectListTable,
             RoomAreaTable = -1,
-            NightmareHub = -1;
+            NightmareHub = -1,
+            // (the Squeak Squad rooms, ReadSqueakRooms(): their first room, how many, the hub, their room table, their worlds and stages);
+            SqueakFirst = -1, SqueakCount, SqueakHub = -1, SqueakProps = -1, SqueakWorlds = -1, SqueakStages = -1;
 
         public byte[] Rom { get; }
         public uint Crc32 { get; }
@@ -156,6 +162,8 @@ namespace KatAMMapTracker {
             (CoverDataTable, RoomAppearanceTable, PaletteTable, TilesetTable, BackgroundTable, ObjectListTable, RoomAreaTable, NightmareHub) =
                 (source.CoverDataTable, source.RoomAppearanceTable, source.PaletteTable, source.TilesetTable, source.BackgroundTable,
                  source.ObjectListTable, source.RoomAreaTable, source.NightmareHub);
+            (SqueakFirst, SqueakCount, SqueakHub, SqueakProps, SqueakWorlds, SqueakStages) =
+                (source.SqueakFirst, source.SqueakCount, source.SqueakHub, source.SqueakProps, source.SqueakWorlds, source.SqueakStages);
             IsExpanded = source.IsExpanded;
             ExpansionMinibosses.AddRange(source.ExpansionMinibosses);
             foreach (RoomInfo room in source.Rooms.Values.Where(keep)) Rooms[room.Id] = room;
@@ -180,6 +188,7 @@ namespace KatAMMapTracker {
             ObjectListTable = 0xD2EBC8 + Version.PointerTableShift;
 
             ReadExpansionRooms();
+            ReadSqueakRooms();
             ReadRooms();
             ReadExpansion();
         }
@@ -249,6 +258,30 @@ namespace KatAMMapTracker {
                     ShardExits.Add((Read16(table + i * 8), Read16(table + i * 8 + 2), Rom[table + i * 8 + 4] - 1, Rom[table + i * 8 + 5] - 1));
         }
 
+        /* ReadSqueakRooms(); An expanded ROM with the Squeak Squad rooms (KatAMExpansionSqueakRooms.cs) points at their block from the
+         * map table's +0xD4: "SQ", u16 the first room, u16 the rooms (the worlds', the hub, the switch rooms), u16 the hub, u16 the
+         * first switch room, u16 0, then the tables the game uses (the room parameters, the room infos, collision and doors,
+         * tilemaps, palettes, tilesets, backgrounds, objects: copies holding KatAM's and NiDL's rooms too), then a byte a room, its
+         * world (1-8, the hub 0), and one more, its stage; */
+        void ReadSqueakRooms() {
+            int block = ReadPointer(ExpansionTable + 0xD4);
+            if (Rom.Length != ExpandedSize || block < 0 || block + 44 > Rom.Length || Rom[block] != 'S' || Rom[block + 1] != 'Q') return;
+            int[] tables = Enumerable.Range(0, 8).Select(i => ReadPointer(block + 12 + i * 4)).ToArray();
+            if (tables.Any(t => t < 0)) return;
+            (SqueakFirst, SqueakCount, SqueakHub) = (Read16(block + 2), Read16(block + 4), Read16(block + 6));
+            SqueakProps = tables[0];
+            (RoomAreaTable, CoverDataTable, RoomAppearanceTable, PaletteTable, TilesetTable, BackgroundTable, ObjectListTable) =
+                (tables[1], tables[2], tables[3], tables[4], tables[5], tables[6], tables[7]);
+            SqueakWorlds = block + 44;
+            SqueakStages = SqueakWorlds + SqueakCount;
+        }
+
+        // RoomParameters; The rooms' parameters: the game's table, or its copy with the Squeak Squad rooms (ReadSqueakRooms());
+        int RoomParameters => SqueakProps >= 0 ? SqueakProps : LongRoomParameters;
+
+        // IsSqueakRoom(); One of the Squeak Squad rooms (ReadSqueakRooms());
+        bool IsSqueakRoom(int room) => SqueakFirst >= 0 && room >= SqueakFirst && room < SqueakFirst + SqueakCount;
+
         // ShardExits; The boss rooms' shards: (the boss room, where the shard takes Kirby, the landing cell);
         readonly List<(int room, int destination, int x, int y)> ShardExits = new List<(int, int, int, int)>();
 
@@ -291,11 +324,12 @@ namespace KatAMMapTracker {
         }
 
         void ReadRooms() {
-            for (int room = 0; room < MaxLongRoom; room++) {
-                int parameters = LongRoomParameters + room * LongRoomParameterSize;
+            for (int room = 0; room < (SqueakFirst >= 0 ? SqueakFirst + SqueakCount : MaxLongRoom); room++) {
+                if (room >= MaxLongRoom && !IsSqueakRoom(room)) continue;
+                int parameters = RoomParameters + room * LongRoomParameterSize;
                 int shortIndex = Read16(parameters + 0x24);
                 // The ROM Expansion's rooms have doors lists past the game's (0x11F, the NiDL hub's, then one a room from 0x120);
-                bool expansionRoom = RoomAreaTable >= 0 && shortIndex >= MaxShortRoom && shortIndex < MaxShortRoom + 0x400;
+                bool expansionRoom = RoomAreaTable >= 0 && shortIndex >= MaxShortRoom && shortIndex < MaxShortRoom + 0x400 || IsSqueakRoom(room);
 
                 if (shortIndex >= MaxShortRoom && !expansionRoom) continue;
 
@@ -317,6 +351,16 @@ namespace KatAMMapTracker {
                     Area = Read16(parameters), Width = width, Height = height, NightmareLevel = NightmareLevelOf(room), IsNightmareHub = room == NightmareHub,
                     NightmareStage = NightmareStageOf(room).stage, NightmareIndex = NightmareStageOf(room).index,
                 };
+                // (a Squeak Squad room: its world a level of its own, after NiDL's 8; its hub; MapExpansion lays them out as NiDL's);
+                if (IsSqueakRoom(room)) {
+                    int world = Rom[SqueakWorlds + room - SqueakFirst], stage = Rom[SqueakStages + room - SqueakFirst];
+                    if (world > 8 || room == SqueakHub) world = 0;
+                    info = new RoomInfo {
+                        Id = room, ShortIndex = shortIndex, TilemapIndex = tilemapIndex, CoverIndex = coverIndex, ObjectIndex = objectIndex,
+                        Area = Read16(parameters), Width = width, Height = height, SqueakWorld = world == 0 ? -1 : world, IsSqueakHub = room == SqueakHub,
+                        NightmareLevel = world == 0 ? -1 : 7 + world, NightmareStage = world == 0 ? -1 : stage, NightmareIndex = room - SqueakFirst,
+                    };
+                }
 
                 ReadDoors(info);
                 ReadObjects(info);
@@ -336,11 +380,12 @@ namespace KatAMMapTracker {
          * becomes a room of its own beside each room leading to it: a copy (GoalCopy(): its id) the room's goal door leads to instead,
          * in that room's NiDL level and stage if it has one, so the map draws each beside its room rather than one goal room every goal
          * mirror's line crosses the map to. The game's room is RealRoom() of each copy; ResolveRoom() finds the copy Kirby is in; */
-        const int GoalCopies = 0x10000;
+        // (a copy for a room from 0x400 on, the Squeak Squad rooms', is numbered from WideGoalCopies: 11 bits for that room);
+        const int GoalCopies = 0x10000, WideGoalCopies = 0x1000000;
         readonly HashSet<int> goalRooms = new HashSet<int>();
 
-        public static int GoalCopy(int goal, int from) => GoalCopies + (goal << 10) + from;
-        public static int RealRoom(int room) => room >= GoalCopies ? (room - GoalCopies) >> 10 : room;
+        public static int GoalCopy(int goal, int from) => from < 0x400 ? GoalCopies + (goal << 10) + from : WideGoalCopies + (goal << 11) + from;
+        public static int RealRoom(int room) => room >= WideGoalCopies ? (room - WideGoalCopies) >> 11 : room >= GoalCopies ? (room - GoalCopies) >> 10 : room;
         public static bool IsGoalCopy(int room) => room >= GoalCopies;
 
         void SplitGoalRooms() {
@@ -503,7 +548,7 @@ namespace KatAMMapTracker {
         public int[] RoomPalette(int roomId) {
             if (!Rooms.ContainsKey(roomId)) return null;
 
-            int paletteIndex = Read16(LongRoomParameters + RealRoom(roomId) * LongRoomParameterSize + 0x16);
+            int paletteIndex = Read16(RoomParameters + RealRoom(roomId) * LongRoomParameterSize + 0x16);
             int paletteHeader = ReadPointer(PaletteTable + paletteIndex * 4), palette = paletteHeader < 0 ? -1 : ReadPointer(paletteHeader);
 
             if (palette < 0 || palette + 512 > Rom.Length) return null;
@@ -525,7 +570,7 @@ namespace KatAMMapTracker {
             width = room.Width * pixelsPerTile;
             height = room.Height * pixelsPerTile;
 
-            int parameters = LongRoomParameters + RealRoom(roomId) * LongRoomParameterSize;
+            int parameters = RoomParameters + RealRoom(roomId) * LongRoomParameterSize;
             int tilesetIndex = Read16(parameters + 0x14), paletteIndex = Read16(parameters + 0x16),
                 backgroundIndex = Read16(parameters + 0x1E);
 
