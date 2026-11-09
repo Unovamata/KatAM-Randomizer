@@ -412,6 +412,8 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
     - Tile animations (section 12: grass, water, flames, glows in 45 rooms) as KatAM's foreground animations, every frame drawn
       through the three layers. Checked in the GBA emulator (forced starts): shots a few frames apart in 4 rooms (USA) and 3
       (Europe, Japan), the 42 animated rooms the sweep starts in run live.
+    - Gimmicks (section 10): counted and read (the notes: 26 classes, their graphics, the barrel's states decoded); none in KatAM
+      yet. Their cells are open where the DS's object is (a shutter's pillar), so nothing blocks a way meanwhile.
     - Left: the chests' Squeak Squad treasures (Ability Scrolls, Spray Paints, the Secret Map's pieces, Vitality halves: with
       their items, below), the chase spawns after the stage's treasure (the Squeakers among them, and 22 chests), the arenas
       without the NiDL ROM (NiDL's type holds the camera), the stages' goals, the gimmicks, the areas; then the hub, the levels

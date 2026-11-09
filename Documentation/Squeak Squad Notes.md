@@ -556,6 +556,24 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
     the table), 0xE grass tufts, 0xF barrels (holding food: `0x10` and the food), 0x10 the blocks a switch toggles, 0x11 floating
     bubbles (`0x10` and a food, or `0` and an ability), 0x12, 0x13, 0x14 (rectangles: camera or scroll areas), 0x15, 0x16 (the
     Squeakers' treasure rooms' timings), 0x17, 0x18, 0x19 (171 in two lava rooms), 0x1A: unseen helpers, not yet identified.
+  - The gimmicks in the 8 worlds (a room's entries, type: count in rooms): switches 0: 79 in 48, ropes 1: 25 in 9, shutters 2:
+    119 in 46, rope floors 3: 16, paths 4: 38, thunder clouds 5: 19, rolling boulders 6: 15, fire columns 7: 43, falling rocks 8:
+    26, icicles 9: 17, candles 0xA: 8, rotating cannons 0xB: 44, cannons 0xC: 3, warp star flights 0xD: 19, grass 0xE: 47,
+    barrels 0xF: 46 in 24, 0x10 ("floor": wooden planks, Prism Plains 3's third room): 48 in 31, bubbles 0x11: 227 in 76, and
+    0x12-0x1A (0x14: 58, 0x15: 178 in 102 rooms, 0x16: 95 in 80, 0x18: 33, 0x19: 171 in 24, along Vocal Volcano's lava; not yet
+    identified). `0x0221D5B8` makes each from its class's constructor (0x0F's `0x0222277C`, vtable `0x02229594`; 0's `0x022254AC`,
+    `0x02229B84`; 2's `0x02224EFC`, `0x02229B24`; 0x10's `0x02223900`, `0x02229838`). A gimmick is a state machine: its state at +4,
+    vtable slots 2-12 the states' functions (each returns the next state), slot 16 whether it takes a message (+4 its kind: 7, 8,
+    10, 11...) in its state, slot 17 what the message does. Their graphics are `yakumono/*` (ball_rock, barrel, bubble, candle,
+    cannon, fire_long, floor, grass_*, ice_flash, icicle, rock, rot_cannon, shutter, shutter_needle, snow, spark, stream,
+    switch_small, thunder_cloud, warp_star). On the DS: Prism Plains 4's third room's switch is a small red button and its shutter
+    a stone pillar from the ceiling; Vocal Volcano 5's second room's fire columns spout from the lava. Not in KatAM yet: the port
+    leaves the shutters' ways open (their cells are air: the shutter is an object), nothing blocks.
+  - The barrel (0x0F; `yakumono/barrel`, its animations: 0 open with its lid and a down arrow, 1 the lid closing, 2 closed, 3 the
+    lid opening, 4 shaking, 5 bursting, its hoops and staves flying, 6 burning, 7 its pieces): one holding something (its table's
+    second byte not 0xFF: the food or ability as the bubbles', its first byte's high nibble 1 a food, 0 an ability) starts
+    closed; an empty one open (Kirby can get in: message 7 while empty, then 8 out; 10 shakes it). Message 11 (an attack, not
+    with its 0x1000 flag) bursts it (sound 0x51), leaving what it holds (`0x0220A200` a food, `0x0220A2A4` an ability).
   - Section 11, the doors: `u16` count, then 10 bytes a door: `u16` its number (the collision's `0x80 + n` marks it), `u8` flags,
     `u8` kind, `u16` x, y from the top (the middle of the cell Kirby stands in: a floor under it, but for a door high in Gao Gao's
     room in Nature Notch 3), `u8` the stage's room it leads to (0-based, the `.mxi`'s order) and `u8` that room's door (its number;
