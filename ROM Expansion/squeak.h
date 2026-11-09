@@ -102,6 +102,10 @@ enum {
     SQUEAK_FIRE_180,
     SQUEAK_FIRE_270,
     SQUEAK_FIRE_90,
+    SQUEAK_GRASS,               // Graphics only: the grass tufts (squeak/gimmicks.c), A, B and C, each small and large, and the barrel;
+    SQUEAK_GRASS_LAST = SQUEAK_GRASS + 5,
+    SQUEAK_BARREL,
+    SQUEAK_ICICLE,              // Graphics only: the icicles (squeak/gimmicks.c);
     SQUEAK_ENEMY_COUNT,
 };
 
@@ -131,6 +135,10 @@ enum { SQUEAK_STAR_SPIT, SQUEAK_STAR_AHEAD, SQUEAK_STAR_BEHIND, SQUEAK_STAR_SWOR
 #define SQUEAK_SWITCH_OBJECT 0x9C
 #define SQUEAK_SHUTTER_OBJECT 0x9B
 #define SQUEAK_FIRE_OBJECT 0x9A
+#define SQUEAK_GRASS_OBJECT 0x99
+#define SQUEAK_BARREL_OBJECT 0x98
+#define SQUEAK_BLADES_OBJECT 0x97
+#define SQUEAK_ICICLE_OBJECT 0x96
 /* The gimmicks' messages (squeak/gimmicks.c): per loaded room's slot (gCurLevelInfo[].unk65E) its room, how many times a room was
  * loaded in it, and a byte per gimmick of the room's list, the kind + 1 of the message waiting for it (rooms.c keeps them after the
  * EWRAM heap: SqueakMailOf()); */

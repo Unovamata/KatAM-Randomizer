@@ -1019,11 +1019,13 @@ namespace KatAMRandomizer {
             }
 
             byte[] objects = f.Objects == null ? null : SqueakFileAnyCase(squeak, f.Objects);
+            // (the records a grass tuft or a barrel hides come out of it: SqueakHeldRecords());
+            (HashSet<int> heldItems, HashSet<int> heldEnemies) = SqueakHeldRecords(map);
             if (objects != null) {
                 for (int i = 0, count = ReadShort(objects, 12); i < count; i++) {
                     int at = 14 + i * 16, id = ReadShort(objects, at + 2), x = ReadShort(objects, at + 4), y = ReadShort(objects, at + 6);
                     int v = objects[at + 8], w = objects[at + 9], flags = objects[at + 0xB];
-                    if ((flags & SqueakChaseSpawn) != 0) continue;
+                    if ((flags & SqueakChaseSpawn) != 0 || heldEnemies.Contains(i)) continue;
                     if (SqueakNatives.TryGetValue(id, out var native)) {
                         byte behavior = v < native.behaviors.Length ? native.behaviors[v] : native.behaviors[0];
                         if (id == 0x03 && w == 1) behavior = 6;
@@ -1041,7 +1043,7 @@ namespace KatAMRandomizer {
                 int items = ReadShort(objects, 6);
                 for (int i = 0, count = items + 2 <= objects.Length ? ReadShort(objects, items) : 0; i < count; i++) {
                     int at = items + 2 + i * 16, kind = ReadShort(objects, at + 2), x = ReadShort(objects, at + 4), y = ReadShort(objects, at + 6);
-                    if ((objects[at + 0xB] & SqueakChaseSpawn) != 0) continue;
+                    if ((objects[at + 0xB] & SqueakChaseSpawn) != 0 || heldItems.Contains(i)) continue;
                     if (kind is SqueakChestSmall or SqueakChestBig) {
                         /* (on the floor under its spot: Squeak Squad's is sometimes the floor's top, sometimes a cell over it, its chests
                          * falling onto it; KatAM's CreateChest() puts a chest's bottom on the cell edge at or under its template's y + half
@@ -1187,6 +1189,54 @@ namespace KatAMRandomizer {
         // (the gimmicks that talk to others: squeak/gimmicks.c; its shutters on object 0x8D with their template's unk11 SqueakShutterObject);
         const int SqueakShutterGimmick = 2, SqueakFireGimmick = 7, SqueakTriggerArea = 0x15, SqueakRelay = 0x16, SqueakMailGimmicks = 60;
         const byte SqueakShutterObject = 0x9B, SqueakFireObject = 0x9A;
+        /* The grass tufts (0xE) and barrels (0xF), their objects squeak/gimmicks.c's: its template's unk12 the grass's look, unk14 what
+         * comes out (the KatAM object's type, its behavior byte over it), unk16 its variant (a Squeak Squad character's: SqueakHeld()); */
+        const int SqueakGrassGimmick = 0xE, SqueakBarrelGimmick = 0xF;
+        const byte SqueakGrassObject = 0x99, SqueakBarrelObject = 0x98, KatAMAbilityStar = 0xA3;
+        // (the icicles, gimmick 9: squeak/gimmicks.c's SqueakCreateIcicle);
+        const int SqueakIcicleGimmick = 9;
+        const byte SqueakIcicleObject = 0x96;
+        // (Squeak Squad's abilities, by its numbers, as KatAM's: those KatAM has; the others, Ninja, Animal, Ghost, Bubble, Metal, none);
+        static readonly Dictionary<int, byte> SqueakKatAMAbilities = new Dictionary<int, byte> {
+            [1] = 1, [2] = 2, [3] = 15, [4] = 7, [5] = 16, [6] = 5, [7] = 6, [8] = 13, [9] = 9, [10] = 4, [11] = 14, [13] = 19, [14] = 11,
+            [15] = KatAMHiJump, [16] = 18, [20] = 20,
+        };
+        const byte KatAMHiJump = 31;   // abilities.h's NIDL_ABILITY_HI_JUMP (KIRBY_ABILITY_COUNT + 4);
+        /* What a grass tuft or a barrel hides: its table's first byte's high nibble 1 a record of the room's item list, 0 one of its
+         * enemy list, its second byte the record's index (0xFF none): on the DS, cut or burst, it lets the record out (0x0220A200: the
+         * item maker; 0x0220A2A4: the enemy spawner, 0x02218E20), which isn't out till then (1-2-2's grass hides the Cherry its item
+         * list puts there, 1-5-1's barrels its eight items, 1-9-23's grass an enemy). SqueakHeldRecords(): the records the room's
+         * holders hide, which SqueakObjects() leaves for them; SqueakHeld(): a holder's, as the KatAM object it lets out (its type,
+         * behavior and variant as SqueakObjects() would place it; an ability item KatAM's ability star with the ability, or a Cherry
+         * where KatAM lacks it); */
+        static (HashSet<int> items, HashSet<int> enemies) SqueakHeldRecords(SqueakMap map) {
+            HashSet<int> items = new HashSet<int>(), enemies = new HashSet<int>();
+            foreach (SqueakGimmick g in map.Gimmicks())
+                if (g.Type is SqueakGrassGimmick or SqueakBarrelGimmick && g.Parameters?.Length >= 2 && g.Parameters[1] != 0xFF)
+                    (g.Parameters[0] >> 4 == 1 ? items : enemies).Add(g.Parameters[1]);
+            return (items, enemies);
+        }
+        static (byte type, byte behavior, byte variant) SqueakHeld(byte[] objects, byte[] par) {
+            if (objects == null || par == null || par.Length < 2 || par[1] == 0xFF) return (0, 0, 0);
+            if (par[0] >> 4 == 1) {
+                int items = ReadShort(objects, 6), at = items + 2 + par[1] * 16;
+                if (items + 2 > objects.Length || par[1] >= ReadShort(objects, items) || at + 16 > objects.Length) return (0, 0, 0);
+                int kind = ReadShort(objects, at + 2);
+                if (SqueakItemKinds.TryGetValue(kind, out byte item)) return (item, 0, 0);
+                if (kind > SqueakAbilityKinds && SqueakKatAMAbilities.TryGetValue(kind - SqueakAbilityKinds, out byte ability)) return (KatAMAbilityStar, ability, 0);
+                return (KatAMCherry, 0, 0);
+            } else {
+                int at = 14 + par[1] * 16;
+                if (par[1] >= ReadShort(objects, 12) || at + 16 > objects.Length) return (0, 0, 0);
+                int id = ReadShort(objects, at + 2), v = objects[at + 8], w = objects[at + 9];
+                if (SqueakNatives.TryGetValue(id, out var native) && !KatAMMidbossTypes.Contains(native.type)) {
+                    byte behavior = v < native.behaviors.Length ? native.behaviors[v] : native.behaviors[0];
+                    return (native.type, id == 0x03 && w == 1 ? (byte)6 : behavior, 0);
+                }
+                if (SqueakCharacters.TryGetValue(id, out int character)) return (SqueakID, (byte)character, (byte)(id == 0x45 ? (w != 0 ? 1 : 0) : v));
+                return (0, 0, 0);
+            }
+        }
 
         /* SqueakSwitchTargets(); The block groups a switch sets off (0x022252F0: its parameter's first byte's high nibble the count of
          * its targets, then each one's index in the room's gimmick list), the cells of those that are switch block groups (gimmick
@@ -1690,6 +1740,24 @@ namespace KatAMRandomizer {
                             WriteShort(fire, 0x14, g.Word(0));
                             WriteShort(fire, 0x16, g.Word(1));
                             templates.Add(fire);
+                            if (!types.Contains(HammerPegType)) types.Add(HammerPegType);
+                            squeakSwitches++;
+                        } else if (g.Type is SqueakGrassGimmick or SqueakBarrelGimmick) {
+                            // (a grass tuft or a barrel: what it holds, squeak/gimmicks.c's SqueakCreateGrass, SqueakCreateBarrel);
+                            (byte type, byte behavior, byte variant) = SqueakHeld(f.Objects == null ? null : SqueakFileAnyCase(squeak, f.Objects), g.Parameters);
+                            byte[] holder = ObjectTemplate(g.X, g.Y, templates.Count, HammerPegType);
+                            holder[0x11] = g.Type == SqueakGrassGimmick ? SqueakGrassObject : SqueakBarrelObject;
+                            holder[0x12] = (byte)(g.Parameters?.Length > 0 ? g.Parameters[0] & 15 : 0);
+                            holder[0x14] = type;
+                            holder[0x15] = behavior;
+                            holder[0x16] = variant;
+                            templates.Add(holder);
+                            if (!types.Contains(HammerPegType)) types.Add(HammerPegType);
+                            squeakSwitches++;
+                        } else if (g.Type == SqueakIcicleGimmick) {
+                            byte[] icicle = ObjectTemplate(g.X, g.Y, templates.Count, HammerPegType);
+                            icicle[0x11] = SqueakIcicleObject;
+                            templates.Add(icicle);
                             if (!types.Contains(HammerPegType)) types.Add(HammerPegType);
                             squeakSwitches++;
                         } else if (g.Type == SqueakTurnCannon) {

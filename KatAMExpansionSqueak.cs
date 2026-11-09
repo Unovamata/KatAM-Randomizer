@@ -583,6 +583,8 @@ namespace KatAMRandomizer {
         const int SqueakShutter = 71, SqueakShutter90 = 72, SqueakShutter270 = 73, SqueakNeedle = 74, SqueakNeedle180 = 75;
         // (the fire columns', squeak.h's SQUEAK_FIRE on: gimmick 7's looks, 0x02227B30, turned as the DS turns them);
         const int SqueakFireColumn = 76, SqueakFire180 = 77, SqueakFire270 = 78, SqueakFire90 = 79;
+        // (the grass tufts' and the barrel's, squeak.h's SQUEAK_GRASS on and SQUEAK_BARREL: gimmicks 0xE and 0xF);
+        const int SqueakGrass = 80, SqueakBarrel = 86, SqueakIcicle = 87;
 
         static readonly List<SqueakEnemy> SqueakDefinitions = new List<SqueakEnemy> {
             // Perara: hurt animations 7 and 8 (0x02021A88's 0x1000007, 0x1000008);
@@ -831,6 +833,19 @@ namespace KatAMRandomizer {
             new SqueakEnemy(SqueakFire180, "Fire", "yakumono/fire_long", new[] { 0, 0, 0 }, new (int, int)[0], Rotate: 180),
             new SqueakEnemy(SqueakFire270, "Fire", "yakumono/fire_long", new[] { 0, 0, 0 }, new (int, int)[0], Rotate: 270),
             new SqueakEnemy(SqueakFire90, "Fire", "yakumono/fire_long", new[] { 0, 0, 0 }, new (int, int)[0], Rotate: 90),
+            /* The grass tufts (gimmick 0xE: its table's first byte's low nibble its look, 0x02227C28: yakumono/grass_A_S, grass_A_L,
+             * grass_B_S, grass_B_L, grass_C_S, grass_C_L, small and large in turn; the animations squeak/gimmicks.c plays: 0 still,
+             * 1 rustling, 5 its blades flying as it's cut, 6 its stub going) and the barrel (0xF, yakumono/barrel: 0 open, 2 shut,
+             * 4 shaking, 5 bursting): every cell; no name; */
+            new SqueakEnemy(SqueakGrass, "Grass", "yakumono/grass_A_S", new[] { 0, 0, 0 }, new (int, int)[0]),
+            new SqueakEnemy(SqueakGrass + 1, "Grass", "yakumono/grass_A_L", new[] { 0, 0, 0 }, new (int, int)[0]),
+            new SqueakEnemy(SqueakGrass + 2, "Grass", "yakumono/grass_B_S", new[] { 0, 0, 0 }, new (int, int)[0]),
+            new SqueakEnemy(SqueakGrass + 3, "Grass", "yakumono/grass_B_L", new[] { 0, 0, 0 }, new (int, int)[0]),
+            new SqueakEnemy(SqueakGrass + 4, "Grass", "yakumono/grass_C_S", new[] { 0, 0, 0 }, new (int, int)[0]),
+            new SqueakEnemy(SqueakGrass + 5, "Grass", "yakumono/grass_C_L", new[] { 0, 0, 0 }, new (int, int)[0]),
+            new SqueakEnemy(SqueakBarrel, "Barrel", "yakumono/barrel", new[] { 0, 0, 0 }, new (int, int)[0]),
+            // The icicle (gimmick 9, yakumono/icicle: 0 hanging, 1 shaking, 2 falling, 3 shattering): every cell; no name;
+            new SqueakEnemy(SqueakIcicle, "Icicle", "yakumono/icicle", new[] { 0, 0, 0 }, new (int, int)[0]),
         };
 
         /* The randomizer's Squeak Squad pools (the ROM Expansion tab). SqueakPool; A character the randomizer places: its index (SQUEAK_*

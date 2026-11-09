@@ -628,7 +628,31 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
     size), 0xB an attack (its flags' bit 0: cut, state 5 `0x02221C64`), 0xC another. Cut (`0x02221C64`), it lets out what it
     holds (its table's second byte, not 0xFF: by the first byte's high nibble, 0 an ability `0x0220A2A4`, 1 a food
     `0x0220A200`, as the barrel's and the bubbles'), plays its cut animation (sound 0x59) and stays cut; one that held something
-    grows back after 600 frames (`0x02221F58`: +0x6C counts to 0x258). Not ported yet.
+    grows back after 600 frames (`0x02221F58`: +0x6C counts to 0x258). Its looks (`0x02227C28`, by the low nibble): 0
+    `grass_A_S`, 1 `grass_A_L`, 2 `grass_B_S`, 3 `grass_B_L`, 4 `grass_C_S`, 5 `grass_C_L` (the rooms use all six); animations
+    0 still, 1 rustling, 5 its blades flying, 6 its stub shaking and going.
+  - **What a grass tuft or a barrel holds is a record of its room's lists**: its second byte is an index, not an item ID:
+    `0x0220A200(stage, i)` lets out record i of the room's item list (the item maker, `0x020972FC`/`0x020973AC`), `0x0220A2A4(stage,
+    i)` record i of its enemy list (`0x02218E20(stage + 0x90's table, i, 0)`, the spawner). Such a record isn't out till then:
+    1-2-2's grass at 604, 144 hides the Cherry its item list puts there, 1-5-1's eight barrels its eight items, 1-9-23's grass an
+    enemy. The barrel's spot is its top (its box -1.0, -2.0 to 1.0, 0 in the DS's y-up world: 32 pixels down to the floor, 1-9-22's
+    on a floor two cells under them), the grass's its feet.
+  - **In KatAM** (`squeak/gimmicks.c`'s SqueakCreateGrass, SqueakCreateBarrel; the converter's `SqueakHeld()`): the records they
+    hide are left out of the room's objects, each holder's template naming the KatAM object it lets out (a food KatAM's, an enemy
+    as `SqueakObjects()` would place it, an ability item KatAM's ability star, object 0xA3, inhaled for the ability). An attack is
+    told by KatAM's collision pass, which marks an object an attack reaches (flags 0x40000, the attacker in unk6C) before asking
+    whether it hurts it (never, with flags 0x8000); a Kirby's plain touch is marked so too (his body's unk68 0x80, how a touch
+    beats a weak enemy): a holder takes hits of KatAM's enemies' kind but masks his body out (unk5C 0x80, as a beaten enemy's), and
+    counts a Kirby's own hit only with an attack bit over his body's (a slide, a dash). Walked through, a tuft rustles; hit, it's
+    cut (KatAM's cutter sound, its blades an object of their own) and grows back 600 frames on when it held something; a barrel
+    bursts (KatAM's block-break sound) and is gone. Left out: hiding in an empty barrel (on the DS Down gets Kirby in, A out,
+    moving shakes it): KatAM has no such move.
+  - The icicles (9, `0x022233B0`, vtable `0x02229740`; `yakumono/icicle`: 0 hanging, 1 shaking, 2 falling, 3 shattering): state 0
+    (`0x02223260`) waits for a body under it (a box from the body up 12 blocks); state 1 (`0x0222324C`) lets a falling icicle go,
+    an object of its own (0x138 bytes, vtable `0x02229788`), made again once the last is gone. Its spot is its tip (the DS draws
+    it above). In KatAM (`squeak/gimmicks.c`'s SqueakCreateIcicle): one object hanging over its spot, shaking 30 frames once a
+    Kirby is under it (24 pixels across, 192 down), falling with gravity and hurting as it goes (a plain hit, KatAM's enemy-touch
+    kind 0x80, strength 3), shattering on the floor (KatAM's block-break sound) and hanging again 180 frames on.
   - Section 11, the doors: `u16` count, then 10 bytes a door: `u16` its number (the collision's `0x80 + n` marks it), `u8` flags,
     `u8` kind, `u16` x, y from the top (the middle of the cell Kirby stands in: a floor under it, but for a door high in Gao Gao's
     room in Nature Notch 3), `u8` the stage's room it leads to (0-based, the `.mxi`'s order) and `u8` that room's door (its number;

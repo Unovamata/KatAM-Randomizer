@@ -593,12 +593,302 @@ static void *SqueakCreateFire(struct ObjectTemplate *template, u8 playerId) {
     return obj;
 }
 
+/* The item holders: the grass tufts (gimmick 0xE: ctor 0x02222078, vtable 0x02229500) and barrels (0xF: 0x0222277C, 0x02229594).
+ * What one hides (a record of its room's item or enemy list, the DS letting it out as it's cut or burst: the converter's
+ * SqueakHeld(), which leaves it out of the room's objects) is its template's unk14: the KatAM object's type, its behavior byte
+ * over it (an ability KatAM's ability star, object 0xA3, its subtype the ability: inhaled, it gives it), unk16 its variant (a
+ * Squeak Squad character's unk12). An attack is told by KatAM's collision pass: an attack reaching an object marks it (flags
+ * 0x40000, the attacker in unk6C: code_08032E98's pairs, 0x080368B2) before asking whether it hurts it, which an object with
+ * flags 0x8000 never is; these are KatAM's enemies' kind (unk5C's low bits 1) for the attacks to reach them, harmless (unk68 0),
+ * and deaf to a Kirby's body (its unk68's 0x80, which a touch defeating a weak enemy is: unk5C's 0x80, as a beaten enemy's,
+ * masks it out); */
+#define HOLDER_KIND (1 | 0x80)
+#define HOLDER_HIT 0x40000
+
+/* (KatAM marks a Kirby's touch so too: a hit counts from an attack's object, or from a Kirby whose unk68 shows an attack besides
+ * his body's 0x80, his strength the low bits: a slide, a dash); */
+#define KIRBY_BODY_ATTACK (7 | 0x80)
+static bool32 Struck(struct Object *obj) {
+    struct ObjectBase *by = obj->base.unk6C;
+
+    if (!(obj->base.flags & HOLDER_HIT)) return FALSE;
+    obj->base.flags &= ~HOLDER_HIT;
+    if (by == NULL) return FALSE;
+    if ((u32)by - (u32)gKirbys < 4 * sizeof(struct Kirby)) return (by->unk68 & ~KIRBY_BODY_ATTACK) != 0;
+    return TRUE;
+}
+
+// (a Kirby in the room whose middle is in its box, given in pixels from its spot, and, for `moving`, moving);
+static bool32 KirbyIn(struct Object *obj, s16 x0, s16 y0, s16 x1, s16 y1, bool32 moving) {
+    u8 i;
+
+    for (i = 0; i < gNumKirbys; i++) {
+        struct Kirby *k = &gKirbys[i];
+        s32 dx = (k->base.x - obj->base.x) >> 8, dy = (k->base.y - obj->base.y) >> 8;
+
+        if (k->base.roomId != obj->base.roomId || dx < x0 || dx > x1 || dy < y0 || dy > y1) continue;
+        if (!moving || k->base.xspeed != 0 || k->base.yspeed != 0) return TRUE;
+    }
+    return FALSE;
+}
+
+static void LetOut(struct Object *obj) {
+    s32 x = obj->base.x >> 8, y = obj->base.y >> 8;
+    u8 type = obj->objTemplate->unk14, behavior = obj->objTemplate->unk14 >> 8;
+    struct Object *out;
+
+    if (!type) return;
+    // (out of its middle: a grass tuft's spot is its feet, a barrel's its top);
+    y += obj->objTemplate->unk11 == SQUEAK_BARREL_OBJECT ? 16 : -8;
+    out = CreateObjTemplateAndObj(obj->base.unk56, 1, 0x24, x, y, 0, 0x1F, 0, 0, type, behavior, 0, 0, 0, 0, 0, 0, 0, 0,
+                                  obj->objTemplate->unk16, 0, 0, 0);
+    // (an ability star's bounces read a Kirby's state: the one nearest);
+    if (type == OBJ_ABILITY_STAR_1) out->base.parent = FindTargetKirby(&obj->base);
+}
+
+static void HolderInit(struct Object *obj, struct SqueakGimmickSprite *spr, u8 look, s8 x0, s8 y0, s8 x1, s8 y1) {
+    GimmickInit(obj, spr, look);
+    obj->base.unk5C = (obj->base.unk5C & ~7) | HOLDER_KIND;
+    obj->base.unk68 = 0;
+    ObjectSetBounds(&obj->base, x0, y0, x1, y1);
+    sub_0803E2B0(&obj->base, x0, y0, x1, y1);
+}
+
+/* The grass tuft: its look its template's unk12 (0x02227C28: grass_A_S, _A_L, _B_S, _B_L, _C_S, _C_L; even small, its box -16 to 16
+ * across and 48 up from its spot, its feet; odd large, -32 to 32 and 56 up). A body moving through it rustles it (message 5: its
+ * animation 1); an attack cuts it (0xB, `0x02221C64`): what it holds comes out, its blades fly (animation 5, an object of its own
+ * here) and its stub goes (6); one that held something grows back 600 frames later (`0x02221F58`), with it again; */
+struct SqueakGrass {
+    struct Object obj;
+    struct SqueakGimmickSprite spr;
+    u8 state;
+    u16 timer;
+};
+#define GRASS_STILL 0
+#define GRASS_RUSTLE 1
+#define GRASS_CUT 2
+#define GRASS_GONE 3
+#define GRASS_REGROW 600
+#define GrassLarge(obj) ((obj)->objTemplate->unk12 & 1)
+static const s8 sGrassBoxes[2][4] = { { -16, -48, 16, 0 }, { -32, -56, 32, 0 } };
+
+static void SqueakBladesMain(struct Object *obj) {
+    struct SqueakGimmickSprite *spr = &((struct SqueakGimmickObject *)obj)->spr;
+
+    GimmickAnimate(obj, spr);
+    if (spr->ended) obj->base.flags |= 0x1000;
+}
+
+static void SqueakGrassMain(struct Object *obj) {
+    struct SqueakGrass *g = (struct SqueakGrass *)obj;
+    const s8 *box = sGrassBoxes[GrassLarge(obj)];
+
+    if (gUnk_03000510.unk4 & ((1 << obj->base.unk56) | 0x10)) return;
+    GimmickAnimate(obj, &g->spr);
+    switch (g->state) {
+    case GRASS_STILL:
+    case GRASS_RUSTLE:
+        if (Struck(obj)) {
+            LetOut(obj);
+            CreateObjTemplateAndObj(obj->base.unk56, 1, 0x24, obj->base.x >> 8, obj->base.y >> 8, 0, 0x1F, 0, 0, OBJ_HAMMER_PEG, 0, 0,
+                                    0, 0, 0, 0, 0, 0, SQUEAK_BLADES_OBJECT, obj->objTemplate->unk12, 0, 0, 0);
+            PlaySfx(&obj->base, SE_ABILITY_CUTTER_ATTACK);
+            GimmickPlay(obj, &g->spr, 6);
+            g->state = GRASS_CUT;
+            obj->base.unk5C &= ~7;
+        } else if (g->state == GRASS_STILL && KirbyIn(obj, box[0], box[1], box[2], box[3], TRUE)) {
+            GimmickPlay(obj, &g->spr, 1);
+            g->state = GRASS_RUSTLE;
+        } else if (g->state == GRASS_RUSTLE && g->spr.ended) {
+            GimmickPlay(obj, &g->spr, 0);
+            g->state = GRASS_STILL;
+        }
+        break;
+    case GRASS_CUT:
+        if (!g->spr.ended) break;
+        obj->base.flags |= 0x400;
+        g->state = GRASS_GONE;
+        g->timer = 0;
+        break;
+    case GRASS_GONE:
+        if (!(obj->objTemplate->unk14 & 0xFF)) break;
+        if (++g->timer < GRASS_REGROW) break;
+        obj->base.flags &= ~(0x400 | HOLDER_HIT);
+        obj->base.unk5C = (obj->base.unk5C & ~7) | HOLDER_KIND;
+        GimmickPlay(obj, &g->spr, 0);
+        g->state = GRASS_STILL;
+        break;
+    }
+}
+
+static void *SqueakCreateGrass(struct ObjectTemplate *template, u8 playerId) {
+    struct Task *task = TaskCreate(ObjectMain, sizeof(struct SqueakGrass), 0x1000, TASK_USE_EWRAM, ObjectDestroy);
+    struct SqueakGrass *g = TaskGetStructPtr(task);
+    struct Object *obj = &g->obj;
+    const s8 *box;
+
+    InitObject(obj, template, playerId);
+    box = sGrassBoxes[GrassLarge(obj)];
+    HolderInit(obj, &g->spr, SQUEAK_GRASS + template->unk12 % 6, box[0], box[1], box[2], box[3]);
+    g->state = GRASS_STILL;
+    GimmickPlay(obj, &g->spr, 0);
+    obj->unk78 = SqueakGrassMain;
+    return obj;
+}
+
+// (its blades flying as it's cut: the grass's look's animation 5, gone as it ends);
+static void *SqueakCreateBlades(struct ObjectTemplate *template, u8 playerId) {
+    struct Task *task = TaskCreate(ObjectMain, sizeof(struct SqueakGimmickObject), 0x1000, TASK_USE_EWRAM, ObjectDestroy);
+    struct SqueakGimmickObject *b = TaskGetStructPtr(task);
+
+    InitObject(&b->obj, template, playerId);
+    GimmickInit(&b->obj, &b->spr, SQUEAK_GRASS + template->unk12 % 6);
+    GimmickPlay(&b->obj, &b->spr, 5);
+    b->obj.unk78 = SqueakBladesMain;
+    return &b->obj;
+}
+
+/* The barrel (yakumono/barrel: 0 open, its lid up with a down arrow, 1 the lid shutting, 2 shut, 3 the lid opening, 4 shaking,
+ * 5 bursting): its spot its top, its box 16 to each side and 32 down (the constructor's -1.0, -2.0 to 1.0, 0 in the DS's y-up
+ * world); one holding something starts shut, an empty one open (on the DS Kirby gets in with Down, out with A, shaking it as he
+ * moves: KatAM has no such move, left out here); an attack bursts it (message 0xB, sound 0x51), letting out what it holds, and
+ * it's gone; */
+struct SqueakBarrel {
+    struct Object obj;
+    struct SqueakGimmickSprite spr;
+    bool8 burst;
+};
+
+static void SqueakBarrelMain(struct Object *obj) {
+    struct SqueakBarrel *b = (struct SqueakBarrel *)obj;
+
+    if (gUnk_03000510.unk4 & ((1 << obj->base.unk56) | 0x10)) return;
+    GimmickAnimate(obj, &b->spr);
+    if (b->burst) {
+        if (b->spr.ended) obj->base.flags |= 0x1000;
+        return;
+    }
+    if (!Struck(obj)) return;
+    LetOut(obj);
+    PlaySfx(&obj->base, SE_BLOCK_BREAK);
+    GimmickPlay(obj, &b->spr, 5);
+    b->burst = TRUE;
+    obj->base.unk5C &= ~7;
+}
+
+static void *SqueakCreateBarrel(struct ObjectTemplate *template, u8 playerId) {
+    struct Task *task = TaskCreate(ObjectMain, sizeof(struct SqueakBarrel), 0x1000, TASK_USE_EWRAM, ObjectDestroy);
+    struct SqueakBarrel *b = TaskGetStructPtr(task);
+    struct Object *obj = &b->obj;
+
+    InitObject(obj, template, playerId);
+    HolderInit(obj, &b->spr, SQUEAK_BARREL, -16, 0, 16, 32);
+    b->burst = FALSE;
+    GimmickPlay(obj, &b->spr, template->unk14 & 0xFF ? 2 : 0);
+    obj->unk78 = SqueakBarrelMain;
+    return obj;
+}
+
+/* The icicle (gimmick 9: ctor 0x022233B0, vtable 0x02229740; yakumono/icicle, 0 hanging, 1 shaking, 2 falling, 3 shattering): it
+ * waits for a body under it (state 0, 0x02223260: a box from the body up 12 blocks) and lets a falling icicle go (state 1,
+ * 0x0222324C: an object of its own, 0x138 bytes, vtable 0x02229788, made again once the last is gone). Here one object: it
+ * hangs over its spot (its tip: the DS draws it above), shakes ICICLE_SHAKE frames once a Kirby is under it (within 24 pixels across, 192 down), falls
+ * (KatAM's gravity, hurting as it goes: a plain hit, an enemy's touch's kind 0x80; the fire column's 0x100 burnt Kirby), shatters
+ * on the floor and hangs again ICICLE_BACK
+ * frames on; */
+struct SqueakIcicle {
+    struct Object obj;
+    struct SqueakGimmickSprite spr;
+    u8 state;
+    u16 timer;
+};
+#define ICICLE_HANG 0
+#define ICICLE_SHAKE 1
+#define ICICLE_FALL 2
+#define ICICLE_SHATTER 3
+#define ICICLE_GONE 4
+#define ICICLE_SHAKE_FRAMES 30
+#define ICICLE_BACK 180
+#define ICICLE_GRAVITY 0x30
+#define ICICLE_TOP_SPEED 0x500
+#define ICICLE_FALL_MOST 512
+
+static bool32 OnFloor(struct Object *obj) {
+    u8 tile = GetCollisionTile(obj->base.unk56, obj->base.x >> 12, ((obj->base.y >> 8) + 2) >> 4);
+
+    return tile != 0 && tile < 0x20;
+}
+
+static void SqueakIcicleMain(struct Object *obj) {
+    struct SqueakIcicle *c = (struct SqueakIcicle *)obj;
+
+    if (gUnk_03000510.unk4 & ((1 << obj->base.unk56) | 0x10)) return;
+    GimmickAnimate(obj, &c->spr);
+    obj->base.unk68 &= ~(7 | 0x80);
+    switch (c->state) {
+    case ICICLE_HANG:
+        if (KirbyIn(obj, -24, -8, 24, 192, FALSE)) {
+            GimmickPlay(obj, &c->spr, 1);
+            c->state = ICICLE_SHAKE;
+            c->timer = 0;
+        }
+        break;
+    case ICICLE_SHAKE:
+        if (++c->timer < ICICLE_SHAKE_FRAMES) break;
+        GimmickPlay(obj, &c->spr, 2);
+        c->state = ICICLE_FALL;
+        obj->base.yspeed = 0;
+        break;
+    case ICICLE_FALL:
+        obj->base.unk68 |= 3 | 0x80;
+        if (obj->base.yspeed < ICICLE_TOP_SPEED) obj->base.yspeed += ICICLE_GRAVITY;
+        obj->base.y += obj->base.yspeed;
+        // (on a floor, or ICICLE_FALL_MOST pixels down: off the room's bottom, as in a pit);
+        if (OnFloor(obj) || obj->base.y - (obj->objTemplate->y << 8) >= ICICLE_FALL_MOST << 8) {
+            GimmickPlay(obj, &c->spr, 3);
+            PlaySfx(&obj->base, SE_BLOCK_BREAK);
+            c->state = ICICLE_SHATTER;
+        }
+        break;
+    case ICICLE_SHATTER:
+        if (!c->spr.ended) break;
+        obj->base.flags |= 0x400;
+        c->state = ICICLE_GONE;
+        c->timer = 0;
+        break;
+    case ICICLE_GONE:
+        if (++c->timer < ICICLE_BACK) break;
+        obj->base.x = obj->objTemplate->x << 8;
+        obj->base.y = obj->objTemplate->y << 8;
+        obj->base.flags &= ~0x400;
+        GimmickPlay(obj, &c->spr, 0);
+        c->state = ICICLE_HANG;
+        break;
+    }
+}
+
+static void *SqueakCreateIcicle(struct ObjectTemplate *template, u8 playerId) {
+    struct Task *task = TaskCreate(ObjectMain, sizeof(struct SqueakIcicle), 0x1000, TASK_USE_EWRAM, ObjectDestroy);
+    struct SqueakIcicle *c = TaskGetStructPtr(task);
+    struct Object *obj = &c->obj;
+
+    InitObject(obj, template, playerId);
+    GimmickInit(obj, &c->spr, SQUEAK_ICICLE);
+    obj->base.unk5C |= 0x20;
+    ObjectSetBounds(&obj->base, -8, -32, 8, 0);
+    sub_0803E2B0(&obj->base, -6, -28, 6, -2);
+    c->state = ICICLE_HANG;
+    GimmickPlay(obj, &c->spr, 0);
+    obj->unk78 = SqueakIcicleMain;
+    return obj;
+}
+
 // SqueakGimmickAnim(); A gimmick's look and cell as squeak.c's SqueakAnimFor() draws it (0: the object isn't one);
 u32 SqueakGimmickAnim(struct Object *obj) {
     if (obj->type != OBJ_HAMMER_PEG) return 0;
     if (obj->objTemplate->unk11 == SQUEAK_SWITCH_OBJECT)
         return gSqueakData.enemies[SQUEAK_SWITCH].animId | (SQUEAK_HURT_VARIANTS + (obj->unk83 & 1)) << 16;
-    if (obj->objTemplate->unk11 == SQUEAK_SHUTTER_OBJECT || obj->objTemplate->unk11 == SQUEAK_FIRE_OBJECT)
+    if (obj->objTemplate->unk11 >= SQUEAK_ICICLE_OBJECT && obj->objTemplate->unk11 <= SQUEAK_SHUTTER_OBJECT)
         return gSqueakData.enemies[((struct SqueakGimmickObject *)obj)->spr.look].animId | obj->unk83 << 16;
     return 0;
 }
@@ -609,6 +899,10 @@ void *SqueakCreateSwitch(struct ObjectTemplate *template, u8 playerId) {
     case SQUEAK_SWITCH_OBJECT: return SqueakCreateButton(template, playerId);
     case SQUEAK_SHUTTER_OBJECT: return SqueakCreateShutter(template, playerId);
     case SQUEAK_FIRE_OBJECT: return SqueakCreateFire(template, playerId);
+    case SQUEAK_GRASS_OBJECT: return SqueakCreateGrass(template, playerId);
+    case SQUEAK_BARREL_OBJECT: return SqueakCreateBarrel(template, playerId);
+    case SQUEAK_BLADES_OBJECT: return SqueakCreateBlades(template, playerId);
+    case SQUEAK_ICICLE_OBJECT: return SqueakCreateIcicle(template, playerId);
     }
     return gSqueakSwitch.create(template, playerId);
 }

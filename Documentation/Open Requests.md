@@ -553,6 +553,20 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
       aren't counted). Europe and Japan: 1-5-1's switch, pillar and its shutting again checked the same way. Not tested yet: the
       others in Europe and Japan; a relay's waits (4-3-2's boulders: their gimmick isn't
       ported); a fire column a message lights (mode 0: 1 in the rooms).
+    - The item holders (`squeak/gimmicks.c`; the notes' "What a grass tuft or a barrel holds"): grass tufts (0xE, all six looks)
+      and barrels (0xF). What one holds is a record of its room's own item or enemy list, hidden till it's cut or burst: the
+      converter leaves those records out of the room and the holder lets the KatAM object out (food, an enemy, or KatAM's ability
+      star for an ability). Checked in the GBA emulator (USA, Kirby put in the room, Cutter written into his ability): 1-2-2's
+      grass, walked through, rustles and stays (first tried with KatAM's hit mark alone: a plain touch cut it; now his body's hit is
+      masked out), an attack cuts it, its blades fly, its stub goes and its Cherry comes out (first the Cherry stood there from the
+      start: the room's item list holds it, the grass hides it); 1-5-1's top barrel, hit, bursts and lets out its item. Not tested:
+      a regrown tuft, an enemy or ability star let out, Europe and Japan in the emulator. Left out: hiding in an empty barrel
+      (KatAM has no such move).
+    - The icicles (9: `squeak/gimmicks.c`, the notes' icicle bullet). Checked in the GBA emulator (USA, 6-1-4, Kirby walked under
+      them): one shakes, falls and shatters on the floor; on Kirby it hurts him (OUCH, a bar of health) and knocks him back (first
+      it shattered at once: KatAM's camera limit was taken for the room's bottom; then in mid-air: its spot is its tip, not its
+      top; then it burnt Kirby: the fire column's harm kind; now a plain hit). Not tested: its hanging again after 180 frames,
+      Europe and Japan in the emulator.
     - Left: the chests' Squeak Squad treasures (Ability Scrolls, Spray Paints, the Secret Map's pieces, Vitality halves: with
       their items, below), the chase spawns after the stage's treasure (the Squeakers among them, and 22 chests), the arenas
       without the NiDL ROM (NiDL's type holds the camera), the gimmicks, the areas.
