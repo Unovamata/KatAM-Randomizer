@@ -1187,15 +1187,16 @@ namespace KatAMRandomizer {
         const byte HammerPegType = 0x8D, SqueakSwitchObject = 0x9C;
         const int SqueakSwitchGimmick = 0, SqueakSwitchBlocks = 0x10;
         // (the gimmicks that talk to others: squeak/gimmicks.c; its shutters on object 0x8D with their template's unk11 SqueakShutterObject);
-        const int SqueakShutterGimmick = 2, SqueakFireGimmick = 7, SqueakTriggerArea = 0x15, SqueakRelay = 0x16, SqueakMailGimmicks = 60;
+        const int SqueakShutterGimmick = 2, SqueakFireGimmick = 7, SqueakTriggerArea = 0x15, SqueakRelay = 0x16, SqueakRandomRelay = 0x17,
+                  SqueakMailGimmicks = 60;
         const byte SqueakShutterObject = 0x9B, SqueakFireObject = 0x9A;
         /* The grass tufts (0xE) and barrels (0xF), their objects squeak/gimmicks.c's: its template's unk12 the grass's look, unk14 what
          * comes out (the KatAM object's type, its behavior byte over it), unk16 its variant (a Squeak Squad character's: SqueakHeld()); */
         const int SqueakGrassGimmick = 0xE, SqueakBarrelGimmick = 0xF;
         const byte SqueakGrassObject = 0x99, SqueakBarrelObject = 0x98, KatAMAbilityStar = 0xA3;
         // (the icicles, gimmick 9: squeak/gimmicks.c's SqueakCreateIcicle);
-        const int SqueakIcicleGimmick = 9;
-        const byte SqueakIcicleObject = 0x96;
+        const int SqueakIcicleGimmick = 9, SqueakRockGimmick = 8;
+        const byte SqueakIcicleObject = 0x96, SqueakRockObject = 0x95;
         // (Squeak Squad's abilities, by its numbers, as KatAM's: those KatAM has; the others, Ninja, Animal, Ghost, Bubble, Metal, none);
         static readonly Dictionary<int, byte> SqueakKatAMAbilities = new Dictionary<int, byte> {
             [1] = 1, [2] = 2, [3] = 15, [4] = 7, [5] = 16, [6] = 5, [7] = 6, [8] = 13, [9] = 9, [10] = 4, [11] = 14, [13] = 19, [14] = 11,
@@ -1257,6 +1258,7 @@ namespace KatAMRandomizer {
                 SqueakSwitchGimmick => (p[0] >> 4, 1, 3),
                 SqueakTriggerArea => (p.Length > 1 ? p[1] >> 6 : 0, 2, 3),
                 SqueakRelay => (p[0] & 0x7F, 1, 5),
+                SqueakRandomRelay => (p.Skip(4).TakeWhile(b => b != 0xFF).Count(), 4, 8),
                 _ => (0, 0, 0) };
             for (int k = 0; k < count && k < most && first + k < p.Length; k++) yield return p[first + k];
         }
@@ -1268,7 +1270,7 @@ namespace KatAMRandomizer {
             List<byte> list = new List<byte> { 0, 0, 0, 0 };
             for (int i = 0; i < gimmicks.Count && i < SqueakMailGimmicks; i++) {
                 SqueakGimmick g = gimmicks[i];
-                if (!(g.Type is SqueakTriggerArea or SqueakRelay || g.Type == SqueakSwitchBlocks && chains.Contains((g.X / 16, g.Y / 16)))) continue;
+                if (!(g.Type is SqueakTriggerArea or SqueakRelay or SqueakRandomRelay || g.Type == SqueakSwitchBlocks && chains.Contains((g.X / 16, g.Y / 16)))) continue;
                 byte[] entry = new byte[24];
                 entry[0] = (byte)g.Type;
                 entry[1] = (byte)i;
@@ -1712,7 +1714,7 @@ namespace KatAMRandomizer {
                              * bytes; a switch none of whose targets is ported isn't made: a bubble, a path); */
                             if (gi >= SqueakMailGimmicks || g.Parameters == null || g.Parameters.Length < 4
                                 || !SqueakMessageTargets(g).Any(t => t < gimmicks.Count && t < SqueakMailGimmicks
-                                                                     && (gimmicks[t].Type is SqueakShutterGimmick or SqueakFireGimmick or SqueakTriggerArea or SqueakRelay
+                                                                     && (gimmicks[t].Type is SqueakShutterGimmick or SqueakFireGimmick or SqueakTriggerArea or SqueakRelay or SqueakRockGimmick
                                                                          || gimmicks[t].Type == SqueakSwitchBlocks && chains.Contains((gimmicks[t].X / 16, gimmicks[t].Y / 16)))))
                                 continue;
                             byte[] button = ObjectTemplate(g.X, g.Y, templates.Count, HammerPegType);
@@ -1752,6 +1754,15 @@ namespace KatAMRandomizer {
                             holder[0x15] = behavior;
                             holder[0x16] = variant;
                             templates.Add(holder);
+                            if (!types.Contains(HammerPegType)) types.Add(HammerPegType);
+                            squeakSwitches++;
+                        } else if (g.Type == SqueakRockGimmick && gi < SqueakMailGimmicks) {
+                            // (a falling rock: its index, its messages its start, squeak/gimmicks.c's SqueakCreateRock);
+                            byte[] rock = ObjectTemplate(g.X, g.Y, templates.Count, HammerPegType);
+                            rock[0x11] = SqueakRockObject;
+                            rock[0x12] = (byte)gi;
+                            WriteShort(rock, 0x14, g.Word(0));
+                            templates.Add(rock);
                             if (!types.Contains(HammerPegType)) types.Add(HammerPegType);
                             squeakSwitches++;
                         } else if (g.Type == SqueakIcicleGimmick) {

@@ -22,6 +22,7 @@
 #include "malloc_vram.h"
 #include "constants/songs.h"
 #include "code_0800E0E4.h"
+#include "random.h"
 #include "../squeak.h"
 
 /* The rooms' gimmick lists (KatAMExpansionSqueakRooms.cs, SqueakGimmickLists()): per Squeak Squad room (from SQUEAK_FIRST_ROOM) its
@@ -57,6 +58,8 @@ const struct SqueakSwitch gSqueakSwitch = { NULL };
 
 #define GIMMICK_TRIGGER 0x15
 #define GIMMICK_RELAY 0x16
+#define GIMMICK_RANDOM_RELAY 0x17
+#define RANDOM_RELAY_TARGETS 8
 #define GIMMICK_BLOCKS 0x10
 #define RELAY_TARGETS 5
 // (a message's kinds: a switch's 0, a trigger area's 2; a relay with its parameter's bit 7 takes kind 4 only, sending 2);
@@ -160,6 +163,29 @@ static void Relay(struct SqueakLogic *l, const struct SqueakGimmickEntry *e) {
     if (!running) l->relayKind[e->index] = 0;
 }
 
+/* RandomRelay(); A random relay (0x17: ctor 0x02224384, vtable 0x02229948; its parameter's u16s the least and most frames it waits,
+ * then up to 8 targets' indices, 0xFF the end): it waits a random number of frames between the two (state 1, 0x022241A4), sends its
+ * targets its message, and waits again; a message (kinds 0-2, 4 kept as 2: 0x022242CC) sets the kind it sends. 2-5-5's and 5-3-4's
+ * rain their rocks so. Its wait in relayTimer[i][0], the kind it sends + 1 in relayKind[i] (none yet: a trigger area's kind, 2); */
+static void RandomRelay(struct SqueakLogic *l, const struct SqueakGimmickEntry *e) {
+    s16 *wait = &l->relayTimer[e->index][0];
+    u16 least = e->par[0] | e->par[1] << 8, most = e->par[2] | e->par[3] << 8;
+    u8 kind = TakeMail(l->slot, e->index), t;
+
+    if (kind != 0 && kind - 1 <= MESSAGE_EVENT) l->relayKind[e->index] = (kind - 1 == MESSAGE_EVENT ? MESSAGE_AREA : kind - 1) + 1;
+    if (*wait > 1) {
+        --*wait;
+        return;
+    }
+    // (its wait over: its targets sent its message; on its first frame, 0, only its wait set);
+    if (*wait == 1) {
+        kind = l->relayKind[e->index] ? l->relayKind[e->index] - 1 : MESSAGE_AREA;
+        for (t = 0; t < RANDOM_RELAY_TARGETS && e->par[4 + t] != 0xFF; t++) SqueakSendMail(l->slot, e->par[4 + t], kind);
+    }
+    *wait = least + (most >= least ? Rand16() % (most - least + 1) : 0);
+    if (*wait < 1) *wait = 1;
+}
+
 /* Blocks(); A switch block group (0x02223900): a message clears its blocks. In KatAM they're a chain (KatAMExpansionSqueakRooms.cs:
  * 0xF2 blocks, 0xF3 links), broken from the group's spot as KatAM's lever walls break theirs: its cell's special block record
  * (sub_08001408), then KatAM's chain breaker from there (sub_0800E0E4); */
@@ -199,6 +225,7 @@ static void SqueakLogicMain(void) {
         switch (e->type) {
         case GIMMICK_TRIGGER: Trigger(l, e); break;
         case GIMMICK_RELAY: Relay(l, e); break;
+        case GIMMICK_RANDOM_RELAY: RandomRelay(l, e); break;
         case GIMMICK_BLOCKS: Blocks(l, e); break;
         }
     }
@@ -883,12 +910,100 @@ static void *SqueakCreateIcicle(struct ObjectTemplate *template, u8 playerId) {
     return obj;
 }
 
+/* The falling rock (gimmick 8: ctor 0x02221740, vtable 0x02229348; yakumono/rock, 0 appearing, 1 falling and spinning, 2 breaking):
+ * it waits (state 0, 0x0221E664: nothing) for a message (kinds 0-2, 0x022216F4: a switch, a trigger area, a relay, the cascades
+ * of 8-1-8 and 4-6-8 the relays' waits), then lets a rock fall from its spot (state 1, 0x02221688: an object of its own, 0x138
+ * bytes, vtable 0x02229390, its look by the parameter's bits 0-2, 0x02227BD0: rock's animations 0-2) and waits again. Here one
+ * object: hidden till a message, then its delay (the parameter's bits 4-15, frames), it appears (ROCK_APPEAR frames), falls with gravity spinning and hurting (a plain hit), breaks
+ * on the floor and hides again; */
+struct SqueakRock {
+    struct Object obj;
+    struct SqueakGimmickSprite spr;
+    u8 index;
+    u8 state;
+    u16 timer;
+};
+#define ROCK_WAIT 0
+#define ROCK_APPEAR 1
+#define ROCK_FALL 2
+#define ROCK_BREAK 3
+#define ROCK_DELAY 4
+#define ROCK_APPEAR_FRAMES 16
+
+static void SqueakRockMain(struct Object *obj) {
+    struct SqueakRock *r = (struct SqueakRock *)obj;
+    u8 kind;
+
+    if (gUnk_03000510.unk4 & ((1 << obj->base.unk56) | 0x10)) return;
+    GimmickAnimate(obj, &r->spr);
+    obj->base.unk68 &= ~(7 | 0x80);
+    kind = TakeMail(SlotOf(&obj->base), r->index);
+    switch (r->state) {
+    case ROCK_WAIT:
+        if (kind == 0 || kind > MESSAGE_AREA + 1) break;
+        // (its parameter's bits 4-15 the frames before it comes: 8-1-8's five at 10, 30, 60, 100 and 120);
+        r->timer = obj->objTemplate->unk14 >> 4;
+        r->state = ROCK_DELAY;
+        // fallthrough
+    case ROCK_DELAY:
+        if (r->timer != 0 && --r->timer != 0) break;
+        obj->base.x = obj->objTemplate->x << 8;
+        obj->base.y = obj->objTemplate->y << 8;
+        obj->base.flags &= ~0x400;
+        GimmickPlay(obj, &r->spr, 0);
+        r->state = ROCK_APPEAR;
+        r->timer = 0;
+        break;
+    case ROCK_APPEAR:
+        if (++r->timer < ROCK_APPEAR_FRAMES) break;
+        GimmickPlay(obj, &r->spr, 1);
+        obj->base.yspeed = 0;
+        r->state = ROCK_FALL;
+        break;
+    case ROCK_FALL:
+        obj->base.unk68 |= 3 | 0x80;
+        if (obj->base.yspeed < ICICLE_TOP_SPEED) obj->base.yspeed += ICICLE_GRAVITY;
+        obj->base.y += obj->base.yspeed;
+        if (GetCollisionTile(obj->base.unk56, obj->base.x >> 12, ((obj->base.y >> 8) + 8) >> 4) - 1u < 0x1F
+            || obj->base.y - (obj->objTemplate->y << 8) >= ICICLE_FALL_MOST << 8) {
+            GimmickPlay(obj, &r->spr, 2);
+            PlaySfx(&obj->base, SE_BLOCK_BREAK);
+            r->state = ROCK_BREAK;
+            r->timer = 0;
+        }
+        break;
+    case ROCK_BREAK:
+        if (++r->timer < 30) break;
+        obj->base.flags |= 0x400;
+        r->state = ROCK_WAIT;
+        break;
+    }
+}
+
+static void *SqueakCreateRock(struct ObjectTemplate *template, u8 playerId) {
+    struct Task *task = TaskCreate(ObjectMain, sizeof(struct SqueakRock), 0x1000, TASK_USE_EWRAM, ObjectDestroy);
+    struct SqueakRock *r = TaskGetStructPtr(task);
+    struct Object *obj = &r->obj;
+
+    InitObject(obj, template, playerId);
+    r->index = template->unk12;
+    GimmickInit(obj, &r->spr, SQUEAK_ROCK);
+    obj->base.unk5C |= 0x20;
+    ObjectSetBounds(&obj->base, -8, -8, 8, 8);
+    sub_0803E2B0(&obj->base, -7, -7, 7, 7);
+    obj->base.flags |= 0x400;
+    r->state = ROCK_WAIT;
+    GimmickPlay(obj, &r->spr, 0);
+    obj->unk78 = SqueakRockMain;
+    return obj;
+}
+
 // SqueakGimmickAnim(); A gimmick's look and cell as squeak.c's SqueakAnimFor() draws it (0: the object isn't one);
 u32 SqueakGimmickAnim(struct Object *obj) {
     if (obj->type != OBJ_HAMMER_PEG) return 0;
     if (obj->objTemplate->unk11 == SQUEAK_SWITCH_OBJECT)
         return gSqueakData.enemies[SQUEAK_SWITCH].animId | (SQUEAK_HURT_VARIANTS + (obj->unk83 & 1)) << 16;
-    if (obj->objTemplate->unk11 >= SQUEAK_ICICLE_OBJECT && obj->objTemplate->unk11 <= SQUEAK_SHUTTER_OBJECT)
+    if (obj->objTemplate->unk11 >= SQUEAK_ROCK_OBJECT && obj->objTemplate->unk11 <= SQUEAK_SHUTTER_OBJECT)
         return gSqueakData.enemies[((struct SqueakGimmickObject *)obj)->spr.look].animId | obj->unk83 << 16;
     return 0;
 }
@@ -903,6 +1018,7 @@ void *SqueakCreateSwitch(struct ObjectTemplate *template, u8 playerId) {
     case SQUEAK_BARREL_OBJECT: return SqueakCreateBarrel(template, playerId);
     case SQUEAK_BLADES_OBJECT: return SqueakCreateBlades(template, playerId);
     case SQUEAK_ICICLE_OBJECT: return SqueakCreateIcicle(template, playerId);
+    case SQUEAK_ROCK_OBJECT: return SqueakCreateRock(template, playerId);
     }
     return gSqueakSwitch.create(template, playerId);
 }

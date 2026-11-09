@@ -83,6 +83,8 @@ namespace KatAMRandomizer {
             public List<SqueakAnim> Anims;
             public List<List<SqueakPart>> Compositions = new List<List<SqueakPart>>();
             public List<SqueakComposite> Composites = new List<SqueakComposite>();
+            // (cells made for an affine animation's steps: a cell's copy drawn turned by its angle, in 1/4096 turns: SqueakCanvas());
+            public Dictionary<int, int> Angles = new Dictionary<int, int>();
         }
 
         /* SqueakMerge(); Two files' graphics as one character: the second's tiles, palettes, cells and animations after the first's (its
@@ -191,11 +193,35 @@ namespace KatAMRandomizer {
 
             // Animations: a count, then each one's offset (from the animations') after an 8-byte head; one: its step count (a byte), loop
             // flag (a byte), 2 bytes, its length, then 8 bytes a step (cell, frames, a word);
+            /* (an affine one, its head's third byte set: its steps in pairs, the step drawn and then its angle (1/4096 turns), its x and y
+             * scales (0x1000 for 1.0): the falling rock's spin, the boulder's roll; each step's cell at its angle a cell of its own, the
+             * cell's copy, turned as it's drawn: SqueakCanvas(); the scales are all 1.0 in the gimmicks'; the gimmicks' graphics only, the
+             * characters already ported kept as they were); */
+            Dictionary<(int cell, int angle), int> turnedCells = new Dictionary<(int, int), int>();
             character.Anims = Enumerable.Range(0, ReadShort(cea, anims)).Select(a => {
                 int at = anims + ReadInt(cea, anims + 8 + a * 4);
-                return new SqueakAnim(cea[at + 1] != 0, Enumerable.Range(0, cea[at])
+                List<SqueakStep> steps = Enumerable.Range(0, cea[at])
                     .Select(s => new SqueakStep(ReadShort(cea, at + 8 + s * 8), ReadShort(cea, at + 10 + s * 8),
-                                                   (short)ReadShort(cea, at + 12 + s * 8), (short)ReadShort(cea, at + 14 + s * 8))).ToList());
+                                                   (short)ReadShort(cea, at + 12 + s * 8), (short)ReadShort(cea, at + 14 + s * 8))).ToList();
+                if (cea[at + 2] != 0 && folder == "yakumono") {
+                    List<SqueakStep> drawn = new List<SqueakStep>();
+                    for (int s = 0; s + 1 < steps.Count; s += 2) {
+                        SqueakStep step = steps[s];
+                        int angle = steps[s + 1].Cell & 0xFFF;
+                        if (angle != 0 && step.Cell < character.Cells.Count) {
+                            if (!turnedCells.TryGetValue((step.Cell, angle), out int turned)) {
+                                turned = character.Cells.Count;
+                                character.Cells.Add(character.Cells[step.Cell]);
+                                character.Angles[turned] = angle;
+                                turnedCells[(step.Cell, angle)] = turned;
+                            }
+                            step = step with { Cell = turned };
+                        }
+                        drawn.Add(step);
+                    }
+                    steps = drawn;
+                }
+                return new SqueakAnim(cea[at + 1] != 0, steps);
             }).ToList();
 
             /* Composite animations (.mca, "BMCA"): the compositions at +8 (a count, then each one's parts and their offset from the
@@ -584,7 +610,7 @@ namespace KatAMRandomizer {
         // (the fire columns', squeak.h's SQUEAK_FIRE on: gimmick 7's looks, 0x02227B30, turned as the DS turns them);
         const int SqueakFireColumn = 76, SqueakFire180 = 77, SqueakFire270 = 78, SqueakFire90 = 79;
         // (the grass tufts' and the barrel's, squeak.h's SQUEAK_GRASS on and SQUEAK_BARREL: gimmicks 0xE and 0xF);
-        const int SqueakGrass = 80, SqueakBarrel = 86, SqueakIcicle = 87;
+        const int SqueakGrass = 80, SqueakBarrel = 86, SqueakIcicle = 87, SqueakRock = 88;
 
         static readonly List<SqueakEnemy> SqueakDefinitions = new List<SqueakEnemy> {
             // Perara: hurt animations 7 and 8 (0x02021A88's 0x1000007, 0x1000008);
@@ -846,6 +872,8 @@ namespace KatAMRandomizer {
             new SqueakEnemy(SqueakBarrel, "Barrel", "yakumono/barrel", new[] { 0, 0, 0 }, new (int, int)[0]),
             // The icicle (gimmick 9, yakumono/icicle: 0 hanging, 1 shaking, 2 falling, 3 shattering): every cell; no name;
             new SqueakEnemy(SqueakIcicle, "Icicle", "yakumono/icicle", new[] { 0, 0, 0 }, new (int, int)[0]),
+            // The falling rock (gimmick 8, yakumono/rock: 0 appearing, 1 falling, spinning, 2 breaking): every cell; no name;
+            new SqueakEnemy(SqueakRock, "Rock", "yakumono/rock", new[] { 0, 0, 0 }, new (int, int)[0]),
         };
 
         /* The randomizer's Squeak Squad pools (the ROM Expansion tab). SqueakPool; A character the randomizer places: its index (SQUEAK_*
@@ -1117,7 +1145,18 @@ namespace KatAMRandomizer {
                         if (cx >= 0 && cy >= 0 && cx < size && cy < size) canvas[cx, cy] = color;
                     }
             }
-            return canvas;
+            if (!character.Angles.TryGetValue(cell, out int angle)) return canvas;
+            // (an affine step's cell: turned about the middle by its angle, each pixel from the one it comes from; the canvas mirrored,
+            // the DS's turn the other way here);
+            int[,] turnedCanvas = new int[size, size];
+            double radians = angle * 2 * Math.PI / 4096, cos = Math.Cos(radians), sin = Math.Sin(radians);
+            for (int x = 0; x < size; x++)
+                for (int y = 0; y < size; y++) {
+                    double dx = x + 0.5 - center, dy = y + 0.5 - center;
+                    int fx = (int)Math.Floor(center + dx * cos - dy * sin), fy = (int)Math.Floor(center + dx * sin + dy * cos);
+                    if (fx >= 0 && fy >= 0 && fx < size && fy < size) turnedCanvas[x, y] = canvas[fx, fy];
+                }
+            return turnedCanvas;
         }
 
         // SqueakCellPalettes(); The palettes a cell's pieces use;

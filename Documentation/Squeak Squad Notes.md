@@ -653,6 +653,24 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
     it above). In KatAM (`squeak/gimmicks.c`'s SqueakCreateIcicle): one object hanging over its spot, shaking 30 frames once a
     Kirby is under it (24 pixels across, 192 down), falling with gravity and hurting as it goes (a plain hit, KatAM's enemy-touch
     kind 0x80, strength 3), shattering on the floor (KatAM's block-break sound) and hanging again 180 frames on.
+  - The falling rocks (8, `0x02221740`, vtable `0x02229348`; `yakumono/rock`: 0 appearing, 1 falling and spinning, 2 breaking): state
+    0 (`0x0221E664`) does nothing; a message (kinds 0-2, `0x022216F4`) starts state 1 (`0x02221688`), which lets a rock fall (an
+    object of its own, 0x138 bytes, vtable `0x02229390`, its look by the parameter's bits 0-2, `0x02227BD0`). The parameter's bits
+    4-15 are frames before it comes: 8-1-8's five at 10, 30, 60, 100, 120 (a relay, started by a rope, messages all five at once).
+    What messages them: 8-1-8's rope (gimmick 1, not ported) through a relay; 2-5-5's and 5-3-4's a random relay (0x17).
+  - The random relay (0x17, `0x02224384`, vtable `0x02229948`): its parameter's u16s the least and most frames it waits, then up
+    to 8 targets' indices (0xFF the end). It waits a random number of frames between the two (state 1, `0x022241A4`), sends its
+    targets its message and waits again; a message (kinds 0-2, 4 as 2: `0x022242CC`) sets the kind it sends.
+  - The camera areas (0x14, `0x02224B88`, vtable `0x02229A7C`): a body moving into its box (its u16 at +8: bits 0-6 its width,
+    7-13 its height in blocks, 14-15 how many targets, +0xA their indices) sends its targets kind 2 (`0x02224AA0`) and, with +0xD's
+    bit 0, sets the camera's bounds to its four u16s at +0 (x0, y0, x1, y1 in pixels). Not ported yet.
+  - Affine animations (rock's, ball_rock's): an animation whose head's third byte is set has its steps in pairs, the step drawn and
+    then its angle (1/4096 turns), x and y scales (0x1000 for 1.0). In KatAM (`ReadSqueakCharacter()`, the gimmicks' graphics only)
+    each step's cell at its angle is a cell of its own, drawn turned (`SqueakCanvas()`).
+  - In KatAM: the falling rocks (`squeak/gimmicks.c`'s SqueakCreateRock: hidden till a message, then its delay, appearing 16
+    frames, falling with gravity and hurting, a plain hit, breaking on the floor) and the random relay (the room task's
+    RandomRelay). Checked in the GBA emulator (USA, 5-3-4, Kirby put in the room): its five rocks appear, fall and break on the floor
+    in turn as the relay sends.
   - Section 11, the doors: `u16` count, then 10 bytes a door: `u16` its number (the collision's `0x80 + n` marks it), `u8` flags,
     `u8` kind, `u16` x, y from the top (the middle of the cell Kirby stands in: a floor under it, but for a door high in Gao Gao's
     room in Nature Notch 3), `u8` the stage's room it leads to (0-based, the `.mxi`'s order) and `u8` that room's door (its number;

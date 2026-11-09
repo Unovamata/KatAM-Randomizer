@@ -567,6 +567,9 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
       it shattered at once: KatAM's camera limit was taken for the room's bottom; then in mid-air: its spot is its tip, not its
       top; then it burnt Kirby: the fire column's harm kind; now a plain hit). Not tested: its hanging again after 180 frames,
       Europe and Japan in the emulator.
+    - The falling rocks (8) and the random relay (0x17) that rains them (the notes' falling rocks bullet). Checked in the GBA
+      emulator (USA, 5-3-4): the rocks appear, fall and break on the floor as the relay sends. Not tested: a rock hurting Kirby,
+      2-5-5, Europe and Japan in the emulator. 8-1-8's are started by a rope (gimmick 1), not ported yet: they stay hidden there.
     - Left: the chests' Squeak Squad treasures (Ability Scrolls, Spray Paints, the Secret Map's pieces, Vitality halves: with
       their items, below), the chase spawns after the stage's treasure (the Squeakers among them, and 22 chests), the arenas
       without the NiDL ROM (NiDL's type holds the camera), the gimmicks, the areas.
