@@ -650,7 +650,7 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
     0x00 bricks, 0x08, 0x10, 0x18, 0x20 the clouds, 0x28, 0x38 ropes). `SqueakCellWord()` reads it so (an empty main cell takes
     the blocks grid's, with its water). So a door with a star block in the blocks grid over it is behind the block, as on the DS
     (1-6-3's at 79, 5, behind a 10 by 4 wall of them; 3-3-3's, 7-6-8's, 8-2-3's): in KatAM, broken with the Sword, the door shows
-    and leads where the DS's does (0x423 to 0x424, 0x48B to 0x48D, 0x5A9 to 0x5A2). What a broken block leaves is the main grid's
+    and leads where the DS's does (0x423 to 0x424, 0x48B to 0x48D, 0x5A9 to 0x5A2: 0x5A7 to 0x5A0 since 5-7 was left out). What a broken block leaves is the main grid's
     cell (a star block over the main grid's solid leaves solid, 1-3-11's floor ones). The first rule tried (the main grid first)
     walled the doors behind star blocks into the open: the door sweep showed it.
   - **Bricks and metal blocks**: the blocks grid's metal blocks (block 1, grey) and bricks (family 0x00, brown, riveted: 1-6-5's

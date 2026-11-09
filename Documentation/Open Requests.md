@@ -429,7 +429,7 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
       (Europe, Japan), the 42 animated rooms the sweep starts in run live.
     - Collision read as the DS reads it (the blocks grid first; the notes' "Collision, the blocks grid first"): doors behind star
       blocks are behind them, as on the DS (checked in the GBA emulator, a real Sword cutting the blocks: 0x423, 0x48B, 0x5A9 lead
-      where the DS's do; 0x5CB's is in a wall of them too). The door sweep's other failures are the old ones (enemies or a ledge
+      where the DS's do; 0x5CB's is in a wall of them too; those two are 0x5A7 and 0x5C9 since 5-7 was left out). The door sweep's other failures are the old ones (enemies or a ledge
       where Kirby is held). All 493 rooms run live again.
     - Warp stars (gimmick 0xD): all 12 stars to get on are KatAM's warp stars flying Squeak Squad's own rides (the DS's paths,
       through the rooms a ride passes, into the room it ends in), landing where the DS lands Kirby. Checked in the GBA emulator,
@@ -453,6 +453,24 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
       European and Japanese ROMs too (landing on 5-1-6's ledge, standing). For the Squeak Squad levels' logic (not wired yet): 8-3-8's door at (128, 7) is behind a band of metal blocks
       in a pillar with no floor in front (a Metalun beside it: the DS's Metal ability, which KatAM's Metalun doesn't give); KatAM's
       metal blocks break under Hammer (checked: Normal, Sword, Fighter, Smash and Fire don't) and cannon shots.
+    - The levels and the hub (`KatAMExpansionSqueakLevels.cs`; the rulebook's rules 4 and 5, their Squeak Squad bullets): each
+      world's stages laid out as a tree by the rulebook (branch doors and their mirrors back, the goals: the deepest to the boss
+      stage, the others into goal games or the next world, shortcuts, a hidden two-way door into the next world's first stage),
+      136 KatAM mirrors in all (the DS's own doors as they are). The hub: a copy of Central Circle (room 0x5EB, after the worlds'
+      rooms), reached by a new mirror on Central Circle's floor (11, 18) and back (both provisional, the owner's to place and
+      color); its Rainbow Route mirror leads to Prism Plains 1's start. 5-7 (a copy of 5-6) left out. Checked: the rooms' door
+      graph (the DS's doors, rides and the new mirrors, terrain not counted) reaches 359 of the 491 rooms from Prism Plains 1; the
+      rest are the stages' Squeak rooms (after each goal: treasure rooms and hideouts, for the Squeak Lair doors) and 1-1's fifth
+      room; in the GBA emulator (Kirby held on each door, Up): Central Circle's new door to the hub and back, the hub's way in, and
+      every planned door, 146: 144 lead where they should; 1-2-1's (17, 8) works once the Sword Knight from the ability bubble
+      four cells off is moved away (it walks onto Kirby held there: by the rulebook's rule 2, 3 cells, it stays); 8-4-2's is in
+      Daroach's arena, shut till he's beaten (not fought in the test). No enemy now stands within 3 cells across, 2 up or down of
+      a door or a landing in these rooms (the rulebook's rule 2, as the NiDL rooms': `SqueakObjects()` leaves it out), which
+      fixed 4 of the first sweep's 7 failures; 8-4's rooms between its fights take the DS's warp star rides (3 to 4 to 5), no
+      mirror (one dropped Kirby under 8-4-4's floor). Still to do here: the bosses' shards back to the hub, the hub's world doors (each
+      world's switch room, big switch and the world map's path, on bits of the expansion's save: the free world slots are 6),
+      Mirras into the switch rooms, links with KatAM's areas, the logic checks with terrain over these rooms, the map viewer,
+      the window's option.
     - Gimmicks (section 10): counted and read (the notes: 26 classes, their graphics, the barrel's states decoded); warp stars and
       cannons in KatAM (above), the others not yet. Their cells are open where the DS's object is (a shutter's pillar), so
       nothing blocks a way meanwhile.

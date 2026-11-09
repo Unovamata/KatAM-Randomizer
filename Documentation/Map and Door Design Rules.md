@@ -35,7 +35,8 @@ after any change.
 - **Secret doors stay hidden until uncovered**: a door behind breakable blocks or in a hidden spot only shows once Kirby finds it.
 - **Enemies keep away from doors**: no enemy stands on a door or right where a door lands Kirby (3 cells across, 2 up or
   down), counted where the enemy ends up (a walker dropped onto the floor below its spot), in the NiDL rooms and in KatAM's
-  rooms the NiDL doors land in (KatAM's enemy there is left out). `BuildObjects()`, `KatAMSpot()`, `FinishRooms()`.
+  rooms the NiDL doors land in (KatAM's enemy there is left out), and in the Squeak Squad rooms (the DS's doors too).
+  `BuildObjects()`, `KatAMSpot()`, `FinishRooms()`, `SqueakObjects()`.
 
 ## 3. One-way and two-way
 
@@ -82,6 +83,14 @@ after any change.
   Circle's (KatAM's own switch, world slot 0x12), leading to the ability room (0x3CA) as Central Circle's does; the way out of the
   ability room is KatAM's, to Central Circle.
 
+- **The Squeak Squad hub** (the owner: "The way in is a copy of the main game's central circle. We will later decide on position
+  and visuals, the entrance door to the area is a grey door"): a copy of Central Circle (its own tiles, its doors gone), reached
+  through a mirror on Central Circle's floor (cell 11, 18, left of its bottom door; a mirror at the same spot in the hub leads back:
+  both provisional, the owner's to place and color). Rainbow Route's mirror in it (19, 14) is the way in, to Prism Plains 1's start,
+  as the NiDL hub's golden one. It is never reached from the NiDL hub, and works with or without the NiDL ROM. Its world doors (one
+  per world, shown by each world's big switch) come with the Squeak Squad switch rooms: the game's world slots left free (0x10,
+  0x11, 0x1C-0x1F) are fewer than 8, so they will use bits of the expansion's own save. `BuildSqueakHub()`.
+
 ## 5. Levels, stages and the order of things
 
 - **A level is a tree of stages** from its first stage. Every other stage is entered through a branch door (in a room's middle or
@@ -96,6 +105,20 @@ after any change.
   both ways to the start of a stage on another branch: the deepest stage off the way from the level's first stage to the boss's,
   not the Mirra's own (else the nearest one on that way). The Fountain of Dreams' switch room has none of these: only Nightmare's
   end leads there (section 8). `PlanDoors()`.
+
+- **Squeak Squad's worlds** follow the same rules (`PlanSqueakLevels()`), on the DS's own stages, whose doors stay as the DS has
+  them (its doorways are in the rooms' tiles) and only lead on: a room's arrival is no door back. So:
+  - a branch into a stage lands in its **first room** (on a mirror back there if it takes one, else one-way onto the stage's start):
+    entered further in, the rooms before would be cut off;
+  - doors go only in rooms the stage's start reaches; where no stage in a world's tree has a room taking a door (Prism Plains 1's
+    are small, 2 doors each), **a stage's goal door leads on into the next stage**, one-way (the owner to confirm);
+  - a goal room keeps the DS's own doors (they're drawn in its tiles) but gets no new one (the owner to confirm);
+  - each world's boss stage (1-7, 2-7, 3-7, 4-7, 5-6, 6-7, 7-7, 8-4; 5-7, a copy of 5-6, is left out as the Arena's copies are)
+    is entered only through the deepest stage's goal; the final stage's rooms the DS reaches by cutscenes between its fights are
+    chained by one-way mirrors from each fight's room to the next (where no warp star ride of the DS's leads on);
+  - the hidden two-way door between worlds leads into the next world's first stage;
+  - the rooms a stage reaches only through its Squeaks (after its goal: the gold-pile treasure rooms and the hideouts where
+    Spinni, Doc or Storo fight for a stolen chest) are left to the Squeak Lair doors (rule 9 holds once those are made).
 
 ## 6. Mirras
 
