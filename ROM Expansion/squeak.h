@@ -91,6 +91,7 @@ enum {
     SQUEAK_DARK_NEBULA_BOLT,    // His bolts and their cage;
     SQUEAK_DARK_NEBULA_BURN,    // The floor his flames set burning;
     SQUEAK_DARK_STAR,           // Enemy 0x3E: the dark star Kirby chases before Dark Nebula;
+    SQUEAK_PLATINUM_CHEST,      // Graphics only: Squeak Squad's big chest, drawn by KatAM's big chest in its rooms (SqueakAnimFor());
     SQUEAK_ENEMY_COUNT,
 };
 
@@ -109,6 +110,17 @@ enum { SQUEAK_STAR_SPIT, SQUEAK_STAR_AHEAD, SQUEAK_STAR_BEHIND, SQUEAK_STAR_SWOR
 
 // Variants before the cells' (see above);
 #define SQUEAK_HURT_VARIANTS 3
+
+/* Squeak Squad's chests (KatAMExpansionSqueakRooms.cs, chest.c): KatAM's small and big chests with this treasure index (template
+ * unk11); a big one shows SQUEAK_PLATINUM_CHEST's variants (closed, open); */
+#define SQUEAK_CHEST 0x9F
+// (a fixed cannon's template unk11, chest.c's SqueakCreateCannon; the frames it waits with a Kirby in it, as Squeak Squad's);
+#define SQUEAK_CANNON 0x9E
+#define SQUEAK_CANNON_TURNING 0x9D
+#define SQUEAK_CANNON_WAIT 35
+// (how long a cannon's shot flies at most, frames: Squeak Squad's carries Kirby on until he hits something or a cannon catches him);
+#define SQUEAK_CANNON_FLIGHT 150
+#define SQUEAK_CHEST_CLOSED SQUEAK_HURT_VARIANTS
 
 // Room every ported character gets (SqueakObject and its own fields);
 #define SQUEAK_OBJECT_SIZE 0x1A0

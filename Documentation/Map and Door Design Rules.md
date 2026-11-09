@@ -16,8 +16,8 @@ after any change.
 | Mirror (door) | `0x6F` mirror, a door cell | either | The normal way. One-way mirrors are drawn with KatAM's one-way graphic. |
 | Hub door | `0x97` door object | always two-way | Only in hubs (rule 4). Hidden until its big switch is pressed. |
 | Mirra | `0x34` | always one-way | A hidden mirror that runs away (rule 6). |
-| Warp star | `0x84` | one-way | NiDL's own; stays a warp star (rule 7). |
-| Cannon | `0x8A` + fuse `0x78` | one-way | NiDL's own; stays a cannon (rule 7). |
+| Warp star | `0x84` | one-way | NiDL's and Squeak Squad's own; stays a warp star (rule 7). |
+| Cannon | `0x8A` + fuse `0x78` | one-way | NiDL's and Squeak Squad's own; stays a cannon (rule 7). |
 | Edge | none (the room's edge) | one-way | NiDL's falls out of a room's bottom and climbs out of its top. |
 | Boss shard | `0x65` shard | one-way | The only way out of a boss room (rule 8). |
 
@@ -122,6 +122,11 @@ after any change.
   Island 2, Orange Ocean 3), and the screen fades to white before each room change as NiDL's does. The helpers on the star ride
   with him. `NidlRides`, `WarpFlights()`, `warpstar.c`.
 - No mirror is placed next to them (rule 2).
+- **Squeak Squad's** (the owner: "Ensure Star and Cannon Warps are in the rooms and work.") follow the same rule: its warp stars
+  are KatAM's warp stars flying Squeak Squad's own rides (its paths, through the rooms a ride passes, landing where the DS lands
+  Kirby), its fuse cannons KatAM's fuse cannons on their fuses, to the door Squeak Squad's names. Its eight-direction cannons
+  (in-room, Kirby shot from one to the next) are KatAM's eight-direction cannon (`0x8B`), not a way between rooms. `SqueakRides()`,
+  `SqueakFuse()`, `chest.c`'s `SqueakCreateCannon`.
 
 ## 8. Bosses and mini-bosses
 

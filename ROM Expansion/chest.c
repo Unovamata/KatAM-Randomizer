@@ -19,10 +19,12 @@
 #include "kirby.h"
 #include "functions.h"
 #include "treasures.h"
+#include "eight_dir_cannon.h"
 #include "save.h"
 #include "multi_08030C94.h"
 #include "constants/object_types.h"
 #include "constants/songs.h"
+#include "squeak.h"
 
 #define NIDL_CHEST_SHARD 0x40
 #define NIDL_CHEST_RISE 0x18    // how far above the chest's floor the shard floats (pixels);
@@ -42,7 +44,6 @@ const u32 gNidlChestTrampolines[8] = { 0 };
  * SQUEAK_CHEST, gTreasures.shardField's bit 31, which nothing reads (HasChest's index there is never set: SqueakCreateChest clears
  * it), their own number (0-127) in template unk12, whether opened in rooms.c's saved area (SqueakChestOpened). Their spawn
  * (objects 0x80, 0x81) is SqueakCreateChest, the game's CreateChest in gSqueakChest; */
-#define SQUEAK_CHEST 0x9F
 #define SQUEAK_CHEST_BIT (1u << 31)
 
 bool32 SqueakChestOpened(u8);
@@ -98,18 +99,74 @@ void NidlChestOpen(struct Chest *chest) {
 }
 
 /* SqueakCreateChest(); A chest (objects 0x80, 0x81) as the game makes it; one of Squeak Squad's (SQUEAK_CHEST) shows open, emptied
- * and counted (sub_0800BD4C's: lever walls count the room's open chests) once its own bit is set; */
+ * and counted (sub_0800BD4C's: lever walls count the room's open chests) once its own bit is set; a big one in Squeak Squad's
+ * platinum chest's palette (its frames SqueakAnimFor()'s; KatAM's 16 tiles hold them: KatAMExpansion.cs checks); */
 void *SqueakCreateChest(struct ObjectTemplate *template, u8 playerId) {
     struct Chest *chest;
 
     gTreasures.shardField &= ~SQUEAK_CHEST_BIT;
     chest = gSqueakChest.create(template, playerId);
+    if (template->unk11 == SQUEAK_CHEST && chest->obj.type == OBJ_BIG_CHEST)
+        chest->obj.base.sprite.palId = SqueakLoadPalette(gSqueakData.enemies[SQUEAK_PLATINUM_CHEST].animId, SQUEAK_CHEST_CLOSED,
+                                                         chest->obj.base.roomId);
     if (template->unk11 == SQUEAK_CHEST && SqueakChestOpened(template->unk12)) {
         chest->obj.unk83 = 1;
         chest->obj.unk78 = NidlChestOpened;
         gUnk_02023510[gCurLevelInfo[chest->obj.base.unk56].unk65E]++;
     }
     return chest;
+}
+
+/* Squeak Squad's cannons (gimmick 0xB, KatAMExpansionSqueakRooms.cs): KatAM's eight-direction cannon (object 0x8B, its template's
+ * unk14 its way, unk22 bit 0 firing on its own); its spawn is SqueakCreateCannon, the game's CreateEightDirCannon in gSqueakCannon.
+ * Squeak Squad's (template unk11 SQUEAK_CANNON, fixed, or SQUEAK_CANNON_TURNING) get a step before the cannon's own each frame (the
+ * object's unk7C, which the cannon leaves empty). A fixed one never turns (its turn countdown held), and SQUEAK_CANNON_WAIT frames
+ * after a Kirby got in (unkBB counting them) fires him its way (unkB7 bit 1, which KatAM's sets after a whole turn), as Squeak
+ * Squad's fixed cannons do (the DS emulator: 4-3-6's chain, about 35 frames in each). Both carry the Kirby they shot (unkBC) on as
+ * Squeak Squad's do, until he hits something or a cannon catches him: KatAM's shot (sub_08052140) flies 45 frames, then drops him
+ * (4-3-6's shots are up to 352 pixels long), so its frame count is held under that (at 30: the Kirbys' step runs before the
+ * cannon's, the shot's end at 46), up to SQUEAK_CANNON_FLIGHT frames (unkB6, which KatAM's sets and never reads); */
+extern void sub_08052140(struct Kirby *);
+
+struct SqueakCannon {
+    void *(*create)(struct ObjectTemplate *, u8);
+};
+
+const struct SqueakCannon gSqueakCannon = { NULL };
+
+static void SqueakCannonStep(struct EightDirCannon *cannon) {
+    struct Kirby *kirby = cannon->unkBC;
+
+    if (cannon->unkB7 & 1)
+        cannon->unkB6 = 0;
+    else if (kirby != NULL && kirby->stateFn == sub_08052140 && kirby->base.counter >= 30 && kirby->base.counter <= 44
+             && cannon->unkB6 < SQUEAK_CANNON_FLIGHT) {
+        kirby->base.counter = 30;
+        cannon->unkB6++;
+    }
+    if (cannon->obj.objTemplate->unk11 != SQUEAK_CANNON)
+        return;
+    cannon->unkB5 = 5;
+    if (!(cannon->unkB7 & 1)) {
+        cannon->unkBB = 0;
+        cannon->unkB7 &= ~2;
+    } else if (cannon->unkBB < SQUEAK_CANNON_WAIT)
+        cannon->unkBB++;
+    else
+        cannon->unkB7 |= 2;
+}
+
+void *SqueakCreateCannon(struct ObjectTemplate *template, u8 playerId) {
+    struct EightDirCannon *cannon = gSqueakCannon.create(template, playerId);
+
+    if (template->unk11 == SQUEAK_CANNON || template->unk11 == SQUEAK_CANNON_TURNING) {
+        cannon->unkBB = 0;
+        cannon->unkB6 = SQUEAK_CANNON_FLIGHT;
+        cannon->obj.unk7C = SqueakCannonStep;
+        // (it stays when off the screen, base flag 0x2000000, sub_0803D6B4: it carries its shot on from there);
+        cannon->obj.base.flags |= 0x2000000;
+    }
+    return cannon;
 }
 
 /* Field shards: the shards the randomizer puts in rooms instead of in chests (object 0x65, subtype n, from the room's own object

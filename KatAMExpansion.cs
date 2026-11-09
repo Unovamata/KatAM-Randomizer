@@ -1283,6 +1283,7 @@ namespace KatAMRandomizer {
                             character = SqueakMerge(character, ReadSqueakCharacter(squeak, extra, file.Length > 1 ? file[0] : "enemy", enemy.PaletteFile),
                                                     enemy.SharePalettes);
                         if (enemy.OnlyAnims != null) character = SqueakKeepAnims(character, enemy.OnlyAnims, enemy.KeepComposites);
+                        if (enemy.ShiftY != 0) character = SqueakShiftCells(character, enemy.ShiftY);
                         // (drawn smaller than the DS's: its offsets as much smaller, its frames by SqueakFrames);
                         if (enemy.Scale.Num > 0) character = SqueakScaled(character, enemy.Scale.Num, enemy.Scale.Den);
                         /* (the pieces in each layer's palettes drawn by a layer of their own: an anim with its own palette, a frame per cell
@@ -1342,6 +1343,8 @@ namespace KatAMRandomizer {
                         }
                         squeakBuilt.Add(new SqueakBuilt(enemy, animId, character, withHurts.Max(f => f.tiles.Length / 32), layersBuilt, animPalettes,
                                                         frames.Select(f => f.tiles.Length / 32).ToList()));
+                        // (the platinum chest's frames in KatAM's big chest's VRAM: its type's 16 tiles);
+                        if (enemy.Index == SqueakPlatinumChest && squeakBuilt[^1].Tiles > BigChestTiles) return "Squeak Squad's platinum chest doesn't fit KatAM's big chest.";
                     }
                 } catch (Exception exception) when (exception is IndexOutOfRangeException or ArgumentException or InvalidOperationException) {
                     return "The Squeak Squad ROM's graphics couldn't be read.";

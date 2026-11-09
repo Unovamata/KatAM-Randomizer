@@ -157,11 +157,14 @@ static const struct SqueakCharacter sSqueakCharacters[SQUEAK_ENEMY_COUNT] = {
 
 /* SqueakAnimFor(); The anim and variant an object shows (variant << 16 | anim ID), for the game's object drawing (sub_0809A7A4,
  * patched to call this where it read them from the type's AnimInfo table): a Squeak Squad character's own anim, with its frame
- * index as the variant; the type's AnimInfo for the others, as the game does; */
+ * index as the variant; a Squeak Squad room's big chest Squeak Squad's own; the type's AnimInfo for the others, as the game does; */
 u32 SqueakAnimFor(struct Object *obj) {
     const struct AnimInfo *info;
 
     if (SqueakIsSqueak(obj)) return gSqueakData.enemies[((struct SqueakObject *)obj)->enemy].animId | obj->unk83 << 16;
+    // (a Squeak Squad room's big chest: Squeak Squad's platinum chest, closed or open: the chest's frames 0 and 2 closed, 1 and 3 open);
+    if (obj->type == OBJ_BIG_CHEST && obj->objTemplate->unk11 == SQUEAK_CHEST)
+        return gSqueakData.enemies[SQUEAK_PLATINUM_CHEST].animId | (SQUEAK_CHEST_CLOSED + (obj->unk83 & 1)) << 16;
     info = &gUnk_08351648[obj->type].unk14[obj->unk83];
     return info->animId | info->variant << 16;
 }

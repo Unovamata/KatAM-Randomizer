@@ -632,6 +632,31 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
     Graphic Pieces, 119 the Shortcake; 13 the Bubble Items (not a treasure). On the DS a chest is swallowed into Kirby's stomach
     and opened at the stage's end; its treasure shown then. Treasure 0 is in 5 chests (Prism Plains 1's fifth room and the secret
     stage 2-8), 66 in two (Bohboh's two rooms).
+  - **The platinum chests** (the owner: they "can use the same open/closed graphics in Squeak Squad"): a Squeak Squad room's big
+    chest is KatAM's big chest drawn with `item/treasure`'s animations 6 (closed) and 7 (open): `SQUEAK_PLATINUM_CHEST`, a
+    graphics-only character (16 pixels lower, as its feet are its origin and KatAM's chest's its middle; its frames in the big
+    chest's 16 tiles, checked as the ROM is made), shown by `SqueakAnimFor()` for a big chest of `SQUEAK_CHEST` (frames 0, 2
+    closed; 1, 3 open), its palette loaded by `SqueakCreateChest()`. The small chests keep KatAM's look (`item/treasure`'s 1, 2:
+    the same red chest). Each chest stands on the floor under its spot (`OnFloor()` to the room's bottom; one buried in the rock,
+    as Jam Jungle 4's fifth room's on the DS, on the floor of the first open space under it): KatAM's `CreateChest()` puts a
+    chest's bottom on the cell edge at or under its template's y + half its height, so a big one's template is 16 over the floor,
+    a small one's 8 (a big one at the floor's top - 8, as before, sank a cell into the floor and fell out of the room: Prism
+    Plains 3's fifth room's was never there).
+  - **Collision, the blocks grid first**: Squeak Squad reads a cell's collision (`0x0220FDEC`, its low half: kind, flags, shape)
+    from the room's grid at +0x38 and, where that one's kind is air, from the one at +0x3C: section 6 is +0x38 and section 7 +0x3C
+    (checked in the DS emulator against 1-3-1's loaded room: each grid matched to its section). Section 6 is the blocks grid: the
+    star blocks, the zappers, the metal blocks and bricks, Cushy Cloud's and Secret Sea's clouds and much plain terrain; its kind
+    byte (bits 24-31) sorts them into families (bits 24-26 the block: 1 metal, 2 zapper, 4 star, 5 big star; bits 27-29 a family:
+    0x00 bricks, 0x08, 0x10, 0x18, 0x20 the clouds, 0x28, 0x38 ropes). `SqueakCellWord()` reads it so (an empty main cell takes
+    the blocks grid's, with its water). So a door with a star block in the blocks grid over it is behind the block, as on the DS
+    (1-6-3's at 79, 5, behind a 10 by 4 wall of them; 3-3-3's, 7-6-8's, 8-2-3's): in KatAM, broken with the Sword, the door shows
+    and leads where the DS's does (0x423 to 0x424, 0x48B to 0x48D, 0x5A9 to 0x5A2). What a broken block leaves is the main grid's
+    cell (a star block over the main grid's solid leaves solid, 1-3-11's floor ones). The first rule tried (the main grid first)
+    walled the doors behind star blocks into the open: the door sweep showed it.
+  - **Bricks and metal blocks**: the blocks grid's metal blocks (block 1, grey) and bricks (family 0x00, brown, riveted: 1-6-5's
+    wall round a chest, 2-6-2's, 4-3-6's in the cannons' way) are broken by a cannon's shot (4-3-6's chain goes through them on the
+    DS) and strong attacks: KatAM's metal blocks (0xF5, attribute category 2), which its cannon shots break too (checked: 4-3-6's
+    chain in KatAM breaks its way through, the same cannons in turn as the DS's).
   - **Their chests in KatAM**: KatAM's small and big chests (objects 0x80, 0x81), their treasure index `0x9F` (`chest.c`'s
     `SQUEAK_CHEST`: `gTreasures.shardField`'s bit 31, which nothing reads), their own number (0-127, in the rooms' order) in the
     template's `+0x12`, whether opened in `rooms.c`'s saved area (`SqueakChestOpened`, 16 bytes before the taken bits); their spawn
@@ -641,6 +666,31 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
     lookups now stop at the list's end. Each holds a consumable for now (KatAM's chest items in turn); the chests of the
     treasures the owner listed (Ability Scrolls, Spray Paints, the Secret Map, Vitality) are to hold those. The chase spawns'
     22 chests (flag 4) aren't placed yet.
+  - **Warp stars** (gimmick 0xD, ctor `0x02225BC0`, vtable `0x02229C20`): its parameters' words: the stage's room it flies to
+    (0-based, the low byte; 254, 255: one Kirby comes in on), a code, then its path in segments of 6 words: a kind (33 and 49: a
+    quadratic curve; 32 and 0 end it), frames, where it ends, its control point. The DS flies the curve frame by frame from where
+    the star is (1-4-1's ride every 20 frames). A ride (checked in the DS emulator with the stage's room table rebuilt in free RAM,
+    `kr/ds/starland2.py`: the table at `0x22c8f50`, its count at `0x22c8f4c`): out of the star's room along its path, a white fade,
+    then in the room it names: the star Kirby comes in on (254/255) flies its own path and he drops off at its end onto the floor
+    under it (1-4-2: path end 102, 70, he lands at 98, 144); a room with no such star but one to get on, that one carries him on
+    (3-4-4 → 3-4-5 → 3-4-6: lands at 104, 160 under 106, 120); a room with neither, he comes in where it starts (its kind-6 door)
+    and drops (8-4-4 → 8-4-5: at 56, 136, landing at 56, 160). In KatAM (`SqueakRides()`): each star to get on is KatAM's warp star
+    flying that ride with the NiDL rides' machinery (`RideFlight()`, its legs the DS's paths frame by frame, Kirby's drop as a hop
+    and a fall), landing where the DS lands him. A star coming in under a room's last rows starts its path where it's first inside
+    (KatAM's room change puts Kirby back inside: 8-4-4's flew 64 pixels high). All 12 rides checked in KatAM (each lands where the
+    DS lands Kirby, give or take 4 pixels).
+  - **Cannons**: gimmick 0xB (`0x02224730`) is a cannon Kirby gets in, its parameter's bits 2-4 its way (0 up, clockwise by 45
+    degrees: KatAM's eight-direction cannon's order), bits 0-1 its kind (0 fixed: fires on its own about 35 frames after he's in;
+    1 turning: A fires it). Gimmick 0xC (`0x02220710`) is a fuse cannon: first byte the stage's room it shoots Kirby to, second
+    that room's door; its fuse in the blocks grid (ids 0x81-0x8F, low bits its ways: 1 right, 2 left, 4 down, 8 up; one end where
+    it's lit). In KatAM: KatAM's eight-direction cannon (0x8B; chest.c's `SqueakCreateCannon` holds a fixed one's way, fires it
+    after the DS's wait, and carries every shot on to the next cannon or wall as the DS's do, KatAM's dropping it after 45
+    frames), and KatAM's fuse cannon (0x8A) with KatAM's fuse cells and fuse object (cannon_fuse.c, which burns down out of the
+    object's cell: a fuse lit from the side gets its object a cell up). Checked in KatAM: 4-3-6's chain of six fixed cannons, the
+    same route as the DS's; 3-4-2's fuse, lit with Fire, burns up to the cannon, which shoots Kirby into 3-4-3 at its door 0. The
+    gimmick's spot is the cannon's foot, its shot leaving 8 pixels up: 8-1-5's turning cannon, in the middle of eight doors each
+    behind metal blocks, fires through the middles of all eight from there (KatAM's cannon is placed 8 up; checked in KatAM: each
+    way's shot breaks its blocks, and its door then takes Kirby to its room).
   - **Their doors in KatAM** (`SqueakMap.Doors()`, `AddSqueakRooms()`): each door leading to another of its stage's rooms is a
     KatAM door (its cell 0xFF, 0xFD in water; in a star block what the block leaves, the door's record before the block's), with
     its 8ROM record (kind 3: the room, the landing cell + 1, facing the room's middle) and a 9ROM entry for each place its room's

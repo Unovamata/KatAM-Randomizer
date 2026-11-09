@@ -312,6 +312,9 @@
             chestsOf = new Dictionary<NightmareRoom, List<NidlChest>>();
             DoorsTable = -1;
             endingFlight = -1;
+            flightTable = -1;
+            transportsOf = new Dictionary<NightmareRoom, List<Transport>>();
+            bossExitsOf = new Dictionary<NightmareRoom, (int, int, int)>();
             roomTables = null;
             squeakRooms = new List<SqueakPortedRoom>();
         }
@@ -1614,6 +1617,8 @@
         // (the Power Orb's warp star's flight, after the rides: WarpFlights(), FinaleMirrors(); the ending's flight out of Nightmare's
         // room, its address, -1 none);
         static int finaleFlight = WarpFlight, endingFlight = -1;
+        // (the flights' table WarpFlights() moved, and its entries: AddSqueakRooms() grows it for Squeak Squad's rides; -1 not moved);
+        static int flightTable = -1, flightCount;
         static readonly (int, int, int) NightmareBossRoom = (7, 0, 1);
         // (the ending's: where its warp star comes out of the moon in the Power Orb's room, NiDL's moon room's 96, 50 on the screen at 8, 8;
         // a flight step's flag facing Kirby left, sub_080534D0);
@@ -1637,6 +1642,8 @@
             Array.Copy(rom, table, rom, moved, WarpFlight * 4);
             WriteInt(rom, moved + WarpFlight * 4, flight + 0x08000000);
             Repoint(rom, table + 0x08000000, moved + 0x08000000);
+            flightTable = moved;
+            flightCount = WarpFlight + 2 + rides.Count;
             foreach (Transport t in transportsOf.Values.SelectMany(list => list).Where(t => !t.Cannon)) {
                 rom[arrivals + t.Room * 2] = (byte)t.DestX;
                 rom[arrivals + t.Room * 2 + 1] = (byte)t.DestY;
@@ -1646,53 +1653,7 @@
                 rom[arrivals + exit.room * 2] = (byte)exit.x;
                 rom[arrivals + exit.room * 2 + 1] = (byte)exit.y;
             }
-            foreach (Transport t in rides) {
-                List<byte[]> steps = new List<byte[]>();
-                void Step(int xSpeed, int ySpeed, int frames, int effect = 0xFF, int flags = 0, int room = 0, int animation = FlightRider, int scale = 0) {
-                    byte[] step = new byte[FlightStep];
-                    WriteShorts(step, 0, xSpeed, ySpeed, frames, animation);
-                    step[8] = (byte)effect;
-                    step[9] = (byte)flags;
-                    WriteShort(step, 10, effect == RideRoom ? room : scale);
-                    steps.Add(step);
-                }
-                // (from where Kirby is, 8.8 pixels, to a spot: a frame; then the moves, and before a room change those in the fade, the
-                // fade started on its first, in steps of a move, an effect and a size: move k carries the size of the frame before it, the
-                // leg's start's for the first, RideLeg.Scale[k]);
-                void Move(int fromX, int fromY, int x, int y) => Step(x * 256 - fromX, fromY - y * 256, 1);
-                void Moves(RideLeg leg, bool fade) {
-                    List<(int dx, int dy)> path = leg.Moves.Concat(fade ? leg.Fade : Array.Empty<(int dx, int dy, int frames)>()).SelectMany(m => Enumerable.Repeat((m.dx, m.dy), m.frames)).ToList();
-                    int fadeAt = fade ? leg.Moves.Sum(m => m.frames) : -1;
-                    int Effect(int k) => k == fadeAt ? FlightFade : Math.Abs(path[k].dx) + Math.Abs(path[k].dy) >= 2 ? Sparkles : 0xFF;
-                    for (int k = 0, n; k < path.Count; k += n) {
-                        for (n = 1; k + n < path.Count && path[k + n] == path[k] && Effect(k + n) == Effect(k) && leg.SizeAt(k + n) == leg.SizeAt(k); n++) { }
-                        Step(path[k].dx * 256, -path[k].dy * 256, n, Effect(k), scale: leg.SizeAt(k));
-                    }
-                }
-                Move(t.X * 256, t.Y * 256, t.Ride[0].X, t.Ride[0].Y);
-                Moves(t.Ride[0], t.Ride.Length > 1);
-                foreach (RideLeg leg in t.Ride.Skip(1)) {
-                    // (KatAM's room change leaves Kirby at the cell's middle less 8 pixels, its top less 7: sub_080562D0);
-                    int cellX = (leg.X + 16) / 16, cellY = (leg.Y + 15) / 16;
-                    Step(cellX, cellY, 1, RideRoom, 0x40, leg.Room);
-                    Move(cellX * 0x1000 - 0x800, cellY * 0x1000 - 0x701, leg.X, leg.Y);
-                    Moves(leg, leg != t.Ride[^1]);
-                }
-                // (his tumble, a frame at a time, facing where he goes, then his bounce, to where he stands);
-                var hop = t.Ride[^1].Hop.SelectMany(m => Enumerable.Repeat((m.dx, m.dy), m.frames)).ToList();
-                int facing = hop.Sum(m => m.dx) < 0 ? 1 : 0;
-                for (int k = 0; k < hop.Count; k++)
-                    Step(hop[k].dx * 256, -hop[k].dy * 256, 1, k == 0 ? HopOrb : 0xFF, facing, animation: Tumbling + ((16 - k) & 15));
-                foreach ((int dx, int dy, int frames) in t.Ride[^1].Bounce) Step(dx * 256, -dy * 256, frames, 0xFF, facing, animation: Bouncing);
-                Step(0, 0, 0, RideHop, facing, animation: Bouncing);
-                int script = Allocate(ref cursor, steps.Count * FlightStep, 4);
-                for (int i = 0; i < steps.Count; i++) Array.Copy(steps[i], 0, rom, script + i * FlightStep, FlightStep);
-                WriteInt(rom, moved + t.Flight * 4, script + 0x08000000);
-                RideLeg last = t.Ride[^1];
-                (int x, int y) landing = (last.End.x + last.Hop.Concat(last.Bounce).Sum(m => m.dx * m.frames), last.End.y + last.Hop.Concat(last.Bounce).Sum(m => m.dy * m.frames));
-                rom[arrivals + last.Room * 2] = (byte)(landing.x / 16 + 1);
-                rom[arrivals + last.Room * 2 + 1] = (byte)(landing.y / 16 + 1);
-            }
+            foreach (Transport t in rides) RideFlight(rom, t, moved, arrivals, ref cursor);
             // (the Power Orb's: held, then the fade, WarpFlight's room change, held again in Nightmare's room (his intro knocks them off
             // the star there and lays them on the floor), then a frame standing and the end, facing him: as the rides', no hop);
             finaleFlight = WarpFlight + 1 + rides.Count;
@@ -1724,6 +1685,57 @@
                 WriteShorts(rom, endingFlight + 5 * FlightStep, 0, 0, 1, Standing, 0xFF, 0);
                 WriteShorts(rom, endingFlight + 6 * FlightStep, 0, 0, 0, Standing, RideHop, 0);
             }
+        }
+
+        /* RideFlight(); A warp star's ride (Transport.Ride) as a flight (see WarpFlights()): its script, its entry in the flights'
+         * table (at `table`, the star's subtype), and where it lands Kirby in the arrivals table (`arrivals`: gUnk_0893CB44 or its
+         * copy, AddSqueakRooms()); */
+        static void RideFlight(byte[] rom, Transport t, int table, int arrivals, ref int cursor) {
+            List<byte[]> steps = new List<byte[]>();
+            void Step(int xSpeed, int ySpeed, int frames, int effect = 0xFF, int flags = 0, int room = 0, int animation = FlightRider, int scale = 0) {
+                byte[] step = new byte[FlightStep];
+                WriteShorts(step, 0, xSpeed, ySpeed, frames, animation);
+                step[8] = (byte)effect;
+                step[9] = (byte)flags;
+                WriteShort(step, 10, effect == RideRoom ? room : scale);
+                steps.Add(step);
+            }
+            // (from where Kirby is, 8.8 pixels, to a spot: a frame; then the moves, and before a room change those in the fade, the
+            // fade started on its first, in steps of a move, an effect and a size: move k carries the size of the frame before it, the
+            // leg's start's for the first, RideLeg.Scale[k]);
+            void Move(int fromX, int fromY, int x, int y) => Step(x * 256 - fromX, fromY - y * 256, 1);
+            void Moves(RideLeg leg, bool fade) {
+                List<(int dx, int dy)> path = leg.Moves.Concat(fade ? leg.Fade : Array.Empty<(int dx, int dy, int frames)>()).SelectMany(m => Enumerable.Repeat((m.dx, m.dy), m.frames)).ToList();
+                int fadeAt = fade ? leg.Moves.Sum(m => m.frames) : -1;
+                int Effect(int k) => k == fadeAt ? FlightFade : Math.Abs(path[k].dx) + Math.Abs(path[k].dy) >= 2 ? Sparkles : 0xFF;
+                for (int k = 0, n; k < path.Count; k += n) {
+                    for (n = 1; k + n < path.Count && path[k + n] == path[k] && Effect(k + n) == Effect(k) && leg.SizeAt(k + n) == leg.SizeAt(k); n++) { }
+                    Step(path[k].dx * 256, -path[k].dy * 256, n, Effect(k), scale: leg.SizeAt(k));
+                }
+            }
+            Move(t.X * 256, t.Y * 256, t.Ride[0].X, t.Ride[0].Y);
+            Moves(t.Ride[0], t.Ride.Length > 1);
+            foreach (RideLeg leg in t.Ride.Skip(1)) {
+                // (KatAM's room change leaves Kirby at the cell's middle less 8 pixels, its top less 7: sub_080562D0);
+                int cellX = (leg.X + 16) / 16, cellY = (leg.Y + 15) / 16;
+                Step(cellX, cellY, 1, RideRoom, 0x40, leg.Room);
+                Move(cellX * 0x1000 - 0x800, cellY * 0x1000 - 0x701, leg.X, leg.Y);
+                Moves(leg, leg != t.Ride[^1]);
+            }
+            // (his tumble, a frame at a time, facing where he goes, then his bounce, to where he stands);
+            var hop = t.Ride[^1].Hop.SelectMany(m => Enumerable.Repeat((m.dx, m.dy), m.frames)).ToList();
+            int facing = hop.Sum(m => m.dx) < 0 ? 1 : 0;
+            for (int k = 0; k < hop.Count; k++)
+                Step(hop[k].dx * 256, -hop[k].dy * 256, 1, k == 0 ? HopOrb : 0xFF, facing, animation: Tumbling + ((16 - k) & 15));
+            foreach ((int dx, int dy, int frames) in t.Ride[^1].Bounce) Step(dx * 256, -dy * 256, frames, 0xFF, facing, animation: Bouncing);
+            Step(0, 0, 0, RideHop, facing, animation: Bouncing);
+            int script = Allocate(ref cursor, steps.Count * FlightStep, 4);
+            for (int i = 0; i < steps.Count; i++) Array.Copy(steps[i], 0, rom, script + i * FlightStep, FlightStep);
+            WriteInt(rom, table + t.Flight * 4, script + 0x08000000);
+            RideLeg last = t.Ride[^1];
+            (int x, int y) landing = (last.End.x + last.Hop.Concat(last.Bounce).Sum(m => m.dx * m.frames), last.End.y + last.Hop.Concat(last.Bounce).Sum(m => m.dy * m.frames));
+            rom[arrivals + last.Room * 2] = (byte)(landing.x / 16 + 1);
+            rom[arrivals + last.Room * 2 + 1] = (byte)(landing.y / 16 + 1);
         }
 
         /* FinaleMirrors(); The finale's way in and its warp star (see finaleEntry): Central Circle's Dimension Mirror (its shard object of

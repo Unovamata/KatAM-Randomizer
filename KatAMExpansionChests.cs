@@ -41,6 +41,18 @@ namespace KatAMRandomizer {
             return null;
         }
 
+        /* HookSqueakCannons(); Squeak Squad's cannons (chest.c's SqueakCreateCannon): object 0x8B's spawn, the game's
+         * CreateEightDirCannon kept in gSqueakCannon; */
+        static string HookSqueakCannons(byte[] patched, KatAMExpansionCode.Version version) {
+            int entry = version.SpawnTable + EightDirCannonType * 4, kept = CodeAddress + version.CodeSymbols["gSqueakCannon"];
+            int create = CodeAddress + 0x08000000 + version.CodeSymbols["SqueakCreateCannon"] + 1;
+            if (ReadInt(patched, entry) == create) return null;  // (applied already);
+            if (ReadInt(patched, entry) >> 24 != 0x08) return $"The {version.Name} ROM's cannon code doesn't match.";
+            WriteInt(patched, kept, ReadInt(patched, entry));
+            WriteInt(patched, entry, create);
+            return null;
+        }
+
         /* OwnedFieldShards(); For the shards the randomizer puts in rooms (not in chests): their spawn (object 0x65's, the spawn table's)
          * becomes chest.c's NidlCreateShard, which makes one already owned a Maxim Tomato (the original's address in gNidlShard).
          * Returns an error, or null (the ROM unchanged on an error); */

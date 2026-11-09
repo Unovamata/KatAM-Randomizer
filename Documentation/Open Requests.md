@@ -359,8 +359,18 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
     rooms). Every room whole: the biggest is 4,032 blocks (Cushy Cloud 1's first, 96 by 42), over the 3,584 KatAM's rooms were
     raised to for NiDL (`rooms.c`'s BIG_BLOCKS), so that's raised again rather than splitting any.
   - Joined to the game (the owner's pick): a hub of its own as NiDL's, reached from Central Circle, never from the NiDL hub;
-    each world a level laid out by the rulebook; the bosses' shards back to that hub. The world map unchanged in this pass (the
-    owner's pick when asked with the hub; the world-map mock-up above stays open).
+    each world a level laid out by the rulebook; the bosses' shards back to that hub. The owner, later: "The way in is a copy
+    of the main game's central circle. We will later decide on position and visuals, the entrance door to the area is a grey
+    door like the pink door for NiDL to the hub area." and "The world map should get pathing like NiDL did yes. Follow the
+    rules we defined for map structure, we have rules in place for a reason." (so the world-map item above is to be built).
+  - Chests' looks (the owner): "Platinum chests in Squeak Squad can use the same open/closed graphics in Squeak Squad."
+  - Gimmicks (the owner): "Continue with the gimmicks and don't leave these out." Warp stars and cannons: "Ensure Star and
+    Cannon Warps are in the rooms and work."
+  - Squeak Lair doors (the owner, on the hidden doors to the gold-pile rooms): they open only when Spinni, Storo or Doc steals
+    a big treasure chest in the stage and carries it into a temporary door; following quickly leads to the hideout (the gold
+    pile) and a mini-boss fight with that Squeak to win the chest back; too slow, and the Squeaks board the door up.
+  - Hidden keys and Star Seals are dropped (the owner: "We are dropping hidden keys and star seals so an room that's unlocked
+    via that method has to be revealed. Only the Squeak Squad ability room can be unlocked via the hidden map.").
   - Bubbles (the floating `yakumono/bubble` gimmicks): food ones become KatAM's matching food; ability ones become the enemy
     that gives that ability in KatAM (the owner, changing the earlier pick of food: "Convert the floating bubbles holding
     abilities into their respective enemy in-game. That makes the most sense.").
@@ -396,9 +406,14 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
       Europe and Japan built and 11 rooms run the same way.
     - Chests: KatAM's small and big chests where Squeak Squad's are, their opened bits saved of their own (KatAM's 128 are all
       used), mapped in their rooms' 9ROM lists (unmapped, opening one hangs the game: the owner's warning too). Each holds a
-      consumable for now. Which treasure each held is known (by its number's range: the notes' "The treasures"). Checked in the
-      GBA emulator (forced starts): Kirby started on each of the 103 placed chests and pressing Up: every one opened, the game
-      running on and Kirby in the room; a big chest's 1UP taken (lives 2 to 3); KatAM's own chest (room 0x6C) still opens.
+      consumable for now. Which treasure each held is known (by its number's range: the notes' "The treasures"). The big ones are
+      Squeak Squad's platinum chests, drawn with its own closed and open graphics (the owner's), each on the floor under its spot.
+      Checked in the GBA emulator (forced: Kirby held standing on each chest pressing Up, its saved opened bit read after): 101 of
+      the 103 open (that first sweep only checked the game ran on: a big chest set a cell too low had sunk into the floor and fallen
+      out of Prism Plains 3's fifth room, and 26 more were out of Kirby's reach there); the other two have an enemy on them (a
+      Sparky in Nature Notch 8's seventh room, a Flamer in Secret Sea 2's sixth) that keeps knocking Kirby off; a platinum chest
+      shown closed, opened (its lid up, its 1UP taken: lives 2 to 3), and in its rock alcove; KatAM's own chest (room 0x6C) still
+      opens.
       The tutorial signs (Prism Plains 2's "Tap to pop!", "Find treasure and move on.", "Mix bubbles!") are left out (the owner:
       "no need to bring" them; checked in its three rooms). The room sweep now also opens the pause screen in each room it
       can't tell is running (a VBlank counter keeps counting through a hang): all 493 live. Europe and Japan: 10 chests opened
@@ -412,8 +427,31 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
     - Tile animations (section 12: grass, water, flames, glows in 45 rooms) as KatAM's foreground animations, every frame drawn
       through the three layers. Checked in the GBA emulator (forced starts): shots a few frames apart in 4 rooms (USA) and 3
       (Europe, Japan), the 42 animated rooms the sweep starts in run live.
-    - Gimmicks (section 10): counted and read (the notes: 26 classes, their graphics, the barrel's states decoded); none in KatAM
-      yet. Their cells are open where the DS's object is (a shutter's pillar), so nothing blocks a way meanwhile.
+    - Collision read as the DS reads it (the blocks grid first; the notes' "Collision, the blocks grid first"): doors behind star
+      blocks are behind them, as on the DS (checked in the GBA emulator, a real Sword cutting the blocks: 0x423, 0x48B, 0x5A9 lead
+      where the DS's do; 0x5CB's is in a wall of them too). The door sweep's other failures are the old ones (enemies or a ledge
+      where Kirby is held). All 493 rooms run live again.
+    - Warp stars (gimmick 0xD): all 12 stars to get on are KatAM's warp stars flying Squeak Squad's own rides (the DS's paths,
+      through the rooms a ride passes, into the room it ends in), landing where the DS lands Kirby. Checked in the GBA emulator,
+      each ride from its star (Kirby walked or jumped onto 1-4-1's and 8-4-3's; the others started on the star): every one lands
+      within 4 pixels of the DS's spot, found by riding each on the DS with the stage's room table rebuilt.
+    - Cannons: the eight-direction cannons (gimmick 0xB: 47 in 6-3-5/6, 4-3-6, 2-1-3, 3-6-2, 4-4-6, 6-4-1, 8-1-5) as KatAM's,
+      fixed ones firing on their own after the DS's wait, turning ones with A, and every shot carried on to the next cannon or a
+      wall as the DS's (`chest.c`); the fuse cannons (gimmick 0xC: 3-4-2, 5-1-1, 6-2-3) as KatAM's fuse cannons with their fuses.
+      The bricks and metal blocks in their way break under the shots, as on the DS. Checked in the GBA emulator (Kirby put in the
+      first cannon, then left alone): 4-3-6's chain goes up, right, down, left, down, right as the DS's; 3-4-2's fuse, lit with Fire,
+      burns to the cannon, which shoots Kirby into 3-4-3 at its door 0. 8-1-5's turning cannon (eight doors round it, each behind
+      metal blocks): Kirby comes in through its middle door into the cannon, fired with A in each of the 8 ways (one run each), the
+      shot breaks that way's metal blocks and reaches the door's cell; then Kirby put on that door with Up goes to its room, all 8
+      (the up door after a second shot out of the cannon: going straight up he falls back into it). The cannon's spot is its foot
+      on the DS, the shot leaving 8 pixels up: placed there, the 8 ways go through the doors' middles (8 pixels lower, the sideways
+      and lower shots stopped a block short); 4-3-6's chain checked again after it, the same route. Not checked yet: 5-1-1's and
+      6-2-3's fuses. For the Squeak Squad levels' logic (not wired yet): 8-3-8's door at (128, 7) is behind a band of metal blocks
+      in a pillar with no floor in front (a Metalun beside it: the DS's Metal ability, which KatAM's Metalun doesn't give); KatAM's
+      metal blocks break under Hammer (checked: Normal, Sword, Fighter, Smash and Fire don't) and cannon shots.
+    - Gimmicks (section 10): counted and read (the notes: 26 classes, their graphics, the barrel's states decoded); warp stars and
+      cannons in KatAM (above), the others not yet. Their cells are open where the DS's object is (a shutter's pillar), so
+      nothing blocks a way meanwhile.
     - Left: the chests' Squeak Squad treasures (Ability Scrolls, Spray Paints, the Secret Map's pieces, Vitality halves: with
       their items, below), the chase spawns after the stage's treasure (the Squeakers among them, and 22 chests), the arenas
       without the NiDL ROM (NiDL's type holds the camera), the stages' goals, the gimmicks, the areas; then the hub, the levels

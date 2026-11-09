@@ -154,6 +154,15 @@ namespace KatAMRandomizer {
             };
         }
 
+        // SqueakShiftCells(); The character's cells drawn `y` pixels lower (its pieces' y, attr0's low byte);
+        static SqueakCharacter SqueakShiftCells(SqueakCharacter character, int y) {
+            return new SqueakCharacter {
+                Tiles = character.Tiles, Palettes = character.Palettes, Anims = character.Anims, Compositions = character.Compositions,
+                Composites = character.Composites,
+                Cells = character.Cells.Select(c => c with { Pieces = c.Pieces.Select(p => p with { Attr0 = p.Attr0 & ~0xFF | (p.Attr0 + y) & 0xFF }).ToList() }).ToList(),
+            };
+        }
+
         // ReadSqueakCharacter(); A character's graphics from its files (folder/name.cga, .cla, .cea; palette: another .cla, "name_blue");
         static SqueakCharacter ReadSqueakCharacter(byte[] rom, string name, string folder = "enemy", string palette = null) {
             byte[] cga = SqueakFile(rom, $"{folder}/{name}.cga"), cla = SqueakFile(rom, $"{folder}/{palette ?? name}.cla"),
@@ -431,7 +440,7 @@ namespace KatAMRandomizer {
                                             (ushort from, ushort to)[] MergeColors = null, string ExtraFile = null,
                                             int[][] Layers = null, int Canvas = 128, bool BodyLast = false, bool KeepComposites = false,
                                             bool SharePalettes = false, string PaletteFile = null, bool WholeCells = false,
-                                            (int Num, int Den) Scale = default);
+                                            (int Num, int Den) Scale = default, int ShiftY = 0);
         /* AnimPalettes: a character whose cells are in Squeak Squad's different palettes (Doc's things), per animation the palette its
          * sprite takes (SqueakPaletteKey); */
         internal sealed record SqueakBuilt(SqueakEnemy Enemy, int AnimId, SqueakCharacter Character, int Tiles, List<SqueakLayerBuilt> Layers = null,
@@ -564,6 +573,9 @@ namespace KatAMRandomizer {
 
         // "S" (Squishy), "p", "i" (Chip), "n", "n" (Bronto Burt), "i" (Chip);
         static readonly (int type, int letter)[] SpinniGlyphs = { (0x04, 0), (0x08, 3), (0x08, 2), (0x01, 3), (0x01, 3), (0x08, 2) };
+
+        // The platinum chest's graphics (squeak.h's SQUEAK_PLATINUM_CHEST), in KatAM's big chest's 16 tiles of VRAM (object 0x81's);
+        const int SqueakPlatinumChest = 69, BigChestTiles = 16;
 
         static readonly List<SqueakEnemy> SqueakDefinitions = new List<SqueakEnemy> {
             // Perara: hurt animations 7 and 8 (0x02021A88's 0x1000007, 0x1000008);
@@ -789,6 +801,11 @@ namespace KatAMRandomizer {
             /* The dark star Kirby chases before Dark Nebula (enemy 0x3E: 0x0211B680), darkZERO_cmn's animation 1 (the small spinning
              * star), no name (nothing hits it); */
             new SqueakEnemy(68, "Dark star", "darkZERO_cmn", new[] { 0, 0, 0 }, new (int, int)[0], OnlyAnims: new[] { 1 }),
+            /* The platinum chest (the owner: Squeak Squad's big chests "can use the same open/closed graphics in Squeak Squad"):
+             * item/treasure's animations 6 (closed) and 7 (open), its variants 3 and 4, shown by KatAM's big chest (object 0x81) where
+             * a Squeak Squad room has one (squeak.c's SqueakAnimFor(), chest.c's SqueakCreateChest()); 16 pixels lower, as its feet are
+             * its origin and KatAM's chest's is its middle; no name; */
+            new SqueakEnemy(SqueakPlatinumChest, "Platinum chest", "item/treasure", new[] { 0, 0, 0 }, new (int, int)[0], OnlyAnims: new[] { 6, 7 }, ShiftY: 16),
         };
 
         /* The randomizer's Squeak Squad pools (the ROM Expansion tab). SqueakPool; A character the randomizer places: its index (SQUEAK_*
