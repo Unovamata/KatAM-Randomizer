@@ -231,16 +231,22 @@ namespace KatAMRandomizer {
             };
         }
 
-        /* SqueakShrink(); A picture drawn at num/den of its size: an old pixel `num` units across, a new one `den` (den/num of the old's
-         * each way), the new ones' corners on the origin's (its pixel 0, 0 right of and under it); each new pixel from the old ones it
-         * covers, weighted by how much of them it covers: its darkest where an outline crosses a quarter of it (dark: a weighted
-         * brightness under 300 of 2550), else the color covering the most of it, transparent when under half of it is drawn. `at`: the
-         * old picture's value at a pixel (-1: none), `brightness` a value's; the new pixels by their place from the origin; */
+        /* SqueakShrink(); A picture drawn at num/den of its size, its outlines a pixel wide and whole: each old pixel goes to the new
+         * one its middle is in (num/den as far from the origin, the new pixels' corners on the origin's; 1, 2 or 4 old pixels a new
+         * one), the new pixel an outline's (its darkest: a weighted brightness under 300 of 2550) if one of them is, so an outline
+         * stays one pixel across, unbroken (taking every new pixel an outline crosses a quarter of, as before, drew them one and two
+         * pixels thick, in jagged stairs); else transparent when most of them are, else the color most of them have (ties: the one
+         * nearest its middle). Then each stair's doubled corner taken out: an outline pixel between two others at a right angle
+         * (one across, one up or down; the diagonal between them and its other two sides not outlines), the diagonal joining them,
+         * given the color on its other side. `at`: the old picture's value at a pixel (-1: none), `brightness` a value's; the new
+         * pixels by their place from the origin; */
         static Dictionary<(int x, int y), int> SqueakShrink(Func<int, int, int> at, int width, int height, int originX, int originY, int num, int den,
                                                              Func<int, int> brightness) {
-            int Overlap(int pixel, int from) => Math.Max(0, Math.Min(pixel * num + num, from + den) - Math.Max(pixel * num, from));
-            Dictionary<(int, int), int> shrunk = new Dictionary<(int, int), int>();
-            // (only the new pixels over what's drawn: the old picture's drawn box, a new pixel's units from the origin's);
+            int FloorDiv(int a, int b) => a >= 0 ? a / b : -((-a + b - 1) / b);
+            int New(int pixel, int origin) => FloorDiv((2 * (pixel - origin) + 1) * num, 2 * den);
+            bool Dark(int value) => brightness(value) < 300;
+
+            // (the old picture's drawn box, and its pixels around it: those not drawn count against a new pixel's being drawn);
             int minX = width, maxX = -1, minY = height, maxY = -1;
             for (int y = 0; y < height; y++)
                 for (int x = 0; x < width; x++)
@@ -250,33 +256,52 @@ namespace KatAMRandomizer {
                         minY = Math.Min(minY, y);
                         maxY = Math.Max(maxY, y);
                     }
-            int First(int from, int origin) => (int)Math.Floor((from - origin) * num / (double)den) - 1;
-            for (int j = First(minY, originY); j <= First(maxY + 1, originY) + 1; j++)
-                for (int i = First(minX, originX); i <= First(maxX + 1, originX) + 1; i++) {
-                    int left = originX * num + i * den, top = originY * num + j * den, inside = 0;
-                    Dictionary<int, int> drawn = new Dictionary<int, int>();
-                    List<int> order = new List<int>();
-                    for (int y = Math.Max(0, top / num - 1); y <= (top + den) / num && y < height; y++)
-                        for (int x = Math.Max(0, left / num - 1); x <= (left + den) / num && x < width; x++) {
-                            int weight = Overlap(x, left) * Overlap(y, top);
-                            if (weight == 0) continue;
-                            inside += weight;
-                            int value = at(x, y);
-                            if (value < 0) continue;
-                            if (!drawn.ContainsKey(value)) {
-                                drawn[value] = 0;
-                                order.Add(value);
-                            }
-                            drawn[value] += weight;
-                        }
-                    int opaque = drawn.Values.Sum();
-                    if (opaque == 0 || opaque * 2 < inside) continue;
-                    // (its darkest where an outline crosses a quarter of it, else the color covering the most of it);
-                    int darkest = order.OrderBy(brightness).First();
-                    shrunk[(i, j)] = brightness(darkest) < 300 && drawn[darkest] * 4 >= den * den ? darkest
-                                   : order.OrderByDescending(c => drawn[c]).ThenBy(c => order.IndexOf(c)).First();
+            Dictionary<(int, int), int> counts = new Dictionary<(int, int), int>();
+            Dictionary<(int, int), List<(int x, int y, int value)>> drawn = new Dictionary<(int, int), List<(int, int, int)>>();
+            for (int y = Math.Max(0, minY - 2); y <= Math.Min(height - 1, maxY + 2); y++)
+                for (int x = Math.Max(0, minX - 2); x <= Math.Min(width - 1, maxX + 2); x++) {
+                    (int, int) key = (New(x, originX), New(y, originY));
+                    counts[key] = counts.GetValueOrDefault(key) + 1;
+                    int value = at(x, y);
+                    if (value < 0) continue;
+                    if (!drawn.TryGetValue(key, out List<(int, int, int)> list)) drawn[key] = list = new List<(int, int, int)>();
+                    list.Add((x, y, value));
                 }
-            return shrunk;
+            Dictionary<(int x, int y), int> shrunk = new Dictionary<(int, int), int>();
+            foreach (((int i, int j) key, List<(int x, int y, int value)> list) in drawn) {
+                List<(int x, int y, int value)> outline = list.Where(p => Dark(p.value)).ToList();
+                if (outline.Count > 0) {
+                    shrunk[key] = outline.OrderBy(p => brightness(p.value)).First().value;
+                    continue;
+                }
+                if (list.Count * 2 < counts[key]) continue;
+                // (its middle in the old picture's pixels, twice over: an old pixel's middle is 2x + 1);
+                double middleX = 2 * originX + (2 * key.i + 1) * den / (double)num, middleY = 2 * originY + (2 * key.j + 1) * den / (double)num;
+                shrunk[key] = list.GroupBy(p => p.value).OrderByDescending(g => g.Count())
+                                  .ThenBy(g => g.Sum(p => Math.Pow(2 * p.x + 1 - middleX, 2) + Math.Pow(2 * p.y + 1 - middleY, 2))).First().Key;
+            }
+            // (the stairs' doubled corners);
+            bool Outline(int x, int y) => shrunk.TryGetValue((x, y), out int value) && Dark(value);
+            Dictionary<(int x, int y), int> cleaned = new Dictionary<(int, int), int>(shrunk);
+            foreach (((int x, int y) key, int value) in shrunk) {
+                if (!Dark(value)) continue;
+                bool done = false;
+                foreach (int across in new[] { -1, 1 }) {
+                    foreach (int up in new[] { -1, 1 }) {
+                        if (!Outline(key.x + across, key.y) || !Outline(key.x, key.y + up) || Outline(key.x - across, key.y) || Outline(key.x, key.y - up)
+                            || Outline(key.x + across, key.y + up)) continue;
+                        if (shrunk.TryGetValue((key.x - across, key.y - up), out int side)) {
+                            if (!Dark(side)) cleaned[key] = side;
+                        } else {
+                            cleaned.Remove(key);
+                        }
+                        done = true;
+                        break;
+                    }
+                    if (done) break;
+                }
+            }
+            return cleaned;
         }
 
         // SqueakBrightness(); A color's weighted brightness (0 to 2550: green 6, red 3, blue 1);
@@ -299,7 +324,7 @@ namespace KatAMRandomizer {
 
         /* SqueakShell(); Yadgaine's shell, which Squeak Squad's stage draws on a background layer from its own map and tiles (0x0220B0B4;
          * KatAM's backgrounds are full in a fight), as one KatAM frame at three quarters of its size, as its body (YadgaineScale:
-         * SqueakShrink; 172 tiles of KatAM's 512-tile sprite heap, drawn pixel for pixel by yadgaine.c's Shell). Its stage's map,
+         * SqueakShrink; 174 tiles of KatAM's 512-tile sprite heap, drawn pixel for pixel by yadgaine.c's Shell). Its stage's map,
          * map/a4s7s2.mxp (RLE), has its sections' offsets at +0xC: the map's width (the first's first byte), its blocks (the third's,
          * after 2 bytes: 16x16 pixels, 4 tile entries each: tile, flips, palette - 6) and the shell's 16 by 13 blocks (the fifth's top
          * left); their tiles and palettes are map/30_b.bin's (+0x210, +0x10). Only what its fight ever shows (columns 14 on: the rest is

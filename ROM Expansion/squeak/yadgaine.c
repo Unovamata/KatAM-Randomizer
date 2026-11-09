@@ -41,7 +41,7 @@
  *   (SIZED: each move and block as long as the DS's; at the DS's flight beside its smaller spots, blocks piled up and the fight
  *   lagged); what it throws and knocks down (Kirby's size), the scroll and the rocks' range across the view as they were.
  * • Its shell (the stage draws it on a background layer from its own tiles, 0x0220B0B4: 154 by 208 pixels, 312 tiles; KatAM's
- *   backgrounds' tiles and palettes are full in a fight): a sprite at its size (172 tiles), only what its fight shows of it
+ *   backgrounds' tiles and palettes are full in a fight): a sprite at its size (174 tiles), only what its fight shows of it
  *   (see Shell() below). Its fight is near the GBA's limits without it (KatAM's
  *   sprite heap at 428 of 512 tiles when two rock bursts are out, its 7 enemy palettes all taken, its frames near the end of the
  *   CPU's time): Squeak Squad's effects wait for room in the heap (squeak.c's SQUEAK_FX_ROOM: a rock's burst left out when it
@@ -470,7 +470,7 @@ static void Boxes(struct SqueakObject *s) {
 
 /* Its shell: the stage's own picture on the DS (a background layer from its own tiles, 0x0220B0B4: KatAM's backgrounds' tiles and
  * palettes are full in a fight), here KatAMExpansionSqueak.cs's SqueakShell, a frame at three quarters of its size, as its body
- * (172 tiles of the 512 of KatAM's sprite heap in a stage, not 288 as the DS's), drawn pixel for pixel. Its tiles and palette
+ * (174 tiles of the 512 of KatAM's sprite heap in a stage, not 288 as the DS's), drawn pixel for pixel. Its tiles and palette
  * are loaded once (KatAM's sprite running its anim's first step, its colors as KatAM loads a slot's); after, it's drawn by hand:
  * its pieces (read once from its frame) written into KatAM's OAM buffer together, no sprite drawing of KatAM's each frame
  * (DisplaySprite, sub_08156D84 a piece: over twice its cost; the fight is near the end of the GBA's frame already). Where the DS has

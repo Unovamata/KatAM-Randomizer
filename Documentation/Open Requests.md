@@ -239,16 +239,18 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
     the owner asked: cut to what its fight shows; at half its size drawn twice as big, then two thirds drawn half as big again,
     it was too coarse beside its body's own pixels (the owner: the body too detailed beside it), so (the owner's pick of four
     mockups) the whole boss is at three quarters of the DS's size, drawn pixel for pixel: its body, legs and shell
-    (`KatAMExpansionSqueak.cs`'s `YadgaineScale`, 172 tiles for the shell) and its boxes, its spots (36, 48 and 83 pixels
+    (`KatAMExpansionSqueak.cs`'s `YadgaineScale`, 174 tiles for the shell), its pixels shrunk so outlines stay one pixel wide and
+    unbroken (the owner: jaggies; each DS pixel to the pixel its middle lands in, outlines winning, stairs' doubled corners out) and its boxes, its spots (36, 48 and 83 pixels
     in: the shell's cut left edge off the screen), how far ahead things start, its moves' own speed and its knocked-up blocks'
     flight (each move and block as long as the DS's); what it throws, the rocks and the scroll as they were. Its pieces written
     into KatAM's OAM by hand; Squeak Squad's effects wait for room in KatAM's sprite heap (a rock's burst left out when it would
     leave too little for KatAM's own), the shell takes Daroach's palette slot once he's gone, goes when it's beaten (as its
     legs). Checked in the emulator (USA, room 0x323, the fight from its start, 1,500 frames, Kirby idle with helpers: a forced
-    start, not a playthrough): its look and place, the shell's top and left edge, its body's parts together; 88 lag frames
+    start, not a playthrough): its look and place, the shell's top and left edge, its body's parts together, its outlines one
+    pixel wide (the emulator's own pixels, before and after); 86 lag frames
     against 131 with the scaled shell before and 133 without a shell (its spots shrunk, the blocks at the DS's flight piled up
     and it lagged at 271: their flight shrunk too; at the old spots 122, the shell's edge showing); no sprite drawn from bad
-    VRAM, the 7 palettes holding, the GBA's sprite time per line never passed (1,016 of 1,210 cycles at worst), 10 rock bursts
+    VRAM, the 7 palettes holding, the GBA's sprite time per line never passed (1,016 of 1,210 cycles at worst), 9 or 10 rock bursts
     shown (4 with the scaled shell, about 11 without one). European and Japanese builds: its look in the same fight. Not
     tested: a fight played by hand (Kirby's own attacks, its boxes at their new size against him). Not ported: the floor
     crumbling behind it, the DS's camera jolts. Fixed
