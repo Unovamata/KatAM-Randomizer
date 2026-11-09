@@ -482,8 +482,13 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
       NiDL rooms': the DS's hold Boss Battle Badges) shows only once the boss is gone, as the DS drops it then. Checked in the
       GBA emulator (USA, forced as above): the chest hidden through the fight, shown after, the shard over the machine's middle. Not checked yet: the other 7 bosses' rooms (Dark Nebula's:
       his HP written to 0 skips KatAM's defeat, which only a hit starts, so that run proved nothing; the scripted Sword didn't reach
-      him), a real fight, the tomato when the shard is owned, Japan in the emulator. Seen there: Dark Nebula's room (8-4-6) shows
-      a black band on its right, past its background (to look into). Still to do here: the hub's world doors (each
+      him), a real fight, the tomato when the shard is owned, Japan in the emulator. Dark Nebula's room (8-4-6) showed a black band
+      on its right: its far view is one of the five 256 pixels wide, which 3/4 made 192 (the screen 240); those now shrink to 240
+      wide only (checked in the GBA emulator: the band's gone).
+    - Goals (the owner: "Goal doors reach to the next stage correct, however keep in mind the Goal minigame doors from KatAM as well
+      for path ending sections, 1 or 2 per area stage"): every goal but the deepest stage's (into the boss stage) leads on into the
+      world's next stage; 2 a world, at paths' ends, into KatAM's goal games. Checked in the GBA emulator: all 46 goal doors lead
+      where they should. Still to do here: the hub's world doors (each
       world's switch room, big switch and the world map's path, on bits of the expansion's save: the free world slots are 6),
       Mirras into the switch rooms, links with KatAM's areas, the logic checks with terrain over these rooms, the map viewer,
       the window's option.

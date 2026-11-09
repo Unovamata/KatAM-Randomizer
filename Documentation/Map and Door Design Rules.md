@@ -111,7 +111,11 @@ after any change.
   - a branch into a stage lands in its **first room** (on a mirror back there if it takes one, else one-way onto the stage's start):
     entered further in, the rooms before would be cut off;
   - doors go only in rooms the stage's start reaches; where no stage in a world's tree has a room taking a door (Prism Plains 1's
-    are small, 2 doors each), **a stage's goal door leads on into the next stage**, one-way (the owner to confirm);
+    are small, 2 doors each), **a stage's goal door leads on into the next stage**, one-way;
+  - **goals lead on to the next stage** (the owner: "Goal doors reach to the next stage correct, however keep in mind the Goal
+    minigame doors from KatAM as well for path ending sections, 1 or 2 per area"): each goal but the deepest stage's (into the boss
+    stage) leads, one-way, into the world's next stage by number; 1 or 2 a world (2 where it has 4 such goals or more), at the ends
+    of paths (no stage after them first, then the stages nothing hangs off, the deepest first), into one of KatAM's goal games;
   - a goal room keeps the DS's own doors (they're drawn in its tiles) but gets no new one (the owner to confirm);
   - each world's boss stage (1-7, 2-7, 3-7, 4-7, 5-6, 6-7, 7-7, 8-4; 5-7, a copy of 5-6, is left out as the Arena's copies are)
     is entered only through the deepest stage's goal; the final stage's rooms the DS reaches by cutscenes between its fights are

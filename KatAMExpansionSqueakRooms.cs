@@ -506,17 +506,21 @@ namespace KatAMRandomizer {
          * few rounds; past 900 tiles, the two most alike made one (as BuildBackground()); */
         static SqueakBackground ConvertSqueakFarView(int[,] picture, double scale = 0.75, int minHeight = 160, int maxTiles = BackgroundTiles) {
             int sourceWidth = picture.GetLength(0), sourceHeight = picture.GetLength(1);
-            int width = (int)Math.Round(sourceWidth * scale / 8) * 8, height = Math.Max((int)Math.Round(sourceHeight * scale / 8) * 8, (minHeight + 7) / 8 * 8);
-            int shrunkHeight = Math.Min(height, (int)Math.Round(sourceHeight * scale));
+            /* (never narrower than KatAM's screen: the 256-pixel views at 3/4 were 192 wide, the screen's last 48 pixels black (Dark
+             * Nebula's room, 8-4-6): those shrink to 240 wide only, their height as much if that fits the tiles, else 3/4); */
+            double scaleX = Math.Max(scale, 240.0 / sourceWidth), scaleY = scale;
+            if (scaleX != scale && Math.Round(sourceWidth * scaleX / 8) * Math.Max(Math.Round(sourceHeight * scaleX / 8), (minHeight + 7) / 8) <= maxTiles) scaleY = scaleX;
+            int width = (int)Math.Round(sourceWidth * scaleX / 8) * 8, height = Math.Max((int)Math.Round(sourceHeight * scaleY / 8) * 8, (minHeight + 7) / 8 * 8);
+            int shrunkHeight = Math.Min(height, (int)Math.Round(sourceHeight * scaleY));
             // (each pixel the average of the source pixels it covers, weighted by how much of each);
             double[,,] image = new double[width, height, 3];
-            double step = 1 / scale;
+            double stepX = 1 / scaleX, stepY = 1 / scaleY;
             for (int y = 0; y < height; y++)
                 for (int x = 0; x < width; x++) {
-                    double y0 = Math.Min(y, shrunkHeight - 1) * step, x0 = x * step, r = 0, g = 0, b = 0, total = 0;
-                    for (int sy = (int)y0; sy < Math.Min(sourceHeight, (int)Math.Ceiling(y0 + step)); sy++)
-                        for (int sx = (int)x0; sx < Math.Min(sourceWidth, (int)Math.Ceiling(x0 + step)); sx++) {
-                            double weight = (Math.Min(sx + 1, x0 + step) - Math.Max(sx, x0)) * (Math.Min(sy + 1, y0 + step) - Math.Max(sy, y0));
+                    double y0 = Math.Min(y, shrunkHeight - 1) * stepY, x0 = x * stepX, r = 0, g = 0, b = 0, total = 0;
+                    for (int sy = (int)y0; sy < Math.Min(sourceHeight, (int)Math.Ceiling(y0 + stepY)); sy++)
+                        for (int sx = (int)x0; sx < Math.Min(sourceWidth, (int)Math.Ceiling(x0 + stepX)); sx++) {
+                            double weight = (Math.Min(sx + 1, x0 + stepX) - Math.Max(sx, x0)) * (Math.Min(sy + 1, y0 + stepY) - Math.Max(sy, y0));
                             if (weight <= 0) continue;
                             int c = picture[sx, sy];
                             r += (c & 31) * weight; g += (c >> 5 & 31) * weight; b += (c >> 10 & 31) * weight; total += weight;

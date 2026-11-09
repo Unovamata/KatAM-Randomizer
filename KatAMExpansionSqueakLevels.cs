@@ -10,9 +10,9 @@ namespace KatAMRandomizer {
      *   of another (deeper ones likelier, a big stage branching more; in a room's middle or hidden away, half and half), two-way, to a
      *   mirror back in the first room of the stage it leads to that takes one (rules 3 and 5); where no stage in the tree has a room
      *   taking a door (Prism Plains 1's are small, 2 doors each), a stage's goal door leads on into the next instead, one-way;
-     * • only the deepest stage's goal leads to the boss stage (SqueakBossStages); the other goals end their branch, one-way, in turn:
-     *   into a goal game (GoalRooms: Central Circle after), a stage of the next world (the previous one for the last world), a goal
-     *   game (the DS's goal doors, drawn in the tiles, lead there: no mirror);
+     * • only the deepest stage's goal leads to the boss stage (SqueakBossStages); the other goals lead on, one-way, into the world's
+     *   next stage by number, but 1 or 2 a world, at the ends of paths, into one of KatAM's goal games (GoalRooms: Central Circle
+     *   after) (the owner's; the DS's goal doors, drawn in the tiles, lead there: no mirror);
      * • the boss stage is entered only through its goal door; nothing else goes in, no door goes out of a boss room (rule 8: its shard
      *   is the way out); a room of it Kirby reaches only by a cutscene on the DS (the final stage's, between its bosses) gets a mirror
      *   from the room before it, where he lands there, one-way;
@@ -325,7 +325,7 @@ namespace KatAMRandomizer {
             worldStarts = new (int, int, int)[SqueakWorlds + 1];
             bossRooms = new Dictionary<int, int>();
             List<(int area, int stage)> stages = byStage.Keys.OrderBy(s => s.Item1).ThenBy(s => s.Item2).ToList();
-            Dictionary<(int, int), int> depthOf = new Dictionary<(int, int), int>();
+            Dictionary<(int, int), int> depthOf = new Dictionary<(int, int), int>(), childrenOf = new Dictionary<(int, int), int>();
             Dictionary<(int, int), (int, int)> goalBranch = new Dictionary<(int, int), (int, int)>();
             for (int world = 1; world <= SqueakWorlds; world++) {
                 List<(int area, int stage)> regular = stages.Where(s => s.area == world && !IsBossStage(s)).ToList();
@@ -375,6 +375,7 @@ namespace KatAMRandomizer {
                     }
                 }
                 foreach (var pair in depth) depthOf[pair.Key] = pair.Value;
+                foreach (var pair in children) childrenOf[pair.Key] = pair.Value;
             }
 
             /* The goals: the deepest stage's to the boss stage; the others in turn into a goal game, the next world's stage, a goal game
@@ -385,14 +386,24 @@ namespace KatAMRandomizer {
                 if (reached.Count == 0) continue;
                 var gate = reached.OrderByDescending(s => depthOf[s]).ThenByDescending(s => s.stage).First();
                 var boss = stages.FirstOrDefault(s => s.area == world && IsBossStage(s));
+                /* (the others: on into the world's next stage by number, as the DS's goals lead on (the owner: "Goal doors reach to the
+                 * next stage correct"), but 1 or 2 a world, ends of paths, into one of KatAM's goal games (the owner: "keep in mind the
+                 * Goal minigame doors from KatAM as well for path ending sections, 1 or 2 per area"): those with no stage after them
+                 * first (never the boss stage: only the deepest stage's goal leads there), then the stages nothing hangs off (a path's
+                 * end), the deepest first; 2 where the world has 4 such goals or more); */
+                List<(int area, int stage)> others = reached.Where(s => !goalBranch.ContainsKey(s) && !(s == gate && boss != default)).ToList();
+                (int area, int stage)? NextStage((int area, int stage) s) =>
+                    reached.Where(t => t.stage > s.stage && !IsBossStage(t)).OrderBy(t => t.stage).Cast<(int, int)?>().FirstOrDefault();
+                int games = others.Count >= 4 ? 2 : Math.Min(1, others.Count);
+                List<(int area, int stage)> toGames = others.Where(s => NextStage(s) == null)
+                    .Concat(others.Where(s => NextStage(s) != null && childrenOf.GetValueOrDefault(s) == 0).OrderByDescending(s => depthOf[s]).ThenByDescending(s => s.stage))
+                    .Concat(others.OrderByDescending(s => depthOf[s])).Distinct().ToList();
+                toGames = toGames.Take(Math.Max(games, others.Count(s => NextStage(s) == null))).ToList();
                 int ends = 0;
                 foreach (var s in reached) {
                     if (goalBranch.TryGetValue(s, out var child)) { goals[s] = StageStart(child); continue; }
                     if (s == gate && boss != default) { goals[s] = StageStart(boss); continue; }
-                    int other = world == SqueakWorlds ? world - 1 : world + 1;
-                    var theirs = stages.Where(t => t.area == other && depthOf.ContainsKey(t)).ToList();
-                    goals[s] = ends++ % 3 == 1 && theirs.Count > 0 ? LandingIn(theirs[random.Next(theirs.Count)])
-                             : (GoalRooms[(world + ends) % GoalRooms.Length], GoalLanding.x, GoalLanding.y);
+                    goals[s] = toGames.Contains(s) ? (GoalRooms[(world + ends++) % GoalRooms.Length], GoalLanding.x, GoalLanding.y) : StageStart(NextStage(s).Value);
                 }
             }
             foreach (SqueakPlanRoom r in rooms)
