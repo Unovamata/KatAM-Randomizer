@@ -981,7 +981,7 @@ namespace KatAMRandomizer {
          * Squeak Squad's characters as type 0x2C with a Squeak Squad ROM. Either game can be added alone: without a NiDL ROM, only the
          * code and what Squeak Squad's characters need (no NiDL enemies, mini-bosses, bosses, abilities, rooms or title). Returns null
          * when done, or why it couldn't be done (rom is left as it was); */
-        public static string AddEnemies(ref byte[] rom, byte[] nightmare, bool rooms = true, bool title = false, byte[] squeak = null) {
+        public static string AddEnemies(ref byte[] rom, byte[] nightmare, bool rooms = true, bool title = false, byte[] squeak = null, bool squeakRooms = false) {
             KatAMExpansionCode.Version version = VersionOf(rom);
             NightmareRegion region = RegionOf(nightmare);
 
@@ -996,7 +996,7 @@ namespace KatAMRandomizer {
             byte[] original = rom;
 
             rom = Expand(rom);
-            string error = AddEnemiesTo(rom, nightmare, region, version, rooms && nightmare != null, title && nightmare != null, squeak);
+            string error = AddEnemiesTo(rom, nightmare, region, version, rooms && nightmare != null, title && nightmare != null, squeak, squeakRooms && squeak != null);
             if (error != null) rom = original;
             return error;
         }
@@ -1011,7 +1011,7 @@ namespace KatAMRandomizer {
         }
 
         static string AddEnemiesTo(byte[] rom, byte[] nightmare, NightmareRegion region, KatAMExpansionCode.Version version, bool rooms, bool title,
-                                   byte[] squeak) {
+                                   byte[] squeak, bool squeakRooms) {
             int HurtAnimID = version.AnimCount,     // The first free anim ID (the vanilla table's size);
                 SpriteTables = version.SpriteTables, SpawnTable = version.SpawnTable, ObjectParameters = version.ObjectParameters,
                 ObjectParameters2 = version.ObjectParameters2, HitFlashBranch = version.HitFlashBranch;
@@ -1557,7 +1557,9 @@ namespace KatAMRandomizer {
             });
             // NiDL's title screen swarm (KatAMExpansionTitle.cs), before the rooms: FinishRooms() allocates after them;
             error ??= title ? AddTitle(rom, nightmare, version, ref cursor) : null;
-            return error ?? (rooms ? AddWorldMap(rom, version, ref cursor) ?? AddRooms(rom, nightmare, region, version, ref cursor) : null);
+            error ??= rooms ? AddWorldMap(rom, version, ref cursor) ?? AddRooms(rom, nightmare, region, version, ref cursor) : null;
+            // (Squeak Squad's rooms after NiDL's: KatAMExpansionSqueakRooms.cs);
+            return error ?? (squeakRooms ? AddSqueakRooms(rom, squeak, version, ref cursor) : null);
         }
 
         //////////////////////////////////////////////////////////////////////////////////////////////

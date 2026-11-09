@@ -104,17 +104,20 @@ namespace KatAMRandomizer {
             public int Color(int tile, int index) => Colors[(tile < TilePalettes.Length ? TilePalettes[tile] & 15 : 0) * 16 + index] & 0x7FFF;
         }
 
-        // A converted foreground: KatAM's tiles (4 bits a pixel, tile 0 empty), its 6 palettes, its tilemap (a row of 8-pixel tiles at
-        // a time), and how far it was reduced (colors merged, tiles merged to fit);
-        internal sealed record SqueakForeground(byte[] Tiles, ushort[] Palettes, ushort[] Tilemap, int Columns, int Rows, int MergedColors, int MergedTiles);
+        /* A converted foreground: KatAM's tiles (4 bits a pixel, tile 0 empty), its 6 palettes, its tilemap (a row of 8-pixel tiles at
+         * a time), how far it was reduced (colors merged, tiles merged to fit), and the 4 tilemap entries (top left, top right, bottom
+         * left, bottom right) of each block asked for drawn without its front layer (a star block's cell once it's broken: the block
+         * is the front layer's); */
+        internal sealed record SqueakForeground(byte[] Tiles, ushort[] Palettes, ushort[] Tilemap, int Columns, int Rows, int MergedColors, int MergedTiles,
+                                                ushort[][] Bare = null);
 
         /* SqueakRoomTile(); A room's 8-pixel tile at (tx, ty) as one picture, the layers drawn in the DS's order: the main terrain,
-         * the front layer over it, the third over both; 64 colors (BGR555), -1 where none is drawn; */
-        static int[] SqueakRoomTile(SqueakMap map, SqueakTileset front, SqueakTileset main, int tx, int ty) {
+         * the front layer over it (but `bare`), the third over both; 64 colors (BGR555), -1 where none is drawn; */
+        static int[] SqueakRoomTile(SqueakMap map, SqueakTileset front, SqueakTileset main, int tx, int ty, bool bare = false) {
             int[] pixels = Enumerable.Repeat(-1, 64).ToArray();
             int quarter = (ty & 1) * 2 + (tx & 1);
             foreach ((int grid, int table, SqueakTileset tiles) in new[] { (4, 2, main), (3, 1, front), (5, 2, main) }) {
-                if (tiles == null) continue;
+                if (tiles == null || bare && grid == 3) continue;
                 int block = map.Block(grid, tx / 2, ty / 2);
                 if (block >= map.TableCount(table)) continue;
                 int entry = map.Entry(table, block, quarter), tile = entry & 0x3FF;
@@ -161,24 +164,27 @@ namespace KatAMRandomizer {
          * don't fit, the two closest colors become one (the less used takes the other's) until they do. Past KatAM's 768 tiles (three
          * rooms, the busiest), the two most alike tiles of a palette become one (the less used takes the other's place) until they
          * fit (the owner allows compressing tilesets); */
-        static SqueakForeground ConvertSqueakForeground(SqueakMap map, SqueakTileset front, SqueakTileset main, int maxTiles = ForegroundTiles) {
+        static SqueakForeground ConvertSqueakForeground(SqueakMap map, SqueakTileset front, SqueakTileset main, int maxTiles = ForegroundTiles,
+                                                        IReadOnlyList<(int x, int y)> bare = null) {
             int columns = map.Width * 2, rows = map.Height * 2;
-            // The pictures, and each tile's picture (flips found later, once the colors are final);
+            // The pictures, and each tile's picture (flips found later, once the colors are final), the bare blocks' after the room's;
             List<int[]> pictures = new List<int[]>();
             Dictionary<string, int> pictureOf = new Dictionary<string, int>();
+            int Picture(int[] pixels) {
+                string key = string.Join(",", pixels);
+                if (!pictureOf.TryGetValue(key, out int index)) {
+                    pictureOf[key] = index = pictures.Count;
+                    pictures.Add(pixels);
+                }
+                return index;
+            }
             int[] cellPicture = new int[columns * rows];
             for (int ty = 0; ty < rows; ty++)
-                for (int tx = 0; tx < columns; tx++) {
-                    int[] pixels = SqueakRoomTile(map, front, main, tx, ty);
-                    string key = string.Join(",", pixels);
-                    if (!pictureOf.TryGetValue(key, out int index)) {
-                        pictureOf[key] = index = pictures.Count;
-                        pictures.Add(pixels);
-                    }
-                    cellPicture[ty * columns + tx] = index;
-                }
+                for (int tx = 0; tx < columns; tx++) cellPicture[ty * columns + tx] = Picture(SqueakRoomTile(map, front, main, tx, ty));
+            bare ??= new List<(int, int)>();
+            int[] barePicture = bare.SelectMany(b => Enumerable.Range(0, 4).Select(q => Picture(SqueakRoomTile(map, front, main, b.x * 2 + (q & 1), b.y * 2 + q / 2, true)))).ToArray();
             int[] uses = new int[pictures.Count];
-            foreach (int p in cellPicture) uses[p]++;
+            foreach (int p in cellPicture.Concat(barePicture)) uses[p]++;
 
             // Colors: merged, the closest pair at a time, until every tile's set fits a palette and the sets fit KatAM's 6;
             Dictionary<int, int> colorUses = new Dictionary<int, int>();
@@ -284,13 +290,14 @@ namespace KatAMRandomizer {
             byte[] tileData = new byte[kept.Count * 32];
             for (int t = 0; t < kept.Count; t++)
                 for (int i = 0; i < 64; i += 2) tileData[t * 32 + i / 2] = (byte)(kept[t][i] | kept[t][i + 1] << 4);
-            ushort[] tilemap = new ushort[columns * rows];
-            for (int c = 0; c < tilemap.Length; c++) {
-                (int tile, bool h, bool v) = pictureTile[cellPicture[c]];
+            ushort Entry(int picture) {
+                (int tile, bool h, bool v) = pictureTile[picture];
                 int target = Target(tile);
-                tilemap[c] = (ushort)(number[target] | (h ? 0x400 : 0) | (v ? 0x800 : 0) | tiles[target].palette << 12);
+                return (ushort)(number[target] | (h ? 0x400 : 0) | (v ? 0x800 : 0) | tiles[target].palette << 12);
             }
-            return new SqueakForeground(tileData, paletteColors, tilemap, columns, rows, mergedColors, mergedTiles);
+            ushort[] tilemap = cellPicture.Select(Entry).ToArray();
+            ushort[][] bareEntries = Enumerable.Range(0, bare.Count).Select(b => Enumerable.Range(0, 4).Select(q => Entry(barePicture[b * 4 + q])).ToArray()).ToArray();
+            return new SqueakForeground(tileData, paletteColors, tilemap, columns, rows, mergedColors, mergedTiles, bareEntries);
         }
 
         /* SqueakFarViewPicture(); A far view (map/d_viw_NN.nsbtx: a TEX0 block, one 256-color texture, 512 or 256 pixels wide, 256 tall,
@@ -555,6 +562,240 @@ namespace KatAMRandomizer {
             if (liquid == 1 && block != 2) return KatAMWater;
             if (id is 0x40 or 0x44 or 0x48 or 0x4C && liquid == 0) return KatAMSpikes;
             return KatAMAir;
+        }
+            /* Squeak Squad's rooms in the ROM (AddSqueakRooms()): the 8 worlds' stages (SqueakWorldRooms(), the test stages left out), each
+         * room whole, numbered from SqueakFirstRoom up (past KatAM's 0x3D7 rooms, its goal games' 0x3D4-0x3DD among them). The three
+         * tables with a row per room, gRoomProps, gUnk_08D6CD0C (room info: area, CPU helpers' routes) and gUnk_0893CB44 (where a warp
+         * star's flight lands), move, grown to the last room (the rows between KatAM's and Squeak Squad's free), every reference to
+         * them repointed: KatAM's code names each by its base alone, as the expansion's does (checked here). The tables the props index
+         * (foreground info, palettes, tilemaps, collision, backgrounds, objects, CPU helpers' zones, doors lists) get the rooms'
+         * entries after NiDL's, in the room AddRooms() leaves in its copies (roomTables; without NiDL's rooms, copies of KatAM's).
+         * The randomizer and the map viewer read KatAM's own rows, which stay as they were; */
+        const int SqueakFirstRoom = 0x400, SqueakTableRoom = 1024;
+        // (rooms.c's gNidlRoomTops: the camera from the room's top, 1, down to 8 pixels from its bottom, ROOM_FULL_BOTTOM);
+        const byte SqueakCameraTop = 0x81;
+        static readonly HashSet<(int area, int stage)> SqueakTestStages = new HashSet<(int, int)> { (1, 8), (1, 9), (2, 9) };
+
+        /* roomTables; The room tables' copies AddRooms() made (where, how many entries, and how many fit: SqueakTableRoom more), null
+         * without NiDL's rooms (ForgetRooms()); */
+        static Dictionary<string, (int at, int count, int capacity)> roomTables;
+
+        // The Squeak Squad rooms of the last ROM made: their files, room number and size in blocks (for the map viewer and the tests);
+        internal sealed record SqueakPortedRoom(SqueakRoomFiles Files, int Room, int Width, int Height);
+        static List<SqueakPortedRoom> squeakRooms = new List<SqueakPortedRoom>();
+        public static IReadOnlyList<SqueakPortedRoom> SqueakPortedRooms => squeakRooms;
+
+        // SqueakWorldRooms(); The 8 worlds' rooms, stage by stage, in play order;
+        static List<SqueakRoomFiles> SqueakWorldRooms(byte[] squeak) {
+            List<SqueakRoomFiles> rooms = new List<SqueakRoomFiles>();
+            for (int area = 1; area <= 8; area++)
+                for (int stage = 0; stage <= 12; stage++)
+                    if (!SqueakTestStages.Contains((area, stage))) rooms.AddRange(SqueakStageRooms(squeak, area, stage));
+            return rooms;
+        }
+
+        /* AddSqueakRooms(); Every Squeak Squad room into KatAM (see above): its foreground (ConvertSqueakForeground(), its star blocks'
+         * cells drawn bare for what they leave), its far view as its background (shared by the rooms showing it), its collision
+         * (SqueakCollision(): a star block a special block record, leaving air, or water in water), its CPU helpers' zones; no objects
+         * nor doors yet; */
+        static string AddSqueakRooms(byte[] rom, byte[] squeak, KatAMExpansionCode.Version version, ref int cursor) {
+            IReadOnlyDictionary<string, int> symbols = version.RomSymbols;
+            int here = cursor;      // (the cursor, which the local functions can't take by reference);
+            int roomProps = symbols["gRoomProps"], roomInfos = symbols["gUnk_08D6CD0C"], arrivals = symbols["gUnk_0893CB44"];
+            squeakRooms = new List<SqueakPortedRoom>();
+            List<SqueakRoomFiles> files = SqueakWorldRooms(squeak);
+            if (files.Count == 0) return "The Squeak Squad ROM's stages weren't found.";
+
+            // (the expansion's code names the room tables by their bases only, as KatAM's does: a pointer inside one couldn't move with it);
+            int codeEnd = CodeAddress + version.Code.Length;
+            foreach ((int table, int size) in new[] { (roomProps, KatAMRoomCount * 0x28), (roomInfos, KatAMRoomCount * 4), (arrivals, KatAMRoomCount * 2) })
+                for (int i = CodeAddress; i < codeEnd; i += 4) {
+                    int word = ReadInt(rom, i) - 0x08000000;
+                    if (word > table && word < table + size) return $"The ROM Expansion's code points inside KatAM's room tables ({word + 0x08000000:X8}).";
+                }
+
+            // (without NiDL's rooms, rooms.c's big rooms are set up here: AddRooms() does it otherwise);
+            bool nidlRooms = roomTables != null;
+            if (!nidlRooms && BigRooms(rom, version) is string bigError) return bigError;
+
+            int[] vanillaSizes = RoomTableSizes(rom, roomProps, out _);
+            int Props(int room, int field) => ReadShort(rom, roomProps + room * 0x28 + field * 2);
+            int Entry(string table, int index) => ReadInt(rom, symbols[table] + index * 4) - 0x08000000;
+            int paletteCycles = ReadInt(rom, Entry("gForegroundPalettes", Props(0x323, 11)) + 4),        // Unused (no cycles), but read;
+                navigationRoutes = Entry("gUnk_08D63C28", Props(0x3C9, 17));                                  // Its 4 generic route lists;
+            int noTypes = Allocate(ref here, 4, 4);
+            WriteInt(rom, noTypes, 0xFF);
+
+            // Each table's new entries, after NiDL's or KatAM's (the doors lists after KatAM's shared one: from FirstDoorsList, so their
+            // visited doors are rooms.c's);
+            string[] tableNames = { "gForegroundInfo", "gForegroundPalettes", "gForegroundTilemaps", "gSolidityMaps", "gRoomTiledBGs", "gLevelObjLists",
+                                    "gUnk_08D63C28", "gUnk_08D640A4" };
+            int[] tableFields = { 10, 11, 12, 13, 15, 16, 17, 18 };
+            Dictionary<string, List<int>> added = tableNames.ToDictionary(t => t, t => new List<int>());
+            int First(string table) => nidlRooms ? roomTables[table].count : table == "gUnk_08D640A4" ? SharedDoors : vanillaSizes[tableFields[Array.IndexOf(tableNames, table)]];
+            int Add(string table, int address) {
+                added[table].Add(address + 0x08000000);
+                return First(table) + added[table].Count - 1;
+            }
+            int DoorsList(List<byte> nineROM, int chests) {
+                nineROM.AddRange(new byte[] { 0, 0, 0xFF, 0xFF });
+                int nineROMAt = Allocate(ref here, nineROM.Count, 4), entry = Allocate(ref here, 8, 4);
+                nineROM.ToArray().CopyTo(rom, nineROMAt);
+                WriteInts(rom, entry, nineROMAt + 0x08000000, chests);
+                return entry;
+            }
+            if (!nidlRooms) Add("gUnk_08D640A4", DoorsList(new List<byte>(), 0));
+
+            // The room tables, moved and grown;
+            int rows = SqueakFirstRoom + files.Count;
+            int newProps = Allocate(ref here, rows * 0x28, 4), newInfos = Allocate(ref here, rows * 4, 4), newArrivals = Allocate(ref here, rows * 2, 4);
+            Array.Copy(rom, roomProps, rom, newProps, KatAMRoomCount * 0x28);
+            Array.Fill(rom, (byte)0xFF, newProps + KatAMRoomCount * 0x28, (rows - KatAMRoomCount) * 0x28);
+            Array.Copy(rom, roomInfos, rom, newInfos, KatAMRoomCount * 4);
+            for (int room = KatAMRoomCount; room < rows; room++) WriteInt(rom, newInfos + room * 4, ReadInt(rom, roomInfos + 0x397 * 4));
+            Array.Copy(rom, arrivals, rom, newArrivals, KatAMRoomCount * 2);
+            Array.Fill(rom, (byte)0, newArrivals + KatAMRoomCount * 2, (rows - KatAMRoomCount) * 2);
+
+            Dictionary<string, int> backgroundOf = new Dictionary<string, int>();
+            Dictionary<string, (int width, int height)> backgroundSize = new Dictionary<string, (int, int)>();
+            try {
+                for (int i = 0; i < files.Count; i++) {
+                    SqueakRoomFiles f = files[i];
+                    int room = SqueakFirstRoom + i;
+                    SqueakMap map = new SqueakMap(SqueakUnpack(SqueakFileAnyCase(squeak, f.Map)));
+                    SqueakTileset front = f.Front == null || SqueakFileAnyCase(squeak, f.Front) is not byte[] frontFile ? null : new SqueakTileset(frontFile);
+                    SqueakTileset main = f.Main == null || SqueakFileAnyCase(squeak, f.Main) is not byte[] mainFile ? null : new SqueakTileset(mainFile);
+                    int width = map.Width, height = map.Height;
+                    if (width * height > BigRoomBlocks) return $"Squeak Squad's room {f.Area}-{f.Stage}-{f.Index} is bigger than KatAM can hold.";
+
+                    // Collision; the star blocks (and what they leave: air, water in water);
+                    byte[] collision = new byte[width * height];
+                    List<(int x, int y)> blocks = new List<(int, int)>();
+                    List<byte> leaves = new List<byte>();
+                    for (int y = 0; y < height; y++)
+                        for (int x = 0; x < width; x++) {
+                            uint word = SqueakCellWord(map, x, y);
+                            byte value = collision[y * width + x] = SqueakCollision(word);
+                            if (value != KatAMStarBlock) continue;
+                            blocks.Add((x, y));
+                            leaves.Add(word >> 30 == 1 ? KatAMWater : KatAMAir);
+                        }
+                    for (int b = 0; b < blocks.Count; b++) {
+                        (int x, int y) = blocks[b];
+                        bool Water(int cx, int cy) => cx >= 0 && cy >= 0 && cx < width && cy < height && collision[cy * width + cx] is >= 0x34 and <= 0x48;
+                        if (Water(x - 1, y) || Water(x + 1, y) || Water(x, y - 1) || Water(x, y + 1)) leaves[b] = KatAMWater;
+                    }
+
+                    // Foreground: its tiles, palettes and tilemap;
+                    SqueakForeground foreground = ConvertSqueakForeground(map, front, main, ForegroundTiles, blocks);
+                    int tilesAt = AllocateCompressed(rom, CompressLZ77(foreground.Tiles), ref here);
+                    int info = Allocate(ref here, 16, 4);
+                    WriteInts(rom, info, tilesAt + 0x08000000, 0, 0);
+                    WriteShorts(rom, info + 12, 0, room);
+                    int colors = Allocate(ref here, 0xC0, 4), palette = Allocate(ref here, 12, 4);
+                    for (int c = 0; c < 96; c++) WriteShort(rom, colors + c * 2, foreground.Palettes[c]);
+                    WriteInts(rom, palette, colors + 0x08000000, paletteCycles);
+                    WriteShorts(rom, palette + 8, 0, room);
+                    byte[] tilemap = new byte[foreground.Tilemap.Length * 2];
+                    for (int t = 0; t < foreground.Tilemap.Length; t++) WriteShort(tilemap, t * 2, foreground.Tilemap[t]);
+                    int tilemapAt = AllocateCompressed(rom, CompressLZ77(tilemap), ref here), tilemapEntry = Allocate(ref here, 0x20, 4);
+                    WriteShorts(rom, tilemapEntry, foreground.Columns, foreground.Rows);
+                    WriteInts(rom, tilemapEntry + 0x18, tilemapAt + 0x08000000, room << 16);
+
+                    // Background: the far view, shared;
+                    string view = f.View ?? "";
+                    if (!backgroundOf.TryGetValue(view, out int background)) {
+                        byte[] viewFile = f.View == null ? null : SqueakFileAnyCase(squeak, f.View);
+                        if (viewFile == null) background = Props(0x3C9, 15);
+                        else {
+                            SqueakBackground farView = ConvertSqueakFarView(SqueakFarViewPicture(viewFile));
+                            int bgTiles = AllocateCompressed(rom, CompressLZ77(farView.Tiles), ref here), bgColors = Allocate(ref here, 0x100, 4);
+                            for (int c = 0; c < 128; c++) WriteShort(rom, bgColors + c * 2, farView.Palettes[c]);
+                            byte[] bgMap = new byte[farView.Map.Length * 2];
+                            for (int t = 0; t < farView.Map.Length; t++) WriteShort(bgMap, t * 2, farView.Map[t]);
+                            int bgMapAt = AllocateCompressed(rom, bgMap, ref here), at = Allocate(ref here, 0x20, 4);
+                            WriteShorts(rom, at, farView.Width, farView.Height);
+                            WriteInts(rom, at + 8, bgTiles + 0x08000000, farView.Tiles.Length / 32, bgColors + 0x08000000);
+                            WriteShorts(rom, at + 0x14, 0x60, 0x80);
+                            WriteInts(rom, at + 0x18, bgMapAt + 0x08000000, room << 16);
+                            background = Add("gRoomTiledBGs", at);
+                            backgroundSize[view] = (farView.Width * 8, farView.Height * 8);
+                        }
+                        backgroundOf[view] = background;
+                    }
+                    /* (it pans across once as the camera crosses the room, BackgroundRates(), the camera here from the room's top down to 8
+                     * pixels from its bottom, 32 lower than KatAM's: its range the room's height - 168; KatAM draws the background's top at
+                     * (its height - 160) - unk0C - (the room's height - 160 - the camera's y) * the rate, so unk0C is 8 rates up, keeping
+                     * its top row at the screen's top with the camera at the room's top); */
+                    (int rateX, int rateY) = backgroundSize.TryGetValue(view, out var bgSize) ? BackgroundRates(bgSize.width, bgSize.height, width * 16, height * 16 + 32, 0) : (0, 0);
+                    int backgroundDown = -((8 * rateY + 0xFF) >> 8);
+
+                    // Collision and its special blocks: a star block's, what it leaves (its cell drawn bare, foreground.Bare);
+                    List<byte> specials = new List<byte>();
+                    for (int b = 0; b < blocks.Count; b++) {
+                        specials.AddRange(new byte[] { 1, KatAMStarBlock, (byte)blocks[b].x, (byte)blocks[b].y, 0x12, 0, 0xFF, 0xFF });
+                        foreach (ushort e in foreground.Bare[b]) specials.AddRange(BitConverter.GetBytes(e));
+                        specials.AddRange(new byte[] { leaves[b], 0xFF });
+                    }
+                    specials.AddRange(new byte[] { 0, 0, 0, 0, 0, 0, 0xFF, 0xFF });
+                    int collisionAt = AllocateCompressed(rom, CompressRL(collision), ref here), specialsAt = AllocateCompressed(rom, specials.ToArray(), ref here);
+                    int solidity = Allocate(ref here, 8, 4);
+                    WriteInts(rom, solidity, collisionAt + 0x08000000, specialsAt + 0x08000000);
+
+                    int objects = WriteObjectList(rom, new List<byte[]>(), new List<byte>(), noTypes, ref here);
+                    int navigation = BuildNavigation(rom, width, height, false, collision, navigationRoutes, new List<(int, int, int, int)>(), ref here);
+                    int doors = DoorsList(new List<byte>(), 0);
+
+                    // Room info: room 0x397's (no routes, the helpers' flags), its room; the map viewer's +0x4A, +0x4B: stage, room;
+                    int roomInfo = Allocate(ref here, 0x4C, 4);
+                    Array.Copy(rom, ReadInt(rom, roomInfos + 0x397 * 4) - 0x08000000, rom, roomInfo, 0x4C);
+                    WriteShort(rom, roomInfo + 0x44, room);
+                    rom[roomInfo + 0x4A] = (byte)f.Stage;
+                    rom[roomInfo + 0x4B] = (byte)f.Index;
+                    WriteInt(rom, newInfos + room * 4, roomInfo + 0x08000000);
+
+                    rom[CodeAddress + version.CodeSymbols["gNidlRoomTops"] + room] = SqueakCameraTop;
+                    int doorsIndex = Add("gUnk_08D640A4", doors);
+                    if (doorsIndex < FirstDoorsList) return "Squeak Squad's doors lists start too early.";
+                    WriteShorts(rom, newProps + room * 0x28, LevelSongs[(f.Area - 1) % LevelSongs.Length], 0, 0, 0x100, 0x100, 0, backgroundDown, rateX, rateY, RoomFlags,
+                                Add("gForegroundInfo", info), Add("gForegroundPalettes", palette), Add("gForegroundTilemaps", tilemapEntry),
+                                Add("gSolidityMaps", solidity), 0xFFFF, background, Add("gLevelObjLists", objects), Add("gUnk_08D63C28", navigation),
+                                doorsIndex, 0);
+                    squeakRooms.Add(new SqueakPortedRoom(f, room, width, height));
+                }
+            } catch (Exception exception) when (exception is IndexOutOfRangeException or ArgumentException or InvalidOperationException) {
+                return $"The Squeak Squad ROM's rooms couldn't be read ({exception.Message}).";
+            }
+
+            // The tables the props index: the new entries in NiDL's copies' room, or new copies of KatAM's;
+            foreach (string table in tableNames) {
+                List<int> entries = added[table];
+                if (nidlRooms) {
+                    (int at, int count, int capacity) = roomTables[table];
+                    if (count + entries.Count > capacity) return $"Too many Squeak Squad rooms for the room tables ({table}).";
+                    WriteInts(rom, at + count * 4, entries.ToArray());
+                    roomTables[table] = (at, count + entries.Count, capacity);
+                    continue;
+                }
+                int size = First(table), copy = Allocate(ref here, (size + entries.Count) * 4, 4);
+                Array.Copy(rom, symbols[table], rom, copy, size * 4);
+                WriteInts(rom, copy + size * 4, entries.ToArray());
+                RepointEverywhere(rom, version, symbols[table], copy);
+            }
+            RepointEverywhere(rom, version, roomProps, newProps);
+            RepointEverywhere(rom, version, roomInfos, newInfos);
+            RepointEverywhere(rom, version, arrivals, newArrivals);
+            // (the map viewer's rooms block names the room info table: its copy now);
+            if (nidlRooms) WriteInt(rom, MapRoomsBlock + 4 + 6 * 4, newInfos + 0x08000000);
+            cursor = finishCursor = here;
+            return null;
+        }
+
+        // RepointEverywhere(); A table moved: KatAM's code's literals (Repoint()) and the expansion's code's;
+        static void RepointEverywhere(byte[] rom, KatAMExpansionCode.Version version, int from, int to) {
+            Repoint(rom, from + 0x08000000, to + 0x08000000);
+            for (int i = CodeAddress; i < CodeAddress + version.Code.Length; i += 4)
+                if (ReadInt(rom, i) == from + 0x08000000) WriteInt(rom, i, to + 0x08000000);
         }
     }
 }

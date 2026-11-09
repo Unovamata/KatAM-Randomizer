@@ -24,10 +24,11 @@
      * (object templates), gUnk_08D63C28 (CPU helpers' zones), gUnk_08D6CD0C (per room: area, routes; written in place) and
      * gUnk_08D640A4 (doors per doorsIdx). The tables are copied with the new entries and every reference to them repointed. KatAM's
      * rooms have at most 1950 blocks (its buffers for the collision, its zones and tilemap, per loaded room); "ROM Expansion/rooms.c"
-     * gives them room for BigRoomBlocks (see BigRooms()), which every NiDL room fits in, whole. Every new room uses doorsIdx 287, the
+     * gives them room for BigRoomBlocks (see BigRooms()), which every NiDL and Squeak Squad room fits in, whole. Every new room uses doorsIdx 287, the
      * one gVisitedDoors entry (0x120) no vanilla room uses; */
     internal static partial class KatAMExpansion {
-        const int MaxRoomBlocks = BigRoomBlocks, BackgroundTiles = 900, SharedDoors = 287, FirstDoorsList = 0x120, RoomFlags = 0x79;
+        // (NiDL's rooms split into parts of up to MaxRoomBlocks, as approved: Squeak Squad's, whole, fill BigRoomBlocks);
+        const int MaxRoomBlocks = 3584, BackgroundTiles = 900, SharedDoors = 287, FirstDoorsList = 0x120, RoomFlags = 0x79;
 
         /* A cannon's fuse (NiDL 0x38-0x3D, inside walls: up-down, left-right, up-right, up-left, right-down, left-down) -> KatAM's
          * (0x22-0x27: up-down, right-down, left-down, left-right, up-right, up-left; solid, as walls), which its fuse object
@@ -311,6 +312,8 @@
             chestsOf = new Dictionary<NightmareRoom, List<NidlChest>>();
             DoorsTable = -1;
             endingFlight = -1;
+            roomTables = null;
+            squeakRooms = new List<SqueakPortedRoom>();
         }
 
         /* NightmareRooms(); NiDL's level rooms, split where KatAM can't hold them whole. Left out: the levels' hub lists (hub, museum,
@@ -1115,9 +1118,10 @@
         /* AddRooms(); Every NiDL room into KatAM's free room slots (see the notes above); the room records' foregrounds, palettes and
          * backgrounds are shared as in NiDL; */
         /* BigRooms(); Rooms of up to BigRoomBlocks blocks ("ROM Expansion/rooms.c": each loaded room's collision, zones and tilemap in
-         * buffers that big, two in KatAM's own, two at the end of the EWRAM heap): the game's functions using those buffers jump to
-         * rooms.c's copies, and the heap (EwramInitHeap's size, 0x20080) shrinks to NidlHeapSize; */
-        const int BigRoomBlocks = 3584, VanillaHeapSize = 0x20080, NidlHeapSize = 0xE478;   // rooms.c's BIG_BLOCKS, NIDL_HEAP_SIZE;
+         * buffers that big, the first in KatAM's own, the others' collision and zones in KatAM's tilemap buffer and their tilemaps at
+         * the end of the EWRAM heap): the game's functions using those buffers jump to rooms.c's copies, and the heap (EwramInitHeap's
+         * size, 0x20080) shrinks to NidlHeapSize (the game used under 6 KB of it in every room and fight measured); */
+        const int BigRoomBlocks = 4032, VanillaHeapSize = 0x20080, NidlHeapSize = 0x7C80;   // rooms.c's BIG_BLOCKS, NIDL_HEAP_SIZE;
         // (and the ported rooms' doors lists, from FirstDoorsList, their visited doors in rooms.c's NIDL_VISITED: the functions reading them);
         static readonly string[] BigRoomFunctions = {
             "FillLevelInfo", "GetCollisionTile", "sub_08002434", "sub_08002470", "sub_080024F0", "sub_0800255C", "sub_080025AC",
@@ -1161,6 +1165,28 @@
             WriteInts(rom, arm, unchecked((int)0xE59FC000), unchecked((int)0xE12FFF1C), target + 1);
         }
 
+        /* RoomTableSizes(); KatAM's room tables' sizes (by the props' fields that index them, 10-18: the most a vanilla room names, + 1)
+         * and its free rooms (props all 0xFFFF); */
+        const int KatAMRoomCount = 0x3D7;
+        static int[] RoomTableSizes(byte[] rom, int roomProps, out List<int> free) {
+            free = new List<int>();
+            int[] tableSizes = new int[20];
+            for (int room = 1; room < KatAMRoomCount; room++) {
+                int props = roomProps + room * 0x28;
+                if (Enumerable.Range(0, 19).All(i => ReadShort(rom, props + i * 2) == 0xFFFF)) { free.Add(room); continue; }
+                for (int field = 10; field < 19; field++) {
+                    int index = ReadShort(rom, props + field * 2);
+                    if (index != 0xFFFF) tableSizes[field] = Math.Max(tableSizes[field], index + 1);
+                }
+            }
+            /* gRoomTiledBGs' last entries too, which no room's props name: KatAM's code loads entry 34 (the credits' second background) itself
+             * for Dark Mind's last room (0x397, code_080023A4.c: gRoomTiledBGs[34]); the copy stopped at the last one a room names (33), and
+             * the first NiDL background took 34's place (the owner's garbled final boss battle: a NiDL room's background drawn over its
+             * sky); all of KatAM's 36 are kept, the NiDL ones after them; */
+            tableSizes[15] = Math.Max(tableSizes[15], KatAMRoomTiledBGs);
+            return tableSizes;
+        }
+
         static string AddRooms(byte[] rom, byte[] nightmare, NightmareRegion region, KatAMExpansionCode.Version version, ref int cursor) {
             IReadOnlyDictionary<string, int> symbols = version.RomSymbols;
             string bigRooms = BigRooms(rom, version);
@@ -1177,22 +1203,7 @@
             }
 
             // The vanilla rooms: their tables' sizes, the free slots, and what new rooms borrow (all from rooms every version has);
-            const int RoomCount = 0x3D7;
-            List<int> free = new List<int>();
-            int[] tableSizes = new int[20];
-            for (int room = 1; room < RoomCount; room++) {
-                int props = roomProps + room * 0x28;
-                if (Enumerable.Range(0, 19).All(i => ReadShort(rom, props + i * 2) == 0xFFFF)) { free.Add(room); continue; }
-                for (int field = 10; field < 19; field++) {
-                    int index = ReadShort(rom, props + field * 2);
-                    if (index != 0xFFFF) tableSizes[field] = Math.Max(tableSizes[field], index + 1);
-                }
-            }
-            /* gRoomTiledBGs' last entries too, which no room's props name: KatAM's code loads entry 34 (the credits' second background) itself
-             * for Dark Mind's last room (0x397, code_080023A4.c: gRoomTiledBGs[34]); the copy stopped at the last one a room names (33), and
-             * the first NiDL background took 34's place (the owner's garbled final boss battle: a NiDL room's background drawn over its
-             * sky); all of KatAM's 36 are kept, the NiDL ones after them; */
-            tableSizes[15] = Math.Max(tableSizes[15], KatAMRoomTiledBGs);
+            int[] tableSizes = RoomTableSizes(rom, roomProps, out List<int> free);
 
             int Props(int room, int field) => ReadShort(rom, roomProps + room * 0x28 + field * 2);
             int Entry(string table, int index) => ReadInt(rom, symbols[table] + index * 4) - 0x08000000;
@@ -1530,9 +1541,12 @@
                 ("gRoomTiledBGs", tableSizes[15], backgrounds), ("gLevelObjLists", tableSizes[16], objects),
                 ("gUnk_08D63C28", tableSizes[17], navigations), ("gUnk_08D640A4", SharedDoors, doorLists),
             };
+            // (each with room for Squeak Squad's after them, SqueakTableRoom: AddSqueakRooms() writes theirs there, roomTables);
             Dictionary<string, int> moved = new Dictionary<string, int>();
+            roomTables = new Dictionary<string, (int at, int count, int capacity)>();
             foreach ((string table, int size, List<int> entries) in tables) {
-                int at = moved[table] = Allocate(ref cursor, (size + entries.Count) * 4, 4);
+                int at = moved[table] = Allocate(ref cursor, (size + entries.Count + SqueakTableRoom) * 4, 4);
+                roomTables[table] = (at, size + entries.Count, size + entries.Count + SqueakTableRoom);
                 Array.Copy(rom, symbols[table], rom, at, size * 4);
                 WriteInts(rom, at + size * 4, entries.ToArray());
                 Repoint(rom, symbols[table] + 0x08000000, at + 0x08000000);
@@ -4571,13 +4585,16 @@
          * helper in the room froze the game) a zone in each block down its middle (a block without one: the open cell nearest the
          * block's middle; blocks under a screen high), all neighbours, so its bounds hold one he can reach as it moves; returns its
          * address; */
-        static int BuildNavigation(byte[] rom, NightmareRoom r, byte[] collision, int routes, List<(int left, int top, int width, int height)> arenas, ref int cursor) {
-            int width = r.FullWidth, height = r.FullHeight;
+        static int BuildNavigation(byte[] rom, NightmareRoom r, byte[] collision, int routes, List<(int left, int top, int width, int height)> arenas, ref int cursor) =>
+            // (Heavy Mole's room, all dirt the fight digs: a zone at each block's middle, HeavyMoleRoom);
+            BuildNavigation(rom, r.FullWidth, r.FullHeight, r.Record == gridRecord, collision, routes, arenas, ref cursor);
+
+        // (any room's, `width` by `height` blocks: Squeak Squad's too, KatAMExpansionSqueakRooms.cs; `grid`, a zone at each block's middle);
+        static int BuildNavigation(byte[] rom, int width, int height, bool grid, byte[] collision, int routes, List<(int left, int top, int width, int height)> arenas,
+                                   ref int cursor) {
             bool Open(int x, int y) => x >= 0 && y >= 0 && x < width && y < height
                                        && collision[y * width + x] is 0x00 or 0x48 or 0x20 or 0x21 or 0xFC or 0xFD or 0xFE or 0xFF;
             bool Standable(int x, int y) => Open(x, y) && y + 1 < height && !Open(x, y + 1);
-            // (Heavy Mole's room, all dirt the fight digs: a zone at each block's middle, HeavyMoleRoom);
-            bool grid = r.Record == gridRecord;
 
             int blockWidth = 8, blockHeight = 6;
             List<(int bx, int by, int x, int y)> zones;

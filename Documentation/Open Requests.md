@@ -380,8 +380,15 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
       exactly; the rest within near-identical shades; the 3 busiest rooms share a few tiles to fit KatAM's 768); all 39 far views
       as KatAM backgrounds (3/4 size, 8 palettes, at most 900 tiles); the collision (slopes, thin floors, ladders, spikes, water,
       star blocks), overlaid on converted rooms to check it lines up.
-    - Left: the objects (enemies, food, chests, ability bubbles as enemies), the gimmicks, tile animations, writing the rooms into
-      the ROM and testing them in the emulator; then the hub, the levels by the rulebook, bosses, map viewer, logic checks.
+    - In the ROM (the e2e harness's `KSSROOMS=1`; no option in the window yet): all 493 rooms as rooms 0x400 on, the room tables
+      grown and moved, rooms of up to 4032 blocks loaded whole (rooms.c's buffers re-laid, the EWRAM heap smaller: measured), the
+      camera down to the room's bottom. Checked in the GBA emulator (forced starts, not a playthrough): Prism Plains 1's first
+      two rooms (drawing, background panning, slopes, star blocks inhaled away), Cushy Cloud 1's first (the biggest), Secret Sea
+      1's third (water), a ladder in Cushy Cloud 6's second; NiDL's mirrors all swept again (no change), 3 versions built and
+      the logic checks run (with and without drops).
+    - Left: the objects (enemies, food, chests, ability bubbles as enemies; the chase spawns after the stage's treasure, the
+      Squeakers among them), the doors, the gimmicks, tile animations, the areas; then the hub, the levels by the rulebook,
+      bosses, the option, map viewer, logic checks.
   - Ability bubbles whose ability no regular enemy gives (Hammer, Bonkers' in KatAM; Squeak Squad's ability numbers 18 and 26)
     become food (the owner: "In the case of bubbles without no regular enemy, you can swap them out for food.").
 - **Map items for each area** (the owner, with the rooms): KatAM's map item, its sprite recolored to each NiDL and Squeak Squad

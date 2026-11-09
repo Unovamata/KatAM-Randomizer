@@ -530,12 +530,21 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
   - The objects (`.doe`): `De`, then `u16` offsets: +2 (12) the enemy list, +6 the item list. The enemy list: `u16` count at +12, then
     16-byte records from +14 (the stage-object records above; the loaded file is the list). The item list: `u16` count, then 16-byte
     records: `+2` `u16` its kind, `+4` x, `+6` y from the top, `+0xB` its flags (as the enemies'), `+0xD` a chest's treasure number.
-    Kinds (570 items in the 8 worlds; seen in the DS emulator, Kirby moved beside each): 3 a 1UP, 5 a Maxim Tomato, 4, 6
-    (a drumstick), 7 (an energy drink) and 8 (a cherry: Prism Plains 1's second room, x 840) food, 1 (a bubble, a small Kirby in
-    it) and 0x15 (a bubble with a question mark) not yet named; 0x11 and 0x14 treasure chests (0x14 the big red one; their
+    Kinds (570 items in the 8 worlds; seen in the DS emulator, Kirby moved beside each): 3 a 1UP, 5 a Maxim Tomato, 4 (the
+    invincible candy, a red and white swirl), 6 (a drumstick), 7 (an energy drink) and 8 (a cherry: Prism Plains 1's second room,
+    x 840) food, 1 (a bubble holding a small Kirby, the 1UP's look) and 0x15 (a bubble with a question mark, not yet confirmed what
+    it gives); 0x11 and 0x14 treasure chests (0x14 the big red one; their
     treasure numbers at `+0xD`); 0x17-0x30 abilities, the ability the kind less 0x16, on a stand or in a floating bubble (0x17
     Fire, 0x18 Ice, 0x19 Spark, 0x1C Parasol, 0x1D Cutter, 0x26 Sword, 0x29 Ninja: seen). The Squeaks (enemy IDs 0x40-0x44: Squeakers, which `+8` colors, Spinni, Doc, Storo; 0x45 Daroach in a stage) are in the
     enemy list.
+  - The spawn flags (`+0xB`, enemies and items), from the stage-object code: a record spawns while its state (`+1`) is 0, 5 or 6
+    (`0x0220A368`); with bit 4 it spawns only once the stage's treasure event has run (`0x02218D00`: the stage's `+0x14` set to 1;
+    in stage mode 2, Kirby carrying the stage's chest, everything spawns), without it only before: all 856 Squeakers, most of
+    Spinni's, Doc's and Storo's records and the dark star's are these chase spawns (`0x02219028` brings out the Squeaks among them);
+    bit 1 keeps a defeated one gone till the area reloads (state 4, else 2: `0x02218EF4`); bit 8 is on the mid-bosses and bosses.
+  - The item maker (`0x0203B210`, item IDs 0-14: 0 nothing, 1-3 the same object with kinds 3, 1 and 2 (`0x0203A398`: 3 the 1UP),
+    4 and 5 others, 6-14 food: 6 the Maxim Tomato, 7 heals 24 of 36, 8 12, 9 6). The floating bubbles' parameters (section 10's
+    type 0x11 table: 0x10 or 0x11 and an item ID, 0x00 or 0x01 and an ability) name these IDs: 1 (40 of them), 2, 3, 6 (21), 7...
   - Section 9 after the zone grid: a `u16` count and 8-byte points (`u16` index, x, y from the top, size), then a table; the paths
     and spots of the Squeakers and of the bosses (Mrs. Moley's holes); most rooms carry one dummy point.
   - Section 10, the gimmicks (`yakumono`, made by `0x0221D5B8`'s switch when the camera nears them; checked by screenshots in the
@@ -557,6 +566,22 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
     fitted to 8 palettes of 15 colors in at most 900 tiles (`ConvertSqueakFarView()`: all 39 fit, at most 10 tiles shared).
   - Section 12, the foreground's tile animations: 12 bytes, then `u16` count and 12 bytes each (`u16` the first tile, `u8` frames,
     a byte, the frames' durations).
+  - **In KatAM** (`KatAMExpansionSqueakRooms.cs`, `AddSqueakRooms()`; the e2e harness's `KSSROOMS=1`, not yet an option): the 493
+    rooms of the 8 worlds (the test stages left out), each whole, as rooms 0x400 on, past KatAM's 0x3D7 (its goal games' 0x3D4-0x3DD
+    among them). The three tables with a row per room (`gRoomProps`, `gUnk_08D6CD0C`, `gUnk_0893CB44`) move, grown to the last
+    room, every reference repointed (KatAM's code and the expansion's name each by its base alone: checked as the ROM is made); the
+    tables the props index get the rooms' entries after NiDL's, in room their copies leave (`SqueakTableRoom`). A room's foreground
+    is its three layers as one picture (`ConvertSqueakForeground()`), a star block's cell drawn without the front layer for what it
+    leaves (the block is the front layer's); its background the far view; its collision `SqueakCollision()` (a star block KatAM's
+    0xF0, its special block record leaving air, or water in water). "ROM Expansion/rooms.c" holds rooms of up to 4032 blocks
+    (Cushy Cloud 1's first room, 96 x 42; `BIG_BLOCKS`): slot 0 in KatAM's arrays, the other slots' collision and zones in KatAM's
+    tilemap array after slot 0's tilemap and their tilemaps at the heap's end (the heap 0x7C80 bytes: the game used under 6 KB of it
+    in every room and fight measured, the title and pause screens too); `gNidlRoomTops`' `ROOM_FULL_BOTTOM` lets the camera go down
+    to 8 pixels from the room's bottom (KatAM's 40 hide its last rows: the DS shows them, and these rooms get no padding). Doors
+    lists past KatAM's keep their visited doors in rooms.c's area (1214 lists), the items' taken bits too (kinds 5-7 for Squeak
+    Squad's, 256 each). Checked in the GBA emulator (forced starts, not a playthrough): Prism Plains 1's first two rooms (the star
+    blocks inhaled away), Cushy Cloud 1's first (the biggest; the helpers' room loaded in another slot at once), Secret Sea 1's third (water),
+    a ladder climbed in Cushy Cloud 6's second.
 - **Stage files** (`map/*.mxp`, NDS RLE, type 0x30): `MaD\0`, 8 bytes, then 13 section offsets (`u32` from +0x0C): section 0 the width and height in tiles (bytes); 3-5 and 6-8 the tile grids (16 and 32 bits a tile); 9 the zone grid (a byte a tile), then a `u16` count and 8 bytes a point (`u8` kind, a byte, `u16` x, y and a size, pixels from the top), then the points' table; `.doe` the objects (an enemy list and an item list: see "Stage rooms, for porting them"). A stage's `.mxi` (`map/aNsM.mxi`) lists its parts' files (`MA` the map, `FB`/`BB` the graphics, `DE` the objects, `PL` a palette, `3D` the background); loaded, its table sits at the stage info (`*(*0x02229F1C + 0x40)` + 0x10, 0x1C bytes a part). To load a stage in the DS emulator, repoint that table's strings to the stage's files and let Kirby lose a life (the stage restarts from its first part): Mrs. Moley's stage was recorded this way from a save in 1-1.
 - **Ability numbers** (`0x0203A9C4`'s, from the factory's cases): 1 Fire (Hot Head, Acchi, Flamer), 2 Ice (Pengy), 3 Spark (Sparky), 4 Beam (Waddle Doo), 5 Tornado (Twister), 7 Cutter (Sir Kibble), 8 Laser (Laser Ball), 9 Bomb (Foley), 10 Wheel (Wheelie), 11 UFO, 13 (Cupie), 14 Sleep (Noddy), 15 (Starman), 16 Sword (Sword Knight, Heavy Knight), 17 (Bun), 19 (Bio Spark), 20 (Boxin), 21 (Gaw Gaw), 22 Bubble (Bubble Head), 23 Metal (Metalun).
 
