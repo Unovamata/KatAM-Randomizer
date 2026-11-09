@@ -525,7 +525,33 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
     and the same alone in air); bits 24-26 a block (4 a star block, 5 a big one; with `0x38`: 1 a stake, 2 an electric zapper);
     bits 27-29 the surface (1 ground, 2 sand and metal, 3 grass, 4 clouds and snow, 5 ice and lava floors, 7 special); bits 30-31
     a liquid, read where the low half is air (1 water, `0x40000000`, 2 lava, `0x80000000`; `0x42000000` fire jets).
-- **Stage files** (`map/*.mxp`, NDS RLE, type 0x30): `MaD\0`, 8 bytes, then 13 section offsets (`u32` from +0x0C): section 0 the width and height in tiles (bytes); 3-5 and 6-8 the tile grids (16 and 32 bits a tile); 9 the zone grid (a byte a tile), then a `u16` count and 8 bytes a point (`u8` kind, a byte, `u16` x, y and a size, pixels from the top), then the points' table; `.doe` the objects (16 bytes each after a 16-byte header: `u16` the enemy, x, y in pixels from the top, then its bytes). A stage's `.mxi` (`map/aNsM.mxi`) lists its parts' files (`MA` the map, `FB`/`BB` the graphics, `DE` the objects, `PL` a palette, `3D` the background); loaded, its table sits at the stage info (`*(*0x02229F1C + 0x40)` + 0x10, 0x1C bytes a part). To load a stage in the DS emulator, repoint that table's strings to the stage's files and let Kirby lose a life (the stage restarts from its first part): Mrs. Moley's stage was recorded this way from a save in 1-1.
+  - The objects (`.doe`): `De`, then `u16` offsets: +2 (12) the enemy list, +6 the item list. The enemy list: `u16` count at +12, then
+    16-byte records from +14 (the stage-object records above; the loaded file is the list). The item list: `u16` count, then 16-byte
+    records: `+2` `u16` its kind, `+4` x, `+6` y from the top, `+0xB` its flags (as the enemies'), `+0xD` a chest's treasure number.
+    Kinds (570 items in the 8 worlds; seen in the DS emulator, Kirby moved beside each): 3 a 1UP, 5 a Maxim Tomato, 4, 6
+    (a drumstick), 7 (an energy drink) and 8 (a cherry: Prism Plains 1's second room, x 840) food, 1 (a bubble, a small Kirby in
+    it) and 0x15 (a bubble with a question mark) not yet named; 0x11 and 0x14 treasure chests (0x14 the big red one; their
+    treasure numbers at `+0xD`); 0x17-0x30 abilities, the ability the kind less 0x16, on a stand or in a floating bubble (0x17
+    Fire, 0x18 Ice, 0x19 Spark, 0x1C Parasol, 0x1D Cutter, 0x26 Sword, 0x29 Ninja: seen). The Squeaks (enemy IDs 0x40-0x44: Squeakers, which `+8` colors, Spinni, Doc, Storo; 0x45 Daroach in a stage) are in the
+    enemy list.
+  - Section 9 after the zone grid: a `u16` count and 8-byte points (`u16` index, x, y from the top, size), then a table; the paths
+    and spots of the Squeakers and of the bosses (Mrs. Moley's holes); most rooms carry one dummy point.
+  - Section 10, the gimmicks (`yakumono`, made by `0x0221D5B8`'s switch when the camera nears them; checked by screenshots in the
+    DS emulator, Kirby moved beside each): `u16` size, then `u16` the entries' offset, the tables' offset, 0, `u8` entries, tables;
+    an entry is 8 bytes (`u8` type, index, `u16` x, y from the top, a byte); a table (offsets listed from the tables' offset) is
+    `u8` type, count, `u16` size, then each entry's parameters by its index. Types: 0 a small star switch, 1 a hanging rope,
+    2 shutters (gates), 3 a floor hanging from a rope, 4 (unseen: a path), 5 thunder clouds, 6 a rolling boulder, 7 fire columns,
+    8 falling rocks, 9 icicles, 0xA candles (dark rooms), 0xB a rotating cannon, 0xC a cannon, 0xD a warp star's flight (its path in
+    the table), 0xE grass tufts, 0xF barrels (holding food: `0x10` and the food), 0x10 the blocks a switch toggles, 0x11 floating
+    bubbles (`0x10` and a food, or `0` and an ability), 0x12, 0x13, 0x14 (rectangles: camera or scroll areas), 0x15, 0x16 (the
+    Squeakers' treasure rooms' timings), 0x17, 0x18, 0x19 (171 in two lava rooms), 0x1A: unseen helpers, not yet identified.
+  - Section 11, the doors: `u16` count, then 10 bytes a door: `u16` its number (the collision's `0x80 + n` marks it), `u8` flags,
+    `u8` kind, `u16` x, y from the top, `u8` the stage's room it leads to and `u8` that room's door (`0xFF`: none). Kind 6 is where
+    Kirby starts, 4 a door, 0x40-0x42 and 0x80-0xC1 other entrances (pipes, edges); flags 0x10 a way on, 0x90 back the way Kirby
+    came, 0x23 with no room the stage's goal, 2 and 4 secret ways.
+  - Section 12, the foreground's tile animations: 12 bytes, then `u16` count and 12 bytes each (`u16` the first tile, `u8` frames,
+    a byte, the frames' durations).
+- **Stage files** (`map/*.mxp`, NDS RLE, type 0x30): `MaD\0`, 8 bytes, then 13 section offsets (`u32` from +0x0C): section 0 the width and height in tiles (bytes); 3-5 and 6-8 the tile grids (16 and 32 bits a tile); 9 the zone grid (a byte a tile), then a `u16` count and 8 bytes a point (`u8` kind, a byte, `u16` x, y and a size, pixels from the top), then the points' table; `.doe` the objects (an enemy list and an item list: see "Stage rooms, for porting them"). A stage's `.mxi` (`map/aNsM.mxi`) lists its parts' files (`MA` the map, `FB`/`BB` the graphics, `DE` the objects, `PL` a palette, `3D` the background); loaded, its table sits at the stage info (`*(*0x02229F1C + 0x40)` + 0x10, 0x1C bytes a part). To load a stage in the DS emulator, repoint that table's strings to the stage's files and let Kirby lose a life (the stage restarts from its first part): Mrs. Moley's stage was recorded this way from a save in 1-1.
 - **Ability numbers** (`0x0203A9C4`'s, from the factory's cases): 1 Fire (Hot Head, Acchi, Flamer), 2 Ice (Pengy), 3 Spark (Sparky), 4 Beam (Waddle Doo), 5 Tornado (Twister), 7 Cutter (Sir Kibble), 8 Laser (Laser Ball), 9 Bomb (Foley), 10 Wheel (Wheelie), 11 UFO, 13 (Cupie), 14 Sleep (Noddy), 15 (Starman), 16 Sword (Sword Knight, Heavy Knight), 17 (Bun), 19 (Bio Spark), 20 (Boxin), 21 (Gaw Gaw), 22 Bubble (Bubble Head), 23 Metal (Metalun).
 
 **Daroach in a stage** (enemy 0x45, ported: `squeak/daroach.c`): made by `0x020A51A8` (with `enemy/demo_dancho`, `0x020750F4`), his body `0x02134DA8` (`0x020A4F54(..., 0x45)`, vtable `0x02184B14`: +0x3C start `0x02134C74`, +0x34 per frame `0x02134ECC`, its hit handlers +0x2C/+0x30 `0x02134D38`/`0x02134D34` return 0; `0x0213482C` zeroes its speeds), its spawn byte 9 its facing (0: flag 4, left), flags 0x100 (the terrain not checked by `0x0201355C`), 0x20 and 0x20000 (not held in the stage). Params `prmDB04Ml0`: 60, 20, 60, -2.0, 2.0, 0, 0. A scene: `0x02134C74` takes Kirby's controls (`0x02012F94`: a handle on `0x01FF8180`'s list, released by `0x02012F68`; not in the stage's mode 3, `0x02209560`'s +0x75), hovering 60 frames (animation 1); `0x02134B94`/`0x02134ADC` its cape (2, through); `0x02134A30` held 20 frames (3); `0x021349E8` pointing (4, through); `0x021348F8` the controls back (mode 3: `0x0220A2A4(..., 0)`), flying off at (-2.0, 2.0) (5) and `0x0213488C` gone after 60 frames or out of the view (`0x02209D00`'s margins 1), its spawn record set to state 4 (`0x0220A2B4(..., +0x1C4, 2)`, `0x02218EF4`: not again till the area reloads). `demo_dancho.rca` has no boxes. Recorded on the DS: Kirby frozen 92 frames, then the flight. `0x02209D00`'s margins (`0x022275F4`, above, below, left, right in pixels): 0: 16, 48, 48, 48; 1: 24, 56, 56, 56; 2: 96, 104, 128, 128; 3: 192, 56, 56, 56; 4: none; 5: 24, 1024, 56, 56.
@@ -571,10 +597,12 @@ NiDL's natives were); one it lacks is ported onto KatAM's own object (`ROM Expan
 
 ## Stage objects
 
-The stage's objects are 16-byte records: `*(*0x02229F1C + 0x90)` holds a `u16` count and, at `+4`, a pointer to them. A record:
-`+0` its index, `+1` its kind (0, 5 and 6 are spawned through the factory), `+2` `u16` enemy ID, `+4` `u16` x in pixels, `+6` `u16`
-y in pixels from the room's bottom (`*0x02229F1C + 0x60` is the room's height, `fx32`), `+8`, `+9`, `+0xA` its parameter bytes.
-`0x0202EC50` spawns record `index` when the camera reaches it (the factory call is at `0x0202ECAC`).
+The stage's objects are 16-byte records: `*(*0x02229F1C + 0x90)` holds a `u16` count and, at `+4`, a pointer to them (the room's
+`.doe` itself, loaded: its enemy list, below). A record: `+0` its index and `+1` its state, both written as the room loads (`0x02218F40`
+on: 0 waiting, 1 alive, 2 gone, 4 not again till the area reloads; its `+0xB` bits 1, 4 and 8 pick the first), `+2` `u16` enemy ID,
+`+4` `u16` x in pixels, `+6` `u16` y in pixels from the room's top (`0x0220A368` turns it into the room's y-up: `*0x02229F1C + 0x60`,
+the room's height, `fx32`, less it), `+8`, `+9`, `+0xA` its parameter bytes, `+0xB` its flags. `0x0202EC50` spawns record `index`
+when the camera reaches it: IDs below 0x40 through the factory (`0x0202ECAC`), 0x40-0x45 (the Squeaks) through `0x020A5048`.
 
 The first room of Prism Plains' first stage holds a Waddle Dee (x 636), a Waddle Doo (x 1128) and a Sparky (x 1512). To watch any
 enemy, the test harness loads a save state after Kirby lands there and rewrites the first record (ID, x, y, parameters): the enemy

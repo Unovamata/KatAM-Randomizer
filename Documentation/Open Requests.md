@@ -361,7 +361,9 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
   - Joined to the game (the owner's pick): a hub of its own as NiDL's, reached from Central Circle, never from the NiDL hub;
     each world a level laid out by the rulebook; the bosses' shards back to that hub. The world map unchanged in this pass (the
     owner's pick when asked with the hub; the world-map mock-up above stays open).
-  - Bubbles: food ones become KatAM's matching food, ability ones food too (the owner's pick).
+  - Bubbles (the floating `yakumono/bubble` gimmicks): food ones become KatAM's matching food; ability ones become the enemy
+    that gives that ability in KatAM (the owner, changing the earlier pick of food: "Convert the floating bubbles holding
+    abilities into their respective enemy in-game. That makes the most sense.").
   - Chests (the owner): Squeak Squad's levels have their own, so none are added. Those holding ability scrolls, Squeak Squad
     spray paints, the secret map that unlocks Squeak Squad's ability room, and vitality halves hold those items, added from
     Squeak Squad (part of this request, after the rooms); the other chests hold consumables.
