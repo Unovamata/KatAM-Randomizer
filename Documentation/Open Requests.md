@@ -480,7 +480,8 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
       where they should.
     - The switch rooms, world doors and world map (`KatAMExpansionSqueakHubs.cs`; the rulebook's rules 4, 5, 6): a switch room per
       world after the hub (0x5EA-0x5F1), NiDL's two layouts, its look the world's tiles (provisional: each cell the look the
-      world's best-matching room gives the same kind of cell with the same around it; mock-ups to come), its big switch on its
+      world's best-matching room gives the same kind of cell with the same around it; mock-ups shown: each as built and with two of
+      the world's far views filling it, the owner's to pick), its big switch on its
       pedestal, two ability statues (provisional picks), its floor mirrors into the world (the stage before the boss's and another
       branch's), its way in a Mirra hidden in the world's second half. Its big switch sets a world slot of the expansion's save
       (0x20-0x27: the game's free ones are 6; rooms.c's `BigGetStateSlot`, KatAM's `GetStateSlot` replaced, the slots saved with
@@ -570,6 +571,20 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
     - The falling rocks (8) and the random relay (0x17) that rains them (the notes' falling rocks bullet). Checked in the GBA
       emulator (USA, 5-3-4): the rocks appear, fall and break on the floor as the relay sends. Not tested: a rock hurting Kirby,
       2-5-5, Europe and Japan in the emulator. 8-1-8's are started by a rope (gimmick 1), not ported yet: they stay hidden there.
+    - Gimmicks left (read on the DS, not ported; the notes have what's decoded):
+      - The moving wooden platforms (4, "floor" graphics: the paths in 6-1-4 and 7-3-2 the logic check stops at): their first word's
+        bits 12-14 how many legs, each leg two signed bytes (blocks across, blocks up), bits 10-11 the speed (1, 2 or 4 pixels a
+        frame), bits 7-9 what they do at the end. KatAM has no moving solid object (its "solid" objects are terrain cells), so
+        Kirby riding one needs either a carrier written for it or terrain cells stepped 16 pixels at a time: the owner's call
+        (question below). The rope floors (3) and the thunder clouds (5, riding paths, striking on 30-frame timers) wait on it too.
+      - The ropes (1): Kirby grabs and climbs them; 8-1-8's starts its rock relay. Not started.
+      - The rolling boulders (6): bits 4-5 of the first byte whether one rolls at once or waits for a message (4-3-2's wait for
+        its relays), bits 6-7 its speed (2, 3 or 4 pixels a frame); the boulder a 64-pixel still sprite, its animations 1-2 the
+        spinning debris it breaks into. Its direction and turning not read yet.
+      - The camera areas (0x14): entering one sets the camera's bounds (its four u16s, pixels) and messages its targets; 58 in
+        the rooms. Not ported: KatAM's camera follows Kirby over the whole room there.
+      - The candles (0xA, dark rooms), and gimmicks 0x12, 0x13, 0x18, 0x19, 0x1A (not identified).
+      - Hiding in an empty barrel (KatAM has no such move).
     - Left: the chests' Squeak Squad treasures (Ability Scrolls, Spray Paints, the Secret Map's pieces, Vitality halves: with
       their items, below), the chase spawns after the stage's treasure (the Squeakers among them, and 22 chests), the arenas
       without the NiDL ROM (NiDL's type holds the camera), the gimmicks, the areas.
