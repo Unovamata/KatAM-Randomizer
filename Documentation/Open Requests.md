@@ -476,7 +476,11 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
       doesn't have), is a goal again (2-8's last rooms had no way out). The room graph now: 365 of the 489 rooms reached, none of
       them without a way out. Checked in the GBA emulator (USA): 1-7's boss room, King Dedede beaten (forced: his HP set to 1, the
       rest of the fight played), the shard appears; Kirby put on it (forced), the cutscene plays, he dances and lands in the hub
-      (0x5E9) on the first world's spot; the same in the European ROM. Not checked yet: the other 7 bosses' rooms (Dark Nebula's:
+      (0x5E9) on the first world's spot; the same in the European ROM. The owner, on 1-7's shard looking off centre: it comes
+      over the boss room's chest (the DS drops its reward there, centred on the room's art: King Dedede's machine is 12 pixels
+      right of the room's middle on the DS too, its camera centred), and that chest (KatAM's consumables, dealt in turn as the
+      NiDL rooms': the DS's hold Boss Battle Badges) shows only once the boss is gone, as the DS drops it then. Checked in the
+      GBA emulator (USA, forced as above): the chest hidden through the fight, shown after, the shard over the machine's middle. Not checked yet: the other 7 bosses' rooms (Dark Nebula's:
       his HP written to 0 skips KatAM's defeat, which only a hit starts, so that run proved nothing; the scripted Sword didn't reach
       him), a real fight, the tomato when the shard is owned, Japan in the emulator. Seen there: Dark Nebula's room (8-4-6) shows
       a black band on its right, past its background (to look into). Still to do here: the hub's world doors (each

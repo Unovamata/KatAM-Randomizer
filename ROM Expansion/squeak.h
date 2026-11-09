@@ -126,6 +126,13 @@ enum { SQUEAK_STAR_SPIT, SQUEAK_STAR_AHEAD, SQUEAK_STAR_BEHIND, SQUEAK_STAR_SWOR
  * it goes, the shard comes, or a Maxim Tomato, as NiDL's bosses', nidl_boss.c's NidlBossShard(): the way out to the Squeak Squad hub,
  * gNidlShardExits; SqueakDestroy()); */
 #define SqueakBossShard(obj) ((obj)->objTemplate->unk11)
+/* (its unk14: where the shard comes, x in the room, pixels: the boss room's chest's, where the DS drops its reward, centred on its
+ * art (King Dedede's machine, 12 pixels right of the room's middle); 0 the screen's middle, as NiDL's (nidl_boss.c's SHARD_X, Y);
+ * the boss room's chest (its template's unk14 SQUEAK_CHEST_AFTER_BOSS) shows only once its boss is gone, as the DS drops it
+ * then: chest.c's SqueakCreateChest); */
+#define SQUEAK_SHARD_Y 72
+#define SQUEAK_CHEST_AFTER_BOSS 1
+bool32 SqueakBossAlive(u16 room);
 #define SQUEAK_CHEST_CLOSED SQUEAK_HURT_VARIANTS
 
 // Room every ported character gets (SqueakObject and its own fields);

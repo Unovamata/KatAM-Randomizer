@@ -98,6 +98,15 @@ void NidlChestOpen(struct Chest *chest) {
     chest->obj.unk78 = NidlChestOpened;
 }
 
+/* SqueakBossChestWait(); A boss room's chest (SQUEAK_CHEST_AFTER_BOSS) unseen and shut while the world's boss is there (its own
+ * function not run: nothing opens it), then as the game's: the function KatAM's chest set, kept in its unkDC (CreateChest() zeroes it,
+ * nothing reads it; never a static here: the expansion's code is in ROM, a static there reads 0xFFFFFFFF, writes lost); */
+static void SqueakBossChestWait(struct Chest *chest) {
+    if (SqueakBossAlive(chest->obj.base.roomId)) return;
+    chest->obj.base.flags &= ~0x400;
+    chest->obj.unk78 = (void *)chest->unkDC;
+}
+
 /* SqueakCreateChest(); A chest (objects 0x80, 0x81) as the game makes it; one of Squeak Squad's (SQUEAK_CHEST) shows open, emptied
  * and counted (sub_0800BD4C's: lever walls count the room's open chests) once its own bit is set; a big one in Squeak Squad's
  * platinum chest's palette (its frames SqueakAnimFor()'s; KatAM's 16 tiles hold them: KatAMExpansion.cs checks); */
@@ -113,6 +122,10 @@ void *SqueakCreateChest(struct ObjectTemplate *template, u8 playerId) {
         chest->obj.unk83 = 1;
         chest->obj.unk78 = NidlChestOpened;
         gUnk_02023510[gCurLevelInfo[chest->obj.base.unk56].unk65E]++;
+    } else if (template->unk11 == SQUEAK_CHEST && (template->unk14 & 0xFF) == SQUEAK_CHEST_AFTER_BOSS) {
+        chest->unkDC = (u32)chest->obj.unk78;
+        chest->obj.unk78 = SqueakBossChestWait;
+        chest->obj.base.flags |= 0x400;
     }
     return chest;
 }

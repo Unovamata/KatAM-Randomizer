@@ -887,6 +887,7 @@ namespace KatAMRandomizer {
          * + 1, its template's unk11, "ROM Expansion/squeak.h"'s SqueakBossShard) leaves it as it goes, the way out to the hub (the
          * rulebook's rule 8). Not yet: the chase spawns, the chests' Squeak Squad treasures; */
         const int SqueakDoorClear = 3;
+        const byte SqueakChestAfterBoss = 1;     // squeak.h's SQUEAK_CHEST_AFTER_BOSS (a chest's template unk14);
         static (List<byte[]> templates, List<byte> types) SqueakObjects(byte[] squeak, SqueakRoomFiles f, SqueakMap map, byte[] collision, bool arenas,
                                                                          List<(int x, int y)> doorCells, byte bossShard, ref int taken, ref int chests) {
             List<byte[]> templates = new List<byte[]>();
@@ -1015,6 +1016,14 @@ namespace KatAMRandomizer {
             }
             taken = takenAt;
             chests = chestAt;
+            /* (a world's boss room: its chest, the DS's reward dropped after the fight, shows only once the boss is gone, and the boss's
+             * shard comes over it, centred on the room's art, as the DS's reward: squeak.h's SQUEAK_CHEST_AFTER_BOSS, SqueakBossShard); */
+            if (bossShard != 0 && templates.FirstOrDefault(t => t[12] is >= 0x40 and <= 0x42 && t[14] >= SqueakMidbossFlag && t[0x11] == bossShard) is byte[] bossTemplate) {
+                foreach (byte[] chest in templates.Where(t => t[12] is SmallChestType or KatAMBigChestType && t[0x11] == SqueakChestIndex)) {
+                    chest[0x14] = SqueakChestAfterBoss;
+                    WriteShort(bossTemplate, 0x14, ReadShort(chest, 6));
+                }
+            }
             return (templates, types);
         }
 
