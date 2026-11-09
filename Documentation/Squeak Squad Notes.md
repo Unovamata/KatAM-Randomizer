@@ -569,8 +569,12 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
     and its palette: 512 by 256 pixels (33), 256 by 256 (5) or 256 by 512 (d_viw_0C, a climb's); a painted panorama, its top 192
     rows what the DS shows (the rest its last row smeared down). In KatAM: shrunk to 3/4 (48 tiles wide, 20 tall with the smear),
     fitted to 8 palettes of 15 colors in at most 900 tiles (`ConvertSqueakFarView()`: all 39 fit, at most 10 tiles shared).
-  - Section 12, the foreground's tile animations: 12 bytes, then `u16` count and 12 bytes each (`u16` the first tile, `u8` frames,
-    a byte, the frames' durations).
+  - Section 12, the foreground's tile animations: 12 bytes (the count a `u16` at +10), then 12 bytes each: `u16` a block, `u8` its
+    frames (1-8), `u8` its table (0 the front layer's, 1 the main terrain's, its grid and the third layer's), 8 bytes the frames'
+    durations (frames). The block shows blocks block + 1 to block + frames in turn (it looks as its first): a main tileset holds
+    1152 tiles where its blocks' entries name 1024 (10 bits), the frames' tiles after. 45 of the 8 worlds' 493 rooms animate: grass
+    swaying (Prism Plains 1's first room), water, flames along lava (Vocal Volcano 4's fourth), the glow behind King Dedede
+    (Prism Plains 7's second: 51 animated blocks, two timings); at most 3 different timings in a room.
   - **In KatAM** (`KatAMExpansionSqueakRooms.cs`, `AddSqueakRooms()`; the e2e harness's `KSSROOMS=1`, not yet an option): the 493
     rooms of the 8 worlds (the test stages left out), each whole, as rooms 0x400 on, past KatAM's 0x3D7 (its goal games' 0x3D4-0x3DD
     among them). The three tables with a row per room (`gRoomProps`, `gUnk_08D6CD0C`, `gUnk_0893CB44`) move, grown to the last
@@ -628,6 +632,15 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
     its room on the door it names, none hanging (six needed a second try: an enemy's hit, the helpers pushing Kirby off a cell-wide
     ledge, a door in the air Kirby floats up to); every tenth in the European and Japanese ROMs (three needed a second try, enemy
     timing). The rooms' visited doors are the doors lists' (16 bits: the most places a room's doors lead to is 11).
+  - **Their tile animations in KatAM** (`SqueakMap.Animations()`, `ConvertSqueakForeground()`): each 8-pixel tile of a cell showing
+    an animated block is drawn at every frame (its other animated blocks of the same timing moving with it); a tile whose frames
+    all look the same is an ordinary tile, the others get tiles of their own (no flips; all their frames on one palette, their
+    colors packed as one set), a timing's in a row after the room's other tiles. KatAM's foreground animations (ForegroundInfo +8,
+    +0xC, as NiDL's rooms' `TileAnimations()`) copy each timing's tiles in turn, a step per frame for its duration: 3 at most (KatAM
+    runs 16). They take no tile room from the others: the same three busiest rooms merge tiles as before (none animated), the
+    colors of 8 rooms merge a few shades more or less. Checked in the GBA emulator (forced starts, not a playthrough): shots a few
+    frames apart in Prism Plains 1's first room (the grass), 2's first, 7's second (the glow) and Vocal Volcano 4's fourth (the
+    flames) in the USA ROM, and those three in the European and Japanese ones; the 42 animated rooms the room sweep starts in ran 720 frames each (live, Kirby stays).
   - **Tutorial signs**: the three in Prism Plains 2 (its first, third and fifth rooms: "Tap to pop!", "Find treasure and move on.",
     "Mix bubbles!") are front-layer blocks without collision, 16 by 11 cells; left out (`SqueakSigns()`: no other room has such a
     block), the owner: KatAM skips them.

@@ -409,10 +409,13 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
       (forced: Kirby held on each door's cell pressing Up, not a playthrough): all 562 in the USA ROM land in the right room on
       the right door, none hangs; every tenth in the European and Japanese ROMs the same. The goals (the stage's end) and how
       Kirby gets into a stage wait for the levels' structure.
+    - Tile animations (section 12: grass, water, flames, glows in 45 rooms) as KatAM's foreground animations, every frame drawn
+      through the three layers. Checked in the GBA emulator (forced starts): shots a few frames apart in 4 rooms (USA) and 3
+      (Europe, Japan), the 42 animated rooms the sweep starts in run live.
     - Left: the chests' Squeak Squad treasures (Ability Scrolls, Spray Paints, the Secret Map's pieces, Vitality halves: with
       their items, below), the chase spawns after the stage's treasure (the Squeakers among them, and 22 chests), the arenas
-      without the NiDL ROM (NiDL's type holds the camera), the stages' goals, the gimmicks, tile animations, the areas; then the
-      hub, the levels by the rulebook, bosses, the option, map viewer, logic checks.
+      without the NiDL ROM (NiDL's type holds the camera), the stages' goals, the gimmicks, the areas; then the hub, the levels
+      by the rulebook, bosses, the option, map viewer, logic checks.
   - Ability bubbles whose ability no regular enemy gives (Hammer, Bonkers' in KatAM; Squeak Squad's ability numbers 12, 18 and
     26) become food (the owner: "In the case of bubbles without no regular enemy, you can swap them out for food.").
 - **Map items for each area** (the owner, with the rooms): KatAM's map item, its sprite recolored to each NiDL and Squeak Squad

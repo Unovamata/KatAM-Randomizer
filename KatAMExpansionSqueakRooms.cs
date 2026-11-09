@@ -98,7 +98,28 @@ namespace KatAMRandomizer {
                 }
                 return doors;
             }
+
+            /* Animations(); Its animated blocks (section 12: 12 bytes, the count at +10, then 12 bytes each: u16 the block, u8 its
+             * frames, u8 its table, 8 bytes the frames' durations), checked against the DS's tilesets: a main tileset holds 1152
+             * tiles, its blocks' entries name 1024 (10 bits), and the animated blocks' frames are the blocks after them; */
+            public List<SqueakAnimation> Animations() {
+                List<SqueakAnimation> animations = new List<SqueakAnimation>();
+                int at = sections[12];
+                if (at + 12 > Data.Length) return animations;
+                for (int i = 0, count = ReadShort(Data, at + 10); i < count && at + 24 + i * 12 <= Data.Length; i++) {
+                    int entry = at + 12 + i * 12, frames = Math.Min((int)Data[entry + 2], 8);
+                    if (frames == 0) continue;
+                    animations.Add(new SqueakAnimation(ReadShort(Data, entry), frames, Data[entry + 3],
+                                                       Enumerable.Range(0, frames).Select(f => Math.Max(1, (int)Data[entry + 4 + f])).ToArray()));
+                }
+                return animations;
+            }
         }
+
+        /* A Squeak Squad tile animation (SqueakMap.Animations()): its block (of the front layer's table, layer 0, or the main
+         * terrain's, 1: the main and third layers' grids) shows blocks Block + 1 to Block + Frames in turn, each for its duration
+         * (frames); Block itself looks as its first; */
+        internal sealed record SqueakAnimation(int Block, int Frames, int Layer, int[] Durations);
 
         // A Squeak Squad door (SqueakMap.Doors()): its cell, and where it leads (the stage's room, 0-based, and its door's number);
         internal sealed record SqueakDoor(int Number, int Flags, int Kind, int X, int Y, int Room, int Door);
@@ -129,16 +150,23 @@ namespace KatAMRandomizer {
          * left, bottom right) of each block asked for drawn without its front layer (a star block's cell once it's broken: the block
          * is the front layer's); */
         internal sealed record SqueakForeground(byte[] Tiles, ushort[] Palettes, ushort[] Tilemap, int Columns, int Rows, int MergedColors, int MergedTiles,
-                                                ushort[][] Bare = null);
+                                                ushort[][] Bare = null, List<SqueakTileAnimation> Animations = null);
+
+        // A converted animation: its tiles (FirstTile on, Tiles of them, frame 0's in the foreground's tiles), each frame's tiles (4 bits
+        // a pixel) and duration;
+        internal sealed record SqueakTileAnimation(int FirstTile, int Tiles, byte[][] Frames, int[] Durations);
 
         /* SqueakRoomTile(); A room's 8-pixel tile at (tx, ty) as one picture, the layers drawn in the DS's order: the main terrain,
          * the front layer over it (but `bare`), the third over both; 64 colors (BGR555), -1 where none is drawn; */
-        static int[] SqueakRoomTile(SqueakMap map, SqueakTileset front, SqueakTileset main, int tx, int ty, bool bare = false) {
+        static int[] SqueakRoomTile(SqueakMap map, SqueakTileset front, SqueakTileset main, int tx, int ty, bool bare = false,
+                                    IReadOnlyDictionary<(int layer, int block), int> shown = null) {
             int[] pixels = Enumerable.Repeat(-1, 64).ToArray();
             int quarter = (ty & 1) * 2 + (tx & 1);
             foreach ((int grid, int table, SqueakTileset tiles) in new[] { (4, 2, main), (3, 1, front), (5, 2, main) }) {
                 if (tiles == null || bare && grid == 3) continue;
                 int block = map.Block(grid, tx / 2, ty / 2);
+                // (an animated block drawn as one of its frames: `shown`);
+                if (shown != null && shown.TryGetValue((grid == 3 ? 0 : 1, block), out int frame)) block = frame;
                 if (block >= map.TableCount(table)) continue;
                 int entry = map.Entry(table, block, quarter), tile = entry & 0x3FF;
                 if (tile >= tiles.Count) continue;
@@ -204,7 +232,7 @@ namespace KatAMRandomizer {
         }
 
         /* ConvertSqueakForeground(); A room's three layers as KatAM's one foreground: each 8-pixel tile drawn whole (SqueakRoomTile()),
-         * the same pictures (flipped too) one tile. Its colors go into KatAM's 6 palettes of 15 (SqueakPackPalettes()); where they
+         * the same pictures (flipped too) one tile; the animated ones a tile of their own, with every frame (Animations). Its colors go into KatAM's 6 palettes of 15 (SqueakPackPalettes()); where they
          * don't fit, the two closest colors become one (the less used takes the other's) until they do. Past KatAM's 768 tiles (three
          * rooms, the busiest), the two most alike tiles of a palette become one (the less used takes the other's place) until they
          * fit (the owner allows compressing tilesets); */
@@ -222,22 +250,76 @@ namespace KatAMRandomizer {
                 }
                 return index;
             }
+            /* The animated cells (map.Animations()): a cell showing an animated block moves with that block's timing (its durations;
+             * its other animated blocks of the same timing move with it, any other stays as it is). Each of its tiles drawn at each
+             * frame: one whose frames all look the same is a picture as any other; the others are slots of their timing (the same
+             * frames one slot), each a tile of its own (no flips), all its frames drawn with one palette; */
+            List<SqueakAnimation> animations = map.Animations();
+            Dictionary<(int layer, int block), int> animationOf = new Dictionary<(int, int), int>();
+            for (int k = 0; k < animations.Count; k++) animationOf.TryAdd((animations[k].Layer, animations[k].Block), k);
+            List<int[]> timings = new List<int[]>();
+            List<List<int[][]>> slots = new List<List<int[][]>>();     // (each timing's slots: their frames' pictures);
+            Dictionary<string, (int timing, int slot)> slotOf = new Dictionary<string, (int, int)>();
+            List<int> slotUses = new List<int>();
+            (int timing, int slot)[] cellSlot = new (int, int)[columns * rows];
+
             int[] cellPicture = new int[columns * rows];
             for (int ty = 0; ty < rows; ty++)
-                for (int tx = 0; tx < columns; tx++)
-                    cellPicture[ty * columns + tx] = Picture(SqueakRoomTile(map, front, main, tx, ty, signs != null && signs.Contains((tx / 2, ty / 2))));
+                for (int tx = 0; tx < columns; tx++) {
+                    bool signed = signs != null && signs.Contains((tx / 2, ty / 2));
+                    cellSlot[ty * columns + tx] = (-1, -1);
+                    List<int> moving = new List<int>();
+                    if (animationOf.Count > 0)
+                        foreach ((int grid, int layer) in new[] { (4, 1), (3, 0), (5, 1) })
+                            if (!(grid == 3 && signed) && animationOf.TryGetValue((layer, map.Block(grid, tx / 2, ty / 2)), out int k) && !moving.Contains(k)) moving.Add(k);
+                    if (moving.Count > 0) {
+                        int[] durations = animations[moving[0]].Durations;
+                        moving.RemoveAll(k => !animations[k].Durations.SequenceEqual(durations));
+                        int[][] frames = Enumerable.Range(0, durations.Length).Select(f => SqueakRoomTile(map, front, main, tx, ty, signed,
+                            moving.ToDictionary(k => (animations[k].Layer, animations[k].Block), k => animations[k].Block + 1 + f))).ToArray();
+                        if (frames.Any(f => !f.SequenceEqual(frames[0]))) {
+                            int timing = timings.FindIndex(t => t.SequenceEqual(durations));
+                            if (timing < 0) {
+                                timing = timings.Count;
+                                timings.Add(durations);
+                                slots.Add(new List<int[][]>());
+                            }
+                            string key = timing + ":" + string.Join("/", frames.Select(f => string.Join(",", f)));
+                            if (!slotOf.TryGetValue(key, out var slot)) {
+                                slotOf[key] = slot = (timing, slots[timing].Count);
+                                slots[timing].Add(frames);
+                                slotUses.Add(0);
+                            }
+                            cellSlot[ty * columns + tx] = slot;
+                            cellPicture[ty * columns + tx] = -1;
+                            continue;
+                        }
+                    }
+                    cellPicture[ty * columns + tx] = Picture(SqueakRoomTile(map, front, main, tx, ty, signed));
+                }
+            List<(int timing, int slot)> allSlots = slots.SelectMany((list, t) => list.Select((_, i) => (t, i))).ToList();
+            int slotTiles = allSlots.Count;
+            if (slotTiles >= maxTiles / 2) throw new InvalidOperationException("A Squeak Squad room's animated tiles don't fit KatAM's foreground.");
+            Dictionary<(int, int), int> slotIndex = allSlots.Select((s, i) => (s, i)).ToDictionary(p => p.s, p => p.i);
+            int[] slotCount = new int[slotTiles];
+            foreach ((int timing, int slot) c in cellSlot) if (c.timing >= 0) slotCount[slotIndex[c]]++;
             bare ??= new List<(int, int)>();
             int[] barePicture = bare.SelectMany(b => Enumerable.Range(0, 4).Select(q => Picture(SqueakRoomTile(map, front, main, b.x * 2 + (q & 1), b.y * 2 + q / 2, true)))).ToArray();
             int[] uses = new int[pictures.Count];
-            foreach (int p in cellPicture.Concat(barePicture)) uses[p]++;
+            foreach (int p in cellPicture.Concat(barePicture)) if (p >= 0) uses[p]++;
 
             // Colors: merged, the closest pair at a time, until every tile's set fits a palette and the sets fit KatAM's 6;
             Dictionary<int, int> colorUses = new Dictionary<int, int>();
             for (int p = 0; p < pictures.Count; p++)
                 foreach (int c in pictures[p].Where(c => c >= 0)) colorUses[c] = colorUses.GetValueOrDefault(c) + uses[p];
+            for (int i = 0; i < slotTiles; i++)
+                foreach (int c in slots[allSlots[i].timing][allSlots[i].slot].SelectMany(f => f).Where(c => c >= 0)) colorUses[c] = colorUses.GetValueOrDefault(c) + slotCount[i];
             Dictionary<int, int> merged = colorUses.Keys.ToDictionary(c => c, c => c);
             int Final(int c) { while (merged[c] != c) c = merged[c]; return c; }
-            List<HashSet<int>> Sets() => pictures.Select(p => p.Where(c => c >= 0).Select(Final).ToHashSet()).Distinct(HashSet<int>.CreateSetComparer()).ToList();
+            // (a slot's colors: all its frames', as one palette draws them all);
+            List<HashSet<int>> Sets() => pictures.Select(p => p.Where(c => c >= 0).Select(Final).ToHashSet())
+                .Concat(allSlots.Select(s => slots[s.timing][s.slot].SelectMany(f => f).Where(c => c >= 0).Select(Final).ToHashSet()))
+                .Distinct(HashSet<int>.CreateSetComparer()).ToList();
             List<HashSet<int>> palettes;
             int mergedColors = 0;
             while ((palettes = SqueakPackPalettes(Sets(), ForegroundPalettes)) == null) {
@@ -260,8 +342,8 @@ namespace KatAMRandomizer {
             List<List<int>> paletteLists = palettes.Select(p => p.OrderBy(c => c).ToList()).ToList();
             for (int p = 0; p < paletteLists.Count; p++)
                 for (int c = 0; c < paletteLists[p].Count; c++) paletteColors[p * 16 + 1 + c] = (ushort)paletteLists[p][c];
-            (int palette, byte[] indexes) Indexed(int[] pixels) {
-                HashSet<int> colors = pixels.Where(c => c >= 0).Select(Final).ToHashSet();
+            (int palette, byte[] indexes) Indexed(int[] pixels, IEnumerable<int> all = null) {
+                HashSet<int> colors = (all ?? pixels).Where(c => c >= 0).Select(Final).ToHashSet();
                 int palette = Math.Max(0, palettes.FindIndex(p => colors.IsSubsetOf(p)));
                 byte[] indexes = pixels.Select(c => c < 0 ? (byte)0 : (byte)(paletteLists[palette].IndexOf(Final(c)) + 1)).ToArray();
                 return (palette, indexes);
@@ -297,8 +379,9 @@ namespace KatAMRandomizer {
             // Past KatAM's room for tiles: the two most alike of a palette made one, the less used taking the other's place;
             int[] tileTarget = Enumerable.Range(0, tiles.Count).ToArray();
             int Target(int t) { while (tileTarget[t] != t) t = tileTarget[t]; return t; }
-            int mergedTiles = 0, liveTiles = tiles.Count;
-            if (liveTiles > maxTiles) {
+            // (the animations' slots take their room after the others);
+            int mergedTiles = 0, liveTiles = tiles.Count, staticTiles = maxTiles - slotTiles;
+            if (liveTiles > staticTiles) {
                 int Difference(byte[] a, byte[] b, int palette) {
                     int sum = 0;
                     for (int i = 0; i < 64; i++) {
@@ -308,7 +391,7 @@ namespace KatAMRandomizer {
                     }
                     return sum;
                 }
-                while (liveTiles > maxTiles) {
+                while (liveTiles > staticTiles) {
                     (int a, int b, int d) best = (-1, -1, int.MaxValue);
                     List<int> live = Enumerable.Range(1, tiles.Count - 1).Where(t => tileTarget[t] == t).ToList();
                     foreach (IGrouping<int, int> group in live.GroupBy(t => tiles[t].palette))
@@ -332,17 +415,40 @@ namespace KatAMRandomizer {
             for (int t = 0; t < tiles.Count; t++)
                 if (Target(t) == t) { number[t] = kept.Count; kept.Add(tiles[t].indexes); }
 
-            byte[] tileData = new byte[kept.Count * 32];
-            for (int t = 0; t < kept.Count; t++)
-                for (int i = 0; i < 64; i += 2) tileData[t * 32 + i / 2] = (byte)(kept[t][i] | kept[t][i + 1] << 4);
+            /* The animations' tiles after them: a timing's slots in a row, its first frame's in the tiles, every frame's for KatAM's
+             * foreground animations to copy in turn (one per timing); */
+            static byte[] Packed(byte[] indexes) {
+                byte[] packed = new byte[32];
+                for (int i = 0; i < 64; i += 2) packed[i / 2] = (byte)(indexes[i] | indexes[i + 1] << 4);
+                return packed;
+            }
+            List<SqueakTileAnimation> tileAnimations = new List<SqueakTileAnimation>();
+            int[] slotPalette = new int[slotTiles];
+            List<byte[]> slotFirst = new List<byte[]>();
+            for (int t = 0, first = kept.Count; t < timings.Count; first += slots[t].Count, t++) {
+                byte[][] frames = Enumerable.Range(0, timings[t].Length).Select(_ => new byte[slots[t].Count * 32]).ToArray();
+                for (int i = 0; i < slots[t].Count; i++) {
+                    int[][] slotFrames = slots[t][i];
+                    for (int f = 0; f < frames.Length; f++) {
+                        (int palette, byte[] indexes) = Indexed(slotFrames[f], slotFrames.SelectMany(p => p));
+                        slotPalette[slotIndex[(t, i)]] = palette;
+                        Packed(indexes).CopyTo(frames[f], i * 32);
+                        if (f == 0) slotFirst.Add(Packed(indexes));
+                    }
+                }
+                tileAnimations.Add(new SqueakTileAnimation(first, slots[t].Count, frames, timings[t]));
+            }
+            byte[] tileData = new byte[(kept.Count + slotTiles) * 32];
+            for (int t = 0; t < kept.Count; t++) Packed(kept[t]).CopyTo(tileData, t * 32);
+            for (int i = 0; i < slotTiles; i++) slotFirst[i].CopyTo(tileData, (kept.Count + i) * 32);
             ushort Entry(int picture) {
                 (int tile, bool h, bool v) = pictureTile[picture];
                 int target = Target(tile);
                 return (ushort)(number[target] | (h ? 0x400 : 0) | (v ? 0x800 : 0) | tiles[target].palette << 12);
             }
-            ushort[] tilemap = cellPicture.Select(Entry).ToArray();
+            ushort[] tilemap = cellPicture.Select((p, c) => p >= 0 ? Entry(p) : (ushort)(kept.Count + slotIndex[cellSlot[c]] | slotPalette[slotIndex[cellSlot[c]]] << 12)).ToArray();
             ushort[][] bareEntries = Enumerable.Range(0, bare.Count).Select(b => Enumerable.Range(0, 4).Select(q => Entry(barePicture[b * 4 + q])).ToArray()).ToArray();
-            return new SqueakForeground(tileData, paletteColors, tilemap, columns, rows, mergedColors, mergedTiles, bareEntries);
+            return new SqueakForeground(tileData, paletteColors, tilemap, columns, rows, mergedColors, mergedTiles, bareEntries, tileAnimations);
         }
 
         /* SqueakFarViewPicture(); A far view (map/d_viw_NN.nsbtx: a TEX0 block, one 256-color texture, 512 or 256 pixels wide, 256 tall,
@@ -1007,9 +1113,28 @@ namespace KatAMRandomizer {
                     // Foreground: its tiles, palettes and tilemap;
                     SqueakForeground foreground = ConvertSqueakForeground(map, front, main, ForegroundTiles, blocks, SqueakSigns(map));
                     int tilesAt = AllocateCompressed(rom, CompressLZ77(foreground.Tiles), ref here);
+                    /* (its animations, KatAM's foreground animations as TileAnimations()' (ForegroundInfo +8, +0xC): a timing's tiles
+                     * (VRAM from 0x06008000), copied whole, a step per frame, its source the frame's tiles and its duration); */
+                    int animationsAt = 0;
+                    if (foreground.Animations.Count > 0) {
+                        animationsAt = Allocate(ref here, foreground.Animations.Count * 0x14, 4);
+                        for (int k = 0; k < foreground.Animations.Count; k++) {
+                            SqueakTileAnimation animation = foreground.Animations[k];
+                            int bytes = animation.Tiles * 32, steps = Allocate(ref here, animation.Frames.Length * 8, 4);
+                            for (int step = 0; step < animation.Frames.Length; step++) {
+                                int frameAt = Allocate(ref here, bytes, 4);
+                                animation.Frames[step].CopyTo(rom, frameAt);
+                                WriteInt(rom, steps + step * 8, frameAt + 0x08000000);
+                                WriteShorts(rom, steps + step * 8 + 4, animation.Durations[step], 0);
+                            }
+                            WriteInts(rom, animationsAt + k * 0x14, animation.FirstTile * 32, bytes, bytes, steps + 0x08000000);
+                            WriteShorts(rom, animationsAt + k * 0x14 + 0x10, animation.Frames.Length, 1);
+                        }
+                        animationsAt += 0x08000000;
+                    }
                     int info = Allocate(ref here, 16, 4);
-                    WriteInts(rom, info, tilesAt + 0x08000000, 0, 0);
-                    WriteShorts(rom, info + 12, 0, room);
+                    WriteInts(rom, info, tilesAt + 0x08000000, 0, animationsAt);
+                    WriteShorts(rom, info + 12, foreground.Animations.Count, room);
                     int colors = Allocate(ref here, 0xC0, 4), palette = Allocate(ref here, 12, 4);
                     for (int c = 0; c < 96; c++) WriteShort(rom, colors + c * 2, foreground.Palettes[c]);
                     WriteInts(rom, palette, colors + 0x08000000, paletteCycles);
