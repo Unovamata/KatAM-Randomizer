@@ -62,6 +62,18 @@ namespace KatAMRandomizer {
             return null;
         }
 
+        /* HookSqueakSwitches(); Squeak Squad's switches (chest.c's SqueakCreateSwitch): object 0x8D's spawn, the game's CreateHammerPeg
+         * kept in gSqueakSwitch (KatAM's own pegs made by it as before); */
+        static string HookSqueakSwitches(byte[] patched, KatAMExpansionCode.Version version) {
+            int entry = version.SpawnTable + HammerPegType * 4, kept = CodeAddress + version.CodeSymbols["gSqueakSwitch"];
+            int create = CodeAddress + 0x08000000 + version.CodeSymbols["SqueakCreateSwitch"] + 1;
+            if (ReadInt(patched, entry) == create) return null;
+            if (ReadInt(patched, entry) >> 24 != 0x08) return $"The {version.Name} ROM's hammer peg code doesn't match.";
+            WriteInt(patched, kept, ReadInt(patched, entry));
+            WriteInt(patched, entry, create);
+            return null;
+        }
+
         /* OwnedFieldShards(); For the shards the randomizer puts in rooms (not in chests): their spawn (object 0x65's, the spawn table's)
          * becomes chest.c's NidlCreateShard, which makes one already owned a Maxim Tomato (the original's address in gNidlShard).
          * Returns an error, or null (the ROM unchanged on an error); */

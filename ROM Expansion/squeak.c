@@ -165,6 +165,9 @@ u32 SqueakAnimFor(struct Object *obj) {
     // (a Squeak Squad room's big chest: Squeak Squad's platinum chest, closed or open: the chest's frames 0 and 2 closed, 1 and 3 open);
     if (obj->type == OBJ_BIG_CHEST && obj->objTemplate->unk11 == SQUEAK_CHEST)
         return gSqueakData.enemies[SQUEAK_PLATINUM_CHEST].animId | (SQUEAK_CHEST_CLOSED + (obj->unk83 & 1)) << 16;
+    // (a Squeak Squad room's switch, on the hammer peg's type: up or pressed, chest.c's SqueakCreateSwitch);
+    if (obj->type == OBJ_HAMMER_PEG && obj->objTemplate->unk11 == SQUEAK_SWITCH_OBJECT)
+        return gSqueakData.enemies[SQUEAK_SWITCH].animId | (SQUEAK_HURT_VARIANTS + (obj->unk83 & 1)) << 16;
     info = &gUnk_08351648[obj->type].unk14[obj->unk83];
     return info->animId | info->variant << 16;
 }

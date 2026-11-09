@@ -519,8 +519,11 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
     at the block's middle, from its top): floors 0x14 and 0x1C the upper and lower halves of a slope falling right, 0x28 a 45° one
     falling, 0xE8 rising, 0xF4 and 0xFC the upper and lower halves rising; ceilings 0x68 and 0xA8 (45°, solid on the left, on the
     right), 0x74 and 0x7C, 0x94 and 0x9C (halves); thin floors the same floor codes with 0x200; bits 8-13 flags: `0x100` a ladder
-    (`0x8100` its top), `0x200` a thin floor Kirby jumps through, `0x300` another thin floor, `0x400` (front layer) a cover over a
-    secret way, cleared when Kirby is under it, `0x800` burnt by fire, `0x1000` set off by a bomb block, `0x2000` not yet known;
+    (`0x8100` its top), `0x200` a thin floor Kirby jumps through, `0x300` another thin floor (Down drops Kirby through both: 2-2-3's
+    `0x300` ones, checked in the DS emulator), `0x400` (front layer) a cover over a
+    secret way, cleared when Kirby is under it, `0x800` burnt by fire (a candle on the cells, the grid's solid one flagged so:
+    4-2-3's log bridges), `0x1000` set off by a bomb block (the grid's solid cell flagged so, top byte 0x38) or a stake beside
+    them (top byte 0x39), or by a switch (a switch block group, gimmick 0x10), `0x2000` not yet known;
     bits 16-23 an id: `0x80` on doors (the room's door numbers, main layer), cannon fuses (`0x83`-`0x8C`, front layer), a big star
     block's quarters (`0x00`, `0x10`, `0x20`, `0x30`), ropes (`0x40` middle, `0x41` bottom, `0x42` top) and chains (`0x44`-`0x46`)
     with top byte `0x38`, spikes (`0x40`, `0x44`, `0x48`, `0x4C`: up, sideways, down, sideways), currents (water's `0x10`-`0x3C`,
@@ -661,6 +664,18 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
     and leads where the DS's does (0x423 to 0x424, 0x48B to 0x48D, 0x5A9 to 0x5A2: 0x5A7 to 0x5A0 since 5-7 was left out). What a broken block leaves is the main grid's
     cell (a star block over the main grid's solid leaves solid, 1-3-11's floor ones). The first rule tried (the main grid first)
     walled the doors behind star blocks into the open: the door sweep showed it.
+  - **Bomb chains, stakes and switch blocks**: the blocks grid's cells flagged 0x1000, touching each other, go together: set off by
+    the bomb block among them (1-1-4's grey wall: a slide into the bomb sets it off, one into the wall away from it doesn't,
+    checked in the DS emulator; 3-2-2's bomb faces only the pocket its chain walls in, and an attack from under it, through the
+    block below, sets it off), by a stake beside them (all 13 of the 0x39 stakes are), or by a switch: gimmick 0 (the small
+    star switch, `0x022254AC`; a body moving through it or an attack presses it, 0x02225458) sends its targets their message
+    (`0x022252F0`: its parameter's first byte's high nibble the count, then each target's index in the room's gimmick list; its
+    look `0x02227F40`, look 0 `yakumono/switch_small`, the states' animations 0 up, 1 going down, 2 down, 3 coming up); a target
+    that's gimmick 0x10 (`0x02223900`) clears its group (3-4-8's switch by the tower names index 5, the group in the beam over
+    it); the switch rises again once its targets are done, and pressed again toggles them back. Groups with none of these (the
+    2-cell ones in the stages' last rooms, 2-4-1's floor over its hidden way) are a Bomb's blast's. In KatAM: chains (the bomb
+    block and a stake 0xF1, the blocks 0xF2, the air cells 0xF3), each broken cell drawn with only the third layer (the DS clears
+    both grids; 1-1-4's grass stays), and the switches chest.c's SqueakCreateSwitch (KatAMExpansionSqueakRooms.cs).
   - **Bricks and metal blocks**: the blocks grid's metal blocks (block 1, grey) and bricks (family 0x00, brown, riveted: 1-6-5's
     wall round a chest, 2-6-2's, 4-3-6's in the cannons' way) are broken by a cannon's shot (4-3-6's chain goes through them on the
     DS) and strong attacks: KatAM's metal blocks (0xF5, attribute category 2), which its cannon shots break too (checked: 4-3-6's

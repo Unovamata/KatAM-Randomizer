@@ -576,6 +576,8 @@ namespace KatAMRandomizer {
 
         // The platinum chest's graphics (squeak.h's SQUEAK_PLATINUM_CHEST), in KatAM's big chest's 16 tiles of VRAM (object 0x81's);
         const int SqueakPlatinumChest = 69, BigChestTiles = 16;
+        // The switch's (squeak.h's SQUEAK_SWITCH), in the hammer peg's 4 tiles (object 0x8D's: chest.c's SqueakCreateSwitch);
+        const int SqueakSwitch = 70, HammerPegTiles = 4;
 
         static readonly List<SqueakEnemy> SqueakDefinitions = new List<SqueakEnemy> {
             // Perara: hurt animations 7 and 8 (0x02021A88's 0x1000007, 0x1000008);
@@ -806,6 +808,10 @@ namespace KatAMRandomizer {
              * a Squeak Squad room has one (squeak.c's SqueakAnimFor(), chest.c's SqueakCreateChest()); 16 pixels lower, as its feet are
              * its origin and KatAM's chest's is its middle; no name; */
             new SqueakEnemy(SqueakPlatinumChest, "Platinum chest", "item/treasure", new[] { 0, 0, 0 }, new (int, int)[0], OnlyAnims: new[] { 6, 7 }, ShiftY: 16),
+            /* The small star switch (gimmick 0, the DS's look 0: yakumono/switch_small, its states' animations 0 up, 1 going down, 2
+             * down, 3 coming up, 0x02227F30): its animations 0 and 2, its variants 3 (up) and 4 (pressed), shown by object 0x8D
+             * where a Squeak Squad room has one (squeak.c's SqueakAnimFor(), chest.c's SqueakCreateSwitch()); no name; */
+            new SqueakEnemy(SqueakSwitch, "Switch", "yakumono/switch_small", new[] { 0, 0, 0 }, new (int, int)[0], OnlyAnims: new[] { 0, 2 }),
         };
 
         /* The randomizer's Squeak Squad pools (the ROM Expansion tab). SqueakPool; A character the randomizer places: its index (SQUEAK_*

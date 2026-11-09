@@ -24,6 +24,7 @@
 #include "multi_08030C94.h"
 #include "constants/object_types.h"
 #include "constants/songs.h"
+#include "code_0800E0E4.h"
 #include "squeak.h"
 
 #define NIDL_CHEST_SHARD 0x40
@@ -180,6 +181,71 @@ void *SqueakCreateCannon(struct ObjectTemplate *template, u8 playerId) {
         cannon->obj.base.flags |= 0x2000000;
     }
     return cannon;
+}
+
+/* Squeak Squad's switches (gimmick 0, the small star switch: KatAMExpansionSqueakRooms.cs): on the DS a body moving through it or an
+ * attack presses it (its state 0's messages, 0x02225458), and it sends its targets their message (0x022252F0: its parameter's first
+ * byte's high nibble the count, then each target's index in the room's gimmick list); a target that's a switch block group (gimmick
+ * 0x10, 3-4-8's beam by the tower before the goal) clears its blocks. In KatAM: object 0x8D (the hammer peg's type, for its 4 tiles of
+ * sprite VRAM), its template's unk11 SQUEAK_SWITCH_OBJECT, unk14, unk16 and unk18 the cells of its block groups (x | y << 8; 0xFFFF
+ * none). Its spawn is SqueakCreateSwitch (the game's CreateHammerPeg kept in gSqueakSwitch, for KatAM's own pegs). A Kirby touching
+ * it presses it: each group's cell gets its special block record (sub_08001408) and KatAM's chain breaks the rest from there
+ * (sub_0800E0E4, as KatAM's lever walls break theirs: the groups are chains, 0xF2 blocks and 0xF3 links), and it stays down. Drawn
+ * with Squeak Squad's switch_small (SQUEAK_SWITCH: its up frame, variant 0, then its pressed one, 1: squeak.c's SqueakAnimFor());
+ * the DS's switch rises again once its targets are done and toggles them back when pressed again: KatAM's stays down, its blocks
+ * gone until Kirby comes back to the room (as the DS's are then); */
+struct SqueakSwitch {
+    void *(*create)(struct ObjectTemplate *, u8);
+};
+
+const struct SqueakSwitch gSqueakSwitch = { NULL };
+#define SQUEAK_SWITCH_ARMED 30
+
+static void SqueakSwitchDown(struct Object *obj) {
+}
+
+static void SqueakSwitchUp(struct Object *obj) {
+    const u16 *cells = &obj->objTemplate->unk14;
+    u8 i;
+
+    // (armed SQUEAK_SWITCH_ARMED frames after it's made: as the room comes up the Kirbys pass where it stands, 3-4-8's pressing then);
+    if (obj->unk85 < SQUEAK_SWITCH_ARMED) {
+        obj->unk85++;
+        return;
+    }
+    for (i = 0; i < gNumKirbys; i++) {
+        s32 dx = gKirbys[i].base.x - obj->base.x, dy = gKirbys[i].base.y - obj->base.y;
+        // (positions in 1/256 pixels: a Kirby within 12 pixels of it sideways, his middle up to 24 pixels over its spot or 8 under);
+        if (gKirbys[i].base.roomId != obj->base.roomId || dx <= -0xC00 || dx >= 0xC00 || dy <= -0x1800 || dy >= 0x800) continue;
+        for (i = 0; i < 3; i++) {
+            if (cells[i] == 0xFFFF) continue;
+            sub_08001408(obj->base.unk56, sub_080025AC(obj->base.unk56, cells[i] & 0xFF, cells[i] >> 8), NULL, NULL);
+            sub_0800E0E4(obj, cells[i] & 0xFF, cells[i] >> 8);
+        }
+        PlaySfx(&obj->base, SE_SWITCH_ACTIVATE);
+        obj->unk83 = 1;
+        obj->unk78 = SqueakSwitchDown;
+        return;
+    }
+}
+
+void *SqueakCreateSwitch(struct ObjectTemplate *template, u8 playerId) {
+    struct Task *task;
+    struct Object *obj;
+
+    if (template->unk11 != SQUEAK_SWITCH_OBJECT) return gSqueakSwitch.create(template, playerId);
+    task = TaskCreate(ObjectMain, sizeof(struct Object), 0x1000, TASK_USE_IWRAM, ObjectDestroy);
+    obj = TaskGetStructPtr(task);
+    InitObject(obj, template, playerId);
+    obj->base.flags |= 0x18B00;
+    obj->base.unk68 &= ~7;
+    ObjectSetBounds(&obj->base, -8, -8, 8, 8);
+    obj->unk83 = 0;
+    obj->unk85 = 0;   // (frames since it was made: the hammer peg's own count, which the game's object code leaves alone);
+    ObjectInitSprite(obj);
+    obj->base.sprite.palId = SqueakLoadPalette(gSqueakData.enemies[SQUEAK_SWITCH].animId, SQUEAK_HURT_VARIANTS, obj->base.roomId);
+    obj->unk78 = SqueakSwitchUp;
+    return obj;
 }
 
 /* SqueakCannonArrival(); Kirby's landing after a fuse cannon's shot (object 0x8A: its flight, sub_0805177C, lands him in the next

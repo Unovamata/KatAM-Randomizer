@@ -92,6 +92,7 @@ enum {
     SQUEAK_DARK_NEBULA_BURN,    // The floor his flames set burning;
     SQUEAK_DARK_STAR,           // Enemy 0x3E: the dark star Kirby chases before Dark Nebula;
     SQUEAK_PLATINUM_CHEST,      // Graphics only: Squeak Squad's big chest, drawn by KatAM's big chest in its rooms (SqueakAnimFor());
+    SQUEAK_SWITCH,              // Graphics only: Squeak Squad's small star switch (chest.c's SqueakCreateSwitch), up and pressed;
     SQUEAK_ENEMY_COUNT,
 };
 
@@ -117,6 +118,8 @@ enum { SQUEAK_STAR_SPIT, SQUEAK_STAR_AHEAD, SQUEAK_STAR_BEHIND, SQUEAK_STAR_SWOR
 // (a fixed cannon's template unk11, chest.c's SqueakCreateCannon; the frames it waits with a Kirby in it, as Squeak Squad's);
 #define SQUEAK_CANNON 0x9E
 #define SQUEAK_CANNON_TURNING 0x9D
+// (a switch's template unk11, on object 0x8D: chest.c's SqueakCreateSwitch);
+#define SQUEAK_SWITCH_OBJECT 0x9C
 #define SQUEAK_CANNON_WAIT 35
 // (how long a cannon's shot flies at most, frames: Squeak Squad's carries Kirby on until he hits something or a cannon catches him);
 #define SQUEAK_CANNON_FLIGHT 150

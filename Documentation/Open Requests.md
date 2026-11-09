@@ -501,10 +501,39 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
       the 497 rooms reached, the rest the Squeak Lair rooms, as before. The 3 versions built and the NiDL logic checks unchanged
       (with and without drops). Not tested: beating a Mirra in a fight (KatAM's own Mirra code opens the same records), a save
       written and loaded with the new slots (they're in the area the save already copies), a real playthrough.
-    - Still to do here: the logic checks with terrain over these rooms, the map viewer, the window's option.
-    - Gimmicks (section 10): counted and read (the notes: 26 classes, their graphics, the barrel's states decoded); warp stars and
-      cannons in KatAM (above), the others not yet. Their cells are open where the DS's object is (a shutter's pillar), so
-      nothing blocks a way meanwhile.
+    - The window's option: done ("Include Rooms" under the Squeak Squad ROM, its own commit).
+    - Logic checks with terrain (in progress; `ksslogic.py` in the session scratchpad, rooms/logic.py's rules on the Squeak Squad
+      rooms, the hub, the switch rooms and Central Circle, the tables the built ROM uses): it found these, now fixed in the
+      converter, each checked in the emulator:
+      - Bomb chains: the blocks grid's cells flagged 0x1000 with a bomb block (or a stake) among or beside them were plain walls
+        (1-1-4's grey wall walled the stage's first door in: 43 rooms of 498 reached). Now KatAM's chains (bomb block 0xF1, the
+        blocks 0xF2, links 0xF3), cleared to the third layer when broken. Checked in the GBA emulator (USA): Kirby with an ability
+        hits 1-1-4's bomb block, the whole wall goes, the grass in front stays. In the DS emulator: a slide into that wall away
+        from its bomb doesn't set it off, into the bomb does; 3-2-2's and 3-6-2's bombs face only the inside of what they wall in
+        (an attack from under 3-2-2's bomb, through the block below it, sets it off on the DS): there the chain's blocks facing
+        the outside are bomb blocks too.
+      - Switch blocks: gimmick 0x10 groups (the same flag, no bomb) a switch (gimmick 0, the small star switch) clears: now a
+        KatAM object with Squeak Squad's switch_small (object 0x8D, chest.c's SqueakCreateSwitch), pressed by a Kirby touching it
+        (as the DS's: a body moving through it), which breaks its groups as KatAM's lever walls break theirs. Checked in the GBA
+        emulator, USA, Europe, Japan: 3-4-8's switch by the tower, Kirby walks onto it, it goes down, the beam's blocks over it
+        go (collision 0xF2 to 0), the way up to the goal opens. Not tested: the DS's switches rise again and toggle their blocks
+        back when pressed again (KatAM's stay down until Kirby comes back to the room); shutters (gimmick 2) stay open.
+      - Thin floors flagged 0x300 were floors Kirby can't drop through: on the DS, Down drops him through (2-2-3's, checked in
+        the DS emulator); they shut him in the pocket 2-2-5's door lands him in. Now dropped through as the others.
+      - Now (USA, Europe, Japan the same): 330 of the 498 rooms reached counting metal blocks as broken (353 reachable without
+        terrain), 280 without; world 4's switch room not reached. What's left, all Squeak Squad gimmicks or abilities KatAM
+        doesn't have: metal blocks on the way (2-1-3's shaft under its start, 8-3-8's band: the DS's Metal from Metalun; KatAM's
+        metal blocks break only under Hammer and cannon shots), walls fire burns (flag 0x800: 4-2-3's start box and its towers'
+        log bridges, 6-2-5's: Fire on the DS; tried as bomb chains, they opened 4-2-3's sealed tower parts to the levels' planner,
+        whose route then ran where Kirby can't go, so they stay walls), 4-3-2's door inside blocks a scripted gimmick clears
+        (gimmicks 0x13 and 0x1A, not identified yet, maybe the Squeaks' events), 6-1-4's and 7-3-2's paths (gimmick 4) and 6-3-3's
+        groups with no switch. 7-3-1's door to 7-3-5 sits in a pocket of clouds the DS seals too (pushed into the wall at its
+        height on the DS, Kirby stops), and 4-4-10's upper door is a twin of its lower one, never entered: Squeak Squad's own.
+    - Still to do here: the rest of the logic checks above (they need the owner's call on metal and fire walls on the way:
+      see the questions in the list of pending requests), the map viewer.
+    - Gimmicks (section 10): counted and read (the notes: 26 classes, their graphics, the barrel's states decoded); warp stars,
+      cannons and the switches with their block groups in KatAM (above), the others not yet. Their cells are open where the
+      DS's object is (a shutter's pillar), so nothing blocks a way meanwhile.
     - Left: the chests' Squeak Squad treasures (Ability Scrolls, Spray Paints, the Secret Map's pieces, Vitality halves: with
       their items, below), the chase spawns after the stage's treasure (the Squeakers among them, and 22 chests), the arenas
       without the NiDL ROM (NiDL's type holds the camera), the gimmicks, the areas; then the option, map viewer, logic checks with
