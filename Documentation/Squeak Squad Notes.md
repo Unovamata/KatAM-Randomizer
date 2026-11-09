@@ -690,7 +690,15 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
     same route as the DS's; 3-4-2's fuse, lit with Fire, burns up to the cannon, which shoots Kirby into 3-4-3 at its door 0. The
     gimmick's spot is the cannon's foot, its shot leaving 8 pixels up: 8-1-5's turning cannon, in the middle of eight doors each
     behind metal blocks, fires through the middles of all eight from there (KatAM's cannon is placed 8 up; checked in KatAM: each
-    way's shot breaks its blocks, and its door then takes Kirby to its room).
+    way's shot breaks its blocks, and its door then takes Kirby to its room). A fuse lit from the side (5-1-1's: its end on the
+    floor, the rope going right into the wall) keeps KatAM's fuse object a cell up, the lit cell a corner down into the rest: KatAM's
+    burner (cannon_fuse.c) starts with a step down out of the object's cell, which clears the bit its end needs to set the cannon's
+    state slot (with the object on a rope cell instead, the burn ran to the cannon and then fell off the room, the cannon never
+    firing); Fire's breath from the floor beside it reaches the object. KatAM's cannon lands Kirby in the next room falling, then
+    bounces him forward twice (`sub_08051874`: 2, then 0.8 pixels a frame); 5-1-1's lands him in 5-1-6, a small room between two
+    pits, on a ledge over steps down, and the bounces carried him down them into the right pit: in the Squeak Squad rooms he lands
+    without the move forward (chest.c's `SqueakCannonArrival`, the state `sub_0805C024` gives him), on the ledge at the door, as
+    the DS puts him.
   - **Their doors in KatAM** (`SqueakMap.Doors()`, `AddSqueakRooms()`): each door leading to another of its stage's rooms is a
     KatAM door (its cell 0xFF, 0xFD in water; in a star block what the block leaves, the door's record before the block's), with
     its 8ROM record (kind 3: the room, the landing cell + 1, facing the room's middle) and a 9ROM entry for each place its room's

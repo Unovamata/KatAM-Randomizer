@@ -120,6 +120,8 @@ enum { SQUEAK_STAR_SPIT, SQUEAK_STAR_AHEAD, SQUEAK_STAR_BEHIND, SQUEAK_STAR_SWOR
 #define SQUEAK_CANNON_WAIT 35
 // (how long a cannon's shot flies at most, frames: Squeak Squad's carries Kirby on until he hits something or a cannon catches him);
 #define SQUEAK_CANNON_FLIGHT 150
+// (the first of the Squeak Squad rooms' ids, KatAMExpansionSqueakRooms.cs' SqueakFirstRoom: chest.c's SqueakCannonArrival);
+#define SQUEAK_FIRST_ROOM 0x400
 #define SQUEAK_CHEST_CLOSED SQUEAK_HURT_VARIANTS
 
 // Room every ported character gets (SqueakObject and its own fields);

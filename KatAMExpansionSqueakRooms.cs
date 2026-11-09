@@ -1036,7 +1036,8 @@ namespace KatAMRandomizer {
          * cell under the cannon. In KatAM (SqueakFuse()): its cannon (CannonType, as the NiDL rooms' Transport cannons: on the fuse's
          * last cell, +0x12 the room, +0x18 the landing cell + 1, the fuse's state slot 1) and fuse: KatAM's fuse cells (0x22-0x27,
          * cannon_fuse.c, solid), its fuse object (FuseType) where it's lit, KatAM's fuse burning down out of the object's cell into
-         * the first (lit from the side, 5-1-1's: the object a cell up, the lit cell a corner down into the rest); each fuse cell's
+         * the first (lit from the side, 5-1-1's: the object a cell up, the lit cell a corner down into the rest: the burner's first
+         * step, down out of the object's cell, clears what its end needs to fire the cannon); each fuse cell's
          * two special block records, the wall without the rope (the nearest wall's look) and its own look, as the NiDL rooms'; */
         const int SqueakTurnCannon = 0xB, SqueakFuseCannon = 0xC;
         const byte EightDirCannonType = 0x8B, SqueakFixedCannon = 0x9E, SqueakTurningCannon = 0x9D;
@@ -1063,7 +1064,8 @@ namespace KatAMRandomizer {
                 if (next.x < 0 || cells.Count > ways.Count) break;
                 (from, at) = (at, next);
             }
-            // (lit from the side: the object a cell up, the lit cell a corner from it into the rest);
+            // (lit from the side: the object a cell up, the lit cell a corner from it into the rest: KatAM's burner starts with a step
+            // down out of the object's cell, which its end needs);
             if (ways[light] != 4) {
                 cells.Insert(0, (light.x, light.y, ways[light] == 1 ? (byte)0x26 : (byte)0x27));
                 light = (light.x, light.y - 1);
@@ -1461,6 +1463,7 @@ namespace KatAMRandomizer {
                             cannon[0x22] = 2;
                             templates.Add(cannon);
                             if (!types.Contains(CannonType)) types.Add(CannonType);
+                            squeakCannons++;
                         }
                     }
                     // (its warp stars, KatAM's (see Transport): +0xE the flight, +0x1A, +0x1C the landing cell + 1, +0x1E the room);

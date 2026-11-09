@@ -169,6 +169,19 @@ void *SqueakCreateCannon(struct ObjectTemplate *template, u8 playerId) {
     return cannon;
 }
 
+/* SqueakCannonArrival(); Kirby's landing after a fuse cannon's shot (object 0x8A: its flight, sub_0805177C, lands him in the next
+ * room with sub_0805C024, which falls him and gives him this state, KatAMExpansionChests.cs pointing its literal here): KatAM's own
+ * (sub_08051874), which bounces him forward twice as he lands (2 then 0.8 pixels a frame), in a Squeak Squad room (ids from
+ * SQUEAK_FIRST_ROOM) without the move forward: he lands at the room's door as the DS's cannons put him there (5-1-1's shoots him
+ * into 5-1-6, a small room between two pits, onto a ledge over steps down: KatAM's bounces carried him down them into a pit); */
+extern void sub_08051874(struct Kirby *);
+
+void SqueakCannonArrival(struct Kirby *kirby) {
+    sub_08051874(kirby);
+    if (kirby->base.roomId >= SQUEAK_FIRST_ROOM && kirby->stateFn == SqueakCannonArrival)
+        kirby->base.xspeed = 0;
+}
+
 /* Field shards: the shards the randomizer puts in rooms instead of in chests (object 0x65, subtype n, from the room's own object
  * list) spawn every time the room is entered, owned or not (CreateShard never asks), and touching one plays the shard cutscene and
  * throws Kirby out of the level, even for a shard he has: one on the way through a room blocks it. Its spawn (gSpawnFuncTable1[0x65],

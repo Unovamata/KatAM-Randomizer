@@ -445,8 +445,12 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
       shot breaks that way's metal blocks and reaches the door's cell; then Kirby put on that door with Up goes to its room, all 8
       (the up door after a second shot out of the cannon: going straight up he falls back into it). The cannon's spot is its foot
       on the DS, the shot leaving 8 pixels up: placed there, the 8 ways go through the doors' middles (8 pixels lower, the sideways
-      and lower shots stopped a block short); 4-3-6's chain checked again after it, the same route. Not checked yet: 5-1-1's and
-      6-2-3's fuses. For the Squeak Squad levels' logic (not wired yet): 8-3-8's door at (128, 7) is behind a band of metal blocks
+      and lower shots stopped a block short); 4-3-6's chain checked again after it, the same route. 5-1-1's and 6-2-3's fuses
+      (Kirby held on the floor beside the fuse's end, given Fire, breathing on it, then put in the cannon): both burn to their
+      cannon, which shoots him into the room and door the DS's names (5-1-6's door 0, 6-2-4's door 1), where he lands and stands
+      (5-1-1's first ran him into a pit: KatAM's bounces forward after a cannon's landing, now left out in these rooms; its fuse
+      object is a cell over the floor, which Fire's breath from the floor reaches). 5-1-1's ride checked the same way in the
+      European and Japanese ROMs too (landing on 5-1-6's ledge, standing). For the Squeak Squad levels' logic (not wired yet): 8-3-8's door at (128, 7) is behind a band of metal blocks
       in a pillar with no floor in front (a Metalun beside it: the DS's Metal ability, which KatAM's Metalun doesn't give); KatAM's
       metal blocks break under Hammer (checked: Normal, Sword, Fighter, Smash and Fire don't) and cannon shots.
     - Gimmicks (section 10): counted and read (the notes: 26 classes, their graphics, the barrel's states decoded); warp stars and

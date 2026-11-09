@@ -42,14 +42,23 @@ namespace KatAMRandomizer {
         }
 
         /* HookSqueakCannons(); Squeak Squad's cannons (chest.c's SqueakCreateCannon): object 0x8B's spawn, the game's
-         * CreateEightDirCannon kept in gSqueakCannon; */
+         * CreateEightDirCannon kept in gSqueakCannon; and a fuse cannon's landing in the next room (sub_0805C024's literal of the state
+         * it gives Kirby, sub_08051874) becomes chest.c's SqueakCannonArrival, which runs it without its bounces forward in a Squeak
+         * Squad room; */
         static string HookSqueakCannons(byte[] patched, KatAMExpansionCode.Version version) {
             int entry = version.SpawnTable + EightDirCannonType * 4, kept = CodeAddress + version.CodeSymbols["gSqueakCannon"];
             int create = CodeAddress + 0x08000000 + version.CodeSymbols["SqueakCreateCannon"] + 1;
-            if (ReadInt(patched, entry) == create) return null;  // (applied already);
-            if (ReadInt(patched, entry) >> 24 != 0x08) return $"The {version.Name} ROM's cannon code doesn't match.";
-            WriteInt(patched, kept, ReadInt(patched, entry));
-            WriteInt(patched, entry, create);
+            if (ReadInt(patched, entry) != create) {
+                if (ReadInt(patched, entry) >> 24 != 0x08) return $"The {version.Name} ROM's cannon code doesn't match.";
+                WriteInt(patched, kept, ReadInt(patched, entry));
+                WriteInt(patched, entry, create);
+            }
+            // (the literal in sub_0805C024's pool, its 0x50 bytes);
+            int landing = version.RomSymbols["sub_0805C024"], state = version.RomSymbols["sub_08051874"] + 0x08000000 + 1;
+            int arrival = CodeAddress + 0x08000000 + version.CodeSymbols["SqueakCannonArrival"] + 1;
+            int literal = Enumerable.Range(0, 0x14).Select(k => landing + k * 4).FirstOrDefault(a => ReadInt(patched, a) == state || ReadInt(patched, a) == arrival);
+            if (literal == 0) return $"The {version.Name} ROM's cannon landing code doesn't match.";
+            WriteInt(patched, literal, arrival);
             return null;
         }
 
