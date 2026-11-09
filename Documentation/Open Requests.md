@@ -403,10 +403,16 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
       "no need to bring" them; checked in its three rooms). The room sweep now also opens the pause screen in each room it
       can't tell is running (a VBlank counter keeps counting through a hang): all 493 live. Europe and Japan: 10 chests opened
       and 13 rooms run the same way; the 3 versions built and the logic checks unchanged (with and without drops).
+    - Doors: every door leading to another room of its stage (562) is a KatAM door with its 8ROM record and 9ROM entry, Kirby
+      landing on the door it names (Squeak Squad's doors are all entered with Up: checked on the DS, one of each kind). Its
+      hidden ways (flag 4, to the gold-pile treasure rooms) are doors drawn as on the DS: none. Checked in the GBA emulator
+      (forced: Kirby held on each door's cell pressing Up, not a playthrough): all 562 in the USA ROM land in the right room on
+      the right door, none hangs; every tenth in the European and Japanese ROMs the same. The goals (the stage's end) and how
+      Kirby gets into a stage wait for the levels' structure.
     - Left: the chests' Squeak Squad treasures (Ability Scrolls, Spray Paints, the Secret Map's pieces, Vitality halves: with
       their items, below), the chase spawns after the stage's treasure (the Squeakers among them, and 22 chests), the arenas
-      without the NiDL ROM (NiDL's type holds the camera), the doors, the gimmicks, tile animations, the areas; then the hub,
-      the levels by the rulebook, bosses, the option, map viewer, logic checks.
+      without the NiDL ROM (NiDL's type holds the camera), the stages' goals, the gimmicks, tile animations, the areas; then the
+      hub, the levels by the rulebook, bosses, the option, map viewer, logic checks.
   - Ability bubbles whose ability no regular enemy gives (Hammer, Bonkers' in KatAM; Squeak Squad's ability numbers 12, 18 and
     26) become food (the owner: "In the case of bubbles without no regular enemy, you can swap them out for food.").
 - **Map items for each area** (the owner, with the rooms): KatAM's map item, its sprite recolored to each NiDL and Squeak Squad

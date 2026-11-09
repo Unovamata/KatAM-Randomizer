@@ -557,9 +557,14 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
     bubbles (`0x10` and a food, or `0` and an ability), 0x12, 0x13, 0x14 (rectangles: camera or scroll areas), 0x15, 0x16 (the
     Squeakers' treasure rooms' timings), 0x17, 0x18, 0x19 (171 in two lava rooms), 0x1A: unseen helpers, not yet identified.
   - Section 11, the doors: `u16` count, then 10 bytes a door: `u16` its number (the collision's `0x80 + n` marks it), `u8` flags,
-    `u8` kind, `u16` x, y from the top, `u8` the stage's room it leads to and `u8` that room's door (`0xFF`: none). Kind 6 is where
-    Kirby starts, 4 a door, 0x40-0x42 and 0x80-0xC1 other entrances (pipes, edges); flags 0x10 a way on, 0x90 back the way Kirby
-    came, 0x23 with no room the stage's goal, 2 and 4 secret ways.
+    `u8` kind, `u16` x, y from the top (the middle of the cell Kirby stands in: a floor under it, but for a door high in Gao Gao's
+    room in Nature Notch 3), `u8` the stage's room it leads to (0-based, the `.mxi`'s order) and `u8` that room's door (its number;
+    `0xFF`: none). Kind 6 is where Kirby starts (most doors lead to one), 4 a door, 0x42 a dark doorway, 0x40, 0x41, 0x80, 0x82,
+    0xC1 and 5 other entrances: all entered with Up, none walked into (checked in the DS emulator, Kirby put on one of each kind
+    and walked through it both ways, then on it pressing Up; 0xC0 and kind 0 are only in the test stages 1-8, 1-9, 2-9). Flags:
+    0x10 and 0x90 ways on, 0x23 with no room the stage's goal, 4 a hidden way (46 of them: the DS draws no door there and Up does
+    nothing, no switch in its room; they lead to the stages' gold-pile treasure rooms, whose doorway leads back to the stage's
+    start), 2 others (0xC1's). 562 doors lead to another room of their stage; 4 to rooms Nature Notch 6 lists but never had.
   - The far views (`map/d_viw_NN.nsbtx`, 39 of them): a BTX0 file, its TEX0 block (+0x10) holding one 256-color texture (format 4)
     and its palette: 512 by 256 pixels (33), 256 by 256 (5) or 256 by 512 (d_viw_0C, a climb's); a painted panorama, its top 192
     rows what the DS shows (the rest its last row smeared down). In KatAM: shrunk to 3/4 (48 tiles wide, 20 tall with the smear),
@@ -614,6 +619,15 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
     lookups now stop at the list's end. Each holds a consumable for now (KatAM's chest items in turn); the chests of the
     treasures the owner listed (Ability Scrolls, Spray Paints, the Secret Map, Vitality) are to hold those. The chase spawns'
     22 chests (flag 4) aren't placed yet.
+  - **Their doors in KatAM** (`SqueakMap.Doors()`, `AddSqueakRooms()`): each door leading to another of its stage's rooms is a
+    KatAM door (its cell 0xFF, 0xFD in water; in a star block what the block leaves, the door's record before the block's), with
+    its 8ROM record (kind 3: the room, the landing cell + 1, facing the room's middle) and a 9ROM entry for each place its room's
+    doors lead to, after its chests: Kirby lands on the door it names, standing (the cell's floor under him). The hidden ways are
+    doors drawn as on the DS (none); the goals and the starts aren't doors yet (the levels' structure). Checked in the GBA emulator
+    (forced: Kirby held on the door's cell, Up pressed, his room and cell read after): all 562 doors in the USA ROM, each landing in
+    its room on the door it names, none hanging (six needed a second try: an enemy's hit, the helpers pushing Kirby off a cell-wide
+    ledge, a door in the air Kirby floats up to); every tenth in the European and Japanese ROMs (three needed a second try, enemy
+    timing). The rooms' visited doors are the doors lists' (16 bits: the most places a room's doors lead to is 11).
   - **Tutorial signs**: the three in Prism Plains 2 (its first, third and fifth rooms: "Tap to pop!", "Find treasure and move on.",
     "Mix bubbles!") are front-layer blocks without collision, 16 by 11 cells; left out (`SqueakSigns()`: no other room has such a
     block), the owner: KatAM skips them.

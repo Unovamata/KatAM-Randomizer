@@ -82,7 +82,27 @@ namespace KatAMRandomizer {
             public int Entry(int table, int block, int quarter) => ReadShort(Data, sections[table] + 2 + block * 8 + quarter * 2);
             // A cell's collision word in a grid (6, 7, 8);
             public uint Collision(int grid, int x, int y) => (uint)ReadInt(Data, sections[grid] + (y * Width + x) * 4);
+
+            /* Doors(); Its doors (section 11: u16 count, 10 bytes a door): its number (the collision's 0x80 + n marks its cell), flags
+             * (0x10 a way on, 0x90 back, 0x23 the stage's goal, 4 a hidden way: the DS draws no door there), kind (6 where Kirby
+             * starts, 4 a door, 0x42 a dark doorway, 0x40, 0x41, 0x80, 0x82, 0xC0, 0xC1, 5 others: all of them entered with Up, as
+             * checked in the DS emulator), its cell's middle (x, y from the top: the cell Kirby stands in), the stage's room it leads
+             * to (0-based, 0xFF none: a start, a goal) and that room's door (its number); */
+            public List<SqueakDoor> Doors() {
+                List<SqueakDoor> doors = new List<SqueakDoor>();
+                int at = sections[11];
+                for (int i = 0, count = ReadShort(Data, at); i < count; i++) {
+                    int door = at + 2 + i * 10;
+                    doors.Add(new SqueakDoor(ReadShort(Data, door), Data[door + 2], Data[door + 3], ReadShort(Data, door + 4) / 16,
+                                             ReadShort(Data, door + 6) / 16, Data[door + 8], Data[door + 9]));
+                }
+                return doors;
+            }
         }
+
+        // A Squeak Squad door (SqueakMap.Doors()): its cell, and where it leads (the stage's room, 0-based, and its door's number);
+        internal sealed record SqueakDoor(int Number, int Flags, int Kind, int X, int Y, int Room, int Door);
+        const int SqueakStartKind = 6, SqueakNoRoom = 0xFF;
 
         /* SqueakTileset; A tileset (map/NN_f.bin, NN_b.bin): u32 offsets and sizes (+0 the palettes' offset, 0x10; +4 their size, 16
          * palettes; +8 the tiles' size), the tiles (4 bits a pixel) after the palettes, then a byte a tile: its palette (the blocks'
@@ -854,7 +874,7 @@ namespace KatAMRandomizer {
         /* AddSqueakRooms(); Every Squeak Squad room into KatAM (see above): its foreground (ConvertSqueakForeground(), its star blocks'
          * cells drawn bare for what they leave), its far view as its background (shared by the rooms showing it), its collision
          * (SqueakCollision(): a star block a special block record, leaving air, or water in water), its CPU helpers' zones, its
-         * objects (SqueakObjects()); no doors yet; */
+         * objects (SqueakObjects()), its doors to the stage's other rooms (the goals not yet); */
         static string AddSqueakRooms(byte[] rom, byte[] squeak, KatAMExpansionCode.Version version, ref int cursor) {
             IReadOnlyDictionary<string, int> symbols = version.RomSymbols;
             int here = cursor;      // (the cursor, which the local functions can't take by reference);
@@ -918,6 +938,17 @@ namespace KatAMRandomizer {
             Dictionary<string, int> backgroundOf = new Dictionary<string, int>();
             Dictionary<string, (int width, int height)> backgroundSize = new Dictionary<string, (int, int)>();
             try {
+                // (each room's doors and width, and the rooms by their stage and place in it: the doors' targets);
+                Dictionary<(int area, int stage, int index), int> roomOf = new Dictionary<(int, int, int), int>();
+                List<SqueakDoor>[] doorsOf = new List<SqueakDoor>[files.Count];
+                int[] widthOf = new int[files.Count];
+                for (int i = 0; i < files.Count; i++) {
+                    SqueakMap map = new SqueakMap(SqueakUnpack(SqueakFileAnyCase(squeak, files[i].Map)));
+                    roomOf[(files[i].Area, files[i].Stage, files[i].Index)] = i;
+                    doorsOf[i] = map.Doors();
+                    widthOf[i] = map.Width;
+                }
+
                 for (int i = 0; i < files.Count; i++) {
                     SqueakRoomFiles f = files[i];
                     int room = SqueakFirstRoom + i;
@@ -943,6 +974,34 @@ namespace KatAMRandomizer {
                         (int x, int y) = blocks[b];
                         bool Water(int cx, int cy) => cx >= 0 && cy >= 0 && cx < width && cy < height && collision[cy * width + cx] is >= 0x34 and <= 0x48;
                         if (Water(x - 1, y) || Water(x + 1, y) || Water(x, y - 1) || Water(x, y + 1)) leaves[b] = KatAMWater;
+                    }
+
+                    /* Doors (SqueakMap.Doors()): each way to another of the stage's rooms, entered with Up, Kirby landing on the door it
+                     * names there (the cell he stands in), facing the room's middle: its cell KatAM's door (0xFF, 0xFD in water; in a
+                     * star block what the block leaves, its record before the block's, as BuildSolidity()'s secret doors), its 8ROM record
+                     * and a 9ROM entry for each place they lead to (KatAM looks a door's up as Kirby goes through it, never ending
+                     * without it). The goals (no room) and the starts aren't doors; a hidden way (flag 4) is a door the room draws none
+                     * for, as on the DS; */
+                    List<byte> doorRecords = new List<byte>(), blockDoorRecords = new List<byte>();
+                    List<(int room, int x, int y)> doorPlaces = new List<(int, int, int)>();
+                    foreach (SqueakDoor door in doorsOf[i]) {
+                        if (door.Kind == SqueakStartKind || door.Room == SqueakNoRoom || door.X >= width || door.Y >= height) continue;
+                        if (!roomOf.TryGetValue((f.Area, f.Stage, door.Room + 1), out int to)) continue;
+                        if (doorsOf[to].FirstOrDefault(d => d.Number == door.Door) is not SqueakDoor landing) continue;
+                        int cell = door.Y * width + door.X, block = blocks.IndexOf((door.X, door.Y));
+                        bool water = block >= 0 ? leaves[block] == KatAMWater : collision[cell] is >= 0x34 and <= 0x48;
+                        byte value = water ? (byte)0xFD : (byte)0xFF;
+                        (int room, int x, int y) place = (SqueakFirstRoom + to, landing.X + 1, landing.Y + 1);
+                        byte[] record = { 3, value, (byte)door.X, (byte)door.Y, 0x0E, 0, 0xFF, 0xFF, (byte)place.room, (byte)(place.room >> 8),
+                                          (byte)place.x, (byte)place.y, (byte)(landing.X * 2 < widthOf[to] ? 1 : 2), 0xFF };
+                        if (block >= 0) {
+                            leaves[block] = value;
+                            blockDoorRecords.AddRange(record);
+                        } else {
+                            collision[cell] = value;
+                            doorRecords.AddRange(record);
+                        }
+                        if (!doorPlaces.Contains(place)) doorPlaces.Add(place);
                     }
 
                     // Foreground: its tiles, palettes and tilemap;
@@ -996,6 +1055,8 @@ namespace KatAMRandomizer {
                         foreach (ushort e in foreground.Bare[b]) specials.AddRange(BitConverter.GetBytes(e));
                         specials.AddRange(new byte[] { leaves[b], 0xFF });
                     }
+                    specials.InsertRange(0, blockDoorRecords);
+                    specials.AddRange(doorRecords);
                     specials.AddRange(new byte[] { 0, 0, 0, 0, 0, 0, 0xFF, 0xFF });
                     int collisionAt = AllocateCompressed(rom, CompressRL(collision), ref here), specialsAt = AllocateCompressed(rom, specials.ToArray(), ref here);
                     int solidity = Allocate(ref here, 8, 4);
@@ -1007,9 +1068,10 @@ namespace KatAMRandomizer {
                     int objects = WriteObjectList(rom, templates, types, noTypes, ref here);
                     int navigation = BuildNavigation(rom, width, height, false, collision, navigationRoutes, new List<(int, int, int, int)>(), ref here);
                     /* (its chests in its 9ROM list, first, as KatAM's: {1, 8, 0xFF, 0xFF, the template's x, y}, and counted: opening one
-                     * marks it there, sub_08002B30 looking it up by its spot, never ending without it); */
+                     * marks it there, sub_08002B30 looking it up by its spot, never ending without it; then its doors' places); */
                     List<byte[]> chestTemplates = templates.Where(t => t[12] is SmallChestType or KatAMBigChestType && t[0x11] == SqueakChestIndex).ToList();
                     List<byte> nineROM = chestTemplates.SelectMany(t => ChestEntry(ReadShort(t, 6), ReadShort(t, 8))).ToList();
+                    foreach ((int room, int x, int y) place in doorPlaces) nineROM.AddRange(NineROMEntry(place.room, place.x, place.y));
                     int doors = DoorsList(nineROM, chestTemplates.Count);
 
                     // Room info: room 0x397's (no routes, the helpers' flags), its room; the map viewer's +0x4A, +0x4B: stage, room;
