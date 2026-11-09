@@ -74,8 +74,9 @@ after any change.
   | Fountain of Dreams | none: no big switch (section 8); its world map path never opens |
 
   Each KatAM room in that list gets a hub door back.
-- **The world map is fixed as approved** (`worldmap.c`'s `gNidlWorldMapDoors`, one path per level's hub door). Neither the world
-  map nor the hub links change unless the user asks for it.
+- **The world map is fixed as approved** (`worldmap.c`'s `gNidlWorldMapDoors`, one path per level's hub door: the NiDL levels', then
+  Squeak Squad's worlds', each to a KatAM door, never to a NiDL or Squeak Squad door, no 3 exits in a chain; the Fountain of Dreams'
+  door is off the map, the end game's). Neither the world map nor the hub links change unless the user asks for it.
 - **Hub doors are always two-way and never lead to a Mirra.**
 - The NiDL hub (a Central Circle copy at night) has one door per level, as Central Circle has one per area. It is reached
   through a golden mirror in Central Circle (beside Central Circle's own), and a pink mirror in the NiDL hub leads back.
@@ -87,9 +88,25 @@ after any change.
   and visuals, the entrance door to the area is a grey door"): a copy of Central Circle (its own tiles, its doors gone), reached
   through a mirror on Central Circle's floor (cell 11, 18, left of its bottom door; a mirror at the same spot in the hub leads back:
   both provisional, the owner's to place and color). Rainbow Route's mirror in it (19, 14) is the way in, to Prism Plains 1's start,
-  as the NiDL hub's golden one. It is never reached from the NiDL hub, and works with or without the NiDL ROM. Its world doors (one
-  per world, shown by each world's big switch) come with the Squeak Squad switch rooms: the game's world slots left free (0x10,
-  0x11, 0x1C-0x1F) are fewer than 8, so they will use bits of the expansion's own save. `BuildSqueakHub()`.
+  as the NiDL hub's golden one. It is never reached from the NiDL hub, and works with or without the NiDL ROM. Its world doors:
+  Central Circle's own doors (MainHubDoors, the world's number's, drawn and shown as Central Circle's), one per world, shown by the
+  world's big switch, to its switch room. `BuildSqueakHub()`.
+- **The Squeak Squad switch rooms** are the NiDL ones' (one per world, KatAM's two hub-door layouts, A for worlds 1, 3, 5, 7, B for
+  2, 4, 6, 8, 2 floor mirrors into the world, 2 hub doors, the big switch on its pedestal, 2 ability statues), drawn in the world's
+  tiles (provisional, the owner's to pick: mock-ups). Their big switches set world slots 0x20-0x27, kept in the expansion's save
+  (the game's free world slots, 0x10, 0x11, 0x1C-0x1F, are fewer than 8: rooms.c's `BigGetStateSlot`), which open the world's
+  door on the world map. Their hub doors: one to the Squeak Squad hub's world door, one to the KatAM room the world's world map path
+  leads to (the owner's pick of the mock-up): Prism Plains to Moonlight Mansion's door (`0xBE`), Nature Notch to Rainbow Route
+  South (`0xC2`), Cushy Cloud to Rainbow Route East (`0x316`), Jam Jungle to Rainbow Route West (`0xC0`), Vocal Volcano to Rainbow
+  Route North (`0x24E`), Ice Island to Peppermint Palace East (`0x122`), Secret Sea to Olive Ocean (`0x37A`), Gamble Galaxy to
+  Candy Constellation (`0x1EA`). Each of those rooms gets a hub door back, by NiDL's own rule for these rooms: a room with one door on
+  its top row takes `0x122`'s layout (that door moved from the middle to cell 12, its statues between, the new door at cell 3; with
+  NiDL's rooms, which did that already in `0x316` and `0xBE`, the world's door stands in the middle, drawn at x 128); one with two
+  doors on top takes the middle (`0xC0`; `0x122` without NiDL's rooms; with them, whose door took its middle, the floor's right, under
+  Central Circle's door); one with a door on its lower floor takes `0xBF`'s layout (that door moved to cell 11, the new one at cell
+  5). The doors landing on a moved door land on it there. Kirby lands on the door he came through. These KatAM rooms are edited
+  once the randomizer is done, after NiDL's edits (`FinishRooms()`, `squeakFinish`). Provisional: the owner's to place and color.
+  `KatAMExpansionSqueakHubs.cs`.
 
 ## 5. Levels, stages and the order of things
 
@@ -123,7 +140,12 @@ after any change.
     rooms, copies of Dark Nebula's room and the one before it, are left out, so he's fought once;
   - the hidden two-way door between worlds leads into the next world's first stage;
   - the rooms a stage reaches only through its Squeaks (after its goal: the gold-pile treasure rooms and the hideouts where
-    Spinni, Doc or Storo fight for a stolen chest) are left to the Squeak Lair doors (rule 9 holds once those are made).
+    Spinni, Doc or Storo fight for a stolen chest) are left to the Squeak Lair doors (rule 9 holds once those are made);
+  - each world's switch room is found by exploring: a Mirra hidden in the world's second half (its stages from the middle on by
+    number, the deepest first), one-way, landing off its floor mirrors; its right floor mirror both ways with the start of the
+    stage before the boss's (the deepest), its left one with the start of the deepest stage off the way from the world's first
+    stage to that one, not the Mirra's own (else the way's first); each with a mirror back in that stage's first room if it takes
+    one, else the switch room's leads on, one-way, onto the stage's start.
 
 ## 6. Mirras
 
@@ -134,6 +156,8 @@ after any change.
   in, shown once it opens there. `mirra.c`, `MirraLandings()`.
 - **Each leads to real progress** (a switch room, a shortcut to a later stage), never sideways.
 - Never in a boss room or a switch room. `MirraSpots()`.
+- **Squeak Squad's** (one a world, to its switch room: rule 5) stand on a floor that can't break, so they never fall: KatAM's own
+  Mirra opens the door where it stands, with or without the NiDL ROM.
 
 ## 7. Warp stars and cannons
 

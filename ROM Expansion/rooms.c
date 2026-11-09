@@ -33,7 +33,7 @@
 #define BIG_ZONES (BIG_BLOCKS + 4)
 #define BIG_TILEMAP (BIG_BLOCKS * 8)
 #define NIDL_HEAP_SIZE 0x7C80   // 0x20080 - NIDL_VISITED_SIZE - 3 * BIG_TILEMAP: KatAMExpansionRooms.cs's NidlHeapSize;
-#define NIDL_VISITED_SIZE 0xA00  // NiDL's and Squeak Squad's rooms' lists (1206), Squeak Squad's chests, then the taken bits;
+#define NIDL_VISITED_SIZE 0xA00  // NiDL's and Squeak Squad's rooms' lists (1190), Squeak Squad's world slots and chests, the taken bits;
 #define NIDL_DOORS_FIRST 0x120  // ARRAY_COUNT(gVisitedDoors): KatAMExpansionRooms.cs's FirstDoorsList;
 #define NIDL_VISITED_MAGIC 0x4E494456
 
@@ -60,6 +60,7 @@ u16 gNidlGridRoom = 0xFFFF;
  * them (sub_080027A8: a game's start, a game over...), so it's once per visit, not once per room entry; */
 #define NIDL_TAKEN_SIZE 0x80
 #define SQUEAK_CHESTS_SIZE 0x10
+#define SQUEAK_WORLD_SIZE 0x20
 #define NIDL_TAKEN_KIND 3
 #define SQUEAK_TAKEN_KIND 5
 #define BIG_AREA ((u8 *)gEwramHeap + NIDL_HEAP_SIZE + NIDL_VISITED_SIZE)
@@ -84,8 +85,8 @@ static u16 *Visited(u16 roomId) {
     if (list < NIDL_DOORS_FIRST) return &gVisitedDoors[list];
     area = Area();
     list -= NIDL_DOORS_FIRST;
-    if (list >= (NIDL_VISITED_SIZE - NIDL_TAKEN_SIZE - SQUEAK_CHESTS_SIZE) / 2 - 2)
-        list = (NIDL_VISITED_SIZE - NIDL_TAKEN_SIZE - SQUEAK_CHESTS_SIZE) / 2 - 3;
+    if (list >= (NIDL_VISITED_SIZE - NIDL_TAKEN_SIZE - SQUEAK_CHESTS_SIZE - SQUEAK_WORLD_SIZE) / 2 - 2)
+        list = (NIDL_VISITED_SIZE - NIDL_TAKEN_SIZE - SQUEAK_CHESTS_SIZE - SQUEAK_WORLD_SIZE) / 2 - 3;
     return (u16 *)(area + 1) + list;
 }
 
@@ -106,6 +107,26 @@ bool32 SqueakChestOpened(u8 n) {
 
 void SqueakCollectChest(u8 n) {
     SqueakChests()[n >> 3] |= 1 << (n & 7);
+}
+
+/* BigGetStateSlot(); GetStateSlot (a state slot: a room's, the session's or the world's, gUnk_02028C10, 0x20 of them, saved), with
+ * world slots SQUEAK_WORLD_SLOT on in the visited area, before Squeak Squad's chests: saved with the visited doors (Squeak Squad's
+ * worlds' big switches: KatAM's free world slots, 0x10, 0x11, 0x1C-0x1F, are fewer than its 8); */
+#define SQUEAK_WORLD_SLOT 0x20
+u32 *BigGetStateSlot(enum StateSlotScope scope, u8 id, u8 roomSlot)
+{
+    switch (scope) {
+    case STATE_SLOT_ROOM:
+        return gUnk_02023388[roomSlot] + id;
+    case STATE_SLOT_SESSION:
+        return gUnk_02023488 + id;
+    case STATE_SLOT_WORLD:
+        if (id >= SQUEAK_WORLD_SLOT && id < SQUEAK_WORLD_SLOT + SQUEAK_WORLD_SIZE / 4)
+            return (u32 *)(SqueakChests() - SQUEAK_WORLD_SIZE) + (id - SQUEAK_WORLD_SLOT);
+        return gUnk_02028C10 + id;
+    default:
+        return NULL;
+    }
 }
 
 static u8 *TakenOf(u32 kind) {

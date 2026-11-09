@@ -4,17 +4,6 @@ What the owner has asked for that is still to do. When an item is finished, take
 hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
 
 ## 52. Kirby: Squeak Squad in Amazing Mirror
-- First step, the world map: a door per Squeak Squad level, as NiDL's 8. Mock-up proposed, waiting for the owner's choice:
-  1 Prism Plains (green fields by the castle) to Moonlight Mansion; 2 Nature Notch (underground, by the caves) to Rainbow Route
-  South; 3 Cushy Cloud (the cloud over the hills) to Rainbow Route East; 4 Jam Jungle (the dark forest) to Rainbow Route West;
-  5 Vocal Volcano (Mustard Mountain's slope) to Rainbow Route North; 6 Ice Island (the ice tower) to Peppermint Palace East;
-  7 Secret Sea (out at sea past Olive Ocean, clear of the QUIT text: the owner's sketch, as its own level map is open sea) to
-  Olive Ocean; 8 Gamble Galaxy (space) to Candy Constellation.
-- The owner's rules for it: never connected to a NiDL hub (either game can be on alone), and no 3 exits in a chain. Read as: each
-  Squeak Squad door's path leads to a KatAM door, never to a NiDL door or another Squeak Squad door; all but Secret Sea's lead
-  to one that goes straight to Central Circle. Its own hub is reached from Central Circle, not through the NiDL hub.
-- The Fountain of Dreams' world map door comes off the map (the owner: end-game only, its path never opens), with the Squeak
-  Squad doors.
 - **The whole cast, 1:1** (the owner: "I don't want you to finish until you complete the entire cast of enemies and their
   behaviors. If there's a behavior that's not in KatAM, port it 1:1."): every regular enemy, every mid-boss, the Squeaks and
   every boss of the USA release (the owner chose "everything"). Enemies KatAM already has keep KatAM's own object, as NiDL's
@@ -488,17 +477,38 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
     - Goals (the owner: "Goal doors reach to the next stage correct, however keep in mind the Goal minigame doors from KatAM as well
       for path ending sections, 1 or 2 per area stage"): every goal but the deepest stage's (into the boss stage) leads on into the
       world's next stage; 2 a world, at paths' ends, into KatAM's goal games. Checked in the GBA emulator: all 46 goal doors lead
-      where they should. Still to do here: the hub's world doors (each
-      world's switch room, big switch and the world map's path, on bits of the expansion's save: the free world slots are 6),
-      Mirras into the switch rooms, links with KatAM's areas, the logic checks with terrain over these rooms, the map viewer,
-      the window's option.
+      where they should.
+    - The switch rooms, world doors and world map (`KatAMExpansionSqueakHubs.cs`; the rulebook's rules 4, 5, 6): a switch room per
+      world after the hub (0x5EA-0x5F1), NiDL's two layouts, its look the world's tiles (provisional: each cell the look the
+      world's best-matching room gives the same kind of cell with the same around it; mock-ups to come), its big switch on its
+      pedestal, two ability statues (provisional picks), its floor mirrors into the world (the stage before the boss's and another
+      branch's), its way in a Mirra hidden in the world's second half. Its big switch sets a world slot of the expansion's save
+      (0x20-0x27: the game's free ones are 6; rooms.c's `BigGetStateSlot`, KatAM's `GetStateSlot` replaced, the slots saved with
+      the visited doors), which shows its two hub doors, the world's door in the Squeak Squad hub (Central Circle's door there, as
+      Central Circle shows its own) and the world's door and path on the world map (the owner's mock-up: 8 doors after NiDL's, the
+      Fountain of Dreams' off the map, the end game's), Kirby drawn on his world's door, on Central Circle in the hub. Its hub doors
+      lead to the hub and to the KatAM room its path leads to, which gets a door back (by NiDL's rule for those rooms: Central
+      Circle's door moved where one room's layout takes another's; provisional, the owner's to place); those KatAM rooms are edited
+      after the randomizer, after NiDL's own edits (as NiDL's: before, Central Circle lost its golden NiDL mirror whenever both
+      ROMs were in, found and fixed here). Checked: in the GBA emulator, USA (with NiDL's rooms and without), Europe, Japan (forced:
+      Kirby held on each door, Up; the slots set): the switch rooms' 32 doors, the hub's 8, the KatAM rooms' 8, Central Circle's
+      grey door, its golden NiDL mirror, NiDL's doors in the rooms shared with it, and the moved doors and the doors landing on them:
+      all lead where they should (Japan's two needed a longer wait for its intro); the 8 Mirras' doors, forced open (the cell
+      written as the Mirra's record makes it when it's beaten: the Mirra isn't fought in the test), lead onto each switch room's
+      arrival, all three versions; a big switch pressed (Kirby dropped onto it, a real press, USA, Europe, Japan): the world map's
+      animation plays the world's path, the slot is set in the save's area, its hub doors show; the pause screen's world map from a
+      world's room, its switch room and the hub (USA). The room graph: every switch room reached, none without a way out; 364 of
+      the 497 rooms reached, the rest the Squeak Lair rooms, as before. The 3 versions built and the NiDL logic checks unchanged
+      (with and without drops). Not tested: beating a Mirra in a fight (KatAM's own Mirra code opens the same records), a save
+      written and loaded with the new slots (they're in the area the save already copies), a real playthrough.
+    - Still to do here: the logic checks with terrain over these rooms, the map viewer, the window's option.
     - Gimmicks (section 10): counted and read (the notes: 26 classes, their graphics, the barrel's states decoded); warp stars and
       cannons in KatAM (above), the others not yet. Their cells are open where the DS's object is (a shutter's pillar), so
       nothing blocks a way meanwhile.
     - Left: the chests' Squeak Squad treasures (Ability Scrolls, Spray Paints, the Secret Map's pieces, Vitality halves: with
       their items, below), the chase spawns after the stage's treasure (the Squeakers among them, and 22 chests), the arenas
-      without the NiDL ROM (NiDL's type holds the camera), the stages' goals, the gimmicks, the areas; then the hub, the levels
-      by the rulebook, bosses, the option, map viewer, logic checks.
+      without the NiDL ROM (NiDL's type holds the camera), the gimmicks, the areas; then the option, map viewer, logic checks with
+      terrain.
   - Ability bubbles whose ability no regular enemy gives (Hammer, Bonkers' in KatAM; Squeak Squad's ability numbers 12, 18 and
     26) become food (the owner: "In the case of bubbles without no regular enemy, you can swap them out for food.").
 - **Map items for each area** (the owner, with the rooms): KatAM's map item, its sprite recolored to each NiDL and Squeak Squad

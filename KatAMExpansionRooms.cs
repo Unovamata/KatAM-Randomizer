@@ -317,6 +317,9 @@
             bossExitsOf = new Dictionary<NightmareRoom, (int, int, int)>();
             roomTables = null;
             squeakRooms = new List<SqueakPortedRoom>();
+            worldMapAdded = false;
+            squeakSwitchLooks = new Dictionary<int, int>();
+            squeakFinish = null;
         }
 
         /* NightmareRooms(); NiDL's level rooms, split where KatAM can't hold them whole. Left out: the levels' hub lists (hub, museum,
@@ -1131,6 +1134,8 @@
             "sub_08002624", "sub_080026A8", "sub_08001408", "sub_080015A8",
             "sub_08002A5C", "sub_08002A80", "sub_08002AD0", "sub_08002B30", "sub_08002BA8", "sub_08002C18",
             "sub_08001678", "sub_080027E8", "sub_080027A8",
+            // (and the world's state slots, Squeak Squad's worlds' big switches' from 0x20 in the visited area: rooms.c's BigGetStateSlot);
+            "GetStateSlot",
         };
         static string BigRooms(byte[] rom, KatAMExpansionCode.Version version) {
             int codeBase = CodeAddress + 0x08000000, heap = version.RomSymbols["EwramInitHeap"], size = -1;
@@ -3345,6 +3350,11 @@
                 WriteInt(rom, edited.DoorsEntry, newDoorsInfo + 0x08000000);
             }
             editedRooms = new List<EditedRoom>();
+            // (and Squeak Squad's, after NiDL's: KatAMExpansionSqueakHubs.cs);
+            if (squeakFinish != null) {
+                cursor = squeakFinish(rom, cursor);
+                squeakFinish = null;
+            }
         }
 
         const byte MirrorType = 0x6F, MirraType = 0x34, WarpStarType = 0x84, CannonType = 0x8A, FuseType = 0x78;

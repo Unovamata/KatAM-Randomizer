@@ -1,20 +1,26 @@
 namespace KatAMRandomizer {
-    /* KatAMExpansion's world map: a door for each NiDL level (see "ROM Expansion/worldmap.c").
+    /* KatAMExpansion's world map: a door for each NiDL level and each Squeak Squad world (see "ROM Expansion/worldmap.c").
      * • KatAM's big switch (object 0x86) runs gUnk_08357B8C[its template's +0x14]: entries 1-15 call sub_08039600(9 + n), which runs
-     *   gUnk_0834BD94[9 + n] (WorldMapUnlock*: CreateWorldMap(n), the unlocking animation). Both tables are copied with 8 more entries:
-     *   gUnk_08357B8C[17 + k] calls sub_08039600(27 + k), gUnk_0834BD94[27 + k] is NidlWorldMapUnlock<k> (CreateWorldMap(16 + k));
-     * • The tables the animation indexes by door (sWorldMapLineCoors, its dot counts, gWorldMapDotCoors) are copied with 24 entries,
-     *   entries 16-23 from gNidlWorldMapDoors (with the dots, from the NiDL door toward where its path leads);
+     *   gUnk_0834BD94[9 + n] (WorldMapUnlock*: CreateWorldMap(n), the unlocking animation). Both tables are copied with 16 more entries:
+     *   gUnk_08357B8C[17 + k] calls sub_08039600(27 + k), gUnk_0834BD94[27 + k] is NidlWorldMapUnlock<k> (CreateWorldMap(16 + k)): k 0-7
+     *   the NiDL levels, 8-15 Squeak Squad's worlds;
+     * • The tables the animation indexes by door (sWorldMapLineCoors, its dot counts, gWorldMapDotCoors) are copied with 32 entries,
+     *   entries 16-31 from gNidlWorldMapDoors (with the dots, from the door toward where its path leads);
      * • WorldMapUnlockSave, WorldMapGetCoorFromRoom, WorldMapDrawKirbys and GetKirbyRoomFlagIndex (the pause menu: NiDL rooms have no
  *   area map, Select switches between the help and the world map) are detoured to the C code; */
     internal static partial class KatAMExpansion {
-        const int WorldMapDoors = 16, NidlWorldMapDoors = 8, NidlDoorSize = 88, NidlMaxDots = 20;
+        const int WorldMapDoors = 16, NidlWorldMapDoors = 16, NidlDoorSize = 88, NidlMaxDots = 20;
         const int BigSwitchEntries = 17, UnlockEntries = 27;
 
-        // NidlBigSwitchId(); The big switch template's +0x14 of NiDL level `level`;
+        // NidlBigSwitchId(); The big switch template's +0x14 of NiDL level `level` (0-7), or of Squeak Squad's world `level` - 7 (8-15);
         static int NidlBigSwitchId(int level) => BigSwitchEntries + level;
 
+        // (installed once: by the NiDL rooms, or by Squeak Squad's without them; the ROM's world map is KatAM's until then);
+        static bool worldMapAdded;
+
         static string AddWorldMap(byte[] rom, KatAMExpansionCode.Version version, ref int cursor) {
+            if (worldMapAdded) return null;
+            worldMapAdded = true;
             int codeBase = CodeAddress + 0x08000000;
             int doors = CodeAddress + version.CodeSymbols["gNidlWorldMapDoors"];
             int lineCoors = version.RomSymbols["sWorldMapLineCoors"], dotCounts = lineCoors + WorldMapDoors * 4, dotCoors = version.RomSymbols["gWorldMapDotCoors"];

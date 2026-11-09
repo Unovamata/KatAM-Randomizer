@@ -1058,8 +1058,8 @@ namespace KatAMRandomizer {
          * entries after NiDL's, in the room AddRooms() leaves in its copies (roomTables; without NiDL's rooms, copies of KatAM's).
          * The randomizer and the map viewer read KatAM's own rows, which stay as they were; */
         const int SqueakFirstRoom = 0x400, SqueakTableRoom = 1024;
-        // (rooms.c's visited doors: (NIDL_VISITED_SIZE - NIDL_TAKEN_SIZE - SQUEAK_CHESTS_SIZE) / 2 - 2 lists past KatAM's);
-        const int VisitedLists = (0xA00 - 0x80 - 0x10) / 2 - 2;
+        // (rooms.c's visited doors: (NIDL_VISITED_SIZE - NIDL_TAKEN_SIZE - SQUEAK_CHESTS_SIZE - SQUEAK_WORLD_SIZE) / 2 - 2 lists past KatAM's);
+        const int VisitedLists = (0xA00 - 0x80 - 0x10 - 0x20) / 2 - 2;
         // (rooms.c's gNidlRoomTops: the camera from the room's top, 1, down to 8 pixels from its bottom, ROOM_FULL_BOTTOM);
         const byte SqueakCameraTop = 0x81;
         // (and 5-7, a copy of Vocal Volcano's boss stage, 5-6's two rooms with Bohboh: left out as the Arena's copies of the boss rooms);
@@ -1308,8 +1308,8 @@ namespace KatAMRandomizer {
             }
             if (!nidlRooms) Add("gUnk_08D640A4", DoorsList(new List<byte>(), 0));
 
-            // The room tables, moved and grown (with the Squeak Squad hub after the worlds' rooms);
-            int rows = SqueakFirstRoom + files.Count + 1;
+            // The room tables, moved and grown (with the Squeak Squad hub after the worlds' rooms, then the worlds' switch rooms);
+            int hubRoom = SqueakFirstRoom + files.Count, firstSwitchRoom = hubRoom + 1, rows = firstSwitchRoom + SqueakWorlds;
             int newProps = Allocate(ref here, rows * 0x28, 4), newInfos = Allocate(ref here, rows * 4, 4), newArrivals = Allocate(ref here, rows * 2, 4);
             Array.Copy(rom, roomProps, rom, newProps, KatAMRoomCount * 0x28);
             Array.Fill(rom, (byte)0xFF, newProps + KatAMRoomCount * 0x28, (rows - KatAMRoomCount) * 0x28);
@@ -1344,7 +1344,8 @@ namespace KatAMRandomizer {
                         Rides = map.Gimmicks().Where(g => g.Type is SqueakWarpStar or SqueakFuseCannon && (g.Word(0) & 0xFF) < SqueakStarArrival).Select(g => (g.Word(0) & 0xFF) + 1).ToList() });
                 }
                 // (the levels, KatAMExpansionSqueakLevels.cs: the mirrors each room gets);
-                Dictionary<int, List<Door>> planned = PlanSqueakLevels(planRooms, out var worldStarts, out var bossRooms);
+                Dictionary<int, List<Door>> planned = PlanSqueakLevels(planRooms, firstSwitchRoom, out var worldStarts, out var bossRooms, out var switchDoors);
+                List<SqueakLook> looks = new List<SqueakLook>();
                 squeakPlanned = planned.ToDictionary(p => SqueakFirstRoom + p.Key, p => p.Value);
                 /* (the warp stars, SqueakRides(): their flights after the ones in the flights' table WarpFlights() moved, which it
                  * moves here without NiDL's rooms, warpstar.c's detours with it, WarpRideDetours()); */
@@ -1393,8 +1394,9 @@ namespace KatAMRandomizer {
                         }
                         if (!doorPlaces.Contains(place)) doorPlaces.Add(place);
                     }
-                    // (the levels' doors, PlanSqueakLevels(): KatAM's, as the DS's; a mirror on each but the goals, the DS's own doorways);
-                    foreach (Door door in planned[i]) {
+                    // (the levels' doors, PlanSqueakLevels(): KatAM's, as the DS's; a mirror on each but the goals, the DS's own doorways; a
+                    // Mirra's, to the switch room, once its tiles are known, below);
+                    foreach (Door door in planned[i].Where(d => d.Kind != DoorKind.SwitchEntry)) {
                         int cell = door.Y * width + door.X, block = blocks.IndexOf((door.X, door.Y));
                         bool water = block >= 0 ? leaves[block] == KatAMWater : collision[cell] is >= 0x34 and <= 0x48;
                         byte value = water ? (byte)0xFD : (byte)0xFF;
@@ -1503,6 +1505,17 @@ namespace KatAMRandomizer {
                         foreach (ushort e in foreground.Bare[b]) specials.AddRange(BitConverter.GetBytes(e));
                         specials.AddRange(new byte[] { leaves[b], 0xFF });
                     }
+                    /* (a Mirra's door, to the switch room: its cell as it is until the Mirra breaks, which applies its block record, making
+                     * it the door, its look its own; then its record, as KatAM's Mirras': the Mirra stands on a floor that can't break, so
+                     * it opens its door where it is, KatAM's as NiDL's, mirra.c); */
+                    foreach (Door door in planned[i].Where(d => d.Kind == DoorKind.SwitchEntry)) {
+                        byte cellValue = collision[door.Y * width + door.X], value = cellValue is >= 0x34 and <= 0x48 ? (byte)0xFD : (byte)0xFF;
+                        doorRecords.AddRange(DoorRecord(door, value));
+                        doorRecords.AddRange(new byte[] { 1, cellValue, (byte)door.X, (byte)door.Y, 0x12, 0, 0xFF, 0xFF });
+                        for (int q = 0; q < 4; q++) doorRecords.AddRange(BitConverter.GetBytes(foreground.Tilemap[(2 * door.Y + q / 2) * foreground.Columns + 2 * door.X + q % 2]));
+                        doorRecords.AddRange(new byte[] { value, 0xFF });
+                        if (!doorPlaces.Contains((door.Room, door.DestX, door.DestY))) doorPlaces.Add((door.Room, door.DestX, door.DestY));
+                    }
                     specials.InsertRange(0, blockDoorRecords);
                     specials.AddRange(doorRecords);
                     specials.AddRange(new byte[] { 0, 0, 0, 0, 0, 0, 0xFF, 0xFF });
@@ -1554,12 +1567,17 @@ namespace KatAMRandomizer {
                         templates.Add(star);
                         if (!types.Contains(WarpStarType)) types.Add(WarpStarType);
                     }
-                    // (a mirror on each of the levels' doors but the goals, as the NiDL rooms': a one-way one drawn as one, mirror_door.c);
+                    // (a mirror on each of the levels' doors but the goals, as the NiDL rooms': a one-way one drawn as one, mirror_door.c; a
+                    // Mirra on its door's cell, x the cell's middle, y its top, as KatAM's, and the door's mirror hidden till it's a door);
                     foreach (Door door in planned[i].Where(d => !d.Plain)) {
                         byte[] mirror = MirrorTemplate(door.X, door.Y, templates.Count);
                         if (door.OneWay) mirror[0x23] |= 1;
+                        if (door.Kind == DoorKind.SwitchEntry) mirror[14] = 1;
                         templates.Add(mirror);
                         if (!types.Contains(MirrorType)) types.Add(MirrorType);
+                        if (door.Kind != DoorKind.SwitchEntry) continue;
+                        templates.Add(ObjectTemplate(door.X * 16 + 8, door.Y * 16, templates.Count, MirraType));
+                        if (!types.Contains(MirraType)) types.Add(MirraType);
                     }
                     // (KatAM keeps which of a room's objects are gone in 32 bits, 31 none);
                     if (templates.Count > 31) return $"Squeak Squad's room {f.Area}-{f.Stage}-{f.Index} has {templates.Count} objects (KatAM's rooms hold 31).";
@@ -1586,15 +1604,81 @@ namespace KatAMRandomizer {
                     int doorsIndex = Add("gUnk_08D640A4", doors);
                     if (doorsIndex < FirstDoorsList) return "Squeak Squad's doors lists start too early.";
                     if (doorsIndex >= FirstDoorsList + VisitedLists) return "Too many doors lists for rooms.c's visited doors.";
+                    int infoIndex = Add("gForegroundInfo", info), paletteIndex = Add("gForegroundPalettes", palette);
                     WriteShorts(rom, newProps + room * 0x28, LevelSongs[(f.Area - 1) % LevelSongs.Length], 0, 0, 0x100, 0x100, 0, backgroundDown, rateX, rateY, RoomFlags,
-                                Add("gForegroundInfo", info), Add("gForegroundPalettes", palette), Add("gForegroundTilemaps", tilemapEntry),
+                                infoIndex, paletteIndex, Add("gForegroundTilemaps", tilemapEntry),
                                 Add("gSolidityMaps", solidity), 0xFFFF, background, Add("gLevelObjLists", objects), Add("gUnk_08D63C28", navigation),
                                 doorsIndex, 0);
+                    // (its look, for the switch rooms drawn in a world's tiles);
+                    looks.Add(new SqueakLook { World = f.Area, Room = room, Width = width, Height = height, Columns = foreground.Columns, Tilemap = foreground.Tilemap,
+                                               Collision = collision, Info = infoIndex, Palette = paletteIndex, Background = background,
+                                               BackgroundWidth = bgSize.width, BackgroundHeight = bgSize.height, Fight = planRooms[i].Midboss || planRooms[i].Boss });
                     squeakRooms.Add(new SqueakPortedRoom(f, room, width, height));
                 }
-                if (BuildSqueakHub(rom, symbols, nidlRooms, roomProps, newProps, newInfos, roomInfos, SqueakFirstRoom + files.Count, worldStarts[1],
-                                   navigationRoutes, noTypes, Add, DoorsList, out byte[] hubCollision, out int hubWidth, ref here) is string hubError) return hubError;
-                if (SqueakShardExits(rom, version, symbols, SqueakFirstRoom + files.Count, bossRooms, hubCollision, hubWidth) is string exitError) return exitError;
+                if (BuildSqueakHub(rom, symbols, nidlRooms, roomProps, newProps, newInfos, roomInfos, hubRoom, firstSwitchRoom, worldStarts[1],
+                                   navigationRoutes, noTypes, Add, DoorsList, out KatAMRoomEdit centralCircle, out byte[] hubCollision, out int hubWidth, ref here) is string hubError)
+                    return hubError;
+                if (SqueakShardExits(rom, version, symbols, hubRoom, bossRooms, hubCollision, hubWidth) is string exitError) return exitError;
+
+                /* The switch rooms' hub doors (KatAMExpansionSqueakHubs.cs): to the Squeak Squad hub, onto the world's door there; to the
+                 * KatAM room the world's path leads to (SqueakLinks), onto its door back there (SqueakLinkSpot(): those rooms as they'll be,
+                 * with NiDL's doors or without, moved where the rule says, the rooms landing on a moved door landing on it there), all
+                 * shown by the world's big switch (its slot); the designs: the hub's KatAM's hub door's, a KatAM room's its own (KatAMDesigns),
+                 * the world's that of Central Circle's door it took in the hub (the area's whose door it is). The KatAM rooms' edits wait
+                 * for the randomizer (squeakFinish, FinishRooms()), as NiDL's do; */
+                Door greyDoor = new Door(SqueakHubDoor.x, SqueakHubDoor.y, hubRoom, SqueakHubDoor.x + 1, SqueakHubDoor.y + 1, (byte)(SqueakHubDoor.x * 2 < centralCircle.Width ? 1 : 2));
+                var linkEdits = new List<(int room, ((int x, int y) door, int drawX, ((int x, int y) from, (int x, int y) to)[] moves, (int from, int to)[] statues, int[] landings) plan, Door back)>();
+                foreach (int world in switchDoors.Keys.OrderBy(w => w)) {
+                    int switchRoom = firstSwitchRoom + world - 1, level = SqueakLayoutLevel(world), link = SqueakLinks[world - 1];
+                    (int x, int y) hubDoor = SwitchHubDoor(level), linkDoor = SwitchLinkDoor(level), spot = MainHubDoors[world - 1];
+                    byte[] ccDoor = centralCircle.Specials.FirstOrDefault(r => r[0] == 3 && r[2] == spot.x && r[3] == spot.y);
+                    int design = ccDoor != null ? KatAMDesigns.GetValueOrDefault(ReadShort(ccDoor, 8), HubDesign) : HubDesign;
+                    var plan = SqueakLinkSpot(world, nidlRooms);
+                    Door back = new Door(plan.door.x, plan.door.y, switchRoom, linkDoor.x + 1, linkDoor.y + 1, 1, Slot: SqueakSlot(world), Design: design, Kind: DoorKind.KatAMLink);
+                    linkEdits.Add((link, plan, back));
+                    switchDoors[world].Add(new Door(linkDoor.x, linkDoor.y, link, plan.door.x + 1, plan.door.y + 1, (byte)(plan.door.x * 2 < SwitchWidth ? 1 : 2),
+                                                    Slot: SqueakSlot(world), Design: KatAMDesigns.GetValueOrDefault(link, HubDesign), Kind: DoorKind.KatAMLink));
+                    switchDoors[world].Add(new Door(hubDoor.x, hubDoor.y, hubRoom, spot.x + 1, spot.y + 1, (byte)(spot.x * 2 < hubWidth ? 1 : 2),
+                                                    Slot: SqueakSlot(world), Design: HubDesign, Kind: DoorKind.Hub));
+                    squeakPlanned[link] = squeakPlanned.GetValueOrDefault(link, new List<Door>()).Append(back).ToList();
+                }
+                squeakFinish = (target, finishAt) => {
+                    Dictionary<int, KatAMRoomEdit> edits = new Dictionary<int, KatAMRoomEdit>();
+                    KatAMRoomEdit Edit(int katamRoom) => edits.TryGetValue(katamRoom, out KatAMRoomEdit e) ? e
+                        : edits[katamRoom] = LoadKatAMRoom(target, squeakProps, t => squeakTables[t], katamRoom);
+                    AddKatAMDoor(Edit(CentralCircle), greyDoor);
+                    foreach (var (link, plan, back) in linkEdits) {
+                        KatAMRoomEdit katam = Edit(link);
+                        List<KatAMRoomEdit> landing = plan.landings.Select(Edit).ToList();
+                        foreach (var move in plan.moves) MoveKatAMDoor(katam, move.from, move.to, landing);
+                        foreach (var (fromX, toX) in plan.statues)
+                            foreach (byte[] template in katam.Templates.Where(t => t[12] is >= 0x92 and <= 0x95 && ReadShort(t, 6) == fromX)) WriteShort(template, 6, toX);
+                        AddKatAMDoor(katam, back, plan.drawX);
+                    }
+                    if (Environment.GetEnvironmentVariable("SQUEAK_EDIT_DEBUG") != null)
+                        foreach (KatAMRoomEdit e in edits.Values)
+                            Console.Error.WriteLine($"edit {e.Room:X} {e.Width}x{e.Height}: " + string.Join(" ", e.Templates.Select(t => $"{t[12]:X2}@{ReadShort(t, 6)},{ReadShort(t, 8)}/{t[4]:X}"))
+                                                    + " | doors " + string.Join(" ", e.Specials.Where(r => r[0] == 3).Select(r => $"({r[2]},{r[3]})->{ReadShort(r, 8):X}")));
+                    SaveKatAMRooms(target, squeakProps, t => squeakTables[t], edits.Values, ref finishAt);
+                    return finishAt;
+                };
+                if (BuildSqueakSwitchRooms(rom, firstSwitchRoom, looks, switchDoors, newProps, newInfos, roomInfos, navigationRoutes, noTypes, Add, DoorsList, ref here) is string switchError)
+                    return switchError;
+                foreach (var pair in switchDoors) squeakPlanned[firstSwitchRoom + pair.Key - 1] = pair.Value;
+                squeakPlanned[hubRoom] = squeakHubDoors;
+                squeakPlanned[CentralCircle] = squeakPlanned.GetValueOrDefault(CentralCircle, new List<Door>())
+                    .Append(new Door(SqueakHubDoor.x, SqueakHubDoor.y, hubRoom, SqueakHubDoor.x + 1, SqueakHubDoor.y + 1, 1)).ToList();
+
+                /* The world map (KatAMExpansionWorldMap.cs: installed here without NiDL's rooms) and where Kirby is on it in Squeak Squad's
+                 * rooms ("ROM Expansion/worldmap.c"'s gSqueakWorldRooms: each world's first room, the hub, the first switch room); */
+                if (AddWorldMap(rom, version, ref here) is string mapError) return mapError;
+                int worldRooms = CodeAddress + version.CodeSymbols["gSqueakWorldRooms"];
+                for (int world = 1; world <= SqueakWorlds; world++) {
+                    int firstOf = files.FindIndex(f => f.Area == world);
+                    if (firstOf < 0) return $"Squeak Squad's world {world} has no rooms.";
+                    WriteShort(rom, worldRooms + (world - 1) * 2, SqueakFirstRoom + firstOf);
+                }
+                WriteShorts(rom, worldRooms + SqueakWorlds * 2, hubRoom, firstSwitchRoom);
             } catch (Exception exception) when (exception is IndexOutOfRangeException or ArgumentException or InvalidOperationException) {
                 return $"The Squeak Squad ROM's rooms couldn't be read ({exception.Message}).";
             }
@@ -1612,7 +1696,9 @@ namespace KatAMRandomizer {
                 flightCount += rides.Count;
             }
 
-            // The tables the props index: the new entries in NiDL's copies' room, or new copies of KatAM's;
+            // The tables the props index: the new entries in NiDL's copies' room, or new copies of KatAM's (where squeakFinish finds them);
+            squeakProps = newProps;
+            squeakTables = new Dictionary<string, int>();
             foreach (string table in tableNames) {
                 List<int> entries = added[table];
                 if (nidlRooms) {
@@ -1620,12 +1706,14 @@ namespace KatAMRandomizer {
                     if (count + entries.Count > capacity) return $"Too many Squeak Squad rooms for the room tables ({table}).";
                     WriteInts(rom, at + count * 4, entries.ToArray());
                     roomTables[table] = (at, count + entries.Count, capacity);
+                    squeakTables[table] = at;
                     continue;
                 }
                 int size = First(table), copy = Allocate(ref here, (size + entries.Count) * 4, 4);
                 Array.Copy(rom, symbols[table], rom, copy, size * 4);
                 WriteInts(rom, copy + size * 4, entries.ToArray());
                 RepointEverywhere(rom, version, symbols[table], copy);
+                squeakTables[table] = copy;
             }
             RepointEverywhere(rom, version, roomProps, newProps);
             RepointEverywhere(rom, version, roomInfos, newInfos);

@@ -21,7 +21,8 @@ namespace KatAMRandomizer {
      *   NiDL's, the owner's);
      * • no new door in a mini-boss's room, nor a landing there; a room keeps 2 exits at most, 3 if it's big (counting the DS's), never 3
      *   doors in one view, doors kept apart, from landings and from warp stars and cannons (rule 2: SqueakSpot()).
-     * Left for later (Open Requests): the switch rooms and their Mirras, the links with KatAM's areas, the bosses' shards; */
+     * • each world's switch room (KatAMExpansionSqueakHubs.cs) found by a Mirra hidden in its second half, one-way, its floor mirrors
+     *   both ways into the stage before the boss's and another branch's (rule 5). */
     internal static partial class KatAMExpansion {
         // The stage with each world's boss (5-7, a copy of 5-6's two rooms, is left out of the port: SqueakTestStages);
         static readonly Dictionary<int, int> SqueakBossStages = new Dictionary<int, int> { [1] = 7, [2] = 7, [3] = 7, [4] = 7, [5] = 6, [6] = 7, [7] = 7, [8] = 4 };
@@ -33,19 +34,22 @@ namespace KatAMRandomizer {
          * ones, their blocks and records, NiDL's golden mirror: air); Rainbow Route's mirror (MainHubEntry, 19, 14, drawn in its tiles)
          * leads to Prism Plains 1's start, the way in, as the NiDL hub's golden one; a mirror (object 0x6F) on its floor at
          * SqueakHubDoor, two-way with one at the same spot added to Central Circle (the grey door: the owner, "We will later decide on
-         * position and visuals"). Its world doors (one per world, as Central Circle's areas', shown by each world's big switch) wait
-         * for the switch rooms. Returns an error, or null; */
+         * position and visuals"). Its world doors (one per world: Central Circle's doors at MainHubDoors, the world's number's, their
+         * records and hub mirror objects, 0x8C, as Central Circle's, shown by the world's big switch, SqueakSlot()) lead to the world's
+         * switch room (from `firstSwitchRoom`), onto its hub door. Central Circle (`cc`: as it is now, read) gets its door to the hub once the
+         * randomizer is done (squeakFinish). Returns an error, or null; */
         static readonly (int x, int y) SqueakHubDoor = (11, 18);
         const int CentralCircle = 0x321;
         static string BuildSqueakHub(byte[] rom, IReadOnlyDictionary<string, int> symbols, bool nidlRooms, int roomProps, int newProps, int newInfos,
-                                     int roomInfos, int hub, (int room, int x, int y) wayIn, int navigationRoutes, int noTypes,
-                                     Func<string, int, int> add, Func<List<byte>, int, int> doorsList, out byte[] hubCollision, out int hubWidth,
-                                     ref int cursor) {
+                                     int roomInfos, int hub, int firstSwitchRoom, (int room, int x, int y) wayIn, int navigationRoutes, int noTypes,
+                                     Func<string, int, int> add, Func<List<byte>, int, int> doorsList, out KatAMRoomEdit cc,
+                                     out byte[] hubCollision, out int hubWidth, ref int cursor) {
             hubCollision = null;
             hubWidth = 0;
             int Props(int field) => ReadShort(rom, roomProps + CentralCircle * 0x28 + field * 2);
             int Table(string table) => nidlRooms ? roomTables[table].at : symbols[table];
             int Current(string table, int index) => ReadInt(rom, Table(table) + index * 4) - 0x08000000;
+            cc = LoadKatAMRoom(rom, newProps, Table, CentralCircle);
             // (KatAM's own entry of a table for Central Circle: the one naming its room at `field`);
             int Vanilla(string table, int field, int fallback) {
                 for (int i = 0; i < 0x400; i++) {
@@ -58,11 +62,9 @@ namespace KatAMRandomizer {
             int width = hubWidth = ReadShort(rom, Current("gForegroundTilemaps", Props(12))) / 2;
 
             // Central Circle's collision and special records, as they are now;
-            int solidity = Current("gSolidityMaps", Props(13));
-            byte[] collision = DecompressRL(rom, ReadInt(rom, solidity) - 0x08000000);
+            byte[] collision = cc.Collision;
             int height = collision.Length / width;
-            List<byte[]> specials = new List<byte[]>();
-            for (int at = ReadInt(rom, solidity + 4) - 0x08000000; rom[at + 4] != 0; at += rom[at + 4]) specials.Add(rom[at..(at + rom[at + 4])]);
+            List<byte[]> specials = cc.Specials.Select(r => (byte[])r.Clone()).ToList();
             byte[] Ending() => new byte[] { 0, 0, 0, 0, 0, 0, 0xFF, 0xFF };
             byte Facing(int x, int roomWidth) => (byte)((x - 1) * 2 < roomWidth ? 1 : 2);
             if (collision[SqueakHubDoor.y * width + SqueakHubDoor.x] != KatAMAir || collision[(SqueakHubDoor.y + 1) * width + SqueakHubDoor.x] != KatAMSolid)
@@ -73,20 +75,35 @@ namespace KatAMRandomizer {
             Door wayInDoor = new Door(MainHubEntry.x, MainHubEntry.y, wayIn.room, wayIn.x, wayIn.y, 1);
             Door backDoor = new Door(SqueakHubDoor.x, SqueakHubDoor.y, CentralCircle, SqueakHubDoor.x + 1, SqueakHubDoor.y + 1, Facing(SqueakHubDoor.x + 1, width));
             List<byte> hubSpecials = new List<byte>();
+            List<byte[]> templates = new List<byte[]> { MirrorTemplate(SqueakHubDoor.x, SqueakHubDoor.y, 0) };
+            List<byte> types = new List<byte> { MirrorType }, nineROM = new List<byte>();
             foreach (Door door in new[] { wayInDoor, backDoor }) {
                 hubCollision[door.Y * width + door.X] = 0xFF;
                 hubSpecials.AddRange(DoorRecord(door, 0xFF));
+                nineROM.AddRange(NineROMEntry(door.Room, door.DestX, door.DestY));
+            }
+            // (the world doors: Central Circle's door's 3x3 block records, which draw it, its record leading to the world's switch room,
+            // and its hub mirror object, 0x8C, on the cell above, the world's slot breaking them, as Central Circle's);
+            squeakHubDoors = new List<Door>();
+            for (int world = 1; world <= SqueakWorlds; world++) {
+                (int x, int y) spot = MainHubDoors[world - 1];
+                (int x, int y) target = SwitchHubDoor(SqueakLayoutLevel(world));
+                Door door = new Door(spot.x, spot.y, firstSwitchRoom + world - 1, target.x + 1, target.y + 1, 1, Slot: SqueakSlot(world), Kind: DoorKind.Hub);
+                List<byte[]> blocks = specials.Where(r => r[0] == 1 && Math.Abs(r[2] - spot.x) <= 1 && r[3] >= spot.y - 2 && r[3] <= spot.y).ToList();
+                if (blocks.Count != 9) return $"Central Circle's door at ({spot.x}, {spot.y}) isn't as it should be.";
+                foreach (byte[] block in blocks) hubSpecials.AddRange(block);
+                hubSpecials.AddRange(DoorRecord(door, 0xFF));
+                templates.Add(HubMirrorTemplate(spot.x, spot.y - 1, templates.Count, door.Slot));
+                if (!types.Contains(HubMirrorType)) types.Add(HubMirrorType);
+                nineROM.AddRange(NineROMEntry(door.Room, door.DestX, door.DestY));
+                squeakHubDoors.Add(door);
             }
             hubSpecials.AddRange(Ending());
             int collisionAt = AllocateCompressed(rom, CompressRL(hubCollision), ref cursor), specialsAt = AllocateCompressed(rom, hubSpecials.ToArray(), ref cursor);
             int hubSolidity = Allocate(ref cursor, 8, 4);
             WriteInts(rom, hubSolidity, collisionAt + 0x08000000, specialsAt + 0x08000000);
-            List<byte[]> templates = new List<byte[]> { MirrorTemplate(SqueakHubDoor.x, SqueakHubDoor.y, 0) };
-            int objects = WriteObjectList(rom, templates, new List<byte> { MirrorType }, noTypes, ref cursor);
+            int objects = WriteObjectList(rom, templates, types, noTypes, ref cursor);
             int navigation = BuildNavigation(rom, width, height, false, hubCollision, navigationRoutes, new List<(int, int, int, int)>(), ref cursor);
-            List<byte> nineROM = new List<byte>();
-            nineROM.AddRange(NineROMEntry(wayInDoor.Room, wayInDoor.DestX, wayInDoor.DestY));
-            nineROM.AddRange(NineROMEntry(backDoor.Room, backDoor.DestX, backDoor.DestY));
             int doors = doorsList(nineROM, 0);
 
             // (its props: Central Circle's, KatAM's own graphics, the new collision, objects, routes and doors; room 0x397's info, no routes);
@@ -103,36 +120,10 @@ namespace KatAMRandomizer {
             WriteShort(rom, roomInfo + 0x44, hub);
             WriteInt(rom, newInfos + hub * 4, roomInfo + 0x08000000);
 
-            /* Central Circle: the door to the hub (its cell, its record, a mirror on it, and its doors list's entry: the list's own
-             * struct pointed at a grown copy, as KatAM's edited rooms' are); */
-            Door toHub = new Door(SqueakHubDoor.x, SqueakHubDoor.y, hub, SqueakHubDoor.x + 1, SqueakHubDoor.y + 1, Facing(SqueakHubDoor.x + 1, width));
-            collision[toHub.Y * width + toHub.X] = 0xFF;
-            List<byte> ccSpecials = specials.SelectMany(b => b).ToList();
-            ccSpecials.AddRange(DoorRecord(toHub, 0xFF));
-            ccSpecials.AddRange(Ending());
-            int ccCollision = AllocateCompressed(rom, CompressRL(collision), ref cursor), ccSpecialsAt = AllocateCompressed(rom, ccSpecials.ToArray(), ref cursor);
-            int ccSolidity = Allocate(ref cursor, 8, 4);
-            WriteInts(rom, ccSolidity, ccCollision + 0x08000000, ccSpecialsAt + 0x08000000);
-            WriteShort(rom, newProps + CentralCircle * 0x28 + 13 * 2, add("gSolidityMaps", ccSolidity));
-            int list = Current("gLevelObjLists", Props(16));
-            List<byte[]> ccTemplates = new List<byte[]>();
-            for (int at = ReadInt(rom, list) - 0x08000000; rom[at] != 0 || rom[at + 1] != 0; at += 36) ccTemplates.Add(rom[at..(at + 36)]);
-            List<byte> ccTypes = new List<byte>();
-            for (int at = ReadInt(rom, list + 4) - 0x08000000; rom[at] != 0xFF; at++) ccTypes.Add(rom[at]);
-            if (!ccTypes.Contains(MirrorType)) ccTypes.Add(MirrorType);
-            ccTemplates.Add(MirrorTemplate(toHub.X, toHub.Y, ccTemplates.Count));
-            if (ccTemplates.Count > 31) return "Central Circle has no room for the Squeak Squad door's mirror.";
-            WriteShort(rom, newProps + CentralCircle * 0x28 + 16 * 2, add("gLevelObjLists", WriteObjectList(rom, ccTemplates, ccTypes, ReadInt(rom, list + 8) - 0x08000000, ref cursor)));
-            int doorsStruct = Current("gUnk_08D640A4", Props(18));
-            List<byte> ccNine = new List<byte>();
-            int entry = ReadInt(rom, doorsStruct) - 0x08000000;
-            for (; rom[entry] != 0 || rom[entry + 1] != 0; entry += rom[entry + 1]) ccNine.AddRange(rom[entry..(entry + rom[entry + 1])]);
-            ccNine.AddRange(NineROMEntry(toHub.Room, toHub.DestX, toHub.DestY));
-            ccNine.AddRange(new byte[] { 0, 0, 0xFF, 0xFF });
-            int ccNineAt = AllocateCompressed(rom, ccNine.ToArray(), ref cursor);
-            WriteInt(rom, doorsStruct, ccNineAt + 0x08000000);
             return null;
         }
+        // (the hub's world doors, for the tests' door lists);
+        static List<Door> squeakHubDoors = new List<Door>();
 
         /* SqueakShardExits(); Where each world's boss's shard takes Kirby (the rulebook's rule 8: a shard only ever sends Kirby to a central
          * hub, onto the level's door there): gNidlShardExits' entries after the NiDL bosses' ("ROM Expansion/nidl_boss.c", NidlShardExit()
@@ -185,9 +176,10 @@ namespace KatAMRandomizer {
         static bool SqueakArrival(SqueakDoor d) => d.Room == SqueakNoRoom && !SqueakGoal(d);
 
         /* PlanSqueakLevels(); The mirrors to add to each room (by its index), from SqueakLayoutSeed; each world's way in (its first
-         * stage's start: the room, cell + 1) and the boss rooms (their room ids, by world); */
-        static Dictionary<int, List<Door>> PlanSqueakLevels(List<SqueakPlanRoom> rooms, out (int room, int x, int y)[] worldStarts,
-                                                           out Dictionary<int, int> bossRooms) {
+         * stage's start: the room, cell + 1), the boss rooms (their room ids, by world) and the switch rooms' floor mirrors (by world: the
+         * switch rooms are rooms `firstSwitchRoom` on, KatAMExpansionSqueakHubs.cs); */
+        static Dictionary<int, List<Door>> PlanSqueakLevels(List<SqueakPlanRoom> rooms, int firstSwitchRoom, out (int room, int x, int y)[] worldStarts,
+                                                           out Dictionary<int, int> bossRooms, out Dictionary<int, List<Door>> switchDoors) {
             Random random = new Random(SqueakLayoutSeed);
             Dictionary<int, List<Door>> doors = rooms.ToDictionary(r => r.Index, r => new List<Door>());
             var byStage = rooms.GroupBy(r => (r.Area, r.Stage)).ToDictionary(g => g.Key, g => g.OrderBy(r => r.Number).ToList());
@@ -249,7 +241,8 @@ namespace KatAMRandomizer {
              * water, where the camera shows it (rows MirrorTop to the height - 3), one Kirby reaches from where he comes in (through star
              * blocks too), away from the room's doors, arrivals, landings and rides (2 x MirrorSpacing across, 2 up or down), the view
              * keeping 2 doors at most; in the room's middle, or hidden (the farthest from where he comes in, behind blocks); */
-            (int x, int y)? SqueakSpot(SqueakPlanRoom r, bool hidden, bool door) {
+            // (firm: its floor no block that breaks, for a Mirra, which falls if it does, KatAM's not opening its door there);
+            (int x, int y)? SqueakSpot(SqueakPlanRoom r, bool hidden, bool door, bool firm = false) {
                 int width = r.Width, height = r.Height;
                 int[] Distances(bool blocks) {
                     int[] distance = Enumerable.Repeat(-1, width * height).ToArray();
@@ -275,6 +268,7 @@ namespace KatAMRandomizer {
                         int distance = broken[y * width + x];
                         if (distance < 0 || r.At(x, y) != KatAMAir || !SqueakOpen(r.At(x, y - 1)) || !SqueakOpen(r.At(x - 1, y)) || !SqueakOpen(r.At(x + 1, y))) continue;
                         if (Enumerable.Range(x - 1, 3).Any(fx => !SqueakFloor(r.At(fx, y + 1)))) continue;
+                        if (firm && Enumerable.Range(x - 1, 3).Any(fx => r.At(fx, y + 1) is >= KatAMStarBlock and <= KatAMMetalBlock)) continue;
                         if (taken.Any(c => Math.Abs(c.x - x) < MirrorSpacing * 2 && Math.Abs(c.y - y) <= 2)) continue;
                         if (r.Transports.Any(t => Math.Abs(t.x - x) < MirrorSpacing * 2 && Math.Abs(t.y - y) <= 2)) continue;
                         if (door && !ViewFits(r, x, y)) continue;
@@ -326,6 +320,7 @@ namespace KatAMRandomizer {
             bossRooms = new Dictionary<int, int>();
             List<(int area, int stage)> stages = byStage.Keys.OrderBy(s => s.Item1).ThenBy(s => s.Item2).ToList();
             Dictionary<(int, int), int> depthOf = new Dictionary<(int, int), int>(), childrenOf = new Dictionary<(int, int), int>();
+            Dictionary<(int, int), (int, int)> parentOf = new Dictionary<(int, int), (int, int)>();
             Dictionary<(int, int), (int, int)> goalBranch = new Dictionary<(int, int), (int, int)>();
             for (int world = 1; world <= SqueakWorlds; world++) {
                 List<(int area, int stage)> regular = stages.Where(s => s.area == world && !IsBossStage(s)).ToList();
@@ -354,6 +349,7 @@ namespace KatAMRandomizer {
                             hiddenNext = !hiddenNext;
                             children[from]++;
                             depth[s] = depth[from] + 1;
+                            parentOf[s] = from;
                             children[s] = 0;
                             waiting.Remove(s);
                             progress = true;
@@ -367,6 +363,7 @@ namespace KatAMRandomizer {
                             Reach(StageStart(s).room);
                             children[from]++;
                             depth[s] = depth[from] + 1;
+                            parentOf[s] = from;
                             children[s] = 0;
                             waiting.Remove(s);
                             progress = true;
@@ -456,6 +453,47 @@ namespace KatAMRandomizer {
                         break;
                     }
             }
+            /* The switch rooms (rule 5): each world's reached from a Mirra hidden in its second half (its stages from the middle on by number,
+             * the deepest first; standing on a floor that can't break), one-way, onto its floor off its mirrors (SwitchArrival); its right
+             * floor mirror both ways with the start of the stage before the boss's (the deepest: its goal leads there), its left one with
+             * the start of the deepest stage off the way from the world's first stage to that one, not the Mirra's own (else the way's
+             * first); in each a mirror back in its first room, if it takes one (EntrySpot()), else the switch room's leads on, one-way; */
+            switchDoors = new Dictionary<int, List<Door>>();
+            for (int world = 1; world <= SqueakWorlds; world++) {
+                List<(int area, int stage)> reached = stages.Where(s => s.area == world && depthOf.ContainsKey(s)).ToList();
+                if (reached.Count == 0) continue;
+                int switchRoom = firstSwitchRoom + world - 1, level = SqueakLayoutLevel(world);
+                (int x, int y) arrival = SwitchArrival(level);
+                var gate = reached.OrderByDescending(s => depthOf[s]).ThenByDescending(s => s.stage).First();
+                (int area, int stage)? mirraStage = null;
+                foreach (var s in reached.Where(s => s.stage > reached.Max(t => t.stage) / 2).OrderByDescending(s => depthOf[s]).ThenByDescending(s => s.stage)) {
+                    foreach (SqueakPlanRoom r in byStage[s].Where(Hosts).OrderBy(_ => random.Next()))
+                        if (SqueakSpot(r, true, true, true) is (int x, int y)) {
+                            Add(r, x, y, (switchRoom, arrival.x + 1, arrival.y + 1), DoorKind.SwitchEntry, true, true);
+                            mirraStage = s;
+                            break;
+                        }
+                    if (mirraStage != null) break;
+                }
+                HashSet<(int, int)> way = new HashSet<(int, int)>();
+                for (var s = gate; ; s = parentOf[s]) { way.Add(s); if (!parentOf.ContainsKey(s)) break; }
+                var off = reached.Where(s => !way.Contains(s) && s != mirraStage).OrderByDescending(s => depthOf[s]).ThenByDescending(s => s.stage).ToList();
+                var left = off.Count > 0 ? off[0] : reached.Where(s => way.Contains(s) && s != gate).OrderBy(s => depthOf[s]).Cast<(int, int)?>().FirstOrDefault() ?? gate;
+                List<Door> list = switchDoors[world] = new List<Door>();
+                (int x, int y)[] sides = SwitchSides(level);
+                foreach (((int x, int y) side, (int area, int stage) stage) in new[] { (sides[1], gate), (sides[0], left) }) {
+                    byte facing = (byte)(side.x * 2 < SwitchWidth ? 1 : 2);
+                    if (EntrySpot(stage) is (SqueakPlanRoom, int, int) entry) {
+                        list.Add(new Door(side.x, side.y, entry.room.Room, entry.x + 1, entry.y + 1, Facing(entry.room, entry.x + 1), Kind: DoorKind.SwitchFloor));
+                        Add(entry.room, entry.x, entry.y, (switchRoom, side.x + 1, side.y + 1), DoorKind.SwitchFloor, false);
+                        doors[entry.room.Index][^1] = doors[entry.room.Index][^1] with { Facing = facing };
+                    } else {
+                        (int room, int x, int y) start = StageStart(stage);
+                        list.Add(new Door(side.x, side.y, start.room, start.x, start.y, Facing(byRoom[start.room], start.x), OneWay: true, Kind: DoorKind.SwitchFloor));
+                    }
+                }
+            }
+
             /* Every room reached (rule 9): one nothing leads into gets a one-way door into it, where the DS lands Kirby there (its
              * arrival), from a room of its stage that takes one (else of its world), hidden; but for the rooms a stage reaches only
              * through its Squeaks on the DS (after its goal: the gold-pile treasure rooms and the hideouts where Spinni, Doc or Storo
