@@ -34,10 +34,15 @@
  *   whose HP is out stays broken, hurting by touch, untouchable. Its body 20 frames safe after a hit (KatAM's damage undone); 72
  *   damage on it (Sl0's 360) and its second form: its cracked body (.mca's 1). Its shell's box (yadgaine.rca's 35: 197 pixels
  *   behind its middle) is behind its wall.
+ * • Its size: three quarters of the DS's (the owner's pick: at the DS's, its body's own pixels beside a shell KatAM's sprite memory
+ *   can't hold as big, it was too detailed beside it), drawn pixel for pixel: its frames, its shell and its animations' offsets
+ *   (KatAMExpansionSqueak.cs's YadgaineScale) and here its boxes, its spots (the shell's cut left edge off the screen), how far
+ *   ahead of it things start, its moves' own speed (its speed less the scroll's) and its knocked-up blocks' flight as much smaller
+ *   (SIZED: each move and block as long as the DS's; at the DS's flight beside its smaller spots, blocks piled up and the fight
+ *   lagged); what it throws and knocks down (Kirby's size), the scroll and the rocks' range across the view as they were.
  * • Its shell (the stage draws it on a background layer from its own tiles, 0x0220B0B4: 154 by 208 pixels, 312 tiles; KatAM's
- *   backgrounds' tiles and palettes are full in a fight): a sprite at two thirds of its size (134 tiles), drawn half as big again
- *   by the GBA's sprite scaling, only what its fight shows of it (see Shell() below; at half its size, twice as big, it was too
- *   coarse beside its body). Its fight is near the GBA's limits without it (KatAM's
+ *   backgrounds' tiles and palettes are full in a fight): a sprite at its size (172 tiles), only what its fight shows of it
+ *   (see Shell() below). Its fight is near the GBA's limits without it (KatAM's
  *   sprite heap at 428 of 512 tiles when two rock bursts are out, its 7 enemy palettes all taken, its frames near the end of the
  *   CPU's time): Squeak Squad's effects wait for room in the heap (squeak.c's SQUEAK_FX_ROOM: a rock's burst left out when it
  *   would leave too little for KatAM's own), the shell takes Daroach's palette slot once he's gone, and is drawn by hand.
@@ -103,6 +108,12 @@ enum { LEG_WALK, LEG_WALK_ON, LEG_RAISE, LEG_RAISED, LEG_STRIKE, LEG_REST, LEG_B
 #define LEG_A_DEN 290
 #define LEG_HP_OFFSET 100       // A leg's HP kept over this (KatAM's defeat at 0: a leg stays, broken);
 #define SCREEN_W 240
+/* Its size (see above): SIZE_NUM / SIZE_DEN of the DS's (KatAMExpansionSqueak.cs's YadgaineScaleNum, YadgaineScaleDen); SIZED() a
+ * length or speed of the DS's at it, rounded (halves away from 0: the same either way it faces); */
+#define SIZE_NUM 3
+#define SIZE_DEN 4
+#define SIZED(v) (((v) * SIZE_NUM * 2 + ((v) >= 0 ? SIZE_DEN : -SIZE_DEN)) / (SIZE_DEN * 2))
+#define START_X 48              // 0x0211A038: hidden where its stage has it, 48 pixels in;
 // PrmBB05Pl0.kgb: its picks (of 100);
 static const u8 sPickBack[] = { 20, 40, 60, 100 }, sPickFront[] = { 45, 90, 100 };
 #define PICK_BARE 70
@@ -247,11 +258,11 @@ static bool32 Yadgaine(struct SqueakObject *s) {
         SqueakStop(s);
         s->obj.base.flags = (s->obj.base.flags & ~1) | 0x400;
         LEFT(s) = gCurLevelInfo[s->obj.base.unk56].viewportPosition.x;
-        s->obj.base.x = LEFT(s) + (48 << 8);
+        s->obj.base.x = LEFT(s) + (SIZED(START_X) << 8);
         s->obj.base.y = FLOOR(s);
         SCROLL(s) = 0;
         TIMER(s) = INTRO_TIME;
-        DAROACH(s) = Spawn(s, SQUEAK_YADGAINE_DAROACH, 0, s->obj.base.x, s->obj.base.y - (DAROACH_UP << 8));
+        DAROACH(s) = Spawn(s, SQUEAK_YADGAINE_DAROACH, 0, s->obj.base.x, s->obj.base.y - (SIZED(DAROACH_UP) << 8));
         SqueakPlayComposite(s, COMPOSITE_BODY);
         SqueakSetState(s, YG_INTRO);
         return TRUE;
@@ -272,13 +283,13 @@ static bool32 Yadgaine(struct SqueakObject *s) {
             SqueakPlayComposite(s, COMPOSITE_BODY);
             SetLegs(s, LEG_WALK_ON);
             SqueakStop(s);
-            s->vx = SCROLL(s) + RUSH_EXTRA;
+            s->vx = SCROLL(s) + SIZED(RUSH_EXTRA);
             SqueakSetState(s, YG_RUSH);
             return TRUE;
         }
         break;
     case YG_RUSH:           // 0x02119E08;
-        if (x >= BACK_X << 8) {
+        if (x >= SIZED(BACK_X) << 8) {
             SqueakSetState(s, YG_ARRIVE);
             return TRUE;
         }
@@ -297,12 +308,12 @@ static bool32 Yadgaine(struct SqueakObject *s) {
     case YG_DASH:           // 0x02119600;
         SqueakStop(s);
         SCROLL(s) = DASH_SCROLL;
-        s->vx = SCROLL(s) + DASH_EXTRA;
+        s->vx = SCROLL(s) + SIZED(DASH_EXTRA);
         SetLegs(s, LEG_WALK_ON);
         SqueakSetState(s, YG_DASH_GO);
         return TRUE;
     case YG_DASH_GO:        // 0x02119570;
-        if (x >= FRONT_X << 8) {
+        if (x >= SIZED(FRONT_X) << 8) {
             FORWARD(s) = TRUE;
             SqueakSetState(s, YG_ROUND);
             return TRUE;
@@ -311,11 +322,11 @@ static bool32 Yadgaine(struct SqueakObject *s) {
     case YG_BACK:           // 0x02119510;
         SqueakStop(s);
         SCROLL(s) = BACK_SCROLL;
-        s->vx = SCROLL(s) + BACK_EXTRA;
+        s->vx = SCROLL(s) + SIZED(BACK_EXTRA);
         SqueakSetState(s, YG_BACK_GO);
         return TRUE;
     case YG_BACK_GO:        // 0x02119480;
-        if (x <= BACK_X << 8) {
+        if (x <= SIZED(BACK_X) << 8) {
             FORWARD(s) = FALSE;
             SqueakSetState(s, YG_ROUND);
             return TRUE;
@@ -354,7 +365,7 @@ static bool32 Yadgaine(struct SqueakObject *s) {
         return TRUE;
     case YG_LUNGE_RAISE:    // 0x0211919C;
         if (TIMER(s)-- < 1) {
-            s->vx = SCROLL(s) + LUNGE_EXTRA;
+            s->vx = SCROLL(s) + SIZED(LUNGE_EXTRA);
             TIMER(s) = LUNGE_TIME;
             SetLegs(s, LEG_STRIKE);
             SqueakSetState(s, YG_STRIKE);
@@ -366,12 +377,12 @@ static bool32 Yadgaine(struct SqueakObject *s) {
         SCROLL(s) = SHOT_SCROLL;
         s->vx = SCROLL(s);
         TIMER(s) = SHOT_WAIT;
-        Spawn(s, SQUEAK_YADGAINE_THING, 0, s->obj.base.x + (SHOT_X << 8), s->obj.base.y - (SHOT_Y << 8));
+        Spawn(s, SQUEAK_YADGAINE_THING, 0, s->obj.base.x + (SIZED(SHOT_X) << 8), s->obj.base.y - (SIZED(SHOT_Y) << 8));
         SqueakSetState(s, YG_SHOT_WAIT);
         return TRUE;
     case YG_SHOT_WAIT:      // 0x02119054: its capsule;
         if (TIMER(s)-- < 1) {
-            Spawn(s, SQUEAK_YADGAINE_THING, 1, s->obj.base.x + ((SHOT_X + SHOT_X2) << 8), s->obj.base.y - (SHOT_Y << 8));
+            Spawn(s, SQUEAK_YADGAINE_THING, 1, s->obj.base.x + (SIZED(SHOT_X + SHOT_X2) << 8), s->obj.base.y - (SIZED(SHOT_Y) << 8));
             TIMER(s) = SHOT_AFTER;
             SqueakSetState(s, YG_SHOT_AFTER);
             return TRUE;
@@ -442,7 +453,7 @@ static void Carry(struct SqueakObject *s) {
     }
 }
 
-// Boxes(); Its body's box (yadgaine.rca's 1 and 10: where it's hit and where its touch hurts in one), none while hidden;
+// Boxes(); Its body's box (yadgaine.rca's 1 and 10: where it's hit and where its touch hurts in one; SIZED), none while hidden;
 static void Boxes(struct SqueakObject *s) {
     struct ObjectBase *base = &s->obj.base;
 
@@ -452,37 +463,29 @@ static void Boxes(struct SqueakObject *s) {
         return;
     }
     base->flags &= ~0x200;
-    if (CRACKED(s)) sub_0803E2B0(base, -29, -87, 26, -14);
-    else sub_0803E2B0(base, -29, -97, 27, -1);
+    if (CRACKED(s)) sub_0803E2B0(base, SIZED(-29), SIZED(-87), SIZED(26), SIZED(-14));
+    else sub_0803E2B0(base, SIZED(-29), SIZED(-97), SIZED(27), SIZED(-1));
     base->unk68 = HARM(s);
 }
 
 /* Its shell: the stage's own picture on the DS (a background layer from its own tiles, 0x0220B0B4: KatAM's backgrounds' tiles and
- * palettes are full in a fight), here KatAMExpansionSqueak.cs's SqueakShell, a frame at two thirds of its size (134 tiles of the
- * 512 of KatAM's sprite heap in a stage, not 288), drawn half as big again by the GBA's sprite scaling: its pieces affine and
- * double-sized, with a matrix of 2/3 (SHELL_MATRIX, SHELL_PA: a pixel of the frame one and a half of the screen's, each way), each
- * half as far again from its spot (half its size, twice as big, was too coarse beside its body's own pixels). Its tiles and palette
- * are loaded once (KatAM's sprite running its anim's first step, its colors as KatAM loads a slot's); after, it's drawn by hand: its pieces (read once from its frame)
- * written into KatAM's OAM buffer together, no sprite drawing of KatAM's each frame (DisplaySprite, sub_08156D84 a piece: over twice
- * its cost; the fight is near the end of the GBA's frame already). Where the DS has it: the picture's column 128, row 171 at its feet, bobbing with its body (BOB); behind it
- * and its legs (the last of KatAM's sprite layers) and the room's foreground (OAM priority 3, a background layer's: as the DS's);
- * shown with it till it's beaten, from its coming in (Daroach gone by then: his palette slot it takes, as KatAM's 7 enemy palettes are full in its
- * fight, its own 4 of them); never turned (it never does, and a scaled piece flipped would leave a gap: the GBA's scaling samples
- * it a pixel off); */
-#define SHELL_MATRIX 3      // (KatAM's own use 0, Nightmare's intro 1-5, the Power Orb's end 6, the rides 7: not in its fight);
-/* Drawn SHELL_NUM / SHELL_DEN as big as it's stored (KatAMExpansionSqueak.cs's ShellScaleNum, ShellScaleDen): its matrix's step
- * SHELL_PA / 256 a pixel (256 * 2/3 is 170.67: a hair bigger, its pieces overlapping by a pixel, never a gap between them); */
-#define SHELL_NUM 3
-#define SHELL_DEN 2
-#define SHELL_PA 170
+ * palettes are full in a fight), here KatAMExpansionSqueak.cs's SqueakShell, a frame at three quarters of its size, as its body
+ * (172 tiles of the 512 of KatAM's sprite heap in a stage, not 288 as the DS's), drawn pixel for pixel. Its tiles and palette
+ * are loaded once (KatAM's sprite running its anim's first step, its colors as KatAM loads a slot's); after, it's drawn by hand:
+ * its pieces (read once from its frame) written into KatAM's OAM buffer together, no sprite drawing of KatAM's each frame
+ * (DisplaySprite, sub_08156D84 a piece: over twice its cost; the fight is near the end of the GBA's frame already). Where the DS has
+ * it: the picture's column 128, row 171 at its feet, bobbing with its body (BOB); behind it and its legs (the last of KatAM's sprite
+ * layers) and the room's foreground (OAM priority 3, a background layer's: as the DS's); shown with it till it's beaten, from its
+ * coming in (Daroach gone by then: his palette slot it takes, as KatAM's 7 enemy palettes are full in its fight, its own 4 of them);
+ * never turned (it never does); */
 #define SHELL_LAYER 0x1F
-#define SHELL_PIECES 32
+#define SHELL_PIECES 48
 
 struct ShellPiece {
-    s16 dx, dy;             // Its double-sized box's top left from the frame's spot (pixels);
+    s16 dx, dy;             // Its top left from the frame's spot (pixels);
     u16 attr0, attr1;       // Its shape, size;
     u16 tile;               // Its first tile in the frame's;
-    u8 w, h;                // Its box (pixels);
+    u8 w, h;                // Its size (pixels);
 };
 
 struct YadgaineShell {
@@ -499,17 +502,8 @@ static const u8 sShellPieces[3][4][2] = {
     { { 8, 16 }, { 8, 32 }, { 16, 32 }, { 32, 64 } },
 };
 
-/* ShellScaled(); A piece's double-sized box's corner from the frame's spot, its own corner `at` pixels from it in the frame, `w` of
- * the frame's pixels across: its middle SHELL_NUM / SHELL_DEN as far, rounded down (the same way for every piece: their spots are
- * all 8 apart), less w; */
-static s32 ShellScaled(s32 at, s32 w) {
-    s32 middle = SHELL_NUM * (2 * at + w), d = 2 * SHELL_DEN;
-
-    return (middle >= 0 ? middle / d : -((-middle + d - 1) / d)) - w;
-}
-
-// ShellFar(); How far a piece's middle is from its body's (SHELL_BODY_Y over its feet), across and up;
-#define SHELL_BODY_Y 48
+// ShellFar(); How far a piece's middle is from its body's (SHELL_BODY_Y over its feet, the DS's 48), across and up;
+#define SHELL_BODY_Y SIZED(48)
 static s32 ShellFar(const struct ShellPiece *p) {
     s32 x = p->dx + p->w / 2, y = p->dy + p->h / 2 + SHELL_BODY_Y;
 
@@ -529,7 +523,6 @@ static void ShellMain(void) {
     const struct ShellPiece *p;
     u32 tiles, first, n;
     s32 ox, oy;
-    u16 *m;
     u8 i;
 
     if (sh->e.flags & 0x1000) {
@@ -569,11 +562,6 @@ static void ShellMain(void) {
         gUnk_03006080[SHELL_LAYER] = n - 1;
         gUnk_030024F0 = n;
     }
-    m = &gOamBuffer[SHELL_MATRIX * 16 + 3];
-    m[0] = SHELL_PA;
-    m[4] = 0;
-    m[8] = 0;
-    m[12] = SHELL_PA;
 }
 
 /* Shell(); Its shell (see above), made as it comes in: its VRAM, its palette (Daroach's slot, his key given its own, when he's gone:
@@ -626,13 +614,12 @@ static void Shell(struct SqueakObject *s) {
         u8 shape = oams[0] >> 14, size = oams[1] >> 14;
 
         if (shape > 2) continue;
-        p->w = sShellPieces[shape][size][0] * 2;
-        p->h = sShellPieces[shape][size][1] * 2;
-        // (its double-sized box centered where its middle is drawn: SHELL_NUM / SHELL_DEN as far from the frame's spot);
-        p->dx = ShellScaled((oams[1] & 0x1FF) - frame->offsetX, p->w / 2);
-        p->dy = ShellScaled((oams[0] & 0xFF) - frame->offsetY, p->h / 2);
-        p->attr0 = (oams[0] & 0xC000) | 0x300;
-        p->attr1 = (oams[1] & 0xC000) | SHELL_MATRIX << 9;
+        p->w = sShellPieces[shape][size][0];
+        p->h = sShellPieces[shape][size][1];
+        p->dx = (oams[1] & 0x1FF) - frame->offsetX;
+        p->dy = (oams[0] & 0xFF) - frame->offsetY;
+        p->attr0 = oams[0] & 0xC000;
+        p->attr1 = oams[1] & 0xC000;
         p->tile = oams[2] & 0x3FF;
         sh->pieces = i + 1;
     }
@@ -684,7 +671,7 @@ static void YadgaineMain(struct Object *obj) {
      * camera's lock carries it along while it's hidden, as logged: its rush in starts from the view's left); */
     STEP(s) = SCROLLS(s) ? SQUEAK_SPEED(SCROLL(s)) : 0;
     obj->base.x += SQUEAK_SPEED(s->vx) - STEP(s);
-    if (obj->base.x > LEFT(s) + (CLAMP_X << 8)) obj->base.x = LEFT(s) + (CLAMP_X << 8);
+    if (obj->base.x > LEFT(s) + (SIZED(CLAMP_X) << 8)) obj->base.x = LEFT(s) + (SIZED(CLAMP_X) << 8);
     if (obj->base.x < LEFT(s)) obj->base.x = LEFT(s);
     obj->base.unk48 = before;
     obj->base.xspeed = obj->base.x - before;
@@ -718,8 +705,8 @@ void YadgaineStart(struct Object *obj) {
 void YadgaineInit(struct SqueakObject *s) {
     struct Object *obj = &s->obj;
 
-    sub_0803E2B0(&obj->base, -29, -97, 27, -1);
-    ObjectSetBounds(&obj->base, -32, -96, 32, 0);
+    sub_0803E2B0(&obj->base, SIZED(-29), SIZED(-97), SIZED(27), SIZED(-1));
+    ObjectSetBounds(&obj->base, SIZED(-32), SIZED(-96), SIZED(32), 0);
     HARM(s) = obj->base.unk68;
     SqueakStandOnFloor(obj);
     FLOOR(s) = obj->base.y;
@@ -745,7 +732,7 @@ void YadgaineInit(struct SqueakObject *s) {
 #define L_PENDING(l) ((l)->vars[5])     // Raised: its held composite next frame (0x021180E4's state change, 0x02118050's next);
 #define L_BACK(l) ((l)->variant == 0)
 
-// yadgaine.rca's boxes (KatAM's: x ahead, y down; frames, left, top, right, bottom), its legs' composites' first parts;
+// yadgaine.rca's boxes (KatAM's: x ahead, y down; frames, left, top, right, bottom; the DS's, SIZED), its legs' composites' first parts;
 struct LegBox {
     u8 frames;
     s8 box[4];
@@ -834,7 +821,7 @@ static void LegBoxes(struct SqueakObject *l) {
         return;
     }
     base->flags &= ~0x200;
-    sub_0803E2B0(base, b->box[0], b->box[1], b->box[2], b->box[3]);
+    sub_0803E2B0(base, SIZED(b->box[0]), SIZED(b->box[1]), SIZED(b->box[2]), SIZED(b->box[3]));
     base->unk68 = L_HARM(l);
     base->unk5C = (base->unk5C & ~7) | (L_HP(l) > 0 ? 3 : 6) | 0x20 | 0x80;
 }
@@ -842,7 +829,7 @@ static void LegBoxes(struct SqueakObject *l) {
 // Debris(); A foot resting on the ground (0x021179CC, 0x02118384): of 100, a block knocked up from it;
 static void Debris(struct SqueakObject *l) {
     u32 r = Random(100);
-    s32 x = l->obj.base.x + ((L_BACK(l) ? -12 : 40) << 8), y = l->obj.base.y - (1 << 8);
+    s32 x = l->obj.base.x + (SIZED(L_BACK(l) ? -12 : 40) << 8), y = l->obj.base.y - (SIZED(1) << 8);
 
     if (r < DEBRIS_2) Spawn(l, SQUEAK_YADGAINE_THING, 2, x, y);
     else if (r < DEBRIS_3) Spawn(l, SQUEAK_YADGAINE_THING, 3, x, y);
@@ -934,8 +921,8 @@ void YadgaineLegInit(struct SqueakObject *l) {
     L_MODE(l) = LEG_WALK;
     L_HARM(l) = obj->base.unk68;
     L_SHOWN(l) = FALSE;
-    sub_0803E2B0(&obj->base, -53, -59, -24, -7);
-    ObjectSetBounds(&obj->base, -64, -112, 64, 24);
+    sub_0803E2B0(&obj->base, SIZED(-53), SIZED(-59), SIZED(-24), SIZED(-7));
+    ObjectSetBounds(&obj->base, SIZED(-64), SIZED(-112), SIZED(64), SIZED(24));
     obj->base.flags |= 0x100 | 0x400 | 0x1000000 | 0x2000000;
     // (Kirby's body doesn't hurt it, unk5C 0x80: KatAM's touch of a flashing Kirby beats an enemy outright; nor is it swallowed, 0x20);
     obj->base.unk5C = (obj->base.unk5C & ~7) | 3 | 0x20 | 0x80;
@@ -1007,9 +994,9 @@ static bool32 Thing(struct SqueakObject *t) {
         } else if (t->variant == THING_CAPSULE) {
             t->vx = PUFF_SPEED + CAPSULE_EXTRA;
         } else if (Block(t)) {
-            t->vx = sBlockLaunch[t->variant - THING_BLOCK][0];
-            t->vy = sBlockLaunch[t->variant - THING_BLOCK][1];
-            t->ay = -THING_GRAVITY;
+            t->vx = SIZED(sBlockLaunch[t->variant - THING_BLOCK][0]);
+            t->vy = SIZED(sBlockLaunch[t->variant - THING_BLOCK][1]);
+            t->ay = -SIZED(THING_GRAVITY);
         } else {
             struct SqueakObject *y = YadgaineOf(t);
 
@@ -1026,7 +1013,7 @@ static bool32 Thing(struct SqueakObject *t) {
         }
         SqueakMove(t);
         if (Block(t)) {
-            if (t->vy < 0 && by && Alive(by, SQUEAK_YADGAINE_LEG) && t->obj.base.x < by->obj.base.x + (CRUSH_AHEAD << 8)) {
+            if (t->vy < 0 && by && Alive(by, SQUEAK_YADGAINE_LEG) && t->obj.base.x < by->obj.base.x + (SIZED(CRUSH_AHEAD) << 8)) {
                 ThingGone(t, TRUE);
                 break;
             }
@@ -1034,7 +1021,7 @@ static bool32 Thing(struct SqueakObject *t) {
                 SqueakStop(t);
                 T_REAL(t) = t->obj.base.x;
                 if (TakeCell(t, T_REAL(t))) SqueakSetState(t, 2);
-                else t->ay = -THING_GRAVITY;
+                else t->ay = -SIZED(THING_GRAVITY);
             }
         } else if (SqueakOnGround(t)) {
             ThingGone(t, TRUE);
@@ -1042,13 +1029,13 @@ static bool32 Thing(struct SqueakObject *t) {
         break;
     case 2:                 // A block landed (0x0212D8F0): a solid tile till it's under the boss (32 ahead of its leg);
         T_REAL(t) -= Back(t);
-        if (YadgaineOf(t) == NULL || (by && Alive(by, SQUEAK_YADGAINE_LEG) && T_REAL(t) < by->obj.base.x + (CRUSH_AHEAD << 8))) {
+        if (YadgaineOf(t) == NULL || (by && Alive(by, SQUEAK_YADGAINE_LEG) && T_REAL(t) < by->obj.base.x + (SIZED(CRUSH_AHEAD) << 8))) {
             ThingGone(t, TRUE);
             break;
         }
         if ((T_REAL(t) >> 12) != T_CELL_X(t) && !TakeCell(t, T_REAL(t))) {
             t->obj.base.x = T_REAL(t);
-            t->ay = -THING_GRAVITY;
+            t->ay = -SIZED(THING_GRAVITY);
             SqueakSetState(t, 1);
         }
         return FALSE;

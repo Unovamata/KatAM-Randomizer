@@ -231,21 +231,82 @@ namespace KatAMRandomizer {
             };
         }
 
+        /* SqueakShrink(); A picture drawn at num/den of its size: an old pixel `num` units across, a new one `den` (den/num of the old's
+         * each way), the new ones' corners on the origin's (its pixel 0, 0 right of and under it); each new pixel from the old ones it
+         * covers, weighted by how much of them it covers: its darkest where an outline crosses a quarter of it (dark: a weighted
+         * brightness under 300 of 2550), else the color covering the most of it, transparent when under half of it is drawn. `at`: the
+         * old picture's value at a pixel (-1: none), `brightness` a value's; the new pixels by their place from the origin; */
+        static Dictionary<(int x, int y), int> SqueakShrink(Func<int, int, int> at, int width, int height, int originX, int originY, int num, int den,
+                                                             Func<int, int> brightness) {
+            int Overlap(int pixel, int from) => Math.Max(0, Math.Min(pixel * num + num, from + den) - Math.Max(pixel * num, from));
+            Dictionary<(int, int), int> shrunk = new Dictionary<(int, int), int>();
+            // (only the new pixels over what's drawn: the old picture's drawn box, a new pixel's units from the origin's);
+            int minX = width, maxX = -1, minY = height, maxY = -1;
+            for (int y = 0; y < height; y++)
+                for (int x = 0; x < width; x++)
+                    if (at(x, y) >= 0) {
+                        minX = Math.Min(minX, x);
+                        maxX = Math.Max(maxX, x);
+                        minY = Math.Min(minY, y);
+                        maxY = Math.Max(maxY, y);
+                    }
+            int First(int from, int origin) => (int)Math.Floor((from - origin) * num / (double)den) - 1;
+            for (int j = First(minY, originY); j <= First(maxY + 1, originY) + 1; j++)
+                for (int i = First(minX, originX); i <= First(maxX + 1, originX) + 1; i++) {
+                    int left = originX * num + i * den, top = originY * num + j * den, inside = 0;
+                    Dictionary<int, int> drawn = new Dictionary<int, int>();
+                    List<int> order = new List<int>();
+                    for (int y = Math.Max(0, top / num - 1); y <= (top + den) / num && y < height; y++)
+                        for (int x = Math.Max(0, left / num - 1); x <= (left + den) / num && x < width; x++) {
+                            int weight = Overlap(x, left) * Overlap(y, top);
+                            if (weight == 0) continue;
+                            inside += weight;
+                            int value = at(x, y);
+                            if (value < 0) continue;
+                            if (!drawn.ContainsKey(value)) {
+                                drawn[value] = 0;
+                                order.Add(value);
+                            }
+                            drawn[value] += weight;
+                        }
+                    int opaque = drawn.Values.Sum();
+                    if (opaque == 0 || opaque * 2 < inside) continue;
+                    // (its darkest where an outline crosses a quarter of it, else the color covering the most of it);
+                    int darkest = order.OrderBy(brightness).First();
+                    shrunk[(i, j)] = brightness(darkest) < 300 && drawn[darkest] * 4 >= den * den ? darkest
+                                   : order.OrderByDescending(c => drawn[c]).ThenBy(c => order.IndexOf(c)).First();
+                }
+            return shrunk;
+        }
+
+        // SqueakBrightness(); A color's weighted brightness (0 to 2550: green 6, red 3, blue 1);
+        static int SqueakBrightness(int color) => (color & 31) * 8 * 3 + (color >> 5 & 31) * 8 * 6 + (color >> 10 & 31) * 8;
+
+        /* SqueakScaled(); A character's frames at num/den of its size (Scale: SqueakFrames' cells drawn smaller, SqueakShrink) need its
+         * animations' and compositions' offsets as much smaller (rounded, the same either way: they turn with it); */
+        static SqueakCharacter SqueakScaled(SqueakCharacter character, int num, int den) {
+            short Scaled(short v) => (short)Math.Round(v * num / (double)den, MidpointRounding.AwayFromZero);
+            character.Anims = character.Anims.Select(a => a with { Steps = a.Steps.Select(st => st with { X = Scaled(st.X), Y = Scaled(st.Y) }).ToList() }).ToList();
+            character.Compositions = character.Compositions.Select(c => c.Select(part => part with { X = Scaled(part.X), Y = Scaled(part.Y) }).ToList()).ToList();
+            return character;
+        }
+
+        /* Yadgaine at three quarters of the DS's size (the owner's pick: at the DS's, its body's own pixels beside a shell that can't be
+         * as big in KatAM's sprite memory, it was too detailed beside it; shrunk, the GBA's smaller screen shows it as the DS's did):
+         * its body and legs (SqueakEnemy.Scale), its shell (SqueakShell) and, in yadgaine.c (SIZE_NUM, SIZE_DEN), its boxes, its spots
+         * and how far it moves; */
+        const int YadgaineScaleNum = 3, YadgaineScaleDen = 4;
+
         /* SqueakShell(); Yadgaine's shell, which Squeak Squad's stage draws on a background layer from its own map and tiles (0x0220B0B4;
-         * KatAM's backgrounds are full in a fight), as one KatAM frame at two thirds of its size, drawn half as big again by the GBA's
-         * sprite scaling (yadgaine.c's Shell): 133 tiles of KatAM's 512-tile sprite heap, not the 288 it takes as it is (half its size,
-         * 79 tiles, was too coarse beside its body's own pixels). Its stage's map, map/a4s7s2.mxp
-         * (RLE), has its sections' offsets at +0xC: the map's width (the first's first byte), its blocks (the third's, after 2 bytes:
-         * 16x16 pixels, 4 tile entries each: tile, flips, palette - 6) and the shell's 16 by 13 blocks (the fifth's top left); their
-         * tiles and palettes are map/30_b.bin's (+0x210, +0x10). Only what its fight ever shows (columns 14 on, rows 27 to 171: the rest
-         * is left of the screen, over it or under the floor); each stored pixel its darkest where an outline crosses a quarter of it
-         * (dark: a weighted brightness under 300 of 2550), else the color covering the most of it, transparent when under half of it
-         * is drawn. The origin (the body's feet: column 128, row 171) a stored pixel's corner, at the canvas' middle; it faces as on
-         * the DS (yadgaine.c never turns it: the GBA's scaling flipped would leave a gap in each piece); */
+         * KatAM's backgrounds are full in a fight), as one KatAM frame at three quarters of its size, as its body (YadgaineScale:
+         * SqueakShrink; 172 tiles of KatAM's 512-tile sprite heap, drawn pixel for pixel by yadgaine.c's Shell). Its stage's map,
+         * map/a4s7s2.mxp (RLE), has its sections' offsets at +0xC: the map's width (the first's first byte), its blocks (the third's,
+         * after 2 bytes: 16x16 pixels, 4 tile entries each: tile, flips, palette - 6) and the shell's 16 by 13 blocks (the fifth's top
+         * left); their tiles and palettes are map/30_b.bin's (+0x210, +0x10). Only what its fight ever shows (columns 14 on: the rest is
+         * left of the screen at its spot furthest in, the map's edge there; rows to 171: under the floor after). The origin (the body's
+         * feet: column 128, row 171) a pixel's corner, at the canvas' middle; it faces as on the DS (it never turns); */
         const string YadgaineShellFile = "stage:a4s7s2";
-        const int ShellLeft = 14, ShellTop = 27, ShellBottom = 171, ShellOriginX = 128, ShellOriginY = 171;
-        // How much bigger the shell's drawn than it's stored (yadgaine.c's SHELL_NUM, SHELL_DEN);
-        const int ShellScaleNum = 3, ShellScaleDen = 2;
+        const int ShellLeft = 14, ShellTop = 0, ShellBottom = 171, ShellOriginX = 128, ShellOriginY = 171;
         static (List<(byte[] tiles, ushort[] oams, short[] attributes, int palette)> frames, List<byte[]> palettes) SqueakShell(byte[] rom) {
             byte[] packed = SqueakFile(rom, "map/a4s7s2.mxp"), bg = SqueakFile(rom, "map/30_b.bin");
             if (packed == null || bg == null || packed[0] != 0x30) throw new InvalidOperationException("Squeak Squad's map/a4s7s2 is missing.");
@@ -280,44 +341,20 @@ namespace KatAMRandomizer {
                     }
                 }
 
-            /* Two thirds of its size (ShellScale: a stored pixel ShellScale.num / ShellScale.den of the picture's each way; stored pixel i
-             * covers the picture's columns [128 + i * 3/2, 128 + (i + 1) * 3/2), its rows likewise from 171: the origin a stored pixel's
-             * corner), each from the picture's pixels it covers, weighted by how much of them it covers (in 1/den-pixel units); */
-            const int Size = 256, Center = Size / 2, Num = ShellScaleNum, Den = ShellScaleDen;
-            int Brightness(int color) => (color & 31) * 8 * 3 + (color >> 5 & 31) * 8 * 6 + (color >> 10 & 31) * 8;
-            int Overlap(int pixel, int from) => Math.Max(0, Math.Min(pixel * Den + Den, from + Num) - Math.Max(pixel * Den, from));
+            const int Size = 256, Center = Size / 2;
+            Dictionary<(int x, int y), int> shrunk = SqueakShrink((x, y) => picture[x, y] ?? -1, Width, Height, ShellOriginX, ShellOriginY,
+                                                                   YadgaineScaleNum, YadgaineScaleDen, SqueakBrightness);
             List<ushort> colors = new List<ushort> { 0 };
             int[,] canvas = new int[Size, Size];
-            for (int j = -(ShellOriginY * Den / Num + 1); j <= (Height - ShellOriginY) * Den / Num + 1; j++)
-                for (int i = -(ShellOriginX * Den / Num + 1); i <= (Width - ShellOriginX) * Den / Num + 1; i++) {
-                    int left = ShellOriginX * Den + i * Num, top = ShellOriginY * Den + j * Num, inside = 0;
-                    Dictionary<int, int> drawn = new Dictionary<int, int>();
-                    List<int> order = new List<int>();
-                    for (int y = Math.Max(0, top / Den - 1); y <= (top + Num) / Den && y < Height; y++)
-                        for (int x = Math.Max(0, left / Den - 1); x <= (left + Num) / Den && x < Width; x++) {
-                            int weight = Overlap(x, left) * Overlap(y, top);
-                            if (weight == 0) continue;
-                            inside += weight;
-                            if (picture[x, y] is not int color) continue;
-                            if (!drawn.ContainsKey(color)) {
-                                drawn[color] = 0;
-                                order.Add(color);
-                            }
-                            drawn[color] += weight;
-                        }
-                    int opaque = drawn.Values.Sum();
-                    if (opaque == 0 || opaque * 2 < inside) continue;
-                    // (its darkest where an outline crosses a quarter of it, else the color covering the most of it);
-                    int darkest = order.OrderBy(Brightness).First();
-                    int value = Brightness(darkest) < 300 && drawn[darkest] * 4 >= Num * Num ? darkest
-                              : order.OrderByDescending(c => drawn[c]).ThenBy(c => order.IndexOf(c)).First();
-                    int index = colors.IndexOf((ushort)value, 1);
-                    if (index < 0) {
-                        index = colors.Count;
-                        colors.Add((ushort)value);
-                    }
-                    canvas[Center + i, Center + j] = index;
+            foreach (((int i, int j), int value) in shrunk) {
+                if (Center + i < 0 || Center + j < 0 || Center + i >= Size || Center + j >= Size) throw new InvalidOperationException("Yadgaine's shell is too big.");
+                int index = colors.IndexOf((ushort)value, 1);
+                if (index < 0) {
+                    index = colors.Count;
+                    colors.Add((ushort)value);
                 }
+                canvas[Center + i, Center + j] = index;
+            }
             if (colors.Count > 16) throw new InvalidOperationException("Yadgaine's shell has more than 15 colors.");
 
             byte[] paletteBytes = new byte[32];
@@ -362,12 +399,14 @@ namespace KatAMRandomizer {
          * WholeCells: a cell drawn wholly with one layer's palettes stays the character's own (its composites' parts, KatAM's hurt
          * frames show no layer), and the palettes its cells draw with together are merged into one when their colors fit in 15 (Meta
          * Knight's: his body the character's own, his sword a layer; his sword's flourishes alone in its frames, his wave's two
-         * palettes one); */
+         * palettes one); Scale: drawn at Scale.Num / Scale.Den of the DS's size (its cells, SqueakShrink, and its animations' offsets:
+         * Yadgaine's, YadgaineScale); */
         internal sealed record SqueakEnemy(int Index, string Name, string File, int[] HurtCells, (int type, int letter)[] Glyphs, int GraphicsOf = -1,
                                             byte MidbossType = 0, int[] OnlyAnims = null, string[] Palettes = null,
                                             (ushort from, ushort to)[] MergeColors = null, string ExtraFile = null,
                                             int[][] Layers = null, int Canvas = 128, bool BodyLast = false, bool KeepComposites = false,
-                                            bool SharePalettes = false, string PaletteFile = null, bool WholeCells = false);
+                                            bool SharePalettes = false, string PaletteFile = null, bool WholeCells = false,
+                                            (int Num, int Den) Scale = default);
         /* AnimPalettes: a character whose cells are in Squeak Squad's different palettes (Doc's things), per animation the palette its
          * sprite takes (SqueakPaletteKey); */
         internal sealed record SqueakBuilt(SqueakEnemy Enemy, int AnimId, SqueakCharacter Character, int Tiles, List<SqueakLayerBuilt> Layers = null,
@@ -644,7 +683,8 @@ namespace KatAMRandomizer {
              * animations, its .mca's composites (its body 0 and 1, its legs 2-15); its hurt look its head (cell 3); a frame big enough
              * for its raised legs (114 pixels over it, 65 either side). Its shell isn't in its sprites (the stage draws it): its own effect,
              * SqueakShell; */
-            new SqueakEnemy(42, "Yadgaine", "yadgaine", new[] { 3, 3, 3 }, YadgaineGlyphs, MidbossType: 0x40, Canvas: 256),
+            new SqueakEnemy(42, "Yadgaine", "yadgaine", new[] { 3, 3, 3 }, YadgaineGlyphs, MidbossType: 0x40, Canvas: 256,
+                            Scale: (YadgaineScaleNum, YadgaineScaleDen)),
             // Its legs (0x021185FC, 0x02117C44: its .mca's composites 2-15), drawn with its graphics, no name;
             new SqueakEnemy(43, "Yadgaine's leg", "yadgaine", new[] { 9, 9, 9 }, new (int, int)[0], GraphicsOf: 42),
             /* What it throws and knocks down (0x0212E248: its big and small rocks 32 and 33, a block 34, its shot's puff 35 and capsule
@@ -1028,12 +1068,25 @@ namespace KatAMRandomizer {
                                                                                                                                 List<List<ushort[]>> alternates = null,
                                                                                                                                 List<byte[]> alternatePalettes = null,
                                                                                                                                 (ushort from, ushort to)[] merge = null,
-                                                                                                                                bool mergeShared = false) {
+                                                                                                                                bool mergeShared = false,
+                                                                                                                                (int num, int den) scale = default) {
             cells ??= Enumerable.Range(0, character.Cells.Count).ToList();
             List<(int palette, int color)> used = SqueakUsedColors(character, cells).Where(u => u.palette < character.Palettes.Count).ToList();
             List<byte[]> palettes = new List<byte[]>();
             List<(byte[], ushort[], short[], int)> frames = new List<(byte[], ushort[], short[], int)>();
 
+            /* (a cell drawn, at `scale` of its size if it's drawn smaller: SqueakShrink, its pixels by its frame's palette's
+             * brightness); */
+            int[,] Drawn(int cell, Dictionary<(int, int), int> colorMap, byte[] palette) {
+                int[,] canvas = SqueakCanvas(character, cell, colorMap, size);
+                if (scale.num == 0) return canvas;
+                int center = size / 2;
+                int[,] small = new int[size, size];
+                foreach (((int i, int j), int value) in SqueakShrink((x, y) => canvas[x, y] == 0 ? -1 : canvas[x, y], size, size, center, center,
+                                                                     scale.num, scale.den, c => SqueakBrightness(ReadShort(palette, c * 2))))
+                    if (center + i >= 0 && center + j >= 0 && center + i < size && center + j < size) small[center + i, center + j] = value;
+                return small;
+            }
             byte[] PaletteBytes(IEnumerable<ushort> colors) {
                 byte[] bytes = new byte[32];
                 int i = 0;
@@ -1085,7 +1138,7 @@ namespace KatAMRandomizer {
                     alternatePalettes.Add(PaletteBytes(other));
                 }
                 foreach (int cell in cells) {
-                    (byte[] tiles, ushort[] oams, short[] attributes) = CutFrame(SqueakCanvas(character, cell, colorMap, size), int.MaxValue, size);
+                    (byte[] tiles, ushort[] oams, short[] attributes) = CutFrame(Drawn(cell, colorMap, palettes[0]), int.MaxValue, size);
                     frames.Add((tiles, oams, attributes, 0));
                 }
             } else {
@@ -1128,7 +1181,7 @@ namespace KatAMRandomizer {
                     int palette = character.Cells[cell].Pieces.Count > 0 ? character.Cells[cell].Pieces[0].Attr2 >> 12 : 0;
                     Dictionary<(int, int), int> colorMap = Enumerable.Range(1, 15).ToDictionary(c => (palette, c), c => c);
                     if (palette < character.Palettes.Count && merged.TryGetValue(Root(palette), out var m)) (palette, colorMap) = m;
-                    (byte[] tiles, ushort[] oams, short[] attributes) = CutFrame(SqueakCanvas(character, cell, colorMap, size), int.MaxValue, size);
+                    (byte[] tiles, ushort[] oams, short[] attributes) = CutFrame(Drawn(cell, colorMap, palettes[Math.Min(palette, palettes.Count - 1)]), int.MaxValue, size);
                     frames.Add((tiles, oams, attributes, palette));
                 }
             }

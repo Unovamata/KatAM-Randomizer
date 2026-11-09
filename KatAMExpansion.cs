@@ -1283,6 +1283,8 @@ namespace KatAMRandomizer {
                             character = SqueakMerge(character, ReadSqueakCharacter(squeak, extra, file.Length > 1 ? file[0] : "enemy", enemy.PaletteFile),
                                                     enemy.SharePalettes);
                         if (enemy.OnlyAnims != null) character = SqueakKeepAnims(character, enemy.OnlyAnims, enemy.KeepComposites);
+                        // (drawn smaller than the DS's: its offsets as much smaller, its frames by SqueakFrames);
+                        if (enemy.Scale.Num > 0) character = SqueakScaled(character, enemy.Scale.Num, enemy.Scale.Den);
                         /* (the pieces in each layer's palettes drawn by a layer of their own: an anim with its own palette, a frame per cell
                          * with any; the character itself keeps the pieces in none); */
                         List<SqueakLayerBuilt> layersBuilt = new List<SqueakLayerBuilt>();
@@ -1291,7 +1293,7 @@ namespace KatAMRandomizer {
                             SqueakCharacter layer = SqueakSplitLayer(character, group, true, whole);
                             List<int> layerCells = Enumerable.Range(0, layer.Cells.Count).Where(c => layer.Cells[c].Pieces.Count > 0).ToList();
                             (List<(byte[] tiles, ushort[] oams, short[] attributes, int palette)> layerFrames, List<byte[]> layerPalettes) =
-                                SqueakFrames(layer, cells: layerCells, size: enemy.Canvas);
+                                SqueakFrames(layer, cells: layerCells, size: enemy.Canvas, scale: enemy.Scale);
                             (int _, int layerAnim, int _) = AddAnim(layerPalettes, layerFrames, new byte[0], new List<(int, int)>(), effectOnly: layerFrames.Count);
                             ushort[] perCell = new ushort[character.Cells.Count];
                             for (int k = 0; k < layerCells.Count; k++) {
@@ -1310,7 +1312,7 @@ namespace KatAMRandomizer {
                         List<byte[]> alternatePalettes = alternates != null ? new List<byte[]>() : null;
                         (List<(byte[] tiles, ushort[] oams, short[] attributes, int palette)> frames, List<byte[]> palettes) =
                             SqueakFrames(character, enemy.Canvas, alternates: alternates, alternatePalettes: alternatePalettes, merge: enemy.MergeColors,
-                                         mergeShared: enemy.WholeCells);
+                                         mergeShared: enemy.WholeCells, scale: enemy.Scale);
                         var withHurts = enemy.HurtCells.Select(c => frames[c]).Concat(frames).ToList();
                         foreach (byte[] alternate in alternatePalettes ?? new List<byte[]>()) {
                             palettes.Add(alternate);

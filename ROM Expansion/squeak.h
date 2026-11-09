@@ -199,7 +199,7 @@ enum {
     SQUEAK_FX_DOC_RINGS_LOW,
     SQUEAK_FX_DOC_BOMB,
     SQUEAK_FX_DOC_SMOKE,
-    SQUEAK_FX_YADGAINE_SHELL,   // Yadgaine's shell (its stage's picture: KatAMExpansionSqueak.cs's SqueakShell, at half its size);
+    SQUEAK_FX_YADGAINE_SHELL,   // Yadgaine's shell (its stage's picture: KatAMExpansionSqueak.cs's SqueakShell, at three quarters of its size);
     SQUEAK_FX_COUNT,
 };
 
