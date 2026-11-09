@@ -372,6 +372,18 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
   - Enemies: the ported ones (and KatAM's own where Squeak Squad's are KatAM's).
   - Squeak Squad's far backgrounds are 3D textures on the DS (`map/d_viw_*.nsbtx`, 40 of them), not tiles: they're drawn
     into KatAM's background layer, reduced to fit (the owner allows compressing tilesets and backgrounds).
+  - Progress (`KatAMExpansionSqueakRooms.cs`; the formats in "Squeak Squad Notes.md", "Stage rooms, for porting them"):
+    - Decoded: the rooms' layers, tilesets, collision, doors, gimmicks, tile animations; the objects files' enemies and items
+      (food, chests, ability bubbles and stands); the far views. Checked by screenshots in the DS emulator (Kirby moved beside
+      each gimmick and item).
+    - Converted, checked offline (not in the game yet): every room's three layers as KatAM's one foreground (401 of 493 rooms
+      exactly; the rest within near-identical shades; the 3 busiest rooms share a few tiles to fit KatAM's 768); all 39 far views
+      as KatAM backgrounds (3/4 size, 8 palettes, at most 900 tiles); the collision (slopes, thin floors, ladders, spikes, water,
+      star blocks), overlaid on converted rooms to check it lines up.
+    - Left: the objects (enemies, food, chests, ability bubbles as enemies), the gimmicks, tile animations, writing the rooms into
+      the ROM and testing them in the emulator; then the hub, the levels by the rulebook, bosses, map viewer, logic checks.
+  - **Owner's call** (later, with the objects): ability bubbles whose ability no regular enemy gives (Hammer, Bonkers' in KatAM;
+    two abilities of Squeak Squad's own, ability numbers 18 and 26): which enemy, or food.
 - **Map items for each area** (the owner, with the rooms): KatAM's map item, its sprite recolored to each NiDL and Squeak Squad
   area's theme, one per area, so the map viewer shows the area once its map is found.
 - **The Collection Room scrolls left and right** (the owner, with the rooms: "the collection room should be scrollable left and
