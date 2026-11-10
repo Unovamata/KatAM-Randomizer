@@ -110,7 +110,7 @@ static void Slash(struct Object *obj) {
     if (Macro_0810B1F4(slash)) flags |= 0x2000;
     slash->flags = flags;
     sub_0803E2B0(slash, -0xF, -0xA, 0xA, 0xA);
-    PlaySfx(slash, SE_SWORD_KNIGHT_SLASH_ATTACK);
+    PlaySfx(slash, NIDL_SE(0xC4)); // (NiDL's: the slash, 0x0807B110);
 }
 
 // Lunge(); 0x0807B0B4: forward, slower every 3 frames, unless it stopped at a ledge;

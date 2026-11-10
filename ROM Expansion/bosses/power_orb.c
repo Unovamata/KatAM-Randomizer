@@ -830,7 +830,7 @@ static void Dash(struct PowerOrb *o) {
     step = o->phase ? &sDashBack[o->step] : &sDashWays[o->row][o->step];
     if (!o->stepTimer) {
         o->stepTimer = step->time;
-        if (!o->phase && o->step == sDashWhoosh[o->row]) PlaySfx(&o->n.obj.base, SE_WIZ_DASH);
+        if (!o->phase && o->step == sDashWhoosh[o->row]) PlaySfx(&o->n.obj.base, NIDL_SE(0x240)); // (NiDL's: the dash, 0x080AE986);
     }
     o->sx += step->vx;
     // (the low way's back under: the same steps, upside down);
@@ -895,7 +895,7 @@ static void Zip(struct PowerOrb *o) {
         o->stepTimer = 0;
         o->phase = 3;
         Shoot(o, KIND_CRESCENT, o->sx, o->sy, -0x60000, 0);
-        PlaySfx(&o->n.obj.base, SE_KIRBY_AIRSHOT);
+        PlaySfx(&o->n.obj.base, NIDL_SE(0x22D)); // (NiDL's: each lunge's crescent, 0x080AE87E);
         // fallthrough
     case 3:
         o->sx += sLunge[o->stepTimer];

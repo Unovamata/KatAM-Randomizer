@@ -46,6 +46,8 @@ void LoadLevelGfx(u8 playerId, const u16 **arg1, const u16 **arg2);
  * ROOM_FULL_BOTTOM, the camera goes down to 8 pixels from the room's bottom, as on its other sides, not KatAM's 40 (Squeak Squad's
  * rooms: the DS shows them to their bottom, and they get no rows of padding there); */
 const u8 gNidlRoomTops[0x800] = { 0 };
+// gExpansionSongs; NiDL's and Squeak Squad's first songs in the grown song table (KatAMExpansionSound.cs; nidl.h's NIDL_SE);
+const u16 gExpansionSongs[2] = { 0, 0 };
 #define ROOM_FULL_BOTTOM 0x80
 
 /* gNidlGridRoom; The room whose special blocks are a grid (KatAMExpansionRooms.cs, HeavyMoleRoom: Heavy Mole's, all dirt, 2112 blocks,

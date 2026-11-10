@@ -791,10 +791,31 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
     where everything is KatAM's.
   - Not tested: holding Right for several slides in a row with real key repeat (each slide was pressed on its own), the Sound
     Player's screens after slides back to the start.
+- **NiDL's music and sound effects** (the owner: "Implement the sounds and music and enemy sound effects for both NiDL and Squeak
+  Squad"): done for NiDL. Its whole song table (579 songs: music, sound effects, their instruments and samples) is copied into
+  KatAM's grown song table after KatAM's 620 (`KatAMExpansionSound.cs`; NiDL's song n is KatAM's 620 + n). The NiDL rooms play their
+  own room's music, the switch rooms their level hub's; a ported mini-boss or boss in a room with NiDL music keeps it (NiDL's
+  boss rooms set none and keep KatAM's fight music). The ported code plays NiDL's own sounds, found in NiDL's code (its sound call
+  `0x080031B8` and the room-checked `0x0803E34C`, each call matched to its move): the bosses (King Dedede, Paint Roller, Kracko,
+  Heavy Mole, Mr. Shine & Mr. Bright, Meta Knight, Nightmare, the Power Orb's dash and crescents); the mini-bosses (Bugzzy, Fire Lion,
+  Grand Wheelie, Mr. Tick-Tock, Poppy Bros. Sr., the Meta-Knights: their landings, dashes, charges, throws, the alarm, the notes,
+  the warp); the enemies (Chilly's freeze, Blade Knight's slash, Needlous' roll, Gip's throw, Kabu's and Slippy's jumps, Twizzy's
+  take-offs, Bubbles' bounces; the others make none in NiDL); the abilities (Freeze, Mike's three songs, Needle, Hi-Jump, the Star
+  Rod's star). Looping ones stop when their move does (Freeze's, also when Kirby is hit or in water; Mr. Tick-Tock's alarm, also
+  when it's hit or gone).
+  - Checked in the GBA emulator (USA, EU, Japanese): the music player on NiDL's songs in rooms 0x06F and 0x2EF (imported song
+    headers at `0x0966xxxx`); King Dedede's fight (0x313) on NiDL's music with his effects; Mr. Tick-Tock's fight (0x2EF, USA:
+    its run 0x1F6, notes 0x1FB and alarm 0x219 on the effects player, the alarm cut by the next note as in NiDL; EU and Japanese:
+    the same three imported effects). Logic checks unchanged in all three.
+  - Not tested in the emulator: the abilities' sounds (an ability set by a RAM write didn't take; they're built only), and the
+    other mini-bosses' and enemies' sounds one by one (the same call as Mr. Tick-Tock's). Not found in NiDL's code and so still
+    KatAM's: Light's and Ball's sounds (Ball's code wasn't identified), Whispy Woods' puffs and the Power Orb's other shots (NiDL
+    plays none there), the bosses' hit and defeat sounds (KatAM's own for its bosses), Kirby's own common sounds. The NiDL hub (a
+    Central Circle copy) keeps KatAM's music.
 - **Squeak Squad's sounds** (the owner: "Import Squeak Squad's sounds and adapt them to the GBA"): not done yet; surveyed. Squeak
   Squad's sounds are all in `sound/sound_data.sdat` (906 KB: 42 music sequences, each with its own instrument bank, banks 41-82;
   22 sound-effect archives; 83 banks; 2 wave archives of 448 and 203 KB; no streamed music; no name table). It all fits in the
-  ROM's free space. KatAM plays songs through its MP2K engine (`gSongTable`, 621 songs, `0x08B59ED0` in the USA ROM;
+  ROM's free space. KatAM plays songs through its MP2K engine (`gSongTable`, 620 songs, `0x08B59ED0` in the USA ROM;
   voicegroups of 12-byte voices; samples as 8-bit PCM with a 16-byte header, `freq` the rate x 1024 at key 60). What it needs, all
   in C# (the randomizer reads the owner's Squeak Squad ROM, as for the graphics): the wave archives decoded (PCM8, PCM16, IMA-ADPCM
   to 8-bit, each sample's root key baked into its rate), the banks turned into voicegroups (sampled, square, noise voices, key

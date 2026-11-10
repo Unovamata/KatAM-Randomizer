@@ -1418,7 +1418,7 @@
                         rateX = rateY = 0;
                         backgroundLeft = HeavyMoleBackgroundX;
                     }
-                    WriteShorts(rom, roomProps + r.Room * 0x28, LevelSongs[r.Level], 0, 0, 0x100, 0x100, backgroundLeft, backgroundDown, rateX, rateY, RoomFlags,
+                    WriteShorts(rom, roomProps + r.Room * 0x28, NidlRoomSong(nightmare, region, r), 0, 0, 0x100, 0x100, backgroundLeft, backgroundDown, rateX, rateY, RoomFlags,
                                 info, palette, tableSizes[12] + i, tableSizes[13] + i, 0xFFFF, background, tableSizes[16] + i,
                                 tableSizes[17] + i, FirstDoorsList + i, 0);
                 }

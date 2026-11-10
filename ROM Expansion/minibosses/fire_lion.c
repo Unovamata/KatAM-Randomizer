@@ -179,6 +179,10 @@ static void StartStep(struct FireLion *f) {
     f->timer = s->time;
     f->waiting = s->action == STEP_LAND;
     if (s->speed != NO_SPEED) Forward(obj, s->speed);
+    // NiDL's sounds (by the frames its scripts show with them): the roll's start (state 6, 0x080961AC), the blaze's crouch
+    // (0x08096690);
+    if (s->speed == DASH_SPEED) NidlSound(obj, 0x1F4);
+    if (f->state == STATE_BLAZE && s->frame == 34) NidlSound(obj, 0x236);
     if (s->height) {
         obj->base.yspeed = s->height;
         f->gravity = s->gravity;
@@ -186,12 +190,12 @@ static void StartStep(struct FireLion *f) {
     }
     switch (s->action) {
     case STEP_FLAME:
-        PlaySfx(&obj->base, SE_PRANK_THROW_ITEM);
+        NidlSound(obj, 0x23B); // (NiDL's: its breath, 0x08095FEE);
         Flame(f, 28, -24, FLAME_SPEED, 0);
         Flame(f, 28, -24, FLAME_SPEED, 0x80);
         break;
     case STEP_BURST:
-        PlaySfx(&obj->base, SE_BOSS_GROUND_POUND_ATTACK);
+        if (f->state == STATE_BLAZE) NidlSound(obj, 0x237); // (NiDL's: the blaze, 0x08096770);
         Flame(f, 12, -8, 0x200, 0x100);
         Flame(f, -12, -8, -0x200, 0x100);
         break;
@@ -215,12 +219,15 @@ static void FireLionMain(struct Object *obj) {
     if (obj->base.yspeed < -MAX_FALL) obj->base.yspeed = -MAX_FALL;
     // Rolling into a wall ends the roll;
     if (f->state == STATE_DASH && (obj->base.unk62 & 3) && f->step >= 3 && f->step < 19) {
+        NidlSound(obj, 0x1F8); // (NiDL's: into the wall, 0x08096334);
         f->step = 19;
         StartStep(f);
     }
 
     if (f->waiting) {
         if (!Landed(f)) return;
+        // NiDL's landing (0x08096DB4, the pounce's 0x08096572);
+        NidlSound(obj, 0x1F7);
         f->waiting = FALSE;
         f->gravity = GRAVITY;
         f->timer = 1;

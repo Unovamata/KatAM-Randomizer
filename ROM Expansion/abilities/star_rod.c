@@ -330,7 +330,7 @@ static void StarRodShoot(struct Kirby *kirby, s32 dx, s32 dy, bool8 sinks) {
     base->sprite.palId = star->palId;
     // (the helpers' in the Power Orb's fight without their sparkle, fewer effects for its four flying Kirbys: the player's keep it);
     if (!sinks || kirby->base.unk56 < gNumHumanPlayers) StarRodTrail(star);
-    PlaySfx(&kirby->base, SE_KIRBY_STARSHOT_1);
+    PlaySfx(&kirby->base, NIDL_SE(0x9B)); // (NiDL's: the Star Rod's star, 0x0804F9AE);
 }
 
 // StarRodForget(); Nightmare's fight (`fight`) is over: the stars still flying let go of it (bosses/nightmare.c's FightMain());

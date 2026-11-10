@@ -402,7 +402,7 @@ static bool32 UpSlash(struct Fight *f) {
     else f->frame = steps[step][0];
     f->wait = steps[step][1];
     if (step == 4) {
-        PlaySfx(&f->obj->base, SE_DMK_SWORD_SLASH_ATTACK);
+        PlaySfx(&f->obj->base, NIDL_SE(0x224)); // (NiDL's: his slashes, 0x080A677C);
         f->landed = FALSE;
         f->vy = -0x400;
         f->ay = 0x80;
@@ -676,7 +676,7 @@ static void State13(struct Fight *f) {
     f->maxY = 0x400;
     f->g1C = Y(f) - ScreenY(obj) <= 43 ? 4 : 2;
     for (f->loop = 0; f->loop < f->g1C; f->loop++) {
-        PlaySfx(&obj->base, SE_DMK_TORNADO);
+        PlaySfx(&obj->base, NIDL_SE(0x225)); // (NiDL's: his spin, 0x080A6494);
         SetFrame(f, 114);
         WAIT(1);
         for (f->loop2 = 0; f->loop2 <= 6; f->loop2++) {
@@ -725,7 +725,7 @@ static void State15(struct Fight *f) {
     VelY(f, 0x200, 0x48, 0x400);
     while (!f->landed) WAIT(1);
     Stop(f);
-    PlaySfx(&obj->base, SE_INTRO_CUTSCENE_DMK_LANDING);
+    PlaySfx(&obj->base, NIDL_SE(0x1F8)); // (NiDL's: his landing, 0x080A65E6);
     Effect(f, FX_LANDING, obj->base.x, obj->base.y + 3 * 0x100, 1);
     // (a star either way, as King Dedede's landing: not NiDL's);
     Star(f, X(f) + STAR_AHEAD, Y(f) + STAR_DOWN, 1);
@@ -769,7 +769,7 @@ static void State18(struct Fight *f) {
 static void Dust(struct Fight *f) {
     struct Object *obj = f->obj;
 
-    PlaySfx(&obj->base, SE_DMK_SWORD_SLASH_ATTACK);
+    PlaySfx(&obj->base, NIDL_SE(0x224));
     Effect(f, FX_DUST, obj->base.x - f->facing * 8 * 0x100, obj->base.y + 8 * 0x100, f->facing);
     SlashStar(f);
 }
@@ -861,7 +861,7 @@ static void State22(struct Fight *f) {
     f->g18 = f->landed;
     f->g1C = 20;
     FaceKirby(f);
-    PlaySfx(&obj->base, SE_DMK_PARRY);
+    PlaySfx(&obj->base, NIDL_SE(0x218)); // (NiDL's: a hit guarded, 0x080A6B60, 0x080A6D44);
     if (!f->landed) {
         Effect(f, FX_SPARK, obj->base.x + f->facing * 4 * 0x100, obj->base.y - 4 * 0x100, 1);
         f->ay = 0x15;
@@ -894,7 +894,7 @@ static void State23(struct Fight *f) {
     }
     f->g1C = 60;
     FaceKirby(f);
-    PlaySfx(&obj->base, SE_DMK_PARRY);
+    PlaySfx(&obj->base, NIDL_SE(0x218));
     SetFrame(f, 69);
     SCRIPT_END;
 }

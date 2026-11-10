@@ -97,6 +97,7 @@ static void Jump(struct Kabu *k) {
     k->lastJump = jump;
 
     NidlFaceKirby(obj);
+    NidlSound(obj, 0xBC); // (NiDL's: its jumps, 0x0807F226);
     obj->base.xspeed = (obj->base.flags & 1) ? -sJumpX[jump] : sJumpX[jump];
     obj->base.yspeed = sJumpY[jump];
     k->state = STATE_JUMP;

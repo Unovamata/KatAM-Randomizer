@@ -34,6 +34,8 @@ enum {
 // transitioningAbility's layout (see above);
 #define NIDL_ABILITY_MASK 0x3F
 #define NIDL_ABILITY_CHANGE_RANDOM 0x40
+// NIDL_FREEZE_SOUND; NiDL's Freeze sound (looping: abilities/freeze.c stops it);
+#define NIDL_FREEZE_SOUND 0x8D
 #define NIDL_ABILITY_CHANGE_IS_ABILITY_STAR 0x80
 #define NIDL_ABILITY_SEVERAL 0x40         // In unkF1: several things swallowed at once (KatAM's KIRBY_ABILITY_CHANGE_UNKNOWN);
 

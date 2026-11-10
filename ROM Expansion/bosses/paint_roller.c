@@ -86,9 +86,10 @@ enum {
 #define SFX_NONE 0
 #define SFX_JUMP 1                  // (0x221: his jumps);
 #define SFX_BRUSH 2                 // (0x20D: painting);
-#define SFX_THUNDER SE_KRACKO_LIGHTNING_ATTACK  // (0x222: his cloud's lightning);
-#define SFX_BLAST SE_OBJECT_BOMB_EXPLODE        // (0xBD: the bomb);
-static const u16 sSounds[3] = { 0, SE_BASIC_ENEMY_JUMP, SE_PRANK_PAINT };
+#define SFX_THUNDER 0x222 // (NiDL's: his cloud's lightning; KatAM's stand-in was SE_KRACKO_LIGHTNING_ATTACK);
+#define SFX_BLAST 0xBD // (NiDL's: the bomb; KatAM's stand-in was SE_OBJECT_BOMB_EXPLODE);
+// (NiDL's: Sound() adds NiDL's songs' base; KatAM's stand-ins were SE_BASIC_ENEMY_JUMP and SE_PRANK_PAINT);
+static const u16 sSounds[3] = { 0, 0x221, 0x20D };
 
 /* His moves (NiDL's 0x080AD278, g+4 the move): a step a keyframe, the last first (+0x30 counting down): its frame, its speed across
  * (mirrored by his facing), down, its sound and how long (0x08749D4C, 0x08749D70, 0x08749D94, 0x08749DB8, 0x08749DDC); 0 his skate
@@ -458,7 +459,7 @@ static void Restart(struct Actor *a) {
 }
 
 static void Sound(struct Fight *f, u16 sfx) {
-    if (sfx) PlaySfx(&f->obj->base, sfx);
+    if (sfx) PlaySfx(&f->obj->base, NIDL_SE(sfx));
 }
 
 /* Their objects: Spawn() takes NiDL's lowest free slot (0x08005904), a child of `parent` at (x, y), its script run as it's next run

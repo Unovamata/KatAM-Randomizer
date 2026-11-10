@@ -116,7 +116,7 @@ static void Grab(struct Bugzzy *b, struct Kirby *kirby) {
     obj->base.unk6C = kirby;
     kirby->base.flags |= 0x40000;
     sub_0804E09C(kirby);
-    PlaySfx(&obj->base, SE_MINIBOSS_GRAB);
+    NidlSound(obj, 0x23D); // (NiDL's: the grab, 0x0809214A);
     SetState(b, STATE_GRAB);
 }
 
@@ -163,12 +163,13 @@ static void SetState(struct Bugzzy *b, u8 state) {
         Forward(obj, -0x80);
         NidlPlay(&b->n, sCharge);
         b->timer = CHARGE_TIME;
+        NidlSound(obj, 0x23F); // (NiDL's: its charge, 0x08092712);
         break;
     case STATE_DASH:
         Forward(obj, DASH_SPEED);
         NidlPlay(&b->n, sDash);
         b->timer = DASH_TIME;
-        PlaySfx(&obj->base, SE_MINIBOSS_RUN);
+        NidlSound(obj, 0x1F4); // (NiDL's: its dash, 0x080928EA);
         break;
     case STATE_STOP:
         obj->base.xspeed = 0;
@@ -187,7 +188,6 @@ static void SetState(struct Bugzzy *b, u8 state) {
         obj->base.yspeed = JUMP_HEIGHT;
         b->airborne = FALSE;
         NidlPlay(&b->n, sRise);
-        PlaySfx(&obj->base, SE_BONKERS_JUMP);
         break;
     case STATE_CALL:
         obj->base.xspeed = 0;
@@ -261,7 +261,9 @@ static void BugzzyMain(struct Object *obj) {
     case STATE_JUMP:
         if (obj->base.yspeed < 0 && b->n.sequence == sRise) NidlPlay(&b->n, sFall);
         if (obj->base.yspeed < 0 && TryGrab(b)) break;
-        if (Landed(b)) SetState(b, STATE_WALK);
+        if (!Landed(b)) break;
+        NidlSound(obj, 0x1F7); // (NiDL's: its landing, 0x08092DCA);
+        SetState(b, STATE_WALK);
         break;
     case STATE_CALL:
         if (b->timer == CALL_TIME - 33) Call(b);
@@ -284,7 +286,7 @@ static void BugzzyMain(struct Object *obj) {
         if (obj->unk83 == b->n.animBase + FRAME_SLAM) Forward(obj, -SUPLEX_SLOW);
         if (!Landed(b)) break;
         RequestScreenShake(3, &obj->base);
-        PlaySfx(&obj->base, SE_BOSS_GROUND_POUND_ATTACK);
+        NidlSound(obj, 0x1F7); // (NiDL's: the slam, 0x08092F44);
         Release(b, sSlam);
         SetState(b, STATE_GET_UP);
         break;

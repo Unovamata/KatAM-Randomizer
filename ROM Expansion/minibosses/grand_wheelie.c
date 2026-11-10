@@ -117,7 +117,7 @@ static void SetState(struct GrandWheelie *g, u8 state) {
         obj->base.xspeed = 0;
         NidlPlay(&g->n, sRollFast);
         g->timer = REV_TIME;
-        PlaySfx(&obj->base, SE_MINIBOSS_RUN);
+        NidlSound(obj, 0x209); // (NiDL's: its rev, state 4, 0x08094964);
         break;
     case STATE_ROLL:
         g->speed = sRollSpeeds[g->n.variant & 3];
@@ -127,11 +127,11 @@ static void SetState(struct GrandWheelie *g, u8 state) {
     case STATE_SKID:
         NidlPlay(&g->n, sSkid);
         g->timer = SKID_TIME;
-        PlaySfx(&obj->base, SE_MINIBOSS_RUN);
+        NidlSound(obj, 0x20A); // (NiDL's: the skid, states 5-7, 0x08094DD0);
         break;
     case STATE_BUMP:
         RequestScreenShake(3, &obj->base);
-        PlaySfx(&obj->base, SE_BOSS_GROUND_POUND_ATTACK);
+        NidlSound(obj, 0x1F7); // (NiDL's: the wall, state 9, 0x08095412);
         Forward(obj, -0x100);
         Leap(g, 0x300);
         NidlPlay(&g->n, sTumble);
@@ -161,7 +161,9 @@ static void GrandWheelieMain(struct Object *obj) {
         SetState(g, (Rand16() & 3) ? STATE_ROLL_REV : STATE_HOP);
         break;
     case STATE_HOP:
-        if (Landed(g)) SetState(g, STATE_ROLL_REV);
+        if (!Landed(g)) break;
+        NidlSound(obj, 0x1F7); // (NiDL's: its landing, state 3, 0x08095558);
+        SetState(g, STATE_ROLL_REV);
         break;
     case STATE_ROLL_REV:
         if (!--g->timer) SetState(g, STATE_ROLL);
@@ -197,6 +199,7 @@ static void GrandWheelieMain(struct Object *obj) {
             break;
         }
         if (!Landed(g)) break;
+        NidlSound(obj, 0x1F8); // (NiDL's: its landings, states 8 and 9, 0x08095524);
         if (g->step++ == 0) {
             Forward(obj, -0x80);
             Leap(g, 0x200);
@@ -211,13 +214,14 @@ static void GrandWheelieMain(struct Object *obj) {
         // Hops (3.0, 1.5 up), then 16 frames, spits a Wheelie and 20 more;
         if (g->step == 2) {
             if (--g->timer == 20) {
-                PlaySfx(&obj->base, SE_PRANK_THROW_ITEM);
+                NidlSound(obj, 0x1FA); // (NiDL's: the small Wheelie, state 8, 0x080951B0);
                 Spit(g);
             }
             if (!g->timer) SetState(g, STATE_REV);
             break;
         }
         if (!Landed(g)) break;
+        NidlSound(obj, 0x1F8);
         if (g->step++ == 0) {
             Leap(g, 0x180);
         } else {

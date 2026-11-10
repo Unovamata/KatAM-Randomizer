@@ -107,8 +107,23 @@ void *CreateNidlBoss(struct ObjectTemplate *template, u8 playerId) {
     return n;
 }
 
+/* NidlFightMusic(); A NiDL boss's or mini-boss's fight starting: in a room playing NiDL's music (KatAMExpansionSound.cs: a NiDL room's
+ * own) the music stays, as NiDL's (its boss stages' rooms play its boss theme from their start, its mini-boss fights keep the stage's
+ * music); anywhere else KatAM's boss or mini-boss music, as KatAM's (Macro_08100F18). The HP bar's start the same either way; */
+void NidlFightMusic(struct Object *obj) {
+    u16 song = GetRoomMusicId(gCurLevelInfo[obj->base.unk56].unk65E);
+
+    if (gExpansionSongs[0] && song >= gExpansionSongs[0] && (gExpansionSongs[1] == 0 || song < gExpansionSongs[1])) {
+        struct Object5 *bar = sub_08034E14(obj);
+
+        if (bar) bar->unk9 = 0;
+        return;
+    }
+    Macro_08100F18(obj);
+}
+
 /* NidlBossWait(); Before the fight: until Kirby is in the template's area, then the HP bar shows and the boss music plays
- * (Macro_08100F18: gUnk_08352D80[0x43 - 0x38], the boss music); the Power Orb's as he comes in (its intro flies him up into its
+ * (NidlFightMusic: NiDL's room's own, or Macro_08100F18's gUnk_08352D80[0x43 - 0x38], KatAM's boss music); the Power Orb's as he comes in (its intro flies him up into its
  * area, bosses/power_orb.c); */
 static void NidlBossWait(struct Object *obj) {
     struct NidlObject *n = (struct NidlObject *)obj;
@@ -134,7 +149,7 @@ static void NidlBossWait(struct Object *obj) {
     if (n->enemy != NIDL_POWER_ORB && !Macro_08039430_2(&obj->kirby3->base, obj)) return;
     Macro_081003EC(obj, &obj->kirby3->base);
     obj->base.flags &= ~0x200;
-    Macro_08100F18(obj);
+    NidlFightMusic(obj);
     n->activated = TRUE;
     sNidlBosses[n->enemy].start(obj);
 }

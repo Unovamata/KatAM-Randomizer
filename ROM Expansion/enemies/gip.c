@@ -17,7 +17,7 @@
  * • 0x0808C4E4 (9): turns around and drops, 0.5 forward (frame 4, gravity 0x1500), and walks once it lands.
  * • 0x0808C53C (10): facing Kirby (it can't jump into the wall) it clings on; else it shakes (1.0 back and forth for 2 frames,
  *   8 times; frame 8), turns around and jumps at Kirby (0x0808C980: 2.0 forward, up to 3.0 up, gravity 0x2000; frames 6, 7).
- * • 0x0808C610 (11): faces Kirby, frame 14 for 16, throws a star (sound 0xE9, not ported; 0x0808C934: type 0x89, 0x0808D218, 6 pixels ahead
+ * • 0x0808C610 (11): faces Kirby, frame 14 for 16, throws a star (sound 0xE9; 0x0808C934: type 0x89, 0x0808D218, 6 pixels ahead
  *   and up: 1.5 forward, 3.0 up, gravity 0x1500, frames 4-7 of 0x08752C18 for 4 each), frames 15, 14, 7 for 12, 8, 8; then walks.
  * • Variant 1 (0x0808C6AC): faces Kirby and walks in place.
  * Here the star is a KatAM attack object drawing the enemy's own frames, gone when it hits something or after 2 seconds; */
@@ -370,7 +370,10 @@ static void GipMain(struct Object *obj) {
         if (++g->count == SHAKES * 2) SetState(g, STATE_JUMP);
         break;
     case STATE_THROW:
-        if (g->step == 0 && g->timer == 1) Star(g);
+        if (g->step == 0 && g->timer == 1) {
+            NidlSound(obj, 0xE9); // (NiDL's: the throw, 0x0808C63C);
+            Star(g);
+        }
         NidlFall(obj);
         if (Steps(g, 1)) SetState(g, STATE_WALK);
         break;

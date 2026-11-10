@@ -340,6 +340,7 @@ static void HopSit(struct Twizzy *tw) {
     obj->base.yspeed = HOP_SPEED;
     tw->timer = HOP_FLAPS * 8;
     NidlPlay(&tw->n, sFlapFast);
+    NidlSound(obj, 0xBB); // (NiDL's: its take-offs, 0x08087F2C, 0x08087C5A, 0x08088290);
 }
 
 static void StartHopSit(struct Twizzy *tw) {
@@ -413,6 +414,7 @@ static void TwizzyPerch(struct Twizzy *tw) {
             obj->base.yspeed = PERCH_TAKEOFF;
             NidlFaceKirby(obj);
             NidlPlay(&tw->n, sFlapFast);
+            NidlSound(obj, 0xBB);
         } else if (!--tw->timer) {
             PerchChoose(tw);
         }
@@ -482,6 +484,7 @@ static void TwizzyMain(struct Object *obj) {
             tw->step = 0;
             tw->timer = 0;
             NidlPlay(&tw->n, sFlapFast);
+            NidlSound(obj, 0xBB);
             Takeoff(tw);
         }
         break;

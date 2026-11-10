@@ -525,16 +525,16 @@ static s8 Shoot(struct Fight *f, s8 from, u8 kind, u8 variant, u8 extra, s32 ahe
 }
 
 /* Their sounds (NiDL's own: KatAM's nearest); */
-#define SFX_DASH SE_KRACKO_SWEEP_ATTACK         // (0x1F4);
-#define SFX_WALL SE_MINIBOSS_PRE_EXPLODE        // (0x1F7: the wall's thud);
-#define SFX_BEATEN SE_MINIBOSS_PRE_EXPLODE      // (0x1FE);
-#define SFX_CRESCENT SE_KIRBY_STARSHOT_1        // (0x226: the crescent, a falling star);
-#define SFX_SHOT SE_KIRBY_STARSHOT_2            // (0x227);
-#define SFX_BEAM SE_DARK_MIND_LASER_BEAM        // (0x216, looping while it shines);
-#define SFX_STAR SE_KIRBY_STAR_RELEASE          // (0x213-0x215: the falling stars');
+#define SFX_DASH 0x1F4 // (NiDL's; KatAM's stand-in was SE_KRACKO_SWEEP_ATTACK);
+#define SFX_WALL 0x1F7 // (NiDL's: the wall's thud; KatAM's stand-in was SE_MINIBOSS_PRE_EXPLODE);
+#define SFX_BEATEN 0x1FE // (NiDL's; KatAM's stand-in was SE_MINIBOSS_PRE_EXPLODE);
+#define SFX_CRESCENT 0x226 // (NiDL's: the crescent, a falling star; KatAM's stand-in was SE_KIRBY_STARSHOT_1);
+#define SFX_SHOT 0x227 // (NiDL's; KatAM's stand-in was SE_KIRBY_STARSHOT_2);
+#define SFX_BEAM 0x216 // (NiDL's, looping while it shines; KatAM's stand-in was SE_DARK_MIND_LASER_BEAM);
+#define SFX_STAR 0x213 // (NiDL's: the falling stars', 0x213-0x215; KatAM's stand-in was SE_KIRBY_STAR_RELEASE);
 
 static void Sound(struct Fight *f, u16 sfx) {
-    PlaySfx(&f->obj->base, sfx);
+    PlaySfx(&f->obj->base, NIDL_SE(sfx));
 }
 
 static void SkyTo(struct Fight *f, s8 sky);
@@ -962,7 +962,7 @@ static void BeamOver(struct Fight *f) {
         f->kids[i] = NONE;
     }
     if (f->beamSound) {
-        m4aSongNumStop(SFX_BEAM);
+        m4aSongNumStop(NIDL_SE(SFX_BEAM));
         f->beamSound = FALSE;
     }
 }
@@ -2950,7 +2950,7 @@ static void FightMain(void) {
             if (a->attack) a->attack->flags |= 0x1000;
             a->attack = NULL;
         }
-        if (f->beamSound) m4aSongNumStop(SFX_BEAM);
+        if (f->beamSound) m4aSongNumStop(NIDL_SE(SFX_BEAM));
         if (f->freeze) sub_080335B4(f->player);
         if ((f->a[A_SHINE].hurt || f->a[A_BRIGHT].hurt) && Watched(f)) Mosaic(0, FALSE);
         if (obj) ((struct ShineBright *)obj)->f = NULL;

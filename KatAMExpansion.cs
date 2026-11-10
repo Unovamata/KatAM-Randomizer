@@ -1599,6 +1599,9 @@ namespace KatAMRandomizer {
             });
             // NiDL's title screen swarm (KatAMExpansionTitle.cs), before the rooms: FinishRooms() allocates after them;
             error ??= title ? AddTitle(rom, nightmare, version, ref cursor) : null;
+            // NiDL's songs after KatAM's (KatAMExpansionSound.cs), before the rooms: their music is NiDL's;
+            songTableAt = nidlSongBase = -1;
+            error ??= nidl ? AddNidlSounds(rom, nightmare, version, ref cursor) : null;
             error ??= rooms ? AddWorldMap(rom, version, ref cursor) ?? AddRooms(rom, nightmare, region, version, ref cursor) : null;
             // (Squeak Squad's rooms after NiDL's: KatAMExpansionSqueakRooms.cs);
             error ??= squeakRooms ? AddSqueakRooms(rom, squeak, version, ref cursor) : null;

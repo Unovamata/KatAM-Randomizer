@@ -252,6 +252,39 @@ Most enemies' first frames (0-3) are their hurt frames. Frames are drawn around 
 
 The master table (`0x0872FF30`) has 8-byte entries, `(kind, spawn function)`, so type `t`'s spawn is at `0x0872FF34 + t * 8`: Chilly `0x08084CD4`, Cool Spook `0x0807EDB4`, Starman `0x08080DD0`, Sword/Blade Knight `0x0807AF58`/`0x0807AF98`, Poppy Bros. Jr. `0x080819B4`/`0x08081F60`/`0x08082008`, Coner `0x0808FA10`, Needlous `0x0807BD20`, Gip `0x0808BDB4`.
 
+## Sounds
+
+- NiDL plays songs with the same MP2K engine as KatAM: its song table is at `0x0860B460` (579 songs, 8 bytes each: the header, the
+  player 0-3 and a u16; music 0-56, sound effects after). The ported code plays them by their NiDL number (`KatAMExpansionSound.cs`
+  copies them all after KatAM's 620; `ROM Expansion/nidl.h`'s `NIDL_SE`, `NidlSound`).
+- Its sound call is `0x080031B8` (r0 the song, 100-0x242; nothing while `0x03001EDC` is set); `0x0803E34C` (r0 the song, r1 a
+  room) plays it only in the current room (`0x03002360`); `0x0803E374` is Kirby's (the song kept at his `+0x88`'s `+0x2E`;
+  `0x0803E3AC` stops it). Loops: Freeze's `0x8D`, Mr. Tick-Tock's alarm `0x219`, Mr. Shine & Mr. Bright's beam `0x216`.
+- A room record's `+4` is its music (`0x100 | song`, `0x1FF` none: the boss rooms').
+- The ported characters' sounds (each call's place in the code; `0x1F7` is the shared landing thud, `0x1F8` the heavy one, `0x1F4`
+  a dash):
+  - Enemies: Chilly's freeze `0xB9` every 5 frames (its freeze object `0x0808CC22`); Blade Knight's slash `0xC4` (`0x0807B110`);
+    Needlous' roll `0xC7` (`0x0807C068`); Gip's throw `0xE9` (`0x0808C63C`); Kabu's jumps `0xBC` (`0x0807F226`); Slippy's jumps
+    `0xBC` (`0x0808A060`, `0x0808A0C4`); Twizzy's take-offs `0xBB` (`0x08087C5A`, `0x08087F2C`, `0x08088290`); Bubbles' bounces
+    `0xC1` (`0x080892B4`). Broom Hatter, Cappy, Cool Spook, Coconut, Coner, Poppy Bros. Jr. and Starman make none of their own.
+  - Bugzzy: the grab `0x23D` (`0x0809214A`), the charge `0x23F` and its dash `0x1F4` (state 3), every landing and the suplex's
+    slam `0x1F7` with a shake. Fire Lion: the breath `0x23B`, the roll `0x1F4` (state 6), into the wall `0x1F8` (state 9), the
+    blaze `0x236` then `0x237` (`0x08096680`), landings `0x1F7` (its landing switch `0x08096D64`). Grand Wheelie: the rev `0x209`
+    (state 4), the skid `0x20A` (states 5-7), the small Wheelie `0x1FA` (state 8), the wall `0x1F7` (state 9), landings `0x1F7` (a
+    hop, state 3) or `0x1F8` (states 8, 9; `0x080954F0`). Mr. Tick-Tock: the alarm `0x219` (state 11), each note `0x1FB`, the run
+    `0x1F6` (state 12), every landing `0x1F7` (its landing switch `0x08099B20`, `0x0809A080`). Poppy Bros. Sr.: hops and landings
+    `0x210`, the throw `0x20F` (its hands, `0x08091CAE`). Meta-Knights: the slash `0xC4`, the axe's throw `0xBA`, the trident's
+    `0xD6` (the javelin's none), the mace's twirl and roll `0xD5`, the jet pack `0xE7`, the warp `0x11C` (`0x0809F6A0`).
+  - Bosses (besides those in their own rows above): Meta Knight's slashes `0x224`, his spin `0x225` (`0x080A6438`), his landing
+    `0x1F8` (`0x080A658C`), a hit guarded `0x218` (`0x080A6B3C`, `0x080A6D08`); Nightmare's appearing `0x234` (`0x080AB670`),
+    vanishing `0x233` (`0x080AB728`), his charge `0x235` and its stars `0x230` (`0x080AA998`), the swoop `0x231` (`0x080AB1A8`),
+    `0x22E` (`0x080AB158`), each star `0xBD` (`0x080ABCD0`), `0x23C` after he's knocked back (`0x080AB93C`); the Power Orb's dash
+    `0x240` (`0x080AE8E0`, one per way), each lunge's crescent `0x22D` (`0x080AE870`). Whispy Woods' code (type `0x40`) plays none.
+  - Abilities (the per-ability code tables `0x0873A7BC`/`0x0873A8A8`, entry: sounds): Backdrop (1): `0xC8` its dash, `0xB1`;
+    Mike (9): its three songs `0xA0`, `0xA1`, `0xA2` (each stopping the last); Needle (13): `0xB4`, `0x112`; Freeze (16): `0x8D`
+    (looping, stopped at the end); Hi-Jump (17): the take-off `0xAE`; the Star Rod (27): `0x9B`. Entry 20 picks one of
+    `0xB8`, `0xB7`, `0xAA`, `0xA9`, `0xA8` by its speed (not identified); Light's entry (23) plays none.
+
 ## KatAM side (USA)
 
 - `gSpriteTables` `0x083B909C` (anims, attrs, oamData, palette, tiles4bpp...); 939 anims. Tile and palette indexes are relative to the table bases, so new data must be aligned to them.

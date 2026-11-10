@@ -70,7 +70,7 @@ static void MikeSing(struct Kirby *kirby) {
         kirby->base.yspeed = 0;
 
     if (t == sStartFrames[use]) {
-        PlaySfx(&kirby->base, SE_ABILITY_CRASH_ATTACK);
+        PlaySfx(&kirby->base, NIDL_SE(0xA0 + use)); // (NiDL's: its 3 songs, 0x08045F04, 0x08046016, 0x080461B0);
         NidlAttackCreate(kirby, MikeSinging, 0x10003, 0x10, FALSE, -120, -80, 120, 80);
         NidlFlash(kirby, sFlash, FLASH_FRAMES);
     }

@@ -36,22 +36,26 @@ static void FreezeIn(struct Kirby *kirby) {
 
     NidlMotion(kirby, FREEZE_MOTION_BREATH);
     kirby->base.counter = 0;
-    PlaySfx(&kirby->base, SE_ABILITY_ICE_ATTACK);
+    // NiDL's (0x08049E68): one sound, looping until the freeze ends (0x0803E3AC; hit: NidlKirbyHit());
+    PlaySfx(&kirby->base, NIDL_SE(NIDL_FREEZE_SOUND));
     NidlAttackCreate(kirby, FreezeBreathing, 0x20000203, 2, FALSE, -20, -32, 20, 24);
     kirby->stateFn = FreezeBreath;
 }
 
 static void FreezeBreath(struct Kirby *kirby) {
-    if (NidlAbilityInWater(kirby)) return;
+    if (NidlAbilityInWater(kirby)) {
+        m4aSongNumStop(NIDL_SE(NIDL_FREEZE_SOUND));
+        return;
+    }
     NidlAbilityGravity(kirby);
     if (kirby->base.counter < MIN_FRAMES) ++kirby->base.counter;
     else if (!(kirby->movementState & 2)) {
         NidlMotion(kirby, FREEZE_MOTION_EDGE);
         kirby->base.counter = 0;
+        m4aSongNumStop(NIDL_SE(NIDL_FREEZE_SOUND));
         kirby->stateFn = FreezeOut;
         return;
     }
-    if (!(kirby->base.counter & 7)) PlaySfx(&kirby->base, SE_ABILITY_ICE_ATTACK);
 }
 
 static void FreezeOut(struct Kirby *kirby) {

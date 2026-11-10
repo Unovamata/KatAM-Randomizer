@@ -33,7 +33,7 @@ void NeedleStart(struct Kirby *kirby) {
         kirby->base.flags |= 1;
     if (kirby->movementState & 0x10)
         kirby->base.flags &= ~1;
-    PlaySfx(&kirby->base, SE_ABILITY_STONE_TRANSFORM);
+    PlaySfx(&kirby->base, NIDL_SE(0xB4)); // (NiDL's: the needles, 0x0804791A);
     if (kirby->base.flags & 0x20) {
         NidlMotion(kirby, NEEDLE_MOTION_AIR);
         kirby->base.counter = 0;

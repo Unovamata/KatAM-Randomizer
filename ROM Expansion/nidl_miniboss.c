@@ -89,7 +89,7 @@ static void NidlMinibossWait(struct Object *obj) {
     if (!Macro_08039430_2(&obj->kirby3->base, obj)) return;
     Macro_081003EC(obj, &obj->kirby3->base);
     obj->base.flags &= ~0x200;
-    Macro_08100F18(obj);
+    NidlFightMusic(obj);
     n->activated = TRUE;
     sNidlMinibosses[n->enemy].start(obj);
 }

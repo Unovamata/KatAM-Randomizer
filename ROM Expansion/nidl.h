@@ -341,4 +341,15 @@ void NightmareStart(struct Object *);
 void NidlDestroy(struct Task *);
 bool32 NidlIsMetaKnight(struct ObjectTemplate *);
 
+
+/* gExpansionSongs; The expansion's songs in KatAM's grown song table (KatAMExpansionSound.cs): [0] NiDL's song 0's number (NiDL's
+ * song n is NIDL_SE(n): its sound effects by their NiDL numbers), [1] Squeak Squad's first; 0 none (rooms.c); */
+extern const u16 gExpansionSongs[2];
+#define NIDL_SE(n) (gExpansionSongs[0] + (n))
+#define SQUEAK_SE(n) (gExpansionSongs[1] + (n))
+// NidlSound(); NiDL's sound n (its number in NiDL), heard if the object's in the player's room (PlaySfx(), as NiDL's 0x0803E34C);
+#define NidlSound(obj, n) PlaySfx(&(obj)->base, NIDL_SE(n))
+void NidlFightMusic(struct Object *obj);
+void MrTickTockSilence(void);
+
 #endif

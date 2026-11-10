@@ -77,6 +77,11 @@ struct MrTickTock {
 
 typedef char sTickTockFits[sizeof(struct MrTickTock) <= NIDL_OBJECT_SIZE ? 1 : -1];
 
+// MrTickTockSilence(); Its alarm's ring (NiDL's 0x219) loops: it stops when the alarm does, when it's hit and when it's gone (nidl.c);
+void MrTickTockSilence(void) {
+    m4aSongNumStop(NIDL_SE(0x219));
+}
+
 static void SetState(struct MrTickTock *t, u8 state);
 
 static bool8 Fast(struct MrTickTock *t) {
@@ -282,6 +287,7 @@ static void SetState(struct MrTickTock *t, u8 state) {
         break;
     case STATE_RUN:
         t->timer = 48;
+        NidlSound(obj, 0x1F6); // (NiDL's: state 12, 0x0809AA46);
         break;
     case STATE_SLIDE_RING:
         t->speed = abs(obj->base.xspeed);
@@ -313,6 +319,7 @@ static void SetState(struct MrTickTock *t, u8 state) {
         NidlPlay(&t->n, sRing);
         t->timer = 116;
         t->note = 0;
+        NidlSound(obj, 0x219); // (NiDL's: the alarm, state 11, 0x0809A932);
         break;
     case STATE_WAIT:
         obj->base.xspeed = 0;
@@ -344,7 +351,7 @@ static void MrTickTockMain(struct Object *obj) {
         break;
     case STATE_HOP:
         if (!Landed(t)) break;
-        PlaySfx(&obj->base, SE_BONKERS_JUMP);
+        NidlSound(obj, 0x1F7); // (NiDL's landings: 0x08099B20, 0x0809A080);
         if (--t->hops) Leap(t, 0x500, 0x50, 0x700);
         else SetState(t, STATE_DECIDE);
         break;
@@ -359,7 +366,7 @@ static void MrTickTockMain(struct Object *obj) {
             break;
         }
         if (!Landed(t)) break;
-        PlaySfx(&obj->base, SE_BONKERS_JUMP);
+        NidlSound(obj, 0x1F7);
         SetState(t, STATE_WAIT);
         break;
     case STATE_WIND_UP:
@@ -384,7 +391,9 @@ static void MrTickTockMain(struct Object *obj) {
         SetState(t, STATE_IDLE);
         break;
     case STATE_HOP_RING:
-        if (Landed(t)) SetState(t, STATE_RING);
+        if (!Landed(t)) break;
+        NidlSound(obj, 0x1F7);
+        SetState(t, STATE_RING);
         break;
     case STATE_RING:
         if (--t->timer) break;
@@ -392,20 +401,27 @@ static void MrTickTockMain(struct Object *obj) {
         SetState(t, STATE_IDLE);
         break;
     case STATE_JUMP:
-        if (Landed(t)) SetState(t, STATE_JUMP_FORWARD);
+        if (!Landed(t)) break;
+        NidlSound(obj, 0x1F7);
+        SetState(t, STATE_JUMP_FORWARD);
         break;
     case STATE_JUMP_FORWARD:
-        if (Landed(t)) SetState(t, STATE_ALARM);
+        if (!Landed(t)) break;
+        NidlSound(obj, 0x1F7);
+        SetState(t, STATE_ALARM);
         break;
     case STATE_ALARM:
         --t->timer;
         for (i = 0; i < ARRAY_COUNT(sNoteTimes); i++) {
             if (t->timer == sNoteTimes[i]) {
-                PlaySfx(&obj->base, SE_PRANK_THROW_ITEM);
+                NidlSound(obj, 0x1FB); // (NiDL's: each note, 0x0809A9A2);
                 Note(t);
             }
         }
-        if (!t->timer) SetState(t, STATE_IDLE);
+        if (!t->timer) {
+            MrTickTockSilence();
+            SetState(t, STATE_IDLE);
+        }
         break;
     }
 }
@@ -416,6 +432,7 @@ void MrTickTockStart(struct Object *obj) {
 
     ObjectSetFunc(obj, 0, MrTickTockMain);
     StopRings(t);
+    MrTickTockSilence();
     t->effectPalette = NidlLoadPalette(&t->n, NidlGraphicsOf(&t->n)->animId | NIDL_SECOND_PALETTE, FRAME_RINGS);
     t->gravity = 0x15;
     t->maxFall = MAX_FALL;

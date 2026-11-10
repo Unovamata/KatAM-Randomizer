@@ -176,6 +176,8 @@ void NidlDestroy(struct Task *task) {
     if (NidlIsBoss(&n->obj) && n->enemy == NIDL_KRACKO) KrackoGone(&n->obj);
     // (and Heavy Mole's, bosses/heavy_mole.c);
     if (NidlIsBoss(&n->obj) && n->enemy == NIDL_HEAVY_MOLE) HeavyMoleGone(&n->obj);
+    // (Mr. Tick-Tock's alarm, a looping sound, stops);
+    if (NidlIsMiniboss(&n->obj) && n->enemy == NIDL_MR_TICK_TOCK) MrTickTockSilence();
     if (hud && *(void **)(hud + 0x1C) == TaskGetStructPtr(task)) {
         hud[0xA] = 0;
         *(void **)(hud + 0x1C) = NULL;

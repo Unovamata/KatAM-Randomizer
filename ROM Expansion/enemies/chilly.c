@@ -13,7 +13,7 @@
  * • Variant 1, 0x080852CC: faces Kirby and lunges in place forever (4, 5, 6, 7, 6, 5, 4 for 4, 4, 8, 21, 6, 5, 4).
  * • Water defeats variant 0, not variant 1 (0x08085404).
  * Here the freeze is a ring of KatAM's Pengy's ice (0x080BB080, copied below with its own heading), bursting out of Chilly
- * every 5 frames for 240 frames; it hurts like Pengy's ice and makes its sound. Chilly gives Ice (NiDL's Freeze isn't in KatAM); */
+ * every 5 frames for 240 frames; it hurts like Pengy's ice and makes NiDL's sound. Chilly gives Ice (NiDL's Freeze isn't in KatAM); */
 #include "../nidl.h"
 #include "code_0806F780.h"
 #include "constants/songs.h"
@@ -108,7 +108,6 @@ static void Ice(struct Object *obj, u8 heading) {
     sub_0803E2B0(ice, -2, -2, 2, 2);
     ObjectSetBounds(ice, 0, 0, 0, 0);
     ObjectBaseInitSprite(ice, &ice->sprite, 0x12, 0x334, 0, 0xc);
-    PlaySfx(ice, SE_PENGY_ICE_ATTACK);
 }
 
 // LungeStep(); The current step of the lunge;
@@ -228,6 +227,7 @@ static void ChillyMain(struct Object *obj) {
             c->freezeTimer--;
             if (!c->iceTimer--) {
                 c->iceTimer = ICE_EVERY - 1;
+                NidlSound(obj, 0xB9); // (NiDL's: the freeze's, every 5 frames, 0x0808CC22);
                 Ice(obj, c->iceAngle);
                 Ice(obj, c->iceAngle + 4);
                 c->iceAngle++;

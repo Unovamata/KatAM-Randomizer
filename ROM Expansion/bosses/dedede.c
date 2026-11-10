@@ -354,18 +354,18 @@ static void SetRestart(struct Actor *a, u8 state) {
 }
 
 /* Their sounds (NiDL's own: KatAM's nearest; his steps, 0x201, have none); */
-#define SFX_THUD SE_KING_GOLEM_HAND_SLAM        // (0x1F7: landing, the hammer's slam on the ground);
-#define SFX_LANDING SE_BONKERS_HAMMER_ATTACK    // (0x1F8: down from his big jump);
-#define SFX_EXHALE SE_KIRBY_AIRSHOT             // (0x21A);
-#define SFX_INHALE SE_KIRBY_INHALE              // (0x21B);
-#define SFX_GULP SE_GOBBLER_EAT_KIRBY           // (0x21C);
-#define SFX_SPIT SE_FROSTY_SPIT_KIRBY           // (0x21D);
-#define SFX_JUMP SE_BASIC_ENEMY_JUMP            // (0x21E);
-#define SFX_PUFF SE_KIRBY_FLOAT_START           // (0x21F: puffing up);
-#define SFX_SWING SE_ABILITY_HAMMER_ATTACK      // (0x220);
+#define SFX_THUD 0x1F7 // (NiDL's: landing, the hammer's slam on the ground; KatAM's stand-in was SE_KING_GOLEM_HAND_SLAM);
+#define SFX_LANDING 0x1F8 // (NiDL's: down from his big jump; KatAM's stand-in was SE_BONKERS_HAMMER_ATTACK);
+#define SFX_EXHALE 0x21A // (NiDL's; KatAM's stand-in was SE_KIRBY_AIRSHOT);
+#define SFX_INHALE 0x21B // (NiDL's; KatAM's stand-in was SE_KIRBY_INHALE);
+#define SFX_GULP 0x21C // (NiDL's; KatAM's stand-in was SE_GOBBLER_EAT_KIRBY);
+#define SFX_SPIT 0x21D // (NiDL's; KatAM's stand-in was SE_FROSTY_SPIT_KIRBY);
+#define SFX_JUMP 0x21E // (NiDL's; KatAM's stand-in was SE_BASIC_ENEMY_JUMP);
+#define SFX_PUFF 0x21F // (NiDL's: puffing up; KatAM's stand-in was SE_KIRBY_FLOAT_START);
+#define SFX_SWING 0x220 // (NiDL's; KatAM's stand-in was SE_ABILITY_HAMMER_ATTACK);
 
 static void Sound(struct Fight *f, u16 sfx) {
-    PlaySfx(&f->obj->base, sfx);
+    PlaySfx(&f->obj->base, NIDL_SE(sfx));
 }
 
 // Shake(); NiDL's 0x080261D4: the screen shakes (NidlShake(): NiDL's levels as KatAM's);
