@@ -671,6 +671,51 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
     frames, falling with gravity and hurting, a plain hit, breaking on the floor) and the random relay (the room task's
     RandomRelay). Checked in the GBA emulator (USA, 5-3-4, Kirby put in the room): its five rocks appear, fall and break on the floor
     in turn as the relay sends.
+  - **The moving platforms** (gimmick 4, ctor `0x02223D78`, vtable `0x02229898`, 0x6C bytes; graphics `yakumono/floor`, a 48-pixel
+    plank: look 0 its animation 0, look 1 its 3, still; 2 and 5 a dip). Its first word: bits 0-3 its look; 4-6 how it starts (the
+    constructor: 0 and 1 its state 1, moving at once; 2 and 3 its state 0, waiting: the message handler `0x02223C6C` sends 2 and 3
+    to state 1 and 1 to state 4; the message check `0x02223CA0` takes, in states 0-3, kind 6 for 2 when waiting and for 1 when
+    moving, kinds 0-2 for 3 when waiting: 2 waits for a body standing on it, 3 for a switch's or an area's message); 7-9 what it
+    does after its last leg (state 2, `0x02223AA0`: 0 stops, state 3; 1 starts its breaking, states 5-7: a shake `0x02227024`
+    with the table `0x0222C5A0`, +2, -4, +3, -2, +1 pixels over 13 frames, then a fall `0x02227304` at 0.2 a frame, then a puff and
+    it's gone; 2 and 3 go back to its first leg: the constructor adds, for 2, one leg back to its start, for 3, its legs backwards,
+    so 2 goes round, 3 back and forth); 10-11 its speed (`0x02227DB0`: 0x1000, 0x2000, 0x4000, 1, 2, 4 pixels a frame); 12-14 its
+    legs, each two signed bytes after the word (cells across and up), a straight run (`0x022270A4`) at its speed. Its box
+    (-1.5, -0.25)-(1.5, 0.5) cells: 48 pixels wide, its top 8 pixels over its spot. Its states: state k runs vtable slot k + 3 (a
+    gimmick's base: slot 3 state 0, which stays; each later slot returns its own state). The 38 in the 8 worlds start 0, 2 or 3,
+    end 0, 1, 2 or 3, 1-3 legs (7-5-1's two of 80 and 75 cells across, at 4 pixels a frame).
+  - In KatAM (`squeak/gimmicks.c`'s SqueakCreatePlatform, on the hammer peg's type as the other gimmicks; template unk14 the word,
+    unk16-unk1A the legs): it moves as the DS's, leg by leg at its speed, and **carries** the Kirbys on it (KatAM has no moving floor:
+    its solid objects are terrain cells). Its task runs before the Kirbys' (priority 0x1000 to their 0x3000): it moves, then each
+    Kirby standing on it (on it last frame and still over it, or whose feet came down through its top since his last update) moves
+    with it, his feet (his y + his box's bottom, unk3F) put on its top and he's marked on the floor as KatAM's own landing does
+    (`Macro_080063B0`: unk62's 4, his fall speed and his movement override's y 0, flags 0x1060 cleared), so his update walks, ducks
+    and jumps from it as from the ground. Checked in the GBA emulator (USA): 8-1-1's waiting platform (Kirby lands on it, his feet on
+    its top; it starts the next frame and carries him up 18 cells at exactly 2.00 pixels a frame for 144 frames, then stops with him
+    on it); 6-1-4's back-and-forth one (exactly 1.00 a frame each way, his height fixed); walking on it as it moves (his own walk
+    and its move added), jumping off (he leaves it at once). Not checked: helpers riding, a breaking platform (7-5-1's, 1-9-17's),
+    one started by a switch (6-2-1's, 8-1-2's), the camera on a long ride, Europe and Japan in the emulator.
+  - **The quake triggers** (gimmick 0x13, ctor `0x022240E8`, vtable `0x022298F8`): its second u16 its box (bits 0-6 blocks across,
+    7-13 down, as a trigger area's), bits 14-15 how many targets, its bytes 4 on their indices. A body moving into it (message 5) or
+    a switch's message (kinds 0 and 1: `0x022240A8`) sets it off once (`0x02224034`): the screen quakes (its first u16's low 4
+    bits the kind, `0x02227DFC`, the rest the frames), sound 0x68, and its targets get kind 2. On the DS a rolling boulder sets
+    4-3-2's off, rolling down its shaft (the relay it messages sets off the chain to the door). In KatAM (the room task's Quake()):
+    a Kirby within 64 pixels of its box, or a message, sets it off; the quake is left out.
+  - Gimmick 0x12 (ctor `0x022202E4`, vtable `0x0222913C`): its first two bytes a box (blocks across, up); a body moving in or a
+    switch's message fades the room's colors (its u16 at +2 the frames, bytes 5-7 a color /255: `0x02209F94`, `0x0220A12C`).
+    7-3-1's whitens its top. Not ported (no effect on the way).
+  - **What only Fire or an unported gimmick opens** (the owner: every room reached), KatAM's star blocks, any attack breaking them
+    (`SqueakRoomCollision()`): the cells Fire burns (the blocks grid's flag 0x800 under top byte 0x38: 4-2-3's start walled in by
+    logs, 6-2-5's); the frozen blocks (the blocks grid's ice, top byte 0x28, drawn with its tile 0x220 or 0x221 over a main cell
+    that isn't solid: 6-1-4's over its door; melted, what the main grid has there); the blocks grid's block 3 over a solid main cell
+    and the covered (0x400) solid cell under one (4-4-4's two shafts down to its doors, 35 rooms' small floors: not identified on the
+    DS, a hidden breakable block by where they stand); and the flagged groups (0x1000) nothing ported sets off, with no bomb block,
+    switch or stake (what the boulders and gimmick 0x13 break: 4-3-2's wall, 4-6-7's floors over its shaft, 8-1-10's, 8-2-4's; the
+    treasure rooms' boards of 2 cells over their doors stay). A burnt cell or a group's is drawn without its main layer once broken.
+    Checked in the GBA emulator (USA, 4-2-3, plain Kirby): inhaling the burnable cell by the start takes it, the star he spits
+    breaks the log column, and he walks out of the box.
+  - A DS door's room-and-door names the door it lands on by its place in that room's list: 7 rooms number theirs out of order
+    (3-1-5's 0, 0, 2), and 3-1-4's way into 3-1-5 names its second (looked up by number, it was lost and 3-1-4 had no way out).
   - Section 11, the doors: `u16` count, then 10 bytes a door: `u16` its number (the collision's `0x80 + n` marks it), `u8` flags,
     `u8` kind, `u16` x, y from the top (the middle of the cell Kirby stands in: a floor under it, but for a door high in Gao Gao's
     room in Nature Notch 3), `u8` the stage's room it leads to (0-based, the `.mxi`'s order) and `u8` that room's door (its number;

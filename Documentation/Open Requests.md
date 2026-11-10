@@ -521,7 +521,7 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
         back when pressed again (KatAM's stay down until Kirby comes back to the room); shutters (gimmick 2) stay open.
       - Thin floors flagged 0x300 were floors Kirby can't drop through: on the DS, Down drops him through (2-2-3's, checked in
         the DS emulator); they shut him in the pocket 2-2-5's door lands him in. Now dropped through as the others.
-      - Now (USA, Europe, Japan the same, after the gimmicks below): 334 of the 498 rooms reached counting metal blocks as broken
+      - Before the fixes below ("Rooms reached": now 357, every room with a door into it): 334 of the 498 rooms reached counting metal blocks as broken
         (359 reachable without terrain), 285 without, 285 with metal broken but thin floors never dropped through; world 4's switch
         room not reached. What's left, all Squeak Squad gimmicks or abilities KatAM
         doesn't have: metal blocks on the way (2-1-3's shaft under its start, 8-3-8's band: the DS's Metal from Metalun; KatAM's
@@ -537,8 +537,9 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
       hub a hub square beside Central Circle; the rooms drawn with their tiles. Checked with the tracker's own layout code headless
       (not the window, which needs Windows to build): USA ROM, unrandomized and with mirrors randomized, every room placed (the 498
       in their 9 clusters), no lines crossing rooms, the rooms' previews drawn (1-1-1, a world 4 room, the hub, a switch room).
-    - Still to do here: the rest of the logic checks above (they need the owner's call on metal and fire walls on the way:
-      see the questions in the list of pending requests).
+    - The fire walls and the walls unported gimmicks open are star blocks now (below, "What only Fire or an unported gimmick
+      opens"), so every room with a door into it is reached; metal blocks on the way (2-1-3's, 8-3-8's) are still counted as
+      broken (KatAM's break only under Hammer and cannon shots): the owner's call if they should change too.
     - Gimmicks (section 10): counted and read (the notes: 26 classes, their graphics, the barrel's states decoded); warp stars,
       cannons and the switches with their block groups in KatAM (above).
     - Gimmicks that talk to each other (`squeak/gimmicks.c`; the notes' "The gimmicks talk to each other"): the switches, trigger
@@ -571,19 +572,43 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
     - The falling rocks (8) and the random relay (0x17) that rains them (the notes' falling rocks bullet). Checked in the GBA
       emulator (USA, 5-3-4): the rocks appear, fall and break on the floor as the relay sends. Not tested: a rock hurting Kirby,
       2-5-5, Europe and Japan in the emulator. 8-1-8's are started by a rope (gimmick 1), not ported yet: they stay hidden there.
+    - The moving platforms (4: `squeak/gimmicks.c`'s SqueakCreatePlatform, the notes' moving platforms bullet): done (the owner:
+      "Write a carrier and make it smooth"). Each moves leg by leg at the DS's speed (1, 2 or 4 pixels a frame), starting at once,
+      when Kirby lands on it or on a switch's message, and at its end stops, goes round, goes back and forth, or shakes and falls
+      as the DS's; it carries the Kirbys standing on it every frame (its task runs before theirs, his feet put on its top and he's
+      marked on the floor, so he walks and jumps from it as from the ground). Checked in the GBA emulator (USA, Kirby put in the
+      room): 8-1-1's waiting one starts as he lands and carries him up 18 cells at exactly 2.00 pixels a frame, his feet on its top
+      all the way; 6-1-4's goes back and forth at exactly 1.00 a frame with him on it; walking on it as it moves and jumping off.
+      Not tested: helpers riding, a breaking one (7-5-1's, 1-9-17's), one a switch starts (6-2-1's, 8-1-2's), Europe and Japan
+      in the emulator. The logic checks don't model them (the flood treats their paths as flown over).
+    - The quake triggers (0x13: the notes' quake bullet): ported as a trigger area that messages its targets once (a Kirby within
+      64 pixels of its box, or a switch's message, sets it off; the screen quake is left out). On the DS 4-3-2's is set off by a
+      rolling boulder (not ported), so a Kirby nearing it opens its way instead. Not tested in the emulator.
+    - What only Fire or an unported gimmick opens became star blocks (the owner: every room reached; the notes' bullet on it): the
+      cells Fire burns (4-2-3's start box and log bridges, 6-2-5's), the frozen blocks (6-1-4's), the hidden breakable blocks
+      (block 3: 4-4-4's shafts down to its doors, small floors in 35 rooms) and the flagged groups nothing ported sets off (4-3-2's
+      wall, 4-6-7's, 8-1-10's, 8-2-4's). Checked in the GBA emulator (USA, 4-2-3, plain Kirby): he inhales the burnable cell by the
+      start, spits it at the log column, it breaks and he walks out. Not tested in the emulator: the frozen and hidden blocks,
+      Europe and Japan.
+    - DS doors landing on the right door: a door names the door it lands on by its place in that room's list (7 rooms number
+      theirs out of order); 3-1-4's way into 3-1-5 was lost, now kept.
+    - Rooms reached (the owner: "Check why the rooms can't be reached and fix it"): the levels' planner now follows the DS's own
+      doors from every door Kirby lands on, not only the stage's arrival (7-3-5 and others were left off), and a room numbered
+      after the goal counts as the stage's lair only if no DS door from the stage leads to it. Logic checks (USA, Europe, Japan the
+      same): 357 of the 498 rooms reached, the 8 switches pressed, nowhere trapped; the 141 left have no door into them at all
+      (the Squeak Lair rooms and chase spawns, on hold). Without dropping through thin floors: 329, world 7's switch not pressed and
+      7-3 trapped (7-3-2's top is reached only through its thin floor, the DS's own way; the Squeak planner has no way-out pass
+      as the NiDL one's rule 9: still to do). NiDL: 280 of 280 in all six checks.
     - Gimmicks left (read on the DS, not ported; the notes have what's decoded):
-      - The moving wooden platforms (4, "floor" graphics: the paths in 6-1-4 and 7-3-2 the logic check stops at): their first word's
-        bits 12-14 how many legs, each leg two signed bytes (blocks across, blocks up), bits 10-11 the speed (1, 2 or 4 pixels a
-        frame), bits 7-9 what they do at the end. KatAM has no moving solid object (its "solid" objects are terrain cells), so
-        Kirby riding one needs either a carrier written for it or terrain cells stepped 16 pixels at a time: the owner's call
-        (question below). The rope floors (3) and the thunder clouds (5, riding paths, striking on 30-frame timers) wait on it too.
+      - The rope floors (3) and the thunder clouds (5, riding paths, striking on 30-frame timers): to ride, they can use the
+        platforms' carrier.
       - The ropes (1): Kirby grabs and climbs them; 8-1-8's starts its rock relay. Not started.
       - The rolling boulders (6): bits 4-5 of the first byte whether one rolls at once or waits for a message (4-3-2's wait for
         its relays), bits 6-7 its speed (2, 3 or 4 pixels a frame); the boulder a 64-pixel still sprite, its animations 1-2 the
         spinning debris it breaks into. Its direction and turning not read yet.
       - The camera areas (0x14): entering one sets the camera's bounds (its four u16s, pixels) and messages its targets; 58 in
         the rooms. Not ported: KatAM's camera follows Kirby over the whole room there.
-      - The candles (0xA, dark rooms), and gimmicks 0x12, 0x13, 0x18, 0x19, 0x1A (not identified).
+      - The candles (0xA, dark rooms), gimmick 0x12 (a color fade, no effect on the way), 0x18, 0x19, 0x1A (not identified).
       - Hiding in an empty barrel (KatAM has no such move).
     - Vitality halves: done (the owner: "Two halves make one Vitality"). Each Vitality chest holds half: KatAM's Vitality,
       taken back on a pair's first half, so max HP grows on every second one (`chest.c`, `gSqueakVitalityChests`). Tested

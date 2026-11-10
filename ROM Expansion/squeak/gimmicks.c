@@ -59,6 +59,9 @@ const struct SqueakSwitch gSqueakSwitch = { NULL };
 #define GIMMICK_TRIGGER 0x15
 #define GIMMICK_RELAY 0x16
 #define GIMMICK_RANDOM_RELAY 0x17
+#define GIMMICK_QUAKE 0x13
+#define QUAKE_REACH 64
+#define QUAKE_DONE 2
 #define RANDOM_RELAY_TARGETS 8
 #define GIMMICK_BLOCKS 0x10
 #define RELAY_TARGETS 5
@@ -86,7 +89,7 @@ static u8 TakeMail(u8 slot, u8 index) {
 // SlotOf(); The room slot of the room an object is in (its player's level info's: KatAM's own objects look it up so);
 #define SlotOf(base) (gCurLevelInfo[(base)->unk56].unk65E)
 
-/* The room's task: the trigger areas (0x15), relays (0x16) and switch block groups (0x10). Its ObjectBase is what KatAM's chain
+/* The room's task: the trigger areas (0x15), relays (0x16, 0x17), quake triggers (0x13) and switch block groups (0x10). Its ObjectBase is what KatAM's chain
  * breaker (sub_0800E0E4) reads of the object breaking a chain (its room, its player's level info) and whose spot it starts from; */
 struct SqueakLogic {
     struct ObjectBase base;
@@ -186,6 +189,30 @@ static void RandomRelay(struct SqueakLogic *l, const struct SqueakGimmickEntry *
     if (*wait < 1) *wait = 1;
 }
 
+/* Quake(); A quake trigger (0x13: ctor 0x022240E8, vtable 0x022298F8): its parameter's second u16 its box (bits 0-6 blocks right, 7-13
+ * down, as a trigger area's), bits 14-15 how many targets, its bytes 4 on their indices; a body moving into it (message 5) or a switch's
+ * message (kinds 0 and 1, 0x022240A8) sets it off once (state 1, 0x02224034): the screen quakes (its first u16's low 4 bits the kind,
+ * the rest the frames: left out, as the shutters' quakes are) and its targets get a message of kind 2. The bodies that set them off
+ * on the DS are its rolling boulders, not ported (4-3-2's roll down its shaft into one): a Kirby within QUAKE_REACH pixels of its box
+ * does here (4-3-2's at the end of the corridor the boulders take); */
+static void Quake(struct SqueakLogic *l, const struct SqueakGimmickEntry *e) {
+    u16 p = e->par[2] | e->par[3] << 8;
+    s32 x0 = e->x - QUAKE_REACH, x1 = e->x + (p & 0x7F) * 16 + QUAKE_REACH, y0 = e->y - QUAKE_REACH, y1 = e->y + (p >> 7 & 0x7F) * 16 + QUAKE_REACH;
+    u8 count = p >> 14, kind = TakeMail(l->slot, e->index), i, t;
+    bool32 near = kind == MESSAGE_SWITCH + 1 || kind == MESSAGE_SWITCH + 2;
+
+    if (l->inside[e->index] == QUAKE_DONE) return;
+    for (i = 0; i < gNumKirbys && !near; i++) {
+        struct Kirby *k = &gKirbys[i];
+        s32 kx = k->base.x >> 8, ky = k->base.y >> 8;
+
+        if (k->base.roomId == l->room && kx > x0 && kx < x1 && ky > y0 && ky < y1) near = TRUE;
+    }
+    if (!near) return;
+    for (t = 0; t < count; t++) SqueakSendMail(l->slot, e->par[4 + t], MESSAGE_AREA);
+    l->inside[e->index] = QUAKE_DONE;
+}
+
 /* Blocks(); A switch block group (0x02223900): a message clears its blocks. In KatAM they're a chain (KatAMExpansionSqueakRooms.cs:
  * 0xF2 blocks, 0xF3 links), broken from the group's spot as KatAM's lever walls break theirs: its cell's special block record
  * (sub_08001408), then KatAM's chain breaker from there (sub_0800E0E4); */
@@ -227,6 +254,7 @@ static void SqueakLogicMain(void) {
         case GIMMICK_RELAY: Relay(l, e); break;
         case GIMMICK_RANDOM_RELAY: RandomRelay(l, e); break;
         case GIMMICK_BLOCKS: Blocks(l, e); break;
+        case GIMMICK_QUAKE: Quake(l, e); break;
         }
     }
 }
@@ -998,12 +1026,202 @@ static void *SqueakCreateRock(struct ObjectTemplate *template, u8 playerId) {
     return obj;
 }
 
+/* The moving platforms (gimmick 4, 0x02223D78, vtable 0x02229898; graphics yakumono/floor, look 0 its animation 0 and look 1 its 3).
+ * Its first word (the template's unk14): bits 0-3 its look; 4-6 how it starts (0 and 1 at once, the DS's state 1; 2 when a Kirby
+ * stands on it, message 6; 3 on a switch's or an area's message, 0-2); 7-9 what it does after its last leg (0 stops; 1 shakes, falls
+ * and is gone, its states 4-7: the shake 0x02227024's +2, -4, +3, -2, +1 pixels, the fall 0x02227304's 0.2 a frame; 2 goes back to
+ * its start in one leg, again and again; 3 goes back along its legs, again and again: the constructor adds those legs); 10-11 its
+ * speed (0x02227DB0: 1, 2, 4 pixels a frame); 12-14 its legs (3 at most in the game: the template's unk16, unk18, unk1A, each two
+ * signed bytes, cells across and up), each a straight run at its speed. Its box (-1.5, -0.25)-(1.5, 0.5) cells: 48 pixels wide, its
+ * top 8 pixels over its spot.
+ * The carrier: KatAM has no moving floor (its solid objects are terrain cells), so the platform holds its riders itself, as a Kirby
+ * landing on terrain is held (Macro_080063B0): its task runs before the Kirbys' (priority 0x1000 to their 0x3000), moves, then
+ * carries each Kirby on it the same distance, puts his feet (his y + his box's bottom, unk3F) on its top and marks him on the floor
+ * (unk62's 4, his fall speed 0), so his own update that frame walks, ducks or jumps from it as from the ground; a Kirby is on it when
+ * he was last frame and hasn't jumped or walked off, or when his feet came down through its top since his last update; */
+struct SqueakPlatform {
+    struct Object obj;
+    struct SqueakGimmickSprite spr;
+    u8 index;
+    u8 state;
+    u8 leg;
+    u8 legs;
+    u8 riders;
+    u8 speed;
+    u16 frame;
+    u16 frames;
+    u16 timer;
+    s8 path[6][2];
+    s32 fromX, fromY;
+    s32 vx, vy;
+};
+enum { PLATFORM_WAIT, PLATFORM_MOVE, PLATFORM_STOP, PLATFORM_SHAKE, PLATFORM_FALL, PLATFORM_GONE };
+#define PLATFORM_HALF 24
+#define PLATFORM_TOP 8
+#define PLATFORM_FALL_GRAVITY 0x33
+#define PLATFORM_FALL_MOST 160
+#define PLATFORM_START_STEP 2
+#define PLATFORM_START_MAIL 3
+#define PLATFORM_END_STOP 0
+#define PLATFORM_END_BREAK 1
+#define PLATFORM_END_RETURN 2
+static const s8 sPlatformShake[13] = { 2, 2, 2, -2, -2, -2, 1, 1, 1, -1, -1, 0, 0 };
+static const u8 sPlatformSpeeds[4] = { 1, 2, 4, 4 };
+
+// (the next leg, or what it does at the end: FALSE when it stops or breaks);
+static bool32 PlatformNextLeg(struct SqueakPlatform *p) {
+    s32 x, y, ax, ay;
+
+    if (p->leg >= p->legs) {
+        u8 end = p->obj.objTemplate->unk14 >> 7 & 7;
+
+        if (end == PLATFORM_END_STOP || p->legs == 0) {
+            p->state = PLATFORM_STOP;
+            return FALSE;
+        }
+        if (end == PLATFORM_END_BREAK) {
+            p->state = PLATFORM_SHAKE;
+            p->timer = 0;
+            return FALSE;
+        }
+        p->leg = 0;
+    }
+    x = p->path[p->leg][0] * 16;
+    y = -p->path[p->leg][1] * 16;
+    p->leg++;
+    ax = x < 0 ? -x : x;
+    ay = y < 0 ? -y : y;
+    // (its length in pixels, near enough: the longer side and 3/8 of the shorter);
+    p->frames = ((ax > ay ? ax + ay * 3 / 8 : ay + ax * 3 / 8) + p->speed - 1) / p->speed;
+    if (p->frames == 0) p->frames = 1;
+    p->frame = 0;
+    p->fromX = p->obj.base.x;
+    p->fromY = p->obj.base.y;
+    p->vx = x << 8;
+    p->vy = y << 8;
+    return TRUE;
+}
+
+// (whether a Kirby stands on it now: on it last frame and still over it, or his feet came down through its top);
+static void PlatformCarry(struct SqueakPlatform *p, s32 oldTop, s32 dx, s32 dy) {
+    s32 top = p->obj.base.y - (PLATFORM_TOP << 8);
+    u8 i, riders = 0;
+
+    for (i = 0; i < gNumKirbys; i++) {
+        struct Kirby *k = &gKirbys[i];
+        s32 ax = (k->base.x - p->obj.base.x + dx) >> 8, foot = k->base.y + (k->base.unk3F << 8);
+
+        if (k->base.roomId != p->obj.base.roomId || k->hp <= 0 || k->base.flags & (0x100 | 0x800 | 0x2000000)) continue;
+        if (ax < 0) ax = -ax;
+        if (k->base.yspeed > 0 || ax > PLATFORM_HALF + 4) continue;
+        if (p->riders & (1 << i)) {
+            if (foot < oldTop - (4 << 8) || foot > oldTop + (8 << 8)) continue;
+        } else {
+            s32 before = k->base.unk4C + (k->base.unk3F << 8);
+
+            if (before > oldTop + (2 << 8) || foot < top - (2 << 8) || foot > top + (16 << 8)) continue;
+        }
+        k->base.x += dx;
+        k->base.y = top - (k->base.unk3F << 8);
+        k->base.unk62 |= 4;
+        k->base.yspeed = 0;
+        k->movementOverride.y = 0;
+        if (!(k->base.flags & 0x40)) k->base.flags &= ~0x1060;
+        riders |= 1 << i;
+    }
+    p->riders = riders;
+}
+
+static void SqueakPlatformMain(struct Object *obj) {
+    struct SqueakPlatform *p = (struct SqueakPlatform *)obj;
+    s32 x = obj->base.x, y = obj->base.y, oldTop = y - (PLATFORM_TOP << 8);
+    u8 kind;
+
+    if (gUnk_03000510.unk4 & ((1 << obj->base.unk56) | 0x10)) return;
+    kind = TakeMail(SlotOf(&obj->base), p->index);
+    switch (p->state) {
+    case PLATFORM_WAIT:
+        if ((obj->objTemplate->unk14 >> 4 & 7) == PLATFORM_START_STEP ? p->riders != 0 : kind != 0 && kind <= MESSAGE_AREA + 1)
+            if (PlatformNextLeg(p)) p->state = PLATFORM_MOVE;
+        break;
+    case PLATFORM_MOVE:
+        if (p->frame >= p->frames && !PlatformNextLeg(p)) break;
+        p->frame++;
+        obj->base.x = p->fromX + p->vx * p->frame / p->frames;
+        obj->base.y = p->fromY + p->vy * p->frame / p->frames;
+        break;
+    case PLATFORM_SHAKE:
+        obj->base.x += sPlatformShake[p->timer] << 8;
+        if (++p->timer < ARRAY_COUNT(sPlatformShake)) break;
+        p->state = PLATFORM_FALL;
+        p->timer = 0;
+        obj->base.yspeed = 0;
+        break;
+    case PLATFORM_FALL:
+        obj->base.yspeed += PLATFORM_FALL_GRAVITY;
+        obj->base.y += obj->base.yspeed;
+        if (++p->timer < PLATFORM_FALL_MOST && obj->base.y >> 8 < gCurLevelInfo[obj->base.unk56].roomHeight + 32) break;
+        obj->base.flags |= 0x400;
+        p->state = PLATFORM_GONE;
+        p->riders = 0;
+        return;
+    case PLATFORM_GONE:
+        return;
+    }
+    PlatformCarry(p, oldTop, obj->base.x - x, obj->base.y - y);
+}
+
+static void *SqueakCreatePlatform(struct ObjectTemplate *template, u8 playerId) {
+    struct Task *task = TaskCreate(ObjectMain, sizeof(struct SqueakPlatform), 0x1000, TASK_USE_EWRAM, ObjectDestroy);
+    struct SqueakPlatform *p = TaskGetStructPtr(task);
+    struct Object *obj = &p->obj;
+    u16 word = template->unk14;
+    const u16 *legs = &template->unk16;
+    u8 i, n = word >> 12 & 7;
+
+    InitObject(obj, template, playerId);
+    p->index = template->unk12;
+    GimmickInit(obj, &p->spr, SQUEAK_FLOOR);
+    ObjectSetBounds(&obj->base, -PLATFORM_HALF, -PLATFORM_TOP, PLATFORM_HALF, 4);
+    p->speed = sPlatformSpeeds[word >> 10 & 3];
+    if (n > 3) n = 3;
+    for (i = 0; i < n; i++) {
+        p->path[i][0] = (s8)legs[i];
+        p->path[i][1] = (s8)(legs[i] >> 8);
+    }
+    p->legs = n;
+    // (its way back: in one leg, or along its legs);
+    switch (word >> 7 & 7) {
+    case PLATFORM_END_RETURN: {
+        s32 sx = 0, sy = 0;
+
+        for (i = 0; i < n; i++) sx += p->path[i][0], sy += p->path[i][1];
+        p->path[p->legs][0] = -sx;
+        p->path[p->legs][1] = -sy;
+        p->legs++;
+        break;
+    }
+    case PLATFORM_END_RETURN + 1:
+        for (i = n; i-- > 0;) {
+            p->path[p->legs][0] = -p->path[i][0];
+            p->path[p->legs][1] = -p->path[i][1];
+            p->legs++;
+        }
+        break;
+    }
+    p->state = PLATFORM_WAIT;
+    if ((word >> 4 & 7) <= 1 && PlatformNextLeg(p)) p->state = PLATFORM_MOVE;
+    GimmickPlay(obj, &p->spr, (word & 15) == 1 ? 3 : 0);
+    obj->unk78 = SqueakPlatformMain;
+    return obj;
+}
+
 // SqueakGimmickAnim(); A gimmick's look and cell as squeak.c's SqueakAnimFor() draws it (0: the object isn't one);
 u32 SqueakGimmickAnim(struct Object *obj) {
     if (obj->type != OBJ_HAMMER_PEG) return 0;
     if (obj->objTemplate->unk11 == SQUEAK_SWITCH_OBJECT)
         return gSqueakData.enemies[SQUEAK_SWITCH].animId | (SQUEAK_HURT_VARIANTS + (obj->unk83 & 1)) << 16;
-    if (obj->objTemplate->unk11 >= SQUEAK_ROCK_OBJECT && obj->objTemplate->unk11 <= SQUEAK_SHUTTER_OBJECT)
+    if (obj->objTemplate->unk11 >= SQUEAK_PLATFORM_OBJECT && obj->objTemplate->unk11 <= SQUEAK_SHUTTER_OBJECT)
         return gSqueakData.enemies[((struct SqueakGimmickObject *)obj)->spr.look].animId | obj->unk83 << 16;
     return 0;
 }
@@ -1019,6 +1237,7 @@ void *SqueakCreateSwitch(struct ObjectTemplate *template, u8 playerId) {
     case SQUEAK_BLADES_OBJECT: return SqueakCreateBlades(template, playerId);
     case SQUEAK_ICICLE_OBJECT: return SqueakCreateIcicle(template, playerId);
     case SQUEAK_ROCK_OBJECT: return SqueakCreateRock(template, playerId);
+    case SQUEAK_PLATFORM_OBJECT: return SqueakCreatePlatform(template, playerId);
     }
     return gSqueakSwitch.create(template, playerId);
 }

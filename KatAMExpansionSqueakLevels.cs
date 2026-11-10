@@ -222,12 +222,38 @@ namespace KatAMRandomizer {
              * door back) and the ones added so far; a room nothing leads into on the DS (Prism Plains 1's fifth) isn't one, until a door
              * throws him in (see the end); */
             HashSet<int> reachable = new HashSet<int>();
+            /* Leads(); Whether a DS door of a room is one Kirby gets to from where he comes in: its arrivals, the doors the stage's others
+             * land him on, the landings of the doors added so far, joined by the cells he goes through (blocks broken, thin floors
+             * crossed: the room's own walls only; 7-3-1's hidden way into 7-3-5, walled in by clouds, isn't: 7-3-5 gets a throw, below); */
+            bool Leads(SqueakPlanRoom r, SqueakDoor door) {
+                bool Through(byte v) => SqueakOpen(v, true) || v is KatAMThin or KatAMFirmThin or KatAMSpikes or (>= 0x10 and <= 0x13) or 0x18 or 0x19
+                                                                  or KatAMMetalBlock or (>= 0xF1 and <= 0xF3);
+                List<SqueakPlanRoom> stage = byStage[(r.Area, r.Stage)];
+                List<(int x, int y)> starts = r.Doors.Where(d => SqueakArrival(d) || stage.Any(t => t.Doors.Any(o => o.Room + 1 == r.Number && o.Door == r.Doors.IndexOf(d))))
+                                                     .Select(d => (d.X, d.Y))
+                                                     .Concat(doors.Values.SelectMany(list => list).Where(d => d.Room == r.Room).Select(d => (d.DestX - 1, d.DestY - 1))).ToList();
+                bool[] seen = new bool[r.Width * r.Height];
+                Queue<(int x, int y)> open = new Queue<(int x, int y)>();
+                foreach ((int x, int y) in starts)
+                    if (x >= 0 && y >= 0 && x < r.Width && y < r.Height && !seen[y * r.Width + x]) { seen[y * r.Width + x] = true; open.Enqueue((x, y)); }
+                while (open.Count > 0) {
+                    (int x, int y) = open.Dequeue();
+                    if (x == door.X && y == door.Y) return true;
+                    foreach ((int nx, int ny) in new[] { (x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1) })
+                        if (nx >= 0 && ny >= 0 && nx < r.Width && ny < r.Height && !seen[ny * r.Width + nx]
+                            && (Through(r.At(nx, ny)) || nx == door.X && ny == door.Y)) {
+                            seen[ny * r.Width + nx] = true;
+                            open.Enqueue((nx, ny));
+                        }
+                }
+                return starts.Count == 0;
+            }
             void Reach(int room) {
                 Queue<int> queue = new Queue<int>();
                 if (reachable.Add(room)) queue.Enqueue(room);
                 while (queue.Count > 0) {
                     SqueakPlanRoom r = byRoom[queue.Dequeue()];
-                    IEnumerable<int> next = r.Doors.Where(d => d.Room != SqueakNoRoom).Select(d => byStage[(r.Area, r.Stage)].FirstOrDefault(t => t.Number == d.Room + 1)?.Room ?? -1)
+                    IEnumerable<int> next = r.Doors.Where(d => d.Room != SqueakNoRoom && Leads(r, d)).Select(d => byStage[(r.Area, r.Stage)].FirstOrDefault(t => t.Number == d.Room + 1)?.Room ?? -1)
                                                    .Concat(r.Rides.Select(n => byStage[(r.Area, r.Stage)].FirstOrDefault(t => t.Number == n)?.Room ?? -1))
                                                    .Concat(doors[r.Index].Select(d => d.Room)).Where(byRoom.ContainsKey);
                     foreach (int n in next) if (reachable.Add(n)) queue.Enqueue(n);
@@ -501,14 +527,25 @@ namespace KatAMRandomizer {
             bool SqueakLair(SqueakPlanRoom r) {
                 List<SqueakPlanRoom> list = byStage[(r.Area, r.Stage)];
                 int goal = list.FirstOrDefault(t => t.Doors.Any(SqueakGoal))?.Number ?? int.MaxValue;
-                return r.Number > goal;
+                if (r.Number <= goal) return false;
+                // (but not one the DS's doors lead to from the stage's rooms up to its goal: 7-3-5, behind 7-3-1's hidden way);
+                HashSet<int> led = list.Where(t => t.Number <= goal).Select(t => t.Number).ToHashSet();
+                for (bool more = true; more;) {
+                    more = false;
+                    foreach (SqueakPlanRoom t in list.Where(t => led.Contains(t.Number)).ToList())
+                        foreach (SqueakDoor d in t.Doors.Where(d => d.Room != SqueakNoRoom && !SqueakGoal(d)))
+                            more |= led.Add(d.Room + 1);
+                }
+                return !led.Contains(r.Number);
             }
             for (bool progress = true; progress;) {
                 progress = false;
                 foreach (SqueakPlanRoom r in rooms.Where(r => !reachable.Contains(r.Room) && !IsBossStage((r.Area, r.Stage)) && !SqueakLair(r))) {
                     if (r.Doors.FirstOrDefault(SqueakArrival) is not SqueakDoor arrival) continue;
                     (int x, int y) landing = Drop(r, arrival.X, arrival.Y);
-                    var hosts = byStage[(r.Area, r.Stage)].Concat(rooms.Where(t => t.Area == r.Area && t.Stage != r.Stage)).Where(Hosts);
+                    // (from the world's other stages first: a room of its own stage may lead to it, back into the throw's own room, 7-3-5
+                    // into 7-3-2's top, whose free spot then held its way on);
+                    var hosts = rooms.Where(t => t.Area == r.Area && t.Stage != r.Stage).Concat(byStage[(r.Area, r.Stage)]).Where(Hosts);
                     foreach (SqueakPlanRoom host in hosts)
                         if (SqueakSpot(host, true, true) is (int x, int y)) {
                             Add(host, x, y, (r.Room, landing.x + 1, landing.y + 1), DoorKind.Loop, true, true);

@@ -127,7 +127,8 @@ after any change.
   them (its doorways are in the rooms' tiles) and only lead on: a room's arrival is no door back. So:
   - a branch into a stage lands in its **first room** (on a mirror back there if it takes one, else one-way onto the stage's start):
     entered further in, the rooms before would be cut off;
-  - doors go only in rooms the stage's start reaches; where no stage in a world's tree has a room taking a door (Prism Plains 1's
+  - doors go only in rooms the stage's start reaches (through the DS's own doors from every door Kirby lands on in the stage, and
+    through the walls only Fire or an unported gimmick opens on the DS, which are KatAM's star blocks); where no stage in a world's tree has a room taking a door (Prism Plains 1's
     are small, 2 doors each), **a stage's goal door leads on into the next stage**, one-way;
   - **goals lead on to the next stage** (the owner: "Goal doors reach to the next stage correct, however keep in mind the Goal
     minigame doors from KatAM as well for path ending sections, 1 or 2 per area"): each goal but the deepest stage's (into the boss
@@ -140,7 +141,8 @@ after any change.
     rooms, copies of Dark Nebula's room and the one before it, are left out, so he's fought once;
   - the hidden two-way door between worlds leads into the next world's first stage;
   - the rooms a stage reaches only through its Squeaks (after its goal: the gold-pile treasure rooms and the hideouts where
-    Spinni, Doc or Storo fight for a stolen chest) are left to the Squeak Lair doors (rule 9 holds once those are made);
+    Spinni, Doc or Storo fight for a stolen chest; a room after the goal a DS door leads to from the stage is not one of them)
+    are left to the Squeak Lair doors (rule 9 holds once those are made);
   - each world's switch room is found by exploring: a Mirra hidden in the world's second half (its stages from the middle on by
     number, the deepest first), one-way, landing off its floor mirrors; its right floor mirror both ways with the start of the
     stage before the boss's (the deepest), its left one with the start of the deepest stage off the way from the world's first
