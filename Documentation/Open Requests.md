@@ -479,9 +479,22 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
       world's next stage; 2 a world, at paths' ends, into KatAM's goal games. Checked in the GBA emulator: all 46 goal doors lead
       where they should.
     - The switch rooms, world doors and world map (`KatAMExpansionSqueakHubs.cs`; the rulebook's rules 4, 5, 6): a switch room per
-      world after the hub (0x5EA-0x5F1), NiDL's two layouts, its look the world's tiles (provisional: each cell the look the
-      world's best-matching room gives the same kind of cell with the same around it; mock-ups shown: each as built and with two of
-      the world's far views filling it, the owner's to pick), its big switch on its
+      world after the hub (0x5EA-0x5F1), NiDL's two layouts, its look the world's tiles (each cell the look its source room gives
+      the same kind of cell with the same around it), its far view behind it (the owner's picks of the mock-ups, the pick circled
+      in red: Prism Plains A, the far view 00; Cushy Cloud as built; Jam Jungle B, 22; Vocal Volcano A, 25; Ice Island B, 16;
+      Secret Sea A, 18; `SqueakSwitchDesigns`): each its own background, the far view's middle 256 columns at full size as the
+      mock-ups showed them, covering the room (the stage rooms' conversion, at 3/4, fell short of the screen and smeared its last
+      rows); its open air a back wall fills, or touching no terrain, left clear, so the far view shows (Vocal Volcano's lines over
+      its floor mirrors gone). Nature Notch and Gamble Galaxy redone (the owner: "those backgrounds are beautiful and you did a
+      disservice to that area"): Nature Notch in 2-6-1's tiles (its leafy ledges, its earth) before its own misty forest (06),
+      Gamble Galaxy in 8-3-1's starry rock before its shooting stars (26; its galaxy, 27, was the other candidate). The camera
+      (the owner: "Why have been the position of the Squeak Squad hubs been off for the longest time? It's even showing out of
+      bounds areas of the room"): the switch rooms were 12 rows, where KatAM's camera, hiding 8 pixels at a room's top and 40 at
+      its bottom, needs 13 for a screen; it had 144 pixels for its 160 and showed past the room's edge. Now padded to 13 rows as
+      the NiDL switch rooms (`Padded()`, the last row the ground's again). Checked in the GBA emulator (USA all 8, Europe Nature
+      Notch, Japan Gamble Galaxy): each a screen, the ceiling at the top and the floor at the bottom, nothing past the room, the
+      camera still with Kirby high and low (Ice Island). Still to do: their dressing, as the NiDL switch rooms' (the owner: "make
+      them prettier like we did with NiDL's"). Its big switch on its
       pedestal, two ability statues (provisional picks), its floor mirrors into the world (the stage before the boss's and another
       branch's), its way in a Mirra hidden in the world's second half. Its big switch sets a world slot of the expansion's save
       (0x20-0x27: the game's free ones are 6; rooms.c's `BigGetStateSlot`, KatAM's `GetStateSlot` replaced, the slots saved with

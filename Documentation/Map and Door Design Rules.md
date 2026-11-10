@@ -92,8 +92,9 @@ after any change.
   Central Circle's own doors (MainHubDoors, the world's number's, drawn and shown as Central Circle's), one per world, shown by the
   world's big switch, to its switch room. `BuildSqueakHub()`.
 - **The Squeak Squad switch rooms** are the NiDL ones' (one per world, KatAM's two hub-door layouts, A for worlds 1, 3, 5, 7, B for
-  2, 4, 6, 8, 2 floor mirrors into the world, 2 hub doors, the big switch on its pedestal, 2 ability statues), drawn in the world's
-  tiles (provisional, the owner's to pick: mock-ups). Their big switches set world slots 0x20-0x27, kept in the expansion's save
+  2, 4, 6, 8, 2 floor mirrors into the world, 2 hub doors, the big switch on its pedestal, 2 ability statues), padded to 13 rows
+  as theirs (so KatAM's camera shows each as one screen and stays put), drawn in the world's tiles before the far view the owner
+  picked (`SqueakSwitchDesigns`). Their big switches set world slots 0x20-0x27, kept in the expansion's save
   (the game's free world slots, 0x10, 0x11, 0x1C-0x1F, are fewer than 8: rooms.c's `BigGetStateSlot`), which open the world's
   door on the world map. Their hub doors: one to the Squeak Squad hub's world door, one to the KatAM room the world's world map path
   leads to (the owner's pick of the mock-up): Prism Plains to Moonlight Mansion's door (`0xBE`), Nature Notch to Rainbow Route

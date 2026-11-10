@@ -1928,7 +1928,8 @@ namespace KatAMRandomizer {
                                 Add("gSolidityMaps", solidity), 0xFFFF, background, Add("gLevelObjLists", objects), Add("gUnk_08D63C28", navigation),
                                 doorsIndex, 0);
                     // (its look, for the switch rooms drawn in a world's tiles);
-                    looks.Add(new SqueakLook { World = f.Area, Room = room, Width = width, Height = height, Columns = foreground.Columns, Tilemap = foreground.Tilemap,
+                    looks.Add(new SqueakLook { World = f.Area, Stage = f.Stage, Number = f.Index, Room = room, Width = width, Height = height, Columns = foreground.Columns,
+                                               Tilemap = foreground.Tilemap, Tiles = foreground.Tiles, View = f.View,
                                                Collision = collision, Info = infoIndex, Palette = paletteIndex, Background = background,
                                                BackgroundWidth = bgSize.width, BackgroundHeight = bgSize.height, Fight = planRooms[i].Midboss || planRooms[i].Boss });
                     squeakRooms.Add(new SqueakPortedRoom(f, room, width, height));
@@ -1980,7 +1981,8 @@ namespace KatAMRandomizer {
                     SaveKatAMRooms(target, squeakProps, t => squeakTables[t], edits.Values, ref finishAt);
                     return finishAt;
                 };
-                if (BuildSqueakSwitchRooms(rom, firstSwitchRoom, looks, switchDoors, newProps, newInfos, roomInfos, navigationRoutes, noTypes, Add, DoorsList, ref here) is string switchError)
+                if (BuildSqueakSwitchRooms(rom, firstSwitchRoom, looks, switchDoors, newProps, newInfos, roomInfos, navigationRoutes, noTypes, Add, DoorsList,
+                                           view => SqueakFileAnyCase(squeak, view) is byte[] file ? SqueakFarViewPicture(file) : null, ref here) is string switchError)
                     return switchError;
                 foreach (var pair in switchDoors) squeakPlanned[firstSwitchRoom + pair.Key - 1] = pair.Value;
                 squeakPlanned[hubRoom] = squeakHubDoors;
