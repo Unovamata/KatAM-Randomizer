@@ -266,6 +266,7 @@ namespace KatAMRandomizer {
          * first seven statues stand (NidlStatueSpots: its two top rows, by the door), KatAM's statues gone; its door leads back to the
          * NiDL hub's door to it (KatAM's ability room's door to Central Circle, the hub its copy). Its doors list (its door back) for
          * the doors lists table: returned, null on an error, as `error`; */
+        const byte NidlAbilityMark = 0xFF;
         static readonly (int x, int y)[] NidlStatueSpots = { (40, 48), (152, 48), (312, 48), (424, 48), (40, 144), (152, 144), (312, 144) };
         const int KatAMStatueFirst = 0x92, KatAMStatueLast = 0x96;
         static Door BuildNidlAbilityRoom(byte[] rom, IReadOnlyDictionary<string, int> symbols, int room, int hub, int[] tableSizes, List<int> solidities,
@@ -318,6 +319,9 @@ namespace KatAMRandomizer {
             int roomInfo = Allocate(ref cursor, 0x4C, 4);
             Array.Copy(rom, ReadInt(rom, roomInfos + KatAMAbilityRoom * 4) - 0x08000000, rom, roomInfo, 0x4C);
             WriteShort(rom, roomInfo + 0x44, room);
+            // (its area info's padding +0x4A, which the game doesn't read, NidlAbilityMark: the Map Viewer's sign it's this room);
+            rom[roomInfo + 0x4A] = NidlAbilityMark;
+            rom[roomInfo + 0x4B] = 0;
             WriteInt(rom, roomInfos + room * 4, roomInfo + 0x08000000);
             return back;
         }

@@ -38,9 +38,11 @@ namespace KatAMMapTracker {
     // KatAMExpansionSprays.cs; its Behavior only shows a KatAM can), else 0; AreaMap: a chest's area map (template +0x17 the ROM Expansion's
     // mark 1, +0x16 the map's number + 1: KatAMExpansionMaps.cs, the NiDL levels' 1-8, the Squeak Squad worlds' 9-16; its Behavior only
     // shows a KatAM map), else 0; SecretMapPiece: a chest's piece of Squeak Squad's Secret Map (template +0x17 the mark 2, +0x16 the
-    // piece's number + 1, 1-7: KatAMExpansionMaps.cs; its Behavior only shows a KatAM map), else 0;
+    // piece's number + 1, 1-7: KatAMExpansionMaps.cs; its Behavior only shows a KatAM map), else 0; AbilityScroll: a chest's Squeak Squad
+    // Ability Scroll (template +0x17 the mark 3, +0x16 the scroll's number + 1, 1-23), else 0; Held: a chest a barrel or a grass tuft
+    // holds (Squeak Squad's: the ROM Expansion's squeak/gimmicks.c lets it out where the holder stands);
     public sealed record RoomObject(int Id, int Behavior, int X, int Y, int Destination = -1, int LandX = 0, int LandY = 0, int SqueakSpray = 0,
-                                    int AreaMap = 0, int SecretMapPiece = 0);
+                                    int AreaMap = 0, int SecretMapPiece = 0, int AbilityScroll = 0, bool Held = false);
 
     // RoomInfo; A room and its doors as read from the ROM;
     public sealed class RoomInfo {
@@ -65,7 +67,9 @@ namespace KatAMMapTracker {
         public bool IsSqueakHub { get; init; }
         // The Squeak Squad ability room (a copy of KatAM's, its door in the Squeak Squad hub): MapExpansion puts it beside the hub;
         public bool IsSqueakAbilityRoom { get; init; }
-        public bool IsNightmareRoom => NightmareLevel >= 0 || IsNightmareHub || IsSqueakHub || IsSqueakAbilityRoom;
+        // (the NiDL ability room: KatAM's ability room with the NiDL abilities' statues, through the NiDL hub's ability door);
+        public bool IsNidlAbilityRoom { get; init; }
+        public bool IsNightmareRoom => NightmareLevel >= 0 || IsNightmareHub || IsSqueakHub || IsSqueakAbilityRoom || IsNidlAbilityRoom;
 
         // Room parameter +0x00; Area/theme of the room. 4 are the hubs, 0x25 the boss & goal game rooms;
         public int Area { get; init; }
@@ -127,7 +131,9 @@ namespace KatAMMapTracker {
                   DoorObjectType = 3,
                   WarpStarObject = 0x84,
                   FuseCannonObject = 0x8A,
-                  SqueakChestIndex = 0x9F, ChestMarkMap = 1, ChestMarkPiece = 2;     // (a Squeak Squad chest's template unk11: the ROM Expansion's squeak.h's SQUEAK_CHEST);
+                  SqueakChestIndex = 0x9F, ChestMarkMap = 1, ChestMarkPiece = 2, ChestMarkScroll = 3,
+                  // (a Squeak Squad barrel or grass tuft: the hammer peg's type, its +0x11 0x98 or 0x99, +0x14 what it holds, a chest 0x80 or 0x81);
+                  SqueakHolderType = 0x8D, SqueakBarrelObject = 0x98, SqueakGrassObject = 0x99;     // (a Squeak Squad chest's template unk11: the ROM Expansion's squeak.h's SQUEAK_CHEST);
 
         // Central Circle, the main hub. The map is laid out from it;
         public const int CentralCircle = 0x321;
@@ -300,10 +306,17 @@ namespace KatAMMapTracker {
          * number, written by KatAMExpansionRooms.cs; older expanded ROMs had them at +0x48, +0x49, which the game reads), or -1; */
         (int stage, int index) NightmareStageOf(int room) {
             int info = RoomAreaTable < 0 ? -1 : ReadPointer(RoomAreaTable + room * 4);
-            if (info < 0 || info + 0x4C > Rom.Length) return (-1, -1);
+            if (info < 0 || info + 0x4C > Rom.Length || IsNidlAbilityRoom(room)) return (-1, -1);
             if (Rom[info + 0x4A] != 0) return (Rom[info + 0x4A] - 1, Rom[info + 0x4B]);
             if (Rom[info + 0x48] != 0) return (Rom[info + 0x48] - 1, Rom[info + 0x49]);
             return (-1, -1);
+        }
+
+        /* IsNidlAbilityRoom(); The NiDL ability room (KatAMExpansionHub.cs's BuildNidlAbilityRoom(): its area entry's +0x4A 0xFF, which
+         * the game doesn't read, a NiDL stage + 1 there being at most 0x40); */
+        bool IsNidlAbilityRoom(int room) {
+            int info = RoomAreaTable < 0 ? -1 : ReadPointer(RoomAreaTable + room * 4);
+            return info >= 0 && info + 0x4C <= Rom.Length && Rom[info + 0x4A] == 0xFF;
         }
 
         // NightmareLevelOf(); A room's NiDL level (its area - 11), or -1;
@@ -361,6 +374,7 @@ namespace KatAMMapTracker {
                     Id = room, ShortIndex = shortIndex, TilemapIndex = tilemapIndex, CoverIndex = coverIndex, ObjectIndex = objectIndex,
                     Area = Read16(parameters), Width = width, Height = height, NightmareLevel = NightmareLevelOf(room), IsNightmareHub = room == NightmareHub,
                     NightmareStage = NightmareStageOf(room).stage, NightmareIndex = NightmareStageOf(room).index,
+                    IsNidlAbilityRoom = !IsSqueakRoom(room) && IsNidlAbilityRoom(room),
                 };
                 // (a Squeak Squad room: its world a level of its own, after NiDL's 8; its hub; MapExpansion lays them out as NiDL's);
                 if (IsSqueakRoom(room)) {
@@ -492,6 +506,14 @@ namespace KatAMMapTracker {
                 if (Rom[address] != 0x01 || Rom[address + 1] != 0x24) break;
 
                 int id = Rom[address + 12], x = Read16(address + 6), y = Read16(address + 8);
+                // (a chest a barrel or a grass tuft holds: shown as the chest, where the holder stands; its fields at the chest's places,
+                // its item at +0x15);
+                if (id == SqueakHolderType && Rom[address + 0x11] is SqueakBarrelObject or SqueakGrassObject && Rom[address + 0x14] is 0x80 or 0x81) {
+                    int mark = Rom[address + 0x17], number = Rom[address + 0x16];
+                    room.Objects.Add(new RoomObject(Rom[address + 0x14], Rom[address + 0x15], x, y, AreaMap: mark == ChestMarkMap ? number : 0,
+                                                    SecretMapPiece: mark == ChestMarkPiece ? number : 0, AbilityScroll: mark == ChestMarkScroll ? number : 0, Held: true));
+                    continue;
+                }
 
                 // (an Amazing Mirror the game hides, +0x22 bit 0: shard.c's CreateShard draws it never);
                 if (id == 0x65 && Rom[address + 14] == 8 && (Rom[address + 0x22] & 1) != 0) continue;
@@ -509,7 +531,8 @@ namespace KatAMMapTracker {
                                : new RoomObject(id, Rom[address + 14], x, y,
                                                 SqueakSpray: id is 0x80 or 0x81 && Rom[address + 0x11] == SqueakChestIndex && Rom[address + 0x17] == 0 ? Rom[address + 0x16] : 0,
                                                 AreaMap: id is 0x80 or 0x81 && Rom[address + 0x17] == ChestMarkMap ? Rom[address + 0x16] : 0,
-                                                SecretMapPiece: id is 0x80 or 0x81 && Rom[address + 0x17] == ChestMarkPiece ? Rom[address + 0x16] : 0));
+                                                SecretMapPiece: id is 0x80 or 0x81 && Rom[address + 0x17] == ChestMarkPiece ? Rom[address + 0x16] : 0,
+                                                AbilityScroll: id is 0x80 or 0x81 && Rom[address + 0x17] == ChestMarkScroll ? Rom[address + 0x16] : 0));
             }
         }
 

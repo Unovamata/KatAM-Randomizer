@@ -72,11 +72,11 @@ static void RodStandMain(struct Object *obj) {
  * matter of shrinking down the enemy and making sure it looks alright in game"): object 0x9A with a subtype (its template's
  * subtype1, 1-7: the ability NIDL_FIRST_ABILITY + subtype - 1, Needle to Backdrop), in the NiDL ability room (KatAMExpansionRooms.cs's
  * BuildNidlAbilityRoom()). Each is KatAM's ability statue (CreateAbilityStatue, sub_080AA4EC, sub_080AA588) with the NiDL enemy
- * that gives it, shrunk to a statue's size, for its figure (KatAMExpansionMotions.cs's BuildNidlStatues(): its type's AnimInfo 1-7,
- * one palette for the seven, as KatAM's statues share theirs), on KatAM's own stand (sub_080988B0: anim 0x384's stand, 16 pixels under
- * the figure). gNidlStandKeys: the palette keys of the rod's anim (0) and the statues' (1): the type's own is 0 (none), each loads its
- * own (StandPalette()); */
-const u16 gNidlStandKeys[2] = { 0, 0 };
+ * that gives it (or an icon: Mike's music note) for its figure (KatAMExpansionMotions.cs's BuildNidlStatues(): its type's AnimInfo
+ * 1-7, the figures two to a palette, each pair an anim of its own), on KatAM's own stand (sub_080988B0: anim 0x384's stand, 16 pixels
+ * under the figure). gNidlStandKeys: the palette keys of the rod's anim (0) and each statue's (1-7): the type's own is 0 (none), each
+ * loads its own (StandPalette()); */
+const u16 gNidlStandKeys[8] = { 0 };
 
 // The statues' box: KatAM's (CreateAbilityStatue);
 #define STATUE_LEFT -4
@@ -133,7 +133,7 @@ void *NidlCreateRodStand(struct ObjectTemplate *template, u8 playerId) {
     // (its AnimInfo: 0 the rod, 1-7 the statues);
     obj->unk83 = statue;
     ObjectInitSprite(obj);
-    obj->base.sprite.palId = StandPalette(obj, gNidlStandKeys[statue != 0]);
+    obj->base.sprite.palId = StandPalette(obj, gNidlStandKeys[statue]);
     if (statue) {
         obj->base.sprite.unk14 = 0x780;
         if (template->subtype2) obj->base.flags |= 1;
