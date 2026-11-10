@@ -493,8 +493,17 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
       its bottom, needs 13 for a screen; it had 144 pixels for its 160 and showed past the room's edge. Now padded to 13 rows as
       the NiDL switch rooms (`Padded()`, the last row the ground's again). Checked in the GBA emulator (USA all 8, Europe Nature
       Notch, Japan Gamble Galaxy): each a screen, the ceiling at the top and the floor at the bottom, nothing past the room, the
-      camera still with Kirby high and low (Ice Island). Still to do: their dressing, as the NiDL switch rooms' (the owner: "make
-      them prettier like we did with NiDL's"). Its big switch on its
+      camera still with Kirby high and low (Ice Island). Dressed by eye as the NiDL switch rooms (the owner: "make them prettier
+      like we did with NiDL's"; `SqueakSwitchDesigns`' blocks of the source room's cells, previewed over emulator shots, then
+      checked in the GBA emulator, USA, all 8): Prism Plains a tree from 1-3-5 leaning in from the top left (its hollow trunk
+      behind the floor mirror), flowers by the pedestal; Nature Notch a clearing in 2-6-1's woods (its canopy the ceiling, a tree
+      on each side floor, bushes, the pedestal of its leafy grass); Vocal Volcano its castle's balustrade along the side floors;
+      Ice Island snowy shrubs in the pit and a sprout on each side floor; Gamble Galaxy gold star dust and a crater in each side
+      wall. A solid cell the source drew mostly clear now takes the nearest whole one's look (Nature Notch's and Ice Island's
+      walls showed the far view through them). Cushy Cloud, Jam Jungle and Secret Sea as picked: Jam Jungle's room (4-1-5) has
+      its vines and flowers on its back wall (opaque, they'd bring the wall with them), the see-through canopies are 4-2-1's,
+      whose tiles are its wooden walkways (a switch room draws from one room's tiles): the owner's call. First round: the owner's
+      to judge. Its big switch on its
       pedestal, two ability statues (provisional picks), its floor mirrors into the world (the stage before the boss's and another
       branch's), its way in a Mirra hidden in the world's second half. Its big switch sets a world slot of the expansion's save
       (0x20-0x27: the game's free ones are 6; rooms.c's `BigGetStateSlot`, KatAM's `GetStateSlot` replaced, the slots saved with

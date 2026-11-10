@@ -242,14 +242,23 @@ namespace KatAMRandomizer {
          * quarters of their pixels drawn or more) or touching no terrain are left clear, so the far view shows; */
         sealed record SqueakSwitchDesign(string View, (int stage, int number)? Source, string[] Dressing);
         static readonly Dictionary<int, SqueakSwitchDesign> SqueakSwitchDesigns = new Dictionary<int, SqueakSwitchDesign> {
-            [1] = new SqueakSwitchDesign("00", null, new string[0]),
-            [2] = new SqueakSwitchDesign("06", (6, 1), new string[0]),
+            // (Prism Plains': a tree from its third stage's last room in the top left, its trunk on the floor, flowers by the pedestal);
+            [1] = new SqueakSwitchDesign("00", null, new[] { "!0 0 0 0 6 6", "0 6 0 6 6 3", "4 8 14 9 1 1", "11 8 13 9 2 1" }),
+            // (Nature Notch's: a forest clearing from 2-6-1's woods, its canopy the ceiling, a tree each side on the side floors, bushes
+            // at their feet and in the pit, the pedestal of its leafy grass);
+            [2] = new SqueakSwitchDesign("06", (6, 1), new[] { "!0 0 46 1 16 1", "!0 1 46 2 2 1", "!14 1 ~46 2 2 1", "2 1 48 2 2 1", "12 1 ~48 2 2 1",
+                                                                "4 1 50 2 8 1", "2 2 48 3 2 5", "12 2 ~48 3 2 5", "1 5 44 7 1 2", "14 5 ~44 7 1 2",
+                                                                "4 7 44 7 2 2", "10 7 ~44 7 2 2", "!6 6 47 9 4 1" }),
             [3] = new SqueakSwitchDesign(null, null, new string[0]),
             [4] = new SqueakSwitchDesign("22", null, new string[0]),
-            [5] = new SqueakSwitchDesign("25", null, new string[0]),
-            [6] = new SqueakSwitchDesign("16", null, new string[0]),
+            // (Vocal Volcano's: its castle's balustrade along the side floors, a balcony over the sunset sea);
+            [5] = new SqueakSwitchDesign("25", null, new[] { "0 8 8 10 5 1", "11 8 9 10 5 1" }),
+            // (Ice Island's: its snowy shrubs in the pit, a sprout on each side floor);
+            [6] = new SqueakSwitchDesign("16", null, new[] { "3 6 6 5 1 1", "12 6 ~6 5 1 1", "4 7 6 13 3 2", "9 7 ~6 13 3 2" }),
             [7] = new SqueakSwitchDesign("18", null, new string[0]),
-            [8] = new SqueakSwitchDesign("26", (3, 1), new string[0]),
+            // (Gamble Galaxy's: 8-3-1's gold star dust in the upper corners and over the side floors, a crater in each side wall);
+            [8] = new SqueakSwitchDesign("26", (3, 1), new[] { "2 1 4 4 3 3", "11 1 ~4 4 3 3", "1 4 7 6 2 2", "13 4 ~7 6 2 2",
+                                                               "!1 8 2 9 2 2", "!13 8 11 13 2 2" }),
         };
 
         /* BuildSqueakSwitchRooms(); The 8 switch rooms (from `first`, world by world; see the notes above): each drawn in the tiles of the
@@ -293,6 +302,20 @@ namespace KatAMRandomizer {
                     for (int x = 0; x < SwitchWidth; x++)
                         if (!Solid(x, y) && (Enumerable.Range(0, 4).Sum(q => Drawn(tilemap[At(x, y, q)])) >= 192 || !Touches(x, y)))
                             for (int q = 0; q < 4; q++) tilemap[At(x, y, q)] = 0;
+                // (a solid cell the source drew mostly clear, Nature Notch's left wall under its top: the nearest solid one drawn whole);
+                int CellDrawn(int x, int y) => Enumerable.Range(0, 4).Sum(q => Drawn(tilemap[At(x, y, q)]));
+                for (int y = 0; y < SwitchHeight; y++)
+                    for (int x = 0; x < SwitchWidth; x++) {
+                        if (!Solid(x, y) || CellDrawn(x, y) >= 128) continue;
+                        (int x, int y)? whole = null;
+                        for (int d = 1; d < SwitchWidth + SwitchHeight && whole == null; d++)
+                            for (int ny = y - d; ny <= y + d && whole == null; ny++)
+                                for (int nx = x - d; nx <= x + d && whole == null; nx++)
+                                    if (Math.Abs(nx - x) + Math.Abs(ny - y) == d && nx >= 0 && ny >= 0 && nx < SwitchWidth && ny < SwitchHeight
+                                        && Solid(nx, ny) && CellDrawn(nx, ny) >= 224) whole = (nx, ny);
+                        if (whole is (int, int) w)
+                            for (int q = 0; q < 4; q++) tilemap[At(x, y, q)] = tilemap[At(w.x, w.y, q)];
+                    }
                 foreach (string block in design.Dressing) {
                     bool over = block.StartsWith("!");
                     string[] f = block.TrimStart('!').Split(' ');
