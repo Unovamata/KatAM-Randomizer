@@ -593,7 +593,7 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
       Europe and Japan in the emulator.
     - The falling rocks (8) and the random relay (0x17) that rains them (the notes' falling rocks bullet). Checked in the GBA
       emulator (USA, 5-3-4): the rocks appear, fall and break on the floor as the relay sends. Not tested: a rock hurting Kirby,
-      2-5-5, Europe and Japan in the emulator. 8-1-8's are started by a rope (gimmick 1), not ported yet: they stay hidden there.
+      2-5-5, Europe and Japan in the emulator. 8-1-8's are started by its rope (gimmick 1, below) through a relay.
     - The moving platforms (4: `squeak/gimmicks.c`'s SqueakCreatePlatform, the notes' moving platforms bullet): done (the owner:
       "Write a carrier and make it smooth"). Each moves leg by leg at the DS's speed (1, 2 or 4 pixels a frame), starting at once,
       when Kirby lands on it or on a switch's message, and at its end stops, goes round, goes back and forth, or shakes and falls
@@ -607,6 +607,12 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
       cloud's look that zap on their two timers (rest 30 frames, zap 30), hurting a Kirby touching or riding them. Checked in the
       GBA emulator (USA and Japan, 3-5-1): Kirby stands on a cloud between zaps, a zap hurts him and knocks him off. The zap's look
       and length are approximated (the DS's phases follow its animations); a moving cloud not checked in the emulator.
+    - The ropes (1) and rope floors (3: the notes' ropes bullet; 25 ropes, 16 floors): an attack cuts a rope and messages its
+      targets (the floor it holds, 8-1-8's rock relay); a rope floor is a platform that carries Kirby, then shakes, falls and
+      breaks on the first solid cell under it, when its rope is cut or (6-2-1's) when Kirby stands on it. Checked in the GBA
+      emulator (USA, Europe and Japan, 3-3-7, Kirby with Sword): the Sword cuts the left rope, its plank falls and breaks, the
+      right plank stays with him on it; (USA, 6-2-1) standing on its floor drops it onto the spikes. Not tested: 8-1-8's rope
+      starting its rocks, 3-3-6's. Logic checks: 359 rooms reached both ways, 8 switches, no traps, all three versions.
     - The quake triggers (0x13: the notes' quake bullet): ported as a trigger area that messages its targets once (a Kirby within
       64 pixels of its box, or a switch's message, sets it off; the screen quake is left out). On the DS 4-3-2's is set off by a
       rolling boulder (not ported), so a Kirby nearing it opens its way instead. Not tested in the emulator.

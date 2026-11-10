@@ -145,6 +145,7 @@ enum { SQUEAK_STAR_SPIT, SQUEAK_STAR_AHEAD, SQUEAK_STAR_BEHIND, SQUEAK_STAR_SWOR
 #define SQUEAK_ROCK_OBJECT 0x95
 #define SQUEAK_PLATFORM_OBJECT 0x94
 #define SQUEAK_CLOUD_OBJECT 0x93
+#define SQUEAK_ROPE_OBJECT 0x92
 /* The gimmicks' messages (squeak/gimmicks.c): per loaded room's slot (gCurLevelInfo[].unk65E) its room, how many times a room was
  * loaded in it, and a byte per gimmick of the room's list, the kind + 1 of the message waiting for it (rooms.c keeps them after the
  * EWRAM heap: SqueakMailOf()); */

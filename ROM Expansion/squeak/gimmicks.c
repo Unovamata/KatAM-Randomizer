@@ -1075,13 +1075,14 @@ static bool32 PlatformNextLeg(struct SqueakPlatform *p) {
     if (p->leg >= p->legs) {
         u8 end = p->obj.objTemplate->unk14 >> 7 & 7;
 
-        if (end == PLATFORM_END_STOP || p->legs == 0) {
-            p->state = PLATFORM_STOP;
-            return FALSE;
-        }
+        // (a rope floor: no legs, it breaks; 0x022219C4's states 1-3);
         if (end == PLATFORM_END_BREAK) {
             p->state = PLATFORM_SHAKE;
             p->timer = 0;
+            return FALSE;
+        }
+        if (end == PLATFORM_END_STOP || p->legs == 0) {
+            p->state = PLATFORM_STOP;
             return FALSE;
         }
         p->leg = 0;
@@ -1160,7 +1161,10 @@ static void SqueakPlatformMain(struct Object *obj) {
     case PLATFORM_FALL:
         obj->base.yspeed += PLATFORM_FALL_GRAVITY;
         obj->base.y += obj->base.yspeed;
-        if (++p->timer < PLATFORM_FALL_MOST && obj->base.y >> 8 < gCurLevelInfo[obj->base.unk56].roomHeight + 32) break;
+        // (it breaks where it lands, the DS's state 3: a puff, sound 0x4B; or once fallen out of the room);
+        if (GetCollisionTile(obj->base.unk56, obj->base.x >> 12, ((obj->base.y >> 8) + 4) >> 4) - 1u < 0x1F)
+            PlaySfx(&obj->base, SE_BLOCK_BREAK);
+        else if (++p->timer < PLATFORM_FALL_MOST && obj->base.y >> 8 < gCurLevelInfo[obj->base.unk56].roomHeight + 32) break;
         obj->base.flags |= 0x400;
         p->state = PLATFORM_GONE;
         p->riders = 0;
@@ -1290,6 +1294,45 @@ static void *SqueakCreateCloud(struct ObjectTemplate *template, u8 playerId) {
     return obj;
 }
 
+/* The ropes (gimmick 1, ctor 0x022249C8, vtable 0x02229A2C): no sprite (the rope is the terrain's, a KatAM ladder here), an area 4
+ * pixels wide (table 0x02229A20 by its first byte's low nibble: pixels 6-9 of its cell) and its second byte's pixels long, down from
+ * its spot. A cutting attack on it (message 0xB with the attack's flag 8, its check 0x02224960) cuts it (state 1, 0x022248A0:
+ * sound 0x48 or 0x49 by its look) and messages its targets (its first byte's high nibble how many, from its third byte): the floor
+ * it holds (gimmick 3), 8-1-8's rock relay. Here (the template's unk14, unk16, unk18 its 6 bytes) an object hidden, its box over
+ * the rope's cell (2-14 pixels across), taking any attack as the grass tufts do (Struck()), which cuts it once; */
+#define ROPE_TARGETS 3
+static void SqueakRopeMain(struct Object *obj) {
+    u8 par[6], i;
+
+    if (gUnk_03000510.unk4 & ((1 << obj->base.unk56) | 0x10)) return;
+    if (obj->unk83 || !Struck(obj)) return;
+    par[0] = obj->objTemplate->unk14;
+    par[1] = obj->objTemplate->unk14 >> 8;
+    par[2] = obj->objTemplate->unk16;
+    par[3] = obj->objTemplate->unk16 >> 8;
+    par[4] = obj->objTemplate->unk18;
+    par[5] = obj->objTemplate->unk18 >> 8;
+    for (i = 0; i < par[0] >> 4 && i < ROPE_TARGETS; i++)
+        if (par[2 + i] != 0xFF) SqueakSendMail(SlotOf(&obj->base), par[2 + i], MESSAGE_SWITCH + 1);
+    PlaySfx(&obj->base, SE_ABILITY_CUTTER_ATTACK);
+    obj->unk83 = 1;
+    obj->base.unk5C &= ~7;
+}
+
+static void *SqueakCreateRope(struct ObjectTemplate *template, u8 playerId) {
+    struct Task *task = TaskCreate(ObjectMain, sizeof(struct SqueakGimmickObject), 0x1000, TASK_USE_EWRAM, ObjectDestroy);
+    struct SqueakGimmickObject *r = TaskGetStructPtr(task);
+    struct Object *obj = &r->obj;
+    s16 length = template->unk14 >> 8;
+
+    InitObject(obj, template, playerId);
+    HolderInit(obj, &r->spr, SQUEAK_FLOOR, 2, 0, 14, length > 0 ? length : 16);
+    obj->base.flags |= 0x400;
+    obj->unk83 = 0;
+    obj->unk78 = SqueakRopeMain;
+    return obj;
+}
+
 // SqueakGimmickAnim(); A gimmick's look and cell as squeak.c's SqueakAnimFor() draws it (0: the object isn't one);
 u32 SqueakGimmickAnim(struct Object *obj) {
     if (obj->type != OBJ_HAMMER_PEG) return 0;
@@ -1313,6 +1356,7 @@ void *SqueakCreateSwitch(struct ObjectTemplate *template, u8 playerId) {
     case SQUEAK_ROCK_OBJECT: return SqueakCreateRock(template, playerId);
     case SQUEAK_PLATFORM_OBJECT: return SqueakCreatePlatform(template, playerId);
     case SQUEAK_CLOUD_OBJECT: return SqueakCreateCloud(template, playerId);
+    case SQUEAK_ROPE_OBJECT: return SqueakCreateRope(template, playerId);
     }
     return gSqueakSwitch.create(template, playerId);
 }

@@ -657,7 +657,7 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
     0 (`0x0221E664`) does nothing; a message (kinds 0-2, `0x022216F4`) starts state 1 (`0x02221688`), which lets a rock fall (an
     object of its own, 0x138 bytes, vtable `0x02229390`, its look by the parameter's bits 0-2, `0x02227BD0`). The parameter's bits
     4-15 are frames before it comes: 8-1-8's five at 10, 30, 60, 100, 120 (a relay, started by a rope, messages all five at once).
-    What messages them: 8-1-8's rope (gimmick 1, not ported) through a relay; 2-5-5's and 5-3-4's a random relay (0x17).
+    What messages them: 8-1-8's rope (gimmick 1) through a relay; 2-5-5's and 5-3-4's a random relay (0x17).
   - The random relay (0x17, `0x02224384`, vtable `0x02229948`): its parameter's u16s the least and most frames it waits, then up
     to 8 targets' indices (0xFF the end). It waits a random number of frames between the two (state 1, `0x022241A4`), sends its
     targets its message and waits again; a message (kinds 0-2, 4 as 2: `0x022242CC`) sets the kind it sends.
@@ -707,6 +707,22 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
     (USA and Japan, 3-5-1, Kirby put over its first cloud): he lands on it and stands on it between zaps, a zap hurts him (OUCH, a
     bar of health) and knocks him off; the clouds flash as they zap. Not checked: a moving one (3-5-1's third waits for a rider,
     then goes and breaks), Europe in the emulator.
+  - **The ropes** (gimmick 1, ctor `0x022249C8`, vtable `0x02229A2C`): no sprite (the rope is drawn in the terrain: KatAM ladders
+    here), an area: width from `0x02229A20` by the first byte's low nibble (pixels 6-9 of its cell), the second byte its length
+    in pixels, down from its spot; the first byte's high nibble how many targets, from the third byte (0xFF none). A cutting
+    attack on it (message 0xB with the attack's flag 8, `0x02224960`) cuts it (state 1, `0x022248A0`: sound 0x48 or 0x49 by its
+    look) and messages its targets: the floor it holds (3-3-6, 3-3-7), 8-1-8's rock relay. 25 in the ported rooms.
+    **The rope floors** (gimmick 3, ctor `0x022219C4`, vtable `0x022293F8`, looks at `0x02227BF4`): a 48-pixel plank (the
+    platform's box) hanging from a rope; its first byte's low nibble its look, bits 4-6 1 when it falls once a body stands on it
+    (6-2-1's), else on its rope's message; it shakes, falls and breaks. 16 in the ported rooms.
+    In KatAM (`squeak/gimmicks.c`): a rope is an object hidden (object 0x92, SqueakCreateRope; template unk14-unk19 its 6 bytes),
+    its box over the rope (2-14 pixels across its cell, its length down), taking any attack as the grass tufts do (Struck()); cut
+    once, it plays the Cutter's sound and messages its targets (kind 1). A rope floor is a moving platform with no legs whose end is
+    the break (its word: the look, start 2 for a rider's weight or 3 for a message, end 1), so it carries Kirby, then shakes,
+    falls and breaks with the block-break sound on the first solid cell under it (or 160 frames on). Checked in the GBA emulator
+    (USA, Europe and Japan, 3-3-7, Kirby with Sword put over its two planks): his Sword cuts the left rope, its plank shakes, falls
+    and breaks on the floor under it, the right plank stays with him on it; (USA, 6-2-1) standing on its floor drops it onto the
+    spikes, where it breaks. Not checked: 8-1-8's rope starting its rock relay, 3-3-6's.
   - Decoded, not ported yet:
     - The rolling boulders (gimmick 6, ctor `0x0221EE04`, vtable `0x02228FE8`; `yakumono/ball_rock`, its look by the first byte's
       bits 0-3, table `0x02227AA0`): box ±2 cells; bits 4-5 0 rolls at once (state 1), else it waits for a message (4-3-2's, from
@@ -716,14 +732,6 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
       one (7), sound 0x4F and it breaks (`0x0221E7D8`), the dust round it while it rolls (flag 2, not 0x1000); it hurts with harm
       kind 0x0E, strength 8 (`0x0221ED6C`). The 18 in the ported rooms: 2-4-1, 2-4-2, 4-3-2 (2, waiting), 4-6-7, 8-2-4, and the
       boss stages' 7-7-4 and 8-4-4.
-    - The ropes (gimmick 1, ctor `0x022249C8`, vtable `0x02229A2C`): no sprite (the rope is drawn in the terrain: KatAM ladders
-      here), an area: width from `0x02229A20` by the first byte's low nibble (4 cells for looks 0-3), the second byte its length
-      in cells, upward from its spot; the first byte's high nibble how many targets, from the third byte (0xFF none). Taken hold
-      of (state 1, `0x022248A0`) it plays sound 0x48 or 0x49 by its look and messages its targets: the floor it holds (3-3-6,
-      3-3-7), 8-1-8's rock relay. 25 in the ported rooms.
-    - The rope floors (gimmick 3, ctor `0x022219C4`, vtable `0x022293F8`, looks at `0x02227BF4`): a 48-pixel plank (the
-      platform's box) hanging from a rope; states 1-4 at `0x02221910`, `0x022218BC`, `0x02221854`, `0x02221850`, not read yet.
-      16 in the ported rooms.
   - **The quake triggers** (gimmick 0x13, ctor `0x022240E8`, vtable `0x022298F8`): its second u16 its box (bits 0-6 blocks across,
     7-13 down, as a trigger area's), bits 14-15 how many targets, its bytes 4 on their indices. A body moving into it (message 5) or
     a switch's message (kinds 0 and 1: `0x022240A8`) sets it off once (`0x02224034`): the screen quakes (its first u16's low 4

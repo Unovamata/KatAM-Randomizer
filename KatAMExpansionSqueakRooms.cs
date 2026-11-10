@@ -1243,8 +1243,8 @@ namespace KatAMRandomizer {
         const int SqueakIcicleGimmick = 9, SqueakRockGimmick = 8;
         const byte SqueakIcicleObject = 0x96, SqueakRockObject = 0x95;
         // (the moving platforms: squeak/gimmicks.c's SqueakCreatePlatform, its first word and its legs, 3 at most, in the template);
-        const int SqueakPlatformGimmick = 4, SqueakPlatformLegs = 3, SqueakCloudGimmick = 5;
-        const byte SqueakPlatformObject = 0x94, SqueakCloudObject = 0x93;
+        const int SqueakPlatformGimmick = 4, SqueakPlatformLegs = 3, SqueakCloudGimmick = 5, SqueakRopeGimmick = 1, SqueakRopeFloor = 3;
+        const byte SqueakPlatformObject = 0x94, SqueakCloudObject = 0x93, SqueakRopeObject = 0x92;
         // (Squeak Squad's abilities, by its numbers, as KatAM's: those KatAM has; the others, Ninja, Animal, Ghost, Bubble, Metal, none);
         static readonly Dictionary<int, byte> SqueakKatAMAbilities = new Dictionary<int, byte> {
             [1] = 1, [2] = 2, [3] = 15, [4] = 7, [5] = 16, [6] = 5, [7] = 6, [8] = 13, [9] = 9, [10] = 4, [11] = 14, [13] = 19, [14] = 11,
@@ -1309,6 +1309,7 @@ namespace KatAMRandomizer {
                 SqueakRelay => (p[0] & 0x7F, 1, 5),
                 SqueakRandomRelay => (p.Skip(4).TakeWhile(b => b != 0xFF).Count(), 4, 8),
                 SqueakQuake => (p.Length > 3 ? p[3] >> 6 : 0, 4, 3),
+                SqueakRopeGimmick => (p[0] >> 4, 2, 3),
                 _ => (0, 0, 0) };
             for (int k = 0; k < count && k < most && first + k < p.Length; k++) yield return p[first + k];
         }
@@ -1841,6 +1842,25 @@ namespace KatAMRandomizer {
                                 platform[0x17 + 2 * leg] = g.Parameters[3 + 2 * leg];
                             }
                             templates.Add(platform);
+                            if (!types.Contains(HammerPegType)) types.Add(HammerPegType);
+                            squeakSwitches++;
+                        } else if (g.Type == SqueakRopeFloor && g.Parameters?.Length >= 1) {
+                            /* (a rope floor: a moving platform with no legs that breaks, the DS's 0x022219C4: its look its first byte's low
+                             * nibble; it falls when a Kirby stands on it if bits 4-6 are 1 (6-2-1's), else on its rope's message); */
+                            byte[] floor = ObjectTemplate(g.X, g.Y, templates.Count, HammerPegType);
+                            floor[0x11] = SqueakPlatformObject;
+                            floor[0x12] = (byte)Math.Min(gi, 0xFF);
+                            WriteShort(floor, 0x14, (g.Parameters[0] & 0xF) | ((g.Parameters[0] >> 4 & 7) == 1 ? 2 : 3) << 4 | 1 << 7);
+                            templates.Add(floor);
+                            if (!types.Contains(HammerPegType)) types.Add(HammerPegType);
+                            squeakSwitches++;
+                        } else if (g.Type == SqueakRopeGimmick && g.Parameters?.Length >= 2 && gi < SqueakMailGimmicks) {
+                            // (a rope: its 6 bytes in unk14, unk16, unk18, its targets messaged when an attack cuts it);
+                            byte[] rope = ObjectTemplate(g.X, g.Y, templates.Count, HammerPegType);
+                            rope[0x11] = SqueakRopeObject;
+                            rope[0x12] = (byte)gi;
+                            for (int b = 0; b < 6; b++) rope[0x14 + b] = b < g.Parameters.Length ? g.Parameters[b] : (byte)0xFF;
+                            templates.Add(rope);
                             if (!types.Contains(HammerPegType)) types.Add(HammerPegType);
                             squeakSwitches++;
                         } else if (g.Type == SqueakCloudGimmick && g.Parameters?.Length >= 6) {
