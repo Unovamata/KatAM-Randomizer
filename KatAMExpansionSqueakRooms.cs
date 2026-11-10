@@ -1260,7 +1260,7 @@ namespace KatAMRandomizer {
         const int SqueakSwitchGimmick = 0, SqueakSwitchBlocks = 0x10;
         // (the gimmicks that talk to others: squeak/gimmicks.c; its shutters on object 0x8D with their template's unk11 SqueakShutterObject);
         const int SqueakShutterGimmick = 2, SqueakFireGimmick = 7, SqueakTriggerArea = 0x15, SqueakRelay = 0x16, SqueakRandomRelay = 0x17,
-                  SqueakQuake = 0x13, SqueakCameraArea = 0x14, SqueakEmitter = 0x19, SqueakStreaks = 0x18, SqueakLight = 0x12, SqueakMailGimmicks = 60;
+                  SqueakQuake = 0x13, SqueakCameraArea = 0x14, SqueakEmitter = 0x19, SqueakStreaks = 0x18, SqueakLight = 0x12, SqueakSoundGimmick = 0x1A, SqueakMailGimmicks = 60;
         const byte SqueakShutterObject = 0x9B, SqueakFireObject = 0x9A;
         /* The grass tufts (0xE) and barrels (0xF), their objects squeak/gimmicks.c's: its template's unk12 the grass's look, unk14 what
          * comes out (the KatAM object's type, its behavior byte over it), unk16 its variant (a Squeak Squad character's: SqueakHeld()); */
@@ -1354,7 +1354,7 @@ namespace KatAMRandomizer {
             List<byte> list = new List<byte> { 0, 0, 0, 0 };
             for (int i = 0; i < gimmicks.Count && i < SqueakMailGimmicks; i++) {
                 SqueakGimmick g = gimmicks[i];
-                if (!(g.Type is SqueakTriggerArea or SqueakRelay or SqueakRandomRelay or SqueakQuake or SqueakEmitter or SqueakStreaks or SqueakLight || g.Type == SqueakCameraArea && !arena
+                if (!(g.Type is SqueakTriggerArea or SqueakRelay or SqueakRandomRelay or SqueakQuake or SqueakEmitter or SqueakStreaks or SqueakLight or SqueakSoundGimmick || g.Type == SqueakCameraArea && !arena
                       || g.Type == SqueakSwitchBlocks && chains.Contains((g.X / 16, g.Y / 16)))) continue;
                 byte[] entry = new byte[24];
                 entry[0] = (byte)g.Type;
@@ -1635,10 +1635,18 @@ namespace KatAMRandomizer {
                 }
                 if (flightTable >= 0) ridesFrom = SqueakRides(squeak, files, roomOf, starsOf, doorsOf, widthOf, heightOf, flightCount);
 
+                // (each room's music: SqueakRoomSong(), its stage's music the one a room with none keeps);
+                int lastMusic = 0;
+                (int area, int stage) musicStage = (-1, -1);
                 for (int i = 0; i < files.Count; i++) {
                     SqueakRoomFiles f = files[i];
                     int room = SqueakFirstRoom + i;
                     SqueakMap map = new SqueakMap(SqueakUnpack(SqueakFileAnyCase(squeak, f.Map)));
+                    if ((f.Area, f.Stage) != musicStage) {
+                        musicStage = (f.Area, f.Stage);
+                        lastMusic = SqueakStageMusic(squeak, files, f.Area, f.Stage);
+                    }
+                    int song = SqueakRoomSong(map.Data, f.Area, ref lastMusic);
                     SqueakTileset front = f.Front == null || SqueakFileAnyCase(squeak, f.Front) is not byte[] frontFile ? null : new SqueakTileset(frontFile);
                     SqueakTileset main = f.Main == null || SqueakFileAnyCase(squeak, f.Main) is not byte[] mainFile ? null : new SqueakTileset(mainFile);
                     int width = map.Width, height = map.Height;
@@ -2024,7 +2032,7 @@ namespace KatAMRandomizer {
                     if (doorsIndex < FirstDoorsList) return "Squeak Squad's doors lists start too early.";
                     if (doorsIndex >= FirstDoorsList + VisitedLists) return "Too many doors lists for rooms.c's visited doors.";
                     int infoIndex = Add("gForegroundInfo", info), paletteIndex = Add("gForegroundPalettes", palette);
-                    WriteShorts(rom, newProps + room * 0x28, LevelSongs[(f.Area - 1) % LevelSongs.Length], 0, 0, 0x100, 0x100, 0, backgroundDown, rateX, rateY, RoomFlags,
+                    WriteShorts(rom, newProps + room * 0x28, song, 0, 0, 0x100, 0x100, 0, backgroundDown, rateX, rateY, RoomFlags,
                                 infoIndex, paletteIndex, Add("gForegroundTilemaps", tilemapEntry),
                                 Add("gSolidityMaps", solidity), 0xFFFF, background, Add("gLevelObjLists", objects), Add("gUnk_08D63C28", navigation),
                                 doorsIndex, 0);

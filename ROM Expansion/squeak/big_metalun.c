@@ -22,7 +22,7 @@
  *   dazed 180 frames (0x0210AFD4), then stands up (anim 7, 0x0210AF58; a 15-frame shake: KatAM's 1, 14).
  * • Hit, it doesn't flinch (0x0210BF18: a flash in its _dmg palette, a 36-frame shake, 36 frames safe): KatAM's mini-bosses don't
  *   either (sub_0809AF38: KatAM's flash and its shortest shake); its defeat is KatAM's mini-boss's (to be inhaled).
- * Not ported: its sounds (0x121, 0x154, 0x16A, 0x16C, 0x16E, 0x130, 0x10D), the DS's rumble (0x0221C748), its _dmg palette flash and
+ * Its sounds (Squeak Squad's, SqueakSfx): 0x121, 0x154, 0x16A, 0x16C, 0x16E, 0x130, 0x10D. Not ported: the DS's rumble (0x0221C748), its _dmg palette flash and
  * Squeak Squad's hit shakes (KatAM's), its defeat's hop (0x0210AE44: KatAM's defeat instead), its ability (none: Metal), the other
  * mode (air control, 0x0210BEB4). */
 #include "../squeak.h"
@@ -127,9 +127,11 @@ static s32 WalkSpeed(struct SqueakObject *s) {
         return 0x2000;
     case 38:
         RequestScreenShake(SHAKE_STOMP, &s->obj.base);
+        SqueakSfx(s, 0x154);
         return 0;
     case 109:
         RequestScreenShake(SHAKE_STOMP, &s->obj.base);
+        SqueakSfx(s, 0x154);
         return 0x2000;
     default:
         return 0;
@@ -164,7 +166,8 @@ static bool32 Body(struct SqueakObject *s) {
         SqueakStop(s);
         SqueakSetState(s, BODY_STAND);
         return TRUE;
-    case BODY_STAND:        // 0x0210BB4C;
+    case BODY_STAND:        // 0x0210BB4C: (its 100th frame, a growl);
+        if (s->stateTimer == 100) SqueakSfx(s, 0x121);
         if (Charge(s)) return TRUE;
         if (s->padDir > 0) {
             SqueakSetState(s, BODY_WALK_ENTRY);
@@ -208,6 +211,7 @@ static bool32 Body(struct SqueakObject *s) {
         break;
     case BODY_FALL_ENTRY:   // 0x0210B7F0: its speed across as it was;
         SqueakPlay(s, ANIM_LAND);
+        SqueakSfx(s, 0x16E);
         s->maxVx = s->maxVy = s->ax = s->ay = s->fx = s->fy = s->vy = 0;
         s->ay = -GRAVITY;
         SqueakSetState(s, BODY_FALL);
@@ -233,12 +237,14 @@ static bool32 Body(struct SqueakObject *s) {
         BUSY(s) = 4;
         SqueakStop(s);
         SqueakPlay(s, ANIM_CHARGE);
+        SqueakSfx(s, 0x16A);
         SqueakSetState(s, BODY_CHARGE);
         return TRUE;
     case BODY_CHARGE:       // 0x0210B52C, 0x0210B460: each animation over, the next (it sparkles, it curls up);
     case BODY_SPARKLE:
         if (s->animEnded) {
             SqueakPlay(s, s->state == BODY_CHARGE ? ANIM_SPARKLE : ANIM_CURL);
+            SqueakSfx(s, 0x16C);
             SqueakSetState(s, s->state + 1);
             return TRUE;
         }
@@ -251,6 +257,7 @@ static bool32 Body(struct SqueakObject *s) {
 
             COUNT(s) = roll < 20 ? 30 : roll < 80 ? 60 : 120;
             SqueakPlay(s, ANIM_BALL);
+            SqueakSfx(s, 0x16C);
             SqueakSetState(s, BODY_BALL);
             return TRUE;
         }
@@ -272,6 +279,7 @@ static bool32 Body(struct SqueakObject *s) {
         s->vx = ROLL_SPEED;
         if (!AtEdge(s) && !SqueakWallAhead(s) && COUNT(s) > 0) {
             COUNT(s)--;
+            if (s->stateTimer % 15 == 0) SqueakSfx(s, 0x16C);
             Gravity(s);
             SqueakMove(s);
             break;
@@ -279,7 +287,9 @@ static bool32 Body(struct SqueakObject *s) {
         COUNT(s) = DAZE;
         SqueakStop(s);
         SqueakPlay(s, ANIM_BONK);
+        SqueakSfx(s, 0x16E);
         RequestScreenShake(SHAKE_BONK, &s->obj.base);
+        SqueakSfx(s, 0x154);
         SqueakSetState(s, BODY_DAZED);
         return TRUE;
     case BODY_DAZED:        // 0x0210AFD4;

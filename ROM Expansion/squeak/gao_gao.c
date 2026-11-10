@@ -32,7 +32,7 @@
  *   shaking 18 frames (KatAM's 2).
  * • Hit, it doesn't flinch (0x020FFD10, 0x020FFDF4: a shake, 36 frames safe): KatAM's mini-bosses don't either (sub_0809AF38); its
  *   defeat is KatAM's mini-boss's.
- * Not ported: its sounds (0x10D, 0x14A, 0x14E, 0x152, 0x153, 0x155, 0x165, 0x178), the DS's rumble (0x0221C6EC), Squeak Squad's hit
+ * Its sounds (Squeak Squad's, SqueakSfx): 0x10D, 0x14A, 0x14E, 0x152, 0x153, 0x155, 0x165, 0x178. Not ported: the DS's rumble (0x0221C6EC), Squeak Squad's hit
  * flash (its _dmg palette) and shakes (KatAM's), its defeat (0x020FE8BC: a hop, a slide shedding dust, a shudder: KatAM's defeat
  * instead), its ability (none), the other mode's air control (0x020FFCAC). Squeak Squad holds it in the stage as it drills up (it
  * would wait there for good under a stage top no higher than the screen's; its arenas leave room above): here it goes on up past
@@ -232,6 +232,7 @@ static bool32 Body(struct SqueakObject *s) {
         if (SqueakOnGround(s)) {
             SqueakStop(s);
             SqueakPlay(s, ANIM_LAND);
+            SqueakSfx(s, 0x155);
             Puff(s, SQUEAK_FX_LAND, FALSE);
             SqueakSetState(s, BODY_LANDED);
         }
@@ -260,6 +261,7 @@ static bool32 Body(struct SqueakObject *s) {
             }
             s->vy = JUMP_VY;
             s->ay = -GRAVITY;
+            SqueakSfx(s, 0x14E);
             SqueakSetState(s, BODY_JUMP_RISE);
         }
         SqueakCapFall(s, MAX_FALL);
@@ -276,6 +278,7 @@ static bool32 Body(struct SqueakObject *s) {
             RequestScreenShake(SHAKE_SHORT, base);
             SqueakStop(s);
             SqueakPlay(s, ANIM_LAND);
+            SqueakSfx(s, 0x155);
             SqueakSetState(s, BODY_JUMP_LAND);
             Puff(s, SQUEAK_FX_LAND_BIG, FALSE);
         }
@@ -298,6 +301,7 @@ static bool32 Body(struct SqueakObject *s) {
         SqueakMove(s);
         if (SqueakOnGround(s)) {
             Puff(s, SQUEAK_FX_LAND, FALSE);
+            SqueakSfx(s, 0x155);
             SqueakSetState(s, BODY_START);
         }
         break;
@@ -320,7 +324,10 @@ static bool32 Body(struct SqueakObject *s) {
         SqueakMove(s);
         break;
     case BODY_SPIN:         // 0x020FEEFC: at Kirby (Squeak Squad's speeds: SPIN_RIGHT to his right, SPIN_LEFT to his left);
-        if (COUNT(s) % SPIN_PUFF == 0) SqueakSpawnEffect(s, SQUEAK_FX_LAND, 0, 0, FALSE);
+        if (COUNT(s) % SPIN_PUFF == 0) {
+            SqueakSpawnEffect(s, SQUEAK_FX_LAND, 0, 0, FALSE);
+            SqueakSfx(s, 0x178);
+        }
         w = s->obj.kirby3->base.x > base->x ? SPIN_RIGHT : s->obj.kirby3->base.x < base->x ? -SPIN_LEFT : 0;
         s->vx = base->flags & 1 ? -w : w;
         if (COUNT(s) < 1) {
@@ -360,6 +367,7 @@ static bool32 Body(struct SqueakObject *s) {
             SqueakThroughTerrain(s, TRUE);
             s->vy = DRILL_SPEED;
             SqueakPlay(s, ANIM_DRILL_UP);
+            SqueakSfx(s, 0x165);
             SqueakSetState(s, BODY_DRILL_UP);
             COUNT(s) = AT_TOP(s) = 0;
             Puff(s, SQUEAK_FX_LAND_BIG, FALSE);
@@ -404,6 +412,7 @@ static bool32 Body(struct SqueakObject *s) {
             SqueakThroughTerrain(s, FALSE);
             if (SqueakOnGround(s)) {
                 FaceKirbyNow(s);
+                SqueakSfx(s, 0x14A);
                 Puff(s, SQUEAK_FX_LAND_BIG, TRUE);
                 RequestScreenShake(SHAKE_LAND, base);
                 SqueakSetState(s, BODY_START);

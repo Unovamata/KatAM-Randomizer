@@ -72,6 +72,7 @@ const struct SqueakSwitch gSqueakSwitch = { NULL };
 #define EMITTER_WAIT 100
 #define GIMMICK_STREAKS 0x18
 #define GIMMICK_LIGHT 0x12
+#define GIMMICK_SOUND 0x1A
 #define FAR_VIEW_FIRST 96           // (the far view's colors: KatAM's BG palettes 6-13, KatAMExpansionSqueakRooms.cs's SqueakBackground);
 #define FAR_VIEW_COLORS 128
 #define LIGHT_STEPS 16
@@ -206,6 +207,25 @@ static void Emitter(struct SqueakLogic *l, const struct SqueakGimmickEntry *e) {
     if (gKirbys[gLocalPlayerId].base.roomId == l->room && e->x >= vx && e->x <= vx + DISPLAY_WIDTH && e->y >= vy && e->y <= vy + DISPLAY_HEIGHT)
         SqueakEffectInRoom(l->room, (e->par[0] & 15) == 0 ? SQUEAK_FX_WATER_BUBBLE : SQUEAK_FX_LAVA_SPARK, e->x << 8, e->y << 8);
     *wait = ((Rand16() >> 14) + 1) * EMITTER_WAIT;
+}
+
+/* SoundGimmick(); The sound gimmick (0x1A, ctor 0x0222684C, vtable 0x02229E34, its state 0x022267AC; one, in 4-3-2): when its wait
+ * (+0x60) runs out it plays its sound (its first byte's low nibble picks it from 0x02227FB4: the only one, 0x32) at its spot, then
+ * waits its parameter's second u16 in frames; its second byte how many times (0: on and on); heard here while the player's Kirby is
+ * in its room (KatAMExpansionSqueakSound.cs: the DS's sounds); */
+static void SoundGimmick(struct SqueakLogic *l, const struct SqueakGimmickEntry *e) {
+    static const u16 sSounds[] = { 0x32 };
+    s16 *wait = &l->relayTimer[e->index][0], *played = &l->relayTimer[e->index][1];
+    u8 times = e->par[1];
+
+    if (*wait > 0) {
+        (*wait)--;
+        return;
+    }
+    if (times != 0 && *played >= times) return;
+    if (gKirbys[gLocalPlayerId].base.roomId == l->room) m4aSongNumStart(SQUEAK_SE(sSounds[(e->par[0] & 15) % ARRAY_COUNT(sSounds)]));
+    (*played)++;
+    *wait = e->par[2] | e->par[3] << 8;
 }
 
 /* Streaks(); A streak emitter (0x18, ctor 0x02226384, vtable 0x02229DD4, its state 0x02225F80): 33 in 18 rooms (Ice Island's snow,
@@ -426,6 +446,7 @@ static void Quake(struct SqueakLogic *l, const struct SqueakGimmickEntry *e) {
     }
     if (!near) return;
     QuakeShake(quake >> 4, by);
+    PlaySfx(by, SQUEAK_SE(0x68)); // (the DS's 0x68);
     for (t = 0; t < count; t++) SqueakSendMail(l->slot, e->par[4 + t], MESSAGE_AREA);
     l->inside[e->index] = QUAKE_DONE;
 }
@@ -476,6 +497,7 @@ static void SqueakLogicMain(void) {
         case GIMMICK_EMITTER: Emitter(l, e); break;
         case GIMMICK_STREAKS: Streaks(l, e); break;
         case GIMMICK_LIGHT: Light(l, e); break;
+        case GIMMICK_SOUND: SoundGimmick(l, e); break;
         }
     }
 }
@@ -695,7 +717,7 @@ static void ShutterSetBox(struct SqueakShutter *s) {
  * the screen like KatAM does for consistency sake"); */
 #define SHUTTER_QUAKE_FRAMES 22
 static void ShutterSound(struct SqueakShutter *s) {
-    PlaySfx(&s->obj.base, SE_VERT_SLIDING_DOOR_OPEN_CLOSE);
+    PlaySfx(&s->obj.base, SQUEAK_SE(IsSpikes(s) ? 0x2D : 0x14B)); // (the DS's: 0x02224D1C, 0x02224D28);
     if (!IsSpikes(s)) QuakeShake(SHUTTER_QUAKE_FRAMES, &s->obj.base);
 }
 
@@ -827,7 +849,7 @@ static void SqueakFireMain(struct Object *obj) {
     case FIRE_FLARE:
         if (!f->spr.ended) break;
         GimmickPlay(obj, &f->spr, ANIM_COLUMN);
-        PlaySfx(&obj->base, SE_BASIC_ENEMY_FIRE_ATTACK);
+        PlaySfx(&obj->base, SQUEAK_SE(0x69)); // (the DS's 0x69);
         f->state = FIRE_LIT;
         break;
     case FIRE_LIT:
@@ -973,7 +995,7 @@ static void SqueakGrassMain(struct Object *obj) {
             LetOut(obj);
             CreateObjTemplateAndObj(obj->base.unk56, 1, 0x24, obj->base.x >> 8, obj->base.y >> 8, 0, 0x1F, 0, 0, OBJ_HAMMER_PEG, 0, 0,
                                     0, 0, 0, 0, 0, 0, SQUEAK_BLADES_OBJECT, obj->objTemplate->unk12, 0, 0, 0);
-            PlaySfx(&obj->base, SE_ABILITY_CUTTER_ATTACK);
+            PlaySfx(&obj->base, SQUEAK_SE(0x59)); // (the DS's 0x59, its cut);
             GimmickPlay(obj, &g->spr, 6);
             g->state = GRASS_CUT;
             obj->base.unk5C &= ~7;
@@ -1051,7 +1073,7 @@ static void SqueakBarrelMain(struct Object *obj) {
     }
     if (!Struck(obj)) return;
     LetOut(obj);
-    PlaySfx(&obj->base, SE_BLOCK_BREAK);
+    PlaySfx(&obj->base, SQUEAK_SE(0x51)); // (the DS's 0x51);
     GimmickPlay(obj, &b->spr, 5);
     b->burst = TRUE;
     obj->base.unk5C &= ~7;
@@ -1127,7 +1149,7 @@ static void SqueakIcicleMain(struct Object *obj) {
         // (on a floor, or ICICLE_FALL_MOST pixels down: off the room's bottom, as in a pit);
         if (OnFloor(obj) || obj->base.y - (obj->objTemplate->y << 8) >= ICICLE_FALL_MOST << 8) {
             GimmickPlay(obj, &c->spr, 3);
-            PlaySfx(&obj->base, SE_BLOCK_BREAK);
+            PlaySfx(&obj->base, SQUEAK_SE(0x54)); // (the DS's 0x54, its shatter: 0x022235E2);
             c->state = ICICLE_SHATTER;
         }
         break;
@@ -1221,7 +1243,7 @@ static void SqueakRockMain(struct Object *obj) {
         if (GetCollisionTile(obj->base.unk56, obj->base.x >> 12, ((obj->base.y >> 8) + 8) >> 4) - 1u < 0x1F
             || obj->base.y - (obj->objTemplate->y << 8) >= ICICLE_FALL_MOST << 8) {
             GimmickPlay(obj, &r->spr, 2);
-            PlaySfx(&obj->base, SE_BLOCK_BREAK);
+            PlaySfx(&obj->base, SQUEAK_SE(0x4B)); // (the DS's 0x4B, its break: 0x02221898);
             r->state = ROCK_BREAK;
             r->timer = 0;
         }
@@ -1389,7 +1411,7 @@ static void SqueakPlatformMain(struct Object *obj) {
         obj->base.y += obj->base.yspeed;
         // (it breaks where it lands, the DS's state 3: a puff, sound 0x4B; or once fallen out of the room);
         if (GetCollisionTile(obj->base.unk56, obj->base.x >> 12, ((obj->base.y >> 8) + 4) >> 4) - 1u < 0x1F)
-            PlaySfx(&obj->base, SE_BLOCK_BREAK);
+            PlaySfx(&obj->base, SQUEAK_SE(0x4B)); // (the DS's 0x4B);
         else if (++p->timer < PLATFORM_FALL_MOST && obj->base.y >> 8 < gCurLevelInfo[obj->base.unk56].roomHeight + 32) break;
         obj->base.flags |= 0x400;
         p->state = PLATFORM_GONE;
@@ -1505,7 +1527,7 @@ static void SqueakCloudMain(struct Object *obj) {
         GimmickAnimate(obj, &c->p.spr);
         if (++c->clock == CLOUD_SHAKE_FRAMES) {
             GimmickPlay(obj, &c->p.spr, CLOUD_BREAK_ANIM);
-            PlaySfx(&obj->base, SE_BLOCK_BREAK);
+            PlaySfx(&obj->base, SQUEAK_SE(0x29)); // (the DS's 0x29);
             c->p.riders = 0;
             c->p.state = PLATFORM_FALL;
         }
@@ -1532,7 +1554,7 @@ static void SqueakCloudMain(struct Object *obj) {
             c->phase = 2;
         } else if (c->phase < CLOUD_ZAP_LAST) {
             c->phase++;
-            if (c->phase == 3 || c->phase == 5) PlaySfx(&obj->base, SE_SPARKY_SHOCK_ATTACK);
+            if (c->phase == 3 || c->phase == 5) PlaySfx(&obj->base, SQUEAK_SE(0x11F)); // (the DS's 0x11F);
         } else {
             GimmickPlay(obj, &c->p.spr, CLOUD_REST_ANIM);
             CloudBox(obj, FALSE);
@@ -1598,7 +1620,7 @@ static void SqueakRopeMain(struct Object *obj) {
     par[5] = obj->objTemplate->unk18 >> 8;
     for (i = 0; i < par[0] >> 4 && i < ROPE_TARGETS; i++)
         if (par[2 + i] != 0xFF) SqueakSendMail(SlotOf(&obj->base), par[2 + i], MESSAGE_SWITCH + 1);
-    PlaySfx(&obj->base, SE_ABILITY_CUTTER_ATTACK);
+    PlaySfx(&obj->base, SQUEAK_SE((obj->objTemplate->unk14 & 15) < 2 ? 0x48 : 0x49)); // (the DS's, by its look: 0x022248CE);
     obj->unk83 = 1;
     obj->base.unk5C &= ~7;
 }
@@ -1708,7 +1730,7 @@ static void SqueakBoulderMain(struct Object *obj) {
         obj->base.unk68 |= 3 | 0x80;
         // (on a wall it ran into: it breaks);
         if (obj->base.xspeed != 0 && (obj->base.unk62 & 3)) {
-            PlaySfx(&obj->base, SE_BLOCK_BREAK);
+            PlaySfx(&obj->base, SQUEAK_SE(0x4F)); // (the DS's 0x4F);
             RequestScreenShake(BOULDER_BURST_SHAKE, &obj->base);
             CreateEffectObject(&obj->base, 0, 0x292, 0);
             GimmickPlay(obj, &b->spr, BOULDER_PIECE_ANIM);

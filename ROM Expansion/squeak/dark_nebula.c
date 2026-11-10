@@ -44,7 +44,7 @@
  * Checked against the DS (his stage recorded, and each move forced there and in KatAM from the same spot, frame 200: his spots,
  * states and things frame by frame; screenshots side by side): his coming, his start, the whitening and clearing, the idle, every
  * move above, the swoop and form change, the fireball's burst, flames and burning floor, the bolts and cage, the pillar.
- * Not ported: his sounds, the stage's background tinted by his form (red, green, blue: 0x02209F84's +0x3C-0x44) and its stars, the
+ * His sounds: Squeak Squad's (SqueakSfx). Not ported: the stage's background tinted by his form (red, green, blue: 0x02209F84's +0x3C-0x44) and its stars, the
  * screen shakes' strength (KatAM's own), stars turned back by Squeak Squad's reflecting attacks (flag 0x400: KatAM has none), the
  * fire's heat (0x0212F138: an object drawing nothing with only a grab box, harmless), his own defeat (0x0211DF2C-0x0211CDCC: the
  * screen blackening, his forms flickering, his star breaking up; KatAM's mini-boss defeat), his boss music; the floor's burning
@@ -536,6 +536,7 @@ static bool32 DarkNebula(struct SqueakObject *s) {
     case DN_COME:               // 0x0213756C;
         if (T(s) == 0) {
             SqueakPlay(s, ANIM_STAR);
+            SqueakLoopSfx(s, 0x1C7);
             base->x = SpotX(s, COME_X) - (COME_TIME * COME_SPEED >> 4);
             base->y = SpotY(s, COME_Y);
             base->flags &= ~0x400;
@@ -561,19 +562,32 @@ static bool32 DarkNebula(struct SqueakObject *s) {
         else if (s->animEnded) SqueakSetState(s, DN_COME_OPEN);
         break;
     case DN_COME_OPEN:          // 0x02137264;
-        if (T(s) == 0) SqueakPlayComposite(s, C_OPEN);
+        if (T(s) == 0) {
+            SqueakPlayComposite(s, C_OPEN);
+            SqueakStopSfx(s, 0x1C7);
+            SqueakSfx(s, 0x1CA);
+        }
         else if (s->animEnded) {
             COUNT(s) = 3;
             SqueakSetState(s, DN_COME_LOOK);
         }
         break;
     case DN_COME_LOOK:          // 0x02137188, 0x021370B4;
-        if (T(s) == 0) SqueakPlayComposite(s, C_LOOK);
+        if (T(s) == 0) {
+            SqueakPlayComposite(s, C_LOOK);
+            SqueakSfx(s, 0x1CA);
+        }
         else if (s->animEnded && --COUNT(s) < 1) SqueakSetState(s, DN_COME_GLINT);
         break;
     case DN_COME_GLINT:         // 0x021370B4, 0x02137054;
-        if (T(s) == 0) SqueakPlayComposite(s, C_GLINT);
-        else if (T(s) >= 32 + GLINT_WAIT) SqueakSetState(s, DN_START);
+        if (T(s) == 0) {
+            SqueakPlayComposite(s, C_GLINT);
+            SqueakSfx(s, 0x1CB);
+        } else if (T(s) == 32) {
+            SqueakSfx(s, 0x1CC);
+        } else if (T(s) >= 32 + GLINT_WAIT) {
+            SqueakSetState(s, DN_START);
+        }
         break;
     // His fight (0x3F);
     case DN_START:              // 0x021226E8;
@@ -589,6 +603,7 @@ static bool32 DarkNebula(struct SqueakObject *s) {
         if (T(s) > START_WAIT) {
             RequestScreenShake(1, base);
             EyeMode(s, MODE_TWINKLE);
+            SqueakSfx(s, 0x1CD);
             SqueakSetState(s, DN_TWINKLE);
         }
         break;
@@ -596,7 +611,10 @@ static bool32 DarkNebula(struct SqueakObject *s) {
         if (T(s) > 60) SqueakSetState(s, DN_WHITEN);   // (no eye to twinkle: KatAM couldn't make it);
         break;
     case DN_WHITEN:             // 0x021220D0, 0x02122038;
-        if (T(s) == 0) Whiten(s, TRUE, WHITEN_TIME);
+        if (T(s) == 0) {
+            Whiten(s, TRUE, WHITEN_TIME);
+            SqueakSfx(s, 0x1CE);
+        }
         else if (!Whitening(s)) SqueakSetState(s, DN_CLEAR);
         break;
     case DN_CLEAR:              // 0x02121E4C, 0x02121DE4;
@@ -657,6 +675,7 @@ static bool32 DarkNebula(struct SqueakObject *s) {
         COUNT(s) = 3 + Random(3);
         SIDE(s) = Random(7);
         EyeMode(s, MODE_SHOOT);
+        SqueakSfx(s, 0x1CF);
         SqueakSetState(s, DN_DASH);
         break;
     case DN_DASH:
@@ -700,6 +719,7 @@ static bool32 DarkNebula(struct SqueakObject *s) {
     case DN_ORB_AIM:
         if (T(s) >= AIM_WAIT) {
             ORB(s) = (s32)Thing(s, T_FIREBALL, 0, 0);
+            SqueakSfx(s, 0x1D3);
             SqueakSetState(s, DN_ORB);
         }
         break;
@@ -718,6 +738,7 @@ static bool32 DarkNebula(struct SqueakObject *s) {
         ANGLE(s) = 0;
         HIGH(s) = WAVE_HIGH;
         EyeMode(s, MODE_SHOOT);
+        SqueakSfx(s, 0x1D1);
         SqueakSetState(s, DN_WAVE_RISE);
         break;
     case DN_WAVE_RISE:          // 0x021212DC: to 180°, then (0x0212120C) his next wave's height;
@@ -767,7 +788,9 @@ static bool32 DarkNebula(struct SqueakObject *s) {
         }
         break;
     case DN_BOLTS_AIM:
+        if (T(s) == 0) SqueakSfx(s, 0x1D6);
         if (T(s) < AIM_WAIT) break;
+        SqueakSfx(s, 0x1D5);
         for (i = 0; i < 4; i++) {
             struct SqueakObject *t = Thing(s, T_BOLT, 0, 0);
 
@@ -800,6 +823,7 @@ static bool32 DarkNebula(struct SqueakObject *s) {
     case DN_ORBIT:
         if (T(s) == 0) {
             COUNT(s) = 1 + Random(2);
+            SqueakSfx(s, 0x1D0);
             SIDE(s) = 0;
             PREV_X(s) = Random(2);
             x = (base->x - SpotX(s, ORBIT_X)) / ORBIT_RX;
@@ -854,6 +878,7 @@ static bool32 DarkNebula(struct SqueakObject *s) {
         {
             struct SqueakObject *t = Thing(s, T_PILLAR, 0, 0);
 
+            SqueakSfx(s, 0x1D7);
             if (t) {
                 t->obj.base.y = SpotY(s, PILLAR_AT);
                 t->vx = s->vx;
@@ -1218,6 +1243,7 @@ static bool32 DarkNebulaThing(struct SqueakObject *t) {
         base->sprite.unk14 = s->obj.base.sprite.unk14 + 0x40;
         break;
     case T_STAR:                // 0x0212FAF0, 0x0212F9F8: till the floor, a wall or out of view;
+        if (T(t) == 0) SqueakSfx(t, 0x1D2);
         MoveFree(t);
         if (OnFloor(t, s) || OutOfView(t, s, MARGINS_1)) Gone(t);
         break;
@@ -1277,6 +1303,7 @@ static bool32 DarkNebulaThing(struct SqueakObject *t) {
             } else {
                 T_SAFE(t) = ORB_SAFE;
                 RequestScreenShake(1, base);
+                SqueakSfx(t, 0x1D8);
             }
         }
         T_LAST_HP(t) = t->obj.unk80;
@@ -1338,6 +1365,7 @@ static bool32 DarkNebulaThing(struct SqueakObject *t) {
             static const s16 sAt[][2] = { { -111, 68 }, { 112, 68 }, { 1, -2 }, { 1, 137 } };
 
             SqueakPlayComposite(t, C_CAGE);
+            SqueakSfx(t, 0x1D5);
             for (i = 0; i < ARRAY_COUNT(sCage); i++) {
                 e = SqueakSpawn(t, SQUEAK_DARK_NEBULA_SHOT, sCage[i], sAt[i][0] << 12, sAt[i][1] << 12);
                 if (e == NULL) continue;

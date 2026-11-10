@@ -29,7 +29,7 @@
  *     then it pops (0x02070C54): 30 in 100 a Gordo (Squeak Squad's enemy 5: KatAM's own here), else a treat: 15 a Maxim Tomato
  *     (heals all), 20 meat (Squeak Squad's heals 24 of 36: KatAM's meat 3 of 6), 20 a drink (12 of 36: KatAM's pop soda, 2), 10
  *     food (6 of 36: KatAM's small food, 1), 5 a 1-UP. The inhale stopping before it's alone, it starts over.
- * Not ported: its sounds (0x134, 0x135 the ball), the ring of cloud puffs it pops in (0x020219C4) and Squeak Squad's appearing
+ * Its sounds (Squeak Squad's, SqueakSfx): 0x134, 0x135 the ball. Not ported: the ring of cloud puffs it pops in (0x020219C4) and Squeak Squad's appearing
  * effects of what it leaves (KatAM's own puff instead), its other mode (the brain's +8 not 3: the loops start over). KatAM's inhale
  * doesn't take it (unk5C 0x20, as Maiga). */
 #include "../squeak.h"
@@ -557,6 +557,7 @@ static bool32 Ball(struct SqueakObject *s) {
     switch (s->state) {
     case 0:
         SqueakPlay(s, ANIM_BALL);
+        SqueakSfx(s, 0x134);
         s->vx = s->vy = 0;
         s->ay = -BALL_GRAVITY;
         SqueakSetState(s, 1);
@@ -568,6 +569,7 @@ static bool32 Ball(struct SqueakObject *s) {
             s->obj.base.flags |= 0x1000;
         } else if (s->terrain || SqueakOnGround(s)) {
             SqueakSpawnEffect(s, SQUEAK_FX_BURST, 0, 0, FALSE);
+            SqueakSfx(s, 0x135);
             SqueakStop(s);
             SqueakPlay(s, ANIM_BALL_STILL);
             s->obj.base.flags |= 0x400 | 0x200;

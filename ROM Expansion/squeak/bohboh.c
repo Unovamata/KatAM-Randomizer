@@ -40,7 +40,7 @@
  *   as recorded), nor while it holds Kirby; 32 frames safe after.
  * • The lava's hurt (0x0212737C: an object of its own over the lava, 128 pixels across and 10 high at the floor, hurting what touches
  *   it; the stage's lava isn't in KatAM's rooms, so here it shows nothing, as on the DS).
- * Not ported: its sounds, the camera's shakes, its hit flash (enemy/bo_bo_dmg's palettes: KatAM's), the lava (the stage's tiles, its
+ * Its sounds: Squeak Squad's (SqueakSfx). Not ported: the camera's shakes, its hit flash (enemy/bo_bo_dmg's palettes: KatAM's), the lava (the stage's tiles, its
  * bubbles: a5s7s2's), its own defeat (0x0210E730-0x0210E294: KatAM's mini-boss defeat), its boss music. */
 #include "../squeak.h"
 #include "kirby.h"
@@ -430,6 +430,7 @@ static void Reenter(struct SqueakObject *s, s32 n, bool32 left) {
 static void DropFire(struct SqueakObject *s) {
     if (--TIMER(s) < 1) {
         Thing(s, THING_FIRE, s->obj.base.x, s->obj.base.y);
+        SqueakSfx(s, 0x12D);
         TIMER(s) = DROP_TIME;
     }
 }
@@ -477,6 +478,7 @@ static bool32 Bohboh(struct SqueakObject *s) {
     case BB_INTRO_WAIT:     // 0x02110C08;
         if (--TIMER(s) < 1) {
             s->vx = SPEED_INTRO;
+            SqueakSfx(s, 0x1A5);
             SqueakSetState(s, BB_INTRO_FLY);
         }
         break;
@@ -533,6 +535,7 @@ static bool32 Bohboh(struct SqueakObject *s) {
         Point(s, POINT(s), &x, &y);
         Face(s, Across(s, x) < 1);
         SqueakStop(s);
+        SqueakSfx(s, 0x1A6);
         s->vx = LEAP_VX;
         s->vy = LEAP_VY;
         s->ay = LEAP_AY;
@@ -660,6 +663,7 @@ static bool32 Bohboh(struct SqueakObject *s) {
             return TRUE;
         }
         SqueakStop(s);
+        SqueakSfx(s, 0x1A4);
         s->vx = WIND_VX;
         s->vy = WIND_VY;
         TIMER(s) = WIND_TIME;
@@ -671,6 +675,7 @@ static bool32 Bohboh(struct SqueakObject *s) {
             Move(s);
             break;
         }
+        SqueakSfx(s, 0x58);
         dx = Across(s, kirby->base.x);
         dy = Up(s, kirby->base.y + (FEET << 8));
         d = FxSqrt(FxMul(dx, dx) + FxMul(dy, dy));
@@ -736,6 +741,7 @@ static bool32 Bohboh(struct SqueakObject *s) {
             TIMER(s) = LAVA_TIME;
             DROP(s) = 0;
             SqueakPlay(s, ANIM_LAVA);
+            SqueakSfx(s, 0x15A);
             SqueakStop(s);
             s->obj.base.y = FLOOR(s);
             SqueakSetState(s, BB_LAVA);
@@ -789,6 +795,7 @@ static bool32 Bohboh(struct SqueakObject *s) {
         if (s->animEnded) {
             TIMER(s) = FLARE_TIME;
             SqueakPlayComposite(s, COMPOSITE_FLARE);
+            SqueakSfx(s, 0x13D);
             SqueakSetState(s, BB_FLARE);
             return TRUE;
         }
@@ -810,6 +817,7 @@ static bool32 Bohboh(struct SqueakObject *s) {
         s->vx = Abs(s->vx);
         if (HELD(s)) HELD(s)->base.flags = (HELD(s)->base.flags & ~1) | (s->obj.base.flags & 1);
         SqueakPlayComposite(s, COMPOSITE_CARRY);
+        SqueakSfx(s, 0x147);
         SqueakSetState(s, BB_CARRY);
         return TRUE;
     case BB_CARRY:          // 0x0210E978: thrown down toward point 2 (the lava), facing the middle;
@@ -835,6 +843,7 @@ static bool32 Bohboh(struct SqueakObject *s) {
         return TRUE;
     case BB_THROW:          // 0x0210E830;
         if (s->animEnded) {
+            SqueakSfx(s, 0x13E);
             SqueakPlayComposite(s, COMPOSITE_FLY);
             SqueakSetState(s, BB_THROW_ON);
             return TRUE;

@@ -34,8 +34,8 @@
  * • Boxes (biospark.rca, per animation frame, as uja.c's): the slash's blade (anim 4) hurts 43 pixels ahead; the jump (anim 2) only
  *   grabs, its touch harmless; the leaf it hides as hurts.
  * Kirby's inhale takes it, its kunai and the leaf it hides as as any enemy; a hit lets Kirby go as he is.
- * Not ported: its sounds (0x124 the hops, 0x13A hiding, 0x13B coming out, 0x13C the slash's steps, 0x13D the kunai, 0x13E the grab),
- * its ability (Squeak Squad's Ninja: KatAM has none), the other mode (the brain's +8 not 3: B and A in the air, MlG's jumps), its
+ * Its sounds (Squeak Squad's, SqueakSfx): 0x124 the hops, 0x13A hiding, 0x13B coming out, 0x13C the slash's steps, 0x13D the kunai,
+ * 0x13E the grab. Not ported: its ability (Squeak Squad's Ninja: KatAM has none), the other mode (the brain's +8 not 3: B and A in the air, MlG's jumps), its
  * contact damages (Squeak Squad's 4 for the kunai and the slash: KatAM's 1), and its vtable +0x24 handler (0x0207CCB4: an event 0x15
  * while holding Kirby lets him go hurt; what sends it wasn't found). */
 #include "../squeak.h"
@@ -254,6 +254,7 @@ static bool32 StartMove(struct SqueakObject *s) {
                                  BODY_HIGH_JUMP_FORWARD, BODY_HIDE_ENTRY };
 
     if (MOVE(s) < MOVE_HOP_BACK || MOVE(s) > MOVE_HIDE) return FALSE;
+    SqueakSfx(s, MOVE(s) == MOVE_HIDE ? 0x13A : 0x124);
     SqueakSetState(s, sMoves[MOVE(s)]);
     MOVE(s) = MOVE_NONE;
     return TRUE;
@@ -484,6 +485,7 @@ static bool32 Body(struct SqueakObject *s) {
             return TRUE;
         }
         WAIT(s)--;
+        if (s->stateTimer % 10 == 0) SqueakSfx(s, 0x13C);
         Gravity(s);
         SqueakMove(s);
         break;
@@ -502,6 +504,7 @@ static bool32 Body(struct SqueakObject *s) {
     case BODY_HIDE:         // 0x0207BA4C;
         if (s->animEnded) {
             SqueakPlay(s, ANIM_HIDDEN);
+            SqueakSfx(s, 0x13B);
             SqueakSetState(s, BODY_HIDDEN);
             return TRUE;
         }
@@ -524,6 +527,7 @@ static bool32 Body(struct SqueakObject *s) {
             SqueakPlay(s, ANIM_APPEARED);
             WAIT(s) = APPEAR_TIME;
             SqueakSpawn(s, SQUEAK_BIO_SPARK_LEAF, 0, LEAF_X, LEAF_Y);
+            SqueakSfx(s, 0x13B);
             SqueakSetState(s, BODY_APPEARED);
             return TRUE;
         }
@@ -545,6 +549,7 @@ static bool32 Body(struct SqueakObject *s) {
         SqueakPlay(s, ANIM_GRAB);
         SqueakThroughTerrain(s, TRUE);
         SqueakStop(s);
+        SqueakSfx(s, 0x13E);
         WAIT(s) = GRAB_TIME;
         GRAB_Y(s) = s->obj.base.y;
         SqueakSetState(s, BODY_IZUNA_GRAB);
@@ -805,6 +810,7 @@ static bool32 Kunai(struct SqueakObject *s) {
     case 0:
         s->vx = KUNAI_SPEED;
         SqueakPlay(s, ANIM_KUNAI);
+        SqueakSfx(s, 0x13D);
         SqueakSetState(s, 1);
         return TRUE;
     case 1:

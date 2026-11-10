@@ -17,7 +17,7 @@
  *   120 (2 seconds left alone) it lets go: he's flung back from 3 pixels up at 2.6 (0x299A) and hurt when he lands (DS: 6 of 36 HP),
  *   KatAM's throw that hurts on landing (Kirby_110 flag 2, sub_0804F32C: 1 HP); it starts over. Kirby is held as KatAM's grabbers
  *   hold him (kirby->unk110, see minibosses/bugzzy.c), facing it.
- * Not ported: its sounds (0x132 the hops, 0x133 the bite), kind 5's own inhale (an attacker whose +0x18 is 3), its other mode (the
+ * Its sounds (Squeak Squad's, SqueakSfx): 0x132 the hops, 0x133 the bite. Not ported: kind 5's own inhale (an attacker whose +0x18 is 3), its other mode (the
  * brain's +8 not 3: A or B held in a fall or landing hops big), the bite let go by kind 0x15 (frozen), and a hit while it bites: on
  * the DS it lets go of Kirby and takes no damage (its 0x218 still set: no more hits nor bites after); here it lets go and is hurt
  * as KatAM's enemies are. KatAM's inhale doesn't take it (unk5C 0x20: see MaigaInit()). */
@@ -152,12 +152,14 @@ static void LetGo(struct SqueakObject *s, const struct Kirby_110 *how) {
     }
     BITTEN(s) = NULL;
     s->obj.base.unk6C = NULL;
+    SqueakStopSfx(s, 0x133);
 }
 
 /* Bite(); 0x020A1F90 and 0x020A1054: Kirby's inhale took it to his mouth: it holds him (KatAM's hold, sub_0804E09C, which faces him
  * as it: then turned to face it); */
 static void Bite(struct SqueakObject *s, struct Kirby *kirby) {
     BITTEN(s) = kirby;
+    SqueakLoopSfx(s, 0x133);
     PULLING(s) = 0;
     COUNT(s) = 0;
     KEYS(s) = KirbyKeys(kirby);
@@ -209,6 +211,7 @@ static bool32 Body(struct SqueakObject *s) {
         }
         if (s->animEnded) {
             Hop(s, 1);
+            SqueakSfx(s, 0x132);
             SqueakPlay(s, ANIM_RISE);
             SqueakSetState(s, BODY_RISE);
             return TRUE;
@@ -264,6 +267,7 @@ static bool32 Body(struct SqueakObject *s) {
     case BODY_BIG_CROUCH:   // 0x020A175C;
         if (s->animEnded) {
             Hop(s, 2);
+            SqueakSfx(s, 0x132);
             SqueakPlay(s, ANIM_RISE);
             SqueakSetState(s, BODY_BIG_RISE);
             return TRUE;

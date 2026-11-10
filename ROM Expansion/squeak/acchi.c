@@ -34,7 +34,7 @@
  *   to his body, as recorded) nor his inhale take it (0x0206BB38 ignores kinds 3-5).
  * • Boxes (acchi.rca): its body's hit box (19 pixels behind to 13 ahead, 1 to 23 up; 28 up jumping), its kind 0 touch box in it; the
  *   fire's (kind 0) 5 pixels round its middle flying, 3 either side and 6 to 12 up burning.
- * Not ported: its sounds (0x14C the spit), the other mode (the brain's +8 not 3: A in the air), its contact damages (Squeak Squad's 8
+ * Its sound: 0x14C the spit (0x0206A000). Not ported: the other mode (the brain's +8 not 3: A in the air), its contact damages (Squeak Squad's 8
  * the fire: KatAM's 1), the fire going out under Squeak Squad's attacks with flag 0x400 (0x0206BB38: KatAM's attacks beat it as theirs
  * do). */
 #include "../squeak.h"
@@ -199,6 +199,7 @@ static bool32 Body(struct SqueakObject *s) {
         if (COUNT(s) == FIRE_FRAME) {
             COUNT(s) = FIRE_FRAME + 1;
             SqueakSpawn(s, SQUEAK_ACCHI_FIRE, KIND(s), FIRE_X, FIRE_Y);
+            SqueakSfx(s, 0x14C);
             if (s->animEnded) {
                 SqueakSetState(s, SqueakOnGround(s) ? BODY_START : BODY_FALL_ENTRY);
                 return TRUE;

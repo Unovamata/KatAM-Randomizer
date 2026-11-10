@@ -28,7 +28,7 @@
  *   the front hole ahead of her, turned away from Kirby (0x0212AE04), and sinks.
  * • Her last 20 HP (0x0212C73C: Squeak Squad's 20 of 300), she comes up in the middle back hole (0x0212B630) and always dives.
  * • Hit in front (0x0212C73C): 20 frames safe (KatAM's hits then undone), two petals knocked off her (0x0212A624's kinds 1 and 2).
- * Not ported: her sounds, Squeak Squad's hit flash (enemy/morly_dmg's palettes: KatAM's) and shakes (KatAM's), her own defeat
+ * Her sounds: Squeak Squad's (SqueakSfx). Not ported: Squeak Squad's hit flash (enemy/morly_dmg's palettes: KatAM's) and shakes (KatAM's), her own defeat
  * (0x0212C594-0x0212C278: KatAM's mini-boss defeat), her boss music. */
 #include "../squeak.h"
 #include "kirby.h"
@@ -432,6 +432,7 @@ static bool32 Moley(struct SqueakObject *s) {
         MoveFree(s);
         if (s->animEnded) {
             Body(s, ANIM_S_LOOK2);
+            SqueakSfx(s, 0x191);
             SqueakSetState(s, MOLEY_LOOK_END);
         }
         break;
@@ -464,7 +465,10 @@ static bool32 Moley(struct SqueakObject *s) {
         return TRUE;
     case MOLEY_THROW_WIND:  // 0x0212AD64;
         MoveFree(s);
-        if (s->animEnded) SqueakSetState(s, MOLEY_THROW_PICK);
+        if (s->animEnded) {
+            SqueakSfx(s, 0x198);
+            SqueakSetState(s, MOLEY_THROW_PICK);
+        }
         break;
     case MOLEY_THROW_PICK:  // 0x0212AB90;
         MoveFree(s);
@@ -496,6 +500,7 @@ static bool32 Moley(struct SqueakObject *s) {
         MoveFree(s);
         if (!s->animEnded) break;
         Body(s, ANIM_S_GONE);
+        SqueakSfx(s, 0x194);
         SqueakStop(s);
         TIMER(s) = 0;
         SqueakSetState(s, MOLEY_GONE);
@@ -508,6 +513,7 @@ static bool32 Moley(struct SqueakObject *s) {
         }
         break;
     case MOLEY_HIDE:        // 0x0212B924: under the hole, out of reach;
+        if (s->stateTimer % 8 == 1) SqueakSfx(s, 0x194);
         if (s->animEnded) {
             AWAY(s) = TRUE;
             if (PHASE(s) == PHASE_CHOSE) {
@@ -520,7 +526,8 @@ static bool32 Moley(struct SqueakObject *s) {
         }
         MoveFree(s);
         break;
-    case MOLEY_UNDER:       // 0x0212B88C;
+    case MOLEY_UNDER:       // 0x0212B88C: (its digging, every 8 frames from its second);
+        if (s->stateTimer % 8 == 1) SqueakSfx(s, 0x194);
         if (--COUNT(s) < 0) SqueakSetState(s, PHASE(s) == PHASE_LAST ? MOLEY_MIDDLE : MOLEY_EMERGE);
         MoveFree(s);
         break;
@@ -565,6 +572,7 @@ static bool32 Moley(struct SqueakObject *s) {
         return TRUE;
     case MOLEY_MIDDLE:      // 0x0212B630: her last stand, the middle back hole, facing right (out of reach: Squeak Squad's flag 1 kept);
         Face(s, FALSE);
+        SqueakSfx(s, 0x195);
         TIMER(s) = 0;
         MODE(s) = MODE_MIDDLE;
         LANDED(s) = FALSE;
@@ -574,6 +582,7 @@ static bool32 Moley(struct SqueakObject *s) {
         return TRUE;
     case MOLEY_DIVE:        // 0x0212B594: her sparkles;
         SqueakPlayComposite(s, MODE(s) == MODE_MIDDLE ? COMPOSITE_MIDDLE_DIVE : COMPOSITE_BACK_DIVE);
+        SqueakSfx(s, 0x195);
         LANDED(s) = FALSE;
         SqueakStop(s);
         SqueakSetState(s, MOLEY_DIVE_DOWN);
@@ -656,9 +665,11 @@ static bool32 Moley(struct SqueakObject *s) {
         SqueakPlayComposite(s, COMPOSITE_LAND);
         SqueakStop(s);
         if (Zone(s, s->obj.base.x, s->obj.base.y) == ZONE_MIDDLE) {
+            SqueakSfx(s, 0x15A);
             SqueakSetState(s, MOLEY_CRASH);
             Crash(s);
         } else {
+            SqueakSfx(s, 0x197);
             SqueakSetState(s, MOLEY_HOLE);
         }
         if (PHASE(s) == PHASE_LAST) PHASE(s) = PHASE_ON;
@@ -811,7 +822,7 @@ void MrsMoleyInit(struct SqueakObject *s) {
  * at all, sliding 1.05 slower each: 2.3 less 5.0), forward less by its own each; grit bounces once and falls through the floor. It
  * flies 240 frames (a bolt 380; a bomb flashing its last 60), then bursts (0x020B48E0's type 6), as on touching Kirby (0x02129260)
  * or hit (0x021291C8: KatAM's defeat). Kirby swallows any but grit, a ring giving Wheel, a bomb Bomb, a can Fire and a saw Cutter
- * (Squeak Squad's abilities 10, 9, 1 and 7); grit is harmless (no box), out of reach. Not ported: its sounds; the screen's 2-frame
+ * (Squeak Squad's abilities 10, 9, 1 and 7); grit is harmless (no box), out of reach. Its sound: 0x199 as it's thrown or flung up as grit (SqueakSfx); the screen's 2-frame
  * shake at each bounce (every frame a ring rolls: KatAM's shortest is 14 frames). */
 static const s32 sThingSpeeds[][5] = {     // (forward, up, gravity, forward lost and up lost a bounce: PrmBB04Ml0's +0x64..+0x134);
     [THING_ROCK] = { 0x299A, 0x24CD, 0x334, 0xCD, 0 },
@@ -845,6 +856,7 @@ static void ThingLaunch(struct SqueakObject *s) {
     s->vx = v[0];
     s->vy = v[1];
     s->ay = -v[2];
+    SqueakSfx(s, 0x199);
     switch (s->variant) {
     case THING_ROCK:
         if (ahead <= NEAR_KIRBY) s->vx -= 0x333, s->vy -= 0x333;
@@ -887,6 +899,7 @@ static bool32 Thing(struct SqueakObject *s) {
             s->vx = v[0] + (way == 1 || way == 4 ? -GRIT_TURN : way == 3 || way == 6 ? GRIT_TURN : 0);
             s->vy = v[1];
             s->ay = -v[2];
+            SqueakSfx(s, 0x199);
         } else {
             ThingLaunch(s);
         }

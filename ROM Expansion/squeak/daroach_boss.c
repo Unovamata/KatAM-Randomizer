@@ -44,7 +44,7 @@
  *   - His beam's reach (dancho01.rca's box on the beam's part, 48 ahead: 31 to 332 pixels ahead, 4 under to 5 over his spot; Dark
  *     Daroach's 31 to 320, 14 under to 15 over): KatAM's boxes reach 127 pixels from an object, so two of these, each half of it,
  *     kept on him while the beam shows; hurting, drawing nothing, no attack hurts them.
- * Not ported: his sounds, his hit flash (enemy/dan_dmg's palettes: KatAM's), the screen's shakes, his own defeat (0x02124FFC-
+ * His sounds: Squeak Squad's (SqueakSfx). Not ported: his hit flash (enemy/dan_dmg's palettes: KatAM's), the screen's shakes, his own defeat (0x02124FFC-
  * 0x02124DCC, his wand bouncing off: KatAM's mini-boss defeat), touching an invincible Kirby (KatAM's own), his boss music. */
 #include "../squeak.h"
 #include "kirby.h"
@@ -267,6 +267,7 @@ static void Throw(struct SqueakObject *s, u8 kind) {
     s32 x = s->obj.base.x + (FacesLeft(s) ? -(SPAWN_AHEAD << 8) : SPAWN_AHEAD << 8);
 
     Thing(s, kind, x, s->obj.base.y - (SPAWN_UP << 8));
+    SqueakSfx(s, 0x7D);
 }
 
 // Beam(); His beam's reach while it shows: its two halves made once, again if lost (they keep to him themselves);
@@ -348,6 +349,7 @@ static bool32 DaroachBoss(struct SqueakObject *s) {
     case DR_INTRO:          // 0x021267EC, 0x02126790: his float once, then his HP bar (the framework's);
         if (s->stateTimer == 0) {
             SqueakPlay(s, ANIM_FLOAT);
+            SqueakSfx(s, 0x1AB);
             break;
         }
         if (s->animEnded) {
@@ -371,6 +373,7 @@ static bool32 DaroachBoss(struct SqueakObject *s) {
     case DR_WARP:           // 0x02126140;
         SqueakPlay(s, ANIM_WARP_OUT);
         Stop(s);
+        SqueakSfx(s, 0x1AA);
         SqueakSetState(s, DR_WARP_OUT);
         return TRUE;
     case DR_WARP_OUT:       // 0x021260D0: hidden (his flag 1), at the point;
@@ -387,6 +390,7 @@ static bool32 DaroachBoss(struct SqueakObject *s) {
             s->obj.base.flags &= ~0x400;
             FaceIn(s);
             SqueakPlay(s, ANIM_WARP_IN);
+            SqueakSfx(s, 0x1AB);
             SqueakSetState(s, DR_WARP_IN);
             return TRUE;
         }
@@ -435,6 +439,7 @@ static bool32 DaroachBoss(struct SqueakObject *s) {
         if (T(s) >= TIMER(s)) {
             Stop(s);
             SqueakPlay(s, WAND_RAISE);
+            SqueakSfx(s, 0x1B1);
             SqueakSetState(s, DR_BEAM_RAISE);
             return TRUE;
         }
@@ -443,6 +448,7 @@ static bool32 DaroachBoss(struct SqueakObject *s) {
     case DR_BEAM_RAISE:     // 0x021255CC;
         if (s->animEnded) {
             SqueakPlayComposite(s, Dark(s) ? COMPOSITE_DARK_CHARGE : COMPOSITE_CHARGE);
+            SqueakLoopSfx(s, 0x1B6);
             s->maxVy = CHARGE_CAP;
             SqueakSetState(s, DR_BEAM_CHARGE);
             return TRUE;
@@ -469,6 +475,8 @@ static bool32 DaroachBoss(struct SqueakObject *s) {
     case DR_BEAM_AIM:       // 0x02125300;
         if (s->animEnded) {
             SqueakPlayComposite(s, Dark(s) ? COMPOSITE_DARK_BEAM : COMPOSITE_BEAM);
+            SqueakStopSfx(s, 0x1B6);
+            SqueakSfx(s, 0x1AF);
             if (Dark(s)) s->vx = -BEAM_BACK;
             SqueakSetState(s, DR_BEAM_FIRE);
             return TRUE;
@@ -679,14 +687,22 @@ static bool32 DaroachThing(struct SqueakObject *t) {
         if (t->state == 0) {            // 0x021246F4;
             StarAngle(t, t->variant - THING_STAR, TRUE);
             SqueakPlayComposite(t, COMPOSITE_STAR);
+            SqueakSfx(t, 0x1AC);
             SqueakSetState(t, 1);
         }
         // 0x021243D8: off the floor up, off a ceiling down, off a wall turned round (its way up or down kept);
-        if (SqueakOnGround(t)) StarAngle(t, Random(3), FALSE);
-        if (SqueakCeiling(t)) StarAngle(t, Random(3), TRUE);
+        if (SqueakOnGround(t)) {
+            StarAngle(t, Random(3), FALSE);
+            SqueakSfx(t, 0x1B4);
+        }
+        if (SqueakCeiling(t)) {
+            StarAngle(t, Random(3), TRUE);
+            SqueakSfx(t, 0x1B4);
+        }
         if (SqueakWallAhead(t)) {
             bool32 down = t->vy < 1;
 
+            SqueakSfx(t, 0x1B4);
             SqueakTurnAround(t);
             StarAngle(t, Random(3), down);
         }
@@ -710,6 +726,7 @@ static bool32 DaroachThing(struct SqueakObject *t) {
             if (!DarkThing(t)) {
                 SqueakStop(t);
                 SqueakSpawnEffect(t, SQUEAK_FX_BURST, 0, 0, FALSE);
+                SqueakSfx(t, 0x12D);
                 SqueakPlay(t, ANIM_BLAST);
                 t->obj.kirbyAbility = 0;
                 SqueakSetState(t, 2);
@@ -717,6 +734,7 @@ static bool32 DaroachThing(struct SqueakObject *t) {
             }
             t->vx = t->vx < 1 ? 0 : t->vx < BOMB_SLIDE ? t->vx : BOMB_SLIDE;
             t->vy = 0;
+            SqueakSfx(t, 0x135);
             SqueakSetState(t, 3);
             break;
         case 2:                         // 0x02123E3C;
@@ -727,6 +745,7 @@ static bool32 DaroachThing(struct SqueakObject *t) {
             SqueakMove(t);
             if (SqueakOnGround(t)) {
                 SqueakStop(t);
+                SqueakSfx(t, 0x14D);
                 SqueakSetState(t, 4);
             }
             break;
@@ -741,6 +760,7 @@ static bool32 DaroachThing(struct SqueakObject *t) {
             SqueakMove(t);
             if (t->animEnded) {
                 SqueakPlayComposite(t, COMPOSITE_FIRE);
+                SqueakSfx(t, 0x1B0);
                 t->obj.kirbyAbility = 0;
                 SqueakSetState(t, 6);
             }

@@ -31,7 +31,7 @@
  *   frames later. The ghost its grab calls comes from the screen's top left or right corner (the side away from it) and homes in on
  *   Kirby 180 frames (1.0 at most, 0.05 a frame; within 4 pixels 1.6 and 0.16), then bursts (0x0210439C, 0x02104304).
  * • Hit, it doesn't flinch (0x021034BC, 0x0210357C); its defeat is KatAM's mini-boss's.
- * Not ported: its sounds (0x17B, 0x55, 0x10D, 0x12D, 0x152, 0x153, 0x17C, 0x17D), the camera's moves at its grab (0x02035EC8,
+ * Its sounds (Squeak Squad's, SqueakSfx): 0x17B, 0x55, 0x10D, 0x12D, 0x152, 0x153, 0x17C, 0x17D. Not ported: the camera's moves at its grab (0x02035EC8,
  * 0x02035E04), Squeak Squad's hit flash and shakes (KatAM's), its own defeat (0x02101904..: a hop, a slide, a shudder, its ghosts let
  * go), the other mode; its ghosts' flicker is KatAM's hiding of them every other frame. */
 #include "../squeak.h"
@@ -310,8 +310,9 @@ static bool32 Body(struct SqueakObject *s) {
     s32 cap;
 
     switch (s->state) {
-    case BODY_START:        // 0x02103244 (vtable +0x3C);
+    case BODY_START:        // 0x02103244 (vtable +0x3C): (its hum stopped: started again by its float, 0x021037B8);
         BUSY(s) = 0;
+        SqueakStopSfx(s, 0x17B);
         SqueakPlay(s, ANIM_FLOAT);
         SqueakSetState(s, BODY_FLOAT);
         return TRUE;
@@ -355,6 +356,7 @@ static bool32 Body(struct SqueakObject *s) {
     case BODY_WIND_UP:      // 0x021029CC;
         SqueakPlay(s, ANIM_WIND_UP);
         SqueakStop(s);
+        SqueakSfx(s, 0x55);
         SqueakSetState(s, BODY_CALL);
         return TRUE;
     case BODY_CALL:         // 0x02102910: its wind-up over, it calls;
@@ -667,7 +669,8 @@ static void TedhaunMain(struct Object *obj) {
         if (HELD(s)) LetGo(s, sLetGo);
         obj->base.unk5C &= ~0x80;
     }
-    // (its float's grabbing boxes, 0x021037B8);
+    // (its float's grabbing boxes and its hum, 0x021037B8);
+    if (!s->loopSound && obj->unk80 > 0 && s->state != BODY_INTRO) SqueakLoopSfx(s, 0x17B);
     kirby = obj->unk80 > 0 && !HELD(s) && s->anim == ANIM_FLOAT && s->state != BODY_INTRO ? SqueakGrabbing(s, &sTedhaunBoxes[BOX(s)]) : NULL;
     if (kirby) {
         HELD(s) = kirby;
@@ -678,6 +681,7 @@ static void TedhaunMain(struct Object *obj) {
         sub_0804E09C(kirby);
         kirby->base.flags ^= 1;
         SqueakStop(s);
+        SqueakSfx(s, 0x17D);
         SqueakSetState(s, BODY_GRAB);
     }
 }
@@ -818,6 +822,7 @@ static bool32 Ghost(struct SqueakObject *g) {
         if (g->variant >= SLOTS) {
             G_COUNT(g) = G_HOME;
             SqueakStop(g);
+            SqueakSfx(g, 0x17C);
             if (p->obj.base.x > CameraX(g) + ((DISPLAY_WIDTH / 2) << 8)) {
                 b->x = CameraX(g);
                 b->flags &= ~1;
@@ -869,6 +874,7 @@ static bool32 Ghost(struct SqueakObject *g) {
         if (G_COUNT(g) < 1) {
             SqueakStop(g);
             G_COUNT(g) = G_SWEEP;
+            SqueakSfx(g, 0x17C);
             SqueakSetState(g, GHOST_SWEEP);
             return TRUE;
         }
@@ -901,6 +907,7 @@ static bool32 Ghost(struct SqueakObject *g) {
     case GHOST_BURST:       // 0x02103E1C, 0x02103E7C: it bursts and is gone;
         RequestScreenShake(1, b);       // (KatAM's shortest timed shake, 14 frames: 4-6 shake on till stopped);
         SqueakSpawnEffect(g, SQUEAK_FX_BURST, 0, 0, FALSE);
+        SqueakSfx(g, 0x12D);
         b->flags |= 0x1000;
         break;
     }

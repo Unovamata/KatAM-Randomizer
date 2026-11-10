@@ -44,7 +44,7 @@
  *   pops (anim 3: 0x021091EC, 0x021091CC), letting the Waddle Dee go; an inhale pops it too.
  *   Touching Kirby (0x02109CE4), any bubble bursts (efc_cmn1's animation 1: 0x02109170), letting its Waddle Dee go (his body
  *   doesn't hurt them: KatAM's unk5C 0x80); Kirby's attacks beat them as KatAM's (Squeak Squad's burst them).
- * Not ported: its sounds (0x10D, 0x135, 0x152, 0x153, 0x165, 0x173, 0x174, 0x175, 0x176, 0x17C), the music change (0x020B0684),
+ * Its sounds (Squeak Squad's, SqueakSfx): 0x10D, 0x135, 0x152, 0x153, 0x165, 0x173, 0x174, 0x175, 0x176, 0x17C. Not ported: the music change (0x020B0684),
  * Squeak Squad's hit flash (its palette, 0x021059D8) and shakes (KatAM's), its own defeat (0x02106378, 0x02106530..: a hop, a slide
  * shedding dust, a shudder: KatAM's mini-boss defeat instead), its ability (none), the other mode's pad (0x021087C8), the DS's rumble
  * (0x0221C6EC). Before its fight it falls to the floor, as the framework's mid-bosses do (SqueakMidbossWait; Squeak Squad's stays where
@@ -669,6 +669,7 @@ static bool32 Body(struct SqueakObject *s) {
             return TRUE;
         }
         COUNT(s)--;
+        if (s->stateTimer % 10 == 0) SqueakSfx(s, 0x176);
         s->vx = CRAB_SPEED;
         if (SqueakWallAhead(s) || EdgeAhead(s)) SqueakTurnAround(s);
         Gravity(s);
@@ -690,6 +691,7 @@ static bool32 Body(struct SqueakObject *s) {
     case BODY_REFORM_1:     // 0x021082B8;
         if (s->animEnded) {
             SqueakPlay(s, ANIM_CRAB_BLOW);
+            SqueakSfx(s, 0x174);
             SqueakSetState(s, BODY_REFORM_2);
             return TRUE;
         }
@@ -883,6 +885,7 @@ static void BubooMain(struct Object *obj) {
         if (obj->base.y > top + (DISPLAY_HEIGHT << 8)) obj->base.y = top + (DISPLAY_HEIGHT << 8);
     }
     if (SAFE(s) > 0) SAFE(s)--;
+    if (s->stateTimer % 5 == 0 && obj->unk80 > 0) SqueakSfx(s, 0x173);
     SqueakAnimate(s);
     SqueakSetBoxes(s, &sBubooBoxData, HARM(s), &BOX(s));
 }
@@ -956,6 +959,7 @@ static void Hold(struct SqueakObject *b) {
 static void Burst(struct SqueakObject *b) {
     LetGo(b);
     SqueakSpawnEffect(b, SQUEAK_FX_BURST, 0, 0, FALSE);
+    SqueakSfx(b, 0x135);
     b->obj.base.flags |= 0x1000;
 }
 
@@ -1026,6 +1030,7 @@ static bool32 Bubble(struct SqueakObject *b) {
             b->ay = -BUBBLE_GRAVITY;
             SqueakThroughTerrain(b, TRUE);
             SqueakPlay(b, ANIM_SMALL);
+            SqueakSfx(b, 0x174);
             SqueakSetState(b, BUBBLE_FLY);
         } else if (b->variant == BUBBLE_AIMED) {
             // 0x02109844;
@@ -1112,6 +1117,7 @@ static bool32 Bubble(struct SqueakObject *b) {
     case BUBBLE_POP_BIG:    // 0x021091EC: its Waddle Dee let go;
         SqueakStop(b);
         SqueakPlay(b, ANIM_BIG_POP);
+        SqueakSfx(b, 0x175);
         LetGo(b);
         b->obj.base.unk68 = 0;
         b->obj.base.flags |= 0x200;

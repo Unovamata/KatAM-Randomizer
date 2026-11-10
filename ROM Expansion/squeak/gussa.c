@@ -14,7 +14,7 @@
  *   and the dash) it jumps out at 4.0 up, falling 0x19A a frame, no faster than 2.4 (anim 1), its pad turning it round or moving it
  *   on at 0.8; it splashes going out and falling back in (SqueakSplash). On land it lies (composite 0) or wriggles on at 0.4 while
  *   its pad says so; A would jump (no brain of its presses it).
- * Not ported: its sound (0x130, the bonk), and the other mode (the brain's +8 not 3; never so for these brains): floating sinks it
+ * Its sound: 0x130 the bonk (0x0206C75C). Not ported: the other mode (the brain's +8 not 3; never so for these brains): floating sinks it
  * (0x52 a frame, to 0.2) and leaves the water by falling; */
 #include "../squeak.h"
 
@@ -295,6 +295,7 @@ static bool32 Body(struct SqueakObject *s) {
     case BODY_BONK_ENTRY:   // 0x0206C6E4;
         SqueakPlay(s, ANIM_BONK);
         SqueakStop(s);
+        SqueakSfx(s, 0x130);
         SqueakSetState(s, BODY_BONK);
         return TRUE;
     case BODY_BONK:         // 0x0206C62C;

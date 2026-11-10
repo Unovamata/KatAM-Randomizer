@@ -29,7 +29,7 @@
  *   its touch hurts him (as on the DS; it's hit there only); with no kind 0 box (anim 4, the glove pointing down, all fingers)
  *   it does no harm (unk68 0, as KatAM's Blockin).
  * Kirby's inhale takes it as any enemy (on the DS too: pulled in, it's swallowed as a Waddle Dee).
- * Not ported: its sounds (0x136 the puff and glove, 0x137 the sword), its other mode (the brain's +8 not 3: flying away or done
+ * Its sounds (Squeak Squad's, SqueakSfx): 0x136 the puff and glove, 0x137 the sword. Not ported: its other mode (the brain's +8 not 3: flying away or done
  * holding Kirby, it's a puff again), its contact damages (4, 6 for the sword, 9 for its tip at full stretch, of 36: KatAM's 1). */
 #include "../squeak.h"
 #include "main.h"
@@ -377,6 +377,7 @@ static bool32 Body(struct SqueakObject *s) {
     switch (s->state) {
     case BODY_START:        // 0x0208112C (vtable +0x3C);
         Play(s, ANIM_PUFF, HURT_PUFF);
+        SqueakSfx(s, 0x136);
         SqueakSetState(s, BODY_PUFF);
         return TRUE;
     case BODY_PUFF:         // 0x02081004;
@@ -440,6 +441,7 @@ static bool32 Body(struct SqueakObject *s) {
         Play(s, ANIM_SHRINK, HURT_PUFF);
         SqueakStop(s);
         TIMER(s) = FORM_TIME;
+        SqueakSfx(s, 0x137);
         SqueakSetState(s, BODY_SWORD_TURN);
         return TRUE;
     case BODY_SWORD_TURN:   // 0x02082594;
@@ -509,6 +511,7 @@ static bool32 Body(struct SqueakObject *s) {
         Play(s, ANIM_SHRINK, HURT_PUFF);
         SqueakStop(s);
         TIMER(s) = FORM_TIME;
+        SqueakSfx(s, 0x136);
         SqueakSetState(s, BODY_GLOVE_TURN);
         return TRUE;
     case BODY_GLOVE_TURN:   // 0x02083B5C;

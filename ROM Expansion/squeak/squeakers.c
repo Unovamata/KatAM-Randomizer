@@ -36,7 +36,7 @@
  *   (0x020EC7DC: every 7 frames a burst and a shake, its blast moving round its spot: 14 left and up, 10 right and down, ...).
  *   Touched, they burst (0x020ED0B8): KatAM's attacks and touch beat them (KatAM's defeat).
  * • Boxes (chun.rca, per animation frame, as uja.c's).
- * Not ported: its sounds (0xF9 the hop, 0x126 the throw, 0x103 the take, 0xF8 the treat, 0x12D and 0x14F the bombs), the stages'
+ * Its sounds (Squeak Squad's, SqueakSfx): 0xF9 the hop, 0x126 the throw, 0x103 the take, 0xF8 the treat, 0x12D and 0x14F the bombs. Not ported: the stages'
  * routes Squeak Squad's Squeakers follow between their parts (0x02209560's: the next spot on the way, 0x02209BFC) and their tunnels
  * (flag 0x200000: anims 18-23, 0x020EA2EC-0x020EAC30), Kirby carrying the stage's chest (0x020A2BF8: the stage's mode 2, all chase
  * Kirby), Squeak Squad's chests' carried look (0x0209FFC0's animations: KatAM's chests have one). */
@@ -397,6 +397,7 @@ static void Treat(struct SqueakObject *s) {
 
     if (TREAT_TIMER(s) > 0 || Random() >= TREAT_CHANCE) return;
     TREAT_TIMER(s) = TREAT_WAIT;
+    SqueakSfx(s, 0xF8);
     CreateObjTemplateAndObj(obj->base.unk56, 1, 0x24, obj->base.x >> 8, obj->base.y >> 8, 0, 0x1F, 0, 0, OBJ_SMALL_FOOD, RandLessThan(5),
                             0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 }
@@ -488,6 +489,7 @@ static bool32 Body(struct SqueakObject *s) {
         break;
     case BODY_HOP:          // 0x020EBBFC;
         Play(s, ANIM_HOP, ANIM_HOP_CARRY);
+        SqueakSfx(s, 0xF9);
         if (s->vy < 0) s->vy = 0;
         s->ax = s->ay = s->fx = s->fy = 0;
         SqueakSetState(s, BODY_HOP_WAIT);
@@ -613,6 +615,7 @@ static bool32 Body(struct SqueakObject *s) {
     case BODY_WIND:         // 0x020E9C80: once wound up, it throws;
         if (s->animEnded) {
             SqueakPlay(s, ANIM_THROW);
+            SqueakSfx(s, 0x126);
             ThrowBomb(s, BOMB_SMALL);
             SqueakSetState(s, BODY_THROWN);
             return TRUE;
@@ -643,6 +646,7 @@ static bool32 Body(struct SqueakObject *s) {
     case BODY_BIG_WIND:     // 0x020E98A8;
         if (s->animEnded) {
             SqueakPlay(s, ANIM_BIG_THROW);
+            SqueakSfx(s, 0x126);
             ThrowBomb(s, BOMB_BIG);
             SqueakSetState(s, BODY_BIG_THROWN);
             return TRUE;
@@ -659,6 +663,7 @@ static bool32 Body(struct SqueakObject *s) {
     case BODY_TAKE:         // 0x020EC008: it stops (PAUSE frames), then on (PAUSE_NEXT);
         SqueakPlay(s, ANIM_TAKE);
         SqueakStop(s);
+        SqueakSfx(s, 0x103);
         SqueakSetState(s, BODY_PAUSE);
         return TRUE;
     case BODY_PAUSE:        // 0x020EBF68 (its chest 16 pixels behind it meanwhile);
@@ -982,6 +987,7 @@ static bool32 Bomb(struct SqueakObject *s) {
         B_COUNT(s) = 0;
         s->obj.base.flags |= 0x400;
         Blast(s);
+        SqueakSfx(s, 0x12D);
         SqueakSetState(s, BOMB_BLAST);
         break;
     case BOMB_BLAST:        // 0x020ECE14: 9 frames;
@@ -1018,6 +1024,7 @@ static bool32 Bomb(struct SqueakObject *s) {
             B_SPOT_Y(s) = s->obj.base.y;
             s->obj.base.flags |= 0x400;
             s->obj.base.unk5C |= 0x80;
+            SqueakSfx(s, 0x14F);
             SqueakSetState(s, BOMB_BOOM);
             return TRUE;
         }

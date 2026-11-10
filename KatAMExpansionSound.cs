@@ -47,8 +47,11 @@ namespace KatAMRandomizer {
         }
 
         /* GrowSongTable(); The song table moved to the expansion's space with `extra` after its songs, KatAM's code pointed at it (every
-         * aligned word naming it in KatAM's own part of the ROM: m4a's literal pools); returns the first new song's number; */
-        static int GrowSongTable(byte[] rom, List<(int header, ushort player, ushort unused)> extra, ref int cursor) {
+         * aligned word naming it in KatAM's own part of the ROM: m4a's literal pools) and the expansion's code too (`codeLength` bytes
+         * at CodeAddress, written before: its PlaySfx() reads gSongTable, linked at KatAM's address, for the song's player and
+         * priority; left there it read past KatAM's 620 songs for every NiDL and Squeak Squad sound); returns the first new song's
+         * number; */
+        static int GrowSongTable(byte[] rom, List<(int header, ushort player, ushort unused)> extra, ref int cursor, int codeLength) {
             if (songTableAt < 0) (songTableAt, songTableCount) = FindSongTable(rom, CodeAddress);
             int table = Allocate(ref cursor, (songTableCount + extra.Count) * 8, 4);
             Array.Copy(rom, songTableAt, rom, table, songTableCount * 8);
@@ -60,6 +63,8 @@ namespace KatAMRandomizer {
             int old = songTableAt + 0x08000000, repointed = 0;
             for (int at = 0; at + 4 <= CodeAddress; at += 4)
                 if (ReadInt(rom, at) == old) { WriteInt(rom, at, table + 0x08000000); repointed++; }
+            for (int at = CodeAddress; at + 4 <= CodeAddress + codeLength; at += 4)
+                if (ReadInt(rom, at) == old) WriteInt(rom, at, table + 0x08000000);
             if (repointed == 0) throw new InvalidOperationException("Nothing in KatAM's code names its song table.");
             int first = songTableCount;
             songTableAt = table;
@@ -212,7 +217,7 @@ namespace KatAMRandomizer {
                     int entry = table + i * 8;
                     songs.Add((copier.CopySong(ReadInt(nightmare, entry) - 0x08000000), (ushort)ReadShort(nightmare, entry + 4), (ushort)ReadShort(nightmare, entry + 6)));
                 }
-                nidlSongBase = GrowSongTable(rom, songs, ref here);
+                nidlSongBase = GrowSongTable(rom, songs, ref here, version.Code.Length);
             } catch (InvalidOperationException e) {
                 return "NiDL's sounds: " + e.Message;
             }

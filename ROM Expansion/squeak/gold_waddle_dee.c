@@ -12,7 +12,7 @@
  * • Body: stands (anim 1) and walks (anim 3) at 1.25, a puff of dust every 20 frames; A jumps (anim 4, then 5) at 2.5 up, falling
  *   0x19A a frame, no faster than 2.4; walking off a ledge it stops in the air for 5 frames (anim 2, "whoa"), then falls. In water it
  *   sinks (0x07B a frame, to 0.9) or swims (anim 12, 10 up, 11 down) at 1.2 the way its pad says, and jumps out once out of it.
- * Not ported: its sounds (0x6C jump, 0x118 ledge, 0x134, 0x139 landing, 9 step), and the other mode
+ * Its sounds (Squeak Squad's, SqueakSfx): 0x6C jump, 0x118 ledge, 0x134, 0x139 landing, 9 step. Not ported: and the other mode
  * (the brain's +8 not 3; never so for this brain): A in the air jumps again; */
 #include "../squeak.h"
 
@@ -157,12 +157,16 @@ static bool32 Body(struct SqueakObject *s) {
             return FALSE;
         }
         // (every 20 frames from the first, a puff of dust, and sound 9);
-        if (COUNTER(s) % DUST_EVERY == 0) SqueakSpawnEffect(s, SQUEAK_FX_DUST, 0, 0, FALSE);
+        if (COUNTER(s) % DUST_EVERY == 0) {
+            SqueakSpawnEffect(s, SQUEAK_FX_DUST, 0, 0, FALSE);
+            SqueakSfx(s, 9);
+        }
         COUNTER(s)++;
         return FALSE;
     case BODY_JUMP_ENTRY:   // 0x020B61AC;
         SqueakPlay(s, ANIM_JUMP);
         SqueakStop(s);
+        SqueakSfx(s, 0x6C);
         s->vy = JUMP_SPEED;
         s->ay = -GRAVITY;
         SqueakSetState(s, BODY_JUMP);
@@ -184,11 +188,15 @@ static bool32 Body(struct SqueakObject *s) {
         AirControl(s);
         if (s->vy < 0 && PressedA(s)) return TRUE;
         SqueakMove(s);
-        if (SqueakOnGround(s)) SqueakSetState(s, BODY_STAND_ENTRY);
+        if (SqueakOnGround(s)) {
+            SqueakSfx(s, 0x139);
+            SqueakSetState(s, BODY_STAND_ENTRY);
+        }
         return FALSE;
     case BODY_LEDGE_ENTRY:  // 0x020B5F60: off a ledge;
         SqueakPlay(s, ANIM_WHOA);
         SqueakStop(s);
+        SqueakSfx(s, 0x118);
         SqueakSetState(s, BODY_LEDGE);
         COUNTER(s) = 0;
         return TRUE;
@@ -200,6 +208,7 @@ static bool32 Body(struct SqueakObject *s) {
         } else if (COUNTER(s) > LEDGE_HOVER) {
             if (s->animEnded) {
                 SqueakPlay(s, ANIM_FALL);
+                SqueakSfx(s, 0x134);
                 SqueakSetState(s, BODY_LEDGE_FALL);
                 return TRUE;
             }
@@ -218,6 +227,7 @@ static bool32 Body(struct SqueakObject *s) {
     case BODY_B_ENTRY:      // 0x020B5C18 (B: its brains never press it);
         SqueakPlay(s, ANIM_WHOA);
         SqueakStop(s);
+        SqueakSfx(s, 0x118);
         SqueakSetState(s, BODY_B);
         return TRUE;
     case BODY_B:            // 0x020B5B6C;

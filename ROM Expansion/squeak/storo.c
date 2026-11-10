@@ -24,7 +24,7 @@
  *   lying dizzy 180 frames, shivering from 120; then half the time it gets up, else it flexes 180 frames); hit while dizzy it takes
  *   no damage (KatAM's hurt undone); each hit one time in five (not within 40 frames) a treat (0x020DF95C: KatAM's small food).
  * • Variant 2 starts flexing 300 frames.
- * Not ported: its sounds, the screen's shakes, its elemental hurt poses (Kirby's fire, ice and spark: KatAM's hurt instead), its
+ * Its sounds: Squeak Squad's (SqueakSfx). Not ported: the screen's shakes, its elemental hurt poses (Kirby's fire, ice and spark: KatAM's hurt instead), its
  * dizzy stars, its knockback at HP 0 with 7 treats (KatAM's defeat instead), its anger when Kirby carries the stage's chest (stage
  * mode 2: stron_col_ang's palette, 2.0 times its speeds, 36 frames untouchable after each hit), the stages' routes (here straight to
  * its target), its leaving when the stage's Squeak chase is off. */
@@ -361,6 +361,7 @@ static bool32 Body(struct SqueakObject *s) {
             if (CLIMB_TIMER(s) == 0) {
                 CLIMB_TIMER(s) = CLIMB_WAIT;
                 Play(s, ANIM_JUMP);
+                SqueakSfx(s, 0x13D);
                 s->vx = Paced(s, CLIMB_X);
                 s->vy = s->variant == 1 ? 0x2667 : CLIMB_Y;
                 s->ay = -GRAVITY;
@@ -419,6 +420,7 @@ static bool32 Body(struct SqueakObject *s) {
         SqueakMove(s);
         if (SqueakOnGround(s)) {
             SqueakSpawnEffect(s, SQUEAK_FX_LAND_BIG, 0, 0, FALSE);
+            SqueakSfx(s, 0x164);
             Landed(s);
             return TRUE;
         }
@@ -443,7 +445,10 @@ static bool32 Body(struct SqueakObject *s) {
     case BODY_MALLET:       // 0x020E015C: its 46th frame, a shockwave 76 pixels ahead; its animation over, on;
         Gravity(s);
         SqueakMove(s);
-        if (COUNT(s)++ == MALLET_HIT) SqueakSpawn(s, SQUEAK_STAR, SQUEAK_STAR_AHEAD, MALLET_X, 0);
+        if (COUNT(s)++ == MALLET_HIT) {
+            SqueakSpawn(s, SQUEAK_STAR, SQUEAK_STAR_AHEAD, MALLET_X, 0);
+            SqueakSfx(s, 0x169);
+        }
         if (s->animEnded) {
             SqueakSetState(s, NEXT(s));
             return TRUE;
@@ -488,6 +493,7 @@ static bool32 Body(struct SqueakObject *s) {
             SqueakSpawn(s, SQUEAK_STAR, SQUEAK_STAR_AHEAD, STAR_X, 0);
             SqueakSpawn(s, SQUEAK_STAR, SQUEAK_STAR_BEHIND, -STAR_X, 0);
             SqueakSpawnEffect(s, SQUEAK_FX_LAND_BIG, 0, 0, FALSE);
+            SqueakSfx(s, 0x164);
             Play(s, ANIM_JUMP);
             Still(s);
             s->vx = BOUNCE_X;
@@ -519,6 +525,7 @@ static bool32 Body(struct SqueakObject *s) {
         Carry(s);
         break;
     case BODY_TAKE:         // 0x020E20A8, 0x020E2010: its pose (COUNT frames), then NEXT;
+        if (s->stateTimer == 0) SqueakSfx(s, 0x105);
         Gravity(s);
         SqueakMove(s);
         Carry(s);

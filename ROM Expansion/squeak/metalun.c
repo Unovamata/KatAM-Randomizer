@@ -20,7 +20,7 @@
  *   28 frames: 0x02051738) once landed.
  * • Boxes (metalum.rca, per animation frame, as uja.c's): its body's hit box (8 pixels behind to 16 ahead, 2 to 26 up), its touch
  *   box (8 behind to 9 ahead, 7 to 24 up) in it.
- * Not ported: its sounds (0x14A, 0x14B), its ability (Squeak Squad's Metal: KatAM has none), its other mode (the brain's +8 not 3,
+ * Its sounds: 0x14A the thud, 0x14B the stomp. Not ported: its ability (Squeak Squad's Metal: KatAM has none), its other mode (the brain's +8 not 3,
  * which its brain's constructor 0x0205155C never leaves: A jumps and B stops the charge; MlG's walk), the enemy base class's bump
  * into Kirby (its vtable +0x48 and +0x50 states: logged knocked back 2.0, slowing 0.15 a frame), Squeak Squad's contact damage (8
  * of 36: KatAM's 1). */
@@ -152,7 +152,10 @@ static void Lunge(struct SqueakObject *s) {
         stomp = FALSE;
         break;
     }
-    if (stomp && SqueakOnGround(s)) RequestScreenShake(SHAKE, &s->obj.base);
+    if (stomp && SqueakOnGround(s)) {
+        SqueakSfx(s, 0x14B);
+        RequestScreenShake(SHAKE, &s->obj.base);
+    }
     COUNT(s) = COUNT(s) < CHARGE_FRAMES ? COUNT(s) + 1 : 0;
 }
 
@@ -218,6 +221,7 @@ static bool32 Body(struct SqueakObject *s) {
         SqueakCapFall(s, MAX_FALL);
         SqueakMove(s);
         if (SqueakOnGround(s)) {
+            SqueakSfx(s, 0x14A);
             SqueakSetState(s, s->vx == 0 ? BODY_START : BODY_WALK_ENTRY);
             s->vy = s->ay = s->ax = 0;
             return TRUE;

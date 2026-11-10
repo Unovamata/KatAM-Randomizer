@@ -126,7 +126,7 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
     bombs, the blasts) and in KatAM (USA: room 0x323, red, blue and green ones throwing; room 0x23A, a yellow one taking the chest,
     escaping with it, and inhaled while carrying it: the chest falls back and opens again). Not tested: a treat dropped (one hit
     in five), a big chest taken, the stolen chest back in a later visit, a Squeaker's way over walls; EU and Japanese builds built
-    and logic-checked but not played. Not ported: its sounds, the stages' routes and tunnels the DS Squeakers follow. Spinni is
+    and logic-checked but not played (its sounds: section 9's Squeak Squad's sounds). Not ported: the stages' routes and tunnels the DS Squeakers follow. Spinni is
     ported (`squeak/spinni.c`, its shurikens, slash and claws with it; drawn from its two sprites in one character, its weapon a
     layer in its own colors: the framework's new `ExtraFile` and `LayerPalettes`): its brain (chests, Kirby, its spot; its pace
     every 60 frames), runs, jumps and long hops, shuriken throw and dive kick, the inhale it runs from, the knockback at 90% HP
@@ -135,7 +135,7 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
     dizzy); screenshots of the layer, shuriken and claws; the claws (a 50% roll) with the random seed set by a RAM write, gone after
     300 frames; room 0x23A, the chest taken mid-dive, carried home, gone with it). Not tested:
     a treat (hit while dizzy, one in five), its pace off the screen, variant 1, against a DS recording; EU and Japanese builds
-    built and logic-checked, not played. Not ported: its sounds, light-hit flinch and its own defeat (KatAM's), the dizzy stars,
+    built and logic-checked, not played (its sounds: section 9). Not ported: its light-hit flinch and its own defeat (KatAM's), the dizzy stars,
     the stages' routes and tunnels, its rage when Kirby carries the stage's chest. Its thrown things now go through Kirby as on
     the DS (his body doesn't hurt them nor shows their HP bar: they share Doc's things' hit handler `0x020B4964`). Doc is ported
     (`squeak/doc.c`, its things with it: bolts, bomb, missile, lid, empty saucer; drawn from its two sprites in one character, its
@@ -148,7 +148,7 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
     hitting Kirby without an HP bar, cannon smoke, colors against the DS files, the inhale brace, a slide hit's flinch, the
     knockout with its HP set to 22 by a RAM write before a real slide hit, the saucer's return; room 0x23A, the chest taken and
     gone with it; the hover against a DS recording). Not tested: the low bolt, the missile, a treat, a hit while dizzy, its pace
-    off the screen; EU and Japanese builds built and logic-checked, not played. Not ported: its sounds, screen shakes, elemental
+    off the screen; EU and Japanese builds built and logic-checked, not played (its sounds: section 9). Not ported: screen shakes, elemental
     hurt poses, its own defeat (KatAM's), dizzy stars, anger when Kirby carries the stage's chest, the stages' routes. Storo is
     ported (`squeak/storo.c`; drawn from its three sprites in one character: the framework's `ExtraFile` now takes several files
     and `Canvas` a bigger frame for its raised mallet; its shockwaves Gao Gao's stars, which now go through Kirby too): its legs
@@ -173,8 +173,7 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
     started.
   - Cret and Uja pass through the terrain, held in the stage (Squeak Squad's flag 0x200, pinned down with Uja: Cret had been stopped
     by KatAM's terrain). Checked in KatAM: Cret drifts across room 0x323 and stops at its left edge.
-  - Still to do for those: their sounds (Squeak Squad's are the DS's own: KatAM's nearest, or the owner's call); the enemy base
-    class's own states (bumping into Kirby, the shared state in water of the ones that don't swim).
+  - Still to do for those: the enemy base class's own states (bumping into Kirby, the shared state in water of the ones that don't swim).
   - Bosses (0x37-0x3F, 0x46), on the mid-bosses' framework (mini-boss type 0x40: camera, HP bar, music, KatAM's defeat; where the
     randomizer puts them is with its options, below). King Dedede (0x38) is ported (`squeak/king_dedede.c`): his picks, walk, jump,
     hammer walk and swing, hammer jump, float and air puff, inhale (Kirby caught, chewed and spat out in Squeak Squad's star, let
@@ -308,7 +307,7 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
     (each forced by a RAM write in both games from the same spot: his spots, states and things frame by frame, screenshots side by
     side), then in KatAM (USA, room 0x323): an unforced fight of 2400 frames with helpers (fire and ice forms, the form change),
     and his defeat (HP written down to 2 by a RAM write, then a helper's hit: KatAM's mini-boss defeat, gone). Approximated: the
-    floor's burning time (the DS's average, 47 frames; 42-52 there, its own timing not found). Not ported: his sounds, the stage's
+    floor's burning time (the DS's average, 47 frames; 42-52 there, its own timing not found). His sounds: section 9. Not ported: the stage's
     background tinted by his form, the fire's heat (harmless on the DS), stars turned back by reflecting attacks (KatAM has none),
     his own defeat (KatAM's instead). Not tested: a whole fight by hand, EU and Japanese builds (built and logic-checked, not
     played).
@@ -614,7 +613,7 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
       emulator (USA, Europe, Japan, 3-5-1, Kirby on the first cloud): no zap in 300 frames untouched; Kirby given the Sword by a RAM
       write swings it, both clouds zap with the burst and sparks, he's hurt and knocked off, and they rest again after. Not
       checked: the zap against the DS running (the DS emulator crashed loading 3-5 in 1-1's place), a moving cloud's break, the
-      thunder's sound (KatAM's Sparky shock in its place till Squeak Squad's sounds are in).
+      thunder's sound against the DS's (now Squeak Squad's own, 0x11F: section 9).
     - The ropes (1) and rope floors (3: the notes' ropes bullet; 25 ropes, 16 floors): an attack cuts a rope and messages its
       targets (the floor it holds, 8-1-8's rock relay); a rope floor is a platform that carries Kirby, then shakes, falls and
       breaks on the first solid cell under it, when its rope is cut or (6-2-1's) when Kirby stands on it. Checked in the GBA
@@ -649,7 +648,8 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
       down). The DS hands them to its shared effect system, which ends them (both looks' animations loop); that wasn't read, so here
       a streak ends once it's been on the screen and left it, or after 255 frames. Checked in the GBA emulator (USA): 6-1-1's snow
       falling, 3-4-1's wind rising, 7-2-3's blowing left. Not compared against the DS running.
-    - The sound gimmick (0x1A, one, 4-3-2): plays a sound every so often; waits for Squeak Squad's sounds (below).
+    - The sound gimmick (0x1A, one, 4-3-2): plays its sound (the DS's 0x32) every so often, its count and wait its parameter's,
+      heard while Kirby is in its room. Checked in the GBA emulator (USA, 4-3-2: 26 plays in 1,800 frames).
     - The quake triggers (0x13: the notes' quake bullet): ported as a trigger area that messages its targets once (a Kirby within
       64 pixels of its box, or a switch's message, sets it off), with its screen quake now (KatAM's timed shake nearest its length:
       the rooms' are 60 frames, so KatAM's longest, 24). On the DS 4-3-2's is set off by a rolling boulder; here a Kirby nearing it
@@ -683,8 +683,8 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
       starts those stages) show the first till a body enters its box, then step to its own over 120 or 240 frames. Here the far
       view (BG palettes 6-13) starts dim and steps up the same way (`squeak/gimmicks.c`'s Light). The DS's start palette comes from
       a 3D resource not traced: half brightness stands in for it. Checked in the GBA emulator (2-3-1, the fade's start forced by a
-      RAM write: the room's helpers set it off as it loads): dim, part way at 30 frames, full at 120 (USA, Europe, Japan). Left:
-      0x1A (with the sounds). Also:
+      RAM write: the room's helpers set it off as it loads): dim, part way at 30 frames, full at 120 (USA, Europe, Japan). 0x1A
+      plays its sound now (above). Also:
       - The candles and the Light ability (the owner: "Add to the pending list candle and light ability interaction", then:
         "the light ability should light up Squeak Squad sections that require the candle if NiDL expansion is present"): with
         the NiDL ROM loaded, the Light ability (NiDL's, from Cool Spook) lights the Squeak Squad dark rooms' parts the candles
@@ -812,20 +812,36 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
     KatAM's: Light's and Ball's sounds (Ball's code wasn't identified), Whispy Woods' puffs and the Power Orb's other shots (NiDL
     plays none there), the bosses' hit and defeat sounds (KatAM's own for its bosses), Kirby's own common sounds. The NiDL hub (a
     Central Circle copy) keeps KatAM's music.
-- **Squeak Squad's sounds** (the owner: "Import Squeak Squad's sounds and adapt them to the GBA"): not done yet; surveyed. Squeak
-  Squad's sounds are all in `sound/sound_data.sdat` (906 KB: 42 music sequences, each with its own instrument bank, banks 41-82;
-  22 sound-effect archives; 83 banks; 2 wave archives of 448 and 203 KB; no streamed music; no name table). It all fits in the
-  ROM's free space. KatAM plays songs through its MP2K engine (`gSongTable`, 620 songs, `0x08B59ED0` in the USA ROM;
-  voicegroups of 12-byte voices; samples as 8-bit PCM with a 16-byte header, `freq` the rate x 1024 at key 60). What it needs, all
-  in C# (the randomizer reads the owner's Squeak Squad ROM, as for the graphics): the wave archives decoded (PCM8, PCM16, IMA-ADPCM
-  to 8-bit, each sample's root key baked into its rate), the banks turned into voicegroups (sampled, square, noise voices, key
-  splits, drum sets; the DS's envelopes mapped onto KatAM's), the sequences compiled into MP2K tracks (48 to 24 ticks a beat, the
-  DS's notes with lengths and note-wait, loops, calls, volume and expression, pan, bend, tempo, modulation), the song table moved
-  and grown, and each Squeak Squad room's song set to its stage's. The stage-to-music map isn't found yet: in the DS, 1-1 has
-  sequences 12, 14 and 25 loaded (25 likely its music), Mecha-Kracko's stage adds 33; overlay 11 has a 28-entry list (`0x022506B4`
-  on) pairing each entry with a sequence (the entry's number less 5), likely the Sound Player's list. The sound effects (the
-  gimmicks', enemies', bosses') come after: each DS sound number to its archive's sequence, then those in place of KatAM's
-  stand-ins. A way to check it by ear is needed too: the GBA debugger (mGBA) can write its audio to a WAV for the owner.
+- **Squeak Squad's music and sound effects** (the owner: "Import Squeak Squad's sounds and adapt them to the GBA"; "Implement the
+  sounds and music and enemy sound effects for both NiDL and Squeak Squad"): done. `KatAMExpansionSqueakSound.cs` reads the
+  owner's Squeak Squad ROM's `sound/sound_data.sdat` and compiles it for KatAM's MP2K engine: the wave archives (all IMA-ADPCM)
+  decoded to 8-bit samples, the instrument banks turned into voicegroups (key splits, drum sets, the DS's envelopes on KatAM's),
+  the sequences into MP2K tracks (loops as jumps, calls inlined, the DS's tempo, volume on the DS's curve). They go after NiDL's
+  in a second grown song table: the 43 music ids first (the DS's table at `0x02159770`), then all 760 sound ids (`0x02159DDC`), so
+  Squeak Squad's sound n is `SQUEAK_SE(n)` in the C code. Each Squeak Squad room plays its own map's music (its header's byte
+  0x0B; 0 keeps the one before, as on the DS); a world's boss fight keeps its arena's music, the DS's boss themes (21, 33, 34),
+  where the mini-boss framework used to switch to KatAM's mini-boss music. The gimmicks play their DS sounds (shutters, barrels,
+  grass, fire, icicles, rocks, platforms, clouds' break and thunder, ropes, boulders, quakes, the sound gimmick), and every ported
+  enemy, mid-boss, Squeak and boss plays its own: found in the DS's code (every call of its sound functions `0x02013EE8`,
+  `0x02013E6C` and `0x020B0604`, matched to the port's states by their DS addresses) and placed in the same state; the sounds the
+  DS keeps playing (Bubble Head's big blow, Maiga's bite, King Dedede's inhale, Tedhaun's hum, Doc's saucer, Daroach's charge,
+  Mecha-Kracko's field, Dark Nebula's and the dark star's arrival) are stopped where the DS stops them, when a hit starts the character over, and when it goes.
+  - Fixed on the way, for NiDL's sounds too: the expansion code's `PlaySfx()` checks the song's player and priority in
+    `gSongTable`, linked at KatAM's address; the table's move only repointed KatAM's own code, so those checks read past KatAM's
+    620 songs and refused some sounds at random (Mrs. Moley's thrown rocks and digging never played). The move now repoints the
+    expansion's code too.
+  - Checked in the GBA emulator (USA): room 1-1-1 plays its DS music (the music player on an imported song); King Dedede's arena
+    (0x42E) plays the DS's boss theme 21 through the fight with his sounds (his inhale 0x181 ending with it, the impact 0x183 and
+    0x15A, the jumps 0x17E); Mrs. Moley's arena (0x46B) on the boss theme 33 with her looks, dives, digging, holes, throws and
+    rocks (0x191, 0x195, 0x194, 0x197, 0x198, 0x199); 1-3-1's grass 0x59; 1-6-1's Maiga hops (0x132) and bite (0x133, gone once it
+    let go); 4-3-2's sound gimmick (0x32); NiDL's Mr. Tick-Tock (0x2EF) still with his. Europe and Japan: King Dedede's arena on the same boss
+    theme with his sounds; both built and logic-checked (Squeak Squad 359 of 498 rooms as before, all 8 big switches, nothing
+    trapped; NiDL 280 of 280; with and without thin-floor drops).
+  - Not tested one by one in the emulator: the other characters' sounds (built from the same calls), the loops' stops in every
+    case. Where the DS's own timing wasn't followed: King Dedede's and his hammer walk's steps every 25 frames (the DS's on two
+    frames of the walk's animation). Not ported: Starman's (none in its own code), the elemental hurt voices of the Squeaks and
+    the bosses' hit and defeat sounds (KatAM's hurt and defeat stand in), mid-bosses' fight music in ordinary rooms (KatAM's
+    mini-boss music: the DS's own wasn't found).
 - **ROM size** (the owner: "if needed, expand the ROM size to fit all this new content but only if needed"): 32 MB is the most
   the GBA maps (0x08000000-0x09FFFFFF), and the expansion is already there, so it can't grow; about 10 MB of it is free.
 

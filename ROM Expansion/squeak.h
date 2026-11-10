@@ -373,7 +373,15 @@ struct SqueakObject {
     u8 level;                   // Its KatAM hit level (unk5C's 7) while SqueakUntouchable holds it at 6, | 0x80; 0 when not held;
     s16 maxHp;                  // Its HP bar's full HP, when not its table's (0: the table's: SqueakMaxHp), and the HP under the bar's
     s16 hpBase;                 // empty (a boss's next form's, held back: Mecha-Kracko's);
+    u16 loopSound;              // The sound it keeps (SqueakLoopSfx: the DS's list at +0x108), stopped with it; 0 none;
 };
+
+/* SqueakSfx(); Squeak Squad's sound n (its DS id: the DS's 0x02013EE8 and 0x020B0604) from a character, heard if it's in the
+ * player's room; SqueakLoopSfx() and SqueakStopSfx(): a sound it keeps (the DS's 0x02013E6C, a loop or a long one) and stops (the
+ * DS's 0x02013DDC), one at a time, stopped with the character too (the DS's list at +0x108); */
+#define SqueakSfx(s, n) SqueakSound(&(s)->obj, n)
+void SqueakLoopSfx(struct SqueakObject *s, u16 n);
+void SqueakStopSfx(struct SqueakObject *s, u16 n);
 
 // SqueakTouches()' sides (the stage's vtable +0x18's: 1 up, 2 down, 4 left, 8 right);
 enum { SQUEAK_UP = 1, SQUEAK_DOWN = 2, SQUEAK_LEFT = 4, SQUEAK_RIGHT = 8 };

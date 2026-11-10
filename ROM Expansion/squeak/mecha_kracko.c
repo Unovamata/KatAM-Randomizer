@@ -30,7 +30,7 @@
  *   first form); its field and bolts hurt Kirby (KatAM's one box for its touch and its hits: theirs then, as the framework's union
  *   of the two); while its HP is out (its pause, its cloud breaking and gathering) it's untouchable (Squeak Squad's hit handler
  *   and touch take nothing then).
- * Not ported: its sounds, its hit flash (enemy/kracko_dmg isn't in the game: its hurt palette its own, no flash), the stage's slowdown
+ * Its sounds: Squeak Squad's (SqueakSfx). Not ported: its hit flash (enemy/kracko_dmg isn't in the game: its hurt palette its own, no flash), the stage's slowdown
  * in its pause (0x020216E8: the time object's speed), its low sweep and defeat filling the arena's missing cloud-floor tiles
  * (0x02216CB8: KatAM's rooms have none), its own defeat (0x02130924, 0x02130648, 0x02130584, 0x02130510: KatAM's mini-boss defeat),
  * Daroach bringing it in (the stage's scene, its own object), its boss music. */
@@ -350,11 +350,13 @@ static bool32 MechaKracko(struct SqueakObject *s) {
         TIMER(s) = WAVE_HALF;
         TIMER2(s) = WAVES;
         SqueakPlayComposite(s, COMPOSITE_IDLE);
+        SqueakSfx(s, 0x18E);
         SqueakSetState(s, MK_WAVE_FLY);
         return TRUE;
     case MK_WAVE_FLY:       // 0x02131F7C;
         if (--TIMER(s) < 1) {
             TIMER(s) = WAVE_HALF;
+            SqueakSfx(s, 0x18E);
             s->ay = -s->ay;
             if (--TIMER2(s) < 1) {
                 SqueakSetState(s, MK_RETURN_PICK);
@@ -391,14 +393,18 @@ static bool32 MechaKracko(struct SqueakObject *s) {
         }
         TIMER(s) = SWOOP_TIME - 1;
         TIMER2(s) = TIMER(s) * 2 - 1;
+        SqueakSfx(s, 0x187);
+        if (SWEEP_AFTER(s)) SqueakLoopSfx(s, 0x190);
         SqueakSetState(s, MK_SWOOP_FLY);
         return TRUE;
     case MK_SWOOP_FLY:      // 0x02131C1C: its pull across turned round halfway;
         if (T(s) > TIMER2(s)) {
+            SqueakStopSfx(s, 0x190);
             SqueakSetState(s, SWEEP_AFTER(s) ? MK_SWEEP_OUT : MK_RETURN_PICK);
             return TRUE;
         }
         ax = s->ax;
+        if (T(s) == TIMER(s)) SqueakSfx(s, 0x187);
         if (T(s) == TIMER(s)) s->ax = 0;
         MoveFree(s);
         if (T(s) == TIMER(s)) s->ax = -ax;
@@ -415,6 +421,7 @@ static bool32 MechaKracko(struct SqueakObject *s) {
         MoveFree(s);
         if (T(s) > SPAWN_TIME) {
             SpawnEnemy(s);
+            SqueakSfx(s, 0x18D);
             SqueakSetState(s, MK_WAIT_SHORT);
         }
         break;
@@ -440,6 +447,8 @@ static bool32 MechaKracko(struct SqueakObject *s) {
     case MK_DIVE_STOP:      // 0x021316B8;
         if (T(s) >= ZAP_WAIT) {
             SqueakPlayComposite(s, COMPOSITE_FIELD);
+            SqueakSfx(s, 0x18C);
+            SqueakLoopSfx(s, 0x190);
             SqueakSetState(s, MK_DIVE_FIELD);
             return TRUE;
         }
@@ -447,6 +456,7 @@ static bool32 MechaKracko(struct SqueakObject *s) {
         break;
     case MK_DIVE_FIELD:     // 0x02131650;
         if (T(s) >= ZAP_TIME) {
+            SqueakStopSfx(s, 0x190);
             SqueakSetState(s, MK_BACK);
             return TRUE;
         }
@@ -457,6 +467,7 @@ static bool32 MechaKracko(struct SqueakObject *s) {
         Spot(s, SPOT_NEAR, &x, &y);
         Toward(s, x, y, BACK_SPEED, TRUE);
         SqueakPlayComposite(s, COMPOSITE_MOVE);
+        SqueakSfx(s, 0x18E);
         SqueakSetState(s, MK_BACK_FLY);
         return TRUE;
     case MK_BACK_FLY:       // 0x021310F4;
@@ -487,6 +498,7 @@ static bool32 MechaKracko(struct SqueakObject *s) {
         }
         s->vx = STEP_V(s);
         SqueakPlayComposite(s, COMPOSITE_MOVE);
+        SqueakSfx(s, 0x188);
         SqueakSetState(s, MK_CROSS_STEP);
         return TRUE;
     case MK_CROSS_STEP:     // 0x02131374;
@@ -511,6 +523,7 @@ static bool32 MechaKracko(struct SqueakObject *s) {
             s->obj.base.y = y;
             s->vx = Ahead(s, x) / SWEEP_TIME;
             TIMER(s) = 0;
+            SqueakSfx(s, 0x186);
             SqueakSetState(s, MK_SWEEP);
             return TRUE;
         }
@@ -536,6 +549,7 @@ static bool32 MechaKracko(struct SqueakObject *s) {
         break;
     case MK_KO:             // 0x020216E8: its first form's last hit;
         SqueakStop(s);
+        SqueakSfx(s, 0x10D);
         SqueakSetState(s, MK_KO_WAIT);
         return TRUE;
     case MK_KO_WAIT:        // 0x02021648;
@@ -552,6 +566,7 @@ static bool32 MechaKracko(struct SqueakObject *s) {
     case MK_BREAK_WAIT:     // 0x02130BB0;
         if (s->animEnded) {
             SqueakPlayComposite(s, COMPOSITE_BARE);
+            SqueakSfx(s, 0x18C);
             SqueakSetState(s, MK_SHUDDER);
             return TRUE;
         }
@@ -560,6 +575,7 @@ static bool32 MechaKracko(struct SqueakObject *s) {
     case MK_SHUDDER:        // 0x02130ABC: 4 pixels down and back up, every other frame;
         if (T(s) >= SHUDDER_TIME) {
             SqueakPlayComposite(s, COMPOSITE_GATHER);
+            SqueakSfx(s, 0x18F);
             SqueakSetState(s, MK_GATHER);
             return TRUE;
         }

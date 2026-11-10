@@ -11,7 +11,7 @@
  *   (anim 2) while there's wall beside it 8 pixels on; B throws (anim 3): 20 frames in, a rock leaves 18 pixels ahead, 6 up,
  *   flying on at 1.6 and falling 0.2 a frame (anim 11), bursting (efc_cmn1's animation 1) on whatever it hits. No wall beside it
  *   any more, it starts over (stands, or falls).
- * Not ported: its sounds (0x12F the throw, 0x135 the rock bursting), the stage's wall-distance nudge of its probes (vtable +0x38,
+ * Its sounds (Squeak Squad's, SqueakSfx): 0x12F the throw, 0x135 the rock bursting. Not ported: the stage's wall-distance nudge of its probes (vtable +0x38,
  * +0x3C: only when its box is in a wall, which KatAM's terrain never lets it be), the rock's burst when an attack hits it (KatAM's
  * own defeat instead), and the other mode (the brain's +8 not 3; never so for this brain): A jumps off walls (2.5 up). */
 #include "../squeak.h"
@@ -302,6 +302,7 @@ static bool32 Rock(struct SqueakObject *s) {
     switch (s->state) {
     case 0:
         SqueakPlay(s, ANIM_ROCK);
+        SqueakSfx(s, 0x12F);
         s->vx = ROCK_SPEED;
         s->maxVy = 0;
         s->ay = -ROCK_GRAVITY;
@@ -311,6 +312,7 @@ static bool32 Rock(struct SqueakObject *s) {
         SqueakMove(s);
         if (s->terrain || SqueakOnGround(s)) {
             SqueakSpawnEffect(s, SQUEAK_FX_BURST, 0, 0, FALSE);
+            SqueakSfx(s, 0x135);
             s->obj.base.flags |= 0x1000;
         } else if (!SqueakInLevel(s)) {
             s->obj.base.flags |= 0x1000;

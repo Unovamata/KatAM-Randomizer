@@ -23,7 +23,7 @@
  *     margins 1), and the loop again from there (0x0211B37C, 0x0211B2EC), for as long as Kirby's in its room.
  * Checked in KatAM (USA, room 0x323, against the DS's recordings): the drift, the hops and their waits, a hop frame by frame (3.35 up
  * to -3.407 in 45 frames, as the DS's), the end and its loop both ways, Kirby touching and inhaling it (nothing).
- * Not ported: its sounds (0x1C7 as it comes, 0x1C8 each hop, 0x1C9 its first legs); a8s4s4's route (the same moves up a shaft: its
+ * Its sounds (Squeak Squad's, SqueakSfx): 0x1C7 as it comes, 0x1C8 each hop, 0x1C9 its first legs. Not ported: a8s4s4's route (the same moves up a shaft: its
  * points zigzag, its hops turn with them, 0.2 + Kirby's speed); the route's line before its first point (a slope from the star). */
 #include "../squeak.h"
 
@@ -126,6 +126,7 @@ static bool32 Hop(struct SqueakObject *s) {
         return FALSE;
     }
     SqueakStop(s);
+    SqueakSfx(s, 0x1C8);
     s->vy = HOP_VY;
     s->ay = HOP_AY;
     s->vx = -((kx < 0 ? -kx : kx) * 16 + HOP_PLUS);
@@ -140,6 +141,7 @@ static bool32 LegStart(struct SqueakObject *s) {
     u8 p = POINT(s);
 
     TIMER(s) = 0;
+    if (p < 4) SqueakSfx(s, 0x1C9);
     if (p < 10) {
         FRAMES(s) = LEGS(s) == 0 ? LEG_FIRST : LEGS(s) == 1 ? LEG_SECOND : LEG_REST;
         LEGS(s)++;
@@ -198,6 +200,7 @@ static bool32 DarkStar(struct SqueakObject *s) {
         LINE(s) = obj->base.y + (LINE_UNDER_SPAWN << 8);
         SqueakPlay(s, ANIM_STAR);
         SqueakStop(s);
+        SqueakLoopSfx(s, 0x1C7);
         s->vx = DRIFT_VX;
         s->ay = DRIFT_AY;
         TIMER(s) = 0;
@@ -209,6 +212,7 @@ static bool32 DarkStar(struct SqueakObject *s) {
         if (s->terrain & 4) {
             if (!BOUNCED(s)) LINE(s) = obj->base.y + (LINE_UNDER_BOUNCE << 8);
             BOUNCED(s) = TRUE;
+            SqueakSfx(s, 0x1C8);
             s->vy = HOP_VY;
             s->ay = HOP_AY;
         }

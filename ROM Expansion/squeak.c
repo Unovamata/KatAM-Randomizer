@@ -1133,6 +1133,18 @@ bool32 SqueakBossAlive(u16 room) {
     return FALSE;
 }
 
+void SqueakLoopSfx(struct SqueakObject *s, u16 n) {
+    if (s->loopSound) m4aSongNumStop(SQUEAK_SE(s->loopSound));
+    s->loopSound = n;
+    SqueakSfx(s, n);
+}
+
+void SqueakStopSfx(struct SqueakObject *s, u16 n) {
+    if (s->loopSound != n) return;
+    m4aSongNumStop(SQUEAK_SE(n));
+    s->loopSound = 0;
+}
+
 /* SqueakDestroy(); A character's end: the effect following it stays where it is, its parts go; a world's boss beaten (no HP left, the
  * player still in its room: not the room's end) leaves its shard (SqueakBossShard), the boss room's way out, as it goes after its
  * defeat, as NiDL's bosses as they explode; */
@@ -1145,6 +1157,7 @@ static void SqueakDestroy(struct Task *t) {
         NidlBossShardAt(s->obj.base.unk56, s->obj.base.roomId, SqueakBossShard(&s->obj) - 1, x, SQUEAK_SHARD_Y);
     }
 
+    if (s->loopSound) m4aSongNumStop(SQUEAK_SE(s->loopSound));
     if (s->follower) ((struct SqueakFx *)s->follower)->owner = NULL;
     if (s->layer[0]) ((struct SqueakLayerFx *)s->layer[0])->owner = NULL;
     if (s->layer[1]) ((struct SqueakLayerFx *)s->layer[1])->owner = NULL;
@@ -1197,6 +1210,7 @@ static struct SqueakObject *SqueakCreate(struct ObjectTemplate *template, u8 pla
     for (i = 0; i < ARRAY_COUNT(s->vars); i++) s->vars[i] = 0;
     s->obj.unk80 = gSqueakEnemyHp[enemy];
     s->maxHp = s->hpBase = 0;
+    s->loopSound = 0;
     sSqueakCharacters[enemy].init(s);
     if (sSqueakCharacters[enemy].swims) s->obj.base.unkC |= 1;
     // (the type's AnimInfo table has one entry: ObjectInitSprite reads it; the patched drawing shows the character's own frames);
@@ -1248,9 +1262,21 @@ void *CreateSqueakMidboss(struct ObjectTemplate *template, u8 playerId) {
 }
 
 // SqueakStart(); The type's behavior start (the game calls it again after a hit);
+/* SqueakBossMusic(); A world's boss's fight start (Macro_08100F18 but its music): its HP bar shows, the room's music is saved as
+ * KatAM's mini-boss music saves it (restored after the fight), and the arena's own music plays on: Squeak Squad's boss theme, the
+ * arena's map's (KatAMExpansionSqueakSound.cs's SqueakRoomSong: 21, 33 or 34), not KatAM's mini-boss music; */
+static void SqueakBossMusic(struct Object *obj) {
+    struct Object5 *bar = sub_08034E14(obj);
+    u8 slot = gCurLevelInfo[obj->base.unk56].unk65E;
+
+    if (bar) bar->unk9 = 0;
+    sub_08002A44(slot, sub_08002A2C(slot, 0), 1);
+    sub_08002A44(slot, GetRoomMusicId(slot), 0);
+}
+
 /* SqueakMidbossWait(); A mid-boss before its fight (Mr. Frosty's 0x080CB7E8, as NiDL's: NidlMinibossWait): its animation going,
  * falling as the engine would, facing Kirby till he's in the template's area; then the camera stays there, the HP bar shows, the
- * mini-boss music plays and it starts; */
+ * mini-boss music plays (a world's boss: its arena's own, SqueakBossMusic) and it starts; */
 static void SqueakMidbossWait(struct Object *obj) {
     struct SqueakObject *s = (struct SqueakObject *)obj;
 
@@ -1263,7 +1289,8 @@ static void SqueakMidbossWait(struct Object *obj) {
     if (!Macro_08039430_2(&obj->kirby3->base, obj)) return;
     Macro_081003EC(obj, &obj->kirby3->base);
     obj->base.flags &= ~0x200;
-    Macro_08100F18(obj);
+    if (obj->objTemplate && SqueakBossShard(obj)) SqueakBossMusic(obj);
+    else Macro_08100F18(obj);
     s->activated = TRUE;
     SqueakStart(obj);
 }
@@ -1277,6 +1304,11 @@ void SqueakMidbossUpdate(struct SqueakObject *s) {
 void SqueakStart(struct Object *obj) {
     struct SqueakObject *s = (struct SqueakObject *)obj;
 
+    // (a hit starts it over: the sound it kept stops with the move it was in, as the DS's hurt stops them, 0x02013D88);
+    if (s->started && s->loopSound) {
+        m4aSongNumStop(SQUEAK_SE(s->loopSound));
+        s->loopSound = 0;
+    }
     obj->kirbyAbility = sSqueakCharacters[s->enemy].ability;
     // The engine's gravity off (flag 0x40, and 0x20, which keeps it on once falling): Squeak Squad's characters have their own;
     obj->base.flags = (obj->base.flags | 0x40) & ~0x20;

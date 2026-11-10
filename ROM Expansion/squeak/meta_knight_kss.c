@@ -56,7 +56,7 @@
  *     spot, 0x101 kind 6) catches Kirby (0x02111A84, 0x021119B0): held where he's caught, lifted 2 pixels a frame to 140 over the
  *     floor, sparkles (ext's 31) about him every 12 frames, let go hurt after 34 frames (0x0211190C: 10 of his 36 HP).
  *   - His stars (Squeak Squad's 0x0212389C kinds 3 and 4: SQUEAK_STAR's SQUEAK_STAR_SWORD_AHEAD/BEHIND): a Sword when inhaled.
- * Not ported: his sounds, his hit flash (enemy/metaknight_dmg's palette: KatAM's), his flinch when a star Kirby spits hits him
+ * His sounds: Squeak Squad's (SqueakSfx). Not ported: his hit flash (enemy/metaknight_dmg's palette: KatAM's), his flinch when a star Kirby spits hits him
  * (0x021164F4: 10 HP, his pose 28 for 18 frames; KatAM's hits don't say what hit), guarding the attacks Squeak Squad flags 0x10
  * (his box's flag 4; KatAM's have no such flag), his own defeat (0x02113A48-0x02113514 and his things of 0x02112F48: KatAM's
  * mini-boss defeat), the intro's camera (0x02209F84), his boss music. */
@@ -417,6 +417,7 @@ static bool32 MetaKnight(struct SqueakObject *s) {
         break;
     case MK_INTRO_WAIT:     // 0x021163B8;
         if (!s->animEnded) break;
+        SqueakSfx(s, 0x16B);
         MODE(s) = 6;
         SqueakSetState(s, MK_RUN);
         return TRUE;
@@ -452,6 +453,7 @@ static bool32 MetaKnight(struct SqueakObject *s) {
     case MK_RUN:            // 0x02115694;
         FaceKirby(s);
         SqueakPlay(s, ANIM_RUN);
+        SqueakSfx(s, 0x156);
         SqueakStop(s);
         s->vx = RUN_SPEED;
         TIMER(s) = 0;
@@ -554,6 +556,7 @@ static bool32 MetaKnight(struct SqueakObject *s) {
         return TRUE;
     case MK_JUMP_ANIM:      // 0x0211559C;
         SqueakPlay(s, ANIM_RISE);
+        SqueakSfx(s, 0x179);
         SqueakSetState(s, MK_JUMP_RISE);
         return TRUE;
     case MK_JUMP_RISE:      // 0x0211553C;
@@ -578,6 +581,7 @@ static bool32 MetaKnight(struct SqueakObject *s) {
     case MK_HOP:            // 0x021150D8;
         SqueakPlay(s, ANIM_JUMP);
         SqueakStop(s);
+        SqueakSfx(s, 0x16B);
         s->vy = HOP_VY;
         s->ay = -HOP_GRAVITY;
         TIMER(s) = 0;
@@ -630,6 +634,7 @@ static bool32 MetaKnight(struct SqueakObject *s) {
     case MK_FLIP:           // 0x021153AC: his backflip;
         SqueakPlay(s, ANIM_FLIP);
         SqueakStop(s);
+        SqueakSfx(s, 0x179);
         s->vx = -FLIP_VX;
         s->vy = FLIP_VY;
         s->ay = -FLIP_GRAVITY;
@@ -690,6 +695,7 @@ static bool32 MetaKnight(struct SqueakObject *s) {
         SqueakSetState(s, MK_DODGE_GO);
         return TRUE;
     case MK_DODGE_GO:       // 0x02115B14: while safe, then a backflip;
+        if (s->stateTimer == 0) SqueakSfx(s, 0x1B9);
         if (SAFE(s) > 0) {
             Move(s);
             break;
@@ -700,6 +706,7 @@ static bool32 MetaKnight(struct SqueakObject *s) {
         break;
     case MK_DODGE_AIR:      // 0x02115A38;
         SqueakPlay(s, ANIM_DODGE);
+        SqueakSfx(s, 0x1B9);
         s->vx = -s->vx;
         s->vy = Random(3) < 1 ? JUMP_VY : DODGE_LOW;
         s->ay = -GRAVITY;
@@ -734,6 +741,7 @@ static bool32 MetaKnight(struct SqueakObject *s) {
         return TRUE;
     case MK_DASH_SWING:     // 0x02114F44;
         SqueakPlay(s, InAir(s) ? ANIM_AIR_SLASH : ANIM_SLASH);
+        SqueakSfx(s, InAir(s) ? 0x1B8 : 0x1B7);
         SqueakSetState(s, MK_DASH_GO);
         return TRUE;
     case MK_DASH_GO:        // 0x02114E54: facing Kirby (stopped within CLOSE), then a star ahead and a walk;
@@ -746,6 +754,7 @@ static bool32 MetaKnight(struct SqueakObject *s) {
         Move(s);
         if (!s->animEnded) break;
         Star(s, FALSE);
+        SqueakSfx(s, 0x1C0);
         MODE(s) = 1;
         SqueakSetState(s, MK_WALK);
         break;
@@ -763,6 +772,7 @@ static bool32 MetaKnight(struct SqueakObject *s) {
         return TRUE;
     case MK_UP_SWING:       // 0x02114D14;
         SqueakPlay(s, ANIM_UP_SLASH);
+        SqueakSfx(s, 0x1B7);
         SqueakSetState(s, MK_UP_GO);
         return TRUE;
     case MK_UP_GO:          // 0x02114C94: in the air, a fall;
@@ -784,6 +794,7 @@ static bool32 MetaKnight(struct SqueakObject *s) {
         return TRUE;
     case MK_DOUBLE_1:       // 0x02114BCC;
         SqueakPlay(s, ANIM_DOUBLE);
+        SqueakSfx(s, 0x1C2);
         SqueakSetState(s, MK_DOUBLE_1_GO);
         return TRUE;
     case MK_DOUBLE_1_GO:    // 0x02114B2C;
@@ -795,6 +806,7 @@ static bool32 MetaKnight(struct SqueakObject *s) {
         break;
     case MK_DOUBLE_2:       // 0x02114AD0;
         SqueakPlay(s, ANIM_DOUBLE_2);
+        SqueakSfx(s, 0x1C2);
         SqueakStop(s);
         s->vx = DOUBLE_VX_2;
         SqueakSetState(s, MK_DOUBLE_2_GO);
@@ -828,6 +840,7 @@ static bool32 MetaKnight(struct SqueakObject *s) {
         if (++TIMER(s) > 30) {
             TIMER(s) = 0;
             SqueakPlay(s, X_CHARGED);
+            SqueakSfx(s, 0x179);
             SqueakSetState(s, MK_THRUST_RISE);
             return TRUE;
         }
@@ -860,6 +873,7 @@ static bool32 MetaKnight(struct SqueakObject *s) {
         TIMER(s) = 0;
         Star(s, FALSE);
         Star(s, TRUE);
+        SqueakSfx(s, 0x154);
         RequestScreenShake(SHAKE_LONG, &s->obj.base);
         SqueakPlayComposite(s, C_THRUST_LAND);
         SqueakSetState(s, MK_THRUST_LAND);
@@ -888,6 +902,7 @@ static bool32 MetaKnight(struct SqueakObject *s) {
         if (InAir(s)) break;
         SqueakStop(s);
         SqueakPlayComposite(s, C_TORNADO_CALL);
+        SqueakSfx(s, 0x1C5);
         RequestScreenShake(SHAKE_LONG, &s->obj.base);
         SqueakSetState(s, MK_TORNADO_RAISE);
         break;
@@ -917,6 +932,7 @@ static bool32 MetaKnight(struct SqueakObject *s) {
     case MK_BEAM:           // 0x021144FC: a hop back (three: COUNT 3);
         FaceKirby(s);
         SqueakPlay(s, X_HOP_BACK);
+        SqueakSfx(s, 0x179);
         Clear(s);
         s->vx = -BEAM_HOP_VX;
         s->vy = BEAM_HOP_VY;
@@ -931,6 +947,7 @@ static bool32 MetaKnight(struct SqueakObject *s) {
         if (InAir(s)) break;
         SqueakStop(s);
         SqueakPlay(s, X_READY);
+        SqueakSfx(s, 0x1BA);
         SqueakSetState(s, MK_BEAM_LAND);
         break;
     case MK_BEAM_LAND:      // 0x021143CC;
@@ -938,17 +955,22 @@ static bool32 MetaKnight(struct SqueakObject *s) {
         if (!s->animEnded) break;
         RequestScreenShake(SHAKE_LONG, &s->obj.base);
         SqueakPlayComposite(s, C_BEAM_READY);
+        SqueakSfx(s, 0x1C2);
         SqueakSetState(s, MK_BEAM_READY);
         break;
     case MK_BEAM_READY:     // 0x02114324: (ready, or a swing without a beam) then a swing;
         Move(s);
         if (!s->animEnded) break;
         SqueakPlay(s, X_SWING);
+        SqueakSfx(s, 0x1BA);
         SqueakSetState(s, MK_BEAM_SWING);
         break;
     case MK_BEAM_SWING:     // 0x02114228: its beam on the swing's 3rd frame;
         Move(s);
-        if (s->composite == SQUEAK_NO_COMPOSITE && s->anim == X_SWING && SqueakAnimTime(s) == 3) Thing(s, THING_BEAM, 0, 0);
+        if (s->composite == SQUEAK_NO_COMPOSITE && s->anim == X_SWING && SqueakAnimTime(s) == 3) {
+            Thing(s, THING_BEAM, 0, 0);
+            SqueakSfx(s, 0x1C1);
+        }
         if (!s->animEnded) break;
         if (--COUNT(s) < 1) {
             MODE(s) = 7;
@@ -986,6 +1008,7 @@ static bool32 MetaKnight(struct SqueakObject *s) {
         Move(s);
         if (!s->animEnded) break;
         Thing(s, THING_WAVE, 0, 0);
+        SqueakSfx(s, 0x1C3);
         RequestScreenShake(SHAKE_MID, &s->obj.base);
         SqueakPlay(s, X_WAVE_DOWN);
         SqueakSetState(s, MK_WAVE_END);
@@ -1246,6 +1269,7 @@ static bool32 MetaKnightThing(struct SqueakObject *t) {
     case THING_WAVE:            // 0x02111E44, 0x02111E04;
         if (t->state == 0) {
             SqueakStop(t);
+            SqueakSfx(t, 0x1C4);
             SqueakPlay(t, T_ANIM);
             SqueakSetState(t, 1);
         }
@@ -1256,6 +1280,7 @@ static bool32 MetaKnightThing(struct SqueakObject *t) {
         switch (t->state) {
         case 0:
             SqueakStop(t);
+            SqueakSfx(t, 0x1C6);
             t->vx = TORNADO_SPEED;
             SqueakPlayComposite(t, T_TORNADO);
             SqueakSetState(t, 1);

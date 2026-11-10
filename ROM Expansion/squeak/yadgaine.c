@@ -46,7 +46,7 @@
  *   sprite heap at 428 of 512 tiles when two rock bursts are out, its 7 enemy palettes all taken, its frames near the end of the
  *   CPU's time): Squeak Squad's effects wait for room in the heap (squeak.c's SQUEAK_FX_ROOM: a rock's burst left out when it
  *   would leave too little for KatAM's own), the shell takes Daroach's palette slot once he's gone, and is drawn by hand.
- * Not ported: the floor crumbling behind it (the stage's tiles), the screen not scrolling, its sounds, the DS's camera jolts as it walks, steps and
+ * Not ported: the floor crumbling behind it (the stage's tiles), the screen not scrolling, the DS's camera jolts as it walks, steps and
  * throws (0x02035F60, 0x02035FC4), its hit flash (yadgaine_dmg's palettes), Squeak Squad's damage less from some attacks (80 in
  * 100, 60 with its legs broken), its own defeat (0x02118E94: KatAM's mini-boss defeat), its walk-off when Kirby is beaten (+0x3C,
  * 0x02118A80), its boss music. */
@@ -295,6 +295,7 @@ static bool32 Yadgaine(struct SqueakObject *s) {
         }
         break;
     case YG_ARRIVE:         // 0x02119DAC;
+        SqueakSfx(s, 0x19D);
         Round(s);
         return TRUE;
     case YG_ROUND:
@@ -307,6 +308,7 @@ static bool32 Yadgaine(struct SqueakObject *s) {
         return TRUE;
     case YG_DASH:           // 0x02119600;
         SqueakStop(s);
+        SqueakSfx(s, 0x19D);
         SCROLL(s) = DASH_SCROLL;
         s->vx = SCROLL(s) + SIZED(DASH_EXTRA);
         SetLegs(s, LEG_WALK_ON);
@@ -853,6 +855,7 @@ static bool32 Leg(struct SqueakObject *l) {
             L_PENDING(l) = FALSE;
             L_MODE(l)++;
             SqueakPlayComposite(l, c[L_MODE(l)]);
+            SqueakSfx(l, 0x123);
         } else if (L_MODE(l) == LEG_RAISE && l->animEnded) {
             L_PENDING(l) = TRUE;
         } else if (L_MODE(l) == LEG_STRIKE && l->animEnded) {
@@ -1020,6 +1023,7 @@ static bool32 Thing(struct SqueakObject *t) {
             if (t->vy <= 0 && SqueakOnGround(t)) {
                 SqueakStop(t);
                 T_REAL(t) = t->obj.base.x;
+                SqueakSfx(t, 0x51);
                 if (TakeCell(t, T_REAL(t))) SqueakSetState(t, 2);
                 else t->ay = -SIZED(THING_GRAVITY);
             }

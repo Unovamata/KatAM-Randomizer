@@ -30,7 +30,7 @@
  *   turns round and pounces off it (0x020AEB18, 0x020AEA40, 0x020AE918, 0x020AE894).
  * • Boxes (gawgaw.rca, per animation frame, as uja.c's): its body's hit box (12 pixels behind to 10 ahead, 1 to 19 up), the bites'
  *   reach 16 pixels ahead (or up, down); the leap only grabs, its touch harmless.
- * Not ported: its sounds (0x124 the hops and crouches, 0x13F the bite and chew, 0x140 the leap), its ability (Squeak Squad's: none),
+ * Its sounds (Squeak Squad's, SqueakSfx): 0x124 the hops and crouches, 0x13F the bite and chew, 0x140 the leap. Not ported: its ability (Squeak Squad's: none),
  * the other mode (the brain's +8 not 3: MlG's gravity, A in the air), its contact damages (Squeak Squad's: KatAM's 1), its event 0x15
  * (vtable +0x24, 0x020AFD90: lets Kirby go where it is; what sends it wasn't found). */
 #include "../squeak.h"
@@ -353,6 +353,7 @@ static bool32 Body(struct SqueakObject *s) {
     case BODY_WALL_JUMP_ENTRY:  // 0x020AF5B0: 3.0 up, its hop's rise;
         SqueakPlay(s, ANIM_RISE);
         SqueakStop(s);
+        SqueakSfx(s, 0x124);
         s->vy = HOP_SPEED;
         s->ay = -GRAVITY;
         HEIGHT(s) = 1;
@@ -410,6 +411,7 @@ static bool32 Body(struct SqueakObject *s) {
     case BODY_HOP_ENTRY:    // 0x020AF4D8: its height as its pad's down, none or up;
         SqueakPlay(s, ANIM_CROUCH);
         SqueakStop(s);
+        SqueakSfx(s, 0x124);
         HEIGHT(s) = s->padY < 0 ? 0 : s->padY < 1 ? 1 : 2;
         return SetState(s, BODY_CROUCH, MODE_HOP);
     case BODY_CROUCH:       // 0x020AF334: B pounces; crouched, it hops;
@@ -452,6 +454,7 @@ static bool32 Body(struct SqueakObject *s) {
     case BODY_BITE_ENTRY:   // 0x020AEF7C: up, down or ahead as its pad;
         SqueakStop(s);
         SqueakPlay(s, s->padY < 0 ? ANIM_BITE_DOWN : s->padY == 0 ? ANIM_BITE : ANIM_BITE_UP);
+        SqueakSfx(s, 0x13F);
         SqueakSetState(s, BODY_BITE);
         return TRUE;
     case BODY_BITE:         // 0x020AEF14;
@@ -464,12 +467,14 @@ static bool32 Body(struct SqueakObject *s) {
     case BODY_POUNCE_ENTRY: // 0x020AEE5C;
         SqueakPlay(s, ANIM_CHARGE);
         SqueakStop(s);
+        SqueakSfx(s, 0x124);
         COUNT(s) = CHARGE_TIME;
         return SetState(s, BODY_CHARGE, MODE_POUNCE);
     case BODY_CHARGE:       // 0x020AED7C: CHARGE_TIME + 1 frames;
     case BODY_WALL_CHARGE:  // 0x020AEA40: then turned round from the wall;
         if (COUNT(s)-- == 0) {
             if (s->state == BODY_WALL_CHARGE) SqueakTurnAround(s);
+            else SqueakSfx(s, 0x140);
             SqueakPlay(s, ANIM_LEAP_START);
             SqueakStop(s);
             SqueakSetState(s, s->state == BODY_WALL_CHARGE ? BODY_WALL_LEAP_START : BODY_LEAP_START);
@@ -528,6 +533,7 @@ static bool32 Body(struct SqueakObject *s) {
         Hold(s);
         if (s->animEnded) {
             SqueakPlay(s, ANIM_CHEW);
+            SqueakSfx(s, 0x13F);
             SqueakSetState(s, BODY_CHEW);
             return TRUE;
         }
@@ -554,6 +560,7 @@ static bool32 Body(struct SqueakObject *s) {
     case BODY_WALL_POUNCE_ENTRY:    // 0x020AEB18: crouched on the wall;
         SqueakPlay(s, ANIM_WALL_CHARGE);
         SqueakStop(s);
+        SqueakSfx(s, 0x124);
         COUNT(s) = CHARGE_TIME;
         return SetState(s, BODY_WALL_CHARGE, MODE_POUNCE);
     case BODY_WALL_ENTRY:   // 0x020ADBCC;

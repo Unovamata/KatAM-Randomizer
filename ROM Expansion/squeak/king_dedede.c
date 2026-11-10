@@ -28,7 +28,7 @@
  *   arena's top over Kirby (Squeak Squad's spawn 0, byte 8 4: KatAM's Waddle Dee 3), facing the arena's middle.
  * • Hit (0x020E79B0): 60 frames safe after each (KatAM's hits then undone), its hurt pose 20 frames (0x020E5654, 0x020E5604); a Kirby
  *   it holds is let out.
- * Not ported: its sounds, its own defeat (0x020E5530-0x020E52DC: KatAM's mini-boss defeat), Squeak Squad's hit flash and shakes
+ * Its sounds: Squeak Squad's (SqueakSfx). Not ported: its own defeat (0x020E5530-0x020E52DC: KatAM's mini-boss defeat), Squeak Squad's hit flash and shakes
  * (KatAM's), its boss music. */
 #include "../squeak.h"
 #include "kirby.h"
@@ -66,6 +66,7 @@ enum { COMPOSITE_INHALE, COMPOSITE_SUMMON };
 #define SPIT_Y 0x10000
 #define HAMMER_REACH 0x30000            // +0x6C..+0x78;
 #define HAMMER_HIT 32
+#define STEP_EVERY 25                   // (its steps' sound: Squeak Squad's on its walks' frames 1 and 26);
 #define HJUMP_CROUCH 30                 // +0x80..+0x8C: its hammer jump;
 #define HJUMP_VY 0x4333
 #define HJUMP_GRAVITY 0x1EC
@@ -241,6 +242,8 @@ static void Puff(struct SqueakObject *s, bool8 big) {
 static void Impact(struct SqueakObject *s) {
     SqueakSpawn(s, SQUEAK_STAR, SQUEAK_STAR_AHEAD, IMPACT_X, 0);
     RequestScreenShake(SHAKE, &s->obj.base);
+    SqueakSfx(s, 0x183);
+    SqueakSfx(s, 0x15A);
 }
 
 // AtSide(); Walking into the arena's side (78 pixels from it);
@@ -447,6 +450,8 @@ static bool32 Body(struct SqueakObject *s) {
         SqueakSetState(s, BODY_WALK);
         return TRUE;
     case BODY_WALK:         // 0x020E7194: to within 50 pixels of Kirby or the arena's side;
+        // (its steps: Squeak Squad's on its walk's frames 1 and 26, here every 25 frames from its second);
+        if (s->stateTimer % STEP_EVERY == 1) SqueakSfx(s, 0x184);
         s->vx = WALK_SPEED;
         SqueakMove(s);
         dx = s->obj.kirby3->base.x;
@@ -463,6 +468,7 @@ static bool32 Body(struct SqueakObject *s) {
     case BODY_JUMP_CROUCH:  // 0x020E6FB4;
         if (COUNT(s) < 1) {
             s->vx = Random() < 50 ? JUMP_VX : 0;
+            SqueakSfx(s, 0x17E);
             s->vy = JUMP_VY;
             s->ay = -GRAVITY;
             SqueakPlay(s, ANIM_JUMP);
@@ -485,6 +491,7 @@ static bool32 Body(struct SqueakObject *s) {
             s->vx = 0;
             s->vy = s->ay = 0;
             SqueakPlay(s, ANIM_LANDED);
+            SqueakSfx(s, 0x184);
             COUNT(s) = JUMP_WAIT;
             Puff(s, TRUE);
             RequestScreenShake(SHAKE, &s->obj.base);
@@ -508,6 +515,7 @@ static bool32 Body(struct SqueakObject *s) {
         if (SqueakOnGround(s)) {
             SqueakStop(s);
             SqueakPlay(s, ANIM_LANDED);
+            SqueakSfx(s, 0x184);
             Puff(s, TRUE);
             COUNT(s) = LAND_TIME;
             SqueakSetState(s, BODY_LANDED);
@@ -520,6 +528,7 @@ static bool32 Body(struct SqueakObject *s) {
         SqueakSetState(s, BODY_HAMMER_WALK);
         return TRUE;
     case BODY_HAMMER_WALK:  // 0x020E6968: within HAMMER_REACH of Kirby or the arena's side, its swing;
+        if (s->stateTimer % STEP_EVERY == 1) SqueakSfx(s, 0x184);
         s->vx = WALK_SPEED;
         SqueakMove(s);
         dx = s->obj.kirby3->base.x - s->obj.base.x;
@@ -548,6 +557,7 @@ static bool32 Body(struct SqueakObject *s) {
         if (COUNT(s) < 1) {
             s->vy = HJUMP_VY;
             s->ay = -HJUMP_GRAVITY;
+            SqueakSfx(s, 0x17E);
             SqueakPlay(s, ANIM_HAMMER_UP);
             SqueakSetState(s, BODY_HJUMP_RISE);
         } else {
@@ -586,6 +596,7 @@ static bool32 Body(struct SqueakObject *s) {
         if (s->animEnded) {
             s->vy = FLOAT_VY;
             s->ay = -FLOAT_GRAVITY;
+            SqueakSfx(s, 0x17E);
             SqueakPlay(s, ANIM_PUFFED);
             SqueakSetState(s, BODY_FLOAT_RISE);
         }
@@ -594,6 +605,7 @@ static bool32 Body(struct SqueakObject *s) {
         SqueakMove(s);
         if (s->vy < 0) {
             COUNT(s) = FLOAT_TIME;
+            SqueakSfx(s, 0x17F);
             SqueakPlay(s, ANIM_FLOAT);
             SqueakSetState(s, BODY_FLOAT);
         }
@@ -613,6 +625,7 @@ static bool32 Body(struct SqueakObject *s) {
         }
         if (SqueakOnGround(s)) {
             s->vy = FLOAT_BOUNCE;
+            SqueakSfx(s, 0x184);
             Puff(s, FALSE);
         }
         SqueakMove(s);
@@ -620,6 +633,7 @@ static bool32 Body(struct SqueakObject *s) {
             SqueakStop(s);
             SqueakPlay(s, ANIM_EXHALE);
             SqueakSpawn(s, SQUEAK_DEDEDE_PUFF, 0, PUFF_X, PUFF_Y);
+            SqueakSfx(s, 0x15C);
             SqueakSetState(s, BODY_FLOAT_EXHALE);
         } else {
             COUNT(s)--;
@@ -639,6 +653,7 @@ static bool32 Body(struct SqueakObject *s) {
         if (SqueakOnGround(s)) {
             SqueakStop(s);
             SqueakPlay(s, ANIM_FLOAT_LANDED);
+            SqueakSfx(s, 0x184);
             Puff(s, FALSE);
             SqueakSetState(s, BODY_FLOAT_LANDED);
         }
@@ -656,6 +671,7 @@ static bool32 Body(struct SqueakObject *s) {
         SqueakMove(s);
         if (s->animEnded) {
             SqueakPlayComposite(s, COMPOSITE_INHALE);
+            SqueakLoopSfx(s, 0x181);
             SqueakSetState(s, BODY_INHALE);
         }
         break;
@@ -666,12 +682,20 @@ static bool32 Body(struct SqueakObject *s) {
             return TRUE;
         }
         SqueakMove(s);
-        if (s->animEnded) return Done(s, FALSE);
+        if (s->animEnded) {
+            SqueakStopSfx(s, 0x181);
+            return Done(s, FALSE);
+        }
         break;
     case BODY_PULL:         // 0x020E598C: drawn in, chewed;
         SqueakMove(s);
-        if (!HELD(s)) return Done(s, FALSE);
+        if (!HELD(s)) {
+            SqueakStopSfx(s, 0x181);
+            return Done(s, FALSE);
+        }
         if (Pull(s)) {
+            SqueakStopSfx(s, 0x181);
+            SqueakSfx(s, 0x6F);
             SqueakPlay(s, ANIM_CHEW);
             SqueakSetState(s, BODY_CHEW);
         }
@@ -682,6 +706,7 @@ static bool32 Body(struct SqueakObject *s) {
         if (!HELD(s)) return Done(s, FALSE);
         if (s->obj.base.x > ArenaLeft(s) + (DISPLAY_WIDTH / 2 << 8) ? !FacesLeft(s) : FacesLeft(s)) SqueakTurnAround(s);
         Spit(s);
+        SqueakSfx(s, 0x182);
         SqueakPlay(s, ANIM_SPIT);
         SqueakSetState(s, BODY_SPIT);
         break;
@@ -692,6 +717,7 @@ static bool32 Body(struct SqueakObject *s) {
     case BODY_SUMMON_ENTRY: // 0x020E5EB0: its call;
         SqueakPlayComposite(s, COMPOSITE_SUMMON);
         SqueakStop(s);
+        SqueakSfx(s, 0x180);
         SqueakSetState(s, BODY_SUMMON);
         return TRUE;
     case BODY_SUMMON:       // 0x020E5DC8: a Waddle Dee;

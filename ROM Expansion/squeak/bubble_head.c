@@ -28,7 +28,7 @@
  *   1 to 17 up, its kind 0 touch box in it); the big blow's stream (kind 8) 10 to 50 pixels ahead, 9 to 17 up: KatAM's one box takes
  *   both, and Kirby's body doesn't hurt it then (as Bio Spark's slash); the bubble's (kind 8) 6 pixels either side, 6 to 18 up. Kind 8
  *   is Squeak Squad's plain hurt (Kirby's hit reaction 0x0201917C: 8 of 36 HP, as recorded): KatAM's touch.
- * Not ported: its sounds (0x145 the big blow, 0x150 a bubble), its ability (Squeak Squad's Bubble: KatAM has none), the other mode
+ * Its sounds (Squeak Squad's, SqueakSfx): 0x145 the big blow, 0x150 a bubble. Not ported: its ability (Squeak Squad's Bubble: KatAM has none), the other mode
  * (the brain's +8 not 3: B and A in the air, MlG's walk), its contact damages (Squeak Squad's 8 for the bubbles and stream: KatAM's
  * 1). Kirby's attacks beat its bubbles as KatAM's (Squeak Squad's those with flag 0x400 pop them). */
 #include "../squeak.h"
@@ -209,6 +209,7 @@ static bool32 Body(struct SqueakObject *s) {
     case BODY_BIG_START:    // 0x02095C28;
         if (s->animEnded) {
             SqueakPlayComposite(s, MCA_BIG);
+            SqueakLoopSfx(s, 0x145);
             SqueakSetState(s, BODY_BIG);
             return TRUE;
         }
@@ -218,6 +219,7 @@ static bool32 Body(struct SqueakObject *s) {
     case BODY_BIG:          // 0x02095B74: the stream, BIG_TIME frames;
         if (COUNT(s) >= BIG_TIME) {
             COUNT(s) = 0;
+            SqueakStopSfx(s, 0x145);
             SqueakSetState(s, BODY_START);
             return TRUE;
         }
@@ -240,7 +242,10 @@ static bool32 Body(struct SqueakObject *s) {
             SqueakSetState(s, BODY_START);
             return TRUE;
         }
-        if (COUNT(s) == 0) SqueakSpawn(s, SQUEAK_BUBBLE_HEAD_BUBBLE, s->padY < 1 ? 1 : 2, SHOT_X, -SHOT_Y);
+        if (COUNT(s) == 0) {
+            SqueakSpawn(s, SQUEAK_BUBBLE_HEAD_BUBBLE, s->padY < 1 ? 1 : 2, SHOT_X, -SHOT_Y);
+            SqueakSfx(s, 0x150);
+        }
         Gravity(s);
         SqueakMove(s);
         COUNT(s)++;

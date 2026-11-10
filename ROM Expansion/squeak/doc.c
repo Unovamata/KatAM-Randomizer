@@ -28,7 +28,7 @@
  *   of the rest, and Doc pops out (2.4 back, 3.6 up), lands, lies dizzy 120 frames, gets up, sparks, and its empty saucer flies in from
  *   the screen's top to pick it up (0x020DB7E4-0x020DB4C4, its thing 6); hit while dizzy: no damage, one time in five a treat. Each
  *   other hit, one time in five (not within 40 frames), a treat (0x020DAF6C: Squeak Squad's foods 10-14: KatAM's small food).
- * Not ported: its sounds, the screen's shakes, its elemental hurt poses, its knockback at HP 0 with 7 treats (KatAM's defeat instead),
+ * Its sounds: Squeak Squad's (SqueakSfx). Not ported: the screen's shakes, its elemental hurt poses, its knockback at HP 0 with 7 treats (KatAM's defeat instead),
  * its dizzy stars, its anger when Kirby carries the stage's chest (stage mode 2: doc_col_ang's palette, 2.6 times its speeds, 36 frames
  * untouchable after each hit), the stages' routes (here straight to its target), its leaving when the stage's Squeak chase is off. */
 #include "../squeak.h"
@@ -386,6 +386,7 @@ static void Fly(struct SqueakObject *s, s32 x, s32 y, bool8 near, u8 next) {
     NEXT(s) = next;
     SqueakPlay(s, ANIM_HOVER);
     Still(s);
+    if (!s->loopSound) SqueakLoopSfx(s, 0xFD);     // (its saucer's hum, once: 0x020D8C74's +0x2FC);
     SqueakSetState(s, near ? BODY_FLY_NEAR : BODY_FLY);
 }
 
@@ -688,6 +689,7 @@ static bool32 Body(struct SqueakObject *s) {
         LOOPS(s) = 0;
         NEXT(s) = BODY_AFTER;
         FaceToward(s, KirbyX(s));
+        SqueakSfx(s, 0x147);
         SqueakPlay(s, ANIM_CANNON_UP);
         COUNT(s) = 0;
         SqueakSetState(s, BODY_CANNON_UP);
@@ -725,6 +727,7 @@ static bool32 Body(struct SqueakObject *s) {
         NEXT(s) = BODY_AFTER;
         FaceToward(s, KirbyX(s));
         SqueakPlay(s, ANIM_CLAW);
+        SqueakSfx(s, 0x147);
         Part(s, SQUEAK_FX_DOC_BOMB, 0, 0, TRUE);
         SPOT_X(s) = SQ_X(&s->obj);
         SPOT_Y(s) = SQ_Y(&s->obj);
@@ -773,6 +776,7 @@ static bool32 Body(struct SqueakObject *s) {
                 Part(s, SQUEAK_FX_DOC_BALL, -1, 0, FALSE);
                 Part(s, SQUEAK_FX_DOC_RINGS, 0, 0, FALSE);
             }
+            SqueakSfx(s, 0xFE);
             COUNT(s) = 0;
             SqueakSetState(s, BODY_GUN_FIRE);
         }
@@ -812,6 +816,7 @@ static bool32 Body(struct SqueakObject *s) {
     case BODY_CANNON_UP:    // 0x020D98D4: 60 frames after its animation, its smoke (doc_at1.mca's composite 3);
         if (s->animEnded && COUNT(s)++ >= CANNON_WAIT_1) {
             SqueakPlay(s, ANIM_CANNON_FIRE);
+            SqueakSfx(s, 0xFF);
             Part(s, SQUEAK_FX_DOC_SMOKE, 29, -28, TRUE);
             COUNT(s) = 0;
             SqueakSetState(s, BODY_CANNON_FIRE);
@@ -834,6 +839,7 @@ static bool32 Body(struct SqueakObject *s) {
     case BODY_TAKE:         // 0x020D9298: its take pose, still, PAUSE frames, then NEXT;
         SqueakPlay(s, ANIM_TAKE);
         Still(s);
+        SqueakSfx(s, 0x106);
         SqueakSetState(s, BODY_TAKE_PAUSE);
         return TRUE;
     case BODY_TAKE_PAUSE:   // 0x020D922C;
@@ -863,7 +869,8 @@ static bool32 Body(struct SqueakObject *s) {
         FLAGS(s) &= ~FLAG_INHALED;
         break;
     case BODY_FLINCH_ENTRY: // 0x020DCDE8: its hurt pose (one of two), its 16 frames' shake KatAM's hurt (DocWatch), then flung away;
-    case BODY_KNOCK_ENTRY:  // 0x020DC5F0, 0x020DCCBC, 0x020DC4C0;
+    case BODY_KNOCK_ENTRY:  // 0x020DC5F0, 0x020DCCBC, 0x020DC4C0: (its saucer's hum stopped, 0x020DD0AC's 0x02013D88);
+        SqueakStopSfx(s, 0xFD);
         SqueakPlay(s, Random() < 50 ? ANIM_HURT : ANIM_HURT_2);
         Still(s);
         // (away from Kirby: forward when it faces that way);
@@ -1007,6 +1014,7 @@ static bool32 Body(struct SqueakObject *s) {
     case BODY_GET_UP:       // 0x020DB5F4;
         if (s->animEnded) {
             SqueakPlay(s, ANIM_FIX);
+            SqueakLoopSfx(s, 0x119);
             SqueakSetState(s, BODY_FIX);
         }
         Gravity(s);
@@ -1015,6 +1023,7 @@ static bool32 Body(struct SqueakObject *s) {
     case BODY_FIX:          // 0x020DB4F4: its saucer called;
         if (s->animEnded) {
             Thing(s, THING_SAUCER, 0, 0);
+            SqueakStopSfx(s, 0x119);
             SqueakPlay(s, ANIM_FIX_END);
             FLAGS(s) |= FLAG_SAUCER;
             SqueakSetState(s, BODY_WAIT_SAUCER);
@@ -1256,6 +1265,7 @@ static bool32 ThingBody(struct SqueakObject *s) {
             Still(s);
             SqueakSpawnEffect(s, SQUEAK_FX_BURST, 0, 0, FALSE);
             SqueakPlay(s, THING_ANIM_BOMB_BURST);
+            SqueakSfx(s, 0x12D);
             SqueakSetState(s, THING_BOMB_BURST);
             break;
         }
@@ -1313,6 +1323,7 @@ static bool32 ThingBody(struct SqueakObject *s) {
         break;
     case THING_BURSTING:    // 0x020DE324;
         SqueakSpawnEffect(s, SQUEAK_FX_BURST, 0, 0, FALSE);
+        SqueakSfx(s, 0x12D);
         s->obj.base.flags |= 0x1000;
         break;
     }

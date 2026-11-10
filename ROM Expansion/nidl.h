@@ -346,9 +346,13 @@ bool32 NidlIsMetaKnight(struct ObjectTemplate *);
  * song n is NIDL_SE(n): its sound effects by their NiDL numbers), [1] Squeak Squad's first; 0 none (rooms.c); */
 extern const u16 gExpansionSongs[2];
 #define NIDL_SE(n) (gExpansionSongs[0] + (n))
-#define SQUEAK_SE(n) (gExpansionSongs[1] + (n))
+// (Squeak Squad's: its 43 music ids, then its sound ids: KatAMExpansionSqueakSound.cs);
+#define SQUEAK_MUSIC_COUNT 43
+#define SQUEAK_SE(n) (gExpansionSongs[1] + SQUEAK_MUSIC_COUNT + (n))
 // NidlSound(); NiDL's sound n (its number in NiDL), heard if the object's in the player's room (PlaySfx(), as NiDL's 0x0803E34C);
 #define NidlSound(obj, n) PlaySfx(&(obj)->base, NIDL_SE(n))
+// SqueakSound(); Squeak Squad's sound n (its DS number: the DS's 0x02013EE8), heard if the object's in the player's room;
+#define SqueakSound(obj, n) PlaySfx(&(obj)->base, SQUEAK_SE(n))
 void NidlFightMusic(struct Object *obj);
 void MrTickTockSilence(void);
 

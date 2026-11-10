@@ -1193,6 +1193,24 @@ small VRAM block got cell 0's tiles (Meta Knight's tornado: its 103-tile column)
 sprite there that didn't change frames kept the garbage (his sword's layer, from his tornado's call to its end). Found by dumping
 the upload queue (`gUnk_03002EC0`, 64 entries: source, VRAM, size) on the frame the layer's tiles changed.
 
+## Sounds
+
+All of Squeak Squad's sounds are in `sound/sound_data.sdat` (42 music sequences, each with its own bank; 22 sound-effect archives;
+83 banks; 2 wave archives, every wave IMA-ADPCM; no name table, no streamed music). Every track of every sequence turns note-wait
+off (`C7 0`); no call is nested.
+
+- **Music.** The DS's 43 music ids (USA arm9 `0x02159770`, 4 bytes an id: its sequence the second u16). A room's music id is its
+  map's byte `0x0B` (the decompressed `.mxp`; RLE `0x30`): 0 keeps the one playing, 24 is the side rooms' (the treasure rooms'). The
+  stage manager (`[0x0222C040]`) keeps it at `+0x74`. The boss arenas (each world's last stage, its second room) set the boss
+  themes: 21 (worlds 1 and 7), 33 (2 and 5), 34 (3, 4, 6, 8); the rooms before them 29. The mid-bosses' own fight music wasn't
+  found.
+- **Sound effects.** The DS's sound ids (USA arm9 `0x02159DDC`, 12 bytes an id: word 0 its index in its archive << 16 | its
+  archive). Played by `0x02013EE8` (object, id: once), `0x02013E6C` (object, id: kept in the object's list at `+0x108`, a loop or a
+  long sound) and `0x02013DDC` (object, id, fade: stops it), `0x02013D88` (stops them all), or straight by `0x020B0604` (the sound
+  system's handle `[0x02185BA4]`, id); `0x02013EE8` itself is `0x020B0604` on the object's handle.
+- In KatAM (`KatAMExpansionSqueakSound.cs`): the 43 music ids, then the 760 sound ids, follow NiDL's songs in KatAM's grown song
+  table (`gExpansionSongs[1]` the first); a sound id that names no sequence is an empty song.
+
 ## Test harness (DS emulator)
 
 `py-desmume` with a save state after Kirby lands in Prism Plains' first room. The first stage record is rewritten (ID, x, y,

@@ -32,7 +32,7 @@
  *   0x020A98C4), carries it 10 pixels behind it, 2 up (jumping: 6 behind, 8 down); at its hole it walks to it a pixel a frame
  *   (0x020A6320, 0x020A618C), goes in (anim 27: 0x020A6110), stops 96 frames and is gone with it (0x020A60D8). Hit, it drops it.
  * • Boxes (spin.rca, spin_at.rca, per animation frame).
- * Not ported: its sounds, its flinch on a hit that doesn't knock it back (0x020AA858: KatAM's hurt instead), its knockback at HP 0
+ * Its sounds: Squeak Squad's (SqueakSfx). Not ported: its flinch on a hit that doesn't knock it back (0x020AA858: KatAM's hurt instead), its knockback at HP 0
  * and its 300 frames dizzy before it's gone (KatAM's defeat instead), its dizzy stars (0x020A26B8's 0x48), the stages' routes and
  * tunnels (anims 9-13, 22-26), its sprint and skid (a brain's +0x44: none of its), its rage when Kirby carries the stage's chest
  * (0x020A9C68: spin_col_ang's palette, 1.7 times its speeds, 40-frame waits), a strong inhale making it drop its chest (kind 4). */
@@ -464,6 +464,7 @@ static bool32 Body(struct SqueakObject *s) {
         break;
     case BODY_JUMP_ENTRY:   // 0x020A8C8C;
         Play(s, ANIM_JUMP, ANIM_JUMP_CARRY);
+        SqueakSfx(s, 0xF9);
         s->vy = 0;
         Still(s);
         s->vy = JUMP_SPEED;
@@ -533,6 +534,7 @@ static bool32 Body(struct SqueakObject *s) {
         SqueakPlay(s, AT_HOP_READY);
         SqueakStop(s);
         COUNT(s) = 0;
+        SqueakSfx(s, 0x127);
         SqueakSetState(s, BODY_HOP_READY);
         return TRUE;
     case BODY_HOP_READY:    // 0x020A6E68: crouched, then off 1.8 forward, 3.0 up;
@@ -570,12 +572,14 @@ static bool32 Body(struct SqueakObject *s) {
         TurnBack(s);
         if (COUNT(s) < 1) {
             SqueakPlay(s, AT_THROW_READY);
+            SqueakSfx(s, 0x100);
             SqueakStop(s);
             COUNT(s) = 0;
             SqueakSetState(s, BODY_THROW_READY);
             return TRUE;
         }
         COUNT(s)--;
+        if (COUNT(s) == 7) SqueakSfx(s, 0x13F);
         Gravity(s);
         SqueakMove(s);
         Carry(s, HOLD_X, HOLD_Y);
@@ -609,6 +613,7 @@ static bool32 Body(struct SqueakObject *s) {
         TurnBack(s);
         if (COUNT(s) < 1) {
             SqueakPlay(s, AT_DIVE_READY);
+            SqueakSfx(s, 0x13F);
             SqueakStop(s);
             s->vx = DIVE_UP_X;
             s->vy = DIVE_UP_Y;
@@ -625,6 +630,7 @@ static bool32 Body(struct SqueakObject *s) {
     case BODY_DIVE_RISE:    // 0x020A7594: 15 frames, then the dive;
         if (COUNT(s) > DIVE_RISE) {
             COUNT(s) = 0;
+            SqueakSfx(s, 0x120);
             SqueakPlay(s, AT_DIVE);
             s->vx = DIVE_X;
             s->vy = DIVE_Y;
@@ -743,6 +749,7 @@ static bool32 Body(struct SqueakObject *s) {
     case BODY_TAKE:         // 0x020A9984: stopped, still (PAUSE frames), then on (PAUSE_NEXT);
         SqueakPlay(s, ANIM_TAKE);
         SqueakStop(s);
+        SqueakSfx(s, 0x104);
         SqueakSetState(s, BODY_PAUSE);
         return TRUE;
     case BODY_PAUSE:        // 0x020A98C4 (its chest 12 behind it);
@@ -763,6 +770,7 @@ static bool32 Body(struct SqueakObject *s) {
     case BODY_ESCAPE_ENTRY: // 0x020A6320;
         SqueakPlay(s, ANIM_STAND_CARRY);
         SqueakStop(s);
+        SqueakSfx(s, 0x141);
         SqueakSetState(s, BODY_TO_HOLE);
         return TRUE;
     case BODY_TO_HOLE:      // 0x020A618C: a pixel a frame each way, till within 2 across and 1 up or down;

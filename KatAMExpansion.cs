@@ -1604,6 +1604,9 @@ namespace KatAMRandomizer {
             error ??= nidl ? AddNidlSounds(rom, nightmare, version, ref cursor) : null;
             error ??= rooms ? AddWorldMap(rom, version, ref cursor) ?? AddRooms(rom, nightmare, region, version, ref cursor) : null;
             // (Squeak Squad's rooms after NiDL's: KatAMExpansionSqueakRooms.cs);
+            // (Squeak Squad's songs after them, before its rooms: their music is Squeak Squad's, KatAMExpansionSqueakSound.cs);
+            squeakSongBase = -1;
+            error ??= squeak != null ? AddSqueakSounds(rom, squeak, version, ref cursor) : null;
             error ??= squeakRooms ? AddSqueakRooms(rom, squeak, version, ref cursor) : null;
             if (error != null) return error;
 

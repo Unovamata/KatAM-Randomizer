@@ -29,7 +29,7 @@
  *   recorded on the DS.
  * • Boxes (bun.rca, per animation frame, as uja.c's): its body's hit box (14 pixels either side, 1 to 29 up), the reach's touch box
  *   alone with its grab box.
- * Not ported: its sounds (0x124 the jump, 0x122 the swing every 10 frames), its other mode (the brain's +8 not 3: B and A in the air),
+ * Its sounds (Squeak Squad's, SqueakSfx): 0x124 the jump, 0x122 the swing every 10 frames. Not ported: its other mode (the brain's +8 not 3: B and A in the air),
  * Squeak Squad's damages (6 of 36 the throw: KatAM's 1), its event 0x15 (vtable +0x24, 0x0205681C: lets Kirby go where he is). */
 #include "../squeak.h"
 #include "main.h"
@@ -306,6 +306,7 @@ static bool32 Body(struct SqueakObject *s) {
         SqueakPlay(s, ANIM_JUMP);
         s->vy = s->maxVx = s->maxVy = s->ax = s->ay = s->fx = s->fy = 0;
         s->vy = JUMP_SPEED;
+        SqueakSfx(s, 0x124);
         s->ay = -GRAVITY;
         SqueakSetState(s, BODY_RISE);
         return TRUE;
@@ -378,6 +379,7 @@ static bool32 Body(struct SqueakObject *s) {
             Hold(s, HOLD_SWING + (COUNT(s) >> 1 & 3));
             COUNT(s)++;
         }
+        if (s->stateTimer % 10 == 0) SqueakSfx(s, 0x122);
         Gravity(s);
         SqueakMove(s);
         break;
