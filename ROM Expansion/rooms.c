@@ -123,8 +123,25 @@ void SqueakCollectChest(u8 n) {
 /* BigGetStateSlot(); GetStateSlot (a state slot: a room's, the session's or the world's, gUnk_02028C10, 0x20 of them, saved), with
  * world slots SQUEAK_WORLD_SLOT on in the visited area, before Squeak Squad's chests: saved with the visited doors (Squeak Squad's
  * worlds' big switches: KatAM's free world slots, 0x10, 0x11, 0x1C-0x1F, are fewer than its 8); world slot SECRET_MAP_SLOT whether
- * the Secret Map is whole; */
+ * the Secret Map is whole; world slot NIDL_ABILITY_SLOT whether all the NiDL levels' big switches are pressed (NidlSwitchesPressed);
+ */
 #define SQUEAK_WORLD_SLOT 0x20
+
+/* NIDL_ABILITY_SLOT; The world slot the NiDL hub's door to the ability room waits for (KatAM's free slot 0x1D; the owner: "For the
+ * NiDL ability room, it can only be unlocked after all switches have been pressed on the NiDL hub"), set while the NiDL levels'
+ * big switches (slots NIDL_SWITCH_SLOT on, KatAMExpansionRooms.cs's LevelSlot(): 7, the Fountain of Dreams has none) are all
+ * pressed (KatAMExpansionHub.cs's NidlAbilitySlot); */
+#define NIDL_ABILITY_SLOT 0x1D
+#define NIDL_SWITCH_SLOT 0x14
+#define NIDL_SWITCHES 7
+static bool32 NidlSwitchesPressed(void) {
+    u8 i;
+
+    for (i = 0; i < NIDL_SWITCHES; i++)
+        if (!gUnk_02028C10[NIDL_SWITCH_SLOT + i]) return FALSE;
+    return TRUE;
+}
+
 u32 *BigGetStateSlot(enum StateSlotScope scope, u8 id, u8 roomSlot)
 {
     switch (scope) {
@@ -137,6 +154,8 @@ u32 *BigGetStateSlot(enum StateSlotScope scope, u8 id, u8 roomSlot)
             return (u32 *)(SqueakChests() - SQUEAK_WORLD_SIZE) + (id - SQUEAK_WORLD_SLOT);
         // (the Squeak Squad ability room's door: set while the Secret Map is whole, read when its hub mirror object looks);
         if (id == SECRET_MAP_SLOT) gUnk_02028C10[id] = SecretMapWhole();
+        // (the NiDL hub's door to the ability room: set while all the NiDL levels' big switches are pressed);
+        if (id == NIDL_ABILITY_SLOT) gUnk_02028C10[id] = NidlSwitchesPressed();
         return gUnk_02028C10 + id;
     default:
         return NULL;

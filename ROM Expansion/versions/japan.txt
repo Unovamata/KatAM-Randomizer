@@ -128,6 +128,7 @@ sub_0804E09C 0x804e014
 sub_08086C48 0x8086bc0
 sub_0809B6A8 0x809b620
 sub_0809D060 0x809cfd8
+sub_0809DA30 0x809d9a8
 CreateEffectObject 0x808ada8
 gRoomProps 0x8903338
 gForegroundInfo 0x8d2fdb8

@@ -80,9 +80,12 @@ after any change.
 - **Hub doors are always two-way and never lead to a Mirra.**
 - The NiDL hub (a Central Circle copy at night) has one door per level, as Central Circle has one per area. It is reached
   through a golden mirror in Central Circle (beside Central Circle's own), and a pink mirror in the NiDL hub leads back.
-- **The NiDL hub has Central Circle's ability room door**, at the same spot (top left, cell 3, 4), drawn and opened as Central
-  Circle's (KatAM's own switch, world slot 0x12), leading to the ability room (0x3CA) as Central Circle's does; the way out of the
-  ability room is KatAM's, to Central Circle.
+- **The NiDL hub has Central Circle's ability room door**, at the same spot (top left, cell 3, 4), drawn as Central Circle's,
+  leading to the ability room (0x3CA) as Central Circle's does; it opens only once all the NiDL levels' big switches are pressed
+  (the 7 of them; world slot 0x1D, KatAM's free one; the owner: "For the NiDL ability room, it can only be unlocked after all
+  switches have been pressed on the NiDL hub"), not with KatAM's 15 (Central Circle's own door, world slot 0x12, still does), and
+  the Unlock the Ability Room option opens Central Circle's door only. The way out of the ability room is KatAM's, to Central
+  Circle.
 
 - **The Squeak Squad hub** (the owner: "The way in is a copy of the main game's central circle. We will later decide on position
   and visuals, the entrance door to the area is a grey door"): a copy of Central Circle (its own tiles, its doors gone), reached
@@ -90,11 +93,17 @@ after any change.
   both provisional, the owner's to place and color). Rainbow Route's mirror in it (19, 14) is the way in, to Prism Plains 1's start,
   as the NiDL hub's golden one. It is never reached from the NiDL hub, and works with or without the NiDL ROM. Its world doors:
   Central Circle's own doors (MainHubDoors, the world's number's, drawn and shown as Central Circle's), one per world, shown by the
-  world's big switch, to its switch room. `BuildSqueakHub()`.
+  world's big switch, to its switch room. Its background is a Squeak Squad far view and its cloud colors are tinted to it (the
+  owner: "Change the background of the Squeak Squad hub along with its palette for the clouds"; `SqueakHubLook`, the owner's
+  pick of the mock-ups: Cushy Cloud's sky until then). `BuildSqueakHub()`.
 - **The Squeak Squad hub has Central Circle's ability room door**, at the same spot (cell 3, 4), drawn as Central Circle's,
-  shown once the Secret Map is whole (its 7 pieces; world slot 0x1C), leading to the Squeak Squad ability room (a copy of KatAM's
-  ability room 0x3CA, after the switch rooms); its door back leads to that door in the Squeak Squad hub (the owner: "The Squeak
-  Squad ability room should go in the Squeak Squad hub at the same position the ability room is").
+  shown once the Secret Map is whole (its 7 pieces; world slot 0x1C), leading to the Squeak Squad ability room (after the switch
+  rooms; the owner: "Create the Squeak Squad ability room in KatAM and replace it on its respective room warp on the Squeak Squad
+  hub"): KatAM's ability room 0x3CA's layout (its walls, platforms, door and statue spots) cut to its top three tiers, the third's
+  on solid ground, drawn in Cushy Cloud's tiles (3-4-1's clouds) before its sky with pillars, its 12 statues the copy abilities
+  Squeak Squad and KatAM share (Beam, Bomb, Cutter, Fire, Hammer, Ice, Parasol, Spark, Sword, Throw, Tornado, Wheel); its door,
+  at 0x3CA's spot, leads back to that door in the Squeak Squad hub (the owner: "The Squeak Squad ability room should go in the
+  Squeak Squad hub at the same position the ability room is"). `BuildSqueakAbilityRoom()`.
 - **The Squeak Squad switch rooms** are the NiDL ones' (one per world, KatAM's two hub-door layouts, A for worlds 1, 3, 5, 7, B for
   2, 4, 6, 8, 2 floor mirrors into the world, 2 hub doors, the big switch on its pedestal, 2 ability statues), padded to 13 rows
   as theirs (so KatAM's camera shows each as one screen and stays put), drawn in the world's tiles before the far view the owner

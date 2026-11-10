@@ -1,5 +1,6 @@
-/* Unlock; The randomizer's "Unlock the Ability Room" option: Central Circle's door to the ability room (0x3CA; the NiDL hub has a copy,
- * KatAMExpansionHub.cs) is a hub mirror object (0x8C, special_hub_mirror.c) of world slot ABILITY_ROOM_SLOT, hidden under its wall
+/* Unlock; The randomizer's "Unlock the Ability Room" option: Central Circle's door to the ability room (0x3CA; the NiDL hub's copy,
+ * KatAMExpansionHub.cs, waits for its own slot, rooms.c's NIDL_ABILITY_SLOT, the NiDL levels' big switches, so this leaves it be) is a
+ * hub mirror object (0x8C, special_hub_mirror.c) of world slot ABILITY_ROOM_SLOT, hidden under its wall
  * until that slot's set: KatAM sets it once all 15 big switches are pressed (pause_world_map.c's WorldMapUnlockMain, then the door's
  * scene, sub_0801DA58). The hub mirror's init (SpecialHubMirrorInit, which waits for its slot) is swapped for NidlHubMirrorInit
  * (KatAMExpansionCalm.cs), which sets that slot first for that door, so it's open the first time Kirby sees it, on a new save or an

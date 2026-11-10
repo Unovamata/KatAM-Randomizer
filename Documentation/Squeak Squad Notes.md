@@ -802,8 +802,14 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
     room's `3D` file, `0x0221AD54`: by its resource's count a plain one (vtable `0x02228CAC`, +0x10 a no-op), type 1 (`0x02228C90`,
     a no-op too) or type 2 (`0x02228C74`, `0x0221A84C`): a list of 17 palettes, entry k (1-16) each channel (A x (16 - k) + B x k)
     / 16 of its palettes at +4 and +0x18; +0x10 is `0x0221A75C` (frames > 0: count up, else down), its update `0x0221A774` showing
-    entry counter x 16 / frames). The resource's two palettes' source isn't traced. Ported (squeak/gimmicks.c's Light: the far
-    view's colors start at half and step up the same way).
+    entry counter x 16 / frames). The resource is the room's `PL` file (the `.mxi` entry's +0x14; +0x18 is `3D`): type 2 is a
+    `map/pa_NN.pal` (u16 2, then 256 colors: the boss rooms'), its start (+4) the colors in use (`0x02218210()` + 0x18), its own
+    (+0x18) the file's; no `PL` (2-3-1, 2-8-1, 7-3-1), a plain one: no fade. The gimmick's trigger (`0x02220224`) also fades the
+    far view's light (the stage's +0xA8, `0x0221992C`: +0x24-0x2C its color, 4.12, +0x30-0x38 from, +0x3C-0x44 to, +0x20 frames)
+    to its bytes 5-7 / 255; that light starts at the room's light record's bytes 3-5 / 255 (the map object's +0x64; read in the DS
+    emulator: 255, 255, 255 in 2-3-1 and 7-3-1). The gimmick's color is 255, 255, 255 in all three rooms: full to full, so nothing
+    dims on the DS. The candles (gimmick 0xA) use the same light: out, to 0x404 (a quarter) over 30 frames; lit, back to full.
+    Ported (squeak/gimmicks.c's Light: the far view's colors start at the DS's start, full, and step up the same way).
   - **What only Fire or an unported gimmick opens** (the owner: every room reached), KatAM's star blocks, any attack breaking them
     (`SqueakRoomCollision()`): the cells Fire burns (the blocks grid's flag 0x800 under top byte 0x38: 4-2-3's start walled in by
     logs, 6-2-5's); the frozen blocks (the blocks grid's ice, top byte 0x28, drawn with its tile 0x220 or 0x221 over a main cell
@@ -1076,7 +1082,14 @@ ARMv5T, literal pools made read-only so constants fold).
   touching a wall, `0x800` a wall ahead, `0x1000` a wall behind, `0x200000` in water.
 - **Base class** (vtable): `+0x34` the dispatcher, `+0x3C` the start state, `+0x80` checked first by each state (the shared one,
   `0x02021408`: in water, the shared state `+0x6C`; Gold Waddle Dee's own, `0x020B5078`, swims), `+0x88` whether the brain runs.
-  Bumping into Kirby runs the base class's `+0x48` and `+0x50` states.
+  Bumping into Kirby runs the base class's `+0x48` and `+0x50` states. All 117 enemy vtables share them: `+0x48` `0x02022CB4`
+  (hurt: a hit-stop counter at +0x13E up to the parameter block's +0x30 or +0x34, the sprite shaken by `0x02185E04`'s table,
+  then defeated if out of HP, else the knock-back), `+0x4C` `0x02022B4C` (its start: speeds from the block's +0x3C/+0x44, or
+  +0x50/+0x58, frames from +0x4C or +0x60 into +0x190), `+0x50` `0x020229C0` (the flight, to the ground and the timer's end);
+  the block is the body's +0x1B4 (not found: not the `Sl0` files). The water state: `+0x6C` `0x02021D5C` (+0x190 = 42, the
+  splash, `0x02215A10`'s, one of the two animations at +0x1D8/+0x1E0 at random, stopped, +0x90 -0x666: sinking 0.4) then `+0x70`
+  `0x02021D30` each frame (moves, and once +0x190 is spent, `0x020235C0(1)`: defeated); `0x02021EF8` (+0x68) defeats one out of
+  the camera's view. Ported: `squeak.c`'s SqueakDrown.
 - **Animations**: the sprite object's `vtable +8` with `0x1000000 | animation` plays one of the character's own (`.cea`).
   `0x02021A88` keeps the hurt animations (Perara: 7 and 8).
 - **Parameters**: each `Params` object (`0x020213B8`, then `0x020212CC` loads its file) points at its values at `+0x0C`. The body

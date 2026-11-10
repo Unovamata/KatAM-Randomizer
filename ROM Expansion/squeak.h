@@ -208,7 +208,7 @@ bool32 SqueakBossAlive(u16 room);
 #define SQUEAK_CHEST_CLOSED SQUEAK_HURT_VARIANTS
 
 // Room every ported character gets (SqueakObject and its own fields);
-#define SQUEAK_OBJECT_SIZE 0x1A0
+#define SQUEAK_OBJECT_SIZE 0x1A4
 
 // SQUEAK_SPEED(); A Squeak Squad speed or position (20.12 fixed point) in KatAM's units (24.8);
 #define SQUEAK_SPEED(value) ((value) >> 4)
@@ -374,6 +374,8 @@ struct SqueakObject {
     s16 maxHp;                  // Its HP bar's full HP, when not its table's (0: the table's: SqueakMaxHp), and the HP under the bar's
     s16 hpBase;                 // empty (a boss's next form's, held back: Mecha-Kracko's);
     u16 loopSound;              // The sound it keeps (SqueakLoopSfx: the DS's list at +0x108), stopped with it; 0 none;
+    u8 drown;                   // In the shared water state (SqueakDrown): its frames left + 1, 0 not in it; its hurt look there;
+    u8 drownLook;
 };
 
 /* SqueakSfx(); Squeak Squad's sound n (its DS id: the DS's 0x02013EE8 and 0x020B0604) from a character, heard if it's in the

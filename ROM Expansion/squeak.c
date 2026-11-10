@@ -605,6 +605,62 @@ void SqueakThroughTerrain(struct SqueakObject *s, bool32 through) {
     else s->obj.base.flags &= ~0x100;
 }
 
+/* SqueakDrowns(); The characters with the DS enemy base class's shared state in water (their vtable +0x80 0x02021408, every state
+ * checking it first; +0x6C its start, 0x02021D5C, +0x70 its frames, 0x02021D30): the enemies that don't swim, not the mid-bosses nor
+ * the things characters make (no base class: KatAM's engine drowns those as before, sub_0809D710); */
+static bool32 SqueakDrowns(u8 enemy) {
+    switch (enemy) {
+    case SQUEAK_PERARA: case SQUEAK_CRIMP: case SQUEAK_MAIGA: case SQUEAK_CRET: case SQUEAK_UJA: case SQUEAK_BIO_SPARK:
+    case SQUEAK_STARMAN: case SQUEAK_BUBBLE_HEAD: case SQUEAK_GAW_GAW: case SQUEAK_ACCHI: case SQUEAK_BUN: case SQUEAK_METALUN:
+    case SQUEAK_SQUEAKER: case SQUEAK_SPINNI: case SQUEAK_DOC: case SQUEAK_STORO: case SQUEAK_DAROACH:
+        return !sSqueakCharacters[enemy].swims;
+    default:
+        return FALSE;
+    }
+}
+
+/* SqueakDrown(); The DS enemy base class's shared state in water (0x02021D5C, then 0x02021D30 each frame), as KatAM's own drowning
+ * (sub_0809D710, sub_0809F988: one of its two hurt looks at random, still, sinking slowly, then defeated with KatAM's poof, its splash
+ * KatAM's on going in) with the DS's numbers: it sinks at 0.4 a frame (its +0x90, -0x666: KatAM's 0.25, -0x40) for 42 frames and is
+ * defeated on the next (KatAM's 41); the sound it kept stops, as a hit's (0x02013D88). KatAM's engine doesn't drown these (unkC 1,
+ * SqueakCreate()), this does, from SqueakMove(): the DS checks at each state's start, the port after each move; */
+#define DROWN_FRAMES 42
+#define DROWN_SINK (-0x66)
+static void SqueakDrownMain(struct Object *obj) {
+    struct SqueakObject *s = (struct SqueakObject *)obj;
+
+    // (each frame: the frame it went in, the rest of its own frame may have shown its own look or stopped it, SqueakFinishFrame());
+    obj->unk83 = s->drownLook;
+    obj->base.xspeed = 0;
+    obj->base.yspeed = DROWN_SINK;
+    if (--s->drown == 0) {
+        obj->base.xspeed = obj->base.yspeed = 0;
+        sub_0809DA30(obj);
+        obj->base.flags |= 0x1000;
+    }
+}
+
+static void SqueakDrown(struct SqueakObject *s) {
+    struct Object *obj = &s->obj;
+
+    if (s->loopSound) {
+        m4aSongNumStop(SQUEAK_SE(s->loopSound));
+        s->loopSound = 0;
+    }
+    SqueakStop(s);
+    s->drown = DROWN_FRAMES + 1;
+    obj->base.counter = 0;
+    obj->unk83 = s->drownLook = Rand16() & 1 ? gUnk_08351648[obj->type].unk0 : gUnk_08351648[obj->type].unk1;
+    obj->unk78 = SqueakDrownMain;
+    obj->base.flags &= ~(0x100 | 0x20);
+    obj->base.flags |= 0x40;
+    obj->base.flags &= ~(0x40000 | 0x10000000 | 0x20000000 | 0x40000000 | 0x80000000);
+    obj->base.flags |= 0x8000;
+    obj->base.unk5C = obj->base.unk5C & 0x20 ? 32 : 0;
+    obj->base.xspeed = 0;
+    obj->base.yspeed = DROWN_SINK;
+}
+
 /* SqueakMove(); 0x02013D18: acceleration and the caps (0x02013460), friction (0x02013370), then the move on the terrain (0x0201355C),
  * there and then as Squeak Squad's (its states check the ground right after moving): KatAM's own, ObjectMain's after the object's
  * function (position, then sub_0809D8C8's terrain: unk62's floor and walls, unk58's water); SqueakFinishFrame() leaves it nothing
@@ -652,6 +708,7 @@ void SqueakMove(struct SqueakObject *s) {
     s->terrain = base->unk62;
     s->water = base->unk58;
     s->moved = TRUE;
+    if ((s->water & 2) && !s->drown && SqueakDrowns(s->enemy)) SqueakDrown(s);
 }
 
 /* SqueakFinishFrame(); After the character's frame: moved already (SqueakMove), ObjectMain's move after its function moves it no more
@@ -1211,8 +1268,10 @@ static struct SqueakObject *SqueakCreate(struct ObjectTemplate *template, u8 pla
     s->obj.unk80 = gSqueakEnemyHp[enemy];
     s->maxHp = s->hpBase = 0;
     s->loopSound = 0;
+    s->drown = 0;
     sSqueakCharacters[enemy].init(s);
-    if (sSqueakCharacters[enemy].swims) s->obj.base.unkC |= 1;
+    // (KatAM's engine drowns what doesn't swim, sub_0809D710; the ones with the DS's own water state do it the DS's way, SqueakDrown());
+    if (sSqueakCharacters[enemy].swims || SqueakDrowns(enemy)) s->obj.base.unkC |= 1;
     // (the type's AnimInfo table has one entry: ObjectInitSprite reads it; the patched drawing shows the character's own frames);
     s->obj.unk83 = 0;
     ObjectInitSprite(&s->obj);

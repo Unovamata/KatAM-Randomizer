@@ -12,8 +12,8 @@ namespace KatAMRandomizer {
      *   Central Circle's), drawn over the room's tiles there into new tiles (the ones Central Circle's tilemap doesn't use) with
      *   their colors in a palette of their own: 0-2 (Central Circle's tilemap only uses palette 0's transparent color, its doors
      *   palettes 1 and 2) and 9-13 (the background's palette block carries them);
- * • The ability room's door: Central Circle's own (AbilityRoomDoor()), where Central Circle has it, shown by the same world slot
- *   (KatAM's switch); its tiles and colors are kept out of the ones the doors take, its tiles in palettes the doors took (its
+ * • The ability room's door: Central Circle's own (AbilityRoomDoor()), where Central Circle has it, shown once the NiDL levels' big
+ *   switches are all pressed (NidlAbilitySlot); its tiles and colors are kept out of the ones the doors take, its tiles in palettes the doors took (its
  *   mirror's, palette 0) recolored into those palettes' new colors; */
     internal static partial class KatAMExpansion {
         // The door palettes, per level;
@@ -169,7 +169,9 @@ namespace KatAMRandomizer {
             }
             abilityRoomDoor = null;
             if (mirrorTemplate != null) {
-                abilityRoomDoor = new Door(abilityDoor[2], abilityDoor[3], ReadShort(abilityDoor, 8), abilityDoor[10], abilityDoor[11], abilityDoor[12], Slot: AbilityRoomSlot);
+                // (shown by NidlAbilitySlot rather than KatAM's own switch);
+                abilityRoomDoor = new Door(abilityDoor[2], abilityDoor[3], ReadShort(abilityDoor, 8), abilityDoor[10], abilityDoor[11], abilityDoor[12], Slot: NidlAbilitySlot);
+                mirrorTemplate[4] = NidlAbilitySlot;
                 foreach (byte[] block in abilityBlocks) specials.AddRange(block);
                 specials.AddRange(abilityDoor);
                 mirrorTemplate[3] = (byte)templates.Count;
@@ -231,6 +233,12 @@ namespace KatAMRandomizer {
          * own switch), the special blocks over the 3x3 cells above its door cell (the cell below the object's) that draw it, and its
          * door record (kind 3), as Central Circle has them; null and none if it's not there; */
         const byte AbilityRoomSlot = 0x12;
+        /* NidlAbilitySlot; The world slot the NiDL hub's door to the ability room waits for (the owner: "For the NiDL ability room, it
+         * can only be unlocked after all switches have been pressed on the NiDL hub"): KatAM's free slot 0x1D, set while the NiDL
+         * levels' big switches (LevelSlot(): 7) are all pressed ("ROM Expansion/rooms.c"'s BigGetStateSlot, NIDL_ABILITY_SLOT); not
+         * KatAM's own switch (AbilityRoomSlot, Central Circle's door's), so the Unlock the Ability Room option opens Central Circle's
+         * door only; */
+        const byte NidlAbilitySlot = 0x1D;
         static (byte[] template, List<byte[]> blocks, byte[] door) AbilityRoomDoor(byte[] rom, IReadOnlyDictionary<string, int> symbols, int specials) {
             int index = ReadShort(rom, symbols["gRoomProps"] + EntryRoom * 0x28 + 16 * 2);
             int list = ReadInt(rom, symbols["gLevelObjLists"] + index * 4) - 0x08000000;

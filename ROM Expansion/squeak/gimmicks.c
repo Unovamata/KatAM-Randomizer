@@ -76,7 +76,7 @@ const struct SqueakSwitch gSqueakSwitch = { NULL };
 #define FAR_VIEW_FIRST 96           // (the far view's colors: KatAM's BG palettes 6-13, KatAMExpansionSqueakRooms.cs's SqueakBackground);
 #define FAR_VIEW_COLORS 128
 #define LIGHT_STEPS 16
-#define LIGHT_DIM 8                 // (the stand-in start: its colors at LIGHT_DIM / LIGHT_STEPS);
+#define LIGHT_DIM 16                // (the start: its colors at LIGHT_DIM / LIGHT_STEPS, the DS's, full: Light());
 #define STREAKS_WAIT 10
 #define STREAKS_NEAR 32
 #define RELAY_TARGETS 5
@@ -279,8 +279,13 @@ static void Streaks(struct SqueakLogic *l, const struct SqueakGimmickEntry *e) {
  * 5-7 a color (all three 255: full light). A body moving into its box (or a switch's message) calls the far view's fade (the stage's
  * +0xAC, its vtable +0x10: 0x0221A75C) with those frames: the DS's far view there is a list of 17 pictures, its colors blended from
  * a start palette to its own in 16 steps (0x0221A84C: (start x (16 - k) + own x k) / 16 a channel), the room showing the first till
- * then and stepping through them (k = frames so far x 16 / frames, 0x0221A774) to its own. Here the far view (KatAM's BG palettes
- * 6-13) starts at its colors times LIGHT_DIM / 16 (the DS's start palette not found: a stand-in) and steps up the same way; */
+ * then and stepping through them (k = frames so far x 16 / frames, 0x0221A774) to its own: that list is only built from a room's
+ * `PL` palette file of type 2 (map/pa_NN.pal: 256 colors, the boss rooms'; its start the colors in use, 0x0221AD54's), so in these
+ * three rooms, which have none, the fade does nothing. The gimmick also fades the far view's light (the stage's +0xA8, 0x0221992C,
+ * the gimmick's 0x02220224): from its color as the room starts, the room's light record's bytes 3-5 / 255 (read in the DS emulator:
+ * 255, 255, 255 in 2-3-1 and 7-3-1, full; 2-8-1's stage didn't boot that way) to the gimmick's (bytes 5-7: 255, 255, 255 in all
+ * three) over its frames: full to full, nothing dims on the DS. Here the far view (KatAM's BG palettes 6-13) starts at its colors
+ * times LIGHT_DIM / 16, the DS's start (full; it was half, a stand-in, before the DS's was traced), and steps up the same way; */
 extern u16 gUnk_02022120[0x100];    // The BG palettes as loaded (KatAM's palette effects put them back from it);
 static u16 LightBlend(u16 c, u8 k) {
     u16 out = 0;

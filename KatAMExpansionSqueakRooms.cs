@@ -1591,6 +1591,26 @@ namespace KatAMRandomizer {
             Dictionary<int, List<Transport>> ridesFrom = new Dictionary<int, List<Transport>>();
             Dictionary<string, int> backgroundOf = new Dictionary<string, int>();
             Dictionary<string, (int width, int height)> backgroundSize = new Dictionary<string, (int, int)>();
+            // ViewBackground(); A far view's background (map/d_viw_NN.nsbtx, `room` the first room showing it), converted once and shared:
+            // its table entry, or -1 if the view isn't there (its size in backgroundSize);
+            int ViewBackground(string view, int room) {
+                if (backgroundOf.TryGetValue(view, out int background)) return background;
+                byte[] viewFile = SqueakFileAnyCase(squeak, view);
+                if (viewFile == null) return -1;
+                SqueakBackground farView = ConvertSqueakFarView(SqueakFarViewPicture(viewFile));
+                int bgTiles = AllocateCompressed(rom, CompressLZ77(farView.Tiles), ref here), bgColors = Allocate(ref here, 0x100, 4);
+                for (int c = 0; c < 128; c++) WriteShort(rom, bgColors + c * 2, farView.Palettes[c]);
+                byte[] bgMap = new byte[farView.Map.Length * 2];
+                for (int t = 0; t < farView.Map.Length; t++) WriteShort(bgMap, t * 2, farView.Map[t]);
+                int bgMapAt = AllocateCompressed(rom, bgMap, ref here), at = Allocate(ref here, 0x20, 4);
+                WriteShorts(rom, at, farView.Width, farView.Height);
+                WriteInts(rom, at + 8, bgTiles + 0x08000000, farView.Tiles.Length / 32, bgColors + 0x08000000);
+                WriteShorts(rom, at + 0x14, 0x60, 0x80);
+                WriteInts(rom, at + 0x18, bgMapAt + 0x08000000, room << 16);
+                background = Add("gRoomTiledBGs", at);
+                backgroundSize[view] = (farView.Width * 8, farView.Height * 8);
+                return backgroundOf[view] = background;
+            }
             try {
                 // (each room's doors and width, and the rooms by their stage and place in it: the doors' targets);
                 Dictionary<(int area, int stage, int index), int> roomOf = new Dictionary<(int, int, int), int>();
@@ -1739,23 +1759,8 @@ namespace KatAMRandomizer {
                     // Background: the far view, shared;
                     string view = f.View ?? "";
                     if (!backgroundOf.TryGetValue(view, out int background)) {
-                        byte[] viewFile = f.View == null ? null : SqueakFileAnyCase(squeak, f.View);
-                        if (viewFile == null) background = Props(0x3C9, 15);
-                        else {
-                            SqueakBackground farView = ConvertSqueakFarView(SqueakFarViewPicture(viewFile));
-                            int bgTiles = AllocateCompressed(rom, CompressLZ77(farView.Tiles), ref here), bgColors = Allocate(ref here, 0x100, 4);
-                            for (int c = 0; c < 128; c++) WriteShort(rom, bgColors + c * 2, farView.Palettes[c]);
-                            byte[] bgMap = new byte[farView.Map.Length * 2];
-                            for (int t = 0; t < farView.Map.Length; t++) WriteShort(bgMap, t * 2, farView.Map[t]);
-                            int bgMapAt = AllocateCompressed(rom, bgMap, ref here), at = Allocate(ref here, 0x20, 4);
-                            WriteShorts(rom, at, farView.Width, farView.Height);
-                            WriteInts(rom, at + 8, bgTiles + 0x08000000, farView.Tiles.Length / 32, bgColors + 0x08000000);
-                            WriteShorts(rom, at + 0x14, 0x60, 0x80);
-                            WriteInts(rom, at + 0x18, bgMapAt + 0x08000000, room << 16);
-                            background = Add("gRoomTiledBGs", at);
-                            backgroundSize[view] = (farView.Width * 8, farView.Height * 8);
-                        }
-                        backgroundOf[view] = background;
+                        background = f.View == null ? -1 : ViewBackground(f.View, room);
+                        if (background < 0) background = backgroundOf[view] = Props(0x3C9, 15);
                     }
                     /* (it pans across once as the camera crosses the room, BackgroundRates(), the camera here from the room's top down to 8
                      * pixels from its bottom, 32 lower than KatAM's: its range the room's height - 168; KatAM draws the background's top at
@@ -2044,9 +2049,12 @@ namespace KatAMRandomizer {
                     squeakRooms.Add(new SqueakPortedRoom(f, room, width, height));
                 }
                 if (BuildSqueakHub(rom, symbols, nidlRooms, roomProps, newProps, newInfos, roomInfos, hubRoom, firstSwitchRoom, abilityRoom, worldStarts[1],
-                                   navigationRoutes, noTypes, Add, DoorsList, out KatAMRoomEdit centralCircle, out byte[] hubCollision, out int hubWidth, ref here) is string hubError)
+                                   navigationRoutes, noTypes, Add, DoorsList,
+                                   view => ViewBackground(view, hubRoom) is int at && at >= 0 ? (at, backgroundSize[view].width, backgroundSize[view].height) : null,
+                                   out KatAMRoomEdit centralCircle, out byte[] hubCollision, out int hubWidth, ref here) is string hubError)
                     return hubError;
-                if (BuildSqueakAbilityRoom(rom, t => nidlRooms ? roomTables[t].at : symbols[t], newProps, newInfos, abilityRoom, hubRoom, Add, ref here) is string abilityError)
+                if (BuildSqueakAbilityRoom(rom, t => nidlRooms ? roomTables[t].at : symbols[t], newProps, newInfos, abilityRoom, hubRoom, looks,
+                                           navigationRoutes, Add, DoorsList, ref here) is string abilityError)
                     return abilityError;
                 if (SqueakShardExits(rom, version, symbols, hubRoom, bossRooms, hubCollision, hubWidth) is string exitError) return exitError;
 
