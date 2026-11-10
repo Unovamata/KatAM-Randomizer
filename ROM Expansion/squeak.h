@@ -181,6 +181,12 @@ u32 SqueakGimmickAnim(struct Object *obj);
 #define SQUEAK_CHEST_AFTER_BOSS 1
 // (a Vitality half's chest: its template's unk14's high byte; chest.c's NidlChestOpen, two make one Vitality);
 #define SQUEAK_CHEST_HALF 1
+/* (Squeak Squad's spray paints not in KatAM, sprays.c: owned in gTreasures.sprayPaintField's bits SQUEAK_SPRAY_BIT up, Kirby colors
+ * SQUEAK_SPRAY_COLOR up; a chest holding one: its template's unk16, the spray's number + 1, its item KatAM's spray of the closest
+ * color, which NidlChestOpen gives back); */
+#define SQUEAK_SPRAYS 5
+#define SQUEAK_SPRAY_BIT 14
+#define SQUEAK_SPRAY_COLOR 16
 bool32 SqueakBossAlive(u16 room);
 #define SQUEAK_CHEST_CLOSED SQUEAK_HURT_VARIANTS
 

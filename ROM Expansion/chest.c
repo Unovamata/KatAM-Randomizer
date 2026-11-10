@@ -64,6 +64,16 @@ static void NidlChestOpened(struct Chest *chest) {
     chest->obj.base.flags |= 4;
 }
 
+// NidlChestSave(); The world props saved, as the game's chests do once their item is given (sub_0800AFC8);
+static void NidlChestSave(void) {
+    if (!(gUnk_0203AD10 & 0x10)) {
+        if (!(gUnk_0203AD10 & 2) || gLocalPlayerId == gUnk_0203AD24)
+            UpdateSaveBufferByOffset(SAVE_BUFFER_TYPE_WORLD_PROPS, gSaveID > 2 ? 0 : gSaveID);
+        else
+            sub_08031CE4(8);
+    }
+}
+
 // NidlChestOpen(); A Kirby opened the chest (chest.c, sub_0800AFC8): its own index marked, its shard, or a Maxim Tomato once it's owned;
 void NidlChestOpen(struct Chest *chest) {
     u16 shard = chest->unkE0 - NIDL_CHEST_SHARD;
@@ -71,7 +81,19 @@ void NidlChestOpen(struct Chest *chest) {
 
     // (a Squeak Squad chest: its own bit, set before the game's opening saves; the game's sets SQUEAK_CHEST's, cleared after it);
     if (chest->unkE2 == SQUEAK_CHEST) {
+        u16 spray = chest->obj.objTemplate->unk16;
+        u32 katamSpray = 0;
+
         SqueakCollectChest(chest->obj.objTemplate->unk12);
+        /* (a Squeak Squad spray, sprays.c: its own bit, set before the game's opening saves; the chest's item is KatAM's spray of the
+         * closest color, which the game gives (sub_0800AFC8's 0x14-0x21) and shows rising: taken back after, unless it was owned,
+         * and saved again); */
+        if (spray != 0 && spray <= SQUEAK_SPRAYS && chest->unkE0 >= 0x14 && chest->unkE0 <= 0x21) {
+            katamSpray = 1 << (chest->unkE0 - 0x14);
+            if (gTreasures.sprayPaintField & katamSpray)
+                katamSpray = 0;
+            gTreasures.sprayPaintField |= 1 << (SQUEAK_SPRAY_BIT + spray - 1);
+        }
         // (a Vitality half: the game's opening counts a Vitality (sub_0800AFC8's case 6) and saves; with the halves found odd, one
         // taken back first, so only the second of a pair makes one: its heart rises either way, max HP grows on the second);
         if (chest->unkE0 == 6 && chest->obj.objTemplate->unk14 >> 8 == SQUEAK_CHEST_HALF) {
@@ -83,6 +105,10 @@ void NidlChestOpen(struct Chest *chest) {
         }
         gNidlChest.open(chest);
         gTreasures.shardField &= ~SQUEAK_CHEST_BIT;
+        if (katamSpray != 0) {
+            gTreasures.sprayPaintField &= ~katamSpray;
+            NidlChestSave();
+        }
         return;
     }
     if (shard >= 8) {
@@ -94,12 +120,7 @@ void NidlChestOpen(struct Chest *chest) {
     gTreasures.chestFields[chest->unkE2 >> 3] |= 1 << (chest->unkE2 & 7);
     CollectShard(shard);
     PlaySfx(&chest->obj.base, owned ? SE_CHEST_COLLECT_ITEM : SE_CHEST_OPEN);
-    if (!(gUnk_0203AD10 & 0x10)) {
-        if (!(gUnk_0203AD10 & 2) || gLocalPlayerId == gUnk_0203AD24)
-            UpdateSaveBufferByOffset(SAVE_BUFFER_TYPE_WORLD_PROPS, gSaveID > 2 ? 0 : gSaveID);
-        else
-            sub_08031CE4(8);
-    }
+    NidlChestSave();
     if (owned)
         CreateObjTemplateAndObj(chest->obj.base.unk56, 1, 0x24, chest->obj.base.x >> 8, (chest->obj.base.y >> 8) - NIDL_CHEST_RISE, 0, 0x1F,
                                 0, 0, OBJ_TOMATO, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);

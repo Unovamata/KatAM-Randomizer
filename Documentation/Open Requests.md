@@ -671,15 +671,33 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
       without the NiDL ROM (NiDL's type holds the camera), the gimmicks, the areas.
   - Ability bubbles whose ability no regular enemy gives (Hammer, Bonkers' in KatAM; Squeak Squad's ability numbers 12, 18 and
     26) become food (the owner: "In the case of bubbles without no regular enemy, you can swap them out for food.").
-- **Squeak Squad's spray paints** (the owner: "The Spray Paints should be the spray colors from Squeak Squad as new items in the
-  collection screen"): its spray colors as new spray paint items, found in its chests, shown in the Collection Room, worn as
-  KatAM's are.
+- **Squeak Squad's spray paints**: done (the owner: "The Spray Paints should be the spray colors from Squeak Squad as new items in
+  the collection screen", then: "remove any duplicate spray color, it would be pointless to have multiple if these are already in
+  KatAM"). Squeak Squad has 18 sprays; 13 are KatAM's (YELLOW to CHALK by name, 7 of them in slightly other shades), so only its
+  5 new ones are added: SHADOW, IVORY, CITRUS, WHITE, LAVENDER. They are Kirby colors 16-20 (the UFO's too), owned in the spray
+  field's free bits 14-18 (the completion stays KatAM's), each in its Squeak Squad chest (treasures 83-87; the 13 others' chests
+  hold items), shown on the Collection Room's second page as KatAM's spray can in their colors, with "SPRAY PAINT : NAME" in
+  KatAM's letters after each language's own "SPRAY PAINT :" (the Japanese ROM has no English letters: Squeak Squad's name graphic
+  there). A chest shows the closest KatAM can rising (it gives the spray, not KatAM's). The chest shuffle leaves these chests
+  alone; the map viewer names them. `sprays.c`, `KatAMExpansionSprays.cs`.
+  - Tested in the emulator, sprays owned by a RAM write (a forced state, not a playthrough): the page and its 5 cans and texts
+    (USA, Europe in its 5 languages, Japan), choosing a color (the previews), the color worn in the game (USA, the owner's save:
+    Lavender Kirby in Central Circle, also with the Master Sword), and a real chest opened (room 0x498, Lavender: its bit set,
+    KatAM's Grape bit, whose can it shows, given back). A full randomization with the chest shuffle and with random chests keeps
+    the 5 spray chests.
+  - Not tested: the UFO ability in a new color, the screen that reads the colors' third table (the continue palettes,
+    `gUnk_0834BB20`: its data checked only), multiplayer with a new color, the other 4 chests opened.
+  - The names are English in every European language and Squeak Squad's in the Japanese ROM: Squeak Squad's European and
+    Japanese names aren't in the US ROM used.
 - **Map items for each area** (the owner, with the rooms): KatAM's map item, its sprite recolored to each NiDL and Squeak Squad
   area's theme, one per area, so the map viewer shows the area once its map is found.
-- **The Collection Room scrolls left and right** (the owner, with the rooms: "the collection room should be scrollable left and
-  right to accommodate for all these new items"): the pause screen's Collection Room (KatAM's 10 by 4 grid of spray paints,
-  music, maps, the vitality heart, the cell phone) gets more columns, scrolled sideways, for the new maps, Squeak Squad's spray
-  paints, ability scrolls, its secret map and vitality halves.
+- **The Collection Room scrolls left and right**: done for the spray paints (the owner, with the rooms: "the collection room
+  should be scrollable left and right to accommodate for all these new items"). The Collection Room (from the main menu) has a
+  second page: L or R turns the page, and so does Right on the last column or Left on the first (the cursor stays on its row,
+  the pages loop). KatAM's page is as it was; the second holds Squeak Squad's 5 new sprays along its top row, its other cells
+  empty for the rest. Tested in the emulator in all three versions (L/R, both edges, an empty cell's A, choosing, leaving with B).
+  - Left: the new items for its other cells (the map items, Squeak Squad's ability scrolls, its secret map; the vitality halves
+    count in KatAM's Vitality, its heart's cells).
 - **ROM size** (the owner: "if needed, expand the ROM size to fit all this new content but only if needed"): 32 MB is the most
   the GBA maps (0x08000000-0x09FFFFFF), and the expansion is already there, so it can't grow; about 10 MB of it is free.
 

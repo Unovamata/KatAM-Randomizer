@@ -34,7 +34,9 @@ namespace KatAMMapTracker {
 
     // RoomObject; An object placed in a room (enemy, item, chest, switch...), as read from the room's object list;
     // Destination: the room a Warp Star (template +0x1E) or a Fuse Cannon (template +0x12) sends Kirby to, else -1; LandX, LandY: where, in tiles;
-    public sealed record RoomObject(int Id, int Behavior, int X, int Y, int Destination = -1, int LandX = 0, int LandY = 0);
+    // SqueakSpray: a Squeak Squad chest's spray paint KatAM doesn't have (template +0x11 0x9F, +0x16 its number + 1: the ROM Expansion's
+    // KatAMExpansionSprays.cs; its Behavior only shows a KatAM can), else 0;
+    public sealed record RoomObject(int Id, int Behavior, int X, int Y, int Destination = -1, int LandX = 0, int LandY = 0, int SqueakSpray = 0);
 
     // RoomInfo; A room and its doors as read from the ROM;
     public sealed class RoomInfo {
@@ -118,7 +120,8 @@ namespace KatAMMapTracker {
                   FillerTile = 0xF200,
                   DoorObjectType = 3,
                   WarpStarObject = 0x84,
-                  FuseCannonObject = 0x8A;
+                  FuseCannonObject = 0x8A,
+                  SqueakChestIndex = 0x9F;     // (a Squeak Squad chest's template unk11: the ROM Expansion's squeak.h's SQUEAK_CHEST);
 
         // Central Circle, the main hub. The map is laid out from it;
         public const int CentralCircle = 0x321;
@@ -494,7 +497,8 @@ namespace KatAMMapTracker {
                 }
                 room.Objects.Add(id == WarpStarObject ? new RoomObject(id, Rom[address + 14], x, y, Read16(address + 0x1E), (short)Read16(address + 0x1A), (short)Read16(address + 0x1C))
                                : id == FuseCannonObject ? new RoomObject(id, Rom[address + 14], x, y, Read16(address + 0x12), Rom[address + 0x18], Rom[address + 0x19])
-                               : new RoomObject(id, Rom[address + 14], x, y));
+                               : new RoomObject(id, Rom[address + 14], x, y,
+                                                SqueakSpray: id is 0x80 or 0x81 && Rom[address + 0x11] == SqueakChestIndex ? Rom[address + 0x16] : 0));
             }
         }
 

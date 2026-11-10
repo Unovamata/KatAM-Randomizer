@@ -899,6 +899,14 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
     6 and the Vitality count 0; with another half's chest marked opened beforehand (a RAM write to its saved bit), the Vitality
     count goes to 1 and max HP to 7. Not played through from two real chests in a row. The chest randomizer leaves these chests
     alone (it shuffles only KatAM's own list).
+  - **Spray paints** (treasures 70-87, Squeak Squad's sprays 1-18 in order: `collection/spray01-18.cla` their Kirby palettes,
+    `collection/spray2`'s cells 1-18 their names; `spray00` is PINK, Kirby's own): its 1-13 are KatAM's 13 sprays by name (YELLOW,
+    RED, GREEN, SNOW, CARBON, OCEAN, SAPPHIRE, GRAPE, EMERALD, ORANGE, CHOCOLATE, CHERRY, CHALK; YELLOW, ORANGE, CHERRY and CHALK
+    the same colors, the others other shades), so only 14-18 are ported (the owner: "remove any duplicate spray color"): SHADOW,
+    IVORY, CITRUS, WHITE, LAVENDER, in treasures 83-87's chests (`chest[0x16]` the spray's number + 1, the item KatAM's spray of
+    the closest body color, whose can rises: SHADOW CARBON's, IVORY CHALK's, CITRUS GREEN's, WHITE SNOW's, LAVENDER GRAPE's).
+    The palettes are in KatAM's Kirby layout (1 the outline, 2-8 the body, 9-11 the feet, 12-15 the whites; Squeak Squad's outline
+    is sometimes colored), so they are KatAM's anim 0x15's variants 16-20 as they are. `ROM Expansion/sprays.c` has the rest.
   - **Warp stars** (gimmick 0xD, ctor `0x02225BC0`, vtable `0x02229C20`): its parameters' words: the stage's room it flies to
     (0-based, the low byte; 254, 255: one Kirby comes in on), a code, then its path in segments of 6 words: a kind (33 and 49: a
     quadratic curve; 32 and 0 end it), frames, where it ends, its control point. The DS flies the curve frame by frame from where

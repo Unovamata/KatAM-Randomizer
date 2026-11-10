@@ -498,7 +498,7 @@ namespace KatAMMapTracker {
             switch (id) {
                 case 0x65: return behavior < 8 ? new MapEntity(EntityKind.MirrorShard, EntityIcon.MirrorShard, "Mirror Shard")
                                 : behavior == 8 ? new MapEntity(EntityKind.AmazingMirror, EntityIcon.AmazingMirror, "Amazing Mirror") : null;
-                case 0x80: case 0x81: return Chest(id == 0x81, behavior);
+                case 0x80: case 0x81: return Chest(id == 0x81, behavior, obj.SqueakSpray);
                 case 0x84: return new MapEntity(EntityKind.WarpStar, EntityIcon.WarpStar, "Warp Star", Destination: obj.Destination);
                 case 0x86: return new MapEntity(EntityKind.BigSwitch, EntityIcon.BigSwitch, "Big Switch");
                 case 0x8A: return new MapEntity(EntityKind.FuseCannon, EntityIcon.FuseCannon, "Fuse Cannon", Destination: obj.Destination);
@@ -507,6 +507,8 @@ namespace KatAMMapTracker {
             return null;
         }
 
+        static readonly string[] SqueakSprayNames = { "Shadow", "Ivory", "Citrus", "White", "Lavender" };
+
         static readonly string[] AreaNames = {
             "Tutorial", "Rainbow Route", "Moonlight Mansion", "Cabbage Cavern", "Mustard Mountain", "Carrot Castle",
             "Olive Ocean", "Peppermint Palace", "Radish Ruins", "Candy Constellation",
@@ -514,9 +516,13 @@ namespace KatAMMapTracker {
 
         /* Chest(); Chests show the chest sprite; Their ContentIcon is what they hold (an item, or the Collection Room sprite of
          * the treasure), for when chest contents are spoiled; */
-        static MapEntity Chest(bool isBig, int contents) {
+        static MapEntity Chest(bool isBig, int contents, int squeakSpray = 0) {
             EntityIcon chest = isBig ? EntityIcon.ChestBig : EntityIcon.ChestSmall;
             string size = isBig ? "Big" : "Small";
+
+            // (one of Squeak Squad's spray paints KatAM doesn't have: its own name, with the KatAM can it shows);
+            if (squeakSpray >= 1 && squeakSpray <= SqueakSprayNames.Length && contents >= 0x14 && contents <= 0x21)
+                return new MapEntity(EntityKind.Treasure, chest, $"{size} Chest: Spray Paint ({SqueakSprayNames[squeakSpray - 1]})", EntityIcon.Spray1 + (contents - 0x14));
 
             if (contents <= 0x05) {
                 (EntityIcon icon, string name) item = Items[ChestItems[contents]];

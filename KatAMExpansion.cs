@@ -1359,6 +1359,17 @@ namespace KatAMRandomizer {
                 foreach (IGrouping<byte, SqueakBuilt> ofType in squeakBuilt.Where(b => b.Enemy.MidbossType != 0).GroupBy(b => b.Enemy.MidbossType).OrderBy(g => g.Key))
                     TypeHurt(ofType.Key, Math.Max(0, ofType.Max(b => b.Tiles) - HurtOf(ofType.Key).Tiles));
 
+            // Squeak Squad's spray paints' cans (KatAMExpansionSprays.cs: with its rooms, whose chests hold them);
+            int sprayIconAnim = 0;
+            if (squeakRooms) {
+                try {
+                    sprayIconAnim = AddSqueakSprayIcons(rom, squeak, anims, attrTable, oamTable, paletteBase, tilesBase, ref cursor,
+                                                        animVariants, animAttributes, animOams, HurtAnimID + animVariants.Count);
+                } catch (Exception exception) when (exception is IndexOutOfRangeException or ArgumentException or InvalidOperationException) {
+                    return "The Squeak Squad ROM's spray paints couldn't be read.";
+                }
+            }
+
             // Extended anims, attrs and oamData tables (indexed by anim ID);
             int[] tables = { anims, attrTable, oamTable };
             List<int>[] entries = { animVariants, animAttributes, animOams };
@@ -1368,6 +1379,16 @@ namespace KatAMRandomizer {
                 Array.Copy(rom, tables[t], rom, at, HurtAnimID * 4);
                 for (int i = 0; i < entries[t].Count; i++) WriteInt(rom, at + (HurtAnimID + i) * 4, entries[t][i] + 0x08000000);
                 WriteInt(rom, SpriteTables + t * 4, at + 0x08000000);
+            }
+            // (the spray paints' colors, tables and Collection Room page, once the anims are there);
+            if (squeakRooms) {
+                string sprayError;
+                try {
+                    sprayError = AddSqueakSprays(rom, squeak, version, sprayIconAnim, paletteBase, ref cursor);
+                } catch (Exception exception) when (exception is IndexOutOfRangeException or ArgumentException or InvalidOperationException) {
+                    sprayError = "The Squeak Squad ROM's spray paints couldn't be read.";
+                }
+                if (sprayError != null) return sprayError;
             }
 
             // The intro's parade: the ported enemies' types (their anims are in place now);
