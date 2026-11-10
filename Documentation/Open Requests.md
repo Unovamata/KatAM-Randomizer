@@ -776,6 +776,20 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
     where everything is KatAM's.
   - Not tested: holding Right for several slides in a row with real key repeat (each slide was pressed on its own), the Sound
     Player's screens after slides back to the start.
+- **Squeak Squad's sounds** (the owner: "Import Squeak Squad's sounds and adapt them to the GBA"): not done yet; surveyed. Squeak
+  Squad's sounds are all in `sound/sound_data.sdat` (906 KB: 42 music sequences, each with its own instrument bank, banks 41-82;
+  22 sound-effect archives; 83 banks; 2 wave archives of 448 and 203 KB; no streamed music; no name table). It all fits in the
+  ROM's free space. KatAM plays songs through its MP2K engine (`gSongTable`, 621 songs, `0x08B59ED0` in the USA ROM;
+  voicegroups of 12-byte voices; samples as 8-bit PCM with a 16-byte header, `freq` the rate x 1024 at key 60). What it needs, all
+  in C# (the randomizer reads the owner's Squeak Squad ROM, as for the graphics): the wave archives decoded (PCM8, PCM16, IMA-ADPCM
+  to 8-bit, each sample's root key baked into its rate), the banks turned into voicegroups (sampled, square, noise voices, key
+  splits, drum sets; the DS's envelopes mapped onto KatAM's), the sequences compiled into MP2K tracks (48 to 24 ticks a beat, the
+  DS's notes with lengths and note-wait, loops, calls, volume and expression, pan, bend, tempo, modulation), the song table moved
+  and grown, and each Squeak Squad room's song set to its stage's. The stage-to-music map isn't found yet: in the DS, 1-1 has
+  sequences 12, 14 and 25 loaded (25 likely its music), Mecha-Kracko's stage adds 33; overlay 11 has a 28-entry list (`0x022506B4`
+  on) pairing each entry with a sequence (the entry's number less 5), likely the Sound Player's list. The sound effects (the
+  gimmicks', enemies', bosses') come after: each DS sound number to its archive's sequence, then those in place of KatAM's
+  stand-ins. A way to check it by ear is needed too: the GBA debugger (mGBA) can write its audio to a WAV for the owner.
 - **ROM size** (the owner: "if needed, expand the ROM size to fit all this new content but only if needed"): 32 MB is the most
   the GBA maps (0x08000000-0x09FFFFFF), and the expansion is already there, so it can't grow; about 10 MB of it is free.
 
