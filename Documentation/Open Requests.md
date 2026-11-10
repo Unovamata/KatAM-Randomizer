@@ -791,21 +791,30 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
     Squeak Squad ability room, after the switch rooms, its door back to the Squeak Squad hub's. The map viewer puts it on the hub's
     left. Checked in the GBA emulator (pieces owned by a RAM write; USA, Europe, Japan): no door without the 7 pieces, the door
     shown with KatAM's sparkle with them, in to the ability room and back out to the hub.
-- **The Squeak Squad ability room**: done (the owner: "Create the Squeak Squad ability room in KatAM and replace it on its
-  respective room warp on the Squeak Squad hub"). No longer a copy of KatAM's: KatAM's ability room's layout (0x3CA's walls,
-  platforms, door and statue spots, read from the ROM) cut to its top three tiers, the third standing on solid ground (29 x 19
-  cells), drawn in Squeak Squad's Cushy Cloud tiles the way the switch rooms are (3-4-1's cloud platforms and ground, before its
-  sky with the pillars, far view d_viw_09: picked from mock-ups of 3-1-1, 3-3-6 and 3-4-1; the room that fit the cells best was a
-  cave). Its 12 statues give the copy abilities Squeak Squad and KatAM share: Beam, Spark, Hammer, Bomb, Parasol, Tornado and Sword
-  where KatAM's ability room has them, Ice, Fire, Wheel, Cutter and Throw in the spots of Fighter, Burning, Missile, Laser and
-  Smash (Squeak Squad has none of those). Squeak Squad's own Animal, Bubble, Ghost, Metal and Ninja aren't in KatAM, so no
-  statue gives them. Its door is at 0x3CA's spot, the same hub door leads to it (world slot 0x1C), and its music is KatAM's
-  ability room's. `BuildSqueakAbilityRoom()`.
-  - Checked in the GBA emulator (USA): walked the room's three tiers, took Throw from its statue, went out through the door to the
-    Squeak Squad hub (the Secret Map's pieces owned by a RAM write: its door shown) and back in through the hub's door, landing on
-    the room's door. Europe and Japan: the same round trip in the emulator; built and logic-checked (every room reached, every
-    switch pressed, nowhere trapped, with and without thin-floor drops: unchanged).
-  - Not tested: every statue one by one (only Throw taken), helpers in the room. The layout and look are the owner's to change.
+- **The Squeak Squad ability room**: done, Squeak Squad's own (the owner, after the first version, a copy of KatAM's ability
+  room's layout in Squeak Squad's tiles: "No, just import Squeak Squad's ability room to KatAM along with its pedestals, it's
+  literally that simple what I'm asking"). It's the one room of the DS's stage 9-1 (`map/a9s1s1`, the Arena's: a hall 92 by 16
+  cells with two shelves, a bell tower at its right end; 9-10 has the same room), converted as the worlds' rooms are (its tiles and
+  tile animations, its far view d_viw_0B, its collision: the shelves are thin floors, Down + B drops through them, Kirby jumps or
+  floats back up through them). Its 25 pedestals stand where the DS puts them (its item list, kinds 0x17 on: the DS's ability the
+  kind less 0x16), drawn as the DS draws them (`item/copy`, the pedestal item's animation table: the ability's icon on a gold
+  stand, in the DS's own palettes), and a Kirby with no ability who touches one gets its ability, as KatAM's ability statues
+  (`squeak/gimmicks.c`'s `SqueakCreatePedestal`). They give Fire, Ice, Spark, Beam, Tornado, Parasol, Cutter, Laser, Bomb, Wheel,
+  UFO, Cupid, Sleep, Hi-Jump (Starman's, NiDL's port), Sword, Throw (Bun's, as Bun gives in this port) and Fighter (Boxin's); the
+  other 8 show Squeak Squad's own abilities KatAM doesn't have (Ninja, Animal, Bubble, Metal, Ghost, Triple Star, and two the
+  DS gives from no enemy: an orange lantern and a black top hat) and give nothing. Kirby lands on its doorway (the hall's right
+  end), which leads back to the Squeak Squad hub's door to it (world slot 0x1C, once the Secret Map is whole). Its music is KatAM's
+  ability room's: the DS's room sets none. `BuildSqueakAbilityRoom()`.
+  - Checked in the GBA emulator (USA): in through the hub's door (the Secret Map's pieces owned by a RAM write) onto the doorway,
+    out again onto the hub's door; the whole hall seen (both shelves, the floor row, the Triple Star pedestal on the roof under
+    the bells); touched Throw (Bun's), Beam, Cupid, Fighter and Hi-Jump's pedestals and got each (Hi-Jump used to jump back up
+    through the shelves), Bubble's and got nothing; dropped through the shelves with Down + B. The pedestals' colors checked
+    against the DS's palettes (a render of `item/copy` with each piece's own palette). Europe and Japan: the same round trip in the
+    emulator (onto the doorway, back onto the hub's door) and Beam's pedestal giving Beam. All three built and logic-checked (every
+    room reached, every switch pressed, nowhere trapped, with and without thin-floor drops: unchanged).
+  - Not tested: the DS's own look of the room in play (the DS shows the room only in its Arena mode: swapped into stage 1-1 in
+    the DS emulator, its pedestals didn't come out), so each pedestal's height (its stand's foot on the shelf) is the data's, not
+    seen on the DS; every pedestal one by one (6 taken); helpers taking one.
 - **The NiDL hub's ability room door opens only with all the NiDL hub's switches**: done (the owner: "For the NiDL ability room, it
   can only be unlocked after all switches have been pressed on the NiDL hub"). The NiDL hub's copy of Central Circle's ability
   room door no longer waits for KatAM's switch (world slot 0x12, after KatAM's 15 big switches): it waits for world slot 0x1D
@@ -899,8 +908,9 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
 ## 11. Polish the Squeak Squad hubs
 - The owner: "Add a pending tasks to the list that we need to thoroughly polish the Squeak Squad hubs." The Squeak Squad hub (the
   Central Circle copy, its grey door, its mirror and doors' places and looks, still provisional), the 8 world switch rooms (their
-  provisional tiles, statues and pedestals) and the new Squeak Squad ability room: a thorough pass on looks and layout, the
-  owner's picks first (the rulebook's frozen designs stay as they are unless the owner says).
+  provisional tiles, statues and pedestals): a thorough pass on looks and layout, the owner's picks first (the rulebook's frozen
+  designs stay as they are unless the owner says). The Squeak Squad ability room is no longer part of it: it's Squeak Squad's own
+  room now, as the owner asked (see its entry above).
 - **The Squeak Squad hub's background and cloud colors** (the owner: "Change the background of the Squeak Squad hub along with its
   palette for the clouds, show me options in a screenshot"): done, waiting on the owner's pick. The hub no longer shows Central
   Circle's background: a Squeak Squad far view, converted as its rooms' (shared with the rooms showing the same view), panning

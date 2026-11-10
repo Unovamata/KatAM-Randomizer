@@ -1514,6 +1514,46 @@ namespace KatAMRandomizer {
             return rides;
         }
 
+        /* WriteSqueakForeground(); A converted foreground into the ROM (its tiles, its animations, KatAM's foreground animations as
+         * TileAnimations()' (ForegroundInfo +8, +0xC): a timing's tiles (VRAM from 0x06008000), copied whole, a step per frame, its source
+         * the frame's tiles and its duration; its palettes, its tilemap), for room `room`: its info, palette and tilemap entries; */
+        static (int info, int palette, int tilemapEntry) WriteSqueakForeground(byte[] rom, SqueakForeground foreground, int room, int paletteCycles,
+                                                                                ref int cursor) {
+            int tilesAt = AllocateCompressed(rom, CompressLZ77(foreground.Tiles), ref cursor);
+            /* (its animations, KatAM's foreground animations as TileAnimations()' (ForegroundInfo +8, +0xC): a timing's tiles
+             * (VRAM from 0x06008000), copied whole, a step per frame, its source the frame's tiles and its duration); */
+            int animationsAt = 0;
+            if (foreground.Animations.Count > 0) {
+                animationsAt = Allocate(ref cursor, foreground.Animations.Count * 0x14, 4);
+                for (int k = 0; k < foreground.Animations.Count; k++) {
+                    SqueakTileAnimation animation = foreground.Animations[k];
+                    int bytes = animation.Tiles * 32, steps = Allocate(ref cursor, animation.Frames.Length * 8, 4);
+                    for (int step = 0; step < animation.Frames.Length; step++) {
+                        int frameAt = Allocate(ref cursor, bytes, 4);
+                        animation.Frames[step].CopyTo(rom, frameAt);
+                        WriteInt(rom, steps + step * 8, frameAt + 0x08000000);
+                        WriteShorts(rom, steps + step * 8 + 4, animation.Durations[step], 0);
+                    }
+                    WriteInts(rom, animationsAt + k * 0x14, animation.FirstTile * 32, bytes, bytes, steps + 0x08000000);
+                    WriteShorts(rom, animationsAt + k * 0x14 + 0x10, animation.Frames.Length, 1);
+                }
+                animationsAt += 0x08000000;
+            }
+            int info = Allocate(ref cursor, 16, 4);
+            WriteInts(rom, info, tilesAt + 0x08000000, 0, animationsAt);
+            WriteShorts(rom, info + 12, foreground.Animations.Count, room);
+            int colors = Allocate(ref cursor, 0xC0, 4), palette = Allocate(ref cursor, 12, 4);
+            for (int c = 0; c < 96; c++) WriteShort(rom, colors + c * 2, foreground.Palettes[c]);
+            WriteInts(rom, palette, colors + 0x08000000, paletteCycles);
+            WriteShorts(rom, palette + 8, 0, room);
+            byte[] tilemap = new byte[foreground.Tilemap.Length * 2];
+            for (int t = 0; t < foreground.Tilemap.Length; t++) WriteShort(tilemap, t * 2, foreground.Tilemap[t]);
+            int tilemapAt = AllocateCompressed(rom, CompressLZ77(tilemap), ref cursor), tilemapEntry = Allocate(ref cursor, 0x20, 4);
+            WriteShorts(rom, tilemapEntry, foreground.Columns, foreground.Rows);
+            WriteInts(rom, tilemapEntry + 0x18, tilemapAt + 0x08000000, room << 16);
+            return (info, palette, tilemapEntry);
+        }
+
         /* AddSqueakRooms(); Every Squeak Squad room into KatAM (see above): its foreground (ConvertSqueakForeground(), its star blocks'
          * cells drawn bare for what they leave), its far view as its background (shared by the rooms showing it), its collision
          * (SqueakCollision(): a star block a special block record, leaving air, or water in water), its CPU helpers' zones, its
@@ -1723,38 +1763,7 @@ namespace KatAMRandomizer {
 
                     // Foreground: its tiles, palettes and tilemap;
                     SqueakForeground foreground = ConvertSqueakForeground(map, front, main, ForegroundTiles, blocks, SqueakSigns(map), chains.Union(burnt).ToHashSet());
-                    int tilesAt = AllocateCompressed(rom, CompressLZ77(foreground.Tiles), ref here);
-                    /* (its animations, KatAM's foreground animations as TileAnimations()' (ForegroundInfo +8, +0xC): a timing's tiles
-                     * (VRAM from 0x06008000), copied whole, a step per frame, its source the frame's tiles and its duration); */
-                    int animationsAt = 0;
-                    if (foreground.Animations.Count > 0) {
-                        animationsAt = Allocate(ref here, foreground.Animations.Count * 0x14, 4);
-                        for (int k = 0; k < foreground.Animations.Count; k++) {
-                            SqueakTileAnimation animation = foreground.Animations[k];
-                            int bytes = animation.Tiles * 32, steps = Allocate(ref here, animation.Frames.Length * 8, 4);
-                            for (int step = 0; step < animation.Frames.Length; step++) {
-                                int frameAt = Allocate(ref here, bytes, 4);
-                                animation.Frames[step].CopyTo(rom, frameAt);
-                                WriteInt(rom, steps + step * 8, frameAt + 0x08000000);
-                                WriteShorts(rom, steps + step * 8 + 4, animation.Durations[step], 0);
-                            }
-                            WriteInts(rom, animationsAt + k * 0x14, animation.FirstTile * 32, bytes, bytes, steps + 0x08000000);
-                            WriteShorts(rom, animationsAt + k * 0x14 + 0x10, animation.Frames.Length, 1);
-                        }
-                        animationsAt += 0x08000000;
-                    }
-                    int info = Allocate(ref here, 16, 4);
-                    WriteInts(rom, info, tilesAt + 0x08000000, 0, animationsAt);
-                    WriteShorts(rom, info + 12, foreground.Animations.Count, room);
-                    int colors = Allocate(ref here, 0xC0, 4), palette = Allocate(ref here, 12, 4);
-                    for (int c = 0; c < 96; c++) WriteShort(rom, colors + c * 2, foreground.Palettes[c]);
-                    WriteInts(rom, palette, colors + 0x08000000, paletteCycles);
-                    WriteShorts(rom, palette + 8, 0, room);
-                    byte[] tilemap = new byte[foreground.Tilemap.Length * 2];
-                    for (int t = 0; t < foreground.Tilemap.Length; t++) WriteShort(tilemap, t * 2, foreground.Tilemap[t]);
-                    int tilemapAt = AllocateCompressed(rom, CompressLZ77(tilemap), ref here), tilemapEntry = Allocate(ref here, 0x20, 4);
-                    WriteShorts(rom, tilemapEntry, foreground.Columns, foreground.Rows);
-                    WriteInts(rom, tilemapEntry + 0x18, tilemapAt + 0x08000000, room << 16);
+                    (int info, int palette, int tilemapEntry) = WriteSqueakForeground(rom, foreground, room, paletteCycles, ref here);
 
                     // Background: the far view, shared;
                     string view = f.View ?? "";
@@ -2048,13 +2057,21 @@ namespace KatAMRandomizer {
                                                BackgroundWidth = bgSize.width, BackgroundHeight = bgSize.height, Fight = planRooms[i].Midboss || planRooms[i].Boss });
                     squeakRooms.Add(new SqueakPortedRoom(f, room, width, height));
                 }
-                if (BuildSqueakHub(rom, symbols, nidlRooms, roomProps, newProps, newInfos, roomInfos, hubRoom, firstSwitchRoom, abilityRoom, worldStarts[1],
+                // (where the hub's door to the ability room lands Kirby: its doorway, SqueakAbilityRoomDoor(), facing the room's middle);
+                if (SqueakAbilityRoomFiles(squeak) is not SqueakRoomFiles abilityFiles
+                    || new SqueakMap(SqueakUnpack(SqueakFileAnyCase(squeak, abilityFiles.Map))) is not SqueakMap abilityMap
+                    || SqueakAbilityRoomDoor(abilityMap) is not SqueakDoor abilityDoorway)
+                    return "Squeak Squad's ability room wasn't found.";
+                (int x, int y, byte facing) abilityLanding = (abilityDoorway.X + 1, abilityDoorway.Y + 1, (byte)(abilityDoorway.X * 2 < abilityMap.Width ? 1 : 2));
+                if (BuildSqueakHub(rom, symbols, nidlRooms, roomProps, newProps, newInfos, roomInfos, hubRoom, firstSwitchRoom, abilityRoom, abilityLanding, worldStarts[1],
                                    navigationRoutes, noTypes, Add, DoorsList,
                                    view => ViewBackground(view, hubRoom) is int at && at >= 0 ? (at, backgroundSize[view].width, backgroundSize[view].height) : null,
                                    out KatAMRoomEdit centralCircle, out byte[] hubCollision, out int hubWidth, ref here) is string hubError)
                     return hubError;
-                if (BuildSqueakAbilityRoom(rom, t => nidlRooms ? roomTables[t].at : symbols[t], newProps, newInfos, abilityRoom, hubRoom, looks,
-                                           navigationRoutes, Add, DoorsList, ref here) is string abilityError)
+                if (BuildSqueakAbilityRoom(rom, squeak, version, t => nidlRooms ? roomTables[t].at : symbols[t], newProps, newInfos, abilityRoom, hubRoom,
+                                           navigationRoutes, noTypes, paletteCycles, Add, DoorsList,
+                                           view => ViewBackground(view, abilityRoom) is int at && at >= 0 ? (at, backgroundSize[view].width, backgroundSize[view].height) : null,
+                                           ref here) is string abilityError)
                     return abilityError;
                 if (SqueakShardExits(rom, version, symbols, hubRoom, bossRooms, hubCollision, hubWidth) is string exitError) return exitError;
 

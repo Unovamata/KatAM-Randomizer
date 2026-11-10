@@ -541,14 +541,15 @@ namespace KatAMRandomizer {
          * Knight's: his body the character's own, his sword a layer; his sword's flourishes alone in its frames, his wave's two
          * palettes one); Scale: drawn at Scale.Num / Scale.Den of the DS's size (its cells, SqueakShrink, and its animations' offsets:
          * Yadgaine's, YadgaineScale); Roll: an animation more, that cell turned a sixteenth more each step (SqueakRolled(): the
-         * rolling boulder's, which the DS turns as its body rolls); */
+         * rolling boulder's, which the DS turns as its body rolls); OnlyPalettes: only the pieces drawn with these of its .cla's palettes
+         * (the others left out: SqueakSplitLayer()), a frame's palette the one of its first piece (the pedestals' icons); */
         internal sealed record SqueakEnemy(int Index, string Name, string File, int[] HurtCells, (int type, int letter)[] Glyphs, int GraphicsOf = -1,
                                             byte MidbossType = 0, int[] OnlyAnims = null, string[] Palettes = null,
                                             (ushort from, ushort to)[] MergeColors = null, string ExtraFile = null,
                                             int[][] Layers = null, int Canvas = 128, bool BodyLast = false, bool KeepComposites = false,
                                             bool SharePalettes = false, string PaletteFile = null, bool WholeCells = false,
                                             (int Num, int Den) Scale = default, int ShiftY = 0, int Rotate = 0, int Roll = -1,
-                                            bool FlattenComposites = false);
+                                            bool FlattenComposites = false, int[] OnlyPalettes = null);
         /* AnimPalettes: a character whose cells are in Squeak Squad's different palettes (Doc's things), per animation the palette its
          * sprite takes (SqueakPaletteKey); */
         internal sealed record SqueakBuilt(SqueakEnemy Enemy, int AnimId, SqueakCharacter Character, int Tiles, List<SqueakLayerBuilt> Layers = null,
@@ -703,6 +704,13 @@ namespace KatAMRandomizer {
         // (the grass tufts' and the barrel's, squeak.h's SQUEAK_GRASS on and SQUEAK_BARREL: gimmicks 0xE and 0xF);
         const int SqueakGrass = 80, SqueakBarrel = 86, SqueakIcicle = 87, SqueakRock = 88, SqueakPlatformLook = 89, SqueakThunderLook = 90,
                   SqueakBoulderLook = 91, SqueakCandleLook = 92;
+        /* The Squeak Squad ability room's pedestals (squeak.h's SQUEAK_PEDESTAL and SQUEAK_PEDESTAL_ICON: item/copy, the pedestal item's
+         * 0x0203A8A0, its animation per ability the table at 0x021582D8's; SqueakPedestalAnims: abilities 1-26's, the room's): the stand
+         * and the pieces in its palette (the DS's 0), and the icon's other pieces (palettes 1-3: one each, more colors than one of
+         * KatAM's palettes holds), drawn by a sprite of their own over it (squeak/gimmicks.c's SqueakCreatePedestal); */
+        internal const int SqueakPedestalLook = 93, SqueakPedestalIconLook = 94;
+        internal static readonly int[] SqueakPedestalAnims = { 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2C, 0x2D, 0x2E, 0x2F, 0x30,
+                                                               0x31, 0x32, 0x36, 0x37, 0x38, 0x39, 0x3A, 0x3B, 0x3C, 0x3D, 0x3E, 0x3F };
 
         static readonly List<SqueakEnemy> SqueakDefinitions = new List<SqueakEnemy> {
             // Perara: hurt animations 7 and 8 (0x02021A88's 0x1000007, 0x1000008);
@@ -978,6 +986,11 @@ namespace KatAMRandomizer {
             new SqueakEnemy(SqueakBoulderLook, "Boulder", "yakumono/ball_rock", new[] { 0, 0, 0 }, new (int, int)[0], Roll: 1),
             // The candle (gimmick 0xA, yakumono/candle: 0 lit, its flame flickering, 1 out): every cell; no name;
             new SqueakEnemy(SqueakCandleLook, "Candle", "yakumono/candle", new[] { 0, 0, 0 }, new (int, int)[0]),
+            // The ability room's pedestals (see SqueakPedestalLook): the stand's look, the icons' (their pieces only); no name;
+            new SqueakEnemy(SqueakPedestalLook, "Pedestal", "item/copy", new[] { 0, 0, 0 }, new (int, int)[0], OnlyAnims: SqueakPedestalAnims,
+                            OnlyPalettes: new[] { 0 }),
+            new SqueakEnemy(SqueakPedestalIconLook, "Pedestal", "item/copy", new[] { 0, 0, 0 }, new (int, int)[0], OnlyAnims: SqueakPedestalAnims,
+                            OnlyPalettes: new[] { 1, 2, 3 }),
         };
 
         /* The randomizer's Squeak Squad pools (the ROM Expansion tab). SqueakPool; A character the randomizer places: its index (SQUEAK_*

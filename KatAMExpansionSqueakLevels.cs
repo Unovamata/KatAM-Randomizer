@@ -63,7 +63,8 @@ namespace KatAMRandomizer {
         }
         const int CentralCircle = 0x321;
         static string BuildSqueakHub(byte[] rom, IReadOnlyDictionary<string, int> symbols, bool nidlRooms, int roomProps, int newProps, int newInfos,
-                                     int roomInfos, int hub, int firstSwitchRoom, int abilityRoom, (int room, int x, int y) wayIn, int navigationRoutes, int noTypes,
+                                     int roomInfos, int hub, int firstSwitchRoom, int abilityRoom, (int x, int y, byte facing) abilityLanding,
+                                     (int room, int x, int y) wayIn, int navigationRoutes, int noTypes,
                                      Func<string, int, int> add, Func<List<byte>, int, int> doorsList,
                                      Func<string, (int index, int width, int height)?> viewBackground, out KatAMRoomEdit cc,
                                      out byte[] hubCollision, out int hubWidth, ref int cursor) {
@@ -121,9 +122,9 @@ namespace KatAMRandomizer {
                 nineROM.AddRange(NineROMEntry(door.Room, door.DestX, door.DestY));
                 squeakHubDoors.Add(door);
             }
-            /* (the ability room's door: Central Circle's own blocks drawing it, its record, to the Squeak Squad ability room's door, a copy of
-             * the ability room's, onto the same cell, and its hub mirror object of SecretMapSlot; its 9ROM entry last, as Central Circle's and
-             * the NiDL hub's: the game's door visits look for a door in its list, endlessly); */
+            /* (the ability room's door: Central Circle's own blocks drawing it, its record, to the Squeak Squad ability room's door (its
+             * doorway, `abilityLanding`: the landing cell + 1, the facing), and its hub mirror object of SecretMapSlot; its 9ROM entry last,
+             * as Central Circle's and the NiDL hub's: the game's door visits look for a door in its list, endlessly); */
             byte[] abilityTemplate = cc.Templates.FirstOrDefault(t => t[12] == HubMirrorType && t[4] == AbilityRoomSlot);
             if (abilityTemplate == null) return "Central Circle has no door to the ability room.";
             int abilityX = ReadShort(abilityTemplate, 6) / 16, abilityY = ReadShort(abilityTemplate, 8) / 16 + 1;
@@ -131,7 +132,8 @@ namespace KatAMRandomizer {
             List<byte[]> abilityBlocks = specials.Where(r => r[0] == 1 && Math.Abs(r[2] - abilityX) <= 1 && r[3] >= abilityY - 2 && r[3] <= abilityY).ToList();
             if (abilityRecord == null || ReadShort(abilityRecord, 8) != KatAMAbilityRoom || abilityBlocks.Count != 9)
                 return "Central Circle's door to the ability room isn't as it should be.";
-            Door abilityDoor = new Door(abilityX, abilityY, abilityRoom, abilityRecord[10], abilityRecord[11], abilityRecord[12], Slot: SecretMapSlot, Kind: DoorKind.Hub);
+            Door abilityDoor = new Door(abilityX, abilityY, abilityRoom, abilityLanding.x, abilityLanding.y, abilityLanding.facing, Slot: SecretMapSlot,
+                                        Kind: DoorKind.Hub);
             foreach (byte[] block in abilityBlocks) hubSpecials.AddRange(block);
             hubSpecials.AddRange(DoorRecord(abilityDoor, 0xFF));
             byte[] abilityMirror = (byte[])abilityTemplate.Clone();
@@ -187,144 +189,107 @@ namespace KatAMRandomizer {
         static List<Door> squeakHubDoors = new List<Door>();
         static Door squeakAbilityDoor;
 
-        /* BuildSqueakAbilityRoom(); The Squeak Squad ability room (room `room`, after the switch rooms; the owner: "Create the Squeak Squad
-         * ability room in KatAM"): KatAM's ability room (0x3CA, read: its walls, platforms, door and statues' spots) cut to its top three
-         * tiers (its rows above SqueakAbilityTiers; then solid ground, the third tier's statues on it), their 12 statues the copy abilities
-         * Squeak Squad and KatAM share (SqueakAbilitySwaps), drawn in the tiles of a Squeak Squad world's room as the switch rooms are
-         * (SqueakSwitchTilemap(): SqueakAbilityLook's world, its room or the one that gives the layout best) before that room's far view;
-         * its door KatAM's (its cell, its mirror), leading back to the Squeak Squad hub's door to it (Central Circle's spot); KatAM's
-         * ability room's music; reached from the hub once the Secret Map is whole (BuildSqueakHub(), SecretMapSlot). Returns an error,
-         * or null; */
+        /* BuildSqueakAbilityRoom(); The Squeak Squad ability room (room `room`, after the switch rooms; the owner: "just import Squeak
+         * Squad's ability room to KatAM along with its pedestals"): Squeak Squad's own, the one room of its stage 9-1 (map/a9s1s1, the
+         * Arena's: a hall of shelves, its copy abilities each on a pedestal), converted as the worlds' rooms are (its tiles, far view,
+         * collision, tile animations: AddSqueakRooms()); its door (the doorway at the hall's right end, SqueakAbilityRoomDoor()) leads back
+         * to the Squeak Squad hub's door to it (Central Circle's spot: where KatAM's ability room's door leads Kirby there), the hub's door
+         * landing Kirby on it; its pedestals (its .doe's items, kinds 0x17 on, Squeak Squad's ability the kind less 0x16) squeak/gimmicks.c's
+         * (object 0x8D, its template's unk11 SqueakPedestalObject: unk12 the DS's ability, its look; unk14 KatAM's, SqueakPedestalAbility();
+         * unk16 1 if its icon has pieces in the DS's other palettes), each on the floor under its spot, giving its ability to a Kirby with
+         * none touching it, as KatAM's ability statues; its music KatAM's ability room's (the DS's room sets none); reached from the hub
+         * once the Secret Map is whole (BuildSqueakHub(), SecretMapSlot). Returns an error, or null; */
         const int KatAMAbilityRoom = 0x3CA;
         // SecretMapSlot; The world slot the Squeak Squad hub's door to its ability room waits for: KatAM's free slot 0x1C, set while the
         // Secret Map is whole ("ROM Expansion/rooms.c"'s BigGetStateSlot, squeak.h's SECRET_MAP_SLOT);
         const byte SecretMapSlot = 0x1C;
-        // (KatAM's ability room's rows kept, its tiers' at 4, 10 and 16 on: the third's its floor; the room's rows, 3 of them ground);
-        const int SqueakAbilityTiers = 16, SqueakAbilityHeight = SqueakAbilityTiers + 3;
-        /* SqueakAbilitySwaps; The statues of KatAM's ability room's top three tiers whose abilities Squeak Squad lacks, and what takes their
-         * spot (0x92 Beam, Burning, Laser, Fire, Stone, Fighter, Bomb, Tornado; 0x93 Wheel, Ice, Spark, Missile, Smash, Throw, Hammer; 0x94
-         * Parasol; 0x95 Sword, Cutter, Cupid): Fighter Ice, Burning Fire, Missile Wheel, Laser Cutter, Smash Throw; Beam, Spark, Hammer,
-         * Bomb, Parasol, Tornado and Sword stay where KatAM has them (Squeak Squad's own Animal, Bubble, Ghost, Metal and Ninja aren't
-         * KatAM's abilities); */
-        static readonly Dictionary<(byte type, byte subtype), (byte type, byte subtype)> SqueakAbilitySwaps = new() {
-            [(0x92, 5)] = (0x93, 1), [(0x92, 1)] = (0x92, 3), [(0x93, 3)] = (0x93, 0), [(0x92, 2)] = (0x95, 1), [(0x93, 4)] = (0x93, 5),
-        };
-        // SqueakAbilityLook; The world whose tiles the ability room is drawn in, and its room (stage, number; null: the one that fits best):
-        // Cushy Cloud's 3-4-1, its clouds and the sky with its pillars (the far view d_viw_09), as KatAM's ability room's sky (mock-ups
-        // of 3-1-1, 3-3-6 and 3-4-1's; the world's room that fit its cells best, a cave, looked nothing like it);
-        static readonly (int world, (int stage, int number)? source) SqueakAbilityLook = (3, (4, 1));
-        static string BuildSqueakAbilityRoom(byte[] rom, Func<string, int> table, int newProps, int newInfos, int room, int hub, List<SqueakLook> looks,
-                                             int navigationRoutes, Func<string, int, int> add, Func<List<byte>, int, int> doorsList, ref int cursor) {
+        // (the room: Squeak Squad's area 9, stage 1; its pedestals' object, squeak.h's SQUEAK_PEDESTAL_OBJECT, its stand's foot 4 pixels
+        // under the DS's spot, the frames' bottom);
+        const int SqueakAbilityArea = 9, SqueakAbilityStage = 1, PedestalFoot = 4;
+        const byte SqueakPedestalObject = 0x8F;
+
+        // SqueakAbilityRoomFiles(); Squeak Squad's ability room's files (null: not in the ROM);
+        static SqueakRoomFiles SqueakAbilityRoomFiles(byte[] squeak) => SqueakStageRooms(squeak, SqueakAbilityArea, SqueakAbilityStage).FirstOrDefault();
+        // SqueakAbilityRoomDoor(); Its door: its doorway, the one that isn't where Kirby starts (null: none);
+        static SqueakDoor SqueakAbilityRoomDoor(SqueakMap map) => map.Doors().FirstOrDefault(d => d.Kind != SqueakStartKind && d.X < map.Width && d.Y < map.Height);
+        /* SqueakPedestalAbility(); KatAM's ability a pedestal gives: SqueakKatAMAbilities' (KatAM's Hi-Jump the NiDL one), and 17, Bun's,
+         * KatAM's Throw (squeak.c's SQUEAK_BUN); Squeak Squad's own (Ninja, Animal, Bubble, Metal, Ghost, Triple Star, 12, 18) none; */
+        static byte SqueakPedestalAbility(int ability) => ability == 17 ? (byte)10 : SqueakKatAMAbilities.GetValueOrDefault(ability);
+
+        static string BuildSqueakAbilityRoom(byte[] rom, byte[] squeak, KatAMExpansionCode.Version version, Func<string, int> table, int newProps,
+                                             int newInfos, int room, int hub, int navigationRoutes, int noTypes, int paletteCycles,
+                                             Func<string, int, int> add, Func<List<byte>, int, int> doorsList,
+                                             Func<string, (int index, int width, int height)?> viewBackground, ref int cursor) {
+            SqueakRoomFiles f = SqueakAbilityRoomFiles(squeak);
+            if (f == null) return "Squeak Squad's ability room wasn't found.";
+            SqueakMap map = new SqueakMap(SqueakUnpack(SqueakFileAnyCase(squeak, f.Map)));
+            SqueakTileset front = f.Front == null || SqueakFileAnyCase(squeak, f.Front) is not byte[] frontFile ? null : new SqueakTileset(frontFile);
+            SqueakTileset main = f.Main == null || SqueakFileAnyCase(squeak, f.Main) is not byte[] mainFile ? null : new SqueakTileset(mainFile);
+            int width = map.Width, height = map.Height;
+            (byte[] collision, List<(int x, int y)> blocks, _, _, HashSet<(int x, int y)> chains, HashSet<(int x, int y)> burnt) = SqueakRoomCollision(map);
+            if (blocks.Count > 0 || chains.Count > 0) return "Squeak Squad's ability room has blocks it shouldn't.";
+            if (SqueakAbilityRoomDoor(map) is not SqueakDoor door) return "Squeak Squad's ability room has no door.";
+
+            // Its door: back to the hub's door to it, where KatAM's ability room's door leads Kirby in Central Circle (the hub its copy);
             KatAMRoomEdit katam = LoadKatAMRoom(rom, newProps, table, KatAMAbilityRoom);
-            int width = katam.Width, height = SqueakAbilityHeight, columns = width * 2;
-            if (katam.Height <= SqueakAbilityTiers) return "KatAM's ability room is smaller than it should be.";
-            byte Cell(int x, int y) => y < SqueakAbilityTiers ? katam.Collision[y * width + x] : KatAMSolid;
-            if (Enumerable.Range(0, width * SqueakAbilityTiers).Any(i => katam.Collision[i] is not (KatAMAir or KatAMSolid or KatAMThin or 0xFF)))
-                return "KatAM's ability room has cells it shouldn't.";
-            bool Solid(int x, int y) => Cell(x, y) == KatAMSolid;
-            bool Thin(int x, int y) => Cell(x, y) == KatAMThin;
-
-            // Its look: the world's room that gives it best (its solid cells, platforms, open air), as the switch rooms;
-            SqueakLook source = null;
-            ushort[] tilemap = null;
-            int bestScore = -1;
-            foreach (SqueakLook look in looks.Where(l => l.World == SqueakAbilityLook.world && !l.Fight
-                                                         && (SqueakAbilityLook.source == null || (l.Stage, l.Number) == SqueakAbilityLook.source.Value))) {
-                (ushort[] map, int score) = SqueakSwitchTilemap(look.Tilemap, look.Columns, look.Collision, look.Width, look.Height, Solid, Thin, width, height);
-                if (score > bestScore) { bestScore = score; source = look; tilemap = map; }
-            }
-            if (source == null) return "Squeak Squad has no room to draw its ability room in.";
-            // (the open air a back wall fills, or touching no terrain, clear, so the far view shows; a solid cell drawn mostly clear, the
-            // nearest solid one drawn whole, as the switch rooms');
-            int At(int x, int y, int q) => (2 * y + q / 2) * columns + 2 * x + q % 2;
-            int Drawn(ushort entry) {
-                int tile = entry & 0x3FF, count = 0;
-                if (tile * 32 + 32 > source.Tiles.Length) return 0;
-                for (int b = 0; b < 32; b++) count += ((source.Tiles[tile * 32 + b] & 0x0F) != 0 ? 1 : 0) + ((source.Tiles[tile * 32 + b] & 0xF0) != 0 ? 1 : 0);
-                return count;
-            }
-            int CellDrawn(int x, int y) => Enumerable.Range(0, 4).Sum(q => Drawn(tilemap[At(x, y, q)]));
-            bool Terrain(int x, int y) => x < 0 || y < 0 || x >= width || y >= height || Solid(x, y) || Thin(x, y);
-            bool Touches(int x, int y) => Terrain(x - 1, y) || Terrain(x + 1, y) || Terrain(x, y - 1) || Terrain(x, y + 1);
-            for (int y = 0; y < height; y++)
-                for (int x = 0; x < width; x++)
-                    if (!Terrain(x, y) && (CellDrawn(x, y) >= 192 || !Touches(x, y)))
-                        for (int q = 0; q < 4; q++) tilemap[At(x, y, q)] = 0;
-            for (int y = 0; y < height; y++)
-                for (int x = 0; x < width; x++) {
-                    if (!Solid(x, y) || CellDrawn(x, y) >= 128) continue;
-                    (int x, int y)? whole = null;
-                    for (int d = 1; d < width + height && whole == null; d++)
-                        for (int ny = y - d; ny <= y + d && whole == null; ny++)
-                            for (int nx = x - d; nx <= x + d && whole == null; nx++)
-                                if (Math.Abs(nx - x) + Math.Abs(ny - y) == d && nx >= 0 && ny >= 0 && nx < width && ny < height && Solid(nx, ny)
-                                    && CellDrawn(nx, ny) >= 224) whole = (nx, ny);
-                    if (whole is (int, int) w)
-                        for (int q = 0; q < 4; q++) tilemap[At(x, y, q)] = tilemap[At(w.x, w.y, q)];
-                }
-
-            // (padded as the switch rooms, Padded(): its last row's look again below, solid);
-            int rows = Padded(width, height).height;
-            ushort[] padded = new ushort[columns * rows * 2];
-            for (int ty = 0; ty < rows * 2; ty++) Array.Copy(tilemap, Math.Min(ty, height * 2 - 2 + ty % 2) * columns, padded, ty * columns, columns);
-            byte[] collision = new byte[width * rows];
-            for (int y = 0; y < rows; y++)
-                for (int x = 0; x < width; x++) collision[y * width + x] = y < SqueakAbilityTiers ? katam.Collision[y * width + x] : KatAMSolid;
-
-            // Its door: KatAM's ability room's (its records and 9ROM entries), back to the Squeak Squad hub rather than Central Circle;
-            List<byte> specials = new List<byte>(), nine = new List<byte>();
-            int backs = 0;
-            foreach (byte[] record in katam.Specials.Where(r => r[3] < SqueakAbilityTiers)) {
-                byte[] copy = (byte[])record.Clone();
-                if (copy[0] == 3 && copy.Length >= 14 && ReadShort(copy, 8) == CentralCircle) { WriteShort(copy, 8, hub); backs++; }
-                specials.AddRange(copy);
-            }
-            if (backs == 0) return "KatAM's ability room has no door back to Central Circle.";
+            byte[] back = katam.Specials.FirstOrDefault(r => r[0] == 3 && r.Length >= 14 && ReadShort(r, 8) == CentralCircle);
+            if (back == null) return "KatAM's ability room has no door back to Central Circle.";
+            Door way = new Door(door.X, door.Y, hub, back[10], back[11], back[12]);
+            collision[door.Y * width + door.X] = 0xFF;
+            List<byte> specials = new List<byte>(DoorRecord(way, 0xFF));
             specials.AddRange(new byte[] { 0, 0, 0, 0, 0, 0, 0xFF, 0xFF });
-            foreach (byte[] entry in katam.Nine) {
-                byte[] copy = (byte[])entry.Clone();
-                if (copy[0] == 2 && copy.Length >= 8 && ReadShort(copy, 4) == CentralCircle) WriteShort(copy, 4, hub);
-                nine.AddRange(copy);
-            }
             int collisionAt = AllocateCompressed(rom, CompressRL(collision), ref cursor), specialsAt = AllocateCompressed(rom, specials.ToArray(), ref cursor);
             int solidity = Allocate(ref cursor, 8, 4);
             WriteInts(rom, solidity, collisionAt + 0x08000000, specialsAt + 0x08000000);
 
-            // Its objects: the door's mirror and the top three tiers' statues, those of abilities Squeak Squad lacks swapped;
-            List<byte[]> templates = new List<byte[]>();
-            foreach (byte[] template in katam.Templates.Where(t => ReadShort(t, 8) / 16 < SqueakAbilityTiers)) {
-                byte[] copy = (byte[])template.Clone();
-                if (SqueakAbilitySwaps.TryGetValue((copy[12], copy[14]), out var swap)) (copy[12], copy[14]) = swap;
-                copy[3] = (byte)templates.Count;
-                templates.Add(copy);
-            }
-            List<byte> types = katam.Types.Where(t => templates.Any(template => template[12] == t)).ToList();
-            foreach (byte[] template in templates.Where(template => !types.Contains(template[12]))) types.Add(template[12]);
-            int objects = WriteObjectList(rom, templates, types, katam.TypesRest, ref cursor);
-            int navigation = BuildNavigation(rom, width, rows, false, collision, navigationRoutes, new List<(int, int, int, int)>(), ref cursor);
-            int doorsIndex = add("gUnk_08D640A4", doorsList(nine, 0));
-            if (doorsIndex >= FirstDoorsList + VisitedLists) return "Too many doors lists for rooms.c's visited doors.";
+            // Its look: its tiles and tile animations, its far view (shared), panning as the worlds' rooms' (AddSqueakRooms());
+            SqueakForeground foreground = ConvertSqueakForeground(map, front, main, ForegroundTiles, blocks, SqueakSigns(map), chains.Union(burnt).ToHashSet());
+            (int info, int palette, int tilemapEntry) = WriteSqueakForeground(rom, foreground, room, paletteCycles, ref cursor);
+            (int index, int width, int height)? view = f.View == null ? null : viewBackground(f.View);
+            int background = view?.index ?? ReadShort(rom, newProps + 0x3C9 * 0x28 + 15 * 2);
+            (int rateX, int rateY) = view is (int, int, int) v ? BackgroundRates(v.width, v.height, width * 16, height * 16 + 32, 0) : (0, 0);
+            int backgroundDown = -((8 * rateY + 0xFF) >> 8);
 
-            // Its tilemap and props: the source room's tiles, palettes and far view, KatAM's ability room's music; its info the ability room's;
-            byte[] tilemapBytes = new byte[padded.Length * 2];
-            for (int t = 0; t < padded.Length; t++) WriteShort(tilemapBytes, t * 2, padded[t]);
-            int tilemapAt = AllocateCompressed(rom, CompressLZ77(tilemapBytes), ref cursor), tilemapEntry = Allocate(ref cursor, 0x20, 4);
-            WriteShorts(rom, tilemapEntry, columns, rows * 2);
-            WriteInts(rom, tilemapEntry + 0x18, tilemapAt + 0x08000000, room << 16);
-            (int rateX, int rateY) = source.BackgroundWidth > 0 ? BackgroundRates(source.BackgroundWidth, source.BackgroundHeight, width * 16, rows * 16) : (0, 0);
-            WriteShorts(rom, newProps + room * 0x28, ReadShort(rom, newProps + KatAMAbilityRoom * 0x28), 0, 0, 0x100, 0x100, 0, 0, rateX, rateY, RoomFlags,
-                        source.Info, source.Palette, add("gForegroundTilemaps", tilemapEntry), add("gSolidityMaps", solidity), 0xFFFF,
-                        source.Background, add("gLevelObjLists", objects), add("gUnk_08D63C28", navigation), doorsIndex, 0);
+            // Its pedestals: its items' abilities, each on the floor under its spot (the first cell down that isn't air), its stand's foot on it;
+            byte[] objectsFile = f.Objects == null ? null : SqueakFileAnyCase(squeak, f.Objects);
+            if (objectsFile == null || objectsFile.Length < 8) return "Squeak Squad's ability room has no objects.";
+            SqueakCharacter look = ReadSqueakCharacter(squeak, "copy", "item");
+            List<byte[]> templates = new List<byte[]>();
+            bool Floor(int cx, int cy) => collision[cy * width + cx] != KatAMAir;
+            int items = ReadShort(objectsFile, 6);
+            for (int i = 0, count = items + 2 <= objectsFile.Length ? ReadShort(objectsFile, items) : 0; i < count; i++) {
+                int at = items + 2 + i * 16, ability = ReadShort(objectsFile, at + 2) - SqueakAbilityKinds;
+                int x = ReadShort(objectsFile, at + 4), y = ReadShort(objectsFile, at + 6), cy = y / 16;
+                if (ability < 1 || ability > SqueakPedestalAnims.Length || x / 16 >= width) continue;
+                while (cy < height && !Floor(x / 16, cy)) cy++;
+                if (cy >= height) return $"Squeak Squad's ability room's pedestal at ({x}, {y}) has no floor under it.";
+                byte[] pedestal = ObjectTemplate(x, cy * 16 - PedestalFoot, templates.Count, HammerPegType);
+                pedestal[0x11] = SqueakPedestalObject;
+                pedestal[0x12] = (byte)ability;
+                pedestal[0x14] = SqueakPedestalAbility(ability);
+                // (its icon's pieces in the DS's other palettes, its icon's sprite: its cell, the pedestal animation's);
+                int cell = look.Anims[SqueakPedestalAnims[ability - 1]].Steps[0].Cell;
+                pedestal[0x16] = (byte)(look.Cells[cell].Pieces.Any(piece => piece.Attr2 >> 12 != 0) ? 1 : 0);
+                templates.Add(pedestal);
+            }
+            if (templates.Count == 0) return "Squeak Squad's ability room has no pedestals.";
+            if (templates.Count > 31) return "Squeak Squad's ability room has more pedestals than a KatAM room holds.";
+            int objects = WriteObjectList(rom, templates, new List<byte> { HammerPegType }, noTypes, ref cursor);
+            int navigation = BuildNavigation(rom, width, height, false, collision, navigationRoutes, new List<(int, int, int, int)>(), ref cursor);
+            int doorsIndex = add("gUnk_08D640A4", doorsList(NineROMEntry(hub, way.DestX, way.DestY).ToList(), 0));
+            if (doorsIndex < FirstDoorsList || doorsIndex >= FirstDoorsList + VisitedLists) return "The Squeak Squad ability room's doors list is out of rooms.c's visited doors.";
+
+            // Its info KatAM's ability room's, its room; its camera from the room's top as the worlds' rooms'; its props;
             int roomInfo = Allocate(ref cursor, 0x4C, 4);
             Array.Copy(rom, ReadInt(rom, newInfos + KatAMAbilityRoom * 4) - 0x08000000, rom, roomInfo, 0x4C);
             WriteShort(rom, roomInfo + 0x44, room);
             WriteInt(rom, newInfos + room * 4, roomInfo + 0x08000000);
-            squeakAbilityLook = source.Room;
+            rom[CodeAddress + version.CodeSymbols["gNidlRoomTops"] + room] = SqueakCameraTop;
+            WriteShorts(rom, newProps + room * 0x28, ReadShort(rom, newProps + KatAMAbilityRoom * 0x28), 0, 0, 0x100, 0x100, 0, backgroundDown, rateX, rateY,
+                        RoomFlags, add("gForegroundInfo", info), add("gForegroundPalettes", palette), add("gForegroundTilemaps", tilemapEntry),
+                        add("gSolidityMaps", solidity), 0xFFFF, background, add("gLevelObjLists", objects), add("gUnk_08D63C28", navigation), doorsIndex, 0);
             return null;
         }
-        // (the room the ability room is drawn in: for the notes);
-        static int squeakAbilityLook;
-        public static int SqueakAbilityLookRoom => squeakAbilityLook;
 
         /* SqueakShardExits(); Where each world's boss's shard takes Kirby (the rulebook's rule 8: a shard only ever sends Kirby to a central
          * hub, onto the level's door there): gNidlShardExits' entries after the NiDL bosses' ("ROM Expansion/nidl_boss.c", NidlShardExit()

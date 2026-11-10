@@ -99,11 +99,13 @@ after any change.
 - **The Squeak Squad hub has Central Circle's ability room door**, at the same spot (cell 3, 4), drawn as Central Circle's,
   shown once the Secret Map is whole (its 7 pieces; world slot 0x1C), leading to the Squeak Squad ability room (after the switch
   rooms; the owner: "Create the Squeak Squad ability room in KatAM and replace it on its respective room warp on the Squeak Squad
-  hub"): KatAM's ability room 0x3CA's layout (its walls, platforms, door and statue spots) cut to its top three tiers, the third's
-  on solid ground, drawn in Cushy Cloud's tiles (3-4-1's clouds) before its sky with pillars, its 12 statues the copy abilities
-  Squeak Squad and KatAM share (Beam, Bomb, Cutter, Fire, Hammer, Ice, Parasol, Spark, Sword, Throw, Tornado, Wheel); its door,
-  at 0x3CA's spot, leads back to that door in the Squeak Squad hub (the owner: "The Squeak Squad ability room should go in the
-  Squeak Squad hub at the same position the ability room is"). `BuildSqueakAbilityRoom()`.
+  hub", then "just import Squeak Squad's ability room to KatAM along with its pedestals"): Squeak Squad's own room, the one room of
+  its stage 9-1 (`map/a9s1s1`, the Arena's: a hall of shelves, a bell tower at its right end), as the DS has it (its tiles, far
+  view, collision), with its 25 pedestals where the DS puts them, each drawn as the DS draws it (its ability's icon on a gold
+  stand) and giving KatAM's ability to a Kirby with none who touches it, as KatAM's ability statues do; a pedestal of an ability
+  KatAM doesn't have is shown and gives nothing. Kirby lands on its doorway, at the hall's right end, which leads back to that
+  door in the Squeak Squad hub (the owner: "The Squeak Squad ability room should go in the Squeak Squad hub at the same position
+  the ability room is"). `BuildSqueakAbilityRoom()`.
 - **The Squeak Squad switch rooms** are the NiDL ones' (one per world, KatAM's two hub-door layouts, A for worlds 1, 3, 5, 7, B for
   2, 4, 6, 8, 2 floor mirrors into the world, 2 hub doors, the big switch on its pedestal, 2 ability statues), padded to 13 rows
   as theirs (so KatAM's camera shows each as one screen and stays put), drawn in the world's tiles before the far view the owner

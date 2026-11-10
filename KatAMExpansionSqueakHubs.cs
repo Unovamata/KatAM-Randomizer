@@ -176,18 +176,16 @@ namespace KatAMRandomizer {
             edit.Changed = true;
         }
 
-        /* SqueakSwitchTilemap(); A switch room's tilemap (SwitchWidth x SwitchHeight cells, or `targetWidth` x `targetHeight`: the Squeak
-         * Squad ability room's; `solid`, `thin`: its collision's kinds) in a
+        /* SqueakSwitchTilemap(); A switch room's tilemap (SwitchWidth x SwitchHeight cells, `solid`, `thin`: its collision's kinds) in a
          * room's tiles (its tilemap, `columns` wide, and collision): each cell the look the room gives most often to a cell of the same kind
          * (solid, air, thin floor) with the same kinds around it, the 4 beside weighing 3, the corners 1 (outside a room: solid); returns
          * the tilemap and how well it matched (the sum of each cell's best score); */
         static (ushort[] tilemap, int score) SqueakSwitchTilemap(ushort[] tilemap, int columns, byte[] collision, int width, int height,
-                                                                 Func<int, int, bool> solid, Func<int, int, bool> thin,
-                                                                 int targetWidth = SwitchWidth, int targetHeight = SwitchHeight) {
+                                                                 Func<int, int, bool> solid, Func<int, int, bool> thin) {
             static int Kind(byte v) => v == KatAMAir ? 0 : v == KatAMSolid ? 1 : v is KatAMThin or KatAMFirmThin ? 2 : -1;
             (int dx, int dy, int weight)[] around = { (-1, 0, 3), (1, 0, 3), (0, -1, 3), (0, 1, 3), (-1, -1, 1), (1, -1, 1), (-1, 1, 1), (1, 1, 1) };
             int SourceKind(int x, int y) => x < 0 || y < 0 || x >= width || y >= height ? 1 : Kind(collision[y * width + x]);
-            int TargetKind(int x, int y) => x < 0 || y < 0 || x >= targetWidth || y >= targetHeight || solid(x, y) ? 1 : thin(x, y) ? 2 : 0;
+            int TargetKind(int x, int y) => x < 0 || y < 0 || x >= SwitchWidth || y >= SwitchHeight || solid(x, y) ? 1 : thin(x, y) ? 2 : 0;
             ulong Key(ushort[] look) => (ulong)look[0] | (ulong)look[1] << 16 | (ulong)look[2] << 32 | (ulong)look[3] << 48;
             // (the room's cells by kind and the kinds around them: each look's count);
             var groups = new Dictionary<(int kind, int around), Dictionary<ulong, int>>();
@@ -201,10 +199,10 @@ namespace KatAMRandomizer {
                     if (!groups.TryGetValue((kind, signature), out var looks)) groups[(kind, signature)] = looks = new Dictionary<ulong, int>();
                     looks[Key(look)] = looks.GetValueOrDefault(Key(look)) + 1;
                 }
-            ushort[] result = new ushort[targetWidth * 2 * targetHeight * 2];
+            ushort[] result = new ushort[SwitchWidth * 2 * SwitchHeight * 2];
             int total = 0;
-            for (int y = 0; y < targetHeight; y++)
-                for (int x = 0; x < targetWidth; x++) {
+            for (int y = 0; y < SwitchHeight; y++)
+                for (int x = 0; x < SwitchWidth; x++) {
                     int kind = TargetKind(x, y);
                     int[] want = around.Select(a => TargetKind(x + a.dx, y + a.dy)).ToArray();
                     int bestScore = -1;
@@ -221,7 +219,7 @@ namespace KatAMRandomizer {
                     }
                     total += Math.Max(bestScore, 0);
                     ulong chosen = best.Count == 0 ? 0 : best.OrderByDescending(l => l.Value).ThenBy(l => l.Key).First().Key;
-                    for (int q = 0; q < 4; q++) result[(2 * y + q / 2) * targetWidth * 2 + 2 * x + q % 2] = (ushort)(chosen >> (16 * q));
+                    for (int q = 0; q < 4; q++) result[(2 * y + q / 2) * SwitchWidth * 2 + 2 * x + q % 2] = (ushort)(chosen >> (16 * q));
                 }
             return (result, total);
         }

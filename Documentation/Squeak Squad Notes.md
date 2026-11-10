@@ -540,6 +540,22 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
     treasure numbers at `+0xD`); 0x17-0x30 abilities, the ability the kind less 0x16, on a stand or in a floating bubble (0x17
     Fire, 0x18 Ice, 0x19 Spark, 0x1C Parasol, 0x1D Cutter, 0x26 Sword, 0x29 Ninja: seen). The Squeaks (enemy IDs 0x40-0x44: Squeakers, which `+8` colors, Spinni, Doc, Storo; 0x45 Daroach in a stage) are in the
     enemy list.
+  - The ability items' looks (`item/copy`): the floating bubble (`0x0203A748`, its animation `0x021581E8`'s by the ability) and
+    the pedestal (`0x0203A8A0`, vtable entry at `0x02166C24`; its animation `0x021582D8`'s by the ability: 1-9 0x21-0x29, 10-16
+    0x2C-0x32, 17-26 0x36-0x3F, 27-29 0x33-0x35 (Sword in Fire, Ice and Spark), 30-31 0x2A-0x2B (Bomb in Fire and Spark), 0 0x41),
+    animation n its cell n from 33 on: the ability's icon over a gold stand, the stand's pieces in the .cla's palette 0, the
+    icon's in 1-3 (Parasol's, Wheel's and Fighter's in 0), more colors in all than one palette holds (KatAM draws the icon by a
+    sprite of its own: `squeak/gimmicks.c`'s `SqueakCreatePedestal`). The icons: 1 Fire, 2 Ice, 3 Spark, 4 Beam, 5 Tornado, 6
+    Parasol, 7 Cutter, 8 Laser, 9 Bomb, 10 Wheel, 11 UFO, 12 an orange lantern, 13 Cupid, 14 Sleep, 15 Starman's (a red wing), 16
+    Sword, 17 Bun's (a blue note), 18 a black top hat, 19 Ninja, 20 Fighter's headband (Boxin's), 21 Animal, 22 Bubble, 23 Metal,
+    24 Ghost, 25 a sign with a star, 26 Triple Star (12, 18 and 25 given by no enemy in the factory's cases).
+  - **The ability room** (stage 9-1, `map/a9s1s1`, its .mxi's header: area 8, stage 0, from 0, one room; 9-10 the same room): a hall 92 x 16
+    cells, two thin shelves (rows 5 and 8) over the floor (row 11), a bell tower over a building at the right end; its start
+    (door 0, kind 6) at its left, its doorway (door 1, kind 4, flags 0x23: the goal) at (77, 7); its far view `d_viw_0B`, tiles
+    `11_f`/`11_b`. Its 25 items are abilities 1-24 and 26 (no 25), each the pedestal: the top shelf's at y 80 (one at 76), the
+    floor's at 176, Triple Star's on the roof at (1384, 112). Its map sets no music (+0x0B 0). Swapped into stage 1-1 (its .mxi,
+    or its room's files) in the DS emulator, the room loads but its items don't come out: the DS shows them only in its Arena
+    mode (not traced). Ported as the Squeak Squad ability room (`KatAMExpansionSqueakLevels.cs`'s `BuildSqueakAbilityRoom()`).
   - The spawn flags (`+0xB`, enemies and items), from the stage-object code: a record spawns while its state (`+1`) is 0, 5 or 6
     (`0x0220A368`); with bit 4 it spawns only once the stage's treasure event has run (`0x02218D00`: the stage's `+0x14` set to 1;
     in stage mode 2, Kirby carrying the stage's chest, everything spawns), without it only before: all 856 Squeakers, most of

@@ -1855,12 +1855,134 @@ static void *SqueakCreateCandle(struct ObjectTemplate *template, u8 playerId) {
     return obj;
 }
 
+/* The pedestals of the Squeak Squad ability room (KatAMExpansionSqueakLevels.cs's BuildSqueakAbilityRoom(): its .doe's items, kinds
+ * 0x17 on, Squeak Squad's ability the kind less 0x16), drawn as the DS draws them (item/copy, the pedestal item's 0x0203A8A0 and its
+ * table 0x021582D8: ability n's pedestal): the stand by the object (SQUEAK_PEDESTAL, with the icon's pieces in the stand's palette),
+ * the rest of the icon by a sprite of its own over it (SQUEAK_PEDESTAL_ICON: the DS draws each piece in its own palette, 1-3 an icon's,
+ * more colors than one of KatAM's palettes holds). A Kirby with no ability touching it takes KatAM's ability it holds, as KatAM's
+ * ability statues (sub_080AA588), and it stays; one KatAM lacks is only shown. Its template: unk12 the DS's ability (its look's
+ * animation unk12 - 1), unk14 KatAM's ability (0: none), unk16 1 when its icon has pieces of its own (the icon's sprite); */
+struct SqueakPedestalIcon;
+struct SqueakPedestal {
+    struct Object obj;
+    struct SqueakGimmickSprite spr;
+    struct SqueakPedestalIcon *icon;
+};
+struct SqueakPedestalIcon {
+    struct EffectObject e;
+    struct SqueakPedestal *owner;
+};
+// (its box, pixels from its spot: the DS's frames, the stand 8 under it, the icon 16 over the stand);
+#define PEDESTAL_LEFT -8
+#define PEDESTAL_TOP -20
+#define PEDESTAL_RIGHT 8
+#define PEDESTAL_BOTTOM 4
+
+// SqueakPedestalIconDestroy(); The icon's end (its own, or the room's): its pedestal lets go of it;
+static void SqueakPedestalIconDestroy(struct Task *t) {
+    struct SqueakPedestalIcon *i = TaskGetStructPtr(t);
+
+    if (i->owner && i->owner->icon == i) i->owner->icon = NULL;
+    ObjectBaseDestroy(t);
+}
+
+// SqueakPedestalIconMain(); Draws the icon where its pedestal is, in front of it (none while the pedestal isn't drawn);
+static void SqueakPedestalIconMain(void) {
+    struct SqueakPedestalIcon *i = TaskGetStructPtr(gCurTask);
+    struct SqueakPedestal *p = i->owner;
+
+    if ((i->e.flags & 0x1000) || p == NULL) {
+        TaskDestroy(gCurTask);
+        return;
+    }
+    if (p->obj.base.flags & 0x400) return;
+    i->e.x = p->obj.base.x;
+    i->e.y = p->obj.base.y;
+    i->e.sprite.unk14 = p->obj.base.sprite.unk14 - 0x40;
+    // (KatAM flips a frame when flag 1 is set: as the pedestal, facing right);
+    i->e.flags = (i->e.flags & ~0x401) | 4 | (p->obj.base.flags & 1 ? 0 : 1);
+    i->e.objBase54 = p->obj.base.objBase54;
+    i->e.objBase55 = p->obj.base.objBase55;
+    EffectObjectPostUpdate(&i->e);
+}
+
+// PedestalShowIcon(); Its icon's sprite, made once the local player is in its room (its palette loaded then, as the layers');
+static void PedestalShowIcon(struct SqueakPedestal *p) {
+    const struct SqueakGraphics *g = &gSqueakData.enemies[SQUEAK_PEDESTAL_ICON];
+    u8 anim = p->obj.objTemplate->unk12 - 1;
+    struct SqueakPedestalIcon *i;
+    struct Task *t;
+
+    if (anim >= g->anims || gKirbys[gLocalPlayerId].base.roomId != p->obj.base.roomId) return;
+    t = TaskCreate(SqueakPedestalIconMain, sizeof(struct SqueakPedestalIcon), 0x3500, TASK_USE_EWRAM, SqueakPedestalIconDestroy);
+    if (t == NULL) return;
+    i = TaskGetStructPtr(t);
+    ClearEffectObject(&i->e);
+    i->e.header.kind = 3;
+    i->e.roomId = p->obj.base.roomId;
+    i->e.parent = NULL;
+    i->e.x = p->obj.base.x;
+    i->e.y = p->obj.base.y;
+    i->owner = p;
+    EffectObjectInitSprite(&i->e, &i->e.sprite, g->tiles, g->animId, SQUEAK_HURT_VARIANTS + g->anim[anim].step[0].cell, 0x1A);
+    i->e.sprite.palId = g->palette != NULL ? SqueakLoadPalette(g->palette[anim].key, g->palette[anim].variant, p->obj.base.roomId)
+                                           : SqueakLoadPalette(g->animId, SQUEAK_HURT_VARIANTS + g->anim[anim].step[0].cell, p->obj.base.roomId);
+    p->icon = i;
+}
+
+// SqueakPedestalMain(); Each frame: its icon shown; a Kirby touching it with no ability, free (sub_080AA588's checks), takes its ability;
+static void SqueakPedestalMain(struct Object *obj) {
+    struct SqueakPedestal *p = (struct SqueakPedestal *)obj;
+    u8 ability = obj->objTemplate->unk14;
+    struct Kirby *kirby;
+
+    if (p->icon == NULL && (obj->objTemplate->unk16 & 0xFF) != 0) PedestalShowIcon(p);
+    if (gUnk_03000510.unk4 & ((1 << obj->base.unk56) | 0x10)) return;
+    if (ability == KIRBY_ABILITY_NORMAL || !(obj->base.flags & 0x40000) || !obj->base.unk6C) return;
+    kirby = (struct Kirby *)obj->base.unk6C;
+    if (kirby->base.header.kind != 0 || kirby->ability != KIRBY_ABILITY_NORMAL || kirby->hp <= 0 || kirby->animationIndex == 0x27
+        || kirby->animationIndex > 0x7A || kirby->unk110 || (kirby->base.flags & 0x3800B00)) return;
+    kirby->transitioningAbility = ability;
+    sub_08054C0C(kirby);
+    kirby->animationIndex = 0xF;
+}
+
+// SqueakPedestalDestroy(); Its end: its icon goes with it;
+static void SqueakPedestalDestroy(struct Task *t) {
+    struct SqueakPedestal *p = TaskGetStructPtr(t);
+
+    if (p->icon != NULL) p->icon->owner = NULL;
+    ObjectDestroy(t);
+}
+
+/* SqueakCreatePedestal(); A pedestal: still, harmless, staying when off the screen (GimmickInit()), touched as KatAM's ability statues
+ * are (CreateAbilityStatue's collision); */
+static void *SqueakCreatePedestal(struct ObjectTemplate *template, u8 playerId) {
+    struct Task *task = TaskCreate(ObjectMain, sizeof(struct SqueakPedestal), 0x1000, TASK_USE_EWRAM, SqueakPedestalDestroy);
+    struct SqueakPedestal *p = TaskGetStructPtr(task);
+    struct Object *obj = &p->obj;
+
+    InitObject(obj, template, playerId);
+    GimmickInit(obj, &p->spr, SQUEAK_PEDESTAL);
+    p->icon = NULL;
+    obj->base.unk68 &= ~7;
+    obj->base.unk5C |= ~7;
+    obj->base.unk5C &= ~0x80;
+    obj->base.unkC |= 1 | 4;
+    obj->base.flags |= 0x200000 | 0x10000 | 0x800 | 0x8000 | 0x40 | 0x100 | 0x400000;
+    sub_0803E2B0(&obj->base, PEDESTAL_LEFT, PEDESTAL_TOP, PEDESTAL_RIGHT, PEDESTAL_BOTTOM);
+    ObjectSetBounds(&obj->base, PEDESTAL_LEFT, PEDESTAL_TOP, PEDESTAL_RIGHT, PEDESTAL_BOTTOM);
+    if (template->unk12 >= 1 && template->unk12 <= gSqueakData.enemies[SQUEAK_PEDESTAL].anims) GimmickPlay(obj, &p->spr, template->unk12 - 1);
+    obj->unk78 = SqueakPedestalMain;
+    return obj;
+}
+
 // SqueakGimmickAnim(); A gimmick's look and cell as squeak.c's SqueakAnimFor() draws it (0: the object isn't one);
 u32 SqueakGimmickAnim(struct Object *obj) {
     if (obj->type != OBJ_HAMMER_PEG) return 0;
     if (obj->objTemplate->unk11 == SQUEAK_SWITCH_OBJECT)
         return gSqueakData.enemies[SQUEAK_SWITCH].animId | (SQUEAK_HURT_VARIANTS + (obj->unk83 & 1)) << 16;
-    if (obj->objTemplate->unk11 >= SQUEAK_CANDLE_OBJECT && obj->objTemplate->unk11 <= SQUEAK_SHUTTER_OBJECT)
+    if (obj->objTemplate->unk11 >= SQUEAK_PEDESTAL_OBJECT && obj->objTemplate->unk11 <= SQUEAK_SHUTTER_OBJECT)
         return gSqueakData.enemies[((struct SqueakGimmickObject *)obj)->spr.look].animId | obj->unk83 << 16;
     return 0;
 }
@@ -1881,6 +2003,7 @@ void *SqueakCreateSwitch(struct ObjectTemplate *template, u8 playerId) {
     case SQUEAK_ROPE_OBJECT: return SqueakCreateRope(template, playerId);
     case SQUEAK_BOULDER_OBJECT: return SqueakCreateBoulder(template, playerId);
     case SQUEAK_CANDLE_OBJECT: return SqueakCreateCandle(template, playerId);
+    case SQUEAK_PEDESTAL_OBJECT: return SqueakCreatePedestal(template, playerId);
     }
     return gSqueakSwitch.create(template, playerId);
 }

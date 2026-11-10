@@ -111,6 +111,9 @@ enum {
     SQUEAK_THUNDER,             // Graphics only: the thunder clouds (squeak/gimmicks.c);
     SQUEAK_BOULDER,             // Graphics only: the rolling boulders (squeak/gimmicks.c), its roll animation 3;
     SQUEAK_CANDLE,              // Graphics only: the candles (squeak/gimmicks.c), 0 lit, 1 out;
+    SQUEAK_PEDESTAL,            // Graphics only: the Squeak Squad ability room's pedestals (squeak/gimmicks.c), animation n - 1 the
+    SQUEAK_PEDESTAL_ICON,       // pedestal of Squeak Squad's ability n: its stand (and its icon's pieces in the stand's palette), and
+                                // its icon's other pieces (each in one of the DS's other palettes), drawn over it by a sprite of its own;
     SQUEAK_ENEMY_COUNT,
 };
 
@@ -150,6 +153,7 @@ enum { SQUEAK_STAR_SPIT, SQUEAK_STAR_AHEAD, SQUEAK_STAR_BEHIND, SQUEAK_STAR_SWOR
 #define SQUEAK_ROPE_OBJECT 0x92
 #define SQUEAK_BOULDER_OBJECT 0x91
 #define SQUEAK_CANDLE_OBJECT 0x90
+#define SQUEAK_PEDESTAL_OBJECT 0x8F
 /* The gimmicks' messages (squeak/gimmicks.c): per loaded room's slot (gCurLevelInfo[].unk65E) its room, how many times a room was
  * loaded in it, and a byte per gimmick of the room's list, the kind + 1 of the message waiting for it (rooms.c keeps them after the
  * EWRAM heap: SqueakMailOf()); */
