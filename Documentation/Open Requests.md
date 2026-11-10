@@ -585,8 +585,13 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
         the rooms. Not ported: KatAM's camera follows Kirby over the whole room there.
       - The candles (0xA, dark rooms), and gimmicks 0x12, 0x13, 0x18, 0x19, 0x1A (not identified).
       - Hiding in an empty barrel (KatAM has no such move).
-    - Left: the chests' Squeak Squad treasures (Ability Scrolls, Spray Paints, the Secret Map's pieces, Vitality halves: with
-      their items, below), the chase spawns after the stage's treasure (the Squeakers among them, and 22 chests), the arenas
+    - Vitality halves: done (the owner: "Two halves make one Vitality"). Each Vitality chest holds half: KatAM's Vitality,
+      taken back on a pair's first half, so max HP grows on every second one (`chest.c`, `gSqueakVitalityChests`). Tested
+      in the emulator in all three versions on 1-6-7's chest (Kirby walks onto it and presses Up): as the first half, max HP
+      stays 6; with another half marked found by a RAM write, Vitality 1 and max HP 7. Not tested by opening two real chests
+      in a row. Three of the eight are placed (1-6-7, 2-6-7, 3-6-2); the other five are chase-spawn chests (on hold).
+    - Left: the chests' other Squeak Squad treasures (Ability Scrolls, Spray Paints, the Secret Map's pieces: with their
+      items, below), the chase spawns after the stage's treasure (the Squeakers among them, and 22 chests), the arenas
       without the NiDL ROM (NiDL's type holds the camera), the gimmicks, the areas.
   - Ability bubbles whose ability no regular enemy gives (Hammer, Bonkers' in KatAM; Squeak Squad's ability numbers 12, 18 and
     26) become food (the owner: "In the case of bubbles without no regular enemy, you can swap them out for food.").

@@ -76,7 +76,7 @@ codeNames = ['gNidlWorldMapDoors', 'NidlWorldMapUnlockSave', 'NidlWorldMapGetCoo
              # Reduce flashing (calm.c);
              'gNidlCalm', 'gNidlCalmTrampolines', 'NidlCalmUpdateScreenDma', 'NidlCalmUpdateScreenCpuSet',
              # Mirror shards in chests (chest.c);
-             'gNidlChest', 'gNidlChestTrampolines', 'NidlChestOpen', 'gSqueakChest', 'SqueakCreateChest', 'gSqueakCannon', 'SqueakCreateCannon', 'SqueakCannonArrival', 'gSqueakSwitch', 'SqueakCreateSwitch', 'gSqueakGimmickRooms', 'gNidlShard', 'NidlCreateShard', 'NidlShardDone',
+             'gNidlChest', 'gNidlChestTrampolines', 'NidlChestOpen', 'gSqueakChest', 'SqueakCreateChest', 'gSqueakCannon', 'SqueakCreateCannon', 'SqueakCannonArrival', 'gSqueakSwitch', 'SqueakCreateSwitch', 'gSqueakGimmickRooms', 'gSqueakVitalityChests', 'gNidlShard', 'NidlCreateShard', 'NidlShardDone',
              # Skip the tutorial (skip.c);
              'gNidlSkip', 'NidlSkipClear', 'NidlSkipStart', 'gNidlSkipTrampolines',
              # Unlock the ability room (unlock.c);

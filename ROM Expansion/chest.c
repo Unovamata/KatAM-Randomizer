@@ -50,6 +50,9 @@ const u32 gNidlChestTrampolines[8] = { 0 };
 bool32 SqueakChestOpened(u8);
 void SqueakCollectChest(u8);
 
+// The Vitality halves' chests (KatAMExpansionSqueakRooms.cs: their numbers, 0xFF none);
+const u8 gSqueakVitalityChests[8] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
+
 struct SqueakChest {
     void *(*create)(struct ObjectTemplate *, u8);
 };
@@ -69,6 +72,15 @@ void NidlChestOpen(struct Chest *chest) {
     // (a Squeak Squad chest: its own bit, set before the game's opening saves; the game's sets SQUEAK_CHEST's, cleared after it);
     if (chest->unkE2 == SQUEAK_CHEST) {
         SqueakCollectChest(chest->obj.objTemplate->unk12);
+        // (a Vitality half: the game's opening counts a Vitality (sub_0800AFC8's case 6) and saves; with the halves found odd, one
+        // taken back first, so only the second of a pair makes one: its heart rises either way, max HP grows on the second);
+        if (chest->unkE0 == 6 && chest->obj.objTemplate->unk14 >> 8 == SQUEAK_CHEST_HALF) {
+            u8 i, halves = 0;
+
+            for (i = 0; i < ARRAY_COUNT(gSqueakVitalityChests); i++)
+                if (gSqueakVitalityChests[i] != 0xFF && SqueakChestOpened(gSqueakVitalityChests[i])) halves++;
+            if (halves & 1) gTreasures.vitalityField--;
+        }
         gNidlChest.open(chest);
         gTreasures.shardField &= ~SQUEAK_CHEST_BIT;
         return;

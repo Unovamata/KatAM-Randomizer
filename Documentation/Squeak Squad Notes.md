@@ -773,8 +773,18 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
     list too ({1, 8, 0xFF, 0xFF, x, y}, first, counted in the list's entry): opening a chest marks it there (`sub_08002B30`),
     which never ends without it (the game hangs, its VBlank counter still running); `rooms.c`'s versions of it and of the doors'
     lookups now stop at the list's end. Each holds a consumable for now (KatAM's chest items in turn); the chests of the
-    treasures the owner listed (Ability Scrolls, Spray Paints, the Secret Map, Vitality) are to hold those. The chase spawns'
+    treasures the owner listed (Ability Scrolls, Spray Paints, the Secret Map) are to hold those. The chase spawns'
     22 chests (flag 4) aren't placed yet.
+  - **Vitality halves** (the owner: "Two halves make one Vitality"): a chest of treasures 6-13 holds KatAM's Vitality
+    (treasure 6) with `SQUEAK_CHEST_HALF` in its template's high byte of `+0x14`; the converter lists those chests' numbers in
+    `chest.c`'s `gSqueakVitalityChests` (8 at most, 0xFF unused). Opening one goes through KatAM's own Vitality (its
+    animation, `gTreasures.vitalityField` + 1, max HP + 1), then `NidlChestOpen` counts the listed chests opened: an odd count
+    (this is a pair's first half) takes the Vitality back, so max HP grows on every second half. Only three of the eight are
+    placed now (1-6-7, 2-6-7 and 3-6-2's, chests 7, 34 and 57); the other five are chase-spawn chests (flag 4), not placed yet.
+    Tested in the emulator (1-6-7's chest, all three versions, Kirby walking onto it and pressing Up): opened first, max HP stays
+    6 and the Vitality count 0; with another half's chest marked opened beforehand (a RAM write to its saved bit), the Vitality
+    count goes to 1 and max HP to 7. Not played through from two real chests in a row. The chest randomizer leaves these chests
+    alone (it shuffles only KatAM's own list).
   - **Warp stars** (gimmick 0xD, ctor `0x02225BC0`, vtable `0x02229C20`): its parameters' words: the stage's room it flies to
     (0-based, the low byte; 254, 255: one Kirby comes in on), a code, then its path in segments of 6 words: a kind (33 and 49: a
     quadratic curve; 32 and 0 end it), frames, where it ends, its control point. The DS flies the curve frame by frame from where

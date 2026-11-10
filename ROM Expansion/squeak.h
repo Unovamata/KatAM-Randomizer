@@ -170,6 +170,8 @@ u32 SqueakGimmickAnim(struct Object *obj);
  * then: chest.c's SqueakCreateChest); */
 #define SQUEAK_SHARD_Y 72
 #define SQUEAK_CHEST_AFTER_BOSS 1
+// (a Vitality half's chest: its template's unk14's high byte; chest.c's NidlChestOpen, two make one Vitality);
+#define SQUEAK_CHEST_HALF 1
 bool32 SqueakBossAlive(u16 room);
 #define SQUEAK_CHEST_CLOSED SQUEAK_HURT_VARIANTS
 

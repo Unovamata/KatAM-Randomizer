@@ -961,8 +961,13 @@ namespace KatAMRandomizer {
          * rulebook's rule 8). Not yet: the chase spawns, the chests' Squeak Squad treasures; */
         const int SqueakDoorClear = 3;
         const byte SqueakChestAfterBoss = 1;     // squeak.h's SQUEAK_CHEST_AFTER_BOSS (a chest's template unk14);
+        /* The Vitality halves (treasures 6-13): KatAM's Vitality (chest item 6) in a chest flagged a half (its template's unk14's high
+         * byte, squeak.h's SQUEAK_CHEST_HALF); their chests' numbers in chest.c's gSqueakVitalityChests, two of them opened one Vitality; */
+        const int SqueakVitalityFirst = 6, SqueakVitalityLast = 13, SqueakVitalityChestsMax = 8;
+        const byte KatAMVitality = 6, SqueakChestHalf = 1;
         static (List<byte[]> templates, List<byte> types) SqueakObjects(byte[] squeak, SqueakRoomFiles f, SqueakMap map, byte[] collision, bool arenas,
-                                                                         List<(int x, int y)> doorCells, byte bossShard, ref int taken, ref int chests) {
+                                                                         List<(int x, int y)> doorCells, byte bossShard, ref int taken, ref int chests,
+                                                                         List<int> vitalityChests = null) {
             List<byte[]> templates = new List<byte[]>();
             List<byte> types = new List<byte>();
             int width = map.Width, height = map.Height;
@@ -1060,6 +1065,13 @@ namespace KatAMRandomizer {
                         byte[] chest = ObjectTemplate(x, floor - (kind == SqueakChestBig ? 16 : 8), templates.Count,
                                                       kind == SqueakChestBig ? KatAMBigChestType : SmallChestType);
                         chest[14] = KatAMChestItems[chestAt * 17 % KatAMChestItems.Length];
+                        // (a Vitality half, treasures 6-13: KatAM's Vitality, flagged a half; two make one: chest.c's NidlChestOpen);
+                        int treasure = objects[at + 0xD];
+                        if (treasure >= SqueakVitalityFirst && treasure <= SqueakVitalityLast) {
+                            chest[14] = KatAMVitality;
+                            chest[0x15] = SqueakChestHalf;
+                            vitalityChests?.Add(chestAt);
+                        }
                         chest[0x11] = SqueakChestIndex;
                         chest[0x12] = (byte)chestAt++;
                         Add(chest);
@@ -1454,6 +1466,7 @@ namespace KatAMRandomizer {
             int paletteCycles = ReadInt(rom, Entry("gForegroundPalettes", Props(0x323, 11)) + 4),        // Unused (no cycles), but read;
                 navigationRoutes = Entry("gUnk_08D63C28", Props(0x3C9, 17));                                  // Its 4 generic route lists;
             int noTypes = Allocate(ref here, 4, 4), squeakTaken = 0, squeakChests = 0, squeakCannons = 0, squeakSwitches = 0;
+            List<int> vitalityChests = new List<int>();
             // (per room its gimmicks' list for their task, squeak/gimmicks.c's gSqueakGimmickRooms: 0 none);
             int[] gimmickLists = new int[files.Count];
             // (the arenas are NiDL's type's objects: only with its enemies, CreateNidlEnemy its spawn);
@@ -1700,7 +1713,8 @@ namespace KatAMRandomizer {
                         .Concat(planned.Values.SelectMany(list => list).Where(d => d.Room == SqueakFirstRoom + i).Select(d => (d.DestX - 1, d.DestY - 1))).ToList();
                     // (its world's shard, + 1, if it's the world's boss room: KatAM's 8, one a world, the randomizer's option shuffling them);
                     byte bossShard = bossRooms.TryGetValue(SqueakFirstRoom + i, out int bossWorld) ? (byte)bossWorld : (byte)0;
-                    (List<byte[]> templates, List<byte> types) = SqueakObjects(squeak, f, map, collision, arenas, doorCells, bossShard, ref squeakTaken, ref squeakChests);
+                    (List<byte[]> templates, List<byte> types) = SqueakObjects(squeak, f, map, collision, arenas, doorCells, bossShard, ref squeakTaken, ref squeakChests,
+                                                                                    vitalityChests);
                     // (its cannons: an eight-direction cannon for each of gimmick 0xB, and its fuse cannon with its fuse; its switches);
                     // (the gimmicks that talk to each other: their task's list, its index in the room's list each one's);
                     if (SqueakGimmickList(gimmicks, chains) is byte[] gimmickList) {
@@ -1987,6 +2001,9 @@ namespace KatAMRandomizer {
             int gimmickTable = Allocate(ref here, files.Count * 4, 4);
             for (int k = 0; k < files.Count; k++) WriteInt(rom, gimmickTable + k * 4, gimmickLists[k] == 0 ? 0 : gimmickLists[k] + 0x08000000);
             WriteInts(rom, CodeAddress + version.CodeSymbols["gSqueakGimmickRooms"], gimmickTable + 0x08000000, files.Count);
+            // (the Vitality halves' chests, chest.c's gSqueakVitalityChests: 0xFF none);
+            for (int v = 0; v < SqueakVitalityChestsMax; v++)
+                rom[CodeAddress + version.CodeSymbols["gSqueakVitalityChests"] + v] = (byte)(v < vitalityChests.Count ? vitalityChests[v] : 0xFF);
             // (the chests' spawn and opening, chest.c's);
             if (squeakChests > 0 && HookSqueakChests(rom, version) is string chestError) return chestError;
             // (the fixed cannons' wait, chest.c's);
