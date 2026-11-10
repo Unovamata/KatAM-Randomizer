@@ -1171,6 +1171,30 @@ static void SqueakPlatformMain(struct Object *obj) {
     PlatformCarry(p, oldTop, obj->base.x - x, obj->base.y - y);
 }
 
+// (its way back: in one leg, or along its legs);
+static void PlatformReturnLegs(struct SqueakPlatform *p, u16 word, u8 n) {
+    u8 i;
+
+    switch (word >> 7 & 7) {
+    case PLATFORM_END_RETURN: {
+        s32 sx = 0, sy = 0;
+
+        for (i = 0; i < n; i++) sx += p->path[i][0], sy += p->path[i][1];
+        p->path[p->legs][0] = -sx;
+        p->path[p->legs][1] = -sy;
+        p->legs++;
+        break;
+    }
+    case PLATFORM_END_RETURN + 1:
+        for (i = n; i-- > 0;) {
+            p->path[p->legs][0] = -p->path[i][0];
+            p->path[p->legs][1] = -p->path[i][1];
+            p->legs++;
+        }
+        break;
+    }
+}
+
 static void *SqueakCreatePlatform(struct ObjectTemplate *template, u8 playerId) {
     struct Task *task = TaskCreate(ObjectMain, sizeof(struct SqueakPlatform), 0x1000, TASK_USE_EWRAM, ObjectDestroy);
     struct SqueakPlatform *p = TaskGetStructPtr(task);
@@ -1190,29 +1214,79 @@ static void *SqueakCreatePlatform(struct ObjectTemplate *template, u8 playerId) 
         p->path[i][1] = (s8)(legs[i] >> 8);
     }
     p->legs = n;
-    // (its way back: in one leg, or along its legs);
-    switch (word >> 7 & 7) {
-    case PLATFORM_END_RETURN: {
-        s32 sx = 0, sy = 0;
-
-        for (i = 0; i < n; i++) sx += p->path[i][0], sy += p->path[i][1];
-        p->path[p->legs][0] = -sx;
-        p->path[p->legs][1] = -sy;
-        p->legs++;
-        break;
-    }
-    case PLATFORM_END_RETURN + 1:
-        for (i = n; i-- > 0;) {
-            p->path[p->legs][0] = -p->path[i][0];
-            p->path[p->legs][1] = -p->path[i][1];
-            p->legs++;
-        }
-        break;
-    }
+    PlatformReturnLegs(p, word, n);
     p->state = PLATFORM_WAIT;
     if ((word >> 4 & 7) <= 1 && PlatformNextLeg(p)) p->state = PLATFORM_MOVE;
     GimmickPlay(obj, &p->spr, (word & 15) == 1 ? 3 : 0);
     obj->unk78 = SqueakPlatformMain;
+    return obj;
+}
+
+/* The thunder clouds (gimmick 5, ctor 0x02220C00, vtable 0x02229230; yakumono/thunder_cloud): a moving platform's first word and
+ * legs (its legs from its 6th byte; the same straight runs, 0x022270A4, at the speeds of its table 0x02227BA0), so here a moving
+ * platform with the cloud's look, and its zaps: its +0x5C phases 0-6, moved on as its animations end (0x02220A24), the first making
+ * it harmful (harm kind 0x0B, strength 8: +0x48, +0x4C), a sound (0x11F) on phases 1, 3 and 5, the last back to rest; its two u16s
+ * (the template's unk1C, unk1E: 30 and 30 in the rooms) the frames it rests and zaps. Here it rests unk1C frames, then zaps unk1E
+ * frames flashing (animation 6), hurting a Kirby touching it (a plain hit) and those riding it, then rests again. The zap's
+ * animations and their lengths are approximated (the DS's phases follow its animations, not recorded); */
+struct SqueakCloud {
+    struct SqueakPlatform p;
+    u8 zapping;
+    u16 clock;
+};
+#define CLOUD_REST_ANIM 0
+#define CLOUD_ZAP_ANIM 6
+
+static void SqueakCloudMain(struct Object *obj) {
+    struct SqueakCloud *c = (struct SqueakCloud *)obj;
+
+    if (gUnk_03000510.unk4 & ((1 << obj->base.unk56) | 0x10)) return;
+    GimmickAnimate(obj, &c->p.spr);
+    obj->base.unk68 &= ~(7 | 0x80);
+    if (!c->zapping) {
+        if (++c->clock >= obj->objTemplate->unk1C) {
+            c->zapping = TRUE;
+            c->clock = 0;
+            GimmickPlay(obj, &c->p.spr, CLOUD_ZAP_ANIM);
+        }
+    } else {
+        obj->base.unk68 |= 3 | 0x80;
+        if (++c->clock >= obj->objTemplate->unk1E) {
+            c->zapping = FALSE;
+            c->clock = 0;
+            GimmickPlay(obj, &c->p.spr, CLOUD_REST_ANIM);
+        }
+    }
+    SqueakPlatformMain(obj);
+}
+
+static void *SqueakCreateCloud(struct ObjectTemplate *template, u8 playerId) {
+    struct Task *task = TaskCreate(ObjectMain, sizeof(struct SqueakCloud), 0x1000, TASK_USE_EWRAM, ObjectDestroy);
+    struct SqueakCloud *c = TaskGetStructPtr(task);
+    struct Object *obj = &c->p.obj;
+    u16 word = template->unk14;
+    const u16 *legs = &template->unk16;
+    u8 i, n = word >> 12 & 7;
+
+    InitObject(obj, template, playerId);
+    c->p.index = template->unk12;
+    GimmickInit(obj, &c->p.spr, SQUEAK_THUNDER);
+    ObjectSetBounds(&obj->base, -PLATFORM_HALF, -PLATFORM_TOP, PLATFORM_HALF, 4);
+    sub_0803E2B0(&obj->base, -PLATFORM_HALF, -PLATFORM_TOP - 4, PLATFORM_HALF, 8);
+    c->p.speed = sPlatformSpeeds[word >> 10 & 3];
+    if (n > 3) n = 3;
+    for (i = 0; i < n; i++) {
+        c->p.path[i][0] = (s8)legs[i];
+        c->p.path[i][1] = (s8)(legs[i] >> 8);
+    }
+    c->p.legs = n;
+    PlatformReturnLegs(&c->p, word, n);
+    c->p.state = PLATFORM_WAIT;
+    if ((word >> 4 & 7) <= 1 && PlatformNextLeg(&c->p)) c->p.state = PLATFORM_MOVE;
+    c->zapping = FALSE;
+    c->clock = 0;
+    GimmickPlay(obj, &c->p.spr, CLOUD_REST_ANIM);
+    obj->unk78 = SqueakCloudMain;
     return obj;
 }
 
@@ -1221,7 +1295,7 @@ u32 SqueakGimmickAnim(struct Object *obj) {
     if (obj->type != OBJ_HAMMER_PEG) return 0;
     if (obj->objTemplate->unk11 == SQUEAK_SWITCH_OBJECT)
         return gSqueakData.enemies[SQUEAK_SWITCH].animId | (SQUEAK_HURT_VARIANTS + (obj->unk83 & 1)) << 16;
-    if (obj->objTemplate->unk11 >= SQUEAK_PLATFORM_OBJECT && obj->objTemplate->unk11 <= SQUEAK_SHUTTER_OBJECT)
+    if (obj->objTemplate->unk11 >= SQUEAK_CLOUD_OBJECT && obj->objTemplate->unk11 <= SQUEAK_SHUTTER_OBJECT)
         return gSqueakData.enemies[((struct SqueakGimmickObject *)obj)->spr.look].animId | obj->unk83 << 16;
     return 0;
 }
@@ -1238,6 +1312,7 @@ void *SqueakCreateSwitch(struct ObjectTemplate *template, u8 playerId) {
     case SQUEAK_ICICLE_OBJECT: return SqueakCreateIcicle(template, playerId);
     case SQUEAK_ROCK_OBJECT: return SqueakCreateRock(template, playerId);
     case SQUEAK_PLATFORM_OBJECT: return SqueakCreatePlatform(template, playerId);
+    case SQUEAK_CLOUD_OBJECT: return SqueakCreateCloud(template, playerId);
     }
     return gSqueakSwitch.create(template, playerId);
 }

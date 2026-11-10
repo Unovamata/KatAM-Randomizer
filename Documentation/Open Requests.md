@@ -603,6 +603,10 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
       all the way; 6-1-4's goes back and forth at exactly 1.00 a frame with him on it; walking on it as it moves and jumping off.
       Not tested: helpers riding, a breaking one (7-5-1's, 1-9-17's), one a switch starts (6-2-1's, 8-1-2's), Europe and Japan
       in the emulator. The logic checks don't model them (the flood treats their paths as flown over).
+    - The thunder clouds (5: the notes' thunder clouds bullet; 19, in 3-5-1 to 3-5-3, 6-3-9 and 7-3-1): moving platforms with the
+      cloud's look that zap on their two timers (rest 30 frames, zap 30), hurting a Kirby touching or riding them. Checked in the
+      GBA emulator (USA and Japan, 3-5-1): Kirby stands on a cloud between zaps, a zap hurts him and knocks him off. The zap's look
+      and length are approximated (the DS's phases follow its animations); a moving cloud not checked in the emulator.
     - The quake triggers (0x13: the notes' quake bullet): ported as a trigger area that messages its targets once (a Kirby within
       64 pixels of its box, or a switch's message, sets it off; the screen quake is left out). On the DS 4-3-2's is set off by a
       rolling boulder (not ported), so a Kirby nearing it opens its way instead. Not tested in the emulator.
@@ -626,8 +630,8 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
       Checked in the GBA emulator (USA, Kirby put on 7-3-2's top, where 7-3-1's door lands him): he walks off its blocks, drops
       to the floor, takes the one-way door and lands at 7-1-1's start. Not checked in Europe and Japan in the emulator.
     - Gimmicks left (read on the DS, not ported; the notes have what's decoded):
-      - The rope floors (3) and the thunder clouds (5, riding paths, striking on 30-frame timers): to ride, they can use the
-        platforms' carrier.
+      - The rope floors (3: 3-3-6, 3-3-7, 6-2-1, 7-3-2, 7-4-5, 16; each hangs from a rope, gimmick 1, whose parameter names it):
+        to ride, they can use the platforms' carrier.
       - The ropes (1): Kirby grabs and climbs them; 8-1-8's starts its rock relay. Not started.
       - The rolling boulders (6): bits 4-5 of the first byte whether one rolls at once or waits for a message (4-3-2's wait for
         its relays), bits 6-7 its speed (2, 3 or 4 pixels a frame); the boulder a 64-pixel still sprite, its animations 1-2 the

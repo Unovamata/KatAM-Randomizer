@@ -610,7 +610,7 @@ namespace KatAMRandomizer {
         // (the fire columns', squeak.h's SQUEAK_FIRE on: gimmick 7's looks, 0x02227B30, turned as the DS turns them);
         const int SqueakFireColumn = 76, SqueakFire180 = 77, SqueakFire270 = 78, SqueakFire90 = 79;
         // (the grass tufts' and the barrel's, squeak.h's SQUEAK_GRASS on and SQUEAK_BARREL: gimmicks 0xE and 0xF);
-        const int SqueakGrass = 80, SqueakBarrel = 86, SqueakIcicle = 87, SqueakRock = 88, SqueakPlatformLook = 89;
+        const int SqueakGrass = 80, SqueakBarrel = 86, SqueakIcicle = 87, SqueakRock = 88, SqueakPlatformLook = 89, SqueakThunderLook = 90;
 
         static readonly List<SqueakEnemy> SqueakDefinitions = new List<SqueakEnemy> {
             // Perara: hurt animations 7 and 8 (0x02021A88's 0x1000007, 0x1000008);
@@ -876,6 +876,8 @@ namespace KatAMRandomizer {
             new SqueakEnemy(SqueakRock, "Rock", "yakumono/rock", new[] { 0, 0, 0 }, new (int, int)[0]),
             // The moving platform (gimmick 4, yakumono/floor: looks 0 and 1 its animations 0 and 3, still; 2 and 5 a dip): every cell; no name;
             new SqueakEnemy(SqueakPlatformLook, "Floor", "yakumono/floor", new[] { 0, 0, 0 }, new (int, int)[0]),
+            // The thunder cloud (gimmick 5, yakumono/thunder_cloud: 0 resting, 6 flashing): every cell; no name;
+            new SqueakEnemy(SqueakThunderLook, "Thunder Cloud", "yakumono/thunder_cloud", new[] { 0, 0, 0 }, new (int, int)[0]),
         };
 
         /* The randomizer's Squeak Squad pools (the ROM Expansion tab). SqueakPool; A character the randomizer places: its index (SQUEAK_*

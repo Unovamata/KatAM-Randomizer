@@ -695,6 +695,18 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
     on it); 6-1-4's back-and-forth one (exactly 1.00 a frame each way, his height fixed); walking on it as it moves (his own walk
     and its move added), jumping off (he leaves it at once). Not checked: helpers riding, a breaking platform (7-5-1's, 1-9-17's),
     one started by a switch (6-2-1's, 8-1-2's), the camera on a long ride, Europe and Japan in the emulator.
+  - **The thunder clouds** (gimmick 5, ctor `0x02220C00`, vtable `0x02229230`; `yakumono/thunder_cloud`: 0 resting, 6 flashing white,
+    4 a green burst, the rest sparks and puffs): a moving platform's first word (the same bits: look, start, end, speed, legs) and
+    legs, its legs from its 6th byte (`ldrsb` +6, +7 on), the same straight runs (`0x022270A4`) at its speed table's (`0x02227BA0`)
+    speeds; its box (-1.5, -0.5)-(1.5, 0.5) cells. Its zaps: its +0x5C phases 0-6, moved on as its animations end (slot 2,
+    `0x02220A24`, a jump table: 1 makes it harmful, harm kind 0x0B and strength 8 at +0x48 and +0x4C, 6 back to rest), a sound
+    (0x11F) on 1, 3 and 5; its two u16s (+2 and +4, 30 and 30 in every room) the frames it rests and zaps. In KatAM
+    (`squeak/gimmicks.c`'s SqueakCreateCloud, object 0x93): a moving platform with the cloud's look (it carries Kirby), resting
+    unk1C frames, then zapping unk1E frames flashing (animation 6) and hurting a Kirby touching it, its riders too (a plain hit).
+    Its zap's look and length are approximated (the DS's phases follow its animations, not recorded). Checked in the GBA emulator
+    (USA and Japan, 3-5-1, Kirby put over its first cloud): he lands on it and stands on it between zaps, a zap hurts him (OUCH, a
+    bar of health) and knocks him off; the clouds flash as they zap. Not checked: a moving one (3-5-1's third waits for a rider,
+    then goes and breaks), Europe in the emulator.
   - **The quake triggers** (gimmick 0x13, ctor `0x022240E8`, vtable `0x022298F8`): its second u16 its box (bits 0-6 blocks across,
     7-13 down, as a trigger area's), bits 14-15 how many targets, its bytes 4 on their indices. A body moving into it (message 5) or
     a switch's message (kinds 0 and 1: `0x022240A8`) sets it off once (`0x02224034`): the screen quakes (its first u16's low 4

@@ -1243,8 +1243,8 @@ namespace KatAMRandomizer {
         const int SqueakIcicleGimmick = 9, SqueakRockGimmick = 8;
         const byte SqueakIcicleObject = 0x96, SqueakRockObject = 0x95;
         // (the moving platforms: squeak/gimmicks.c's SqueakCreatePlatform, its first word and its legs, 3 at most, in the template);
-        const int SqueakPlatformGimmick = 4, SqueakPlatformLegs = 3;
-        const byte SqueakPlatformObject = 0x94;
+        const int SqueakPlatformGimmick = 4, SqueakPlatformLegs = 3, SqueakCloudGimmick = 5;
+        const byte SqueakPlatformObject = 0x94, SqueakCloudObject = 0x93;
         // (Squeak Squad's abilities, by its numbers, as KatAM's: those KatAM has; the others, Ninja, Animal, Ghost, Bubble, Metal, none);
         static readonly Dictionary<int, byte> SqueakKatAMAbilities = new Dictionary<int, byte> {
             [1] = 1, [2] = 2, [3] = 15, [4] = 7, [5] = 16, [6] = 5, [7] = 6, [8] = 13, [9] = 9, [10] = 4, [11] = 14, [13] = 19, [14] = 11,
@@ -1841,6 +1841,22 @@ namespace KatAMRandomizer {
                                 platform[0x17 + 2 * leg] = g.Parameters[3 + 2 * leg];
                             }
                             templates.Add(platform);
+                            if (!types.Contains(HammerPegType)) types.Add(HammerPegType);
+                            squeakSwitches++;
+                        } else if (g.Type == SqueakCloudGimmick && g.Parameters?.Length >= 6) {
+                            /* (a thunder cloud: a moving platform's first word and legs, the legs from its 6th byte, its two u16s before
+                             * them the frames it rests and zaps, unk1C and unk1E); */
+                            byte[] cloud = ObjectTemplate(g.X, g.Y, templates.Count, HammerPegType);
+                            cloud[0x11] = SqueakCloudObject;
+                            cloud[0x12] = (byte)Math.Min(gi, 0xFF);
+                            WriteShort(cloud, 0x14, g.Word(0));
+                            for (int leg = 0; leg < SqueakPlatformLegs && 7 + 2 * leg < g.Parameters.Length; leg++) {
+                                cloud[0x16 + 2 * leg] = g.Parameters[6 + 2 * leg];
+                                cloud[0x17 + 2 * leg] = g.Parameters[7 + 2 * leg];
+                            }
+                            WriteShort(cloud, 0x1C, ReadShort(g.Parameters, 2));
+                            WriteShort(cloud, 0x1E, ReadShort(g.Parameters, 4));
+                            templates.Add(cloud);
                             if (!types.Contains(HammerPegType)) types.Add(HammerPegType);
                             squeakSwitches++;
                         } else if (g.Type == SqueakIcicleGimmick) {
