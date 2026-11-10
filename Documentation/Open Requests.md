@@ -676,7 +676,8 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
     KatAM's Grape bit, whose can it shows, given back). A full randomization with the chest shuffle and with random chests keeps
     the 5 spray chests.
   - Not tested: the UFO ability in a new color, the screen that reads the colors' third table (the continue palettes,
-    `gUnk_0834BB20`: its data checked only), multiplayer with a new color, the other 4 chests opened.
+    `gUnk_0834BB20`: its data checked only), multiplayer with a new color, the other 4 chests opened. Which chest holds which
+    spray takes treasures 70-87 as Squeak Squad's sprays 1-18 in order: not checked against the DS's chests.
   - The names are English in every European language and Squeak Squad's in the Japanese ROM: Squeak Squad's European and
     Japanese names aren't in the US ROM used.
 - **Map items for each area** (the owner, with the rooms): KatAM's map item, its sprite recolored to each NiDL and Squeak Squad
