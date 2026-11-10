@@ -561,7 +561,8 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
       in their 9 clusters), no lines crossing rooms, the rooms' previews drawn (1-1-1, a world 4 room, the hub, a switch room).
     - The fire walls and the walls unported gimmicks open are star blocks now (below, "What only Fire or an unported gimmick
       opens"), so every room with a door into it is reached; metal blocks on the way (2-1-3's, 8-3-8's) are still counted as
-      broken (KatAM's break only under Hammer and cannon shots): the owner's call if they should change too.
+      broken (KatAM's break only under Hammer and cannon shots). The owner: "Metal blocks on the way (2-1-3, 8-3-8) should only
+      be breakable with path unlock abilities, so that is correct": they stay as they are.
     - Gimmicks (section 10): counted and read (the notes: 26 classes, their graphics, the barrel's states decoded); warp stars,
       cannons and the switches with their block groups in KatAM (above).
     - Gimmicks that talk to each other (`squeak/gimmicks.c`; the notes' "The gimmicks talk to each other"): the switches, trigger
@@ -646,10 +647,13 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
       have no door into them at all (the Squeak Lair rooms and chase spawns, on hold). NiDL: 280 of 280 in all six checks.
       Checked in the GBA emulator (USA, Kirby put on 7-3-2's top, where 7-3-1's door lands him): he walks off its blocks, drops
       to the floor, takes the one-way door and lands at 7-1-1's start. Not checked in Europe and Japan in the emulator.
-    - Gimmicks left (the notes have what's decoded): the camera areas (0x14) and the ambience 0x18, 0x19, 0x1A (above: not
-      ported), gimmick 0x12 (a color fade, no effect on the way), and:
-      - The candles and the Light ability (the owner: "Add to the pending list candle and light ability interaction"): the
-        Light ability (NiDL's, from Cool Spook) lighting the dark rooms' candles, as Fire does on the DS.
+    - Gimmicks left (the notes have what's decoded). The owner, of the ones left out on purpose: "The left on purpose, I want
+      them yes": the camera areas (0x14), the ambience 0x18 (snow, wind), 0x19 (lava sparks) and 0x1A (sound), gimmick 0x12 (a
+      color fade), the boulders' quakes when they land and burst, and the thunder clouds' zap exactly as the DS draws it. Also:
+      - The candles and the Light ability (the owner: "Add to the pending list candle and light ability interaction", then:
+        "the light ability should light up Squeak Squad sections that require the candle if NiDL expansion is present"): with
+        the NiDL ROM loaded, the Light ability (NiDL's, from Cool Spook) lights the Squeak Squad dark rooms' parts the candles
+        light, as Fire does on the DS.
       - Hiding in an empty barrel (KatAM has no such move).
     - Vitality halves: done (the owner: "Two halves make one Vitality"). Each Vitality chest holds half: KatAM's Vitality,
       taken back on a pair's first half, so max HP grows on every second one (`chest.c`, `gSqueakVitalityChests`). Tested
@@ -666,11 +670,11 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
   KatAM"). Squeak Squad has 18 sprays; 13 are KatAM's (YELLOW to CHALK by name, 7 of them in slightly other shades), so only its
   5 new ones are added: SHADOW, IVORY, CITRUS, WHITE, LAVENDER. They are Kirby colors 16-20 (the UFO's too), owned in the spray
   field's free bits 14-18 (the completion stays KatAM's), each in its Squeak Squad chest (treasures 83-87; the 13 others' chests
-  hold items), shown on the Collection Room's second page as KatAM's spray can in their colors, with "SPRAY PAINT : NAME" in
+  hold items), shown in the Collection Room's grid (the first row after KatAM's columns, below) as KatAM's spray can in their colors, with "SPRAY PAINT : NAME" in
   KatAM's letters after each language's own "SPRAY PAINT :" (the Japanese ROM has no English letters: Squeak Squad's name graphic
   there). A chest shows the closest KatAM can rising (it gives the spray, not KatAM's). The chest shuffle leaves these chests
-  alone; the map viewer names them. `sprays.c`, `KatAMExpansionSprays.cs`.
-  - Tested in the emulator, sprays owned by a RAM write (a forced state, not a playthrough): the page and its 5 cans and texts
+  alone; the map viewer names them. `KatAMExpansionSprays.cs`, `collection.c`.
+  - Tested in the emulator, sprays owned by a RAM write (a forced state, not a playthrough): the 5 cans and texts
     (USA, Europe in its 5 languages, Japan), choosing a color (the previews), the color worn in the game (USA, the owner's save:
     Lavender Kirby in Central Circle, also with the Master Sword), and a real chest opened (room 0x498, Lavender: its bit set,
     KatAM's Grape bit, whose can it shows, given back). A full randomization with the chest shuffle and with random chests keeps
@@ -682,13 +686,23 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
     Japanese names aren't in the US ROM used.
 - **Map items for each area** (the owner, with the rooms): KatAM's map item, its sprite recolored to each NiDL and Squeak Squad
   area's theme, one per area, so the map viewer shows the area once its map is found.
-- **The Collection Room scrolls left and right**: done for the spray paints (the owner, with the rooms: "the collection room
-  should be scrollable left and right to accommodate for all these new items"). The Collection Room (from the main menu) has a
-  second page: L or R turns the page, and so does Right on the last column or Left on the first (the cursor stays on its row,
-  the pages loop). KatAM's page is as it was; the second holds Squeak Squad's 5 new sprays along its top row, its other cells
-  empty for the rest. Tested in the emulator in all three versions (L/R, both edges, an empty cell's A, choosing, leaving with B).
-  - Left: the new items for its other cells (the map items, Squeak Squad's ability scrolls, its secret map; the vitality halves
-    count in KatAM's Vitality, its heart's cells).
+- **The Collection Room scrolls left and right**: done as one grid (the owner, with the rooms: "the collection room should be
+  scrollable left and right to accommodate for all these new items"; then, of a second page: "I wanted an scrollable menu from
+  left to right to showcase all treasures in one single screen. I didn't ask for a second page, I asked for a seamless
+  scrollable menu", keeping the base game's items). The Collection Room (from the main menu) shows KatAM's 10 x 4 cells as
+  KatAM does, then more columns to their right with the expansion's treasures; the screen shows 10 columns. The cursor going
+  past the last column shown (or the first) slides the whole grid a column, cells, icons and the lattice together, the striped
+  background staying (5 frames); past the grid's last column it goes round to the first, and Left on the first to the last;
+  L and R move it a screen. The new columns hold Squeak Squad's 5 sprays (their row: KatAM's sprays' row); the Secret Map's
+  pieces and the NiDL and Squeak Squad areas' maps go in the rows below as they come (below). `collection.c`,
+  `KatAMExpansionCollection.cs`.
+  - Tested in the GBA emulator, sprays owned by a RAM write (a forced state, not a playthrough): USA (sliding a column with
+    Right at the last column, the frames between, both ends going round, L and R, choosing a new color after a slide, leaving
+    with B to the main menu, which looks as it should, coming back in at the start), Europe in its 5 languages and Japan (both
+    ends, the composed names). The Sound Player only opens with the grid at its start (its cell is in KatAM's first column),
+    where everything is KatAM's.
+  - Not tested: holding Right for several slides in a row with real key repeat (each slide was pressed on its own), the Sound
+    Player's screens after slides back to the start.
 - **ROM size** (the owner: "if needed, expand the ROM size to fit all this new content but only if needed"): 32 MB is the most
   the GBA maps (0x08000000-0x09FFFFFF), and the expansion is already there, so it can't grow; about 10 MB of it is free.
 

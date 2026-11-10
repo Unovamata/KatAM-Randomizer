@@ -906,7 +906,7 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
     IVORY, CITRUS, WHITE, LAVENDER, in treasures 83-87's chests (`chest[0x16]` the spray's number + 1, the item KatAM's spray of
     the closest body color, whose can rises: SHADOW CARBON's, IVORY CHALK's, CITRUS GREEN's, WHITE SNOW's, LAVENDER GRAPE's).
     The palettes are in KatAM's Kirby layout (1 the outline, 2-8 the body, 9-11 the feet, 12-15 the whites; Squeak Squad's outline
-    is sometimes colored), so they are KatAM's anim 0x15's variants 16-20 as they are. `ROM Expansion/sprays.c` has the rest.
+    is sometimes colored), so they are KatAM's anim 0x15's variants 16-20 as they are. `KatAMExpansionSprays.cs` and `ROM Expansion/collection.c` (the Collection Room's grid) have the rest.
   - **Warp stars** (gimmick 0xD, ctor `0x02225BC0`, vtable `0x02229C20`): its parameters' words: the stage's room it flies to
     (0-based, the low byte; 254, 255: one Kirby comes in on), a code, then its path in segments of 6 words: a kind (33 and 49: a
     quadratic curve; 32 and 0 end it), frames, where it ends, its control point. The DS flies the curve frame by frame from where

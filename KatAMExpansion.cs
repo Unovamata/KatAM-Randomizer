@@ -1380,16 +1380,26 @@ namespace KatAMRandomizer {
                 for (int i = 0; i < entries[t].Count; i++) WriteInt(rom, at + (HurtAnimID + i) * 4, entries[t][i] + 0x08000000);
                 WriteInt(rom, SpriteTables + t * 4, at + 0x08000000);
             }
-            // (the spray paints' colors, tables and Collection Room page, once the anims are there);
+            // (the spray paints' colors, tables and Collection Room cells, once the anims are there);
+            List<CollectionItem> collectionItems = new List<CollectionItem>();
+            List<(int tileset, int tilemap)[]> collectionTexts = new List<(int, int)[]>();
             if (squeakRooms) {
                 string sprayError;
                 try {
-                    sprayError = AddSqueakSprays(rom, squeak, version, sprayIconAnim, paletteBase, ref cursor);
+                    sprayError = AddSqueakSprays(rom, squeak, version, sprayIconAnim, paletteBase, collectionItems, collectionTexts, ref cursor);
                 } catch (Exception exception) when (exception is IndexOutOfRangeException or ArgumentException or InvalidOperationException) {
                     sprayError = "The Squeak Squad ROM's spray paints couldn't be read.";
                 }
                 if (sprayError != null) return sprayError;
             }
+            // The Collection Room's grid (KatAMExpansionCollection.cs): KatAM's cells, then the expansion's;
+            string gridError;
+            try {
+                gridError = AddCollectionGrid(rom, version, collectionItems, collectionTexts, ref cursor);
+            } catch (Exception exception) when (exception is IndexOutOfRangeException or ArgumentException or InvalidOperationException) {
+                gridError = $"The {version.Name} ROM's Collection Room couldn't be read.";
+            }
+            if (gridError != null) return gridError;
 
             // The intro's parade: the ported enemies' types (their anims are in place now);
             int paradeAt = Allocate(ref cursor, KatAMTitleScreen.NidlTypesSize(paradeTypes.Count), 4);

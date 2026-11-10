@@ -85,7 +85,7 @@ void NidlChestOpen(struct Chest *chest) {
         u32 katamSpray = 0;
 
         SqueakCollectChest(chest->obj.objTemplate->unk12);
-        /* (a Squeak Squad spray, sprays.c: its own bit, set before the game's opening saves; the chest's item is KatAM's spray of the
+        /* (a Squeak Squad spray, KatAMExpansionSprays.cs: its own bit, set before the game's opening saves; the chest's item is KatAM's spray of the
          * closest color, which the game gives (sub_0800AFC8's 0x14-0x21) and shows rising: taken back after, unless it was owned,
          * and saved again); */
         if (spray != 0 && spray <= SQUEAK_SPRAYS && chest->unkE0 >= 0x14 && chest->unkE0 <= 0x21) {

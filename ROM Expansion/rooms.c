@@ -65,7 +65,7 @@ u16 gNidlGridRoom = 0xFFFF;
 #define NIDL_TAKEN_KIND 3
 #define SQUEAK_TAKEN_KIND 5
 #define BIG_AREA ((u8 *)gEwramHeap + NIDL_HEAP_SIZE + NIDL_VISITED_SIZE)
-// (the area's address, for what uses it while no room is loaded: sprays.c's Collection Room);
+// (the area's address, for what uses it while no room is loaded: collection.c's Collection Room);
 u8 *const gNidlBigArea = BIG_AREA;
 /* SqueakMailOf(); The Squeak Squad gimmicks' messages of the room in a slot (squeak/gimmicks.c), the heap's last 0x100 bytes, after
  * the slots' tilemaps (not saved: cleared as a room is loaded in its slot); */

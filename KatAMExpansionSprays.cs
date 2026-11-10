@@ -3,23 +3,21 @@ using System.Collections.Generic;
 using System.Linq;
 
 namespace KatAMRandomizer {
-    /* KatAMExpansionSprays; Squeak Squad's spray paints that KatAM doesn't have ("ROM Expansion/sprays.c" has the design): its 18
-     * sprays are KatAM's 13 (YELLOW to CHALK, by name; their chests hold items, KatAMExpansionSqueakRooms.cs) and SHADOW, IVORY,
-     * CITRUS, WHITE and LAVENDER: Kirby colors 16-20, owned in the spray paints' field's bits 14-18, found in Squeak Squad's chests and
-     * shown on the Collection Room's second page. Here: their palettes (Squeak Squad's collection/spray14-18.cla, KatAM's layout: 1
+    /* KatAMExpansionSprays; Squeak Squad's spray paints that KatAM doesn't have: its 18 sprays are KatAM's 13 (YELLOW to CHALK, by
+     * name; their chests hold items, KatAMExpansionSqueakRooms.cs) and SHADOW, IVORY, CITRUS, WHITE and LAVENDER: Kirby colors 16-20,
+     * owned in the spray paints' field's bits 14-18, found in Squeak Squad's chests and shown in the Collection Room's grid, the first
+     * row after KatAM's columns (KatAMExpansionCollection.cs; "ROM Expansion/collection.c"). Here: their palettes (Squeak Squad's collection/spray14-18.cla, KatAM's layout: 1
      * the outline, 2-8 the body, 9-11 the feet, 12-15 the whites) as anim 0x15's variants 16-20 (Kirby) and anim 0x1A0's (the UFO: the
      * body's colors, the UFO's own after them); the tables a color is read from lengthened to 21: the Collection Room's previews and the game's
-     * (gUnk_08386AF0, gUnk_082EB4B4: anim 0x15 and the color), the continue screen's palettes (gUnk_0834BB20); the Collection Room's
-     * cells table read from EWRAM, its opening and its frame sprays.c's; the second page's cans and texts (gSqueakSprays); */
+     * (gUnk_08386AF0, gUnk_082EB4B4: anim 0x15 and the color), the continue screen's palettes (gUnk_0834BB20); the sprays' cells in
+     * the Collection Room's grid: their cans and texts; */
     internal static partial class KatAMExpansion {
         // (the new sprays: how many, Squeak Squad's number of the first, its spray paints' treasure numbers' first: KatAM's 13 first);
         const int SqueakSprayCount = 5, SqueakSprayFile = 14, SqueakSprayColor = 16, KatAMColors = 16, KatAMSprayColors = 14;
         const int KirbyPaletteAnim = 0x15, UfoPaletteAnim = 0x1A0, CollectionIconAnim = 0x388, CollectionCells = 40;
-        // (sprays.c's SprayRoom: its entries after one entry; gSqueakSprays' fields);
-        const int SprayRoomEntries = 4, SprayPageAt = 4, SprayIconAnimAt = 0xA4, SprayIconPalettesAt = 0xA6, SprayTextsAt = 0xAC;
         const int CollectionTextColumns = 30, CollectionTextRows = 7, CollectionLanguages = 6;
-        // (the OBJ palettes the second page's cans take, two cans each: the first page's icons' (not shown with it);
-        static readonly byte[] SqueakSprayIconSlots = { 4, 5, 6 };
+        // (the OBJ palettes the cans take, two cans each: the Collection Room's free ones, after its icons' and previews' 0-11);
+        static readonly byte[] SqueakSprayIconSlots = { 0xC, 0xD, 0xE };
         // (KatAM's sprays' names in English, by color: their texts, "SPRAY PAINT : NAME", give the letters of the new ones');
         static readonly string[] KatAMSprayNames = { "PINK", "YELLOW", "RED", "GREEN", "SNOW", "CARBON", "OCEAN", "SAPPHIRE", "GRAPE",
                                                      "EMERALD", "ORANGE", "CHOCOLATE", "CHERRY", "CHALK" };
@@ -61,7 +59,7 @@ namespace KatAMRandomizer {
             }).First();
         }
 
-        /* AddSqueakSprayIcons(); The second page's cans (before the anims tables are copied: a new anim, its frames anim 0x388's,
+        /* AddSqueakSprayIcons(); The Collection Room's cans (before the anims tables are copied: a new anim, its frames anim 0x388's,
          * KatAM's Collection Room icons'): KatAM's spray can (0x388's variant 1, frame 1: its body colors 1-2, its band, the feet's,
          * 4-5), and a copy of its tiles drawing those with 3, 6, 9 and 10, two cans to a palette (KatAM's can palette, the sprays'
          * body colors 3 and 5, feet 9 and 10). Returns the anim's ID; */
@@ -108,25 +106,8 @@ namespace KatAMRandomizer {
         }
 
         // A collection text (gUnk_082D7850's TiledBg, 30 x 7 tiles) as pixels, [y, x]; null if it isn't one;
-        static byte[,] CollectionTextPixels(byte[] rom, int bgTable, int index) {
-            int bg = ReadInt(rom, bgTable + index * 4) - 0x08000000;
-            if (bg < 0 || bg + 0x1C > rom.Length || ReadShort(rom, bg) != CollectionTextColumns || ReadShort(rom, bg + 2) != CollectionTextRows) return null;
-            int tileset = ReadInt(rom, bg + 8) - 0x08000000, tilemap = ReadInt(rom, bg + 0x18) - 0x08000000;
-            if (tileset < 0 || tileset >= rom.Length || tilemap < 0 || tilemap >= rom.Length) return null;
-            byte[] tiles = DecompressLZ77(rom, tileset);
-            byte[,] pixels = new byte[CollectionTextRows * 8, CollectionTextColumns * 8];
-            for (int ty = 0; ty < CollectionTextRows; ty++)
-                for (int tx = 0; tx < CollectionTextColumns; tx++) {
-                    int entry = ReadShort(rom, tilemap + (ty * CollectionTextColumns + tx) * 2), tile = entry & 0x3FF;
-                    bool hflip = (entry & 0x400) != 0, vflip = (entry & 0x800) != 0;
-                    for (int y = 0; y < 8; y++)
-                        for (int x = 0; x < 8; x++) {
-                            int sx = hflip ? 7 - x : x, sy = vflip ? 7 - y : y, at = tile * 32 + sy * 4 + sx / 2;
-                            pixels[ty * 8 + y, tx * 8 + x] = at < tiles.Length ? (byte)(tiles[at] >> (sx % 2 * 4) & 15) : (byte)0;
-                        }
-                }
-            return pixels;
-        }
+        static byte[,] CollectionTextPixels(byte[] rom, int bgTable, int index) =>
+            TiledBgPixels(rom, bgTable, index, CollectionTextColumns, CollectionTextRows, true, out _, out _);
 
         // The name line's rows (the texts' first line, tile rows 1-2), and its glyphs: the runs of columns with pixels in them;
         const int TextLineTop = 8, TextLineBottom = 24;
@@ -152,12 +133,12 @@ namespace KatAMRandomizer {
             return true;
         }
 
-        /* SqueakSprayTexts(); The new sprays' texts in each language (see sprays.c): the language's text of KatAM's spray CHALK, its
+        /* SqueakSprayTexts(); The new sprays' texts in each language (the Collection Room's, over the one it puts up: collection.c): the language's text of KatAM's spray CHALK, its
          * name (the runs that differ among its 14 spray texts, after the ones that are the same in all, and before the ones that are)
          * cleared and the new name written there in KatAM's letters (taken from the English texts, whose names are known: the
          * sprays', VITALITY's and DEFAULT's), 1 pixel apart as theirs; as LZ77 tiles and a tilemap, each language's then name's (tileset,
-         * tilemap) in the table returned (file offset), a language whose texts don't fit this with the first one's that did; */
-        static int SqueakSprayTexts(byte[] rom, byte[] squeak, KatAMExpansionCode.Version version, int[] sprayTexts, int vitalityText, int defaultText, ref int cursor) {
+         * tilemap) returned, by name then language, a language whose texts don't fit this with the first one's that did; */
+        static List<(int tileset, int tilemap)[]> SqueakSprayTexts(byte[] rom, byte[] squeak, KatAMExpansionCode.Version version, int[] sprayTexts, int vitalityText, int defaultText, ref int cursor) {
             int bgTable = version.RomSymbols["gUnk_082D7850"], textTable = version.RomSymbols["gUnk_08386664"];
             byte[,] Text(int language, int text) => CollectionTextPixels(rom, bgTable, ReadShort(rom, textTable + (language * 0x27 + text) * 2));
 
@@ -265,14 +246,16 @@ namespace KatAMRandomizer {
             if (fits < 0) throw new InvalidOperationException("The new sprays' texts couldn't be composed.");
             foreach (int language in pending) for (int n = 0; n < newNames.Length; n++) composed[language, n] = composed[fits, n];
 
-            int table = Allocate(ref cursor, CollectionLanguages * newNames.Length * 8, 4);
-            for (int language = 0; language < CollectionLanguages; language++)
-                for (int n = 0; n < newNames.Length; n++) {
-                    (int tileset, int tilemap) = composed[language, n];
-                    if (tileset == 0) throw new InvalidOperationException("The new sprays' texts couldn't be composed.");
-                    WriteInts(rom, table + (language * newNames.Length + n) * 8, tileset + 0x08000000, tilemap + 0x08000000);
+            List<(int tileset, int tilemap)[]> result = new List<(int, int)[]>();
+            for (int n = 0; n < newNames.Length; n++) {
+                (int tileset, int tilemap)[] text = new (int, int)[CollectionLanguages];
+                for (int language = 0; language < CollectionLanguages; language++) {
+                    text[language] = composed[language, n];
+                    if (text[language].tileset == 0) throw new InvalidOperationException("The new sprays' result couldn't be composed.");
                 }
-            return table;
+                result.Add(text);
+            }
+            return result;
         }
 
         /* TextTiles(); Pixels as a text's tiles (LZ77) and its tilemap (palette 0, as KatAM's texts): the blank tile first, the tiles
@@ -299,8 +282,9 @@ namespace KatAMRandomizer {
         }
 
         /* AddSqueakSprays(); The rest (after the anims tables are copied: anims is the new one): the colors' variants, the tables,
-         * the Collection Room's hooks and gSqueakSprays. Returns an error, or null; */
-        static string AddSqueakSprays(byte[] rom, byte[] squeak, KatAMExpansionCode.Version version, int iconAnim, int paletteBase, ref int cursor) {
+         * the sprays' cells in the Collection Room's grid (added to items, their texts to texts). Returns an error, or null; */
+        static string AddSqueakSprays(byte[] rom, byte[] squeak, KatAMExpansionCode.Version version, int iconAnim, int paletteBase,
+                                      List<CollectionItem> items, List<(int tileset, int tilemap)[]> texts, ref int cursor) {
             int anims = ReadInt(rom, version.SpriteTables) - 0x08000000;
 
             // Kirby's and the UFO's palettes: their variants copied, the sprays' after them (a palette, then End);
@@ -342,14 +326,8 @@ namespace KatAMRandomizer {
             }
             if (Repoint(rom, 0, code, continueOld + 0x08000000, continues + 0x08000000) != 4) return $"The {version.Name} ROM's continue palettes aren't KatAM's.";
 
-            // The Collection Room: its cells read from EWRAM (sprays.c's gNidlBigArea), its opening and frame sprays.c's;
-            int cells = version.RomSymbols["gUnk_08386A50"], ram = ReadInt(rom, CodeAddress + version.CodeSymbols["gNidlBigArea"]) + SprayRoomEntries;
-            if (Repoint(rom, roomFrom, roomTo, cells + 0x08000000, ram) != 20 ||
-                Repoint(rom, roomFrom, roomTo, version.RomSymbols["sub_0814405C"] + 0x08000001, CodeAddress + 0x08000001 + version.CodeSymbols["SprayRoomFrame"]) != 1 ||
-                Repoint(rom, 0, roomFrom, version.RomSymbols["sub_081428A0"] + 0x08000001, CodeAddress + 0x08000001 + version.CodeSymbols["SprayRoomStart"]) != 1)
-                return $"The {version.Name} ROM's Collection Room isn't KatAM's.";
-
-            // gSqueakSprays: KatAM's page, the second (the sprays along the top row, as KatAM's), the cans, the texts;
+            // The Collection Room's grid (KatAMExpansionCollection.cs): the sprays in its first row after KatAM's, their cans, their texts;
+            int cells = version.RomSymbols["gUnk_08386A50"];
             int[] sprayTexts = new int[KatAMSprayColors];
             int vitalityText = -1, defaultText = -1;
             for (int cell = 0; cell < CollectionCells; cell++) {
@@ -359,17 +337,11 @@ namespace KatAMRandomizer {
                 if (id == 0x100) defaultText = rom[cells + cell * 4 + 3];
             }
             if (sprayTexts.Distinct().Count() != KatAMSprayColors || vitalityText < 0 || defaultText < 0) return $"The {version.Name} ROM's Collection Room isn't KatAM's.";
-            int sprays = CodeAddress + version.CodeSymbols["gSqueakSprays"];
-            WriteInt(rom, sprays, cells + 0x08000000);
-            for (int n = 0; n < SqueakSprayCount; n++) {
-                int at = sprays + SprayPageAt + n * 4;
-                // (the text the room puts up, under the spray's own: CHALK's, whose "SPRAY PAINT :" it keeps);
-                WriteShort(rom, at, 0x100 + SqueakSprayColor + 1 + n);
-                rom[at + 3] = (byte)sprayTexts[KatAMSprayColors - 1];
-                rom[sprays + SprayIconPalettesAt + n] = SqueakSprayIconSlots[n / 2];
-            }
-            WriteShort(rom, sprays + SprayIconAnimAt, iconAnim);
-            WriteInt(rom, sprays + SprayTextsAt, SqueakSprayTexts(rom, squeak, version, sprayTexts, vitalityText, defaultText, ref cursor) + 0x08000000);
+            int firstText = texts.Count;
+            texts.AddRange(SqueakSprayTexts(rom, squeak, version, sprayTexts, vitalityText, defaultText, ref cursor));
+            // (the text the room puts up, under the spray's own: CHALK's, whose "SPRAY PAINT :" it keeps);
+            for (int n = 0; n < SqueakSprayCount; n++)
+                items.Add(new CollectionItem(0, n, 0x100 + SqueakSprayColor + 1 + n, iconAnim, n, SqueakSprayIconSlots[n / 2], firstText + n, sprayTexts[KatAMSprayColors - 1]));
             return null;
         }
     }
