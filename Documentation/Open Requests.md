@@ -613,9 +613,20 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
       emulator (USA, Europe and Japan, 3-3-7, Kirby with Sword): the Sword cuts the left rope, its plank falls and breaks, the
       right plank stays with him on it; (USA, 6-2-1) standing on its floor drops it onto the spikes. Not tested: 8-1-8's rope
       starting its rocks, 3-3-6's. Logic checks: 359 rooms reached both ways, 8 switches, no traps, all three versions.
+    - The rolling boulders (6: the notes' boulders bullet; 18, in 2-4-1, 2-4-2, 4-3-2, 4-6-7, 8-2-4 and the boss stages): roll down
+      their slopes at the DS's ramped speed (2, 3 or 4 pixels a frame), turning as they go, hurt Kirby and burst on the first wall;
+      the waiting ones start on their trigger's message (2-4-1's quake triggers, 4-6-7's trigger areas, 4-3-2's relays); the ones in
+      pockets stay there. Checked in the GBA emulator: USA 2-4-1 and 4-6-7 (Kirby walks into the trigger, the boulder rolls down
+      at him, hits him, bursts on the wall), Europe 2-4-1. The landing and bursting quakes are left out (screen shake, item 10).
+      Not tested: 4-3-2's, 8-2-4's, Japan's boulders. Logic checks: 359 rooms both ways, 8 switches, no traps, all three versions.
+    - The candles (0xA: the notes' candles bullet; 8, in 4-3-7, 4-3-8, 8-1-6): Fire or Burning lights one for its frames (400-540),
+      then it goes out. Checked in the GBA emulator (USA and Japan, 4-3-7, Kirby with Fire). The dark room and Light: the candles and Light
+      request above.
+    - The camera areas (0x14) and the ambience gimmicks 0x18 (snow, wind streaks), 0x19 (lava sparks), 0x1A (a sound): decoded,
+      none changes the way through (the notes); not ported: the camera's view stays KatAM's, the ambience is left for later.
     - The quake triggers (0x13: the notes' quake bullet): ported as a trigger area that messages its targets once (a Kirby within
       64 pixels of its box, or a switch's message, sets it off; the screen quake is left out). On the DS 4-3-2's is set off by a
-      rolling boulder (not ported), so a Kirby nearing it opens its way instead. Not tested in the emulator.
+      rolling boulder; here a Kirby nearing it opens its way as before. Not tested in the emulator.
     - What only Fire or an unported gimmick opens became star blocks (the owner: every room reached; the notes' bullet on it): the
       cells Fire burns (4-2-3's start box and log bridges, 6-2-5's), the frozen blocks (6-1-4's), the hidden breakable blocks
       (block 3: 4-4-4's shafts down to its doors, small floors in 35 rooms) and the flagged groups nothing ported sets off (4-3-2's

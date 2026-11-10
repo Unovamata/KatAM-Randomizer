@@ -1284,6 +1284,7 @@ namespace KatAMRandomizer {
                                                     enemy.SharePalettes);
                         if (enemy.OnlyAnims != null) character = SqueakKeepAnims(character, enemy.OnlyAnims, enemy.KeepComposites);
                         if (enemy.ShiftY != 0) character = SqueakShiftCells(character, enemy.ShiftY);
+                        if (enemy.Roll >= 0) character = SqueakRolled(character, enemy.Roll, 16);
                         // (drawn smaller than the DS's: its offsets as much smaller, its frames by SqueakFrames);
                         if (enemy.Scale.Num > 0) character = SqueakScaled(character, enemy.Scale.Num, enemy.Scale.Den);
                         /* (the pieces in each layer's palettes drawn by a layer of their own: an anim with its own palette, a frame per cell

@@ -558,7 +558,7 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
     8 falling rocks, 9 icicles, 0xA candles (dark rooms), 0xB a rotating cannon, 0xC a cannon, 0xD a warp star's flight (its path in
     the table), 0xE grass tufts, 0xF barrels (holding food: `0x10` and the food), 0x10 the blocks a switch toggles, 0x11 floating
     bubbles (`0x10` and a food, or `0` and an ability), 0x12, 0x13, 0x14 (rectangles: camera or scroll areas), 0x15, 0x16 (the
-    Squeakers' treasure rooms' timings), 0x17, 0x18, 0x19 (171 in two lava rooms), 0x1A: unseen helpers, not yet identified.
+    Squeakers' treasure rooms' timings), 0x17, 0x18 (snow and wind streaks), 0x19 (lava sparks), 0x1A (a sound): the last three on-screen ambience (below).
   - The gimmicks in the 8 worlds (a room's entries, type: count in rooms): switches 0: 79 in 48, ropes 1: 25 in 9, shutters 2:
     119 in 46, rope floors 3: 16, paths 4: 38, thunder clouds 5: 19, rolling boulders 6: 15, fire columns 7: 43, falling rocks 8:
     26, icicles 9: 17, candles 0xA: 8, rotating cannons 0xB: 44, cannons 0xC: 3, warp star flights 0xD: 19, grass 0xE: 47,
@@ -663,7 +663,7 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
     targets its message and waits again; a message (kinds 0-2, 4 as 2: `0x022242CC`) sets the kind it sends.
   - The camera areas (0x14, `0x02224B88`, vtable `0x02229A7C`): a body moving into its box (its u16 at +8: bits 0-6 its width,
     7-13 its height in blocks, 14-15 how many targets, +0xA their indices) sends its targets kind 2 (`0x02224AA0`) and, with +0xD's
-    bit 0, sets the camera's bounds to its four u16s at +0 (x0, y0, x1, y1 in pixels). Not ported yet.
+    bit 0, sets the camera's bounds to its four u16s at +0 (x0, y0, x1, y1 in pixels). Not ported (the camera areas' bullet below).
   - Affine animations (rock's, ball_rock's): an animation whose head's third byte is set has its steps in pairs, the step drawn and
     then its angle (1/4096 turns), x and y scales (0x1000 for 1.0). In KatAM (`ReadSqueakCharacter()`, the gimmicks' graphics only)
     each step's cell at its angle is a cell of its own, drawn turned (`SqueakCanvas()`).
@@ -723,15 +723,47 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
     (USA, Europe and Japan, 3-3-7, Kirby with Sword put over its two planks): his Sword cuts the left rope, its plank shakes, falls
     and breaks on the floor under it, the right plank stays with him on it; (USA, 6-2-1) standing on its floor drops it onto the
     spikes, where it breaks. Not checked: 8-1-8's rope starting its rock relay, 3-3-6's.
-  - Decoded, not ported yet:
-    - The rolling boulders (gimmick 6, ctor `0x0221EE04`, vtable `0x02228FE8`; `yakumono/ball_rock`, its look by the first byte's
-      bits 0-3, table `0x02227AA0`): box ±2 cells; bits 4-5 0 rolls at once (state 1), else it waits for a message (4-3-2's, from
-      its relays). State 1 (`0x0221ED00`) makes a speed ramp (`0x02226CE4`, its update `0x02226D0C`): bits 6-7 pick from
-      `0x02227AB4` (0x2F frames to 2 pixels a frame, 0x40 to 3, 0x61 to 4). State 2 (`0x0221EAE0`) is a body of the DS's physics
-      rolling on the terrain: on landing a quake (`0x02035FC4`, 4, 16, 2), hitting a wall (its body's flags 0x400, 0x800) a bigger
-      one (7), sound 0x4F and it breaks (`0x0221E7D8`), the dust round it while it rolls (flag 2, not 0x1000); it hurts with harm
-      kind 0x0E, strength 8 (`0x0221ED6C`). The 18 in the ported rooms: 2-4-1, 2-4-2, 4-3-2 (2, waiting), 4-6-7, 8-2-4, and the
-      boss stages' 7-7-4 and 8-4-4.
+  - **The rolling boulders** (gimmick 6, ctor `0x0221EE04`, vtable `0x02228FE8`; `yakumono/ball_rock`: animation 0 the rock, a
+    64-pixel ball, 1 and 2 its pieces spinning, affine): its look by the first byte's bits 0-3 (table `0x02227AA0`, one), its spot its
+    middle, its box ±2 cells; bits 4-5 0 rolls at once (the constructor's state 1), else it waits for a message (state 0: 2-4-1's
+    quake triggers, 4-3-2's relays, 4-6-7's trigger areas). State 1 (`0x0221ED00`) makes a speed ramp (`0x02226CE4`, its update
+    `0x02226D0C`): bits 6-7 pick from `0x02227AB4` (0x2F frames to 2 pixels a frame, 0x40 to 3, 0x61 to 4). State 2 (`0x0221EAE0`)
+    is a body of the DS's physics rolling on the terrain (the DS turns its one frame as it rolls): on landing a quake (`0x02035FC4`,
+    4, 16, 2), hitting a wall (its body's flags 0x400, 0x800) a bigger one (7), sound 0x4F and it breaks (`0x0221E7D8`: its pieces),
+    the dust round it while it rolls (flag 2, not 0x1000); it hurts with harm kind 0x0E, strength 8 (`0x0221ED6C`). The ones that
+    roll at once (2-4-2's two, 4-3-2's, 8-2-4's) sit in closed pockets 4 cells wide, a floor under them: a body at rest stays put.
+    18 in the ported rooms: 2-4-1, 2-4-2, 4-3-2, 4-6-7, 8-2-4, and the boss stages' 7-7-4 and 8-4-4.
+    In KatAM (`squeak/gimmicks.c`'s SqueakCreateBoulder, object 0x91; template unk12 its index, unk14 its word): KatAM's own terrain
+    collision (ObjectMain's `sub_0809D8C8`, a box of ±28 pixels), gravity, rolling down the slope under it (the ground looked at 16
+    pixels either side, inside its round, lower on one side), on along flat ground the way it went (a boulder that hasn't gone yet
+    stays, as the DS's), its speed ramped up as the DS's; turned as it rolls (animation 3, `SqueakRolled()`: animation 0's cell
+    turned a sixteenth a step, the step picked by how far it went, anticlockwise rolling left); on a wall it breaks (KatAM's
+    block-break sound, a puff, a piece flying off spinning: animation 1); it hurts as the other gimmicks do (a plain hit). The
+    quakes are left out (the screen shake, item 10 of the open requests). Checked in the GBA emulator (USA): 2-4-1, Kirby walked
+    down to its quake trigger: the boulder waiting on the slope rolls down at the DS's ramp, turning anticlockwise (measured
+    between frames 2 apart), hits Kirby (OUCH, a bar of health) and bursts on the wall at the bottom; 4-6-7, Kirby walked into its
+    trigger area: its boulder starts and rolls down at exactly 2.00 pixels a frame; 2-4-2: its boulder stays in its pocket (above
+    the camera's top). First it rolled toward Kirby on flat ground, out of its pocket, and burst on the pocket's wall; then it
+    took a wall it touched for higher ground and turned back: both fixed. Europe: 2-4-1's the same (it rolls down and hits Kirby).
+    Not checked: 4-3-2's and 8-2-4's, Japan's boulders in the emulator.
+  - **The candles** (gimmick 0xA, ctor `0x022237A4`, vtable `0x022297E8`; `yakumono/candle`: 0 lit, its flame flickering in a glow, 1
+    out): 4-3-7's, 4-3-8's and 8-1-6's, 8 in dark rooms. Its box ±0.5 cells across, 1.5 up from its spot. Its message handler
+    (`0x022236A0`): a burning attack (the message's flags 0x901) lights it (state 1, `0x02223688`) for the parameter's bits 4-15
+    frames (400-540 in the rooms; again while lit: as long again); a blowing one (flag 2) puts it out with a puff (`0x0221F844`, kind
+    5). Lit, it counts down (`0x02223664`) and goes out (`0x02223514`), and once none of the room's is lit the room's colors fade back
+    to dark (`0x02209F94`, `0x0220A12C`). In KatAM (`squeak/gimmicks.c`'s SqueakCreateCandle, object 0x90; template unk14 its word):
+    lit by an attack of a Kirby with Fire or Burning (his own, or one he let go: its parent), with the Fire attack's sound, for its
+    frames, then out. The dark room and the Light ability are left for later (the open requests: candles and Light). Checked in the
+    GBA emulator (USA, 4-3-7, Kirby with Fire put by its first candle): his fire breath lights it, it stays lit, and it's out again
+    400 frames on; Japan: lit the same. Not checked: Burning, Europe's candles.
+  - The camera areas (0x14) only hold the view and message food bubbles (2-3-5's, 2-6-2's, 3-2-4's, 4-4-6's targets are bubbles,
+    which the port places as food already): not ported (most of the 65 hold the boss and goal rooms' view to one DS screen, which
+    their arenas already lock; a view clamped here would leave Kirby off the screen walking back out of it).
+  - Gimmicks 0x18, 0x19 and 0x1A, identified: on-screen ambience only. 0x18 (ctor `0x02226384`, vtable `0x02229DD4`; 33, in Ice
+    Island's rooms and 3-4-1) draws `yakumono/snow` and `yakumono/stream` streaks while its box is on the screen (the camera's,
+    `0x02035BA4`); 0x19 (`0x02225E9C`, vtable `0x02229D30`; 171, along Vocal Volcano's lava and 2-5-2/3, 3-2-2/3) the lava's sparks
+    (`yakumono/spark`), no box to touch; 0x1A (`0x0222684C`; one, 4-3-2) plays a sound every so often (its low nibble the sound,
+    table `0x02227FB4`, its second byte how many times). None changes the way through. Not ported yet.
   - **The quake triggers** (gimmick 0x13, ctor `0x022240E8`, vtable `0x022298F8`): its second u16 its box (bits 0-6 blocks across,
     7-13 down, as a trigger area's), bits 14-15 how many targets, its bytes 4 on their indices. A body moving into it (message 5) or
     a switch's message (kinds 0 and 1: `0x022240A8`) sets it off once (`0x02224034`): the screen quakes (its first u16's low 4

@@ -23,6 +23,9 @@
 #include "constants/songs.h"
 #include "code_0800E0E4.h"
 #include "random.h"
+#include "code_0806F780.h"
+#include "constants/kirby.h"
+#include "../abilities.h"
 #include "../squeak.h"
 
 /* The rooms' gimmick lists (KatAMExpansionSqueakRooms.cs, SqueakGimmickLists()): per Squeak Squad room (from SQUEAK_FIRST_ROOM) its
@@ -1333,12 +1336,211 @@ static void *SqueakCreateRope(struct ObjectTemplate *template, u8 playerId) {
     return obj;
 }
 
+/* The rolling boulders (gimmick 6, ctor 0x0221EE04, vtable 0x02228FE8; yakumono/ball_rock: animation 0 the rock, a 64-pixel ball, 1 and
+ * 2 its pieces spinning): its spot its middle, its box ±2 cells (0x0221EE04's -0x20000-0x20000). Its first byte: bits 0-3 its look (one,
+ * 0x02227AA0); 4-5 how it starts (0 rolling at once, the constructor's state 1; else waiting, state 0, for a message: 2-4-1's quake
+ * triggers, 4-3-2's relays, 4-6-7's trigger areas); 6-7 its speed (0x02227AB4: 0x2F frames to 2 pixels a frame, 0x40 to 3, 0x61 to 4,
+ * a ramp, 0x02226CE4). Rolling (state 2, 0x0221EAE0) it's a body of the DS's physics on the terrain: down its slopes, a quake as it
+ * lands, and on a wall (its body's flags 0x400, 0x800) a bigger quake, sound 0x4F and it breaks (0x0221E7D8: its pieces); it hurts
+ * (0x0221ED6C: harm kind 0x0E, strength 8). Here: KatAM's own terrain collision (ObjectMain's sub_0809D8C8, its box), gravity,
+ * rolling down the slope under it (the ground lower on one side than the other), on along flat ground the way it went (none yet: it
+ * stays, as the DS's body at rest: 2-4-2's, 4-3-2's and 8-2-4's sit in pockets 4 cells wide till their floor goes), its speed ramped
+ * up as the DS's; turned as it rolls (animation 3, SqueakRolled(): its step by how far it went);
+ * on a wall it breaks (the block-break sound, a puff, a piece flying off spinning, animation 1); it hurts as the other gimmicks do (a
+ * plain hit). The quakes are left out (the screen shake, item 10 of the open requests); */
+struct SqueakBoulder {
+    struct Object obj;
+    struct SqueakGimmickSprite spr;
+    u8 index;
+    u8 state;
+    s8 way;
+    u16 timer;
+    u32 rolled;
+};
+#define BOULDER_WAIT 0
+#define BOULDER_ROLL 1
+#define BOULDER_PIECE 2
+#define BOULDER_GONE 3
+#define BOULDER_RADIUS 28
+#define BOULDER_GRAVITY 0x30
+#define BOULDER_TOP_FALL 0x600
+#define BOULDER_ROLL_ANIM 3
+#define BOULDER_PIECE_ANIM 1
+#define BOULDER_STEPS 16
+// (a step of its turn: the ball's round, 2π × 30 pixels, over 16, in 1/256 pixels);
+#define BOULDER_STEP_LENGTH 0xBC0
+#define BOULDER_PIECE_FRAMES 48
+static const u16 sBoulderRamp[4][2] = { { 0x2F, 0x200 }, { 0x40, 0x300 }, { 0x61, 0x400 }, { 0x61, 0x400 } };
+
+// (the rows down from its middle to the first with ground under x, 6 at most);
+static u8 GroundRows(struct Object *obj, s32 x) {
+    s32 y = obj->base.y;
+    u8 r;
+
+    if (x < gCurLevelInfo[obj->base.unk56].levelMinPosition.x || x > gCurLevelInfo[obj->base.unk56].levelMaxPosition.x) return 0;
+    for (r = 0; r < 6 && y <= gCurLevelInfo[obj->base.unk56].levelMaxPosition.y; r++, y += 0x1000)
+        if (NidlIsFloor(obj, x, y)) return r;
+    return r;
+}
+
+/* (-1 or 1 the side whose ground is lower, 0 flat: looked at 16 pixels either side, inside its round, so a wall it touches isn't
+ * taken for ground higher up, and it rolls on into it); */
+#define BOULDER_PROBE 16
+static s8 Downhill(struct Object *obj) {
+    u8 left = GroundRows(obj, obj->base.x - (BOULDER_PROBE << 8)), right = GroundRows(obj, obj->base.x + (BOULDER_PROBE << 8));
+
+    return left > right ? -1 : right > left ? 1 : 0;
+}
+
+static void BoulderTurn(struct Object *obj, struct SqueakBoulder *b) {
+    const struct SqueakAnim *a = &gSqueakData.enemies[b->spr.look].anim[BOULDER_ROLL_ANIM];
+    u32 step = b->rolled / BOULDER_STEP_LENGTH % BOULDER_STEPS;
+
+    // (animation 3's steps turn it the DS's way, drawn as KatAM draws the gimmicks: anticlockwise; rolling right, clockwise: backwards);
+    if (b->way > 0) step = (BOULDER_STEPS - step) % BOULDER_STEPS;
+    obj->unk83 = SQUEAK_HURT_VARIANTS + a->step[step].cell;
+}
+
+static void SqueakBoulderMain(struct Object *obj) {
+    struct SqueakBoulder *b = (struct SqueakBoulder *)obj;
+    u16 frames = sBoulderRamp[obj->objTemplate->unk14 >> 6 & 3][0], top = sBoulderRamp[obj->objTemplate->unk14 >> 6 & 3][1];
+    u8 kind;
+    s8 slope;
+
+    if (gUnk_03000510.unk4 & ((1 << obj->base.unk56) | 0x10)) return;
+    kind = TakeMail(SlotOf(&obj->base), b->index);
+    obj->base.unk68 &= ~(7 | 0x80);
+    switch (b->state) {
+    case BOULDER_WAIT:
+        if (kind == 0 || kind > MESSAGE_AREA + 1) break;
+        b->state = BOULDER_ROLL;
+        b->timer = 0;
+        obj->base.flags &= ~(0x800 | 0x100);
+        break;
+    case BOULDER_ROLL:
+        obj->base.unk68 |= 3 | 0x80;
+        // (on a wall it ran into: it breaks);
+        if (obj->base.xspeed != 0 && (obj->base.unk62 & 3)) {
+            PlaySfx(&obj->base, SE_BLOCK_BREAK);
+            CreateEffectObject(&obj->base, 0, 0x292, 0);
+            GimmickPlay(obj, &b->spr, BOULDER_PIECE_ANIM);
+            obj->base.flags |= 0x100;
+            obj->base.xspeed = -b->way * 0x100;
+            obj->base.yspeed = 0x300;
+            b->state = BOULDER_PIECE;
+            b->timer = 0;
+            break;
+        }
+        if (!(obj->base.unk62 & 4)) {
+            obj->base.yspeed -= BOULDER_GRAVITY;
+            if (obj->base.yspeed < -BOULDER_TOP_FALL) obj->base.yspeed = -BOULDER_TOP_FALL;
+        } else {
+            // (on flat ground it keeps the way it went; one that hasn't gone yet stays, as the DS's body at rest: 2-4-2's in their pockets);
+            if ((slope = Downhill(obj)) != 0) b->way = slope;
+            if (b->way != 0 && b->timer < frames) b->timer++;
+        }
+        obj->base.xspeed = b->way * (s32)(top * b->timer / frames);
+        // (on the ground pressed down as far as it goes across, so it keeps to a slope going down: the terrain lifts it back);
+        if (obj->base.unk62 & 4) obj->base.yspeed = -(top * b->timer / frames) - BOULDER_GRAVITY;
+        b->rolled += obj->base.xspeed < 0 ? -obj->base.xspeed : obj->base.xspeed;
+        BoulderTurn(obj, b);
+        break;
+    case BOULDER_PIECE:
+        GimmickAnimate(obj, &b->spr);
+        obj->base.yspeed -= BOULDER_GRAVITY;
+        if (++b->timer < BOULDER_PIECE_FRAMES) break;
+        obj->base.flags |= 0x400 | 0x800;
+        obj->base.xspeed = obj->base.yspeed = 0;
+        b->state = BOULDER_GONE;
+        break;
+    }
+}
+
+static void *SqueakCreateBoulder(struct ObjectTemplate *template, u8 playerId) {
+    struct Task *task = TaskCreate(ObjectMain, sizeof(struct SqueakBoulder), 0x1000, TASK_USE_EWRAM, ObjectDestroy);
+    struct SqueakBoulder *b = TaskGetStructPtr(task);
+    struct Object *obj = &b->obj;
+
+    InitObject(obj, template, playerId);
+    b->index = template->unk12;
+    GimmickInit(obj, &b->spr, SQUEAK_BOULDER);
+    obj->base.unk5C |= 0x20;
+    ObjectSetBounds(&obj->base, -BOULDER_RADIUS, -BOULDER_RADIUS, BOULDER_RADIUS, BOULDER_RADIUS + 2);
+    sub_0803E2B0(&obj->base, -BOULDER_RADIUS + 2, -BOULDER_RADIUS + 2, BOULDER_RADIUS - 2, BOULDER_RADIUS);
+    b->way = 0;
+    b->rolled = 0;
+    b->timer = 0;
+    b->state = BOULDER_WAIT;
+    // (bits 4-5 0: rolling at once, the terrain its own);
+    if (!(template->unk14 & 0x30)) {
+        b->state = BOULDER_ROLL;
+        obj->base.flags &= ~(0x800 | 0x100);
+    }
+    BoulderTurn(obj, b);
+    obj->unk78 = SqueakBoulderMain;
+    return obj;
+}
+
+/* The candles (gimmick 0xA, ctor 0x022237A4, vtable 0x022297E8; yakumono/candle, its look the parameter's low 4 bits, 0x02227D9C: one,
+ * animation 0 lit, its flame flickering, 1 out): 4-3-7's, 4-3-8's and 8-1-6's, in dark rooms. Its box ±0.5 cells across, 1.5 up from
+ * its spot. A burning attack on it (the message's flags 0x901, 0x022236A0) lights it (state 1) for the parameter's bits 4-15 frames
+ * (400-540 in the rooms; again while lit: as long again), a blowing one (flag 2) puts it out with a puff; out (0x02223514), once none of
+ * the room's is lit, the room's colors fade back to dark. Here: lit by an attack of a Kirby with Fire or Burning (his own, or one he
+ * let go: its parent), for its frames, then out. The dark room and Light are left for later (the open requests: candles and Light); */
+struct SqueakCandle {
+    struct Object obj;
+    struct SqueakGimmickSprite spr;
+    u16 timer;
+};
+#define CANDLE_LIT_ANIM 0
+#define CANDLE_OUT_ANIM 1
+
+// (the Kirby behind an attack: a Kirby itself, or what one let go, its parent);
+static struct Kirby *AttackKirby(struct ObjectBase *by) {
+    if (by == NULL) return NULL;
+    if ((u32)by - (u32)gKirbys < 4 * sizeof(struct Kirby)) return (struct Kirby *)by;
+    by = by->parent;
+    if (by != NULL && (u32)by - (u32)gKirbys < 4 * sizeof(struct Kirby)) return (struct Kirby *)by;
+    return NULL;
+}
+
+static void SqueakCandleMain(struct Object *obj) {
+    struct SqueakCandle *c = (struct SqueakCandle *)obj;
+    struct ObjectBase *by = obj->base.unk6C;
+    struct Kirby *k;
+
+    if (gUnk_03000510.unk4 & ((1 << obj->base.unk56) | 0x10)) return;
+    GimmickAnimate(obj, &c->spr);
+    if (Struck(obj) && (k = AttackKirby(by)) != NULL
+        && ((k->ability & NIDL_ABILITY_MASK) == KIRBY_ABILITY_FIRE || (k->ability & NIDL_ABILITY_MASK) == KIRBY_ABILITY_BURNING)) {
+        if (c->timer == 0) {
+            GimmickPlay(obj, &c->spr, CANDLE_LIT_ANIM);
+            PlaySfx(&obj->base, SE_ABILITY_FIRE_ATTACK);
+        }
+        c->timer = obj->objTemplate->unk14 >> 4;
+    }
+    if (c->timer != 0 && --c->timer == 0) GimmickPlay(obj, &c->spr, CANDLE_OUT_ANIM);
+}
+
+static void *SqueakCreateCandle(struct ObjectTemplate *template, u8 playerId) {
+    struct Task *task = TaskCreate(ObjectMain, sizeof(struct SqueakCandle), 0x1000, TASK_USE_EWRAM, ObjectDestroy);
+    struct SqueakCandle *c = TaskGetStructPtr(task);
+    struct Object *obj = &c->obj;
+
+    InitObject(obj, template, playerId);
+    HolderInit(obj, &c->spr, SQUEAK_CANDLE, -8, -24, 8, 0);
+    c->timer = 0;
+    GimmickPlay(obj, &c->spr, CANDLE_OUT_ANIM);
+    obj->unk78 = SqueakCandleMain;
+    return obj;
+}
+
 // SqueakGimmickAnim(); A gimmick's look and cell as squeak.c's SqueakAnimFor() draws it (0: the object isn't one);
 u32 SqueakGimmickAnim(struct Object *obj) {
     if (obj->type != OBJ_HAMMER_PEG) return 0;
     if (obj->objTemplate->unk11 == SQUEAK_SWITCH_OBJECT)
         return gSqueakData.enemies[SQUEAK_SWITCH].animId | (SQUEAK_HURT_VARIANTS + (obj->unk83 & 1)) << 16;
-    if (obj->objTemplate->unk11 >= SQUEAK_CLOUD_OBJECT && obj->objTemplate->unk11 <= SQUEAK_SHUTTER_OBJECT)
+    if (obj->objTemplate->unk11 >= SQUEAK_CANDLE_OBJECT && obj->objTemplate->unk11 <= SQUEAK_SHUTTER_OBJECT)
         return gSqueakData.enemies[((struct SqueakGimmickObject *)obj)->spr.look].animId | obj->unk83 << 16;
     return 0;
 }
@@ -1357,6 +1559,8 @@ void *SqueakCreateSwitch(struct ObjectTemplate *template, u8 playerId) {
     case SQUEAK_PLATFORM_OBJECT: return SqueakCreatePlatform(template, playerId);
     case SQUEAK_CLOUD_OBJECT: return SqueakCreateCloud(template, playerId);
     case SQUEAK_ROPE_OBJECT: return SqueakCreateRope(template, playerId);
+    case SQUEAK_BOULDER_OBJECT: return SqueakCreateBoulder(template, playerId);
+    case SQUEAK_CANDLE_OBJECT: return SqueakCreateCandle(template, playerId);
     }
     return gSqueakSwitch.create(template, playerId);
 }

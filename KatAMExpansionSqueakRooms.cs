@@ -1245,6 +1245,9 @@ namespace KatAMRandomizer {
         // (the moving platforms: squeak/gimmicks.c's SqueakCreatePlatform, its first word and its legs, 3 at most, in the template);
         const int SqueakPlatformGimmick = 4, SqueakPlatformLegs = 3, SqueakCloudGimmick = 5, SqueakRopeGimmick = 1, SqueakRopeFloor = 3;
         const byte SqueakPlatformObject = 0x94, SqueakCloudObject = 0x93, SqueakRopeObject = 0x92;
+        // (the rolling boulders: squeak/gimmicks.c's SqueakCreateBoulder, its first word in the template, its index for the messages that start it);
+        const int SqueakBoulderGimmick = 6, SqueakCandleGimmick = 0xA;
+        const byte SqueakBoulderObject = 0x91, SqueakCandleObject = 0x90;
         // (Squeak Squad's abilities, by its numbers, as KatAM's: those KatAM has; the others, Ninja, Animal, Ghost, Bubble, Metal, none);
         static readonly Dictionary<int, byte> SqueakKatAMAbilities = new Dictionary<int, byte> {
             [1] = 1, [2] = 2, [3] = 15, [4] = 7, [5] = 16, [6] = 5, [7] = 6, [8] = 13, [9] = 9, [10] = 4, [11] = 14, [13] = 19, [14] = 11,
@@ -1781,6 +1784,7 @@ namespace KatAMRandomizer {
                             if (gi >= SqueakMailGimmicks || g.Parameters == null || g.Parameters.Length < 4
                                 || !SqueakMessageTargets(g).Any(t => t < gimmicks.Count && t < SqueakMailGimmicks
                                                                      && (gimmicks[t].Type is SqueakShutterGimmick or SqueakFireGimmick or SqueakTriggerArea or SqueakRelay or SqueakRockGimmick or SqueakPlatformGimmick or SqueakQuake
+                                                                         or SqueakBoulderGimmick
                                                                          || gimmicks[t].Type == SqueakSwitchBlocks && chains.Contains((gimmicks[t].X / 16, gimmicks[t].Y / 16)))))
                                 continue;
                             byte[] button = ObjectTemplate(g.X, g.Y, templates.Count, HammerPegType);
@@ -1877,6 +1881,23 @@ namespace KatAMRandomizer {
                             WriteShort(cloud, 0x1C, ReadShort(g.Parameters, 2));
                             WriteShort(cloud, 0x1E, ReadShort(g.Parameters, 4));
                             templates.Add(cloud);
+                            if (!types.Contains(HammerPegType)) types.Add(HammerPegType);
+                            squeakSwitches++;
+                        } else if (g.Type == SqueakCandleGimmick) {
+                            // (a candle: its word, its lit frames in bits 4-15, squeak/gimmicks.c's SqueakCreateCandle);
+                            byte[] candle = ObjectTemplate(g.X, g.Y, templates.Count, HammerPegType);
+                            candle[0x11] = SqueakCandleObject;
+                            WriteShort(candle, 0x14, g.Word(0));
+                            templates.Add(candle);
+                            if (!types.Contains(HammerPegType)) types.Add(HammerPegType);
+                            squeakSwitches++;
+                        } else if (g.Type == SqueakBoulderGimmick) {
+                            // (a rolling boulder: its index for the message that starts a waiting one, its first word);
+                            byte[] boulder = ObjectTemplate(g.X, g.Y, templates.Count, HammerPegType);
+                            boulder[0x11] = SqueakBoulderObject;
+                            boulder[0x12] = (byte)Math.Min(gi, 0xFF);
+                            WriteShort(boulder, 0x14, g.Word(0));
+                            templates.Add(boulder);
                             if (!types.Contains(HammerPegType)) types.Add(HammerPegType);
                             squeakSwitches++;
                         } else if (g.Type == SqueakIcicleGimmick) {

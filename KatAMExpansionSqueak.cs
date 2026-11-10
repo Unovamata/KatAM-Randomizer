@@ -140,6 +140,24 @@ namespace KatAMRandomizer {
          * they first show), its tiles and palettes as they were. Its composite animations are kept (keepComposites: Mrs. Moley's, their
          * parts' animations then among those kept, renumbered; those with a part not kept left out, the others renumbered: Meta Knight's),
          * else dropped; */
+        /* SqueakRolled(); The character with an animation more: its cell `cell` turned a step of 1/`steps` turn further each step (the
+         * rolling boulder's roll: the DS turns its one frame, `yakumono/ball_rock`'s animation 0, as its body rolls; squeak/gimmicks.c
+         * picks the step by how far it rolled), each turned copy a cell of its own drawn turned (SqueakCanvas()); */
+        static SqueakCharacter SqueakRolled(SqueakCharacter character, int cell, int steps) {
+            List<SqueakStep> roll = new List<SqueakStep>();
+            for (int s = 0; s < steps; s++) {
+                int turned = cell;
+                if (s > 0) {
+                    turned = character.Cells.Count;
+                    character.Cells.Add(character.Cells[cell]);
+                    character.Angles[turned] = s * 4096 / steps;
+                }
+                roll.Add(new SqueakStep(turned, 1, 0, 0));
+            }
+            character.Anims.Add(new SqueakAnim(true, roll));
+            return character;
+        }
+
         static SqueakCharacter SqueakKeepAnims(SqueakCharacter character, int[] anims, bool keepComposites = false) {
             List<int> cells = anims.SelectMany(a => character.Anims[a].Steps.Select(s => s.Cell)).Distinct().ToList();
             List<int> compositions = keepComposites
@@ -460,13 +478,14 @@ namespace KatAMRandomizer {
          * frames show no layer), and the palettes its cells draw with together are merged into one when their colors fit in 15 (Meta
          * Knight's: his body the character's own, his sword a layer; his sword's flourishes alone in its frames, his wave's two
          * palettes one); Scale: drawn at Scale.Num / Scale.Den of the DS's size (its cells, SqueakShrink, and its animations' offsets:
-         * Yadgaine's, YadgaineScale); */
+         * Yadgaine's, YadgaineScale); Roll: an animation more, that cell turned a sixteenth more each step (SqueakRolled(): the
+         * rolling boulder's, which the DS turns as its body rolls); */
         internal sealed record SqueakEnemy(int Index, string Name, string File, int[] HurtCells, (int type, int letter)[] Glyphs, int GraphicsOf = -1,
                                             byte MidbossType = 0, int[] OnlyAnims = null, string[] Palettes = null,
                                             (ushort from, ushort to)[] MergeColors = null, string ExtraFile = null,
                                             int[][] Layers = null, int Canvas = 128, bool BodyLast = false, bool KeepComposites = false,
                                             bool SharePalettes = false, string PaletteFile = null, bool WholeCells = false,
-                                            (int Num, int Den) Scale = default, int ShiftY = 0, int Rotate = 0);
+                                            (int Num, int Den) Scale = default, int ShiftY = 0, int Rotate = 0, int Roll = -1);
         /* AnimPalettes: a character whose cells are in Squeak Squad's different palettes (Doc's things), per animation the palette its
          * sprite takes (SqueakPaletteKey); */
         internal sealed record SqueakBuilt(SqueakEnemy Enemy, int AnimId, SqueakCharacter Character, int Tiles, List<SqueakLayerBuilt> Layers = null,
@@ -610,7 +629,8 @@ namespace KatAMRandomizer {
         // (the fire columns', squeak.h's SQUEAK_FIRE on: gimmick 7's looks, 0x02227B30, turned as the DS turns them);
         const int SqueakFireColumn = 76, SqueakFire180 = 77, SqueakFire270 = 78, SqueakFire90 = 79;
         // (the grass tufts' and the barrel's, squeak.h's SQUEAK_GRASS on and SQUEAK_BARREL: gimmicks 0xE and 0xF);
-        const int SqueakGrass = 80, SqueakBarrel = 86, SqueakIcicle = 87, SqueakRock = 88, SqueakPlatformLook = 89, SqueakThunderLook = 90;
+        const int SqueakGrass = 80, SqueakBarrel = 86, SqueakIcicle = 87, SqueakRock = 88, SqueakPlatformLook = 89, SqueakThunderLook = 90,
+                  SqueakBoulderLook = 91, SqueakCandleLook = 92;
 
         static readonly List<SqueakEnemy> SqueakDefinitions = new List<SqueakEnemy> {
             // Perara: hurt animations 7 and 8 (0x02021A88's 0x1000007, 0x1000008);
@@ -878,6 +898,11 @@ namespace KatAMRandomizer {
             new SqueakEnemy(SqueakPlatformLook, "Floor", "yakumono/floor", new[] { 0, 0, 0 }, new (int, int)[0]),
             // The thunder cloud (gimmick 5, yakumono/thunder_cloud: 0 resting, 6 flashing): every cell; no name;
             new SqueakEnemy(SqueakThunderLook, "Thunder Cloud", "yakumono/thunder_cloud", new[] { 0, 0, 0 }, new (int, int)[0]),
+            /* The rolling boulder (gimmick 6, yakumono/ball_rock: 0 the rock, 1 and 2 its pieces spinning; 3 here its roll, cell 1 turned
+             * a sixteenth a step): every cell; no name; */
+            new SqueakEnemy(SqueakBoulderLook, "Boulder", "yakumono/ball_rock", new[] { 0, 0, 0 }, new (int, int)[0], Roll: 1),
+            // The candle (gimmick 0xA, yakumono/candle: 0 lit, its flame flickering, 1 out): every cell; no name;
+            new SqueakEnemy(SqueakCandleLook, "Candle", "yakumono/candle", new[] { 0, 0, 0 }, new (int, int)[0]),
         };
 
         /* The randomizer's Squeak Squad pools (the ROM Expansion tab). SqueakPool; A character the randomizer places: its index (SQUEAK_*
