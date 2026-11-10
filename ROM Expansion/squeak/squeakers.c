@@ -63,6 +63,9 @@ enum { BOMB_SMALL, BOMB_BIG };
 
 // prmDE01Ml0.kgb;
 #define HOP_SPEED 0xB34
+// (in a chase: half again as fast, and a wait of at most 20 frames before it throws: SqueakChasing);
+#define CHASE_HOP(s) ((s)->chase ? HOP_SPEED * 3 / 2 : HOP_SPEED)
+#define CHASE_WAIT 20
 #define HOP_LOW 0x1C7B
 #define HOP_HIGH 0x3B34
 #define GRAVITY 0x215
@@ -256,6 +259,11 @@ struct Chest *SqueakNearestChest(struct SqueakObject *s, bool8 *any) {
     u8 i;
 
     *any = FALSE;
+    // (in a chase, no chest to take: it goes for Kirby, as the DS's Squeaks for him carrying the stage's chest; KatAM's chests open);
+    if (s->chase) {
+        *any = TRUE;
+        return NULL;
+    }
     for (i = 0; i < MAX_TASK_NUM; i++) {
         struct Task *t = &gTasks[i];
         struct Object *obj;
@@ -312,6 +320,7 @@ struct Chest *SqueakTouchedChest(struct SqueakObject *s) {
     s32 r[4];
     u8 i;
 
+    if (s->chase) return NULL;
     HitBox(&s->obj.base, r);
     for (i = 0; i < MAX_TASK_NUM; i++) {
         struct Task *t = &gTasks[i];
@@ -445,7 +454,7 @@ static bool32 Escaping(struct SqueakObject *s) {
 static void AirControl(struct SqueakObject *s) {
     if (s->padDir < 0) SqueakTurnAround(s);
     if (s->padDir > 0) {
-        s->vx = HOP_SPEED;
+        s->vx = CHASE_HOP(s);
         s->maxVx = 0;
     } else {
         s->ax = 0;
@@ -512,10 +521,10 @@ static bool32 Body(struct SqueakObject *s) {
         }
         Play(s, ANIM_JUMP, ANIM_JUMP_CARRY);
         if (s->padY < 1) {
-            s->vx = HOP_SPEED;
+            s->vx = CHASE_HOP(s);
             s->vy = HOP_LOW;
         } else {
-            s->vx = s->padDir < 1 ? 0 : HOP_SPEED;
+            s->vx = s->padDir < 1 ? 0 : CHASE_HOP(s);
             s->vy = HOP_HIGH;
         }
         s->ay = -GRAVITY;
@@ -790,7 +799,7 @@ static void Think(struct SqueakObject *s) {
         tx = kx;
         ty = ky;
     }
-    if (color != YELLOW && !CHEST(s)) {
+    if ((color != YELLOW || s->chase) && !CHEST(s)) {
         attack = TRUE;
         if (color == BLUE) {
             if (BLUE_TIMER(s) < 1) {
@@ -807,11 +816,12 @@ static void Think(struct SqueakObject *s) {
             else if (roll < 70) WAIT(s) = 20;
             else if (roll < 80) WAIT(s) = 30;
             else WAIT(s) = 45;
+            if (s->chase && WAIT(s) > CHASE_WAIT) WAIT(s) = CHASE_WAIT;
             s->brain = BRAIN_ATTACK;
         }
     }
-    // (blue and green ones: only to a chest near them);
-    if (color == BLUE || color == GREEN) {
+    // (blue and green ones: only to a chest near them; in a chase, all after Kirby);
+    if ((color == BLUE || color == GREEN) && !s->chase) {
         steer = aim == AIM_CHEST && x > tx - CHEST_X && x < tx + CHEST_X && y > ty - CHEST_Y && y < ty + CHEST_Y;
     }
     if (CHEST(s)) steer = TRUE;
@@ -876,6 +886,38 @@ static void Brain(struct SqueakObject *s) {
     }
 }
 
+/* ChaseHop(); In a chase, on the ground before a hop (standing with its pad forward, or winding up to it: its brain sets the pad anew
+ * each frame, and the crouch picks the hop): the hop it means (high with up held, else low) if it lands (SqueakJumpLands: followed
+ * through the room), else the other one if that one does; standing, neither landing, down to Kirby below (SqueakDropToKirby) or it
+ * waits where it is (its hops are long: the hop itself is its look ahead); straight up, it lands where it is; */
+static void ChaseHop(struct SqueakObject *s) {
+    bool32 low, high;
+
+    if (!s->chase || !SqueakOnGround(s)) return;
+    switch (s->state) {
+    case BODY_STAND:
+        if (s->padDir != 1) return;
+        break;
+    case BODY_HOP:
+    case BODY_HOP_WAIT:
+    case BODY_CROUCH:
+        if (s->padY >= 1 && s->padDir < 1) return;
+        break;
+    default:
+        return;
+    }
+    low = SqueakJumpLands(s, CHASE_HOP(s), HOP_LOW, GRAVITY);
+    high = SqueakJumpLands(s, CHASE_HOP(s), HOP_HIGH, GRAVITY);
+    if (s->padY >= 1 ? high : low) return;
+    if (low || high) {
+        s->padY = high ? 1 : 0;
+        if (high) s->padDir = 1;
+        return;
+    }
+    if (s->state != BODY_STAND || SqueakDropToKirby(s, 2)) return;
+    s->padDir = s->padY = s->padA = 0;
+}
+
 // SqueakerMain(); Its brain, its body, then a closed chest it touches (its touch, 0x020EC168: taken unless it just dropped one);
 static void SqueakerMain(struct Object *obj) {
     struct SqueakObject *s = (struct SqueakObject *)obj;
@@ -884,6 +926,8 @@ static void SqueakerMain(struct Object *obj) {
     if (TREAT_TIMER(s) > 0) TREAT_TIMER(s)--;
     Held(s);
     Brain(s);
+    ChaseHop(s);
+    SqueakChaseSteer(s, 0, 0, 0, 0);
     SqueakRun(s, Body);
     SqueakFinishFrame(s);
     SqueakAnimate(s);

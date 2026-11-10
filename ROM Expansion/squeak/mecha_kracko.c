@@ -693,7 +693,7 @@ void MechaKrackoInit(struct SqueakObject *s) {
     ObjectSetBounds(&obj->base, -16, -16, 16, 16);
     HARM(s) = obj->base.unk68;
     SqueakStandOnFloor(obj);
-    FLOOR(s) = obj->base.y;
+    FLOOR(s) = SqueakBossFloor(s);
     s->hpBase = first * SECOND_HP_NUM / SECOND_HP_DEN;
     s->maxHp = first;
     obj->unk80 = first + s->hpBase;

@@ -981,9 +981,13 @@ namespace KatAMRandomizer {
          * Squeak Squad's characters as type 0x2C with a Squeak Squad ROM. Either game can be added alone: without a NiDL ROM, only the
          * code and what Squeak Squad's characters need (no NiDL enemies, mini-bosses, bosses, abilities, rooms or title). Returns null
          * when done, or why it couldn't be done (rom is left as it was); */
-        public static string AddEnemies(ref byte[] rom, byte[] nightmare, bool rooms = true, bool title = false, byte[] squeak = null, bool squeakRooms = false) {
+        public static string AddEnemies(ref byte[] rom, byte[] nightmare, bool rooms = true, bool title = false, byte[] squeak = null, bool squeakRooms = false,
+                                        bool squeakChases = false, int chaseSeed = 0) {
             KatAMExpansionCode.Version version = VersionOf(rom);
             NightmareRegion region = RegionOf(nightmare);
+            // (KatAM's chase rooms, read before the expansion's rooms are added: KatAMExpansionChases.cs);
+            List<KatamChaseRoom> chaseRooms = squeakChases && squeak != null && version != null ? KatamChaseCandidates(rom, version) : null;
+            KatamChases.Clear();
 
             if (version == null) return "The ROM Expansion supports the USA, European and Japanese (revision 1) versions of Kirby & the Amazing Mirror.";
             if (nightmare == null && squeak == null) return "Load a Nightmare in Dream Land or a Squeak Squad ROM in the ROM Expansion tab.";
@@ -996,7 +1000,8 @@ namespace KatAMRandomizer {
             byte[] original = rom;
 
             rom = Expand(rom);
-            string error = AddEnemiesTo(rom, nightmare, region, version, rooms && nightmare != null, title && nightmare != null, squeak, squeakRooms && squeak != null);
+            string error = AddEnemiesTo(rom, nightmare, region, version, rooms && nightmare != null, title && nightmare != null, squeak, squeakRooms && squeak != null,
+                                        chaseRooms, chaseSeed);
             if (error != null) rom = original;
             return error;
         }
@@ -1011,7 +1016,7 @@ namespace KatAMRandomizer {
         }
 
         static string AddEnemiesTo(byte[] rom, byte[] nightmare, NightmareRegion region, KatAMExpansionCode.Version version, bool rooms, bool title,
-                                   byte[] squeak, bool squeakRooms) {
+                                   byte[] squeak, bool squeakRooms, List<KatamChaseRoom> chaseRooms = null, int chaseSeed = 0) {
             int HurtAnimID = version.AnimCount,     // The first free anim ID (the vanilla table's size);
                 SpriteTables = version.SpriteTables, SpawnTable = version.SpawnTable, ObjectParameters = version.ObjectParameters,
                 ObjectParameters2 = version.ObjectParameters2, HitFlashBranch = version.HitFlashBranch;
@@ -1618,6 +1623,7 @@ namespace KatAMRandomizer {
             squeakSongBase = -1;
             error ??= squeak != null ? AddSqueakSounds(rom, squeak, version, ref cursor) : null;
             error ??= squeakRooms ? AddSqueakRooms(rom, squeak, version, ref cursor) : null;
+            error ??= chaseRooms != null ? AddKatamChases(rom, version, chaseRooms, chaseSeed, ref cursor) : null;
             if (error != null) return error;
 
             /* The Collection Room's grid (KatAMExpansionCollection.cs) once the rooms are in, whose chests hold the areas' maps: KatAM's

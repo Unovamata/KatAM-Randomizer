@@ -52,6 +52,56 @@ struct SqueakGimmickRooms {
 
 const struct SqueakGimmickRooms gSqueakGimmickRooms = { NULL, 0 };
 
+/* The chase rooms of KatAM's own (the randomizer's "Add Chase Sequences to KatAM", KatAMExpansionChases.cs's AddKatamChases()):
+ * per room its gimmick list (its chase's wall and Squeaks), by its id; */
+struct SqueakChaseRoom {
+    u16 room;
+    u16 unused;
+    const struct SqueakGimmickList *list;
+};
+
+struct SqueakChaseRooms {
+    const struct SqueakChaseRoom *rooms;
+    u32 count;
+};
+
+const struct SqueakChaseRooms gSqueakChaseRooms = { NULL, 0 };
+
+// ListOf(); A room's gimmick list (a Squeak Squad room's, a KatAM chase room's), NULL none;
+static const struct SqueakGimmickList *ListOf(u16 roomId) {
+    u32 i;
+
+    if (roomId >= SQUEAK_FIRST_ROOM) return roomId - SQUEAK_FIRST_ROOM < gSqueakGimmickRooms.count ? gSqueakGimmickRooms.list[roomId - SQUEAK_FIRST_ROOM] : NULL;
+    for (i = 0; i < gSqueakChaseRooms.count; i++)
+        if (gSqueakChaseRooms.rooms[i].room == roomId) return gSqueakChaseRooms.rooms[i].list;
+    return NULL;
+}
+
+/* ChaseKey(), SetChaseKey(); The chase on (its key, 0 none): kept in the rooms' mail slots' spare bytes (rooms.c's SqueakMailOf: not
+ * saved, nothing else uses them), slot 0's and its complement in slot 1's (read as none if they don't match: what else uses that memory
+ * while no room is loaded, the Collection Room); */
+static u8 ChaseKey(void) {
+    u8 key = SqueakMailOf(0)->unused;
+
+    return (u8)~SqueakMailOf(1)->unused == key ? key : 0;
+}
+
+static void SetChaseKey(u8 key) {
+    SqueakMailOf(0)->unused = key;
+    SqueakMailOf(1)->unused = ~key;
+}
+
+/* SqueakChaseRoom(); The player's Kirby (player 0) going into a room (rooms.c's BigFillLevelInfo): a room of another chase's key (or
+ * none) ends the chase on; */
+void SqueakChaseRoom(u8 playerId, u16 roomId) {
+    const struct SqueakGimmickList *list;
+    u8 key = ChaseKey();
+
+    if (playerId != 0 || key == 0) return;
+    list = ListOf(roomId);
+    if (list == NULL || list->unused[0] != key) SetChaseKey(0);
+}
+
 // The hammer peg's spawn (KatAM's own pegs): the game's CreateHammerPeg, kept by KatAMExpansionChests.cs;
 struct SqueakSwitch {
     void *(*create)(struct ObjectTemplate *, u8);
@@ -73,6 +123,9 @@ const struct SqueakSwitch gSqueakSwitch = { NULL };
 #define GIMMICK_STREAKS 0x18
 #define GIMMICK_LIGHT 0x12
 #define GIMMICK_SOUND 0x1A
+#define GIMMICK_CHASE 0xF0          // A chase's wall (squeak.h, "The chases"): its x the chest's, the room's whole height;
+#define GIMMICK_CHASE_SPAWN 0xF1    // A Squeak the chase brings: at its spot (KatAM's template spot), par[0] the character, par[1] its variant;
+#define CHASE_NEAR 64               // (a chase's Squeak comes out once its spot is this near the screen, as KatAM's enemies as the camera nears them);
 #define FAR_VIEW_FIRST 96           // (the far view's colors: KatAM's BG palettes 6-13, KatAMExpansionSqueakRooms.cs's SqueakBackground);
 #define FAR_VIEW_COLORS 128
 #define LIGHT_STEPS 16
@@ -469,6 +522,40 @@ static void Blocks(struct SqueakLogic *l, const struct SqueakGimmickEntry *e) {
     sub_0800E0E4((struct Object *)&l->base, x, y);
 }
 
+/* ChaseWall(); A chase's wall: a Kirby in the room going past its x (either way, any height: the owner's "the height of the wall will
+ * be of the entire room") starts the room's chase (its key, the list's), unless it's on; its byte (inside) a bit per Kirby, his side
+ * last frame (bits 0-3), and whether he was in the room then (bits 4-7); */
+static void ChaseWall(struct SqueakLogic *l, const struct SqueakGimmickEntry *e) {
+    u8 *seen = &l->inside[e->index], key = l->list->unused[0], i;
+
+    for (i = 0; i < gNumKirbys; i++) {
+        u8 bit = 1 << i;
+        bool8 right;
+
+        if (gKirbys[i].base.roomId != l->room || gCurLevelInfo[i].currentRoom != l->room) {
+            *seen &= ~(bit | bit << 4);
+            continue;
+        }
+        right = (gKirbys[i].base.x >> 8) >= e->x;
+        if ((*seen & bit << 4) && !!(*seen & bit) != right && key != 0 && ChaseKey() != key) SetChaseKey(key);
+        *seen = (*seen & ~bit) | (right ? bit : 0) | bit << 4;
+    }
+}
+
+/* ChaseSpawn(); A chase's Squeak: once its room's chase is on and its spot nears the screen (CHASE_NEAR), it comes out (type 0x2C, its
+ * character and variant, SQUEAK_CHASE_SPAWN: squeak.c makes it a chase's), once while the room's loaded (its byte); */
+static void ChaseSpawn(struct SqueakLogic *l, const struct SqueakGimmickEntry *e) {
+    u8 *done = &l->inside[e->index];
+    struct LevelInfo *level = &gCurLevelInfo[l->base.unk56];
+    s32 vx = level->viewportPosition.x >> 8, vy = level->viewportPosition.y >> 8;
+
+    if (*done || ChaseKey() == 0 || ChaseKey() != l->list->unused[0]) return;
+    if (e->x < vx - CHASE_NEAR || e->x > vx + DISPLAY_WIDTH + CHASE_NEAR || e->y < vy - CHASE_NEAR || e->y > vy + DISPLAY_HEIGHT + CHASE_NEAR) return;
+    *done = 1;
+    CreateObjTemplateAndObj(l->base.unk56, 1, 0x24, e->x, e->y, 0, 0x1F, 0, 0, SQUEAK_TYPE, e->par[0], 0, 0, 0, 0, 0, 0, 0, 0,
+                            e->par[1] | SQUEAK_CHASE_SPAWN, 0, 0, 0);
+}
+
 static void SqueakLogicMain(void) {
     struct SqueakLogic *l = TaskGetStructPtr(gCurTask);
     struct SqueakMail *mail = SqueakMailOf(l->slot);
@@ -503,6 +590,8 @@ static void SqueakLogicMain(void) {
         case GIMMICK_STREAKS: Streaks(l, e); break;
         case GIMMICK_LIGHT: Light(l, e); break;
         case GIMMICK_SOUND: SoundGimmick(l, e); break;
+        case GIMMICK_CHASE: ChaseWall(l, e); break;
+        case GIMMICK_CHASE_SPAWN: ChaseSpawn(l, e); break;
         }
     }
 }
@@ -519,8 +608,7 @@ void SqueakGimmicksLoaded(u8 playerId, u16 roomId, u8 slot) {
     mail->room = roomId;
     mail->generation++;
     for (i = 0; i < SQUEAK_MAIL_GIMMICKS; i++) mail->box[i] = 0;
-    if (roomId < SQUEAK_FIRST_ROOM || roomId - SQUEAK_FIRST_ROOM >= gSqueakGimmickRooms.count) return;
-    list = gSqueakGimmickRooms.list[roomId - SQUEAK_FIRST_ROOM];
+    list = ListOf(roomId);
     if (list == NULL) return;
     task = TaskCreate(SqueakLogicMain, sizeof(struct SqueakLogic), 0x1000, TASK_USE_EWRAM, NULL);
     l = TaskGetStructPtr(task);

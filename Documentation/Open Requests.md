@@ -356,9 +356,25 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
     Squad only): Big Metalun, Gao Gao, Tedhaun and Buboo fight in their randomized KatAM mini-boss rooms (HP bar, camera); Gussa
     swims in Cabbage Cavern's water; a room of flyers. Not tested: the window itself (it can't run here: compiled only), the
     spoiler log (compiled only), a whole playthrough.
-  - **Owner's call**: Squeak Squad's bosses aren't in the pools. Tried in KatAM's mini-boss rooms, Mecha-Kracko and Mrs. Moley fit,
-    but Yadgaine (at its arena's edge, a leg showing) and Dark Nebula (above the locked camera) were mostly off-screen. They could
-    go in mini-boss rooms whose arena fits them, or wait for Squeak Squad's own rooms.
+  - **Squeak Squad's bosses and the Squeaks in the pools: done** (the owner: "Add Squeak Squad bosses to randomizer pools,
+    including the 'chase sequence' mouses as minibosses"). The window's "Include Bosses" (beside Include Mini-Bosses) adds the
+    9 bosses (King Dedede, Mrs. Moley, Mecha-Kracko, Yadgaine, Bohboh, Daroach, Dark Daroach, Meta Knight, Dark Nebula) to the
+    mini-boss pool, on KatAM's mini-boss spots; Spinni, Doc and Storo (the Squeaks that run off with the chests) are in the
+    mini-boss pool with the 4 mid-bosses. Both go on mini-boss type 0x40 (`KatAMExpansionSqueak.cs`'s `SqueakAsMidboss`,
+    `SqueakBossPool`, `SqueakMidbossPool`); the HP options touch the 4 mid-bosses' HP only, as before. Outside their own rooms
+    the bosses that stand on the DS's floor height (Dark Nebula, Daroach, Dark Daroach, Bohboh, Mecha-Kracko) take their floor
+    from the bottom of KatAM's locked arena (`squeak.c`'s `SqueakBossFloor()`), so they're on screen; a Squeak as a mini-boss
+    gets the mini-boss's HP bar and camera (`SqueakMidbossUpdate`).
+    - Checked: two randomized seeds (USA, Squeak Squad only so the pool is all Squeak's): the 9 bosses and the 3 Squeaks all
+      placed on KatAM's mini-boss spots with the mid-bosses. In the GBA emulator (USA; KatAM's mini-boss template patched to
+      each one, a new game started in the room: a forced start, not a playthrough; Kirby walked in with the buttons): Dark
+      Nebula, Daroach, Dark Daroach and Bohboh on screen and fighting in rooms 0xE6, 0xF5 and 0xD2 (Dark Nebula was above the
+      locked camera before); King Dedede, Mrs. Moley, Mecha-Kracko and Meta Knight in 0xE6 and 0xF5, Meta Knight also in 0x7C
+      (he closes in, swings, Kirby is hit); Yadgaine in 0xD2 (in 0x7C, 0xE6 and 0xF5 Kirby went down from its hits: that's the
+      fight, Kirby's HP ran out, the HUD showed it); Spinni, Doc and Storo fight with the HP bar in 0x7C, 0xE6 and 0xF5. The
+      three versions built and logic-checked (unchanged). Not tested: room 0x94 (the forced start put Kirby in a bad spot), every boss in every KatAM
+      mini-boss room, beating each one, Europe and Japan in the emulator for the bosses, the window (compiled against stubs only),
+      the spoiler log (compiled only).
 - **Squeak Squad's rooms** (the owner: "port all Squeak Squad rooms along with their backgrounds, and tilesets. Some Squeak
   Squad rooms are bigger than the limit allowed by KatAM, so make sure that these fit in the game without segmenting them.
   Reference the map guide we generated for NiDL's maps. Replace all bubbles with their respective item counterparts. Likewise,
@@ -378,6 +394,11 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
   - Squeak Lair doors (the owner, on the hidden doors to the gold-pile rooms): they open only when Spinni, Storo or Doc steals
     a big treasure chest in the stage and carries it into a temporary door; following quickly leads to the hideout (the gold
     pile) and a mini-boss fight with that Squeak to win the chest back; too slow, and the Squeaks board the door up.
+    Now (the owner asked for screenshots of all of them): the 37 hidden doors of the ported rooms (of the DS's 46 with flag 4) are
+    invisible doors Up opens, nothing drawn (the DS draws nothing there either); 34 lead into their gold-pile room; Up does nothing
+    at three: two in 2-8-7 (rooms the DS lists but never had) and 4-6-3's (its cell in mid-air). Checked in the GBA emulator (USA,
+    Kirby held on each door's cell by RAM writes, then Up), sent as two sheets. Their final design (opening only after a theft) is
+    the owner's call.
   - Hidden keys and Star Seals are dropped (the owner: "We are dropping hidden keys and star seals so an room that's unlocked
     via that method has to be revealed. Only the Squeak Squad ability room can be unlocked via the hidden map.").
   - Bubbles (the floating `yakumono/bubble` gimmicks): food ones become KatAM's matching food; ability ones become the enemy
@@ -724,8 +745,8 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
       in the emulator in all three versions on 1-6-7's chest (Kirby walks onto it and presses Up): as the first half, max HP
       stays 6; with another half marked found by a RAM write, Vitality 1 and max HP 7. Not tested by opening two real chests
       in a row. Three of the eight are placed (1-6-7, 2-6-7, 3-6-2); the other five are chase-spawn chests (on hold).
-    - Left: what an Ability Scroll does (they're owned and saved: below), the chase spawns after the stage's treasure (the
-      Squeakers among them, and the chests but the 5 scrolls'), the arenas without the NiDL ROM (NiDL's type holds the camera), the
+    - Left: what an Ability Scroll does (they're owned and saved: below), the chase's chests (its Squeaks are done: **The
+      chases**, below; the chests but the 5 scrolls' aren't placed), the arenas without the NiDL ROM (NiDL's type holds the camera), the
       gimmicks, the areas.
   - Ability bubbles whose ability no regular enemy gives (Hammer, Bonkers' in KatAM; Squeak Squad's ability numbers 12, 18 and
     26) become food (the owner: "In the case of bubbles without no regular enemy, you can swap them out for food.").
@@ -850,13 +871,22 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
   - Checked in the GBA emulator (USA; Kirby moved in by RAM writes, the NiDL switches' slots set by RAM writes for the hub's
     door): each of the 7 statues touched gave its ability (27-33); the door from the NiDL hub into the room and back out to the
     hub. Screenshots of the room. Not tested: Europe and Japan in the emulator (built and logic-checked), helpers touching a
-    statue, the Map Viewer (it doesn't know room 0x002 yet: pending).
+    statue.
+  - Redone (the owner: "The pedestals look really messy and unpolished... some powers can use an icon, for example Mike can be a
+    music note"): each statue is now the enemy's own NiDL frame at its native size, cropped, with its own colors (one palette per
+    pair of statues, `gNidlStandKeys`), not shrunk and averaged; Mike's is Mr. Tick-Tock's own music note; only Bugzzy is shrunk
+    (by the color most of each block has, its outline kept dark). Checked by screenshots of room 0x002 in the GBA emulator (USA,
+    NiDL only). Not touched again in the emulator after the redo (each statue's ability came from the same code before it).
+  - The Map Viewer (the owner: "Add the Map Viewer Changes"): room 0x002 is marked in its area entry (+0x4A) and placed beside
+    the NiDL hub in the hub's cluster (`RomMap.IsNidlAbilityRoom()`); it also names the chests a barrel or grass holds and the
+    Ability Scroll chests ("Ability Scroll N"). Checked with the viewer's Core built on Linux (its placement and its object lists
+    on a built ROM: all 23 scrolls and the 7 held chests); the window itself needs Windows (not run).
 - **Ability Scrolls**: in the game as data (the owner: "Implement all Ability Scrolls in their respective chests to add this data
   to the game already"). All 23 of Squeak Squad's scrolls (treasures 28-50) are in their own chests where Squeak Squad has them:
   opening one marks the scroll owned in the save (`rooms.c`'s `SqueakTakeScroll()`, 4 bytes of the expansion's save area), and
   its popup shows the Secret Map pieces' parchment (KatAM's map item, given back). 15 are in plain chests; 3 were in chests a barrel
   or a grass tuft holds (above); 5 are in chests the DS brings out only in the chase after the stage's big treasure is carried
-  (6-1-7, 6-5-6, 7-1-6, 7-3-4, 8-1-15), which isn't ported, so those 5 chests are there from the start (the chase's other things
+  (6-1-7, 6-5-6, 7-1-6, 7-3-4, 8-1-15); the chase is ported now (above) but not its chests, so those 5 chests are there from the start (the chase's other things
   stay out; 7-3-4's, between two pillars over water there, stands on the ledge right of them). What a scroll does (Squeak Squad's
   power-ups of each ability) isn't done: it's owned only.
   - Checked in the GBA emulator (USA; Kirby moved onto each chest by a RAM write, then Up): 1-3-5's (scroll 0), 2-1-3's barrel's
@@ -873,6 +903,48 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
     KatAM's cannon landing to let him out: it threw him to the ceiling; then with his own new-press bits: his crouch takes Down
     before the barrel sees it, so the barrel reads the held keys itself. Europe and Japan: in, shaken, out onto the floor and in
     again, the same in the emulator. Not tested: a helper, an enemy touching the barrel with Kirby inside. The DS's shut sound isn't played (not identified).
+- **The chases**: done (the owner: "In Squeak Squad stages there will be an invisible trigger wall on the position of the chest,
+  the height of the wall will be of the entire room ... whenever the player passes that threshold, the chase will activate"; "I
+  would also like to add chase sequences to KatAM, these last random KatAM spawns should be random and optional with a toggle in
+  the randomizer. Since KatAM's chests can not be stolen like Squeak Squad's, the main cast mouses should be faster, more aggresive
+  and go for Kirby to incentivize this chase aspect"; and that they jump and don't fall into the void). `squeak/gimmicks.c`,
+  `squeak.h`'s "The chases", `KatAMExpansionSqueakRooms.cs`' `SqueakChaseOf()`, `KatAMExpansionChases.cs`; the ROM Expansion README's
+  **The chases**.
+  - Squeak Squad's stages (with Include Rooms, always): each stage with chase spawns (the DS's objects with flag 4 that are Squeaks)
+    has a chase: an invisible wall at its big chest's x, the room's whole height; a Kirby crossing it either way starts the chase,
+    and the Squeaks the DS brings out in the stage's rooms come out as the camera nears their spots, after Kirby. It ends when the
+    player's Kirby goes into a room of another stage or a KatAM room. 37 stages (442 rooms), 66 walls, 787 Squeaks (at most 6 a
+    room, none by a door). 6-5 has chase Squeaks but no big chest (only three small ones; the DS starts its chase some other way,
+    not found), so it has no wall and its chase never starts: its Squeaks don't come out.
+  - KatAM's rooms (the window's "Add Chase Sequences to KatAM", beside Include Rooms; off by default): half of KatAM's rooms with
+    a big chest and no fight (the tutorial's left out), picked by the seed, each its own chase: the wall at the chest, one to three
+    Squeaks (Spinni, Doc, Storo, Squeakers of any color, picked by the seed) at the room's own enemy spots at least 96 pixels from
+    the chest. 7 rooms (seed 1234: 0xBE, 0x136, 0x213, 0x262, 0x269, 0x2E7, 0x338). The spoiler log lists them ("Chase Sequences").
+  - The chase's Squeaks: never culled off screen, take no chests (every one goes for Kirby), Squeak Squad's angry pace (Spinni and
+    Doc fast, Storo at its fastest, Squeakers' hops 1.5 times), short waits before attacking (Spinni 40 frames, Squeakers 20, all
+    Squeaker colors throw). At a pit they jump only if their own jump, traced through the room, lands; else they go down if Kirby is
+    lower and the pit has a floor, else they wait at the edge. One that still falls into the void is put back on its last floor.
+  - Checked in the GBA emulator (USA):
+    - 1-3-5 to 1-3-6: Kirby walked right across the chest's wall by buttons (chase on), was moved to the door by a RAM write and
+      took it with Up; in 1-3-6 the chase was still on and Spinni came out with its HP bar and hit Kirby. Run again after the
+      steering changes: the same.
+    - KatAM room 0x262: walking left past the chest started its chase (key 0x83); Spinni came out once Kirby was moved near its
+      spot (RAM write) and attacked.
+    - Pits, the chase turned on by a RAM write and Kirby put across a gap: Storo in 7-6-12 (0x5AB) walked to the edge of a three-
+      cell gap, jumped it and hit Kirby on the far ledge. A Squeaker in 6-3-9 (0x549), over the void between floating ledges: before
+      the fixes it hopped into the void, then hung in the air where it was put back; now it hops to its ledge's end, high-hops across
+      and lands on the far ledge, then throws at Kirby. Spinni in 8-1-15 (0x5C1) jumped the void up onto a higher block and back
+      for 400 frames without falling. Another Squeaker there and in 6-3-9 stayed on its ledge, throwing.
+    - Europe and Japan (emulator): the 1-3-5 to 1-3-6 chain (the same: chase on, kept through the door, Spinni out and attacking)
+      and Storo's gap in 7-6-12 (the same jump, 144 to 241).
+    - All three built and logic-checked, unchanged: Squeak Squad 359 of 498 rooms, the 8 switches, nowhere trapped; NiDL 280 of
+      280, the 7 switches, nowhere trapped; with and without thin-floor drops. The window's code compiles (against stubs: the
+      Windows Forms SDK isn't here).
+  - Not tested: Doc in a chase, the chase ending by leaving the stage, every chase room, a real playthrough of a whole chase, helpers
+    and a second player (the wall reacts to every Kirby; the chase ends by the player's), the KatAM chase rooms in Europe and Japan,
+    the window itself (it needs Windows), the spoiler log (compiled only).
+  - Left: the 5 Ability Scroll chests the DS brings out only in the chase are still there from the start, and its other chase-only
+    chests aren't placed (both above); the Squeak Lair doors (above) don't depend on the chase yet.
 - **Squeak Squad backgrounds' bottom rows**: fixed (the owner: "some Squeak Squad backgrounds have some stretching artifacts at
   the bottom, this should be fixed immediately so backgrounds look normal in-game"). The far views were shrunk to 3/4: the DS's
   192 rows became 144, short of KatAM's 160-row screen, and the last row was repeated under them in streaks. Now one that would be

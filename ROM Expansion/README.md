@@ -264,12 +264,40 @@ how Squeak Squad's enemies work): [Squeak Squad Notes](../Documentation/Squeak%2
   behavior byte the character and `Properties[1]` (the template's `unk12`) one of its variants for the spot: ground spots, flying
   enemies' (Perara, Cret, Uja, Starman 0) and underwater ones' (Gussa, Gold Waddle Dee 0 and 5). Include Mini-Bosses (Big Metalun,
   Gao Gao, Tedhaun, Buboo) puts their mini-boss types (`MidbossType`) in the mini-boss pool, behavior `SQUEAK_MIDBOSS | index`,
-  each as likely as NiDL's on the same type. Include Behaviors adds `natives.c`'s new variants (Waddle Dee 5-7, Glunk 5-6, Gordo
-  5, Snooter 5) to those enemies' behaviors. Left out of the pools: what a character throws or brings in, Daroach's stage scene,
-  the dark star (its route is a stage's) and the bosses: tried in KatAM's mini-boss rooms, Mecha-Kracko and Mrs. Moley fit, but
-  Yadgaine (at its arena's edge) and Dark Nebula (above the locked camera) were mostly off-screen. The HP options take
+  each as likely as NiDL's on the same type; Spinni, Doc and Storo (`SqueakMidbossPool`) join it on type 0x40
+  (`SqueakAsMidboss`), fighting as a mini-boss (`SqueakMidbossUpdate`: the HP bar, the camera, the defeat). Include Bosses puts
+  the bosses (`SqueakBossPool`: King Dedede, Mrs. Moley, Mecha-Kracko, Yadgaine, Bohboh, Daroach, Dark Daroach, Meta Knight,
+  Dark Nebula) in it the same way, on type 0x40; outside their own rooms the ones that stand on the DS's floor height take the
+  bottom of KatAM's locked arena as their floor (`SqueakBossFloor()`: the template's area, `unk1C` + `unk20`, less 16 pixels),
+  so they fight on screen. Include Behaviors adds `natives.c`'s new variants (Waddle Dee 5-7, Glunk 5-6, Gordo
+  5, Snooter 5) to those enemies' behaviors. Left out of the pools: what a character throws or brings in, Daroach's stage scene
+  and the dark star (its route is a stage's). Add Chase Sequences to KatAM: see **The chases** below. The HP options take
   `gSqueakEnemyHp` by pool (`KatAMHP.cs`, only with the characters in the ROM: `HasSqueakSquad`; NiDL's tables only with NiDL's:
   `HasNightmare`); the spoiler log names each "(Squeak Squad)".
+- **The chases** (`squeak/gimmicks.c`, `squeak.h`'s "The chases"; the owner: "an invisible trigger wall on the position of the
+  chest, the height of the wall will be of the entire room ... whenever the player passes that threshold, the chase will activate";
+  and for KatAM's own rooms, random and optional, the Squeaks "faster, more aggressive and go for Kirby"): a room's gimmick list
+  carries its chase's key (the header's `unused[0]`) and two kinds of entries of the expansion's own: `0xF0`, the wall (its x the
+  big chest's: a Kirby in the room crossing that x either way, at any height, turns the chase on), and `0xF1`, a Squeak the chase
+  brings (`par[0]` the character, `par[1]` its variant), made (type 0x2C, `unk12` | `SQUEAK_CHASE_SPAWN`) once the chase is on and
+  its spot is within 64 pixels of the screen, once while the room's loaded. The chase on is kept in the rooms' mail slots' spare
+  bytes (slot 0's key, slot 1's its complement: not saved); it lasts till the player's Kirby (player 0) goes into a room of another
+  key or none (`SqueakChaseRoom()`, from `rooms.c`'s `BigFillLevelInfo`). A chase's Squeak (`chase` in `SqueakObject`) is never
+  culled off screen (flag `0x2000000`), takes no chest (`SqueakNearestChest()` gives none, so every Squeak goes for Kirby), goes at
+  Squeak Squad's angry pace (the DS's when Kirby carries the stage's chest: Spinni and Doc `PACE_FAST`, Storo its fastest,
+  Squeakers' hops 1.5 times; Spinni waits 40 frames between moves, Squeakers 20, all of their colors attack) and is steered at pits
+  (a cell ahead with no floor 6 cells down, `SqueakPitAhead()`; a Squeaker looks two cells ahead, its hops being long): its own jump
+  is followed through the room (`SqueakJumpLands()`: its speeds and gravity frame by frame, stopped across by walls, landing where its
+  feet come onto a floor from the open), and it jumps if that lands (Spinni's jump, Storo's climb jump; a Squeaker picks whichever of
+  its low and high hops lands, through its wind-up, `ChaseHop()`), goes down if the pit has a floor below and Kirby is lower
+  (`SqueakDropToKirby()`), else waits on its side (`SqueakPit()`, `SqueakChaseSteer()`). One that still falls to the room's
+  bottom is put back on the last floor it stood on, dropping onto it (`SqueakChaseSteer()`). In the Squeak Squad stages
+  (`KatAMExpansionSqueakRooms.cs`'s `SqueakChaseOf()`): each stage with chase spawns gets a key (1 on), every room of it carries
+  it, the rooms with a big chest a wall there, and the DS's chase spawns (the Squeaks among its objects with flag 4, away from the
+  doors, at most 6 a room) become `0xF1` entries. In KatAM's rooms (Add Chase Sequences to KatAM, `KatAMExpansionChases.cs`): of
+  its rooms with a big chest and no mini-boss or boss (the tutorial's left out), half, picked by the seed, each a chase of its own
+  (key `0x80` on, `gSqueakChaseRooms`: a room id and its list), its wall at the chest, one to three Squeaks (Spinni, Doc, Storo 0-2,
+  a Squeaker of any color) at its own enemies' spots at least 96 pixels from the chest (none such: its other objects' spots).
 - **An anim per character, 256 frames each**: KatAM gives an object the frame its type's AnimInfo table lists for its frame index
   (`unk83`), at most 256 per type. The object drawing (`sub_0809A7A4`, USA `0x0809A824`) is patched to ask `SqueakAnimFor`: type
   0x2C objects show their character's own anim, with the frame index as the variant. Variants 0-2 are the hurt frame (the type's

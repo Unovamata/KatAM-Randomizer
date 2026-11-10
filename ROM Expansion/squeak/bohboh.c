@@ -978,7 +978,7 @@ void BohbohInit(struct SqueakObject *s) {
     ObjectSetBounds(&obj->base, -16, -32, 16, 0);
     HARM(s) = obj->base.unk68;
     SqueakStandOnFloor(obj);
-    FLOOR(s) = obj->base.y;
+    FLOOR(s) = SqueakBossFloor(s);
     for (i = 0; i < ENEMIES; i++) ENEMY(s, i) = NULL;
     obj->base.flags |= 0x400;
     obj->base.unk62 |= 4;

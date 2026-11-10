@@ -244,6 +244,8 @@
             LabelExpansionSqueak = new Label();
             CheckboxExpansionSqueakEnemies = new CheckBox();
             CheckboxExpansionSqueakMinibosses = new CheckBox();
+            CheckboxExpansionSqueakBosses = new CheckBox();
+            CheckboxExpansionSqueakChases = new CheckBox();
             CheckboxExpansionSqueakBehaviors = new CheckBox();
             CheckboxExpansionSqueakRooms = new CheckBox();
             LabelExpansionSqueakEnemies = new Label();
@@ -3432,6 +3434,8 @@
             GroupExpansionSqueak.Controls.Add(LabelExpansionSqueak);
             GroupExpansionSqueak.Controls.Add(CheckboxExpansionSqueakEnemies);
             GroupExpansionSqueak.Controls.Add(CheckboxExpansionSqueakMinibosses);
+            GroupExpansionSqueak.Controls.Add(CheckboxExpansionSqueakBosses);
+            GroupExpansionSqueak.Controls.Add(CheckboxExpansionSqueakChases);
             GroupExpansionSqueak.Controls.Add(CheckboxExpansionSqueakBehaviors);
             GroupExpansionSqueak.Controls.Add(CheckboxExpansionSqueakRooms);
             GroupExpansionSqueak.Controls.Add(LabelExpansionSqueakEnemies);
@@ -3453,7 +3457,7 @@
             LabelExpansionSqueakDescription.Name = "LabelExpansionSqueakDescription";
             LabelExpansionSqueakDescription.Size = new Size(1126, 130);
             LabelExpansionSqueakDescription.TabIndex = 0;
-            LabelExpansionSqueakDescription.Text = "Adds characters ported from Kirby: Squeak Squad to the enemy and mini-boss pools: its enemies and the Squeaks, and its mid-bosses. Their graphics are taken from your own Squeak Squad ROM (Nintendo DS, any release), loaded with or without a Nightmare in Dream Land ROM. Enemies appear when enemies are randomized, mid-bosses when mini-bosses are, each as often as any of the game's own. Include Behaviors gives KatAM's own Waddle Dee, Glunk, Gordo and Snooter the moves Squeak Squad gives them, when behaviors are randomized. Include Rooms adds its 8 worlds' stages, laid out as KatAM's levels, with a hub of their own reached from Central Circle. The ROM is expanded to 32 MB to fit them.";
+            LabelExpansionSqueakDescription.Text = "Adds characters ported from Kirby: Squeak Squad to the enemy and mini-boss pools: its enemies and the Squeaks, and its mid-bosses (Spinni, Doc and Storo among them). Their graphics are taken from your own Squeak Squad ROM (Nintendo DS, any release), loaded with or without a Nightmare in Dream Land ROM. Enemies appear when enemies are randomized, mid-bosses when mini-bosses are, each as often as any of the game's own. Include Behaviors gives KatAM's own Waddle Dee, Glunk, Gordo and Snooter the moves Squeak Squad gives them, when behaviors are randomized. Include Bosses puts its bosses on the mini-boss spots too. Include Rooms adds its 8 worlds' stages, laid out as KatAM's levels, with a hub of their own reached from Central Circle; going past a big chest in a stage starts its chase. Add Chase Sequences to KatAM gives some of KatAM's own rooms with a big chest a chase of their own. The ROM is expanded to 32 MB to fit them.";
             // 
             // ButtonExpansionLoadSqueak
             // 
@@ -3516,6 +3520,32 @@
             CheckboxExpansionSqueakMinibosses.Text = "Include Mini-Bosses";
             CheckboxExpansionSqueakMinibosses.UseVisualStyleBackColor = true;
             CheckboxExpansionSqueakMinibosses.CheckedChanged += CheckboxExpansionSqueakMinibosses_CheckedChanged;
+            // 
+            // CheckboxExpansionSqueakBosses
+            // 
+            CheckboxExpansionSqueakBosses.AutoSize = true;
+            CheckboxExpansionSqueakBosses.Enabled = false;
+            CheckboxExpansionSqueakBosses.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            CheckboxExpansionSqueakBosses.Location = new Point(340, 256);
+            CheckboxExpansionSqueakBosses.Margin = new Padding(4, 5, 4, 5);
+            CheckboxExpansionSqueakBosses.Name = "CheckboxExpansionSqueakBosses";
+            CheckboxExpansionSqueakBosses.TabIndex = 9;
+            CheckboxExpansionSqueakBosses.Text = "Include Bosses";
+            CheckboxExpansionSqueakBosses.UseVisualStyleBackColor = true;
+            CheckboxExpansionSqueakBosses.CheckedChanged += CheckboxExpansionSqueakBosses_CheckedChanged;
+            // 
+            // CheckboxExpansionSqueakChases
+            // 
+            CheckboxExpansionSqueakChases.AutoSize = true;
+            CheckboxExpansionSqueakChases.Enabled = false;
+            CheckboxExpansionSqueakChases.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            CheckboxExpansionSqueakChases.Location = new Point(340, 324);
+            CheckboxExpansionSqueakChases.Margin = new Padding(4, 5, 4, 5);
+            CheckboxExpansionSqueakChases.Name = "CheckboxExpansionSqueakChases";
+            CheckboxExpansionSqueakChases.TabIndex = 10;
+            CheckboxExpansionSqueakChases.Text = "Add Chase Sequences to KatAM";
+            CheckboxExpansionSqueakChases.UseVisualStyleBackColor = true;
+            CheckboxExpansionSqueakChases.CheckedChanged += CheckboxExpansionSqueakChases_CheckedChanged;
             // 
             // CheckboxExpansionSqueakBehaviors
             // 
@@ -3765,6 +3795,8 @@
         private Label LabelExpansionSqueak;
         private CheckBox CheckboxExpansionSqueakEnemies;
         private CheckBox CheckboxExpansionSqueakMinibosses;
+        private CheckBox CheckboxExpansionSqueakBosses;
+        private CheckBox CheckboxExpansionSqueakChases;
         private CheckBox CheckboxExpansionSqueakBehaviors;
         private CheckBox CheckboxExpansionSqueakRooms;
         private Label LabelExpansionSqueakEnemies;

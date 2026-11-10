@@ -44,6 +44,7 @@ namespace KatAMRandomizer
             WriteSettings();
             WriteMirrors();
             WriteBossShards();
+            WriteChases();
             WriteEntities("Enemies", Utils.enemiesJson, false, false);
             WriteEntities("Mini-Bosses", Utils.minibossesJson, false, false);
             WriteEntities("Chests & Items", Utils.itemsJson, true, true);
@@ -82,6 +83,13 @@ namespace KatAMRandomizer
             if (!Settings.RandomizeBossShards || KatAMExpansion.BossShardLog.Count == 0) return;
             WriteSection("Boss Mirror Shards");
             foreach (string line in KatAMExpansion.BossShardLog) log.AppendLine(line);
+        }
+
+        // WriteChases(); KatAM's rooms with a chase and the Squeaks it brings, with "Add Chase Sequences to KatAM" (KatAMExpansionChases.cs);
+        void WriteChases() {
+            if (!Settings.SqueakChases || KatAMExpansion.KatamChases.Count == 0) return;
+            WriteSection("Chase Sequences");
+            foreach ((int room, List<string> squeaks) in KatAMExpansion.KatamChases) log.AppendLine($"Room 0x{room:X3}: {string.Join(", ", squeaks)}");
         }
 
         // WriteSettings(); Every setting, read from the Settings class so new settings show up on their own;

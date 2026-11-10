@@ -1165,7 +1165,7 @@ void SqueakDarkNebulaInit(struct SqueakObject *s) {
     ObjectSetBounds(&obj->base, -16, -16, 16, 16);
     HARM(s) = obj->base.unk68;
     SqueakStandOnFloor(obj);
-    FLOOR(s) = obj->base.y;
+    FLOOR(s) = SqueakBossFloor(s);
     obj->base.flags |= 0x400 | 0x100;
     obj->base.unk62 |= 4;
     SqueakPlay(s, ANIM_STAR);

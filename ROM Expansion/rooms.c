@@ -649,6 +649,8 @@ void BigFillLevelInfo(u8 playerId, u16 roomId, const u16 **arg2, const u16 **arg
 
     levelInfo->unk5FA = levelInfo->currentRoom;
     levelInfo->currentRoom = roomId;
+    // (a chase ends when the player's Kirby goes to a room of another: squeak/gimmicks.c);
+    if (roomId != 0xFFFF) SqueakChaseRoom(playerId, roomId);
 
     if (roomId != 0xFFFF) {
         s32 x, y;

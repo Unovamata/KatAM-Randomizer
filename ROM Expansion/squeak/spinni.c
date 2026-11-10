@@ -81,6 +81,7 @@ enum { THROWN_SHURIKEN, THROWN_SHURIKEN_2, THROWN_SLASH, THROWN_CLAWS };
 #define STOP_Y 0x20000
 #define HOLE 0x20000
 #define JUMP_DELAY 4
+#define CHASE_WAIT 40
 // The code's;
 #define AIR_SPEED 0x1666                // 0x02158DA4's second (its +0x24C: 1);
 #define FALL_CAP -0x2666
@@ -310,6 +311,11 @@ static bool32 KirbyNear(struct SqueakObject *s) {
 
 // Pace(); 0x020A9E14: its pace every 60 frames (none for the spawn's parameter byte 1);
 static void Pace(struct SqueakObject *s, bool8 home) {
+    // (in a chase, its anger: 1.7 times its speeds always, as the DS's while Kirby carries the stage's chest, 0x020A9C68);
+    if (s->chase) {
+        PACE(s) = PACE_FAST;
+        return;
+    }
     if (s->variant == 1) {
         PACE(s) = PACE_NONE;
         return;
@@ -901,6 +907,8 @@ static void Think(struct SqueakObject *s) {
         else if (roll < 70) WAIT(s) = 20;
         else if (roll < 80) WAIT(s) = 30;
         else WAIT(s) = 45;
+        // (angry: its waits 40 frames, the DS's);
+        if (s->chase) WAIT(s) = CHASE_WAIT;
         s->brain = BRAIN_ATTACK;
     }
     Steer(s, tx, ty);
@@ -957,6 +965,7 @@ static void SpinniMain(struct Object *obj) {
     struct SqueakObject *s = (struct SqueakObject *)obj;
     struct Chest *chest;
 
+    if (SqueakIsMidboss(obj)) SqueakMidbossUpdate(s);
     if (TREAT_TIMER(s) > 0) TREAT_TIMER(s)--;
     if (TURN(s) > 0) TURN(s)--;
     Held(s);
@@ -965,6 +974,7 @@ static void SpinniMain(struct Object *obj) {
         if (s->state != BODY_BRACE) SqueakSetState(s, BODY_BRACE_ENTRY);
     }
     Brain(s);
+    SqueakChaseSteer(s, 1, AIR_SPEED, JUMP_SPEED, GRAVITY);
     SqueakRun(s, Body);
     SqueakFinishFrame(s);
     SqueakAnimate(s);

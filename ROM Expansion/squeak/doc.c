@@ -323,6 +323,11 @@ static void Pace(struct SqueakObject *s) {
         return;
     }
     PACE_TIMER(s) = PACE_TIME;
+    // (in a chase, its anger: its fastest pace always, as its others' while Kirby carries the stage's chest);
+    if (s->chase) {
+        PACE(s) = PACE_FAST;
+        return;
+    }
     if (GOING_HOME(s)) PACE(s) = !OnScreen(s) ? PACE_HOME_SLOW : KirbyNear(s) ? PACE_HOME_FAST : PACE_NONE;
     else PACE(s) = !OnScreen(s) ? PACE_FAST : KirbyNear(s) ? PACE_SLOW : PACE_NONE;
 }
@@ -1052,6 +1057,7 @@ static void DocMain(struct Object *obj) {
     struct SqueakObject *s = (struct SqueakObject *)obj;
     struct Chest *chest;
 
+    if (SqueakIsMidboss(obj)) SqueakMidbossUpdate(s);
     if (TREAT_TIMER(s) > 0) TREAT_TIMER(s)--;
     Held(s);
     Pace(s);

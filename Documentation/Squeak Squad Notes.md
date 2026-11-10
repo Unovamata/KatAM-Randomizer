@@ -561,6 +561,14 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
     in stage mode 2, Kirby carrying the stage's chest, everything spawns), without it only before: all 856 Squeakers, most of
     Spinni's, Doc's and Storo's records and the dark star's are these chase spawns (`0x02219028` brings out the Squeaks among them);
     bit 1 keeps a defeated one gone till the area reloads (state 4, else 2: `0x02218EF4`); bit 8 is on the mid-bosses and bosses.
+    Ported as the chases (`squeak/gimmicks.c`, `squeak.h`'s "The chases"; the owner's design, not the DS's trigger): KatAM has no
+    carried chest, so the stage's treasure event is a wall at the big chest's x (gimmick `0xF0`, the room's whole height; a Kirby
+    crossing it either way turns the stage's chase on), and the Squeaks among the bit-4 records (`SqueakChaseOf()`: IDs 0x40,
+    0x42-0x44; at most 6 a room, none by a door) are gimmicks `0xF1`, made as the camera nears them while the chase is on; the
+    stage's mode 2 (all chase Kirby) is `SqueakObject.chase`: no chests taken, the angry pace, short waits. Every room of a chase
+    stage carries its key (the gimmick list's header byte 1); a room of another key ends it. 37 stages have one; 6-5 has bit-4
+    Squeaks but no big chest (its chase starts some other way on the DS, not traced), so it has no wall. The bit-4 items (the
+    chase's chests) aren't placed, but for the 5 Ability Scrolls', there from the start.
   - The item maker (`0x0203B210`, item IDs 0-14: 0 nothing, 1-3 the same object with kinds 3, 1 and 2 (`0x0203A398`: 3 the 1UP),
     4 and 5 others, 6-14 food: 6 the Maxim Tomato, 7 heals 24 of 36, 8 12, 9 6). The floating bubbles' parameters (section 10's
     type 0x11 table: 0x10 or 0x11 and an item ID, 0x00 or 0x01 and an ability) name these IDs: 1 (40 of them), 2, 3, 6 (21), 7...

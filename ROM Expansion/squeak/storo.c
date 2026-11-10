@@ -237,6 +237,11 @@ static void Pace(struct SqueakObject *s) {
         return;
     }
     PACE_TIMER(s) = PACE_TIME;
+    // (in a chase, its anger: twice its speeds, as the DS's while Kirby carries the stage's chest, stage mode 2);
+    if (s->chase) {
+        PACE(s) = 1;
+        return;
+    }
     if (GOAL(s) == GOAL_HOME) PACE(s) = !OnScreen(s) ? 4 : KirbyNear(s) ? 3 : 0;
     else PACE(s) = !OnScreen(s) ? 1 : KirbyNear(s) ? 2 : 0;
 }
@@ -245,7 +250,7 @@ static void Pace(struct SqueakObject *s) {
 static s32 Paced(struct SqueakObject *s, s32 v) {
     static const s32 sTimes[] = { 0x1000, FAST, SLOW, HOME_FAST, HOME_SLOW };
 
-    if (s->variant == 1 || PACE(s) == 0) return v;
+    if ((s->variant == 1 && !s->chase) || PACE(s) == 0) return v;
     return (v * sTimes[PACE(s)] + 0x800) >> 12;      // (its speeds are small: no overflow);
 }
 
@@ -314,6 +319,7 @@ static void Landed(struct SqueakObject *s) {
 
 static bool32 Body(struct SqueakObject *s) {
     s32 x, y, dx, dy;
+    u8 pit;
     struct Chest *chest;
 
     switch (s->state) {
@@ -357,7 +363,11 @@ static bool32 Body(struct SqueakObject *s) {
         dx = GOAL_X(s) > x ? GOAL_X(s) - x : x - GOAL_X(s);
         dy = GOAL_Y(s) > y ? GOAL_Y(s) - y : y - GOAL_Y(s);
         // (more above or under it than across 120 frames: a jump toward it);
-        if (dx < dy) {
+        // (in a chase, a pit ahead: a jump over it if its jump lands past it, down to Kirby below, else it waits, SqueakPit);
+        pit = s->chase ? SqueakPit(s, 1, Paced(s, CLIMB_X), s->variant == 1 ? 0x2667 : CLIMB_Y, GRAVITY) : SQUEAK_PIT_NONE;
+        if (pit == SQUEAK_PIT_WAIT) s->vx = 0;
+        if (pit == SQUEAK_PIT_LEAP) CLIMB_TIMER(s) = 0;
+        if ((dx < dy && pit != SQUEAK_PIT_WAIT) || pit == SQUEAK_PIT_LEAP) {
             if (CLIMB_TIMER(s) == 0) {
                 CLIMB_TIMER(s) = CLIMB_WAIT;
                 Play(s, ANIM_JUMP);
@@ -667,10 +677,12 @@ static void StoroMain(struct Object *obj) {
     struct SqueakObject *s = (struct SqueakObject *)obj;
     struct Chest *chest;
 
+    if (SqueakIsMidboss(obj)) SqueakMidbossUpdate(s);
     if (TREAT_TIMER(s) > 0) TREAT_TIMER(s)--;
     if (TURN_TIMER(s) > 0) TURN_TIMER(s)--;
     Held(s);
     Pace(s);
+    SqueakChaseSteer(s, 0, 0, 0, 0);
     if (s->state < BODY_FLINCH_ENTRY && NidlInhaler(&obj->base)) {
         INHALED(s) = TRUE;
         if (s->state != BODY_BRACE) {

@@ -1027,7 +1027,16 @@ namespace KatAMRandomizer {
             new SqueakPool(31, SqueakV0),                                                       // Doc (flies from a ground spot: a Squeak, not one of the few flyers);
             new SqueakPool(33, SqueakV012),                                                     // Storo;
         };
-        static readonly int[] SqueakMidbossPool = { 20, 21, 23, 25 };
+        /* The mid-bosses (Big Metalun, Gao Gao, Tedhaun, Buboo) and the chases' Squeaks as mini-bosses (Spinni, Doc, Storo: their fight
+         * with Kirby, as the DS's hideouts', SqueakAsMidbossType; the owner: "including the 'chase sequence' mouses as minibosses"), and
+         * the bosses (the owner: "Add Squeak Squad bosses to randomizer pools"; on a KatAM or NiDL mini-boss spot the flying ones keep
+         * to its screen: squeak.c's SqueakBossFloor, Yadgaine pushes no one into its walls); */
+        static readonly int[] SqueakMidbossPool = { 20, 21, 23, 25, 29, 31, 33 };
+        static readonly int[] SqueakBossPool = { 35, 37, 40, 42, 47, 49, 51, 53, 58 };
+        const byte SqueakAsMidboss = 0x40;
+        static byte SqueakMidbossTypeOf(SqueakEnemy e) => e.MidbossType != 0 ? e.MidbossType : SqueakMidbossPool.Contains(e.Index) ? SqueakAsMidboss : (byte)0;
+        // (the HP options' mid-bosses: the four; the Squeaks' HP are the enemies' pool's, the bosses' their own rooms');
+        static readonly int[] SqueakMidbossHpPool = { 20, 21, 23, 25 };
 
         static SqueakEnemy SqueakDefinitionOf(int index) => SqueakDefinitions.First(e => e.Index == index);
         static string SqueakPoolName(int index) => SqueakDefinitionOf(index).Name;
@@ -1035,6 +1044,7 @@ namespace KatAMRandomizer {
         // The pools' characters (index, name) for the settings and the window: its enemies and mid-bosses;
         public static IReadOnlyList<(int index, string name)> SqueakEnemies => SqueakEnemyPool.Select(p => (p.Index, SqueakPoolName(p.Index))).ToList();
         public static IReadOnlyList<(int index, string name)> SqueakMidbosses => SqueakMidbossPool.Select(i => (i, SqueakPoolName(i))).ToList();
+        public static IReadOnlyList<(int index, string name)> SqueakBossList => SqueakBossPool.Select(i => (i, SqueakPoolName(i))).ToList();
 
         /* SqueakGroupsOf(); The characters picked as the randomizer places them in type 0x2C's spots: one (behavior, its variants) per
          * character that can be there (a ground spot, a flying enemy's or an underwater one's); */
@@ -1045,7 +1055,8 @@ namespace KatAMRandomizer {
 
         // SqueakMidbossGroupsOf(); The mid-bosses picked on a mini-boss type: their behavior bytes (SQUEAK_MIDBOSS | index), variant 0;
         public static List<(byte behavior, byte[] variants)> SqueakMidbossGroupsOf(IEnumerable<int> characters, byte type) =>
-            SqueakDefinitions.Where(e => e.MidbossType == type && characters.Contains(e.Index) && SqueakMidbossPool.Contains(e.Index))
+            SqueakDefinitions.Where(e => SqueakMidbossTypeOf(e) == type && characters.Contains(e.Index)
+                                         && (SqueakMidbossPool.Contains(e.Index) || SqueakBossPool.Contains(e.Index)))
                              .Select(e => ((byte)(SqueakMidbossFlag | e.Index), SqueakV0)).ToList();
         const int SqueakMidbossFlag = 0x80;     // SQUEAK_MIDBOSS (squeak.h);
 
@@ -1071,7 +1082,7 @@ namespace KatAMRandomizer {
         /* The HP options: the pools' characters' HP (gSqueakEnemyHp, one HP for any number of players), by pool (KatAMHP.cs): its enemies
          * and mid-bosses; */
         public static IReadOnlyList<int> SqueakEnemyHpIndexes => SqueakEnemyPool.Select(p => p.Index).ToList();
-        public static IReadOnlyList<int> SqueakMidbossHpIndexes => SqueakMidbossPool;
+        public static IReadOnlyList<int> SqueakMidbossHpIndexes => SqueakMidbossHpPool;
 
         /* WriteSqueak(); Object type 0x2C as type 0x31 is for NiDL's: spawn function and parameters (hurt frames 0 & 1, Waddle Dee's score
          * and HP, no ability, no palette key: each character loads its own, VRAM for the biggest frame, behavior start, one AnimInfo:
@@ -1111,9 +1122,9 @@ namespace KatAMRandomizer {
             WriteShort(rom, parameters + 10, 0);
             // (type 0x2C's VRAM for its biggest frame: the mid-bosses' are their mini-bosses types', which have to hold theirs);
             WriteInt(rom, parameters + 12, built.Where(b => b.Enemy.MidbossType == 0).Max(b => b.Tiles));
-            foreach (SqueakBuilt midboss in built.Where(b => b.Enemy.MidbossType != 0))
-                if (!minibossTiles.TryGetValue(midboss.Enemy.MidbossType, out int typeTiles) || midboss.Tiles > typeTiles)
-                    return $"{midboss.Enemy.Name}'s frames don't fit mini-boss type 0x{midboss.Enemy.MidbossType:X2}'s VRAM.";
+            foreach (SqueakBuilt midboss in built.Where(b => SqueakMidbossTypeOf(b.Enemy) != 0))
+                if (!minibossTiles.TryGetValue(SqueakMidbossTypeOf(midboss.Enemy), out int typeTiles) || midboss.Tiles > typeTiles)
+                    return $"{midboss.Enemy.Name}'s frames don't fit mini-boss type 0x{SqueakMidbossTypeOf(midboss.Enemy):X2}'s VRAM.";
             WriteInt(rom, parameters + 16, codeBase + version.CodeSymbols["SqueakStart"] + 1);
             int animInfo = Allocate(ref cursor, 4, 4);
             WriteShort(rom, animInfo, built[0].AnimId);

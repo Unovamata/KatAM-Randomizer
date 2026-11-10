@@ -543,10 +543,13 @@ namespace KatAMInternal
         // ROM Expansion: the ported Nightmare in Dream Land mini-bosses to add (KatAMExpansion.Minibosses indexes);
         public List<int> NightmareMinibosses { get; set; } = new List<int>();
         public bool NightmareRooms { get; set; }
-        // ROM Expansion: the ported Kirby: Squeak Squad characters to add: its enemies (type 0x2C) and its mid-bosses (on the mini-boss
-        // types; KatAMExpansion.SqueakEnemies, SqueakMidbosses indexes);
+        // ROM Expansion: the ported Kirby: Squeak Squad characters to add: its enemies (type 0x2C) and its mid-bosses and bosses (on the
+        // mini-boss types; KatAMExpansion.SqueakEnemies, SqueakMidbosses and SqueakBosses indexes);
         public List<int> SqueakEnemies { get; set; } = new List<int>();
         public List<int> SqueakMinibosses { get; set; } = new List<int>();
+        // ROM Expansion: chases in KatAM's own rooms (Add Chase Sequences to KatAM: KatAMExpansion.SqueakKatamChases), needs the
+        // Squeak Squad ROM;
+        public bool SqueakChases { get; set; }
         // ROM Expansion: Squeak Squad's behaviors of KatAM's own enemies join their behaviors (KatAMExpansion.SqueakNativeBehaviors);
         public bool SqueakBehaviors { get; set; }
         public bool SqueakRooms { get; set; }

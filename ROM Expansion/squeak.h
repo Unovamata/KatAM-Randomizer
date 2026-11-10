@@ -219,7 +219,7 @@ bool32 SqueakBossAlive(u16 room);
 #define SQUEAK_CHEST_CLOSED SQUEAK_HURT_VARIANTS
 
 // Room every ported character gets (SqueakObject and its own fields);
-#define SQUEAK_OBJECT_SIZE 0x1A4
+#define SQUEAK_OBJECT_SIZE 0x1AC
 
 // SQUEAK_SPEED(); A Squeak Squad speed or position (20.12 fixed point) in KatAM's units (24.8);
 #define SQUEAK_SPEED(value) ((value) >> 4)
@@ -387,6 +387,8 @@ struct SqueakObject {
     u16 loopSound;              // The sound it keeps (SqueakLoopSfx: the DS's list at +0x108), stopped with it; 0 none;
     u8 drown;                   // In the shared water state (SqueakDrown): its frames left + 1, 0 not in it; its hurt look there;
     u8 drownLook;
+    bool8 chase;                // A Squeak in a chase (SqueakChasing(): a chase's spawn, or Spinni, Doc or Storo as a mini-boss);
+    s16 safeX, safeY;           // and the last floor it stood on, pixels (SqueakChaseSteer: a fall into the void brings it back there);
 };
 
 /* SqueakSfx(); Squeak Squad's sound n (its DS id: the DS's 0x02013EE8 and 0x020B0604) from a character, heard if it's in the
@@ -412,6 +414,7 @@ struct SqueakCharacter {
     u16 ability;
     bool8 swims;                // It has moves in water (KatAM's engine drowns the others, unkC 1 unset: sub_0809D710);
     bool8 midboss;              // A mid-boss: created on a mini-boss type only (CreateSqueakMidboss);
+    bool8 squeak;               // One of the Squeaks the chases bring (Spinni, Doc, Storo): an enemy, and a mid-boss as well;
 };
 
 extern const s16 gSqueakEnemyHp[];
@@ -447,6 +450,25 @@ void *CreateSqueakEnemy(struct ObjectTemplate *, u8 playerId);
 void SqueakStart(struct Object *);
 void *CreateSqueakMidboss(struct ObjectTemplate *, u8 playerId);
 void SqueakMidbossUpdate(struct SqueakObject *);
+s32 SqueakBossFloor(struct SqueakObject *);
+
+/* The chases (squeak/gimmicks.c, KatAMExpansionSqueakRooms.cs; the owner's: "an invisible trigger wall on the position of the chest,
+ * the height of the wall will be of the entire room ... whenever the player passes that threshold, the chase will activate"): a room's
+ * gimmick list carries its chase's key (its unused[0]: a Squeak Squad stage's, shared by its rooms; a KatAM room's own), a wall at its
+ * chest (GIMMICK_CHASE) and the Squeaks that come out once it's passed (GIMMICK_CHASE_SPAWN, as Squeak Squad's chase spawns, its
+ * objects' flag 4). A chase lasts till the player's Kirby goes to a room of another key. Its Squeaks (SQUEAK_CHASE_SPAWN in their
+ * template's unk12) go for Kirby, at Squeak Squad's angry pace (the DS's when Kirby carries the stage's chest), jumping the pits ahead
+ * their jump crosses (SqueakJumpLands: the jump followed through the room), waiting at the ones it doesn't, and never lost in the
+ * void (SqueakChaseSteer, SqueakPit); */
+#define SQUEAK_CHASE_SPAWN 0x100
+#define SqueakChasing(s) ((s)->chase)
+void SqueakChaseSteer(struct SqueakObject *, u8 cells, s32 vx, s32 vy, s32 g);
+bool32 SqueakPitAhead(struct SqueakObject *, u8 cells);
+bool32 SqueakJumpLands(struct SqueakObject *, s32 vx, s32 vy, s32 g);
+bool32 SqueakDropToKirby(struct SqueakObject *, u8 cells);
+enum { SQUEAK_PIT_NONE, SQUEAK_PIT_LEAP, SQUEAK_PIT_DROP, SQUEAK_PIT_WAIT };
+u8 SqueakPit(struct SqueakObject *, u8 cells, s32 vx, s32 vy, s32 g);
+void SqueakChaseRoom(u8 playerId, u16 roomId);
 u32 SqueakAnimFor(struct Object *);
 const u8 *SqueakName(struct Object *);
 s16 SqueakMaxHp(struct Object *);

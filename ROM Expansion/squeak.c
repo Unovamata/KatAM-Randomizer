@@ -113,11 +113,11 @@ static const struct SqueakCharacter sSqueakCharacters[SQUEAK_ENEMY_COUNT] = {
     [SQUEAK_BUBOO_BUBBLE] = { BubooBubbleInit, BubooBubbleStart, 0, FALSE },
     [SQUEAK_SQUEAKER] = { SqueakerInit, SqueakerStart, 0, FALSE },
     [SQUEAK_SQUEAKER_BOMB] = { SqueakerBombInit, SqueakerBombStart, 0, FALSE },
-    [SQUEAK_SPINNI] = { SpinniInit, SpinniStart, 0, FALSE },
+    [SQUEAK_SPINNI] = { SpinniInit, SpinniStart, 0, FALSE, FALSE, TRUE },
     [SQUEAK_SPINNI_THROWN] = { SpinniThrownInit, SpinniThrownStart, 0, FALSE },
-    [SQUEAK_DOC] = { DocInit, DocStart, 0, FALSE },
+    [SQUEAK_DOC] = { DocInit, DocStart, 0, FALSE, FALSE, TRUE },
     [SQUEAK_DOC_THING] = { DocThingInit, DocThingStart, 0, FALSE },
-    [SQUEAK_STORO] = { StoroInit, StoroStart, 0, FALSE },
+    [SQUEAK_STORO] = { StoroInit, StoroStart, 0, FALSE, FALSE, TRUE },
     [SQUEAK_DAROACH] = { DaroachInit, DaroachStart, 0, FALSE },
     [SQUEAK_KING_DEDEDE] = { SqueakDededeInit, SqueakDededeStart, 0, FALSE, TRUE },
     [SQUEAK_DEDEDE_PUFF] = { DededePuffInit, DededePuffStart, 0, FALSE },
@@ -1269,6 +1269,8 @@ static struct SqueakObject *SqueakCreate(struct ObjectTemplate *template, u8 pla
     s->maxHp = s->hpBase = 0;
     s->loopSound = 0;
     s->drown = 0;
+    s->chase = (template->unk12 & SQUEAK_CHASE_SPAWN) != 0;
+    s->safeX = s->safeY = 0;
     sSqueakCharacters[enemy].init(s);
     // (KatAM's engine drowns what doesn't swim, sub_0809D710; the ones with the DS's own water state do it the DS's way, SqueakDrown());
     if (sSqueakCharacters[enemy].swims || SqueakDrowns(enemy)) s->obj.base.unkC |= 1;
@@ -1288,6 +1290,8 @@ static struct SqueakObject *SqueakCreate(struct ObjectTemplate *template, u8 pla
     else
         s->obj.base.sprite.palId = SqueakLoadPalette(gSqueakData.enemies[enemy].animId, SQUEAK_HURT_VARIANTS, s->obj.base.roomId);
     SqueakSetCell(s, 0);
+    // (a chase's Squeaks go on after Kirby off the screen: not taken away out of view, as KatAM's enemies are);
+    if (s->chase) s->obj.base.flags |= 0x2000000;
     return s;
 }
 
@@ -1309,8 +1313,10 @@ void *CreateSqueakMidboss(struct ObjectTemplate *template, u8 playerId) {
     u8 enemy = template->subtype1 & ~SQUEAK_MIDBOSS;
     struct SqueakObject *s;
 
-    if (enemy >= SQUEAK_ENEMY_COUNT || !sSqueakCharacters[enemy].midboss) enemy = SQUEAK_BIG_METALUN;
+    if (enemy >= SQUEAK_ENEMY_COUNT || !(sSqueakCharacters[enemy].midboss || sSqueakCharacters[enemy].squeak)) enemy = SQUEAK_BIG_METALUN;
     s = SqueakCreate(template, playerId, enemy);
+    // (Spinni, Doc and Storo as mini-bosses: their fight with Kirby, as the hideouts' on the DS, in their chase's mood);
+    if (sSqueakCharacters[enemy].squeak) s->chase = TRUE;
     s->obj.base.unkC |= 1;
     s->obj.base.flags |= 0x2000000 | 0x200 | 0x200000;
     s->obj.base.unk5C = (s->obj.base.unk5C & ~7) | 3 | 0xA0;
@@ -1358,6 +1364,134 @@ static void SqueakMidbossWait(struct Object *obj) {
  * ObjXSomething), called first each frame; */
 void SqueakMidbossUpdate(struct SqueakObject *s) {
     if (s->activated && s->obj.unkA8 > s->obj.unkA4) ObjXSomething(&s->obj);
+}
+
+/* SqueakBossFloor(); A world's boss's floor, the height its moves are measured from (each one's FLOOR: Kirby's floor in its own stage):
+ * where it's placed in its own boss room; on a mini-boss spot of KatAM's or NiDL's rooms (the mini-boss randomization's), 16 pixels up
+ * from the bottom of its area (its template's: the screen the fight is held to), as its own arena's floor: KatAM's mini-bosses stand
+ * anywhere in theirs (the Meta-Knights' high up), and the flying ones' moves from there left them above the screen; */
+#define BOSS_FLOOR_UP 16
+s32 SqueakBossFloor(struct SqueakObject *s) {
+    const struct ObjectTemplate *t = s->obj.objTemplate;
+
+    if (t == NULL || s->obj.base.roomId >= SQUEAK_FIRST_ROOM || t->unk20 == 0) return s->obj.base.y;
+    return (t->y + t->unk1C + t->unk20 - BOSS_FLOOR_UP) << 8;
+}
+
+/* FloorBelow(); A floor in the column at x from y down, `cells` cells (0: down to the room's bottom); */
+#define PIT_DEPTH 6
+static bool32 FloorBelow(struct Object *obj, s32 x, s32 y, u8 cells) {
+    s32 bottom = gCurLevelInfo[obj->base.unk56].levelMaxPosition.y;
+    u8 d;
+
+    for (d = 0; (cells == 0 || d < cells) && y <= bottom; d++, y += 0x1000)
+        if (NidlIsFloor(obj, x, y)) return TRUE;
+    return FALSE;
+}
+
+/* SqueakPitAhead(); On the ground, no floor under one of the next `cells` cells ahead of its feet down to PIT_DEPTH cells: a pit (the
+ * void, or a drop it couldn't climb back from) its next steps go into; */
+bool32 SqueakPitAhead(struct SqueakObject *s, u8 cells) {
+    struct Object *obj = &s->obj;
+    s32 ahead = obj->base.flags & 1 ? -0x1000 : 0x1000, x;
+    u8 c;
+
+    if (!SqueakOnGround(s)) return FALSE;
+    for (c = 1; c <= cells; c++) {
+        x = obj->base.x + ahead * c;
+        if (x < gCurLevelInfo[obj->base.unk56].levelMinPosition.x || x > gCurLevelInfo[obj->base.unk56].levelMaxPosition.x) return FALSE;
+        if (!FloorBelow(obj, x, obj->base.y + 0x100, PIT_DEPTH)) return TRUE;
+    }
+    return FALSE;
+}
+
+/* SqueakJumpLands(); Its jump from where it stands, forward vx and up vy, gravity g (Squeak Squad's units a frame, its fall capped at
+ * JUMP_FALL_CAP), followed through the room (stopped across by walls): coming down, it meets a floor no more than PIT_DEPTH cells
+ * under its feet (TRUE), or not (the void, a drop too deep, the room's edge: FALSE); */
+#define JUMP_FALL_CAP -0x2800
+#define JUMP_FRAMES 120
+#define JUMP_WALL 0x200                 // (gCollisionAttributes' solid bit: a wall stops it across, a thin floor doesn't);
+#define JUMP_MIDDLE 0x800               // (its body's middle, 8 pixels over its feet: what meets a wall);
+bool32 SqueakJumpLands(struct SqueakObject *s, s32 vx, s32 vy, s32 g) {
+    struct Object *obj = &s->obj;
+    struct LevelInfo *level = &gCurLevelInfo[obj->base.unk56];
+    s32 x = obj->base.x, y = obj->base.y, was, deepest = obj->base.y + PIT_DEPTH * 0x1000, t;
+
+    if (obj->base.flags & 1) vx = -vx;
+    for (t = 0; t < JUMP_FRAMES; t++) {
+        was = y;
+        // (against a wall it stops across, falling down it as the engine has it);
+        if (vx != 0 && x + (vx >> 4) >= level->levelMinPosition.x && x + (vx >> 4) <= level->levelMaxPosition.x
+            && (gCollisionAttributes[GetCollisionTile(obj->base.unk56, (x + (vx >> 4)) >> 12, (y - JUMP_MIDDLE) >> 12)] & JUMP_WALL))
+            vx = 0;
+        x += vx >> 4;
+        y -= vy >> 4;
+        vy -= g;
+        if (vy < JUMP_FALL_CAP) vy = JUMP_FALL_CAP;
+        if (x < level->levelMinPosition.x || x > level->levelMaxPosition.x || y > deepest || y > level->levelMaxPosition.y) return FALSE;
+        // (coming down onto a floor from the open: its feet were clear the frame before; into a wall's side isn't a landing);
+        if (vy < 0 && NidlIsFloor(obj, x, y + 0x100) && !NidlIsFloor(obj, x, was)) return TRUE;
+    }
+    return FALSE;
+}
+
+/* SqueakPit(); What a Squeak does at a pit within `cells` cells ahead (SqueakPitAhead; 0: none looked for): its jump (forward vx, up
+ * vy, gravity g) lands past it, a jump (SQUEAK_PIT_LEAP); it doesn't, but the pit has a floor down in it and Kirby is lower, down to
+ * him (SQUEAK_PIT_DROP); else it waits on its side (SQUEAK_PIT_WAIT: the void, or a drop away from Kirby, too wide to cross); */
+u8 SqueakPit(struct SqueakObject *s, u8 cells, s32 vx, s32 vy, s32 g) {
+    if (cells == 0 || !SqueakPitAhead(s, cells)) return SQUEAK_PIT_NONE;
+    if (SqueakJumpLands(s, vx, vy, g)) return SQUEAK_PIT_LEAP;
+    if (SqueakDropToKirby(s, cells)) return SQUEAK_PIT_DROP;
+    return SQUEAK_PIT_WAIT;
+}
+
+/* SqueakDropToKirby(); Kirby lower than it (two cells or more) and a floor at the bottom of the pit within `cells` cells ahead: going
+ * down to him; */
+bool32 SqueakDropToKirby(struct SqueakObject *s, u8 cells) {
+    struct Object *obj = &s->obj;
+    s32 ahead = obj->base.flags & 1 ? -0x1000 : 0x1000, x;
+    u8 c;
+
+    if (obj->kirby3 == NULL || obj->kirby3->base.y <= obj->base.y + 0x2000) return FALSE;
+    for (c = 1; c <= cells; c++) {
+        x = obj->base.x + ahead * c;
+        if (x < gCurLevelInfo[obj->base.unk56].levelMinPosition.x || x > gCurLevelInfo[obj->base.unk56].levelMaxPosition.x) return FALSE;
+        if (!FloorBelow(obj, x, obj->base.y + 0x100, PIT_DEPTH)) return FloorBelow(obj, x, obj->base.y + 0x100, 0);
+    }
+    return FALSE;
+}
+
+/* SqueakChaseSteer(); A Squeak in a chase (SqueakChasing), after its brain set its pad: on the ground going ahead with a pit within
+ * `cells` cells (SqueakPit, its jump's vx, vy, g), it jumps (A with up), goes down to Kirby, or waits on its side (0 cells: the
+ * character steers itself); the last floor it stood on kept, and fallen to the room's bottom (the void: the stage's edge holds it
+ * there), it's put back on it, dropping onto it (its fall's own landing: a fall's speed capped, its gravity off, would hold it in the
+ * air); */
+void SqueakChaseSteer(struct SqueakObject *s, u8 cells, s32 vx, s32 vy, s32 g) {
+    struct ObjectBase *base = &s->obj.base;
+
+    if (!s->chase) return;
+    if (SqueakOnGround(s) && !SqueakPitAhead(s, 1)) {
+        s->safeX = base->x >> 8;
+        s->safeY = base->y >> 8;
+    }
+    if (s->padDir == 1 && s->padA == 0) {
+        switch (SqueakPit(s, cells, vx, vy, g)) {
+        case SQUEAK_PIT_LEAP:
+            s->padA = 1;
+            s->padY = 1;
+            break;
+        case SQUEAK_PIT_WAIT:
+            s->padDir = 0;
+            s->padY = 0;
+            break;
+        }
+    }
+    if (s->safeX && base->y >= gCurLevelInfo[base->unk56].levelMaxPosition.y - 0x1000 && !SqueakOnGround(s)) {
+        base->x = s->safeX << 8;
+        base->y = s->safeY << 8;
+        s->vx = s->ax = s->ay = 0;
+        s->vy = -0x1000;
+    }
 }
 
 void SqueakStart(struct Object *obj) {

@@ -639,7 +639,7 @@ void DaroachBossInit(struct SqueakObject *s) {
     ObjectSetBounds(&obj->base, -16, -40, 12, 0);
     HARM(s) = obj->base.unk68;
     SqueakStandOnFloor(obj);
-    FLOOR(s) = obj->base.y;
+    FLOOR(s) = SqueakBossFloor(s);
     obj->base.flags |= 0x400;
     obj->base.unk62 |= 4;
     SqueakPlay(s, ANIM_FLOAT);
