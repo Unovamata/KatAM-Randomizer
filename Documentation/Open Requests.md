@@ -860,8 +860,8 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
   stay out; 7-3-4's, between two pillars over water there, stands on the ledge right of them). What a scroll does (Squeak Squad's
   power-ups of each ability) isn't done: it's owned only.
   - Checked in the GBA emulator (USA; Kirby moved onto each chest by a RAM write, then Up): 1-3-5's (scroll 0), 2-1-3's barrel's
-    (20) and 4-1-6's grass's (21), and all 5 chase chests (15, 7, 18, 10, 13): each set its own bit. Not tested: the 12 other plain
-    ones one by one, Europe and Japan in the emulator, a Collection Room icon (none yet).
+    (20) and 4-1-6's grass's (21), and all 5 chase chests (15, 7, 18, 10, 13): each set its own bit. Europe and Japan: 2-1-3's
+    barrel's (20) and 7-3-4's (10), the same. Not tested: the 12 other plain ones one by one, a Collection Room icon (none yet).
 - **Hiding in barrels** (the owner: "Bring the hiding in barrels graphic from Squeak Squad since it's the same spriting style to
   KatAM to port the barrel hiding"): done, with Squeak Squad's own barrel (its six animations, already the barrel gimmick's). As on
   the DS (the barrel's states, vtable `0x02229594`): Kirby on the floor in front of an empty barrel presses Down and gets in, the
@@ -871,8 +871,8 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
   - Checked in the GBA emulator (USA, 8-1-4, Kirby moved to the barrel by a RAM write, then played by buttons): in with Down, the
     shake with Right, out with A (a hop of about 37 pixels, back on the floor), in again, out and walking away. First tried with
     KatAM's cannon landing to let him out: it threw him to the ceiling; then with his own new-press bits: his crouch takes Down
-    before the barrel sees it, so the barrel reads the held keys itself. Not tested: Europe and Japan in the emulator, a helper,
-    an enemy touching the barrel with Kirby inside. The DS's shut sound isn't played (not identified).
+    before the barrel sees it, so the barrel reads the held keys itself. Europe and Japan: in, shaken, out onto the floor and in
+    again, the same in the emulator. Not tested: a helper, an enemy touching the barrel with Kirby inside. The DS's shut sound isn't played (not identified).
 - **Squeak Squad backgrounds' bottom rows**: fixed (the owner: "some Squeak Squad backgrounds have some stretching artifacts at
   the bottom, this should be fixed immediately so backgrounds look normal in-game"). The far views were shrunk to 3/4: the DS's
   192 rows became 144, short of KatAM's 160-row screen, and the last row was repeated under them in streaks. Now one that would be
