@@ -707,6 +707,23 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
     (USA and Japan, 3-5-1, Kirby put over its first cloud): he lands on it and stands on it between zaps, a zap hurts him (OUCH, a
     bar of health) and knocks him off; the clouds flash as they zap. Not checked: a moving one (3-5-1's third waits for a rider,
     then goes and breaks), Europe in the emulator.
+  - Decoded, not ported yet:
+    - The rolling boulders (gimmick 6, ctor `0x0221EE04`, vtable `0x02228FE8`; `yakumono/ball_rock`, its look by the first byte's
+      bits 0-3, table `0x02227AA0`): box ±2 cells; bits 4-5 0 rolls at once (state 1), else it waits for a message (4-3-2's, from
+      its relays). State 1 (`0x0221ED00`) makes a speed ramp (`0x02226CE4`, its update `0x02226D0C`): bits 6-7 pick from
+      `0x02227AB4` (0x2F frames to 2 pixels a frame, 0x40 to 3, 0x61 to 4). State 2 (`0x0221EAE0`) is a body of the DS's physics
+      rolling on the terrain: on landing a quake (`0x02035FC4`, 4, 16, 2), hitting a wall (its body's flags 0x400, 0x800) a bigger
+      one (7), sound 0x4F and it breaks (`0x0221E7D8`), the dust round it while it rolls (flag 2, not 0x1000); it hurts with harm
+      kind 0x0E, strength 8 (`0x0221ED6C`). The 18 in the ported rooms: 2-4-1, 2-4-2, 4-3-2 (2, waiting), 4-6-7, 8-2-4, and the
+      boss stages' 7-7-4 and 8-4-4.
+    - The ropes (gimmick 1, ctor `0x022249C8`, vtable `0x02229A2C`): no sprite (the rope is drawn in the terrain: KatAM ladders
+      here), an area: width from `0x02229A20` by the first byte's low nibble (4 cells for looks 0-3), the second byte its length
+      in cells, upward from its spot; the first byte's high nibble how many targets, from the third byte (0xFF none). Taken hold
+      of (state 1, `0x022248A0`) it plays sound 0x48 or 0x49 by its look and messages its targets: the floor it holds (3-3-6,
+      3-3-7), 8-1-8's rock relay. 25 in the ported rooms.
+    - The rope floors (gimmick 3, ctor `0x022219C4`, vtable `0x022293F8`, looks at `0x02227BF4`): a 48-pixel plank (the
+      platform's box) hanging from a rope; states 1-4 at `0x02221910`, `0x022218BC`, `0x02221854`, `0x02221850`, not read yet.
+      16 in the ported rooms.
   - **The quake triggers** (gimmick 0x13, ctor `0x022240E8`, vtable `0x022298F8`): its second u16 its box (bits 0-6 blocks across,
     7-13 down, as a trigger area's), bits 14-15 how many targets, its bytes 4 on their indices. A body moving into it (message 5) or
     a switch's message (kinds 0 and 1: `0x022240A8`) sets it off once (`0x02224034`): the screen quakes (its first u16's low 4

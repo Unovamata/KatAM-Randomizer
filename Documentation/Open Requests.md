@@ -631,11 +631,13 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
       to the floor, takes the one-way door and lands at 7-1-1's start. Not checked in Europe and Japan in the emulator.
     - Gimmicks left (read on the DS, not ported; the notes have what's decoded):
       - The rope floors (3: 3-3-6, 3-3-7, 6-2-1, 7-3-2, 7-4-5, 16; each hangs from a rope, gimmick 1, whose parameter names it):
-        to ride, they can use the platforms' carrier.
-      - The ropes (1): Kirby grabs and climbs them; 8-1-8's starts its rock relay. Not started.
+        to ride, they can use the platforms' carrier. Their states not read yet (the notes' "Decoded, not ported yet").
+      - The ropes (1): an area over the rope the terrain draws (a KatAM ladder here), messaging its targets when Kirby takes
+        hold (the floor it holds, 8-1-8's rock relay): decoded (the notes), not ported.
       - The rolling boulders (6): bits 4-5 of the first byte whether one rolls at once or waits for a message (4-3-2's wait for
-        its relays), bits 6-7 its speed (2, 3 or 4 pixels a frame); the boulder a 64-pixel still sprite, its animations 1-2 the
-        spinning debris it breaks into. Its direction and turning not read yet.
+        its relays), bits 6-7 its speed (2, 3 or 4 pixels a frame, reached over 47, 64 or 97 frames); a body of the DS's physics
+        rolling on the terrain, quaking as it lands, breaking on a wall: decoded (the notes), not ported (KatAM needs a rolling
+        body on its terrain, with slopes). Its direction not read yet.
       - The camera areas (0x14): entering one sets the camera's bounds (its four u16s, pixels) and messages its targets; 58 in
         the rooms. Not ported: KatAM's camera follows Kirby over the whole room there.
       - The candles (0xA, dark rooms), gimmick 0x12 (a color fade, no effect on the way), 0x18, 0x19, 0x1A (not identified).
