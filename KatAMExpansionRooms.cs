@@ -4054,7 +4054,8 @@
          * are ranked: a loose item behind breakable blocks (Kirby reaches it only by breaking some), a dead end (a room with one way in
          * and out), far from where Kirby comes in; a loose item there becomes a chest holding it, and a dead end with none gets a new chest,
          * as far into the room as Kirby goes. Never in a boss room, a switch room or the NiDL hub, nor in a mini-boss's fight area; a chest
-         * stands on a floor (solid ground, ice or a one-way floor) Kirby reaches. The Fountain of Dreams is all boss rooms: none there. A
+         * stands on a floor (solid ground, ice or a one-way floor) Kirby reaches. The Fountain of Dreams is all boss rooms: its map's chest is
+         * in its hub (FountainChestAt). A
          * dead end with nothing in it (no enemy, item or boss) always gets a chest, past the level's few (0x298). Batteries too, as many
          * as the chests a level gets, at the best spots left (the farthest floor behind breakable blocks, else the farthest in a dead
          * end), one a room, none in a chest's; */
@@ -4175,8 +4176,16 @@
                     batteries--;
                 }
             }
+            /* The Fountain of Dreams' map: its level is all boss rooms, so its chest stands in its hub, where Nightmare's end leads, the
+             * prelude to KatAM's final boss (the owner: "The fountain of dreams hub can only exist within the amazing Mirror after the
+             * nightmare fight. It's a prelude before the final fight."), on the floor's left (FountainChestAt), as its Maximum Tomato is
+             * on its right; */
+            NightmareRoom fountainHub = rooms.FirstOrDefault(r => r.IsSwitchRoom && r.Level == 7);
+            if (fountainHub != null && index <= LastNidlChest)
+                plan[fountainHub].Add(new NidlChest(FountainChestAt.x, FountainChestAt.y, AreaMapItem(FountainMap), (byte)index++, -1, Map: FountainMap));
             return plan;
         }
+        static readonly (int x, int y) FountainChestAt = (56, 136);
 
         // ChestTemplate(); A small chest (0x80) as KatAM's: subtype1 its item, unk11 its treasure index; unk16 an area's map's mark (chest.c);
         static byte[] ChestTemplate(NidlChest chest, int number) {

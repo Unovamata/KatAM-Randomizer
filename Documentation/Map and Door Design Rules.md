@@ -91,6 +91,10 @@ after any change.
   as the NiDL hub's golden one. It is never reached from the NiDL hub, and works with or without the NiDL ROM. Its world doors:
   Central Circle's own doors (MainHubDoors, the world's number's, drawn and shown as Central Circle's), one per world, shown by the
   world's big switch, to its switch room. `BuildSqueakHub()`.
+- **The Squeak Squad hub has Central Circle's ability room door**, at the same spot (cell 3, 4), drawn as Central Circle's,
+  shown once the Secret Map is whole (its 7 pieces; world slot 0x1C), leading to the Squeak Squad ability room (a copy of KatAM's
+  ability room 0x3CA, after the switch rooms); its door back leads to that door in the Squeak Squad hub (the owner: "The Squeak
+  Squad ability room should go in the Squeak Squad hub at the same position the ability room is").
 - **The Squeak Squad switch rooms** are the NiDL ones' (one per world, KatAM's two hub-door layouts, A for worlds 1, 3, 5, 7, B for
   2, 4, 6, 8, 2 floor mirrors into the world, 2 hub doors, the big switch on its pedestal, 2 ability statues), padded to 13 rows
   as theirs (so KatAM's camera shows each as one screen and stays put), drawn in the world's tiles before the far view the owner
@@ -203,7 +207,8 @@ after any change.
   cinematic plays and the fight starts; beaten, Nightmare's (Kirby going down from the moon) plays and Kirby is in the Fountain
   of Dreams hub (its switch room), which has no other door in or out and no big switch: only an Amazing Mirror to 0x38D, KatAM's
   final boss sequence (unlocked by the 8 shards, as KatAM's), the Master Sword's stand, a Maximum Tomato, and a Cutter and a Sword
-  statue on its sides (the owner's). The Power Orb's and Nightmare's rooms are
+  statue on its sides (the owner's), and the Fountain of Dreams' map in a chest on the floor's left (the owner: "The fountain of
+  dreams hub can only exist within the amazing Mirror after the nightmare fight. It's a prelude before the final fight."). The Power Orb's and Nightmare's rooms are
   never randomized.
 - **Doors into boss rooms are one-way.** Nothing else (branches, links, Mirras) goes in a boss stage.
 - **Two boss rooms are entered in the air**, the only landings off a floor, as NiDL's: the Power Orb's, at NiDL's own start at

@@ -1260,7 +1260,7 @@ namespace KatAMRandomizer {
         const int SqueakSwitchGimmick = 0, SqueakSwitchBlocks = 0x10;
         // (the gimmicks that talk to others: squeak/gimmicks.c; its shutters on object 0x8D with their template's unk11 SqueakShutterObject);
         const int SqueakShutterGimmick = 2, SqueakFireGimmick = 7, SqueakTriggerArea = 0x15, SqueakRelay = 0x16, SqueakRandomRelay = 0x17,
-                  SqueakQuake = 0x13, SqueakCameraArea = 0x14, SqueakEmitter = 0x19, SqueakMailGimmicks = 60;
+                  SqueakQuake = 0x13, SqueakCameraArea = 0x14, SqueakEmitter = 0x19, SqueakStreaks = 0x18, SqueakLight = 0x12, SqueakMailGimmicks = 60;
         const byte SqueakShutterObject = 0x9B, SqueakFireObject = 0x9A;
         /* The grass tufts (0xE) and barrels (0xF), their objects squeak/gimmicks.c's: its template's unk12 the grass's look, unk14 what
          * comes out (the KatAM object's type, its behavior byte over it), unk16 its variant (a Squeak Squad character's: SqueakHeld()); */
@@ -1354,7 +1354,7 @@ namespace KatAMRandomizer {
             List<byte> list = new List<byte> { 0, 0, 0, 0 };
             for (int i = 0; i < gimmicks.Count && i < SqueakMailGimmicks; i++) {
                 SqueakGimmick g = gimmicks[i];
-                if (!(g.Type is SqueakTriggerArea or SqueakRelay or SqueakRandomRelay or SqueakQuake or SqueakEmitter || g.Type == SqueakCameraArea && !arena
+                if (!(g.Type is SqueakTriggerArea or SqueakRelay or SqueakRandomRelay or SqueakQuake or SqueakEmitter or SqueakStreaks or SqueakLight || g.Type == SqueakCameraArea && !arena
                       || g.Type == SqueakSwitchBlocks && chains.Contains((g.X / 16, g.Y / 16)))) continue;
                 byte[] entry = new byte[24];
                 entry[0] = (byte)g.Type;
@@ -1577,8 +1577,9 @@ namespace KatAMRandomizer {
             }
             if (!nidlRooms) Add("gUnk_08D640A4", DoorsList(new List<byte>(), 0));
 
-            // The room tables, moved and grown (with the Squeak Squad hub after the worlds' rooms, then the worlds' switch rooms);
-            int hubRoom = SqueakFirstRoom + files.Count, firstSwitchRoom = hubRoom + 1, rows = firstSwitchRoom + SqueakWorlds;
+            // The room tables, moved and grown (with the Squeak Squad hub after the worlds' rooms, then the worlds' switch rooms, then the
+            // Squeak Squad ability room);
+            int hubRoom = SqueakFirstRoom + files.Count, firstSwitchRoom = hubRoom + 1, abilityRoom = firstSwitchRoom + SqueakWorlds, rows = abilityRoom + 1;
             int newProps = Allocate(ref here, rows * 0x28, 4), newInfos = Allocate(ref here, rows * 4, 4), newArrivals = Allocate(ref here, rows * 2, 4);
             Array.Copy(rom, roomProps, rom, newProps, KatAMRoomCount * 0x28);
             Array.Fill(rom, (byte)0xFF, newProps + KatAMRoomCount * 0x28, (rows - KatAMRoomCount) * 0x28);
@@ -2034,9 +2035,11 @@ namespace KatAMRandomizer {
                                                BackgroundWidth = bgSize.width, BackgroundHeight = bgSize.height, Fight = planRooms[i].Midboss || planRooms[i].Boss });
                     squeakRooms.Add(new SqueakPortedRoom(f, room, width, height));
                 }
-                if (BuildSqueakHub(rom, symbols, nidlRooms, roomProps, newProps, newInfos, roomInfos, hubRoom, firstSwitchRoom, worldStarts[1],
+                if (BuildSqueakHub(rom, symbols, nidlRooms, roomProps, newProps, newInfos, roomInfos, hubRoom, firstSwitchRoom, abilityRoom, worldStarts[1],
                                    navigationRoutes, noTypes, Add, DoorsList, out KatAMRoomEdit centralCircle, out byte[] hubCollision, out int hubWidth, ref here) is string hubError)
                     return hubError;
+                if (BuildSqueakAbilityRoom(rom, t => nidlRooms ? roomTables[t].at : symbols[t], newProps, newInfos, abilityRoom, hubRoom, Add, ref here) is string abilityError)
+                    return abilityError;
                 if (SqueakShardExits(rom, version, symbols, hubRoom, bossRooms, hubCollision, hubWidth) is string exitError) return exitError;
 
                 /* The switch rooms' hub doors (KatAMExpansionSqueakHubs.cs): to the Squeak Squad hub, onto the world's door there; to the
@@ -2085,7 +2088,7 @@ namespace KatAMRandomizer {
                                            view => SqueakFileAnyCase(squeak, view) is byte[] file ? SqueakFarViewPicture(file) : null, ref here) is string switchError)
                     return switchError;
                 foreach (var pair in switchDoors) squeakPlanned[firstSwitchRoom + pair.Key - 1] = pair.Value;
-                squeakPlanned[hubRoom] = squeakHubDoors;
+                squeakPlanned[hubRoom] = squeakHubDoors.Append(squeakAbilityDoor).ToList();
                 squeakPlanned[CentralCircle] = squeakPlanned.GetValueOrDefault(CentralCircle, new List<Door>())
                     .Append(new Door(SqueakHubDoor.x, SqueakHubDoor.y, hubRoom, SqueakHubDoor.x + 1, SqueakHubDoor.y + 1, 1)).ToList();
 
@@ -2141,8 +2144,8 @@ namespace KatAMRandomizer {
             // (the map viewer's rooms block names the room info table: its copy now);
             if (nidlRooms) WriteInt(rom, MapRoomsBlock + 4 + 6 * 4, newInfos + 0x08000000);
             /* The map viewer's Squeak Squad rooms block (KatAM Map Tracker's RomMap.ReadSqueakRooms(); the map table's +0xD4, free
-             * till now, points at it): "SQ", u16 the first room, u16 the rooms (the worlds', the hub, the switch rooms), u16 the hub,
-             * u16 the first switch room, u16 0, then the tables the game uses (gRoomProps, gUnk_08D6CD0C, gSolidityMaps,
+             * till now, points at it): "SQ", u16 the first room, u16 the rooms (the worlds', the hub, the switch rooms, the ability
+             * room), u16 the hub, u16 the first switch room, u16 the Squeak Squad ability room, then the tables the game uses (gRoomProps, gUnk_08D6CD0C, gSolidityMaps,
              * gForegroundTilemaps, gForegroundPalettes, gForegroundInfo, gRoomTiledBGs, gLevelObjLists), then a byte a room: its world
              * (1-8; the hub 0; a switch room its world's), and one more: its stage (0 the hub and the switch rooms); */
             int mapBlock = Allocate(ref here, 12 + 8 * 4 + (rows - SqueakFirstRoom) * 2, 4);
@@ -2151,7 +2154,7 @@ namespace KatAMRandomizer {
             WriteShort(rom, mapBlock + 4, rows - SqueakFirstRoom);
             WriteShort(rom, mapBlock + 6, hubRoom);
             WriteShort(rom, mapBlock + 8, firstSwitchRoom);
-            WriteShort(rom, mapBlock + 10, 0);
+            WriteShort(rom, mapBlock + 10, abilityRoom);
             WriteInts(rom, mapBlock + 12, new[] { newProps, newInfos }.Concat(new[] { "gSolidityMaps", "gForegroundTilemaps", "gForegroundPalettes",
                 "gForegroundInfo", "gRoomTiledBGs", "gLevelObjLists" }.Select(t => squeakTables[t])).Select(a => a + 0x08000000).ToArray());
             int worlds = mapBlock + 12 + 8 * 4, stages = worlds + (rows - SqueakFirstRoom);

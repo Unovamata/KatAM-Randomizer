@@ -605,7 +605,8 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
       Its animations (`0x02227E7C`, by bit 3: start 0 / 2, change 1 / 3, hold 2 / 0, change back 3 / 1): 0 shut (the pillar; the
       spikes up), 1 opening (the pillar crumbles up into its top; the spikes sink), 2 open, 3 shutting. Its states: 0 waiting; a
       message (kinds 0 or 2, taken in states 0 and 4 only: `0x02224EA4`) starts 1 (its change's animation, sound 0x14B and a quake
-      for the pillar, 0x2D for the spikes); 2 when it's over, the other animation held, the wait set: 3 for good (no wait) or 4
+      for the pillar, `0x02035FC4` with kind 2 for 22 frames, on the change back too: `0x02224E3C`, `0x02224D0C`; 0x2D for the
+      spikes); 2 when it's over, the other animation held, the wait set: 3 for good (no wait) or 4
       counting down (a message then sets it again, `0x02224E70`); at 0 the change back and 5, then 0. Checked in the DS emulator:
       1-5-1's shut pillar stops Kirby at its side (x 394, its box from 400); 3-6-6's raised spikes knock him back.
   - The fire columns (7, `0x02220094`, vtable `0x022290EC`; `yakumono/fire_long`: animations 0 the pilot flame, 1 flaring up, 2
@@ -781,8 +782,14 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
     streak emitter (0x02225F80): every 10 frames (+0x60) near the view, at a random spot along one side of its box (its word's bits
     4-6: 0 the top, its byte 2 cells across; 1 the bottom; 2 the left, byte 3 cells down; 3 the right), its look (bits 0-3:
     0x02229D78, 0 yakumono/stream, 1 yakumono/snow) and one of 3 animations (0x02227F9C, at random), moving at a speed its
-    constructor sets (0x02226384: 4, 6 and 8 pixels a frame, either way): not ported (its streaks' speed and life, the particle
-    code 0x0221F89C's kind 6, not read).
+    constructor sets (0x02226384: a table at 0x0222C75C by look, side and speed (its bits 7-9), 8 bytes an entry: the stream's
+    (0, -4/-6/-8) from the top, (0, 4/6/8) from the bottom, (4/6/8, 0) from the left, (-4/-6/-8, 0) from the right, fx32 a frame,
+    y up; the snow's all (0, -1): it falls 1 pixel a frame whatever its side). The spot: the top or bottom, a random cell's middle
+    across (byte 2 cells), the left or right, a random cell's middle down (byte 3 cells); the animations (0x02227F9C): the stream's
+    0, 1, 2, the snow's 0, 1, 0, picked at random; the near-view check (0x0221FA50) a box from the camera's spot 320 wide and 256
+    down. The streak goes to the shared effect queue (0x0221F89C kind 6, 0x02039B28): both looks' animations loop (stream 14-16
+    frames, snow 28 and 48), so the effect system ends them; not read. Ported (squeak/gimmicks.c's Streaks, squeak.c's
+    SqueakDriftInRoom: ended once seen and off the screen, or after 255 frames).
   - **The quake triggers** (gimmick 0x13, ctor `0x022240E8`, vtable `0x022298F8`): its second u16 its box (bits 0-6 blocks across,
     7-13 down, as a trigger area's), bits 14-15 how many targets, its bytes 4 on their indices. A body moving into it (message 5) or
     a switch's message (kinds 0 and 1: `0x022240A8`) sets it off once (`0x02224034`): the screen quakes (its first u16's low 4
@@ -791,7 +798,12 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
     a Kirby within 64 pixels of its box, or a message, sets it off; the quake is left out.
   - Gimmick 0x12 (ctor `0x022202E4`, vtable `0x0222913C`): its first two bytes a box (blocks across, up); a body moving in or a
     switch's message fades the room's colors (its u16 at +2 the frames, bytes 5-7 a color /255: `0x02209F94`, `0x0220A12C`).
-    7-3-1's whitens its top. Not ported (no effect on the way).
+    7-3-1's whitens its top. `0x0220A12C` calls the stage's +0xAC object's vtable +0x10 with the frames: +0xAC is the far view (the
+    room's `3D` file, `0x0221AD54`: by its resource's count a plain one (vtable `0x02228CAC`, +0x10 a no-op), type 1 (`0x02228C90`,
+    a no-op too) or type 2 (`0x02228C74`, `0x0221A84C`): a list of 17 palettes, entry k (1-16) each channel (A x (16 - k) + B x k)
+    / 16 of its palettes at +4 and +0x18; +0x10 is `0x0221A75C` (frames > 0: count up, else down), its update `0x0221A774` showing
+    entry counter x 16 / frames). The resource's two palettes' source isn't traced. Ported (squeak/gimmicks.c's Light: the far
+    view's colors start at half and step up the same way).
   - **What only Fire or an unported gimmick opens** (the owner: every room reached), KatAM's star blocks, any attack breaking them
     (`SqueakRoomCollision()`): the cells Fire burns (the blocks grid's flag 0x800 under top byte 0x38: 4-2-3's start walled in by
     logs, 6-2-5's); the frozen blocks (the blocks grid's ice, top byte 0x28, drawn with its tile 0x220 or 0x221 over a main cell

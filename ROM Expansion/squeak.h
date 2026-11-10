@@ -201,6 +201,9 @@ u32 SqueakGimmickAnim(struct Object *obj);
 #define SECRET_MAP_BIT 16
 #define CHEST_MARK_PIECE 2
 #define SecretMapWhole() ((gTreasures.musicPlayerAndSheetsField >> SECRET_MAP_BIT & ((1 << SECRET_MAP_PIECES) - 1)) == (1 << SECRET_MAP_PIECES) - 1)
+// SECRET_MAP_SLOT; The world slot the Squeak Squad hub's door to its ability room waits for (KatAM's free slot 0x1C), set from the Secret
+// Map whenever it's read (rooms.c's BigGetStateSlot; KatAMExpansionSqueakLevels.cs's SecretMapSlot);
+#define SECRET_MAP_SLOT 0x1C
 bool32 SqueakBossAlive(u16 room);
 #define SQUEAK_CHEST_CLOSED SQUEAK_HURT_VARIANTS
 
@@ -296,6 +299,11 @@ enum {
     SQUEAK_FX_YADGAINE_SHELL,   // Yadgaine's shell (its stage's picture: KatAMExpansionSqueak.cs's SqueakShell, at three quarters of its size);
     SQUEAK_FX_LAVA_SPARK,       // Gimmick 0x19's (squeak/gimmicks.c's Emitter): yakumono/spark's animation 0, a lava spark;
     SQUEAK_FX_WATER_BUBBLE,     // and yakumono/bubble's 0, a water bubble;
+    SQUEAK_FX_STREAM,           // Gimmick 0x18's (squeak/gimmicks.c's Streaks): yakumono/stream's animations 0-2, wind streaks;
+    SQUEAK_FX_STREAM_1,
+    SQUEAK_FX_STREAM_2,
+    SQUEAK_FX_SNOW,             // and yakumono/snow's 0 and 1, snowflakes;
+    SQUEAK_FX_SNOW_1,
     SQUEAK_FX_COUNT,
 };
 
@@ -451,6 +459,7 @@ void SqueakFaceKirby(struct SqueakObject *, s32 distance);
 bool32 SqueakKirbyWithin(struct SqueakObject *, s32 dx, s32 dy);
 void SqueakSpawnEffect(struct SqueakObject *, u8 effect, s32 dx, s32 dy, bool8 follow);
 void SqueakEffectInRoom(u16 roomId, u8 effect, s32 x, s32 y);
+void SqueakDriftInRoom(u16 roomId, u8 effect, s32 x, s32 y, s32 dx, s32 dy);
 void SqueakHoldEffect(struct SqueakObject *, u8 effect, s32 dx, s32 dy);
 void SqueakEndHeldEffect(struct SqueakObject *);
 void SqueakSplash(struct SqueakObject *, bool8 out);

@@ -36,12 +36,14 @@ namespace KatAMRandomizer {
          * SqueakHubDoor, two-way with one at the same spot added to Central Circle (the grey door: the owner, "We will later decide on
          * position and visuals"). Its world doors (one per world: Central Circle's doors at MainHubDoors, the world's number's, their
          * records and hub mirror objects, 0x8C, as Central Circle's, shown by the world's big switch, SqueakSlot()) lead to the world's
-         * switch room (from `firstSwitchRoom`), onto its hub door. Central Circle (`cc`: as it is now, read) gets its door to the hub once the
-         * randomizer is done (squeakFinish). Returns an error, or null; */
+         * switch room (from `firstSwitchRoom`), onto its hub door. Central Circle's door to the ability room is there too, at its spot, to the
+         * Squeak Squad ability room (`abilityRoom`, BuildSqueakAbilityRoom()), shown once the Secret Map is whole (SecretMapSlot; the owner:
+         * "The Squeak Squad ability room should go in the Squeak Squad hub at the same position the ability room is"). Central Circle
+         * (`cc`: as it is now, read) gets its door to the hub once the randomizer is done (squeakFinish). Returns an error, or null; */
         static readonly (int x, int y) SqueakHubDoor = (11, 18);
         const int CentralCircle = 0x321;
         static string BuildSqueakHub(byte[] rom, IReadOnlyDictionary<string, int> symbols, bool nidlRooms, int roomProps, int newProps, int newInfos,
-                                     int roomInfos, int hub, int firstSwitchRoom, (int room, int x, int y) wayIn, int navigationRoutes, int noTypes,
+                                     int roomInfos, int hub, int firstSwitchRoom, int abilityRoom, (int room, int x, int y) wayIn, int navigationRoutes, int noTypes,
                                      Func<string, int, int> add, Func<List<byte>, int, int> doorsList, out KatAMRoomEdit cc,
                                      out byte[] hubCollision, out int hubWidth, ref int cursor) {
             hubCollision = null;
@@ -98,6 +100,25 @@ namespace KatAMRandomizer {
                 nineROM.AddRange(NineROMEntry(door.Room, door.DestX, door.DestY));
                 squeakHubDoors.Add(door);
             }
+            /* (the ability room's door: Central Circle's own blocks drawing it, its record, to the Squeak Squad ability room's door, a copy of
+             * the ability room's, onto the same cell, and its hub mirror object of SecretMapSlot; its 9ROM entry last, as Central Circle's and
+             * the NiDL hub's: the game's door visits look for a door in its list, endlessly); */
+            byte[] abilityTemplate = cc.Templates.FirstOrDefault(t => t[12] == HubMirrorType && t[4] == AbilityRoomSlot);
+            if (abilityTemplate == null) return "Central Circle has no door to the ability room.";
+            int abilityX = ReadShort(abilityTemplate, 6) / 16, abilityY = ReadShort(abilityTemplate, 8) / 16 + 1;
+            byte[] abilityRecord = specials.FirstOrDefault(r => r[0] == 3 && r.Length >= 14 && r[2] == abilityX && r[3] == abilityY);
+            List<byte[]> abilityBlocks = specials.Where(r => r[0] == 1 && Math.Abs(r[2] - abilityX) <= 1 && r[3] >= abilityY - 2 && r[3] <= abilityY).ToList();
+            if (abilityRecord == null || ReadShort(abilityRecord, 8) != KatAMAbilityRoom || abilityBlocks.Count != 9)
+                return "Central Circle's door to the ability room isn't as it should be.";
+            Door abilityDoor = new Door(abilityX, abilityY, abilityRoom, abilityRecord[10], abilityRecord[11], abilityRecord[12], Slot: SecretMapSlot, Kind: DoorKind.Hub);
+            foreach (byte[] block in abilityBlocks) hubSpecials.AddRange(block);
+            hubSpecials.AddRange(DoorRecord(abilityDoor, 0xFF));
+            byte[] abilityMirror = (byte[])abilityTemplate.Clone();
+            abilityMirror[3] = (byte)templates.Count;
+            abilityMirror[4] = SecretMapSlot;
+            templates.Add(abilityMirror);
+            nineROM.AddRange(NineROMEntry(abilityDoor.Room, abilityDoor.DestX, abilityDoor.DestY));
+            squeakAbilityDoor = abilityDoor;
             hubSpecials.AddRange(Ending());
             int collisionAt = AllocateCompressed(rom, CompressRL(hubCollision), ref cursor), specialsAt = AllocateCompressed(rom, hubSpecials.ToArray(), ref cursor);
             int hubSolidity = Allocate(ref cursor, 8, 4);
@@ -122,8 +143,49 @@ namespace KatAMRandomizer {
 
             return null;
         }
-        // (the hub's world doors, for the tests' door lists);
+        // (the hub's world doors, for the tests' door lists; its door to the ability room);
         static List<Door> squeakHubDoors = new List<Door>();
+        static Door squeakAbilityDoor;
+
+        /* BuildSqueakAbilityRoom(); The Squeak Squad ability room (room `room`, after the switch rooms): a copy of KatAM's ability room
+         * (0x3CA: its tiles, its statues), its door back leading to the Squeak Squad hub's door to it (Central Circle's spot) rather than
+         * Central Circle's; reached from the hub once the Secret Map is whole (BuildSqueakHub(), SecretMapSlot). Returns an error, or null; */
+        const int KatAMAbilityRoom = 0x3CA;
+        // SecretMapSlot; The world slot the Squeak Squad hub's door to its ability room waits for: KatAM's free slot 0x1C, set while the
+        // Secret Map is whole ("ROM Expansion/rooms.c"'s BigGetStateSlot, squeak.h's SECRET_MAP_SLOT);
+        const byte SecretMapSlot = 0x1C;
+        static string BuildSqueakAbilityRoom(byte[] rom, Func<string, int> table, int newProps, int newInfos, int room, int hub,
+                                             Func<string, int, int> add, ref int cursor) {
+            KatAMRoomEdit copy = LoadKatAMRoom(rom, newProps, table, KatAMAbilityRoom);
+            int backs = 0;
+            foreach (byte[] record in copy.Specials)
+                if (record[0] == 3 && record.Length >= 14 && ReadShort(record, 8) == CentralCircle) { WriteShort(record, 8, hub); backs++; }
+            foreach (byte[] entry in copy.Nine)
+                if (entry[0] == 2 && entry.Length >= 8 && ReadShort(entry, 4) == CentralCircle) WriteShort(entry, 4, hub);
+            if (backs == 0) return "KatAM's ability room has no door back to Central Circle.";
+            List<byte> specials = copy.Specials.SelectMany(b => b).ToList();
+            specials.AddRange(new byte[] { 0, 0, 0, 0, 0, 0, 0xFF, 0xFF });
+            int collisionAt = AllocateCompressed(rom, CompressRL(copy.Collision), ref cursor), specialsAt = AllocateCompressed(rom, specials.ToArray(), ref cursor);
+            int solidity = Allocate(ref cursor, 8, 4);
+            WriteInts(rom, solidity, collisionAt + 0x08000000, specialsAt + 0x08000000);
+            int objects = WriteObjectList(rom, copy.Templates, copy.Types, copy.TypesRest, ref cursor);
+            List<byte> nine = copy.Nine.SelectMany(b => b).ToList();
+            nine.AddRange(new byte[] { 0, 0, 0xFF, 0xFF });
+            int nineAt = AllocateCompressed(rom, nine.ToArray(), ref cursor), doorsAt = Allocate(ref cursor, 8, 4);
+            Array.Copy(rom, copy.DoorsStruct, rom, doorsAt, 8);
+            WriteInt(rom, doorsAt, nineAt + 0x08000000);
+
+            // (its props: the ability room's, its own collision, objects and doors; its info the ability room's, its room);
+            Array.Copy(rom, newProps + KatAMAbilityRoom * 0x28, rom, newProps + room * 0x28, 0x28);
+            WriteShort(rom, newProps + room * 0x28 + 13 * 2, add("gSolidityMaps", solidity));
+            WriteShort(rom, newProps + room * 0x28 + 16 * 2, add("gLevelObjLists", objects));
+            WriteShort(rom, newProps + room * 0x28 + 18 * 2, add("gUnk_08D640A4", doorsAt));
+            int roomInfo = Allocate(ref cursor, 0x4C, 4);
+            Array.Copy(rom, ReadInt(rom, newInfos + KatAMAbilityRoom * 4) - 0x08000000, rom, roomInfo, 0x4C);
+            WriteShort(rom, roomInfo + 0x44, room);
+            WriteInt(rom, newInfos + room * 4, roomInfo + 0x08000000);
+            return null;
+        }
 
         /* SqueakShardExits(); Where each world's boss's shard takes Kirby (the rulebook's rule 8: a shard only ever sends Kirby to a central
          * hub, onto the level's door there): gNidlShardExits' entries after the NiDL bosses' ("ROM Expansion/nidl_boss.c", NidlShardExit()

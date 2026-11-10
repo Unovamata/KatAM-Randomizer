@@ -588,6 +588,12 @@ namespace KatAMRandomizer {
             // Gimmick 0x19's (squeak/gimmicks.c's Emitter): its look 1, a lava spark (the volcano's lava), 0 a water bubble;
             new SqueakEffect(14, "yakumono/spark", 0),
             new SqueakEffect(15, "yakumono/bubble", 0),
+            // Gimmick 0x18's (squeak/gimmicks.c's Streaks): its look 0, the wind streaks' 3 animations, 1 the snowflakes' 2;
+            new SqueakEffect(16, "yakumono/stream", 0),
+            new SqueakEffect(17, "yakumono/stream", 1),
+            new SqueakEffect(18, "yakumono/stream", 2),
+            new SqueakEffect(19, "yakumono/snow", 0),
+            new SqueakEffect(20, "yakumono/snow", 1),
         };
 
         /* SqueakEffectsBuild(); Each effect's cells (those its animation shows, in its order) as KatAM frames and their palette, the anim

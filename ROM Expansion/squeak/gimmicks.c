@@ -70,6 +70,14 @@ const struct SqueakSwitch gSqueakSwitch = { NULL };
 #define GIMMICK_CAMERA 0x14
 #define GIMMICK_EMITTER 0x19
 #define EMITTER_WAIT 100
+#define GIMMICK_STREAKS 0x18
+#define GIMMICK_LIGHT 0x12
+#define FAR_VIEW_FIRST 96           // (the far view's colors: KatAM's BG palettes 6-13, KatAMExpansionSqueakRooms.cs's SqueakBackground);
+#define FAR_VIEW_COLORS 128
+#define LIGHT_STEPS 16
+#define LIGHT_DIM 8                 // (the stand-in start: its colors at LIGHT_DIM / LIGHT_STEPS);
+#define STREAKS_WAIT 10
+#define STREAKS_NEAR 32
 #define RELAY_TARGETS 5
 // (a message's kinds: a switch's 0, a trigger area's 2; a relay with its parameter's bit 7 takes kind 4 only, sending 2);
 #define MESSAGE_SWITCH 0
@@ -109,6 +117,10 @@ struct SqueakLogic {
     s16 relayTimer[SQUEAK_MAIL_GIMMICKS][RELAY_TARGETS];
     u8 cameraArea[4];                           // Per Kirby, the camera area holding his view (its index + 1), 0 none;
     struct S32Vec2 cameraWas[4][2];             // and his view's bounds' targets before it (unk_S32Vec2_7C, unk_S32Vec2_84);
+    u8 lightState;                              // The far view's light (gimmick 0x12, Light()): its state, its step shown, its
+    u8 lightStep;                               // frames so far,
+    u16 lightCount;
+    u16 farView[FAR_VIEW_COLORS];               // and the far view's colors as loaded;
 };
 
 /* Inside(); A Kirby in the room touching a trigger area: its box from its spot, its parameter's low 7 bits blocks right, the next 7
@@ -194,6 +206,127 @@ static void Emitter(struct SqueakLogic *l, const struct SqueakGimmickEntry *e) {
     if (gKirbys[gLocalPlayerId].base.roomId == l->room && e->x >= vx && e->x <= vx + DISPLAY_WIDTH && e->y >= vy && e->y <= vy + DISPLAY_HEIGHT)
         SqueakEffectInRoom(l->room, (e->par[0] & 15) == 0 ? SQUEAK_FX_WATER_BUBBLE : SQUEAK_FX_LAVA_SPARK, e->x << 8, e->y << 8);
     *wait = ((Rand16() >> 14) + 1) * EMITTER_WAIT;
+}
+
+/* Streaks(); A streak emitter (0x18, ctor 0x02226384, vtable 0x02229DD4, its state 0x02225F80): 33 in 18 rooms (Ice Island's snow,
+ * 3-4-1's and 7-2-3's wind, 8-1-9's and 8-2-5's falling streams). Its parameter: a u16, bits 0-3 its look (0x02229D78: 0
+ * yakumono/stream, 1 yakumono/snow), bits 4-6 the side of its box it comes from (0 the top, 1 the bottom, 2 the left, 3 the right),
+ * bits 7-9 its speed; then its box, a byte cells across and one down. Every STREAKS_WAIT frames (+0x60), if its box is near the
+ * camera's view (0x0221FA50: a box 64 pixels wider and taller than the screen), a streak (an effect, 0x0221F89C kind 6) at a random
+ * spot along that side (a cell's middle across the top or bottom, down the left or right), one of the look's 3 animations at random
+ * (0x02227F9C: the stream's 0, 1, 2, the snow's 0, 1, 0), moving the way the side faces at the speed its constructor's table gives
+ * (0x0222C75C: the stream 4, 6 or 8 pixels a frame, the snow always 1 pixel down). Both looks' animations loop: the DS's effects end
+ * them; here a streak ends once it's been on the screen and left it, or after SQUEAK_DRIFT_LIFE frames (squeak.c's
+ * SqueakDriftInRoom); near the view: its box within STREAKS_NEAR pixels of it; */
+static void Streaks(struct SqueakLogic *l, const struct SqueakGimmickEntry *e) {
+    static const u8 sAnims[2][3] = { { 0, 1, 2 }, { 0, 1, 0 } };
+    s16 *wait = &l->relayTimer[e->index][0];
+    const struct LevelInfo *level = &gCurLevelInfo[gLocalPlayerId];
+    s32 vx = level->viewportPosition.x >> 8, vy = level->viewportPosition.y >> 8;
+    u16 p = e->par[0] | e->par[1] << 8;
+    u8 look = (p & 15) != 0, side = p >> 4 & 7, speed = p >> 7 & 7, across = e->par[2], down = e->par[3];
+    s32 x0 = e->x, y0 = e->y, x1 = e->x + across * 16, y1 = e->y + down * 16, x, y, dx = 0, dy = 0;
+
+    if (*wait > 0) {
+        (*wait)--;
+        return;
+    }
+    *wait = STREAKS_WAIT;
+    if (gKirbys[gLocalPlayerId].base.roomId != l->room || side > 3) return;
+    if (x1 < vx - STREAKS_NEAR || x0 > vx + DISPLAY_WIDTH + STREAKS_NEAR || y1 < vy - STREAKS_NEAR || y0 > vy + DISPLAY_HEIGHT + STREAKS_NEAR) return;
+    if (side <= 1) {
+        x = x0 + (across ? Rand16() % across : 0) * 16 + 8;
+        y = side == 0 ? y0 : y1;
+    } else {
+        x = side == 2 ? x0 : x1;
+        y = y0 + (down ? Rand16() % down : 0) * 16 + 8;
+    }
+    if (look == 1) dy = 1;
+    else {
+        s32 v = 4 + (speed > 2 ? 2 : speed) * 2;
+        switch (side) {
+        case 0: dy = v; break;
+        case 1: dy = -v; break;
+        case 2: dx = v; break;
+        default: dx = -v; break;
+        }
+    }
+    SqueakDriftInRoom(l->room, (look ? SQUEAK_FX_SNOW : SQUEAK_FX_STREAM) + sAnims[look][Rand16() % 3], x << 8, y << 8, dx << 8, dy << 8);
+}
+
+/* Light(); The far view's light (gimmick 0x12, ctor 0x022202E4, vtable 0x0222913C; in 2-3-1, 2-8-1 and 7-3-1, where Kirby starts the
+ * stage): its parameter's bytes 0-1 its box (cells across, down from its spot, as a trigger area's), its u16 at +2 the frames, bytes
+ * 5-7 a color (all three 255: full light). A body moving into its box (or a switch's message) calls the far view's fade (the stage's
+ * +0xAC, its vtable +0x10: 0x0221A75C) with those frames: the DS's far view there is a list of 17 pictures, its colors blended from
+ * a start palette to its own in 16 steps (0x0221A84C: (start x (16 - k) + own x k) / 16 a channel), the room showing the first till
+ * then and stepping through them (k = frames so far x 16 / frames, 0x0221A774) to its own. Here the far view (KatAM's BG palettes
+ * 6-13) starts at its colors times LIGHT_DIM / 16 (the DS's start palette not found: a stand-in) and steps up the same way; */
+extern u16 gUnk_02022120[0x100];    // The BG palettes as loaded (KatAM's palette effects put them back from it);
+static u16 LightBlend(u16 c, u8 k) {
+    u16 out = 0;
+    u8 shift;
+
+    for (shift = 0; shift <= 10; shift += 5) {
+        u16 v = c >> shift & 31, dim = v * LIGHT_DIM / LIGHT_STEPS;
+
+        out |= ((dim * (LIGHT_STEPS - k) + v * k) / LIGHT_STEPS) << shift;
+    }
+    return out;
+}
+
+static void LightShow(struct SqueakLogic *l, u8 k) {
+    u16 i;
+
+    for (i = 0; i < FAR_VIEW_COLORS; i++) gBgPalette[FAR_VIEW_FIRST + i] = gUnk_02022120[FAR_VIEW_FIRST + i] = LightBlend(l->farView[i], k);
+    l->lightStep = k;
+    gMainFlags |= MAIN_FLAG_BG_PALETTE_SYNC_ENABLE;
+}
+
+/* LightKept(); The far view's colors as loaded, again if the room's loading put them back after Light() took them (it loads them
+ * after the room's task first runs): its colors as last shown, else taken again; */
+static void LightKept(struct SqueakLogic *l) {
+    u16 i;
+
+    for (i = 0; i < FAR_VIEW_COLORS; i++)
+        if (gUnk_02022120[FAR_VIEW_FIRST + i] != LightBlend(l->farView[i], l->lightStep)) break;
+    if (i == FAR_VIEW_COLORS) return;
+    for (i = 0; i < FAR_VIEW_COLORS; i++) l->farView[i] = gUnk_02022120[FAR_VIEW_FIRST + i];
+    LightShow(l, l->lightStep);
+}
+
+static void Light(struct SqueakLogic *l, const struct SqueakGimmickEntry *e) {
+    u16 frames = e->par[2] | e->par[3] << 8, i;
+    s32 x0 = e->x, x1 = e->x + e->par[0] * 16, y0 = e->y, y1 = e->y + e->par[1] * 16;
+    u8 kind = TakeMail(l->slot, e->index);
+
+    if (l->lightState == 3) return;
+    if (l->lightState == 0) {
+        for (i = 0; i < FAR_VIEW_COLORS; i++) l->farView[i] = gUnk_02022120[FAR_VIEW_FIRST + i];
+        LightShow(l, 0);
+        l->lightState = 1;
+    }
+    LightKept(l);
+    switch (l->lightState) {
+    case 1:
+        if (kind == MESSAGE_SWITCH + 1 || kind == MESSAGE_SWITCH + 2) l->lightState = 2;
+        for (i = 0; i < gNumKirbys && l->lightState == 1; i++) {
+            struct Kirby *k = &gKirbys[i];
+            s32 kx = k->base.x >> 8, ky = k->base.y >> 8;
+
+            if (k->base.roomId == l->room && kx + k->base.unk3E > x0 && kx + k->base.unk3C < x1 && ky + k->base.unk3F > y0 && ky + k->base.unk3D < y1)
+                l->lightState = 2;
+        }
+        break;
+    case 2:
+        l->lightCount++;
+        if (frames == 0 || l->lightCount >= frames) {
+            LightShow(l, LIGHT_STEPS);
+            l->lightState = 3;
+        } else if (l->lightCount * LIGHT_STEPS / frames != (l->lightCount - 1) * LIGHT_STEPS / frames) {
+            LightShow(l, l->lightCount * LIGHT_STEPS / frames);
+        }
+        break;
+    }
 }
 
 /* Trigger(); A trigger area (0x0221E544, its states 0x0221E520 and 0x0221E4EC): a body moving into it sends its targets (its
@@ -341,6 +474,8 @@ static void SqueakLogicMain(void) {
         case GIMMICK_QUAKE: Quake(l, e); break;
         case GIMMICK_CAMERA: CameraArea(l, e); break;
         case GIMMICK_EMITTER: Emitter(l, e); break;
+        case GIMMICK_STREAKS: Streaks(l, e); break;
+        case GIMMICK_LIGHT: Light(l, e); break;
         }
     }
 }
@@ -431,7 +566,7 @@ static void *SqueakCreateButton(struct ObjectTemplate *template, u8 playerId) {
  * the change back (0x02227E82) and 5, back to 0 when it's over. The pillar shut is a wall (checked on the DS: 1-5-1's stops Kirby
  * at its side); the spikes up hurt (checked: 3-6-6's knock Kirby back). Here its cells are KatAM's solid or spike blocks while it's shut
  * (ShutterSetBox()); drawn with SQUEAK_SHUTTER's looks (the DS's animations, its cells as the variants; facing right,
- * as the DS draws them); the DS's quake as a stone shutter moves is left out (the owner: the screen shakes too much); */
+ * as the DS draws them); a stone shutter's change shakes the screen (ShutterSound()); */
 /* A gimmick's look (the shutters', the fire columns'): its graphics (SQUEAK_SHUTTER...), the DS animation playing, its step, the
  * frames left on it, whether it's over (a non-looping one holds its last step); right after its Object, as SqueakGimmickAnim()
  * reads it; */
@@ -555,8 +690,13 @@ static void ShutterSetBox(struct SqueakShutter *s) {
     s->solid = blocks;
 }
 
+/* ShutterSound(); Its change's sound, and a stone pillar's quake (the DS's 0x02035FC4 with kind 2 for 22 frames, on its change and
+ * its change back, 0x02224E3C and 0x02224D0C: KatAM's timed shake nearest it, QuakeShake(); the owner: "Stone shutters should shake
+ * the screen like KatAM does for consistency sake"); */
+#define SHUTTER_QUAKE_FRAMES 22
 static void ShutterSound(struct SqueakShutter *s) {
     PlaySfx(&s->obj.base, SE_VERT_SLIDING_DOOR_OPEN_CLOSE);
+    if (!IsSpikes(s)) QuakeShake(SHUTTER_QUAKE_FRAMES, &s->obj.base);
 }
 
 static void SqueakShutterMain(struct Object *obj) {

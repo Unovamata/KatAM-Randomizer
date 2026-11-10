@@ -748,6 +748,8 @@ bool32 SqueakKirbyWithin(struct SqueakObject *s, s32 dx, s32 dy) {
  * was spawned, facing as its character, then gone; */
 #define SQUEAK_FX_ROOM 48     // Tiles of KatAM's sprite heap an effect leaves free (KatAM's own effects: its stars, its abilities');
 
+#define SQUEAK_DRIFT_MARGIN 16
+#define SQUEAK_DRIFT_LIFE 255
 struct SqueakFx {
     struct EffectObject e;
     struct SqueakObject *owner; // Followed (0x020218C0: its position plus the offset each frame), till it's gone;
@@ -758,6 +760,8 @@ struct SqueakFx {
     bool8 left;
     u8 palId;
     bool8 held;                 // Kept on its last frame (or looping) while its character holds it (SqueakHoldEffect);
+    bool8 seen;                 // A drifting one (SqueakDriftInRoom: no owner, dx and dy its speed): it's been on the screen;
+    u8 life;                    // and the frames it has left;
 };
 
 // SqueakFxDestroy(); An effect's end (its own, or the room's): its character lets go of it;
@@ -796,6 +800,21 @@ static void SqueakFxMain(void) {
     if (fx->owner) {
         fx->e.x = fx->owner->obj.base.x + SQUEAK_SPEED(fx->dx);
         fx->e.y = fx->owner->obj.base.y - SQUEAK_SPEED(fx->dy);
+    } else if (fx->dx || fx->dy) {
+        const struct LevelInfo *level = &gCurLevelInfo[gLocalPlayerId];
+        s32 x, y;
+        bool32 shownNow;
+
+        fx->e.x += fx->dx;
+        fx->e.y += fx->dy;
+        x = (fx->e.x - level->viewportPosition.x) >> 8;
+        y = (fx->e.y - level->viewportPosition.y) >> 8;
+        shownNow = x > -SQUEAK_DRIFT_MARGIN && x < DISPLAY_WIDTH + SQUEAK_DRIFT_MARGIN && y > -SQUEAK_DRIFT_MARGIN && y < DISPLAY_HEIGHT + SQUEAK_DRIFT_MARGIN;
+        if (shownNow) fx->seen = TRUE;
+        if (fx->life == 0 || --fx->life == 0 || (fx->seen && !shownNow)) {
+            fx->e.flags |= 0x1000;
+            return;
+        }
     }
 shown:
     step = &a->step[fx->step];
@@ -834,6 +853,8 @@ static struct SqueakFx *SqueakEffectAtIn(u16 roomId, u8 effect, s32 x, s32 y, bo
     fx->timer = d->anim.step[0].frames;
     fx->left = left;
     fx->held = FALSE;
+    fx->seen = FALSE;
+    fx->life = 0;
     fx->palId = SqueakLoadPalette(d->palette.key, d->palette.variant, roomId);
     EffectObjectInitSprite(&fx->e, &fx->e.sprite, d->tiles, d->animId, d->anim.step[0].cell, 0x1A);
     // (none drawn when its VRAM couldn't be got: gone at its first run);
@@ -848,6 +869,18 @@ static struct SqueakFx *SqueakEffectAt(struct SqueakObject *s, u8 effect, s32 x,
 // SqueakEffectInRoom(); An effect at (x, y) (KatAM's units) in a room, facing right, owned by nothing (a gimmick's: squeak/gimmicks.c);
 void SqueakEffectInRoom(u16 roomId, u8 effect, s32 x, s32 y) {
     SqueakEffectAtIn(roomId, effect, x, y, FALSE);
+}
+
+/* SqueakDriftInRoom(); An effect at (x, y) in a room moving (dx, dy) a frame (KatAM's units), owned by nothing (gimmick 0x18's streaks:
+ * squeak/gimmicks.c's Streaks): it ends once it's been on the screen (SQUEAK_DRIFT_MARGIN pixels round it) and left it, or after
+ * SQUEAK_DRIFT_LIFE frames; */
+void SqueakDriftInRoom(u16 roomId, u8 effect, s32 x, s32 y, s32 dx, s32 dy) {
+    struct SqueakFx *fx = SqueakEffectAtIn(roomId, effect, x, y, FALSE);
+
+    if (fx == NULL) return;
+    fx->dx = dx;
+    fx->dy = dy;
+    fx->life = SQUEAK_DRIFT_LIFE;
 }
 
 /* SqueakSpawnEffect(); 0x02021900: an effect at the character's position plus (dx, dy) (Squeak Squad's units: 20.12, Y up; not

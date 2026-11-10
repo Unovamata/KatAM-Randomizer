@@ -94,7 +94,10 @@ namespace KatAMMapTracker {
             // (KatAM's original map is one block: the hub goes outside it, on the side nearest Central Circle, never in its gaps);
             if (original) taken = new List<(double left, double top, double right, double bottom)> { main };
             foreach (RoomInfo hub in nightmare.Where(r => r.IsNightmareHub || r.IsSqueakHub)) {
-                double size = SizeOf(hub);
+                // (the Squeak Squad hub with its ability room on its left, their tops in line: its door is on the hub's top left);
+                RoomInfo beside = hub.IsSqueakHub ? nightmare.FirstOrDefault(r => r.IsSqueakAbilityRoom) : null;
+                double extra = beside == null ? 0 : SizeOf(beside) + MinGap;
+                double size = SizeOf(hub) + extra;
                 (double x, double y) anchor = layout.TryGetValue(RomMap.CentralCircle, out RoomPlacement circle) ? (circle.CenterX, circle.CenterY)
                     : ((main.left + main.right) / 2, (main.top + main.bottom) / 2);
                 (double left, double top) best = (anchor.x - size / 2, anchor.y - size / 2);
@@ -107,7 +110,8 @@ namespace KatAMMapTracker {
                     }
                 }
                 taken.Add((best.left, best.top, best.left + size, best.top + size));
-                Put(hub, best.left + size / 2, best.top + size / 2, hub.IsSqueakHub ? SqueakHubCluster : HubCluster);
+                if (beside != null) Put(beside, best.left + SizeOf(beside) / 2, best.top + SizeOf(beside) / 2, SqueakHubCluster);
+                Put(hub, best.left + extra + (size - extra) / 2, best.top + (size - extra) / 2, hub.IsSqueakHub ? SqueakHubCluster : HubCluster);
                 main = (Math.Min(main.left, best.left), Math.Min(main.top, best.top), Math.Max(main.right, best.left + size), Math.Max(main.bottom, best.top + size));
             }
 

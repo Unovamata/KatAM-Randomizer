@@ -120,7 +120,8 @@ void SqueakCollectChest(u8 n) {
 
 /* BigGetStateSlot(); GetStateSlot (a state slot: a room's, the session's or the world's, gUnk_02028C10, 0x20 of them, saved), with
  * world slots SQUEAK_WORLD_SLOT on in the visited area, before Squeak Squad's chests: saved with the visited doors (Squeak Squad's
- * worlds' big switches: KatAM's free world slots, 0x10, 0x11, 0x1C-0x1F, are fewer than its 8); */
+ * worlds' big switches: KatAM's free world slots, 0x10, 0x11, 0x1C-0x1F, are fewer than its 8); world slot SECRET_MAP_SLOT whether
+ * the Secret Map is whole; */
 #define SQUEAK_WORLD_SLOT 0x20
 u32 *BigGetStateSlot(enum StateSlotScope scope, u8 id, u8 roomSlot)
 {
@@ -132,6 +133,8 @@ u32 *BigGetStateSlot(enum StateSlotScope scope, u8 id, u8 roomSlot)
     case STATE_SLOT_WORLD:
         if (id >= SQUEAK_WORLD_SLOT && id < SQUEAK_WORLD_SLOT + SQUEAK_WORLD_SIZE / 4)
             return (u32 *)(SqueakChests() - SQUEAK_WORLD_SIZE) + (id - SQUEAK_WORLD_SLOT);
+        // (the Squeak Squad ability room's door: set while the Secret Map is whole, read when its hub mirror object looks);
+        if (id == SECRET_MAP_SLOT) gUnk_02028C10[id] = SecretMapWhole();
         return gUnk_02028C10 + id;
     default:
         return NULL;

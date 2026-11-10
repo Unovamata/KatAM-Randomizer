@@ -9,14 +9,14 @@ namespace KatAMRandomizer {
      * bits 0-9), each in a chest of its area (a NiDL level's best chest, PlanChests(); a Squeak Squad world's deepest chest of the ones
      * holding a consumable, a big one first, SqueakMapChests()), the chest's template's unk16 CHEST_MARK_MAP << 8 | the map's number
      * + 1, its item one of KatAM's maps 1-9 (chest.c's NidlChestOpen gives it back and makes the popup the area's). The Fountain of
-     * Dreams is all boss rooms (no chest there): its map waits for the owner's call. Their look: KatAM's map, its body in the area's
+     * Dreams is all boss rooms: its map's chest is in its hub, after Nightmare (PlanChests()'s FountainChestAt). Their look: KatAM's map, its body in the area's
      * colors (AreaMapThemes): rising out of the chest (KatAM's popup, drawn with the chest's palette, its colors 8-10 the area's 3
      * shades, gNidlMaps.colors: chest.c's NidlMapPopup), and in the Collection Room's grid (collection.c: the NiDL maps the third row after
      * KatAM's columns, the Squeak Squad ones the fourth; anim 0x388's map with the area's light and mid shades and a dark shared by
      * all, 4 maps to an OBJ palette, AreaMapPalettes), named "• AREA" over KatAM's map text ("Use this for navigation."); */
     internal static partial class KatAMExpansion {
         internal const int AreaMapCount = 16, AreaMapBit = 10, ChestMarkMap = 1, NidlAreaMaps = 8;
-        // (the map whose chest isn't placed: the Fountain of Dreams', all boss rooms);
+        // (the Fountain of Dreams' map, in its hub's chest: all its level's rooms are boss rooms);
         internal const int FountainMap = 7;
         static readonly string[] AreaMapNames = {
             "VEGETABLE VALLEY", "ICE CREAM ISLAND", "BUTTER BUILDING", "GRAPE GARDEN", "YOGURT YARD", "ORANGE OCEAN", "RAINBOW RESORT", "FOUNTAIN OF DREAMS",

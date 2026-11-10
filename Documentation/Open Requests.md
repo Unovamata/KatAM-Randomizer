@@ -642,9 +642,13 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
     - The effect emitters (0x19): done. They're the lava sparks (120, Vocal Volcano and 2-5, 3-2, 5-x, 7-x) and water bubbles (51):
       while its spot is on the screen, every 100, 200, 300 or 400 frames (random) it plays yakumono/spark's or yakumono/bubble's
       animation once there. Checked in the GBA emulator (USA, 5-5-5): sparks pop on the lava now and then. Bubbles not checked.
-    - The snow and wind streaks (0x18, 33: Ice Island and 3-4-1): decoded (every 10 frames near the view, a streak at a random spot
-      along one side of its box, yakumono/stream or yakumono/snow), not ported yet: their speeds and life are set by the DS's
-      particle code, not read yet.
+    - The snow and wind streaks (0x18, 33 in 18 rooms: Ice Island's snow, 3-4-1's and 7-2-3's wind, 8-1-9's and 8-2-5's falling
+      streams): ported (the owner: "Snow and wind streaks"; `squeak/gimmicks.c`'s Streaks). Every 10 frames, its box near the
+      view, a streak at a random cell along the side of its box its parameter names, one of its look's 3 animations at random, moving
+      away from that side at the DS's speed (its constructor's table: the wind 4, 6 or 8 pixels a frame, the snow always 1 pixel
+      down). The DS hands them to its shared effect system, which ends them (both looks' animations loop); that wasn't read, so here
+      a streak ends once it's been on the screen and left it, or after 255 frames. Checked in the GBA emulator (USA): 6-1-1's snow
+      falling, 3-4-1's wind rising, 7-2-3's blowing left. Not compared against the DS running.
     - The sound gimmick (0x1A, one, 4-3-2): plays a sound every so often; waits for Squeak Squad's sounds (below).
     - The quake triggers (0x13: the notes' quake bullet): ported as a trigger area that messages its targets once (a Kirby within
       64 pixels of its box, or a switch's message, sets it off), with its screen quake now (KatAM's timed shake nearest its length:
@@ -673,10 +677,14 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
     - Gimmicks left (the notes have what's decoded). The owner, of the ones left out on purpose: "The left on purpose, I want
       them yes": the camera areas (0x14), the ambience 0x18 (snow, wind), 0x19 (lava sparks) and 0x1A (sound), gimmick 0x12 (a
       color fade), the boulders' quakes when they land and burst, and the thunder clouds' zap exactly as the DS draws it. Done: the
-      camera areas, 0x19, the boulders' (and quake triggers') quakes, the thunder zap (above). Left: 0x18 (above), 0x1A (with the
-      sounds), and 0x12: its three (2-3-1, 2-8-1, 7-3-1) all bring the room's light back to full (255, 255, 255) over 120-240
-      frames; the port's rooms are already at full light (the DS's dimmer starting light isn't ported: it goes with the dark rooms
-      of the candles and Light request), so it would change nothing yet. Also:
+      camera areas, 0x19, 0x18 (above), the boulders' (and quake triggers') quakes, the thunder zap (above), and 0x12 with the DS's
+      dim light (the owner: "Port the DS Dim light"): on the DS 0x12 fades the far view (the stage's 3D background object, not the
+      room), whose 17 pictures blend a start palette into its own in 16 steps; its three rooms (2-3-1, 2-8-1, 7-3-1, where Kirby
+      starts those stages) show the first till a body enters its box, then step to its own over 120 or 240 frames. Here the far
+      view (BG palettes 6-13) starts dim and steps up the same way (`squeak/gimmicks.c`'s Light). The DS's start palette comes from
+      a 3D resource not traced: half brightness stands in for it. Checked in the GBA emulator (2-3-1, the fade's start forced by a
+      RAM write: the room's helpers set it off as it loads): dim, part way at 30 frames, full at 120 (USA, Europe, Japan). Left:
+      0x1A (with the sounds). Also:
       - The candles and the Light ability (the owner: "Add to the pending list candle and light ability interaction", then:
         "the light ability should light up Squeak Squad sections that require the candle if NiDL expansion is present"): with
         the NiDL ROM loaded, the Light ability (NiDL's, from Cool Spook) lights the Squeak Squad dark rooms' parts the candles
@@ -732,8 +740,11 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
     unchanged (359 of 498 Squeak Squad rooms, 8 switches, nowhere trapped, all three versions, with and without thin-floor drops).
   - Not tested: the other 13 chests opened, the map viewer's reveal with a real save (its code built; the window needs Windows),
     Italian and Spanish names on screen, multiplayer.
-  - Left, the owner's call: **the Fountain of Dreams' map**. Its level is all boss rooms, so it has no chest (its Collection Room
-    cell stays empty). Where should it go: the Fountain of Dreams switch room, its hub, or given after a boss (Nightmare)?
+  - The Fountain of Dreams' map (the owner: "The fountain of dreams hub can only exist within the amazing Mirror after the
+    nightmare fight. It's a prelude before the final fight."): its level is all boss rooms, so its chest stands in the Fountain of
+    Dreams hub, where Nightmare's end leads, on the floor's left (the Maximum Tomato on its right). Checked in the GBA emulator
+    (Kirby put on it by a RAM write, then Up; USA, Europe, Japan): its bit (17) set, the periwinkle map rising; its Collection Room
+    cell filled as the others' (by the same code: not looked at on screen).
 - **The Secret Map**: its pieces done, the ability room it opens left (the owner: "Start building the secret map logic and then
   display the respective icons on the collection room"; with the rooms: "Only the Squeak Squad ability room can be unlocked via the
   hidden map"). Squeak Squad's 7 Secret Map pieces (treasures 93-99) stay in their own chests (2-6-6, 3-3-7, 4-4-5, 5-4-5, 6-6-5,
@@ -756,9 +767,13 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
     the map viewer's naming on screen (its code built; the window needs Windows), Italian on screen.
   - Which chest holds which piece takes treasures 93-99 as pieces 1-7 in order (`collection/map`'s cells 0-6): not checked against
     the DS.
-  - Left, the owner's call: **the Squeak Squad ability room's door**. The whole map should open it, but the Squeak Squad hub (a
-    Central Circle copy) is frozen, so where its door goes (and which room it is: a copy of KatAM's ability room 0x3CA, or another)
-    waits for the owner.
+  - The Squeak Squad ability room's door (the owner: "The Squeak Squad ability room should go in the Squeak Squad hub at the same
+    position the ability room is"): Central Circle's ability room door, at its spot (cell 3, 4), drawn as Central Circle's, shown once
+    the Secret Map is whole (world slot 0x1C, KatAM's free one, read from the 7 pieces: `rooms.c`'s BigGetStateSlot), leading to the
+    Squeak Squad ability room: a copy of KatAM's ability room 0x3CA (its statues), after the switch rooms, its door back to the
+    Squeak Squad hub's. The map viewer puts it on the hub's left. Checked in the GBA emulator (pieces owned by a RAM write; USA,
+    Europe, Japan): no door without the 7 pieces, the door shown with KatAM's sparkle with them, in to the ability room and back out
+    to the hub. Which abilities its statues give (KatAM's own, as copied) is the owner's to change.
 - **The Collection Room scrolls left and right**: done as one grid (the owner, with the rooms: "the collection room should be
   scrollable left and right to accommodate for all these new items"; then, of a second page: "I wanted an scrollable menu from
   left to right to showcase all treasures in one single screen. I didn't ask for a second page, I asked for a seamless
@@ -796,3 +811,13 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
 ## 10. Screen shake as KatAM's
 - The owner: the screen shakes far too much. Mr. Shine & Mr. Bright's and King Dedede's endless shakes are fixed; anything else
   that shakes too much: tell where.
+- Squeak Squad's stone shutters shake it as the DS's do (the owner: "Stone shutters should shake the screen like KatAM does for
+  consistency sake"): KatAM's timed shake (its third, 24 frames, nearest the DS's 22) as a stone pillar shuts or opens, not the
+  spikes (`squeak/gimmicks.c`'s ShutterSound). Checked in the GBA emulator (USA, 1-4-3: Kirby walked onto its switch, the pillar
+  crumbled up with the screen shaking for 24 frames).
+
+## 11. Polish the Squeak Squad hubs
+- The owner: "Add a pending tasks to the list that we need to thoroughly polish the Squeak Squad hubs." The Squeak Squad hub (the
+  Central Circle copy, its grey door, its mirror and doors' places and looks, still provisional), the 8 world switch rooms (their
+  provisional tiles, statues and pedestals) and the new Squeak Squad ability room: a thorough pass on looks and layout, the
+  owner's picks first (the rulebook's frozen designs stay as they are unless the owner says).

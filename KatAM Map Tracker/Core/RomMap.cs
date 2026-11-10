@@ -63,7 +63,9 @@ namespace KatAMMapTracker {
          * NightmareLevel 7 + the world: 8-15, MapExpansion's clusters 20-27), its hub as the NiDL hub (the cluster 28); */
         public int SqueakWorld { get; init; } = -1;
         public bool IsSqueakHub { get; init; }
-        public bool IsNightmareRoom => NightmareLevel >= 0 || IsNightmareHub || IsSqueakHub;
+        // The Squeak Squad ability room (a copy of KatAM's, its door in the Squeak Squad hub): MapExpansion puts it beside the hub;
+        public bool IsSqueakAbilityRoom { get; init; }
+        public bool IsNightmareRoom => NightmareLevel >= 0 || IsNightmareHub || IsSqueakHub || IsSqueakAbilityRoom;
 
         // Room parameter +0x00; Area/theme of the room. 4 are the hubs, 0x25 the boss & goal game rooms;
         public int Area { get; init; }
@@ -147,7 +149,7 @@ namespace KatAMMapTracker {
             RoomAreaTable = -1,
             NightmareHub = -1,
             // (the Squeak Squad rooms, ReadSqueakRooms(): their first room, how many, the hub, their room table, their worlds and stages);
-            SqueakFirst = -1, SqueakCount, SqueakHub = -1, SqueakProps = -1, SqueakWorlds = -1, SqueakStages = -1;
+            SqueakFirst = -1, SqueakCount, SqueakHub = -1, SqueakAbility = -1, SqueakProps = -1, SqueakWorlds = -1, SqueakStages = -1;
 
         public byte[] Rom { get; }
         public uint Crc32 { get; }
@@ -169,8 +171,8 @@ namespace KatAMMapTracker {
             (CoverDataTable, RoomAppearanceTable, PaletteTable, TilesetTable, BackgroundTable, ObjectListTable, RoomAreaTable, NightmareHub) =
                 (source.CoverDataTable, source.RoomAppearanceTable, source.PaletteTable, source.TilesetTable, source.BackgroundTable,
                  source.ObjectListTable, source.RoomAreaTable, source.NightmareHub);
-            (SqueakFirst, SqueakCount, SqueakHub, SqueakProps, SqueakWorlds, SqueakStages) =
-                (source.SqueakFirst, source.SqueakCount, source.SqueakHub, source.SqueakProps, source.SqueakWorlds, source.SqueakStages);
+            (SqueakFirst, SqueakCount, SqueakHub, SqueakAbility, SqueakProps, SqueakWorlds, SqueakStages) =
+                (source.SqueakFirst, source.SqueakCount, source.SqueakHub, source.SqueakAbility, source.SqueakProps, source.SqueakWorlds, source.SqueakStages);
             IsExpanded = source.IsExpanded;
             ExpansionMinibosses.AddRange(source.ExpansionMinibosses);
             foreach (RoomInfo room in source.Rooms.Values.Where(keep)) Rooms[room.Id] = room;
@@ -276,6 +278,8 @@ namespace KatAMMapTracker {
             int[] tables = Enumerable.Range(0, 8).Select(i => ReadPointer(block + 12 + i * 4)).ToArray();
             if (tables.Any(t => t < 0)) return;
             (SqueakFirst, SqueakCount, SqueakHub) = (Read16(block + 2), Read16(block + 4), Read16(block + 6));
+            // (+10: the Squeak Squad ability room, 0 none: older ROMs);
+            SqueakAbility = Read16(block + 10) is int ability && ability != 0 ? ability : -1;
             SqueakProps = tables[0];
             (RoomAreaTable, CoverDataTable, RoomAppearanceTable, PaletteTable, TilesetTable, BackgroundTable, ObjectListTable) =
                 (tables[1], tables[2], tables[3], tables[4], tables[5], tables[6], tables[7]);
@@ -361,10 +365,11 @@ namespace KatAMMapTracker {
                 // (a Squeak Squad room: its world a level of its own, after NiDL's 8; its hub; MapExpansion lays them out as NiDL's);
                 if (IsSqueakRoom(room)) {
                     int world = Rom[SqueakWorlds + room - SqueakFirst], stage = Rom[SqueakStages + room - SqueakFirst];
-                    if (world > 8 || room == SqueakHub) world = 0;
+                    if (world > 8 || room == SqueakHub || room == SqueakAbility) world = 0;
                     info = new RoomInfo {
                         Id = room, ShortIndex = shortIndex, TilemapIndex = tilemapIndex, CoverIndex = coverIndex, ObjectIndex = objectIndex,
                         Area = Read16(parameters), Width = width, Height = height, SqueakWorld = world == 0 ? -1 : world, IsSqueakHub = room == SqueakHub,
+                        IsSqueakAbilityRoom = room == SqueakAbility,
                         NightmareLevel = world == 0 ? -1 : 7 + world, NightmareStage = world == 0 ? -1 : stage, NightmareIndex = room - SqueakFirst,
                     };
                 }
