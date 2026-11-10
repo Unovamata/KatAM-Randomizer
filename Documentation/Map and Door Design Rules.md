@@ -222,7 +222,8 @@ after any change.
 - **Every room is reached** from the NiDL hub's starter mirror: a group of rooms nothing leads into gets a one-way throw into its
   first room. `Reached()`.
 - **Every place Kirby can reach has a way back out** (to the hub or KatAM's rooms), **without needing Down + B** through a thin floor.
-  A place with none gets a one-way throw out, into the first stage of its level that has a way out. The way-out pass in `PlanDoors()`.
+  A place with none gets a one-way throw out, into the first stage of its level that has a way out. The way-out pass in `PlanDoors()`;
+  Squeak Squad's worlds the same, onto the start of the first stage of its world that has one (`PlanSqueakLevels()`).
 - **Thin floors only become KatAM's undroppable kind** when, from every place Kirby arrives, dropping through leads nowhere he
   doesn't reach anyway. `ThinFloors()`.
 - A one-way throw's landing never traps Kirby (rule 3), and breakable blocks a door lands Kirby inside start broken.

@@ -1566,6 +1566,16 @@ namespace KatAMRandomizer {
                         Transports = map.Gimmicks().Where(g => g.Type is SqueakWarpStar or SqueakTurnCannon or SqueakFuseCannon).Select(g => (g.X / 16, g.Y / 16)).ToList(),
                         Rides = map.Gimmicks().Where(g => g.Type is SqueakWarpStar or SqueakFuseCannon && (g.Word(0) & 0xFF) < SqueakStarArrival).Select(g => (g.Word(0) & 0xFF) + 1).ToList() });
                 }
+                // (where the warp stars and fuse cannons land Kirby, SqueakRides() and the fuse cannons' doors: for the levels' way-out pass);
+                foreach ((int from, List<Transport> list) in SqueakRides(squeak, files, roomOf, starsOf, doorsOf, widthOf, heightOf, 0))
+                    foreach (Transport t in list) planRooms[from].RideTo.Add((t.X / 16, t.Y / 16, t.Room, t.DestX - 1, t.DestY - 1));
+                foreach (SqueakPlanRoom plan in planRooms) {
+                    SqueakMap map = new SqueakMap(SqueakUnpack(SqueakFileAnyCase(squeak, files[plan.Index].Map)));
+                    foreach (SqueakGimmick g in map.Gimmicks().Where(g => g.Type == SqueakFuseCannon))
+                        if (SqueakFuse(map) is SqueakFuseLine fuse && roomOf.TryGetValue((files[plan.Index].Area, files[plan.Index].Stage, (sbyte)(g.Word(0) & 0xFF) + 1), out int to)
+                            && doorsOf[to].FirstOrDefault(d => d.Number == g.Word(0) >> 8) is SqueakDoor landing)
+                            plan.RideTo.Add((fuse.Last.x + 1, fuse.Last.y, SqueakFirstRoom + to, landing.X, landing.Y));
+                }
                 // (the levels, KatAMExpansionSqueakLevels.cs: the mirrors each room gets);
                 Dictionary<int, List<Door>> planned = PlanSqueakLevels(planRooms, firstSwitchRoom, out var worldStarts, out var bossRooms, out var switchDoors);
                 List<SqueakLook> looks = new List<SqueakLook>();

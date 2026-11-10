@@ -162,6 +162,8 @@ namespace KatAMRandomizer {
             public List<(int x, int y)> Transports = new List<(int, int)>();
             // (the stage's rooms its warp stars and fuse cannons take Kirby to, numbered from 1);
             public List<int> Rides = new List<int>();
+            // (where each of them stands, its cell, and lands Kirby: the room, the cell; for the way-out pass);
+            public List<(int x, int y, int room, int toX, int toY)> RideTo = new List<(int, int, int, int, int)>();
             public byte At(int x, int y) => x < 0 || y < 0 || x >= Width || y >= Height ? KatAMSolid : Collision[y * Width + x];
         }
 
@@ -222,12 +224,18 @@ namespace KatAMRandomizer {
              * door back) and the ones added so far; a room nothing leads into on the DS (Prism Plains 1's fifth) isn't one, until a door
              * throws him in (see the end); */
             HashSet<int> reachable = new HashSet<int>();
+            /* Through(); A step Kirby takes from a cell to the next: into one he goes through (blocks broken, thin floors crossed, slopes:
+             * the room's own walls only), but never down through a thin floor (rule 9: without Down and B); */
+            static bool Through(SqueakPlanRoom r, int y, int nx, int ny) {
+                byte v = r.At(nx, ny);
+                bool through = SqueakOpen(v, true) || v is KatAMThin or KatAMFirmThin or KatAMSpikes or (>= 0x10 and <= 0x13) or 0x18 or 0x19
+                                                       or (>= 0x01 and <= 0x0C) or (>= 0x34 and <= 0x43) or KatAMMetalBlock or (>= 0xF1 and <= 0xF3);
+                return through && !(ny == y + 1 && v is KatAMThin or KatAMFirmThin or (>= 0x10 and <= 0x1B));
+            }
             /* Leads(); Whether a DS door of a room is one Kirby gets to from where he comes in: its arrivals, the doors the stage's others
-             * land him on, the landings of the doors added so far, joined by the cells he goes through (blocks broken, thin floors
-             * crossed: the room's own walls only; 7-3-1's hidden way into 7-3-5, walled in by clouds, isn't: 7-3-5 gets a throw, below); */
+             * land him on, the landings of the doors added so far, joined by the cells he goes through (Through(); 7-3-1's hidden way
+             * into 7-3-5, walled in by clouds, isn't: 7-3-5 gets a throw, below; 7-3-2's way on, under a thin floor, isn't either); */
             bool Leads(SqueakPlanRoom r, SqueakDoor door) {
-                bool Through(byte v) => SqueakOpen(v, true) || v is KatAMThin or KatAMFirmThin or KatAMSpikes or (>= 0x10 and <= 0x13) or 0x18 or 0x19
-                                                                  or KatAMMetalBlock or (>= 0xF1 and <= 0xF3);
                 List<SqueakPlanRoom> stage = byStage[(r.Area, r.Stage)];
                 List<(int x, int y)> starts = r.Doors.Where(d => SqueakArrival(d) || stage.Any(t => t.Doors.Any(o => o.Room + 1 == r.Number && o.Door == r.Doors.IndexOf(d))))
                                                      .Select(d => (d.X, d.Y))
@@ -241,7 +249,7 @@ namespace KatAMRandomizer {
                     if (x == door.X && y == door.Y) return true;
                     foreach ((int nx, int ny) in new[] { (x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1) })
                         if (nx >= 0 && ny >= 0 && nx < r.Width && ny < r.Height && !seen[ny * r.Width + nx]
-                            && (Through(r.At(nx, ny)) || nx == door.X && ny == door.Y)) {
+                            && (Through(r, y, nx, ny) || nx == door.X && ny == door.Y)) {
                             seen[ny * r.Width + nx] = true;
                             open.Enqueue((nx, ny));
                         }
@@ -268,7 +276,8 @@ namespace KatAMRandomizer {
              * blocks too), away from the room's doors, arrivals, landings and rides (2 x MirrorSpacing across, 2 up or down), the view
              * keeping 2 doors at most; in the room's middle, or hidden (the farthest from where he comes in, behind blocks); */
             // (firm: its floor no block that breaks, for a Mirra, which falls if it does, KatAM's not opening its door there);
-            (int x, int y)? SqueakSpot(SqueakPlanRoom r, bool hidden, bool door, bool firm = false) {
+            // (within: only among these cells, for the way-out pass);
+            (int x, int y)? SqueakSpot(SqueakPlanRoom r, bool hidden, bool door, bool firm = false, HashSet<(int, int)> within = null) {
                 int width = r.Width, height = r.Height;
                 int[] Distances(bool blocks) {
                     int[] distance = Enumerable.Repeat(-1, width * height).ToArray();
@@ -292,6 +301,7 @@ namespace KatAMRandomizer {
                 for (int y = MirrorTop; y <= height - 3; y++) {
                     for (int x = 1; x <= width - 2; x++) {
                         int distance = broken[y * width + x];
+                        if (within != null && !within.Contains((x, y))) continue;
                         if (distance < 0 || r.At(x, y) != KatAMAir || !SqueakOpen(r.At(x, y - 1)) || !SqueakOpen(r.At(x - 1, y)) || !SqueakOpen(r.At(x + 1, y))) continue;
                         if (Enumerable.Range(x - 1, 3).Any(fx => !SqueakFloor(r.At(fx, y + 1)))) continue;
                         if (firm && Enumerable.Range(x - 1, 3).Any(fx => r.At(fx, y + 1) is >= KatAMStarBlock and <= KatAMMetalBlock)) continue;
@@ -541,7 +551,12 @@ namespace KatAMRandomizer {
             for (bool progress = true; progress;) {
                 progress = false;
                 foreach (SqueakPlanRoom r in rooms.Where(r => !reachable.Contains(r.Room) && !IsBossStage((r.Area, r.Stage)) && !SqueakLair(r))) {
-                    if (r.Doors.FirstOrDefault(SqueakArrival) is not SqueakDoor arrival) continue;
+                    // (where the DS lands him: its arrival, else the door a DS door from the stage lands him on: 7-2-8's, under 7-2-7's thin
+                    // floor);
+                    SqueakDoor arrival = r.Doors.FirstOrDefault(SqueakArrival)
+                        ?? byStage[(r.Area, r.Stage)].SelectMany(t => t.Doors).Where(o => o.Room != SqueakNoRoom && o.Room + 1 == r.Number)
+                                                     .Select(o => o.Door < r.Doors.Count ? r.Doors[o.Door] : r.Doors.FirstOrDefault(d => d.Number == o.Door)).FirstOrDefault(d => d != null);
+                    if (arrival == null) continue;
                     (int x, int y) landing = Drop(r, arrival.X, arrival.Y);
                     // (from the world's other stages first: a room of its own stage may lead to it, back into the throw's own room, 7-3-5
                     // into 7-3-2's top, whose free spot then held its way on);
@@ -553,6 +568,76 @@ namespace KatAMRandomizer {
                             break;
                         }
                 }
+            }
+
+            /* Every place Kirby gets to gets him back out (rule 9): a place (a room's cells he gets through from where he arrives, never
+             * down through a thin floor: Through()) none of whose ways on (the DS's doors, the doors added, its warp stars and fuse
+             * cannons) leads out of the worlds' rooms (into a goal game, a switch room, or a boss's shard), nor to a place that does,
+             * gets a one-way door out, as KatAM's one-way mirrors throw him on: onto the start of the first stage of its world he gets
+             * out from (7-3-2's top, whose way on is under a thin floor, the DS's own; not in a goal room, a fight's or a boss stage's); */
+            List<(int room, int x, int y)> entries = worldStarts.Where(w => byRoom.ContainsKey(w.room))
+                                                                .Concat(switchDoors.Values.SelectMany(list => list).Select(d => (d.Room, d.DestX, d.DestY))).ToList();
+            HashSet<int> shardRooms = bossRooms.Keys.ToHashSet();
+            for (int pass = 0; pass < rooms.Count; pass++) {
+                List<(SqueakPlanRoom r, HashSet<(int, int)> cells, List<(int room, int x, int y)> leads)> places = new List<(SqueakPlanRoom, HashSet<(int, int)>, List<(int, int, int)>)>();
+                Dictionary<(int, int, int), int> placeOf = new Dictionary<(int, int, int), int>();
+                // PlaceAt(); The place an arrival leads into (-1: out of the worlds' rooms), flooding it the first time;
+                int PlaceAt(int room, int x, int y) {
+                    if (!byRoom.TryGetValue(room, out SqueakPlanRoom r)) return -1;
+                    x = Math.Clamp(x, 0, r.Width - 1); y = Math.Clamp(y, 0, r.Height - 1);
+                    if (placeOf.TryGetValue((room, x, y), out int known)) return known;
+                    HashSet<(int, int)> seen = new HashSet<(int, int)> { (x, y) };
+                    Queue<(int x, int y)> open = new Queue<(int, int)>(seen);
+                    while (open.Count > 0) {
+                        (int cx, int cy) = open.Dequeue();
+                        foreach ((int nx, int ny) in new[] { (cx + 1, cy), (cx - 1, cy), (cx, cy + 1), (cx, cy - 1) })
+                            if (nx >= 0 && ny >= 0 && nx < r.Width && ny < r.Height && Through(r, cy, nx, ny) && seen.Add((nx, ny))) open.Enqueue((nx, ny));
+                    }
+                    bool Near(int dx, int dy) => Enumerable.Range(-1, 3).Any(ox => Enumerable.Range(-1, 3).Any(oy => seen.Contains((dx + ox, dy + oy))));
+                    List<(int, int, int)> leads = new List<(int, int, int)>();
+                    foreach (SqueakDoor d in r.Doors.Where(d => d.Room != SqueakNoRoom && !SqueakGoal(d) && Near(d.X, d.Y)))
+                        if (byStage[(r.Area, r.Stage)].FirstOrDefault(t => t.Number == d.Room + 1) is SqueakPlanRoom t
+                            && (d.Door < t.Doors.Count ? t.Doors[d.Door] : t.Doors.FirstOrDefault(o => o.Number == d.Door)) is SqueakDoor landing)
+                            leads.Add((t.Room, landing.X, landing.Y));
+                    foreach (Door d in doors[r.Index].Where(d => Near(d.X, d.Y))) leads.Add((d.Room, d.DestX - 1, d.DestY - 1));
+                    foreach (var ride in r.RideTo.Where(t => Near(t.x, t.y))) leads.Add((ride.room, ride.toX, ride.toY));
+                    if (shardRooms.Contains(r.Room)) leads.Add((-1, 0, 0));
+                    places.Add((r, seen, leads));
+                    return placeOf[(room, x, y)] = places.Count - 1;
+                }
+                Queue<int> unvisited = new Queue<int>();
+                HashSet<int> visited = new HashSet<int>();
+                foreach ((int room, int x, int y) in entries)
+                    if (PlaceAt(room, x - 1, y - 1) is int first && first >= 0 && visited.Add(first)) unvisited.Enqueue(first);
+                while (unvisited.Count > 0)
+                    foreach ((int room, int x, int y) in places[unvisited.Dequeue()].leads)
+                        if (PlaceAt(room, x, y) is int next && next >= 0 && visited.Add(next)) unvisited.Enqueue(next);
+                // (the places he gets out from: leading out, or to one that does);
+                HashSet<int> outs = new HashSet<int>();
+                for (bool more = true; more;) {
+                    more = false;
+                    foreach (int i in visited)
+                        if (!outs.Contains(i) && places[i].leads.Any(l => PlaceAt(l.room, l.x, l.y) is int to && (to < 0 || outs.Contains(to)))) { outs.Add(i); more = true; }
+                }
+                List<int> trapped = visited.Where(i => !outs.Contains(i)).OrderBy(i => (places[i].r.Area, places[i].r.Stage, places[i].r.Number)).ToList();
+                if (trapped.Count == 0) break;
+                (SqueakPlanRoom room, int x, int y)? from = null;
+                foreach (int i in trapped) {
+                    SqueakPlanRoom r = places[i].r;
+                    if (IsBossStage((r.Area, r.Stage)) || r.Midboss || r.Boss || goalRooms.Contains(r.Room)) continue;
+                    if ((SqueakSpot(r, false, true, within: places[i].cells) ?? SqueakSpot(r, false, false, within: places[i].cells)) is (int x, int y)) {
+                        from = (r, x, y);
+                        break;
+                    }
+                }
+                if (from is not (SqueakPlanRoom, int, int) spot) throw new InvalidOperationException($"No way out of Squeak Squad room 0x{places[trapped[0]].r.Room:X}.");
+                (int room, int x, int y)? way = null;
+                foreach (var stage in stages.Where(t => t.area == spot.room.Area && !IsBossStage(t) && depthOf.ContainsKey(t)).OrderBy(t => t.stage)) {
+                    (int room, int x, int y) start = StageStart(stage);
+                    if (PlaceAt(start.room, start.x - 1, start.y - 1) is int at && at >= 0 && outs.Contains(at)) { way = start; break; }
+                }
+                if (way is not (int, int, int) to) throw new InvalidOperationException($"No way out of Squeak Squad room 0x{spot.room.Room:X}: no stage of its world leads out.");
+                Add(spot.room, spot.x, spot.y, to, DoorKind.Link, true);
             }
             return doors;
         }

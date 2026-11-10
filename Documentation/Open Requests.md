@@ -593,12 +593,16 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
     - DS doors landing on the right door: a door names the door it lands on by its place in that room's list (7 rooms number
       theirs out of order); 3-1-4's way into 3-1-5 was lost, now kept.
     - Rooms reached (the owner: "Check why the rooms can't be reached and fix it"): the levels' planner now follows the DS's own
-      doors from every door Kirby lands on, not only the stage's arrival (7-3-5 and others were left off), and a room numbered
-      after the goal counts as the stage's lair only if no DS door from the stage leads to it. Logic checks (USA, Europe, Japan the
-      same): 357 of the 498 rooms reached, the 8 switches pressed, nowhere trapped; the 141 left have no door into them at all
-      (the Squeak Lair rooms and chase spawns, on hold). Without dropping through thin floors: 329, world 7's switch not pressed and
-      7-3 trapped (7-3-2's top is reached only through its thin floor, the DS's own way; the Squeak planner has no way-out pass
-      as the NiDL one's rule 9: still to do). NiDL: 280 of 280 in all six checks.
+      doors from every door Kirby lands on, not only the stage's arrival (7-3-5 and others were left off), through slopes too, and
+      never down through a thin floor (rule 9: without Down and B); a room numbered after the goal counts as the stage's lair only
+      if no DS door from the stage leads to it; a room it doesn't reach gets a throw where the DS lands Kirby there (its arrival,
+      else the door a DS door lands him on: 7-2-8, under 7-2-7's thin floor); and its way-out pass (rule 9, as NiDL's) gives a
+      place with no way back out a one-way door onto the start of the first stage of its world that has one (7-3-2's top, where
+      the DS's way on is under a thin floor: a door by its floor, to 7-1-1). Logic checks (USA, Europe, Japan the same): 359 of
+      the 498 rooms reached, the 8 switches pressed, nowhere trapped, with and without dropping through thin floors; the 139 left
+      have no door into them at all (the Squeak Lair rooms and chase spawns, on hold). NiDL: 280 of 280 in all six checks.
+      Checked in the GBA emulator (USA, Kirby put on 7-3-2's top, where 7-3-1's door lands him): he walks off its blocks, drops
+      to the floor, takes the one-way door and lands at 7-1-1's start. Not checked in Europe and Japan in the emulator.
     - Gimmicks left (read on the DS, not ported; the notes have what's decoded):
       - The rope floors (3) and the thunder clouds (5, riding paths, striking on 30-frame timers): to ride, they can use the
         platforms' carrier.
