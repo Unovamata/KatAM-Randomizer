@@ -543,7 +543,7 @@ namespace KatAMMapTracker {
         }
 
         void UpdateMapRevealedRooms() {
-            mapView.MapRevealedRooms = mapsItem.Checked ? AreaMaps.RoomsOf(mapFlags) : new HashSet<int>();
+            mapView.MapRevealedRooms = mapsItem.Checked ? AreaMaps.RoomsOf(mapFlags, map) : new HashSet<int>();
             UpdateDiscoveryLabel();
         }
 

@@ -4026,8 +4026,9 @@
         /* NidlChest; A consumable chest in a ported room (PlanChests()): where it stands (room pixels, the middle of a cell with a floor
          * under it, as KatAM's), what it holds (KatAM's chest items: 0 1UP, 1 Invincible Candy, 2 Maximum Tomato, 3 Meat, 4 Pep Brew,
          * 5 Cherry), its treasure index (from FirstNidlChest), and the NiDL item it replaces (its record in the NiDL ROM; -1 a new one); or
-         * a battery (KatAM's 0x62, the phone's) standing there, new; */
-        public sealed record NidlChest(int X, int Y, byte Item, byte Index, int Replaces, bool Battery = false);
+         * a battery (KatAM's 0x62, the phone's) standing there, new; Map: the area's map it holds instead (KatAMExpansionMaps.cs: the level's
+         * first chest, its best spot), -1 none; */
+        public sealed record NidlChest(int X, int Y, byte Item, byte Index, int Replaces, bool Battery = false, int Map = -1);
         static Dictionary<NightmareRoom, List<NidlChest>> chestsOf = new Dictionary<NightmareRoom, List<NidlChest>>();
         public static IReadOnlyDictionary<NightmareRoom, List<NidlChest>> PortedChests => chestsOf;
         /* The treasure indices of the NiDL chests: KatAM's 84 chests use 0-83 (gTreasures.chestFields has 128 bits; 0x80 on are the shard
@@ -4160,7 +4161,9 @@
                     if (index > LastNidlChest) break;
                     if (plan[c.room].Count > 0 || wanted == 0 && c.score < EmptyRoom) continue;
                     byte item = c.chest.Item != 0xFF ? c.chest.Item : KatAMChestItems[dealt++ * 17 % KatAMChestItems.Length];
-                    plan[c.room].Add(c.chest with { Item = item, Index = (byte)index++ });
+                    // (the level's first, its best spot, holds the level's map: KatAMExpansionMaps.cs);
+                    int map = plan.Where(e => e.Key.Level == level).All(e => e.Value.All(o => o.Map < 0)) ? level : -1;
+                    plan[c.room].Add(c.chest with { Item = map >= 0 ? AreaMapItem(map) : item, Index = (byte)index++, Map = map });
                     if (c.score < EmptyRoom) wanted--;
                 }
                 // Batteries: as many again, at the best spots left, one a room (none in a chest's);
@@ -4175,10 +4178,11 @@
             return plan;
         }
 
-        // ChestTemplate(); A small chest (0x80) as KatAM's: subtype1 its item, unk11 its treasure index;
+        // ChestTemplate(); A small chest (0x80) as KatAM's: subtype1 its item, unk11 its treasure index; unk16 an area's map's mark (chest.c);
         static byte[] ChestTemplate(NidlChest chest, int number) {
             byte[] template = ObjectTemplate(chest.X, chest.Y, number, SmallChestType);
             template[14] = chest.Item; template[15] = 0; template[0x11] = chest.Index;
+            if (chest.Map >= 0) { template[0x16] = (byte)(chest.Map + 1); template[0x17] = ChestMarkMap; }
             return template;
         }
 

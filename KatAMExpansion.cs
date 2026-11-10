@@ -1370,6 +1370,17 @@ namespace KatAMRandomizer {
                 }
             }
 
+            // The areas' maps' icons (KatAMExpansionMaps.cs: with the NiDL rooms or Squeak Squad's, whose chests hold them);
+            int mapAnim = 0;
+            if (rooms || squeakRooms) {
+                try {
+                    mapAnim = AddAreaMapIcons(rom, anims, attrTable, oamTable, paletteBase, tilesBase, ref cursor, animVariants, animAttributes, animOams,
+                                               HurtAnimID + animVariants.Count);
+                } catch (Exception exception) when (exception is IndexOutOfRangeException or ArgumentException or InvalidOperationException) {
+                    return $"The {version.Name} ROM's map icons couldn't be read.";
+                }
+            }
+
             // Extended anims, attrs and oamData tables (indexed by anim ID);
             int[] tables = { anims, attrTable, oamTable };
             List<int>[] entries = { animVariants, animAttributes, animOams };
@@ -1392,14 +1403,6 @@ namespace KatAMRandomizer {
                 }
                 if (sprayError != null) return sprayError;
             }
-            // The Collection Room's grid (KatAMExpansionCollection.cs): KatAM's cells, then the expansion's;
-            string gridError;
-            try {
-                gridError = AddCollectionGrid(rom, version, collectionItems, collectionTexts, ref cursor);
-            } catch (Exception exception) when (exception is IndexOutOfRangeException or ArgumentException or InvalidOperationException) {
-                gridError = $"The {version.Name} ROM's Collection Room couldn't be read.";
-            }
-            if (gridError != null) return gridError;
 
             // The intro's parade: the ported enemies' types (their anims are in place now);
             int paradeAt = Allocate(ref cursor, KatAMTitleScreen.NidlTypesSize(paradeTypes.Count), 4);
@@ -1596,7 +1599,24 @@ namespace KatAMRandomizer {
             error ??= title ? AddTitle(rom, nightmare, version, ref cursor) : null;
             error ??= rooms ? AddWorldMap(rom, version, ref cursor) ?? AddRooms(rom, nightmare, region, version, ref cursor) : null;
             // (Squeak Squad's rooms after NiDL's: KatAMExpansionSqueakRooms.cs);
-            return error ?? (squeakRooms ? AddSqueakRooms(rom, squeak, version, ref cursor) : null);
+            error ??= squeakRooms ? AddSqueakRooms(rom, squeak, version, ref cursor) : null;
+            if (error != null) return error;
+
+            /* The Collection Room's grid (KatAMExpansionCollection.cs) once the rooms are in, whose chests hold the areas' maps: KatAM's
+             * cells, then the expansion's (the sprays above; the maps whose chests are placed: KatAMExpansionMaps.cs); */
+            try {
+                bool[] mapsPlaced = Enumerable.Range(0, AreaMapCount).Select(m => m < NidlAreaMaps
+                    ? rooms && PortedChests.Values.Any(list => list.Any(c => c.Map == m))
+                    : squeakRooms && squeakMapsPlaced.ContainsKey(m)).ToArray();
+                if (mapsPlaced.Any(placed => placed))
+                    error = AddAreaMaps(rom, squeak, version, mapAnim, mapsPlaced, collectionItems, collectionTexts, ref cursor);
+                error ??= AddCollectionGrid(rom, version, collectionItems, collectionTexts, ref cursor);
+            } catch (Exception exception) when (exception is IndexOutOfRangeException or ArgumentException or InvalidOperationException) {
+                error = $"The {version.Name} ROM's Collection Room couldn't be read.";
+            }
+            // (FinishRooms(), after the randomizer, allocates after all this);
+            finishCursor = cursor;
+            return error;
         }
 
         //////////////////////////////////////////////////////////////////////////////////////////////

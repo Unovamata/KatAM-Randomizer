@@ -174,11 +174,13 @@ namespace KatAMRandomizer
                    name == Processing.itemsDictionary[0x81]; // Big Chest;
         }
 
-        /* IsSqueakSprayChest(); A Squeak Squad chest holding one of its spray paints KatAM doesn't have (KatAMExpansionSprays.cs: its
-         * template's unk11 0x9F, unk16 the spray's number + 1, the Properties' 1st and 6th bytes): its spray is its own (the chest's
-         * item only shows a KatAM can, the game's opening gives the spray, "ROM Expansion/chest.c"), so it stays as it is; */
-        static bool IsSqueakSprayChest(Entity entity) =>
-            (entity.ID == 0x80 || entity.ID == 0x81) && entity.Properties.Length > 5 && entity.Properties[0] == 0x9F && entity.Properties[5] != 0;
+        /* IsExpansionTreasureChest(); A chest holding one of the ROM Expansion's treasures: a Squeak Squad spray paint KatAM doesn't have
+         * (KatAMExpansionSprays.cs: its template's unk11 0x9F, unk16 the spray's number + 1, the Properties' 1st and 6th bytes) or an
+         * area's map (KatAMExpansionMaps.cs: unk16's high byte, the 7th, its mark): its treasure is its own (the chest's item only shows a
+         * KatAM can or map, the game's opening gives the treasure, "ROM Expansion/chest.c"), so it stays as it is; */
+        static bool IsExpansionTreasureChest(Entity entity) =>
+            (entity.ID == 0x80 || entity.ID == 0x81) && entity.Properties.Length > 6 &&
+            (entity.Properties[0] == 0x9F && entity.Properties[5] != 0 || entity.Properties[6] == KatAMExpansion.ChestMarkMap);
 
         // IsProgressionObject(); This will not randomize key progression objects;
         bool IsProgressionObject(Entity entity) {
@@ -188,7 +190,7 @@ namespace KatAMRandomizer
             bool isProgressionObject = (entity.ID == 0x81 && behavior == 0x63) || 
                                        (entity.ID == 0x65) ||
                                        (entity.ID == 0x80 && behavior >= ShardChest && behavior < ShardChest + 8) || // Mirror shard chests;
-                                       IsSqueakSprayChest(entity) ||
+                                       IsExpansionTreasureChest(entity) ||
                                        Utils.IsBigSwitch(entity);
 
             return isProgressionObject;

@@ -1002,7 +1002,8 @@ namespace KatAMRandomizer {
         const int SqueakSprayFirst = 83, KatAMSprayItem = 0x14;
         static (List<byte[]> templates, List<byte> types) SqueakObjects(byte[] squeak, SqueakRoomFiles f, SqueakMap map, byte[] collision, bool arenas,
                                                                          List<(int x, int y)> doorCells, byte bossShard, ref int taken, ref int chests,
-                                                                         List<int> vitalityChests = null, int[] sprayCans = null) {
+                                                                         List<int> vitalityChests = null, int[] sprayCans = null,
+                                                                         Dictionary<(SqueakRoomFiles room, int record), int> mapChests = null) {
             List<byte[]> templates = new List<byte[]>();
             List<byte> types = new List<byte>();
             int width = map.Width, height = map.Height;
@@ -1113,6 +1114,14 @@ namespace KatAMRandomizer {
                         if (sprayCans != null && treasure >= SqueakSprayFirst && treasure < SqueakSprayFirst + sprayCans.Length) {
                             chest[14] = (byte)(KatAMSprayItem + sprayCans[treasure - SqueakSprayFirst]);
                             chest[0x16] = (byte)(treasure - SqueakSprayFirst + 1);
+                        }
+                        /* (a world's map, KatAMExpansionMaps.cs: the chest's item one of KatAM's maps, its template's unk16 the mark and the
+                         * map's number + 1: chest.c's NidlChestOpen gives the area's map, not KatAM's); */
+                        if (mapChests != null && mapChests.TryGetValue((f, i), out int areaMap)) {
+                            chest[14] = AreaMapItem(areaMap);
+                            chest[0x16] = (byte)(areaMap + 1);
+                            chest[0x17] = ChestMarkMap;
+                            squeakMapsPlaced[areaMap] = f;
                         }
                         chest[0x11] = SqueakChestIndex;
                         chest[0x12] = (byte)chestAt++;
@@ -1500,6 +1509,9 @@ namespace KatAMRandomizer {
             if (files.Count == 0) return "The Squeak Squad ROM's stages weren't found.";
             // (the spray paints' chests: the KatAM can each shows, KatAMExpansionSprays.cs);
             int[] sprayCans = Enumerable.Range(0, SqueakSprayCount).Select(n => SqueakSprayKatAMCan(rom, version.SpriteTables, squeak, n)).ToArray();
+            // (the worlds' maps' chests, KatAMExpansionMaps.cs);
+            Dictionary<(SqueakRoomFiles room, int record), int> mapChests = SqueakMapChests(squeak, files);
+            squeakMapsPlaced.Clear();
 
             // (the expansion's code names the room tables by their bases only, as KatAM's does: a pointer inside one couldn't move with it);
             int codeEnd = CodeAddress + version.Code.Length;
@@ -1780,7 +1792,7 @@ namespace KatAMRandomizer {
                     // (its world's shard, + 1, if it's the world's boss room: KatAM's 8, one a world, the randomizer's option shuffling them);
                     byte bossShard = bossRooms.TryGetValue(SqueakFirstRoom + i, out int bossWorld) ? (byte)bossWorld : (byte)0;
                     (List<byte[]> templates, List<byte> types) = SqueakObjects(squeak, f, map, collision, arenas, doorCells, bossShard, ref squeakTaken, ref squeakChests,
-                                                                                    vitalityChests, sprayCans);
+                                                                                    vitalityChests, sprayCans, mapChests);
                     // (its cannons: an eight-direction cannon for each of gimmick 0xB, and its fuse cannon with its fuse; its switches);
                     // (the gimmicks that talk to each other: their task's list, its index in the room's list each one's);
                     if (SqueakGimmickList(gimmicks, chains) is byte[] gimmickList) {

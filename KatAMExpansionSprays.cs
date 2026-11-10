@@ -16,8 +16,10 @@ namespace KatAMRandomizer {
         const int SqueakSprayCount = 5, SqueakSprayFile = 14, SqueakSprayColor = 16, KatAMColors = 16, KatAMSprayColors = 14;
         const int KirbyPaletteAnim = 0x15, UfoPaletteAnim = 0x1A0, CollectionIconAnim = 0x388, CollectionCells = 40;
         const int CollectionTextColumns = 30, CollectionTextRows = 7, CollectionLanguages = 6;
-        // (the OBJ palettes the cans take, two cans each: the Collection Room's free ones, after its icons' and previews' 0-11);
-        static readonly byte[] SqueakSprayIconSlots = { 0xC, 0xD, 0xE };
+        /* (the OBJ palettes the cans take, two cans each: the Collection Room's free ones (after its icons' and previews' 0-11) for the
+         * columns that show with KatAM's spray columns, KatAM's sprays' 6 for the fifth, shown only once those are off the screen:
+         * KatAMExpansionMaps.cs's AreaMapPaletteSlots has the rest); */
+        static readonly byte[] SqueakSprayIconSlots = { 0xC, 0xD, 6 };
         // (KatAM's sprays' names in English, by color: their texts, "SPRAY PAINT : NAME", give the letters of the new ones');
         static readonly string[] KatAMSprayNames = { "PINK", "YELLOW", "RED", "GREEN", "SNOW", "CARBON", "OCEAN", "SAPPHIRE", "GRAPE",
                                                      "EMERALD", "ORANGE", "CHOCOLATE", "CHERRY", "CHALK" };
@@ -133,53 +135,18 @@ namespace KatAMRandomizer {
             return true;
         }
 
-        /* SqueakSprayTexts(); The new sprays' texts in each language (the Collection Room's, over the one it puts up: collection.c): the language's text of KatAM's spray CHALK, its
-         * name (the runs that differ among its 14 spray texts, after the ones that are the same in all, and before the ones that are)
-         * cleared and the new name written there in KatAM's letters (taken from the English texts, whose names are known: the
-         * sprays', VITALITY's and DEFAULT's), 1 pixel apart as theirs; as LZ77 tiles and a tilemap, each language's then name's (tileset,
-         * tilemap) returned, by name then language, a language whose texts don't fit this with the first one's that did; */
-        static List<(int tileset, int tilemap)[]> SqueakSprayTexts(byte[] rom, byte[] squeak, KatAMExpansionCode.Version version, int[] sprayTexts, int vitalityText, int defaultText, ref int cursor) {
-            int bgTable = version.RomSymbols["gUnk_082D7850"], textTable = version.RomSymbols["gUnk_08386664"];
-            byte[,] Text(int language, int text) => CollectionTextPixels(rom, bgTable, ReadShort(rom, textTable + (language * 0x27 + text) * 2));
-
-            // The letters, from the English texts;
-            const int English = 1;
-            Dictionary<char, byte[,]> letters = new Dictionary<char, byte[,]>();
-            void Letters(byte[,] pixels, string name, bool last) {
-                List<(int start, int end)> runs = TextRuns(pixels);
-                if (runs.Count < name.Length) return;
-                List<(int start, int end)> named = last ? runs.Skip(runs.Count - name.Length).ToList() : runs.Take(name.Length).ToList();
-                for (int i = 0; i < name.Length; i++) {
-                    if (letters.ContainsKey(name[i])) continue;
-                    (int start, int end) = named[i];
-                    byte[,] glyph = new byte[TextLineBottom - TextLineTop, end - start];
-                    for (int y = TextLineTop; y < TextLineBottom; y++)
-                        for (int x = start; x < end; x++) glyph[y - TextLineTop, x - start] = pixels[y, x];
-                    letters[name[i]] = glyph;
-                }
-            }
-            for (int color = 0; color < KatAMSprayColors; color++)
-                if (Text(English, sprayTexts[color]) is byte[,] text) Letters(text, KatAMSprayNames[color], true);
-            if (Text(English, vitalityText) is byte[,] vitality) Letters(vitality, "VITALITY", true);
-            if (Text(English, defaultText) is byte[,] defaultName) Letters(defaultName, "DEFAULT", true);
+        /* SqueakSprayTexts(); The new sprays' texts in each language (the Collection Room's, over the one it puts up: collection.c): the
+         * language's text of KatAM's spray CHALK with its name in KatAM's letters (ComposeCollectionTexts()), or, in a ROM without KatAM's
+         * English texts (the Japanese one's are empty), Squeak Squad's own names (collection/spray2's cells, its sprays' numbers: their
+         * white letters, which are KatAM's strokes but 7 pixels tall, standing on the line as KatAM's 10; SqueakCanvas() draws a cell
+         * facing the other way, as KatAM's frames face); */
+        static List<(int tileset, int tilemap)[]> SqueakSprayTexts(byte[] rom, byte[] squeak, KatAMExpansionCode.Version version, int[] sprayTexts, ref int cursor) {
+            Dictionary<char, byte[,]> letters = CollectionLetters(rom, version);
             string[] newNames = SqueakSprayNames;
-            /* The names as pixels (the line's rows): KatAM's letters, 1 pixel apart as theirs; a ROM without KatAM's English texts (the
-             * Japanese one's are empty) gets Squeak Squad's own names (collection/spray2's cells, its sprays' numbers: their white
-             * letters, which are KatAM's strokes but 7 pixels tall, standing on the line as KatAM's 10; SqueakCanvas() draws a cell
-             * facing the other way, as KatAM's frames face); */
-            byte[][,] names = new byte[newNames.Length][,];
-            if (newNames.All(n => n.All(letters.ContainsKey)))
-                for (int n = 0; n < newNames.Length; n++) {
-                    int width = newNames[n].Sum(c => letters[c].GetLength(1) + 1) - 1, at = 0;
-                    names[n] = new byte[TextLineBottom - TextLineTop, width];
-                    foreach (char c in newNames[n]) {
-                        byte[,] glyph = letters[c];
-                        for (int y = 0; y < glyph.GetLength(0); y++)
-                            for (int x = 0; x < glyph.GetLength(1); x++) names[n][y, at + x] = glyph[y, x];
-                        at += glyph.GetLength(1) + 1;
-                    }
-                }
+            byte[][,] names;
+            if (newNames.All(n => n.All(letters.ContainsKey))) names = CollectionNames(rom, null, version, newNames);
             else {
+                names = new byte[newNames.Length][,];
                 SqueakCharacter spray2 = ReadSqueakCharacter(squeak, "spray2", "collection");
                 Dictionary<(int palette, int color), int> white = Enumerable.Range(0, 16).ToDictionary(p => (p, SqueakNameWhite), _ => 1);
                 for (int n = 0; n < newNames.Length; n++) {
@@ -195,67 +162,7 @@ namespace KatAMRandomizer {
                             if (canvas[x, y] != 0) names[n][TextBaseline - (bottom - y), right - x] = TextWhite;
                 }
             }
-
-            (int tileset, int tilemap)[,] composed = new (int, int)[CollectionLanguages, newNames.Length];
-            List<int> pending = new List<int>();
-            for (int language = 0; language < CollectionLanguages; language++) {
-                byte[][,] texts = sprayTexts.Select(t => Text(language, t)).ToArray();
-                if (texts.Any(t => t == null)) { CopyRow(language); continue; }
-                List<(int start, int end)>[] runs = texts.Select(TextRuns).ToArray();
-                // (the runs the same in all: before the name, and after it, from the end);
-                int Same(Func<List<(int start, int end)>, int, (int start, int end)?> run) {
-                    int count = 0;
-                    for (; ; count++) {
-                        (int start, int end)? first = run(runs[0], count);
-                        if (first == null) return count;
-                        for (int t = 1; t < texts.Length; t++) {
-                            (int start, int end)? other = run(runs[t], count);
-                            if (other == null || other.Value.end - other.Value.start != first.Value.end - first.Value.start ||
-                                !SameColumns(texts[0], first.Value.start, texts[t], other.Value.start, first.Value.end - first.Value.start)) return count;
-                        }
-                    }
-                }
-                int before = Same((r, i) => i < r.Count ? r[i] : null), after = Same((r, i) => i < r.Count ? r[r.Count - 1 - i] : null);
-                const int Chalk = KatAMSprayColors - 1;
-                List<(int start, int end)> chalkRuns = runs[Chalk];
-                if (before + after >= chalkRuns.Count || before == 0) { CopyRow(language); continue; }
-                byte[,] chalk = texts[Chalk];
-                int nameStart = chalkRuns[before].start, nameEnd = chalkRuns[chalkRuns.Count - 1 - after].end;
-                int suffixStart = after > 0 ? chalkRuns[chalkRuns.Count - after].start : 0, width = chalk.GetLength(1);
-
-                for (int n = 0; n < newNames.Length; n++) {
-                    byte[,] pixels = (byte[,])chalk.Clone();
-                    for (int y = TextLineTop; y < TextLineBottom; y++)
-                        for (int x = nameStart; x < width; x++) pixels[y, x] = 0;
-                    for (int y = 0; y < names[n].GetLength(0); y++)
-                        for (int x = 0; x < names[n].GetLength(1) && nameStart + x < width; x++) pixels[TextLineTop + y, nameStart + x] = names[n][y, x];
-                    int at = nameStart + names[n].GetLength(1) + 1;
-                    // (what came after the name, as far after it);
-                    if (after > 0) {
-                        int shift = at - 1 + (suffixStart - nameEnd);
-                        for (int y = TextLineTop; y < TextLineBottom; y++)
-                            for (int x = suffixStart; x < width && shift + x - suffixStart < width; x++)
-                                pixels[y, shift + x - suffixStart] = chalk[y, x];
-                    }
-                    composed[language, n] = TextTiles(rom, pixels, ref cursor);
-                }
-            }
-            void CopyRow(int language) => pending.Add(language);
-            // (a language whose texts don't fit this, or are empty: the first one's that did);
-            int fits = Enumerable.Range(0, CollectionLanguages).FirstOrDefault(l => !pending.Contains(l), -1);
-            if (fits < 0) throw new InvalidOperationException("The new sprays' texts couldn't be composed.");
-            foreach (int language in pending) for (int n = 0; n < newNames.Length; n++) composed[language, n] = composed[fits, n];
-
-            List<(int tileset, int tilemap)[]> result = new List<(int, int)[]>();
-            for (int n = 0; n < newNames.Length; n++) {
-                (int tileset, int tilemap)[] text = new (int, int)[CollectionLanguages];
-                for (int language = 0; language < CollectionLanguages; language++) {
-                    text[language] = composed[language, n];
-                    if (text[language].tileset == 0) throw new InvalidOperationException("The new sprays' result couldn't be composed.");
-                }
-                result.Add(text);
-            }
-            return result;
+            return ComposeCollectionTexts(rom, version, sprayTexts, KatAMSprayColors - 1, names, ref cursor);
         }
 
         /* TextTiles(); Pixels as a text's tiles (LZ77) and its tilemap (palette 0, as KatAM's texts): the blank tile first, the tiles
@@ -329,16 +236,13 @@ namespace KatAMRandomizer {
             // The Collection Room's grid (KatAMExpansionCollection.cs): the sprays in its first row after KatAM's, their cans, their texts;
             int cells = version.RomSymbols["gUnk_08386A50"];
             int[] sprayTexts = new int[KatAMSprayColors];
-            int vitalityText = -1, defaultText = -1;
             for (int cell = 0; cell < CollectionCells; cell++) {
                 int id = ReadShort(rom, cells + cell * 4);
                 if (id > 0x100 && id <= 0x100 + KatAMSprayColors) sprayTexts[id - 0x101] = rom[cells + cell * 4 + 3];
-                if (id == VitalityId) vitalityText = rom[cells + cell * 4 + 3];
-                if (id == 0x100) defaultText = rom[cells + cell * 4 + 3];
             }
-            if (sprayTexts.Distinct().Count() != KatAMSprayColors || vitalityText < 0 || defaultText < 0) return $"The {version.Name} ROM's Collection Room isn't KatAM's.";
+            if (sprayTexts.Distinct().Count() != KatAMSprayColors) return $"The {version.Name} ROM's Collection Room isn't KatAM's.";
             int firstText = texts.Count;
-            texts.AddRange(SqueakSprayTexts(rom, squeak, version, sprayTexts, vitalityText, defaultText, ref cursor));
+            texts.AddRange(SqueakSprayTexts(rom, squeak, version, sprayTexts, ref cursor));
             // (the text the room puts up, under the spray's own: CHALK's, whose "SPRAY PAINT :" it keeps);
             for (int n = 0; n < SqueakSprayCount; n++)
                 items.Add(new CollectionItem(0, n, 0x100 + SqueakSprayColor + 1 + n, iconAnim, n, SqueakSprayIconSlots[n / 2], firstText + n, sprayTexts[KatAMSprayColors - 1]));

@@ -11,7 +11,7 @@ local PORT = 8765                 -- Must match the port of the tracker window;
 local ROOM_ADDRESS = 0x02020F40   -- Current room ID of Kirby (player 1), the same in every version;
 local RETRY_FRAMES = 180          -- Frames to wait before trying to connect again (~3 seconds);
 local SCRIPT_VERSION = 4          -- Sent to the tracker, which warns about outdated copies of this script;
-local MAPS_ADDRESS = 0x0203897C   -- Area maps the loaded save holds (gTreasures.bigChestField), one bit per area;
+local MAPS_ADDRESS = 0x0203897C   -- Area maps the loaded save holds (gTreasures.bigChestField), one bit per area (KatAM's 0-9, the ROM Expansion's areas 10-25);
 
 -- DEBUG (to be removed for the release): the tracker's "WARP <hex room> <x> <y>" moves Kirby (player 1) into that room, as the
 -- game's own warps do (sub_0805BDF4): his destination room and spawn tile, then his state set to the room transition's start
@@ -182,7 +182,7 @@ callbacks:add("frame", function()
 
   -- The maps change when one is found, or when another save is loaded;
   if connection then
-    local maps = emu:read32(MAPS_ADDRESS) & 0x3FF
+    local maps = emu:read32(MAPS_ADDRESS) & 0x3FFFFFF
     if maps ~= sentMaps and send(string.format("MAPS %X", maps)) then
       sentMaps = maps
     end

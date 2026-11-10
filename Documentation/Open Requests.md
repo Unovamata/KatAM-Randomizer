@@ -684,8 +684,29 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
     spray takes treasures 70-87 as Squeak Squad's sprays 1-18 in order: not checked against the DS's chests.
   - The names are English in every European language and Squeak Squad's in the Japanese ROM: Squeak Squad's European and
     Japanese names aren't in the US ROM used.
-- **Map items for each area** (the owner, with the rooms): KatAM's map item, its sprite recolored to each NiDL and Squeak Squad
-  area's theme, one per area, so the map viewer shows the area once its map is found.
+- **Map items for each area**: done for 15 of the 16 areas (the owner, with the rooms: "KatAM's map item, its sprite recolored to each
+  NiDL and Squeak Squad area's theme, one per area, so the map viewer shows the area once its map is found"; then: "Add the map items
+  for NiDL and Squeak Squad"). Each area's map is KatAM's map in the area's colors (Vegetable Valley lime, Ice Cream Island cream,
+  Butter Building butter, Grape Garden violet, Yogurt Yard brown, Orange Ocean coral, Rainbow Resort aqua, Fountain of Dreams
+  periwinkle; Prism Plains mint, Nature Notch olive, Cushy Cloud pink-white, Jam Jungle raspberry, Vocano Valley lava, Ice Island ice,
+  Secret Sea blue, Gamble Galaxy indigo), owned in the big chests' field's free bits 10-25 (KatAM's maps 0-9, its completion
+  unchanged), each in one chest of its area: a NiDL level's best chest (the planner's first: behind breakable blocks, a dead end, far
+  in), a Squeak Squad world's deepest chest that held a consumable, a big one first (none of the chests holding the owner's Squeak
+  Squad items). Opening one gives the area's map: its map rises out of the chest in the area's colors (KatAM's map, the chest giving
+  one of KatAM's maps for a moment, which is taken back). The Collection Room shows them in the grid's third (NiDL) and fourth (Squeak
+  Squad) rows after KatAM's columns, named "• AREA" over each language's own "Use this for navigation." (KatAM's letters, J and X
+  drawn in their style; the Japanese ROM, which has no English letters, Squeak Squad's font). The chest shuffle leaves these chests
+  alone; the map viewer names them ("Small Chest: Vegetable Valley Map") and reveals an area from its map in the save (its Lua script
+  now reports bits 10-25). `KatAMExpansionMaps.cs`, `chest.c`, `collection.c`.
+  - Tested in the GBA emulator: Vegetable Valley's chest (room 0x06F, Kirby put on it by a RAM write, Up): its bit set, KatAM's map
+    bit given back, the lime map rising; Prism Plains' big chest (1-6-5, room 0x425): its bit, the mint map; the Collection Room with
+    every map owned by a RAM write (USA; German, French, Japanese names), every scroll position from 1 to 8 with no colors clashing.
+    A full randomization with the chest shuffle and random chest contents keeps all 15 map chests as they were. Logic checks
+    unchanged (359 of 498 Squeak Squad rooms, 8 switches, nowhere trapped, all three versions, with and without thin-floor drops).
+  - Not tested: the other 13 chests opened, the map viewer's reveal with a real save (its code built; the window needs Windows),
+    Italian and Spanish names on screen, multiplayer.
+  - Left, the owner's call: **the Fountain of Dreams' map**. Its level is all boss rooms, so it has no chest (its Collection Room
+    cell stays empty). Where should it go: the Fountain of Dreams switch room, its hub, or given after a boss (Nightmare)?
 - **The Collection Room scrolls left and right**: done as one grid (the owner, with the rooms: "the collection room should be
   scrollable left and right to accommodate for all these new items"; then, of a second page: "I wanted an scrollable menu from
   left to right to showcase all treasures in one single screen. I didn't ask for a second page, I asked for a seamless
@@ -693,8 +714,8 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
   KatAM does, then more columns to their right with the expansion's treasures; the screen shows 10 columns. The cursor going
   past the last column shown (or the first) slides the whole grid a column, cells, icons and the lattice together, the striped
   background staying (5 frames); past the grid's last column it goes round to the first, and Left on the first to the last;
-  L and R move it a screen. The new columns hold Squeak Squad's 5 sprays (their row: KatAM's sprays' row); the Secret Map's
-  pieces and the NiDL and Squeak Squad areas' maps go in the rows below as they come (below). `collection.c`,
+  L and R move it a screen. The new columns hold Squeak Squad's 5 sprays (their row: KatAM's sprays' row), the NiDL levels' and
+  Squeak Squad worlds' maps (the third and fourth rows: above), and the Secret Map's pieces go in the second row. `collection.c`,
   `KatAMExpansionCollection.cs`.
   - Tested in the GBA emulator, sprays owned by a RAM write (a forced state, not a playthrough): USA (sliding a column with
     Right at the last column, the frames between, both ends going round, L and R, choosing a new color after a slide, leaving

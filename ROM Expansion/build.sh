@@ -90,7 +90,7 @@ codeNames = ['gNidlWorldMapDoors', 'NidlWorldMapUnlockSave', 'NidlWorldMapGetCoo
              # Bigger rooms (rooms.c): the replacements;
              'BigFillLevelInfo', 'BigGetCollisionTile', 'BigSub_08002434', 'BigSub_08002470', 'BigSub_080024F0', 'BigSub_0800255C', 'BigSub_080025AC', 'BigSub_08002624', 'BigSub_080026A8', 'BigSub_08001408', 'BigSub_080015A8',
              # Squeak Squad's spray paints (sprays.c): the Collection Room's hooks, its pages, the area its table is copied to;
-             'gCollectionGrid', 'GridRoomStart', 'GridRoomFrame', 'GridRoomBg', 'GridRoomEnd', 'gNidlBigArea',
+             'gNidlMaps', 'gCollectionGrid', 'GridRoomStart', 'GridRoomFrame', 'GridRoomBg', 'GridRoomEnd', 'gNidlBigArea',
              'gNidlRoomTops', 'gNidlGridRoom', 'NidlNumChestsCollected', 'gNidlSave', 'gNidlSaveTrampolines', 'NidlWriteSave', 'NidlVerifySave', 'NidlClearSave', 'BigSub_08001678', 'BigSub_080027E8', 'BigSub_080027A8', 'BigSub_08002A5C', 'BigSub_08002A80', 'BigSub_08002AD0', 'BigSub_08002B30', 'BigSub_08002BA8', 'BigSub_08002C18', 'BigGetStateSlot']
 romNames = ['gUnk_0834C2AC', 'gUnk_0834C318', 'gUnk_083509D0', 'gUnk_08350A3C', 'gUnk_08D60FDC', 'gUnk_082DDE84', 'gUnk_082DDEF0',
             'gUnk_082DDF5C', 'gUnk_0834C4B0', 'gUnk_08350AAC', 'gUnk_08350B30', 'sub_080356AC', 'sub_08088640', 'gUnk_08D60B64', 'gUnk_08D60BE4',

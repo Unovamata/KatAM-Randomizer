@@ -90,6 +90,166 @@ namespace KatAMRandomizer {
             return (tileset, tilemap, tiles.Count);
         }
 
+        // (KatAM's English collection texts whose names are known, by their cell's id: CollectionLetters() reads their letters);
+        static IEnumerable<(int id, string name)> KatAMNamedCells() {
+            for (int color = 0; color < KatAMSprayColors; color++) yield return (0x101 + color, KatAMSprayNames[color]);
+            yield return (VitalityId, "VITALITY");
+            yield return (0x100, "DEFAULT");
+            string[] maps = { "WORLD MAP", "RAINBOW ROUTE", "MOONLIGHT MANSION", "CABBAGE CAVERN", "MUSTARD MOUNTAIN", "CARROT CASTLE",
+                              "OLIVE OCEAN", "PEPPERMINT PALACE", "RADISH RUINS", "CANDY CONSTELLATION" };
+            for (int area = 0; area < maps.Length; area++) yield return (0x200 + area, maps[area]);
+        }
+        // (letters KatAM's texts don't have, drawn as its own: 2-pixel strokes, 10 rows from the name line's row 4; a space's blank columns);
+        static readonly Dictionary<char, string[]> DrawnLetters = new Dictionary<char, string[]> {
+            ['J'] = new[] { "....77", "....77", "....77", "....77", "....77", "....77", "....77", "77..77", "77..77", ".7777." },
+            ['X'] = new[] { "77..77", "77..77", "77..77", ".7777.", "..77..", "..77..", ".7777.", "77..77", "77..77", "77..77" },
+        };
+        const int DrawnLetterTop = 4, SpaceWidth = 3, English = 1;
+
+        /* CollectionLetters(); KatAM's letters (the name line's pixels, as wide as each letter), from its English collection texts
+         * (KatAMNamedCells(): the last runs of the name line are the name's letters), and the ones drawn; none in a ROM whose English
+         * texts are empty (the Japanese one); */
+        static Dictionary<char, byte[,]> CollectionLetters(byte[] rom, KatAMExpansionCode.Version version) {
+            int bgTable = version.RomSymbols["gUnk_082D7850"], textTable = version.RomSymbols["gUnk_08386664"], cells = version.RomSymbols["gUnk_08386A50"];
+            Dictionary<char, byte[,]> letters = new Dictionary<char, byte[,]>();
+            foreach ((int id, string name) in KatAMNamedCells()) {
+                int cell = Enumerable.Range(0, CollectionCells).FirstOrDefault(c => ReadShort(rom, cells + c * 4) == id, -1);
+                if (cell < 0) continue;
+                byte[,] pixels = CollectionTextPixels(rom, bgTable, ReadShort(rom, textTable + (English * 0x27 + rom[cells + cell * 4 + 3]) * 2));
+                if (pixels == null) continue;
+                string bare = name.Replace(" ", "");
+                List<(int start, int end)> runs = TextRuns(pixels);
+                if (runs.Count <= bare.Length) continue;
+                for (int i = 0; i < bare.Length; i++) {
+                    if (letters.ContainsKey(bare[i])) continue;
+                    (int start, int end) = runs[runs.Count - bare.Length + i];
+                    byte[,] glyph = new byte[TextLineBottom - TextLineTop, end - start];
+                    for (int y = TextLineTop; y < TextLineBottom; y++)
+                        for (int x = start; x < end; x++) glyph[y - TextLineTop, x - start] = pixels[y, x];
+                    letters[bare[i]] = glyph;
+                }
+            }
+            if (letters.Count > 0)
+                foreach ((char letter, string[] rows) in DrawnLetters) {
+                    if (letters.ContainsKey(letter)) continue;
+                    byte[,] glyph = new byte[TextLineBottom - TextLineTop, rows[0].Length];
+                    for (int y = 0; y < rows.Length; y++)
+                        for (int x = 0; x < rows[y].Length; x++) glyph[DrawnLetterTop + y, x] = rows[y][x] == '.' ? (byte)0 : TextWhite;
+                    letters[letter] = glyph;
+                }
+            return letters;
+        }
+
+        /* CollectionNames(); Names as pixels on a text's name line (its 16 rows, as wide as they are): KatAM's letters 1 pixel apart, a
+         * space 3 more; in a ROM without them (the Japanese one), Squeak Squad's font (subgame/font_asc, ASCII from 0x20: SqueakCanvas()
+         * draws a cell facing the other way, as KatAM's frames face; its bottom on the line's KatAM letters' bottom row); without that
+         * either, empty; */
+        static byte[][,] CollectionNames(byte[] rom, byte[] squeak, KatAMExpansionCode.Version version, string[] names) {
+            Dictionary<char, byte[,]> letters = CollectionLetters(rom, version);
+            SqueakCharacter font = null;
+            if (!names.All(n => n.All(c => c == ' ' || letters.ContainsKey(c)))) {
+                letters.Clear();
+                try { font = squeak == null ? null : ReadSqueakCharacter(squeak, "font_asc", "subgame"); }
+                catch (Exception exception) when (exception is IndexOutOfRangeException or ArgumentException or InvalidOperationException) { font = null; }
+                if (font != null) {
+                    Dictionary<(int palette, int color), int> ink = Enumerable.Range(0, 16).SelectMany(p => Enumerable.Range(1, 15).Select(c => (p, c))).ToDictionary(k => k, _ => 1);
+                    foreach (char c in names.SelectMany(n => n).Distinct().Where(c => c != ' ')) {
+                        int[,] canvas = SqueakCanvas(font, c - 0x20, ink);
+                        int size = canvas.GetLength(0), left = size, right = -1, top = size, bottom = -1;
+                        for (int x = 0; x < size; x++)
+                            for (int y = 0; y < size; y++)
+                                if (canvas[x, y] != 0) { left = Math.Min(left, x); right = Math.Max(right, x); top = Math.Min(top, y); bottom = Math.Max(bottom, y); }
+                        if (right < 0 || bottom - top + 1 > TextLineBottom - TextLineTop) continue;
+                        byte[,] glyph = new byte[TextLineBottom - TextLineTop, right - left + 1];
+                        int last = Math.Max(bottom - top, DrawnLetterTop + 9);
+                        for (int x = left; x <= right; x++)
+                            for (int y = top; y <= bottom; y++)
+                                if (canvas[x, y] != 0) glyph[last - (bottom - y), right - x] = TextWhite;
+                        letters[c] = glyph;
+                    }
+                }
+            }
+            byte[][,] result = new byte[names.Length][,];
+            for (int n = 0; n < names.Length; n++) {
+                int width = 0;
+                foreach (char c in names[n]) width += (c == ' ' ? SpaceWidth : letters.TryGetValue(c, out byte[,] g) ? g.GetLength(1) : 0) + 1;
+                result[n] = new byte[TextLineBottom - TextLineTop, Math.Max(0, width - 1)];
+                int at = 0;
+                foreach (char c in names[n]) {
+                    if (c == ' ') { at += SpaceWidth + 1; continue; }
+                    if (!letters.TryGetValue(c, out byte[,] glyph)) continue;
+                    for (int y = 0; y < glyph.GetLength(0); y++)
+                        for (int x = 0; x < glyph.GetLength(1); x++) result[n][y, at + x] = glyph[y, x];
+                    at += glyph.GetLength(1) + 1;
+                }
+            }
+            return result;
+        }
+
+        /* ComposeCollectionTexts(); New texts made from a family of KatAM's collection texts (gUnk_08386664's indices: the sprays', the
+         * maps') in each language: the template one with its name cleared (the runs of the name line that differ among the family's
+         * texts, after the ones that are the same in all, and before the ones that are, which stay after the new name as far after it)
+         * and each new name written there; the lines under it the template's ("Use this for navigation."). LZ77 tiles and a tilemap
+         * (TextTiles()); per name, its (tileset, tilemap) in each language, a language whose texts don't fit this with the first
+         * one's that did; */
+        static List<(int tileset, int tilemap)[]> ComposeCollectionTexts(byte[] rom, KatAMExpansionCode.Version version, int[] family, int template,
+                                                                         byte[][,] names, ref int cursor) {
+            int bgTable = version.RomSymbols["gUnk_082D7850"], textTable = version.RomSymbols["gUnk_08386664"];
+            byte[,] Text(int language, int text) => CollectionTextPixels(rom, bgTable, ReadShort(rom, textTable + (language * 0x27 + text) * 2));
+            (int tileset, int tilemap)[,] composed = new (int, int)[CollectionLanguages, names.Length];
+            List<int> pending = new List<int>();
+            for (int language = 0; language < CollectionLanguages; language++) {
+                byte[][,] texts = family.Select(t => Text(language, t)).ToArray();
+                if (texts.Any(t => t == null)) { pending.Add(language); continue; }
+                List<(int start, int end)>[] runs = texts.Select(TextRuns).ToArray();
+                // (the runs the same in all: before the name, and after it, from the end);
+                int Same(Func<List<(int start, int end)>, int, (int start, int end)?> run) {
+                    int count = 0;
+                    for (; ; count++) {
+                        (int start, int end)? first = run(runs[0], count);
+                        if (first == null) return count;
+                        for (int t = 1; t < texts.Length; t++) {
+                            (int start, int end)? other = run(runs[t], count);
+                            if (other == null || other.Value.end - other.Value.start != first.Value.end - first.Value.start ||
+                                !SameColumns(texts[0], first.Value.start, texts[t], other.Value.start, first.Value.end - first.Value.start)) return count;
+                        }
+                    }
+                }
+                int before = Same((r, i) => i < r.Count ? r[i] : null), after = Same((r, i) => i < r.Count ? r[r.Count - 1 - i] : null);
+                List<(int start, int end)> baseRuns = runs[template];
+                if (before + after >= baseRuns.Count || before == 0) { pending.Add(language); continue; }
+                byte[,] basePixels = texts[template];
+                int nameStart = baseRuns[before].start, nameEnd = baseRuns[baseRuns.Count - 1 - after].end;
+                int suffixStart = after > 0 ? baseRuns[baseRuns.Count - after].start : 0, width = basePixels.GetLength(1);
+
+                for (int n = 0; n < names.Length; n++) {
+                    byte[,] pixels = (byte[,])basePixels.Clone();
+                    for (int y = TextLineTop; y < TextLineBottom; y++)
+                        for (int x = nameStart; x < width; x++) pixels[y, x] = 0;
+                    for (int y = 0; y < names[n].GetLength(0); y++)
+                        for (int x = 0; x < names[n].GetLength(1) && nameStart + x < width; x++) pixels[TextLineTop + y, nameStart + x] = names[n][y, x];
+                    int at = nameStart + names[n].GetLength(1) + 1;
+                    // (what came after the name, as far after it);
+                    if (after > 0) {
+                        int shift = at - 1 + (suffixStart - nameEnd);
+                        for (int y = TextLineTop; y < TextLineBottom; y++)
+                            for (int x = suffixStart; x < width && shift + x - suffixStart < width; x++)
+                                pixels[y, shift + x - suffixStart] = basePixels[y, x];
+                    }
+                    composed[language, n] = TextTiles(rom, pixels, ref cursor);
+                }
+            }
+            // (a language whose texts don't fit this, or are empty: the first one's that did);
+            int fits = Enumerable.Range(0, CollectionLanguages).FirstOrDefault(l => !pending.Contains(l), -1);
+            if (fits < 0) throw new InvalidOperationException("The Collection Room's new texts couldn't be composed.");
+            foreach (int language in pending) for (int n = 0; n < names.Length; n++) composed[language, n] = composed[fits, n];
+
+            List<(int tileset, int tilemap)[]> result = new List<(int, int)[]>();
+            for (int n = 0; n < names.Length; n++)
+                result.Add(Enumerable.Range(0, CollectionLanguages).Select(language => composed[language, n]).ToArray());
+            return result;
+        }
+
         /* AddCollectionGrid(); The Collection Room's grid (see above): its items (none: the room stays KatAM's) and their texts (each
          * a (tileset, tilemap) per language), its backgrounds, its hooks. Returns an error, or null; */
         static string AddCollectionGrid(byte[] rom, KatAMExpansionCode.Version version, List<CollectionItem> items, List<(int tileset, int tilemap)[]> texts, ref int cursor) {

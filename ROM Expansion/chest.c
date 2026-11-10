@@ -26,6 +26,8 @@
 #include "constants/songs.h"
 #include "code_0800E0E4.h"
 #include "squeak.h"
+#include "task.h"
+#include "main.h"
 
 #define NIDL_CHEST_SHARD 0x40
 #define NIDL_CHEST_RISE 0x18    // how far above the chest's floor the shard floats (pixels);
@@ -59,6 +61,77 @@ struct SqueakChest {
 
 const struct SqueakChest gSqueakChest = { NULL };
 
+/* NidlMaps; Filled in by KatAMExpansionMaps.cs: the areas' maps' shades (light, mid, dark), which the map rising out of a chest
+ * draws with: KatAM's (anim 0x2D2's map) takes the chest's palette (sub_0800B7A4: an effect's sprite loads none), its colors 8-10
+ * the map's; */
+struct NidlMaps {
+    const u16 *colors;          // [AREA_MAPS][3]
+};
+
+const struct NidlMaps gNidlMaps = { NULL };
+
+extern struct Task gTasks[];
+extern void sub_0800B7A4(void);
+static void NidlChestSave(void);
+
+/* NidlMapBefore(); An area's map in a chest (squeak.h's CHEST_MARK_MAP: KatAMExpansionMaps.cs): its own bit set before the game's
+ * opening saves; the chest's item one of KatAM's maps, which the game gives (sub_0800AFC8's 0xA-0x13): its bit to take back after
+ * (NidlMapAfter), unless it was owned; 0 if the chest holds no area's map; */
+static u32 NidlMapBefore(struct Chest *chest) {
+    u16 mark = chest->obj.objTemplate->unk16;
+    u8 map = (mark & 0xFF) - 1;
+    u32 katamMap;
+
+    if (mark >> 8 != CHEST_MARK_MAP || map >= AREA_MAPS || chest->unkE0 < 0xB || chest->unkE0 > 0x13)
+        return 0;
+    katamMap = 1 << (chest->unkE0 - 0xA);
+    gTreasures.bigChestField |= 1 << (AREA_MAP_BIT + map);
+    return gTreasures.bigChestField & katamMap ? 0x80000000 : katamMap;
+}
+
+/* NidlMapPopup(); The popup of an area's map, each frame: the map's shades into its palette's colors 8-10 (the chest's, which the
+ * chest reloads as it opens), then the game's (sub_0800B7A4); */
+static void NidlMapPopup(void) {
+    struct ChestItemPopup *popup = TaskGetStructPtr(gCurTask);
+    const u16 *colors = gNidlMaps.colors + popup->filler52[0] * 3;
+    u16 *palette = &gObjPalette[popup->unk4C->obj.base.sprite.palId * 0x10 + 8];
+
+    if (palette[0] != colors[0] || palette[1] != colors[1] || palette[2] != colors[2]) {
+        palette[0] = colors[0];
+        palette[1] = colors[1];
+        palette[2] = colors[2];
+        gMainFlags |= MAIN_FLAG_OBJ_PALETTE_SYNC_ENABLE;
+    }
+    sub_0800B7A4();
+}
+
+/* NidlMapAfter(); After the game's opening: KatAM's map taken back and saved again, and the popup it made (sub_0800B414's task,
+ * sub_0800B7A4, on this chest) the area's map's colors (NidlMapPopup, the map in its spare byte); */
+static void NidlMapAfter(struct Chest *chest, u32 katamMap) {
+    u8 map = (chest->obj.objTemplate->unk16 & 0xFF) - 1;
+    u8 i;
+
+    if (katamMap & 0x7FFFFFFF) {
+        gTreasures.bigChestField &= ~katamMap;
+        NidlChestSave();
+    }
+    if (!gNidlMaps.colors)
+        return;
+    for (i = 0; i < MAX_TASK_NUM; i++) {
+        struct Task *task = &gTasks[i];
+        struct ChestItemPopup *popup;
+
+        if (task->main != sub_0800B7A4)
+            continue;
+        popup = TaskGetStructPtr(task);
+        if (popup->unk4C != chest)
+            continue;
+        popup->filler52[0] = map;
+        task->main = NidlMapPopup;
+        break;
+    }
+}
+
 // NidlChestOpened(); Open and emptied, as the game's own chests once their item is out (sub_0800BD9C);
 static void NidlChestOpened(struct Chest *chest) {
     chest->obj.base.flags |= 4;
@@ -82,7 +155,7 @@ void NidlChestOpen(struct Chest *chest) {
     // (a Squeak Squad chest: its own bit, set before the game's opening saves; the game's sets SQUEAK_CHEST's, cleared after it);
     if (chest->unkE2 == SQUEAK_CHEST) {
         u16 spray = chest->obj.objTemplate->unk16;
-        u32 katamSpray = 0;
+        u32 katamSpray = 0, katamMap = NidlMapBefore(chest);
 
         SqueakCollectChest(chest->obj.objTemplate->unk12);
         /* (a Squeak Squad spray, KatAMExpansionSprays.cs: its own bit, set before the game's opening saves; the chest's item is KatAM's spray of the
@@ -109,10 +182,17 @@ void NidlChestOpen(struct Chest *chest) {
             gTreasures.sprayPaintField &= ~katamSpray;
             NidlChestSave();
         }
+        if (katamMap != 0)
+            NidlMapAfter(chest, katamMap);
         return;
     }
     if (shard >= 8) {
+        // (a NiDL room's chest holding an area's map, as a Squeak Squad one's above);
+        u32 katamMap = NidlMapBefore(chest);
+
         gNidlChest.open(chest);
+        if (katamMap != 0)
+            NidlMapAfter(chest, katamMap);
         return;
     }
     chest->obj.unk83 = 1;

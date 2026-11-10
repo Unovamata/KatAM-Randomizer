@@ -187,6 +187,12 @@ u32 SqueakGimmickAnim(struct Object *obj);
 #define SQUEAK_SPRAYS 5
 #define SQUEAK_SPRAY_BIT 14
 #define SQUEAK_SPRAY_COLOR 16
+/* (the expansion's areas' maps, KatAMExpansionMaps.cs: the NiDL levels' then the Squeak Squad worlds', owned in gTreasures.bigChestField's
+ * bits AREA_MAP_BIT up (KatAM's 10 maps take bits 0-9); a chest holding one: its template's unk16 CHEST_MARK_MAP << 8 | the map's
+ * number + 1, its item one of KatAM's maps 1-9 (sub_0800AFC8's 0xB-0x13), which NidlChestOpen gives back; the popup the map's); */
+#define AREA_MAPS 16
+#define AREA_MAP_BIT 10
+#define CHEST_MARK_MAP 1
 bool32 SqueakBossAlive(u16 room);
 #define SQUEAK_CHEST_CLOSED SQUEAK_HURT_VARIANTS
 
