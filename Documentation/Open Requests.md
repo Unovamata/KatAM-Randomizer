@@ -329,12 +329,20 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
     0.88, waiting while it's more than 64 pixels ahead and keeping to his height; at the room's end it waits for him, then loops
     (five Bezier legs), flies off out of view and loops again. Harmless and untouchable, as on the DS. Recorded on the DS in both
     stages (Kirby driven by a script) and checked in KatAM (USA, room 0x323: the drift, the hops and their waits, a hop frame by
-    frame against the DS's, the end and its loop both ways, Kirby touching and inhaling it). **Owner's call**: Squeak Squad's route
-    is its stage's own (points and zones in the map); KatAM's rooms have none, so the corridor's route is laid on the room it's
-    in: its line under the floor it first bounces on, its end and loop at the room's side it heads for (where the DS's camera
-    locks on the stage's end, KatAM's camera just follows Kirby, so part of the loop can be off the screen). The shaft's route
-    (a8s4s4: the same moves going up) isn't ported. Say if the star should do something else in KatAM's rooms. Not tested: EU
-    and Japanese builds (built and logic-checked, not played); the randomizer doesn't place it (its route is a stage's).
+    frame against the DS's, the end and its loop both ways, Kirby touching and inhaling it). Its route (the owner: "Is the dark
+    star route ported? If not, port it."; it wasn't: the corridor's route was laid on whatever room the star was in, and the
+    shaft's wasn't there at all): in Squeak Squad's own converted rooms (8-4-3, the corridor, and 8-4-4, the shaft) the star now
+    goes by the room's own route as the DS does (the map's section 9: a zone per tile, the points; `gSqueakDarkStarRoutes`,
+    `SqueakDarkStarRoute()`): hopping from its zone's point toward the next, backward at Kirby's speed + 0.88 and forward at his
+    speed + 0.2 where the route turns back, waiting while he's more than 64 pixels behind or 16 below, ending within 128 of the end
+    point and looping from there once Kirby's camera is held by the room's camera area. It's made at its own spot by the stage's
+    first door (the door rule left it out of 8-4-3 before). Checked in KatAM (USA; Kirby put each frame where and as fast as the DS
+    recordings had him, the star free): the corridor within a few pixels of the DS's star at first and about 25 later, its end and
+    loop on the same frames; the shaft up the same zigzag to the same end (14 pixels off) and held there as on the DS, but off the
+    DS's path for a while half-way (a re-hop under Kirby falling on the other side of a zone's edge by a pixel). In KatAM's own
+    rooms (no route) it keeps the corridor's, laid on the room. Not tested: a real playthrough of 8-4-3 and 8-4-4 by hand (the
+    checks moved Kirby by RAM writes), the corridor again after its spot moved 8 pixels down, EU and Japanese builds in the
+    emulator (built and logic-checked); the randomizer doesn't place it elsewhere (its route is a stage's).
   - The whole cast is ported: the Squeak Squad-only enemies, the shared enemies' Squeak Squad behaviors, its mid-bosses, the
     Squeaks, the bosses (0x37-0x3D), Dark Nebula (0x3F, 0x46) and the dark star (0x3E).
   - **Randomizer options: done** (the ROM Expansion tab's "Kirby: Squeak Squad" group, under NiDL's: Load Squeak Squad ROM, Unload,
@@ -597,8 +605,12 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
       grass, walked through, rustles and stays (first tried with KatAM's hit mark alone: a plain touch cut it; now his body's hit is
       masked out), an attack cuts it, its blades fly, its stub goes and its Cherry comes out (first the Cherry stood there from the
       start: the room's item list holds it, the grass hides it); 1-5-1's top barrel, hit, bursts and lets out its item. Not tested:
-      a regrown tuft, an enemy or ability star let out, Europe and Japan in the emulator. Left out: hiding in an empty barrel
-      (KatAM has no such move).
+      a regrown tuft, an enemy or ability star let out, Europe and Japan in the emulator. A chest a holder hides (7 of them: 2-1-3's,
+      4-1-6's and 7-4-5's Ability Scrolls, 1-5-1's, 4-3-8's and 5-5-4's Copy Palettes, 2-5-5's Graphic Piece) came out as a Cherry;
+      now the holder lets out the chest itself, standing where the barrel or tuft stood, opened and saved as the room's other chests
+      (a tuft that held one doesn't grow back). Checked in the GBA emulator (USA; Sword written into Kirby's ability, Kirby moved
+      onto the chest by a RAM write): 2-1-3's barrel burst into its big chest, which gave scroll 20 and marked itself opened; 4-1-6's
+      grass cut into its small chest, scroll 21.
     - The icicles (9: `squeak/gimmicks.c`, the notes' icicle bullet). Checked in the GBA emulator (USA, 6-1-4, Kirby walked under
       them): one shakes, falls and shatters on the floor; on Kirby it hurts him (OUCH, a bar of health) and knocks him back (first
       it shattered at once: KatAM's camera limit was taken for the room's bottom; then in mid-air: its spot is its tip, not its
@@ -707,15 +719,14 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
         "the light ability should light up Squeak Squad sections that require the candle if NiDL expansion is present"): with
         the NiDL ROM loaded, the Light ability (NiDL's, from Cool Spook) lights the Squeak Squad dark rooms' parts the candles
         light, as Fire does on the DS.
-      - Hiding in an empty barrel (KatAM has no such move).
     - Vitality halves: done (the owner: "Two halves make one Vitality"). Each Vitality chest holds half: KatAM's Vitality,
       taken back on a pair's first half, so max HP grows on every second one (`chest.c`, `gSqueakVitalityChests`). Tested
       in the emulator in all three versions on 1-6-7's chest (Kirby walks onto it and presses Up): as the first half, max HP
       stays 6; with another half marked found by a RAM write, Vitality 1 and max HP 7. Not tested by opening two real chests
       in a row. Three of the eight are placed (1-6-7, 2-6-7, 3-6-2); the other five are chase-spawn chests (on hold).
-    - Left: the chests' other Squeak Squad treasures (Ability Scrolls, with their items; the Spray Paints and the Secret Map's
-      pieces are done, below), the chase spawns after the stage's treasure (the Squeakers among them, and 22 chests), the arenas
-      without the NiDL ROM (NiDL's type holds the camera), the gimmicks, the areas.
+    - Left: what an Ability Scroll does (they're owned and saved: below), the chase spawns after the stage's treasure (the
+      Squeakers among them, and the chests but the 5 scrolls'), the arenas without the NiDL ROM (NiDL's type holds the camera), the
+      gimmicks, the areas.
   - Ability bubbles whose ability no regular enemy gives (Hammer, Bonkers' in KatAM; Squeak Squad's ability numbers 12, 18 and
     26) become food (the owner: "In the case of bubbles without no regular enemy, you can swap them out for food.").
 - **Squeak Squad's spray paints**: done (the owner: "The Spray Paints should be the spray colors from Squeak Squad as new items in
@@ -819,13 +830,56 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
   can only be unlocked after all switches have been pressed on the NiDL hub"). The NiDL hub's copy of Central Circle's ability
   room door no longer waits for KatAM's switch (world slot 0x12, after KatAM's 15 big switches): it waits for world slot 0x1D
   (KatAM's, free), set while the 7 NiDL levels' big switches (slots 0x14-0x1A; the Fountain of Dreams has none) are all pressed
-  (`rooms.c`'s `BigGetStateSlot`, `NIDL_ABILITY_SLOT`; `KatAMExpansionHub.cs`'s `NidlAbilitySlot`). It still leads to KatAM's
-  ability room (0x3CA). Central Circle's own door is unchanged, and the Unlock the Ability Room option now opens Central Circle's
-  door only (the NiDL hub's follows this rule).
+  (`rooms.c`'s `BigGetStateSlot`, `NIDL_ABILITY_SLOT`; `KatAMExpansionHub.cs`'s `NidlAbilitySlot`). It leads to the NiDL ability
+  room (below). Central Circle's own door is unchanged, and the Unlock the Ability Room option now opens Central Circle's door
+  only (the NiDL hub's follows this rule).
   - Checked in the GBA emulator (USA, the switches' slots set by RAM writes): in the NiDL hub with 6 of the 7 set, no door; the
     7th set, the door appeared with KatAM's sparkle, and Up took Kirby into the ability room. Europe and Japan: the same in the
     emulator. NiDL's logic check: its switches are slots 0x14-0x1A, the 7 the door waits for. Not tested: pressing the 7
     switches by playing, the Unlock option's ROM in the emulator.
+- **The NiDL ability room**: done (the owner: "I think we can generate our own pedestals for NiDL exclusive abilities. I would
+  like to create a custom room that holds all NiDL exclusive abilities in a pedestal just like that. For a pedestal, it's a matter
+  of shrinking down the enemy and making sure it looks alright in game"). Room 0x002: KatAM's ability room (its look, collision,
+  music) with 7 statues where KatAM's first 7 stand, one per NiDL-only ability: Needle, Freeze, Light, Ball, Hi-Jump, Mike and
+  Backdrop, each figure the NiDL enemy or mini-boss that gives it (Needlous, Chilly, Cool Spook, Bubbles, Starman, Mr. Tick-Tock,
+  Bugzzy), shrunk to 20 pixels (colors averaged), in one shared palette as KatAM's statues share theirs, on KatAM's own statue
+  stand; touched by a Kirby with no ability, each gives its ability as KatAM's statues do (`abilities/star_rod_stand.c`'s statue
+  mode on object 0x9A, `KatAMExpansionMotions.cs`'s `BuildNidlStatues()`, `KatAMExpansionHub.cs`'s `BuildNidlAbilityRoom()`).
+  The NiDL hub's ability room door leads there and its door back to the NiDL hub (the rulebook). The Star Rod keeps its own stand in
+  the NiDL hub. KatAM's ability room is unchanged.
+  - Checked in the GBA emulator (USA; Kirby moved in by RAM writes, the NiDL switches' slots set by RAM writes for the hub's
+    door): each of the 7 statues touched gave its ability (27-33); the door from the NiDL hub into the room and back out to the
+    hub. Screenshots of the room. Not tested: Europe and Japan in the emulator (built and logic-checked), helpers touching a
+    statue, the Map Viewer (it doesn't know room 0x002 yet: pending).
+- **Ability Scrolls**: in the game as data (the owner: "Implement all Ability Scrolls in their respective chests to add this data
+  to the game already"). All 23 of Squeak Squad's scrolls (treasures 28-50) are in their own chests where Squeak Squad has them:
+  opening one marks the scroll owned in the save (`rooms.c`'s `SqueakTakeScroll()`, 4 bytes of the expansion's save area), and
+  its popup shows the Secret Map pieces' parchment (KatAM's map item, given back). 15 are in plain chests; 3 were in chests a barrel
+  or a grass tuft holds (above); 5 are in chests the DS brings out only in the chase after the stage's big treasure is carried
+  (6-1-7, 6-5-6, 7-1-6, 7-3-4, 8-1-15), which isn't ported, so those 5 chests are there from the start (the chase's other things
+  stay out; 7-3-4's, between two pillars over water there, stands on the ledge right of them). What a scroll does (Squeak Squad's
+  power-ups of each ability) isn't done: it's owned only.
+  - Checked in the GBA emulator (USA; Kirby moved onto each chest by a RAM write, then Up): 1-3-5's (scroll 0), 2-1-3's barrel's
+    (20) and 4-1-6's grass's (21), and all 5 chase chests (15, 7, 18, 10, 13): each set its own bit. Not tested: the 12 other plain
+    ones one by one, Europe and Japan in the emulator, a Collection Room icon (none yet).
+- **Hiding in barrels** (the owner: "Bring the hiding in barrels graphic from Squeak Squad since it's the same spriting style to
+  KatAM to port the barrel hiding"): done, with Squeak Squad's own barrel (its six animations, already the barrel gimmick's). As on
+  the DS (the barrel's states, vtable `0x02229594`): Kirby on the floor in front of an empty barrel presses Down and gets in, the
+  lid shutting; pressing a direction shakes it; A opens it and he hops out; none gets in for 30 frames after. Inside he's hidden and
+  out of reach, as in KatAM's cannon (its own hold, `sub_08051C40`); a barrel with him inside isn't burst. Only empty barrels open,
+  as on the DS: 8-1-4's two (the others hold something and burst when hit). `squeak/gimmicks.c`'s `SqueakBarrel`.
+  - Checked in the GBA emulator (USA, 8-1-4, Kirby moved to the barrel by a RAM write, then played by buttons): in with Down, the
+    shake with Right, out with A (a hop of about 37 pixels, back on the floor), in again, out and walking away. First tried with
+    KatAM's cannon landing to let him out: it threw him to the ceiling; then with his own new-press bits: his crouch takes Down
+    before the barrel sees it, so the barrel reads the held keys itself. Not tested: Europe and Japan in the emulator, a helper,
+    an enemy touching the barrel with Kirby inside. The DS's shut sound isn't played (not identified).
+- **Squeak Squad backgrounds' bottom rows**: fixed (the owner: "some Squeak Squad backgrounds have some stretching artifacts at
+  the bottom, this should be fixed immediately so backgrounds look normal in-game"). The far views were shrunk to 3/4: the DS's
+  192 rows became 144, short of KatAM's 160-row screen, and the last row was repeated under them in streaks. Now one that would be
+  shorter than the screen is shrunk less, both ways, so its own rows fill it (`ConvertSqueakFarView()`). The background space this
+  took was found by sharing identical room tiles and maps (`AllocateShared()`: about 500 KB, which also fixed the European build
+  running out). Checked: every converted far view drawn out (no repeated rows left) and the Squeak Squad hub in the GBA emulator.
+  Not looked at in game: each room whose background's bottom shows.
 - **The Collection Room scrolls left and right**: done as one grid (the owner, with the rooms: "the collection room should be
   scrollable left and right to accommodate for all these new items"; then, of a second page: "I wanted an scrollable menu from
   left to right to showcase all treasures in one single screen. I didn't ask for a second page, I asked for a seamless
@@ -878,6 +932,12 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
   `0x02013E6C` and `0x020B0604`, matched to the port's states by their DS addresses) and placed in the same state; the sounds the
   DS keeps playing (Bubble Head's big blow, Maiga's bite, King Dedede's inhale, Tedhaun's hum, Doc's saucer, Daroach's charge,
   Mecha-Kracko's field, Dark Nebula's and the dark star's arrival) are stopped where the DS stops them, when a hit starts the character over, and when it goes.
+  - Fixed since (found as the dark star's rooms froze the game): the DS's sequences wait out each note unless they say otherwise
+    (its note-wait mode, on by default, switched by the sequence's 0xC7); the conversion had only followed the music's (which turn
+    it off), so the sound effects' notes had no waits, and a sound effect that loops (the dark star's) ran forever in one frame.
+    Each note now waits as the DS's mode says, and a loop with no wait in it gets one. All 1765 converted songs checked by a scan
+    (none loops without a wait); the dark star's rooms played in the emulator. This changes every Squeak Squad sound effect's
+    timing to the DS's.
   - Fixed on the way, for NiDL's sounds too: the expansion code's `PlaySfx()` checks the song's player and priority in
     `gSongTable`, linked at KatAM's address; the table's move only repointed KatAM's own code, so those checks read past KatAM's
     620 songs and refused some sounds at random (Mrs. Moley's thrown rocks and digging never played). The move now repoints the
@@ -895,7 +955,9 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
     the bosses' hit and defeat sounds (KatAM's hurt and defeat stand in), mid-bosses' fight music in ordinary rooms (KatAM's
     mini-boss music: the DS's own wasn't found).
 - **ROM size** (the owner: "if needed, expand the ROM size to fit all this new content but only if needed"): 32 MB is the most
-  the GBA maps (0x08000000-0x09FFFFFF), and the expansion is already there, so it can't grow; about 10 MB of it is free.
+  the GBA maps (0x08000000-0x09FFFFFF), and the expansion is already there, so it can't grow. With both expansions in, the
+  expansion's 16 MB has about 530 KB left (USA build; identical room tiles and maps are now stored once). The next big additions
+  will need room made first (sharing more, or compressing the Squeak Squad samples).
 
 ## 10. Screen shake as KatAM's
 - The owner: the screen shakes far too much. Mr. Shine & Mr. Bright's and King Dedede's endless shakes are fixed; anything else
@@ -912,11 +974,13 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
   designs stay as they are unless the owner says). The Squeak Squad ability room is no longer part of it: it's Squeak Squad's own
   room now, as the owner asked (see its entry above).
 - **The Squeak Squad hub's background and cloud colors** (the owner: "Change the background of the Squeak Squad hub along with its
-  palette for the clouds, show me options in a screenshot"): done, waiting on the owner's pick. The hub no longer shows Central
+  palette for the clouds, show me options in a screenshot"): done, the owner picked D (sending its mock-up: "The Squeak Squad hub
+  should have this background as well"), now in: Prism Plains' castle and rainbow with Central Circle's own cloud colors. Checked
+  in the GBA emulator (USA, a screenshot of the hub). The hub no longer shows Central
   Circle's background: a Squeak Squad far view, converted as its rooms' (shared with the rooms showing the same view), panning
   across the hub as the NiDL hub's does, and Central Circle's cloud and pillar colors (its palettes 4 and 5; the cycled colors
   are in other palettes) tinted toward it, in a palette of the hub's own. Five mock-ups, built and shown in the GBA emulator
-  (USA, three spots in the hub each): A, Cushy Cloud's sky (d_viw_09), clouds sky blue (in for now); B, twilight over the clouds
+  (USA, three spots in the hub each): A, Cushy Cloud's sky (d_viw_09), clouds sky blue; B, twilight over the clouds
   (d_viw_17), lavender; C, starry night (d_viw_26), violet and darker; D, Prism Plains' castle and rainbow (d_viw_00), Central
   Circle's own cloud colors (tinted, they went green); E, the galaxy (d_viw_1e), lilac. `KatAMExpansionSqueakLevels.cs`'s
   `SqueakHubLooks` (name, view, hue, saturation, how much, brightness), `SqueakHubLook` the one in.

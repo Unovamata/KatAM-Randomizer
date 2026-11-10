@@ -204,6 +204,13 @@ u32 SqueakGimmickAnim(struct Object *obj);
 #define SECRET_MAP_PIECES 7
 #define SECRET_MAP_BIT 16
 #define CHEST_MARK_PIECE 2
+/* (Squeak Squad's Ability Scrolls, KatAMExpansionMaps.cs: its 23 (treasures 28-50) owned in the save's scroll bits (rooms.c's
+ * SqueakScrollOwned(), SqueakTakeScroll()); a chest holding one: its template's unk16 CHEST_MARK_SCROLL << 8 | the scroll's number + 1,
+ * its item one of KatAM's maps for the popup, given back as an area map's); */
+#define SQUEAK_SCROLLS 23
+#define CHEST_MARK_SCROLL 3
+bool32 SqueakScrollOwned(u8 n);
+void SqueakTakeScroll(u8 n);
 #define SecretMapWhole() ((gTreasures.musicPlayerAndSheetsField >> SECRET_MAP_BIT & ((1 << SECRET_MAP_PIECES) - 1)) == (1 << SECRET_MAP_PIECES) - 1)
 // SECRET_MAP_SLOT; The world slot the Squeak Squad hub's door to its ability room waits for (KatAM's free slot 0x1C), set from the Secret
 // Map whenever it's read (rooms.c's BigGetStateSlot; KatAMExpansionSqueakLevels.cs's SecretMapSlot);

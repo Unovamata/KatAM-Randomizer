@@ -76,7 +76,7 @@ codeNames = ['gNidlWorldMapDoors', 'NidlWorldMapUnlockSave', 'NidlWorldMapGetCoo
              # Reduce flashing (calm.c);
              'gNidlCalm', 'gNidlCalmTrampolines', 'NidlCalmUpdateScreenDma', 'NidlCalmUpdateScreenCpuSet',
              # Mirror shards in chests (chest.c);
-             'gNidlChest', 'gNidlChestTrampolines', 'NidlChestOpen', 'gSqueakChest', 'SqueakCreateChest', 'gSqueakCannon', 'SqueakCreateCannon', 'SqueakCannonArrival', 'gSqueakSwitch', 'SqueakCreateSwitch', 'gSqueakGimmickRooms', 'gSqueakVitalityChests', 'gNidlShard', 'NidlCreateShard', 'NidlShardDone',
+             'gNidlChest', 'gNidlChestTrampolines', 'NidlChestOpen', 'gSqueakChest', 'SqueakCreateChest', 'gSqueakCannon', 'SqueakCreateCannon', 'SqueakCannonArrival', 'gSqueakSwitch', 'SqueakCreateSwitch', 'gSqueakGimmickRooms', 'gSqueakDarkStarRoutes', 'gSqueakVitalityChests', 'gNidlShard', 'NidlCreateShard', 'NidlShardDone',
              # Skip the tutorial (skip.c);
              'gNidlSkip', 'NidlSkipClear', 'NidlSkipStart', 'gNidlSkipTrampolines',
              # Unlock the ability room (unlock.c);
@@ -84,7 +84,7 @@ codeNames = ['gNidlWorldMapDoors', 'NidlWorldMapUnlockSave', 'NidlWorldMapGetCoo
              # Mirras fall, and open their door where they are (mirra.c);
              'gNidlMirra', 'NidlCreateMirra', 'NidlMirraOpen',
              # The Star Rod's stand in the NiDL hub (abilities/star_rod_stand.c);
-             'NidlCreateRodStand',
+             'NidlCreateRodStand', 'gNidlStandKeys',
              # The ported warp stars' rides (warpstar.c);
              'gNidlRide', 'gNidlRideTrampolines', 'NidlRideRev', 'NidlRideRoomChange', 'NidlRideStep', 'NidlRideDraw', 'NidlRideStar',
              # Bigger rooms (rooms.c): the replacements;

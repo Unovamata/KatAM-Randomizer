@@ -64,6 +64,8 @@ u16 gNidlGridRoom = 0xFFFF;
 #define NIDL_TAKEN_SIZE 0x80
 #define SQUEAK_CHESTS_SIZE 0x10
 #define SQUEAK_WORLD_SIZE 0x20
+// (Squeak Squad's Ability Scrolls owned, a bit each, before the world slots: the visited lists' last 4 bytes, which no room used);
+#define SQUEAK_SCROLLS_SIZE 4
 #define NIDL_TAKEN_KIND 3
 #define SQUEAK_TAKEN_KIND 5
 #define BIG_AREA ((u8 *)gEwramHeap + NIDL_HEAP_SIZE + NIDL_VISITED_SIZE)
@@ -96,8 +98,8 @@ static u16 *Visited(u16 roomId) {
     if (list < NIDL_DOORS_FIRST) return &gVisitedDoors[list];
     area = Area();
     list -= NIDL_DOORS_FIRST;
-    if (list >= (NIDL_VISITED_SIZE - NIDL_TAKEN_SIZE - SQUEAK_CHESTS_SIZE - SQUEAK_WORLD_SIZE) / 2 - 2)
-        list = (NIDL_VISITED_SIZE - NIDL_TAKEN_SIZE - SQUEAK_CHESTS_SIZE - SQUEAK_WORLD_SIZE) / 2 - 3;
+    if (list >= (NIDL_VISITED_SIZE - NIDL_TAKEN_SIZE - SQUEAK_CHESTS_SIZE - SQUEAK_WORLD_SIZE - SQUEAK_SCROLLS_SIZE) / 2 - 2)
+        list = (NIDL_VISITED_SIZE - NIDL_TAKEN_SIZE - SQUEAK_CHESTS_SIZE - SQUEAK_WORLD_SIZE - SQUEAK_SCROLLS_SIZE) / 2 - 3;
     return (u16 *)(area + 1) + list;
 }
 
@@ -118,6 +120,20 @@ bool32 SqueakChestOpened(u8 n) {
 
 void SqueakCollectChest(u8 n) {
     SqueakChests()[n >> 3] |= 1 << (n & 7);
+}
+
+/* SqueakScrollOwned(), SqueakTakeScroll(); Squeak Squad's Ability Scrolls (squeak.h's SQUEAK_SCROLLS: chest.c's NidlChestOpen gives
+ * one, its chest's mark CHEST_MARK_SCROLL), a bit each before the world slots: saved with the visited doors; */
+static u8 *SqueakScrolls(void) {
+    return SqueakChests() - SQUEAK_WORLD_SIZE - SQUEAK_SCROLLS_SIZE;
+}
+
+bool32 SqueakScrollOwned(u8 n) {
+    return n < SQUEAK_SCROLLS && SqueakScrolls()[n >> 3] >> (n & 7) & 1;
+}
+
+void SqueakTakeScroll(u8 n) {
+    if (n < SQUEAK_SCROLLS) SqueakScrolls()[n >> 3] |= 1 << (n & 7);
 }
 
 /* BigGetStateSlot(); GetStateSlot (a state slot: a room's, the session's or the world's, gUnk_02028C10, 0x20 of them, saved), with

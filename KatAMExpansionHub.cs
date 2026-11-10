@@ -12,8 +12,8 @@ namespace KatAMRandomizer {
      *   Central Circle's), drawn over the room's tiles there into new tiles (the ones Central Circle's tilemap doesn't use) with
      *   their colors in a palette of their own: 0-2 (Central Circle's tilemap only uses palette 0's transparent color, its doors
      *   palettes 1 and 2) and 9-13 (the background's palette block carries them);
- * • The ability room's door: Central Circle's own (AbilityRoomDoor()), where Central Circle has it, shown once the NiDL levels' big
- *   switches are all pressed (NidlAbilitySlot); its tiles and colors are kept out of the ones the doors take, its tiles in palettes the doors took (its
+ * • The ability room's door: Central Circle's own (AbilityRoomDoor()), where Central Circle has it, to the NiDL ability room
+ *   (BuildNidlAbilityRoom()), shown once the NiDL levels' big switches are all pressed (NidlAbilitySlot); its tiles and colors are kept out of the ones the doors take, its tiles in palettes the doors took (its
  *   mirror's, palette 0) recolored into those palettes' new colors; */
     internal static partial class KatAMExpansion {
         // The door palettes, per level;
@@ -27,7 +27,7 @@ namespace KatAMRandomizer {
 
         static void BuildMainHub(byte[] rom, byte[] nightmare, IReadOnlyDictionary<string, int> symbols, int spriteTables, int hub, List<Door> hubDoors,
                                  int backgroundRecord, int[] tableSizes, List<int> infos, List<int> palettes, List<int> tilemaps, List<int> solidities,
-                                 List<int> backgrounds, List<int> objects, int noTypes, ref int cursor, out Door abilityRoomDoor,
+                                 List<int> backgrounds, List<int> objects, int noTypes, int abilityRoom, ref int cursor, out Door abilityRoomDoor,
                                  out byte[] hubCollision, out int hubWidth) {
             int roomProps = symbols["gRoomProps"], roomInfos = symbols["gUnk_08D6CD0C"];
             int Props(int field) => ReadShort(rom, roomProps + EntryRoom * 0x28 + field * 2);
@@ -169,8 +169,11 @@ namespace KatAMRandomizer {
             }
             abilityRoomDoor = null;
             if (mirrorTemplate != null) {
-                // (shown by NidlAbilitySlot rather than KatAM's own switch);
-                abilityRoomDoor = new Door(abilityDoor[2], abilityDoor[3], ReadShort(abilityDoor, 8), abilityDoor[10], abilityDoor[11], abilityDoor[12], Slot: NidlAbilitySlot);
+                // (shown by NidlAbilitySlot rather than KatAM's own switch; to the NiDL ability room, BuildNidlAbilityRoom(), landing Kirby
+                // where KatAM's ability room's door from Central Circle does: the room's its copy);
+                abilityDoor = (byte[])abilityDoor.Clone();
+                WriteShort(abilityDoor, 8, abilityRoom);
+                abilityRoomDoor = new Door(abilityDoor[2], abilityDoor[3], abilityRoom, abilityDoor[10], abilityDoor[11], abilityDoor[12], Slot: NidlAbilitySlot);
                 mirrorTemplate[4] = NidlAbilitySlot;
                 foreach (byte[] block in abilityBlocks) specials.AddRange(block);
                 specials.AddRange(abilityDoor);
@@ -255,6 +258,68 @@ namespace KatAMRandomizer {
                 else if (record[0] == 3 && record[2] == doorX && record[3] == doorY) door = record;
             }
             return door == null ? (null, new List<byte[]>(), null) : (template, blocks, door);
+        }
+
+        /* BuildNidlAbilityRoom(); The NiDL ability room (the owner: "I would like to create a custom room that holds all NiDL exclusive
+         * abilities in a pedestal just like that"): KatAM's ability room (0x3CA: its look, collision, music and area, shared) with the
+         * NiDL ability statues ("ROM Expansion/abilities/star_rod_stand.c": object 0x9A, subtypes 1-7, Needle to Backdrop) where its
+         * first seven statues stand (NidlStatueSpots: its two top rows, by the door), KatAM's statues gone; its door leads back to the
+         * NiDL hub's door to it (KatAM's ability room's door to Central Circle, the hub its copy). Its doors list (its door back) for
+         * the doors lists table: returned, null on an error, as `error`; */
+        static readonly (int x, int y)[] NidlStatueSpots = { (40, 48), (152, 48), (312, 48), (424, 48), (40, 144), (152, 144), (312, 144) };
+        const int KatAMStatueFirst = 0x92, KatAMStatueLast = 0x96;
+        static Door BuildNidlAbilityRoom(byte[] rom, IReadOnlyDictionary<string, int> symbols, int room, int hub, int[] tableSizes, List<int> solidities,
+                                         List<int> objects, int noTypes, ref int cursor, out string error) {
+            int roomProps = symbols["gRoomProps"], roomInfos = symbols["gUnk_08D6CD0C"], katam = roomProps + KatAMAbilityRoom * 0x28;
+            error = null;
+            // (its specials: KatAM's ability room's, its door to Central Circle leading to the NiDL hub);
+            int solidity = ReadInt(rom, symbols["gSolidityMaps"] + ReadShort(rom, katam + 13 * 2) * 4) - 0x08000000;
+            int specials = ReadInt(rom, solidity + 4) - 0x08000000;
+            List<byte> list = new List<byte>();
+            Door back = null;
+            for (int at = specials; rom[at + 4] != 0; at += rom[at + 4]) {
+                byte[] record = rom.Skip(at).Take(rom[at + 4]).ToArray();
+                if (record[0] == 3 && record.Length >= 14 && ReadShort(record, 8) == EntryRoom) {
+                    WriteShort(record, 8, hub);
+                    back = new Door(record[2], record[3], hub, record[10], record[11], record[12]);
+                }
+                list.AddRange(record);
+            }
+            if (back == null) { error = "KatAM's ability room has no door back to Central Circle."; return null; }
+            list.AddRange(new byte[] { 0, 0, 0, 0, 0, 0, 0xFF, 0xFF });
+            int specialsAt = AllocateCompressed(rom, list.ToArray(), ref cursor), solidityAt = Allocate(ref cursor, 8, 4);
+            WriteInts(rom, solidityAt, ReadInt(rom, solidity), specialsAt + 0x08000000);
+
+            // (its objects: KatAM's ability room's but its statues, and the NiDL ones);
+            int objectList = ReadInt(rom, symbols["gLevelObjLists"] + ReadShort(rom, katam + 16 * 2) * 4) - 0x08000000;
+            List<byte[]> templates = new List<byte[]>();
+            List<byte> types = new List<byte> { RodStandType };
+            for (int at = ReadInt(rom, objectList) - 0x08000000; rom[at] != 0 || rom[at + 1] != 0; at += 36) {
+                if (rom[at + 12] >= KatAMStatueFirst && rom[at + 12] <= KatAMStatueLast) continue;
+                byte[] template = rom.Skip(at).Take(36).ToArray();
+                template[3] = (byte)templates.Count;
+                templates.Add(template);
+                if (!types.Contains(template[12])) types.Add(template[12]);
+            }
+            for (int i = 0; i < NidlStatueSpots.Length; i++) {
+                byte[] statue = ObjectTemplate(NidlStatueSpots[i].x, NidlStatueSpots[i].y, templates.Count, RodStandType);
+                statue[14] = (byte)(i + 1);
+                templates.Add(statue);
+            }
+            int objectsAt = WriteObjectList(rom, templates, types, noTypes, ref cursor);
+
+            // (its props: KatAM's ability room's, its solidity, objects and doors list its own; its area info KatAM's ability room's, its room);
+            int props = roomProps + room * 0x28;
+            Array.Copy(rom, katam, rom, props, 0x28);
+            WriteShort(rom, props + 13 * 2, tableSizes[13] + solidities.Count);
+            WriteShort(rom, props + 16 * 2, tableSizes[16] + objects.Count);
+            solidities.Add(solidityAt + 0x08000000);
+            objects.Add(objectsAt + 0x08000000);
+            int roomInfo = Allocate(ref cursor, 0x4C, 4);
+            Array.Copy(rom, ReadInt(rom, roomInfos + KatAMAbilityRoom * 4) - 0x08000000, rom, roomInfo, 0x4C);
+            WriteShort(rom, roomInfo + 0x44, room);
+            WriteInt(rom, roomInfos + room * 4, roomInfo + 0x08000000);
+            return back;
         }
 
         /* DimensionMirrorTemplate(); Central Circle's Dimension Mirror: its mirror shard object (0x65) of subtype 8 (shard.c, CreateShard:

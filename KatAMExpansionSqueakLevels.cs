@@ -44,8 +44,8 @@ namespace KatAMRandomizer {
         static readonly (int x, int y) SqueakHubDoor = (11, 18);
         /* SqueakHubLook; The Squeak Squad hub's look (the owner: "Change the background of the Squeak Squad hub along with its palette for
          * the clouds, show me options in a screenshot"): the far view behind it (map/d_viw_NN), and the hue its clouds take, how
-         * saturated, how much (0: Central Circle's, 1: all that hue) and their brightness (a factor); provisional, the owner's to pick
-         * from SqueakHubLooks' mock-ups; */
+         * saturated, how much (0: Central Circle's, 1: all that hue) and their brightness (a factor); the owner's pick of
+         * SqueakHubLooks' mock-ups: D, Prism Plains' castle with Central Circle's own cloud colors; */
         sealed record SqueakHubDesign(string Name, string View, double Hue, double Saturation, double Amount, double Brightness);
         static readonly SqueakHubDesign[] SqueakHubLooks = {
             new SqueakHubDesign("A: Cushy Cloud's sky", "map/d_viw_09.nsbtx", 205, 0.35, 0.6, 1.0),
@@ -54,7 +54,8 @@ namespace KatAMRandomizer {
             new SqueakHubDesign("D: Prism Plains' castle", "map/d_viw_00.nsbtx", 45, 0.25, 0, 1.0),
             new SqueakHubDesign("E: the galaxy", "map/d_viw_1e.nsbtx", 265, 0.4, 0.6, 0.9),
         };
-        static readonly SqueakHubDesign SqueakHubLook = SqueakHubLooks[0];
+        // (the owner picked D: "The Squeak Squad hub should have this background as well", with the screenshot of D);
+        static readonly SqueakHubDesign SqueakHubLook = SqueakHubLooks[3];
         // SqueakCloudTint(); A cloud color of the hub, colorized: its hue and saturation moved toward the look's by its amount, its brightness scaled;
         static int SqueakCloudTint(int color, SqueakHubDesign look) {
             (double h, double s, double v) = ToHsv(color);

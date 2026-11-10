@@ -940,12 +940,31 @@ static bool32 KirbyIn(struct Object *obj, s16 x0, s16 y0, s16 x1, s16 y1, bool32
     return FALSE;
 }
 
+/* (a chest it holds: the converter's chest template's fields, its item over its type in unk14, its mark and number in unk16, its
+ * own number and its half flag in unk18 (chest.c's SqueakCreateChest: SQUEAK_CHEST in unk11, its number unk12, the half flag
+ * unk14's high byte); its bottom on the holder's: KatAM's CreateChest() stands a chest's bottom on the cell edge at or under its
+ * template's y + half its height, the converter's chests' template y their floor less 16 (a big one) or 8 (a small one));
+ * 2-1-3's, 4-3-8's, 5-5-4's and 7-4-5's barrels and 4-1-6's grass hold one; */
+#define HoldsChest(obj) (((obj)->objTemplate->unk14 & 0xFF) == OBJ_SMALL_CHEST || ((obj)->objTemplate->unk14 & 0xFF) == OBJ_BIG_CHEST)
+static void LetOutChest(struct Object *obj) {
+    const struct ObjectTemplate *t = obj->objTemplate;
+    u8 type = t->unk14;
+    s32 y = (obj->base.y >> 8) + (t->unk11 == SQUEAK_BARREL_OBJECT ? 32 : 0) - (type == OBJ_BIG_CHEST ? 16 : 8);
+
+    CreateObjTemplateAndObj(obj->base.unk56, 1, 0x24, obj->base.x >> 8, y, 0, 0x1F, 0, 0, type, t->unk14 >> 8, 0, 0, 0, 0, 0, 0, 0,
+                            SQUEAK_CHEST, t->unk18 & 0xFF, t->unk18 & 0xFF00, t->unk16, 0);
+}
+
 static void LetOut(struct Object *obj) {
     s32 x = obj->base.x >> 8, y = obj->base.y >> 8;
     u8 type = obj->objTemplate->unk14, behavior = obj->objTemplate->unk14 >> 8;
     struct Object *out;
 
     if (!type) return;
+    if (HoldsChest(obj)) {
+        LetOutChest(obj);
+        return;
+    }
     // (out of its middle: a grass tuft's spot is its feet, a barrel's its top);
     y += obj->objTemplate->unk11 == SQUEAK_BARREL_OBJECT ? 16 : -8;
     out = CreateObjTemplateAndObj(obj->base.unk56, 1, 0x24, x, y, 0, 0x1F, 0, 0, type, behavior, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -1019,7 +1038,8 @@ static void SqueakGrassMain(struct Object *obj) {
         g->timer = 0;
         break;
     case GRASS_GONE:
-        if (!(obj->objTemplate->unk14 & 0xFF)) break;
+        // (one that held a chest stays cut: grown back, it would let out the chest again);
+        if (!(obj->objTemplate->unk14 & 0xFF) || HoldsChest(obj)) break;
         if (++g->timer < GRASS_REGROW) break;
         obj->base.flags &= ~(0x400 | HOLDER_HIT);
         obj->base.unk5C = (obj->base.unk5C & ~7) | HOLDER_KIND;
@@ -1058,17 +1078,112 @@ static void *SqueakCreateBlades(struct ObjectTemplate *template, u8 playerId) {
 
 /* The barrel (yakumono/barrel: 0 open, its lid up with a down arrow, 1 the lid shutting, 2 shut, 3 the lid opening, 4 shaking,
  * 5 bursting): its spot its top, its box 16 to each side and 32 down (the constructor's -1.0, -2.0 to 1.0, 0 in the DS's y-up
- * world); one holding something starts shut, an empty one open (on the DS Kirby gets in with Down, out with A, shaking it as he
- * moves: KatAM has no such move, left out here); an attack bursts it (message 0xB, sound 0x51), letting out what it holds, and
- * it's gone; */
+ * world); one holding something starts shut, an empty one open; an attack bursts it (message 0xB, sound 0x51), letting out what it
+ * holds, and it's gone. An open one hides Kirby (its states, vtable 0x02229594's: 1-2 a Kirby got in, the lid shutting then shut;
+ * 6-7 he pressed a way, the barrel shaking then shut; 3-4 he pressed A, the lid opening, he's out, then open; 5 none gets in for
+ * 0x1E frames after): a Kirby on the floor in front of it pressing Down gets in, as he would into KatAM's cannon (sub_08051C40:
+ * hidden, out of reach of anything, held at the object in his unk6C: here the barrel's bottom, BarrelHold); A lets him out, hopping
+ * up into KatAM's own fall (sub_08044EA8: seen again, his collisions back, gravity), a jump's speed up. One with a Kirby in isn't
+ * burst. Only empty ones open: 8-1-4's two; */
 struct SqueakBarrel {
     struct Object obj;
     struct SqueakGimmickSprite spr;
     bool8 burst;
+    u8 rider;   // the Kirby in it + 1, 0 none;
+    u8 wait;    // frames before a Kirby gets in again;
+    u8 timer;   // frames left of the lid's move or the shake (animations 1, 3, 4, which loop in their files);
+    u8 down;    // the Kirbys holding Down last frame (a bit each): a Kirby's own new-press bits (unk11A) are taken by his crouch
+                // before the barrel's turn when he stands;
 };
+#define BARREL_WAIT 0x1E
+#define BARREL_HOP 0x300
+#define BARREL_REACH 12       // a Kirby's middle within this of its middle, across;
+#define BARREL_KEY_DOWN 0x80
+#define BARREL_KEY_A 1
+#define BARREL_KEYS_WAY 0xF0
+
+extern bool8 sub_08051C40(struct Kirby *);
+extern void sub_08044EA8(struct Kirby *);
+
+// (an animation's length in frames, once through; at most 60);
+static u8 BarrelAnimLength(struct SqueakGimmickSprite *spr, u8 anim) {
+    const struct SqueakAnim *a = &gSqueakData.enemies[spr->look].anim[anim];
+    u16 n = 0;
+    u8 i;
+
+    for (i = 0; i < a->steps; i++) n += a->step[i].frames;
+    return n > 60 ? 60 : n;
+}
+
+static void BarrelPlay(struct SqueakBarrel *b, u8 anim) {
+    GimmickPlay(&b->obj, &b->spr, anim);
+    b->timer = BarrelAnimLength(&b->spr, anim);
+}
+
+// (a Kirby in a barrel: at its bottom, under the lid, as KatAM's cannon holds him, sub_0805C018);
+static void BarrelHold(struct Kirby *kirby) {
+    struct ObjectBase *barrel = kirby->base.unk6C;
+
+    kirby->base.x = barrel->x;
+    kirby->base.y = barrel->y + 0x1800;
+}
+
+static void BarrelLetOutKirby(struct Object *obj, struct Kirby *kirby) {
+    kirby->base.x = obj->base.x;
+    kirby->base.y = obj->base.y + 0x1000;
+    sub_08044EA8(kirby);
+    kirby->base.yspeed = BARREL_HOP;
+}
+
+static void BarrelRide(struct SqueakBarrel *b) {
+    struct Object *obj = &b->obj;
+    struct Kirby *kirby = &gKirbys[b->rider - 1];
+
+    // (a Kirby the game took elsewhere: hurt, a room left, the end of the stage);
+    if (kirby->stateFn != BarrelHold || kirby->base.roomId != obj->base.roomId) {
+        b->rider = 0;
+        GimmickPlay(obj, &b->spr, 0);
+        return;
+    }
+    if (b->timer) b->timer--;
+    if ((b->spr.anim == 1 || b->spr.anim == 4) && (b->spr.ended || !b->timer)) GimmickPlay(obj, &b->spr, 2);
+    if (kirby->unk11A & BARREL_KEY_A) {
+        BarrelLetOutKirby(obj, kirby);
+        b->rider = 0;
+        BarrelPlay(b, 3);
+        return;
+    }
+    if (kirby->movementState & 0x30) {
+        if (kirby->movementState & 0x20) kirby->base.flags |= 1;
+        else kirby->base.flags &= ~1;
+    }
+    if (kirby->unk11A & BARREL_KEYS_WAY && b->spr.anim == 2) BarrelPlay(b, 4);
+}
+
+static void BarrelTakeKirby(struct SqueakBarrel *b) {
+    struct Object *obj = &b->obj;
+    u8 i;
+
+    for (i = 0; i < gNumHumanPlayers; i++) {
+        struct Kirby *kirby = &gKirbys[i];
+        s32 dx = (kirby->base.x - obj->base.x) >> 8, dy = (kirby->base.y - obj->base.y) >> 8;
+
+        bool32 pressed = kirby->movementState & BARREL_KEY_DOWN && !(b->down & (1 << i));
+
+        if (kirby->base.roomId != obj->base.roomId || !pressed || !(kirby->base.unk62 & 4)) continue;
+        if (dx < -BARREL_REACH || dx > BARREL_REACH || dy < 8 || dy > 40) continue;
+        if (!sub_08051C40(kirby)) continue;
+        kirby->base.unk6C = &obj->base;
+        kirby->stateFn = BarrelHold;
+        b->rider = i + 1;
+        BarrelPlay(b, 1);
+        return;
+    }
+}
 
 static void SqueakBarrelMain(struct Object *obj) {
     struct SqueakBarrel *b = (struct SqueakBarrel *)obj;
+    u8 i, down = 0;
 
     if (gUnk_03000510.unk4 & ((1 << obj->base.unk56) | 0x10)) return;
     GimmickAnimate(obj, &b->spr);
@@ -1076,12 +1191,33 @@ static void SqueakBarrelMain(struct Object *obj) {
         if (b->spr.ended) obj->base.flags |= 0x1000;
         return;
     }
-    if (!Struck(obj)) return;
-    LetOut(obj);
-    PlaySfx(&obj->base, SQUEAK_SE(0x51)); // (the DS's 0x51);
-    GimmickPlay(obj, &b->spr, 5);
-    b->burst = TRUE;
-    obj->base.unk5C &= ~7;
+    for (i = 0; i < gNumHumanPlayers; i++)
+        if (gKirbys[i].movementState & BARREL_KEY_DOWN) down |= 1 << i;
+    if (b->rider) {
+        obj->base.flags &= ~HOLDER_HIT;
+        BarrelRide(b);
+        if (!b->rider) b->wait = BARREL_WAIT;
+        b->down = down;
+        return;
+    }
+    if (Struck(obj)) {
+        LetOut(obj);
+        PlaySfx(&obj->base, SQUEAK_SE(0x51)); // (the DS's 0x51);
+        GimmickPlay(obj, &b->spr, 5);
+        b->burst = TRUE;
+        obj->base.unk5C &= ~7;
+        return;
+    }
+    if (obj->objTemplate->unk14 & 0xFF) return;
+    if (b->timer) b->timer--;
+    if (b->spr.anim == 3 && (b->spr.ended || !b->timer)) GimmickPlay(obj, &b->spr, 0);
+    if (b->wait) {
+        b->wait--;
+        b->down = down;
+        return;
+    }
+    if (b->spr.anim == 0) BarrelTakeKirby(b);
+    b->down = down;
 }
 
 static void *SqueakCreateBarrel(struct ObjectTemplate *template, u8 playerId) {
@@ -1092,6 +1228,10 @@ static void *SqueakCreateBarrel(struct ObjectTemplate *template, u8 playerId) {
     InitObject(obj, template, playerId);
     HolderInit(obj, &b->spr, SQUEAK_BARREL, -16, 0, 16, 32);
     b->burst = FALSE;
+    b->rider = 0;
+    b->wait = 0;
+    b->timer = 0;
+    b->down = 0;
     GimmickPlay(obj, &b->spr, template->unk14 & 0xFF ? 2 : 0);
     obj->unk78 = SqueakBarrelMain;
     return obj;

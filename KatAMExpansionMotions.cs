@@ -550,6 +550,132 @@
             return (glows[6], frames[0].tiles.Length / 32);
         }
 
+        /* BuildNidlStatues(); The NiDL ability statues' figures ("ROM Expansion/abilities/star_rod_stand.c": object 0x9A's subtypes 1-7, the
+         * owner: "For a pedestal, it's a matter of shrinking down the enemy and making sure it looks alright in game"): for each NiDL
+         * ability, Needle to Backdrop (NidlStatues), the NiDL enemy or mini-boss giving it, its standing frame (an enemy's first, a
+         * mini-boss's map icon), shrunk to fit StatueSize square (its colors averaged over the pixels each covers, a pixel kept where they
+         * cover half of it, then its own palette's nearest), its feet on the stand (KatAM's statues: a 16x16 figure about its spot, the
+         * stand 16 under it), facing as KatAM's statues do (left); the seven in one palette, as KatAM's statues share theirs (their
+         * colors, the two closest made one, the less used taking the other's, till 15 are left). One anim, a variant per statue (its
+         * palette, tiles and frame); returns its ID and the most VRAM tiles one needs; */
+        static readonly (string name, bool miniboss)[] NidlStatues = {
+            ("Needlous", false), ("Chilly", false), ("Cool Spook", false), ("Bubbles", false), ("Starman", false), ("Mr. Tick-Tock", true), ("Bugzzy", true),
+        };
+        const int StatueSize = 20;
+        static (int animId, int tiles) BuildNidlStatues(byte[] rom, byte[] nightmare, NightmareRegion region,
+                List<(Enemy enemy, byte[] palette, List<(byte[] tiles, ushort[] oams, short[] attributes, int palette)> frames, byte[] hurt)> built,
+                List<(List<byte[]> palettes, List<(byte[] tiles, ushort[] oams, short[] attributes, int palette)> frames, byte[] hurt)> builtMinibosses,
+                int paletteBase, int tilesBase, ref int cursor, int firstAnimId, List<int> animVariants, List<int> animAttributes, List<int> animOams) {
+            const int Size = 128, Center = 64;
+            List<int[,]> figures = new List<int[,]>();
+            foreach ((string name, bool miniboss) in NidlStatues) {
+                (byte[] tiles, ushort[] oams, short[] attributes, int palette) frame;
+                byte[] colors;
+                if (miniboss) {
+                    int i = AllBosses.FindIndex(m => m.Name == name);
+                    frame = builtMinibosses[i].frames[AllBosses[i].Icon?[0] ?? 0];
+                    colors = frame.palette < 0 ? nightmare[region.Palette15..(region.Palette15 + 32)] : builtMinibosses[i].palettes[frame.palette];
+                } else {
+                    int i = Definitions.FindIndex(e => e.Name == name);
+                    frame = built[i].frames[0];
+                    colors = frame.palette < 0 ? nightmare[region.Palette15..(region.Palette15 + 32)] : built[i].palette;
+                }
+                // (its frame drawn: the first piece on top, so they're drawn last to first; RGB555 + 1, 0 none);
+                int[,] source = new int[Size, Size];
+                for (int p = frame.oams.Length / 3 - 1; p >= 0; p--) {
+                    int shape = frame.oams[p * 3] >> 14, size = frame.oams[p * 3 + 1] >> 14, tile = frame.oams[p * 3 + 2];
+                    int pieceY = frame.oams[p * 3] & 0x3FFF, pieceX = frame.oams[p * 3 + 1] & 0xFFF;
+                    bool flipH = (frame.oams[p * 3 + 1] & 0x1000) != 0, flipV = (frame.oams[p * 3 + 1] & 0x2000) != 0;
+                    int w = shape == 0 ? 8 << size : shape == 1 ? new[] { 16, 32, 32, 64 }[size] : new[] { 8, 8, 16, 32 }[size];
+                    int h = shape == 0 ? 8 << size : shape == 1 ? new[] { 8, 8, 16, 32 }[size] : new[] { 16, 32, 32, 64 }[size];
+                    for (int y = 0; y < h; y++)
+                        for (int x = 0; x < w; x++) {
+                            int t = tile + y / 8 * (w / 8) + x / 8, b = frame.tiles[t * 32 + y % 8 * 4 + x % 8 / 2];
+                            int color = (x & 1) != 0 ? b >> 4 : b & 0xF;
+                            int px = Center - frame.attributes[4] + pieceX + (flipH ? w - 1 - x : x), py = Center - frame.attributes[5] + pieceY + (flipV ? h - 1 - y : y);
+                            if (color != 0 && px >= 0 && py >= 0 && px < Size && py < Size) source[px, py] = ReadShort(colors, color * 2) % 0x8000 + 1;
+                        }
+                }
+                int left = Size, right = -1, top = Size, bottom = -1;
+                for (int y = 0; y < Size; y++)
+                    for (int x = 0; x < Size; x++)
+                        if (source[x, y] != 0) { left = Math.Min(left, x); right = Math.Max(right, x); top = Math.Min(top, y); bottom = Math.Max(bottom, y); }
+                if (right < 0) throw new ArgumentException($"{name}'s frame is empty.");
+                int width = right - left + 1, height = bottom - top + 1;
+                double scale = Math.Min(1.0, (double)StatueSize / Math.Max(width, height));
+                int outWidth = Math.Max(1, (int)Math.Round(width * scale)), outHeight = Math.Max(1, (int)Math.Round(height * scale));
+                int[] own = Enumerable.Range(1, 15).Select(c => ReadShort(colors, c * 2) % 0x8000).ToArray();
+                // (shrunk: each pixel the average of the ones it covers, kept where they cover half of it, its palette's nearest color);
+                int[,] figure = new int[Size, Size];
+                int originX = Center - outWidth / 2, originY = Center + 8 - outHeight;
+                for (int y = 0; y < outHeight; y++)
+                    for (int x = 0; x < outWidth; x++) {
+                        double x0 = left + x / scale, x1 = left + (x + 1) / scale, y0 = top + y / scale, y1 = top + (y + 1) / scale;
+                        double r = 0, g = 0, bl = 0, covered = 0, area = 0;
+                        for (int sy = (int)y0; sy < Math.Ceiling(y1); sy++)
+                            for (int sx = (int)x0; sx < Math.Ceiling(x1); sx++) {
+                                double weight = (Math.Min(sx + 1, x1) - Math.Max(sx, x0)) * (Math.Min(sy + 1, y1) - Math.Max(sy, y0));
+                                if (weight <= 0) continue;
+                                area += weight;
+                                if (sx < 0 || sy < 0 || sx >= Size || sy >= Size || source[sx, sy] == 0) continue;
+                                int c = source[sx, sy] - 1;
+                                r += (c & 31) * weight; g += (c >> 5 & 31) * weight; bl += (c >> 10 & 31) * weight; covered += weight;
+                            }
+                        if (covered < area / 2) continue;
+                        int average = (int)Math.Round(r / covered) | (int)Math.Round(g / covered) << 5 | (int)Math.Round(bl / covered) << 10;
+                        figure[originX + x, originY + y] = own.MinBy(c => ColorDistance(c, average)) + 1;
+                    }
+                figures.Add(figure);
+            }
+
+            // One palette for the seven: their colors, the two closest made one (the less used taking the more used one's) till 15 are left;
+            Dictionary<int, int> uses = new Dictionary<int, int>();
+            foreach (int[,] figure in figures)
+                foreach (int pixel in figure)
+                    if (pixel != 0) uses[pixel - 1] = uses.GetValueOrDefault(pixel - 1) + 1;
+            Dictionary<int, int> into = uses.Keys.ToDictionary(c => c, c => c);
+            List<int> kept = uses.Keys.ToList();
+            while (kept.Count > 15) {
+                (int a, int b) closest = (kept[0], kept[1]);
+                for (int i = 0; i < kept.Count; i++)
+                    for (int j = i + 1; j < kept.Count; j++)
+                        if (ColorDistance(kept[i], kept[j]) < ColorDistance(closest.a, closest.b)) closest = (kept[i], kept[j]);
+                (int keep, int drop) = uses[closest.a] >= uses[closest.b] ? (closest.a, closest.b) : (closest.b, closest.a);
+                uses[keep] += uses[drop];
+                foreach (int c in into.Keys.ToList()) if (into[c] == drop) into[c] = keep;
+                kept.Remove(drop);
+            }
+            int paletteAt = Allocate(ref cursor, 32, 32, paletteBase);
+            for (int i = 0; i < kept.Count; i++) WriteShort(rom, paletteAt + (i + 1) * 2, kept[i]);
+
+            // Frames, tiles (each its variant's, aligned to the tiles base), attributes, OAMs; the variants: GetPalette, GetTiles, ShowFrame, End;
+            List<(byte[] tiles, ushort[] oams, short[] attributes)> frames = figures.Select(figure => {
+                int[,] indexes = new int[Size, Size];
+                for (int y = 0; y < Size; y++)
+                    for (int x = 0; x < Size; x++)
+                        if (figure[x, y] != 0) indexes[x, y] = kept.IndexOf(into[figure[x, y] - 1]) + 1;
+                return CutFrame(indexes, int.MaxValue);
+            }).ToList();
+            int attributesAt = Allocate(ref cursor, frames.Count * 12, 4), oamsAt = Allocate(ref cursor, frames.Sum(f => f.oams.Length) * 2, 4);
+            int variantsAt = Allocate(ref cursor, frames.Count * 4, 4);
+            for (int i = 0, oam = 0; i < frames.Count; oam += frames[i].oams.Length, i++) {
+                WriteShorts(rom, attributesAt + i * 12, (short)(oam / 3), frames[i].attributes[1], frames[i].attributes[2], frames[i].attributes[3],
+                            frames[i].attributes[4], frames[i].attributes[5]);
+                for (int o = 0; o < frames[i].oams.Length; o++) WriteShort(rom, oamsAt + (oam + o) * 2, frames[i].oams[o]);
+                int tilesAt = Allocate(ref cursor, frames[i].tiles.Length, 32, tilesBase);
+                frames[i].tiles.CopyTo(rom, tilesAt);
+                int[] words = { -2, (paletteAt - paletteBase) / 32, 16, -1, (tilesAt - tilesBase) / 32, frames[i].tiles.Length / 32, 1, i, -4 };
+                int variantAt = Allocate(ref cursor, words.Length * 4, 4);
+                for (int w = 0; w < words.Length; w++) WriteInt(rom, variantAt + w * 4, words[w]);
+                WriteInt(rom, variantsAt + i * 4, variantAt + 0x08000000);
+            }
+            int animId = firstAnimId + animVariants.Count;
+            animVariants.Add(variantsAt);
+            animAttributes.Add(attributesAt);
+            animOams.Add(oamsAt);
+            return (animId, frames.Max(f => f.tiles.Length / 32));
+        }
+
         // RodPixels(); A NiDL Kirby frame's second layer (the Star Rod's: the rod alone) as RGB555 + 1 (0: none), its origin at the middle;
         static int[,] RodPixels(byte[] nightmare, NightmareRegion region, int frame) {
             const int Size = 128, Center = 64;

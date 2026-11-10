@@ -296,8 +296,9 @@
 
         public static IReadOnlyList<NightmareRoom> PortedRooms { get; private set; } = new List<NightmareRoom>();
         public static IReadOnlyDictionary<NightmareRoom, List<Door>> PortedDoors { get; private set; } = new Dictionary<NightmareRoom, List<Door>>();
-        // The NiDL hub's room and doors (see BuildMainHub());
+        // The NiDL hub's room and doors (see BuildMainHub()), and the NiDL ability room's (BuildNidlAbilityRoom(): -1 none);
         public static (int Room, IReadOnlyList<Door> Doors) PortedMainHub { get; private set; } = (0, new List<Door>());
+        public static int NidlAbilityRoom { get; private set; } = -1;
         /* For the randomizer, which reads the expanded ROM's items and chests as KatAM's: the ported rooms' items and chests (room, template
          * address; none in a boss room, a switch room or a mini-boss's fight area), and where the doors lists' table went (-1: not moved,
          * no rooms ported); chestLists: each such room's doors list (its table entry) and objects, for FinishRooms(); */
@@ -312,6 +313,7 @@
             chestLists = new List<(int, int, int)>();
             chestsOf = new Dictionary<NightmareRoom, List<NidlChest>>();
             DoorsTable = -1;
+            NidlAbilityRoom = -1;
             endingFlight = -1;
             flightTable = -1;
             transportsOf = new Dictionary<NightmareRoom, List<Transport>>();
@@ -1230,10 +1232,13 @@
             WriteInt(rom, noTypes, 0xFF);
 
             // Room numbers: the NiDL hub's first, then each level's (its switch room first) from its hundred, then from any left;
-            if (free.Count < rooms.Count + 1) return "KatAM has too few free rooms for Nightmare in Dream Land's.";
+            if (free.Count < rooms.Count + 2) return "KatAM has too few free rooms for Nightmare in Dream Land's.";
             List<int> left = new List<int>(free);
             int mainHub = left.Where(n => n / 100 == LevelHundreds[7]).DefaultIfEmpty(left[0]).First();
             left.Remove(mainHub);
+            // (and the NiDL ability room's, after the hub's: BuildNidlAbilityRoom());
+            int nidlAbilityRoom = left.Where(n => n / 100 == LevelHundreds[7]).DefaultIfEmpty(left[0]).First();
+            left.Remove(nidlAbilityRoom);
             for (int level = 0; level < 8; level++) {
                 foreach (NightmareRoom r in rooms.Where(r => r.Level == level).OrderBy(r => r.IsSwitchRoom ? 0 : 1)) {
                     int room = left.Where(n => n / 100 == LevelHundreds[level]).DefaultIfEmpty(left[0]).First();
@@ -1430,8 +1435,12 @@
             if (WarpRideDetours(rom, version) is string rideError) return rideError;
 
             BuildMainHub(rom, nightmare, symbols, version.SpriteTables, mainHub, mainHubDoors, rooms.First(r => r.Level == 7 && r.Stage == 0 && r.Index == 0).Record, tableSizes,
-                         infos, palettes, tilemaps, solidities, backgrounds, objects, noTypes, ref cursor, out Door abilityDoor,
+                         infos, palettes, tilemaps, solidities, backgrounds, objects, noTypes, nidlAbilityRoom, ref cursor, out Door abilityDoor,
                          out byte[] hubCollision, out int hubWidth);
+            Door abilityRoomBack = BuildNidlAbilityRoom(rom, symbols, nidlAbilityRoom, mainHub, tableSizes, solidities, objects, noTypes, ref cursor,
+                                                        out string abilityRoomError);
+            if (abilityRoomError != null) return abilityRoomError;
+            NidlAbilityRoom = nidlAbilityRoom;
             WriteShort(rom, CodeAddress + version.CodeSymbols["gNidlHubRoom"], mainHub);
             /* The boss rooms' shards (bossExitsOf): gNidlShardExits ("ROM Expansion/nidl_boss.c"), read by NidlShardExit() after the shard
              * cutscene (HookShardExit()); in the NiDL hub, with the cells of the door's ground either side of it (up to 2 each:
@@ -1535,6 +1544,9 @@
             // (the hub's, with its door to the ability room last: the game's door visits look for a door in its list, endlessly);
             List<int> doorLists = new List<int> { DoorsList(abilityDoor == null ? mainHubDoors : mainHubDoors.Append(abilityDoor), new List<NidlChest>()) };
             doorLists.AddRange(rooms.Select(r => DoorsList(doors[r], chestsOf[r].Where(c => !c.Battery).ToList())));
+            // (the NiDL ability room's, its door back to the hub, after the rooms': its props name it);
+            WriteShort(rom, roomProps + nidlAbilityRoom * 0x28 + 18 * 2, SharedDoors + doorLists.Count);
+            doorLists.Add(DoorsList(new[] { abilityRoomBack }, new List<NidlChest>()));
             cursor = listCursor;
 
             // The tables, copied with the new entries;
@@ -4605,6 +4617,23 @@
         static int AllocateCompressed(byte[] rom, byte[] data, ref int cursor) {
             int at = Allocate(ref cursor, data.Length, 4);
             data.CopyTo(rom, at);
+            return at;
+        }
+
+        /* AllocateShared(); As AllocateCompressed(), for data nothing changes once written (a room's tiles and tilemap): data already
+         * written to this ROM, byte for byte, is used again (the Squeak Squad rooms of a stage often share their tiles: half a megabyte;
+         * the ROM was full). Kept per ROM, and the bytes checked where they were, so another ROM built in the same run shares nothing; */
+        static readonly System.Runtime.CompilerServices.ConditionalWeakTable<byte[], Dictionary<string, List<int>>> sharedData =
+            new System.Runtime.CompilerServices.ConditionalWeakTable<byte[], Dictionary<string, List<int>>>();
+        static int AllocateShared(byte[] rom, byte[] data, ref int cursor) {
+            Dictionary<string, List<int>> written = sharedData.GetOrCreateValue(rom);
+            string key = Convert.ToBase64String(System.Security.Cryptography.SHA256.HashData(data)) + ":" + data.Length;
+            if (written.TryGetValue(key, out List<int> places))
+                foreach (int place in places)
+                    if (place + data.Length <= rom.Length && rom.AsSpan(place, data.Length).SequenceEqual(data)) return place;
+            int at = AllocateCompressed(rom, data, ref cursor);
+            if (places == null) written[key] = places = new List<int>();
+            places.Add(at);
             return at;
         }
 

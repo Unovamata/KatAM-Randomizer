@@ -74,7 +74,7 @@ extern struct Task gTasks[];
 extern void sub_0800B7A4(void);
 static void NidlChestSave(void);
 
-/* NidlMapBefore(); An area's map or a piece of the Secret Map in a chest (squeak.h's CHEST_MARK_MAP, CHEST_MARK_PIECE:
+/* NidlMapBefore(); An area's map, a piece of the Secret Map or an Ability Scroll in a chest (squeak.h's CHEST_MARK_MAP, CHEST_MARK_PIECE, CHEST_MARK_SCROLL:
  * KatAMExpansionMaps.cs): its own bit set before the game's opening saves; the chest's item one of KatAM's maps, which the game gives
  * (sub_0800AFC8's 0xA-0x13): its bit to take back after (NidlMapAfter), unless it was owned; 0 if the chest holds neither; */
 static u32 NidlMapBefore(struct Chest *chest) {
@@ -88,6 +88,8 @@ static u32 NidlMapBefore(struct Chest *chest) {
         gTreasures.bigChestField |= 1 << (AREA_MAP_BIT + number);
     else if (mark >> 8 == CHEST_MARK_PIECE && number < SECRET_MAP_PIECES)
         gTreasures.musicPlayerAndSheetsField |= 1 << (SECRET_MAP_BIT + number);
+    else if (mark >> 8 == CHEST_MARK_SCROLL && number < SQUEAK_SCROLLS)
+        SqueakTakeScroll(number);
     else
         return 0;
     katamMap = 1 << (chest->unkE0 - 0xA);
@@ -117,7 +119,8 @@ static void NidlMapPopup(void) {
  * sub_0800B7A4, on this chest) the area's map's colors, or the Secret Map's (NidlMapPopup, which in its spare byte); */
 static void NidlMapAfter(struct Chest *chest, u32 katamMap) {
     u16 mark = chest->obj.objTemplate->unk16;
-    u8 map = mark >> 8 == CHEST_MARK_PIECE ? AREA_MAPS : (mark & 0xFF) - 1;
+    // (a scroll's popup the Secret Map's pieces' parchment);
+    u8 map = mark >> 8 == CHEST_MARK_PIECE || mark >> 8 == CHEST_MARK_SCROLL ? AREA_MAPS : (mark & 0xFF) - 1;
     u8 i;
 
     if (katamMap & 0x7FFFFFFF) {

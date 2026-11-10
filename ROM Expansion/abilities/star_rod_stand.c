@@ -68,10 +68,54 @@ static void RodStandMain(struct Object *obj) {
     obj->base.flags |= 0x200;
 }
 
+/* The NiDL ability statues (the owner: "we can generate our own pedestals for NiDL exclusive abilities ... For a pedestal, it's a
+ * matter of shrinking down the enemy and making sure it looks alright in game"): object 0x9A with a subtype (its template's
+ * subtype1, 1-7: the ability NIDL_FIRST_ABILITY + subtype - 1, Needle to Backdrop), in the NiDL ability room (KatAMExpansionRooms.cs's
+ * BuildNidlAbilityRoom()). Each is KatAM's ability statue (CreateAbilityStatue, sub_080AA4EC, sub_080AA588) with the NiDL enemy
+ * that gives it, shrunk to a statue's size, for its figure (KatAMExpansionMotions.cs's BuildNidlStatues(): its type's AnimInfo 1-7,
+ * one palette for the seven, as KatAM's statues share theirs), on KatAM's own stand (sub_080988B0: anim 0x384's stand, 16 pixels under
+ * the figure). gNidlStandKeys: the palette keys of the rod's anim (0) and the statues' (1): the type's own is 0 (none), each loads its
+ * own (StandPalette()); */
+const u16 gNidlStandKeys[2] = { 0, 0 };
+
+// The statues' box: KatAM's (CreateAbilityStatue);
+#define STATUE_LEFT -4
+#define STATUE_TOP -4
+#define STATUE_RIGHT 4
+#define STATUE_BOTTOM 8
+
+// StandPalette(); Its palette's slot (KatAM's ObjectInitSprite's way, under its own key: the anim's first variant's palette);
+static u8 StandPalette(struct Object *obj, u16 key) {
+    u8 palId = sub_0803DF24(key);
+
+    if (palId == 0xFF) {
+        if (gKirbys[gLocalPlayerId].base.roomId != obj->base.roomId) return 0;
+        sub_0803DFAC(key, 0);
+        palId = sub_0803DF24(key);
+    }
+    return palId;
+}
+
+/* StatueMain(); Each frame (unk78, as sub_080AA588): a Kirby with no ability (a player's or a helper) touching it, free (not dying,
+ * nothing in his mouth...), takes its ability, in KatAM's pose for getting one (sub_08054C0C); */
+static void StatueMain(struct Object *obj) {
+    struct Kirby *kirby;
+
+    if (!(obj->base.flags & 0x40000) || !obj->base.unk6C) return;
+    kirby = (struct Kirby *)obj->base.unk6C;
+    if (kirby->base.header.kind != 0 || kirby->ability != KIRBY_ABILITY_NORMAL || kirby->hp <= 0 || kirby->animationIndex == 0x27
+        || kirby->animationIndex > 0x7A || kirby->unk110 || (kirby->base.flags & 0x3800B00)) return;
+    if ((kirby->transitioningAbility & 0x1F) == KIRBY_ABILITY_MASTER) gUnk_0203AD34 = 0;
+    kirby->transitioningAbility = obj->kirbyAbility;
+    sub_08054C0C(kirby);
+    kirby->animationIndex = 0xF;
+}
+
 // NidlCreateRodStand(); Object 0x9A's spawn: as KatAM's ability statues and the Master Sword's stand (CreateAbilityStatue), still and harmless;
 void *NidlCreateRodStand(struct ObjectTemplate *template, u8 playerId) {
     struct Task *task = TaskCreate(ObjectMain, sizeof(struct Object), 0x1000, TASK_USE_EWRAM, ObjectDestroy);
     struct Object *obj = TaskGetStructPtr(task);
+    u8 statue = template->subtype1;
 
     InitObject(obj, template, playerId);
     obj->base.unk68 &= ~7;
@@ -79,9 +123,26 @@ void *NidlCreateRodStand(struct ObjectTemplate *template, u8 playerId) {
     obj->base.unk5C &= ~0x80;
     obj->base.unkC |= 1 | 4;
     obj->base.flags |= 0x200000 | 0x10000 | 0x800 | 0x8000 | 0x40 | 0x100 | 0x400000;
-    sub_0803E2B0(&obj->base, BOX_LEFT, BOX_TOP, BOX_RIGHT, BOX_BOTTOM);
-    ObjectSetBounds(&obj->base, BOX_LEFT, BOX_TOP, BOX_RIGHT, BOX_BOTTOM);
+    if (statue) {
+        sub_0803E2B0(&obj->base, STATUE_LEFT, STATUE_TOP, STATUE_RIGHT, STATUE_BOTTOM);
+        ObjectSetBounds(&obj->base, STATUE_LEFT, STATUE_TOP, STATUE_RIGHT, STATUE_BOTTOM);
+    } else {
+        sub_0803E2B0(&obj->base, BOX_LEFT, BOX_TOP, BOX_RIGHT, BOX_BOTTOM);
+        ObjectSetBounds(&obj->base, BOX_LEFT, BOX_TOP, BOX_RIGHT, BOX_BOTTOM);
+    }
+    // (its AnimInfo: 0 the rod, 1-7 the statues);
+    obj->unk83 = statue;
     ObjectInitSprite(obj);
+    obj->base.sprite.palId = StandPalette(obj, gNidlStandKeys[statue != 0]);
+    if (statue) {
+        obj->base.sprite.unk14 = 0x780;
+        if (template->subtype2) obj->base.flags |= 1;
+        obj->kirbyAbility = NIDL_FIRST_ABILITY + statue - 1;
+        obj->unk85 = 0;
+        ObjectSetFunc(obj, statue, StatueMain);
+        sub_080988B0(&obj->base);
+        return obj;
+    }
     obj->kirbyAbility = NIDL_ABILITY_STAR_ROD;
     obj->unk83 = 0;
     obj->unk85 = 0;

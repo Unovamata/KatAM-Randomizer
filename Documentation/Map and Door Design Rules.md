@@ -81,11 +81,15 @@ after any change.
 - The NiDL hub (a Central Circle copy at night) has one door per level, as Central Circle has one per area. It is reached
   through a golden mirror in Central Circle (beside Central Circle's own), and a pink mirror in the NiDL hub leads back.
 - **The NiDL hub has Central Circle's ability room door**, at the same spot (top left, cell 3, 4), drawn as Central Circle's,
-  leading to the ability room (0x3CA) as Central Circle's does; it opens only once all the NiDL levels' big switches are pressed
-  (the 7 of them; world slot 0x1D, KatAM's free one; the owner: "For the NiDL ability room, it can only be unlocked after all
-  switches have been pressed on the NiDL hub"), not with KatAM's 15 (Central Circle's own door, world slot 0x12, still does), and
-  the Unlock the Ability Room option opens Central Circle's door only. The way out of the ability room is KatAM's, to Central
-  Circle.
+  leading to the NiDL ability room (room 0x002; the owner: "I would like to create a custom room that holds all NiDL exclusive
+  abilities in a pedestal just like that"); it opens only once all the NiDL levels' big switches are pressed (the 7 of them;
+  world slot 0x1D, KatAM's free one; the owner: "For the NiDL ability room, it can only be unlocked after all switches have been
+  pressed on the NiDL hub"), not with KatAM's 15 (Central Circle's own door, world slot 0x12, still does), and the Unlock the
+  Ability Room option opens Central Circle's door only.
+- **The NiDL ability room** is KatAM's ability room (0x3CA: its look, collision, music and area) with the 7 NiDL-only abilities'
+  statues (Needle, Freeze, Light, Ball, Hi-Jump, Mike, Backdrop: each the NiDL enemy or mini-boss that gives it, shrunk to KatAM's
+  statues' size, on KatAM's statue stand) where KatAM's first 7 statues stand, KatAM's own statues gone; its door leads back to the NiDL
+  hub's door to it. KatAM's ability room and Central Circle's door to it are unchanged. `BuildNidlAbilityRoom()`.
 
 - **The Squeak Squad hub** (the owner: "The way in is a copy of the main game's central circle. We will later decide on position
   and visuals, the entrance door to the area is a grey door"): a copy of Central Circle (its own tiles, its doors gone), reached
@@ -94,8 +98,9 @@ after any change.
   as the NiDL hub's golden one. It is never reached from the NiDL hub, and works with or without the NiDL ROM. Its world doors:
   Central Circle's own doors (MainHubDoors, the world's number's, drawn and shown as Central Circle's), one per world, shown by the
   world's big switch, to its switch room. Its background is a Squeak Squad far view and its cloud colors are tinted to it (the
-  owner: "Change the background of the Squeak Squad hub along with its palette for the clouds"; `SqueakHubLook`, the owner's
-  pick of the mock-ups: Cushy Cloud's sky until then). `BuildSqueakHub()`.
+  owner: "Change the background of the Squeak Squad hub along with its palette for the clouds"; `SqueakHubLook`): the owner's
+  pick of the mock-ups, D, Prism Plains' castle and rainbow (the far view d_viw_00) with Central Circle's own cloud colors (the
+  owner, sending the D mock-up: "The Squeak Squad hub should have this background as well"). `BuildSqueakHub()`.
 - **The Squeak Squad hub has Central Circle's ability room door**, at the same spot (cell 3, 4), drawn as Central Circle's,
   shown once the Secret Map is whole (its 7 pieces; world slot 0x1C), leading to the Squeak Squad ability room (after the switch
   rooms; the owner: "Create the Squeak Squad ability room in KatAM and replace it on its respective room warp on the Squeak Squad

@@ -637,7 +637,11 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
     lid opening, 4 shaking, 5 bursting, its hoops and staves flying, 6 burning, 7 its pieces): one holding something (its table's
     second byte not 0xFF: the food or ability as the bubbles', its first byte's high nibble 1 a food, 0 an ability) starts
     closed; an empty one open (Kirby can get in: message 7 while empty, then 8 out; 10 shakes it). Message 11 (an attack, not
-    with its 0x1000 flag) bursts it (sound 0x51), leaving what it holds (`0x0220A200` a food, `0x0220A2A4` an ability).
+    with its 0x1000 flag) bursts it (sound 0x51), leaving what it holds (`0x0220A200` a food, `0x0220A2A4` an ability). Its states
+    (vtable `0x02229594`, the state in `+4`, `0x022225E0` the switch; each returns the next): 1 the lid closing (animation 1) then
+    2 closed once it ends (an effect, `0x0221F844`, with `0x01000012`), 3 the lid opening then 4: open again once it ends, a
+    0x1E-frame timer (`+0x10`) and 5 till it runs out (none gets in meanwhile); 6 shaking then 7 closed again; 8 bursting. Only
+    the empty ones open: the rooms' are 8-1-4's two (`00 FF`); the others hold something (one of them a chest: below).
   - The grass tufts (0xE; ctor `0x02222078`, vtable `0x02229500`; `yakumono/grass_A_S` and `grass_A_L`, `0x02227C28`'s 0x14-byte
     entries by its table's first byte's low nibble: 0 small, 1 large): its box (-1.0, 0) to (1.0, 3.0) small, (-2.0, 0) to (2.0,
     3.5) large; it takes messages 7 and 8 (`+0x48`, `+0x4C`). Its messages (`0x02221F90`): 5, a body moving through it (the
@@ -662,8 +666,13 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
     beats a weak enemy): a holder takes hits of KatAM's enemies' kind but masks his body out (unk5C 0x80, as a beaten enemy's), and
     counts a Kirby's own hit only with an attack bit over his body's (a slide, a dash). Walked through, a tuft rustles; hit, it's
     cut (KatAM's cutter sound, its blades an object of their own) and grows back 600 frames on when it held something; a barrel
-    bursts (KatAM's block-break sound) and is gone. Left out: hiding in an empty barrel (on the DS Down gets Kirby in, A out,
-    moving shakes it): KatAM has no such move.
+    bursts (KatAM's block-break sound) and is gone. A chest a holder hides (7 in the rooms: 2-1-3, 4-1-6 (grass), 7-4-5's
+    Ability Scrolls, 1-5-1, 4-3-8, 5-5-4's Copy Palettes, 2-5-5's Graphic Piece) is the converter's chest template handed to the
+    holder (its type and item, mark, number and half flag) and let out as the chest itself, standing where the holder stood
+    (`LetOutChest()`); a tuft that held one doesn't grow back. Hiding in an empty barrel: Kirby on the floor in front of it,
+    pressing Down (read from his held keys by the barrel: his crouch takes his new-press bit first), is taken as KatAM's cannon
+    takes him (`sub_08051C40`: hidden, his collisions off), held at the barrel's bottom; a direction shakes it (animation 4); A lets
+    him out into KatAM's fall (`sub_08044EA8`) with 3 pixels a frame up; then 30 frames before anyone gets in again.
   - The icicles (9, `0x022233B0`, vtable `0x02229740`; `yakumono/icicle`: 0 hanging, 1 shaking, 2 falling, 3 shattering): state 0
     (`0x02223260`) waits for a body under it (a box from the body up 12 blocks); state 1 (`0x0222324C`) lets a falling icicle go,
     an object of its own (0x138 bytes, vtable `0x02229788`), made again once the last is gone. Its spot is its tip (the DS draws
@@ -1214,7 +1223,12 @@ camera is `0x02035BA4(0)` (`*(0x021867AC) + 4`). **Stage routes**: a stage file'
 the top, size; 255 marks the end), then a point-by-point table. a8s4s3 (1664 by 240): points 0-7 at y 168 from x 272 to 1416, 8
 the end (1596, 148), 9-18 the end's loop; its spawn (8, 68) at the left end; the camera locks on 1392-1648 when Kirby reaches
 1388. a8s4s4 (288 by 1216): 0-7 zigzag up from (256, 944) to (140, 224), 8 the end (192, 64), 9-16 a loop of four legs; its
-spawn (24, 964). Recorded in both (`kss/ds/load_st.py`, `rec_ds.py`: Kirby driven by a script).
+spawn (24, 964). Recorded in both (`kss/ds/load_st.py`, `rec_ds.py`: Kirby driven by a script). In KatAM the converted rooms
+carry their route (`gSqueakDarkStarRoutes`: the zone per tile and the points, written by `SqueakDarkStarRoute()`; agbcc pads the
+point struct of three `s16` to 8 bytes, so the points are 8 bytes each), which the star follows as above (`RouteHop()`,
+`RouteLine()`); its spot is the record's own, not stood on a floor, and the converter's door rule doesn't drop it. Replayed against
+the recordings (Kirby forced to the DS's positions and speeds each frame): the corridor within a few pixels early and about 25
+later, end and loop on the same frames; the shaft to the same end, off the DS's path for a while half-way.
 
 **Composite parts' first frame**: a part's sprite is made on the cell it shows (`SqueakCreatePart`'s `cell`). KatAM's sprite init
 (`EffectObjectInitSprite` → `sub_08155128`) queues its first frame's tiles at once; made on the character's cell 0, a part with a
@@ -1225,8 +1239,11 @@ the upload queue (`gUnk_03002EC0`, 64 entries: source, VRAM, size) on the frame 
 ## Sounds
 
 All of Squeak Squad's sounds are in `sound/sound_data.sdat` (42 music sequences, each with its own bank; 22 sound-effect archives;
-83 banks; 2 wave archives, every wave IMA-ADPCM; no name table, no streamed music). Every track of every sequence turns note-wait
-off (`C7 0`); no call is nested.
+83 banks; 2 wave archives, every wave IMA-ADPCM; no name table, no streamed music). Note-wait (a note's length also a wait before
+the next command) is on when a track starts; every music track turns it off (`C7 0`), the sound effects never do; no call is nested.
+A sound effect that loops (the dark star's) relies on its notes' waits: converted without them it looped with no wait in one frame
+and froze KatAM (MP2K runs a track till it waits). The conversion follows each track's mode, and a loop back with no wait in it
+gets one (`KatAMExpansionSqueakSound.cs`'s `Block()`; every converted song scanned: none left).
 
 - **Music.** The DS's 43 music ids (USA arm9 `0x02159770`, 4 bytes an id: its sequence the second u16). A room's music id is its
   map's byte `0x0B` (the decompressed `.mxp`; RLE `0x30`): 0 keeps the one playing, 24 is the side rooms' (the treasure rooms'). The

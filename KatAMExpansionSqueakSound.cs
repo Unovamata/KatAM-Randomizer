@@ -13,7 +13,8 @@ namespace KatAMRandomizer {
      *   decay's and release's fall in decibels a second, sustain's level), a PSG one a square (its duty the nearest), noise noise; a
      *   key split a key split (its table, its voices), a drum set a drum kit (each key its voice, at that key);
      * • a sequence's commands become MP2K's one by one: the DS's 48 ticks a beat kept (TEMPO set to the DS's tempo itself: MP2K's
-     *   is half a tempo at 24 a beat), its notes (every track sets note-wait off, so notes don't wait, as MP2K's) with their length
+     *   is half a tempo at 24 a beat), its notes with their length (a note waits its length, the DS's note wait, unless its track's mono/poly is 0: the music's
+     *   tracks all set it, so their notes don't wait, as MP2K's; the sound effects never do, so theirs wait)
      *   (a length past MP2K's 223, a tie and its end after it), rests as waits, calls and returns as PATT and PEND (never nested
      *   in Squeak Squad), jumps as GOTO, the end FINE, volume on the DS's curve (amplitude by the square: its decibel table; the
      *   sequence's volume and the notes' velocity as they are, as loud as KatAM's own songs), pan, pitch bend and its range, priority, transpose, modulation, the envelope's changes (XCMD's); each track starts
@@ -324,7 +325,13 @@ namespace KatAMRandomizer {
                 List<(int at, int target)> fixups = new List<(int, int)>();
                 List<(int key, int left)> ties = new List<(int, int)>();
                 int modRange = 1;
+                /* (the DS's note wait: a note waits its length unless the track's mono/poly, 0xC7, is 0: the music's tracks all set it 0,
+                 * the sound effects never do, so their notes play one after the other; where the last wait or call was written: a jump
+                 * back to a spot after both loops with no wait, which hangs MP2K, so a tick's wait goes before it); */
+                bool noteWait = true;
+                int lastWait = -1, lastCall = -1;
                 void Wait(int ticks) {
+                    if (ticks > 0) lastWait = o.Count;
                     while (ticks > 0) {
                         int part = ticks;
                         foreach (var tie in ties) part = Math.Min(part, tie.left);
@@ -361,6 +368,7 @@ namespace KatAMRandomizer {
                             o.Add((byte)(0xCF + i)); o.Add(c); o.Add(vel);
                             if (length - Clocks[i] > 0) o.Add((byte)(length - Clocks[i]));
                         }
+                        if (noteWait) Wait(length);
                         continue;
                     }
                     switch (c) {
@@ -371,6 +379,8 @@ namespace KatAMRandomizer {
                         int target = start + (d[at] | d[at + 1] << 8 | d[at + 2] << 16);
                         at += 3;
                         EndTies();
+                        if (c == 0x94 && map.TryGetValue(target, out int back) && lastWait < back && lastCall < back) o.Add(0x81);
+                        if (c == 0x95) lastCall = o.Count;
                         o.Add(c == 0x94 ? (byte)0xB2 : (byte)0xB3);
                         fixups.Add((o.Count, target));
                         o.AddRange(new byte[4]);
@@ -382,6 +392,7 @@ namespace KatAMRandomizer {
                     case 0xC4: o.Add(0xC0); o.Add((byte)Math.Clamp(64 + (sbyte)d[at++] / 2, 0, 127)); break;
                     case 0xC5: o.Add(0xC1); o.Add(d[at++]); break;
                     case 0xC6: o.Add(0xBA); o.Add(d[at++]); break;
+                    case 0xC7: noteWait = d[at++] != 0; break;
                     case 0xCA: o.Add(0xC4); o.Add((byte)Math.Clamp(d[at++] * modRange / 2, 0, 127)); break;
                     case 0xCB: o.Add(0xC2); o.Add(d[at++]); break;
                     case 0xCC: o.Add(0xC5); o.Add((byte)Math.Min((int)d[at++], 2)); break;
@@ -398,8 +409,8 @@ namespace KatAMRandomizer {
                     case 0xE3: at += 2; break;
                     case 0xFC: break;
                     case 0xFD: EndTies(); o.Add(0xB4); break;
-                    case 0xFE: at += 2; break;
-                    case 0xFF: EndTies(); o.Add(0xB1); break;
+                    case 0xFE: at += 2; noteWait = true; break;
+                    case 0xFF: EndTies(); o.Add(0xB1); noteWait = true; break;
                     default:
                         if (c >= 0xB0 && c <= 0xBD) { at += 3; break; }
                         if (c >= 0xC0 && c <= 0xD6) { at++; break; }

@@ -226,6 +226,15 @@ namespace KatAMRandomizer {
         // (the Secret Map's pieces whose chests SqueakObjects() made, the same);
         static readonly Dictionary<int, SqueakRoomFiles> squeakPiecesPlaced = new Dictionary<int, SqueakRoomFiles>();
         internal static IReadOnlyDictionary<int, SqueakRoomFiles> SecretMapPieceRooms => squeakPiecesPlaced;
+        /* (Squeak Squad's Ability Scrolls, treasures 28-50 (the owner: "Implement all Ability Scrolls in their respective chests to add
+         * this data to the game already"): each in its own chest as Squeak Squad has it, the chest's template's unk16
+         * CHEST_MARK_SCROLL << 8 | the scroll's number + 1, its item one of KatAM's maps for its popup (chest.c's NidlChestOpen gives the
+         * scroll: owned in the save's scroll bits, "ROM Expansion/rooms.c"'s SqueakScrollOwned(), not KatAM's map); what a scroll does,
+         * and its own icon in the chest and the Collection Room, not yet; the ones SqueakObjects() placed, the same as the pieces); */
+        internal const int SqueakScrolls = 23, ChestMarkScroll = 3;
+        const int SqueakScrollFirst = 28;
+        static readonly Dictionary<int, SqueakRoomFiles> squeakScrollsPlaced = new Dictionary<int, SqueakRoomFiles>();
+        internal static IReadOnlyDictionary<int, SqueakRoomFiles> AbilityScrollRooms => squeakScrollsPlaced;
 
         /* AddAreaMaps(); The rest (after the anims tables are copied): gNidlMaps (the maps' shades, then the Secret Map's pieces'), and
          * the maps placed (present: the NiDL levels', the Squeak Squad worlds') and the Secret Map's pieces placed (piecesPresent) as the
