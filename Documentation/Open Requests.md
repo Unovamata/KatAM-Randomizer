@@ -646,18 +646,8 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
       have no door into them at all (the Squeak Lair rooms and chase spawns, on hold). NiDL: 280 of 280 in all six checks.
       Checked in the GBA emulator (USA, Kirby put on 7-3-2's top, where 7-3-1's door lands him): he walks off its blocks, drops
       to the floor, takes the one-way door and lands at 7-1-1's start. Not checked in Europe and Japan in the emulator.
-    - Gimmicks left (read on the DS, not ported; the notes have what's decoded):
-      - The rope floors (3: 3-3-6, 3-3-7, 6-2-1, 7-3-2, 7-4-5, 16; each hangs from a rope, gimmick 1, whose parameter names it):
-        to ride, they can use the platforms' carrier. Their states not read yet (the notes' "Decoded, not ported yet").
-      - The ropes (1): an area over the rope the terrain draws (a KatAM ladder here), messaging its targets when Kirby takes
-        hold (the floor it holds, 8-1-8's rock relay): decoded (the notes), not ported.
-      - The rolling boulders (6): bits 4-5 of the first byte whether one rolls at once or waits for a message (4-3-2's wait for
-        its relays), bits 6-7 its speed (2, 3 or 4 pixels a frame, reached over 47, 64 or 97 frames); a body of the DS's physics
-        rolling on the terrain, quaking as it lands, breaking on a wall: decoded (the notes), not ported (KatAM needs a rolling
-        body on its terrain, with slopes). Its direction not read yet.
-      - The camera areas (0x14): entering one sets the camera's bounds (its four u16s, pixels) and messages its targets; 58 in
-        the rooms. Not ported: KatAM's camera follows Kirby over the whole room there.
-      - The candles (0xA, dark rooms), gimmick 0x12 (a color fade, no effect on the way), 0x18, 0x19, 0x1A (not identified).
+    - Gimmicks left (the notes have what's decoded): the camera areas (0x14) and the ambience 0x18, 0x19, 0x1A (above: not
+      ported), gimmick 0x12 (a color fade, no effect on the way), and:
       - The candles and the Light ability (the owner: "Add to the pending list candle and light ability interaction"): the
         Light ability (NiDL's, from Cool Spook) lighting the dark rooms' candles, as Fire does on the DS.
       - Hiding in an empty barrel (KatAM has no such move).
@@ -666,8 +656,8 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
       in the emulator in all three versions on 1-6-7's chest (Kirby walks onto it and presses Up): as the first half, max HP
       stays 6; with another half marked found by a RAM write, Vitality 1 and max HP 7. Not tested by opening two real chests
       in a row. Three of the eight are placed (1-6-7, 2-6-7, 3-6-2); the other five are chase-spawn chests (on hold).
-    - Left: the chests' other Squeak Squad treasures (Ability Scrolls, Spray Paints, the Secret Map's pieces: with their
-      items, below), the chase spawns after the stage's treasure (the Squeakers among them, and 22 chests), the arenas
+    - Left: the chests' other Squeak Squad treasures (Ability Scrolls, the Secret Map's pieces: with their items, below; the
+      Spray Paints are done, below), the chase spawns after the stage's treasure (the Squeakers among them, and 22 chests), the arenas
       without the NiDL ROM (NiDL's type holds the camera), the gimmicks, the areas.
   - Ability bubbles whose ability no regular enemy gives (Hammer, Bonkers' in KatAM; Squeak Squad's ability numbers 12, 18 and
     26) become food (the owner: "In the case of bubbles without no regular enemy, you can swap them out for food.").
