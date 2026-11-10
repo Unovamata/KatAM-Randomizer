@@ -887,8 +887,12 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
     list too ({1, 8, 0xFF, 0xFF, x, y}, first, counted in the list's entry): opening a chest marks it there (`sub_08002B30`),
     which never ends without it (the game hangs, its VBlank counter still running); `rooms.c`'s versions of it and of the doors'
     lookups now stop at the list's end. Each holds a consumable for now (KatAM's chest items in turn); the chests of the
-    treasures the owner listed (Ability Scrolls, Spray Paints, the Secret Map) are to hold those. The chase spawns'
-    22 chests (flag 4) aren't placed yet.
+    treasures the owner listed (Ability Scrolls, Spray Paints, the Secret Map) are to hold those (the Spray Paints and the Secret
+    Map's pieces do: below). The chase spawns' 22 chests (flag 4) aren't placed yet.
+  - **The Secret Map's pieces** (treasures 93-99, taken as pieces 1-7 in order: not checked against the DS): each in its own chest
+    (2-6-6, 3-3-7, 4-4-5, 5-4-5, 6-6-5, 7-6-9, 8-2-6), marked `chest[0x16]` the piece's number + 1 and `chest[0x17]` 2 (the area
+    maps' mark is 1), the item one of KatAM's maps. Their art is `collection/map`: anims 0-6 the pieces (parchment, about 60 x 50
+    pixels each, sepia), 7 the whole map. `KatAMExpansionMaps.cs` and `ROM Expansion/chest.c`, `collection.c` have the rest.
   - **Vitality halves** (the owner: "Two halves make one Vitality"): a chest of treasures 6-13 holds KatAM's Vitality
     (treasure 6) with `SQUEAK_CHEST_HALF` in its template's high byte of `+0x14`; the converter lists those chests' numbers in
     `chest.c`'s `gSqueakVitalityChests` (8 at most, 0xFF unused). Opening one goes through KatAM's own Vitality (its

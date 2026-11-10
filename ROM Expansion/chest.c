@@ -65,7 +65,7 @@ const struct SqueakChest gSqueakChest = { NULL };
  * draws with: KatAM's (anim 0x2D2's map) takes the chest's palette (sub_0800B7A4: an effect's sprite loads none), its colors 8-10
  * the map's; */
 struct NidlMaps {
-    const u16 *colors;          // [AREA_MAPS][3]
+    const u16 *colors;          // [AREA_MAPS + 1][3]: the areas' maps', then the Secret Map's pieces'
 };
 
 const struct NidlMaps gNidlMaps = { NULL };
@@ -74,41 +74,50 @@ extern struct Task gTasks[];
 extern void sub_0800B7A4(void);
 static void NidlChestSave(void);
 
-/* NidlMapBefore(); An area's map in a chest (squeak.h's CHEST_MARK_MAP: KatAMExpansionMaps.cs): its own bit set before the game's
- * opening saves; the chest's item one of KatAM's maps, which the game gives (sub_0800AFC8's 0xA-0x13): its bit to take back after
- * (NidlMapAfter), unless it was owned; 0 if the chest holds no area's map; */
+/* NidlMapBefore(); An area's map or a piece of the Secret Map in a chest (squeak.h's CHEST_MARK_MAP, CHEST_MARK_PIECE:
+ * KatAMExpansionMaps.cs): its own bit set before the game's opening saves; the chest's item one of KatAM's maps, which the game gives
+ * (sub_0800AFC8's 0xA-0x13): its bit to take back after (NidlMapAfter), unless it was owned; 0 if the chest holds neither; */
 static u32 NidlMapBefore(struct Chest *chest) {
     u16 mark = chest->obj.objTemplate->unk16;
-    u8 map = (mark & 0xFF) - 1;
+    u8 number = (mark & 0xFF) - 1;
     u32 katamMap;
 
-    if (mark >> 8 != CHEST_MARK_MAP || map >= AREA_MAPS || chest->unkE0 < 0xB || chest->unkE0 > 0x13)
+    if (chest->unkE0 < 0xB || chest->unkE0 > 0x13)
+        return 0;
+    if (mark >> 8 == CHEST_MARK_MAP && number < AREA_MAPS)
+        gTreasures.bigChestField |= 1 << (AREA_MAP_BIT + number);
+    else if (mark >> 8 == CHEST_MARK_PIECE && number < SECRET_MAP_PIECES)
+        gTreasures.musicPlayerAndSheetsField |= 1 << (SECRET_MAP_BIT + number);
+    else
         return 0;
     katamMap = 1 << (chest->unkE0 - 0xA);
-    gTreasures.bigChestField |= 1 << (AREA_MAP_BIT + map);
     return gTreasures.bigChestField & katamMap ? 0x80000000 : katamMap;
 }
 
 /* NidlMapPopup(); The popup of an area's map, each frame: the map's shades into its palette's colors 8-10 (the chest's, which the
- * chest reloads as it opens), then the game's (sub_0800B7A4); */
+ * chest reloads as it opens), its outline (color 7: KatAM's chests' black, some of Squeak Squad's red) KatAM's black, then the
+ * game's (sub_0800B7A4); */
+#define MAP_POPUP_OUTLINE 0x0421
 static void NidlMapPopup(void) {
     struct ChestItemPopup *popup = TaskGetStructPtr(gCurTask);
     const u16 *colors = gNidlMaps.colors + popup->filler52[0] * 3;
-    u16 *palette = &gObjPalette[popup->unk4C->obj.base.sprite.palId * 0x10 + 8];
+    u16 *palette = &gObjPalette[popup->unk4C->obj.base.sprite.palId * 0x10 + 7];
 
-    if (palette[0] != colors[0] || palette[1] != colors[1] || palette[2] != colors[2]) {
-        palette[0] = colors[0];
-        palette[1] = colors[1];
-        palette[2] = colors[2];
+    if (palette[0] != MAP_POPUP_OUTLINE || palette[1] != colors[0] || palette[2] != colors[1] || palette[3] != colors[2]) {
+        palette[0] = MAP_POPUP_OUTLINE;
+        palette[1] = colors[0];
+        palette[2] = colors[1];
+        palette[3] = colors[2];
         gMainFlags |= MAIN_FLAG_OBJ_PALETTE_SYNC_ENABLE;
     }
     sub_0800B7A4();
 }
 
 /* NidlMapAfter(); After the game's opening: KatAM's map taken back and saved again, and the popup it made (sub_0800B414's task,
- * sub_0800B7A4, on this chest) the area's map's colors (NidlMapPopup, the map in its spare byte); */
+ * sub_0800B7A4, on this chest) the area's map's colors, or the Secret Map's (NidlMapPopup, which in its spare byte); */
 static void NidlMapAfter(struct Chest *chest, u32 katamMap) {
-    u8 map = (chest->obj.objTemplate->unk16 & 0xFF) - 1;
+    u16 mark = chest->obj.objTemplate->unk16;
+    u8 map = mark >> 8 == CHEST_MARK_PIECE ? AREA_MAPS : (mark & 0xFF) - 1;
     u8 i;
 
     if (katamMap & 0x7FFFFFFF) {

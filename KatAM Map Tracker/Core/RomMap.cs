@@ -37,9 +37,10 @@ namespace KatAMMapTracker {
     // SqueakSpray: a Squeak Squad chest's spray paint KatAM doesn't have (template +0x11 0x9F, +0x16 its number + 1: the ROM Expansion's
     // KatAMExpansionSprays.cs; its Behavior only shows a KatAM can), else 0; AreaMap: a chest's area map (template +0x17 the ROM Expansion's
     // mark 1, +0x16 the map's number + 1: KatAMExpansionMaps.cs, the NiDL levels' 1-8, the Squeak Squad worlds' 9-16; its Behavior only
-    // shows a KatAM map), else 0;
+    // shows a KatAM map), else 0; SecretMapPiece: a chest's piece of Squeak Squad's Secret Map (template +0x17 the mark 2, +0x16 the
+    // piece's number + 1, 1-7: KatAMExpansionMaps.cs; its Behavior only shows a KatAM map), else 0;
     public sealed record RoomObject(int Id, int Behavior, int X, int Y, int Destination = -1, int LandX = 0, int LandY = 0, int SqueakSpray = 0,
-                                    int AreaMap = 0);
+                                    int AreaMap = 0, int SecretMapPiece = 0);
 
     // RoomInfo; A room and its doors as read from the ROM;
     public sealed class RoomInfo {
@@ -124,7 +125,7 @@ namespace KatAMMapTracker {
                   DoorObjectType = 3,
                   WarpStarObject = 0x84,
                   FuseCannonObject = 0x8A,
-                  SqueakChestIndex = 0x9F, ChestMarkMap = 1;     // (a Squeak Squad chest's template unk11: the ROM Expansion's squeak.h's SQUEAK_CHEST);
+                  SqueakChestIndex = 0x9F, ChestMarkMap = 1, ChestMarkPiece = 2;     // (a Squeak Squad chest's template unk11: the ROM Expansion's squeak.h's SQUEAK_CHEST);
 
         // Central Circle, the main hub. The map is laid out from it;
         public const int CentralCircle = 0x321;
@@ -502,7 +503,8 @@ namespace KatAMMapTracker {
                                : id == FuseCannonObject ? new RoomObject(id, Rom[address + 14], x, y, Read16(address + 0x12), Rom[address + 0x18], Rom[address + 0x19])
                                : new RoomObject(id, Rom[address + 14], x, y,
                                                 SqueakSpray: id is 0x80 or 0x81 && Rom[address + 0x11] == SqueakChestIndex && Rom[address + 0x17] == 0 ? Rom[address + 0x16] : 0,
-                                                AreaMap: id is 0x80 or 0x81 && Rom[address + 0x17] == ChestMarkMap ? Rom[address + 0x16] : 0));
+                                                AreaMap: id is 0x80 or 0x81 && Rom[address + 0x17] == ChestMarkMap ? Rom[address + 0x16] : 0,
+                                                SecretMapPiece: id is 0x80 or 0x81 && Rom[address + 0x17] == ChestMarkPiece ? Rom[address + 0x16] : 0));
             }
         }
 

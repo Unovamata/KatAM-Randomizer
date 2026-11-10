@@ -498,7 +498,7 @@ namespace KatAMMapTracker {
             switch (id) {
                 case 0x65: return behavior < 8 ? new MapEntity(EntityKind.MirrorShard, EntityIcon.MirrorShard, "Mirror Shard")
                                 : behavior == 8 ? new MapEntity(EntityKind.AmazingMirror, EntityIcon.AmazingMirror, "Amazing Mirror") : null;
-                case 0x80: case 0x81: return Chest(id == 0x81, behavior, obj.SqueakSpray, obj.AreaMap);
+                case 0x80: case 0x81: return Chest(id == 0x81, behavior, obj.SqueakSpray, obj.AreaMap, obj.SecretMapPiece);
                 case 0x84: return new MapEntity(EntityKind.WarpStar, EntityIcon.WarpStar, "Warp Star", Destination: obj.Destination);
                 case 0x86: return new MapEntity(EntityKind.BigSwitch, EntityIcon.BigSwitch, "Big Switch");
                 case 0x8A: return new MapEntity(EntityKind.FuseCannon, EntityIcon.FuseCannon, "Fuse Cannon", Destination: obj.Destination);
@@ -521,9 +521,13 @@ namespace KatAMMapTracker {
 
         /* Chest(); Chests show the chest sprite; Their ContentIcon is what they hold (an item, or the Collection Room sprite of
          * the treasure), for when chest contents are spoiled; */
-        static MapEntity Chest(bool isBig, int contents, int squeakSpray = 0, int areaMap = 0) {
+        static MapEntity Chest(bool isBig, int contents, int squeakSpray = 0, int areaMap = 0, int secretMapPiece = 0) {
             EntityIcon chest = isBig ? EntityIcon.ChestBig : EntityIcon.ChestSmall;
             string size = isBig ? "Big" : "Small";
+
+            // (a piece of Squeak Squad's Secret Map from the ROM Expansion, 1-7, with the KatAM map it shows);
+            if (secretMapPiece >= 1 && secretMapPiece <= 7 && contents >= 0x0A && contents <= 0x13)
+                return new MapEntity(EntityKind.Treasure, chest, $"{size} Chest: Secret Map Piece {secretMapPiece}", EntityIcon.MapTutorial + (contents - 0x0A));
 
             // (an area's map from the ROM Expansion: its area's name, with the KatAM map it shows);
             if (areaMap >= 1 && areaMap <= ExpansionAreaNames.Length && contents >= 0x0A && contents <= 0x13)

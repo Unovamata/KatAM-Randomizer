@@ -193,6 +193,14 @@ u32 SqueakGimmickAnim(struct Object *obj);
 #define AREA_MAPS 16
 #define AREA_MAP_BIT 10
 #define CHEST_MARK_MAP 1
+/* (Squeak Squad's Secret Map, KatAMExpansionMaps.cs: its 7 pieces (treasures 93-99) owned in gTreasures.musicPlayerAndSheetsField's
+ * bits SECRET_MAP_BIT up (KatAM's sound player and sheets take bits 0-10); a chest holding one: its template's unk16
+ * CHEST_MARK_PIECE << 8 | the piece's number + 1, its item one of KatAM's maps, given back as an area map's; the map is whole
+ * with all 7: SecretMapWhole()); */
+#define SECRET_MAP_PIECES 7
+#define SECRET_MAP_BIT 16
+#define CHEST_MARK_PIECE 2
+#define SecretMapWhole() ((gTreasures.musicPlayerAndSheetsField >> SECRET_MAP_BIT & ((1 << SECRET_MAP_PIECES) - 1)) == (1 << SECRET_MAP_PIECES) - 1)
 bool32 SqueakBossAlive(u16 room);
 #define SQUEAK_CHEST_CLOSED SQUEAK_HURT_VARIANTS
 

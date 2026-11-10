@@ -1123,6 +1123,15 @@ namespace KatAMRandomizer {
                             chest[0x17] = ChestMarkMap;
                             squeakMapsPlaced[areaMap] = f;
                         }
+                        /* (a piece of the Secret Map, treasures 93-99, KatAMExpansionMaps.cs: the chest's item one of KatAM's maps, its template's
+                         * unk16 the piece's mark and number + 1: chest.c's NidlChestOpen gives the piece, not KatAM's map); */
+                        if (treasure >= SqueakSecretMapFirst && treasure < SqueakSecretMapFirst + SecretMapPieces) {
+                            int piece = treasure - SqueakSecretMapFirst;
+                            chest[14] = AreaMapItem(piece);
+                            chest[0x16] = (byte)(piece + 1);
+                            chest[0x17] = ChestMarkPiece;
+                            squeakPiecesPlaced[piece] = f;
+                        }
                         chest[0x11] = SqueakChestIndex;
                         chest[0x12] = (byte)chestAt++;
                         Add(chest);
@@ -1512,6 +1521,7 @@ namespace KatAMRandomizer {
             // (the worlds' maps' chests, KatAMExpansionMaps.cs);
             Dictionary<(SqueakRoomFiles room, int record), int> mapChests = SqueakMapChests(squeak, files);
             squeakMapsPlaced.Clear();
+            squeakPiecesPlaced.Clear();
 
             // (the expansion's code names the room tables by their bases only, as KatAM's does: a pointer inside one couldn't move with it);
             int codeEnd = CodeAddress + version.Code.Length;

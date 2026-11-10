@@ -176,11 +176,13 @@ namespace KatAMRandomizer
 
         /* IsExpansionTreasureChest(); A chest holding one of the ROM Expansion's treasures: a Squeak Squad spray paint KatAM doesn't have
          * (KatAMExpansionSprays.cs: its template's unk11 0x9F, unk16 the spray's number + 1, the Properties' 1st and 6th bytes) or an
-         * area's map (KatAMExpansionMaps.cs: unk16's high byte, the 7th, its mark): its treasure is its own (the chest's item only shows a
-         * KatAM can or map, the game's opening gives the treasure, "ROM Expansion/chest.c"), so it stays as it is; */
+         * area's map or a piece of the Secret Map (KatAMExpansionMaps.cs: unk16's high byte, the 7th, its mark): its treasure is its own
+         * (the chest's item only shows a KatAM can or map, the game's opening gives the treasure, "ROM Expansion/chest.c"), so it stays as
+         * it is; */
         static bool IsExpansionTreasureChest(Entity entity) =>
             (entity.ID == 0x80 || entity.ID == 0x81) && entity.Properties.Length > 6 &&
-            (entity.Properties[0] == 0x9F && entity.Properties[5] != 0 || entity.Properties[6] == KatAMExpansion.ChestMarkMap);
+            (entity.Properties[0] == 0x9F && entity.Properties[5] != 0 ||
+             entity.Properties[6] == KatAMExpansion.ChestMarkMap || entity.Properties[6] == KatAMExpansion.ChestMarkPiece);
 
         // IsProgressionObject(); This will not randomize key progression objects;
         bool IsProgressionObject(Entity entity) {

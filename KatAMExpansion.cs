@@ -1374,7 +1374,7 @@ namespace KatAMRandomizer {
             int mapAnim = 0;
             if (rooms || squeakRooms) {
                 try {
-                    mapAnim = AddAreaMapIcons(rom, anims, attrTable, oamTable, paletteBase, tilesBase, ref cursor, animVariants, animAttributes, animOams,
+                    mapAnim = AddAreaMapIcons(rom, squeakRooms ? squeak : null, anims, attrTable, oamTable, paletteBase, tilesBase, ref cursor, animVariants, animAttributes, animOams,
                                                HurtAnimID + animVariants.Count);
                 } catch (Exception exception) when (exception is IndexOutOfRangeException or ArgumentException or InvalidOperationException) {
                     return $"The {version.Name} ROM's map icons couldn't be read.";
@@ -1608,8 +1608,9 @@ namespace KatAMRandomizer {
                 bool[] mapsPlaced = Enumerable.Range(0, AreaMapCount).Select(m => m < NidlAreaMaps
                     ? rooms && PortedChests.Values.Any(list => list.Any(c => c.Map == m))
                     : squeakRooms && squeakMapsPlaced.ContainsKey(m)).ToArray();
-                if (mapsPlaced.Any(placed => placed))
-                    error = AddAreaMaps(rom, squeak, version, mapAnim, mapsPlaced, collectionItems, collectionTexts, ref cursor);
+                bool[] piecesPlaced = Enumerable.Range(0, SecretMapPieces).Select(p => squeakRooms && squeakPiecesPlaced.ContainsKey(p)).ToArray();
+                if (mapsPlaced.Any(placed => placed) || piecesPlaced.Any(placed => placed))
+                    error = AddAreaMaps(rom, squeak, version, mapAnim, mapsPlaced, piecesPlaced, collectionItems, collectionTexts, ref cursor);
                 error ??= AddCollectionGrid(rom, version, collectionItems, collectionTexts, ref cursor);
             } catch (Exception exception) when (exception is IndexOutOfRangeException or ArgumentException or InvalidOperationException) {
                 error = $"The {version.Name} ROM's Collection Room couldn't be read.";

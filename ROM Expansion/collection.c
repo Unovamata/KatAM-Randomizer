@@ -147,6 +147,8 @@ static bool8 GridOwned(u16 id) {
         return n < gTreasures.vitalityField;
     case 0x10: // the Sound Player
         return gTreasures.musicPlayerAndSheetsField & 1;
+    case 0x20: // the Secret Map's pieces (bits 16-22)
+        return n < SECRET_MAP_PIECES && (gTreasures.musicPlayerAndSheetsField >> (SECRET_MAP_BIT + n)) & 1;
     }
     return FALSE;
 }

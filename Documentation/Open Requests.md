@@ -660,8 +660,8 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
       in the emulator in all three versions on 1-6-7's chest (Kirby walks onto it and presses Up): as the first half, max HP
       stays 6; with another half marked found by a RAM write, Vitality 1 and max HP 7. Not tested by opening two real chests
       in a row. Three of the eight are placed (1-6-7, 2-6-7, 3-6-2); the other five are chase-spawn chests (on hold).
-    - Left: the chests' other Squeak Squad treasures (Ability Scrolls, the Secret Map's pieces: with their items, below; the
-      Spray Paints are done, below), the chase spawns after the stage's treasure (the Squeakers among them, and 22 chests), the arenas
+    - Left: the chests' other Squeak Squad treasures (Ability Scrolls, with their items; the Spray Paints and the Secret Map's
+      pieces are done, below), the chase spawns after the stage's treasure (the Squeakers among them, and 22 chests), the arenas
       without the NiDL ROM (NiDL's type holds the camera), the gimmicks, the areas.
   - Ability bubbles whose ability no regular enemy gives (Hammer, Bonkers' in KatAM; Squeak Squad's ability numbers 12, 18 and
     26) become food (the owner: "In the case of bubbles without no regular enemy, you can swap them out for food.").
@@ -707,6 +707,31 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
     Italian and Spanish names on screen, multiplayer.
   - Left, the owner's call: **the Fountain of Dreams' map**. Its level is all boss rooms, so it has no chest (its Collection Room
     cell stays empty). Where should it go: the Fountain of Dreams switch room, its hub, or given after a boss (Nightmare)?
+- **The Secret Map**: its pieces done, the ability room it opens left (the owner: "Start building the secret map logic and then
+  display the respective icons on the collection room"; with the rooms: "Only the Squeak Squad ability room can be unlocked via the
+  hidden map"). Squeak Squad's 7 Secret Map pieces (treasures 93-99) stay in their own chests (2-6-6, 3-3-7, 4-4-5, 5-4-5, 6-6-5,
+  7-6-9, 8-2-6: rooms 0x463, 0x48F, 0x4D9, 0x515, 0x56A, 0x5A8, 0x5CC), owned in the music field's free bits 16-22 (KatAM's Sound
+  Player and sheets take bits 0-10 and its completion counts only those). Opening one gives the piece: KatAM's map rises in the
+  parchment's colors (the chest gives one of KatAM's maps for a moment, which is taken back). The map is whole once all 7 are found
+  (`squeak.h`'s `SecretMapWhole()`, for the ability room's door). The Collection Room shows them in the grid's second row after
+  KatAM's columns, each Squeak Squad's own piece (`collection/map`) shrunk to 16 pixels with 3 parchment shades, named "• SECRET
+  MAP PIECE" over each language's map text. The chest shuffle leaves these chests alone; the map viewer names them ("Big Chest:
+  Secret Map Piece 1"). `KatAMExpansionMaps.cs`, `chest.c`, `collection.c`.
+  - Tested in the GBA emulator (Kirby put on the chest by a RAM write, then Up): piece 1's chest (room 0x463) in USA and Japan,
+    piece 7's (room 0x5CC) in Europe: the piece's bit set, KatAM's map bit given back, the parchment map rising with a black outline
+    (Squeak Squad's chests here have red where KatAM's popup draws its outline: now set to KatAM's black, the chest unchanged); the
+    Collection Room with 4 of the 7 owned by a RAM write (USA; English, German, French, Spanish, Japanese texts), the missing ones
+    "?" as KatAM's. A full randomization with the chest shuffle and random chest contents keeps all 7 piece chests. Logic checks: all
+    7 rooms are reached (with and without thin-floor drops), nothing else changed (359 of 498 Squeak Squad rooms, 8 switches, NiDL's
+    280 of 280 and 7 switches, nowhere trapped, all three versions). Vegetable Valley's map chest opened again after the outline
+    change: unchanged.
+  - Not tested: the other 5 chests opened, getting into each chest's spot by playing (the logic checks only that its room is reached),
+    the map viewer's naming on screen (its code built; the window needs Windows), Italian on screen.
+  - Which chest holds which piece takes treasures 93-99 as pieces 1-7 in order (`collection/map`'s cells 0-6): not checked against
+    the DS.
+  - Left, the owner's call: **the Squeak Squad ability room's door**. The whole map should open it, but the Squeak Squad hub (a
+    Central Circle copy) is frozen, so where its door goes (and which room it is: a copy of KatAM's ability room 0x3CA, or another)
+    waits for the owner.
 - **The Collection Room scrolls left and right**: done as one grid (the owner, with the rooms: "the collection room should be
   scrollable left and right to accommodate for all these new items"; then, of a second page: "I wanted an scrollable menu from
   left to right to showcase all treasures in one single screen. I didn't ask for a second page, I asked for a seamless
@@ -715,7 +740,7 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
   past the last column shown (or the first) slides the whole grid a column, cells, icons and the lattice together, the striped
   background staying (5 frames); past the grid's last column it goes round to the first, and Left on the first to the last;
   L and R move it a screen. The new columns hold Squeak Squad's 5 sprays (their row: KatAM's sprays' row), the NiDL levels' and
-  Squeak Squad worlds' maps (the third and fourth rows: above), and the Secret Map's pieces go in the second row. `collection.c`,
+  Squeak Squad worlds' maps (the third and fourth rows: above), and the Secret Map's pieces (the second row: above). `collection.c`,
   `KatAMExpansionCollection.cs`.
   - Tested in the GBA emulator, sprays owned by a RAM write (a forced state, not a playthrough): USA (sliding a column with
     Right at the last column, the frames between, both ends going round, L and R, choosing a new color after a slide, leaving

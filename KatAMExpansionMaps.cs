@@ -38,13 +38,23 @@ namespace KatAMRandomizer {
 
         static ushort Bgr555(int rgb) => (ushort)((rgb >> 19 & 31) | (rgb >> 11 & 31) << 5 | (rgb >> 3 & 31) << 10);
 
+        /* (Squeak Squad's Secret Map: its 7 pieces, treasures 93-99, each in its own chest as Squeak Squad has them, the chest's template's
+         * unk16 CHEST_MARK_PIECE << 8 | the piece's number + 1, its item one of KatAM's maps (chest.c's NidlChestOpen gives the piece, owned
+         * in gTreasures.musicPlayerAndSheetsField's bits 16-22, "ROM Expansion/squeak.h"'s SECRET_MAP_BIT); their icons Squeak Squad's
+         * (collection/map's cells 0-6; 7 the whole map), shrunk, in the Collection Room's second row after KatAM's columns, the maps'
+         * palettes' colors 4-6 their parchment); */
+        internal const int SecretMapPieces = 7, ChestMarkPiece = 2;
+        const int SqueakSecretMapFirst = 93, SecretMapIconSize = 16, SecretMapIconFit = 14;
+        static readonly string SecretMapName = "SECRET MAP PIECE";
+
         // AreaMapItem(); The KatAM map (1-9) a chest holding map m gives for a moment;
         internal static byte AreaMapItem(int map) => (byte)(0xA + 1 + map % 9);
 
         /* AddAreaMapIcons(); The maps' anim in the Collection Room (before the anims tables are copied), returned: variant m map m,
          * KatAM's map, its tiles drawing 1 black, 2 the dots, 3 the dark, 7 + 2k and 8 + 2k the light and mid of the palette's k-th map
-         * (0, 1 a NiDL map, 2, 3 a Squeak Squad one), 4 palettes of 4 maps (a column pair each); 4-6 left for the Secret Map's pieces; */
-        static int AddAreaMapIcons(byte[] rom, int anims, int attrTable, int oamTable, int paletteBase, int tilesBase, ref int cursor,
+         * (0, 1 a NiDL map, 2, 3 a Squeak Squad one), 4 palettes of 4 maps (a column pair each); with Squeak Squad's rooms (squeak), the
+         * Secret Map's pieces' too: variant 16 + p piece p, its tiles drawing 1 black and 4-6 its parchment (SecretMapPieceIcons()); */
+        static int AddAreaMapIcons(byte[] rom, byte[] squeak, int anims, int attrTable, int oamTable, int paletteBase, int tilesBase, ref int cursor,
                                    List<int> animVariants, List<int> animAttributes, List<int> animOams, int animId) {
             int icon = AnimVariant(rom, anims, CollectionIconAnim, CollectionMapVariant);
             if (ReadInt(rom, icon) != -2 || ReadInt(rom, icon + 12) != -1 || ReadInt(rom, icon + 20) != 4 || ReadInt(rom, icon + 32) != -4)
@@ -61,6 +71,8 @@ namespace KatAMRandomizer {
                     rom[tileSets[k] + i] = (byte)(remap[pixels & 15] | remap[pixels >> 4] << 4);
                 }
             }
+            (byte[][] pieceTiles, ushort[] parchment) = squeak == null ? (null, null) : SecretMapPieceIcons(squeak);
+            secretMapShades = parchment;
             int iconPalette = paletteBase + ReadInt(rom, icon + 4) * 32;
             int[] palettes = new int[4];
             for (int pair = 0; pair < 4; pair++) {
@@ -69,6 +81,7 @@ namespace KatAMRandomizer {
                 colors[1] = (ushort)ReadShort(rom, iconPalette + 7 * 2);
                 colors[2] = (ushort)ReadShort(rom, iconPalette + 9 * 2);
                 colors[3] = Bgr555(AreaMapInk);
+                if (parchment != null) Array.Copy(parchment, 0, colors, 4, 3);
                 for (int k = 0; k < 4; k++) {
                     int map = (k / 2) * NidlAreaMaps + pair * 2 + k % 2;
                     colors[7 + 2 * k] = Bgr555(AreaMapThemes[map].light);
@@ -76,16 +89,113 @@ namespace KatAMRandomizer {
                 }
                 for (int i = 0; i < 16; i++) WriteShort(rom, palettes[pair] + i * 2, colors[i]);
             }
-            int iconVariants = Allocate(ref cursor, AreaMapCount * 4, 4);
+            int iconVariants = Allocate(ref cursor, (AreaMapCount + (pieceTiles == null ? 0 : SecretMapPieces)) * 4, 4);
             for (int map = 0; map < AreaMapCount; map++) {
                 int column = map % NidlAreaMaps, k = (map / NidlAreaMaps) * 2 + column % 2, commands = Allocate(ref cursor, 36, 4);
                 WriteInts(rom, commands, -2, (palettes[column / 2] - paletteBase) / 32, 16, -1, (tileSets[k] - tilesBase) / 32, 4, 1, iconFrame, -4);
                 WriteInt(rom, iconVariants + map * 4, commands + 0x08000000);
             }
+            // (the pieces: piece p in column p, its pair's palette; KatAM's map's frame, a 16x16 sprite of 4 tiles);
+            for (int piece = 0; pieceTiles != null && piece < SecretMapPieces; piece++) {
+                int tiles = Allocate(ref cursor, 4 * 32, 32, tilesBase), commands = Allocate(ref cursor, 36, 4);
+                pieceTiles[piece].CopyTo(rom, tiles);
+                WriteInts(rom, commands, -2, (palettes[piece / 2] - paletteBase) / 32, 16, -1, (tiles - tilesBase) / 32, 4, 1, iconFrame, -4);
+                WriteInt(rom, iconVariants + (AreaMapCount + piece) * 4, commands + 0x08000000);
+            }
             animVariants.Add(iconVariants);
             animAttributes.Add(ReadInt(rom, attrTable + CollectionIconAnim * 4) - 0x08000000);
             animOams.Add(ReadInt(rom, oamTable + CollectionIconAnim * 4) - 0x08000000);
             return animId;
+        }
+
+        // (the pieces' parchment, light, mid and dark (their icons' colors 4-6, their popup's 8-10), this ROM's: AddAreaMapIcons());
+        static ushort[] secretMapShades;
+
+        /* SecretMapPieceIcons(); The Secret Map's pieces' icons (Squeak Squad's collection/map cells 0-6, as Squeak Squad draws them,
+         * unmirrored), each as 4 tiles of a 16x16 sprite (KatAM's order: the top row's two, then the bottom's): the piece shrunk to fit
+         * 14x14 (a pixel drawn where half its area is), its shades in 3 (4 light, 5 mid, 6 dark: the brightness of all the pieces' pixels
+         * in 3 groups, each group's color its pixels' average), an outline of 1 (black) around it; and the 3 colors; */
+        static (byte[][] tiles, ushort[] shades) SecretMapPieceIcons(byte[] squeak) {
+            SqueakCharacter map = ReadSqueakCharacter(squeak, "map", "collection");
+            if (map.Anims.Count < SecretMapPieces) throw new InvalidOperationException("Squeak Squad's Secret Map isn't Squeak Squad's.");
+            Dictionary<(int palette, int color), int> colorMap = new Dictionary<(int, int), int>();
+            List<ushort> rgb = new List<ushort>();
+            for (int p = 0; p < map.Palettes.Count; p++)
+                for (int c = 1; c < 16; c++) { colorMap[(p, c)] = rgb.Count + 1; rgb.Add(map.Palettes[p][c]); }
+            static double Brightness(ushort c) => 0.299 * (c & 31) + 0.587 * (c >> 5 & 31) + 0.114 * (c >> 10 & 31);
+
+            // Each piece shrunk: its pixels' (brightness, r, g, b), or none where it's see-through;
+            (double light, double r, double g, double b)?[][,] shrunk = new (double, double, double, double)?[SecretMapPieces][,];
+            for (int piece = 0; piece < SecretMapPieces; piece++) {
+                int[,] canvas = SqueakCanvas(map, map.Anims[piece].Steps[0].Cell, colorMap);
+                int size = canvas.GetLength(0), left = size, right = -1, top = size, bottom = -1;
+                for (int x = 0; x < size; x++)
+                    for (int y = 0; y < size; y++)
+                        if (canvas[x, y] != 0) { left = Math.Min(left, x); right = Math.Max(right, x); top = Math.Min(top, y); bottom = Math.Max(bottom, y); }
+                if (right < 0) throw new InvalidOperationException("Squeak Squad's Secret Map isn't Squeak Squad's.");
+                int width = right - left + 1, height = bottom - top + 1;
+                double scale = Math.Max(1.0, Math.Max(width, height) / (double)SecretMapIconFit);
+                int w = Math.Max(1, (int)Math.Round(width / scale)), h = Math.Max(1, (int)Math.Round(height / scale));
+                shrunk[piece] = new (double, double, double, double)?[w, h];
+                for (int tx = 0; tx < w; tx++)
+                    for (int ty = 0; ty < h; ty++) {
+                        int x0 = left + (int)(tx * scale), x1 = Math.Max(x0 + 1, left + (int)((tx + 1) * scale));
+                        int y0 = top + (int)(ty * scale), y1 = Math.Max(y0 + 1, top + (int)((ty + 1) * scale));
+                        int all = 0, drawn = 0; double light = 0, r = 0, g = 0, b = 0;
+                        for (int x = x0; x < x1 && x <= right; x++)
+                            for (int y = y0; y < y1 && y <= bottom; y++) {
+                                all++;
+                                // (SqueakCanvas() mirrors: the piece as Squeak Squad draws it);
+                                int value = canvas[right - (x - left), y];
+                                if (value == 0) continue;
+                                ushort c = rgb[value - 1];
+                                drawn++; light += Brightness(c); r += c & 31; g += c >> 5 & 31; b += c >> 10 & 31;
+                            }
+                        if (drawn * 2 >= all && drawn > 0) shrunk[piece][tx, ty] = (light / drawn, r / drawn, g / drawn, b / drawn);
+                    }
+            }
+
+            // The 3 shades: the pixels' brightness in 3 groups (k-means, from the darkest, the middle and the brightest);
+            var pixels = shrunk.SelectMany(s => s.Cast<(double light, double r, double g, double b)?>()).Where(p => p != null).Select(p => p.Value).ToList();
+            List<double> sorted = pixels.Select(p => p.light).OrderBy(l => l).ToList();
+            double[] centers = { sorted[0], sorted[sorted.Count / 2], sorted[^1] };
+            int Group(double light) => Enumerable.Range(0, 3).OrderBy(k => Math.Abs(light - centers[k])).First();
+            for (int round = 0; round < 16; round++)
+                for (int k = 0; k < 3; k++) {
+                    List<double> members = pixels.Where(p => Group(p.light) == k).Select(p => p.light).ToList();
+                    if (members.Count > 0) centers[k] = members.Average();
+                }
+            // (4 the brightest, 6 the darkest);
+            int[] order = Enumerable.Range(0, 3).OrderByDescending(k => centers[k]).ToArray();
+            ushort[] shades = new ushort[3];
+            for (int i = 0; i < 3; i++) {
+                var members = pixels.Where(p => Group(p.light) == order[i]).ToList();
+                if (members.Count == 0) throw new InvalidOperationException("Squeak Squad's Secret Map isn't Squeak Squad's.");
+                shades[i] = (ushort)((int)Math.Round(members.Average(p => p.r)) | (int)Math.Round(members.Average(p => p.g)) << 5 | (int)Math.Round(members.Average(p => p.b)) << 10);
+            }
+
+            byte[][] tiles = new byte[SecretMapPieces][];
+            for (int piece = 0; piece < SecretMapPieces; piece++) {
+                int w = shrunk[piece].GetLength(0), h = shrunk[piece].GetLength(1), ox = (SecretMapIconSize - w) / 2, oy = (SecretMapIconSize - h) / 2;
+                byte[,] icon = new byte[SecretMapIconSize, SecretMapIconSize];
+                for (int x = 0; x < w; x++)
+                    for (int y = 0; y < h; y++)
+                        if (shrunk[piece][x, y] is var (light, _, _, _)) icon[ox + x, oy + y] = (byte)(4 + Array.IndexOf(order, Group(light)));
+                // (the outline: each see-through pixel next to the piece);
+                byte[,] outlined = (byte[,])icon.Clone();
+                for (int x = 0; x < SecretMapIconSize; x++)
+                    for (int y = 0; y < SecretMapIconSize; y++)
+                        if (icon[x, y] == 0 && new[] { (1, 0), (-1, 0), (0, 1), (0, -1) }.Any(d => x + d.Item1 >= 0 && y + d.Item2 >= 0 &&
+                                x + d.Item1 < SecretMapIconSize && y + d.Item2 < SecretMapIconSize && icon[x + d.Item1, y + d.Item2] != 0))
+                            outlined[x, y] = 1;
+                tiles[piece] = new byte[4 * 32];
+                for (int x = 0; x < SecretMapIconSize; x++)
+                    for (int y = 0; y < SecretMapIconSize; y++) {
+                        int tile = y / 8 * 2 + x / 8;
+                        tiles[piece][tile * 32 + y % 8 * 4 + x % 8 / 2] |= (byte)(outlined[x, y] << (x % 2 * 4));
+                    }
+            }
+            return (tiles, shades);
         }
 
         /* SqueakMapChests(); Each Squeak Squad world's map's chest (its room's file and the chest's record in its .doe's items): of the
@@ -113,17 +223,22 @@ namespace KatAMRandomizer {
         // (the Squeak Squad worlds' maps whose chests SqueakObjects() made, this ROM's, and their rooms' stage files: AddSqueakRooms() starts it afresh);
         static readonly Dictionary<int, SqueakRoomFiles> squeakMapsPlaced = new Dictionary<int, SqueakRoomFiles>();
         internal static IReadOnlyDictionary<int, SqueakRoomFiles> SqueakMapRooms => squeakMapsPlaced;
+        // (the Secret Map's pieces whose chests SqueakObjects() made, the same);
+        static readonly Dictionary<int, SqueakRoomFiles> squeakPiecesPlaced = new Dictionary<int, SqueakRoomFiles>();
+        internal static IReadOnlyDictionary<int, SqueakRoomFiles> SecretMapPieceRooms => squeakPiecesPlaced;
 
-        /* AddAreaMaps(); The rest (after the anims tables are copied): gNidlMaps (the maps' shades), and the maps placed (present: the
-         * NiDL levels', the Squeak Squad worlds') as the Collection Room grid's cells (their icons, their texts). Returns an error, or null; */
-        static string AddAreaMaps(byte[] rom, byte[] squeak, KatAMExpansionCode.Version version, int iconAnim, bool[] present,
+        /* AddAreaMaps(); The rest (after the anims tables are copied): gNidlMaps (the maps' shades, then the Secret Map's pieces'), and
+         * the maps placed (present: the NiDL levels', the Squeak Squad worlds') and the Secret Map's pieces placed (piecesPresent) as the
+         * Collection Room grid's cells (their icons, their texts). Returns an error, or null; */
+        static string AddAreaMaps(byte[] rom, byte[] squeak, KatAMExpansionCode.Version version, int iconAnim, bool[] present, bool[] piecesPresent,
                                   List<CollectionItem> items, List<(int tileset, int tilemap)[]> texts, ref int cursor) {
-            int colors = Allocate(ref cursor, AreaMapCount * 6, 4);
+            int colors = Allocate(ref cursor, (AreaMapCount + 1) * 6, 4);
             for (int map = 0; map < AreaMapCount; map++) {
                 WriteShort(rom, colors + map * 6, Bgr555(AreaMapThemes[map].light));
                 WriteShort(rom, colors + map * 6 + 2, Bgr555(AreaMapThemes[map].mid));
                 WriteShort(rom, colors + map * 6 + 4, Bgr555(AreaMapThemes[map].dark));
             }
+            for (int i = 0; i < 3 && secretMapShades != null; i++) WriteShort(rom, colors + AreaMapCount * 6 + i * 2, secretMapShades[i]);
             WriteInt(rom, CodeAddress + version.CodeSymbols["gNidlMaps"], colors + 0x08000000);
             int cells = version.RomSymbols["gUnk_08386A50"];
             int[] mapTexts = new int[10];
@@ -139,6 +254,14 @@ namespace KatAMRandomizer {
                 int map = maps[i], column = map % NidlAreaMaps;
                 items.Add(new CollectionItem(2 + map / NidlAreaMaps, column, 0x200 + AreaMapBit + map, iconAnim, map, AreaMapPaletteSlots[column / 2],
                                              firstText + i, mapTexts[1]));
+            }
+            // (the Secret Map's pieces: the second row, piece p in column p, one text for all, "• SECRET MAP PIECE");
+            if (secretMapShades != null && piecesPresent.Any(placed => placed)) {
+                int pieceText = texts.Count;
+                texts.AddRange(ComposeCollectionTexts(rom, version, mapTexts, 1, CollectionNames(rom, squeak, version, new[] { SecretMapName }), ref cursor));
+                for (int piece = 0; piece < SecretMapPieces; piece++)
+                    if (piecesPresent[piece])
+                        items.Add(new CollectionItem(1, piece, 0x2000 + piece, iconAnim, AreaMapCount + piece, AreaMapPaletteSlots[piece / 2], pieceText, mapTexts[1]));
             }
             return null;
         }
