@@ -1260,7 +1260,7 @@ namespace KatAMRandomizer {
         const int SqueakSwitchGimmick = 0, SqueakSwitchBlocks = 0x10;
         // (the gimmicks that talk to others: squeak/gimmicks.c; its shutters on object 0x8D with their template's unk11 SqueakShutterObject);
         const int SqueakShutterGimmick = 2, SqueakFireGimmick = 7, SqueakTriggerArea = 0x15, SqueakRelay = 0x16, SqueakRandomRelay = 0x17,
-                  SqueakQuake = 0x13, SqueakMailGimmicks = 60;
+                  SqueakQuake = 0x13, SqueakCameraArea = 0x14, SqueakEmitter = 0x19, SqueakMailGimmicks = 60;
         const byte SqueakShutterObject = 0x9B, SqueakFireObject = 0x9A;
         /* The grass tufts (0xE) and barrels (0xF), their objects squeak/gimmicks.c's: its template's unk12 the grass's look, unk14 what
          * comes out (the KatAM object's type, its behavior byte over it), unk16 its variant (a Squeak Squad character's: SqueakHeld()); */
@@ -1344,20 +1344,29 @@ namespace KatAMRandomizer {
             for (int k = 0; k < count && k < most && first + k < p.Length; k++) yield return p[first + k];
         }
 
-        /* SqueakGimmickList(); A room's gimmicks its task runs (squeak/gimmicks.c's gSqueakGimmickRooms: trigger areas, relays, and the
-         * block groups made chains, `chains`): a count, then 24 bytes each (type, index, x, y, the parameters' first 18 bytes); null
-         * none; */
-        static byte[] SqueakGimmickList(List<SqueakGimmick> gimmicks, IReadOnlySet<(int x, int y)> chains) {
+        /* SqueakGimmickList(); A room's gimmicks its task runs (squeak/gimmicks.c's gSqueakGimmickRooms: trigger areas, relays, quake
+         * triggers, the effect emitters, the camera areas (not in a room whose fight's arena holds the camera: `arena`), and the block
+         * groups made chains,
+         * `chains`): a count, then 24 bytes each (type, index, x, y, the parameters' first 18 bytes); null none. A camera area's bounds
+         * (its first 4 u16s: x0, y0, x1, y1) have their y in the DS's world, up from the room's bottom: here from its top (`height`, the
+         * room's in pixels, less them, swapped), as the entries' spots are; */
+        static byte[] SqueakGimmickList(List<SqueakGimmick> gimmicks, IReadOnlySet<(int x, int y)> chains, bool arena, int height) {
             List<byte> list = new List<byte> { 0, 0, 0, 0 };
             for (int i = 0; i < gimmicks.Count && i < SqueakMailGimmicks; i++) {
                 SqueakGimmick g = gimmicks[i];
-                if (!(g.Type is SqueakTriggerArea or SqueakRelay or SqueakRandomRelay or SqueakQuake || g.Type == SqueakSwitchBlocks && chains.Contains((g.X / 16, g.Y / 16)))) continue;
+                if (!(g.Type is SqueakTriggerArea or SqueakRelay or SqueakRandomRelay or SqueakQuake or SqueakEmitter || g.Type == SqueakCameraArea && !arena
+                      || g.Type == SqueakSwitchBlocks && chains.Contains((g.X / 16, g.Y / 16)))) continue;
                 byte[] entry = new byte[24];
                 entry[0] = (byte)g.Type;
                 entry[1] = (byte)i;
                 WriteShort(entry, 2, g.X);
                 WriteShort(entry, 4, g.Y);
                 g.Parameters?.Take(18).ToArray().CopyTo(entry, 6);
+                if (g.Type == SqueakCameraArea && g.Parameters?.Length >= 8) {
+                    int top = height - ReadShort(g.Parameters, 6), bottom = height - ReadShort(g.Parameters, 2);
+                    WriteShort(entry, 6 + 2, Math.Max(0, top));
+                    WriteShort(entry, 6 + 6, Math.Max(0, bottom));
+                }
                 list.AddRange(entry);
                 list[0]++;
             }
@@ -1805,7 +1814,8 @@ namespace KatAMRandomizer {
                                                                                     vitalityChests, sprayCans, mapChests);
                     // (its cannons: an eight-direction cannon for each of gimmick 0xB, and its fuse cannon with its fuse; its switches);
                     // (the gimmicks that talk to each other: their task's list, its index in the room's list each one's);
-                    if (SqueakGimmickList(gimmicks, chains) is byte[] gimmickList) {
+                    (bool fightMidboss, bool fightBoss) = SqueakFights(squeak, f);
+                    if (SqueakGimmickList(gimmicks, chains, arenas && (fightMidboss || fightBoss), map.Height * 16) is byte[] gimmickList) {
                         gimmickLists[i] = Allocate(ref here, gimmickList.Length, 4);
                         gimmickList.CopyTo(rom, gimmickLists[i]);
                     }

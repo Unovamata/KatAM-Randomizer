@@ -1283,6 +1283,8 @@ namespace KatAMRandomizer {
                             character = SqueakMerge(character, ReadSqueakCharacter(squeak, extra, file.Length > 1 ? file[0] : "enemy", enemy.PaletteFile),
                                                     enemy.SharePalettes);
                         if (enemy.OnlyAnims != null) character = SqueakKeepAnims(character, enemy.OnlyAnims, enemy.KeepComposites);
+                        // (a gimmick's composite animations as plain ones after its own: the thunder cloud's);
+                        if (enemy.FlattenComposites) character = SqueakFlattenComposites(character);
                         if (enemy.ShiftY != 0) character = SqueakShiftCells(character, enemy.ShiftY);
                         if (enemy.Roll >= 0) character = SqueakRolled(character, enemy.Roll, 16);
                         // (drawn smaller than the DS's: its offsets as much smaller, its frames by SqueakFrames);

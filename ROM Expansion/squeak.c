@@ -808,13 +808,13 @@ shown:
     EffectObjectPostUpdate(&fx->e);
 }
 
-// SqueakEffectAt(); An effect at (x, y) (KatAM's units), facing left or right, playing from its first step;
-static struct SqueakFx *SqueakEffectAt(struct SqueakObject *s, u8 effect, s32 x, s32 y, bool8 left) {
+// SqueakEffectAt(); An effect at (x, y) (KatAM's units) in a room, facing left or right, playing from its first step;
+static struct SqueakFx *SqueakEffectAtIn(u16 roomId, u8 effect, s32 x, s32 y, bool8 left) {
     const struct SqueakEffect *d = &gSqueakData.effects[effect];
     struct Task *t;
     struct SqueakFx *fx;
 
-    if (gKirbys[gLocalPlayerId].base.roomId != s->obj.base.roomId) return NULL;
+    if (gKirbys[gLocalPlayerId].base.roomId != roomId) return NULL;
     /* (none when KatAM's sprite heap couldn't hold it and still SQUEAK_FX_ROOM tiles for KatAM's own effects, which draw whatever is
      * in VRAM when they get none: Yadgaine's fight, its shell in, two of its rocks' bursts at once fill it); */
     if (VramGetTotalAllocatedTiles() + d->tiles + SQUEAK_FX_ROOM > gVramHeapMaxTileSlots) return NULL;
@@ -823,7 +823,7 @@ static struct SqueakFx *SqueakEffectAt(struct SqueakObject *s, u8 effect, s32 x,
     fx = TaskGetStructPtr(t);
     ClearEffectObject(&fx->e);
     fx->e.header.kind = 3;
-    fx->e.roomId = s->obj.base.roomId;
+    fx->e.roomId = roomId;
     fx->e.parent = NULL;
     fx->e.x = x;
     fx->e.y = y;
@@ -834,11 +834,20 @@ static struct SqueakFx *SqueakEffectAt(struct SqueakObject *s, u8 effect, s32 x,
     fx->timer = d->anim.step[0].frames;
     fx->left = left;
     fx->held = FALSE;
-    fx->palId = SqueakLoadPalette(d->palette.key, d->palette.variant, s->obj.base.roomId);
+    fx->palId = SqueakLoadPalette(d->palette.key, d->palette.variant, roomId);
     EffectObjectInitSprite(&fx->e, &fx->e.sprite, d->tiles, d->animId, d->anim.step[0].cell, 0x1A);
     // (none drawn when its VRAM couldn't be got: gone at its first run);
     if (!SqueakVramOk(fx->e.sprite.tilesVram)) fx->e.flags |= 0x1000 | 0x400;
     return fx;
+}
+
+static struct SqueakFx *SqueakEffectAt(struct SqueakObject *s, u8 effect, s32 x, s32 y, bool8 left) {
+    return SqueakEffectAtIn(s->obj.base.roomId, effect, x, y, left);
+}
+
+// SqueakEffectInRoom(); An effect at (x, y) (KatAM's units) in a room, facing right, owned by nothing (a gimmick's: squeak/gimmicks.c);
+void SqueakEffectInRoom(u16 roomId, u8 effect, s32 x, s32 y) {
+    SqueakEffectAtIn(roomId, effect, x, y, FALSE);
 }
 
 /* SqueakSpawnEffect(); 0x02021900: an effect at the character's position plus (dx, dy) (Squeak Squad's units: 20.12, Y up; not

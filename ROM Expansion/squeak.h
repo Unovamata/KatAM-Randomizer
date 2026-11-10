@@ -294,6 +294,8 @@ enum {
     SQUEAK_FX_DOC_BOMB,
     SQUEAK_FX_DOC_SMOKE,
     SQUEAK_FX_YADGAINE_SHELL,   // Yadgaine's shell (its stage's picture: KatAMExpansionSqueak.cs's SqueakShell, at three quarters of its size);
+    SQUEAK_FX_LAVA_SPARK,       // Gimmick 0x19's (squeak/gimmicks.c's Emitter): yakumono/spark's animation 0, a lava spark;
+    SQUEAK_FX_WATER_BUBBLE,     // and yakumono/bubble's 0, a water bubble;
     SQUEAK_FX_COUNT,
 };
 
@@ -448,6 +450,7 @@ bool32 SqueakInWater(struct SqueakObject *);
 void SqueakFaceKirby(struct SqueakObject *, s32 distance);
 bool32 SqueakKirbyWithin(struct SqueakObject *, s32 dx, s32 dy);
 void SqueakSpawnEffect(struct SqueakObject *, u8 effect, s32 dx, s32 dy, bool8 follow);
+void SqueakEffectInRoom(u16 roomId, u8 effect, s32 x, s32 y);
 void SqueakHoldEffect(struct SqueakObject *, u8 effect, s32 dx, s32 dy);
 void SqueakEndHeldEffect(struct SqueakObject *);
 void SqueakSplash(struct SqueakObject *, bool8 out);

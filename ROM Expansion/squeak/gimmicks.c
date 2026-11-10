@@ -67,6 +67,9 @@ const struct SqueakSwitch gSqueakSwitch = { NULL };
 #define QUAKE_DONE 2
 #define RANDOM_RELAY_TARGETS 8
 #define GIMMICK_BLOCKS 0x10
+#define GIMMICK_CAMERA 0x14
+#define GIMMICK_EMITTER 0x19
+#define EMITTER_WAIT 100
 #define RELAY_TARGETS 5
 // (a message's kinds: a switch's 0, a trigger area's 2; a relay with its parameter's bit 7 takes kind 4 only, sending 2);
 #define MESSAGE_SWITCH 0
@@ -92,7 +95,8 @@ static u8 TakeMail(u8 slot, u8 index) {
 // SlotOf(); The room slot of the room an object is in (its player's level info's: KatAM's own objects look it up so);
 #define SlotOf(base) (gCurLevelInfo[(base)->unk56].unk65E)
 
-/* The room's task: the trigger areas (0x15), relays (0x16, 0x17), quake triggers (0x13) and switch block groups (0x10). Its ObjectBase is what KatAM's chain
+/* The room's task: the trigger areas (0x15), relays (0x16, 0x17), quake triggers (0x13), camera areas (0x14), effect emitters (0x19)
+ * and switch block groups (0x10). Its ObjectBase is what KatAM's chain
  * breaker (sub_0800E0E4) reads of the object breaking a chain (its room, its player's level info) and whose spot it starts from; */
 struct SqueakLogic {
     struct ObjectBase base;
@@ -103,6 +107,8 @@ struct SqueakLogic {
     u8 inside[SQUEAK_MAIL_GIMMICKS];            // A trigger area: a body in it last frame;
     u8 relayKind[SQUEAK_MAIL_GIMMICKS];         // A relay: the kind it sends + 1 while it runs;
     s16 relayTimer[SQUEAK_MAIL_GIMMICKS][RELAY_TARGETS];
+    u8 cameraArea[4];                           // Per Kirby, the camera area holding his view (its index + 1), 0 none;
+    struct S32Vec2 cameraWas[4][2];             // and his view's bounds' targets before it (unk_S32Vec2_7C, unk_S32Vec2_84);
 };
 
 /* Inside(); A Kirby in the room touching a trigger area: its box from its spot, its parameter's low 7 bits blocks right, the next 7
@@ -121,6 +127,73 @@ static bool32 Inside(const struct SqueakLogic *l, const struct SqueakGimmickEntr
         if (kx + k->base.unk3E > x0 && kx + k->base.unk3C < x1 && ky + k->base.unk3F > y0 && ky + k->base.unk3D < y1) return TRUE;
     }
     return FALSE;
+}
+
+/* CameraArea(); A camera area (0x14, ctor 0x02224B88, vtable 0x02229A7C): its parameter's u16s at +0 its bounds (x0, y0, x1, y1, pixels),
+ * its u16 at +8 its box (bits 0-6 blocks right, 7-13 down, as a trigger area's), bits 14-15 how many targets (indices from +0xA), +0xD
+ * bit 0 that it holds the camera. A body moving into the box (0x02224AA0) sends its targets kind 2 and holds the camera's view inside
+ * the bounds (one DS screen, 256 x 192, in nearly all of the 58: the goal games' and boss rooms' screens, 2-3-8's two). Here the
+ * Kirby's view's bounds (KatAM eases his view to them: unk_S32Vec2_7C, unk_S32Vec2_84) are the area's, the GBA's smaller screen
+ * moving inside them; let go (his room's bounds again) once he's out of the bounds, so he's never off the screen (the DS keeps them:
+ * its rooms close behind him). Not in a room whose fight's arena holds the camera (the converter leaves those out); */
+static void CameraArea(struct SqueakLogic *l, const struct SqueakGimmickEntry *e) {
+    s32 x0 = e->par[0] | e->par[1] << 8, y0 = e->par[2] | e->par[3] << 8, x1 = e->par[4] | e->par[5] << 8, y1 = e->par[6] | e->par[7] << 8;
+    u16 box = e->par[8] | e->par[9] << 8;
+    s32 bx0 = e->x, bx1 = e->x + (box & 0x7F) * 16, by0 = e->y, by1 = e->y + (box >> 7 & 0x7F) * 16;
+    u8 i, t;
+
+    // (the GBA's screen fitting: bounds narrower or lower than it widened round their middle);
+    if (x1 - x0 < DISPLAY_WIDTH) x0 = (x0 + x1 - DISPLAY_WIDTH) / 2, x1 = x0 + DISPLAY_WIDTH;
+    if (y1 - y0 < DISPLAY_HEIGHT) y0 = (y0 + y1 - DISPLAY_HEIGHT) / 2, y1 = y0 + DISPLAY_HEIGHT;
+    for (i = 0; i < gNumKirbys && i < 4; i++) {
+        struct Kirby *k = &gKirbys[i];
+        struct LevelInfo *level = &gCurLevelInfo[i];
+        s32 kx = k->base.x >> 8, ky = k->base.y >> 8;
+        bool32 inBox = k->base.roomId == l->room && kx + k->base.unk3E > bx0 && kx + k->base.unk3C < bx1 && ky + k->base.unk3F > by0
+                       && ky + k->base.unk3D < by1;
+
+        if (l->cameraArea[i] == e->index + 1) {
+            // (out of the bounds, or of the room: his room's view again);
+            if (k->base.roomId != l->room || kx < x0 || kx > x1 || ky < y0 || ky > y1) {
+                level->unk_S32Vec2_7C = l->cameraWas[i][0];
+                level->unk_S32Vec2_84 = l->cameraWas[i][1];
+                l->cameraArea[i] = 0;
+                continue;
+            }
+        } else {
+            if (!inBox) continue;
+            if (l->cameraArea[i] == 0) {
+                l->cameraWas[i][0] = level->unk_S32Vec2_7C;
+                l->cameraWas[i][1] = level->unk_S32Vec2_84;
+            }
+            for (t = 0; t < (box >> 14) && t < 3; t++) SqueakSendMail(l->slot, e->par[10 + t], MESSAGE_AREA);
+            if (!(e->par[13] & 1)) continue;
+            l->cameraArea[i] = e->index + 1;
+        }
+        level->unk_S32Vec2_7C.x = x0 << 8;
+        level->unk_S32Vec2_7C.y = y0 << 8;
+        level->unk_S32Vec2_84.x = x1 << 8;
+        level->unk_S32Vec2_84.y = y1 << 8;
+    }
+}
+
+/* Emitter(); An effect emitter (0x19, ctor 0x02225E9C, vtable 0x02229D30, its state 0x02225D14): 171 in 24 rooms, its parameter's
+ * first byte's low nibble its look (0x02229CBC: 0 yakumono/bubble, a water bubble, 51 of them; 1 yakumono/spark, a lava spark, 120;
+ * 2 unused), always its animation 0 (0x02227F90). Each time its wait (+0x5C, from 0) runs out it plays that once at its spot (an
+ * effect: 0x0221F89C, kind 6, not moving), if its spot is in the camera's view (0x0221FA50), and waits again 100, 200, 300 or 400
+ * frames (the random's top 2 bits + 1, times 100), seen or not. Here the local player's view; its wait the relay timer's first; */
+static void Emitter(struct SqueakLogic *l, const struct SqueakGimmickEntry *e) {
+    s16 *wait = &l->relayTimer[e->index][0];
+    const struct LevelInfo *level = &gCurLevelInfo[gLocalPlayerId];
+    s32 vx = level->viewportPosition.x >> 8, vy = level->viewportPosition.y >> 8;
+
+    if (*wait > 0) {
+        (*wait)--;
+        return;
+    }
+    if (gKirbys[gLocalPlayerId].base.roomId == l->room && e->x >= vx && e->x <= vx + DISPLAY_WIDTH && e->y >= vy && e->y <= vy + DISPLAY_HEIGHT)
+        SqueakEffectInRoom(l->room, (e->par[0] & 15) == 0 ? SQUEAK_FX_WATER_BUBBLE : SQUEAK_FX_LAVA_SPARK, e->x << 8, e->y << 8);
+    *wait = ((Rand16() >> 14) + 1) * EMITTER_WAIT;
 }
 
 /* Trigger(); A trigger area (0x0221E544, its states 0x0221E520 and 0x0221E4EC): a body moving into it sends its targets (its
@@ -195,11 +268,18 @@ static void RandomRelay(struct SqueakLogic *l, const struct SqueakGimmickEntry *
 /* Quake(); A quake trigger (0x13: ctor 0x022240E8, vtable 0x022298F8): its parameter's second u16 its box (bits 0-6 blocks right, 7-13
  * down, as a trigger area's), bits 14-15 how many targets, its bytes 4 on their indices; a body moving into it (message 5) or a switch's
  * message (kinds 0 and 1, 0x022240A8) sets it off once (state 1, 0x02224034): the screen quakes (its first u16's low 4 bits the kind,
- * the rest the frames: left out, as the shutters' quakes are) and its targets get a message of kind 2. The bodies that set them off
- * on the DS are its rolling boulders, not ported (4-3-2's roll down its shaft into one): a Kirby within QUAKE_REACH pixels of its box
- * does here (4-3-2's at the end of the corridor the boulders take); */
+ * the rest the frames: KatAM's timed shake nearest its length, QuakeShake(); the owner, of the quakes left out: "I want them") and its
+ * targets get a message of kind 2. The bodies that set them off on the DS are its rolling boulders (4-3-2's roll down its shaft into
+ * one): a Kirby within QUAKE_REACH pixels of its box does here too (4-3-2's at the end of the corridor the boulders take); */
+// QuakeShake(); KatAM's timed screen shake (RequestScreenShake 1-3: 14, 18, 24 frames) nearest a quake of `frames`, the longest for more;
+void RequestScreenShake(u16, struct ObjectBase *);
+static void QuakeShake(u16 frames, struct ObjectBase *by) {
+    RequestScreenShake(frames <= 16 ? 1 : frames <= 21 ? 2 : 3, by);
+}
+
 static void Quake(struct SqueakLogic *l, const struct SqueakGimmickEntry *e) {
-    u16 p = e->par[2] | e->par[3] << 8;
+    u16 p = e->par[2] | e->par[3] << 8, quake = e->par[0] | e->par[1] << 8;
+    struct ObjectBase *by = &gKirbys[0].base;
     s32 x0 = e->x - QUAKE_REACH, x1 = e->x + (p & 0x7F) * 16 + QUAKE_REACH, y0 = e->y - QUAKE_REACH, y1 = e->y + (p >> 7 & 0x7F) * 16 + QUAKE_REACH;
     u8 count = p >> 14, kind = TakeMail(l->slot, e->index), i, t;
     bool32 near = kind == MESSAGE_SWITCH + 1 || kind == MESSAGE_SWITCH + 2;
@@ -209,9 +289,10 @@ static void Quake(struct SqueakLogic *l, const struct SqueakGimmickEntry *e) {
         struct Kirby *k = &gKirbys[i];
         s32 kx = k->base.x >> 8, ky = k->base.y >> 8;
 
-        if (k->base.roomId == l->room && kx > x0 && kx < x1 && ky > y0 && ky < y1) near = TRUE;
+        if (k->base.roomId == l->room && kx > x0 && kx < x1 && ky > y0 && ky < y1) near = TRUE, by = &k->base;
     }
     if (!near) return;
+    QuakeShake(quake >> 4, by);
     for (t = 0; t < count; t++) SqueakSendMail(l->slot, e->par[4 + t], MESSAGE_AREA);
     l->inside[e->index] = QUAKE_DONE;
 }
@@ -258,6 +339,8 @@ static void SqueakLogicMain(void) {
         case GIMMICK_RANDOM_RELAY: RandomRelay(l, e); break;
         case GIMMICK_BLOCKS: Blocks(l, e); break;
         case GIMMICK_QUAKE: Quake(l, e); break;
+        case GIMMICK_CAMERA: CameraArea(l, e); break;
+        case GIMMICK_EMITTER: Emitter(l, e); break;
         }
     }
 }
@@ -1231,40 +1314,96 @@ static void *SqueakCreatePlatform(struct ObjectTemplate *template, u8 playerId) 
 
 /* The thunder clouds (gimmick 5, ctor 0x02220C00, vtable 0x02229230; yakumono/thunder_cloud): a moving platform's first word and
  * legs (its legs from its 6th byte; the same straight runs, 0x022270A4, at the speeds of its table 0x02227BA0), so here a moving
- * platform with the cloud's look, and its zaps: its +0x5C phases 0-6, moved on as its animations end (0x02220A24), the first making
- * it harmful (harm kind 0x0B, strength 8: +0x48, +0x4C), a sound (0x11F) on phases 1, 3 and 5, the last back to rest; its two u16s
- * (the template's unk1C, unk1E: 30 and 30 in the rooms) the frames it rests and zaps. Here it rests unk1C frames, then zaps unk1E
- * frames flashing (animation 6), hurting a Kirby touching it (a plain hit) and those riding it, then rests again. The zap's
- * animations and their lengths are approximated (the DS's phases follow its animations, not recorded); */
+ * platform with the cloud's look. The DS plays only its .mca's 4 composites (its look's table 0x02227BAC: 0x3000000-3), here
+ * animations 14-17 (KatAMExpansionSqueak.cs's SqueakFlattenComposites): 14 resting (147 frames, looping), 15 the zap (its green
+ * burst and sparks, 12 frames, looping), 16 the shake before it breaks, 17 breaking up. Its zaps (its +0x5C phases 0-6): an attack
+ * on it (message 0xB, 0x02220ADC to 0x02220B0C) sets phase 1 while it rests, or 2 while it zaps (zapping on); as each loop of its
+ * animation ends (0x02220A24): phase 1 starts the zap (harm kind 0x0B, strength 8: +0x48, +0x4C) and 2, phases 2-5 go on to the
+ * next (the thunder, sound 0x11F, on 3 and 5), phase 6 back to rest and 0: a zap is 5 of its loops, 60 frames, starting once the
+ * resting loop it was struck in ends. It has no timer of its own: it rests until struck (its +0x60 counter is only reset there).
+ * The zap hurts in its burst's box, ±40 pixels (yakumono/thunder_cloud.rca's attack boxes, ±40 and ±42), riders too (a plain hit).
+ * Its break (a platform's end 1: states 4-6, 0x02220854-0x022207EC): 30 frames of animation 16 where it is, then 17 (sound 0x29)
+ * and it's gone, riders dropped; */
 struct SqueakCloud {
     struct SqueakPlatform p;
-    u8 zapping;
+    u8 phase;
     u16 clock;
 };
-#define CLOUD_REST_ANIM 0
-#define CLOUD_ZAP_ANIM 6
+#define CLOUD_REST_ANIM 14
+#define CLOUD_ZAP_ANIM 15
+#define CLOUD_SHAKE_ANIM 16
+#define CLOUD_BREAK_ANIM 17
+#define CLOUD_ZAP_HALF 40
+#define CLOUD_ZAP_LAST 6
+#define CLOUD_SHAKE_FRAMES 30
+enum { CLOUD_SOLID, CLOUD_SHAKING, CLOUD_BREAKING };
+
+// (whether the animation's loop ends with this frame: its last step's last frame);
+static bool32 GimmickLoopEnds(struct SqueakGimmickSprite *spr) {
+    const struct SqueakAnim *a = &gSqueakData.enemies[spr->look].anim[spr->anim];
+
+    return a->loops && spr->frames <= 1 && spr->step + 1 >= a->steps;
+}
+
+static void CloudBox(struct Object *obj, bool32 zap) {
+    if (zap) sub_0803E2B0(&obj->base, -CLOUD_ZAP_HALF, -CLOUD_ZAP_HALF, CLOUD_ZAP_HALF, CLOUD_ZAP_HALF);
+    else sub_0803E2B0(&obj->base, -PLATFORM_HALF, -PLATFORM_TOP - 4, PLATFORM_HALF, 8);
+}
 
 static void SqueakCloudMain(struct Object *obj) {
     struct SqueakCloud *c = (struct SqueakCloud *)obj;
+    bool32 loopEnds;
 
     if (gUnk_03000510.unk4 & ((1 << obj->base.unk56) | 0x10)) return;
-    GimmickAnimate(obj, &c->p.spr);
-    obj->base.unk68 &= ~(7 | 0x80);
-    if (!c->zapping) {
-        if (++c->clock >= obj->objTemplate->unk1C) {
-            c->zapping = TRUE;
-            c->clock = 0;
-            GimmickPlay(obj, &c->p.spr, CLOUD_ZAP_ANIM);
+    // (its break: shaking where it is, then breaking up, gone with its animation);
+    if (c->p.state == PLATFORM_SHAKE || c->p.state == PLATFORM_FALL) {
+        obj->base.unk68 &= ~(7 | 0x80);
+        if (c->clock == 0) {
+            CloudBox(obj, FALSE);
+            GimmickPlay(obj, &c->p.spr, CLOUD_SHAKE_ANIM);
         }
-    } else {
-        obj->base.unk68 |= 3 | 0x80;
-        if (++c->clock >= obj->objTemplate->unk1E) {
-            c->zapping = FALSE;
-            c->clock = 0;
+        GimmickAnimate(obj, &c->p.spr);
+        if (++c->clock == CLOUD_SHAKE_FRAMES) {
+            GimmickPlay(obj, &c->p.spr, CLOUD_BREAK_ANIM);
+            PlaySfx(&obj->base, SE_BLOCK_BREAK);
+            c->p.riders = 0;
+            c->p.state = PLATFORM_FALL;
+        }
+        if (c->clock < CLOUD_SHAKE_FRAMES) {
+            // (it holds its riders where it is while it shakes);
+            s32 top = obj->base.y - (PLATFORM_TOP << 8);
+            PlatformCarry(&c->p, top, 0, 0);
+        } else if (c->p.spr.ended) {
+            obj->base.flags |= 0x400;
+            c->p.state = PLATFORM_GONE;
+        }
+        return;
+    }
+    if (c->p.state == PLATFORM_GONE) return;
+
+    // (struck: its zap after the loop it's in, or a zap going on again);
+    if (Struck(obj)) c->phase = c->phase <= 1 ? 1 : 2;
+    loopEnds = GimmickLoopEnds(&c->p.spr);
+    GimmickAnimate(obj, &c->p.spr);
+    if (loopEnds && c->phase != 0) {
+        if (c->phase == 1) {
+            GimmickPlay(obj, &c->p.spr, CLOUD_ZAP_ANIM);
+            CloudBox(obj, TRUE);
+            c->phase = 2;
+        } else if (c->phase < CLOUD_ZAP_LAST) {
+            c->phase++;
+            if (c->phase == 3 || c->phase == 5) PlaySfx(&obj->base, SE_SPARKY_SHOCK_ATTACK);
+        } else {
             GimmickPlay(obj, &c->p.spr, CLOUD_REST_ANIM);
+            CloudBox(obj, FALSE);
+            c->phase = 0;
         }
     }
+    obj->base.unk68 &= ~(7 | 0x80);
+    if (c->phase >= 2) obj->base.unk68 |= 3 | 0x80;
     SqueakPlatformMain(obj);
+    // (a cloud's break is its own: above);
+    if (c->p.state == PLATFORM_SHAKE) c->clock = 0;
 }
 
 static void *SqueakCreateCloud(struct ObjectTemplate *template, u8 playerId) {
@@ -1278,8 +1417,10 @@ static void *SqueakCreateCloud(struct ObjectTemplate *template, u8 playerId) {
     InitObject(obj, template, playerId);
     c->p.index = template->unk12;
     GimmickInit(obj, &c->p.spr, SQUEAK_THUNDER);
+    // (attacks reach it, as the grass tufts and ropes: Struck());
+    obj->base.unk5C = (obj->base.unk5C & ~7) | HOLDER_KIND;
     ObjectSetBounds(&obj->base, -PLATFORM_HALF, -PLATFORM_TOP, PLATFORM_HALF, 4);
-    sub_0803E2B0(&obj->base, -PLATFORM_HALF, -PLATFORM_TOP - 4, PLATFORM_HALF, 8);
+    CloudBox(obj, FALSE);
     c->p.speed = sPlatformSpeeds[word >> 10 & 3];
     if (n > 3) n = 3;
     for (i = 0; i < n; i++) {
@@ -1290,7 +1431,7 @@ static void *SqueakCreateCloud(struct ObjectTemplate *template, u8 playerId) {
     PlatformReturnLegs(&c->p, word, n);
     c->p.state = PLATFORM_WAIT;
     if ((word >> 4 & 7) <= 1 && PlatformNextLeg(&c->p)) c->p.state = PLATFORM_MOVE;
-    c->zapping = FALSE;
+    c->phase = 0;
     c->clock = 0;
     GimmickPlay(obj, &c->p.spr, CLOUD_REST_ANIM);
     obj->unk78 = SqueakCloudMain;
@@ -1347,16 +1488,22 @@ static void *SqueakCreateRope(struct ObjectTemplate *template, u8 playerId) {
  * stays, as the DS's body at rest: 2-4-2's, 4-3-2's and 8-2-4's sit in pockets 4 cells wide till their floor goes), its speed ramped
  * up as the DS's; turned as it rolls (animation 3, SqueakRolled(): its step by how far it went);
  * on a wall it breaks (the block-break sound, a puff, a piece flying off spinning, animation 1); it hurts as the other gimmicks do (a
- * plain hit). The quakes are left out (the screen shake, item 10 of the open requests); */
+ * plain hit). Its quakes (the owner, of those left out: "I want them"): landing after a fall (the DS's 0x02035FC4(4, 16, 2): a 16-frame
+ * quake, KatAM's 14-frame shake, 1), and bursting on a wall (the DS's bigger 7: KatAM's longest timed shake, 24 frames, 3); a fall is
+ * BOULDER_FALL_FRAMES frames in the air or more (going over a slope's bumps isn't one); */
 struct SqueakBoulder {
     struct Object obj;
     struct SqueakGimmickSprite spr;
     u8 index;
     u8 state;
     s8 way;
+    u8 air;
     u16 timer;
     u32 rolled;
 };
+#define BOULDER_FALL_FRAMES 8
+#define BOULDER_LAND_SHAKE 1
+#define BOULDER_BURST_SHAKE 3
 #define BOULDER_WAIT 0
 #define BOULDER_ROLL 1
 #define BOULDER_PIECE 2
@@ -1422,6 +1569,7 @@ static void SqueakBoulderMain(struct Object *obj) {
         // (on a wall it ran into: it breaks);
         if (obj->base.xspeed != 0 && (obj->base.unk62 & 3)) {
             PlaySfx(&obj->base, SE_BLOCK_BREAK);
+            RequestScreenShake(BOULDER_BURST_SHAKE, &obj->base);
             CreateEffectObject(&obj->base, 0, 0x292, 0);
             GimmickPlay(obj, &b->spr, BOULDER_PIECE_ANIM);
             obj->base.flags |= 0x100;
@@ -1434,7 +1582,11 @@ static void SqueakBoulderMain(struct Object *obj) {
         if (!(obj->base.unk62 & 4)) {
             obj->base.yspeed -= BOULDER_GRAVITY;
             if (obj->base.yspeed < -BOULDER_TOP_FALL) obj->base.yspeed = -BOULDER_TOP_FALL;
+            if (b->air < 0xFF) b->air++;
         } else {
+            // (landed after a fall: a quake);
+            if (b->air >= BOULDER_FALL_FRAMES) RequestScreenShake(BOULDER_LAND_SHAKE, &obj->base);
+            b->air = 0;
             // (on flat ground it keeps the way it went; one that hasn't gone yet stays, as the DS's body at rest: 2-4-2's in their pockets);
             if ((slope = Downhill(obj)) != 0) b->way = slope;
             if (b->way != 0 && b->timer < frames) b->timer++;
@@ -1470,6 +1622,7 @@ static void *SqueakCreateBoulder(struct ObjectTemplate *template, u8 playerId) {
     b->way = 0;
     b->rolled = 0;
     b->timer = 0;
+    b->air = 0;
     b->state = BOULDER_WAIT;
     // (bits 4-5 0: rolling at once, the terrain its own);
     if (!(template->unk14 & 0x30)) {

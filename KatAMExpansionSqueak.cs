@@ -174,6 +174,68 @@ namespace KatAMRandomizer {
             };
         }
 
+        /* SqueakFlattenComposites(); The character's composite animations (.mca) as plain ones, after its own (anim count + k: its composite
+         * k), for a gimmick's one sprite (squeak/gimmicks.c plays plain animations only): frame by frame, each composition's parts at
+         * their time (an absolute part the frames since the composite started, else since its step did; its animation looped, or held
+         * on its last step), their cells' pieces in one cell (the first part's first: on top, as the DS draws them), moved by the part's
+         * offset and its step's, the same parts' cells in a row one step. Cells' own tiles must start on 4-tile bounds (the pieces count
+         * their tiles from the cell's in 4s); a composite that can't is left out (its animation an empty one); */
+        static SqueakCharacter SqueakFlattenComposites(SqueakCharacter character) {
+            List<SqueakCell> cells = character.Cells.ToList();
+            List<SqueakAnim> anims = character.Anims.ToList();
+            Dictionary<string, int> made = new Dictionary<string, int>();
+            (int cell, int x, int y) PartAt(SqueakAnim anim, int time) {
+                int total = anim.Steps.Sum(st => st.Frames);
+                if (anim.Steps.Count == 0 || total <= 0) return (-1, 0, 0);
+                if (anim.Loops) time %= total;
+                foreach (SqueakStep st in anim.Steps) {
+                    if (time < st.Frames) return (st.Cell, st.X, st.Y);
+                    time -= st.Frames;
+                }
+                SqueakStep last = anim.Steps[^1];
+                return (last.Cell, last.X, last.Y);
+            }
+            foreach (SqueakComposite composite in character.Composites) {
+                List<SqueakStep> steps = new List<SqueakStep>();
+                int time = 0;
+                bool ok = true;
+                foreach ((int composition, int frames) in composite.Steps) {
+                    List<SqueakPart> parts = composition < character.Compositions.Count ? character.Compositions[composition] : new List<SqueakPart>();
+                    for (int f = 0; f < frames && ok; f++, time++) {
+                        List<(int cell, int x, int y)> drawn = parts.Select(part => {
+                            (int cell, int x, int y) at = part.Anim < character.Anims.Count ? PartAt(character.Anims[part.Anim], part.Absolute ? time : f) : (-1, 0, 0);
+                            return (at.cell, at.x + part.X, at.y + part.Y);
+                        }).ToList();
+                        string key = string.Join(";", drawn.Select(d => $"{d.cell},{d.x},{d.y}"));
+                        if (!made.TryGetValue(key, out int index)) {
+                            List<SqueakPiece> pieces = new List<SqueakPiece>();
+                            foreach ((int cell, int x, int y) in drawn) {
+                                if (cell < 0 || cell >= character.Cells.Count) continue;
+                                SqueakCell c = character.Cells[cell];
+                                if (c.Tile % 4 != 0 || character.Angles.ContainsKey(cell)) { ok = false; break; }
+                                foreach (SqueakPiece piece in c.Pieces) {
+                                    int px = (piece.Attr1 & 0x1FF) >= 256 ? (piece.Attr1 & 0x1FF) - 512 : piece.Attr1 & 0x1FF;
+                                    int py = (piece.Attr0 & 0xFF) >= 128 ? (piece.Attr0 & 0xFF) - 256 : piece.Attr0 & 0xFF;
+                                    pieces.Add(new SqueakPiece(piece.Attr0 & ~0xFF | (py + y) & 0xFF, piece.Attr1 & ~0x1FF | (px + x) & 0x1FF,
+                                                               piece.Attr2 & ~0x3FF | ((piece.Attr2 & 0x3FF) + c.Tile / 4) & 0x3FF));
+                                }
+                            }
+                            index = cells.Count;
+                            cells.Add(new SqueakCell(0, pieces));
+                            made[key] = index;
+                        }
+                        if (steps.Count > 0 && steps[^1].Cell == index) steps[^1] = steps[^1] with { Frames = steps[^1].Frames + 1 };
+                        else steps.Add(new SqueakStep(index, 1, 0, 0));
+                    }
+                }
+                anims.Add(new SqueakAnim(composite.Loops, ok ? steps : new List<SqueakStep>()));
+            }
+            return new SqueakCharacter {
+                Tiles = character.Tiles, Palettes = character.Palettes, Cells = cells, Anims = anims,
+                Compositions = character.Compositions, Composites = character.Composites, Angles = character.Angles,
+            };
+        }
+
         // SqueakShiftCells(); The character's cells drawn `y` pixels lower (its pieces' y, attr0's low byte);
         static SqueakCharacter SqueakShiftCells(SqueakCharacter character, int y) {
             return new SqueakCharacter {
@@ -485,7 +547,8 @@ namespace KatAMRandomizer {
                                             (ushort from, ushort to)[] MergeColors = null, string ExtraFile = null,
                                             int[][] Layers = null, int Canvas = 128, bool BodyLast = false, bool KeepComposites = false,
                                             bool SharePalettes = false, string PaletteFile = null, bool WholeCells = false,
-                                            (int Num, int Den) Scale = default, int ShiftY = 0, int Rotate = 0, int Roll = -1);
+                                            (int Num, int Den) Scale = default, int ShiftY = 0, int Rotate = 0, int Roll = -1,
+                                            bool FlattenComposites = false);
         /* AnimPalettes: a character whose cells are in Squeak Squad's different palettes (Doc's things), per animation the palette its
          * sprite takes (SqueakPaletteKey); */
         internal sealed record SqueakBuilt(SqueakEnemy Enemy, int AnimId, SqueakCharacter Character, int Tiles, List<SqueakLayerBuilt> Layers = null,
@@ -522,6 +585,9 @@ namespace KatAMRandomizer {
             new SqueakEffect(11, "enemy/doc_at1", 18),
             new SqueakEffect(12, "enemy/doc_at1", 26),
             new SqueakEffect(13, YadgaineShellFile, 0),     // Yadgaine's shell (the stage's: SqueakShell);
+            // Gimmick 0x19's (squeak/gimmicks.c's Emitter): its look 1, a lava spark (the volcano's lava), 0 a water bubble;
+            new SqueakEffect(14, "yakumono/spark", 0),
+            new SqueakEffect(15, "yakumono/bubble", 0),
         };
 
         /* SqueakEffectsBuild(); Each effect's cells (those its animation shows, in its order) as KatAM frames and their palette, the anim
@@ -896,8 +962,11 @@ namespace KatAMRandomizer {
             new SqueakEnemy(SqueakRock, "Rock", "yakumono/rock", new[] { 0, 0, 0 }, new (int, int)[0]),
             // The moving platform (gimmick 4, yakumono/floor: looks 0 and 1 its animations 0 and 3, still; 2 and 5 a dip): every cell; no name;
             new SqueakEnemy(SqueakPlatformLook, "Floor", "yakumono/floor", new[] { 0, 0, 0 }, new (int, int)[0]),
-            // The thunder cloud (gimmick 5, yakumono/thunder_cloud: 0 resting, 6 flashing): every cell; no name;
-            new SqueakEnemy(SqueakThunderLook, "Thunder Cloud", "yakumono/thunder_cloud", new[] { 0, 0, 0 }, new (int, int)[0]),
+            /* The thunder cloud (gimmick 5, yakumono/thunder_cloud): every cell, and its .mca's 4 composites as animations 14-17 (the
+             * DS plays only those, 0x3000000-3: 14 resting, the cloud bobbing with its sparkles; 15 the zap, its green burst and sparks;
+             * 16 shaking before it breaks, flashing; 17 breaking up in puffs); no name; */
+            new SqueakEnemy(SqueakThunderLook, "Thunder Cloud", "yakumono/thunder_cloud", new[] { 0, 0, 0 }, new (int, int)[0],
+                            Canvas: 160, FlattenComposites: true),
             /* The rolling boulder (gimmick 6, yakumono/ball_rock: 0 the rock, 1 and 2 its pieces spinning; 3 here its roll, cell 1 turned
              * a sixteenth a step): every cell; no name; */
             new SqueakEnemy(SqueakBoulderLook, "Boulder", "yakumono/ball_rock", new[] { 0, 0, 0 }, new (int, int)[0], Roll: 1),

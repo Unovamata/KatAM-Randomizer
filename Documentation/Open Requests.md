@@ -605,9 +605,16 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
       Not tested: helpers riding, a breaking one (7-5-1's, 1-9-17's), one a switch starts (6-2-1's, 8-1-2's), Europe and Japan
       in the emulator. The logic checks don't model them (the flood treats their paths as flown over).
     - The thunder clouds (5: the notes' thunder clouds bullet; 19, in 3-5-1 to 3-5-3, 6-3-9 and 7-3-1): moving platforms with the
-      cloud's look that zap on their two timers (rest 30 frames, zap 30), hurting a Kirby touching or riding them. Checked in the
-      GBA emulator (USA and Japan, 3-5-1): Kirby stands on a cloud between zaps, a zap hurts him and knocks him off. The zap's look
-      and length are approximated (the DS's phases follow its animations); a moving cloud not checked in the emulator.
+      cloud's look; their zap now exactly as the DS draws it (the owner: "the thunder clouds' zap exactly as the DS draws it"). Read
+      from the DS's code: the cloud plays only its 4 composite animations (its .mca: resting with sparkles, the zap's green burst
+      and sparks, the shake before it breaks, its puffs), flattened here into plain animations; it has no timer: an attack on it
+      starts a zap at the end of the resting loop it's in, the zap lasting 5 of its 12-frame loops (60 frames, thunder on the 2nd
+      and 4th), hurting in its burst's ±40-pixel box (the DS's attack boxes), riders too; a moving cloud's break is its shake then
+      its puffs. Earlier the port zapped on two 30-frame timers with the break's flashing look: both wrong. Checked in the GBA
+      emulator (USA, Europe, Japan, 3-5-1, Kirby on the first cloud): no zap in 300 frames untouched; Kirby given the Sword by a RAM
+      write swings it, both clouds zap with the burst and sparks, he's hurt and knocked off, and they rest again after. Not
+      checked: the zap against the DS running (the DS emulator crashed loading 3-5 in 1-1's place), a moving cloud's break, the
+      thunder's sound (KatAM's Sparky shock in its place till Squeak Squad's sounds are in).
     - The ropes (1) and rope floors (3: the notes' ropes bullet; 25 ropes, 16 floors): an attack cuts a rope and messages its
       targets (the floor it holds, 8-1-8's rock relay); a rope floor is a platform that carries Kirby, then shakes, falls and
       breaks on the first solid cell under it, when its rope is cut or (6-2-1's) when Kirby stands on it. Checked in the GBA
@@ -618,16 +625,32 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
       their slopes at the DS's ramped speed (2, 3 or 4 pixels a frame), turning as they go, hurt Kirby and burst on the first wall;
       the waiting ones start on their trigger's message (2-4-1's quake triggers, 4-6-7's trigger areas, 4-3-2's relays); the ones in
       pockets stay there. Checked in the GBA emulator: USA 2-4-1 and 4-6-7 (Kirby walks into the trigger, the boulder rolls down
-      at him, hits him, bursts on the wall), Europe 2-4-1. The landing and bursting quakes are left out (screen shake, item 10).
+      at him, hits him, bursts on the wall), Europe 2-4-1. Their quakes are in now (the owner: "I want them"): landing after a fall
+      KatAM's 14-frame shake, bursting on a wall its 24-frame one (the DS's 16-frame and bigger quakes). Checked in the GBA emulator
+      (USA, 2-4-1, Kirby walking right from the start): the screen shakes for 24 frames as he reaches the quake trigger, 14 as the
+      boulder lands, 24 as it bursts (the view's shake offsets read each 4 frames).
       Not tested: 4-3-2's, 8-2-4's, Japan's boulders. Logic checks: 359 rooms both ways, 8 switches, no traps, all three versions.
     - The candles (0xA: the notes' candles bullet; 8, in 4-3-7, 4-3-8, 8-1-6): Fire or Burning lights one for its frames (400-540),
       then it goes out. Checked in the GBA emulator (USA and Japan, 4-3-7, Kirby with Fire). The dark room and Light: the candles and Light
       request above.
-    - The camera areas (0x14) and the ambience gimmicks 0x18 (snow, wind streaks), 0x19 (lava sparks), 0x1A (a sound): decoded,
-      none changes the way through (the notes); not ported: the camera's view stays KatAM's, the ambience is left for later.
+    - The camera areas (0x14): done. 58, nearly all holding the view to one DS screen (the goal games' rooms, two-screen rooms like
+      2-3-8, the treasure rooms): a Kirby entering the area's box has his view held inside its bounds (their y is the DS's, up from
+      the room's bottom: converted), the GBA's smaller screen moving inside them; let go once he's out of the bounds (the DS keeps
+      them, its rooms closing behind him; here he'd be off the screen). Rooms whose fight's arena holds the camera already skip them.
+      Checked in the GBA emulator (USA, 2-3-8): the view stays on the top screen while Kirby is there (x 16-32, y 48, not the room's
+      wider range) and moves to the bottom screen (y 304) when he's in the bottom area.
+    - The effect emitters (0x19): done. They're the lava sparks (120, Vocal Volcano and 2-5, 3-2, 5-x, 7-x) and water bubbles (51):
+      while its spot is on the screen, every 100, 200, 300 or 400 frames (random) it plays yakumono/spark's or yakumono/bubble's
+      animation once there. Checked in the GBA emulator (USA, 5-5-5): sparks pop on the lava now and then. Bubbles not checked.
+    - The snow and wind streaks (0x18, 33: Ice Island and 3-4-1): decoded (every 10 frames near the view, a streak at a random spot
+      along one side of its box, yakumono/stream or yakumono/snow), not ported yet: their speeds and life are set by the DS's
+      particle code, not read yet.
+    - The sound gimmick (0x1A, one, 4-3-2): plays a sound every so often; waits for Squeak Squad's sounds (below).
     - The quake triggers (0x13: the notes' quake bullet): ported as a trigger area that messages its targets once (a Kirby within
-      64 pixels of its box, or a switch's message, sets it off; the screen quake is left out). On the DS 4-3-2's is set off by a
-      rolling boulder; here a Kirby nearing it opens its way as before. Not tested in the emulator.
+      64 pixels of its box, or a switch's message, sets it off), with its screen quake now (KatAM's timed shake nearest its length:
+      the rooms' are 60 frames, so KatAM's longest, 24). On the DS 4-3-2's is set off by a rolling boulder; here a Kirby nearing it
+      opens its way as before. Checked in the GBA emulator (USA, 2-4-1: above). The stone shutters' quake stays out (the owner's
+      earlier complaint: the screen shakes too much).
     - What only Fire or an unported gimmick opens became star blocks (the owner: every room reached; the notes' bullet on it): the
       cells Fire burns (4-2-3's start box and log bridges, 6-2-5's), the frozen blocks (6-1-4's), the hidden breakable blocks
       (block 3: 4-4-4's shafts down to its doors, small floors in 35 rooms) and the flagged groups nothing ported sets off (4-3-2's
@@ -649,7 +672,11 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
       to the floor, takes the one-way door and lands at 7-1-1's start. Not checked in Europe and Japan in the emulator.
     - Gimmicks left (the notes have what's decoded). The owner, of the ones left out on purpose: "The left on purpose, I want
       them yes": the camera areas (0x14), the ambience 0x18 (snow, wind), 0x19 (lava sparks) and 0x1A (sound), gimmick 0x12 (a
-      color fade), the boulders' quakes when they land and burst, and the thunder clouds' zap exactly as the DS draws it. Also:
+      color fade), the boulders' quakes when they land and burst, and the thunder clouds' zap exactly as the DS draws it. Done: the
+      camera areas, 0x19, the boulders' (and quake triggers') quakes, the thunder zap (above). Left: 0x18 (above), 0x1A (with the
+      sounds), and 0x12: its three (2-3-1, 2-8-1, 7-3-1) all bring the room's light back to full (255, 255, 255) over 120-240
+      frames; the port's rooms are already at full light (the DS's dimmer starting light isn't ported: it goes with the dark rooms
+      of the candles and Light request), so it would change nothing yet. Also:
       - The candles and the Light ability (the owner: "Add to the pending list candle and light ability interaction", then:
         "the light ability should light up Squeak Squad sections that require the candle if NiDL expansion is present"): with
         the NiDL ROM loaded, the Light ability (NiDL's, from Cool Spook) lights the Squeak Squad dark rooms' parts the candles

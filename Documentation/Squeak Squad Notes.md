@@ -703,10 +703,19 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
     (0x11F) on 1, 3 and 5; its two u16s (+2 and +4, 30 and 30 in every room) the frames it rests and zaps. In KatAM
     (`squeak/gimmicks.c`'s SqueakCreateCloud, object 0x93): a moving platform with the cloud's look (it carries Kirby), resting
     unk1C frames, then zapping unk1E frames flashing (animation 6) and hurting a Kirby touching it, its riders too (a plain hit).
-    Its zap's look and length are approximated (the DS's phases follow its animations, not recorded). Checked in the GBA emulator
-    (USA and Japan, 3-5-1, Kirby put over its first cloud): he lands on it and stands on it between zaps, a zap hurts him (OUCH, a
-    bar of health) and knocks him off; the clouds flash as they zap. Not checked: a moving one (3-5-1's third waits for a rider,
-    then goes and breaks), Europe in the emulator.
+    **Corrected** (read again from its code): its look's animations (0x02227BAC) are 0x3000000-3, its .mca's composites, not its
+    plain animations: 0 resting (147 frames: the cloud bobbing, its anim 0, with three sparkle anims 1-3 at offsets), 1 the zap
+    (12 frames: anim 4, the big green burst, ±48 pixels, under anim 5, sparks), 2 the shake before breaking (17 frames: anim 6, the
+    cloud flashing white, with sparks 7-9), 3 breaking up (47 frames: anim 13 flickering out, puffs 10-12). Slot 2 (0x02220A24)
+    runs as an animation's loop ends: phase 1 starts the zap (composite 1, harm kind 0x0B, strength 8), phases 2-5 count its loops
+    (sound 0x11F on 3 and 5), 6 back to composite 0 and phase 0, +0x60 reset. Phase 1 is set only by its message handler
+    (0x02220ADC, kind 0xB, an attack: 0x02220B0C sets 1 while resting, 2 while zapping): it has no timer; its two u16s (30, 30)
+    aren't read by it. Its harm comes from yakumono/thunder_cloud.rca's boxes: the zap's ±40 and ±42. States 4-6 (0x02220854,
+    0x0222080C, 0x022207EC) are its break: composite 2 for 30 frames, then 3 (sound 0x29), then gone. In KatAM
+    (`KatAMExpansionSqueak.cs`'s SqueakFlattenComposites: the 4 composites as anims 14-17, frame by frame, each part's cell's pieces
+    merged into one cell): resting until struck (Struck(), as the grass), the zap after its resting loop, 5 of its loops, its box
+    ±40; its break the shake, then the puffs. Checked in the GBA emulator (USA, Europe, Japan, 3-5-1): untouched it never zaps;
+    struck by the Sword, the clouds zap as above, hurting Kirby on one.
   - **The ropes** (gimmick 1, ctor `0x022249C8`, vtable `0x02229A2C`): no sprite (the rope is drawn in the terrain: KatAM ladders
     here), an area: width from `0x02229A20` by the first byte's low nibble (pixels 6-9 of its cell), the second byte its length
     in pixels, down from its spot; the first byte's high nibble how many targets, from the third byte (0xFF none). A cutting
@@ -756,14 +765,24 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
     frames, then out. The dark room and the Light ability are left for later (the open requests: candles and Light). Checked in the
     GBA emulator (USA, 4-3-7, Kirby with Fire put by its first candle): his fire breath lights it, it stays lit, and it's out again
     400 frames on; Japan: lit the same. Not checked: Burning, Europe's candles.
-  - The camera areas (0x14) only hold the view and message food bubbles (2-3-5's, 2-6-2's, 3-2-4's, 4-4-6's targets are bubbles,
-    which the port places as food already): not ported (most of the 65 hold the boss and goal rooms' view to one DS screen, which
-    their arenas already lock; a view clamped here would leave Kirby off the screen walking back out of it).
+  - The camera areas (0x14) hold the view and message food bubbles (2-3-5's, 2-6-2's, 3-2-4's, 4-4-6's targets are bubbles,
+    which the port places as food already). Their bounds' y is the DS's world's, up from the room's bottom (2-3-8, 512 pixels
+    tall: the area over its top screen holds y 304-496, its top screen from the top). Ported (squeak/gimmicks.c's CameraArea: the
+    Kirby's view's bounds' targets, unk_S32Vec2_7C and 84, KatAM easing his view to them; let go out of the bounds), not in rooms
+    whose fight's arena holds the camera.
   - Gimmicks 0x18, 0x19 and 0x1A, identified: on-screen ambience only. 0x18 (ctor `0x02226384`, vtable `0x02229DD4`; 33, in Ice
     Island's rooms and 3-4-1) draws `yakumono/snow` and `yakumono/stream` streaks while its box is on the screen (the camera's,
     `0x02035BA4`); 0x19 (`0x02225E9C`, vtable `0x02229D30`; 171, along Vocal Volcano's lava and 2-5-2/3, 3-2-2/3) the lava's sparks
     (`yakumono/spark`), no box to touch; 0x1A (`0x0222684C`; one, 4-3-2) plays a sound every so often (its low nibble the sound,
-    table `0x02227FB4`, its second byte how many times). None changes the way through. Not ported yet.
+    table `0x02227FB4`, its second byte how many times). None changes the way through. 0x19 is an effect emitter (its state
+    0x02225D14): its first byte's low nibble its look (0x02229CBC: 0 yakumono/bubble, 1 yakumono/spark), animation 0 (0x02227F90);
+    when its wait (+0x5C) runs out it plays that once at its spot if the spot is in the camera's view (0x0221FA50), then waits
+    (rand's top 2 bits + 1) x 100 frames. Ported (squeak/gimmicks.c's Emitter, squeak.c's SqueakEffectInRoom). 0x18 is a
+    streak emitter (0x02225F80): every 10 frames (+0x60) near the view, at a random spot along one side of its box (its word's bits
+    4-6: 0 the top, its byte 2 cells across; 1 the bottom; 2 the left, byte 3 cells down; 3 the right), its look (bits 0-3:
+    0x02229D78, 0 yakumono/stream, 1 yakumono/snow) and one of 3 animations (0x02227F9C, at random), moving at a speed its
+    constructor sets (0x02226384: 4, 6 and 8 pixels a frame, either way): not ported (its streaks' speed and life, the particle
+    code 0x0221F89C's kind 6, not read).
   - **The quake triggers** (gimmick 0x13, ctor `0x022240E8`, vtable `0x022298F8`): its second u16 its box (bits 0-6 blocks across,
     7-13 down, as a trigger area's), bits 14-15 how many targets, its bytes 4 on their indices. A body moving into it (message 5) or
     a switch's message (kinds 0 and 1: `0x022240A8`) sets it off once (`0x02224034`): the screen quakes (its first u16's low 4
