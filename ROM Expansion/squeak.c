@@ -1204,11 +1204,13 @@ void SqueakStopSfx(struct SqueakObject *s, u16 n) {
 
 /* SqueakDestroy(); A character's end: the effect following it stays where it is, its parts go; a world's boss beaten (no HP left, the
  * player still in its room: not the room's end) leaves its shard (SqueakBossShard), the boss room's way out, as it goes after its
- * defeat, as NiDL's bosses as they explode; */
+ * defeat, as NiDL's bosses as they explode; the finale's (SQUEAK_FINALE_SHARD) dances every Kirby out on to the finale's next part; */
 static void SqueakDestroy(struct Task *t) {
     struct SqueakObject *s = TaskGetStructPtr(t);
 
-    if (s->obj.objTemplate && SqueakBossShard(&s->obj) && s->obj.unk80 <= 0 && gKirbys[0].base.roomId == s->obj.base.roomId) {
+    if (s->obj.objTemplate && SqueakBossShard(&s->obj) == SQUEAK_FINALE_SHARD && s->obj.unk80 <= 0 && gKirbys[0].base.roomId == s->obj.base.roomId)
+        NidlDanceOut(s->obj.base.roomId);
+    else if (s->obj.objTemplate && SqueakBossShard(&s->obj) && s->obj.unk80 <= 0 && gKirbys[0].base.roomId == s->obj.base.roomId) {
         s32 x = s->obj.objTemplate->unk14 ? s->obj.objTemplate->unk14 - (gCurLevelInfo[s->obj.base.unk56].viewportPosition.x >> 8)
                                           : DISPLAY_WIDTH / 2;
         NidlBossShardAt(s->obj.base.unk56, s->obj.base.roomId, SqueakBossShard(&s->obj) - 1, x, SQUEAK_SHARD_Y);
@@ -1369,12 +1371,15 @@ void SqueakMidbossUpdate(struct SqueakObject *s) {
 /* SqueakBossFloor(); A world's boss's floor, the height its moves are measured from (each one's FLOOR: Kirby's floor in its own stage):
  * where it's placed in its own boss room; on a mini-boss spot of KatAM's or NiDL's rooms (the mini-boss randomization's), 16 pixels up
  * from the bottom of its area (its template's: the screen the fight is held to), as its own arena's floor: KatAM's mini-bosses stand
- * anywhere in theirs (the Meta-Knights' high up), and the flying ones' moves from there left them above the screen; */
+ * anywhere in theirs (the Meta-Knights' high up), and the flying ones' moves from there left them above the screen; in a Squeak Lair
+ * (SQUEAK_LAIR_FIGHT), the floor Kirby lands on, LAIR_UNDER_FLOOR over its area's bottom (its spot is its Squeak's, maybe a ledge); */
 #define BOSS_FLOOR_UP 16
 s32 SqueakBossFloor(struct SqueakObject *s) {
     const struct ObjectTemplate *t = s->obj.objTemplate;
 
-    if (t == NULL || s->obj.base.roomId >= SQUEAK_FIRST_ROOM || t->unk20 == 0) return s->obj.base.y;
+    if (t == NULL || t->unk20 == 0) return s->obj.base.y;
+    if (t->unk22 & SQUEAK_LAIR_FIGHT) return (t->y + t->unk1C + t->unk20 - LAIR_UNDER_FLOOR) << 8;
+    if (s->obj.base.roomId >= SQUEAK_FIRST_ROOM) return s->obj.base.y;
     return (t->y + t->unk1C + t->unk20 - BOSS_FLOOR_UP) << 8;
 }
 

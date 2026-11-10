@@ -394,11 +394,11 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
   - Squeak Lair doors (the owner, on the hidden doors to the gold-pile rooms): they open only when Spinni, Storo or Doc steals
     a big treasure chest in the stage and carries it into a temporary door; following quickly leads to the hideout (the gold
     pile) and a mini-boss fight with that Squeak to win the chest back; too slow, and the Squeaks board the door up.
-    Now (the owner asked for screenshots of all of them): the 37 hidden doors of the ported rooms (of the DS's 46 with flag 4) are
-    invisible doors Up opens, nothing drawn (the DS draws nothing there either); 34 lead into their gold-pile room; Up does nothing
-    at three: two in 2-8-7 (rooms the DS lists but never had) and 4-6-3's (its cell in mid-air). Checked in the GBA emulator (USA,
-    Kirby held on each door's cell by RAM writes, then Up), sent as two sheets. Their final design (opening only after a theft) is
-    the owner's call.
+    The 37 hidden doors of the ported rooms (of the DS's 46 with flag 4) are invisible doors Up opens, nothing drawn (the DS draws
+    nothing there either); 34 lead into their gold-pile room; Up does nothing at three: two in 2-8-7 (rooms the DS lists but never
+    had) and 4-6-3's (its cell in mid-air). Checked in the GBA emulator (USA, Kirby held on each door's cell by RAM writes, then
+    Up), sent as two sheets. The owner then asked for the lairs as mini-boss interludes: see **The Squeak Lairs** below (the
+    hidden doors to the gold-pile rooms stay as they are).
   - Hidden keys and Star Seals are dropped (the owner: "We are dropping hidden keys and star seals so an room that's unlocked
     via that method has to be revealed. Only the Squeak Squad ability room can be unlocked via the hidden map.").
   - Bubbles (the floating `yakumono/bubble` gimmicks): food ones become KatAM's matching food; ability ones become the enemy
@@ -944,7 +944,75 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
     and a second player (the wall reacts to every Kirby; the chase ends by the player's), the KatAM chase rooms in Europe and Japan,
     the window itself (it needs Windows), the spoiler log (compiled only).
   - Left: the 5 Ability Scroll chests the DS brings out only in the chase are still there from the start, and its other chase-only
-    chests aren't placed (both above); the Squeak Lair doors (above) don't depend on the chase yet.
+    chests aren't placed (both above). The Squeak Lairs (below) don't depend on the chase: they're always there.
+  - The DS's angry colors for the chase's Squeaks are not ported, by the owner's call: "No need to keep the Angry colors since these
+    are already in Angry mode."
+- **The finale chain**: done (the owner: "move the Squeak Squad final boss sequence in between of Nightmare and KatAM's final boss.
+  The sequence should be like this: Entire NiDL final boss sequence that's already ported -> Entire final boss sequence from Squeak
+  Squad recreated and ported 1:1 -> KatAM's final boss. The additional sequences only appear when the ROM expension ROMs are
+  added to the program."). `KatAMExpansionSqueakLevels.cs`' `SqueakFinale()`, `SqueakShardExits()`; `squeak.c`'s `SqueakDestroy()`;
+  the rulebook's rule 8.
+  - With both ROMs: Nightmare's ending (Kirby going down from the moon, NiDL's) now lands Kirby at the start of Squeak Squad's
+    final stage (8-4-1, 0x5E2) instead of the Fountain of Dreams hub; its stage plays as ported (Dark Daroach in 8-4-2, the rooms
+    between by its warp stars and one-way mirrors, Dark Nebula in 8-4-6); Dark Nebula leaves no shard: beaten, every Kirby dances
+    out (NiDL's shard exit) into the Fountain of Dreams hub, where Nightmare's ending led before, and its Amazing Mirror leads to
+    KatAM's final boss as before.
+  - With the Squeak Squad ROM alone: Central Circle's Dimension Mirror (unlocked by the 8 shards, as KatAM's) leads to 8-4-1, and
+    Dark Nebula's way out is KatAM's final boss sequence (0x38D). With the NiDL ROM alone: NiDL's finale as before.
+  - World 8 no longer has a boss stage or a shard of its own (Dark Daroach and Dark Nebula are the finale's): with Squeak Squad,
+    its 7 world bosses leave the shards (one each by default; Bosses Give Random Shards spreads the 8 over them).
+  - Checked: the ROM data of all three versions (Nightmare's shard exit and the ending flight's room step to 0x5E2 (4,10); Dark
+    Nebula's room 0x5E7's exit to the hub 0x3 (4,9); without NiDL, 0x5E7 to 0x38D (16,16)); the logic checks follow the finale
+    as a passage. In the GBA emulator: the Squeak Squad rooms of 8-4 as before (earlier rounds).
+  - Not tested in the emulator: the whole chain played through (Nightmare's ending into 8-4-1; Dark Nebula beaten, the dance out
+    to the hub). Forcing Dark Nebula's defeat by RAM writes failed four ways (writing the ability byte doesn't arm Crash, slides
+    pinned by Lua didn't hit, flag 0x1000 with HP 0 doesn't destroy him, his stars inhaled and spat didn't hit).
+  - Left: Dark Nebula's own defeat sequence 1:1 (the DS's, 0x0211DF2C-0x0211CDCC: the screen darkening, his forms flickering, the
+    star breaking up) instead of KatAM's mini-boss defeat; his background tint by form.
+- **The Squeak Lairs**: done (the owner: "I think Squeak Lair doors should be ported to the game and treated as miniboss rooms
+  Squeak Squad rooms lead to and then exit to the next expected exit. Like instead of Entrance 1 -> Entrance 2, it would be great
+  to add them as Entrance 1 -> Squeak Lair with Miniboss -> Entrance 2 as an interlude between zones in the Squeak Squad map. This
+  should use the same system NiDL made us create of Beat Boss, reveal exit, only 1 exit per boss lock in room. That way we can
+  reuse these boss rooms sensibly. The minibosses on these rooms should be placed sensibly based on context, room layout, and
+  boss abilities. Any boss can appear in these lairs and these can also be randomized as well."). `KatAMExpansionSqueakLevels.cs`'
+  `PlanSqueakLevels()` (SqueakLairPlan), `KatAMExpansionSqueakRooms.cs`' `SqueakObjects()`, `KatAMEnemiesBase.cs`'
+  `AddSqueakLairMinibosses()`, `squeak.c`'s `SqueakBossFloor()`; the rulebook's rules 5 and 8.
+  - 38 lairs: each Squeak that steals a stage's treasure on the DS (Spinni, Doc or Storo) has its own hideout (the DS's: one of
+    the stage's rooms after its goal, where it fights with its Squeakers) as a mini-boss room between two of the stage's rooms:
+    the DS door into the room the thief waits in (else the nearest to it) leads into the hideout, one-way, onto the DS's arrival;
+    the Squeak fights as a mini-boss (KatAM's arena: the camera held, its HP bar), with up to 4 of the hideout's Squeakers; the
+    one way out is shut until it's beaten, then shows (a one-way mirror) and leads where the door led. 6-5 has three (its three
+    thieves); 7-4 has no Squeak thief, so none.
+  - Their mini-boss is randomized with KatAM's mini-bosses (Randomize Mini-Bosses; with Include Bosses, any boss can be there): a
+    boss there stands on the floor Kirby lands on, whatever ledge the Squeak's spot is on.
+  - Without the NiDL ROM there are no arenas (as for every Squeak Squad mini-boss room): the lair's way out is open from the start.
+  - Checked in the GBA emulator (USA): Kirby walked onto 1-3-5's lair door (by buttons) and took it with Up into Spinni's hideout
+    (1-3-9), landing on its doorway, Spinni attacking with the Squeakers on the ledges; held on the way out's cell (Lua) with
+    Spinni alive, no mirror and Up did nothing; Spinni's HP set to 0 by a RAM write (a forced state: he isn't destroyed by it),
+    the mirror showed; Up took Kirby to 1-3-6, where the door led. Logic checks (all three versions): Squeak Squad 393 of 498 rooms
+    reached (359 before), the 8 switches, nowhere trapped, with and without thin-floor drops; NiDL unchanged.
+  - Randomized (USA, seed 77, mini-bosses random, Include Bosses): the 38 lairs' mini-bosses became KatAM's (a KatAM mini-boss
+    there takes facing 0, not the Squeak's behavior byte), NiDL's and Squeak Squad's mini-bosses and bosses; in the emulator,
+    1-3's lair had Dark Nebula, his HP bar up, fighting over the floor. Europe and Japan (emulator): 1-3-5's stump and its door
+    into Spinni's hideout, Spinni attacking, the same as USA.
+  - Not tested: a real fight won in a lair (the exit after a real defeat), the other 37 lairs in the emulator, the exit in Europe
+    and Japan, a KatAM mini-boss in a lair in the emulator.
+  - Left: the other hideouts of each stage (each stage has the same four, Squeakers / Spinni / Storo / Doc; the DS uses the thief's)
+    stay unused, nothing leading in: the owner may want them used too (more interludes per stage).
+- **The lairs' nests**: done (the owner, sending two screenshots of the DS's: "The original entrace 'nests' things should be placed
+  where the door where this Squeak Lair area leads to, to provide the player a warning, that, that will be a miniboss fight to go
+  to the next area in Squeak Squad stages."). A tree stump with a red flag, or a rock mound with a red flag where the stage's DS
+  lair doors are its 0xC1/0xC0 kind (a guess at the DS's choice: both looks are Prism Plains'), stands at each lair's door, drawn
+  behind Kirby. The DS's own art isn't in its files (none of its sprite or map folders holds it; it draws the lair doors some other
+  way), so both are drawn from the owner's screenshots, at the DS's size (the rock mound's 1:1, the stump's a third of its
+  picture's), 15 colors each (`KatAMExpansionSqueakNests.cs`, `squeak/gimmicks.c`'s `SqueakCreateNest`). Checked in the GBA
+  emulator (USA): the stump at 1-3-5's lair door, the rock mound at 1-4-5's.
+  - Left: the DS's own nest art, if it turns up (a DS emulator capture of a theft would show it), and which look the DS gives
+    which door.
+- **Leftover areas**: 1-1-5 (the field past 1-1's goal, 100 by 15) was the one room of the DS's own not reached: it now has a
+  hidden one-way door in, as any room (rule 9). The others not reached are the hideouts and gold-pile rooms no lair uses (above)
+  and the sky rooms the DS's warp stars fly through (3-4-5, 8-3-6, 8-3-7: the port's warp stars fly through them, Kirby never
+  stands in them).
 - **Squeak Squad backgrounds' bottom rows**: fixed (the owner: "some Squeak Squad backgrounds have some stretching artifacts at
   the bottom, this should be fixed immediately so backgrounds look normal in-game"). The far views were shrunk to 3/4: the DS's
   192 rows became 144, short of KatAM's 160-row screen, and the last row was repeated under them in streaks. Now one that would be

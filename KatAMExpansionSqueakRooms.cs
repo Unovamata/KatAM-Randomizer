@@ -938,6 +938,10 @@ namespace KatAMRandomizer {
             [0x3D] = 49, [0x3F] = 58,
         };
         const int DarkDaroachIndex = 51;
+        /* A Squeak Lair's fight (PlanSqueakLevels()): its mini-boss's template unk22 SQUEAK_LAIR_FIGHT (squeak.h: SqueakBossFloor() puts a
+         * boss the randomizer picks there on its area's floor), and its Squeakers, LairSqueakers at most; */
+        const byte SqueakLairFight = 0x10;
+        const int LairSqueakers = 4;
         // The spawn flags (+0xB): 4, a chase spawn (only once the stage's treasure is carried: not made yet);
         const int SqueakChaseSpawn = 4;
 
@@ -1011,7 +1015,7 @@ namespace KatAMRandomizer {
                                                                          List<(int x, int y)> doorCells, byte bossShard, ref int taken, ref int chests,
                                                                          List<int> vitalityChests = null, int[] sprayCans = null,
                                                                          Dictionary<(SqueakRoomFiles room, int record), int> mapChests = null,
-                                                                         Dictionary<int, byte[]> heldChests = null) {
+                                                                         Dictionary<int, byte[]> heldChests = null, SqueakLairPlan lair = null) {
             List<byte[]> templates = new List<byte[]>();
             List<byte> types = new List<byte>();
             int width = map.Width, height = map.Height;
@@ -1039,11 +1043,11 @@ namespace KatAMRandomizer {
             /* A mid-boss or boss and, first, its arena (enemies/arena.c: it holds the camera on the fight's screen, from Kirby's first
              * frame in a room a screen big, as Squeak Squad's arenas: subtype2 ONE_SCREEN). The arena is NiDL's type's (0x31): without
              * the NiDL ROM, none yet (the camera follows Kirby); */
-            void Boss(int x, int y, byte type, byte behavior, byte shard = 0) {
+            void Boss(int x, int y, byte type, byte behavior, byte shard = 0, int floorRow = -1) {
                 byte[] template = ObjectTemplate(x, y - 8, templates.Count + 1, type);
                 template[14] = behavior;
                 template[0x11] = shard;
-                SqueakArena(template, map, collision);
+                SqueakArena(template, map, collision, floorRow);
                 if (!arenas) {
                     template[3] = (byte)templates.Count;
                     Add(template);
@@ -1075,6 +1079,19 @@ namespace KatAMRandomizer {
                 for (int i = 0, count = ReadShort(objects, 12); i < count; i++) {
                     int at = 14 + i * 16, id = ReadShort(objects, at + 2), x = ReadShort(objects, at + 4), y = ReadShort(objects, at + 6);
                     int v = objects[at + 8], w = objects[at + 9], flags = objects[at + 0xB];
+                    /* (a Squeak Lair's fight, PlanSqueakLevels(): its Squeak at its spot a mini-boss on 0x40 as the randomizer's
+                     * (SQUEAK_MIDBOSS, squeak.h; its template's unk22 SQUEAK_LAIR_FIGHT), its fight area the screen over the floor Kirby
+                     * lands on; its Squeakers (LairSqueakers at most, one a spot) enemies around it, as the DS's hideouts'); */
+                    if (lair != null && (flags & SqueakChaseSpawn) != 0 && !heldEnemies.Contains(i) && SqueakChaseIds.Contains(id) && SqueakCharacters.TryGetValue(id, out int squeakOne)) {
+                        if (squeakOne == lair.Character && !templates.Any(t => (t[0x22] & SqueakLairFight) != 0)) {
+                            Boss(x, y, SqueakAsMidboss, (byte)(SqueakMidbossFlag | squeakOne), floorRow: lair.Landing.y - 1);
+                            templates[^1][0x22] |= SqueakLairFight;
+                        } else if (squeakOne == SqueakerCharacter && templates.Count(t => t[12] == SqueakID && t[14] == SqueakerCharacter) < LairSqueakers
+                                   && !templates.Any(t => t[12] == SqueakID && ReadShort(t, 6) == x && ReadShort(t, 8) == y - 8)) {
+                            Enemy(x, y, SqueakID, (byte)squeakOne, (byte)v);
+                        }
+                        continue;
+                    }
                     if ((flags & SqueakChaseSpawn) != 0 || heldEnemies.Contains(i)) continue;
                     if (SqueakNatives.TryGetValue(id, out var native)) {
                         byte behavior = v < native.behaviors.Length ? native.behaviors[v] : native.behaviors[0];
@@ -1225,12 +1242,13 @@ namespace KatAMRandomizer {
          * wide at most, else round its spot; its bottom 32 pixels under the floor it stands on (the HUD over half of that). Squeak
          * Squad's arenas are rooms a screen big (SqueakScreenRoom: 288 by 240 pixels, the DS's 256 by 192 and a margin); */
         static readonly (int width, int height) SqueakScreenRoom = (288, 240);
-        static void SqueakArena(byte[] template, SqueakMap map, byte[] collision) {
+        // (`from`: the row to look for the floor from, under the spot if none: a Squeak Lair's, the row Kirby lands on);
+        static void SqueakArena(byte[] template, SqueakMap map, byte[] collision, int from = -1) {
             const int ScreenWidth = 240, ScreenHeight = 160, Edge = 8, UnderFloor = 32, ArenaRoom = 36;
             int width = map.Width * 16, height = map.Height * 16, x = ReadShort(template, 6), y = ReadShort(template, 8);
             int arenaWidth = Math.Min(ScreenWidth, width - 2 * Edge), arenaHeight = Math.Min(ScreenHeight, height - 2 * Edge);
             int left = map.Width <= ArenaRoom ? (width - arenaWidth) / 2 : x - arenaWidth / 2;
-            int floor = y / 16;
+            int floor = from >= 0 ? from : y / 16;
             while (floor < map.Height && collision[floor * map.Width + Math.Clamp(x / 16, 0, map.Width - 1)] is KatAMAir or KatAMLadder or (>= 0x34 and <= KatAMWater)) floor++;
             int top = floor * 16 + UnderFloor - arenaHeight;
             left = Math.Clamp(left, Edge, width - Edge - arenaWidth);
@@ -1263,6 +1281,11 @@ namespace KatAMRandomizer {
 
         // The Squeak Squad rooms of the last ROM made: their files, room number and size in blocks (for the map viewer and the tests);
         internal sealed record SqueakPortedRoom(SqueakRoomFiles Files, int Room, int Width, int Height);
+        /* SqueakLairMinibosses; The Squeak Lairs' mini-bosses (their room, their template's offset in the ROM): the randomizer's mini-boss
+         * randomization takes them with KatAM's (KatAMMinibosses; the owner: "Any boss can appear in these lairs and these can also be
+         * randomized as well"); */
+        static readonly List<(int room, int address)> squeakLairMinibosses = new List<(int, int)>();
+        public static IReadOnlyList<(int room, int address)> SqueakLairMinibosses => squeakLairMinibosses;
         static List<SqueakPortedRoom> squeakRooms = new List<SqueakPortedRoom>();
         public static IReadOnlyList<SqueakPortedRoom> SqueakPortedRooms => squeakRooms;
         // (and the doors the levels' plan gave them, PlanSqueakLevels(), by room);
@@ -1312,6 +1335,8 @@ namespace KatAMRandomizer {
          * comes out (the KatAM object's type, its behavior byte over it), unk16 its variant (a Squeak Squad character's: SqueakHeld()); */
         const int SqueakGrassGimmick = 0xE, SqueakBarrelGimmick = 0xF;
         const byte SqueakGrassObject = 0x99, SqueakBarrelObject = 0x98, KatAMAbilityStar = 0xA3;
+        // (a Squeak Lair's nest, at the door into it: squeak.h's SQUEAK_NEST_OBJECT, its template's unk12 the look, 1 a rock mound);
+        const byte SqueakNestObject = 0x8E;
         // (the icicles, gimmick 9: squeak/gimmicks.c's SqueakCreateIcicle);
         const int SqueakIcicleGimmick = 9, SqueakRockGimmick = 8;
         const byte SqueakIcicleObject = 0x96, SqueakRockObject = 0x95;
@@ -1695,6 +1720,7 @@ namespace KatAMRandomizer {
             squeakChaseRooms = squeakChaseWalls = squeakChaseSpawns = 0;
             int roomProps = symbols["gRoomProps"], roomInfos = symbols["gUnk_08D6CD0C"], arrivals = symbols["gUnk_0893CB44"];
             squeakRooms = new List<SqueakPortedRoom>();
+            squeakLairMinibosses.Clear();
             List<SqueakRoomFiles> files = SqueakWorldRooms(squeak);
             if (files.Count == 0) return "The Squeak Squad ROM's stages weren't found.";
             // (the spray paints' chests: the KatAM can each shows, KatAMExpansionSprays.cs);
@@ -1812,6 +1838,13 @@ namespace KatAMRandomizer {
                         Midboss = midboss, Boss = boss,
                         Transports = map.Gimmicks().Where(g => g.Type is SqueakWarpStar or SqueakTurnCannon or SqueakFuseCannon).Select(g => (g.X / 16, g.Y / 16)).ToList(),
                         Rides = map.Gimmicks().Where(g => g.Type is SqueakWarpStar or SqueakFuseCannon && (g.Word(0) & 0xFF) < SqueakStarArrival).Select(g => (g.Word(0) & 0xFF) + 1).ToList() });
+                    // (its chase records' Squeaks, for the Squeak Lairs: SqueakPlanRoom.Squeaks);
+                    byte[] records = files[i].Objects == null ? null : SqueakFileAnyCase(squeak, files[i].Objects);
+                    for (int r = 0, count = records == null || records.Length < 16 ? 0 : ReadShort(records, 12); r < count; r++) {
+                        int at = 14 + r * 16, id = ReadShort(records, at + 2);
+                        if ((records[at + 0xB] & SqueakChaseSpawn) != 0 && SqueakChaseIds.Contains(id) && SqueakCharacters.TryGetValue(id, out int character))
+                            planRooms[^1].Squeaks.Add((character, ReadShort(records, at + 4), ReadShort(records, at + 6), records[at + 0xB]));
+                    }
                 }
                 // (where the warp stars and fuse cannons land Kirby, SqueakRides() and the fuse cannons' doors: for the levels' way-out pass);
                 foreach ((int from, List<Transport> list) in SqueakRides(squeak, files, roomOf, starsOf, doorsOf, widthOf, heightOf, 0))
@@ -1863,9 +1896,13 @@ namespace KatAMRandomizer {
                      * for, as on the DS; */
                     List<byte> doorRecords = new List<byte>(), blockDoorRecords = new List<byte>();
                     List<(int room, int x, int y)> doorPlaces = new List<(int, int, int)>();
-                    foreach (SqueakDoor door in doorsOf[i]) {
+                    // (a Squeak Lair's DS doors aren't doors, its mirror its way out; a DS door into a lair leads there: PlanSqueakLevels());
+                    SqueakLairPlan lairHere = squeakLairs.FirstOrDefault(l => l.Room == room);
+                    for (int doorIndex = 0; doorIndex < doorsOf[i].Count && lairHere == null; doorIndex++) {
+                        SqueakDoor door = doorsOf[i][doorIndex];
                         if (door.Kind == SqueakStartKind || door.Room == SqueakNoRoom || door.X >= width || door.Y >= height) continue;
                         if (!roomOf.TryGetValue((f.Area, f.Stage, door.Room + 1), out int to)) continue;
+                        SqueakLairPlan into = squeakLairs.FirstOrDefault(l => l.FromRoom == room && l.FromDoor == doorIndex);
                         // (the door it lands on by its place in the room's list: 7 rooms number theirs out of order, 3-1-5's 0, 0, 2, and
                         // 3-1-4's way names its second);
                         SqueakDoor landing = door.Door < doorsOf[to].Count ? doorsOf[to][door.Door] : doorsOf[to].FirstOrDefault(d => d.Number == door.Door);
@@ -1873,9 +1910,10 @@ namespace KatAMRandomizer {
                         int cell = door.Y * width + door.X, block = blocks.IndexOf((door.X, door.Y));
                         bool water = block >= 0 ? leaves[block] == KatAMWater : collision[cell] is >= 0x34 and <= 0x48;
                         byte value = water ? (byte)0xFD : (byte)0xFF;
-                        (int room, int x, int y) place = (SqueakFirstRoom + to, landing.X + 1, landing.Y + 1);
+                        (int room, int x, int y) place = into != null ? into.Landing : (SqueakFirstRoom + to, landing.X + 1, landing.Y + 1);
+                        byte facing = into != null ? (byte)((into.Landing.x - 1) * 2 < widthOf[into.Room - SqueakFirstRoom] ? 1 : 2) : (byte)(landing.X * 2 < widthOf[to] ? 1 : 2);
                         byte[] record = { 3, value, (byte)door.X, (byte)door.Y, 0x0E, 0, 0xFF, 0xFF, (byte)place.room, (byte)(place.room >> 8),
-                                          (byte)place.x, (byte)place.y, (byte)(landing.X * 2 < widthOf[to] ? 1 : 2), 0xFF };
+                                          (byte)place.x, (byte)place.y, facing, 0xFF };
                         if (block >= 0) {
                             leaves[block] = value;
                             blockDoorRecords.AddRange(record);
@@ -1895,7 +1933,9 @@ namespace KatAMRandomizer {
                             leaves[block] = value;
                             blockDoorRecords.AddRange(DoorRecord(door, value));
                         } else {
-                            collision[cell] = value;
+                            /* (a Squeak Lair's way out is built shut, its record alone, until its Squeak is beaten: enemies/arena.c's
+                             * OpenDoors() makes it a door then, its mirror showing (rule 8); without the NiDL ROM's arenas it's open); */
+                            if (!(door.Shut && arenas)) collision[cell] = value;
                             doorRecords.AddRange(DoorRecord(door, value));
                         }
                         if (!doorPlaces.Contains((door.Room, door.DestX, door.DestY))) doorPlaces.Add((door.Room, door.DestX, door.DestY));
@@ -1975,7 +2015,7 @@ namespace KatAMRandomizer {
                     byte bossShard = bossRooms.TryGetValue(SqueakFirstRoom + i, out int bossWorld) ? (byte)bossWorld : (byte)0;
                     Dictionary<int, byte[]> heldChests = new Dictionary<int, byte[]>();
                     (List<byte[]> templates, List<byte> types) = SqueakObjects(squeak, f, map, collision, arenas, doorCells, bossShard, ref squeakTaken, ref squeakChests,
-                                                                                    vitalityChests, sprayCans, mapChests, heldChests);
+                                                                                    vitalityChests, sprayCans, mapChests, heldChests, lairHere);
                     // (the dark star's route, where it is: the room's own, as the DS's, squeak/dark_star.c);
                     if (templates.Any(t => t[12] == SqueakID && t[14] == SqueakDarkStarCharacter)) darkStarRoutes[i] = SqueakDarkStarRoute(rom, map, ref here);
                     // (its cannons: an eight-direction cannon for each of gimmick 0xB, and its fuse cannon with its fuse; its switches);
@@ -2169,12 +2209,21 @@ namespace KatAMRandomizer {
                         templates.Add(star);
                         if (!types.Contains(WarpStarType)) types.Add(WarpStarType);
                     }
+                    /* (a nest on each DS door that leads into a Squeak Lair, its feet on the door's floor, squeak/gimmicks.c's
+                     * SqueakCreateNest: KatAMExpansionSqueakNests.cs' stump, or rock mound where the stage's lair doors are the DS's 0xC1s); */
+                    foreach (SqueakLairPlan lair in squeakLairs.Where(l => l.FromRoom == room)) {
+                        byte[] nest = ObjectTemplate(lair.FromX * 16 + 8, (lair.FromY + 1) * 16, templates.Count, HammerPegType);
+                        nest[0x11] = SqueakNestObject;
+                        nest[0x12] = (byte)(lair.Rock ? 1 : 0);
+                        templates.Add(nest);
+                        if (!types.Contains(HammerPegType)) types.Add(HammerPegType);
+                    }
                     // (a mirror on each of the levels' doors but the goals, as the NiDL rooms': a one-way one drawn as one, mirror_door.c; a
                     // Mirra on its door's cell, x the cell's middle, y its top, as KatAM's, and the door's mirror hidden till it's a door);
                     foreach (Door door in planned[i].Where(d => !d.Plain)) {
                         byte[] mirror = MirrorTemplate(door.X, door.Y, templates.Count);
                         if (door.OneWay) mirror[0x23] |= 1;
-                        if (door.Kind == DoorKind.SwitchEntry) mirror[14] = 1;
+                        if (door.Kind == DoorKind.SwitchEntry || door.Shut && arenas) mirror[14] = 1;
                         templates.Add(mirror);
                         if (!types.Contains(MirrorType)) types.Add(MirrorType);
                         if (door.Kind != DoorKind.SwitchEntry) continue;
@@ -2186,6 +2235,9 @@ namespace KatAMRandomizer {
                     if (squeakTaken > 3 * 256) return "Too many Squeak Squad items for their gone bits.";
                     if (squeakChests > SqueakChestsMax) return "Too many Squeak Squad chests for their bits.";
                     int objects = WriteObjectList(rom, templates, types, noTypes, ref here);
+                    // (a Squeak Lair's mini-boss's template, for the randomizer's mini-boss pool: SqueakLairMinibosses);
+                    int lairFight = templates.FindIndex(t => t[12] != NightmareID && (t[0x22] & SqueakLairFight) != 0);
+                    if (lairFight >= 0) squeakLairMinibosses.Add((room, ReadInt(rom, objects) - 0x08000000 + lairFight * 36));
                     int navigation = BuildNavigation(rom, width, height, false, collision, navigationRoutes, new List<(int, int, int, int)>(), ref here);
                     /* (its chests in its 9ROM list, first, as KatAM's: {1, 8, 0xFF, 0xFF, the template's x, y}, and counted: opening one
                      * marks it there, sub_08002B30 looking it up by its spot, never ending without it; then its doors' places); */
@@ -2234,7 +2286,8 @@ namespace KatAMRandomizer {
                                            view => ViewBackground(view, abilityRoom) is int at && at >= 0 ? (at, backgroundSize[view].width, backgroundSize[view].height) : null,
                                            ref here) is string abilityError)
                     return abilityError;
-                if (SqueakShardExits(rom, version, symbols, hubRoom, bossRooms, hubCollision, hubWidth) is string exitError) return exitError;
+                if (SqueakFinale(rom, version, symbols, out (int room, int x, int y) finaleExit) is string finaleError) return finaleError;
+                if (SqueakShardExits(rom, version, symbols, hubRoom, bossRooms, hubCollision, hubWidth, finaleExit) is string exitError) return exitError;
 
                 /* The switch rooms' hub doors (KatAMExpansionSqueakHubs.cs): to the Squeak Squad hub, onto the world's door there; to the
                  * KatAM room the world's path leads to (SqueakLinks), onto its door back there (SqueakLinkSpot(): those rooms as they'll be,

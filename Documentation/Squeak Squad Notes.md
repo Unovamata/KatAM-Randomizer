@@ -864,6 +864,15 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
     0x10 and 0x90 ways on, 0x23 with no room the stage's goal, 4 a hidden way (46 of them: the DS draws no door there and Up does
     nothing, no switch in its room; they lead to the stages' gold-pile treasure rooms, whose doorway leads back to the stage's
     start), 2 others (0xC1's). 562 doors lead to another room of their stage; 4 to rooms Nature Notch 6 lists but never had.
+  - The Squeaks' hideouts: after a stage's goal, beside its gold-pile room (the hidden way's), the same four 18 by 15 rooms in
+    every stage that has them, each with an arrival (no room) and a doorway (flags 0x90, room 0 door 0: back where Kirby came
+    from): the Squeakers' (6-9 Squeakers, records with flag 4 or 5), Spinni's, Storo's and Doc's (the Squeak with a few
+    Squeakers). The stage's thief is the Squeak whose record has flags 0xC (4, a chase record, and 8): its hideout is the one the
+    DS's lair leads to. The lair doors' look isn't in the file system (none of `enemy`, `yakumono`, `item`, `map`, `effect`,
+    `demo`, `extra`, `m_efc`, `bossbattle`, `onaka`, `kbPlt` holds a stump or rock mound with a flag; `enemy/appear` is the
+    Squeaks' entrances); the hidden ways' kinds are 0x42 (and 0x41, 0x04) or 0xC1 (and 0xC0), maybe the stump and the rock mound
+    (a guess: both looks are Prism Plains'). The port: KatAMExpansionSqueakLevels.cs' Squeak Lairs. 3-4-5, 8-3-6 and 8-3-7 are no
+    hideouts: sky rooms the warp stars' rides pass through (an arrival only).
   - The far views (`map/d_viw_NN.nsbtx`, 39 of them): a BTX0 file, its TEX0 block (+0x10) holding one 256-color texture (format 4)
     and its palette: 512 by 256 pixels (33), 256 by 256 (5) or 256 by 512 (d_viw_0C, a climb's); a painted panorama, its top 192
     rows what the DS shows (the rest its last row smeared down). In KatAM: shrunk to 3/4 (48 tiles wide, 20 tall with the smear),

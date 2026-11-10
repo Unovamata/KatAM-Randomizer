@@ -292,6 +292,65 @@ namespace KatAMRandomizer {
             return null;
         }
 
+        /* The finale (the owner: "move the Squeak Squad final boss sequence in between of Nightmare and KatAM's final boss ... Entire NiDL
+         * final boss sequence that's already ported -> Entire final boss sequence from Squeak Squad recreated and ported 1:1 -> KatAM's
+         * final boss. The additional sequences only appear when the ROM expansion ROMs are added"): Squeak Squad's final stage
+         * (SqueakFinalStage, 8-4: Dark Daroach, the dark star's corridor and shaft, Dark Nebula's coming and fight) is no world's boss
+         * stage; it's entered where the finale goes on after NiDL's (Nightmare's ending, its ride and his shard exit) or, without NiDL's
+         * finale, through Central Circle's Dimension Mirror (SqueakFinale()); Dark Nebula leaves no shard (his template's SqueakBossShard
+         * SqueakFinaleShard: "ROM Expansion/squeak.c" dances every Kirby out instead), his way out where NiDL's finale led on (the
+         * Fountain of Dreams hub, its Amazing Mirror to KatAM's final boss) or where the Dimension Mirror led (KatAM's final boss); */
+        static readonly (int area, int stage) SqueakFinalStage = (8, 4);
+        const int SqueakFinaleShard = 0xFF;
+        static (int room, int x, int y)? squeakFinaleEntry;
+        /* SqueakLairPlan; A Squeak Lair (PlanSqueakLevels()): its hideout room, the Squeak fought there (its character), the DS door
+         * Kirby takes into it (its room, its place in the room's list, its cell), where he lands in it and where its way out leads
+         * (the room, the cell + 1), and its nest's look (a rock mound, else a stump); */
+        internal sealed record SqueakLairPlan(int Room, int Character, int FromRoom, int FromDoor, int FromX, int FromY, (int room, int x, int y) Landing,
+                                              (int room, int x, int y) Exit, bool Rock);
+        static readonly List<SqueakLairPlan> squeakLairs = new List<SqueakLairPlan>();
+        public static IReadOnlyList<SqueakLairPlan> SqueakLairs => squeakLairs;
+        // (a chase record's flags: 8, the stage's thief; a DS door's: 4, a hidden way (the lair doors); the Squeakers' character);
+        const int SqueakThief = 8, SqueakHiddenDoor = 4, SqueakerCharacter = 27;
+        // (a lair's way out never right beside where Kirby lands: LairApart cells across at least, or over 2 up or down: rule 8);
+        const int LairApart = 4;
+        static int squeakFinaleBoss = -1;
+
+        /* SqueakFinale(); The finale's ways in and out of Squeak Squad's final stage (see SqueakFinalStage): with NiDL's finale in the ROM,
+         * Nightmare's way on (his ending's ride, its last room change, and his shard exit) into the stage's start, its end (`exit`) where
+         * his led; without it, Central Circle's Dimension Mirror (its shard object of subtype 8: +0x1E the room, +0x1A, +0x1C the landing
+         * + 1) into the stage's start, its end where the mirror led (KatAM's final boss). Returns an error, or null; */
+        static string SqueakFinale(byte[] rom, KatAMExpansionCode.Version version, IReadOnlyDictionary<string, int> symbols, out (int room, int x, int y) exit) {
+            exit = default;
+            if (squeakFinaleEntry is not (int, int, int) entry) return null;
+            var nightmare = bossExitsOf.FirstOrDefault(e => (e.Key.Level, e.Key.Stage, e.Key.Index) == NightmareBossRoom);
+            if (nightmare.Key != null && endingFlight >= 0) {
+                exit = nightmare.Value;
+                int exits = CodeAddress + version.CodeSymbols["gNidlShardExits"];
+                bool found = false;
+                for (int n = 0; n < ShardExitCount && ReadShort(rom, exits + n * 8) != 0; n++)
+                    if (ReadShort(rom, exits + n * 8) == nightmare.Key.Room) {
+                        WriteShort(rom, exits + n * 8 + 2, entry.room);
+                        rom[exits + n * 8 + 4] = (byte)entry.x;
+                        rom[exits + n * 8 + 5] = (byte)entry.y;
+                        rom[exits + n * 8 + 6] = rom[exits + n * 8 + 7] = 0;
+                        found = true;
+                    }
+                if (!found) return "Nightmare's way on wasn't found.";
+                WriteShorts(rom, endingFlight + 4 * FlightStep, entry.x, entry.y, 1, Standing, RideRoom | 0x40 << 8, entry.room);
+                return null;
+            }
+            int index = ReadShort(rom, symbols["gRoomProps"] + EntryRoom * 0x28 + 16 * 2);
+            int list = ReadInt(rom, symbols["gLevelObjLists"] + index * 4) - 0x08000000;
+            for (int at = ReadInt(rom, list) - 0x08000000; rom[at] != 0 || rom[at + 1] != 0; at += 36)
+                if (rom[at + 12] == ShardType && rom[at + 14] == 8) {
+                    exit = (ReadShort(rom, at + 0x1E), ReadShort(rom, at + 0x1A), ReadShort(rom, at + 0x1C));
+                    WriteShorts(rom, at + 0x1A, entry.x, entry.y, entry.room);
+                    return null;
+                }
+            return "Central Circle's Dimension Mirror wasn't found.";
+        }
+
         /* SqueakShardExits(); Where each world's boss's shard takes Kirby (the rulebook's rule 8: a shard only ever sends Kirby to a central
          * hub, onto the level's door there): gNidlShardExits' entries after the NiDL bosses' ("ROM Expansion/nidl_boss.c", NidlShardExit()
          * after the shard's cutscene, HookShardExit()), the Squeak Squad hub, at the world's door's spot (Central Circle's door of the area
@@ -299,12 +358,21 @@ namespace KatAMRandomizer {
          * own cell of its ground (HubGroundBeside()); */
         const int ShardExitCount = 24;
         static string SqueakShardExits(byte[] rom, KatAMExpansionCode.Version version, IReadOnlyDictionary<string, int> symbols, int hub,
-                                       Dictionary<int, int> bossRooms, byte[] hubCollision, int hubWidth) {
+                                       Dictionary<int, int> bossRooms, byte[] hubCollision, int hubWidth, (int room, int x, int y) finaleExit) {
             if (HookShardExit(rom, version) is string error) return error;
             int exits = CodeAddress + version.CodeSymbols["gNidlShardExits"], n = 0;
             while (n < ShardExitCount && ReadShort(rom, exits + n * 8) != 0) n++;
             foreach ((int room, int world) in bossRooms.OrderBy(b => b.Key)) {
                 if (n >= ShardExitCount) return "Too many boss rooms for the shards' exits.";
+                // (the finale's: where it goes on, SqueakFinale(); no ground either side);
+                if (world == SqueakFinaleShard) {
+                    WriteShorts(rom, exits + n * 8, room, finaleExit.room);
+                    rom[exits + n * 8 + 4] = (byte)finaleExit.x;
+                    rom[exits + n * 8 + 5] = (byte)finaleExit.y;
+                    rom[exits + n * 8 + 6] = rom[exits + n * 8 + 7] = 0;
+                    n++;
+                    continue;
+                }
                 (int x, int y) spot = MainHubDoors[(world - 1) % MainHubDoors.Length];
                 WriteShorts(rom, exits + n * 8, room, hub);
                 rom[exits + n * 8 + 4] = (byte)(spot.x + 1);
@@ -326,6 +394,8 @@ namespace KatAMRandomizer {
             public byte[] Collision;
             public List<SqueakDoor> Doors;
             public bool Midboss, Boss;
+            // (its Squeaks the DS brings out in a chase or a hideout's fight (records with flag 4): the character, the spot, the flags);
+            public List<(int character, int x, int y, int flags)> Squeaks = new List<(int, int, int, int)>();
             public List<(int x, int y)> Transports = new List<(int, int)>();
             // (the stage's rooms its warp stars and fuse cannons take Kirby to, numbered from 1);
             public List<int> Rides = new List<int>();
@@ -428,7 +498,9 @@ namespace KatAMRandomizer {
                 if (reachable.Add(room)) queue.Enqueue(room);
                 while (queue.Count > 0) {
                     SqueakPlanRoom r = byRoom[queue.Dequeue()];
-                    IEnumerable<int> next = r.Doors.Where(d => d.Room != SqueakNoRoom && Leads(r, d)).Select(d => byStage[(r.Area, r.Stage)].FirstOrDefault(t => t.Number == d.Room + 1)?.Room ?? -1)
+                    // (a lair's DS doors aren't doors: its way out is its mirror, below);
+                    bool lair = squeakLairs.Any(l => l.Room == r.Room);
+                    IEnumerable<int> next = r.Doors.Where(d => d.Room != SqueakNoRoom && !lair && Leads(r, d)).Select(d => byStage[(r.Area, r.Stage)].FirstOrDefault(t => t.Number == d.Room + 1)?.Room ?? -1)
                                                    .Concat(r.Rides.Select(n => byStage[(r.Area, r.Stage)].FirstOrDefault(t => t.Number == n)?.Room ?? -1))
                                                    .Concat(doors[r.Index].Select(d => d.Room)).Where(byRoom.ContainsKey);
                     foreach (int n in next) if (reachable.Add(n)) queue.Enqueue(n);
@@ -499,7 +571,8 @@ namespace KatAMRandomizer {
             }
             // LandingIn(); Where a one-way door throws Kirby into a stage: a floor in one of its rooms away from its doors; its start, if none;
             (int room, int x, int y) LandingIn((int area, int stage) s) {
-                foreach (SqueakPlanRoom r in byStage[s].Where(r => !goalRooms.Contains(r.Room) && !r.Midboss && !r.Boss).OrderBy(_ => random.Next()))
+                // (nor in a hideout the Squeak Lairs keep: SqueakLair());
+                foreach (SqueakPlanRoom r in byStage[s].Where(r => !goalRooms.Contains(r.Room) && !r.Midboss && !r.Boss && !SqueakLair(r)).OrderBy(_ => random.Next()))
                     if (SqueakSpot(r, false, false) is (int x, int y)) {
                         landings.Add((r.Room, x + 1, y + 1));
                         return (r.Room, x + 1, y + 1);
@@ -585,7 +658,8 @@ namespace KatAMRandomizer {
                 List<(int area, int stage)> reached = stages.Where(s => s.area == world && depthOf.ContainsKey(s)).ToList();
                 if (reached.Count == 0) continue;
                 var gate = reached.OrderByDescending(s => depthOf[s]).ThenByDescending(s => s.stage).First();
-                var boss = stages.FirstOrDefault(s => s.area == world && IsBossStage(s));
+                // (Squeak Squad's final stage isn't world 8's boss stage: it's the finale's, SqueakFinalStage);
+                var boss = stages.FirstOrDefault(s => s.area == world && IsBossStage(s) && s != SqueakFinalStage);
                 /* (the others: on into the world's next stage by number, as the DS's goals lead on (the owner: "Goal doors reach to the
                  * next stage correct"), but 1 or 2 a world, ends of paths, into one of KatAM's goal games (the owner: "keep in mind the
                  * Goal minigame doors from KatAM as well for path ending sections, 1 or 2 per area"): those with no stage after them
@@ -632,6 +706,15 @@ namespace KatAMRandomizer {
                     if (!next.Doors.Any(d => d.Room != SqueakNoRoom) && next.Rides.Count == 0) ends.Add(next);
                 }
                 if (list.LastOrDefault(r => r.Boss) is SqueakPlanRoom bossRoom) bossRooms[bossRoom.Room] = s.area;
+            }
+            /* (the finale's part, SqueakFinalStage: its way in where the finale leads in (squeakFinaleEntry: its start), its boss's way out
+             * where the finale goes on (SqueakFinaleShard: no shard, SqueakShardExits()); */
+            squeakFinaleEntry = null;
+            squeakFinaleBoss = -1;
+            if (byStage.ContainsKey(SqueakFinalStage) && byStage[SqueakFinalStage].LastOrDefault(r => r.Boss) is SqueakPlanRoom finalBoss) {
+                squeakFinaleEntry = StageStart(SqueakFinalStage);
+                squeakFinaleBoss = finalBoss.Room;
+                bossRooms[finalBoss.Room] = SqueakFinaleShard;
             }
 
             /* Loops, few and each for a reason: one-way shortcuts from the deepest stages back to one at least two branches shallower
@@ -700,7 +783,7 @@ namespace KatAMRandomizer {
             /* Every room reached (rule 9): one nothing leads into gets a one-way door into it, where the DS lands Kirby there (its
              * arrival), from a room of its stage that takes one (else of its world), hidden; but for the rooms a stage reaches only
              * through its Squeaks on the DS (after its goal: the gold-pile treasure rooms and the hideouts where Spinni, Doc or Storo
-             * fight for the chest they took), which the Squeak Lair doors lead to (Open Requests: not made yet), so SqueakLair(); */
+             * fight for the chest they took), the Squeak Lairs' (below), so SqueakLair(), SqueakHideout(); */
             bool SqueakLair(SqueakPlanRoom r) {
                 List<SqueakPlanRoom> list = byStage[(r.Area, r.Stage)];
                 int goal = list.FirstOrDefault(t => t.Doors.Any(SqueakGoal))?.Number ?? int.MaxValue;
@@ -715,9 +798,70 @@ namespace KatAMRandomizer {
                 }
                 return !led.Contains(r.Number);
             }
+            /* SqueakHideout(); Whether a room after a stage's goal is one of the DS's hideouts (one of the four fights, its Squeaks in it)
+             * or gold-pile rooms (a screen, or two tall, with nothing in it), every stage's copies of the same few: the ones no lair
+             * uses are left out; a stage's other rooms after its goal (1-1-5, the field past its goal) are reached as any (below; the
+             * sky rooms the DS's warp stars fly through, 3-4-5, 8-3-6 and 8-3-7, are its rides', never stood in); */
+            static bool SqueakHideout(SqueakPlanRoom r) => r.Squeaks.Count > 0 || r.Width == 18 && r.Height is 15 or 32;
+            /* The Squeak Lairs (the owner: "Entrance 1 -> Squeak Lair with Miniboss -> Entrance 2 as an interlude between zones in the
+             * Squeak Squad map. This should use the same system NiDL made us create of Beat Boss, reveal exit, only 1 exit per boss lock
+             * in room"): for each Squeak that steals a stage's treasure on the DS (its thief: Spinni, Doc or Storo, a chase record with
+             * SqueakThief too), the hideout it fights in among the stage's rooms after the goal (SqueakLair(), with its Squeakers) is a
+             * mini-boss room (rule 8): a DS door of the stage leads into it, one-way, onto the DS's arrival there (the door into the room
+             * the thief waits in, else the nearest to it: one Kirby gets to in a room he reaches, not hidden, into another of the
+             * stage's own rooms (not its lair rooms), not a fight's), a nest standing at that door (SqueakLairPlan.Rock: the DS's lair
+             * doors' looks), and its one way out is a mirror, shut until the Squeak is beaten and away from where Kirby lands, to
+             * where that door led; */
+            squeakLairs.Clear();
+            Dictionary<(int room, int door), (int room, int x, int y)> lairRedirect = new Dictionary<(int, int), (int, int, int)>();
+            foreach (var s in stages.Where(s => !IsBossStage(s))) {
+                List<SqueakPlanRoom> list = byStage[s];
+                var thieves = list.Where(r => !SqueakLair(r))
+                                  .SelectMany(r => r.Squeaks.Where(q => (q.flags & SqueakThief) != 0 && q.character != SqueakerCharacter).Select(q => (q.character, room: r.Number)))
+                                  .GroupBy(t => t.character).Select(g => (character: g.Key, room: g.Max(t => t.room))).OrderByDescending(t => t.room).ToList();
+                // (the stage's lair doors' looks: a rock mound where the DS's are kind 0xC1, else a stump);
+                bool rock = list.SelectMany(r => r.Doors).Any(d => (d.Flags & SqueakHiddenDoor) != 0 && !SqueakGoal(d) && (d.Kind & 0x80) != 0);
+                foreach ((int thief, int thiefRoom) in thieves) {
+                    SqueakPlanRoom hideout = list.FirstOrDefault(r => SqueakLair(r) && !reachable.Contains(r.Room) && r.Squeaks.Any(q => q.character == thief));
+                    if (hideout == null || hideout.Doors.FirstOrDefault(SqueakArrival) is not SqueakDoor arrival) continue;
+                    var entrances = new List<(SqueakPlanRoom r, int index, SqueakDoor d, SqueakPlanRoom to, SqueakDoor at)>();
+                    foreach (SqueakPlanRoom r in list.Where(r => reachable.Contains(r.Room) && !r.Midboss && !r.Boss && !SqueakLair(r)))
+                        for (int k = 0; k < r.Doors.Count; k++) {
+                            SqueakDoor d = r.Doors[k];
+                            if (d.Room == SqueakNoRoom || SqueakGoal(d) || (d.Flags & SqueakHiddenDoor) != 0 || d.Kind == SqueakStartKind || d.X >= r.Width || d.Y >= r.Height
+                                || lairRedirect.ContainsKey((r.Room, k))) continue;
+                            SqueakPlanRoom to = list.FirstOrDefault(t => t.Number == d.Room + 1);
+                            if (to == null || to == r || SqueakLair(to) || to.Midboss || to.Boss) continue;
+                            SqueakDoor at = d.Door < to.Doors.Count ? to.Doors[d.Door] : to.Doors.FirstOrDefault(o => o.Number == d.Door);
+                            if (at != null && Leads(r, d)) entrances.Add((r, k, d, to, at));
+                        }
+                    var entrance = entrances.OrderBy(e => Math.Abs(e.to.Number - thiefRoom)).ThenBy(e => e.to.Number > thiefRoom ? 1 : 0).ThenByDescending(e => e.r.Number).FirstOrDefault();
+                    if (entrance.r == null) continue;
+                    (int x, int y) landing = Drop(hideout, arrival.X, arrival.Y);
+                    landings.Add((hideout.Room, landing.x + 1, landing.y + 1));
+                    /* (the way out on the hideout's own DS doorway, where it's not beside where Kirby lands (Storo's and Doc's
+                     * hideouts: across the room); else a floor away from both, SqueakSpot(): Spinni's and the Squeakers' land him on
+                     * their doorway); */
+                    SqueakDoor doorway = hideout.Doors.FirstOrDefault(d => d.Room != SqueakNoRoom && !SqueakGoal(d) && d.X < hideout.Width && d.Y < hideout.Height);
+                    (int x, int y)? exitSpot = doorway != null && (Math.Abs(doorway.X - landing.x) >= LairApart || Math.Abs(doorway.Y - landing.y) > 2)
+                                               ? (doorway.X, doorway.Y) : SqueakSpot(hideout, false, true) ?? SqueakSpot(hideout, false, false);
+                    if (exitSpot is not (int ex, int ey)) {
+                        landings.RemoveAt(landings.Count - 1);
+                        continue;
+                    }
+                    (int x, int y) after = Drop(entrance.to, entrance.at.X, entrance.at.Y);
+                    (int room, int x, int y) exit = (entrance.to.Room, after.x + 1, after.y + 1);
+                    doors[hideout.Index].Add(new Door(ex, ey, exit.room, exit.x, exit.y, Facing(entrance.to, exit.x), OneWay: true, Kind: DoorKind.Lair, Shut: true));
+                    hideout.Midboss = true;
+                    lairRedirect[(entrance.r.Room, entrance.index)] = (hideout.Room, landing.x + 1, landing.y + 1);
+                    squeakLairs.Add(new SqueakLairPlan(hideout.Room, thief, entrance.r.Room, entrance.index, entrance.d.X, entrance.d.Y,
+                                                       (hideout.Room, landing.x + 1, landing.y + 1), exit, rock));
+                    Reach(hideout.Room);
+                }
+            }
             for (bool progress = true; progress;) {
                 progress = false;
-                foreach (SqueakPlanRoom r in rooms.Where(r => !reachable.Contains(r.Room) && !IsBossStage((r.Area, r.Stage)) && !SqueakLair(r))) {
+                foreach (SqueakPlanRoom r in rooms.Where(r => !reachable.Contains(r.Room) && !IsBossStage((r.Area, r.Stage)) && !(SqueakLair(r) && SqueakHideout(r)))) {
                     // (where the DS lands him: its arrival, else the door a DS door from the stage lands him on: 7-2-8's, under 7-2-7's thin
                     // floor);
                     SqueakDoor arrival = r.Doors.FirstOrDefault(SqueakArrival)
@@ -762,10 +906,16 @@ namespace KatAMRandomizer {
                     }
                     bool Near(int dx, int dy) => Enumerable.Range(-1, 3).Any(ox => Enumerable.Range(-1, 3).Any(oy => seen.Contains((dx + ox, dy + oy))));
                     List<(int, int, int)> leads = new List<(int, int, int)>();
-                    foreach (SqueakDoor d in r.Doors.Where(d => d.Room != SqueakNoRoom && !SqueakGoal(d) && Near(d.X, d.Y)))
-                        if (byStage[(r.Area, r.Stage)].FirstOrDefault(t => t.Number == d.Room + 1) is SqueakPlanRoom t
-                            && (d.Door < t.Doors.Count ? t.Doors[d.Door] : t.Doors.FirstOrDefault(o => o.Number == d.Door)) is SqueakDoor landing)
+                    // (a DS door into a lair leads there; a lair's own DS doors aren't doors);
+                    bool lair = squeakLairs.Any(l => l.Room == r.Room);
+                    for (int k = 0; k < r.Doors.Count && !lair; k++) {
+                        SqueakDoor d = r.Doors[k];
+                        if (d.Room == SqueakNoRoom || SqueakGoal(d) || !Near(d.X, d.Y)) continue;
+                        if (lairRedirect.TryGetValue((r.Room, k), out var into)) leads.Add((into.room, into.x - 1, into.y - 1));
+                        else if (byStage[(r.Area, r.Stage)].FirstOrDefault(t => t.Number == d.Room + 1) is SqueakPlanRoom t
+                                 && (d.Door < t.Doors.Count ? t.Doors[d.Door] : t.Doors.FirstOrDefault(o => o.Number == d.Door)) is SqueakDoor landing)
                             leads.Add((t.Room, landing.X, landing.Y));
+                    }
                     foreach (Door d in doors[r.Index].Where(d => Near(d.X, d.Y))) leads.Add((d.Room, d.DestX - 1, d.DestY - 1));
                     foreach (var ride in r.RideTo.Where(t => Near(t.x, t.y))) leads.Add((ride.room, ride.toX, ride.toY));
                     if (shardRooms.Contains(r.Room)) leads.Add((-1, 0, 0));

@@ -487,7 +487,46 @@ namespace KatAMRandomizer {
 
             LoadEnemyDataset(this, Utils.minibossesJson);
 
+            AddSqueakLairMinibosses();
+
             RandomizeEnemies(this);
+
+            // A lair's mini-boss turned one of KatAM's keeps a facing (KatAM's take 0 or 1), not the Squeak's behavior byte;
+            foreach(Entity entity in lairEntities) {
+                if(entity.ID < 0x38 || entity.ID > 0x3F || entity.Behavior <= 1) continue;
+                entity.Behavior = 0;
+                Utils.WriteObjectToROM(entity);
+            }
+        }
+
+        readonly List<Entity> lairEntities = new List<Entity>();
+
+        /* AddSqueakLairMinibosses(); The ROM Expansion's Squeak Lairs' mini-bosses (KatAMExpansion.SqueakLairMinibosses: the expansion
+         * runs first) are randomized with KatAM's, read from the ROM as KatAM's are from the dataset (the owner: "Any boss can appear in
+         * these lairs and these can also be randomized as well"); */
+        void AddSqueakLairMinibosses() {
+            byte[] rom = Processing.ROMData;
+            if(rom == null) return;
+            foreach((int room, int address) in KatAMExpansion.SqueakLairMinibosses) {
+                if(address < 0 || address + 36 > rom.Length) continue;
+                Entity entity = new Entity();
+                entity.Definition = rom.Skip(address).Take(36).ToArray();
+                entity.Address = address;
+                entity.Number = new byte[] { rom[address + 2], rom[address + 3] };
+                entity.Link = new byte[] { rom[address + 4], rom[address + 5] };
+                entity.X = new byte[] { rom[address + 6], rom[address + 7] };
+                entity.Y = new byte[] { rom[address + 8], rom[address + 9] };
+                entity.ID = rom[address + 12];
+                entity.Behavior = rom[address + 14];
+                entity.Speed = rom[address + 16];
+                Array.Copy(entity.Definition, 17, entity.Properties, 0, entity.Properties.Length);
+                entity.Room = room;
+                entity.Description = "";
+                entity.Name = "Squeak Lair";
+                entity.AreAllPropertiesZeroes();
+                entities.Add(entity);
+                lairEntities.Add(entity);
+            }
         }
 
         public void LoadSettings() {

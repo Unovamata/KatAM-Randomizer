@@ -1948,8 +1948,8 @@
                                   bool Shut = false);
         // DoorKind; Why a door is there (see PlanDoors()): NiDL's own, a stage's goal, the boss stages' chain, a branch into a stage and
         // its way back, a loop, a link between levels or with a KatAM area, a switch room's (its Mirra's way in,
-        // its floor mirror), the hubs', the way into NiDL, an edge (a fall or climb out of a room), a split room's parts;
-        public enum DoorKind { Nidl, Goal, Boss, Branch, BranchBack, Loop, Link, KatAMLink, SwitchEntry, SwitchFloor, Hub, Entry, Edge, Split }
+        // its floor mirror), the hubs', the way into NiDL, an edge (a fall or climb out of a room), a split room's parts, a Squeak Lair's way out;
+        public enum DoorKind { Nidl, Goal, Boss, Branch, BranchBack, Loop, Link, KatAMLink, SwitchEntry, SwitchFloor, Hub, Entry, Edge, Split, Lair }
 
         /* Transport; A warp star or cannon of a ported room (NiDL's gimmicks 4 and 6, their exits kind 30), as KatAM's own (objects 0x84,
          * 0x8A: BuildObjects()): where it stands (pixels, TransportSpot(): a cannon on a cell's top, a warp star in a cell's middle, so its cell is (Y - 1) / 16), and where it takes

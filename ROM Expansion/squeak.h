@@ -114,6 +114,8 @@ enum {
     SQUEAK_PEDESTAL,            // Graphics only: the Squeak Squad ability room's pedestals (squeak/gimmicks.c), animation n - 1 the
     SQUEAK_PEDESTAL_ICON,       // pedestal of Squeak Squad's ability n: its stand (and its icon's pieces in the stand's palette), and
                                 // its icon's other pieces (each in one of the DS's other palettes), drawn over it by a sprite of its own;
+    SQUEAK_NEST_STUMP,          // Graphics only: the Squeak Lairs' nests (squeak/gimmicks.c), a stump and a rock mound with a flag;
+    SQUEAK_NEST_ROCK,
     SQUEAK_ENEMY_COUNT,
 };
 
@@ -154,6 +156,7 @@ enum { SQUEAK_STAR_SPIT, SQUEAK_STAR_AHEAD, SQUEAK_STAR_BEHIND, SQUEAK_STAR_SWOR
 #define SQUEAK_BOULDER_OBJECT 0x91
 #define SQUEAK_CANDLE_OBJECT 0x90
 #define SQUEAK_PEDESTAL_OBJECT 0x8F
+#define SQUEAK_NEST_OBJECT 0x8E
 /* The gimmicks' messages (squeak/gimmicks.c): per loaded room's slot (gCurLevelInfo[].unk65E) its room, how many times a room was
  * loaded in it, and a byte per gimmick of the room's list, the kind + 1 of the message waiting for it (rooms.c keeps them after the
  * EWRAM heap: SqueakMailOf()); */
@@ -177,6 +180,14 @@ u32 SqueakGimmickAnim(struct Object *obj);
  * it goes, the shard comes, or a Maxim Tomato, as NiDL's bosses', nidl_boss.c's NidlBossShard(): the way out to the Squeak Squad hub,
  * gNidlShardExits; SqueakDestroy()); */
 #define SqueakBossShard(obj) ((obj)->objTemplate->unk11)
+/* SQUEAK_FINALE_SHARD; The finale's boss (KatAMExpansionSqueakLevels.cs' SqueakFinalStage: Squeak Squad's last, between NiDL's finale and
+ * KatAM's final boss) leaves no shard: every Kirby dances out (NidlDanceOut()), on to where gNidlShardExits says for its room; */
+#define SQUEAK_FINALE_SHARD 0xFF
+/* SQUEAK_LAIR_FIGHT; A Squeak Lair's mini-boss (KatAMExpansionSqueakLevels.cs' PlanSqueakLevels(): the DS's hideout of a stage's thief,
+ * Kirby's way between two of the stage's rooms): its template's unk22 bit; its area's bottom LAIR_UNDER_FLOOR under the floor Kirby
+ * lands on, which a boss the randomizer puts there stands on (SqueakBossFloor()); */
+#define SQUEAK_LAIR_FIGHT 0x10
+#define LAIR_UNDER_FLOOR 32
 /* (its unk14: where the shard comes, x in the room, pixels: the boss room's chest's, where the DS drops its reward, centred on its
  * art (King Dedede's machine, 12 pixels right of the room's middle); 0 the screen's middle, as NiDL's (nidl_boss.c's SHARD_X, Y);
  * the boss room's chest (its template's unk14 SQUEAK_CHEST_AFTER_BOSS) shows only once its boss is gone, as the DS drops it

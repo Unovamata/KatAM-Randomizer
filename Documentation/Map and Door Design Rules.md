@@ -156,14 +156,25 @@ after any change.
     stage) leads, one-way, into the world's next stage by number; 1 or 2 a world (2 where it has 4 such goals or more), at the ends
     of paths (no stage after them first, then the stages nothing hangs off, the deepest first), into one of KatAM's goal games;
   - a goal room keeps the DS's own doors (they're drawn in its tiles) but gets no new one (the owner to confirm);
-  - each world's boss stage (1-7, 2-7, 3-7, 4-7, 5-6, 6-7, 7-7, 8-4; 5-7, a copy of 5-6, is left out as the Arena's copies are)
-    is entered only through the deepest stage's goal; the final stage's rooms the DS reaches by cutscenes between its fights are
-    chained by one-way mirrors from each fight's room to the next (where no warp star ride of the DS's leads on); its last two
-    rooms, copies of Dark Nebula's room and the one before it, are left out, so he's fought once;
+  - each world's boss stage (1-7, 2-7, 3-7, 4-7, 5-6, 6-7, 7-7; 5-7, a copy of 5-6, is left out as the Arena's copies are)
+    is entered only through the deepest stage's goal; Squeak Squad's final stage (8-4) is not world 8's boss stage but the
+    finale's (rule 8): its rooms the DS reaches by cutscenes between its fights are chained by one-way mirrors from each fight's
+    room to the next (where no warp star ride of the DS's leads on); its last two rooms, copies of Dark Nebula's room and the one
+    before it, are left out, so he's fought once; world 8's deepest goal ends its path into a goal game, as other path ends do;
   - the hidden two-way door between worlds leads into the next world's first stage;
-  - the rooms a stage reaches only through its Squeaks (after its goal: the gold-pile treasure rooms and the hideouts where
-    Spinni, Doc or Storo fight for a stolen chest; a room after the goal a DS door leads to from the stage is not one of them)
-    are left to the Squeak Lair doors (rule 9 holds once those are made);
+  - **Squeak Lairs** (the owner: "Entrance 1 -> Squeak Lair with Miniboss -> Entrance 2 as an interlude between zones in the
+    Squeak Squad map"): each Squeak that steals a stage's treasure on the DS (Spinni, Doc or Storo, its thief) has its hideout
+    (one of the stage's rooms after its goal, where it fights with its Squeakers) made a mini-boss room (rule 8) between two of
+    the stage's own rooms: a DS door of the stage (the one into the room the thief waits in, else the nearest to it; not
+    hidden, Kirby gets to it) leads into the hideout, one-way, onto the DS's arrival there, and the hideout's one way out, shut
+    until the Squeak is beaten, leads where that door led. A nest stands at that door, as the DS draws its lair doors (a tree
+    stump with a flag, or a rock mound with a flag where the stage's DS lair doors are its 0xC1/0xC0 kind), the warning that a
+    fight waits past it. The way out is the hideout's own DS doorway where that's not beside where Kirby lands (Storo's and
+    Doc's hideouts), else a mirror on a floor away from both (rule 3). Stages with no Squeak thief (7-4) get none; 6-5 has three;
+  - the rooms a stage reaches only through its Squeaks that no lair uses (the other three hideouts of each stage, every stage's
+    copies of the same four fights, and its gold-pile treasure rooms nothing leads to) are left out, nothing leading in; a room
+    after a stage's goal that isn't one of those (1-1-5, the field past its goal) is reached as any room (rule 9); the sky rooms
+    the DS's warp stars fly through (3-4-5, 8-3-6, 8-3-7) are rides' rooms, never stood in (rule 7);
   - each world's switch room is found by exploring: a Mirra hidden in the world's second half (its stages from the middle on by
     number, the deepest first), one-way, landing off its floor mirrors; its right floor mirror both ways with the start of the
     stage before the boss's (the deepest), its left one with the start of the deepest stage off the way from the world's first
@@ -217,11 +228,20 @@ after any change.
   game can be beaten from KatAM alone; NiDL's 7 that leave one (not the Power Orb nor Nightmare) spread the 8 evenly, and so do
   Squeak Squad's 8 (one each by default, world by world). An owned
   shard is always a Maxim Tomato, never a cutscene in the way.
+- **The finale chain** (the owner: "Entire NiDL final boss sequence that's already ported -> Entire final boss sequence from Squeak
+  Squad recreated and ported 1:1 -> KatAM's final boss. The additional sequences only appear when the ROM expension ROMs are
+  added"): with the Squeak Squad ROM, Nightmare's ending (Kirby going down from the moon) lands Kirby at the start of Squeak
+  Squad's final stage (8-4) instead of the Fountain of Dreams hub; its fights follow as on the DS (Dark Daroach, the rooms
+  between chained by its warp stars and one-way mirrors, then Dark Nebula, who leaves no shard), and Dark Nebula beaten, every
+  Kirby dances out (NiDL's shard exit, `SQUEAK_FINALE_SHARD`) to where Nightmare's ending led before: the Fountain of Dreams hub.
+  Without the NiDL ROM, Central Circle's Dimension Mirror leads to 8-4's start and Dark Nebula's way out is KatAM's final boss
+  sequence (0x38D); without the Squeak Squad ROM, NiDL's finale is as below. `SqueakFinale()`, `SqueakShardExits()`.
 - **The Fountain of Dreams is the finale before KatAM's final boss**, reached only once KatAM has the 8 shards: Central Circle's
   Dimension Mirror and the NiDL hub's lead to the Power Orb's room (nothing else leads in). The Power Orb and Nightmare leave no
   shard: beaten, the Power Orb's cinematic plays, every Kirby goes to a warp star and rides it to Nightmare's room, where his
   cinematic plays and the fight starts; beaten, Nightmare's (Kirby going down from the moon) plays and Kirby is in the Fountain
-  of Dreams hub (its switch room), which has no other door in or out and no big switch: only an Amazing Mirror to 0x38D, KatAM's
+  of Dreams hub (its switch room; with the Squeak Squad ROM, after Squeak Squad's finale, above), which has no other door in or
+  out and no big switch: only an Amazing Mirror to 0x38D, KatAM's
   final boss sequence (unlocked by the 8 shards, as KatAM's), the Master Sword's stand, a Maximum Tomato, and a Cutter and a Sword
   statue on its sides (the owner's), and the Fountain of Dreams' map in a chest on the floor's left (the owner: "The fountain of
   dreams hub can only exist within the amazing Mirror after the nightmare fight. It's a prelude before the final fight."). The Power Orb's and Nightmare's rooms are
@@ -237,7 +257,10 @@ after any change.
   long room's too, before the fight is on screen). The fight area for doors is its screen and the space it's fought in: the cells
   Kirby walks to from it, up to 4 cells across and 2 up or down (not past a wall). Those doors are built shut and open when the
   mini-boss is beaten. No two-way door in a mini-boss's room; a door into one throws Kirby in, one-way, and its way out is one-way
-  too, never right beside the way in. `Arenas()`, `InArena()`, `ArenaCells()`, `arena.c`.
+  too, never right beside the way in. `Arenas()`, `InArena()`, `ArenaCells()`, `arena.c`. The Squeak Lairs (rule 5) are such rooms,
+  one way out each; their mini-boss, the DS's Squeak by default at its spot there, is one the randomizer's mini-boss
+  randomization picks too (Include Bosses: any boss), a boss standing on the floor Kirby lands on (`SQUEAK_LAIR_FIGHT`,
+  `SqueakBossFloor()`). Without the NiDL ROM there are no arenas: a lair's way out is open from the start.
 
 ## 9. Every place gets you back out
 

@@ -274,6 +274,25 @@ how Squeak Squad's enemies work): [Squeak Squad Notes](../Documentation/Squeak%2
   and the dark star (its route is a stage's). Add Chase Sequences to KatAM: see **The chases** below. The HP options take
   `gSqueakEnemyHp` by pool (`KatAMHP.cs`, only with the characters in the ROM: `HasSqueakSquad`; NiDL's tables only with NiDL's:
   `HasNightmare`); the spoiler log names each "(Squeak Squad)".
+- **The Squeak Lairs** (`KatAMExpansionSqueakLevels.cs`' `PlanSqueakLevels()`, `SqueakLairPlan`; the rulebook's rules 5 and 8): each
+  stage's thief on the DS (Spinni, Doc or Storo: a chase record with flag 8 too) fights in its own hideout (the DS's: one of the
+  stage's rooms after its goal), made a mini-boss room between two of the stage's rooms. The DS door into the room the thief waits
+  in (else the nearest to it) leads into the hideout, onto its DS arrival; the hideout's own DS doors aren't doors; its Squeak is
+  a mini-boss (type 0x40, `SQUEAK_MIDBOSS` | the character, as the randomizer's), its area the screen over the floor Kirby lands on,
+  with up to `LairSqueakers` of its Squeakers; its one way out (`DoorKind.Lair`) is built shut (its record alone, its mirror hidden:
+  `arena.c`'s `OpenDoors()` opens it once the Squeak's beaten), on the hideout's DS doorway where that's 4 cells or more from
+  where Kirby lands, else on a floor away from both, leading where the door led. The template carries `SQUEAK_LAIR_FIGHT`
+  (`unk22`): a boss the randomizer puts there stands on that floor (`SqueakBossFloor()`: its area's bottom less 32). The randomizer
+  takes the lairs' mini-bosses with KatAM's (`SqueakLairMinibosses`, `KatAMEnemiesBase.cs`' `AddSqueakLairMinibosses()`). Each
+  lair's door gets a nest (`squeak/gimmicks.c`'s `SqueakCreateNest`, object 0x8D with `unk11` `SQUEAK_NEST_OBJECT`, `unk12` 1 for a
+  rock mound, else a stump; the looks `SQUEAK_NEST_STUMP`/`ROCK`, drawn from the owner's screenshots in
+  `KatAMExpansionSqueakNests.cs`, the DS's own not being among its files), its feet on the door's floor, behind Kirby. Without the
+  NiDL ROM (no arenas), a lair's way out is open. 38 lairs (USA, Europe, Japan the same).
+- **The finale chain** (`KatAMExpansionSqueakLevels.cs`' `SqueakFinale()`, `SqueakShardExits()`; `squeak.c`'s `SqueakDestroy()`):
+  Squeak Squad's final stage (`SqueakFinalStage`, 8-4) isn't world 8's boss stage: its boss (Dark Nebula) leaves no shard
+  (`SQUEAK_FINALE_SHARD`: beaten, `NidlDanceOut()`), its way out its `gNidlShardExits` entry. With NiDL's finale in, Nightmare's
+  ending flight's room step and his shard exit lead to 8-4's start, and Dark Nebula's way out is where they led (the Fountain of
+  Dreams hub); without it, Central Circle's Dimension Mirror leads to 8-4's start and his way out is where it led (0x38D).
 - **The chases** (`squeak/gimmicks.c`, `squeak.h`'s "The chases"; the owner: "an invisible trigger wall on the position of the
   chest, the height of the wall will be of the entire room ... whenever the player passes that threshold, the chase will activate";
   and for KatAM's own rooms, random and optional, the Squeaks "faster, more aggressive and go for Kirby"): a room's gimmick list

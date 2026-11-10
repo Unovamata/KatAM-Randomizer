@@ -2205,12 +2205,33 @@ static void *SqueakCreatePedestal(struct ObjectTemplate *template, u8 playerId) 
     return obj;
 }
 
+/* The Squeak Lairs' nests (KatAMExpansionSqueakRooms.cs: on the door of a Squeak Squad stage that leads into a Squeak Lair, the
+ * mini-boss room PlanSqueakLevels() puts between two of its rooms; its template's unk12 the look, 0 a stump, 1 a rock mound, as the DS's
+ * lair doors are drawn), a warning that a fight waits past the door: drawn behind Kirby and the door's mirror, nothing touches it; */
+static void SqueakNestMain(struct Object *obj) {
+    if (gUnk_03000510.unk4 & ((1 << obj->base.unk56) | 0x10)) return;
+    GimmickAnimate(obj, &((struct SqueakGimmickObject *)obj)->spr);
+}
+
+static void *SqueakCreateNest(struct ObjectTemplate *template, u8 playerId) {
+    struct Task *task = TaskCreate(ObjectMain, sizeof(struct SqueakGimmickObject), 0x1000, TASK_USE_EWRAM, ObjectDestroy);
+    struct SqueakGimmickObject *n = TaskGetStructPtr(task);
+    struct Object *obj = &n->obj;
+
+    InitObject(obj, template, playerId);
+    GimmickInit(obj, &n->spr, template->unk12 ? SQUEAK_NEST_ROCK : SQUEAK_NEST_STUMP);
+    obj->base.sprite.unk14 = 0x7C0;
+    GimmickPlay(obj, &n->spr, 0);
+    obj->unk78 = SqueakNestMain;
+    return obj;
+}
+
 // SqueakGimmickAnim(); A gimmick's look and cell as squeak.c's SqueakAnimFor() draws it (0: the object isn't one);
 u32 SqueakGimmickAnim(struct Object *obj) {
     if (obj->type != OBJ_HAMMER_PEG) return 0;
     if (obj->objTemplate->unk11 == SQUEAK_SWITCH_OBJECT)
         return gSqueakData.enemies[SQUEAK_SWITCH].animId | (SQUEAK_HURT_VARIANTS + (obj->unk83 & 1)) << 16;
-    if (obj->objTemplate->unk11 >= SQUEAK_PEDESTAL_OBJECT && obj->objTemplate->unk11 <= SQUEAK_SHUTTER_OBJECT)
+    if (obj->objTemplate->unk11 >= SQUEAK_NEST_OBJECT && obj->objTemplate->unk11 <= SQUEAK_SHUTTER_OBJECT)
         return gSqueakData.enemies[((struct SqueakGimmickObject *)obj)->spr.look].animId | obj->unk83 << 16;
     return 0;
 }
@@ -2232,6 +2253,7 @@ void *SqueakCreateSwitch(struct ObjectTemplate *template, u8 playerId) {
     case SQUEAK_BOULDER_OBJECT: return SqueakCreateBoulder(template, playerId);
     case SQUEAK_CANDLE_OBJECT: return SqueakCreateCandle(template, playerId);
     case SQUEAK_PEDESTAL_OBJECT: return SqueakCreatePedestal(template, playerId);
+    case SQUEAK_NEST_OBJECT: return SqueakCreateNest(template, playerId);
     }
     return gSqueakSwitch.create(template, playerId);
 }
