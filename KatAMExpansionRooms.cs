@@ -1200,6 +1200,7 @@
 
         static string AddRooms(byte[] rom, byte[] nightmare, NightmareRegion region, KatAMExpansionCode.Version version, ref int cursor) {
             IReadOnlyDictionary<string, int> symbols = version.RomSymbols;
+            Report(0.01, "Reading NiDL's rooms");
             string bigRooms = BigRooms(rom, version);
             if (bigRooms != null) return bigRooms;
             int roomProps = symbols["gRoomProps"], roomInfos = symbols["gUnk_08D6CD0C"];
@@ -1251,6 +1252,7 @@
             Dictionary<int, List<Door>> katamDoors;
             (int room, int x, int y) firstStart;
             byte firstFacing;
+            Report(0.39, "Planning NiDL's levels, doors and mirrors");
             try {
                 doors = PlanDoors(rom, symbols, nightmare, rooms, mainHub, out mainHubDoors, out katamDoors, out firstStart, out firstFacing);
                 chestsOf = PlanChests(nightmare, rooms, doors, mainHubDoors, katamDoors);
@@ -1262,6 +1264,7 @@
             finaleMirror = DimensionMirrorTemplate(rom, symbols);
             try {
                 for (int i = 0; i < rooms.Count; i++) {
+                    ReportEach(0.58, 0.95, i, rooms.Count, "Converting NiDL's rooms");
                     NightmareRoom r = rooms[i];
                     int record = r.Record, roomWidth = ReadShort(nightmare, record + 0x14);
                     int Address(int offset) => ReadInt(nightmare, record + offset) - 0x08000000;
@@ -1431,6 +1434,7 @@
                 return $"The Nightmare in Dream Land ROM doesn't match the {region.KatAM} release.";
             }
 
+            Report(0.95, "Building the NiDL hub, switch rooms and ability room");
             WarpFlights(rom, symbols, ref cursor);
             if (WarpRideDetours(rom, version) is string rideError) return rideError;
 
@@ -1550,6 +1554,7 @@
             cursor = listCursor;
 
             // The tables, copied with the new entries;
+            Report(0.99, "Writing NiDL's room tables");
             (string table, int size, List<int> entries)[] tables = {
                 ("gForegroundInfo", tableSizes[10], infos), ("gForegroundPalettes", tableSizes[11], palettes),
                 ("gForegroundTilemaps", tableSizes[12], tilemaps), ("gSolidityMaps", tableSizes[13], solidities),

@@ -270,6 +270,7 @@ namespace KatAMRandomizer {
                                              int newInfos, int roomInfos, int navigationRoutes, int noTypes, Func<string, int, int> add,
                                              Func<List<byte>, int, int> doorsList, Func<string, int[,]> farView, ref int cursor) {
             for (int world = 1; world <= SqueakWorlds; world++) {
+                ReportEach(0.89, 0.985, world - 1, SqueakWorlds, "Drawing Squeak Squad's switch rooms");
                 int room = first + world - 1, level = SqueakLayoutLevel(world);
                 Func<int, int, bool> solid = SqueakSwitchSolid(level);
                 // (its look: the design's room, else the world's room that gives it best);
