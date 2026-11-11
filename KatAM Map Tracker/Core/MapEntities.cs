@@ -491,6 +491,13 @@ namespace KatAMMapTracker {
             int id = obj.Id, behavior = obj.Behavior;
 
             // The ROM Expansion's mini-bosses: the behavior's high nibble picks one; an unknown one is its type's first, as in the game;
+            /* (Squeak Squad's, on those types, told by the behavior byte (squeak.h's SQUEAK_MIDBOSS 0x80 | the character): the entry with
+             * that index, a boss's type 0x43, KatAMExpansion.WriteSqueakMapEntries()); */
+            if (map.IsExpanded && id >= 0x40 && id <= 0x42 && behavior >= 0x80) {
+                int i = map.ExpansionMinibosses.FindIndex(m => (m.Type == 0x40 || m.Type == 0x43) && m.Index == behavior);
+                if (i >= 0) return new MapEntity(map.ExpansionMinibosses[i].Type == 0x43 ? EntityKind.Boss : EntityKind.MiniBoss, EntityIcon.Expansion + i,
+                                                 map.ExpansionMinibosses[i].Name);
+            }
             if (map.IsExpanded && id >= 0x40 && id <= 0x42) {
                 int i = map.ExpansionMinibosses.FindIndex(m => m.Type == id && m.Index == behavior >> 4);
                 if (i < 0) i = map.ExpansionMinibosses.FindIndex(m => m.Type == id);

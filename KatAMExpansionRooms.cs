@@ -1306,6 +1306,34 @@
                             WriteShort(tilemap, (y * width + x) * 2, ShiftPalette(entry));
                         }
                     }
+                    /* The Fountain of Dreams hub (the finale's end): Central Circle's Master Sword base under its stand (FinaleSwordAt),
+                     * as Central Circle has it under its own (the stand object draws only the sword; the owner: "The fountain of dreams
+                     * hub doesn't have the base of the master sword."), in tiles and colors of its own (SwordBase()); */
+                    int roomTiles = info, roomPalette = palette;
+                    if (r.IsSwitchRoom && r.Level == 7) {
+                        byte[] hubTiles = DecompressLZ77(nightmare, tilesAddress);
+                        int[] hubColors = Enumerable.Range(0, 96).Select(c => ReadShort(nightmare, paletteAddress + 2 + c * 2) & 0x7FFF).ToArray();
+                        int ccTilemap = Entry("gForegroundTilemaps", Props(EntryRoom, 12));
+                        byte[] ccMap = DecompressLZ77(rom, ReadInt(rom, ccTilemap + 0x18) - 0x08000000);
+                        byte[] ccTiles = DecompressLZ77(rom, ReadInt(rom, Entry("gForegroundInfo", Props(EntryRoom, 10))) - 0x08000000);
+                        int ccColorsAt = ReadInt(rom, Entry("gForegroundPalettes", Props(EntryRoom, 11))) - 0x08000000;
+                        int[] ccColors = Enumerable.Range(0, 96).Select(c => ReadShort(rom, ccColorsAt + c * 2) & 0x7FFF).ToArray();
+                        SwordBase(tilemap, width, hubTiles, hubColors, AnimatedTiles(nightmare, region.RoomTable, animationSet),
+                                  ccMap, ReadShort(rom, ccTilemap), ccTiles, ccColors);
+                        int tilesAt = AllocateCompressed(rom, CompressLZ77(hubTiles), ref cursor), infoAt = Allocate(ref cursor, 16, 4);
+                        Array.Copy(rom, infos[info - tableSizes[10]] - 0x08000000, rom, infoAt, 16);
+                        WriteInt(rom, infoAt, tilesAt + 0x08000000);
+                        WriteShort(rom, infoAt + 14, r.Room);
+                        roomTiles = tableSizes[10] + infos.Count;
+                        infos.Add(infoAt + 0x08000000);
+                        int colorsAt = Allocate(ref cursor, 0xC0, 4), paletteAt = Allocate(ref cursor, 12, 4);
+                        for (int c = 0; c < 96; c++) WriteShort(rom, colorsAt + c * 2, hubColors[c]);
+                        Array.Copy(rom, palettes[palette - tableSizes[11]] - 0x08000000, rom, paletteAt, 12);
+                        WriteInt(rom, paletteAt, colorsAt + 0x08000000);
+                        WriteShort(rom, paletteAt + 10, r.Room);
+                        roomPalette = tableSizes[11] + palettes.Count;
+                        palettes.Add(paletteAt + 0x08000000);
+                    }
                     byte[] compressedTilemap = CompressLZ77(tilemap);
                     int tilemapAt = Allocate(ref cursor, compressedTilemap.Length, 4);
                     compressedTilemap.CopyTo(rom, tilemapAt);
@@ -1428,7 +1456,7 @@
                         backgroundLeft = HeavyMoleBackgroundX;
                     }
                     WriteShorts(rom, roomProps + r.Room * 0x28, NidlRoomSong(nightmare, region, r), 0, 0, 0x100, 0x100, backgroundLeft, backgroundDown, rateX, rateY, RoomFlags,
-                                info, palette, tableSizes[12] + i, tableSizes[13] + i, 0xFFFF, background, tableSizes[16] + i,
+                                roomTiles, roomPalette, tableSizes[12] + i, tableSizes[13] + i, 0xFFFF, background, tableSizes[16] + i,
                                 tableSizes[17] + i, FirstDoorsList + i, 0);
                 }
             } catch (Exception exception) when (exception is IndexOutOfRangeException or ArgumentException) {
@@ -3826,6 +3854,72 @@
                 WriteShorts(rom, animation + 0x10, steps.Count, 1);
             }
             return (animations + 0x08000000, scripts.Count);
+        }
+
+        // AnimatedTiles(); The tiles a NiDL room's tile animations (TileAnimations()) write over;
+        static HashSet<int> AnimatedTiles(byte[] nightmare, int roomTable, int set) {
+            HashSet<int> animated = new HashSet<int>();
+            if (set == 0) return animated;
+            int list = ReadInt(nightmare, roomTable + 0x1C8 + set * 4) - 0x08000000;
+            if (list < 0 || list >= nightmare.Length) return animated;
+            for (int i = 0; i < 16 && (ReadInt(nightmare, list + i * 4) >> 24) == 8; i++)
+                for (int at = ReadInt(nightmare, list + i * 4) - 0x08000000, n = 0; n < 64; at += 8, n++) {
+                    int command = ReadShort(nightmare, at), frame = ReadInt(nightmare, at + 4) - 0x08000000;
+                    if (command is 3 or 4) break;
+                    if (command != 0 || frame < 0 || frame >= nightmare.Length) continue;
+                    int tile = ReadShort(nightmare, frame), bytes = ReadShort(nightmare, frame + 2);
+                    for (int t = tile; t < tile + (bytes + 31) / 32; t++) animated.Add(t);
+                }
+            return animated;
+        }
+
+        /* SwordBase(); Central Circle's Master Sword base (the room's tiles under its stand, object 0x98 at 248, 224: its pixels from 240,
+         * 224 to 256, 240) drawn under the Fountain of Dreams hub's stand (FinaleSwordAt) in its tilemap (map, columns wide; KatAM's
+         * entries, its tiles and colors): the tiles it touches made anew, in tiles the map doesn't use nor its animations write over,
+         * each in the palette that shows it best, the base's colors put in that palette's colors no tile of the map uses; */
+        static void SwordBase(byte[] map, int columns, byte[] tiles, int[] colors, HashSet<int> animated, byte[] ccMap, int ccColumns, byte[] ccTiles, int[] ccColors) {
+            const int StandX = 248, StandY = 224, Left = 240, Top = 224, Size = 16;
+            int Pixel(byte[] m, int cols, byte[] t, int[] c, int x, int y) {
+                int entry = ReadShort(m, ((y / 8) * cols + x / 8) * 2);
+                int px = (entry & 0x400) != 0 ? 7 - x % 8 : x % 8, py = (entry & 0x800) != 0 ? 7 - y % 8 : y % 8;
+                int index = t[(entry & 0x3FF) * 32 + py * 4 + px / 2] >> (px % 2 * 4) & 0xF;
+                return index == 0 ? -1 : c[(entry >> 12) * 16 + index];
+            }
+            int dx = FinaleSwordAt.x - StandX, dy = FinaleSwordAt.y - StandY;
+            // (the base's pixels where the hub draws them, over its own);
+            Dictionary<(int x, int y), int> drawn = new Dictionary<(int, int), int>();
+            for (int y = Top; y < Top + Size; y++)
+                for (int x = Left; x < Left + Size; x++)
+                    if (Pixel(ccMap, ccColumns, ccTiles, ccColors, x, y) is int color && color >= 0) drawn[(x + dx, y + dy)] = color;
+            if (drawn.Count == 0) return;
+
+            List<int> entries = Enumerable.Range(0, map.Length / 2).Select(i => ReadShort(map, i * 2)).ToList();
+            HashSet<int> used = entries.Select(e => e & 0x3FF).ToHashSet();
+            Queue<int> freeTiles = new Queue<int>(Enumerable.Range(1, tiles.Length / 32 - 1).Where(t => !used.Contains(t) && !animated.Contains(t)));
+            HashSet<int> usedColors = entries.SelectMany(e => Enumerable.Range(0, 64).Select(i => tiles[(e & 0x3FF) * 32 + i / 2] >> (i % 2 * 4) & 0xF)
+                                                             .Where(index => index != 0).Select(index => (e >> 12) * 16 + index)).ToHashSet();
+            List<int> wanted = drawn.Values.Distinct().ToList();
+            // (the palette: the one with room for the base's colors, else the one whose colors are nearest them);
+            int[] Free(int p) => Enumerable.Range(p * 16 + 1, 15).Where(c => !usedColors.Contains(c)).ToArray();
+            double Error(int p) => wanted.Sum(c => Distance(Rgb(colors[p * 16 + 1 + NearestColor(colors.Skip(p * 16 + 1).Take(15).ToArray(), c)]), Rgb(c)));
+            int best = Enumerable.Range(0, 6).Where(p => Free(p).Length >= wanted.Count).DefaultIfEmpty(-1).First();
+            if (best >= 0) {
+                int[] slots = Free(best);
+                for (int i = 0; i < wanted.Count; i++) colors[slots[i]] = wanted[i];
+            } else best = Enumerable.Range(0, 6).MinBy(Error);
+            int[] shades = colors.Skip(best * 16 + 1).Take(15).ToArray();
+
+            foreach ((int tx, int ty) in drawn.Keys.Select(k => (k.x / 8, k.y / 8)).Distinct().ToList()) {
+                if (freeTiles.Count == 0) break;
+                int tile = freeTiles.Dequeue();
+                for (int i = 0; i < 64; i++) {
+                    int x = tx * 8 + i % 8, y = ty * 8 + i / 8;
+                    int color = drawn.TryGetValue((x, y), out int c) ? c : Pixel(map, columns, tiles, colors, x, y);
+                    int value = color < 0 ? 0 : 1 + NearestColor(shades, color);
+                    if (i % 2 == 0) tiles[tile * 32 + i / 2] = (byte)value; else tiles[tile * 32 + i / 2] |= (byte)(value << 4);
+                }
+                WriteShort(map, (ty * columns + tx) * 2, best << 12 | tile);
+            }
         }
 
         // ShiftPalette(); A NiDL tilemap entry with its palette moved down by 2 (NiDL's level palettes start at 2, KatAM's at 0);

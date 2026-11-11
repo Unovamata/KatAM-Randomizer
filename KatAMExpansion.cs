@@ -1288,6 +1288,8 @@ namespace KatAMRandomizer {
             if (squeak != null) Report(0.17, "Drawing Squeak Squad's characters");
             // Squeak Squad's characters (KatAMExpansionSqueak.cs): an anim each (its hurt frames, then its cells);
             List<SqueakBuilt> squeakBuilt = new List<SqueakBuilt>();
+            List<(int index, string name, bool boss, (int width, int height, ushort[] pixels) icon)> squeakIcons =
+                new List<(int, string, bool, (int, int, ushort[]))>();
             List<SqueakEffectBuilt> squeakEffects = new List<SqueakEffectBuilt>();
             /* (each palette's slot: the first sprite's with its colors, those after it with the same taking it: KatAM keeps 7 palettes for
              * a room's enemies, Doc's sprites would take 6 of their own); */
@@ -1328,6 +1330,8 @@ namespace KatAMRandomizer {
                         /* (the pieces in each layer's palettes drawn by a layer of their own: an anim with its own palette, a frame per cell
                          * with any; the character itself keeps the pieces in none); */
                         List<SqueakLayerBuilt> layersBuilt = new List<SqueakLayerBuilt>();
+                        List<(List<int> cells, List<(byte[] tiles, ushort[] oams, short[] attributes, int palette)> frames, List<byte[]> palettes)> iconLayers =
+                            new List<(List<int>, List<(byte[], ushort[], short[], int)>, List<byte[]>)>();
                         int[][] whole = enemy.WholeCells ? enemy.Layers : null;
                         foreach (int[] group in enemy.Layers ?? new int[0][]) {
                             SqueakCharacter layer = SqueakSplitLayer(character, group, true, whole);
@@ -1335,6 +1339,7 @@ namespace KatAMRandomizer {
                             (List<(byte[] tiles, ushort[] oams, short[] attributes, int palette)> layerFrames, List<byte[]> layerPalettes) =
                                 SqueakFrames(layer, cells: layerCells, size: enemy.Canvas, scale: enemy.Scale);
                             (int _, int layerAnim, int _) = AddAnim(layerPalettes, layerFrames, new byte[0], new List<(int, int)>(), effectOnly: layerFrames.Count);
+                            iconLayers.Add((layerCells, layerFrames, layerPalettes));
                             ushort[] perCell = new ushort[character.Cells.Count];
                             for (int k = 0; k < layerCells.Count; k++) {
                                 int cell = layerCells[k];
@@ -1382,6 +1387,26 @@ namespace KatAMRandomizer {
                         }
                         squeakBuilt.Add(new SqueakBuilt(enemy, animId, character, withHurts.Max(f => f.tiles.Length / 32), layersBuilt, animPalettes,
                                                         frames.Select(f => f.tiles.Length / 32).ToList()));
+                        // (a mini-boss's or boss's icon and name for the map tracker: its MapIcon look, WriteSqueakMapEntries());
+                        if (SqueakMidbossTypeOf(enemy) != 0) {
+                            // (each cell its layers' pieces with it, behind or in front of it as the game draws them);
+                            var iconParts = new List<((byte[] tiles, ushort[] oams, short[] attributes, int palette) frame, byte[] colors)>();
+                            int[] look = enemy.MapIcon ?? new[] { character.Anims[0].Steps.FirstOrDefault(st => character.Cells[st.Cell].Pieces.Count > 0)?.Cell ?? 0 };
+                            foreach (int cell in look) {
+                                var behind = new List<((byte[], ushort[], short[], int), byte[])>();
+                                var front = new List<((byte[], ushort[], short[], int), byte[])>();
+                                for (int l = 0; l < iconLayers.Count; l++) {
+                                    int k = iconLayers[l].cells.IndexOf(cell);
+                                    if (k < 0) continue;
+                                    var part = (iconLayers[l].frames[k], iconLayers[l].palettes[iconLayers[l].frames[k].palette]);
+                                    ((layersBuilt[l].Cells[cell] & 0x8000) != 0 ? front : behind).Add(part);
+                                }
+                                iconParts.AddRange(behind);
+                                if (frames[cell].oams.Length > 0) iconParts.Add((frames[cell], palettes[frames[cell].palette]));
+                                iconParts.AddRange(front);
+                            }
+                            if (iconParts.Count > 0) squeakIcons.Add((enemy.Index, enemy.Name, SqueakBossPool.Contains(enemy.Index), IconOf(iconParts)));
+                        }
                         // (the switch's in the hammer peg's VRAM, object 0x8D's 4 tiles: chest.c's SqueakCreateSwitch);
                         if (enemy.Index == SqueakSwitch && squeakBuilt[^1].Tiles > HammerPegTiles) return "Squeak Squad's switch doesn't fit KatAM's hammer peg.";
                     }
@@ -1525,6 +1550,7 @@ namespace KatAMRandomizer {
             if (squeakBuilt.Count > 0 && WriteSqueak(rom, version, ref cursor, squeakBuilt,
                                                      minibossFrameTiles.ToDictionary(p => p.Key, p => p.Value + HurtOf(p.Key).Tiles), squeakEffects)
                                          is string squeakError) return squeakError;
+            WriteSqueakMapEntries(rom, squeakIcons, ref cursor);
 
             /* Object types 0x40-0x42: spawn function and parameters, as Mr. Frosty's (type 0x38: score, HP) but for its hurt frames (0 &
              * 1), no ability (the code sets each mini-boss's), no palette key, VRAM tiles (the type's biggest frame, then the hurt frame),
@@ -2320,6 +2346,70 @@ namespace KatAMRandomizer {
                 Array.Clear(rom, entry + 8, 24);
                 System.Text.Encoding.ASCII.GetBytes(m.Name).CopyTo(rom, entry + 8);
             }
+        }
+
+        /* WriteSqueakMapEntries(); Squeak Squad's mini-bosses and bosses for the map tracker (Core/RomMap.cs, MapEntities.Classify()): on
+         * mini-boss types 0x40-0x42, told by their behavior byte (squeak.h's SQUEAK_MIDBOSS | the character), each an entry as the ported
+         * NiDL bosses' (WriteMapTable()) after theirs in the bosses' table ("BS"): its type 0x43 for a boss (SqueakBossPool), 0x40 for a
+         * mid-boss or a chase's Squeak (SqueakMidbossTypeOf()), its index
+         * the behavior byte, its icon (its MapIcon look) and name; the map table's header written if NiDL's rooms didn't (Squeak Squad's
+         * alone); */
+        static void WriteSqueakMapEntries(byte[] rom, List<(int index, string name, bool boss, (int width, int height, ushort[] pixels) icon)> icons,
+                                          ref int cursor) {
+            const int EntrySize = 32;
+            if (icons.Count == 0) return;
+            if (System.Text.Encoding.ASCII.GetString(rom, MapTableAddress, 7) != "NIDLMAP") {
+                System.Text.Encoding.ASCII.GetBytes("NIDLMAP\x01").CopyTo(rom, MapTableAddress);
+                WriteShort(rom, MapTableAddress + 8, 0);
+                WriteShort(rom, MapTableAddress + 10, EntrySize);
+            }
+            int oldCount = rom[MapBosses] == 'B' && rom[MapBosses + 1] == 'S' ? ReadShort(rom, MapBosses + 2) : 0;
+            int table = Allocate(ref cursor, (oldCount + icons.Count) * EntrySize, 4);
+            if (oldCount > 0) Array.Copy(rom, ReadInt(rom, MapBosses + 4) - 0x08000000, rom, table, oldCount * EntrySize);
+            for (int i = 0; i < icons.Count; i++) {
+                (int index, string name, bool boss, (int width, int height, ushort[] pixels) icon) = icons[i];
+                int at = Allocate(ref cursor, 4 + icon.pixels.Length * 2, 4), entry = table + (oldCount + i) * EntrySize;
+                WriteShort(rom, at, icon.width);
+                WriteShort(rom, at + 2, icon.height);
+                for (int p = 0; p < icon.pixels.Length; p++) WriteShort(rom, at + 4 + p * 2, icon.pixels[p]);
+                rom[entry] = (byte)(boss ? 0x43 : 0x40);
+                rom[entry + 1] = (byte)(0x80 | index);
+                WriteShort(rom, entry + 2, 0);
+                WriteInt(rom, entry + 4, at);
+                Array.Clear(rom, entry + 8, 24);
+                System.Text.Encoding.ASCII.GetBytes(name.Length > 23 ? name[..23] : name).CopyTo(rom, entry + 8);
+            }
+            System.Text.Encoding.ASCII.GetBytes("BS").CopyTo(rom, MapBosses);
+            WriteShort(rom, MapBosses + 2, oldCount + icons.Count);
+            WriteInt(rom, MapBosses + 4, table + 0x08000000);
+        }
+
+        /* IconOf(); KatAM frames drawn on each other from their origins (the first under the rest), each with its colors (16, BGR555), as
+         * a map tracker icon's pixels (| 0x8000 where drawn), their box; */
+        static (int width, int height, ushort[] pixels) IconOf(List<((byte[] tiles, ushort[] oams, short[] attributes, int palette) frame, byte[] colors)> parts) {
+            int minX = parts.Min(p => -p.frame.attributes[4]), minY = parts.Min(p => -p.frame.attributes[5]);
+            int width = Math.Max(1, parts.Max(p => p.frame.attributes[2] - p.frame.attributes[4]) - minX);
+            int height = Math.Max(1, parts.Max(p => p.frame.attributes[3] - p.frame.attributes[5]) - minY);
+            ushort[] pixels = new ushort[width * height];
+            foreach (((byte[] tiles, ushort[] oams, short[] attributes, int _) frame, byte[] colors) in parts) {
+                int left = -frame.attributes[4] - minX, top = -frame.attributes[5] - minY;
+                for (int p = frame.oams.Length / 3 - 1; p >= 0; p--) {
+                    int shape = frame.oams[p * 3] >> 14, size = frame.oams[p * 3 + 1] >> 14, tile = frame.oams[p * 3 + 2];
+                    int pieceY = frame.oams[p * 3] & 0x3FFF, pieceX = frame.oams[p * 3 + 1] & 0xFFF;
+                    bool flipH = (frame.oams[p * 3 + 1] & 0x1000) != 0, flipV = (frame.oams[p * 3 + 1] & 0x2000) != 0;
+                    int w = shape == 0 ? 8 << size : shape == 1 ? new[] { 16, 32, 32, 64 }[size] : new[] { 8, 8, 16, 32 }[size];
+                    int h = shape == 0 ? 8 << size : shape == 1 ? new[] { 8, 8, 16, 32 }[size] : new[] { 16, 32, 32, 64 }[size];
+                    for (int y = 0; y < h; y++)
+                        for (int x = 0; x < w; x++) {
+                            int t = tile + y / 8 * (w / 8) + x / 8, at = t * 32 + y % 8 * 4 + x % 8 / 2;
+                            if (at >= frame.tiles.Length) continue;
+                            int color = (x & 1) != 0 ? frame.tiles[at] >> 4 : frame.tiles[at] & 0xF;
+                            int px = left + pieceX + (flipH ? w - 1 - x : x), py = top + pieceY + (flipV ? h - 1 - y : y);
+                            if (color != 0 && px >= 0 && py >= 0 && px < width && py < height) pixels[py * width + px] = (ushort)(ReadShort(colors, color * 2) | 0x8000);
+                        }
+                }
+            }
+            return (width, height, pixels);
         }
 
         // Allocate(); Next free address, aligned (to a table's base, for tiles and palettes);

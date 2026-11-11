@@ -490,7 +490,8 @@ Kibble and Hot Head, one of each out at most; else `0x02127824(1, ...)`), rise `
 `0x0210E788`, defeat `0x0210E730`-`0x0210E294`. What it brings in (`0x02127750`, vtable `0x02183980`, its own `prmBB06Ml0`): kind 0
 its fire (`0x021278CC`, at its spot: `.cea`'s 12, 0.1 gravity, bursting on the ground through the stage's effect 6), 1 a fire from
 the top (11, alike, `0x020B48E0`'s 6), 2 the lava's hurt (`0x0212737C`, made by its intro at the camera's middle and the floor:
-`.cea`'s 18, no cell; `.rca`'s box kind 2, 128 across and 10 high, hurting Kirby, and Bohboh as it dives in: 20). `.mca`: 0 flying,
+`.cea`'s 18, no cell; `.rca`'s box kind 2, 128 across and 10 high, hurting Kirby, and Bohboh as it dives in: 20; ported as it
+is: KatAM's rooms have no lava, so on a KatAM floor it hurts unseen across the floor's middle, the owner's pick: "Keep as it is"). `.mca`: 0 flying,
 1 carrying (its claws, `.cea`'s 9), 2 rising out of the lava, 3 its flare. `.rca`'s animations are the `.cea`'s one on; its own hurt
 boxes (0x102) in its animations 0, 4 (far off), 7 (its dive) and 8 (in the lava), those of 4 and 7 flagged 0x8000 (untouchable: see
 "Where it's hit" below; elsewhere animation 0's box is hit, as recorded); its swoop (6) has two grabbing boxes (0x101 kind 6); its far
