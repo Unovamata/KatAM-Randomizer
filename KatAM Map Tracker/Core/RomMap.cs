@@ -5,7 +5,8 @@ using System.Linq;
 
 namespace KatAMMapTracker {
     // DoorKind; What takes Kirby to another room: a mirror (door), or a Warp Star or Fuse Cannon, which work like One-Way mirrors;
-    public enum DoorKind { Mirror, WarpStar, FuseCannon, Shard }
+    // (Phase: Squeak Squad's final stage going on by itself, from one fight's room to the next, ReadSqueakRooms());
+    public enum DoorKind { Mirror, WarpStar, FuseCannon, Shard, Phase }
 
     // DoorInfo; A door in a room. Wide doors made of several objects pointing to the same room are merged in one;
     public sealed class DoorInfo {
@@ -293,7 +294,18 @@ namespace KatAMMapTracker {
                 (tables[1], tables[2], tables[3], tables[4], tables[5], tables[6], tables[7]);
             SqueakWorlds = block + 44;
             SqueakStages = SqueakWorlds + SqueakCount;
+            // (then the final stage's ways on by themselves, "PW", u16 how many, 8 bytes each: u16 the room, u16 the room it goes on to,
+            // u8 x, u8 y Kirby's cell there, u8 x, u8 y his landing cell + 1; older ROMs: none);
+            int warps = SqueakStages + SqueakCount;
+            if (warps + 4 <= Rom.Length && Rom[warps] == 'P' && Rom[warps + 1] == 'W')
+                for (int i = 0; i < Read16(warps + 2) && warps + 12 + i * 8 <= Rom.Length; i++) {
+                    int at = warps + 4 + i * 8;
+                    PhaseWarps.Add((Read16(at), Read16(at + 2), Rom[at + 4], Rom[at + 5], Rom[at + 6] - 1, Rom[at + 7] - 1));
+                }
         }
+
+        // PhaseWarps; Squeak Squad's final stage going on by itself (ReadSqueakRooms()): (the room, the next, Kirby's cell, the landing cell);
+        readonly List<(int room, int destination, int x, int y, int landX, int landY)> PhaseWarps = new List<(int, int, int, int, int, int)>();
 
         // RoomParameters; The rooms' parameters: the game's table, or its copy with the Squeak Squad rooms (ReadSqueakRooms());
         int RoomParameters => SqueakProps >= 0 ? SqueakProps : LongRoomParameters;
@@ -459,6 +471,13 @@ namespace KatAMMapTracker {
                 room.Doors.Add(new DoorInfo {
                     Room = bossRoom, Destination = destination, Kind = DoorKind.Shard, X = room.Width * 4, Y = room.Height * 4,
                     LandX = Math.Max(0, x) * 16 + 8, LandY = Math.Max(0, y) * 16 + 8, Tiles = new List<(int x, int y)> { (room.Width / 4, room.Height / 4) },
+                });
+            }
+            foreach ((int from, int destination, int x, int y, int landX, int landY) in PhaseWarps) {
+                if (!Rooms.TryGetValue(from, out RoomInfo room) || !Rooms.ContainsKey(destination) || room.Doors.Any(d => d.Destination == destination)) continue;
+                room.Doors.Add(new DoorInfo {
+                    Room = from, Destination = destination, Kind = DoorKind.Phase, X = x * 16 + 8, Y = y * 16 + 8,
+                    LandX = Math.Max(0, landX) * 16 + 8, LandY = Math.Max(0, landY) * 16 + 8, Tiles = new List<(int x, int y)> { (x, y) },
                 });
             }
             foreach (RoomInfo room in Rooms.Values) {

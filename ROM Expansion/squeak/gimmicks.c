@@ -130,6 +130,7 @@ const struct SqueakSwitch gSqueakSwitch = { NULL };
 #define GIMMICK_CURRENTS 0xF3       // A room's currents (KatAMExpansionSqueakRooms.cs's SqueakCurrents()): par[0-3] its grid's address;
 #define GIMMICK_CRUMBLES 0xF4       // A room's walk-once blocks (KatAMExpansionSqueakRooms.cs's SqueakCrumbles()): par[0-3] their list's address;
 #define CRUMBLES 8                  // (walk-once blocks breaking at once in a room);
+#define GIMMICK_PHASE_WARP 0xF5     // The finale's way on from a fight (KatAMExpansionSqueakLevels.cs' SqueakPhaseWarps): par[0-1] the room, par[2-3] the cell + 1, par[4] 1 after the fight;
 #define LAIR_EXIT_WAIT 30           // (the room's objects made by then: KatAM makes those on screen as the room comes up);
 #define LAIR_EXIT_OPEN 0xFF
 #define FAR_VIEW_FIRST 96           // (the far view's colors: KatAM's BG palettes 6-13, KatAMExpansionSqueakRooms.cs's SqueakBackground);
@@ -625,6 +626,22 @@ static bool8 MinibossLeft(u16 room) {
     return FALSE;
 }
 
+// MinibossThere(); Whether a mini-boss is still in the room at all, beaten or not (its defeat playing out: Dark Daroach's own);
+static bool8 MinibossThere(u16 room) {
+    struct Task *t = &gTasks[0];
+    u8 n;
+
+    for (n = 0; n < MAX_TASK_NUM && t->next; n++) {
+        struct Object *other;
+
+        t = (struct Task *)(IWRAM_START + t->next);
+        other = TaskGetStructPtr(t);
+        if (other->base.header.kind != 1 || !ObjType38To52(other)) continue;
+        if (other->base.roomId == room && !(other->base.flags & 0x1000)) return TRUE;
+    }
+    return FALSE;
+}
+
 static void LairExit(struct SqueakLogic *l, const struct SqueakGimmickEntry *e) {
     u8 *state = &l->inside[e->index], x = e->x >> 4, y = e->y >> 4, p = l->base.unk56;
     const u8 *record;
@@ -739,6 +756,50 @@ static void Crumbles(struct SqueakLogic *l, const struct SqueakGimmickEntry *e) 
     }
 }
 
+/* PhaseWarp(); Squeak Squad's final stage (8-4) goes from part to part on its own, as the DS's stage switches (the owner: "Why is there
+ * a door in daroach's first phase fight [...] the warp should send me to the next phase automatically", "the mirror to go to the next
+ * phase is literally right there"): from Dark Daroach's room once he's beaten (LAIR_EXIT_WAIT frames after the room comes up, its
+ * objects made, then once no mini-boss with HP is left in it, as soon as none is there at all: his defeat played out, its end the
+ * DS's stage switch, squeak/daroach_boss.c's DEFEAT_END; counted PHASE_STEP frames a count, PHASE_DEFEAT_MAX counts at most: a
+ * defeat that leaves its mini-boss there), into the dark star's chase; from where the ride after the chase lands (a8s4s5, whose
+ * coming the port plays in Dark Nebula's own room) into his fight, PHASE_ARRIVAL frames after Kirby comes in. Every Kirby in the room
+ * goes, as through a door (KatAM's room change, sub_08055920(): the one the shard cutscene ends in), onto the cell. Its byte: the
+ * frames counted (after a fight: LAIR_EXIT_WAIT while the fight's on, then the counts from there), PHASE_GONE once gone; */
+#define PHASE_STEP 4
+#define PHASE_DEFEAT_MAX 200
+#define PHASE_ARRIVAL 30
+#define PHASE_GONE 0xFF
+void sub_08055920(struct Kirby *);  // KatAM's room change (kirby.c): to kirby->roomId, onto spawnLocation;
+void sub_080534D0(struct Kirby *);  // a flight's step (kirby.c): a warp star's ride;
+static void PhaseWarp(struct SqueakLogic *l, const struct SqueakGimmickEntry *e) {
+    u8 *state = &l->inside[e->index], i;
+    u16 to = e->par[0] | e->par[1] << 8;
+
+    if (*state == PHASE_GONE) return;
+    if (e->par[4]) {
+        if (*state < LAIR_EXIT_WAIT) { (*state)++; return; }
+        if (*state == LAIR_EXIT_WAIT && MinibossLeft(l->room)) return;
+        if (MinibossThere(l->room) && *state < LAIR_EXIT_WAIT + PHASE_DEFEAT_MAX) {
+            if ((gFrameCount & (PHASE_STEP - 1)) == 0) (*state)++;
+            return;
+        }
+    } else if (*state < PHASE_ARRIVAL) {
+        // (counted once the ride that brought Kirby in has set him down: its flight, sub_080534D0, ended);
+        if (gKirbys[0].base.roomId == l->room && gKirbys[0].stateFn != sub_080534D0) (*state)++;
+        return;
+    }
+    *state = PHASE_GONE;
+    for (i = 0; i < gNumKirbys; i++) {
+        struct Kirby *kirby = &gKirbys[i];
+
+        if (kirby->base.roomId != l->room || kirby->hp <= 0) continue;
+        kirby->roomId = to;
+        kirby->spawnLocation.x = e->par[2];
+        kirby->spawnLocation.y = e->par[3];
+        sub_08055920(kirby);
+    }
+}
+
 static void SqueakLogicMain(void) {
     struct SqueakLogic *l = TaskGetStructPtr(gCurTask);
     struct SqueakMail *mail = SqueakMailOf(l->slot);
@@ -778,6 +839,7 @@ static void SqueakLogicMain(void) {
         case GIMMICK_LAIR_EXIT: LairExit(l, e); break;
         case GIMMICK_CURRENTS: Currents(l, e); break;
         case GIMMICK_CRUMBLES: Crumbles(l, e); break;
+        case GIMMICK_PHASE_WARP: PhaseWarp(l, e); break;
         }
     }
 }

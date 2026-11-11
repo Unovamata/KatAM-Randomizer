@@ -44,11 +44,24 @@
  *   - His beam's reach (dancho01.rca's box on the beam's part, 48 ahead: 31 to 332 pixels ahead, 4 under to 5 over his spot; Dark
  *     Daroach's 31 to 320, 14 under to 15 over): KatAM's boxes reach 127 pixels from an object, so two of these, each half of it,
  *     kept on him while the beam shows; hurting, drawing nothing, no attack hurts them.
- * His sounds: Squeak Squad's (SqueakSfx). Not ported: his hit flash (enemy/dan_dmg's palettes: KatAM's), the screen's shakes, his own defeat (0x02124FFC-
- * 0x02124DCC, his wand bouncing off: KatAM's mini-boss defeat), touching an invincible Kirby (KatAM's own), his boss music. */
+ * • Dark Daroach's defeat (0x02124EFC, then 0x02124DCC every frame; the owner: "Daroach when beaten on the first phase doesn't
+ *   trigger the expected animation when it dies"): KatAM's mini-boss defeat caught the frame it starts (DaroachWatch, his unk7C, as
+ *   Dark Nebula's) and his own instead: he stops where he is (his speeds none), the screen shakes (0x02035FC4's 3, 5: KatAM's
+ *   shortest), his wand's sprite gone (+0xE4), dancho00's 27 (his beaten pose). DEFEAT_BURST frames on (+0x7C): efc_cmn0's 10 at
+ *   him (0x02039B28), his wand (0x02124D18: dancho00's 28, an object of its own, SPAWN_AHEAD ahead and SPAWN_UP up) thrown off at
+ *   1.0 ahead and 4.0 up, 0.1 gravity (0x02124B9C), bouncing off the floor at 4.0 up and off walls turned round (0x02124A7C; sound
+ *   0x7D each), a bigger shake (4, 15: KatAM's longest timed one) and his own colors back (0x02075FF4's "enemy/dancho00": the dark
+ *   one's gone, Daroach's palette). DEFEAT_END frames on (+0x90) the stage moves on (0x020B3CE4): here he's gone, and the room's
+ *   way on (squeak/gimmicks.c's PhaseWarp, waiting for him) takes the Kirbys to the dark star's chase. Daroach's own defeat (his
+ *   stage's: a fanfare, the boss's shard) is KatAM's mini-boss defeat, as the other bosses'.
+ * His sounds: Squeak Squad's (SqueakSfx). Not ported: his hit flash (enemy/dan_dmg's palettes: KatAM's), the screen's shakes in his
+ * fight, the wand's rest (0x021249E8: once back in a cell of the stage's kind 4, it hangs there and flies off), touching an
+ * invincible Kirby (KatAM's own), his boss music. */
 #include "../squeak.h"
 #include "kirby.h"
 #include "constants/kirby.h"
+
+void RequestScreenShake(u16, struct ObjectBase *);
 
 // Animations (dancho00.cea's, then dancho01.cea's from WAND: the sprite his body switches to);
 enum {
@@ -89,6 +102,17 @@ enum { COMPOSITE_CHARGE = WAND_COMPOSITES, COMPOSITE_DARK_CHARGE, COMPOSITE_BEAM
 #define BEAM_BACK 0x4CD
 #define BEAM_TIME 120
 #define SAFE_TIME 10            // 0x02126B8C's +0xEC;
+#define DEFEAT_BURST 120        // +0x7C: Dark Daroach's defeat, his wand thrown off;
+#define DEFEAT_END 600          // +0x90: and the stage moving on;
+// (0x02124B9C, 0x02124A7C: his wand's throw, 1.0 ahead and 4.0 up, its gravity (0x021833A0's -0.1, as a float times 4096), its bounce);
+#define WAND_AHEAD 0x1000
+#define WAND_UP 0x4000
+#define WAND_GRAVITY 0x199
+#define WAND_BOUNCE 0x4000
+/* (KatAM's screen shakes, RequestScreenShake: 1 its shortest, 14 frames; 3 its longest timed one, 24: the DS's (3, 5) at his defeat's
+ * start, (4, 15) at the burst); */
+#define SHAKE_DEFEAT 1
+#define SHAKE_BURST 3
 
 // a6s7s2 (from the camera view's middle across and the floor, pixels): his points and zones;
 #define P_OUT 80
@@ -103,9 +127,12 @@ enum { COMPOSITE_CHARGE = WAND_COMPOSITES, COMPOSITE_DARK_CHARGE, COMPOSITE_BEAM
 enum {
     DR_START, DR_INTRO, DR_IDLE, DR_DECIDE, DR_WARP, DR_WARP_OUT, DR_WARP_HIDDEN, DR_WARP_IN, DR_HOP, DR_HOP_GO, DR_BEAM, DR_BEAM_GO,
     DR_BEAM_RAISE, DR_BEAM_CHARGE, DR_BEAM_PAUSE, DR_BEAM_AIM, DR_BEAM_FIRE, DR_BEAM_END, DR_BOMB, DR_BOMB_WIND, DR_BOMB_THROWN,
-    DR_STARS, DR_STARS_WIND, DR_STARS_THROWN,
+    DR_STARS, DR_STARS_WIND, DR_STARS_THROWN, DR_DEFEAT,
 };
-enum { THING_STAR, THING_STAR_2, THING_STAR_3, THING_BOMB, THING_BEAM_NEAR, THING_BEAM_FAR };
+enum { THING_STAR, THING_STAR_2, THING_STAR_3, THING_BOMB, THING_BEAM_NEAR, THING_BEAM_FAR, THING_WAND };
+// (dancho00's: his beaten pose, his wand spinning);
+#define ANIM_DEFEAT 27
+#define ANIM_WAND 28
 
 #define TIMER(s) ((s)->vars[0])         // +0xB4;
 #define WARPS(s) ((s)->vars[1])         // +0xB8;
@@ -115,6 +142,10 @@ enum { THING_STAR, THING_STAR_2, THING_STAR_3, THING_BOMB, THING_BEAM_NEAR, THIN
 #define HARM(s) ((s)->vars[5])
 #define FLOOR(s) ((s)->vars[6])         // The floor where he was placed (a6s7s2's Kirby's);
 #define BEAM(s, i) ((s)->vars[8 + (i)]) // His beam's reach, its two halves;
+#define DEFEAT(s) ((s)->vars[10])       // His defeat under way (Dark Daroach's: DaroachWatch);
+#define KEPT_FLAGS(s) ((s)->vars[11])   // His flags as his last frame left them (KatAM's mini-boss defeat changes them: DaroachWatch);
+#define KEPT_C(s) ((s)->vars[12])
+#define KEPT_5C(s) ((s)->vars[13])
 
 /* dancho00.rca / dancho01.rca (KatAM's: x ahead, y down, pixels from his spot): where he's hit (his first box, animation 0's) and his
  * touch's box (kind 0) in one; */
@@ -334,6 +365,27 @@ static bool32 After(struct SqueakObject *s) {
     return Random(9) < 3 ? Warp(s, out[1], 1) : Warp(s, out[3], 3);
 }
 
+/* NormalColors(); Daroach's own colors (0x02075FF4's "enemy/dancho00": the dark one gone at his defeat's burst): Daroach's (SQUEAK_DAROACH_BOSS's)
+ * palette, his cells' and Dark Daroach's colors at the same indexes (KatAMExpansionSqueak.cs's PaletteFile); */
+static void NormalColors(struct SqueakObject *x) {
+    u16 key = gSqueakData.enemies[SQUEAK_DAROACH_BOSS].animId;
+
+    if (key != 0) x->obj.base.sprite.palId = SqueakLoadPalette(key, SQUEAK_HURT_VARIANTS, x->obj.base.roomId);
+}
+
+/* DefeatBurst(); 0x02124DCC at DEFEAT_BURST: efc_cmn0's 10 at him (0x02039B28), his wand thrown off (0x02124D18: SPAWN_AHEAD ahead and
+ * SPAWN_UP up), the bigger shake and his own colors back; */
+static void DefeatBurst(struct SqueakObject *s) {
+    struct SqueakObject *wand;
+    s32 x = s->obj.base.x + (FacesLeft(s) ? -(SPAWN_AHEAD << 8) : SPAWN_AHEAD << 8);
+
+    SqueakSpawnEffect(s, SQUEAK_FX_DAROACH_BURST, 0, 0, FALSE);
+    wand = Thing(s, THING_WAND, x, s->obj.base.y - (SPAWN_UP << 8));
+    if (wand) NormalColors(wand);
+    RequestScreenShake(SHAKE_BURST, &s->obj.base);
+    NormalColors(s);
+}
+
 static bool32 DaroachBoss(struct SqueakObject *s) {
     struct Kirby *kirby = s->obj.kirby3;
     s32 x, y, t, out[4];
@@ -540,6 +592,10 @@ static bool32 DaroachBoss(struct SqueakObject *s) {
         }
         SqueakMove(s);
         break;
+    case DR_DEFEAT:         // 0x02124DCC: his beaten pose (DefeatStart); the burst; then gone, the room's way on taking the Kirbys on;
+        if (s->stateTimer == DEFEAT_BURST) DefeatBurst(s);
+        if (s->stateTimer >= DEFEAT_END) s->obj.base.flags |= 0x1000;
+        break;
     case DR_STARS_THROWN:   // 0x02125C08;
         if (!s->animEnded) {
             SqueakMove(s);
@@ -602,10 +658,55 @@ static void Boxes(struct SqueakObject *s) {
     SqueakUntouchable(s, Untouchable(s));
 }
 
+/* DefeatStart(); 0x02124EFC, Dark Daroach's HP out: still where he is (his speeds none), his composite and wand's sprite gone (+0xE4),
+ * the shake, dancho00's 27; then his defeat (0x02124DCC); */
+static void DefeatStart(struct SqueakObject *s) {
+    DEFEAT(s) = TRUE;
+    SqueakStop(s);
+    s->ay = 0;
+    if (s->loopSound) SqueakStopSfx(s, s->loopSound);
+    SqueakPlay(s, ANIM_DEFEAT);
+    RequestScreenShake(SHAKE_DEFEAT, &s->obj.base);
+    SqueakSetState(s, DR_DEFEAT);
+}
+
+/* DefeatFrame(); His frame in his defeat: his states', drawn, no box (none hit, no harm), no HP bar taken back (it shows none left); */
+static void DefeatFrame(struct SqueakObject *s) {
+    struct ObjectBase *base = &s->obj.base;
+
+    SqueakRun(s, DaroachBoss);
+    SqueakFinishFrame(s);
+    SqueakAnimate(s);
+    base->flags |= 0x200;
+    base->unk68 = 0;
+}
+
+/* DaroachWatch(); KatAM's object's own before its Main (unk7C, every frame, after its hits), Dark Daroach's: his HP out, KatAM's
+ * mini-boss defeat (sub_0809AF38's sub_0809D060: unk78 its falling body's, his flags, unkC and unk5C changed, his HP 0) put back as
+ * his last frame left them (KEPT_*), his HP kept at 0 (KatAM's HP bar empty), and his own defeat instead (DefeatStart), as Dark
+ * Nebula's (squeak/dark_nebula.c's DarkNebulaWatch); */
+static void DaroachBossMain(struct Object *obj);
+static void DaroachWatch(struct Object *obj) {
+    struct SqueakObject *s = (struct SqueakObject *)obj;
+
+    if (DEFEAT(s) || obj->unk80 > 0 || (obj->base.flags & 0x1000)) return;
+    obj->unk78 = DaroachBossMain;
+    obj->base.flags = KEPT_FLAGS(s);
+    obj->base.unkC = KEPT_C(s);
+    obj->base.unk5C = KEPT_5C(s);
+    obj->base.xspeed = obj->base.yspeed = 0;
+    obj->unk80 = 0;
+    DefeatStart(s);
+}
+
 static void DaroachBossMain(struct Object *obj) {
     struct SqueakObject *s = (struct SqueakObject *)obj;
 
     obj->kirby3 = FindTargetKirby(&obj->base);
+    if (DEFEAT(s)) {
+        DefeatFrame(s);
+        return;
+    }
     SqueakMidbossUpdate(s);
     Hit(s);
     SqueakRun(s, DaroachBoss);
@@ -615,19 +716,27 @@ static void DaroachBossMain(struct Object *obj) {
     SqueakFinishFrame(s);
     SqueakAnimate(s);
     Boxes(s);
+    KEPT_FLAGS(s) = obj->base.flags;
+    KEPT_C(s) = obj->base.unkC;
+    KEPT_5C(s) = obj->base.unk5C;
 }
 
 /* DaroachBossStart(); His fight's start (and after a hit: it goes on, as KatAM's mini-bosses do), on the floor's terrain (Squeak
- * Squad's flags without 0x200); */
+ * Squad's flags without 0x200); Dark Daroach's defeat his own (DaroachWatch); */
 void DaroachBossStart(struct Object *obj) {
     struct SqueakObject *s = (struct SqueakObject *)obj;
 
     ObjectSetFunc(obj, -1, DaroachBossMain);
+    if (Dark(s)) obj->unk7C = DaroachWatch;
     SqueakThroughTerrain(s, FALSE);
     if (s->started) return;
     LAST_HP(s) = obj->unk80;
     SAFE(s) = 0;
     BEAM(s, 0) = BEAM(s, 1) = 0;
+    DEFEAT(s) = FALSE;
+    KEPT_FLAGS(s) = obj->base.flags;
+    KEPT_C(s) = obj->base.unkC;
+    KEPT_5C(s) = obj->base.unk5C;
     SqueakSetState(s, DR_START);
 }
 
@@ -779,6 +888,26 @@ static bool32 DaroachThing(struct SqueakObject *t) {
         }
         if (Beaten(t) && !(t->obj.base.flags & 0x1000)) Burst(t);
         break;
+    case THING_WAND:                    // 0x02124B9C, 0x02124A7C: Dark Daroach's wand, thrown off at his defeat, bouncing;
+        if (t->state == 0) {
+            SqueakPlay(t, ANIM_WAND);
+            t->vx = WAND_AHEAD;
+            t->vy = WAND_UP;
+            t->ay = -WAND_GRAVITY;
+            SqueakSetState(t, 1);
+        }
+        if (SqueakWallAhead(t)) {
+            SqueakSfx(t, 0x7D);
+            SqueakTurnAround(t);
+        }
+        if (t->vy < 1 && SqueakOnGround(t)) {
+            SqueakSfx(t, 0x7D);
+            t->vy = WAND_BOUNCE;
+        }
+        SqueakMove(t);
+        // (gone with him: the room moved on);
+        if (b == NULL || b->obj.base.header.kind != 1 || (b->obj.base.flags & 0x1000)) t->obj.base.flags |= 0x1000;
+        break;
     default:                            // His beam's reach: on him, its half ahead of him;
         if (Beaten(t) || b->state != DR_BEAM_FIRE) {
             t->obj.base.flags |= 0x1000;
@@ -829,7 +958,7 @@ static void DaroachThingMain(struct Object *obj) {
     obj->kirby3 = FindTargetKirby(&obj->base);
     SqueakRun(t, DaroachThing);
     SqueakFinishFrame(t);
-    if (t->variant < THING_BEAM_NEAR) SqueakAnimate(t);
+    if (t->variant < THING_BEAM_NEAR || t->variant == THING_WAND) SqueakAnimate(t);
     ThingBoxes(t);
 }
 
@@ -861,6 +990,14 @@ void DaroachBossThingInit(struct SqueakObject *t) {
         break;
     case THING_BOMB:
         ObjectSetBounds(base, -5, -12, 5, 0);
+        break;
+    case THING_WAND:
+        // (his wand: no harm, nothing hits it, not inhaled; on the floor's terrain, bouncing);
+        ObjectSetBounds(base, -8, -8, 8, 8);
+        base->unk5C = (base->unk5C & ~7) | 6 | 0x20 | 0x80;
+        base->flags |= 0x200;
+        base->unk68 = 0;
+        T_HARM(t) = 0;
         break;
     default:
         ObjectSetBounds(base, -7, -6, 7, 6);

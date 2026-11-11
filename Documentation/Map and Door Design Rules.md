@@ -181,9 +181,13 @@ after any change.
   - a goal room keeps the DS's own doors (they're drawn in its tiles) but gets no new one (the owner to confirm);
   - each world's boss stage (1-7, 2-7, 3-7, 4-7, 5-6, 6-7, 7-7; 5-7, a copy of 5-6, is left out as the Arena's copies are)
     is entered only through the deepest stage's goal; Squeak Squad's final stage (8-4) is not world 8's boss stage but the
-    finale's (rule 8): its rooms the DS reaches by cutscenes between its fights are chained by one-way mirrors from each fight's
-    room to the next (where no warp star ride of the DS's leads on); its last two rooms, copies of Dark Nebula's room and the one
-    before it, are left out, so he's fought once; world 8's deepest goal ends its path into a goal game, as other path ends do;
+    finale's (rule 8): its rooms the DS reaches by cutscenes between its fights go on **by themselves**, with no mirror or door
+    (the owner: "Why is there a door in daroach's first phase fight [...] the warp should send me to the next phase automatically"):
+    Dark Daroach's room once his defeat has played out, into the dark star's chase, and the room the ride after the chase lands in,
+    straight into Dark Nebula's fight, as the DS switches its stage (`SqueakPhaseWarps`, squeak/gimmicks.c's `PhaseWarp`); a warp
+    star ride of the DS's still leads on where it does; the retry room before Dark Nebula's (with its tomato) and the last two rooms,
+    copies of his room and the one before it, are on no way (so he's fought once); world 8's deepest goal ends its path into a goal
+    game, as other path ends do;
   - the hidden two-way door between worlds leads into the next world's first stage;
   - **Squeak Lairs** (the owner: "Entrance 1 -> Squeak Lair with Miniboss -> Entrance 2 as an interlude between zones in the
     Squeak Squad map"): each Squeak that steals a stage's treasure on the DS (Spinni, Doc or Storo, its thief) has its hideout
@@ -268,8 +272,8 @@ after any change.
   Squeak Squad's final stage -> Dark Nebula -> new Dark Nebula hub -> its mirror -> (always available) KatAM's final boss. Without
   NiDL, the copy is made from Squeak Squad tiles."): one hub after each finale, an interlude before the next fight. With both
   ROMs, Nightmare's ending (Kirby going down from the moon) lands Kirby in the Fountain of Dreams hub (below), whose Amazing Mirror
-  leads to the start of Squeak Squad's final stage (8-4); its fights follow as on the DS (Dark Daroach, the rooms between chained by
-  its warp stars and one-way mirrors, then Dark Nebula, who leaves no shard), and Dark Nebula beaten, every Kirby dances out (NiDL's
+  leads to the start of Squeak Squad's final stage (8-4); its fights follow as on the DS (Dark Daroach, the rooms between going on
+  by themselves and by its warp stars, then Dark Nebula, who leaves no shard), and Dark Nebula beaten, every Kirby dances out (NiDL's
   shard exit, `SQUEAK_FINALE_SHARD`) into the Dark Nebula hub: a copy of the Fountain of Dreams hub (its look, no other door in or
   out, no big switch, its Amazing Mirror high up in the middle, the Master Sword's stand under it, a Maximum Tomato on the floor's
   right, a Cutter and a Sword statue on its sides; no map's chest, the Fountain of Dreams' stays in its own hub), whose Amazing
