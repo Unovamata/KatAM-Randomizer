@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Net;
@@ -8,22 +9,30 @@ using System.Threading;
 namespace KatAMMapTracker {
     /* TrackerServer; Receives the room reports sent by the emulator script (Lua/katam_tracker.lua);
      * The script connects to 127.0.0.1 on the given port, sends "HELLO <script version>", then one line per room change: "ROOM <hex id>",
-     * and the area maps of the loaded save whenever they change: "MAPS <hex bits>" (bit n: the map of area n).
+     * and the area maps of the loaded save whenever they change: "MAPS <hex bits>" (bit n: the map of area n), and where every Kirby
+     * is (the player's and the three CPU Kirbys', a few times a second while one moves): "KIRBYS <hex room> <x> <y> ..." (one
+     * triple per Kirby in the game's order: pink, yellow, red, green; x, y in pixels from the room's top left).
      * Old copies of the script don't send HELLO; Their first room is reported as script version 0;
      * Debug: the tracker sends the script "WARP <hex room> <x> <y>" (Send()), and the script moves Kirby there (x, y: the spawn tile, as a
      * door's landing; -1 -1: the room's own default spawn);
      * Events are raised on a background thread; */
+    // KirbySpot; Where a Kirby is: the room the game reports, and his spot in it (pixels from its top left);
+    public readonly record struct KirbySpot(int Room, int X, int Y);
+
     public sealed class TrackerServer : IDisposable {
         public const int DefaultPort = 8765;
 
         // Version of Lua/katam_tracker.lua that goes with this tracker (SCRIPT_VERSION in the script);
-        public const int ScriptVersion = 4;
+        public const int ScriptVersion = 5;
 
         // Raised once per connection with the version of the connected script (0: an old script without HELLO);
         public event Action<int> ScriptVersionReported;
 
         // Raised with the area maps of the loaded save (bit n: the map of area n);
         public event Action<int> MapsReported;
+
+        // Raised with every Kirby's room and spot (KirbySpot), in the game's order;
+        public event Action<IReadOnlyList<KirbySpot>> KirbysReported;
 
         // Raised for every valid line. sessionStart is true for the first report of a connection;
         public event Action<int, bool> RoomReported;
@@ -77,6 +86,11 @@ namespace KatAMMapTracker {
                             continue;
                         }
 
+                        if (TryParseKirbys(line, out List<KirbySpot> kirbys)) {
+                            KirbysReported?.Invoke(kirbys);
+                            continue;
+                        }
+
                         if (!TryParseRoom(line, out int room)) continue;
 
                         if (!versionKnown) {
@@ -127,6 +141,20 @@ namespace KatAMMapTracker {
             string[] parts = line.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
 
             return parts.Length == 2 && parts[0] == "MAPS" && int.TryParse(parts[1], NumberStyles.HexNumber, CultureInfo.InvariantCulture, out maps);
+        }
+
+        public static bool TryParseKirbys(string line, out List<KirbySpot> kirbys) {
+            kirbys = new List<KirbySpot>();
+            string[] parts = line.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+            if (parts.Length == 0 || parts[0] != "KIRBYS" || (parts.Length - 1) % 3 != 0) return false;
+            for (int i = 1; i + 2 < parts.Length; i += 3) {
+                if (!int.TryParse(parts[i], NumberStyles.HexNumber, CultureInfo.InvariantCulture, out int room) ||
+                    !int.TryParse(parts[i + 1], NumberStyles.Integer, CultureInfo.InvariantCulture, out int x) ||
+                    !int.TryParse(parts[i + 2], NumberStyles.Integer, CultureInfo.InvariantCulture, out int y)) return false;
+                kirbys.Add(new KirbySpot(room, x, y));
+            }
+            return true;
         }
 
         public static bool TryParseHello(string line, out int version) {

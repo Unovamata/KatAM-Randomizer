@@ -1216,3 +1216,17 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
   `SqueakHubLooks` (name, view, hue, saturation, how much, brightness), `SqueakHubLook` the one in.
   - Europe and Japan: look A seen in the hub in the emulator. Not tested: the hub's world doors opened (their own palettes,
     untouched) with each look.
+
+## 12. Map Tracker: every Kirby on the map
+- The owner: "Can you make it so the map tracks the position of all Kirby's and draws arrows based on what position they are in
+  the map? If this is even possible even." Done: the emulator script (version 5) reports every Kirby a few times a second while
+  one moves (`KIRBYS <room> <x> <y> ...`: `gKirbys` at `0x02020EE0`, `0x1A8` bytes each, `gNumKirbys` at `0x0203AD44`, the same in
+  every version), and the tracker draws each one (you and the three CPU Kirbys) as an arrow in the game's colors (pink, yellow,
+  red, green) pointing at his spot inside his room's square (where he stands in the room, scaled to the square); one out of the
+  window is an arrow on its edge pointing his way; arrows at one spot sit side by side. `View > Show All Kirbys` (on by default)
+  turns them off. Kirbys in rooms the map doesn't show yet get none, so they don't give away undiscovered rooms (Reveal Entire
+  Map shows every room). `KatAM Map Tracker`: `Lua/katam_tracker.lua`, `TrackerServer.cs`, `MapView.cs`, `TrackerForm.cs`.
+  - Checked: the addresses in the GBA emulator (USA, Europe, Japan: four Kirbys, each with his own room and spot, the CPU ones
+    moving on their own); the script run in the emulator against the tracker's own server code (a console harness): it connects,
+    sends version 5, and the four Kirbys' rooms and spots arrive and change as Kirby walks. The tracker builds (against Windows
+    Forms' reference assemblies). Not tested: the window itself (it needs Windows), so the arrows haven't been seen on screen yet.

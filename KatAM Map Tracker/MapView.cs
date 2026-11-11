@@ -18,7 +18,10 @@ namespace KatAMMapTracker {
      * • The camera eases its pans and zooms. Following Kirby keeps it on the room he's in.
      * • Reveal All (spoiler) shows the whole map, with what wasn't discovered yet faded.
      * • Hovering a room shows its preview, with its background, and its mirrors (green: used, yellow: not yet).
-     * • Mouse wheel zooms around the cursor, dragging pans, double clicking a room centers it; */
+     * • Mouse wheel zooms around the cursor, dragging pans, double clicking a room centers it;
+     * • Every Kirby (the player's and the three CPU Kirbys', in their colors) is an arrow pointing at his spot in his room's square
+     *   (where he is in the room, scaled to the square), in rooms the map shows; one out of the window is an arrow on its edge
+     *   pointing his way (SetKirbys()); */
     public sealed class MapView : Control {
         const double MinZoom = 0.25, MaxZoom = 8, ZoomStep = 1.2;
         const int AreaRadius = 56, AreaCell = 2, PreviewMaxWidth = 420, PreviewMaxHeight = 280;
@@ -85,6 +88,21 @@ namespace KatAMMapTracker {
         DateTime lastPulse = DateTime.Now;
 
         public bool Follow { get; set; } = true;
+
+        /* The Kirbys (SetKirbys()): his number (0 the player's, then the CPU Kirbys), his room on the map and his spot in it (pixels);
+         * their arrows: KirbyColors (the game's: pink, yellow, red, green), ArrowSize screen pixels long, an edge arrow EdgeMargin
+         * inside the window; arrows at the same spot are set side by side; */
+        public readonly record struct KirbyMarker(int Player, int Room, int X, int Y);
+        static readonly Color[] KirbyColors = { Color.FromArgb(255, 136, 184), Color.FromArgb(255, 216, 40), Color.FromArgb(232, 48, 56), Color.FromArgb(56, 192, 72) };
+        const float ArrowSize = 16, EdgeMargin = 6;
+        List<KirbyMarker> kirbys = new List<KirbyMarker>();
+        bool showKirbys = true;
+
+        // The Kirbys' arrows are drawn (on by default);
+        public bool ShowKirbys {
+            get => showKirbys;
+            set { showKirbys = value; Invalidate(); }
+        }
 
         bool dynamicScaling = true;
 
@@ -460,9 +478,72 @@ namespace KatAMMapTracker {
             cull = null;
             g.Restore(state);
 
+            DrawKirbys(g);
+
             if (hoveredRoom >= 0 && !isDragging) DrawPreview(g, hoveredRoom);
 
             DrawHint(g);
+        }
+
+        // SetKirbys(); Where the Kirbys are now: only their old and new arrows are redrawn;
+        public void SetKirbys(IEnumerable<KirbyMarker> markers) {
+            List<KirbyMarker> next = markers?.ToList() ?? new List<KirbyMarker>();
+            if (next.SequenceEqual(kirbys)) return;
+            foreach (Rectangle area in KirbyArrows().Select(arrow => arrow.area)) Invalidate(area);
+            kirbys = next;
+            foreach (Rectangle area in KirbyArrows().Select(arrow => arrow.area)) Invalidate(area);
+        }
+
+        /* KirbyArrows(); Each Kirby's arrow (screen pixels): its tip, the way it points (radians, 0 right, PI/2 down), the area it
+         * covers, his color; down onto his spot (the room's square scaled from the room: his place in it), or on the window's edge
+         * pointing toward it when it's outside. None for a Kirby in a room the map doesn't show (not discovered); */
+        List<(PointF tip, float angle, Rectangle area, Color color)> KirbyArrows() {
+            List<(PointF, float, Rectangle, Color)> arrows = new List<(PointF, float, Rectangle, Color)>();
+            if (!showKirbys || map == null || layout == null || progress == null) return arrows;
+            Scene scene = ViewScene;
+            List<PointF> tips = new List<PointF>();
+            // (the player's last, over the others);
+            foreach (KirbyMarker kirby in kirbys.OrderByDescending(k => k.Player)) {
+                if (!layout.TryGetValue(kirby.Room, out RoomPlacement placement) || !map.Rooms.TryGetValue(kirby.Room, out RoomInfo info) || !IsShown(scene, kirby.Room)) continue;
+                RectangleF square = RoomBounds(placement, scene.RoomGrowth);
+                float fx = Math.Clamp(kirby.X / Math.Max(1f, info.Width * 8f), 0, 1), fy = Math.Clamp(kirby.Y / Math.Max(1f, info.Height * 8f), 0, 1);
+                PointF spot = ToScreen(square.X + fx * square.Width, square.Y + fy * square.Height);
+                // (side by side with an arrow already at that spot);
+                while (tips.Any(t => Math.Abs(t.X - spot.X) < ArrowSize / 2 && Math.Abs(t.Y - spot.Y) < ArrowSize / 2)) spot.X += ArrowSize * 0.6f;
+                tips.Add(spot);
+                RectangleF inside = new RectangleF(EdgeMargin, EdgeMargin, Math.Max(1, Width - 2 * EdgeMargin), Math.Max(1, Height - 2 * EdgeMargin));
+                PointF tip = spot;
+                float angle = (float)(Math.PI / 2);
+                if (!inside.Contains(spot)) {
+                    tip = new PointF(Math.Clamp(spot.X, inside.Left, inside.Right), Math.Clamp(spot.Y, inside.Top, inside.Bottom));
+                    angle = (float)Math.Atan2(spot.Y - Height / 2.0, spot.X - Width / 2.0);
+                }
+                int reach = (int)Math.Ceiling(ArrowSize) + 3;
+                arrows.Add((tip, angle, new Rectangle((int)tip.X - reach, (int)tip.Y - reach, 2 * reach, 2 * reach), KirbyColors[kirby.Player % KirbyColors.Length]));
+            }
+            return arrows;
+        }
+
+        // DrawKirbys(); The Kirbys' arrows (KirbyArrows()): a head and a short tail, his color, outlined, pixel sharp;
+        void DrawKirbys(Graphics g) {
+            List<(PointF tip, float angle, Rectangle area, Color color)> arrows = KirbyArrows();
+            if (arrows.Count == 0) return;
+            GraphicsState state = g.Save();
+            g.SmoothingMode = SmoothingMode.None;
+            g.PixelOffsetMode = PixelOffsetMode.Half;
+            // (pointing right from the tip at 0, 0, turned to its angle);
+            PointF[] shape = { new PointF(0, 0), new PointF(-ArrowSize * 0.55f, -ArrowSize * 0.45f), new PointF(-ArrowSize * 0.55f, -ArrowSize * 0.18f),
+                               new PointF(-ArrowSize, -ArrowSize * 0.18f), new PointF(-ArrowSize, ArrowSize * 0.18f), new PointF(-ArrowSize * 0.55f, ArrowSize * 0.18f),
+                               new PointF(-ArrowSize * 0.55f, ArrowSize * 0.45f) };
+            using Pen outline = new Pen(Color.FromArgb(24, 16, 32), 2) { LineJoin = LineJoin.Miter };
+            foreach (var (tip, angle, _, color) in arrows) {
+                float cos = (float)Math.Cos(angle), sin = (float)Math.Sin(angle);
+                PointF[] points = shape.Select(p => new PointF((float)Math.Round(tip.X + p.X * cos - p.Y * sin), (float)Math.Round(tip.Y + p.X * sin + p.Y * cos))).ToArray();
+                using SolidBrush fill = new SolidBrush(color);
+                g.DrawPolygon(outline, points);
+                g.FillPolygon(fill, points);
+            }
+            g.Restore(state);
         }
 
         /* DrawScene(); Draws the regions, lines and rooms of a scene in map pixels, as pixel art; */
