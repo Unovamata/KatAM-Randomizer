@@ -354,6 +354,16 @@ namespace KatAMRandomizer {
             };
         }
 
+        /* SqueakLowParts(); The character's compositions without their parts placed `high` pixels or more over its spot (SqueakEnemy's
+         * HighParts: the first left the character's own sprite's part); */
+        static SqueakCharacter SqueakLowParts(SqueakCharacter character, int high) {
+            return new SqueakCharacter {
+                Tiles = character.Tiles, Palettes = character.Palettes, Cells = character.Cells, Anims = character.Anims,
+                Compositions = character.Compositions.Select(c => c.Where(part => part.Y > -high).ToList()).ToList(),
+                Composites = character.Composites, Angles = character.Angles,
+            };
+        }
+
         // SqueakShiftCells(); The character's cells drawn `y` pixels lower (its pieces' y, attr0's low byte);
         static SqueakCharacter SqueakShiftCells(SqueakCharacter character, int y) {
             return new SqueakCharacter {
@@ -667,7 +677,9 @@ namespace KatAMRandomizer {
          * anim of their own (a character in several palettes: its .cla's palette n the damage file's n; squeak.c's SqueakDamageColors);
          * MergeParts: its composite animations' parts that play in step drawn by one sprite (SqueakMergeParts()); FitVram: its sprite's
          * VRAM as many tiles as the frame it shows takes, more got as a bigger one shows (squeak.c's SqueakFitVram: a thing drawn with a
-         * boss's graphics took his biggest frame's, Daroach's stars 103 tiles for 16, KatAM's VRAM full with three); */
+         * boss's graphics took his biggest frame's, Daroach's stars 103 tiles for 16, KatAM's VRAM full with three); HighParts: its
+         * composites' parts placed this many pixels or more over its spot left out (SqueakLowParts(): their frames drawn up from their
+         * place, at most 128 high, wholly over KatAM's view, 16 pixels shorter than the DS's: Dark Nebula's fire wall's top row); */
         internal sealed record SqueakEnemy(int Index, string Name, string File, int[] HurtCells, (int type, int letter)[] Glyphs, int GraphicsOf = -1,
                                             byte MidbossType = 0, int[] OnlyAnims = null, string[] Palettes = null,
                                             (ushort from, ushort to)[] MergeColors = null, string ExtraFile = null,
@@ -675,7 +687,7 @@ namespace KatAMRandomizer {
                                             bool SharePalettes = false, string PaletteFile = null, bool WholeCells = false,
                                             (int Num, int Den) Scale = default, int ShiftY = 0, int Rotate = 0, int Roll = -1,
                                             bool FlattenComposites = false, int[] OnlyPalettes = null, int[] MapIcon = null,
-                                            string DamagePalette = null, bool MergeParts = false, bool FitVram = false);
+                                            string DamagePalette = null, bool MergeParts = false, bool FitVram = false, int HighParts = 0);
         /* AnimPalettes: a character whose cells are in Squeak Squad's different palettes (Doc's things), per animation the palette its
          * sprite takes (SqueakPaletteKey); */
         internal sealed record SqueakBuilt(SqueakEnemy Enemy, int AnimId, SqueakCharacter Character, int Tiles, List<SqueakLayerBuilt> Layers = null,
@@ -1061,10 +1073,10 @@ namespace KatAMRandomizer {
             new SqueakEnemy(62, "Dark Nebula's star", "darkZERO_cmn", new[] { 0, 0, 0 }, new (int, int)[0], OnlyAnims: new[] { 9, 11 }),
             new SqueakEnemy(63, "Dark Nebula's fireball", "darkZERO_cmn", new[] { 0, 0, 0 }, new (int, int)[0], OnlyAnims: new[] { 10 }),
             new SqueakEnemy(64, "Dark Nebula's fire", "darkZERO_cmn", new[] { 0, 0, 0 }, new (int, int)[0], Canvas: 256, KeepComposites: true,
-                            OnlyAnims: new[] { 12, 19, 13, 14, 15, 16, 17, 18 }),
+                            OnlyAnims: new[] { 12, 19, 13, 14, 15, 16, 17, 18 }, FitVram: true, HighParts: 128),
             new SqueakEnemy(65, "Dark Nebula's ice", "darkZERO_cmn", new[] { 0, 0, 0 }, new (int, int)[0], Canvas: 256, OnlyAnims: new[] { 20 }),
             new SqueakEnemy(66, "Dark Nebula's bolt", "darkZERO_ext", new[] { 0, 0, 0 }, new (int, int)[0], KeepComposites: true,
-                            OnlyAnims: new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12 }),
+                            OnlyAnims: new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12 }, MergeParts: true),
             /* The floor his flames set burning (the stage's fire tile, 0x02216BD8: a 16x16 picture of the stages' own tiles, the same in
              * every stage's map/*_f.bin, its palette 3 there: 0x70); */
             new SqueakEnemy(67, "Burning floor", "raw:map/25_f.bin@5490,70,16,16", new[] { 0, 0, 0 }, new (int, int)[0]),

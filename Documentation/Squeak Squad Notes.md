@@ -1320,6 +1320,29 @@ after, 5 of them the room loading; Daroach's 0x56B: 11). What it was and what ch
   KatAM mixed up to ten voices (about a fifth of a frame). The converter caps that sound's release at 0x60 (`SqueakSoundReleaseCaps`):
   the same notes, pans and bends, each ringing about 4 frames. The DS's own players set no channel limit for it (their masks are 0).
 
+Dark Nebula's fight (the owner: "massive lag when summoning stars. You can use the game's existing stars", "fire attack looks very
+off and it's very laggy"; measured the same way in his room 0x5E0, his RNG seeded so one run goes through his spark, ice and fire
+forms, 3000 frames):
+- **His stars** are KatAM's own: Dark Mind's shots (objects 0xCB-0xCE, fire, ice, spark, mixed, a kind at random), moved by KatAM,
+  inhaled as a star to spit back (no ability), a puff on a Kirby (`dark_nebula.c`'s `Shoot()`, `StarMain()`).
+- **Palettes.** KatAM keeps 7 enemy palettes a room (OBJ slots 8-14, `gUnk_02022E60`) and loads past them into the last, over the
+  palette there (`sub_0803DFAC`). His fight wanted 8 (his black star's, his three forms', his fire and ice attacks' (cmn's palette
+  4), his sparks', the burning floor's, the Dark Mind stars'): his fire wall drew in the burning floor's colors, an olive block with a
+  blue edge. His forms now share one slot (`PlayForm()`, `squeak.c`'s `SqueakTakePalette`): one form shows at a time.
+- **His fire wall** (cmn's `.mca` 0) has six parts: three 128 pixels over the floor and three 128 more over those. The top row is
+  over KatAM's view (the DS's is 16 pixels taller; his room's camera doesn't move) and took 148 tiles of VRAM, so the bottom right part
+  found none: it's left out (`KatAMExpansionSqueak.cs`'s `HighParts`), and the burst takes the frame it shows (`FitVram`).
+- **The burning floor** was a thing a 16-pixel tile (up to 16 with his fire wall up: a lag every other frame for about 100 frames).
+  Each flame now has one trail (`Ignite()`, `Burn()`): hidden, drawing each burning tile with the trail's sprite (KatAM's
+  `DisplaySprite` for each, as `sub_0809A7A4` draws an object), one box across its tiles; the same 47 frames a tile.
+- **His spark cage** (ext's `.mca` 0: 14 parts in step, a lag every third frame for about 60 frames) is drawn by a few merged sprites
+  (`MergeParts`, as Daroach's beam).
+- **Spawning.** KatAM's `ObjectInitSprite` asks for the Squeak type's 123 tiles for every Squeak object made, which the character's
+  own size replaces at once (`SqueakCreate`); with the heap without 123 in one piece that failed search took a sixth of a frame a
+  spawn. A Squeak object's sprite is now made as for one in another room (no VRAM asked for), then given its own.
+- Measured: 3000 frames, 119 overloaded with the palette and fire wall fixes in, 36 after the rest (the room's loading 1, the cage
+  9 where it was about 40, the fire attack 8 where it was about 50, a few as Kirby is hit).
+
 **Meta Knight** (boss 0x37, ported: `squeak/meta_knight_kss.c`): his body `0x02116C7C` (vtable `0x02181E80`: +0x3C his idle
 `0x02116300`, +0x34 per frame `0x02116ED4`, +0x30 his hit `0x021166BC`, +0x2C his touch `0x02116ACC`, +0x24 a spat star on him
 `0x021164F4`, +0x18 his flash and intro `0x02113018`; params `PrmBB01Ml0` (moves), `PrmBB01Sl0` (400 HP)). +0x228 his mode (1 a walk

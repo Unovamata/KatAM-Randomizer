@@ -501,6 +501,7 @@ void SqueakNoSprite(struct SqueakObject *s);
 void SqueakUsePalette(struct SqueakObject *, u8 alternate);
 void SqueakDamageColors(struct SqueakObject *, bool32 on);
 u8 SqueakLoadPalette(u16 key, u8 variant, u16 roomId);
+u8 SqueakTakePalette(u16 key, u8 variant, u16 take, u16 roomId);
 void SqueakPlay(struct SqueakObject *, u8 anim);
 void SqueakPlayComposite(struct SqueakObject *, u8 composite);
 void SqueakAnimate(struct SqueakObject *);

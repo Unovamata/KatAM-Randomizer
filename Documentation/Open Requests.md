@@ -21,9 +21,8 @@ finishes it says how it was checked). The design rules for doors, mirrors and hu
   loaded, NiDL's Light ability (from Cool Spook) lights the Squeak Squad dark rooms' parts the candles light, as Fire does on the DS.
 
 ## 3. Dark Nebula
-- "massive lag when summoning stars. You can use the game's existing stars"
-- "fire attack looks very off and it's very laggy"
-- "When using its ice attack, it doesn't add the ice platforms at the bottom."
+- "When using its ice attack, it doesn't add the ice platforms at the bottom." (On the DS his pillar turns the floor's top row into
+  ice blocks as it passes, the stage's own ice blocks; they stay through his other forms till his fire's flames melt them.)
 - "Dark Nebula's sprite looks off."
 
 ## 4. Polish the Squeak Squad hubs
