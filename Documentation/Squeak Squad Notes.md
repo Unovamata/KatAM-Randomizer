@@ -758,11 +758,23 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
     **The rope floors** (gimmick 3, ctor `0x022219C4`, vtable `0x022293F8`, looks at `0x02227BF4`): a 48-pixel plank (the
     platform's box) hanging from a rope; its first byte's low nibble its look, bits 4-6 1 when it falls once a body stands on it
     (6-2-1's), else on its rope's message; it shakes, falls and breaks. 16 in the ported rooms.
+    Cut, the DS's rope goes too: the stage's `0x022164C0` (the stage object's vtable `+0xA0`) walks the cells up from the cut, then
+    down, while the blocks grid's id is a rope's (its `0xC0` bits `0x40`), each a short fade (`0x022124F8`: tiles 0x10-0x14, two
+    frames each) and then cleared (`0x02215830`), one further out each frame. The rope is drawn on the front layer (blocks
+    0x260-0x262 over the blocks grid's 0x38 0x40-0x42 cells: 3-3-6, 3-3-7, 4-4-1's chains 0x280-0x282).
     In KatAM (`squeak/gimmicks.c`): a rope is an object hidden (object 0x92, SqueakCreateRope; template unk14-unk19 its 6 bytes),
-    its box over the rope (2-14 pixels across its cell, its length down), taking any attack as the grass tufts do (Struck()); cut
-    once, it plays the Cutter's sound and messages its targets (kind 1). A rope floor is a moving platform with no legs whose end is
+    its box over the rope (2-14 pixels across its cell, its length down), taking attacks as the grass tufts do (Struck()) but only
+    a cutting one, as the DS's flag 8: a Kirby's with Cutter, Sword or Master (not his inhale or a plain hit, which dropped the
+    plank before; the owner: "if I hit the string with a cutting ability, it stays there"); cut once, it plays the Cutter's sound,
+    messages its targets (kind 1), and its cells go from the cut's row out, a cell each way every 2 frames (each one's block
+    record, `SqueakRopeCells()`: the cell drawn without its front layer, air), so the rope's look goes and it can't be climbed. Not
+    inhaled (unk5C 0x20). A rope floor is a moving platform with no legs whose end is
     the break (its word: the look, start 2 for a rider's weight or 3 for a message, end 1), so it carries Kirby, then shakes,
-    falls and breaks with the block-break sound on the first solid cell under it (or 160 frames on). Checked in the GBA emulator
+    falls and breaks with the block-break sound on the first solid cell under it (or 160 frames on). The platforms and clouds
+    hold every body, as the DS's floors do (the owner: "Entities go through the movable platforms, which doesn't happen in Squeak
+    Squad"): KatAM's own objects ride them as Kirby does (PlatformCarryObjects(): those on the terrain, coming down onto the top
+    or on it last frame), and Squeak Squad's bodies, which move themselves, land on them in their own move (squeak.c's SqueakMove(),
+    SqueakPlatformLanding()); they aren't inhaled (unk5C 0x20: the owner swallowed one). Checked in the GBA emulator
     (USA, Europe and Japan, 3-3-7, Kirby with Sword put over its two planks): his Sword cuts the left rope, its plank shakes, falls
     and breaks on the floor under it, the right plank stays with him on it; (USA, 6-2-1) standing on its floor drops it onto the
     spikes, where it breaks. Not checked: 8-1-8's rope starting its rock relay, 3-3-6's.
@@ -898,8 +910,11 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
     0xF0, its special block record leaving air, or water in water). "ROM Expansion/rooms.c" holds rooms of up to 4032 blocks
     (Cushy Cloud 1's first room, 96 x 42; `BIG_BLOCKS`): slot 0 in KatAM's arrays, the other slots' collision and zones in KatAM's
     tilemap array after slot 0's tilemap and their tilemaps at the heap's end (the heap 0x7C80 bytes: the game used under 6 KB of it
-    in every room and fight measured, the title and pause screens too); `gNidlRoomTops`' `ROOM_FULL_BOTTOM` lets the camera go down
-    to 8 pixels from the room's bottom (KatAM's 40 hide its last rows: the DS shows them, and these rooms get no padding). Doors
+    in every room and fight measured, the title and pause screens too); `gNidlRoomTops`' `ROOM_DS_BOTTOM` stops the camera 32
+    pixels over the room's bottom, as the DS's (KatAM's 40 are for its rooms' padding, which these rooms don't get). Measured in the DS
+    emulator (Prism Plains 1's first stage, 1600 x 240): the DS's screen shows y 16-208 and holds there with Kirby at 216 (its camera's
+    centre, `*(*0x021867AC + 4)` `+0x14`/`+0x18`, kept 104 under the screen's top and at most the stage's height less 120), so its
+    last two rows (filler in many stages) and its top 16 pixels are never shown, 16 at the sides too. Doors
     lists past KatAM's keep their visited doors in rooms.c's area (1206 lists), the items' taken bits too (kinds 5-7 for Squeak
     Squad's, 256 each). Checked in the GBA emulator (forced starts, not a playthrough): Prism Plains 1's first two rooms (the star
     blocks inhaled away), Cushy Cloud 1's first (the biggest; the helpers' room loaded in another slot at once), Secret Sea 1's third (water),
@@ -959,7 +974,12 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
     it); the switch rises again once its targets are done, and pressed again toggles them back. Groups with none of these (the
     2-cell ones in the stages' last rooms, 2-4-1's floor over its hidden way) are a Bomb's blast's. In KatAM: chains (the bomb
     block and a stake 0xF1, the blocks 0xF2, the air cells 0xF3), each broken cell drawn with only the third layer (the DS clears
-    both grids; 1-1-4's grass stays), and the switches chest.c's SqueakCreateSwitch (KatAMExpansionSqueakRooms.cs).
+    both grids; 1-1-4's grass stays), and the switches chest.c's SqueakCreateSwitch (KatAMExpansionSqueakRooms.cs): pressed by a
+    Kirby touching it or by an attack on it, a thrown one too (the owner: "If I throw a knife at them, they do not activate which
+    this doesn't happen in KatAM"; squeak/gimmicks.c's SqueakCreateButton(): the item holders' kind 1 | 0x80, harmless, unk68 0,
+    and the holders' flags, not the hammer peg's 0x18B00, with which KatAM's collision pass never paired an attack with it; not
+    inhaled, unk5C 0x20; checked in the GBA emulator, room 0x419's switch: a Cutter thrown from 48 pixels presses it, Kirby
+    inhaling at it presses it and leaves it there).
   - **Bricks and metal blocks**: the blocks grid's metal blocks (block 1, grey) and bricks (family 0x00, brown, riveted: 1-6-5's
     wall round a chest, 2-6-2's, 4-3-6's in the cannons' way) are broken by a cannon's shot (4-3-6's chain goes through them on the
     DS) and strong attacks: KatAM's metal blocks (0xF5, attribute category 2), which its cannon shots break too (checked: 4-3-6's

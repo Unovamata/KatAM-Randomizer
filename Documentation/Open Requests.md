@@ -1260,3 +1260,53 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
     and the logic checks are unchanged (Squeak Squad: 394 of 499 rooms reached, every switch pressed, none trapped; NiDL: 280 of
     280, none trapped; with and without dropping through thin floors). The window compiles. Not tested: the window itself (it
     needs Windows), so the bar and its text haven't been seen on screen.
+
+## 14. Squeak Squad's levels: two-way mirrors, the camera, platforms, ropes, switches
+- **Two-way mirrors and branching** (the owner, high priority: "Squeak Squad's rooms are plagued with 1 way mirrors. The map layouts
+  should encourage exploration with Two-ways as we defined in the rules. This makes map exploration stupidly linear. There's not even
+  branching paths as I requested."): the DS's doors only lead on (an arrival has no door back), so every DS door that can now has a
+  way back: a mirror where Kirby arrives, leading back to the door he came through (`PlanSqueakLevels()`'s ways back, `DoorKind.Back`:
+  139 of them), not from a goal, a fight, a lair's way or a hidden way, and only where it can't strand him (a flood from the DS door,
+  the stone shutters as walls, reaches the room's entries: `SqueakShutCells()`, `Rejoins()`). The branches into other stages are
+  two-way too (31 two-way with their 31 ways back, 6 one-way where no way back fits), and a stage's way in can be any of its rooms
+  that holds one, not only its first. The rulebook's rule 1 and rule 3 say so ("Squeak Squad's doors lead both ways too").
+- **Black doors become mirrors** (the owner: "All doors have to be mirrors unless the door is wide and warps to another place that is
+  not a goal room."): every DS door gets a mirror (one-way where it has no way back, hidden until the block over it breaks), but the
+  wide doorways leading on (the goals' 31 plain ones), a nest (a lair's) and a hidden way. One door in all the rooms has none: its
+  room is at KatAM's 31 objects.
+  - Checked: the logic checks (USA, Europe, Japan; with and without dropping through thin floors): Squeak Squad 394 of 499 rooms
+    reached, the same as before, every big switch pressed, none trapped; NiDL 280 of 280. In the GBA emulator (USA, a forced
+    start): the two-way round trip between 0x400 and 0x401 and the mirrors' looks. Not tested: a whole stage played through.
+- **The camera's bottom and the pits** (the owner: "Some death pits in some rooms are too high up, the camera barely scrolls a bit
+  down and if you touch it for a bit, you instantly die even though you're still in a livable area. Room 0x48F for example. In
+  general, rooms are 2 tiles off in the camera locking"): measured in the DS emulator (Prism Plains 1's first stage, 1600 x 240),
+  the DS's screen never shows a stage's last two rows (y 16-208 there, held with Kirby at 216). Squeak Squad's rooms now stop the
+  camera 32 pixels over their bottom as the DS does (`rooms.c`'s `ROOM_DS_BOTTOM`; it was 8), so the filler rows don't show and
+  Kirby falling into a pit leaves the screen before he's lost. Checked in the GBA emulator (USA, 0x48F: Kirby dropped into the
+  right pit falls out of view, then loses the life; the view stops at y 208). The DS also hides its stages' top row and 16 pixels
+  at the sides; the port still shows the top row and hides 8 at the sides: not changed (not asked; say if they should match).
+- **Hanging platforms and ropes** (the owner: "Are movable platforms supposed to be swallowed? I just swallowed one.", "If I hit the
+  platform, the platform falls but if I hit the string with a cutting ability, it stays there. Is that expected behavior? The string
+  never goes away when hit.", "Entities go through the movable platforms, which doesn't happen in Squeak Squad."):
+  - Platforms, thunder clouds and ropes can't be inhaled any more (unk5C 0x20).
+  - A rope is cut only by a cutting attack, as the DS's (its flag 8: here a Kirby with Cutter, Sword or Master), not by an inhale or a
+    plain hit near its plank, which is what dropped the plank before. Cut, the rope goes as on the DS (its stage clears the rope's
+    cells from the cut out): each rope cell has a block record now, the cell without the rope, so it vanishes cell by cell from the
+    cut and can't be climbed. Checked in the GBA emulator (USA, 3-3-7, room 0x48F): with a real Sword the left rope vanishes top to
+    bottom in a few frames and its plank shakes, falls and breaks, the right one stays; plain Kirby inhaling at both for a second
+    leaves them.
+  - Enemies stand on platforms and clouds and ride them (KatAM's own objects carried as Kirby is; Squeak Squad's, which move
+    themselves, land on them in their own move). Checked in the GBA emulator (USA, 0x48F: the room's Gold Waddle Dee dropped over the
+    right plank lands on its top, y 128, and walks along it; before, it fell through to the floor).
+- **The silver chest** (the owner: "The silver Treasure Chest has a hitbox, meaning if I use an ability the attack clashes with the
+  chest, this doesn't happen in the vanilla KatAM."): not reproduced. The silver chest is Squeak Squad's big (platinum) chest, which
+  is KatAM's own big chest with Squeak Squad's look; its object is the game's, with no hit box for attacks (unk5C kind 0, as
+  vanilla's). In the GBA emulator (USA, room 0x409's big chest) a real Cutter flies through it and back, Sword swings and Fire pass
+  over it, nothing stops. Which ability, and which room or chest (one a Squeak was carrying?), would show it?
+- **Stone door switches** (the owner: "Stone door buttons do not have collisions for ability usage. If I throw a knife at them, they do
+  not activate which this doesn't happen in KatAM."): Squeak Squad's star switches are pressed by attacks too now, thrown ones
+  included (as the DS's: a body or an attack presses it), not only by Kirby touching them. Checked in the GBA emulator (USA, room
+  0x419): a real Cutter thrown from 48 pixels presses the switch and the switch stays down; inhaling at it presses it too and
+  doesn't swallow it.
+- Not tested in any of these: a playthrough; Europe and Japan beyond the builds, the logic checks and the room booting in the
+  emulator.

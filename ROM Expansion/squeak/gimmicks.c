@@ -662,7 +662,9 @@ void SqueakGimmicksLoaded(u8 playerId, u16 roomId, u8 slot) {
 
 /* The small star switch (gimmick 0): on the DS a body moving through it or an attack presses it (its state 0's messages, 0x02225458),
  * and it sends its targets a message of kind 0 (0x022252F0: its parameter's first byte's high nibble how many, then their indices).
- * Here its template's unk14 and unk16 are those 4 bytes; a Kirby touching it presses it, and it stays down (the DS's rises again
+ * Here its template's unk14 and unk16 are those 4 bytes; a Kirby touching it presses it, and so does an attack on it, a thrown one
+ * too (the owner: "If I throw a knife at them, they do not activate which this doesn't happen in KatAM": the item holders' kind,
+ * HOLDER_KIND, and Struck(); not inhaled), and it stays down (the DS's rises again
  * once its targets are done, and sends again when pressed again: KatAM's stays down till Kirby comes back to the room, as the
  * shutters it opened stay open then). Drawn with Squeak Squad's switch_small (SQUEAK_SWITCH: its up frame, variant 0, then its
  * pressed one, 1: squeak.c's SqueakAnimFor()); */
@@ -671,28 +673,41 @@ void SqueakGimmicksLoaded(u8 playerId, u16 roomId, u8 slot) {
 static void SqueakSwitchDown(struct Object *obj) {
 }
 
-static void SqueakSwitchUp(struct Object *obj) {
+static bool32 Struck(struct Object *obj);
+
+// (pressed: its targets messaged, its sound, down for good, attacks no longer reaching it);
+static void SqueakSwitchPress(struct Object *obj) {
     u8 par[4], i;
+
+    par[0] = obj->objTemplate->unk14;
+    par[1] = obj->objTemplate->unk14 >> 8;
+    par[2] = obj->objTemplate->unk16;
+    par[3] = obj->objTemplate->unk16 >> 8;
+    for (i = 0; i < par[0] >> 4 && i < 3; i++) SqueakSendMail(SlotOf(&obj->base), par[1 + i], MESSAGE_SWITCH);
+    PlaySfx(&obj->base, SE_SWITCH_ACTIVATE);
+    obj->unk83 = 1;
+    obj->base.unk5C &= ~7;
+    obj->unk78 = SqueakSwitchDown;
+}
+
+static void SqueakSwitchUp(struct Object *obj) {
+    u8 i;
 
     // (armed SQUEAK_SWITCH_ARMED frames after it's made: as the room comes up the Kirbys pass where it stands, 3-4-8's pressing then);
     if (obj->unk85 < SQUEAK_SWITCH_ARMED) {
         obj->unk85++;
+        Struck(obj);
         return;
     }
     for (i = 0; i < gNumKirbys; i++) {
         s32 dx = gKirbys[i].base.x - obj->base.x, dy = gKirbys[i].base.y - obj->base.y;
         // (positions in 1/256 pixels: a Kirby within 12 pixels of it sideways, his middle up to 24 pixels over its spot or 8 under);
         if (gKirbys[i].base.roomId != obj->base.roomId || dx <= -0xC00 || dx >= 0xC00 || dy <= -0x1800 || dy >= 0x800) continue;
-        par[0] = obj->objTemplate->unk14;
-        par[1] = obj->objTemplate->unk14 >> 8;
-        par[2] = obj->objTemplate->unk16;
-        par[3] = obj->objTemplate->unk16 >> 8;
-        for (i = 0; i < par[0] >> 4 && i < 3; i++) SqueakSendMail(SlotOf(&obj->base), par[1 + i], MESSAGE_SWITCH);
-        PlaySfx(&obj->base, SE_SWITCH_ACTIVATE);
-        obj->unk83 = 1;
-        obj->unk78 = SqueakSwitchDown;
+        SqueakSwitchPress(obj);
         return;
     }
+    // (an attack on it: Kirby's, a thrown one, a helper's);
+    if (Struck(obj)) SqueakSwitchPress(obj);
 }
 
 static void *SqueakCreateButton(struct ObjectTemplate *template, u8 playerId) {
@@ -700,9 +715,12 @@ static void *SqueakCreateButton(struct ObjectTemplate *template, u8 playerId) {
     struct Object *obj = TaskGetStructPtr(task);
 
     InitObject(obj, template, playerId);
-    obj->base.flags |= 0x18B00;
-    obj->base.unk68 &= ~7;
+    obj->base.flags |= 0x8900;
+    // (attacks reach it as they do the item holders, harmless and deaf to a Kirby's body; not inhaled);
+    obj->base.unk68 = 0;
+    obj->base.unk5C = (obj->base.unk5C & ~7) | 1 | 0x80 | 0x20;
     ObjectSetBounds(&obj->base, -8, -8, 8, 8);
+    sub_0803E2B0(&obj->base, -8, -8, 8, 8);
     obj->unk83 = 0;
     obj->unk85 = 0;   // (frames since it was made: the hammer peg's own count, which the game's object code leaves alone);
     ObjectInitSprite(obj);
@@ -1558,7 +1576,10 @@ static void *SqueakCreateRock(struct ObjectTemplate *template, u8 playerId) {
  * landing on terrain is held (Macro_080063B0): its task runs before the Kirbys' (priority 0x1000 to their 0x3000), moves, then
  * carries each Kirby on it the same distance, puts his feet (his y + his box's bottom, unk3F) on its top and marks him on the floor
  * (unk62's 4, his fall speed 0), so his own update that frame walks, ducks or jumps from it as from the ground; a Kirby is on it when
- * he was last frame and hasn't jumped or walked off, or when his feet came down through its top since his last update; */
+ * he was last frame and hasn't jumped or walked off, or when his feet came down through its top since his last update. The room's
+ * other bodies on the terrain (the DS's floors hold every body: the owner, "Entities go through the movable platforms, which doesn't
+ * happen in Squeak Squad") ride it the same way (PlatformCarryObjects(): KatAM's objects that collide with the terrain, run after
+ * it too); it isn't inhaled (unk5C 0x20: the owner swallowed one); */
 struct SqueakPlatform {
     struct Object obj;
     struct SqueakGimmickSprite spr;
@@ -1623,6 +1644,39 @@ static bool32 PlatformNextLeg(struct SqueakPlatform *p) {
     return TRUE;
 }
 
+/* (the room's other bodies standing on it: KatAM's objects (the tasks' structs of header kind 1) in its room that collide with the
+ * terrain (not flags 0x100) and move (not 0x800), not going (0x1000), not rising (an object's yspeed is up), over it, whose feet were
+ * on or over its top last frame (unk4C, their y before their last move) and are at it now (a rider's at its old top, which it may
+ * have left by a step either way, a lander's through it): carried with it, their feet on its top, on the floor (unk62's 4), their
+ * fall stopped; walked off its end, they fall); */
+static void PlatformCarryObjects(struct SqueakPlatform *p, s32 oldTop, s32 dx) {
+    struct Task *t = &gTasks[0];
+    s32 top = p->obj.base.y - (PLATFORM_TOP << 8), low = oldTop < top ? oldTop : top, high = oldTop > top ? oldTop : top;
+    u8 n;
+
+    for (n = 0; n < MAX_TASK_NUM && t->next; n++) {
+        struct Object *o;
+        s32 ax, foot, before;
+
+        t = (struct Task *)(IWRAM_START + t->next);
+        o = TaskGetStructPtr(t);
+        if (o == &p->obj || o->base.header.kind != 1 || o->base.roomId != p->obj.base.roomId) continue;
+        if (o->base.flags & (0x100 | 0x800 | 0x1000) || o->base.yspeed > 0) continue;
+        // (a Squeak Squad body moves itself, squeak.c's SqueakMove(): its own speed, up positive; its landing is there too);
+        if (SqueakIsSqueak(o) && ((struct SqueakObject *)o)->vy > 0) continue;
+        ax = (o->base.x - p->obj.base.x + dx) >> 8;
+        if (ax < 0) ax = -ax;
+        if (ax > PLATFORM_HALF + 4) continue;
+        foot = o->base.y + (o->base.unk3F << 8);
+        before = o->base.unk4C + (o->base.unk3F << 8);
+        if (before > oldTop + (2 << 8) || foot < low - (4 << 8) || foot > high + (16 << 8)) continue;
+        o->base.x += dx;
+        o->base.y = top - (o->base.unk3F << 8);
+        o->base.unk62 |= 4;
+        o->base.yspeed = 0;
+    }
+}
+
 // (whether a Kirby stands on it now: on it last frame and still over it, or his feet came down through its top);
 static void PlatformCarry(struct SqueakPlatform *p, s32 oldTop, s32 dx, s32 dy) {
     s32 top = p->obj.base.y - (PLATFORM_TOP << 8);
@@ -1651,6 +1705,7 @@ static void PlatformCarry(struct SqueakPlatform *p, s32 oldTop, s32 dx, s32 dy) 
         riders |= 1 << i;
     }
     p->riders = riders;
+    PlatformCarryObjects(p, oldTop, dx);
 }
 
 static void SqueakPlatformMain(struct Object *obj) {
@@ -1695,6 +1750,36 @@ static void SqueakPlatformMain(struct Object *obj) {
     PlatformCarry(p, oldTop, obj->base.x - x, obj->base.y - y);
 }
 
+/* SqueakPlatformLanding(); A Squeak Squad body's move (squeak.c's SqueakMove(), after KatAM's terrain pass) coming down onto a platform
+ * or a thunder cloud of its room (its feet on or over its top before the move, `before` its y then, and at it or a step through it
+ * now: the platform may have moved since), or standing on one: its feet put on its top and it's on the floor (unk62's 4), as
+ * on the terrain; the platform carries it on as it moves (PlatformCarryObjects()); */
+static void SqueakCloudMain(struct Object *obj);
+bool32 SqueakPlatformLanding(struct ObjectBase *b, s32 before) {
+    struct Task *t = &gTasks[0];
+    u8 n;
+
+    for (n = 0; n < MAX_TASK_NUM && t->next; n++) {
+        struct Object *o;
+        s32 ax, top, foot;
+
+        t = (struct Task *)(IWRAM_START + t->next);
+        o = TaskGetStructPtr(t);
+        if (o->base.header.kind != 1 || o->base.roomId != b->roomId || (o->unk78 != SqueakPlatformMain && o->unk78 != SqueakCloudMain)) continue;
+        if (((struct SqueakPlatform *)o)->state == PLATFORM_GONE) continue;
+        ax = (b->x - o->base.x) >> 8;
+        if (ax < 0) ax = -ax;
+        if (ax > PLATFORM_HALF + 4) continue;
+        top = o->base.y - (PLATFORM_TOP << 8);
+        foot = b->y + (b->unk3F << 8);
+        if (before + (b->unk3F << 8) > top + (4 << 8) || foot < top - (6 << 8) || foot > top + (16 << 8)) continue;
+        b->y = top - (b->unk3F << 8);
+        b->unk62 |= 4;
+        return TRUE;
+    }
+    return FALSE;
+}
+
 // (its way back: in one leg, or along its legs);
 static void PlatformReturnLegs(struct SqueakPlatform *p, u16 word, u8 n) {
     u8 i;
@@ -1731,6 +1816,7 @@ static void *SqueakCreatePlatform(struct ObjectTemplate *template, u8 playerId) 
     p->index = template->unk12;
     GimmickInit(obj, &p->spr, SQUEAK_FLOOR);
     ObjectSetBounds(&obj->base, -PLATFORM_HALF, -PLATFORM_TOP, PLATFORM_HALF, 4);
+    obj->base.unk5C |= 0x20;
     p->speed = sPlatformSpeeds[word >> 10 & 3];
     if (n > 3) n = 3;
     for (i = 0; i < n; i++) {
@@ -1852,7 +1938,7 @@ static void *SqueakCreateCloud(struct ObjectTemplate *template, u8 playerId) {
     c->p.index = template->unk12;
     GimmickInit(obj, &c->p.spr, SQUEAK_THUNDER);
     // (attacks reach it, as the grass tufts and ropes: Struck());
-    obj->base.unk5C = (obj->base.unk5C & ~7) | HOLDER_KIND;
+    obj->base.unk5C = (obj->base.unk5C & ~7) | HOLDER_KIND | 0x20;
     ObjectSetBounds(&obj->base, -PLATFORM_HALF, -PLATFORM_TOP, PLATFORM_HALF, 4);
     CloudBox(obj, FALSE);
     c->p.speed = sPlatformSpeeds[word >> 10 & 3];
@@ -1872,18 +1958,87 @@ static void *SqueakCreateCloud(struct ObjectTemplate *template, u8 playerId) {
     return obj;
 }
 
-/* The ropes (gimmick 1, ctor 0x022249C8, vtable 0x02229A2C): no sprite (the rope is the terrain's, a KatAM ladder here), an area 4
- * pixels wide (table 0x02229A20 by its first byte's low nibble: pixels 6-9 of its cell) and its second byte's pixels long, down from
- * its spot. A cutting attack on it (message 0xB with the attack's flag 8, its check 0x02224960) cuts it (state 1, 0x022248A0:
- * sound 0x48 or 0x49 by its look) and messages its targets (its first byte's high nibble how many, from its third byte): the floor
- * it holds (gimmick 3), 8-1-8's rock relay. Here (the template's unk14, unk16, unk18 its 6 bytes) an object hidden, its box over
- * the rope's cell (2-14 pixels across), taking any attack as the grass tufts do (Struck()), which cuts it once; */
+// (the Kirby behind an attack: a Kirby itself, or what one let go, its parent);
+static struct Kirby *AttackKirby(struct ObjectBase *by) {
+    if (by == NULL) return NULL;
+    if ((u32)by - (u32)gKirbys < 4 * sizeof(struct Kirby)) return (struct Kirby *)by;
+    by = by->parent;
+    if (by != NULL && (u32)by - (u32)gKirbys < 4 * sizeof(struct Kirby)) return (struct Kirby *)by;
+    return NULL;
+}
+
+/* The ropes (gimmick 1, ctor 0x022249C8, vtable 0x02229A2C): no sprite (the rope is the terrain's: its front layer's blocks 0x260-0x262
+ * over the blocks grid's rope cells, ids 0x40-0x42 under top byte 0x38; a KatAM ladder here), an area 4 pixels wide (table
+ * 0x02229A20 by its first byte's low nibble: pixels 6-9 of its cell) and its second byte's pixels long, down from its spot. A
+ * cutting attack on it (message 0xB with the attack's flag 8, its check 0x02224960) cuts it (state 1, 0x022248A0: sound 0x48 or 0x49
+ * by its look) and messages its targets (its first byte's high nibble how many, from its third byte): the floor it holds (gimmick
+ * 3), 8-1-8's rock relay; and the rope goes (the stage's 0x022164C0: from the cut, up then down, each cell whose id is a rope's gets
+ * a short fade, 0x022124F8's tiles 0x10-0x14, and is cleared, 0x02215830, one further out each frame). Here (the template's unk14,
+ * unk16, unk18 its 6 bytes) an object hidden, its box over the rope's cells (2-14 pixels across), taking any attack as the grass tufts
+ * do (Struck()), but cutting only as the DS's does: a Kirby's with a blade, Cutter, Sword or Master (AttackKirby(); not his inhale or a
+ * plain hit, which dropped its floor here before); once; not inhaled (unk5C 0x20); its cells go from the cut (the attacker's row, in the rope) out,
+ * ROPE_CLEAR_STEP frames apart, each way till a cell isn't a ladder: each one's block record (KatAMExpansionSqueakRooms.cs's SqueakRopeCells(): the cell drawn without
+ * its front layer, air) applied as a broken block's, so its look goes and Kirby can't climb it; */
+struct SqueakRope {
+    struct Object obj;
+    struct SqueakGimmickSprite spr;
+    u8 ways;                    // (cut, its cells going: ROPE_UP, ROPE_DOWN the ways that still have some);
+    u8 step;                    // (how far from the cut its cells have gone; with ways 0, cut and gone);
+    u8 row;                     // (the cut's row);
+    u8 wait;
+};
 #define ROPE_TARGETS 3
+#define ROPE_CLEAR_STEP 2
+#define ROPE_UP 1
+#define ROPE_DOWN 2
+#define ROPE_LADDER_TOP 0x20
+#define ROPE_LADDER 0x21
+
+// (a cell's block record of type 1 matching its collision now, or NULL: KatAM's own search, sub_080025AC, never ends without one);
+static const u8 *CellRecord(u8 p, u8 x, u8 y) {
+    const u8 *record;
+    u8 value = GetCollisionTile(p, x, y);
+
+    for (record = (const u8 *)gCurLevelInfo[p].unk1E0.pat1; record[4] != 0; record += record[4])
+        if (record[0] == 1 && record[1] == value && record[2] == x && record[3] == y) return record;
+    return NULL;
+}
+
+// (the rope's cell in a row, if it's one still standing, a ladder with its record: cleared; FALSE where the rope ends);
+static bool32 RopeClear(struct Object *obj, s32 y) {
+    u8 p = obj->base.unk56, x = obj->base.x >> 12, value;
+    const u8 *record;
+
+    if (y < 0 || y >= gCurLevelInfo[p].roomHeight / 16) return FALSE;
+    value = GetCollisionTile(p, x, y);
+    if ((value != ROPE_LADDER_TOP && value != ROPE_LADDER) || (record = CellRecord(p, x, y)) == NULL) return FALSE;
+    sub_08001408(p, (struct Unk_0888562C *)record, NULL, NULL);
+    return TRUE;
+}
+
+// (a cutting attack, the DS's flag 8: a Kirby's with a blade);
+static bool32 RopeCutter(struct Kirby *k) {
+    u8 ability = k != NULL ? k->ability & NIDL_ABILITY_MASK : KIRBY_ABILITY_NORMAL;
+
+    return ability == KIRBY_ABILITY_CUTTER || ability == KIRBY_ABILITY_SWORD || ability == KIRBY_ABILITY_MASTER;
+}
+
 static void SqueakRopeMain(struct Object *obj) {
+    struct SqueakRope *r = (struct SqueakRope *)obj;
     u8 par[6], i;
+    s32 top, bottom, row;
 
     if (gUnk_03000510.unk4 & ((1 << obj->base.unk56) | 0x10)) return;
-    if (obj->unk83 || !Struck(obj)) return;
+    // (cut: its cells go, the cut's first, then one further out each way each ROPE_CLEAR_STEP frames, till neither way has any);
+    if (r->ways) {
+        if (++r->wait < ROPE_CLEAR_STEP) return;
+        r->wait = 0;
+        if (r->ways & ROPE_UP && !RopeClear(obj, (s32)r->row - r->step)) r->ways &= ~ROPE_UP;
+        if (r->ways & ROPE_DOWN && r->step > 0 && !RopeClear(obj, (s32)r->row + r->step)) r->ways &= ~ROPE_DOWN;
+        r->step++;
+        return;
+    }
+    if (r->step || !Struck(obj) || !RopeCutter(AttackKirby(obj->base.unk6C))) return;
     par[0] = obj->objTemplate->unk14;
     par[1] = obj->objTemplate->unk14 >> 8;
     par[2] = obj->objTemplate->unk16;
@@ -1893,20 +2048,31 @@ static void SqueakRopeMain(struct Object *obj) {
     for (i = 0; i < par[0] >> 4 && i < ROPE_TARGETS; i++)
         if (par[2 + i] != 0xFF) SqueakSendMail(SlotOf(&obj->base), par[2 + i], MESSAGE_SWITCH + 1);
     PlaySfx(&obj->base, SQUEAK_SE((obj->objTemplate->unk14 & 15) < 2 ? 0x48 : 0x49)); // (the DS's, by its look: 0x022248CE);
-    obj->unk83 = 1;
     obj->base.unk5C &= ~7;
+    // (where it was cut: the attacker's row, kept in the rope's);
+    top = obj->base.y >> 12;
+    bottom = ((obj->base.y >> 8) + (par[1] > 0 ? par[1] : 16) - 1) >> 4;
+    row = obj->base.unk6C != NULL ? ((struct ObjectBase *)obj->base.unk6C)->y >> 12 : (top + bottom) / 2;
+    r->row = row < top ? top : row > bottom ? bottom : row;
+    r->ways = ROPE_UP | ROPE_DOWN;
+    r->step = 0;
+    r->wait = ROPE_CLEAR_STEP - 1;
 }
 
 static void *SqueakCreateRope(struct ObjectTemplate *template, u8 playerId) {
-    struct Task *task = TaskCreate(ObjectMain, sizeof(struct SqueakGimmickObject), 0x1000, TASK_USE_EWRAM, ObjectDestroy);
-    struct SqueakGimmickObject *r = TaskGetStructPtr(task);
+    struct Task *task = TaskCreate(ObjectMain, sizeof(struct SqueakRope), 0x1000, TASK_USE_EWRAM, ObjectDestroy);
+    struct SqueakRope *r = TaskGetStructPtr(task);
     struct Object *obj = &r->obj;
     s16 length = template->unk14 >> 8;
 
     InitObject(obj, template, playerId);
     HolderInit(obj, &r->spr, SQUEAK_FLOOR, 2, 0, 14, length > 0 ? length : 16);
+    obj->base.unk5C |= 0x20;
     obj->base.flags |= 0x400;
-    obj->unk83 = 0;
+    r->ways = 0;
+    r->step = 0;
+    r->row = 0;
+    r->wait = 0;
     obj->unk78 = SqueakRopeMain;
     return obj;
 }
@@ -2081,15 +2247,6 @@ struct SqueakCandle {
 };
 #define CANDLE_LIT_ANIM 0
 #define CANDLE_OUT_ANIM 1
-
-// (the Kirby behind an attack: a Kirby itself, or what one let go, its parent);
-static struct Kirby *AttackKirby(struct ObjectBase *by) {
-    if (by == NULL) return NULL;
-    if ((u32)by - (u32)gKirbys < 4 * sizeof(struct Kirby)) return (struct Kirby *)by;
-    by = by->parent;
-    if (by != NULL && (u32)by - (u32)gKirbys < 4 * sizeof(struct Kirby)) return (struct Kirby *)by;
-    return NULL;
-}
 
 static void SqueakCandleMain(struct Object *obj) {
     struct SqueakCandle *c = (struct SqueakCandle *)obj;

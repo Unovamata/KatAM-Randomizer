@@ -43,12 +43,12 @@ void LoadLevelGfx(u8 playerId, const u16 **arg1, const u16 **arg2);
 /* gNidlRoomTops; Per room (Squeak Squad's from 0x400 up: KatAMExpansionSqueakRooms.cs), where the camera's view starts at the top
  * (KatAMExpansionRooms.cs, CameraTop()): 0 KatAM's (8 pixels down, as its rooms hide that much), 1 the room's top (NiDL shows its
  * rooms' top row whole), 2 a row down (16 pixels: a NiDL room whose top row repeats the one under it, which NiDL never showed); with
- * ROOM_FULL_BOTTOM, the camera goes down to 8 pixels from the room's bottom, as on its other sides, not KatAM's 40 (Squeak Squad's
- * rooms: the DS shows them to their bottom, and they get no rows of padding there); */
+ * ROOM_DS_BOTTOM, the camera stops 32 pixels over the room's bottom, not KatAM's 40 (Squeak Squad's rooms: the DS's camera never shows
+ * their last two rows, measured in the DS emulator, and they get no rows of padding there); */
 const u8 gNidlRoomTops[0x800] = { 0 };
 // gExpansionSongs; NiDL's and Squeak Squad's first songs in the grown song table (KatAMExpansionSound.cs; nidl.h's NIDL_SE);
 const u16 gExpansionSongs[2] = { 0, 0 };
-#define ROOM_FULL_BOTTOM 0x80
+#define ROOM_DS_BOTTOM 0x80
 
 /* gNidlGridRoom; The room whose special blocks are a grid (KatAMExpansionRooms.cs, HeavyMoleRoom: Heavy Mole's, all dirt, 2112 blocks,
  * the time KatAM's walk through its list takes to find one most of a frame): a record (0x12 bytes) per cell, row by row, first, so a
@@ -677,7 +677,7 @@ void BigFillLevelInfo(u8 playerId, u16 roomId, const u16 **arg2, const u16 **arg
         levelInfo->unk_S32Vec2_6C.x = 0x800;
         levelInfo->unk_S32Vec2_6C.y = 0x800;
         levelInfo->unk_S32Vec2_74.x = x;
-        levelInfo->unk_S32Vec2_74.y = (levelInfo->roomHeight - (gNidlRoomTops[roomId] & ROOM_FULL_BOTTOM ? 8 : 0x28)) * 0x100;
+        levelInfo->unk_S32Vec2_74.y = (levelInfo->roomHeight - (gNidlRoomTops[roomId] & ROOM_DS_BOTTOM ? 0x20 : 0x28)) * 0x100;
         levelInfo->unk_S32Vec2_7C.x = 0x800;
         levelInfo->unk_S32Vec2_7C.y = 0x800;
         if (gNidlRoomTops[roomId] & 0x7F)

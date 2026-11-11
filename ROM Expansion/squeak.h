@@ -496,6 +496,7 @@ void SqueakStandOnFloor(struct Object *);
 
 // Squeak Squad's engine (its enemies' shared functions);
 void SqueakMove(struct SqueakObject *);
+bool32 SqueakPlatformLanding(struct ObjectBase *b, s32 before);
 void SqueakThroughTerrain(struct SqueakObject *, bool32 through);
 u32 SqueakAnimTime(struct SqueakObject *);
 void SqueakFinishFrame(struct SqueakObject *);
