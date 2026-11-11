@@ -167,10 +167,11 @@ after any change.
     (one of the stage's rooms after its goal, where it fights with its Squeakers) made a mini-boss room (rule 8) between two of
     the stage's own rooms: a DS door of the stage (the one into the room the thief waits in, else the nearest to it; not
     hidden, Kirby gets to it) leads into the hideout, one-way, onto the DS's arrival there, and the hideout's one way out, shut
-    until the Squeak is beaten, leads where that door led. A nest stands at that door, as the DS draws its lair doors (a tree
-    stump with a flag, or a rock mound with a flag where the stage's DS lair doors are its 0xC1/0xC0 kind), the warning that a
-    fight waits past it. The way out is the hideout's own DS doorway where that's not beside where Kirby lands (Storo's and
-    Doc's hideouts), else a mirror on a floor away from both (rule 3). Stages with no Squeak thief (7-4) get none; 6-5 has three;
+    until its mini-boss is beaten, leads where that door led. A nest stands at that door, the DS's own lair door for that room's
+    world (a stump, a grassy mound, a rock pile, a castle, an igloo, a submarine, a factory, a UFO..., each with its flag), the
+    warning that a fight waits past it. The way out is KatAM's one-way door (the hideout's black DS doorway is gone), on that
+    doorway's spot where that's not beside where Kirby lands (Storo's and Doc's hideouts), else on a floor away from both
+    (rule 3). Stages with no Squeak thief (7-4) get none; 6-5 has three;
   - the rooms a stage reaches only through its Squeaks that no lair uses (the other three hideouts of each stage, every stage's
     copies of the same four fights, and its gold-pile treasure rooms nothing leads to) are left out, nothing leading in; a room
     after a stage's goal that isn't one of those (1-1-5, the field past its goal) is reached as any room (rule 9); the sky rooms
@@ -260,7 +261,8 @@ after any change.
   too, never right beside the way in. `Arenas()`, `InArena()`, `ArenaCells()`, `arena.c`. The Squeak Lairs (rule 5) are such rooms,
   one way out each; their mini-boss, the DS's Squeak by default at its spot there, is one the randomizer's mini-boss
   randomization picks too (Include Bosses: any boss), a boss standing on the floor Kirby lands on (`SQUEAK_LAIR_FIGHT`,
-  `SqueakBossFloor()`). Without the NiDL ROM there are no arenas: a lair's way out is open from the start.
+  `SqueakBossFloor()`). A lair's way out shows only once its mini-boss is beaten, with or without the NiDL ROM (the owner: "Do make
+  sure that these exits only appear after defeating the miniboss only"; `squeak/gimmicks.c`'s `LairExit()`).
 
 ## 9. Every place gets you back out
 

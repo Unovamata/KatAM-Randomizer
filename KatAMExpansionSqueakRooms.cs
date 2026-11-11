@@ -1340,8 +1340,6 @@ namespace KatAMRandomizer {
          * comes out (the KatAM object's type, its behavior byte over it), unk16 its variant (a Squeak Squad character's: SqueakHeld()); */
         const int SqueakGrassGimmick = 0xE, SqueakBarrelGimmick = 0xF;
         const byte SqueakGrassObject = 0x99, SqueakBarrelObject = 0x98, KatAMAbilityStar = 0xA3;
-        // (a Squeak Lair's nest, at the door into it: squeak.h's SQUEAK_NEST_OBJECT, its template's unk12 the look, 1 a rock mound);
-        const byte SqueakNestObject = 0x8E;
         // (the icicles, gimmick 9: squeak/gimmicks.c's SqueakCreateIcicle);
         const int SqueakIcicleGimmick = 9, SqueakRockGimmick = 8;
         const byte SqueakIcicleObject = 0x96, SqueakRockObject = 0x95;
@@ -1453,7 +1451,8 @@ namespace KatAMRandomizer {
          * `chains`): a count, then 24 bytes each (type, index, x, y, the parameters' first 18 bytes); null none. A camera area's bounds
          * (its first 4 u16s: x0, y0, x1, y1) have their y in the DS's world, up from the room's bottom: here from its top (`height`, the
          * room's in pixels, less them, swapped), as the entries' spots are; */
-        static byte[] SqueakGimmickList(List<SqueakGimmick> gimmicks, IReadOnlySet<(int x, int y)> chains, bool arena, int height, SqueakChase chase = null) {
+        static byte[] SqueakGimmickList(List<SqueakGimmick> gimmicks, IReadOnlySet<(int x, int y)> chains, bool arena, int height, SqueakChase chase = null,
+                                        IReadOnlyList<(int x, int y)> lairExits = null) {
             List<byte> list = new List<byte> { 0, 0, 0, 0 };
             for (int i = 0; i < gimmicks.Count && i < SqueakMailGimmicks; i++) {
                 SqueakGimmick g = gimmicks[i];
@@ -1474,6 +1473,20 @@ namespace KatAMRandomizer {
                 list[0]++;
             }
             if (chase != null) AddChaseEntries(list, chase, gimmicks.Count);
+            // (a Squeak Lair's way out, shut till its mini-boss is beaten: SqueakLairExitEntry, x and y its cell's pixels, its index past
+            // the others');
+            int next = gimmicks.Count;
+            for (int at = 4; at < list.Count; at += 24) next = Math.Max(next, list[at + 1] + 1);
+            foreach ((int x, int y) in lairExits ?? new List<(int, int)>()) {
+                if (next >= SqueakMailGimmicks || list[0] == 0xFF) break;
+                byte[] entry = new byte[24];
+                entry[0] = SqueakLairExitEntry;
+                entry[1] = (byte)next++;
+                WriteShort(entry, 2, x * 16);
+                WriteShort(entry, 4, y * 16);
+                list.AddRange(entry);
+                list[0]++;
+            }
             return list[0] == 0 && list[1] == 0 ? null : list.ToArray();
         }
 
@@ -1485,6 +1498,8 @@ namespace KatAMRandomizer {
          * own chase spawns (its objects' flag 4: the Squeaks among them, Spinni, Doc, Storo, the Squeakers), which come out on the DS
          * once Kirby carries off the stage's chest; their indexes after the room's gimmicks'; */
         const byte SqueakChaseWall = 0xF0, SqueakChaseSpawnEntry = 0xF1;
+        // (a Squeak Lair's way out: squeak/gimmicks.c's GIMMICK_LAIR_EXIT, its door opened once no mini-boss is left in the room);
+        const byte SqueakLairExitEntry = 0xF2;
         internal sealed record SqueakChase(byte Key, List<(int x, int y)> Walls, List<(int x, int y, byte character, byte variant)> Spawns);
         static void AddChaseEntries(List<byte> list, SqueakChase chase, int firstIndex) {
             int index = firstIndex;
@@ -1938,16 +1953,19 @@ namespace KatAMRandomizer {
                             leaves[block] = value;
                             blockDoorRecords.AddRange(DoorRecord(door, value));
                         } else {
-                            /* (a Squeak Lair's way out is built shut, its record alone, until its Squeak is beaten: enemies/arena.c's
-                             * OpenDoors() makes it a door then, its mirror showing (rule 8); without the NiDL ROM's arenas it's open); */
-                            if (!(door.Shut && arenas)) collision[cell] = value;
+                            /* (a Squeak Lair's way out is built shut, its record alone, until its mini-boss is beaten: squeak/gimmicks.c's
+                             * LairExit() (and with the NiDL ROM's arenas, enemies/arena.c's OpenDoors()) makes it a door then, its mirror
+                             * showing (rule 8)); */
+                            if (!door.Shut) collision[cell] = value;
                             doorRecords.AddRange(DoorRecord(door, value));
                         }
                         if (!doorPlaces.Contains((door.Room, door.DestX, door.DestY))) doorPlaces.Add((door.Room, door.DestX, door.DestY));
                     }
 
-                    // Foreground: its tiles, palettes and tilemap;
-                    SqueakForeground foreground = ConvertSqueakForeground(map, front, main, ForegroundTiles, blocks, SqueakSigns(map), chains.Union(burnt).ToHashSet());
+                    // Foreground: its tiles, palettes and tilemap (a nest, the DS's own, on each DS door into a Squeak Lair, and no black
+                    // doorway in a lair: SqueakNests());
+                    SqueakMap drawn = SqueakNests(map, squeakLairs.Where(l => l.FromRoom == room).Select(l => (l.FromX, l.FromY)), lairHere != null);
+                    SqueakForeground foreground = ConvertSqueakForeground(drawn, front, main, ForegroundTiles, blocks, SqueakSigns(map), chains.Union(burnt).ToHashSet());
                     (int info, int palette, int tilemapEntry) = WriteSqueakForeground(rom, foreground, room, paletteCycles, ref here);
 
                     // Background: the far view, shared;
@@ -2034,7 +2052,8 @@ namespace KatAMRandomizer {
                         squeakChaseWalls += walls.Count;
                         squeakChaseSpawns += spawns.Count;
                     }
-                    if (SqueakGimmickList(gimmicks, chains, arenas && (fightMidboss || fightBoss), map.Height * 16, chase) is byte[] gimmickList) {
+                    if (SqueakGimmickList(gimmicks, chains, arenas && (fightMidboss || fightBoss), map.Height * 16, chase,
+                                          planned[i].Where(d => d.Shut).Select(d => (d.X, d.Y)).ToList()) is byte[] gimmickList) {
                         gimmickLists[i] = Allocate(ref here, gimmickList.Length, 4);
                         gimmickList.CopyTo(rom, gimmickLists[i]);
                     }
@@ -2214,21 +2233,12 @@ namespace KatAMRandomizer {
                         templates.Add(star);
                         if (!types.Contains(WarpStarType)) types.Add(WarpStarType);
                     }
-                    /* (a nest on each DS door that leads into a Squeak Lair, its feet on the door's floor, squeak/gimmicks.c's
-                     * SqueakCreateNest: KatAMExpansionSqueakNests.cs' stump, or rock mound where the stage's lair doors are the DS's 0xC1s); */
-                    foreach (SqueakLairPlan lair in squeakLairs.Where(l => l.FromRoom == room)) {
-                        byte[] nest = ObjectTemplate(lair.FromX * 16 + 8, (lair.FromY + 1) * 16, templates.Count, HammerPegType);
-                        nest[0x11] = SqueakNestObject;
-                        nest[0x12] = (byte)(lair.Rock ? 1 : 0);
-                        templates.Add(nest);
-                        if (!types.Contains(HammerPegType)) types.Add(HammerPegType);
-                    }
                     // (a mirror on each of the levels' doors but the goals, as the NiDL rooms': a one-way one drawn as one, mirror_door.c; a
                     // Mirra on its door's cell, x the cell's middle, y its top, as KatAM's, and the door's mirror hidden till it's a door);
                     foreach (Door door in planned[i].Where(d => !d.Plain)) {
                         byte[] mirror = MirrorTemplate(door.X, door.Y, templates.Count);
                         if (door.OneWay) mirror[0x23] |= 1;
-                        if (door.Kind == DoorKind.SwitchEntry || door.Shut && arenas) mirror[14] = 1;
+                        if (door.Kind == DoorKind.SwitchEntry || door.Shut) mirror[14] = 1;
                         templates.Add(mirror);
                         if (!types.Contains(MirrorType)) types.Add(MirrorType);
                         if (door.Kind != DoorKind.SwitchEntry) continue;

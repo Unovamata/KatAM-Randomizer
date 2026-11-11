@@ -305,9 +305,9 @@ namespace KatAMRandomizer {
         static (int room, int x, int y)? squeakFinaleEntry;
         /* SqueakLairPlan; A Squeak Lair (PlanSqueakLevels()): its hideout room, the Squeak fought there (its character), the DS door
          * Kirby takes into it (its room, its place in the room's list, its cell), where he lands in it and where its way out leads
-         * (the room, the cell + 1), and its nest's look (a rock mound, else a stump); */
+         * (the room, the cell + 1); its nest the DS's own on that door (SqueakNests()); */
         internal sealed record SqueakLairPlan(int Room, int Character, int FromRoom, int FromDoor, int FromX, int FromY, (int room, int x, int y) Landing,
-                                              (int room, int x, int y) Exit, bool Rock);
+                                              (int room, int x, int y) Exit);
         static readonly List<SqueakLairPlan> squeakLairs = new List<SqueakLairPlan>();
         public static IReadOnlyList<SqueakLairPlan> SqueakLairs => squeakLairs;
         // (a chase record's flags: 8, the stage's thief; a DS door's: 4, a hidden way (the lair doors); the Squeakers' character);
@@ -809,8 +809,8 @@ namespace KatAMRandomizer {
              * SqueakThief too), the hideout it fights in among the stage's rooms after the goal (SqueakLair(), with its Squeakers) is a
              * mini-boss room (rule 8): a DS door of the stage leads into it, one-way, onto the DS's arrival there (the door into the room
              * the thief waits in, else the nearest to it: one Kirby gets to in a room he reaches, not hidden, into another of the
-             * stage's own rooms (not its lair rooms), not a fight's), a nest standing at that door (SqueakLairPlan.Rock: the DS's lair
-             * doors' looks), and its one way out is a mirror, shut until the Squeak is beaten and away from where Kirby lands, to
+             * stage's own rooms (not its lair rooms), not a fight's), a nest standing at that door (the DS's own, its world's look:
+             * SqueakNests()), and its one way out is a mirror, shut until the Squeak is beaten and away from where Kirby lands, to
              * where that door led; */
             squeakLairs.Clear();
             Dictionary<(int room, int door), (int room, int x, int y)> lairRedirect = new Dictionary<(int, int), (int, int, int)>();
@@ -819,8 +819,6 @@ namespace KatAMRandomizer {
                 var thieves = list.Where(r => !SqueakLair(r))
                                   .SelectMany(r => r.Squeaks.Where(q => (q.flags & SqueakThief) != 0 && q.character != SqueakerCharacter).Select(q => (q.character, room: r.Number)))
                                   .GroupBy(t => t.character).Select(g => (character: g.Key, room: g.Max(t => t.room))).OrderByDescending(t => t.room).ToList();
-                // (the stage's lair doors' looks: a rock mound where the DS's are kind 0xC1, else a stump);
-                bool rock = list.SelectMany(r => r.Doors).Any(d => (d.Flags & SqueakHiddenDoor) != 0 && !SqueakGoal(d) && (d.Kind & 0x80) != 0);
                 foreach ((int thief, int thiefRoom) in thieves) {
                     SqueakPlanRoom hideout = list.FirstOrDefault(r => SqueakLair(r) && !reachable.Contains(r.Room) && r.Squeaks.Any(q => q.character == thief));
                     if (hideout == null || hideout.Doors.FirstOrDefault(SqueakArrival) is not SqueakDoor arrival) continue;
@@ -855,7 +853,7 @@ namespace KatAMRandomizer {
                     hideout.Midboss = true;
                     lairRedirect[(entrance.r.Room, entrance.index)] = (hideout.Room, landing.x + 1, landing.y + 1);
                     squeakLairs.Add(new SqueakLairPlan(hideout.Room, thief, entrance.r.Room, entrance.index, entrance.d.X, entrance.d.Y,
-                                                       (hideout.Room, landing.x + 1, landing.y + 1), exit, rock));
+                                                       (hideout.Room, landing.x + 1, landing.y + 1), exit));
                     Reach(hideout.Room);
                 }
             }

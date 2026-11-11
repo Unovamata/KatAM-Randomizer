@@ -279,15 +279,18 @@ how Squeak Squad's enemies work): [Squeak Squad Notes](../Documentation/Squeak%2
   stage's rooms after its goal), made a mini-boss room between two of the stage's rooms. The DS door into the room the thief waits
   in (else the nearest to it) leads into the hideout, onto its DS arrival; the hideout's own DS doors aren't doors; its Squeak is
   a mini-boss (type 0x40, `SQUEAK_MIDBOSS` | the character, as the randomizer's), its area the screen over the floor Kirby lands on,
-  with up to `LairSqueakers` of its Squeakers; its one way out (`DoorKind.Lair`) is built shut (its record alone, its mirror hidden:
-  `arena.c`'s `OpenDoors()` opens it once the Squeak's beaten), on the hideout's DS doorway where that's 4 cells or more from
-  where Kirby lands, else on a floor away from both, leading where the door led. The template carries `SQUEAK_LAIR_FIGHT`
-  (`unk22`): a boss the randomizer puts there stands on that floor (`SqueakBossFloor()`: its area's bottom less 32). The randomizer
-  takes the lairs' mini-bosses with KatAM's (`SqueakLairMinibosses`, `KatAMEnemiesBase.cs`' `AddSqueakLairMinibosses()`). Each
-  lair's door gets a nest (`squeak/gimmicks.c`'s `SqueakCreateNest`, object 0x8D with `unk11` `SQUEAK_NEST_OBJECT`, `unk12` 1 for a
-  rock mound, else a stump; the looks `SQUEAK_NEST_STUMP`/`ROCK`, drawn from the owner's screenshots in
-  `KatAMExpansionSqueakNests.cs`, the DS's own not being among its files), its feet on the door's floor, behind Kirby. Without the
-  NiDL ROM (no arenas), a lair's way out is open. 38 lairs (USA, Europe, Japan the same).
+  with up to `LairSqueakers` of its Squeakers; its one way out (`DoorKind.Lair`, KatAM's one-way door) is built shut (its record
+  alone, its mirror hidden), on the hideout's DS doorway where that's 4 cells or more from where Kirby lands, else on a floor away
+  from both, leading where the door led; the room's gimmick list has an entry for it (`GIMMICK_LAIR_EXIT` 0xF2, its cell's spot:
+  `squeak/gimmicks.c`'s `LairExit()`), which writes its record's collision once no mini-boss (types 0x38-0x52) with HP is left in
+  the room, 30 frames after it comes up, with or without the NiDL ROM (`arena.c`'s `OpenDoors()` too, with it). The hideout's
+  third map layer (only its black doorway, blocks 604 over 796) isn't drawn. The template carries `SQUEAK_LAIR_FIGHT` (`unk22`): a
+  boss the randomizer puts there stands on that floor (`SqueakBossFloor()`: its area's bottom less 32). The randomizer takes the
+  lairs' mini-bosses with KatAM's (`SqueakLairMinibosses`, `KatAMEnemiesBase.cs`' `AddSqueakLairMinibosses()`). Each lair's door
+  gets the DS's own nest, drawn into the room's foreground (`KatAMExpansionSqueakNests.cs`' `SqueakNests()`): every DS room's front
+  block table holds it, 5 blocks by 3 (0x110-0x114, 0x130-0x134, 0x150-0x154), in its world's front tileset's look (a stump, a
+  grassy mound, a rock pile, a castle, an igloo, a submarine, a factory, a UFO...), its doorway on the door's cell, its feet on the
+  door's floor. 38 lairs (USA, Europe, Japan the same).
 - **The finale chain** (`KatAMExpansionSqueakLevels.cs`' `SqueakFinale()`, `SqueakShardExits()`; `squeak.c`'s `SqueakDestroy()`):
   Squeak Squad's final stage (`SqueakFinalStage`, 8-4) isn't world 8's boss stage: its boss (Dark Nebula) leaves no shard
   (`SQUEAK_FINALE_SHARD`: beaten, `NidlDanceOut()`), its way out its `gNidlShardExits` entry. With NiDL's finale in, Nightmare's

@@ -993,11 +993,10 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
     the stage's rooms after its goal, where it fights with its Squeakers) as a mini-boss room between two of the stage's rooms:
     the DS door into the room the thief waits in (else the nearest to it) leads into the hideout, one-way, onto the DS's arrival;
     the Squeak fights as a mini-boss (KatAM's arena: the camera held, its HP bar), with up to 4 of the hideout's Squeakers; the
-    one way out is shut until it's beaten, then shows (a one-way mirror) and leads where the door led. 6-5 has three (its three
-    thieves); 7-4 has no Squeak thief, so none.
+    one way out is shut until it's beaten, then shows (KatAM's one-way door) and leads where the door led. 6-5 has three (its
+    three thieves); 7-4 has no Squeak thief, so none.
   - Their mini-boss is randomized with KatAM's mini-bosses (Randomize Mini-Bosses; with Include Bosses, any boss can be there): a
     boss there stands on the floor Kirby lands on, whatever ledge the Squeak's spot is on.
-  - Without the NiDL ROM there are no arenas (as for every Squeak Squad mini-boss room): the lair's way out is open from the start.
   - Checked in the GBA emulator (USA): Kirby walked onto 1-3-5's lair door (by buttons) and took it with Up into Spinni's hideout
     (1-3-9), landing on its doorway, Spinni attacking with the Squeakers on the ledges; held on the way out's cell (Lua) with
     Spinni alive, no mirror and Up did nothing; Spinni's HP set to 0 by a RAM write (a forced state: he isn't destroyed by it),
@@ -1007,20 +1006,33 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
     there takes facing 0, not the Squeak's behavior byte), NiDL's and Squeak Squad's mini-bosses and bosses; in the emulator,
     1-3's lair had Dark Nebula, his HP bar up, fighting over the floor. Europe and Japan (emulator): 1-3-5's stump and its door
     into Spinni's hideout, Spinni attacking, the same as USA.
-  - Not tested: a real fight won in a lair (the exit after a real defeat), the other 37 lairs in the emulator, the exit in Europe
-    and Japan, a KatAM mini-boss in a lair in the emulator.
+  - Not tested: a real fight won in a lair (the exit after a real defeat), the other 37 lairs in the emulator, a KatAM mini-boss in
+    a lair in the emulator.
   - Left: the other hideouts of each stage (each stage has the same four, Squeakers / Spinni / Storo / Doc; the DS uses the thief's)
     stay unused, nothing leading in: the owner may want them used too (more interludes per stage).
-- **The lairs' nests**: done (the owner, sending two screenshots of the DS's: "The original entrace 'nests' things should be placed
-  where the door where this Squeak Lair area leads to, to provide the player a warning, that, that will be a miniboss fight to go
-  to the next area in Squeak Squad stages."). A tree stump with a red flag, or a rock mound with a red flag where the stage's DS
-  lair doors are its 0xC1/0xC0 kind (a guess at the DS's choice: both looks are Prism Plains'), stands at each lair's door, drawn
-  behind Kirby. The DS's own art isn't in its files (none of its sprite or map folders holds it; it draws the lair doors some other
-  way), so both are drawn from the owner's screenshots, at the DS's size (the rock mound's 1:1, the stump's a third of its
-  picture's), 15 colors each (`KatAMExpansionSqueakNests.cs`, `squeak/gimmicks.c`'s `SqueakCreateNest`). Checked in the GBA
-  emulator (USA): the stump at 1-3-5's lair door, the rock mound at 1-4-5's.
-  - Left: the DS's own nest art, if it turns up (a DS emulator capture of a theft would show it), and which look the DS gives
-    which door.
+- **The lairs' nests**: done, with the DS's own art (the owner, sending two screenshots of the DS's: "The original entrace 'nests'
+  things should be placed where the door where this Squeak Lair area leads to, to provide the player a warning, that, that will be
+  a miniboss fight to go to the next area in Squeak Squad stages."; then: "Look for the nest entrance art since this is definitely
+  on the files."). Found: every DS room's front block table holds its world's nest, 5 blocks by 3 (blocks 0x110-0x114,
+  0x130-0x134, 0x150-0x154), drawn with the room's front tileset (`map/NN_f.bin`): stumps, grassy mounds, rock piles, castles,
+  igloos, a submarine, factories, UFOs, each with its flag (the owner's two screenshots are 04_f's stump and a rock pile). No map
+  places them (the DS must write them in when a lair door shows; not traced in its code). Now each lair's door has its room's own
+  nest drawn into the room's foreground, its doorway on the door, its feet on the door's floor, behind Kirby
+  (`KatAMExpansionSqueakNests.cs`' `SqueakNests()`); the drawn-from-screenshots sprite is gone. Every one of the 38 doors' rooms
+  has a nest in its tileset (4-3-8's is the DS's black silhouette, as that room's terrain). Checked: all 38 drawn from the DS
+  files at their doors (a picture), and in the GBA emulator (USA): 1-3-5's stump, 4-4-7's factory, 8-2-6's UFO and 4-2-3's mossy
+  stump in the game, Kirby in front.
+- **The lairs' exits**: done (the owner: "The black exit of the Squeak Lairs should be replaced with the 1 way door. Squeak Lairs
+  are not 2 way in this implementation of them. Do make sure that these exits only appear after defeating the miniboss only. These
+  can have any miniboss in game not only mouse minibosses."). The hideouts' black DS doorway (their third map layer) isn't drawn
+  in a lair; the way out is KatAM's one-way door, hidden and shut until no mini-boss with HP is left in the room, in every build
+  (before, without the NiDL ROM it was open from the start): `squeak/gimmicks.c`'s `LairExit()` (gimmick entry 0xF2), whatever
+  mini-boss is there (types 0x38-0x52: KatAM's, NiDL's or Squeak Squad's; the randomizer's mini-bosses already take the lairs'
+  with KatAM's, Include Bosses any boss). Checked in the GBA emulator, 1-3-9 (Spinni's hideout), USA with and without the NiDL
+  ROM, Europe, Japan: no door on the exit's cell while Spinni fought; his HP set to 0 by a RAM write (a forced defeat: KatAM's own
+  defeat runs from there), KatAM's one-way door showed there; Kirby put on it (Lua) took it with Up to 1-3-6, where the lair's
+  door led. Logic checks unchanged (all three versions, and without the NiDL ROM). Not tested: a real fight won, another
+  mini-boss in a lair.
 - **Leftover areas**: 1-1-5 (the field past 1-1's goal, 100 by 15) was the one room of the DS's own not reached: it now has a
   hidden one-way door in, as any room (rule 9). The others not reached are the hideouts and gold-pile rooms no lair uses (above)
   and the sky rooms the DS's warp stars fly through (3-4-5, 8-3-6, 8-3-7: the port's warp stars fly through them, Kirby never

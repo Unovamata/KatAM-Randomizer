@@ -868,11 +868,16 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
     every stage that has them, each with an arrival (no room) and a doorway (flags 0x90, room 0 door 0: back where Kirby came
     from): the Squeakers' (6-9 Squeakers, records with flag 4 or 5), Spinni's, Storo's and Doc's (the Squeak with a few
     Squeakers). The stage's thief is the Squeak whose record has flags 0xC (4, a chase record, and 8): its hideout is the one the
-    DS's lair leads to. The lair doors' look isn't in the file system (none of `enemy`, `yakumono`, `item`, `map`, `effect`,
-    `demo`, `extra`, `m_efc`, `bossbattle`, `onaka`, `kbPlt` holds a stump or rock mound with a flag; `enemy/appear` is the
-    Squeaks' entrances); the hidden ways' kinds are 0x42 (and 0x41, 0x04) or 0xC1 (and 0xC0), maybe the stump and the rock mound
-    (a guess: both looks are Prism Plains'). The port: KatAMExpansionSqueakLevels.cs' Squeak Lairs. 3-4-5, 8-3-6 and 8-3-7 are no
-    hideouts: sky rooms the warp stars' rides pass through (an arrival only).
+    DS's lair leads to. The lair doors' look (the nests) is in the rooms' own front layer: every room's front block table (map
+    table 1) holds a nest, 5 blocks across and 3 down, blocks 0x110-0x114 (the flag and the top), 0x130-0x134 and 0x150-0x154
+    (its feet; a second copy from 0x115, the same), drawn with the room's front tileset (`map/NN_f.bin`, its tiles about 672-735
+    in 04_f): each front tileset has its world's (a stump in 04_f/28_f, a grassy mound in 00_f/01_f/08_f, rock piles, castles,
+    igloos, a submarine in 0B_f/0C_f, factories in 1A_f/21_f/22_f/24_f, UFOs in 25_f-27_f, a silhouette in the dark stages'
+    31_f-33_f; none in 20_f, 29_f, 2C_f, 2D_f, 3B_f, 3E_f, 3F_f). No map places them: the game writes them in when a hidden lair
+    door shows (not traced in its code). The hideouts' black doorway is their third layer (grid 5: block 604 over 796, the doorway
+    cell and the one above, the only blocks there). The port: KatAMExpansionSqueakLevels.cs' Squeak Lairs,
+    KatAMExpansionSqueakNests.cs. 3-4-5, 8-3-6 and 8-3-7 are no hideouts: sky rooms the warp stars' rides pass through (an
+    arrival only).
   - The far views (`map/d_viw_NN.nsbtx`, 39 of them): a BTX0 file, its TEX0 block (+0x10) holding one 256-color texture (format 4)
     and its palette: 512 by 256 pixels (33), 256 by 256 (5) or 256 by 512 (d_viw_0C, a climb's); a painted panorama, its top 192
     rows what the DS shows (the rest its last row smeared down). In KatAM: shrunk to 3/4 (48 tiles wide, 20 tall with the smear),

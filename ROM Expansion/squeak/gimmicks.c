@@ -126,6 +126,9 @@ const struct SqueakSwitch gSqueakSwitch = { NULL };
 #define GIMMICK_CHASE 0xF0          // A chase's wall (squeak.h, "The chases"): its x the chest's, the room's whole height;
 #define GIMMICK_CHASE_SPAWN 0xF1    // A Squeak the chase brings: at its spot (KatAM's template spot), par[0] the character, par[1] its variant;
 #define CHASE_NEAR 64               // (a chase's Squeak comes out once its spot is this near the screen, as KatAM's enemies as the camera nears them);
+#define GIMMICK_LAIR_EXIT 0xF2      // A Squeak Lair's way out (KatAMExpansionSqueakRooms.cs): its door at its spot's cell, opened once no mini-boss is left;
+#define LAIR_EXIT_WAIT 30           // (the room's objects made by then: KatAM makes those on screen as the room comes up);
+#define LAIR_EXIT_OPEN 0xFF
 #define FAR_VIEW_FIRST 96           // (the far view's colors: KatAM's BG palettes 6-13, KatAMExpansionSqueakRooms.cs's SqueakBackground);
 #define FAR_VIEW_COLORS 128
 #define LIGHT_STEPS 16
@@ -556,6 +559,41 @@ static void ChaseSpawn(struct SqueakLogic *l, const struct SqueakGimmickEntry *e
                             e->par[1] | SQUEAK_CHASE_SPAWN, 0, 0, 0);
 }
 
+/* LairExit(); A Squeak Lair's way out (the rulebook's rule 8; the owner: "Do make sure that these exits only appear after defeating the
+ * miniboss only. These can have any miniboss in game"): built shut, its door record alone, its mirror (KatAM's one-way door) hidden
+ * (KatAMExpansionSqueakRooms.cs). LAIR_EXIT_WAIT frames after the room comes up, once no mini-boss with HP is left in it (types
+ * 0x38-0x52: KatAM's, NiDL's and Squeak Squad's, whichever the randomizer put there; one beaten before isn't made again), its record's
+ * collision is written (as enemies/arena.c's OpenDoors()), and its mirror shows, as KatAM's hidden ones do; once (its byte); */
+static bool8 MinibossLeft(u16 room) {
+    struct Task *t = &gTasks[0];
+    u8 n;
+
+    for (n = 0; n < MAX_TASK_NUM && t->next; n++) {
+        struct Object *other;
+
+        t = (struct Task *)(IWRAM_START + t->next);
+        other = TaskGetStructPtr(t);
+        if (other->base.header.kind != 1 || !ObjType38To52(other)) continue;
+        if (other->base.roomId == room && !(other->base.flags & 0x1000) && other->unk80 > 0) return TRUE;
+    }
+    return FALSE;
+}
+
+static void LairExit(struct SqueakLogic *l, const struct SqueakGimmickEntry *e) {
+    u8 *state = &l->inside[e->index], x = e->x >> 4, y = e->y >> 4, p = l->base.unk56;
+    const u8 *record;
+
+    if (*state == LAIR_EXIT_OPEN) return;
+    if (*state < LAIR_EXIT_WAIT) {
+        (*state)++;
+        return;
+    }
+    if (MinibossLeft(l->room)) return;
+    *state = LAIR_EXIT_OPEN;
+    for (record = (const u8 *)gCurLevelInfo[p].unk1E0.pat1; record[4] != 0; record += record[4])
+        if (record[0] == 3 && record[2] == x && record[3] == y && GetCollisionTile(p, x, y) != record[1]) sub_0800255C(p, x, y, record[1]);
+}
+
 static void SqueakLogicMain(void) {
     struct SqueakLogic *l = TaskGetStructPtr(gCurTask);
     struct SqueakMail *mail = SqueakMailOf(l->slot);
@@ -592,6 +630,7 @@ static void SqueakLogicMain(void) {
         case GIMMICK_SOUND: SoundGimmick(l, e); break;
         case GIMMICK_CHASE: ChaseWall(l, e); break;
         case GIMMICK_CHASE_SPAWN: ChaseSpawn(l, e); break;
+        case GIMMICK_LAIR_EXIT: LairExit(l, e); break;
         }
     }
 }
@@ -2205,33 +2244,12 @@ static void *SqueakCreatePedestal(struct ObjectTemplate *template, u8 playerId) 
     return obj;
 }
 
-/* The Squeak Lairs' nests (KatAMExpansionSqueakRooms.cs: on the door of a Squeak Squad stage that leads into a Squeak Lair, the
- * mini-boss room PlanSqueakLevels() puts between two of its rooms; its template's unk12 the look, 0 a stump, 1 a rock mound, as the DS's
- * lair doors are drawn), a warning that a fight waits past the door: drawn behind Kirby and the door's mirror, nothing touches it; */
-static void SqueakNestMain(struct Object *obj) {
-    if (gUnk_03000510.unk4 & ((1 << obj->base.unk56) | 0x10)) return;
-    GimmickAnimate(obj, &((struct SqueakGimmickObject *)obj)->spr);
-}
-
-static void *SqueakCreateNest(struct ObjectTemplate *template, u8 playerId) {
-    struct Task *task = TaskCreate(ObjectMain, sizeof(struct SqueakGimmickObject), 0x1000, TASK_USE_EWRAM, ObjectDestroy);
-    struct SqueakGimmickObject *n = TaskGetStructPtr(task);
-    struct Object *obj = &n->obj;
-
-    InitObject(obj, template, playerId);
-    GimmickInit(obj, &n->spr, template->unk12 ? SQUEAK_NEST_ROCK : SQUEAK_NEST_STUMP);
-    obj->base.sprite.unk14 = 0x7C0;
-    GimmickPlay(obj, &n->spr, 0);
-    obj->unk78 = SqueakNestMain;
-    return obj;
-}
-
 // SqueakGimmickAnim(); A gimmick's look and cell as squeak.c's SqueakAnimFor() draws it (0: the object isn't one);
 u32 SqueakGimmickAnim(struct Object *obj) {
     if (obj->type != OBJ_HAMMER_PEG) return 0;
     if (obj->objTemplate->unk11 == SQUEAK_SWITCH_OBJECT)
         return gSqueakData.enemies[SQUEAK_SWITCH].animId | (SQUEAK_HURT_VARIANTS + (obj->unk83 & 1)) << 16;
-    if (obj->objTemplate->unk11 >= SQUEAK_NEST_OBJECT && obj->objTemplate->unk11 <= SQUEAK_SHUTTER_OBJECT)
+    if (obj->objTemplate->unk11 >= SQUEAK_PEDESTAL_OBJECT && obj->objTemplate->unk11 <= SQUEAK_SHUTTER_OBJECT)
         return gSqueakData.enemies[((struct SqueakGimmickObject *)obj)->spr.look].animId | obj->unk83 << 16;
     return 0;
 }
@@ -2253,7 +2271,6 @@ void *SqueakCreateSwitch(struct ObjectTemplate *template, u8 playerId) {
     case SQUEAK_BOULDER_OBJECT: return SqueakCreateBoulder(template, playerId);
     case SQUEAK_CANDLE_OBJECT: return SqueakCreateCandle(template, playerId);
     case SQUEAK_PEDESTAL_OBJECT: return SqueakCreatePedestal(template, playerId);
-    case SQUEAK_NEST_OBJECT: return SqueakCreateNest(template, playerId);
     }
     return gSqueakSwitch.create(template, playerId);
 }
