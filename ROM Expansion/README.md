@@ -280,8 +280,8 @@ how Squeak Squad's enemies work): [Squeak Squad Notes](../Documentation/Squeak%2
   in (else the nearest to it) leads into the hideout, onto its DS arrival; the hideout's own DS doors aren't doors; its Squeak is
   a mini-boss (type 0x40, `SQUEAK_MIDBOSS` | the character, as the randomizer's), its area the screen over the floor Kirby lands on,
   with up to `LairSqueakers` of its Squeakers; its one way out (`DoorKind.Lair`, KatAM's one-way door) is built shut (its record
-  alone, its mirror hidden), on the hideout's DS doorway where that's 4 cells or more from where Kirby lands, else on a floor away
-  from both, leading where the door led; the room's gimmick list has an entry for it (`GIMMICK_LAIR_EXIT` 0xF2, its cell's spot:
+  alone, its mirror hidden), on the hideout's DS doorway, where its black doorway was (else, a hideout with none, on a floor away
+  from where Kirby lands), leading where the door led; the room's gimmick list has an entry for it (`GIMMICK_LAIR_EXIT` 0xF2, its cell's spot:
   `squeak/gimmicks.c`'s `LairExit()`), which writes its record's collision once no mini-boss (types 0x38-0x52) with HP is left in
   the room, 30 frames after it comes up, with or without the NiDL ROM (`arena.c`'s `OpenDoors()` too, with it). The hideout's
   third map layer (only its black doorway, blocks 604 over 796) isn't drawn. The template carries `SQUEAK_LAIR_FIGHT` (`unk22`): a

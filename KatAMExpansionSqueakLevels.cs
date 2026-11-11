@@ -322,8 +322,6 @@ namespace KatAMRandomizer {
         static readonly int[] LairFighters = { 29, 31, 33 };
         // (a chase record's flags: 8, the stage's thief; a DS door's: 4, a hidden way (the lair doors); the Squeakers' character);
         const int SqueakThief = 8, SqueakHiddenDoor = 4, SqueakerCharacter = 27;
-        // (a lair's way out never right beside where Kirby lands: LairApart cells across at least, or over 2 up or down: rule 8);
-        const int LairApart = 4;
         static int squeakFinaleBoss = -1;
 
         /* SqueakFinale(); The finale's ways in and out of Squeak Squad's final stage (see SqueakFinalStage): with NiDL's finale in the ROM,
@@ -862,12 +860,11 @@ namespace KatAMRandomizer {
                     if (entrance.r == null) continue;
                     (int x, int y) landing = Drop(hideout, arrival.X, arrival.Y);
                     landings.Add((hideout.Room, landing.x + 1, landing.y + 1));
-                    /* (the way out on the hideout's own DS doorway, where it's not beside where Kirby lands (Storo's and Doc's
-                     * hideouts: across the room); else a floor away from both, SqueakSpot(): Spinni's and the Squeakers' land him on
-                     * their doorway); */
+                    /* (the way out on the hideout's own DS doorway, where its black doorway was (the owner: "The one way door on the Squeak
+                     * Lairs should be where the black door was"), even where Kirby lands beside it (Spinni's and the Squeakers' hideouts:
+                     * it's shut till the fight's won); else, a hideout without one, a floor away from where he lands, SqueakSpot()); */
                     SqueakDoor doorway = hideout.Doors.FirstOrDefault(d => d.Room != SqueakNoRoom && !SqueakGoal(d) && d.X < hideout.Width && d.Y < hideout.Height);
-                    (int x, int y)? exitSpot = doorway != null && (Math.Abs(doorway.X - landing.x) >= LairApart || Math.Abs(doorway.Y - landing.y) > 2)
-                                               ? (doorway.X, doorway.Y) : SqueakSpot(hideout, false, true) ?? SqueakSpot(hideout, false, false);
+                    (int x, int y)? exitSpot = doorway != null ? (doorway.X, doorway.Y) : SqueakSpot(hideout, false, true) ?? SqueakSpot(hideout, false, false);
                     if (exitSpot is not (int ex, int ey)) {
                         landings.RemoveAt(landings.Count - 1);
                         continue;

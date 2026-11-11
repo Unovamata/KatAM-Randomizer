@@ -1033,6 +1033,12 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
   defeat runs from there), KatAM's one-way door showed there; Kirby put on it (Lua) took it with Up to 1-3-6, where the lair's
   door led. Logic checks unchanged (all three versions, and without the NiDL ROM). Not tested: a real fight won, another
   mini-boss in a lair.
+  - Then (the owner: "The one way door on the Squeak Lairs should be where the black door was..."): the way out is always on
+    the hideout's doorway, where the black doorway was, also where Kirby lands beside it (Spinni's and the Squeakers' hideouts;
+    before, it went to another floor there, 1-3-9's on its right ledge). Checked in the GBA emulator, 1-3-9, USA and Japan: no
+    door on the doorway while Spinni fought; after his forced defeat (a RAM write) KatAM's one-way door on it, and Up there took
+    Kirby to 1-3-6. Logic checks (all three versions, and without the NiDL ROM): Squeak Squad 393 of 498 rooms, the 8 switches,
+    nowhere trapped, with and without thin-floor drops; NiDL 280 of 280.
 - **Randomize Squeak Lairs**: done (the owner: "I think we can store the Unused Hideouts and actually randomize these per run, as
   in these hideouts can be anywhere since these are area transitioners. So, it would be a good idea to randomly remove or add these
   connections to these rooms in a per seed basis as a gimmick to the Squeak Squad ROM Expansion. Of course, we have to have an
@@ -1056,6 +1062,13 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
   hidden one-way door in, as any room (rule 9). The others not reached are the hideouts and gold-pile rooms no lair uses (above)
   and the sky rooms the DS's warp stars fly through (3-4-5, 8-3-6, 8-3-7: the port's warp stars fly through them, Kirby never
   stands in them).
+  - The sky rooms (the owner: "Add the warp stars necessary to transport the player to these rooms."): the warp stars that take
+    Kirby there are already in, the DS's own: 3-4-4's star flies him up through 3-4-5 (a cloud shaft) into 3-4-6, and 8-3-5's
+    through 8-3-6 (a crystal shaft) and 8-3-7 (a crystal corridor) into 8-3-8, as on the DS. Checked in the GBA emulator (USA),
+    Kirby put on each star: his room went 3-4-4, 3-4-5 (about 185 frames), 3-4-6, and 8-3-5, 8-3-6 (about 260), 8-3-7 (about
+    270), 8-3-8, each shown on the way. None was added: the three rooms have nothing to stand on (no floor), so a star landing
+    Kirby in one would need a floor built there (a design change: the owner's call). The Map Viewer and the logic checks count a
+    ride by where it lands, so they still list these three as not reached.
 - **Squeak Squad backgrounds' bottom rows**: fixed (the owner: "some Squeak Squad backgrounds have some stretching artifacts at
   the bottom, this should be fixed immediately so backgrounds look normal in-game"). The far views were shrunk to 3/4: the DS's
   192 rows became 144, short of KatAM's 160-row screen, and the last row was repeated under them in streaks. Now one that would be

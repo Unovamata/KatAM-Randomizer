@@ -169,9 +169,10 @@ after any change.
     hidden, Kirby gets to it) leads into the hideout, one-way, onto the DS's arrival there, and the hideout's one way out, shut
     until its mini-boss is beaten, leads where that door led. A nest stands at that door, the DS's own lair door for that room's
     world (a stump, a grassy mound, a rock pile, a castle, an igloo, a submarine, a factory, a UFO..., each with its flag), the
-    warning that a fight waits past it. The way out is KatAM's one-way door (the hideout's black DS doorway is gone), on that
-    doorway's spot where that's not beside where Kirby lands (Storo's and Doc's hideouts), else on a floor away from both
-    (rule 3). Stages with no Squeak thief (7-4) get none; 6-5 has three. With Randomize Squeak Lairs (the owner: "randomly remove
+    warning that a fight waits past it. The way out is KatAM's one-way door on the hideout's DS doorway, where its black doorway
+    was (the owner: "The one way door on the Squeak Lairs should be where the black door was"), even where Kirby lands beside it
+    (Spinni's and the Squeakers' hideouts: it's shut till the fight's won); a hideout with no doorway, on a floor away from where
+    he lands (rule 3). Stages with no Squeak thief (7-4) get none; 6-5 has three. With Randomize Squeak Lairs (the owner: "randomly remove
     or add these connections to these rooms in a per seed basis ... Of course, we have to have an unrandomized map as well for
     times where these won't be randomized, for this, the current layout is perfect"), the lairs are picked by the seed among each
     stage's hideouts (each one time in three; the Squeakers' hideout led by Spinni, Doc or Storo), each at a DS door the seed picks
@@ -179,7 +180,8 @@ after any change.
   - the rooms a stage reaches only through its Squeaks that no lair uses (the other three hideouts of each stage, every stage's
     copies of the same four fights, and its gold-pile treasure rooms nothing leads to) are left out, nothing leading in; a room
     after a stage's goal that isn't one of those (1-1-5, the field past its goal) is reached as any room (rule 9); the sky rooms
-    the DS's warp stars fly through (3-4-5, 8-3-6, 8-3-7) are rides' rooms, never stood in (rule 7);
+    the DS's warp stars fly through (3-4-5, 8-3-6, 8-3-7: nothing to stand on) are reached on those rides, as the DS's (3-4-4's
+    star flies through 3-4-5 into 3-4-6, 8-3-5's through 8-3-6 and 8-3-7 into 8-3-8), never stood in (rule 7);
   - each world's switch room is found by exploring: a Mirra hidden in the world's second half (its stages from the middle on by
     number, the deepest first), one-way, landing off its floor mirrors; its right floor mirror both ways with the start of the
     stage before the boss's (the deepest), its left one with the start of the deepest stage off the way from the world's first
@@ -262,7 +264,8 @@ after any change.
   long room's too, before the fight is on screen). The fight area for doors is its screen and the space it's fought in: the cells
   Kirby walks to from it, up to 4 cells across and 2 up or down (not past a wall). Those doors are built shut and open when the
   mini-boss is beaten. No two-way door in a mini-boss's room; a door into one throws Kirby in, one-way, and its way out is one-way
-  too, never right beside the way in. `Arenas()`, `InArena()`, `ArenaCells()`, `arena.c`. The Squeak Lairs (rule 5) are such rooms,
+  too, never right beside the way in (but a Squeak Lair's, on its doorway: rule 5). `Arenas()`, `InArena()`, `ArenaCells()`,
+  `arena.c`. The Squeak Lairs (rule 5) are such rooms,
   one way out each; their mini-boss, the DS's Squeak by default at its spot there, is one the randomizer's mini-boss
   randomization picks too (Include Bosses: any boss), a boss standing on the floor Kirby lands on (`SQUEAK_LAIR_FIGHT`,
   `SqueakBossFloor()`). A lair's way out shows only once its mini-boss is beaten, with or without the NiDL ROM (the owner: "Do make
