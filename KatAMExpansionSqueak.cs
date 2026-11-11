@@ -892,7 +892,7 @@ namespace KatAMRandomizer {
          * 0x0203A8A0, its animation per ability the table at 0x021582D8's; SqueakPedestalAnims: abilities 1-26's, the room's): the stand
          * and the pieces in its palette (the DS's 0), and the icon's other pieces (palettes 1-3: one each, more colors than one of
          * KatAM's palettes holds), drawn by a sprite of their own over it (squeak/gimmicks.c's SqueakCreatePedestal); */
-        internal const int SqueakPedestalLook = 92, SqueakPedestalIconLook = 93, SqueakIceFloorLook = 94;
+        internal const int SqueakPedestalLook = 92, SqueakPedestalIconLook = 93, SqueakIceFloorLook = 94, SqueakScrollIconLook = 95;
         internal static readonly int[] SqueakPedestalAnims = { 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2C, 0x2D, 0x2E, 0x2F, 0x30,
                                                                0x31, 0x32, 0x36, 0x37, 0x38, 0x39, 0x3A, 0x3B, 0x3C, 0x3D, 0x3E, 0x3F };
 
@@ -1182,6 +1182,9 @@ namespace KatAMRandomizer {
             new SqueakEnemy(SqueakIceFloorLook, "Ice", "blocks:map/a8s4s6.mxp,map/27_f.bin@1:1E0/1C0,1E1/1C1,1E2/1C2,C0/A0,C1/A1,C2/A2," +
                                                        "120/100,121/101,122/102,180/160,181/161,182/162,1E0/1C0+1E1/1C1+1E2/1C2",
                             new[] { 0, 0, 0 }, new (int, int)[0]),
+            /* The Ability Scrolls' icons (the Collection screen's, collection/skill: 23 cells and animations, one a scroll in the
+             * treasures' order, 28-50, each in its own palette row): an Ability Scroll chest's popup (chest.c's NidlScrollPopup); no name; */
+            new SqueakEnemy(SqueakScrollIconLook, "Scroll", "collection/skill", new[] { 0, 0, 0 }, new (int, int)[0]),
         };
 
         /* The randomizer's Squeak Squad pools (the ROM Expansion tab). SqueakPool; A character the randomizer places: its index (SQUEAK_*

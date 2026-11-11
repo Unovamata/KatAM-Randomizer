@@ -114,6 +114,7 @@ enum {
     SQUEAK_PEDESTAL_ICON,       // pedestal of Squeak Squad's ability n: its stand (and its icon's pieces in the stand's palette), and
                                 // its icon's other pieces (each in one of the DS's other palettes), drawn over it by a sprite of its own;
     SQUEAK_ICE_FLOOR,           // Graphics only: Dark Nebula's ice floor (squeak/dark_nebula.c's IceFloor()), the stage's ice blocks;
+    SQUEAK_SCROLL_ICON,         // Graphics only: the Ability Scrolls' icons (collection/skill, one an animation, in the scrolls' order: chest.c's popup);
     SQUEAK_ENEMY_COUNT,
 };
 

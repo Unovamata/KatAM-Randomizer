@@ -10,10 +10,12 @@ finishes it says how it was checked). The design rules for doors, mirrors and hu
 - **0x5E5's camera** (now room 0x5DE; the owner: "Room 0x5E5 camera moves without me"): not reproduced yet.
 
 ## 2. Squeak Squad objects
-- **The Ability Scroll chests' icon** (the owner: "Ability scroll chests do not display the proper icon they should be
-  displaying."): their popup shows a KatAM map item in the parchment palette; it should be the DS's scroll.
-- **What an Ability Scroll does**: the scrolls are owned and saved, they don't do anything yet. The owner's pick: port the DS's
-  upgrades, each scroll's ability's upgraded attacks where KatAM has that ability.
+- **What an Ability Scroll does**: the scrolls are owned and saved, they don't do anything yet. The owner: "For KatAM existing
+  abilities, the scroll will upgrade them with the DS moveset 1:1. However, for non existing abilities you must port the base
+  ability 1:1 and then the upgrade of it 1:1". So: each scroll's ability's DS upgrade, 1:1, for the abilities KatAM has (Fire, Ice,
+  Spark, Beam, Bomb, Cutter, Hammer, Parasol, Sleep, Sword, Throw, Tornado, Wheel); the abilities it lacks (Animal, Bubble, Ghost,
+  Metal, Ninja and the rest the scrolls name) ported 1:1 first, then their upgrades. The DS's scroll check isn't found yet (no
+  constant search finds it: the ability code must compute the treasure's number).
 - **The chase-only chests**: the 5 Ability Scroll chests the DS brings out only in the chase are there from the start; the chase's
   other chests (five of them the Vitality halves) aren't placed.
 - **The candles and the Light ability** (the owner: "Add to the pending list candle and light ability interaction", then: "the

@@ -998,6 +998,13 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
     lookups now stop at the list's end. Each holds a consumable for now (KatAM's chest items in turn); the chests of the
     treasures the owner listed (Ability Scrolls, Spray Paints, the Secret Map) are to hold those (the Spray Paints and the Secret
     Map's pieces do: below). The chase spawns' 22 chests (flag 4) aren't placed yet.
+  - **The Ability Scrolls' icons** (treasures 28-50): `collection/skill`, 23 cells and animations, one a scroll, each a 16 by 16
+    sprite in its own palette row (5 rows, 80 colors); taken in the treasures' order (cell n is treasure 28 + n: not checked against
+    the DS's own lookup, which isn't found). A scroll chest's popup shows it (`chest.c`'s `NidlScrollPopup`): KatAM's popup task as it
+    is (`sub_0800B7A4`), its sprite the scroll's frame, the palette it reads each frame (the chest's, for a map) the scroll's slot for
+    that call, flipped to face right as the DS's (the frame builder mirrors every Squeak Squad cell). The result screen's
+    `result/icon` has scroll icons too (cells 21-29, nine), not one a scroll. Checked in the GBA emulator: room 0x455's chest (scroll
+    3) opened with Up, its popup the DS's icon of scroll 3.
   - **The Secret Map's pieces** (treasures 93-99, taken as pieces 1-7 in order: not checked against the DS): each in its own chest
     (2-6-6, 3-3-7, 4-4-5, 5-4-5, 6-6-5, 7-6-9, 8-2-6), marked `chest[0x16]` the piece's number + 1 and `chest[0x17]` 2 (the area
     maps' mark is 1), the item one of KatAM's maps. Their art is `collection/map`: anims 0-6 the pieces (parchment, about 60 x 50
