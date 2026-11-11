@@ -229,8 +229,9 @@ namespace KatAMRandomizer {
         /* (Squeak Squad's Ability Scrolls, treasures 28-50 (the owner: "Implement all Ability Scrolls in their respective chests to add
          * this data to the game already"): each in its own chest as Squeak Squad has it, the chest's template's unk16
          * CHEST_MARK_SCROLL << 8 | the scroll's number + 1, its item one of KatAM's maps for its popup (chest.c's NidlChestOpen gives the
-         * scroll: owned in the save's scroll bits, "ROM Expansion/rooms.c"'s SqueakScrollOwned(), not KatAM's map); what a scroll does,
-         * and its own icon in the chest and the Collection Room, not yet; the ones SqueakObjects() placed, the same as the pieces); */
+         * scroll: owned in the save's scroll bits, "ROM Expansion/rooms.c"'s SqueakScrollOwned(), not KatAM's map; its popup the DS's
+         * icon of that scroll, chest.c's NidlScrollPopup); what a scroll does, and its icon in the Collection Room, not yet; the ones
+         * SqueakObjects() placed, the same as the pieces); */
         internal const int SqueakScrolls = 23, ChestMarkScroll = 3;
         const int SqueakScrollFirst = 28;
         static readonly Dictionary<int, SqueakRoomFiles> squeakScrollsPlaced = new Dictionary<int, SqueakRoomFiles>();

@@ -115,11 +115,52 @@ static void NidlMapPopup(void) {
     sub_0800B7A4();
 }
 
+/* NidlScrollPopup(); An Ability Scroll's popup: the DS's own icon of that scroll (collection/skill's, SQUEAK_SCROLL_ICON), not KatAM's
+ * map in the parchment's colors (the owner: "Ability scroll chests do not display the proper icon they should be displaying."): the
+ * game's popup (sub_0800B7A4) as it is, the palette it takes each frame (the chest's, for a map) the scroll's own slot for that call
+ * (the chest's own drawing is its object's, not this); the scroll's number in the popup's spare byte 1; */
+static void NidlScrollPopup(void) {
+    struct ChestItemPopup *popup = TaskGetStructPtr(gCurTask);
+    const struct SqueakGraphics *g = &gSqueakData.enemies[SQUEAK_SCROLL_ICON];
+    struct Chest *chest = popup->unk4C;
+    u8 n = popup->filler52[1], chestPalette = chest->obj.base.sprite.palId;
+
+    chest->obj.base.sprite.palId = g->palette != NULL
+                                       ? SqueakLoadPalette(g->palette[n].key, g->palette[n].variant, popup->effectObject.roomId)
+                                       : SqueakLoadPalette(g->animId, SQUEAK_HURT_VARIANTS, popup->effectObject.roomId);
+    sub_0800B7A4();
+    chest->obj.base.sprite.palId = chestPalette;
+}
+
+/* NidlScrollPopupStart(); The popup the game made for the scroll's chest (KatAM's map, 4 tiles) made the scroll's icon: its anim and
+ * frame (the frame loaded afresh), facing right as the DS's, its tiles' VRAM grown if the icon's frame takes more; left as the map if
+ * the icons aren't in the ROM (no Squeak Squad ROM); */
+static void NidlScrollPopupStart(struct Task *task, struct ChestItemPopup *popup, u8 n) {
+    const struct SqueakGraphics *g = &gSqueakData.enemies[SQUEAK_SCROLL_ICON];
+    struct Sprite *sprite = &popup->effectObject.sprite;
+
+    if (n >= SQUEAK_SCROLLS || g->cells < SQUEAK_SCROLLS)
+        return;
+    if (g->tiles > 4 && sprite->tilesVram && SqueakVramFits(g->tiles)) {
+        VramFree(sprite->tilesVram);
+        sprite->tilesVram = VramMalloc(g->tiles);
+    }
+    sprite->animId = g->animId;
+    sprite->variant = SQUEAK_HURT_VARIANTS + n;
+    sprite->unk1B = 0xFF;
+    sprite->unk20[0].unk0 = -1;
+    // (facing right, flipped: the Squeak Squad frames are mirrored to face left, KatAMExpansionSqueak.cs's SqueakCanvas());
+    popup->effectObject.flags |= 1;
+    sprite->unk8 |= 0x400;
+    popup->filler52[1] = n;
+    task->main = NidlScrollPopup;
+}
+
 /* NidlMapAfter(); After the game's opening: KatAM's map taken back and saved again, and the popup it made (sub_0800B414's task,
  * sub_0800B7A4, on this chest) the area's map's colors, or the Secret Map's (NidlMapPopup, which in its spare byte); */
 static void NidlMapAfter(struct Chest *chest, u32 katamMap) {
     u16 mark = chest->obj.objTemplate->unk16;
-    // (a scroll's popup the Secret Map's pieces' parchment);
+    // (a scroll's popup the Secret Map's pieces' parchment, unless the scroll's icons are in the ROM: NidlScrollPopupStart());
     u8 map = mark >> 8 == CHEST_MARK_PIECE || mark >> 8 == CHEST_MARK_SCROLL ? AREA_MAPS : (mark & 0xFF) - 1;
     u8 i;
 
@@ -140,6 +181,8 @@ static void NidlMapAfter(struct Chest *chest, u32 katamMap) {
             continue;
         popup->filler52[0] = map;
         task->main = NidlMapPopup;
+        if (mark >> 8 == CHEST_MARK_SCROLL)
+            NidlScrollPopupStart(task, popup, (mark & 0xFF) - 1);
         break;
     }
 }
