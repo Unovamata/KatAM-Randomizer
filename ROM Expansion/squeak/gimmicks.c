@@ -127,6 +127,7 @@ const struct SqueakSwitch gSqueakSwitch = { NULL };
 #define GIMMICK_CHASE_SPAWN 0xF1    // A Squeak the chase brings: at its spot (KatAM's template spot), par[0] the character, par[1] its variant;
 #define CHASE_NEAR 64               // (a chase's Squeak comes out once its spot is this near the screen, as KatAM's enemies as the camera nears them);
 #define GIMMICK_LAIR_EXIT 0xF2      // A Squeak Lair's way out (KatAMExpansionSqueakRooms.cs): its door at its spot's cell, opened once no mini-boss is left;
+#define GIMMICK_CURRENTS 0xF3       // A room's currents (KatAMExpansionSqueakRooms.cs's SqueakCurrents()): par[0-3] its grid's address;
 #define LAIR_EXIT_WAIT 30           // (the room's objects made by then: KatAM makes those on screen as the room comes up);
 #define LAIR_EXIT_OPEN 0xFF
 #define FAR_VIEW_FIRST 96           // (the far view's colors: KatAM's BG palettes 6-13, KatAMExpansionSqueakRooms.cs's SqueakBackground);
@@ -631,6 +632,49 @@ static void LairExit(struct SqueakLogic *l, const struct SqueakGimmickEntry *e) 
         if (record[0] == 3 && record[2] == x && record[3] == y && GetCollisionTile(p, x, y) != record[1]) sub_0800255C(p, x, y, record[1]);
 }
 
+/* Currents(); The room's currents (the DS's collision ids 0x10-0x3C, on water or air; its grid a byte a cell, 0x80 | way << 2 |
+ * strength): a Kirby whose middle is in one is moved its way 0.5, 1 or 2 pixels a frame (strength 0, 1, 2; way 0 up, 1 right, 2
+ * down, 3 left), as Squeak Squad's (measured in the DS emulator: Kirby standing in 1-1-1, its cells rewritten to each id, on air
+ * and on water, moved by exactly those, whatever he did), unless a wall stands just that way; going up, his fall is held (KatAM's
+ * gravity would win over the weaker ones: on the DS the strongest lifts him); */
+#define CURRENT_WAY(v) ((v) >> 2 & 3)
+#define CURRENT_PUSH(v) (0x80 << ((v) & 3))
+static bool32 CurrentWall(u8 p, s32 x, s32 y) {
+    return (gCollisionAttributes[GetCollisionTile(p, x >> 12, y >> 12)] & 0x200) != 0;
+}
+static void Currents(struct SqueakLogic *l, const struct SqueakGimmickEntry *e) {
+    const u8 *grid = (const u8 *)(e->par[0] | e->par[1] << 8 | e->par[2] << 16 | e->par[3] << 24);
+    u8 i;
+
+    for (i = 0; i < gNumKirbys; i++) {
+        struct Kirby *k = &gKirbys[i];
+        struct LevelInfo *level = &gCurLevelInfo[i];
+        s32 w = level->roomWidth >> 4, h = level->roomHeight >> 4, cx = k->base.x >> 12, cy = k->base.y >> 12, push;
+        u8 v;
+
+        if (k->base.roomId != l->room || level->currentRoom != l->room || cx < 0 || cy < 0 || cx >= w || cy >= h) continue;
+        v = grid[cy * w + cx];
+        if (!(v & 0x80)) continue;
+        push = CURRENT_PUSH(v);
+        switch (CURRENT_WAY(v)) {
+        case 0:
+            if (CurrentWall(i, k->base.x, k->base.y - 0xC00 - push)) break;
+            k->base.y -= push;
+            if (k->base.yspeed < 0) k->base.yspeed = 0;
+            break;
+        case 1:
+            if (!CurrentWall(i, k->base.x + 0x800 + push, k->base.y)) k->base.x += push;
+            break;
+        case 2:
+            if (!CurrentWall(i, k->base.x, k->base.y + 0x800 + push)) k->base.y += push;
+            break;
+        case 3:
+            if (!CurrentWall(i, k->base.x - 0x800 - push, k->base.y)) k->base.x -= push;
+            break;
+        }
+    }
+}
+
 static void SqueakLogicMain(void) {
     struct SqueakLogic *l = TaskGetStructPtr(gCurTask);
     struct SqueakMail *mail = SqueakMailOf(l->slot);
@@ -668,6 +712,7 @@ static void SqueakLogicMain(void) {
         case GIMMICK_CHASE: ChaseWall(l, e); break;
         case GIMMICK_CHASE_SPAWN: ChaseSpawn(l, e); break;
         case GIMMICK_LAIR_EXIT: LairExit(l, e); break;
+        case GIMMICK_CURRENTS: Currents(l, e); break;
         }
     }
 }
