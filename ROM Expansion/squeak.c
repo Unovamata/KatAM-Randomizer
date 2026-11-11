@@ -164,7 +164,7 @@ static u16 SqueakVramTiles(u32 vram) {
 /* SqueakVramFits(); KatAM's VRAM heap has a free block of `tiles` (its blocks walked, each skipped by its size): VramMalloc's own
  * search tries every free segment against those after it, a fifth of a frame when there's none (Dark Daroach's beam's sprites
  * waiting for his fire column's VRAM), so a retry asks only when it fits; */
-static bool32 SqueakVramFits(u16 tiles) {
+bool32 SqueakVramFits(u16 tiles) {
     u16 need = (tiles + 1) / 2, run = 0, i = 0, n = gVramHeapMaxTileSlots / 2;
 
     while (i < n) {
@@ -1390,6 +1390,7 @@ static void SqueakDestroy(struct Task *t) {
     if (s->enemy == SQUEAK_DAROACH) DaroachGone(s);
     if (s->enemy == SQUEAK_KING_DEDEDE) SqueakDededeGone(s);
     if (s->enemy == SQUEAK_DARK_NEBULA) DarkNebulaGone(s);
+    if (s->enemy == SQUEAK_DARK_NEBULA_AURA) DarkNebulaAuraGone(s);
     if (s->enemy == SQUEAK_YADGAINE) YadgaineGone(s);
     /* (his burning floor's tiles share his one VRAM block: not theirs to let go of, dark_nebula.c; KatAM's mark of a sprite with
      * none, which VramFree leaves be, is what VramMalloc gives when the tiles asked for are more than the heap's: ewram_end); */

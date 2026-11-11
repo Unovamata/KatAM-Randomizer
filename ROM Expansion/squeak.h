@@ -113,6 +113,7 @@ enum {
     SQUEAK_PEDESTAL,            // Graphics only: the Squeak Squad ability room's pedestals (squeak/gimmicks.c), animation n - 1 the
     SQUEAK_PEDESTAL_ICON,       // pedestal of Squeak Squad's ability n: its stand (and its icon's pieces in the stand's palette), and
                                 // its icon's other pieces (each in one of the DS's other palettes), drawn over it by a sprite of its own;
+    SQUEAK_ICE_FLOOR,           // Graphics only: Dark Nebula's ice floor (squeak/dark_nebula.c's IceFloor()), the stage's ice blocks;
     SQUEAK_ENEMY_COUNT,
 };
 
@@ -498,6 +499,7 @@ void SqueakSetCell(struct SqueakObject *, u8 cell);
  * sprite with none its type's, unless unkC 0x200 is set), its frames not stepped (sub_0809A7A4 steps a hidden sprite's animation,
  * its tiles copied in, unless flag 8 is set); */
 void SqueakNoSprite(struct SqueakObject *s);
+bool32 SqueakVramFits(u16 tiles);
 void SqueakUsePalette(struct SqueakObject *, u8 alternate);
 void SqueakDamageColors(struct SqueakObject *, bool32 on);
 u8 SqueakLoadPalette(u16 key, u8 variant, u16 roomId);
@@ -669,6 +671,7 @@ void SqueakDarkNebulaStart(struct Object *);
 void SqueakDarkNebulaThingInit(struct SqueakObject *);
 void SqueakDarkNebulaThingStart(struct Object *);
 void DarkNebulaGone(struct SqueakObject *);
+void DarkNebulaAuraGone(struct SqueakObject *);
 void YadgaineGone(struct SqueakObject *);
 
 // squeak/dark_star.c;

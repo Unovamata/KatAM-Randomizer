@@ -474,6 +474,47 @@ namespace KatAMRandomizer {
             };
         }
 
+        /* ReadSqueakBlocks(); A character of a stage's own blocks ("folder/map.mxp,folder/tileset@table:main/over+main/over,...",
+         * hexadecimal block numbers of the map's block table): each cell a block with the one over it, 16 by 32 pixels, or several such
+         * side by side ('+', each 16 pixels on to the right), its origin at the bottom middle of its first, each 8-pixel tile a piece
+         * in its tileset palette (flipped as its tilemap entry is): Dark Nebula's ice floor, the front tileset's ice blocks his pillar
+         * puts in the floor's top row, 0x022146EC. Each cell given mirrored (each piece on the other side, its flip turned), as
+         * SqueakCanvas() mirrors every Squeak Squad cell: the blocks are a stage's, drawn as they are (their left and right ends had
+         * come out swapped); */
+        static SqueakCharacter ReadSqueakBlocks(byte[] rom, string spec) {
+            string[] at = spec.Split('@'), files = at[0].Split(','), cellSpecs = at[1].Split(':');
+            SqueakMap map = new SqueakMap(SqueakUnpack(SqueakFileAnyCase(rom, files[0]) ?? throw new InvalidOperationException($"Squeak Squad's {files[0]} is missing.")));
+            SqueakTileset tileset = new SqueakTileset(SqueakFileAnyCase(rom, files[1]) ?? throw new InvalidOperationException($"Squeak Squad's {files[1]} is missing."));
+            int table = int.Parse(cellSpecs[0]);
+            List<byte> tiles = new List<byte>();
+            List<SqueakCell> cells = new List<SqueakCell>();
+            foreach (string cellSpec in cellSpecs[1].Split(',')) {
+                List<SqueakPiece> pieces = new List<SqueakPiece>();
+                string[] columns = cellSpec.Split('+');
+                for (int k = 0; k < columns.Length; k++) {
+                    int[] blocks = columns[k].Split('/').Select(b => Convert.ToInt32(b, 16)).ToArray();
+                    for (int b = 0; b < blocks.Length; b++)
+                        for (int q = 0; q < 4; q++) {
+                            int entry = map.Entry(table, blocks[b], q), tile = entry & 0x3FF;
+                            int x = -16 * k - (q % 2) * 8, y = -16 * (b + 1) + q / 2 * 8;
+                            int palette = tile < tileset.TilePalettes.Length ? tileset.TilePalettes[tile] & 15 : 0;
+                            // (a piece a tile, its tile in a 4-tile step of its own: SqueakCanvas());
+                            pieces.Add(new SqueakPiece(y & 0xFF, x & 0x1FF | (entry & 0xC00 ^ 0x400) << 2, tiles.Count / 128 | palette << 12));
+                            tiles.AddRange(tile * 32 + 32 <= tileset.Tiles.Length ? tileset.Tiles[(tile * 32)..(tile * 32 + 32)] : new byte[32]);
+                            tiles.AddRange(new byte[96]);
+                        }
+                }
+                cells.Add(new SqueakCell(0, pieces));
+            }
+            return new SqueakCharacter {
+                Tiles = tiles.ToArray(),
+                Palettes = Enumerable.Range(0, 16).Select(r => Enumerable.Range(0, 16).Select(c => (ushort)(tileset.Colors[r * 16 + c] & 0x7FFF)).ToArray()).ToList(),
+                Cells = cells,
+                Anims = cells.Select((_, i) => new SqueakAnim(true, new List<SqueakStep> { new SqueakStep(i, 1, 0, 0) })).ToList(),
+                Compositions = new List<List<SqueakPart>>(), Composites = new List<SqueakComposite>(),
+            };
+        }
+
         /* SqueakShrink(); A picture drawn at num/den of its size, its outlines a pixel wide and whole: each old pixel goes to the new
          * one its middle is in (num/den as far from the origin, the new pixels' corners on the origin's; 1, 2 or 4 old pixels a new
          * one), the new pixel an outline's (its darkest: a weighted brightness under 300 of 2550) if one of them is, so an outline
@@ -851,7 +892,7 @@ namespace KatAMRandomizer {
          * 0x0203A8A0, its animation per ability the table at 0x021582D8's; SqueakPedestalAnims: abilities 1-26's, the room's): the stand
          * and the pieces in its palette (the DS's 0), and the icon's other pieces (palettes 1-3: one each, more colors than one of
          * KatAM's palettes holds), drawn by a sprite of their own over it (squeak/gimmicks.c's SqueakCreatePedestal); */
-        internal const int SqueakPedestalLook = 92, SqueakPedestalIconLook = 93;
+        internal const int SqueakPedestalLook = 92, SqueakPedestalIconLook = 93, SqueakIceFloorLook = 94;
         internal static readonly int[] SqueakPedestalAnims = { 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2C, 0x2D, 0x2E, 0x2F, 0x30,
                                                                0x31, 0x32, 0x36, 0x37, 0x38, 0x39, 0x3A, 0x3B, 0x3C, 0x3D, 0x3E, 0x3F };
 
@@ -1133,6 +1174,14 @@ namespace KatAMRandomizer {
                             OnlyPalettes: new[] { 0 }),
             new SqueakEnemy(SqueakPedestalIconLook, "Pedestal", "item/copy", new[] { 0, 0, 0 }, new (int, int)[0], OnlyAnims: SqueakPedestalAnims,
                             OnlyPalettes: new[] { 1, 2, 3 }),
+            /* Dark Nebula's ice floor (his pillar's, 0x0212EBC4: the stage's vtable +0x8C, 0x022146EC, the floor's top row an ice block
+             * at each cell it passes, the cell over it its top, both from a8s4s6's front block table: 0xC0 alone, + 0x60 with one on its
+             * right, + 0xC0 with one on its left, + the cell's x % 3; the top 0x20 before): cells 0-2 one with both, 3-5 alone, 6-8 the
+             * left end, 9-11 the right end, each by x % 3, 12 the three with both side by side (x % 3 0, 1, 2: one sprite for three of
+             * a long row's, a third of the drawing) (squeak/dark_nebula.c's IceFloor()); no name; */
+            new SqueakEnemy(SqueakIceFloorLook, "Ice", "blocks:map/a8s4s6.mxp,map/27_f.bin@1:1E0/1C0,1E1/1C1,1E2/1C2,C0/A0,C1/A1,C2/A2," +
+                                                       "120/100,121/101,122/102,180/160,181/161,182/162,1E0/1C0+1E1/1C1+1E2/1C2",
+                            new[] { 0, 0, 0 }, new (int, int)[0]),
         };
 
         /* The randomizer's Squeak Squad pools (the ROM Expansion tab). SqueakPool; A character the randomizer places: its index (SQUEAK_*
