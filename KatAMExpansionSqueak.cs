@@ -544,18 +544,22 @@ namespace KatAMRandomizer {
          * rolling boulder's, which the DS turns as its body rolls); OnlyPalettes: only the pieces drawn with these of its .cla's palettes
          * (the others left out: SqueakSplitLayer()), a frame's palette the one of its first piece (the pedestals' icons); MapIcon: a
          * mini-boss's or boss's look in the map tracker, these cells drawn on each other with its layers (none: its first animation's
-         * first cell, KatAMExpansion.WriteSqueakMapEntries()); */
+         * first cell, KatAMExpansion.WriteSqueakMapEntries()); DamagePalette: its hurt flash's colors (Squeak Squad's `enemy/<name>.cla`,
+         * Daroach's dan_dmg: the DS's body +0x33C, shown by its vtable +0x20): per animation its palette in those colors, frames of an
+         * anim of their own (a character in several palettes: its .cla's palette n the damage file's n; squeak.c's SqueakDamageColors); */
         internal sealed record SqueakEnemy(int Index, string Name, string File, int[] HurtCells, (int type, int letter)[] Glyphs, int GraphicsOf = -1,
                                             byte MidbossType = 0, int[] OnlyAnims = null, string[] Palettes = null,
                                             (ushort from, ushort to)[] MergeColors = null, string ExtraFile = null,
                                             int[][] Layers = null, int Canvas = 128, bool BodyLast = false, bool KeepComposites = false,
                                             bool SharePalettes = false, string PaletteFile = null, bool WholeCells = false,
                                             (int Num, int Den) Scale = default, int ShiftY = 0, int Rotate = 0, int Roll = -1,
-                                            bool FlattenComposites = false, int[] OnlyPalettes = null, int[] MapIcon = null);
+                                            bool FlattenComposites = false, int[] OnlyPalettes = null, int[] MapIcon = null,
+                                            string DamagePalette = null);
         /* AnimPalettes: a character whose cells are in Squeak Squad's different palettes (Doc's things), per animation the palette its
          * sprite takes (SqueakPaletteKey); */
         internal sealed record SqueakBuilt(SqueakEnemy Enemy, int AnimId, SqueakCharacter Character, int Tiles, List<SqueakLayerBuilt> Layers = null,
-                                           List<SqueakPaletteKey> AnimPalettes = null, List<int> CellTiles = null);
+                                           List<SqueakPaletteKey> AnimPalettes = null, List<int> CellTiles = null,
+                                           List<SqueakPaletteKey> DamagePalettes = null);
         // A character's layer (Layers): its anim, the most tiles a frame takes, per cell its frame + 1 (0: none; | 0x8000: in front);
         internal sealed record SqueakLayerBuilt(int AnimId, int Tiles, ushort[] Cells, SqueakPaletteKey Palette);
         /* A palette's slot (squeak.c's SqueakLoadPalette): the key and frame of the first sprite built with it, those after it with the same
@@ -886,12 +890,12 @@ namespace KatAMRandomizer {
              * 104 pixels on from there, where its rest (152 on) starts; 128's 64 cut it in the middle (the owner: "The ray of light
              * summoned from Daroach's wand attack is cutoff in the middle"); */
             new SqueakEnemy(49, "Daroach", "dancho00", new[] { 2, 2, 2 }, DaroachGlyphs, MidbossType: 0x40, ExtraFile: "dancho01",
-                            SharePalettes: true, BodyLast: true, Canvas: 256),
+                            SharePalettes: true, BodyLast: true, Canvas: 256, DamagePalette: "dan_dmg"),
             // What he brings in (his stars 0x02124894, bombs 0x02124290, his beam's reach), drawn with his graphics, no name;
             new SqueakEnemy(50, "Daroach's thing", "dancho00", new[] { 0, 0, 0 }, new (int, int)[0], GraphicsOf: 49),
             // Dark Daroach (0x3D with its parameter 1, a8s4s2's: dancho01's palette for both sprites, 0x02126F48's +0x1F8), as Daroach;
             new SqueakEnemy(51, "Dark Daroach", "dancho00", new[] { 2, 2, 2 }, DarkDaroachGlyphs, MidbossType: 0x40, ExtraFile: "dancho01",
-                            SharePalettes: true, BodyLast: true, PaletteFile: "dancho01", Canvas: 256),
+                            SharePalettes: true, BodyLast: true, PaletteFile: "dancho01", Canvas: 256, DamagePalette: "dan_dmg"),
             new SqueakEnemy(52, "Dark Daroach's thing", "dancho00", new[] { 0, 0, 0 }, new (int, int)[0], GraphicsOf: 51),
             /* Meta Knight (a boss, enemy 0x37: 0x02116C7C, on mini-boss type 0x40 as the mid-bosses), drawn from metaknight_cmn and
              * metaknight_ext (the sprite his body switches to, its +0xE4: his sword's big moves), both in cmn's palettes (Squeak Squad's
@@ -1235,6 +1239,16 @@ namespace KatAMRandomizer {
                 }
             }
             WriteInt(rom, data + 8 + SqueakDefinitions.Count * SqueakGraphicsSize, layerTable + 0x08000000);
+            /* The hurt flashes' colors (squeak.h's SqueakData.damage, after the layers': a pointer per character, NULL or its animations'
+             * damage palettes, 4 bytes each, key and frame: DamagePalette); */
+            int damageTable = Allocate(ref localCursor, SqueakDefinitions.Count * 4, 4);
+            for (int i = 0; i < SqueakDefinitions.Count * 4; i++) rom[damageTable + i] = 0;
+            foreach (SqueakBuilt b in built.Where(b => b.DamagePalettes != null)) {
+                int keys = Allocate(ref localCursor, b.DamagePalettes.Count * 4, 4);
+                for (int a = 0; a < b.DamagePalettes.Count; a++) WriteShorts(rom, keys + a * 4, b.DamagePalettes[a].Key, b.DamagePalettes[a].Variant);
+                WriteInt(rom, damageTable + b.Enemy.Index * 4, keys + 0x08000000);
+            }
+            WriteInt(rom, data + 8 + SqueakDefinitions.Count * SqueakGraphicsSize + 4, damageTable + 0x08000000);
             cursor = localCursor;
 
             int call = version.RomSymbols["_call_via_r1"] - (site + 4 + 4);

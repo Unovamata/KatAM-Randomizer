@@ -54,8 +54,8 @@
  *   one's gone, Daroach's palette). DEFEAT_END frames on (+0x90) the stage moves on (0x020B3CE4): here he's gone, and the room's
  *   way on (squeak/gimmicks.c's PhaseWarp, waiting for him) takes the Kirbys to the dark star's chase. Daroach's own defeat (his
  *   stage's: a fanfare, the boss's shard) is KatAM's mini-boss defeat, as the other bosses'.
- * His sounds: Squeak Squad's (SqueakSfx). Not ported: his hit flash (enemy/dan_dmg's palettes: KatAM's), the screen's shakes in his
- * fight, the wand's rest (0x021249E8: once back in a cell of the stage's kind 4, it hangs there and flies off), touching an
+ * His hurt flash: the DS's (Hit(): enemy/dan_dmg's palettes, KatAMExpansionSqueak.cs's DamagePalette, squeak.c's SqueakDamageColors).
+ * His sounds: Squeak Squad's (SqueakSfx). Not ported: the screen's shakes in his fight, the wand's rest (0x021249E8: once back in a cell of the stage's kind 4, it hangs there and flies off), touching an
  * invincible Kirby (KatAM's own), his boss music. */
 #include "../squeak.h"
 #include "kirby.h"
@@ -620,11 +620,13 @@ static bool32 Untouchable(struct SqueakObject *s) {
 }
 
 /* Hit(); 0x02126B8C (KatAM's mini-bosses take hits without a hurt state of their own: a fall of his HP is the hit): SAFE_TIME frames
- * safe after one (+0xEC), a hit where he can't be hit undone; */
+ * safe after one (+0xEC), a hit where he can't be hit undone; his hurt flash as the DS's (0x020144F4 counts +0xEC down, then his
+ * vtable +0x20, 0x02126B30, while it's over 0: dan_dmg's colors when it's 3 to 5 or 9 to 11, (it / 3) odd, else his own); */
 static void Hit(struct SqueakObject *s) {
     struct Object *obj = &s->obj;
 
     if (SAFE(s) > 0) SAFE(s)--;
+    SqueakDamageColors(s, !DEFEAT(s) && SAFE(s) > 0 && (SAFE(s) / 3) % 2 != 0);
     if (obj->unk80 < LAST_HP(s) && obj->unk80 > 0 && !(obj->base.flags & 0x1000)) {
         if (Untouchable(s) || s->level) obj->unk80 = LAST_HP(s);
         else SAFE(s) = SAFE_TIME;
@@ -665,6 +667,7 @@ static void DefeatStart(struct SqueakObject *s) {
     SqueakStop(s);
     s->ay = 0;
     if (s->loopSound) SqueakStopSfx(s, s->loopSound);
+    SqueakDamageColors(s, FALSE);
     SqueakPlay(s, ANIM_DEFEAT);
     RequestScreenShake(SHAKE_DEFEAT, &s->obj.base);
     SqueakSetState(s, DR_DEFEAT);

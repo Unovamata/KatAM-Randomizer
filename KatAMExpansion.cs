@@ -1385,8 +1385,29 @@ namespace KatAMRandomizer {
                             SqueakPaletteKey shared = SharePalette(palettes[0], animId, enemy.HurtCells.Length);
                             if (shared.Key != animId && enemy.Palettes == null) animPalettes = character.Anims.Select(_ => shared).ToList();
                         }
+                        /* (its hurt flash's colors, DamagePalette: per animation the palette of its first cell in the damage file's colors, a
+                         * frame each in an anim of their own, sub_0803DFAC loading its palette; a character in several palettes only, its
+                         * frames' palettes its .cla's own: Daroach's); */
+                        List<SqueakPaletteKey> damagePalettes = null;
+                        if (enemy.DamagePalette != null && frames.Select(f => f.palette).Distinct().Count() > 1) {
+                            byte[] cla = SqueakFile(squeak, $"enemy/{enemy.DamagePalette}.cla");
+                            List<byte[]> damage = Enumerable.Range(0, ReadInt(cla, 8) / 16).Select(p => cla[(12 + p * 32)..(12 + p * 32 + 32)]).ToList();
+                            List<int> animPalette = character.Anims.Select(a => {
+                                SqueakStep first = a.Steps.FirstOrDefault(st => character.Cells[st.Cell].Pieces.Count > 0) ?? a.Steps.FirstOrDefault();
+                                return frames[first != null ? first.Cell : 0].palette;
+                            }).ToList();
+                            List<int> shown = animPalette.Distinct().ToList();
+                            var damageFrames = shown.Select((p, k) => {
+                                var f = frames[frames.FindIndex(f => f.palette == p)];
+                                return (f.tiles, f.oams, f.attributes, k);
+                            }).ToList();
+                            List<byte[]> damageColors = shown.Select(p => p < damage.Count && p < character.Palettes.Count ? damage[p] : palettes[p]).ToList();
+                            (int _, int damageAnim, int _) = AddAnim(damageColors, damageFrames, new byte[0], new List<(int, int)>(), effectOnly: damageFrames.Count);
+                            List<SqueakPaletteKey> keys = shown.Select((p, k) => SharePalette(damageColors[k], damageAnim | k << 13, k)).ToList();
+                            damagePalettes = animPalette.Select(p => keys[shown.IndexOf(p)]).ToList();
+                        }
                         squeakBuilt.Add(new SqueakBuilt(enemy, animId, character, withHurts.Max(f => f.tiles.Length / 32), layersBuilt, animPalettes,
-                                                        frames.Select(f => f.tiles.Length / 32).ToList()));
+                                                        frames.Select(f => f.tiles.Length / 32).ToList(), damagePalettes));
                         // (a mini-boss's or boss's icon and name for the map tracker: its MapIcon look, WriteSqueakMapEntries());
                         if (SqueakMidbossTypeOf(enemy) != 0) {
                             // (each cell its layers' pieces with it, behind or in front of it as the game draws them);

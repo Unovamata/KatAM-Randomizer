@@ -1291,7 +1291,12 @@ the 0x12C object of vtable `0x02183600` (`dancho00`'s 28, the dark star leaving 
 `0x02124B9C`; bouncing at 4.0 off the floor and turned round by walls, sound 0x7D, `0x02124A7C`; at rest `0x021249E8`), a bigger
 shake (4, 15, 2) and `0x02075FF4(+0x204, "enemy/dancho00")` (his own colors back); at params +0x90 (600) `0x020B3CE4` (the stage
 moves on). Daroach's (parameter 0) instead: at 60 `0x020CF07C`, at 120 the HUD's and sound's (the boss's shard follows). Params are
-`PrmBB07Ml0`'s from its +0x10 (the port's `IDLE_SHORT` is +0x00). His beam (`dancho01.mca`'s 2 and 3): its first part (animations
+`PrmBB07Ml0`'s from its +0x10 (the port's `IDLE_SHORT` is +0x00). His hurt flash (ported: `squeak.c`'s `SqueakDamageColors`, the
+character's `DamagePalette`): his constructor loads `enemy/dan_dmg` into +0x33C and his own colors (`dancho00`, or `dancho01` for
+Dark Daroach) into +0x23C, 0x80 colors each (his 8 palettes); the enemies' base update `0x020144F4` counts his safe timer (+0xEC,
+10 after a hit) down, then calls his vtable +0x20 (`0x02126B30`) with "still safe": it loads +0x23C + ((+0xEC / 3) & 1) * 0x100
+into his sprite's palettes, so `dan_dmg`'s colors (his body red) show at counts 9, 5, 4 and 3, his own otherwise; Dark Daroach
+flashes in `dan_dmg` too. His beam (`dancho01.mca`'s 2 and 3): its first part (animations
 11 and 13, 48 ahead) reaches 104 pixels on from its spot, the 16-pixel pieces of 12 and 14 go from 152 to 248; a 128-pixel frame
 cut the first part at 64 (the port's frames are 256 across).
 
