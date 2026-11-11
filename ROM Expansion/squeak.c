@@ -645,6 +645,28 @@ u8 SqueakLoadPalette(u16 key, u8 variant, u16 roomId) {
     return palId;
 }
 
+extern u16 gUnk_02022E60[];     // The keys of the palettes in KatAM's enemy slots 8-14 (sub_0803DF24, sub_0803DFAC), and how many;
+extern u8 gUnk_02022EA0;
+
+/* SqueakTakePalette(); Palette `key` (its anim's frame `variant`) into the slot of palette `take`, when `take` is loaded and `key`
+ * isn't: a character's palettes never shown together sharing one slot (Dark Nebula's forms: KatAM keeps 7 a room, and loads past
+ * them into the last, over the palette there); its slot, else 0xFF (`take` not loaded: none taken, SqueakLoadPalette's to load it); */
+u8 SqueakTakePalette(u16 key, u8 variant, u16 take, u16 roomId) {
+    struct Sprite sprite;
+    u8 i;
+
+    if (gKirbys[gLocalPlayerId].base.roomId != roomId) return 0xFF;
+    for (i = 0; i < gUnk_02022EA0; i++)
+        if (gUnk_02022E60[i] == key) return i + 8;
+    for (i = 0; i < gUnk_02022EA0; i++) {
+        if (gUnk_02022E60[i] != take) continue;
+        gUnk_02022E60[i] = key;
+        SpriteSomething(&sprite, 0x6000000, key & 0xFFF, variant, 0xFF, 0, 0, 0, 0, 0x10, i + 8, 0x80000);
+        return i + 8;
+    }
+    return 0xFF;
+}
+
 /* SqueakUsePalette(); One of the character's other palettes (KatAMExpansionSqueak.cs's Palettes: `alternate` 1 the first; 0 its own),
  * the one of its frame after its cells, under a key of its own (its anim ID | alternate << 13: sub_0803DFAC loads anim ID & 0xFFF); */
 void SqueakUsePalette(struct SqueakObject *s, u8 alternate) {
@@ -1419,7 +1441,21 @@ static struct SqueakObject *SqueakCreate(struct ObjectTemplate *template, u8 pla
     if (sSqueakCharacters[enemy].swims || SqueakDrowns(enemy)) s->obj.base.unkC |= 1;
     // (the type's AnimInfo table has one entry: ObjectInitSprite reads it; the patched drawing shows the character's own frames);
     s->obj.unk83 = 0;
-    ObjectInitSprite(&s->obj);
+    /* (its type's tiles not asked for, ObjectInitSprite made as for a sprite in another room, then its own: VramMalloc's search
+     * failing is slow, about a sixth of a frame, KatAM's heap seldom with the type's 123 in one piece in a boss's fight, his
+     * things spawned by the dozen: Dark Nebula's burning floor, a lag every other frame); */
+    if (gSqueakData.enemies[enemy].tiles > 0 && gKirbys[gLocalPlayerId].base.roomId == s->obj.base.roomId) {
+        u16 room = s->obj.base.roomId;
+
+        s->obj.base.roomId = ~room;
+        ObjectInitSprite(&s->obj);
+        s->obj.base.roomId = room;
+        s->obj.base.sprite.unk8 = 0x42000;
+        s->obj.base.sprite.unk1B = 0xFF;
+        s->obj.base.sprite.unk20[0].unk0 = -1;
+    } else {
+        ObjectInitSprite(&s->obj);
+    }
     /* (its sprite as many tiles as its own frames take, not its type's, the most any character's take: a boss's legs and things
      * spawned by the dozen would fill KatAM's 512-tile heap; the drawing copies a frame's tiles into it, its first part's too. Its
      * own asked for when its type's couldn't be got: the heap without that many in one piece, Yadgaine's rocks with its shell in); */

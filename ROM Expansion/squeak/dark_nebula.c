@@ -25,7 +25,7 @@
  *   - His fireball (0x0211EBE4): to (130, 33), his eye's blink, 40 frames, the fireball (0x0212F89C: falling 21/4096 a frame, 50 HP:
  *     10 here, 5 frames safe after a hit; broken, 5 sparks): on the floor a burst (0x0212F448: cmn's 12, then the fire wall, .mca 0,
  *     50-69 frames, then cmn's 19), flames along the floor either way (2.6), each 16-pixel tile of the floor they pass burning
- *     (0x0212F194: the stage's fire tile, map/25_f.bin's, a thing of its own here, hurting; 47 frames, the DS's 42-52); the move
+ *     (0x0212F194: the stage's fire tile, map/25_f.bin's, a flame's trail here, hurting; 47 frames, the DS's 42-52); the move
  *     ends when the fireball is gone.
  *   - His wave (0x02121480): 2-3 waves across at 1.0 (turned at the view's sides), his height a wave (3.0° a frame, 120 high, then 100)
  *     from 8 under the floor, rising or sinking 2.5 a frame at most; his eye shooting.
@@ -76,6 +76,8 @@
 #include "kirby.h"
 #include "main.h"
 #include "gba/m4a.h"
+#include "constants/object_types.h"
+#include "code_0806F780.h"
 
 void RequestScreenShake(u16, struct ObjectBase *);
 u16 ArcTan2(s16 x, s16 y);
@@ -438,13 +440,31 @@ static struct SqueakObject *Thing(struct SqueakObject *s, u8 kind, s32 dx, s32 d
     return t;
 }
 
-// Shoot(); 0x0212FF80's kind 0: a star at (vx, vy), dx ahead and dy up of him;
-static void Shoot(struct SqueakObject *s, s32 dx, s32 dy, s32 vx, s32 vy) {
-    struct SqueakObject *t = Thing(s, T_STAR, dx, dy);
+static void StarMain(struct Object *star);
 
-    if (t == NULL) return;
-    t->vx = vx;
-    t->vy = vy;
+/* Shoot(); 0x0212FF80's kind 0: a star at (vx, vy), dx ahead and dy up of him; KatAM's own (Dark Mind's shot, its objects 0xCB-0xCE:
+ * fire, ice, spark, mixed; the owner: "massive lag when summoning stars. You can use the game's existing stars"), its kind at random
+ * as Dark Mind's (the DS's in many colors too), moved by KatAM (its speed, through everything: flag 0x100), inhaled a star to spit back
+ * as the DS's (no ability: Dark Mind's give theirs), its sound the DS's; its end StarMain(); */
+static void Shoot(struct SqueakObject *s, s32 dx, s32 dy, s32 vx, s32 vy) {
+    u8 kind = Random(4);
+    s32 x = s->obj.base.x + SQUEAK_SPEED(s->obj.base.flags & 1 ? -dx : dx), y = s->obj.base.y - SQUEAK_SPEED(dy);
+    struct Object *star;
+
+    if (gKirbys[gLocalPlayerId].base.roomId != s->obj.base.roomId) return;
+    star = CreateObjTemplateAndObj(s->obj.base.unk56, 1, 0x24, x >> 8, y >> 8, 0, 0x1F, 0, 0, OBJ_DARK_MIND_STAR_FIRE + kind, 0, 0, 0,
+                                   0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+    if (star == NULL) return;
+    star->base.parent = &s->obj;
+    star->base.x = x;
+    star->base.y = y;
+    ObjectSetFunc(star, 0, StarMain);
+    star->unk83 += kind;
+    star->base.xspeed = SQUEAK_SPEED(vx);
+    star->base.yspeed = SQUEAK_SPEED(vy);
+    star->base.flags |= 0x100 | 0x2000000;
+    star->kirbyAbility = 0;
+    SqueakSound(star, 0x1D2);
 }
 
 // ShootAt(); A star at `speed` towards (tx, ty);
@@ -501,6 +521,20 @@ static void EyeMode(struct SqueakObject *s, u8 mode) {
 static void Companions(struct SqueakObject *s) {
     if (!Alive((struct SqueakObject *)EYE(s), SQUEAK_DARK_NEBULA_EYE)) EYE(s) = (s32)Thing(s, T_EYE, 0, 0);
     if (!Alive((struct SqueakObject *)AURA(s), SQUEAK_DARK_NEBULA_AURA)) AURA(s) = (s32)Thing(s, T_AURA, 0, 0);
+}
+
+/* PlayForm(); One of his forms' animations (ice, fire, spark: their palettes his .cla's 1, 3 and 2), its palette into the slot of
+ * another form's if one's loaded: one form shows at a time, and KatAM's 7 enemy palette slots are full in his fight otherwise (his
+ * black star's, his attacks' and stars', the burning floor's, KatAM's Dark Mind stars'), the last loaded over (his fire wall drawn in
+ * the burning floor's colors); */
+static void PlayForm(struct SqueakObject *s, u8 anim) {
+    static const u8 sForms[3] = { ANIM_ICE, ANIM_FIRE, ANIM_SPARK };
+    const struct SqueakPaletteKey *k = gSqueakData.enemies[s->enemy].palette;
+    u8 i;
+
+    for (i = 0; i < 3 && k != NULL; i++)
+        if (sForms[i] != anim && SqueakTakePalette(k[anim].key, k[anim].variant, k[sForms[i]].key, s->obj.base.roomId) != 0xFF) break;
+    SqueakPlay(s, anim);
 }
 
 static u8 FormAnim(s32 form) {
@@ -746,7 +780,7 @@ static void DefeatSpark(struct SqueakObject *s, s32 speed) {
 static void AnyForm(struct SqueakObject *s) {
     static const u8 sForms[3] = { ANIM_FIRE, ANIM_SPARK, ANIM_ICE };
 
-    SqueakPlay(s, sForms[Random(3)]);
+    PlayForm(s, sForms[Random(3)]);
 }
 
 /* Flicker(); 0x0211DCB8, 0x0211D9C4, 0x0211D6D0: every `every` frames (COUNT) one of his forms, or (`black`: SIDE counting down from
@@ -867,7 +901,8 @@ static bool32 DarkNebula(struct SqueakObject *s) {
         break;
     case DN_CLEAR:              // 0x02121E4C, 0x02121DE4;
         if (T(s) == 0) {
-            SqueakPlay(s, FormAnim(FORM(s)));
+            if (FORM(s) == FORM_NONE) SqueakPlay(s, ANIM_BLACK);
+            else PlayForm(s, FormAnim(FORM(s)));
             Whiten(s, FALSE, CLEAR_TIME);
         } else if (!Whitening(s)) {
             SqueakSetState(s, DN_IDLE);
@@ -1661,6 +1696,15 @@ void SqueakDarkNebulaInit(struct SqueakObject *s) {
 #define T_SAFE(t) ((t)->vars[4])
 #define T_PREV_Y(t) ((t)->vars[5])
 
+/* A flame's trail (T_BURN): the floor's tiles it set burning (0x0212F194: the stage's fire tile, each BURN_TIME frames), one thing
+ * for them all, hidden, drawing each tile itself and hurting with one box across them (a thing a tile, sixteen with his fire wall up,
+ * took a sixth of a frame more than KatAM has: a lag every other frame); */
+#define T_TRAIL(t) ((t)->vars[6])       // A flame's trail;
+#define B_FLAME(t) ((t)->vars[6])       // A trail's flame, its first and last tiles burning (16 pixels each, from the DS view's left),
+#define B_FIRST(t) ((t)->vars[7])       // each tile's frames left (none: not burning);
+#define B_LAST(t) ((t)->vars[8])
+#define B_LEFT(t, c) ((t)->vars[9 + (c)])
+
 static struct SqueakObject *Owner(struct SqueakObject *t) {
     struct SqueakObject *s = (struct SqueakObject *)t->obj.base.parent;
 
@@ -1684,6 +1728,87 @@ static bool32 OutOfView(struct SqueakObject *t, struct SqueakObject *s, u8 margi
 
 static void Gone(struct SqueakObject *t) {
     t->obj.base.flags |= 0x1000;
+}
+
+// Ignite(); Tile `c` of the floor set burning by flame `t`, its trail's (made with its first tile);
+static void Ignite(struct SqueakObject *t, struct SqueakObject *s, s32 c) {
+    struct SqueakObject *b = (struct SqueakObject *)T_TRAIL(t);
+    u8 i;
+
+    if (!Alive(b, SQUEAK_DARK_NEBULA_BURN) || B_FLAME(b) != (s32)t) {
+        b = SqueakSpawn(t, SQUEAK_DARK_NEBULA_BURN, T_BURN, 0, 0);
+        T_TRAIL(t) = (s32)b;
+        if (b == NULL) return;
+        if (!BURN_VRAM(s)) BURN_VRAM(s) = VramMalloc(gSqueakData.enemies[SQUEAK_DARK_NEBULA_BURN].tiles);
+        VramFree(b->obj.base.sprite.tilesVram);
+        b->obj.base.sprite.tilesVram = BURN_VRAM(s);
+        b->obj.base.parent = &s->obj;
+        // (the stage's tile as it is: Squeak Squad's pictures face right, KatAM's frames left, turned facing right; hidden: Burn());
+        b->obj.base.flags |= 1 | 0x400;
+        B_FLAME(b) = (s32)t;
+        B_FIRST(b) = B_LAST(b) = c;
+        for (i = 0; i < 16; i++) B_LEFT(b, i) = 0;
+    }
+    if (c < B_FIRST(b)) B_FIRST(b) = c;
+    if (c > B_LAST(b)) B_LAST(b) = c;
+    B_LEFT(b, c) = BURN_TIME;
+    BURNING(s) |= 1 << c;
+    b->obj.base.x = SpotX(s, (B_FIRST(b) + B_LAST(b) + 1) * 8);
+    b->obj.base.y = FLOOR(s);
+}
+
+/* Burn(); A trail's tiles burning out, each drawn (KatAM's drawing of an object, sub_0809A7A4's, the thing's sprite at each tile:
+ * its frame from its second, KatAM's stepping after its first), its box across them (ThingBoxes()); gone with its last, and with the
+ * floor's last their VRAM block; */
+static void Burn(struct SqueakObject *b, struct SqueakObject *s) {
+    struct LevelInfo *level = &gCurLevelInfo[gLocalPlayerId];
+    struct Sprite *sprite = &b->obj.base.sprite;
+    s32 c, first = -1, last = -1;
+    bool32 drawn = T(b) > 0 && gKirbys[gLocalPlayerId].base.roomId == b->obj.base.roomId;
+
+    for (c = B_FIRST(b); c <= B_LAST(b); c++) {
+        if (B_LEFT(b, c) <= 0) continue;
+        if (--B_LEFT(b, c) == 0) {
+            BURNING(s) &= ~(1 << c);
+            continue;
+        }
+        if (first < 0) first = c;
+        last = c;
+        if (!drawn) continue;
+        sprite->x = (SpotX(s, c * 16 + 8) >> 8) - (level->viewportPosition.x >> 8) + gUnk_0203AD18[0];
+        sprite->y = (FLOOR(s) >> 8) - (level->viewportPosition.y >> 8) + gUnk_0203AD18[1];
+        DisplaySprite(sprite);
+    }
+    if (first < 0) {
+        if (!BURNING(s) && BURN_VRAM(s)) {
+            VramFree(BURN_VRAM(s));
+            BURN_VRAM(s) = 0;
+        }
+        Gone(b);
+        return;
+    }
+    B_FIRST(b) = first;
+    B_LAST(b) = last;
+    b->obj.base.x = SpotX(s, (first + last + 1) * 8);
+    b->obj.base.y = FLOOR(s);
+}
+
+/* StarMain(); His star (Shoot()) till the floor, a wall or out of view (0x0212FAF0, 0x0212F9F8: its margins 1), or on a Kirby (a
+ * puff, as Dark Mind's: 0x08109E98); gone with him, his HP out (Owner()); */
+static void StarMain(struct Object *star) {
+    struct SqueakObject *s = (struct SqueakObject *)star->base.parent;
+    s32 x = star->base.x, y = star->base.y;
+
+    star->base.flags |= 4;
+    if (!Alive(s, SQUEAK_DARK_NEBULA) || s->obj.unk80 <= 0 || y >= FLOOR(s) || x < SpotX(s, -56) || x > SpotX(s, 2 * VIEW_HALF + 56)
+        || y < SpotY(s, 8 - 24)) {
+        star->base.flags |= 0x1000;
+        return;
+    }
+    if (star->base.unk58 & 0x200) {
+        CreateEffectObject(&star->base, 0, 0x298, 0);
+        star->base.flags |= 0x1000;
+    }
 }
 
 // OnFloor(); Its spot down to the floor where he was placed (the stage's ground: Squeak Squad's ground distance under 1);
@@ -1743,33 +1868,10 @@ static bool32 DarkNebulaThing(struct SqueakObject *t) {
             break;
         }
         x = (base->x - SpotX(s, 0)) >> 8;
-        if (x >= 0 && x < 2 * VIEW_HALF && !(BURNING(s) & (1 << (x / 16)))) {
-            struct SqueakObject *b = SqueakSpawn(t, SQUEAK_DARK_NEBULA_BURN, T_BURN, 0, 0);
-
-            if (b) {
-                if (!BURN_VRAM(s)) BURN_VRAM(s) = VramMalloc(gSqueakData.enemies[SQUEAK_DARK_NEBULA_BURN].tiles);
-                VramFree(b->obj.base.sprite.tilesVram);
-                b->obj.base.sprite.tilesVram = BURN_VRAM(s);
-                b->obj.base.parent = &s->obj;
-                b->obj.base.x = SpotX(s, x / 16 * 16 + 8);
-                b->obj.base.y = FLOOR(s);
-                // (the stage's tile as it is: Squeak Squad's pictures face right, KatAM's frames left, turned facing right);
-                b->obj.base.flags |= 1;
-                T_SIDE(b) = x / 16;
-                BURNING(s) |= 1 << (x / 16);
-            }
-        }
+        if (x >= 0 && x < 2 * VIEW_HALF && !(BURNING(s) & (1 << (x / 16)))) Ignite(t, s, x / 16);
         break;
     case T_BURN:
-        if (T(t) >= BURN_TIME) {
-            BURNING(s) &= ~(1 << T_SIDE(t));
-            // (the last one out: their block let go of);
-            if (!BURNING(s) && BURN_VRAM(s)) {
-                VramFree(BURN_VRAM(s));
-                BURN_VRAM(s) = 0;
-            }
-            Gone(t);
-        }
+        Burn(t, s);
         break;
     /* (0x0212F89C, 0x0212F770; its hits 0x0212FC08: none for 5 frames after one, a camera shake; while those 5 go, a spark every
      * third; its HP out, 0x0212F72C: its move, 5 sparks, gone; the floor: the burst, and 1 up the flames either way); */
@@ -1903,7 +2005,13 @@ static void ThingBoxes(struct SqueakObject *t) {
     case T_CAGE_SIDE: sub_0803E2B0(base, -8, -77, 8, 77); break;
     case T_CAGE_FLOOR: sub_0803E2B0(base, -108, -8, 108, 8); break;
     case T_CAGE_TOP: sub_0803E2B0(base, -108, -8, 108, 8); break;
-    case T_BURN: sub_0803E2B0(base, -8, -16, 8, 0); break;
+    case T_BURN: {
+        // (its tiles burning: 16 pixels each, its spot their middle; KatAM's box reaches 127);
+        s32 half = (B_LAST(t) - B_FIRST(t) + 1) * 8;
+
+        sub_0803E2B0(base, -half, -16, half > 127 ? 127 : half, 0);
+        break;
+    }
     default:
         sub_0803E2B0(base, -1, -1, 1, 1);
         base->unk68 = 0;
