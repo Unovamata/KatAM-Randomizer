@@ -33,8 +33,8 @@ after any change.
 - **No door, landing or way back in front of a switch** (the owner: "There's instances where switches are in front of doors, this
   breaks the 3 tile rule"): the ones added to Squeak Squad's rooms keep 3 cells across, 2 up or down, from its stone-door switches
   (gimmick 0), as enemies keep from doors; and 2 across, 2 up or down, from its other gimmicks (stone doors, lifts, clouds,
-  boulders, fires, rocks, icicles, ropes, candles: 8-1-1's door stood in a stone door's pillar). The DS's own doors stay where the DS
-  has them. `SqueakSpot()`, `NearGimmick()`.
+  boulders, fires, rocks, icicles, ropes, candles: 8-1-1's door stood in a stone door's pillar) and its chests (2-6-3's mirror stood
+  on its big chest's ledge). The DS's own doors stay where the DS has them. `SqueakSpot()`, `NearGimmick()`.
 - NiDL's own door halls (Butter Building's tower floors, Rainbow Resort's rooms of doors) keep all their doors, drawn as NiDL's
   own doorways without mirrors, past these limits.
 - **Secret doors stay hidden until uncovered**: a door behind breakable blocks or in a hidden spot only shows once Kirby finds it.
@@ -165,6 +165,8 @@ after any change.
   (its doorways are in the rooms' tiles) and lead both ways where they can (rule 3). So:
   - a branch into a stage lands in its **first room** (on a mirror back there if it takes one), else in the earliest room Kirby
     walks back from to the first through the ways back (no room before is cut off), else one-way onto the stage's start;
+  - a new door stands only where Kirby walks to from where the DS brings him into its room (never down through a thin floor:
+    7-3-2's way to 7-6-4 under its thin floors cut 7-6 off without Down and B), `Walkable()`;
   - doors go only in rooms the stage's start reaches (through the DS's own doors from every door Kirby lands on in the stage, and
     through the walls only Fire or an unported gimmick opens on the DS, which are KatAM's star blocks); where no stage in a world's tree has a room taking a door (Prism Plains 1's
     are small, 2 doors each), **a stage's goal door leads on into the next stage**, one-way;

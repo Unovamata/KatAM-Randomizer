@@ -1048,13 +1048,17 @@ namespace KatAMRandomizer {
         const int SqueakChaseSpawn = 4;
 
         /* The items (.doe item kinds, the item maker's IDs in the floating bubbles): KatAM's 1UP, Invincible Candy, Maximum Tomato, Meat,
-         * Pep Brew (the energy drink) and Cherry; a bubble holding the 1UP's look (kind 1) the 1UP, the "?" bubble (0x15) and the
-         * bubbles' other foods a Cherry. An ability (kinds 0x17-0x30, the ability the kind less 0x16; a bubble's 0 or 1 and the ability)
-         * is the enemy that gives it (SqueakAbilityEnemies: KatAM's, or Squeak Squad's own); an ability none gives, food; */
+         * Pep Brew (the energy drink) and Cherry; a bubble holding the 1UP's look (kind 1) the 1UP, the bubbles' other foods a Cherry.
+         * An ability (kinds 0x17-0x30, the ability the kind less 0x16; a bubble's 0 or 1 and the ability) is the enemy that gives it
+         * (SqueakAbilityEnemies: KatAM's, or Squeak Squad's own); an ability none gives, food. The "?" bubble (kind 0x15, and a bubble
+         * holding ability 0: the DS numbers its abilities from 1) gives a random ability: KatAM's random ability pedestal (the owner:
+         * "Random pedestal bubbles turn into consumables. Why? Literally there's a random pedestal in game"); one a barrel or a grass
+         * tuft holds comes out a Cherry (SqueakHeld()); */
         const byte KatAMCherry = 0x5E, KatAMPepBrew = 0x5F, KatAMMeat = 0x60, KatAMTomato = 0x61, KatAMOneUp = 0x63, KatAMCandy = 0x64;
+        const byte KatAMRandomPedestal = 0x96;
+        const int SqueakRandomItem = 0x15;
         static readonly Dictionary<int, byte> SqueakItemKinds = new Dictionary<int, byte> {
             [1] = KatAMOneUp, [3] = KatAMOneUp, [4] = KatAMCandy, [5] = KatAMTomato, [6] = KatAMMeat, [7] = KatAMPepBrew, [8] = KatAMCherry,
-            [0x15] = KatAMCherry,
         };
         static readonly Dictionary<int, byte> SqueakBubbleItems = new Dictionary<int, byte> {
             [1] = KatAMOneUp, [6] = KatAMTomato, [7] = KatAMPepBrew, [8] = KatAMMeat,
@@ -1170,8 +1174,17 @@ namespace KatAMRandomizer {
                 Add(template);
             }
             void Ability(int x, int y, int ability) {
-                if (SqueakAbilityEnemies.TryGetValue(ability, out var enemy)) Enemy(x, OnFloor(x, y), enemy.type, enemy.behavior, enemy.variant);
+                if (ability == 0) RandomPedestal(x, y);
+                else if (SqueakAbilityEnemies.TryGetValue(ability, out var enemy)) Enemy(x, OnFloor(x, y), enemy.type, enemy.behavior, enemy.variant);
                 else Item(x, y, KatAMCherry);
+            }
+            // (KatAM's random ability pedestal on the floor under the spot, its cell's middle, as KatAM's own: 16 pixels over the floor);
+            void RandomPedestal(int x, int y) {
+                int cx = x / 16 * 16 + 8;
+                byte[] template = ObjectTemplate(cx, OnFloor(cx, y) - 16, templates.Count, KatAMRandomPedestal);
+                template[14] = 0;
+                template[15] = 0;
+                Add(template);
             }
 
             byte[] objects = f.Objects == null ? null : SqueakFileAnyCase(squeak, f.Objects);
@@ -1260,8 +1273,11 @@ namespace KatAMRandomizer {
                         SqueakGimmick under = map.Gimmicks().FirstOrDefault(g => g.Type is SqueakPlatformGimmick or SqueakCloudGimmick
                                                                                   && Math.Abs(g.X - x) <= 24 && y >= g.Y - 24 && y <= g.Y);
                         if (under != null) floor = under.Y - 8;
-                        // (one buried in the rock, under its top: on the floor of the first open space under it, where it falls to);
-                        if (under == null && !Open(x / 16, y / 16) && !Open(x / 16, (y - 1) / 16)) {
+                        /* (one buried in the rock, under its top: on the floor of the first open space under it, where it falls to; a
+                         * door over it is no rock: 2-6-3's big chest on its ledge, a mirror's door cell over it, fell to the floor below,
+                         * on the Cherry there); */
+                        bool OpenOrDoor(int cx, int cy) => Open(cx, cy) || cx >= 0 && cy >= 0 && cx < width && cy < height && collision[cy * width + cx] >= 0xFC;
+                        if (under == null && !Open(x / 16, y / 16) && !OpenOrDoor(x / 16, (y - 1) / 16)) {
                             int cy = y / 16;
                             while (cy < height && !Open(x / 16, cy)) cy++;
                             if (cy < height) floor = OnFloor(x, cy * 16, height);
@@ -1314,12 +1330,17 @@ namespace KatAMRandomizer {
                         if (heldChest) heldChests[i] = chest;
                         else Add(chest);
                     }
+                    else if (kind == SqueakRandomItem) RandomPedestal(x, y);
                     else if (SqueakItemKinds.TryGetValue(kind, out byte item)) Item(x, y, item);
                     else if (kind > SqueakAbilityKinds) Ability(x, y, kind - SqueakAbilityKinds);
                 }
             }
 
-            // The floating bubbles (the gimmicks' entries: type, index, x, y; their table: 0x10 or 0x11 and a food, 0 or 1 and an ability);
+            /* The floating bubbles (the gimmicks' entries: type, index, x, y; their table: a byte, its high half 1 a food, 0 an ability,
+             * its low half 1 an item of the room's list (the second byte its index: 4-6-8's chest, 8-1-11's big chest, 6-2-5's
+             * Cherry), 0 the food's or ability's ID (the second byte)). One holding an item of the list adds nothing: the item stands
+             * there itself (the owner: "There are instances where there's a chest in a bubble and [...] a cherry shows on top of the
+             * chest, it's either one or the other but the chest always wins"); */
             int gimmicks = map.Section(10) + 2;
             if (map.Section(10) > 0 && gimmicks + 8 <= map.Data.Length) {
                 int entries = ReadShort(map.Data, gimmicks), tables = ReadShort(map.Data, gimmicks + 2);
@@ -1335,6 +1356,7 @@ namespace KatAMRandomizer {
                     int at = gimmicks + entries + e * 8;
                     if (map.Data[at] != SqueakBubbleGimmick || Parameters(map.Data[at], map.Data[at + 1]) is not byte[] held || held.Length < 2) continue;
                     int x = ReadShort(map.Data, at + 2), y = ReadShort(map.Data, at + 4);
+                    if ((held[0] & 0x0F) == 1) continue;
                     if ((held[0] & 0x10) != 0) Item(x, y, SqueakBubbleItems.GetValueOrDefault(held[1], KatAMCherry));
                     else Ability(x, y, held[1]);
                 }
@@ -1462,6 +1484,16 @@ namespace KatAMRandomizer {
         // (a switch: gimmick 0, KatAM's object 0x8D with its template's unk11 squeak.h's SQUEAK_SWITCH_OBJECT, chest.c's SqueakCreateSwitch);
         const byte HammerPegType = 0x8D, SqueakSwitchObject = 0x9C;
         const int SqueakSwitchGimmick = 0, SqueakSwitchBlocks = 0x10;
+        // SqueakChestCells(); The cells of a room's chests (its .doe items of kinds 0x11, 0x14): no door goes on one (NearGimmick());
+        static IEnumerable<(int x, int y)> SqueakChestCells(byte[] squeak, SqueakRoomFiles f) {
+            byte[] objects = f.Objects == null ? null : SqueakFileAnyCase(squeak, f.Objects);
+            if (objects == null || objects.Length < 8) yield break;
+            int items = ReadShort(objects, 6);
+            for (int i = 0, count = items + 2 <= objects.Length ? ReadShort(objects, items) : 0; i < count && items + 2 + i * 16 + 8 <= objects.Length; i++) {
+                int at = items + 2 + i * 16;
+                if (ReadShort(objects, at + 2) is SqueakChestSmall or SqueakChestBig) yield return (ReadShort(objects, at + 4) / 16, ReadShort(objects, at + 6) / 16);
+            }
+        }
         /* SqueakShutCells(); The cells a room's stone shutters close while shut (gimmick 2 among the ones that talk: a stone pillar starting
          * shut, its look 0 upright, 1 and 2 on their side: squeak/gimmicks.c's boxes, as the logic checks read them); */
         static HashSet<(int x, int y)> SqueakShutCells(SqueakMap map) {
@@ -1525,6 +1557,7 @@ namespace KatAMRandomizer {
                 if (items + 2 > objects.Length || par[1] >= ReadShort(objects, items) || at + 16 > objects.Length) return (0, 0, 0);
                 int kind = ReadShort(objects, at + 2);
                 if (SqueakItemKinds.TryGetValue(kind, out byte item)) return (item, 0, 0);
+                if (kind == SqueakRandomItem) return (KatAMCherry, 0, 0);
                 if (kind > SqueakAbilityKinds && SqueakKatAMAbilities.TryGetValue(kind - SqueakAbilityKinds, out byte ability)) return (KatAMAbilityStar, ability, 0);
                 return (KatAMCherry, 0, 0);
             } else {
@@ -2015,7 +2048,7 @@ namespace KatAMRandomizer {
                         Switches = map.Gimmicks().Where(g => g.Type == SqueakSwitchGimmick).Select(g => (g.X / 16, g.Y / 16)).ToList(),
                         Gimmicks = map.Gimmicks().Where(g => g.Type is SqueakRopeGimmick or SqueakShutterGimmick or SqueakPlatformGimmick or SqueakCloudGimmick
                                                              or SqueakBoulderGimmick or SqueakFireGimmick or SqueakRockGimmick or SqueakIcicleGimmick or SqueakCandleGimmick)
-                                                 .Select(g => (g.X / 16, g.Y / 16)).ToList(),
+                                                 .Select(g => (g.X / 16, g.Y / 16)).Concat(SqueakChestCells(squeak, files[i])).ToList(),
                         Rides = map.Gimmicks().Where(g => g.Type == SqueakFuseCannon && (g.Word(0) & 0xFF) < SqueakStarArrival).Select(g => (g.Word(0) & 0xFF) + 1).ToList() });
                     // (whether it draws the DS's nest: Randomize Squeak Lairs, SqueakNestKey(), SqueakNestDrawn());
                     if (files[i].Front != null && !frontOf.ContainsKey(files[i].Front))
