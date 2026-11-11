@@ -203,7 +203,7 @@ namespace KatAMMapTracker {
                 .ToList();
 
             // (a central hub's lines first, the longest first, along one trunk: Central Circle and the NiDL hub, no other room);
-            HashSet<int> hubs = map.Rooms.Values.Where(r => (r.Id == RomMap.CentralCircle || r.IsNightmareHub) && Layout.ContainsKey(r.Id)).Select(r => r.Id).ToHashSet();
+            HashSet<int> hubs = map.Rooms.Values.Where(r => (r.Id == RomMap.CentralCircle || r.IsNightmareHub || r.IsSqueakHub) && Layout.ContainsKey(r.Id)).Select(r => r.Id).ToHashSet();
             HashSet<(int a, int b)> routed = new HashSet<(int a, int b)>();
             foreach (int hub in hubs.OrderByDescending(h => connections.Count(c => c.a == h || c.b == h)).ThenBy(h => h)) {
                 List<(int a, int b)> mine = connections.Where(c => (c.a == hub || c.b == hub) && !routed.Contains(c)).OrderByDescending(c => Distance(Layout[c.a], Layout[c.b])).ToList();

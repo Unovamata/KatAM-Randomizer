@@ -11,3 +11,7 @@ const struct NidlAbilityData gNidlAbilityData = { 0 };
 #include "title.h"
 
 const struct NidlTitle gNidlTitle = { 0 };
+
+#include "squeak.h"
+
+const struct SqueakData gSqueakData = { 0 };

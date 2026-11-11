@@ -72,6 +72,7 @@ static void Roll(struct Needlous *nd) {
     struct Object *obj = &nd->n.obj;
 
     obj->base.xspeed = (obj->base.flags & 1) ? -ROLL_SPEED : ROLL_SPEED;
+    NidlSound(obj, 0xC7); // (NiDL's: the roll, 0x0807C068);
 }
 
 static void NeedlousMain(struct Object *obj) {

@@ -977,22 +977,33 @@ namespace KatAMRandomizer {
         // NameOf(); The ported enemy a behavior byte of type 0x31 picks;
         public static string NameOf(byte behavior) => Definitions.FirstOrDefault(e => e.Index == behavior >> 4)?.Name ?? Definitions[0].Name;
 
-        /* AddEnemies(); Adds every ported enemy as object type 0x31, expanding the ROM to 32 MB (rom is replaced by the bigger one).
-         * Returns null when done, or why it couldn't be done (rom is left as it was); */
-        public static string AddEnemies(ref byte[] rom, byte[] nightmare, bool rooms = true, bool title = false) {
+        /* AddEnemies(); Adds every ported enemy as object type 0x31, expanding the ROM to 32 MB (rom is replaced by the bigger one), and
+         * Squeak Squad's characters as type 0x2C with a Squeak Squad ROM. Either game can be added alone: without a NiDL ROM, only the
+         * code and what Squeak Squad's characters need (no NiDL enemies, mini-bosses, bosses, abilities, rooms or title). Returns null
+         * when done, or why it couldn't be done (rom is left as it was); */
+        public static string AddEnemies(ref byte[] rom, byte[] nightmare, bool rooms = true, bool title = false, byte[] squeak = null, bool squeakRooms = false,
+                                        bool squeakChases = false, int chaseSeed = 0, bool squeakLairShuffle = false) {
             KatAMExpansionCode.Version version = VersionOf(rom);
+            // (Randomize Squeak Lairs: the lairs picked from the seed, PlanSqueakLevels(); else the DS's thieves' hideouts);
+            squeakLairSeed = squeakLairShuffle ? chaseSeed : null;
             NightmareRegion region = RegionOf(nightmare);
+            // (KatAM's chase rooms, read before the expansion's rooms are added: KatAMExpansionChases.cs);
+            List<KatamChaseRoom> chaseRooms = squeakChases && squeak != null && version != null ? KatamChaseCandidates(rom, version) : null;
+            KatamChases.Clear();
 
             if (version == null) return "The ROM Expansion supports the USA, European and Japanese (revision 1) versions of Kirby & the Amazing Mirror.";
-            if (region == null) return "That isn't a Kirby: Nightmare in Dream Land ROM.";
-            if (region.KatAM != version.Name)
+            if (nightmare == null && squeak == null) return "Load a Nightmare in Dream Land or a Squeak Squad ROM in the ROM Expansion tab.";
+            if (nightmare != null && region == null) return "That isn't a Kirby: Nightmare in Dream Land ROM.";
+            if (region != null && region.KatAM != version.Name)
                 return $"The Nightmare in Dream Land ROM must be from the same region as Kirby & the Amazing Mirror: {version.Name} with {version.Name} (this one is from {region.KatAM}).";
+            if (squeak != null && !IsSqueakSquad(squeak)) return "That isn't a Kirby: Squeak Squad ROM.";
             if (rom.Length > ExpandedSize) return "That ROM is bigger than the GBA can map (32 MB).";
 
             byte[] original = rom;
 
             rom = Expand(rom);
-            string error = AddEnemiesTo(rom, nightmare, region, version, rooms, title);
+            string error = AddEnemiesTo(rom, nightmare, region, version, rooms && nightmare != null, title && nightmare != null, squeak, squeakRooms && squeak != null,
+                                        chaseRooms, chaseSeed);
             if (error != null) rom = original;
             return error;
         }
@@ -1006,7 +1017,8 @@ namespace KatAMRandomizer {
             return expanded;
         }
 
-        static string AddEnemiesTo(byte[] rom, byte[] nightmare, NightmareRegion region, KatAMExpansionCode.Version version, bool rooms, bool title) {
+        static string AddEnemiesTo(byte[] rom, byte[] nightmare, NightmareRegion region, KatAMExpansionCode.Version version, bool rooms, bool title,
+                                   byte[] squeak, bool squeakRooms, List<KatamChaseRoom> chaseRooms = null, int chaseSeed = 0) {
             int HurtAnimID = version.AnimCount,     // The first free anim ID (the vanilla table's size);
                 SpriteTables = version.SpriteTables, SpawnTable = version.SpawnTable, ObjectParameters = version.ObjectParameters,
                 ObjectParameters2 = version.ObjectParameters2, HitFlashBranch = version.HitFlashBranch;
@@ -1017,16 +1029,19 @@ namespace KatAMRandomizer {
 
             List<(Enemy enemy, byte[] palette, List<(byte[] tiles, ushort[] oams, short[] attributes, int palette)> frames, byte[] hurt)> built;
             List<(List<byte[]> palettes, List<(byte[] tiles, ushort[] oams, short[] attributes, int palette)> frames, byte[] hurt)> builtMinibosses;
+            // (without a NiDL ROM: none of NiDL's, only Squeak Squad's characters);
+            bool nidl = nightmare != null;
 
             try {
-                built = Definitions.Select(e => Build(nightmare, region, e)).ToList();
-                builtMinibosses = AllBosses.Select(m => BuildGraphics(nightmare, region,
+                built = !nidl ? new() : Definitions.Select(e => Build(nightmare, region, e)).ToList();
+                builtMinibosses = !nidl ? new() : AllBosses.Select(m => BuildGraphics(nightmare, region,
                     ReadInt(nightmare, region.Descriptors + MinibossDescriptors + m.NightmareIndex * 4) - 0x08000000, m.FrameTable, m.Frames,
                     new[] { m.Hurt }.Concat(m.ExtraHurts ?? new List<Part[]>()).ToList(), new Dictionary<int, ushort>(), HurtOf(m.Type).Width,
                     HurtOf(m.Type).Height, HurtOf(m.Type).OriginX, HurtOf(m.Type).OriginY, m.HurtShift)).ToList();
             } catch (Exception exception) when (exception is IndexOutOfRangeException or ArgumentException or InvalidOperationException) {
                 return $"The Nightmare in Dream Land ROM doesn't match the {region.KatAM} release.";
             }
+            List<Miniboss> allBosses = nidl ? AllBosses : new List<Miniboss>();  // The mini-bosses, then the bosses (their graphics are built the same way);
 
             int anims = ReadInt(rom, SpriteTables) - 0x08000000, attrTable = ReadInt(rom, SpriteTables + 4) - 0x08000000,
                 oamTable = ReadInt(rom, SpriteTables + 8) - 0x08000000, paletteBase = ReadInt(rom, SpriteTables + 12) - 0x08000000,
@@ -1037,7 +1052,7 @@ namespace KatAMRandomizer {
             int cursor = CodeAddress + ((code.Length + 0xFF) & ~0xFF);
 
             // Every object of type 0x31 gets VRAM for the biggest frame, plus the hurt frame's tiles at the end;
-            int frameTiles = built.SelectMany(b => b.frames).Max(f => f.tiles.Length / 32);
+            int frameTiles = nidl ? built.SelectMany(b => b.frames).Max(f => f.tiles.Length / 32) : 0;
             int numTiles = frameTiles + HurtTiles;
 
             // Anims: the hurt frame (one 32x32 piece drawing the last HurtTiles tiles), then one per enemy;
@@ -1056,12 +1071,14 @@ namespace KatAMRandomizer {
             animOams.Add(hurtOam);
 
             // NiDL's palette 15, for the frames drawn with it (the C code loads it as a second palette, from one of them);
-            int palette15At = Allocate(ref cursor, 32, 32, paletteBase);
-            Array.Copy(nightmare, region.Palette15, rom, palette15At, 32);
-            int palette15Index = (palette15At - paletteBase) / 32;
+            int palette15Index = 0;
+            if (nidl) {
+                int palette15At = Allocate(ref cursor, 32, 32, paletteBase);
+                Array.Copy(nightmare, region.Palette15, rom, palette15At, 32);
+                palette15Index = (palette15At - paletteBase) / 32;
+            }
 
             List<(int animBase, int animId, int hurtTiles)> data = new List<(int, int, int)>();
-            List<Miniboss> allBosses = AllBosses;  // The mini-bosses, then the bosses (their graphics are built the same way);
             (int animBase, int animId, int hurtTiles)[] minibossData = new (int, int, int)[allBosses.Count];
             List<(int animId, int variant)> animInfos = new List<(int, int)> { (HurtAnimID, 0), (HurtAnimID, 0) };
 
@@ -1143,12 +1160,11 @@ namespace KatAMRandomizer {
              * its mini-bosses' anims; */
             Dictionary<byte, int> minibossFrameTiles = new Dictionary<byte, int>();
             Dictionary<byte, List<(int animId, int variant)>> minibossAnimInfos = new Dictionary<byte, List<(int, int)>>();
-            foreach (byte type in BossTypes) {
-                List<int> ofType = Enumerable.Range(0, allBosses.Count).Where(i => allBosses[i].Type == type).ToList();
-                if (ofType.Count == 0) continue;
-
+            /* (TypeHurt(); a type's hurt anim, its frames' tiles typeFrameTiles: its AnimInfo table, hurt frames 0 and 1, and 2: a defeated
+             * mini-boss shows the one after its second (sub_0809D1E0)); */
+            List<(int animId, int variant)> TypeHurt(byte type, int typeFrameTiles) {
                 MinibossHurt typeHurt = HurtOf(type);
-                int typeFrameTiles = minibossFrameTiles[type] = ofType.SelectMany(i => builtMinibosses[i].frames).Max(f => f.tiles.Length / 32);
+                minibossFrameTiles[type] = typeFrameTiles;
                 int typeHurtCommands = Allocate(ref cursor, 12, 4);
                 WriteInts(rom, typeHurtCommands, 60, 0, -4);
                 int typeHurtVariants = Allocate(ref cursor, 4, 4);
@@ -1165,9 +1181,13 @@ namespace KatAMRandomizer {
                 animVariants.Add(typeHurtVariants);
                 animAttributes.Add(typeHurtAttributes);
                 animOams.Add(typeHurtOam);
+                return minibossAnimInfos[type] = Enumerable.Repeat((typeHurtAnimID, 0), 3).ToList();
+            }
+            foreach (byte type in BossTypes) {
+                List<int> ofType = Enumerable.Range(0, allBosses.Count).Where(i => allBosses[i].Type == type).ToList();
+                if (ofType.Count == 0) continue;
 
-                // Hurt frames 0 and 1, and 2: a defeated mini-boss shows the one after its second (sub_0809D1E0);
-                List<(int animId, int variant)> infos = minibossAnimInfos[type] = Enumerable.Repeat((typeHurtAnimID, 0), 3).ToList();
+                List<(int animId, int variant)> infos = TypeHurt(type, ofType.SelectMany(i => builtMinibosses[i].frames).Max(f => f.tiles.Length / 32));
                 foreach (int i in ofType) {
                     (List<byte[]> palettes, List<(byte[] tiles, ushort[] oams, short[] attributes, int palette)> frames, byte[] hurt) = builtMinibosses[i];
                     minibossData[i] = AddAnim(palettes, frames, hurt, infos, effectOnly: allBosses[i].EffectOnly);
@@ -1178,7 +1198,7 @@ namespace KatAMRandomizer {
             if (animInfos.Count > 256) throw new InvalidOperationException("The ported enemies have more than 256 frames.");
 
             // Nightmare's fight: an anim of its own, only for his sprites (KatAMExpansionNightmare.cs);
-            try {
+            if (nidl) try {
                 (List<byte[]> fightPalettes, List<(byte[] tiles, ushort[] oams, short[] attributes, int palette)> fightFrames, byte[] fightTable) =
                     NightmareFight(nightmare, region);
                 (int _, int fightAnim, int _) = AddAnim(fightPalettes, fightFrames, new byte[0], new List<(int, int)>(), effectOnly: fightFrames.Count);
@@ -1216,17 +1236,20 @@ namespace KatAMRandomizer {
             }
 
             // The new abilities' hats and motions (anims after the enemies');
-            int[] hatTables, motions, hatPalettes = new int[NewAbilities], glows = new int[12];
-            int backdropPalette;
-            (int animId, int tiles) rodStand;
+            int[] hatTables = null, motions = null, hatPalettes = new int[NewAbilities], glows = new int[13];
+            int backdropPalette = 0;
+            (int animId, int tiles) rodStand = default;
+            (int[] animIds, int[] variants, int tiles) statues = default;
             bool[][] paletteUsed = new bool[NewAbilities][];
-            try {
+            if (nidl) try {
                 hatTables = BuildHats(rom, nightmare, region, version.RomSymbols["gUnk_0834C5D4"], anims, attrTable, oamTable, tilesBase, paletteBase, ref cursor, HurtAnimID,
                                       animVariants, animAttributes, animOams, hatPalettes, paletteUsed, glows);
                 motions = BuildMotions(rom, nightmare, region, hatTables, hatPalettes, paletteUsed, tilesBase, ref cursor, HurtAnimID, animVariants,
                                        animAttributes, animOams, glows);
                 rodStand = BuildRodStand(rom, nightmare, region, hatPalettes[StarRod], paletteBase, tilesBase, ref cursor, HurtAnimID, animVariants,
                                          animAttributes, animOams, glows);
+                statues = BuildNidlStatues(rom, nightmare, region, built, builtMinibosses, paletteBase, tilesBase, ref cursor, HurtAnimID, animVariants,
+                                           animAttributes, animOams);
                 backdropPalette = BuildBackdropPalette(rom, nightmare, region, version.RomSymbols["gUnk_08350A3C"], anims, attrTable, oamTable, paletteBase,
                                                        ref cursor, HurtAnimID, animVariants, animAttributes, animOams);
                 // (Hi-Jump's effects, an anim of their own: HiJumpEffects; its ID in `glows`' last, for gNidlAbilityData.hiJumpFx);
@@ -1238,6 +1261,139 @@ namespace KatAMRandomizer {
                 return $"The Nightmare in Dream Land ROM doesn't match the {region.KatAM} release.";
             }
 
+            // Squeak Squad's characters (KatAMExpansionSqueak.cs): an anim each (its hurt frames, then its cells);
+            List<SqueakBuilt> squeakBuilt = new List<SqueakBuilt>();
+            List<SqueakEffectBuilt> squeakEffects = new List<SqueakEffectBuilt>();
+            /* (each palette's slot: the first sprite's with its colors, those after it with the same taking it: KatAM keeps 7 palettes for
+             * a room's enemies, Doc's sprites would take 6 of their own); */
+            Dictionary<string, SqueakPaletteKey> squeakPalettes = new Dictionary<string, SqueakPaletteKey>();
+            SqueakPaletteKey SharePalette(byte[] palette, int key, int variant) {
+                string colors = Convert.ToHexString(palette, 2, palette.Length - 2);
+                if (!squeakPalettes.TryGetValue(colors, out SqueakPaletteKey shared)) squeakPalettes[colors] = shared = new SqueakPaletteKey(key, variant);
+                return shared;
+            }
+            if (squeak != null) {
+                try {
+                    squeakEffects = SqueakEffectsBuild(squeak, SqueakEffectDefinitions,
+                                                       (palettes, frames) => AddAnim(palettes, frames, new byte[0], new List<(int, int)>(), effectOnly: frames.Count).Item2,
+                                                       SharePalette);
+                    foreach (SqueakEnemy enemy in SqueakDefinitions) {
+                        // (a character drawn with another's graphics, a thing it throws: that one's anim);
+                        if (enemy.GraphicsOf >= 0) {
+                            SqueakBuilt of = squeakBuilt.First(b => b.Enemy.Index == enemy.GraphicsOf);
+                            squeakBuilt.Add(of with { Enemy = enemy });
+                            continue;
+                        }
+                        string[] file = enemy.File.Split('/');
+                        SqueakCharacter character = enemy.File.StartsWith("raw:") ? ReadSqueakRaw(squeak, enemy.File[4..])
+                                                  : file.Length > 1 ? ReadSqueakCharacter(squeak, file[1], file[0], enemy.PaletteFile)
+                                                  : ReadSqueakCharacter(squeak, enemy.File, palette: enemy.PaletteFile);
+                        // (a second file's graphics after the first's: Squeak Squad's body switching sprites);
+                        foreach (string extra in (enemy.ExtraFile ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries))
+                            character = SqueakMerge(character, ReadSqueakCharacter(squeak, extra, file.Length > 1 ? file[0] : "enemy", enemy.PaletteFile),
+                                                    enemy.SharePalettes);
+                        if (enemy.OnlyAnims != null) character = SqueakKeepAnims(character, enemy.OnlyAnims, enemy.KeepComposites);
+                        if (enemy.OnlyPalettes != null) character = SqueakSplitLayer(character, enemy.OnlyPalettes, true);
+                        // (a gimmick's composite animations as plain ones after its own: the thunder cloud's);
+                        if (enemy.FlattenComposites) character = SqueakFlattenComposites(character);
+                        if (enemy.ShiftY != 0) character = SqueakShiftCells(character, enemy.ShiftY);
+                        if (enemy.Roll >= 0) character = SqueakRolled(character, enemy.Roll, 16);
+                        // (drawn smaller than the DS's: its offsets as much smaller, its frames by SqueakFrames);
+                        if (enemy.Scale.Num > 0) character = SqueakScaled(character, enemy.Scale.Num, enemy.Scale.Den);
+                        /* (the pieces in each layer's palettes drawn by a layer of their own: an anim with its own palette, a frame per cell
+                         * with any; the character itself keeps the pieces in none); */
+                        List<SqueakLayerBuilt> layersBuilt = new List<SqueakLayerBuilt>();
+                        int[][] whole = enemy.WholeCells ? enemy.Layers : null;
+                        foreach (int[] group in enemy.Layers ?? new int[0][]) {
+                            SqueakCharacter layer = SqueakSplitLayer(character, group, true, whole);
+                            List<int> layerCells = Enumerable.Range(0, layer.Cells.Count).Where(c => layer.Cells[c].Pieces.Count > 0).ToList();
+                            (List<(byte[] tiles, ushort[] oams, short[] attributes, int palette)> layerFrames, List<byte[]> layerPalettes) =
+                                SqueakFrames(layer, cells: layerCells, size: enemy.Canvas, scale: enemy.Scale);
+                            (int _, int layerAnim, int _) = AddAnim(layerPalettes, layerFrames, new byte[0], new List<(int, int)>(), effectOnly: layerFrames.Count);
+                            ushort[] perCell = new ushort[character.Cells.Count];
+                            for (int k = 0; k < layerCells.Count; k++) {
+                                int cell = layerCells[k];
+                                List<SqueakPiece> pieces = character.Cells[cell].Pieces;
+                                bool front = pieces.Count > 0 && group.Contains(pieces[0].Attr2 >> 12);
+                                perCell[cell] = (ushort)((k + 1) | (front ? 0x8000 : 0));
+                            }
+                            layersBuilt.Add(new SqueakLayerBuilt(layerAnim, layerFrames.Max(f => f.tiles.Length / 32), perCell,
+                                                                 SharePalette(layerPalettes[layerFrames[0].palette], layerAnim, 0)));
+                        }
+                        if (enemy.Layers != null) character = SqueakSplitLayer(character, enemy.Layers.SelectMany(g => g).ToArray(), false, whole);
+                        // (its other colors: their palettes, and a frame each after its cells, drawn with them: squeak.c's SqueakUsePalette);
+                        List<List<ushort[]>> alternates = enemy.Palettes?.Select(p => (file.Length > 1 ? ReadSqueakCharacter(squeak, file[1], file[0], p)
+                                                                                                         : ReadSqueakCharacter(squeak, enemy.File, palette: p)).Palettes).ToList();
+                        List<byte[]> alternatePalettes = alternates != null ? new List<byte[]>() : null;
+                        (List<(byte[] tiles, ushort[] oams, short[] attributes, int palette)> frames, List<byte[]> palettes) =
+                            SqueakFrames(character, enemy.Canvas, alternates: alternates, alternatePalettes: alternatePalettes, merge: enemy.MergeColors,
+                                         mergeShared: enemy.WholeCells, scale: enemy.Scale, rotate: enemy.Rotate);
+                        var withHurts = enemy.HurtCells.Select(c => frames[c]).Concat(frames).ToList();
+                        foreach (byte[] alternate in alternatePalettes ?? new List<byte[]>()) {
+                            palettes.Add(alternate);
+                            withHurts.Add((frames[0].tiles, frames[0].oams, frames[0].attributes, palettes.Count - 1));
+                        }
+                        (int _, int animId, int _) = AddAnim(palettes, withHurts, new byte[0], new List<(int, int)>(), effectOnly: withHurts.Count);
+                        /* (its cells in Squeak Squad's different palettes: per animation the one of its first cell, a key of its own for each
+                         * (its anim ID | n << 13: sub_0803DFAC loads anim ID & 0xFFF's frame) unless another sprite has the same colors); */
+                        List<SqueakPaletteKey> animPalettes = null;
+                        if (frames.Select(f => f.palette).Distinct().Count() > 1) {
+                            List<int> own = new List<int>();
+                            animPalettes = character.Anims.Select(a => {
+                                // (its first cell with pieces': an empty one draws nothing, Meta Knight's tornado starts with one);
+                                SqueakStep first = a.Steps.FirstOrDefault(st => character.Cells[st.Cell].Pieces.Count > 0) ?? a.Steps.FirstOrDefault();
+                                int palette = frames[first != null ? first.Cell : 0].palette;
+                                if (!own.Contains(palette)) own.Add(palette);
+                                return SharePalette(palettes[palette], animId | own.IndexOf(palette) + 1 << 13,
+                                                    enemy.HurtCells.Length + frames.FindIndex(f => f.palette == palette));
+                            }).ToList();
+                            if (own.Count > 7) throw new InvalidOperationException($"{enemy.Name} takes too many palettes.");
+                        } else {
+                            /* (one palette: the slot of an earlier sprite with its colors, if any, for each of its animations: Mrs.
+                             * Moley's dirt takes hers, KatAM's 7 slots full otherwise; a character in other colors keeps its own, the
+                             * key SqueakUsePalette's alternates count from); */
+                            SqueakPaletteKey shared = SharePalette(palettes[0], animId, enemy.HurtCells.Length);
+                            if (shared.Key != animId && enemy.Palettes == null) animPalettes = character.Anims.Select(_ => shared).ToList();
+                        }
+                        squeakBuilt.Add(new SqueakBuilt(enemy, animId, character, withHurts.Max(f => f.tiles.Length / 32), layersBuilt, animPalettes,
+                                                        frames.Select(f => f.tiles.Length / 32).ToList()));
+                        // (the platinum chest's frames in KatAM's big chest's VRAM: its type's 16 tiles);
+                        if (enemy.Index == SqueakPlatinumChest && squeakBuilt[^1].Tiles > BigChestTiles) return "Squeak Squad's platinum chest doesn't fit KatAM's big chest.";
+                        // (the switch's in the hammer peg's VRAM, object 0x8D's 4 tiles: chest.c's SqueakCreateSwitch);
+                        if (enemy.Index == SqueakSwitch && squeakBuilt[^1].Tiles > HammerPegTiles) return "Squeak Squad's switch doesn't fit KatAM's hammer peg.";
+                    }
+                } catch (Exception exception) when (exception is IndexOutOfRangeException or ArgumentException or InvalidOperationException) {
+                    return "The Squeak Squad ROM's graphics couldn't be read.";
+                }
+            }
+            /* (without NiDL's mini-bosses, the types Squeak Squad's mid-bosses take: VRAM for their biggest frame, the type's hurt frame
+             * drawing its last tiles as with NiDL's); */
+            if (!nidl)
+                foreach (IGrouping<byte, SqueakBuilt> ofType in squeakBuilt.Where(b => b.Enemy.MidbossType != 0).GroupBy(b => b.Enemy.MidbossType).OrderBy(g => g.Key))
+                    TypeHurt(ofType.Key, Math.Max(0, ofType.Max(b => b.Tiles) - HurtOf(ofType.Key).Tiles));
+
+            // Squeak Squad's spray paints' cans (KatAMExpansionSprays.cs: with its rooms, whose chests hold them);
+            int sprayIconAnim = 0;
+            if (squeakRooms) {
+                try {
+                    sprayIconAnim = AddSqueakSprayIcons(rom, squeak, anims, attrTable, oamTable, paletteBase, tilesBase, ref cursor,
+                                                        animVariants, animAttributes, animOams, HurtAnimID + animVariants.Count);
+                } catch (Exception exception) when (exception is IndexOutOfRangeException or ArgumentException or InvalidOperationException) {
+                    return "The Squeak Squad ROM's spray paints couldn't be read.";
+                }
+            }
+
+            // The areas' maps' icons (KatAMExpansionMaps.cs: with the NiDL rooms or Squeak Squad's, whose chests hold them);
+            int mapAnim = 0;
+            if (rooms || squeakRooms) {
+                try {
+                    mapAnim = AddAreaMapIcons(rom, squeakRooms ? squeak : null, anims, attrTable, oamTable, paletteBase, tilesBase, ref cursor, animVariants, animAttributes, animOams,
+                                               HurtAnimID + animVariants.Count);
+                } catch (Exception exception) when (exception is IndexOutOfRangeException or ArgumentException or InvalidOperationException) {
+                    return $"The {version.Name} ROM's map icons couldn't be read.";
+                }
+            }
+
             // Extended anims, attrs and oamData tables (indexed by anim ID);
             int[] tables = { anims, attrTable, oamTable };
             List<int>[] entries = { animVariants, animAttributes, animOams };
@@ -1247,6 +1403,18 @@ namespace KatAMRandomizer {
                 Array.Copy(rom, tables[t], rom, at, HurtAnimID * 4);
                 for (int i = 0; i < entries[t].Count; i++) WriteInt(rom, at + (HurtAnimID + i) * 4, entries[t][i] + 0x08000000);
                 WriteInt(rom, SpriteTables + t * 4, at + 0x08000000);
+            }
+            // (the spray paints' colors, tables and Collection Room cells, once the anims are there);
+            List<CollectionItem> collectionItems = new List<CollectionItem>();
+            List<(int tileset, int tilemap)[]> collectionTexts = new List<(int, int)[]>();
+            if (squeakRooms) {
+                string sprayError;
+                try {
+                    sprayError = AddSqueakSprays(rom, squeak, version, sprayIconAnim, paletteBase, collectionItems, collectionTexts, ref cursor);
+                } catch (Exception exception) when (exception is IndexOutOfRangeException or ArgumentException or InvalidOperationException) {
+                    sprayError = "The Squeak Squad ROM's spray paints couldn't be read.";
+                }
+                if (sprayError != null) return sprayError;
             }
 
             // The intro's parade: the ported enemies' types (their anims are in place now);
@@ -1268,60 +1436,68 @@ namespace KatAMRandomizer {
                 }
             }
 
-            // HP bar names, one per enemy, then one per mini-boss, then one per boss;
-            int namesAt = Allocate(ref cursor, Definitions.Count * 0x100, 4), minibossNamesAt = Allocate(ref cursor, MinibossDefinitions.Count * 0x100, 4),
-                bossNamesAt = Allocate(ref cursor, BossDefinitions.Count * 0x100, 4);
-            for (int i = 0; i < Definitions.Count; i++) ComposeName(rom, version, Definitions[i].Glyphs).CopyTo(rom, namesAt + i * 0x100);
-            for (int i = 0; i < MinibossDefinitions.Count; i++) ComposeName(rom, version, MinibossDefinitions[i].Glyphs).CopyTo(rom, minibossNamesAt + i * 0x100);
-            for (int i = 0; i < BossDefinitions.Count; i++) ComposeName(rom, version, BossDefinitions[i].Glyphs).CopyTo(rom, bossNamesAt + i * 0x100);
-
-            // gNidlData: names, then per enemy (animBase, animId, hurt tiles);
-            int nidlData = CodeAddress + version.NidlData;
-            WriteInt(rom, nidlData, namesAt + 0x08000000);
-            for (int i = 0; i < data.Count; i++) {
-                int entry = nidlData + 4 + Definitions[i].Index * 8;
-                WriteShort(rom, entry, data[i].animBase);
-                WriteShort(rom, entry + 2, data[i].animId);
-                WriteInt(rom, entry + 4, data[i].hurtTiles + 0x08000000);
-            }
-            // Then the mini-bosses': names, then per mini-boss (animBase, animId, hurt tiles);
-            int minibossNidlData = nidlData + 4 + EnemyCount * 8;
-            WriteInt(rom, minibossNidlData, minibossNamesAt + 0x08000000);
-            for (int i = 0; i < MinibossDefinitions.Count; i++) {
-                int entry = minibossNidlData + 4 + MinibossDefinitions[i].Index * 8;
-                WriteShort(rom, entry, minibossData[i].animBase);
-                WriteShort(rom, entry + 2, minibossData[i].animId);
-                WriteInt(rom, entry + 4, minibossData[i].hurtTiles + 0x08000000);
-            }
-            // Then the bosses' the same way;
-            int bossNidlData = minibossNidlData + 4 + MinibossCount * 8;
-            WriteInt(rom, bossNidlData, bossNamesAt + 0x08000000);
-            for (int i = 0; i < BossDefinitions.Count; i++) {
-                int entry = bossNidlData + 4 + BossDefinitions[i].Index * 8;
-                (int animBase, int animId, int hurtTiles) = minibossData[MinibossDefinitions.Count + i];
-                WriteShort(rom, entry, animBase);
-                WriteShort(rom, entry + 2, animId);
-                WriteInt(rom, entry + 4, hurtTiles + 0x08000000);
-            }
-
-            WriteMapTable(rom, nightmare, region, builtMinibosses, ref cursor);
-
-            /* Object type 0x31: spawn function and parameters (hurt frames 0 & 1, Waddle Dee's score and HP, no ability, no palette
-             * key (each enemy loads its own), VRAM tiles, behavior start, animations). Its second parameters are Waddle Dee's; */
+            // (the rest of this, up to the Squeak Squad characters, NiDL's only);
             int codeBase = CodeAddress + 0x08000000;
-            int parameters = ObjectParameters + NightmareID * 0x18;
+            if (nidl) {
+                // HP bar names, one per enemy, then one per mini-boss, then one per boss;
+                int namesAt = Allocate(ref cursor, Definitions.Count * 0x100, 4), minibossNamesAt = Allocate(ref cursor, MinibossDefinitions.Count * 0x100, 4),
+                    bossNamesAt = Allocate(ref cursor, BossDefinitions.Count * 0x100, 4);
+                for (int i = 0; i < Definitions.Count; i++) ComposeName(rom, version, Definitions[i].Glyphs).CopyTo(rom, namesAt + i * 0x100);
+                for (int i = 0; i < MinibossDefinitions.Count; i++) ComposeName(rom, version, MinibossDefinitions[i].Glyphs).CopyTo(rom, minibossNamesAt + i * 0x100);
+                for (int i = 0; i < BossDefinitions.Count; i++) ComposeName(rom, version, BossDefinitions[i].Glyphs).CopyTo(rom, bossNamesAt + i * 0x100);
 
-            WriteInt(rom, SpawnTable + NightmareID * 4, codeBase + version.CreateNidlEnemy + 1);
-            rom[parameters] = 0;
-            rom[parameters + 1] = 1;
-            Array.Copy(rom, ObjectParameters + 2, rom, parameters + 2, 4);
-            WriteShort(rom, parameters + 6, 0);
-            WriteShort(rom, parameters + 8, 0);
-            WriteShort(rom, parameters + 10, 0);
-            WriteInt(rom, parameters + 12, numTiles);
-            WriteInt(rom, parameters + 16, codeBase + version.NidlStart + 1);
-            WriteInt(rom, parameters + 20, animInfosAt + 0x08000000);
-            Array.Copy(rom, ObjectParameters2, rom, ObjectParameters2 + NightmareID * 8, 8);
+                // gNidlData: names, then per enemy (animBase, animId, hurt tiles);
+                int nidlData = CodeAddress + version.NidlData;
+                WriteInt(rom, nidlData, namesAt + 0x08000000);
+                for (int i = 0; i < data.Count; i++) {
+                    int entry = nidlData + 4 + Definitions[i].Index * 8;
+                    WriteShort(rom, entry, data[i].animBase);
+                    WriteShort(rom, entry + 2, data[i].animId);
+                    WriteInt(rom, entry + 4, data[i].hurtTiles + 0x08000000);
+                }
+                // Then the mini-bosses': names, then per mini-boss (animBase, animId, hurt tiles);
+                int minibossNidlData = nidlData + 4 + EnemyCount * 8;
+                WriteInt(rom, minibossNidlData, minibossNamesAt + 0x08000000);
+                for (int i = 0; i < MinibossDefinitions.Count; i++) {
+                    int entry = minibossNidlData + 4 + MinibossDefinitions[i].Index * 8;
+                    WriteShort(rom, entry, minibossData[i].animBase);
+                    WriteShort(rom, entry + 2, minibossData[i].animId);
+                    WriteInt(rom, entry + 4, minibossData[i].hurtTiles + 0x08000000);
+                }
+                // Then the bosses' the same way;
+                int bossNidlData = minibossNidlData + 4 + MinibossCount * 8;
+                WriteInt(rom, bossNidlData, bossNamesAt + 0x08000000);
+                for (int i = 0; i < BossDefinitions.Count; i++) {
+                    int entry = bossNidlData + 4 + BossDefinitions[i].Index * 8;
+                    (int animBase, int animId, int hurtTiles) = minibossData[MinibossDefinitions.Count + i];
+                    WriteShort(rom, entry, animBase);
+                    WriteShort(rom, entry + 2, animId);
+                    WriteInt(rom, entry + 4, hurtTiles + 0x08000000);
+                }
+
+                WriteMapTable(rom, nightmare, region, builtMinibosses, ref cursor);
+
+                /* Object type 0x31: spawn function and parameters (hurt frames 0 & 1, Waddle Dee's score and HP, no ability, no palette
+                 * key (each enemy loads its own), VRAM tiles, behavior start, animations). Its second parameters are Waddle Dee's; */
+                int parameters = ObjectParameters + NightmareID * 0x18;
+
+                WriteInt(rom, SpawnTable + NightmareID * 4, codeBase + version.CreateNidlEnemy + 1);
+                rom[parameters] = 0;
+                rom[parameters + 1] = 1;
+                Array.Copy(rom, ObjectParameters + 2, rom, parameters + 2, 4);
+                WriteShort(rom, parameters + 6, 0);
+                WriteShort(rom, parameters + 8, 0);
+                WriteShort(rom, parameters + 10, 0);
+                WriteInt(rom, parameters + 12, numTiles);
+                WriteInt(rom, parameters + 16, codeBase + version.NidlStart + 1);
+                WriteInt(rom, parameters + 20, animInfosAt + 0x08000000);
+                Array.Copy(rom, ObjectParameters2, rom, ObjectParameters2 + NightmareID * 8, 8);
+            }
+
+            // Object type 0x2C, Squeak Squad's characters (KatAMExpansionSqueak.cs);
+            if (squeakBuilt.Count > 0 && WriteSqueak(rom, version, ref cursor, squeakBuilt,
+                                                     minibossFrameTiles.ToDictionary(p => p.Key, p => p.Value + HurtOf(p.Key).Tiles), squeakEffects)
+                                         is string squeakError) return squeakError;
 
             /* Object types 0x40-0x42: spawn function and parameters, as Mr. Frosty's (type 0x38: score, HP) but for its hurt frames (0 &
              * 1), no ability (the code sets each mini-boss's), no palette key, VRAM tiles (the type's biggest frame, then the hurt frame),
@@ -1352,33 +1528,41 @@ namespace KatAMRandomizer {
             /* The Star Rod's stand in the NiDL hub (object 0x9A, which KatAM leaves empty: "ROM Expansion/abilities/star_rod_stand.c"): its
              * spawn, and parameters as the Master Sword's stand's (0x98) but for its ability, its palette key and anim (BuildRodStand()'s:
              * an AnimInfo, its variant 0) and VRAM tiles; its second parameters are the Master Sword stand's; */
-            int rodStandParameters = ObjectParameters + RodStandType * 0x18, rodStandAnims = Allocate(ref cursor, 4, 4);
-            WriteInt(rom, SpawnTable + RodStandType * 4, codeBase + version.CodeSymbols["NidlCreateRodStand"] + 1);
-            Array.Copy(rom, ObjectParameters + MasterSwordStand * 0x18, rom, rodStandParameters, 0x18);
-            WriteShort(rom, rodStandParameters + 6, FirstAbility + StarRod);
-            WriteShort(rom, rodStandParameters + 8, rodStand.animId);
-            WriteInt(rom, rodStandParameters + 12, rodStand.tiles);
-            WriteInt(rom, rodStandParameters + 20, rodStandAnims + 0x08000000);
-            WriteInt(rom, rodStandAnims, rodStand.animId);
-            Array.Copy(rom, ObjectParameters2 + MasterSwordStand * 8, rom, ObjectParameters2 + RodStandType * 8, 8);
+            /* (and the NiDL ability statues, its subtypes 1-7 (star_rod_stand.c, BuildNidlStatues()): its AnimInfos the rod's, then each
+             * statue's anim and variant; VRAM for the biggest; no palette key of its own, each loads its own anim's: gNidlStandKeys,
+             * the rod's then the statues'); */
+            if (nidl) {
+                int rodStandParameters = ObjectParameters + RodStandType * 0x18, rodStandAnims = Allocate(ref cursor, 4 * (1 + NidlStatues.Length), 4);
+                WriteInt(rom, SpawnTable + RodStandType * 4, codeBase + version.CodeSymbols["NidlCreateRodStand"] + 1);
+                Array.Copy(rom, ObjectParameters + MasterSwordStand * 0x18, rom, rodStandParameters, 0x18);
+                WriteShort(rom, rodStandParameters + 6, FirstAbility + StarRod);
+                WriteShort(rom, rodStandParameters + 8, 0);
+                WriteInt(rom, rodStandParameters + 12, Math.Max(rodStand.tiles, statues.tiles));
+                WriteInt(rom, rodStandParameters + 20, rodStandAnims + 0x08000000);
+                WriteInt(rom, rodStandAnims, rodStand.animId);
+                for (int i = 0; i < NidlStatues.Length; i++) WriteInt(rom, rodStandAnims + 4 + i * 4, statues.animIds[i] | statues.variants[i] << 16);
+                WriteShort(rom, CodeAddress + version.CodeSymbols["gNidlStandKeys"], rodStand.animId);
+                for (int i = 0; i < NidlStatues.Length; i++) WriteShort(rom, CodeAddress + version.CodeSymbols["gNidlStandKeys"] + 2 + i * 2, statues.animIds[i]);
+                Array.Copy(rom, ObjectParameters2 + MasterSwordStand * 8, rom, ObjectParameters2 + RodStandType * 8, 8);
 
-            /* Mirras (object 0x34) fall, and open their door where they are ("ROM Expansion/mirra.c"): its spawn becomes NidlCreateMirra
-             * (the original's address in gNidlMirra), and its door's opening (sub_080B11C0) jumps to NidlMirraOpen, which does its work
-             * itself (the ported rooms have a door at each cell a Mirra can land in: MirraLandings()); */
-            int mirraOpen = version.RomSymbols["sub_080B11C0"];
-            // (its first instruction, push {r4, r5, lr});
-            if (ReadInt(rom, SpawnTable + MirraType * 4) >> 24 != 0x08 || ReadShort(rom, mirraOpen) != 0xB530) return $"The ROM's data doesn't match the {version.Name} release.";
-            WriteInt(rom, CodeAddress + version.CodeSymbols["gNidlMirra"], ReadInt(rom, SpawnTable + MirraType * 4));
-            WriteInt(rom, SpawnTable + MirraType * 4, codeBase + version.CodeSymbols["NidlCreateMirra"] + 1);
-            if ((mirraOpen & 2) != 0) { WriteShort(rom, mirraOpen, 0x46C0); mirraOpen += 2; }    // (a nop: the jump's address word aligned);
-            WriteShorts(rom, mirraOpen, 0x4B00, 0x4718);    // ldr r3, [pc, #0]; bx r3;
-            WriteInt(rom, mirraOpen + 4, codeBase + version.CodeSymbols["NidlMirraOpen"] + 1);
+                /* Mirras (object 0x34) fall, and open their door where they are ("ROM Expansion/mirra.c"): its spawn becomes NidlCreateMirra
+                 * (the original's address in gNidlMirra), and its door's opening (sub_080B11C0) jumps to NidlMirraOpen, which does its work
+                 * itself (the ported rooms have a door at each cell a Mirra can land in: MirraLandings()); */
+                int mirraOpen = version.RomSymbols["sub_080B11C0"];
+                // (its first instruction, push {r4, r5, lr});
+                if (ReadInt(rom, SpawnTable + MirraType * 4) >> 24 != 0x08 || ReadShort(rom, mirraOpen) != 0xB530) return $"The ROM's data doesn't match the {version.Name} release.";
+                WriteInt(rom, CodeAddress + version.CodeSymbols["gNidlMirra"], ReadInt(rom, SpawnTable + MirraType * 4));
+                WriteInt(rom, SpawnTable + MirraType * 4, codeBase + version.CodeSymbols["NidlCreateMirra"] + 1);
+                if ((mirraOpen & 2) != 0) { WriteShort(rom, mirraOpen, 0x46C0); mirraOpen += 2; }    // (a nop: the jump's address word aligned);
+                WriteShorts(rom, mirraOpen, 0x4B00, 0x4718);    // ldr r3, [pc, #0]; bx r3;
+                WriteInt(rom, mirraOpen + 4, codeBase + version.CodeSymbols["NidlMirraOpen"] + 1);
 
-            /* A boss's shard once its cutscene ends: its step (sub_0801C558) jumps to NidlShardDone ("ROM Expansion/chest.c", HookShards(),
-             * as the shard options hook it), which has a NiDL boss's victory dance on the ground under the shard: KatAM's spot for it is its
-             * table's for the shard (gUnk_08352DBE), made for that shard's KatAM boss room (Meta Knight's with shard 5: past the room's
-             * corner, where Kirby died, the owner's); */
-            if (HookShards(rom, version) is string shardError) return shardError;
+                /* A boss's shard once its cutscene ends: its step (sub_0801C558) jumps to NidlShardDone ("ROM Expansion/chest.c", HookShards(),
+                 * as the shard options hook it), which has a NiDL boss's victory dance on the ground under the shard: KatAM's spot for it is its
+                 * table's for the shard (gUnk_08352DBE), made for that shard's KatAM boss room (Meta Knight's with shard 5: past the room's
+                 * corner, where Kirby died, the owner's); */
+                if (HookShards(rom, version) is string shardError) return shardError;
+            }
 
             /* The HP bar's fill: HP times its type's factor, >> 8 (64: full), the factor 0x4000 / the HP at the start (gUnk_08351458[type -
              * 0x38][players - 1] for types 0x38-0x52, Dark Mind's first form's gUnk_08351628, gUnk_083513E8[type] for the rest), worked
@@ -1399,7 +1583,7 @@ namespace KatAMRandomizer {
             /* A boss's defeat runs gUnk_08350E58[type - 0x43] as it explodes (KatAM's bosses leave their shard there): type 0x43's (none)
              * and 0x44's (none) are the bosses' NidlBossDefeat; */
             int bossHandlers = version.RomSymbols["gUnk_08350E58"];
-            foreach (byte type in BossIDs) {
+            if (nidl) foreach (byte type in BossIDs) {
                 if (ReadInt(rom, bossHandlers + (type - BossID) * 4) != 0) return $"The ROM's data doesn't match the {version.Name} release.";
                 WriteInt(rom, bossHandlers + (type - BossID) * 4, codeBase + version.CodeSymbols["NidlBossDefeat"] + 1);
             }
@@ -1426,13 +1610,40 @@ namespace KatAMRandomizer {
                 ApplyNamePatch(rom, sites[i], length, sites[i] + literal, fromTypePointer, codeBase + version.NidlCopyName);
             }
 
-            string error = AddAbilities(rom, nightmare, region, version, ref cursor, motions, glows, new Dictionary<string, int[]> {
+            string error = !nidl ? null : AddAbilities(rom, nightmare, region, version, ref cursor, motions, glows, new Dictionary<string, int[]> {
                 ["gUnk_08D60FDC"] = hatTables.Select(table => table + 0x08000000).ToArray(),
                 ["gUnk_08350A3C"] = new[] { -1, -1, -1, -1, -1, -1, backdropPalette, -1 },
             });
             // NiDL's title screen swarm (KatAMExpansionTitle.cs), before the rooms: FinishRooms() allocates after them;
             error ??= title ? AddTitle(rom, nightmare, version, ref cursor) : null;
-            return error ?? (rooms ? AddWorldMap(rom, version, ref cursor) ?? AddRooms(rom, nightmare, region, version, ref cursor) : null);
+            // NiDL's songs after KatAM's (KatAMExpansionSound.cs), before the rooms: their music is NiDL's;
+            songTableAt = nidlSongBase = -1;
+            error ??= nidl ? AddNidlSounds(rom, nightmare, version, ref cursor) : null;
+            error ??= rooms ? AddWorldMap(rom, version, ref cursor) ?? AddRooms(rom, nightmare, region, version, ref cursor) : null;
+            // (Squeak Squad's rooms after NiDL's: KatAMExpansionSqueakRooms.cs);
+            // (Squeak Squad's songs after them, before its rooms: their music is Squeak Squad's, KatAMExpansionSqueakSound.cs);
+            squeakSongBase = -1;
+            error ??= squeak != null ? AddSqueakSounds(rom, squeak, version, ref cursor) : null;
+            error ??= squeakRooms ? AddSqueakRooms(rom, squeak, version, ref cursor) : null;
+            error ??= chaseRooms != null ? AddKatamChases(rom, version, chaseRooms, chaseSeed, ref cursor) : null;
+            if (error != null) return error;
+
+            /* The Collection Room's grid (KatAMExpansionCollection.cs) once the rooms are in, whose chests hold the areas' maps: KatAM's
+             * cells, then the expansion's (the sprays above; the maps whose chests are placed: KatAMExpansionMaps.cs); */
+            try {
+                bool[] mapsPlaced = Enumerable.Range(0, AreaMapCount).Select(m => m < NidlAreaMaps
+                    ? rooms && PortedChests.Values.Any(list => list.Any(c => c.Map == m))
+                    : squeakRooms && squeakMapsPlaced.ContainsKey(m)).ToArray();
+                bool[] piecesPlaced = Enumerable.Range(0, SecretMapPieces).Select(p => squeakRooms && squeakPiecesPlaced.ContainsKey(p)).ToArray();
+                if (mapsPlaced.Any(placed => placed) || piecesPlaced.Any(placed => placed))
+                    error = AddAreaMaps(rom, squeak, version, mapAnim, mapsPlaced, piecesPlaced, collectionItems, collectionTexts, ref cursor);
+                error ??= AddCollectionGrid(rom, version, collectionItems, collectionTexts, ref cursor);
+            } catch (Exception exception) when (exception is IndexOutOfRangeException or ArgumentException or InvalidOperationException) {
+                error = $"The {version.Name} ROM's Collection Room couldn't be read.";
+            }
+            // (FinishRooms(), after the randomizer, allocates after all this);
+            finishCursor = cursor;
+            return error;
         }
 
         //////////////////////////////////////////////////////////////////////////////////////////////
@@ -1903,11 +2114,29 @@ namespace KatAMRandomizer {
             throw new InvalidOperationException($"Letter {index} of object 0x{type:X2}'s name wasn't found.");
         }
 
+        /* HandLetter(); A letter none of the game's names has (glyph type HandDrawn), drawn in their style: 6 rows, the fill 8, joints
+         * softened with 15 (as their "W" and "M"); the outline added as theirs. 0 "Y" (Yadgaine), 1 "N" (Dark Nebula); */
+        internal const int HandDrawn = -2;
+        static readonly string[][] HandLetters = {
+            new[] { ".....", "#...#", "#...#", "+#.#+", ".+#+.", "..#..", "..#..", "....." },
+            new[] { ".....", "#...#", "##..#", "#+#.#", "#.+##", "#..##", "#...#", "....." },
+        };
+
+        static int[,] HandLetter(int index) {
+            string[] rows = HandLetters[index];
+            int[,] pixels = new int[8, rows[0].Length];
+
+            for (int y = 0; y < 8; y++)
+                for (int x = 0; x < rows[y].Length; x++) pixels[y, x] = rows[y][x] == '#' ? 8 : rows[y][x] == '+' ? 15 : 0;
+            return pixels;
+        }
+
         // ComposeName(); A name image (8 tiles) made of letters of the game's English names (none in the Japanese game: an empty one);
         static byte[] ComposeName(byte[] rom, KatAMExpansionCode.Version version, (int type, int letter)[] glyphs) {
             if (version.GameCode == "B8KJ") return new byte[0x100];
             int english = ReadInt(rom, version.Names + EnglishNames * 4) - 0x08000000;
-            List<int[,]> letters = glyphs.Select(g => g.type < 0 ? null : Letter(rom, english, g.type, g.letter)).ToList();
+            List<int[,]> letters = glyphs.Select(g => g.type == HandDrawn ? HandLetter(g.letter) : g.type < 0 ? null
+                                                   : Letter(rom, english, g.type, g.letter)).ToList();
 
             int width = 0;
             for (int i = 0; i < letters.Count; i++) {

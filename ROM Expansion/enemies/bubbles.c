@@ -61,6 +61,7 @@ static void Bounce(struct Bubbles *b) {
     b->spinTimer = b->spinTime;
     b->airborne = TRUE;
     ShowSpin(b);
+    NidlSound(&b->n.obj, 0xC1); // (NiDL's: each bounce, 0x080892B4);
 }
 
 // Squash(); Stops and shows a squashed frame, then another one for 3 frames, by the spinning step;

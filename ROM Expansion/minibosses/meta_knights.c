@@ -409,7 +409,9 @@ static void Throw(struct MetaKnight *k) {
     }
     w->base.xspeed = (obj->base.flags & 1) ? -xspeed : xspeed;
     w->base.yspeed = yspeed;
-    PlaySfx(&obj->base, SE_COOKIN_THROW_PAN);
+    // NiDL's throws: the axe's 0xBA (0x0809CF0A), the trident's 0xD6 (0x0809F2A4); the javelin's is silent (0x0809D944);
+    if (k->kind == AXE) NidlSound(obj, 0xBA);
+    else if (k->kind != JAVELIN) NidlSound(obj, 0xD6);
 }
 
 /* MaceMain(); Mace Knight's mace, on its chain: twirling over its head, or thrown along the floor and reeled back (an attack object
@@ -435,7 +437,10 @@ static void MaceMain(void) {
     if (w->mode == MACE_TWIRL) {
         // 2 frames a step, 3 for the stops;
         if (!w->timer--) {
-            if (++w->step >= ARRAY_COUNT(sTwirl)) w->step = 0;
+            if (++w->step >= ARRAY_COUNT(sTwirl)) {
+                w->step = 0;
+                NidlSound(obj, 0xD5); // (NiDL's: each turn of the mace, 0x0809E70A);
+            }
             w->timer = sTwirl[w->step] ? 1 : 2;
         }
         w->offsetX += sTwirl[w->step];
@@ -478,7 +483,7 @@ static void Mace(struct MetaKnight *k, u8 mode) {
     if (mode == MACE_THROWN) {
         w->offsetX = -16;
         w->timer = 0;
-        PlaySfx(&k->n.obj.base, SE_COOKIN_THROW_PAN);
+        NidlSound(&k->n.obj, 0xD5); // (NiDL's: the mace thrown, 0x0809E356);
     }
 }
 
@@ -538,7 +543,7 @@ static void Slash(struct Object *obj) {
     if (Macro_0810B1F4(slash)) flags |= 0x2000;
     slash->flags = flags;
     sub_0803E2B0(slash, -0x10, -0xC, 0x10, 0xC);
-    PlaySfx(slash, SE_HEAVY_KNIGHT_SLASH_ATTACK);
+    PlaySfx(slash, NIDL_SE(0xC4)); // (NiDL's: the slash, 0x0809C788);
 }
 
 static const struct Step *KnightSteps(struct MetaKnight *k, u8 state) {
@@ -595,14 +600,14 @@ static void StartStep(struct MetaKnight *k) {
         case STEP_TWIRL:
             if (!k->mace || k->mace->mode != MACE_TWIRL) {
                 Mace(k, MACE_TWIRL);
-                PlaySfx(&obj->base, SE_TWISTER_FLYING);
+                NidlSound(obj, 0xD5); // (NiDL's: the mace's twirl, 0x0809E6AE);
             }
             break;
         case STEP_SWING:
             Mace(k, MACE_THROWN);
             break;
         case STEP_JET:
-            PlaySfx(&obj->base, SE_BRONTO_BURT_FLY);
+            NidlSound(obj, 0xE7); // (NiDL's: the jet pack, 0x0809D598);
             break;
         }
         if (k->timer) return;
@@ -863,7 +868,7 @@ static void Warp(struct MetaKnights *m, s32 x, s32 y) {
     obj->base.x = x;
     obj->base.y = y;
     CreateEffectObject(&obj->base, 0, 0x292, 0);
-    PlaySfx(&obj->base, SE_ABILITY_MAGIC_META_KNIGHT);
+    NidlSound(obj, 0x11C); // (NiDL's: the warp, 0x0809F6A0);
     obj->base.x = ox;
     obj->base.y = oy;
 }

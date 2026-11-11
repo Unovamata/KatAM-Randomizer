@@ -148,13 +148,45 @@
         /* The Star Rod's tumble (KatAM's anim 0x2c, frames 0-15, animation indexes 74-89: knocked off a warp star, tumbling in cutscenes):
          * NiDL's own, the rod turning with him (0x1060-0x106F, Nightmare's intro's, STAR_ROD_MOTION_TUMBLE), not a matched body's: KatAM's
          * frame v is NiDL's 0x1060 + v - 1 (both turning clockwise as the index goes down), the same body to the pixel at these offsets,
-         * as KatAM shows it (its flipped frames are turns: not mirrored again); */
+         * as KatAM shows it (its flipped frames are turns: not mirrored again). Anim 0xb (animation index 55, tumbling with his eyes
+         * shut) is the same bodies, its frames 0-3 and 4-14 anim 0x2c's 0-3 and 5-15 (its matched poses' rod jumped about, gone in 4); */
         static readonly (int anim, int frame, int nidl, int dx, int dy)[] StarRodTumble = {
             (0x2c, 0, 0x106f, 0, 0), (0x2c, 1, 0x1060, 0, 0), (0x2c, 2, 0x1061, 0, 0), (0x2c, 3, 0x1062, 0, 0), (0x2c, 4, 0x1063, 0, 0),
             (0x2c, 5, 0x1064, 0, 0), (0x2c, 6, 0x1065, 1, 0), (0x2c, 7, 0x1066, 0, 0), (0x2c, 8, 0x1067, 0, 0), (0x2c, 9, 0x1068, 0, 0),
             (0x2c, 10, 0x1069, 0, 1), (0x2c, 11, 0x106a, 0, 0), (0x2c, 12, 0x106b, 0, 0), (0x2c, 13, 0x106c, 0, 0), (0x2c, 14, 0x106d, 0, 0),
             (0x2c, 15, 0x106e, 0, 0),
+            (0xb, 0, 0x106f, 0, 0), (0xb, 1, 0x1060, 0, 0), (0xb, 2, 0x1061, 0, 0), (0xb, 3, 0x1062, 0, 0), (0xb, 4, 0x1064, 0, 0),
+            (0xb, 5, 0x1065, 1, 0), (0xb, 6, 0x1066, 0, 0), (0xb, 7, 0x1067, 0, 0), (0xb, 8, 0x1068, 0, 0), (0xb, 9, 0x1069, 0, 1),
+            (0xb, 10, 0x106a, 0, 0), (0xb, 11, 0x106b, 0, 0), (0xb, 12, 0x106c, 0, 0), (0xb, 13, 0x106d, 0, 0), (0xb, 14, 0x106e, 0, 0),
         };
+
+        /* The Star Rod's poses for KatAM body frames its matched poses left without the rod (no match, or one NiDL's rod set has none
+         * of), where KatAM's own hats show (the Sword's cap, as reference): the rod blinked out for a frame or few (climbing a ladder,
+         * swimming, a wall bump, the end of a hurt roll...) or was gone (riding a warp star). NiDL's Star Rod frame and its offset, its
+         * Kirby fitted to the body by silhouette and the pose picked by eye to go with the frames either side (frame, matched as
+         * BodyMatches, mirrored with the body): the ladder (anim 9) holds it up as its one matched frame (0x1023), the warp star's four
+         * riders (anim 0x2d, frames 0-3: one per Kirby, see WarpStarRide) and the bumps and swallows up (0xff8), squashed as crouching
+         * (0xfee, or NiDL's squash, 0x1019), the hurt roll's end NiDL's own (0x103d, the same body), the swim strokes out ahead; */
+        static readonly (int anim, int frame, int nidl, int dx, int dy)[] StarRodPoses = {
+            (0x5, 0, 0xff8, 7, -3), (0x5, 1, 0xff8, -4, -3), (0x5, 2, 0xfee, 0, -10),
+            (0x9, 0, 0x1023, 0, -4), (0x9, 2, 0x1023, 0, -4), (0x9, 3, 0x1023, 0, -4), (0x9, 4, 0x1023, -1, -3), (0x9, 5, 0x1023, -1, -3),
+            (0x9, 6, 0x1023, -1, -3), (0x9, 7, 0x1023, -1, -4), (0x9, 8, 0x1023, 0, -4), (0x9, 10, 0x1023, 0, -1), (0x9, 11, 0x1023, 0, -2),
+            (0x9, 12, 0x1023, 0, -4),
+            (0xa, 7, 0x103d, 0, -3),
+            (0xf, 2, 0x100e, 0, -3), (0xf, 9, 0x1010, -1, -4), (0xf, 11, 0x100e, 1, -4), (0xf, 25, 0xff8, 0, -6),
+            (0x16, 5, 0x1004, 0, -5),
+            (0x18, 0, 0x1019, 1, -3), (0x18, 1, 0xfee, 0, -3), (0x18, 2, 0x1019, -1, -3), (0x18, 6, 0x1004, 0, -5),
+            (0x1c, 2, 0x106d, -1, -1), (0x1c, 3, 0x106d, -1, -1), (0x1c, 10, 0x1003, 1, -3),
+            (0x1e, 4, 0xff8, 0, -4),
+            (0x2d, 0, 0xff8, -10, -16), (0x2d, 1, 0xff8, 10, -16), (0x2d, 2, 0xff8, 17, 1), (0x2d, 3, 0xff8, -15, 1),
+            (0x8d, 0, 0xff0, 1, -2), (0x8d, 4, 0x1023, 0, -3),
+            (0xca, 4, 0xff8, 1, -5),
+        };
+
+        /* The warp star ride's animation index (90): KatAM draws the Kirby riding it with the variant + his number, body and hat
+         * (sub_0803F790: the body's anim 0x2d, a frame per spot on the star), so the new hats' entry for it points to RideSpots variants
+         * of their own after the rest, one per spot (the next indexes' were drawn for the helpers: hats out of place, or none); */
+        const int WarpStarRide = 90, RideSpots = 4;
 
         // Per new ability, which pixels are its hat: null, the second layer's; else the first layer's of these colors (Ball's cap is drawn with Kirby);
         static readonly int[][] HatColors = { null, null, null, new[] { 12, 13, 14 }, null, null, null, null };
@@ -325,6 +357,7 @@
             int[] hatTables = new int[NewAbilities];
             Dictionary<(int, int), (int nidl, int dx, int dy)> matches = BodyMatches.ToDictionary(m => (m.anim, m.frame), m => (m.nidl, m.dx, m.dy));
             Dictionary<(int, int), (int nidl, int dx, int dy)> tumble = StarRodTumble.ToDictionary(m => (m.anim, m.frame), m => (m.nidl, m.dx, m.dy));
+            Dictionary<(int, int), (int nidl, int dx, int dy)> rodPoses = StarRodPoses.ToDictionary(m => (m.anim, m.frame), m => (m.nidl, m.dx, m.dy));
             HashSet<int> kirbyColors = PlainKirby(nightmare, region).Skip(2).Take(10).Select(c => (int)c).ToHashSet();
 
             for (int k = 0; k < NewAbilities; k++) {
@@ -338,11 +371,11 @@
                 byte[] palette = null;
 
                 int HatFrameIndex(int bodyAnim, int bodyFrame) {
-                    // (the hat's NiDL frame: the Star Rod's own tumble, else the ability's frame with the matched body);
+                    // (the hat's NiDL frame: the Star Rod's own tumble or a pose of its own, else the ability's frame with the matched body);
                     (int nidl, int dx, int dy) m = default;
                     int nidlFrame;
                     bool turned = k == StarRod && tumble.TryGetValue((bodyAnim, bodyFrame), out m);
-                    if (turned) nidlFrame = m.nidl;
+                    if (turned || (k == StarRod && rodPoses.TryGetValue((bodyAnim, bodyFrame), out m))) nidlFrame = m.nidl;
                     else if (HatFrames[k] != null && matches.TryGetValue((bodyAnim, bodyFrame), out m) && m.nidl < HatFrames[k].Length && HatFrames[k][m.nidl] >= 0) nidlFrame = HatFrames[k][m.nidl];
                     else return 0;
                     int attributes = ReadInt(rom, attrTable + bodyAnim * 4) - 0x08000000 + bodyFrame * 12;
@@ -367,11 +400,15 @@
                 /* Commands per animation index: the body's, with its frames swapped for the hat's (GetTiles + ShowFrame), JumpBacks kept;
                  * none while he calls his helpers (CallAnimations: the hat looks odd on Kirby holding his phone); */
                 Dictionary<(int, int), List<(int command, int[] words)>> bodies = new Dictionary<(int, int), List<(int, int[])>>();
-                List<int>[] variants = new List<int>[AnimationIndexes];
+                List<int>[] variants = new List<int>[AnimationIndexes + RideSpots];
                 for (int i = 0; i < AnimationIndexes; i++) {
                     int bodyAnim = ReadShort(rom, bodyTable + i * 4), bodyVariant = rom[bodyTable + i * 4 + 2];
                     variants[i] = HatCommands(rom, anims, bodyAnim, bodyVariant, CallAnimations.Contains(i) ? (anim, frame) => 0 : HatFrameIndex);
                 }
+                // (the warp star's riders, a variant per spot: WarpStarRide);
+                for (int spot = 0; spot < RideSpots; spot++)
+                    variants[AnimationIndexes + spot] = HatCommands(rom, anims, ReadShort(rom, bodyTable + WarpStarRide * 4),
+                                                                    rom[bodyTable + WarpStarRide * 4 + 2] + spot, HatFrameIndex);
                 if (k == StarRod) {
                     glows[0] = animId;
                     (glows[1], glows[2]) = AddGlows(frames, glowing, 0);
@@ -400,8 +437,8 @@
                     oam += oams.Length;
                 }
 
-                int variantsAt = Allocate(ref cursor, AnimationIndexes * 4, 4);
-                for (int i = 0; i < AnimationIndexes; i++) {
+                int variantsAt = Allocate(ref cursor, variants.Length * 4, 4);
+                for (int i = 0; i < variants.Length; i++) {
                     List<int> words = new List<int> { -2, paletteIndex, 16 };
                     for (int w = 0; w < variants[i].Count; w++) {
                         // Frames are written as (-1000 - frame): GetTiles of that frame then ShowFrame;
@@ -420,7 +457,7 @@
                 hatTables[k] = Allocate(ref cursor, AnimationIndexes * 4, 4);
                 for (int i = 0; i < AnimationIndexes; i++) {
                     WriteShort(rom, hatTables[k] + i * 4, animId);
-                    rom[hatTables[k] + i * 4 + 2] = (byte)i;
+                    rom[hatTables[k] + i * 4 + 2] = (byte)(i == WarpStarRide ? AnimationIndexes : i);
                 }
             }
 

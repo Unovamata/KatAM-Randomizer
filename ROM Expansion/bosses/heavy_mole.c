@@ -89,10 +89,10 @@ enum { K_NONE, K_MOLE, K_TOP, K_BOTTOM, K_DRILL, K_HATCH, K_EYE, K_CLODS, K_MISS
 #define SPARE_DEBRIS 4
 
 /* Sounds (NiDL's own: KatAM's with the same notes, but the hatch's, whose end differs); */
-#define SFX_HATCH SE_BOMBAR_MISSILE_TELEGRAPH   // (0x20C: its hatch opening);
-#define SFX_FIRE SE_BOMBAR_MISSILE_ATTACK       // (0x20B: a missile fired);
-#define SFX_BREAK SE_BLOCK_BREAK                // (0x9F: a cell of dirt broken);
-#define SFX_BURST SE_OBJECT_BULLET_DESPAWN      // (0xD4: a missile bursting on Kirby);
+#define SFX_HATCH 0x20C // (NiDL's: its hatch opening; KatAM's stand-in was SE_BOMBAR_MISSILE_TELEGRAPH);
+#define SFX_FIRE 0x20B // (NiDL's: a missile fired; KatAM's stand-in was SE_BOMBAR_MISSILE_ATTACK);
+#define SFX_BREAK 0x9F // (NiDL's: a cell of dirt broken; KatAM's stand-in was SE_BLOCK_BREAK);
+#define SFX_BURST 0xD4 // (NiDL's: a missile bursting on Kirby; KatAM's stand-in was SE_OBJECT_BULLET_DESPAWN);
 
 #define F(v) ((s32)((v) * 0x10000))
 /* Its steps (0x0874AAF4 on): its treads' frames' waits by their speed; its script (by turns: back to its spot, then an attack's steps
@@ -282,7 +282,7 @@ static void Restart(struct Actor *a) {
 }
 
 static void Sound(struct Fight *f, u16 sfx) {
-    PlaySfx(&f->obj->base, sfx);
+    PlaySfx(&f->obj->base, NIDL_SE(sfx));
 }
 
 /* Their objects: Spawn() takes NiDL's lowest free slot (0x08005904), at (x, y), its script run as it's next run (its turn: Turns());

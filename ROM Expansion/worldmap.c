@@ -1,16 +1,17 @@
-/* worldmap.c: the world map's doors for the Nightmare in Dream Land levels (see KatAMExpansionWorldMap.cs).
+/* worldmap.c: the world map's doors for the Nightmare in Dream Land levels and Squeak Squad's worlds (see KatAMExpansionWorldMap.cs).
  * KatAM's world map (pause_world_map.c) has 15 doors, one per big switch: pressing a big switch runs gUnk_0834BD94[its template's
  * +0x14 + 9] (WorldMapUnlock*: CreateWorldMap(door)), which draws the path from the door to where it leads, dot by dot, and then
- * sets the door's world slot (WorldMapUnlockSave). Doors 16-23 are the NiDL levels': KatAMExpansionWorldMap.cs copies their data
- * (gNidlWorldMapDoors) into copies of the door tables, adds NidlWorldMapUnlock* to gUnk_0834BD94, and makes these functions
- * replace KatAM's:
+ * sets the door's world slot (WorldMapUnlockSave). Doors 16-23 are the NiDL levels', 24-31 Squeak Squad's worlds':
+ * KatAMExpansionWorldMap.cs copies their data (gNidlWorldMapDoors) into copies of the door tables, adds NidlWorldMapUnlock* to
+ * gUnk_0834BD94, and makes these functions replace KatAM's:
  * - NidlWorldMapUnlockSave: the slot of every door (KatAM's switch, then the NiDL doors');
  * - NidlWorldMapGetCoorFromRoom: where Kirby is drawn on the map: in a NiDL level (area 11 + level), on its door; in the NiDL hub
- *   (gNidlHubRoom, set by KatAMExpansionRooms.cs), on Central Circle;
+ *   (gNidlHubRoom, set by KatAMExpansionRooms.cs), on Central Circle; in a Squeak Squad world (gSqueakWorldRooms), on its door, and
+ *   in the Squeak Squad hub on Central Circle;
  * - NidlWorldMapDrawKirbys: in the pause menu, the unlocked NiDL doors (the map's door tile) and their paths (the dots of the
  *   unlocking animation: KatAM's paths are drawn in the map's tilemap, which has none for them) before the Kirbys;
- * - NidlGetKirbyRoomFlagIndex: the pause menu takes the NiDL levels' rooms and the NiDL hub (no area map) as the tutorial's: Select
- *   switches between the help and the world map once it is owned; */
+ * - NidlGetKirbyRoomFlagIndex: the pause menu takes the NiDL levels' and Squeak Squad's rooms and their hubs (no area map) as the
+ *   tutorial's: Select switches between the help and the world map once it is owned; */
 #include "global.h"
 #include "data.h"
 #include "functions.h"
@@ -22,13 +23,32 @@
 #include "pause_area_map.h"
 
 #define NIDL_WORLDMAP_FIRST_DOOR 16
-#define NIDL_WORLDMAP_DOORS 8
+#define NIDL_LEVELS 8
+#define SQUEAK_WORLDS 8
+#define NIDL_WORLDMAP_DOORS (NIDL_LEVELS + SQUEAK_WORLDS)
 #define NIDL_WORLDMAP_MAX_DOTS 20
 #define NIDL_AREA_BASE 11
 #define WORLDMAP_DOT_SPRITE_MAGIC 0x4E494D50
 #define CENTRAL_CIRCLE_ROOM 0x321
 
 u16 gNidlHubRoom = 0xFFFF;
+
+/* gSqueakWorldRooms; Squeak Squad's rooms (KatAMExpansionSqueakRooms.cs writes them): the first room of each world (in order, each
+ * world's rooms one after another), then the Squeak Squad hub (after the last world's) and the first switch room (one per world,
+ * in order); 0xFFFF without them; */
+u16 gSqueakWorldRooms[SQUEAK_WORLDS + 2] = { 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF };
+
+// SqueakWorldOf(); The Squeak Squad world (0-7) a room is in (its stages' rooms or its switch room), -2 the Squeak Squad hub, -1 none;
+static s32 SqueakWorldOf(u16 roomId) {
+    s32 w;
+
+    if (roomId >= gSqueakWorldRooms[SQUEAK_WORLDS + 1] && roomId < gSqueakWorldRooms[SQUEAK_WORLDS + 1] + SQUEAK_WORLDS)
+        return roomId - gSqueakWorldRooms[SQUEAK_WORLDS + 1];
+    if (roomId == gSqueakWorldRooms[SQUEAK_WORLDS]) return -2;
+    if (roomId < gSqueakWorldRooms[0] || roomId >= gSqueakWorldRooms[SQUEAK_WORLDS]) return -1;
+    for (w = SQUEAK_WORLDS - 1; w > 0 && roomId < gSqueakWorldRooms[w]; w--);
+    return w;
+}
 
 struct NidlWorldMapDoor {
     u8 x, y;          // the NiDL level's door;
@@ -42,8 +62,13 @@ struct NidlWorldMapDoor {
 /* The doors, clear of KatAM's paths, doors and the map's captions, leading where the level's switch room's revealed mirror does
  * (KatAMExpansionRooms.cs' LevelLinks): Vegetable Valley right of Rainbow Route East, Ice Cream Island right of the Moonlight Mansion door,
  * Butter Building up from Rainbow Resort, Grape Garden left of Peppermint Palace East, Yogurt Yard left of Cabbage Cavern West, Orange
- * Ocean right of Cabbage Cavern East and the Fountain of Dreams below it, Rainbow Resort straight from Central Circle; their dots are
- * filled in by KatAMExpansionWorldMap.cs; */
+ * Ocean right of Cabbage Cavern East, Rainbow Resort straight from Central Circle; the Fountain of Dreams' is off the map (the owner:
+ * the end game's, its path never opens: no slot); then Squeak Squad's worlds' (the owner's pick of the mock-up, each to a KatAM door,
+ * KatAMExpansionSqueakLevels.cs' SqueakLinks): Prism Plains (the green fields by the castle) to Moonlight Mansion, Nature Notch (by the
+ * caves) to Rainbow Route South, Cushy Cloud (over the hills) to Rainbow Route East, Jam Jungle (the dark forest) to Rainbow Route West,
+ * Vocal Volcano (Mustard Mountain's slope) to Rainbow Route North, Ice Island (the ice tower) to Peppermint Palace East, Secret Sea (out
+ * at sea, the owner's sketch) to Olive Ocean, Gamble Galaxy (space) to Candy Constellation; their dots are filled in by
+ * KatAMExpansionWorldMap.cs; */
 struct NidlWorldMapDoor gNidlWorldMapDoors[NIDL_WORLDMAP_DOORS] = {
     { 204, 72, 168, 72, 0x13 + 1, 0, 0 },
     { 208, 100, 152, 88, 0x13 + 2, 0, 0 },
@@ -52,7 +77,15 @@ struct NidlWorldMapDoor gNidlWorldMapDoors[NIDL_WORLDMAP_DOORS] = {
     { 24, 104, 80, 120, 0x13 + 5, 0, 0 },
     { 228, 120, 168, 120, 0x13 + 6, 0, 0 },
     { 152, 40, 112, 80, 0x13 + 7, 0, 0 },
-    { 162, 136, 168, 120, 0x13 + 8, 0, 0 },
+    { 162, 136, 168, 120, 0, 0, 0 },
+    { 176, 104, 152, 88, 0x20, 0, 0 },
+    { 96, 128, 112, 112, 0x21, 0, 0 },
+    { 192, 48, 168, 72, 0x22, 0, 0 },
+    { 56, 96, 88, 88, 0x23, 0, 0 },
+    { 104, 24, 120, 48, 0x24, 0, 0 },
+    { 72, 8, 88, 56, 0x25, 0, 0 },
+    { 232, 136, 208, 136, 0x26, 0, 0 },
+    { 224, 16, 200, 24, 0x27, 0, 0 },
 };
 
 // KatAM's doors' slots (pause_world_map.c's WorldMapUnlockSave);
@@ -87,12 +120,13 @@ extern const struct NidlKirbysCoorByRoom *const gWorldMapKirbysCoorsByArea[];
 u16 NidlWorldMapGetCoorFromRoom(u16 roomId, u8 playerId) {
     u16 roomIdx;
     u32 coor = 0;
-    s32 area, areaId = AREA_TUTORIAL;
+    s32 area, areaId = AREA_TUTORIAL, world = SqueakWorldOf(roomId);
 
-    if (roomId == gNidlHubRoom) roomId = CENTRAL_CIRCLE_ROOM;
+    if (world >= 0) return gNidlWorldMapDoors[NIDL_LEVELS + world].x << 8 | gNidlWorldMapDoors[NIDL_LEVELS + world].y;
+    if (roomId == gNidlHubRoom || world == -2) roomId = CENTRAL_CIRCLE_ROOM;
     area = gUnk_08D6CD0C[roomId]->unk46;
 
-    if (area >= NIDL_AREA_BASE && area < NIDL_AREA_BASE + NIDL_WORLDMAP_DOORS)
+    if (area >= NIDL_AREA_BASE && area < NIDL_AREA_BASE + NIDL_LEVELS)
         return gNidlWorldMapDoors[area - NIDL_AREA_BASE].x << 8 | gNidlWorldMapDoors[area - NIDL_AREA_BASE].y;
 
     switch (area) {
@@ -136,7 +170,7 @@ void NidlWorldMapDrawKirbys(struct NidlWorldMap *worldmap) {
 
     for (i = 0; i < NIDL_WORLDMAP_DOORS; i++) {
         const struct NidlWorldMapDoor *door = &gNidlWorldMapDoors[i];
-        if (!*GetStateSlot(STATE_SLOT_WORLD, door->slot, 0)) continue;
+        if (!door->slot || !*GetStateSlot(STATE_SLOT_WORLD, door->slot, 0)) continue;
 
         // Its door tile (as WorldMapSetTileDoorVisited's), then its path's dots;
         if (door->tilemapOffset) *((u16 *)BG_SCREEN_ADDR(24) + door->tilemapOffset) = 0x5;
@@ -171,12 +205,12 @@ u32 NidlGetKirbyRoomFlagIndex(u32 playerId) {
     u16 roomId = gKirbys[playerId].base.roomId;
     s32 area = gUnk_08D6CD0C[roomId]->unk46;
 
-    if (roomId == gNidlHubRoom) return KIRBY_IN_TUTORIAL_ROOM;
-    if (area >= NIDL_AREA_BASE && area < NIDL_AREA_BASE + NIDL_WORLDMAP_DOORS) return KIRBY_IN_TUTORIAL_ROOM;
+    if (roomId == gNidlHubRoom || SqueakWorldOf(roomId) != -1) return KIRBY_IN_TUTORIAL_ROOM;
+    if (area >= NIDL_AREA_BASE && area < NIDL_AREA_BASE + NIDL_LEVELS) return KIRBY_IN_TUTORIAL_ROOM;
     return gNidlRoomFlagIndexOriginal(playerId);
 }
 
-// What the NiDL big switches run (gUnk_0834BD94, after KatAM's 35 entries);
+// What the NiDL and Squeak Squad big switches run (gUnk_0834BD94, after KatAM's 35 entries);
 void NidlWorldMapUnlock0(void) { CreateWorldMap(NIDL_WORLDMAP_FIRST_DOOR + 0); }
 void NidlWorldMapUnlock1(void) { CreateWorldMap(NIDL_WORLDMAP_FIRST_DOOR + 1); }
 void NidlWorldMapUnlock2(void) { CreateWorldMap(NIDL_WORLDMAP_FIRST_DOOR + 2); }
@@ -185,3 +219,11 @@ void NidlWorldMapUnlock4(void) { CreateWorldMap(NIDL_WORLDMAP_FIRST_DOOR + 4); }
 void NidlWorldMapUnlock5(void) { CreateWorldMap(NIDL_WORLDMAP_FIRST_DOOR + 5); }
 void NidlWorldMapUnlock6(void) { CreateWorldMap(NIDL_WORLDMAP_FIRST_DOOR + 6); }
 void NidlWorldMapUnlock7(void) { CreateWorldMap(NIDL_WORLDMAP_FIRST_DOOR + 7); }
+void NidlWorldMapUnlock8(void) { CreateWorldMap(NIDL_WORLDMAP_FIRST_DOOR + 8); }
+void NidlWorldMapUnlock9(void) { CreateWorldMap(NIDL_WORLDMAP_FIRST_DOOR + 9); }
+void NidlWorldMapUnlock10(void) { CreateWorldMap(NIDL_WORLDMAP_FIRST_DOOR + 10); }
+void NidlWorldMapUnlock11(void) { CreateWorldMap(NIDL_WORLDMAP_FIRST_DOOR + 11); }
+void NidlWorldMapUnlock12(void) { CreateWorldMap(NIDL_WORLDMAP_FIRST_DOOR + 12); }
+void NidlWorldMapUnlock13(void) { CreateWorldMap(NIDL_WORLDMAP_FIRST_DOOR + 13); }
+void NidlWorldMapUnlock14(void) { CreateWorldMap(NIDL_WORLDMAP_FIRST_DOOR + 14); }
+void NidlWorldMapUnlock15(void) { CreateWorldMap(NIDL_WORLDMAP_FIRST_DOOR + 15); }

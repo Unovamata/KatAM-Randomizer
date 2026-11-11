@@ -271,7 +271,7 @@ static void Bomb(struct PoppyBrosSr *p, u8 palId) {
     ObjectSetBounds(bomb, 0, 0, 0, 0);
     ObjectBaseInitSprite(bomb, &bomb->sprite, BOMB_TILES, NidlGraphicsOf(&p->n)->animId, FRAME_BOMB + 4, obj->base.sprite.unk14 >> 6);
     bomb->sprite.palId = palId;
-    PlaySfx(bomb, SE_PRANK_THROW_ITEM);
+    PlaySfx(bomb, NIDL_SE(0x20F)); // (NiDL's: the throw, its hands' 0x08091CAE);
 }
 
 // Throw(); 0x08091390: straight up with a bomb, held longer when Kirby is near;
@@ -348,7 +348,7 @@ static void PoppyBrosSrMain(struct Object *obj) {
     switch (p->state) {
     case STATE_HOPS:
         if (p->hops && !Landed(p)) break;
-        PlaySfx(&obj->base, SE_BONKERS_JUMP);
+        NidlSound(obj, 0x210); // (NiDL's: its hops and landings, 0x08091658, 0x080916B0);
         if (p->hops && --p->hops) {
             p->back = !p->back;
             Hop(p);
@@ -366,13 +366,13 @@ static void PoppyBrosSrMain(struct Object *obj) {
             Bomb(p, p->bombPalette);
         }
         if (!Landed(p)) break;
-        PlaySfx(&obj->base, SE_BONKERS_JUMP);
+        NidlSound(obj, 0x210);
         obj->base.xspeed = 0;
         Hops(p, 2, NEXT_JUMPS);
         break;
     case STATE_JUMPS:
         if (!Landed(p)) break;
-        PlaySfx(&obj->base, SE_BONKERS_JUMP);
+        NidlSound(obj, 0x210);
         if (--p->jumps) {
             Jump(p);
             break;

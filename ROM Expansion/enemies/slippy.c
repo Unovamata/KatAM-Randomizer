@@ -106,6 +106,7 @@ static void Jump(struct Slippy *s, u8 choice) {
     if (choice == CHOICE_JUMP_BACK) obj->base.flags ^= 1;
     if (choice >= CHOICE_JUMP_FORWARD) obj->base.xspeed = (obj->base.flags & 1) ? -SPEED : SPEED;
     NidlSetFrame(&s->n, FRAME_JUMP);
+    NidlSound(obj, 0xBC); // (NiDL's: its jumps, 0x0808A060, 0x0808A0C4);
 }
 
 static void Act(struct Slippy *s, u8 choice) {

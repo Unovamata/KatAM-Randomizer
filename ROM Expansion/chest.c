@@ -19,10 +19,15 @@
 #include "kirby.h"
 #include "functions.h"
 #include "treasures.h"
+#include "eight_dir_cannon.h"
 #include "save.h"
 #include "multi_08030C94.h"
 #include "constants/object_types.h"
 #include "constants/songs.h"
+#include "code_0800E0E4.h"
+#include "squeak.h"
+#include "task.h"
+#include "main.h"
 
 #define NIDL_CHEST_SHARD 0x40
 #define NIDL_CHEST_RISE 0x18    // how far above the chest's floor the shard floats (pixels);
@@ -38,9 +43,120 @@ const struct NidlChest gNidlChest = { NULL };
 // Room for the trampoline KatAMExpansionChests.cs writes (so the option needs no other free space);
 const u32 gNidlChestTrampolines[8] = { 0 };
 
+/* Squeak Squad's chests (KatAMExpansionSqueakRooms.cs): KatAM's small and big chests, their treasure index (template unk11)
+ * SQUEAK_CHEST, gTreasures.shardField's bit 31, which nothing reads (HasChest's index there is never set: SqueakCreateChest clears
+ * it), their own number (0-127) in template unk12, whether opened in rooms.c's saved area (SqueakChestOpened). Their spawn
+ * (objects 0x80, 0x81) is SqueakCreateChest, the game's CreateChest in gSqueakChest; */
+#define SQUEAK_CHEST_BIT (1u << 31)
+
+bool32 SqueakChestOpened(u8);
+void SqueakCollectChest(u8);
+
+// The Vitality halves' chests (KatAMExpansionSqueakRooms.cs: their numbers, 0xFF none);
+const u8 gSqueakVitalityChests[8] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
+
+struct SqueakChest {
+    void *(*create)(struct ObjectTemplate *, u8);
+};
+
+const struct SqueakChest gSqueakChest = { NULL };
+
+/* NidlMaps; Filled in by KatAMExpansionMaps.cs: the areas' maps' shades (light, mid, dark), which the map rising out of a chest
+ * draws with: KatAM's (anim 0x2D2's map) takes the chest's palette (sub_0800B7A4: an effect's sprite loads none), its colors 8-10
+ * the map's; */
+struct NidlMaps {
+    const u16 *colors;          // [AREA_MAPS + 1][3]: the areas' maps', then the Secret Map's pieces'
+};
+
+const struct NidlMaps gNidlMaps = { NULL };
+
+extern struct Task gTasks[];
+extern void sub_0800B7A4(void);
+static void NidlChestSave(void);
+
+/* NidlMapBefore(); An area's map, a piece of the Secret Map or an Ability Scroll in a chest (squeak.h's CHEST_MARK_MAP, CHEST_MARK_PIECE, CHEST_MARK_SCROLL:
+ * KatAMExpansionMaps.cs): its own bit set before the game's opening saves; the chest's item one of KatAM's maps, which the game gives
+ * (sub_0800AFC8's 0xA-0x13): its bit to take back after (NidlMapAfter), unless it was owned; 0 if the chest holds neither; */
+static u32 NidlMapBefore(struct Chest *chest) {
+    u16 mark = chest->obj.objTemplate->unk16;
+    u8 number = (mark & 0xFF) - 1;
+    u32 katamMap;
+
+    if (chest->unkE0 < 0xB || chest->unkE0 > 0x13)
+        return 0;
+    if (mark >> 8 == CHEST_MARK_MAP && number < AREA_MAPS)
+        gTreasures.bigChestField |= 1 << (AREA_MAP_BIT + number);
+    else if (mark >> 8 == CHEST_MARK_PIECE && number < SECRET_MAP_PIECES)
+        gTreasures.musicPlayerAndSheetsField |= 1 << (SECRET_MAP_BIT + number);
+    else if (mark >> 8 == CHEST_MARK_SCROLL && number < SQUEAK_SCROLLS)
+        SqueakTakeScroll(number);
+    else
+        return 0;
+    katamMap = 1 << (chest->unkE0 - 0xA);
+    return gTreasures.bigChestField & katamMap ? 0x80000000 : katamMap;
+}
+
+/* NidlMapPopup(); The popup of an area's map, each frame: the map's shades into its palette's colors 8-10 (the chest's, which the
+ * chest reloads as it opens), its outline (color 7: KatAM's chests' black, some of Squeak Squad's red) KatAM's black, then the
+ * game's (sub_0800B7A4); */
+#define MAP_POPUP_OUTLINE 0x0421
+static void NidlMapPopup(void) {
+    struct ChestItemPopup *popup = TaskGetStructPtr(gCurTask);
+    const u16 *colors = gNidlMaps.colors + popup->filler52[0] * 3;
+    u16 *palette = &gObjPalette[popup->unk4C->obj.base.sprite.palId * 0x10 + 7];
+
+    if (palette[0] != MAP_POPUP_OUTLINE || palette[1] != colors[0] || palette[2] != colors[1] || palette[3] != colors[2]) {
+        palette[0] = MAP_POPUP_OUTLINE;
+        palette[1] = colors[0];
+        palette[2] = colors[1];
+        palette[3] = colors[2];
+        gMainFlags |= MAIN_FLAG_OBJ_PALETTE_SYNC_ENABLE;
+    }
+    sub_0800B7A4();
+}
+
+/* NidlMapAfter(); After the game's opening: KatAM's map taken back and saved again, and the popup it made (sub_0800B414's task,
+ * sub_0800B7A4, on this chest) the area's map's colors, or the Secret Map's (NidlMapPopup, which in its spare byte); */
+static void NidlMapAfter(struct Chest *chest, u32 katamMap) {
+    u16 mark = chest->obj.objTemplate->unk16;
+    // (a scroll's popup the Secret Map's pieces' parchment);
+    u8 map = mark >> 8 == CHEST_MARK_PIECE || mark >> 8 == CHEST_MARK_SCROLL ? AREA_MAPS : (mark & 0xFF) - 1;
+    u8 i;
+
+    if (katamMap & 0x7FFFFFFF) {
+        gTreasures.bigChestField &= ~katamMap;
+        NidlChestSave();
+    }
+    if (!gNidlMaps.colors)
+        return;
+    for (i = 0; i < MAX_TASK_NUM; i++) {
+        struct Task *task = &gTasks[i];
+        struct ChestItemPopup *popup;
+
+        if (task->main != sub_0800B7A4)
+            continue;
+        popup = TaskGetStructPtr(task);
+        if (popup->unk4C != chest)
+            continue;
+        popup->filler52[0] = map;
+        task->main = NidlMapPopup;
+        break;
+    }
+}
+
 // NidlChestOpened(); Open and emptied, as the game's own chests once their item is out (sub_0800BD9C);
 static void NidlChestOpened(struct Chest *chest) {
     chest->obj.base.flags |= 4;
+}
+
+// NidlChestSave(); The world props saved, as the game's chests do once their item is given (sub_0800AFC8);
+static void NidlChestSave(void) {
+    if (!(gUnk_0203AD10 & 0x10)) {
+        if (!(gUnk_0203AD10 & 2) || gLocalPlayerId == gUnk_0203AD24)
+            UpdateSaveBufferByOffset(SAVE_BUFFER_TYPE_WORLD_PROPS, gSaveID > 2 ? 0 : gSaveID);
+        else
+            sub_08031CE4(8);
+    }
 }
 
 // NidlChestOpen(); A Kirby opened the chest (chest.c, sub_0800AFC8): its own index marked, its shard, or a Maxim Tomato once it's owned;
@@ -48,8 +164,47 @@ void NidlChestOpen(struct Chest *chest) {
     u16 shard = chest->unkE0 - NIDL_CHEST_SHARD;
     bool32 owned;
 
-    if (shard >= 8) {
+    // (a Squeak Squad chest: its own bit, set before the game's opening saves; the game's sets SQUEAK_CHEST's, cleared after it);
+    if (chest->unkE2 == SQUEAK_CHEST) {
+        u16 spray = chest->obj.objTemplate->unk16;
+        u32 katamSpray = 0, katamMap = NidlMapBefore(chest);
+
+        SqueakCollectChest(chest->obj.objTemplate->unk12);
+        /* (a Squeak Squad spray, KatAMExpansionSprays.cs: its own bit, set before the game's opening saves; the chest's item is KatAM's spray of the
+         * closest color, which the game gives (sub_0800AFC8's 0x14-0x21) and shows rising: taken back after, unless it was owned,
+         * and saved again); */
+        if (spray != 0 && spray <= SQUEAK_SPRAYS && chest->unkE0 >= 0x14 && chest->unkE0 <= 0x21) {
+            katamSpray = 1 << (chest->unkE0 - 0x14);
+            if (gTreasures.sprayPaintField & katamSpray)
+                katamSpray = 0;
+            gTreasures.sprayPaintField |= 1 << (SQUEAK_SPRAY_BIT + spray - 1);
+        }
+        // (a Vitality half: the game's opening counts a Vitality (sub_0800AFC8's case 6) and saves; with the halves found odd, one
+        // taken back first, so only the second of a pair makes one: its heart rises either way, max HP grows on the second);
+        if (chest->unkE0 == 6 && chest->obj.objTemplate->unk14 >> 8 == SQUEAK_CHEST_HALF) {
+            u8 i, halves = 0;
+
+            for (i = 0; i < ARRAY_COUNT(gSqueakVitalityChests); i++)
+                if (gSqueakVitalityChests[i] != 0xFF && SqueakChestOpened(gSqueakVitalityChests[i])) halves++;
+            if (halves & 1) gTreasures.vitalityField--;
+        }
         gNidlChest.open(chest);
+        gTreasures.shardField &= ~SQUEAK_CHEST_BIT;
+        if (katamSpray != 0) {
+            gTreasures.sprayPaintField &= ~katamSpray;
+            NidlChestSave();
+        }
+        if (katamMap != 0)
+            NidlMapAfter(chest, katamMap);
+        return;
+    }
+    if (shard >= 8) {
+        // (a NiDL room's chest holding an area's map, as a Squeak Squad one's above);
+        u32 katamMap = NidlMapBefore(chest);
+
+        gNidlChest.open(chest);
+        if (katamMap != 0)
+            NidlMapAfter(chest, katamMap);
         return;
     }
     chest->obj.unk83 = 1;
@@ -57,12 +212,7 @@ void NidlChestOpen(struct Chest *chest) {
     gTreasures.chestFields[chest->unkE2 >> 3] |= 1 << (chest->unkE2 & 7);
     CollectShard(shard);
     PlaySfx(&chest->obj.base, owned ? SE_CHEST_COLLECT_ITEM : SE_CHEST_OPEN);
-    if (!(gUnk_0203AD10 & 0x10)) {
-        if (!(gUnk_0203AD10 & 2) || gLocalPlayerId == gUnk_0203AD24)
-            UpdateSaveBufferByOffset(SAVE_BUFFER_TYPE_WORLD_PROPS, gSaveID > 2 ? 0 : gSaveID);
-        else
-            sub_08031CE4(8);
-    }
+    NidlChestSave();
     if (owned)
         CreateObjTemplateAndObj(chest->obj.base.unk56, 1, 0x24, chest->obj.base.x >> 8, (chest->obj.base.y >> 8) - NIDL_CHEST_RISE, 0, 0x1F,
                                 0, 0, OBJ_TOMATO, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
@@ -72,6 +222,103 @@ void NidlChestOpen(struct Chest *chest) {
     // As the item popups do once their item is given (sub_080029F4: lever walls count these);
     gUnk_02023510[gCurLevelInfo[chest->obj.base.unk56].unk65E]++;
     chest->obj.unk78 = NidlChestOpened;
+}
+
+/* SqueakBossChestWait(); A boss room's chest (SQUEAK_CHEST_AFTER_BOSS) unseen and shut while the world's boss is there (its own
+ * function not run: nothing opens it), then as the game's: the function KatAM's chest set, kept in its unkDC (CreateChest() zeroes it,
+ * nothing reads it; never a static here: the expansion's code is in ROM, a static there reads 0xFFFFFFFF, writes lost); */
+static void SqueakBossChestWait(struct Chest *chest) {
+    if (SqueakBossAlive(chest->obj.base.roomId)) return;
+    chest->obj.base.flags &= ~0x400;
+    chest->obj.unk78 = (void *)chest->unkDC;
+}
+
+/* SqueakCreateChest(); A chest (objects 0x80, 0x81) as the game makes it; one of Squeak Squad's (SQUEAK_CHEST) shows open, emptied
+ * and counted (sub_0800BD4C's: lever walls count the room's open chests) once its own bit is set; a big one in Squeak Squad's
+ * platinum chest's palette (its frames SqueakAnimFor()'s; KatAM's 16 tiles hold them: KatAMExpansion.cs checks); */
+void *SqueakCreateChest(struct ObjectTemplate *template, u8 playerId) {
+    struct Chest *chest;
+
+    gTreasures.shardField &= ~SQUEAK_CHEST_BIT;
+    chest = gSqueakChest.create(template, playerId);
+    if (template->unk11 == SQUEAK_CHEST && chest->obj.type == OBJ_BIG_CHEST)
+        chest->obj.base.sprite.palId = SqueakLoadPalette(gSqueakData.enemies[SQUEAK_PLATINUM_CHEST].animId, SQUEAK_CHEST_CLOSED,
+                                                         chest->obj.base.roomId);
+    if (template->unk11 == SQUEAK_CHEST && SqueakChestOpened(template->unk12)) {
+        chest->obj.unk83 = 1;
+        chest->obj.unk78 = NidlChestOpened;
+        gUnk_02023510[gCurLevelInfo[chest->obj.base.unk56].unk65E]++;
+    } else if (template->unk11 == SQUEAK_CHEST && (template->unk14 & 0xFF) == SQUEAK_CHEST_AFTER_BOSS) {
+        chest->unkDC = (u32)chest->obj.unk78;
+        chest->obj.unk78 = SqueakBossChestWait;
+        chest->obj.base.flags |= 0x400;
+    }
+    return chest;
+}
+
+/* Squeak Squad's cannons (gimmick 0xB, KatAMExpansionSqueakRooms.cs): KatAM's eight-direction cannon (object 0x8B, its template's
+ * unk14 its way, unk22 bit 0 firing on its own); its spawn is SqueakCreateCannon, the game's CreateEightDirCannon in gSqueakCannon.
+ * Squeak Squad's (template unk11 SQUEAK_CANNON, fixed, or SQUEAK_CANNON_TURNING) get a step before the cannon's own each frame (the
+ * object's unk7C, which the cannon leaves empty). A fixed one never turns (its turn countdown held), and SQUEAK_CANNON_WAIT frames
+ * after a Kirby got in (unkBB counting them) fires him its way (unkB7 bit 1, which KatAM's sets after a whole turn), as Squeak
+ * Squad's fixed cannons do (the DS emulator: 4-3-6's chain, about 35 frames in each). Both carry the Kirby they shot (unkBC) on as
+ * Squeak Squad's do, until he hits something or a cannon catches him: KatAM's shot (sub_08052140) flies 45 frames, then drops him
+ * (4-3-6's shots are up to 352 pixels long), so its frame count is held under that (at 30: the Kirbys' step runs before the
+ * cannon's, the shot's end at 46), up to SQUEAK_CANNON_FLIGHT frames (unkB6, which KatAM's sets and never reads); */
+extern void sub_08052140(struct Kirby *);
+
+struct SqueakCannon {
+    void *(*create)(struct ObjectTemplate *, u8);
+};
+
+const struct SqueakCannon gSqueakCannon = { NULL };
+
+static void SqueakCannonStep(struct EightDirCannon *cannon) {
+    struct Kirby *kirby = cannon->unkBC;
+
+    if (cannon->unkB7 & 1)
+        cannon->unkB6 = 0;
+    else if (kirby != NULL && kirby->stateFn == sub_08052140 && kirby->base.counter >= 30 && kirby->base.counter <= 44
+             && cannon->unkB6 < SQUEAK_CANNON_FLIGHT) {
+        kirby->base.counter = 30;
+        cannon->unkB6++;
+    }
+    if (cannon->obj.objTemplate->unk11 != SQUEAK_CANNON)
+        return;
+    cannon->unkB5 = 5;
+    if (!(cannon->unkB7 & 1)) {
+        cannon->unkBB = 0;
+        cannon->unkB7 &= ~2;
+    } else if (cannon->unkBB < SQUEAK_CANNON_WAIT)
+        cannon->unkBB++;
+    else
+        cannon->unkB7 |= 2;
+}
+
+void *SqueakCreateCannon(struct ObjectTemplate *template, u8 playerId) {
+    struct EightDirCannon *cannon = gSqueakCannon.create(template, playerId);
+
+    if (template->unk11 == SQUEAK_CANNON || template->unk11 == SQUEAK_CANNON_TURNING) {
+        cannon->unkBB = 0;
+        cannon->unkB6 = SQUEAK_CANNON_FLIGHT;
+        cannon->obj.unk7C = SqueakCannonStep;
+        // (it stays when off the screen, base flag 0x2000000, sub_0803D6B4: it carries its shot on from there);
+        cannon->obj.base.flags |= 0x2000000;
+    }
+    return cannon;
+}
+
+/* SqueakCannonArrival(); Kirby's landing after a fuse cannon's shot (object 0x8A: its flight, sub_0805177C, lands him in the next
+ * room with sub_0805C024, which falls him and gives him this state, KatAMExpansionChests.cs pointing its literal here): KatAM's own
+ * (sub_08051874), which bounces him forward twice as he lands (2 then 0.8 pixels a frame), in a Squeak Squad room (ids from
+ * SQUEAK_FIRST_ROOM) without the move forward: he lands at the room's door as the DS's cannons put him there (5-1-1's shoots him
+ * into 5-1-6, a small room between two pits, onto a ledge over steps down: KatAM's bounces carried him down them into a pit); */
+extern void sub_08051874(struct Kirby *);
+
+void SqueakCannonArrival(struct Kirby *kirby) {
+    sub_08051874(kirby);
+    if (kirby->base.roomId >= SQUEAK_FIRST_ROOM && kirby->stateFn == SqueakCannonArrival)
+        kirby->base.xspeed = 0;
 }
 
 /* Field shards: the shards the randomizer puts in rooms instead of in chests (object 0x65, subtype n, from the room's own object

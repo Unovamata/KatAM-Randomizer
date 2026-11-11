@@ -354,18 +354,18 @@ static void SetRestart(struct Actor *a, u8 state) {
 }
 
 /* Their sounds (NiDL's own: KatAM's nearest; his steps, 0x201, have none); */
-#define SFX_THUD SE_KING_GOLEM_HAND_SLAM        // (0x1F7: landing, the hammer's slam on the ground);
-#define SFX_LANDING SE_BONKERS_HAMMER_ATTACK    // (0x1F8: down from his big jump);
-#define SFX_EXHALE SE_KIRBY_AIRSHOT             // (0x21A);
-#define SFX_INHALE SE_KIRBY_INHALE              // (0x21B);
-#define SFX_GULP SE_GOBBLER_EAT_KIRBY           // (0x21C);
-#define SFX_SPIT SE_FROSTY_SPIT_KIRBY           // (0x21D);
-#define SFX_JUMP SE_BASIC_ENEMY_JUMP            // (0x21E);
-#define SFX_PUFF SE_KIRBY_FLOAT_START           // (0x21F: puffing up);
-#define SFX_SWING SE_ABILITY_HAMMER_ATTACK      // (0x220);
+#define SFX_THUD 0x1F7 // (NiDL's: landing, the hammer's slam on the ground; KatAM's stand-in was SE_KING_GOLEM_HAND_SLAM);
+#define SFX_LANDING 0x1F8 // (NiDL's: down from his big jump; KatAM's stand-in was SE_BONKERS_HAMMER_ATTACK);
+#define SFX_EXHALE 0x21A // (NiDL's; KatAM's stand-in was SE_KIRBY_AIRSHOT);
+#define SFX_INHALE 0x21B // (NiDL's; KatAM's stand-in was SE_KIRBY_INHALE);
+#define SFX_GULP 0x21C // (NiDL's; KatAM's stand-in was SE_GOBBLER_EAT_KIRBY);
+#define SFX_SPIT 0x21D // (NiDL's; KatAM's stand-in was SE_FROSTY_SPIT_KIRBY);
+#define SFX_JUMP 0x21E // (NiDL's; KatAM's stand-in was SE_BASIC_ENEMY_JUMP);
+#define SFX_PUFF 0x21F // (NiDL's: puffing up; KatAM's stand-in was SE_KIRBY_FLOAT_START);
+#define SFX_SWING 0x220 // (NiDL's; KatAM's stand-in was SE_ABILITY_HAMMER_ATTACK);
 
 static void Sound(struct Fight *f, u16 sfx) {
-    PlaySfx(&f->obj->base, sfx);
+    PlaySfx(&f->obj->base, NIDL_SE(sfx));
 }
 
 // Shake(); NiDL's 0x080261D4: the screen shakes (NidlShake(): NiDL's levels as KatAM's);
@@ -2029,7 +2029,13 @@ void KingDededeInit(struct NidlObject *n) {
 /* His defeat (DededeEnd(), as KatAM's explosion bursts him: NiDL's type 0x3B's second object, 0x080A150C: its states 0x080A1590,
  * 0x080A18D4), traced frame by frame: beaten (9), facing Kirby, down to the floor; 16 frames on, the screen shakes, he slides his
  * way (10: 2, 1, 0.5 pixels a frame, 8 frames each), dazed (11, 12: sDaze); 120 frames from his landing on, and 84 more (NiDL's
- * story's start: not here), his shard (NidlBossShard()); dazed till Kirby leaves the room; */
+ * story's start: not here), his shard (NidlBossShardAt()); dazed till Kirby leaves the room; */
+// Where his shard goes on the screen (EndScript()): x the side away from him, y over the Fountain of Dreams behind the fight;
+#define SHARD_MIDDLE 120
+#define SHARD_LEFT 56
+#define SHARD_RIGHT 184
+#define SHARD_TOP 40
+
 struct DededeEnd {
     struct EffectObject e;              // (the task's own: never shown);
     struct EffectObject *parts[3];
@@ -2079,7 +2085,11 @@ static void EndScript(struct DededeEnd *end) {
     while (end->timer > 0) END_WAIT(1);
     END_WAIT(24);
     END_WAIT(60);
-    NidlBossShard(end->unk56, end->e.roomId, end->shard);
+    // (up in the night sky, on the screen's side away from him: at the screen's middle, the shard sat in the Fountain of Dreams'
+    // cup behind the fight and looked part of it, and his Maxim Tomato fell where he lay dazed, drawn over it: the owner's, no
+    // shard seen);
+    NidlBossShardAt(end->unk56, end->e.roomId, end->shard,
+                    a->ix - (gCurLevelInfo[end->unk56].viewportPosition.x >> 8) < SHARD_MIDDLE ? SHARD_RIGHT : SHARD_LEFT, SHARD_TOP);
     for (;;) END_WAIT(1);
     END_SCRIPT_END;
 }

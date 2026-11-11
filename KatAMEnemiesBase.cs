@@ -32,6 +32,13 @@ namespace KatAMRandomizer {
         protected Dictionary<byte, List<List<byte>>> nightmareMinibossGroups = new Dictionary<byte, List<List<byte>>>();
         protected List<List<byte>> nightmareGroups = new List<List<byte>>(), nightmareFlyingGroups = new List<List<byte>>(),
                                    nightmareWaterGroups = new List<List<byte>>();
+        /* ROM Expansion's Squeak Squad characters: its enemies (object type 0x2C: the behavior picks the character, Properties[1] its
+         * variant), one (behavior, variants) per character by spot; its mid-bosses on the mini-boss types 0x40-0x42, by type;
+         * Squeak Squad's behaviors of KatAM's own enemies (KatAMExpansion.SqueakNativeBehaviors); */
+        protected bool isAddingSqueakEnemies, isAddingSqueakMinibosses, isAddingSqueakBehaviors;
+        protected List<(byte behavior, byte[] variants)> squeakGroups = new List<(byte, byte[])>(), squeakFlyingGroups = new List<(byte, byte[])>(),
+                                                         squeakWaterGroups = new List<(byte, byte[])>();
+        protected Dictionary<byte, List<(byte behavior, byte[] variants)>> squeakMinibossGroups = new Dictionary<byte, List<(byte, byte[])>>();
 
         protected List<byte> underwaterEnemyIDs = new List<byte>();
         protected List<byte> flyingEnemyIDs = new List<byte>();
@@ -63,6 +70,14 @@ namespace KatAMRandomizer {
 
             List<byte> allEntitiesIDs = LoadAllSpeedAndBehaviorData();
 
+            // Squeak Squad's behaviors of KatAM's own enemies join theirs (when behaviors are randomized);
+            if(!isRandomizingMiniBosses && isAddingSqueakBehaviors) {
+                foreach((byte type, byte[] behaviors) in KatAMExpansion.SqueakNativeBehaviors) {
+                    if(!behaviorDictionary.TryGetValue(type, out List<byte> known)) continue;
+                    foreach(byte behavior in behaviors) if(!known.Contains(behavior)) known.Add(behavior);
+                }
+            }
+
             // ROM Expansion enemies join the pool as object type 0x31, the behavior picking which one (and speed 0);
             if(!isRandomizingMiniBosses && isAddingNightmareEnemies) {
                 behaviorDictionary[KatAMExpansion.NightmareID] = new List<byte>(nightmareBehaviors);
@@ -86,6 +101,22 @@ namespace KatAMRandomizer {
                 }
             }
 
+            // Squeak Squad's characters the same way: its enemies as object type 0x2C, its mid-bosses on the mini-boss types;
+            if(!isRandomizingMiniBosses && isAddingSqueakEnemies) {
+                behaviorDictionary[KatAMExpansion.SqueakID] = squeakGroups.Select(group => group.behavior).ToList();
+                speedDictionary[KatAMExpansion.SqueakID] = NewProperty(0x00);
+                for(int i = 0; i < squeakFlyingGroups.Count; i++) flyingEnemyIDs.Add(KatAMExpansion.SqueakID);
+                for(int i = 0; i < squeakWaterGroups.Count; i++) underwaterEnemyIDs.Add(KatAMExpansion.SqueakID);
+            }
+            if(isAddingSqueakMinibosses) {
+                foreach((byte type, List<(byte behavior, byte[] variants)> groups) in squeakMinibossGroups) {
+                    if(!behaviorDictionary.TryGetValue(type, out List<byte> known) || !(isAddingNightmareMinibosses && nightmareMinibossGroups.ContainsKey(type)))
+                        behaviorDictionary[type] = known = new List<byte>();
+                    known.AddRange(groups.Select(group => group.behavior));
+                    speedDictionary[type] = NewProperty(0x00);
+                }
+            }
+
             if(enemiesOptions == GenerationOptions.Shuffle) allEntitiesIDs = Utils.Shuffle(allEntitiesIDs);
 
             bool isRandomizingIDs = enemiesOptions != GenerationOptions.Unchanged,
@@ -104,6 +135,15 @@ namespace KatAMRandomizer {
             if(isAddingNightmareMinibosses) {
                 foreach((byte type, List<List<byte>> groups) in nightmareMinibossGroups)
                     for(int i = 1; i < groups.Count; i++) availableEnemyIDs.Add(type);
+            }
+
+            // Squeak Squad's characters too (a type already in the pool once, by NiDL's or the key above);
+            if(!isRandomizingMiniBosses && isAddingSqueakEnemies) {
+                for(int i = 1; i < squeakGroups.Count; i++) availableEnemyIDs.Add(KatAMExpansion.SqueakID);
+            }
+            if(isAddingSqueakMinibosses) {
+                foreach((byte type, List<(byte behavior, byte[] variants)> groups) in squeakMinibossGroups)
+                    for(int i = isAddingNightmareMinibosses && nightmareMinibossGroups.ContainsKey(type) ? 0 : 1; i < groups.Count; i++) availableEnemyIDs.Add(type);
             }
 
             for(int i = 0; i < entities.Count; i++) {
@@ -212,12 +252,27 @@ namespace KatAMRandomizer {
                     entity.Behavior = behaviors[Utils.GetRandomRange(0, behaviors.Count)];
                 }
 
-                // ROM Expansion mini-bosses: the behavior picks which one (a mini-boss first, then one of its variants);
-                bool isNightmareMiniboss = isAddingNightmareMinibosses && nightmareMinibossGroups.ContainsKey(entity.ID);
+                // ROM Expansion Squeak Squad enemies: the behavior picks which one, Properties[1] its variant;
+                bool isSqueakEnemy = entity.ID == KatAMExpansion.SqueakID && isAddingSqueakEnemies;
+                if(isSqueakEnemy) {
+                    List<(byte behavior, byte[] variants)> groups = isFlyingPlace && squeakFlyingGroups.Count > 0 ? squeakFlyingGroups :
+                                                                   isUnderwaterPlace && squeakWaterGroups.Count > 0 ? squeakWaterGroups : squeakGroups;
+                    PlaceSqueak(entity, groups[Utils.GetRandomRange(0, groups.Count)]);
+                }
+
+                /* ROM Expansion mini-bosses: the behavior picks which one (a mini-boss first, then one of its variants), NiDL's or Squeak
+                 * Squad's (its mid-bosses), each mini-boss as likely as the others on its type; */
+                List<List<byte>> nightmareTypeGroups = isAddingNightmareMinibosses && nightmareMinibossGroups.TryGetValue(entity.ID, out var ofNightmare) ? ofNightmare : new List<List<byte>>();
+                List<(byte behavior, byte[] variants)> squeakTypeGroups = isAddingSqueakMinibosses && squeakMinibossGroups.TryGetValue(entity.ID, out var ofSqueak) ? ofSqueak : new List<(byte, byte[])>();
+                bool isNightmareMiniboss = nightmareTypeGroups.Count + squeakTypeGroups.Count > 0;
                 if(isNightmareMiniboss) {
-                    List<List<byte>> groups = nightmareMinibossGroups[entity.ID];
-                    List<byte> behaviors = groups[Utils.GetRandomRange(0, groups.Count)];
-                    entity.Behavior = behaviors[Utils.GetRandomRange(0, behaviors.Count)];
+                    int pick = Utils.GetRandomRange(0, nightmareTypeGroups.Count + squeakTypeGroups.Count);
+                    if(pick < nightmareTypeGroups.Count) {
+                        List<byte> behaviors = nightmareTypeGroups[pick];
+                        entity.Behavior = behaviors[Utils.GetRandomRange(0, behaviors.Count)];
+                    } else {
+                        PlaceSqueak(entity, squeakTypeGroups[pick - nightmareTypeGroups.Count]);
+                    }
                 }
 
                 // Randomizing enemy speeds;
@@ -231,7 +286,7 @@ namespace KatAMRandomizer {
                 }
 
                 // Randomizing enemy behaviors (ROM Expansion enemies already have theirs);
-                if(isRandomizingBehaviors && !(entity.ID == KatAMExpansion.NightmareID && isAddingNightmareEnemies) && !isNightmareMiniboss) {
+                if(isRandomizingBehaviors && !(entity.ID == KatAMExpansion.NightmareID && isAddingNightmareEnemies) && !isSqueakEnemy && !isNightmareMiniboss) {
                     if(behaviorDictionary.ContainsKey(entity.ID)) {
                         List<byte> availableEnemyBehaviors = behaviorDictionary[entity.ID];
                         int behaviorIndex = Utils.GetRandomRange(0, availableEnemyBehaviors.Count);
@@ -290,6 +345,21 @@ namespace KatAMRandomizer {
             return new List<byte>() { input };
         }
 
+        /* PlaceSqueak(); A Squeak Squad character where the entity is: its behavior byte, speed 0, one of its variants (the template's
+         * unk12: Properties[1]; an entity's all-zero properties are read as one byte, so they're made whole again first); */
+        static void PlaceSqueak(Entity entity, (byte behavior, byte[] variants) character) {
+            entity.Behavior = character.behavior;
+            entity.Speed = 0;
+            if(entity.Properties.Length < 19) {
+                byte[] whole = new byte[19];
+                entity.Properties.CopyTo(whole, 0);
+                entity.Properties = whole;
+            } else {
+                entity.Properties = (byte[])entity.Properties.Clone();
+            }
+            entity.Properties[1] = character.variants[Utils.GetRandomRange(0, character.variants.Length)];
+        }
+
         bool IsVetoedEnemy(Entity entity) {
             byte id = entity.ID;
 
@@ -335,6 +405,11 @@ namespace KatAMRandomizer {
             nightmareGroups = KatAMExpansion.BehaviorGroupsOf(Settings.NightmareEnemies);
             nightmareFlyingGroups = KatAMExpansion.BehaviorGroupsOf(Settings.NightmareEnemies, true);
             nightmareWaterGroups = KatAMExpansion.BehaviorGroupsOf(Settings.NightmareEnemies, water: true);
+            squeakGroups = KatAMExpansion.SqueakGroupsOf(Settings.SqueakEnemies);
+            squeakFlyingGroups = KatAMExpansion.SqueakGroupsOf(Settings.SqueakEnemies, flying: true);
+            squeakWaterGroups = KatAMExpansion.SqueakGroupsOf(Settings.SqueakEnemies, water: true);
+            isAddingSqueakEnemies = squeakGroups.Count > 0;
+            isAddingSqueakBehaviors = Settings.SqueakBehaviors;
         }
 
         public void GroupEnemies() {
@@ -412,7 +487,46 @@ namespace KatAMRandomizer {
 
             LoadEnemyDataset(this, Utils.minibossesJson);
 
+            AddSqueakLairMinibosses();
+
             RandomizeEnemies(this);
+
+            // A lair's mini-boss turned one of KatAM's keeps a facing (KatAM's take 0 or 1), not the Squeak's behavior byte;
+            foreach(Entity entity in lairEntities) {
+                if(entity.ID < 0x38 || entity.ID > 0x3F || entity.Behavior <= 1) continue;
+                entity.Behavior = 0;
+                Utils.WriteObjectToROM(entity);
+            }
+        }
+
+        readonly List<Entity> lairEntities = new List<Entity>();
+
+        /* AddSqueakLairMinibosses(); The ROM Expansion's Squeak Lairs' mini-bosses (KatAMExpansion.SqueakLairMinibosses: the expansion
+         * runs first) are randomized with KatAM's, read from the ROM as KatAM's are from the dataset (the owner: "Any boss can appear in
+         * these lairs and these can also be randomized as well"); */
+        void AddSqueakLairMinibosses() {
+            byte[] rom = Processing.ROMData;
+            if(rom == null) return;
+            foreach((int room, int address) in KatAMExpansion.SqueakLairMinibosses) {
+                if(address < 0 || address + 36 > rom.Length) continue;
+                Entity entity = new Entity();
+                entity.Definition = rom.Skip(address).Take(36).ToArray();
+                entity.Address = address;
+                entity.Number = new byte[] { rom[address + 2], rom[address + 3] };
+                entity.Link = new byte[] { rom[address + 4], rom[address + 5] };
+                entity.X = new byte[] { rom[address + 6], rom[address + 7] };
+                entity.Y = new byte[] { rom[address + 8], rom[address + 9] };
+                entity.ID = rom[address + 12];
+                entity.Behavior = rom[address + 14];
+                entity.Speed = rom[address + 16];
+                Array.Copy(entity.Definition, 17, entity.Properties, 0, entity.Properties.Length);
+                entity.Room = room;
+                entity.Description = "";
+                entity.Name = "Squeak Lair";
+                entity.AreAllPropertiesZeroes();
+                entities.Add(entity);
+                lairEntities.Add(entity);
+            }
         }
 
         public void LoadSettings() {
@@ -428,6 +542,9 @@ namespace KatAMRandomizer {
             isAddingNightmareMinibosses = Settings.NightmareMinibosses.Count > 0;
             nightmareMinibossGroups = KatAMExpansion.MinibossIDs.ToDictionary(type => type, type => KatAMExpansion.MinibossBehaviorGroupsOf(Settings.NightmareMinibosses, type))
                                                                .Where(entry => entry.Value.Count > 0).ToDictionary(entry => entry.Key, entry => entry.Value);
+            squeakMinibossGroups = KatAMExpansion.MinibossIDs.ToDictionary(type => type, type => KatAMExpansion.SqueakMidbossGroupsOf(Settings.SqueakMinibosses, type))
+                                                             .Where(entry => entry.Value.Count > 0).ToDictionary(entry => entry.Key, entry => entry.Value);
+            isAddingSqueakMinibosses = squeakMinibossGroups.Count > 0;
         }
 
         public bool FilterEntities(Entity entity) { return true; }

@@ -6,6 +6,7 @@
  * (64x96 here; 32x64 for type 0x42's), its own HP bar name. The Meta-Knights are several objects of type 0x42: Meta Knight (the
  * template's), who calls in his knights (see minibosses/meta_knights.c); */
 #include "nidl.h"
+#include "squeak.h"
 #include "constants/kirby.h"
 #include "abilities.h"
 
@@ -37,6 +38,8 @@ void *CreateNidlMiniboss(struct ObjectTemplate *template, u8 playerId) {
     struct Object *obj;
     u8 boss = template->subtype1 >> 4;
 
+    // Squeak Squad's mid-bosses share the types (squeak.h);
+    if (template->subtype1 >= SQUEAK_MIDBOSS) return CreateSqueakMidboss(template, playerId);
     // Unknown ones, ones without graphics and ones of another type are the first of this type;
     if (boss >= NIDL_MINIBOSS_COUNT || !gNidlData.minibosses[boss].animId || sNidlMinibosses[boss].type != template->type)
         for (boss = 0; boss < NIDL_MINIBOSS_COUNT - 1; boss++)
@@ -86,7 +89,7 @@ static void NidlMinibossWait(struct Object *obj) {
     if (!Macro_08039430_2(&obj->kirby3->base, obj)) return;
     Macro_081003EC(obj, &obj->kirby3->base);
     obj->base.flags &= ~0x200;
-    Macro_08100F18(obj);
+    NidlFightMusic(obj);
     n->activated = TRUE;
     sNidlMinibosses[n->enemy].start(obj);
 }
@@ -95,6 +98,10 @@ static void NidlMinibossWait(struct Object *obj) {
 void NidlMinibossStart(struct Object *obj) {
     struct NidlObject *n = (struct NidlObject *)obj;
 
+    if (SqueakIsMidboss(obj)) {
+        SqueakStart(obj);
+        return;
+    }
     obj->kirbyAbility = sNidlMinibosses[n->enemy].ability;
     // The engine's gravity off, as the enemies' (see NidlStart);
     obj->base.flags = (obj->base.flags | 0x40) & ~0x20;

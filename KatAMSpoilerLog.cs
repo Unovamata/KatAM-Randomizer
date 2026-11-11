@@ -44,6 +44,8 @@ namespace KatAMRandomizer
             WriteSettings();
             WriteMirrors();
             WriteBossShards();
+            WriteChases();
+            WriteSqueakLairs();
             WriteEntities("Enemies", Utils.enemiesJson, false, false);
             WriteEntities("Mini-Bosses", Utils.minibossesJson, false, false);
             WriteEntities("Chests & Items", Utils.itemsJson, true, true);
@@ -82,6 +84,25 @@ namespace KatAMRandomizer
             if (!Settings.RandomizeBossShards || KatAMExpansion.BossShardLog.Count == 0) return;
             WriteSection("Boss Mirror Shards");
             foreach (string line in KatAMExpansion.BossShardLog) log.AppendLine(line);
+        }
+
+        // WriteChases(); KatAM's rooms with a chase and the Squeaks it brings, with "Add Chase Sequences to KatAM" (KatAMExpansionChases.cs);
+        void WriteChases() {
+            if (!Settings.SqueakChases || KatAMExpansion.KatamChases.Count == 0) return;
+            WriteSection("Chase Sequences");
+            foreach ((int room, List<string> squeaks) in KatAMExpansion.KatamChases) log.AppendLine($"Room 0x{room:X3}: {string.Join(", ", squeaks)}");
+        }
+
+        /* WriteSqueakLairs(); The Squeak Lairs picked from the seed, with "Randomize Squeak Lairs" (KatAMExpansionSqueakLevels.cs'
+         * PlanSqueakLevels()): the room and cell of the door into each (its nest), the hideout, and the room its way out leads to; */
+        void WriteSqueakLairs() {
+            if (!Settings.SqueakLairs || KatAMExpansion.SqueakLairs.Count == 0) return;
+            WriteSection("Squeak Lairs");
+            Dictionary<int, string> names = new Dictionary<int, string>();
+            foreach (var r in KatAMExpansion.SqueakPortedRooms) names.TryAdd(r.Room, $"{r.Files.Area}-{r.Files.Stage}-{r.Files.Index}");
+            string Name(int room) => names.TryGetValue(room, out string name) ? $"{name} (0x{room:X3})" : $"0x{room:X3}";
+            foreach (var lair in KatAMExpansion.SqueakLairs)
+                log.AppendLine($"{Name(lair.FromRoom)}, door at ({lair.FromX}, {lair.FromY}) -> {Name(lair.Room)} -> {Name(lair.Exit.room)}");
         }
 
         // WriteSettings(); Every setting, read from the Settings class so new settings show up on their own;
@@ -211,7 +232,11 @@ namespace KatAMRandomizer
                 case 0x65: return $"{ObjectName(id)} #{behavior + 1}";
             }
 
-            // ROM Expansion enemies: the behavior picks which one;
+            // ROM Expansion enemies: the behavior picks which one (Squeak Squad's named as theirs: some share a name with NiDL's);
+            Settings settings = Settings.GetInstance();
+            if (id == KatAMExpansion.SqueakID && settings?.SqueakEnemies.Count > 0) return $"{KatAMExpansion.SqueakNameOf(behavior)} (Squeak Squad)";
+            if (KatAMExpansion.MinibossIDs.Contains(id) && KatAMExpansion.IsSqueakMidbossBehavior(behavior) && settings?.SqueakMinibosses.Count > 0)
+                return $"{KatAMExpansion.SqueakNameOf(behavior)} (Squeak Squad)";
             if (id == KatAMExpansion.NightmareID && Settings.GetInstance()?.NightmareEnemies.Count > 0) return KatAMExpansion.NameOf(behavior);
             if (KatAMExpansion.MinibossIDs.Contains(id) && Settings.GetInstance()?.NightmareMinibosses.Count > 0) return KatAMExpansion.MinibossNameOf(behavior);
 

@@ -24,10 +24,11 @@
      * (object templates), gUnk_08D63C28 (CPU helpers' zones), gUnk_08D6CD0C (per room: area, routes; written in place) and
      * gUnk_08D640A4 (doors per doorsIdx). The tables are copied with the new entries and every reference to them repointed. KatAM's
      * rooms have at most 1950 blocks (its buffers for the collision, its zones and tilemap, per loaded room); "ROM Expansion/rooms.c"
-     * gives them room for BigRoomBlocks (see BigRooms()), which every NiDL room fits in, whole. Every new room uses doorsIdx 287, the
+     * gives them room for BigRoomBlocks (see BigRooms()), which every NiDL and Squeak Squad room fits in, whole. Every new room uses doorsIdx 287, the
      * one gVisitedDoors entry (0x120) no vanilla room uses; */
     internal static partial class KatAMExpansion {
-        const int MaxRoomBlocks = BigRoomBlocks, BackgroundTiles = 900, SharedDoors = 287, FirstDoorsList = 0x120, RoomFlags = 0x79;
+        // (NiDL's rooms split into parts of up to MaxRoomBlocks, as approved: Squeak Squad's, whole, fill BigRoomBlocks);
+        const int MaxRoomBlocks = 3584, BackgroundTiles = 900, SharedDoors = 287, FirstDoorsList = 0x120, RoomFlags = 0x79;
 
         /* A cannon's fuse (NiDL 0x38-0x3D, inside walls: up-down, left-right, up-right, up-left, right-down, left-down) -> KatAM's
          * (0x22-0x27: up-down, right-down, left-down, left-right, up-right, up-left; solid, as walls), which its fuse object
@@ -110,6 +111,7 @@
         const byte NightmareBoss = 8;       // NIDL_NIGHTMARE;
         const byte DededeBoss = 6;          // NIDL_KING_DEDEDE: Kirby drops into his room from its top, the camera following (BossIn(), arena.c);
         const int DededeScreenY = 168;      // His fight's screen's top, held the whole fight (bosses/dedede.c's NIDL_SCREEN_Y);
+        const int DropRoomTop = 8;          // The highest the camera's held as Kirby drops in (arena.c's ROOM_TOP);
         /* Kracko's fight starts at its tower's bottom (its eye chasing Kirby up, the camera following him) and goes on at the top, where NiDL
          * locks its camera as it comes near (8, 16: "ROM Expansion/bosses/kracko.c"'s LOCK_TOP): its arena's screen, which waits for it to say
          * (subtype2 3, BossLocksArena; arena.c's ArenaGo()); */
@@ -151,7 +153,8 @@
          * one hundred (LevelHundreds; KatAM numbers its rooms by hundreds too, mostly by area): the NiDL hub and the Fountain of Dreams
          * 1-99, Vegetable Valley 100-199 ... Rainbow Resort 700-799. The HUD shows the area's plate (its name, AreaPlates) in its corner,
          * and the CPU helpers' routes are per area (gUnk_08D6DCAC); both only had areas 0-10: see ExtendAreas(); */
-        const int AreaBase = 11, MapRoomsBlock = MapTableAddress + 0xE0, MapShardExits = MapTableAddress + 0xD8, MapBosses = MapTableAddress + 0xCC;
+        const int AreaBase = 11, MapRoomsBlock = MapTableAddress + 0xE0, MapShardExits = MapTableAddress + 0xD8, MapBosses = MapTableAddress + 0xCC,
+                  MapSqueakBlock = MapTableAddress + 0xD4;
         // KatAM's gRoomTiledBGs entries (the credits' last three, 33-35, no room's props name; all three versions);
         const int KatAMRoomTiledBGs = 36;
         static readonly int[] LevelHundreds = { 1, 2, 3, 4, 5, 6, 7, 0 };
@@ -293,8 +296,9 @@
 
         public static IReadOnlyList<NightmareRoom> PortedRooms { get; private set; } = new List<NightmareRoom>();
         public static IReadOnlyDictionary<NightmareRoom, List<Door>> PortedDoors { get; private set; } = new Dictionary<NightmareRoom, List<Door>>();
-        // The NiDL hub's room and doors (see BuildMainHub());
+        // The NiDL hub's room and doors (see BuildMainHub()), and the NiDL ability room's (BuildNidlAbilityRoom(): -1 none);
         public static (int Room, IReadOnlyList<Door> Doors) PortedMainHub { get; private set; } = (0, new List<Door>());
+        public static int NidlAbilityRoom { get; private set; } = -1;
         /* For the randomizer, which reads the expanded ROM's items and chests as KatAM's: the ported rooms' items and chests (room, template
          * address; none in a boss room, a switch room or a mini-boss's fight area), and where the doors lists' table went (-1: not moved,
          * no rooms ported); chestLists: each such room's doors list (its table entry) and objects, for FinishRooms(); */
@@ -309,7 +313,16 @@
             chestLists = new List<(int, int, int)>();
             chestsOf = new Dictionary<NightmareRoom, List<NidlChest>>();
             DoorsTable = -1;
+            NidlAbilityRoom = -1;
             endingFlight = -1;
+            flightTable = -1;
+            transportsOf = new Dictionary<NightmareRoom, List<Transport>>();
+            bossExitsOf = new Dictionary<NightmareRoom, (int, int, int)>();
+            roomTables = null;
+            squeakRooms = new List<SqueakPortedRoom>();
+            worldMapAdded = false;
+            squeakSwitchLooks = new Dictionary<int, int>();
+            squeakFinish = null;
         }
 
         /* NightmareRooms(); NiDL's level rooms, split where KatAM can't hold them whole. Left out: the levels' hub lists (hub, museum,
@@ -1114,15 +1127,18 @@
         /* AddRooms(); Every NiDL room into KatAM's free room slots (see the notes above); the room records' foregrounds, palettes and
          * backgrounds are shared as in NiDL; */
         /* BigRooms(); Rooms of up to BigRoomBlocks blocks ("ROM Expansion/rooms.c": each loaded room's collision, zones and tilemap in
-         * buffers that big, two in KatAM's own, two at the end of the EWRAM heap): the game's functions using those buffers jump to
-         * rooms.c's copies, and the heap (EwramInitHeap's size, 0x20080) shrinks to NidlHeapSize; */
-        const int BigRoomBlocks = 3584, VanillaHeapSize = 0x20080, NidlHeapSize = 0xE478;   // rooms.c's BIG_BLOCKS, NIDL_HEAP_SIZE;
+         * buffers that big, the first in KatAM's own, the others' collision and zones in KatAM's tilemap buffer and their tilemaps at
+         * the end of the EWRAM heap): the game's functions using those buffers jump to rooms.c's copies, and the heap (EwramInitHeap's
+         * size, 0x20080) shrinks to NidlHeapSize (the game used under 6 KB of it in every room and fight measured); */
+        const int BigRoomBlocks = 4032, VanillaHeapSize = 0x20080, NidlHeapSize = 0x7B80;   // rooms.c's BIG_BLOCKS, NIDL_HEAP_SIZE (0x100 less for squeak/gimmicks.c's messages);
         // (and the ported rooms' doors lists, from FirstDoorsList, their visited doors in rooms.c's NIDL_VISITED: the functions reading them);
         static readonly string[] BigRoomFunctions = {
             "FillLevelInfo", "GetCollisionTile", "sub_08002434", "sub_08002470", "sub_080024F0", "sub_0800255C", "sub_080025AC",
             "sub_08002624", "sub_080026A8", "sub_08001408", "sub_080015A8",
             "sub_08002A5C", "sub_08002A80", "sub_08002AD0", "sub_08002B30", "sub_08002BA8", "sub_08002C18",
             "sub_08001678", "sub_080027E8", "sub_080027A8",
+            // (and the world's state slots, Squeak Squad's worlds' big switches' from 0x20 in the visited area: rooms.c's BigGetStateSlot);
+            "GetStateSlot",
         };
         static string BigRooms(byte[] rom, KatAMExpansionCode.Version version) {
             int codeBase = CodeAddress + 0x08000000, heap = version.RomSymbols["EwramInitHeap"], size = -1;
@@ -1160,6 +1176,28 @@
             WriteInts(rom, arm, unchecked((int)0xE59FC000), unchecked((int)0xE12FFF1C), target + 1);
         }
 
+        /* RoomTableSizes(); KatAM's room tables' sizes (by the props' fields that index them, 10-18: the most a vanilla room names, + 1)
+         * and its free rooms (props all 0xFFFF); */
+        const int KatAMRoomCount = 0x3D7;
+        static int[] RoomTableSizes(byte[] rom, int roomProps, out List<int> free) {
+            free = new List<int>();
+            int[] tableSizes = new int[20];
+            for (int room = 1; room < KatAMRoomCount; room++) {
+                int props = roomProps + room * 0x28;
+                if (Enumerable.Range(0, 19).All(i => ReadShort(rom, props + i * 2) == 0xFFFF)) { free.Add(room); continue; }
+                for (int field = 10; field < 19; field++) {
+                    int index = ReadShort(rom, props + field * 2);
+                    if (index != 0xFFFF) tableSizes[field] = Math.Max(tableSizes[field], index + 1);
+                }
+            }
+            /* gRoomTiledBGs' last entries too, which no room's props name: KatAM's code loads entry 34 (the credits' second background) itself
+             * for Dark Mind's last room (0x397, code_080023A4.c: gRoomTiledBGs[34]); the copy stopped at the last one a room names (33), and
+             * the first NiDL background took 34's place (the owner's garbled final boss battle: a NiDL room's background drawn over its
+             * sky); all of KatAM's 36 are kept, the NiDL ones after them; */
+            tableSizes[15] = Math.Max(tableSizes[15], KatAMRoomTiledBGs);
+            return tableSizes;
+        }
+
         static string AddRooms(byte[] rom, byte[] nightmare, NightmareRegion region, KatAMExpansionCode.Version version, ref int cursor) {
             IReadOnlyDictionary<string, int> symbols = version.RomSymbols;
             string bigRooms = BigRooms(rom, version);
@@ -1176,22 +1214,7 @@
             }
 
             // The vanilla rooms: their tables' sizes, the free slots, and what new rooms borrow (all from rooms every version has);
-            const int RoomCount = 0x3D7;
-            List<int> free = new List<int>();
-            int[] tableSizes = new int[20];
-            for (int room = 1; room < RoomCount; room++) {
-                int props = roomProps + room * 0x28;
-                if (Enumerable.Range(0, 19).All(i => ReadShort(rom, props + i * 2) == 0xFFFF)) { free.Add(room); continue; }
-                for (int field = 10; field < 19; field++) {
-                    int index = ReadShort(rom, props + field * 2);
-                    if (index != 0xFFFF) tableSizes[field] = Math.Max(tableSizes[field], index + 1);
-                }
-            }
-            /* gRoomTiledBGs' last entries too, which no room's props name: KatAM's code loads entry 34 (the credits' second background) itself
-             * for Dark Mind's last room (0x397, code_080023A4.c: gRoomTiledBGs[34]); the copy stopped at the last one a room names (33), and
-             * the first NiDL background took 34's place (the owner's garbled final boss battle: a NiDL room's background drawn over its
-             * sky); all of KatAM's 36 are kept, the NiDL ones after them; */
-            tableSizes[15] = Math.Max(tableSizes[15], KatAMRoomTiledBGs);
+            int[] tableSizes = RoomTableSizes(rom, roomProps, out List<int> free);
 
             int Props(int room, int field) => ReadShort(rom, roomProps + room * 0x28 + field * 2);
             int Entry(string table, int index) => ReadInt(rom, symbols[table] + index * 4) - 0x08000000;
@@ -1209,10 +1232,13 @@
             WriteInt(rom, noTypes, 0xFF);
 
             // Room numbers: the NiDL hub's first, then each level's (its switch room first) from its hundred, then from any left;
-            if (free.Count < rooms.Count + 1) return "KatAM has too few free rooms for Nightmare in Dream Land's.";
+            if (free.Count < rooms.Count + 2) return "KatAM has too few free rooms for Nightmare in Dream Land's.";
             List<int> left = new List<int>(free);
             int mainHub = left.Where(n => n / 100 == LevelHundreds[7]).DefaultIfEmpty(left[0]).First();
             left.Remove(mainHub);
+            // (and the NiDL ability room's, after the hub's: BuildNidlAbilityRoom());
+            int nidlAbilityRoom = left.Where(n => n / 100 == LevelHundreds[7]).DefaultIfEmpty(left[0]).First();
+            left.Remove(nidlAbilityRoom);
             for (int level = 0; level < 8; level++) {
                 foreach (NightmareRoom r in rooms.Where(r => r.Level == level).OrderBy(r => r.IsSwitchRoom ? 0 : 1)) {
                     int room = left.Where(n => n / 100 == LevelHundreds[level]).DefaultIfEmpty(left[0]).First();
@@ -1397,7 +1423,7 @@
                         rateX = rateY = 0;
                         backgroundLeft = HeavyMoleBackgroundX;
                     }
-                    WriteShorts(rom, roomProps + r.Room * 0x28, LevelSongs[r.Level], 0, 0, 0x100, 0x100, backgroundLeft, backgroundDown, rateX, rateY, RoomFlags,
+                    WriteShorts(rom, roomProps + r.Room * 0x28, NidlRoomSong(nightmare, region, r), 0, 0, 0x100, 0x100, backgroundLeft, backgroundDown, rateX, rateY, RoomFlags,
                                 info, palette, tableSizes[12] + i, tableSizes[13] + i, 0xFFFF, background, tableSizes[16] + i,
                                 tableSizes[17] + i, FirstDoorsList + i, 0);
                 }
@@ -1409,18 +1435,20 @@
             if (WarpRideDetours(rom, version) is string rideError) return rideError;
 
             BuildMainHub(rom, nightmare, symbols, version.SpriteTables, mainHub, mainHubDoors, rooms.First(r => r.Level == 7 && r.Stage == 0 && r.Index == 0).Record, tableSizes,
-                         infos, palettes, tilemaps, solidities, backgrounds, objects, noTypes, ref cursor, out Door abilityDoor,
+                         infos, palettes, tilemaps, solidities, backgrounds, objects, noTypes, nidlAbilityRoom, ref cursor, out Door abilityDoor,
                          out byte[] hubCollision, out int hubWidth);
+            Door abilityRoomBack = BuildNidlAbilityRoom(rom, symbols, nidlAbilityRoom, mainHub, tableSizes, solidities, objects, noTypes, ref cursor,
+                                                        out string abilityRoomError);
+            if (abilityRoomError != null) return abilityRoomError;
+            NidlAbilityRoom = nidlAbilityRoom;
             WriteShort(rom, CodeAddress + version.CodeSymbols["gNidlHubRoom"], mainHub);
-            /* The boss rooms' shards (bossExitsOf): gNidlShardExits ("ROM Expansion/nidl_boss.c"), and sub_0804C614's `kirby->roomId = 0x321`
-             * and spawn spot (after the shard cutscene) a call to NidlShardExit(): `adds r0, r4, #0; ldr r1, =NidlShardExit; bl
-             * _call_via_r1; b` past the spot's stores, the 0x321 literal holding the address; in the NiDL hub, with the cells of the
-             * door's ground either side of it (up to 2 each: HubGroundBeside()), each Kirby landing on his own; */
+            /* The boss rooms' shards (bossExitsOf): gNidlShardExits ("ROM Expansion/nidl_boss.c"), read by NidlShardExit() after the shard
+             * cutscene (HookShardExit()); in the NiDL hub, with the cells of the door's ground either side of it (up to 2 each:
+             * HubGroundBeside()), each Kirby landing on his own; */
             {
-                int exits = CodeAddress + version.CodeSymbols["gNidlShardExits"], site = version.RomSymbols["sub_0804C614"] + 0x174;
-                int literal = version.RomSymbols["sub_0804C614"] + 0x1B4;
-                if (ReadShort(rom, site) != 0x2083 || ReadInt(rom, literal) != 0x321)
-                    return $"The {region.KatAM} ROM's shard code doesn't match.";
+                int exits = CodeAddress + version.CodeSymbols["gNidlShardExits"];
+                string hookError = HookShardExit(rom, version);
+                if (hookError != null) return hookError;
                 int n = 0;
                 foreach (var (part, exit) in bossExitsOf.OrderBy(e => e.Key.Room)) {
                     if (n >= 24) break;
@@ -1431,10 +1459,6 @@
                         (rom[exits + n * 8 + 6], rom[exits + n * 8 + 7]) = HubGroundBeside(rom, hubCollision, hubWidth, symbols["gCollisionAttributes"], exit.x - 1, exit.y - 1);
                     n++;
                 }
-                int call = version.RomSymbols["_call_via_r1"] - (site + 0x08000000 + 4 + 4);
-                WriteShorts(rom, site, 0x1C20, 0x4900 | (literal - ((site + 2 + 4) & ~3)) / 4, 0xF000 | (call >> 12 & 0x7FF), 0xF800 | (call >> 1 & 0x7FF),
-                            0xE000 | ((0x198 - (0x174 + 8) - 4) / 2 & 0x7FF));
-                WriteInt(rom, literal, CodeAddress + 0x08000000 + version.CodeSymbols["NidlShardExit"] + 1);
                 // (for the map tracker, in the map table after its mini-bosses: "SX", u16 the exits, the table's address);
                 System.Text.Encoding.ASCII.GetBytes("SX").CopyTo(rom, MapShardExits);
                 WriteShort(rom, MapShardExits + 2, n);
@@ -1520,6 +1544,9 @@
             // (the hub's, with its door to the ability room last: the game's door visits look for a door in its list, endlessly);
             List<int> doorLists = new List<int> { DoorsList(abilityDoor == null ? mainHubDoors : mainHubDoors.Append(abilityDoor), new List<NidlChest>()) };
             doorLists.AddRange(rooms.Select(r => DoorsList(doors[r], chestsOf[r].Where(c => !c.Battery).ToList())));
+            // (the NiDL ability room's, its door back to the hub, after the rooms': its props name it);
+            WriteShort(rom, roomProps + nidlAbilityRoom * 0x28 + 18 * 2, SharedDoors + doorLists.Count);
+            doorLists.Add(DoorsList(new[] { abilityRoomBack }, new List<NidlChest>()));
             cursor = listCursor;
 
             // The tables, copied with the new entries;
@@ -1529,9 +1556,12 @@
                 ("gRoomTiledBGs", tableSizes[15], backgrounds), ("gLevelObjLists", tableSizes[16], objects),
                 ("gUnk_08D63C28", tableSizes[17], navigations), ("gUnk_08D640A4", SharedDoors, doorLists),
             };
+            // (each with room for Squeak Squad's after them, SqueakTableRoom: AddSqueakRooms() writes theirs there, roomTables);
             Dictionary<string, int> moved = new Dictionary<string, int>();
+            roomTables = new Dictionary<string, (int at, int count, int capacity)>();
             foreach ((string table, int size, List<int> entries) in tables) {
-                int at = moved[table] = Allocate(ref cursor, (size + entries.Count) * 4, 4);
+                int at = moved[table] = Allocate(ref cursor, (size + entries.Count + SqueakTableRoom) * 4, 4);
+                roomTables[table] = (at, size + entries.Count, size + entries.Count + SqueakTableRoom);
                 Array.Copy(rom, symbols[table], rom, at, size * 4);
                 WriteInts(rom, at + size * 4, entries.ToArray());
                 Repoint(rom, symbols[table] + 0x08000000, at + 0x08000000);
@@ -1599,6 +1629,8 @@
         // (the Power Orb's warp star's flight, after the rides: WarpFlights(), FinaleMirrors(); the ending's flight out of Nightmare's
         // room, its address, -1 none);
         static int finaleFlight = WarpFlight, endingFlight = -1;
+        // (the flights' table WarpFlights() moved, and its entries: AddSqueakRooms() grows it for Squeak Squad's rides; -1 not moved);
+        static int flightTable = -1, flightCount;
         static readonly (int, int, int) NightmareBossRoom = (7, 0, 1);
         // (the ending's: where its warp star comes out of the moon in the Power Orb's room, NiDL's moon room's 96, 50 on the screen at 8, 8;
         // a flight step's flag facing Kirby left, sub_080534D0);
@@ -1622,6 +1654,8 @@
             Array.Copy(rom, table, rom, moved, WarpFlight * 4);
             WriteInt(rom, moved + WarpFlight * 4, flight + 0x08000000);
             Repoint(rom, table + 0x08000000, moved + 0x08000000);
+            flightTable = moved;
+            flightCount = WarpFlight + 2 + rides.Count;
             foreach (Transport t in transportsOf.Values.SelectMany(list => list).Where(t => !t.Cannon)) {
                 rom[arrivals + t.Room * 2] = (byte)t.DestX;
                 rom[arrivals + t.Room * 2 + 1] = (byte)t.DestY;
@@ -1631,53 +1665,7 @@
                 rom[arrivals + exit.room * 2] = (byte)exit.x;
                 rom[arrivals + exit.room * 2 + 1] = (byte)exit.y;
             }
-            foreach (Transport t in rides) {
-                List<byte[]> steps = new List<byte[]>();
-                void Step(int xSpeed, int ySpeed, int frames, int effect = 0xFF, int flags = 0, int room = 0, int animation = FlightRider, int scale = 0) {
-                    byte[] step = new byte[FlightStep];
-                    WriteShorts(step, 0, xSpeed, ySpeed, frames, animation);
-                    step[8] = (byte)effect;
-                    step[9] = (byte)flags;
-                    WriteShort(step, 10, effect == RideRoom ? room : scale);
-                    steps.Add(step);
-                }
-                // (from where Kirby is, 8.8 pixels, to a spot: a frame; then the moves, and before a room change those in the fade, the
-                // fade started on its first, in steps of a move, an effect and a size: move k carries the size of the frame before it, the
-                // leg's start's for the first, RideLeg.Scale[k]);
-                void Move(int fromX, int fromY, int x, int y) => Step(x * 256 - fromX, fromY - y * 256, 1);
-                void Moves(RideLeg leg, bool fade) {
-                    List<(int dx, int dy)> path = leg.Moves.Concat(fade ? leg.Fade : Array.Empty<(int dx, int dy, int frames)>()).SelectMany(m => Enumerable.Repeat((m.dx, m.dy), m.frames)).ToList();
-                    int fadeAt = fade ? leg.Moves.Sum(m => m.frames) : -1;
-                    int Effect(int k) => k == fadeAt ? FlightFade : Math.Abs(path[k].dx) + Math.Abs(path[k].dy) >= 2 ? Sparkles : 0xFF;
-                    for (int k = 0, n; k < path.Count; k += n) {
-                        for (n = 1; k + n < path.Count && path[k + n] == path[k] && Effect(k + n) == Effect(k) && leg.SizeAt(k + n) == leg.SizeAt(k); n++) { }
-                        Step(path[k].dx * 256, -path[k].dy * 256, n, Effect(k), scale: leg.SizeAt(k));
-                    }
-                }
-                Move(t.X * 256, t.Y * 256, t.Ride[0].X, t.Ride[0].Y);
-                Moves(t.Ride[0], t.Ride.Length > 1);
-                foreach (RideLeg leg in t.Ride.Skip(1)) {
-                    // (KatAM's room change leaves Kirby at the cell's middle less 8 pixels, its top less 7: sub_080562D0);
-                    int cellX = (leg.X + 16) / 16, cellY = (leg.Y + 15) / 16;
-                    Step(cellX, cellY, 1, RideRoom, 0x40, leg.Room);
-                    Move(cellX * 0x1000 - 0x800, cellY * 0x1000 - 0x701, leg.X, leg.Y);
-                    Moves(leg, leg != t.Ride[^1]);
-                }
-                // (his tumble, a frame at a time, facing where he goes, then his bounce, to where he stands);
-                var hop = t.Ride[^1].Hop.SelectMany(m => Enumerable.Repeat((m.dx, m.dy), m.frames)).ToList();
-                int facing = hop.Sum(m => m.dx) < 0 ? 1 : 0;
-                for (int k = 0; k < hop.Count; k++)
-                    Step(hop[k].dx * 256, -hop[k].dy * 256, 1, k == 0 ? HopOrb : 0xFF, facing, animation: Tumbling + ((16 - k) & 15));
-                foreach ((int dx, int dy, int frames) in t.Ride[^1].Bounce) Step(dx * 256, -dy * 256, frames, 0xFF, facing, animation: Bouncing);
-                Step(0, 0, 0, RideHop, facing, animation: Bouncing);
-                int script = Allocate(ref cursor, steps.Count * FlightStep, 4);
-                for (int i = 0; i < steps.Count; i++) Array.Copy(steps[i], 0, rom, script + i * FlightStep, FlightStep);
-                WriteInt(rom, moved + t.Flight * 4, script + 0x08000000);
-                RideLeg last = t.Ride[^1];
-                (int x, int y) landing = (last.End.x + last.Hop.Concat(last.Bounce).Sum(m => m.dx * m.frames), last.End.y + last.Hop.Concat(last.Bounce).Sum(m => m.dy * m.frames));
-                rom[arrivals + last.Room * 2] = (byte)(landing.x / 16 + 1);
-                rom[arrivals + last.Room * 2 + 1] = (byte)(landing.y / 16 + 1);
-            }
+            foreach (Transport t in rides) RideFlight(rom, t, moved, arrivals, ref cursor);
             // (the Power Orb's: held, then the fade, WarpFlight's room change, held again in Nightmare's room (his intro knocks them off
             // the star there and lays them on the floor), then a frame standing and the end, facing him: as the rides', no hop);
             finaleFlight = WarpFlight + 1 + rides.Count;
@@ -1709,6 +1697,57 @@
                 WriteShorts(rom, endingFlight + 5 * FlightStep, 0, 0, 1, Standing, 0xFF, 0);
                 WriteShorts(rom, endingFlight + 6 * FlightStep, 0, 0, 0, Standing, RideHop, 0);
             }
+        }
+
+        /* RideFlight(); A warp star's ride (Transport.Ride) as a flight (see WarpFlights()): its script, its entry in the flights'
+         * table (at `table`, the star's subtype), and where it lands Kirby in the arrivals table (`arrivals`: gUnk_0893CB44 or its
+         * copy, AddSqueakRooms()); */
+        static void RideFlight(byte[] rom, Transport t, int table, int arrivals, ref int cursor) {
+            List<byte[]> steps = new List<byte[]>();
+            void Step(int xSpeed, int ySpeed, int frames, int effect = 0xFF, int flags = 0, int room = 0, int animation = FlightRider, int scale = 0) {
+                byte[] step = new byte[FlightStep];
+                WriteShorts(step, 0, xSpeed, ySpeed, frames, animation);
+                step[8] = (byte)effect;
+                step[9] = (byte)flags;
+                WriteShort(step, 10, effect == RideRoom ? room : scale);
+                steps.Add(step);
+            }
+            // (from where Kirby is, 8.8 pixels, to a spot: a frame; then the moves, and before a room change those in the fade, the
+            // fade started on its first, in steps of a move, an effect and a size: move k carries the size of the frame before it, the
+            // leg's start's for the first, RideLeg.Scale[k]);
+            void Move(int fromX, int fromY, int x, int y) => Step(x * 256 - fromX, fromY - y * 256, 1);
+            void Moves(RideLeg leg, bool fade) {
+                List<(int dx, int dy)> path = leg.Moves.Concat(fade ? leg.Fade : Array.Empty<(int dx, int dy, int frames)>()).SelectMany(m => Enumerable.Repeat((m.dx, m.dy), m.frames)).ToList();
+                int fadeAt = fade ? leg.Moves.Sum(m => m.frames) : -1;
+                int Effect(int k) => k == fadeAt ? FlightFade : Math.Abs(path[k].dx) + Math.Abs(path[k].dy) >= 2 ? Sparkles : 0xFF;
+                for (int k = 0, n; k < path.Count; k += n) {
+                    for (n = 1; k + n < path.Count && path[k + n] == path[k] && Effect(k + n) == Effect(k) && leg.SizeAt(k + n) == leg.SizeAt(k); n++) { }
+                    Step(path[k].dx * 256, -path[k].dy * 256, n, Effect(k), scale: leg.SizeAt(k));
+                }
+            }
+            Move(t.X * 256, t.Y * 256, t.Ride[0].X, t.Ride[0].Y);
+            Moves(t.Ride[0], t.Ride.Length > 1);
+            foreach (RideLeg leg in t.Ride.Skip(1)) {
+                // (KatAM's room change leaves Kirby at the cell's middle less 8 pixels, its top less 7: sub_080562D0);
+                int cellX = (leg.X + 16) / 16, cellY = (leg.Y + 15) / 16;
+                Step(cellX, cellY, 1, RideRoom, 0x40, leg.Room);
+                Move(cellX * 0x1000 - 0x800, cellY * 0x1000 - 0x701, leg.X, leg.Y);
+                Moves(leg, leg != t.Ride[^1]);
+            }
+            // (his tumble, a frame at a time, facing where he goes, then his bounce, to where he stands);
+            var hop = t.Ride[^1].Hop.SelectMany(m => Enumerable.Repeat((m.dx, m.dy), m.frames)).ToList();
+            int facing = hop.Sum(m => m.dx) < 0 ? 1 : 0;
+            for (int k = 0; k < hop.Count; k++)
+                Step(hop[k].dx * 256, -hop[k].dy * 256, 1, k == 0 ? HopOrb : 0xFF, facing, animation: Tumbling + ((16 - k) & 15));
+            foreach ((int dx, int dy, int frames) in t.Ride[^1].Bounce) Step(dx * 256, -dy * 256, frames, 0xFF, facing, animation: Bouncing);
+            Step(0, 0, 0, RideHop, facing, animation: Bouncing);
+            int script = Allocate(ref cursor, steps.Count * FlightStep, 4);
+            for (int i = 0; i < steps.Count; i++) Array.Copy(steps[i], 0, rom, script + i * FlightStep, FlightStep);
+            WriteInt(rom, table + t.Flight * 4, script + 0x08000000);
+            RideLeg last = t.Ride[^1];
+            (int x, int y) landing = (last.End.x + last.Hop.Concat(last.Bounce).Sum(m => m.dx * m.frames), last.End.y + last.Hop.Concat(last.Bounce).Sum(m => m.dy * m.frames));
+            rom[arrivals + last.Room * 2] = (byte)(landing.x / 16 + 1);
+            rom[arrivals + last.Room * 2 + 1] = (byte)(landing.y / 16 + 1);
         }
 
         /* FinaleMirrors(); The finale's way in and its warp star (see finaleEntry): Central Circle's Dimension Mirror (its shard object of
@@ -1909,8 +1948,8 @@
                                   bool Shut = false);
         // DoorKind; Why a door is there (see PlanDoors()): NiDL's own, a stage's goal, the boss stages' chain, a branch into a stage and
         // its way back, a loop, a link between levels or with a KatAM area, a switch room's (its Mirra's way in,
-        // its floor mirror), the hubs', the way into NiDL, an edge (a fall or climb out of a room), a split room's parts;
-        public enum DoorKind { Nidl, Goal, Boss, Branch, BranchBack, Loop, Link, KatAMLink, SwitchEntry, SwitchFloor, Hub, Entry, Edge, Split }
+        // its floor mirror), the hubs', the way into NiDL, an edge (a fall or climb out of a room), a split room's parts, a Squeak Lair's way out;
+        public enum DoorKind { Nidl, Goal, Boss, Branch, BranchBack, Loop, Link, KatAMLink, SwitchEntry, SwitchFloor, Hub, Entry, Edge, Split, Lair }
 
         /* Transport; A warp star or cannon of a ported room (NiDL's gimmicks 4 and 6, their exits kind 30), as KatAM's own (objects 0x84,
          * 0x8A: BuildObjects()): where it stands (pixels, TransportSpot(): a cannon on a cell's top, a warp star in a cell's middle, so its cell is (Y - 1) / 16), and where it takes
@@ -2032,6 +2071,22 @@
         // enemies off them, as BuildObjects() the ported rooms', 3 cells across, 2 up or down);
         static Dictionary<int, List<(int x, int y)>> katamLandings = new Dictionary<int, List<(int, int)>>();
         static int finishCursor;
+
+        /* HookShardExit(); sub_0804C614's `kirby->roomId = 0x321` and spawn spot (after a shard's cutscene) a call to NidlShardExit()
+         * (gNidlShardExits: where a ported boss's shard takes Kirby): `adds r0, r4, #0; ldr r1, =NidlShardExit; bl _call_via_r1; b` past
+         * the spot's stores, the 0x321 literal holding the address. Once: the NiDL rooms' bosses and Squeak Squad's both use it (with or
+         * without the NiDL ROM); */
+        static string HookShardExit(byte[] rom, KatAMExpansionCode.Version version) {
+            int site = version.RomSymbols["sub_0804C614"] + 0x174, literal = version.RomSymbols["sub_0804C614"] + 0x1B4;
+            int exit = CodeAddress + 0x08000000 + version.CodeSymbols["NidlShardExit"] + 1;
+            if (ReadInt(rom, literal) == exit) return null;
+            if (ReadShort(rom, site) != 0x2083 || ReadInt(rom, literal) != 0x321) return $"The {version.Name} ROM's shard code doesn't match.";
+            int call = version.RomSymbols["_call_via_r1"] - (site + 0x08000000 + 4 + 4);
+            WriteShorts(rom, site, 0x1C20, 0x4900 | (literal - ((site + 2 + 4) & ~3)) / 4, 0xF000 | (call >> 12 & 0x7FF), 0xF800 | (call >> 1 & 0x7FF),
+                        0xE000 | ((0x198 - (0x174 + 8) - 4) / 2 & 0x7FF));
+            WriteInt(rom, literal, exit);
+            return null;
+        }
 
         /* HubGroundBeside(); How many cells of ground the NiDL hub has either side of a landing cell (x, y), up to 2 each (`collision`: its
          * collision map, `width` cells across; `attributes`: gCollisionAttributes, bit 0 a cell Kirby goes through): an empty cell with
@@ -3308,6 +3363,11 @@
                 WriteInt(rom, edited.DoorsEntry, newDoorsInfo + 0x08000000);
             }
             editedRooms = new List<EditedRoom>();
+            // (and Squeak Squad's, after NiDL's: KatAMExpansionSqueakHubs.cs);
+            if (squeakFinish != null) {
+                cursor = squeakFinish(rom, cursor);
+                squeakFinish = null;
+            }
         }
 
         const byte MirrorType = 0x6F, MirraType = 0x34, WarpStarType = 0x84, CannonType = 0x8A, FuseType = 0x78;
@@ -3978,8 +4038,9 @@
         /* NidlChest; A consumable chest in a ported room (PlanChests()): where it stands (room pixels, the middle of a cell with a floor
          * under it, as KatAM's), what it holds (KatAM's chest items: 0 1UP, 1 Invincible Candy, 2 Maximum Tomato, 3 Meat, 4 Pep Brew,
          * 5 Cherry), its treasure index (from FirstNidlChest), and the NiDL item it replaces (its record in the NiDL ROM; -1 a new one); or
-         * a battery (KatAM's 0x62, the phone's) standing there, new; */
-        public sealed record NidlChest(int X, int Y, byte Item, byte Index, int Replaces, bool Battery = false);
+         * a battery (KatAM's 0x62, the phone's) standing there, new; Map: the area's map it holds instead (KatAMExpansionMaps.cs: the level's
+         * first chest, its best spot), -1 none; */
+        public sealed record NidlChest(int X, int Y, byte Item, byte Index, int Replaces, bool Battery = false, int Map = -1);
         static Dictionary<NightmareRoom, List<NidlChest>> chestsOf = new Dictionary<NightmareRoom, List<NidlChest>>();
         public static IReadOnlyDictionary<NightmareRoom, List<NidlChest>> PortedChests => chestsOf;
         /* The treasure indices of the NiDL chests: KatAM's 84 chests use 0-83 (gTreasures.chestFields has 128 bits; 0x80 on are the shard
@@ -4005,7 +4066,8 @@
          * are ranked: a loose item behind breakable blocks (Kirby reaches it only by breaking some), a dead end (a room with one way in
          * and out), far from where Kirby comes in; a loose item there becomes a chest holding it, and a dead end with none gets a new chest,
          * as far into the room as Kirby goes. Never in a boss room, a switch room or the NiDL hub, nor in a mini-boss's fight area; a chest
-         * stands on a floor (solid ground, ice or a one-way floor) Kirby reaches. The Fountain of Dreams is all boss rooms: none there. A
+         * stands on a floor (solid ground, ice or a one-way floor) Kirby reaches. The Fountain of Dreams is all boss rooms: its map's chest is
+         * in its hub (FountainChestAt). A
          * dead end with nothing in it (no enemy, item or boss) always gets a chest, past the level's few (0x298). Batteries too, as many
          * as the chests a level gets, at the best spots left (the farthest floor behind breakable blocks, else the farthest in a dead
          * end), one a room, none in a chest's; */
@@ -4112,7 +4174,9 @@
                     if (index > LastNidlChest) break;
                     if (plan[c.room].Count > 0 || wanted == 0 && c.score < EmptyRoom) continue;
                     byte item = c.chest.Item != 0xFF ? c.chest.Item : KatAMChestItems[dealt++ * 17 % KatAMChestItems.Length];
-                    plan[c.room].Add(c.chest with { Item = item, Index = (byte)index++ });
+                    // (the level's first, its best spot, holds the level's map: KatAMExpansionMaps.cs);
+                    int map = plan.Where(e => e.Key.Level == level).All(e => e.Value.All(o => o.Map < 0)) ? level : -1;
+                    plan[c.room].Add(c.chest with { Item = map >= 0 ? AreaMapItem(map) : item, Index = (byte)index++, Map = map });
                     if (c.score < EmptyRoom) wanted--;
                 }
                 // Batteries: as many again, at the best spots left, one a room (none in a chest's);
@@ -4124,13 +4188,22 @@
                     batteries--;
                 }
             }
+            /* The Fountain of Dreams' map: its level is all boss rooms, so its chest stands in its hub, where Nightmare's end leads, the
+             * prelude to KatAM's final boss (the owner: "The fountain of dreams hub can only exist within the amazing Mirror after the
+             * nightmare fight. It's a prelude before the final fight."), on the floor's left (FountainChestAt), as its Maximum Tomato is
+             * on its right; */
+            NightmareRoom fountainHub = rooms.FirstOrDefault(r => r.IsSwitchRoom && r.Level == 7);
+            if (fountainHub != null && index <= LastNidlChest)
+                plan[fountainHub].Add(new NidlChest(FountainChestAt.x, FountainChestAt.y, AreaMapItem(FountainMap), (byte)index++, -1, Map: FountainMap));
             return plan;
         }
+        static readonly (int x, int y) FountainChestAt = (56, 136);
 
-        // ChestTemplate(); A small chest (0x80) as KatAM's: subtype1 its item, unk11 its treasure index;
+        // ChestTemplate(); A small chest (0x80) as KatAM's: subtype1 its item, unk11 its treasure index; unk16 an area's map's mark (chest.c);
         static byte[] ChestTemplate(NidlChest chest, int number) {
             byte[] template = ObjectTemplate(chest.X, chest.Y, number, SmallChestType);
             template[14] = chest.Item; template[15] = 0; template[0x11] = chest.Index;
+            if (chest.Map >= 0) { template[0x16] = (byte)(chest.Map + 1); template[0x17] = ChestMarkMap; }
             return template;
         }
 
@@ -4451,8 +4524,9 @@
             return cells;
         }
 
-        /* Arenas(); A room's (part's) mini-bosses' fight areas (ArenaOf(), pixels), as BuildObjects() gives them; `sinking`, the Power
-         * Orb's down to where its screen stops sinking (BuildNavigation()); */
+        /* Arenas(); A room's (part's) mini-bosses' fight areas (ArenaOf(), pixels), as BuildObjects() gives them; `sinking`, all the
+         * camera's held on (BuildNavigation()): the Power Orb's down to where its screen stops sinking, King Dedede's up to the room's
+         * top, where its lock rides as Kirby drops in (arena.c's DROP_VIEW, ROOM_TOP); */
         static List<(int left, int top, int width, int height)> Arenas(byte[] nightmare, NightmareRoom r, bool sinking = false) {
             List<(int, int, int, int)> arenas = new List<(int, int, int, int)>();
             int list = ReadInt(nightmare, r.Record + 0x48);
@@ -4467,6 +4541,7 @@
                     var arena = spot.boss == KrackoBoss ? KrackoTop
                         : ArenaOf(r, (x + spot.screenDx, y + spot.screenDy), x, y, CameraTop(nightmare, r), HiddenRows * 16);
                     if (sinking && spot.boss == PowerOrbBoss) arena.height = Math.Min(arena.height + PowerOrbSink, r.FullHeight * 16 - arena.top);
+                    if (sinking && spot.boss == DededeBoss) arena = (arena.left, DropRoomTop, arena.width, arena.height + arena.top - DropRoomTop);
                     arenas.Add(arena);
                 }
             }
@@ -4545,6 +4620,23 @@
             return at;
         }
 
+        /* AllocateShared(); As AllocateCompressed(), for data nothing changes once written (a room's tiles and tilemap): data already
+         * written to this ROM, byte for byte, is used again (the Squeak Squad rooms of a stage often share their tiles: half a megabyte;
+         * the ROM was full). Kept per ROM, and the bytes checked where they were, so another ROM built in the same run shares nothing; */
+        static readonly System.Runtime.CompilerServices.ConditionalWeakTable<byte[], Dictionary<string, List<int>>> sharedData =
+            new System.Runtime.CompilerServices.ConditionalWeakTable<byte[], Dictionary<string, List<int>>>();
+        static int AllocateShared(byte[] rom, byte[] data, ref int cursor) {
+            Dictionary<string, List<int>> written = sharedData.GetOrCreateValue(rom);
+            string key = Convert.ToBase64String(System.Security.Cryptography.SHA256.HashData(data)) + ":" + data.Length;
+            if (written.TryGetValue(key, out List<int> places))
+                foreach (int place in places)
+                    if (place + data.Length <= rom.Length && rom.AsSpan(place, data.Length).SequenceEqual(data)) return place;
+            int at = AllocateCompressed(rom, data, ref cursor);
+            if (places == null) written[key] = places = new List<int>();
+            places.Add(at);
+            return at;
+        }
+
         // DecompressRL(); KatAM's RL data (collision): u32 size << 8, then runs (flag bit 7: (flag & 0x7F) + 3 copies of a byte; else (flag + 1) bytes);
         static byte[] DecompressRL(byte[] rom, int address) {
             int size = ReadInt(rom, address) >> 8, at = address + 4, written = 0;
@@ -4564,16 +4656,20 @@
          * most), a zone per block Kirby can stand in (its point: the open cell over a floor nearest its middle), the others' cells
          * given to the nearest zone; blocks side by side are neighbours. A fight's area (Arenas(), where the camera is held) holds a
          * zone's point: a called helper looks for one inside the camera's bounds, forever if there's none (sub_08010034); one whose
-         * screen sinks (the Power Orb's, taller than a screen) a zone in each block down its middle (a block without one: the open
-         * cell nearest the block's middle; blocks under a screen high), all neighbours, so its bounds hold one he can reach as it
-         * sinks; returns its address; */
-        static int BuildNavigation(byte[] rom, NightmareRoom r, byte[] collision, int routes, List<(int left, int top, int width, int height)> arenas, ref int cursor) {
-            int width = r.FullWidth, height = r.FullHeight;
+         * screen sinks (the Power Orb's, taller than a screen) or rises (King Dedede's: from the room's top, as Kirby drops in, a
+         * helper in the room froze the game) a zone in each block down its middle (a block without one: the open cell nearest the
+         * block's middle; blocks under a screen high), all neighbours, so its bounds hold one he can reach as it moves; returns its
+         * address; */
+        static int BuildNavigation(byte[] rom, NightmareRoom r, byte[] collision, int routes, List<(int left, int top, int width, int height)> arenas, ref int cursor) =>
+            // (Heavy Mole's room, all dirt the fight digs: a zone at each block's middle, HeavyMoleRoom);
+            BuildNavigation(rom, r.FullWidth, r.FullHeight, r.Record == gridRecord, collision, routes, arenas, ref cursor);
+
+        // (any room's, `width` by `height` blocks: Squeak Squad's too, KatAMExpansionSqueakRooms.cs; `grid`, a zone at each block's middle);
+        static int BuildNavigation(byte[] rom, int width, int height, bool grid, byte[] collision, int routes, List<(int left, int top, int width, int height)> arenas,
+                                   ref int cursor) {
             bool Open(int x, int y) => x >= 0 && y >= 0 && x < width && y < height
                                        && collision[y * width + x] is 0x00 or 0x48 or 0x20 or 0x21 or 0xFC or 0xFD or 0xFE or 0xFF;
             bool Standable(int x, int y) => Open(x, y) && y + 1 < height && !Open(x, y + 1);
-            // (Heavy Mole's room, all dirt the fight digs: a zone at each block's middle, HeavyMoleRoom);
-            bool grid = r.Record == gridRecord;
 
             int blockWidth = 8, blockHeight = 6;
             List<(int bx, int by, int x, int y)> zones;
@@ -4598,7 +4694,7 @@
                 bool Inside(int x, int y) => x * 16 + 8 > arena.left && x * 16 + 8 < arena.left + arena.width
                                              && y * 16 + 8 > arena.top && y * 16 + 8 < arena.top + arena.height;
                 if (arena.height > 160) {
-                    // (a sinking fight's: down its middle column, a zone in each block without one, at the open cell nearest its middle);
+                    // (a sinking or rising fight's: down its middle column, a zone in each block without one, at the open cell nearest its middle);
                     int column = (arena.left + arena.width / 2) / 16, bx = column / blockWidth;
                     for (int by = arena.top / 16 / blockHeight; by * blockHeight * 16 < arena.top + arena.height && zones.Count < 32; by++) {
                         if (zones.Any(z => z.bx == bx && z.by == by)) continue;

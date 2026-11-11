@@ -1019,7 +1019,7 @@ static void Orphan(struct Fight *f);
 static bool32 SubAppear(struct Fight *f) {
     SUB;
     f->custom = FALSE;
-    if (f->subArg) PlaySfx(&f->obj->base, SE_DARK_MIND_TELE_2);
+    if (f->subArg) PlaySfx(&f->obj->base, NIDL_SE(0x234)); // (NiDL's: 0x080AB682);
     for (f->frame = LIGHT_LAST; ; f->frame--) {
         SUB_WAIT(2);
         if (f->frame == LIGHT_FIRST) break;
@@ -1036,7 +1036,7 @@ static bool32 SubVanish(struct Fight *f) {
     SUB;
     Stop(f);
     f->custom = FALSE;
-    if (f->subArg) PlaySfx(&f->obj->base, SE_DARK_MIND_TELE_1);
+    if (f->subArg) PlaySfx(&f->obj->base, NIDL_SE(0x233)); // (NiDL's: 0x080AB73E);
     for (f->frame = LIGHT_FIRST; ; f->frame++) {
         SUB_WAIT(2);
         if (f->frame == LIGHT_LAST) break;
@@ -1309,11 +1309,11 @@ static void State7(struct Fight *f) {
     }
     Effect(f, FX_CHARGE);
     Effect(f, FX_CHARGE_SPARKLES);
-    PlaySfx(&f->obj->base, SE_DMK_CHARGE);
+    PlaySfx(&f->obj->base, NIDL_SE(0x235)); // (NiDL's: the charge, 0x080AAA22);
     PlayAnim(f, sHandUp);
     while (!f->charge) WAIT(1);
     PlayAnim(f, sPointing);
-    PlaySfx(&f->obj->base, SE_DARK_MIND_LASER_SHOT);
+    PlaySfx(&f->obj->base, NIDL_SE(0x230)); // (NiDL's: the stars, 0x080AAA54);
     for (f->loop = 0; f->loop < 6; f->loop++) {
         if (f->obj->unk80 <= f->maxHp / 3 && (f->loop & 1)) {
             Shot(f, 1, 0, 0x30, 0x10);
@@ -1409,7 +1409,7 @@ static void State9(struct Fight *f) {
 
     SCRIPT;
     WAIT(24);
-    PlaySfx(&f->obj->base, SE_KRACKO_SWEEP_ATTACK);
+    PlaySfx(&f->obj->base, NIDL_SE(0x231)); // (NiDL's: the swoop, 0x080AB1C2);
     k = Closest(f);
     if (k) Face(f, k->base.x >> 8);
     PlayAnim(f, sDash);
@@ -1508,7 +1508,7 @@ static void Frame(struct Fight *f) {
         break;
     case 8:
         if (!--f->count) {
-            PlaySfx(&f->obj->base, SE_ABILITY_TORNADO_ATTACK);
+            PlaySfx(&f->obj->base, NIDL_SE(0x22E)); // (NiDL's: 0x080AB16A);
             f->count = 6;
         }
         Animate(f);
@@ -1842,7 +1842,7 @@ static void Shot(struct Fight *f, u8 variant, u8 way, s8 dx, s8 dy) {
     ObjectBaseInitSprite(shot, &shot->sprite, gNidlNightmareFight.tiles[gNidlNightmareFight.shots], gNidlNightmareFight.animId,
                          gNidlNightmareFight.shots, SPARKLE_ORDER);
     shot->sprite.palId = f->pal[PAL_FX];
-    PlaySfx(&obj->base, SE_DARK_MIND_SHOOT_STAR);
+    PlaySfx(&obj->base, NIDL_SE(0xBD)); // (NiDL's: each star, 0x080ABCDA);
 }
 
 /* EffectMain(); His effects (NiDL's types 0xCD, 0xCF, 0xCE: his cape's; 0xC9, 0xCA: his hand's; 0xCB, 0xCC: his charge), on him:

@@ -7,9 +7,10 @@ namespace KatAMMapTracker {
      * Room IDs are the same in every version. The tutorial has no rooms on the pause screen.
      *
      * Which maps the save holds is in RAM: gTreasures.bigChestField (0x0203897C, the same in every version), one bit per area.
-     * A chest holding 0x0A + area gives that area's map; */
+     * A chest holding 0x0A + area gives that area's map. The ROM Expansion's areas' maps (KatAMExpansionMaps.cs) are its bits 10-25:
+     * map m the rooms of NiDL level m (0-7) or Squeak Squad world m - 7 (RomMap's NightmareLevel m, 8-15); */
     public static class AreaMaps {
-        public const int AreaCount = 10;
+        public const int AreaCount = 10, ExpansionMapBit = 10, ExpansionMapCount = 16;
 
         static readonly int[][] AreaRooms = {
             // 0: Tutorial;
@@ -70,17 +71,21 @@ namespace KatAMMapTracker {
             },
         };
 
-        // RoomsOf(); The rooms revealed by the maps in a bigChestField value (bit n: the map of area n);
-        public static HashSet<int> RoomsOf(int mapFlags) {
+        // RoomsOf(); The rooms revealed by the maps in a bigChestField value (bit n: the map of area n; the expansion's, the map's rooms);
+        public static HashSet<int> RoomsOf(int mapFlags, RomMap map = null) {
             HashSet<int> rooms = new HashSet<int>();
 
             for (int area = 0; area < AreaCount; area++) {
                 if ((mapFlags & (1 << area)) != 0) rooms.UnionWith(AreaRooms[area]);
             }
+            if (map != null)
+                for (int m = 0; m < ExpansionMapCount; m++)
+                    if ((mapFlags & (1 << (ExpansionMapBit + m))) != 0)
+                        rooms.UnionWith(map.Rooms.Values.Where(r => r.NightmareLevel == m).Select(r => r.Id));
 
             return rooms;
         }
 
-        public static int CountOf(int mapFlags) => Enumerable.Range(0, AreaCount).Count(area => (mapFlags & (1 << area)) != 0);
+        public static int CountOf(int mapFlags) => Enumerable.Range(0, ExpansionMapBit + ExpansionMapCount).Count(area => (mapFlags & (1 << area)) != 0);
     }
 }

@@ -1,12 +1,14 @@
-/* rooms.c: rooms bigger than KatAM's 1950 blocks (16x16 pixels each), for the Nightmare in Dream Land rooms (KatAMExpansionRooms.cs).
- * Each room loaded at once (up to 4: the player's and the CPU helpers', one slot each, gCurLevelInfo[].unk65E) has its collision
- * (gUnk_02024ED0[4][1950]), its CPU helpers' zones (gUnk_02026D60[4][1954]) and its tilemap (gUnk_02028EE0[4], 1950 * 4 entries) in
- * EWRAM. Here each slot has room for BIG_BLOCKS blocks: slots 0 and 1 in those arrays (they hold two of them), slots 2 and 3 at the
- * end of the EWRAM heap (gEwramHeap), which KatAMExpansionRooms.cs shrinks to NIDL_HEAP_SIZE (EwramInitHeap's 0x20080: the game
- * uses a few KB of it). These replace the game's functions that use those arrays (the same code, from the decompilation, with
- * BigCollision, BigZones and BigTilemap for them): FillLevelInfo (loads a room into its slot), GetCollisionTile and the other
- * collision reads, sub_0800255C (sets a block), sub_080025AC and sub_08002624 (a block's special block), sub_08001408 (a special
- * block changes the tilemap and collision), sub_080015A8 (reads a block's tilemap) and sub_080026A8 (the zones).
+/* rooms.c: rooms bigger than KatAM's 1950 blocks (16x16 pixels each), for the Nightmare in Dream Land rooms (KatAMExpansionRooms.cs)
+ * and Squeak Squad's (KatAMExpansionSqueakRooms.cs). Each room loaded at once (up to 4: the player's and the CPU helpers', one slot
+ * each, gCurLevelInfo[].unk65E) has its collision (gUnk_02024ED0[4][1950]), its CPU helpers' zones (gUnk_02026D60[4][1954]) and its
+ * tilemap (gUnk_02028EE0[4], 1950 * 4 entries) in EWRAM. Here each slot has room for BIG_BLOCKS blocks: slot 0 in those arrays, the
+ * other slots' collision and zones in the tilemap array after slot 0's tilemap, and their tilemaps at the end of the EWRAM heap
+ * (gEwramHeap), which KatAMExpansionRooms.cs shrinks to NIDL_HEAP_SIZE (EwramInitHeap's 0x20080: the game uses a few KB of it,
+ * under 6 KB in the rooms and fights measured, the title screen and the pause screens too). These replace the game's functions
+ * that use those arrays (the same code, from the decompilation, with BigCollision, BigZones and BigTilemap for them):
+ * FillLevelInfo (loads a room into its slot), GetCollisionTile and the other collision reads, sub_0800255C (sets a block),
+ * sub_080025AC and sub_08002624 (a block's special block), sub_08001408 (a special block changes the tilemap and collision),
+ * sub_080015A8 (reads a block's tilemap) and sub_080026A8 (the zones).
  * Each ported room has a doors list of its own (gUnk_08D640A4, from NIDL_DOORS_FIRST: a mirror looks its door up there every frame,
  * and one list for them all made NiDL's rooms lag), and KatAM keeps which of a list's doors were used (and whether its room was seen,
  * bit 15) in gVisitedDoors, a u16 per list, NIDL_DOORS_FIRST of them: the ported rooms' are kept here instead, after the heap
@@ -24,23 +26,29 @@
 #include "multi_08030C94.h"
 #include "treasures.h"
 #include "nidl.h"
+#include "squeak.h"
 #include "save.h"
 #include "agb_sram.h"
 
-#define BIG_BLOCKS 3584
+#define BIG_BLOCKS 4032         // Squeak Squad's biggest room (Cushy Cloud 1's first, 96 x 42): KatAMExpansionRooms.cs's BigRoomBlocks;
 #define BIG_ZONES (BIG_BLOCKS + 4)
 #define BIG_TILEMAP (BIG_BLOCKS * 8)
-#define NIDL_HEAP_SIZE 0xE478   // 0x20080 - NIDL_VISITED_SIZE - 2 * (BIG_TILEMAP + BIG_BLOCKS + BIG_ZONES): KatAMExpansionRooms.cs's NidlHeapSize;
-#define NIDL_VISITED_SIZE 0x400
+#define NIDL_HEAP_SIZE 0x7B80   // 0x20080 - NIDL_VISITED_SIZE - 3 * BIG_TILEMAP - SQUEAK_MAIL_SIZE: KatAMExpansionRooms.cs's NidlHeapSize;
+#define NIDL_VISITED_SIZE 0xA00  // NiDL's and Squeak Squad's rooms' lists (1190), Squeak Squad's world slots and chests, the taken bits;
 #define NIDL_DOORS_FIRST 0x120  // ARRAY_COUNT(gVisitedDoors): KatAMExpansionRooms.cs's FirstDoorsList;
 #define NIDL_VISITED_MAGIC 0x4E494456
 
 void LoadLevelGfx(u8 playerId, const u16 **arg1, const u16 **arg2);
 
-/* gNidlRoomTops; Per room, where the camera's view starts at the top (KatAMExpansionRooms.cs, CameraTop()): 0 KatAM's (8 pixels down,
- * as its rooms hide that much), 1 the room's top (NiDL shows its rooms' top row whole), 2 a row down (16 pixels: a NiDL room whose top
- * row repeats the one under it, which NiDL never showed); */
-const u8 gNidlRoomTops[0x400] = { 0 };
+/* gNidlRoomTops; Per room (Squeak Squad's from 0x400 up: KatAMExpansionSqueakRooms.cs), where the camera's view starts at the top
+ * (KatAMExpansionRooms.cs, CameraTop()): 0 KatAM's (8 pixels down, as its rooms hide that much), 1 the room's top (NiDL shows its
+ * rooms' top row whole), 2 a row down (16 pixels: a NiDL room whose top row repeats the one under it, which NiDL never showed); with
+ * ROOM_FULL_BOTTOM, the camera goes down to 8 pixels from the room's bottom, as on its other sides, not KatAM's 40 (Squeak Squad's
+ * rooms: the DS shows them to their bottom, and they get no rows of padding there); */
+const u8 gNidlRoomTops[0x800] = { 0 };
+// gExpansionSongs; NiDL's and Squeak Squad's first songs in the grown song table (KatAMExpansionSound.cs; nidl.h's NIDL_SE);
+const u16 gExpansionSongs[2] = { 0, 0 };
+#define ROOM_FULL_BOTTOM 0x80
 
 /* gNidlGridRoom; The room whose special blocks are a grid (KatAMExpansionRooms.cs, HeavyMoleRoom: Heavy Mole's, all dirt, 2112 blocks,
  * the time KatAM's walk through its list takes to find one most of a frame): a record (0x12 bytes) per cell, row by row, first, so a
@@ -50,11 +58,25 @@ u16 gNidlGridRoom = 0xFFFF;
 
 #define NIDL_VISITED ((u32 *)((u8 *)gEwramHeap + NIDL_HEAP_SIZE))
 /* Taken(); The NiDL rooms' loose items taken (template unk2 NIDL_TAKEN_KIND, unk3 the item's number, from KatAMExpansionRooms.cs:
- * KatAM's own 256 numbers, gUnk_02023368, are all used), the last bytes of NIDL_VISITED: as KatAM's, an item taken stays gone until
- * the game clears them (sub_080027A8: a game's start, a game over...), so it's once per visit, not once per room entry; */
-#define NIDL_TAKEN_SIZE 0x20
+ * KatAM's own 256 numbers, gUnk_02023368, are all used), and Squeak Squad's (SQUEAK_TAKEN_KIND and the two after it, 256 numbers
+ * each: KatAMExpansionSqueakRooms.cs), the last bytes of NIDL_VISITED: as KatAM's, an item taken stays gone until the game clears
+ * them (sub_080027A8: a game's start, a game over...), so it's once per visit, not once per room entry; */
+#define NIDL_TAKEN_SIZE 0x80
+#define SQUEAK_CHESTS_SIZE 0x10
+#define SQUEAK_WORLD_SIZE 0x20
+// (Squeak Squad's Ability Scrolls owned, a bit each, before the world slots: the visited lists' last 4 bytes, which no room used);
+#define SQUEAK_SCROLLS_SIZE 4
 #define NIDL_TAKEN_KIND 3
+#define SQUEAK_TAKEN_KIND 5
 #define BIG_AREA ((u8 *)gEwramHeap + NIDL_HEAP_SIZE + NIDL_VISITED_SIZE)
+// (the area's address, for what uses it while no room is loaded: collection.c's Collection Room);
+u8 *const gNidlBigArea = BIG_AREA;
+/* SqueakMailOf(); The Squeak Squad gimmicks' messages of the room in a slot (squeak/gimmicks.c), the heap's last 0x100 bytes, after
+ * the slots' tilemaps (not saved: cleared as a room is loaded in its slot); */
+#define SQUEAK_MAIL_SIZE 0x100
+struct SqueakMail *SqueakMailOf(u8 slot) {
+    return (struct SqueakMail *)(BIG_AREA + 3 * BIG_TILEMAP) + (slot & 3);
+}
 
 // Visited(); A room's doors list's visited bits (see above): KatAM's, or the ported rooms' here (cleared the first time: a magic word
 // first);
@@ -76,16 +98,91 @@ static u16 *Visited(u16 roomId) {
     if (list < NIDL_DOORS_FIRST) return &gVisitedDoors[list];
     area = Area();
     list -= NIDL_DOORS_FIRST;
-    if (list >= (NIDL_VISITED_SIZE - NIDL_TAKEN_SIZE) / 2 - 2) list = (NIDL_VISITED_SIZE - NIDL_TAKEN_SIZE) / 2 - 3;
+    if (list >= (NIDL_VISITED_SIZE - NIDL_TAKEN_SIZE - SQUEAK_CHESTS_SIZE - SQUEAK_WORLD_SIZE - SQUEAK_SCROLLS_SIZE) / 2 - 2)
+        list = (NIDL_VISITED_SIZE - NIDL_TAKEN_SIZE - SQUEAK_CHESTS_SIZE - SQUEAK_WORLD_SIZE - SQUEAK_SCROLLS_SIZE) / 2 - 3;
     return (u16 *)(area + 1) + list;
 }
 
-// Taken(); The NiDL items' taken bits (cleared the first time, as Visited()'s area);
+// Taken(); The NiDL items' taken bits (cleared the first time, as Visited()'s area), then Squeak Squad's, 32 bytes a kind;
 static u8 *Taken(void) {
     return (u8 *)Area() + NIDL_VISITED_SIZE - NIDL_TAKEN_SIZE;
 }
 
-// BigSub_08001678(); An object's gone bit set or cleared (sub_08001678): KatAM's, a NiDL item's (NIDL_TAKEN_KIND), or a boss
+/* SqueakChestOpened(), SqueakCollectChest(); Squeak Squad's chests opened (chest.c's SQUEAK_CHEST: the chest's number its
+ * template's unk12), 128 bits, the visited area's last bytes before the taken bits: saved with the visited doors; */
+static u8 *SqueakChests(void) {
+    return (u8 *)Area() + NIDL_VISITED_SIZE - NIDL_TAKEN_SIZE - SQUEAK_CHESTS_SIZE;
+}
+
+bool32 SqueakChestOpened(u8 n) {
+    return SqueakChests()[n >> 3] >> (n & 7) & 1;
+}
+
+void SqueakCollectChest(u8 n) {
+    SqueakChests()[n >> 3] |= 1 << (n & 7);
+}
+
+/* SqueakScrollOwned(), SqueakTakeScroll(); Squeak Squad's Ability Scrolls (squeak.h's SQUEAK_SCROLLS: chest.c's NidlChestOpen gives
+ * one, its chest's mark CHEST_MARK_SCROLL), a bit each before the world slots: saved with the visited doors; */
+static u8 *SqueakScrolls(void) {
+    return SqueakChests() - SQUEAK_WORLD_SIZE - SQUEAK_SCROLLS_SIZE;
+}
+
+bool32 SqueakScrollOwned(u8 n) {
+    return n < SQUEAK_SCROLLS && SqueakScrolls()[n >> 3] >> (n & 7) & 1;
+}
+
+void SqueakTakeScroll(u8 n) {
+    if (n < SQUEAK_SCROLLS) SqueakScrolls()[n >> 3] |= 1 << (n & 7);
+}
+
+/* BigGetStateSlot(); GetStateSlot (a state slot: a room's, the session's or the world's, gUnk_02028C10, 0x20 of them, saved), with
+ * world slots SQUEAK_WORLD_SLOT on in the visited area, before Squeak Squad's chests: saved with the visited doors (Squeak Squad's
+ * worlds' big switches: KatAM's free world slots, 0x10, 0x11, 0x1C-0x1F, are fewer than its 8); world slot SECRET_MAP_SLOT whether
+ * the Secret Map is whole; world slot NIDL_ABILITY_SLOT whether all the NiDL levels' big switches are pressed (NidlSwitchesPressed);
+ */
+#define SQUEAK_WORLD_SLOT 0x20
+
+/* NIDL_ABILITY_SLOT; The world slot the NiDL hub's door to the ability room waits for (KatAM's free slot 0x1D; the owner: "For the
+ * NiDL ability room, it can only be unlocked after all switches have been pressed on the NiDL hub"), set while the NiDL levels'
+ * big switches (slots NIDL_SWITCH_SLOT on, KatAMExpansionRooms.cs's LevelSlot(): 7, the Fountain of Dreams has none) are all
+ * pressed (KatAMExpansionHub.cs's NidlAbilitySlot); */
+#define NIDL_ABILITY_SLOT 0x1D
+#define NIDL_SWITCH_SLOT 0x14
+#define NIDL_SWITCHES 7
+static bool32 NidlSwitchesPressed(void) {
+    u8 i;
+
+    for (i = 0; i < NIDL_SWITCHES; i++)
+        if (!gUnk_02028C10[NIDL_SWITCH_SLOT + i]) return FALSE;
+    return TRUE;
+}
+
+u32 *BigGetStateSlot(enum StateSlotScope scope, u8 id, u8 roomSlot)
+{
+    switch (scope) {
+    case STATE_SLOT_ROOM:
+        return gUnk_02023388[roomSlot] + id;
+    case STATE_SLOT_SESSION:
+        return gUnk_02023488 + id;
+    case STATE_SLOT_WORLD:
+        if (id >= SQUEAK_WORLD_SLOT && id < SQUEAK_WORLD_SLOT + SQUEAK_WORLD_SIZE / 4)
+            return (u32 *)(SqueakChests() - SQUEAK_WORLD_SIZE) + (id - SQUEAK_WORLD_SLOT);
+        // (the Squeak Squad ability room's door: set while the Secret Map is whole, read when its hub mirror object looks);
+        if (id == SECRET_MAP_SLOT) gUnk_02028C10[id] = SecretMapWhole();
+        // (the NiDL hub's door to the ability room: set while all the NiDL levels' big switches are pressed);
+        if (id == NIDL_ABILITY_SLOT) gUnk_02028C10[id] = NidlSwitchesPressed();
+        return gUnk_02028C10 + id;
+    default:
+        return NULL;
+    }
+}
+
+static u8 *TakenOf(u32 kind) {
+    return Taken() + (kind == NIDL_TAKEN_KIND ? 0 : (kind - SQUEAK_TAKEN_KIND + 1) * 0x20);
+}
+
+// BigSub_08001678(); An object's gone bit set or cleared (sub_08001678): KatAM's, a NiDL or Squeak Squad item's (Taken()), or a boss
 // rematch's tomato gone (NIDL_EXIT_KIND, nidl_boss.c);
 void BigSub_08001678(u32 kind, u16 id, u8 slot, u32 set)
 {
@@ -95,7 +192,7 @@ void BigSub_08001678(u32 kind, u16 id, u8 slot, u32 set)
     case 0: bits = gUnk_02023358[slot]; break;
     case 1: bits = gUnk_02023368; break;
     case 2: bits = gUnk_02028BF0; break;
-    case NIDL_TAKEN_KIND: bits = Taken(); break;
+    case NIDL_TAKEN_KIND: case SQUEAK_TAKEN_KIND: case SQUEAK_TAKEN_KIND + 1: case SQUEAK_TAKEN_KIND + 2: bits = TakenOf(kind); break;
     case NIDL_EXIT_KIND: NidlExitTomato(id, set); return;
     default: return;
     }
@@ -112,12 +209,13 @@ u32 BigSub_080027E8(u32 kind, u16 id, u8 slot)
     case 0: return gUnk_02023358[slot][id / 8] >> (id & 7) & 1;
     case 1: return gUnk_02023368[id / 8] >> (id & 7) & 1;
     case 2: return gUnk_02028BF0[id / 8] >> (id & 7) & 1;
-    case NIDL_TAKEN_KIND: return Taken()[id / 8] >> (id & 7) & 1;
+    case NIDL_TAKEN_KIND: case SQUEAK_TAKEN_KIND: case SQUEAK_TAKEN_KIND + 1: case SQUEAK_TAKEN_KIND + 2:
+        return TakenOf(kind)[id / 8] >> (id & 7) & 1;
     default: return 0;
     }
 }
 
-// BigSub_080027A8(); KatAM's items come back (sub_080027A8: a game's start, a game over...), and the NiDL items with them;
+// BigSub_080027A8(); KatAM's items come back (sub_080027A8: a game's start, a game over...), and the NiDL and Squeak Squad items with them;
 void BigSub_080027A8(void)
 {
     CpuFill32(0, gUnk_02023368, sizeof(gUnk_02023368));
@@ -223,6 +321,7 @@ void BigSub_08002B30(u16 roomId, s16 x, s16 y)
     u16 i;
 
     for (i = 0; ; i++) {
+        if (entry->unk01 == 0) return;     // (the list's end, {0, 0, 0xFF, 0xFF}: not in it);
         if (entry->unk00 == 1 && entry->unk04 == x && entry->unk06 == y) {
             *Visited(roomId) |= 1 << i;
             return;
@@ -237,6 +336,7 @@ u32 BigSub_08002BA8(u16 roomId, u16 room, u8 x, u8 y)
     u16 i;
 
     for (i = 0; ; i++) {
+        if (entry->unk01 == 0) return 0;     // (the list's end, {0, 0, 0xFF, 0xFF}: not in it);
         if (entry->unk00 == 2 && entry->unk04 == room && entry->unk06 == x && entry->unk07 == y)
             return *Visited(roomId) >> i & 1;
         entry = (void *)entry + entry->unk01;
@@ -249,6 +349,7 @@ void BigSub_08002C18(u16 roomId, u16 room, u8 x, u8 y)
     u16 i;
 
     for (i = 0; ; i++) {
+        if (entry->unk01 == 0) return;     // (the list's end, {0, 0, 0xFF, 0xFF}: not in it);
         if (entry->unk00 == 2 && entry->unk04 == room && entry->unk06 == x && entry->unk07 == y) {
             *Visited(roomId) |= 1 << i;
             return;
@@ -273,16 +374,18 @@ u16 NidlNumChestsCollected(void)
     return count;
 }
 
+// (slot 0's in KatAM's arrays; slots 1-3: their collision and zones in KatAM's tilemap array after slot 0's tilemap, 56460 of its
+// 62400 bytes, and their tilemaps at the heap's end, BIG_AREA);
 static inline u16 *BigTilemap(u8 slot) {
-    return (u16 *)(slot < 2 ? (u8 *)gUnk_02028EE0 + slot * BIG_TILEMAP : BIG_AREA + (slot - 2) * BIG_TILEMAP);
+    return (u16 *)(slot == 0 ? (u8 *)gUnk_02028EE0 : BIG_AREA + (slot - 1) * BIG_TILEMAP);
 }
 
 static inline u8 *BigCollision(u8 slot) {
-    return slot < 2 ? (u8 *)gUnk_02024ED0 + slot * BIG_BLOCKS : BIG_AREA + 2 * BIG_TILEMAP + (slot - 2) * BIG_BLOCKS;
+    return slot == 0 ? (u8 *)gUnk_02024ED0 : (u8 *)gUnk_02028EE0 + BIG_TILEMAP + (slot - 1) * (BIG_BLOCKS + BIG_ZONES);
 }
 
 static inline u8 *BigZones(u8 slot) {
-    return slot < 2 ? (u8 *)gUnk_02026D60 + slot * BIG_ZONES : BIG_AREA + 2 * BIG_TILEMAP + 2 * BIG_BLOCKS + (slot - 2) * BIG_ZONES;
+    return slot == 0 ? (u8 *)gUnk_02026D60 : (u8 *)gUnk_02028EE0 + BIG_TILEMAP + (slot - 1) * (BIG_BLOCKS + BIG_ZONES) + BIG_BLOCKS;
 }
 
 void BigSub_08001408(u8 playerId, union LevelInfo_1E0 arg1, void *arg2, u8 *arg3)
@@ -546,6 +649,8 @@ void BigFillLevelInfo(u8 playerId, u16 roomId, const u16 **arg2, const u16 **arg
 
     levelInfo->unk5FA = levelInfo->currentRoom;
     levelInfo->currentRoom = roomId;
+    // (a chase ends when the player's Kirby goes to a room of another: squeak/gimmicks.c);
+    if (roomId != 0xFFFF) SqueakChaseRoom(playerId, roomId);
 
     if (roomId != 0xFFFF) {
         s32 x, y;
@@ -572,10 +677,11 @@ void BigFillLevelInfo(u8 playerId, u16 roomId, const u16 **arg2, const u16 **arg
         levelInfo->unk_S32Vec2_6C.x = 0x800;
         levelInfo->unk_S32Vec2_6C.y = 0x800;
         levelInfo->unk_S32Vec2_74.x = x;
-        levelInfo->unk_S32Vec2_74.y = (levelInfo->roomHeight - 0x28) * 0x100;
+        levelInfo->unk_S32Vec2_74.y = (levelInfo->roomHeight - (gNidlRoomTops[roomId] & ROOM_FULL_BOTTOM ? 8 : 0x28)) * 0x100;
         levelInfo->unk_S32Vec2_7C.x = 0x800;
         levelInfo->unk_S32Vec2_7C.y = 0x800;
-        if (gNidlRoomTops[roomId]) levelInfo->unk_S32Vec2_6C.y = levelInfo->unk_S32Vec2_7C.y = (gNidlRoomTops[roomId] - 1) * 0x1000;
+        if (gNidlRoomTops[roomId] & 0x7F)
+            levelInfo->unk_S32Vec2_6C.y = levelInfo->unk_S32Vec2_7C.y = ((gNidlRoomTops[roomId] & 0x7F) - 1) * 0x1000;
         levelInfo->unk_S32Vec2_84.x = levelInfo->unk_S32Vec2_74.x;
         levelInfo->unk_S32Vec2_84.y = levelInfo->unk_S32Vec2_74.y;
         levelInfo->unk8C = 0x200;
@@ -750,6 +856,8 @@ void BigFillLevelInfo(u8 playerId, u16 roomId, const u16 **arg2, const u16 **arg
                 gUnk_02026D50[levelInfo->unk65E] |= 4;
 
             gUnk_02023518[levelInfo->unk65E] = gRoomProps[roomId].songIdx;
+            // (its Squeak Squad gimmicks' messages cleared and their task made: squeak/gimmicks.c);
+            SqueakGimmicksLoaded(playerId, roomId, levelInfo->unk65E);
 
             {
                 u8 j;

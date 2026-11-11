@@ -13,7 +13,7 @@ OUT=$(mktemp -d)
 trap 'rm -rf "$OUT"' EXIT
 
 objects=()
-for c in nidl.c nidl_miniboss.c nidl_boss.c finale.c ending.c nidl_data.c worldmap.c rooms.c title.c calm.c chest.c skip.c unlock.c mirra.c warpstar.c abilities.c abilities/*.c enemies/*.c minibosses/*.c bosses/*.c; do
+for c in nidl.c nidl_miniboss.c nidl_boss.c finale.c ending.c nidl_data.c worldmap.c rooms.c title.c calm.c chest.c skip.c unlock.c mirra.c warpstar.c abilities.c abilities/*.c enemies/*.c minibosses/*.c bosses/*.c squeak.c squeak/*.c collection.c; do
     o="$OUT/$(basename "${c%.c}").o"
     cpp -I "$D/tools/agbcc/include" -I "$D/tools/agbcc" -nostdinc -iquote "$D/include" -iquote . -DREVISION=0 -DENGLISH \
         -Wno-trigraphs -DMODERN=0 "$c" | "$D/tools/agbcc/bin/agbcc" -mthumb-interwork -Wimplicit -Wparentheses -O2 -fhex-asm -o "$OUT/a.s" -
@@ -60,7 +60,9 @@ versions = [('usa', 'USA', 'B8KE', 0), ('europe', 'Europe', 'B8KP', 0), ('japan'
 names = ['CreateNidlEnemy', 'NidlStart', 'NidlCopyName', 'gNidlData']
 patched = ['SpriteTables', 'AnimCount', 'SpawnTable', 'gUnk_08351648', 'ObjectParameters2', 'gUnk_08D60EE4', 'HitFlashBranch', 'NameSite1', 'NameSite2']
 # The abilities' (see abilities.h): code symbols, and the KatAM tables and functions it relocates or hooks;
-codeNames = ['gNidlWorldMapDoors', 'NidlWorldMapUnlockSave', 'NidlWorldMapGetCoorFromRoom', 'NidlWorldMapDrawKirbys', 'NidlWorldMapUnlock0', 'NidlWorldMapUnlock1', 'NidlWorldMapUnlock2', 'NidlWorldMapUnlock3', 'NidlWorldMapUnlock4', 'NidlWorldMapUnlock5', 'NidlWorldMapUnlock6', 'NidlWorldMapUnlock7', 'NidlGetKirbyRoomFlagIndex', 'gNidlRoomFlagIndexOriginal', 'gNidlHubRoom', 'gNidlAbilityTables', 'gNidlAbilityData', 'NidlAbilityPortrait', 'NidlAbilityHudTimer', 'NidlDisplaySprite', 'NidlSwallow', 'NidlKirbyHit', 'gNidlKirbyHitOriginal', 'NidlKirbyStack', 'gNidlKirbyStackOriginal', 'CreateNidlMiniboss', 'NidlMinibossStart',
+codeNames = ['gNidlWorldMapDoors', 'NidlWorldMapUnlockSave', 'NidlWorldMapGetCoorFromRoom', 'NidlWorldMapDrawKirbys', 'NidlWorldMapUnlock0', 'NidlWorldMapUnlock1', 'NidlWorldMapUnlock2', 'NidlWorldMapUnlock3', 'NidlWorldMapUnlock4', 'NidlWorldMapUnlock5', 'NidlWorldMapUnlock6', 'NidlWorldMapUnlock7', 'NidlWorldMapUnlock8', 'NidlWorldMapUnlock9', 'NidlWorldMapUnlock10', 'NidlWorldMapUnlock11', 'NidlWorldMapUnlock12', 'NidlWorldMapUnlock13', 'NidlWorldMapUnlock14', 'NidlWorldMapUnlock15', 'gSqueakWorldRooms', 'NidlGetKirbyRoomFlagIndex', 'gNidlRoomFlagIndexOriginal', 'gNidlHubRoom', 'gNidlAbilityTables', 'gNidlAbilityData', 'NidlAbilityPortrait', 'NidlAbilityHudTimer', 'NidlDisplaySprite', 'NidlSwallow', 'NidlKirbyHit', 'gNidlKirbyHitOriginal', 'NidlKirbyStack', 'gNidlKirbyStackOriginal', 'CreateNidlMiniboss', 'NidlMinibossStart',
+             # The Squeak Squad characters (squeak.c): their type's spawn and start, the anim lookup the object drawing calls, the data;
+             'CreateSqueakEnemy', 'SqueakStart', 'SqueakAnimFor', 'gSqueakData', 'gSqueakEnemyHp', 'gSqueakNatives', 'SqueakCreateWaddleDee', 'SqueakWaddleDeeStart', 'SqueakCreateGlunk', 'SqueakGlunkStart', 'SqueakCreateGordo', 'SqueakGordoStart', 'SqueakCreateSnooter',
              # The helpers against the ported mini-bosses (nidl_miniboss.c);
              'NidlHelperTarget', 'gNidlHelperTargetOriginal',
              # The bosses (nidl_boss.c);
@@ -74,7 +76,7 @@ codeNames = ['gNidlWorldMapDoors', 'NidlWorldMapUnlockSave', 'NidlWorldMapGetCoo
              # Reduce flashing (calm.c);
              'gNidlCalm', 'gNidlCalmTrampolines', 'NidlCalmUpdateScreenDma', 'NidlCalmUpdateScreenCpuSet',
              # Mirror shards in chests (chest.c);
-             'gNidlChest', 'gNidlChestTrampolines', 'NidlChestOpen', 'gNidlShard', 'NidlCreateShard', 'NidlShardDone',
+             'gNidlChest', 'gNidlChestTrampolines', 'NidlChestOpen', 'gSqueakChest', 'SqueakCreateChest', 'gSqueakCannon', 'SqueakCreateCannon', 'SqueakCannonArrival', 'gSqueakSwitch', 'SqueakCreateSwitch', 'gSqueakGimmickRooms', 'gSqueakChaseRooms', 'gSqueakDarkStarRoutes', 'gSqueakVitalityChests', 'gNidlShard', 'NidlCreateShard', 'NidlShardDone',
              # Skip the tutorial (skip.c);
              'gNidlSkip', 'NidlSkipClear', 'NidlSkipStart', 'gNidlSkipTrampolines',
              # Unlock the ability room (unlock.c);
@@ -82,12 +84,14 @@ codeNames = ['gNidlWorldMapDoors', 'NidlWorldMapUnlockSave', 'NidlWorldMapGetCoo
              # Mirras fall, and open their door where they are (mirra.c);
              'gNidlMirra', 'NidlCreateMirra', 'NidlMirraOpen',
              # The Star Rod's stand in the NiDL hub (abilities/star_rod_stand.c);
-             'NidlCreateRodStand',
+             'NidlCreateRodStand', 'gNidlStandKeys',
              # The ported warp stars' rides (warpstar.c);
              'gNidlRide', 'gNidlRideTrampolines', 'NidlRideRev', 'NidlRideRoomChange', 'NidlRideStep', 'NidlRideDraw', 'NidlRideStar',
              # Bigger rooms (rooms.c): the replacements;
              'BigFillLevelInfo', 'BigGetCollisionTile', 'BigSub_08002434', 'BigSub_08002470', 'BigSub_080024F0', 'BigSub_0800255C', 'BigSub_080025AC', 'BigSub_08002624', 'BigSub_080026A8', 'BigSub_08001408', 'BigSub_080015A8',
-             'gNidlRoomTops', 'gNidlGridRoom', 'NidlNumChestsCollected', 'gNidlSave', 'gNidlSaveTrampolines', 'NidlWriteSave', 'NidlVerifySave', 'NidlClearSave', 'BigSub_08001678', 'BigSub_080027E8', 'BigSub_080027A8', 'BigSub_08002A5C', 'BigSub_08002A80', 'BigSub_08002AD0', 'BigSub_08002B30', 'BigSub_08002BA8', 'BigSub_08002C18']
+             # Squeak Squad's spray paints (sprays.c): the Collection Room's hooks, its pages, the area its table is copied to;
+             'gNidlMaps', 'gCollectionGrid', 'GridRoomStart', 'GridRoomFrame', 'GridRoomBg', 'GridRoomEnd', 'gNidlBigArea',
+             'gNidlRoomTops', 'gExpansionSongs', 'gNidlGridRoom', 'NidlNumChestsCollected', 'gNidlSave', 'gNidlSaveTrampolines', 'NidlWriteSave', 'NidlVerifySave', 'NidlClearSave', 'BigSub_08001678', 'BigSub_080027E8', 'BigSub_080027A8', 'BigSub_08002A5C', 'BigSub_08002A80', 'BigSub_08002AD0', 'BigSub_08002B30', 'BigSub_08002BA8', 'BigSub_08002C18', 'BigGetStateSlot']
 romNames = ['gUnk_0834C2AC', 'gUnk_0834C318', 'gUnk_083509D0', 'gUnk_08350A3C', 'gUnk_08D60FDC', 'gUnk_082DDE84', 'gUnk_082DDEF0',
             'gUnk_082DDF5C', 'gUnk_0834C4B0', 'gUnk_08350AAC', 'gUnk_08350B30', 'sub_080356AC', 'sub_08088640', 'gUnk_08D60B64', 'gUnk_08D60BE4',
             'sub_080547C4', 'sub_0804A728', 'sub_08038B34', 'SwallowSpecialSite', 'sub_08123FD4', 'HasShard', 'sub_0801C558', 'gUnk_08351648', 'gUnk_0834C5D4', 'gUnk_08D610B4',
@@ -98,7 +102,7 @@ romNames = ['gUnk_0834C2AC', 'gUnk_0834C318', 'gUnk_083509D0', 'gUnk_08350A3C', 
             'sub_08145B64',
             # Bigger rooms (rooms.c): what they replace, and the EWRAM heap's size;
             'FillLevelInfo', 'GetCollisionTile', 'sub_08002434', 'sub_08002470', 'sub_080024F0', 'sub_0800255C', 'sub_080025AC', 'sub_08002624', 'sub_080026A8', 'sub_08001408', 'sub_080015A8', 'EwramInitHeap',
-            'sub_08002A5C', 'sub_08002A80', 'sub_08002AD0', 'sub_08002B30', 'sub_08002BA8', 'sub_08002C18',
+            'sub_08002A5C', 'sub_08002A80', 'sub_08002AD0', 'sub_08002B30', 'sub_08002BA8', 'sub_08002C18', 'GetStateSlot',
             # The NiDL rooms' chests (rooms.c): the completion's chest count;
             'NumChestsCollected',
             # The NiDL rooms' items, taken once per visit (rooms.c): the objects' gone bits;
@@ -131,7 +135,19 @@ romNames = ['gUnk_0834C2AC', 'gUnk_0834C318', 'gUnk_083509D0', 'gUnk_08350A3C', 
             # The HP bar's fill (nidl.c's NidlHpBarFill): what works it out, as an object takes the bar and every frame after;
             'sub_08034E14', 'sub_0803533C',
             # Starting Lives and Random Starting HP (KatAMExpansionCalm.cs, StartingKirby()): a new game's Kirby, the game overs, the HP Up chests;
-            'sub_0803EA90', 'sub_0804FBFC', 'sub_080506A8', 'sub_0800B97C']
+            'sub_0803EA90', 'sub_0804FBFC', 'sub_080506A8', 'sub_0800B97C',
+            # The Squeak Squad characters' own frames (KatAMExpansionSqueak.cs): the object drawing, patched to ask SqueakAnimFor;
+            'sub_0809A7A4',
+            # The Squeak Squad rooms' cannons (chest.c's SqueakCannonArrival): a cannon's landing in the next room, its state;
+            'sub_0805C024', 'sub_08051874',
+            # Squeak Squad's spray paints (KatAMExpansionSprays.cs): the Collection Room's code (from its start to sub_08145B64's),
+            # its cells, the colors' previews, the menu step opening it and its frame; the tables a Kirby color reads (the
+            # palettes' anims, the continue screen's palettes); the text images and the room's texts;
+            'sub_081434F8', 'gUnk_08386A50', 'gUnk_08386AF0', 'sub_081428A0', 'sub_0814405C', 'gUnk_082EB4B4', 'gUnk_0834BB20',
+            'gUnk_082D7850', 'gUnk_08386664',
+            # The Collection Room's grid (KatAMExpansionCollection.cs): the step loading its image and the next (the lattice's hook),
+            # its task's end;
+            'sub_08143E6C', 'sub_08143EF4', 'sub_08143664']
 print('namespace KatAMRandomizer {')
 print('    // Generated by "ROM Expansion/build.sh" from the C sources there: the NiDL enemies\' code, linked at 0x09000000, for each version')
 print('    // of KatAM, with the offsets of the symbols KatAMExpansion.cs uses and the addresses it patches (file offsets; 0: none);')

@@ -285,7 +285,7 @@ static void HiJumpCrouch(struct Kirby *kirby) {
     kirby->idleTimer = 0;
     kirby->base.flags |= 0x20;
     kirby->base.unk62 &= ~(8 | 4);
-    PlaySfx(&kirby->base, SE_ABILITY_SWORD_UPSLASH);
+    PlaySfx(&kirby->base, NIDL_SE(0xAE)); // (NiDL's: the take-off, 0x0804A080);
     NidlAttackCreate(kirby, HiJumpRising, 0x30000043, 2, FALSE, -12, -12 - NIDL_Y, 12, 14 - NIDL_Y);
     NidlAttackCreate(kirby, NULL, 0x30000043, 1, FALSE, -24, -6 + 4 - NIDL_Y, 24, 9 + 4 - NIDL_Y)->frames = 4;
     HiJumpFx(kirby, FX_BURST, kirby->base.x, kirby->base.y + ((4 - NIDL_Y) << 8));

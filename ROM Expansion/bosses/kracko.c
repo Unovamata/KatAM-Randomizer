@@ -73,9 +73,9 @@ enum { K_NONE, K_KRACKO, K_CHILD, K_BOLT, K_BOLT2, K_BOLT3 };
 #define A_KRACKO 0
 
 /* Sounds (NiDL's own: KatAM's nearest); */
-#define SFX_CRACKLE SE_KRACKO_LIGHTNING_ATTACK  // (0x228: its lightning, every 10 frames);
-#define SFX_SWOOP SE_KRACKO_SWEEP_ATTACK        // (0x229: its swoop);
-#define SFX_DOO SE_BASIC_ENEMY_JUMP             // (0x1FA: a Waddle Doo dropped);
+#define SFX_CRACKLE 0x228 // (NiDL's: its lightning, every 10 frames; KatAM's stand-in was SE_KRACKO_LIGHTNING_ATTACK);
+#define SFX_SWOOP 0x229 // (NiDL's: its swoop; KatAM's stand-in was SE_KRACKO_SWEEP_ATTACK);
+#define SFX_DOO 0x1FA // (NiDL's: a Waddle Doo dropped; KatAM's stand-in was SE_BASIC_ENEMY_JUMP);
 
 /* Its moves: speeds (16.16; across, mirrored by its facing where its script has it so: VelX()) and how long; */
 struct Move {
@@ -350,7 +350,7 @@ static void Restart(struct Actor *a) {
 }
 
 static void Sound(struct Fight *f, u16 sfx) {
-    PlaySfx(&f->obj->base, sfx);
+    PlaySfx(&f->obj->base, NIDL_SE(sfx));
 }
 
 /* Their objects: Spawn() takes NiDL's lowest free slot (0x08005904), at (x, y), its script run as it's next run (its turn: Turns());

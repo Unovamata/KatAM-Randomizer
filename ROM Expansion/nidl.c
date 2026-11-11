@@ -1,6 +1,7 @@
 /* NiDL enemies; Object type 0x31: creates the enemy the template's behavior byte asks for and handles what all of them share
  * (see nidl.h); */
 #include "nidl.h"
+#include "squeak.h"
 #include "constants/kirby.h"
 #include "constants/object_types.h"
 #include "abilities.h"
@@ -175,6 +176,8 @@ void NidlDestroy(struct Task *task) {
     if (NidlIsBoss(&n->obj) && n->enemy == NIDL_KRACKO) KrackoGone(&n->obj);
     // (and Heavy Mole's, bosses/heavy_mole.c);
     if (NidlIsBoss(&n->obj) && n->enemy == NIDL_HEAVY_MOLE) HeavyMoleGone(&n->obj);
+    // (Mr. Tick-Tock's alarm, a looping sound, stops);
+    if (NidlIsMiniboss(&n->obj) && n->enemy == NIDL_MR_TICK_TOCK) MrTickTockSilence();
     if (hud && *(void **)(hud + 0x1C) == TaskGetStructPtr(task)) {
         hud[0xA] = 0;
         *(void **)(hud + 0x1C) = NULL;
@@ -225,11 +228,13 @@ void NidlStart(struct Object *obj) {
 }
 
 /* NidlCopyName(); The HP bar's name, for any object: the game's copies of it (0x08034ED2, 0x08035B34) are patched to call
- * this, so ported enemies and mini-bosses show their own name; */
+ * this, so ported enemies and mini-bosses (NiDL's and Squeak Squad's) show their own name; */
 void NidlCopyName(struct Object *obj) {
     const u8 *name;
 
-    if (obj->type == NIDL_TYPE)
+    if (SqueakIsSqueak(obj))
+        name = SqueakName(obj);
+    else if (obj->type == NIDL_TYPE)
         name = gNidlData.names + ((struct NidlObject *)obj)->enemy * 0x100;
     else if (NidlIsMiniboss(obj))
         name = gNidlData.minibossNames + ((struct NidlObject *)obj)->enemy * 0x100;
@@ -252,18 +257,20 @@ s16 NidlMaxHp(struct Object *obj) {
  * every frame after, 0x0803533C: both patched to call this at 0x08034EF8 and 0x08035354, KatAMExpansion.cs): HP times 0x4000 / its
  * HP at the start. KatAM's own objects keep the game's tables of that factor (the regular enemies' gUnk_083513E8; those of types
  * 0x38-0x52, by the number of players, gUnk_08351458 and Dark Mind's first form's gUnk_08351628, by its part), the ported ones get
- * theirs from their own HP, as the types they share hold no one HP; */
+ * theirs from their own HP, as the types they share hold no one HP (a Squeak Squad boss with a second form: the HP over its next
+ * form's, SqueakHpBase, of its first's, SqueakMaxHp); */
 extern const u16 gUnk_083513E8[];
 extern const u16 gUnk_08351458[][4];
 extern const u16 gUnk_08351628[][4];
 
 u16 NidlHpBarFill(struct Object *obj) {
     u8 players = gNumHumanPlayers - 1;
-    s32 max;
+    s32 max, hp;
 
-    if (obj->type == NIDL_TYPE || NidlIsMiniboss(obj) || NidlIsBoss(obj)) {
-        max = NidlMaxHp(obj);
-        return max > 0 ? obj->unk80 * (0x4000 / max) : 0;
+    if (obj->type == SQUEAK_TYPE || obj->type == NIDL_TYPE || NidlIsMiniboss(obj) || NidlIsBoss(obj)) {
+        max = SqueakIsSqueak(obj) ? SqueakMaxHp(obj) : NidlMaxHp(obj);
+        hp = obj->unk80 - (SqueakIsSqueak(obj) ? SqueakHpBase(obj) : 0);
+        return max > 0 && hp > 0 ? hp * (0x4000 / max) : 0;
     }
     if ((u8)(obj->type - 0x38) <= 0x1A) {
         if (obj->type == OBJ_DARK_MIND_FORM_1) return obj->unk80 * gUnk_08351628[obj->subtype][players];

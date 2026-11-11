@@ -108,10 +108,12 @@ namespace KatAMRandomizer
 
         // Control Panel;
 
-        // AddNightmareEnemies(); The ROM Expansion, which also expands the ROM to 32 MB (so ROMData becomes the bigger copy);
-        private string AddNightmareEnemies(bool nightmareTitle) {
+        /* AddExpansion(); The ROM Expansion, which also expands the ROM to 32 MB (so ROMData becomes the bigger copy): NiDL's content,
+         * Squeak Squad's, or both; */
+        private string AddExpansion(bool nightmareTitle, bool nightmare, bool squeak) {
             byte[] rom = Processing.ROMData;
-            string error = KatAMExpansion.AddEnemies(ref rom, nightmareROM, settings.NightmareRooms, nightmareTitle);
+            string error = KatAMExpansion.AddEnemies(ref rom, nightmare ? nightmareROM : null, settings.NightmareRooms, nightmareTitle, squeak ? squeakROM : null, settings.SqueakRooms,
+                                                     squeak && settings.SqueakChases, settings.Seed, squeak && settings.SqueakRooms && settings.SqueakLairs);
 
             Processing.ROMData = rom;
             return error;
@@ -167,27 +169,36 @@ namespace KatAMRandomizer
             // ROM Expansion goes first, so the ROM reader sees the new enemies' parameters like any other's (and its rooms' items and chests);
             KatAMExpansion.ForgetRooms();
             progress.Report((5, "Adding the ROM Expansion..."));
-            if (settings.NightmareEnemies.Count > 0 || settings.NightmareMinibosses.Count > 0 || settings.NightmareRooms || nightmareTitle) {
-                string error = nightmareROM == null ? "Load a Nightmare in Dream Land ROM in the ROM Expansion tab, or turn its enemies, mini-bosses and rooms off."
-                                                    : AddNightmareEnemies(nightmareTitle);
+            // (NiDL's content and Squeak Squad's: either can be added alone);
+            bool addingNightmare = settings.NightmareEnemies.Count > 0 || settings.NightmareMinibosses.Count > 0 || settings.NightmareRooms || nightmareTitle,
+                 addingSqueak = settings.SqueakEnemies.Count > 0 || settings.SqueakMinibosses.Count > 0 || settings.SqueakBehaviors || settings.SqueakRooms
+                                || settings.SqueakChases;
+            if (addingNightmare || addingSqueak) {
+                string error = addingNightmare && nightmareROM == null ? "Load a Nightmare in Dream Land ROM in the ROM Expansion tab, or turn its enemies, mini-bosses and rooms off."
+                             : addingSqueak && squeakROM == null ? "Load a Squeak Squad ROM in the ROM Expansion tab, or turn its characters, behaviors and rooms off."
+                             : AddExpansion(nightmareTitle, addingNightmare, addingSqueak);
 
                 if (error != null) {
                     messages.Add((error, "ROM Expansion", MessageBoxIcon.Error));
                     return;
                 }
+            }
 
+            if (addingNightmare) {
                 Processing.parameters[KatAMExpansion.NightmareID] = "Nightmare in Dream Land Enemy";
                 foreach (byte type in KatAMExpansion.MinibossIDs) Processing.parameters[type] = "Nightmare in Dream Land Mini-boss";
 
-                /* Only with the ROM Expansion: every pause help screen shows the base one, which frees the space of the rest (and shows
+                /* Only with NiDL's content: every pause help screen shows the base one, which frees the space of the rest (and shows
                  * the new abilities' portraits); the pause screen has the world map only, and the area maps' data is freed too; */
                 KatAMPauseScreens.Apply(Processing.ROMData);
                 KatAMPauseScreens.DropAreaMaps(Processing.ROMData);
             } else {
                 Processing.parameters[KatAMExpansion.NightmareID] = Processing.enemiesDictionary[KatAMExpansion.NightmareID].Name;
                 foreach (byte type in KatAMExpansion.MinibossIDs)
-                    if (Processing.enemiesDictionary.TryGetValue(type, out var empty)) Processing.parameters[type] = empty.Name;
+                    Processing.parameters[type] = addingSqueak ? "Squeak Squad Mid-boss"
+                                                : Processing.enemiesDictionary.TryGetValue(type, out var empty) ? empty.Name : Processing.parameters[type];
             }
+            Processing.parameters[KatAMExpansion.SqueakID] = addingSqueak ? "Squeak Squad Enemy" : Processing.enemiesDictionary[KatAMExpansion.SqueakID].Name;
 
             progress.Report((40, "Reading the rooms..."));
             new KatAMROMReader(system);
@@ -1125,6 +1136,104 @@ namespace KatAMRandomizer
             UpdateExpansionLabel();
         }
 
+        // Squeak Squad;
+        byte[] squeakROM;
+
+        private void ButtonExpansionLoadSqueak_Click(object sender, EventArgs e) {
+            OpenFileDialog fileDialog = new OpenFileDialog {
+                Filter = "NDS ROM Files (*.nds)|*.nds",
+                RestoreDirectory = true
+            };
+
+            if (fileDialog.ShowDialog() != DialogResult.OK) return;
+
+            try {
+                byte[] rom = File.ReadAllBytes(fileDialog.FileName);
+
+                if (!KatAMExpansion.IsSqueakSquad(rom)) {
+                    MessageBox.Show("That isn't a Kirby: Squeak Squad ROM (USA, European or Japanese).", "ROM Expansion", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+
+                // Its content is included by kind: every ported enemy comes with "Include Enemies";
+                squeakROM = rom;
+                LabelExpansionSqueak.Text = Path.GetFileName(fileDialog.FileName);
+                foreach (CheckBox box in new[] { CheckboxExpansionSqueakEnemies, CheckboxExpansionSqueakMinibosses, CheckboxExpansionSqueakBosses, CheckboxExpansionSqueakBehaviors,
+                                                  CheckboxExpansionSqueakRooms, CheckboxExpansionSqueakChases, CheckboxExpansionSqueakLairs }) {
+                    box.Enabled = true;
+                    box.Checked = true;
+                    RaiseControlEvent(box, "OnCheckedChanged");
+                }
+                ButtonExpansionUnloadSqueak.Enabled = true;
+            } catch (Exception ex) {
+                MessageBox.Show($"Error loading file: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        // ButtonExpansionUnloadSqueak_Click(); Forgets the Squeak Squad ROM: none of its characters until one is loaded again;
+        private void ButtonExpansionUnloadSqueak_Click(object sender, EventArgs e) {
+            squeakROM = null;
+            LabelExpansionSqueak.Text = "No ROM Loaded";
+            foreach (CheckBox box in new[] { CheckboxExpansionSqueakEnemies, CheckboxExpansionSqueakMinibosses, CheckboxExpansionSqueakBosses, CheckboxExpansionSqueakBehaviors,
+                                             CheckboxExpansionSqueakRooms, CheckboxExpansionSqueakChases, CheckboxExpansionSqueakLairs }) {
+                box.Checked = false;
+                box.Enabled = false;
+            }
+            settings.SqueakEnemies = new List<int>();
+            settings.SqueakMinibosses = new List<int>();
+            settings.SqueakBehaviors = false;
+            settings.SqueakRooms = false;
+            settings.SqueakChases = false;
+            settings.SqueakLairs = false;
+            ButtonExpansionUnloadSqueak.Enabled = false;
+            UpdateExpansionLabel();
+        }
+
+        // CheckboxExpansionSqueakEnemies_CheckedChanged(); Every ported enemy (the Squeaks too), or none;
+        private void CheckboxExpansionSqueakEnemies_CheckedChanged(object sender, EventArgs e) {
+            bool including = squeakROM != null && CheckboxExpansionSqueakEnemies.Checked;
+
+            settings.SqueakEnemies = including ? KatAMExpansion.SqueakEnemies.Select(enemy => enemy.index).ToList() : new List<int>();
+            UpdateExpansionLabel();
+        }
+
+        /* CheckboxExpansionSqueakMinibosses_CheckedChanged(), CheckboxExpansionSqueakBosses_CheckedChanged(); Every ported mid-boss (the
+         * chases' Squeaks too), every boss, or none, on the mini-boss spots: settings.SqueakMinibosses holds both; */
+        private void CheckboxExpansionSqueakMinibosses_CheckedChanged(object sender, EventArgs e) => UpdateSqueakMinibosses();
+        private void CheckboxExpansionSqueakBosses_CheckedChanged(object sender, EventArgs e) => UpdateSqueakMinibosses();
+        private void UpdateSqueakMinibosses() {
+            List<int> characters = new List<int>();
+
+            if (squeakROM != null && CheckboxExpansionSqueakMinibosses.Checked) characters.AddRange(KatAMExpansion.SqueakMidbosses.Select(midboss => midboss.index));
+            if (squeakROM != null && CheckboxExpansionSqueakBosses.Checked) characters.AddRange(KatAMExpansion.SqueakBossList.Select(boss => boss.index));
+            settings.SqueakMinibosses = characters;
+            UpdateExpansionLabel();
+        }
+
+        // CheckboxExpansionSqueakChases_CheckedChanged(); Chases in KatAM's own rooms with a big chest (KatAMExpansionChases.cs);
+        private void CheckboxExpansionSqueakChases_CheckedChanged(object sender, EventArgs e) {
+            settings.SqueakChases = squeakROM != null && CheckboxExpansionSqueakChases.Checked;
+            UpdateExpansionLabel();
+        }
+
+        // CheckboxExpansionSqueakLairs_CheckedChanged(); The Squeak Lairs picked from the seed among every stage's hideouts (with its rooms);
+        private void CheckboxExpansionSqueakLairs_CheckedChanged(object sender, EventArgs e) {
+            settings.SqueakLairs = squeakROM != null && CheckboxExpansionSqueakLairs.Checked;
+            UpdateExpansionLabel();
+        }
+
+        // CheckboxExpansionSqueakBehaviors_CheckedChanged(); Squeak Squad's moves for KatAM's own Waddle Dee, Glunk, Gordo and Snooter;
+        private void CheckboxExpansionSqueakBehaviors_CheckedChanged(object sender, EventArgs e) {
+            settings.SqueakBehaviors = squeakROM != null && CheckboxExpansionSqueakBehaviors.Checked;
+            UpdateExpansionLabel();
+        }
+
+        // CheckboxExpansionSqueakRooms_CheckedChanged(); Squeak Squad's rooms: its 8 worlds' stages, its hub from Central Circle;
+        private void CheckboxExpansionSqueakRooms_CheckedChanged(object sender, EventArgs e) {
+            settings.SqueakRooms = squeakROM != null && CheckboxExpansionSqueakRooms.Checked;
+            UpdateExpansionLabel();
+        }
+
         // UpdateExpansionLabel(); What the ROM Expansion adds;
         private void UpdateExpansionLabel() {
             List<string> lines = new List<string>();
@@ -1133,6 +1242,19 @@ namespace KatAMRandomizer
             if (settings.NightmareMinibosses.Count > 0) lines.Add("Mini-bosses: " + string.Join(", ", KatAMExpansion.Minibosses.Select(miniboss => miniboss.name)) + ".");
             if (settings.NightmareRooms) lines.Add("Rooms: every level room of Nightmare in Dream Land, connected by mirrors.");
             LabelExpansionEnemies.Text = string.Join(Environment.NewLine + Environment.NewLine, lines);
+
+            List<string> squeakLines = new List<string>();
+
+            if (settings.SqueakEnemies.Count > 0) squeakLines.Add("Enemies: " + string.Join(", ", KatAMExpansion.SqueakEnemies.Select(enemy => enemy.name)) + ".");
+            List<string> midbosses = KatAMExpansion.SqueakMidbosses.Where(m => settings.SqueakMinibosses.Contains(m.index)).Select(m => m.name).ToList(),
+                         bosses = KatAMExpansion.SqueakBossList.Where(b => settings.SqueakMinibosses.Contains(b.index)).Select(b => b.name).ToList();
+            if (midbosses.Count > 0) squeakLines.Add("Mini-bosses: " + string.Join(", ", midbosses) + ".");
+            if (bosses.Count > 0) squeakLines.Add("Bosses, on the mini-boss spots: " + string.Join(", ", bosses) + ".");
+            if (settings.SqueakRooms) squeakLines.Add("Rooms: every stage room of Squeak Squad's 8 worlds, connected by mirrors, with a hub of their own reached from Central Circle.");
+            if (settings.SqueakRooms && settings.SqueakLairs) squeakLines.Add("Squeak Lairs: which hideouts are mini-boss fights between a stage's rooms, and which doors lead into them, picked from the seed (off: the hideouts of the Squeaks that steal each stage's treasure).");
+            if (settings.SqueakChases) squeakLines.Add("Chases: in some of KatAM's rooms with a big chest, going past it brings out Squeaks (Spinni, Doc, Storo, Squeakers) that chase Kirby.");
+            if (settings.SqueakBehaviors) squeakLines.Add("Behaviors: Waddle Dee (a patrol, a jump at Kirby, a jump on a timer), Glunk (Squeak Squad's two beats), Gordo (circles), Snooter (stands facing Kirby).");
+            LabelExpansionSqueakEnemies.Text = string.Join(Environment.NewLine + Environment.NewLine, squeakLines);
         }
 
         // Mirrors;

@@ -12,14 +12,67 @@ namespace KatAMRandomizer {
         public static string AddShardChests(ref byte[] rom) => PatchWithCode(ref rom, "Mirror shards in chests", (patched, version) => {
             // The trampoline goes in chest.c's room for it (gNidlChestTrampolines), its address in gNidlChest;
             int cursor = CodeAddress + version.CodeSymbols["gNidlChestTrampolines"], chest = CodeAddress + version.CodeSymbols["gNidlChest"];
-            if (ReadInt(patched, chest) != 0) return null;  // (applied already);
             string hooked = HookShards(patched, version);
             if (hooked != null) return hooked;
+            if (ReadInt(patched, chest) != 0) return null;  // (applied already, or by HookSqueakChests);
             int open = Detour(patched, version.RomSymbols["sub_0800AFC8"], CodeAddress + 0x08000000 + version.CodeSymbols["NidlChestOpen"], ref cursor);
             if (open < 0) return $"The {version.Name} ROM's chest code doesn't match.";
             WriteInt(patched, chest, open + 0x08000000 + 1);
             return null;
         });
+
+        /* HookSqueakChests(); Squeak Squad's chests (chest.c's SQUEAK_CHEST): the chests' spawn (objects 0x80 and 0x81, the game's CreateChest,
+         * kept in gSqueakChest) becomes SqueakCreateChest, which shows one already opened open, and their opening is chest.c's (as
+         * AddShardChests detours it), which sets its own bit; */
+        static string HookSqueakChests(byte[] patched, KatAMExpansionCode.Version version) {
+            int small = version.SpawnTable + 0x80 * 4, big = version.SpawnTable + 0x81 * 4, kept = CodeAddress + version.CodeSymbols["gSqueakChest"];
+            int create = CodeAddress + 0x08000000 + version.CodeSymbols["SqueakCreateChest"] + 1;
+            if (ReadInt(patched, small) != create) {
+                if (ReadInt(patched, small) >> 24 != 0x08 || ReadInt(patched, big) != ReadInt(patched, small)) return $"The {version.Name} ROM's chest code doesn't match.";
+                WriteInt(patched, kept, ReadInt(patched, small));
+                WriteInt(patched, small, create);
+                WriteInt(patched, big, create);
+            }
+            int cursor = CodeAddress + version.CodeSymbols["gNidlChestTrampolines"], chest = CodeAddress + version.CodeSymbols["gNidlChest"];
+            if (ReadInt(patched, chest) != 0) return null;  // (detoured already: AddShardChests);
+            int open = Detour(patched, version.RomSymbols["sub_0800AFC8"], CodeAddress + 0x08000000 + version.CodeSymbols["NidlChestOpen"], ref cursor);
+            if (open < 0) return $"The {version.Name} ROM's chest code doesn't match.";
+            WriteInt(patched, chest, open + 0x08000000 + 1);
+            return null;
+        }
+
+        /* HookSqueakCannons(); Squeak Squad's cannons (chest.c's SqueakCreateCannon): object 0x8B's spawn, the game's
+         * CreateEightDirCannon kept in gSqueakCannon; and a fuse cannon's landing in the next room (sub_0805C024's literal of the state
+         * it gives Kirby, sub_08051874) becomes chest.c's SqueakCannonArrival, which runs it without its bounces forward in a Squeak
+         * Squad room; */
+        static string HookSqueakCannons(byte[] patched, KatAMExpansionCode.Version version) {
+            int entry = version.SpawnTable + EightDirCannonType * 4, kept = CodeAddress + version.CodeSymbols["gSqueakCannon"];
+            int create = CodeAddress + 0x08000000 + version.CodeSymbols["SqueakCreateCannon"] + 1;
+            if (ReadInt(patched, entry) != create) {
+                if (ReadInt(patched, entry) >> 24 != 0x08) return $"The {version.Name} ROM's cannon code doesn't match.";
+                WriteInt(patched, kept, ReadInt(patched, entry));
+                WriteInt(patched, entry, create);
+            }
+            // (the literal in sub_0805C024's pool, its 0x50 bytes);
+            int landing = version.RomSymbols["sub_0805C024"], state = version.RomSymbols["sub_08051874"] + 0x08000000 + 1;
+            int arrival = CodeAddress + 0x08000000 + version.CodeSymbols["SqueakCannonArrival"] + 1;
+            int literal = Enumerable.Range(0, 0x14).Select(k => landing + k * 4).FirstOrDefault(a => ReadInt(patched, a) == state || ReadInt(patched, a) == arrival);
+            if (literal == 0) return $"The {version.Name} ROM's cannon landing code doesn't match.";
+            WriteInt(patched, literal, arrival);
+            return null;
+        }
+
+        /* HookSqueakSwitches(); Squeak Squad's switches (chest.c's SqueakCreateSwitch): object 0x8D's spawn, the game's CreateHammerPeg
+         * kept in gSqueakSwitch (KatAM's own pegs made by it as before); */
+        static string HookSqueakSwitches(byte[] patched, KatAMExpansionCode.Version version) {
+            int entry = version.SpawnTable + HammerPegType * 4, kept = CodeAddress + version.CodeSymbols["gSqueakSwitch"];
+            int create = CodeAddress + 0x08000000 + version.CodeSymbols["SqueakCreateSwitch"] + 1;
+            if (ReadInt(patched, entry) == create) return null;
+            if (ReadInt(patched, entry) >> 24 != 0x08) return $"The {version.Name} ROM's hammer peg code doesn't match.";
+            WriteInt(patched, kept, ReadInt(patched, entry));
+            WriteInt(patched, entry, create);
+            return null;
+        }
 
         /* OwnedFieldShards(); For the shards the randomizer puts in rooms (not in chests): their spawn (object 0x65's, the spawn table's)
          * becomes chest.c's NidlCreateShard, which makes one already owned a Maxim Tomato (the original's address in gNidlShard).
@@ -52,7 +105,8 @@ namespace KatAMRandomizer {
          * makes is given its new number by chest.c (gNidlShard +4, by the game's shard; HookShards); the pause screen's area maps show
          * a boss room's shard icon until the area's shard is owned (gAreaMapRoomIdsAndShards: {map room, boss room, shard} for each
          * area): the area's new one. For NiDL's: the low nibble of their templates' behavior (type 0x43 or 0x44 in the rooms' object
-         * lists: nidl_boss.c's NidlBossDefeat), the 7 that leave one (not the finale's, the Power Orb and Nightmare). BossShardLog lists who leaves what (the spoiler log). Returns an error, or null; */
+         * lists: nidl_boss.c's NidlBossDefeat), the 7 that leave one (not the finale's, the Power Orb and Nightmare); then the Squeak Squad
+         * worlds' 8 bosses, the same way. BossShardLog lists who leaves what (the spoiler log). Returns an error, or null; */
         static readonly string[] KatAMShardBosses = { "Kracko", "King Golem", "Master Hand & Crazy Hand", "Gobbler", "Wiz", "Moley", "Mega Titan", "Dark Meta Knight" };
         static readonly string[] NidlBossNames = { "Whispy Woods", "Kracko (NiDL)", "Mr. Shine & Mr. Bright", "Meta Knight", "Paint Roller", "Heavy Mole",
                                                    "King Dedede", "Nightmare's Power Orb", "Nightmare" };
@@ -113,6 +167,20 @@ namespace KatAMRandomizer {
                         BossShardLog.Add($"{(boss < NidlBossNames.Length ? NidlBossNames[boss] : $"NiDL boss {boss}")} (room 0x{room:X}): Mirror Shard #{shard + 1}");
                     }
                 }
+            }
+
+            /* The Squeak Squad worlds' bosses (KatAMExpansionSqueakRooms.cs): each world's in its boss room, its template (KatAM's header
+             * 01 24, a mini-boss type, SQUEAK_MIDBOSS | the character) holding its shard + 1 at +0x11 ("ROM Expansion/squeak.h"'s
+             * SqueakBossShard): a third shuffle, spread as NiDL's; */
+            int[] third = Enumerable.Range(0, 8).OrderBy(_ => random.Next()).ToArray();
+            int squeakBosses = 0;
+            for (int at = CodeAddress; at + 36 <= patched.Length; at += 4) {
+                if (patched[at] != 1 || patched[at + 1] != 0x24 || patched[at + 12] is < 0x40 or > 0x42 || patched[at + 14] < SqueakMidbossFlag
+                    || patched[at + 0x11] is < 1 or > 8) continue;
+                int shard = third[squeakBosses++ % 8], character = patched[at + 14] & ~SqueakMidbossFlag;
+                patched[at + 0x11] = (byte)(shard + 1);
+                string name = SqueakDefinitions.FirstOrDefault(e => e.Index == character)?.Name ?? $"Squeak Squad boss {character}";
+                BossShardLog.Add($"{name} (Squeak Squad): Mirror Shard #{shard + 1}");
             }
             return null;
         });

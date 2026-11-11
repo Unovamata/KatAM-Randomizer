@@ -124,6 +124,15 @@
             return error;
         }
 
+        /* HasNightmare(), HasSqueakSquad(); Whether the ROM Expansion put NiDL's enemies, or Squeak Squad's characters, in the ROM (either
+         * can be in alone, and its code is in for other options too): their object type's spawn is its code's (0x31's, 0x2C's); */
+        public static bool HasNightmare(byte[] rom) => SpawnsFromCode(rom, NightmareID, version => version.CreateNidlEnemy);
+        public static bool HasSqueakSquad(byte[] rom) => SpawnsFromCode(rom, SqueakID, version => version.CodeSymbols["CreateSqueakEnemy"]);
+        static bool SpawnsFromCode(byte[] rom, byte type, Func<KatAMExpansionCode.Version, int> spawn) {
+            KatAMExpansionCode.Version version = VersionOf(rom);
+            return version != null && rom.Length >= ExpandedSize && ReadInt(rom, version.SpawnTable + type * 4) == CodeAddress + 0x08000000 + spawn(version) + 1;
+        }
+
         // CodeSymbolOf(); Where one of the ROM Expansion code's symbols is in the ROM, or -1 when its code isn't in it (KatAMHP.cs: its HP tables);
         public static int CodeSymbolOf(byte[] rom, string name) {
             KatAMExpansionCode.Version version = VersionOf(rom);

@@ -16,8 +16,8 @@ after any change.
 | Mirror (door) | `0x6F` mirror, a door cell | either | The normal way. One-way mirrors are drawn with KatAM's one-way graphic. |
 | Hub door | `0x97` door object | always two-way | Only in hubs (rule 4). Hidden until its big switch is pressed. |
 | Mirra | `0x34` | always one-way | A hidden mirror that runs away (rule 6). |
-| Warp star | `0x84` | one-way | NiDL's own; stays a warp star (rule 7). |
-| Cannon | `0x8A` + fuse `0x78` | one-way | NiDL's own; stays a cannon (rule 7). |
+| Warp star | `0x84` | one-way | NiDL's and Squeak Squad's own; stays a warp star (rule 7). |
+| Cannon | `0x8A` + fuse `0x78` | one-way | NiDL's and Squeak Squad's own; stays a cannon (rule 7). |
 | Edge | none (the room's edge) | one-way | NiDL's falls out of a room's bottom and climbs out of its top. |
 | Boss shard | `0x65` shard | one-way | The only way out of a boss room (rule 8). |
 
@@ -35,7 +35,8 @@ after any change.
 - **Secret doors stay hidden until uncovered**: a door behind breakable blocks or in a hidden spot only shows once Kirby finds it.
 - **Enemies keep away from doors**: no enemy stands on a door or right where a door lands Kirby (3 cells across, 2 up or
   down), counted where the enemy ends up (a walker dropped onto the floor below its spot), in the NiDL rooms and in KatAM's
-  rooms the NiDL doors land in (KatAM's enemy there is left out). `BuildObjects()`, `KatAMSpot()`, `FinishRooms()`.
+  rooms the NiDL doors land in (KatAM's enemy there is left out), and in the Squeak Squad rooms (the DS's doors too).
+  `BuildObjects()`, `KatAMSpot()`, `FinishRooms()`, `SqueakObjects()`.
 
 ## 3. One-way and two-way
 
@@ -73,14 +74,60 @@ after any change.
   | Fountain of Dreams | none: no big switch (section 8); its world map path never opens |
 
   Each KatAM room in that list gets a hub door back.
-- **The world map is fixed as approved** (`worldmap.c`'s `gNidlWorldMapDoors`, one path per level's hub door). Neither the world
-  map nor the hub links change unless the user asks for it.
+- **The world map is fixed as approved** (`worldmap.c`'s `gNidlWorldMapDoors`, one path per level's hub door: the NiDL levels', then
+  Squeak Squad's worlds', each to a KatAM door, never to a NiDL or Squeak Squad door, no 3 exits in a chain; the Fountain of Dreams'
+  door is off the map, the end game's). Neither the world map nor the hub links change unless the user asks for it.
 - **Hub doors are always two-way and never lead to a Mirra.**
 - The NiDL hub (a Central Circle copy at night) has one door per level, as Central Circle has one per area. It is reached
   through a golden mirror in Central Circle (beside Central Circle's own), and a pink mirror in the NiDL hub leads back.
-- **The NiDL hub has Central Circle's ability room door**, at the same spot (top left, cell 3, 4), drawn and opened as Central
-  Circle's (KatAM's own switch, world slot 0x12), leading to the ability room (0x3CA) as Central Circle's does; the way out of the
-  ability room is KatAM's, to Central Circle.
+- **The NiDL hub has Central Circle's ability room door**, at the same spot (top left, cell 3, 4), drawn as Central Circle's,
+  leading to the NiDL ability room (room 0x002; the owner: "I would like to create a custom room that holds all NiDL exclusive
+  abilities in a pedestal just like that"); it opens only once all the NiDL levels' big switches are pressed (the 7 of them;
+  world slot 0x1D, KatAM's free one; the owner: "For the NiDL ability room, it can only be unlocked after all switches have been
+  pressed on the NiDL hub"), not with KatAM's 15 (Central Circle's own door, world slot 0x12, still does), and the Unlock the
+  Ability Room option opens Central Circle's door only.
+- **The NiDL ability room** is KatAM's ability room (0x3CA: its look, collision, music and area) with the 7 NiDL-only abilities'
+  statues (Needle, Freeze, Light, Ball, Hi-Jump, Mike, Backdrop: each the NiDL enemy or mini-boss that gives it, shrunk to KatAM's
+  statues' size, on KatAM's statue stand) where KatAM's first 7 statues stand, KatAM's own statues gone; its door leads back to the NiDL
+  hub's door to it. KatAM's ability room and Central Circle's door to it are unchanged. `BuildNidlAbilityRoom()`.
+
+- **The Squeak Squad hub** (the owner: "The way in is a copy of the main game's central circle. We will later decide on position
+  and visuals, the entrance door to the area is a grey door"): a copy of Central Circle (its own tiles, its doors gone), reached
+  through a mirror on Central Circle's floor (cell 11, 18, left of its bottom door; a mirror at the same spot in the hub leads back:
+  both provisional, the owner's to place and color). Rainbow Route's mirror in it (19, 14) is the way in, to Prism Plains 1's start,
+  as the NiDL hub's golden one. It is never reached from the NiDL hub, and works with or without the NiDL ROM. Its world doors:
+  Central Circle's own doors (MainHubDoors, the world's number's, drawn and shown as Central Circle's), one per world, shown by the
+  world's big switch, to its switch room. Its background is a Squeak Squad far view and its cloud colors are tinted to it (the
+  owner: "Change the background of the Squeak Squad hub along with its palette for the clouds"; `SqueakHubLook`): the owner's
+  pick of the mock-ups, D, Prism Plains' castle and rainbow (the far view d_viw_00) with Central Circle's own cloud colors (the
+  owner, sending the D mock-up: "The Squeak Squad hub should have this background as well"). `BuildSqueakHub()`.
+- **The Squeak Squad hub has Central Circle's ability room door**, at the same spot (cell 3, 4), drawn as Central Circle's,
+  shown once the Secret Map is whole (its 7 pieces; world slot 0x1C), leading to the Squeak Squad ability room (after the switch
+  rooms; the owner: "Create the Squeak Squad ability room in KatAM and replace it on its respective room warp on the Squeak Squad
+  hub", then "just import Squeak Squad's ability room to KatAM along with its pedestals"): Squeak Squad's own room, the one room of
+  its stage 9-1 (`map/a9s1s1`, the Arena's: a hall of shelves, a bell tower at its right end), as the DS has it (its tiles, far
+  view, collision), with its 25 pedestals where the DS puts them, each drawn as the DS draws it (its ability's icon on a gold
+  stand) and giving KatAM's ability to a Kirby with none who touches it, as KatAM's ability statues do; a pedestal of an ability
+  KatAM doesn't have is shown and gives nothing. Kirby lands on its doorway, at the hall's right end, which leads back to that
+  door in the Squeak Squad hub (the owner: "The Squeak Squad ability room should go in the Squeak Squad hub at the same position
+  the ability room is"). `BuildSqueakAbilityRoom()`.
+- **The Squeak Squad switch rooms** are the NiDL ones' (one per world, KatAM's two hub-door layouts, A for worlds 1, 3, 5, 7, B for
+  2, 4, 6, 8, 2 floor mirrors into the world, 2 hub doors, the big switch on its pedestal, 2 ability statues), padded to 13 rows
+  as theirs (so KatAM's camera shows each as one screen and stays put), drawn in the world's tiles before the far view the owner
+  picked (`SqueakSwitchDesigns`). Their big switches set world slots 0x20-0x27, kept in the expansion's save
+  (the game's free world slots, 0x10, 0x11, 0x1C-0x1F, are fewer than 8: rooms.c's `BigGetStateSlot`), which open the world's
+  door on the world map. Their hub doors: one to the Squeak Squad hub's world door, one to the KatAM room the world's world map path
+  leads to (the owner's pick of the mock-up): Prism Plains to Moonlight Mansion's door (`0xBE`), Nature Notch to Rainbow Route
+  South (`0xC2`), Cushy Cloud to Rainbow Route East (`0x316`), Jam Jungle to Rainbow Route West (`0xC0`), Vocal Volcano to Rainbow
+  Route North (`0x24E`), Ice Island to Peppermint Palace East (`0x122`), Secret Sea to Olive Ocean (`0x37A`), Gamble Galaxy to
+  Candy Constellation (`0x1EA`). Each of those rooms gets a hub door back, by NiDL's own rule for these rooms: a room with one door on
+  its top row takes `0x122`'s layout (that door moved from the middle to cell 12, its statues between, the new door at cell 3; with
+  NiDL's rooms, which did that already in `0x316` and `0xBE`, the world's door stands in the middle, drawn at x 128); one with two
+  doors on top takes the middle (`0xC0`; `0x122` without NiDL's rooms; with them, whose door took its middle, the floor's right, under
+  Central Circle's door); one with a door on its lower floor takes `0xBF`'s layout (that door moved to cell 11, the new one at cell
+  5). The doors landing on a moved door land on it there. Kirby lands on the door he came through. These KatAM rooms are edited
+  once the randomizer is done, after NiDL's edits (`FinishRooms()`, `squeakFinish`). Provisional: the owner's to place and color.
+  `KatAMExpansionSqueakHubs.cs`.
 
 ## 5. Levels, stages and the order of things
 
@@ -97,6 +144,50 @@ after any change.
   not the Mirra's own (else the nearest one on that way). The Fountain of Dreams' switch room has none of these: only Nightmare's
   end leads there (section 8). `PlanDoors()`.
 
+- **Squeak Squad's worlds** follow the same rules (`PlanSqueakLevels()`), on the DS's own stages, whose doors stay as the DS has
+  them (its doorways are in the rooms' tiles) and only lead on: a room's arrival is no door back. So:
+  - a branch into a stage lands in its **first room** (on a mirror back there if it takes one, else one-way onto the stage's start):
+    entered further in, the rooms before would be cut off;
+  - doors go only in rooms the stage's start reaches (through the DS's own doors from every door Kirby lands on in the stage, and
+    through the walls only Fire or an unported gimmick opens on the DS, which are KatAM's star blocks); where no stage in a world's tree has a room taking a door (Prism Plains 1's
+    are small, 2 doors each), **a stage's goal door leads on into the next stage**, one-way;
+  - **goals lead on to the next stage** (the owner: "Goal doors reach to the next stage correct, however keep in mind the Goal
+    minigame doors from KatAM as well for path ending sections, 1 or 2 per area"): each goal but the deepest stage's (into the boss
+    stage) leads, one-way, into the world's next stage by number; 1 or 2 a world (2 where it has 4 such goals or more), at the ends
+    of paths (no stage after them first, then the stages nothing hangs off, the deepest first), into one of KatAM's goal games;
+  - a goal room keeps the DS's own doors (they're drawn in its tiles) but gets no new one (the owner to confirm);
+  - each world's boss stage (1-7, 2-7, 3-7, 4-7, 5-6, 6-7, 7-7; 5-7, a copy of 5-6, is left out as the Arena's copies are)
+    is entered only through the deepest stage's goal; Squeak Squad's final stage (8-4) is not world 8's boss stage but the
+    finale's (rule 8): its rooms the DS reaches by cutscenes between its fights are chained by one-way mirrors from each fight's
+    room to the next (where no warp star ride of the DS's leads on); its last two rooms, copies of Dark Nebula's room and the one
+    before it, are left out, so he's fought once; world 8's deepest goal ends its path into a goal game, as other path ends do;
+  - the hidden two-way door between worlds leads into the next world's first stage;
+  - **Squeak Lairs** (the owner: "Entrance 1 -> Squeak Lair with Miniboss -> Entrance 2 as an interlude between zones in the
+    Squeak Squad map"): each Squeak that steals a stage's treasure on the DS (Spinni, Doc or Storo, its thief) has its hideout
+    (one of the stage's rooms after its goal, where it fights with its Squeakers) made a mini-boss room (rule 8) between two of
+    the stage's own rooms: a DS door of the stage (the one into the room the thief waits in, else the nearest to it; not
+    hidden, Kirby gets to it) leads into the hideout, one-way, onto the DS's arrival there, and the hideout's one way out, shut
+    until its mini-boss is beaten, leads where that door led. A nest stands at that door, the DS's own lair door for that room's
+    world (a stump, a grassy mound, a rock pile, a castle, an igloo, a submarine, a factory, a UFO..., each with its flag), the
+    warning that a fight waits past it. The way out is KatAM's one-way door on the hideout's DS doorway, where its black doorway
+    was (the owner: "The one way door on the Squeak Lairs should be where the black door was"), even where Kirby lands beside it
+    (Spinni's and the Squeakers' hideouts: it's shut till the fight's won); a hideout with no doorway, on a floor away from where
+    he lands (rule 3). Stages with no Squeak thief (7-4) get none; 6-5 has three. With Randomize Squeak Lairs (the owner: "randomly remove
+    or add these connections to these rooms in a per seed basis ... Of course, we have to have an unrandomized map as well for
+    times where these won't be randomized, for this, the current layout is perfect"), the lairs are picked by the seed among each
+    stage's hideouts (each one time in three; the Squeakers' hideout led by Spinni, Doc or Storo), each at a DS door the seed picks
+    among the ones that can be (as above, in a room that shows the DS's nest), the rest of the map unchanged; off, as above;
+  - the rooms a stage reaches only through its Squeaks that no lair uses (the other three hideouts of each stage, every stage's
+    copies of the same four fights, and its gold-pile treasure rooms nothing leads to) are left out, nothing leading in; a room
+    after a stage's goal that isn't one of those (1-1-5, the field past its goal) is reached as any room (rule 9); the sky rooms
+    the DS's warp stars fly through (3-4-5, 8-3-6, 8-3-7: nothing to stand on) are reached on those rides, as the DS's (3-4-4's
+    star flies through 3-4-5 into 3-4-6, 8-3-5's through 8-3-6 and 8-3-7 into 8-3-8), never stood in (rule 7);
+  - each world's switch room is found by exploring: a Mirra hidden in the world's second half (its stages from the middle on by
+    number, the deepest first), one-way, landing off its floor mirrors; its right floor mirror both ways with the start of the
+    stage before the boss's (the deepest), its left one with the start of the deepest stage off the way from the world's first
+    stage to that one, not the Mirra's own (else the way's first); each with a mirror back in that stage's first room if it takes
+    one, else the switch room's leads on, one-way, onto the stage's start.
+
 ## 6. Mirras
 
 - **As few as KatAM's**, at most one per room, never chained.
@@ -106,6 +197,8 @@ after any change.
   in, shown once it opens there. `mirra.c`, `MirraLandings()`.
 - **Each leads to real progress** (a switch room, a shortcut to a later stage), never sideways.
 - Never in a boss room or a switch room. `MirraSpots()`.
+- **Squeak Squad's** (one a world, to its switch room: rule 5) stand on a floor that can't break, so they never fall: KatAM's own
+  Mirra opens the door where it stands, with or without the NiDL ROM.
 
 ## 7. Warp stars and cannons
 
@@ -122,6 +215,11 @@ after any change.
   Island 2, Orange Ocean 3), and the screen fades to white before each room change as NiDL's does. The helpers on the star ride
   with him. `NidlRides`, `WarpFlights()`, `warpstar.c`.
 - No mirror is placed next to them (rule 2).
+- **Squeak Squad's** (the owner: "Ensure Star and Cannon Warps are in the rooms and work.") follow the same rule: its warp stars
+  are KatAM's warp stars flying Squeak Squad's own rides (its paths, through the rooms a ride passes, landing where the DS lands
+  Kirby), its fuse cannons KatAM's fuse cannons on their fuses, to the door Squeak Squad's names. Its eight-direction cannons
+  (in-room, Kirby shot from one to the next) are KatAM's eight-direction cannon (`0x8B`), not a way between rooms. `SqueakRides()`,
+  `SqueakFuse()`, `chest.c`'s `SqueakCreateCannon`.
 
 ## 8. Bosses and mini-bosses
 
@@ -129,19 +227,36 @@ after any change.
   that was in a boss room goes elsewhere. A boss whose shard is owned leaves a Maxim Tomato
   instead, never the shard, and grabbing it takes Kirby out as the shard would. `bossExitsOf`,
   `gNidlShardExits`, `NidlShardExit()`.
-- **A shard only ever sends Kirby to a central hub**: KatAM's to Central Circle, NiDL's to the NiDL hub, onto that level's door
-  there. Never into another level or room. NiDL's empty walk-out rooms after a boss are left out of the port: nothing leads there
+- **A shard only ever sends Kirby to a central hub**: KatAM's to Central Circle, NiDL's to the NiDL hub, Squeak Squad's to the
+  Squeak Squad hub (each world's boss, its last fight in its boss stage, leaves one: the world's spot there is Central Circle's
+  door of the area of its number, where its world door will be), onto that level's door there. Never into another level or room. NiDL's empty walk-out rooms after a boss are left out of the port: nothing leads there
   any more.
 - **Which shard a boss leaves can be shuffled** (Bosses Give Random Shards): KatAM's bosses always hold all 8 between them, so the
-  game can be beaten from KatAM alone; NiDL's 7 that leave one (not the Power Orb nor Nightmare) spread the 8 evenly. An owned
+  game can be beaten from KatAM alone; NiDL's 7 that leave one (not the Power Orb nor Nightmare) spread the 8 evenly, and so do
+  Squeak Squad's 8 (one each by default, world by world). An owned
   shard is always a Maxim Tomato, never a cutscene in the way.
+- **The finale chain** (the owner: "Entire NiDL final boss sequence that's already ported -> Entire final boss sequence from Squeak
+  Squad recreated and ported 1:1 -> KatAM's final boss. The additional sequences only appear when the ROM expension ROMs are
+  added"; and its hubs: "One hub per finale (If available) Nightmare -> Fountain of Dreams hub -> its mirror -> (If available)
+  Squeak Squad's final stage -> Dark Nebula -> new Dark Nebula hub -> its mirror -> (always available) KatAM's final boss. Without
+  NiDL, the copy is made from Squeak Squad tiles."): one hub after each finale, an interlude before the next fight. With both
+  ROMs, Nightmare's ending (Kirby going down from the moon) lands Kirby in the Fountain of Dreams hub (below), whose Amazing Mirror
+  leads to the start of Squeak Squad's final stage (8-4); its fights follow as on the DS (Dark Daroach, the rooms between chained by
+  its warp stars and one-way mirrors, then Dark Nebula, who leaves no shard), and Dark Nebula beaten, every Kirby dances out (NiDL's
+  shard exit, `SQUEAK_FINALE_SHARD`) into the Dark Nebula hub: a copy of the Fountain of Dreams hub (its look, no other door in or
+  out, no big switch, its Amazing Mirror high up in the middle, the Master Sword's stand under it, a Maximum Tomato on the floor's
+  right, a Cutter and a Sword statue on its sides; no map's chest, the Fountain of Dreams' stays in its own hub), whose Amazing
+  Mirror leads to KatAM's final boss sequence (0x38D). Without the NiDL ROM, Central Circle's Dimension Mirror leads to 8-4's start
+  and the Dark Nebula hub is the same layout drawn in Squeak Squad's final stage's tiles, Dark Nebula's far view behind it; without
+  the Squeak Squad ROM, NiDL's finale is as below. `SqueakFinale()`, `SqueakShardExits()`, `BuildSqueakFinaleHub()`.
 - **The Fountain of Dreams is the finale before KatAM's final boss**, reached only once KatAM has the 8 shards: Central Circle's
   Dimension Mirror and the NiDL hub's lead to the Power Orb's room (nothing else leads in). The Power Orb and Nightmare leave no
   shard: beaten, the Power Orb's cinematic plays, every Kirby goes to a warp star and rides it to Nightmare's room, where his
   cinematic plays and the fight starts; beaten, Nightmare's (Kirby going down from the moon) plays and Kirby is in the Fountain
   of Dreams hub (its switch room), which has no other door in or out and no big switch: only an Amazing Mirror to 0x38D, KatAM's
-  final boss sequence (unlocked by the 8 shards, as KatAM's), the Master Sword's stand, a Maximum Tomato, and a Cutter and a Sword
-  statue on its sides (the owner's). The Power Orb's and Nightmare's rooms are
+  final boss sequence (with the Squeak Squad ROM, to Squeak Squad's final stage instead, above; unlocked by the 8 shards, as KatAM's), the Master Sword's stand, a Maximum Tomato, and a Cutter and a Sword
+  statue on its sides (the owner's), and the Fountain of Dreams' map in a chest on the floor's left (the owner: "The fountain of
+  dreams hub can only exist within the amazing Mirror after the nightmare fight. It's a prelude before the final fight."). The Power Orb's and Nightmare's rooms are
   never randomized.
 - **Doors into boss rooms are one-way.** Nothing else (branches, links, Mirras) goes in a boss stage.
 - **Two boss rooms are entered in the air**, the only landings off a floor, as NiDL's: the Power Orb's, at NiDL's own start at
@@ -154,14 +269,20 @@ after any change.
   long room's too, before the fight is on screen). The fight area for doors is its screen and the space it's fought in: the cells
   Kirby walks to from it, up to 4 cells across and 2 up or down (not past a wall). Those doors are built shut and open when the
   mini-boss is beaten. No two-way door in a mini-boss's room; a door into one throws Kirby in, one-way, and its way out is one-way
-  too, never right beside the way in. `Arenas()`, `InArena()`, `ArenaCells()`, `arena.c`.
+  too, never right beside the way in (but a Squeak Lair's, on its doorway: rule 5). `Arenas()`, `InArena()`, `ArenaCells()`,
+  `arena.c`. The Squeak Lairs (rule 5) are such rooms,
+  one way out each; their mini-boss, the DS's Squeak by default at its spot there, is one the randomizer's mini-boss
+  randomization picks too (Include Bosses: any boss), a boss standing on the floor Kirby lands on (`SQUEAK_LAIR_FIGHT`,
+  `SqueakBossFloor()`). A lair's way out shows only once its mini-boss is beaten, with or without the NiDL ROM (the owner: "Do make
+  sure that these exits only appear after defeating the miniboss only"; `squeak/gimmicks.c`'s `LairExit()`).
 
 ## 9. Every place gets you back out
 
 - **Every room is reached** from the NiDL hub's starter mirror: a group of rooms nothing leads into gets a one-way throw into its
   first room. `Reached()`.
 - **Every place Kirby can reach has a way back out** (to the hub or KatAM's rooms), **without needing Down + B** through a thin floor.
-  A place with none gets a one-way throw out, into the first stage of its level that has a way out. The way-out pass in `PlanDoors()`.
+  A place with none gets a one-way throw out, into the first stage of its level that has a way out. The way-out pass in `PlanDoors()`;
+  Squeak Squad's worlds the same, onto the start of the first stage of its world that has one (`PlanSqueakLevels()`).
 - **Thin floors only become KatAM's undroppable kind** when, from every place Kirby arrives, dropping through leads nowhere he
   doesn't reach anyway. `ThinFloors()`.
 - A one-way throw's landing never traps Kirby (rule 3), and breakable blocks a door lands Kirby inside start broken.
