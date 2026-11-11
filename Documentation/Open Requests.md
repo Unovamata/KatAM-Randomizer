@@ -35,11 +35,14 @@ finishes it says how it was checked). The design rules for doors, mirrors and hu
 - "fire attack looks very off and it's very laggy"
 - "When using its ice attack, it doesn't add the ice platforms at the bottom."
 - "Dark Nebula's sprite looks off."
-- "Dark Nebula never activates its electric attack."
-- "Kirby's dance is off centered in Dark Nebula's room."
+- "Dark Nebula never activates its electric attack.": not reproduced. In a 6000-frame run in the emulator he took his electric
+  form twice and used its wave and bolts, the bolts flying out and the electric cage round the screen's edges (screenshots).
+  Still to ask whether this was an older build or his electric form simply didn't come up in that fight.
 
 ## 5. Hubs and the Map Viewer
-- "The fountain of dreams hub doesn't have the base of the master sword."
+- "The fountain of dreams hub doesn't have the base of the master sword.": the hub has KatAM's Master Sword stand object (0x98,
+  `FinaleSwordAt`), which draws only the sword; Central Circle's base is part of its room's tiles, which the hub (NiDL's tiles)
+  doesn't have. To do: bring Central Circle's pedestal tiles into that hub's tileset under the stand.
 - "Squeak Squad's bosses are not showing in the Map Viewer app."
 - "The squeak squad final boss sequence is not within this same line in the map viewer."
 

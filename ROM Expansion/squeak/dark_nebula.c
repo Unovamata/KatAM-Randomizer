@@ -1535,7 +1535,8 @@ static void DefeatStart(struct SqueakObject *s) {
 static void DarkNebulaWatch(struct Object *obj) {
     struct SqueakObject *s = (struct SqueakObject *)obj;
 
-    if (obj->unk78 == DarkNebulaMain || DEFEAT(s) || obj->unk80 > 0 || (obj->base.flags & 0x1000)) return;
+    // (his HP out however it went, KatAM's defeat started or not: his own defeat, once);
+    if (DEFEAT(s) || obj->unk80 > 0 || (obj->base.flags & 0x1000)) return;
     obj->unk78 = DarkNebulaMain;
     obj->base.flags = KEPT_FLAGS(s);
     obj->base.unkC = KEPT_C(s);
