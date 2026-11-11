@@ -175,6 +175,28 @@ void SqueakSetCell(struct SqueakObject *s, u8 cell) {
 
 static void SqueakReleaseParts(struct SqueakObject *s);
 static void SqueakShowComposite(struct SqueakObject *s);
+
+/* SqueakAnimPalette(); An animation's palette (its key and frame): in the character's hurt flash's colors while they're on
+ * (SqueakDamageColors()), else the animation's own (a character in several palettes), else NULL: the character's one; */
+static const struct SqueakPaletteKey *SqueakAnimPalette(struct SqueakObject *s, u8 anim) {
+    const struct SqueakGraphics *g = &gSqueakData.enemies[s->enemy];
+
+    if (s->damage && gSqueakData.damage != NULL && gSqueakData.damage[s->enemy] != NULL) return &gSqueakData.damage[s->enemy][anim];
+    return g->palette != NULL ? &g->palette[anim] : NULL;
+}
+
+/* SqueakDamageColors(); Squeak Squad's hurt flash (the DS's vtable +0x20, Daroach's 0x02126B30: his _dmg.cla's palettes, +0x33C,
+ * or his own, +0x23C, into his sprite's): the character's animation in its damage colors (`on`), or its own back; a composite's
+ * parts take them as its composition shows them (SqueakShowComposite()); none for a character without them; */
+void SqueakDamageColors(struct SqueakObject *s, bool32 on) {
+    const struct SqueakPaletteKey *k;
+
+    on = on != 0;
+    if (s->damage == on || gSqueakData.damage == NULL || gSqueakData.damage[s->enemy] == NULL) return;
+    s->damage = on;
+    k = SqueakAnimPalette(s, s->anim);
+    if (k != NULL && s->composite == SQUEAK_NO_COMPOSITE) s->obj.base.sprite.palId = SqueakLoadPalette(k->key, k->variant, s->obj.base.roomId);
+}
 static void SqueakShowLayer(struct SqueakObject *s);
 
 // SqueakPlay(); Starts one of the character's Squeak Squad animations, from its first step;
@@ -182,8 +204,10 @@ void SqueakPlay(struct SqueakObject *s, u8 anim) {
     const struct SqueakGraphics *g = &gSqueakData.enemies[s->enemy];
     const struct SqueakAnim *a = &g->anim[anim];
 
+    const struct SqueakPaletteKey *k = SqueakAnimPalette(s, anim);
+
     // (a character in several palettes: the animation's);
-    if (g->palette != NULL) s->obj.base.sprite.palId = SqueakLoadPalette(g->palette[anim].key, g->palette[anim].variant, s->obj.base.roomId);
+    if (k != NULL) s->obj.base.sprite.palId = SqueakLoadPalette(k->key, k->variant, s->obj.base.roomId);
     SqueakReleaseParts(s);
     s->composite = SQUEAK_NO_COMPOSITE;
     s->anim = anim;
@@ -482,9 +506,10 @@ static void SqueakShowComposite(struct SqueakObject *s) {
         const struct SqueakStep *step = SqueakStepAt(&g->anim[part->anim], part->absolute ? s->compositeTime : local);
         s32 x = SqueakTurned(s, part->x + step->x), y = part->y + step->y;
 
+        const struct SqueakPaletteKey *k = SqueakAnimPalette(s, part->anim);
+
         if (i == 0) {
-            if (g->palette != NULL)
-                s->obj.base.sprite.palId = SqueakLoadPalette(g->palette[part->anim].key, g->palette[part->anim].variant, s->obj.base.roomId);
+            if (k != NULL) s->obj.base.sprite.palId = SqueakLoadPalette(k->key, k->variant, s->obj.base.roomId);
             SqueakSetCell(s, step->cell);
             s->obj.base.objBase54 = x;
             s->obj.base.objBase55 = y;
@@ -506,7 +531,7 @@ static void SqueakShowComposite(struct SqueakObject *s) {
         if (*link == NULL) *link = SqueakCreatePart(s, i, part->tiles, step->cell);
         if ((p = *link) == NULL) break;
         // (a character in several palettes: the part's animation's own);
-        if (g->palette != NULL) p->palId = SqueakLoadPalette(g->palette[part->anim].key, g->palette[part->anim].variant, s->obj.base.roomId);
+        if (k != NULL) p->palId = SqueakLoadPalette(k->key, k->variant, s->obj.base.roomId);
         p->cell = step->cell;
         p->dx = x;
         p->dy = y;
@@ -1319,6 +1344,7 @@ static struct SqueakObject *SqueakCreate(struct ObjectTemplate *template, u8 pla
     s->obj.unk80 = gSqueakEnemyHp[enemy];
     s->maxHp = s->hpBase = 0;
     s->loopSound = 0;
+    s->damage = FALSE;
     s->drown = 0;
     s->chase = (template->unk12 & SQUEAK_CHASE_SPAWN) != 0;
     s->safeX = s->safeY = 0;

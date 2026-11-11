@@ -355,6 +355,9 @@ struct SqueakData {
     const struct SqueakEffect *effects;
     struct SqueakGraphics enemies[SQUEAK_ENEMY_COUNT];
     const struct SqueakLayer *layers;   // SQUEAK_LAYERS per character;
+    /* Per character, its hurt flash's colors (KatAMExpansionSqueak.cs's DamagePalette: Squeak Squad's _dmg.cla), per animation the
+     * palette in them; NULL none (SqueakDamageColors); */
+    const struct SqueakPaletteKey *const *damage;
 };
 
 extern const struct SqueakData gSqueakData;
@@ -399,6 +402,7 @@ struct SqueakObject {
     u8 drown;                   // In the shared water state (SqueakDrown): its frames left + 1, 0 not in it; its hurt look there;
     u8 drownLook;
     bool8 chase;                // A Squeak in a chase (SqueakChasing(): a chase's spawn, or Spinni, Doc or Storo as a mini-boss);
+    bool8 damage;               // Its hurt flash's colors on (SqueakDamageColors);
     s16 safeX, safeY;           // and the last floor it stood on, pixels (SqueakChaseSteer: a fall into the void brings it back there);
 };
 
@@ -488,6 +492,7 @@ void SqueakSetCell(struct SqueakObject *, u8 cell);
 // SqueakVramOk(); A sprite's VRAM was got (KatAM's VramMalloc gives ewram_end when it's full: the sprite would draw what's there);
 #define SqueakVramOk(vram) ((u32)(vram) >= (u32)OBJ_VRAM0 && (u32)(vram) < (u32)OBJ_VRAM0 + OBJ_VRAM0_SIZE)
 void SqueakUsePalette(struct SqueakObject *, u8 alternate);
+void SqueakDamageColors(struct SqueakObject *, bool32 on);
 u8 SqueakLoadPalette(u16 key, u8 variant, u16 roomId);
 void SqueakPlay(struct SqueakObject *, u8 anim);
 void SqueakPlayComposite(struct SqueakObject *, u8 composite);

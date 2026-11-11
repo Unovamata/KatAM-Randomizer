@@ -21,9 +21,6 @@ finishes it says how it was checked). The design rules for doors, mirrors and hu
   loaded, NiDL's Light ability (from Cool Spook) lights the Squeak Squad dark rooms' parts the candles light, as Fire does on the DS.
 
 ## 3. Squeak Squad's final sequence (the owner: "Complete the final sequence.")
-- "Color palette and maybe object errors in the first Squeak Squad final boss fight.": checked against the DS's own files, the
-  striped frames when Dark Daroach warps (`dancho00`'s 5-7) and his red bombs are the DS's (Dark Daroach's palette); his hit flash
-  is still KatAM's, not the DS's `dan_dmg` palettes.
 - "Massive amounts of lag whenever the Squeak Squad boss invokes stars.": measured in the emulator, his beam (4 seconds) runs at
   half speed: the sound mixer takes about a fifth of a frame more while it plays, and its 15 sprite pieces the rest. His idle,
   bombs and warps keep full speed. Not fixed yet.
