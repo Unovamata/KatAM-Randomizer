@@ -186,6 +186,19 @@ namespace KatAMRandomizer {
             }
         }
 
+        /* SqueakRoomTileset(); A room's tileset (its front or main, by name): one with no colors of its own (each palette's color 0 alone:
+         * 4-3-7's, 4-3-8's and 8-1-6's, 31_*, 32_*, 33_*) takes the room's PL palette (map/pa_NN.pal, kind 2: u16 2, then 256 colors),
+         * which the DS loads as the BG palette there (read in the DS emulator, 4-3-7 loaded with its own stage entry: the BG palette is
+         * pa_19.pal's colors); the boss rooms' PL palettes of that kind (the light fades' targets) leave their tilesets' colors as they are; */
+        static SqueakTileset SqueakRoomTileset(byte[] squeak, string name, SqueakRoomFiles f) {
+            if (name == null || SqueakFileAnyCase(squeak, name) is not byte[] file) return null;
+            SqueakTileset tileset = new SqueakTileset(file);
+            if (Enumerable.Range(0, 256).All(i => i % 16 == 0 || (tileset.Colors[i] & 0x7FFF) == 0) && f.Palette is string palette
+                && SqueakFileAnyCase(squeak, palette) is byte[] colors && colors.Length >= 2 + 512 && ReadShort(colors, 0) == 2)
+                for (int i = 0; i < 256; i++) tileset.Colors[i] = (ushort)ReadShort(colors, 2 + i * 2);
+            return tileset;
+        }
+
         /* A palette animation's row (SqueakPaletteCycles()): the main tileset's palette it changes, how long each frame stays (the DS's
          * frames, as KatAM's) and each frame's 16 colors; */
         internal sealed record SqueakPaletteCycle(int Row, int[] Durations, ushort[][] Frames);
@@ -1880,6 +1893,15 @@ namespace KatAMRandomizer {
                 list.AddRange(entry);
                 list[0]++;
             }
+            // (its candles' light, SqueakCandleLightEntry: the far view's light the room's candles turn up and down, squeak/gimmicks.c's
+            // CandleLight());
+            if (gimmicks.Any(g => g.Type == SqueakCandleGimmick) && next < SqueakMailGimmicks && list[0] != 0xFF) {
+                byte[] entry = new byte[24];
+                entry[0] = SqueakCandleLightEntry;
+                entry[1] = (byte)next++;
+                list.AddRange(entry);
+                list[0]++;
+            }
             return list[0] == 0 && list[1] == 0 ? null : list.ToArray();
         }
 
@@ -1901,6 +1923,8 @@ namespace KatAMRandomizer {
         const byte SqueakPhaseWarpEntry = 0xF5;
         // (a chest the chase brings: at its template's spot, its item, number, mark (unk16), half flag and type: squeak/gimmicks.c's GIMMICK_CHASE_CHEST);
         const byte SqueakChaseChestEntry = 0xF6;
+        // (a room's candles' light: squeak/gimmicks.c's GIMMICK_CANDLE_LIGHT);
+        const byte SqueakCandleLightEntry = 0xF7;
         internal sealed record SqueakChase(byte Key, List<(int x, int y)> Walls, List<(int x, int y, byte character, byte variant)> Spawns,
                                            List<byte[]> Chests = null);
         static void AddChaseEntries(List<byte> list, SqueakChase chase, int firstIndex) {
@@ -2303,7 +2327,7 @@ namespace KatAMRandomizer {
                         Rides = map.Gimmicks().Where(g => g.Type == SqueakFuseCannon && (g.Word(0) & 0xFF) < SqueakStarArrival).Select(g => (g.Word(0) & 0xFF) + 1).ToList() });
                     // (whether it draws the DS's nest: Randomize Squeak Lairs, SqueakNestKey(), SqueakNestDrawn());
                     if (files[i].Front != null && !frontOf.ContainsKey(files[i].Front))
-                        frontOf[files[i].Front] = SqueakFileAnyCase(squeak, files[i].Front) is byte[] frontFile ? new SqueakTileset(frontFile) : null;
+                        frontOf[files[i].Front] = SqueakRoomTileset(squeak, files[i].Front, files[i]);
                     planRooms[^1].NestKey = SqueakNestKey(map);
                     planRooms[^1].NestDrawn = files[i].Front != null && SqueakNestDrawn(map, frontOf[files[i].Front]);
                     // (its chase records' Squeaks, for the Squeak Lairs: SqueakPlanRoom.Squeaks);
@@ -2375,8 +2399,7 @@ namespace KatAMRandomizer {
                             SqueakMap map = new SqueakMap(SqueakUnpack(SqueakFileAnyCase(squeak, f.Map)));
                             // (one too big is turned down below);
                             if (map.Width * map.Height <= BigRoomBlocks) {
-                                SqueakTileset front = f.Front == null || SqueakFileAnyCase(squeak, f.Front) is not byte[] frontFile ? null : new SqueakTileset(frontFile);
-                                SqueakTileset main = f.Main == null || SqueakFileAnyCase(squeak, f.Main) is not byte[] mainFile ? null : new SqueakTileset(mainFile);
+                                SqueakTileset front = SqueakRoomTileset(squeak, f.Front, f), main = SqueakRoomTileset(squeak, f.Main, f);
                                 main?.Cycle(f.Palette == null ? null : SqueakPaletteCycles(SqueakFileAnyCase(squeak, f.Palette)));
                                 var cells = SqueakRoomCollision(map);
                                 SqueakMap drawn = SqueakNests(map, squeakLairs.Where(l => l.FromRoom == room).Select(l => (l.FromX, l.FromY)), squeakLairs.Any(l => l.Room == room));
@@ -2407,8 +2430,7 @@ namespace KatAMRandomizer {
                         lastMusic = SqueakStageMusic(squeak, files, f.Area, f.Stage);
                     }
                     int song = SqueakRoomSong(map.Data, f.Area, ref lastMusic);
-                    SqueakTileset front = f.Front == null || SqueakFileAnyCase(squeak, f.Front) is not byte[] frontFile ? null : new SqueakTileset(frontFile);
-                    SqueakTileset main = f.Main == null || SqueakFileAnyCase(squeak, f.Main) is not byte[] mainFile ? null : new SqueakTileset(mainFile);
+                    SqueakTileset front = SqueakRoomTileset(squeak, f.Front, f), main = SqueakRoomTileset(squeak, f.Main, f);
                     main?.Cycle(f.Palette == null ? null : SqueakPaletteCycles(SqueakFileAnyCase(squeak, f.Palette)));
                     int width = map.Width, height = map.Height;
                     if (width * height > BigRoomBlocks) return $"Squeak Squad's room {f.Area}-{f.Stage}-{f.Index} is bigger than KatAM can hold.";

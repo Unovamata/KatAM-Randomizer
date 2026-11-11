@@ -813,12 +813,23 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
     out): 4-3-7's, 4-3-8's and 8-1-6's, 8 in dark rooms. Its box ±0.5 cells across, 1.5 up from its spot. Its message handler
     (`0x022236A0`): a burning attack (the message's flags 0x901) lights it (state 1, `0x02223688`) for the parameter's bits 4-15
     frames (400-540 in the rooms; again while lit: as long again); a blowing one (flag 2) puts it out with a puff (`0x0221F844`, kind
-    5). Lit, it counts down (`0x02223664`) and goes out (`0x02223514`), and once none of the room's is lit the room's colors fade back
-    to dark (`0x02209F94`, `0x0220A12C`). In KatAM (`squeak/gimmicks.c`'s SqueakCreateCandle, object 0x90; template unk14 its word):
-    lit by an attack of a Kirby with Fire or Burning (his own, or one he let go: its parent), with the Fire attack's sound, for its
-    frames, then out. The dark room and the Light ability are left for later (the open requests: candles and Light). Checked in the
-    GBA emulator (USA, 4-3-7, Kirby with Fire put by its first candle): his fire breath lights it, it stays lit, and it's out again
-    400 frames on; Japan: lit the same. Not checked: Burning, Europe's candles.
+    5). Lit, it counts down (`0x02223664`) and goes out (`0x02223514`). The first one lit while none of the room's is (`0x02223588`,
+    the room's others counted by `0x0222361C`) calls the room's far-view fade (`0x02209F94`'s +0xAC, its vtable +0x10, `0x0220A12C`)
+    with 30 frames and fades the stage's light (+0xA8) to full (0x1000) over 30; the last one going out calls the fade with -30 and
+    fades the light to 0x404 (a quarter). Read in the DS emulator with 4-3-7 loaded on its own stage entry (stage 1-1's `.mxi` replaced
+    by 4-3's with room 7 first): the light starts full (the light record's 255, 255, 255), the fade object is the plain one (vtable
+    `0x02228CAC`, a no-op), and the BG palette is the room's `PL` palette, `map/pa_19.pal` (255 of its 256 colors): the candle rooms'
+    tilesets (31_*, 32_*, 33_*) hold no colors (each palette's color 0 alone), their `PL` palettes (pa_19, pa_1C, pa_22, kind 2) are
+    their colors, and these rooms aren't dark on the DS (4-3-7: warm orange bricks). The converter takes them as the tilesets' colors
+    there (`KatAMExpansionSqueakRooms.cs`'s `SqueakRoomTileset()`; the rooms were black before). In KatAM (`squeak/gimmicks.c`'s
+    SqueakCreateCandle, object 0x90; template unk14 its word): lit by an attack of a Kirby with Fire, Burning or NiDL's Light (his own,
+    or one he let go: its parent; Light's flash with the NiDL ROM), with the Fire attack's sound, for its frames, then out; lit, it
+    isn't culled off screen. The far view's light is the room's gimmick `0xF7` (`CandleLight()`, added in every room with candles):
+    the far view's colors (BG palettes 6-13) times the light, which fades as the DS's. Checked in the GBA emulator (USA, 4-3-7, Kirby
+    put by its first candle, his ability set by a RAM write): Fire's breath lights it, the far view stays full, and 400 frames on it
+    goes out and the far view dims to a quarter over 30 frames; Light's flash lights it the same; Europe and Japan: Fire the same.
+    Not checked: Burning, 4-3-8's and 8-1-6's candles, a second candle lit while one burns, the DS's blowing attack putting one out
+    (not ported).
   - The camera areas (0x14) hold the view and message food bubbles (2-3-5's, 2-6-2's, 3-2-4's, 4-4-6's targets are bubbles,
     which the port places as food already). Their bounds' y is the DS's world's, up from the room's bottom (2-3-8, 512 pixels
     tall: the area over its top screen holds y 304-496, its top screen from the top). Ported (squeak/gimmicks.c's CameraArea: the
@@ -861,7 +872,8 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
     far view's light (the stage's +0xA8, `0x0221992C`: +0x24-0x2C its color, 4.12, +0x30-0x38 from, +0x3C-0x44 to, +0x20 frames)
     to its bytes 5-7 / 255; that light starts at the room's light record's bytes 3-5 / 255 (the map object's +0x64; read in the DS
     emulator: 255, 255, 255 in 2-3-1 and 7-3-1). The gimmick's color is 255, 255, 255 in all three rooms: full to full, so nothing
-    dims on the DS. The candles (gimmick 0xA) use the same light: out, to 0x404 (a quarter) over 30 frames; lit, back to full.
+    dims on the DS. The candles (gimmick 0xA) use the same light: the last one out, to 0x404 (a quarter) over 30 frames; the first
+    one lit, back to full (ported: gimmick `0xF7`, `CandleLight()`).
     Ported (squeak/gimmicks.c's Light: the far view's colors start at the DS's start, full, and step up the same way).
   - **What only Fire or an unported gimmick opens** (the owner: every room reached), KatAM's star blocks, any attack breaking them
     (`SqueakRoomCollision()`): the cells Fire burns (the blocks grid's flag 0x800 under top byte 0x38: 4-2-3's start walled in by
