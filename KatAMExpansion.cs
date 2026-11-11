@@ -1323,6 +1323,9 @@ namespace KatAMRandomizer {
                         if (enemy.OnlyPalettes != null) character = SqueakSplitLayer(character, enemy.OnlyPalettes, true);
                         // (a gimmick's composite animations as plain ones after its own: the thunder cloud's);
                         if (enemy.FlattenComposites) character = SqueakFlattenComposites(character);
+                        // (the cells merged parts draw (SqueakMergeParts()), after its own: only their part sprites show them, not its own);
+                        int ownCells = character.Cells.Count;
+                        if (enemy.MergeParts) character = SqueakMergeParts(character, enemy.Canvas);
                         if (enemy.ShiftY != 0) character = SqueakShiftCells(character, enemy.ShiftY);
                         if (enemy.Roll >= 0) character = SqueakRolled(character, enemy.Roll, 16);
                         // (drawn smaller than the DS's: its offsets as much smaller, its frames by SqueakFrames);
@@ -1406,7 +1409,8 @@ namespace KatAMRandomizer {
                             List<SqueakPaletteKey> keys = shown.Select((p, k) => SharePalette(damageColors[k], damageAnim | k << 13, k)).ToList();
                             damagePalettes = animPalette.Select(p => keys[shown.IndexOf(p)]).ToList();
                         }
-                        squeakBuilt.Add(new SqueakBuilt(enemy, animId, character, withHurts.Max(f => f.tiles.Length / 32), layersBuilt, animPalettes,
+                        int ownTiles = withHurts.Take(enemy.HurtCells.Length + ownCells).Max(f => f.tiles.Length / 32);
+                        squeakBuilt.Add(new SqueakBuilt(enemy, animId, character, ownTiles, layersBuilt, animPalettes,
                                                         frames.Select(f => f.tiles.Length / 32).ToList(), damagePalettes));
                         // (a mini-boss's or boss's icon and name for the map tracker: its MapIcon look, WriteSqueakMapEntries());
                         if (SqueakMidbossTypeOf(enemy) != 0) {

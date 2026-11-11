@@ -155,13 +155,66 @@ static const struct SqueakCharacter sSqueakCharacters[SQUEAK_ENEMY_COUNT] = {
     [SQUEAK_DARK_STAR] = { SqueakDarkStarInit, SqueakDarkStarStart, 0, FALSE },
 };
 
+// SqueakVramTiles(); The tiles a sprite's VRAM block holds (KatAM's heap keeps each block's segments, 2 tiles each); 0 none;
+static u16 SqueakVramTiles(u32 vram) {
+    if (!SqueakVramOk(vram) || vram < gVramHeapStartAddr) return 0;
+    return gVramHeapState[(vram - gVramHeapStartAddr) / 0x40] * 2;
+}
+
+/* SqueakVramFits(); KatAM's VRAM heap has a free block of `tiles` (its blocks walked, each skipped by its size): VramMalloc's own
+ * search tries every free segment against those after it, a fifth of a frame when there's none (Dark Daroach's beam's sprites
+ * waiting for his fire column's VRAM), so a retry asks only when it fits; */
+static bool32 SqueakVramFits(u16 tiles) {
+    u16 need = (tiles + 1) / 2, run = 0, i = 0, n = gVramHeapMaxTileSlots / 2;
+
+    while (i < n) {
+        if (gVramHeapState[i] != 0) {
+            run = 0;
+            i += gVramHeapState[i];
+            continue;
+        }
+        if (++run >= need) return TRUE;
+        i++;
+    }
+    return FALSE;
+}
+
+/* SqueakFitVram(); A character with its frames' tiles (SqueakData.cellTiles: Daroach's stars, drawn with his graphics) gets as many
+ * as the frame it's about to show takes: a bigger block when it hasn't that many (its frame's tiles copied in again, KatAM copying
+ * them as a frame starts), none while there's none that big (unkC 0x200: KatAM's sub_0809A630 would ask for its type's 123 every
+ * frame, a long search when the heap's full), asked for again next frame; drawn by nothing (flag 8: SqueakNoSprite), none; */
+static void SqueakFitVram(struct SqueakObject *s) {
+    const u16 *tiles = gSqueakData.cellTiles != NULL ? gSqueakData.cellTiles[s->enemy] : NULL;
+    struct Sprite *sprite = &s->obj.base.sprite;
+    u16 need, have;
+    u32 vram;
+
+    if (tiles == NULL || (s->obj.base.flags & 8) || s->obj.unk83 >= tiles[0]) return;
+    need = tiles[1 + s->obj.unk83];
+    have = SqueakVramTiles(sprite->tilesVram);
+    if (need == 0 || have >= need) return;
+    if (have) VramFree(sprite->tilesVram);
+    vram = SqueakVramFits(need) ? VramMalloc(need) : 0;
+    if (!SqueakVramOk(vram)) {
+        sprite->tilesVram = 0;
+        s->obj.base.unkC |= 0x200;
+        return;
+    }
+    sprite->tilesVram = vram;
+    s->obj.base.unkC &= ~0x200;
+    sprite->unk1B = 0xFF;
+}
+
 /* SqueakAnimFor(); The anim and variant an object shows (variant << 16 | anim ID), for the game's object drawing (sub_0809A7A4,
  * patched to call this where it read them from the type's AnimInfo table): a Squeak Squad character's own anim, with its frame
- * index as the variant; the type's AnimInfo for the others, as the game does; */
+ * index as the variant (its VRAM fitted to it first: SqueakFitVram); the type's AnimInfo for the others, as the game does; */
 u32 SqueakAnimFor(struct Object *obj) {
     const struct AnimInfo *info;
 
-    if (SqueakIsSqueak(obj)) return gSqueakData.enemies[((struct SqueakObject *)obj)->enemy].animId | obj->unk83 << 16;
+    if (SqueakIsSqueak(obj)) {
+        SqueakFitVram((struct SqueakObject *)obj);
+        return gSqueakData.enemies[((struct SqueakObject *)obj)->enemy].animId | obj->unk83 << 16;
+    }
     // (a Squeak Squad room's gimmicks on the hammer peg's type: its switches, shutters: squeak/gimmicks.c);
     if (obj->type == OBJ_HAMMER_PEG && SqueakGimmickAnim(obj) != 0) return SqueakGimmickAnim(obj);
     info = &gUnk_08351648[obj->type].unk14[obj->unk83];
@@ -346,8 +399,12 @@ static void SqueakPartMain(void) {
     if (s->composite == SQUEAK_NO_COMPOSITE || s->obj.unk83 < SQUEAK_HURT_VARIANTS || (s->obj.base.flags & 0x400)) return;
     // (VRAM full when it was made, other sprites' let go of a frame later: asked for again, not drawn till it's got);
     if (!SqueakVramOk(p->e.sprite.tilesVram)) {
+        if (!SqueakVramFits(p->tiles)) return;
         p->e.sprite.tilesVram = VramMalloc(p->tiles);
         if (!SqueakVramOk(p->e.sprite.tilesVram)) return;
+        /* (its frame's tiles copied in again: KatAM copies them as a frame starts (sub_08155370), its frame started when it had
+         * none, the VRAM showing what was there: Dark Daroach's beam in bits); */
+        p->e.sprite.unk1B = 0xFF;
     }
     // (its offset added to its spot, past the drawing offset's reach of 127 pixels);
     p->e.x = s->obj.base.x + (p->dx << 8);
@@ -389,6 +446,15 @@ static struct SqueakPartFx *SqueakCreatePart(struct SqueakObject *s, u8 index, u
     EffectObjectInitSprite(&p->e, &p->e.sprite, p->tiles, g->animId, cell + SQUEAK_HURT_VARIANTS, 0x1A + index < 0x1F ? 0x1A + index : 0x1F);
     p->e.sprite.palId = s->obj.base.sprite.palId;
     return p;
+}
+
+void SqueakNoSprite(struct SqueakObject *s) {
+    /* (as the NiDL bosses' own objects, bosses/dedede.c: unkC 0x200 keeps KatAM from giving it VRAM again, sub_0809A630 asking for
+     * its type's every frame a sprite has none, VramMalloc's 0 when it's full; flag 8 from stepping its frames); */
+    s->obj.base.unkC |= 0x200;
+    if (SqueakVramOk(s->obj.base.sprite.tilesVram)) VramFree(s->obj.base.sprite.tilesVram);
+    s->obj.base.sprite.tilesVram = 0;
+    s->obj.base.flags |= 8 | 0x400;
 }
 
 // SqueakReleaseParts(); Lets go of the parts (each ends itself on its next frame);
@@ -1359,7 +1425,13 @@ static struct SqueakObject *SqueakCreate(struct ObjectTemplate *template, u8 pla
      * own asked for when its type's couldn't be got: the heap without that many in one piece, Yadgaine's rocks with its shell in); */
     if (gSqueakData.enemies[enemy].tiles > 0) {
         if (SqueakVramOk(s->obj.base.sprite.tilesVram)) VramFree(s->obj.base.sprite.tilesVram);
-        s->obj.base.sprite.tilesVram = VramMalloc(gSqueakData.enemies[enemy].tiles);
+        // (one with its frames' tiles: none till it's drawn, then its frame's, SqueakFitVram);
+        if (gSqueakData.cellTiles != NULL && gSqueakData.cellTiles[enemy] != NULL) {
+            s->obj.base.sprite.tilesVram = 0;
+            s->obj.base.unkC |= 0x200;
+        } else {
+            s->obj.base.sprite.tilesVram = VramMalloc(gSqueakData.enemies[enemy].tiles);
+        }
     }
     if (gSqueakData.enemies[enemy].palette != NULL)
         s->obj.base.sprite.palId = SqueakLoadPalette(gSqueakData.enemies[enemy].palette[0].key, gSqueakData.enemies[enemy].palette[0].variant,

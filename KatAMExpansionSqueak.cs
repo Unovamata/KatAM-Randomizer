@@ -236,6 +236,124 @@ namespace KatAMRandomizer {
             };
         }
 
+        /* SqueakMergeParts(); (MergeParts) A composition's parts that play in step (the same time, absolute or not, their animations'
+         * steps as long and looping alike), but its last (the body), drawn by one part per run (at most 128 pixels across, and
+         * `canvas`): an animation of their own, each step one cell of their cells' pieces at the parts' offsets and their steps' (from
+         * the middle of the run's pieces, where the part goes), the first part's on top; the same picture by fewer sprites (each a
+         * KatAM effect object, a VRAM slot and its tiles a frame: Dark Daroach's beam, 16 parts, is 2 and its 7 sparkles; the owner:
+         * "Massive amounts of lag whenever the Squeak Squad boss invokes stars."). Parts whose cells' tiles don't start on 4-tile bounds
+         * (the pieces count their tiles from the cell's in 4s), turned ones (Angles), or whose pieces aren't all in one palette stay as
+         * they are; */
+        static SqueakCharacter SqueakMergeParts(SqueakCharacter character, int canvas) {
+            List<SqueakCell> cells = character.Cells.ToList();
+            // (the box the parts' pieces take, in all their steps, from the character's spot: x right, y down);
+            (int x0, int x1, int y0, int y1) Extent(List<SqueakPart> parts, IEnumerable<int> members) {
+                int x0 = int.MaxValue, x1 = int.MinValue, y0 = int.MaxValue, y1 = int.MinValue;
+                foreach (int k in members)
+                    foreach (SqueakStep st in character.Anims[parts[k].Anim].Steps)
+                        foreach (SqueakPiece piece in character.Cells[st.Cell].Pieces) {
+                            (int w, int h) = SqueakPieceSizes[piece.Attr0 >> 14, piece.Attr1 >> 14];
+                            int px = ((piece.Attr1 & 0x1FF) >= 256 ? (piece.Attr1 & 0x1FF) - 512 : piece.Attr1 & 0x1FF) + parts[k].X + st.X;
+                            int py = ((piece.Attr0 & 0xFF) >= 128 ? (piece.Attr0 & 0xFF) - 256 : piece.Attr0 & 0xFF) + parts[k].Y + st.Y;
+                            x0 = Math.Min(x0, px);
+                            x1 = Math.Max(x1, px + w);
+                            y0 = Math.Min(y0, py);
+                            y1 = Math.Max(y1, py + h);
+                        }
+                return (x0, x1, y0, y1);
+            }
+            List<SqueakAnim> anims = character.Anims.ToList();
+            Dictionary<string, int> made = new Dictionary<string, int>();
+            bool Mergeable(SqueakPart part) {
+                if (part.Anim >= character.Anims.Count || character.Anims[part.Anim].Steps.Count == 0) return false;
+                return character.Anims[part.Anim].Steps.All(st => st.Cell < character.Cells.Count && character.Cells[st.Cell].Tile % 4 == 0
+                                                                  && !character.Angles.ContainsKey(st.Cell));
+            }
+            string Timing(SqueakPart part) {
+                SqueakAnim a = character.Anims[part.Anim];
+                return $"{part.Absolute}:{a.Loops}:{string.Join(",", a.Steps.Select(st => st.Frames))}";
+            }
+            IEnumerable<int> Palettes(SqueakPart part) =>
+                character.Anims[part.Anim].Steps.SelectMany(st => character.Cells[st.Cell].Pieces.Select(piece => piece.Attr2 >> 12));
+            List<List<SqueakPart>> compositions = new List<List<SqueakPart>>();
+            foreach (List<SqueakPart> parts in character.Compositions) {
+                List<SqueakPart> result = new List<SqueakPart>();
+                HashSet<int> done = new HashSet<int>();
+                for (int i = 0; i < parts.Count; i++) {
+                    if (done.Contains(i)) continue;
+                    // (the group: the parts after it in step with it, the body (the last) left alone);
+                    List<int> group = new List<int> { i };
+                    if (i < parts.Count - 1 && Mergeable(parts[i]))
+                        for (int k = i + 1; k < parts.Count - 1; k++)
+                            if (!done.Contains(k) && Mergeable(parts[k]) && Timing(parts[k]) == Timing(parts[i])) group.Add(k);
+                    if (group.Count > 1 && group.SelectMany(k => Palettes(parts[k])).Distinct().Count() > 1) group = new List<int> { i };
+                    if (group.Count == 1) {
+                        result.Add(parts[i]);
+                        continue;
+                    }
+                    foreach (int k in group) done.Add(k);
+                    /* (cut in runs at most 128 pixels across (and the canvas), left to right, each drawn about the middle of its
+                     * pieces: Dark Daroach's beam's parts reach 248 pixels, a 256 canvas about their average cut its end at his wand
+                     * off; a sprite of his whole beam, 183 tiles, found no hole that big in KatAM's VRAM heap for half a second, his
+                     * stars' and bombs' sprites between, two of 90 do); */
+                    List<List<int>> runs = new List<List<int>>();
+                    List<int> run = new List<int>();
+                    foreach (int k in group.OrderBy(k => parts[k].X)) {
+                        List<int> trial = run.Append(k).ToList();
+                        (int x0, int x1, int y0, int y1) = Extent(parts, trial);
+                        if (run.Count > 0 && (x1 - x0 > Math.Min(canvas - 8, 128) || y1 - y0 > Math.Min(canvas - 8, 128))) {
+                            runs.Add(run);
+                            run = new List<int> { k };
+                        } else run = trial;
+                    }
+                    runs.Add(run);
+                    foreach (List<int> members in runs.Select(r => r.OrderBy(k => k).ToList())) {
+                        if (members.Count == 1) {
+                            result.Add(parts[members[0]]);
+                            continue;
+                        }
+                        (int minX, int maxX, int minY, int maxY) = Extent(parts, members);
+                        int cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
+                        string key = string.Join(";", members.Select(k => $"{parts[k].Anim},{parts[k].X - cx},{parts[k].Y - cy}")) + $"|{Timing(parts[i])}";
+                        if (!made.TryGetValue(key, out int anim)) {
+                            SqueakAnim first = character.Anims[parts[members[0]].Anim];
+                            List<SqueakStep> steps = new List<SqueakStep>();
+                            for (int s = 0; s < first.Steps.Count; s++) {
+                                List<SqueakPiece> pieces = new List<SqueakPiece>();
+                                /* (the merged cell's first tile its first cell's of them all, each piece's tile counted from it: a
+                                 * piece's 10 bits reach 4096 tiles on, Daroach's beam's cells past that in his two files' tiles); */
+                                int tile = members.Min(k => character.Cells[character.Anims[parts[k].Anim].Steps[s].Cell].Tile);
+                                foreach (int k in members) {
+                                    SqueakStep st = character.Anims[parts[k].Anim].Steps[s];
+                                    SqueakCell c = character.Cells[st.Cell];
+                                    int x = parts[k].X - cx + st.X, y = parts[k].Y - cy + st.Y;
+                                    foreach (SqueakPiece piece in c.Pieces) {
+                                        int px = (piece.Attr1 & 0x1FF) >= 256 ? (piece.Attr1 & 0x1FF) - 512 : piece.Attr1 & 0x1FF;
+                                        int py = (piece.Attr0 & 0xFF) >= 128 ? (piece.Attr0 & 0xFF) - 256 : piece.Attr0 & 0xFF;
+                                        int at = (piece.Attr2 & 0x3FF) + (c.Tile - tile) / 4;
+                                        if (at > 0x3FF) throw new InvalidOperationException("A merged part's cells are too far apart in the tiles.");
+                                        pieces.Add(new SqueakPiece(piece.Attr0 & ~0xFF | (py + y) & 0xFF, piece.Attr1 & ~0x1FF | (px + x) & 0x1FF,
+                                                                   piece.Attr2 & ~0x3FF | at));
+                                    }
+                                }
+                                steps.Add(new SqueakStep(cells.Count, first.Steps[s].Frames, 0, 0));
+                                cells.Add(new SqueakCell(tile, pieces));
+                            }
+                            anim = anims.Count;
+                            anims.Add(new SqueakAnim(first.Loops, steps));
+                            made[key] = anim;
+                        }
+                        result.Add(new SqueakPart(anim, parts[i].Absolute, (short)cx, (short)cy));
+                    }
+                }
+                compositions.Add(result);
+            }
+            return new SqueakCharacter {
+                Tiles = character.Tiles, Palettes = character.Palettes, Cells = cells, Anims = anims,
+                Compositions = compositions, Composites = character.Composites, Angles = character.Angles,
+            };
+        }
+
         // SqueakShiftCells(); The character's cells drawn `y` pixels lower (its pieces' y, attr0's low byte);
         static SqueakCharacter SqueakShiftCells(SqueakCharacter character, int y) {
             return new SqueakCharacter {
@@ -546,7 +664,10 @@ namespace KatAMRandomizer {
          * mini-boss's or boss's look in the map tracker, these cells drawn on each other with its layers (none: its first animation's
          * first cell, KatAMExpansion.WriteSqueakMapEntries()); DamagePalette: its hurt flash's colors (Squeak Squad's `enemy/<name>.cla`,
          * Daroach's dan_dmg: the DS's body +0x33C, shown by its vtable +0x20): per animation its palette in those colors, frames of an
-         * anim of their own (a character in several palettes: its .cla's palette n the damage file's n; squeak.c's SqueakDamageColors); */
+         * anim of their own (a character in several palettes: its .cla's palette n the damage file's n; squeak.c's SqueakDamageColors);
+         * MergeParts: its composite animations' parts that play in step drawn by one sprite (SqueakMergeParts()); FitVram: its sprite's
+         * VRAM as many tiles as the frame it shows takes, more got as a bigger one shows (squeak.c's SqueakFitVram: a thing drawn with a
+         * boss's graphics took his biggest frame's, Daroach's stars 103 tiles for 16, KatAM's VRAM full with three); */
         internal sealed record SqueakEnemy(int Index, string Name, string File, int[] HurtCells, (int type, int letter)[] Glyphs, int GraphicsOf = -1,
                                             byte MidbossType = 0, int[] OnlyAnims = null, string[] Palettes = null,
                                             (ushort from, ushort to)[] MergeColors = null, string ExtraFile = null,
@@ -554,7 +675,7 @@ namespace KatAMRandomizer {
                                             bool SharePalettes = false, string PaletteFile = null, bool WholeCells = false,
                                             (int Num, int Den) Scale = default, int ShiftY = 0, int Rotate = 0, int Roll = -1,
                                             bool FlattenComposites = false, int[] OnlyPalettes = null, int[] MapIcon = null,
-                                            string DamagePalette = null);
+                                            string DamagePalette = null, bool MergeParts = false, bool FitVram = false);
         /* AnimPalettes: a character whose cells are in Squeak Squad's different palettes (Doc's things), per animation the palette its
          * sprite takes (SqueakPaletteKey); */
         internal sealed record SqueakBuilt(SqueakEnemy Enemy, int AnimId, SqueakCharacter Character, int Tiles, List<SqueakLayerBuilt> Layers = null,
@@ -890,13 +1011,14 @@ namespace KatAMRandomizer {
              * 104 pixels on from there, where its rest (152 on) starts; 128's 64 cut it in the middle (the owner: "The ray of light
              * summoned from Daroach's wand attack is cutoff in the middle"); */
             new SqueakEnemy(49, "Daroach", "dancho00", new[] { 2, 2, 2 }, DaroachGlyphs, MidbossType: 0x40, ExtraFile: "dancho01",
-                            SharePalettes: true, BodyLast: true, Canvas: 256, DamagePalette: "dan_dmg"),
+                            SharePalettes: true, BodyLast: true, Canvas: 256, DamagePalette: "dan_dmg", MergeParts: true),
             // What he brings in (his stars 0x02124894, bombs 0x02124290, his beam's reach), drawn with his graphics, no name;
-            new SqueakEnemy(50, "Daroach's thing", "dancho00", new[] { 0, 0, 0 }, new (int, int)[0], GraphicsOf: 49),
+            new SqueakEnemy(50, "Daroach's thing", "dancho00", new[] { 0, 0, 0 }, new (int, int)[0], GraphicsOf: 49, FitVram: true),
             // Dark Daroach (0x3D with its parameter 1, a8s4s2's: dancho01's palette for both sprites, 0x02126F48's +0x1F8), as Daroach;
             new SqueakEnemy(51, "Dark Daroach", "dancho00", new[] { 2, 2, 2 }, DarkDaroachGlyphs, MidbossType: 0x40, ExtraFile: "dancho01",
-                            SharePalettes: true, BodyLast: true, PaletteFile: "dancho01", Canvas: 256, DamagePalette: "dan_dmg"),
-            new SqueakEnemy(52, "Dark Daroach's thing", "dancho00", new[] { 0, 0, 0 }, new (int, int)[0], GraphicsOf: 51),
+                            SharePalettes: true, BodyLast: true, PaletteFile: "dancho01", Canvas: 256, DamagePalette: "dan_dmg",
+                            MergeParts: true),
+            new SqueakEnemy(52, "Dark Daroach's thing", "dancho00", new[] { 0, 0, 0 }, new (int, int)[0], GraphicsOf: 51, FitVram: true),
             /* Meta Knight (a boss, enemy 0x37: 0x02116C7C, on mini-boss type 0x40 as the mid-bosses), drawn from metaknight_cmn and
              * metaknight_ext (the sprite his body switches to, its +0xE4: his sword's big moves), both in cmn's palettes (Squeak Squad's
              * one palette object): the animations his code plays (squeak/meta_knight_kss.c's, in its order: cmn's 1, 2, 4-14, 16, 18-25,
@@ -1249,6 +1371,19 @@ namespace KatAMRandomizer {
                 WriteInt(rom, damageTable + b.Enemy.Index * 4, keys + 0x08000000);
             }
             WriteInt(rom, data + 8 + SqueakDefinitions.Count * SqueakGraphicsSize + 4, damageTable + 0x08000000);
+            /* The tiles each frame takes (squeak.h's SqueakData.cellTiles, after the hurt flashes': a pointer per character, NULL or its
+             * count and then per variant, its hurt frames' (its graphics' owner's) and its cells', a u16 each: FitVram); */
+            int cellTilesTable = Allocate(ref localCursor, SqueakDefinitions.Count * 4, 4);
+            for (int i = 0; i < SqueakDefinitions.Count * 4; i++) rom[cellTilesTable + i] = 0;
+            foreach (SqueakBuilt b in built.Where(b => b.Enemy.FitVram && b.CellTiles != null)) {
+                SqueakEnemy owner = b.Enemy.GraphicsOf >= 0 ? built.First(o => o.Enemy.Index == b.Enemy.GraphicsOf).Enemy : b.Enemy;
+                List<int> perVariant = owner.HurtCells.Select(c => b.CellTiles[c]).Concat(b.CellTiles).ToList();
+                int at = Allocate(ref localCursor, (perVariant.Count + 1) * 2, 2);
+                WriteShort(rom, at, perVariant.Count);
+                for (int k = 0; k < perVariant.Count; k++) WriteShort(rom, at + 2 + k * 2, perVariant[k]);
+                WriteInt(rom, cellTilesTable + b.Enemy.Index * 4, at + 0x08000000);
+            }
+            WriteInt(rom, data + 8 + SqueakDefinitions.Count * SqueakGraphicsSize + 8, cellTilesTable + 0x08000000);
             cursor = localCursor;
 
             int call = version.RomSymbols["_call_via_r1"] - (site + 4 + 4);

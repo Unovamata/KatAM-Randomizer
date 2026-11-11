@@ -312,6 +312,9 @@ static void Beam(struct SqueakObject *s) {
             && b->variant == THING_BEAM_NEAR + i)
             continue;
         BEAM(s, i) = (s32)Thing(s, THING_BEAM_NEAR + i, s->obj.base.x, s->obj.base.y);
+        /* (drawn by nothing: none of KatAM's 512 VRAM tiles, his own frame's size each, taken from his beam's parts: they'd show
+         * the tiles before theirs, or none); */
+        if (BEAM(s, i)) SqueakNoSprite((struct SqueakObject *)BEAM(s, i));
     }
 }
 

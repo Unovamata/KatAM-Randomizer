@@ -204,6 +204,7 @@ gBgPalette 0x30037a0
 gPressedKeys 0x30039fc
 gVramHeapMaxTileSlots 0x3002488
 gVramHeapStartAddr 0x3002540
+gVramHeapState 0x30064b0
 iwram_end 0x3006cc4
 sub_08156D84 0x81576c0
 sub_08145B64 0x8145c4c
