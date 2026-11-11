@@ -952,13 +952,37 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
   Squad recreated and ported 1:1 -> KatAM's final boss. The additional sequences only appear when the ROM expension ROMs are
   added to the program."). `KatAMExpansionSqueakLevels.cs`' `SqueakFinale()`, `SqueakShardExits()`; `squeak.c`'s `SqueakDestroy()`;
   the rulebook's rule 8.
-  - With both ROMs: Nightmare's ending (Kirby going down from the moon, NiDL's) now lands Kirby at the start of Squeak Squad's
-    final stage (8-4-1, 0x5E2) instead of the Fountain of Dreams hub; its stage plays as ported (Dark Daroach in 8-4-2, the rooms
-    between by its warp stars and one-way mirrors, Dark Nebula in 8-4-6); Dark Nebula leaves no shard: beaten, every Kirby dances
-    out (NiDL's shard exit) into the Fountain of Dreams hub, where Nightmare's ending led before, and its Amazing Mirror leads to
-    KatAM's final boss as before.
+  - With both ROMs: Nightmare's ending (Kirby going down from the moon, NiDL's) lands Kirby in the Fountain of Dreams hub, as
+    with NiDL alone, and its Amazing Mirror leads to the start of Squeak Squad's final stage (8-4-1, 0x5E2); the stage plays as
+    ported (Dark Daroach in 8-4-2, the rooms between by its warp stars and one-way mirrors, Dark Nebula in 8-4-6); Dark Nebula
+    leaves no shard: beaten, every Kirby dances out (NiDL's shard exit) into the Dark Nebula hub (below), whose Amazing Mirror
+    leads to KatAM's final boss.
   - With the Squeak Squad ROM alone: Central Circle's Dimension Mirror (unlocked by the 8 shards, as KatAM's) leads to 8-4-1, and
-    Dark Nebula's way out is KatAM's final boss sequence (0x38D). With the NiDL ROM alone: NiDL's finale as before.
+    Dark Nebula's way out is the Dark Nebula hub, its mirror to KatAM's final boss sequence (0x38D). With the NiDL ROM alone:
+    NiDL's finale as before.
+  - **The Dark Nebula hub**: done (the owner: "After the Dark Nebula fight you have to go to a hub room just like the NiDL hub we
+    have, so create a copy of it and place it before the last fight sequence to give players and interlude"; then, asked how the
+    hubs chain: "One hub per finale (If available) Nightmare -> Fountain of Dreams hub -> its mirror -> (If available) Squeak
+    Squad's final stage -> Dark Nebula -> new Dark Nebula hub -> its mirror -> (always available) KatAM's final boss. Without NiDL,
+    the copy is made from Squeak Squad tiles."). `KatAMExpansionSqueakHubs.cs`' `BuildSqueakFinaleHub()` (the room after the Squeak
+    Squad ability room, 0x5F3 in the USA build), `SqueakFinale()`; the rulebook's finale chain rule. A copy of the Fountain of
+    Dreams hub: no other door in or out, no big switch, its Amazing Mirror high up in the middle (to KatAM's final boss), the
+    Master Sword's stand under it, a Maximum Tomato on the floor's right (once a visit), a Cutter and a Sword statue on its sides;
+    no map's chest (the Fountain of Dreams' stays in its own hub). With the NiDL ROM it's the Fountain of Dreams hub's own look;
+    without it, the same layout drawn in the tiles of Squeak Squad's final stage, with Dark Nebula's galaxy behind it and the
+    Squeak Squad hub's music. The switch rooms' drawing was split so this room is drawn the same way (their rooms come out the
+    same). The Map Viewer puts it in world 8 beside Dark Nebula's room, linked by his way out; it now reads the bosses' ways out
+    without the NiDL ROM too (none were drawn in a Squeak Squad-only ROM before).
+    - Checked: the ROM data (USA, Europe, Japan): Nightmare's way on to the Fountain of Dreams hub (4,9), its mirror to 0x5E2
+      (4,10), Dark Nebula's to the new hub (4,9), its mirror to 0x38D (16,16); without NiDL, Central Circle's mirror to 0x5E2. In
+      the GBA emulator: the hub's look in both builds (screenshots); Dark Nebula beaten (his HP set to 1 by a RAM write, then
+      Kirby's slide) dancing out into the new hub (USA, Europe, Japan); each hub's Amazing Mirror flown into by buttons with the 8
+      shards written in (a forced state): the Fountain of Dreams hub's to 8-4-1, the Dark Nebula hub's to KatAM's final boss, with
+      and without NiDL (USA), and with NiDL in Europe and Japan. The logic checks follow the new chain (Squeak Squad's: the
+      Fountain of Dreams hub's mirror a way in, the new hub one of its rooms: 394 of 499 reached, 0 trapped; NiDL's: 280 of 280,
+      0 trapped). Not tested: the whole chain played through by hand (Nightmare's ending into the Fountain of Dreams hub was
+      checked in the ROM data only this time: it's NiDL's own, unchanged), the music in the new hub by ear, the build without NiDL
+      in Europe and Japan in the emulator.
   - World 8 no longer has a boss stage or a shard of its own (Dark Daroach and Dark Nebula are the finale's): with Squeak Squad,
     its 7 world bosses leave the shards (one each by default; Bosses Give Random Shards spreads the 8 over them).
   - Checked: the ROM data of all three versions (Nightmare's shard exit and the ending flight's room step to 0x5E2 (4,10); Dark

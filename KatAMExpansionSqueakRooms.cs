@@ -1808,8 +1808,10 @@ namespace KatAMRandomizer {
             if (!nidlRooms) Add("gUnk_08D640A4", DoorsList(new List<byte>(), 0));
 
             // The room tables, moved and grown (with the Squeak Squad hub after the worlds' rooms, then the worlds' switch rooms, then the
-            // Squeak Squad ability room);
-            int hubRoom = SqueakFirstRoom + files.Count, firstSwitchRoom = hubRoom + 1, abilityRoom = firstSwitchRoom + SqueakWorlds, rows = abilityRoom + 1;
+            // Squeak Squad ability room, then the Dark Nebula hub where Squeak Squad's final stage is: BuildSqueakFinaleHub());
+            bool finaleStage = files.Any(f => (f.Area, f.Stage) == SqueakFinalStage);
+            int hubRoom = SqueakFirstRoom + files.Count, firstSwitchRoom = hubRoom + 1, abilityRoom = firstSwitchRoom + SqueakWorlds;
+            int finaleHubRoom = finaleStage ? abilityRoom + 1 : -1, rows = abilityRoom + (finaleStage ? 2 : 1);
             int newProps = Allocate(ref here, rows * 0x28, 4), newInfos = Allocate(ref here, rows * 4, 4), newArrivals = Allocate(ref here, rows * 2, 4);
             Array.Copy(rom, roomProps, rom, newProps, KatAMRoomCount * 0x28);
             Array.Fill(rom, (byte)0xFF, newProps + KatAMRoomCount * 0x28, (rows - KatAMRoomCount) * 0x28);
@@ -2311,8 +2313,13 @@ namespace KatAMRandomizer {
                                            view => ViewBackground(view, abilityRoom) is int at && at >= 0 ? (at, backgroundSize[view].width, backgroundSize[view].height) : null,
                                            ref here) is string abilityError)
                     return abilityError;
-                if (SqueakFinale(rom, version, symbols, out (int room, int x, int y) finaleExit) is string finaleError) return finaleError;
-                if (SqueakShardExits(rom, version, symbols, hubRoom, bossRooms, hubCollision, hubWidth, finaleExit) is string exitError) return exitError;
+                // (the finale: into Squeak Squad's final stage through the Fountain of Dreams hub's Amazing Mirror, else Central Circle's
+                // Dimension Mirror, whose template the Dark Nebula hub's takes first; Dark Nebula's way out to the Dark Nebula hub);
+                byte[] finaleMirrorTemplate = DimensionMirrorTemplate(rom, symbols);
+                if (SqueakFinale(rom, symbols, t => nidlRooms ? roomTables[t].at : symbols[t], out (int room, int x, int y) finaleExit, out int fountainHub) is string finaleError)
+                    return finaleError;
+                (int room, int x, int y) finaleHubLanding = (finaleHubRoom, SqueakFinaleHubLanding.x, SqueakFinaleHubLanding.y);
+                if (SqueakShardExits(rom, version, symbols, hubRoom, bossRooms, hubCollision, hubWidth, finaleHubLanding) is string exitError) return exitError;
 
                 /* The switch rooms' hub doors (KatAMExpansionSqueakHubs.cs): to the Squeak Squad hub, onto the world's door there; to the
                  * KatAM room the world's path leads to (SqueakLinks), onto its door back there (SqueakLinkSpot(): those rooms as they'll be,
@@ -2360,6 +2367,15 @@ namespace KatAMRandomizer {
                                            view => SqueakFileAnyCase(squeak, view) is byte[] file ? SqueakFarViewPicture(file) : null, ref here) is string switchError)
                     return switchError;
                 foreach (var pair in switchDoors) squeakPlanned[firstSwitchRoom + pair.Key - 1] = pair.Value;
+                if (finaleStage) {
+                    int finaleBoss = bossRooms.FirstOrDefault(b => b.Value == SqueakFinaleShard).Key;
+                    if (BuildSqueakFinaleHub(rom, version, finaleHubRoom, fountainHub, finaleMirrorTemplate, finaleExit,
+                                             looks.Where(l => (l.World, l.Stage) == SqueakFinalStage && !l.Fight), looks.FirstOrDefault(l => l.Room == finaleBoss)?.View,
+                                             ReadShort(rom, newProps + hubRoom * 0x28), newProps, newInfos, roomInfos, navigationRoutes, noTypes, Add, DoorsList,
+                                             view => SqueakFileAnyCase(squeak, view) is byte[] file ? SqueakFarViewPicture(file) : null, ref squeakTaken, ref here) is string finaleHubError)
+                        return finaleHubError;
+                    if (squeakTaken > 3 * 256) return "Too many Squeak Squad items for their gone bits.";
+                }
                 squeakPlanned[hubRoom] = squeakHubDoors.Append(squeakAbilityDoor).ToList();
                 squeakPlanned[CentralCircle] = squeakPlanned.GetValueOrDefault(CentralCircle, new List<Door>())
                     .Append(new Door(SqueakHubDoor.x, SqueakHubDoor.y, hubRoom, SqueakHubDoor.x + 1, SqueakHubDoor.y + 1, 1)).ToList();
@@ -2417,9 +2433,10 @@ namespace KatAMRandomizer {
             if (nidlRooms) WriteInt(rom, MapRoomsBlock + 4 + 6 * 4, newInfos + 0x08000000);
             /* The map viewer's Squeak Squad rooms block (KatAM Map Tracker's RomMap.ReadSqueakRooms(); the map table's +0xD4, free
              * till now, points at it): "SQ", u16 the first room, u16 the rooms (the worlds', the hub, the switch rooms, the ability
-             * room), u16 the hub, u16 the first switch room, u16 the Squeak Squad ability room, then the tables the game uses (gRoomProps, gUnk_08D6CD0C, gSolidityMaps,
-             * gForegroundTilemaps, gForegroundPalettes, gForegroundInfo, gRoomTiledBGs, gLevelObjLists), then a byte a room: its world
-             * (1-8; the hub 0; a switch room its world's), and one more: its stage (0 the hub and the switch rooms); */
+             * room, the Dark Nebula hub), u16 the hub, u16 the first switch room, u16 the Squeak Squad ability room, then the tables the
+             * game uses (gRoomProps, gUnk_08D6CD0C, gSolidityMaps, gForegroundTilemaps, gForegroundPalettes, gForegroundInfo, gRoomTiledBGs, gLevelObjLists), then a byte a room: its world
+             * (1-8; the hub 0; a switch room its world's; the Dark Nebula hub the final stage's, 8), and one more: its stage (0 the hub and
+             * the switch rooms; the Dark Nebula hub 4); */
             int mapBlock = Allocate(ref here, 12 + 8 * 4 + (rows - SqueakFirstRoom) * 2, 4);
             System.Text.Encoding.ASCII.GetBytes("SQ").CopyTo(rom, mapBlock);
             WriteShort(rom, mapBlock + 2, SqueakFirstRoom);
@@ -2437,6 +2454,8 @@ namespace KatAMRandomizer {
                 rom[stages + i] = (byte)files[i].Stage;
             }
             for (int w = 0; w < SqueakWorlds; w++) rom[worlds + firstSwitchRoom - SqueakFirstRoom + w] = (byte)(w + 1);
+            // (the Dark Nebula hub: with the final stage's rooms, after Dark Nebula's, where his way out leads);
+            if (finaleStage) (rom[worlds + finaleHubRoom - SqueakFirstRoom], rom[stages + finaleHubRoom - SqueakFirstRoom]) = ((byte)SqueakFinalStage.area, (byte)SqueakFinalStage.stage);
             WriteInt(rom, MapSqueakBlock, mapBlock + 0x08000000);
             // (the gimmicks' lists, squeak/gimmicks.c's gSqueakGimmickRooms: a pointer a room from SqueakFirstRoom, and how many);
             int gimmickTable = Allocate(ref here, files.Count * 4, 4);

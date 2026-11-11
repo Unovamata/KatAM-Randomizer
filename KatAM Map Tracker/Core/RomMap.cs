@@ -257,7 +257,15 @@ namespace KatAMMapTracker {
          * (+0x46: 11 + the NiDL level for the NiDL rooms); */
         void ReadExpansionRooms() {
             int block = ExpansionTable + 0xE0;
-            if (Rom.Length != ExpandedSize || Rom[block] != 'N' || Rom[block + 1] != 'R') return;
+            if (Rom.Length != ExpandedSize) return;
+            // The boss rooms' shards ("SX" at +0xD8: u16 count, the table's address; 8 bytes each: u16 the boss room, u16 where the shard
+            // cutscene leaves Kirby, u8 x, u8 y, the landing + 1): a boss room has no door out, taking its shard is its way on (with
+            // NiDL's rooms or Squeak Squad's alone: the Squeak Squad bosses', Dark Nebula's to the Dark Nebula hub);
+            int shards = ExpansionTable + 0xD8, table = ReadPointer(shards + 4);
+            if (Rom[shards] == 'S' && Rom[shards + 1] == 'X' && table >= 0)
+                for (int i = 0; i < Read16(shards + 2) && table + i * 8 + 8 <= Rom.Length; i++)
+                    ShardExits.Add((Read16(table + i * 8), Read16(table + i * 8 + 2), Rom[table + i * 8 + 4] - 1, Rom[table + i * 8 + 5] - 1));
+            if (Rom[block] != 'N' || Rom[block + 1] != 'R') return;
 
             int[] tables = Enumerable.Range(0, 7).Select(i => ReadPointer(block + 4 + i * 4)).ToArray();
             if (tables.Any(t => t < 0)) return;
@@ -265,12 +273,6 @@ namespace KatAMMapTracker {
             NightmareHub = Read16(block + 2);
             (CoverDataTable, RoomAppearanceTable, PaletteTable, TilesetTable, BackgroundTable, ObjectListTable, RoomAreaTable) =
                 (tables[0], tables[1], tables[2], tables[3], tables[4], tables[5], tables[6]);
-            // The boss rooms' shards ("SX" at +0xD8: u16 count, the table's address; 8 bytes each: u16 the boss room, u16 where the shard
-            // cutscene leaves Kirby, u8 x, u8 y, the landing + 1): a boss room has no door out, taking its shard is its way on;
-            int shards = ExpansionTable + 0xD8, table = ReadPointer(shards + 4);
-            if (Rom[shards] == 'S' && Rom[shards + 1] == 'X' && table >= 0)
-                for (int i = 0; i < Read16(shards + 2) && table + i * 8 + 8 <= Rom.Length; i++)
-                    ShardExits.Add((Read16(table + i * 8), Read16(table + i * 8 + 2), Rom[table + i * 8 + 4] - 1, Rom[table + i * 8 + 5] - 1));
         }
 
         /* ReadSqueakRooms(); An expanded ROM with the Squeak Squad rooms (KatAMExpansionSqueakRooms.cs) points at their block from the

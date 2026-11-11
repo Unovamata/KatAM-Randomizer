@@ -271,124 +271,14 @@ namespace KatAMRandomizer {
                                              Func<List<byte>, int, int> doorsList, Func<string, int[,]> farView, ref int cursor) {
             for (int world = 1; world <= SqueakWorlds; world++) {
                 int room = first + world - 1, level = SqueakLayoutLevel(world);
-                bool b = LayoutB(level);
-                bool Pedestal(int x, int y) => SwitchPedestal(level, x, y);
-                bool Solid(int x, int y) => y == 0 || y >= SwitchFloor || Pedestal(x, y) || (b
-                    ? (y <= 3 && (x <= 1 || x >= SwitchWidth - 2)) || (y >= 4 && (x == 0 || x == SwitchWidth - 1)) || (y >= 7 && (x <= 3 || x >= SwitchWidth - 4))
-                    : y <= 5 && (x <= 1 || x >= SwitchWidth - 2));
+                Func<int, int, bool> solid = SqueakSwitchSolid(level);
                 // (its look: the design's room, else the world's room that gives it best);
                 SqueakSwitchDesign design = SqueakSwitchDesigns.GetValueOrDefault(world, new SqueakSwitchDesign(null, null, new string[0]));
-                SqueakLook source = null;
-                ushort[] tilemap = null;
-                int bestScore = -1;
-                foreach (SqueakLook look in looks.Where(l => l.World == world && !l.Fight && (design.Source == null || (l.Stage, l.Number) == design.Source.Value))) {
-                    (ushort[] map, int score) = SqueakSwitchTilemap(look.Tilemap, look.Columns, look.Collision, look.Width, look.Height, Solid, (x, y) => false);
-                    if (score > bestScore) { bestScore = score; source = look; tilemap = map; }
-                }
-                if (source == null) return $"Squeak Squad's world {world} has no room to draw its switch room in.";
-                // (the open air a back wall fills, clear; then the dressing);
-                // (a back wall: three quarters of the cell's pixels drawn or more; a tuft of grass, a leaf, a lip, much less);
-                int Drawn(ushort entry) {
-                    int tile = entry & 0x3FF, count = 0;
-                    if (tile * 32 + 32 > source.Tiles.Length) return 0;
-                    for (int b = 0; b < 32; b++) count += ((source.Tiles[tile * 32 + b] & 0x0F) != 0 ? 1 : 0) + ((source.Tiles[tile * 32 + b] & 0xF0) != 0 ? 1 : 0);
-                    return count;
-                }
-                int At(int x, int y, int q) => (2 * y + q / 2) * SwitchWidth * 2 + 2 * x + q % 2;
-                // (and one touching no terrain: a lip or a tuft left floating, as Vocal Volcano's lines over its floor mirrors);
-                bool Touches(int x, int y) => new[] { (x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1) }
-                    .Any(c => c.Item1 < 0 || c.Item2 < 0 || c.Item1 >= SwitchWidth || c.Item2 >= SwitchHeight || Solid(c.Item1, c.Item2));
-                for (int y = 0; y < SwitchHeight; y++)
-                    for (int x = 0; x < SwitchWidth; x++)
-                        if (!Solid(x, y) && (Enumerable.Range(0, 4).Sum(q => Drawn(tilemap[At(x, y, q)])) >= 192 || !Touches(x, y)))
-                            for (int q = 0; q < 4; q++) tilemap[At(x, y, q)] = 0;
-                // (a solid cell the source drew mostly clear, Nature Notch's left wall under its top: the nearest solid one drawn whole);
-                int CellDrawn(int x, int y) => Enumerable.Range(0, 4).Sum(q => Drawn(tilemap[At(x, y, q)]));
-                for (int y = 0; y < SwitchHeight; y++)
-                    for (int x = 0; x < SwitchWidth; x++) {
-                        if (!Solid(x, y) || CellDrawn(x, y) >= 128) continue;
-                        (int x, int y)? whole = null;
-                        for (int d = 1; d < SwitchWidth + SwitchHeight && whole == null; d++)
-                            for (int ny = y - d; ny <= y + d && whole == null; ny++)
-                                for (int nx = x - d; nx <= x + d && whole == null; nx++)
-                                    if (Math.Abs(nx - x) + Math.Abs(ny - y) == d && nx >= 0 && ny >= 0 && nx < SwitchWidth && ny < SwitchHeight
-                                        && Solid(nx, ny) && CellDrawn(nx, ny) >= 224) whole = (nx, ny);
-                        if (whole is (int, int) w)
-                            for (int q = 0; q < 4; q++) tilemap[At(x, y, q)] = tilemap[At(w.x, w.y, q)];
-                    }
-                foreach (string block in design.Dressing) {
-                    bool over = block.StartsWith("!");
-                    string[] f = block.TrimStart('!').Split(' ');
-                    bool flip = f[2].StartsWith("~");
-                    int dx = int.Parse(f[0]), dy = int.Parse(f[1]), sx = int.Parse(f[2].TrimStart('~')), sy = int.Parse(f[3]), w = int.Parse(f[4]), h = int.Parse(f[5]);
-                    for (int by = 0; by < h; by++)
-                        for (int bx = 0; bx < w; bx++) {
-                            int x = dx + bx, y = dy + by, cx = sx + (flip ? w - 1 - bx : bx), cy = sy + by;
-                            if (x < 0 || y < 0 || x >= SwitchWidth || y >= SwitchHeight || cx >= source.Width || cy >= source.Height || Solid(x, y) && !over) continue;
-                            for (int q = 0; q < 4; q++) {
-                                int sq = flip ? q ^ 1 : q;
-                                ushort entry = source.Tilemap[(2 * cy + sq / 2) * source.Columns + 2 * cx + sq % 2];
-                                tilemap[At(x, y, q)] = flip ? (ushort)(entry ^ 0x400) : entry;
-                            }
-                        }
-                }
-                /* (its far view: the design's, as the mock-ups showed it: its middle 256 columns, its full height, 192 rows, at its own size,
-                 * covering the room, so the camera shows the part the mock-up did; else the source room's, as converted for it); */
-                int background = source.Background, backgroundWidth = source.BackgroundWidth, backgroundHeight = source.BackgroundHeight;
-                if (design.View != null && farView($"map/d_viw_{design.View}.nsbtx") is int[,] picture) {
-                    int pictureWidth = picture.GetLength(0), pictureHeight = Math.Min(picture.GetLength(1), SwitchHeight * 16);
-                    double scale = (double)SwitchHeight * 16 / pictureHeight;
-                    int cropWidth = Math.Min(pictureWidth, (int)Math.Round(SwitchWidth * 16 / scale)), left = (pictureWidth - cropWidth) / 2;
-                    int[,] crop = new int[cropWidth, pictureHeight];
-                    for (int y = 0; y < pictureHeight; y++)
-                        for (int x = 0; x < cropWidth; x++) crop[x, y] = picture[left + x, y];
-                    SqueakBackground view = ConvertSqueakFarView(crop, scale, SwitchHeight * 16);
-                    int bgTiles = AllocateCompressed(rom, CompressLZ77(view.Tiles), ref cursor), bgColors = Allocate(ref cursor, 0x100, 4);
-                    for (int c = 0; c < 128; c++) WriteShort(rom, bgColors + c * 2, view.Palettes[c]);
-                    byte[] bgMap = new byte[view.Map.Length * 2];
-                    for (int t = 0; t < view.Map.Length; t++) WriteShort(bgMap, t * 2, view.Map[t]);
-                    int bgMapAt = AllocateCompressed(rom, bgMap, ref cursor), entry = Allocate(ref cursor, 0x20, 4);
-                    WriteShorts(rom, entry, view.Width, view.Height);
-                    WriteInts(rom, entry + 8, bgTiles + 0x08000000, view.Tiles.Length / 32, bgColors + 0x08000000);
-                    WriteShorts(rom, entry + 0x14, 0x60, 0x80);
-                    WriteInts(rom, entry + 0x18, bgMapAt + 0x08000000, room << 16);
-                    background = add("gRoomTiledBGs", entry);
-                    (backgroundWidth, backgroundHeight) = (view.Width * 8, view.Height * 8);
-                }
-
-                /* (padded as the NiDL switch rooms, Padded(): 13 rows, the last its ground's again, so KatAM's camera, hiding 8 pixels at the
-                 * top and 40 at the bottom, shows the room as one screen and stays put: at 12 rows it had 144 pixels for its 160 and
-                 * showed past the room's edge, the owner: "It's even showing out of bounds areas of the room"); */
-                int rows = Padded(SwitchWidth, SwitchHeight).height;
-                ushort[] padded = new ushort[SwitchWidth * 2 * rows * 2];
-                for (int ty = 0; ty < rows * 2; ty++)
-                    Array.Copy(tilemap, Math.Min(ty, SwitchHeight * 2 - 2 + ty % 2) * SwitchWidth * 2, padded, ty * SwitchWidth * 2, SwitchWidth * 2);
-                byte[] collision = new byte[SwitchWidth * rows];
-                for (int x = 0; x < SwitchWidth * (rows - SwitchHeight); x++) collision[SwitchHeight * SwitchWidth + x] = KatAMSolid;
-                for (int y = 0; y < SwitchHeight; y++)
-                    for (int x = 0; x < SwitchWidth; x++) collision[y * SwitchWidth + x] = Solid(x, y) ? KatAMSolid : KatAMAir;
-                ushort[] Look(int x, int y) => new[] { tilemap[2 * y * SwitchWidth * 2 + 2 * x], tilemap[2 * y * SwitchWidth * 2 + 2 * x + 1],
-                                                       tilemap[(2 * y + 1) * SwitchWidth * 2 + 2 * x], tilemap[(2 * y + 1) * SwitchWidth * 2 + 2 * x + 1] };
-
-                // Its doors: the floor mirrors' cells doors, the hub doors' a block record the door object breaks once the slot is set;
-                List<Door> list = doors.GetValueOrDefault(world, new List<Door>());
-                List<byte> specials = new List<byte>(), nineROM = new List<byte>();
-                foreach (Door door in list) {
-                    if (door.Slot == 0) collision[door.Y * SwitchWidth + door.X] = 0xFF;
-                    else {
-                        specials.AddRange(new byte[] { 1, collision[door.Y * SwitchWidth + door.X], (byte)door.X, (byte)door.Y, 0x12, 0, 0xFF, 0xFF });
-                        foreach (ushort entry in Look(door.X, door.Y)) specials.AddRange(BitConverter.GetBytes(entry));
-                        specials.AddRange(new byte[] { 0xFF, 0xFF });
-                    }
-                    specials.AddRange(DoorRecord(door, 0xFF));
-                    nineROM.AddRange(NineROMEntry(door.Room, door.DestX, door.DestY));
-                }
-                specials.AddRange(new byte[] { 0, 0, 0, 0, 0, 0, 0xFF, 0xFF });
-                int collisionAt = AllocateCompressed(rom, CompressRL(collision), ref cursor), specialsAt = AllocateCompressed(rom, specials.ToArray(), ref cursor);
-                int solidity = Allocate(ref cursor, 8, 4);
-                WriteInts(rom, solidity, collisionAt + 0x08000000, specialsAt + 0x08000000);
-
-                // Its objects: the big switch, the statues, the doors' mirrors and door objects;
+                var candidates = looks.Where(l => l.World == world && !l.Fight && (design.Source == null || (l.Stage, l.Number) == design.Source.Value));
+                if (DrawSqueakSwitchRoom(rom, room, candidates, design, solid, add, farView, ref cursor, out SqueakLook source, out ushort[] tilemap,
+                                         out var background) is not null)
+                    return $"Squeak Squad's world {world} has no room to draw its switch room in.";
+                // Its objects: the big switch, the statues (then the doors' mirrors and door objects: WriteSqueakSwitchRoom());
                 List<byte[]> templates = new List<byte[]> { BigSwitchTemplate(SwitchAt(level).x, SwitchAt(level).y, 0, SqueakSlot(world), NidlWorldMapDoors / 2 + world - 1) };
                 List<byte> types = new List<byte> { BigSwitchType };
                 for (int i = 0; i < 2; i++) {
@@ -398,38 +288,258 @@ namespace KatAMRandomizer {
                     templates.Add(statue);
                     if (!types.Contains(type)) types.Add(type);
                 }
-                foreach (Door door in list) {
-                    byte type = door.Slot != 0 ? DoorToHubType : MirrorType;
-                    byte[] mirror = door.Slot != 0 ? DoorToHubTemplate(door.X, door.Y, templates.Count, door.Slot, door.Design) : MirrorTemplate(door.X, door.Y, templates.Count);
-                    if (b && door.Slot != 0 && door.X == 8) WriteShort(mirror, 6, 128);
-                    if (door.OneWay && door.Slot == 0) mirror[0x23] |= 1;
-                    templates.Add(mirror);
-                    if (!types.Contains(type)) types.Add(type);
-                }
-                int objects = WriteObjectList(rom, templates, types, noTypes, ref cursor);
-                int navigation = BuildNavigation(rom, SwitchWidth, rows, false, collision, navigationRoutes, new List<(int, int, int, int)>(), ref cursor);
-                int doorsAt = doorsList(nineROM, 0);
-
-                // Its tilemap, and its props: the source room's tiles, palettes and far view, its own tilemap, collision, objects, doors;
-                byte[] tilemapBytes = new byte[padded.Length * 2];
-                for (int t = 0; t < padded.Length; t++) WriteShort(tilemapBytes, t * 2, padded[t]);
-                int tilemapAt = AllocateCompressed(rom, CompressLZ77(tilemapBytes), ref cursor), tilemapEntry = Allocate(ref cursor, 0x20, 4);
-                WriteShorts(rom, tilemapEntry, SwitchWidth * 2, rows * 2);
-                WriteInts(rom, tilemapEntry + 0x18, tilemapAt + 0x08000000, room << 16);
-                (int rateX, int rateY) = backgroundWidth > 0 ? BackgroundRates(backgroundWidth, backgroundHeight, SwitchWidth * 16, rows * 16) : (0, 0);
-                int doorsIndex = add("gUnk_08D640A4", doorsAt);
-                if (doorsIndex >= FirstDoorsList + VisitedLists) return "Too many doors lists for rooms.c's visited doors.";
-                WriteShorts(rom, newProps + room * 0x28, LevelSongs[(world - 1) % LevelSongs.Length], 0, 0, 0x100, 0x100, 0, 0, rateX, rateY, RoomFlags,
-                            source.Info, source.Palette, add("gForegroundTilemaps", tilemapEntry), add("gSolidityMaps", solidity), 0xFFFF,
-                            background, add("gLevelObjLists", objects), add("gUnk_08D63C28", navigation), doorsIndex, 0);
-                int roomInfo = Allocate(ref cursor, 0x4C, 4);
-                Array.Copy(rom, ReadInt(rom, roomInfos + 0x397 * 4) - 0x08000000, rom, roomInfo, 0x4C);
-                WriteShort(rom, roomInfo + 0x44, room);
-                WriteInt(rom, newInfos + room * 4, roomInfo + 0x08000000);
+                if (WriteSqueakSwitchRoom(rom, room, level, solid, tilemap, source, background, LevelSongs[(world - 1) % LevelSongs.Length],
+                                          doors.GetValueOrDefault(world, new List<Door>()), templates, types, newProps, newInfos, roomInfos,
+                                          navigationRoutes, noTypes, add, doorsList, ref cursor) is string error)
+                    return error;
                 squeakSwitchLooks[world] = source.Room;
             }
             return null;
         }
+
+        // SqueakSwitchSolid(); A switch room layout's walls (see BuildSwitchRooms()'s notes: A or B by the level, LayoutB(), its pedestal);
+        static Func<int, int, bool> SqueakSwitchSolid(int level) {
+            bool b = LayoutB(level);
+            return (x, y) => y == 0 || y >= SwitchFloor || SwitchPedestal(level, x, y) || (b
+                ? (y <= 3 && (x <= 1 || x >= SwitchWidth - 2)) || (y >= 4 && (x == 0 || x == SwitchWidth - 1)) || (y >= 7 && (x <= 3 || x >= SwitchWidth - 4))
+                : y <= 5 && (x <= 1 || x >= SwitchWidth - 2));
+        }
+
+        /* DrawSqueakSwitchRoom(); A switch room's look (SwitchWidth x SwitchHeight cells, `solid` its walls) in the tiles of the one of
+         * `candidates` whose cells give it best (SqueakSwitchTilemap()): the open air a back wall fills, or touching no terrain, clear (the
+         * far view shows there), a solid cell drawn mostly clear the nearest one drawn whole, then the design's dressing; its far view the
+         * design's (its middle at the room's size), else the source room's. Returns an error (no candidate), or null; */
+        static string DrawSqueakSwitchRoom(byte[] rom, int room, IEnumerable<SqueakLook> candidates, SqueakSwitchDesign design, Func<int, int, bool> Solid,
+                                           Func<string, int, int> add, Func<string, int[,]> farView, ref int cursor, out SqueakLook source,
+                                           out ushort[] tilemap, out (int at, int width, int height) background) {
+            source = null;
+            tilemap = null;
+            background = default;
+            int bestScore = -1;
+            foreach (SqueakLook look in candidates) {
+                (ushort[] map, int score) = SqueakSwitchTilemap(look.Tilemap, look.Columns, look.Collision, look.Width, look.Height, Solid, (x, y) => false);
+                if (score > bestScore) { bestScore = score; source = look; tilemap = map; }
+            }
+            if (source == null) return "no room to draw it in";
+            SqueakLook from = source;
+            ushort[] drawn = tilemap;
+            // (the open air a back wall fills, clear; then the dressing);
+            // (a back wall: three quarters of the cell's pixels drawn or more; a tuft of grass, a leaf, a lip, much less);
+            int Drawn(ushort entry) {
+                int tile = entry & 0x3FF, count = 0;
+                if (tile * 32 + 32 > from.Tiles.Length) return 0;
+                for (int b = 0; b < 32; b++) count += ((from.Tiles[tile * 32 + b] & 0x0F) != 0 ? 1 : 0) + ((from.Tiles[tile * 32 + b] & 0xF0) != 0 ? 1 : 0);
+                return count;
+            }
+            int At(int x, int y, int q) => (2 * y + q / 2) * SwitchWidth * 2 + 2 * x + q % 2;
+            // (and one touching no terrain: a lip or a tuft left floating, as Vocal Volcano's lines over its floor mirrors);
+            bool Touches(int x, int y) => new[] { (x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1) }
+                .Any(c => c.Item1 < 0 || c.Item2 < 0 || c.Item1 >= SwitchWidth || c.Item2 >= SwitchHeight || Solid(c.Item1, c.Item2));
+            for (int y = 0; y < SwitchHeight; y++)
+                for (int x = 0; x < SwitchWidth; x++)
+                    if (!Solid(x, y) && (Enumerable.Range(0, 4).Sum(q => Drawn(drawn[At(x, y, q)])) >= 192 || !Touches(x, y)))
+                        for (int q = 0; q < 4; q++) drawn[At(x, y, q)] = 0;
+            // (a solid cell the source drew mostly clear, Nature Notch's left wall under its top: the nearest solid one drawn whole);
+            int CellDrawn(int x, int y) => Enumerable.Range(0, 4).Sum(q => Drawn(drawn[At(x, y, q)]));
+            for (int y = 0; y < SwitchHeight; y++)
+                for (int x = 0; x < SwitchWidth; x++) {
+                    if (!Solid(x, y) || CellDrawn(x, y) >= 128) continue;
+                    (int x, int y)? whole = null;
+                    for (int d = 1; d < SwitchWidth + SwitchHeight && whole == null; d++)
+                        for (int ny = y - d; ny <= y + d && whole == null; ny++)
+                            for (int nx = x - d; nx <= x + d && whole == null; nx++)
+                                if (Math.Abs(nx - x) + Math.Abs(ny - y) == d && nx >= 0 && ny >= 0 && nx < SwitchWidth && ny < SwitchHeight
+                                    && Solid(nx, ny) && CellDrawn(nx, ny) >= 224) whole = (nx, ny);
+                    if (whole is (int, int) w)
+                        for (int q = 0; q < 4; q++) drawn[At(x, y, q)] = drawn[At(w.x, w.y, q)];
+                }
+            foreach (string block in design.Dressing) {
+                bool over = block.StartsWith("!");
+                string[] f = block.TrimStart('!').Split(' ');
+                bool flip = f[2].StartsWith("~");
+                int dx = int.Parse(f[0]), dy = int.Parse(f[1]), sx = int.Parse(f[2].TrimStart('~')), sy = int.Parse(f[3]), w = int.Parse(f[4]), h = int.Parse(f[5]);
+                for (int by = 0; by < h; by++)
+                    for (int bx = 0; bx < w; bx++) {
+                        int x = dx + bx, y = dy + by, cx = sx + (flip ? w - 1 - bx : bx), cy = sy + by;
+                        if (x < 0 || y < 0 || x >= SwitchWidth || y >= SwitchHeight || cx >= from.Width || cy >= from.Height || Solid(x, y) && !over) continue;
+                        for (int q = 0; q < 4; q++) {
+                            int sq = flip ? q ^ 1 : q;
+                            ushort entry = from.Tilemap[(2 * cy + sq / 2) * from.Columns + 2 * cx + sq % 2];
+                            drawn[At(x, y, q)] = flip ? (ushort)(entry ^ 0x400) : entry;
+                        }
+                    }
+            }
+            /* (its far view: the design's, as the mock-ups showed it: its middle 256 columns, its full height, 192 rows, at its own size,
+             * covering the room, so the camera shows the part the mock-up did; else the source room's, as converted for it); */
+            background = (from.Background, from.BackgroundWidth, from.BackgroundHeight);
+            if (design.View != null && farView($"map/d_viw_{design.View}.nsbtx") is int[,] picture) {
+                int pictureWidth = picture.GetLength(0), pictureHeight = Math.Min(picture.GetLength(1), SwitchHeight * 16);
+                double scale = (double)SwitchHeight * 16 / pictureHeight;
+                int cropWidth = Math.Min(pictureWidth, (int)Math.Round(SwitchWidth * 16 / scale)), left = (pictureWidth - cropWidth) / 2;
+                int[,] crop = new int[cropWidth, pictureHeight];
+                for (int y = 0; y < pictureHeight; y++)
+                    for (int x = 0; x < cropWidth; x++) crop[x, y] = picture[left + x, y];
+                SqueakBackground view = ConvertSqueakFarView(crop, scale, SwitchHeight * 16);
+                int bgTiles = AllocateCompressed(rom, CompressLZ77(view.Tiles), ref cursor), bgColors = Allocate(ref cursor, 0x100, 4);
+                for (int c = 0; c < 128; c++) WriteShort(rom, bgColors + c * 2, view.Palettes[c]);
+                byte[] bgMap = new byte[view.Map.Length * 2];
+                for (int t = 0; t < view.Map.Length; t++) WriteShort(bgMap, t * 2, view.Map[t]);
+                int bgMapAt = AllocateCompressed(rom, bgMap, ref cursor), entry = Allocate(ref cursor, 0x20, 4);
+                WriteShorts(rom, entry, view.Width, view.Height);
+                WriteInts(rom, entry + 8, bgTiles + 0x08000000, view.Tiles.Length / 32, bgColors + 0x08000000);
+                WriteShorts(rom, entry + 0x14, 0x60, 0x80);
+                WriteInts(rom, entry + 0x18, bgMapAt + 0x08000000, room << 16);
+                background = (add("gRoomTiledBGs", entry), view.Width * 8, view.Height * 8);
+            }
+            return null;
+        }
+
+        /* WriteSqueakSwitchRoom(); A switch room drawn (DrawSqueakSwitchRoom()) written as room `room`: padded as the NiDL switch rooms
+         * (Padded(): 13 rows, the last its ground's again, so KatAM's camera, hiding 8 pixels at the top and 40 at the bottom, shows the
+         * room as one screen and stays put: at 12 rows it had 144 pixels for its 160 and showed past the room's edge, the owner: "It's
+         * even showing out of bounds areas of the room"), its collision, its doors (`list`: the floor mirrors' cells doors, the hub
+         * doors' a block record the door object breaks once the slot is set), its objects (`templates`, `types`, then a mirror on each
+         * floor door and a door object on each hub door, layout B's middle ones drawn at x 128), its tilemap and props (the source
+         * room's tiles and palettes, `background` the far view, `song`), its room info (0x397's, as the other Squeak Squad rooms');
+         * returns an error, or null; */
+        static string WriteSqueakSwitchRoom(byte[] rom, int room, int level, Func<int, int, bool> Solid, ushort[] tilemap, SqueakLook source,
+                                            (int at, int width, int height) background, int song, List<Door> list, List<byte[]> templates,
+                                            List<byte> types, int newProps, int newInfos, int roomInfos, int navigationRoutes, int noTypes,
+                                            Func<string, int, int> add, Func<List<byte>, int, int> doorsList, ref int cursor) {
+            int rows = Padded(SwitchWidth, SwitchHeight).height;
+            ushort[] padded = new ushort[SwitchWidth * 2 * rows * 2];
+            for (int ty = 0; ty < rows * 2; ty++)
+                Array.Copy(tilemap, Math.Min(ty, SwitchHeight * 2 - 2 + ty % 2) * SwitchWidth * 2, padded, ty * SwitchWidth * 2, SwitchWidth * 2);
+            byte[] collision = new byte[SwitchWidth * rows];
+            for (int x = 0; x < SwitchWidth * (rows - SwitchHeight); x++) collision[SwitchHeight * SwitchWidth + x] = KatAMSolid;
+            for (int y = 0; y < SwitchHeight; y++)
+                for (int x = 0; x < SwitchWidth; x++) collision[y * SwitchWidth + x] = Solid(x, y) ? KatAMSolid : KatAMAir;
+            ushort[] Look(int x, int y) => new[] { tilemap[2 * y * SwitchWidth * 2 + 2 * x], tilemap[2 * y * SwitchWidth * 2 + 2 * x + 1],
+                                                   tilemap[(2 * y + 1) * SwitchWidth * 2 + 2 * x], tilemap[(2 * y + 1) * SwitchWidth * 2 + 2 * x + 1] };
+
+            // Its doors: the floor mirrors' cells doors, the hub doors' a block record the door object breaks once the slot is set;
+            List<byte> specials = new List<byte>(), nineROM = new List<byte>();
+            foreach (Door door in list) {
+                if (door.Slot == 0) collision[door.Y * SwitchWidth + door.X] = 0xFF;
+                else {
+                    specials.AddRange(new byte[] { 1, collision[door.Y * SwitchWidth + door.X], (byte)door.X, (byte)door.Y, 0x12, 0, 0xFF, 0xFF });
+                    foreach (ushort entry in Look(door.X, door.Y)) specials.AddRange(BitConverter.GetBytes(entry));
+                    specials.AddRange(new byte[] { 0xFF, 0xFF });
+                }
+                specials.AddRange(DoorRecord(door, 0xFF));
+                nineROM.AddRange(NineROMEntry(door.Room, door.DestX, door.DestY));
+            }
+            specials.AddRange(new byte[] { 0, 0, 0, 0, 0, 0, 0xFF, 0xFF });
+            int collisionAt = AllocateCompressed(rom, CompressRL(collision), ref cursor), specialsAt = AllocateCompressed(rom, specials.ToArray(), ref cursor);
+            int solidity = Allocate(ref cursor, 8, 4);
+            WriteInts(rom, solidity, collisionAt + 0x08000000, specialsAt + 0x08000000);
+
+            // Its objects: the given ones, then the doors' mirrors and door objects;
+            bool b = LayoutB(level);
+            foreach (Door door in list) {
+                byte type = door.Slot != 0 ? DoorToHubType : MirrorType;
+                byte[] mirror = door.Slot != 0 ? DoorToHubTemplate(door.X, door.Y, templates.Count, door.Slot, door.Design) : MirrorTemplate(door.X, door.Y, templates.Count);
+                if (b && door.Slot != 0 && door.X == 8) WriteShort(mirror, 6, 128);
+                if (door.OneWay && door.Slot == 0) mirror[0x23] |= 1;
+                templates.Add(mirror);
+                if (!types.Contains(type)) types.Add(type);
+            }
+            int objects = WriteObjectList(rom, templates, types, noTypes, ref cursor);
+            int navigation = BuildNavigation(rom, SwitchWidth, rows, false, collision, navigationRoutes, new List<(int, int, int, int)>(), ref cursor);
+            int doorsAt = doorsList(nineROM, 0);
+
+            // Its tilemap, and its props: the source room's tiles, palettes and far view, its own tilemap, collision, objects, doors;
+            byte[] tilemapBytes = new byte[padded.Length * 2];
+            for (int t = 0; t < padded.Length; t++) WriteShort(tilemapBytes, t * 2, padded[t]);
+            int tilemapAt = AllocateCompressed(rom, CompressLZ77(tilemapBytes), ref cursor), tilemapEntry = Allocate(ref cursor, 0x20, 4);
+            WriteShorts(rom, tilemapEntry, SwitchWidth * 2, rows * 2);
+            WriteInts(rom, tilemapEntry + 0x18, tilemapAt + 0x08000000, room << 16);
+            (int rateX, int rateY) = background.width > 0 ? BackgroundRates(background.width, background.height, SwitchWidth * 16, rows * 16) : (0, 0);
+            int doorsIndex = add("gUnk_08D640A4", doorsAt);
+            if (doorsIndex >= FirstDoorsList + VisitedLists) return "Too many doors lists for rooms.c's visited doors.";
+            WriteShorts(rom, newProps + room * 0x28, song, 0, 0, 0x100, 0x100, 0, 0, rateX, rateY, RoomFlags,
+                        source.Info, source.Palette, add("gForegroundTilemaps", tilemapEntry), add("gSolidityMaps", solidity), 0xFFFF,
+                        background.at, add("gLevelObjLists", objects), add("gUnk_08D63C28", navigation), doorsIndex, 0);
+            int roomInfo = Allocate(ref cursor, 0x4C, 4);
+            Array.Copy(rom, ReadInt(rom, roomInfos + 0x397 * 4) - 0x08000000, rom, roomInfo, 0x4C);
+            WriteShort(rom, roomInfo + 0x44, room);
+            WriteInt(rom, newInfos + room * 4, roomInfo + 0x08000000);
+            return null;
+        }
+
+        /* The finale's hubs (the owner: "After the Dark Nebula fight you have to go to a hub room just like the NiDL hub we have, so create
+         * a copy of it and place it before the last fight sequence to give players and interlude ... One hub per finale (If available)
+         * Nightmare -> Fountain of Dreams hub -> its mirror -> (If available) Squeak Squad's final stage -> Dark Nebula -> new Dark Nebula
+         * hub -> its mirror -> (always available) KatAM's final boss. Without NiDL, the copy is made from Squeak Squad tiles."): the Dark
+         * Nebula hub, where his way out leads (SqueakShardExits(), onto SqueakFinaleHubLanding, the Fountain of Dreams hub's landing), a
+         * copy of the Fountain of Dreams hub's: no other door in or out, no big switch, an Amazing Mirror high up in its middle to where
+         * the finale goes on (`exit`: KatAM's final boss, SqueakFinale()), the Master Sword's stand under it on the raised platform, a
+         * Maximum Tomato on the floor's right (a Squeak Squad item's gone bit: once a visit), a Cutter and a Sword statue on its sides
+         * (KatAMExpansionRooms.cs' FinaleMirrorAt, FinaleSwordAt, FinaleTomatoAt, FinaleStatues), no map's chest (the Fountain of Dreams'
+         * is its own hub's). With NiDL's rooms (`fountainHub`, the Fountain of Dreams hub's room), its look is that hub's own (its props:
+         * tiles, collision, far view, music; its camera's top); without them, its layout (A, the Fountain of Dreams', SqueakFinaleHubLevel)
+         * drawn in the tiles of Squeak Squad's final stage (DrawSqueakSwitchRoom(): its rooms but the fights', `finaleStage`), Dark
+         * Nebula's far view behind it (`view`, his stage's), the Squeak Squad hub's music (`song`); its room info 0x397's, as the
+         * switch rooms'. Returns an error, or null; */
+        static readonly (int x, int y) SqueakFinaleHubLanding = (4, 9);
+        const int SqueakFinaleHubLevel = 7;
+        static string BuildSqueakFinaleHub(byte[] rom, KatAMExpansionCode.Version version, int room, int fountainHub, byte[] mirrorTemplate,
+                                           (int room, int x, int y) exit, IEnumerable<SqueakLook> finaleStage, string view, int song,
+                                           int newProps, int newInfos, int roomInfos, int navigationRoutes, int noTypes, Func<string, int, int> add,
+                                           Func<List<byte>, int, int> doorsList, Func<string, int[,]> farView, ref int taken, ref int cursor) {
+            if (mirrorTemplate == null) return "Central Circle's Dimension Mirror wasn't found (the Dark Nebula hub's Amazing Mirror).";
+            List<byte[]> templates = new List<byte[]>();
+            List<byte> types = new List<byte>();
+            byte[] mirror = (byte[])mirrorTemplate.Clone();
+            mirror[3] = 0;
+            WriteShorts(mirror, 6, FinaleMirrorAt.x, FinaleMirrorAt.y);
+            WriteShorts(mirror, 0x1A, exit.x, exit.y, exit.room);
+            templates.Add(mirror);
+            types.Add(ShardType);
+            byte[] stand = ObjectTemplate(FinaleSwordAt.x, FinaleSwordAt.y, templates.Count, MasterSwordStand);
+            stand[14] = stand[15] = 0;
+            templates.Add(stand);
+            types.Add(MasterSwordStand);
+            byte[] tomato = ObjectTemplate(FinaleTomatoAt.x, FinaleTomatoAt.y, templates.Count, FinaleTomato);
+            tomato[2] = (byte)(SqueakTakenKind + taken / 256);
+            tomato[3] = (byte)(taken++ % 256);
+            // (no glint, as the Fountain of Dreams hub's: with the statues in the room it showed as a door's blue ring);
+            tomato[0x22] |= 4;
+            templates.Add(tomato);
+            types.Add(FinaleTomato);
+            foreach (var (x, y, type, subtype) in FinaleStatues) {
+                byte[] statue = ObjectTemplate(x, y, templates.Count, type);
+                statue[14] = subtype; statue[15] = 0;
+                templates.Add(statue);
+                if (!types.Contains(type)) types.Add(type);
+            }
+            if (fountainHub >= 0) {
+                Array.Copy(rom, newProps + fountainHub * 0x28, rom, newProps + room * 0x28, 0x28);
+                int doorsIndex = add("gUnk_08D640A4", doorsList(new List<byte>(), 0));
+                if (doorsIndex >= FirstDoorsList + VisitedLists) return "Too many doors lists for rooms.c's visited doors.";
+                WriteShort(rom, newProps + room * 0x28 + 16 * 2, add("gLevelObjLists", WriteObjectList(rom, templates, types, noTypes, ref cursor)));
+                WriteShort(rom, newProps + room * 0x28 + 18 * 2, doorsIndex);
+                int tops = CodeAddress + version.CodeSymbols["gNidlRoomTops"];
+                rom[tops + room] = rom[tops + fountainHub];
+                int roomInfo = Allocate(ref cursor, 0x4C, 4);
+                Array.Copy(rom, ReadInt(rom, roomInfos + 0x397 * 4) - 0x08000000, rom, roomInfo, 0x4C);
+                WriteShort(rom, roomInfo + 0x44, room);
+                WriteInt(rom, newInfos + room * 4, roomInfo + 0x08000000);
+                return null;
+            }
+            Func<int, int, bool> solid = SqueakSwitchSolid(SqueakFinaleHubLevel);
+            string viewId = view == null ? null : System.Text.RegularExpressions.Regex.Match(view, @"d_viw_([0-9A-Za-z]+)") is var m && m.Success ? m.Groups[1].Value : null;
+            if (DrawSqueakSwitchRoom(rom, room, finaleStage, new SqueakSwitchDesign(viewId, null, new string[0]), solid, add, farView, ref cursor,
+                                     out SqueakLook source, out ushort[] tilemap, out var background) is not null)
+                return "Squeak Squad's final stage has no room to draw the Dark Nebula hub in.";
+            squeakFinaleHubLook = source.Room;
+            return WriteSqueakSwitchRoom(rom, room, SqueakFinaleHubLevel, solid, tilemap, source, background, song, new List<Door>(), templates, types,
+                                         newProps, newInfos, roomInfos, navigationRoutes, noTypes, add, doorsList, ref cursor);
+        }
+        // (the room the Dark Nebula hub is drawn in without NiDL's rooms, -1 none: for the notes);
+        static int squeakFinaleHubLook = -1;
+        public static int SqueakFinaleHubLook => squeakFinaleHubLook;
+
         // (the room each world's switch room is drawn in: for the notes, the mock-ups);
         static Dictionary<int, int> squeakSwitchLooks = new Dictionary<int, int>();
         public static IReadOnlyDictionary<int, int> SqueakSwitchLooks => squeakSwitchLooks;
