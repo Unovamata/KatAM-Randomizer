@@ -1808,7 +1808,8 @@ namespace KatAMRandomizer {
          * (its first 4 u16s: x0, y0, x1, y1) have their y in the DS's world, up from the room's bottom: here from its top (`height`, the
          * room's in pixels, less them, swapped), as the entries' spots are; */
         static byte[] SqueakGimmickList(List<SqueakGimmick> gimmicks, IReadOnlySet<(int x, int y)> chains, bool arena, int height, SqueakChase chase = null,
-                                        IReadOnlyList<(int x, int y)> lairExits = null, int currents = 0, int crumbles = 0) {
+                                        IReadOnlyList<(int x, int y)> lairExits = null, int currents = 0, int crumbles = 0,
+                                        IEnumerable<SqueakPhaseWarp> phaseWarps = null) {
             List<byte> list = new List<byte> { 0, 0, 0, 0 };
             for (int i = 0; i < gimmicks.Count && i < SqueakMailGimmicks; i++) {
                 SqueakGimmick g = gimmicks[i];
@@ -1861,6 +1862,21 @@ namespace KatAMRandomizer {
                 list.AddRange(entry);
                 list[0]++;
             }
+            // (the finale's ways on by themselves, SqueakPhaseWarpEntry: the room, the cell + 1, after its fight or not: SqueakPhaseWarps);
+            foreach (SqueakPhaseWarp warp in phaseWarps ?? Enumerable.Empty<SqueakPhaseWarp>()) {
+                if (next >= SqueakMailGimmicks || list[0] == 0xFF) break;
+                byte[] entry = new byte[24];
+                entry[0] = SqueakPhaseWarpEntry;
+                entry[1] = (byte)next++;
+                WriteShort(entry, 2, warp.X * 16 + 8);
+                WriteShort(entry, 4, warp.Y * 16 + 8);
+                WriteShort(entry, 6, warp.ToRoom);
+                entry[8] = (byte)warp.ToX;
+                entry[9] = (byte)warp.ToY;
+                entry[10] = (byte)(warp.AfterFight ? 1 : 0);
+                list.AddRange(entry);
+                list[0]++;
+            }
             return list[0] == 0 && list[1] == 0 ? null : list.ToArray();
         }
 
@@ -1878,6 +1894,8 @@ namespace KatAMRandomizer {
         const byte SqueakCurrentsEntry = 0xF3;
         // (a room's walk-once blocks: squeak/gimmicks.c's GIMMICK_CRUMBLES, their list's address in its first 4 bytes, SqueakCrumbles());
         const byte SqueakCrumblesEntry = 0xF4;
+        // (the finale's way on by itself: squeak/gimmicks.c's GIMMICK_PHASE_WARP, SqueakPhaseWarps);
+        const byte SqueakPhaseWarpEntry = 0xF5;
         internal sealed record SqueakChase(byte Key, List<(int x, int y)> Walls, List<(int x, int y, byte character, byte variant)> Spawns);
         static void AddChaseEntries(List<byte> list, SqueakChase chase, int firstIndex) {
             int index = firstIndex;
@@ -2573,7 +2591,8 @@ namespace KatAMRandomizer {
                     }
                     if (SqueakGimmickList(gimmicks, chains, arenas && (fightMidboss || fightBoss), map.Height * 16, chase,
                                           planned[i].Where(d => d.Shut).Select(d => (d.X, d.Y)).ToList(),
-                                          currentsAt != 0 ? currentsAt + 0x08000000 : 0, crumblesAt != 0 ? crumblesAt + 0x08000000 : 0) is byte[] gimmickList) {
+                                          currentsAt != 0 ? currentsAt + 0x08000000 : 0, crumblesAt != 0 ? crumblesAt + 0x08000000 : 0,
+                                          SqueakPhaseWarps.Where(w => w.Room == room)) is byte[] gimmickList) {
                         gimmickLists[i] = Allocate(ref here, gimmickList.Length, 4);
                         gimmickList.CopyTo(rom, gimmickLists[i]);
                     }
@@ -2968,8 +2987,10 @@ namespace KatAMRandomizer {
              * room, the Dark Nebula hub), u16 the hub, u16 the first switch room, u16 the Squeak Squad ability room, then the tables the
              * game uses (gRoomProps, gUnk_08D6CD0C, gSolidityMaps, gForegroundTilemaps, gForegroundPalettes, gForegroundInfo, gRoomTiledBGs, gLevelObjLists), then a byte a room: its world
              * (1-8; the hub 0; a switch room its world's; the Dark Nebula hub the final stage's, 8), and one more: its stage (0 the hub and
-             * the switch rooms; the Dark Nebula hub 4); */
-            int mapBlock = Allocate(ref here, 12 + 8 * 4 + (rows - SqueakFirstRoom) * 2, 4);
+             * the switch rooms; the Dark Nebula hub 4), then the finale's ways on by themselves (SqueakPhaseWarps): "PW", u16 how many,
+             * 8 bytes each: u16 the room, u16 the room it goes on to, u8 x, u8 y (Kirby's cell in the room), u8 x, u8 y (his landing cell
+             * there, + 1); */
+            int mapBlock = Allocate(ref here, 12 + 8 * 4 + (rows - SqueakFirstRoom) * 2 + 4 + SqueakPhaseWarps.Count * 8, 4);
             System.Text.Encoding.ASCII.GetBytes("SQ").CopyTo(rom, mapBlock);
             WriteShort(rom, mapBlock + 2, SqueakFirstRoom);
             WriteShort(rom, mapBlock + 4, rows - SqueakFirstRoom);
@@ -2988,6 +3009,16 @@ namespace KatAMRandomizer {
             for (int w = 0; w < SqueakWorlds; w++) rom[worlds + firstSwitchRoom - SqueakFirstRoom + w] = (byte)(w + 1);
             // (the Dark Nebula hub: with the final stage's rooms, after Dark Nebula's, where his way out leads);
             if (finaleStage) (rom[worlds + finaleHubRoom - SqueakFirstRoom], rom[stages + finaleHubRoom - SqueakFirstRoom]) = ((byte)SqueakFinalStage.area, (byte)SqueakFinalStage.stage);
+            int phaseWarps = stages + (rows - SqueakFirstRoom);
+            System.Text.Encoding.ASCII.GetBytes("PW").CopyTo(rom, phaseWarps);
+            WriteShort(rom, phaseWarps + 2, SqueakPhaseWarps.Count);
+            for (int w = 0; w < SqueakPhaseWarps.Count; w++) {
+                SqueakPhaseWarp warp = SqueakPhaseWarps[w];
+                WriteShort(rom, phaseWarps + 4 + w * 8, warp.Room);
+                WriteShort(rom, phaseWarps + 6 + w * 8, warp.ToRoom);
+                (rom[phaseWarps + 8 + w * 8], rom[phaseWarps + 9 + w * 8]) = ((byte)warp.X, (byte)warp.Y);
+                (rom[phaseWarps + 10 + w * 8], rom[phaseWarps + 11 + w * 8]) = ((byte)warp.ToX, (byte)warp.ToY);
+            }
             WriteInt(rom, MapSqueakBlock, mapBlock + 0x08000000);
             // (the gimmicks' lists, squeak/gimmicks.c's gSqueakGimmickRooms: a pointer a room from SqueakFirstRoom, and how many);
             int gimmickTable = Allocate(ref here, files.Count * 4, 4);

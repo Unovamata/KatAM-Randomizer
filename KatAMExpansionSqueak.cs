@@ -597,6 +597,8 @@ namespace KatAMRandomizer {
             new SqueakEffect(20, "yakumono/snow", 1),
             // Dark Nebula's defeat ("ROM Expansion/squeak/dark_nebula.c"): darkZERO_ext's 13, the sparks thrown off him (0x0211CBAA);
             new SqueakEffect(21, "enemy/darkZERO_ext", 13),
+            // Dark Daroach's defeat ("ROM Expansion/squeak/daroach_boss.c"): efc_cmn0's 10, the burst at him (0x02039B28);
+            new SqueakEffect(22, "effect/efc_cmn0", 10),
         };
 
         /* SqueakEffectsBuild(); Each effect's cells (those its animation shows, in its order) as KatAM frames and their palette, the anim
@@ -878,14 +880,16 @@ namespace KatAMRandomizer {
              * wand's poses and beam: the sprite his body switches to, its +0xE4, here dancho00's animations 0-29, then dancho01's from 30;
              * both in dancho00's palettes, Squeak Squad's one palette object), their .mca's composites (dancho00's 0-7: his star throw,
              * his bombs' fire, the star; dancho01's from 8: his wand's charge and beam, its body listed last, as the others'); his hurt
-             * look his float (0x1000001: cell 2); */
+             * look his float (0x1000001: cell 2). A frame 256 across: his beam's first piece (dancho01's 11 and 13, 48 ahead of him) reaches
+             * 104 pixels on from there, where its rest (152 on) starts; 128's 64 cut it in the middle (the owner: "The ray of light
+             * summoned from Daroach's wand attack is cutoff in the middle"); */
             new SqueakEnemy(49, "Daroach", "dancho00", new[] { 2, 2, 2 }, DaroachGlyphs, MidbossType: 0x40, ExtraFile: "dancho01",
-                            SharePalettes: true, BodyLast: true),
+                            SharePalettes: true, BodyLast: true, Canvas: 256),
             // What he brings in (his stars 0x02124894, bombs 0x02124290, his beam's reach), drawn with his graphics, no name;
             new SqueakEnemy(50, "Daroach's thing", "dancho00", new[] { 0, 0, 0 }, new (int, int)[0], GraphicsOf: 49),
             // Dark Daroach (0x3D with its parameter 1, a8s4s2's: dancho01's palette for both sprites, 0x02126F48's +0x1F8), as Daroach;
             new SqueakEnemy(51, "Dark Daroach", "dancho00", new[] { 2, 2, 2 }, DarkDaroachGlyphs, MidbossType: 0x40, ExtraFile: "dancho01",
-                            SharePalettes: true, BodyLast: true, PaletteFile: "dancho01"),
+                            SharePalettes: true, BodyLast: true, PaletteFile: "dancho01", Canvas: 256),
             new SqueakEnemy(52, "Dark Daroach's thing", "dancho00", new[] { 0, 0, 0 }, new (int, int)[0], GraphicsOf: 51),
             /* Meta Knight (a boss, enemy 0x37: 0x02116C7C, on mini-boss type 0x40 as the mid-bosses), drawn from metaknight_cmn and
              * metaknight_ext (the sprite his body switches to, its +0xE4: his sword's big moves), both in cmn's palettes (Squeak Squad's

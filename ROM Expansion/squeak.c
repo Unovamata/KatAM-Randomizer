@@ -1421,14 +1421,23 @@ void SqueakMidbossUpdate(struct SqueakObject *s) {
  * where it's placed in its own boss room; on a mini-boss spot of KatAM's or NiDL's rooms (the mini-boss randomization's), 16 pixels up
  * from the bottom of its area (its template's: the screen the fight is held to), as its own arena's floor: KatAM's mini-bosses stand
  * anywhere in theirs (the Meta-Knights' high up), and the flying ones' moves from there left them above the screen; in a Squeak Lair
- * (SQUEAK_LAIR_FIGHT), the floor Kirby lands on, LAIR_UNDER_FLOOR over its area's bottom (its spot is its Squeak's, maybe a ledge); */
+ * (SQUEAK_LAIR_FIGHT), the floor Kirby lands on, LAIR_UNDER_FLOOR over its area's bottom (its spot is its Squeak's, maybe a ledge). In
+ * its own room, the first floor under its spot, however far: the DS places the flying ones in the air (Dark Daroach 92 pixels over
+ * a8s4s2's floor, Dark Nebula's star too), past SqueakStandOnFloor()'s 5 cells, and their moves measured from the spot itself flew
+ * them off the screen's top (the owner: "The 1st phase of the Squeak Squad boss goes out of the screen"); */
 #define BOSS_FLOOR_UP 16
 s32 SqueakBossFloor(struct SqueakObject *s) {
     const struct ObjectTemplate *t = s->obj.objTemplate;
 
     if (t == NULL || t->unk20 == 0) return s->obj.base.y;
     if (t->unk22 & SQUEAK_LAIR_FIGHT) return (t->y + t->unk1C + t->unk20 - LAIR_UNDER_FLOOR) << 8;
-    if (s->obj.base.roomId >= SQUEAK_FIRST_ROOM) return s->obj.base.y;
+    if (s->obj.base.roomId >= SQUEAK_FIRST_ROOM) {
+        s32 y = s->obj.base.y & ~0xFFF, bottom = gCurLevelInfo[s->obj.base.unk56].levelMaxPosition.y;
+
+        for (; y <= bottom; y += 0x1000)
+            if (NidlIsFloor(&s->obj, s->obj.base.x, y + 0x1000)) return y + 0x1000 - 1;
+        return s->obj.base.y;
+    }
     return (t->y + t->unk1C + t->unk20 - BOSS_FLOOR_UP) << 8;
 }
 

@@ -20,15 +20,15 @@ finishes it says how it was checked). The design rules for doors, mirrors and hu
   loaded, NiDL's Light ability (from Cool Spook) lights the Squeak Squad dark rooms' parts the candles light, as Fire does on the DS.
 
 ## 3. Squeak Squad's final sequence (the owner: "Complete the final sequence.")
-- "I can pretty much invalidate the first fight of the final sequence [...] the mirror to go to the next phase is literally right
-  there."
-- "Why is there a door in daroach's first phase fight [...] the warp should send me to the next phase automatically."
-- "Daroach when beaten on the first phase doesn't trigger the expected animation when it dies."
-- "When going from phase to phase."
-- "Color palette and maybe object errors in the first Squeak Squad final boss fight."
-- "Massive amounts of lag whenever the Squeak Squad boss invokes stars."
-- "The 1st phase of the Squeak Squad boss goes out of the screen, this is really prevalent with bosses in general"
-- "The ray of light summoned from Daroach's wand attack is cutoff in the middle".
+- "When going from phase to phase." (the sentence ends there): the phases now go on by themselves (no mirror), Dark Daroach's
+  room once his defeat has played out and the ride's landing room 30 frames after Kirby lands; what else the owner meant here is
+  still to ask.
+- "Color palette and maybe object errors in the first Squeak Squad final boss fight.": checked against the DS's own files, the
+  striped frames when Dark Daroach warps (`dancho00`'s 5-7) and his red bombs are the DS's (Dark Daroach's palette); his hit flash
+  is still KatAM's, not the DS's `dan_dmg` palettes. Which errors the owner saw is still to ask.
+- "Massive amounts of lag whenever the Squeak Squad boss invokes stars.": measured in the emulator, his beam (4 seconds) runs at
+  half speed: the sound mixer takes about a fifth of a frame more while it plays, and its 15 sprite pieces the rest. His idle,
+  bombs and warps keep full speed. Not fixed yet.
 
 ## 4. Dark Nebula
 - "massive lag when summoning stars. You can use the game's existing stars"

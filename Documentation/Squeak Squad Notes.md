@@ -1283,6 +1283,16 @@ missing in his charge's 7 frames of 8 and his beam's 2 of 6 (the composites' bod
 stars (`0x02124894`, vtable `0x02183640`: touch `0x02124844` sets +0x12C, bursting it; hit only by inhales) and bomb
 (`0x02124290`, vtable `0x021835C0`; `0x0203A9C4`'s 9, Bomb; touch sets +0x12C, unused). `0x020B48E0`'s effect types: 0 `efc_cmn0`'s 3,
 1 its 4, 2 and 3 its 7, 4 its 17, 5 its 2, 6 `efc_cmn1`'s 1. Recorded on the DS in a6s7s2 (`load.py`: the stage table repointed).
+Dark Daroach's defeat (ported): `0x02124EFC` (his HP out; with flag 0x40 set, still in a hop, it waits) stops him (+0x8C-+0xA8
+all 0), shakes the screen (`0x02035FC4` 3, 5, 2), clears +0xE4 (his wand's sprite), plays `dancho00`'s 27 (his beaten pose) and
+sets his state to `0x02124DCC`: at +0x128 = params +0x7C (120) `0x02039B28` shows `efc_cmn0`'s 10 at him, `0x02124D18` makes
+the 0x12C object of vtable `0x02183600` (`dancho00`'s 28, the dark star leaving him: thrown 1.0 ahead, 4.0 up, -0.1 gravity,
+`0x02124B9C`; bouncing at 4.0 off the floor and turned round by walls, sound 0x7D, `0x02124A7C`; at rest `0x021249E8`), a bigger
+shake (4, 15, 2) and `0x02075FF4(+0x204, "enemy/dancho00")` (his own colors back); at params +0x90 (600) `0x020B3CE4` (the stage
+moves on). Daroach's (parameter 0) instead: at 60 `0x020CF07C`, at 120 the HUD's and sound's (the boss's shard follows). Params are
+`PrmBB07Ml0`'s from its +0x10 (the port's `IDLE_SHORT` is +0x00). His beam (`dancho01.mca`'s 2 and 3): its first part (animations
+11 and 13, 48 ahead) reaches 104 pixels on from its spot, the 16-pixel pieces of 12 and 14 go from 152 to 248; a 128-pixel frame
+cut the first part at 64 (the port's frames are 256 across).
 
 **Meta Knight** (boss 0x37, ported: `squeak/meta_knight_kss.c`): his body `0x02116C7C` (vtable `0x02181E80`: +0x3C his idle
 `0x02116300`, +0x34 per frame `0x02116ED4`, +0x30 his hit `0x021166BC`, +0x2C his touch `0x02116ACC`, +0x24 a spat star on him

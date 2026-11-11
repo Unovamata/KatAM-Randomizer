@@ -303,6 +303,11 @@ namespace KatAMRandomizer {
          * way out the Dark Nebula hub (BuildSqueakFinaleHub()), its Amazing Mirror to where the mirror into the stage led (KatAM's final
          * boss); */
         static readonly (int area, int stage) SqueakFinalStage = (8, 4);
+        /* SqueakPhaseWarp; The finale's stage going on by itself (PlanSqueakLevels()): from a room (Kirby's spot there: the room's arrival)
+         * to a room's cell (+ 1, as a door's), once its fight is won (AfterFight) or once Kirby's in (squeak/gimmicks.c's PhaseWarp()); */
+        internal sealed record SqueakPhaseWarp(int Room, int X, int Y, int ToRoom, int ToX, int ToY, bool AfterFight);
+        static readonly List<SqueakPhaseWarp> squeakPhaseWarps = new List<SqueakPhaseWarp>();
+        public static IReadOnlyList<SqueakPhaseWarp> SqueakPhaseWarps => squeakPhaseWarps;
         const int SqueakFinaleShard = 0xFF;
         static (int room, int x, int y)? squeakFinaleEntry;
         /* SqueakLairPlan; A Squeak Lair (PlanSqueakLevels()): its hideout room, the Squeak fought there (its character), the DS door
@@ -801,6 +806,11 @@ namespace KatAMRandomizer {
              * gets a mirror, one-way, from the first room before it with no way on yet (its fight's end), where Kirby lands there; the
              * last room with a boss is the world's boss room. A warp star is a way on (8-4's rides, 3 to 4 to 5: the star lands Kirby
              * where the DS does; its arrival door in 8-4-4 is under the room's floor, in its last rows); */
+            /* (in the finale's stage, SqueakFinalStage, no mirror: the room goes on by itself, SqueakPhaseWarps (the owner: "the warp should
+             * send me to the next phase automatically"): after Dark Daroach's fight, into the chase; from where the chase's ride lands,
+             * a8s4s5 (Dark Nebula's coming, which the port plays in his own room), into his fight, as the DS's stage switches to a8s4s6:
+             * the room before it, a8s4s7 (its door into his room, where the DS brings Kirby back after a lost life), isn't on the way); */
+            squeakPhaseWarps.Clear();
             foreach (var s in stages.Where(IsBossStage)) {
                 List<SqueakPlanRoom> list = byStage[s];
                 HashSet<int> led = list.SelectMany(r => r.Doors.Where(d => d.Room != SqueakNoRoom).Select(d => d.Room + 1).Concat(r.Rides)).ToHashSet();
@@ -810,8 +820,12 @@ namespace KatAMRandomizer {
                         SqueakPlanRoom before = ends[0];
                         ends.RemoveAt(0);
                         (int x, int y) arrival = before.Doors.FirstOrDefault(SqueakArrival) is SqueakDoor d ? Drop(before, d.X, d.Y) : (before.Width / 2, before.Height / 2);
-                        (int x, int y) landing = next.Doors.FirstOrDefault(SqueakArrival) is SqueakDoor n ? Drop(next, n.X, n.Y) : (next.Width / 2, next.Height / 2);
-                        Add(before, arrival.x, arrival.y, (next.Room, landing.x + 1, landing.y + 1), DoorKind.Boss, true);
+                        SqueakPlanRoom to = next;
+                        if (s == SqueakFinalStage && next.Doors.FirstOrDefault(dd => dd.Room != SqueakNoRoom && dd.Room < list.Count && list[dd.Room].Boss) is SqueakDoor into)
+                            to = list[into.Room];
+                        (int x, int y) landing = to.Doors.FirstOrDefault(SqueakArrival) is SqueakDoor n ? Drop(to, n.X, n.Y) : (to.Width / 2, to.Height / 2);
+                        if (s == SqueakFinalStage) squeakPhaseWarps.Add(new SqueakPhaseWarp(before.Room, arrival.x, arrival.y, to.Room, landing.x + 1, landing.y + 1, before.Boss));
+                        else Add(before, arrival.x, arrival.y, (to.Room, landing.x + 1, landing.y + 1), DoorKind.Boss, true);
                     }
                     if (!next.Doors.Any(d => d.Room != SqueakNoRoom) && next.Rides.Count == 0) ends.Add(next);
                 }

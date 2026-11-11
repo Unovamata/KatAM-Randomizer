@@ -325,6 +325,7 @@ enum {
     SQUEAK_FX_SNOW,             // and yakumono/snow's 0 and 1, snowflakes;
     SQUEAK_FX_SNOW_1,
     SQUEAK_FX_DARK_SPARK,       // Dark Nebula's defeat (squeak/dark_nebula.c): darkZERO_ext's 13, the sparks thrown off him (0x0211CBAA);
+    SQUEAK_FX_DAROACH_BURST,    // Dark Daroach's defeat (squeak/daroach_boss.c): efc_cmn0's 10, the burst at him (0x02039B28);
     SQUEAK_FX_COUNT,
 };
 
