@@ -171,7 +171,11 @@ after any change.
     world (a stump, a grassy mound, a rock pile, a castle, an igloo, a submarine, a factory, a UFO..., each with its flag), the
     warning that a fight waits past it. The way out is KatAM's one-way door (the hideout's black DS doorway is gone), on that
     doorway's spot where that's not beside where Kirby lands (Storo's and Doc's hideouts), else on a floor away from both
-    (rule 3). Stages with no Squeak thief (7-4) get none; 6-5 has three;
+    (rule 3). Stages with no Squeak thief (7-4) get none; 6-5 has three. With Randomize Squeak Lairs (the owner: "randomly remove
+    or add these connections to these rooms in a per seed basis ... Of course, we have to have an unrandomized map as well for
+    times where these won't be randomized, for this, the current layout is perfect"), the lairs are picked by the seed among each
+    stage's hideouts (each one time in three; the Squeakers' hideout led by Spinni, Doc or Storo), each at a DS door the seed picks
+    among the ones that can be (as above, in a room that shows the DS's nest), the rest of the map unchanged; off, as above;
   - the rooms a stage reaches only through its Squeaks that no lair uses (the other three hideouts of each stage, every stage's
     copies of the same four fights, and its gold-pile treasure rooms nothing leads to) are left out, nothing leading in; a room
     after a stage's goal that isn't one of those (1-1-5, the field past its goal) is reached as any room (rule 9); the sky rooms

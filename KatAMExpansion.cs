@@ -982,8 +982,10 @@ namespace KatAMRandomizer {
          * code and what Squeak Squad's characters need (no NiDL enemies, mini-bosses, bosses, abilities, rooms or title). Returns null
          * when done, or why it couldn't be done (rom is left as it was); */
         public static string AddEnemies(ref byte[] rom, byte[] nightmare, bool rooms = true, bool title = false, byte[] squeak = null, bool squeakRooms = false,
-                                        bool squeakChases = false, int chaseSeed = 0) {
+                                        bool squeakChases = false, int chaseSeed = 0, bool squeakLairShuffle = false) {
             KatAMExpansionCode.Version version = VersionOf(rom);
+            // (Randomize Squeak Lairs: the lairs picked from the seed, PlanSqueakLevels(); else the DS's thieves' hideouts);
+            squeakLairSeed = squeakLairShuffle ? chaseSeed : null;
             NightmareRegion region = RegionOf(nightmare);
             // (KatAM's chase rooms, read before the expansion's rooms are added: KatAMExpansionChases.cs);
             List<KatamChaseRoom> chaseRooms = squeakChases && squeak != null && version != null ? KatamChaseCandidates(rom, version) : null;

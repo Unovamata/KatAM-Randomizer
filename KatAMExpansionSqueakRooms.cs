@@ -1078,6 +1078,10 @@ namespace KatAMRandomizer {
             byte[] objects = f.Objects == null ? null : SqueakFileAnyCase(squeak, f.Objects);
             // (the records a grass tuft or a barrel hides come out of it: SqueakHeldRecords());
             (HashSet<int> heldItems, HashSet<int> heldEnemies) = SqueakHeldRecords(map);
+            // (a lair whose Squeak isn't among its records, the Squeakers' hideout picked by Randomize Squeak Lairs: its fight where its first
+            // Squeaker stands, the lair's Squeak leading the others);
+            bool lairSqueakHere = lair != null && objects != null && Enumerable.Range(0, ReadShort(objects, 12)).Any(i => (objects[14 + i * 16 + 0xB] & SqueakChaseSpawn) != 0
+                && SqueakCharacters.TryGetValue(ReadShort(objects, 14 + i * 16 + 2), out int c) && c == lair.Character);
             if (objects != null) {
                 for (int i = 0, count = ReadShort(objects, 12); i < count; i++) {
                     int at = 14 + i * 16, id = ReadShort(objects, at + 2), x = ReadShort(objects, at + 4), y = ReadShort(objects, at + 6);
@@ -1086,8 +1090,8 @@ namespace KatAMRandomizer {
                      * (SQUEAK_MIDBOSS, squeak.h; its template's unk22 SQUEAK_LAIR_FIGHT), its fight area the screen over the floor Kirby
                      * lands on; its Squeakers (LairSqueakers at most, one a spot) enemies around it, as the DS's hideouts'); */
                     if (lair != null && (flags & SqueakChaseSpawn) != 0 && !heldEnemies.Contains(i) && SqueakChaseIds.Contains(id) && SqueakCharacters.TryGetValue(id, out int squeakOne)) {
-                        if (squeakOne == lair.Character && !templates.Any(t => (t[0x22] & SqueakLairFight) != 0)) {
-                            Boss(x, y, SqueakAsMidboss, (byte)(SqueakMidbossFlag | squeakOne), floorRow: lair.Landing.y - 1);
+                        if ((squeakOne == lair.Character || !lairSqueakHere && squeakOne == SqueakerCharacter) && !templates.Any(t => (t[0x22] & SqueakLairFight) != 0)) {
+                            Boss(x, y, SqueakAsMidboss, (byte)(SqueakMidbossFlag | lair.Character), floorRow: lair.Landing.y - 1);
                             templates[^1][0x22] |= SqueakLairFight;
                         } else if (squeakOne == SqueakerCharacter && templates.Count(t => t[12] == SqueakID && t[14] == SqueakerCharacter) < LairSqueakers
                                    && !templates.Any(t => t[12] == SqueakID && ReadShort(t, 6) == x && ReadShort(t, 8) == y - 8)) {
@@ -1844,6 +1848,7 @@ namespace KatAMRandomizer {
                 List<SqueakGimmick>[] starsOf = new List<SqueakGimmick>[files.Count];
                 int[] widthOf = new int[files.Count], heightOf = new int[files.Count];
                 List<SqueakPlanRoom> planRooms = new List<SqueakPlanRoom>();
+                Dictionary<string, SqueakTileset> frontOf = new Dictionary<string, SqueakTileset>();
                 for (int i = 0; i < files.Count; i++) {
                     SqueakMap map = new SqueakMap(SqueakUnpack(SqueakFileAnyCase(squeak, files[i].Map)));
                     roomOf[(files[i].Area, files[i].Stage, files[i].Index)] = i;
@@ -1858,6 +1863,11 @@ namespace KatAMRandomizer {
                         Midboss = midboss, Boss = boss,
                         Transports = map.Gimmicks().Where(g => g.Type is SqueakWarpStar or SqueakTurnCannon or SqueakFuseCannon).Select(g => (g.X / 16, g.Y / 16)).ToList(),
                         Rides = map.Gimmicks().Where(g => g.Type is SqueakWarpStar or SqueakFuseCannon && (g.Word(0) & 0xFF) < SqueakStarArrival).Select(g => (g.Word(0) & 0xFF) + 1).ToList() });
+                    // (whether it draws the DS's nest: Randomize Squeak Lairs, SqueakNestKey(), SqueakNestDrawn());
+                    if (files[i].Front != null && !frontOf.ContainsKey(files[i].Front))
+                        frontOf[files[i].Front] = SqueakFileAnyCase(squeak, files[i].Front) is byte[] frontFile ? new SqueakTileset(frontFile) : null;
+                    planRooms[^1].NestKey = SqueakNestKey(map);
+                    planRooms[^1].NestDrawn = files[i].Front != null && SqueakNestDrawn(map, frontOf[files[i].Front]);
                     // (its chase records' Squeaks, for the Squeak Lairs: SqueakPlanRoom.Squeaks);
                     byte[] records = files[i].Objects == null ? null : SqueakFileAnyCase(squeak, files[i].Objects);
                     for (int r = 0, count = records == null || records.Length < 16 ? 0 : ReadShort(records, 12); r < count; r++) {

@@ -45,6 +45,7 @@ namespace KatAMRandomizer
             WriteMirrors();
             WriteBossShards();
             WriteChases();
+            WriteSqueakLairs();
             WriteEntities("Enemies", Utils.enemiesJson, false, false);
             WriteEntities("Mini-Bosses", Utils.minibossesJson, false, false);
             WriteEntities("Chests & Items", Utils.itemsJson, true, true);
@@ -90,6 +91,18 @@ namespace KatAMRandomizer
             if (!Settings.SqueakChases || KatAMExpansion.KatamChases.Count == 0) return;
             WriteSection("Chase Sequences");
             foreach ((int room, List<string> squeaks) in KatAMExpansion.KatamChases) log.AppendLine($"Room 0x{room:X3}: {string.Join(", ", squeaks)}");
+        }
+
+        /* WriteSqueakLairs(); The Squeak Lairs picked from the seed, with "Randomize Squeak Lairs" (KatAMExpansionSqueakLevels.cs'
+         * PlanSqueakLevels()): the room and cell of the door into each (its nest), the hideout, and the room its way out leads to; */
+        void WriteSqueakLairs() {
+            if (!Settings.SqueakLairs || KatAMExpansion.SqueakLairs.Count == 0) return;
+            WriteSection("Squeak Lairs");
+            Dictionary<int, string> names = new Dictionary<int, string>();
+            foreach (var r in KatAMExpansion.SqueakPortedRooms) names.TryAdd(r.Room, $"{r.Files.Area}-{r.Files.Stage}-{r.Files.Index}");
+            string Name(int room) => names.TryGetValue(room, out string name) ? $"{name} (0x{room:X3})" : $"0x{room:X3}";
+            foreach (var lair in KatAMExpansion.SqueakLairs)
+                log.AppendLine($"{Name(lair.FromRoom)}, door at ({lair.FromX}, {lair.FromY}) -> {Name(lair.Room)} -> {Name(lair.Exit.room)}");
         }
 
         // WriteSettings(); Every setting, read from the Settings class so new settings show up on their own;

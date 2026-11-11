@@ -550,6 +550,9 @@ namespace KatAMInternal
         // ROM Expansion: chases in KatAM's own rooms (Add Chase Sequences to KatAM: KatAMExpansion.SqueakKatamChases), needs the
         // Squeak Squad ROM;
         public bool SqueakChases { get; set; }
+        // ROM Expansion: the Squeak Lairs picked from the seed among every stage's hideouts (Randomize Squeak Lairs: PlanSqueakLevels()), needs
+        // Include Rooms; off, they're the DS's thieves' hideouts;
+        public bool SqueakLairs { get; set; }
         // ROM Expansion: Squeak Squad's behaviors of KatAM's own enemies join their behaviors (KatAMExpansion.SqueakNativeBehaviors);
         public bool SqueakBehaviors { get; set; }
         public bool SqueakRooms { get; set; }

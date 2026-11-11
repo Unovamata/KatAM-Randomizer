@@ -246,6 +246,7 @@
             CheckboxExpansionSqueakMinibosses = new CheckBox();
             CheckboxExpansionSqueakBosses = new CheckBox();
             CheckboxExpansionSqueakChases = new CheckBox();
+            CheckboxExpansionSqueakLairs = new CheckBox();
             CheckboxExpansionSqueakBehaviors = new CheckBox();
             CheckboxExpansionSqueakRooms = new CheckBox();
             LabelExpansionSqueakEnemies = new Label();
@@ -3436,6 +3437,7 @@
             GroupExpansionSqueak.Controls.Add(CheckboxExpansionSqueakMinibosses);
             GroupExpansionSqueak.Controls.Add(CheckboxExpansionSqueakBosses);
             GroupExpansionSqueak.Controls.Add(CheckboxExpansionSqueakChases);
+            GroupExpansionSqueak.Controls.Add(CheckboxExpansionSqueakLairs);
             GroupExpansionSqueak.Controls.Add(CheckboxExpansionSqueakBehaviors);
             GroupExpansionSqueak.Controls.Add(CheckboxExpansionSqueakRooms);
             GroupExpansionSqueak.Controls.Add(LabelExpansionSqueakEnemies);
@@ -3546,6 +3548,19 @@
             CheckboxExpansionSqueakChases.Text = "Add Chase Sequences to KatAM";
             CheckboxExpansionSqueakChases.UseVisualStyleBackColor = true;
             CheckboxExpansionSqueakChases.CheckedChanged += CheckboxExpansionSqueakChases_CheckedChanged;
+            // 
+            // CheckboxExpansionSqueakLairs
+            // 
+            CheckboxExpansionSqueakLairs.AutoSize = true;
+            CheckboxExpansionSqueakLairs.Enabled = false;
+            CheckboxExpansionSqueakLairs.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            CheckboxExpansionSqueakLairs.Location = new Point(664, 324);
+            CheckboxExpansionSqueakLairs.Margin = new Padding(4, 5, 4, 5);
+            CheckboxExpansionSqueakLairs.Name = "CheckboxExpansionSqueakLairs";
+            CheckboxExpansionSqueakLairs.TabIndex = 11;
+            CheckboxExpansionSqueakLairs.Text = "Randomize Squeak Lairs";
+            CheckboxExpansionSqueakLairs.UseVisualStyleBackColor = true;
+            CheckboxExpansionSqueakLairs.CheckedChanged += CheckboxExpansionSqueakLairs_CheckedChanged;
             // 
             // CheckboxExpansionSqueakBehaviors
             // 
@@ -3797,6 +3812,7 @@
         private CheckBox CheckboxExpansionSqueakMinibosses;
         private CheckBox CheckboxExpansionSqueakBosses;
         private CheckBox CheckboxExpansionSqueakChases;
+        private CheckBox CheckboxExpansionSqueakLairs;
         private CheckBox CheckboxExpansionSqueakBehaviors;
         private CheckBox CheckboxExpansionSqueakRooms;
         private Label LabelExpansionSqueakEnemies;

@@ -113,7 +113,7 @@ namespace KatAMRandomizer
         private string AddExpansion(bool nightmareTitle, bool nightmare, bool squeak) {
             byte[] rom = Processing.ROMData;
             string error = KatAMExpansion.AddEnemies(ref rom, nightmare ? nightmareROM : null, settings.NightmareRooms, nightmareTitle, squeak ? squeakROM : null, settings.SqueakRooms,
-                                                     squeak && settings.SqueakChases, settings.Seed);
+                                                     squeak && settings.SqueakChases, settings.Seed, squeak && settings.SqueakRooms && settings.SqueakLairs);
 
             Processing.ROMData = rom;
             return error;
@@ -1159,7 +1159,7 @@ namespace KatAMRandomizer
                 squeakROM = rom;
                 LabelExpansionSqueak.Text = Path.GetFileName(fileDialog.FileName);
                 foreach (CheckBox box in new[] { CheckboxExpansionSqueakEnemies, CheckboxExpansionSqueakMinibosses, CheckboxExpansionSqueakBosses, CheckboxExpansionSqueakBehaviors,
-                                                  CheckboxExpansionSqueakRooms, CheckboxExpansionSqueakChases }) {
+                                                  CheckboxExpansionSqueakRooms, CheckboxExpansionSqueakChases, CheckboxExpansionSqueakLairs }) {
                     box.Enabled = true;
                     box.Checked = true;
                     RaiseControlEvent(box, "OnCheckedChanged");
@@ -1175,7 +1175,7 @@ namespace KatAMRandomizer
             squeakROM = null;
             LabelExpansionSqueak.Text = "No ROM Loaded";
             foreach (CheckBox box in new[] { CheckboxExpansionSqueakEnemies, CheckboxExpansionSqueakMinibosses, CheckboxExpansionSqueakBosses, CheckboxExpansionSqueakBehaviors,
-                                             CheckboxExpansionSqueakRooms, CheckboxExpansionSqueakChases }) {
+                                             CheckboxExpansionSqueakRooms, CheckboxExpansionSqueakChases, CheckboxExpansionSqueakLairs }) {
                 box.Checked = false;
                 box.Enabled = false;
             }
@@ -1184,6 +1184,7 @@ namespace KatAMRandomizer
             settings.SqueakBehaviors = false;
             settings.SqueakRooms = false;
             settings.SqueakChases = false;
+            settings.SqueakLairs = false;
             ButtonExpansionUnloadSqueak.Enabled = false;
             UpdateExpansionLabel();
         }
@@ -1212,6 +1213,12 @@ namespace KatAMRandomizer
         // CheckboxExpansionSqueakChases_CheckedChanged(); Chases in KatAM's own rooms with a big chest (KatAMExpansionChases.cs);
         private void CheckboxExpansionSqueakChases_CheckedChanged(object sender, EventArgs e) {
             settings.SqueakChases = squeakROM != null && CheckboxExpansionSqueakChases.Checked;
+            UpdateExpansionLabel();
+        }
+
+        // CheckboxExpansionSqueakLairs_CheckedChanged(); The Squeak Lairs picked from the seed among every stage's hideouts (with its rooms);
+        private void CheckboxExpansionSqueakLairs_CheckedChanged(object sender, EventArgs e) {
+            settings.SqueakLairs = squeakROM != null && CheckboxExpansionSqueakLairs.Checked;
             UpdateExpansionLabel();
         }
 
@@ -1244,6 +1251,7 @@ namespace KatAMRandomizer
             if (midbosses.Count > 0) squeakLines.Add("Mini-bosses: " + string.Join(", ", midbosses) + ".");
             if (bosses.Count > 0) squeakLines.Add("Bosses, on the mini-boss spots: " + string.Join(", ", bosses) + ".");
             if (settings.SqueakRooms) squeakLines.Add("Rooms: every stage room of Squeak Squad's 8 worlds, connected by mirrors, with a hub of their own reached from Central Circle.");
+            if (settings.SqueakRooms && settings.SqueakLairs) squeakLines.Add("Squeak Lairs: which hideouts are mini-boss fights between a stage's rooms, and which doors lead into them, picked from the seed (off: the hideouts of the Squeaks that steal each stage's treasure).");
             if (settings.SqueakChases) squeakLines.Add("Chases: in some of KatAM's rooms with a big chest, going past it brings out Squeaks (Spinni, Doc, Storo, Squeakers) that chase Kirby.");
             if (settings.SqueakBehaviors) squeakLines.Add("Behaviors: Waddle Dee (a patrol, a jump at Kirby, a jump on a timer), Glunk (Squeak Squad's two beats), Gordo (circles), Snooter (stands facing Kirby).");
             LabelExpansionSqueakEnemies.Text = string.Join(Environment.NewLine + Environment.NewLine, squeakLines);

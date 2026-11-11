@@ -290,7 +290,13 @@ how Squeak Squad's enemies work): [Squeak Squad Notes](../Documentation/Squeak%2
   gets the DS's own nest, drawn into the room's foreground (`KatAMExpansionSqueakNests.cs`' `SqueakNests()`): every DS room's front
   block table holds it, 5 blocks by 3 (0x110-0x114, 0x130-0x134, 0x150-0x154), in its world's front tileset's look (a stump, a
   grassy mound, a rock pile, a castle, an igloo, a submarine, a factory, a UFO...), its doorway on the door's cell, its feet on the
-  door's floor. 38 lairs (USA, Europe, Japan the same).
+  door's floor. 38 lairs (USA, Europe, Japan the same). Randomize Squeak Lairs (the window, with Include Rooms; `AddEnemies()`'
+  `squeakLairShuffle`, `PlanSqueakLevels()`' `squeakLairSeed`): the lairs come from the seed instead (their own generator, the rest
+  of the map the same): each of a stage's hideouts with its Squeaks one time in `LairShare` (3), its Squeak the fight (the Squeakers'
+  hideout: one of `LairFighters`, Spinni, Doc or Storo, from the seed, on its first Squeaker's spot, `SqueakObjects()`), its door
+  any DS door that can be one (as above) in a room that draws the DS's nest (`SqueakNestKey()`: the rooms' usual nest blocks, not
+  8-3-9's; `SqueakNestDrawn()`: a front tileset whose nest covers 30-80% of its blocks, not 20_f's, 29_f's, 2C_f's, 2D_f's, 3B_f's,
+  3E_f's or 3F_f's), picked from the seed; the spoiler log's "Squeak Lairs" lists them.
 - **The finale chain** (`KatAMExpansionSqueakLevels.cs`' `SqueakFinale()`, `SqueakShardExits()`; `squeak.c`'s `SqueakDestroy()`):
   Squeak Squad's final stage (`SqueakFinalStage`, 8-4) isn't world 8's boss stage: its boss (Dark Nebula) leaves no shard
   (`SQUEAK_FINALE_SHARD`: beaten, `NidlDanceOut()`), its way out its `gNidlShardExits` entry. With NiDL's finale in, Nightmare's

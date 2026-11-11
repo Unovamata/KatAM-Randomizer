@@ -310,6 +310,16 @@ namespace KatAMRandomizer {
                                               (int room, int x, int y) Exit);
         static readonly List<SqueakLairPlan> squeakLairs = new List<SqueakLairPlan>();
         public static IReadOnlyList<SqueakLairPlan> SqueakLairs => squeakLairs;
+        /* Randomize Squeak Lairs (the owner: "we can store the Unused Hideouts and actually randomize these per run, as in these hideouts
+         * can be anywhere since these are area transitioners. So, it would be a good idea to randomly remove or add these connections to
+         * these rooms in a per seed basis ... Of course, we have to have an unrandomized map as well for times where these won't be
+         * randomized, for this, the current layout is perfect"): the seed the lairs are picked from (AddEnemies()), null for the DS's
+         * thieves' hideouts. Each of a stage's hideouts is a lair one time in LairShare, its door in picked among the stage's doors that
+         * can be one; the Squeakers' hideout's fight is one of LairFighters (Spinni, Doc, Storo) leading them; the rest of the map is
+         * the same either way (its own generator); */
+        static int? squeakLairSeed;
+        const int LairShare = 3;
+        static readonly int[] LairFighters = { 29, 31, 33 };
         // (a chase record's flags: 8, the stage's thief; a DS door's: 4, a hidden way (the lair doors); the Squeakers' character);
         const int SqueakThief = 8, SqueakHiddenDoor = 4, SqueakerCharacter = 27;
         // (a lair's way out never right beside where Kirby lands: LairApart cells across at least, or over 2 up or down: rule 8);
@@ -397,6 +407,9 @@ namespace KatAMRandomizer {
             // (its Squeaks the DS brings out in a chase or a hideout's fight (records with flag 4): the character, the spot, the flags);
             public List<(int character, int x, int y, int flags)> Squeaks = new List<(int, int, int, int)>();
             public List<(int x, int y)> Transports = new List<(int, int)>();
+            // (its nest blocks' key and whether its front tileset draws a nest: SqueakNestKey(), SqueakNestDrawn());
+            public string NestKey;
+            public bool NestDrawn;
             // (the stage's rooms its warp stars and fuse cannons take Kirby to, numbered from 1);
             public List<int> Rides = new List<int>();
             // (where each of them stands, its cell, and lands Kirby: the room, the cell; for the way-out pass);
@@ -814,26 +827,38 @@ namespace KatAMRandomizer {
              * where that door led; */
             squeakLairs.Clear();
             Dictionary<(int room, int door), (int room, int x, int y)> lairRedirect = new Dictionary<(int, int), (int, int, int)>();
+            // (Randomize Squeak Lairs: squeakLairSeed; its own generator, the rest of the map as without it);
+            Random lairRandom = squeakLairSeed is int lairSeed ? new Random(lairSeed ^ 0x5A1E) : null;
+            // (a picked lair's door only in a room that draws the DS's nest: the rooms' usual nest blocks, a tileset with one);
+            string nestKey = rooms.Where(r => r.NestKey != null).GroupBy(r => r.NestKey).OrderByDescending(g => g.Count()).Select(g => g.Key).FirstOrDefault();
             foreach (var s in stages.Where(s => !IsBossStage(s))) {
                 List<SqueakPlanRoom> list = byStage[s];
                 var thieves = list.Where(r => !SqueakLair(r))
                                   .SelectMany(r => r.Squeaks.Where(q => (q.flags & SqueakThief) != 0 && q.character != SqueakerCharacter).Select(q => (q.character, room: r.Number)))
                                   .GroupBy(t => t.character).Select(g => (character: g.Key, room: g.Max(t => t.room))).OrderByDescending(t => t.room).ToList();
-                foreach ((int thief, int thiefRoom) in thieves) {
-                    SqueakPlanRoom hideout = list.FirstOrDefault(r => SqueakLair(r) && !reachable.Contains(r.Room) && r.Squeaks.Any(q => q.character == thief));
+                /* (the lairs: each thief's hideout, its door the nearest to the room it waits in; picked from the seed, each of the
+                 * stage's hideouts with its Squeaks one time in LairShare, its fight its own Squeak (the Squeakers' one of LairFighters),
+                 * its door any that can be one); */
+                List<(int thief, int thiefRoom, SqueakPlanRoom hideout)> picks = lairRandom == null
+                    ? thieves.Select(t => (t.character, t.room, list.FirstOrDefault(r => SqueakLair(r) && !reachable.Contains(r.Room) && r.Squeaks.Any(q => q.character == t.character)))).ToList()
+                    : list.Where(r => SqueakLair(r) && !reachable.Contains(r.Room) && r.Squeaks.Count > 0).Where(_ => lairRandom.Next(LairShare) == 0)
+                          .Select(r => (r.Squeaks.Select(q => q.character).FirstOrDefault(c => c != SqueakerCharacter, LairFighters[lairRandom.Next(LairFighters.Length)]), -1, r))
+                          .ToList();
+                foreach ((int thief, int thiefRoom, SqueakPlanRoom hideout) in picks) {
                     if (hideout == null || hideout.Doors.FirstOrDefault(SqueakArrival) is not SqueakDoor arrival) continue;
                     var entrances = new List<(SqueakPlanRoom r, int index, SqueakDoor d, SqueakPlanRoom to, SqueakDoor at)>();
                     foreach (SqueakPlanRoom r in list.Where(r => reachable.Contains(r.Room) && !r.Midboss && !r.Boss && !SqueakLair(r)))
                         for (int k = 0; k < r.Doors.Count; k++) {
                             SqueakDoor d = r.Doors[k];
                             if (d.Room == SqueakNoRoom || SqueakGoal(d) || (d.Flags & SqueakHiddenDoor) != 0 || d.Kind == SqueakStartKind || d.X >= r.Width || d.Y >= r.Height
-                                || lairRedirect.ContainsKey((r.Room, k))) continue;
+                                || lairRedirect.ContainsKey((r.Room, k)) || lairRandom != null && (r.NestKey != nestKey || !r.NestDrawn)) continue;
                             SqueakPlanRoom to = list.FirstOrDefault(t => t.Number == d.Room + 1);
                             if (to == null || to == r || SqueakLair(to) || to.Midboss || to.Boss) continue;
                             SqueakDoor at = d.Door < to.Doors.Count ? to.Doors[d.Door] : to.Doors.FirstOrDefault(o => o.Number == d.Door);
                             if (at != null && Leads(r, d)) entrances.Add((r, k, d, to, at));
                         }
-                    var entrance = entrances.OrderBy(e => Math.Abs(e.to.Number - thiefRoom)).ThenBy(e => e.to.Number > thiefRoom ? 1 : 0).ThenByDescending(e => e.r.Number).FirstOrDefault();
+                    var entrance = lairRandom != null ? (entrances.Count > 0 ? entrances[lairRandom.Next(entrances.Count)] : default)
+                                 : entrances.OrderBy(e => Math.Abs(e.to.Number - thiefRoom)).ThenBy(e => e.to.Number > thiefRoom ? 1 : 0).ThenByDescending(e => e.r.Number).FirstOrDefault();
                     if (entrance.r == null) continue;
                     (int x, int y) landing = Drop(hideout, arrival.X, arrival.Y);
                     landings.Add((hideout.Room, landing.x + 1, landing.y + 1));

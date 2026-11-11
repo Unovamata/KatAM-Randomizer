@@ -13,6 +13,25 @@ namespace KatAMRandomizer {
          * Squeak Lairs should be replaced with the 1 way door"). The DS's map itself untouched (a copy); */
         static readonly int[] SqueakNestRows = { 0x110, 0x130, 0x150 };
         const int SqueakNestWidth = 5;
+        /* SqueakNestKey(); A room's nest blocks' tilemap entries, as one key (most rooms share one: the nest; a few have other blocks
+         * there, 8-3-9's; null where its front block table is too short); SqueakNestDrawn(), whether its front tileset draws a nest with
+         * them: 30 to 80% of its 80 by 48 pixels drawn (the DS's nests 42-58%; 20_f, 29_f, 2C_f, 2D_f and 3B_f fill them, 3E_f and
+         * 3F_f draw nothing). Randomize Squeak Lairs puts a lair's door only where both hold (PlanSqueakLevels()); */
+        static string SqueakNestKey(SqueakMap map) =>
+            map.TableCount(1) <= SqueakNestRows[^1] + SqueakNestWidth - 1 ? null
+            : string.Join(",", SqueakNestRows.SelectMany(row => Enumerable.Range(row, SqueakNestWidth)).SelectMany(b => Enumerable.Range(0, 4).Select(q => map.Entry(1, b, q))));
+        static bool SqueakNestDrawn(SqueakMap map, SqueakTileset front) {
+            if (front == null || map.TableCount(1) <= SqueakNestRows[^1] + SqueakNestWidth - 1) return false;
+            int drawn = 0, all = SqueakNestRows.Length * SqueakNestWidth * 256;
+            foreach (int b in SqueakNestRows.SelectMany(row => Enumerable.Range(row, SqueakNestWidth)))
+                for (int q = 0; q < 4; q++) {
+                    int tile = map.Entry(1, b, q) & 0x3FF;
+                    if (tile >= front.Count) continue;
+                    for (int y = 0; y < 8; y++)
+                        for (int x = 0; x < 8; x++) if (front.Pixel(tile, x, y) != 0) drawn++;
+                }
+            return drawn * 10 >= all * 3 && drawn * 10 <= all * 8;
+        }
         static SqueakMap SqueakNests(SqueakMap map, IEnumerable<(int x, int y)> doors, bool lair = false) {
             List<(int x, int y)> list = map.TableCount(1) > SqueakNestRows[^1] + SqueakNestWidth - 1 ? doors.ToList() : new List<(int, int)>();
             if (list.Count == 0 && !lair) return map;

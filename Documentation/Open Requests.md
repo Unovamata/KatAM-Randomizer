@@ -1033,6 +1033,25 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
   defeat runs from there), KatAM's one-way door showed there; Kirby put on it (Lua) took it with Up to 1-3-6, where the lair's
   door led. Logic checks unchanged (all three versions, and without the NiDL ROM). Not tested: a real fight won, another
   mini-boss in a lair.
+- **Randomize Squeak Lairs**: done (the owner: "I think we can store the Unused Hideouts and actually randomize these per run, as
+  in these hideouts can be anywhere since these are area transitioners. So, it would be a good idea to randomly remove or add these
+  connections to these rooms in a per seed basis as a gimmick to the Squeak Squad ROM Expansion. Of course, we have to have an
+  unrandomized map as well for times where these won't be randomized, for this, the current layout is perfect."). A toggle in the
+  ROM Expansion tab's Squeak Squad group, Randomize Squeak Lairs (with Include Rooms): the lairs are picked by the seed among all of
+  each stage's hideouts (the ones the DS leaves unused too), each one time in three, so a stage may have none or several; each
+  between two of its stage's rooms, at a DS door the seed picks among the ones that can be one and that show the DS's nest; the
+  Squeakers' hideout gets Spinni, Doc or Storo (from the seed) to lead them. Off (and in an unrandomized ROM), the lairs are the
+  current 38: the USA ROM made without it is byte for byte the one before this change. The spoiler log lists the seed's lairs
+  ("Squeak Lairs"). `KatAMExpansionSqueakLevels.cs`' `PlanSqueakLevels()`, `KatAMExpansionSqueakNests.cs`' `SqueakNestKey()` and
+  `SqueakNestDrawn()`, `KatAMSpoilerLog.cs`; the rulebook's rule 5.
+  - Checked: seeds 77 and 1234 (USA) gave 37 and 44 lairs; every door's nest drawn from the DS files (all 37 of seed 77's in a
+    picture, after leaving out the rooms whose tileset or blocks have no nest: 8-1-1's 20_f and 8-3-9's own blocks had drawn
+    garbage); logic checks: Squeak Squad 392 and 399 of 498 rooms reached, the 8 switches, nowhere trapped, with and without
+    thin-floor drops. In the GBA emulator (seed 1234): 7-1-7's door, its grassy mound nest beside Kirby, Up (Kirby put on the door
+    by Lua) into 7-1-8, a Squeakers' hideout, where Spinni fought Kirby with the Squeakers, his HP bar up; no door while he
+    fought; his HP set to 0 by a RAM write (a forced defeat), KatAM's one-way door showed on the right ledge.
+  - Not tested: the window itself (it compiles; this machine can't show it), Europe and Japan with the option, the way out of a
+    per-seed lair taken in the emulator.
 - **Leftover areas**: 1-1-5 (the field past 1-1's goal, 100 by 15) was the one room of the DS's own not reached: it now has a
   hidden one-way door in, as any room (rule 9). The others not reached are the hideouts and gold-pile rooms no lair uses (above)
   and the sky rooms the DS's warp stars fly through (3-4-5, 8-3-6, 8-3-7: the port's warp stars fly through them, Kirby never
