@@ -19,7 +19,7 @@ These are the owner's standing rules for any AI assistant working here. They hol
 
 ## Commits
 
-- Develop on the branch the session names. Commit and push when a piece of work is done. No pull request unless the owner asks.
+- Develop on the branch the session names. Commit and push when a piece of work is done. Then open a pull request into `main` and merge it (the owner: "Create a pull request automatically from now on and merge.").
 - Commit messages: a title line, a blank line, then one `// Name(); description;` line per change, then the attribution lines.
 - No model names or IDs in commits, code or docs.
 

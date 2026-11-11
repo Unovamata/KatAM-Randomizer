@@ -19,6 +19,7 @@ namespace KatAMMapTracker {
                                    entitiesItem = new ToolStripMenuItem("Show on Map"),
                                    chestContentsItem = new ToolStripMenuItem("Show Chest Contents (Spoilers)") { CheckOnClick = true },
                                    mapsItem = new ToolStripMenuItem("Reveal Areas of Found Maps") { CheckOnClick = true },
+                                   kirbysItem = new ToolStripMenuItem("Show All Kirbys") { CheckOnClick = true, Checked = true },
                                    // DEBUG: clicking a room warps Kirby into it (DebugWarp()); to be removed for the release;
                                    debugWarpItem = new ToolStripMenuItem("Click a Room to Warp Kirby There") { CheckOnClick = true };
         MenuStrip menu;
@@ -50,6 +51,9 @@ namespace KatAMMapTracker {
         };
 
         readonly Dictionary<EntityKind, ToolStripMenuItem> entityKindItems = new Dictionary<EntityKind, ToolStripMenuItem>();
+
+        // Each Kirby's last room on the map (the CPU Kirbys' goal games: the copy beside the room each came from, RomMap.ResolveRoom());
+        readonly int[] kirbyRooms = { -1, -1, -1, -1 };
 
         // Area maps the emulator's loaded save holds (bit n: the map of area n), as last reported by the script;
         int mapFlags;
@@ -88,6 +92,7 @@ namespace KatAMMapTracker {
             server.ConnectionChanged += connected => BeginInvokeSafe(() => SetConnected(connected));
             server.ScriptVersionReported += version => BeginInvokeSafe(() => OnScriptVersion(version));
             server.MapsReported += maps => BeginInvokeSafe(() => OnMapsReported(maps));
+            server.KirbysReported += kirbys => BeginInvokeSafe(() => OnKirbysReported(kirbys));
 
             try {
                 server.Start();
@@ -153,6 +158,11 @@ namespace KatAMMapTracker {
                 SaveViewSettings();
             };
             view.DropDownItems.Add(mapsItem);
+            kirbysItem.CheckedChanged += (s, e) => {
+                mapView.ShowKirbys = kirbysItem.Checked;
+                SaveViewSettings();
+            };
+            view.DropDownItems.Add(kirbysItem);
 
             // DEBUG menu (to be removed for the release);
             ToolStripMenuItem debug = new ToolStripMenuItem("Debug");
@@ -305,6 +315,7 @@ namespace KatAMMapTracker {
                 }
                 if (values.TryGetValue("chest_contents", out string contents)) chestContentsItem.Checked = contents == "1";
                 if (values.TryGetValue("area_maps", out string maps)) mapsItem.Checked = maps == "1";
+                if (values.TryGetValue("kirbys", out string kirbys)) kirbysItem.Checked = kirbys != "0";
                 if (values.TryGetValue("debug_warp", out string warp)) debugWarpItem.Checked = warp == "1";
                 if (values.TryGetValue("minimalist", out string minimalist) && minimalist == "1") Shown += (s, e) => SetMinimalist(true);
             }
@@ -319,6 +330,7 @@ namespace KatAMMapTracker {
                     $"dynamic_scaling={(dynamicScalingItem.Checked ? 1 : 0)}",
                     $"chest_contents={(chestContentsItem.Checked ? 1 : 0)}",
                     $"area_maps={(mapsItem.Checked ? 1 : 0)}",
+                    $"kirbys={(kirbysItem.Checked ? 1 : 0)}",
                     $"debug_warp={(debugWarpItem.Checked ? 1 : 0)}",
                 }.Concat(EntityCategories.Select(category => $"show_{category.key}={(entityKindItems[category.kind].Checked ? 1 : 0)}")));
             }
@@ -542,6 +554,23 @@ namespace KatAMMapTracker {
             UpdateMapRevealedRooms();
         }
 
+        /* OnKirbysReported(); Where every Kirby is (the player's first, then the CPU Kirbys): their arrows on the map. The player's room is
+         * the one the map tracks (the progress' current room); a CPU Kirby's is resolved as the player's are (a goal game: the copy
+         * beside the room he came from); rooms not in the ROM's map (menus, cutscenes) show none; */
+        void OnKirbysReported(IReadOnlyList<KirbySpot> kirbys) {
+            if (map == null || progress == null) return;
+            List<MapView.KirbyMarker> markers = new List<MapView.KirbyMarker>();
+            for (int i = 0; i < kirbys.Count && i < kirbyRooms.Length; i++) {
+                // (still in the room he was in: the same one, a goal game's copy included; else resolved from it);
+                int last = i == 0 ? progress.CurrentRoom : kirbyRooms[i];
+                int room = last >= 0 && RomMap.RealRoom(last) == kirbys[i].Room ? last : map.ResolveRoom(kirbys[i].Room, last);
+                if (!map.Rooms.ContainsKey(room)) continue;
+                kirbyRooms[i] = room;
+                markers.Add(new MapView.KirbyMarker(i, room, kirbys[i].X, kirbys[i].Y));
+            }
+            mapView.SetKirbys(markers);
+        }
+
         void UpdateMapRevealedRooms() {
             mapView.MapRevealedRooms = mapsItem.Checked ? AreaMaps.RoomsOf(mapFlags, map) : new HashSet<int>();
             UpdateDiscoveryLabel();
@@ -549,7 +578,11 @@ namespace KatAMMapTracker {
 
         void SetConnected(bool connected) {
             isConnected = connected;
-            if (!connected) lastReportedRoom = -1;
+            if (!connected) {
+                lastReportedRoom = -1;
+                mapView.SetKirbys(null);
+                Array.Fill(kirbyRooms, -1);
+            }
 
             connectionLabel.Text = connected
                 ? "Emulator connected."
@@ -574,6 +607,7 @@ namespace KatAMMapTracker {
                 "2. In mGBA 0.10 or newer: Tools > Scripting... > File > Load script, and pick Lua/katam_tracker.lua.\n" +
                 "3. Play! Rooms appear as you enter them, and lines as you go through their mirrors.\n\n" +
                 "Yellow rooms: every mirror used. Orange rooms: some mirrors left. The pulsing room is where Kirby is.\n" +
+                "Colored arrows: where each Kirby is (pink you, then yellow, red and green); on the window's edge, the way to one out of view.\n" +
                 "Dotted lines: Two-Way mirrors. Arrows: One-Way mirrors.\n\n" +
                 "Mouse wheel: zoom.   Drag: move the map.   Hover: room preview.   Double click: center a room.\n" +
                 "Space: follow Kirby on/off (it comes back on when Kirby changes rooms).   F: fit the discovered map.   +/-: zoom.\n" +

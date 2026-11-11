@@ -1,6 +1,7 @@
 -- KatAM Map Tracker - mGBA script (mGBA 0.10 or newer)
 --
--- Reports the room Kirby is in to the KatAM Map Tracker window, which draws the map as you explore.
+-- Reports the room Kirby is in to the KatAM Map Tracker window, which draws the map as you explore, and where all four Kirbys are
+-- (you and the three CPU Kirbys), which it marks with arrows.
 -- Usage: open the tracker window first, then in mGBA go to Tools > Scripting... > File > Load script
 -- and pick this file. The script reconnects on its own if the tracker is opened later or restarted.
 --
@@ -10,8 +11,14 @@ local HOST = "127.0.0.1"
 local PORT = 8765                 -- Must match the port of the tracker window;
 local ROOM_ADDRESS = 0x02020F40   -- Current room ID of Kirby (player 1), the same in every version;
 local RETRY_FRAMES = 180          -- Frames to wait before trying to connect again (~3 seconds);
-local SCRIPT_VERSION = 4          -- Sent to the tracker, which warns about outdated copies of this script;
+local SCRIPT_VERSION = 5          -- Sent to the tracker, which warns about outdated copies of this script;
 local MAPS_ADDRESS = 0x0203897C   -- Area maps the loaded save holds (gTreasures.bigChestField), one bit per area (KatAM's 0-9, the ROM Expansion's areas 10-25);
+-- Every Kirby (gKirbys: the player's first, then the CPU Kirbys, 0x1A8 bytes each; gNumKirbys how many), the same in every version:
+-- his room (+0x60) and his spot in it (+0x40, +0x44: pixels, 24.8), sent at most every KIRBYS_FRAMES frames while one changes;
+local KIRBYS_ADDRESS = 0x02020EE0
+local KIRBY_SIZE = 0x1A8
+local KIRBY_COUNT_ADDRESS = 0x0203AD44
+local KIRBYS_FRAMES = 4
 
 -- DEBUG (to be removed for the release): the tracker's "WARP <hex room> <x> <y>" moves Kirby (player 1) into that room, as the
 -- game's own warps do (sub_0805BDF4): his destination room and spawn tile, then his state set to the room transition's start
@@ -29,6 +36,8 @@ local pendingWarp = nil
 local gameCode = nil
 local sentRoom = -1
 local sentMaps = -1
+local sentKirbys = ""
+local kirbysTimer = 0
 local retryTimer = 0
 local warnedGame = false
 
@@ -42,6 +51,7 @@ local function disconnect()
   received = ""
   sentRoom = -1
   sentMaps = -1
+  sentKirbys = ""
 end
 
 local function connect()
@@ -57,6 +67,7 @@ local function connect()
   connection = sock
   sentRoom = -1
   sentMaps = -1
+  sentKirbys = ""
   log("Connected to the tracker on port " .. PORT .. ".")
 end
 
@@ -140,6 +151,21 @@ local function receive()
   end
 end
 
+-- kirbysLine(); "KIRBYS <hex room> <x> <y> ..." for every Kirby the game has (none outside of play);
+local function kirbysLine()
+  local count = emu:read8(KIRBY_COUNT_ADDRESS)
+  if count > 4 then count = 4 end
+  local line = "KIRBYS"
+  for i = 0, count - 1 do
+    local kirby = KIRBYS_ADDRESS + i * KIRBY_SIZE
+    local x, y = emu:read32(kirby + 0x40), emu:read32(kirby + 0x44)
+    if x >= 0x80000000 then x = x - 0x100000000 end
+    if y >= 0x80000000 then y = y - 0x100000000 end
+    line = line .. string.format(" %X %d %d", emu:read16(kirby + 0x60), x // 256, y // 256)
+  end
+  return line
+end
+
 local function connectAndGreet()
   connect()
   if connection then send("HELLO " .. SCRIPT_VERSION) end
@@ -180,6 +206,14 @@ callbacks:add("frame", function()
     sentRoom = room
   end
 
+  -- Every Kirby's room and spot, a few times a second while one moves;
+  kirbysTimer = kirbysTimer - 1
+  if connection and kirbysTimer <= 0 then
+    kirbysTimer = KIRBYS_FRAMES
+    local line = kirbysLine()
+    if line ~= sentKirbys and send(line) then sentKirbys = line end
+  end
+
   -- The maps change when one is found, or when another save is loaded;
   if connection then
     local maps = emu:read32(MAPS_ADDRESS) & 0x3FFFFFF
@@ -191,6 +225,7 @@ end)
 
 callbacks:add("reset", function()
   sentRoom = -1
+  sentKirbys = ""
 end)
 
 log("Loaded (script version " .. SCRIPT_VERSION .. "). Waiting for the tracker window on port " .. PORT .. "...")

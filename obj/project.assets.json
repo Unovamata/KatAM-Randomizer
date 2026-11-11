@@ -52,24 +52,26 @@
     ]
   },
   "packageFolders": {
-    "/root/.nuget/packages/": {}
+    "D:\\Users\\Bryan\\.nuget\\packages\\": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "/home/user/KatAM-Randomizer/KatAM Randomizer.csproj",
+      "projectUniqueName": "D:\\Users\\Bryan\\Documents\\GitHub\\KatAM-Randomizer\\KatAM Randomizer.csproj",
       "projectName": "KatAM Randomizer",
-      "projectPath": "/home/user/KatAM-Randomizer/KatAM Randomizer.csproj",
-      "packagesPath": "/root/.nuget/packages/",
-      "outputPath": "/home/user/KatAM-Randomizer/obj/",
+      "projectPath": "D:\\Users\\Bryan\\Documents\\GitHub\\KatAM-Randomizer\\KatAM Randomizer.csproj",
+      "packagesPath": "D:\\Users\\Bryan\\.nuget\\packages\\",
+      "outputPath": "D:\\Users\\Bryan\\Documents\\GitHub\\KatAM-Randomizer\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
-        "/root/.nuget/NuGet/NuGet.Config"
+        "D:\\Users\\Bryan\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "D:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],
       "originalTargetFrameworks": [
         "net8.0-windows"
       ],
       "sources": {
+        "D:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
         "https://api.nuget.org/v3/index.json": {}
       },
       "frameworks": {
@@ -82,7 +84,13 @@
         "warnAsError": [
           "NU1605"
         ]
-      }
+      },
+      "restoreAuditProperties": {
+        "enableAudit": "true",
+        "auditLevel": "low",
+        "auditMode": "direct"
+      },
+      "SdkAnalysisLevel": "10.0.100"
     },
     "frameworks": {
       "net8.0-windows7.0": {
@@ -106,16 +114,31 @@
         "warn": true,
         "downloadDependencies": [
           {
+            "name": "Microsoft.AspNetCore.App.Ref",
+            "version": "[8.0.22, 8.0.22]"
+          },
+          {
+            "name": "Microsoft.NETCore.App.Host.win-x64",
+            "version": "[8.0.22, 8.0.22]"
+          },
+          {
+            "name": "Microsoft.NETCore.App.Ref",
+            "version": "[8.0.22, 8.0.22]"
+          },
+          {
             "name": "Microsoft.WindowsDesktop.App.Ref",
-            "version": "[8.0.31, 8.0.31]"
+            "version": "[8.0.22, 8.0.22]"
           }
         ],
         "frameworkReferences": {
           "Microsoft.NETCore.App": {
             "privateAssets": "all"
+          },
+          "Microsoft.WindowsDesktop.App.WindowsForms": {
+            "privateAssets": "none"
           }
         },
-        "runtimeIdentifierGraphPath": "/usr/lib/dotnet/sdk/8.0.131/PortableRuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "D:\\Program Files\\dotnet\\sdk\\10.0.101/PortableRuntimeIdentifierGraph.json"
       }
     }
   }
