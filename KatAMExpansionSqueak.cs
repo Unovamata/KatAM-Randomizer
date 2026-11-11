@@ -595,6 +595,8 @@ namespace KatAMRandomizer {
             new SqueakEffect(18, "yakumono/stream", 2),
             new SqueakEffect(19, "yakumono/snow", 0),
             new SqueakEffect(20, "yakumono/snow", 1),
+            // Dark Nebula's defeat ("ROM Expansion/squeak/dark_nebula.c"): darkZERO_ext's 13, the sparks thrown off him (0x0211CBAA);
+            new SqueakEffect(21, "enemy/darkZERO_ext", 13),
         };
 
         /* SqueakEffectsBuild(); Each effect's cells (those its animation shows, in its order) as KatAM frames and their palette, the anim
@@ -911,11 +913,12 @@ namespace KatAMRandomizer {
             new SqueakEnemy(57, "Meta Knight's sparkle", "metaknight_ext", new[] { 0, 0, 0 }, new (int, int)[0], OnlyAnims: new[] { 31 }),
             /* Dark Nebula (the last boss, enemies 0x46 and 0x3F: 0x021376EC, 0x02122CD0, on mini-boss type 0x40 as the mid-bosses), drawn
              * from darkZERO_cmn and darkZERO_ext (one palette set: the files' are the same): the animations his code plays (squeak/
-             * dark_nebula.c's, in its order: cmn's 1, 2, 6, 7, 8, ext's 22; then ext's 19-21 and 23-25, his eye opening's parts), ext's
-             * .mca 1-3 (his eye opening, looking, glinting); his hurt look the black star (cmn's cell 17); */
+             * dark_nebula.c's, in its order: cmn's 1, 2, 6, 7, 8, ext's 22; then ext's 19-21 and 23-25, his eye opening's parts; then
+             * ext's 14 and 15, his defeat's black star shaking and breaking up), ext's .mca 1-3 (his eye opening, looking, glinting); his
+             * hurt look the black star (cmn's cell 17); */
             new SqueakEnemy(58, "Dark Nebula", "darkZERO_cmn", new[] { 16, 16, 16 }, DarkNebulaGlyphs, MidbossType: 0x40,
                             ExtraFile: "darkZERO_ext", SharePalettes: true, KeepComposites: true,
-                            OnlyAnims: new[] { 1, 2, 6, 7, 8, 44, 41, 42, 43, 45, 46, 47 }),
+                            OnlyAnims: new[] { 1, 2, 6, 7, 8, 44, 41, 42, 43, 45, 46, 47, 36, 37 }),
             /* His eye (0x0211C4E0: cmn's 3, ext's 17 and 18), its twinkle (cmn's 5), his flames (0x0211B98C: cmn's 4), each its own (its
              * VRAM its own frames', his and theirs together under KatAM's 512 tiles), no name; */
             new SqueakEnemy(59, "Dark Nebula's eye", "darkZERO_cmn", new[] { 0, 0, 0 }, new (int, int)[0], ExtraFile: "darkZERO_ext",

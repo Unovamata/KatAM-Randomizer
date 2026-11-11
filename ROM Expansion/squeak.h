@@ -326,6 +326,7 @@ enum {
     SQUEAK_FX_STREAM_2,
     SQUEAK_FX_SNOW,             // and yakumono/snow's 0 and 1, snowflakes;
     SQUEAK_FX_SNOW_1,
+    SQUEAK_FX_DARK_SPARK,       // Dark Nebula's defeat (squeak/dark_nebula.c): darkZERO_ext's 13, the sparks thrown off him (0x0211CBAA);
     SQUEAK_FX_COUNT,
 };
 
@@ -514,6 +515,7 @@ bool32 SqueakKirbyWithin(struct SqueakObject *, s32 dx, s32 dy);
 void SqueakSpawnEffect(struct SqueakObject *, u8 effect, s32 dx, s32 dy, bool8 follow);
 void SqueakEffectInRoom(u16 roomId, u8 effect, s32 x, s32 y);
 void SqueakDriftInRoom(u16 roomId, u8 effect, s32 x, s32 y, s32 dx, s32 dy);
+void SqueakFallInRoom(u16 roomId, u8 effect, s32 x, s32 y, s32 vx, s32 vy, s32 ay, s32 floor, u8 bounces, s32 gain, u16 sfx);
 void SqueakHoldEffect(struct SqueakObject *, u8 effect, s32 dx, s32 dy);
 void SqueakEndHeldEffect(struct SqueakObject *);
 void SqueakSplash(struct SqueakObject *, bool8 out);

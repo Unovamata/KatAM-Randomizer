@@ -964,11 +964,23 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
   - Checked: the ROM data of all three versions (Nightmare's shard exit and the ending flight's room step to 0x5E2 (4,10); Dark
     Nebula's room 0x5E7's exit to the hub 0x3 (4,9); without NiDL, 0x5E7 to 0x38D (16,16)); the logic checks follow the finale
     as a passage. In the GBA emulator: the Squeak Squad rooms of 8-4 as before (earlier rounds).
-  - Not tested in the emulator: the whole chain played through (Nightmare's ending into 8-4-1; Dark Nebula beaten, the dance out
-    to the hub). Forcing Dark Nebula's defeat by RAM writes failed four ways (writing the ability byte doesn't arm Crash, slides
-    pinned by Lua didn't hit, flag 0x1000 with HP 0 doesn't destroy him, his stars inhaled and spat didn't hit).
-  - Left: Dark Nebula's own defeat sequence 1:1 (the DS's, 0x0211DF2C-0x0211CDCC: the screen darkening, his forms flickering, the
-    star breaking up) instead of KatAM's mini-boss defeat; his background tint by form.
+  - Dark Nebula's own defeat, 1:1 with the DS's (0x0211DF2C-0x0211CDCC, `squeak/dark_nebula.c`): done. KatAM's mini-boss defeat
+    is caught the frame it starts and his runs instead: the controls taken, the far view darkening, three whitenings with his forms
+    flickering, his black star in the middle, the controls given back, his eye shaking, sparks thrown off him and bouncing on the
+    floor (a new falling kind of Squeak Squad effect, `squeak.c`'s `SqueakFallInRoom()`), his star shaking then breaking up, his
+    eye left alone, its twinkle, the white-out; his music fades out with it (his template's unk22 bit 2 keeps KatAM's defeat from
+    putting the room's music back). Here the white then clears and the finale's dance-out goes on.
+  - Fixed on the way: in his own room (8-4-6, 0x5E7) his whole fight ran about 100 pixels over the screen (his floor was taken
+    from his spot, the dark star's in the air): now the floor under him, the DS's.
+  - Checked in the GBA emulator (USA, Europe, Japan; forced: his fight played to his first idle, then KatAM's mini-boss defeat's
+    writes made by hand, as `sub_0809D060` makes them on a killing blow): every state of the DS's defeat with its timings, the far
+    view darkening and coming back, the controls taken and given back, the sparks, the break-up, the white-out, the dance-out
+    after. His coming and fight now on screen in 0x5E7 (his spots logged against the DS's).
+  - Not tested in the emulator: a real killing blow (a scripted Kirby's slide never lands: mini-bosses' unk5C makes them immune to
+    it, and the engine's other checks weren't worked out), the whole chain played through (Nightmare's ending into 8-4-1; Dark
+    Nebula beaten, the dance out to the hub), the music fade by ear.
+  - Left: his background tint by form (red, green, blue: the DS stage's own), the effect at his white-out (0x020217D0: not
+    identified), the DS's HUD flags in his defeat.
 - **The Squeak Lairs**: done (the owner: "I think Squeak Lair doors should be ported to the game and treated as miniboss rooms
   Squeak Squad rooms lead to and then exit to the next expected exit. Like instead of Entrance 1 -> Entrance 2, it would be great
   to add them as Entrance 1 -> Squeak Lair with Miniboss -> Entrance 2 as an interlude between zones in the Squeak Squad map. This

@@ -44,14 +44,30 @@
  * Checked against the DS (his stage recorded, and each move forced there and in KatAM from the same spot, frame 200: his spots,
  * states and things frame by frame; screenshots side by side): his coming, his start, the whitening and clearing, the idle, every
  * move above, the swoop and form change, the fireball's burst, flames and burning floor, the bolts and cage, the pillar.
- * His sounds: Squeak Squad's (SqueakSfx). Not ported: the stage's background tinted by his form (red, green, blue: 0x02209F84's +0x3C-0x44) and its stars, the
- * screen shakes' strength (KatAM's own), stars turned back by Squeak Squad's reflecting attacks (flag 0x400: KatAM has none), the
- * fire's heat (0x0212F138: an object drawing nothing with only a grab box, harmless), his own defeat (0x0211DF2C-0x0211CDCC: the
- * screen blackening, his forms flickering, his star breaking up; KatAM's mini-boss defeat), his boss music; the floor's burning
- * time is the DS's average (its own timing not found). */
+ * • His defeat (0x021228C4 his HP out, 0x0211DF2C-0x0211CDCC; ML[128]-ML[149]): KatAM's mini-boss defeat (sub_0809AF38's
+ *   sub_0809D060) caught the frame it starts (DarkNebulaWatch, his unk7C) and his own instead, his HP left at 0 (the bar empty, as the
+ *   DS's): the Kirbys' controls taken, the far view darkening to black over 240 frames, the screen whitening (2 frames) and clearing
+ *   (60) three times while his forms flicker (every 5, 5 and 8 frames; the second time his black star every third, the last every
+ *   second), his black star at the view's (128, 64), the far view back, the controls given back (white 11 frames, clearing 10), his
+ *   eye shaking (12 offsets, 0x0211BAB0); 120 frames of sparks (one every 20 frames at 1.5: thrown at rand(180)° up, falling 0.1, one
+ *   bounce at the floor, 0.6 of their fall back up, 0x0211CBAA), his flames gone, his star shaking (ext's 14), his music fading out
+ *   (240 frames); 120 frames of sparks (every 4 at 3.0), his star breaking up (ext's 15, 112 frames; sparks every 6 at 2.0); 120 frames
+ *   (every 10 at 2.0), his eye left still; 120 frames, its twinkle (cmn's 5); the screen whitening (120 frames, sound 0x1DA), where the
+ *   DS's stage ends. Here the white then clears (30 frames) and he's gone: KatAM's mini-boss end, the finale's dance on (squeak.c's
+ *   SqueakDestroy). His music fades only where it's his own (his template's unk22 bit 2, KatAMExpansionSqueakRooms.cs: KatAM's
+ *   mini-boss defeat leaves the music be); the far view darkens only in Squeak Squad's rooms (its palettes are known there).
+ *   Checked in KatAM (USA, Europe, Japan: his stage, KatAM's defeat's writes made by hand, as a hit would: the DS's states, timings and
+ *   pictures; no Kirby's hit landed in that test, his mini-boss immunities, unk5C, keeping off the slide).
+ * • His floor in his own stage (a8s4s6): the first under his spot (the dark star's, in the air), the DS's 80 over its bottom.
+ * His sounds: Squeak Squad's (SqueakSfx). Not ported: the stage's background tinted by his form (red, green, blue: 0x02209F84's
+ * +0x3C-0x44) and its stars, the screen shakes' strength (KatAM's own), stars turned back by Squeak Squad's reflecting attacks (flag
+ * 0x400: KatAM has none), the fire's heat (0x0212F138: an object drawing nothing with only a grab box, harmless), his defeat's effect
+ * at the white-out (0x020217D0: not identified) and its HUD flags (the stage's +0x9C bit 2, 0x0226FA60), his boss music; the floor's
+ * burning time is the DS's average (its own timing not found). */
 #include "../squeak.h"
 #include "kirby.h"
 #include "main.h"
+#include "gba/m4a.h"
 
 void RequestScreenShake(u16, struct ObjectBase *);
 u16 ArcTan2(s16 x, s16 y);
@@ -59,6 +75,9 @@ extern const s16 gSineTable[0x500];
 
 // His animations (darkZERO_cmn's 1, 2, 6, 7, 8, ext's 22), his composites (ext's .mca 1-3);
 enum { ANIM_STAR, ANIM_BLACK, ANIM_ICE, ANIM_FIRE, ANIM_SPARK, ANIM_FORMING };
+// (then ext's 19-21 and 23-25, his composites' parts; then ext's 14 and 15, his defeat's black star shaking and breaking up);
+#define ANIM_SHAKING 12
+#define ANIM_BREAKING 13
 enum { C_OPEN, C_LOOK, C_GLINT };
 // His eye's (cmn's 3, ext's 17, 18); the things' (each character's own, in KatAMExpansionSqueak.cs' order);
 enum { EYE_IDLE, EYE_BLINK, EYE_HALF };
@@ -159,6 +178,38 @@ enum { FORM_NONE, FORM_FIRE, FORM_SPARK, FORM_ICE };
 #define COME_X 204              // a8s4s6's spawn (220, 172: 204 from the DS view's left, 52 under its top);
 #define COME_Y 52
 #define GLINT_WAIT 24
+/* His defeat (0x0211DF2C-0x0211CDCC: ML[128]-ML[149]): the screen's whitenings and clearings, his forms flickering, the far view
+ * darkening, his black star, its sparks (0x0211CBAA: an effect at him, thrown at rand(180)°, falling ML[0] a frame, bouncing once
+ * under the view's 144, its fall up 0.6 times, 0x0211C9A8), its shaking and breaking up, his eye's twinkle, the white-out; */
+#define DEFEAT_CLEAR 60         // ML[128]: each clearing after a whitening (FLASH frames: 0x0203C174's 2);
+#define FLASH 2
+#define DEFEAT_DARK 240         // ML[129]: the far view to black (the stage's background tint, 0x02209F84's +0x1C-0x44);
+#define FLICKER_1 5             // ML[130]-ML[132]: a form shown every 5, 5 and 8 frames;
+#define FLICKER_2 5
+#define FLICKER_3 8
+#define DEFEAT_X 128            // ML[133], ML[134]: his black star's spot (the view's middle, 64 under its top);
+#define DEFEAT_Y 64
+#define WHITE_HOLD 10           // ML[135], ML[136];
+#define WHITE_CLEAR 10
+#define DEFEAT_STEP 120         // ML[137];
+#define SPARKS_1 20             // ML[138]-ML[144]: a spark every 20, 4, 6 and 10 frames, at 1.5, 3.0, 2.0 and 2.0 (ML[145]'s 1.8
+#define SPARK_1 0x1800          // unread);
+#define SPARKS_2 4
+#define SPARK_2 0x3000
+#define SPARKS_3 6
+#define SPARK_3 0x2000
+#define SPARKS_4 10
+#define SPARK_FLOOR 144         // ML[146]-ML[148];
+#define SPARK_BOUNCES 1
+#define SPARK_GAIN 0x99A
+#define WHITE_OUT 120           // ML[149];
+#define MUSIC_FADE 15           // (0x020B0678's 240 frames: KatAM's m4a fades in 16 steps);
+#define WHITE_BACK 30           // (here: the white-out cleared before the finale goes on, its Kirbys' dance shown);
+#define SHADE_FULL 0x1000        // (the far view's colors times this, 20.12: KatAM's BG palettes 6-13, squeak/gimmicks.c's);
+#define FAR_VIEW_FIRST 96
+#define FAR_VIEW_COLORS 128
+extern u16 gUnk_02022120[0x100];    // (the BG palettes as loaded);
+
 // The view (Squeak Squad's: 256 across, its top 144 over the floor);
 #define VIEW_HALF 128
 #define VIEW_TOP 144
@@ -175,6 +226,8 @@ enum {
     DN_BOLTS_FLY, DN_BOLTS_AIM, DN_BOLTS, DN_BOLTS_CAGE,
     DN_BOLTS_AFTER, DN_ORBIT, DN_PILLAR_FLY, DN_PILLAR_AIM, DN_PILLAR, DN_ROW_FLY, DN_ROW_AIM, DN_ROW, DN_RAIN_FLY, DN_RAIN_AIM,
     DN_RAIN, DN_FOUR_FLY, DN_FOUR_AIM, DN_DROP_FLY, DN_DROP_AIM, DN_DROP,
+    DN_DEFEAT, DN_DEFEAT_FLASH, DN_FLICKER_1, DN_FLASH_2, DN_FLICKER_2, DN_FLASH_3, DN_FLICKER_3, DN_BLACK, DN_BLACK_HOLD,
+    DN_BLACK_CLEAR, DN_SPARKS_1, DN_SPARKS_2, DN_SPARKS_3, DN_SPARKS_4, DN_EYE_WAIT, DN_TWINKLE_END, DN_WHITE_OUT, DN_WHITE_BACK,
 };
 
 // Things (the variant): what he and his eye bring in, each its character (sThingEnemies);
@@ -212,6 +265,17 @@ static const u8 sThingEnemies[] = {
 #define PREV_X(s) ((s)->vars[19])
 #define BURNING(s) ((s)->vars[20])      // The floor's 16-pixel tiles burning (the DS view's, from its left: bit 0 its first);
 #define BURN_VRAM(s) ((s)->vars[21])    // Their VRAM: one block for all, the same still picture (KatAM's 512 tiles: his fire wall's up);
+#define DEFEAT(s) ((s)->vars[22])       // His defeat under way (DarkNebulaWatch);
+#define LOCKED(s) ((s)->vars[23])       // The Kirbys whose controls he took (0x02012F94);
+#define KEPT_FLAGS(s) ((s)->vars[24])   // His flags as his last frame left them (KatAM's mini-boss defeat changes them: DarkNebulaWatch);
+#define KEPT_C(s) ((s)->vars[25])
+#define KEPT_5C(s) ((s)->vars[26])
+// (his defeat's own, in his fight's that it doesn't use: the far view's tint from, to, its frames gone and all, his twinkle);
+#define SHADE_FROM(s) ((s)->vars[3])
+#define SHADE_TO(s) ((s)->vars[4])
+#define SHADE_GONE(s) ((s)->vars[5])
+#define SHADE_LEN(s) ((s)->vars[6])
+#define TWINKLE(s) ((s)->vars[18])
 
 static u32 Random(u32 n) {
     return Rand16() * n >> 16;
@@ -411,10 +475,11 @@ static void ShowWhite(struct SqueakObject *s) {
 /* EyeMode(); His eye's (0x0211C35C: +0x1F8's vtable +0x38): 0 still, 1 shooting, 2 half shut (ext's 18), 3 its twinkle (cmn's 5:
  * at its end his form's whitening), 4 its blink (ext's 17, then still). It sets the eye's state, which runs in the eye's update:
  * Squeak Squad runs that before his, so the eye takes it the next frame (EyeFrame); */
-enum { MODE_STILL, MODE_SHOOT, MODE_HALF, MODE_TWINKLE, MODE_BLINK };
+enum { MODE_STILL, MODE_SHOOT, MODE_HALF, MODE_TWINKLE, MODE_BLINK, MODE_SHAKE };
 #define E_MODE(e) ((e)->vars[0])
 #define E_NEXT(e) ((e)->vars[1])        // The mode it takes in its next update, + 1 (0: none);
 #define E_TWINKLE(e) ((e)->vars[2])     // Its twinkle (cmn's 5: here a sprite of its own over the hidden eye);
+#define E_SHAKE(e) ((e)->vars[3])       // Its shaking's step (mode 6, 0x0211BAB0: his defeat);
 
 static void EyeMode(struct SqueakObject *s, u8 mode) {
     struct SqueakObject *e = (struct SqueakObject *)EYE(s);
@@ -521,6 +586,101 @@ static s32 Wrap360(s32 a) {
 // Thing kinds' ends with him (0x0212FB94: all but the fire's heat gone when his HP is out);
 static void EndThings(struct SqueakObject *s) {
     ORB(s) = 0;
+}
+
+static void Gone(struct SqueakObject *t);
+static void DarkNebulaMain(struct Object *obj);
+
+// Lock(); 0x02012F94: every Kirby in his room (and up) without controls (the cutscenes' flag, unless one already has it);
+static void Lock(struct SqueakObject *s) {
+    u8 i;
+
+    LOCKED(s) = 0;
+    for (i = 0; i < 4; i++) {
+        struct Kirby *kirby = &gKirbys[i];
+
+        if (kirby->base.roomId != s->obj.base.roomId || kirby->hp <= 0 || (kirby->base.flags & 0x1000000)) continue;
+        kirby->base.flags |= 0x1000000;
+        LOCKED(s) |= 1 << i;
+    }
+}
+
+// Unlock(); 0x02012F68: the controls he took given back;
+static void Unlock(struct SqueakObject *s) {
+    u8 i;
+
+    for (i = 0; i < 4; i++)
+        if (LOCKED(s) >> i & 1) gKirbys[i].base.flags &= ~0x1000000;
+    LOCKED(s) = 0;
+}
+
+/* Shade(); The stage's background tint (0x02209F84: +0x1C its frames gone, +0x20 all of them, +0x30-0x38 from, +0x3C-0x44 to, 20.12
+ * times its colors): from where it is to `to` over `frames` frames; his form's tint isn't ported, so it starts at SHADE_FULL; */
+static s32 ShadeNow(struct SqueakObject *s) {
+    if (SHADE_LEN(s) <= 0) return SHADE_TO(s);
+    return SHADE_FROM(s) + (SHADE_TO(s) - SHADE_FROM(s)) * SHADE_GONE(s) / SHADE_LEN(s);
+}
+
+static void Shade(struct SqueakObject *s, s32 to, s32 frames) {
+    SHADE_FROM(s) = ShadeNow(s);
+    SHADE_TO(s) = to;
+    SHADE_GONE(s) = 0;
+    SHADE_LEN(s) = frames;
+}
+
+/* ShowShade(); The far view (KatAM's BG palettes 6-13 in Squeak Squad's rooms: KatAMExpansionSqueakRooms.cs's SqueakBackground) its
+ * colors as loaded times the tint, each frame it goes and once more at its end (in KatAM's own rooms, whose palettes are laid out
+ * otherwise, none: their foreground's would darken); */
+static void ShowShade(struct SqueakObject *s) {
+    s32 level;
+    u16 i;
+
+    if (SHADE_LEN(s) <= 0) return;
+    if (SHADE_GONE(s) < SHADE_LEN(s)) SHADE_GONE(s)++;
+    level = ShadeNow(s);
+    if (s->obj.base.roomId >= SQUEAK_FIRST_ROOM) {
+        for (i = 0; i < FAR_VIEW_COLORS; i++) {
+            u16 c = gUnk_02022120[FAR_VIEW_FIRST + i];
+
+            gBgPalette[FAR_VIEW_FIRST + i] = ((c & 31) * level >> 12) | ((c >> 5 & 31) * level >> 12) << 5 | ((c >> 10 & 31) * level >> 12) << 10;
+        }
+        gMainFlags |= MAIN_FLAG_BG_PALETTE_SYNC_ENABLE;
+    }
+    // (back to its own colors: done);
+    if (SHADE_GONE(s) >= SHADE_LEN(s) && level == SHADE_FULL) SHADE_LEN(s) = 0;
+}
+
+/* DefeatSpark(); 0x0211CBAA: a spark at him, thrown at `speed` rand(180)° up (0x0211C878), falling GRAVITY a frame, bouncing once under
+ * the view's SPARK_FLOOR, its fall up SPARK_GAIN times (sound 0x7D); his sound 0x1D8; */
+static void DefeatSpark(struct SqueakObject *s, s32 speed) {
+    s32 a = Random(180) << 12;
+
+    SqueakFallInRoom(s->obj.base.roomId, SQUEAK_FX_DARK_SPARK, s->obj.base.x, s->obj.base.y, FxMul(speed, Cos(a)), FxMul(speed, Sin(a)),
+                     -GRAVITY, SpotY(s, SPARK_FLOOR), SPARK_BOUNCES, SPARK_GAIN, 0x7D);
+    SqueakSfx(s, 0x1D8);
+}
+
+// AnyForm(); 0x0211DCB8's pick of his forms (rand % 3): 0 fire (cmn's 7), 1 spark (8), 2 ice (6);
+static void AnyForm(struct SqueakObject *s) {
+    static const u8 sForms[3] = { ANIM_FIRE, ANIM_SPARK, ANIM_ICE };
+
+    SqueakPlay(s, sForms[Random(3)]);
+}
+
+/* Flicker(); 0x0211DCB8, 0x0211D9C4, 0x0211D6D0: every `every` frames (COUNT) one of his forms, or (`black`: SIDE counting down from
+ * it) after `black` of them his black star (none: forms only); */
+static void Flicker(struct SqueakObject *s, s32 every, s32 black) {
+    if (COUNT(s)-- >= 1) return;
+    COUNT(s) = every;
+    if (black == 0) {
+        AnyForm(s);
+    } else if (SIDE(s) < 1) {
+        SIDE(s) = black;
+        SqueakPlay(s, ANIM_BLACK);
+    } else {
+        SIDE(s)--;
+        AnyForm(s);
+    }
 }
 
 /* DarkNebula(); His states. As Squeak Squad's, a state changed runs at once (its entry and its first frame) unless `chain` is cleared:
@@ -999,6 +1159,137 @@ static bool32 DarkNebula(struct SqueakObject *s) {
         }
         MoveFree(s);
         break;
+    // His defeat (0x0211DF2C-0x0211CDCC): TIMER the DS's +0x208, COUNT its +0x22C, SIDE its +0x230;
+    case DN_DEFEAT:             // 0x0211DF2C: the controls taken, the far view to black, the screen whitening, still;
+        Lock(s);
+        Shade(s, 0, DEFEAT_DARK);
+        Whiten(s, TRUE, FLASH);
+        Stop(s);
+        SqueakSetState(s, DN_DEFEAT_FLASH);
+        break;
+    case DN_DEFEAT_FLASH:       // 0x0211DEA4;
+        if (Whitening(s)) break;
+        COUNT(s) = 0;
+        Whiten(s, FALSE, DEFEAT_CLEAR);
+        SqueakSfx(s, 0x153);
+        SqueakSetState(s, DN_FLICKER_1);
+        break;
+    case DN_FLICKER_1:          // 0x0211DCB8: his forms flickering while the screen clears, then it whitens;
+        Flicker(s, FLICKER_1, 0);
+        if (Whitening(s)) break;
+        Whiten(s, TRUE, FLASH);
+        SqueakSfx(s, 0x153);
+        SqueakSetState(s, DN_FLASH_2);
+        break;
+    case DN_FLASH_2:            // 0x0211DC24;
+        if (Whitening(s)) break;
+        COUNT(s) = 0;
+        SIDE(s) = 2;
+        Whiten(s, FALSE, DEFEAT_CLEAR);
+        SqueakSfx(s, 0x153);
+        SqueakSetState(s, DN_FLICKER_2);
+        break;
+    case DN_FLICKER_2:          // 0x0211D9C4: two forms, his black star;
+        Flicker(s, FLICKER_2, 2);
+        if (Whitening(s)) break;
+        Whiten(s, TRUE, FLASH);
+        SqueakSfx(s, 0x153);
+        SqueakSetState(s, DN_FLASH_3);
+        break;
+    case DN_FLASH_3:            // 0x0211D930;
+        if (Whitening(s)) break;
+        COUNT(s) = 0;
+        SIDE(s) = 1;
+        Whiten(s, FALSE, DEFEAT_CLEAR);
+        SqueakSfx(s, 0x153);
+        SqueakSetState(s, DN_FLICKER_3);
+        break;
+    case DN_FLICKER_3:          // 0x0211D6D0: a form, his black star;
+        Flicker(s, FLICKER_3, 1);
+        if (Whitening(s)) break;
+        Whiten(s, TRUE, FLASH);
+        SqueakSfx(s, 0x153);
+        SqueakSetState(s, DN_BLACK);
+        break;
+    case DN_BLACK:              // 0x0211D5A4: his black star at the view's (128, 64), the far view back to its colors;
+        if (Whitening(s)) break;
+        SqueakPlay(s, ANIM_BLACK);
+        base->x = SpotX(s, DEFEAT_X);
+        base->y = SpotY(s, DEFEAT_Y);
+        Shade(s, SHADE_FULL, FLASH);
+        TIMER(s) = WHITE_HOLD;
+        SqueakSetState(s, DN_BLACK_HOLD);
+        break;
+    case DN_BLACK_HOLD:         // 0x0211D51C: white a little longer, then clearing, the controls given back;
+        if (TIMER(s)-- >= 1) break;
+        Whiten(s, FALSE, WHITE_CLEAR);
+        SqueakSfx(s, 0x153);
+        Unlock(s);
+        SqueakSetState(s, DN_BLACK_CLEAR);
+        break;
+    case DN_BLACK_CLEAR:        // 0x0211D46C: his eye shaking;
+        if (Whitening(s)) break;
+        TIMER(s) = DEFEAT_STEP;
+        EyeMode(s, MODE_SHAKE);
+        SqueakSetState(s, DN_SPARKS_1);
+        break;
+    case DN_SPARKS_1:           // 0x0211D330: sparks; then his flames gone, his star shaking, his music fading out;
+        if (TIMER(s) % SPARKS_1 == 0) DefeatSpark(s, SPARK_1);
+        if (TIMER(s)-- >= 1) break;
+        if (Alive((struct SqueakObject *)AURA(s), SQUEAK_DARK_NEBULA_AURA)) Gone((struct SqueakObject *)AURA(s));
+        AURA(s) = 0;
+        SqueakPlay(s, ANIM_SHAKING);
+        TIMER(s) = DEFEAT_STEP;
+        // (only where his music still plays: his own fight's, his template's unk22 bit 2; KatAM's mini-boss defeat put others' back);
+        if (s->obj.objTemplate && (s->obj.objTemplate->unk22 & 4)) m4aMPlayFadeOut(&gMPlayInfo_0, MUSIC_FADE);
+        SqueakSetState(s, DN_SPARKS_2);
+        break;
+    case DN_SPARKS_2:           // 0x0211D214: more sparks; then his star breaking up;
+        if (TIMER(s) % SPARKS_2 == 0) DefeatSpark(s, SPARK_2);
+        if (TIMER(s)-- >= 1) break;
+        SqueakPlay(s, ANIM_BREAKING);
+        TIMER(s) = DEFEAT_STEP;
+        SqueakSetState(s, DN_SPARKS_3);
+        break;
+    case DN_SPARKS_3:           // 0x0211D0F4: till it's broken up (ext's 16: nothing);
+        if (TIMER(s) % SPARKS_3 == 0) DefeatSpark(s, SPARK_3);
+        TIMER(s)--;
+        if (!s->animEnded) break;
+        base->flags |= 0x400;
+        TIMER(s) = DEFEAT_STEP;
+        SqueakSetState(s, DN_SPARKS_4);
+        break;
+    case DN_SPARKS_4:           // 0x0211CFD0: his eye left, still (the DS: cmn's 3 on him, his eye hidden);
+        if (TIMER(s) % SPARKS_4 == 0) DefeatSpark(s, SPARK_3);
+        if (TIMER(s)-- >= 1) break;
+        EyeMode(s, MODE_STILL);
+        TIMER(s) = DEFEAT_STEP;
+        SqueakSetState(s, DN_EYE_WAIT);
+        break;
+    case DN_EYE_WAIT:           // 0x0211CEF8: then its twinkle (the DS: cmn's 5 on him);
+        if (TIMER(s)-- >= 1) break;
+        if (Alive((struct SqueakObject *)EYE(s), SQUEAK_DARK_NEBULA_EYE)) Gone((struct SqueakObject *)EYE(s));
+        EYE(s) = 0;
+        TWINKLE(s) = (s32)Thing(s, T_TWINKLE, 0, 0);
+        SqueakSetState(s, DN_TWINKLE_END);
+        break;
+    case DN_TWINKLE_END:        // 0x0211CE24: at its end, the white-out (sound 0x1DA);
+        if (Alive((struct SqueakObject *)TWINKLE(s), SQUEAK_DARK_NEBULA_TWINKLE) && !((struct SqueakObject *)TWINKLE(s))->animEnded) break;
+        Whiten(s, TRUE, WHITE_OUT);
+        SqueakSfx(s, 0x1DA);
+        SqueakSetState(s, DN_WHITE_OUT);
+        break;
+    case DN_WHITE_OUT:          // 0x0211CDCC: white, the stage cleared (here: the white cleared, then he's gone, the finale on);
+        if (Whitening(s)) break;
+        if (Alive((struct SqueakObject *)TWINKLE(s), SQUEAK_DARK_NEBULA_TWINKLE)) Gone((struct SqueakObject *)TWINKLE(s));
+        TWINKLE(s) = 0;
+        Whiten(s, FALSE, WHITE_BACK);
+        SqueakSetState(s, DN_WHITE_BACK);
+        break;
+    case DN_WHITE_BACK:
+        if (Whitening(s)) break;
+        base->flags |= 0x1000;
+        break;
     }
     return s->stateTimer == 0xFFFF && chain;
 }
@@ -1014,7 +1305,7 @@ static void NextForm(struct SqueakObject *s) {
 
 // Hittable(); 0x021228C4: in a form, the screen not whitening, not blinking (BLINK frames after a hit);
 static bool32 Hittable(struct SqueakObject *s) {
-    return s->state >= DN_IDLE && !Whitening(s) && BLINK(s) <= 0 && FORM(s) >= FORM_FIRE && FORM(s) <= FORM_ICE
+    return !DEFEAT(s) && s->state >= DN_IDLE && !Whitening(s) && BLINK(s) <= 0 && FORM(s) >= FORM_FIRE && FORM(s) <= FORM_ICE
         && s->anim >= ANIM_ICE && s->anim <= ANIM_SPARK;
 }
 
@@ -1041,7 +1332,8 @@ static void Boxes(struct SqueakObject *s) {
     struct ObjectBase *base = &s->obj.base;
 
     SqueakUntouchable(s, !Hittable(s));
-    if (s->anim < ANIM_ICE || s->anim > ANIM_SPARK || s->composite != SQUEAK_NO_COMPOSITE) {
+    // (his defeat: none, his forms flickering harmless);
+    if (DEFEAT(s) || s->anim < ANIM_ICE || s->anim > ANIM_SPARK || s->composite != SQUEAK_NO_COMPOSITE) {
         base->flags |= 0x200;
         base->unk68 = 0;
         return;
@@ -1072,9 +1364,20 @@ static void EyeFrame(struct SqueakObject *s) {
         case MODE_HALF: SqueakPlay(e, EYE_HALF); break;
         case MODE_BLINK: SqueakPlay(e, EYE_BLINK); break;
         case MODE_TWINKLE: E_TWINKLE(e) = (s32)Thing(s, T_TWINKLE, 0, 0); break;
+        case MODE_SHAKE: SqueakPlay(e, EYE_IDLE); E_SHAKE(e) = 0; break;
         }
     }
     switch (E_MODE(e)) {
+    case MODE_SHAKE: {          // 0x0211BAB0: on him, a step of its 12 offsets each frame (the DS's Y up);
+        static const s8 sShake[12][2] = {
+            { 0, 0 }, { 1, -2 }, { 1, -2 }, { -2, 2 }, { 2, -1 }, { 2, -1 }, { -2, 0 }, { 2, 1 }, { 2, 1 }, { -2, -2 }, { 1, 2 }, { 1, 2 },
+        };
+        const s8 *d = sShake[++E_SHAKE(e) % 12];
+
+        e->obj.base.x += d[0] << 8;
+        e->obj.base.y -= d[1] << 8;
+        break;
+    }
     case MODE_TWINKLE:
         w = (struct SqueakObject *)E_TWINKLE(e);
         if (Alive(w, SQUEAK_DARK_NEBULA_TWINKLE)) {
@@ -1106,10 +1409,57 @@ static void EyeFrame(struct SqueakObject *s) {
     }
 }
 
+/* DefeatFrame(); His frame in his defeat (his HP out: DarkNebulaWatch): his eye's, his states', the far view's tint and the screen's
+ * whiteness; no box, no HP bar taken back (it shows none left); */
+static void DefeatFrame(struct SqueakObject *s) {
+    EyeFrame(s);
+    SqueakRun(s, DarkNebula);
+    ShowShade(s);
+    ShowWhite(s);
+    SqueakFinishFrame(s);
+    SqueakAnimate(s);
+    Boxes(s);
+}
+
+/* DefeatStart(); 0x021228C4, his HP out: his eye still (its mode 5), his things gone (Owner()), his sounds stopped, the far view at
+ * its colors (SHADE_FULL), then his defeat (0x0211DF2C); */
+static void DefeatStart(struct SqueakObject *s) {
+    DEFEAT(s) = TRUE;
+    BLINK(s) = 0;
+    EndThings(s);
+    if (s->loopSound) SqueakStopSfx(s, s->loopSound);
+    SHADE_FROM(s) = SHADE_TO(s) = SHADE_FULL;
+    SHADE_GONE(s) = SHADE_LEN(s) = 0;
+    TWINKLE(s) = 0;
+    LOCKED(s) = 0;
+    EyeMode(s, MODE_STILL);
+    SqueakSetState(s, DN_DEFEAT);
+}
+
+/* DarkNebulaWatch(); KatAM's object's own before its Main (unk7C, every frame, after its hits): his HP out, KatAM's mini-boss defeat
+ * (sub_0809AF38's sub_0809D060: unk78 its falling body's, his flags, unkC and unk5C changed, his HP 0) put back as his last frame left
+ * them (KEPT_*), his HP kept at 0 (KatAM's HP bar empty, as the DS's), and his own defeat instead (DefeatStart); */
+static void DarkNebulaWatch(struct Object *obj) {
+    struct SqueakObject *s = (struct SqueakObject *)obj;
+
+    if (obj->unk78 == DarkNebulaMain || DEFEAT(s) || obj->unk80 > 0 || (obj->base.flags & 0x1000)) return;
+    obj->unk78 = DarkNebulaMain;
+    obj->base.flags = KEPT_FLAGS(s);
+    obj->base.unkC = KEPT_C(s);
+    obj->base.unk5C = KEPT_5C(s);
+    obj->base.xspeed = obj->base.yspeed = 0;
+    obj->unk80 = 0;
+    DefeatStart(s);
+}
+
 static void DarkNebulaMain(struct Object *obj) {
     struct SqueakObject *s = (struct SqueakObject *)obj;
 
     obj->kirby3 = FindTargetKirby(&obj->base);
+    if (DEFEAT(s)) {
+        DefeatFrame(s);
+        return;
+    }
     Hit(s);
     if (obj->unk80 <= 0) {
         if (WHITE(s)) {
@@ -1135,12 +1485,25 @@ static void DarkNebulaMain(struct Object *obj) {
     SqueakFinishFrame(s);
     SqueakAnimate(s);
     Boxes(s);
+    KEPT_FLAGS(s) = obj->base.flags;
+    KEPT_C(s) = obj->base.unkC;
+    KEPT_5C(s) = obj->base.unk5C;
 }
 
 // DarkNebulaGone(); He's gone (squeak.c's SqueakDestroy): his burning floor's VRAM let go of;
 void DarkNebulaGone(struct SqueakObject *s) {
     if (BURN_VRAM(s)) VramFree(BURN_VRAM(s));
     BURN_VRAM(s) = 0;
+    // (gone in his defeat: the controls he took given back, the far view its own colors);
+    if (DEFEAT(s)) {
+        Unlock(s);
+        if (SHADE_LEN(s) > 0 || ShadeNow(s) != SHADE_FULL) {
+            Shade(s, SHADE_FULL, 0);
+            SHADE_LEN(s) = 1;
+            SHADE_GONE(s) = 1;
+            ShowShade(s);
+        }
+    }
 }
 
 /* SqueakDarkNebulaStart(); His coming and fight's start (and after a hit: it goes on, as KatAM's mini-bosses do). He isn't held in
@@ -1149,11 +1512,15 @@ void SqueakDarkNebulaStart(struct Object *obj) {
     struct SqueakObject *s = (struct SqueakObject *)obj;
 
     ObjectSetFunc(obj, -1, DarkNebulaMain);
+    obj->unk7C = DarkNebulaWatch;
     if (s->started) return;
     LAST_HP(s) = obj->unk80;
     FORM(s) = NEXT(s) = FORM_NONE;
     DELAY(s) = PICKS(s) = BLINK(s) = WHITE(s) = ORB(s) = BURNING(s) = BURN_VRAM(s) = 0;
-    EYE(s) = AURA(s) = 0;
+    EYE(s) = AURA(s) = DEFEAT(s) = LOCKED(s) = 0;
+    KEPT_FLAGS(s) = obj->base.flags;
+    KEPT_C(s) = obj->base.unkC;
+    KEPT_5C(s) = obj->base.unk5C;
     SqueakSetState(s, DN_COME);
 }
 
@@ -1164,8 +1531,21 @@ void SqueakDarkNebulaInit(struct SqueakObject *s) {
     sub_0803E2B0(&obj->base, -17, -17, 17, 17);
     ObjectSetBounds(&obj->base, -16, -16, 16, 16);
     HARM(s) = obj->base.unk68;
+    DEFEAT(s) = LOCKED(s) = 0;
     SqueakStandOnFloor(obj);
     FLOOR(s) = SqueakBossFloor(s);
+    /* (in his own stage, a8s4s6, his spot is the dark star's, in the air: 92 over the floor, COME_Y under the view's top, too high for
+     * SqueakStandOnFloor's 5 cells; the floor his moves are measured from is the first one under him, his DS one: 80 over the stage's
+     * bottom); */
+    if (obj->base.roomId >= SQUEAK_FIRST_ROOM && !(obj->objTemplate && (obj->objTemplate->unk22 & SQUEAK_LAIR_FIGHT))) {
+        s32 y = obj->base.y & ~0xFFF, bottom = gCurLevelInfo[obj->base.unk56].levelMaxPosition.y;
+
+        for (; y <= bottom; y += 0x1000) {
+            if (!NidlIsFloor(obj, obj->base.x, y + 0x1000)) continue;
+            FLOOR(s) = y + 0x1000 - 1;
+            break;
+        }
+    }
     obj->base.flags |= 0x400 | 0x100;
     obj->base.unk62 |= 4;
     SqueakPlay(s, ANIM_STAR);
@@ -1183,7 +1563,9 @@ void SqueakDarkNebulaInit(struct SqueakObject *s) {
 static struct SqueakObject *Owner(struct SqueakObject *t) {
     struct SqueakObject *s = (struct SqueakObject *)t->obj.base.parent;
 
-    if (!Alive(s, SQUEAK_DARK_NEBULA) || s->obj.unk80 <= 0) return NULL;
+    if (!Alive(s, SQUEAK_DARK_NEBULA)) return NULL;
+    // (his HP out, 0x0212FB94: all gone but his eye, his flames and his twinkle, his defeat's);
+    if (s->obj.unk80 <= 0 && !(DEFEAT(s) && (t->variant == T_EYE || t->variant == T_AURA || t->variant == T_TWINKLE))) return NULL;
     return s;
 }
 

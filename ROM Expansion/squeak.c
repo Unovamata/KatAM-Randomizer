@@ -819,6 +819,14 @@ struct SqueakFx {
     bool8 held;                 // Kept on its last frame (or looping) while its character holds it (SqueakHoldEffect);
     bool8 seen;                 // A drifting one (SqueakDriftInRoom: no owner, dx and dy its speed): it's been on the screen;
     u8 life;                    // and the frames it has left;
+    /* A falling one (SqueakFallInRoom, Squeak Squad's 0x0211C9A8): its speed (Squeak Squad's 20.12, Y up; fracX and fracY the bits
+     * KatAM's 24.8 spot drops) and its fall a frame; under `floor` it bounces (its speed up, `gain` times it, 20.12) while it has
+     * bounces left, each sounding bounceSfx; */
+    bool8 falling;
+    u8 bounces;
+    u8 fracX, fracY;
+    u16 bounceSfx;
+    s32 vx, vy, ay, gain, floor;
 };
 
 // SqueakFxDestroy(); An effect's end (its own, or the room's): its character lets go of it;
@@ -827,6 +835,16 @@ static void SqueakFxDestroy(struct Task *t) {
 
     if (fx->owner && fx->owner->follower == fx) fx->owner->follower = NULL;
     ObjectBaseDestroy(t);
+}
+
+// FallStep(); A falling effect's step: its speed (20.12, Y up), the 4 bits KatAM's 24.8 spot drops kept;
+static void FallStep(struct SqueakFx *fx) {
+    s32 dx = fx->vx + fx->fracX, dy = fx->vy + fx->fracY;
+
+    fx->e.x += dx >> 4;
+    fx->e.y -= dy >> 4;
+    fx->fracX = dx & 0xF;
+    fx->fracY = dy & 0xF;
 }
 
 static void SqueakFxMain(void) {
@@ -857,13 +875,25 @@ static void SqueakFxMain(void) {
     if (fx->owner) {
         fx->e.x = fx->owner->obj.base.x + SQUEAK_SPEED(fx->dx);
         fx->e.y = fx->owner->obj.base.y - SQUEAK_SPEED(fx->dy);
-    } else if (fx->dx || fx->dy) {
+    } else if (fx->falling || fx->dx || fx->dy) {
         const struct LevelInfo *level = &gCurLevelInfo[gLocalPlayerId];
         s32 x, y;
         bool32 shownNow;
 
-        fx->e.x += fx->dx;
-        fx->e.y += fx->dy;
+        if (fx->falling) {
+            // (Squeak Squad's order: its step, its fall, then under the floor its bounce and a step more);
+            FallStep(fx);
+            fx->vy += fx->ay;
+            if (fx->bounces && fx->e.y > fx->floor) {
+                fx->bounces--;
+                fx->vy = (-fx->vy * fx->gain + 0x800) >> 12;      // (its speeds a few pixels a frame: no overflow);
+                FallStep(fx);
+                if (gKirbys[gLocalPlayerId].base.roomId == fx->e.roomId) m4aSongNumStart(SQUEAK_SE(fx->bounceSfx));
+            }
+        } else {
+            fx->e.x += fx->dx;
+            fx->e.y += fx->dy;
+        }
         x = (fx->e.x - level->viewportPosition.x) >> 8;
         y = (fx->e.y - level->viewportPosition.y) >> 8;
         shownNow = x > -SQUEAK_DRIFT_MARGIN && x < DISPLAY_WIDTH + SQUEAK_DRIFT_MARGIN && y > -SQUEAK_DRIFT_MARGIN && y < DISPLAY_HEIGHT + SQUEAK_DRIFT_MARGIN;
@@ -912,6 +942,7 @@ static struct SqueakFx *SqueakEffectAtIn(u16 roomId, u8 effect, s32 x, s32 y, bo
     fx->held = FALSE;
     fx->seen = FALSE;
     fx->life = 0;
+    fx->falling = FALSE;
     fx->palId = SqueakLoadPalette(d->palette.key, d->palette.variant, roomId);
     EffectObjectInitSprite(&fx->e, &fx->e.sprite, d->tiles, d->animId, d->anim.step[0].cell, 0x1A);
     // (none drawn when its VRAM couldn't be got: gone at its first run);
@@ -937,6 +968,25 @@ void SqueakDriftInRoom(u16 roomId, u8 effect, s32 x, s32 y, s32 dx, s32 dy) {
     if (fx == NULL) return;
     fx->dx = dx;
     fx->dy = dy;
+    fx->life = SQUEAK_DRIFT_LIFE;
+}
+
+/* SqueakFallInRoom(); An effect at (x, y) in a room (KatAM's units) thrown at (vx, vy) and falling ay a frame (Squeak Squad's units:
+ * 20.12, Y up; 0x0211C9A8's), bouncing `bounces` times under `floor` (its speed up `gain` times its fall, 20.12; sound `sfx`, the DS's
+ * id), owned by nothing: it ends as a drifting one (SqueakDriftInRoom), once it's been on the screen and left it; */
+void SqueakFallInRoom(u16 roomId, u8 effect, s32 x, s32 y, s32 vx, s32 vy, s32 ay, s32 floor, u8 bounces, s32 gain, u16 sfx) {
+    struct SqueakFx *fx = SqueakEffectAtIn(roomId, effect, x, y, FALSE);
+
+    if (fx == NULL) return;
+    fx->falling = TRUE;
+    fx->vx = vx;
+    fx->vy = vy;
+    fx->ay = ay;
+    fx->fracX = fx->fracY = 0;
+    fx->floor = floor;
+    fx->bounces = bounces;
+    fx->gain = gain;
+    fx->bounceSfx = sfx;
     fx->life = SQUEAK_DRIFT_LIFE;
 }
 

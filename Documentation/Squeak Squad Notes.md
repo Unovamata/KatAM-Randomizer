@@ -315,7 +315,7 @@ switches on the ID (0x00-0x47): each case allocates the enemy's object (its own 
 | 0x3B | yadgaine | Yadgaine (ported: `squeak/yadgaine.c`) |
 | 0x3C | bohboh | Bohboh (ported: `squeak/bohboh.c`) |
 | 0x3D | dancho00, dancho01 | Daroach and Dark Daroach (his boss fight, parameter 0 and 1: ported, `squeak/daroach_boss.c`) |
-| 0x3E, 0x3F, 0x46 | darkZERO_cmn, darkZERO_ext | Dark Nebula (0x46 his coming, 0x3F his fight: ported, `squeak/dark_nebula.c`); 0x3E the dark star Kirby chases through a8s4s3 and a8s4s4 (ported: `squeak/dark_star.c`); Dark Daroach is 0x3D's parameter 1 |
+| 0x3E, 0x3F, 0x46 | darkZERO_cmn, darkZERO_ext | Dark Nebula (0x46 his coming, 0x3F his fight and his defeat, `0x0211DF2C`-`0x0211CDCC` with `ML[128]`-`ML[149]` and its sparks `0x0211CBAA`/`0x0211C9A8`: ported, `squeak/dark_nebula.c`); 0x3E the dark star Kirby chases through a8s4s3 and a8s4s4 (ported: `squeak/dark_star.c`); Dark Daroach is 0x3D's parameter 1 |
 
 0x12, 0x1B, 0x29, 0x2F, 0x32, 0x40-0x45 and 0x47 fall to the default case. Parasol (the parasol some Waddle Dees, Waddle Doos and
 Shotzos hold) and the Squeaks (spin, doc, stron, chun) are created elsewhere.

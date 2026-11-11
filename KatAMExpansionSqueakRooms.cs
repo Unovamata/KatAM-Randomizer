@@ -941,6 +941,9 @@ namespace KatAMRandomizer {
         /* A Squeak Lair's fight (PlanSqueakLevels()): its mini-boss's template unk22 SQUEAK_LAIR_FIGHT (squeak.h: SqueakBossFloor() puts a
          * boss the randomizer picks there on its area's floor), and its Squeakers, LairSqueakers at most; */
         const byte SqueakLairFight = 0x10;
+        /* A mini-boss's template unk22 bit 2: KatAM's mini-boss defeat (sub_0809AF38, sub_0809EF88) doesn't put the room's music back
+         * (sub_08086C48); Dark Nebula's ("ROM Expansion/squeak/dark_nebula.c") fades it out itself, as the DS's; */
+        const byte KeepFightMusic = 4;
         const int LairSqueakers = 4;
         // The spawn flags (+0xB): 4, a chase spawn (only once the stage's treasure is carried: not made yet);
         const int SqueakChaseSpawn = 4;
@@ -1107,6 +1110,8 @@ namespace KatAMRandomizer {
                     } else if (SqueakBosses.TryGetValue(id, out int boss)) {
                         if (id == 0x3D && w == 1) boss = DarkDaroachIndex;
                         Boss(x, y, SqueakDefinitionOf(boss).MidbossType, (byte)(SqueakMidbossFlag | boss), id >= 0x37 ? bossShard : (byte)0);
+                        // (Dark Nebula's own defeat fades his music out as the DS's: KatAM's mini-boss defeat leaves it be, unk22 bit 2);
+                        if (id == 0x3F) templates[^1][0x22] |= KeepFightMusic;
                     }
                 }
                 int items = ReadShort(objects, 6);
