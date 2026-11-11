@@ -59,11 +59,19 @@
  *   Checked in KatAM (USA, Europe, Japan: his stage, KatAM's defeat's writes made by hand, as a hit would: the DS's states, timings and
  *   pictures; no Kirby's hit landed in that test, his mini-boss immunities, unk5C, keeping off the slide).
  * • His floor in his own stage (a8s4s6): the first under his spot (the dark star's, in the air), the DS's 80 over its bottom.
- * His sounds: Squeak Squad's (SqueakSfx). Not ported: the stage's background tinted by his form (red, green, blue: 0x02209F84's
- * +0x3C-0x44) and its stars, the screen shakes' strength (KatAM's own), stars turned back by Squeak Squad's reflecting attacks (flag
- * 0x400: KatAM has none), the fire's heat (0x0212F138: an object drawing nothing with only a grab box, harmless), his defeat's effect
- * at the white-out (0x020217D0: not identified) and its HUD flags (the stage's +0x9C bit 2, 0x0226FA60), his boss music; the floor's
- * burning time is the DS's average (its own timing not found). */
+ * • His form's tint (0x021225B4 at his fight's start, 0x021222E4 at each form he picks: 0x02209F84's +0x3C-0x44, over ML[7] frames
+ *   from where it is): the stage's background its own color (fire red, spark green, ice blue) times 1.0, the other two times 0.502
+ *   (0x808); here the far view's colors (ShowTint(): the stars in it too, they're the far view's), kept through KatAM's palette
+ *   effects (FarViewKept()). His HP bar on the HUD from his black star's wait's end (0x020B308C: filling, sound 0x177), not his coming
+ *   (KatAM's HUD brings it in about 55 frames later, then fills it, as it does every boss's bar). His music is his rooms' own (map
+ *   music 37, a8s4s5 and a8s4s6: KatAMExpansionSqueakSound.cs's SqueakRoomSong), which his code never changes (no KatAM mini-boss
+ *   music: he doesn't start it), faded at his defeat.
+ * His sounds: Squeak Squad's (SqueakSfx). Not ported: the screen shakes' strength (KatAM's own), stars turned back by Squeak Squad's
+ * reflecting attacks (flag 0x400: KatAM has none), the fire's heat (0x0212F138: an object drawing nothing with only a grab box,
+ * harmless), the stage's +0x9C bit 2 while the screen whitens and clears at a form change (0x021220D0 sets it, 0x02121D14 clears it:
+ * a few of Kirby's own DS states, 0x02017B60, 0x02037DC4, 0x020BBD9C, hold a change of state while it's set; KatAM's Kirby has
+ * none of them), his defeat's message handler at the white-out (0x020217D0: an effect's animation set while the screen is all white,
+ * which the DS's whitening covers too); the floor's burning time is the DS's average (its own timing not found). */
 #include "../squeak.h"
 #include "kirby.h"
 #include "main.h"
@@ -98,6 +106,7 @@ enum { FORM_NONE, FORM_FIRE, FORM_SPARK, FORM_ICE };
 #define START_WAIT 50           // ML[6];
 #define TINT_TIME 120           // ML[7], ML[8]: the next form 240 frames after it's picked;
 #define FORM_DELAY 240
+#define TINT_HALF 0x808         // (0x021222E4, 0x021225B4: a form's own color times SHADE_FULL, the other two times this);
 #define SWOOP_X 130             // ML[9]-ML[14];
 #define SWOOP_Y 33
 #define SWOOP_TIME 20
@@ -270,6 +279,7 @@ static const u8 sThingEnemies[] = {
 #define KEPT_FLAGS(s) ((s)->vars[24])   // His flags as his last frame left them (KatAM's mini-boss defeat changes them: DarkNebulaWatch);
 #define KEPT_C(s) ((s)->vars[25])
 #define KEPT_5C(s) ((s)->vars[26])
+#define TINT(s) ((s)->vars[27])         // The far view's tint (0x02209F84, ShowTint()) and its colors' keeper (FarViewKept());
 // (his defeat's own, in his fight's that it doesn't use: the far view's tint from, to, its frames gone and all, his twinkle);
 #define SHADE_FROM(s) ((s)->vars[3])
 #define SHADE_TO(s) ((s)->vars[4])
@@ -615,7 +625,8 @@ static void Unlock(struct SqueakObject *s) {
 }
 
 /* Shade(); The stage's background tint (0x02209F84: +0x1C its frames gone, +0x20 all of them, +0x30-0x38 from, +0x3C-0x44 to, 20.12
- * times its colors): from where it is to `to` over `frames` frames; his form's tint isn't ported, so it starts at SHADE_FULL; */
+ * times its colors) in his defeat, one level for its three colors: from where it is to `to` over `frames` frames (his defeat starts it
+ * at SHADE_FULL: DefeatStart()); in his fight, his form's tint (ShowTint()); */
 static s32 ShadeNow(struct SqueakObject *s) {
     if (SHADE_LEN(s) <= 0) return SHADE_TO(s);
     return SHADE_FROM(s) + (SHADE_TO(s) - SHADE_FROM(s)) * SHADE_GONE(s) / SHADE_LEN(s);
@@ -631,23 +642,94 @@ static void Shade(struct SqueakObject *s, s32 to, s32 frames) {
 /* ShowShade(); The far view (KatAM's BG palettes 6-13 in Squeak Squad's rooms: KatAMExpansionSqueakRooms.cs's SqueakBackground) its
  * colors as loaded times the tint, each frame it goes and once more at its end (in KatAM's own rooms, whose palettes are laid out
  * otherwise, none: their foreground's would darken); */
+static void FarViewTimes(struct SqueakObject *s, s32 r, s32 g, s32 b);
+
 static void ShowShade(struct SqueakObject *s) {
     s32 level;
-    u16 i;
 
     if (SHADE_LEN(s) <= 0) return;
     if (SHADE_GONE(s) < SHADE_LEN(s)) SHADE_GONE(s)++;
     level = ShadeNow(s);
-    if (s->obj.base.roomId >= SQUEAK_FIRST_ROOM) {
-        for (i = 0; i < FAR_VIEW_COLORS; i++) {
-            u16 c = gUnk_02022120[FAR_VIEW_FIRST + i];
-
-            gBgPalette[FAR_VIEW_FIRST + i] = ((c & 31) * level >> 12) | ((c >> 5 & 31) * level >> 12) << 5 | ((c >> 10 & 31) * level >> 12) << 10;
-        }
-        gMainFlags |= MAIN_FLAG_BG_PALETTE_SYNC_ENABLE;
-    }
+    if (s->obj.base.roomId >= SQUEAK_FIRST_ROOM) FarViewTimes(s, level, level, level);
     // (back to its own colors: done);
     if (SHADE_GONE(s) >= SHADE_LEN(s) && level == SHADE_FULL) SHADE_LEN(s) = 0;
+}
+
+/* FarViewKept(); The far view's colors as loaded, kept while his tint or shade is on it (a task of his: SQUEAK_OBJECT_SIZE has no room;
+ * its address in TINT's top half), as squeak/gimmicks.c's Light() keeps them: the colors shown go into those KatAM's palette effects
+ * put back too (gUnk_02022120: the copy ability's flash, Kirby's sub_0805C11C and sub_0803CBC4, ends so: sub_0803A1F4), which then
+ * keep them. Gone with him, the far view its own colors again (DarkNebulaGone()); a task freed with the room before him (its own
+ * check: its main and its owner) none, `make` FALSE none made; */
+struct FarView {
+    struct SqueakObject *owner;
+    u16 colors[FAR_VIEW_COLORS];
+};
+
+static void FarViewMain(void) {}
+
+static struct Task *FarViewTask(struct SqueakObject *s) {
+    struct Task *t = (struct Task *)(0x03000000 | (u32)TINT(s) >> 16);
+
+    if (!((u32)TINT(s) >> 16) || t->main != FarViewMain || ((struct FarView *)TaskGetStructPtr(t))->owner != s) return NULL;
+    return t;
+}
+
+static u16 *FarViewKept(struct SqueakObject *s, bool32 make) {
+    struct Task *t = FarViewTask(s);
+    struct FarView *f;
+    u16 i;
+
+    if (t != NULL) return ((struct FarView *)TaskGetStructPtr(t))->colors;
+    if (!make) return NULL;
+    t = TaskCreate(FarViewMain, sizeof(struct FarView), 0x1000, TASK_USE_EWRAM, NULL);
+    if (t->main != FarViewMain) return NULL;    // (none free: KatAM's empty task);
+    f = TaskGetStructPtr(t);
+    f->owner = s;
+    for (i = 0; i < FAR_VIEW_COLORS; i++) f->colors[i] = gUnk_02022120[FAR_VIEW_FIRST + i];
+    TINT(s) = (TINT(s) & 0xFFFF) | ((u32)t & 0xFFFF) << 16;
+    return f->colors;
+}
+
+/* FarViewTimes(); The far view (KatAM's BG palettes 6-13 in Squeak Squad's rooms) its colors as loaded (FarViewKept()), each of red,
+ * green and blue times its own level (20.12); none in KatAM's own rooms (their palettes are laid out otherwise); */
+static void FarViewTimes(struct SqueakObject *s, s32 r, s32 g, s32 b) {
+    u16 i, *kept;
+
+    if (s->obj.base.roomId < SQUEAK_FIRST_ROOM || (kept = FarViewKept(s, TRUE)) == NULL) return;
+    for (i = 0; i < FAR_VIEW_COLORS; i++) {
+        u16 c = kept[i];
+
+        gBgPalette[FAR_VIEW_FIRST + i] = gUnk_02022120[FAR_VIEW_FIRST + i] =
+            ((c & 31) * r >> 12) | ((c >> 5 & 31) * g >> 12) << 5 | ((c >> 10 & 31) * b >> 12) << 10;
+    }
+    gMainFlags |= MAIN_FLAG_BG_PALETTE_SYNC_ENABLE;
+}
+
+/* TintStart(), ShowTint(); His form's tint of the stage's background (0x021225B4 at his fight's start, 0x021222E4 at each form he
+ * picks: 0x02209F84's +0x3C-0x44, the colors it goes to over ML[7] frames, TINT_TIME, from those it's at): his form's own color
+ * (fire red, spark green, ice blue) times SHADE_FULL, the other two times TINT_HALF; no form, all three SHADE_FULL. Each frame of it
+ * the far view's colors (FarViewTimes()), then none till the next (they keep it: FarViewKept()); TINT: its frames gone, the form it's
+ * from << 8, to << 12, FarViewKept()'s task << 16; */
+static s32 TintLevel(u8 form, u8 color) {
+    return form == FORM_NONE || form == color + FORM_FIRE ? SHADE_FULL : TINT_HALF;
+}
+
+static void TintStart(struct SqueakObject *s, u8 from, u8 to) {
+    TINT(s) = (TINT(s) & ~0xFFFF) | from << 8 | to << 12;
+}
+
+static void TintOff(struct SqueakObject *s) {
+    TINT(s) = (TINT(s) & ~0xFFFF) | (TINT_TIME + 1);
+}
+
+static void ShowTint(struct SqueakObject *s) {
+    s32 gone = TINT(s) & 0xFF, level[3];
+    u8 from = TINT(s) >> 8 & 15, to = TINT(s) >> 12 & 15, i;
+
+    if (gone > TINT_TIME) return;
+    for (i = 0; i < 3; i++) level[i] = TintLevel(from, i) + (TintLevel(to, i) - TintLevel(from, i)) * gone / TINT_TIME;
+    TINT(s)++;
+    FarViewTimes(s, level[0], level[1], level[2]);
 }
 
 /* DefeatSpark(); 0x0211CBAA: a spark at him, thrown at `speed` rand(180)° up (0x0211C878), falling GRAVITY a frame, bouncing once under
@@ -759,11 +841,17 @@ static bool32 DarkNebula(struct SqueakObject *s) {
             FORM(s) = NEXT(s) = FORM_FIRE + Random(3);
             Companions(s);
         }
-        // (0x021225B4: ML[6] frames, then a shake and his eye's twinkle);
+        /* (0x021225B4: ML[6] frames, then a shake and his eye's twinkle, his HP bar on the HUD (0x020B308C: filling, sound 0x177; KatAM's
+         * bar fills as it shows, DarkNebulaMain), the far view tinted toward his form's color (ShowTint)); */
         if (T(s) > START_WAIT) {
+            struct Object5 *bar;
+
             RequestScreenShake(1, base);
             EyeMode(s, MODE_TWINKLE);
             SqueakSfx(s, 0x1CD);
+            TintStart(s, FORM_NONE, FORM(s));
+            if ((bar = sub_08034E14(&s->obj)) != NULL) bar->unk9 = 0;
+            SqueakSfx(s, 0x177);
             SqueakSetState(s, DN_TWINKLE);
         }
         break;
@@ -806,6 +894,8 @@ static bool32 DarkNebula(struct SqueakObject *s) {
                 NEXT(s) = FORM_FIRE + Random(3);
             }
             DELAY(s) = FORM_DELAY;
+            // (0x021222E4: the far view tinted toward the next form's color, its 240 frames' first ML[7]);
+            TintStart(s, FORM(s), NEXT(s));
         }
         SqueakSetState(s, DN_IDLE);
         break;
@@ -1430,6 +1520,9 @@ static void DefeatStart(struct SqueakObject *s) {
     if (s->loopSound) SqueakStopSfx(s, s->loopSound);
     SHADE_FROM(s) = SHADE_TO(s) = SHADE_FULL;
     SHADE_GONE(s) = SHADE_LEN(s) = 0;
+    // (his form's tint gone: the far view its own colors);
+    TintOff(s);
+    FarViewTimes(s, SHADE_FULL, SHADE_FULL, SHADE_FULL);
     TWINKLE(s) = 0;
     LOCKED(s) = 0;
     EyeMode(s, MODE_STILL);
@@ -1479,8 +1572,10 @@ static void DarkNebulaMain(struct Object *obj) {
     NextForm(s);
     SqueakRun(s, DarkNebula);
     if (s->state >= DN_START && obj->unk80 > 0) Companions(s);
-    // (his HP bar Squeak Squad's boss's, which his things' hits don't take: KatAM's goes to whatever is hit, taken back);
-    sub_08034E14(obj);
+    /* (his HP bar Squeak Squad's boss's, which his things' hits don't take: KatAM's goes to whatever is hit, taken back; from his black
+     * star's wait's end on, as the DS's HUD takes him then: DN_START); */
+    if (s->state > DN_START) sub_08034E14(obj);
+    ShowTint(s);
     ShowWhite(s);
     SqueakFinishFrame(s);
     SqueakAnimate(s);
@@ -1492,18 +1587,22 @@ static void DarkNebulaMain(struct Object *obj) {
 
 // DarkNebulaGone(); He's gone (squeak.c's SqueakDestroy): his burning floor's VRAM let go of;
 void DarkNebulaGone(struct SqueakObject *s) {
+    struct Task *t;
+    u16 i;
+
     if (BURN_VRAM(s)) VramFree(BURN_VRAM(s));
     BURN_VRAM(s) = 0;
-    // (gone in his defeat: the controls he took given back, the far view its own colors);
-    if (DEFEAT(s)) {
-        Unlock(s);
-        if (SHADE_LEN(s) > 0 || ShadeNow(s) != SHADE_FULL) {
-            Shade(s, SHADE_FULL, 0);
-            SHADE_LEN(s) = 1;
-            SHADE_GONE(s) = 1;
-            ShowShade(s);
-        }
+    // (gone in his defeat: the controls he took given back);
+    if (DEFEAT(s)) Unlock(s);
+    /* (his far view's colors' keeper let go of (FarViewKept()), the far view its own colors again while his room is the one shown
+     * (a room loaded after him has its own); */
+    if ((t = FarViewTask(s)) != NULL) {
+        for (i = 0; i < gNumKirbys; i++)
+            if (gCurLevelInfo[i].currentRoom == s->obj.base.roomId) break;
+        if (i < gNumKirbys) FarViewTimes(s, SHADE_FULL, SHADE_FULL, SHADE_FULL);
+        TaskDestroy(t);
     }
+    TINT(s) &= 0xFFFF;
 }
 
 /* SqueakDarkNebulaStart(); His coming and fight's start (and after a hit: it goes on, as KatAM's mini-bosses do). He isn't held in
@@ -1518,6 +1617,7 @@ void SqueakDarkNebulaStart(struct Object *obj) {
     FORM(s) = NEXT(s) = FORM_NONE;
     DELAY(s) = PICKS(s) = BLINK(s) = WHITE(s) = ORB(s) = BURNING(s) = BURN_VRAM(s) = 0;
     EYE(s) = AURA(s) = DEFEAT(s) = LOCKED(s) = 0;
+    TINT(s) = TINT_TIME + 1;
     KEPT_FLAGS(s) = obj->base.flags;
     KEPT_C(s) = obj->base.unkC;
     KEPT_5C(s) = obj->base.unk5C;

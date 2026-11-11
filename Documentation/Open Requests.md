@@ -979,8 +979,18 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
   - Not tested in the emulator: a real killing blow (a scripted Kirby's slide never lands: mini-bosses' unk5C makes them immune to
     it, and the engine's other checks weren't worked out), the whole chain played through (Nightmare's ending into 8-4-1; Dark
     Nebula beaten, the dance out to the hub), the music fade by ear.
-  - Left: his background tint by form (red, green, blue: the DS stage's own), the effect at his white-out (0x020217D0: not
-    identified), the DS's HUD flags in his defeat.
+  - His last touches (the owner: "Add the Dark Nebula last touches."): done. His background tint by form (the DS's 0x021225B4 and
+    0x021222E4): the far view goes toward his form's color over 120 frames, at his fight's start and at each form he picks (fire
+    red, spark green, ice blue), and keeps it through KatAM's palette effects (a copy ability's flash used to wipe it); back to its
+    own colors at his defeat. His HP bar shows from the end of his black star's wait with its sound (0x020B308C), not from his
+    coming. His music: his room's own (map music 37), never changed through his fight, as on the DS. The two other leftovers were
+    traced and left out on purpose: the message at his white-out (0x020217D0) only sets an effect's animation while the screen is
+    all white, and the stage's +0x9C bit 2 only holds a few of the DS Kirby's own states, which KatAM's Kirby doesn't have.
+    - Checked in the GBA emulator (USA; the tint also in Europe and Japan): the far view's colors logged and screenshots through
+      his forms (spark green, then toward fire red), through a copy ability's flash, and back to their own at his defeat (his HP
+      set to 1 by a RAM write, then Kirby's slide: his whole DS defeat ran, the next room's colors untouched); the song the same
+      from his room's start to his defeat; the bar showing after the wait (KatAM's HUD brings it in about 55 frames later, then
+      fills it, as for every boss). Not tested: a whole fight played by hand, the music by ear.
 - **The Squeak Lairs**: done (the owner: "I think Squeak Lair doors should be ported to the game and treated as miniboss rooms
   Squeak Squad rooms lead to and then exit to the next expected exit. Like instead of Entrance 1 -> Entrance 2, it would be great
   to add them as Entrance 1 -> Squeak Lair with Miniboss -> Entrance 2 as an interlude between zones in the Squeak Squad map. This

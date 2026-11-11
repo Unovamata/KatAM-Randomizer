@@ -1227,6 +1227,15 @@ blinking, 20 frames). Recorded on the DS in his stage (`load_dn.py`: the stage t
 a state written at frame 200, his spot and his things' each frame, screenshots), each move compared with KatAM's forced the same
 way (`cmp.py`). The DS drops frames now and then (lag frames in its recordings, found by hooking his per-frame function); KatAM
 holds every object still while Kirby is hurt (its hit pause), so its logs skip those frames.
+His stage's tint: the stage's struct at `0x02209F84` (+0x1C frames gone, +0x20 length, +0x24-0x2C the colors' levels now, +0x30-0x38
+from, +0x3C-0x44 to, 20.12, red/green/blue), set at his fight's start (`0x021225B4`, after ML[6]'s 50 frames) and at each form pick
+(`0x021222E4`), ML[7] = 120 frames: his form's own channel 0x1000, the other two 0x808 (fire red, spark green, ice blue); none, all
+0x1000. His HP bar: `0x020B308C` at the same start (the HUD's boss bar filling over 60 frames, sound 0x177). His music: never set by
+him (no `Macro_08100F18` call): the stage's map music, 37. The stage's +0x9C bit 2 is set as the screen whitens at a form change
+(`0x021220D0`) and cleared as it clears (`0x02121D14`); only Kirby's states `0x02017B60`, `0x02037DC4` and `0x020BBD9C` read it. In
+KatAM the tint goes on the far view (BG palettes 6-13) and must be written into KatAM's copy of the loaded colors too
+(`gUnk_02022120`): KatAM's palette effects (a copy ability's flash: `sub_0805C11C`, `sub_0803CBC4`) end by copying it back over the
+BG palettes (`sub_0803A1F4`).
 
 **The dark star** (enemy 0x3E, ported: `squeak/dark_star.c`): its body `0x0211B680` (`EnemyBaseCtor(0x3E)`, vtable `0x021828F8`,
 `darkZERO_cmn`'s animation 1; params `PrmLB01Ml0` 14336, 615, 16384, 615 (3.5 and 0.15: stored as 20.12, 615 not 614),

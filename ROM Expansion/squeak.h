@@ -387,7 +387,7 @@ struct SqueakObject {
     void *parts;                // The composition's other parts (SqueakPartFx, a chain: SqueakAnimate places them);
     void *layer[2];             // Its layers' sprites (SqueakShowLayer), while its cell has one;
     u32 compositeTime;          // The frames since the composite animation started;
-    s32 vars[27];               // The character's own;
+    s32 vars[28];               // The character's own;
     struct ObjectTemplate spawn;    // Its template, when another character spawned it (SqueakSpawn);
     bool8 activated;            // A mid-boss: its fight has started;
     u8 level;                   // Its KatAM hit level (unk5C's 7) while SqueakUntouchable holds it at 6, | 0x80; 0 when not held;
