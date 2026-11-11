@@ -1041,7 +1041,9 @@ namespace KatAMRandomizer {
         /* A mini-boss's template unk22 bit 2: KatAM's mini-boss defeat (sub_0809AF38, sub_0809EF88) doesn't put the room's music back
          * (sub_08086C48); Dark Nebula's ("ROM Expansion/squeak/dark_nebula.c") fades it out itself, as the DS's; */
         const byte KeepFightMusic = 4;
-        const int LairSqueakers = 4;
+        /* (two: with four, and the Squeaks the fight calls in, a hideout ran at 59% speed in the GBA emulator (0x481: 177 frames of the
+         * game's in 300), with two at full speed; the owner: "an unbearable amount of lag" in the Squeak hideouts); */
+        const int LairSqueakers = 2;
         // The spawn flags (+0xB): 4, a chase spawn (only once the stage's treasure is carried: not made yet);
         const int SqueakChaseSpawn = 4;
 
@@ -1156,7 +1158,7 @@ namespace KatAMRandomizer {
                 byte[] arena = (byte[])template.Clone();
                 arena[3] = (byte)templates.Count;
                 arena[12] = NightmareID; arena[14] = ArenaBehavior;
-                arena[0x10] = (byte)(width * 16 <= SqueakScreenRoom.width && height * 16 <= SqueakScreenRoom.height ? 2 : 0);
+                arena[0x10] = (byte)(floorRow < 0 && width * 16 <= SqueakScreenRoom.width && height * 16 <= SqueakScreenRoom.height ? 2 : 0);
                 Add(arena);
                 Add(template);
             }
@@ -1356,9 +1358,16 @@ namespace KatAMRandomizer {
          * Squad's arenas are rooms a screen big (SqueakScreenRoom: 288 by 240 pixels, the DS's 256 by 192 and a margin); */
         static readonly (int width, int height) SqueakScreenRoom = (288, 240);
         // (`from`: the row to look for the floor from, under the spot if none: a Squeak Lair's, the row Kirby lands on);
+        /* (a Squeak Lair's, `from` its landing's floor: the whole room, the camera scrolling over it all as the DS's, its hideouts (18 by
+         * 15 cells, 18 by 32) a screen and more on the GBA; one screen's cut its top off, the owner: "Some Squeak Lair rooms get cutoff
+         * and the camera does not scroll all the way up"); */
         static void SqueakArena(byte[] template, SqueakMap map, byte[] collision, int from = -1) {
             const int ScreenWidth = 240, ScreenHeight = 160, Edge = 8, UnderFloor = 32, ArenaRoom = 36;
             int width = map.Width * 16, height = map.Height * 16, x = ReadShort(template, 6), y = ReadShort(template, 8);
+            if (from >= 0) {
+                WriteShorts(template, 0x1A, Edge - x, Edge - y, width - 2 * Edge, height - 2 * Edge);
+                return;
+            }
             int arenaWidth = Math.Min(ScreenWidth, width - 2 * Edge), arenaHeight = Math.Min(ScreenHeight, height - 2 * Edge);
             int left = map.Width <= ArenaRoom ? (width - arenaWidth) / 2 : x - arenaWidth / 2;
             int floor = from >= 0 ? from : y / 16;
@@ -1401,6 +1410,14 @@ namespace KatAMRandomizer {
          * randomized as well"); */
         static readonly List<(int room, int address)> squeakLairMinibosses = new List<(int, int)>();
         public static IReadOnlyList<(int room, int address)> SqueakLairMinibosses => squeakLairMinibosses;
+        /* SqueakLairEscorts; The Squeakers around a lair's Squeak (their room, their template's offset in the ROM): the mini-boss
+         * randomization takes them off the stage when the lair's fight isn't its Squeak any more (KatAMMinibosses; the owner: "Squeak
+         * hideouts have the base Squeak enemy and a miniboss [...] It's either one or the other"); */
+        static readonly List<(int room, int address)> squeakLairEscorts = new List<(int, int)>();
+        public static IReadOnlyList<(int room, int address)> SqueakLairEscorts => squeakLairEscorts;
+        /* OffStageX; Where a template stands that KatAM never spawns: KatAM's spawner (CreateLevelObjects) makes only the ones within a
+         * screen of the camera, and no room is near this wide (the Map Viewer skips them too); */
+        public const int OffStageX = 0x7FF0;
         static List<SqueakPortedRoom> squeakRooms = new List<SqueakPortedRoom>();
         public static IReadOnlyList<SqueakPortedRoom> SqueakPortedRooms => squeakRooms;
         // (and the doors the levels' plan gave them, PlanSqueakLevels(), by room);
@@ -1873,6 +1890,7 @@ namespace KatAMRandomizer {
             int roomProps = symbols["gRoomProps"], roomInfos = symbols["gUnk_08D6CD0C"], arrivals = symbols["gUnk_0893CB44"];
             squeakRooms = new List<SqueakPortedRoom>();
             squeakLairMinibosses.Clear();
+            squeakLairEscorts.Clear();
             List<SqueakRoomFiles> files = SqueakWorldRooms(squeak);
             if (files.Count == 0) return "The Squeak Squad ROM's stages weren't found.";
             // (the spray paints' chests: the KatAM can each shows, KatAMExpansionSprays.cs);
@@ -2488,6 +2506,10 @@ namespace KatAMRandomizer {
                     // (a Squeak Lair's mini-boss's template, for the randomizer's mini-boss pool: SqueakLairMinibosses);
                     int lairFight = templates.FindIndex(t => t[12] != NightmareID && (t[0x22] & SqueakLairFight) != 0);
                     if (lairFight >= 0) squeakLairMinibosses.Add((room, ReadInt(rom, objects) - 0x08000000 + lairFight * 36));
+                    // (and its Squeakers, SqueakLairEscorts);
+                    for (int t = 0; lairFight >= 0 && t < templates.Count; t++)
+                        if (templates[t][12] == SqueakID && templates[t][14] == SqueakerCharacter)
+                            squeakLairEscorts.Add((room, ReadInt(rom, objects) - 0x08000000 + t * 36));
                     int navigation = BuildNavigation(rom, width, height, false, collision, navigationRoutes, new List<(int, int, int, int)>(), ref here);
                     /* (its chests in its 9ROM list, first, as KatAM's: {1, 8, 0xFF, 0xFF, the template's x, y}, and counted: opening one
                      * marks it there, sub_08002B30 looking it up by its spot, never ending without it; then its doors' places); */
