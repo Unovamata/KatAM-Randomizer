@@ -358,6 +358,9 @@ struct SqueakData {
     /* Per character, its hurt flash's colors (KatAMExpansionSqueak.cs's DamagePalette: Squeak Squad's _dmg.cla), per animation the
      * palette in them; NULL none (SqueakDamageColors); */
     const struct SqueakPaletteKey *const *damage;
+    /* Per character (KatAMExpansionSqueak.cs's FitVram), its count and then the tiles each variant's frame takes (its hurt frames',
+     * then its cells'); NULL none: its sprite as many as its biggest (SqueakFitVram); */
+    const u16 *const *cellTiles;
 };
 
 extern const struct SqueakData gSqueakData;
@@ -491,6 +494,10 @@ s16 SqueakHpBase(struct Object *);
 void SqueakSetCell(struct SqueakObject *, u8 cell);
 // SqueakVramOk(); A sprite's VRAM was got (KatAM's VramMalloc gives ewram_end when it's full: the sprite would draw what's there);
 #define SqueakVramOk(vram) ((u32)(vram) >= (u32)OBJ_VRAM0 && (u32)(vram) < (u32)OBJ_VRAM0 + OBJ_VRAM0_SIZE)
+/* SqueakNoSprite(); A character drawn by nothing for good (Daroach's beam's reach): no VRAM of its own (KatAM's sub_0809A630 gives a
+ * sprite with none its type's, unless unkC 0x200 is set), its frames not stepped (sub_0809A7A4 steps a hidden sprite's animation,
+ * its tiles copied in, unless flag 8 is set); */
+void SqueakNoSprite(struct SqueakObject *s);
 void SqueakUsePalette(struct SqueakObject *, u8 alternate);
 void SqueakDamageColors(struct SqueakObject *, bool32 on);
 u8 SqueakLoadPalette(u16 key, u8 variant, u16 roomId);

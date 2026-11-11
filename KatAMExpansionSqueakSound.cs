@@ -63,6 +63,12 @@ namespace KatAMRandomizer {
             "0200080002000D0001000B00020002000200FFFF020006000200020002000E00FFFF000000000000FFFF000000000000";
 
         static int SqueakSoundCount => SqueakSoundIds.Length / 4;
+
+        /* Sound effects whose notes' release (the MP2K envelope's, per frame) is at most this: Dark Daroach's beam (0x1AF) plays 42
+         * one-tick notes a tick apart, each ringing about 30 frames on its release (0xEB), so KatAM mixed up to ten voices for it, a
+         * fifth of a frame (the owner: "Massive amounts of lag whenever the Squeak Squad boss invokes stars."); 0x60 rings each for 4,
+         * the same notes, pans and bends; */
+        static readonly Dictionary<int, byte> SqueakSoundReleaseCaps = new Dictionary<int, byte> { [0x1AF] = 0x60 };
         static (int archive, int index) SqueakSoundId(int id) {
             int value = Convert.ToInt32(SqueakSoundIds.Substring(id * 4, 4), 16);
             return value == 0xFFFF ? (-1, -1) : (value >> 8, value & 0xFF);
@@ -117,6 +123,8 @@ namespace KatAMRandomizer {
             readonly Dictionary<int, int> groups = new Dictionary<int, int>();
             readonly Dictionary<(int file, int volume), (int block, Dictionary<int, int> map)> blocks = new Dictionary<(int, int), (int, Dictionary<int, int>)>();
             readonly int silentSample;
+            // (a sound effect's commands, in its archive's file, and the most its release may be: SqueakSoundReleaseCaps);
+            public readonly List<(int fileKey, int start, int end, byte cap)> ReleaseCaps = new List<(int, int, int, byte)>();
 
             public SqueakSoundCompiler(Sdat sdat, byte[] rom, Func<int, int, int> allocate) {
                 (this.sdat, this.rom, this.allocate) = (sdat, rom, allocate);
@@ -355,6 +363,7 @@ namespace KatAMRandomizer {
                 int at = start;
                 while (at < end) {
                     map[at] = o.Count;
+                    int commandAt = at;
                     byte c = d[at++];
                     if (c < 0x80) {
                         int velocity = d[at++], length = VarLen(d, ref at);
@@ -401,7 +410,11 @@ namespace KatAMRandomizer {
                         int value = d[at++];
                         if (value == 0xFF) break;
                         byte[] env = Envelope(value, value, value, value);
-                        o.Add(0xCD); o.Add((byte)(0x04 + c - 0xD0)); o.Add(env[c - 0xD0]);
+                        byte set = env[c - 0xD0];
+                        if (c == 0xD3)
+                            foreach (var (fileKey2, from, to, cap) in ReleaseCaps)
+                                if (fileKey2 == fileKey && commandAt >= from && commandAt < to) set = Math.Min(set, cap);
+                        o.Add(0xCD); o.Add((byte)(0x04 + c - 0xD0)); o.Add(set);
                         break;
                     }
                     case 0xE0: { int delay = (short)ReadShort(d, at); at += 2; o.Add(0xC3); o.Add((byte)Math.Clamp(delay, 0, 127)); break; }
@@ -484,6 +497,19 @@ namespace KatAMRandomizer {
                 }
                 int empty = Allocate(ref here, 8, 4);
                 Dictionary<int, byte[]> archives = new Dictionary<int, byte[]>();
+                /* (each capped sound's commands: from its start to the next sequence's in its archive, the archive's sequences one after
+                 * the other; before any of its archive's are written, the archive's commands written once for all of them); */
+                foreach ((int id, byte cap) in SqueakSoundReleaseCaps) {
+                    (int archive, int index) = SqueakSoundId(id);
+                    if (archive < 0) continue;
+                    byte[] ssar = sdat.File(sdat.ArchiveFile(archive));
+                    int dataStart = ReadInt(ssar, 0x18), dataEnd = Math.Min(ssar.Length, 0x10 + ReadInt(ssar, 0x14)), count = ReadInt(ssar, 0x1C);
+                    if (index >= count) continue;
+                    int offset = ReadInt(ssar, 0x20 + index * 12);
+                    int next = Enumerable.Range(0, count).Select(k => ReadInt(ssar, 0x20 + k * 12)).Where(o => o != -1 && o > offset)
+                                         .DefaultIfEmpty(dataEnd - dataStart).Min();
+                    compiler.ReleaseCaps.Add((0x10000 + sdat.ArchiveFile(archive), dataStart + offset, dataStart + next, cap));
+                }
                 for (int id = 0; id < SqueakSoundCount; id++) {
                     (int archive, int index) = SqueakSoundId(id);
                     if (archive < 0) { songs.Add((empty, 1, 1)); continue; }

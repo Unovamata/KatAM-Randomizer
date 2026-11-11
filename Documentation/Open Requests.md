@@ -20,18 +20,13 @@ finishes it says how it was checked). The design rules for doors, mirrors and hu
   light ability should light up Squeak Squad sections that require the candle if NiDL expansion is present"): with the NiDL ROM
   loaded, NiDL's Light ability (from Cool Spook) lights the Squeak Squad dark rooms' parts the candles light, as Fire does on the DS.
 
-## 3. Squeak Squad's final sequence (the owner: "Complete the final sequence.")
-- "Massive amounts of lag whenever the Squeak Squad boss invokes stars.": measured in the emulator, his beam (4 seconds) runs at
-  half speed: the sound mixer takes about a fifth of a frame more while it plays, and its 15 sprite pieces the rest. His idle,
-  bombs and warps keep full speed. Not fixed yet.
-
-## 4. Dark Nebula
+## 3. Dark Nebula
 - "massive lag when summoning stars. You can use the game's existing stars"
 - "fire attack looks very off and it's very laggy"
 - "When using its ice attack, it doesn't add the ice platforms at the bottom."
 - "Dark Nebula's sprite looks off."
 
-## 5. Polish the Squeak Squad hubs
+## 4. Polish the Squeak Squad hubs
 - The owner: "Add a pending tasks to the list that we need to thoroughly polish the Squeak Squad hubs." The Squeak Squad hub (the
   Central Circle copy, its grey door, its mirror and doors' places and looks, still provisional) and the 8 world switch rooms (their
   provisional tiles, statues and pedestals): a thorough pass on looks and layout, the owner's picks first (the rulebook's frozen

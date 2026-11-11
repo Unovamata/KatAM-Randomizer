@@ -1300,6 +1300,26 @@ flashes in `dan_dmg` too. His beam (`dancho01.mca`'s 2 and 3): its first part (a
 11 and 13, 48 ahead) reaches 104 pixels on from its spot, the 16-pixel pieces of 12 and 14 go from 152 to 248; a 128-pixel frame
 cut the first part at 64 (the port's frames are 256 across).
 
+His fight's lag (the owner: "Massive amounts of lag whenever the Squeak Squad boss invokes stars."; measured in the emulator on Dark
+Daroach's room 0x5DC, 1800 frames from the same start, a frame "overloaded" when the CPU had under 8000 cycles left: 258 before, 29
+after, 5 of them the room loading; Daroach's 0x56B: 11). What it was and what changed:
+- **His beam's 16 sprite parts** (each a KatAM effect object, its VRAM and tile copy): parts that play in step are drawn by one sprite
+  (`KatAMExpansionSqueak.cs`'s `SqueakMergeParts`, the character's `MergeParts`), cut in runs at most 128 pixels across so each finds
+  a hole in the VRAM heap (the whole beam's 183 tiles found none for half a second): the beam is 2 sprites and the 7 sparkles. A
+  merged cell counts its pieces' tiles from its first cell's (a piece's 10 bits reach 4096 tiles; his cells are past that in his two
+  files' tiles, which first drew the beam as scattered bits of other frames).
+- **VRAM.** KatAM's stage heap is 512 tiles. His two beam halves (drawn by nothing) each took his biggest frame's 103 tiles: now none
+  (`squeak.c`'s `SqueakNoSprite`: unkC 0x200, as the NiDL bosses' own objects, and flag 8). His stars, bomb and wand (`FitVram`) take
+  the frame they show (a star 16, the wand 13, the fire column's base 103), grown when a bigger one shows (`SqueakFitVram`, the tiles
+  per frame in `SqueakData.cellTiles`); before, three stars took 309 tiles and the beam none was left.
+- **Failed VRAM.** KatAM's `VramMalloc` gives 0 (not `ewram_end`'s address) when the heap is full, and its object update
+  (`sub_0809A630`) asks again for the type's 123 tiles every frame a sprite has 0; each failed search tries every free segment against
+  the ones after it, a fifth of a frame. A Squeak part or character that waits for VRAM now asks only when `SqueakVramFits` (a walk of
+  the heap's blocks) finds a hole that big, and reloads its frame's tiles once it has it (KatAM copies them only as a frame starts).
+- **His beam's sound** (0x1AF, archive 14's 8): 42 one-tick notes a tick apart, each ringing about 30 frames on its release (0xEB), so
+  KatAM mixed up to ten voices (about a fifth of a frame). The converter caps that sound's release at 0x60 (`SqueakSoundReleaseCaps`):
+  the same notes, pans and bends, each ringing about 4 frames. The DS's own players set no channel limit for it (their masks are 0).
+
 **Meta Knight** (boss 0x37, ported: `squeak/meta_knight_kss.c`): his body `0x02116C7C` (vtable `0x02181E80`: +0x3C his idle
 `0x02116300`, +0x34 per frame `0x02116ED4`, +0x30 his hit `0x021166BC`, +0x2C his touch `0x02116ACC`, +0x24 a spat star on him
 `0x021164F4`, +0x18 his flash and intro `0x02113018`; params `PrmBB01Ml0` (moves), `PrmBB01Sl0` (400 HP)). +0x228 his mode (1 a walk
