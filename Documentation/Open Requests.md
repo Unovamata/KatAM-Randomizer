@@ -20,12 +20,7 @@ finishes it says how it was checked). The design rules for doors, mirrors and hu
   light ability should light up Squeak Squad sections that require the candle if NiDL expansion is present"): with the NiDL ROM
   loaded, NiDL's Light ability (from Cool Spook) lights the Squeak Squad dark rooms' parts the candles light, as Fire does on the DS.
 
-## 3. Dark Nebula
-- "When using its ice attack, it doesn't add the ice platforms at the bottom." (On the DS his pillar turns the floor's top row into
-  ice blocks as it passes, the stage's own ice blocks; they stay through his other forms till his fire's flames melt them.)
-- "Dark Nebula's sprite looks off."
-
-## 4. Polish the Squeak Squad hubs
+## 3. Polish the Squeak Squad hubs
 - The owner: "Add a pending tasks to the list that we need to thoroughly polish the Squeak Squad hubs." The Squeak Squad hub (the
   Central Circle copy, its grey door, its mirror and doors' places and looks, still provisional) and the 8 world switch rooms (their
   provisional tiles, statues and pedestals): a thorough pass on looks and layout, the owner's picks first (the rulebook's frozen

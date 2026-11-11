@@ -1343,6 +1343,29 @@ forms, 3000 frames):
 - Measured: 3000 frames, 119 overloaded with the palette and fire wall fixes in, 36 after the rest (the room's loading 1, the cage
   9 where it was about 40, the fire attack 8 where it was about 50, a few as Kirby is hit).
 
+His ice floor and his look (the owner: "When using its ice attack, it doesn't add the ice platforms at the bottom.", "Dark Nebula's
+sprite looks off."):
+- **The ice floor.** His pillar (`0x0212EBC4`) calls the stage's vtable +0x8C (`0x022146EC`) for each 16-pixel tile of the floor's
+  top row it passes: only a plain floor tile (collision 0x4000, not burning, not ice already) turns to ice (collision 0x2900), its
+  block from a8s4s6's front table by its neighbors (0xC0 alone, 0x120 with ice on its right, 0x180 with ice on its left, 0x1E0 both)
+  plus the tile's x % 3 (`0x0200C80C(x, 3)`'s remainder), the tile over it the block - 0x20; its neighbors' blocks moved on as well
+  (+0x60 the left one, +0xC0 the right one). It stays through his other forms till his fire's flames burn over it (`0x02214560`).
+  Here: the iced tiles are bits 16-31 of his burning-floor word (`BURNING`, a 16-pixel tile each from the DS view's left), set by
+  the pillar, cleared by `Ignite()`; his aura (alive all his fight) draws them (`IceFloor()`): 13 looks
+  (`KatAMExpansionSqueak.cs`'s `SqueakIceFloorLook`, `ReadSqueakBlocks`: the 4 kinds by x % 3, and the three between blocks side by
+  side, one sprite for three of a long row's), copied once into a VRAM block of their own, each drawn with `DisplaySprite` on the
+  room's own tiles, its bottom on the bottom of the floor's top row. Not slippery: KatAM has no slippery floor.
+- **The blocks come out mirrored** unless turned before: `SqueakCanvas()` mirrors every Squeak Squad cell (the DS's face right,
+  KatAM's frames left); a stage's blocks are drawn as they are, so `ReadSqueakBlocks` gives each cell mirrored (each piece on the
+  other side, its flip turned). Before that the left and right ends were swapped (an outline between the end and the next block).
+- **His aura** (cmn's animations of the purple outline with its flames and its white rim) faced left (`Thing()` sets every thing
+  facing left) while he faces right: it was drawn mirrored about his origin, off his star's outline (thick on one side, the white
+  rim lost). It now faces as he does.
+- Checked in his room 0x5E0, the RNG seeded, his states forced (his pillar, then his fireball): the ice in all three versions, the
+  fireball's flames melting it tile by tile, his fire wall and the burning floor drawn with it. Lag: the ice's drawing a third of
+  the sprites it was; with his burning floor up the overloaded frames are the burning floor's own (the same every-third-frame
+  pattern with and without the ice). Not seen in a run that wasn't forced: Kirby idle dies as his first pillar starts.
+
 **Meta Knight** (boss 0x37, ported: `squeak/meta_knight_kss.c`): his body `0x02116C7C` (vtable `0x02181E80`: +0x3C his idle
 `0x02116300`, +0x34 per frame `0x02116ED4`, +0x30 his hit `0x021166BC`, +0x2C his touch `0x02116ACC`, +0x24 a spat star on him
 `0x021164F4`, +0x18 his flash and intro `0x02113018`; params `PrmBB01Ml0` (moves), `PrmBB01Sl0` (400 HP)). +0x228 his mode (1 a walk

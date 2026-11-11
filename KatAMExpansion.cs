@@ -1313,6 +1313,7 @@ namespace KatAMRandomizer {
                         }
                         string[] file = enemy.File.Split('/');
                         SqueakCharacter character = enemy.File.StartsWith("raw:") ? ReadSqueakRaw(squeak, enemy.File[4..])
+                                                  : enemy.File.StartsWith("blocks:") ? ReadSqueakBlocks(squeak, enemy.File[7..])
                                                   : file.Length > 1 ? ReadSqueakCharacter(squeak, file[1], file[0], enemy.PaletteFile)
                                                   : ReadSqueakCharacter(squeak, enemy.File, palette: enemy.PaletteFile);
                         // (a second file's graphics after the first's: Squeak Squad's body switching sprites);

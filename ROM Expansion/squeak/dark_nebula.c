@@ -274,7 +274,8 @@ static const u8 sThingEnemies[] = {
 #define WHITE(s) ((s)->vars[17])        // The screen's whitening: frames left, | 0x10000 whitening (else clearing), its length >> 17;
 #define ORB(s) ((s)->vars[18])          // His fireball, while it's out;
 #define PREV_X(s) ((s)->vars[19])
-#define BURNING(s) ((s)->vars[20])      // The floor's 16-pixel tiles burning (the DS view's, from its left: bit 0 its first);
+#define BURNING(s) ((s)->vars[20])      // The floor's 16-pixel tiles burning (the DS view's, from its left: bit 0 its first), and
+                                        // (bits 16-31) iced (IceFloor());
 #define BURN_VRAM(s) ((s)->vars[21])    // Their VRAM: one block for all, the same still picture (KatAM's 512 tiles: his fire wall's up);
 #define DEFEAT(s) ((s)->vars[22])       // His defeat under way (DarkNebulaWatch);
 #define LOCKED(s) ((s)->vars[23])       // The Kirbys whose controls he took (0x02012F94);
@@ -1752,9 +1753,100 @@ static void Ignite(struct SqueakObject *t, struct SqueakObject *s, s32 c) {
     if (c < B_FIRST(b)) B_FIRST(b) = c;
     if (c > B_LAST(b)) B_LAST(b) = c;
     B_LEFT(b, c) = BURN_TIME;
-    BURNING(s) |= 1 << c;
+    // (its ice melted: the fire tile's 0x02214560 over it, in the DS);
+    BURNING(s) = (BURNING(s) | 1 << c) & ~(1 << (16 + c));
     b->obj.base.x = SpotX(s, (B_FIRST(b) + B_LAST(b) + 1) * 8);
     b->obj.base.y = FLOOR(s);
+}
+
+/* The ice floor (his pillar's, 0x0212EBC4: the stage's vtable +0x8C, 0x022146EC): each 16-pixel tile of the floor's top row it
+ * passes an ice block (the stage's own, a8s4s6's front blocks 0xC0-0x1E2: by its neighbors, alone 0xC0, a left end 0x120, a right
+ * end 0x180 or between 0x1E0, plus its x % 3), the tile over it the block's top (its block - 0x20), staying through his other forms
+ * till his fire's flames burn over it (0x02216BD8's 0x02214560: Ignite()); not slippery here (KatAM has no slippery floor). Drawn
+ * by his flames (their thing's alive all his fight): its 13 looks' tiles copied once into a VRAM block of their own
+ * (KatAMExpansionSqueak.cs's SqueakIceFloorLook: one frame each, its anim's GetTiles, one after another), each tile (or three of a
+ * long row's at once: a third of the sprites, less lag with his burning floor) drawn with KatAM's DisplaySprite on the room's own
+ * tiles (the column's middle's), behind every other sprite; */
+#define A_ICE_VRAM(t) ((t)->vars[6])
+#define A_ICE_AT(t) ((u8 *)&(t)->vars[7])  // (each look's first tile in the block, vars 7-10: worked out once, not each frame's);
+#define ICE_LOOKS 13            // (4 kinds, each in 3 by the tile's x % 3; then three between side by side, x % 3 0, 1 and 2);
+#define ICE_THREE 12
+#define ICE_MAX_TILES 8         // (a look's frame, 16 by 32 at most; the three's, 48 by 32);
+#define ICE_BETWEEN 0
+#define ICE_ALONE 1
+#define ICE_LEFT_END 2
+#define ICE_RIGHT_END 3
+
+// IceTiles(); A look's frame's tiles (its anim's GetTiles: KatAMExpansion.cs's AddAnim, -2 palette, -1 tiles, then the frame);
+static u16 IceTiles(const struct SqueakGraphics *g, u8 look) {
+    const s32 *w = gSpriteTables->anims[g->animId][SQUEAK_HURT_VARIANTS + look].words;
+    u16 most = look == ICE_THREE ? 3 * ICE_MAX_TILES : ICE_MAX_TILES;
+
+    return w[3] != -1 ? 0 : w[5] < most ? w[5] : most;
+}
+
+static void IceFloor(struct SqueakObject *t, struct SqueakObject *s) {
+    const struct SqueakGraphics *g = &gSqueakData.enemies[SQUEAK_ICE_FLOOR];
+    struct LevelInfo *level = &gCurLevelInfo[gLocalPlayerId];
+    u32 iced = (u32)BURNING(s) >> 16;
+    struct Sprite sprite;
+    s32 c, first, x;
+    u16 at;
+    u8 i;
+
+    if (!iced || gKirbys[gLocalPlayerId].base.roomId != t->obj.base.roomId || g->cells < ICE_LOOKS) {
+        if (A_ICE_VRAM(t)) VramFree(A_ICE_VRAM(t));
+        A_ICE_VRAM(t) = 0;
+        return;
+    }
+    if (!A_ICE_VRAM(t)) {
+        u32 vram;
+
+        for (i = 0, at = 0; i < ICE_LOOKS; i++) {
+            A_ICE_AT(t)[i] = at;
+            at += IceTiles(g, i);
+        }
+        if (!SqueakVramFits(at) || !SqueakVramOk(vram = VramMalloc(at))) return;
+        for (i = 0; i < ICE_LOOKS; i++) {
+            const s32 *w = gSpriteTables->anims[g->animId][SQUEAK_HURT_VARIANTS + i].words;
+            const u32 *from = (const u32 *)((const u8 *)gSpriteTables->tiles4bpp + w[4] * 32);
+            u32 *to = (u32 *)(vram + A_ICE_AT(t)[i] * 32), n;
+
+            for (n = 0; n < IceTiles(g, i) * 8u; n++) to[n] = from[n];
+        }
+        A_ICE_VRAM(t) = vram;
+    }
+    // (DisplaySprite reads only these; the column's tile, the room's the column's middle is in: the first's, then one each);
+    sprite.animId = g->animId;
+    sprite.palId = g->palette != NULL ? SqueakLoadPalette(g->palette[0].key, g->palette[0].variant, t->obj.base.roomId)
+                                      : SqueakLoadPalette(g->animId, SQUEAK_HURT_VARIANTS, t->obj.base.roomId);
+    sprite.unk14 = 0x1F << 6;
+    sprite.unk8 = 0x42000;
+    sprite.y = ((FLOOR(s) + 0xFF) >> 8) + 16 - (level->viewportPosition.y >> 8) + gUnk_0203AD18[1];
+    first = SpotX(s, 8) >> 12;
+    x = (first << 4) + 8 - (level->viewportPosition.x >> 8) + gUnk_0203AD18[0];
+    for (c = 0; c < 2 * VIEW_HALF / 16; c++, x += 16) {
+        bool32 left, right;
+        u8 look;
+
+        if (!(iced >> c & 1)) continue;
+        left = c > 0 && (iced >> (c - 1) & 1);
+        right = iced >> (c + 1) & 1;
+        look = (left && right ? ICE_BETWEEN : left ? ICE_RIGHT_END : right ? ICE_LEFT_END : ICE_ALONE) * 3 + (u32)(first + c) % 3;
+        // (a long row's three between, x % 3 0, 1 and 2 with ice on both sides of them: one sprite, the next two drawn with it);
+        if (look == ICE_BETWEEN && (iced >> (c + 2) & 3) == 3) look = ICE_THREE;
+        sprite.tilesVram = A_ICE_VRAM(t) + A_ICE_AT(t)[look] * 32;
+        sprite.unk4 = SQUEAK_HURT_VARIANTS + look;
+        sprite.x = x;
+        DisplaySprite(&sprite);
+        if (look == ICE_THREE) c += 2, x += 32;
+    }
+}
+
+// DarkNebulaAuraGone(); His aura's gone (squeak.c's SqueakDestroy): the ice floor's VRAM block let go of (a new aura makes its own);
+void DarkNebulaAuraGone(struct SqueakObject *t) {
+    if (A_ICE_VRAM(t)) VramFree(A_ICE_VRAM(t));
+    A_ICE_VRAM(t) = 0;
 }
 
 /* Burn(); A trail's tiles burning out, each drawn (KatAM's drawing of an object, sub_0809A7A4's, the thing's sprite at each tile:
@@ -1780,7 +1872,7 @@ static void Burn(struct SqueakObject *b, struct SqueakObject *s) {
         DisplaySprite(sprite);
     }
     if (first < 0) {
-        if (!BURNING(s) && BURN_VRAM(s)) {
+        if (!(BURNING(s) & 0xFFFF) && BURN_VRAM(s)) {
             VramFree(BURN_VRAM(s));
             BURN_VRAM(s) = 0;
         }
@@ -1845,10 +1937,12 @@ static bool32 DarkNebulaThing(struct SqueakObject *t) {
     case T_TWINKLE:             // (its update: EyeFrame);
         base->sprite.unk14 = s->obj.base.sprite.unk14 - 0x40;
         break;
-    case T_AURA:                // 0x0211B8B4: on him, behind;
-        base->x = s->obj.base.x;
+    case T_AURA:                // 0x0211B8B4: on him, behind, facing as he does (Thing()'s left had it mirrored, off his star's
+        base->x = s->obj.base.x;   // outline); the ice floor drawn (IceFloor());
         base->y = s->obj.base.y;
+        base->flags = (base->flags & ~1) | (s->obj.base.flags & 1);
         base->sprite.unk14 = s->obj.base.sprite.unk14 + 0x40;
+        IceFloor(t, s);
         break;
     case T_STAR:                // 0x0212FAF0, 0x0212F9F8: till the floor, a wall or out of view;
         if (T(t) == 0) SqueakSfx(t, 0x1D2);
@@ -1935,8 +2029,11 @@ static bool32 DarkNebulaThing(struct SqueakObject *t) {
             break;
         }
         break;
-    case T_PILLAR:              // 0x0212EC6C, 0x0212EBC4: past the other side, gone;
+    case T_PILLAR:              // 0x0212EC6C, 0x0212EBC4: past the other side, gone; the floor's tile it's over iced (IceFloor());
         MoveFree(t);
+        x = (base->x - SpotX(s, 0)) >> 12;
+        // (only a plain floor's tile: not one burning, 0x022146EC's collision 0x4000);
+        if (x >= 0 && x < 2 * VIEW_HALF / 16 && !(BURNING(s) & 1 << x)) BURNING(s) |= 1 << (16 + x);
         if (T_SIDE(t) ? base->x > SpotX(s, PILLAR_RIGHT_X) : base->x < SpotX(s, PILLAR_LEFT_X)) Gone(t);
         if (OutOfView(t, s, MARGINS_1)) Gone(t);
         break;
