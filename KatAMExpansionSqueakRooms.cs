@@ -1255,7 +1255,8 @@ namespace KatAMRandomizer {
                                                                          List<(int x, int y)> doorCells, byte bossShard, ref int taken, ref int chests,
                                                                          List<int> vitalityChests = null, int[] sprayCans = null,
                                                                          Dictionary<(SqueakRoomFiles room, int record), int> mapChests = null,
-                                                                         Dictionary<int, byte[]> heldChests = null, SqueakLairPlan lair = null) {
+                                                                         Dictionary<int, byte[]> heldChests = null, SqueakLairPlan lair = null,
+                                                                         List<byte[]> chaseChests = null) {
             List<byte[]> templates = new List<byte[]>();
             List<byte> types = new List<byte>();
             int width = map.Width, height = map.Height;
@@ -1375,20 +1376,21 @@ namespace KatAMRandomizer {
                      * Copy Palettes, 2-5-5's Graphic Piece): made as the others, its template kept for the holder, heldChests, which
                      * lets it out, squeak/gimmicks.c's LetOutChest(), not put in the room); */
                     bool held = heldItems.Contains(i), heldChest = held && heldChests != null && kind is SqueakChestSmall or SqueakChestBig;
-                    /* (a chest the DS brings out only in the chase once the stage's treasure is carried (6-1-7's, 6-5-6's, 7-1-6's,
-                     * 7-3-4's and 8-1-15's Ability Scrolls): the chase isn't ported, so the scroll's chest is there from the start, at
-                     * its spot (the owner: "Implement all Ability Scrolls in their respective chests"); the chase's other things stay out); */
-                    bool chaseScroll = kind is SqueakChestSmall or SqueakChestBig && objects[at + 0xD] >= SqueakScrollFirst &&
-                                       objects[at + 0xD] < SqueakScrollFirst + SqueakScrolls;
-                    if ((objects[at + 0xB] & SqueakChaseSpawn) != 0 && !chaseScroll || held && !heldChest) continue;
+                    /* (a chest the DS brings out only in the chase once the stage's treasure is carried (its flag 4: 6-1-7's, 6-5-6's,
+                     * 7-1-6's, 7-3-4's and 8-1-15's Ability Scrolls, five Vitality halves, ...; the owner: the chase-only chests "only in
+                     * the chase"): made as the others, its template kept for the room's chase, chaseChests, which brings it out once the
+                     * chase is on (squeak/gimmicks.c's ChaseChest()), not put in the room; in a stage with no chase, there from the start;
+                     * the chase's other things stay out); */
+                    bool chaseChest = kind is SqueakChestSmall or SqueakChestBig && (objects[at + 0xB] & SqueakChaseSpawn) != 0;
+                    if ((objects[at + 0xB] & SqueakChaseSpawn) != 0 && !chaseChest || held && !heldChest) continue;
                     if (kind is SqueakChestSmall or SqueakChestBig) {
                         /* (on the floor under its spot: Squeak Squad's is sometimes the floor's top, sometimes a cell over it, its chests
                          * falling onto it; KatAM's CreateChest() puts a chest's bottom on the cell edge at or under its template's y + half
                          * its height, a big one's 16, a small one's 8: a big one's at the floor's top - 8 sank a cell into the floor and fell
                          * out of the room; Jam Jungle 4's fifth room's is in the rock on the DS, drawn over by it; the bosses' fall from
                          * high up); */
-                        /* (a chase's scroll chest over a pit: on the dry floor nearest beside its spot, the DS's chase room being
-                         * another (7-3-4's, between its pillars over the water: the ledge right of them); */
+                        /* (a chase's chest over a pit: on the dry floor nearest beside its spot, the DS's chase room being another
+                         * (7-3-4's scroll, between its pillars over the water: the ledge right of them); */
                         bool DryFloor(int cx) {
                             if (cx < 0 || cx >= width) return false;
                             for (int cy = y / 16; cy < height && cy <= y / 16 + 6; cy++) {
@@ -1397,7 +1399,7 @@ namespace KatAMRandomizer {
                             }
                             return false;
                         }
-                        if (chaseScroll && OnFloor(x, y, height) == y && Open(x / 16, y / 16)) {
+                        if (chaseChest && OnFloor(x, y, height) == y && Open(x / 16, y / 16)) {
                             for (int d = 1; d <= 8; d++) {
                                 if (DryFloor(x / 16 + d)) { x = (x / 16 + d) * 16 + 8; break; }
                                 if (DryFloor(x / 16 - d)) { x = (x / 16 - d) * 16 + 8; break; }
@@ -1425,7 +1427,7 @@ namespace KatAMRandomizer {
                          * chests fall, ObjectMain's gravity, as nothing sets their flag 0x40); */
                         byte[] chest = ObjectTemplate(x, floor - 8, templates.Count, SmallChestType);
                         chest[14] = KatAMChestItems[chestAt * 17 % KatAMChestItems.Length];
-                        if (goldDee != null && !held && !chaseScroll) {
+                        if (goldDee != null && !held && !chaseChest) {
                             chest[0x14] = SqueakChestAfterEnemy;
                             chest[0x18] = goldDee[2];
                             chest[0x19] = goldDee[3];
@@ -1473,6 +1475,7 @@ namespace KatAMRandomizer {
                         chest[0x11] = SqueakChestIndex;
                         chest[0x12] = (byte)chestAt++;
                         if (heldChest) heldChests[i] = chest;
+                        else if (chaseChest && chaseChests != null) chaseChests.Add(chest);
                         else Add(chest);
                     }
                     else if (kind == SqueakRandomItem) RandomPedestal(x, y);
@@ -1896,24 +1899,28 @@ namespace KatAMRandomizer {
         const byte SqueakCrumblesEntry = 0xF4;
         // (the finale's way on by itself: squeak/gimmicks.c's GIMMICK_PHASE_WARP, SqueakPhaseWarps);
         const byte SqueakPhaseWarpEntry = 0xF5;
-        internal sealed record SqueakChase(byte Key, List<(int x, int y)> Walls, List<(int x, int y, byte character, byte variant)> Spawns);
+        // (a chest the chase brings: at its template's spot, its item, number, mark (unk16), half flag and type: squeak/gimmicks.c's GIMMICK_CHASE_CHEST);
+        const byte SqueakChaseChestEntry = 0xF6;
+        internal sealed record SqueakChase(byte Key, List<(int x, int y)> Walls, List<(int x, int y, byte character, byte variant)> Spawns,
+                                           List<byte[]> Chests = null);
         static void AddChaseEntries(List<byte> list, SqueakChase chase, int firstIndex) {
             int index = firstIndex;
             list[1] = chase.Key;
-            void Add(byte type, int x, int y, byte p0 = 0, byte p1 = 0) {
+            void Add(byte type, int x, int y, params byte[] par) {
                 if (index >= SqueakMailGimmicks || list[0] == 0xFF) return;
                 byte[] entry = new byte[24];
                 entry[0] = type;
                 entry[1] = (byte)index++;
                 WriteShort(entry, 2, x);
                 WriteShort(entry, 4, y);
-                entry[6] = p0;
-                entry[7] = p1;
+                par.CopyTo(entry, 6);
                 list.AddRange(entry);
                 list[0]++;
             }
             foreach ((int x, int y) in chase.Walls) Add(SqueakChaseWall, x, y);
             foreach ((int x, int y, byte character, byte variant) in chase.Spawns) Add(SqueakChaseSpawnEntry, x, y, character, variant);
+            foreach (byte[] chest in chase.Chests ?? new List<byte[]>())
+                Add(SqueakChaseChestEntry, ReadShort(chest, 6), ReadShort(chest, 8), chest[14], chest[0x12], chest[0x16], chest[0x17], chest[0x15], chest[0xC]);
         }
         // (the Squeaks the chases bring: the Squeakers, Spinni, Doc, Storo; at most this many in a room, KatAM's 32 spawned templates);
         static readonly HashSet<int> SqueakChaseIds = new HashSet<int> { 0x40, 0x42, 0x43, 0x44 };
@@ -2149,8 +2156,8 @@ namespace KatAMRandomizer {
          * (SqueakCollision(): a star block a special block record, leaving air, or water in water), its CPU helpers' zones, its
          * objects (SqueakObjects()), its doors to the stage's other rooms (the goals not yet); */
         // (the chases made in the Squeak Squad rooms: rooms of a chase's stage, walls, Squeaks; for the checks);
-        public static (int rooms, int walls, int spawns) SqueakChaseCounts => (squeakChaseRooms, squeakChaseWalls, squeakChaseSpawns);
-        static int squeakChaseRooms, squeakChaseWalls, squeakChaseSpawns;
+        public static (int rooms, int walls, int spawns, int chests) SqueakChaseCounts => (squeakChaseRooms, squeakChaseWalls, squeakChaseSpawns, squeakChaseChests);
+        static int squeakChaseRooms, squeakChaseWalls, squeakChaseSpawns, squeakChaseChests;
         // (the rooms with currents written, SqueakCurrents(): AddSqueakRooms() counts them afresh);
         public static int SqueakCurrentRooms => squeakCurrentRooms;
         static int squeakCurrentRooms;
@@ -2159,7 +2166,7 @@ namespace KatAMRandomizer {
         static string AddSqueakRooms(byte[] rom, byte[] squeak, KatAMExpansionCode.Version version, ref int cursor) {
             IReadOnlyDictionary<string, int> symbols = version.RomSymbols;
             int here = cursor;      // (the cursor, which the local functions can't take by reference);
-            squeakChaseRooms = squeakChaseWalls = squeakChaseSpawns = squeakDoorMirrorsLeft = squeakCurrentRooms = squeakCrumbleRooms = 0;
+            squeakChaseRooms = squeakChaseWalls = squeakChaseSpawns = squeakChaseChests = squeakDoorMirrorsLeft = squeakCurrentRooms = squeakCrumbleRooms = 0;
             int roomProps = symbols["gRoomProps"], roomInfos = symbols["gUnk_08D6CD0C"], arrivals = symbols["gUnk_0893CB44"];
             squeakRooms = new List<SqueakPortedRoom>();
             squeakLairMinibosses.Clear();
@@ -2195,6 +2202,8 @@ namespace KatAMRandomizer {
                 navigationRoutes = Entry("gUnk_08D63C28", Props(0x3C9, 17));                                  // Its 4 generic route lists;
             int noTypes = Allocate(ref here, 4, 4), squeakTaken = 0, squeakChests = 0, squeakCannons = 0, squeakSwitches = 0;
             List<int> vitalityChests = new List<int>();
+            // (the chases' chests, by room: AddChaseEntries() makes them the chase's; the map viewer's block lists them, "CC" below);
+            List<(int room, byte[] chest)> chaseChestsPlaced = new List<(int, byte[])>();
             // (per room its gimmicks' list for their task, squeak/gimmicks.c's gSqueakGimmickRooms: 0 none);
             int[] gimmickLists = new int[files.Count];
             // (the stages with a chase, their key from 1 in order, and every room of them: SqueakChaseOf());
@@ -2560,8 +2569,10 @@ namespace KatAMRandomizer {
                     // (its world's shard, + 1, if it's the world's boss room: KatAM's 8, one a world, the randomizer's option shuffling them);
                     byte bossShard = bossRooms.TryGetValue(SqueakFirstRoom + i, out int bossWorld) ? (byte)bossWorld : (byte)0;
                     Dictionary<int, byte[]> heldChests = new Dictionary<int, byte[]>();
+                    // (its chase's chests, if its stage has a chase: SqueakObjects() keeps them for it, AddChaseEntries());
+                    List<byte[]> chaseChests = chaseKeys.ContainsKey((f.Area, f.Stage)) ? new List<byte[]>() : null;
                     (List<byte[]> templates, List<byte> types) = SqueakObjects(squeak, f, map, collision, arenas, doorCells, bossShard, ref squeakTaken, ref squeakChests,
-                                                                                    vitalityChests, sprayCans, mapChests, heldChests, lairHere);
+                                                                                    vitalityChests, sprayCans, mapChests, heldChests, lairHere, chaseChests);
                     // (the dark star's route, where it is: the room's own, as the DS's, squeak/dark_star.c);
                     if (templates.Any(t => t[12] == SqueakID && t[14] == SqueakDarkStarCharacter)) darkStarRoutes[i] = SqueakDarkStarRoute(rom, map, ref here);
                     // (its cannons: an eight-direction cannon for each of gimmick 0xB, and its fuse cannon with its fuse; its switches);
@@ -2570,7 +2581,9 @@ namespace KatAMRandomizer {
                     SqueakChase chase = null;
                     if (chaseKeys.TryGetValue((f.Area, f.Stage), out byte chaseKey)) {
                         (List<(int x, int y)> walls, List<(int x, int y, byte character, byte variant)> spawns) = SqueakChaseOf(squeak, f, doorCells);
-                        chase = new SqueakChase(chaseKey, walls, spawns);
+                        chase = new SqueakChase(chaseKey, walls, spawns, chaseChests);
+                        squeakChaseChests += chaseChests?.Count ?? 0;
+                        foreach (byte[] chaseChest in chaseChests ?? new List<byte[]>()) chaseChestsPlaced.Add((SqueakFirstRoom + i, chaseChest));
                         squeakChaseRooms++;
                         squeakChaseWalls += walls.Count;
                         squeakChaseSpawns += spawns.Count;
@@ -2989,8 +3002,10 @@ namespace KatAMRandomizer {
              * (1-8; the hub 0; a switch room its world's; the Dark Nebula hub the final stage's, 8), and one more: its stage (0 the hub and
              * the switch rooms; the Dark Nebula hub 4), then the finale's ways on by themselves (SqueakPhaseWarps): "PW", u16 how many,
              * 8 bytes each: u16 the room, u16 the room it goes on to, u8 x, u8 y (Kirby's cell in the room), u8 x, u8 y (his landing cell
-             * there, + 1); */
-            int mapBlock = Allocate(ref here, 12 + 8 * 4 + (rows - SqueakFirstRoom) * 2 + 4 + SqueakPhaseWarps.Count * 8, 4);
+             * there, + 1), then the chases' chests (SqueakChase's Chests: in no object list, the chase brings them out): "CC", u16 how
+             * many, 12 bytes each: u16 the room, u16 x, u16 y (the chest's template's), u8 its type (0x80, 0x81), u8 its item, u8 its
+             * number or mark's number (template +0x16), u8 its mark (+0x17), u8 its half flag (+0x15), u8 0; */
+            int mapBlock = Allocate(ref here, 12 + 8 * 4 + (rows - SqueakFirstRoom) * 2 + 4 + SqueakPhaseWarps.Count * 8 + 4 + chaseChestsPlaced.Count * 12, 4);
             System.Text.Encoding.ASCII.GetBytes("SQ").CopyTo(rom, mapBlock);
             WriteShort(rom, mapBlock + 2, SqueakFirstRoom);
             WriteShort(rom, mapBlock + 4, rows - SqueakFirstRoom);
@@ -3018,6 +3033,17 @@ namespace KatAMRandomizer {
                 WriteShort(rom, phaseWarps + 6 + w * 8, warp.ToRoom);
                 (rom[phaseWarps + 8 + w * 8], rom[phaseWarps + 9 + w * 8]) = ((byte)warp.X, (byte)warp.Y);
                 (rom[phaseWarps + 10 + w * 8], rom[phaseWarps + 11 + w * 8]) = ((byte)warp.ToX, (byte)warp.ToY);
+            }
+            int chaseChestList = phaseWarps + 4 + SqueakPhaseWarps.Count * 8;
+            System.Text.Encoding.ASCII.GetBytes("CC").CopyTo(rom, chaseChestList);
+            WriteShort(rom, chaseChestList + 2, chaseChestsPlaced.Count);
+            for (int c = 0; c < chaseChestsPlaced.Count; c++) {
+                (int chestRoom, byte[] chest) = chaseChestsPlaced[c];
+                int at = chaseChestList + 4 + c * 12;
+                WriteShort(rom, at, chestRoom);
+                WriteShort(rom, at + 2, ReadShort(chest, 6));
+                WriteShort(rom, at + 4, ReadShort(chest, 8));
+                (rom[at + 6], rom[at + 7], rom[at + 8], rom[at + 9], rom[at + 10], rom[at + 11]) = (chest[0xC], chest[14], chest[0x16], chest[0x17], chest[0x15], 0);
             }
             WriteInt(rom, MapSqueakBlock, mapBlock + 0x08000000);
             // (the gimmicks' lists, squeak/gimmicks.c's gSqueakGimmickRooms: a pointer a room from SqueakFirstRoom, and how many);

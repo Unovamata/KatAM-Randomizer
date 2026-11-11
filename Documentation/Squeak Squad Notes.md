@@ -572,8 +572,11 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
     0x42-0x44; at most 6 a room, none by a door) are gimmicks `0xF1`, made as the camera nears them while the chase is on; the
     stage's mode 2 (all chase Kirby) is `SqueakObject.chase`: no chests taken, the angry pace, short waits. Every room of a chase
     stage carries its key (the gimmick list's header byte 1); a room of another key ends it. 37 stages have one; 6-5 has bit-4
-    Squeaks but no big chest (its chase starts some other way on the DS, not traced), so it has no wall. The bit-4 items (the
-    chase's chests) aren't placed, but for the 5 Ability Scrolls', there from the start.
+    Squeaks but no big chest (its chase starts some other way on the DS, not traced), so it has no wall. The bit-4 chests (the
+    chase's: 22, 5 of them Ability Scrolls, 5 Vitality halves, the rest food and 1UPs) are gimmicks `0xF6` (`ChaseChest()`,
+    `AddChaseEntries()`): in no object list, the entry holds the chest's template's fields (item, number, mark, half flag, type),
+    and the chest is made at its spot once the chase is on, once while the room's loaded (an opened one shows open, as
+    `SqueakCreateChest` makes them). The map viewer's block lists them after the finale's ways on ("CC").
   - The item maker (`0x0203B210`, item IDs 0-14: 0 nothing, 1-3 the same object with kinds 3, 1 and 2 (`0x0203A398`: 3 the 1UP),
     4 and 5 others, 6-14 food: 6 the Maxim Tomato, 7 heals 24 of 36, 8 12, 9 6). The floating bubbles' parameters (section 10's
     type 0x11 table: 0x10 or 0x11 and an item ID, 0x00 or 0x01 and an ability) name these IDs: 1 (40 of them), 2, 3, 6 (21), 7...
@@ -997,7 +1000,7 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
     which never ends without it (the game hangs, its VBlank counter still running); `rooms.c`'s versions of it and of the doors'
     lookups now stop at the list's end. Each holds a consumable for now (KatAM's chest items in turn); the chests of the
     treasures the owner listed (Ability Scrolls, Spray Paints, the Secret Map) are to hold those (the Spray Paints and the Secret
-    Map's pieces do: below). The chase spawns' 22 chests (flag 4) aren't placed yet.
+    Map's pieces do: below). The chase spawns' 22 chests (flag 4) come out with the chase (gimmick `0xF6`, above).
   - **The Ability Scrolls' icons** (treasures 28-50): `collection/skill`, 23 cells and animations, one a scroll, each a 16 by 16
     sprite in its own palette row (5 rows, 80 colors); taken in the treasures' order (cell n is treasure 28 + n: not checked against
     the DS's own lookup, which isn't found). A scroll chest's popup shows it (`chest.c`'s `NidlScrollPopup`): KatAM's popup task as it
@@ -1013,8 +1016,9 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
     (treasure 6) with `SQUEAK_CHEST_HALF` in its template's high byte of `+0x14`; the converter lists those chests' numbers in
     `chest.c`'s `gSqueakVitalityChests` (8 at most, 0xFF unused). Opening one goes through KatAM's own Vitality (its
     animation, `gTreasures.vitalityField` + 1, max HP + 1), then `NidlChestOpen` counts the listed chests opened: an odd count
-    (this is a pair's first half) takes the Vitality back, so max HP grows on every second half. Only three of the eight are
-    placed now (1-6-7, 2-6-7 and 3-6-2's, chests 7, 34 and 57); the other five are chase-spawn chests (flag 4), not placed yet.
+    (this is a pair's first half) takes the Vitality back, so max HP grows on every second half. Three of the eight are in
+    their rooms from the start (1-6-7, 2-6-7 and 3-6-2's); the other five (2-6, 4-3, 6-3, 7-6 and 8-3's) are chase chests
+    (flag 4), out once their stage's chase is on (gimmick `0xF6`).
     Tested in the emulator (1-6-7's chest, all three versions, Kirby walking onto it and pressing Up): opened first, max HP stays
     6 and the Vitality count 0; with another half's chest marked opened beforehand (a RAM write to its saved bit), the Vitality
     count goes to 1 and max HP to 7. Not played through from two real chests in a row. The chest randomizer leaves these chests

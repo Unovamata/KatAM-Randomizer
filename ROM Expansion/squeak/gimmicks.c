@@ -125,6 +125,7 @@ const struct SqueakSwitch gSqueakSwitch = { NULL };
 #define GIMMICK_SOUND 0x1A
 #define GIMMICK_CHASE 0xF0          // A chase's wall (squeak.h, "The chases"): its x the chest's, the room's whole height;
 #define GIMMICK_CHASE_SPAWN 0xF1    // A Squeak the chase brings: at its spot (KatAM's template spot), par[0] the character, par[1] its variant;
+#define GIMMICK_CHASE_CHEST 0xF6    // A chest the chase brings (the DS's chase-only chests): at its spot, par[0] its item, par[1] its number, par[2-3] its mark (unk16), par[4] its half flag, par[5] its type;
 #define CHASE_NEAR 64               // (a chase's Squeak comes out once its spot is this near the screen, as KatAM's enemies as the camera nears them);
 #define GIMMICK_LAIR_EXIT 0xF2      // A Squeak Lair's way out (KatAMExpansionSqueakRooms.cs): its door at its spot's cell, opened once no mini-boss is left;
 #define GIMMICK_CURRENTS 0xF3       // A room's currents (KatAMExpansionSqueakRooms.cs's SqueakCurrents()): par[0-3] its grid's address;
@@ -606,6 +607,19 @@ static void ChaseSpawn(struct SqueakLogic *l, const struct SqueakGimmickEntry *e
                             e->par[1] | SQUEAK_CHASE_SPAWN, 0, 0, 0);
 }
 
+/* ChaseChest(); A chest the chase brings (the owner: "the 5 Ability Scroll chests the DS brings out only in the chase"; the DS's chase
+ * chests, their objects' flag 4, KatAMExpansionSqueakRooms.cs): not in the room until its chase is on, then made at its spot as the
+ * room's other chests (KatAM's chest, chest.c's SqueakCreateChest's fields: SQUEAK_CHEST in unk11, its number unk12, the half flag
+ * unk14's high byte, the mark unk16, as LetOutChest()); once while the room's loaded (its byte): an opened one stays opened (its bit); */
+static void ChaseChest(struct SqueakLogic *l, const struct SqueakGimmickEntry *e) {
+    u8 *done = &l->inside[e->index];
+
+    if (*done || ChaseKey() == 0 || ChaseKey() != l->list->unused[0]) return;
+    *done = 1;
+    CreateObjTemplateAndObj(l->base.unk56, 1, 0x24, e->x, e->y, 0, 0x1F, 0, 0, e->par[5], e->par[0], 0, 0, 0, 0, 0, 0, 0,
+                            SQUEAK_CHEST, e->par[1], e->par[4] << 8, e->par[2] | e->par[3] << 8, 0);
+}
+
 /* LairExit(); A Squeak Lair's way out (the rulebook's rule 8; the owner: "Do make sure that these exits only appear after defeating the
  * miniboss only. These can have any miniboss in game"): built shut, its door record alone, its mirror (KatAM's one-way door) hidden
  * (KatAMExpansionSqueakRooms.cs). LAIR_EXIT_WAIT frames after the room comes up, once no mini-boss with HP is left in it (types
@@ -836,6 +850,7 @@ static void SqueakLogicMain(void) {
         case GIMMICK_SOUND: SoundGimmick(l, e); break;
         case GIMMICK_CHASE: ChaseWall(l, e); break;
         case GIMMICK_CHASE_SPAWN: ChaseSpawn(l, e); break;
+        case GIMMICK_CHASE_CHEST: ChaseChest(l, e); break;
         case GIMMICK_LAIR_EXIT: LairExit(l, e); break;
         case GIMMICK_CURRENTS: Currents(l, e); break;
         case GIMMICK_CRUMBLES: Crumbles(l, e); break;

@@ -16,8 +16,6 @@ finishes it says how it was checked). The design rules for doors, mirrors and hu
   Spark, Beam, Bomb, Cutter, Hammer, Parasol, Sleep, Sword, Throw, Tornado, Wheel); the abilities it lacks (Animal, Bubble, Ghost,
   Metal, Ninja and the rest the scrolls name) ported 1:1 first, then their upgrades. The DS's scroll check isn't found yet (no
   constant search finds it: the ability code must compute the treasure's number).
-- **The chase-only chests**: the 5 Ability Scroll chests the DS brings out only in the chase are there from the start; the chase's
-  other chests (five of them the Vitality halves) aren't placed.
 - **The candles and the Light ability** (the owner: "Add to the pending list candle and light ability interaction", then: "the
   light ability should light up Squeak Squad sections that require the candle if NiDL expansion is present"): with the NiDL ROM
   loaded, NiDL's Light ability (from Cool Spook) lights the Squeak Squad dark rooms' parts the candles light, as Fire does on the DS.
