@@ -126,6 +126,7 @@ const struct SqueakSwitch gSqueakSwitch = { NULL };
 #define GIMMICK_CHASE 0xF0          // A chase's wall (squeak.h, "The chases"): its x the chest's, the room's whole height;
 #define GIMMICK_CHASE_SPAWN 0xF1    // A Squeak the chase brings: at its spot (KatAM's template spot), par[0] the character, par[1] its variant;
 #define GIMMICK_CHASE_CHEST 0xF6    // A chest the chase brings (the DS's chase-only chests): at its spot, par[0] its item, par[1] its number, par[2-3] its mark (unk16), par[4] its half flag, par[5] its type;
+#define GIMMICK_CANDLE_LIGHT 0xF7    // A room's candles' light (KatAMExpansionSqueakRooms.cs: in the rooms with candles): CandleLight();
 #define CHASE_NEAR 64               // (a chase's Squeak comes out once its spot is this near the screen, as KatAM's enemies as the camera nears them);
 #define GIMMICK_LAIR_EXIT 0xF2      // A Squeak Lair's way out (KatAMExpansionSqueakRooms.cs): its door at its spot's cell, opened once no mini-boss is left;
 #define GIMMICK_CURRENTS 0xF3       // A room's currents (KatAMExpansionSqueakRooms.cs's SqueakCurrents()): par[0-3] its grid's address;
@@ -188,6 +189,10 @@ struct SqueakLogic {
     u8 lightStep;                               // frames so far,
     u16 lightCount;
     u16 farView[FAR_VIEW_COLORS];               // and the far view's colors as loaded;
+    u8 candleState;                             // The candles' light (CandleLight()): whether it has the far view's colors, whether a
+    u8 candleLit;                               // candle was lit last frame, the fade's frames so far, from and to which light, and the
+    u16 candleCount;                            // light shown (CANDLE_FULL full);
+    u16 candleFrom, candleTo, candleLevel;
     struct SqueakCrumble crumble[CRUMBLES];     // The walk-once blocks breaking (Crumbles());
 };
 
@@ -418,6 +423,62 @@ static void Light(struct SqueakLogic *l, const struct SqueakGimmickEntry *e) {
             LightShow(l, l->lightCount * LIGHT_STEPS / frames);
         }
         break;
+    }
+}
+
+/* CandleLight(); The far view's light in a room with candles (the DS's candle, 0x02223588 lit and 0x02223514 out): the first candle lit
+ * while none is turns the far view's light (the stage's +0xA8) up to full (0x1000) over 30 frames, the last one going out down to 0x404
+ * (a quarter) over 30; the room starts full (its light record's 255, 255, 255: read in the DS emulator in 4-3-7, loaded with its own
+ * stage entry). Also the DS fades the room's 3D far view's palette, which only a kind 2 `PL` palette fills: these rooms' `PL` palette is
+ * their BG palette (KatAMExpansionSqueakRooms.cs's SqueakRoomTileset()), so that one's the plain fade, which does nothing. Here the
+ * far view's colors (KatAM's BG palettes 6-13) times the light, as Light() does with its own; */
+#define CANDLE_FULL 0x1000
+#define CANDLE_DIM 0x404
+#define CANDLE_FADE 30
+static u8 CandlesLit(u16 room);
+
+static u16 CandleBlend(u16 c, u16 level) {
+    u16 out = 0;
+    u8 shift;
+
+    for (shift = 0; shift <= 10; shift += 5) out |= ((c >> shift & 31) * level >> 12) << shift;
+    return out;
+}
+
+static void CandleShow(struct SqueakLogic *l, u16 level) {
+    u16 i;
+
+    for (i = 0; i < FAR_VIEW_COLORS; i++) gBgPalette[FAR_VIEW_FIRST + i] = gUnk_02022120[FAR_VIEW_FIRST + i] = CandleBlend(l->farView[i], level);
+    l->candleLevel = level;
+    gMainFlags |= MAIN_FLAG_BG_PALETTE_SYNC_ENABLE;
+}
+
+static void CandleLight(struct SqueakLogic *l, const struct SqueakGimmickEntry *e) {
+    u8 lit = CandlesLit(l->room) != 0;
+    u16 i;
+
+    if (l->candleState == 0) {
+        for (i = 0; i < FAR_VIEW_COLORS; i++) l->farView[i] = gUnk_02022120[FAR_VIEW_FIRST + i];
+        l->candleLevel = l->candleTo = CANDLE_FULL;
+        l->candleState = 1;
+    }
+    // (the far view's colors again if the room's loading put them back after they were taken, as LightKept());
+    for (i = 0; i < FAR_VIEW_COLORS; i++)
+        if (gUnk_02022120[FAR_VIEW_FIRST + i] != CandleBlend(l->farView[i], l->candleLevel)) break;
+    if (i < FAR_VIEW_COLORS) {
+        for (i = 0; i < FAR_VIEW_COLORS; i++) l->farView[i] = gUnk_02022120[FAR_VIEW_FIRST + i];
+        if (l->candleLevel != CANDLE_FULL) CandleShow(l, l->candleLevel);
+    }
+    if (lit != l->candleLit) {
+        l->candleLit = lit;
+        l->candleFrom = l->candleLevel;
+        l->candleTo = lit ? CANDLE_FULL : CANDLE_DIM;
+        l->candleCount = 0;
+    }
+    if (l->candleLevel != l->candleTo) {
+        l->candleCount++;
+        CandleShow(l, l->candleCount >= CANDLE_FADE ? l->candleTo
+                                                     : l->candleFrom + ((s32)l->candleTo - l->candleFrom) * l->candleCount / CANDLE_FADE);
     }
 }
 
@@ -851,6 +912,7 @@ static void SqueakLogicMain(void) {
         case GIMMICK_CHASE: ChaseWall(l, e); break;
         case GIMMICK_CHASE_SPAWN: ChaseSpawn(l, e); break;
         case GIMMICK_CHASE_CHEST: ChaseChest(l, e); break;
+        case GIMMICK_CANDLE_LIGHT: CandleLight(l, e); break;
         case GIMMICK_LAIR_EXIT: LairExit(l, e); break;
         case GIMMICK_CURRENTS: Currents(l, e); break;
         case GIMMICK_CRUMBLES: Crumbles(l, e); break;
@@ -2567,11 +2629,13 @@ static void *SqueakCreateBoulder(struct ObjectTemplate *template, u8 playerId) {
 }
 
 /* The candles (gimmick 0xA, ctor 0x022237A4, vtable 0x022297E8; yakumono/candle, its look the parameter's low 4 bits, 0x02227D9C: one,
- * animation 0 lit, its flame flickering, 1 out): 4-3-7's, 4-3-8's and 8-1-6's, in dark rooms. Its box ±0.5 cells across, 1.5 up from
+ * animation 0 lit, its flame flickering, 1 out): 4-3-7's, 4-3-8's and 8-1-6's. Its box ±0.5 cells across, 1.5 up from
  * its spot. A burning attack on it (the message's flags 0x901, 0x022236A0) lights it (state 1) for the parameter's bits 4-15 frames
  * (400-540 in the rooms; again while lit: as long again), a blowing one (flag 2) puts it out with a puff; out (0x02223514), once none of
- * the room's is lit, the room's colors fade back to dark. Here: lit by an attack of a Kirby with Fire or Burning (his own, or one he
- * let go: its parent), for its frames, then out. The dark room and Light are left for later (the open requests: candles and Light); */
+ * the room's is lit, the far view's light dims (CandleLight()). Here: lit by an attack of a Kirby with Fire or Burning (his own, or
+ * one he let go: its parent), or with NiDL's Light (its flash, with the NiDL ROM: the owner, "the light ability should light up Squeak
+ * Squad sections that require the candle if NiDL expansion is present"), for its frames, then out; lit, it isn't culled off screen
+ * (the DS's candles count down wherever the camera is), so the room's light follows it; */
 struct SqueakCandle {
     struct Object obj;
     struct SqueakGimmickSprite spr;
@@ -2588,14 +2652,35 @@ static void SqueakCandleMain(struct Object *obj) {
     if (gUnk_03000510.unk4 & ((1 << obj->base.unk56) | 0x10)) return;
     GimmickAnimate(obj, &c->spr);
     if (Struck(obj) && (k = AttackKirby(by)) != NULL
-        && ((k->ability & NIDL_ABILITY_MASK) == KIRBY_ABILITY_FIRE || (k->ability & NIDL_ABILITY_MASK) == KIRBY_ABILITY_BURNING)) {
+        && ((k->ability & NIDL_ABILITY_MASK) == KIRBY_ABILITY_FIRE || (k->ability & NIDL_ABILITY_MASK) == KIRBY_ABILITY_BURNING
+            || (k->ability & NIDL_ABILITY_MASK) == NIDL_ABILITY_LIGHT)) {
         if (c->timer == 0) {
             GimmickPlay(obj, &c->spr, CANDLE_LIT_ANIM);
             PlaySfx(&obj->base, SE_ABILITY_FIRE_ATTACK);
+            obj->base.flags |= 0x2000000;
         }
         c->timer = obj->objTemplate->unk14 >> 4;
     }
-    if (c->timer != 0 && --c->timer == 0) GimmickPlay(obj, &c->spr, CANDLE_OUT_ANIM);
+    if (c->timer != 0 && --c->timer == 0) {
+        GimmickPlay(obj, &c->spr, CANDLE_OUT_ANIM);
+        obj->base.flags &= ~0x2000000;
+    }
+}
+
+// CandlesLit(); The room's candles lit (CandleLight());
+static u8 CandlesLit(u16 room) {
+    struct Task *t = &gTasks[0];
+    u8 n, count = 0;
+
+    for (n = 0; n < MAX_TASK_NUM && t->next; n++) {
+        struct Object *other;
+
+        t = (struct Task *)(IWRAM_START + t->next);
+        other = TaskGetStructPtr(t);
+        if (other->base.header.kind != 1 || other->unk78 != SqueakCandleMain) continue;
+        if (other->base.roomId == room && ((struct SqueakCandle *)other)->timer != 0) count++;
+    }
+    return count;
 }
 
 static void *SqueakCreateCandle(struct ObjectTemplate *template, u8 playerId) {
