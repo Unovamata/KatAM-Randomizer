@@ -5,8 +5,6 @@ finishes it says how it was checked). The design rules for doors, mirrors and hu
 [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
 
 ## 1. Squeak Squad rooms: tiles, blocks, looks
-- **Walk-once blocks** (the owner: "Blocks that you can only walk once and they get destroyed after do not work"; "Walk-once
-  blocks, check first image": that image didn't come through, only one image arrived, the invincibility screenshot).
 - **Layering** (the owner: "Some interactible blocks have some layering issues, therefore they show behind the stage.").
 - **Palettes** (the owner: "There's a lot of color palette problems with enemies and stages.").
 - **0x5E5's camera** (now room 0x5DE; the owner: "Room 0x5E5 camera moves without me"): not reproduced yet.
@@ -21,11 +19,7 @@ finishes it says how it was checked). The design rules for doors, mirrors and hu
   light ability should light up Squeak Squad sections that require the candle if NiDL expansion is present"): with the NiDL ROM
   loaded, NiDL's Light ability (from Cool Spook) lights the Squeak Squad dark rooms' parts the candles light, as Fire does on the DS.
 
-## 3. Squeak hideouts (lairs)
-- **A mini-boss's attack stuck after a cancel** (the owner: "One of the minibosses in the Squeak hideouts activated an attack and I
-  canceled, however the attack got locked in there."; "check the second image attached": that image didn't come through).
-
-## 4. Squeak Squad's final sequence (the owner: "Complete the final sequence.")
+## 3. Squeak Squad's final sequence (the owner: "Complete the final sequence.")
 - "I can pretty much invalidate the first fight of the final sequence [...] the mirror to go to the next phase is literally right
   there."
 - "Why is there a door in daroach's first phase fight [...] the warp should send me to the next phase automatically."
@@ -36,7 +30,7 @@ finishes it says how it was checked). The design rules for doors, mirrors and hu
 - "The 1st phase of the Squeak Squad boss goes out of the screen, this is really prevalent with bosses in general"
 - "The ray of light summoned from Daroach's wand attack is cutoff in the middle".
 
-## 5. Dark Nebula
+## 4. Dark Nebula
 - "massive lag when summoning stars. You can use the game's existing stars"
 - "fire attack looks very off and it's very laggy"
 - "When using its ice attack, it doesn't add the ice platforms at the bottom."
@@ -44,12 +38,12 @@ finishes it says how it was checked). The design rules for doors, mirrors and hu
 - "Dark Nebula never activates its electric attack."
 - "Kirby's dance is off centered in Dark Nebula's room."
 
-## 6. Hubs and the Map Viewer
+## 5. Hubs and the Map Viewer
 - "The fountain of dreams hub doesn't have the base of the master sword."
 - "Squeak Squad's bosses are not showing in the Map Viewer app."
 - "The squeak squad final boss sequence is not within this same line in the map viewer."
 
-## 7. Polish the Squeak Squad hubs
+## 6. Polish the Squeak Squad hubs
 - The owner: "Add a pending tasks to the list that we need to thoroughly polish the Squeak Squad hubs." The Squeak Squad hub (the
   Central Circle copy, its grey door, its mirror and doors' places and looks, still provisional) and the 8 world switch rooms (their
   provisional tiles, statues and pedestals): a thorough pass on looks and layout, the owner's picks first (the rulebook's frozen

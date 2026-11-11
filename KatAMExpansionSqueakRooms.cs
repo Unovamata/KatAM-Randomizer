@@ -936,21 +936,21 @@ namespace KatAMRandomizer {
                     bool burns = ((frontWord & 0x800) != 0 && frontWord >> 24 == 0x38 || loose.Contains((x, y))) && value != KatAMAir;
                     bool melts = (frontWord & 0xC000) == 0x4000 && frontWord >> 24 == 0x28 && map.Block(3, x, y) is 0x220 or 0x221
                                  && (mainWord & 0xC000) != 0x4000;
-                    /* (the blocks grid's block 3 over a solid main cell, drawn as the room's back: the hidden ways down 4-4-4's shafts to
-                     * its two doors, 35 rooms' small groups; not identified, a hidden breakable block by where they stand: star blocks
-                     * too, their look kept when broken); */
-                    bool Block3(int cx, int cy) => cy >= 0 && (map.Collision(6, cx, cy) & 0xC000) == 0 && (map.Collision(6, cx, cy) >> 24 & 7) == 3
-                                                   && (map.Collision(7, cx, cy) & 0xC000) == 0x4000;
-                    // (and the solid cell under one that the blocks grid covers, 0x400: 4-4-4's second row of each);
-                    bool hidden = value == KatAMSolid && (Block3(x, y) || (frontWord & 0x400) != 0 && (frontWord & 0xC000) == 0 && Block3(x, y - 1));
+                    /* (the blocks grid's block 3 over a solid main cell: the walk-once blocks, SqueakCrumbles(); star blocks, which
+                     * squeak/gimmicks.c's Crumbles() breaks once a Kirby stands on one, as any attack does; and the solid cells under
+                     * one that the blocks grid flags 0x400, each under the one before: they go after it, 3-6-2's second row, 4-4-4's,
+                     * 3-2-3's and 3-1-3's shafts, 14 deep. Broken, each is drawn with the third layer alone, as the DS swaps it in
+                     * (`burnt`: 3-6-2's show the forest behind, 3-2-3's the water), and leaves air, or water where its column stands
+                     * in water, above and below it (3-2-3's nine, under water: they kept Kirby dry once broken); */
+                    bool hidden = value == KatAMSolid && SqueakCrumbleChain(map, x, y);
                     melts |= hidden;
                     if (burns || melts) {
                         collision[y * width + x] = KatAMStarBlock;
                         blocks.Add((x, y));
                         blockValues.Add(KatAMStarBlock);
-                        byte under = melts && !hidden ? SqueakCollision(mainWord) : KatAMAir;
+                        byte under = melts && !hidden ? SqueakCollision(mainWord) : hidden && SqueakCrumbleInWater(map, x, y) ? KatAMWater : KatAMAir;
                         leaves.Add(under is KatAMStarBlock or KatAMMetalBlock or KatAMSolid ? KatAMAir : under);
-                        if (burns) burnt.Add((x, y));
+                        if (burns || hidden) burnt.Add((x, y));
                         continue;
                     }
                     // (the blocks grid's bricks, its solid cells of family 0x00: KatAM's metal blocks, see SqueakTurnCannon);
@@ -1031,6 +1031,50 @@ namespace KatAMRandomizer {
                     any = true;
                 }
             return any ? grid : null;
+        }
+
+        /* SqueakCrumble(); A walk-once block (the DS's blocks grid's block 3 on air, over a solid main cell: rows of cracked blocks, 1-6-6's
+         * castle walkway, 2-6-7's leafy bridge, 28 rooms); SqueakCrumbleChain(), one or a hidden cell under it (flagged 0x400 on air in the
+         * blocks grid, over solid ground) that goes after it: checked in the DS emulator, 3-6-2's: Kirby standing on it, it breaks, then
+         * the cell under it; */
+        static bool SqueakCrumble(SqueakMap map, int x, int y) => y >= 0 && (map.Collision(6, x, y) & 0xC000) == 0 && (map.Collision(6, x, y) >> 24 & 7) == 3
+                                                                  && (map.Collision(7, x, y) & 0xC000) == 0x4000;
+        static bool SqueakCrumbleHidden(SqueakMap map, int x, int y) => y >= 0 && (map.Collision(6, x, y) & 0x400) != 0 && (map.Collision(6, x, y) & 0xC000) == 0
+                                                                        && (map.Collision(6, x, y) >> 24 & 7) != 3 && (map.Collision(7, x, y) & 0xC000) == 0x4000;
+        static bool SqueakCrumbleChain(SqueakMap map, int x, int y) {
+            if (SqueakCrumble(map, x, y)) return true;
+            for (int up = y; SqueakCrumbleHidden(map, x, up); up--)
+                if (SqueakCrumble(map, x, up - 1)) return true;
+            return false;
+        }
+
+        // SqueakCrumbleInWater(); A walk-once block's column (it and its hidden cells) with water over its top and under its bottom;
+        static bool SqueakCrumbleInWater(SqueakMap map, int x, int y) {
+            bool Water(int cy) => cy >= 0 && cy < map.Height && (map.Collision(7, x, cy) & 0xC000) == 0 && map.Collision(7, x, cy) >> 30 == 1;
+            int top = y, bottom = y;
+            while (top > 0 && !SqueakCrumble(map, x, top)) top--;
+            while (SqueakCrumbleHidden(map, x, bottom + 1)) bottom++;
+            return Water(top - 1) && Water(bottom + 1);
+        }
+
+        /* SqueakCrumbles(); The room's walk-once blocks (SqueakCrumble()) for squeak/gimmicks.c's Crumbles(): u16 a count, then 4 bytes
+         * each: its cell (x, y) and how many hidden cells under it go after it; null where none; */
+        static byte[] SqueakCrumbles(SqueakMap map) {
+            List<byte> list = new List<byte> { 0, 0 };
+            int count = 0;
+            for (int y = 0; y < map.Height; y++)
+                for (int x = 0; x < map.Width; x++) {
+                    if (!SqueakCrumble(map, x, y)) continue;
+                    if (x > 0xFF || y > 0xFF) throw new InvalidOperationException("A Squeak Squad room's walk-once block is past cell 255.");
+                    int chain = 0;
+                    while (SqueakCrumbleHidden(map, x, y + 1 + chain)) chain++;
+                    list.AddRange(new byte[] { (byte)x, (byte)y, (byte)chain, 0 });
+                    count++;
+                }
+            if (count == 0) return null;
+            list[0] = (byte)count;
+            list[1] = (byte)(count >> 8);
+            return list.ToArray();
         }
 
         /* SqueakCollision(); KatAM's collision for a Squeak Squad cell (see the notes' collision word): its kind (bits 14-15: air, solid,
@@ -1764,7 +1808,7 @@ namespace KatAMRandomizer {
          * (its first 4 u16s: x0, y0, x1, y1) have their y in the DS's world, up from the room's bottom: here from its top (`height`, the
          * room's in pixels, less them, swapped), as the entries' spots are; */
         static byte[] SqueakGimmickList(List<SqueakGimmick> gimmicks, IReadOnlySet<(int x, int y)> chains, bool arena, int height, SqueakChase chase = null,
-                                        IReadOnlyList<(int x, int y)> lairExits = null, int currents = 0) {
+                                        IReadOnlyList<(int x, int y)> lairExits = null, int currents = 0, int crumbles = 0) {
             List<byte> list = new List<byte> { 0, 0, 0, 0 };
             for (int i = 0; i < gimmicks.Count && i < SqueakMailGimmicks; i++) {
                 SqueakGimmick g = gimmicks[i];
@@ -1808,6 +1852,15 @@ namespace KatAMRandomizer {
                 list.AddRange(entry);
                 list[0]++;
             }
+            // (its walk-once blocks, SqueakCrumblesEntry: its first 4 bytes the address of their list, SqueakCrumbles());
+            if (crumbles != 0 && next < SqueakMailGimmicks && list[0] != 0xFF) {
+                byte[] entry = new byte[24];
+                entry[0] = SqueakCrumblesEntry;
+                entry[1] = (byte)next++;
+                WriteInt(entry, 6, crumbles);
+                list.AddRange(entry);
+                list[0]++;
+            }
             return list[0] == 0 && list[1] == 0 ? null : list.ToArray();
         }
 
@@ -1823,6 +1876,8 @@ namespace KatAMRandomizer {
         const byte SqueakLairExitEntry = 0xF2;
         // (a room's currents: squeak/gimmicks.c's GIMMICK_CURRENTS, its grid's address in its first 4 bytes, SqueakCurrents());
         const byte SqueakCurrentsEntry = 0xF3;
+        // (a room's walk-once blocks: squeak/gimmicks.c's GIMMICK_CRUMBLES, their list's address in its first 4 bytes, SqueakCrumbles());
+        const byte SqueakCrumblesEntry = 0xF4;
         internal sealed record SqueakChase(byte Key, List<(int x, int y)> Walls, List<(int x, int y, byte character, byte variant)> Spawns);
         static void AddChaseEntries(List<byte> list, SqueakChase chase, int firstIndex) {
             int index = firstIndex;
@@ -2081,10 +2136,12 @@ namespace KatAMRandomizer {
         // (the rooms with currents written, SqueakCurrents(): AddSqueakRooms() counts them afresh);
         public static int SqueakCurrentRooms => squeakCurrentRooms;
         static int squeakCurrentRooms;
+        public static int SqueakCrumbleRooms => squeakCrumbleRooms;
+        static int squeakCrumbleRooms;
         static string AddSqueakRooms(byte[] rom, byte[] squeak, KatAMExpansionCode.Version version, ref int cursor) {
             IReadOnlyDictionary<string, int> symbols = version.RomSymbols;
             int here = cursor;      // (the cursor, which the local functions can't take by reference);
-            squeakChaseRooms = squeakChaseWalls = squeakChaseSpawns = squeakDoorMirrorsLeft = squeakCurrentRooms = 0;
+            squeakChaseRooms = squeakChaseWalls = squeakChaseSpawns = squeakDoorMirrorsLeft = squeakCurrentRooms = squeakCrumbleRooms = 0;
             int roomProps = symbols["gRoomProps"], roomInfos = symbols["gUnk_08D6CD0C"], arrivals = symbols["gUnk_0893CB44"];
             squeakRooms = new List<SqueakPortedRoom>();
             squeakLairMinibosses.Clear();
@@ -2507,9 +2564,16 @@ namespace KatAMRandomizer {
                         currentGrid.CopyTo(rom, currentsAt);
                         squeakCurrentRooms++;
                     }
+                    // (and its walk-once blocks' list: SqueakCrumbles());
+                    int crumblesAt = 0;
+                    if (SqueakCrumbles(map) is byte[] crumbleList) {
+                        crumblesAt = Allocate(ref here, crumbleList.Length, 4);
+                        crumbleList.CopyTo(rom, crumblesAt);
+                        squeakCrumbleRooms++;
+                    }
                     if (SqueakGimmickList(gimmicks, chains, arenas && (fightMidboss || fightBoss), map.Height * 16, chase,
                                           planned[i].Where(d => d.Shut).Select(d => (d.X, d.Y)).ToList(),
-                                          currentsAt != 0 ? currentsAt + 0x08000000 : 0) is byte[] gimmickList) {
+                                          currentsAt != 0 ? currentsAt + 0x08000000 : 0, crumblesAt != 0 ? crumblesAt + 0x08000000 : 0) is byte[] gimmickList) {
                         gimmickLists[i] = Allocate(ref here, gimmickList.Length, 4);
                         gimmickList.CopyTo(rom, gimmickLists[i]);
                     }

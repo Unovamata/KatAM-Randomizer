@@ -1061,10 +1061,16 @@ static void DocMain(struct Object *obj) {
     if (TREAT_TIMER(s) > 0) TREAT_TIMER(s)--;
     Held(s);
     Pace(s);
+    /* (inhaled, it braces, its attack cut off: the DS's brace (doc's anim 21) is its own sprite, not doc_at1's, so its arm's part
+     * goes with it; here the part it held (the claw's bomb, the cannon's smoke) is ended, else it stayed on it, looping, the owner:
+     * "One of the minibosses in the Squeak hideouts activated an attack and I canceled, however the attack got locked in there"); */
     if (s->state < BODY_FLINCH_ENTRY && NidlInhaler(&obj->base)) {
         FLAGS(s) |= FLAG_INHALED;
         BRACE_IDLE(s) = 0;
-        if (s->state != BODY_BRACE) SqueakSetState(s, BODY_BRACE_ENTRY);
+        if (s->state != BODY_BRACE) {
+            SqueakEndHeldEffect(s);
+            SqueakSetState(s, BODY_BRACE_ENTRY);
+        }
     }
     SqueakRun(s, Body);
     SqueakFinishFrame(s);
@@ -1073,6 +1079,8 @@ static void DocMain(struct Object *obj) {
         if (REGRAB(s) > 0) {
             REGRAB(s)--;
         } else {
+            // (a chest touched mid-attack: the attack's held part ends, as on an inhale);
+            SqueakEndHeldEffect(s);
             SqueakTakeChest(&CHEST(s), SWAY(s), chest);
             PAUSE(s) = TAKE_TIME;
             NEXT(s) = BODY_START;
