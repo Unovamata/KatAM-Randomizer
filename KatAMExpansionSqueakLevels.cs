@@ -400,7 +400,7 @@ namespace KatAMRandomizer {
             // stood in, so no door throws Kirby into it; SqueakRides()' legs between the star's room and the one it lands in);
             public bool Crossed;
             // (its stone-door switches' cells, gimmick 0, and its other gimmicks' (stone doors, lifts, clouds, boulders, fires, rocks,
-            // icicles, ropes, candles): no door, landing or way back goes in front of one, NearGimmick());
+            // icicles, ropes, candles) and chests': no door, landing or way back goes in front of one, NearGimmick());
             public List<(int x, int y)> Switches = new List<(int, int)>(), Gimmicks = new List<(int, int)>();
             // (the cells its stone shutters close till a switch opens them: the ways back, which take them as walls);
             public HashSet<(int x, int y)> Shut = new HashSet<(int, int)>();
@@ -509,6 +509,27 @@ namespace KatAMRandomizer {
                 }
                 return starts.Count == 0;
             }
+            /* Walkable(); The cells Kirby gets to in a room from where the DS brings him in (its arrivals, the DS doors the stage's
+             * others land him on), joined by the cells he goes through (Through(): never down through a thin floor). A new door stands
+             * only on one (SqueakSpot()): an open-air flood put 7-3-2's way to 7-6-4 under its thin floors, which Kirby reached only
+             * by dropping through, its way back from 7-6-4 the one way there (7-6 cut off without Down and B); */
+            Dictionary<int, HashSet<(int x, int y)>> walkable = new Dictionary<int, HashSet<(int x, int y)>>();
+            HashSet<(int x, int y)> Walkable(SqueakPlanRoom r) {
+                if (walkable.TryGetValue(r.Room, out HashSet<(int x, int y)> cells)) return cells;
+                List<SqueakPlanRoom> stage = byStage[(r.Area, r.Stage)];
+                cells = r.Doors.Where(d => SqueakArrival(d) || stage.Any(t => t.Doors.Any(o => o.Room + 1 == r.Number && o.Door == r.Doors.IndexOf(d))))
+                               .Select(d => (d.X, d.Y)).Where(c => c.X >= 0 && c.Y >= 0 && c.X < r.Width && c.Y < r.Height).ToHashSet();
+                Queue<(int x, int y)> open = new Queue<(int x, int y)>(cells);
+                while (open.Count > 0) {
+                    (int x, int y) = open.Dequeue();
+                    foreach ((int nx, int ny) in new[] { (x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1) })
+                        if (nx >= 0 && ny >= 0 && nx < r.Width && ny < r.Height && !cells.Contains((nx, ny)) && Through(r, y, nx, ny)) {
+                            cells.Add((nx, ny));
+                            open.Enqueue((nx, ny));
+                        }
+                }
+                return walkable[r.Room] = cells;
+            }
             void Reach(int room) {
                 Queue<int> queue = new Queue<int>();
                 if (reachable.Add(room)) queue.Enqueue(room);
@@ -551,6 +572,10 @@ namespace KatAMRandomizer {
                 }
                 int[] plain = Distances(false), broken = Distances(true);
                 List<(int x, int y)> taken = Taken(r).ToList();
+                // (a door where Kirby walks to, Walkable(); a room the DS brings him into nowhere, anywhere; the way-out pass's own
+                // cells, `within`, are where he is);
+                HashSet<(int x, int y)> walk = door && within == null ? Walkable(r) : null;
+                if (walk != null && walk.Count == 0) walk = null;
                 (int x, int y)? best = null;
                 double bestScore = double.MinValue;
                 for (int y = MirrorTop; y <= height - 3; y++) {
@@ -558,6 +583,7 @@ namespace KatAMRandomizer {
                         int distance = broken[y * width + x];
                         if (within != null && !within.Contains((x, y))) continue;
                         if (distance < 0 || r.At(x, y) != KatAMAir || !SqueakOpen(r.At(x, y - 1)) || !SqueakOpen(r.At(x - 1, y)) || !SqueakOpen(r.At(x + 1, y))) continue;
+                        if (walk != null && !walk.Contains((x, y))) continue;
                         if (Enumerable.Range(x - 1, 3).Any(fx => !SqueakFloor(r.At(fx, y + 1)))) continue;
                         if (firm && Enumerable.Range(x - 1, 3).Any(fx => r.At(fx, y + 1) is >= KatAMStarBlock and <= KatAMMetalBlock)) continue;
                         if (taken.Any(c => Math.Abs(c.x - x) < MirrorSpacing * 2 && Math.Abs(c.y - y) <= 2)) continue;
