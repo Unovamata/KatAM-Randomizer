@@ -30,9 +30,17 @@ after any change.
   3 cells wide with room above. `RoomSpot()`, `Shown()`.
 - **Doors keep their distance** from other doors, from where other doors land Kirby, and from warp stars and cannons
   (`MirrorSpacing` x 2 cells across, 2 up or down; half that in small rooms). `RoomSpot()`.
+- **No door, landing or way back in front of a switch** (the owner: "There's instances where switches are in front of doors, this
+  breaks the 3 tile rule"): the ones added to Squeak Squad's rooms keep 3 cells across, 2 up or down, from its stone-door switches
+  (gimmick 0), as enemies keep from doors; and 2 across, 2 up or down, from its other gimmicks (stone doors, lifts, clouds,
+  boulders, fires, rocks, icicles, ropes, candles: 8-1-1's door stood in a stone door's pillar). The DS's own doors stay where the DS
+  has them. `SqueakSpot()`, `NearGimmick()`.
 - NiDL's own door halls (Butter Building's tower floors, Rainbow Resort's rooms of doors) keep all their doors, drawn as NiDL's
   own doorways without mirrors, past these limits.
 - **Secret doors stay hidden until uncovered**: a door behind breakable blocks or in a hidden spot only shows once Kirby finds it.
+- **Squeak Squad's hidden doors show a mirror** (the owner: "I think hidden doors should be replaced with visible mirror doors"):
+  the DS's invisible doors (flag 4, the ones Up opens with nothing drawn, into a stage's gold-pile room) get a mirror as its other
+  doors do, one-way (they have no way back). Not one with no floor under it (4-6-3's, which Up can't use). `AddSqueakRooms()`.
 - **Enemies keep away from doors**: no enemy stands on a door or right where a door lands Kirby (3 cells across, 2 up or
   down), counted where the enemy ends up (a walker dropped onto the floor below its spot), in the NiDL rooms and in KatAM's
   rooms the NiDL doors land in (KatAM's enemy there is left out), and in the Squeak Squad rooms (the DS's doors too).
@@ -189,8 +197,10 @@ after any change.
   - the rooms a stage reaches only through its Squeaks that no lair uses (the other three hideouts of each stage, every stage's
     copies of the same four fights, and its gold-pile treasure rooms nothing leads to) are left out, nothing leading in; a room
     after a stage's goal that isn't one of those (1-1-5, the field past its goal) is reached as any room (rule 9); the sky rooms
-    the DS's warp stars fly through (3-4-5, 8-3-6, 8-3-7: nothing to stand on) are reached on those rides, as the DS's (3-4-4's
-    star flies through 3-4-5 into 3-4-6, 8-3-5's through 8-3-6 and 8-3-7 into 8-3-8), never stood in (rule 7);
+    the DS's warp stars fly through (3-4-5, 8-3-6, 8-3-7: nothing to stand on; and 7-2-2) are reached on those rides, as the DS's
+    (3-4-4's star flies through 3-4-5 into 3-4-6, 7-2-1's through 7-2-2 into 7-2-3, 8-3-5's through 8-3-6 and 8-3-7 into 8-3-8),
+    never stood in (rule 7): no door throws Kirby into one (their DS arrival is where the star comes in, at the room's edge; thrown
+    there, Kirby fell below the camera's view and died);
   - each world's switch room is found by exploring: a Mirra hidden in the world's second half (its stages from the middle on by
     number, the deepest first), one-way, landing off its floor mirrors; its right floor mirror both ways with the start of the
     stage before the boss's (the deepest), its left one with the start of the deepest stage off the way from the world's first
