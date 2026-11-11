@@ -259,15 +259,25 @@ void NidlExitTomato(u16 slot, u32 eaten) {
 }
 
 /* NidlDanceOut(); Every Kirby in a room dances and leaves, as after a boss's shard (sub_0804BD98, as a warp star's end does it: where
- * he stands; then sub_0804C614 and NidlShardExit(): where the shard would take him); */
+ * he stands; then sub_0804C614 and NidlShardExit(): where the shard would take him). sub_0804BD98 places the dancers from
+ * gUnk_0834C384 (128 the one's, the middle of a view whose left is the room's 8) plus its fourth argument's cells: the view's own
+ * left in cells, so they dance in the middle of the screen in a room the camera isn't at the left of (the owner: "Kirby's dance is
+ * off centered in Dark Nebula's room"); */
 void NidlDanceOut(u16 room) {
     u16 i;
     u8 count = 0, index = 0, dance = (Rand16() & 1) + 2;
 
     for (i = 0; i < 4; i++)
         if (gKirbys[i].base.roomId == room) count++;
-    for (i = 0; i < 4; i++)
-        if (gKirbys[i].base.roomId == room) sub_0804BD98(&gKirbys[i], index++, count, dance, 0, gKirbys[i].base.y >> 12);
+    for (i = 0; i < 4; i++) {
+        s32 cells;
+
+        if (gKirbys[i].base.roomId != room) continue;
+        cells = gCurLevelInfo[gKirbys[i].base.unk56].viewportPosition.x >> 12;
+        if (cells < 0) cells = 0;
+        if (cells > 127) cells = 127;
+        sub_0804BD98(&gKirbys[i], index++, count, dance, cells, gKirbys[i].base.y >> 12);
+    }
 }
 
 /* gNidlShardExits; Where Kirby goes once a boss's shard cutscene ends (KatAM: Central Circle, sub_0804C614's `roomId = 0x321`, which
