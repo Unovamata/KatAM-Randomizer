@@ -16,6 +16,9 @@ namespace KatAMMapTracker {
         MapTutorial, MapRainbowRoute, MapMoonlightMansion, MapCabbageCavern, MapMustardMountain, MapCarrotCastle,
         MapOliveOcean, MapPeppermintPalace, MapRadishRuins, MapCandyConstellation,
 
+        // The Kirbys, as the pause screen's area map shows where each one is: his head in his color (pink, yellow, red, green);
+        KirbyPink, KirbyYellow, KirbyRed, KirbyGreen,
+
         // The ROM Expansion's mini-bosses: Expansion + their place in RomMap.ExpansionMinibosses (their sprites are in the ROM);
         Expansion,
     }
@@ -55,6 +58,13 @@ namespace KatAMMapTracker {
             new IconPart(x, y, width, height, flipH != 0, flipV != 0, palette, tiles);
 
         static readonly Dictionary<EntityIcon, IconPart[]> Icons = new Dictionary<EntityIcon, IconPart[]> {
+            /* The area map's Kirbys (pause_area_map.c's AreaMapKirbySpritesInit(): anim gUnk_08350AAC[ability], here a Normal
+             * Kirby's head), one 16x16 piece, every player's the same tiles in his own palette (read off the area map in the
+             * emulator: OBJ palettes 0-3); */
+            [EntityIcon.KirbyPink] = new[] { P(0, 0, 16, 16, 0, 0, 0x49F238, 0x60CBF8) },
+            [EntityIcon.KirbyYellow] = new[] { P(0, 0, 16, 16, 0, 0, 0x49F2D8, 0x60CBF8) },
+            [EntityIcon.KirbyRed] = new[] { P(0, 0, 16, 16, 0, 0, 0x49F2F8, 0x60CBF8) },
+            [EntityIcon.KirbyGreen] = new[] { P(0, 0, 16, 16, 0, 0, 0x49F318, 0x60CBF8) },
             [EntityIcon.Cherry] = new[] {
                 P(0, 0, 16, 16, 0, 0, 0x49F758, 0x603598),
             },

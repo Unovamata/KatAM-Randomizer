@@ -19,9 +19,9 @@ namespace KatAMMapTracker {
      * • Reveal All (spoiler) shows the whole map, with what wasn't discovered yet faded.
      * • Hovering a room shows its preview, with its background, and its mirrors (green: used, yellow: not yet).
      * • Mouse wheel zooms around the cursor, dragging pans, double clicking a room centers it;
-     * • Every Kirby (the player's and the three CPU Kirbys', in their colors) is an arrow pointing at his spot in his room's square
-     *   (where he is in the room, scaled to the square), in rooms the map shows; one out of the window is an arrow on its edge
-     *   pointing his way (SetKirbys()); */
+     * • Every Kirby (the player's and the three CPU Kirbys') is his head in his color in the square of the room he's in, as the
+     *   pause screen's area map shows them, in rooms the map shows; one out of the window (zoomed or panned away) is an arrow in his
+     *   color on its edge, pointing at his room (SetKirbys()); */
     public sealed class MapView : Control {
         const double MinZoom = 0.25, MaxZoom = 8, ZoomStep = 1.2;
         const int AreaRadius = 56, AreaCell = 2, PreviewMaxWidth = 420, PreviewMaxHeight = 280;
@@ -80,6 +80,22 @@ namespace KatAMMapTracker {
 
         Bitmap areaLayer;
         RectangleF areaLayerBounds;
+
+        /* The scene cache (the owner: "the map lags real bad when you zoom out too much"): zoomed out, the whole map (regions, lines,
+         * rooms and their icons, all but the current room) drawn once into a picture at the current zoom, then only copied while the
+         * view pans, the current room pulses, the cursor moves or the Kirbys move; drawn again when the zoom settles somewhere else or
+         * what it shows changes (SceneKey()). While a zoom eases, the last picture is scaled. Zoomed in (the picture past
+         * MaxSceneCachePixels), only what's in the repainted area is drawn instead; */
+        const long MaxSceneCachePixels = 12_000_000;
+        const double SceneCacheMargin = AreaRadius + 64;
+        Bitmap sceneCache;
+        RectangleF sceneCacheExtent;
+        double sceneCacheZoom;
+        object sceneCacheKey;
+        bool drawingSceneCache;
+        int sceneVersion;
+        // (the line pieces' brushes, made once: only their place changes);
+        readonly Dictionary<(Sprite, bool), TextureBrush> lineBrushes = new Dictionary<(Sprite, bool), TextureBrush>();
         (int rooms, bool all) areaLayerKey = (-1, false);
 
         Point dragStart, mouse;
@@ -89,16 +105,16 @@ namespace KatAMMapTracker {
 
         public bool Follow { get; set; } = true;
 
-        /* The Kirbys (SetKirbys()): his number (0 the player's, then the CPU Kirbys), his room on the map and his spot in it (pixels);
-         * their arrows: KirbyColors (the game's: pink, yellow, red, green), ArrowSize screen pixels long, an edge arrow EdgeMargin
-         * inside the window; arrows at the same spot are set side by side; */
+        /* The Kirbys (SetKirbys()): his number (0 the player's, then the CPU Kirbys), his room on the map (and his spot in it, pixels,
+         * not drawn); the edge arrows: KirbyColors (the game's: pink, yellow, red, green), ArrowSize screen pixels long, EdgeMargin
+         * inside the window; */
         public readonly record struct KirbyMarker(int Player, int Room, int X, int Y);
         static readonly Color[] KirbyColors = { Color.FromArgb(255, 136, 184), Color.FromArgb(255, 216, 40), Color.FromArgb(232, 48, 56), Color.FromArgb(56, 192, 72) };
         const float ArrowSize = 16, EdgeMargin = 6;
         List<KirbyMarker> kirbys = new List<KirbyMarker>();
         bool showKirbys = true;
 
-        // The Kirbys' arrows are drawn (on by default);
+        // The Kirbys are drawn (their heads, or arrows to them; on by default);
         public bool ShowKirbys {
             get => showKirbys;
             set { showKirbys = value; Invalidate(); }
@@ -111,7 +127,7 @@ namespace KatAMMapTracker {
         // The kinds of important objects (bosses, items, chests...) whose in-game sprites are drawn in the rooms; None by default;
         public HashSet<EntityKind> ShownEntityKinds {
             get => shownEntityKinds;
-            set { shownEntityKinds = value ?? new HashSet<EntityKind>(); Invalidate(); }
+            set { shownEntityKinds = value ?? new HashSet<EntityKind>(); sceneVersion++; Invalidate(); }
         }
 
         bool ShowEntities => shownEntityKinds.Count > 0;
@@ -125,7 +141,7 @@ namespace KatAMMapTracker {
         // Chests show what they hold (spoiler) instead of the chest sprite;
         public bool ShowChestContents {
             get => showChestContents;
-            set { showChestContents = value; Invalidate(); }
+            set { showChestContents = value; sceneVersion++; Invalidate(); }
         }
 
         HashSet<int> mapRevealedRooms = new HashSet<int>();
@@ -133,7 +149,7 @@ namespace KatAMMapTracker {
         // Rooms revealed by the area maps of the player's save, shown faded like rooms not visited yet;
         public HashSet<int> MapRevealedRooms {
             get => mapRevealedRooms;
-            set { mapRevealedRooms = value ?? new HashSet<int>(); areaLayerKey = (-1, false); Invalidate(); }
+            set { mapRevealedRooms = value ?? new HashSet<int>(); areaLayerKey = (-1, false); sceneVersion++; Invalidate(); }
         }
 
         /* Entity icons are drawn inside the room square, all the same size: half a small room's square, in a 2x2 grid of up to MaxEntityIcons
@@ -155,7 +171,7 @@ namespace KatAMMapTracker {
         // Zoomed out, rooms and lines are drawn bigger so they stay readable (see MinRoomScreenSize);
         public bool DynamicScaling {
             get => dynamicScaling;
-            set { dynamicScaling = value; Invalidate(); }
+            set { dynamicScaling = value; sceneVersion++; Invalidate(); }
         }
 
         public event Action FollowDisabledByUser;
@@ -238,17 +254,20 @@ namespace KatAMMapTracker {
         public void SetProgress(MapProgress mapProgress) {
             progress = mapProgress;
             areaLayerKey = (-1, false);
+            sceneVersion++;
             Invalidate();
         }
 
         // RefreshProgress(); Redraws after the progress changed outside of room changes (Reveal All);
         public void RefreshProgress() {
             areaLayerKey = (-1, false);
+            sceneVersion++;
             Invalidate();
         }
 
         // OnRoomChanged(); Called when Kirby enters a room, to follow him;
         public void OnRoomChanged() {
+            sceneVersion++;
             if (Follow && progress != null && layout != null && layout.ContainsKey(progress.CurrentRoom)) CenterOn(progress.CurrentRoom);
 
             Invalidate();
@@ -469,13 +488,29 @@ namespace KatAMMapTracker {
             }
 
             GraphicsState state = g.Save();
+            Scene scene = ViewScene;
 
-            // Everything is drawn in map pixels; The transform does the zoom and pan;
-            g.Transform = new Matrix((float)zoom, 0, 0, (float)zoom, (float)(-OffsetX * zoom), (float)(-OffsetY * zoom));
-            // Culling: only the rooms, lines and icons in the window (and CullMargin around it) are drawn;
-            cull = new RectangleF((float)(OffsetX - CullMargin), (float)(OffsetY - CullMargin), (float)(Width / zoom + 2 * CullMargin), (float)(Height / zoom + 2 * CullMargin));
-            DrawScene(g, ViewScene, true);
-            cull = null;
+            if (SceneCacheReady(scene)) {
+                // The cached picture, at its place (whole screen pixels at its own zoom, so it stays sharp), then the current room;
+                double scale = zoom / sceneCacheZoom;
+                float left = (float)((sceneCacheExtent.X - OffsetX) * zoom), top = (float)((sceneCacheExtent.Y - OffsetY) * zoom);
+                if (scale == 1) (left, top) = ((float)Math.Round(left), (float)Math.Round(top));
+                g.InterpolationMode = InterpolationMode.NearestNeighbor;
+                g.PixelOffsetMode = PixelOffsetMode.Half;
+                g.DrawImage(sceneCache, new RectangleF(left, top, (float)(sceneCache.Width * scale), (float)(sceneCache.Height * scale)));
+                g.Transform = new Matrix((float)zoom, 0, 0, (float)zoom, (float)(left - sceneCacheExtent.X * zoom), (float)(top - sceneCacheExtent.Y * zoom));
+                DrawCurrentAndHovered(g, scene);
+            } else {
+                // Everything is drawn in map pixels; The transform does the zoom and pan;
+                g.Transform = new Matrix((float)zoom, 0, 0, (float)zoom, (float)(-OffsetX * zoom), (float)(-OffsetY * zoom));
+                /* Culling: only the rooms, lines and icons in the repainted area (the window, or the part of it that changed: the
+                 * current room's pulse, the Kirbys) and CullMargin around it are drawn; */
+                Rectangle clip = Rectangle.Intersect(e.ClipRectangle, ClientRectangle);
+                cull = new RectangleF((float)(OffsetX + clip.X / zoom - CullMargin), (float)(OffsetY + clip.Y / zoom - CullMargin),
+                                      (float)(clip.Width / zoom + 2 * CullMargin), (float)(clip.Height / zoom + 2 * CullMargin));
+                DrawScene(g, scene, true);
+                cull = null;
+            }
             g.Restore(state);
 
             DrawKirbys(g);
@@ -485,61 +520,134 @@ namespace KatAMMapTracker {
             DrawHint(g);
         }
 
-        // SetKirbys(); Where the Kirbys are now: only their old and new arrows are redrawn;
+        // SceneKey(); What the cached picture shows (its room growth and line scale go with its zoom): when any of it changes, it's drawn again;
+        object SceneKey(Scene scene) => (sceneVersion, scene.ShowAll, scene.FadeUndiscovered, progress.VisitedRooms.Count, progress.FoundDoors.Count, progress.CurrentRoom,
+                                          mapRevealedRooms.Count, Width > 0);
+
+        /* SceneCacheReady(); Whether the paint copies the cached picture (zoomed out enough for the whole map to fit in
+         * MaxSceneCachePixels), drawing it first if what it shows changed, or the zoom settled at another one; */
+        bool SceneCacheReady(Scene scene) {
+            if (layout.Count == 0) return false;
+            RectangleF extent = RectangleF.FromLTRB((float)(layout.Values.Min(r => r.X) - SceneCacheMargin), (float)(layout.Values.Min(r => r.Y) - SceneCacheMargin),
+                                                    (float)(layout.Values.Max(r => r.X + r.Width) + SceneCacheMargin), (float)(layout.Values.Max(r => r.Y + r.Height) + SceneCacheMargin));
+            int width = (int)Math.Ceiling(extent.Width * zoom), height = (int)Math.Ceiling(extent.Height * zoom);
+            if ((long)width * height > MaxSceneCachePixels || width <= 0 || height <= 0) {
+                sceneCache?.Dispose();
+                sceneCache = null;
+                return false;
+            }
+
+            object key = SceneKey(scene);
+            bool stale = sceneCache == null || !key.Equals(sceneCacheKey) || sceneCacheExtent != extent;
+            // (while a zoom eases, the last picture is scaled; drawn again once it settles);
+            if (!stale && (sceneCacheZoom == zoom || isZooming)) return true;
+
+            sceneCache?.Dispose();
+            sceneCache = new Bitmap(width, height, PixelFormat.Format32bppPArgb);
+            using (Graphics cache = Graphics.FromImage(sceneCache)) {
+                cache.Transform = new Matrix((float)zoom, 0, 0, (float)zoom, (float)(-extent.X * zoom), (float)(-extent.Y * zoom));
+                drawingSceneCache = true;
+                try {
+                    DrawScene(cache, scene, true, progress.CurrentRoom);
+                } finally {
+                    drawingSceneCache = false;
+                }
+            }
+            sceneCacheExtent = extent;
+            sceneCacheZoom = zoom;
+            sceneCacheKey = key;
+            return true;
+        }
+
+        // DrawCurrentAndHovered(); Over the cached picture: the current room (its pulse) with its icons, and the hovered room's outline;
+        void DrawCurrentAndHovered(Graphics g, Scene scene) {
+            g.PixelOffsetMode = PixelOffsetMode.Half;
+            g.InterpolationMode = InterpolationMode.NearestNeighbor;
+            g.SmoothingMode = SmoothingMode.None;
+            if (layout.ContainsKey(progress.CurrentRoom) && map.Rooms.ContainsKey(progress.CurrentRoom) && IsShown(scene, progress.CurrentRoom)) {
+                DrawRoom(g, scene, progress.CurrentRoom);
+                if (ShowEntities) DrawEntities(g, scene, progress.CurrentRoom);
+            }
+            if (hoveredRoom >= 0 && hoveredRoom != progress.CurrentRoom && layout.TryGetValue(hoveredRoom, out RoomPlacement placement)) {
+                using Pen pen = new Pen(Color.White, (float)(1.5 / zoom));
+                RectangleF outline = RectangleF.Inflate(RoomBounds(placement, scene.RoomGrowth), 1, 1);
+                g.DrawRectangle(pen, outline.X, outline.Y, outline.Width, outline.Height);
+            }
+        }
+
+        // SetKirbys(); Which room each Kirby is in now: only the old and new icons and arrows are redrawn (where he stands in it isn't drawn);
         public void SetKirbys(IEnumerable<KirbyMarker> markers) {
             List<KirbyMarker> next = markers?.ToList() ?? new List<KirbyMarker>();
-            if (next.SequenceEqual(kirbys)) return;
-            foreach (Rectangle area in KirbyArrows().Select(arrow => arrow.area)) Invalidate(area);
+            if (next.Select(k => (k.Player, k.Room)).SequenceEqual(kirbys.Select(k => (k.Player, k.Room)))) return;
+            foreach (Rectangle area in KirbyMarks().Select(mark => mark.area)) Invalidate(area);
             kirbys = next;
-            foreach (Rectangle area in KirbyArrows().Select(arrow => arrow.area)) Invalidate(area);
+            foreach (Rectangle area in KirbyMarks().Select(mark => mark.area)) Invalidate(area);
         }
 
-        /* KirbyArrows(); Each Kirby's arrow (screen pixels): its tip, the way it points (radians, 0 right, PI/2 down), the area it
-         * covers, his color; down onto his spot (the room's square scaled from the room: his place in it), or on the window's edge
-         * pointing toward it when it's outside. None for a Kirby in a room the map doesn't show (not discovered); */
-        List<(PointF tip, float angle, Rectangle area, Color color)> KirbyArrows() {
-            List<(PointF, float, Rectangle, Color)> arrows = new List<(PointF, float, Rectangle, Color)>();
-            if (!showKirbys || map == null || layout == null || progress == null) return arrows;
+        /* KirbyMarks(); How each Kirby is drawn (screen pixels), in drawing order (the player's last, over the others): his head (the
+         * area map's, KirbyIcons) in his room's square, the game's way: alone in the middle, with others in the room each in his own
+         * corner (sAreaMapNormalRoomKirbyOffsets: the player's top left, then top right, bottom left, bottom right); or, when that's out
+         * of the window (zoomed or panned away), an arrow on its edge pointing at his room. None for a Kirby in a room the map doesn't
+         * show (not discovered). `center` and `size` are the head's, `arrow` the arrow's tip and angle (null when the head is drawn); */
+        static readonly EntityIcon[] KirbyIcons = { EntityIcon.KirbyPink, EntityIcon.KirbyYellow, EntityIcon.KirbyRed, EntityIcon.KirbyGreen };
+        List<(int player, PointF center, float size, (PointF tip, float angle)? arrow, Rectangle area)> KirbyMarks() {
+            List<(int, PointF, float, (PointF, float)?, Rectangle)> marks = new List<(int, PointF, float, (PointF, float)?, Rectangle)>();
+            if (!showKirbys || map == null || layout == null || progress == null) return marks;
             Scene scene = ViewScene;
-            List<PointF> tips = new List<PointF>();
-            // (the player's last, over the others);
-            foreach (KirbyMarker kirby in kirbys.OrderByDescending(k => k.Player)) {
-                if (!layout.TryGetValue(kirby.Room, out RoomPlacement placement) || !map.Rooms.TryGetValue(kirby.Room, out RoomInfo info) || !IsShown(scene, kirby.Room)) continue;
-                RectangleF square = RoomBounds(placement, scene.RoomGrowth);
-                float fx = Math.Clamp(kirby.X / Math.Max(1f, info.Width * 8f), 0, 1), fy = Math.Clamp(kirby.Y / Math.Max(1f, info.Height * 8f), 0, 1);
-                PointF spot = ToScreen(square.X + fx * square.Width, square.Y + fy * square.Height);
-                // (side by side with an arrow already at that spot);
-                while (tips.Any(t => Math.Abs(t.X - spot.X) < ArrowSize / 2 && Math.Abs(t.Y - spot.Y) < ArrowSize / 2)) spot.X += ArrowSize * 0.6f;
-                tips.Add(spot);
-                RectangleF inside = new RectangleF(EdgeMargin, EdgeMargin, Math.Max(1, Width - 2 * EdgeMargin), Math.Max(1, Height - 2 * EdgeMargin));
-                PointF tip = spot;
-                float angle = (float)(Math.PI / 2);
-                if (!inside.Contains(spot)) {
-                    tip = new PointF(Math.Clamp(spot.X, inside.Left, inside.Right), Math.Clamp(spot.Y, inside.Top, inside.Bottom));
-                    angle = (float)Math.Atan2(spot.Y - Height / 2.0, spot.X - Width / 2.0);
+            List<KirbyMarker> shown = kirbys.Where(k => layout.ContainsKey(k.Room) && map.Rooms.ContainsKey(k.Room) && IsShown(scene, k.Room)).ToList();
+            RectangleF inside = new RectangleF(EdgeMargin, EdgeMargin, Math.Max(1, Width - 2 * EdgeMargin), Math.Max(1, Height - 2 * EdgeMargin));
+            foreach (KirbyMarker kirby in shown.OrderByDescending(k => k.Player)) {
+                RectangleF square = RoomBounds(layout[kirby.Room], scene.RoomGrowth);
+                PointF middle = ToScreen(square.X + square.Width / 2, square.Y + square.Height / 2);
+                // (16, 32 or 48 screen pixels: about half the room's square on screen, whole pixels of the sprite);
+                float screenSquare = (float)(Math.Min(square.Width, square.Height) * zoom);
+                float size = 16 * Math.Clamp((float)Math.Round(screenSquare * 0.6f / 16), 1, 3);
+                PointF center = middle;
+                if (shown.Count(k => k.Room == kirby.Room) > 1) {
+                    int corner = kirby.Player % 4;
+                    center = new PointF(middle.X + (corner % 2 == 0 ? -1 : 1) * size * 0.375f, middle.Y + (corner < 2 ? -1 : 1) * size * 0.375f);
                 }
-                int reach = (int)Math.Ceiling(ArrowSize) + 3;
-                arrows.Add((tip, angle, new Rectangle((int)tip.X - reach, (int)tip.Y - reach, 2 * reach, 2 * reach), KirbyColors[kirby.Player % KirbyColors.Length]));
+                center = new PointF((float)Math.Round(center.X), (float)Math.Round(center.Y));
+                if (inside.Contains(center)) {
+                    int reach = (int)Math.Ceiling(size / 2) + 2;
+                    marks.Add((kirby.Player, center, size, null, new Rectangle((int)center.X - reach, (int)center.Y - reach, 2 * reach, 2 * reach)));
+                } else {
+                    PointF tip = new PointF(Math.Clamp(center.X, inside.Left, inside.Right), Math.Clamp(center.Y, inside.Top, inside.Bottom));
+                    float angle = (float)Math.Atan2(center.Y - Height / 2.0, center.X - Width / 2.0);
+                    int reach = (int)Math.Ceiling(ArrowSize) + 3;
+                    marks.Add((kirby.Player, center, size, (tip, angle), new Rectangle((int)tip.X - reach, (int)tip.Y - reach, 2 * reach, 2 * reach)));
+                }
             }
-            return arrows;
+            return marks;
         }
 
-        // DrawKirbys(); The Kirbys' arrows (KirbyArrows()): a head and a short tail, his color, outlined, pixel sharp;
+        // DrawKirbys(); The Kirbys (KirbyMarks()): their heads in their rooms, pixel art; their arrows on the edge, his color, outlined;
         void DrawKirbys(Graphics g) {
-            List<(PointF tip, float angle, Rectangle area, Color color)> arrows = KirbyArrows();
-            if (arrows.Count == 0) return;
+            var marks = KirbyMarks();
+            if (marks.Count == 0) return;
             GraphicsState state = g.Save();
             g.SmoothingMode = SmoothingMode.None;
+            g.InterpolationMode = InterpolationMode.NearestNeighbor;
             g.PixelOffsetMode = PixelOffsetMode.Half;
             // (pointing right from the tip at 0, 0, turned to its angle);
             PointF[] shape = { new PointF(0, 0), new PointF(-ArrowSize * 0.55f, -ArrowSize * 0.45f), new PointF(-ArrowSize * 0.55f, -ArrowSize * 0.18f),
                                new PointF(-ArrowSize, -ArrowSize * 0.18f), new PointF(-ArrowSize, ArrowSize * 0.18f), new PointF(-ArrowSize * 0.55f, ArrowSize * 0.18f),
                                new PointF(-ArrowSize * 0.55f, ArrowSize * 0.45f) };
             using Pen outline = new Pen(Color.FromArgb(24, 16, 32), 2) { LineJoin = LineJoin.Miter };
-            foreach (var (tip, angle, _, color) in arrows) {
+            foreach (var (player, center, size, arrow, _) in marks) {
+                if (arrow is not (PointF tip, float angle)) {
+                    Sprite head = GetEntitySprite(KirbyIcons[player % KirbyIcons.Length]);
+                    if (head != null) {
+                        float scale = size / 16;
+                        g.DrawImage(GetBitmap(head), new RectangleF(center.X - head.Width * scale / 2, center.Y - head.Height * scale / 2, head.Width * scale, head.Height * scale));
+                        continue;
+                    }
+                    // (no head in this ROM: an arrow down onto the room instead);
+                    (tip, angle) = (center, (float)(Math.PI / 2));
+                }
                 float cos = (float)Math.Cos(angle), sin = (float)Math.Sin(angle);
                 PointF[] points = shape.Select(p => new PointF((float)Math.Round(tip.X + p.X * cos - p.Y * sin), (float)Math.Round(tip.Y + p.X * sin + p.Y * cos))).ToArray();
-                using SolidBrush fill = new SolidBrush(color);
+                using SolidBrush fill = new SolidBrush(KirbyColors[player % KirbyColors.Length]);
                 g.DrawPolygon(outline, points);
                 g.FillPolygon(fill, points);
             }
@@ -547,7 +655,7 @@ namespace KatAMMapTracker {
         }
 
         /* DrawScene(); Draws the regions, lines and rooms of a scene in map pixels, as pixel art; */
-        void DrawScene(Graphics g, Scene scene, bool useAreaCache) {
+        void DrawScene(Graphics g, Scene scene, bool useAreaCache, int skipRoom = -1) {
             g.PixelOffsetMode = PixelOffsetMode.Half;
             g.InterpolationMode = InterpolationMode.NearestNeighbor;
             g.SmoothingMode = SmoothingMode.None;
@@ -556,7 +664,7 @@ namespace KatAMMapTracker {
             DrawConnections(g, scene);
 
             // Faded rooms first, so the discovered ones are drawn over them (the ones out of the window aren't);
-            List<int> rooms = ShownRooms(scene).Where(room => cull is not RectangleF view || view.IntersectsWith(RoomBounds(layout[room], scene.RoomGrowth)))
+            List<int> rooms = ShownRooms(scene).Where(room => room != skipRoom && (cull is not RectangleF view || view.IntersectsWith(RoomBounds(layout[room], scene.RoomGrowth))))
                                                .OrderBy(room => IsFaded(scene, room) ? 0 : 1).ToList();
             foreach (int room in rooms) DrawRoom(g, scene, room);
 
@@ -666,7 +774,7 @@ namespace KatAMMapTracker {
             RectangleF bounds = RoomBounds(placement, scene.RoomGrowth);
             g.DrawImage(GetBitmap(sprite, IsFaded(scene, room)), bounds);
 
-            if (room == hoveredRoom) {
+            if (room == hoveredRoom && !drawingSceneCache) {
                 using Pen pen = new Pen(Color.White, (float)(1.5 / zoom));
                 RectangleF outline = RectangleF.Inflate(RoomBounds(placement, scene.RoomGrowth), 1, 1);
                 g.DrawRectangle(pen, outline.X, outline.Y, outline.Width, outline.Height);
@@ -717,9 +825,8 @@ namespace KatAMMapTracker {
                     ? new RectangleF((float)left, (float)segment.StartY - half, (float)Math.Abs(segment.EndX - segment.StartX), thickness)
                     : new RectangleF((float)segment.StartX - half, (float)top, thickness, (float)Math.Abs(segment.EndY - segment.StartY));
 
-                using TextureBrush brush = new TextureBrush(GetBitmap(sprite, faded), WrapMode.Tile) {
-                    Transform = new Matrix(scale, 0, 0, scale, area.X, area.Y),
-                };
+                TextureBrush brush = LineBrush(sprite, faded);
+                using (Matrix place = new Matrix(scale, 0, 0, scale, area.X, area.Y)) brush.Transform = place;
                 g.FillRectangle(brush, area);
                 return;
             }
@@ -735,11 +842,18 @@ namespace KatAMMapTracker {
             g.TranslateTransform((float)segment.StartX, (float)segment.StartY);
             g.RotateTransform((float)segment.Angle);
 
-            using (TextureBrush brush = new TextureBrush(GetBitmap(piece, faded), WrapMode.Tile) { Transform = new Matrix(scale, 0, 0, scale, 0, -half) }) {
-                g.FillRectangle(brush, 0, -half, (float)segment.Length, thickness);
-            }
+            TextureBrush diagonal = LineBrush(piece, faded);
+            using (Matrix place = new Matrix(scale, 0, 0, scale, 0, -half)) diagonal.Transform = place;
+            g.FillRectangle(diagonal, 0, -half, (float)segment.Length, thickness);
 
             g.Restore(state);
+        }
+
+        // LineBrush(); A line piece's brush, made once (its place set before each use);
+        TextureBrush LineBrush(Sprite sprite, bool faded) {
+            if (!lineBrushes.TryGetValue((sprite, faded), out TextureBrush brush))
+                lineBrushes[(sprite, faded)] = brush = new TextureBrush(GetBitmap(sprite, faded), WrapMode.Tile);
+            return brush;
         }
 
         // DrawAreas(); Colored regions behind the rooms, by cluster, like the in-game map backdrop;
@@ -965,6 +1079,12 @@ namespace KatAMMapTracker {
             areaLayer?.Dispose();
             areaLayer = null;
             areaLayerKey = (-1, false);
+            foreach (TextureBrush brush in lineBrushes.Values) brush.Dispose();
+            lineBrushes.Clear();
+            sceneCache?.Dispose();
+            sceneCache = null;
+            sceneCacheKey = null;
+            sceneVersion++;
         }
 
         int RoomAt(Point screen) {

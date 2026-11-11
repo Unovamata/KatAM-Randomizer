@@ -1219,17 +1219,27 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
 
 ## 12. Map Tracker: every Kirby on the map
 - The owner: "Can you make it so the map tracks the position of all Kirby's and draws arrows based on what position they are in
-  the map? If this is even possible even." Done: the emulator script (version 5) reports every Kirby a few times a second while
-  one moves (`KIRBYS <room> <x> <y> ...`: `gKirbys` at `0x02020EE0`, `0x1A8` bytes each, `gNumKirbys` at `0x0203AD44`, the same in
-  every version), and the tracker draws each one (you and the three CPU Kirbys) as an arrow in the game's colors (pink, yellow,
-  red, green) pointing at his spot inside his room's square (where he stands in the room, scaled to the square); one out of the
-  window is an arrow on its edge pointing his way; arrows at one spot sit side by side. `View > Show All Kirbys` (on by default)
-  turns them off. Kirbys in rooms the map doesn't show yet get none, so they don't give away undiscovered rooms (Reveal Entire
-  Map shows every room). `KatAM Map Tracker`: `Lua/katam_tracker.lua`, `TrackerServer.cs`, `MapView.cs`, `TrackerForm.cs`.
-  - Checked: the addresses in the GBA emulator (USA, Europe, Japan: four Kirbys, each with his own room and spot, the CPU ones
-    moving on their own); the script run in the emulator against the tracker's own server code (a console harness): it connects,
-    sends version 5, and the four Kirbys' rooms and spots arrive and change as Kirby walks. The tracker builds (against Windows
-    Forms' reference assemblies). Not tested: the window itself (it needs Windows), so the arrows haven't been seen on screen yet.
+  the map?", then: "I meant these arrows. I don't care about where the kirby moves in the room. I would only want to see a Kirby
+  icon in the room if the Kirby is inside the room, if I zoom in our out or the Kirby companion is not visible on the screen, or
+  I'm not visible on the screen, the arrows will point to where the kirby is in the map, same as my Kirby." Done: each Kirby (you
+  and the three CPU Kirbys) is his head in his color in the square of the room he's in, the game's own sprite from the pause
+  screen's area map (its 16x16 head, the four players' palettes: read off the area map in the GBA emulator, USA, then found in all
+  three versions: tiles 0x628CCC USA, palettes 0x4BB10C, 0x4BB1AC, 0x4BB1CC, 0x4BB1EC), alone in the middle or, with others in
+  the room, each in his own corner as the area map puts them. Where he stands inside the room isn't drawn. A Kirby whose room is
+  out of the window (zoomed or panned away, you included) is an arrow in his color on the window's edge pointing at his room.
+  Kirbys in rooms the map doesn't show yet get none. `View > Show All Kirbys` (on by default) turns them off. The emulator script
+  (version 5) reports every Kirby's room a few times a second (`KIRBYS`; `gKirbys` at `0x02020EE0`, `gNumKirbys` at `0x0203AD44`).
+  `KatAM Map Tracker`: `Core/MapEntities.cs` (the heads), `MapView.cs`, `TrackerForm.cs`, `Lua/katam_tracker.lua`, `TrackerServer.cs`.
+- The owner: "the map lags real bad when you zoom out too much." Fixed in `MapView.cs`: zoomed out, the map (regions, lines, rooms,
+  their icons) is drawn once into a picture at that zoom and only copied while the view pans, the current room pulses, the cursor
+  moves or the Kirbys move; it's drawn again when the zoom settles at another one or what it shows changes (a room or mirror found,
+  Reveal, the icons shown...), and scaled while a zoom eases. Before, every one of those redrew every room and line (an expanded
+  map: 1,109 rooms, 1,920 mirrors), and each line piece made a new brush every time. Zoomed in, only what's in the part being
+  redrawn is drawn. The picture is used up to zoom 0.84 on the expanded map (12 million pixels at most), 1.56 on KatAM's own.
+  - Checked: the heads read from the USA, European and Japanese ROMs and an expanded one by the tracker's own code (a console
+    harness), the same pixels in all four and as the area map shows them. The tracker builds (against Windows Forms' reference
+    assemblies). Not tested: the window itself (it needs Windows), so neither the heads and arrows nor the smoother zoom have
+    been seen on screen; how much smoother it is wasn't measured.
 
 ## 13. The ROM Expansion's progress while the ROM is made
 - The owner: "I would need you to actually reflect the process of the ROM Expansion and where is at at all times, plus make it count
