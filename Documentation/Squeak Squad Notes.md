@@ -392,7 +392,11 @@ slowing by 0.05, drifts it about 21 pixels each way; the DS recording's (+20, +2
 `+0xE4` (0 `doc`, 1 `doc_at1`); `doc_at1.mca`'s compositions 0-3 are the claw (with the bomb), the two gun shots (ball and
 rings) and the cannon's smoke. Its hit handler `0x020DD0AC`: dizzy (`+0x240`) a treat roll only; `+0x1C0` 2 (from the knockout
 `0x020DC5F0` till the saucer's called, `0x020DB4F4`) ignores hits; a chest touch takes it; kinds 3-5 brace it (`0x020D7114`);
-else damage, a knockout at 90% HP (`0x020DC5F0`-`0x020DB4C4`), else a flinch (`0x020DCDE8`). Its things: `0x020DF354`, made by
+else damage, a knockout at 90% HP (`0x020DC5F0`-`0x020DB4C4`), else a flinch (`0x020DCDE8`). Its brace (an inhale, `0x020D7114`)
+plays `doc`'s anim 21, so `doc_at1`'s arm and its part go: the port ends the part it holds (the claw's bomb, the cannon's smoke)
+there and when it grabs a chest mid-attack (the owner: "One of the minibosses in the Squeak hideouts activated an attack and I
+canceled, however the attack got locked in there"; seen in the GBA emulator, lair 0x547, Doc forced into its cannon, Kirby
+inhaling mid-smoke: before, the smoke stayed beside it as it flew off and fired its gun; now it goes as it braces). Its things: `0x020DF354`, made by
 `0x020DF530(kind, doc, offset)` (vtable `0x0217CBCC`): 0/1 bolts (13.0, at 0 or 325 degrees), 2 the bomb (falls to Kirby's
 height, bursts), 3 the missile, 4/5 the lid, 6 the empty saucer, 7 a burst. Their hit handler `0x020B4964` (the attack things'
 base, Spinni's too) takes no grab and passes the rest to `0x02013050`: they go through Kirby. Its DS palettes: `doc` 0 and
@@ -1085,6 +1089,20 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
     an up current taking away his fall. Checked in the GBA emulator (forced starts): 7-2-3's air current carries Kirby 2 pixels a
     frame, 7-1-3's water current 2 pixels a frame and he can't swim against it. The logic check's `curcheck.py`: every door and
     landing in the 14 rooms reached (a move against a strength-2 current not counted), none trapped.
+  - **Walk-once blocks** (the owner: "Blocks that you can only walk once and they get destroyed after do not work"): the blocks grid's
+    block 3 on air (kind 0) over a solid main cell, rows of cracked blocks (1-6-6's castle walkway, 2-6-7's leafy bridge; 348 in 28
+    rooms), drawn in the main layer, what's behind them in the third. Under one, the blocks grid's 0x400 cells on air over solid
+    ground go with it, each under the one before (3-6-2's second row, 3-2-3's and 3-1-3's shafts, up to 14 deep). Checked in the DS
+    emulator (3-6-2, Kirby put on its first one at x 968): it breaks 12 frames after he lands (the star blocks' break), he falls,
+    the cell under it 7 frames later; put at x 961, over the edge of two, only the one under his middle breaks and he stays on the
+    other. A broken one shows the third layer (3-6-2's forest behind; 3-2-3's water). In KatAM (`SqueakCrumbles()`,
+    `SqueakCrumbleChain()`): each is a star block (any attack breaks it too), drawn broken with the third layer alone (`burnt`),
+    leaving air, or water where its column stands in water (3-2-3's nine); `squeak/gimmicks.c`'s `Crumbles()` (the room's
+    gimmick list entry 0xF4: a cell list, each with how many hidden cells under it) breaks the one under a standing Kirby's
+    middle 11 frames after KatAM sees him on it (12 in all), then its hidden cells 7 frames apart (`sub_08001408()`, the star
+    blocks' own break). Checked in the GBA emulator (forced starts, USA): in 3-6-2 (0x4A0) Kirby lands at frame 14, falls from
+    frame 27 through both rows, the cells beside stay; in 3-2-3 (0x479) the column under him opens down its 7 hidden cells, shows
+    water, and he sinks through it swimming. Not played through a whole stage.
   - **Tutorial signs**: the three in Prism Plains 2 (its first, third and fifth rooms: "Tap to pop!", "Find treasure and move on.",
     "Mix bubbles!") are front-layer blocks without collision, 16 by 11 cells; left out (`SqueakSigns()`: no other room has such a
     block), the owner: KatAM skips them.

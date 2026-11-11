@@ -128,6 +128,8 @@ const struct SqueakSwitch gSqueakSwitch = { NULL };
 #define CHASE_NEAR 64               // (a chase's Squeak comes out once its spot is this near the screen, as KatAM's enemies as the camera nears them);
 #define GIMMICK_LAIR_EXIT 0xF2      // A Squeak Lair's way out (KatAMExpansionSqueakRooms.cs): its door at its spot's cell, opened once no mini-boss is left;
 #define GIMMICK_CURRENTS 0xF3       // A room's currents (KatAMExpansionSqueakRooms.cs's SqueakCurrents()): par[0-3] its grid's address;
+#define GIMMICK_CRUMBLES 0xF4       // A room's walk-once blocks (KatAMExpansionSqueakRooms.cs's SqueakCrumbles()): par[0-3] their list's address;
+#define CRUMBLES 8                  // (walk-once blocks breaking at once in a room);
 #define LAIR_EXIT_WAIT 30           // (the room's objects made by then: KatAM makes those on screen as the room comes up);
 #define LAIR_EXIT_OPEN 0xFF
 #define FAR_VIEW_FIRST 96           // (the far view's colors: KatAM's BG palettes 6-13, KatAMExpansionSqueakRooms.cs's SqueakBackground);
@@ -164,6 +166,11 @@ static u8 TakeMail(u8 slot, u8 index) {
 /* The room's task: the trigger areas (0x15), relays (0x16, 0x17), quake triggers (0x13), camera areas (0x14), effect emitters (0x19)
  * and switch block groups (0x10). Its ObjectBase is what KatAM's chain
  * breaker (sub_0800E0E4) reads of the object breaking a chain (its room, its player's level info) and whose spot it starts from; */
+// A walk-once block breaking (Crumbles()): its cell, the frames left before it goes, how many hidden cells under it go after it;
+struct SqueakCrumble {
+    u8 x, y, timer, left;
+};
+
 struct SqueakLogic {
     struct ObjectBase base;
     const struct SqueakGimmickList *list;
@@ -179,6 +186,7 @@ struct SqueakLogic {
     u8 lightStep;                               // frames so far,
     u16 lightCount;
     u16 farView[FAR_VIEW_COLORS];               // and the far view's colors as loaded;
+    struct SqueakCrumble crumble[CRUMBLES];     // The walk-once blocks breaking (Crumbles());
 };
 
 /* Inside(); A Kirby in the room touching a trigger area: its box from its spot, its parameter's low 7 bits blocks right, the next 7
@@ -675,6 +683,62 @@ static void Currents(struct SqueakLogic *l, const struct SqueakGimmickEntry *e) 
     }
 }
 
+/* Crumbles(); The room's walk-once blocks (the DS's blocks grid's block 3 on air over a solid cell, KatAM's star blocks here: rows of
+ * cracked blocks, 1-6-6's castle walkway, 2-6-7's leafy bridge; the owner: "Blocks that you can only walk once and they get destroyed
+ * after do not work"): the one under a Kirby standing on it (under his middle) breaks CRUMBLE_WAIT frames after he lands on it, then
+ * the hidden cells under it (the DS's 0x400 cells over solid ground: 3-6-2's second row, 3-2-3's and 3-1-3's shafts) one after
+ * another, CRUMBLE_CHAIN frames apart (measured in the DS emulator, 3-6-2: Kirby put on its first one at x 968 falls 12 frames later,
+ * the cell under it breaks 7 frames after; put at x 961, over its edge, only the cell under his middle breaks and he stays on the
+ * one beside it). Its list: u16 a count, then 4 bytes a block: x, y (cells), how many hidden cells under it, 0; */
+#define CRUMBLE_WAIT 11            // (KatAM sees him standing a frame after he lands: 12 frames in all, as the DS);
+#define CRUMBLE_CHAIN 7
+#define CRUMBLE_STAR 0xF0           // (KatAMExpansionSqueakRooms.cs' KatAMStarBlock);
+static void CrumbleBreak(u8 p, u8 x, u8 y) {
+    const u8 *record;
+
+    if (GetCollisionTile(p, x, y) == CRUMBLE_STAR && (record = CellRecord(p, x, y)) != NULL)
+        sub_08001408(p, (struct Unk_0888562C *)record, NULL, NULL);
+}
+static void Crumbles(struct SqueakLogic *l, const struct SqueakGimmickEntry *e) {
+    const u8 *list = (const u8 *)(e->par[0] | e->par[1] << 8 | e->par[2] << 16 | e->par[3] << 24), *c;
+    u16 count = list[0] | list[1] << 8, j;
+    u8 i, k, p = l->base.unk56;
+
+    for (i = 0; i < gNumKirbys; i++) {
+        struct Kirby *kirby = &gKirbys[i];
+        s32 cx = kirby->base.x >> 12, cy = (kirby->base.y + 0x900) >> 12;
+
+        if (kirby->base.roomId != l->room || gCurLevelInfo[i].currentRoom != l->room || !(kirby->base.unk62 & 4) || cx < 0 || cy < 0) continue;
+        for (j = 0, c = list + 2; j < count; j++, c += 4) {
+            if (c[0] != cx || c[1] != cy) continue;
+            if (GetCollisionTile(p, cx, cy) != CRUMBLE_STAR) break;
+            for (k = 0; k < CRUMBLES; k++)
+                if (l->crumble[k].timer != 0 && l->crumble[k].x == cx && l->crumble[k].y == cy) break;
+            if (k < CRUMBLES) break;
+            for (k = 0; k < CRUMBLES; k++)
+                if (l->crumble[k].timer == 0) {
+                    l->crumble[k].x = cx;
+                    l->crumble[k].y = cy;
+                    l->crumble[k].timer = CRUMBLE_WAIT;
+                    l->crumble[k].left = c[2];
+                    break;
+                }
+            break;
+        }
+    }
+    for (k = 0; k < CRUMBLES; k++) {
+        struct SqueakCrumble *b = &l->crumble[k];
+
+        if (b->timer == 0 || --b->timer != 0) continue;
+        CrumbleBreak(p, b->x, b->y);
+        if (b->left != 0) {
+            b->y++;
+            b->left--;
+            b->timer = CRUMBLE_CHAIN;
+        }
+    }
+}
+
 static void SqueakLogicMain(void) {
     struct SqueakLogic *l = TaskGetStructPtr(gCurTask);
     struct SqueakMail *mail = SqueakMailOf(l->slot);
@@ -713,6 +777,7 @@ static void SqueakLogicMain(void) {
         case GIMMICK_CHASE_SPAWN: ChaseSpawn(l, e); break;
         case GIMMICK_LAIR_EXIT: LairExit(l, e); break;
         case GIMMICK_CURRENTS: Currents(l, e); break;
+        case GIMMICK_CRUMBLES: Crumbles(l, e); break;
         }
     }
 }
