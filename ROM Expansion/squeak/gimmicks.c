@@ -512,16 +512,22 @@ static void Quake(struct SqueakLogic *l, const struct SqueakGimmickEntry *e) {
     l->inside[e->index] = QUAKE_DONE;
 }
 
+static const u8 *CellRecord(u8 p, u8 x, u8 y);
+
 /* Blocks(); A switch block group (0x02223900): a message clears its blocks. In KatAM they're a chain (KatAMExpansionSqueakRooms.cs:
  * 0xF2 blocks, 0xF3 links), broken from the group's spot as KatAM's lever walls break theirs: its cell's special block record
- * (sub_08001408), then KatAM's chain breaker from there (sub_0800E0E4); */
+ * (sub_08001408), then KatAM's chain breaker from there (sub_0800E0E4). Only while its cell still holds the record's block: a
+ * group already cleared takes no more (a trigger area sends again each time a body comes back into it, and KatAM's own search,
+ * sub_080025AC, never ends without a record: 4-6-3's bottom left trigger, sent twice, hung the game once its floor was gone); */
 static void Blocks(struct SqueakLogic *l, const struct SqueakGimmickEntry *e) {
     u8 x = e->x >> 4, y = e->y >> 4;
+    const u8 *record;
 
     if (TakeMail(l->slot, e->index) == 0) return;
+    if ((record = CellRecord(l->base.unk56, x, y)) == NULL) return;
     l->base.x = e->x << 8;
     l->base.y = e->y << 8;
-    sub_08001408(l->base.unk56, sub_080025AC(l->base.unk56, x, y), NULL, NULL);
+    sub_08001408(l->base.unk56, (struct Unk_0888562C *)record, NULL, NULL);
     sub_0800E0E4((struct Object *)&l->base, x, y);
 }
 
@@ -660,23 +666,43 @@ void SqueakGimmicksLoaded(u8 playerId, u16 roomId, u8 slot) {
     l->base.unk56 = playerId;
 }
 
-/* The small star switch (gimmick 0): on the DS a body moving through it or an attack presses it (its state 0's messages, 0x02225458),
- * and it sends its targets a message of kind 0 (0x022252F0: its parameter's first byte's high nibble how many, then their indices).
- * Here its template's unk14 and unk16 are those 4 bytes; a Kirby touching it presses it, and so does an attack on it, a thrown one
- * too (the owner: "If I throw a knife at them, they do not activate which this doesn't happen in KatAM": the item holders' kind,
- * HOLDER_KIND, and Struck(); not inhaled), and it stays down (the DS's rises again
- * once its targets are done, and sends again when pressed again: KatAM's stays down till Kirby comes back to the room, as the
- * shutters it opened stay open then). Drawn with Squeak Squad's switch_small (SQUEAK_SWITCH: its up frame, variant 0, then its
- * pressed one, 1: squeak.c's SqueakAnimFor()); */
+/* The small star switch (gimmick 0, 0x022254AC, vtable 0x02229B84): on the DS a body moving into it or an attack presses it (its
+ * slot 16, 0x02225458, takes those messages in its states 0 and 3), and it sends its targets a message of kind 0 (0x022252F0: its
+ * parameter's first byte's high nibble how many, then their indices). Its states (slots 3-7): 0 up; 1 pressed (its sound, a short
+ * quake); 2 going down, then its message sent; 3 down, a body or an attack sending it again (0x02225434: a timed shutter's count
+ * starts over), and rising once its targets made (at least one) are all back at rest, their state 0 (0x02225298, 0x0222524C):
+ * a timed shutter shut again, so the switch can be pressed again (the owner: "Door switches should always reset"; a shutter that
+ * stays open keeps it down for good, as on the DS); 4 coming up, then 0. Here its template's unk14 and unk16 are those 4 bytes; a
+ * Kirby moving into it presses it, and so does an attack on it, a thrown one too (the owner: "If I throw a knife at them, they do
+ * not activate which this doesn't happen in KatAM": the item holders' kind, HOLDER_KIND, and Struck(); not inhaled). Drawn with
+ * Squeak Squad's switch_small (SQUEAK_SWITCH: its up frame, variant 0, then its pressed one, 1: squeak.c's SqueakAnimFor()); */
 #define SQUEAK_SWITCH_ARMED 30
+#define SQUEAK_SWITCH_DOWN 30       // (frames it's down before it may rise: its targets have taken its message by then);
 
-static void SqueakSwitchDown(struct Object *obj) {
-}
+struct SqueakButton {
+    struct Object obj;
+    bool8 touching;                 // (a Kirby touching it last frame: one moving into it presses it, standing on it doesn't again);
+    u8 down;                        // (frames it's been down, up to SQUEAK_SWITCH_DOWN);
+};
 
 static bool32 Struck(struct Object *obj);
+static bool32 SwitchTargetsRest(struct Object *obj);
+static void SqueakSwitchUp(struct Object *obj);
 
-// (pressed: its targets messaged, its sound, down for good, attacks no longer reaching it);
-static void SqueakSwitchPress(struct Object *obj) {
+// (a Kirby in its room within 12 pixels of it sideways, his middle up to 24 pixels over its spot or 8 under; positions in 1/256 pixels);
+static bool32 SwitchTouched(struct Object *obj) {
+    u8 i;
+
+    for (i = 0; i < gNumKirbys; i++) {
+        s32 dx = gKirbys[i].base.x - obj->base.x, dy = gKirbys[i].base.y - obj->base.y;
+
+        if (gKirbys[i].base.roomId == obj->base.roomId && dx > -0xC00 && dx < 0xC00 && dy > -0x1800 && dy < 0x800) return TRUE;
+    }
+    return FALSE;
+}
+
+// (its message to its targets, the DS's 0x022252F0);
+static void SwitchSend(struct Object *obj) {
     u8 par[4], i;
 
     par[0] = obj->objTemplate->unk14;
@@ -684,35 +710,55 @@ static void SqueakSwitchPress(struct Object *obj) {
     par[2] = obj->objTemplate->unk16;
     par[3] = obj->objTemplate->unk16 >> 8;
     for (i = 0; i < par[0] >> 4 && i < 3; i++) SqueakSendMail(SlotOf(&obj->base), par[1 + i], MESSAGE_SWITCH);
+}
+
+// (down: a Kirby moving into it or an attack sends its message again; up again once its targets rest, SqueakSwitchUp());
+static void SqueakSwitchDown(struct Object *obj) {
+    struct SqueakButton *b = (struct SqueakButton *)obj;
+    bool32 touched = SwitchTouched(obj);
+
+    if ((touched && !b->touching) || Struck(obj)) SwitchSend(obj);
+    b->touching = touched;
+    if (b->down < SQUEAK_SWITCH_DOWN) {
+        b->down++;
+        return;
+    }
+    if (!SwitchTargetsRest(obj)) return;
+    obj->unk83 = 0;
+    obj->unk78 = SqueakSwitchUp;
+}
+
+// (pressed: its targets messaged, its sound, down);
+static void SqueakSwitchPress(struct Object *obj) {
+    struct SqueakButton *b = (struct SqueakButton *)obj;
+
+    SwitchSend(obj);
     PlaySfx(&obj->base, SE_SWITCH_ACTIVATE);
     obj->unk83 = 1;
-    obj->base.unk5C &= ~7;
+    b->down = 0;
     obj->unk78 = SqueakSwitchDown;
 }
 
 static void SqueakSwitchUp(struct Object *obj) {
-    u8 i;
+    struct SqueakButton *b = (struct SqueakButton *)obj;
+    bool32 touched = SwitchTouched(obj);
 
     // (armed SQUEAK_SWITCH_ARMED frames after it's made: as the room comes up the Kirbys pass where it stands, 3-4-8's pressing then);
     if (obj->unk85 < SQUEAK_SWITCH_ARMED) {
         obj->unk85++;
+        b->touching = touched;
         Struck(obj);
         return;
     }
-    for (i = 0; i < gNumKirbys; i++) {
-        s32 dx = gKirbys[i].base.x - obj->base.x, dy = gKirbys[i].base.y - obj->base.y;
-        // (positions in 1/256 pixels: a Kirby within 12 pixels of it sideways, his middle up to 24 pixels over its spot or 8 under);
-        if (gKirbys[i].base.roomId != obj->base.roomId || dx <= -0xC00 || dx >= 0xC00 || dy <= -0x1800 || dy >= 0x800) continue;
-        SqueakSwitchPress(obj);
-        return;
-    }
-    // (an attack on it: Kirby's, a thrown one, a helper's);
-    if (Struck(obj)) SqueakSwitchPress(obj);
+    // (a Kirby moving into it; an attack on it: Kirby's, a thrown one, a helper's);
+    if ((touched && !b->touching) || Struck(obj)) SqueakSwitchPress(obj);
+    b->touching = touched;
 }
 
 static void *SqueakCreateButton(struct ObjectTemplate *template, u8 playerId) {
-    struct Task *task = TaskCreate(ObjectMain, sizeof(struct Object), 0x1000, TASK_USE_IWRAM, ObjectDestroy);
-    struct Object *obj = TaskGetStructPtr(task);
+    struct Task *task = TaskCreate(ObjectMain, sizeof(struct SqueakButton), 0x1000, TASK_USE_IWRAM, ObjectDestroy);
+    struct SqueakButton *b = TaskGetStructPtr(task);
+    struct Object *obj = &b->obj;
 
     InitObject(obj, template, playerId);
     obj->base.flags |= 0x8900;
@@ -723,6 +769,8 @@ static void *SqueakCreateButton(struct ObjectTemplate *template, u8 playerId) {
     sub_0803E2B0(&obj->base, -8, -8, 8, 8);
     obj->unk83 = 0;
     obj->unk85 = 0;   // (frames since it was made: the hammer peg's own count, which the game's object code leaves alone);
+    b->touching = FALSE;
+    b->down = 0;
     ObjectInitSprite(obj);
     obj->base.sprite.palId = SqueakLoadPalette(gSqueakData.enemies[SQUEAK_SWITCH].animId, SQUEAK_HURT_VARIANTS, obj->base.roomId);
     obj->unk78 = SqueakSwitchUp;
@@ -838,7 +886,8 @@ static bool32 ShutterBlocks(const struct SqueakShutter *s) {
 
 /* ShutterSetBox(); While it's shut its cells (the ones its box covers, a pixel in from each side: 1 by 2 or 2 by 1, a pillar between
  * two columns 2 by 2) are a wall in the room's collision, KatAM's solid block (0x0D) for the pillar, its spike block (0x1C: it hurts
- * and knocks Kirby back, as the DS's spikes do) for the spikes; their own values back once it's open. (KatAM's solid objects, its
+ * and knocks Kirby back, as the DS's spikes do) for the spikes; their own values back once it's open: the room's, from its template
+ * (+0x16 on, KatAMExpansionSqueakRooms.cs), not read off the room as it shuts (made again over its own shut cells, it kept those). (KatAM's solid objects, its
  * sliding door's flags and box, didn't stop Kirby at a pillar, and Gordo's harm didn't hurt him on the spikes, the hammer peg's type
  * not being an enemy's: tried in 1-5-1 and 3-6-6, he walked through both); */
 static void ShutterSetBox(struct SqueakShutter *s) {
@@ -856,8 +905,7 @@ static void ShutterSetBox(struct SqueakShutter *s) {
     for (y = y0; y <= y1; y++)
         for (x = x0; x <= x1 && n < 4; x++, n++) {
             if (x < 0 || y < 0) continue;
-            if (blocks) s->kept[n] = sub_0800255C(base->unk56, x, y, IsSpikes(s) ? SQUEAK_SPIKES : SQUEAK_SOLID);
-            else sub_0800255C(base->unk56, x, y, s->kept[n]);
+            sub_0800255C(base->unk56, x, y, blocks ? (IsSpikes(s) ? SQUEAK_SPIKES : SQUEAK_SOLID) : s->kept[n]);
         }
     s->solid = blocks;
 }
@@ -924,12 +972,47 @@ static void *SqueakCreateShutter(struct ObjectTemplate *template, u8 playerId) {
     look = s->par & 7;
     s->state = SHUTTER_WAIT;
     s->solid = FALSE;
+    s->kept[0] = template->unk16;
+    s->kept[1] = template->unk16 >> 8;
+    s->kept[2] = template->unk18;
+    s->kept[3] = template->unk18 >> 8;
     GimmickInit(obj, &s->spr, sShutterLooks[look]);
+    // (not inhaled: the owner, "You can swallow stone doors which should not happen");
+    obj->base.unk5C |= 0x20;
     ObjectSetBounds(&obj->base, sShutterBoxes[look][0], sShutterBoxes[look][1], sShutterBoxes[look][2], sShutterBoxes[look][3]);
     GimmickPlay(obj, &s->spr, sShutterAnims[s->par >> 3 & 1]);
     ShutterSetBox(s);
     obj->unk78 = SqueakShutterMain;
     return obj;
+}
+
+/* SwitchTargetsRest(); Whether a switch's targets made are all back at rest (the DS's 0x02225298 and 0x0222524C: at least one made,
+ * none out of its state 0): the shutters among them, a message they haven't taken yet keeping them busy (a block group, cleared for
+ * good, and a target not made yet aren't counted: a switch with only those stays down, as on the DS); */
+static bool32 SwitchTargetsRest(struct Object *obj) {
+    struct SqueakMail *mail = SqueakMailOf(SlotOf(&obj->base));
+    struct Task *t = &gTasks[0];
+    u8 count = (obj->objTemplate->unk14 & 0xFF) >> 4, made = 0, targets[3], i, n;
+
+    targets[0] = obj->objTemplate->unk14 >> 8;
+    targets[1] = obj->objTemplate->unk16;
+    targets[2] = obj->objTemplate->unk16 >> 8;
+    if (count > 3) count = 3;
+    for (i = 0; i < count; i++)
+        if (targets[i] < SQUEAK_MAIL_GIMMICKS && mail->box[targets[i]] != 0) return FALSE;
+    for (n = 0; n < MAX_TASK_NUM && t->next; n++) {
+        struct Object *o;
+
+        t = (struct Task *)(IWRAM_START + t->next);
+        o = TaskGetStructPtr(t);
+        if (o->base.header.kind != 1 || o->base.roomId != obj->base.roomId || o->unk78 != SqueakShutterMain) continue;
+        for (i = 0; i < count; i++) {
+            if (((struct SqueakShutter *)o)->index != targets[i]) continue;
+            if (((struct SqueakShutter *)o)->state != SHUTTER_WAIT) return FALSE;
+            made++;
+        }
+    }
+    return made > 0;
 }
 
 /* The fire columns (gimmick 7, 0x02220094, vtable 0x022290EC; yakumono/fire_long: animations 0 its pilot flame, 1 flaring up, 2 the
@@ -1657,11 +1740,16 @@ static void PlatformCarryObjects(struct SqueakPlatform *p, s32 oldTop, s32 dx) {
     for (n = 0; n < MAX_TASK_NUM && t->next; n++) {
         struct Object *o;
         s32 ax, foot, before;
+        bool32 chest;
 
         t = (struct Task *)(IWRAM_START + t->next);
         o = TaskGetStructPtr(t);
         if (o == &p->obj || o->base.header.kind != 1 || o->base.roomId != p->obj.base.roomId) continue;
-        if (o->base.flags & (0x100 | 0x800 | 0x1000) || o->base.yspeed > 0) continue;
+        chest = o->type == OBJ_SMALL_CHEST || o->type == OBJ_BIG_CHEST;
+        // (a still object, flags 0x800, but a chest standing on it: the owner, "Some chests on top of movable platforms are not
+        // moving with the platforms");
+        if (o->base.flags & (0x100 | 0x1000) || o->base.yspeed > 0) continue;
+        if (o->base.flags & 0x800 && !chest) continue;
         // (a Squeak Squad body moves itself, squeak.c's SqueakMove(): its own speed, up positive; its landing is there too);
         if (SqueakIsSqueak(o) && ((struct SqueakObject *)o)->vy > 0) continue;
         ax = (o->base.x - p->obj.base.x + dx) >> 8;
@@ -1669,7 +1757,11 @@ static void PlatformCarryObjects(struct SqueakPlatform *p, s32 oldTop, s32 dx) {
         if (ax > PLATFORM_HALF + 4) continue;
         foot = o->base.y + (o->base.unk3F << 8);
         before = o->base.unk4C + (o->base.unk3F << 8);
-        if (before > oldTop + (2 << 8) || foot < low - (4 << 8) || foot > high + (16 << 8)) continue;
+        /* (a chest, its bottom on the cell edge at or under the platform's top where KatAM's CreateChest() put it, up to 12 pixels
+         * under it: held there from its first frame, before it falls through, KatAM's chests falling as any object); */
+        if (chest) {
+            if (foot < oldTop - (4 << 8) || foot > oldTop + (12 << 8)) continue;
+        } else if (before > oldTop + (2 << 8) || foot < low - (4 << 8) || foot > high + (16 << 8)) continue;
         o->base.x += dx;
         o->base.y = top - (o->base.unk3F << 8);
         o->base.unk62 |= 4;
@@ -1686,7 +1778,11 @@ static void PlatformCarry(struct SqueakPlatform *p, s32 oldTop, s32 dx, s32 dy) 
         struct Kirby *k = &gKirbys[i];
         s32 ax = (k->base.x - p->obj.base.x + dx) >> 8, foot = k->base.y + (k->base.unk3F << 8);
 
-        if (k->base.roomId != p->obj.base.roomId || k->hp <= 0 || k->base.flags & (0x100 | 0x800 | 0x2000000)) continue;
+        /* (one riding it stays on while an attack holds him still: KatAM's 0x800 and 0x2000000 midway through a sword swing, with
+         * which he was left in the air as it moved on: the owner, "If an attack is used on up and down movable platforms, you just
+         * go through it"; one not on it isn't taken on in such a state); */
+        if (k->base.roomId != p->obj.base.roomId || k->hp <= 0 || k->base.flags & 0x100) continue;
+        if (!(p->riders & (1 << i)) && k->base.flags & (0x800 | 0x2000000)) continue;
         if (ax < 0) ax = -ax;
         if (k->base.yspeed > 0 || ax > PLATFORM_HALF + 4) continue;
         if (p->riders & (1 << i)) {
@@ -2148,6 +2244,23 @@ static void BoulderTurn(struct Object *obj, struct SqueakBoulder *b) {
     obj->unk83 = SQUEAK_HURT_VARIANTS + a->step[step].cell;
 }
 
+/* BoulderBreak(); The star blocks in front of it, across its height, broken (their records: sub_08001408): the block groups nothing
+ * else sets off, KatAM's star blocks in the converter (KatAMExpansionSqueakRooms.cs' "loose" groups), which on the DS the boulder
+ * breaks as it runs into them (4-3-2's wall, 4-6-7's floors over its shaft; the owner: "Destroyed tiles by boulders are still
+ * walkable": the boulder burst on them and they stayed); */
+#define SQUEAK_STAR_BLOCK 0xF0      // (KatAMExpansionSqueakRooms.cs' KatAMStarBlock);
+static void BoulderBreak(struct Object *obj, s8 way) {
+    u8 p = obj->base.unk56;
+    s32 cx = ((obj->base.x >> 8) + way * (BOULDER_RADIUS + 4)) >> 4, cy;
+    s32 y0 = ((obj->base.y >> 8) - BOULDER_RADIUS + 2) >> 4, y1 = ((obj->base.y >> 8) + BOULDER_RADIUS - 2) >> 4;
+    const u8 *record;
+
+    if (cx < 0 || way == 0) return;
+    for (cy = y0 < 0 ? 0 : y0; cy <= y1; cy++)
+        if (GetCollisionTile(p, cx, cy) == SQUEAK_STAR_BLOCK && (record = CellRecord(p, cx, cy)) != NULL)
+            sub_08001408(p, (struct Unk_0888562C *)record, NULL, NULL);
+}
+
 static void SqueakBoulderMain(struct Object *obj) {
     struct SqueakBoulder *b = (struct SqueakBoulder *)obj;
     u16 frames = sBoulderRamp[obj->objTemplate->unk14 >> 6 & 3][0], top = sBoulderRamp[obj->objTemplate->unk14 >> 6 & 3][1];
@@ -2168,6 +2281,7 @@ static void SqueakBoulderMain(struct Object *obj) {
         obj->base.unk68 |= 3 | 0x80;
         // (on a wall it ran into: it breaks);
         if (obj->base.xspeed != 0 && (obj->base.unk62 & 3)) {
+            BoulderBreak(obj, b->way);
             PlaySfx(&obj->base, SQUEAK_SE(0x4F)); // (the DS's 0x4F);
             RequestScreenShake(BOULDER_BURST_SHAKE, &obj->base);
             CreateEffectObject(&obj->base, 0, 0x292, 0);

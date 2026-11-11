@@ -22,11 +22,11 @@ local KIRBYS_FRAMES = 4
 
 -- DEBUG (to be removed for the release): the tracker's "WARP <hex room> <x> <y>" moves Kirby (player 1) into that room, as the
 -- game's own warps do (sub_0805BDF4): his destination room and spawn tile, then his state set to the room transition's start
--- (sub_0805545C, per version); x, y -1: the room's default spawn (gUnk_0893CB44, per version). Kirby's struct (gKirbys[0]) is at
--- the same address in every version;
+-- (sub_0805545C, per version); x, y -1: the room's default spawn (gUnk_0893CB44, read through the code's own pointer to it, per
+-- version: the ROM Expansion moves the table, grown for its rooms). Kirby's struct (gKirbys[0]) is at the same address in every version;
 local KIRBY = 0x02020EE0
 local TRANSITION = { B8KE = 0x0805545C, B8KP = 0x080554A4, B8KJ = 0x080553D4 }
-local DEFAULT_SPAWNS = { B8KE = 0x0893CB44, B8KP = 0x08946FA8, B8KJ = 0x0890CCD0 }
+local DEFAULT_SPAWNS = { B8KE = 0x08002D5C, B8KP = 0x08002D7C, B8KJ = 0x08002D5C }   -- (the literals holding gUnk_0893CB44's address);
 local TRANSITION_START = { 0xF0, 0xB5, 0x57, 0x46, 0x4E, 0x46, 0x45, 0x46 }   -- sub_0805545C's first bytes, checked before calling it;
 local WARP_WAIT = 600                                                        -- Frames a warp waits for Kirby to be free to move;
 
@@ -113,7 +113,8 @@ local function doWarp(warp)
   end
   local x, y = warp.x, warp.y
   if x < 0 or y < 0 then
-    local table = DEFAULT_SPAWNS[string.sub(code, -4)] or DEFAULT_SPAWNS[code]
+    local literal = DEFAULT_SPAWNS[string.sub(code, -4)] or DEFAULT_SPAWNS[code]
+    local table = emu:read32(literal)
     x = emu:read8(table + warp.room * 2); y = emu:read8(table + warp.room * 2 + 1)
   end
   local unkC = emu:read32(KIRBY + 0x0C)

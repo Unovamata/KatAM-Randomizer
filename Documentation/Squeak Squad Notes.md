@@ -1113,6 +1113,25 @@ NiDL's natives were); one it lacks is ported onto KatAM's own object (`ROM Expan
 | 0x23 | Boxin | 0x0204F868 | 0x0204DE08 | 1 0x0204DA08, others 0x0204DD3C (alike near Kirby: hops back and punches) | KatAM's own (logged) |
 | 0x24 | Heavy Knight | 0x02042B80 | 0x0204101C | 1 0x02040658 (stands and slashes), others 0x02040E08 (charges 2.0 and slashes) | KatAM's own (logged) |
 
+### Found while fixing the owner's playtest list (Open Requests item 15)
+- **The third tile layer (grid 5) is never drawn** before its cell is cleared: BG1 is off in the rooms checked (4-6-3, 8-3-2,
+  2-2-1), BG3 shows grid 4 where grids 4 and 5 differ, and a trigger-cleared column of 4-6-3 shows grid 5 after. Grid 5 is the
+  look a cell takes once cleared (`SqueakRoomTile()`). Drawn over the room, it hid bomb blocks, floors, the planks over sealed
+  doors and dirt walls (the owner's "invisible walls").
+- **Switches** (vtable `0x02229B84`): they stay down while any stone door they opened is still open; once all are back in state 0
+  (`0x02225298`, `0x0222524C`) they rise, and a touch or an attack presses them again. A new touch while down sends again.
+- **Stone doors' cells**: the template keeps the four cells under the pillar's box (+0x16: air, solid, water, a chain link...), which
+  it puts back when it opens, not what was there when the room loaded (a door shut on its own cells kept them solid).
+- **Boulders** break the star blocks (0xF0) they roll into, on their side, a cell beyond their radius; waiting boulders (bits 4-5)
+  have no physics until their message, as the DS's state 0.
+- **Big star blocks** (front-layer block 5, 2x2): their four cells are one chain of bomb blocks (0xF1), broken together.
+- **Lifts** (gimmicks 4, 5) carry a Kirby who attacks on them (KatAM's flags 0x800 and 0x2000000 mid-swing), and the chests
+  standing on them (KatAM's chests fall as any object: one held from its first frame stays).
+- **Stage 2-8 is a test stage**: rooms 2-6 have no tiles at all (only collision), room 1 a jumble of the generic `00_f`/`00_b`
+  blocks, the background `d_viw_00`, its chests treasure 0, as 1-8 and 1-9. Left out of the port (`SqueakTestStages`).
+- **Sky rooms** (3-4-5, 8-3-6, 8-3-7): a warp star flies across them and lands in the room after; the level planner counts the room
+  the ride lands in (`SqueakRides()`), never the one it crosses.
+
 ## Stage objects
 
 The stage's objects are 16-byte records: `*(*0x02229F1C + 0x90)` holds a `u16` count and, at `+4`, a pointer to them (the room's

@@ -1310,3 +1310,74 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
   doesn't swallow it.
 - Not tested in any of these: a playthrough; Europe and Japan beyond the builds, the logic checks and the room booting in the
   emulator.
+
+## 15. Squeak Squad: the owner's playtest list (open)
+The owner's list after playing the Squeak Squad worlds, by kind. Each one is marked here as it's done, with how it was checked.
+- **Crashes and softlocks**: "Crash on room 0x4E7 as well as softlock at the top, you can't access the door at all."; "Some stone
+  doors are inverted and some buttons are even a 1 use button which makes you softlocked [...] Door switches should always reset.";
+  "Stone doors even if you press the button, the collision never moves away, softlocking you entirely."; "When teleporting to some
+  Squeak Squad rooms with the Map viewer, I get instantly killed for no reason."
+- **Collision**: "Is everything ok with room 0x490? I literally have invisible walls I can't go through."; "There are invisible
+  blocks blocking my path sometimes."; "Some bombable walls or blocks are invisible by default and it even makes some platforms not
+  have any collisions."; "Hidden bombable blocks that block paths are always visible instead of only be visible when the bomb is
+  blown up, blocking the path in question. Kirby can also go through them."; "Destroyed tiles by boulders are still walkable.";
+  "Blocks that you can only walk once and they get destroyed after do not work"; "Big star blocks break very oddly."; "If an attack
+  is used on up and down movable platforms, you just go through it"; "Currents in water don't have any effect on the player."
+- **Rooms**: "Room 0x46C is completely garbled for no reason."; "Room 0x5E5 camera moves without me, boulders have NO gravity nor
+  interaction."; "Some interactible blocks have some layering issues, therefore they show behind the stage."; "Some tiles are not
+  animated. Please ensure you port all the animated tiles."; "There's a lot of color palette problems with enemies and stages."
+- **Doors and mirrors**: "You broke one of the most important rules when it comes to Mirrors. No 1 way door can teleport the player
+  to a button room."; "There's instances where switches are in front of doors, this breaks the 3 tile rule."; "Some doors spawn out
+  of view from the player."; "I think hidden doors should be replaced with visible mirror doors."
+- **Gimmicks and objects**: "You can swallow stone doors which should not happen."; "Random pedestal bubbles turn into
+  consumables."; "There are instances where there's a chest in a bubble and [...] a cherry shows on top of the chest, it's either
+  one or the other but the chest always wins."; "Invencibility Lollipops are not activating from chests?"; "Ability scroll chests do
+  not display the proper icon they should be displaying."; "Some chests on top of movable platforms are not moving with the
+  platforms."; "What's the point of Gold Waddle Dee's? They don't give anything on defeat and the chest is visible as soon as you
+  get in the room."
+- **Squeak hideouts (lairs)**: "an unbearable amount of lag [...] It's because of the consumable's effect that eats too much
+  resources. This should be toned down"; "Squeak hideouts have the base Squeak enemy and a miniboss [...] It's either one or the
+  other, by default the game randomizes these minibosses since Squeaks will grow stale quick."; "Some Squeak Lair rooms place
+  bosses instead of minibosses in rooms."; "Some Squeak Lair rooms get cutoff and the camera does not scroll all the way up."; "One
+  of the minibosses in the Squeak hideouts activated an attack and I canceled, however the attack got locked in there."; "Big
+  Metalun spawns infinite rocks even before the battle starts"; "Metalun enemies get faster when going down a hill."
+- **Squeak Squad's final sequence**: "I can pretty much invalidate the first fight of the final sequence [...] the mirror to go to the
+  next phase is literally right there."; "Why is there a door in daroach's first phase fight [...] the warp should send me to the
+  next phase automatically."; "Daroach when beaten on the first phase doesn't trigger the expected animation when it dies."; "When
+  going from phase to phase."; "Color palette and maybe object errors in the first Squeak Squad final boss fight."; "Massive amounts
+  of lag whenever the Squeak Squad boss invokes stars."; "The 1st phase of the Squeak Squad boss goes out of the screen, this is
+  really prevalent with bosses in general"; "The ray of light summoned from Daroach's wand attack is cutoff in the middle".
+- **Dark Nebula**: "massive lag when summoning stars. You can use the game's existing stars"; "fire attack looks very off and it's
+  very laggy"; "When using its ice attack, it doesn't add the ice platforms at the bottom."; "Dark Nebula's sprite looks off.";
+  "Dark Nebula never activates its electric attack."; "Kirby's dance is off centered in Dark Nebula's room."
+- **Hubs and the Map Viewer**: "The fountain of dreams hub doesn't have the base of the master sword."; "Squeak Squad's bosses are
+  not showing in the Map Viewer app."; "The squeak squad final boss sequence is not within this same line in the map viewer."
+
+**Done so far** (USA build, GBA emulator, rooms entered with a forced start unless said; all three versions built, the logic
+checks run with and without dropping through thin floors: 390 of 492 Squeak Squad rooms reached (the rest the hideouts and
+gold-pile rooms no lair uses, as before), every big switch pressed, none trapped; NiDL's 280 of 280):
+- **Room ids changed**: stage 2-8 was a DS test stage (rooms 2-6 have no tiles, only collision; room 1, the old 0x46C, a jumble of
+  the generic tileset's blocks), now left out as 1-8, 1-9 and 2-9 already were. The Squeak rooms from 0x46C on are 7 lower: the old
+  0x490 is 0x489, 0x4E7 is 0x4E0, 0x5E5 is 0x5DE, the hub 0x5E2. Checked: 0x46C is now 3-1-1, drawn right. With it, a planner bug:
+  a warp star's ride counted the sky room it flies across (3-4-5) as reached and put world 3's way to world 4 there (nothing led
+  in); rides now count the room the ride lands in.
+- **0x4E7 (now 0x4E0) crash and the door at the top**: the DS's third tile layer (the look a cell takes once cleared) was drawn over
+  the room from the start, hiding the bomb blocks, the grey floor and the planks over the sealed door; and a second trigger message
+  after the floor broke hung the game (a block record that wasn't there). Checked: the room looks as the DS's; the bottom-left door
+  leads on (was a hang).
+- **0x490 (now 0x489) invisible walls**: the same third-layer bug (the dirt walls hidden by sand). Checked: the walls show.
+- **Stone doors**: the switches reset (down until every door they opened is shut again, then up; pressed again, they reopen);
+  the doors' cells go back to what was under them (the stuck collision); they can't be swallowed. Checked in 0x490 (switch, timed
+  door: opened, shut, the switch rose, pressed again, reopened) and 0x417 (inhaling at the pillar: swallowed before, not after).
+  The "inverted" ones are the DS's own (doors that start open and shut behind Kirby).
+- **Map Viewer warp deaths**: the viewer now warps onto a door's landing (or the room's own door), never the default spawn, which
+  the expansion moves (the Lua script reads it through the game's code). Checked in a harness over the USA build: 990 rooms land on
+  a door's spot, 104 on their own door, 14 none (KatAM's own spawns; 3 Squeak rooms with no door are refused). Not tested: the
+  viewer app itself (Windows only) and the Lua script in mGBA.
+- **Boulders**: they break the star blocks they roll into (0x4C8: the wall's 5 cells cleared, the boulder burst); waiting boulders
+  hang in the air as on the DS until their trigger. Not reproduced: 0x5E5's camera moving by itself.
+- **Big star blocks**: one 2x2 block that breaks whole (0x401: one Sword hit broke all four cells).
+- **Lifts**: Kirby attacking on a lift stays on it (0x4EB, two Sword swings while it rose); chests on lifts ride them (0x427: the
+  chest stays on the lift's top as it moves, shot). Not tested: opening a chest while riding.
+- **Still open**: walk-once blocks (none found in the DS data: which room?), water currents, the doors-and-mirrors rules, items,
+  hideouts, the final sequence, Dark Nebula, the hubs and the Map Viewer items above.
