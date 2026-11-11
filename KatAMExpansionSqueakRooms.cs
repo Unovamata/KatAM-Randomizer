@@ -1494,6 +1494,35 @@ namespace KatAMRandomizer {
                 if (ReadShort(objects, at + 2) is SqueakChestSmall or SqueakChestBig) yield return (ReadShort(objects, at + 4) / 16, ReadShort(objects, at + 6) / 16);
             }
         }
+        /* SqueakRoomsInvincible(); KatAM's invincibility (the Invincible Candy's: sub_0808324C starts it, its task sub_08083494 runs it,
+         * sub_081232AC the candy's own) is off in the rooms over 0x383, KatAM's special rooms, and so in every Squeak Squad room (0x400 on):
+         * the candy, from a chest or not, did nothing there (the owner: "Invincibility Lollipops are not activating from chests?"). Each
+         * test, "ldr r0, =0x383; cmp room, r0; bhi off; subs r0, #98; cmp room, r0; beq off" (the second for room 0x321), becomes "ldr r0,
+         * =0x384; subs r0, room, r0; cmp r0, #0x7B; bls off; adds r0, #0x63; beq off": off from 0x384 to 0x3FF and in 0x321 as before, on
+         * from 0x400. The three found by their code, as each version has them; returns how many there are (done before counted); */
+        static int SqueakRoomsInvincible(byte[] rom) {
+            int found = 0;
+            for (int a = 0; a + 12 <= 0x400000; a += 2) {
+                int ldr = ReadShort(rom, a), cmp = ReadShort(rom, a + 2), bhi = ReadShort(rom, a + 4), sub = ReadShort(rom, a + 6), cmp2 = ReadShort(rom, a + 8),
+                    beq = ReadShort(rom, a + 10);
+                if ((ldr & 0xFF00) != 0x4800 || (beq & 0xFF00) != 0xD000) continue;
+                int literal = ((a + 4) & ~3) + (ldr & 0xFF) * 4, value = ReadInt(rom, literal);
+                // (done already: "subs r0, room, r0; cmp r0, #0x7B; bls; adds r0, #0x63");
+                if (value == 0x384 && (cmp == 0x1A08 || cmp == 0x1A18) && bhi == 0x287B && (sub & 0xFF00) == 0xD900 && cmp2 == 0x3063) {
+                    found++;
+                    continue;
+                }
+                if (value != 0x383 || cmp is not (0x4281 or 0x4283) || (bhi & 0xFF00) != 0xD800 || sub != 0x3862 || cmp2 != cmp) continue;
+                int room = cmp & 7;
+                WriteInt(rom, literal, 0x384);
+                WriteShort(rom, a + 2, 0x1A00 | room << 3);                     // subs r0, room, r0;
+                WriteShort(rom, a + 4, 0x287B);                                  // cmp r0, #0x7B;
+                WriteShort(rom, a + 6, 0xD900 | (((sbyte)(bhi & 0xFF) - 1) & 0xFF));  // bls off (one instruction further on);
+                WriteShort(rom, a + 8, 0x3063);                                  // adds r0, #0x63;
+                found++;
+            }
+            return found;
+        }
         /* SqueakShutCells(); The cells a room's stone shutters close while shut (gimmick 2 among the ones that talk: a stone pillar starting
          * shut, its look 0 upright, 1 and 2 on their side: squeak/gimmicks.c's boxes, as the logic checks read them); */
         static HashSet<(int x, int y)> SqueakShutCells(SqueakMap map) {
@@ -1926,6 +1955,8 @@ namespace KatAMRandomizer {
             squeakLairEscorts.Clear();
             List<SqueakRoomFiles> files = SqueakWorldRooms(squeak);
             if (files.Count == 0) return "The Squeak Squad ROM's stages weren't found.";
+            // (invincibility in the Squeak Squad rooms, SqueakRoomsInvincible());
+            if (SqueakRoomsInvincible(rom) != 3) return $"The {version.Name} ROM's invincibility code doesn't match.";
             // (the spray paints' chests: the KatAM can each shows, KatAMExpansionSprays.cs);
             int[] sprayCans = Enumerable.Range(0, SqueakSprayCount).Select(n => SqueakSprayKatAMCan(rom, version.SpriteTables, squeak, n)).ToArray();
             // (the worlds' maps' chests, KatAMExpansionMaps.cs);

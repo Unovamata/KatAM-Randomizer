@@ -1141,6 +1141,8 @@ NiDL's natives were); one it lacks is ported onto KatAM's own object (`ROM Expan
 - **Rooms a ride crosses**: a warp star's ride flies from its room through others into the one it lands in; the DS puts a star at
   each crossed room's edge to carry the flight on (7-2-2: 7-2-1's star flies through it into 7-2-3). A crossed room's arrival is
   that edge, not a place to stand: the planner marks them (`SqueakPlanRoom.Crossed`) and throws Kirby into none.
+- **Invincibility above room 0x383**: KatAM's invincibility (`sub_0808324C`, its task `sub_08083494`, the candy's `sub_081232AC`)
+  is off in its special rooms, every room over 0x383; `SqueakRoomsInvincible()` makes the three tests skip 0x384-0x3FF only.
 - **Floating bubbles' first byte** (gimmick 0x11's parameter): its high half 1 a food, 0 an ability; its low half 1 an item of the
   room's .doe list (the second byte its number: 4-6-8's chest, 8-1-11's big chest, the item's own flag 1), 0 by ID (the second byte
   the food's or the ability's; ability 0 the random one, as the "?" item, kind 0x15, which KatAM's random pedestal 0x96 stands for).
