@@ -554,7 +554,7 @@ namespace KatAMMapTracker {
             UpdateMapRevealedRooms();
         }
 
-        /* OnKirbysReported(); Where every Kirby is (the player's first, then the CPU Kirbys): their arrows on the map. The player's room is
+        /* OnKirbysReported(); Where every Kirby is (the player's first, then the CPU Kirbys): their heads on the map (arrows to the ones out of view). The player's room is
          * the one the map tracks (the progress' current room); a CPU Kirby's is resolved as the player's are (a goal game: the copy
          * beside the room he came from); rooms not in the ROM's map (menus, cutscenes) show none; */
         void OnKirbysReported(IReadOnlyList<KirbySpot> kirbys) {
@@ -607,7 +607,7 @@ namespace KatAMMapTracker {
                 "2. In mGBA 0.10 or newer: Tools > Scripting... > File > Load script, and pick Lua/katam_tracker.lua.\n" +
                 "3. Play! Rooms appear as you enter them, and lines as you go through their mirrors.\n\n" +
                 "Yellow rooms: every mirror used. Orange rooms: some mirrors left. The pulsing room is where Kirby is.\n" +
-                "Colored arrows: where each Kirby is (pink you, then yellow, red and green); on the window's edge, the way to one out of view.\n" +
+                "Kirby heads: the room each Kirby is in (pink you, then yellow, red and green); an arrow on the window's edge points to one out of view.\n" +
                 "Dotted lines: Two-Way mirrors. Arrows: One-Way mirrors.\n\n" +
                 "Mouse wheel: zoom.   Drag: move the map.   Hover: room preview.   Double click: center a room.\n" +
                 "Space: follow Kirby on/off (it comes back on when Kirby changes rooms).   F: fit the discovered map.   +/-: zoom.\n" +
