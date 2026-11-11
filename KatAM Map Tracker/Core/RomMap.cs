@@ -41,9 +41,10 @@ namespace KatAMMapTracker {
     // shows a KatAM map), else 0; SecretMapPiece: a chest's piece of Squeak Squad's Secret Map (template +0x17 the mark 2, +0x16 the
     // piece's number + 1, 1-7: KatAMExpansionMaps.cs; its Behavior only shows a KatAM map), else 0; AbilityScroll: a chest's Squeak Squad
     // Ability Scroll (template +0x17 the mark 3, +0x16 the scroll's number + 1, 1-23), else 0; Held: a chest a barrel or a grass tuft
-    // holds (Squeak Squad's: the ROM Expansion's squeak/gimmicks.c lets it out where the holder stands);
+    // holds (Squeak Squad's: the ROM Expansion's squeak/gimmicks.c lets it out where the holder stands); Chase: a chest only the stage's
+    // chase brings out (Squeak Squad's, the ROM Expansion's squeak/gimmicks.c's GIMMICK_CHASE_CHEST);
     public sealed record RoomObject(int Id, int Behavior, int X, int Y, int Destination = -1, int LandX = 0, int LandY = 0, int SqueakSpray = 0,
-                                    int AreaMap = 0, int SecretMapPiece = 0, int AbilityScroll = 0, bool Held = false);
+                                    int AreaMap = 0, int SecretMapPiece = 0, int AbilityScroll = 0, bool Held = false, bool Chase = false);
 
     // RoomInfo; A room and its doors as read from the ROM;
     public sealed class RoomInfo {
@@ -304,7 +305,21 @@ namespace KatAMMapTracker {
                     int at = warps + 4 + i * 8;
                     PhaseWarps.Add((Read16(at), Read16(at + 2), Rom[at + 4], Rom[at + 5], Rom[at + 6] - 1, Rom[at + 7] - 1));
                 }
+            /* (then the chases' chests, in no object list (the ROM Expansion's squeak/gimmicks.c brings them out once the stage's chase is
+             * on): "CC", u16 how many, 12 bytes each: u16 the room, u16 x, u16 y, u8 the type (0x80, 0x81), u8 the item, u8 the number
+             * (template +0x16), u8 the mark (+0x17), u8 the half flag, u8 0; older ROMs: none); */
+            int chaseChests = Rom.Length >= warps + 4 && Rom[warps] == 'P' && Rom[warps + 1] == 'W' ? warps + 4 + Read16(warps + 2) * 8 : -1;
+            if (chaseChests >= 0 && chaseChests + 4 <= Rom.Length && Rom[chaseChests] == 'C' && Rom[chaseChests + 1] == 'C')
+                for (int i = 0; i < Read16(chaseChests + 2) && chaseChests + 16 + i * 12 <= Rom.Length; i++) {
+                    int at = chaseChests + 4 + i * 12, mark = Rom[at + 9], number = Rom[at + 8];
+                    if (!ChaseChests.TryGetValue(Read16(at), out List<RoomObject> list)) ChaseChests[Read16(at)] = list = new List<RoomObject>();
+                    list.Add(new RoomObject(Rom[at + 6], Rom[at + 7], Read16(at + 2), Read16(at + 4), AreaMap: mark == ChestMarkMap ? number : 0,
+                                            SecretMapPiece: mark == ChestMarkPiece ? number : 0, AbilityScroll: mark == ChestMarkScroll ? number : 0, Chase: true));
+                }
         }
+
+        // ChaseChests; The chases' chests by room (ReadSqueakRooms()): ReadObjects() adds them to their rooms;
+        readonly Dictionary<int, List<RoomObject>> ChaseChests = new Dictionary<int, List<RoomObject>>();
 
         // PhaseWarps; Squeak Squad's final stage going on by itself (ReadSqueakRooms()): (the room, the next, Kirby's cell, the landing cell);
         readonly List<(int room, int destination, int x, int y, int landX, int landY)> PhaseWarps = new List<(int, int, int, int, int, int)>();
@@ -564,6 +579,8 @@ namespace KatAMMapTracker {
                                                 SecretMapPiece: id is 0x80 or 0x81 && Rom[address + 0x17] == ChestMarkPiece ? Rom[address + 0x16] : 0,
                                                 AbilityScroll: id is 0x80 or 0x81 && Rom[address + 0x17] == ChestMarkScroll ? Rom[address + 0x16] : 0));
             }
+            // (and the chests its chase brings out, ReadSqueakRooms()'s ChaseChests);
+            if (ChaseChests.TryGetValue(room.Id, out List<RoomObject> chaseChests)) room.Objects.AddRange(chaseChests);
         }
 
         void ReadDoors(RoomInfo room) {

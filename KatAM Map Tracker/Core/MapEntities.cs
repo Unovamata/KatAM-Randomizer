@@ -517,7 +517,8 @@ namespace KatAMMapTracker {
                                 : behavior == 8 ? new MapEntity(EntityKind.AmazingMirror, EntityIcon.AmazingMirror, "Amazing Mirror") : null;
                 case 0x80: case 0x81: {
                     MapEntity chest = Chest(id == 0x81, behavior, obj.SqueakSpray, obj.AreaMap, obj.SecretMapPiece, obj.AbilityScroll);
-                    return obj.Held ? chest with { Name = chest.Name.Replace(" Chest", " Chest (in a barrel or grass)") } : chest;
+                    return obj.Held ? chest with { Name = chest.Name.Replace(" Chest", " Chest (in a barrel or grass)") }
+                         : obj.Chase ? chest with { Name = chest.Name.Replace(" Chest", " Chest (out in the chase)") } : chest;
                 }
                 case 0x84: return new MapEntity(EntityKind.WarpStar, EntityIcon.WarpStar, "Warp Star", Destination: obj.Destination);
                 case 0x86: return new MapEntity(EntityKind.BigSwitch, EntityIcon.BigSwitch, "Big Switch");
