@@ -702,6 +702,8 @@ void SqueakMove(struct SqueakObject *s) {
     }
     if (!(base->flags & 0x100)) {
         sub_0809D8C8(base);
+        // (the moving platforms and thunder clouds are floors too: squeak/gimmicks.c, SqueakPlatformLanding());
+        if (s->vy <= 0 && !(base->unk62 & 4) && SqueakPlatformLanding(base, base->unk4C)) s->vy = 0;
     } else {
         SqueakHoldInStage(base);
     }

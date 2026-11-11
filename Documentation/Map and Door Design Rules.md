@@ -13,7 +13,7 @@ after any change.
 
 | Way | KatAM object | One-way or two-way | Notes |
 |---|---|---|---|
-| Mirror (door) | `0x6F` mirror, a door cell | either | The normal way. One-way mirrors are drawn with KatAM's one-way graphic. |
+| Mirror (door) | `0x6F` mirror, a door cell | either | The normal way. One-way mirrors are drawn with KatAM's one-way graphic. Every door is a mirror but a wide doorway leading on to a place that isn't a goal game (Squeak Squad's goal doors into the next stage or the boss stage) and NiDL's own door halls (rule 2). |
 | Hub door | `0x97` door object | always two-way | Only in hubs (rule 4). Hidden until its big switch is pressed. |
 | Mirra | `0x34` | always one-way | A hidden mirror that runs away (rule 6). |
 | Warp star | `0x84` | one-way | NiDL's and Squeak Squad's own; stays a warp star (rule 7). |
@@ -47,6 +47,15 @@ after any change.
   far at most) before anywhere in the room: anywhere left a mini-boss room's way out landing Kirby cut off from the rest (0x29A's).
 - **NiDL's own two-way doors stay two-way**, and its one-way mirrors were made two-way, unless the way back lands somewhere
   unreachable.
+- **Squeak Squad's doors lead both ways too** (the owner: "Squeak Squad's rooms are plagued with 1 way mirrors. The map layouts
+  should encourage exploration with Two-ways as we defined in the rules. This makes map exploration stupidly linear"): on the DS
+  they only lead on (a room's arrival is no door), so each DS door gets its way back where it lands Kirby (on the floor under
+  the arrival, up to 2 cells), landing him on the DS door, both with a mirror (KatAM's own look over the DS's doorway). Not in a
+  goal room (rule 5: no way back), from or into a fight's room, in a boss stage, from the rooms after a stage's goal its doors
+  don't lead to (hideouts, gold-pile rooms), from a hidden way, where the arrival is a door already, where it would crowd another
+  door (`MirrorSpacing` across, 2 up or down), nor where the DS's door, its stone shutters shut, doesn't lead back to where Kirby
+  comes into its room (a door past a shutter that opens from one side is a way on only). These keep a one-way mirror. The ways
+  back aren't counted in a room's exits (rule 2: the DS's own doors). `PlanSqueakLevels()` (`DoorKind.Back`), `AddSqueakRooms()`.
 
 ## 4. Hubs
 
@@ -144,10 +153,10 @@ after any change.
   not the Mirra's own (else the nearest one on that way). The Fountain of Dreams' switch room has none of these: only Nightmare's
   end leads there (section 8). `PlanDoors()`.
 
-- **Squeak Squad's worlds** follow the same rules (`PlanSqueakLevels()`), on the DS's own stages, whose doors stay as the DS has
-  them (its doorways are in the rooms' tiles) and only lead on: a room's arrival is no door back. So:
-  - a branch into a stage lands in its **first room** (on a mirror back there if it takes one, else one-way onto the stage's start):
-    entered further in, the rooms before would be cut off;
+- **Squeak Squad's worlds** follow the same rules (`PlanSqueakLevels()`), on the DS's own stages, whose doors keep their places
+  (its doorways are in the rooms' tiles) and lead both ways where they can (rule 3). So:
+  - a branch into a stage lands in its **first room** (on a mirror back there if it takes one), else in the earliest room Kirby
+    walks back from to the first through the ways back (no room before is cut off), else one-way onto the stage's start;
   - doors go only in rooms the stage's start reaches (through the DS's own doors from every door Kirby lands on in the stage, and
     through the walls only Fire or an unported gimmick opens on the DS, which are KatAM's star blocks); where no stage in a world's tree has a room taking a door (Prism Plains 1's
     are small, 2 doors each), **a stage's goal door leads on into the next stage**, one-way;
