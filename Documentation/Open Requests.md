@@ -1418,10 +1418,16 @@ checks run with and without dropping through thin floors: every big switch press
   onto the Cherry there: a door cell over a chest is no rock now, and planned doors keep clear of the DS's chests. Checked: no
   food on a chest in any Squeak room; 4-6-8 (0x4E5) shows the chest alone; 2-6-3 (0x460) the big chest on its ledge, the Cherry on
   the floor below (shots).
+- **Invincibility Lollipops** (the Invincible Candy, from a chest or not): KatAM turns invincibility off in rooms over 0x383 (its
+  own special rooms), and so in every Squeak Squad room (0x400 on): the candy set its timer, which never ran, and nothing showed.
+  The three tests (the start, its task, the candy's) are now off only from 0x384 to 0x3FF and in 0x321, as before, and on from 0x400
+  (all three versions: the tests found by their code). Checked in 8-1-13 (0x5B6): the big chest's candy, the stars round Kirby and
+  the timer running down (1000, 857, 757, 697 over 160 frames; before: 1000 and still).
 - **Doors where Kirby walks**: moving doors off the chests put 7-3-2's way to 7-6-4 under its thin floors, where Kirby got only by
   dropping through (7-6 cut off without Down and B). A planned door now stands only where Kirby walks to from where the DS brings
   him into the room (never down through a thin floor). Logic: 386 reached with and without drop-through again.
 - **Still open**: walk-once blocks (none found in the DS data: which room?), water currents, the mini-boss attack stuck after a
   cancel (which mini-boss and attack?), the one-way door into a button room (every way into the 8 Squeak switch rooms is two-way
-  but the Mirra, one-way by rule 6: which room?), the other items (lollipops from chests, scroll chests' icons, Gold Waddle Dee),
+  but the Mirra, one-way by rule 6: which room?), the other items (scroll chests' icon: their popup is a KatAM map's look, a scroll's
+  art to be added; Gold Waddle Dee),
   the final sequence, Dark Nebula, the hubs and the Map Viewer items above.
