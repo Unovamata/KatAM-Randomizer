@@ -288,14 +288,24 @@ namespace KatAMMapTracker {
         }
 
         /* DebugWarp(); DEBUG (to be removed for the release): with Debug > Click a Room to Warp Kirby There on, a click on a room sends the
-         * emulator script "WARP <room> <x> <y>", and it moves Kirby there as a door would: onto where a mirror into that room lands him,
-         * else the room's own default spawn (-1 -1); */
+         * emulator script "WARP <room> <x> <y>", and it moves Kirby there as a door would: onto where a door into that room lands him (a
+         * mirror's first, then a Warp Star's or a Fuse Cannon's), else onto one of the room's own doors (they stand on floors), else the
+         * room's own default spawn (-1 -1). Not the default spawn first: the Squeak Squad rooms have none (0, 0, a wall's corner: the
+         * owner, "When teleporting to some Squeak Squad rooms with the Map viewer, I get instantly killed for no reason"); */
+        const int SqueakFirstRoom = 0x400;      // (KatAMExpansionSqueakRooms.cs' SqueakFirstRoom);
         void DebugWarp(int room) {
             if (!debugWarpItem.Checked || map == null || room == progress?.CurrentRoom) return;
             DoorInfo door = map.Rooms.Values.SelectMany(r => r.Doors)
-                .Where(d => d.Destination == room && d.Room != room && d.LandX > 0)
+                .Where(d => d.Destination == room && d.Room != room && d.LandX > 0 && d.LandY > 0)
                 .OrderBy(d => d.Kind == DoorKind.Mirror ? 0 : 1).ThenBy(d => d.Room).FirstOrDefault();
-            (int x, int y) spawn = door != null && door.Kind == DoorKind.Mirror ? ((door.LandX - 8) / 16, (door.LandY - 8) / 16) : (-1, -1);
+            DoorInfo own = map.Rooms.TryGetValue(room, out RoomInfo info) ? info.Doors.FirstOrDefault(d => d.Kind == DoorKind.Mirror && d.Tiles?.Count > 0) : null;
+            (int x, int y) spawn = door != null ? ((door.LandX - 8) / 16, (door.LandY - 8) / 16)
+                                 : own != null ? own.Tiles[0] : (-1, -1);
+            // (a Squeak Squad room with no door to land on, the warp stars' sky rooms 8-3-6 and 8-3-7: its default spawn is 0, 0);
+            if (spawn == (-1, -1) && RomMap.RealRoom(room) >= SqueakFirstRoom) {
+                connectionLabel.Text = $"Debug: room {RomMap.RealRoom(room):X3} has no door to land Kirby on, so he isn't warped there.";
+                return;
+            }
             bool sent = server.Send($"WARP {RomMap.RealRoom(room):X} {spawn.x} {spawn.y}");
             connectionLabel.Text = sent ? $"Debug: warping Kirby to room {RomMap.RealRoom(room):X3}..." : "Debug: the emulator script isn't connected, so Kirby can't be warped.";
         }
