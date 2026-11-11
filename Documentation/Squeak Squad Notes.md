@@ -1138,6 +1138,10 @@ NiDL's natives were); one it lacks is ported onto KatAM's own object (`ROM Expan
   never appear, and the Map Viewer skips templates there.
 - **Big Metalun's rock droppers** (gimmick 8, fed by the random relay 0x17) rain only while a mini-boss is alive in the room with a
   Kirby inside its template's fight area (`MinibossFighting()` in `gimmicks.c`).
+- **Rooms a ride crosses**: a warp star's ride flies from its room through others into the one it lands in; the DS puts a star at
+  each crossed room's edge to carry the flight on (7-2-2: 7-2-1's star flies through it into 7-2-3). A crossed room's arrival is
+  that edge, not a place to stand: the planner marks them (`SqueakPlanRoom.Crossed`) and throws Kirby into none.
+- **Hidden doors (flag 4)** are invisible on the DS (the Squeaks' temporary doors appear there); in the port they now carry a mirror.
 - **Metalun on slopes**: its walk moves in lurches; one down a slope leaves it a few pixels above the ground. With floor under its
   feet it walks on (and its charge only drifts off a ledge), so it keeps its walk's pace downhill.
 

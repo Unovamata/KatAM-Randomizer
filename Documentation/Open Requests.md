@@ -1354,13 +1354,13 @@ The owner's list after playing the Squeak Squad worlds, by kind. Each one is mar
   not showing in the Map Viewer app."; "The squeak squad final boss sequence is not within this same line in the map viewer."
 
 **Done so far** (USA build, GBA emulator, rooms entered with a forced start unless said; all three versions built, the logic
-checks run with and without dropping through thin floors: 390 of 492 Squeak Squad rooms reached (the rest the hideouts and
-gold-pile rooms no lair uses, as before), every big switch pressed, none trapped; NiDL's 280 of 280):
+checks run with and without dropping through thin floors: every big switch pressed, none trapped; NiDL's 280 of 280):
 - **Room ids changed**: stage 2-8 was a DS test stage (rooms 2-6 have no tiles, only collision; room 1, the old 0x46C, a jumble of
   the generic tileset's blocks), now left out as 1-8, 1-9 and 2-9 already were. The Squeak rooms from 0x46C on are 7 lower: the old
   0x490 is 0x489, 0x4E7 is 0x4E0, 0x5E5 is 0x5DE, the hub 0x5E2. Checked: 0x46C is now 3-1-1, drawn right. With it, a planner bug:
   a warp star's ride counted the sky room it flies across (3-4-5) as reached and put world 3's way to world 4 there (nothing led
-  in); rides now count the room the ride lands in.
+  in); rides now count the room the ride lands in. Logic then: 390 of 492 Squeak Squad rooms reached (the rest the hideouts and
+  gold-pile rooms no lair uses, as before).
 - **0x4E7 (now 0x4E0) crash and the door at the top**: the DS's third tile layer (the look a cell takes once cleared) was drawn over
   the room from the start, hiding the bomb blocks, the grey floor and the planks over the sealed door; and a second trigger message
   after the floor broke hung the game (a block record that wasn't there). Checked: the room looks as the DS's; the bottom-left door
@@ -1397,6 +1397,17 @@ gold-pile rooms no lair uses, as before), every big switch pressed, none trapped
   down hills. It now walks on when there is floor under its feet (and its charge drifts only off ledges). Checked in 0x4C8, Metalun
   walking over the hill: down the far side the old build slid 50 px in 72 frames; the new one keeps its walk's rhythm (an 8-10 px
   lurch about every 25 frames, as on the flat and uphill). Not tested: the charge down a slope.
+- **Hidden doors show a mirror** (rulebook rule 2, changed at the owner's word): the DS's 35 invisible doors (Up opened them, nothing
+  drawn), into the stages' gold-pile rooms, now have a one-way mirror. Checked: 1-3-6 (0x40F) and 4-6-3's top door (0x4E0) show it.
+- **Doors out of view**: the rooms a warp star's ride flies across (3-4-5, 7-2-2, 8-3-6, 8-3-7) counted as unreached after the
+  ride fix above, and the planner threw Kirby into each at its DS arrival, the room's edge, which dropped him into the 2 bottom rows
+  the camera never shows: he fell out of view and died (checked: 7-1-1's mirror into 7-2-2). They are now reached on the ride only,
+  no door or landing in them. Checked: no door or landing outside the camera's rows in any Squeak room.
+- **Switches by doors**: the planner kept its doors away from warp stars and cannons only. Its doors, landings and ways back now keep
+  3 cells across (2 up or down) from switches and 2 from the other gimmicks (8-1-1's door stood on its switch, then in a stone door's
+  pillar; others on a lift, a fire, an icicle). Left: the DS's own doors near its own switches (5-5-2, 8-2-4) and stone door (2-6-6).
+  Checked: 8-1-1 (0x5AC), its mirror clear of the switch and the stone door (shot).
+- Logic now: 386 of 492 Squeak Squad rooms reached by doors (the 4 crossed rooms by their rides), every switch, none trapped.
 - **Still open**: walk-once blocks (none found in the DS data: which room?), water currents, the mini-boss attack stuck after a
-  cancel (which mini-boss and attack?), the doors-and-mirrors rules, items, the final sequence, Dark Nebula, the hubs and the Map
-  Viewer items above.
+  cancel (which mini-boss and attack?), the one-way door into a button room (every way into the 8 Squeak switch rooms is two-way
+  but the Mirra, one-way by rule 6: which room?), items, the final sequence, Dark Nebula, the hubs and the Map Viewer items above.

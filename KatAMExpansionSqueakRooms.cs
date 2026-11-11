@@ -2012,6 +2012,10 @@ namespace KatAMRandomizer {
                         Width = map.Width, Height = map.Height, Collision = SqueakRoomCollision(map).collision, Doors = doorsOf[i],
                         Midboss = midboss, Boss = boss, Shut = SqueakShutCells(map),
                         Transports = map.Gimmicks().Where(g => g.Type is SqueakWarpStar or SqueakTurnCannon or SqueakFuseCannon).Select(g => (g.X / 16, g.Y / 16)).ToList(),
+                        Switches = map.Gimmicks().Where(g => g.Type == SqueakSwitchGimmick).Select(g => (g.X / 16, g.Y / 16)).ToList(),
+                        Gimmicks = map.Gimmicks().Where(g => g.Type is SqueakRopeGimmick or SqueakShutterGimmick or SqueakPlatformGimmick or SqueakCloudGimmick
+                                                             or SqueakBoulderGimmick or SqueakFireGimmick or SqueakRockGimmick or SqueakIcicleGimmick or SqueakCandleGimmick)
+                                                 .Select(g => (g.X / 16, g.Y / 16)).ToList(),
                         Rides = map.Gimmicks().Where(g => g.Type == SqueakFuseCannon && (g.Word(0) & 0xFF) < SqueakStarArrival).Select(g => (g.Word(0) & 0xFF) + 1).ToList() });
                     // (whether it draws the DS's nest: Randomize Squeak Lairs, SqueakNestKey(), SqueakNestDrawn());
                     if (files[i].Front != null && !frontOf.ContainsKey(files[i].Front))
@@ -2037,6 +2041,9 @@ namespace KatAMRandomizer {
                         int landed = t.Room - SqueakFirstRoom;
                         if (landed >= 0 && landed < files.Count && files[landed].Area == files[from].Area && files[landed].Stage == files[from].Stage)
                             planRooms[from].Rides.Add(files[landed].Index);
+                        // (the rooms it flies across on the way, SqueakPlanRoom.Crossed);
+                        foreach (RideLeg leg in t.Ride?.Skip(1).SkipLast(1) ?? Enumerable.Empty<RideLeg>())
+                            if (leg.Room - SqueakFirstRoom is int crossed && crossed >= 0 && crossed < planRooms.Count && crossed != landed) planRooms[crossed].Crossed = true;
                     }
                 foreach (SqueakPlanRoom plan in planRooms) {
                     SqueakMap map = new SqueakMap(SqueakUnpack(SqueakFileAnyCase(squeak, files[plan.Index].Map)));
@@ -2127,8 +2134,8 @@ namespace KatAMRandomizer {
                      * names there (the cell he stands in), facing the room's middle: its cell KatAM's door (0xFF, 0xFD in water; in a
                      * star block what the block leaves, its record before the block's, as BuildSolidity()'s secret doors), its 8ROM record
                      * and a 9ROM entry for each place they lead to (KatAM looks a door's up as Kirby goes through it, never ending
-                     * without it). The goals (no room) and the starts aren't doors; a hidden way (flag 4) is a door the room draws none
-                     * for, as on the DS; */
+                     * without it). The goals (no room) and the starts aren't doors; a hidden way (flag 4), a door the DS draws none
+                     * for, gets a mirror as the others; */
                     List<byte> doorRecords = new List<byte>(), blockDoorRecords = new List<byte>();
                     List<(int room, int x, int y)> doorPlaces = new List<(int, int, int)>();
                     // (a Squeak Lair's DS doors aren't doors, its mirror its way out; a DS door into a lair leads there: PlanSqueakLevels());
@@ -2161,9 +2168,12 @@ namespace KatAMRandomizer {
                         if (!doorPlaces.Contains(place)) doorPlaces.Add(place);
                         /* (a mirror on it, as on every door but a wide one leading on (the owner: "There's some doors that are black doors,
                          * not mirrors. All doors have to be mirrors unless the door is wide and warps to another place that is not a goal
-                         * room"): the DS's doorways are narrow; but a nest's (a Squeak Lair's door: the nest is its look) and a hidden
-                         * way's (the DS draws none); two-way where PlanSqueakLevels() gave it a way back); */
-                        if (into == null && (door.Flags & SqueakHiddenDoor) == 0)
+                         * room"): the DS's doorways are narrow; but a nest's (a Squeak Lair's door: the nest is its look); two-way where
+                         * PlanSqueakLevels() gave it a way back. A hidden way (flag 4: the DS draws none) gets one too (the owner: "I think
+                         * hidden doors should be replaced with visible mirror doors"), but not one with no floor under it (4-6-3's, which
+                         * Up can't use); */
+                        bool floored = door.Y + 1 < height && SqueakFloor(collision[cell + width]);
+                        if (into == null && ((door.Flags & SqueakHiddenDoor) == 0 || floored))
                             dsMirrors.Add((door.X, door.Y, !planned[to].Any(b => b.Kind == DoorKind.Back && b.Room == room && b.DestX == door.X + 1 && b.DestY == door.Y + 1), block >= 0));
                     }
                     // (the levels' doors, PlanSqueakLevels(): KatAM's, as the DS's; a mirror on each but the goals, the DS's own doorways; a

@@ -396,6 +396,12 @@ namespace KatAMRandomizer {
             // (its Squeaks the DS brings out in a chase or a hideout's fight (records with flag 4): the character, the spot, the flags);
             public List<(int character, int x, int y, int flags)> Squeaks = new List<(int, int, int, int)>();
             public List<(int x, int y)> Transports = new List<(int, int)>();
+            // (a room a warp star's ride flies across into another, as the DS's (3-4-5, 7-2-2, 8-3-6, 8-3-7): reached on the ride, never
+            // stood in, so no door throws Kirby into it; SqueakRides()' legs between the star's room and the one it lands in);
+            public bool Crossed;
+            // (its stone-door switches' cells, gimmick 0, and its other gimmicks' (stone doors, lifts, clouds, boulders, fires, rocks,
+            // icicles, ropes, candles): no door, landing or way back goes in front of one, NearGimmick());
+            public List<(int x, int y)> Switches = new List<(int, int)>(), Gimmicks = new List<(int, int)>();
             // (the cells its stone shutters close till a switch opens them: the ways back, which take them as walls);
             public HashSet<(int x, int y)> Shut = new HashSet<(int, int)>();
             // (its nest blocks' key and whether its front tileset draws a nest: SqueakNestKey(), SqueakNestDrawn());
@@ -410,6 +416,11 @@ namespace KatAMRandomizer {
 
         // (a cell Kirby goes through: air, water, ladders, doors; star blocks too, once broken, if blocks);
         static bool SqueakOpen(byte v, bool blocks = false) => v is KatAMAir or KatAMWater or KatAMLadder or KatAMLadderTop or >= 0xFC || blocks && v == KatAMStarBlock;
+        /* NearGimmick(); Whether a cell is in front of one of the room's stone-door switches (3 cells across, 2 up or down, as enemies keep
+         * from doors: the owner, "There's instances where switches are in front of doors, this breaks the 3 tile rule"), or on one of its
+         * other gimmicks (2 across, 2 up or down: a stone door, a lift, a fire, an icicle; 8-1-1's door stood in a stone door's pillar); */
+        static bool NearGimmick(SqueakPlanRoom r, int x, int y) => r.Switches.Any(s => Math.Abs(s.x - x) <= 3 && Math.Abs(s.y - y) <= 2)
+                                                                   || r.Gimmicks.Any(g => Math.Abs(g.x - x) <= 2 && Math.Abs(g.y - y) <= 2);
         // (a cell Kirby stands on: solid, slopes, thin floors, a ladder's top, blocks);
         static bool SqueakFloor(byte v) => v is (>= 0x05 and <= 0x1B) or KatAMLadderTop or (>= KatAMStarBlock and <= KatAMMetalBlock);
         // SqueakGoal(); Whether a DS door is its stage's goal; SqueakArrival(), where its doors land Kirby (no room, not a goal);
@@ -512,7 +523,7 @@ namespace KatAMRandomizer {
                 }
             }
             // Hosts(); Whether a room takes a new door: one Kirby reaches, under its exits, not a goal room, a boss stage's, nor a mini-boss's;
-            bool Hosts(SqueakPlanRoom r) => reachable.Contains(r.Room) && Exits(r) < MaxExits(r) && !goalRooms.Contains(r.Room)
+            bool Hosts(SqueakPlanRoom r) => reachable.Contains(r.Room) && !r.Crossed && Exits(r) < MaxExits(r) && !goalRooms.Contains(r.Room)
                                             && !IsBossStage((r.Area, r.Stage)) && !r.Midboss && !r.Boss;
 
             /* SqueakSpot(); A floor cell for a mirror (door) or a landing: a floor 3 cells wide under it, open beside and above it, not
@@ -550,7 +561,7 @@ namespace KatAMRandomizer {
                         if (Enumerable.Range(x - 1, 3).Any(fx => !SqueakFloor(r.At(fx, y + 1)))) continue;
                         if (firm && Enumerable.Range(x - 1, 3).Any(fx => r.At(fx, y + 1) is >= KatAMStarBlock and <= KatAMMetalBlock)) continue;
                         if (taken.Any(c => Math.Abs(c.x - x) < MirrorSpacing * 2 && Math.Abs(c.y - y) <= 2)) continue;
-                        if (r.Transports.Any(t => Math.Abs(t.x - x) < MirrorSpacing * 2 && Math.Abs(t.y - y) <= 2)) continue;
+                        if (r.Transports.Any(t => Math.Abs(t.x - x) < MirrorSpacing * 2 && Math.Abs(t.y - y) <= 2) || NearGimmick(r, x, y)) continue;
                         if (door && !ViewFits(r, x, y)) continue;
                         double score = hidden ? distance + (plain[y * width + x] < 0 ? 60 : 0) : -Math.Abs(x - width / 2.0) + random.NextDouble() * 6;
                         if (score > bestScore) { bestScore = score; best = (x, y); }
@@ -572,7 +583,7 @@ namespace KatAMRandomizer {
             (SqueakPlanRoom room, int x, int y)? EntrySpot((int area, int stage) s) {
                 SqueakPlanRoom first = byStage[s][0];
                 foreach (SqueakPlanRoom r in byStage[s]) {
-                    bool hosts = Exits(r) < MaxExits(r) && !goalRooms.Contains(r.Room) && !r.Midboss && !r.Boss && !(SqueakLair(r) && SqueakHideout(r));
+                    bool hosts = Exits(r) < MaxExits(r) && !goalRooms.Contains(r.Room) && !r.Midboss && !r.Boss && !r.Crossed && !(SqueakLair(r) && SqueakHideout(r));
                     if (hosts && (r == first || BacksTo(r, first)) && SqueakSpot(r, false, true) is (int x, int y)) return (r, x, y);
                 }
                 return null;
@@ -592,7 +603,7 @@ namespace KatAMRandomizer {
             // LandingIn(); Where a one-way door throws Kirby into a stage: a floor in one of its rooms away from its doors; its start, if none;
             (int room, int x, int y) LandingIn((int area, int stage) s) {
                 // (nor in a hideout the Squeak Lairs keep: SqueakLair());
-                foreach (SqueakPlanRoom r in byStage[s].Where(r => !goalRooms.Contains(r.Room) && !r.Midboss && !r.Boss && !SqueakLair(r)).OrderBy(_ => random.Next()))
+                foreach (SqueakPlanRoom r in byStage[s].Where(r => !goalRooms.Contains(r.Room) && !r.Midboss && !r.Boss && !r.Crossed && !SqueakLair(r)).OrderBy(_ => random.Next()))
                     if (SqueakSpot(r, false, false) is (int x, int y)) {
                         landings.Add((r.Room, x + 1, y + 1));
                         return (r.Room, x + 1, y + 1);
@@ -657,7 +668,7 @@ namespace KatAMRandomizer {
                     (int x, int y) back = Drop(to, at.X, at.Y);
                     if (back.y - at.Y > 2 || back.y < MirrorTop || back.y > to.Height - 3) continue;
                     if (Drawn(to).Any(c => Math.Abs(c.x - back.x) < MirrorSpacing && Math.Abs(c.y - back.y) <= 2)
-                        || to.Transports.Any(t => Math.Abs(t.x - back.x) < MirrorSpacing && Math.Abs(t.y - back.y) <= 2)) continue;
+                        || to.Transports.Any(t => Math.Abs(t.x - back.x) < MirrorSpacing && Math.Abs(t.y - back.y) <= 2) || NearGimmick(to, back.x, back.y)) continue;
                     doors[to.Index].Add(new Door(back.x, back.y, from.Room, door.X + 1, door.Y + 1, Facing(from, door.X + 1), Kind: DoorKind.Back));
                 }
             }
@@ -944,7 +955,9 @@ namespace KatAMRandomizer {
             }
             for (bool progress = true; progress;) {
                 progress = false;
-                foreach (SqueakPlanRoom r in rooms.Where(r => !reachable.Contains(r.Room) && !IsBossStage((r.Area, r.Stage)) && !(SqueakLair(r) && SqueakHideout(r)))) {
+                // (not a room a ride flies across: its DS arrival is where the star comes in, at its edge; thrown there, Kirby fell into
+                // its bottom rows, out of the camera's view, and died (the owner: "Some doors spawn out of view from the player"));
+                foreach (SqueakPlanRoom r in rooms.Where(r => !reachable.Contains(r.Room) && !r.Crossed && !IsBossStage((r.Area, r.Stage)) && !(SqueakLair(r) && SqueakHideout(r)))) {
                     // (where the DS lands him: its arrival, else the door a DS door from the stage lands him on: 7-2-8's, under 7-2-7's thin
                     // floor);
                     SqueakDoor arrival = r.Doors.FirstOrDefault(SqueakArrival)
