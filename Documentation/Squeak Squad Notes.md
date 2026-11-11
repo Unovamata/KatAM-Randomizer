@@ -1066,6 +1066,25 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
     colors of 8 rooms merge a few shades more or less. Checked in the GBA emulator (forced starts, not a playthrough): shots a few
     frames apart in Prism Plains 1's first room (the grass), 2's first, 7's second (the glow) and Vocal Volcano 4's fourth (the
     flames) in the USA ROM, and those three in the European and Japanese ones; the 42 animated rooms the room sweep starts in ran 720 frames each (live, Kirby stays).
+  - **Palette animations** (a room's `.mxi` `PL`; the owner: "Fix animated tiles in general"): `map/p_0f.pal` (2-1-4, 2-1-5,
+    2-5-4, 3-1-4, 3-1-5, 3-1-6, 4-4-5) and `map/p_2b.pal` (2-2-1), the crystal caves: `u16` its kind (1), `u16` how many rows,
+    then each row: `u8` the main tileset's palette it changes (0F_b.bin's 6, 7, 8; 2B_b.bin's 7, 8: the purple rims and the big
+    crystals pulse, the green crystals' sparkles turn), `u8` its frame count (15, 14, 12), a byte a frame (5 each), to an even
+    length, then 16 colors a frame. The boss rooms' `pa_NN.pal` are another kind (2, the light fades). Seven more (`p_1a`, `p_21`,
+    `p_22`, `p_23`, `p_24`, `p_26`, `p_2d`) no room lists and the DS's code never names (no `map/p_` string in it; the ROM names
+    only `p_0f` and `p_2b`): left out. In KatAM (`SqueakPaletteCycles()`, `ConvertSqueakForeground()`): each color a row changes is
+    a color of its own (`SqueakCycled()`: never merged, sorted after its palette's others), and each KatAM palette's run of one
+    row's colors one of KatAM's own palette cycles (ForegroundPalette +4, +8: `sub_08003108()` copies a frame's colors in for its
+    duration; at most 8 a room, these rooms need 3). Checked in the GBA emulator (a forced start in 2-1-4, room 0x432, USA): the BG
+    palette read every 10 frames, palettes 0, 2 and 4 change as the DS's rows' frames, and shots show the rims and crystals glow.
+  - **Currents** (the owner: "Currents in water don't have any effect on the player."): a cell's id `0x10`-`0x3C` (a step of 4),
+    in water or in air, pushes Kirby: (id - 0x10) / 4 its index, the index's low 2 bits the way (0 up, 1 right, 2 down, 3 left),
+    the rest the strength (0.5, 1 or 2 pixels a frame, added to his position; measured in the DS emulator, 1-1-1's cells rewritten
+    in the live grid). 14 rooms have them. In KatAM: a byte a cell (`SqueakCurrents()`: 0x80 | way << 2 | strength), and the
+    room's gimmick list entry 0xF3 (`squeak/gimmicks.c`'s `Currents()`) moves each Kirby in the room by it, never into a wall,
+    an up current taking away his fall. Checked in the GBA emulator (forced starts): 7-2-3's air current carries Kirby 2 pixels a
+    frame, 7-1-3's water current 2 pixels a frame and he can't swim against it. The logic check's `curcheck.py`: every door and
+    landing in the 14 rooms reached (a move against a strength-2 current not counted), none trapped.
   - **Tutorial signs**: the three in Prism Plains 2 (its first, third and fifth rooms: "Tap to pop!", "Find treasure and move on.",
     "Mix bubbles!") are front-layer blocks without collision, 16 by 11 cells; left out (`SqueakSigns()`: no other room has such a
     block), the owner: KatAM skips them.

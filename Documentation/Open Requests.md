@@ -5,9 +5,6 @@ finishes it says how it was checked). The design rules for doors, mirrors and hu
 [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
 
 ## 1. Squeak Squad rooms: tiles, blocks, looks
-- **Animated tiles, water currents included** (the owner: "Some tiles are not animated. Please ensure you port all the animated
-  tiles."; "Currents in water don't have any effect on the player."; "Fix animated tiles in general, that's where currents fit
-  in."): every tile animation Squeak Squad's rooms have, and the water currents pushing Kirby.
 - **Walk-once blocks** (the owner: "Blocks that you can only walk once and they get destroyed after do not work"; "Walk-once
   blocks, check first image": that image didn't come through, only one image arrived, the invincibility screenshot).
 - **Layering** (the owner: "Some interactible blocks have some layering issues, therefore they show behind the stage.").

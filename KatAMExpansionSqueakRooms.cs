@@ -29,11 +29,13 @@ namespace KatAMRandomizer {
             return data;
         }
 
-        // A room of a stage: its files (map, front and main tilesets, objects, far view);
-        internal sealed record SqueakRoomFiles(int Area, int Stage, int Index, string Map, string Front, string Main, string Objects, string View);
+        // A room of a stage: its files (map, front and main tilesets, objects, far view, palette animation);
+        internal sealed record SqueakRoomFiles(int Area, int Stage, int Index, string Map, string Front, string Main, string Objects, string View,
+                                               string Palette = null);
 
         /* SqueakStageRooms(); A stage's rooms in play order, from its .mxi: 12 bytes (+8 its area, stage and room count), then chunks
-         * (two letters, u16 length, value): MA starts a room (its map), FB and BB its tilesets, DE its objects, 3D its far view. Rooms
+         * (two letters, u16 length, value): MA starts a room (its map), FB and BB its tilesets, DE its objects, 3D its far view, PL its
+         * palette animation (SqueakPaletteCycles(): the crystal caves' map/p_0f.pal and p_2b.pal). Rooms
          * whose map isn't in the ROM are left out (Nature Notch's sixth stage lists two, 12 and 13, it never had); */
         static List<SqueakRoomFiles> SqueakStageRooms(byte[] rom, int area, int stage) {
             byte[] list = SqueakFile(rom, $"map/a{area}s{stage}.mxi");
@@ -43,7 +45,7 @@ namespace KatAMRandomizer {
             void Finish() {
                 if (room != null && room.ContainsKey("MA") && SqueakFileAnyCase(rom, room["MA"]) != null)
                     rooms.Add(new SqueakRoomFiles(area, stage, rooms.Count + 1, room["MA"], room.GetValueOrDefault("FB"), room.GetValueOrDefault("BB"),
-                                                  room.GetValueOrDefault("DE"), room.GetValueOrDefault("3D")));
+                                                  room.GetValueOrDefault("DE"), room.GetValueOrDefault("3D"), room.GetValueOrDefault("PL")));
             }
             for (int at = 12; at + 4 <= list.Length;) {
                 string tag = System.Text.Encoding.ASCII.GetString(list, at, 2);
@@ -166,17 +168,65 @@ namespace KatAMRandomizer {
                 Tiles = file[tiles..(tiles + size)];
                 TilePalettes = file[(tiles + size)..Math.Min(file.Length, tiles + size + size / 32)];
             }
-            // A tile's pixel (its 4-bit index, 0 transparent) and color;
+            // A tile's pixel (its 4-bit index, 0 transparent) and color (one the room's palette animation changes: SqueakCycled());
             public int Pixel(int tile, int x, int y) => Tiles[tile * 32 + y * 4 + x / 2] >> (x % 2 * 4) & 15;
-            public int Color(int tile, int index) => Colors[(tile < TilePalettes.Length ? TilePalettes[tile] & 15 : 0) * 16 + index] & 0x7FFF;
+            public int Color(int tile, int index) {
+                int slot = (tile < TilePalettes.Length ? TilePalettes[tile] & 15 : 0) * 16 + index;
+                return cycled != null && cycled[slot] != 0 ? cycled[slot] : Colors[slot] & 0x7FFF;
+            }
+            // The room's palette animation (SqueakPaletteCycles()): the colors it changes, each one of its own (SqueakCycled());
+            int[] cycled;
+            public List<SqueakPaletteCycle> Cycles { get; private set; }
+            public void Cycle(List<SqueakPaletteCycle> cycles) {
+                Cycles = cycles;
+                cycled = new int[256];
+                foreach (SqueakPaletteCycle cycle in cycles ?? new List<SqueakPaletteCycle>())
+                    for (int index = 1; index < 16; index++)
+                        if (cycle.Frames.Any(f => f[index] != cycle.Frames[0][index])) cycled[cycle.Row * 16 + index] = SqueakCycled(cycle.Row * 16 + index, cycle.Frames[0][index]);
+            }
         }
+
+        /* A palette animation's row (SqueakPaletteCycles()): the main tileset's palette it changes, how long each frame stays (the DS's
+         * frames, as KatAM's) and each frame's 16 colors; */
+        internal sealed record SqueakPaletteCycle(int Row, int[] Durations, ushort[][] Frames);
+
+        /* SqueakPaletteCycles(); A room's palette animation (its .mxi's PL, map/p_NN.pal; the boss rooms' pa_NN.pal light fades, another
+         * kind, aren't these): u16 its kind (1), u16 how many rows, then each row: u8 the main tileset's palette it changes, u8 its frame
+         * count, a byte a frame (how long it stays), to an even length, then each frame's 16 colors. The crystal caves (0F_b.bin's
+         * palettes 6-8, 2B_b.bin's 7-8) glow: their purple rims pulse and their sparkles turn; null for any other kind; */
+        static List<SqueakPaletteCycle> SqueakPaletteCycles(byte[] file) {
+            if (file == null || file.Length < 4 || ReadShort(file, 0) != 1) return null;
+            List<SqueakPaletteCycle> cycles = new List<SqueakPaletteCycle>();
+            int at = 4;
+            for (int row = 0; row < ReadShort(file, 2); row++) {
+                int palette = file[at], frames = file[at + 1];
+                int[] durations = Enumerable.Range(0, frames).Select(f => (int)file[at + 2 + f]).ToArray();
+                at += 2 + frames;
+                at += at & 1;
+                ushort[][] colors = Enumerable.Range(0, frames).Select(f => Enumerable.Range(0, 16).Select(i => (ushort)(ReadShort(file, at + (f * 16 + i) * 2) & 0x7FFF)).ToArray()).ToArray();
+                at += frames * 32;
+                cycles.Add(new SqueakPaletteCycle(palette, durations, colors));
+            }
+            return cycles;
+        }
+
+        /* SqueakCycled(); A color the room's palette animation changes, as a color of the converted pictures: its own (never merged with
+         * another), its main tileset palette's slot above the color bits (so a KatAM palette lists a row's cycled colors together, after
+         * its others), its first frame's color in the color bits (what SqueakColorDistance() and the palettes read); */
+        const int SqueakCycledBit = 1 << 24;
+        static int SqueakCycled(int slot, int color) => SqueakCycledBit | slot << 15 | color & 0x7FFF;
 
         /* A converted foreground: KatAM's tiles (4 bits a pixel, tile 0 empty), its 6 palettes, its tilemap (a row of 8-pixel tiles at
          * a time), how far it was reduced (colors merged, tiles merged to fit), and the 4 tilemap entries (top left, top right, bottom
          * left, bottom right) of each block asked for drawn without its front layer (a star block's cell once it's broken: the block
          * is the front layer's; a bomb chain's without its main terrain too); */
         internal sealed record SqueakForeground(byte[] Tiles, ushort[] Palettes, ushort[] Tilemap, int Columns, int Rows, int MergedColors, int MergedTiles,
-                                                ushort[][] Bare = null, List<SqueakTileAnimation> Animations = null);
+                                                ushort[][] Bare = null, List<SqueakTileAnimation> Animations = null, List<SqueakColorCycle> Cycles = null);
+
+        // A converted palette animation (KatAM's ForegroundPalette cycles): Count colors from FirstColor on, each frame's and how long it stays;
+        internal sealed record SqueakColorCycle(int FirstColor, int Count, int[] Durations, ushort[][] Frames);
+        // (KatAM's rooms keep at most 8: LevelInfo's unk63C[8]);
+        const int SqueakMaxColorCycles = 8;
 
         // A converted animation: its tiles (FirstTile on, Tiles of them, frame 0's in the foreground's tiles), each frame's tiles (4 bits
         // a pixel) and duration;
@@ -354,7 +404,8 @@ namespace KatAMRandomizer {
             List<HashSet<int>> palettes;
             int mergedColors = 0;
             while ((palettes = SqueakPackPalettes(Sets(), ForegroundPalettes)) == null) {
-                List<int> live = colorUses.Keys.Where(c => merged[c] == c).ToList();
+                // (a color the palette animation changes is never merged: SqueakCycled());
+                List<int> live = colorUses.Keys.Where(c => merged[c] == c && c < SqueakCycledBit).ToList();
                 (int a, int b, int d) closest = (-1, -1, int.MaxValue);
                 for (int i = 0; i < live.Count; i++)
                     for (int j = i + 1; j < live.Count; j++) {
@@ -372,7 +423,21 @@ namespace KatAMRandomizer {
             ushort[] paletteColors = new ushort[ForegroundPalettes * 16];
             List<List<int>> paletteLists = palettes.Select(p => p.OrderBy(c => c).ToList()).ToList();
             for (int p = 0; p < paletteLists.Count; p++)
-                for (int c = 0; c < paletteLists[p].Count; c++) paletteColors[p * 16 + 1 + c] = (ushort)paletteLists[p][c];
+                for (int c = 0; c < paletteLists[p].Count; c++) paletteColors[p * 16 + 1 + c] = (ushort)(paletteLists[p][c] & 0x7FFF);
+            /* The palette animation (main.Cycles): in each KatAM palette, each DS row's cycled colors (together, the last: SqueakCycled())
+             * one KatAM cycle, its frames the DS row's colors at those slots; */
+            List<SqueakColorCycle> colorCycles = new List<SqueakColorCycle>();
+            for (int p = 0; p < paletteLists.Count && main?.Cycles != null; p++)
+                foreach (IGrouping<int, int> row in paletteLists[p].Select((c, i) => (c, i)).Where(e => e.c >= SqueakCycledBit)
+                                                                   .GroupBy(e => (e.c >> 15 & 0xFF) >> 4, e => e.i)) {
+                    SqueakPaletteCycle cycle = main.Cycles.First(k => k.Row == row.Key);
+                    int[] at = row.ToArray();
+                    int[] indexes = at.Select(i => paletteLists[p][i] >> 15 & 15).ToArray();
+                    if (at.Last() - at[0] != at.Length - 1) throw new InvalidOperationException("A Squeak Squad room's cycled colors aren't together in a palette.");
+                    colorCycles.Add(new SqueakColorCycle(p * 16 + 1 + at[0], at.Length, cycle.Durations,
+                                                         cycle.Frames.Select(f => indexes.Select(i => f[i]).ToArray()).ToArray()));
+                }
+            if (colorCycles.Count > SqueakMaxColorCycles) throw new InvalidOperationException("A Squeak Squad room's palette animation needs more cycles than KatAM keeps.");
             (int palette, byte[] indexes) Indexed(int[] pixels, IEnumerable<int> all = null) {
                 HashSet<int> colors = (all ?? pixels).Where(c => c >= 0).Select(Final).ToHashSet();
                 int palette = Math.Max(0, palettes.FindIndex(p => colors.IsSubsetOf(p)));
@@ -494,7 +559,7 @@ namespace KatAMRandomizer {
             }
             ushort[] tilemap = cellPicture.Select((p, c) => p >= 0 ? Entry(p) : (ushort)(kept.Count + slotIndex[cellSlot[c]] | slotPalette[slotIndex[cellSlot[c]]] << 12)).ToArray();
             ushort[][] bareEntries = Enumerable.Range(0, bare.Count).Select(b => Enumerable.Range(0, 4).Select(q => Entry(barePicture[b * 4 + q])).ToArray()).ToArray();
-            return new SqueakForeground(tileData, paletteColors, tilemap, columns, rows, mergedColors, mergedTiles, bareEntries, tileAnimations);
+            return new SqueakForeground(tileData, paletteColors, tilemap, columns, rows, mergedColors, mergedTiles, bareEntries, tileAnimations, colorCycles);
         }
 
         /* SqueakFarViewPicture(); A far view (map/d_viw_NN.nsbtx: a TEX0 block, one 256-color texture, 512 or 256 pixels wide, 256 tall,
@@ -949,13 +1014,32 @@ namespace KatAMRandomizer {
             return (front & 0xC000) != 0 || main == 0 ? front : main;
         }
 
+        /* SqueakCurrents(); A room's currents (the collision word's ids 0x10-0x3C on air or water, see the notes): a byte a cell, 0 none,
+         * else 0x80 | its way << 2 | its strength (the id less 0x10, over 4: its low 2 bits the way, 0 up, 1 right, 2 down, 3 left, the
+         * rest the strength, 0-2: 0.5, 1 and 2 pixels a frame, measured in the DS emulator, 1-1-1's cells rewritten); squeak/gimmicks.c's
+         * Currents() moves the Kirbys in them (the owner: "Currents in water don't have any effect on the player."); null where none; */
+        static byte[] SqueakCurrents(SqueakMap map) {
+            byte[] grid = new byte[map.Width * map.Height];
+            bool any = false;
+            for (int y = 0; y < map.Height; y++)
+                for (int x = 0; x < map.Width; x++) {
+                    uint word = SqueakCellWord(map, x, y);
+                    int kind = (int)(word >> 14 & 3), id = (int)(word >> 16 & 0xFF), block = (int)(word >> 24 & 7);
+                    if (kind != 0 || block != 0 || id < 0x10 || id > 0x3C || (id & 3) != 0) continue;
+                    int index = (id - 0x10) / 4;
+                    grid[y * map.Width + x] = (byte)(0x80 | (index & 3) << 2 | index >> 2);
+                    any = true;
+                }
+            return any ? grid : null;
+        }
+
         /* SqueakCollision(); KatAM's collision for a Squeak Squad cell (see the notes' collision word): its kind (bits 14-15: air, solid,
          * thin, slope), its flags (bits 8-13: 0x100 a ladder, on a thin floor its top; 0x200 and 0x300 thin floors, both dropped
          * through), its block (bits 24-26: 4 a star block, 5 a big one: breakable, KatAMStarBlock, what they leave the main layer's
          * cell; 2 an electric zapper: spikes), the ids on air (0x40-0x4C, without the rope's 0x38 above them: spikes; doors' 0x80 and
          * up: air, the doors are objects) and its liquid (bits 30-31, on air: 1 water, 2 lava, which hurts as spikes do; with block 2,
-         * fire jets: air). Ropes and chains (top byte 0x38, ids 0x40-0x46) are climbed as ladders. Currents (ids 0x10-0x3C) aren't
-         * moved yet: still air or water; */
+         * fire jets: air). Ropes and chains (top byte 0x38, ids 0x40-0x46) are climbed as ladders. Currents (ids 0x10-0x3C) stay air or
+         * water here: SqueakCurrents() keeps their ways and strengths; */
         static byte SqueakCollision(uint word) {
             int kind = (int)(word >> 14 & 3), flags = (int)(word >> 8 & 0x3F) << 8, block = (int)(word >> 24 & 7), id = (int)(word >> 16 & 0xFF);
             int liquid = (int)(word >> 30), shape = (int)(word & 0xFF);
@@ -1680,7 +1764,7 @@ namespace KatAMRandomizer {
          * (its first 4 u16s: x0, y0, x1, y1) have their y in the DS's world, up from the room's bottom: here from its top (`height`, the
          * room's in pixels, less them, swapped), as the entries' spots are; */
         static byte[] SqueakGimmickList(List<SqueakGimmick> gimmicks, IReadOnlySet<(int x, int y)> chains, bool arena, int height, SqueakChase chase = null,
-                                        IReadOnlyList<(int x, int y)> lairExits = null) {
+                                        IReadOnlyList<(int x, int y)> lairExits = null, int currents = 0) {
             List<byte> list = new List<byte> { 0, 0, 0, 0 };
             for (int i = 0; i < gimmicks.Count && i < SqueakMailGimmicks; i++) {
                 SqueakGimmick g = gimmicks[i];
@@ -1715,6 +1799,15 @@ namespace KatAMRandomizer {
                 list.AddRange(entry);
                 list[0]++;
             }
+            // (the room's currents, SqueakCurrentsEntry: its first 4 bytes the address of their grid, SqueakCurrents());
+            if (currents != 0 && next < SqueakMailGimmicks && list[0] != 0xFF) {
+                byte[] entry = new byte[24];
+                entry[0] = SqueakCurrentsEntry;
+                entry[1] = (byte)next++;
+                WriteInt(entry, 6, currents);
+                list.AddRange(entry);
+                list[0]++;
+            }
             return list[0] == 0 && list[1] == 0 ? null : list.ToArray();
         }
 
@@ -1728,6 +1821,8 @@ namespace KatAMRandomizer {
         const byte SqueakChaseWall = 0xF0, SqueakChaseSpawnEntry = 0xF1;
         // (a Squeak Lair's way out: squeak/gimmicks.c's GIMMICK_LAIR_EXIT, its door opened once no mini-boss is left in the room);
         const byte SqueakLairExitEntry = 0xF2;
+        // (a room's currents: squeak/gimmicks.c's GIMMICK_CURRENTS, its grid's address in its first 4 bytes, SqueakCurrents());
+        const byte SqueakCurrentsEntry = 0xF3;
         internal sealed record SqueakChase(byte Key, List<(int x, int y)> Walls, List<(int x, int y, byte character, byte variant)> Spawns);
         static void AddChaseEntries(List<byte> list, SqueakChase chase, int firstIndex) {
             int index = firstIndex;
@@ -1945,8 +2040,29 @@ namespace KatAMRandomizer {
             WriteShorts(rom, info + 12, foreground.Animations.Count, room);
             int colors = Allocate(ref cursor, 0xC0, 4), palette = Allocate(ref cursor, 12, 4);
             for (int c = 0; c < 96; c++) WriteShort(rom, colors + c * 2, foreground.Palettes[c]);
-            WriteInts(rom, palette, colors + 0x08000000, paletteCycles);
-            WriteShorts(rom, palette + 8, 0, room);
+            /* (its palette animation, KatAM's cycles (sub_08003108()): a pointer a cycle, each {its frames, u16 frame count, first color,
+             * color count}, each frame {its colors, u16 how long it stays}); */
+            List<SqueakColorCycle> cycles = foreground.Cycles ?? new List<SqueakColorCycle>();
+            int cyclesAt = paletteCycles;
+            if (cycles.Count > 0) {
+                cyclesAt = Allocate(ref cursor, cycles.Count * 4, 4) + 0x08000000;
+                for (int k = 0; k < cycles.Count; k++) {
+                    SqueakColorCycle cycle = cycles[k];
+                    int frameList = Allocate(ref cursor, cycle.Frames.Length * 4, 4), entry = Allocate(ref cursor, 12, 4);
+                    for (int f = 0; f < cycle.Frames.Length; f++) {
+                        int frameColors = Allocate(ref cursor, cycle.Count * 2, 4), frame = Allocate(ref cursor, 8, 4);
+                        for (int c = 0; c < cycle.Count; c++) WriteShort(rom, frameColors + c * 2, cycle.Frames[f][c]);
+                        WriteInt(rom, frame, frameColors + 0x08000000);
+                        WriteShorts(rom, frame + 4, cycle.Durations[f], 0);
+                        WriteInt(rom, frameList + f * 4, frame + 0x08000000);
+                    }
+                    WriteInt(rom, entry, frameList + 0x08000000);
+                    WriteShorts(rom, entry + 4, cycle.Frames.Length, cycle.FirstColor, cycle.Count, 0);
+                    WriteInt(rom, cyclesAt - 0x08000000 + k * 4, entry + 0x08000000);
+                }
+            }
+            WriteInts(rom, palette, colors + 0x08000000, cyclesAt);
+            WriteShorts(rom, palette + 8, cycles.Count, room);
             byte[] tilemap = new byte[foreground.Tilemap.Length * 2];
             for (int t = 0; t < foreground.Tilemap.Length; t++) WriteShort(tilemap, t * 2, foreground.Tilemap[t]);
             int tilemapAt = AllocateShared(rom, CompressLZ77(tilemap), ref cursor), tilemapEntry = Allocate(ref cursor, 0x20, 4);
@@ -1962,10 +2078,13 @@ namespace KatAMRandomizer {
         // (the chases made in the Squeak Squad rooms: rooms of a chase's stage, walls, Squeaks; for the checks);
         public static (int rooms, int walls, int spawns) SqueakChaseCounts => (squeakChaseRooms, squeakChaseWalls, squeakChaseSpawns);
         static int squeakChaseRooms, squeakChaseWalls, squeakChaseSpawns;
+        // (the rooms with currents written, SqueakCurrents(): AddSqueakRooms() counts them afresh);
+        public static int SqueakCurrentRooms => squeakCurrentRooms;
+        static int squeakCurrentRooms;
         static string AddSqueakRooms(byte[] rom, byte[] squeak, KatAMExpansionCode.Version version, ref int cursor) {
             IReadOnlyDictionary<string, int> symbols = version.RomSymbols;
             int here = cursor;      // (the cursor, which the local functions can't take by reference);
-            squeakChaseRooms = squeakChaseWalls = squeakChaseSpawns = squeakDoorMirrorsLeft = 0;
+            squeakChaseRooms = squeakChaseWalls = squeakChaseSpawns = squeakDoorMirrorsLeft = squeakCurrentRooms = 0;
             int roomProps = symbols["gRoomProps"], roomInfos = symbols["gUnk_08D6CD0C"], arrivals = symbols["gUnk_0893CB44"];
             squeakRooms = new List<SqueakPortedRoom>();
             squeakLairMinibosses.Clear();
@@ -2174,6 +2293,7 @@ namespace KatAMRandomizer {
                             if (map.Width * map.Height <= BigRoomBlocks) {
                                 SqueakTileset front = f.Front == null || SqueakFileAnyCase(squeak, f.Front) is not byte[] frontFile ? null : new SqueakTileset(frontFile);
                                 SqueakTileset main = f.Main == null || SqueakFileAnyCase(squeak, f.Main) is not byte[] mainFile ? null : new SqueakTileset(mainFile);
+                                main?.Cycle(f.Palette == null ? null : SqueakPaletteCycles(SqueakFileAnyCase(squeak, f.Palette)));
                                 var cells = SqueakRoomCollision(map);
                                 SqueakMap drawn = SqueakNests(map, squeakLairs.Where(l => l.FromRoom == room).Select(l => (l.FromX, l.FromY)), squeakLairs.Any(l => l.Room == room));
                                 foregrounds[i] = ConvertSqueakForeground(drawn, front, main, ForegroundTiles, cells.blocks.Concat(SqueakRopeCells(map)).ToList(), SqueakSigns(map),
@@ -2205,6 +2325,7 @@ namespace KatAMRandomizer {
                     int song = SqueakRoomSong(map.Data, f.Area, ref lastMusic);
                     SqueakTileset front = f.Front == null || SqueakFileAnyCase(squeak, f.Front) is not byte[] frontFile ? null : new SqueakTileset(frontFile);
                     SqueakTileset main = f.Main == null || SqueakFileAnyCase(squeak, f.Main) is not byte[] mainFile ? null : new SqueakTileset(mainFile);
+                    main?.Cycle(f.Palette == null ? null : SqueakPaletteCycles(SqueakFileAnyCase(squeak, f.Palette)));
                     int width = map.Width, height = map.Height;
                     if (width * height > BigRoomBlocks) return $"Squeak Squad's room {f.Area}-{f.Stage}-{f.Index} is bigger than KatAM can hold.";
 
@@ -2379,8 +2500,16 @@ namespace KatAMRandomizer {
                         squeakChaseWalls += walls.Count;
                         squeakChaseSpawns += spawns.Count;
                     }
+                    // (its currents' grid, for the room's task: SqueakCurrents());
+                    int currentsAt = 0;
+                    if (SqueakCurrents(map) is byte[] currentGrid) {
+                        currentsAt = Allocate(ref here, currentGrid.Length, 4);
+                        currentGrid.CopyTo(rom, currentsAt);
+                        squeakCurrentRooms++;
+                    }
                     if (SqueakGimmickList(gimmicks, chains, arenas && (fightMidboss || fightBoss), map.Height * 16, chase,
-                                          planned[i].Where(d => d.Shut).Select(d => (d.X, d.Y)).ToList()) is byte[] gimmickList) {
+                                          planned[i].Where(d => d.Shut).Select(d => (d.X, d.Y)).ToList(),
+                                          currentsAt != 0 ? currentsAt + 0x08000000 : 0) is byte[] gimmickList) {
                         gimmickLists[i] = Allocate(ref here, gimmickList.Length, 4);
                         gimmickList.CopyTo(rom, gimmickLists[i]);
                     }
