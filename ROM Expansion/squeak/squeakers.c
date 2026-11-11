@@ -251,12 +251,27 @@ static bool32 ChestClosed(struct SqueakObject *s, struct Object *obj) {
     return IsChest(obj) && obj->base.roomId == s->obj.base.roomId && !(obj->base.flags & 0x1000) && !(obj->unk83 & 1);
 }
 
+/* NextObject(); The next live object after `*t` (from the task list's head, gTasks[0]), along the list's links as KatAM runs them
+ * (PlatformCarryObjects() too), not the 128 slots: the Squeaks look for a chest every frame (SqueakNearestChest(),
+ * SqueakTouchedChest()), and each of a hideout's six walking all 128 took a sixth of the frame and halved the game's speed there
+ * (the owner: "an unbearable amount of lag" in the Squeak hideouts); `*n` counts the steps (a broken link can't loop); */
+static struct Object *NextObject(struct Task **t, u8 *n) {
+    while (*n < MAX_TASK_NUM && (*t)->next) {
+        *t = (struct Task *)(IWRAM_START + (*t)->next);
+        (*n)++;
+        if ((*t)->main == ObjectMain) return TaskGetStructPtr(*t);
+    }
+    return NULL;
+}
+
 /* SqueakNearestChest(); 0x020CF348: the nearest closed chest no Squeak holds; `any`: there's a closed chest in the room at all (the
  * Squeaks' chest thefts: Squeakers, Spinni); */
 struct Chest *SqueakNearestChest(struct SqueakObject *s, bool8 *any) {
     struct Chest *nearest = NULL;
     u32 best = 0xFFFFFFFF;
-    u8 i;
+    struct Task *t;
+    struct Object *obj;
+    u8 n;
 
     *any = FALSE;
     // (in a chase, no chest to take: it goes for Kirby, as the DS's Squeaks for him carrying the stage's chest; KatAM's chests open);
@@ -264,14 +279,10 @@ struct Chest *SqueakNearestChest(struct SqueakObject *s, bool8 *any) {
         *any = TRUE;
         return NULL;
     }
-    for (i = 0; i < MAX_TASK_NUM; i++) {
-        struct Task *t = &gTasks[i];
-        struct Object *obj;
+    for (t = &gTasks[0], n = 0; (obj = NextObject(&t, &n)) != NULL;) {
         s32 dx, dy;
         u32 d;
 
-        if (t->main != ObjectMain) continue;
-        obj = TaskGetStructPtr(t);
         if (!ChestClosed(s, obj)) continue;
         *any = TRUE;
         if (((struct Chest *)obj)->unkDC) continue;
@@ -318,16 +329,13 @@ static void HitBox(struct ObjectBase *b, s32 *r) {
 // SqueakTouchedChest(); A closed chest no one holds touching its box (a chest's touch, kind 0x1001);
 struct Chest *SqueakTouchedChest(struct SqueakObject *s) {
     s32 r[4];
-    u8 i;
+    struct Task *t;
+    struct Object *obj;
+    u8 n;
 
     if (s->chase) return NULL;
     HitBox(&s->obj.base, r);
-    for (i = 0; i < MAX_TASK_NUM; i++) {
-        struct Task *t = &gTasks[i];
-        struct Object *obj;
-
-        if (t->main != ObjectMain) continue;
-        obj = TaskGetStructPtr(t);
+    for (t = &gTasks[0], n = 0; (obj = NextObject(&t, &n)) != NULL;) {
         if (!ChestClosed(s, obj) || ((struct Chest *)obj)->unkDC) continue;
         if (r[2] > obj->base.x + obj->base.unk3C * 0x100 && r[0] < obj->base.x + obj->base.unk3E * 0x100
             && r[3] > obj->base.y + obj->base.unk3D * 0x100 && r[1] < obj->base.y + obj->base.unk3F * 0x100)

@@ -456,6 +456,32 @@ static void Relay(struct SqueakLogic *l, const struct SqueakGimmickEntry *e) {
     if (!running) l->relayKind[e->index] = 0;
 }
 
+/* MinibossFighting(); Whether a mini-boss (types 0x38-0x52) is alive in the room with a Kirby inside its fight's area (its template's
+ * +0x1A-0x21, which KatAM's mini-bosses wait for): the random relays rain their rocks only then (2-5-5's and 5-3-4's, Big Metalun's
+ * rooms: from the room's first frame they fell before the fight, and on after it; the owner, "Big Metalun spawns infinite rocks even
+ * before the battle starts"); */
+static bool32 MinibossFighting(u16 room) {
+    struct Task *t = &gTasks[0];
+    u8 n, i;
+
+    for (n = 0; n < MAX_TASK_NUM && t->next; n++) {
+        struct Object *o;
+        const struct ObjectTemplate *a;
+
+        t = (struct Task *)(IWRAM_START + t->next);
+        o = TaskGetStructPtr(t);
+        if (o->base.header.kind != 1 || !ObjType38To52(o) || o->base.roomId != room || o->base.flags & 0x1000 || o->unk80 <= 0
+            || (a = o->objTemplate) == NULL) continue;
+        for (i = 0; i < gNumKirbys; i++) {
+            s32 x = gKirbys[i].base.x >> 8, y = gKirbys[i].base.y >> 8;
+
+            if (gKirbys[i].base.roomId == room && x >= a->x + a->unk1A && x < a->x + a->unk1A + a->unk1E && y >= a->y + a->unk1C
+                && y < a->y + a->unk1C + a->unk20) return TRUE;
+        }
+    }
+    return FALSE;
+}
+
 /* RandomRelay(); A random relay (0x17: ctor 0x02224384, vtable 0x02229948; its parameter's u16s the least and most frames it waits,
  * then up to 8 targets' indices, 0xFF the end): it waits a random number of frames between the two (state 1, 0x022241A4), sends its
  * targets its message, and waits again; a message (kinds 0-2, 4 kept as 2: 0x022242CC) sets the kind it sends. 2-5-5's and 5-3-4's
@@ -466,6 +492,11 @@ static void RandomRelay(struct SqueakLogic *l, const struct SqueakGimmickEntry *
     u8 kind = TakeMail(l->slot, e->index), t;
 
     if (kind != 0 && kind - 1 <= MESSAGE_EVENT) l->relayKind[e->index] = (kind - 1 == MESSAGE_EVENT ? MESSAGE_AREA : kind - 1) + 1;
+    // (not before the room's mini-boss fight, nor after it: MinibossFighting(); its wait starts over then);
+    if (!MinibossFighting(l->room)) {
+        *wait = 0;
+        return;
+    }
     if (*wait > 1) {
         --*wait;
         return;

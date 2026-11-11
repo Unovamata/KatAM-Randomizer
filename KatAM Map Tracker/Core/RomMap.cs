@@ -498,6 +498,7 @@ namespace KatAMMapTracker {
             }
         }
 
+        const int OffStageX = 0x7FF0;      // (KatAMExpansion.OffStageX);
         // ReadObjects(); Reads the objects of a room, until the list ends (no more "01 24" object headers);
         void ReadObjects(RoomInfo room) {
             int header = ReadPointer(ObjectListTable + room.ObjectIndex * 4), templates = header < 0 ? -1 : ReadPointer(header);
@@ -508,6 +509,9 @@ namespace KatAMMapTracker {
                 if (Rom[address] != 0x01 || Rom[address + 1] != 0x24) break;
 
                 int id = Rom[address + 12], x = Read16(address + 6), y = Read16(address + 8);
+                // (one put off the stage, where KatAM never spawns it: a Squeak Lair's Squeakers when its fight isn't its Squeak, the
+                // randomizer's KatAMMinibosses);
+                if (x >= OffStageX && x < 0x8000) continue;
                 // (a chest a barrel or a grass tuft holds: shown as the chest, where the holder stands; its fields at the chest's places,
                 // its item at +0x15);
                 if (id == SqueakHolderType && Rom[address + 0x11] is SqueakBarrelObject or SqueakGrassObject && Rom[address + 0x14] is 0x80 or 0x81) {

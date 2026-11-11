@@ -1131,6 +1131,15 @@ NiDL's natives were); one it lacks is ported onto KatAM's own object (`ROM Expan
   blocks, the background `d_viw_00`, its chests treasure 0, as 1-8 and 1-9. Left out of the port (`SqueakTestStages`).
 - **Sky rooms** (3-4-5, 8-3-6, 8-3-7): a warp star flies across them and lands in the room after; the level planner counts the room
   the ride lands in (`SqueakRides()`), never the one it crosses.
+- **Searching for chests**: the Squeaks look for the nearest chest and the one they touched every frame. Walking all 128 task slots
+  for it was 17% of a lair's frame; they now follow the live task list (`NextObject()` in `squeakers.c`), as the game's own loop.
+- **Lairs**: the fight's area is the whole room (`SqueakArena()`), not one screen over the landing floor. A lair whose fight the
+  randomizer changed has its Squeakers' x set to 0x7FF0 (`OffStageX`): the game spawns only templates near the camera, so they
+  never appear, and the Map Viewer skips templates there.
+- **Big Metalun's rock droppers** (gimmick 8, fed by the random relay 0x17) rain only while a mini-boss is alive in the room with a
+  Kirby inside its template's fight area (`MinibossFighting()` in `gimmicks.c`).
+- **Metalun on slopes**: its walk moves in lurches; one down a slope leaves it a few pixels above the ground. With floor under its
+  feet it walks on (and its charge only drifts off a ledge), so it keeps its walk's pace downhill.
 
 ## Stage objects
 

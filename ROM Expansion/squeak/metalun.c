@@ -192,10 +192,19 @@ static bool32 Body(struct SqueakObject *s) {
         }
         if (s->padDir < 0) SqueakTurnAround(s);
         SqueakMove(s);
+        // A lurch down a slope leaves it just above the ground: if there is floor under its feet, it keeps walking (and so keeps
+        // the walk's pace). It used to fall here, keeping the lurch's speed, so it slid down hills faster than it walks (the owner:
+        // "Metalun enemies get faster when going down a hill"). Off a ledge it still falls, as on the DS;
         if (!SqueakOnGround(s)) {
+            if (NidlIsFloor(&s->obj, s->obj.base.x, s->obj.base.y + 0x800)) {
+                s->vy -= GRAVITY;
+                STEP(s)++;
+                break;
+            }
             SqueakSetState(s, BODY_FALL_ENTRY);
             break;
         }
+        s->vy = 0;
         STEP(s)++;
         break;
     case BODY_JUMP_ENTRY:   // 0x020520FC;
@@ -262,7 +271,9 @@ static bool32 Body(struct SqueakObject *s) {
             return TRUE;
         }
         Gravity(s);
-        if (!SqueakOnGround(s)) s->vx = DRIFT_SPEED;
+        // It drifts only off a ledge: just above a slope after a lurch, it lands as on the flat (it used to drift 0.6 px a frame
+        // after each lurch, so it charged faster down a hill, as the walk above);
+        if (!SqueakOnGround(s) && !NidlIsFloor(&s->obj, s->obj.base.x, s->obj.base.y + 0x800)) s->vx = DRIFT_SPEED;
         SqueakMove(s);
         break;
     case BODY_STAND_UP:     // 0x02051738: landed and its animation over;

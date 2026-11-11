@@ -1379,5 +1379,24 @@ gold-pile rooms no lair uses, as before), every big switch pressed, none trapped
 - **Big star blocks**: one 2x2 block that breaks whole (0x401: one Sword hit broke all four cells).
 - **Lifts**: Kirby attacking on a lift stays on it (0x4EB, two Sword swings while it rose); chests on lifts ride them (0x427: the
   chest stays on the lift's top as it moves, shot). Not tested: opening a chest while riding.
-- **Still open**: walk-once blocks (none found in the DS data: which room?), water currents, the doors-and-mirrors rules, items,
-  hideouts, the final sequence, Dark Nebula, the hubs and the Map Viewer items above.
+- **Hideout lag**: not the consumables' sparkle. Each Squeak searched all 128 task slots for chests twice a frame (17% of the frame
+  in 0x481), with 4 Squeakers plus the ones Spinni calls. The searches now walk only the live task list, and a lair brings 2
+  Squeakers instead of 4. Checked in 0x481 (Spinni and Squeakers): 156 game frames per 300 before, 300 of 300 now; over 900 frames of
+  the fight 279 to 292 per 300 (Spinni's calls).
+- **Squeak or mini-boss, never a boss**: a lair fight the randomizer drew as a Squeak Squad boss ("Include Bosses") is drawn again
+  from the mini-bosses (or left as the lair's Squeak if none fit). A lair whose fight is no longer its Squeak has its Squeakers moved
+  off the stage (never spawned; the Map Viewer skips them). Checked on a randomized build (seed 77, bosses included): 36 lair fights,
+  none a boss; 34 lairs with a new fight lost their Squeakers, the 2 still with their Squeak kept them. In the emulator: 0x435
+  (Batafire) has no Squeakers; 0x481 (Spinni) has its Squeakers.
+- **Lair camera**: the fight area was one GBA screen above the landing floor, so a tall hideout lost its top 80 px. Lairs now use the
+  whole room. Checked in 0x481: the camera scrolls to the top with Kirby up and back down with him on the floor.
+- **Big Metalun's rocks**: the rock droppers' random relay ran from the room's first frame. It now runs only while a mini-boss is
+  alive in the room and a Kirby is inside its fight area. Checked in 0x456: Kirby outside the area, no rocks for 320 frames; inside,
+  a rock about every 90 frames. Not tested: after the fight (no mini-boss alive, so no rocks).
+- **Metalun downhill**: after a lurch down a slope it was left just above the ground, fell, and kept the lurch's speed, so it slid
+  down hills. It now walks on when there is floor under its feet (and its charge drifts only off ledges). Checked in 0x4C8, Metalun
+  walking over the hill: down the far side the old build slid 50 px in 72 frames; the new one keeps its walk's rhythm (an 8-10 px
+  lurch about every 25 frames, as on the flat and uphill). Not tested: the charge down a slope.
+- **Still open**: walk-once blocks (none found in the DS data: which room?), water currents, the mini-boss attack stuck after a
+  cancel (which mini-boss and attack?), the doors-and-mirrors rules, items, the final sequence, Dark Nebula, the hubs and the Map
+  Viewer items above.

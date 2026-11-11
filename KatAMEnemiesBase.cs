@@ -347,7 +347,7 @@ namespace KatAMRandomizer {
 
         /* PlaceSqueak(); A Squeak Squad character where the entity is: its behavior byte, speed 0, one of its variants (the template's
          * unk12: Properties[1]; an entity's all-zero properties are read as one byte, so they're made whole again first); */
-        static void PlaceSqueak(Entity entity, (byte behavior, byte[] variants) character) {
+        protected static void PlaceSqueak(Entity entity, (byte behavior, byte[] variants) character) {
             entity.Behavior = character.behavior;
             entity.Speed = 0;
             if(entity.Properties.Length < 19) {
@@ -491,6 +491,8 @@ namespace KatAMRandomizer {
 
             RandomizeEnemies(this);
 
+            LairFightsAfterRandomizing();
+
             // A lair's mini-boss turned one of KatAM's keeps a facing (KatAM's take 0 or 1), not the Squeak's behavior byte;
             foreach(Entity entity in lairEntities) {
                 if(entity.ID < 0x38 || entity.ID > 0x3F || entity.Behavior <= 1) continue;
@@ -526,6 +528,45 @@ namespace KatAMRandomizer {
                 entity.AreAllPropertiesZeroes();
                 entities.Add(entity);
                 lairEntities.Add(entity);
+            }
+        }
+
+        /* LairFightsAfterRandomizing(); A Squeak Lair's fight is a mini-boss's: one drawn as one of Squeak Squad's bosses ("Include
+         * Bosses") is drawn again from the ROM Expansion's mini-bosses (NiDL's, Squeak Squad's mid-bosses), else it's the lair's Squeak
+         * again (the owner: "Some Squeak Lair rooms place bosses instead of minibosses in rooms"); and a lair whose fight isn't its
+         * Squeak any more has no Squeakers round it: they're put off the stage, where KatAM never spawns them
+         * (KatAMExpansion.SqueakLairEscorts; the owner: "Squeak hideouts have the base Squeak enemy and a miniboss [...] It's either
+         * one or the other"); */
+        void LairFightsAfterRandomizing() {
+            HashSet<int> bosses = KatAMExpansion.SqueakBossList.Select(boss => boss.index).ToHashSet();
+            bool IsSqueakBoss(byte id, byte behavior) => KatAMExpansion.MinibossIDs.Contains(id) && KatAMExpansion.IsSqueakMidbossBehavior(behavior)
+                                                         && bosses.Contains(behavior & 0x7F);
+
+            foreach(Entity entity in lairEntities) {
+                if(IsSqueakBoss(entity.ID, entity.Behavior)) {
+                    List<Action> picks = new List<Action>();
+
+                    if(isAddingNightmareMinibosses)
+                        foreach((byte type, List<List<byte>> groups) in nightmareMinibossGroups)
+                            foreach(List<byte> behaviors in groups.Where(group => group.Count > 0))
+                                picks.Add(() => { entity.ID = type; entity.Behavior = behaviors[Utils.GetRandomRange(0, behaviors.Count)]; entity.Speed = 0; });
+                    foreach((byte type, List<(byte behavior, byte[] variants)> groups) in squeakMinibossGroups)
+                        foreach((byte behavior, byte[] variants) group in groups.Where(group => !IsSqueakBoss(type, group.behavior)))
+                            picks.Add(() => { entity.ID = type; PlaceSqueak(entity, group); });
+                    if(picks.Count > 0) {
+                        picks[Utils.GetRandomRange(0, picks.Count)]();
+                    } else {
+                        entity.ID = entity.Definition[12];
+                        entity.Behavior = entity.Definition[14];
+                        entity.Speed = entity.Definition[16];
+                        entity.Properties = entity.Definition.Skip(17).Take(entity.Properties.Length).ToArray();
+                    }
+                    Utils.WriteObjectToROM(entity);
+                }
+
+                if(entity.ID == entity.Definition[12] && entity.Behavior == entity.Definition[14]) continue;
+                foreach((int room, int address) in KatAMExpansion.SqueakLairEscorts)
+                    if(room == entity.Room) Utils.WriteToROM(address + 6, BitConverter.GetBytes((short)KatAMExpansion.OffStageX));
             }
         }
 
