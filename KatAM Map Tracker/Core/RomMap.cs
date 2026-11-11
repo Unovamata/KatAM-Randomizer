@@ -66,6 +66,8 @@ namespace KatAMMapTracker {
          * NightmareLevel 7 + the world: 8-15, MapExpansion's clusters 20-27), its hub as the NiDL hub (the cluster 28); */
         public int SqueakWorld { get; init; } = -1;
         public bool IsSqueakHub { get; init; }
+        // Squeak Squad's final stage's rooms (8-4, its phases going on by themselves, ReadSqueakRooms()'s "PW"): the game's end's row;
+        public bool IsSqueakFinale { get; init; }
         // The Squeak Squad ability room (a copy of KatAM's, its door in the Squeak Squad hub): MapExpansion puts it beside the hub;
         public bool IsSqueakAbilityRoom { get; init; }
         // (the NiDL ability room: KatAM's ability room with the NiDL abilities' statues, through the NiDL hub's ability door);
@@ -393,11 +395,14 @@ namespace KatAMMapTracker {
                 // (a Squeak Squad room: its world a level of its own, after NiDL's 8; its hub; MapExpansion lays them out as NiDL's);
                 if (IsSqueakRoom(room)) {
                     int world = Rom[SqueakWorlds + room - SqueakFirst], stage = Rom[SqueakStages + room - SqueakFirst];
+                    // (the final stage: the one its phase warps are in);
+                    bool finale = PhaseWarps.Count > 0 && IsSqueakRoom(PhaseWarps[0].room) && world == Rom[SqueakWorlds + PhaseWarps[0].room - SqueakFirst]
+                                  && stage == Rom[SqueakStages + PhaseWarps[0].room - SqueakFirst];
                     if (world > 8 || room == SqueakHub || room == SqueakAbility) world = 0;
                     info = new RoomInfo {
                         Id = room, ShortIndex = shortIndex, TilemapIndex = tilemapIndex, CoverIndex = coverIndex, ObjectIndex = objectIndex,
                         Area = Read16(parameters), Width = width, Height = height, SqueakWorld = world == 0 ? -1 : world, IsSqueakHub = room == SqueakHub,
-                        IsSqueakAbilityRoom = room == SqueakAbility,
+                        IsSqueakAbilityRoom = room == SqueakAbility, IsSqueakFinale = finale && world != 0,
                         NightmareLevel = world == 0 ? -1 : 7 + world, NightmareStage = world == 0 ? -1 : stage, NightmareIndex = room - SqueakFirst,
                     };
                 }

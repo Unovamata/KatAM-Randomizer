@@ -21,15 +21,33 @@ namespace KatAMMapTracker {
      * • KatAM's rooms the map lines up under itself (the tutorial and the game's end: rooms no mirror links to Central Circle's
      *   map) go after the levels, so the map still ends with them; the Fountain of Dreams (the Power Orb's room, Nightmare's, its
      *   hub: the finale, its Amazing Mirror to KatAM's final boss) leads the game's end's row, as it's played (the owner's: the
-     *   rows are in the order the game goes); */
+     *   rows are in the order the game goes), Squeak Squad's final stage after it (its way in to the Dark Nebula hub: the owner's
+     *   "The squeak squad final boss sequence is not within this same line"), then KatAM's; */
     public static class MapExpansion {
         const int Grid = MapGraphics.TileSize;
         const int Step = 6 * Grid, MinGap = 3 * Grid, LevelMargin = 128, LongRoom = 60, RoomMargin = 72, Fit = 2 * Grid, TightGap = 4 * Grid;
-        public const int HubCluster = 19, SqueakHubCluster = 28;
+        public const int HubCluster = 19, SqueakHubCluster = 28, SqueakFinaleCluster = 29;
         // (the Squeak Squad worlds are levels 8-15, clusters 20-27, after the NiDL hub's: RoomInfo.SqueakWorld);
         public static int LevelCluster(int level) => level < 8 ? 11 + level : 12 + level;
         public static bool IsLevelCluster(int cluster) => cluster >= 11 && cluster < 19 || cluster >= 20 && cluster < 28;
         const int FinaleLevel = 7;
+
+        /* PlayOrder(); A stage's rooms in the order they're played: from its way in (the first room none of the others leads to), each
+         * the next its doors lead to; a room none of them leads to (a retry room) just before the room it leads to; */
+        static List<RoomInfo> PlayOrder(List<RoomInfo> rooms) {
+            Dictionary<int, RoomInfo> byId = rooms.ToDictionary(r => r.Id);
+            HashSet<int> entered = rooms.SelectMany(r => r.Doors.Where(d => d.Destination != r.Id).Select(d => d.Destination)).ToHashSet();
+            List<RoomInfo> order = new List<RoomInfo>();
+            for (RoomInfo room = rooms.OrderBy(r => r.Id).FirstOrDefault(r => !entered.Contains(r.Id)) ?? rooms.OrderBy(r => r.Id).FirstOrDefault();
+                 room != null && !order.Contains(room);
+                 room = room.Doors.Select(d => byId.GetValueOrDefault(d.Destination)).FirstOrDefault(r => r != null && !order.Contains(r)))
+                order.Add(room);
+            foreach (RoomInfo left in rooms.Where(r => !order.Contains(r)).OrderBy(r => r.Id)) {
+                int before = order.FindIndex(r => left.Doors.Any(d => d.Destination == r.Id));
+                order.Insert(before < 0 ? order.Count : before, left);
+            }
+            return order;
+        }
 
         // Place(); Adds the NiDL rooms of 'map' to 'layout' (KatAM's rooms, placed) and their clusters to 'clusters';
         public static void Place(RomMap map, Dictionary<int, RoomPlacement> layout, Dictionary<int, int> clusters, bool original = false) {
@@ -49,18 +67,20 @@ namespace KatAMMapTracker {
 
             /* KatAM's rooms lined up under its map (UnderKatAM(): not linked to Central Circle's map), the game's end's row last; the
              * finale's rooms (the Fountain of Dreams level) first in that row, as they're played (the Power Orb's room, Nightmare's,
-             * the hub), KatAM's after them, as far apart as they are (and their rooms clear of each other); */
+             * the hub), then Squeak Squad's final stage (in the order it's played: PlayOrder()), KatAM's after them, as far apart as
+             * they are (and their rooms clear of each other); */
             HashSet<int> under = UnderKatAM(map, layout);
             List<RoomInfo> finale = nightmare.Where(r => r.NightmareLevel == FinaleLevel).OrderBy(r => r.NightmareStage).ThenBy(r => r.NightmareIndex).ThenBy(r => r.Id).ToList();
-            bool finaleInRow = under.Count > 0 && finale.Count > 0;
+            List<RoomInfo> squeakFinale = PlayOrder(nightmare.Where(r => r.IsSqueakFinale).ToList());
+            bool finaleInRow = under.Count > 0 && finale.Count + squeakFinale.Count > 0;
             if (finaleInRow) {
                 double endY = under.Max(r => layout[r].CenterY);
                 List<int> endRow = under.Where(r => Math.Abs(layout[r].CenterY - endY) < 1).OrderBy(r => layout[r].CenterX).ToList();
                 List<double> gaps = endRow.Zip(endRow.Skip(1), (a, b) => layout[b].CenterX - layout[a].CenterX).Where(g => g > 0).ToList();
                 double step = gaps.Count > 0 ? gaps.Min() : Step, x = layout[endRow[0]].CenterX, last = 0;
-                foreach (RoomInfo room in finale) {
+                foreach (RoomInfo room in finale.Concat(squeakFinale)) {
                     if (last > 0) x += Math.Max(step, (last + SizeOf(room)) / 2 + MinGap);
-                    Put(room, x, endY, LevelCluster(FinaleLevel));
+                    Put(room, x, endY, room.IsSqueakFinale ? SqueakFinaleCluster : LevelCluster(FinaleLevel));
                     under.Add(room.Id);
                     last = SizeOf(room);
                 }
@@ -75,7 +95,7 @@ namespace KatAMMapTracker {
             List<List<RoomPlacement>> areas = clusters.Where(c => layout.ContainsKey(c.Key)).GroupBy(c => c.Value).Where(a => a.Count() > 5)
                 .Select(a => a.Select(c => layout[c.Key]).ToList()).ToList();
             double density = areas.Count == 0 ? 0 : areas.Average(a => (a.Max(p => p.X + p.Width) - a.Min(p => p.X)) * (a.Max(p => p.Y + p.Height) - a.Min(p => p.Y)) / a.Count);
-            Dictionary<int, Dictionary<int, (double x, double y)>> levels = nightmare.Where(r => r.NightmareLevel >= 0 && !(finaleInRow && r.NightmareLevel == FinaleLevel)).GroupBy(r => r.NightmareLevel)
+            Dictionary<int, Dictionary<int, (double x, double y)>> levels = nightmare.Where(r => r.NightmareLevel >= 0 && !(finaleInRow && (r.NightmareLevel == FinaleLevel || r.IsSqueakFinale))).GroupBy(r => r.NightmareLevel)
                 .ToDictionary(level => level.Key, level => original ? Tighten(LayoutLevel(level.ToList(), neighbors, SizeOf), map, SizeOf, density) : ClusterLevel(level.ToList(), neighbors, map, SizeOf));
             double roomMargin = original ? RoomMargin : MapLayout.DefaultClusterMargin;
 

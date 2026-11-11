@@ -542,14 +542,16 @@ namespace KatAMRandomizer {
          * palettes one); Scale: drawn at Scale.Num / Scale.Den of the DS's size (its cells, SqueakShrink, and its animations' offsets:
          * Yadgaine's, YadgaineScale); Roll: an animation more, that cell turned a sixteenth more each step (SqueakRolled(): the
          * rolling boulder's, which the DS turns as its body rolls); OnlyPalettes: only the pieces drawn with these of its .cla's palettes
-         * (the others left out: SqueakSplitLayer()), a frame's palette the one of its first piece (the pedestals' icons); */
+         * (the others left out: SqueakSplitLayer()), a frame's palette the one of its first piece (the pedestals' icons); MapIcon: a
+         * mini-boss's or boss's look in the map tracker, these cells drawn on each other with its layers (none: its first animation's
+         * first cell, KatAMExpansion.WriteSqueakMapEntries()); */
         internal sealed record SqueakEnemy(int Index, string Name, string File, int[] HurtCells, (int type, int letter)[] Glyphs, int GraphicsOf = -1,
                                             byte MidbossType = 0, int[] OnlyAnims = null, string[] Palettes = null,
                                             (ushort from, ushort to)[] MergeColors = null, string ExtraFile = null,
                                             int[][] Layers = null, int Canvas = 128, bool BodyLast = false, bool KeepComposites = false,
                                             bool SharePalettes = false, string PaletteFile = null, bool WholeCells = false,
                                             (int Num, int Den) Scale = default, int ShiftY = 0, int Rotate = 0, int Roll = -1,
-                                            bool FlattenComposites = false, int[] OnlyPalettes = null);
+                                            bool FlattenComposites = false, int[] OnlyPalettes = null, int[] MapIcon = null);
         /* AnimPalettes: a character whose cells are in Squeak Squad's different palettes (Doc's things), per animation the palette its
          * sprite takes (SqueakPaletteKey); */
         internal sealed record SqueakBuilt(SqueakEnemy Enemy, int AnimId, SqueakCharacter Character, int Tiles, List<SqueakLayerBuilt> Layers = null,
@@ -850,7 +852,7 @@ namespace KatAMRandomizer {
              * animations, its .mca's composites (its cloud over its core, its field, its bolts: the first part drawn on top, the
              * character's own), its hurt look its cloud (cell 1: Squeak Squad's is .mca's 2, 0x3000002); a frame big enough for its bolts
              * (139 pixels under it); */
-            new SqueakEnemy(40, "Mecha-Kracko", "kracko", new[] { 1, 1, 1 }, MechaKrackoGlyphs, MidbossType: 0x40, Canvas: 288),
+            new SqueakEnemy(40, "Mecha-Kracko", "kracko", new[] { 1, 1, 1 }, MechaKrackoGlyphs, MidbossType: 0x40, Canvas: 288, MapIcon: new[] { 5 }),
             /* Its eye (0x0213025C: kracko's animations 8-15, looking at Kirby; only those, not drawn with its graphics: its sprite takes
              * an eye's VRAM, as type 0x2C's characters take the biggest frame's of theirs), no name; */
             new SqueakEnemy(41, "Mecha-Kracko's eye", "kracko", new[] { 0, 0, 0 }, new (int, int)[0],
@@ -860,7 +862,7 @@ namespace KatAMRandomizer {
              * for its raised legs (114 pixels over it, 65 either side). Its shell isn't in its sprites (the stage draws it): its own effect,
              * SqueakShell; */
             new SqueakEnemy(42, "Yadgaine", "yadgaine", new[] { 3, 3, 3 }, YadgaineGlyphs, MidbossType: 0x40, Canvas: 256,
-                            Scale: (YadgaineScaleNum, YadgaineScaleDen)),
+                            Scale: (YadgaineScaleNum, YadgaineScaleDen), MapIcon: new[] { 3 }),
             // Its legs (0x021185FC, 0x02117C44: its .mca's composites 2-15), drawn with its graphics, no name;
             new SqueakEnemy(43, "Yadgaine's leg", "yadgaine", new[] { 9, 9, 9 }, new (int, int)[0], GraphicsOf: 42),
             /* What it throws and knocks down (0x0212E248: its big and small rocks 32 and 33, a block 34, its shot's puff 35 and capsule
@@ -902,7 +904,7 @@ namespace KatAMRandomizer {
                             ExtraFile: "metaknight_ext", SharePalettes: true, BodyLast: true, Canvas: 192, KeepComposites: true,
                             OnlyAnims: new[] { 1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16, 18, 19, 20, 21, 22, 23, 24, 25, 28,
                                                40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 52, 53, 54, 55, 56, 58, 59, 60, 61, 62, 63, 64 },
-                            Layers: new[] { new[] { 1 }, new[] { 2, 3 } }, WholeCells: true),
+                            Layers: new[] { new[] { 1 }, new[] { 2, 3 } }, WholeCells: true, MapIcon: new[] { 31 }),
             /* His tornado (0x02111CFC: metaknight_ext.mca's composites 4 and 5, their parts 26-30 and 32-36), no name; a frame big
              * enough for it (128 up); */
             new SqueakEnemy(54, "Meta Knight's tornado", "metaknight_ext", new[] { 0, 0, 0 }, new (int, int)[0], Canvas: 256,
@@ -920,7 +922,7 @@ namespace KatAMRandomizer {
              * hurt look the black star (cmn's cell 17); */
             new SqueakEnemy(58, "Dark Nebula", "darkZERO_cmn", new[] { 16, 16, 16 }, DarkNebulaGlyphs, MidbossType: 0x40,
                             ExtraFile: "darkZERO_ext", SharePalettes: true, KeepComposites: true,
-                            OnlyAnims: new[] { 1, 2, 6, 7, 8, 44, 41, 42, 43, 45, 46, 47, 36, 37 }),
+                            OnlyAnims: new[] { 1, 2, 6, 7, 8, 44, 41, 42, 43, 45, 46, 47, 36, 37 }, MapIcon: new[] { 94, 65 }),
             /* His eye (0x0211C4E0: cmn's 3, ext's 17 and 18), its twinkle (cmn's 5), his flames (0x0211B98C: cmn's 4), each its own (its
              * VRAM its own frames', his and theirs together under KatAM's 512 tiles), no name; */
             new SqueakEnemy(59, "Dark Nebula's eye", "darkZERO_cmn", new[] { 0, 0, 0 }, new (int, int)[0], ExtraFile: "darkZERO_ext",
