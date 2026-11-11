@@ -91,7 +91,6 @@ enum {
     SQUEAK_DARK_NEBULA_BOLT,    // His bolts and their cage;
     SQUEAK_DARK_NEBULA_BURN,    // The floor his flames set burning;
     SQUEAK_DARK_STAR,           // Enemy 0x3E: the dark star Kirby chases before Dark Nebula;
-    SQUEAK_PLATINUM_CHEST,      // Graphics only: Squeak Squad's big chest, drawn by KatAM's big chest in its rooms (SqueakAnimFor());
     SQUEAK_SWITCH,              // Graphics only: Squeak Squad's small star switch (squeak/gimmicks.c), up and pressed;
     SQUEAK_SHUTTER,             // Graphics only: the shutters (squeak/gimmicks.c), a stone pillar upright, turned 90 and 270 degrees,
     SQUEAK_SHUTTER_90,          // and spikes up and down; each its every cell, the DS's animations 0 shut, 1 opening, 2 open, 3 shutting;
@@ -133,8 +132,9 @@ enum { SQUEAK_STAR_SPIT, SQUEAK_STAR_AHEAD, SQUEAK_STAR_BEHIND, SQUEAK_STAR_SWOR
 // Variants before the cells' (see above);
 #define SQUEAK_HURT_VARIANTS 3
 
-/* Squeak Squad's chests (KatAMExpansionSqueakRooms.cs, chest.c): KatAM's small and big chests with this treasure index (template
- * unk11); a big one shows SQUEAK_PLATINUM_CHEST's variants (closed, open); */
+/* Squeak Squad's chests (KatAMExpansionSqueakRooms.cs, chest.c): KatAM's small chests with this treasure index (template unk11),
+ * Squeak Squad's big ones too (the owner: "We should drop the big platinum chests from the ROM and use KatAM's small chests
+ * instead"); */
 #define SQUEAK_CHEST 0x9F
 // (a fixed cannon's template unk11, chest.c's SqueakCreateCannon; the frames it waits with a Kirby in it, as Squeak Squad's);
 #define SQUEAK_CANNON 0x9E
@@ -191,6 +191,8 @@ u32 SqueakGimmickAnim(struct Object *obj);
  * then: chest.c's SqueakCreateChest); */
 #define SQUEAK_SHARD_Y 72
 #define SQUEAK_CHEST_AFTER_BOSS 1
+// (a chest an enemy holds, its template's unk14: chest.c's SqueakEnemyChestWait);
+#define SQUEAK_CHEST_AFTER_ENEMY 2
 // (a Vitality half's chest: its template's unk14's high byte; chest.c's NidlChestOpen, two make one Vitality);
 #define SQUEAK_CHEST_HALF 1
 /* (Squeak Squad's spray paints not in KatAM, KatAMExpansionSprays.cs: owned in gTreasures.sprayPaintField's bits SQUEAK_SPRAY_BIT up, Kirby colors
@@ -224,7 +226,6 @@ void SqueakTakeScroll(u8 n);
 // Map whenever it's read (rooms.c's BigGetStateSlot; KatAMExpansionSqueakLevels.cs's SecretMapSlot);
 #define SECRET_MAP_SLOT 0x1C
 bool32 SqueakBossAlive(u16 room);
-#define SQUEAK_CHEST_CLOSED SQUEAK_HURT_VARIANTS
 
 // Room every ported character gets (SqueakObject and its own fields);
 #define SQUEAK_OBJECT_SIZE 0x1AC

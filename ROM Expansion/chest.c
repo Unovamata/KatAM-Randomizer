@@ -233,22 +233,75 @@ static void SqueakBossChestWait(struct Chest *chest) {
     chest->obj.unk78 = (void *)chest->unkDC;
 }
 
-/* SqueakCreateChest(); A chest (objects 0x80, 0x81) as the game makes it; one of Squeak Squad's (SQUEAK_CHEST) shows open, emptied
- * and counted (sub_0800BD4C's: lever walls count the room's open chests) once its own bit is set; a big one in Squeak Squad's
- * platinum chest's palette (its frames SqueakAnimFor()'s; KatAM's 16 tiles hold them: KatAMExpansion.cs checks); */
+/* SqueakEnemyChestWait(); A chest an enemy holds (SQUEAK_CHEST_AFTER_ENEMY: the DS's Gold Waddle Dees, enemy flag 8, each holding its
+ * room's chest, a piece of the Secret Map), its template's unk18 the enemy's template's unk2 and unk3 (its number in the room's list,
+ * whatever the randomizer made it): unseen and shut where it is while the enemy's there (its object, found among the live ones by
+ * that number, kept in the chest's fillerB4, unused); once the enemy's beaten or swallowed (its object ending with no HP left, or
+ * swallowed, or on the screen: not left behind off it, or fallen out of the room into a pit) the chest comes where it was and
+ * falls (KatAM's gravity), as the game's chest again (the owner: "Golden Waddle Dee's when defeated or inhaled, they drop the chest
+ * they possess in the position they died"), unless nothing's under that spot (a pit): then at its own, where the converter put it
+ * (the DS's, on its floor); */
+#define HELD_BY(chest) (*(struct Object **)&(chest)->fillerB4[0])
+#define HELD_TEMPLATE(t) (((const u8 *)(t))[2] | ((const u8 *)(t))[3] << 8)
+static void SqueakEnemyChestWait(struct Chest *chest) {
+    struct Object *enemy = HELD_BY(chest), *obj;
+    struct LevelInfo *level = &gCurLevelInfo[chest->obj.base.unk56];
+    u16 number = chest->obj.objTemplate->unk18;
+    struct Task *t;
+    s32 y;
+    u8 n;
+
+    if (enemy != NULL && (enemy->base.roomId != chest->obj.base.roomId || enemy->objTemplate == NULL
+                          || (u32)enemy->objTemplate < 0x08000000 || HELD_TEMPLATE(enemy->objTemplate) != number))
+        enemy = HELD_BY(chest) = NULL;
+    if (enemy == NULL) {
+        // (the enemy's object, once it's come: the live list, as KatAM runs it, not its 128 slots);
+        for (t = &gTasks[0], n = 0; n < MAX_TASK_NUM && t->next; n++) {
+            t = (struct Task *)(IWRAM_START + t->next);
+            if (t->main != ObjectMain) continue;
+            obj = TaskGetStructPtr(t);
+            if (obj == &chest->obj || obj->base.roomId != chest->obj.base.roomId || (obj->base.flags & 0x1000) || obj->objTemplate == NULL
+                || (u32)obj->objTemplate < 0x08000000 || HELD_TEMPLATE(obj->objTemplate) != number) continue;
+            HELD_BY(chest) = obj;
+            break;
+        }
+        return;
+    }
+    if (!(enemy->base.flags & 0x1000)) return;
+    HELD_BY(chest) = NULL;
+    // (gone off the screen alive: it comes back; but one fallen out of the room's bottom, into a pit, is gone: the chest at its own spot);
+    if (enemy->unk80 > 0 && !(enemy->base.unkC & 0x2000) && sub_0803D6B4(enemy) && enemy->base.y < (level->roomHeight << 8)) return;
+    // (where it died, if there's a floor under it in the room; KatAM's chest falls onto it);
+    for (y = enemy->base.y; y < (level->roomHeight << 8); y += 0x1000)
+        if (NidlIsFloor(&chest->obj, enemy->base.x, y)) {
+            chest->obj.base.x = enemy->base.x;
+            chest->obj.base.y = enemy->base.y;
+            chest->obj.base.xspeed = chest->obj.base.yspeed = 0;
+            break;
+        }
+    chest->obj.base.flags &= ~0x400;
+    chest->obj.unk78 = (void *)chest->unkDC;
+}
+
+/* SqueakCreateChest(); A chest (objects 0x80, 0x81) as the game makes it; one of Squeak Squad's (SQUEAK_CHEST, always a small one)
+ * shows open, emptied and counted (sub_0800BD4C's: lever walls count the room's open chests) once its own bit is set; */
 void *SqueakCreateChest(struct ObjectTemplate *template, u8 playerId) {
     struct Chest *chest;
 
     gTreasures.shardField &= ~SQUEAK_CHEST_BIT;
     chest = gSqueakChest.create(template, playerId);
-    if (template->unk11 == SQUEAK_CHEST && chest->obj.type == OBJ_BIG_CHEST)
-        chest->obj.base.sprite.palId = SqueakLoadPalette(gSqueakData.enemies[SQUEAK_PLATINUM_CHEST].animId, SQUEAK_CHEST_CLOSED,
-                                                         chest->obj.base.roomId);
     if (template->unk11 == SQUEAK_CHEST && SqueakChestOpened(template->unk12)) {
         chest->obj.unk83 = 1;
         chest->obj.unk78 = NidlChestOpened;
         gUnk_02023510[gCurLevelInfo[chest->obj.base.unk56].unk65E]++;
-    } else if (template->unk11 == SQUEAK_CHEST && (template->unk14 & 0xFF) == SQUEAK_CHEST_AFTER_BOSS) {
+    }
+    // (an enemy's: unseen till it's beaten, opened or not);
+    if (template->unk11 == SQUEAK_CHEST && (template->unk14 & 0xFF) == SQUEAK_CHEST_AFTER_ENEMY) {
+        chest->unkDC = (u32)chest->obj.unk78;
+        chest->obj.unk78 = SqueakEnemyChestWait;
+        chest->obj.base.flags |= 0x400;
+        HELD_BY(chest) = NULL;
+    } else if (template->unk11 == SQUEAK_CHEST && !(chest->obj.unk83 & 1) && (template->unk14 & 0xFF) == SQUEAK_CHEST_AFTER_BOSS) {
         chest->unkDC = (u32)chest->obj.unk78;
         chest->obj.unk78 = SqueakBossChestWait;
         chest->obj.base.flags |= 0x400;

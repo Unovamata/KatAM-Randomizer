@@ -1113,7 +1113,7 @@ NiDL's natives were); one it lacks is ported onto KatAM's own object (`ROM Expan
 | 0x23 | Boxin | 0x0204F868 | 0x0204DE08 | 1 0x0204DA08, others 0x0204DD3C (alike near Kirby: hops back and punches) | KatAM's own (logged) |
 | 0x24 | Heavy Knight | 0x02042B80 | 0x0204101C | 1 0x02040658 (stands and slashes), others 0x02040E08 (charges 2.0 and slashes) | KatAM's own (logged) |
 
-### Found while fixing the owner's playtest list (Open Requests item 15)
+### Found while fixing the owner's playtest list
 - **The third tile layer (grid 5) is never drawn** before its cell is cleared: BG1 is off in the rooms checked (4-6-3, 8-3-2,
   2-2-1), BG3 shows grid 4 where grids 4 and 5 differ, and a trigger-cleared column of 4-6-3 shows grid 5 after. Grid 5 is the
   look a cell takes once cleared (`SqueakRoomTile()`). Drawn over the room, it hid bomb blocks, floors, the planks over sealed
@@ -1149,6 +1149,14 @@ NiDL's natives were); one it lacks is ported onto KatAM's own object (`ROM Expan
 - **Hidden doors (flag 4)** are invisible on the DS (the Squeaks' temporary doors appear there); in the port they now carry a mirror.
 - **Metalun on slopes**: its walk moves in lurches; one down a slope leaves it a few pixels above the ground. With floor under its
   feet it walks on (and its charge only drifts off a ledge), so it keeps its walk's pace downhill.
+- **Gold Waddle Dees hold their room's chest**: each of the 7 (2-6-6, 3-3-7, 4-4-5, 5-4-5, 6-6-5, 7-6-9, 8-2-6) has enemy flag 8 (byte
+  +0xB of its .doe record), as the bosses and some mid-bosses whose rooms' rewards come after the fight, and its room has one chest,
+  a big one (kind 0x14) holding a piece of the Secret Map (treasures 93-99), placed high in the room. An item's flag bit 0 isn't the
+  link: many chests and foods have it, with no enemy flagged. The port hides the chest until the Gold Waddle Dee is gone (beaten,
+  swallowed, or fallen out of the room) and puts it where it went, or at its own spot over a pit (`chest.c`'s
+  `SqueakEnemyChestWait`, `SQUEAK_CHEST_AFTER_ENEMY`). 2-6-6's walks off its logs into the pit within seconds unless Kirby gets it.
+- **Big chests**: Squeak Squad's big (platinum) chests are KatAM's small chests in the port (the owner's call), so the platinum
+  chest's graphics are gone from the ROM; KatAM's chests fall (`ObjectMain`'s gravity: nothing sets their flag 0x40).
 
 ## Stage objects
 

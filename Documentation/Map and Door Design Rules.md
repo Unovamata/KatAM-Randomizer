@@ -15,7 +15,7 @@ after any change.
 |---|---|---|---|
 | Mirror (door) | `0x6F` mirror, a door cell | either | The normal way. One-way mirrors are drawn with KatAM's one-way graphic. Every door is a mirror but a wide doorway leading on to a place that isn't a goal game (Squeak Squad's goal doors into the next stage or the boss stage) and NiDL's own door halls (rule 2). |
 | Hub door | `0x97` door object | always two-way | Only in hubs (rule 4). Hidden until its big switch is pressed. |
-| Mirra | `0x34` | always one-way | A hidden mirror that runs away (rule 6). |
+| Mirra | `0x34` | one-way, but both ways into a switch room | A hidden mirror that runs away (rule 6). |
 | Warp star | `0x84` | one-way | NiDL's and Squeak Squad's own; stays a warp star (rule 7). |
 | Cannon | `0x8A` + fuse `0x78` | one-way | NiDL's and Squeak Squad's own; stays a cannon (rule 7). |
 | Edge | none (the room's edge) | one-way | NiDL's falls out of a room's bottom and climbs out of its top. |
@@ -74,7 +74,8 @@ after any change.
   - **A** (`0x122`): doors at the top left and top right, the big switch between them;
   - **B** (`0x250`): one door at the top middle, one at the bottom middle.
 - **Every NiDL hub has 2 doors to its level's exploration map** (the owner's rule, for all hubs but the Fountain of Dreams'): each switch room's 2 floor
-  mirrors, both two-way, lead into 2 different branches of its level, so the level branches from its hub (rule 5). These are
+  mirrors, both two-way, lead into its level: the right one to the stage before the boss, the left one back onto the spot of the
+  Mirra that leads in (rule 5). These are
   its 2 regular doors; its hub doors are counted apart.
 - **The hubs stay interconnected the way they were approved**: each level's switch room reveals a hub door leading to
   (`LevelLinks`, `KatAMLinkDoors`):
@@ -95,6 +96,10 @@ after any change.
   Squeak Squad's worlds', each to a KatAM door, never to a NiDL or Squeak Squad door, no 3 exits in a chain; the Fountain of Dreams'
   door is off the map, the end game's). Neither the world map nor the hub links change unless the user asks for it.
 - **Hub doors are always two-way and never lead to a Mirra.**
+- **No one-way door leads into a hub room** (the owner: "No 1 way door can teleport the player to a button room", "With button
+  room I mean a hub room"): the central hubs and the switch rooms (the levels' and worlds' hubs) are entered only through doors that
+  go both ways, Kirby landing on the door back. A switch room's Mirra lands him on its left floor mirror, which leads back onto the
+  Mirra's spot (rule 5). Shards, which aren't doors, still send him to a central hub (rule 8).
 - The NiDL hub (a Central Circle copy at night) has one door per level, as Central Circle has one per area. It is reached
   through a golden mirror in Central Circle (beside Central Circle's own), and a pink mirror in the NiDL hub leads back.
 - **The NiDL hub has Central Circle's ability room door**, at the same spot (top left, cell 3, 4), drawn as Central Circle's,
@@ -155,10 +160,9 @@ after any change.
   sibling branches, a hidden two-way door between each level and the next, one one-way throw into another level, and links with the
   KatAM area paired with the level (rooms with few doors, far from them).
 - **Goal rooms keep their goal door alone**: no branch, no way back.
-- **A level's switch room is found by exploring**: a Mirra hidden in the second half of the level leads to it, one-way, landing
-  off its floor mirrors (rule 3). Its right floor mirror goes both ways to the start of the stage before the boss; its left one
-  both ways to the start of a stage on another branch: the deepest stage off the way from the level's first stage to the boss's,
-  not the Mirra's own (else the nearest one on that way). The Fountain of Dreams' switch room has none of these: only Nightmare's
+- **A level's switch room is found by exploring**: a Mirra hidden in the second half of the level leads to it, both ways (rule 4:
+  no one-way door into a hub room): Kirby lands on its left floor mirror, which leads back onto the Mirra's spot. Its right floor
+  mirror goes both ways to the start of the stage before the boss. The Fountain of Dreams' switch room has none of these: only Nightmare's
   end leads there (section 8). `PlanDoors()`.
 
 - **Squeak Squad's worlds** follow the same rules (`PlanSqueakLevels()`), on the DS's own stages, whose doors keep their places
@@ -204,15 +208,17 @@ after any change.
     never stood in (rule 7): no door throws Kirby into one (their DS arrival is where the star comes in, at the room's edge; thrown
     there, Kirby fell below the camera's view and died);
   - each world's switch room is found by exploring: a Mirra hidden in the world's second half (its stages from the middle on by
-    number, the deepest first), one-way, landing off its floor mirrors; its right floor mirror both ways with the start of the
-    stage before the boss's (the deepest), its left one with the start of the deepest stage off the way from the world's first
-    stage to that one, not the Mirra's own (else the way's first); each with a mirror back in that stage's first room if it takes
-    one, else the switch room's leads on, one-way, onto the stage's start.
+    number, the deepest first), both ways (rule 4): Kirby lands on its left floor mirror, which leads back onto the Mirra's spot;
+    its right floor mirror both ways with the start of the stage before the boss's (the deepest), with a mirror back in that
+    stage's first room if it takes one, else the switch room's leads on, one-way, onto the stage's start (a way out, not in). With
+    no spot left for a Mirra, the left one goes both ways with the start of the deepest stage off the way from the world's first
+    stage to that one.
 
 ## 6. Mirras
 
 - **As few as KatAM's**, at most one per room, never chained.
-- **Always one-way, always hidden, never in mid-air.**
+- **Always one-way, always hidden, never in mid-air**, but a switch room's, which goes both ways (rule 4: no one-way door into a hub
+  room): its switch room's left floor mirror leads back onto its spot.
 - **They fall** (the owner's request): KatAM's engine's gravity is on for them, so one standing on blocks that break drops onto
   what's under them, and its door opens where it lands, not where it stood. A door is built at each cell a ported Mirra can land
   in, shown once it opens there. `mirra.c`, `MirraLandings()`.

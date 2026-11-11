@@ -246,9 +246,10 @@ static void ChestDropped(struct Object *obj) {
     obj->base.y += obj->unkA0;
 }
 
-// ChestOpenable(); Closed (unk83 0, or 2: a 0x63 one) and itself (not held nor falling), in the Squeaker's room;
+// ChestOpenable(); Closed (unk83 0, or 2: a 0x63 one) and itself (not held nor falling), in the Squeaker's room, and seen (not a
+// boss's or an enemy's waiting: chest.c, flag 0x400);
 static bool32 ChestClosed(struct SqueakObject *s, struct Object *obj) {
-    return IsChest(obj) && obj->base.roomId == s->obj.base.roomId && !(obj->base.flags & 0x1000) && !(obj->unk83 & 1);
+    return IsChest(obj) && obj->base.roomId == s->obj.base.roomId && !(obj->base.flags & (0x1000 | 0x400)) && !(obj->unk83 & 1);
 }
 
 /* NextObject(); The next live object after `*t` (from the task list's head, gTasks[0]), along the list's links as KatAM runs them
