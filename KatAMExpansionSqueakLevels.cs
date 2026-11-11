@@ -21,8 +21,9 @@ namespace KatAMRandomizer {
      *   NiDL's, the owner's);
      * • no new door in a mini-boss's room, nor a landing there; a room keeps 2 exits at most, 3 if it's big (counting the DS's), never 3
      *   doors in one view, doors kept apart, from landings and from warp stars and cannons (rule 2: SqueakSpot()).
-     * • each world's switch room (KatAMExpansionSqueakHubs.cs) found by a Mirra hidden in its second half, one-way, its floor mirrors
-     *   both ways into the stage before the boss's and another branch's (rule 5). */
+     * • each world's switch room (KatAMExpansionSqueakHubs.cs) found by a Mirra hidden in its second half, both ways (its left floor
+     *   mirror back onto the Mirra's spot: no one-way door into a hub room), its right floor mirror both ways into the stage before
+     *   the boss's (rule 5). */
     internal static partial class KatAMExpansion {
         // The stage with each world's boss (5-7, a copy of 5-6's two rooms, is left out of the port: SqueakTestStages);
         static readonly Dictionary<int, int> SqueakBossStages = new Dictionary<int, int> { [1] = 7, [2] = 7, [3] = 7, [4] = 7, [5] = 6, [6] = 7, [7] = 7, [8] = 4 };
@@ -849,25 +850,31 @@ namespace KatAMRandomizer {
                     }
             }
             /* The switch rooms (rule 5): each world's reached from a Mirra hidden in its second half (its stages from the middle on by number,
-             * the deepest first; standing on a floor that can't break), one-way, onto its floor off its mirrors (SwitchArrival); its right
-             * floor mirror both ways with the start of the stage before the boss's (the deepest: its goal leads there), its left one with
-             * the start of the deepest stage off the way from the world's first stage to that one, not the Mirra's own (else the way's
-             * first); in each a mirror back in its first room, if it takes one (EntrySpot()), else the switch room's leads on, one-way; */
+             * the deepest first; standing on a floor that can't break), both ways (the owner: "No 1 way door can teleport the player to a
+             * button room", a hub room): it lands Kirby on the switch room's left floor mirror, which leads back onto the Mirra's spot;
+             * its right floor mirror both ways with the start of the stage before the boss's (the deepest: its goal leads there), a mirror
+             * back in its first room if it takes one (EntrySpot()), else the switch room's leads on, one-way; without a Mirra (no spot
+             * left), the left one as the right with the start of the deepest stage off the way from the world's first stage to that one
+             * (else the way's first); */
             switchDoors = new Dictionary<int, List<Door>>();
             for (int world = 1; world <= SqueakWorlds; world++) {
                 List<(int area, int stage)> reached = stages.Where(s => s.area == world && depthOf.ContainsKey(s)).ToList();
                 if (reached.Count == 0) continue;
                 int switchRoom = firstSwitchRoom + world - 1, level = SqueakLayoutLevel(world);
-                (int x, int y) arrival = SwitchArrival(level);
+                (int x, int y)[] sides = SwitchSides(level);
+                byte FacingOf((int x, int y) side) => (byte)(side.x * 2 < SwitchWidth ? 1 : 2);
                 var gate = reached.OrderByDescending(s => depthOf[s]).ThenByDescending(s => s.stage).First();
                 (int area, int stage)? mirraStage = null;
+                (SqueakPlanRoom room, int x, int y)? mirra = null;
                 // (its second half first; any of its stages if none of those has a spot left: the ways back take some);
                 foreach (var s in reached.Where(s => s.stage > reached.Max(t => t.stage) / 2).OrderByDescending(s => depthOf[s]).ThenByDescending(s => s.stage)
                                          .Concat(reached.Where(s => s.stage <= reached.Max(t => t.stage) / 2).OrderByDescending(s => depthOf[s]).ThenByDescending(s => s.stage))) {
                     foreach (SqueakPlanRoom r in byStage[s].Where(Hosts).OrderBy(_ => random.Next()))
                         if (SqueakSpot(r, true, true, true) is (int x, int y)) {
-                            Add(r, x, y, (switchRoom, arrival.x + 1, arrival.y + 1), DoorKind.SwitchEntry, true, true);
+                            Add(r, x, y, (switchRoom, sides[0].x + 1, sides[0].y + 1), DoorKind.SwitchEntry, false, true);
+                            doors[r.Index][^1] = doors[r.Index][^1] with { Facing = FacingOf(sides[0]) };
                             mirraStage = s;
+                            mirra = (r, x, y);
                             break;
                         }
                     if (mirraStage != null) break;
@@ -877,9 +884,11 @@ namespace KatAMRandomizer {
                 var off = reached.Where(s => !way.Contains(s) && s != mirraStage).OrderByDescending(s => depthOf[s]).ThenByDescending(s => s.stage).ToList();
                 var left = off.Count > 0 ? off[0] : reached.Where(s => way.Contains(s) && s != gate).OrderBy(s => depthOf[s]).Cast<(int, int)?>().FirstOrDefault() ?? gate;
                 List<Door> list = switchDoors[world] = new List<Door>();
-                (int x, int y)[] sides = SwitchSides(level);
-                foreach (((int x, int y) side, (int area, int stage) stage) in new[] { (sides[1], gate), (sides[0], left) }) {
-                    byte facing = (byte)(side.x * 2 < SwitchWidth ? 1 : 2);
+                // (the left floor mirror back onto the Mirra's spot);
+                if (mirra is (SqueakPlanRoom mr, int mx, int my))
+                    list.Add(new Door(sides[0].x, sides[0].y, mr.Room, mx + 1, my + 1, Facing(mr, mx + 1), Kind: DoorKind.SwitchFloor));
+                foreach (((int x, int y) side, (int area, int stage) stage) in mirra != null ? new[] { (sides[1], gate) } : new[] { (sides[1], gate), (sides[0], left) }) {
+                    byte facing = FacingOf(side);
                     if (EntrySpot(stage) is (SqueakPlanRoom, int, int) entry) {
                         list.Add(new Door(side.x, side.y, entry.room.Room, entry.x + 1, entry.y + 1, Facing(entry.room, entry.x + 1), Kind: DoorKind.SwitchFloor));
                         Add(entry.room, entry.x, entry.y, (switchRoom, side.x + 1, side.y + 1), DoorKind.SwitchFloor, false);

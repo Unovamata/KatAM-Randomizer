@@ -1382,8 +1382,6 @@ namespace KatAMRandomizer {
                         }
                         squeakBuilt.Add(new SqueakBuilt(enemy, animId, character, withHurts.Max(f => f.tiles.Length / 32), layersBuilt, animPalettes,
                                                         frames.Select(f => f.tiles.Length / 32).ToList()));
-                        // (the platinum chest's frames in KatAM's big chest's VRAM: its type's 16 tiles);
-                        if (enemy.Index == SqueakPlatinumChest && squeakBuilt[^1].Tiles > BigChestTiles) return "Squeak Squad's platinum chest doesn't fit KatAM's big chest.";
                         // (the switch's in the hammer peg's VRAM, object 0x8D's 4 tiles: chest.c's SqueakCreateSwitch);
                         if (enemy.Index == SqueakSwitch && squeakBuilt[^1].Tiles > HammerPegTiles) return "Squeak Squad's switch doesn't fit KatAM's hammer peg.";
                     }

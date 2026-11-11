@@ -215,9 +215,10 @@
 
         /* Switch rooms: a level's entry, as KatAM's switch rooms (0x24F, 0x316, 0xC1...: one screen walled on top, a pedestal in the
          * middle with the big switch on it, a mirror on each side's floor) in the level's tiles (see BuildSwitchRooms()): the way in a
-         * Mirra hidden in the level (PlanDoors(), SecretSpot(): as KatAM's, found by exploring, not on the way), one-way; its 2 floor
-         * mirrors (SwitchSides) its 2 ways into the level, both ways, as KatAM's hubs branch: the right one with the start of the
-         * level's stage before its boss, the left one with another branch's; its 2 hub doors, as KatAM's rooms with 2 (LayoutB()), show once its big switch is pressed: SwitchLinkDoor to
+         * Mirra hidden in the level (PlanDoors(), SecretSpot(): as KatAM's, found by exploring, not on the way), both ways (no one-way
+         * door leads into a hub room): Kirby lands on its left floor mirror, which leads back onto the Mirra's spot; its 2 floor
+         * mirrors (SwitchSides) its 2 ways into the level, both ways: the right one with the start of the level's stage before its
+         * boss, the left one with the Mirra's spot; its 2 hub doors, as KatAM's rooms with 2 (LayoutB()), show once its big switch is pressed: SwitchLinkDoor to
          * where LevelLinks says, SwitchHubDoor back to the NiDL hub (as KatAM's mini hubs' to Central Circle; Kirby arrives on it from
          * the hub; Rainbow Resort's link is the hub's, so there, and its SwitchLinkDoor leads back to Butter Building's); Kirby starts
          * at SwitchArrival; */
@@ -2847,38 +2848,23 @@
             mainHubDoors = new List<Door>();
             katamDoors = new Dictionary<int, List<Door>>();
             HashSet<NightmareRoom> secretRooms = new HashSet<NightmareRoom>();
-            HashSet<(int level, int stage)> sideStages = new HashSet<(int, int)>();
-            int StageDepth((int level, int stage) s) => parentOf.TryGetValue(s, out var p) ? 1 + StageDepth(p) : 0;
             for (int level = 0; level < 8; level++) {
                 // (the Fountain of Dreams' has none of them, nor any door: only Nightmare's end leads there, and only its Amazing Mirror
                 // out, to KatAM's final boss (BuildObjects()); the NiDL hub's door to it, and its path on the world map, never open);
                 if (level == 7) continue;
                 NightmareRoom switchRoom = SwitchRoomOf(level);
-                // The way in: a Mirra's, hidden in the level (SecretSpot()), one-way, as KatAM's Mirras, onto its floor where Kirby starts
-                // it (SwitchArrival; off its floor mirrors, two-way: the crowded landings' pass below moves it on, as any one-way door's);
+                /* The way in: a Mirra's, hidden in the level (SecretSpot()), both ways (the owner: "No 1 way door can teleport the player
+                 * to a button room", a hub room): onto its left floor mirror, which leads back onto the Mirra's spot; */
                 (int x, int y)[] sides = SwitchSides(level);
                 (NightmareRoom part, int x, int y) secret = SecretSpot(level, secretRooms);
                 secretRooms.Add(secret.part);
-                Add(secret, Target((switchRoom, SwitchArrival(level).x, SwitchArrival(level).y)), DoorKind.SwitchEntry, oneWay: true, hidden: true);
-                // its 2 floor mirrors (as KatAM's hubs, 2 ways into their area: the level branches from it), both ways: its right one
-                // with the start of the stage leading to its boss, a shortcut earned by finding the room;
+                Add(secret, Target((switchRoom, sides[0].x, sides[0].y)), DoorKind.SwitchEntry, hidden: true);
+                Add((switchRoom, sides[0].x, sides[0].y), Target(secret), DoorKind.SwitchFloor);
+                // its right floor mirror (as KatAM's hubs, 2 ways into their area: the level branches from it), both ways with the start
+                // of the stage leading to its boss, a shortcut earned by finding the room;
                 if (gates.TryGetValue(level, out var gate) && EntrySpot(gate) is (NightmareRoom, int, int) gateSpot) {
                     Add((switchRoom, sides[1].x, sides[1].y), Target(gateSpot), DoorKind.SwitchFloor);
                     Add(gateSpot, Target((switchRoom, sides[1].x, sides[1].y)), DoorKind.SwitchFloor);
-                    // its left one with the start of a stage on another branch (off the way from the level's first stage to that one,
-                    // the deepest, not the Mirra's, nor the other switch room's into the same level; else the way's, nearest it);
-                    var way = new HashSet<(int, int)>();
-                    for ((int, int) s = gate; ; s = parentOf[s]) { way.Add(s); if (!parentOf.ContainsKey(s)) break; }
-                    (int level, int stage) secretStage = (secret.part.Level, secret.part.Stage);
-                    var sides0 = regulars[gate.level].Where(s => s != gate && !sideStages.Contains(s))
-                        .OrderBy(s => way.Contains(s) ? 1 : 0).ThenBy(s => s == secretStage ? 1 : 0).ThenByDescending(StageDepth).ThenByDescending(s => s.stage);
-                    foreach (var side in sides0) {
-                        if (EntrySpot(side) is not (NightmareRoom, int, int) sideSpot) continue;
-                        sideStages.Add(side);
-                        Add((switchRoom, sides[0].x, sides[0].y), Target(sideSpot), DoorKind.SwitchFloor);
-                        Add(sideSpot, Target((switchRoom, sides[0].x, sides[0].y)), DoorKind.SwitchFloor);
-                        break;
-                    }
                 }
 
                 // Its hub doors (2, see LayoutB()): the mirror its big switch reveals (SwitchLinkDoor; Rainbow Resort's, to the hub, is its

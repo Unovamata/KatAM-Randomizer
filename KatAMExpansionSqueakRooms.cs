@@ -1111,6 +1111,12 @@ namespace KatAMRandomizer {
          * rulebook's rule 8). Not yet: the chase spawns, the chests' Squeak Squad treasures; */
         const int SqueakDoorClear = 3;
         const byte SqueakChestAfterBoss = 1;     // squeak.h's SQUEAK_CHEST_AFTER_BOSS (a chest's template unk14);
+        /* (a Gold Waddle Dee's chest, squeak.h's SQUEAK_CHEST_AFTER_ENEMY: the DS's Gold Waddle Dees (enemy 0x0E) carry flag 8, as its
+         * bosses do, and their room's one chest, a piece of the Secret Map, comes once one's beaten (the owner: "Golden Waddle Dee's
+         * when defeated or inhaled, they drop the chest they possess in the position they died"): the chest's template's unk18 the Gold
+         * Waddle Dee's template's unk2 and unk3, chest.c's SqueakEnemyChestWait); */
+        const byte SqueakChestAfterEnemy = 2;
+        const int SqueakGoldWaddleDee = 0x0E, SqueakDropsReward = 8;
         /* The Vitality halves (treasures 6-13): KatAM's Vitality (chest item 6) in a chest flagged a half (its template's unk14's high
          * byte, squeak.h's SQUEAK_CHEST_HALF); their chests' numbers in chest.c's gSqueakVitalityChests, two of them opened one Vitality; */
         const int SqueakVitalityFirst = 6, SqueakVitalityLast = 13, SqueakVitalityChestsMax = 8;
@@ -1194,6 +1200,8 @@ namespace KatAMRandomizer {
             // Squeaker stands, the lair's Squeak leading the others);
             bool lairSqueakHere = lair != null && objects != null && Enumerable.Range(0, ReadShort(objects, 12)).Any(i => (objects[14 + i * 16 + 0xB] & SqueakChaseSpawn) != 0
                 && SqueakCharacters.TryGetValue(ReadShort(objects, 14 + i * 16 + 2), out int c) && c == lair.Character);
+            // (the room's Gold Waddle Dee holding its chest, SqueakChestAfterEnemy);
+            byte[] goldDee = null;
             if (objects != null) {
                 for (int i = 0, count = ReadShort(objects, 12); i < count; i++) {
                     int at = 14 + i * 16, id = ReadShort(objects, at + 2), x = ReadShort(objects, at + 4), y = ReadShort(objects, at + 6);
@@ -1222,7 +1230,9 @@ namespace KatAMRandomizer {
                         byte variant = (byte)(id == 0x45 ? (w != 0 ? 1 : 0) : v);
                         // (the dark star at its spot itself, not stood on a floor: an enemy's template is 8 over its spot);
                         bool darkStar = character == SqueakDarkStarCharacter;
+                        int before = templates.Count;
                         Enemy(x, darkStar ? y + 8 : y, SqueakID, (byte)character, variant, darkStar);
+                        if (id == SqueakGoldWaddleDee && (flags & SqueakDropsReward) != 0 && templates.Count > before) goldDee = templates[^1];
                     } else if (SqueakBosses.TryGetValue(id, out int boss)) {
                         if (id == 0x3D && w == 1) boss = DarkDaroachIndex;
                         Boss(x, y, SqueakDefinitionOf(boss).MidbossType, (byte)(SqueakMidbossFlag | boss), id >= 0x37 ? bossShard : (byte)0);
@@ -1282,9 +1292,16 @@ namespace KatAMRandomizer {
                             while (cy < height && !Open(x / 16, cy)) cy++;
                             if (cy < height) floor = OnFloor(x, cy * 16, height);
                         }
-                        byte[] chest = ObjectTemplate(x, floor - (kind == SqueakChestBig ? 16 : 8), templates.Count,
-                                                      kind == SqueakChestBig ? KatAMBigChestType : SmallChestType);
+                        /* (a big one, Squeak Squad's platinum chest, is KatAM's small chest too (the owner: "We should drop the big
+                         * platinum chests from the ROM and use KatAM's small chests instead. Ensure these have physics."): KatAM's
+                         * chests fall, ObjectMain's gravity, as nothing sets their flag 0x40); */
+                        byte[] chest = ObjectTemplate(x, floor - 8, templates.Count, SmallChestType);
                         chest[14] = KatAMChestItems[chestAt * 17 % KatAMChestItems.Length];
+                        if (goldDee != null && !held && !chaseScroll) {
+                            chest[0x14] = SqueakChestAfterEnemy;
+                            chest[0x18] = goldDee[2];
+                            chest[0x19] = goldDee[3];
+                        }
                         // (a Vitality half, treasures 6-13: KatAM's Vitality, flagged a half; two make one: chest.c's NidlChestOpen);
                         int treasure = objects[at + 0xD];
                         if (treasure >= SqueakVitalityFirst && treasure <= SqueakVitalityLast) {
@@ -1366,7 +1383,7 @@ namespace KatAMRandomizer {
             /* (a world's boss room: its chest, the DS's reward dropped after the fight, shows only once the boss is gone, and the boss's
              * shard comes over it, centred on the room's art, as the DS's reward: squeak.h's SQUEAK_CHEST_AFTER_BOSS, SqueakBossShard); */
             if (bossShard != 0 && templates.FirstOrDefault(t => t[12] is >= 0x40 and <= 0x42 && t[14] >= SqueakMidbossFlag && t[0x11] == bossShard) is byte[] bossTemplate) {
-                foreach (byte[] chest in templates.Where(t => t[12] is SmallChestType or KatAMBigChestType && t[0x11] == SqueakChestIndex)) {
+                foreach (byte[] chest in templates.Where(t => t[12] == SmallChestType && t[0x11] == SqueakChestIndex)) {
                     chest[0x14] = SqueakChestAfterBoss;
                     WriteShort(bossTemplate, 0x14, ReadShort(chest, 6));
                 }
@@ -2587,7 +2604,7 @@ namespace KatAMRandomizer {
                     int navigation = BuildNavigation(rom, width, height, false, collision, navigationRoutes, new List<(int, int, int, int)>(), ref here);
                     /* (its chests in its 9ROM list, first, as KatAM's: {1, 8, 0xFF, 0xFF, the template's x, y}, and counted: opening one
                      * marks it there, sub_08002B30 looking it up by its spot, never ending without it; then its doors' places); */
-                    List<byte[]> chestTemplates = templates.Where(t => t[12] is SmallChestType or KatAMBigChestType && t[0x11] == SqueakChestIndex).ToList();
+                    List<byte[]> chestTemplates = templates.Where(t => t[12] == SmallChestType && t[0x11] == SqueakChestIndex).ToList();
                     List<byte> nineROM = chestTemplates.SelectMany(t => ChestEntry(ReadShort(t, 6), ReadShort(t, 8))).ToList();
                     foreach ((int room, int x, int y) place in doorPlaces) nineROM.AddRange(NineROMEntry(place.room, place.x, place.y));
                     int doors = DoorsList(nineROM, chestTemplates.Count);

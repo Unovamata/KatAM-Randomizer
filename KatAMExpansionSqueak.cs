@@ -694,23 +694,23 @@ namespace KatAMRandomizer {
         // "S" (Squishy), "p", "i" (Chip), "n", "n" (Bronto Burt), "i" (Chip);
         static readonly (int type, int letter)[] SpinniGlyphs = { (0x04, 0), (0x08, 3), (0x08, 2), (0x01, 3), (0x01, 3), (0x08, 2) };
 
-        // The platinum chest's graphics (squeak.h's SQUEAK_PLATINUM_CHEST), in KatAM's big chest's 16 tiles of VRAM (object 0x81's);
-        const int SqueakPlatinumChest = 69, BigChestTiles = 16;
-        // The switch's (squeak.h's SQUEAK_SWITCH), in the hammer peg's 4 tiles (object 0x8D's: chest.c's SqueakCreateSwitch);
-        const int SqueakSwitch = 70, HammerPegTiles = 4;
+        /* The switch's (squeak.h's SQUEAK_SWITCH), in the hammer peg's 4 tiles (object 0x8D's: chest.c's SqueakCreateSwitch); (the
+         * platinum chest's, 69 before it, is gone: Squeak Squad's big chests are KatAM's small chests, the owner: "We should drop the
+         * big platinum chests from the ROM and use KatAM's small chests instead."); */
+        const int SqueakSwitch = 69, HammerPegTiles = 4;
         /* The shutters' (squeak.h's SQUEAK_SHUTTER on: gimmick 2's looks, 0x02227EA4, turned as the DS turns them; their objects take
          * VRAM of their own, squeak/gimmicks.c); */
-        const int SqueakShutter = 71, SqueakShutter90 = 72, SqueakShutter270 = 73, SqueakNeedle = 74, SqueakNeedle180 = 75;
+        const int SqueakShutter = 70, SqueakShutter90 = 71, SqueakShutter270 = 72, SqueakNeedle = 73, SqueakNeedle180 = 74;
         // (the fire columns', squeak.h's SQUEAK_FIRE on: gimmick 7's looks, 0x02227B30, turned as the DS turns them);
-        const int SqueakFireColumn = 76, SqueakFire180 = 77, SqueakFire270 = 78, SqueakFire90 = 79;
+        const int SqueakFireColumn = 75, SqueakFire180 = 76, SqueakFire270 = 77, SqueakFire90 = 78;
         // (the grass tufts' and the barrel's, squeak.h's SQUEAK_GRASS on and SQUEAK_BARREL: gimmicks 0xE and 0xF);
-        const int SqueakGrass = 80, SqueakBarrel = 86, SqueakIcicle = 87, SqueakRock = 88, SqueakPlatformLook = 89, SqueakThunderLook = 90,
-                  SqueakBoulderLook = 91, SqueakCandleLook = 92;
+        const int SqueakGrass = 79, SqueakBarrel = 85, SqueakIcicle = 86, SqueakRock = 87, SqueakPlatformLook = 88, SqueakThunderLook = 89,
+                  SqueakBoulderLook = 90, SqueakCandleLook = 91;
         /* The Squeak Squad ability room's pedestals (squeak.h's SQUEAK_PEDESTAL and SQUEAK_PEDESTAL_ICON: item/copy, the pedestal item's
          * 0x0203A8A0, its animation per ability the table at 0x021582D8's; SqueakPedestalAnims: abilities 1-26's, the room's): the stand
          * and the pieces in its palette (the DS's 0), and the icon's other pieces (palettes 1-3: one each, more colors than one of
          * KatAM's palettes holds), drawn by a sprite of their own over it (squeak/gimmicks.c's SqueakCreatePedestal); */
-        internal const int SqueakPedestalLook = 93, SqueakPedestalIconLook = 94;
+        internal const int SqueakPedestalLook = 92, SqueakPedestalIconLook = 93;
         internal static readonly int[] SqueakPedestalAnims = { 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2C, 0x2D, 0x2E, 0x2F, 0x30,
                                                                0x31, 0x32, 0x36, 0x37, 0x38, 0x39, 0x3A, 0x3B, 0x3C, 0x3D, 0x3E, 0x3F };
 
@@ -939,11 +939,6 @@ namespace KatAMRandomizer {
             /* The dark star Kirby chases before Dark Nebula (enemy 0x3E: 0x0211B680), darkZERO_cmn's animation 1 (the small spinning
              * star), no name (nothing hits it); */
             new SqueakEnemy(68, "Dark star", "darkZERO_cmn", new[] { 0, 0, 0 }, new (int, int)[0], OnlyAnims: new[] { 1 }),
-            /* The platinum chest (the owner: Squeak Squad's big chests "can use the same open/closed graphics in Squeak Squad"):
-             * item/treasure's animations 6 (closed) and 7 (open), its variants 3 and 4, shown by KatAM's big chest (object 0x81) where
-             * a Squeak Squad room has one (squeak.c's SqueakAnimFor(), chest.c's SqueakCreateChest()); 16 pixels lower, as its feet are
-             * its origin and KatAM's chest's is its middle; no name; */
-            new SqueakEnemy(SqueakPlatinumChest, "Platinum chest", "item/treasure", new[] { 0, 0, 0 }, new (int, int)[0], OnlyAnims: new[] { 6, 7 }, ShiftY: 16),
             /* The small star switch (gimmick 0, the DS's look 0: yakumono/switch_small, its states' animations 0 up, 1 going down, 2
              * down, 3 coming up, 0x02227F30): its animations 0 and 2, its variants 3 (up) and 4 (pressed), shown by object 0x8D
              * where a Squeak Squad room has one (squeak.c's SqueakAnimFor(), chest.c's SqueakCreateSwitch()); no name; */
