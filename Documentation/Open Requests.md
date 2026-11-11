@@ -1230,3 +1230,23 @@ hubs are in [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
     moving on their own); the script run in the emulator against the tracker's own server code (a console harness): it connects,
     sends version 5, and the four Kirbys' rooms and spots arrive and change as Kirby walks. The tracker builds (against Windows
     Forms' reference assemblies). Not tested: the window itself (it needs Windows), so the arrows haven't been seen on screen yet.
+
+## 13. The ROM Expansion's progress while the ROM is made
+- The owner: "I would need you to actually reflect the process of the ROM Expansion and where is at at all times, plus make it count
+  in the progress bar. [...] Ensure the program does not get stuck while also making ROM progress obvious." Done: the expansion
+  tells the window every step it is on (`KatAMExpansion.Progress`), shown as "ROM Expansion: ..." under the bar, which fills from
+  5% to 40% as it goes: drawing the enemies and characters, NiDL's rooms counted one by one, Squeak Squad's rooms' tiles and far
+  views counted one by one, the rooms written one by one, each switch room, the hubs. Each part of the bar is its share of the time
+  it takes, so the bar moves evenly (a part for what isn't added takes none).
+- It wasn't stuck, only slow: Squeak Squad's 42 far views (their colors fitted to KatAM's palettes) took a minute and the rooms'
+  tiles 15 seconds, one at a time with nothing shown. Now: the far views' and the busiest rooms' tile merging work out each pair
+  of tiles' difference once instead of every round (the same pairs merged, the same bytes), and the far views and the rooms' tiles
+  are made on all the computer's cores at once, then written in the same order. The whole expansion: 91 seconds before, 26 now (USA,
+  both ROMs, on a 4-core machine; a computer with more cores is faster still).
+  - Checked: the ROMs are byte for byte the ones the old code made (USA with both ROMs; USA with Squeak Squad only, with its chases
+    and randomized lairs), so nothing in the game changed. Every far view's and every room's conversion gave the same bytes too.
+    The steps as the window gets them (the e2e harness printing each one with the time): the bar never goes back, reaches 100%,
+    and no step is silent for more than 3 seconds, with both ROMs, NiDL only, and Squeak Squad only. All three versions built,
+    and the logic checks are unchanged (Squeak Squad: 394 of 499 rooms reached, every switch pressed, none trapped; NiDL: 280 of
+    280, none trapped; with and without dropping through thin floors). The window compiles. Not tested: the window itself (it
+    needs Windows), so the bar and its text haven't been seen on screen.

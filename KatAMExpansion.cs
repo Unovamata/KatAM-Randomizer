@@ -977,6 +977,18 @@ namespace KatAMRandomizer {
         // NameOf(); The ported enemy a behavior byte of type 0x31 picks;
         public static string NameOf(byte behavior) => Definitions.FirstOrDefault(e => e.Index == behavior >> 4)?.Name ?? Definitions[0].Name;
 
+        /* Progress; Where the ROM Expansion is at, for the window's progress bar and status text (the owner: "I would need you to actually
+         * reflect the process of the ROM Expansion and where is at at all times, plus make it count in the progress bar"): how far it is
+         * (0 to 1) and the step it is on. Called on the thread the expansion runs on; null, nothing told. Report(), a step; ReportEach(),
+         * the i-th of count things, between from and to; */
+        public static Action<double, string> Progress;
+        static void Report(double done, string step) => Progress?.Invoke(Math.Clamp(progressFrom + (progressTo - progressFrom) * Math.Clamp(done, 0, 1), 0, 1), step);
+        /* (the part of the bar the step being done fills: AddEnemiesTo()'s parts, each its share of the time they take, so the bar moves
+         * evenly; a step's done is how far into its part); */
+        static double progressFrom, progressTo = 1;
+        static void ReportEach(double from, double to, int i, int count, string step) =>
+            Report(from + (to - from) * i / Math.Max(count, 1), $"{step} ({Math.Min(i + 1, count)}/{count})");
+
         /* AddEnemies(); Adds every ported enemy as object type 0x31, expanding the ROM to 32 MB (rom is replaced by the bigger one), and
          * Squeak Squad's characters as type 0x2C with a Squeak Squad ROM. Either game can be added alone: without a NiDL ROM, only the
          * code and what Squeak Squad's characters need (no NiDL enemies, mini-bosses, bosses, abilities, rooms or title). Returns null
@@ -1032,6 +1044,16 @@ namespace KatAMRandomizer {
             // (without a NiDL ROM: none of NiDL's, only Squeak Squad's characters);
             bool nidl = nightmare != null;
 
+            /* (the bar's parts: the drawing (NiDL's enemies, Squeak Squad's characters), NiDL's rooms, Squeak Squad's music, its rooms, the
+             * end; each its share of how long it takes (measured: about half a second, 2.5 s, 7 s, a third, 18 s), none for what isn't
+             * added); */
+            double[] parts = { (nidl ? 0.5 : 0) + (squeak != null ? 2.5 : 0) + 0.3, rooms ? 7 : 0, squeak != null ? 0.3 : 0, squeakRooms ? 18 : 0, 0.2 };
+            void Part(int part) {
+                progressFrom = parts.Take(part).Sum() / parts.Sum();
+                progressTo = parts.Take(part + 1).Sum() / parts.Sum();
+            }
+            Part(0);
+            if (nidl) Report(0.00, "Drawing the NiDL enemies, mini-bosses and bosses");
             try {
                 built = !nidl ? new() : Definitions.Select(e => Build(nightmare, region, e)).ToList();
                 builtMinibosses = !nidl ? new() : AllBosses.Select(m => BuildGraphics(nightmare, region,
@@ -1197,6 +1219,7 @@ namespace KatAMRandomizer {
 
             if (animInfos.Count > 256) throw new InvalidOperationException("The ported enemies have more than 256 frames.");
 
+            if (nidl) Report(0.12, "Drawing Nightmare's fight");
             // Nightmare's fight: an anim of its own, only for his sprites (KatAMExpansionNightmare.cs);
             if (nidl) try {
                 (List<byte[]> fightPalettes, List<(byte[] tiles, ushort[] oams, short[] attributes, int palette)> fightFrames, byte[] fightTable) =
@@ -1235,6 +1258,7 @@ namespace KatAMRandomizer {
                 return $"The Nightmare in Dream Land ROM doesn't match the {region.KatAM} release.";
             }
 
+            if (nidl) Report(0.14, "Drawing the new abilities' hats and motions");
             // The new abilities' hats and motions (anims after the enemies');
             int[] hatTables = null, motions = null, hatPalettes = new int[NewAbilities], glows = new int[13];
             int backdropPalette = 0;
@@ -1261,6 +1285,7 @@ namespace KatAMRandomizer {
                 return $"The Nightmare in Dream Land ROM doesn't match the {region.KatAM} release.";
             }
 
+            if (squeak != null) Report(0.17, "Drawing Squeak Squad's characters");
             // Squeak Squad's characters (KatAMExpansionSqueak.cs): an anim each (its hurt frames, then its cells);
             List<SqueakBuilt> squeakBuilt = new List<SqueakBuilt>();
             List<SqueakEffectBuilt> squeakEffects = new List<SqueakEffectBuilt>();
@@ -1372,6 +1397,7 @@ namespace KatAMRandomizer {
                 foreach (IGrouping<byte, SqueakBuilt> ofType in squeakBuilt.Where(b => b.Enemy.MidbossType != 0).GroupBy(b => b.Enemy.MidbossType).OrderBy(g => g.Key))
                     TypeHurt(ofType.Key, Math.Max(0, ofType.Max(b => b.Tiles) - HurtOf(ofType.Key).Tiles));
 
+            if (squeakRooms) Report(0.85, "Adding Squeak Squad's spray paints");
             // Squeak Squad's spray paints' cans (KatAMExpansionSprays.cs: with its rooms, whose chests hold them);
             int sprayIconAnim = 0;
             if (squeakRooms) {
@@ -1383,6 +1409,7 @@ namespace KatAMRandomizer {
                 }
             }
 
+            if (rooms || squeakRooms) Report(0.87, "Adding the areas' maps");
             // The areas' maps' icons (KatAMExpansionMaps.cs: with the NiDL rooms or Squeak Squad's, whose chests hold them);
             int mapAnim = 0;
             if (rooms || squeakRooms) {
@@ -1394,6 +1421,7 @@ namespace KatAMRandomizer {
                 }
             }
 
+            Report(0.90, "Writing the sprite tables");
             // Extended anims, attrs and oamData tables (indexed by anim ID);
             int[] tables = { anims, attrTable, oamTable };
             List<int>[] entries = { animVariants, animAttributes, animOams };
@@ -1436,6 +1464,7 @@ namespace KatAMRandomizer {
                 }
             }
 
+            Report(0.92, "Hooking the new enemies into the game's code");
             // (the rest of this, up to the Squeak Squad characters, NiDL's only);
             int codeBase = CodeAddress + 0x08000000;
             if (nidl) {
@@ -1610,24 +1639,37 @@ namespace KatAMRandomizer {
                 ApplyNamePatch(rom, sites[i], length, sites[i] + literal, fromTypePointer, codeBase + version.NidlCopyName);
             }
 
+            if (nidl) Report(0.95, "Adding the new abilities");
             string error = !nidl ? null : AddAbilities(rom, nightmare, region, version, ref cursor, motions, glows, new Dictionary<string, int[]> {
                 ["gUnk_08D60FDC"] = hatTables.Select(table => table + 0x08000000).ToArray(),
                 ["gUnk_08350A3C"] = new[] { -1, -1, -1, -1, -1, -1, backdropPalette, -1 },
             });
+            if (title) Report(0.97, "Adding NiDL's title screen");
             // NiDL's title screen swarm (KatAMExpansionTitle.cs), before the rooms: FinishRooms() allocates after them;
             error ??= title ? AddTitle(rom, nightmare, version, ref cursor) : null;
+            if (nidl) Report(0.98, "Adding NiDL's music and sounds");
             // NiDL's songs after KatAM's (KatAMExpansionSound.cs), before the rooms: their music is NiDL's;
             songTableAt = nidlSongBase = -1;
             error ??= nidl ? AddNidlSounds(rom, nightmare, version, ref cursor) : null;
-            error ??= rooms ? AddWorldMap(rom, version, ref cursor) ?? AddRooms(rom, nightmare, region, version, ref cursor) : null;
+            Part(1);
+            if (rooms && error == null) Report(0.00, "Adding the world map's NiDL doors");
+            error ??= rooms ? AddWorldMap(rom, version, ref cursor) : null;
+            error ??= rooms ? AddRooms(rom, nightmare, region, version, ref cursor) : null;
             // (Squeak Squad's rooms after NiDL's: KatAMExpansionSqueakRooms.cs);
             // (Squeak Squad's songs after them, before its rooms: their music is Squeak Squad's, KatAMExpansionSqueakSound.cs);
             squeakSongBase = -1;
+            Part(2);
+            if (squeak != null && error == null) Report(0.00, "Adding Squeak Squad's music and sounds");
             error ??= squeak != null ? AddSqueakSounds(rom, squeak, version, ref cursor) : null;
+            Part(3);
+            if (squeakRooms && error == null) Report(0.00, "Adding Squeak Squad's rooms");
             error ??= squeakRooms ? AddSqueakRooms(rom, squeak, version, ref cursor) : null;
+            Part(4);
+            if (chaseRooms != null && error == null) Report(0.00, "Adding the chases in KatAM's rooms");
             error ??= chaseRooms != null ? AddKatamChases(rom, version, chaseRooms, chaseSeed, ref cursor) : null;
             if (error != null) return error;
 
+            Report(0.50, "Adding the Collection Room's new items");
             /* The Collection Room's grid (KatAMExpansionCollection.cs) once the rooms are in, whose chests hold the areas' maps: KatAM's
              * cells, then the expansion's (the sprays above; the maps whose chests are placed: KatAMExpansionMaps.cs); */
             try {
@@ -1643,6 +1685,7 @@ namespace KatAMRandomizer {
             }
             // (FinishRooms(), after the randomizer, allocates after all this);
             finishCursor = cursor;
+            if (error == null) Report(1.00, "Done");
             return error;
         }
 

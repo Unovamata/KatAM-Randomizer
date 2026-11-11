@@ -119,6 +119,11 @@ namespace KatAMRandomizer
             return error;
         }
 
+        /* ExpansionStart, ExpansionEnd; The progress bar's part the ROM Expansion fills, its every step shown as it goes (the owner: "I would
+         * need you to actually reflect the process of the ROM Expansion and where is at at all times, plus make it count in the progress
+         * bar": KatAMExpansion.Progress, its rooms counted one by one); */
+        const int ExpansionStart = 5, ExpansionEnd = 40;
+
         /* ButtonSaveFile_Click(); Randomize (Save): the ROM is made in the background (Generate()), the progress bar at the bottom
          * following it, the rest of the window greyed out until it's done; the warnings the steps raise are shown once it's done; */
         private async void ButtonSaveFile_Click(object sender, EventArgs e) {
@@ -168,7 +173,7 @@ namespace KatAMRandomizer
 
             // ROM Expansion goes first, so the ROM reader sees the new enemies' parameters like any other's (and its rooms' items and chests);
             KatAMExpansion.ForgetRooms();
-            progress.Report((5, "Adding the ROM Expansion..."));
+            progress.Report((ExpansionStart, "Adding the ROM Expansion..."));
             // (NiDL's content and Squeak Squad's: either can be added alone);
             bool addingNightmare = settings.NightmareEnemies.Count > 0 || settings.NightmareMinibosses.Count > 0 || settings.NightmareRooms || nightmareTitle,
                  addingSqueak = settings.SqueakEnemies.Count > 0 || settings.SqueakMinibosses.Count > 0 || settings.SqueakBehaviors || settings.SqueakRooms
@@ -176,7 +181,15 @@ namespace KatAMRandomizer
             if (addingNightmare || addingSqueak) {
                 string error = addingNightmare && nightmareROM == null ? "Load a Nightmare in Dream Land ROM in the ROM Expansion tab, or turn its enemies, mini-bosses and rooms off."
                              : addingSqueak && squeakROM == null ? "Load a Squeak Squad ROM in the ROM Expansion tab, or turn its characters, behaviors and rooms off."
-                             : AddExpansion(nightmareTitle, addingNightmare, addingSqueak);
+                             : null;
+                if (error == null) {
+                    KatAMExpansion.Progress = (done, step) => progress.Report(((int)(ExpansionStart + (ExpansionEnd - ExpansionStart) * done), $"ROM Expansion: {step}..."));
+                    try {
+                        error = AddExpansion(nightmareTitle, addingNightmare, addingSqueak);
+                    } finally {
+                        KatAMExpansion.Progress = null;
+                    }
+                }
 
                 if (error != null) {
                     messages.Add((error, "ROM Expansion", MessageBoxIcon.Error));
@@ -200,7 +213,7 @@ namespace KatAMRandomizer
             }
             Processing.parameters[KatAMExpansion.SqueakID] = addingSqueak ? "Squeak Squad Enemy" : Processing.enemiesDictionary[KatAMExpansion.SqueakID].Name;
 
-            progress.Report((40, "Reading the rooms..."));
+            progress.Report((ExpansionEnd, "Reading the rooms..."));
             new KatAMROMReader(system);
             progress.Report((50, "Randomizing enemies..."));
             new KatAMEnemies(system);

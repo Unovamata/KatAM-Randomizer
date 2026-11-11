@@ -418,16 +418,31 @@ namespace KatAMRandomizer {
                     }
                     return sum;
                 }
+                /* (two tiles' difference never changes: worked out once, `apart`, by their places among their palette's tiles, then looked
+                 * up each round; the same two found as when each round worked them all out again, which took seconds in the busiest
+                 * rooms); */
+                int[] place = new int[tiles.Count];
+                Dictionary<int, (int count, int[] pairs)> apart = new Dictionary<int, (int, int[])>();
+                foreach (IGrouping<int, int> group in Enumerable.Range(1, tiles.Count - 1).GroupBy(t => tiles[t].palette)) {
+                    List<int> list = group.ToList();
+                    int[] pairs = new int[list.Count * list.Count];
+                    for (int i = 0; i < list.Count; i++) place[list[i]] = i;
+                    for (int i = 0; i < list.Count; i++)
+                        for (int j = i + 1; j < list.Count; j++) pairs[i * list.Count + j] = Difference(tiles[list[i]].indexes, tiles[list[j]].indexes, group.Key);
+                    apart[group.Key] = (list.Count, pairs);
+                }
                 while (liveTiles > staticTiles) {
                     (int a, int b, int d) best = (-1, -1, int.MaxValue);
                     List<int> live = Enumerable.Range(1, tiles.Count - 1).Where(t => tileTarget[t] == t).ToList();
-                    foreach (IGrouping<int, int> group in live.GroupBy(t => tiles[t].palette))
+                    foreach (IGrouping<int, int> group in live.GroupBy(t => tiles[t].palette)) {
+                        (int count, int[] pairs) = apart[group.Key];
                         foreach (int i in group)
                             foreach (int j in group)
                                 if (i < j) {
-                                    int d = Difference(tiles[i].indexes, tiles[j].indexes, group.Key);
+                                    int d = pairs[place[i] * count + place[j]];
                                     if (d < best.d) best = (i, j, d);
                                 }
+                    }
                     if (best.a < 0) throw new InvalidOperationException("A Squeak Squad room's tiles don't fit KatAM's foreground.");
                     (int keep, int drop) = tileUses[best.a] >= tileUses[best.b] ? (best.a, best.b) : (best.b, best.a);
                     tileTarget[drop] = keep;
@@ -541,6 +556,16 @@ namespace KatAMRandomizer {
             const int Palettes = 8, Colors = 15;
             static double Distance(double r1, double g1, double b1, double r2, double g2, double b2) =>
                 3 * (r1 - r2) * (r1 - r2) + 4 * (g1 - g2) * (g1 - g2) + 2 * (b1 - b2) * (b1 - b2);
+            // Nearest(); Which of 0 to count-1 has the least `cost` (the first of equals, as OrderBy().First(): without sorting them);
+            static int Nearest(int count, Func<int, double> cost) {
+                int best = 0;
+                double least = cost(0);
+                for (int k = 1; k < count; k++) {
+                    double c = cost(k);
+                    if (c.CompareTo(least) < 0) { least = c; best = k; }
+                }
+                return best;
+            }
             double[][] TilePixels(int t) {
                 double[][] p = new double[64][];
                 for (int i = 0; i < 64; i++) {
@@ -565,22 +590,26 @@ namespace KatAMRandomizer {
                             nearest[i] = Math.Min(nearest[i], Distance(points[i][0], points[i][1], points[i][2], centers[k][0], centers[k][1], centers[k][2]));
                     }
                 }
+                // (the points and the centers in flat arrays: the same sums in the same order, faster);
+                double[] flat = new double[points.Count * 3], at = new double[count * 3];
+                for (int i = 0; i < points.Count; i++) (flat[i * 3], flat[i * 3 + 1], flat[i * 3 + 2]) = (points[i][0], points[i][1], points[i][2]);
                 for (int round = 0; round < 8; round++) {
-                    double[][] sums = new double[count][];
+                    for (int k = 0; k < count; k++) (at[k * 3], at[k * 3 + 1], at[k * 3 + 2]) = (centers[k][0], centers[k][1], centers[k][2]);
+                    double[] sums = new double[count * 3];
                     int[] counts = new int[count];
-                    for (int k = 0; k < count; k++) sums[k] = new double[3];
-                    foreach (double[] p in points) {
+                    for (int i = 0; i < flat.Length; i += 3) {
+                        double r = flat[i], g = flat[i + 1], b = flat[i + 2];
                         int best = 0;
                         double bestDistance = double.MaxValue;
                         for (int k = 0; k < count; k++) {
-                            double d = Distance(p[0], p[1], p[2], centers[k][0], centers[k][1], centers[k][2]);
+                            double d = Distance(r, g, b, at[k * 3], at[k * 3 + 1], at[k * 3 + 2]);
                             if (d < bestDistance) { bestDistance = d; best = k; }
                         }
                         counts[best]++;
-                        for (int c = 0; c < 3; c++) sums[best][c] += p[c];
+                        sums[best * 3] += r; sums[best * 3 + 1] += g; sums[best * 3 + 2] += b;
                     }
                     for (int k = 0; k < count; k++)
-                        if (counts[k] > 0) centers[k] = sums[k].Select(s => s / counts[k]).ToArray();
+                        if (counts[k] > 0) centers[k] = new[] { sums[k * 3] / counts[k], sums[k * 3 + 1] / counts[k], sums[k * 3 + 2] / counts[k] };
                 }
                 return centers;
             }
@@ -602,16 +631,27 @@ namespace KatAMRandomizer {
             }
             int[] group = new int[tileCount];
             for (int round = 0; round < 10; round++) {
-                for (int t = 0; t < tileCount; t++) group[t] = Enumerable.Range(0, Palettes).OrderBy(k => FeatureDistance(features[t], groupCenters[k])).First();
+                for (int t = 0; t < tileCount; t++) group[t] = Nearest(Palettes, k => FeatureDistance(features[t], groupCenters[k]));
                 for (int k = 0; k < Palettes; k++) {
                     double[][] members = Enumerable.Range(0, tileCount).Where(t => group[t] == k).Select(t => features[t]).ToArray();
                     if (members.Length > 0) groupCenters[k] = Enumerable.Range(0, 6).Select(c => members.Average(m => m[c])).ToArray();
                 }
             }
             double[][][] palettes = new double[Palettes][][];
-            double TileError(int t, double[][] palette) {
+            // (TileError(); how far a tile's pixels are from their nearest colors in a palette, both flat arrays: r, g, b, ...);
+            double[][] tileFlat = tilePixels.Select(pixels => pixels.SelectMany(q => q).ToArray()).ToArray();
+            double TileError(int t, double[] palette) {
+                double[] p = tileFlat[t];
                 double sum = 0;
-                foreach (double[] p in tilePixels[t]) sum += palette.Min(c => Distance(p[0], p[1], p[2], c[0], c[1], c[2]));
+                for (int i = 0; i < p.Length; i += 3) {
+                    // (the nearest color's distance, as Enumerable.Min(): a NaN the answer);
+                    double nearest = Distance(p[i], p[i + 1], p[i + 2], palette[0], palette[1], palette[2]);
+                    for (int c = 3; c < palette.Length && !double.IsNaN(nearest); c += 3) {
+                        double d = Distance(p[i], p[i + 1], p[i + 2], palette[c], palette[c + 1], palette[c + 2]);
+                        if (d < nearest || double.IsNaN(d)) nearest = d;
+                    }
+                    sum += nearest;
+                }
                 return sum;
             }
             for (int round = 0; round < 8; round++) {
@@ -619,8 +659,9 @@ namespace KatAMRandomizer {
                     List<double[]> points = Enumerable.Range(0, tileCount).Where(t => group[t] == k).SelectMany(t => tilePixels[t]).ToList();
                     palettes[k] = Centers(points, Colors, round == 0 ? null : palettes[k]);
                 }
+                double[][] flatPalettes = palettes.Select(palette => palette.SelectMany(c => c).ToArray()).ToArray();
                 for (int t = 0; t < tileCount; t++)
-                    group[t] = Enumerable.Range(0, Palettes).OrderBy(k => TileError(t, palettes[k])).First();
+                    group[t] = Nearest(Palettes, k => TileError(t, flatPalettes[k]));
             }
 
             // KatAM's colors (BGR555), each tile's indexes, the same tiles (flipped too) one;
@@ -631,8 +672,8 @@ namespace KatAMRandomizer {
                         b = Math.Clamp((int)Math.Round(palettes[k][c][2]), 0, 31);
                     paletteColors[k * 16 + 1 + c] = (ushort)(r | g << 5 | b << 10);
                 }
-            byte[] Indexes(int t) => tilePixels[t].Select(p => (byte)(1 + Enumerable.Range(0, Colors).OrderBy(c =>
-                Distance(p[0], p[1], p[2], paletteColors[group[t] * 16 + 1 + c] & 31, paletteColors[group[t] * 16 + 1 + c] >> 5 & 31, paletteColors[group[t] * 16 + 1 + c] >> 10 & 31)).First())).ToArray();
+            byte[] Indexes(int t) => tilePixels[t].Select(p => (byte)(1 + Nearest(Colors, c =>
+                Distance(p[0], p[1], p[2], paletteColors[group[t] * 16 + 1 + c] & 31, paletteColors[group[t] * 16 + 1 + c] >> 5 & 31, paletteColors[group[t] * 16 + 1 + c] >> 10 & 31)))).ToArray();
             static byte[] Flip(byte[] t, bool h, bool v) {
                 byte[] f = new byte[64];
                 for (int y = 0; y < 8; y++)
@@ -658,23 +699,42 @@ namespace KatAMRandomizer {
                 uses[found.tile]++;
             }
 
-            // Past KatAM's 900: the two most alike of a palette made one, the less used taking the other's place;
+            /* Past KatAM's 900: the two most alike of a palette made one, the less used taking the other's place. Two tiles' difference
+             * (their pixels' colors' distances, whole numbers) is worked out once (`apart`, by their places in their palette's tiles), then
+             * each round weighed by the less used one's uses: the sum the pixels' distances times it made, exactly (whole numbers well
+             * within a double's), so the same two picked as when each round summed them again (the owner: "the program has taken over 2
+             * minutes to create the ROM": the far views took a minute); */
             int[] target = Enumerable.Range(0, tiles.Count).ToArray();
             int Target(int t) { while (target[t] != t) t = target[t]; return t; }
             int live = tiles.Count, merged = 0;
+            int[] place = new int[tiles.Count];
+            Dictionary<int, (int count, long[] pairs)> apart = new Dictionary<int, (int, long[])>();
+            if (live > maxTiles)
+                foreach (IGrouping<int, int> sameGroup in Enumerable.Range(0, tiles.Count).GroupBy(t => tiles[t].palette)) {
+                    List<int> list = sameGroup.ToList();
+                    long[] pairs = new long[list.Count * list.Count];
+                    apart[sameGroup.Key] = (list.Count, pairs);
+                    for (int i = 0; i < list.Count; i++) place[list[i]] = i;
+                    for (int i = 0; i < list.Count; i++)
+                        for (int j = i + 1; j < list.Count; j++) {
+                            byte[] a = tiles[list[i]].indexes, b = tiles[list[j]].indexes;
+                            long d = 0;
+                            for (int p = 0; p < 64; p++) {
+                                int ca = paletteColors[sameGroup.Key * 16 + a[p]], cb = paletteColors[sameGroup.Key * 16 + b[p]];
+                                d += (long)Distance(ca & 31, ca >> 5 & 31, ca >> 10 & 31, cb & 31, cb >> 5 & 31, cb >> 10 & 31);
+                            }
+                            pairs[i * list.Count + j] = d;
+                        }
+                }
             while (live > maxTiles) {
                 (int a, int b, double d) best = (-1, -1, double.MaxValue);
                 List<int> alive = Enumerable.Range(0, tiles.Count).Where(t => target[t] == t).ToList();
                 foreach (IGrouping<int, int> sameGroup in alive.GroupBy(t => tiles[t].palette)) {
                     List<int> list = sameGroup.ToList();
+                    (int stride, long[] pairs) = apart[sameGroup.Key];
                     for (int i = 0; i < list.Count; i++)
                         for (int j = i + 1; j < list.Count; j++) {
-                            byte[] a = tiles[list[i]].indexes, b = tiles[list[j]].indexes;
-                            double d = 0;
-                            for (int p = 0; p < 64 && d < best.d; p++) {
-                                int ca = paletteColors[sameGroup.Key * 16 + a[p]], cb = paletteColors[sameGroup.Key * 16 + b[p]];
-                                d += Distance(ca & 31, ca >> 5 & 31, ca >> 10 & 31, cb & 31, cb >> 5 & 31, cb >> 10 & 31) * Math.Min(uses[list[i]], uses[list[j]]);
-                            }
+                            double d = (double)(pairs[place[list[i]] * stride + place[list[j]]] * Math.Min(uses[list[i]], uses[list[j]]));
                             if (d < best.d) best = (list[i], list[j], d);
                         }
                 }
@@ -1823,13 +1883,14 @@ namespace KatAMRandomizer {
             Dictionary<int, List<Transport>> ridesFrom = new Dictionary<int, List<Transport>>();
             Dictionary<string, int> backgroundOf = new Dictionary<string, int>();
             Dictionary<string, (int width, int height)> backgroundSize = new Dictionary<string, (int, int)>();
+            Dictionary<string, SqueakBackground> convertedViews = new Dictionary<string, SqueakBackground>();   // (converted ahead, below);
             // ViewBackground(); A far view's background (map/d_viw_NN.nsbtx, `room` the first room showing it), converted once and shared:
             // its table entry, or -1 if the view isn't there (its size in backgroundSize);
             int ViewBackground(string view, int room) {
                 if (backgroundOf.TryGetValue(view, out int background)) return background;
                 byte[] viewFile = SqueakFileAnyCase(squeak, view);
                 if (viewFile == null) return -1;
-                SqueakBackground farView = ConvertSqueakFarView(SqueakFarViewPicture(viewFile));
+                SqueakBackground farView = convertedViews.TryGetValue(view, out SqueakBackground ahead) ? ahead : ConvertSqueakFarView(SqueakFarViewPicture(viewFile));
                 int bgTiles = AllocateCompressed(rom, CompressLZ77(farView.Tiles), ref here), bgColors = Allocate(ref here, 0x100, 4);
                 for (int c = 0; c < 128; c++) WriteShort(rom, bgColors + c * 2, farView.Palettes[c]);
                 byte[] bgMap = new byte[farView.Map.Length * 2];
@@ -1852,6 +1913,7 @@ namespace KatAMRandomizer {
                 List<SqueakPlanRoom> planRooms = new List<SqueakPlanRoom>();
                 Dictionary<string, SqueakTileset> frontOf = new Dictionary<string, SqueakTileset>();
                 for (int i = 0; i < files.Count; i++) {
+                    ReportEach(0.00, 0.045, i, files.Count, "Reading Squeak Squad's rooms");
                     SqueakMap map = new SqueakMap(SqueakUnpack(SqueakFileAnyCase(squeak, files[i].Map)));
                     roomOf[(files[i].Area, files[i].Stage, files[i].Index)] = i;
                     doorsOf[i] = map.Doors();
@@ -1879,6 +1941,7 @@ namespace KatAMRandomizer {
                     }
                 }
                 // (where the warp stars and fuse cannons land Kirby, SqueakRides() and the fuse cannons' doors: for the levels' way-out pass);
+                Report(0.045, "Finding where Squeak Squad's warp stars and cannons land");
                 foreach ((int from, List<Transport> list) in SqueakRides(squeak, files, roomOf, starsOf, doorsOf, widthOf, heightOf, 0))
                     foreach (Transport t in list) planRooms[from].RideTo.Add((t.X / 16, t.Y / 16, t.Room, t.DestX - 1, t.DestY - 1));
                 foreach (SqueakPlanRoom plan in planRooms) {
@@ -1889,6 +1952,7 @@ namespace KatAMRandomizer {
                             plan.RideTo.Add((fuse.Last.x + 1, fuse.Last.y, SqueakFirstRoom + to, landing.X, landing.Y));
                 }
                 // (the levels, KatAMExpansionSqueakLevels.cs: the mirrors each room gets);
+                Report(0.05, "Planning Squeak Squad's levels, doors and mirrors");
                 Dictionary<int, List<Door>> planned = PlanSqueakLevels(planRooms, firstSwitchRoom, out var worldStarts, out var bossRooms, out var switchDoors);
                 List<SqueakLook> looks = new List<SqueakLook>();
                 squeakPlanned = planned.ToDictionary(p => SqueakFirstRoom + p.Key, p => p.Value);
@@ -1900,10 +1964,54 @@ namespace KatAMRandomizer {
                 }
                 if (flightTable >= 0) ridesFrom = SqueakRides(squeak, files, roomOf, starsOf, doorsOf, widthOf, heightOf, flightCount);
 
+                /* (the rooms' foregrounds and the far views first, as many at once as the computer has cores: each made from its own files
+                 * alone (and the lairs planned above: their nests), the same whatever the order, then written in the rooms' order below
+                 * (ViewBackground() and the foregrounds' WriteSqueakForeground()), so the ROM is the same byte for byte. One at a time they
+                 * took a minute and a half, with nothing shown (the owner: "Ensure the program does not get stuck while also making ROM
+                 * progress obvious"). The jobs handed out one at a time, the longest first (the far views, then the rooms by their size: a
+                 * far view takes as long as about 30,000 blocks of rooms), so none is left alone at the end; the bar moves by that time; */
+                SqueakForeground[] foregrounds = new SqueakForeground[files.Count];
+                List<(string view, byte[] file)> viewFiles = files.Select(f => f.View).Where(v => v != null).Distinct()
+                    .Select(v => (v, SqueakFileAnyCase(squeak, v))).Where(v => v.Item2 != null).ToList();
+                const double ViewCost = 30000;
+                double Cost(int job) => job < viewFiles.Count ? ViewCost : widthOf[job - viewFiles.Count] * heightOf[job - viewFiles.Count];
+                List<int> jobOrder = Enumerable.Range(0, viewFiles.Count + files.Count).OrderByDescending(Cost).ToList();
+                double allCost = jobOrder.Sum(Cost), costDone = 0;
+                int jobsDone = 0;
+                Report(0.065, "Converting Squeak Squad's room tiles and far views");
+                try {
+                    System.Threading.Tasks.Parallel.ForEach(System.Collections.Concurrent.Partitioner.Create(jobOrder, System.Collections.Concurrent.EnumerablePartitionerOptions.NoBuffering), job => {
+                        if (job < viewFiles.Count) {
+                            SqueakBackground converted = ConvertSqueakFarView(SqueakFarViewPicture(viewFiles[job].file));
+                            lock (convertedViews) convertedViews[viewFiles[job].view] = converted;
+                        } else {
+                            int i = job - viewFiles.Count, room = SqueakFirstRoom + i;
+                            SqueakRoomFiles f = files[i];
+                            SqueakMap map = new SqueakMap(SqueakUnpack(SqueakFileAnyCase(squeak, f.Map)));
+                            // (one too big is turned down below);
+                            if (map.Width * map.Height <= BigRoomBlocks) {
+                                SqueakTileset front = f.Front == null || SqueakFileAnyCase(squeak, f.Front) is not byte[] frontFile ? null : new SqueakTileset(frontFile);
+                                SqueakTileset main = f.Main == null || SqueakFileAnyCase(squeak, f.Main) is not byte[] mainFile ? null : new SqueakTileset(mainFile);
+                                var cells = SqueakRoomCollision(map);
+                                SqueakMap drawn = SqueakNests(map, squeakLairs.Where(l => l.FromRoom == room).Select(l => (l.FromX, l.FromY)), squeakLairs.Any(l => l.Room == room));
+                                foregrounds[i] = ConvertSqueakForeground(drawn, front, main, ForegroundTiles, cells.blocks, SqueakSigns(map), cells.chains.Union(cells.burnt).ToHashSet());
+                            }
+                        }
+                        lock (foregrounds) {
+                            costDone += Cost(job);
+                            Report(0.065 + (0.78 - 0.065) * costDone / allCost, $"Converting Squeak Squad's room tiles and far views ({++jobsDone}/{jobOrder.Count})");
+                        }
+                    });
+                } catch (AggregateException exception) {
+                    // (as if it had been one at a time: the first one's error, for the error message below);
+                    System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(exception.InnerExceptions[0]).Throw();
+                }
+
                 // (each room's music: SqueakRoomSong(), its stage's music the one a room with none keeps);
                 int lastMusic = 0;
                 (int area, int stage) musicStage = (-1, -1);
                 for (int i = 0; i < files.Count; i++) {
+                    ReportEach(0.78, 0.85, i, files.Count, "Writing Squeak Squad's rooms");
                     SqueakRoomFiles f = files[i];
                     int room = SqueakFirstRoom + i;
                     SqueakMap map = new SqueakMap(SqueakUnpack(SqueakFileAnyCase(squeak, f.Map)));
@@ -1977,7 +2085,8 @@ namespace KatAMRandomizer {
                     // Foreground: its tiles, palettes and tilemap (a nest, the DS's own, on each DS door into a Squeak Lair, and no black
                     // doorway in a lair: SqueakNests());
                     SqueakMap drawn = SqueakNests(map, squeakLairs.Where(l => l.FromRoom == room).Select(l => (l.FromX, l.FromY)), lairHere != null);
-                    SqueakForeground foreground = ConvertSqueakForeground(drawn, front, main, ForegroundTiles, blocks, SqueakSigns(map), chains.Union(burnt).ToHashSet());
+                    SqueakForeground foreground = foregrounds[i] ?? ConvertSqueakForeground(drawn, front, main, ForegroundTiles, blocks, SqueakSigns(map), chains.Union(burnt).ToHashSet());
+                    foregrounds[i] = null;      // (written: its memory let go);
                     (int info, int palette, int tilemapEntry) = WriteSqueakForeground(rom, foreground, room, paletteCycles, ref here);
 
                     // Background: the far view, shared;
@@ -2297,6 +2406,7 @@ namespace KatAMRandomizer {
                                                BackgroundWidth = bgSize.width, BackgroundHeight = bgSize.height, Fight = planRooms[i].Midboss || planRooms[i].Boss });
                     squeakRooms.Add(new SqueakPortedRoom(f, room, width, height));
                 }
+                Report(0.85, "Building the Squeak Squad hub, ability room and switch rooms");
                 // (where the hub's door to the ability room lands Kirby: its doorway, SqueakAbilityRoomDoor(), facing the room's middle);
                 if (SqueakAbilityRoomFiles(squeak) is not SqueakRoomFiles abilityFiles
                     || new SqueakMap(SqueakUnpack(SqueakFileAnyCase(squeak, abilityFiles.Map))) is not SqueakMap abilityMap
@@ -2368,6 +2478,7 @@ namespace KatAMRandomizer {
                     return switchError;
                 foreach (var pair in switchDoors) squeakPlanned[firstSwitchRoom + pair.Key - 1] = pair.Value;
                 if (finaleStage) {
+                    Report(0.985, "Drawing the Dark Nebula hub");
                     int finaleBoss = bossRooms.FirstOrDefault(b => b.Value == SqueakFinaleShard).Key;
                     if (BuildSqueakFinaleHub(rom, version, finaleHubRoom, fountainHub, finaleMirrorTemplate, finaleExit,
                                              looks.Where(l => (l.World, l.Stage) == SqueakFinalStage && !l.Fight), looks.FirstOrDefault(l => l.Room == finaleBoss)?.View,
@@ -2394,6 +2505,7 @@ namespace KatAMRandomizer {
                 return $"The Squeak Squad ROM's rooms couldn't be read ({exception.Message}).";
             }
 
+            Report(0.995, "Writing Squeak Squad's room tables");
             /* The warp stars' rides: the flights' table grown by them (KatAM's code's pointer to it moved), each one's script
              * (RideFlight()), its landing in the arrivals' copy; */
             List<Transport> rides = ridesFrom.Values.SelectMany(list => list).OrderBy(t => t.Flight).ToList();
