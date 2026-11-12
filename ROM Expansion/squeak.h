@@ -341,6 +341,7 @@ enum {
     SQUEAK_FX_SPARK_RING_2B,
     SQUEAK_FX_SPARK_BURST_2,
     SQUEAK_FX_SPARK_GLINT,      // kirby/spark_cmn's 58: the spark that flickers on Spark Kirby every 61 frames;
+    SQUEAK_FX_BEAM_WHIP,        // The Beam scroll's whip (scrolls.c): kirby/beam_ext's 25;
     SQUEAK_FX_COUNT,
 };
 
