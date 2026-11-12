@@ -1143,6 +1143,19 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
       kind changed to fire by RAM writes): the wheel takes electricity (attack kind `0x30000443`) or fire (`0x30000143`) as it
       meets the Sparky, the DS's electric or fire wheel drawn from that frame with Kirby and KatAM's disc hidden, Kirby shown
       again when the roll ends at the wall; before the Sparky, KatAM's own wheel.
+    - Cupid (an ability the DS keeps but doesn't hand out; `PrmKirbyAngel.kgb`): the shot (`0x020BE864`) is one arrow, aimed and
+      charged while B is held (`0x020BE5A4`: types 0, 4, 8, straight, up, down; speed between words 18 and 20 by the charge, fall
+      word 16, sound 0xED). With the scroll and an input no button sets (`+0x28`; the owner chose it always on) the shot's start
+      ends in a volley (`0x020BE724`): three arrows at once (`0x020BE28C`, types 12-14 of the table `0x021592B0`), from words 61-62,
+      65-66, 69-70 (20 forward and 16 up from his feet, 14 and 10, 8 and 4), straight on (word 57, angle 0) at word 63's 6 pixels
+      a frame with no fall (word 59, 0), sound 0xEC; not charged, not aimed. Ported (`scrolls.c`'s Cupid): KatAM's shot
+      (`sub_080680C0`, detoured) makes three of KatAM's arrows (`sub_08081864`) from the DS's places, each kept straight on at the
+      DS's speed against KatAM's slowing and fall (`CupidArrowMain`, till it sticks or ends), at KatAM's strength (3; charged past
+      0x30, 5) with KatAM's pose, sound and stuck arrows; one volley a shot (KatAM's own charged triple's two more arrows not made).
+      Tested in the emulator (room 0x65, USA, EU and JP; Cupid and the scroll given by RAM writes, a Sparky held in their path with
+      its HP set to 20 by RAM writes): tapped, three arrows 6 pixels apart flying 6 pixels a frame level to the wall, the Sparky
+      losing 4 HP to each (12); held 70 frames, three at strength 5 (6 HP each; the third lands in its hurt frames); without the
+      scroll, KatAM's one arrow, slowing and falling (4 HP).
   - **The Secret Map's pieces** (treasures 93-99, taken as pieces 1-7 in order: not checked against the DS): each in its own chest
     (2-6-6, 3-3-7, 4-4-5, 5-4-5, 6-6-5, 7-6-9, 8-2-6), marked `chest[0x16]` the piece's number + 1 and `chest[0x17]` 2 (the area
     maps' mark is 1), the item one of KatAM's maps. Their art is `collection/map`: anims 0-6 the pieces (parchment, about 60 x 50

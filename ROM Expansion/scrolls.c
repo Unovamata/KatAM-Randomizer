@@ -33,7 +33,8 @@ enum {
     SCROLL_BEAM,
     SCROLL_TORNADO,
     SCROLL_PARASOL,
-    SCROLL_CUTTER = 8,
+    SCROLL_CUPID = 7,
+    SCROLL_CUTTER,
     SCROLL_LASER,
     SCROLL_WHEEL = 11,
     SCROLL_HI_JUMP = 12,
@@ -713,6 +714,96 @@ static void SparkCharging(struct Kirby *kirby) {
     if (!blocked && ++c->glint > SPARK_GLINT_WAIT) {
         c->glint = 0;
         Glint(kirby);
+    }
+}
+
+/* Cupid. The DS's Cupid Kirby (an ability the DS keeps but doesn't hand out; PrmKirbyAngel.kgb): his shot (0x020BE864) is a single
+ * arrow, aimed and charged while B is held (0x020BE5A4: types 0, 4 and 8, straight, up, down; their speed between words 18 and 20
+ * by the charge, word 16's fall, sound 0xED); with the scroll (HasScroll 7) and an input no button sets (`+0x28`: the owner chose
+ * it always on) it is a volley as the shot's start ends (0x020BE724): three arrows at once (0x020BE28C, types 12, 13 and 14 of the
+ * table 0x021592B0), from words 61-62, 65-66 and 69-70 (20 forward and 16 up from his feet, 14 and 10, 8 and 4), all straight on
+ * (word 57's angle, 0), at word 63's speed (6 pixels a frame) with no fall (word 59, 0), sound 0xEC; not charged, not aimed.
+ * In KatAM, with the scroll: KatAM's shot (sub_080680C0, detoured: his pose, sound and arrow, sub_08081864; three when charged to
+ * 0x30, KatAM's own triple, the first of strength 5 past it) is the DS's volley: three of KatAM's arrows from the DS's places,
+ * straight on at the DS's speed (each kept so, CupidArrowMain, against the arrow's own slowing and fall, sub_08081EB0, till it
+ * sticks or ends), of KatAM's strength (3; 5 charged past 0x30), with KatAM's sound and stuck arrows; one volley a shot. Not
+ * aimed: the DS's isn't; */
+extern void sub_08081864(struct Kirby *kirby, s16 charge, u8 aim);
+extern void sub_08081EB0(void);
+void (*gScrollCupidOriginal)(struct Kirby *) = NULL;
+#define CUPID_SPEED SQUEAK_SPEED(24576)     // PrmKirbyAngel.kgb's word 63 (67, 71): 6 pixels a frame;
+#define CUPID_SLOWING 6                     // sub_08081EB0's slowing and fall a frame (in water 0xC), undone each frame;
+#define CUPID_FALL 0x18
+#define CUPID_FALL_WATER 0xC
+#define CUPID_CHARGED 0x30                  // sub_080680C0: from it, KatAM's two more arrows;
+#define CUPID_ARROWS_MOST 8
+
+// gCupidVolley; The DS's three arrows' places, forward and up from his feet (PrmKirbyAngel.kgb's words 61-62, 65-66, 69-70);
+static const s8 gCupidVolley[3][2] = { { 20, 16 }, { 14, 10 }, { 8, 4 } };
+
+struct CupidArrow {
+    struct Task *arrow;
+};
+
+// CupidArrowAim(); An arrow's speed set so that, after its own slowing and fall this frame, it goes straight on at the DS's speed;
+static void CupidArrowAim(struct ObjectBase *o) {
+    o->xspeed = o->flags & 1 ? -(CUPID_SPEED + CUPID_SLOWING) : CUPID_SPEED + CUPID_SLOWING;
+    o->yspeed = o->unkC & 1 ? CUPID_FALL_WATER : CUPID_FALL;
+}
+
+// CupidArrowMain(); Each frame while its arrow flies (sub_08081EB0): kept straight on; gone once it sticks or ends;
+static void CupidArrowMain(void) {
+    struct CupidArrow *c = TaskGetStructPtr(gCurTask);
+    struct ObjectBase *o = TaskGetStructPtr(c->arrow);
+
+    if (c->arrow->main != sub_08081EB0 || o->flags & 0x1000) {
+        TaskDestroy(gCurTask);
+        return;
+    }
+    CupidArrowAim(o);
+}
+
+// IsKirbyArrow(); A task of a Kirby's flying arrow;
+static bool32 IsKirbyArrow(struct Task *t, struct Kirby *kirby) {
+    return t->main == sub_08081EB0 && ((struct ObjectBase *)TaskGetStructPtr(t))->parent == kirby;
+}
+
+// ScrollCupidShot(); sub_080680C0 (detoured): KatAM's shot; with the scroll, the DS's volley of three in its arrows' place;
+void ScrollCupidShot(struct Kirby *kirby) {
+    struct Task *before[CUPID_ARROWS_MOST];
+    s16 charge = kirby->base.counter;
+    u8 i, j, n = 0, made = 0;
+
+    if (!SqueakScrollOwned(SCROLL_CUPID) || kirby->ability != KIRBY_ABILITY_CUPID) {
+        gScrollCupidOriginal(kirby);
+        return;
+    }
+    for (i = 0; i < MAX_TASK_NUM && n < CUPID_ARROWS_MOST; i++)
+        if (IsKirbyArrow(&gTasks[i], kirby)) before[n++] = &gTasks[i];
+    // (KatAM's pose, sound and first arrow, at the shot's strength; not its two more: the volley's two in their place);
+    if (charge >= CUPID_CHARGED) kirby->base.counter = CUPID_CHARGED - 1;
+    gScrollCupidOriginal(kirby);
+    for (j = 0; j < 2; j++) sub_08081864(kirby, charge, 1);
+    if (charge >= CUPID_CHARGED) kirby->base.counter = charge - 2 * 0x18;
+    for (i = 0; i < MAX_TASK_NUM && made < 3; i++) {
+        struct Task *t = &gTasks[i], *keep;
+        struct ObjectBase *o;
+
+        if (!IsKirbyArrow(t, kirby)) continue;
+        for (j = 0; j < n && before[j] != t; j++) ;
+        if (j < n) continue;
+        o = TaskGetStructPtr(t);
+        // (KatAM's strength by the shot's charge, sub_08081864's: past 0x30, 5);
+        if (charge > CUPID_CHARGED) {
+            o->unk63 = 5;
+            o->unk64 = 0x200;
+        }
+        o->x = kirby->base.x + (o->flags & 1 ? -gCupidVolley[made][0] : gCupidVolley[made][0]) * 0x100;
+        o->y = kirby->base.y + SCROLL_FEET - gCupidVolley[made][1] * 0x100;
+        CupidArrowAim(o);
+        keep = TaskCreate(CupidArrowMain, sizeof(struct CupidArrow), 0x3500, TASK_USE_EWRAM, NULL);
+        if (keep != &gEmptyTask) ((struct CupidArrow *)TaskGetStructPtr(keep))->arrow = t;
+        made++;
     }
 }
 
