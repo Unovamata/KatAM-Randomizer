@@ -1231,6 +1231,24 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
       swing over his head, the hammer down with the dust); let go at 20 frames, KatAM's swing (5 HP); a tap, KatAM's swing after
       the 8 frames; without the scroll, KatAM's swing at once; Up and B, KatAM's flip (25 HP), unchanged. Not ported: the DS's
       underwater charge (KatAM's water swing kept), the air landing's own frames (he goes back to KatAM's fall).
+    - Fighter: the DS's Force Blast (0x020C5828, each frame of the charge; `PrmKirbyFighter.kgb`'s words 11-13: 10, 60, 120,
+      frames from its start) goes up a level at 10 frames and at 60, and with the scroll (HasScroll 17) at 120 to a third, its
+      biggest blast (fighter_ext.mca's composite 2); with the scroll and his HP under 11, the first level is that third. KatAM's
+      (`sub_08065900`, the charge; `sub_08065A0C`, the blast on its 5th frame) has its small wave, its big one past 30 frames, and
+      at 1 HP its biggest (the 1 HP attack, `sub_0807F128`), its charge aura (`sub_08094540`, made by `sub_0809447C` as the charge
+      starts) drawn and sounded by level (its third at 1 HP; CHARGE_1-3 every 6 frames). Ported (`scrolls.c`'s Fighter): with the
+      scroll, the charge held to the DS's 120 frames reaches that biggest blast (a piece, FIGHTER_CHARGE, made from his input while
+      he charges, counts it): the aura then in its 1 HP look and sound and, let go, the 1 HP attack, as at 1 HP (`sub_08094540`
+      and `sub_08065A0C` detoured, run with his HP read as 1 and his own put back; KatAM's own low-HP blast is the DS's low-HP
+      shortcut, kept). The aura's detour first showed that a detour's trampoline jumping back with `ldr r3; bx r3` broke a function
+      whose first instructions load `r3` (`sub_08094540`'s `ldr r3, [r2]`, `gCurTask`): the aura's task read the wrong object
+      and ended after a frame, scroll or not; the trampolines now jump back keeping every register (`push {r0, r1}`; `ldr r0`;
+      `str r0, [sp, #4]`; `pop {r0, pc}`), and no other detour had such code (checked, all three versions). Tested in the emulator
+      (room 0x65, USA, EU and JP; Fighter and the scroll given by RAM writes, a Sparky held 61 pixels ahead of him, its HP set to
+      99): B held 145 frames, the aura through the charge (as vanilla KatAM's, checked against the unmodified USA ROM), its second
+      look at 30 frames, its third at 120, the blast taking 6 HP (KatAM's 1 HP attack), Kirby's HP kept (5); without the scroll,
+      the big wave (4 HP), the aura's third never shown. The Hammer scroll's giant swing and the save hooks (a new game saved,
+      then continued from the file select) were run again after the trampoline change. The sounds weren't listened to.
   - **The Secret Map's pieces** (treasures 93-99, taken as pieces 1-7 in order: not checked against the DS): each in its own chest
     (2-6-6, 3-3-7, 4-4-5, 5-4-5, 6-6-5, 7-6-9, 8-2-6), marked `chest[0x16]` the piece's number + 1 and `chest[0x17]` 2 (the area
     maps' mark is 1), the item one of KatAM's maps. Their art is `collection/map`: anims 0-6 the pieces (parchment, about 60 x 50
