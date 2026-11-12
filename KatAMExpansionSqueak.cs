@@ -813,6 +813,9 @@ namespace KatAMRandomizer {
             /* The Parasol scroll's stars ("ROM Expansion/scrolls.c": parasol_ext.mca's composite 2, its parts 0-14 as one animation;
              * part 15, Kirby thrusting his parasol, left out: KatAM's own twirl is drawn); */
             new SqueakEffect(38, "kirby/parasol_ext", -1, Composite: 2, Parts: Enumerable.Range(0, 15).ToArray()),
+            // The Cutter scroll's cutter ("ROM Expansion/scrolls.c": cutter_ext.mca's composite 0: its sparkles, 27, and its blade, 25);
+            new SqueakEffect(39, "kirby/cutter_ext", 27),
+            new SqueakEffect(40, "kirby/cutter_ext", 25),
         };
 
         /* SqueakFlatten(); A composite animation's parts (`parts`: the composition's indices; all when null) drawn together as one

@@ -1082,6 +1082,13 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
       by 2 frames, sound `0xA9`. Ported (`scrolls.c`'s Sleep; the cut comes with the scroll, KatAM's sleep having none). Tested in
       the emulator (room 0x65, all three versions; Sleep given and HP set to 2 by RAM writes): his 239-frame sleep heals 2 to 6 by
       18-frame steps; A pressed every 4 frames wakes him 76 frames sooner; without the scroll no healing, the sleep as long.
+    - Cutter (as Kirby throws it, `0x020BA1C8`): with the scroll the thrown cutter is `cutter_ext.mca`'s composite 0 (`0x020B9F18`:
+      anim 25, a big blue blade spinning, with 27, sparkles about it) for the plain 23 (a small yellow one), its box 39 x 27 (`.rca`:
+      -20 to 19 across, -13 to 14 up) for 27 x 20, the same damage (20) and flight. Ported (`scrolls.c`'s Cutter): KatAM's own cutter
+      (its task `sub_08070580`, strength 4, box -12 to 12 across, -7 to 8) flies as it does, drawn as the DS's (KatAM's not drawn),
+      its box the DS's. Tested in the emulator (room 0x65, all three versions; Cutter and the scroll given by RAM writes): the thrown
+      cutter's box -20, -14 to 19, 13, KatAM's look off and the DS's blade drawn following it; without the scroll KatAM's cutter
+      unchanged (box -12, -7 to 12, 7, its yellow look).
   - **The Secret Map's pieces** (treasures 93-99, taken as pieces 1-7 in order: not checked against the DS): each in its own chest
     (2-6-6, 3-3-7, 4-4-5, 5-4-5, 6-6-5, 7-6-9, 8-2-6), marked `chest[0x16]` the piece's number + 1 and `chest[0x17]` 2 (the area
     maps' mark is 1), the item one of KatAM's maps. Their art is `collection/map`: anims 0-6 the pieces (parchment, about 60 x 50
