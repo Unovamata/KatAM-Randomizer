@@ -304,10 +304,26 @@ namespace KatAMRandomizer {
         }
 
         /* SqueakPackPalettes(); The color sets (each tile's colors) packed into at most `palettes` palettes of 15 colors: the biggest
-         * sets first, each into the palette it adds fewest colors to; null if they don't fit; */
+         * sets first, each into the palette it adds fewest colors to; null if they don't fit. That order failing, others are tried
+         * (the sets of one size shuffled, SqueakPackTries of them, fixed seeds: the same ROM every time) before the converter merges
+         * colors (ConvertSqueakForeground()): 7-1-3's 52 colors took 19 merges with the first order alone; */
+        const int SqueakPackTries = 24;
         static List<HashSet<int>> SqueakPackPalettes(IEnumerable<HashSet<int>> sets, int palettes) {
+            List<HashSet<int>> all = sets.Where(s => s.Count > 0).ToList();
+            if (all.Any(s => s.Count > 15)) return null;
+            List<HashSet<int>> ordered = all.OrderByDescending(s => s.Count).ToList();
+            if (SqueakPackOrder(ordered, palettes) is List<HashSet<int>> first) return first;
+            for (int seed = 1; seed <= SqueakPackTries; seed++) {
+                Random random = new Random(seed);
+                List<HashSet<int>> shuffled = all.Select(s => (s, k: random.Next())).OrderByDescending(e => e.s.Count).ThenBy(e => e.k).Select(e => e.s).ToList();
+                if (SqueakPackOrder(shuffled, palettes) is List<HashSet<int>> packed) return packed;
+            }
+            return null;
+        }
+
+        static List<HashSet<int>> SqueakPackOrder(List<HashSet<int>> sets, int palettes) {
             List<HashSet<int>> packed = new List<HashSet<int>>();
-            foreach (HashSet<int> set in sets.Where(s => s.Count > 0).OrderByDescending(s => s.Count)) {
+            foreach (HashSet<int> set in sets) {
                 if (set.Count > 15) return null;
                 HashSet<int> best = null;
                 int added = int.MaxValue;
@@ -324,9 +340,103 @@ namespace KatAMRandomizer {
             return packed;
         }
 
+        /* SqueakFitPalettes(); A room whose colors only fit KatAM's palettes merged (ConvertSqueakForeground(): a merged color changes
+         * every tile it's in) fitted again tile by tile: each set of colors (a tile's, an animated slot's; its colors' pixels counted)
+         * drawn with the palette that shows it closest (each of its colors the closest that palette has: SqueakColorDistance(), times
+         * its pixels), each palette then the colors of its sets (past 15, the closest two made one, the less used dropped), round after
+         * round from the merged palettes (`start`) until the sets stay put, the closest round kept. A palette no set takes starts again
+         * from the set shown worst. A color the palette animation changes (SqueakCycled()) is never shown as another, nor another as
+         * it, and no more DS rows' cycles than KatAM keeps (SqueakMaxColorCycles). Measured over the 89 rooms that need merges (each
+         * pixel's color against the DS's, SqueakColorDistance()): shown far off (past 200), 37,563 pixels merged, 163 fitted; past a
+         * near shade (60), 517,416 merged, 79,716 fitted (SqueakFitFar 8: fewer far ones than at 32 or 128). Returns the palettes and
+         * each set's; */
+        const int SqueakFitRounds = 40, SqueakFitFar = 8, SqueakNearShade = 60;
+        static (List<HashSet<int>> palettes, int[] setPalette) SqueakFitPalettes(List<Dictionary<int, long>> sets, List<HashSet<int>> start) {
+            static bool Cycled(int c) => c >= SqueakCycledBit;
+            // (a color shown as another: its pixels times how far, a far one more than its distance, so a few pixels of an accent
+            // aren't given up for many of a near shade);
+            static long Far(int d) => d + (long)d * d / SqueakFitFar;
+            long Cost(Dictionary<int, long> set, HashSet<int> palette) {
+                long sum = 0;
+                foreach ((int c, long pixels) in set) {
+                    if (palette.Contains(c)) continue;
+                    if (Cycled(c)) return long.MaxValue;
+                    int closest = int.MaxValue;
+                    foreach (int x in palette) if (!Cycled(x)) closest = Math.Min(closest, SqueakColorDistance(c, x));
+                    if (closest == int.MaxValue) return long.MaxValue;
+                    sum += pixels * Far(Math.Max(1, closest));
+                }
+                return sum;
+            }
+            // (a palette's colors, past 15 the closest two made one: the less used dropped; null if its animated colors alone don't fit);
+            static HashSet<int> Reduce(Dictionary<int, long> colors) {
+                Dictionary<int, long> left = new Dictionary<int, long>(colors);
+                while (left.Count > 15) {
+                    List<int> plain = left.Keys.Where(c => !Cycled(c)).ToList();
+                    (int a, int b, long d) closest = (-1, -1, long.MaxValue);
+                    for (int i = 0; i < plain.Count; i++)
+                        for (int j = i + 1; j < plain.Count; j++) {
+                            long d = Math.Min(left[plain[i]], left[plain[j]]) * Far(Math.Max(1, SqueakColorDistance(plain[i], plain[j])));
+                            if (d < closest.d) closest = (plain[i], plain[j], d);
+                        }
+                    if (closest.a < 0) return null;
+                    (int keep, int drop) = left[closest.a] >= left[closest.b] ? (closest.a, closest.b) : (closest.b, closest.a);
+                    left[keep] += left[drop];
+                    left.Remove(drop);
+                }
+                return left.Keys.ToHashSet();
+            }
+            static int Cycles(List<HashSet<int>> palettes) => palettes.Sum(p => p.Where(Cycled).Select(c => (c >> 15 & 0xFF) >> 4).Distinct().Count());
+
+            List<HashSet<int>> palettes = start.Select(p => p.ToHashSet()).ToList();
+            while (palettes.Count < ForegroundPalettes) palettes.Add(new HashSet<int>());
+            (List<HashSet<int>> palettes, int[] setPalette, long cost) best = (null, null, long.MaxValue);
+            int[] last = null;
+            for (int round = 0; round < SqueakFitRounds; round++) {
+                // Each set to the palette that shows it closest (the first of those alike);
+                int[] now = new int[sets.Count];
+                long[] costs = new long[sets.Count];
+                long total = 0;
+                for (int s = 0; s < sets.Count; s++) {
+                    costs[s] = long.MaxValue;
+                    for (int p = 0; p < palettes.Count; p++) {
+                        long cost = Cost(sets[s], palettes[p]);
+                        if (cost < costs[s]) (costs[s], now[s]) = (cost, p);
+                    }
+                    if (costs[s] == long.MaxValue) { total = long.MaxValue; break; }
+                    total += costs[s];
+                }
+                if (total == long.MaxValue) break;
+                if (total < best.cost && Cycles(palettes) <= SqueakMaxColorCycles) best = (palettes.Select(p => p.ToHashSet()).ToList(), now, total);
+                if (total == 0 || (last != null && now.SequenceEqual(last))) break;
+                last = now;
+                // Each palette its sets' colors;
+                List<HashSet<int>> next = new List<HashSet<int>>();
+                HashSet<int> seeded = new HashSet<int>();
+                for (int p = 0; p < palettes.Count; p++) {
+                    Dictionary<int, long> colors = new Dictionary<int, long>();
+                    for (int s = 0; s < sets.Count; s++)
+                        if (now[s] == p)
+                            foreach ((int c, long pixels) in sets[s]) colors[c] = colors.GetValueOrDefault(c) + pixels;
+                    if (colors.Count == 0) {
+                        int worst = Enumerable.Range(0, sets.Count).Where(s => !seeded.Contains(s) && sets[s].Count is > 0 and <= 15)
+                                              .OrderByDescending(s => costs[s]).DefaultIfEmpty(-1).First();
+                        if (worst >= 0 && costs[worst] > 0) {
+                            seeded.Add(worst);
+                            foreach ((int c, long pixels) in sets[worst]) colors[c] = pixels;
+                        }
+                    }
+                    next.Add(Reduce(colors) ?? palettes[p]);
+                }
+                palettes = next;
+            }
+            return best.palettes == null ? (null, null) : (best.palettes, best.setPalette);
+        }
+
         /* ConvertSqueakForeground(); A room's three layers as KatAM's one foreground: each 8-pixel tile drawn whole (SqueakRoomTile()),
          * the same pictures (flipped too) one tile; the animated ones a tile of their own, with every frame (Animations). Its colors go into KatAM's 6 palettes of 15 (SqueakPackPalettes()); where they
-         * don't fit, the two closest colors become one (the less used takes the other's) until they do. Past KatAM's 768 tiles (three
+         * don't fit, the two closest colors become one (the less used takes the other's) until they do, then the colors those merges
+         * moved far are fitted again tile by tile (SqueakFitPalettes()). Past KatAM's 768 tiles (three
          * rooms, the busiest), the two most alike tiles of a palette become one (the less used takes the other's place) until they
          * fit (the owner allows compressing tilesets); */
         static SqueakForeground ConvertSqueakForeground(SqueakMap map, SqueakTileset front, SqueakTileset main, int maxTiles = ForegroundTiles,
@@ -410,6 +520,9 @@ namespace KatAMRandomizer {
                 foreach (int c in slots[allSlots[i].timing][allSlots[i].slot].SelectMany(f => f).Where(c => c >= 0)) colorUses[c] = colorUses.GetValueOrDefault(c) + slotCount[i];
             Dictionary<int, int> merged = colorUses.Keys.ToDictionary(c => c, c => c);
             int Final(int c) { while (merged[c] != c) c = merged[c]; return c; }
+            // (a color merged only into near shades: the last of them, SqueakFitPalettes() leaving those merges as they are);
+            Dictionary<int, int> mergedHow = new Dictionary<int, int>();
+            int Near(int c) { while (merged[c] != c && mergedHow[c] <= SqueakNearShade) c = merged[c]; return c; }
             // (a slot's colors: all its frames', as one palette draws them all);
             List<HashSet<int>> Sets() => pictures.Select(p => p.Where(c => c >= 0).Select(Final).ToHashSet())
                 .Concat(allSlots.Select(s => slots[s.timing][s.slot].SelectMany(f => f).Where(c => c >= 0).Select(Final).ToHashSet()))
@@ -428,9 +541,58 @@ namespace KatAMRandomizer {
                 if (closest.a < 0) throw new InvalidOperationException("A Squeak Squad room's colors don't fit KatAM's palettes.");
                 (int keep, int drop) = colorUses[closest.a] >= colorUses[closest.b] ? (closest.a, closest.b) : (closest.b, closest.a);
                 merged[drop] = keep;
+                mergedHow[drop] = closest.d;
                 colorUses[keep] += colorUses[drop];
                 mergedColors++;
             }
+            /* Each set of colors (a picture's; an animated slot's, all its frames'), its colors' pixels counted; merged colors fitted
+             * again tile by tile (SqueakFitPalettes()): each set its palette, each color the closest its palette has (Shown()); */
+            List<Dictionary<int, long>> setColors = new List<Dictionary<int, long>>();
+            Dictionary<string, int> setOf = new Dictionary<string, int>();
+            int SetOf(IEnumerable<int> colors) {
+                string key = string.Join(",", colors.Where(c => c >= 0).Distinct().OrderBy(c => c));
+                if (!setOf.TryGetValue(key, out int s)) {
+                    setOf[key] = s = setColors.Count;
+                    setColors.Add(new Dictionary<int, long>());
+                }
+                return s;
+            }
+            void Count(int s, IEnumerable<int> pixels, long times) {
+                foreach (int c in pixels.Where(c => c >= 0)) setColors[s][c] = setColors[s].GetValueOrDefault(c) + times;
+            }
+            int[] pictureSet = new int[pictures.Count];
+            int[] NearPixels(int[] pixels) => pixels.Select(c => c < 0 ? c : Near(c)).ToArray();
+            for (int p = 0; p < pictures.Count; p++) Count(pictureSet[p] = SetOf(NearPixels(pictures[p])), NearPixels(pictures[p]), uses[p]);
+            int[] slotSet = new int[slotTiles];
+            for (int i = 0; i < slotTiles; i++) {
+                int[][] frames = slots[allSlots[i].timing][allSlots[i].slot].Select(NearPixels).ToArray();
+                slotSet[i] = SetOf(frames.SelectMany(f => f));
+                foreach (int[] frame in frames) Count(slotSet[i], frame, slotCount[i]);
+            }
+            int[] setPalette = null;
+            /* (only where a merge shows a pixel more than a near shade off, SqueakNearShade; and the merges within near shades kept,
+             * Near(): the fit keeps tiles apart that a merge made one, ROM room the European version is short of: fitting every
+             * merged color took 43 KB more, past the 42 KB it had left; this way 9 KB, and a near shade's merge shows no difference); */
+            long FarMerged() {
+                long far = 0;
+                for (int p = 0; p < pictures.Count; p++)
+                    foreach (int c in pictures[p]) if (c >= 0 && SqueakColorDistance(c, Final(c)) > SqueakNearShade) far += uses[p];
+                return far;
+            }
+            if (mergedColors > 0 && FarMerged() > 0) {
+                (List<HashSet<int>> fitted, int[] fittedSets) = SqueakFitPalettes(setColors, palettes);
+                if (fitted != null) (palettes, setPalette) = (fitted, fittedSets);
+            }
+            Dictionary<(int, int), int> shown = new Dictionary<(int, int), int>();
+            int Shown(int palette, int c) {
+                if (setPalette == null) return Final(c);
+                c = Near(c);
+                if (palettes[palette].Contains(c)) return c;
+                if (!shown.TryGetValue((palette, c), out int x))
+                    shown[(palette, c)] = x = palettes[palette].Where(k => k < SqueakCycledBit).OrderBy(k => SqueakColorDistance(c, k)).ThenBy(k => k).First();
+                return x;
+            }
+            int PaletteOf(int set) => setPalette?[set] ?? Math.Max(0, palettes.FindIndex(p => setColors[set].Keys.Select(Final).ToHashSet().IsSubsetOf(p)));
 
             // Each picture in KatAM's colors: its palette (the first holding all its colors) and indexes (0 transparent);
             ushort[] paletteColors = new ushort[ForegroundPalettes * 16];
@@ -451,10 +613,9 @@ namespace KatAMRandomizer {
                                                          cycle.Frames.Select(f => indexes.Select(i => f[i]).ToArray()).ToArray()));
                 }
             if (colorCycles.Count > SqueakMaxColorCycles) throw new InvalidOperationException("A Squeak Squad room's palette animation needs more cycles than KatAM keeps.");
-            (int palette, byte[] indexes) Indexed(int[] pixels, IEnumerable<int> all = null) {
-                HashSet<int> colors = (all ?? pixels).Where(c => c >= 0).Select(Final).ToHashSet();
-                int palette = Math.Max(0, palettes.FindIndex(p => colors.IsSubsetOf(p)));
-                byte[] indexes = pixels.Select(c => c < 0 ? (byte)0 : (byte)(paletteLists[palette].IndexOf(Final(c)) + 1)).ToArray();
+            (int palette, byte[] indexes) Indexed(int[] pixels, int set) {
+                int palette = PaletteOf(set);
+                byte[] indexes = pixels.Select(c => c < 0 ? (byte)0 : (byte)(paletteLists[palette].IndexOf(Shown(palette, c)) + 1)).ToArray();
                 return (palette, indexes);
             }
 
@@ -470,7 +631,7 @@ namespace KatAMRandomizer {
             (int tile, bool h, bool v)[] pictureTile = new (int, bool, bool)[pictures.Count];
             List<int> tileUses = new List<int> { 0 };
             for (int p = 0; p < pictures.Count; p++) {
-                (int palette, byte[] indexes) = Indexed(pictures[p]);
+                (int palette, byte[] indexes) = Indexed(pictures[p], pictureSet[p]);
                 if (indexes.All(i => i == 0)) palette = 0;
                 (int tile, bool h, bool v) found = (-1, false, false);
                 foreach ((bool h, bool v) in new[] { (false, false), (true, false), (false, true), (true, true) })
@@ -554,7 +715,7 @@ namespace KatAMRandomizer {
                 for (int i = 0; i < slots[t].Count; i++) {
                     int[][] slotFrames = slots[t][i];
                     for (int f = 0; f < frames.Length; f++) {
-                        (int palette, byte[] indexes) = Indexed(slotFrames[f], slotFrames.SelectMany(p => p));
+                        (int palette, byte[] indexes) = Indexed(slotFrames[f], slotSet[slotIndex[(t, i)]]);
                         slotPalette[slotIndex[(t, i)]] = palette;
                         Packed(indexes).CopyTo(frames[f], i * 32);
                         if (f == 0) slotFirst.Add(Packed(indexes));

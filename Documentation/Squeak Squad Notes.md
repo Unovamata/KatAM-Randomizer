@@ -1105,6 +1105,36 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
     row's colors one of KatAM's own palette cycles (ForegroundPalette +4, +8: `sub_08003108()` copies a frame's colors in for its
     duration; at most 8 a room, these rooms need 3). Checked in the GBA emulator (a forced start in 2-1-4, room 0x432, USA): the BG
     palette read every 10 frames, palettes 0, 2 and 4 change as the DS's rows' frames, and shots show the rims and crystals glow.
+  - **Colors** (the owner: "There's a lot of color palette problems with enemies and stages."; swept with every room: the converter's
+    numbers for all 482 rooms, the DS against KatAM side by side in the rooms that changed most, and a fly through every room for
+    the enemies'):
+    - *The stages.* KatAM's foreground has 6 palettes of 15 colors for the DS's 16 rows of the three layers; 89 rooms' tiles don't
+      pack into 6 as they are. The converter merged the two closest colors everywhere until they did, every tile with either color
+      changed (7-1-3's walls: 43% of their pixels more than a near shade off, the teal rock gone to green). Now the merges within a
+      near shade (`SqueakColorDistance()` 60) stay, and the colors merges moved further are fitted again tile by tile: each set of
+      colors (a tile's, an animated slot's) drawn with the palette that shows it closest, each color the closest that palette has,
+      the palettes rebuilt from their sets' own colors, round after round (`SqueakFitPalettes()`, a far shift weighing more than a
+      near one). The pixels shown far off (past 200) in all those rooms: 37,563 merged, 163 fitted; past a near shade: 517,416
+      merged, 79,716 fitted. Rooms whose colors fit, or whose merges stay within near shades, come out as before. ROM room: fitting
+      every merged color took 43 KB in the European ROM, which had 42 KB left (its Collection Room's five languages); keeping the
+      near merges, 9 KB (33 KB left there). Checked in the GBA emulator (forced starts) against DS shots
+      of the same rooms: 7-1-3 (0x56E), 2-1-4 (0x432), 2-5-6 (0x457), 3-1-5 (0x470).
+    - *A DS-side note.* The DS loads a room's BG palette from its `BB` tileset (`0x022184A2`-`0x0221855A`: the part's `+8` file,
+      its 0x200 bytes at `+0x10` copied to the map's `+0x18`). A stage loaded in the DS emulator through stage 1-1's `.mxi` starts
+      (from this save) in the stage's fifth part, not its first: the room put first showed another (7-1-3 looked orange: that was
+      7-1-5's tileset 39). The `.mxi` is now made with every part the room. 2-1-4's big crystal pink on the DS and lilac in KatAM
+      is its palette animation (`p_0f.pal`) caught at two moments, both colors its frames.
+    - *The enemies.* KatAM keeps 7 enemy palettes (OBJ slots 8-14) and loads an 8th into slot 14 over the 7th's, its key kept out
+      of the table: each loads again as it spawns and the other shows in its colors. A fly through every Squeak Squad room (a test
+      script in the GBA emulator, as `debug/fly.lua` flies: warped in, Kirby flown in rows 96 pixels apart at 12 pixels a frame,
+      his HP kept, `gUnk_02022E60[7]` watched) found it in 55 rooms (7 kinds of KatAM enemies, items and chests, and a Squeak Squad
+      character on top: 0x48F 57 times in one pass). `rooms.c`'s `BigLoadPalette` (KatAM's loader redirected) gives the 8th the first slot no live object draws with,
+      KatAM's way only with all 7 in use. Measured with the same fly (both ROMs flown alike: 487 rooms whole, 2 left mid-way by a
+      warp; 0x493, 0x578, 0x5D1 and 0x5D2 have no door to land Kirby on), a palette loaded over another: 571 times in 55 rooms before, 96 in 22 after, those at moments with 8 or
+      more palettes on the screen at once (0x4A4, 0x534 and 0x4FA the most), more than KatAM's 7 slots hold. In 0x461 the grass
+      tuft drew in fire colors, its barrel in a chest's and Acchi in another's; now in their own (same frame of the same flight
+      in the USA, European and Japanese ROMs). The characters' own colors are the DS's `.cla` palettes as they are (only
+      Squeakers draws one near-white as white).
   - **Currents** (the owner: "Currents in water don't have any effect on the player."): a cell's id `0x10`-`0x3C` (a step of 4),
     in water or in air, pushes Kirby: (id - 0x10) / 4 its index, the index's low 2 bits the way (0 up, 1 right, 2 down, 3 left),
     the rest the strength (0.5, 1 or 2 pixels a frame, added to his position; measured in the DS emulator, 1-1-1's cells rewritten

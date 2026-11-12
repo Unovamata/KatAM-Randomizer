@@ -1153,6 +1153,8 @@
             }
             // (and the completion counts KatAM's chests only, not the NiDL rooms' (PlanChests()): rooms.c's NidlNumChestsCollected);
             Redirect(rom, version.RomSymbols["NumChestsCollected"], codeBase + version.CodeSymbols["NidlNumChestsCollected"]);
+            // (and an object's palette past KatAM's 7 enemy slots takes one no live object draws with, not the 7th's: rooms.c's BigLoadPalette);
+            Redirect(rom, version.RomSymbols["sub_0803DFAC"], codeBase + version.CodeSymbols["BigLoadPalette"]);
             /* (and the ported rooms' visited doors are saved with the game's world props, in SRAM after them: rooms.c's NidlWriteSave;
              * the game's functions that write and read them detoured there, their trampolines in gNidlSave, and the world props' clear,
              * sbClearFunctions[1], pointed to NidlClearSave, the original after them); */

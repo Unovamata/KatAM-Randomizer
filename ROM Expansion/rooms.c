@@ -374,6 +374,60 @@ u16 NidlNumChestsCollected(void)
     return count;
 }
 
+/* BigLoadPalette(); KatAM's sub_0803DFAC (redirected here by KatAMExpansionRooms.cs: an object's palette, its anim's `key` and
+ * `variant`, into the enemies' OBJ slots 8-14; gUnk_02022E60 their keys, gUnk_02022EA0 how many), but past 7: KatAM loads the 8th
+ * into slot 14 over the palette there, its key kept out of the table (at [7]), so each of the two loads it again as it spawns and
+ * the other one shows in the wrong colors (the owner: "a lot of color palette problems with enemies"; a fly through the Squeak Squad
+ * rooms counted 395 such loads in 308 of them: a room of 7 enemy kinds and a Squeak character, items, chests). Here the 8th takes
+ * the first slot no live object draws with (PaletteSlotsInUse()), its key in the table there; none free, KatAM's way. Never past 7
+ * in KatAM's own rooms; */
+static u8 PaletteSlotsInUse(void) {
+    struct Task *t = &gTasks[0];
+    const u16 *oam = (const u16 *)OAM;
+    u8 used = 0, pal;
+    u16 n;
+
+    // (every task's object's sprite: an ObjectBase's (kinds 1, 2) or an EffectObject's (3); a task that's no object may mark one);
+    for (n = 0; n < MAX_TASK_NUM && t->next; n++) {
+        struct ObjectBase *o;
+
+        t = (struct Task *)(IWRAM_START + t->next);
+        o = TaskGetStructPtr(t);
+        if (o->header.kind == 1 || o->header.kind == 2) pal = o->sprite.palId;
+        else if (o->header.kind == 3) pal = ((struct EffectObject *)o)->sprite.palId;
+        else continue;
+        if (pal >= 8 && pal < 15) used |= 1 << (pal - 8);
+    }
+    // (and every sprite the last frame showed: an object's other sprites, drawn with palettes of their own);
+    for (n = 0; n < 128; n++, oam += 4) {
+        if ((oam[0] & 0x300) == 0x200 || (oam[0] & 0x2000)) continue;
+        pal = oam[2] >> 12;
+        if (pal >= 8 && pal < 15) used |= 1 << (pal - 8);
+    }
+    return used;
+}
+
+u8 BigLoadPalette(u16 key, u8 variant) {
+    u8 slot, used;
+    struct Sprite sprite;
+
+    if (!key) return 0xF;
+    if (gUnk_02022EA0 < 7) {
+        slot = gUnk_02022EA0++;
+        gUnk_02022E60[slot] = key;
+    } else {
+        used = PaletteSlotsInUse();
+        for (slot = 0; slot < 7 && (used >> slot & 1); slot++)
+            ;
+        // (none free: KatAM's way, slot 14 loaded, its key left there and this one at [7]);
+        if (slot == 7) gUnk_02022E60[slot--] = key;
+        else gUnk_02022E60[slot] = key;
+    }
+    SpriteSomething(&sprite, 0x6000000, key & 0xFFF, variant, 0xFF, 0, 0, 0, 0, 0x10, (slot + 8) & 0xF, 0x80000);
+    sub_0803D280(0x10 * (slot + 8), 0x10);
+    return slot + 8;
+}
+
 // (slot 0's in KatAM's arrays; slots 1-3: their collision and zones in KatAM's tilemap array after slot 0's tilemap, 56460 of its
 // 62400 bytes, and their tilemaps at the heap's end, BIG_AREA);
 static inline u16 *BigTilemap(u8 slot) {
