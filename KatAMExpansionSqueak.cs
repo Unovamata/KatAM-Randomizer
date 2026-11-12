@@ -749,8 +749,10 @@ namespace KatAMRandomizer {
         /* An effect: a file's animation (`Skip`: cells drawn as nothing; `Once`: played once, staying on its last step), or, with
          * `Composite`, that composite animation's parts (`Parts`: the composition's indices, all when null) as one animation
          * (SqueakFlatten); */
+        /* (OnlyPalettes: only the pieces drawn with these of its .cla's palettes, SqueakSplitLayer(): the Hammer scroll's, Kirby's own body
+         * apart from his hammer, each drawn with its own palette); */
         internal sealed record SqueakEffect(int Index, string File, int Anim, int[] Skip = null, bool Once = false, int Composite = -1,
-                                            int[] Parts = null);
+                                            int[] Parts = null, int[] OnlyPalettes = null);
         internal sealed record SqueakEffectBuilt(SqueakEffect Effect, int AnimId, List<int> Cells, SqueakAnim Anim, int Tiles, SqueakPaletteKey Palette);
 
         static readonly List<SqueakEffect> SqueakEffectDefinitions = new List<SqueakEffect> {
@@ -847,6 +849,20 @@ namespace KatAMRandomizer {
             // The Bomb scroll's ice and spark bombs ("ROM Expansion/scrolls.c": the thrown bomb of kirby/bomb_ice and kirby/bomb_spark);
             new SqueakEffect(61, "kirby/bomb_ice_ext", 30),
             new SqueakEffect(62, "kirby/bomb_spark_ext", 30),
+            /* The Hammer scroll's ("ROM Expansion/scrolls.c"): kirby/hammer_ext's charge (30: the hammer held behind him), its second level
+             * (42: the giant hammer, glowing), the giant swing (32) and its landing (composite 1: 33, the giant hammer down and back to
+             * its size, with 29, the dust, 36 pixels ahead), each as Kirby's body (palette 0, drawn with his own: KatAM's Kirby palette
+             * has the DS's colors 1-11) and the hammer (palette 1, its own colors); efc_cmn0's 29, the glint at the hammer's head at
+             * the second level (0x02039B28, the template 0x021586C0); */
+            new SqueakEffect(63, "kirby/hammer_ext", 30, OnlyPalettes: new[] { 0 }),
+            new SqueakEffect(64, "kirby/hammer_ext", 30, OnlyPalettes: new[] { 1 }),
+            new SqueakEffect(65, "kirby/hammer_ext", 42, OnlyPalettes: new[] { 0 }),
+            new SqueakEffect(66, "kirby/hammer_ext", 42, OnlyPalettes: new[] { 1 }),
+            new SqueakEffect(67, "kirby/hammer_ext", 32, Once: true, OnlyPalettes: new[] { 0 }),
+            new SqueakEffect(68, "kirby/hammer_ext", 32, Once: true, OnlyPalettes: new[] { 1 }),
+            new SqueakEffect(69, "kirby/hammer_ext", 0, Once: true, Composite: 1, OnlyPalettes: new[] { 0 }),
+            new SqueakEffect(70, "kirby/hammer_ext", 0, Once: true, Composite: 1, OnlyPalettes: new[] { 1 }),
+            new SqueakEffect(71, "effect/efc_cmn0", 29, Once: true),
         };
 
         /* SqueakFlatten(); A composite animation's parts (`parts`: the composition's indices; all when null) drawn together as one
@@ -936,6 +952,7 @@ namespace KatAMRandomizer {
                 }
                 string[] path = effect.File.Split('/');
                 SqueakCharacter character = ReadSqueakCharacter(squeak, path[1], path[0]);
+                if (effect.OnlyPalettes != null) character = SqueakSplitLayer(character, effect.OnlyPalettes, true);
                 SqueakAnim anim;
                 if (effect.Composite >= 0) (character, anim) = SqueakFlatten(character, effect.Composite, effect.Parts);
                 else anim = character.Anims[effect.Anim];

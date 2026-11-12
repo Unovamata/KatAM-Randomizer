@@ -16,6 +16,7 @@ namespace KatAMRandomizer {
          * • Parasol's twirl's attack as it starts (sub_08084188, detoured): ScrollParasolTwirl, the piece of the DS's stars and boxes;
          * • Cutter's throw (sub_08078EFC, detoured): ScrollCutterThrow, the cutter drawn as the DS's upgraded one, its box grown;
          * • Cupid's shot (sub_080680C0, detoured): ScrollCupidShot, the DS's volley of three in its arrows' place;
+         * • Hammer's B (sub_080618C0, detoured): ScrollHammerAttack, the DS's charge and its giant swing;
          * • Bomb's throw (sub_08082380) and a blast (sub_08074240), detoured: ScrollBombThrow, the piece giving his bombs an element and
          *   the DS's look, and ScrollBombBlast, his blast that element's;
          * the detoured functions' trampolines (running them as they were) in gScroll*Original. Returns an error, or null; */
@@ -52,6 +53,9 @@ namespace KatAMRandomizer {
             if (bomb < 0 || blast < 0) return $"The {version.Name} ROM's bomb code doesn't match.";
             WriteInt(rom, CodeAddress + version.CodeSymbols["gScrollBombOriginal"], bomb + 0x08000000 + 1);
             WriteInt(rom, CodeAddress + version.CodeSymbols["gScrollBlastOriginal"], blast + 0x08000000 + 1);
+            int hammer = Detour(rom, version.RomSymbols["sub_080618C0"], codeBase + version.CodeSymbols["ScrollHammerAttack"], ref cursor);
+            if (hammer < 0) return $"The {version.Name} ROM's hammer code doesn't match.";
+            WriteInt(rom, CodeAddress + version.CodeSymbols["gScrollHammerOriginal"], hammer + 0x08000000 + 1);
             return null;
         }
     }

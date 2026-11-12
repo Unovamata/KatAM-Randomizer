@@ -24,6 +24,7 @@
 #include "code_0806F780.h"
 #include "malloc_vram.h"
 #include "trig.h"
+#include "constants/songs.h"
 #include "palette.h"
 
 // The scrolls' numbers (the DS's);
@@ -34,7 +35,8 @@ enum {
     SCROLL_BEAM,
     SCROLL_TORNADO,
     SCROLL_PARASOL,
-    SCROLL_CUPID = 7,
+    SCROLL_HAMMER,
+    SCROLL_CUPID,
     SCROLL_CUTTER,
     SCROLL_LASER,
     SCROLL_SWORD,
@@ -115,7 +117,7 @@ struct SparkCharge {
     u8 glint;                   // +0x3AC;
 };
 
-enum { SPARK_AURA, SPARK_BURST, SPARK_BALL, BEAM_WHIP, TORNADO_ELEMENT, PARASOL_THRUST, CUTTER_BLADE, LASER_CHARGE, LASER_BOLT, UFO_STAR, HI_JUMP_ORB, WHEEL_ELEMENT, BOMB_SHELL, SWORD_EDGE };
+enum { SPARK_AURA, SPARK_BURST, SPARK_BALL, BEAM_WHIP, TORNADO_ELEMENT, PARASOL_THRUST, CUTTER_BLADE, LASER_CHARGE, LASER_BOLT, UFO_STAR, HI_JUMP_ORB, WHEEL_ELEMENT, BOMB_SHELL, SWORD_EDGE, HAMMER_GIANT };
 
 // ScrollLook; One of a piece's looks: an effect's animation (squeak.h's SQUEAK_FX_*), `dx` pixels forward and `dy` under the piece
 // (the DS's composite's part: its offset);
@@ -150,6 +152,7 @@ static bool32 OrbStep(struct ScrollPiece *p);
 static bool32 WheelStep(struct ScrollPiece *p);
 static bool32 BombStep(struct ScrollPiece *p);
 static bool32 SwordStep(struct ScrollPiece *p);
+static bool32 HammerStep(struct ScrollPiece *p);
 
 // ChargeOf(); A Kirby's SparkCharge (SPARK_SLOT: its task's number + 1, checked), made with `create`; NULL: none;
 static struct SparkCharge *ChargeOf(struct Kirby *kirby, bool32 create) {
@@ -639,7 +642,7 @@ static void ScrollPieceMain(void) {
     if (ObjectPreUpdate(&p->base)) return;
     alive = p->kind == SPARK_AURA ? AuraStep(p) : p->kind == SPARK_BALL ? BallStep(p) : p->kind == BEAM_WHIP ? BeamStep(p)
           : p->kind == TORNADO_ELEMENT ? TornadoStep(p) : p->kind == PARASOL_THRUST ? ParasolStep(p) : p->kind == CUTTER_BLADE ? CutterStep(p)
-          : p->kind == LASER_CHARGE ? LaserStep(p) : p->kind == LASER_BOLT ? BoltStep(p) : p->kind == UFO_STAR ? StarStep(p) : p->kind == HI_JUMP_ORB ? OrbStep(p) : p->kind == WHEEL_ELEMENT ? WheelStep(p) : p->kind == BOMB_SHELL ? BombStep(p) : p->kind == SWORD_EDGE ? SwordStep(p)
+          : p->kind == LASER_CHARGE ? LaserStep(p) : p->kind == LASER_BOLT ? BoltStep(p) : p->kind == UFO_STAR ? StarStep(p) : p->kind == HI_JUMP_ORB ? OrbStep(p) : p->kind == WHEEL_ELEMENT ? WheelStep(p) : p->kind == BOMB_SHELL ? BombStep(p) : p->kind == SWORD_EDGE ? SwordStep(p) : p->kind == HAMMER_GIANT ? HammerStep(p)
           : BurstStep(p);
     if (!alive) return;
     for (i = 0; i < SCROLL_LOOKS; i++) LookDraw(p, &p->look[i]);
@@ -650,7 +653,7 @@ static void ScrollPieceDestroy(struct Task *t) {
     struct ScrollPiece *p = TaskGetStructPtr(t);
     u8 i;
 
-    if (p->kind == TORNADO_ELEMENT || p->kind == WHEEL_ELEMENT) p->kirby->base.sprite.unk8 &= ~TORNADO_HIDE;
+    if (p->kind == TORNADO_ELEMENT || p->kind == WHEEL_ELEMENT || p->kind == HAMMER_GIANT) p->kirby->base.sprite.unk8 &= ~TORNADO_HIDE;
     for (i = 0; i < SCROLL_LOOKS; i++) LookEnd(&p->look[i]);
 }
 
@@ -1508,6 +1511,178 @@ static void SwordEdge(struct Kirby *kirby) {
         if (p->kind == SWORD_EDGE && p->kirby == kirby && !(p->base.flags & 0x1000)) return;
     }
     ScrollPieceCreate(kirby, SWORD_EDGE, 0, 0, 0);
+}
+
+/* Hammer. The DS's (kirby/hammer_ext; PrmKirbyHammer.kgb's words 8, 60): B on the ground, out of water, not dashing nor with Up held,
+ * starts a charge (0x02094D08: the hammer held behind him, hammer_ext's 30; his state 0x02094A88, each frame): let go of B once
+ * the charge has gone on for word 3 (8) frames, the swing (hammer_ext's 25). With the scroll (HasScroll 6), at word 4 (60) frames
+ * of the charge: efc_cmn0's 29 at the hammer's head (32 pixels behind him, 16 up), sound 0x148, the giant hammer held behind him
+ * (hammer_ext's 42); let go then, the giant swing (hammer_ext's 32, 7 frames: its boxes, hammer_ext.rca's 12, in frames 4-6, the
+ * swing's 20 damage then 50), and on the ground the landing (hammer_ext.mca's composite 1: the giant hammer down and back to its
+ * size, the dust 36 pixels ahead; 0x02035FC4's quake (4, 5, 2), sound 0xB3).
+ * In KatAM, with the scroll: B on the ground, out of water, not dashing nor with Up held (KatAM's Hammer Flip, unchanged), starts the
+ * DS's charge (its base move, the scroll's upgrade built on it): let go before 60 frames (after 8 at least), KatAM's own swing
+ * (sub_080618C0's last branch); at 60, the DS's second level; let go then, the DS's giant swing and landing. Kirby is drawn as the
+ * DS's frames (his body with his own palette, KatAM's Kirby palette holding the DS's colors 1-11; the hammer in its own), KatAM's
+ * sprite hidden (TORNADO_HIDE) and his hammer too (animation HAMMER_HIDDEN: none in its table, gUnk_083502C0). The giant swing hits
+ * as KatAM's hammer (its kind and knock back), its strength KatAM's swing's (5) times the DS's 50 / 20 (12); KatAM's shake
+ * (RequestScreenShake 1, 14 frames, its shortest, for the DS's 5); */
+#define HAMMER_MIN 8                        // PrmKirbyHammer word 3;
+#define HAMMER_GIANT_AT 60                  // word 4;
+#define HAMMER_SWING_FRAMES 7               // hammer_ext's 32;
+#define HAMMER_LAND_FRAMES 20               // hammer_ext.mca's composite 1;
+#define HAMMER_HIDDEN 102                   // An animation Hammer Kirby's hammer has none for (gUnk_083502C0) and KatAM checks nowhere;
+#define HAMMER_STRENGTH 12                  // KatAM's swing's 5 * 50 / 20;
+#define HAMMER_HIT 0x34005003               // KatAM's hammer's (sub_08076A60);
+#define HAMMER_KNOCK 0x1E0                  // KatAM's swing's (sub_08076B84, animation 53);
+#define HAMMER_GLINT_SOUND 0x148
+#define HAMMER_LAND_SOUND 0xB3
+extern void sub_080622A0(struct Kirby *);
+void RequestScreenShake(u16, struct ObjectBase *);
+
+static void HammerCharge(struct Kirby *kirby);
+static void HammerSwing(struct Kirby *kirby);
+static void HammerLand(struct Kirby *kirby);
+
+// gHammerBoxes; The giant swing's boxes in its frames 4-6 (hammer_ext.rca's 12: left, top, right, bottom, Y up from his feet);
+static const s8 gHammerBoxes[3][4] = { { -36, 60, 18, 22 }, { -13, 59, 46, 13 }, { -1, 41, 53, -3 } };
+
+// HammerPiece(); His piece, found or made (the looks and the giant swing's hit);
+static void HammerPiece(struct Kirby *kirby) {
+    u8 i;
+    struct ScrollPiece *p;
+
+    for (i = 0; i < MAX_TASK_NUM; i++) {
+        if (gTasks[i].main != ScrollPieceMain) continue;
+        p = TaskGetStructPtr(&gTasks[i]);
+        if (p->kind == HAMMER_GIANT && p->kirby == kirby && !(p->base.flags & 0x1000)) return;
+    }
+    p = ScrollPieceCreate(kirby, HAMMER_GIANT, 0xFF, HAMMER_KNOCK, HAMMER_HIT);
+    if (p != NULL) p->base.unk66 = HAMMER_KNOCK;
+}
+
+/* HammerStep(); His looks by his state (the charge, its second level, the giant swing, the landing: p->level), his body's look in his
+ * own palette, his own sprite hidden; the giant swing's hit; gone with the state; */
+static bool32 HammerStep(struct ScrollPiece *p) {
+    struct Kirby *kirby = p->kirby;
+    u8 phase;
+    s16 n = kirby->base.counter;
+
+    if (kirby->stateFn == HammerCharge) phase = n >= HAMMER_GIANT_AT ? 1 : 0;
+    else if (kirby->stateFn == HammerSwing) phase = 2;
+    else if (kirby->stateFn == HammerLand) phase = 3;
+    else {
+        p->base.flags |= 0x1000;
+        kirby->base.sprite.unk8 &= ~TORNADO_HIDE;
+        return FALSE;
+    }
+    Follow(p);
+    p->base.roomId = kirby->base.roomId;
+    if (p->level != phase) {
+        static const u8 looks[4][2] = {
+            { SQUEAK_FX_HAMMER_CHARGE_BODY, SQUEAK_FX_HAMMER_CHARGE }, { SQUEAK_FX_HAMMER_GIANT_BODY, SQUEAK_FX_HAMMER_GIANT },
+            { SQUEAK_FX_HAMMER_SWING_BODY, SQUEAK_FX_HAMMER_SWING }, { SQUEAK_FX_HAMMER_LAND_BODY, SQUEAK_FX_HAMMER_LAND },
+        };
+
+        p->level = phase;
+        LookStart(p, 0, looks[phase][0], 0, 0);
+        LookStart(p, 1, looks[phase][1], 0, 0);
+    }
+    // (his body in his own colors, whatever they are: KatAM's palette for his sprite);
+    p->look[0].palId = kirby->base.sprite.palId;
+    if (p->look[0].effect != SCROLL_NO_LOOK) kirby->base.sprite.unk8 |= TORNADO_HIDE;
+    if (phase == 2 && n >= 4 && n < 7) {
+        const s8 *b = gHammerBoxes[n - 4];
+        u32 hit = p->base.flags & 0x40000;
+
+        // (one hit a swing, as KatAM's hammer: 0x40000, set when it hits, cleared only as the swing starts, sub_08076B84);
+        Box(p, b[0], b[1], b[2], b[3], HAMMER_STRENGTH);
+        if (n > 4) p->base.flags |= hit;
+    } else {
+        Box(p, 0, 0, 0, 0, 0);
+    }
+    return TRUE;
+}
+
+// HammerFacing(); As KatAM's attacks start: facing the way he's held;
+static void HammerFacing(struct Kirby *kirby) {
+    if (kirby->movementState & 0x20) kirby->base.flags |= 1;
+    if (kirby->movementState & 0x10) kirby->base.flags &= ~1;
+}
+
+/* ScrollHammerAttack(); sub_080618C0 (detoured), Hammer Kirby's B: with the scroll, on the ground, out of water, not dashing nor
+ * with Up held, the DS's charge; else KatAM's; */
+void (*gScrollHammerOriginal)(struct Kirby *) = NULL;
+
+void ScrollHammerAttack(struct Kirby *kirby) {
+    if (kirby->ability != KIRBY_ABILITY_HAMMER || !SqueakScrollOwned(SCROLL_HAMMER) || kirby->base.flags & 0x30 || kirby->base.unk58 & 2
+        || kirby->movementState & 0x40) {
+        gScrollHammerOriginal(kirby);
+        return;
+    }
+    kirby->animationIndex = HAMMER_HIDDEN;
+    kirby->stateFn = HammerCharge;
+    kirby->base.counter = 0;
+    kirby->idleTimer = 0;
+    kirby->flyTimer = 0;
+    kirby->base.flags &= ~2;
+    kirby->base.flags &= ~0x40;
+    HammerFacing(kirby);
+    HammerPiece(kirby);
+}
+
+// HammerCharge(); The DS's 0x02094A88: the charge, its second level at 60 frames, let go after 8;
+static void HammerCharge(struct Kirby *kirby) {
+    s16 n = kirby->base.counter;
+
+    if (NidlAbilityInWater(kirby)) return;
+    NidlAbilityGravity(kirby);
+    if (kirby->base.flags & 0x20) {
+        NidlAbilityEnd(kirby);
+        return;
+    }
+    if (n == HAMMER_GIANT_AT) {
+        s32 dx = kirby->base.flags & 1 ? 32 : -32;
+
+        PlaySfx(&kirby->base, SQUEAK_SE(HAMMER_GLINT_SOUND));
+        SqueakEffectInRoom(kirby->base.roomId, SQUEAK_FX_HAMMER_GLINT, kirby->base.x + (dx << 8), kirby->base.y + SCROLL_FEET - (16 << 8));
+    }
+    if (n >= HAMMER_MIN && !(kirby->movementState & 2)) {
+        if (n >= HAMMER_GIANT_AT) {
+            kirby->stateFn = HammerSwing;
+            kirby->base.counter = 0;
+            return;
+        }
+        // (KatAM's swing, sub_080618C0's last branch);
+        kirby->animationIndex = 53;
+        kirby->stateFn = sub_080622A0;
+        PlaySfx(&kirby->base, SE_ABILITY_HAMMER_ATTACK);
+        kirby->base.counter = 0;
+        return;
+    }
+    if (n < 0x7FFF) kirby->base.counter = n + 1;
+}
+
+// HammerSwing(); The giant swing (the DS's 0x02094858 after its animation); on the ground the landing;
+static void HammerSwing(struct Kirby *kirby) {
+    if (NidlAbilityInWater(kirby)) return;
+    NidlAbilityGravity(kirby);
+    if (++kirby->base.counter < HAMMER_SWING_FRAMES) return;
+    PlaySfx(&kirby->base, SQUEAK_SE(HAMMER_LAND_SOUND));
+    if (kirby->base.flags & 0x20) {
+        NidlAbilityEnd(kirby);
+        return;
+    }
+    RequestScreenShake(1, &kirby->base);
+    kirby->stateFn = HammerLand;
+    kirby->base.counter = 0;
+}
+
+// HammerLand(); The landing, then standing;
+static void HammerLand(struct Kirby *kirby) {
+    if (NidlAbilityInWater(kirby)) return;
+    NidlAbilityGravity(kirby);
+    if (++kirby->base.counter >= HAMMER_LAND_FRAMES) NidlAbilityEnd(kirby);
 }
 
 /* Sleep. The DS's (0x020BF294, each frame of his sleep): with the scroll (HasScroll 14) he gets better while he sleeps,
