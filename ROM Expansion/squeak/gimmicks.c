@@ -2353,8 +2353,8 @@ static struct Kirby *AttackKirby(struct ObjectBase *by) {
  * 3), 8-1-8's rock relay; and the rope goes (the stage's 0x022164C0: from the cut, up then down, each cell whose id is a rope's gets
  * a short fade, 0x022124F8's tiles 0x10-0x14, and is cleared, 0x02215830, one further out each frame). Here (the template's unk14,
  * unk16, unk18 its 6 bytes) an object hidden, its box over the rope's cells (2-14 pixels across), taking any attack as the grass tufts
- * do (Struck()), but cutting only as the DS's does: a Kirby's with a blade, Cutter, Sword or Master (AttackKirby(); not his inhale or a
- * plain hit, which dropped its floor here before); once; not inhaled (unk5C 0x20); its cells go from the cut (the attacker's row, in the rope) out,
+ * do (Struck()), but cutting only as the DS's does: a Kirby's with a blade, Cutter, Sword or Master, or Needle (AttackKirby(); not his
+ * inhale or a plain hit, which dropped its floor here before); once; not inhaled (unk5C 0x20); its cells go from the cut (the attacker's row, in the rope) out,
  * ROPE_CLEAR_STEP frames apart, each way till a cell isn't a ladder: each one's block record (KatAMExpansionSqueakRooms.cs's SqueakRopeCells(): the cell drawn without
  * its front layer, air) applied as a broken block's, so its look goes and Kirby can't climb it; */
 struct SqueakRope {
@@ -2394,11 +2394,12 @@ static bool32 RopeClear(struct Object *obj, s32 y) {
     return TRUE;
 }
 
-// (a cutting attack, the DS's flag 8: a Kirby's with a blade);
+// (a cutting attack, the DS's flag 8: a Kirby's with a blade, or with Needle (the owner: "Needle counts as a cutting ability."));
 static bool32 RopeCutter(struct Kirby *k) {
     u8 ability = k != NULL ? k->ability & NIDL_ABILITY_MASK : KIRBY_ABILITY_NORMAL;
 
-    return ability == KIRBY_ABILITY_CUTTER || ability == KIRBY_ABILITY_SWORD || ability == KIRBY_ABILITY_MASTER;
+    return ability == KIRBY_ABILITY_CUTTER || ability == KIRBY_ABILITY_SWORD || ability == KIRBY_ABILITY_MASTER
+        || ability == NIDL_ABILITY_NEEDLE;
 }
 
 static void SqueakRopeMain(struct Object *obj) {
