@@ -70,6 +70,12 @@ namespace KatAMRandomizer {
             new("kirby/ninja_ext", Composite: 13), new("kirby/ninja_ext", Composite: 14), new("kirby/ninja_ext", Composite: 15),
             new("kirby/ninja_ext", Composite: 16), new("kirby/ninja_ext", Composite: 18), new("kirby/ninja_ext", Composite: 19),
             new("kirby/ninja_ext", Composite: 20), new("kirby/ninja_ext", Composite: 21),
+            // Animal (animal_ext): the scratch (34), the dash's crouch and leap (21, 22), the held flurry and the throw (24, 25), digging
+            // ahead, down and up (30, 31, 32), looking up (33); the scroll's roll (35, 36), its end (37), and its spin (38, 39);
+            new("kirby/animal_ext", 34), new("kirby/animal_ext", 21), new("kirby/animal_ext", 22), new("kirby/animal_ext", 24),
+            new("kirby/animal_ext", 25), new("kirby/animal_ext", 30), new("kirby/animal_ext", 31), new("kirby/animal_ext", 32),
+            new("kirby/animal_ext", 33), new("kirby/animal_ext", 35), new("kirby/animal_ext", 36), new("kirby/animal_ext", 37),
+            new("kirby/animal_ext", 38), new("kirby/animal_ext", 39),
         };
 
         /* SqueakMoveLookEffects(); The looks' effects (their indexes from `first` on, after SqueakEffectDefinitions') and the table of each
