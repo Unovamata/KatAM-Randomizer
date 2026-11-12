@@ -22,6 +22,10 @@ const struct NidlAbilityTables gNidlAbilityTables = {
         [NIDL_ABILITY_MIKE - NIDL_FIRST_ABILITY] = KIRBY_ABILITY_NORMAL,
         [NIDL_ABILITY_BACKDROP - NIDL_FIRST_ABILITY] = KIRBY_ABILITY_THROW,
         [NIDL_ABILITY_STAR_ROD - NIDL_FIRST_ABILITY] = KIRBY_ABILITY_NORMAL,
+        [SQUEAK_ABILITY_NINJA - NIDL_FIRST_ABILITY] = KIRBY_ABILITY_NORMAL,
+        [SQUEAK_ABILITY_ANIMAL - NIDL_FIRST_ABILITY] = KIRBY_ABILITY_NORMAL,
+        [SQUEAK_ABILITY_BUBBLE - NIDL_FIRST_ABILITY] = KIRBY_ABILITY_NORMAL,
+        [SQUEAK_ABILITY_METAL - NIDL_FIRST_ABILITY] = KIRBY_ABILITY_NORMAL,
     },
     .landB = {
         [NIDL_ABILITY_NEEDLE - NIDL_FIRST_ABILITY] = NeedleStart,
@@ -31,6 +35,7 @@ const struct NidlAbilityTables gNidlAbilityTables = {
         [NIDL_ABILITY_HI_JUMP - NIDL_FIRST_ABILITY] = HiJumpStart,
         [NIDL_ABILITY_MIKE - NIDL_FIRST_ABILITY] = MikeStart,
         [NIDL_ABILITY_STAR_ROD - NIDL_FIRST_ABILITY] = StarRodSwingStart,
+        [SQUEAK_ABILITY_NINJA - NIDL_FIRST_ABILITY] = NinjaB,
     },
     .setup = {
         [NIDL_ABILITY_NEEDLE - NIDL_FIRST_ABILITY] = NidlAbilitySetup,
@@ -40,8 +45,26 @@ const struct NidlAbilityTables gNidlAbilityTables = {
         [NIDL_ABILITY_HI_JUMP - NIDL_FIRST_ABILITY] = NidlAbilitySetup,
         [NIDL_ABILITY_MIKE - NIDL_FIRST_ABILITY] = NidlAbilitySetup,
         [NIDL_ABILITY_STAR_ROD - NIDL_FIRST_ABILITY] = NidlAbilitySetup,
+        [SQUEAK_ABILITY_NINJA - NIDL_FIRST_ABILITY] = SqueakAbilitySetup,
+        [SQUEAK_ABILITY_ANIMAL - NIDL_FIRST_ABILITY] = SqueakAbilitySetup,
+        [SQUEAK_ABILITY_BUBBLE - NIDL_FIRST_ABILITY] = SqueakAbilitySetup,
+        [SQUEAK_ABILITY_METAL - NIDL_FIRST_ABILITY] = SqueakAbilitySetup,
     },
 };
+
+/* SqueakAbilitySetup(); gUnk_083509D0's for Squeak Squad's abilities: the player's body table the ability's (its DS motions; Normal's
+ * frames elsewhere), which losing it puts back as Normal's (sub_0806E4EC); */
+void SqueakAbilitySetup(struct Kirby *kirby) {
+    const struct AnimInfo *src = gSqueakAbilityBodies[kirby->ability - SQUEAK_FIRST_ABILITY];
+    struct AnimInfo *dst = gUnk_02021590[kirby->base.unk56];
+    u16 i;
+
+    if (src == NULL) return;
+    for (i = 0; i < SQUEAK_BODY_INDEXES; i++) {
+        dst[i].animId = src[i].animId;
+        dst[i].variant = src[i].variant;
+    }
+}
 
 /* NidlAbilitySetup(); gUnk_083509D0's (on getting the ability): points the player's motion slots to the ability's motions (the rest
  * are Normal's, which losing the ability restores, sub_0806E4EC, like for KatAM's abilities, which set some of theirs here too); the
@@ -80,6 +103,8 @@ void NidlAbilityPortrait(u32 vram, u8 palette, u8 id) {
         gUnk_030039A4 = (gUnk_030039A4 + 1) & 0x3F;
         return;
     }
+    // (a new ability without its own: Normal's);
+    if (id >= NIDL_FIRST_ABILITY && id < NIDL_ABILITY_END) id = KIRBY_ABILITY_NORMAL;
     if (id >= NIDL_FIRST_ABILITY + NIDL_SPECIAL_PORTRAIT_SHIFT) id -= NIDL_SPECIAL_PORTRAIT_SHIFT;
     data->portraitOriginal(vram, palette, id);
 }

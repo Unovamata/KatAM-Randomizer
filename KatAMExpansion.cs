@@ -1298,6 +1298,10 @@ namespace KatAMRandomizer {
             List<(int index, string name, bool boss, (int width, int height, ushort[] pixels) icon)> squeakIcons =
                 new List<(int, string, bool, (int, int, ushort[]))>();
             List<SqueakEffectBuilt> squeakEffects = new List<SqueakEffectBuilt>();
+            // (Squeak Squad's abilities' looks, KatAMExpansionSqueakAbilities.cs: their body and hat tables, ROM pointers);
+            (int[] bodies, int[] hats) squeakLooks = default;
+            ushort[] squeakLookTable = null;
+            (ushort[] palette, byte[] tiles)[] squeakPortraits = null;
             /* (each palette's slot: the first sprite's with its colors, those after it with the same taking it: KatAM keeps 7 palettes for
              * a room's enemies, Doc's sprites would take 6 of their own); */
             Dictionary<string, SqueakPaletteKey> squeakPalettes = new Dictionary<string, SqueakPaletteKey>();
@@ -1308,9 +1312,18 @@ namespace KatAMRandomizer {
             }
             if (squeak != null) {
                 try {
-                    squeakEffects = SqueakEffectsBuild(squeak, SqueakEffectDefinitions,
+                    // (the Squeak Squad abilities' moves' looks after the effects of their own, with NiDL's new abilities only, whose tables
+                    // they join: KatAMExpansionSqueakAbilities.cs);
+                    List<SqueakEffect> moveEffects = new List<SqueakEffect>();
+                    if (nidl) (moveEffects, squeakLookTable) = SqueakMoveLookEffects(squeak, SqueakEffectDefinitions.Count);
+                    squeakEffects = SqueakEffectsBuild(squeak, SqueakEffectDefinitions.Concat(moveEffects).ToList(),
                                                        (palettes, frames) => AddAnim(palettes, frames, new byte[0], new List<(int, int)>(), effectOnly: frames.Count).Item2,
                                                        SharePalette);
+                    // (Kirby as the DS draws him with its abilities KatAM lacks: with NiDL's new abilities only, whose tables they join);
+                    if (nidl) squeakPortraits = SqueakAbilityPortraits(squeak);
+                    if (nidl)
+                        squeakLooks = BuildSqueakAbilityLooks(rom, squeak, version.RomSymbols["gUnk_0834C5D4"], tilesBase, paletteBase, ref cursor,
+                                                              HurtAnimID, animVariants, animAttributes, animOams);
                     foreach (SqueakEnemy enemy in SqueakDefinitions) {
                         // (a character drawn with another's graphics, a thing it throws: that one's anim);
                         if (enemy.GraphicsOf >= 0) {
@@ -1699,9 +1712,28 @@ namespace KatAMRandomizer {
 
             if (nidl) Report(0.95, "Adding the new abilities");
             string error = !nidl ? null : AddAbilities(rom, nightmare, region, version, ref cursor, motions, glows, new Dictionary<string, int[]> {
-                ["gUnk_08D60FDC"] = hatTables.Select(table => table + 0x08000000).ToArray(),
-                ["gUnk_08350A3C"] = new[] { -1, -1, -1, -1, -1, -1, backdropPalette, -1 },
+                // (NiDL's hats, then Squeak Squad's abilities' when built, KatAMExpansionSqueakAbilities.cs; none: no hat table);
+                ["gUnk_08D60FDC"] = hatTables.Select((table, k) => k >= NidlAbilities ? squeakLooks.hats?[k - NidlAbilities] ?? 0
+                                                                   : table + 0x08000000).ToArray(),
+                ["gUnk_08350A3C"] = new[] { -1, -1, -1, -1, -1, -1, backdropPalette, -1, -1, -1, -1, -1 },
             });
+            /* (Squeak Squad's abilities' body tables, for their setup, SqueakAbilitySetup: none without the Squeak Squad ROM; their moves'
+             * looks' effects, gSqueakAbilityLooks: none, 0xFFFF, without it); */
+            if (error == null && nidl) {
+                for (int k = 0; k < SqueakAbilities; k++)
+                    WriteInt(rom, CodeAddress + version.CodeSymbols["gSqueakAbilityBodies"] + k * 4, squeakLooks.bodies?[k] ?? 0);
+                for (int i = 0; i < SqueakMoveLooks.Length * SqueakLookLayers; i++)
+                    WriteShort(rom, CodeAddress + version.CodeSymbols["gSqueakAbilityLooks"] + i * 2, squeakLookTable?[i] ?? 0xFFFF);
+                // (their HUD portraits, after NiDL's in gNidlAbilityData's: none, Normal's, without the Squeak Squad ROM);
+                for (int k = 0; squeakPortraits != null && k < SqueakAbilities; k++) {
+                    int paletteAt = Allocate(ref cursor, 32, 4), tilesAt = Allocate(ref cursor, squeakPortraits[k].tiles.Length, 4);
+                    for (int c = 0; c < 16; c++) WriteShort(rom, paletteAt + c * 2, squeakPortraits[k].palette[c]);
+                    squeakPortraits[k].tiles.CopyTo(rom, tilesAt);
+                    int portrait = CodeAddress + version.CodeSymbols["gNidlAbilityData"] + 8 + (NidlAbilities + k) * 8;
+                    WriteInt(rom, portrait, paletteAt + 0x08000000);
+                    WriteInt(rom, portrait + 4, tilesAt + 0x08000000);
+                }
+            }
             if (title) Report(0.97, "Adding NiDL's title screen");
             // NiDL's title screen swarm (KatAMExpansionTitle.cs), before the rooms: FinishRooms() allocates after them;
             error ??= title ? AddTitle(rom, nightmare, version, ref cursor) : null;

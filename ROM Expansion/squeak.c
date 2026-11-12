@@ -93,7 +93,7 @@ static const struct SqueakCharacter sSqueakCharacters[SQUEAK_ENEMY_COUNT] = {
     [SQUEAK_CRET] = { CretInit, CretStart, 0, FALSE },
     [SQUEAK_CRET_BALL] = { CretBallInit, CretBallStart, 0, FALSE },
     [SQUEAK_UJA] = { UjaInit, UjaStart, 0, FALSE },
-    [SQUEAK_BIO_SPARK] = { BioSparkInit, BioSparkStart, 0, FALSE },
+    [SQUEAK_BIO_SPARK] = { BioSparkInit, BioSparkStart, SQUEAK_ABILITY_NINJA, FALSE },   // The DS's Ninja (its ability 0x13);
     [SQUEAK_BIO_SPARK_KUNAI] = { BioSparkKunaiInit, BioSparkKunaiStart, 0, FALSE },
     [SQUEAK_BIO_SPARK_LEAF] = { BioSparkLeafInit, BioSparkLeafStart, 0, FALSE },
     [SQUEAK_STARMAN] = { SqueakStarmanInit, SqueakStarmanStart, 0, FALSE },
@@ -1707,6 +1707,9 @@ void SqueakStart(struct Object *obj) {
         s->loopSound = 0;
     }
     obj->kirbyAbility = sSqueakCharacters[s->enemy].ability;
+    // (Squeak Squad's abilities KatAM lacks need NiDL's ability code and their looks: without them, none, gSqueakAbilityBodies 0);
+    if (obj->kirbyAbility >= SQUEAK_FIRST_ABILITY && gSqueakAbilityBodies[obj->kirbyAbility - SQUEAK_FIRST_ABILITY] == NULL)
+        obj->kirbyAbility = KIRBY_ABILITY_NORMAL;
     // The engine's gravity off (flag 0x40, and 0x20, which keeps it on once falling): Squeak Squad's characters have their own;
     obj->base.flags = (obj->base.flags | 0x40) & ~0x20;
     if (sSqueakCharacters[s->enemy].midboss && !s->activated) {

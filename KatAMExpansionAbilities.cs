@@ -9,7 +9,10 @@
      *   (NidlDisplaySprite, AddGlows()), and sub_08038B34 (Kirbys standing on one another), so the Star Rod's flying Kirbys fly through
      *   one another (NidlKirbyStack); */
     internal static partial class KatAMExpansion {
-        const int FirstAbility = 27, NewAbilities = 8, AbilitySlots = FirstAbility + NewAbilities, PortraitTiles = 30;
+        /* (NiDL's 8 new abilities, 27-34, then Squeak Squad's 4, 35-38: Ninja, Animal, Bubble, Metal, KatAMExpansionSqueakAbilities.cs; the
+         * tables have a slot for each, NiDL's loops only for NiDL's); */
+        const int FirstAbility = 27, NidlAbilities = 8, SqueakAbilities = 4, NewAbilities = NidlAbilities + SqueakAbilities,
+                  AbilitySlots = FirstAbility + NewAbilities, PortraitTiles = 30;
 
         // NiDL's IDs of the new abilities (Needle, Freeze, Light, Ball, Hi-Jump, Mike, Backdrop, Star Rod), for their cards;
         static readonly int[] NightmareAbilities = { 12, 14, 21, 18, 15, 7, 22, 25 };
@@ -87,7 +90,7 @@
 
             /* Portraits: NiDL's ability cards, the same 5x6 tiles as KatAM's (the name, then the picture), stored as two groups of 16 tiles
              * (rows 0, 2, 4, then 1, 3, 5); KatAM's are row by row; */
-            for (int k = 0; k < NewAbilities; k++) {
+            for (int k = 0; k < NidlAbilities; k++) {
                 int palette = ReadInt(nightmare, region.CardPalettes + NightmareAbilities[k] * region.CardPaletteStride) - 0x08000000;
                 int tiles = ReadInt(nightmare, region.CardTiles + NightmareAbilities[k] * region.CardTileStride) - 0x08000000;
                 int paletteAt = Allocate(ref cursor, 32, 4), tilesAt = Allocate(ref cursor, PortraitTiles * 32, 4);

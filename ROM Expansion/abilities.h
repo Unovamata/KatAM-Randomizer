@@ -28,8 +28,15 @@ enum {
     NIDL_ABILITY_MIKE,
     NIDL_ABILITY_BACKDROP,
     NIDL_ABILITY_STAR_ROD,
+    // Squeak Squad's abilities KatAM lacks (35-38: KatAMExpansionSqueakAbilities.cs, Kirby drawn as the DS draws him with them);
+    SQUEAK_ABILITY_NINJA,
+    SQUEAK_ABILITY_ANIMAL,
+    SQUEAK_ABILITY_BUBBLE,
+    SQUEAK_ABILITY_METAL,
     NIDL_ABILITY_END,
 };
+#define SQUEAK_FIRST_ABILITY SQUEAK_ABILITY_NINJA
+#define SQUEAK_ABILITY_COUNT (NIDL_ABILITY_END - SQUEAK_FIRST_ABILITY)
 
 // transitioningAbility's layout (see above);
 #define NIDL_ABILITY_MASK 0x3F
@@ -103,6 +110,56 @@ struct NidlAbilityData {
 };
 
 extern const struct NidlAbilityData gNidlAbilityData;
+
+/* gSqueakAbilityBodies; Squeak Squad's abilities' body tables (an AnimInfo per KatAM animation index, 0xB9: the DS's motions, Normal's
+ * frames elsewhere; KatAMExpansionSqueakAbilities.cs, in nidl_data.c; NULL without the Squeak Squad ROM), copied for the player by
+ * their setup (SqueakAbilitySetup); */
+#define SQUEAK_BODY_INDEXES 0xB9
+extern const struct AnimInfo *const gSqueakAbilityBodies[SQUEAK_ABILITY_COUNT];
+void SqueakAbilitySetup(struct Kirby *);
+
+/* gSqueakAbilityLooks; Their moves' looks (KatAMExpansionSqueakAbilities.cs's SqueakMoveLooks, in this order: an animation of the DS's,
+ * Kirby's in a move and what he throws), drawn by the moves' pieces ("abilities/squeak_moves.c") while his own sprite is hidden: per
+ * look its effects (squeak.h's gSqueakData.effects), one sprite each, SQUEAK_LOOK_LAYERS at most: the first his body's (the DS's
+ * palette 0's pieces, drawn with his own palette), then its other palettes' (0xFFFF none; all of them without the Squeak Squad ROM); */
+#define SQUEAK_LOOK_LAYERS 4
+#define SQUEAK_LOOK_NONE 0xFFFF
+enum {
+    NINJA_LOOK_THROW,
+    NINJA_LOOK_THROW_END,
+    NINJA_LOOK_DASH,
+    NINJA_LOOK_SLASH,
+    NINJA_LOOK_SLASH_END,
+    NINJA_LOOK_DIVE_START,
+    NINJA_LOOK_DIVE,
+    NINJA_LOOK_DIVE_LAND,
+    NINJA_LOOK_CLING,
+    NINJA_LOOK_CLING_JUMP,
+    NINJA_LOOK_WALL_JUMP,
+    NINJA_LOOK_WALL_THROW,
+    NINJA_LOOK_WALL_THROW_END,
+    NINJA_LOOK_GRAB,
+    NINJA_LOOK_GRAB_RISE,
+    NINJA_LOOK_GRAB_FALL,
+    NINJA_LOOK_GRAB_BOUNCE,
+    NINJA_LOOK_WATER_RUN,
+    NINJA_LOOK_KUNAI,
+    NINJA_LOOK_KUNAI_STUCK,
+    NINJA_LOOK_ART,             // (the scroll's art on land: its start, charged, let go, the flame pillar; then on water);
+    NINJA_LOOK_ART_CHARGED,
+    NINJA_LOOK_ART_RELEASE,
+    NINJA_LOOK_ART_FLAME,
+    NINJA_LOOK_ART_WATER,
+    NINJA_LOOK_ART_WATER_CHARGED,
+    NINJA_LOOK_ART_WATER_RELEASE,
+    NINJA_LOOK_ART_GEYSER,
+    SQUEAK_LOOK_COUNT,
+};
+extern const u16 gSqueakAbilityLooks[SQUEAK_LOOK_COUNT][SQUEAK_LOOK_LAYERS];
+
+// (abilities/squeak_moves.c: Ninja's B; each Kirby's input read, scrolls.c's ScrollKirbyInput: its moves that come from no button);
+void NinjaB(struct Kirby *);
+void SqueakAbilityInput(struct Kirby *);
 
 // The HUD portraits' size (sub_080356AC's: abilities and the special portraits up to 0x1B; the rest are smaller);
 #define PORTRAIT_SIZE 0x3C0

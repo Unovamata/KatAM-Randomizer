@@ -424,6 +424,7 @@ enum {
     SQUEAK_FX_MAGIC_STAR,
     SQUEAK_FX_MAGIC_USED_UP,
     SQUEAK_FX_MAGIC_HIT,
+    SQUEAK_FX_KIRBY_PUFF,       // The DS's 0x02018C24's types 5 and 11 (efc_cmn0's animation 21): a puff at Kirby's feet (Ninja's moves);
     SQUEAK_FX_COUNT,
 };
 

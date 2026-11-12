@@ -360,7 +360,7 @@
             Dictionary<(int, int), (int nidl, int dx, int dy)> rodPoses = StarRodPoses.ToDictionary(m => (m.anim, m.frame), m => (m.nidl, m.dx, m.dy));
             HashSet<int> kirbyColors = PlainKirby(nightmare, region).Skip(2).Take(10).Select(c => (int)c).ToHashSet();
 
-            for (int k = 0; k < NewAbilities; k++) {
+            for (int k = 0; k < NidlAbilities; k++) {
                 int animId = firstAnimId + animVariants.Count;
 
                 // Frames, one per (ability frame, offset); frame 0 is empty, for body frames without a hat;

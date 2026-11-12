@@ -20,6 +20,7 @@
 #include "main.h"
 #include "data.h"
 #include "squeak.h"
+#include "scrolls.h"
 #include "abilities.h"
 #include "code_0806F780.h"
 #include "malloc_vram.h"
@@ -97,11 +98,7 @@ void ScrollBreath(struct Kirby *kirby) {
 #define SPARK_BALL_SPEED SQUEAK_SPEED(24576)
 #define SPARK_BALL_SOUND_AT 30
 #define SPARK_BALL_MARGIN 48                // Pixels round the screen the ball goes out of to end;
-#define SCROLL_FEET 0x800                    // The DS's origin, Kirby's feet: 8 pixels under KatAM's;
 #define SCROLL_FX_ROOM 48                    // squeak.c's SQUEAK_FX_ROOM: tiles left for KatAM's own effects;
-#define SCROLL_LOOKS 8                        // (the Magic scroll's jack-in-the-box: 7);
-#define SCROLL_NO_LOOK 0xFF
-#define SCROLL_BEHIND_KIRBYS 0x14             // A sprite's order behind every Kirby's (theirs 0x10 + unk56, KatAM's effects' 0xA);
 #define SPARK_D_PAD 0xF0
 #define SPARK_KNOCK 0xA0                    // KatAM's spark's hit (sub_08074AB0's unk64 and unk68);
 #define SPARK_HIT 0xA0000403
@@ -123,37 +120,10 @@ struct SparkCharge {
 
 enum { SPARK_AURA, SPARK_BURST, SPARK_BALL, BEAM_WHIP, TORNADO_ELEMENT, PARASOL_THRUST, CUTTER_BLADE, LASER_CHARGE, LASER_BOLT, UFO_STAR, HI_JUMP_ORB, WHEEL_ELEMENT, BOMB_SHELL, SWORD_EDGE, HAMMER_GIANT, FIGHTER_CHARGE, THROW_FLASH, MAGIC_BODY, MAGIC_DOVE, MAGIC_CARD, MAGIC_STAR, MAGIC_SWEEP };
 
-// ScrollLook; One of a piece's looks: an effect's animation (squeak.h's SQUEAK_FX_*), `dx` pixels forward and `dy` under the piece
-// (the DS's composite's part: its offset);
-struct ScrollLook {
-    struct EffectObject e;
-    u8 effect;                  // SCROLL_NO_LOOK: none;
-    u8 step;
-    u8 timer;
-    u8 palId;
-    s8 dx;                      // (forward);
-    s8 dy;
-};
-
-// ScrollPiece; An aura, a burst or a ball: its hit box (the DS's, from its origin: the base at Kirby's feet), its looks;
-struct ScrollPiece {
-    struct ObjectBase base;
-    struct ScrollLook look[SCROLL_LOOKS];
-    struct Kirby *kirby;
-    struct Task *other;         // KatAM's own attack it goes with (the tornado's; the thrown one's);
-    struct ThrowAbilityObject *thrown;  // (THROW_FLASH: what Throw Kirby holds, other's);
-    u8 kind;
-    u8 level;
-    u16 clock;
-    s16 accel;                  // (MAGIC_DOVE: its speed forward gained a frame, the DS's 20.12 in KatAM's 24.8);
-    u8 magic;                   // (MAGIC_BODY: MAGIC_FROZE, MAGIC_DIMMED: what the roulette holds till its end);
-};
-
 // sLooksHeld; Looks drawn as they are, not stepped on (a dove or card held still, MagicFrozen());
 static bool8 sLooksHeld = FALSE;
 
 static void SparkChargeMain(void);
-static struct ScrollPiece *ScrollPieceCreate(struct Kirby *kirby, u8 kind, u8 level, s16 knock, u32 hitKind);
 static bool32 CutterStep(struct ScrollPiece *p);
 static bool32 LaserStep(struct ScrollPiece *p);
 static bool32 BoltStep(struct ScrollPiece *p);
@@ -203,7 +173,7 @@ static void SparkChargeMain(void) {
 }
 
 // LookEnd(); A look gone, its VRAM given back;
-static void LookEnd(struct ScrollLook *l) {
+void LookEnd(struct ScrollLook *l) {
     if (l->effect != SCROLL_NO_LOOK && l->e.sprite.tilesVram >= 0x6014000 && SqueakVramOk(l->e.sprite.tilesVram))
         VramFree(l->e.sprite.tilesVram);
     l->effect = SCROLL_NO_LOOK;
@@ -211,7 +181,7 @@ static void LookEnd(struct ScrollLook *l) {
 
 /* LookStartAt(); A look playing an effect from its first step (none when KatAM's sprite heap can't hold it, as squeak.c's effects),
  * its sprite's order `order` (KatAM's effects' 0xA, in front of the Kirbys: SCROLL_BEHIND_KIRBYS, behind them); */
-static void LookStartAt(struct ScrollPiece *p, u8 i, u8 effect, s8 dx, s8 dy, u16 order) {
+void LookStartAt(struct ScrollPiece *p, u8 i, u16 effect, s8 dx, s8 dy, u16 order) {
     struct ScrollLook *l = &p->look[i];
     const struct SqueakEffect *d = &gSqueakData.effects[effect];
     u16 cell = d->anim.step[0].cell;
@@ -232,7 +202,7 @@ static void LookStartAt(struct ScrollPiece *p, u8 i, u8 effect, s8 dx, s8 dy, u1
 }
 
 // LookStart(); A look in front of the Kirbys (KatAM's effects' order);
-static void LookStart(struct ScrollPiece *p, u8 i, u8 effect, s8 dx, s8 dy) {
+void LookStart(struct ScrollPiece *p, u8 i, u16 effect, s8 dx, s8 dy) {
     LookStartAt(p, i, effect, dx, dy, 0xA);
 }
 
@@ -272,7 +242,7 @@ static void LookDraw(struct ScrollPiece *p, struct ScrollLook *l) {
 }
 
 // Box(); The piece's hit box this frame: the DS's (left, top, right, bottom from its origin, Y up), its strength; 0: none;
-static void Box(struct ScrollPiece *p, s8 left, s8 top, s8 right, s8 bottom, s8 strength) {
+void Box(struct ScrollPiece *p, s8 left, s8 top, s8 right, s8 bottom, s8 strength) {
     if (strength == 0) {
         p->base.flags |= 0x200;
         return;
@@ -285,7 +255,7 @@ static void Box(struct ScrollPiece *p, s8 left, s8 top, s8 right, s8 bottom, s8 
 }
 
 // Follow(); At its Kirby's feet, facing as he does;
-static void Follow(struct ScrollPiece *p) {
+void Follow(struct ScrollPiece *p) {
     p->base.x = p->kirby->base.x;
     p->base.y = p->kirby->base.y + SCROLL_FEET;
     p->base.flags = (p->base.flags & ~1) | (p->kirby->base.flags & 1);
@@ -481,7 +451,6 @@ void (*gScrollTornadoOriginal)(struct Kirby *) = NULL;
 #define TORNADO_STRENGTH 3
 #define TORNADO_SPIN 0x34
 #define TORNADO_START 0x35
-#define TORNADO_HIDE 0x80000                // A sprite's flag (unk8) KatAM doesn't draw Kirby with (sub_0803F46C), his code never sets;
 
 // IsKirby(); A Kirby (an attack of a Kirby's: its parent);
 static bool32 IsKirby(void *p) {
@@ -663,7 +632,7 @@ static void ScrollPieceMain(void) {
         return;
     }
     if (ObjectPreUpdate(&p->base)) return;
-    alive = p->kind == SPARK_AURA ? AuraStep(p) : p->kind == SPARK_BALL ? BallStep(p) : p->kind == BEAM_WHIP ? BeamStep(p)
+    alive = p->step != NULL ? p->step(p) : p->kind == SPARK_AURA ? AuraStep(p) : p->kind == SPARK_BALL ? BallStep(p) : p->kind == BEAM_WHIP ? BeamStep(p)
           : p->kind == TORNADO_ELEMENT ? TornadoStep(p) : p->kind == PARASOL_THRUST ? ParasolStep(p) : p->kind == CUTTER_BLADE ? CutterStep(p)
           : p->kind == LASER_CHARGE ? LaserStep(p) : p->kind == LASER_BOLT ? BoltStep(p) : p->kind == UFO_STAR ? StarStep(p) : p->kind == HI_JUMP_ORB ? OrbStep(p) : p->kind == WHEEL_ELEMENT ? WheelStep(p) : p->kind == BOMB_SHELL ? BombStep(p) : p->kind == SWORD_EDGE ? SwordStep(p) : p->kind == HAMMER_GIANT ? HammerStep(p) : p->kind == FIGHTER_CHARGE ? FighterStep(p)
           : p->kind == THROW_FLASH ? ThrowStep(p)
@@ -674,11 +643,16 @@ static void ScrollPieceMain(void) {
     p->clock++;
 }
 
+// ScrollPieceIs(); A piece's task (scrolls.h);
+bool32 ScrollPieceIs(struct Task *t) {
+    return t->main == ScrollPieceMain;
+}
+
 static void ScrollPieceDestroy(struct Task *t) {
     struct ScrollPiece *p = TaskGetStructPtr(t);
     u8 i;
 
-    if (p->kind == TORNADO_ELEMENT || p->kind == WHEEL_ELEMENT || p->kind == HAMMER_GIANT || p->kind == MAGIC_BODY)
+    if (p->kind == TORNADO_ELEMENT || p->kind == WHEEL_ELEMENT || p->kind == HAMMER_GIANT || p->kind == MAGIC_BODY || p->hides)
         p->kirby->base.sprite.unk8 &= ~TORNADO_HIDE;
     if (p->kind == MAGIC_BODY) MagicRelease(p);
     for (i = 0; i < SCROLL_LOOKS; i++) LookEnd(&p->look[i]);
@@ -686,7 +660,7 @@ static void ScrollPieceDestroy(struct Task *t) {
 
 /* ScrollPieceCreate(); A piece at its Kirby's feet, its hit's kind and knock back KatAM's own attack's (unk68, unk64: the spark's,
  * sub_08074AB0, SPARK_HIT and SPARK_KNOCK; the beam whip's, sub_0807CFE4, BEAM_HIT and BEAM_KNOCK); */
-static struct ScrollPiece *ScrollPieceCreate(struct Kirby *kirby, u8 kind, u8 level, s16 knock, u32 hitKind) {
+struct ScrollPiece *ScrollPieceCreate(struct Kirby *kirby, u8 kind, u8 level, s16 knock, u32 hitKind) {
     // (the ones that take an element, the tornado's, the wheel's, a bomb's and a sword's, run just before KatAM's collision pass, 0xFFFD: every
     // object has put itself in its lists by then);
     struct Task *t = TaskCreate(ScrollPieceMain, sizeof(struct ScrollPiece),
@@ -707,6 +681,12 @@ static struct ScrollPiece *ScrollPieceCreate(struct Kirby *kirby, u8 kind, u8 le
     p->clock = 0;
     p->accel = 0;
     p->magic = 0;
+    p->step = NULL;
+    p->hides = FALSE;
+    p->shown = 0xFF;
+    for (i = 0; i < ARRAY_COUNT(p->vars); i++) p->vars[i] = 0;
+    p->held = NULL;
+    p->heldTask = NULL;
     p->base.header.kind = 2;
     p->base.parent = kirby;
     p->base.counter = 0;
@@ -2102,7 +2082,7 @@ static bool32 MagicBodyStep(struct ScrollPiece *p) {
         p->accel = icon;
     }
     for (i = 0; i < SCROLL_LOOKS; i++) {
-        u8 e = p->look[i].effect;
+        u16 e = p->look[i].effect;
 
         if (e == SQUEAK_FX_MAGIC_THROW_BODY || e == SQUEAK_FX_MAGIC_AFTER_BODY || e == SQUEAK_FX_MAGIC_HAT_BODY || e == SQUEAK_FX_MAGIC_THINK_BODY)
             p->look[i].palId = kirby->base.sprite.palId;
@@ -2425,6 +2405,8 @@ static void SleepHealing(struct Kirby *kirby) {
 // ScrollKirbyInput(); sub_0803F324 (detoured): a Kirby's input read each frame, then the scrolls' that work from it;
 void ScrollKirbyInput(struct Kirby *kirby) {
     gScrollInputOriginal(kirby);
+    // (Squeak Squad's abilities' moves no button starts: abilities/squeak_moves.c);
+    SqueakAbilityInput(kirby);
     // (the Bomb and Sword scrolls' elements gone with the ability: his byte free for the others);
     if (kirby->ability != KIRBY_ABILITY_BOMB && (BOMB_ELEMENT(kirby) & 0xF0) == BOMB_MARK) BOMB_ELEMENT(kirby) = 0;
     if (kirby->ability != KIRBY_ABILITY_SWORD && (SWORD_ELEMENT(kirby) & 0xF0) == SWORD_MARK) SWORD_ELEMENT(kirby) = 0;

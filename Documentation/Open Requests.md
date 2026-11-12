@@ -18,8 +18,9 @@ finishes it says how it was checked). The design rules for doors, mirrors and hu
   23 scrolls are Fire, Ice, Spark, Beam, Tornado, Parasol, Hammer, Cupid, Cutter, Laser, Sword, Wheel, Hi-Jump, UFO, Sleep, Bomb,
   Ninja, Fighter, Throw, Magic, Animal, Bubble, Metal: the ones KatAM (or the NiDL port) has also count as KatAM's (Laser, UFO,
   Fighter, Magic, Hi-Jump too). Done: Fire, Ice, Spark, Beam, Tornado, Parasol, Sleep, Cutter, Laser, UFO, Hi-Jump, Wheel,
-  Cupid, Bomb, Sword, Hammer, Fighter, Throw, Magic. Next: Ninja, Animal, Bubble, Metal (KatAM has no such ability: each ported
-  1:1 first).
+  Cupid, Bomb, Sword, Hammer, Fighter, Throw, Magic, and Ninja (ported 1:1 with its scroll; Bio Spark gives it, as the DS's).
+  Next: Animal, Bubble, Metal (KatAM has no such ability: each ported 1:1 first). The owner's pick for their look: Kirby drawn
+  from the DS's own frames in every motion (in his own spray colors), as the scroll moves draw him; not KatAM's body with a hat.
   The owner's answers on the scrolls the DS ties to what KatAM lacks: Sword and Bomb (the DS's only open its ability mixing, Ice or
   Spark Sword; Fire, Ice or Spark Bomb) take their element from what touches them, as the Tornado and Wheel scrolls do, the DS's
   element sword or bomb drawn and its element's hit, till the ability is lost; Cupid's triple shot (the DS's needs an input no
