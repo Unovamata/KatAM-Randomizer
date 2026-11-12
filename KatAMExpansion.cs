@@ -1715,6 +1715,8 @@ namespace KatAMRandomizer {
             Part(3);
             if (squeakRooms && error == null) Report(0.00, "Adding Squeak Squad's rooms");
             error ??= squeakRooms ? AddSqueakRooms(rom, squeak, version, ref cursor) : null;
+            // (what the Ability Scrolls those rooms' chests hold do: KatAMExpansionScrolls.cs);
+            error ??= squeakRooms ? AddScrollUpgrades(rom, version) : null;
             Part(4);
             if (chaseRooms != null && error == null) Report(0.00, "Adding the chases in KatAM's rooms");
             error ??= chaseRooms != null ? AddKatamChases(rom, version, chaseRooms, chaseSeed, ref cursor) : null;

@@ -13,7 +13,7 @@ OUT=$(mktemp -d)
 trap 'rm -rf "$OUT"' EXIT
 
 objects=()
-for c in nidl.c nidl_miniboss.c nidl_boss.c finale.c ending.c nidl_data.c worldmap.c rooms.c title.c calm.c chest.c skip.c unlock.c mirra.c warpstar.c abilities.c abilities/*.c enemies/*.c minibosses/*.c bosses/*.c squeak.c squeak/*.c collection.c; do
+for c in nidl.c nidl_miniboss.c nidl_boss.c finale.c ending.c nidl_data.c worldmap.c rooms.c title.c calm.c chest.c skip.c unlock.c mirra.c warpstar.c abilities.c abilities/*.c enemies/*.c minibosses/*.c bosses/*.c squeak.c squeak/*.c collection.c scrolls.c; do
     o="$OUT/$(basename "${c%.c}").o"
     cpp -I "$D/tools/agbcc/include" -I "$D/tools/agbcc" -nostdinc -iquote "$D/include" -iquote . -DREVISION=0 -DENGLISH \
         -Wno-trigraphs -DMODERN=0 "$c" | "$D/tools/agbcc/bin/agbcc" -mthumb-interwork -Wimplicit -Wparentheses -O2 -fhex-asm -o "$OUT/a.s" -
@@ -60,7 +60,7 @@ versions = [('usa', 'USA', 'B8KE', 0), ('europe', 'Europe', 'B8KP', 0), ('japan'
 names = ['CreateNidlEnemy', 'NidlStart', 'NidlCopyName', 'gNidlData']
 patched = ['SpriteTables', 'AnimCount', 'SpawnTable', 'gUnk_08351648', 'ObjectParameters2', 'gUnk_08D60EE4', 'HitFlashBranch', 'NameSite1', 'NameSite2']
 # The abilities' (see abilities.h): code symbols, and the KatAM tables and functions it relocates or hooks;
-codeNames = ['gNidlWorldMapDoors', 'NidlWorldMapUnlockSave', 'NidlWorldMapGetCoorFromRoom', 'NidlWorldMapDrawKirbys', 'NidlWorldMapUnlock0', 'NidlWorldMapUnlock1', 'NidlWorldMapUnlock2', 'NidlWorldMapUnlock3', 'NidlWorldMapUnlock4', 'NidlWorldMapUnlock5', 'NidlWorldMapUnlock6', 'NidlWorldMapUnlock7', 'NidlWorldMapUnlock8', 'NidlWorldMapUnlock9', 'NidlWorldMapUnlock10', 'NidlWorldMapUnlock11', 'NidlWorldMapUnlock12', 'NidlWorldMapUnlock13', 'NidlWorldMapUnlock14', 'NidlWorldMapUnlock15', 'gSqueakWorldRooms', 'NidlGetKirbyRoomFlagIndex', 'gNidlRoomFlagIndexOriginal', 'gNidlHubRoom', 'gNidlAbilityTables', 'gNidlAbilityData', 'NidlAbilityPortrait', 'NidlAbilityHudTimer', 'NidlDisplaySprite', 'NidlSwallow', 'NidlKirbyHit', 'gNidlKirbyHitOriginal', 'NidlKirbyStack', 'gNidlKirbyStackOriginal', 'CreateNidlMiniboss', 'NidlMinibossStart',
+codeNames = ['gNidlWorldMapDoors', 'NidlWorldMapUnlockSave', 'NidlWorldMapGetCoorFromRoom', 'NidlWorldMapDrawKirbys', 'NidlWorldMapUnlock0', 'NidlWorldMapUnlock1', 'NidlWorldMapUnlock2', 'NidlWorldMapUnlock3', 'NidlWorldMapUnlock4', 'NidlWorldMapUnlock5', 'NidlWorldMapUnlock6', 'NidlWorldMapUnlock7', 'NidlWorldMapUnlock8', 'NidlWorldMapUnlock9', 'NidlWorldMapUnlock10', 'NidlWorldMapUnlock11', 'NidlWorldMapUnlock12', 'NidlWorldMapUnlock13', 'NidlWorldMapUnlock14', 'NidlWorldMapUnlock15', 'gSqueakWorldRooms', 'NidlGetKirbyRoomFlagIndex', 'gNidlRoomFlagIndexOriginal', 'gNidlHubRoom', 'gNidlAbilityTables', 'gNidlAbilityData', 'NidlAbilityPortrait', 'ScrollBreath', 'NidlAbilityHudTimer', 'NidlDisplaySprite', 'NidlSwallow', 'NidlKirbyHit', 'gNidlKirbyHitOriginal', 'NidlKirbyStack', 'gNidlKirbyStackOriginal', 'CreateNidlMiniboss', 'NidlMinibossStart',
              # The Squeak Squad characters (squeak.c): their type's spawn and start, the anim lookup the object drawing calls, the data;
              'CreateSqueakEnemy', 'SqueakStart', 'SqueakAnimFor', 'gSqueakData', 'gSqueakEnemyHp', 'gSqueakNatives', 'SqueakCreateWaddleDee', 'SqueakWaddleDeeStart', 'SqueakCreateGlunk', 'SqueakGlunkStart', 'SqueakCreateGordo', 'SqueakGordoStart', 'SqueakCreateSnooter',
              # The helpers against the ported mini-bosses (nidl_miniboss.c);
@@ -105,6 +105,8 @@ romNames = ['gUnk_0834C2AC', 'gUnk_0834C318', 'gUnk_083509D0', 'gUnk_08350A3C', 
             'sub_08002A5C', 'sub_08002A80', 'sub_08002AD0', 'sub_08002B30', 'sub_08002BA8', 'sub_08002C18', 'GetStateSlot',
             # The NiDL rooms' chests (rooms.c): the completion's chest count; the enemies' palettes past KatAM's 7 slots (rooms.c's BigLoadPalette);
             'NumChestsCollected', 'sub_0803DFAC',
+            # The Ability Scrolls' upgrades (scrolls.c): KatAM's ability code they run;
+            'sub_0805D268',
             # The NiDL rooms' items, taken once per visit (rooms.c): the objects' gone bits;
             'sub_08001678', 'sub_080027E8', 'sub_080027A8',
             # Warp stars in the NiDL rooms (KatAMExpansionRooms.cs): their flights, where a flight lands Kirby in each room; the
