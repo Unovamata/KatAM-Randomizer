@@ -1156,6 +1156,22 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
       its HP set to 20 by RAM writes): tapped, three arrows 6 pixels apart flying 6 pixels a frame level to the wall, the Sparky
       losing 4 HP to each (12); held 70 frames, three at strength 5 (6 HP each; the third lands in its hurt frames); without the
       scroll, KatAM's one arrow, slowing and falling (4 HP).
+    - Bomb: the DS's scroll (HasScroll 15) adds nothing to Bomb Kirby's own moves; it opens his mixes (`0x0201FC50`: Bomb with
+      Fire, Ice or Spark, abilities 0x1B-0x1D, the files `kirby/bomb_ice`, `kirby/bomb_spark`; the fire bomb keeps the plain
+      bomb's): the thrown bomb (anim 30 of `bomb_ext`, `bomb_ice_ext`, `bomb_spark_ext`: purple, blue, green), the blast (anim 31,
+      the same in all) of that element. KatAM has no mixing: the owner chose the element from what touches the bomb, kept till
+      the ability is lost. Ported (`scrolls.c`'s Bomb): KatAM's bomb, thrown or set (`sub_08082380`, detoured), that meets a fire,
+      ice or electric attack or enemy (`ElementTouchAt`, the bomb's box) gives his bombs that element (`BOMB_ELEMENT`, his ability
+      byte 0x1A6: 0xB0 + 1 fire, 2 ice, 3 electricity; cleared when he isn't Bomb Kirby), the latest met; an ice or spark bomb
+      drawn as the DS's (KatAM's hidden with the flag 0x400); its blast (`sub_08074240`, detoured) of that kind: ice 0x200 and
+      electricity 0x400 in place of KatAM's 0x100, fire KatAM's own 0x100 (KatAM's blast burns already) and KatAM's bomb look
+      (the DS's fire bomb is the plain one's files). The bomb in Kirby's hand before the throw stays KatAM's (part of his own
+      sprite). The element pieces (Tornado, Wheel, Bomb) run just before KatAM's collision pass, and an object's box meets
+      theirs edge to edge included (a bomb thrown at a Sparky's small box goes off on its edge). Tested in the emulator (room
+      0x65, USA, EU and JP; Bomb and the scroll given by RAM writes, a Sparky held in the bomb's arc by RAM writes, its kind
+      changed to ice or fire by RAM writes): the first bomb meets it and takes electricity (or ice, or fire), its own blast
+      already that element's (`0x20000403`, `0x20000203`; fire `0x20000103`); the next bomb drawn green (or blue; fire, KatAM's)
+      from the throw, its blast the same; the ability cleared, the element gone; without the scroll, KatAM's bombs unchanged.
   - **The Secret Map's pieces** (treasures 93-99, taken as pieces 1-7 in order: not checked against the DS): each in its own chest
     (2-6-6, 3-3-7, 4-4-5, 5-4-5, 6-6-5, 7-6-9, 8-2-6), marked `chest[0x16]` the piece's number + 1 and `chest[0x17]` 2 (the area
     maps' mark is 1), the item one of KatAM's maps. Their art is `collection/map`: anims 0-6 the pieces (parchment, about 60 x 50
