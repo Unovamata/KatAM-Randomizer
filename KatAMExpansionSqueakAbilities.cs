@@ -76,6 +76,12 @@ namespace KatAMRandomizer {
             new("kirby/animal_ext", 25), new("kirby/animal_ext", 30), new("kirby/animal_ext", 31), new("kirby/animal_ext", 32),
             new("kirby/animal_ext", 33), new("kirby/animal_ext", 35), new("kirby/animal_ext", 36), new("kirby/animal_ext", 37),
             new("kirby/animal_ext", 38), new("kirby/animal_ext", 39),
+            // Bubble (bubble_ext): the start (22), blowing ahead, up and down (composites 16, 14, 18), their ends (17, 15, 19), the scroll's
+            // big bubble blown (20); the bubbles (35, 36), the scroll's big one (37), a bubble's pop (38);
+            new("kirby/bubble_ext", 22), new("kirby/bubble_ext", Composite: 16), new("kirby/bubble_ext", Composite: 14),
+            new("kirby/bubble_ext", Composite: 18), new("kirby/bubble_ext", Composite: 17), new("kirby/bubble_ext", Composite: 15),
+            new("kirby/bubble_ext", Composite: 19), new("kirby/bubble_ext", Composite: 20), new("kirby/bubble_ext", 35),
+            new("kirby/bubble_ext", 36), new("kirby/bubble_ext", 37), new("kirby/bubble_ext", 38),
         };
 
         /* SqueakMoveLookEffects(); The looks' effects (their indexes from `first` on, after SqueakEffectDefinitions') and the table of each

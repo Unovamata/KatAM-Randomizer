@@ -135,6 +135,11 @@ static void AnimalRoll(struct Kirby *kirby);
 static void AnimalSpin(struct Kirby *kirby);
 static void AnimalRollEnd(struct Kirby *kirby);
 static void AnimalBounce(struct Kirby *kirby);
+static void BubbleStart(struct Kirby *kirby);
+static void BubbleBlow(struct Kirby *kirby);
+static void BubbleEnd(struct Kirby *kirby);
+static void BubbleBig(struct Kirby *kirby);
+static void BubbleQuiet(void);
 
 // (the flames' way out and frames, words 45-58: pixels, frames);
 static const s8 gNinjaFlames[NINJA_FLAMES][2] = { { 0, 1 }, { 16, 8 }, { -16, 8 }, { 32, 16 }, { -32, 16 }, { 48, 24 }, { -48, 24 } };
@@ -190,7 +195,8 @@ static bool32 Moving(struct Kirby *kirby) {
         || s == NinjaWallThrowEnd || s == NinjaGrab || s == NinjaGrabRise || s == NinjaGrabFall || s == NinjaWater || s == NinjaArt
         || s == NinjaArtHold || s == NinjaArtCharged || s == NinjaArtRelease
         || s == AnimalScratch || s == AnimalDash || s == AnimalLeap || s == AnimalFlurry || s == AnimalThrow || s == AnimalDig
-        || s == AnimalLookUp || s == AnimalRoll || s == AnimalSpin || s == AnimalRollEnd || s == AnimalBounce;
+        || s == AnimalLookUp || s == AnimalRoll || s == AnimalSpin || s == AnimalRollEnd || s == AnimalBounce
+        || s == BubbleStart || s == BubbleBlow || s == BubbleEnd || s == BubbleBig;
 }
 
 /* The held enemy (the grab's): its own state stopped (KatAM's objects' state, unk78, as an inhale's sub_0809C48C), carried by the
@@ -317,6 +323,8 @@ static bool32 MoveStep(struct ScrollPiece *p) {
     struct Kirby *kirby = p->kirby;
 
     if (!Moving(kirby) || kirby->ability < SQUEAK_FIRST_ABILITY) {
+        // (Bubble's blowing sounds stopped with its moves, however they end: a hurt, a door);
+        if (p->shown >= BUBBLE_LOOK_START && p->shown <= BUBBLE_LOOK_BIG) BubbleQuiet();
         LetGo(kirby);
         p->base.flags |= 0x1000;
         kirby->base.sprite.unk8 &= ~TORNADO_HIDE;
@@ -1314,6 +1322,235 @@ static void AnimalRollEnd(struct Kirby *kirby) {
     if (++kirby->base.counter < (kirby->unkD9 ? ANIMAL_THROW_HIT : ANIMAL_ROLL_END_FRAMES)) return;
     MoveBox(kirby, 0, 0, 0, 0, 0);
     NidlAbilityEnd(kirby);
+}
+
+/* Bubble (the DS's Bubble Kirby, vtable 0x0216FDC0; PrmKirbyBubble.kgb; Bubble Head gives it, as the DS's):
+ * • B (0x02089C64): moving (walking or dashing: the DS's pad +0x50) with the scroll (HasScroll 21), the big bubble; else blowing. In
+ *   water, the water's own attack (KatAM's).
+ * • Blowing (0x02089B90: bubble_ext's 22, 9 frames, efc_cmn0's 21 at his feet, sound 0x9C, with the scroll 0x9D; 0x02089AB0), then
+ *   while B is held (0x02089700): composite 16 ahead, 14 with Up, 18 with Down (the pad read each frame, the look set again when it
+ *   changes); a bubble every word 6 (9) frames from the spot of his way the frame before (words 0-5: 32 ahead and 10 up, 32 and 18 with
+ *   Up, 32 and 2 with Down), kinds 0 and 1 by turns (word 12: 2); efc_cmn0's 19 at his feet every 10 frames; the sound again every 60.
+ *   His box (bubble_ext.rca's: ahead 11 to 52 ahead, 3 to 19 up; down 11 to 47, -15 to 9; up none: logged on the DS, no attack of his
+ *   while blowing up), 10. He stays where he is (the DS's vtable +0x38(1): on the ground its friction, 0.1 a frame; in the air his fall,
+ *   KatAM's here; he doesn't turn). B let go: composite 17 (15 up, 19 down), 4 frames (0x02089680, the sounds stopped), then standing.
+ * • A bubble (0x02089254, 0x0208906C; through everything: word 43 is 0): kind k's words 13 + 5k on: its look (bubble_ext's 35 on), its
+ *   speed ahead and up, its change a frame ahead and up; with Up held word 7 (1.7) more up, with Down word 8 (1.7 less); a random
+ *   change of up to 0.01 either way on each change (words 10, 11). Kind 0: 2.03 ahead, changing -0.01 and 0.01 a frame; kind 1: 0.4
+ *   ahead, -0.1 up, changing 0.16 and -0.05; the scroll's kind 5: 1.7, 0.4, 0.12, 0.04 (logged on the DS: never capped). Its animation
+ *   once through (17, 18, 36 frames), it pops (0x0208904C: 38, 11 frames, going on at its speed, no box); hitting something, it's gone
+ *   at once (vtable +0x2C, 0x02089174). Its box (.rca's, from its middle; logged on the DS as its attack while it flies): kind 0 -11 to
+ *   9 ahead, -12 to 11 up, kind 1 -15 to 9, -12 to 13, 20; kind 5 -15 to 14, -15 to 15, 40 (its hit's flag 0x800, not known).
+ * • The scroll's big bubble (0x020895C4, 0x020894CC): composite 20 (29 frames; sound 0x150, efc_cmn0's 21 at his feet), then the kind
+ *   5 bubble from the spot ahead (sound 0x151), composite 17 and standing. The scroll's only other change: the blowing sound (0x9D). */
+#define SCROLL_BUBBLE 21
+#define BUBBLE_START_FRAMES 9               // bubble_ext's 22;
+#define BUBBLE_END_FRAMES 4                 // composites 15, 17, 19;
+#define BUBBLE_BIG_FRAMES 29                // composite 20;
+#define BUBBLE_EVERY 9                      // word 6;
+#define BUBBLE_KINDS 2                      // word 12;
+#define BUBBLE_DUST_EVERY 10
+#define BUBBLE_SOUND_EVERY 60
+#define BUBBLE_FRICTION SQUEAK_SPEED(410)   // (the DS's Kirby's ground friction: 0.1);
+#define BUBBLE_UP 6964                      // words 7, 8 (20.12);
+#define BUBBLE_JITTER 41                    // words 10, 11 (20.12);
+#define BUBBLE_SPRAY_STRENGTH 2             // .rca's 10;
+#define BUBBLE_POP_FRAMES 11                // bubble_ext's 38;
+#define BUBBLE_KIND_BIG 2                   // (gBubbleKinds' 2: the DS's kind 5);
+/* Their hit: KatAM's kind 0x80 (Magic's and Sleep's, level 3), the one an enemy's hurt state shuts out each frame and keeps out once it's
+ * beaten (object.c's sub_0809B6A8: unk5C |= 0x80): with a kind it doesn't shut out (Cutter's), the spray's box every frame and a bubble
+ * every 9 hit a beaten enemy again before its 11 hurt frames end, holding it there till Kirby stops (logged: HP 4 to -36); the DS's
+ * hit-stop keeps them off it, and a beaten one is gone; */
+#define BUBBLE_HIT 0x20000083
+
+enum { BUBBLE_AHEAD, BUBBLE_WAY_UP, BUBBLE_WAY_DOWN };
+
+// The bubbles: their look and frames, their speed and its change a frame (20.12: ahead, up), their box (from their middle, Y up), strength;
+struct BubbleKind {
+    u8 look, frames;
+    s16 speedX, speedY, addX, addY;
+    s8 box[4];
+    u8 strength;
+};
+static const struct BubbleKind gBubbleKinds[] = {
+    { BUBBLE_LOOK_BUBBLE, 17, 8315, 0, -41, 41, { -11, 11, 9, -12 }, 4 },              // kind 0 (words 13-17);
+    { BUBBLE_LOOK_BUBBLE_2, 18, 1639, -410, 656, -205, { -15, 13, 9, -12 }, 4 },       // kind 1 (words 18-22);
+    { BUBBLE_LOOK_BIG_BUBBLE, 36, 6964, 1639, 492, 164, { -15, 15, 14, -15 }, 8 },     // kind 5 (words 38-42);
+};
+// (words 0-5: the spot a bubble starts from, ahead and up from his feet, by his way);
+static const s8 gBubbleSpots[3][2] = { { 32, 10 }, { 32, 18 }, { 32, 2 } };
+
+#define BubbleSound() (SqueakScrollOwned(SCROLL_BUBBLE) ? 0x9D : 0x9C)
+
+// BubbleQuiet(); The blowing's sounds stopped (the DS's 0x02013D88);
+static void BubbleQuiet(void) {
+    m4aSongNumStop(SQUEAK_SE(0x9C));
+    m4aSongNumStop(SQUEAK_SE(0x9D));
+}
+
+// BubbleJitter(); The random change (the DS's: up to word 10's either way);
+static s32 BubbleJitter(void) {
+    return (s32)(Rand16() % (2 * BUBBLE_JITTER)) - BUBBLE_JITTER;
+}
+
+// A bubble's piece: vars[0] its kind, vars[1] its frames left, vars[2] and vars[3] its speed's change a frame (KatAM's, across and up);
+static bool32 BubblePop(struct ScrollPiece *p) {
+    if (p->vars[1] == 0) {
+        p->base.flags |= 0x1000;
+        return FALSE;
+    }
+    p->vars[1]--;
+    p->base.x += p->base.xspeed;
+    p->base.y -= p->base.yspeed;
+    return TRUE;
+}
+
+static bool32 BubbleStep(struct ScrollPiece *p) {
+    const struct BubbleKind *k = &gBubbleKinds[p->vars[0]];
+
+    // (what it hits, it's gone);
+    if (p->base.flags & 0x40000) {
+        p->base.flags |= 0x1000;
+        return FALSE;
+    }
+    if (p->vars[1] == 0) {
+        p->step = BubblePop;
+        p->vars[1] = BUBBLE_POP_FRAMES;
+        Box(p, 0, 0, 0, 0, 0);
+        SetLook(p, BUBBLE_LOOK_POP, TRUE);
+        return BubblePop(p);
+    }
+    p->vars[1]--;
+    p->base.xspeed += p->vars[2];
+    p->base.yspeed += p->vars[3];
+    p->base.x += p->base.xspeed;
+    p->base.y -= p->base.yspeed;
+    p->base.unk68 = BUBBLE_HIT;
+    Box(p, k->box[0], k->box[1], k->box[2], k->box[3], k->strength);
+    return TRUE;
+}
+
+// Bubble(); One blown (the DS's 0x02089254): kind `kind` from the spot of `way`, Up and Down held changing its speed up;
+static void Bubble(struct Kirby *kirby, u8 kind, u8 way) {
+    const struct BubbleKind *k = &gBubbleKinds[kind];
+    struct ScrollPiece *p = ScrollPieceCreate(kirby, SCROLL_MOVE, 0, NINJA_KNOCK, BUBBLE_HIT);
+    s32 dir = Dir(kirby), up = k->speedY;
+
+    if (p == NULL) return;
+    if (kirby->movementState & 0x40) up += BUBBLE_UP;
+    else if (kirby->movementState & 0x80) up -= BUBBLE_UP;
+    p->step = BubbleStep;
+    p->vars[0] = kind;
+    p->vars[1] = k->frames;
+    p->vars[2] = dir * SQUEAK_SPEED(k->addX + BubbleJitter());
+    p->vars[3] = SQUEAK_SPEED(k->addY + BubbleJitter());
+    p->base.x = kirby->base.x + dir * (gBubbleSpots[way][0] << 8);
+    p->base.y = kirby->base.y + SCROLL_FEET - (gBubbleSpots[way][1] << 8);
+    p->base.xspeed = dir * SQUEAK_SPEED(k->speedX);
+    p->base.yspeed = SQUEAK_SPEED(up);
+    p->base.flags = (p->base.flags & ~1) | (dir < 0 ? 1 : 0);
+    SetLook(p, k->look, TRUE);
+    BubbleStep(p);
+}
+
+// BubbleStand(); Where he is (the DS's vtable +0x38(1)): on the ground slowing by its friction, in the air falling;
+static void BubbleStand(struct Kirby *kirby) {
+    s16 v = kirby->base.xspeed;
+
+    if (kirby->base.unk62 & 4)
+        kirby->base.xspeed = v > 0 ? (v > BUBBLE_FRICTION ? v - BUBBLE_FRICTION : 0) : (v < -BUBBLE_FRICTION ? v + BUBBLE_FRICTION : 0);
+    MoveGravity(kirby);
+}
+
+/* BubbleB(); The B button (gNidlAbilityTables' landB; the DS's 0x02089C64): moving with the scroll, the big bubble; else blowing; */
+void BubbleB(struct Kirby *kirby) {
+    kirby->idleTimer = 0;
+    kirby->base.flags &= ~2;
+    kirby->base.flags &= ~0x40;
+    Facing(kirby);
+    kirby->animationIndex = NIDL_MOTION_SLOT;
+    BubbleQuiet();
+    if ((kirby->base.flags & 0x10 || kirby->movementState & 0x30) && SqueakScrollOwned(SCROLL_BUBBLE)) {
+        PlaySfx(&kirby->base, SQUEAK_SE(0x150));
+        StartState(kirby, BubbleBig);
+    } else {
+        PlaySfx(&kirby->base, SQUEAK_SE(BubbleSound()));
+        StartState(kirby, BubbleStart);
+    }
+    Puff(kirby, FALSE);
+    kirby->stateFn(kirby);
+}
+
+// The start (0x02089AB0): 22, then blowing ahead (its first frame the same frame, as the DS's state returning 1);
+static void BubbleStart(struct Kirby *kirby) {
+    if (NidlAbilityInWater(kirby)) return;
+    if (kirby->base.counter >= BUBBLE_START_FRAMES) {
+        kirby->unkD9 = BUBBLE_AHEAD;
+        StartState(kirby, BubbleBlow);
+        Look(kirby, BUBBLE_LOOK_BLOW, TRUE);
+        BubbleBlow(kirby);
+        return;
+    }
+    if (kirby->base.counter == 0) Look(kirby, BUBBLE_LOOK_START, TRUE);
+    BubbleStand(kirby);
+    kirby->base.counter++;
+}
+
+// Blowing (0x02089700): a bubble every 9 frames, his way from the pad, the dust, the sound again, his box; B let go, the end;
+static void BubbleBlow(struct Kirby *kirby) {
+    s16 n = kirby->base.counter;
+    u8 way;
+
+    if (NidlAbilityInWater(kirby)) return;
+    if (n % BUBBLE_EVERY == 0) Bubble(kirby, (n / BUBBLE_EVERY) % BUBBLE_KINDS, kirby->unkD9);
+    BubbleStand(kirby);
+    way = kirby->movementState & 0x40 ? BUBBLE_WAY_UP : kirby->movementState & 0x80 ? BUBBLE_WAY_DOWN : BUBBLE_AHEAD;
+    if (way != kirby->unkD9) {
+        kirby->unkD9 = way;
+        Look(kirby, way == BUBBLE_WAY_UP ? BUBBLE_LOOK_BLOW_UP : way == BUBBLE_WAY_DOWN ? BUBBLE_LOOK_BLOW_DOWN : BUBBLE_LOOK_BLOW, TRUE);
+    }
+    if (n % BUBBLE_DUST_EVERY == 0) SqueakEffectInRoom(kirby->base.roomId, SQUEAK_FX_DUST, kirby->base.x, kirby->base.y + SCROLL_FEET);
+    if (n % BUBBLE_SOUND_EVERY == BUBBLE_SOUND_EVERY - 1) {
+        BubbleQuiet();
+        PlaySfx(&kirby->base, SQUEAK_SE(BubbleSound()));
+    }
+    if (way == BUBBLE_AHEAD) MoveBox(kirby, 11, 19, 52, 3, BUBBLE_SPRAY_STRENGTH);
+    else if (way == BUBBLE_WAY_DOWN) MoveBox(kirby, 11, 9, 47, -15, BUBBLE_SPRAY_STRENGTH);
+    else MoveBox(kirby, 0, 0, 0, 0, 0);
+    if (FindPiece(kirby) != NULL) FindPiece(kirby)->base.unk68 = BUBBLE_HIT;
+    kirby->base.counter++;
+    if (kirby->movementState & 2) return;
+    MoveBox(kirby, 0, 0, 0, 0, 0);
+    StartState(kirby, BubbleEnd);
+    Look(kirby, way == BUBBLE_WAY_UP ? BUBBLE_LOOK_END_UP : way == BUBBLE_WAY_DOWN ? BUBBLE_LOOK_END_DOWN : BUBBLE_LOOK_END, TRUE);
+}
+
+// The end (0x02089680): the sounds stopped, 17 (15, 19), then standing;
+static void BubbleEnd(struct Kirby *kirby) {
+    BubbleQuiet();
+    if (NidlAbilityInWater(kirby)) return;
+    if (kirby->base.counter >= BUBBLE_END_FRAMES) {
+        NidlAbilityEnd(kirby);
+        return;
+    }
+    BubbleStand(kirby);
+    kirby->base.counter++;
+}
+
+// The scroll's big bubble (0x020894CC): 20, then the kind 5 bubble (sound 0x151) and the end;
+static void BubbleBig(struct Kirby *kirby) {
+    if (NidlAbilityInWater(kirby)) return;
+    if (kirby->base.counter >= BUBBLE_BIG_FRAMES) {
+        Bubble(kirby, BUBBLE_KIND_BIG, BUBBLE_AHEAD);
+        PlaySfx(&kirby->base, SQUEAK_SE(0x151));
+        StartState(kirby, BubbleEnd);
+        Look(kirby, BUBBLE_LOOK_END, TRUE);
+        BubbleEnd(kirby);
+        return;
+    }
+    if (kirby->base.counter == 0) Look(kirby, BUBBLE_LOOK_BIG, TRUE);
+    BubbleStand(kirby);
+    kirby->base.counter++;
 }
 
 /* SqueakAbilityInput(); Each Kirby's input read (scrolls.c's ScrollKirbyInput): Ninja's moves no button starts: onto a wall (the DS's
