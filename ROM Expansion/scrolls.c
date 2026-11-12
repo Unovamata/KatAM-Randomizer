@@ -47,6 +47,7 @@ enum {
     SCROLL_BOMB,
     SCROLL_NINJA,
     SCROLL_FIGHTER,
+    SCROLL_THROW,
 };
 
 // SCROLL_BREATH_AIM; prmKirbyFire.kgb's and prmKirbyIce.kgb's words 3 and 4 (6144, -6144): a breath's puff's height speed with Up or
@@ -119,7 +120,7 @@ struct SparkCharge {
     u8 glint;                   // +0x3AC;
 };
 
-enum { SPARK_AURA, SPARK_BURST, SPARK_BALL, BEAM_WHIP, TORNADO_ELEMENT, PARASOL_THRUST, CUTTER_BLADE, LASER_CHARGE, LASER_BOLT, UFO_STAR, HI_JUMP_ORB, WHEEL_ELEMENT, BOMB_SHELL, SWORD_EDGE, HAMMER_GIANT, FIGHTER_CHARGE };
+enum { SPARK_AURA, SPARK_BURST, SPARK_BALL, BEAM_WHIP, TORNADO_ELEMENT, PARASOL_THRUST, CUTTER_BLADE, LASER_CHARGE, LASER_BOLT, UFO_STAR, HI_JUMP_ORB, WHEEL_ELEMENT, BOMB_SHELL, SWORD_EDGE, HAMMER_GIANT, FIGHTER_CHARGE, THROW_FLASH };
 
 // ScrollLook; One of a piece's looks: an effect's animation (squeak.h's SQUEAK_FX_*), `dx` pixels forward and `dy` under the piece
 // (the DS's composite's part: its offset);
@@ -138,7 +139,8 @@ struct ScrollPiece {
     struct ObjectBase base;
     struct ScrollLook look[SCROLL_LOOKS];
     struct Kirby *kirby;
-    struct Task *other;         // KatAM's own attack it goes with (the tornado's);
+    struct Task *other;         // KatAM's own attack it goes with (the tornado's; the thrown one's);
+    struct ThrowAbilityObject *thrown;  // (THROW_FLASH: what Throw Kirby holds, other's);
     u8 kind;
     u8 level;
     u16 clock;
@@ -156,6 +158,7 @@ static bool32 BombStep(struct ScrollPiece *p);
 static bool32 SwordStep(struct ScrollPiece *p);
 static bool32 HammerStep(struct ScrollPiece *p);
 static bool32 FighterStep(struct ScrollPiece *p);
+static bool32 ThrowStep(struct ScrollPiece *p);
 
 // ChargeOf(); A Kirby's SparkCharge (SPARK_SLOT: its task's number + 1, checked), made with `create`; NULL: none;
 static struct SparkCharge *ChargeOf(struct Kirby *kirby, bool32 create) {
@@ -646,6 +649,7 @@ static void ScrollPieceMain(void) {
     alive = p->kind == SPARK_AURA ? AuraStep(p) : p->kind == SPARK_BALL ? BallStep(p) : p->kind == BEAM_WHIP ? BeamStep(p)
           : p->kind == TORNADO_ELEMENT ? TornadoStep(p) : p->kind == PARASOL_THRUST ? ParasolStep(p) : p->kind == CUTTER_BLADE ? CutterStep(p)
           : p->kind == LASER_CHARGE ? LaserStep(p) : p->kind == LASER_BOLT ? BoltStep(p) : p->kind == UFO_STAR ? StarStep(p) : p->kind == HI_JUMP_ORB ? OrbStep(p) : p->kind == WHEEL_ELEMENT ? WheelStep(p) : p->kind == BOMB_SHELL ? BombStep(p) : p->kind == SWORD_EDGE ? SwordStep(p) : p->kind == HAMMER_GIANT ? HammerStep(p) : p->kind == FIGHTER_CHARGE ? FighterStep(p)
+          : p->kind == THROW_FLASH ? ThrowStep(p)
           : BurstStep(p);
     if (!alive) return;
     for (i = 0; i < SCROLL_LOOKS; i++) LookDraw(p, &p->look[i]);
@@ -677,6 +681,7 @@ static struct ScrollPiece *ScrollPieceCreate(struct Kirby *kirby, u8 kind, u8 le
     for (i = 0; i < SCROLL_LOOKS; i++) p->look[i].effect = SCROLL_NO_LOOK;
     p->kirby = kirby;
     p->other = NULL;
+    p->thrown = NULL;
     p->kind = kind;
     p->level = level;
     p->clock = 0;
@@ -1772,6 +1777,73 @@ void ScrollFighterBlast(struct Kirby *kirby) {
     if (top) kirby->hp = 1;
     gScrollFighterBlastOriginal(kirby);
     if (top) kirby->hp = hp;
+}
+
+/* Throw. The DS's grab (0x020C0E00, each frame of the lunge; once it holds something, its +0x14's 8) makes a 0x134-byte object
+ * (0x020C0938, 0x020C0890: the held one kept at its +0x130 and carried at its spot, thrown with it) whose look is a 10-frame flash
+ * (0x020C0568: throw_ext's 43, a blue ball bursting into stars); with the scroll (HasScroll 18) its type is 4-7 by the held one's
+ * element (its +0x10, set by the enemy factory 0x0202467C: Hot Head, Flamer, Acchi 1, fire; Pengy 2, water; Sparky, Laser Ball,
+ * UFO 3, electric; any other 0), and its look throw_ext.mca's composite 1-4: the ball in the element's colors (none purple, fire
+ * orange, water cyan, electric green) in a ring of stars. Nothing else reads the type: the throw, its flight and its hit (.rca's 22
+ * and 23: 30, kind 0) are the same with the scroll or without. KatAM's grab (sub_0807A7E8: the thrown object made from what Kirby
+ * holds) shows no flash, so the DS's base one isn't kept; with the scroll, a piece (THROW_FLASH) shows the upgrade's element flash on
+ * what he holds for its 10 frames, the element by the same enemies (KatAM's types; Squeak Squad's Acchi); */
+#define THROW_FLASH_FRAMES 10                   // throw_ext's 32-35 and 43: their total;
+
+// ThrowElement(); The DS's element of what Throw Kirby grabs (0 none, 1 fire, 2 water, 3 electric; the factory's, by enemy);
+static u8 ThrowElement(struct ObjectHeader *held) {
+    struct Object *o = (struct Object *)held;
+
+    if (held->kind != 1) return 0;
+    switch (o->type) {
+    case OBJ_HOT_HEAD: case OBJ_FLAMER:
+        return 1;
+    case OBJ_PENGY:
+        return 2;
+    case OBJ_SPARKY: case OBJ_LASER_BALL: case OBJ_UFO:
+        return 3;
+    case SQUEAK_TYPE:
+        return ((struct SqueakObject *)o)->enemy == SQUEAK_ACCHI ? 1 : 0;
+    }
+    return 0;
+}
+
+// ThrowStep(); On what he holds (its middle, facing as it), for the flash's 10 frames; gone with it;
+static bool32 ThrowStep(struct ScrollPiece *p) {
+    struct ThrowAbilityObject *t = p->thrown;
+
+    if (p->clock >= THROW_FLASH_FRAMES || p->other == NULL || TaskGetStructPtr(p->other) != t || t->base.flags & 0x1000) {
+        p->base.flags |= 0x1000;
+        return FALSE;
+    }
+    p->base.x = t->base.x;
+    p->base.y = t->base.y;
+    p->base.roomId = t->base.roomId;
+    p->base.flags = (p->base.flags & ~1) | (t->base.flags & 1);
+    return TRUE;
+}
+
+/* ScrollThrowGrab(); sub_0807A7E8 (detoured), the thrown object made from what Throw Kirby holds: with the scroll, the DS's element
+ * flash on it; */
+struct ThrowAbilityObject *(*gScrollThrowGrabOriginal)(struct ObjectHeader *) = NULL;
+
+struct ThrowAbilityObject *ScrollThrowGrab(struct ObjectHeader *held) {
+    struct ThrowAbilityObject *thrown = gScrollThrowGrabOriginal(held);
+    struct Kirby *kirby = thrown->base.parent;
+    struct ScrollPiece *p;
+    u8 element, i;
+
+    if (!IsKirby(kirby) || kirby->ability != KIRBY_ABILITY_THROW || !SqueakScrollOwned(SCROLL_THROW)) return thrown;
+    element = ThrowElement(held);
+    if ((p = ScrollPieceCreate(kirby, THROW_FLASH, element, 0, 0)) == NULL) return thrown;
+    p->thrown = thrown;
+    for (i = 0; i < MAX_TASK_NUM; i++) {
+        if (TaskGetStructPtr(&gTasks[i]) == thrown) p->other = &gTasks[i];
+    }
+    if (!ThrowStep(p)) return thrown;
+    LookStart(p, 0, SQUEAK_FX_THROW_FLASH + element * 2, 0, 0);
+    LookStart(p, 1, SQUEAK_FX_THROW_FLASH_STARS + element * 2, 0, 0);
+    return thrown;
 }
 
 /* Sleep. The DS's (0x020BF294, each frame of his sleep): with the scroll (HasScroll 14) he gets better while he sleeps,

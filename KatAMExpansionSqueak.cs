@@ -863,6 +863,17 @@ namespace KatAMRandomizer {
             new SqueakEffect(69, "kirby/hammer_ext", 0, Once: true, Composite: 1, OnlyPalettes: new[] { 0 }),
             new SqueakEffect(70, "kirby/hammer_ext", 0, Once: true, Composite: 1, OnlyPalettes: new[] { 1 }),
             new SqueakEffect(71, "effect/efc_cmn0", 29, Once: true),
+            /* The Throw scroll's grab flash ("ROM Expansion/scrolls.c"): kirby/throw_ext.mca's composites 1-4 (42, the ring of stars, 8
+             * pixels up, with 32-35, the ball bursting: the DS's 0x020C0568 by the held one's element, none, fire, water, electric), each
+             * as its ball (palette 2 for none, 1 for the others) and its stars (palette 6); once; */
+            new SqueakEffect(72, "kirby/throw_ext", 0, Once: true, Composite: 1, OnlyPalettes: new[] { 2 }),
+            new SqueakEffect(73, "kirby/throw_ext", 0, Once: true, Composite: 1, OnlyPalettes: new[] { 6 }),
+            new SqueakEffect(74, "kirby/throw_ext", 0, Once: true, Composite: 2, OnlyPalettes: new[] { 1 }),
+            new SqueakEffect(75, "kirby/throw_ext", 0, Once: true, Composite: 2, OnlyPalettes: new[] { 6 }),
+            new SqueakEffect(76, "kirby/throw_ext", 0, Once: true, Composite: 3, OnlyPalettes: new[] { 1 }),
+            new SqueakEffect(77, "kirby/throw_ext", 0, Once: true, Composite: 3, OnlyPalettes: new[] { 6 }),
+            new SqueakEffect(78, "kirby/throw_ext", 0, Once: true, Composite: 4, OnlyPalettes: new[] { 1 }),
+            new SqueakEffect(79, "kirby/throw_ext", 0, Once: true, Composite: 4, OnlyPalettes: new[] { 6 }),
         };
 
         /* SqueakFlatten(); A composite animation's parts (`parts`: the composition's indices; all when null) drawn together as one

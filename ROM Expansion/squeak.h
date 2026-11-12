@@ -388,6 +388,16 @@ enum {
     SQUEAK_FX_HAMMER_LAND_BODY,
     SQUEAK_FX_HAMMER_LAND,
     SQUEAK_FX_HAMMER_GLINT,
+    /* The Throw scroll's grab flash (scrolls.c): kirby/throw_ext.mca's composites 1-4, the held one's element's (none, fire, water,
+     * electric), each as its ball (palette 2, or 1) and its stars (palette 6); */
+    SQUEAK_FX_THROW_FLASH,
+    SQUEAK_FX_THROW_FLASH_STARS,
+    SQUEAK_FX_THROW_FIRE,
+    SQUEAK_FX_THROW_FIRE_STARS,
+    SQUEAK_FX_THROW_WATER,
+    SQUEAK_FX_THROW_WATER_STARS,
+    SQUEAK_FX_THROW_ELECTRIC,
+    SQUEAK_FX_THROW_ELECTRIC_STARS,
     SQUEAK_FX_COUNT,
 };
 
