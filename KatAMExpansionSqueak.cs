@@ -816,6 +816,21 @@ namespace KatAMRandomizer {
             // The Cutter scroll's cutter ("ROM Expansion/scrolls.c": cutter_ext.mca's composite 0: its sparkles, 27, and its blade, 25);
             new SqueakEffect(39, "kirby/cutter_ext", 27),
             new SqueakEffect(40, "kirby/cutter_ext", 25),
+            /* The Laser scroll's charge ("ROM Expansion/scrolls.c": laser_ext.mca's composites 1-4 without the DS's Kirby, 30, 31, 37 and
+             * 40): the sparkles closing in on the gun (33-36), the orb once charged (32), the sparkles as he lets go (38, 39), the flash
+             * and ring as the charged shot goes (41, 28; once), the charged shot (42 across, 43 up, 44 down); cell 0, empty, as nothing; */
+            new SqueakEffect(41, "kirby/laser_ext", 33, Skip: new[] { 0 }),
+            new SqueakEffect(42, "kirby/laser_ext", 34, Skip: new[] { 0 }),
+            new SqueakEffect(43, "kirby/laser_ext", 35, Skip: new[] { 0 }),
+            new SqueakEffect(44, "kirby/laser_ext", 36, Skip: new[] { 0 }),
+            new SqueakEffect(45, "kirby/laser_ext", 32, Skip: new[] { 0 }),
+            new SqueakEffect(46, "kirby/laser_ext", 38, Skip: new[] { 0 }),
+            new SqueakEffect(47, "kirby/laser_ext", 39, Skip: new[] { 0 }),
+            new SqueakEffect(48, "kirby/laser_ext", 41, Skip: new[] { 0 }),
+            new SqueakEffect(49, "kirby/laser_ext", 28, Skip: new[] { 0 }),
+            new SqueakEffect(50, "kirby/laser_ext", 42),
+            new SqueakEffect(51, "kirby/laser_ext", 43),
+            new SqueakEffect(52, "kirby/laser_ext", 44),
         };
 
         /* SqueakFlatten(); A composite animation's parts (`parts`: the composition's indices; all when null) drawn together as one

@@ -1089,6 +1089,22 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
       its box the DS's. Tested in the emulator (room 0x65, all three versions; Cutter and the scroll given by RAM writes): the thrown
       cutter's box -20, -14 to 19, 13, KatAM's look off and the DS's blade drawn following it; without the scroll KatAM's cutter
       unchanged (box -12, -7 to 12, 7, its yellow look).
+    - Laser (its attack `0x0209A0C0`: `laser_ext`'s 25, then `0x02099FB0`: the shot, object `0x020373F8` with `laser_ext`'s
+      21-23 and `prmLaserEffectLaser.kgb`, its `.rca` boxes of 20, sound `0x95`, and composite 0, 15 frames, `0x02099E94`): with
+      the scroll, B still held as composite 0 ends, the charge (`0x02099D00`: composite 1, `laser_ext`'s 33-36, sparkles closing in
+      on the gun at (6, -11), with the DS's Kirby flat, 30 and 31; sound `0x138` every 5 frames), charged past 29 frames
+      (composite 2: and 32, an orb flashing blue and gold at (0, -8), its last part, under Kirby). B let go: not charged, the end;
+      charged, composite 3 (`0x02099BF0`: 38 and 39, sparkles at (5, -18); 6 frames), then the charged shot (the same object, its
+      type 1: `laser_ext`'s 42-44, a thicker bolt, its boxes of 30, as big as the plain shot's; sound `0x95`) and composite 4
+      (`0x02099B78`: 41, a flash, 28, a ring bursting; 20 frames), then the end. Ported (`scrolls.c`'s Laser): KatAM's laser
+      (`sub_0806A520`: `sub_08063E50`, its shot `sub_0807BCE0`, then `sub_08063F74`, ending past its counter's 8) is held while
+      B is held after it, KatAM's Kirby in his laser pose with the DS's sparkles, sound and orb (behind him); let go charged, the
+      sparkles, then KatAM's own shot (flight, turns on slopes, box, sound) at strength 3 (KatAM's 2 for the DS's 20), drawn as the
+      DS's bolt (across, up or down as it goes), the flash and ring. Tested in the emulator (room 0x65, all three versions; Laser
+      and the scroll given by RAM writes, an enemy's HP set to 10 and held in place by RAM writes): B held, the charge from 9
+      frames after the shot, the orb 30 frames on, let go, the charged shot 6 frames later, Kirby standing 20 frames after it;
+      the plain shot takes 2 HP, the charged one 3; let go early, the laser ends that frame; without the scroll KatAM's laser
+      unchanged (ends 9 frames after the shot, B held or not).
   - **The Secret Map's pieces** (treasures 93-99, taken as pieces 1-7 in order: not checked against the DS): each in its own chest
     (2-6-6, 3-3-7, 4-4-5, 5-4-5, 6-6-5, 7-6-9, 8-2-6), marked `chest[0x16]` the piece's number + 1 and `chest[0x17]` 2 (the area
     maps' mark is 1), the item one of KatAM's maps. Their art is `collection/map`: anims 0-6 the pieces (parchment, about 60 x 50
