@@ -30,6 +30,7 @@ enum {
     SCROLL_ICE,
     SCROLL_SPARK,
     SCROLL_BEAM,
+    SCROLL_TORNADO,
 };
 
 // SCROLL_BREATH_AIM; prmKirbyFire.kgb's and prmKirbyIce.kgb's words 3 and 4 (6144, -6144): a breath's puff's height speed with Up or
@@ -101,7 +102,7 @@ struct SparkCharge {
     u8 glint;                   // +0x3AC;
 };
 
-enum { SPARK_AURA, SPARK_BURST, SPARK_BALL, BEAM_WHIP };
+enum { SPARK_AURA, SPARK_BURST, SPARK_BALL, BEAM_WHIP, TORNADO_ELEMENT };
 
 // ScrollLook; One of a piece's looks: an effect's animation (squeak.h's SQUEAK_FX_*), `dx` pixels forward and `dy` under the piece
 // (the DS's composite's part: its offset);
@@ -120,6 +121,7 @@ struct ScrollPiece {
     struct ObjectBase base;
     struct ScrollLook look[SCROLL_LOOKS];
     struct Kirby *kirby;
+    struct Task *other;         // KatAM's own attack it goes with (the tornado's);
     u8 kind;
     u8 level;
     u16 clock;
@@ -415,13 +417,121 @@ void ScrollBeamChain2(struct Kirby *kirby) {
     if (!BeamWhipped(kirby)) gScrollChain2Original(kirby);
 }
 
+/* Tornado. The DS's (start 0x020BB03C, start-up 0x020BAD4C, spin 0x020BA8F8): with the scroll (HasScroll 4), while the tornado has no
+ * element yet it takes the one of what meets Kirby (0x02012E84: his +0x100, the kind of the attack box that met him: fire, water,
+ * electricity), sound 0x93, and spins as that element's tornado (tornado_ext.mca's composites 8, 9 and 10: its sparks, anims 28, 32
+ * and 36 at (-10, -30), over its body, 27, 31 and 35, in place of the plain one; a bigger hit box, 22 behind to 25 in front and 46 up,
+ * of 25, the plain one's 20) to its end.
+ * In KatAM, with the scroll: KatAM's tornado (its attack, sub_0807A10C, detoured: the piece starts with it; its task sub_0807A280)
+ * takes the element of an attack or enemy that meets it whose hit kind (unk68) is fire (0x100, as Batafire's and KatAM's fire
+ * breath's) or electricity (0x400, as KatAM's spark's), found in KatAM's collision lists (gUnk_02022F50, by room slot and kind,
+ * counts gUnk_02022EB0) by a piece run just before KatAM's collision pass; KatAM's attack then is that element's (its kind bit, the
+ * DS's bigger box, strength 3: KatAM's tornado's 2 for the DS's 20), the DS's element tornado drawn in place of KatAM's, till the spin
+ * ends (anims 0x35, 0x34). Not water: KatAM's tornado stops in water (sub_08062A80); */
+extern void sub_0807A280(void);
+void (*gScrollTornadoOriginal)(struct Kirby *) = NULL;
+#define TORNADO_FIRE 0x100
+#define TORNADO_SPARK 0x400
+#define TORNADO_STRENGTH 3
+#define TORNADO_SPIN 0x34
+#define TORNADO_START 0x35
+#define TORNADO_HIDE 0x80000                // A sprite's flag (unk8) KatAM doesn't draw Kirby with (sub_0803F46C), his code never sets;
+
+// IsKirby(); A Kirby (an attack of a Kirby's: its parent);
+static bool32 IsKirby(void *p) {
+    return (u32)p >= (u32)&gKirbys[0] && (u32)p < (u32)&gKirbys[4];
+}
+
+// Meets(); An object's hit box (unk38 left, unk39 top, unk3A and unk3B half its size, mirrored facing left) meets a box about (x, y);
+static bool32 Meets(struct ObjectBase *o, s32 x, s32 y, s8 left, s8 top, s8 right, s8 bottom) {
+    s32 w = o->unk3A * 2, h = o->unk3B * 2, l = o->flags & 1 ? (o->x >> 8) - o->unk38 - w : (o->x >> 8) + o->unk38;
+    s32 t = (o->y >> 8) + o->unk39;
+
+    return l < x + right && l + w > x + left && t < y + bottom && t + h > y + top;
+}
+
+// TornadoTouch(); The element (TORNADO_FIRE, TORNADO_SPARK; fire first) of what meets Kirby's tornado this frame, not a Kirby's; 0: none;
+static u16 TornadoTouch(struct Kirby *kirby) {
+    u8 slot = gCurLevelInfo[kirby->base.unk56].unk65E, kind, n, count;
+    s32 x = kirby->base.x >> 8, y = kirby->base.y >> 8;
+    u16 found = 0;
+
+    if (slot >= 4) return 0;
+    for (kind = 0; kind < 2; kind++) {
+        count = gUnk_02022EB0[slot][kind];
+        for (n = 0; n < count && n < 0x20; n++) {
+            struct ObjectBase *o = gUnk_02022F50[slot * 0x40 + kind * 0x20 + n];
+
+            if (o == NULL || (void *)o == (void *)kirby || IsKirby(o->parent) || o->roomId != kirby->base.roomId) continue;
+            if (!(o->unk68 & (TORNADO_FIRE | TORNADO_SPARK)) || o->flags & (0x200 | 0x1000)) continue;
+            // (KatAM's tornado's box, sub_0807A10C's);
+            if (!Meets(o, x, y, -10, -10, 10, 11)) continue;
+            if (o->unk68 & TORNADO_FIRE) return TORNADO_FIRE;
+            found = TORNADO_SPARK;
+        }
+    }
+    return found;
+}
+
+/* TornadoStep(); With Kirby's tornado: its element taken once, KatAM's attack made that element's, the DS's element tornado drawn
+ * in place of KatAM's own (its body and its sparks: KatAM's hidden); gone when the spin ends; */
+static bool32 TornadoStep(struct ScrollPiece *p) {
+    struct Kirby *kirby = p->kirby;
+    struct ObjectBase *attack = p->other && p->other->main == sub_0807A280 ? TaskGetStructPtr(p->other) : NULL;
+    u16 element;
+
+    // (through the start-up, anim 0x35, as the DS takes it then too, and the spin, 0x34; not its end, 0x36);
+    if (attack == NULL || attack->parent != kirby || attack->flags & 0x1000
+        || (kirby->animationIndex != TORNADO_SPIN && kirby->animationIndex != TORNADO_START)) {
+        p->base.flags |= 0x1000;
+        if (p->level == 0) return FALSE;
+        // (Kirby, already not drawn this frame, shown again from the next: the element tornado drawn this one last time);
+        kirby->base.sprite.unk8 &= ~TORNADO_HIDE;
+        return TRUE;
+    }
+    Follow(p);
+    p->base.roomId = kirby->base.roomId;
+    if (p->level == 0 && (element = TornadoTouch(kirby)) != 0) {
+        p->level = element == TORNADO_FIRE ? 1 : 3;
+        attack->unk68 |= element;
+        attack->unk63 = TORNADO_STRENGTH;
+        // (the DS's box from his feet, Y up: -22, 46, 25, 0; KatAM's from his middle, 8 pixels up);
+        sub_0803E2B0(attack, -22, -38, 25, 8);
+        // (the composite's parts: its sparks first, on top, then its body at his feet);
+        LookStart(p, 0, element == TORNADO_FIRE ? SQUEAK_FX_TORNADO_FIRE : SQUEAK_FX_TORNADO_SPARK, -10, -30);
+        LookStart(p, 1, element == TORNADO_FIRE ? SQUEAK_FX_TORNADO_FIRE_BODY : SQUEAK_FX_TORNADO_SPARK_BODY, 0, 0);
+        PlaySfx(&kirby->base, SQUEAK_SE(0x93));
+    }
+    // (KatAM's own tornado not drawn while the DS's body is: none when its sprite couldn't be made);
+    if (p->look[1].effect != SCROLL_NO_LOOK) kirby->base.sprite.unk8 |= TORNADO_HIDE;
+    Box(p, 0, 0, 0, 0, 0);
+    return TRUE;
+}
+
+// ScrollTornadoStart(); sub_0807A10C (detoured): KatAM's tornado's attack starts; with the scroll, the piece that gives it its element;
+void ScrollTornadoStart(struct Kirby *kirby) {
+    struct ScrollPiece *p;
+    u8 i;
+
+    gScrollTornadoOriginal(kirby);
+    if (kirby->ability != KIRBY_ABILITY_TORNADO || !SqueakScrollOwned(SCROLL_TORNADO)) return;
+    for (i = 0; i < MAX_TASK_NUM; i++) {
+        struct Task *t = &gTasks[i];
+
+        if (t->main != sub_0807A280 || ((struct ObjectBase *)TaskGetStructPtr(t))->parent != kirby) continue;
+        if ((p = ScrollPieceCreate(kirby, TORNADO_ELEMENT, 0, 0, 0)) != NULL) p->other = t;
+        return;
+    }
+}
+
 static void ScrollPieceMain(void) {
     struct ScrollPiece *p = TaskGetStructPtr(gCurTask);
     bool32 alive;
     u8 i;
 
     if (ObjectPreUpdate(&p->base)) return;
-    alive = p->kind == SPARK_AURA ? AuraStep(p) : p->kind == SPARK_BALL ? BallStep(p) : p->kind == BEAM_WHIP ? BeamStep(p) : BurstStep(p);
+    alive = p->kind == SPARK_AURA ? AuraStep(p) : p->kind == SPARK_BALL ? BallStep(p) : p->kind == BEAM_WHIP ? BeamStep(p)
+          : p->kind == TORNADO_ELEMENT ? TornadoStep(p) : BurstStep(p);
     if (!alive) return;
     for (i = 0; i < SCROLL_LOOKS; i++) LookDraw(p, &p->look[i]);
     p->clock++;
@@ -431,13 +541,16 @@ static void ScrollPieceDestroy(struct Task *t) {
     struct ScrollPiece *p = TaskGetStructPtr(t);
     u8 i;
 
+    if (p->kind == TORNADO_ELEMENT) p->kirby->base.sprite.unk8 &= ~TORNADO_HIDE;
     for (i = 0; i < SCROLL_LOOKS; i++) LookEnd(&p->look[i]);
 }
 
 /* ScrollPieceCreate(); A piece at its Kirby's feet, its hit's kind and knock back KatAM's own attack's (unk68, unk64: the spark's,
  * sub_08074AB0, SPARK_HIT and SPARK_KNOCK; the beam whip's, sub_0807CFE4, BEAM_HIT and BEAM_KNOCK); */
 static struct ScrollPiece *ScrollPieceCreate(struct Kirby *kirby, u8 kind, u8 level, s16 knock, u32 hitKind) {
-    struct Task *t = TaskCreate(ScrollPieceMain, sizeof(struct ScrollPiece), 0x3500, TASK_USE_EWRAM, ScrollPieceDestroy);
+    // (the tornado's runs just before KatAM's collision pass, 0xFFFD: every object has put itself in its lists by then);
+    struct Task *t = TaskCreate(ScrollPieceMain, sizeof(struct ScrollPiece), kind == TORNADO_ELEMENT ? 0xFFF0 : 0x3500, TASK_USE_EWRAM,
+                                ScrollPieceDestroy);
     struct ScrollPiece *p;
     u8 i;
 
@@ -446,6 +559,7 @@ static struct ScrollPiece *ScrollPieceCreate(struct Kirby *kirby, u8 kind, u8 le
     ClearObjectBase(&p->base);
     for (i = 0; i < SCROLL_LOOKS; i++) p->look[i].effect = SCROLL_NO_LOOK;
     p->kirby = kirby;
+    p->other = NULL;
     p->kind = kind;
     p->level = level;
     p->clock = 0;

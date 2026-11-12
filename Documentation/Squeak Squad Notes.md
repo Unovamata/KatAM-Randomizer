@@ -1052,6 +1052,18 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
       34 frames, sound `0xD3`, hit boxes of 15 on 15 of its frames: `.rca` 27), or with the scroll composite 1 (anim 25, 4 pixels
       forward, + Kirby's 24, 44 frames, sound `0xD4`, hit boxes of 20 (one of 9) on 19 frames, sweeping from higher above him to
       lower in front: `.rca` 28), then the common end state. The DS's Beam has no other move. Ported (`scrolls.c`'s Beam).
+    - Tornado (start `0x020BB03C`: composite 0, sound `0x90`, or `0x92` with the scroll; start-up `0x020BAD4C`; the spin `0x020BA8F8`,
+      composite 1 at its end, sound `0x91` at frame 24): with the scroll, while the tornado has no element yet, each frame
+      `0x02012E84` reads what Kirby touches (his `+0x100`, the kind of what met him: 1, 7, 8, `0x16` fire; 2, 10, 11, `0x17`
+      electric; 9, or his flag `0x400000`, water) and the tornado takes it (sound `0x93`): `tornado_ext.mca` composites 8 (fire),
+      9 (water), 10 (electric): anims 28, 32, 36 (the sparks) at (-10, -30) with 27, 31, 35 (the tornado's body, in the element's
+      colors: orange, blue, green) at his feet, in place of the plain tornado; its box then (-22, 46, 25, 0) of 25 for the plain
+      (-11, 30, 12, 0) of 20. Ported (`scrolls.c`'s Tornado): fire and electric, from what KatAM's collision lists hold that
+      frame with those hit kinds (0x100, 0x400; fire first, as the DS checks it first); not water, KatAM's tornado stopping in
+      water. Tested in the emulator (room 0x65's Sparky, all three versions; Tornado and the scroll given by RAM writes): the
+      attack's kind goes from `0x30000043` to `0x30000443`, strength 2 to 3, the green tornado drawn and KatAM's hidden till the
+      end animation; fire only with the Sparky's hit kind forced to 0x100 (orange tornado, `0x30000143`); without the scroll
+      KatAM's tornado unchanged.
   - **The Secret Map's pieces** (treasures 93-99, taken as pieces 1-7 in order: not checked against the DS): each in its own chest
     (2-6-6, 3-3-7, 4-4-5, 5-4-5, 6-6-5, 7-6-9, 8-2-6), marked `chest[0x16]` the piece's number + 1 and `chest[0x17]` 2 (the area
     maps' mark is 1), the item one of KatAM's maps. Their art is `collection/map`: anims 0-6 the pieces (parchment, about 60 x 50
