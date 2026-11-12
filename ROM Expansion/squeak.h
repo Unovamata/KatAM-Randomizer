@@ -377,6 +377,17 @@ enum {
     // The Bomb scroll's ice and spark bombs (scrolls.c): kirby/bomb_ice_ext's and bomb_spark_ext's 30;
     SQUEAK_FX_BOMB_ICE,
     SQUEAK_FX_BOMB_SPARK,
+    /* The Hammer scroll's (scrolls.c): kirby/hammer_ext's charge (30), second level (42), giant swing (32) and landing (composite 1), each
+     * as Kirby's body (drawn with his palette) and the hammer; efc_cmn0's 29, the glint at the second level; */
+    SQUEAK_FX_HAMMER_CHARGE_BODY,
+    SQUEAK_FX_HAMMER_CHARGE,
+    SQUEAK_FX_HAMMER_GIANT_BODY,
+    SQUEAK_FX_HAMMER_GIANT,
+    SQUEAK_FX_HAMMER_SWING_BODY,
+    SQUEAK_FX_HAMMER_SWING,
+    SQUEAK_FX_HAMMER_LAND_BODY,
+    SQUEAK_FX_HAMMER_LAND,
+    SQUEAK_FX_HAMMER_GLINT,
     SQUEAK_FX_COUNT,
 };
 

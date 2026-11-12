@@ -1199,6 +1199,38 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
       Sparky's element cleared each frame, KatAM's sword unchanged; without the scroll, KatAM's sword unchanged (no piece). On JP
       a palette effect ran through the test (frames 2283-2330) and had put KatAM's colors back each frame before `gUnk_02022320`
       was written too; after, the element colors stay through it.
+    - Hammer: Hammer Kirby's B (0x02094DB0) picks by his flags (`+0x14`: 0x40 in the air, 0x200000 in water, set by the shared
+      move's water check, 0x02013AD2) and his input: on the ground out of water, with Up held (input `+0x18`) the flaming flip
+      (0x0209417C: hammer_ext's 21, 25 frames held up then hits of 60), dashing (`+0x44`) 0x02093FC8 (hammer_ext's 22), else the
+      charge (0x02094D08: hammer_ext's 30, the hammer held behind him; then each frame 0x02094A88); in water the same charge in its
+      own frames (0x02094738: hammer_ext's 31, 0x020944B8, its giant swing hammer_ext.mca's composite 2); in the air 0x02093CA4, in
+      water 0x02093B90 (the swing, hammer_ext's 20). The charge (`PrmKirbyHammer.kgb`'s words 16384, 410, 3, 8, 60; its count `+0x128`
+      from -1): let go of B (input `+0x20`) once it has gone on for word 3 (8) frames, the swing (hammer_ext's 25, `+0xB4` 0;
+      hammer_ext.rca's 5, its boxes in frames 1-4, 20 damage), and on its end, on the ground, hammer_ext.mca's composite 0 (the
+      hammer down, the dust; 0x02035FC4's quake (4, 5, 2), sound 0xB3). With the scroll (HasScroll 6, `0x02094A88`), at word 4 (60):
+      efc_cmn0's 29 (0x02039B28, the template 0x021586C0: `effect/efc_cmn0`, animation 0x1D) 32 pixels behind him and 16 up, sound
+      0x148, hammer_ext's 42 (the giant hammer held behind him, glowing); let go then, `+0xB4` 1 and the giant swing (hammer_ext's 32,
+      7 frames; hammer_ext.rca's 12, its boxes in frames 4-6, 50 damage), on the ground composite 1 (the giant hammer down and back
+      to its size, the dust 36 pixels ahead), the same quake and sound (in the air hammer_ext's 34). hammer_ext.rca's animation n is
+      hammer_ext's n + 20 for these (5: 25, 12: 32, 15: 35; their totals). Each cell draws Kirby with the file's palette 0 and the
+      hammer with its palette 1; KatAM's Kirby palette has the DS's palette 0's colors 1-11 (12-14, his eyes' shine, its own).
+      Ported (`scrolls.c`'s Hammer): with the scroll, Hammer Kirby's B (`sub_080618C0`, detoured) on the ground, out of water, not
+      dashing nor with Up held (KatAM's own flip, unchanged) starts the DS's charge, its base move the scroll's upgrade is built on
+      (`HammerCharge`, a state of Kirby's: KatAM's gravity and slowing, NidlAbilityGravity); let go after 8 frames and before 60,
+      KatAM's own swing (sub_080618C0's last branch: animation 53, `sub_080622A0`); at 60 the DS's second level (the glint, sound
+      0x148); let go then, the DS's giant swing (`HammerSwing`, 7 frames) and, on the ground, its landing (`HammerLand`, 20 frames;
+      KatAM's shortest shake, RequestScreenShake 1, 14 frames, for the DS's 5; sound 0xB3). Through them Kirby is drawn as the DS's
+      frames (SqueakEffect's OnlyPalettes: his body, palette 0, drawn with his own palette, so a sprayed Kirby or a helper keeps his
+      colors, and the hammer, palette 1, in its own: SQUEAK_FX_HAMMER_*), KatAM's sprite hidden (TORNADO_HIDE) and his hammer too
+      (his animation 102, HAMMER_HIDDEN: none in the hammer's table, gUnk_083502C0, and nothing in KatAM checks it). The giant
+      swing hits as KatAM's hammer (its kind 0x34005003, its knock back 0x1E0), with the DS's three boxes in its frames 4-6, once a
+      swing (0x40000 kept, as KatAM's hammer), its strength KatAM's swing's 5 times the DS's 50 / 20: 12. Tested in the emulator
+      (room 0x65, USA, EU and JP; Hammer and the scroll given by RAM writes, a Sparky held 41 pixels ahead of him by RAM writes, its
+      HP set to 99 and its element cleared each frame): B held 75 frames, the charge (75 frames), the giant swing taking 12 HP (99
+      to 87, once), the landing, standing again 20 frames later, the frames drawn (the hammer behind him, the giant one glowing, the
+      swing over his head, the hammer down with the dust); let go at 20 frames, KatAM's swing (5 HP); a tap, KatAM's swing after
+      the 8 frames; without the scroll, KatAM's swing at once; Up and B, KatAM's flip (25 HP), unchanged. Not ported: the DS's
+      underwater charge (KatAM's water swing kept), the air landing's own frames (he goes back to KatAM's fall).
   - **The Secret Map's pieces** (treasures 93-99, taken as pieces 1-7 in order: not checked against the DS): each in its own chest
     (2-6-6, 3-3-7, 4-4-5, 5-4-5, 6-6-5, 7-6-9, 8-2-6), marked `chest[0x16]` the piece's number + 1 and `chest[0x17]` 2 (the area
     maps' mark is 1), the item one of KatAM's maps. Their art is `collection/map`: anims 0-6 the pieces (parchment, about 60 x 50
