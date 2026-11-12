@@ -128,12 +128,17 @@ static u8 *SqueakScrolls(void) {
     return SqueakChests() - SQUEAK_WORLD_SIZE - SQUEAK_SCROLLS_SIZE;
 }
 
+/* gNidlBigRooms; Whether the bigger rooms are in (KatAMExpansionRooms.cs' BigRooms(): the visited area is the heap's end only then);
+ * without them no scroll is owned (the Squeak Squad abilities' B asks, with Squeak Squad's enemies and no rooms: the visited area's
+ * place then KatAM's own heap); not const: read as it's set, as gNidlGridRoom; */
+u8 gNidlBigRooms = FALSE;
+
 bool32 SqueakScrollOwned(u8 n) {
-    return n < SQUEAK_SCROLLS && SqueakScrolls()[n >> 3] >> (n & 7) & 1;
+    return gNidlBigRooms && n < SQUEAK_SCROLLS && SqueakScrolls()[n >> 3] >> (n & 7) & 1;
 }
 
 void SqueakTakeScroll(u8 n) {
-    if (n < SQUEAK_SCROLLS) SqueakScrolls()[n >> 3] |= 1 << (n & 7);
+    if (gNidlBigRooms && n < SQUEAK_SCROLLS) SqueakScrolls()[n >> 3] |= 1 << (n & 7);
 }
 
 /* BigGetStateSlot(); GetStateSlot (a state slot: a room's, the session's or the world's, gUnk_02028C10, 0x20 of them, saved), with

@@ -1147,6 +1147,8 @@
                 if (ReadInt(rom, at) == VanillaHeapSize) { size = at; break; }
             if (size < 0) return $"The {version.Name} ROM's EWRAM heap isn't what it should be.";
             WriteInt(rom, size, NidlHeapSize);
+            // (the visited area at the heap's end, the Ability Scrolls' bits in it: rooms.c's gNidlBigRooms);
+            rom[CodeAddress + version.CodeSymbols["gNidlBigRooms"]] = 1;
             foreach (string function in BigRoomFunctions) {
                 string replacement = "Big" + (function.StartsWith("sub_") ? "Sub" + function.Substring(3) : function);
                 Redirect(rom, version.RomSymbols[function], codeBase + version.CodeSymbols[replacement]);

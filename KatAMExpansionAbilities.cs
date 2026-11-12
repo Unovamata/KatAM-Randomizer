@@ -88,6 +88,18 @@
             if (stack < 0) return $"The {version.Name} ROM's Kirby collision code doesn't match.";
             WriteInt(rom, CodeAddress + version.CodeSymbols["gNidlKirbyStackOriginal"], stack + 0x08000000 + 1);
 
+            /* Squeak Squad's Metal ("ROM Expansion/abilities/squeak_moves.c"): KatAM's walk (sub_0805B2FC), steering in the air (sub_0805B3A0)
+             * and floating (sub_0805B450), the jump's start (sub_08043360) and the dash's (sub_08041B08), and Kirby's sprite update, each frame
+             * before he moves (sub_0803F790), detoured to Metal's (KatAM's own for the other abilities); */
+            foreach ((string function, string hook, string original) in new[] {
+                ("sub_0805B2FC", "MetalWalk", "gMetalWalkOriginal"), ("sub_0805B3A0", "MetalAirMove", "gMetalAirOriginal"),
+                ("sub_0805B450", "MetalFloatMove", "gMetalFloatOriginal"), ("sub_08043360", "MetalJump", "gMetalJumpOriginal"),
+                ("sub_08041B08", "MetalDash", "gMetalDashOriginal"), ("sub_0803F790", "MetalKirbyFrame", "gMetalFrameOriginal") }) {
+                int trampoline = Detour(rom, version.RomSymbols[function], codeBase + version.CodeSymbols[hook], ref cursor);
+                if (trampoline < 0) return $"The {version.Name} ROM's Kirby movement code doesn't match.";
+                WriteInt(rom, CodeAddress + version.CodeSymbols[original], trampoline + 0x08000000 + 1);
+            }
+
             /* Portraits: NiDL's ability cards, the same 5x6 tiles as KatAM's (the name, then the picture), stored as two groups of 16 tiles
              * (rows 0, 2, 4, then 1, 3, 5); KatAM's are row by row; */
             for (int k = 0; k < NidlAbilities; k++) {

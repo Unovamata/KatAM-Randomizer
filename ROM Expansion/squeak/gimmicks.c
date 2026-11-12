@@ -753,6 +753,8 @@ static void Currents(struct SqueakLogic *l, const struct SqueakGimmickEntry *e) 
         u8 v;
 
         if (k->base.roomId != l->room || level->currentRoom != l->room || cx < 0 || cy < 0 || cx >= w || cy >= h) continue;
+        // (Metal Kirby too heavy for them: the DS's flag 0x800000, abilities/squeak_moves.c);
+        if (k->ability == SQUEAK_ABILITY_METAL) continue;
         v = grid[cy * w + cx];
         if (!(v & 0x80)) continue;
         push = CURRENT_PUSH(v);

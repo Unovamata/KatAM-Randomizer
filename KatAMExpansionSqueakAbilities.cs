@@ -82,6 +82,10 @@ namespace KatAMRandomizer {
             new("kirby/bubble_ext", Composite: 18), new("kirby/bubble_ext", Composite: 17), new("kirby/bubble_ext", Composite: 15),
             new("kirby/bubble_ext", Composite: 19), new("kirby/bubble_ext", Composite: 20), new("kirby/bubble_ext", 35),
             new("kirby/bubble_ext", 36), new("kirby/bubble_ext", 37), new("kirby/bubble_ext", 38),
+            // Metal (metal_ext): the stomp's start, fall and bounce (26, 27, 28); the scroll's roll: its start (23), fast, slow and in the
+            // air (24, 34, 35), its end (25). All of Metal Kirby is metal, his palette 0 grey: drawn in its own (MoveStep);
+            new("kirby/metal_ext", 26), new("kirby/metal_ext", 27), new("kirby/metal_ext", 28), new("kirby/metal_ext", 23),
+            new("kirby/metal_ext", 24), new("kirby/metal_ext", 34), new("kirby/metal_ext", 35), new("kirby/metal_ext", 25),
         };
 
         /* SqueakMoveLookEffects(); The looks' effects (their indexes from `first` on, after SqueakEffectDefinitions') and the table of each

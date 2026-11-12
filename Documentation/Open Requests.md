@@ -4,29 +4,7 @@ What the owner has asked for that is still to do: only what's open. When an item
 finishes it says how it was checked). The design rules for doors, mirrors and hubs are in
 [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
 
-## 1. Squeak Squad objects
-- **What an Ability Scroll does**: the scrolls are owned and saved, they don't do anything yet. The owner: "For KatAM existing
-  abilities, the scroll will upgrade them with the DS moveset 1:1. However, for non existing abilities you must port the base
-  ability 1:1 and then the upgrade of it 1:1". So: each scroll's ability's DS upgrade, 1:1, for the abilities KatAM has (Fire, Ice,
-  Spark, Beam, Bomb, Cutter, Hammer, Parasol, Sleep, Sword, Throw, Tornado, Wheel); the abilities it lacks (Animal, Bubble, Ghost,
-  Metal, Ninja and the rest the scrolls name) ported 1:1 first, then their upgrades. The owner's order: KatAM's abilities first.
-  Where the DS upgrade builds on a DS move KatAM's ability lacks (Spark's charge levels), the owner: "Keep KatAM's base as it is,
-  however, with the upgraded abilities that the scrolls give, we will then implement the quirks the base ability has plus the upgraded
-  ones. The bases are only applied if they still applied to the upgraded ability." So: no scroll, KatAM's ability unchanged; with it,
-  KatAM's ability gains the DS ability's own quirks and its scroll's, a DS base quirk only where the upgrade doesn't change it.
-  The DS's scroll check is HasScroll (0x02020AD8), asked by each ability's code (`ROM Expansion/scrolls.c` lists the numbers). The
-  23 scrolls are Fire, Ice, Spark, Beam, Tornado, Parasol, Hammer, Cupid, Cutter, Laser, Sword, Wheel, Hi-Jump, UFO, Sleep, Bomb,
-  Ninja, Fighter, Throw, Magic, Animal, Bubble, Metal: the ones KatAM (or the NiDL port) has also count as KatAM's (Laser, UFO,
-  Fighter, Magic, Hi-Jump too). Done: Fire, Ice, Spark, Beam, Tornado, Parasol, Sleep, Cutter, Laser, UFO, Hi-Jump, Wheel,
-  Cupid, Bomb, Sword, Hammer, Fighter, Throw, Magic, Ninja, Animal and Bubble (each ported 1:1 with its scroll; Bio Spark gives
-  Ninja, Gaw Gaw Animal and Bubble Head Bubble, as the DS's). Next: Metal (KatAM has no such ability: ported 1:1 first). The owner's pick for their look: Kirby drawn
-  from the DS's own frames in every motion (in his own spray colors), as the scroll moves draw him; not KatAM's body with a hat.
-  The owner's answers on the scrolls the DS ties to what KatAM lacks: Sword and Bomb (the DS's only open its ability mixing, Ice or
-  Spark Sword; Fire, Ice or Spark Bomb) take their element from what touches them, as the Tornado and Wheel scrolls do, the DS's
-  element sword or bomb drawn and its element's hit, till the ability is lost; Cupid's triple shot (the DS's needs an input no
-  button sets) is always on with the scroll.
-
-## 2. Polish the Squeak Squad hubs
+## 1. Polish the Squeak Squad hubs
 - The owner: "Add a pending tasks to the list that we need to thoroughly polish the Squeak Squad hubs." The Squeak Squad hub (the
   Central Circle copy, its grey door, its mirror and doors' places and looks, still provisional) and the 8 world switch rooms (their
   provisional tiles, statues and pedestals): a thorough pass on looks and layout, the owner's picks first (the rulebook's frozen

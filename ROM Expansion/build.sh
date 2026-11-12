@@ -91,7 +91,9 @@ codeNames = ['gNidlWorldMapDoors', 'NidlWorldMapUnlockSave', 'NidlWorldMapGetCoo
              'BigFillLevelInfo', 'BigGetCollisionTile', 'BigSub_08002434', 'BigSub_08002470', 'BigSub_080024F0', 'BigSub_0800255C', 'BigSub_080025AC', 'BigSub_08002624', 'BigSub_080026A8', 'BigSub_08001408', 'BigSub_080015A8',
              # Squeak Squad's spray paints (sprays.c): the Collection Room's hooks, its pages, the area its table is copied to;
              'gNidlMaps', 'gCollectionGrid', 'GridRoomStart', 'GridRoomFrame', 'GridRoomBg', 'GridRoomEnd', 'gNidlBigArea',
-             'gNidlRoomTops', 'gExpansionSongs', 'gNidlGridRoom', 'NidlNumChestsCollected', 'BigLoadPalette', 'gNidlSave', 'gNidlSaveTrampolines', 'NidlWriteSave', 'NidlVerifySave', 'NidlClearSave', 'BigSub_08001678', 'BigSub_080027E8', 'BigSub_080027A8', 'BigSub_08002A5C', 'BigSub_08002A80', 'BigSub_08002AD0', 'BigSub_08002B30', 'BigSub_08002BA8', 'BigSub_08002C18', 'BigGetStateSlot']
+             'gNidlRoomTops', 'gExpansionSongs', 'gNidlGridRoom', 'NidlNumChestsCollected', 'BigLoadPalette', 'gNidlSave', 'gNidlSaveTrampolines', 'NidlWriteSave', 'NidlVerifySave', 'NidlClearSave', 'BigSub_08001678', 'BigSub_080027E8', 'BigSub_080027A8', 'BigSub_08002A5C', 'BigSub_08002A80', 'BigSub_08002AD0', 'BigSub_08002B30', 'BigSub_08002BA8', 'BigSub_08002C18', 'BigGetStateSlot', 'gNidlBigRooms',
+             'MetalWalk', 'gMetalWalkOriginal', 'MetalAirMove', 'gMetalAirOriginal', 'MetalFloatMove', 'gMetalFloatOriginal', 'MetalJump',
+             'gMetalJumpOriginal', 'MetalDash', 'gMetalDashOriginal', 'MetalKirbyFrame', 'gMetalFrameOriginal']
 romNames = ['gUnk_0834C2AC', 'gUnk_0834C318', 'gUnk_083509D0', 'gUnk_08350A3C', 'gUnk_08D60FDC', 'gUnk_082DDE84', 'gUnk_082DDEF0',
             'gUnk_082DDF5C', 'gUnk_0834C4B0', 'gUnk_08350AAC', 'gUnk_08350B30', 'sub_080356AC', 'sub_08088640', 'gUnk_08D60B64', 'gUnk_08D60BE4',
             'sub_080547C4', 'sub_0804A728', 'sub_08038B34', 'SwallowSpecialSite', 'sub_08123FD4', 'HasShard', 'sub_0801C558', 'gUnk_08351648', 'gUnk_0834C5D4', 'gUnk_08D610B4',
@@ -111,6 +113,9 @@ romNames = ['gUnk_0834C2AC', 'gUnk_0834C318', 'gUnk_083509D0', 'gUnk_08350A3C', 
             # Magic's B);
             'sub_0805D268', 'sub_0803F324', 'sub_08074AB0', 'sub_0807CFE4', 'sub_0807D2D0', 'sub_0807D4B0', 'sub_0807A10C', 'sub_08084188',
             'sub_08078EFC', 'sub_080680C0', 'sub_08082380', 'sub_08074240', 'sub_080618C0', 'sub_08094540', 'sub_08065A0C', 'sub_0807A7E8', 'sub_0806898C',
+            # Squeak Squad's Metal (abilities/squeak_moves.c): KatAM's walk, steering in the air and floating, the jump's and the dash's start,
+            # Kirby's sprite update (each frame, before he moves);
+            'sub_0805B2FC', 'sub_0805B3A0', 'sub_0805B450', 'sub_08043360', 'sub_08041B08', 'sub_0803F790',
             # The NiDL rooms' items, taken once per visit (rooms.c): the objects' gone bits;
             'sub_08001678', 'sub_080027E8', 'sub_080027A8',
             # Warp stars in the NiDL rooms (KatAMExpansionRooms.cs): their flights, where a flight lands Kirby in each room; the
