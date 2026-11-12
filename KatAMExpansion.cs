@@ -1769,8 +1769,9 @@ namespace KatAMRandomizer {
                     ? rooms && PortedChests.Values.Any(list => list.Any(c => c.Map == m))
                     : squeakRooms && squeakMapsPlaced.ContainsKey(m)).ToArray();
                 bool[] piecesPlaced = Enumerable.Range(0, SecretMapPieces).Select(p => squeakRooms && squeakPiecesPlaced.ContainsKey(p)).ToArray();
-                if (mapsPlaced.Any(placed => placed) || piecesPlaced.Any(placed => placed))
-                    error = AddAreaMaps(rom, squeak, version, mapAnim, mapsPlaced, piecesPlaced, collectionItems, collectionTexts, ref cursor);
+                bool[] scrollsPlaced = Enumerable.Range(0, SqueakScrolls).Select(n => squeakRooms && squeakScrollsPlaced.ContainsKey(n)).ToArray();
+                if (mapsPlaced.Any(placed => placed) || piecesPlaced.Any(placed => placed) || scrollsPlaced.Any(placed => placed))
+                    error = AddAreaMaps(rom, squeak, version, mapAnim, mapsPlaced, piecesPlaced, scrollsPlaced, collectionItems, collectionTexts, ref cursor);
                 error ??= AddCollectionGrid(rom, version, collectionItems, collectionTexts, ref cursor);
             } catch (Exception exception) when (exception is IndexOutOfRangeException or ArgumentException or InvalidOperationException) {
                 error = $"The {version.Name} ROM's Collection Room couldn't be read.";

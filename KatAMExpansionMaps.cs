@@ -53,7 +53,10 @@ namespace KatAMRandomizer {
         /* AddAreaMapIcons(); The maps' anim in the Collection Room (before the anims tables are copied), returned: variant m map m,
          * KatAM's map, its tiles drawing 1 black, 2 the dots, 3 the dark, 7 + 2k and 8 + 2k the light and mid of the palette's k-th map
          * (0, 1 a NiDL map, 2, 3 a Squeak Squad one), 4 palettes of 4 maps (a column pair each); with Squeak Squad's rooms (squeak), the
-         * Secret Map's pieces' too: variant 16 + p piece p, its tiles drawing 1 black and 4-6 its parchment (SecretMapPieceIcons()); */
+         * Secret Map's pieces' too: variant 16 + p piece p, its tiles drawing 1 black and 4-6 its parchment (SecretMapPieceIcons()); then
+         * the Ability Scrolls' (ScrollIconVariant + n, the DS's own, ScrollIcons(): each in one of ScrollIconSlots' palettes) and the
+         * pieces' chest popups (PiecePopupVariant + p: the piece's icon in the popup's colors, 7 black, 8-10 the parchment, which
+         * chest.c's NidlMapPopup puts in the chest's palette; no palette of its own: an effect's sprite loads none); */
         static int AddAreaMapIcons(byte[] rom, byte[] squeak, int anims, int attrTable, int oamTable, int paletteBase, int tilesBase, ref int cursor,
                                    List<int> animVariants, List<int> animAttributes, List<int> animOams, int animId) {
             int icon = AnimVariant(rom, anims, CollectionIconAnim, CollectionMapVariant);
@@ -89,7 +92,8 @@ namespace KatAMRandomizer {
                 }
                 for (int i = 0; i < 16; i++) WriteShort(rom, palettes[pair] + i * 2, colors[i]);
             }
-            int iconVariants = Allocate(ref cursor, (AreaMapCount + (pieceTiles == null ? 0 : SecretMapPieces)) * 4, 4);
+            (byte[][] scrollTiles, int[] scrollPalette, ushort[][] scrollColors) = squeak == null ? (null, null, null) : ScrollIcons(squeak);
+            int iconVariants = Allocate(ref cursor, (pieceTiles == null ? AreaMapCount : PiecePopupVariant + SecretMapPieces) * 4, 4);
             for (int map = 0; map < AreaMapCount; map++) {
                 int column = map % NidlAreaMaps, k = (map / NidlAreaMaps) * 2 + column % 2, commands = Allocate(ref cursor, 36, 4);
                 WriteInts(rom, commands, -2, (palettes[column / 2] - paletteBase) / 32, 16, -1, (tileSets[k] - tilesBase) / 32, 4, 1, iconFrame, -4);
@@ -101,6 +105,27 @@ namespace KatAMRandomizer {
                 pieceTiles[piece].CopyTo(rom, tiles);
                 WriteInts(rom, commands, -2, (palettes[piece / 2] - paletteBase) / 32, 16, -1, (tiles - tilesBase) / 32, 4, 1, iconFrame, -4);
                 WriteInt(rom, iconVariants + (AreaMapCount + piece) * 4, commands + 0x08000000);
+                // (its chest popup: the same in colors 7-10);
+                int popupTiles = Allocate(ref cursor, 4 * 32, 32, tilesBase), popup = Allocate(ref cursor, 24, 4);
+                byte[] popupRemap = Enumerable.Range(0, 16).Select(i => (byte)(i switch { 1 => 7, 4 => 8, 5 => 9, 6 => 10, _ => 0 })).ToArray();
+                for (int i = 0; i < 4 * 32; i++) rom[popupTiles + i] = (byte)(popupRemap[pieceTiles[piece][i] & 15] | popupRemap[pieceTiles[piece][i] >> 4] << 4);
+                WriteInts(rom, popup, -1, (popupTiles - tilesBase) / 32, 4, 1, iconFrame, -4);
+                WriteInt(rom, iconVariants + (PiecePopupVariant + piece) * 4, popup + 0x08000000);
+            }
+            // (the scrolls: scroll n its own tiles and its palette group's palette);
+            if (pieceTiles != null) {
+                int[] scrollPalettes = new int[scrollColors.Length];
+                for (int group = 0; group < scrollColors.Length; group++) {
+                    scrollPalettes[group] = Allocate(ref cursor, 32, 32, paletteBase);
+                    for (int i = 0; i < 16; i++) WriteShort(rom, scrollPalettes[group] + i * 2, scrollColors[group][i]);
+                }
+                for (int n = 0; n < SqueakScrolls; n++) {
+                    int tiles = Allocate(ref cursor, 4 * 32, 32, tilesBase), commands = Allocate(ref cursor, 36, 4);
+                    scrollTiles[n].CopyTo(rom, tiles);
+                    WriteInts(rom, commands, -2, (scrollPalettes[scrollPalette[n]] - paletteBase) / 32, 16, -1, (tiles - tilesBase) / 32, 4, 1, iconFrame, -4);
+                    WriteInt(rom, iconVariants + (ScrollIconVariant + n) * 4, commands + 0x08000000);
+                }
+                scrollIconPalettes = scrollPalette;
             }
             animVariants.Add(iconVariants);
             animAttributes.Add(ReadInt(rom, attrTable + CollectionIconAnim * 4) - 0x08000000);
@@ -110,6 +135,67 @@ namespace KatAMRandomizer {
 
         // (the pieces' parchment, light, mid and dark (their icons' colors 4-6, their popup's 8-10), this ROM's: AddAreaMapIcons());
         static ushort[] secretMapShades;
+        // (the maps' anim's variants after the pieces': the scrolls' icons, then the pieces' popups; each scroll's palette group);
+        const int ScrollIconVariant = AreaMapCount + SecretMapPieces, PiecePopupVariant = ScrollIconVariant + SqueakScrolls;
+        static int[] scrollIconPalettes;
+        /* (the OBJ palettes the scrolls' cells take, a palette group each: KatAM's sprays' own (4-9) not the maps' and cans' (4, 6, 7):
+         * the scrolls' columns, the extra columns 5-12, show only once KatAM's spray columns are off the screen); */
+        static readonly byte[] ScrollIconSlots = { 5, 8, 9 };
+        // (the scrolls' names, in their order: "ROM Expansion/scrolls.c"'s, "• NAME SCROLL" in the Collection Room);
+        static readonly string[] ScrollNames = { "FIRE", "ICE", "SPARK", "BEAM", "TORNADO", "PARASOL", "HAMMER", "CUPID", "CUTTER", "LASER",
+                                                 "SWORD", "WHEEL", "HI JUMP", "UFO", "SLEEP", "BOMB", "NINJA", "FIGHTER", "THROW", "MAGIC",
+                                                 "ANIMAL", "BUBBLE", "METAL" };
+
+        /* ScrollIcons(); The Ability Scrolls' icons (Squeak Squad's collection/skill cells 0-22, 16x16 each, as Squeak Squad draws them,
+         * unmirrored), each as 4 tiles of a 16x16 sprite (KatAM's order), and their colors packed in palettes (the colors every icon has
+         * first, then each icon's own band, as many to a palette as fit): each icon's palette group and the groups' 16 colors; */
+        static (byte[][] tiles, int[] palette, ushort[][] colors) ScrollIcons(byte[] squeak) {
+            SqueakCharacter skill = ReadSqueakCharacter(squeak, "skill", "collection");
+            if (skill.Anims.Count < SqueakScrolls) throw new InvalidOperationException("Squeak Squad's scroll icons aren't Squeak Squad's.");
+            Dictionary<(int palette, int color), int> colorMap = new Dictionary<(int, int), int>();
+            for (int p = 0; p < 16; p++) for (int k = 1; k < 16; k++) colorMap[(p, k)] = p * 16 + k;
+            ushort[][,] icons = new ushort[SqueakScrolls][,];
+            for (int n = 0; n < SqueakScrolls; n++) {
+                int[,] canvas = SqueakCanvas(skill, skill.Anims[n].Steps[0].Cell, colorMap);
+                int size = canvas.GetLength(0), left = size, top = size;
+                for (int x = 0; x < size; x++)
+                    for (int y = 0; y < size; y++)
+                        if (canvas[x, y] != 0) { left = Math.Min(left, x); top = Math.Min(top, y); }
+                icons[n] = new ushort[SecretMapIconSize, SecretMapIconSize];
+                for (int x = 0; x < SecretMapIconSize; x++)
+                    for (int y = 0; y < SecretMapIconSize; y++) {
+                        // (SqueakCanvas() mirrors: the icon as Squeak Squad draws it; 0x8000 a drawn pixel, the color in the rest);
+                        int sx = left + SecretMapIconSize - 1 - x, sy = top + y, v = sx < size && sy < size ? canvas[sx, sy] : 0;
+                        if (v != 0) icons[n][x, y] = (ushort)(0x8000 | skill.Palettes[Math.Min(v / 16, skill.Palettes.Count - 1)][v % 16] & 0x7FFF);
+                    }
+            }
+            HashSet<ushort>[] used = icons.Select(icon => icon.Cast<ushort>().Where(v => v != 0).ToHashSet()).ToArray();
+            List<ushort> common = used.Skip(1).Aggregate(new HashSet<ushort>(used[0]), (all, set) => { all.IntersectWith(set); return all; }).OrderBy(v => v).ToList();
+            List<HashSet<ushort>> groups = new List<HashSet<ushort>>();
+            int[] palette = new int[SqueakScrolls];
+            foreach (int n in Enumerable.Range(0, SqueakScrolls).OrderByDescending(n => used[n].Count).ThenBy(n => n)) {
+                HashSet<ushort> band = used[n].Where(v => !common.Contains(v)).ToHashSet();
+                int g = groups.FindIndex(group => group.Union(band).Count() <= 15 - common.Count);
+                if (g < 0) { groups.Add(new HashSet<ushort>()); g = groups.Count - 1; }
+                groups[g].UnionWith(band);
+                palette[n] = g;
+            }
+            if (groups.Count > ScrollIconSlots.Length) throw new InvalidOperationException("Squeak Squad's scroll icons take too many palettes.");
+            ushort[][] colors = groups.Select(group => new ushort[] { 0 }.Concat(common).Concat(group.OrderBy(v => v)).Concat(Enumerable.Repeat((ushort)0, 16))
+                                                         .Take(16).Select(v => (ushort)(v & 0x7FFF)).ToArray()).ToArray();
+            byte[][] tiles = new byte[SqueakScrolls][];
+            for (int n = 0; n < SqueakScrolls; n++) {
+                tiles[n] = new byte[4 * 32];
+                for (int x = 0; x < SecretMapIconSize; x++)
+                    for (int y = 0; y < SecretMapIconSize; y++) {
+                        if (icons[n][x, y] == 0) continue;
+                        int index = Array.IndexOf(colors[palette[n]], (ushort)(icons[n][x, y] & 0x7FFF), 1);
+                        int tile = (y / 8) * 2 + x / 8;
+                        tiles[n][tile * 32 + y % 8 * 4 + x % 8 / 2] |= (byte)(index << (x % 2 * 4));
+                    }
+            }
+            return (tiles, palette, colors);
+        }
 
         /* SecretMapPieceIcons(); The Secret Map's pieces' icons (Squeak Squad's collection/map cells 0-6, as Squeak Squad draws them,
          * unmirrored), each as 4 tiles of a 16x16 sprite (KatAM's order: the top row's two, then the bottom's): the piece shrunk to fit
@@ -230,9 +316,11 @@ namespace KatAMRandomizer {
          * this data to the game already"): each in its own chest as Squeak Squad has it, the chest's template's unk16
          * CHEST_MARK_SCROLL << 8 | the scroll's number + 1, its item one of KatAM's maps for its popup (chest.c's NidlChestOpen gives the
          * scroll: owned in the save's scroll bits, "ROM Expansion/rooms.c"'s SqueakScrollOwned(), not KatAM's map; its popup the DS's
-         * icon of that scroll, chest.c's NidlScrollPopup); what a scroll does, and its icon in the Collection Room, not yet; the ones
-         * SqueakObjects() placed, the same as the pieces); */
+         * icon of that scroll, chest.c's NidlScrollPopup); what a scroll does: "ROM Expansion/scrolls.c"; its cell in the Collection
+         * Room: AddAreaMaps(); the ones SqueakObjects() placed, the same as the pieces); */
         internal const int SqueakScrolls = 23, ChestMarkScroll = 3;
+        // (a scroll's cell's id in the Collection Room: category 0x40, collection.c's GridOwned);
+        const int ScrollItemId = 0x4000;
         const int SqueakScrollFirst = 28;
         static readonly Dictionary<int, SqueakRoomFiles> squeakScrollsPlaced = new Dictionary<int, SqueakRoomFiles>();
         internal static IReadOnlyDictionary<int, SqueakRoomFiles> AbilityScrollRooms => squeakScrollsPlaced;
@@ -241,7 +329,7 @@ namespace KatAMRandomizer {
          * the maps placed (present: the NiDL levels', the Squeak Squad worlds') and the Secret Map's pieces placed (piecesPresent) as the
          * Collection Room grid's cells (their icons, their texts). Returns an error, or null; */
         static string AddAreaMaps(byte[] rom, byte[] squeak, KatAMExpansionCode.Version version, int iconAnim, bool[] present, bool[] piecesPresent,
-                                  List<CollectionItem> items, List<(int tileset, int tilemap)[]> texts, ref int cursor) {
+                                  bool[] scrollsPresent, List<CollectionItem> items, List<(int tileset, int tilemap)[]> texts, ref int cursor) {
             int colors = Allocate(ref cursor, (AreaMapCount + 1) * 6, 4);
             for (int map = 0; map < AreaMapCount; map++) {
                 WriteShort(rom, colors + map * 6, Bgr555(AreaMapThemes[map].light));
@@ -250,6 +338,8 @@ namespace KatAMRandomizer {
             }
             for (int i = 0; i < 3 && secretMapShades != null; i++) WriteShort(rom, colors + AreaMapCount * 6 + i * 2, secretMapShades[i]);
             WriteInt(rom, CodeAddress + version.CodeSymbols["gNidlMaps"], colors + 0x08000000);
+            // (the pieces' chest popups: the maps' anim and the first piece's popup variant, chest.c's NidlPiecePopupStart());
+            if (secretMapShades != null) WriteShorts(rom, CodeAddress + version.CodeSymbols["gNidlMaps"] + 4, iconAnim, PiecePopupVariant);
             int cells = version.RomSymbols["gUnk_08386A50"];
             int[] mapTexts = new int[10];
             for (int cell = 0; cell < CollectionCells; cell++) {
@@ -272,6 +362,20 @@ namespace KatAMRandomizer {
                 for (int piece = 0; piece < SecretMapPieces; piece++)
                     if (piecesPresent[piece])
                         items.Add(new CollectionItem(1, piece, 0x2000 + piece, iconAnim, AreaMapCount + piece, AreaMapPaletteSlots[piece / 2], pieceText, mapTexts[1]));
+            }
+            /* (the Ability Scrolls placed: after the others, the first row's columns 5-12 then the other rows' 8-12, scroll by scroll, each
+             * "• NAME SCROLL" with nothing under it (the maps' "use it to..." line isn't theirs); collection.c's GridOwned asks
+             * SqueakScrollOwned(): owned in the expansion's save); */
+            if (scrollIconPalettes != null && scrollsPresent.Any(placed => placed)) {
+                (int row, int column)[] scrollCells = Enumerable.Range(5, 8).Select(c => (0, c))
+                    .Concat(Enumerable.Range(1, 3).SelectMany(r => Enumerable.Range(8, 5).Select(c => (r, c)))).ToArray();
+                int scrollText = texts.Count;
+                texts.AddRange(ComposeCollectionTexts(rom, version, mapTexts, 1, CollectionNames(rom, squeak, version, ScrollNames.Select(n => n + " SCROLL").ToArray()),
+                                                      ref cursor, keepBelow: false));
+                for (int n = 0; n < SqueakScrolls; n++)
+                    if (scrollsPresent[n])
+                        items.Add(new CollectionItem(scrollCells[n].row, scrollCells[n].column, ScrollItemId + n, iconAnim, ScrollIconVariant + n,
+                                                     ScrollIconSlots[scrollIconPalettes[n]], scrollText + n, mapTexts[1]));
             }
             return null;
         }

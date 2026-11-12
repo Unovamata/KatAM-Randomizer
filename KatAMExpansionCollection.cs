@@ -15,7 +15,7 @@ namespace KatAMRandomizer {
 
         // (collection.c's CollectionGrid: its fields, its items' table; GridRoom's entries, after one entry);
         const int GridKatamAt = 0, GridExtraAt = 4, GridTextCountAt = 5, GridTextsAt = 8, GridLatticeTilesAt = 0xC, GridLatticeMapAt = 0x10,
-                  GridImageTilesAt = 0x14, GridImageMapAt = 0x2C, GridItemsAt = 0x44, GridItemSize = 8, GridExtraMax = 12;
+                  GridImageTilesAt = 0x14, GridImageMapAt = 0x2C, GridItemsAt = 0x44, GridItemSize = 8, GridExtraMax = 13;
         const int GridRows = 4, GridShown = 10, GridRoomEntries = 4;
         // (the grid's box on the screen and its cells' width; BG2's map: tile rows 3-13, 64 tiles; BG0's grid area: tile columns 1-28, its tiles from 0x180);
         const int GridLeft = 12, GridRight = 228, GridTop = 26, GridBottom = 107, CellWidth = 22, CellHeight = 21;
@@ -193,7 +193,7 @@ namespace KatAMRandomizer {
          * (TextTiles()); per name, its (tileset, tilemap) in each language, a language whose texts don't fit this with the first
          * one's that did; */
         static List<(int tileset, int tilemap)[]> ComposeCollectionTexts(byte[] rom, KatAMExpansionCode.Version version, int[] family, int template,
-                                                                         byte[][,] names, ref int cursor) {
+                                                                         byte[][,] names, ref int cursor, bool keepBelow = true) {
             int bgTable = version.RomSymbols["gUnk_082D7850"], textTable = version.RomSymbols["gUnk_08386664"];
             byte[,] Text(int language, int text) => CollectionTextPixels(rom, bgTable, ReadShort(rom, textTable + (language * 0x27 + text) * 2));
             (int tileset, int tilemap)[,] composed = new (int, int)[CollectionLanguages, names.Length];
@@ -226,6 +226,9 @@ namespace KatAMRandomizer {
                     byte[,] pixels = (byte[,])basePixels.Clone();
                     for (int y = TextLineTop; y < TextLineBottom; y++)
                         for (int x = nameStart; x < width; x++) pixels[y, x] = 0;
+                    // (keepBelow false: the lines under the name line cleared, the template's being another item's);
+                    for (int y = TextLineBottom; y < pixels.GetLength(0) && !keepBelow; y++)
+                        for (int x = 0; x < width; x++) pixels[y, x] = 0;
                     for (int y = 0; y < names[n].GetLength(0); y++)
                         for (int x = 0; x < names[n].GetLength(1) && nameStart + x < width; x++) pixels[TextLineTop + y, nameStart + x] = names[n][y, x];
                     int at = nameStart + names[n].GetLength(1) + 1;
@@ -286,14 +289,17 @@ namespace KatAMRandomizer {
                         for (int x = GridLeft; x < GridRight; x++)
                             if (!IsStripe(images[source][y, x]) && images[language][y, x] != images[source][y, x]) { images[language] = null; break; }
 
-            // The lattice (BG2): column 0 the image's first, the last its last, the ones between its 1-8 over and over; the stripes clear;
+            /* The lattice (BG2): column 0 the image's first, the last its last, the ones between its 1-8 over and over; the stripes clear;
+             * a grid wider than BG2 (512 pixels: 23 columns, 518) wraps round to its left, as BG2 does, where window 0 (the grid's box)
+             * hides the map's first 12 pixels while the grid's start shows; */
             byte[,] lattice = new byte[(GridMapTop + GridMapRows) * 8, LatticeWidth * 8];
+            if (GridLeft + columns * CellWidth - LatticeWidth * 8 > GridLeft) throw new InvalidOperationException("The Collection Room's grid is too big.");
             for (int y = GridTop; y < GridBottom; y++)
                 for (int x = GridLeft; x < GridLeft + columns * CellWidth; x++) {
                     int k = (x - GridLeft) / CellWidth, r = (x - GridLeft) % CellWidth;
                     int s = k == 0 ? 0 : k == columns - 1 ? GridShown - 1 : 1 + (k - 1) % (GridShown - 2);
                     byte value = images[source][y, Math.Min(GridLeft + s * CellWidth + r, CollectionImageWidth * 8 - 1)];
-                    lattice[y, x] = IsStripe(value) ? (byte)0 : value;
+                    lattice[y, x % (LatticeWidth * 8)] = IsStripe(value) ? (byte)0 : value;
                 }
             (int latticeTiles, int latticeMap, _) = GridTiles(rom, lattice, 0, GridMapTop, LatticeWidth, GridMapRows, 0, null, ref cursor);
             WriteInts(rom, grid + GridLatticeTilesAt, latticeTiles + 0x08000000, latticeMap + 0x08000000);
