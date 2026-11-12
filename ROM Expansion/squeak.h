@@ -342,6 +342,10 @@ enum {
     SQUEAK_FX_SPARK_BURST_2,
     SQUEAK_FX_SPARK_GLINT,      // kirby/spark_cmn's 58: the spark that flickers on Spark Kirby every 61 frames;
     SQUEAK_FX_BEAM_WHIP,        // The Beam scroll's whip (scrolls.c): kirby/beam_ext's 25;
+    SQUEAK_FX_TORNADO_FIRE,     // The Tornado scroll's element tornados (scrolls.c): kirby/tornado_ext's 28 (fire) and 36 (electric),
+    SQUEAK_FX_TORNADO_SPARK,    // their sparks; 27 and 35, their bodies;
+    SQUEAK_FX_TORNADO_FIRE_BODY,
+    SQUEAK_FX_TORNADO_SPARK_BODY,
     SQUEAK_FX_COUNT,
 };
 

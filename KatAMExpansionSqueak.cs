@@ -800,6 +800,12 @@ namespace KatAMRandomizer {
             new SqueakEffect(32, "kirby/spark_cmn", 58, Skip: new[] { 0 }, Once: true),
             // The Beam scroll's whip ("ROM Expansion/scrolls.c": beam_ext.mca's composite 1, its whip; its last step empty);
             new SqueakEffect(33, "kirby/beam_ext", 25, Skip: new[] { 0 }),
+            /* The Tornado scroll's fire and electric tornados ("ROM Expansion/scrolls.c": tornado_ext.mca's composites 8 and 10): their
+             * sparks (28, 36) and their bodies (27, 35), in place of KatAM's own tornado; */
+            new SqueakEffect(34, "kirby/tornado_ext", 28),
+            new SqueakEffect(35, "kirby/tornado_ext", 36),
+            new SqueakEffect(36, "kirby/tornado_ext", 27),
+            new SqueakEffect(37, "kirby/tornado_ext", 35),
         };
 
         /* SqueakEffectsBuild(); Each effect's cells (those its animation shows, in its order) as KatAM frames and their palette, the anim
