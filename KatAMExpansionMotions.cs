@@ -377,7 +377,7 @@
              * get the colors the hat doesn't use, for their most used colors (the ones the hat has already are shared); the rest take the
              * closest color; */
             ushort[][] palettes = new ushort[NewAbilities][];
-            for (int k = 0; k < NewAbilities; k++) {
+            for (int k = 0; k < NidlAbilities; k++) {
                 palettes[k] = new ushort[16];
                 for (int c = 0; c < 16; c++) palettes[k][c] = (ushort)ReadShort(rom, hatPalettes[k] + c * 2);
                 Dictionary<int, int> uses = new Dictionary<int, int>();

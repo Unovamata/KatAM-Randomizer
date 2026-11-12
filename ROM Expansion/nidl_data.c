@@ -7,6 +7,8 @@ const struct NidlData gNidlData = { 0 };
 #include "abilities.h"
 
 const struct NidlAbilityData gNidlAbilityData = { 0 };
+const struct AnimInfo *const gSqueakAbilityBodies[SQUEAK_ABILITY_COUNT] = { 0 };
+const u16 gSqueakAbilityLooks[SQUEAK_LOOK_COUNT][SQUEAK_LOOK_LAYERS] = { 0 };
 
 #include "title.h"
 

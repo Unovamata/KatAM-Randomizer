@@ -1,4 +1,7 @@
 # KatAM Japanese, revision 1 (B8KJ): the addresses of the KatAM symbols the NiDL enemies use, and what KatAMExpansion.cs patches; written by find_symbols.py
+# The world map's (worldmap.c, KatAMExpansionWorldMap.cs);
+# Bigger rooms (rooms.c, KatAMExpansionRooms.cs);
+# Hi-Jump (abilities/hi_jump.c);
 ClearEffectObject 0x803e340
 ClearObjectBase 0x803e310
 CpuSet 0x81592b4
@@ -144,7 +147,6 @@ gUnk_08D6CD0C 0x8d38128
 gUnk_08D640A4 0x8d2f4c0
 gUnk_08D6DCAC 0x8d390c8  # the CPU helpers' routes per area (11 entries)
 AreaPlates 0x8d2c394  # gUnk_08D60EE4 as the HUD's area plates read it (Japan's real table)
-# The world map's (worldmap.c, KatAMExpansionWorldMap.cs);
 CreateWorldMap 0x8125924
 GetStateSlot 0x8002888
 UpdateSaveBufferByOffset 0x800acd0
@@ -163,7 +165,6 @@ sWorldMapLineCoors 0x833e404
 gUnk_08357B8C 0x833c348
 sub_08039600 0x8039590
 GetKirbyRoomFlagIndex 0x8128578
-# Bigger rooms (rooms.c, KatAMExpansionRooms.cs);
 LZ77UnCompWram 0x81592c8
 LoadLevelGfx 0x80008ac
 RLUnCompWram 0x81592d8
@@ -304,7 +305,6 @@ m4aMPlayFadeOut 0x8150274
 gMPlayInfo_0 0x30016a0
 sub_08054C0C 0x8054b84
 sub_08010590 0x801058c
-# Hi-Jump (abilities/hi_jump.c);
 sub_08153E6C 0x8153e2c
 sub_08044FD4 0x8044f4c
 sub_08045A34 0x80459ac
@@ -396,3 +396,5 @@ sub_0807A7E8 0x807a760
 sub_0806898C 0x8068904
 sub_0808324C 0x80831c4
 sub_0805C11C 0x805c094
+sub_08043360 0x80432d8
+_call_via_r4 0x815a268

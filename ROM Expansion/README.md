@@ -215,6 +215,13 @@ NiDL's Needle, Freeze, Light, Ball, Hi-Jump, Mike, Backdrop and Star Rod are Kat
 
 The timings and speeds were measured in NiDL. NiDL's Needle, Freeze, Ball and Hi-Jump also made Kirby untouchable (KatAM's guard, as its Burning's): not here, so no ported ability is a shield. Mike and Backdrop were measured by patching the enemy Starman to give them: an enemy's ability is byte 12 of its variant data (Starman's: `0x08741918`), copied to `obj+0` of its extra data at spawn. In water, every ability's B button does what KatAM's other abilities do (the base ability's entry). CPU helpers fight like Normal Kirby.
 
+Squeak Squad's Ninja, Animal, Bubble and Metal are abilities 35-38 (`SQUEAK_ABILITY_*`), built only with both the NiDL and the Squeak Squad ROMs (without them, `SqueakStart` gives none: `gSqueakAbilityBodies` is empty). Kirby with them is drawn from the DS's own frames in every motion, in the player's spray colors (`KatAMExpansionSqueakAbilities.cs`: the body anim and the hat anim per ability, `SqueakAbilitySetup`); their moves draw him with `ScrollPiece`s (`scrolls.h`), as the scroll moves do (`gSqueakAbilityLooks`, `SQUEAK_LOOK_*`). Their HUD portraits are built from the DS too (`SqueakAbilityPortraits()`: the name band in the narrow letters of KatAM's own cards, then a burst in the ability's colors behind the DS's standing Kirby, his colors merged to fit one palette); the pause screen's help shows KatAM's general text with them, as with NiDL's.
+
+| Ability | B button |
+|---|---|
+| Ninja | From Bio Spark (the DS's). As the DS's (`abilities/squeak_moves.c`, from its code, `PrmKirbyNinja`'s words and its emulator): standing, a kunai (7 pixels a frame, through walls for 5 frames, sticks in a wall); dashing or holding a direction, a dash (sound 0xDF) that grabs what it touches in its first 4 frames (carried up 8 pixels a frame through the ceiling for 10 frames, then slammed down for 10, Kirby bouncing back) and else ends in a slash; in the air, a kunai, or with Down a dive (4 pixels a frame both ways, 135 frames at most); falling against a wall while holding toward it, he clings (B a kunai from it, A a wall jump with a flip); he runs on water. With the scroll (16), B held charges the DS's art (30 frames): let go, pillars of flame (a geyser on water) rise from 7 spots before him. Damages are the DS's over 5 (kunai 2, slash, dive, bounce 4, slam 10, flames 8) |
+
+
 How they fit in:
 
 - **Ability field.** KatAM keeps the ability Kirby is getting in 5 bits of `transitioningAbility`, with 3 flags above it, so 27-31 were all the room there was. It's widened to 6 bits:

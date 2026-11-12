@@ -920,6 +920,8 @@ namespace KatAMRandomizer {
             new SqueakEffect(115, "kirby/magic_ext", 31, Skip: new[] { 0 }, Once: true, OnlyPalettes: new[] { 6 }),
             new SqueakEffect(116, "effect/efc_cmn0", 26, Skip: new[] { 1 }, Once: true),
             new SqueakEffect(117, "effect/efc_cmn0", 4, Skip: new[] { 1 }, Once: true),
+            // The DS's 0x02018C24's types 5 and 11 (efc_cmn0's 21): a puff at Kirby's feet (Squeak Squad's Ninja's moves: abilities/squeak_moves.c);
+            new SqueakEffect(118, "effect/efc_cmn0", 21, Once: true),
         };
 
         /* SqueakFlatten(); A composite animation's parts (`parts`: the composition's indices; all when null) drawn together as one
@@ -1562,7 +1564,8 @@ namespace KatAMRandomizer {
              * animations' palettes); */
             int data = CodeAddress + version.CodeSymbols["gSqueakData"], namesAt = Allocate(ref localCursor, SqueakDefinitions.Count * 0x100, 4);
             WriteInt(rom, data, namesAt + 0x08000000);
-            int effectTable = Allocate(ref localCursor, Math.Max(1, SqueakEffectDefinitions.Count) * 16, 4);
+            // (the Squeak Squad abilities' moves' looks' effects after those: KatAMExpansionSqueakAbilities.cs's SqueakMoveLookEffects);
+            int effectTable = Allocate(ref localCursor, Math.Max(1, effects.Select(e => e.Effect.Index + 1).DefaultIfEmpty(SqueakEffectDefinitions.Count).Max()) * 16, 4);
             WriteInt(rom, data + 4, effectTable + 0x08000000);
             foreach (SqueakEffectBuilt e in effects) {
                 int at = effectTable + e.Effect.Index * 16;
