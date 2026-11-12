@@ -1020,6 +1020,24 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
     that call, flipped to face right as the DS's (the frame builder mirrors every Squeak Squad cell). The result screen's
     `result/icon` has scroll icons too (cells 21-29, nine), not one a scroll. Checked in the GBA emulator: room 0x455's chest (scroll
     3) opened with Up, its popup the DS's icon of scroll 3.
+  - **What a scroll does** (the DS): owned scrolls are a mask in the player's info (`+0x2C`, built by its constructor `0x02020CF0`
+    from the save's treasure bits: save at `*(0x02185BA0)`, treasure k bit k % 16 of the u16 at `+0x100 + k / 16 * 2`; scroll n is
+    treasure 28 + n), asked by `HasScroll(info, n)` (`0x02020AD8`), always with a constant scroll number, from 40 places. By number:
+    Fire 0 (`0x0202FDD0`), Ice 1 (`0x02030F6C`), Spark 2 (`0x02088444`), Beam 3 (`0x02088B44`), Tornado 4 (`0x020BA8F8`,
+    `0x020BAD4C`, `0x020BB03C`), Parasol 5 (`0x020B8F18`, `0x020B90A8`), Hammer 6 (`0x020944B8`, `0x02094A88`), Cupid 7
+    (`0x020BE864`), Cutter 8 (`0x020BA1C8`), Laser 9 (`0x02099E94`), Sword 10 (`0x0201FC50`, ability mixing), Wheel 11 (`0x02092B24`,
+    `0x0209326C`), Hi-Jump 12 (`0x020BF8E8`), UFO 13 (`0x020BD560`), Sleep 14 (`0x020BF294`, overlay 1 `0x0220E612`), Bomb 15
+    (`0x0201FC50`, ability mixing; `0x020B2D24`), Ninja 16 (`0x020C8618`, `0x020C8ED4`, `0x020C91E0`), Fighter 17 (`0x020C5828`),
+    Throw 18 (`0x020C0E00`), Magic 19 (`0x020C2CC0`), Animal 20 (`0x0208B7F0`), Bubble 21 (`0x02089700`, `0x02089B90`,
+    `0x02089C64`), Metal 22 (`0x020CAF44`). All 23 are in the stages' chests (one each). Each ability's parameters are its
+    `param/PrmKirby<Ability>.kgb` (the words after a 4-word header, at the player's `+0x394`).
+    - Fire, Ice: each puff of breath the ability shoots (its own object, `operator_new(0x130)`) takes its speed from the
+      parameters; with the scroll, Up held adds words 4 (-6144, up 1.5 pixels a frame) to its height speed, Down word 3 (6144),
+      forward word 5 (0). The DS's breath doesn't bend without it. Ported (`ROM Expansion/scrolls.c`'s `ScrollBreath`).
+    - Spark: holding the button charges (`+0x3A0` by word 3 a frame); past word 0 times that, level 1 (the spark aura, anim
+      `0x100001E`, sound `0xB0`); with the scroll, past word 1 times it, level 2 (`0x3000003`, sound `0xB1`), from which forward
+      throws the aura as a ball (`0x3000004`, sound `0xB2`, moving by words 5-7). Its attack's anim by level: `0x3000000` (sound
+      `0xAF`), `0x3000001` (`0x51`), `0x3000002` (`0xB2`).
   - **The Secret Map's pieces** (treasures 93-99, taken as pieces 1-7 in order: not checked against the DS): each in its own chest
     (2-6-6, 3-3-7, 4-4-5, 5-4-5, 6-6-5, 7-6-9, 8-2-6), marked `chest[0x16]` the piece's number + 1 and `chest[0x17]` 2 (the area
     maps' mark is 1), the item one of KatAM's maps. Their art is `collection/map`: anims 0-6 the pieces (parchment, about 60 x 50
