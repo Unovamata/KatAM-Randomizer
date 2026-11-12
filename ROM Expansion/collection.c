@@ -1,8 +1,8 @@
 /* collection.c: the Collection Room as one grid that scrolls sideways (KatAMExpansionCollection.cs builds what it shows): KatAM's
  * 10 x 4 cells first, as KatAM has them, then columns of the expansion's treasures (Squeak Squad's spray paints, the Secret Map's
- * pieces, the NiDL and Squeak Squad areas' maps: gCollectionGrid.items). The screen shows 10 columns; the cursor going past the
- * last one shown (or the first) slides the grid one column (SCROLL_FRAMES frames), past the grid's ends it goes round to the other
- * end, and L / R move it a screen.
+ * pieces, the NiDL and Squeak Squad areas' maps, Squeak Squad's Ability Scrolls: gCollectionGrid.items). The screen shows 10
+ * columns; the cursor going past the last one shown (or the first) slides the grid one column (SCROLL_FRAMES frames), past the
+ * grid's ends it goes round to the other end, and L / R move it a screen.
  * The room reads its 40 cells from a table (gUnk_08386A50: an id, category << 8 | number, its icon and its text); its literals point
  * at GridRoom's copy in EWRAM instead (the bigger rooms' area, idle in the menus: rooms.c's gNidlBigArea), which holds the columns
  * shown (KatAM's 40 when the grid is at its start: the Sound Player's cell is in KatAM's first column, so its own screens, which look
@@ -41,7 +41,7 @@ extern void sub_08143664(struct Task *);
 
 #define GRID_ROWS 4
 #define GRID_SHOWN 10                       // the columns on the screen: KatAM's
-#define GRID_EXTRA 12                       // the most columns after KatAM's
+#define GRID_EXTRA 13                       // the most columns after KatAM's (23 in all: 518 pixels, BG2's 512 and its first 6 again)
 #define KATAM_SPRAYS 14
 #define CELL_WIDTH 0x16
 #define CELL_HEIGHT 0x15
@@ -149,6 +149,8 @@ static bool8 GridOwned(u16 id) {
         return gTreasures.musicPlayerAndSheetsField & 1;
     case 0x20: // the Secret Map's pieces (bits 16-22)
         return n < SECRET_MAP_PIECES && (gTreasures.musicPlayerAndSheetsField >> (SECRET_MAP_BIT + n)) & 1;
+    case 0x40: // the Ability Scrolls (the expansion's save: rooms.c's SqueakScrollOwned)
+        return SqueakScrollOwned(n);
     }
     return FALSE;
 }

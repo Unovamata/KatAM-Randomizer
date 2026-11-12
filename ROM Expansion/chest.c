@@ -66,9 +66,11 @@ const struct SqueakChest gSqueakChest = { NULL };
  * the map's; */
 struct NidlMaps {
     const u16 *colors;          // [AREA_MAPS + 1][3]: the areas' maps', then the Secret Map's pieces'
+    u16 iconAnim;               // the Collection Room's maps' anim (0: none), whose variants piecePopup + p are piece p's popups
+    u16 piecePopup;             //   (its icon in the popup's colors 7-10: KatAMExpansionMaps.cs's AddAreaMapIcons())
 };
 
-const struct NidlMaps gNidlMaps = { NULL };
+const struct NidlMaps gNidlMaps = { NULL, 0, 0 };
 
 extern struct Task gTasks[];
 extern void sub_0800B7A4(void);
@@ -156,6 +158,21 @@ static void NidlScrollPopupStart(struct Task *task, struct ChestItemPopup *popup
     task->main = NidlScrollPopup;
 }
 
+/* NidlPiecePopupStart(); The popup the game made for a Secret Map piece's chest (KatAM's map, 4 tiles) made the piece's own icon, as
+ * the Collection Room shows it (the owner: "The secret map pieces are showing up on chests as vanilla map icons instead of their
+ * actual icons in the Collection Room"): the maps' anim's popup variant of the piece (its frame loaded afresh, 4 tiles as the map's),
+ * in the parchment NidlMapPopup puts in the chest's palette; left as KatAM's map without it (no Squeak Squad ROM); */
+static void NidlPiecePopupStart(struct ChestItemPopup *popup, u8 n) {
+    struct Sprite *sprite = &popup->effectObject.sprite;
+
+    if (n >= SECRET_MAP_PIECES || gNidlMaps.iconAnim == 0)
+        return;
+    sprite->animId = gNidlMaps.iconAnim;
+    sprite->variant = gNidlMaps.piecePopup + n;
+    sprite->unk1B = 0xFF;
+    sprite->unk20[0].unk0 = -1;
+}
+
 /* NidlMapAfter(); After the game's opening: KatAM's map taken back and saved again, and the popup it made (sub_0800B414's task,
  * sub_0800B7A4, on this chest) the area's map's colors, or the Secret Map's (NidlMapPopup, which in its spare byte); */
 static void NidlMapAfter(struct Chest *chest, u32 katamMap) {
@@ -183,6 +200,8 @@ static void NidlMapAfter(struct Chest *chest, u32 katamMap) {
         task->main = NidlMapPopup;
         if (mark >> 8 == CHEST_MARK_SCROLL)
             NidlScrollPopupStart(task, popup, (mark & 0xFF) - 1);
+        else if (mark >> 8 == CHEST_MARK_PIECE)
+            NidlPiecePopupStart(popup, (mark & 0xFF) - 1);
         break;
     }
 }
