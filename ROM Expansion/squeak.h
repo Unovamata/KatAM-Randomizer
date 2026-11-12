@@ -366,6 +366,14 @@ enum {
     SQUEAK_FX_LASER_BOLT_DOWN,
     SQUEAK_FX_UFO_STAR,         // The UFO scroll's star circling UFO Kirby (scrolls.c): kirby/ufo_ext's 36;
     SQUEAK_FX_HI_JUMP_ORB,      // The Hi-Jump scroll's orb about him as he rises (scrolls.c): kirby/highjump_ext's 37;
+    // The Wheel scroll's element wheels (scrolls.c): kirby/wheel_ext's 31, 37, 38 (fire: the wheel, its glow, its flames) and 33, 41,
+    // 42 (electric);
+    SQUEAK_FX_WHEEL_FIRE,
+    SQUEAK_FX_WHEEL_FIRE_GLOW,
+    SQUEAK_FX_WHEEL_FIRE_TRAIL,
+    SQUEAK_FX_WHEEL_SPARK,
+    SQUEAK_FX_WHEEL_SPARK_GLOW,
+    SQUEAK_FX_WHEEL_SPARK_TRAIL,
     SQUEAK_FX_COUNT,
 };
 

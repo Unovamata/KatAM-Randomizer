@@ -35,6 +35,7 @@ enum {
     SCROLL_PARASOL,
     SCROLL_CUTTER = 8,
     SCROLL_LASER,
+    SCROLL_WHEEL = 11,
     SCROLL_HI_JUMP = 12,
     SCROLL_UFO,
     SCROLL_SLEEP = 14,
@@ -110,7 +111,7 @@ struct SparkCharge {
     u8 glint;                   // +0x3AC;
 };
 
-enum { SPARK_AURA, SPARK_BURST, SPARK_BALL, BEAM_WHIP, TORNADO_ELEMENT, PARASOL_THRUST, CUTTER_BLADE, LASER_CHARGE, LASER_BOLT, UFO_STAR, HI_JUMP_ORB };
+enum { SPARK_AURA, SPARK_BURST, SPARK_BALL, BEAM_WHIP, TORNADO_ELEMENT, PARASOL_THRUST, CUTTER_BLADE, LASER_CHARGE, LASER_BOLT, UFO_STAR, HI_JUMP_ORB, WHEEL_ELEMENT };
 
 // ScrollLook; One of a piece's looks: an effect's animation (squeak.h's SQUEAK_FX_*), `dx` pixels forward and `dy` under the piece
 // (the DS's composite's part: its offset);
@@ -142,6 +143,7 @@ static bool32 LaserStep(struct ScrollPiece *p);
 static bool32 BoltStep(struct ScrollPiece *p);
 static bool32 StarStep(struct ScrollPiece *p);
 static bool32 OrbStep(struct ScrollPiece *p);
+static bool32 WheelStep(struct ScrollPiece *p);
 
 // ChargeOf(); A Kirby's SparkCharge (SPARK_SLOT: its task's number + 1, checked), made with `create`; NULL: none;
 static struct SparkCharge *ChargeOf(struct Kirby *kirby, bool32 create) {
@@ -469,8 +471,9 @@ static bool32 Meets(struct ObjectBase *o, s32 x, s32 y, s8 left, s8 top, s8 righ
     return l < x + right && l + w > x + left && t < y + bottom && t + h > y + top;
 }
 
-// TornadoTouch(); The element (TORNADO_FIRE, TORNADO_SPARK; fire first) of what meets Kirby's tornado this frame, not a Kirby's; 0: none;
-static u16 TornadoTouch(struct Kirby *kirby) {
+// ElementTouch(); The element (TORNADO_FIRE, TORNADO_SPARK; fire first) of what meets a box about Kirby this frame, not a Kirby's;
+// 0: none (the DS's 0x02012E84, from what met him);
+static u16 ElementTouch(struct Kirby *kirby, s8 left, s8 top, s8 right, s8 bottom) {
     u8 slot = gCurLevelInfo[kirby->base.unk56].unk65E, kind, n, count;
     s32 x = kirby->base.x >> 8, y = kirby->base.y >> 8;
     u16 found = 0;
@@ -483,8 +486,7 @@ static u16 TornadoTouch(struct Kirby *kirby) {
 
             if (o == NULL || (void *)o == (void *)kirby || IsKirby(o->parent) || o->roomId != kirby->base.roomId) continue;
             if (!(o->unk68 & (TORNADO_FIRE | TORNADO_SPARK)) || o->flags & (0x200 | 0x1000)) continue;
-            // (KatAM's tornado's box, sub_0807A10C's);
-            if (!Meets(o, x, y, -10, -10, 10, 11)) continue;
+            if (!Meets(o, x, y, left, top, right, bottom)) continue;
             if (o->unk68 & TORNADO_FIRE) return TORNADO_FIRE;
             found = TORNADO_SPARK;
         }
@@ -510,7 +512,8 @@ static bool32 TornadoStep(struct ScrollPiece *p) {
     }
     Follow(p);
     p->base.roomId = kirby->base.roomId;
-    if (p->level == 0 && (element = TornadoTouch(kirby)) != 0) {
+    // (KatAM's tornado's box, sub_0807A10C's);
+    if (p->level == 0 && (element = ElementTouch(kirby, -10, -10, 10, 11)) != 0) {
         p->level = element == TORNADO_FIRE ? 1 : 3;
         attack->unk68 |= element;
         attack->unk63 = TORNADO_STRENGTH;
@@ -614,7 +617,7 @@ static void ScrollPieceMain(void) {
     if (ObjectPreUpdate(&p->base)) return;
     alive = p->kind == SPARK_AURA ? AuraStep(p) : p->kind == SPARK_BALL ? BallStep(p) : p->kind == BEAM_WHIP ? BeamStep(p)
           : p->kind == TORNADO_ELEMENT ? TornadoStep(p) : p->kind == PARASOL_THRUST ? ParasolStep(p) : p->kind == CUTTER_BLADE ? CutterStep(p)
-          : p->kind == LASER_CHARGE ? LaserStep(p) : p->kind == LASER_BOLT ? BoltStep(p) : p->kind == UFO_STAR ? StarStep(p) : p->kind == HI_JUMP_ORB ? OrbStep(p)
+          : p->kind == LASER_CHARGE ? LaserStep(p) : p->kind == LASER_BOLT ? BoltStep(p) : p->kind == UFO_STAR ? StarStep(p) : p->kind == HI_JUMP_ORB ? OrbStep(p) : p->kind == WHEEL_ELEMENT ? WheelStep(p)
           : BurstStep(p);
     if (!alive) return;
     for (i = 0; i < SCROLL_LOOKS; i++) LookDraw(p, &p->look[i]);
@@ -625,7 +628,7 @@ static void ScrollPieceDestroy(struct Task *t) {
     struct ScrollPiece *p = TaskGetStructPtr(t);
     u8 i;
 
-    if (p->kind == TORNADO_ELEMENT) p->kirby->base.sprite.unk8 &= ~TORNADO_HIDE;
+    if (p->kind == TORNADO_ELEMENT || p->kind == WHEEL_ELEMENT) p->kirby->base.sprite.unk8 &= ~TORNADO_HIDE;
     for (i = 0; i < SCROLL_LOOKS; i++) LookEnd(&p->look[i]);
 }
 
@@ -1080,6 +1083,103 @@ static void HiJumpOrb(struct Kirby *kirby) {
     LookStartAt(p, 0, SQUEAK_FX_HI_JUMP_ORB, 0, HI_JUMP_ORB_Y, SCROLL_BEHIND_KIRBYS);
 }
 
+/* Wheel. The DS's Wheel Kirby rolling (0x02092B24, 0x0209326C, each frame; wheel_ext.mca's composite 1, its .rca's box of 20, 8
+ * behind to 10 in front and 21 up): with the scroll (HasScroll 11), while the wheel has no element yet, it takes the one of what meets
+ * him (0x02012E84, as the Tornado scroll's: fire, water, electricity) and rolls on as that element's wheel (0x02093028: composites 5, 9
+ * and 13; fire: the wheel, 31, in its colors, its glow, 37, flickering, and its flames, 38, behind; electric: 33, 41, 42) to its end;
+ * its box the same, of the same 20, with the element (the attack record's element 1, 2, 4).
+ * In KatAM, with the scroll: KatAM's wheel (its attack, sub_0807A3E4, its task sub_0807A4F4, while he rolls: anims 0x34, 0x68) takes
+ * the element of a fire or electric attack or enemy that meets him (ElementTouch, as the Tornado scroll's, his wheel's box), its hit
+ * that element's (KatAM's kind bit, strength as it was: the DS's damage the plain wheel's), the DS's element wheel drawn in place of
+ * KatAM's (his sprite hidden, TORNADO_HIDE, and his wheel's disc, WheelDiscHide) to the end of the roll; a piece (WHEEL_ELEMENT)
+ * found or made from his input each frame.
+ * Not water: KatAM's wheel stops rolling in it (sub_080630B0: he swims); */
+extern void sub_0807A4F4(void);
+extern void sub_0809104C(void);
+#define WHEEL_ROLL 0x34                     // KatAM's wheel's anims while its attack is on (sub_0807A4F4);
+#define WHEEL_ROLL_2 0x68
+
+// WheelDiscHide(); KatAM's wheel's disc about Kirby as he rolls (sub_08090F68's effect, its task sub_0809104C: anim 0x129 in his
+// colors) not drawn (0x400) under the DS's element wheel;
+static void WheelDiscHide(struct Kirby *kirby) {
+    u8 i;
+
+    for (i = 0; i < MAX_TASK_NUM; i++) {
+        struct EffectObject *e;
+
+        if (gTasks[i].main != sub_0809104C) continue;
+        e = TaskGetStructPtr(&gTasks[i]);
+        if (e->parent == kirby) e->flags |= 0x400;
+    }
+}
+
+// WheelOf(); The element piece of a Kirby's wheel, NULL: none;
+static struct ScrollPiece *WheelOf(struct Kirby *kirby) {
+    u8 i;
+
+    for (i = 0; i < MAX_TASK_NUM; i++) {
+        struct ScrollPiece *p;
+
+        if (gTasks[i].main != ScrollPieceMain) continue;
+        p = TaskGetStructPtr(&gTasks[i]);
+        if (p->kind == WHEEL_ELEMENT && p->kirby == kirby && !(p->base.flags & 0x1000)) return p;
+    }
+    return NULL;
+}
+
+/* WheelStep(); With Kirby's rolling wheel: its element taken once, KatAM's attack made that element's, the DS's element wheel drawn
+ * in place of KatAM's (the wheel, its glow and its trail: his own hidden); gone when the roll ends; */
+static bool32 WheelStep(struct ScrollPiece *p) {
+    struct Kirby *kirby = p->kirby;
+    struct ObjectBase *attack = p->other && p->other->main == sub_0807A4F4 ? TaskGetStructPtr(p->other) : NULL;
+    u16 element;
+
+    if (attack == NULL || attack->parent != kirby || attack->flags & 0x1000 || kirby->ability != KIRBY_ABILITY_WHEEL
+        || (kirby->animationIndex != WHEEL_ROLL && kirby->animationIndex != WHEEL_ROLL_2)) {
+        p->base.flags |= 0x1000;
+        if (p->level == 0) return FALSE;
+        kirby->base.sprite.unk8 &= ~TORNADO_HIDE;
+        return TRUE;
+    }
+    Follow(p);
+    p->base.roomId = kirby->base.roomId;
+    // (KatAM's wheel's box, sub_0807A3E4's);
+    if (p->level == 0 && (element = ElementTouch(kirby, -9, -9, 12, 12)) != 0) {
+        bool32 fire = element == TORNADO_FIRE;
+
+        p->level = fire ? 1 : 3;
+        attack->unk68 |= element;
+        // (the composite's parts: the wheel first, on top, its glow, its trail);
+        LookStart(p, 0, fire ? SQUEAK_FX_WHEEL_FIRE : SQUEAK_FX_WHEEL_SPARK, 0, 0);
+        LookStart(p, 1, fire ? SQUEAK_FX_WHEEL_FIRE_GLOW : SQUEAK_FX_WHEEL_SPARK_GLOW, 0, 0);
+        LookStart(p, 2, fire ? SQUEAK_FX_WHEEL_FIRE_TRAIL : SQUEAK_FX_WHEEL_SPARK_TRAIL, 0, 0);
+    }
+    if (p->look[0].effect != SCROLL_NO_LOOK) {
+        kirby->base.sprite.unk8 |= TORNADO_HIDE;
+        WheelDiscHide(kirby);
+    }
+    Box(p, 0, 0, 0, 0, 0);
+    return TRUE;
+}
+
+// WheelElement(); Each frame, after his input's read: the element piece found or made for his rolling wheel's attack;
+static void WheelElement(struct Kirby *kirby) {
+    struct ScrollPiece *p;
+    u8 i;
+
+    if ((kirby->animationIndex != WHEEL_ROLL && kirby->animationIndex != WHEEL_ROLL_2) || WheelOf(kirby) != NULL) return;
+    for (i = 0; i < MAX_TASK_NUM; i++) {
+        struct Task *t = &gTasks[i];
+        struct ObjectBase *o;
+
+        if (t->main != sub_0807A4F4) continue;
+        o = TaskGetStructPtr(t);
+        if (o->parent != kirby || o->flags & 0x1000) continue;
+        if ((p = ScrollPieceCreate(kirby, WHEEL_ELEMENT, 0, 0, 0)) != NULL) p->other = t;
+        return;
+    }
+}
+
 /* Sleep. The DS's (0x020BF294, each frame of his sleep): with the scroll (HasScroll 14) he gets better while he sleeps,
  * prmKirbySleep.kgb's word 1 (10) added a frame and a hit point each time it makes word 0 (180): one each 18 frames; A or B pressed
  * cuts his sleep by 2 frames, sound 0xA9 (the DS's own, scroll or not: KatAM's sleep has no such thing, so it comes with the scroll).
@@ -1121,6 +1221,7 @@ void ScrollKirbyInput(struct Kirby *kirby) {
     if (kirby->ability == KIRBY_ABILITY_LASER && SqueakScrollOwned(SCROLL_LASER)) LaserCharging(kirby);
     if (kirby->ability == KIRBY_ABILITY_UFO && SqueakScrollOwned(SCROLL_UFO)) UfoStar(kirby);
     if (kirby->ability == NIDL_ABILITY_HI_JUMP && SqueakScrollOwned(SCROLL_HI_JUMP)) HiJumpOrb(kirby);
+    if (kirby->ability == KIRBY_ABILITY_WHEEL && SqueakScrollOwned(SCROLL_WHEEL)) WheelElement(kirby);
 }
 
 /* ScrollSparkAttack(); sub_08074AB0 (detoured): KatAM's spark attack starts; with the scroll, by the level: 0 KatAM's; 1 and 2 the
