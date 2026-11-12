@@ -3103,7 +3103,8 @@ namespace KatAMRandomizer {
                  * shown by the world's big switch (its slot); the designs: the hub's KatAM's hub door's, a KatAM room's its own (KatAMDesigns),
                  * the world's that of Central Circle's door it took in the hub (the area's whose door it is). The KatAM rooms' edits wait
                  * for the randomizer (squeakFinish, FinishRooms()), as NiDL's do; */
-                Door greyDoor = new Door(SqueakHubDoor.x, SqueakHubDoor.y, hubRoom, SqueakHubDoor.x + 1, SqueakHubDoor.y + 1, (byte)(SqueakHubDoor.x * 2 < centralCircle.Width ? 1 : 2));
+                Door greyDoor = new Door(SqueakHubDoor.x, SqueakHubDoor.y, hubRoom, SqueakHubDoor.x + 1, SqueakHubDoor.y + 1, (byte)(SqueakHubDoor.x * 2 < centralCircle.Width ? 1 : 2),
+                                         Design: SqueakGreyDoorDesign);
                 var linkEdits = new List<(int room, ((int x, int y) door, int drawX, ((int x, int y) from, (int x, int y) to)[] moves, (int from, int to)[] statues, int[] landings) plan, Door back)>();
                 foreach (int world in switchDoors.Keys.OrderBy(w => w)) {
                     int switchRoom = firstSwitchRoom + world - 1, level = SqueakLayoutLevel(world), link = SqueakLinks[world - 1];

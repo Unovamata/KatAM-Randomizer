@@ -127,8 +127,10 @@ namespace KatAMRandomizer {
         static int squeakProps;
         static Dictionary<string, int> squeakTables = new Dictionary<string, int>();
 
-        // AddKatAMDoor(); A door in an edited room: its cell made a door (a plain one), or one an object shows (Slot: a 0x97 door, its block
-        // record making the cell the door once the world slot is set, as KatAM's hub doors), its record, and its 9ROM entry;
+        /* AddKatAMDoor(); A door in an edited room: its cell made a door (a plain one, a mirror on it; or, given a Design, the door object
+         * 0x97 on it, in that frame, shown open from the start: CreateDoorToHub shows a door standing on a door cell at once, the
+         * Squeak Squad hub's grey door), or one an object shows (Slot: a 0x97 door, its block record making the cell the door once the
+         * world slot is set, as KatAM's hub doors), its record, and its 9ROM entry; */
         static void AddKatAMDoor(KatAMRoomEdit edit, Door door, int drawX = -1) {
             byte here = edit.Collision[door.Y * edit.Width + door.X];
             if (door.Slot == 0) edit.Collision[door.Y * edit.Width + door.X] = 0xFF;
@@ -139,10 +141,11 @@ namespace KatAMRandomizer {
                 edit.Specials.Add(block.ToArray());
             }
             edit.Specials.Add(DoorRecord(door, 0xFF));
-            byte[] template = door.Slot != 0 ? DoorToHubTemplate(door.X, door.Y, edit.Templates.Count, door.Slot, door.Design) : MirrorTemplate(door.X, door.Y, edit.Templates.Count);
+            bool doorLook = door.Slot != 0 || door.Design != HubDesign;
+            byte[] template = doorLook ? DoorToHubTemplate(door.X, door.Y, edit.Templates.Count, door.Slot, door.Design) : MirrorTemplate(door.X, door.Y, edit.Templates.Count);
             if (drawX >= 0) WriteShort(template, 6, drawX);
             edit.Templates.Add(template);
-            byte type = door.Slot != 0 ? DoorToHubType : MirrorType;
+            byte type = doorLook ? DoorToHubType : MirrorType;
             if (!edit.Types.Contains(type)) edit.Types.Add(type);
             edit.Nine.Add(NineROMEntry(door.Room, door.DestX, door.DestY));
             edit.Changed = true;
@@ -243,19 +246,26 @@ namespace KatAMRandomizer {
         sealed record SqueakSwitchDesign(string View, (int stage, int number)? Source, string[] Dressing);
         static readonly Dictionary<int, SqueakSwitchDesign> SqueakSwitchDesigns = new Dictionary<int, SqueakSwitchDesign> {
             // (Prism Plains': a tree from its third stage's last room in the top left, its trunk on the floor, flowers by the pedestal);
-            [1] = new SqueakSwitchDesign("00", null, new[] { "!0 0 0 0 6 6", "0 6 0 6 6 3", "4 8 14 9 1 1", "11 8 13 9 2 1" }),
+            // (and, the polish pass, 1-3-5's hanging hedge as its right wall, the hedge's bottom edge along the ceiling's corner: the
+            // stray dirt cells there gone);
+            [1] = new SqueakSwitchDesign("00", null, new[] { "!0 0 0 0 6 6", "0 6 0 6 6 3", "4 8 14 9 1 1", "11 8 13 9 2 1",
+                                                              "!12 0 26 4 1 1", "!13 0 26 4 1 1", "!14 0 25 0 2 2", "!14 2 25 1 2 3", "!14 5 25 4 2 1" }),
             // (Nature Notch's: a forest clearing from 2-6-1's woods, its canopy the ceiling, a tree each side on the side floors, bushes
             // at their feet and in the pit, the pedestal of its leafy grass);
             [2] = new SqueakSwitchDesign("06", (6, 1), new[] { "!0 0 46 1 16 1", "!0 1 46 2 2 1", "!14 1 ~46 2 2 1", "2 1 48 2 2 1", "12 1 ~48 2 2 1",
                                                                 "4 1 50 2 8 1", "2 2 48 3 2 5", "12 2 ~48 3 2 5", "1 5 44 7 1 2", "14 5 ~44 7 1 2",
                                                                 "4 7 44 7 2 2", "10 7 ~44 7 2 2", "!6 6 47 9 4 1" }),
-            [3] = new SqueakSwitchDesign(null, null, new string[0]),
+            // (Cushy Cloud's, as built in 3-4-7's tiles, the polish pass: its brick pillars as the side walls, their carved panels and
+            // round emblems, their outlined edge to the room, and a brick ceiling with its teal trim);
+            [3] = new SqueakSwitchDesign(null, (4, 7), new[] { "!0 0 39 5 2 6", "!14 0 ~39 5 2 6", "!2 0 46 2 10 1", "!12 0 46 2 2 1" }),
             [4] = new SqueakSwitchDesign("22", null, new string[0]),
             // (Vocal Volcano's: its castle's balustrade along the side floors, a balcony over the sunset sea);
             [5] = new SqueakSwitchDesign("25", null, new[] { "0 8 8 10 5 1", "11 8 9 10 5 1" }),
             // (Ice Island's: its snowy shrubs in the pit, a sprout on each side floor);
             [6] = new SqueakSwitchDesign("16", null, new[] { "3 6 6 5 1 1", "12 6 ~6 5 1 1", "4 7 6 13 3 2", "9 7 ~6 13 3 2" }),
-            [7] = new SqueakSwitchDesign("18", null, new string[0]),
+            // (Secret Sea's, the polish pass: in 7-3-4's sand, its sea grass on the floors and the pedestal, before the picked sea view, a
+            // beach; its cloud tiles, 7-2-6's, the best match by the layout, read as a white frame);
+            [7] = new SqueakSwitchDesign("18", (3, 4), new string[0]),
             // (Gamble Galaxy's: 8-3-1's gold star dust in the upper corners and over the side floors, a crater in each side wall);
             [8] = new SqueakSwitchDesign("26", (3, 1), new[] { "2 1 4 4 3 3", "11 1 ~4 4 3 3", "1 4 7 6 2 2", "13 4 ~7 6 2 2",
                                                                "!1 8 2 9 2 2", "!13 8 11 13 2 2" }),

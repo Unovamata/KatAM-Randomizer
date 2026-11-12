@@ -34,15 +34,19 @@ namespace KatAMRandomizer {
          * room: NiDL's ROM draws its golden mirror into copies of them), its clouds' palettes tinted and a Squeak Squad far view behind
          * (SqueakHubLook), its collision without its doors (its hidden
          * ones, their blocks and records, NiDL's golden mirror: air); Rainbow Route's mirror (MainHubEntry, 19, 14, drawn in its tiles)
-         * leads to Prism Plains 1's start, the way in, as the NiDL hub's golden one; a mirror (object 0x6F) on its floor at
-         * SqueakHubDoor, two-way with one at the same spot added to Central Circle (the grey door: the owner, "We will later decide on
-         * position and visuals"). Its world doors (one per world: Central Circle's doors at MainHubDoors, the world's number's, their
-         * records and hub mirror objects, 0x8C, as Central Circle's, shown by the world's big switch, SqueakSlot()) lead to the world's
-         * switch room (from `firstSwitchRoom`), onto its hub door. Central Circle's door to the ability room is there too, at its spot, to the
-         * Squeak Squad ability room (`abilityRoom`, BuildSqueakAbilityRoom()), shown once the Secret Map is whole (SecretMapSlot; the owner:
-         * "The Squeak Squad ability room should go in the Squeak Squad hub at the same position the ability room is"). Central Circle
-         * (`cc`: as it is now, read) gets its door to the hub once the randomizer is done (squeakFinish). Returns an error, or null; */
+         * leads to Prism Plains 1's start, the way in, as the NiDL hub's golden one; the grey door (the owner: "the entrance door to the
+         * area is a grey door"; "We will later decide on position and visuals") on its floor at SqueakHubDoor, two-way with one at the
+         * same spot added to Central Circle (AddKatAMDoor()): a door cell with KatAM's door object 0x97 on it in its grey stone frame
+         * (SqueakGreyDoorDesign), open from the start, its sparkle until Kirby goes through, as KatAM's new hub doors. Its world doors
+         * (one per world: Central Circle's doors at MainHubDoors, the world's number's, their records and hub mirror objects, 0x8C, as
+         * Central Circle's, shown by the world's big switch, SqueakSlot()) lead to the world's switch room (from `firstSwitchRoom`),
+         * onto its hub door. Central Circle's door to the ability room is there too, at its spot, to the Squeak Squad ability room
+         * (`abilityRoom`, BuildSqueakAbilityRoom()), shown once the Secret Map is whole (SecretMapSlot; the owner: "The Squeak Squad
+         * ability room should go in the Squeak Squad hub at the same position the ability room is"). Central Circle (`cc`: as it is
+         * now, read) gets its door to the hub once the randomizer is done (squeakFinish). Returns an error, or null; */
         static readonly (int x, int y) SqueakHubDoor = (11, 18);
+        // (the grey door's frame: anim 0x2C6's variant 16, KatAM's grey stone door frame, the one KatAMDesigns gives room 0x24E's door);
+        const int SqueakGreyDoorDesign = 16;
         /* SqueakHubLook; The Squeak Squad hub's look (the owner: "Change the background of the Squeak Squad hub along with its palette for
          * the clouds, show me options in a screenshot"): the far view behind it (map/d_viw_NN), and the hue its clouds take, how
          * saturated, how much (0: Central Circle's, 1: all that hue) and their brightness (a factor); the owner's pick of
@@ -101,8 +105,8 @@ namespace KatAMRandomizer {
             Door wayInDoor = new Door(MainHubEntry.x, MainHubEntry.y, wayIn.room, wayIn.x, wayIn.y, 1);
             Door backDoor = new Door(SqueakHubDoor.x, SqueakHubDoor.y, CentralCircle, SqueakHubDoor.x + 1, SqueakHubDoor.y + 1, Facing(SqueakHubDoor.x + 1, width));
             List<byte> hubSpecials = new List<byte>();
-            List<byte[]> templates = new List<byte[]> { MirrorTemplate(SqueakHubDoor.x, SqueakHubDoor.y, 0) };
-            List<byte> types = new List<byte> { MirrorType }, nineROM = new List<byte>();
+            List<byte[]> templates = new List<byte[]> { DoorToHubTemplate(SqueakHubDoor.x, SqueakHubDoor.y, 0, 0, SqueakGreyDoorDesign) };
+            List<byte> types = new List<byte> { DoorToHubType }, nineROM = new List<byte>();
             foreach (Door door in new[] { wayInDoor, backDoor }) {
                 hubCollision[door.Y * width + door.X] = 0xFF;
                 hubSpecials.AddRange(DoorRecord(door, 0xFF));

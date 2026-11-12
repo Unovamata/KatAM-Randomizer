@@ -115,10 +115,12 @@ after any change.
 
 - **The Squeak Squad hub** (the owner: "The way in is a copy of the main game's central circle. We will later decide on position
   and visuals, the entrance door to the area is a grey door"): a copy of Central Circle (its own tiles, its doors gone), reached
-  through a mirror on Central Circle's floor (cell 11, 18, left of its bottom door; a mirror at the same spot in the hub leads back:
-  both provisional, the owner's to place and color). Rainbow Route's mirror in it (19, 14) is the way in, to Prism Plains 1's start,
-  as the NiDL hub's golden one. It is never reached from the NiDL hub, and works with or without the NiDL ROM. Its world doors:
-  Central Circle's own doors (MainHubDoors, the world's number's, drawn and shown as Central Circle's), one per world, shown by the
+  through the grey door on Central Circle's floor (cell 11, 18, left of its bottom door; the same door at the same spot in the hub
+  leads back, Kirby landing on it each way): KatAM's door object in its grey stone frame (design 16), open from the start, with
+  KatAM's sparkle until Kirby first goes through (`SqueakGreyDoorDesign`; its place still the owner's to change). Rainbow Route's
+  mirror in it (19, 14) is the way in, to Prism Plains 1's start, as the NiDL hub's golden one. It is never reached from the NiDL
+  hub, and works with or without the NiDL ROM. Its world doors: Central Circle's own doors (MainHubDoors, the world's number's,
+  drawn and shown as Central Circle's), one per world, shown by the
   world's big switch, to its switch room. Its background is a Squeak Squad far view and its cloud colors are tinted to it (the
   owner: "Change the background of the Squeak Squad hub along with its palette for the clouds"; `SqueakHubLook`): the owner's
   pick of the mock-ups, D, Prism Plains' castle and rainbow (the far view d_viw_00) with Central Circle's own cloud colors (the
@@ -136,8 +138,10 @@ after any change.
 - **The Squeak Squad switch rooms** are the NiDL ones' (one per world, KatAM's two hub-door layouts, A for worlds 1, 3, 5, 7, B for
   2, 4, 6, 8, 2 floor mirrors into the world, 2 hub doors, the big switch on its pedestal, 2 ability statues), padded to 13 rows
   as theirs (so KatAM's camera shows each as one screen and stays put), drawn in the world's tiles before the far view the owner
-  picked (`SqueakSwitchDesigns`). Their big switches set world slots 0x20-0x27, kept in the expansion's save
-  (the game's free world slots, 0x10, 0x11, 0x1C-0x1F, are fewer than 8: rooms.c's `BigGetStateSlot`), which open the world's
+  picked (`SqueakSwitchDesigns`; the polish pass: Prism Plains' right wall 1-3-5's hanging hedge, Cushy Cloud walled by 3-4-7's brick
+  pillars under a brick ceiling, Secret Sea in 7-3-4's sand and sea grass, its clouds read as a white frame). Their big switches set
+  world slots 0x20-0x27, kept in the expansion's save (the game's free world slots, 0x10, 0x11, 0x1C-0x1F, are fewer than 8:
+  rooms.c's `BigGetStateSlot`), which open the world's
   door on the world map. Their hub doors: one to the Squeak Squad hub's world door, one to the KatAM room the world's world map path
   leads to (the owner's pick of the mock-up): Prism Plains to Moonlight Mansion's door (`0xBE`), Nature Notch to Rainbow Route
   South (`0xC2`), Cushy Cloud to Rainbow Route East (`0x316`), Jam Jungle to Rainbow Route West (`0xC0`), Vocal Volcano to Rainbow
