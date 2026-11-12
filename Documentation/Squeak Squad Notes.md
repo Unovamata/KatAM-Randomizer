@@ -1269,6 +1269,37 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
       frames (the ball, then the burst and the stars), the orange, cyan and purple ones for the others; the throw after it
       unchanged; without the scroll, KatAM's grab and throw frame for frame the same, no flash. Not tested: the Squeak Squad
       Acchi's, and grabbing an effect object (`sub_0807A7E8`'s other caller: none, the purple flash).
+    - Magic: KatAM's B is a roulette of cards round Kirby; the DS's (kirby/magic_ext, PrmKirbyMagic.kgb, B at the vtable's +0x88,
+      0x020C34F0) throws: Up held, a jack-in-the-box out of his hat (0x020C2C20, 89 frames, the clown's hit 20); dashing, three cards
+      (0x020C28C8: each spins 15 frames rising, holds, flies off 8 pixels a frame; 10 each); else, in the air too, three doves
+      (0x020C2A78, flying off forward and up, each its own speed and gain; 10 each); doves and cards gone on a hit or off the screen.
+      With the scroll (HasScroll 19, 0x020C2CC0), B held through the whole move starts the DS's roulette as it ends (0x020C33D0): the
+      world held still, the background darkened by half, Kirby thinking, the thought's icon going round five outcomes one each 4
+      frames, B (or 300 frames) stopping it; 60 frames on, the outcome (0x020C2F88): cherry (every enemy a cherry), 1UP (every enemy a
+      1UP), "?" (two random abilities mixed), candy (600 frames of invincibility) or sun (five star bursts at fixed spots, 50 each,
+      and 50 to every enemy); then the hat in confetti and, but for the "?", the ability used up. The owner's pick: with the scroll,
+      Magic is the DS's upgraded Magic, its three throws and its roulette; without it, KatAM's Magic as it is. Ported
+      (`scrolls.c`'s Magic): B (`sub_0806898C`, detoured) with the scroll does the DS's moves (Up, KatAM's dash flag 0x10, else),
+      Kirby drawn as the DS's frames (`MAGIC_BODY`, as the Hammer scroll's), the doves, cards, star bursts and the outcome's sweep
+      pieces of their own, the world held by KatAM's own freeze (`sub_08033540`, Kirby's flag 0x2000 keeping him going; the doves and
+      cards in flight held and drawn as they are), the darkening KatAM's blend (BLDY 8 of 16). The outcomes are KatAM's Magic's own:
+      cherry and 1UP its hit turning what's on the screen into food or 1UPs (`sub_08083040`'s, without its shake and flash: KatAM's
+      foods, picked at random, for the DS's cherry; they stay, as KatAM's items, where the DS's go after 360 frames; KatAM's enemies
+      wobble 30 frames before turning), "?" its random ability (`sub_08068CA4`'s, KatAM's roulette on the HUD: KatAM has no
+      mixing), candy its invincibility (`sub_0808324C`, 600 frames, KatAM's candy music), sun the DS's star bursts (fitted to the
+      240 by 160 screen) and a hit on every enemy on the screen. The DS's damage in KatAM's strengths as the Beam scroll's (one for
+      each 5): 10 is 2, 20 is 4, 50 is 10. In water, and without the scroll, KatAM's own Magic. The darkening goes off at once at
+      the end (the DS's fades 4 frames), and the DS's last 2-frame pose (19) is left out. Checked against the DS in an emulator
+      (py-desmume, the USA ROM, Magic and the scroll given by RAM writes): the three throws by their inputs, the roulette from B held,
+      its stop by B, its icons, timings and outcomes. Tested in KatAM's emulator (room 0x65, USA; Magic and the scroll given by RAM
+      writes, a Sparky ahead of him): B, three doves; B held to the move's end, the roulette (the screen darkened, the Sparky held
+      still, the icons going round), B stopping it; the outcomes forced by RAM writes as it stopped: cherry (the Sparky became a
+      food), 1UP (a 1UP), candy (KatAM's invincibility sparkle), sun (the star bursts, the Sparky killed), "?" (KatAM's random
+      ability roulette, ending on an ability); after the others the used-up ring and Normal, the darkening gone. Room 3: a double
+      tap dash and B, three cards spinning, holding and flying; Up and B, the jack-in-the-box. EU and JP: the doves, the roulette
+      darkened, an outcome. Without the scroll, KatAM's own card roulette. The palette slots were checked (5 of KatAM's 7 used, the
+      Sparky's rows the same before and during the roulette). Not tested: Magic in water, a helper's Magic (KatAM's freeze is per
+      player, and the roulette stops by itself at 300 frames), and the sounds weren't listened to.
   - **The Secret Map's pieces** (treasures 93-99, taken as pieces 1-7 in order: not checked against the DS): each in its own chest
     (2-6-6, 3-3-7, 4-4-5, 5-4-5, 6-6-5, 7-6-9, 8-2-6), marked `chest[0x16]` the piece's number + 1 and `chest[0x17]` 2 (the area
     maps' mark is 1), the item one of KatAM's maps. Their art is `collection/map`: anims 0-6 the pieces (parchment, about 60 x 50
