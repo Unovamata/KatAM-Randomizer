@@ -398,6 +398,32 @@ enum {
     SQUEAK_FX_THROW_WATER_STARS,
     SQUEAK_FX_THROW_ELECTRIC,
     SQUEAK_FX_THROW_ELECTRIC_STARS,
+    /* The Magic scroll's (scrolls.c): kirby/magic_ext's throw and its end (Kirby's body, palette 0; the hat, 1); the hat on the ground
+     * beside him and its glint; the jack-in-the-box's clown and spring; the confetti (palettes 1 and 6); his thinking pose (body,
+     * hat); the thought's icons, palette 1 then 6 (MAGIC_ICONS each: the outcomes' facing right, then facing left but the sun's); a
+     * dove; a card's spin, hold and flight; a star burst; then the ring as the ability is used up and a dove's or card's hit; */
+    SQUEAK_FX_MAGIC_THROW_BODY,
+    SQUEAK_FX_MAGIC_THROW,
+    SQUEAK_FX_MAGIC_AFTER_BODY,
+    SQUEAK_FX_MAGIC_AFTER,
+    SQUEAK_FX_MAGIC_HAT_BODY,
+    SQUEAK_FX_MAGIC_HAT,
+    SQUEAK_FX_MAGIC_HAT_GLINT,
+    SQUEAK_FX_MAGIC_CLOWN,
+    SQUEAK_FX_MAGIC_SPRING,
+    SQUEAK_FX_MAGIC_CONFETTI,
+    SQUEAK_FX_MAGIC_CONFETTI_GLOW,
+    SQUEAK_FX_MAGIC_THINK_BODY,
+    SQUEAK_FX_MAGIC_THINK,
+    SQUEAK_FX_MAGIC_ICON,
+    SQUEAK_FX_MAGIC_ICON_GLOW = SQUEAK_FX_MAGIC_ICON + 9,
+    SQUEAK_FX_MAGIC_DOVE = SQUEAK_FX_MAGIC_ICON_GLOW + 9,
+    SQUEAK_FX_MAGIC_CARD_SPIN,
+    SQUEAK_FX_MAGIC_CARD_HOLD,
+    SQUEAK_FX_MAGIC_CARD_FLY,
+    SQUEAK_FX_MAGIC_STAR,
+    SQUEAK_FX_MAGIC_USED_UP,
+    SQUEAK_FX_MAGIC_HIT,
     SQUEAK_FX_COUNT,
 };
 

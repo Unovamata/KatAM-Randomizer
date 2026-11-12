@@ -19,6 +19,7 @@ namespace KatAMRandomizer {
          * • Hammer's B (sub_080618C0, detoured): ScrollHammerAttack, the DS's charge and its giant swing;
          * • Fighter's charge aura and blast (sub_08094540, sub_08065A0C, detoured): ScrollFighterAura, ScrollFighterBlast, the DS's third level;
          * • Throw's grab (sub_0807A7E8, detoured): ScrollThrowGrab, the piece of the DS's element flash on what he holds;
+         * • Magic's B (sub_0806898C, detoured): ScrollMagicAttack, the DS's upgraded Magic, its three moves and its roulette;
          * • Bomb's throw (sub_08082380) and a blast (sub_08074240), detoured: ScrollBombThrow, the piece giving his bombs an element and
          *   the DS's look, and ScrollBombBlast, his blast that element's;
          * the detoured functions' trampolines (running them as they were) in gScroll*Original. Returns an error, or null; */
@@ -66,6 +67,9 @@ namespace KatAMRandomizer {
             int grab = Detour(rom, version.RomSymbols["sub_0807A7E8"], codeBase + version.CodeSymbols["ScrollThrowGrab"], ref cursor);
             if (grab < 0) return $"The {version.Name} ROM's throw code doesn't match.";
             WriteInt(rom, CodeAddress + version.CodeSymbols["gScrollThrowGrabOriginal"], grab + 0x08000000 + 1);
+            int magic = Detour(rom, version.RomSymbols["sub_0806898C"], codeBase + version.CodeSymbols["ScrollMagicAttack"], ref cursor);
+            if (magic < 0) return $"The {version.Name} ROM's magic code doesn't match.";
+            WriteInt(rom, CodeAddress + version.CodeSymbols["gScrollMagicOriginal"], magic + 0x08000000 + 1);
             return null;
         }
     }

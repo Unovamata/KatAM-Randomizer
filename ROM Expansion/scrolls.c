@@ -48,6 +48,7 @@ enum {
     SCROLL_NINJA,
     SCROLL_FIGHTER,
     SCROLL_THROW,
+    SCROLL_MAGIC,
 };
 
 // SCROLL_BREATH_AIM; prmKirbyFire.kgb's and prmKirbyIce.kgb's words 3 and 4 (6144, -6144): a breath's puff's height speed with Up or
@@ -98,7 +99,7 @@ void ScrollBreath(struct Kirby *kirby) {
 #define SPARK_BALL_MARGIN 48                // Pixels round the screen the ball goes out of to end;
 #define SCROLL_FEET 0x800                    // The DS's origin, Kirby's feet: 8 pixels under KatAM's;
 #define SCROLL_FX_ROOM 48                    // squeak.c's SQUEAK_FX_ROOM: tiles left for KatAM's own effects;
-#define SCROLL_LOOKS 5
+#define SCROLL_LOOKS 8                        // (the Magic scroll's jack-in-the-box: 7);
 #define SCROLL_NO_LOOK 0xFF
 #define SCROLL_BEHIND_KIRBYS 0x14             // A sprite's order behind every Kirby's (theirs 0x10 + unk56, KatAM's effects' 0xA);
 #define SPARK_D_PAD 0xF0
@@ -120,7 +121,7 @@ struct SparkCharge {
     u8 glint;                   // +0x3AC;
 };
 
-enum { SPARK_AURA, SPARK_BURST, SPARK_BALL, BEAM_WHIP, TORNADO_ELEMENT, PARASOL_THRUST, CUTTER_BLADE, LASER_CHARGE, LASER_BOLT, UFO_STAR, HI_JUMP_ORB, WHEEL_ELEMENT, BOMB_SHELL, SWORD_EDGE, HAMMER_GIANT, FIGHTER_CHARGE, THROW_FLASH };
+enum { SPARK_AURA, SPARK_BURST, SPARK_BALL, BEAM_WHIP, TORNADO_ELEMENT, PARASOL_THRUST, CUTTER_BLADE, LASER_CHARGE, LASER_BOLT, UFO_STAR, HI_JUMP_ORB, WHEEL_ELEMENT, BOMB_SHELL, SWORD_EDGE, HAMMER_GIANT, FIGHTER_CHARGE, THROW_FLASH, MAGIC_BODY, MAGIC_DOVE, MAGIC_CARD, MAGIC_STAR, MAGIC_SWEEP };
 
 // ScrollLook; One of a piece's looks: an effect's animation (squeak.h's SQUEAK_FX_*), `dx` pixels forward and `dy` under the piece
 // (the DS's composite's part: its offset);
@@ -144,7 +145,12 @@ struct ScrollPiece {
     u8 kind;
     u8 level;
     u16 clock;
+    s16 accel;                  // (MAGIC_DOVE: its speed forward gained a frame, the DS's 20.12 in KatAM's 24.8);
+    u8 magic;                   // (MAGIC_BODY: MAGIC_FROZE, MAGIC_DIMMED: what the roulette holds till its end);
 };
+
+// sLooksHeld; Looks drawn as they are, not stepped on (a dove or card held still, MagicFrozen());
+static bool8 sLooksHeld = FALSE;
 
 static void SparkChargeMain(void);
 static struct ScrollPiece *ScrollPieceCreate(struct Kirby *kirby, u8 kind, u8 level, s16 knock, u32 hitKind);
@@ -159,6 +165,9 @@ static bool32 SwordStep(struct ScrollPiece *p);
 static bool32 HammerStep(struct ScrollPiece *p);
 static bool32 FighterStep(struct ScrollPiece *p);
 static bool32 ThrowStep(struct ScrollPiece *p);
+static bool32 MagicStep(struct ScrollPiece *p);
+static bool32 MagicFrozen(struct ScrollPiece *p);
+static void MagicRelease(struct ScrollPiece *p);
 
 // ChargeOf(); A Kirby's SparkCharge (SPARK_SLOT: its task's number + 1, checked), made with `create`; NULL: none;
 static struct SparkCharge *ChargeOf(struct Kirby *kirby, bool32 create) {
@@ -250,6 +259,7 @@ static void LookDraw(struct ScrollPiece *p, struct ScrollLook *l) {
         l->e.objBase55 = step->y;
         EffectObjectPostUpdate(&l->e);
     }
+    if (sLooksHeld) return;
     // (one that doesn't loop stays on its last step);
     if (--l->timer == 0) {
         if (l->step + 1 >= a->steps && !a->loops) {
@@ -645,11 +655,19 @@ static void ScrollPieceMain(void) {
     bool32 alive;
     u8 i;
 
+    // (a Magic dove or card held still by the roulette's freeze: drawn as it is, KatAM's ObjectPreUpdate drawing nothing of it);
+    if (MagicFrozen(p)) {
+        sLooksHeld = TRUE;
+        for (i = 0; i < SCROLL_LOOKS; i++) LookDraw(p, &p->look[i]);
+        sLooksHeld = FALSE;
+        return;
+    }
     if (ObjectPreUpdate(&p->base)) return;
     alive = p->kind == SPARK_AURA ? AuraStep(p) : p->kind == SPARK_BALL ? BallStep(p) : p->kind == BEAM_WHIP ? BeamStep(p)
           : p->kind == TORNADO_ELEMENT ? TornadoStep(p) : p->kind == PARASOL_THRUST ? ParasolStep(p) : p->kind == CUTTER_BLADE ? CutterStep(p)
           : p->kind == LASER_CHARGE ? LaserStep(p) : p->kind == LASER_BOLT ? BoltStep(p) : p->kind == UFO_STAR ? StarStep(p) : p->kind == HI_JUMP_ORB ? OrbStep(p) : p->kind == WHEEL_ELEMENT ? WheelStep(p) : p->kind == BOMB_SHELL ? BombStep(p) : p->kind == SWORD_EDGE ? SwordStep(p) : p->kind == HAMMER_GIANT ? HammerStep(p) : p->kind == FIGHTER_CHARGE ? FighterStep(p)
           : p->kind == THROW_FLASH ? ThrowStep(p)
+          : p->kind >= MAGIC_BODY ? MagicStep(p)
           : BurstStep(p);
     if (!alive) return;
     for (i = 0; i < SCROLL_LOOKS; i++) LookDraw(p, &p->look[i]);
@@ -660,7 +678,9 @@ static void ScrollPieceDestroy(struct Task *t) {
     struct ScrollPiece *p = TaskGetStructPtr(t);
     u8 i;
 
-    if (p->kind == TORNADO_ELEMENT || p->kind == WHEEL_ELEMENT || p->kind == HAMMER_GIANT) p->kirby->base.sprite.unk8 &= ~TORNADO_HIDE;
+    if (p->kind == TORNADO_ELEMENT || p->kind == WHEEL_ELEMENT || p->kind == HAMMER_GIANT || p->kind == MAGIC_BODY)
+        p->kirby->base.sprite.unk8 &= ~TORNADO_HIDE;
+    if (p->kind == MAGIC_BODY) MagicRelease(p);
     for (i = 0; i < SCROLL_LOOKS; i++) LookEnd(&p->look[i]);
 }
 
@@ -685,6 +705,8 @@ static struct ScrollPiece *ScrollPieceCreate(struct Kirby *kirby, u8 kind, u8 le
     p->kind = kind;
     p->level = level;
     p->clock = 0;
+    p->accel = 0;
+    p->magic = 0;
     p->base.header.kind = 2;
     p->base.parent = kirby;
     p->base.counter = 0;
@@ -1844,6 +1866,527 @@ struct ThrowAbilityObject *ScrollThrowGrab(struct ObjectHeader *held) {
     LookStart(p, 0, SQUEAK_FX_THROW_FLASH + element * 2, 0, 0);
     LookStart(p, 1, SQUEAK_FX_THROW_FLASH_STARS + element * 2, 0, 0);
     return thrown;
+}
+
+/* Magic. The DS's (kirby/magic_ext; PrmKirbyMagic.kgb's words, from its +0): B (Magic Kirby's vtable +0x88, 0x020C34F0) with Up held
+ * pulls a jack-in-the-box out of his hat (0x020C2C20: the .mca's composite 0, 89 frames, sound 0xCC; the clown's hit, .rca 33's boxes, 20
+ * damage), while dashing throws three cards (0x020C28C8: sound 0xCD, 0x020C2400 at +0x48's 10, 10 up and forward: each spins (28) for
+ * +0x50's 15 frames rising by its own speed (0, 0.5, 1.0 up), holds (29) for +0x64's 10, 5, 0 and flies off (30) at +0x68's 8 a frame,
+ * hitting, .rca 6, 10), and else (in the air too) lets three doves out (0x020C2A78: sound 0xCB, 0x020C2760 at +8's 10, 10: each (25)
+ * flying off by its speed and gain forward, +0x10-0x3C: 2.3 forward and 1.6 up gaining 0.02, 0.5 and 1.8 gaining 0.03, 2.0 across gaining
+ * 0.02; .rca 1, 10); doves and cards gone on a hit (efc_cmn0's 4) or off the screen. The throws last +4's and +0x44's 30 frames (his
+ * throw, 21), the jack-in-the-box its 89; then their end (24, 12 frames). With the scroll (HasScroll 19, 0x020C2CC0), B held through
+ * the move (any frame without it, never) starts the roulette (0x020C33D0) as the move ends: the world held still (0x02012F94), the
+ * background darkened (half, 4 frames: 0x0203C104, {1, 0x2D, -8, 4}), Kirby thinking with the thought's icon going round the five
+ * outcomes from a random one, one each +0xA8's 4 frames (0x020C322C: composites 2-11 by the outcome and his facing, the icons mirrored
+ * when he faces left; sound 0xC8 each 7 frames), B pressed (or +0xAC's 300 frames) stopping it (sound 0xCA, 0xCF for the sun); +0xB0's
+ * 60 frames on, his throw (21), and the outcome (0x020C2F88): 0 cherry, every enemy (objects of the stage flagged 0x10) a cherry
+ * (0x0201E1E4, the item 9 for 360 frames); 1 1UP, the same with 1UPs (the item 1); 2 "?", two random abilities mixed (0x0201FC50, the
+ * ability mixing: its roulette on the HUD's icon); 3 candy, invincibility (600 frames, the music 0x11); 4 sun, five star bursts (31,
+ * one each +0xBC's 15 frames at +0xC0-0xE4's spots on the screen, sound 0xCE; .rca 7's two boxes, 50 damage) and 50 damage to every
+ * enemy. Then the hat on the ground beside him in confetti (composite 1, 71 frames), its end (24), and the world and the screen back:
+ * but for the "?" the ability is used up (efc_cmn0's 26, the ring; Normal). Without the scroll the move ends there.
+ * In KatAM, without the scroll Magic is KatAM's (its own roulette); with it, B (sub_0806898C, detoured) is the DS's upgraded Magic: its
+ * three moves, Up held, dashing (KatAM's flag 0x10) or else, and its roulette with the DS's five outcomes, Kirby drawn as the DS's frames
+ * (MAGIC_BODY, as the Hammer scroll's: his body in his own palette, KatAM's sprite hidden), the doves, cards and star bursts pieces of
+ * their own, the world held still by KatAM's own freeze (sub_08033540: the doves and cards in flight stay, drawn as they are), the
+ * darkening KatAM's blend (BLDY 8 of 16, the local player's, unless the room blends already). The outcomes are KatAM's own of its
+ * Magic, which has these too: the cherry and 1UP its turning every enemy on the screen into food or 1UPs (sub_08083040's hit,
+ * without its shake and flash: KatAM's foods, picked at random, for the DS's cherry; they stay, as KatAM's items), the "?" its random
+ * ability (sub_08068CA4's, his own: KatAM's roulette), the candy its invincibility (sub_0808324C, 600 frames, KatAM's candy music) and
+ * the sun the DS's star bursts and a hit on every enemy on the screen. The DS's damage in KatAM's strengths as the Beam scroll's (one
+ * for each 5): 10 is 2, 20 is 4, 50 is 10. The DS's spots on its 256 by 192 screen fitted to KatAM's 240 by 160; */
+#define MAGIC_THROW_FRAMES 30                   // PrmKirbyMagic.kgb's +4 and +0x44;
+#define MAGIC_JACK_FRAMES 89                    // magic_ext.mca's composite animation 0;
+#define MAGIC_AFTER_FRAMES 12                   // magic_ext's 24;
+#define MAGIC_CAST_FRAMES 20                    // magic_ext's 21;
+#define MAGIC_SHOW_FRAMES 71                    // magic_ext.mca's composite animation 1;
+#define MAGIC_SPIN_STEP 4                       // +0xA8;
+#define MAGIC_SPIN_MOST 300                     // +0xAC;
+#define MAGIC_SPIN_TICK 7
+#define MAGIC_STOPPED_FRAMES 60                 // +0xB0;
+#define MAGIC_STAR_STEP 15                      // +0xBC;
+#define MAGIC_STAR_FRAMES 38                    // magic_ext's 31;
+#define MAGIC_CARD_SPIN 15                      // +0x50, +0x6C, +0x88;
+#define MAGIC_CARD_SPEED SQUEAK_SPEED(32768)    // +0x68;
+#define MAGIC_START 10                          // +8 and +0xC, +0x48 and +0x4C: pixels forward and up from his feet;
+#define MAGIC_MARGIN 32                         // Pixels round the screen a dove or card goes out of to end;
+#define MAGIC_STRENGTH 2                        // The DS's 10 (doves, cards);
+#define MAGIC_JACK_STRENGTH 4                   // 20;
+#define MAGIC_STAR_STRENGTH 10                  // 50;
+#define MAGIC_TURN_STRENGTH 0x1D                // sub_08083040's;
+#define MAGIC_TURN_HIT 0x60008003               // Its hit (0x20008003 | 0x40000000: what it hits turns into food);
+#define MAGIC_TURN_1UP 0x100000                 // (| this: into 1UPs);
+#define MAGIC_SWEEP_FRAMES 5                    // (sub_08083150: its 5 frames);
+#define MAGIC_CANDY_FRAMES 600                  // The DS's +0x180;
+#define MAGIC_DIM 8                             // BLDY of 16: the DS's -8;
+#define MAGIC_KIRBY_ANIM 53                     // KatAM's Magic Kirby's own cast (hidden, the DS's frames drawn);
+#define MAGIC_HELD 1                            // (his flyTimer: B held through the move);
+#define MAGIC_B_DOWN 2                          // (B held last frame, in the roulette: a press is a new one);
+#define MAGIC_FROZE 1                           // (the body's magic: the world held still by it);
+#define MAGIC_DIMMED 2                          // (the screen darkened by it);
+#define MAGIC_DIM_TRIED 4
+#define MAGIC_KEPT 8                            // (his flag 0x2000 set by it: he goes on through his own freeze, as KatAM's own);
+enum { MAGIC_DOVES, MAGIC_CARDS, MAGIC_JACK };
+enum { MAGIC_CHERRY, MAGIC_1UP, MAGIC_RANDOM, MAGIC_CANDY, MAGIC_SUN };
+enum { MAGIC_THROWING, MAGIC_JACKING, MAGIC_ENDING, MAGIC_THINKING, MAGIC_CASTING, MAGIC_SHOWING, MAGIC_BOWING, MAGIC_GONE };
+extern void sub_08033540(u8);
+extern void sub_080335B4(u8);
+extern void sub_0808324C(struct Kirby *, u16);
+extern void sub_0805C11C(struct Kirby *);
+
+static void MagicThrow(struct Kirby *kirby);
+static void MagicJack(struct Kirby *kirby);
+static void MagicAfter(struct Kirby *kirby);
+static void MagicSpin(struct Kirby *kirby);
+static void MagicStopped(struct Kirby *kirby);
+static void MagicCast(struct Kirby *kirby);
+static void MagicShow(struct Kirby *kirby);
+static void MagicBow(struct Kirby *kirby);
+
+// gMagicDoves; The doves' speeds (forward, up) and their gain forward a frame (PrmKirbyMagic +0x10-0x3C, the DS's 20.12);
+static const s16 gMagicDoves[3][3] = { { 9421, 6554, 82 }, { 2048, 7373, 123 }, { 8192, 0, 82 } };
+
+// gMagicCards; The cards' speed up as they spin (+0x74, +0x90) and their hold (+0x64, +0x80, +0x9C);
+static const s16 gMagicCards[3][2] = { { 0, 10 }, { 2048, 5 }, { 4096, 0 } };
+
+// gMagicStars; The star bursts' spots on the screen (+0xC0-0xE4: the DS's 256 by 192, fitted to KatAM's 240 by 160);
+static const u8 gMagicStars[5][2] = { { 64 * 240 / 256, 64 * 160 / 192 }, { 226 * 240 / 256, 128 * 160 / 192 },
+                                      { 64 * 240 / 256, 128 * 160 / 192 }, { 226 * 240 / 256, 64 * 160 / 192 },
+                                      { 128 * 240 / 256, 96 * 160 / 192 } };
+
+// gMagicJack; The jack-in-the-box's boxes (.rca 33: from its frame, left, top, right, bottom, Y up from his feet), its first 68 frames;
+static const s8 gMagicJack[][5] = {
+    { 0, 9, 55, 42, 5 }, { 3, 18, 80, 51, 50 }, { 4, 9, 55, 42, 25 }, { 5, 30, 87, 63, 57 }, { 7, 37, 90, 70, 60 }, { 8, 6, 53, 39, 23 },
+    { 9, 37, 89, 70, 59 }, { 10, 39, 92, 72, 62 }, { 11, 39, 93, 72, 63 }, { 12, 38, 92, 71, 62 }, { 13, 40, 94, 73, 64 },
+    { 14, 12, 63, 45, 33 }, { 15, 40, 93, 73, 63 }, { 16, 41, 87, 74, 57 }, { 17, 0, 32, 33, 2 }, { 18, 41, 87, 74, 57 },
+    { 19, 43, 79, 76, 49 }, { 20, 10, 57, 43, 27 }, { 21, 48, 55, 81, 25 }, { 22, 47, 38, 80, 8 }, { 23, 47, 34, 80, 4 },
+    { 25, 6, 32, 39, 2 }, { 26, 48, 32, 81, 8 }, { 27, 47, 29, 80, 8 }, { 28, 9, 32, 42, 2 }, { 29, 48, 31, 81, 10 },
+    { 30, 43, 63, 76, 33 }, { 31, -3, 35, 30, 5 }, { 32, 45, 86, 78, 56 }, { 33, 47, 85, 80, 55 }, { 34, 45, 102, 78, 72 },
+    { 35, 46, 102, 79, 72 }, { 36, 40, 105, 73, 75 }, { 37, 43, 106, 76, 76 }, { 38, 43, 107, 76, 77 }, { 47, 45, 103, 78, 73 },
+    { 49, 47, 85, 80, 55 }, { 51, 41, 62, 74, 32 }, { 53, 48, 41, 81, 11 }, { 54, 49, 40, 82, 10 }, { 61, 47, 64, 80, 34 },
+    { 63, 41, 78, 74, 48 }, { 65, 30, 81, 63, 51 }, { 68, 0, 0, 0, 0 },
+};
+
+// MagicPhase(); What his state shows (MAGIC_GONE: none of the Magic scroll's);
+static u8 MagicPhase(struct Kirby *kirby) {
+    void (*state)(struct Kirby *) = kirby->stateFn;
+
+    if (kirby->ability != KIRBY_ABILITY_MAGIC) return MAGIC_GONE;
+    return state == MagicThrow ? MAGIC_THROWING : state == MagicJack ? MAGIC_JACKING : state == MagicAfter ? MAGIC_ENDING
+         : state == MagicSpin || state == MagicStopped ? MAGIC_THINKING : state == MagicCast ? MAGIC_CASTING : state == MagicShow ? MAGIC_SHOWING
+         : state == MagicBow ? MAGIC_BOWING : MAGIC_GONE;
+}
+
+// MagicPieceOf(); His Magic body piece (NULL: none);
+static struct ScrollPiece *MagicPieceOf(struct Kirby *kirby) {
+    u8 i;
+    struct ScrollPiece *p;
+
+    for (i = 0; i < MAX_TASK_NUM; i++) {
+        if (gTasks[i].main != ScrollPieceMain) continue;
+        p = TaskGetStructPtr(&gTasks[i]);
+        if (p->kind == MAGIC_BODY && p->kirby == kirby && !(p->base.flags & 0x1000)) return p;
+    }
+    return NULL;
+}
+
+// MagicFrozen(); A dove or card held still by the roulette's freeze (KatAM's: what isn't flagged 0x2000, made before it);
+static bool32 MagicFrozen(struct ScrollPiece *p) {
+    return (p->kind == MAGIC_DOVE || p->kind == MAGIC_CARD) && !(p->base.flags & (0x1000 | 0x2000)) && Macro_0810B1F4(&p->base);
+}
+
+// MagicHold(); The roulette's: the world held still, the screen darkened (the local player's, unless the room blends already);
+static void MagicHold(struct ScrollPiece *p) {
+    struct Kirby *kirby = p->kirby;
+
+    if (!(p->magic & MAGIC_FROZE)) {
+        sub_08033540(kirby->base.unk56);
+        p->magic |= MAGIC_FROZE;
+        if (!(kirby->base.flags & 0x2000)) {
+            kirby->base.flags |= 0x2000;
+            p->magic |= MAGIC_KEPT;
+        }
+    }
+    if (!(p->magic & MAGIC_DIM_TRIED)) {
+        p->magic |= MAGIC_DIM_TRIED;
+        if (gLocalPlayerId == kirby->base.unk56 && gBldRegs.bldCnt == 0) {
+            gBldRegs.bldCnt = BLDCNT_TGT1_BG0 | BLDCNT_TGT1_BG1 | BLDCNT_TGT1_BG2 | BLDCNT_TGT1_BG3 | BLDCNT_TGT1_BD | BLDCNT_EFFECT_DARKEN;
+            gBldRegs.bldY = 0;
+            p->magic |= MAGIC_DIMMED;
+        }
+    }
+    // (half dark in 4 frames);
+    if (p->magic & MAGIC_DIMMED && gBldRegs.bldY < MAGIC_DIM) gBldRegs.bldY += MAGIC_DIM / 4;
+}
+
+// MagicRelease(); The world and the screen back (as the roulette ends, or he's taken out of it);
+static void MagicRelease(struct ScrollPiece *p) {
+    if (p->magic & MAGIC_FROZE) sub_080335B4(p->kirby->base.unk56);
+    if (p->magic & MAGIC_KEPT) p->kirby->base.flags &= ~0x2000;
+    if (p->magic & MAGIC_DIMMED) {
+        gBldRegs.bldCnt = 0;
+        gBldRegs.bldY = 0;
+    }
+    p->magic = 0;
+}
+
+// MagicLooks(); His looks for the phase (MAGIC_THINKING: with the outcome's icon, `icon`), front to back as the DS's parts and pieces;
+static void MagicLooks(struct ScrollPiece *p, u8 phase, u8 icon) {
+    u8 i;
+
+    for (i = 0; i < SCROLL_LOOKS; i++) LookEnd(&p->look[i]);
+    switch (phase) {
+    case MAGIC_THROWING: case MAGIC_CASTING:
+        LookStartAt(p, 0, SQUEAK_FX_MAGIC_THROW_BODY, 0, 0, 0xB);
+        LookStartAt(p, 1, SQUEAK_FX_MAGIC_THROW, 0, 0, 0xA);
+        break;
+    case MAGIC_ENDING: case MAGIC_BOWING:
+        LookStartAt(p, 0, SQUEAK_FX_MAGIC_AFTER_BODY, 0, 0, 0xB);
+        LookStartAt(p, 1, SQUEAK_FX_MAGIC_AFTER, 0, 0, 0xA);
+        break;
+    case MAGIC_JACKING: case MAGIC_SHOWING:
+        LookStartAt(p, 0, SQUEAK_FX_MAGIC_HAT_BODY, 0, 0, 0xD);
+        LookStartAt(p, 1, SQUEAK_FX_MAGIC_HAT, 0, 0, 0xC);
+        LookStartAt(p, 2, SQUEAK_FX_MAGIC_HAT_GLINT, 28, -17, 0x7);
+        LookStartAt(p, 3, SQUEAK_FX_MAGIC_CONFETTI_GLOW, 0, 0, 0x8);
+        LookStartAt(p, 4, SQUEAK_FX_MAGIC_CONFETTI, 0, 0, 0x9);
+        if (phase == MAGIC_JACKING) {
+            LookStartAt(p, 5, SQUEAK_FX_MAGIC_CLOWN, 0, 0, 0xA);
+            LookStartAt(p, 6, SQUEAK_FX_MAGIC_SPRING, 0, 0, 0xB);
+        }
+        break;
+    case MAGIC_THINKING:
+        LookStartAt(p, 0, SQUEAK_FX_MAGIC_THINK_BODY, 0, 0, 0xB);
+        LookStartAt(p, 1, SQUEAK_FX_MAGIC_THINK, 0, 0, 0xA);
+        LookStartAt(p, 2, SQUEAK_FX_MAGIC_ICON_GLOW + icon, 28, -35, 0x8);
+        LookStartAt(p, 3, SQUEAK_FX_MAGIC_ICON + icon, 28, -35, 0x9);
+        break;
+    }
+}
+
+// MagicBox(); The jack-in-the-box's clown's hit this frame of the move;
+static void MagicBox(struct ScrollPiece *p, s16 n) {
+    u8 i;
+
+    for (i = 0; gMagicJack[i + 1][0] <= n && i + 1 < ARRAY_COUNT(gMagicJack) - 1; i++) ;
+    if (n >= gMagicJack[ARRAY_COUNT(gMagicJack) - 1][0]) Box(p, 0, 0, 0, 0, 0);
+    else Box(p, gMagicJack[i][1], gMagicJack[i][2], gMagicJack[i][3], gMagicJack[i][4], MAGIC_JACK_STRENGTH);
+}
+
+// MagicBodyStep(); His looks by his state (his body's in his own palette, his sprite hidden), the clown's hit, the roulette's hold;
+static bool32 MagicBodyStep(struct ScrollPiece *p) {
+    struct Kirby *kirby = p->kirby;
+    u8 phase = MagicPhase(kirby), icon = 0, i;
+
+    if (phase == MAGIC_GONE) {
+        MagicRelease(p);
+        p->base.flags |= 0x1000;
+        kirby->base.sprite.unk8 &= ~TORNADO_HIDE;
+        return FALSE;
+    }
+    Follow(p);
+    p->base.roomId = kirby->base.roomId;
+    if (phase >= MAGIC_THINKING) MagicHold(p);
+    // (the icons facing left drawn mirrored, the DS's own for them; the sun's the same either way);
+    if (phase == MAGIC_THINKING) icon = kirby->base.flags & 1 && kirby->unkD9 != MAGIC_SUN ? 5 + kirby->unkD9 : kirby->unkD9;
+    if (p->level != phase || (phase == MAGIC_THINKING && p->accel != icon)) {
+        // (the thinking pose goes on as the icon changes);
+        if (p->level == phase) {
+            LookStartAt(p, 2, SQUEAK_FX_MAGIC_ICON_GLOW + icon, 28, -35, 0x8);
+            LookStartAt(p, 3, SQUEAK_FX_MAGIC_ICON + icon, 28, -35, 0x9);
+        } else {
+            MagicLooks(p, phase, icon);
+        }
+        p->level = phase;
+        p->accel = icon;
+    }
+    for (i = 0; i < SCROLL_LOOKS; i++) {
+        u8 e = p->look[i].effect;
+
+        if (e == SQUEAK_FX_MAGIC_THROW_BODY || e == SQUEAK_FX_MAGIC_AFTER_BODY || e == SQUEAK_FX_MAGIC_HAT_BODY || e == SQUEAK_FX_MAGIC_THINK_BODY)
+            p->look[i].palId = kirby->base.sprite.palId;
+    }
+    if (p->look[0].effect != SCROLL_NO_LOOK) kirby->base.sprite.unk8 |= TORNADO_HIDE;
+    if (phase == MAGIC_JACKING) MagicBox(p, kirby->base.counter);
+    else Box(p, 0, 0, 0, 0, 0);
+    return TRUE;
+}
+
+// MagicGone(); A dove or card off the screen, or hit (its burst), is gone;
+static bool32 MagicGone(struct ScrollPiece *p) {
+    const struct LevelInfo *level = &gCurLevelInfo[p->base.unk56];
+    s32 x = (p->base.x - level->viewportPosition.x) >> 8, y = (p->base.y - level->viewportPosition.y) >> 8;
+
+    if (p->base.flags & 0x40000) {
+        SqueakEffectInRoom(p->base.roomId, SQUEAK_FX_MAGIC_HIT, p->base.x, p->base.y);
+    } else if (x >= -MAGIC_MARGIN && x <= DISPLAY_WIDTH + MAGIC_MARGIN && y >= -MAGIC_MARGIN && y <= DISPLAY_HEIGHT + MAGIC_MARGIN) {
+        return FALSE;
+    }
+    p->base.flags |= 0x1000;
+    return TRUE;
+}
+
+// MagicStep(); The Magic scroll's pieces: his body, a dove, a card, a star burst, a sweep (every enemy on the screen hit 5 frames);
+static bool32 MagicStep(struct ScrollPiece *p) {
+    const struct LevelInfo *level = &gCurLevelInfo[p->base.unk56];
+    s32 dir = p->base.flags & 1 ? -1 : 1;
+    u16 t;
+
+    switch (p->kind) {
+    case MAGIC_BODY:
+        return MagicBodyStep(p);
+    case MAGIC_DOVE:
+        if (MagicGone(p)) return FALSE;
+        p->base.xspeed += p->accel;
+        p->base.x += dir * p->base.xspeed;
+        p->base.y -= p->base.yspeed;
+        Box(p, -12, 17, 13, -6, MAGIC_STRENGTH);
+        return TRUE;
+    case MAGIC_CARD:
+        if (MagicGone(p)) return FALSE;
+        t = p->clock;
+        if (t < MAGIC_CARD_SPIN) {
+            p->base.y -= p->base.yspeed;
+            Box(p, 0, 0, 0, 0, 0);
+            return TRUE;
+        }
+        if (t < MAGIC_CARD_SPIN + gMagicCards[p->level][1]) {
+            if (t == MAGIC_CARD_SPIN) LookStart(p, 0, SQUEAK_FX_MAGIC_CARD_HOLD, 0, 0);
+            Box(p, 0, 0, 0, 0, 0);
+            return TRUE;
+        }
+        if (p->look[0].effect != SQUEAK_FX_MAGIC_CARD_FLY) LookStart(p, 0, SQUEAK_FX_MAGIC_CARD_FLY, 0, 0);
+        p->base.x += dir * MAGIC_CARD_SPEED;
+        Box(p, -11, 3, 9, -8, MAGIC_STRENGTH);
+        return TRUE;
+    case MAGIC_STAR:
+        // (its spot fixed in the room; shown after its wait, its sound with it);
+        if (p->clock < p->level * MAGIC_STAR_STEP) return TRUE;
+        t = p->clock - p->level * MAGIC_STAR_STEP;
+        if (t == 0) {
+            LookStart(p, 0, SQUEAK_FX_MAGIC_STAR, 0, 0);
+            PlaySfx(&p->base, SQUEAK_SE(0xCE));
+        }
+        if (t >= MAGIC_STAR_FRAMES) {
+            p->base.flags |= 0x1000;
+            return FALSE;
+        }
+        if (t == 6) Box(p, -62, 62, 55, -57, MAGIC_STAR_STRENGTH);
+        else if (t == 15) Box(p, -123, 123, 122, -119, MAGIC_STAR_STRENGTH);
+        else Box(p, 0, 0, 0, 0, 0);
+        return TRUE;
+    default:        // MAGIC_SWEEP;
+        if (p->clock >= MAGIC_SWEEP_FRAMES) {
+            p->base.flags |= 0x1000;
+            return FALSE;
+        }
+        p->base.x = level->viewportPosition.x + (DISPLAY_WIDTH / 2 << 8);
+        p->base.y = level->viewportPosition.y + (DISPLAY_HEIGHT / 2 << 8);
+        Box(p, -DISPLAY_WIDTH / 2, DISPLAY_HEIGHT / 2, DISPLAY_WIDTH / 2, -DISPLAY_HEIGHT / 2, p->level);
+        return TRUE;
+    }
+}
+
+// MagicThrown(); A dove or a card (`i`, 0-2) from 10 forward and 10 up from his feet, facing as he does;
+static void MagicThrown(struct Kirby *kirby, u8 kind, u8 i) {
+    struct ScrollPiece *p = ScrollPieceCreate(kirby, kind, i, BEAM_KNOCK, CUTTER_HIT);
+
+    if (p == NULL) return;
+    p->base.x += (p->base.flags & 1 ? -MAGIC_START : MAGIC_START) << 8;
+    p->base.y -= MAGIC_START << 8;
+    if (kind == MAGIC_DOVE) {
+        p->base.xspeed = SQUEAK_SPEED(gMagicDoves[i][0]);
+        p->base.yspeed = SQUEAK_SPEED(gMagicDoves[i][1]);
+        p->accel = SQUEAK_SPEED(gMagicDoves[i][2]);
+        LookStart(p, 0, SQUEAK_FX_MAGIC_DOVE, 0, 0);
+    } else {
+        p->base.xspeed = 0;
+        p->base.yspeed = SQUEAK_SPEED(gMagicCards[i][0]);
+        LookStart(p, 0, SQUEAK_FX_MAGIC_CARD_SPIN, 0, 0);
+    }
+}
+
+// MagicSweep(); A hit on every enemy on the screen (sub_08083040's, without its shake and flash), its kind and strength;
+static void MagicSweep(struct Kirby *kirby, u32 hit, u8 strength) {
+    struct ScrollPiece *p = ScrollPieceCreate(kirby, MAGIC_SWEEP, strength, 0, hit);
+
+    if (p == NULL) return;
+    p->base.flags |= 0x2000000;
+    MagicStep(p);
+}
+
+/* ScrollMagicAttack(); sub_0806898C (detoured), Magic Kirby's B: with the scroll, out of water, the DS's move (Up held, the
+ * jack-in-the-box; dashing, the cards; else the doves); else KatAM's; */
+void (*gScrollMagicOriginal)(struct Kirby *) = NULL;
+
+void ScrollMagicAttack(struct Kirby *kirby) {
+    u8 move, i;
+    struct ScrollPiece *p;
+
+    if (kirby->ability != KIRBY_ABILITY_MAGIC || !SqueakScrollOwned(SCROLL_MAGIC) || kirby->base.unk58 & 2) {
+        gScrollMagicOriginal(kirby);
+        return;
+    }
+    move = kirby->movementState & 0x40 ? MAGIC_JACK : kirby->base.flags & 0x10 ? MAGIC_CARDS : MAGIC_DOVES;
+    kirby->animationIndex = MAGIC_KIRBY_ANIM;
+    kirby->stateFn = move == MAGIC_JACK ? MagicJack : MagicThrow;
+    kirby->base.counter = 0;
+    kirby->idleTimer = 0;
+    kirby->flyTimer = MAGIC_HELD;
+    kirby->unkD9 = move;
+    kirby->base.flags &= ~2;
+    kirby->base.flags &= ~0x40;
+    HammerFacing(kirby);
+    PlaySfx(&kirby->base, SQUEAK_SE(move == MAGIC_JACK ? 0xCC : move == MAGIC_CARDS ? 0xCD : 0xCB));
+    if (move != MAGIC_JACK) {
+        for (i = 0; i < 3; i++) MagicThrown(kirby, move == MAGIC_CARDS ? MAGIC_CARD : MAGIC_DOVE, i);
+    }
+    if ((p = MagicPieceOf(kirby)) == NULL && (p = ScrollPieceCreate(kirby, MAGIC_BODY, MAGIC_GONE, BEAM_KNOCK, BEAM_HIT)) == NULL) return;
+    // (his body never held still by the roulette's freeze, which it makes);
+    p->base.flags |= 0x2000;
+}
+
+// MagicHolding(); The move's frames: his fall and slowing down, B let go (no roulette), into the water;
+static bool32 MagicHolding(struct Kirby *kirby) {
+    if (NidlAbilityInWater(kirby)) return FALSE;
+    NidlAbilityGravity(kirby);
+    if (!(kirby->movementState & B_HELD)) kirby->flyTimer &= ~MAGIC_HELD;
+    return TRUE;
+}
+
+// MagicThrow(); The doves' or cards' throw (0x020C2998, 0x020C27E8): 30 frames;
+static void MagicThrow(struct Kirby *kirby) {
+    if (!MagicHolding(kirby)) return;
+    if (++kirby->base.counter < MAGIC_THROW_FRAMES) return;
+    kirby->stateFn = MagicAfter;
+    kirby->base.counter = 0;
+}
+
+// MagicJack(); The jack-in-the-box (0x020C2B48): its 89 frames;
+static void MagicJack(struct Kirby *kirby) {
+    if (!MagicHolding(kirby)) return;
+    if (++kirby->base.counter < MAGIC_JACK_FRAMES) return;
+    kirby->stateFn = MagicAfter;
+    kirby->base.counter = 0;
+}
+
+// MagicStill(); The roulette's frames: he stays where he is (the DS's states don't move him);
+static void MagicStill(struct Kirby *kirby) {
+    kirby->base.xspeed = 0;
+    kirby->base.yspeed = 0;
+}
+
+// MagicAfter(); The move's end (0x020C2CC0, 12 frames): with B held through it, the roulette (0x020C33D0) from a random outcome;
+static void MagicAfter(struct Kirby *kirby) {
+    if (NidlAbilityInWater(kirby)) return;
+    NidlAbilityGravity(kirby);
+    if (++kirby->base.counter < MAGIC_AFTER_FRAMES) return;
+    if (!(kirby->flyTimer & MAGIC_HELD)) {
+        NidlAbilityEnd(kirby);
+        return;
+    }
+    kirby->unkD9 = Rand16() % 5;
+    kirby->flyTimer = kirby->movementState & B_HELD ? MAGIC_B_DOWN : 0;
+    MagicStill(kirby);
+    kirby->stateFn = MagicSpin;
+    kirby->base.counter = 0;
+}
+
+// MagicSpin(); The roulette (0x020C322C): the next outcome each 4 frames, till B pressed or 300 frames;
+static void MagicSpin(struct Kirby *kirby) {
+    s16 n = kirby->base.counter;
+    bool32 down = kirby->movementState & B_HELD, pressed = down && !(kirby->flyTimer & MAGIC_B_DOWN);
+
+    kirby->flyTimer = down ? MAGIC_B_DOWN : 0;
+    MagicStill(kirby);
+    if (n % MAGIC_SPIN_STEP == 0) kirby->unkD9 = (kirby->unkD9 + 1) % 5;
+    if (!pressed && n < MAGIC_SPIN_MOST) {
+        if (n % MAGIC_SPIN_TICK == 0) PlaySfx(&kirby->base, SQUEAK_SE(0xC8));
+        kirby->base.counter = n + 1;
+        return;
+    }
+    PlaySfx(&kirby->base, SQUEAK_SE(kirby->unkD9 == MAGIC_SUN ? 0xCF : 0xCA));
+    kirby->stateFn = MagicStopped;
+    kirby->base.counter = 0;
+}
+
+// MagicStopped(); The outcome shown 60 frames (0x020C3180), then his throw;
+static void MagicStopped(struct Kirby *kirby) {
+    MagicStill(kirby);
+    if (++kirby->base.counter < MAGIC_STOPPED_FRAMES) return;
+    kirby->stateFn = MagicCast;
+    kirby->base.counter = 0;
+}
+
+// MagicOutcome(); The outcome (0x020C2F88), as his throw ends (the "?"'s ability comes at the end, MagicFinish());
+static void MagicOutcome(struct Kirby *kirby) {
+    const struct LevelInfo *level = &gCurLevelInfo[kirby->base.unk56];
+    struct ScrollPiece *p;
+    u8 i;
+
+    switch (kirby->unkD9) {
+    case MAGIC_CHERRY:
+    case MAGIC_1UP:
+        PlaySfx(&kirby->base, SQUEAK_SE(0xCE));
+        MagicSweep(kirby, MAGIC_TURN_HIT | (kirby->unkD9 == MAGIC_1UP ? MAGIC_TURN_1UP : 0), MAGIC_TURN_STRENGTH);
+        break;
+    case MAGIC_CANDY:
+        sub_0808324C(kirby, MAGIC_CANDY_FRAMES);
+        break;
+    case MAGIC_SUN:
+        PlaySfx(&kirby->base, SQUEAK_SE(0xCE));
+        for (i = 0; i < 5; i++) {
+            if ((p = ScrollPieceCreate(kirby, MAGIC_STAR, i, BEAM_KNOCK, BEAM_HIT)) == NULL) break;
+            p->base.x = level->viewportPosition.x + (gMagicStars[i][0] << 8);
+            p->base.y = level->viewportPosition.y + (gMagicStars[i][1] << 8);
+        }
+        MagicSweep(kirby, BEAM_HIT, MAGIC_STAR_STRENGTH);
+        break;
+    }
+}
+
+// MagicCast(); His throw (21: 20 frames), then the outcome;
+static void MagicCast(struct Kirby *kirby) {
+    MagicStill(kirby);
+    if (++kirby->base.counter < MAGIC_CAST_FRAMES) return;
+    MagicOutcome(kirby);
+    kirby->stateFn = MagicShow;
+    kirby->base.counter = 0;
+}
+
+// MagicShow(); The hat on the ground in confetti (0x020C2EE4: composite 1, 71 frames);
+static void MagicShow(struct Kirby *kirby) {
+    MagicStill(kirby);
+    if (++kirby->base.counter < MAGIC_SHOW_FRAMES) return;
+    kirby->stateFn = MagicBow;
+    kirby->base.counter = 0;
+}
+
+/* MagicFinish(); The end (0x020C2DAC): the world and the screen back; the "?"'s random ability (KatAM's sub_08068CA4, his own), else
+ * the ability used up (the ring, efc_cmn0's 26, at him; Normal); */
+static void MagicFinish(struct Kirby *kirby) {
+    struct ScrollPiece *p = MagicPieceOf(kirby);
+
+    if (p != NULL) MagicRelease(p);
+    if (kirby->unkD9 == MAGIC_RANDOM) {
+        kirby->base.flags &= ~(0x800 | 0x100 | 0x200);
+        kirby->base.unkC |= 0x20;
+        NidlAbilityUsedUp(kirby);
+        kirby->transitioningAbility = (Rand16() & 0x1F) | NIDL_ABILITY_CHANGE_RANDOM;
+        sub_0805C11C(kirby);
+        return;
+    }
+    SqueakEffectInRoom(kirby->base.roomId, SQUEAK_FX_MAGIC_USED_UP, kirby->base.x, kirby->base.y);
+    NidlAbilityUsedUp(kirby);
+    NidlAbilityEnd(kirby);
+}
+
+// MagicBow(); The end of it (24, 12 frames);
+static void MagicBow(struct Kirby *kirby) {
+    MagicStill(kirby);
+    if (++kirby->base.counter < MAGIC_AFTER_FRAMES) return;
+    MagicFinish(kirby);
 }
 
 /* Sleep. The DS's (0x020BF294, each frame of his sleep): with the scroll (HasScroll 14) he gets better while he sleeps,
