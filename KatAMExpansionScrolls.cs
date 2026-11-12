@@ -13,6 +13,7 @@ namespace KatAMRandomizer {
          * • Beam's whip (its hit box sub_0807CFE4 and its chain sub_0807D2D0, sub_0807D4B0, detoured): ScrollBeamStart, the DS's
          *   upgraded whip, ScrollBeamChain and ScrollBeamChain2, none (KatAM's whip without the scroll);
          * • Tornado's attack as it starts (sub_0807A10C, detoured): ScrollTornadoStart, the piece giving it an element;
+         * • Parasol's twirl's attack as it starts (sub_08084188, detoured): ScrollParasolTwirl, the piece of the DS's stars and boxes;
          * the detoured functions' trampolines (running them as they were) in gScroll*Original. Returns an error, or null; */
         static string AddScrollUpgrades(byte[] rom, KatAMExpansionCode.Version version, ref int cursor) {
             int codeBase = CodeAddress + 0x08000000;
@@ -33,6 +34,9 @@ namespace KatAMRandomizer {
             int tornado = Detour(rom, version.RomSymbols["sub_0807A10C"], codeBase + version.CodeSymbols["ScrollTornadoStart"], ref cursor);
             if (tornado < 0) return $"The {version.Name} ROM's tornado code doesn't match.";
             WriteInt(rom, CodeAddress + version.CodeSymbols["gScrollTornadoOriginal"], tornado + 0x08000000 + 1);
+            int twirl = Detour(rom, version.RomSymbols["sub_08084188"], codeBase + version.CodeSymbols["ScrollParasolTwirl"], ref cursor);
+            if (twirl < 0) return $"The {version.Name} ROM's parasol code doesn't match.";
+            WriteInt(rom, CodeAddress + version.CodeSymbols["gScrollParasolOriginal"], twirl + 0x08000000 + 1);
             return null;
         }
     }

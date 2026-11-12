@@ -746,7 +746,11 @@ namespace KatAMRandomizer {
         /* (Skip: cells its animation shows that aren't drawn, their steps shown as nothing (their cell 0xFFFF, squeak.h's
          * SQUEAK_FX_HIDDEN): Kirby's own in the Ability Scrolls' Spark bursts, the DS's flickering him in them, KatAM's Kirby drawn
          * as he is. Once: played once, though the DS's animation loops, as the DS's effect plays it: Spark Kirby's glint); */
-        internal sealed record SqueakEffect(int Index, string File, int Anim, int[] Skip = null, bool Once = false);
+        /* An effect: a file's animation (`Skip`: cells drawn as nothing; `Once`: played once, staying on its last step), or, with
+         * `Composite`, that composite animation's parts (`Parts`: the composition's indices, all when null) as one animation
+         * (SqueakFlatten); */
+        internal sealed record SqueakEffect(int Index, string File, int Anim, int[] Skip = null, bool Once = false, int Composite = -1,
+                                            int[] Parts = null);
         internal sealed record SqueakEffectBuilt(SqueakEffect Effect, int AnimId, List<int> Cells, SqueakAnim Anim, int Tiles, SqueakPaletteKey Palette);
 
         static readonly List<SqueakEffect> SqueakEffectDefinitions = new List<SqueakEffect> {
@@ -806,7 +810,80 @@ namespace KatAMRandomizer {
             new SqueakEffect(35, "kirby/tornado_ext", 36),
             new SqueakEffect(36, "kirby/tornado_ext", 27),
             new SqueakEffect(37, "kirby/tornado_ext", 35),
+            /* The Parasol scroll's stars ("ROM Expansion/scrolls.c": parasol_ext.mca's composite 2, its parts 0-14 as one animation;
+             * part 15, Kirby thrusting his parasol, left out: KatAM's own twirl is drawn); */
+            new SqueakEffect(38, "kirby/parasol_ext", -1, Composite: 2, Parts: Enumerable.Range(0, 15).ToArray()),
         };
+
+        /* SqueakFlatten(); A composite animation's parts (`parts`: the composition's indices; all when null) drawn together as one
+         * animation of the character: a cell of their pieces, moved by their offsets, for each run of frames in which none of them
+         * changes (the pieces' tiles copied after the character's, from a 4-tile step: a piece counts its tiles in those); */
+        static (SqueakCharacter, SqueakAnim) SqueakFlatten(SqueakCharacter character, int composite, int[] parts) {
+            SqueakComposite c = character.Composites[composite];
+            List<byte> tiles = character.Tiles.ToList();
+            List<SqueakCell> cells = character.Cells.ToList();
+            Dictionary<string, int> made = new Dictionary<string, int>();
+            List<SqueakStep> steps = new List<SqueakStep>();
+            string last = null;
+            int start = 0;
+
+            // (an animation's step at a time: looping, or on its last step past its end);
+            SqueakStep StepAt(SqueakAnim anim, int time) {
+                int length = anim.Steps.Sum(st => st.Frames);
+                if (length == 0) return null;
+                time = anim.Loops ? time % length : Math.Min(time, length - 1);
+                foreach (SqueakStep st in anim.Steps) {
+                    if (time < st.Frames) return st;
+                    time -= st.Frames;
+                }
+                return anim.Steps[^1];
+            }
+            foreach ((int composition, int frames) in c.Steps) {
+                List<SqueakPart> partList = character.Compositions[composition];
+                for (int f = 0; f < frames; f++) {
+                    List<(int cell, int x, int y)> drawn = new List<(int, int, int)>();
+                    for (int i = 0; i < partList.Count; i++) {
+                        if (parts != null && !parts.Contains(i)) continue;
+                        SqueakPart part = partList[i];
+                        SqueakStep step = StepAt(character.Anims[part.Anim], part.Absolute ? start + f : f);
+                        if (step != null && character.Cells[step.Cell].Pieces.Count > 0) drawn.Add((step.Cell, part.X + step.X, part.Y + step.Y));
+                    }
+                    string key = string.Join(";", drawn);
+                    if (key == last) {
+                        steps[^1] = steps[^1] with { Frames = steps[^1].Frames + 1 };
+                        continue;
+                    }
+                    last = key;
+                    if (!made.TryGetValue(key, out int cell)) {
+                        List<SqueakPiece> pieces = new List<SqueakPiece>();
+                        foreach ((int from, int dx, int dy) in drawn) {
+                            SqueakCell source = character.Cells[from];
+                            foreach (SqueakPiece piece in source.Pieces) {
+                                (int w, int h) = SqueakPieceSizes[piece.Attr0 >> 14, piece.Attr1 >> 14];
+                                int first = source.Tile + (piece.Attr2 & 0x3FF) * 4, x = piece.Attr1 & 0x1FF, y = piece.Attr0 & 0xFF;
+                                while (tiles.Count / 32 % 4 != 0) tiles.AddRange(new byte[32]);
+                                int at = tiles.Count / 32;
+                                for (int t = first; t < first + w * h / 64; t++)
+                                    tiles.AddRange((t + 1) * 32 <= character.Tiles.Length ? character.Tiles[(t * 32)..((t + 1) * 32)] : new byte[32]);
+                                if (x >= 256) x -= 512;
+                                if (y >= 128) y -= 256;
+                                pieces.Add(new SqueakPiece((piece.Attr0 & ~0xFF) | ((y + dy) & 0xFF), (piece.Attr1 & ~0x1FF) | ((x + dx) & 0x1FF),
+                                                           (piece.Attr2 & ~0x3FF) | at / 4));
+                            }
+                        }
+                        cell = cells.Count;
+                        cells.Add(new SqueakCell(0, pieces));
+                        made[key] = cell;
+                    }
+                    steps.Add(new SqueakStep(cell, 1, 0, 0));
+                }
+                start += frames;
+            }
+            SqueakCharacter flat = new SqueakCharacter {
+                Tiles = tiles.ToArray(), Palettes = character.Palettes, Cells = cells, Anims = character.Anims, Angles = character.Angles,
+            };
+            return (flat, new SqueakAnim(c.Loops, steps));
+        }
 
         /* SqueakEffectsBuild(); Each effect's cells (those its animation shows, in its order) as KatAM frames and their palette, the anim
          * added by `addAnim` (palettes, frames: its anim ID), its palette's slot by `share` (its palette, anim ID, frame); */
@@ -825,7 +902,9 @@ namespace KatAMRandomizer {
                 }
                 string[] path = effect.File.Split('/');
                 SqueakCharacter character = ReadSqueakCharacter(squeak, path[1], path[0]);
-                SqueakAnim anim = character.Anims[effect.Anim];
+                SqueakAnim anim;
+                if (effect.Composite >= 0) (character, anim) = SqueakFlatten(character, effect.Composite, effect.Parts);
+                else anim = character.Anims[effect.Anim];
                 if (effect.Once) anim = anim with { Loops = false };
                 List<int> cells = anim.Steps.Select(s => s.Cell).Where(c => effect.Skip == null || !effect.Skip.Contains(c)).Distinct().ToList();
                 (List<(byte[] tiles, ushort[] oams, short[] attributes, int palette)> frames, List<byte[]> palettes) = SqueakFrames(character, cells: cells);
