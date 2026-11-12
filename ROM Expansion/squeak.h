@@ -347,6 +347,8 @@ enum {
     SQUEAK_FX_TORNADO_FIRE_BODY,
     SQUEAK_FX_TORNADO_SPARK_BODY,
     SQUEAK_FX_PARASOL_STARS,    // The Parasol scroll's stars (scrolls.c): kirby/parasol_ext's composite 2, its parts 0-14;
+    SQUEAK_FX_CUTTER_SPARKLES,  // The Cutter scroll's cutter (scrolls.c): kirby/cutter_ext's 27 (its sparkles) and 25 (its blade);
+    SQUEAK_FX_CUTTER_BLADE,
     SQUEAK_FX_COUNT,
 };
 

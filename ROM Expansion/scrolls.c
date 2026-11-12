@@ -32,6 +32,7 @@ enum {
     SCROLL_BEAM,
     SCROLL_TORNADO,
     SCROLL_PARASOL,
+    SCROLL_CUTTER = 8,
     SCROLL_SLEEP = 14,
 };
 
@@ -104,7 +105,7 @@ struct SparkCharge {
     u8 glint;                   // +0x3AC;
 };
 
-enum { SPARK_AURA, SPARK_BURST, SPARK_BALL, BEAM_WHIP, TORNADO_ELEMENT, PARASOL_THRUST };
+enum { SPARK_AURA, SPARK_BURST, SPARK_BALL, BEAM_WHIP, TORNADO_ELEMENT, PARASOL_THRUST, CUTTER_BLADE };
 
 // ScrollLook; One of a piece's looks: an effect's animation (squeak.h's SQUEAK_FX_*), `dx` pixels forward and `dy` under the piece
 // (the DS's composite's part: its offset);
@@ -596,7 +597,8 @@ static void ScrollPieceMain(void) {
 
     if (ObjectPreUpdate(&p->base)) return;
     alive = p->kind == SPARK_AURA ? AuraStep(p) : p->kind == SPARK_BALL ? BallStep(p) : p->kind == BEAM_WHIP ? BeamStep(p)
-          : p->kind == TORNADO_ELEMENT ? TornadoStep(p) : p->kind == PARASOL_THRUST ? ParasolStep(p) : BurstStep(p);
+          : p->kind == TORNADO_ELEMENT ? TornadoStep(p) : p->kind == PARASOL_THRUST ? ParasolStep(p) : p->kind == CUTTER_BLADE ? CutterStep(p)
+          : BurstStep(p);
     if (!alive) return;
     for (i = 0; i < SCROLL_LOOKS; i++) LookDraw(p, &p->look[i]);
     p->clock++;
@@ -691,6 +693,69 @@ static void SparkCharging(struct Kirby *kirby) {
     if (!blocked && ++c->glint > SPARK_GLINT_WAIT) {
         c->glint = 0;
         Glint(kirby);
+    }
+}
+
+/* Cutter. The DS's cutter (0x020BA1C8, as Kirby throws it): with the scroll (HasScroll 8) it is cutter_ext.mca's composite 0
+ * (0x020B9F18: a big blue blade spinning, 25, sparkles about it, 27) for its 23 (a small yellow one), its box 39 x 27 (.rca: -20 to 19
+ * across, -13 to 14 up) for 27 x 20 (-14 to 13, -9 to 11), the same damage (20) and flight.
+ * In KatAM, with the scroll: KatAM's cutter (thrown by sub_08078EFC, detoured: its task sub_08070580, strength 4, its box 24 x 15, -12
+ * to 12 across, -7 to 8) flies as it does, drawn as the DS's (KatAM's own not drawn: its flag 0x400), its box the DS's, as its look:
+ * -20 to 19 across, -14 to 13 (KatAM's Y down), its strength KatAM's (the DS's damage the plain cutter's); */
+extern void sub_08070580(void);
+void (*gScrollCutterOriginal)(struct Kirby *) = NULL;
+#define CUTTER_HIT 0x20002003               // KatAM's cutter's hit (sub_08078EFC's unk68);
+#define CUTTER_MOST 4                       // (cutters of his in flight at once, looked for);
+
+// CutterStep(); The DS's cutter drawn where KatAM's flies (its look and box KatAM's otherwise); gone with it;
+static bool32 CutterStep(struct ScrollPiece *p) {
+    struct ObjectBase *cutter = p->other && p->other->main == sub_08070580 ? TaskGetStructPtr(p->other) : NULL;
+
+    if (cutter == NULL || cutter->parent != p->kirby || cutter->flags & 0x1000 || cutter->unk68 != CUTTER_HIT) {
+        p->base.flags |= 0x1000;
+        return FALSE;
+    }
+    p->base.x = cutter->x;
+    p->base.y = cutter->y;
+    p->base.roomId = cutter->roomId;
+    p->base.flags = (p->base.flags & ~1) | (cutter->flags & 1);
+    cutter->flags |= 0x400;
+    Box(p, 0, 0, 0, 0, 0);
+    return TRUE;
+}
+
+// IsKirbyCutter(); A task of a Kirby's thrown cutter;
+static bool32 IsKirbyCutter(struct Task *t, struct Kirby *kirby) {
+    struct ObjectBase *o;
+
+    if (t->main != sub_08070580) return FALSE;
+    o = TaskGetStructPtr(t);
+    return o->parent == kirby && o->unk68 == CUTTER_HIT && !(o->flags & 0x1000);
+}
+
+// ScrollCutterThrow(); sub_08078EFC (detoured): KatAM's cutter thrown; with the scroll, the new one drawn as the DS's, its box grown;
+void ScrollCutterThrow(struct Kirby *kirby) {
+    struct Task *before[CUTTER_MOST];
+    struct ScrollPiece *p;
+    u8 i, j, n = 0;
+
+    for (i = 0; i < MAX_TASK_NUM && n < CUTTER_MOST; i++)
+        if (IsKirbyCutter(&gTasks[i], kirby)) before[n++] = &gTasks[i];
+    gScrollCutterOriginal(kirby);
+    if (kirby->ability != KIRBY_ABILITY_CUTTER || !SqueakScrollOwned(SCROLL_CUTTER)) return;
+    for (i = 0; i < MAX_TASK_NUM; i++) {
+        struct Task *t = &gTasks[i];
+
+        if (!IsKirbyCutter(t, kirby)) continue;
+        for (j = 0; j < n && before[j] != t; j++) ;
+        if (j < n) continue;
+        sub_0803E2B0(TaskGetStructPtr(t), -20, -14, 19, 13);
+        if ((p = ScrollPieceCreate(kirby, CUTTER_BLADE, 0, 0, 0)) == NULL) return;
+        p->other = t;
+        LookStart(p, 0, SQUEAK_FX_CUTTER_SPARKLES, 0, 0);
+        LookStart(p, 1, SQUEAK_FX_CUTTER_BLADE, 0, 0);
+        CutterStep(p);
+        return;
     }
 }
 
