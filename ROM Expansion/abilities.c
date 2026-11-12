@@ -36,6 +36,7 @@ const struct NidlAbilityTables gNidlAbilityTables = {
         [NIDL_ABILITY_MIKE - NIDL_FIRST_ABILITY] = MikeStart,
         [NIDL_ABILITY_STAR_ROD - NIDL_FIRST_ABILITY] = StarRodSwingStart,
         [SQUEAK_ABILITY_NINJA - NIDL_FIRST_ABILITY] = NinjaB,
+        [SQUEAK_ABILITY_ANIMAL - NIDL_FIRST_ABILITY] = AnimalB,
     },
     .setup = {
         [NIDL_ABILITY_NEEDLE - NIDL_FIRST_ABILITY] = NidlAbilitySetup,

@@ -153,12 +153,27 @@ enum {
     NINJA_LOOK_ART_WATER_CHARGED,
     NINJA_LOOK_ART_WATER_RELEASE,
     NINJA_LOOK_ART_GEYSER,
+    ANIMAL_LOOK_SCRATCH,        // (Animal: kirby/animal_ext's 34, 21, 22, 24, 25, 30, 31, 32, 33, then the scroll's 35-39);
+    ANIMAL_LOOK_DASH,
+    ANIMAL_LOOK_LEAP,
+    ANIMAL_LOOK_FLURRY,
+    ANIMAL_LOOK_THROW,
+    ANIMAL_LOOK_DIG_SIDE,
+    ANIMAL_LOOK_DIG_DOWN,
+    ANIMAL_LOOK_DIG_UP,
+    ANIMAL_LOOK_UP,
+    ANIMAL_LOOK_ROLL_START,
+    ANIMAL_LOOK_ROLL,
+    ANIMAL_LOOK_ROLL_END,
+    ANIMAL_LOOK_SPIN_START,
+    ANIMAL_LOOK_SPIN,
     SQUEAK_LOOK_COUNT,
 };
 extern const u16 gSqueakAbilityLooks[SQUEAK_LOOK_COUNT][SQUEAK_LOOK_LAYERS];
 
 // (abilities/squeak_moves.c: Ninja's B; each Kirby's input read, scrolls.c's ScrollKirbyInput: its moves that come from no button);
 void NinjaB(struct Kirby *);
+void AnimalB(struct Kirby *);
 void SqueakAbilityInput(struct Kirby *);
 
 // The HUD portraits' size (sub_080356AC's: abilities and the special portraits up to 0x1B; the rest are smaller);

@@ -124,6 +124,17 @@ static void NinjaArt(struct Kirby *kirby);
 static void NinjaArtHold(struct Kirby *kirby);
 static void NinjaArtCharged(struct Kirby *kirby);
 static void NinjaArtRelease(struct Kirby *kirby);
+static void AnimalScratch(struct Kirby *kirby);
+static void AnimalDash(struct Kirby *kirby);
+static void AnimalLeap(struct Kirby *kirby);
+static void AnimalFlurry(struct Kirby *kirby);
+static void AnimalThrow(struct Kirby *kirby);
+static void AnimalDig(struct Kirby *kirby);
+static void AnimalLookUp(struct Kirby *kirby);
+static void AnimalRoll(struct Kirby *kirby);
+static void AnimalSpin(struct Kirby *kirby);
+static void AnimalRollEnd(struct Kirby *kirby);
+static void AnimalBounce(struct Kirby *kirby);
 
 // (the flames' way out and frames, words 45-58: pixels, frames);
 static const s8 gNinjaFlames[NINJA_FLAMES][2] = { { 0, 1 }, { 16, 8 }, { -16, 8 }, { 32, 16 }, { -32, 16 }, { 48, 24 }, { -48, 24 } };
@@ -177,7 +188,9 @@ static bool32 Moving(struct Kirby *kirby) {
     return s == NinjaThrow || s == NinjaThrowEnd || s == NinjaDash || s == NinjaSlash || s == NinjaSlashEnd || s == NinjaDiveStart
         || s == NinjaDive || s == NinjaDiveLand || s == NinjaCling || s == NinjaClingJump || s == NinjaWallJump || s == NinjaWallThrow
         || s == NinjaWallThrowEnd || s == NinjaGrab || s == NinjaGrabRise || s == NinjaGrabFall || s == NinjaWater || s == NinjaArt
-        || s == NinjaArtHold || s == NinjaArtCharged || s == NinjaArtRelease;
+        || s == NinjaArtHold || s == NinjaArtCharged || s == NinjaArtRelease
+        || s == AnimalScratch || s == AnimalDash || s == AnimalLeap || s == AnimalFlurry || s == AnimalThrow || s == AnimalDig
+        || s == AnimalLookUp || s == AnimalRoll || s == AnimalSpin || s == AnimalRollEnd || s == AnimalBounce;
 }
 
 /* The held enemy (the grab's): its own state stopped (KatAM's objects' state, unk78, as an inhale's sub_0809C48C), carried by the
@@ -215,16 +228,21 @@ static void LetGo(struct Kirby *kirby) {
     if (p != NULL) p->held = NULL;
 }
 
-// Hold(); What he holds at his hand: word 27 ahead of him;
-static void Hold(struct Kirby *kirby) {
+// HoldAt(); What he holds at his hand: `ahead` pixels ahead of him, `down` below his middle;
+static void HoldAt(struct Kirby *kirby, s32 ahead, s32 down) {
     struct Object *obj = HeldOf(kirby);
 
     if (obj == NULL) return;
-    obj->base.x = kirby->base.x + Dir(kirby) * (NINJA_GRAB_HOLD << 8);
-    obj->base.y = kirby->base.y;
+    obj->base.x = kirby->base.x + Dir(kirby) * (ahead << 8);
+    obj->base.y = kirby->base.y + (down << 8);
     obj->base.roomId = kirby->base.roomId;
     obj->base.xspeed = obj->base.yspeed = 0;
     obj->base.flags = (obj->base.flags & ~1) | (kirby->base.flags & 1 ? 0 : 1);
+}
+
+// Hold(); Ninja's: word 27 ahead of him;
+static void Hold(struct Kirby *kirby) {
+    HoldAt(kirby, NINJA_GRAB_HOLD, 0);
 }
 
 // Grabbable(); An enemy he can hold (the DS's 0x020193FC refuses bosses and what no attack takes): KatAM's enemies, not untouchable;
@@ -248,21 +266,21 @@ static void HitBox(struct ObjectBase *b, s32 *r) {
  * walking the task list as squeak.c's SqueakBossAlive()); */
 static struct ScrollPiece *PieceOf(struct Kirby *kirby);
 
-static struct Object *GrabTouch(struct Kirby *kirby) {
+static struct Object *GrabTouchBox(struct Kirby *kirby, s8 left, s8 top, s8 right, s8 bottom) {
     struct Task *t = &gTasks[0];
     struct ScrollPiece *p = PieceOf(kirby);
     s32 feet = kirby->base.y + SCROLL_FEET, box[4], r[4];
     u8 n;
 
     if (Dir(kirby) > 0) {
-        box[0] = kirby->base.x - (8 << 8);
-        box[2] = kirby->base.x + (17 << 8);
+        box[0] = kirby->base.x + (left << 8);
+        box[2] = kirby->base.x + (right << 8);
     } else {
-        box[0] = kirby->base.x - (17 << 8);
-        box[2] = kirby->base.x + (8 << 8);
+        box[0] = kirby->base.x - (right << 8);
+        box[2] = kirby->base.x - (left << 8);
     }
-    box[1] = feet - (29 << 8);
-    box[3] = feet;
+    box[1] = feet - (top << 8);
+    box[3] = feet - (bottom << 8);
     for (n = 0; n < MAX_TASK_NUM && t->next; n++) {
         struct Object *obj;
 
@@ -279,10 +297,16 @@ static struct Object *GrabTouch(struct Kirby *kirby) {
         p->heldFlags = obj->base.flags;
         obj->unk78 = HeldState;
         obj->base.flags |= 0x800 | 0x100 | 0x200;
-        Hold(kirby);
         return obj;
     }
     return NULL;
+}
+
+static struct Object *GrabTouch(struct Kirby *kirby) {
+    struct Object *obj = GrabTouchBox(kirby, -8, 29, 17, 0);
+
+    if (obj != NULL) Hold(kirby);
+    return obj;
 }
 
 // MoveBox(); The move's hit this frame (the DS's box from his feet, Y up; strength 0: none), on his piece;
@@ -292,7 +316,7 @@ static void MoveBox(struct Kirby *kirby, s8 left, s8 top, s8 right, s8 bottom, s
 static bool32 MoveStep(struct ScrollPiece *p) {
     struct Kirby *kirby = p->kirby;
 
-    if (!Moving(kirby) || kirby->ability != SQUEAK_ABILITY_NINJA) {
+    if (!Moving(kirby) || kirby->ability < SQUEAK_FIRST_ABILITY) {
         LetGo(kirby);
         p->base.flags |= 0x1000;
         kirby->base.sprite.unk8 &= ~TORNADO_HIDE;
@@ -305,6 +329,10 @@ static bool32 MoveStep(struct ScrollPiece *p) {
     if (p->look[0].effect != SCROLL_NO_LOOK) {
         kirby->base.sprite.unk8 |= TORNADO_HIDE;
         p->hides = TRUE;
+    } else if (p->hides) {
+        // (no look: Kirby's own sprite, his ability's motions: Animal's bounce);
+        kirby->base.sprite.unk8 &= ~TORNADO_HIDE;
+        p->hides = FALSE;
     }
     return TRUE;
 }
@@ -901,6 +929,393 @@ static void NinjaArtRelease(struct Kirby *kirby) {
     if (++kirby->base.counter >= NINJA_ART_AFTER) NidlAbilityEnd(kirby);
 }
 
+/* Animal (the DS's Animal Kirby, vtable 0x021703E4; PrmKirbyAnimal.kgb; Gaw Gaw gives it, as the DS's):
+ * • B (0x0208B7F0): on the ground with Down held over a dig cell, digging down; else a dig cell ahead (16 pixels ahead, 8 up from his
+ *   feet), digging ahead; else dashing, the dash's crouch and leap, else the scratch. In the air, with the scroll (HasScroll 20) and
+ *   not dashing: Down held, the spin; moving, the roll. In water, the water's own attack (KatAM's).
+ * • The scratch (0x0208B754, 0x0208B6DC): animal_ext's 34 (22 frames, sound 0xE4), its box (.rca's 35: 13 to 53 ahead, 0 to 34 up, 20)
+ *   in its frames 4-6; then standing.
+ * • The dash's crouch (0x0208B62C, 0x0208B4F4: 21, sound 0xE6, slowing 0.1 a frame) and leap (0x0208B45C: 22, word 2 (2.0) ahead,
+ *   word 3 (1.5) up, word 5 (0.1) less a frame; its grab box, .rca's 23, kind 6: -17 to 16 ahead, 4 to 27 up) till he lands or word
+ *   1 (53) frames. An enemy it touches is held (+0x2C, 0x0208BAD0): the flurry (0x0208B378, 0x0208B224: 24, looped, for 67 frames;
+ *   what he holds word 6 (16) ahead and word 7 (4) down, 4 more in its frames 17, 18, 21 and 22; each loop's frame 14, sound 0xE4 and
+ *   its hit, 10), then the throw (0x0208B19C: 25, its box .rca's 26, -5 to 23 ahead, 2 to 37 up, 10; at its end what he holds let go
+ *   with a hit of 10, sound 0xE5).
+ * • Digging (the stage's +0x9C, 0x02216528: a dig cell, KatAMExpansionSqueakRooms.cs's SqueakDigCells(), cleared): down (0x0208A9D4:
+ *   the cell 4 pixels under his feet, with word 0 the cells 16 pixels either side, 8 up too; centred on his cell, down 16 pixels in word
+ *   8 (20) frames: 31), ahead (0x0208AC58: the cells 16 ahead at 8 and 24 up; his feet on the nearest row, ahead 16 pixels in 20
+ *   frames: 30), up (Up held under a dig cell 17 pixels over his feet, 0x0208B114: looking up, 33, 0x0208AFA0; B, 0x0208ADE0: that
+ *   cell and the side ones cleared, up 16 pixels in 20 frames: 32); sound 0xE3; each with its box (.rca's 31-33, 20); crouching, B
+ *   over a dig cell digs down too (0x0208AB1C);
+ * • The scroll (HasScroll 20), in the air: the roll (0x0208A868: 35, word 10 (4.0) back, word 11 (0.3) more ahead a frame up to word
+ *   12 (4.0), level; sound 0x13E; 0x0208A59C: 36, its box .rca's 37 every 4 frames, 10) for word 9 (48) frames, or the spin (0x0208A3A0:
+ *   38, word 17 (4.0) up, word 18 (0.3) less a frame, falling at word 19 (4.0) at most; 0x0208A10C: 39, its box .rca's 40 every 4
+ *   frames) for word 16 (48) frames; then 37 (0x0208A094) and standing. Into a wall (the roll) or onto the ground (the spin), the
+ *   bounce: word 13 (1.2) back, word 14 (3.0) up, a quake (0x02035FC4(7, 5, 2): KatAM's shortest), sound 0x66, falling. */
+#define SCROLL_ANIMAL 20
+#define ANIMAL_SCRATCH_FRAMES 22            // animal_ext's 34;
+#define ANIMAL_SCRATCH_STRENGTH 4           // .rca's 35: 20;
+#define ANIMAL_DASH_FRAMES 7                // 21's;
+#define ANIMAL_DASH_SLOW SQUEAK_SPEED(410)  // (logged: 0.1 a frame);
+#define ANIMAL_LEAP_X SQUEAK_SPEED(8192)    // word 2;
+#define ANIMAL_LEAP_Y SQUEAK_SPEED(6144)    // word 3;
+#define ANIMAL_LEAP_FALL SQUEAK_SPEED(410)  // word 5;
+#define ANIMAL_LEAP_MOST 53                 // word 1;
+#define ANIMAL_FLURRY_FRAMES 67             // (0x42 frames on);
+#define ANIMAL_FLURRY_LOOP 22               // 24's;
+#define ANIMAL_FLURRY_HIT 14
+#define ANIMAL_HOLD_AHEAD 16                // word 6;
+#define ANIMAL_HOLD_DOWN 4                  // word 7;
+#define ANIMAL_THROW_FRAMES 12              // 25's;
+#define ANIMAL_HIT_STRENGTH 2               // .rca's 25, 26, 37, 40: 10;
+#define ANIMAL_DIG_STRENGTH 4               // .rca's 31-33: 20;
+#define ANIMAL_DIG_FRAMES 20                // word 8;
+#define ANIMAL_DIG_SPEED 0xCC               // (16 pixels in word 8's frames);
+#define ANIMAL_ROLL_BACK SQUEAK_SPEED(16384)    // word 10;
+#define ANIMAL_ROLL_ADD SQUEAK_SPEED(1229)      // word 11;
+#define ANIMAL_ROLL_MOST SQUEAK_SPEED(16384)    // word 12;
+#define ANIMAL_ROLL_START_FRAMES 18         // 35's;
+#define ANIMAL_ROLL_FRAMES 48               // word 9;
+#define ANIMAL_SPIN_UP SQUEAK_SPEED(16384)      // word 17;
+#define ANIMAL_SPIN_LESS SQUEAK_SPEED(1229)     // word 18;
+#define ANIMAL_SPIN_FALL SQUEAK_SPEED(16384)    // word 19;
+#define ANIMAL_SPIN_START_FRAMES 18         // 38's;
+#define ANIMAL_SPIN_FRAMES 48               // word 16;
+#define ANIMAL_ROLL_END_FRAMES 18           // 37's;
+#define ANIMAL_BOUNCE_BACK SQUEAK_SPEED(4916)   // word 13;
+#define ANIMAL_BOUNCE_UP SQUEAK_SPEED(12288)    // word 14;
+#define ANIMAL_DIG_SOLID 0x0D               // (KatAMExpansionSqueakRooms.cs' KatAMSolid: the dig cells' value till dug);
+void RequestScreenShake(u16, struct ObjectBase *);
+
+/* gSqueakDigRooms; The Squeak Squad rooms' dig cells (KatAMExpansionSqueakRooms.cs' SqueakDigCells()): per room from SQUEAK_FIRST_ROOM,
+ * a list (NULL none): u16 how many, then a block record each (KatAM's, sub_08001408's: its cell, what it's drawn and left as dug); */
+struct SqueakDigRooms {
+    const u8 *const *list;
+    u32 count;
+};
+const struct SqueakDigRooms gSqueakDigRooms = { NULL, 0 };
+
+// DigCell(); A dig cell where (x, y) is (the room's, still undug: KatAM's solid there), and with `dig` dug (its record applied);
+static bool32 DigCell(struct Kirby *kirby, s32 x, s32 y, bool32 dig) {
+    u8 p = kirby->base.unk56, cx, cy;
+    u16 room = gCurLevelInfo[p].currentRoom, n, i;
+    const u8 *list, *r;
+
+    if (room < SQUEAK_FIRST_ROOM || room - SQUEAK_FIRST_ROOM >= gSqueakDigRooms.count || x < 0 || y < 0) return FALSE;
+    if ((list = gSqueakDigRooms.list[room - SQUEAK_FIRST_ROOM]) == NULL) return FALSE;
+    cx = x >> 12;
+    cy = y >> 12;
+    if (GetCollisionTile(p, cx, cy) != ANIMAL_DIG_SOLID) return FALSE;
+    n = list[0] | list[1] << 8;
+    for (i = 0, r = list + 2; i < n; i++, r += 0x12) {
+        if (r[2] != cx || r[3] != cy) continue;
+        if (dig) sub_08001408(p, (struct Unk_0888562C *)r, NULL, NULL);
+        return TRUE;
+    }
+    return FALSE;
+}
+
+// DigAt(); The dig cell at (ahead, up) pixels from his feet (the DS's offsets, Y up), dug with `dig`;
+static bool32 DigAt(struct Kirby *kirby, s32 ahead, s32 up, bool32 dig) {
+    return DigCell(kirby, kirby->base.x + Dir(kirby) * (ahead << 8), kirby->base.y + SCROLL_FEET - (up << 8), dig);
+}
+
+// NoLook(); His moves' piece drawing nothing: Kirby's own sprite (his motions);
+static void NoLook(struct Kirby *kirby) {
+    struct ScrollPiece *p = PieceOf(kirby);
+    u8 i;
+
+    if (p == NULL) return;
+    p->shown = 0xFF;
+    for (i = 0; i < SCROLL_LOOKS; i++) LookEnd(&p->look[i]);
+    MoveStep(p);
+}
+
+/* The dig's way: AnimalDig's unkD9 (0 down, 1 ahead, 2 up); the dig cells cleared as it starts (with word 0, the side ones too); */
+#define DIG_DOWN 0
+#define DIG_AHEAD 1
+#define DIG_UP 2
+static void StartDig(struct Kirby *kirby, u8 way) {
+    kirby->base.xspeed = kirby->base.yspeed = 0;
+    kirby->unkD9 = way;
+    if (way == DIG_AHEAD) {
+        s32 feet = kirby->base.y + SCROLL_FEET;
+        DigAt(kirby, 16, 24, TRUE);
+        // (his feet on the nearest row);
+        kirby->base.y = (((feet + 0x800) >> 12) << 12) - SCROLL_FEET;
+        kirby->base.xspeed = Dir(kirby) * ANIMAL_DIG_SPEED;
+    } else {
+        DigAt(kirby, 16, 8, TRUE);
+        DigAt(kirby, -16, 8, TRUE);
+        // (centred on his cell);
+        kirby->base.x = ((kirby->base.x >> 12) << 12) + 0x800;
+        kirby->base.yspeed = way == DIG_UP ? ANIMAL_DIG_SPEED : -ANIMAL_DIG_SPEED;
+    }
+    PlaySfx(&kirby->base, SQUEAK_SE(0xE3));
+    kirby->animationIndex = NIDL_MOTION_SLOT;
+    StartState(kirby, AnimalDig);
+    Look(kirby, way == DIG_DOWN ? ANIMAL_LOOK_DIG_DOWN : way == DIG_AHEAD ? ANIMAL_LOOK_DIG_SIDE : ANIMAL_LOOK_DIG_UP, TRUE);
+}
+
+static bool32 Dashing(struct Kirby *kirby) {
+    return (kirby->base.flags & 0x10) != 0;
+}
+
+void AnimalB(struct Kirby *kirby) {
+    kirby->idleTimer = 0;
+    kirby->base.flags &= ~2;
+    kirby->base.flags &= ~0x40;
+    Facing(kirby);
+    kirby->animationIndex = NIDL_MOTION_SLOT;
+    if (kirby->base.unk62 & 4) {
+        // (Down held over a dig cell: the cell under his feet dug, 4 pixels down);
+        if (kirby->movementState & 0x80 && DigAt(kirby, 0, -4, TRUE)) {
+            StartDig(kirby, DIG_DOWN);
+            return;
+        }
+    } else if (!Dashing(kirby) && SqueakScrollOwned(SCROLL_ANIMAL)) {
+        if (kirby->movementState & 0x80) {
+            kirby->base.xspeed = 0;
+            kirby->base.yspeed = ANIMAL_SPIN_UP;
+            PlaySfx(&kirby->base, SQUEAK_SE(0x13E));
+            StartState(kirby, AnimalSpin);
+            kirby->stateFn(kirby);
+            return;
+        }
+        if (kirby->movementState & 0x30) {
+            kirby->base.xspeed = -Dir(kirby) * ANIMAL_ROLL_BACK;
+            kirby->base.yspeed = 0;
+            kirby->base.flags |= 0x20;
+            Puff(kirby, FALSE);
+            PlaySfx(&kirby->base, SQUEAK_SE(0x13E));
+            StartState(kirby, AnimalRoll);
+            kirby->stateFn(kirby);
+            return;
+        }
+    }
+    if (DigAt(kirby, 16, 8, TRUE)) {
+        StartDig(kirby, DIG_AHEAD);
+        return;
+    }
+    if (Dashing(kirby)) {
+        PlaySfx(&kirby->base, SQUEAK_SE(0xE6));
+        StartState(kirby, AnimalDash);
+    } else {
+        PlaySfx(&kirby->base, SQUEAK_SE(0xE4));
+        StartState(kirby, AnimalScratch);
+    }
+    kirby->stateFn(kirby);
+}
+
+// The scratch (0x0208B754, 0x0208B6DC): 34, its box in frames 4-6;
+static void AnimalScratch(struct Kirby *kirby) {
+    s16 n = kirby->base.counter;
+
+    if (NidlAbilityInWater(kirby)) return;
+    if (n == 0) Look(kirby, ANIMAL_LOOK_SCRATCH, TRUE);
+    if (kirby->base.unk62 & 4) kirby->base.xspeed = 0;
+    MoveGravity(kirby);
+    if (n >= 4 && n <= 6) MoveBox(kirby, 13, 34, 53, 0, ANIMAL_SCRATCH_STRENGTH);
+    else MoveBox(kirby, 0, 0, 0, 0, 0);
+    if (++kirby->base.counter >= ANIMAL_SCRATCH_FRAMES) {
+        MoveBox(kirby, 0, 0, 0, 0, 0);
+        NidlAbilityEnd(kirby);
+    }
+}
+
+// The dash's crouch (0x0208B62C, 0x0208B4F4): 21, slowing; then the leap;
+static void AnimalDash(struct Kirby *kirby) {
+    s16 v = kirby->base.xspeed;
+
+    if (NidlAbilityInWater(kirby)) return;
+    if (kirby->base.counter == 0) Look(kirby, ANIMAL_LOOK_DASH, TRUE);
+    v = v > 0 ? (v > ANIMAL_DASH_SLOW ? v - ANIMAL_DASH_SLOW : 0) : (v < -ANIMAL_DASH_SLOW ? v + ANIMAL_DASH_SLOW : 0);
+    kirby->base.xspeed = v;
+    MoveGravity(kirby);
+    if (++kirby->base.counter < ANIMAL_DASH_FRAMES) return;
+    kirby->base.xspeed = Dir(kirby) * ANIMAL_LEAP_X;
+    kirby->base.yspeed = ANIMAL_LEAP_Y;
+    kirby->base.flags |= 0x20;
+    Puff(kirby, FALSE);
+    StartState(kirby, AnimalLeap);
+    Look(kirby, ANIMAL_LOOK_LEAP, TRUE);
+}
+
+// The leap (0x0208B45C): its grab box on an enemy he can hold, the flurry; landed (or word 1's frames), standing;
+static void AnimalLeap(struct Kirby *kirby) {
+    if (NidlAbilityInWater(kirby)) return;
+    if (GrabTouchBox(kirby, -17, 27, 16, 4) != NULL) {
+        kirby->base.xspeed = kirby->base.yspeed = 0;
+        HoldAt(kirby, ANIMAL_HOLD_AHEAD, ANIMAL_HOLD_DOWN);
+        StartState(kirby, AnimalFlurry);
+        Look(kirby, ANIMAL_LOOK_FLURRY, TRUE);
+        return;
+    }
+    kirby->base.yspeed -= ANIMAL_LEAP_FALL;
+    if (kirby->base.unk62 & 1) kirby->base.xspeed = 0;
+    else kirby->base.xspeed = Dir(kirby) * ANIMAL_LEAP_X;
+    kirby->base.counter++;
+    if ((kirby->base.unk62 & 4 && kirby->base.counter > 2) || kirby->base.counter >= ANIMAL_LEAP_MOST) NidlAbilityEnd(kirby);
+}
+
+// The flurry (0x0208B378, 0x0208B224): 24, held, for 67 frames, each loop's hit; then the throw;
+static void AnimalFlurry(struct Kirby *kirby) {
+    s16 n = kirby->base.counter++, f = n % ANIMAL_FLURRY_LOOP;
+    struct Object *obj = HeldOf(kirby);
+
+    kirby->base.xspeed = kirby->base.yspeed = 0;
+    if (obj == NULL) {
+        NidlAbilityEnd(kirby);
+        return;
+    }
+    HoldAt(kirby, ANIMAL_HOLD_AHEAD, ANIMAL_HOLD_DOWN + (f == 17 || f == 18 || f == 21 || (f == 0 && n) ? 4 : 0));
+    // (its hit on what he holds: its HP less, never its last: the throw's hit takes it, as KatAM's hit can't on what's held);
+    if (f == ANIMAL_FLURRY_HIT) {
+        PlaySfx(&kirby->base, SQUEAK_SE(0xE4));
+        if (obj->unk80 > ANIMAL_HIT_STRENGTH) obj->unk80 -= ANIMAL_HIT_STRENGTH;
+        else if (obj->unk80 > 1) obj->unk80 = 1;
+    }
+    if (n < ANIMAL_FLURRY_FRAMES) return;
+    StartState(kirby, AnimalThrow);
+    Look(kirby, ANIMAL_LOOK_THROW, TRUE);
+}
+
+// The throw (0x0208B19C): 25, its box; at its end what he holds let go with its hit (sound 0xE5);
+static void AnimalThrow(struct Kirby *kirby) {
+    s16 n = kirby->base.counter++;
+
+    kirby->base.xspeed = kirby->base.yspeed = 0;
+    HoldAt(kirby, ANIMAL_HOLD_AHEAD, ANIMAL_HOLD_DOWN);
+    if (n < 4) MoveBox(kirby, -5, 37, 23, 2, ANIMAL_HIT_STRENGTH);
+    else MoveBox(kirby, 0, 0, 0, 0, 0);
+    if (n + 1 < ANIMAL_THROW_FRAMES) return;
+    if (HeldOf(kirby) != NULL) {
+        LetGo(kirby);
+        PlaySfx(&kirby->base, SQUEAK_SE(0xE5));
+        MoveBox(kirby, ANIMAL_HOLD_AHEAD - 12, 20, ANIMAL_HOLD_AHEAD + 12, -8, ANIMAL_HIT_STRENGTH);
+    }
+    StartState(kirby, AnimalRollEnd);
+    kirby->unkD9 = 1;
+}
+
+// Digging (0x0208A988, 0x0208AC0C, 0x0208AD94): his way at 16 pixels in 20 frames, its box; then standing;
+static void AnimalDig(struct Kirby *kirby) {
+    if (kirby->unkD9 == DIG_AHEAD) {
+        kirby->base.yspeed = 0;
+        kirby->base.xspeed = Dir(kirby) * ANIMAL_DIG_SPEED;
+        MoveBox(kirby, -2, 30, 27, 2, ANIMAL_DIG_STRENGTH);
+    } else {
+        kirby->base.xspeed = 0;
+        kirby->base.yspeed = kirby->unkD9 == DIG_UP ? ANIMAL_DIG_SPEED : -ANIMAL_DIG_SPEED;
+        if (kirby->unkD9 == DIG_UP) MoveBox(kirby, -15, 30, 15, 8, ANIMAL_DIG_STRENGTH);
+        else MoveBox(kirby, -2, 30, 27, 2, ANIMAL_DIG_STRENGTH);
+    }
+    kirby->base.flags &= ~0x40;
+    if (++kirby->base.counter <= ANIMAL_DIG_FRAMES) return;
+    MoveBox(kirby, 0, 0, 0, 0, 0);
+    kirby->base.xspeed = kirby->base.yspeed = 0;
+    NidlAbilityEnd(kirby);
+}
+
+// Looking up (0x0208B014, 0x0208AFA0): 33 while Up is held; B, digging up;
+static void AnimalLookUp(struct Kirby *kirby) {
+    if (kirby->base.counter++ == 0) {
+        kirby->base.x = ((kirby->base.x >> 12) << 12) + 0x800;
+        Look(kirby, ANIMAL_LOOK_UP, TRUE);
+    }
+    kirby->base.xspeed = 0;
+    MoveGravity(kirby);
+    if (!(kirby->movementState & 0x40)) {
+        NidlAbilityEnd(kirby);
+        return;
+    }
+    if (kirby->unk11A & 2 && DigAt(kirby, 0, 17, TRUE)) StartDig(kirby, DIG_UP);
+}
+
+// The bounce (0x0208A10C's, 0x0208A59C's; 0x0208A024): back and up, KatAM's flip (his own motions), till falling;
+static void Bounce(struct Kirby *kirby) {
+    kirby->base.xspeed = -Dir(kirby) * ANIMAL_BOUNCE_BACK;
+    kirby->base.yspeed = ANIMAL_BOUNCE_UP;
+    kirby->base.flags |= 0x20;
+    RequestScreenShake(1, &kirby->base);
+    PlaySfx(&kirby->base, SQUEAK_SE(0x66));
+    MoveBox(kirby, 0, 0, 0, 0, 0);
+    kirby->animationIndex = KIRBY_JUMP_FLIP;
+    StartState(kirby, AnimalBounce);
+    NoLook(kirby);
+}
+
+static void AnimalBounce(struct Kirby *kirby) {
+    if (NidlAbilityInWater(kirby)) return;
+    kirby->base.counter++;
+    NidlAbilityGravity(kirby);
+    if (kirby->base.yspeed < 0) NidlAbilityEnd(kirby);
+}
+
+// The roll (0x0208A868, 0x0208A78C, 0x0208A59C): 35 then 36, level, back then ahead faster to word 12; into a wall the bounce;
+static void AnimalRoll(struct Kirby *kirby) {
+    s16 n = kirby->base.counter++;
+    s16 v = kirby->base.xspeed + Dir(kirby) * ANIMAL_ROLL_ADD;
+
+    if (NidlAbilityInWater(kirby)) return;
+    if (n == 0) Look(kirby, ANIMAL_LOOK_ROLL_START, TRUE);
+    if (n == ANIMAL_ROLL_START_FRAMES) Look(kirby, ANIMAL_LOOK_ROLL, TRUE);
+    if (v > ANIMAL_ROLL_MOST) v = ANIMAL_ROLL_MOST;
+    if (v < -ANIMAL_ROLL_MOST) v = -ANIMAL_ROLL_MOST;
+    kirby->base.xspeed = v;
+    kirby->base.yspeed = 0;
+    if (n >= ANIMAL_ROLL_START_FRAMES && kirby->base.unk62 & 1 && kirby->base.xspeed * Dir(kirby) > 0) {
+        Bounce(kirby);
+        return;
+    }
+    // (.rca's 36: its last frame; 37: every 4 frames, -11 to 27 ahead, -3 to 21 up);
+    if (n == ANIMAL_ROLL_START_FRAMES - 1 || (n >= ANIMAL_ROLL_START_FRAMES && (n - ANIMAL_ROLL_START_FRAMES) % 4 == 0))
+        MoveBox(kirby, -11, 21, 27, -3, ANIMAL_HIT_STRENGTH);
+    else MoveBox(kirby, 0, 0, 0, 0, 0);
+    if (n >= ANIMAL_ROLL_START_FRAMES + ANIMAL_ROLL_FRAMES) {
+        MoveBox(kirby, 0, 0, 0, 0, 0);
+        StartState(kirby, AnimalRollEnd);
+        kirby->unkD9 = 0;
+    }
+}
+
+// The spin (0x0208A3A0, 0x0208A2D4, 0x0208A10C): 38 then 39, up and falling; onto the ground the bounce;
+static void AnimalSpin(struct Kirby *kirby) {
+    s16 n = kirby->base.counter++;
+
+    if (NidlAbilityInWater(kirby)) return;
+    if (n == 0) Look(kirby, ANIMAL_LOOK_SPIN_START, TRUE);
+    if (n == ANIMAL_SPIN_START_FRAMES) Look(kirby, ANIMAL_LOOK_SPIN, TRUE);
+    kirby->base.xspeed = 0;
+    kirby->base.yspeed -= ANIMAL_SPIN_LESS;
+    if (kirby->base.yspeed < -ANIMAL_SPIN_FALL) kirby->base.yspeed = -ANIMAL_SPIN_FALL;
+    if (n > 2 && kirby->base.unk62 & 4) {
+        Bounce(kirby);
+        return;
+    }
+    // (.rca's 40: every 4 frames, -11 to 13 ahead, -18 to 21 up);
+    if (n >= ANIMAL_SPIN_START_FRAMES && (n - ANIMAL_SPIN_START_FRAMES) % 4 == 0) MoveBox(kirby, -11, 21, 13, -18, ANIMAL_HIT_STRENGTH);
+    else MoveBox(kirby, 0, 0, 0, 0, 0);
+    if (n >= ANIMAL_SPIN_START_FRAMES + ANIMAL_SPIN_FRAMES) {
+        MoveBox(kirby, 0, 0, 0, 0, 0);
+        StartState(kirby, AnimalRollEnd);
+        kirby->unkD9 = 0;
+    }
+}
+
+/* The roll's and spin's end (0x0208A094, 0x0208A524: 37), and the throw's (unkD9 1: its last look, the let go enemy's hit kept on it
+ * ANIMAL_THROW_HIT frames: KatAM's hits come a frame or more after the box), then standing; */
+#define ANIMAL_THROW_HIT 4
+static void AnimalRollEnd(struct Kirby *kirby) {
+    if (NidlAbilityInWater(kirby)) return;
+    if (kirby->base.counter == 0 && kirby->unkD9 == 0) Look(kirby, ANIMAL_LOOK_ROLL_END, TRUE);
+    MoveGravity(kirby);
+    if (kirby->unkD9) MoveBox(kirby, ANIMAL_HOLD_AHEAD - 12, 20, ANIMAL_HOLD_AHEAD + 12, -8, ANIMAL_HIT_STRENGTH);
+    if (++kirby->base.counter < (kirby->unkD9 ? ANIMAL_THROW_HIT : ANIMAL_ROLL_END_FRAMES)) return;
+    MoveBox(kirby, 0, 0, 0, 0, 0);
+    NidlAbilityEnd(kirby);
+}
+
 /* SqueakAbilityInput(); Each Kirby's input read (scrolls.c's ScrollKirbyInput): Ninja's moves no button starts: onto a wall (the DS's
  * +0x4C: in the air, falling, held toward a wall ahead: his jump's and fall's animations (15-17, 22 turning, 24), not puffed up), onto water (+0x50: falling onto
  * its surface, the water tile's top under his feet); */
@@ -908,7 +1323,22 @@ void SqueakAbilityInput(struct Kirby *kirby) {
     u16 a = kirby->animationIndex;
     s32 feet;
 
-    if (kirby->ability != SQUEAK_ABILITY_NINJA || kirby->base.unk58 & 2 || Moving(kirby) || kirby->hp <= 0) return;
+    if (kirby->base.unk58 & 2 || Moving(kirby) || kirby->hp <= 0) return;
+    /* (Animal on the ground: Up pressed under a dig cell 17 pixels over his feet, looking up, the DS's +0x80 (0x0208B114), not puffing
+     * up; crouching, B over one under his feet, digging down, +0x8C (0x0208AB1C), not sliding); */
+    if (kirby->ability == SQUEAK_ABILITY_ANIMAL) {
+        if (!(kirby->base.unk62 & 4)) return;
+        if (kirby->unk11A & 0x40 && DigAt(kirby, 0, 17, FALSE)) {
+            kirby->base.flags &= ~0x40;
+            kirby->animationIndex = NIDL_MOTION_SLOT;
+            StartState(kirby, AnimalLookUp);
+        } else if (kirby->movementState & 0x80 && kirby->unk11A & 2 && DigAt(kirby, 0, -4, TRUE)) {
+            kirby->base.flags &= ~0x40;
+            StartDig(kirby, DIG_DOWN);
+        }
+        return;
+    }
+    if (kirby->ability != SQUEAK_ABILITY_NINJA) return;
     if (kirby->base.unk62 & 4 || kirby->base.yspeed > 0 || (a != KIRBY_JUMP_RISE && a != KIRBY_JUMP_FLIP && a != 17 && a != 22 && a != 24)) return;
     if (kirby->base.unk62 & 1 && HeldToward(kirby)) {
         kirby->base.flags &= ~0x40;
