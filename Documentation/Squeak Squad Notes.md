@@ -1064,8 +1064,9 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
       attack's kind goes from `0x30000043` to `0x30000443`, strength 2 to 3, the green tornado drawn and KatAM's hidden till the
       end animation; fire only with the Sparky's hit kind forced to 0x100 (orange tornado, `0x30000143`); without the scroll
       KatAM's tornado unchanged.
-    - Parasol (its swing `0x020B97BC`: `parasol_cmn`'s 21, then 22, air 17, 18, sound `0xA2`; B held after it, `0x020B92F0`:
-      26 then, `0x020B90A8`, 27, the parasol twirled over Kirby, air 22, 23, a box of 8 (`.rca` 27), till B is let go,
+    - Parasol (its Kirby's attacks are `parasol_ext`'s animations, as each ability's `_ext` file's; its swing `0x020B97BC`: 21,
+      then 22, air 17, 18, sound `0xA2`; B held after it, `0x020B92F0`: 26 then, `0x020B90A8`, 27, the parasol held out forward,
+      spinning, as KatAM's twirl, air 22, 23, a box of 8 (`.rca` 27, 14 to 34 in front), till B is let go,
       `0x020B8F18`, then 28 or 24 to the end): with the scroll the twirl is `parasol_ext.mca`'s composite 2 (93 frames, a loop: Kirby,
       part 15, thrusting his parasol forward, anim 30, and parts 0-14, anims 31-37, single 8x8 stars and sparkles in palette 6
       bursting from its tip), sound `0xA3` at its start and every 37 frames (`0x0200C80C`'s count), its boxes (`.rca` 40, the
@@ -1076,6 +1077,11 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
       in the emulator (room 0x65's Sparky, all three versions; Parasol and the scroll given by RAM writes): the stars drawn, KatAM's
       twirl box off, the Sparky (under the ledge, out of KatAM's twirl's reach) losing 1 HP every 3 frames; without the scroll KatAM's
       twirl unchanged and the Sparky untouched.
+    - Sleep (each frame of the sleep `0x020BF294`): with the scroll `prmKirbySleep.kgb`'s word 1 (10) is added a frame and a hit
+      point given each time it makes word 0 (180): one each 18 frames; A or B pressed (the DS's own, scroll or not) cuts the sleep
+      by 2 frames, sound `0xA9`. Ported (`scrolls.c`'s Sleep; the cut comes with the scroll, KatAM's sleep having none). Tested in
+      the emulator (room 0x65, all three versions; Sleep given and HP set to 2 by RAM writes): his 239-frame sleep heals 2 to 6 by
+      18-frame steps; A pressed every 4 frames wakes him 76 frames sooner; without the scroll no healing, the sleep as long.
   - **The Secret Map's pieces** (treasures 93-99, taken as pieces 1-7 in order: not checked against the DS): each in its own chest
     (2-6-6, 3-3-7, 4-4-5, 5-4-5, 6-6-5, 7-6-9, 8-2-6), marked `chest[0x16]` the piece's number + 1 and `chest[0x17]` 2 (the area
     maps' mark is 1), the item one of KatAM's maps. Their art is `collection/map`: anims 0-6 the pieces (parchment, about 60 x 50

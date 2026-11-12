@@ -32,6 +32,7 @@ enum {
     SCROLL_BEAM,
     SCROLL_TORNADO,
     SCROLL_PARASOL,
+    SCROLL_SLEEP = 14,
 };
 
 // SCROLL_BREATH_AIM; prmKirbyFire.kgb's and prmKirbyIce.kgb's words 3 and 4 (6144, -6144): a breath's puff's height speed with Up or
@@ -525,8 +526,9 @@ void ScrollTornadoStart(struct Kirby *kirby) {
     }
 }
 
-/* Parasol. The DS's: its swing (0x020B97BC, parasol_cmn's 21 and 22, sound 0xA2) and, B held after it, its twirl (0x020B92F0,
- * 0x020B90A8: 26, then 27 over Kirby, a box of 8 (.rca 27) till B is let go, 0x020B8F18). With the scroll (HasScroll 5) the twirl is
+/* Parasol. The DS's (its Kirby's attacks are its parasol_ext's animations): its swing (0x020B97BC, 21 and 22, sound 0xA2) and, B
+ * held after it, its twirl (0x020B92F0, 0x020B90A8: 26, then 27, the parasol held out forward spinning as KatAM's, a box of 8, .rca
+ * 27, till B is let go, 0x020B8F18). With the scroll (HasScroll 5) the twirl is
  * parasol_ext.mca's composite 2 (93 frames, a loop: Kirby thrusting his parasol forward, stars bursting from its tip), sound 0xA3 at its
  * start and every 37 frames while B is held, its boxes (.rca 40) one frame in three: 13 to 33-63 pixels in front, 12 under his feet to
  * 30 over them, of 10 the first and 8 the rest (the plain twirl's 8).
@@ -692,10 +694,44 @@ static void SparkCharging(struct Kirby *kirby) {
     }
 }
 
+/* Sleep. The DS's (0x020BF294, each frame of his sleep): with the scroll (HasScroll 14) he gets better while he sleeps,
+ * prmKirbySleep.kgb's word 1 (10) added a frame and a hit point each time it makes word 0 (180): one each 18 frames; A or B pressed
+ * cuts his sleep by 2 frames, sound 0xA9 (the DS's own, scroll or not: KatAM's sleep has no such thing, so it comes with the scroll).
+ * In KatAM, with the scroll: while he sleeps (sub_08064370's anim 52: his sleep lasts that animation), a hit point each 18 frames up to
+ * his most; A or B pressed plays his sleep 2 frames further (its speed 3 frames that frame), sound 0xA9; */
+extern void sub_080642B4(struct Kirby *);
+extern void sub_08064370(struct Kirby *);
+#define SLEEP_HEAL(kirby) NIDL_MIKE_USES(kirby)  // (his ability byte for Mike's uses and Spark's charge: neither is his while he sleeps);
+#define SLEEP_HEAL_STEP 10
+#define SLEEP_HEAL_AT 180
+#define SLEEP_ASLEEP 52
+#define SLEEP_SPEED 0x10                    // A sprite's animation speed (unk1C): a frame a frame;
+#define SLEEP_CUT 2
+
+// SleepHealing(); The upgraded sleep, after his input's read: his healing and his presses' cutting it short;
+static void SleepHealing(struct Kirby *kirby) {
+    if (kirby->stateFn == sub_080642B4) {
+        SLEEP_HEAL(kirby) = 0;
+        return;
+    }
+    if (kirby->stateFn != sub_08064370 || kirby->animationIndex != SLEEP_ASLEEP) return;
+    SLEEP_HEAL(kirby) += SLEEP_HEAL_STEP;
+    if (SLEEP_HEAL(kirby) >= SLEEP_HEAL_AT) {
+        SLEEP_HEAL(kirby) -= SLEEP_HEAL_AT;
+        if (kirby->hp < kirby->maxHp) kirby->hp++;
+    }
+    kirby->base.sprite.unk1C = kirby->sprites[1].unk1C = SLEEP_SPEED;
+    if (kirby->unk11A & 3) {
+        kirby->base.sprite.unk1C = kirby->sprites[1].unk1C = SLEEP_SPEED * (1 + SLEEP_CUT);
+        PlaySfx(&kirby->base, SQUEAK_SE(0xA9));
+    }
+}
+
 // ScrollKirbyInput(); sub_0803F324 (detoured): a Kirby's input read each frame, then the scrolls' that work from it;
 void ScrollKirbyInput(struct Kirby *kirby) {
     gScrollInputOriginal(kirby);
     if (kirby->ability == KIRBY_ABILITY_SPARK && SqueakScrollOwned(SCROLL_SPARK)) SparkCharging(kirby);
+    if (kirby->ability == KIRBY_ABILITY_SLEEP && SqueakScrollOwned(SCROLL_SLEEP)) SleepHealing(kirby);
 }
 
 /* ScrollSparkAttack(); sub_08074AB0 (detoured): KatAM's spark attack starts; with the scroll, by the level: 0 KatAM's; 1 and 2 the
