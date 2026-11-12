@@ -110,6 +110,11 @@ static bool32 HiJumpRising(struct Kirby *kirby) {
     return kirby->stateFn == HiJumpRise;
 }
 
+// HiJumpRiseNow(); Kirby's Hi-Jump rise is on (scrolls.c's Hi-Jump scroll);
+bool32 HiJumpRiseNow(struct Kirby *kirby) {
+    return HiJumpRising(kirby);
+}
+
 static bool32 HiJumpGlowing(struct Kirby *kirby) {
     return kirby->stateFn == HiJumpRise && kirby->base.counter < GLOW_FRAMES;
 }

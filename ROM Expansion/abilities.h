@@ -133,6 +133,7 @@ struct NidlAttack *NidlAttackCreate(struct Kirby *, bool32 (*alive)(struct Kirby
 
 // Helpers for the abilities' states: water, falling, landing, being used up, a white screen flash;
 bool32 NidlAbilityInWater(struct Kirby *);
+bool32 HiJumpRiseNow(struct Kirby *);
 void NidlAbilityGravity(struct Kirby *);
 void NidlAbilityEnd(struct Kirby *);
 void NidlAbilityUsedUp(struct Kirby *);

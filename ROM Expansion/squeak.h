@@ -365,6 +365,7 @@ enum {
     SQUEAK_FX_LASER_BOLT_UP,
     SQUEAK_FX_LASER_BOLT_DOWN,
     SQUEAK_FX_UFO_STAR,         // The UFO scroll's star circling UFO Kirby (scrolls.c): kirby/ufo_ext's 36;
+    SQUEAK_FX_HI_JUMP_ORB,      // The Hi-Jump scroll's orb about him as he rises (scrolls.c): kirby/highjump_ext's 37;
     SQUEAK_FX_COUNT,
 };
 

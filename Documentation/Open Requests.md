@@ -17,8 +17,8 @@ finishes it says how it was checked). The design rules for doors, mirrors and hu
   The DS's scroll check is HasScroll (0x02020AD8), asked by each ability's code (`ROM Expansion/scrolls.c` lists the numbers). The
   23 scrolls are Fire, Ice, Spark, Beam, Tornado, Parasol, Hammer, Cupid, Cutter, Laser, Sword, Wheel, Hi-Jump, UFO, Sleep, Bomb,
   Ninja, Fighter, Throw, Magic, Animal, Bubble, Metal: the ones KatAM (or the NiDL port) has also count as KatAM's (Laser, UFO,
-  Fighter, Magic, Hi-Jump too). Done: Fire, Ice, Spark, Beam, Tornado, Parasol, Sleep, Cutter, Laser, UFO. Next: the rest of
-  KatAM's (Hammer, Cupid, Sword, Wheel, Hi-Jump, Bomb, Fighter, Throw, Magic), then Ninja, Animal, Bubble, Metal (KatAM has no such
+  Fighter, Magic, Hi-Jump too). Done: Fire, Ice, Spark, Beam, Tornado, Parasol, Sleep, Cutter, Laser, UFO, Hi-Jump. Next:
+  the rest of KatAM's (Hammer, Cupid, Sword, Wheel, Bomb, Fighter, Throw, Magic), then Ninja, Animal, Bubble, Metal (KatAM has no such
   ability: each ported 1:1 first).
 
 ## 2. Polish the Squeak Squad hubs

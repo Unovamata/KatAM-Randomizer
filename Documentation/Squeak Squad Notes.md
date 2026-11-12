@@ -1095,15 +1095,18 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
       on the gun at (6, -11), with the DS's Kirby flat, 30 and 31; sound `0x138` every 5 frames), charged past 29 frames
       (composite 2: and 32, an orb flashing blue and gold at (0, -8), its last part, under Kirby). B let go: not charged, the end;
       charged, composite 3 (`0x02099BF0`: 38 and 39, sparkles at (5, -18); 6 frames), then the charged shot (the same object, its
-      type 1: `laser_ext`'s 42-44, a thicker bolt, its boxes of 30, as big as the plain shot's; sound `0x95`) and composite 4
+      type 1: `laser_ext`'s 42-44, a thicker bolt, its boxes of 30, as big as the plain shot's; sound `0x95`; on through enemies:
+      its hit, `0x02037280`, ends only the plain shot, type 0, and its boxes' body record has the flag 0x20) and composite 4
       (`0x02099B78`: 41, a flash, 28, a ring bursting; 20 frames), then the end. Ported (`scrolls.c`'s Laser): KatAM's laser
       (`sub_0806A520`: `sub_08063E50`, its shot `sub_0807BCE0`, then `sub_08063F74`, ending past its counter's 8) is held while
       B is held after it, KatAM's Kirby in his laser pose with the DS's sparkles, sound and orb (behind him); let go charged, the
-      sparkles, then KatAM's own shot (flight, turns on slopes, box, sound) at strength 3 (KatAM's 2 for the DS's 20), drawn as the
-      DS's bolt (across, up or down as it goes), the flash and ring. Tested in the emulator (room 0x65, all three versions; Laser
+      sparkles, then KatAM's own shot (flight, turns on slopes, box, sound) at strength 3 (KatAM's 2 for the DS's 20), on through
+      enemies (its hit callback, `unk7C`: KatAM's burst and end only on terrain, as KatAM's own `sub_08084C34` lets a shot through),
+      drawn as the DS's bolt (across, up or down as it goes), the flash and ring. Tested in the emulator (room 0x65, all three versions; Laser
       and the scroll given by RAM writes, an enemy's HP set to 10 and held in place by RAM writes): B held, the charge from 9
       frames after the shot, the orb 30 frames on, let go, the charged shot 6 frames later, Kirby standing 20 frames after it;
-      the plain shot takes 2 HP, the charged one 3; let go early, the laser ends that frame; without the scroll KatAM's laser
+      the plain shot takes 2 HP and ends there, the charged one 3 and goes on past the enemy (KatAM's own shot ends on it); let go
+      early, the laser ends that frame; without the scroll KatAM's laser
       unchanged (ends 9 frames after the shot, B held or not).
     - UFO (each frame, `0x020BD560`): with the scroll, while UFO Kirby has none, a star (`0x020BB85C`, its state `0x020BB488`:
       `ufo_ext`'s 36, a sparkling star; its `.rca`'s box, -6 to 5 across, -5 to 5 up, of 10, every other frame; the box's
@@ -1118,6 +1121,14 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
       Tested in the emulator (room 0x65, all three versions; UFO and the scroll given by RAM writes, an enemy's HP set to 10 and held
       in its path by RAM writes): the star circles his feet at 22 pixels, in front of him and behind him by turns; the enemy loses 2
       HP every other frame while the star is on it; the ability byte cleared, the star bursts and goes; without the scroll, no star.
+    - Hi-Jump (`highjump_ext`, an ability the DS keeps but doesn't hand out; the rise `0x020BF8E8`, each frame: `highjump_ext.mca`'s
+      anims 12-16, composites 9-13, by how fast he goes sideways; their boxes, `.rca` 26-30, of 20, their body record's flags 0x10):
+      with the scroll anims 17-21, composites 16-20: the same, and part 37 under him (its last part) at (0, -9), an orange glow 48
+      pixels across about him, flickering every other frame; their boxes, `.rca` 31-35, the same of 20, their flags 0x30: on through
+      what he hits (the 0x20 the Laser scroll's charged shot has). Ported (`scrolls.c`'s Hi-Jump): KatAM's Hi-Jump (NiDL's,
+      `abilities/hi_jump.c`) goes on through what it hits the whole rise already; the glow is drawn about him, behind the Kirbys,
+      while he rises (`HiJumpRiseNow`). Tested in the emulator (room 0x65, USA, EU and JP; Hi-Jump and the scroll given by RAM writes):
+      the glow from the rise's first frames to its end, the big and small glow on alternate frames behind Kirby, gone as he falls.
   - **The Secret Map's pieces** (treasures 93-99, taken as pieces 1-7 in order: not checked against the DS): each in its own chest
     (2-6-6, 3-3-7, 4-4-5, 5-4-5, 6-6-5, 7-6-9, 8-2-6), marked `chest[0x16]` the piece's number + 1 and `chest[0x17]` 2 (the area
     maps' mark is 1), the item one of KatAM's maps. Their art is `collection/map`: anims 0-6 the pieces (parchment, about 60 x 50
