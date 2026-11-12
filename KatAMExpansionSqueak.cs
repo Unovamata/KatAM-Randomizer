@@ -836,6 +836,14 @@ namespace KatAMRandomizer {
             /* The Hi-Jump scroll's orb ("ROM Expansion/scrolls.c": highjump_ext.mca's composites 16-20's part 37, an orange glow about
              * Kirby flickering every other frame as he rises; its empty cell 0 as nothing); */
             new SqueakEffect(54, "kirby/highjump_ext", 37, Skip: new[] { 0 }),
+            /* The Wheel scroll's element wheels ("ROM Expansion/scrolls.c": wheel_ext.mca's composites 5 and 13): the fire wheel (31), its
+             * glow (37) and flames (38); the electric wheel (33), its glow (41) and sparks (42); the glows' empty cell 0 as nothing; */
+            new SqueakEffect(55, "kirby/wheel_ext", 31),
+            new SqueakEffect(56, "kirby/wheel_ext", 37, Skip: new[] { 0 }),
+            new SqueakEffect(57, "kirby/wheel_ext", 38),
+            new SqueakEffect(58, "kirby/wheel_ext", 33),
+            new SqueakEffect(59, "kirby/wheel_ext", 41, Skip: new[] { 0 }),
+            new SqueakEffect(60, "kirby/wheel_ext", 42),
         };
 
         /* SqueakFlatten(); A composite animation's parts (`parts`: the composition's indices; all when null) drawn together as one

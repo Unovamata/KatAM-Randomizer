@@ -1129,6 +1129,20 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
       `abilities/hi_jump.c`) goes on through what it hits the whole rise already; the glow is drawn about him, behind the Kirbys,
       while he rises (`HiJumpRiseNow`). Tested in the emulator (room 0x65, USA, EU and JP; Hi-Jump and the scroll given by RAM writes):
       the glow from the rise's first frames to its end, the big and small glow on alternate frames behind Kirby, gone as he falls.
+    - Wheel (the roll, `0x02092B24` and `0x0209326C`, each frame: `wheel_ext.mca`'s composite 1, its box of 20, 8 behind to 10
+      in front and 21 up): with the scroll, while the wheel has no element, it takes the one of what meets him (`0x02012E84`, as
+      the Tornado scroll's: fire, water, electricity) and rolls on to its end as that element's wheel (`0x02093028`: composites
+      5, 9 and 13, loop sound 0xB9, 0xBE in water; fire the wheel in its colors, 31, its glow, 37, flickering, its flames, 38;
+      electric 33, 41, 42), its box the same, of the same 20, with the element. Ported (`scrolls.c`'s Wheel): KatAM's wheel
+      (its attack `sub_0807A3E4`, its task `sub_0807A4F4`, while he rolls: anims 0x34, 0x68) takes the element of a fire or
+      electric attack or enemy that meets his wheel's box (`ElementTouch`, the Tornado scroll's search), its kind bit added to
+      KatAM's attack (strength as it was, 2: the DS's damage is the plain wheel's), the DS's element wheel drawn in place of
+      KatAM's (Kirby's sprite hidden, and KatAM's disc behind the wheel, `sub_08090F68`'s effect, its flag 0x400) to the end of
+      the roll. Not water: KatAM's wheel stops rolling in water (`sub_080630B0`: he swims). Tested in the emulator (room 0x65,
+      USA, EU and JP; Wheel and the scroll given by RAM writes, a Sparky held in the wheel's path by RAM writes, and for fire its
+      kind changed to fire by RAM writes): the wheel takes electricity (attack kind `0x30000443`) or fire (`0x30000143`) as it
+      meets the Sparky, the DS's electric or fire wheel drawn from that frame with Kirby and KatAM's disc hidden, Kirby shown
+      again when the roll ends at the wall; before the Sparky, KatAM's own wheel.
   - **The Secret Map's pieces** (treasures 93-99, taken as pieces 1-7 in order: not checked against the DS): each in its own chest
     (2-6-6, 3-3-7, 4-4-5, 5-4-5, 6-6-5, 7-6-9, 8-2-6), marked `chest[0x16]` the piece's number + 1 and `chest[0x17]` 2 (the area
     maps' mark is 1), the item one of KatAM's maps. Their art is `collection/map`: anims 0-6 the pieces (parchment, about 60 x 50
