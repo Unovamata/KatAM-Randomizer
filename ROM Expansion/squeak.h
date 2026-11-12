@@ -374,6 +374,9 @@ enum {
     SQUEAK_FX_WHEEL_SPARK,
     SQUEAK_FX_WHEEL_SPARK_GLOW,
     SQUEAK_FX_WHEEL_SPARK_TRAIL,
+    // The Bomb scroll's ice and spark bombs (scrolls.c): kirby/bomb_ice_ext's and bomb_spark_ext's 30;
+    SQUEAK_FX_BOMB_ICE,
+    SQUEAK_FX_BOMB_SPARK,
     SQUEAK_FX_COUNT,
 };
 

@@ -40,6 +40,7 @@ enum {
     SCROLL_HI_JUMP = 12,
     SCROLL_UFO,
     SCROLL_SLEEP = 14,
+    SCROLL_BOMB,
 };
 
 // SCROLL_BREATH_AIM; prmKirbyFire.kgb's and prmKirbyIce.kgb's words 3 and 4 (6144, -6144): a breath's puff's height speed with Up or
@@ -112,7 +113,7 @@ struct SparkCharge {
     u8 glint;                   // +0x3AC;
 };
 
-enum { SPARK_AURA, SPARK_BURST, SPARK_BALL, BEAM_WHIP, TORNADO_ELEMENT, PARASOL_THRUST, CUTTER_BLADE, LASER_CHARGE, LASER_BOLT, UFO_STAR, HI_JUMP_ORB, WHEEL_ELEMENT };
+enum { SPARK_AURA, SPARK_BURST, SPARK_BALL, BEAM_WHIP, TORNADO_ELEMENT, PARASOL_THRUST, CUTTER_BLADE, LASER_CHARGE, LASER_BOLT, UFO_STAR, HI_JUMP_ORB, WHEEL_ELEMENT, BOMB_SHELL };
 
 // ScrollLook; One of a piece's looks: an effect's animation (squeak.h's SQUEAK_FX_*), `dx` pixels forward and `dy` under the piece
 // (the DS's composite's part: its offset);
@@ -145,6 +146,7 @@ static bool32 BoltStep(struct ScrollPiece *p);
 static bool32 StarStep(struct ScrollPiece *p);
 static bool32 OrbStep(struct ScrollPiece *p);
 static bool32 WheelStep(struct ScrollPiece *p);
+static bool32 BombStep(struct ScrollPiece *p);
 
 // ChargeOf(); A Kirby's SparkCharge (SPARK_SLOT: its task's number + 1, checked), made with `create`; NULL: none;
 static struct SparkCharge *ChargeOf(struct Kirby *kirby, bool32 create) {
@@ -464,19 +466,20 @@ static bool32 IsKirby(void *p) {
     return (u32)p >= (u32)&gKirbys[0] && (u32)p < (u32)&gKirbys[4];
 }
 
-// Meets(); An object's hit box (unk38 left, unk39 top, unk3A and unk3B half its size, mirrored facing left) meets a box about (x, y);
+/* Meets(); An object's hit box (unk38 left, unk39 top, unk3A and unk3B half its size, mirrored facing left) meets a box about (x, y),
+ * edges touching included (as KatAM's own contact: a bomb thrown at a Sparky's small box, -5 to 5, goes off edge to edge); */
 static bool32 Meets(struct ObjectBase *o, s32 x, s32 y, s8 left, s8 top, s8 right, s8 bottom) {
     s32 w = o->unk3A * 2, h = o->unk3B * 2, l = o->flags & 1 ? (o->x >> 8) - o->unk38 - w : (o->x >> 8) + o->unk38;
     s32 t = (o->y >> 8) + o->unk39;
 
-    return l < x + right && l + w > x + left && t < y + bottom && t + h > y + top;
+    return l <= x + right && l + w >= x + left && t <= y + bottom && t + h >= y + top;
 }
 
-// ElementTouch(); The element (TORNADO_FIRE, TORNADO_SPARK; fire first) of what meets a box about Kirby this frame, not a Kirby's;
-// 0: none (the DS's 0x02012E84, from what met him);
-static u16 ElementTouch(struct Kirby *kirby, s8 left, s8 top, s8 right, s8 bottom) {
+/* ElementTouchAt(); The element (TORNADO_FIRE, TORNADO_SPARK, BOMB_ICE: those in `elements`; fire first, then ice) of what meets a
+ * box about (x, y) in Kirby's room this frame, not a Kirby's; 0: none (the DS's 0x02012E84, from what met him); */
+#define BOMB_ICE 0x200                      // KatAM's ice kind (object.c: unk68 & 0x300 == 0x200);
+static u16 ElementTouchAt(struct Kirby *kirby, s32 x, s32 y, s8 left, s8 top, s8 right, s8 bottom, u16 elements) {
     u8 slot = gCurLevelInfo[kirby->base.unk56].unk65E, kind, n, count;
-    s32 x = kirby->base.x >> 8, y = kirby->base.y >> 8;
     u16 found = 0;
 
     if (slot >= 4) return 0;
@@ -486,13 +489,19 @@ static u16 ElementTouch(struct Kirby *kirby, s8 left, s8 top, s8 right, s8 botto
             struct ObjectBase *o = gUnk_02022F50[slot * 0x40 + kind * 0x20 + n];
 
             if (o == NULL || (void *)o == (void *)kirby || IsKirby(o->parent) || o->roomId != kirby->base.roomId) continue;
-            if (!(o->unk68 & (TORNADO_FIRE | TORNADO_SPARK)) || o->flags & (0x200 | 0x1000)) continue;
+            if (!(o->unk68 & elements) || o->flags & (0x200 | 0x1000)) continue;
             if (!Meets(o, x, y, left, top, right, bottom)) continue;
-            if (o->unk68 & TORNADO_FIRE) return TORNADO_FIRE;
-            found = TORNADO_SPARK;
+            if (o->unk68 & elements & TORNADO_FIRE) return TORNADO_FIRE;
+            if ((o->unk68 & (TORNADO_FIRE | BOMB_ICE)) == BOMB_ICE && elements & BOMB_ICE) found = BOMB_ICE;
+            else if (found != BOMB_ICE && o->unk68 & elements & TORNADO_SPARK) found = TORNADO_SPARK;
         }
     }
     return found;
+}
+
+// ElementTouch(); ElementTouchAt about Kirby, fire or electricity (the Tornado and Wheel scrolls');
+static u16 ElementTouch(struct Kirby *kirby, s8 left, s8 top, s8 right, s8 bottom) {
+    return ElementTouchAt(kirby, kirby->base.x >> 8, kirby->base.y >> 8, left, top, right, bottom, TORNADO_FIRE | TORNADO_SPARK);
 }
 
 /* TornadoStep(); With Kirby's tornado: its element taken once, KatAM's attack made that element's, the DS's element tornado drawn
@@ -618,7 +627,7 @@ static void ScrollPieceMain(void) {
     if (ObjectPreUpdate(&p->base)) return;
     alive = p->kind == SPARK_AURA ? AuraStep(p) : p->kind == SPARK_BALL ? BallStep(p) : p->kind == BEAM_WHIP ? BeamStep(p)
           : p->kind == TORNADO_ELEMENT ? TornadoStep(p) : p->kind == PARASOL_THRUST ? ParasolStep(p) : p->kind == CUTTER_BLADE ? CutterStep(p)
-          : p->kind == LASER_CHARGE ? LaserStep(p) : p->kind == LASER_BOLT ? BoltStep(p) : p->kind == UFO_STAR ? StarStep(p) : p->kind == HI_JUMP_ORB ? OrbStep(p) : p->kind == WHEEL_ELEMENT ? WheelStep(p)
+          : p->kind == LASER_CHARGE ? LaserStep(p) : p->kind == LASER_BOLT ? BoltStep(p) : p->kind == UFO_STAR ? StarStep(p) : p->kind == HI_JUMP_ORB ? OrbStep(p) : p->kind == WHEEL_ELEMENT ? WheelStep(p) : p->kind == BOMB_SHELL ? BombStep(p)
           : BurstStep(p);
     if (!alive) return;
     for (i = 0; i < SCROLL_LOOKS; i++) LookDraw(p, &p->look[i]);
@@ -636,8 +645,10 @@ static void ScrollPieceDestroy(struct Task *t) {
 /* ScrollPieceCreate(); A piece at its Kirby's feet, its hit's kind and knock back KatAM's own attack's (unk68, unk64: the spark's,
  * sub_08074AB0, SPARK_HIT and SPARK_KNOCK; the beam whip's, sub_0807CFE4, BEAM_HIT and BEAM_KNOCK); */
 static struct ScrollPiece *ScrollPieceCreate(struct Kirby *kirby, u8 kind, u8 level, s16 knock, u32 hitKind) {
-    // (the tornado's runs just before KatAM's collision pass, 0xFFFD: every object has put itself in its lists by then);
-    struct Task *t = TaskCreate(ScrollPieceMain, sizeof(struct ScrollPiece), kind == TORNADO_ELEMENT ? 0xFFF0 : 0x3500, TASK_USE_EWRAM,
+    // (the ones that take an element, the tornado's, the wheel's and a bomb's, run just before KatAM's collision pass, 0xFFFD: every
+    // object has put itself in its lists by then);
+    struct Task *t = TaskCreate(ScrollPieceMain, sizeof(struct ScrollPiece),
+                                kind == TORNADO_ELEMENT || kind == WHEEL_ELEMENT || kind == BOMB_SHELL ? 0xFFF0 : 0x3500, TASK_USE_EWRAM,
                                 ScrollPieceDestroy);
     struct ScrollPiece *p;
     u8 i;
@@ -1271,6 +1282,122 @@ static void WheelElement(struct Kirby *kirby) {
     }
 }
 
+/* Bomb. The DS's Bomb scroll (HasScroll 15) adds nothing to Bomb Kirby's own moves: it opens his mixes (0x0201FC50: Bomb with Fire,
+ * Ice or Spark, abilities 0x1B-0x1D), whose bombs are the element's (kirby/bomb_ice, kirby/bomb_spark: the thrown bomb, anim 30 of
+ * bomb_ice_ext, bomb_spark_ext, blue and green for the plain one's purple; the fire bomb keeps the plain bomb's files), their blasts
+ * that element's (the blast itself, anim 31, the same in all). KatAM has no mixing: the owner chose the element from what touches
+ * the bomb, as the Tornado and Wheel scrolls do, kept till the ability is lost.
+ * In KatAM, with the scroll: a thrown or set bomb of Bomb Kirby's (sub_08082380, detoured; its task sub_08082748, sub_08082950 set,
+ * sub_0808269C lit) that meets a fire, ice or electric attack or enemy (ElementTouchAt, its box) gives his bombs that element
+ * (BOMB_ELEMENT, his ability byte), the latest met, till he isn't Bomb Kirby; an ice or spark bomb drawn as the DS's (KatAM's hidden,
+ * flag 0x400); its blast (sub_08074240, detoured: its task sub_08074674, strength as KatAM's) that element's kind: ice 0x200 and
+ * electricity 0x400 in place of KatAM's 0x100, fire KatAM's own 0x100 (KatAM's blast burns already, as the DS's fire bomb's). Each
+ * bomb's piece (BOMB_SHELL) follows it while it lasts; */
+extern void sub_08082748(void);
+extern void sub_08082950(void);
+extern void sub_0808269C(void);
+extern void sub_08074674(void);
+void (*gScrollBombOriginal)(struct Kirby *, u8) = NULL;
+void (*gScrollBlastOriginal)(struct ObjectBase *, bool8) = NULL;
+#define BOMB_ELEMENT(kirby) NIDL_MIKE_USES(kirby)   // BOMB_MARK | the element (BOMB_FIRE...), while he's Bomb Kirby;
+#define BOMB_MARK 0xB0
+#define BOMB_MOST 8
+enum { BOMB_NONE, BOMB_FIRE, BOMB_FROST, BOMB_THUNDER };
+
+// BombElementOf(); A Kirby's bombs' element (BOMB_NONE: none, or he isn't Bomb Kirby);
+static u8 BombElementOf(struct Kirby *kirby) {
+    u8 b = BOMB_ELEMENT(kirby);
+
+    return kirby->ability == KIRBY_ABILITY_BOMB && (b & 0xF0) == BOMB_MARK ? b & 0xF : BOMB_NONE;
+}
+
+// IsBomb(); A task of a Kirby's bomb (thrown, set or lit);
+static bool32 IsBomb(struct Task *t, struct Kirby *kirby) {
+    return (t->main == sub_08082748 || t->main == sub_08082950 || t->main == sub_0808269C)
+        && ((struct ObjectBase *)TaskGetStructPtr(t))->parent == kirby;
+}
+
+/* BombStep(); With a Kirby's bomb: the element of what meets it taken for his bombs; drawn as the DS's bomb of his bombs' element
+ * (ice, electricity: KatAM's hidden); gone with the bomb; */
+static bool32 BombStep(struct ScrollPiece *p) {
+    struct ObjectBase *bomb = p->other && IsBomb(p->other, p->kirby) ? TaskGetStructPtr(p->other) : NULL;
+    u16 met;
+    u8 element;
+
+    if (bomb == NULL || bomb->flags & 0x1000) {
+        p->base.flags |= 0x1000;
+        return FALSE;
+    }
+    p->base.x = bomb->x;
+    p->base.y = bomb->y;
+    p->base.roomId = bomb->roomId;
+    p->base.flags = (p->base.flags & ~1) | (bomb->flags & 1);
+    // (KatAM's bomb's box, sub_08082380's);
+    met = ElementTouchAt(p->kirby, bomb->x >> 8, bomb->y >> 8, -8, -8, 8, 10, TORNADO_FIRE | BOMB_ICE | TORNADO_SPARK);
+    if (met != 0)
+        BOMB_ELEMENT(p->kirby) = BOMB_MARK | (met == TORNADO_FIRE ? BOMB_FIRE : met == BOMB_ICE ? BOMB_FROST : BOMB_THUNDER);
+    element = BombElementOf(p->kirby);
+    if (element == BOMB_FIRE) element = BOMB_NONE;
+    if (element != p->level) {
+        LookEnd(&p->look[0]);
+        if (element != BOMB_NONE) LookStart(p, 0, element == BOMB_FROST ? SQUEAK_FX_BOMB_ICE : SQUEAK_FX_BOMB_SPARK, 0, 0);
+        p->level = element;
+    }
+    if (p->look[0].effect != SCROLL_NO_LOOK) bomb->flags |= 0x400;
+    else bomb->flags &= ~0x400;
+    Box(p, 0, 0, 0, 0, 0);
+    return TRUE;
+}
+
+// ScrollBombThrow(); sub_08082380 (detoured): KatAM's bomb thrown or set; with the scroll, the piece that goes with it;
+void ScrollBombThrow(struct Kirby *kirby, u8 how) {
+    struct Task *before[BOMB_MOST];
+    struct ScrollPiece *p;
+    u8 i, j, n = 0;
+
+    for (i = 0; i < MAX_TASK_NUM && n < BOMB_MOST; i++)
+        if (IsBomb(&gTasks[i], kirby)) before[n++] = &gTasks[i];
+    gScrollBombOriginal(kirby, how);
+    if (kirby->ability != KIRBY_ABILITY_BOMB || !SqueakScrollOwned(SCROLL_BOMB)) return;
+    for (i = 0; i < MAX_TASK_NUM; i++) {
+        struct Task *t = &gTasks[i];
+
+        if (!IsBomb(t, kirby)) continue;
+        for (j = 0; j < n && before[j] != t; j++) ;
+        if (j < n) continue;
+        if ((p = ScrollPieceCreate(kirby, BOMB_SHELL, BOMB_NONE, 0, 0)) == NULL) return;
+        p->other = t;
+        BombStep(p);
+        return;
+    }
+}
+
+// ScrollBombBlast(); sub_08074240 (detoured): a blast; a Bomb Kirby's bomb's, with the scroll, of his bombs' element;
+void ScrollBombBlast(struct ObjectBase *bomb, bool8 water) {
+    struct Kirby *kirby = bomb->header.kind ? bomb->parent : NULL;
+    struct Task *before[BOMB_MOST];
+    u8 i, j, n = 0, element;
+
+    if (!IsKirby(kirby) || (element = BombElementOf(kirby)) <= BOMB_FIRE || !SqueakScrollOwned(SCROLL_BOMB)) {
+        gScrollBlastOriginal(bomb, water);
+        return;
+    }
+    for (i = 0; i < MAX_TASK_NUM && n < BOMB_MOST; i++)
+        if (gTasks[i].main == sub_08074674) before[n++] = &gTasks[i];
+    gScrollBlastOriginal(bomb, water);
+    for (i = 0; i < MAX_TASK_NUM; i++) {
+        struct Task *t = &gTasks[i];
+        struct ObjectBase *o;
+
+        if (t->main != sub_08074674) continue;
+        for (j = 0; j < n && before[j] != t; j++) ;
+        if (j < n) continue;
+        o = TaskGetStructPtr(t);
+        o->unk68 = (o->unk68 & ~TORNADO_FIRE) | (element == BOMB_FROST ? BOMB_ICE : TORNADO_SPARK);
+        return;
+    }
+}
+
 /* Sleep. The DS's (0x020BF294, each frame of his sleep): with the scroll (HasScroll 14) he gets better while he sleeps,
  * prmKirbySleep.kgb's word 1 (10) added a frame and a hit point each time it makes word 0 (180): one each 18 frames; A or B pressed
  * cuts his sleep by 2 frames, sound 0xA9 (the DS's own, scroll or not: KatAM's sleep has no such thing, so it comes with the scroll).
@@ -1307,6 +1434,8 @@ static void SleepHealing(struct Kirby *kirby) {
 // ScrollKirbyInput(); sub_0803F324 (detoured): a Kirby's input read each frame, then the scrolls' that work from it;
 void ScrollKirbyInput(struct Kirby *kirby) {
     gScrollInputOriginal(kirby);
+    // (the Bomb scroll's element gone with the ability: his byte free for the others);
+    if (kirby->ability != KIRBY_ABILITY_BOMB && (BOMB_ELEMENT(kirby) & 0xF0) == BOMB_MARK) BOMB_ELEMENT(kirby) = 0;
     if (kirby->ability == KIRBY_ABILITY_SPARK && SqueakScrollOwned(SCROLL_SPARK)) SparkCharging(kirby);
     if (kirby->ability == KIRBY_ABILITY_SLEEP && SqueakScrollOwned(SCROLL_SLEEP)) SleepHealing(kirby);
     if (kirby->ability == KIRBY_ABILITY_LASER && SqueakScrollOwned(SCROLL_LASER)) LaserCharging(kirby);

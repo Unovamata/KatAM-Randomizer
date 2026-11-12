@@ -844,6 +844,9 @@ namespace KatAMRandomizer {
             new SqueakEffect(58, "kirby/wheel_ext", 33),
             new SqueakEffect(59, "kirby/wheel_ext", 41, Skip: new[] { 0 }),
             new SqueakEffect(60, "kirby/wheel_ext", 42),
+            // The Bomb scroll's ice and spark bombs ("ROM Expansion/scrolls.c": the thrown bomb of kirby/bomb_ice and kirby/bomb_spark);
+            new SqueakEffect(61, "kirby/bomb_ice_ext", 30),
+            new SqueakEffect(62, "kirby/bomb_spark_ext", 30),
         };
 
         /* SqueakFlatten(); A composite animation's parts (`parts`: the composition's indices; all when null) drawn together as one
