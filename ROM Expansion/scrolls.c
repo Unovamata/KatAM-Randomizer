@@ -24,6 +24,7 @@
 #include "code_0806F780.h"
 #include "malloc_vram.h"
 #include "trig.h"
+#include "palette.h"
 
 // The scrolls' numbers (the DS's);
 enum {
@@ -36,7 +37,8 @@ enum {
     SCROLL_CUPID = 7,
     SCROLL_CUTTER,
     SCROLL_LASER,
-    SCROLL_WHEEL = 11,
+    SCROLL_SWORD,
+    SCROLL_WHEEL,
     SCROLL_HI_JUMP = 12,
     SCROLL_UFO,
     SCROLL_SLEEP = 14,
@@ -113,7 +115,7 @@ struct SparkCharge {
     u8 glint;                   // +0x3AC;
 };
 
-enum { SPARK_AURA, SPARK_BURST, SPARK_BALL, BEAM_WHIP, TORNADO_ELEMENT, PARASOL_THRUST, CUTTER_BLADE, LASER_CHARGE, LASER_BOLT, UFO_STAR, HI_JUMP_ORB, WHEEL_ELEMENT, BOMB_SHELL };
+enum { SPARK_AURA, SPARK_BURST, SPARK_BALL, BEAM_WHIP, TORNADO_ELEMENT, PARASOL_THRUST, CUTTER_BLADE, LASER_CHARGE, LASER_BOLT, UFO_STAR, HI_JUMP_ORB, WHEEL_ELEMENT, BOMB_SHELL, SWORD_EDGE };
 
 // ScrollLook; One of a piece's looks: an effect's animation (squeak.h's SQUEAK_FX_*), `dx` pixels forward and `dy` under the piece
 // (the DS's composite's part: its offset);
@@ -147,6 +149,7 @@ static bool32 StarStep(struct ScrollPiece *p);
 static bool32 OrbStep(struct ScrollPiece *p);
 static bool32 WheelStep(struct ScrollPiece *p);
 static bool32 BombStep(struct ScrollPiece *p);
+static bool32 SwordStep(struct ScrollPiece *p);
 
 // ChargeOf(); A Kirby's SparkCharge (SPARK_SLOT: its task's number + 1, checked), made with `create`; NULL: none;
 static struct SparkCharge *ChargeOf(struct Kirby *kirby, bool32 create) {
@@ -499,6 +502,15 @@ static u16 ElementTouchAt(struct Kirby *kirby, s32 x, s32 y, s8 left, s8 top, s8
     return found;
 }
 
+/* ElementTouchObj(); ElementTouchAt with an attack's own hit box (unk3C-unk3F, ObjectSetBounds': its left, top, right, bottom,
+ * mirrored facing left, as KatAM's attack test sub_08038010 reads it; none this frame: 0); */
+static u16 ElementTouchObj(struct Kirby *kirby, struct ObjectBase *o, u16 elements) {
+    s8 left = o->flags & 1 ? -o->unk3E : o->unk3C, right = o->flags & 1 ? -o->unk3C : o->unk3E;
+
+    if (left == right || o->unk3D == o->unk3F) return 0;
+    return ElementTouchAt(kirby, o->x >> 8, o->y >> 8, left, o->unk3D, right, o->unk3F, elements);
+}
+
 // ElementTouch(); ElementTouchAt about Kirby, fire or electricity (the Tornado and Wheel scrolls');
 static u16 ElementTouch(struct Kirby *kirby, s8 left, s8 top, s8 right, s8 bottom) {
     return ElementTouchAt(kirby, kirby->base.x >> 8, kirby->base.y >> 8, left, top, right, bottom, TORNADO_FIRE | TORNADO_SPARK);
@@ -627,7 +639,7 @@ static void ScrollPieceMain(void) {
     if (ObjectPreUpdate(&p->base)) return;
     alive = p->kind == SPARK_AURA ? AuraStep(p) : p->kind == SPARK_BALL ? BallStep(p) : p->kind == BEAM_WHIP ? BeamStep(p)
           : p->kind == TORNADO_ELEMENT ? TornadoStep(p) : p->kind == PARASOL_THRUST ? ParasolStep(p) : p->kind == CUTTER_BLADE ? CutterStep(p)
-          : p->kind == LASER_CHARGE ? LaserStep(p) : p->kind == LASER_BOLT ? BoltStep(p) : p->kind == UFO_STAR ? StarStep(p) : p->kind == HI_JUMP_ORB ? OrbStep(p) : p->kind == WHEEL_ELEMENT ? WheelStep(p) : p->kind == BOMB_SHELL ? BombStep(p)
+          : p->kind == LASER_CHARGE ? LaserStep(p) : p->kind == LASER_BOLT ? BoltStep(p) : p->kind == UFO_STAR ? StarStep(p) : p->kind == HI_JUMP_ORB ? OrbStep(p) : p->kind == WHEEL_ELEMENT ? WheelStep(p) : p->kind == BOMB_SHELL ? BombStep(p) : p->kind == SWORD_EDGE ? SwordStep(p)
           : BurstStep(p);
     if (!alive) return;
     for (i = 0; i < SCROLL_LOOKS; i++) LookDraw(p, &p->look[i]);
@@ -645,10 +657,10 @@ static void ScrollPieceDestroy(struct Task *t) {
 /* ScrollPieceCreate(); A piece at its Kirby's feet, its hit's kind and knock back KatAM's own attack's (unk68, unk64: the spark's,
  * sub_08074AB0, SPARK_HIT and SPARK_KNOCK; the beam whip's, sub_0807CFE4, BEAM_HIT and BEAM_KNOCK); */
 static struct ScrollPiece *ScrollPieceCreate(struct Kirby *kirby, u8 kind, u8 level, s16 knock, u32 hitKind) {
-    // (the ones that take an element, the tornado's, the wheel's and a bomb's, run just before KatAM's collision pass, 0xFFFD: every
+    // (the ones that take an element, the tornado's, the wheel's, a bomb's and a sword's, run just before KatAM's collision pass, 0xFFFD: every
     // object has put itself in its lists by then);
     struct Task *t = TaskCreate(ScrollPieceMain, sizeof(struct ScrollPiece),
-                                kind == TORNADO_ELEMENT || kind == WHEEL_ELEMENT || kind == BOMB_SHELL ? 0xFFF0 : 0x3500, TASK_USE_EWRAM,
+                                kind == TORNADO_ELEMENT || kind == WHEEL_ELEMENT || kind == BOMB_SHELL || kind == SWORD_EDGE ? 0xFFF0 : 0x3500, TASK_USE_EWRAM,
                                 ScrollPieceDestroy);
     struct ScrollPiece *p;
     u8 i;
@@ -1398,6 +1410,106 @@ void ScrollBombBlast(struct ObjectBase *bomb, bool8 water) {
     }
 }
 
+/* Sword. The DS's Sword scroll (HasScroll 10) adds nothing to Sword Kirby's own moves: it opens his Ice and Spark mixes (0x0201FC50:
+ * Sword with Ice or Spark, abilities 0x1E, 0x1F; the Fire Sword, Sword with Fire, needs no scroll), whose sword is that element's
+ * (kirby/sword_ice, sword_spark, sword_fire: Kirby's every pose with the element's sword, the same frames in the element's colors, its
+ * palette 1: the blade 2-6, the cap 7-9 the plain sword's, 10-14) and whose cuts hit with it. KatAM has no mixing: the owner
+ * chose the element from what touches the sword, as the Tornado, Wheel and Bomb scrolls do, kept till the ability is lost.
+ * In KatAM, with the scroll: a cut of Sword Kirby's (its attack tasks: sub_080753CC, sub_08080130, sub_08080FBC, sub_08083B04, the
+ * slide's sub_080714A0; parent him) that meets a fire, ice or electric attack or enemy (ElementTouchObj, the cut's hit box) gives his sword
+ * that element (SWORD_ELEMENT, his ability byte), the latest met, till he isn't Sword Kirby; then every cut of his hits with it (its kind
+ * bit added: fire 0x100, ice 0x200, electricity 0x400) and his sword is drawn in the DS's element sword's colors (KatAM's Sword palette,
+ * his second, 4 + his number, has the DS's layout: its colors 2-14 written each frame, gSwordColors, in gObjPalette and in the copy
+ * KatAM's palette effects put back, gUnk_02022320; KatAM draws the blade and its swing from it). A piece (SWORD_EDGE) made from
+ * his input each frame while he's Sword Kirby and has none, run before KatAM's collision pass; */
+extern void sub_080753CC(void);
+extern void sub_08080130(void);
+extern void sub_08080FBC(void);
+extern void sub_08083B04(void);
+extern void sub_080714A0(void);
+/* gUnk_02022320; KatAM's OBJ palette as it was when a palette effect began (sub_0803CD98, sub_0803CFC4, sub_0803D280 copy it there): its
+ * task, sub_0803A1F4 (priority 0xFFFE), puts it back in gObjPalette each frame of the effect, then blends it; */
+extern u16 gUnk_02022320[0x100];
+#define SWORD_ELEMENT(kirby) NIDL_MIKE_USES(kirby)   // SWORD_MARK | the element (BOMB_FIRE...), while he's Sword Kirby;
+#define SWORD_MARK 0xC0
+
+// gSwordColors; The DS's element swords' colors 2-14 (kirby/sword_fire_ext's, sword_ice_ext's, sword_spark_ext's palette 1);
+static const u16 gSwordColors[3][13] = {
+    { 0x7FFF, 0x3BBF, 0x12FF, 0x01FF, 0x001E, 0x0369, 0x02A7, 0x01A5, 0x47FF, 0x171F, 0x0E5F, 0x015F, 0x00F7 },
+    { 0x7FFF, 0x7FF6, 0x7FEC, 0x7F49, 0x7E47, 0x0369, 0x02A7, 0x01A5, 0x7BF3, 0x7FE8, 0x7F44, 0x7E61, 0x7920 },
+    { 0x7FFF, 0x4FFA, 0x4BAD, 0x3E40, 0x3540, 0x0369, 0x02A7, 0x01A5, 0x4FFA, 0x4BAD, 0x4344, 0x3E60, 0x3DE0 },
+};
+
+// SwordElementOf(); A Kirby's sword's element (BOMB_NONE: none, or he isn't Sword Kirby);
+static u8 SwordElementOf(struct Kirby *kirby) {
+    u8 b = SWORD_ELEMENT(kirby);
+
+    return kirby->ability == KIRBY_ABILITY_SWORD && (b & 0xF0) == SWORD_MARK ? b & 0xF : BOMB_NONE;
+}
+
+// IsSwordCut(); A task of a Kirby's cut;
+static bool32 IsSwordCut(struct Task *t, struct Kirby *kirby) {
+    return (t->main == sub_080753CC || t->main == sub_08080130 || t->main == sub_08080FBC || t->main == sub_08083B04
+            || t->main == sub_080714A0) && ((struct ObjectBase *)TaskGetStructPtr(t))->parent == kirby;
+}
+
+/* SwordStep(); With Sword Kirby: his cuts' element taken from what meets them, each cut given his sword's element, his sword drawn
+ * in that element's colors; gone when he isn't Sword Kirby; */
+static bool32 SwordStep(struct ScrollPiece *p) {
+    struct Kirby *kirby = p->kirby;
+    u16 met;
+    u8 i, element;
+
+    if (kirby->ability != KIRBY_ABILITY_SWORD) {
+        p->base.flags |= 0x1000;
+        return FALSE;
+    }
+    Follow(p);
+    p->base.roomId = kirby->base.roomId;
+    for (i = 0; i < MAX_TASK_NUM; i++) {
+        struct ObjectBase *cut;
+
+        if (!IsSwordCut(&gTasks[i], kirby)) continue;
+        cut = TaskGetStructPtr(&gTasks[i]);
+        if (cut->flags & 0x1000) continue;
+        if ((met = ElementTouchObj(kirby, cut, TORNADO_FIRE | BOMB_ICE | TORNADO_SPARK)) != 0)
+            SWORD_ELEMENT(kirby) = SWORD_MARK | (met == TORNADO_FIRE ? BOMB_FIRE : met == BOMB_ICE ? BOMB_FROST : BOMB_THUNDER);
+        element = SwordElementOf(kirby);
+        if (element != BOMB_NONE)
+            cut->unk68 |= element == BOMB_FIRE ? TORNADO_FIRE : element == BOMB_FROST ? BOMB_ICE : TORNADO_SPARK;
+    }
+    element = SwordElementOf(kirby);
+    // (his own sword palette only: not the water's, 0xE, KatAM's for every Kirby's second sprite in water);
+    if (element != BOMB_NONE && kirby->sprites[1].palId == kirby->base.unk56 + 4) {
+        const u16 *colors = gSwordColors[element - BOMB_FIRE];
+        u16 at = kirby->sprites[1].palId * 16 + 2;
+
+        if (gMainFlags & MAIN_FLAG_OBJ_PALETTE_TRANSFORMATION_ENABLE) LoadObjPaletteWithTransformation(colors, at, 13);
+        else {
+            CpuCopy16(colors, gObjPalette + at, 13 * sizeof(u16));
+            gMainFlags |= MAIN_FLAG_OBJ_PALETTE_SYNC_ENABLE;
+        }
+        // (and in the palette KatAM's palette effects, a flash or a fade, put back each frame before their blend: theirs, run after this);
+        CpuCopy16(gObjPalette + at, gUnk_02022320 + at, 13 * sizeof(u16));
+    }
+    Box(p, 0, 0, 0, 0, 0);
+    return TRUE;
+}
+
+// SwordEdge(); Each frame, after his input's read: Sword Kirby's piece found or made;
+static void SwordEdge(struct Kirby *kirby) {
+    u8 i;
+
+    for (i = 0; i < MAX_TASK_NUM; i++) {
+        struct ScrollPiece *p;
+
+        if (gTasks[i].main != ScrollPieceMain) continue;
+        p = TaskGetStructPtr(&gTasks[i]);
+        if (p->kind == SWORD_EDGE && p->kirby == kirby && !(p->base.flags & 0x1000)) return;
+    }
+    ScrollPieceCreate(kirby, SWORD_EDGE, 0, 0, 0);
+}
+
 /* Sleep. The DS's (0x020BF294, each frame of his sleep): with the scroll (HasScroll 14) he gets better while he sleeps,
  * prmKirbySleep.kgb's word 1 (10) added a frame and a hit point each time it makes word 0 (180): one each 18 frames; A or B pressed
  * cuts his sleep by 2 frames, sound 0xA9 (the DS's own, scroll or not: KatAM's sleep has no such thing, so it comes with the scroll).
@@ -1434,14 +1546,16 @@ static void SleepHealing(struct Kirby *kirby) {
 // ScrollKirbyInput(); sub_0803F324 (detoured): a Kirby's input read each frame, then the scrolls' that work from it;
 void ScrollKirbyInput(struct Kirby *kirby) {
     gScrollInputOriginal(kirby);
-    // (the Bomb scroll's element gone with the ability: his byte free for the others);
+    // (the Bomb and Sword scrolls' elements gone with the ability: his byte free for the others);
     if (kirby->ability != KIRBY_ABILITY_BOMB && (BOMB_ELEMENT(kirby) & 0xF0) == BOMB_MARK) BOMB_ELEMENT(kirby) = 0;
+    if (kirby->ability != KIRBY_ABILITY_SWORD && (SWORD_ELEMENT(kirby) & 0xF0) == SWORD_MARK) SWORD_ELEMENT(kirby) = 0;
     if (kirby->ability == KIRBY_ABILITY_SPARK && SqueakScrollOwned(SCROLL_SPARK)) SparkCharging(kirby);
     if (kirby->ability == KIRBY_ABILITY_SLEEP && SqueakScrollOwned(SCROLL_SLEEP)) SleepHealing(kirby);
     if (kirby->ability == KIRBY_ABILITY_LASER && SqueakScrollOwned(SCROLL_LASER)) LaserCharging(kirby);
     if (kirby->ability == KIRBY_ABILITY_UFO && SqueakScrollOwned(SCROLL_UFO)) UfoStar(kirby);
     if (kirby->ability == NIDL_ABILITY_HI_JUMP && SqueakScrollOwned(SCROLL_HI_JUMP)) HiJumpOrb(kirby);
     if (kirby->ability == KIRBY_ABILITY_WHEEL && SqueakScrollOwned(SCROLL_WHEEL)) WheelElement(kirby);
+    if (kirby->ability == KIRBY_ABILITY_SWORD && SqueakScrollOwned(SCROLL_SWORD)) SwordEdge(kirby);
 }
 
 /* ScrollSparkAttack(); sub_08074AB0 (detoured): KatAM's spark attack starts; with the scroll, by the level: 0 KatAM's; 1 and 2 the

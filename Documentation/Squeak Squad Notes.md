@@ -1172,6 +1172,33 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
       changed to ice or fire by RAM writes): the first bomb meets it and takes electricity (or ice, or fire), its own blast
       already that element's (`0x20000403`, `0x20000203`; fire `0x20000103`); the next bomb drawn green (or blue; fire, KatAM's)
       from the throw, its blast the same; the ability cleared, the element gone; without the scroll, KatAM's bombs unchanged.
+    - Sword: the DS's scroll (HasScroll 10) adds nothing to Sword Kirby's own moves either; it opens his Ice and Spark mixes
+      (`0x0201FC50`: Sword with Ice or Spark, abilities 0x1E, 0x1F; the Fire Sword, Sword with Fire, needs no scroll), whose sword
+      is that element's (`kirby/sword_ice`, `sword_spark`, `sword_fire`: Kirby's every pose with the element's sword, the same
+      frames as the plain sword's in the element's colors, its palette 1: the blade 2-6, the cap 7-9 the plain sword's, 10-14) and
+      whose cuts hit with that element. KatAM has no mixing: the owner chose the element from what touches the sword, as for the
+      bomb, kept till the ability is lost (fire too, with the scroll: no scroll, KatAM's sword unchanged). Ported (`scrolls.c`'s
+      Sword): a cut of Sword Kirby's (his sword, `sub_080753CC`, the one object that lives as long as he is Sword Kirby and takes
+      each swing's box from its frame; the other cut tasks `sub_08080130`, `sub_08080FBC`, `sub_08083B04` and the slide,
+      `sub_080714A0`) that meets a fire, ice or electric attack or enemy (`ElementTouchObj`: the cut's hit box, `unk3C`-`unk3F`,
+      ObjectSetBounds', mirrored facing left as KatAM's attack test `sub_08038010` reads it) gives his sword that element
+      (`SWORD_ELEMENT`, his ability byte 0x1A6: 0xC0 + 1 fire, 2 ice, 3 electricity; cleared when he isn't Sword Kirby), the latest
+      met; then every cut of his carries its kind bit (0x100, 0x200, 0x400, added to KatAM's cut 0x2000) and his sword is drawn in
+      the DS's element sword's colors: KatAM's sword palette (his second OBJ palette, 4 + his number) has the DS's layout, its
+      colors 2-14 written each frame (`gSwordColors`, from `sword_fire_ext`, `sword_ice_ext`, `sword_spark_ext`'s palette 1; KatAM
+      draws the blade and its swing from it, so the swing takes the element's colors too), and into `gUnk_02022320` as well: the
+      palette KatAM's palette effects (a flash, a fade) put back each frame before their blend (`sub_0803A1F4`, priority 0xFFFE,
+      after the piece); written only while his second sprite uses that palette (in water KatAM gives it 0xE, every Kirby's: not tested
+      in water). Tested in the emulator (room 0x65, USA, EU and
+      JP; Sword and the scroll given by RAM writes, a Sparky held in front of him by RAM writes, its HP set to 20, its kind
+      changed to fire or ice by RAM writes, or its own spark attack): the slash that meets it takes fire, ice or electricity (0xC1,
+      0xC2, 0xC3) on the frame KatAM's slash hits it, the sword's attack then `0x32002103`, `0x32002203` or `0x32002403`, palette
+      4's colors 2-14 the DS's (the fire sword orange, the ice sword pale blue, the spark sword green, blade and swing); facing
+      left, the Sparky in front and behind, taken on the frames KatAM's own slash hits it; the slide (Down and A) takes fire and
+      carries it (`0x10402143`); the ability cleared, the element gone, and Sword taken again drawn in KatAM's own colors; the
+      Sparky's element cleared each frame, KatAM's sword unchanged; without the scroll, KatAM's sword unchanged (no piece). On JP
+      a palette effect ran through the test (frames 2283-2330) and had put KatAM's colors back each frame before `gUnk_02022320`
+      was written too; after, the element colors stay through it.
   - **The Secret Map's pieces** (treasures 93-99, taken as pieces 1-7 in order: not checked against the DS): each in its own chest
     (2-6-6, 3-3-7, 4-4-5, 5-4-5, 6-6-5, 7-6-9, 8-2-6), marked `chest[0x16]` the piece's number + 1 and `chest[0x17]` 2 (the area
     maps' mark is 1), the item one of KatAM's maps. Their art is `collection/map`: anims 0-6 the pieces (parchment, about 60 x 50
