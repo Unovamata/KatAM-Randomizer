@@ -238,6 +238,8 @@ void (*gNidlKirbyHitOriginal)(struct Kirby *) = NULL;
 void NidlKirbyHit(struct Kirby *kirby) {
     bool8 rod = kirby->ability == NIDL_ABILITY_STAR_ROD;
 
+    // (the Spark scroll's charge level ends, scrolls.c);
+    ScrollSparkHit(kirby);
     if (rod) kirby->ability = KIRBY_ABILITY_NORMAL;
     // (Freeze's looping sound stops: abilities/freeze.c);
     if (kirby->ability == NIDL_ABILITY_FREEZE) m4aSongNumStop(NIDL_SE(NIDL_FREEZE_SOUND));

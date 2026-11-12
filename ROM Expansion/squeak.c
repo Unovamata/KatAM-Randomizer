@@ -1017,6 +1017,11 @@ static void SqueakFxMain(void) {
     }
 shown:
     step = &a->step[fx->step];
+    // (a step showing nothing: SQUEAK_FX_HIDDEN);
+    if (step->cell == SQUEAK_FX_HIDDEN) {
+        fx->e.flags |= 0x400;
+        return;
+    }
     fx->e.sprite.variant = step->cell;
     fx->e.sprite.palId = fx->palId;
     // (KatAM flips a frame when flag 1 is set: its frames face left, Squeak Squad's cells right, flipped when facing left);
@@ -1056,7 +1061,8 @@ static struct SqueakFx *SqueakEffectAtIn(u16 roomId, u8 effect, s32 x, s32 y, bo
     fx->life = 0;
     fx->falling = FALSE;
     fx->palId = SqueakLoadPalette(d->palette.key, d->palette.variant, roomId);
-    EffectObjectInitSprite(&fx->e, &fx->e.sprite, d->tiles, d->animId, d->anim.step[0].cell, 0x1A);
+    EffectObjectInitSprite(&fx->e, &fx->e.sprite, d->tiles, d->animId,
+                           d->anim.step[0].cell == SQUEAK_FX_HIDDEN ? 0 : d->anim.step[0].cell, 0x1A);
     // (none drawn when its VRAM couldn't be got: gone at its first run);
     if (!SqueakVramOk(fx->e.sprite.tilesVram)) fx->e.flags |= 0x1000 | 0x400;
     return fx;

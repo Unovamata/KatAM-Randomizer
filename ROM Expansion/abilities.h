@@ -114,6 +114,7 @@ void NidlDisplaySprite(struct Sprite *);
 void NidlAbilitySetup(struct Kirby *);
 void NidlSwallow(struct Kirby *, u8 ability);
 void NidlKirbyHit(struct Kirby *);
+void ScrollSparkHit(struct Kirby *);     // (scrolls.c);
 
 /* NidlAttack; An attack box that follows Kirby while `alive` says so (his state is the ability's), making him unhurt (`guard`) meanwhile;
  * or, with `frames` set, stays where it was made for that many frames (an effect's: Hi-Jump's burst). `effect` is the hit's kind (unk68,
@@ -137,7 +138,8 @@ void NidlAbilityEnd(struct Kirby *);
 void NidlAbilityUsedUp(struct Kirby *);
 void NidlFlash(struct Kirby *, const u8 *levels, u16 count);
 
-// Mike's uses so far (Kirby's padding byte after unk1A5; reset by NidlAbilitySetup on getting Mike);
+/* Mike's uses so far (Kirby's padding byte after unk1A5; reset by NidlAbilitySetup on getting Mike); also Hi-Jump's (HI_JUMP_LONG_FALL)
+ * and Spark's with the Spark scroll's (scrolls.c's SPARK_SLOT), each only while Kirby has that ability; */
 #define NIDL_MIKE_USES(kirby) (((u8 *)(kirby))[0x1A6])
 /* The ability Kirby had before the Power Orb's fight gave him the Star Rod (his padding byte after NIDL_MIKE_USES), | STAR_ROD_FROM_FIGHT,
  * given back after the shard's dance; without the flag (0: none), the Star Rod is his own (the hub's stand's, abilities/star_rod_stand.c,
