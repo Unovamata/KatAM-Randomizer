@@ -38,6 +38,7 @@ const struct NidlAbilityTables gNidlAbilityTables = {
         [SQUEAK_ABILITY_NINJA - NIDL_FIRST_ABILITY] = NinjaB,
         [SQUEAK_ABILITY_ANIMAL - NIDL_FIRST_ABILITY] = AnimalB,
         [SQUEAK_ABILITY_BUBBLE - NIDL_FIRST_ABILITY] = BubbleB,
+        [SQUEAK_ABILITY_METAL - NIDL_FIRST_ABILITY] = MetalB,
     },
     .setup = {
         [NIDL_ABILITY_NEEDLE - NIDL_FIRST_ABILITY] = NidlAbilitySetup,

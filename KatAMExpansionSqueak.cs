@@ -922,6 +922,8 @@ namespace KatAMRandomizer {
             new SqueakEffect(117, "effect/efc_cmn0", 4, Skip: new[] { 1 }, Once: true),
             // The DS's 0x02018C24's types 5 and 11 (efc_cmn0's 21): a puff at Kirby's feet (Squeak Squad's Ninja's moves: abilities/squeak_moves.c);
             new SqueakEffect(118, "effect/efc_cmn0", 21, Once: true),
+            // and its type 2 (efc_cmn0's 18): Squeak Squad's Metal's roll's start;
+            new SqueakEffect(119, "effect/efc_cmn0", 18, Once: true),
         };
 
         /* SqueakFlatten(); A composite animation's parts (`parts`: the composition's indices; all when null) drawn together as one

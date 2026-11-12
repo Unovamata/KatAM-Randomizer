@@ -1447,7 +1447,25 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
 **Daroach in a stage** (enemy 0x45, ported: `squeak/daroach.c`): made by `0x020A51A8` (with `enemy/demo_dancho`, `0x020750F4`), his body `0x02134DA8` (`0x020A4F54(..., 0x45)`, vtable `0x02184B14`: +0x3C start `0x02134C74`, +0x34 per frame `0x02134ECC`, its hit handlers +0x2C/+0x30 `0x02134D38`/`0x02134D34` return 0; `0x0213482C` zeroes its speeds), its spawn byte 9 its facing (0: flag 4, left), flags 0x100 (the terrain not checked by `0x0201355C`), 0x20 and 0x20000 (not held in the stage). Params `prmDB04Ml0`: 60, 20, 60, -2.0, 2.0, 0, 0. A scene: `0x02134C74` takes Kirby's controls (`0x02012F94`: a handle on `0x01FF8180`'s list, released by `0x02012F68`; not in the stage's mode 3, `0x02209560`'s +0x75), hovering 60 frames (animation 1); `0x02134B94`/`0x02134ADC` its cape (2, through); `0x02134A30` held 20 frames (3); `0x021349E8` pointing (4, through); `0x021348F8` the controls back (mode 3: `0x0220A2A4(..., 0)`), flying off at (-2.0, 2.0) (5) and `0x0213488C` gone after 60 frames or out of the view (`0x02209D00`'s margins 1), its spawn record set to state 4 (`0x0220A2B4(..., +0x1C4, 2)`, `0x02218EF4`: not again till the area reloads). `demo_dancho.rca` has no boxes. Recorded on the DS: Kirby frozen 92 frames, then the flight. `0x02209D00`'s margins (`0x022275F4`, above, below, left, right in pixels): 0: 16, 48, 48, 48; 1: 24, 56, 56, 56; 2: 96, 104, 128, 128; 3: 192, 56, 56, 56; 4: none; 5: 24, 1024, 56, 56.
 
 The Squeaks (Squeakers, Doc, Spinni, Storo, Daroach) and Parasol are created elsewhere. Their files: Squeakers `enemy/chun` (and `chun_blue`, `chun_green`, `chun_yellow` palettes; `prmDE01`, loaded at `0x020EC5F4`: its body near `0x020EC5xx`; its 3 palettes loaded by `0x020E8C80`; a thrown Squeaker, on the thrown-things base `0x020B49D8`, `0x020ED208`), Spinni `enemy/spin`, `spin_at` (`prmDB01`, `0x020AB764`, `0x020ABFC4`), Doc `enemy/doc`, `doc_at1` (`prmDB02`, `0x020DD8FC`, `0x020DF5E4`), Storo `enemy/stron`, `stron_atack` (`prmDB03`, `0x020E44A4`), Daroach `enemy/demo_dancho` in a stage (`prmDB04`, above) and `dancho00`, `dancho01` in his boss fight (`prmBB07`, enemy 0x3D). Copy abilities KatAM lacks (Ninja, Bubble,
-Animal, Ghost, Metal): ported as KatAM abilities 35-38 one by one ("ROM Expansion/README.md", Abilities); Bio Spark gives Ninja, Gaw Gaw Animal and Bubble Head Bubble as the DS's, Metalun none till its Metal is in (Ghost isn't one of the scrolls' and isn't ported).
+Animal, Ghost, Metal): ported as KatAM abilities 35-38 one by one ("ROM Expansion/README.md", Abilities); Bio Spark gives Ninja, Gaw Gaw Animal, Bubble Head Bubble and Metalun Metal, as the DS's (Ghost isn't one of the scrolls' and isn't ported).
+
+**Metal Kirby** (its constructor `0x020CB160`: `kirby/metal_cmn`, `metal_ext`, `metal_wat`, `normal_dmg`, `PrmKirbyMetal.kgb` and
+`PrmKirbyMetalKirbyBase.kgb`, the latter in Kirby's own movement words' place at the player's `+0x154`; flags `|= 0x800000`, read
+only by `0x0201355C`: the currents don't move him). Its movement words that differ from `prmKirbyBase.kgb` (20.12): 1 ground
+slowing 0.1 to 0.15, 2-3 walk 0.16 to 0.03 a frame up to 1.42 to 0.5, 5 dash top 1.93 to 0.93 (unused: logged, his dash is his
+walk), 6 jump 4.78 to 2.68, 7 its cut on letting go 1.0 to 2.5, 9 fall 2.5 to 4.5, 10-11 air 0.15 to 0.05 a frame up to 1.93 to
+1.23, 13-14 float sideways 0.13 to 0.03 up to 1.1 to 0.35, 16-17 flap 0.47 to 0.27 up to 1.3 to 0.3, 19 float fall 1.03 to 2.03,
+20, 21, 23, 25 (the slide's), 40-51 (water: he sinks). Logged in the DS's emulator (`metal_wd.dst`, 1-1): walk +0.03 to 0.50, let
+go 0.50, 0.35, 0.20, 0.05, 0; the jump 2.51 the first frame, then 0.17 less a frame, about 20 pixels, the same with A held or
+tapped; in the air +0.05 a frame to 1.23; floating (A tapped in the air) up 0.30 a frame, let go down 0.09 more a frame to 2.03.
+His hurt boxes (`metal_cmn.rca`'s 0x102 records) shut out the attack kinds `0x034B` (0 touch, 1, 3, 6 grab, 8, 9; some frames
+`0x036B`, 5 too), Kirby's own `0x000A`: kind 2 (the stage's hazards, Bohboh's lava) still hurts. B (`0x020CAF44`): in the air with
+Down, the stomp (`0x020CADD0`, `0x020CAC54`, `0x020CAA64`); else with the scroll (22) the roll (`0x020CA9B8`, `0x020CA838`,
+`0x020CA4E0`, `0x020CA3F8`); else nothing (`0x02017DE4`: no inhale). Its steps (`0x020CAFFC`, the vtable's +0x14): on the walk's
+animation frames 16 and 46 of each 60 (`metal_cmn`'s 12: two steps a cycle, the 3-frame cells), the quake `0x02035FC4(…, 3, 5, 2)`
+and sound `0xAC`. `metal_ext.rca`'s indexes are its `.cea`'s plus one: the touch boxes of 20 at .rca 25, 28 and 36 are the roll
+(24), the stomp's fall (27) and the roll in the air (35). Its effects (`0x02018C24`'s types t: `efc_cmn0`'s animation 0x10 + t):
+type 2, the roll's start, `efc_cmn0`'s 18; type 6, the stomp's landing, 22. Ported in `abilities/squeak_moves.c` (see its notes).
 
 Squeak Squad's brains for the enemies KatAM has (their body and brain constructors from the factory; each brain's first state per
 variant, the spawn's first byte), against KatAM's own variants: a brain whose behavior KatAM's enemy has is left to KatAM's (as

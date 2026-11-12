@@ -179,6 +179,14 @@ enum {
     BUBBLE_LOOK_BUBBLE_2,
     BUBBLE_LOOK_BIG_BUBBLE,
     BUBBLE_LOOK_POP,
+    METAL_LOOK_STOMP_START,     // (Metal: kirby/metal_ext's 26, 27 the stomp's start and fall, 28 its bounce; the scroll's roll: 23 its
+    METAL_LOOK_STOMP,           //  start, 24 fast, 34 slow, 35 in the air, 25 its end);
+    METAL_LOOK_BOUNCE,
+    METAL_LOOK_ROLL_START,
+    METAL_LOOK_ROLL,
+    METAL_LOOK_ROLL_SLOW,
+    METAL_LOOK_ROLL_AIR,
+    METAL_LOOK_ROLL_END,
     SQUEAK_LOOK_COUNT,
 };
 extern const u16 gSqueakAbilityLooks[SQUEAK_LOOK_COUNT][SQUEAK_LOOK_LAYERS];
@@ -187,6 +195,7 @@ extern const u16 gSqueakAbilityLooks[SQUEAK_LOOK_COUNT][SQUEAK_LOOK_LAYERS];
 void NinjaB(struct Kirby *);
 void AnimalB(struct Kirby *);
 void BubbleB(struct Kirby *);
+void MetalB(struct Kirby *);
 void SqueakAbilityInput(struct Kirby *);
 
 // The HUD portraits' size (sub_080356AC's: abilities and the special portraits up to 0x1B; the rest are smaller);

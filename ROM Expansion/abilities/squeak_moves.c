@@ -140,6 +140,12 @@ static void BubbleBlow(struct Kirby *kirby);
 static void BubbleEnd(struct Kirby *kirby);
 static void BubbleBig(struct Kirby *kirby);
 static void BubbleQuiet(void);
+static void MetalStompStart(struct Kirby *kirby);
+static void MetalStomp(struct Kirby *kirby);
+static void MetalBounce(struct Kirby *kirby);
+static void MetalRollStart(struct Kirby *kirby);
+static void MetalRoll(struct Kirby *kirby);
+static void MetalRollEnd(struct Kirby *kirby);
 
 // (the flames' way out and frames, words 45-58: pixels, frames);
 static const s8 gNinjaFlames[NINJA_FLAMES][2] = { { 0, 1 }, { 16, 8 }, { -16, 8 }, { 32, 16 }, { -32, 16 }, { 48, 24 }, { -48, 24 } };
@@ -196,7 +202,8 @@ static bool32 Moving(struct Kirby *kirby) {
         || s == NinjaArtHold || s == NinjaArtCharged || s == NinjaArtRelease
         || s == AnimalScratch || s == AnimalDash || s == AnimalLeap || s == AnimalFlurry || s == AnimalThrow || s == AnimalDig
         || s == AnimalLookUp || s == AnimalRoll || s == AnimalSpin || s == AnimalRollEnd || s == AnimalBounce
-        || s == BubbleStart || s == BubbleBlow || s == BubbleEnd || s == BubbleBig;
+        || s == BubbleStart || s == BubbleBlow || s == BubbleEnd || s == BubbleBig
+        || s == MetalStompStart || s == MetalStomp || s == MetalBounce || s == MetalRollStart || s == MetalRoll || s == MetalRollEnd;
 }
 
 /* The held enemy (the grab's): its own state stopped (KatAM's objects' state, unk78, as an inhale's sub_0809C48C), carried by the
@@ -333,7 +340,8 @@ static bool32 MoveStep(struct ScrollPiece *p) {
     }
     Follow(p);
     p->base.roomId = kirby->base.roomId;
-    p->look[0].palId = kirby->base.sprite.palId;
+    // (his body in his own palette: his spray's; Metal's all metal, in its own, as the DS draws him);
+    if (kirby->ability != SQUEAK_ABILITY_METAL) p->look[0].palId = kirby->base.sprite.palId;
     if (p->look[0].effect != SCROLL_NO_LOOK) {
         kirby->base.sprite.unk8 |= TORNADO_HIDE;
         p->hides = TRUE;
@@ -1551,6 +1559,434 @@ static void BubbleBig(struct Kirby *kirby) {
     if (kirby->base.counter == 0) Look(kirby, BUBBLE_LOOK_BIG, TRUE);
     BubbleStand(kirby);
     kirby->base.counter++;
+}
+
+/* Metal (the DS's Metal Kirby: its class's constructor 0x020CB160 loads kirby/metal_cmn, metal_ext and metal_wat, PrmKirbyMetal.kgb and
+ * PrmKirbyMetalKirbyBase.kgb, his movement's words in place of Kirby's own, prmKirbyBase.kgb; Metalun gives it, as the DS's):
+ * • Heavy: the movement words Metal's file changes from Kirby's (logged the same in the DS's emulator), Metal takes here, KatAM's own
+ *   for the rest (KatAM's rules: when he jumps, floats, lands, swims). Walking 0.03 faster a frame up to 0.5 (word 2, word 3), 0.15
+ *   slower a frame with the pad let go (word 1); no dash (the DS's Metal Kirby has none: KatAM's dash, its double tap, starts a walk);
+ *   the jump 2.68 up (word 6), the same with A held or not (its cut, word 7, 2.5, is under it), its gravity 0.17 (word 8, Kirby's own
+ *   too on the DS) and falling at most 4.5 (word 9) through KatAM's jump's top and fall (MetalRise, MetalFall); in the air 0.05 faster
+ *   a frame up to 1.23 (words 10, 11); floating 0.03 faster a frame up to 0.35 sideways (13, 14), flapping 0.27 a frame up to 0.3 (16,
+ *   17), falling at most 2.03 (19). His steps shake the screen and thud (0x020CAFFC: sound 0xAC, the quake (3, 5, 2), at the walk
+ *   animation's frames 16 and 46 of each 60: its steps, every 30 frames).
+ * • Hard: the DS's hurt boxes of his (metal_cmn.rca's 0x102 records: 0x034B, Kirby's own 0x000A) shut out the attack kinds 0 (touch),
+ *   6 (grabs), 8 and 9 besides Kirby's own: here his unk5C shuts out KatAM's enemies' own kind (0x80: an enemy's body and the attacks
+ *   that keep InitObject's 0x82), so touching them doesn't hurt him; their other kinds (fire 0x100...) and the stage's spikes do. His
+ *   body doesn't hurt them either (logged on the DS: a Waddle Dee pressed against him, neither hurt; KatAM's touch hurts both: his
+ *   unk68's 0x80 off). The currents don't move him (the DS's flag 0x800000: squeak/gimmicks.c's Currents).
+ * • B (0x020CAF44): in the air with Down held, the stomp; else with the scroll (HasScroll 22), the roll; else nothing (no inhale: the
+ *   DS's 0x02017DE4). In water, the water's own attack (KatAM's).
+ * • The stomp (0x020CADD0, 0x020CAC54, 0x020CAA64): stopped where he is, metal_ext's 26 (24 frames; sound 0x16D), then straight down
+ *   at word 14 (6.0): 27, his body's box (metal_ext.rca's 28: -9 to 9 ahead, 0 to 19 up, 20); on the ground the quake (4, 10, 2),
+ *   efc_cmn0's 22 at his feet, sound 0xAD, and he bounces off it (28, 16 frames: the movement's word 3 ahead, 0.5, half its jump up,
+ *   1.34, its gravity: the DS's jump, state 0x7C, the pad as in the air);
+ * • The scroll's roll (0x020CA9B8, 0x020CA838, 0x020CA4E0, 0x020CA3F8): 23 (12 frames; sound 0xAB) at the speed he had, then
+ *   efc_cmn0's 18 at his feet and the quake (3, 5, 2); rolling (no pad, no jump): on flat ground slowing by word 2 (0.04), 24 over word
+ *   12 (0.5) else 34; down a slope faster by word 8 (0.16; steep, word 10: 0.22) up to words 9, 11 (3.0), up one slower by word 4
+ *   (0.09; steep, word 6: 0.14), turned back once he rolls back (24 on slopes); in the air 35, the movement's air words (at most 1.23,
+ *   slowing by 0.01, its gravity); landing, the quake (3, 10, 2) and sound 0xAC; into a wall, stopped, the quake (6, 10, 2) and the
+ *   sound; his body's box (.rca's 25 and 36) while rolling fast and in the air; B, sound 0xAC, 25 (4 frames), standing;
+ * The quakes: KatAM's shake (RequestScreenShake 1, 14 frames, its shortest, for the DS's 5 and 10 frames; 2, 18 frames, for its
+ * strength 4 and 6). In water he swims as KatAM's Kirby (the DS's sinks: its words 40-51, metal_wat's frames, not ported). */
+#define SCROLL_METAL 22
+#define METAL_HIT 0x30005003                    // KatAM's Stone's (gUnk_082DDFC8): the stomp's and the roll's box;
+#define METAL_STRENGTH 4                        // .rca's 25, 28, 36: 20;
+#define METAL_GUARD 0x80                        // KatAM's enemies' own hit kind (InitObject's unk68 0x82), shut out by his unk5C;
+#define METAL_FRICTION SQUEAK_SPEED(0x267)      // PrmKirbyMetalKirbyBase.kgb's word 1;
+#define METAL_WALK_ADD SQUEAK_SPEED(0x7B)       // word 2;
+#define METAL_WALK_MOST SQUEAK_SPEED(0x800)     // word 3;
+#define METAL_JUMP SQUEAK_SPEED(0x2AE2)         // word 6;
+#define METAL_GRAVITY SQUEAK_SPEED(0x2B9)       // word 8;
+#define METAL_FALL_MOST SQUEAK_SPEED(0x4800)    // word 9;
+#define METAL_AIR_ADD SQUEAK_SPEED(0xCD)        // word 10;
+#define METAL_AIR_MOST SQUEAK_SPEED(0x13AF)     // word 11;
+#define METAL_AIR_SLOW SQUEAK_SPEED(0x29)       // word 12;
+#define METAL_FLOAT_ADD SQUEAK_SPEED(0x7B)      // word 13;
+#define METAL_FLOAT_MOST SQUEAK_SPEED(0x59A)    // word 14;
+#define METAL_FLAP_ADD SQUEAK_SPEED(0x452)      // word 16;
+#define METAL_FLAP_MOST SQUEAK_SPEED(0x4CD)     // word 17;
+#define METAL_SINK_MOST SQUEAK_SPEED(0x207B)    // word 19;
+#define KATAM_GRAVITY 38                        // KatAM's jump's and fall's (sub_080435F8's macro), and its float's fall;
+#define KATAM_FALL_MOST 0x280
+#define KATAM_SINK_ADD 0x16
+#define METAL_STEP_FIRST 16
+#define METAL_STEP_EVERY 30
+#define METAL_STOMP_START_FRAMES 24             // metal_ext's 26;
+#define METAL_STOMP_FALL SQUEAK_SPEED(0x6000)   // PrmKirbyMetal.kgb's word 14;
+#define METAL_BOUNCE_FRAMES 16                  // 28's;
+#define METAL_ROLL_START_FRAMES 12              // 23's;
+#define METAL_ROLL_END_FRAMES 4                 // 25's;
+#define METAL_ROLL_FLAT SQUEAK_SPEED(164)       // word 2 (its -0.04);
+#define METAL_ROLL_UP SQUEAK_SPEED(369)         // word 4 (-0.09);
+#define METAL_ROLL_UP_STEEP SQUEAK_SPEED(574)   // word 6 (-0.14);
+#define METAL_ROLL_DOWN SQUEAK_SPEED(656)       // word 8;
+#define METAL_ROLL_DOWN_STEEP SQUEAK_SPEED(902) // word 10;
+#define METAL_ROLL_MOST SQUEAK_SPEED(12288)     // words 9, 11;
+#define METAL_ROLL_FAST SQUEAK_SPEED(2048)      // word 12;
+void sub_0804464C(struct Kirby *);
+void sub_08044FD4(struct Kirby *);
+void sub_080411E8(struct Kirby *);
+void sub_080424BC(struct Kirby *);
+
+// MetalGravity(); Falling in his moves (the movement's gravity, at most its fall);
+static void MetalGravity(struct Kirby *kirby) {
+    if (kirby->base.unk62 & 4) return;
+    kirby->base.yspeed -= METAL_GRAVITY;
+    if (kirby->base.yspeed < -METAL_FALL_MOST) kirby->base.yspeed = -METAL_FALL_MOST;
+}
+
+// MetalBody(); His body's box (.rca's 25, 28, 36), or none;
+static void MetalBody(struct Kirby *kirby, bool32 on) {
+    struct ScrollPiece *p;
+
+    if (!on) {
+        MoveBox(kirby, 0, 0, 0, 0, 0);
+        return;
+    }
+    MoveBox(kirby, -9, 19, 9, 0, METAL_STRENGTH);
+    if ((p = FindPiece(kirby)) != NULL) p->base.unk68 = METAL_HIT;
+}
+
+// MetalSlow(); Slower by `by` a frame, to standing still;
+static s16 MetalSlow(s16 v, s16 by) {
+    return v > by ? v - by : v < -by ? v + by : 0;
+}
+
+// MetalSteer(); The pad in the air (KatAM's sub_0805B3A0 with the movement's air words; let go, KatAM's own slowing, or in his own
+// moves, `own`, the movement's: word 12);
+static void MetalSteer(struct Kirby *kirby, bool32 own) {
+    s16 v = kirby->base.xspeed;
+
+    if (kirby->movementState & 0x20) {
+        if (!(kirby->base.flags & 1) && kirby->animationIndex == 22) kirby->animationIndex = 23;
+        kirby->base.flags |= 1;
+        v -= METAL_AIR_ADD;
+        if (v < -METAL_AIR_MOST) v = -METAL_AIR_MOST;
+    } else if (kirby->movementState & 0x10) {
+        if (kirby->base.flags & 1 && kirby->animationIndex == 22) kirby->animationIndex = 23;
+        kirby->base.flags &= ~1;
+        v += METAL_AIR_ADD;
+        if (v > METAL_AIR_MOST) v = METAL_AIR_MOST;
+    } else if (own) {
+        v = MetalSlow(v, METAL_AIR_SLOW);
+    } else {
+        sub_0805B1B8(kirby);
+        return;
+    }
+    kirby->base.xspeed = v;
+}
+
+/* MetalWalk(), MetalAirMove(), MetalFloatMove(), MetalJump(), MetalDash() (KatAM's sub_0805B2FC, sub_0805B3A0, sub_0805B450, sub_08043360,
+ * sub_08041B08, detoured: his walk, his steering in the air and floating, his jump's start, his dash's start); KatAM's own for the others;
+ */
+void (*gMetalWalkOriginal)(struct Kirby *) = NULL;
+void (*gMetalAirOriginal)(struct Kirby *) = NULL;
+void (*gMetalFloatOriginal)(struct Kirby *) = NULL;
+void (*gMetalJumpOriginal)(struct Kirby *) = NULL;
+void (*gMetalDashOriginal)(struct Kirby *) = NULL;
+void (*gMetalFrameOriginal)(struct Kirby *) = NULL;
+static void MetalRise(struct Kirby *kirby);
+
+void MetalWalk(struct Kirby *kirby) {
+    s16 v = kirby->base.xspeed;
+
+    if (kirby->ability != SQUEAK_ABILITY_METAL) {
+        gMetalWalkOriginal(kirby);
+        return;
+    }
+    if (kirby->movementState & 0x20) {
+        if (!(kirby->base.flags & 1)) {
+            sub_080424BC(kirby);
+            return;
+        }
+        v -= METAL_WALK_ADD;
+        if (v < -METAL_WALK_MOST) v = -METAL_WALK_MOST;
+    } else if (kirby->movementState & 0x10) {
+        if (kirby->base.flags & 1) {
+            sub_080424BC(kirby);
+            return;
+        }
+        v += METAL_WALK_ADD;
+        if (v > METAL_WALK_MOST) v = METAL_WALK_MOST;
+    } else if (kirby->base.unk58 & 0x10 || kirby->base.flags & 0x60) {
+        // (on ice, and in KatAM's own slides, KatAM's slowing);
+        sub_0805B1B8(kirby);
+        return;
+    } else {
+        v = MetalSlow(v, METAL_FRICTION);
+    }
+    kirby->base.xspeed = v;
+}
+
+void MetalAirMove(struct Kirby *kirby) {
+    if (kirby->ability != SQUEAK_ABILITY_METAL) gMetalAirOriginal(kirby);
+    else MetalSteer(kirby, FALSE);
+}
+
+void MetalFloatMove(struct Kirby *kirby) {
+    s16 v = kirby->base.xspeed;
+
+    if (kirby->ability != SQUEAK_ABILITY_METAL) {
+        gMetalFloatOriginal(kirby);
+        return;
+    }
+    if (kirby->movementState & 0x20) {
+        kirby->base.flags |= 1;
+        v -= METAL_FLOAT_ADD;
+        if (v < -METAL_FLOAT_MOST) v = -METAL_FLOAT_MOST;
+        kirby->base.xspeed = v;
+    } else if (kirby->movementState & 0x10) {
+        kirby->base.flags &= ~1;
+        v += METAL_FLOAT_ADD;
+        if (v > METAL_FLOAT_MOST) v = METAL_FLOAT_MOST;
+        kirby->base.xspeed = v;
+    } else {
+        sub_0805B1B8(kirby);
+    }
+    if (kirby->movementState & 0x41) {
+        kirby->base.yspeed += METAL_FLAP_ADD;
+        if (kirby->base.yspeed > METAL_FLAP_MOST) kirby->base.yspeed = METAL_FLAP_MOST;
+    } else {
+        kirby->base.yspeed -= KATAM_SINK_ADD;
+        if (kirby->base.yspeed < -METAL_SINK_MOST) kirby->base.yspeed = -METAL_SINK_MOST;
+    }
+}
+
+void MetalJump(struct Kirby *kirby) {
+    gMetalJumpOriginal(kirby);
+    // (in water, KatAM's own jump out of it: he swims as KatAM's Kirby);
+    if (kirby->ability != SQUEAK_ABILITY_METAL || kirby->base.unk58 & 2) return;
+    kirby->base.yspeed = METAL_JUMP;
+    kirby->stateFn = MetalRise;
+}
+
+void MetalDash(struct Kirby *kirby) {
+    if (kirby->ability == SQUEAK_ABILITY_METAL) sub_080411E8(kirby);
+    else gMetalDashOriginal(kirby);
+}
+
+/* MetalRise(), MetalFall(); KatAM's jump's top and its fall (sub_0804464C, sub_08044FD4: its rules, the pad, doors, floating, B,
+ * landing), his speed down the movement's (where KatAM's plain gravity was all that changed it: not a ceiling's, a landing's); */
+static void MetalFall(struct Kirby *kirby);
+static void MetalAirState(struct Kirby *kirby, void (*katam)(struct Kirby *)) {
+    void (*self)(struct Kirby *) = kirby->stateFn;
+    s16 v = kirby->base.yspeed, plain = v - KATAM_GRAVITY < -KATAM_FALL_MOST ? -KATAM_FALL_MOST : v - KATAM_GRAVITY;
+
+    katam(kirby);
+    // (still in it: KatAM's state doesn't set itself again; into the other one: ours of it);
+    if (kirby->stateFn == sub_0804464C) kirby->stateFn = MetalRise;
+    else if (kirby->stateFn == sub_08044FD4) kirby->stateFn = MetalFall;
+    else if (kirby->stateFn != self) return;
+    if (kirby->base.unk62 & 4 || kirby->base.yspeed != plain) return;
+    v -= METAL_GRAVITY;
+    kirby->base.yspeed = v < -METAL_FALL_MOST ? -METAL_FALL_MOST : v;
+}
+
+static void MetalRise(struct Kirby *kirby) {
+    MetalAirState(kirby, sub_0804464C);
+}
+
+static void MetalFall(struct Kirby *kirby) {
+    MetalAirState(kirby, sub_08044FD4);
+}
+
+/* MetalKirbyFrame(); KatAM's Kirby's sprite update (sub_0803F790, detoured: each frame, his state run, before he moves): Metal's guard
+ * and his body harmless (his unk68's enemy kind off: KatAM's touch hurts both), his fall (KatAM's, from a ledge or a float's end, is
+ * Metal's), his steps; both back as they were once he's lost Metal; */
+void MetalKirbyFrame(struct Kirby *kirby) {
+    u8 *step = &NIDL_MIKE_USES(kirby);
+
+    if (kirby->ability != SQUEAK_ABILITY_METAL) {
+        // (Metal gone: his guard, and his body's touch back, KatAM's 0x82; the guard KatAM never sets on a Kirby marks it);
+        if (kirby->base.unk5C & METAL_GUARD) {
+            kirby->base.unk5C &= ~METAL_GUARD;
+            kirby->base.unk68 |= METAL_GUARD;
+        }
+        gMetalFrameOriginal(kirby);
+        return;
+    }
+    // (neither hurts the other by touch, as the DS's: logged, a Waddle Dee pressed against him, both unhurt);
+    kirby->base.unk5C |= METAL_GUARD;
+    kirby->base.unk68 &= ~METAL_GUARD;
+    // (into water, KatAM's fall at most: he swims as KatAM's Kirby, its slowing down from 2.5, not his 4.5 into a pit under it);
+    if (kirby->base.unk58 & 2 && kirby->base.yspeed < -KATAM_FALL_MOST) kirby->base.yspeed = -KATAM_FALL_MOST;
+    if (kirby->stateFn == sub_08044FD4) kirby->stateFn = MetalFall;
+    else if (kirby->stateFn == sub_0804464C) kirby->stateFn = MetalRise;
+    // (his steps: walking, KatAM's walk's animation, 11; the byte his ability's own, Mike's uses);
+    if (!(kirby->base.unk62 & 4) || kirby->animationIndex != 11 || kirby->base.xspeed == 0 || kirby->base.unk58 & 2) {
+        *step = 0;
+    } else {
+        if (++*step >= METAL_STEP_FIRST + METAL_STEP_EVERY) *step = METAL_STEP_FIRST;
+        if (*step == METAL_STEP_FIRST) {
+            RequestScreenShake(1, &kirby->base);
+            PlaySfx(&kirby->base, SQUEAK_SE(0xAC));
+        }
+    }
+    gMetalFrameOriginal(kirby);
+}
+
+static void MetalStompStart(struct Kirby *kirby);
+static void MetalStomp(struct Kirby *kirby);
+static void MetalBounce(struct Kirby *kirby);
+static void MetalRollStart(struct Kirby *kirby);
+static void MetalRoll(struct Kirby *kirby);
+static void MetalRollEnd(struct Kirby *kirby);
+
+/* MetalB(); The B button (gNidlAbilityTables' landB; the DS's 0x020CAF44): in the air with Down held, the stomp; else with the scroll,
+ * the roll; else nothing; */
+void MetalB(struct Kirby *kirby) {
+    bool32 stomp = !(kirby->base.unk62 & 4) && kirby->movementState & 0x80;
+
+    if (!stomp && !SqueakScrollOwned(SCROLL_METAL)) return;
+    kirby->idleTimer = 0;
+    kirby->base.flags &= ~2;
+    kirby->base.flags &= ~0x40;
+    Facing(kirby);
+    kirby->animationIndex = NIDL_MOTION_SLOT;
+    if (stomp) {
+        PlaySfx(&kirby->base, SQUEAK_SE(0x16D));
+        StartState(kirby, MetalStompStart);
+    } else {
+        PlaySfx(&kirby->base, SQUEAK_SE(0xAB));
+        StartState(kirby, MetalRollStart);
+    }
+    kirby->stateFn(kirby);
+}
+
+// The stomp's start (0x020CADD0, 0x020CAC54): stopped, 26, then straight down;
+static void MetalStompStart(struct Kirby *kirby) {
+    if (NidlAbilityInWater(kirby)) return;
+    if (kirby->base.counter == 0) Look(kirby, METAL_LOOK_STOMP_START, TRUE);
+    kirby->base.xspeed = kirby->base.yspeed = 0;
+    if (++kirby->base.counter < METAL_STOMP_START_FRAMES) return;
+    kirby->base.yspeed = -METAL_STOMP_FALL;
+    StartState(kirby, MetalStomp);
+    Look(kirby, METAL_LOOK_STOMP, TRUE);
+    MetalBody(kirby, TRUE);
+}
+
+// The stomp (0x020CAA64): 27, down at word 14 till the ground: the quake, the puff, the sound, the bounce;
+static void MetalStomp(struct Kirby *kirby) {
+    if (NidlAbilityInWater(kirby)) return;
+    kirby->base.counter++;
+    kirby->base.xspeed = 0;
+    if (!(kirby->base.unk62 & 4)) {
+        kirby->base.yspeed = -METAL_STOMP_FALL;
+        MetalBody(kirby, TRUE);
+        return;
+    }
+    MetalBody(kirby, FALSE);
+    RequestScreenShake(2, &kirby->base);
+    Puff(kirby, TRUE);
+    PlaySfx(&kirby->base, SQUEAK_SE(0xAD));
+    kirby->base.xspeed = Dir(kirby) * METAL_WALK_MOST;
+    kirby->base.yspeed = METAL_JUMP / 2;
+    kirby->base.flags |= 0x20;
+    StartState(kirby, MetalBounce);
+    Look(kirby, METAL_LOOK_BOUNCE, TRUE);
+}
+
+// The bounce (the DS's jump, 0x7C, 28 shown): its gravity, the pad as in the air; 28 played, KatAM's fall (or standing);
+static void MetalBounce(struct Kirby *kirby) {
+    s16 n = kirby->base.counter++;
+
+    if (NidlAbilityInWater(kirby)) return;
+    if (n > 0 && kirby->base.unk62 & 4 && kirby->base.yspeed <= 0) {
+        kirby->base.flags &= ~0x20;
+        NidlAbilityEnd(kirby);
+        return;
+    }
+    MetalSteer(kirby, TRUE);
+    MetalGravity(kirby);
+    if (n + 1 >= METAL_BOUNCE_FRAMES) NidlAbilityEnd(kirby);
+}
+
+// The roll's start (0x020CA9B8, 0x020CA838): 23 at the speed he had, then efc_cmn0's 18 at his feet and the quake;
+static void MetalRollStart(struct Kirby *kirby) {
+    if (NidlAbilityInWater(kirby)) return;
+    if (kirby->base.counter == 0) Look(kirby, METAL_LOOK_ROLL_START, TRUE);
+    MetalGravity(kirby);
+    if (++kirby->base.counter < METAL_ROLL_START_FRAMES) return;
+    SqueakEffectInRoom(kirby->base.roomId, SQUEAK_FX_KIRBY_DUST, kirby->base.x, kirby->base.y + SCROLL_FEET);
+    RequestScreenShake(1, &kirby->base);
+    StartState(kirby, MetalRoll);
+    Look(kirby, METAL_LOOK_ROLL_SLOW, TRUE);
+}
+
+/* MetalSlope(); The ground under him the way he rolls (KatAM's slope tiles, its collision attribute's top bits: 1-3 rising to the right,
+ * 4-6 falling, 3 and 4 the steep ones, as Roly-Poly's roll reads them, roly_poly.c): 2 steeply down, 1 down, 0 flat, -1 up, -2 steeply up;
+ */
+static s32 MetalSlope(struct Kirby *kirby) {
+    u32 s = gCollisionAttributes[kirby->base.unk57] >> 28;
+    s32 way;
+
+    if (s == 0 || s > 6) return 0;
+    way = (s <= 3) == (Dir(kirby) < 0) ? 1 : -1;
+    return s == 3 || s == 4 ? 2 * way : way;
+}
+
+// The roll (0x020CA4E0): its speed ahead by the ground under him (see above), the air's, a landing's and a wall's; B, its end;
+static void MetalRoll(struct Kirby *kirby) {
+    s16 s = kirby->base.xspeed * Dir(kirby);
+    s32 slope = 0;
+    u8 look;
+
+    if (NidlAbilityInWater(kirby)) return;
+    kirby->base.counter++;
+    if (!(kirby->base.unk62 & 4)) {
+        s = MetalSlow(s, METAL_AIR_SLOW);
+        if (s > METAL_AIR_MOST) s = METAL_AIR_MOST;
+        if (s < -METAL_AIR_MOST) s = -METAL_AIR_MOST;
+        MetalGravity(kirby);
+        look = METAL_LOOK_ROLL_AIR;
+    } else {
+        if (kirby->base.yspeed < 0) {
+            kirby->base.yspeed = 0;
+            RequestScreenShake(1, &kirby->base);
+            PlaySfx(&kirby->base, SQUEAK_SE(0xAC));
+        }
+        if (kirby->base.unk62 & 1 && s > 0) {
+            s = 0;
+            RequestScreenShake(2, &kirby->base);
+            PlaySfx(&kirby->base, SQUEAK_SE(0xAC));
+        }
+        slope = MetalSlope(kirby);
+        if (slope > 0) {
+            s += slope > 1 ? METAL_ROLL_DOWN_STEEP : METAL_ROLL_DOWN;
+            if (s > METAL_ROLL_MOST) s = METAL_ROLL_MOST;
+        } else if (slope < 0) {
+            s -= slope < -1 ? METAL_ROLL_UP_STEEP : METAL_ROLL_UP;
+        } else {
+            s = MetalSlow(s, METAL_ROLL_FLAT);
+        }
+        look = slope != 0 || s > METAL_ROLL_FAST ? METAL_LOOK_ROLL : METAL_LOOK_ROLL_SLOW;
+    }
+    // (rolling back: turned round, the DS's 0x020CA4E0's TurnAround);
+    if (s < 0) {
+        kirby->base.flags ^= 1;
+        s = -s;
+    }
+    kirby->base.xspeed = s * Dir(kirby);
+    Look(kirby, look, FALSE);
+    MetalBody(kirby, look != METAL_LOOK_ROLL_SLOW);
+    if (!(kirby->unk11A & 2)) return;
+    PlaySfx(&kirby->base, SQUEAK_SE(0xAC));
+    MetalBody(kirby, FALSE);
+    StartState(kirby, MetalRollEnd);
+    Look(kirby, METAL_LOOK_ROLL_END, TRUE);
+}
+
+// The roll's end (0x020CA3F8): 25, slowing as on flat ground, then standing (or falling);
+static void MetalRollEnd(struct Kirby *kirby) {
+    if (NidlAbilityInWater(kirby)) return;
+    if (kirby->base.unk62 & 4) kirby->base.xspeed = MetalSlow(kirby->base.xspeed, METAL_ROLL_FLAT);
+    MetalGravity(kirby);
+    if (++kirby->base.counter < METAL_ROLL_END_FRAMES) return;
+    if (kirby->base.unk62 & 4) kirby->base.flags &= ~0x20;
+    else kirby->base.flags |= 0x20;
+    NidlAbilityEnd(kirby);
 }
 
 /* SqueakAbilityInput(); Each Kirby's input read (scrolls.c's ScrollKirbyInput): Ninja's moves no button starts: onto a wall (the DS's
