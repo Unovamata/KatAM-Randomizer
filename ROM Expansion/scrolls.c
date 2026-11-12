@@ -33,6 +33,7 @@ enum {
     SCROLL_TORNADO,
     SCROLL_PARASOL,
     SCROLL_CUTTER = 8,
+    SCROLL_LASER,
     SCROLL_SLEEP = 14,
 };
 
@@ -84,8 +85,9 @@ void ScrollBreath(struct Kirby *kirby) {
 #define SPARK_BALL_MARGIN 48                // Pixels round the screen the ball goes out of to end;
 #define SCROLL_FEET 0x800                    // The DS's origin, Kirby's feet: 8 pixels under KatAM's;
 #define SCROLL_FX_ROOM 48                    // squeak.c's SQUEAK_FX_ROOM: tiles left for KatAM's own effects;
-#define SCROLL_LOOKS 3
+#define SCROLL_LOOKS 5
 #define SCROLL_NO_LOOK 0xFF
+#define SCROLL_BEHIND_KIRBYS 0x14             // A sprite's order behind every Kirby's (theirs 0x10 + unk56, KatAM's effects' 0xA);
 #define SPARK_D_PAD 0xF0
 #define SPARK_KNOCK 0xA0                    // KatAM's spark's hit (sub_08074AB0's unk64 and unk68);
 #define SPARK_HIT 0xA0000403
@@ -105,7 +107,7 @@ struct SparkCharge {
     u8 glint;                   // +0x3AC;
 };
 
-enum { SPARK_AURA, SPARK_BURST, SPARK_BALL, BEAM_WHIP, TORNADO_ELEMENT, PARASOL_THRUST, CUTTER_BLADE };
+enum { SPARK_AURA, SPARK_BURST, SPARK_BALL, BEAM_WHIP, TORNADO_ELEMENT, PARASOL_THRUST, CUTTER_BLADE, LASER_CHARGE, LASER_BOLT };
 
 // ScrollLook; One of a piece's looks: an effect's animation (squeak.h's SQUEAK_FX_*), `dx` pixels forward and `dy` under the piece
 // (the DS's composite's part: its offset);
@@ -132,6 +134,9 @@ struct ScrollPiece {
 
 static void SparkChargeMain(void);
 static struct ScrollPiece *ScrollPieceCreate(struct Kirby *kirby, u8 kind, u8 level, s16 knock, u32 hitKind);
+static bool32 CutterStep(struct ScrollPiece *p);
+static bool32 LaserStep(struct ScrollPiece *p);
+static bool32 BoltStep(struct ScrollPiece *p);
 
 // ChargeOf(); A Kirby's SparkCharge (SPARK_SLOT: its task's number + 1, checked), made with `create`; NULL: none;
 static struct SparkCharge *ChargeOf(struct Kirby *kirby, bool32 create) {
@@ -173,8 +178,9 @@ static void LookEnd(struct ScrollLook *l) {
     l->effect = SCROLL_NO_LOOK;
 }
 
-// LookStart(); A look playing an effect from its first step (none when KatAM's sprite heap can't hold it, as squeak.c's effects);
-static void LookStart(struct ScrollPiece *p, u8 i, u8 effect, s8 dx, s8 dy) {
+/* LookStartAt(); A look playing an effect from its first step (none when KatAM's sprite heap can't hold it, as squeak.c's effects),
+ * its sprite's order `order` (KatAM's effects' 0xA, in front of the Kirbys: SCROLL_BEHIND_KIRBYS, behind them); */
+static void LookStartAt(struct ScrollPiece *p, u8 i, u8 effect, s8 dx, s8 dy, u16 order) {
     struct ScrollLook *l = &p->look[i];
     const struct SqueakEffect *d = &gSqueakData.effects[effect];
     u16 cell = d->anim.step[0].cell;
@@ -190,8 +196,13 @@ static void LookStart(struct ScrollPiece *p, u8 i, u8 effect, s8 dx, s8 dy) {
     l->dx = dx;
     l->dy = dy;
     l->palId = SqueakLoadPalette(d->palette.key, d->palette.variant, p->base.roomId);
-    EffectObjectInitSprite(&l->e, &l->e.sprite, d->tiles, d->animId, cell == SQUEAK_FX_HIDDEN ? 0 : cell, 0xA);
+    EffectObjectInitSprite(&l->e, &l->e.sprite, d->tiles, d->animId, cell == SQUEAK_FX_HIDDEN ? 0 : cell, order);
     if (SqueakVramOk(l->e.sprite.tilesVram)) l->effect = effect;
+}
+
+// LookStart(); A look in front of the Kirbys (KatAM's effects' order);
+static void LookStart(struct ScrollPiece *p, u8 i, u8 effect, s8 dx, s8 dy) {
+    LookStartAt(p, i, effect, dx, dy, 0xA);
 }
 
 // LookDraw(); A look's step where its piece is, facing as it;
@@ -598,6 +609,7 @@ static void ScrollPieceMain(void) {
     if (ObjectPreUpdate(&p->base)) return;
     alive = p->kind == SPARK_AURA ? AuraStep(p) : p->kind == SPARK_BALL ? BallStep(p) : p->kind == BEAM_WHIP ? BeamStep(p)
           : p->kind == TORNADO_ELEMENT ? TornadoStep(p) : p->kind == PARASOL_THRUST ? ParasolStep(p) : p->kind == CUTTER_BLADE ? CutterStep(p)
+          : p->kind == LASER_CHARGE ? LaserStep(p) : p->kind == LASER_BOLT ? BoltStep(p)
           : BurstStep(p);
     if (!alive) return;
     for (i = 0; i < SCROLL_LOOKS; i++) LookDraw(p, &p->look[i]);
@@ -759,6 +771,175 @@ void ScrollCutterThrow(struct Kirby *kirby) {
     }
 }
 
+/* Laser. The DS's Laser Kirby's attack (0x0209A0C0: laser_ext's 25, then 0x02099FB0: the shot, the object 0x020373F8, laser_ext's
+ * 21-23, its .rca's boxes of 20, sound 0x95, and Kirby's composite 0, 15 frames, 0x02099E94); with the scroll (HasScroll 9), B still
+ * held as composite 0 ends: the charge (0x02099D00: composite 1, laser_ext's 33-36, sparkles closing in on the gun at (6, -11), and
+ * the DS's Kirby, flat, 30 and 31; sound 0x138 every 5 frames), charged past 29 frames (composite 2: and 32, an orb flashing blue and
+ * gold at (0, -8)). B let go: not charged, the end; charged, composite 3 (0x02099BF0: 38 and 39, sparkles at (5, -18), and his 37:
+ * 6 frames), then the charged shot (the same object, its type 1: laser_ext's 42-44, a thicker bolt, its boxes of 30 for 20, as big;
+ * sound 0x95) and composite 4 (0x02099B78: 41, a flash, 28, a ring bursting, and his 40: 20 frames), then the end.
+ * In KatAM, with the scroll: KatAM's laser (sub_0806A520: the start-up sub_08063E50, its shot sub_0807BCE0, then sub_08063F74, which
+ * ends past its counter's 8), B still held as it ends, is held there (the counter) while he charges, KatAM's Kirby drawn as he is
+ * (his laser pose), the DS's sparkles about him, its sound, its orb once charged; let go charged, its sparkles for 6 frames, then
+ * KatAM's shot (its flight, its turns on slopes, its box, its sound), its strength the DS's charged one (KatAM's laser's 2 for the DS's
+ * 20: 30 is 3), drawn as the DS's charged bolt (KatAM's own not drawn), the flash and ring about him for 20 frames; then the end. The
+ * charge is a piece (LASER_CHARGE: LASER_SLOT, his ability's byte as Spark's) worked from his input each frame (ScrollKirbyInput); */
+extern void sub_08063F74(struct Kirby *kirby);
+#define LASER_SLOT(kirby) NIDL_MIKE_USES(kirby)
+#define LASER_HIT 0x20000103                // KatAM's laser's hit (sub_0807BCE0's unk68);
+#define LASER_SHOT_END 8                    // sub_08063F74 ends past its counter's 8;
+#define LASER_CHARGED 30                    // 0x02099D00: past 29 frames (its timer from 0);
+#define LASER_HUM 5                         // its sound 0x138, each 5 frames from the first;
+#define LASER_LET_GO_FRAMES 6               // composite 3's (laser_ext's 37: 6 frames);
+#define LASER_RECOIL_FRAMES 20              // composite 4's (40: 20 frames);
+#define LASER_STRENGTH 3                    // The charged shot's (sub_0807BCE0's unk63, 2, for the DS's 20: its 30);
+#define LASER_SHOTS_MOST 4                  // (his shots in flight at once, looked for);
+#define B_HELD 2                            // (movementState's B);
+enum { LASER_CHARGING, LASER_LET_GO, LASER_RECOIL };
+
+// IsKirbyShot(); A task of a Kirby's thrown cutter or laser shot (KatAM's sub_08070580 objects, by their hit);
+static bool32 IsKirbyShot(struct Task *t, struct Kirby *kirby, u32 hit) {
+    struct ObjectBase *o;
+
+    if (t->main != sub_08070580) return FALSE;
+    o = TaskGetStructPtr(t);
+    return o->parent == kirby && o->unk68 == hit && !(o->flags & 0x1000);
+}
+
+// TaskNumberOf(); A piece's task's number + 1 (0: none);
+static u8 TaskNumberOf(struct ScrollPiece *p) {
+    u8 i;
+
+    for (i = 0; i < MAX_TASK_NUM; i++)
+        if (gTasks[i].main == ScrollPieceMain && TaskGetStructPtr(&gTasks[i]) == p) return i + 1;
+    return 0;
+}
+
+// LaserOf(); A Kirby's charge (LASER_SLOT: its task's number + 1, checked); NULL: none;
+static struct ScrollPiece *LaserOf(struct Kirby *kirby) {
+    u8 slot = LASER_SLOT(kirby);
+    struct ScrollPiece *p;
+
+    if (slot == 0 || slot > MAX_TASK_NUM || gTasks[slot - 1].main != ScrollPieceMain) return NULL;
+    p = TaskGetStructPtr(&gTasks[slot - 1]);
+    return p->kind == LASER_CHARGE && p->kirby == kirby && !(p->base.flags & 0x1000) ? p : NULL;
+}
+
+// LaserLooks(); The charge's looks for a phase (the DS's composites' parts but its Kirby's);
+static void LaserLooks(struct ScrollPiece *p, u8 phase) {
+    u8 i;
+
+    for (i = 0; i < SCROLL_LOOKS; i++) LookEnd(&p->look[i]);
+    if (phase == LASER_CHARGING) {
+        for (i = 0; i < 4; i++) LookStart(p, i, SQUEAK_FX_LASER_SPARKLE_A + i, 6, -11);
+    } else if (phase == LASER_LET_GO) {
+        LookStart(p, 0, SQUEAK_FX_LASER_GLINT_A, 5, -18);
+        LookStart(p, 1, SQUEAK_FX_LASER_GLINT_B, 5, -18);
+    } else {
+        LookStart(p, 0, SQUEAK_FX_LASER_FLASH, 0, 0);
+        LookStart(p, 1, SQUEAK_FX_LASER_RING, 0, 0);
+    }
+    p->level = phase;
+    p->base.counter = 0;
+}
+
+// LaserStep(); The charge: at his feet, facing as he does; gone once he's out of his laser's state (hurt, the water...);
+static bool32 LaserStep(struct ScrollPiece *p) {
+    struct Kirby *kirby = p->kirby;
+
+    if (kirby->ability != KIRBY_ABILITY_LASER || kirby->stateFn != sub_08063F74 || kirby->base.roomId != p->base.roomId) {
+        p->base.flags |= 0x1000;
+        return FALSE;
+    }
+    Follow(p);
+    return TRUE;
+}
+
+// BoltStep(); The DS's charged bolt drawn where KatAM's shot flies, across, up or down as it goes (KatAM's not drawn); gone with it;
+static bool32 BoltStep(struct ScrollPiece *p) {
+    struct ObjectBase *shot = p->other && p->other->main == sub_08070580 ? TaskGetStructPtr(p->other) : NULL;
+    u8 look;
+
+    if (shot == NULL || shot->parent != p->kirby || shot->flags & 0x1000 || shot->unk68 != LASER_HIT) {
+        p->base.flags |= 0x1000;
+        return FALSE;
+    }
+    p->base.x = shot->x;
+    p->base.y = shot->y;
+    p->base.roomId = shot->roomId;
+    p->base.flags = (p->base.flags & ~1) | (shot->flags & 1);
+    shot->flags |= 0x400;
+    // (KatAM's speeds: y up);
+    look = shot->xspeed != 0 ? SQUEAK_FX_LASER_BOLT : shot->yspeed > 0 ? SQUEAK_FX_LASER_BOLT_UP : SQUEAK_FX_LASER_BOLT_DOWN;
+    if (p->look[0].effect != look) LookStart(p, 0, look, 0, 0);
+    return TRUE;
+}
+
+// LaserShoot(); KatAM's shot, charged: its strength, the DS's bolt following it;
+static void LaserShoot(struct Kirby *kirby) {
+    struct Task *before[LASER_SHOTS_MOST];
+    struct ScrollPiece *b;
+    u8 i, j, n = 0;
+
+    for (i = 0; i < MAX_TASK_NUM && n < LASER_SHOTS_MOST; i++)
+        if (IsKirbyShot(&gTasks[i], kirby, LASER_HIT)) before[n++] = &gTasks[i];
+    sub_0807BCE0(kirby);
+    for (i = 0; i < MAX_TASK_NUM; i++) {
+        struct Task *t = &gTasks[i];
+
+        if (!IsKirbyShot(t, kirby, LASER_HIT)) continue;
+        for (j = 0; j < n && before[j] != t; j++) ;
+        if (j < n) continue;
+        ((struct ObjectBase *)TaskGetStructPtr(t))->unk63 = LASER_STRENGTH;
+        if ((b = ScrollPieceCreate(kirby, LASER_BOLT, 0, 0, 0)) == NULL) return;
+        b->other = t;
+        BoltStep(b);
+        return;
+    }
+}
+
+// LaserCharging(); The DS's 0x02099E94-0x02099B78 (see above), each frame, after his input's read, before his state;
+static void LaserCharging(struct Kirby *kirby) {
+    struct ScrollPiece *p = LaserOf(kirby);
+    bool32 held = (kirby->movementState & B_HELD) != 0;
+
+    if (p == NULL) {
+        if (kirby->stateFn != sub_08063F74 || kirby->base.counter <= LASER_SHOT_END || !held) return;
+        if ((p = ScrollPieceCreate(kirby, LASER_CHARGE, LASER_CHARGING, 0, 0)) == NULL) return;
+        LASER_SLOT(kirby) = TaskNumberOf(p);
+        LaserLooks(p, LASER_CHARGING);
+    }
+    if (kirby->stateFn != sub_08063F74) {
+        p->base.flags |= 0x1000;
+        return;
+    }
+    if (p->level == LASER_CHARGING) {
+        if (p->base.counter == LASER_CHARGED) {
+            // (the DS's composite 2 draws it under its Kirby: its last part);
+            LookStartAt(p, 4, SQUEAK_FX_LASER_ORB, 0, -8, SCROLL_BEHIND_KIRBYS);
+        }
+        if (!held) {
+            if (p->base.counter < LASER_CHARGED) {
+                // (let go before it's charged: his laser ends, this frame);
+                p->base.flags |= 0x1000;
+                return;
+            }
+            LaserLooks(p, LASER_LET_GO);
+        } else if (p->base.counter % LASER_HUM == 0) {
+            PlaySfx(&kirby->base, SQUEAK_SE(0x138));
+        }
+    } else if (p->level == LASER_LET_GO && p->base.counter >= LASER_LET_GO_FRAMES) {
+        LaserShoot(kirby);
+        LaserLooks(p, LASER_RECOIL);
+    } else if (p->level == LASER_RECOIL && p->base.counter >= LASER_RECOIL_FRAMES) {
+        p->base.flags |= 0x1000;
+        return;
+    }
+    // (his laser's state held: it ends past LASER_SHOT_END);
+    kirby->base.counter = LASER_SHOT_END;
+    p->base.counter++;
+}
+
 /* Sleep. The DS's (0x020BF294, each frame of his sleep): with the scroll (HasScroll 14) he gets better while he sleeps,
  * prmKirbySleep.kgb's word 1 (10) added a frame and a hit point each time it makes word 0 (180): one each 18 frames; A or B pressed
  * cuts his sleep by 2 frames, sound 0xA9 (the DS's own, scroll or not: KatAM's sleep has no such thing, so it comes with the scroll).
@@ -797,6 +978,7 @@ void ScrollKirbyInput(struct Kirby *kirby) {
     gScrollInputOriginal(kirby);
     if (kirby->ability == KIRBY_ABILITY_SPARK && SqueakScrollOwned(SCROLL_SPARK)) SparkCharging(kirby);
     if (kirby->ability == KIRBY_ABILITY_SLEEP && SqueakScrollOwned(SCROLL_SLEEP)) SleepHealing(kirby);
+    if (kirby->ability == KIRBY_ABILITY_LASER && SqueakScrollOwned(SCROLL_LASER)) LaserCharging(kirby);
 }
 
 /* ScrollSparkAttack(); sub_08074AB0 (detoured): KatAM's spark attack starts; with the scroll, by the level: 0 KatAM's; 1 and 2 the

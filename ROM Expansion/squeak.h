@@ -349,6 +349,21 @@ enum {
     SQUEAK_FX_PARASOL_STARS,    // The Parasol scroll's stars (scrolls.c): kirby/parasol_ext's composite 2, its parts 0-14;
     SQUEAK_FX_CUTTER_SPARKLES,  // The Cutter scroll's cutter (scrolls.c): kirby/cutter_ext's 27 (its sparkles) and 25 (its blade);
     SQUEAK_FX_CUTTER_BLADE,
+    // The Laser scroll's charge (scrolls.c): kirby/laser_ext's 33-36 (composite 1's sparkles, closing in on the gun), 32 (composite
+    // 2's orb, charged), 38 and 39 (composite 3's sparkles, let go), 41 and 28 (composite 4's flash and ring), 42-44 (the charged
+    // shot: across, up, down);
+    SQUEAK_FX_LASER_SPARKLE_A,
+    SQUEAK_FX_LASER_SPARKLE_B,
+    SQUEAK_FX_LASER_SPARKLE_C,
+    SQUEAK_FX_LASER_SPARKLE_D,
+    SQUEAK_FX_LASER_ORB,
+    SQUEAK_FX_LASER_GLINT_A,
+    SQUEAK_FX_LASER_GLINT_B,
+    SQUEAK_FX_LASER_FLASH,
+    SQUEAK_FX_LASER_RING,
+    SQUEAK_FX_LASER_BOLT,
+    SQUEAK_FX_LASER_BOLT_UP,
+    SQUEAK_FX_LASER_BOLT_DOWN,
     SQUEAK_FX_COUNT,
 };
 
