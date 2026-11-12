@@ -35,7 +35,8 @@ enum {
     SCROLL_PARASOL,
     SCROLL_CUTTER = 8,
     SCROLL_LASER,
-    SCROLL_UFO = 13,
+    SCROLL_HI_JUMP = 12,
+    SCROLL_UFO,
     SCROLL_SLEEP = 14,
 };
 
@@ -109,7 +110,7 @@ struct SparkCharge {
     u8 glint;                   // +0x3AC;
 };
 
-enum { SPARK_AURA, SPARK_BURST, SPARK_BALL, BEAM_WHIP, TORNADO_ELEMENT, PARASOL_THRUST, CUTTER_BLADE, LASER_CHARGE, LASER_BOLT, UFO_STAR };
+enum { SPARK_AURA, SPARK_BURST, SPARK_BALL, BEAM_WHIP, TORNADO_ELEMENT, PARASOL_THRUST, CUTTER_BLADE, LASER_CHARGE, LASER_BOLT, UFO_STAR, HI_JUMP_ORB };
 
 // ScrollLook; One of a piece's looks: an effect's animation (squeak.h's SQUEAK_FX_*), `dx` pixels forward and `dy` under the piece
 // (the DS's composite's part: its offset);
@@ -140,6 +141,7 @@ static bool32 CutterStep(struct ScrollPiece *p);
 static bool32 LaserStep(struct ScrollPiece *p);
 static bool32 BoltStep(struct ScrollPiece *p);
 static bool32 StarStep(struct ScrollPiece *p);
+static bool32 OrbStep(struct ScrollPiece *p);
 
 // ChargeOf(); A Kirby's SparkCharge (SPARK_SLOT: its task's number + 1, checked), made with `create`; NULL: none;
 static struct SparkCharge *ChargeOf(struct Kirby *kirby, bool32 create) {
@@ -612,7 +614,7 @@ static void ScrollPieceMain(void) {
     if (ObjectPreUpdate(&p->base)) return;
     alive = p->kind == SPARK_AURA ? AuraStep(p) : p->kind == SPARK_BALL ? BallStep(p) : p->kind == BEAM_WHIP ? BeamStep(p)
           : p->kind == TORNADO_ELEMENT ? TornadoStep(p) : p->kind == PARASOL_THRUST ? ParasolStep(p) : p->kind == CUTTER_BLADE ? CutterStep(p)
-          : p->kind == LASER_CHARGE ? LaserStep(p) : p->kind == LASER_BOLT ? BoltStep(p) : p->kind == UFO_STAR ? StarStep(p)
+          : p->kind == LASER_CHARGE ? LaserStep(p) : p->kind == LASER_BOLT ? BoltStep(p) : p->kind == UFO_STAR ? StarStep(p) : p->kind == HI_JUMP_ORB ? OrbStep(p)
           : BurstStep(p);
     if (!alive) return;
     for (i = 0; i < SCROLL_LOOKS; i++) LookDraw(p, &p->look[i]);
@@ -780,12 +782,13 @@ void ScrollCutterThrow(struct Kirby *kirby) {
  * the DS's Kirby, flat, 30 and 31; sound 0x138 every 5 frames), charged past 29 frames (composite 2: and 32, an orb flashing blue and
  * gold at (0, -8)). B let go: not charged, the end; charged, composite 3 (0x02099BF0: 38 and 39, sparkles at (5, -18), and his 37:
  * 6 frames), then the charged shot (the same object, its type 1: laser_ext's 42-44, a thicker bolt, its boxes of 30 for 20, as big;
- * sound 0x95) and composite 4 (0x02099B78: 41, a flash, 28, a ring bursting, and his 40: 20 frames), then the end.
+ * sound 0x95; through enemies: its hit 0x02037280 ends only the plain shot, type 0) and composite 4 (0x02099B78: 41, a flash, 28, a ring bursting, and his 40: 20 frames), then the end.
  * In KatAM, with the scroll: KatAM's laser (sub_0806A520: the start-up sub_08063E50, its shot sub_0807BCE0, then sub_08063F74, which
  * ends past its counter's 8), B still held as it ends, is held there (the counter) while he charges, KatAM's Kirby drawn as he is
  * (his laser pose), the DS's sparkles about him, its sound, its orb once charged; let go charged, its sparkles for 6 frames, then
  * KatAM's shot (its flight, its turns on slopes, its box, its sound), its strength the DS's charged one (KatAM's laser's 2 for the DS's
- * 20: 30 is 3), drawn as the DS's charged bolt (KatAM's own not drawn), the flash and ring about him for 20 frames; then the end. The
+ * 20: 30 is 3), through enemies (its hit, unk7C, ChargedShotHit: KatAM's own burst and end only on terrain), drawn as the DS's charged
+ * bolt (KatAM's own not drawn), the flash and ring about him for 20 frames; then the end. The
  * charge is a piece (LASER_CHARGE: LASER_SLOT, his ability's byte as Spark's) worked from his input each frame (ScrollKirbyInput); */
 extern void sub_08063F74(struct Kirby *kirby);
 #define LASER_SLOT(kirby) NIDL_MIKE_USES(kirby)
@@ -878,7 +881,20 @@ static bool32 BoltStep(struct ScrollPiece *p) {
     return TRUE;
 }
 
-// LaserShoot(); KatAM's shot, charged: its strength, the DS's bolt following it;
+/* ChargedShotHit(); The charged shot's hit (its unk7C, sub_08070580's on its flags 0x40000 or 0x80000): an enemy hit (0x40000 without
+ * the terrain's 0x800, sub_0807C1A0's) goes on through, as KatAM's own sub_08084C34 lets a shot; else KatAM's laser's (sub_08084BD8:
+ * its burst, 0x28C, and the end); */
+static bool8 ChargedShotHit(struct Unk_080C4EDC *shot) {
+    if ((shot->base.flags & (0x40000 | 0x80000 | 0x800)) == 0x40000) {
+        shot->base.flags &= ~0x40000;
+        return FALSE;
+    }
+    CreateEffectObject(&shot->base, 0, 0x28C, 2);
+    shot->base.flags |= 0x1000;
+    return TRUE;
+}
+
+// LaserShoot(); KatAM's shot, charged: its strength, through enemies, the DS's bolt following it;
 static void LaserShoot(struct Kirby *kirby) {
     struct Task *before[LASER_SHOTS_MOST];
     struct ScrollPiece *b;
@@ -894,6 +910,7 @@ static void LaserShoot(struct Kirby *kirby) {
         for (j = 0; j < n && before[j] != t; j++) ;
         if (j < n) continue;
         ((struct ObjectBase *)TaskGetStructPtr(t))->unk63 = LASER_STRENGTH;
+        ((struct Unk_080C4EDC *)TaskGetStructPtr(t))->unk7C = ChargedShotHit;
         if ((b = ScrollPieceCreate(kirby, LASER_BOLT, 0, 0, 0)) == NULL) return;
         b->other = t;
         BoltStep(b);
@@ -1020,6 +1037,49 @@ static void UfoStar(struct Kirby *kirby) {
     StarStep(p);
 }
 
+/* Hi-Jump. The DS's Hi-Jump Kirby's rise (0x020BF8E8, each frame: highjump_ext.mca's anims 12-16, composites 9-13, by how fast he
+ * goes sideways; their boxes, .rca 26-30, his body's, of 20, stopping at what he hits (the body record's flags 0x10); with the scroll
+ * (HasScroll 12) anims 17-21, composites 16-20: the same, and part 37 under him (its last part) at (0, -9), an orange glow 48 pixels
+ * across about him, flickering every other frame (anim 37); their boxes, .rca 31-35, the same of 20, but going on through what he hits
+ * (flags 0x30: the 0x20 the Laser scroll's charged shot has too, whose hit, 0x02037280, ends only the plain shot).
+ * In KatAM, with the scroll: KatAM's Hi-Jump (NiDL's, abilities/hi_jump.c) already goes on through what it hits the whole rise; the
+ * scroll's glow is drawn about him behind the Kirbys while he rises (HiJumpRiseNow), a piece (HI_JUMP_ORB) made from his input; */
+#define HI_JUMP_ORB_Y (-9)
+
+// OrbOf(); A Kirby's glow (the pieces looked through: Hi-Jump Kirby's ability byte is his fall's, HI_JUMP_LONG_FALL); NULL: none;
+static struct ScrollPiece *OrbOf(struct Kirby *kirby) {
+    u8 i;
+
+    for (i = 0; i < MAX_TASK_NUM; i++) {
+        struct ScrollPiece *p;
+
+        if (gTasks[i].main != ScrollPieceMain) continue;
+        p = TaskGetStructPtr(&gTasks[i]);
+        if (p->kind == HI_JUMP_ORB && p->kirby == kirby && !(p->base.flags & 0x1000)) return p;
+    }
+    return NULL;
+}
+
+// OrbStep(); The glow about him while he rises, gone after;
+static bool32 OrbStep(struct ScrollPiece *p) {
+    struct Kirby *kirby = p->kirby;
+
+    if (kirby->ability != NIDL_ABILITY_HI_JUMP || !HiJumpRiseNow(kirby) || kirby->base.roomId != p->base.roomId) {
+        p->base.flags |= 0x1000;
+        return FALSE;
+    }
+    Follow(p);
+    return TRUE;
+}
+
+// HiJumpOrb(); Each frame, after his input's read: the glow made as his rise starts;
+static void HiJumpOrb(struct Kirby *kirby) {
+    struct ScrollPiece *p;
+
+    if (!HiJumpRiseNow(kirby) || OrbOf(kirby) != NULL || (p = ScrollPieceCreate(kirby, HI_JUMP_ORB, 0, 0, 0)) == NULL) return;
+    LookStartAt(p, 0, SQUEAK_FX_HI_JUMP_ORB, 0, HI_JUMP_ORB_Y, SCROLL_BEHIND_KIRBYS);
+}
+
 /* Sleep. The DS's (0x020BF294, each frame of his sleep): with the scroll (HasScroll 14) he gets better while he sleeps,
  * prmKirbySleep.kgb's word 1 (10) added a frame and a hit point each time it makes word 0 (180): one each 18 frames; A or B pressed
  * cuts his sleep by 2 frames, sound 0xA9 (the DS's own, scroll or not: KatAM's sleep has no such thing, so it comes with the scroll).
@@ -1060,6 +1120,7 @@ void ScrollKirbyInput(struct Kirby *kirby) {
     if (kirby->ability == KIRBY_ABILITY_SLEEP && SqueakScrollOwned(SCROLL_SLEEP)) SleepHealing(kirby);
     if (kirby->ability == KIRBY_ABILITY_LASER && SqueakScrollOwned(SCROLL_LASER)) LaserCharging(kirby);
     if (kirby->ability == KIRBY_ABILITY_UFO && SqueakScrollOwned(SCROLL_UFO)) UfoStar(kirby);
+    if (kirby->ability == NIDL_ABILITY_HI_JUMP && SqueakScrollOwned(SCROLL_HI_JUMP)) HiJumpOrb(kirby);
 }
 
 /* ScrollSparkAttack(); sub_08074AB0 (detoured): KatAM's spark attack starts; with the scroll, by the level: 0 KatAM's; 1 and 2 the

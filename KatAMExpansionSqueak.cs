@@ -833,6 +833,9 @@ namespace KatAMRandomizer {
             new SqueakEffect(52, "kirby/laser_ext", 44),
             // The UFO scroll's star ("ROM Expansion/scrolls.c": ufo_ext's 36, the sparkling star circling UFO Kirby, 0x020BB85C);
             new SqueakEffect(53, "kirby/ufo_ext", 36),
+            /* The Hi-Jump scroll's orb ("ROM Expansion/scrolls.c": highjump_ext.mca's composites 16-20's part 37, an orange glow about
+             * Kirby flickering every other frame as he rises; its empty cell 0 as nothing); */
+            new SqueakEffect(54, "kirby/highjump_ext", 37, Skip: new[] { 0 }),
         };
 
         /* SqueakFlatten(); A composite animation's parts (`parts`: the composition's indices; all when null) drawn together as one
