@@ -15,6 +15,7 @@ namespace KatAMRandomizer {
          * • Tornado's attack as it starts (sub_0807A10C, detoured): ScrollTornadoStart, the piece giving it an element;
          * • Parasol's twirl's attack as it starts (sub_08084188, detoured): ScrollParasolTwirl, the piece of the DS's stars and boxes;
          * • Cutter's throw (sub_08078EFC, detoured): ScrollCutterThrow, the cutter drawn as the DS's upgraded one, its box grown;
+         * • Cupid's shot (sub_080680C0, detoured): ScrollCupidShot, the DS's volley of three in its arrows' place;
          * the detoured functions' trampolines (running them as they were) in gScroll*Original. Returns an error, or null; */
         static string AddScrollUpgrades(byte[] rom, KatAMExpansionCode.Version version, ref int cursor) {
             int codeBase = CodeAddress + 0x08000000;
@@ -41,6 +42,9 @@ namespace KatAMRandomizer {
             int cutter = Detour(rom, version.RomSymbols["sub_08078EFC"], codeBase + version.CodeSymbols["ScrollCutterThrow"], ref cursor);
             if (cutter < 0) return $"The {version.Name} ROM's cutter code doesn't match.";
             WriteInt(rom, CodeAddress + version.CodeSymbols["gScrollCutterOriginal"], cutter + 0x08000000 + 1);
+            int cupid = Detour(rom, version.RomSymbols["sub_080680C0"], codeBase + version.CodeSymbols["ScrollCupidShot"], ref cursor);
+            if (cupid < 0) return $"The {version.Name} ROM's cupid code doesn't match.";
+            WriteInt(rom, CodeAddress + version.CodeSymbols["gScrollCupidOriginal"], cupid + 0x08000000 + 1);
             return null;
         }
     }
