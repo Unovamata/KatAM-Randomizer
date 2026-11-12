@@ -1249,6 +1249,26 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
       look at 30 frames, its third at 120, the blast taking 6 HP (KatAM's 1 HP attack), Kirby's HP kept (5); without the scroll,
       the big wave (4 HP), the aura's third never shown. The Hammer scroll's giant swing and the save hooks (a new game saved,
       then continued from the file select) were run again after the trampoline change. The sounds weren't listened to.
+    - Throw: the DS's grab (0x020C0E00, each frame of the lunge; once Kirby holds something, his `+0x14`'s 8) makes a 0x134-byte
+      object (0x020C0938, 0x020C0890: the held one kept at its `+0x130` and carried at its spot, thrown with it: its flight
+      0x020C0054 and its bounce 0x020BFFFC, gone 12 frames after, sound 0x135, as KatAM's thrown enemy) whose look is a 10-frame
+      flash at the grab (0x020C0568: throw_ext's 43, a blue ball bursting into stars). With the scroll (HasScroll 18) its type is
+      4-7 by the held one's element (its `+0x10`, which the enemy factory 0x0202467C sets after making it: Hot Head, Flamer, Acchi 1,
+      fire; Pengy 2, water; Sparky, Laser Ball, UFO 3, electric; any other 0; 0x02012E84's numbering), its look throw_ext.mca's
+      composite 1-4 (42, a ring of stars 8 pixels up, with 32-35: the ball in the element's colors, none purple, fire orange, water
+      cyan, electric green, palette 2 or 1, the stars 6). Nothing else reads the type (only 0x020C0568 and the constructor touch
+      `+0x12C`): the throw, its flight and its hit (.rca's 22 and 23: 30, kind 0) are the same with the scroll or without. KatAM's
+      grab (`sub_0807A7E8`, the thrown object made from what Kirby holds, `sub_0809C48C`) shows no flash, so the DS's base one isn't
+      kept. Ported (`scrolls.c`'s Throw): with the scroll, the grab (detoured) makes a piece (`THROW_FLASH`) showing the upgrade's
+      element flash (SQUEAK_FX_THROW_*: each composite as its ball and its stars) on what he holds, centered on it and following
+      it, for its 10 frames; the element by the same enemies (KatAM's types `OBJ_HOT_HEAD`, `OBJ_FLAMER`, `OBJ_PENGY`,
+      `OBJ_SPARKY`, `OBJ_LASER_BALL`, `OBJ_UFO`; Squeak Squad's Acchi), not by the ability they give (the DS's Chilly, an Ice
+      enemy, has none). Tested in the emulator (room 0x65, USA, EU and JP; Throw and the scroll given by RAM writes, the Sparky put
+      28 pixels ahead of Kirby by RAM writes, and for the others its type byte rewritten to Hot Head, Pengy or Waddle Doo as it
+      was inhaled): B held, the Sparky pulled in and grabbed at the same frame as without the scroll, the green flash on it for 10
+      frames (the ball, then the burst and the stars), the orange, cyan and purple ones for the others; the throw after it
+      unchanged; without the scroll, KatAM's grab and throw frame for frame the same, no flash. Not tested: the Squeak Squad
+      Acchi's, and grabbing an effect object (`sub_0807A7E8`'s other caller: none, the purple flash).
   - **The Secret Map's pieces** (treasures 93-99, taken as pieces 1-7 in order: not checked against the DS): each in its own chest
     (2-6-6, 3-3-7, 4-4-5, 5-4-5, 6-6-5, 7-6-9, 8-2-6), marked `chest[0x16]` the piece's number + 1 and `chest[0x17]` 2 (the area
     maps' mark is 1), the item one of KatAM's maps. Their art is `collection/map`: anims 0-6 the pieces (parchment, about 60 x 50
