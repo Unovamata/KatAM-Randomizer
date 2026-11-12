@@ -45,6 +45,8 @@ enum {
     SCROLL_UFO,
     SCROLL_SLEEP = 14,
     SCROLL_BOMB,
+    SCROLL_NINJA,
+    SCROLL_FIGHTER,
 };
 
 // SCROLL_BREATH_AIM; prmKirbyFire.kgb's and prmKirbyIce.kgb's words 3 and 4 (6144, -6144): a breath's puff's height speed with Up or
@@ -117,7 +119,7 @@ struct SparkCharge {
     u8 glint;                   // +0x3AC;
 };
 
-enum { SPARK_AURA, SPARK_BURST, SPARK_BALL, BEAM_WHIP, TORNADO_ELEMENT, PARASOL_THRUST, CUTTER_BLADE, LASER_CHARGE, LASER_BOLT, UFO_STAR, HI_JUMP_ORB, WHEEL_ELEMENT, BOMB_SHELL, SWORD_EDGE, HAMMER_GIANT };
+enum { SPARK_AURA, SPARK_BURST, SPARK_BALL, BEAM_WHIP, TORNADO_ELEMENT, PARASOL_THRUST, CUTTER_BLADE, LASER_CHARGE, LASER_BOLT, UFO_STAR, HI_JUMP_ORB, WHEEL_ELEMENT, BOMB_SHELL, SWORD_EDGE, HAMMER_GIANT, FIGHTER_CHARGE };
 
 // ScrollLook; One of a piece's looks: an effect's animation (squeak.h's SQUEAK_FX_*), `dx` pixels forward and `dy` under the piece
 // (the DS's composite's part: its offset);
@@ -153,6 +155,7 @@ static bool32 WheelStep(struct ScrollPiece *p);
 static bool32 BombStep(struct ScrollPiece *p);
 static bool32 SwordStep(struct ScrollPiece *p);
 static bool32 HammerStep(struct ScrollPiece *p);
+static bool32 FighterStep(struct ScrollPiece *p);
 
 // ChargeOf(); A Kirby's SparkCharge (SPARK_SLOT: its task's number + 1, checked), made with `create`; NULL: none;
 static struct SparkCharge *ChargeOf(struct Kirby *kirby, bool32 create) {
@@ -642,7 +645,7 @@ static void ScrollPieceMain(void) {
     if (ObjectPreUpdate(&p->base)) return;
     alive = p->kind == SPARK_AURA ? AuraStep(p) : p->kind == SPARK_BALL ? BallStep(p) : p->kind == BEAM_WHIP ? BeamStep(p)
           : p->kind == TORNADO_ELEMENT ? TornadoStep(p) : p->kind == PARASOL_THRUST ? ParasolStep(p) : p->kind == CUTTER_BLADE ? CutterStep(p)
-          : p->kind == LASER_CHARGE ? LaserStep(p) : p->kind == LASER_BOLT ? BoltStep(p) : p->kind == UFO_STAR ? StarStep(p) : p->kind == HI_JUMP_ORB ? OrbStep(p) : p->kind == WHEEL_ELEMENT ? WheelStep(p) : p->kind == BOMB_SHELL ? BombStep(p) : p->kind == SWORD_EDGE ? SwordStep(p) : p->kind == HAMMER_GIANT ? HammerStep(p)
+          : p->kind == LASER_CHARGE ? LaserStep(p) : p->kind == LASER_BOLT ? BoltStep(p) : p->kind == UFO_STAR ? StarStep(p) : p->kind == HI_JUMP_ORB ? OrbStep(p) : p->kind == WHEEL_ELEMENT ? WheelStep(p) : p->kind == BOMB_SHELL ? BombStep(p) : p->kind == SWORD_EDGE ? SwordStep(p) : p->kind == HAMMER_GIANT ? HammerStep(p) : p->kind == FIGHTER_CHARGE ? FighterStep(p)
           : BurstStep(p);
     if (!alive) return;
     for (i = 0; i < SCROLL_LOOKS; i++) LookDraw(p, &p->look[i]);
@@ -1685,6 +1688,92 @@ static void HammerLand(struct Kirby *kirby) {
     if (++kirby->base.counter >= HAMMER_LAND_FRAMES) NidlAbilityEnd(kirby);
 }
 
+/* Fighter. The DS's Force Blast (0x020C5828, each frame of the charge; PrmKirbyFighter.kgb's words 11-13: 10, 60, 120, frames from its start)
+ * goes up a level at 10 frames and at 60, and with the scroll (HasScroll 17) at 120 to a third, its biggest blast (fighter_ext.mca's
+ * composite 2); with the scroll and his HP under 11, the first level is that third. KatAM's (sub_08065900, the charge; sub_08065A0C,
+ * the blast on its 5th frame) has its small wave, its big one past 30 frames, and at 1 HP its biggest (the 1 HP attack, sub_0807F128,
+ * its charge's look the aura's third, sub_08094540: KatAM's own low-HP blast, kept). In KatAM, with the scroll: the charge held to
+ * the DS's 120 frames reaches that biggest blast, KatAM's charge aura then in its 1 HP look and sound (CHARGE_3, every 6 frames),
+ * and let go, the 1 HP attack, as at 1 HP (the aura and the blast run as with him at 1 HP: their own choice, `kirby->hp == 1`).
+ * A piece (FIGHTER_CHARGE) made from his input while he charges counts it; */
+#define FIGHTER_TOP 120                     // PrmKirbyFighter word 13;
+extern void sub_08065900(struct Kirby *);
+extern void sub_08065A0C(struct Kirby *);
+
+// FighterTop(); Whether a Kirby's charge has reached the DS's third level (his piece's);
+static bool32 FighterTop(struct Kirby *kirby) {
+    u8 i;
+
+    for (i = 0; i < MAX_TASK_NUM; i++) {
+        struct ScrollPiece *p;
+
+        if (gTasks[i].main != ScrollPieceMain) continue;
+        p = TaskGetStructPtr(&gTasks[i]);
+        if (p->kind == FIGHTER_CHARGE && p->kirby == kirby && !(p->base.flags & 0x1000)) return p->level == 3;
+    }
+    return FALSE;
+}
+
+// FighterStep(); The charge's frames counted (to the third level at FIGHTER_TOP), kept through the blast; gone after;
+static bool32 FighterStep(struct ScrollPiece *p) {
+    struct Kirby *kirby = p->kirby;
+
+    if (kirby->ability != KIRBY_ABILITY_FIGHTER || (kirby->stateFn != sub_08065900 && kirby->stateFn != sub_08065A0C)) {
+        p->base.flags |= 0x1000;
+        return FALSE;
+    }
+    Follow(p);
+    p->base.roomId = kirby->base.roomId;
+    // (the piece starts on the charge's 2nd frame, its clock counted by ScrollPieceMain);
+    if (kirby->stateFn == sub_08065900 && p->level != 3 && p->clock >= FIGHTER_TOP - 2) p->level = 3;
+    Box(p, 0, 0, 0, 0, 0);
+    return TRUE;
+}
+
+// FighterEdge(); Each frame of his charge, after his input's read: Fighter Kirby's piece found or made;
+static void FighterEdge(struct Kirby *kirby) {
+    u8 i;
+
+    for (i = 0; i < MAX_TASK_NUM; i++) {
+        struct ScrollPiece *p;
+
+        if (gTasks[i].main != ScrollPieceMain) continue;
+        p = TaskGetStructPtr(&gTasks[i]);
+        if (p->kind == FIGHTER_CHARGE && p->kirby == kirby && !(p->base.flags & 0x1000)) return;
+    }
+    ScrollPieceCreate(kirby, FIGHTER_CHARGE, 0, 0, 0);
+}
+
+/* ScrollFighterAura(); sub_08094540 (detoured), the charge's aura: at the third level, its look as at 1 HP (its third); */
+void (*gScrollFighterAuraOriginal)(void) = NULL;
+
+void ScrollFighterAura(void) {
+    struct EffectObject *e = TaskGetStructPtr(gCurTask);
+    struct Kirby *kirby = (struct Kirby *)e->parent;
+    s8 hp;
+
+    if (kirby == NULL || e->flags & 0x1000 || !IsKirby(kirby) || !FighterTop(kirby)) {
+        gScrollFighterAuraOriginal();
+        return;
+    }
+    hp = kirby->hp;
+    kirby->hp = 1;
+    gScrollFighterAuraOriginal();
+    kirby->hp = hp;
+}
+
+/* ScrollFighterBlast(); sub_08065A0C (detoured), the blast: at the third level, the 1 HP attack; */
+void (*gScrollFighterBlastOriginal)(struct Kirby *) = NULL;
+
+void ScrollFighterBlast(struct Kirby *kirby) {
+    s8 hp = kirby->hp;
+    bool32 top = FighterTop(kirby);
+
+    if (top) kirby->hp = 1;
+    gScrollFighterBlastOriginal(kirby);
+    if (top) kirby->hp = hp;
+}
+
 /* Sleep. The DS's (0x020BF294, each frame of his sleep): with the scroll (HasScroll 14) he gets better while he sleeps,
  * prmKirbySleep.kgb's word 1 (10) added a frame and a hit point each time it makes word 0 (180): one each 18 frames; A or B pressed
  * cuts his sleep by 2 frames, sound 0xA9 (the DS's own, scroll or not: KatAM's sleep has no such thing, so it comes with the scroll).
@@ -1731,6 +1820,7 @@ void ScrollKirbyInput(struct Kirby *kirby) {
     if (kirby->ability == NIDL_ABILITY_HI_JUMP && SqueakScrollOwned(SCROLL_HI_JUMP)) HiJumpOrb(kirby);
     if (kirby->ability == KIRBY_ABILITY_WHEEL && SqueakScrollOwned(SCROLL_WHEEL)) WheelElement(kirby);
     if (kirby->ability == KIRBY_ABILITY_SWORD && SqueakScrollOwned(SCROLL_SWORD)) SwordEdge(kirby);
+    if (kirby->ability == KIRBY_ABILITY_FIGHTER && kirby->stateFn == sub_08065900 && SqueakScrollOwned(SCROLL_FIGHTER)) FighterEdge(kirby);
 }
 
 /* ScrollSparkAttack(); sub_08074AB0 (detoured): KatAM's spark attack starts; with the scroll, by the level: 0 KatAM's; 1 and 2 the

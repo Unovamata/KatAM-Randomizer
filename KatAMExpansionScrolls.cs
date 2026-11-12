@@ -17,6 +17,7 @@ namespace KatAMRandomizer {
          * • Cutter's throw (sub_08078EFC, detoured): ScrollCutterThrow, the cutter drawn as the DS's upgraded one, its box grown;
          * • Cupid's shot (sub_080680C0, detoured): ScrollCupidShot, the DS's volley of three in its arrows' place;
          * • Hammer's B (sub_080618C0, detoured): ScrollHammerAttack, the DS's charge and its giant swing;
+         * • Fighter's charge aura and blast (sub_08094540, sub_08065A0C, detoured): ScrollFighterAura, ScrollFighterBlast, the DS's third level;
          * • Bomb's throw (sub_08082380) and a blast (sub_08074240), detoured: ScrollBombThrow, the piece giving his bombs an element and
          *   the DS's look, and ScrollBombBlast, his blast that element's;
          * the detoured functions' trampolines (running them as they were) in gScroll*Original. Returns an error, or null; */
@@ -56,6 +57,11 @@ namespace KatAMRandomizer {
             int hammer = Detour(rom, version.RomSymbols["sub_080618C0"], codeBase + version.CodeSymbols["ScrollHammerAttack"], ref cursor);
             if (hammer < 0) return $"The {version.Name} ROM's hammer code doesn't match.";
             WriteInt(rom, CodeAddress + version.CodeSymbols["gScrollHammerOriginal"], hammer + 0x08000000 + 1);
+            int aura = Detour(rom, version.RomSymbols["sub_08094540"], codeBase + version.CodeSymbols["ScrollFighterAura"], ref cursor),
+                blast2 = Detour(rom, version.RomSymbols["sub_08065A0C"], codeBase + version.CodeSymbols["ScrollFighterBlast"], ref cursor);
+            if (aura < 0 || blast2 < 0) return $"The {version.Name} ROM's fighter code doesn't match.";
+            WriteInt(rom, CodeAddress + version.CodeSymbols["gScrollFighterAuraOriginal"], aura + 0x08000000 + 1);
+            WriteInt(rom, CodeAddress + version.CodeSymbols["gScrollFighterBlastOriginal"], blast2 + 0x08000000 + 1);
             return null;
         }
     }
