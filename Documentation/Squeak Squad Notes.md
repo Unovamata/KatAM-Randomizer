@@ -1034,10 +1034,20 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
     - Fire, Ice: each puff of breath the ability shoots (its own object, `operator_new(0x130)`) takes its speed from the
       parameters; with the scroll, Up held adds words 4 (-6144, up 1.5 pixels a frame) to its height speed, Down word 3 (6144),
       forward word 5 (0). The DS's breath doesn't bend without it. Ported (`ROM Expansion/scrolls.c`'s `ScrollBreath`).
-    - Spark: holding the button charges (`+0x3A0` by word 3 a frame); past word 0 times that, level 1 (the spark aura, anim
-      `0x100001E`, sound `0xB0`); with the scroll, past word 1 times it, level 2 (`0x3000003`, sound `0xB1`), from which forward
-      throws the aura as a ball (`0x3000004`, sound `0xB2`, moving by words 5-7). Its attack's anim by level: `0x3000000` (sound
-      `0xAF`), `0x3000001` (`0x51`), `0x3000002` (`0xB2`).
+    - Spark (`0x02088444`, every frame; `PrmKirbySpark.kgb`'s words 8, 8, 16, 16, 360, 0, 16384, 24576): each new D-pad press
+      (input `+0x30`, any way; not B) adds word 3 (16) to the charge (`+0x3A0`) and sounds `0xB0` or `0xB1` at random (half and half);
+      it falls 1 a frame. Past word 0 times word 3 (128): level 1 (`+0x3A4`), the charge back to 16, and the aura object
+      (`0x02087EC4`, `0x02087AA4`: `spark_ext`'s anim 30, sound `0xB0`, no hit box); with the scroll, past word 1 times word 3 (128):
+      level 2 (its `.mca` composite 3, sound `0xB1`, hit box 5 every 3 frames: `.rca` 43), back to level 1 with the charge at 128
+      when it runs out (level 1 doesn't fall). Hurt, the water or no control (its flags) end the level. B (`0x020882F8`) takes the
+      level (0 for level 2 with forward held); after the start-up its attack (`0x02088130`, `0x02087FC0`): level 0 composite 0
+      (sound `0xAF`, Kirby's base attack), 1 composite 1 (`0x51`, hit box 25 every frame, two shapes in turn: `.rca` 41), 2 composite
+      2 (`0xB2`, 40: `.rca` 42), which after 30 frames goes on as composite 0 while B is held; the attack ends charge and level each
+      frame. At the attack's start the aura goes, or at level 2 with forward held flies off as the ball (composite 4, 4 pixels up,
+      6 pixels a frame through everything; hit box 20 then 5 every 3 frames, `.rca` 44; sound `0xB2`, `0xAF` 30 frames on). Every
+      61 frames a glint flickers at random in Kirby's body box (`spark_cmn`'s anim 58). The composites (`spark_ext.mca`): 0 = 37
+      (8 up) + 25, 1 = 26 (8 up) + 25, 2 = 28 + 27 (8 up) + 38, 3 = 23 + 22 + 31, 4 = 23 + 22 + 32; 25 and 38 show Kirby's own
+      cells (5, 8, 11, 14) every other frame. Ported (`ROM Expansion/scrolls.c`'s Spark).
   - **The Secret Map's pieces** (treasures 93-99, taken as pieces 1-7 in order: not checked against the DS): each in its own chest
     (2-6-6, 3-3-7, 4-4-5, 5-4-5, 6-6-5, 7-6-9, 8-2-6), marked `chest[0x16]` the piece's number + 1 and `chest[0x17]` 2 (the area
     maps' mark is 1), the item one of KatAM's maps. Their art is `collection/map`: anims 0-6 the pieces (parchment, about 60 x 50

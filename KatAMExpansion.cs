@@ -1106,6 +1106,7 @@ namespace KatAMRandomizer {
 
             List<KatAMTitleScreen.NidlType> paradeTypes = new List<KatAMTitleScreen.NidlType>();
 
+            Dictionary<string, int> sharedFrameTiles = new Dictionary<string, int>();
             /* AddAnim(); One anim (its ID: the next free one) for an enemy's or mini-boss's palettes, frames and hurt frame; its frames go
              * to the type's AnimInfo table infos (but the last effectOnly: only its effects draw them, by the anim's variants). Returns its
              * first AnimInfo, anim ID and where its hurt frame went. An enemy in the parade (ParadeLoops) gets a variant more, after its
@@ -1114,8 +1115,10 @@ namespace KatAMRandomizer {
                                     List<(int animId, int variant)> infos, string parade = null, int effectOnly = 0) {
                 int animId = HurtAnimID + animVariants.Count;
 
-                // Tiles and palettes are indexes from their table's base, so they are aligned to it;
-                int tilesAt = Allocate(ref cursor, frames.Sum(f => f.tiles.Length), 32, tilesBase);
+                /* Tiles and palettes are indexes from their table's base, so they are aligned to it; a frame's tiles go in once, and a
+                 * frame drawing the same tiles as one already in (this anim's or another's: a pose held, a character's look in a boss
+                 * fight and a room) reads those (sharedFrameTiles: the ROM had no room left for the Ability Scrolls' frames, a fifteenth
+                 * of the characters' graphics were frames written again); */
                 int[] paletteIndexes = palettes.Select(palette => {
                     int paletteAt = Allocate(ref cursor, 32, 32, paletteBase);
                     palette.CopyTo(rom, paletteAt);
@@ -1124,7 +1127,6 @@ namespace KatAMRandomizer {
                 int hurtAt = Allocate(ref cursor, hurt.Length, 4);
                 hurt.CopyTo(rom, hurtAt);
 
-                int tileIndex = (tilesAt - tilesBase) / 32;
                 int oamCount = frames.Sum(f => f.oams.Length);
                 int attributesAt = Allocate(ref cursor, frames.Count * 12, 4), oamsAt = Allocate(ref cursor, oamCount * 2, 4);
                 bool inParade = parade != null && ParadeLoops.ContainsKey(parade);
@@ -1132,18 +1134,23 @@ namespace KatAMRandomizer {
                 int[] frameTiles = new int[frames.Count];
 
                 // Animation commands of every frame: GetPalette, GetTiles, ShowFrame and End (holds the frame);
-                for (int i = 0, tile = 0, oam = 0; i < frames.Count; i++) {
-                    frameTiles[i] = tile;
+                for (int i = 0, oam = 0; i < frames.Count; i++) {
                     (byte[] tiles, ushort[] oams, short[] attributes, int palette) = frames[i];
+                    string key = Convert.ToBase64String(tiles);
+                    if (!sharedFrameTiles.TryGetValue(key, out int frameTile)) {
+                        int at = Allocate(ref cursor, Math.Max(tiles.Length, 32), 32, tilesBase);
+                        tiles.CopyTo(rom, at);
+                        frameTile = (at - tilesBase) / 32;
+                        sharedFrameTiles[key] = frameTile;
+                    }
+                    frameTiles[i] = frameTile;
                     int commands = Allocate(ref cursor, 36, 4);
 
-                    tiles.CopyTo(rom, tilesAt + tile * 32);
-                    WriteInts(rom, commands, -2, palette < 0 ? palette15Index : paletteIndexes[palette], 16, -1, tileIndex + tile, tiles.Length / 32, 60, i, -4);
+                    WriteInts(rom, commands, -2, palette < 0 ? palette15Index : paletteIndexes[palette], 16, -1, frameTile, tiles.Length / 32, 60, i, -4);
                     WriteInt(rom, variantsAt + i * 4, commands + 0x08000000);
                     WriteShorts(rom, attributesAt + i * 12, (short)(oam / 3), attributes[1], attributes[2], attributes[3], attributes[4], attributes[5]);
                     for (int o = 0; o < oams.Length; o++) WriteShort(rom, oamsAt + (oam + o) * 2, oams[o]);
 
-                    tile += tiles.Length / 32;
                     oam += oams.Length;
                 }
 
@@ -1157,7 +1164,7 @@ namespace KatAMRandomizer {
                         (int frame, int delay) = loop[s];
                         int palette = frames[frame].palette;
                         WriteInts(rom, commands + s * 32, -2, palette < 0 ? palette15Index : paletteIndexes[palette], 16, -1,
-                                  tileIndex + frameTiles[frame], frames[frame].tiles.Length / 32, delay, frame);
+                                  frameTiles[frame], frames[frame].tiles.Length / 32, delay, frame);
                     }
                     WriteInts(rom, commands + loop.Length * 32, -3, loop.Length * 8);
                     WriteInt(rom, variantsAt + frames.Count * 4, commands + 0x08000000);
@@ -1716,7 +1723,7 @@ namespace KatAMRandomizer {
             if (squeakRooms && error == null) Report(0.00, "Adding Squeak Squad's rooms");
             error ??= squeakRooms ? AddSqueakRooms(rom, squeak, version, ref cursor) : null;
             // (what the Ability Scrolls those rooms' chests hold do: KatAMExpansionScrolls.cs);
-            error ??= squeakRooms ? AddScrollUpgrades(rom, version) : null;
+            error ??= squeakRooms ? AddScrollUpgrades(rom, version, ref cursor) : null;
             Part(4);
             if (chaseRooms != null && error == null) Report(0.00, "Adding the chases in KatAM's rooms");
             error ??= chaseRooms != null ? AddKatamChases(rom, version, chaseRooms, chaseSeed, ref cursor) : null;

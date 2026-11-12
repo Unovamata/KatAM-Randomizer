@@ -236,6 +236,8 @@ bool32 SqueakBossAlive(u16 room);
 #define SQUEAK_SPEED(value) ((value) >> 4)
 
 // An animation step: the cell, how many frames it shows, and where it is drawn (x, y: pixels, y down; added to the position);
+// (SQUEAK_FX_HIDDEN: an effect's step showing nothing, KatAMExpansionSqueak.cs's SqueakEffect Skip);
+#define SQUEAK_FX_HIDDEN 0xFFFF
 struct SqueakStep {
     u16 cell;
     u16 frames;
@@ -328,6 +330,17 @@ enum {
     SQUEAK_FX_SNOW_1,
     SQUEAK_FX_DARK_SPARK,       // Dark Nebula's defeat (squeak/dark_nebula.c): darkZERO_ext's 13, the sparks thrown off him (0x0211CBAA);
     SQUEAK_FX_DAROACH_BURST,    // Dark Daroach's defeat (squeak/daroach_boss.c): efc_cmn0's 10, the burst at him (0x02039B28);
+    // The Spark Ability Scroll's (scrolls.c): kirby/spark_ext's animations (a step showing nothing has cell SQUEAK_FX_HIDDEN);
+    SQUEAK_FX_SPARK_BITS,       // 30: level 1's lightning about Kirby;
+    SQUEAK_FX_SPARK_BITS_A,     // 22 and 23: level 2's (and the thrown ball's) lightning,
+    SQUEAK_FX_SPARK_BITS_B,
+    SQUEAK_FX_SPARK_BALL,       // 31: and its ball;
+    SQUEAK_FX_SPARK_RING_1,     // 26 and 25: the level-1 attack's lightning ring and burst;
+    SQUEAK_FX_SPARK_BURST_1,
+    SQUEAK_FX_SPARK_RING_2A,    // 27, 28 and 38: the level-2 attack's rings and burst;
+    SQUEAK_FX_SPARK_RING_2B,
+    SQUEAK_FX_SPARK_BURST_2,
+    SQUEAK_FX_SPARK_GLINT,      // kirby/spark_cmn's 58: the spark that flickers on Spark Kirby every 61 frames;
     SQUEAK_FX_COUNT,
 };
 

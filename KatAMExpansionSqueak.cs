@@ -743,7 +743,10 @@ namespace KatAMRandomizer {
         /* Squeak Squad's effects the ported characters show (squeak.h's SQUEAK_FX_*): an animation of <File>.* ("folder/name"; 0x02021900's
          * types name effect/efc_cmn* ones through the table at 0x02157DF8), each its own anim of the cells it shows (in Squeak Squad's
          * palette, its slot shared with any other sprite in it: SqueakPaletteKey); */
-        internal sealed record SqueakEffect(int Index, string File, int Anim);
+        /* (Skip: cells its animation shows that aren't drawn, their steps shown as nothing (their cell 0xFFFF, squeak.h's
+         * SQUEAK_FX_HIDDEN): Kirby's own in the Ability Scrolls' Spark bursts, the DS's flickering him in them, KatAM's Kirby drawn
+         * as he is. Once: played once, though the DS's animation loops, as the DS's effect plays it: Spark Kirby's glint); */
+        internal sealed record SqueakEffect(int Index, string File, int Anim, int[] Skip = null, bool Once = false);
         internal sealed record SqueakEffectBuilt(SqueakEffect Effect, int AnimId, List<int> Cells, SqueakAnim Anim, int Tiles, SqueakPaletteKey Palette);
 
         static readonly List<SqueakEffect> SqueakEffectDefinitions = new List<SqueakEffect> {
@@ -779,6 +782,22 @@ namespace KatAMRandomizer {
             new SqueakEffect(21, "enemy/darkZERO_ext", 13),
             // Dark Daroach's defeat ("ROM Expansion/squeak/daroach_boss.c"): efc_cmn0's 10, the burst at him (0x02039B28);
             new SqueakEffect(22, "effect/efc_cmn0", 10),
+            /* The Spark Ability Scroll's ("ROM Expansion/scrolls.c"): kirby/spark_ext's animations its composite ones draw (spark_ext.mca):
+             * 30, the charged aura's lightning (level 1, 0x0100001E); 22, 23 and 31, its level 2's (composite 3: lightning and the
+             * ball; the thrown ball, composite 4, the same with 32, 31's cells); 26 and 25, the level-1 attack (composite 1: its lightning
+             * ring, the burst); 27, 28 and 38, the level-2 attack's (composite 2); the bursts without Kirby's own cells (5, 8, 11, 14:
+             * the DS shows him in them every other frame); then kirby/spark_cmn's 58, the glint on Spark Kirby every 61 frames (once,
+             * its empty cell 0 shown as nothing); */
+            new SqueakEffect(23, "kirby/spark_ext", 30),
+            new SqueakEffect(24, "kirby/spark_ext", 22),
+            new SqueakEffect(25, "kirby/spark_ext", 23),
+            new SqueakEffect(26, "kirby/spark_ext", 31),
+            new SqueakEffect(27, "kirby/spark_ext", 26),
+            new SqueakEffect(28, "kirby/spark_ext", 25, Skip: new[] { 5, 8, 11, 14 }),
+            new SqueakEffect(29, "kirby/spark_ext", 27),
+            new SqueakEffect(30, "kirby/spark_ext", 28),
+            new SqueakEffect(31, "kirby/spark_ext", 38, Skip: new[] { 5, 8, 11, 14 }),
+            new SqueakEffect(32, "kirby/spark_cmn", 58, Skip: new[] { 0 }, Once: true),
         };
 
         /* SqueakEffectsBuild(); Each effect's cells (those its animation shows, in its order) as KatAM frames and their palette, the anim
@@ -799,9 +818,10 @@ namespace KatAMRandomizer {
                 string[] path = effect.File.Split('/');
                 SqueakCharacter character = ReadSqueakCharacter(squeak, path[1], path[0]);
                 SqueakAnim anim = character.Anims[effect.Anim];
-                List<int> cells = anim.Steps.Select(s => s.Cell).Distinct().ToList();
+                if (effect.Once) anim = anim with { Loops = false };
+                List<int> cells = anim.Steps.Select(s => s.Cell).Where(c => effect.Skip == null || !effect.Skip.Contains(c)).Distinct().ToList();
                 (List<(byte[] tiles, ushort[] oams, short[] attributes, int palette)> frames, List<byte[]> palettes) = SqueakFrames(character, cells: cells);
-                int animId = addAnim(palettes, frames), first = cells.IndexOf(anim.Steps[0].Cell);
+                int animId = addAnim(palettes, frames), first = cells.IndexOf(anim.Steps.First(s => cells.Contains(s.Cell)).Cell);
                 built.Add(new SqueakEffectBuilt(effect, animId, cells, anim, frames.Max(f => f.tiles.Length / 32),
                                                 share(palettes[frames[first].palette], animId, first)));
             }
