@@ -23,6 +23,7 @@
 #include "abilities.h"
 #include "code_0806F780.h"
 #include "malloc_vram.h"
+#include "trig.h"
 
 // The scrolls' numbers (the DS's);
 enum {
@@ -34,6 +35,7 @@ enum {
     SCROLL_PARASOL,
     SCROLL_CUTTER = 8,
     SCROLL_LASER,
+    SCROLL_UFO = 13,
     SCROLL_SLEEP = 14,
 };
 
@@ -107,7 +109,7 @@ struct SparkCharge {
     u8 glint;                   // +0x3AC;
 };
 
-enum { SPARK_AURA, SPARK_BURST, SPARK_BALL, BEAM_WHIP, TORNADO_ELEMENT, PARASOL_THRUST, CUTTER_BLADE, LASER_CHARGE, LASER_BOLT };
+enum { SPARK_AURA, SPARK_BURST, SPARK_BALL, BEAM_WHIP, TORNADO_ELEMENT, PARASOL_THRUST, CUTTER_BLADE, LASER_CHARGE, LASER_BOLT, UFO_STAR };
 
 // ScrollLook; One of a piece's looks: an effect's animation (squeak.h's SQUEAK_FX_*), `dx` pixels forward and `dy` under the piece
 // (the DS's composite's part: its offset);
@@ -137,6 +139,7 @@ static struct ScrollPiece *ScrollPieceCreate(struct Kirby *kirby, u8 kind, u8 le
 static bool32 CutterStep(struct ScrollPiece *p);
 static bool32 LaserStep(struct ScrollPiece *p);
 static bool32 BoltStep(struct ScrollPiece *p);
+static bool32 StarStep(struct ScrollPiece *p);
 
 // ChargeOf(); A Kirby's SparkCharge (SPARK_SLOT: its task's number + 1, checked), made with `create`; NULL: none;
 static struct SparkCharge *ChargeOf(struct Kirby *kirby, bool32 create) {
@@ -609,7 +612,7 @@ static void ScrollPieceMain(void) {
     if (ObjectPreUpdate(&p->base)) return;
     alive = p->kind == SPARK_AURA ? AuraStep(p) : p->kind == SPARK_BALL ? BallStep(p) : p->kind == BEAM_WHIP ? BeamStep(p)
           : p->kind == TORNADO_ELEMENT ? TornadoStep(p) : p->kind == PARASOL_THRUST ? ParasolStep(p) : p->kind == CUTTER_BLADE ? CutterStep(p)
-          : p->kind == LASER_CHARGE ? LaserStep(p) : p->kind == LASER_BOLT ? BoltStep(p)
+          : p->kind == LASER_CHARGE ? LaserStep(p) : p->kind == LASER_BOLT ? BoltStep(p) : p->kind == UFO_STAR ? StarStep(p)
           : BurstStep(p);
     if (!alive) return;
     for (i = 0; i < SCROLL_LOOKS; i++) LookDraw(p, &p->look[i]);
@@ -940,6 +943,83 @@ static void LaserCharging(struct Kirby *kirby) {
     p->base.counter++;
 }
 
+/* UFO. The DS's UFO Kirby (each frame, 0x020BD560): with the scroll (HasScroll 13), while he has none, a star (0x020BB85C; its state
+ * 0x020BB488: ufo_ext's 36, a sparkling star; its .rca's box, -6 to 5 across, -5 to 5 up, of 10, every other frame) circles him: two angles from 0, prmKirbyUfo.kgb's words 21 (4 degrees) and 22 (3) on each frame; at the first, word 20 (22
+ * pixels) from his feet, its height times word 23 (1), drawn in front of him while its sine is at most 0, behind him else; turned
+ * about his feet by the second. It goes (0x020BB7A8: 0x020B48E0's star burst, efc_cmn0's 7) once he's gone or out of play (his
+ * flags 0x80000000, 0x2000000), a new one coming the next frame.
+ * In KatAM, with the scroll: UFO Kirby has the DS's star circling him, a piece (UFO_STAR: UFO_SLOT, his ability's byte as Spark's)
+ * made from his input each frame while he has none (ScrollKirbyInput), gone with the star burst once he isn't UFO Kirby, leaves its
+ * room or is out of play (his flags 0x2000000); its box every other frame, strength 2 (KatAM's UFO laser's 4, sub_0807BF2C, for the
+ * DS's 20: 10 is 2), its hit's kind and knock the UFO laser's (KatAM's attacks hit by their kind); */
+#define UFO_SLOT(kirby) NIDL_MIKE_USES(kirby)
+#define UFO_RADIUS 22                       // prmKirbyUfo.kgb's word 20 (90112);
+#define UFO_SPIN_1 (4 << 12)                // its words 21 and 22 (16384, 12288: 20.12 degrees a frame);
+#define UFO_SPIN_2 (3 << 12)
+#define UFO_TURN (360 << 12)
+#define UFO_LAP 360
+#define UFO_STAR_HIT 0x20000103             // KatAM's UFO laser's kind (sub_0807BF2C's unk68: an attack needs a kind to hit);
+#define UFO_STAR_KNOCK 0x1C0                // (sub_0807BF2C's unk64);
+#define UFO_STAR_STRENGTH 2
+
+// Sine(), Cosine(); Squeak Squad's sine table (0x0215CE20, 4.12) by KatAM's (gSineTable: 1024 a turn, 2.14) at an angle (20.12 degrees);
+static s32 Sine(s32 angle) {
+    return gSineTable[(angle * 2 / 45 >> 6) & 0x3FF] >> 2;
+}
+
+static s32 Cosine(s32 angle) {
+    return gSineTable[((angle * 2 / 45 >> 6) & 0x3FF) + 0x100] >> 2;
+}
+
+// StarOf(); A Kirby's star (UFO_SLOT: its task's number + 1, checked); NULL: none;
+static struct ScrollPiece *StarOf(struct Kirby *kirby) {
+    u8 slot = UFO_SLOT(kirby);
+    struct ScrollPiece *p;
+
+    if (slot == 0 || slot > MAX_TASK_NUM || gTasks[slot - 1].main != ScrollPieceMain) return NULL;
+    p = TaskGetStructPtr(&gTasks[slot - 1]);
+    return p->kind == UFO_STAR && p->kirby == kirby && !(p->base.flags & 0x1000) ? p : NULL;
+}
+
+// StarStep(); The star circling its Kirby (0x020BB488), in front of him or behind; gone with a star burst (0x020BB7A8);
+static bool32 StarStep(struct ScrollPiece *p) {
+    struct Kirby *kirby = p->kirby;
+    s32 a1, a2, x, y, sn, cs;
+
+    // (both angles back where they started every 360 frames: 90 and 120 frames a turn);
+    if (p->clock >= UFO_LAP) p->clock -= UFO_LAP;
+    if (kirby->ability != KIRBY_ABILITY_UFO || kirby->base.roomId != p->base.roomId || kirby->base.flags & 0x2000000
+        || !SqueakScrollOwned(SCROLL_UFO)) {
+        SqueakEffectInRoom(p->base.roomId, SQUEAK_FX_STARS, p->base.x, p->base.y);
+        p->base.flags |= 0x1000;
+        return FALSE;
+    }
+    a1 = (s32)((p->clock + 1) * (u32)UFO_SPIN_1 % UFO_TURN);
+    a2 = (s32)((p->clock + 1) * (u32)UFO_SPIN_2 % UFO_TURN);
+    // (4.12: pixels times 4096; Y up);
+    x = UFO_RADIUS * Cosine(a1);
+    y = UFO_RADIUS * Sine(a1);
+    if (p->look[0].effect != SCROLL_NO_LOOK) p->look[0].e.sprite.unk14 = (y <= 0 ? 0xA : SCROLL_BEHIND_KIRBYS) << 6;
+    sn = Sine(a2);
+    cs = Cosine(a2);
+    p->base.x = kirby->base.x + ((x * cs - y * sn) >> 16);
+    p->base.y = kirby->base.y + SCROLL_FEET - ((x * sn + y * cs) >> 16);
+    p->base.flags &= ~1;
+    if (p->clock & 1) Box(p, 0, 0, 0, 0, 0);
+    else Box(p, -6, 5, 5, -5, UFO_STAR_STRENGTH);
+    return TRUE;
+}
+
+// UfoStar(); The DS's 0x020BD560 (see above), each frame, after his input's read: his star made while he has none;
+static void UfoStar(struct Kirby *kirby) {
+    struct ScrollPiece *p;
+
+    if (StarOf(kirby) != NULL || (p = ScrollPieceCreate(kirby, UFO_STAR, 0, UFO_STAR_KNOCK, UFO_STAR_HIT)) == NULL) return;
+    UFO_SLOT(kirby) = TaskNumberOf(p);
+    LookStart(p, 0, SQUEAK_FX_UFO_STAR, 0, 0);
+    StarStep(p);
+}
+
 /* Sleep. The DS's (0x020BF294, each frame of his sleep): with the scroll (HasScroll 14) he gets better while he sleeps,
  * prmKirbySleep.kgb's word 1 (10) added a frame and a hit point each time it makes word 0 (180): one each 18 frames; A or B pressed
  * cuts his sleep by 2 frames, sound 0xA9 (the DS's own, scroll or not: KatAM's sleep has no such thing, so it comes with the scroll).
@@ -979,6 +1059,7 @@ void ScrollKirbyInput(struct Kirby *kirby) {
     if (kirby->ability == KIRBY_ABILITY_SPARK && SqueakScrollOwned(SCROLL_SPARK)) SparkCharging(kirby);
     if (kirby->ability == KIRBY_ABILITY_SLEEP && SqueakScrollOwned(SCROLL_SLEEP)) SleepHealing(kirby);
     if (kirby->ability == KIRBY_ABILITY_LASER && SqueakScrollOwned(SCROLL_LASER)) LaserCharging(kirby);
+    if (kirby->ability == KIRBY_ABILITY_UFO && SqueakScrollOwned(SCROLL_UFO)) UfoStar(kirby);
 }
 
 /* ScrollSparkAttack(); sub_08074AB0 (detoured): KatAM's spark attack starts; with the scroll, by the level: 0 KatAM's; 1 and 2 the

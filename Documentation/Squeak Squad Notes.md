@@ -1105,6 +1105,19 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
       frames after the shot, the orb 30 frames on, let go, the charged shot 6 frames later, Kirby standing 20 frames after it;
       the plain shot takes 2 HP, the charged one 3; let go early, the laser ends that frame; without the scroll KatAM's laser
       unchanged (ends 9 frames after the shot, B held or not).
+    - UFO (each frame, `0x020BD560`): with the scroll, while UFO Kirby has none, a star (`0x020BB85C`, its state `0x020BB488`:
+      `ufo_ext`'s 36, a sparkling star; its `.rca`'s box, -6 to 5 across, -5 to 5 up, of 10, every other frame; the box's
+      first word, 2, is no element: Spark's, Fire's and Ice's boxes all have it)
+      circles him: two angles from 0, `prmKirbyUfo.kgb`'s words 21 (4 degrees) and 22 (3) on each frame; at the first, word 20 (22
+      pixels) from his feet, its height times word 23 (1), drawn in front of him while that sine is at most 0, behind him else;
+      turned about his feet by the second (so round at 7 degrees a frame). It goes (`0x020BB7A8`: `0x020B48E0`'s star burst,
+      `efc_cmn0`'s 7) once he's gone or out of play, a new one the next frame. Ported (`scrolls.c`'s UFO): a piece made from his
+      input while he's UFO Kirby and has none, gone with the star burst when he isn't, leaves the room or is out of play (flags
+      `0x2000000`); its box every other frame, strength 2 (KatAM's UFO laser's 4, `sub_0807BF2C`, for the DS's 20), the UFO
+      laser's hit kind (`0x20000103`: a KatAM attack needs a kind bit to hit).
+      Tested in the emulator (room 0x65, all three versions; UFO and the scroll given by RAM writes, an enemy's HP set to 10 and held
+      in its path by RAM writes): the star circles his feet at 22 pixels, in front of him and behind him by turns; the enemy loses 2
+      HP every other frame while the star is on it; the ability byte cleared, the star bursts and goes; without the scroll, no star.
   - **The Secret Map's pieces** (treasures 93-99, taken as pieces 1-7 in order: not checked against the DS): each in its own chest
     (2-6-6, 3-3-7, 4-4-5, 5-4-5, 6-6-5, 7-6-9, 8-2-6), marked `chest[0x16]` the piece's number + 1 and `chest[0x17]` 2 (the area
     maps' mark is 1), the item one of KatAM's maps. Their art is `collection/map`: anims 0-6 the pieces (parchment, about 60 x 50
