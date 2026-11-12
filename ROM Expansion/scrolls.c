@@ -29,6 +29,7 @@ enum {
     SCROLL_FIRE,
     SCROLL_ICE,
     SCROLL_SPARK,
+    SCROLL_BEAM,
 };
 
 // SCROLL_BREATH_AIM; prmKirbyFire.kgb's and prmKirbyIce.kgb's words 3 and 4 (6144, -6144): a breath's puff's height speed with Up or
@@ -60,7 +61,7 @@ void ScrollBreath(struct Kirby *kirby) {
  * frames a glint flickers on him (spark_cmn's 58, at random in his body's box).
  * In KatAM, with the scroll (the owner: "Keep KatAM's base as it is, however, with the upgraded abilities that the scrolls give, we
  * will then implement the quirks the base ability has plus the upgraded ones"): KatAM's Spark as it is, plus all of that. His own
- * spark is KatAM's (sub_08074AB0, its hit box and look); the bursts, the aura and the ball are SparkPieces (their hit boxes the DS's,
+ * spark is KatAM's (sub_08074AB0, its hit box and look); the bursts, the aura and the ball are ScrollPieces (their hit boxes the DS's,
  * the strengths KatAM's spark's 3 for the DS's 20: 25 is 4, 40 is 6, 5 is 1), their looks the DS's (SQUEAK_FX_SPARK_*, without
  * the DS's Kirby cells: KatAM's Kirby is drawn as he is). The charge and level are a SparkCharge task's per Kirby (its task's
  * number + 1 in SPARK_SLOT, Kirby's ability byte that Mike and Hi-Jump use, abilities.h), worked from his input each frame
@@ -77,11 +78,13 @@ void ScrollBreath(struct Kirby *kirby) {
 #define SPARK_BALL_SPEED SQUEAK_SPEED(24576)
 #define SPARK_BALL_SOUND_AT 30
 #define SPARK_BALL_MARGIN 48                // Pixels round the screen the ball goes out of to end;
-#define SPARK_FEET 0x800                    // The DS's origin, Kirby's feet: 8 pixels under KatAM's;
-#define SPARK_FX_ROOM 48                    // squeak.c's SQUEAK_FX_ROOM: tiles left for KatAM's own effects;
-#define SPARK_LOOKS 3
-#define SPARK_NO_LOOK 0xFF
+#define SCROLL_FEET 0x800                    // The DS's origin, Kirby's feet: 8 pixels under KatAM's;
+#define SCROLL_FX_ROOM 48                    // squeak.c's SQUEAK_FX_ROOM: tiles left for KatAM's own effects;
+#define SCROLL_LOOKS 3
+#define SCROLL_NO_LOOK 0xFF
 #define SPARK_D_PAD 0xF0
+#define SPARK_KNOCK 0xA0                    // KatAM's spark's hit (sub_08074AB0's unk64 and unk68);
+#define SPARK_HIT 0xA0000403
 
 extern void sub_0805D630(struct Kirby *kirby);
 
@@ -98,23 +101,24 @@ struct SparkCharge {
     u8 glint;                   // +0x3AC;
 };
 
-enum { SPARK_AURA, SPARK_BURST, SPARK_BALL };
+enum { SPARK_AURA, SPARK_BURST, SPARK_BALL, BEAM_WHIP };
 
-// SparkLook; One of a piece's looks: an effect's animation (squeak.h's SQUEAK_FX_*), `dy` pixels under the piece (the DS's
-// composite's part: its offset);
-struct SparkLook {
+// ScrollLook; One of a piece's looks: an effect's animation (squeak.h's SQUEAK_FX_*), `dx` pixels forward and `dy` under the piece
+// (the DS's composite's part: its offset);
+struct ScrollLook {
     struct EffectObject e;
-    u8 effect;                  // SPARK_NO_LOOK: none;
+    u8 effect;                  // SCROLL_NO_LOOK: none;
     u8 step;
     u8 timer;
     u8 palId;
+    s8 dx;                      // (forward);
     s8 dy;
 };
 
-// SparkPiece; An aura, a burst or a ball: its hit box (the DS's, from its origin: the base at Kirby's feet), its looks;
-struct SparkPiece {
+// ScrollPiece; An aura, a burst or a ball: its hit box (the DS's, from its origin: the base at Kirby's feet), its looks;
+struct ScrollPiece {
     struct ObjectBase base;
-    struct SparkLook look[SPARK_LOOKS];
+    struct ScrollLook look[SCROLL_LOOKS];
     struct Kirby *kirby;
     u8 kind;
     u8 level;
@@ -122,6 +126,7 @@ struct SparkPiece {
 };
 
 static void SparkChargeMain(void);
+static struct ScrollPiece *ScrollPieceCreate(struct Kirby *kirby, u8 kind, u8 level, s16 knock, u32 hitKind);
 
 // ChargeOf(); A Kirby's SparkCharge (SPARK_SLOT: its task's number + 1, checked), made with `create`; NULL: none;
 static struct SparkCharge *ChargeOf(struct Kirby *kirby, bool32 create) {
@@ -157,42 +162,43 @@ static void SparkChargeMain(void) {
 }
 
 // LookEnd(); A look gone, its VRAM given back;
-static void LookEnd(struct SparkLook *l) {
-    if (l->effect != SPARK_NO_LOOK && l->e.sprite.tilesVram >= 0x6014000 && SqueakVramOk(l->e.sprite.tilesVram))
+static void LookEnd(struct ScrollLook *l) {
+    if (l->effect != SCROLL_NO_LOOK && l->e.sprite.tilesVram >= 0x6014000 && SqueakVramOk(l->e.sprite.tilesVram))
         VramFree(l->e.sprite.tilesVram);
-    l->effect = SPARK_NO_LOOK;
+    l->effect = SCROLL_NO_LOOK;
 }
 
 // LookStart(); A look playing an effect from its first step (none when KatAM's sprite heap can't hold it, as squeak.c's effects);
-static void LookStart(struct SparkPiece *p, u8 i, u8 effect, s8 dy) {
-    struct SparkLook *l = &p->look[i];
+static void LookStart(struct ScrollPiece *p, u8 i, u8 effect, s8 dx, s8 dy) {
+    struct ScrollLook *l = &p->look[i];
     const struct SqueakEffect *d = &gSqueakData.effects[effect];
     u16 cell = d->anim.step[0].cell;
 
     LookEnd(l);
-    if (VramGetTotalAllocatedTiles() + d->tiles + SPARK_FX_ROOM > gVramHeapMaxTileSlots) return;
+    if (VramGetTotalAllocatedTiles() + d->tiles + SCROLL_FX_ROOM > gVramHeapMaxTileSlots) return;
     ClearEffectObject(&l->e);
     l->e.header.kind = 3;
     l->e.roomId = p->base.roomId;
     l->e.parent = NULL;
     l->step = 0;
     l->timer = d->anim.step[0].frames;
+    l->dx = dx;
     l->dy = dy;
     l->palId = SqueakLoadPalette(d->palette.key, d->palette.variant, p->base.roomId);
     EffectObjectInitSprite(&l->e, &l->e.sprite, d->tiles, d->animId, cell == SQUEAK_FX_HIDDEN ? 0 : cell, 0xA);
     if (SqueakVramOk(l->e.sprite.tilesVram)) l->effect = effect;
 }
 
-// LookDraw(); A look's step (its animations all loop) where its piece is, facing as it;
-static void LookDraw(struct SparkPiece *p, struct SparkLook *l) {
+// LookDraw(); A look's step where its piece is, facing as it;
+static void LookDraw(struct ScrollPiece *p, struct ScrollLook *l) {
     const struct SqueakAnim *a;
     const struct SqueakStep *step;
     bool32 left = p->base.flags & 1;
 
-    if (l->effect == SPARK_NO_LOOK) return;
+    if (l->effect == SCROLL_NO_LOOK) return;
     a = &gSqueakData.effects[l->effect].anim;
     step = &a->step[l->step];
-    l->e.x = p->base.x;
+    l->e.x = p->base.x + ((left ? -l->dx : l->dx) << 8);
     l->e.y = p->base.y + (l->dy << 8);
     l->e.roomId = p->base.roomId;
     if (step->cell == SQUEAK_FX_HIDDEN) {
@@ -206,14 +212,19 @@ static void LookDraw(struct SparkPiece *p, struct SparkLook *l) {
         l->e.objBase55 = step->y;
         EffectObjectPostUpdate(&l->e);
     }
+    // (one that doesn't loop stays on its last step);
     if (--l->timer == 0) {
+        if (l->step + 1 >= a->steps && !a->loops) {
+            l->timer = 1;
+            return;
+        }
         l->step = l->step + 1 >= a->steps ? 0 : l->step + 1;
         l->timer = a->step[l->step].frames;
     }
 }
 
 // Box(); The piece's hit box this frame: the DS's (left, top, right, bottom from its origin, Y up), its strength; 0: none;
-static void Box(struct SparkPiece *p, s8 left, s8 top, s8 right, s8 bottom, s8 strength) {
+static void Box(struct ScrollPiece *p, s8 left, s8 top, s8 right, s8 bottom, s8 strength) {
     if (strength == 0) {
         p->base.flags |= 0x200;
         return;
@@ -226,23 +237,23 @@ static void Box(struct SparkPiece *p, s8 left, s8 top, s8 right, s8 bottom, s8 s
 }
 
 // Follow(); At its Kirby's feet, facing as he does;
-static void Follow(struct SparkPiece *p) {
+static void Follow(struct ScrollPiece *p) {
     p->base.x = p->kirby->base.x;
-    p->base.y = p->kirby->base.y + SPARK_FEET;
+    p->base.y = p->kirby->base.y + SCROLL_FEET;
     p->base.flags = (p->base.flags & ~1) | (p->kirby->base.flags & 1);
 }
 
 // AuraLook(); The aura's look by level (the DS's aura, 0x02087AA4: spark_ext's 30; composite 3), with its sound;
-static void AuraLook(struct SparkPiece *p, u8 level) {
+static void AuraLook(struct ScrollPiece *p, u8 level) {
     u8 i;
 
-    for (i = 0; i < SPARK_LOOKS; i++) LookEnd(&p->look[i]);
+    for (i = 0; i < SCROLL_LOOKS; i++) LookEnd(&p->look[i]);
     if (level == 1) {
-        LookStart(p, 0, SQUEAK_FX_SPARK_BITS, 0);
+        LookStart(p, 0, SQUEAK_FX_SPARK_BITS, 0, 0);
     } else {
-        LookStart(p, 0, SQUEAK_FX_SPARK_BITS_B, 0);
-        LookStart(p, 1, SQUEAK_FX_SPARK_BITS_A, 0);
-        LookStart(p, 2, SQUEAK_FX_SPARK_BALL, 0);
+        LookStart(p, 0, SQUEAK_FX_SPARK_BITS_B, 0, 0);
+        LookStart(p, 1, SQUEAK_FX_SPARK_BITS_A, 0, 0);
+        LookStart(p, 2, SQUEAK_FX_SPARK_BALL, 0, 0);
     }
     p->level = level;
     p->clock = 0;
@@ -250,13 +261,13 @@ static void AuraLook(struct SparkPiece *p, u8 level) {
 }
 
 // SparkBallStart(); The level-2 aura flies off (0x02087AA4's: composite 4, 4 pixels up, sound 0xB2);
-static void SparkBallStart(struct SparkPiece *p) {
+static void SparkBallStart(struct ScrollPiece *p) {
     u8 i;
 
     p->kind = SPARK_BALL;
     p->base.y -= SPARK_BALL_RISE;
-    for (i = 0; i < SPARK_LOOKS; i++) {
-        if (p->look[i].effect == SPARK_NO_LOOK) continue;
+    for (i = 0; i < SCROLL_LOOKS; i++) {
+        if (p->look[i].effect == SCROLL_NO_LOOK) continue;
         p->look[i].step = 0;
         p->look[i].timer = gSqueakData.effects[p->look[i].effect].anim.step[0].frames;
     }
@@ -265,7 +276,7 @@ static void SparkBallStart(struct SparkPiece *p) {
 }
 
 // The level-2 aura's and the ball's hit boxes (their .rca's 43 and 44: 5 every 3 frames, the ball's first 20; 16 frames, looping);
-static void AuraBox(struct SparkPiece *p) {
+static void AuraBox(struct ScrollPiece *p) {
     u8 frame = p->clock % 16;
 
     if (p->kind == SPARK_BALL && frame == 0) Box(p, -24, 29, 24, -15, 3);
@@ -274,7 +285,7 @@ static void AuraBox(struct SparkPiece *p) {
 }
 
 // AuraStep(); The aura: its Kirby's level's look, gone at level 0 or his attack (flying off at level 2 with forward held);
-static bool32 AuraStep(struct SparkPiece *p) {
+static bool32 AuraStep(struct ScrollPiece *p) {
     struct Kirby *kirby = p->kirby;
     struct SparkCharge *c = kirby->ability == KIRBY_ABILITY_SPARK ? ChargeOf(kirby, FALSE) : NULL;
 
@@ -293,7 +304,7 @@ static bool32 AuraStep(struct SparkPiece *p) {
 }
 
 // BallStep(); The ball: forward 6 pixels a frame through everything, gone off the screen;
-static bool32 BallStep(struct SparkPiece *p) {
+static bool32 BallStep(struct ScrollPiece *p) {
     const struct LevelInfo *level = &gCurLevelInfo[p->base.unk56];
     s32 x, y;
 
@@ -311,7 +322,7 @@ static bool32 BallStep(struct SparkPiece *p) {
 
 /* BurstStep(); The level attack: its boxes (.rca's 41 and 42, every frame, one and the other) for 30 frames while KatAM's attack
  * lasts (anim 0x34), which it holds that long; then KatAM's spark if he's still at it (B held: the DS's base attack after it); */
-static bool32 BurstStep(struct SparkPiece *p) {
+static bool32 BurstStep(struct ScrollPiece *p) {
     struct Kirby *kirby = p->kirby;
 
     if (kirby->animationIndex != 0x34 || p->clock >= SPARK_BURST_FRAMES) {
@@ -333,35 +344,107 @@ static bool32 BurstStep(struct SparkPiece *p) {
     return TRUE;
 }
 
-static void SparkPieceMain(void) {
-    struct SparkPiece *p = TaskGetStructPtr(gCurTask);
+/* Beam. The DS's Beam Kirby's whip (0x02088B44, after its start-up): its .mca composite 0 (beam_ext's 23, 34 frames, sound 0xD3, hit
+ * boxes of 15: its .rca's 27); with the scroll (HasScroll 3), composite 1: a bigger whip, sweeping from higher above him to lower in
+ * front, 44 frames (beam_ext's 25, 4 pixels forward; sound 0xD4; hit boxes of 20, one of 9: .rca 28). The DS's Beam has no other move.
+ * In KatAM, with the scroll: KatAM's whip (its hit box, sub_0807CFE4, and chain, sub_0807D2D0 and sub_0807D4B0, all three detoured,
+ * from its attack state sub_08064094 only, not the ability-get show) is the DS's upgraded whip, a ScrollPiece (BEAM_WHIP): its look,
+ * its boxes (strengths: KatAM's beam's 3 for the DS's 15, so 20 is 4, 9 is 2), its sound, its 44 frames (KatAM's whip is 35: its
+ * attack, anim 52, is held to the whip's end, BeamStep); */
+extern void sub_08064094(struct Kirby *kirby);
+void (*gScrollBeamOriginal)(struct Kirby *) = NULL;
+void (*gScrollChainOriginal)(struct Kirby *) = NULL;
+void (*gScrollChain2Original)(struct Kirby *) = NULL;
+#define BEAM_KNOCK 0x1C0                    // KatAM's beam's hit (sub_0807CFE4's unk64 and unk68);
+#define BEAM_HIT 0x20000403
+#define BEAM_WHIP_FRAMES 44
+
+// sBeamBoxes; The upgraded whip's hit boxes (.rca 28): its frame, the box from Kirby's feet (Y up), KatAM's strength;
+static const struct { u8 frame; s8 left, top, right, bottom; u8 strength; } sBeamBoxes[] = {
+    { 2, 10, 33, 27, 9, 4 }, { 5, 8, 59, 26, 31, 4 }, { 8, 19, 48, 36, 19, 4 }, { 11, 32, 56, 46, 41, 4 }, { 12, 15, 31, 32, 7, 4 },
+    { 14, 37, 48, 58, 18, 4 }, { 17, 26, 21, 55, 4, 4 }, { 19, 7, 15, 22, 4, 4 }, { 20, 35, 9, 69, -8, 4 },
+    // (the DS's frame 23 has two: this, and frame 19's again, which KatAM's one box a frame leaves out);
+    { 23, 31, 1, 62, -13, 4 }, { 26, 9, 6, 32, -10, 4 }, { 29, 24, -11, 54, -30, 4 }, { 30, 4, 14, 21, 2, 4 },
+    { 32, 16, -15, 33, -31, 4 }, { 33, 6, 14, 20, -2, 4 }, { 35, 17, -23, 35, -40, 2 }, { 36, 8, 1, 19, -23, 4 },
+    { 38, 6, -17, 23, -31, 4 }, { 39, 4, 16, 18, 0, 4 },
+};
+
+static bool32 BeamWhipped(struct Kirby *kirby) {
+    return kirby->ability == KIRBY_ABILITY_BEAM && kirby->stateFn == sub_08064094 && SqueakScrollOwned(SCROLL_BEAM);
+}
+
+// BeamStep(); The upgraded whip: its boxes on their frames, KatAM's attack held its 44 frames, then ended;
+static bool32 BeamStep(struct ScrollPiece *p) {
+    struct Kirby *kirby = p->kirby;
+    u8 i;
+
+    if (kirby->stateFn != sub_08064094 || p->clock >= BEAM_WHIP_FRAMES) {
+        // (his attack ends with it: anim 52's end);
+        if (kirby->stateFn == sub_08064094) kirby->base.flags |= 2;
+        p->base.flags |= 0x1000;
+        return FALSE;
+    }
+    kirby->base.flags &= ~2;
+    Follow(p);
+    for (i = 0; i < ARRAY_COUNT(sBeamBoxes) && sBeamBoxes[i].frame != p->clock; i++) ;
+    if (i < ARRAY_COUNT(sBeamBoxes))
+        Box(p, sBeamBoxes[i].left, sBeamBoxes[i].top, sBeamBoxes[i].right, sBeamBoxes[i].bottom, sBeamBoxes[i].strength);
+    else
+        Box(p, 0, 0, 0, 0, 0);
+    return TRUE;
+}
+
+// ScrollBeamStart(); sub_0807CFE4 (detoured): KatAM's whip's hit box starts; with the scroll, the DS's upgraded whip instead;
+void ScrollBeamStart(struct Kirby *kirby) {
+    struct ScrollPiece *p;
+
+    if (!BeamWhipped(kirby) || (p = ScrollPieceCreate(kirby, BEAM_WHIP, 0, BEAM_KNOCK, BEAM_HIT)) == NULL) {
+        gScrollBeamOriginal(kirby);
+        return;
+    }
+    LookStart(p, 0, SQUEAK_FX_BEAM_WHIP, 4, 0);
+    PlaySfx(&kirby->base, SQUEAK_SE(0xD4));
+}
+
+// ScrollBeamChain(), ScrollBeamChain2(); sub_0807D2D0 and sub_0807D4B0 (detoured): KatAM's whip's chain; none with the scroll;
+void ScrollBeamChain(struct Kirby *kirby) {
+    if (!BeamWhipped(kirby)) gScrollChainOriginal(kirby);
+}
+
+void ScrollBeamChain2(struct Kirby *kirby) {
+    if (!BeamWhipped(kirby)) gScrollChain2Original(kirby);
+}
+
+static void ScrollPieceMain(void) {
+    struct ScrollPiece *p = TaskGetStructPtr(gCurTask);
     bool32 alive;
     u8 i;
 
     if (ObjectPreUpdate(&p->base)) return;
-    alive = p->kind == SPARK_AURA ? AuraStep(p) : p->kind == SPARK_BALL ? BallStep(p) : BurstStep(p);
+    alive = p->kind == SPARK_AURA ? AuraStep(p) : p->kind == SPARK_BALL ? BallStep(p) : p->kind == BEAM_WHIP ? BeamStep(p) : BurstStep(p);
     if (!alive) return;
-    for (i = 0; i < SPARK_LOOKS; i++) LookDraw(p, &p->look[i]);
+    for (i = 0; i < SCROLL_LOOKS; i++) LookDraw(p, &p->look[i]);
     p->clock++;
 }
 
-static void SparkPieceDestroy(struct Task *t) {
-    struct SparkPiece *p = TaskGetStructPtr(t);
+static void ScrollPieceDestroy(struct Task *t) {
+    struct ScrollPiece *p = TaskGetStructPtr(t);
     u8 i;
 
-    for (i = 0; i < SPARK_LOOKS; i++) LookEnd(&p->look[i]);
+    for (i = 0; i < SCROLL_LOOKS; i++) LookEnd(&p->look[i]);
 }
 
-// SparkPieceCreate(); A piece at its Kirby's feet, its hit box KatAM's spark's kind (sub_08074AB0's);
-static struct SparkPiece *SparkPieceCreate(struct Kirby *kirby, u8 kind, u8 level) {
-    struct Task *t = TaskCreate(SparkPieceMain, sizeof(struct SparkPiece), 0x3500, TASK_USE_EWRAM, SparkPieceDestroy);
-    struct SparkPiece *p;
+/* ScrollPieceCreate(); A piece at its Kirby's feet, its hit's kind and knock back KatAM's own attack's (unk68, unk64: the spark's,
+ * sub_08074AB0, SPARK_HIT and SPARK_KNOCK; the beam whip's, sub_0807CFE4, BEAM_HIT and BEAM_KNOCK); */
+static struct ScrollPiece *ScrollPieceCreate(struct Kirby *kirby, u8 kind, u8 level, s16 knock, u32 hitKind) {
+    struct Task *t = TaskCreate(ScrollPieceMain, sizeof(struct ScrollPiece), 0x3500, TASK_USE_EWRAM, ScrollPieceDestroy);
+    struct ScrollPiece *p;
     u8 i;
 
     if (t == &gEmptyTask) return NULL;
     p = TaskGetStructPtr(t);
     ClearObjectBase(&p->base);
-    for (i = 0; i < SPARK_LOOKS; i++) p->look[i].effect = SPARK_NO_LOOK;
+    for (i = 0; i < SCROLL_LOOKS; i++) p->look[i].effect = SCROLL_NO_LOOK;
     p->kirby = kirby;
     p->kind = kind;
     p->level = level;
@@ -372,11 +455,11 @@ static struct SparkPiece *SparkPieceCreate(struct Kirby *kirby, u8 kind, u8 leve
     p->base.roomId = kirby->base.roomId;
     p->base.unk56 = kirby->base.unk56;
     if (Macro_0810B1F4(&p->base)) p->base.flags |= 0x2000;
-    p->base.unk64 = 0xA0;
+    p->base.unk64 = knock;
     p->base.unk66 = 0;
     p->base.unk63 = 0;
     p->base.flags |= 0xA0000100 | 0x400 | 0x200;
-    p->base.unk68 = 0xA0000403;
+    p->base.unk68 = hitKind;
     Follow(p);
     return p;
 }
@@ -386,7 +469,7 @@ static void Glint(struct Kirby *kirby) {
     s32 dx = (Rand16() % 12) - 6, dy = 2 + Rand16() % 12;
 
     if (kirby->base.flags & 1) dx = -dx;
-    SqueakEffectInRoom(kirby->base.roomId, SQUEAK_FX_SPARK_GLINT, kirby->base.x + (dx << 8), kirby->base.y + SPARK_FEET - (dy << 8));
+    SqueakEffectInRoom(kirby->base.roomId, SQUEAK_FX_SPARK_GLINT, kirby->base.x + (dx << 8), kirby->base.y + SCROLL_FEET - (dy << 8));
 }
 
 // SparkCharging(); The DS's 0x02088444 (see above), each frame, after his input's read;
@@ -405,7 +488,7 @@ static void SparkCharging(struct Kirby *kirby) {
             c->charge += SPARK_TAP;
             if (c->level == 0) {
                 if (c->charge > SPARK_LEVEL_1) {
-                    SparkPieceCreate(kirby, SPARK_AURA, 0);
+                    ScrollPieceCreate(kirby, SPARK_AURA, 0, SPARK_KNOCK, SPARK_HIT);
                     c->charge = SPARK_TAP;
                     c->level = 1;
                 }
@@ -442,7 +525,7 @@ void ScrollKirbyInput(struct Kirby *kirby) {
  * burst (KatAM's after it, BurstStep); 2 with forward held, KatAM's and the aura flies off (AuraStep). The level and charge end; */
 void ScrollSparkAttack(struct Kirby *kirby) {
     struct SparkCharge *c = kirby->ability == KIRBY_ABILITY_SPARK ? ChargeOf(kirby, FALSE) : NULL;
-    struct SparkPiece *p;
+    struct ScrollPiece *p;
     u8 level;
 
     if (c == NULL) {
@@ -454,17 +537,17 @@ void ScrollSparkAttack(struct Kirby *kirby) {
     c->ball = level == 2 && kirby->movementState & (kirby->base.flags & 1 ? 0x20 : 0x10);
     c->level = 0;
     c->charge = 0;
-    if (level == 0 || c->ball || (p = SparkPieceCreate(kirby, SPARK_BURST, level)) == NULL) {
+    if (level == 0 || c->ball || (p = ScrollPieceCreate(kirby, SPARK_BURST, level, SPARK_KNOCK, SPARK_HIT)) == NULL) {
         gScrollSparkOriginal(kirby);
         return;
     }
     if (level == 1) {
-        LookStart(p, 0, SQUEAK_FX_SPARK_RING_1, -8);
-        LookStart(p, 1, SQUEAK_FX_SPARK_BURST_1, 0);
+        LookStart(p, 0, SQUEAK_FX_SPARK_RING_1, 0, -8);
+        LookStart(p, 1, SQUEAK_FX_SPARK_BURST_1, 0, 0);
     } else {
-        LookStart(p, 0, SQUEAK_FX_SPARK_RING_2B, -8);
-        LookStart(p, 1, SQUEAK_FX_SPARK_RING_2A, -8);
-        LookStart(p, 2, SQUEAK_FX_SPARK_BURST_2, 0);
+        LookStart(p, 0, SQUEAK_FX_SPARK_RING_2B, 0, -8);
+        LookStart(p, 1, SQUEAK_FX_SPARK_RING_2A, 0, -8);
+        LookStart(p, 2, SQUEAK_FX_SPARK_BURST_2, 0, 0);
     }
     PlaySfx(&kirby->base, SQUEAK_SE(level == 1 ? 0x51 : 0xB2));
 }

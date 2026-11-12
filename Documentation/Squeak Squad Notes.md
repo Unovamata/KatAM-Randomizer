@@ -1048,6 +1048,10 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
       61 frames a glint flickers at random in Kirby's body box (`spark_cmn`'s anim 58). The composites (`spark_ext.mca`): 0 = 37
       (8 up) + 25, 1 = 26 (8 up) + 25, 2 = 28 + 27 (8 up) + 38, 3 = 23 + 22 + 31, 4 = 23 + 22 + 32; 25 and 38 show Kirby's own
       cells (5, 8, 11, 14) every other frame. Ported (`ROM Expansion/scrolls.c`'s Spark).
+    - Beam (`0x02088B44`, after the start-up `0x02088C9C`: `beam_cmn`'s 21): the whip, `beam_ext.mca` composite 0 (anim 23 + Kirby's 22,
+      34 frames, sound `0xD3`, hit boxes of 15 on 15 of its frames: `.rca` 27), or with the scroll composite 1 (anim 25, 4 pixels
+      forward, + Kirby's 24, 44 frames, sound `0xD4`, hit boxes of 20 (one of 9) on 19 frames, sweeping from higher above him to
+      lower in front: `.rca` 28), then the common end state. The DS's Beam has no other move. Ported (`scrolls.c`'s Beam).
   - **The Secret Map's pieces** (treasures 93-99, taken as pieces 1-7 in order: not checked against the DS): each in its own chest
     (2-6-6, 3-3-7, 4-4-5, 5-4-5, 6-6-5, 7-6-9, 8-2-6), marked `chest[0x16]` the piece's number + 1 and `chest[0x17]` 2 (the area
     maps' mark is 1), the item one of KatAM's maps. Their art is `collection/map`: anims 0-6 the pieces (parchment, about 60 x 50

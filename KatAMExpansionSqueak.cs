@@ -798,6 +798,8 @@ namespace KatAMRandomizer {
             new SqueakEffect(30, "kirby/spark_ext", 28),
             new SqueakEffect(31, "kirby/spark_ext", 38, Skip: new[] { 5, 8, 11, 14 }),
             new SqueakEffect(32, "kirby/spark_cmn", 58, Skip: new[] { 0 }, Once: true),
+            // The Beam scroll's whip ("ROM Expansion/scrolls.c": beam_ext.mca's composite 1, its whip; its last step empty);
+            new SqueakEffect(33, "kirby/beam_ext", 25, Skip: new[] { 0 }),
         };
 
         /* SqueakEffectsBuild(); Each effect's cells (those its animation shows, in its order) as KatAM frames and their palette, the anim

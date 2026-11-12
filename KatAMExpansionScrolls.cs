@@ -10,8 +10,9 @@ namespace KatAMRandomizer {
          *   runs it and aims the breath as the DS's Fire and Ice scrolls do;
          * • a Kirby's input, read each frame (sub_0803F324, detoured): ScrollKirbyInput, which reads it and then works Spark's charge;
          * • Spark's attack as it starts (sub_08074AB0, KatAM's spark, detoured): ScrollSparkAttack, its level's attack;
-         * the detoured functions' trampolines (running them as they were) in gScrollInputOriginal and gScrollSparkOriginal. Returns an
-         * error, or null; */
+         * • Beam's whip (its hit box sub_0807CFE4 and its chain sub_0807D2D0, sub_0807D4B0, detoured): ScrollBeamStart, the DS's
+         *   upgraded whip, ScrollBeamChain and ScrollBeamChain2, none (KatAM's whip without the scroll);
+         * the detoured functions' trampolines (running them as they were) in gScroll*Original. Returns an error, or null; */
         static string AddScrollUpgrades(byte[] rom, KatAMExpansionCode.Version version, ref int cursor) {
             int codeBase = CodeAddress + 0x08000000;
             if (Repoint(rom, version.RomSymbols["sub_0805D268"] + 0x08000000 + 1, codeBase + version.CodeSymbols["ScrollBreath"] + 1) != 1)
@@ -21,6 +22,13 @@ namespace KatAMRandomizer {
             if (input < 0 || spark < 0) return $"The {version.Name} ROM's Kirby input or spark code doesn't match.";
             WriteInt(rom, CodeAddress + version.CodeSymbols["gScrollInputOriginal"], input + 0x08000000 + 1);
             WriteInt(rom, CodeAddress + version.CodeSymbols["gScrollSparkOriginal"], spark + 0x08000000 + 1);
+            int whip = Detour(rom, version.RomSymbols["sub_0807CFE4"], codeBase + version.CodeSymbols["ScrollBeamStart"], ref cursor),
+                chain = Detour(rom, version.RomSymbols["sub_0807D2D0"], codeBase + version.CodeSymbols["ScrollBeamChain"], ref cursor),
+                chain2 = Detour(rom, version.RomSymbols["sub_0807D4B0"], codeBase + version.CodeSymbols["ScrollBeamChain2"], ref cursor);
+            if (whip < 0 || chain < 0 || chain2 < 0) return $"The {version.Name} ROM's beam code doesn't match.";
+            WriteInt(rom, CodeAddress + version.CodeSymbols["gScrollBeamOriginal"], whip + 0x08000000 + 1);
+            WriteInt(rom, CodeAddress + version.CodeSymbols["gScrollChainOriginal"], chain + 0x08000000 + 1);
+            WriteInt(rom, CodeAddress + version.CodeSymbols["gScrollChain2Original"], chain2 + 0x08000000 + 1);
             return null;
         }
     }
