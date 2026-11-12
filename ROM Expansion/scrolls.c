@@ -31,6 +31,7 @@ enum {
     SCROLL_SPARK,
     SCROLL_BEAM,
     SCROLL_TORNADO,
+    SCROLL_PARASOL,
 };
 
 // SCROLL_BREATH_AIM; prmKirbyFire.kgb's and prmKirbyIce.kgb's words 3 and 4 (6144, -6144): a breath's puff's height speed with Up or
@@ -102,7 +103,7 @@ struct SparkCharge {
     u8 glint;                   // +0x3AC;
 };
 
-enum { SPARK_AURA, SPARK_BURST, SPARK_BALL, BEAM_WHIP, TORNADO_ELEMENT };
+enum { SPARK_AURA, SPARK_BURST, SPARK_BALL, BEAM_WHIP, TORNADO_ELEMENT, PARASOL_THRUST };
 
 // ScrollLook; One of a piece's looks: an effect's animation (squeak.h's SQUEAK_FX_*), `dx` pixels forward and `dy` under the piece
 // (the DS's composite's part: its offset);
@@ -524,6 +525,68 @@ void ScrollTornadoStart(struct Kirby *kirby) {
     }
 }
 
+/* Parasol. The DS's: its swing (0x020B97BC, parasol_cmn's 21 and 22, sound 0xA2) and, B held after it, its twirl (0x020B92F0,
+ * 0x020B90A8: 26, then 27 over Kirby, a box of 8 (.rca 27) till B is let go, 0x020B8F18). With the scroll (HasScroll 5) the twirl is
+ * parasol_ext.mca's composite 2 (93 frames, a loop: Kirby thrusting his parasol forward, stars bursting from its tip), sound 0xA3 at its
+ * start and every 37 frames while B is held, its boxes (.rca 40) one frame in three: 13 to 33-63 pixels in front, 12 under his feet to
+ * 30 over them, of 10 the first and 8 the rest (the plain twirl's 8).
+ * In KatAM, with the scroll: KatAM's twirl (B held after the swing, sub_0806487C: anims 104, 105; its attack, sub_08084188, detoured:
+ * strength 1, 10 to 38 in front, again every 7 frames) keeps its look, Kirby's own, and gets the DS's stars about him, its boxes in
+ * place of KatAM's (strength 1: the DS's 8 and 10, the plain twirl's) and its sound, till it ends. Not in water (anims 69, 70: the DS's
+ * water parasol is a file of its own, parasol_wat); */
+extern void sub_08084280(void);
+void (*gScrollParasolOriginal)(struct Kirby *) = NULL;
+#define PARASOL_TWIRL_START 104
+#define PARASOL_TWIRL 105
+#define PARASOL_FRAMES 93
+#define PARASOL_SOUND_EVERY 37
+#define PARASOL_KNOCK 0x120                 // KatAM's twirl's hit (sub_08084188's unk64, unk66 and unk68);
+#define PARASOL_KNOCK_Y 0x100
+#define PARASOL_HIT 0x20000043
+
+// sParasolReach; The thrust's boxes' right edges (.rca 40: a box on the first frame of each three, 13 in front, 30 up to 12 down);
+static const u8 sParasolReach[] = { 33, 33, 39, 39, 55, 55, 55, 55, 63, 63, 63, 47, 47, 47, 35, 53, 53, 53, 61, 60, 60, 60, 40, 49, 40, 47,
+                                    55, 57, 57, 57, 61 };
+
+// ParasolStep(); With KatAM's twirl: the DS's stars and boxes, KatAM's own box off, the DS's sound; gone when the twirl ends;
+static bool32 ParasolStep(struct ScrollPiece *p) {
+    struct Kirby *kirby = p->kirby;
+    struct ObjectBase *attack = p->other && p->other->main == sub_08084280 ? TaskGetStructPtr(p->other) : NULL;
+    u16 time = p->clock % PARASOL_FRAMES;
+
+    if (attack == NULL || attack->parent != kirby || attack->flags & 0x1000 || kirby->ability != KIRBY_ABILITY_PARASOL
+        || (kirby->animationIndex != PARASOL_TWIRL_START && kirby->animationIndex != PARASOL_TWIRL)) {
+        p->base.flags |= 0x1000;
+        return FALSE;
+    }
+    Follow(p);
+    p->base.roomId = kirby->base.roomId;
+    attack->flags |= 0x200;
+    if (p->clock % PARASOL_SOUND_EVERY == 0) PlaySfx(&kirby->base, SQUEAK_SE(0xA3));
+    if (time % 3 == 0) Box(p, 13, 30, sParasolReach[time / 3], -12, 1);
+    else Box(p, 0, 0, 0, 0, 0);
+    return TRUE;
+}
+
+// ScrollParasolTwirl(); sub_08084188 (detoured): KatAM's twirl's attack starts; with the scroll, on land, the piece of the DS's;
+void ScrollParasolTwirl(struct Kirby *kirby) {
+    struct ScrollPiece *p;
+    u8 i;
+
+    gScrollParasolOriginal(kirby);
+    if (kirby->ability != KIRBY_ABILITY_PARASOL || kirby->animationIndex != PARASOL_TWIRL_START || !SqueakScrollOwned(SCROLL_PARASOL)) return;
+    for (i = 0; i < MAX_TASK_NUM; i++) {
+        struct Task *t = &gTasks[i];
+
+        if (t->main != sub_08084280 || ((struct ObjectBase *)TaskGetStructPtr(t))->parent != kirby) continue;
+        if ((p = ScrollPieceCreate(kirby, PARASOL_THRUST, 0, PARASOL_KNOCK, PARASOL_HIT)) == NULL) return;
+        p->other = t;
+        p->base.unk66 = PARASOL_KNOCK_Y;
+        LookStart(p, 0, SQUEAK_FX_PARASOL_STARS, 0, 0);
+        return;
+    }
+}
+
 static void ScrollPieceMain(void) {
     struct ScrollPiece *p = TaskGetStructPtr(gCurTask);
     bool32 alive;
@@ -531,7 +594,7 @@ static void ScrollPieceMain(void) {
 
     if (ObjectPreUpdate(&p->base)) return;
     alive = p->kind == SPARK_AURA ? AuraStep(p) : p->kind == SPARK_BALL ? BallStep(p) : p->kind == BEAM_WHIP ? BeamStep(p)
-          : p->kind == TORNADO_ELEMENT ? TornadoStep(p) : BurstStep(p);
+          : p->kind == TORNADO_ELEMENT ? TornadoStep(p) : p->kind == PARASOL_THRUST ? ParasolStep(p) : BurstStep(p);
     if (!alive) return;
     for (i = 0; i < SCROLL_LOOKS; i++) LookDraw(p, &p->look[i]);
     p->clock++;
