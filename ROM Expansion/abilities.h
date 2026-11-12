@@ -167,6 +167,18 @@ enum {
     ANIMAL_LOOK_ROLL_END,
     ANIMAL_LOOK_SPIN_START,
     ANIMAL_LOOK_SPIN,
+    BUBBLE_LOOK_START,          // (Bubble: kirby/bubble_ext's 22, composites 16, 14, 18 blowing ahead, up, down, 17, 15, 19 their ends,
+    BUBBLE_LOOK_BLOW,           //  the scroll's 20; the bubbles 35, 36, the scroll's 37, their pop 38);
+    BUBBLE_LOOK_BLOW_UP,
+    BUBBLE_LOOK_BLOW_DOWN,
+    BUBBLE_LOOK_END,
+    BUBBLE_LOOK_END_UP,
+    BUBBLE_LOOK_END_DOWN,
+    BUBBLE_LOOK_BIG,
+    BUBBLE_LOOK_BUBBLE,
+    BUBBLE_LOOK_BUBBLE_2,
+    BUBBLE_LOOK_BIG_BUBBLE,
+    BUBBLE_LOOK_POP,
     SQUEAK_LOOK_COUNT,
 };
 extern const u16 gSqueakAbilityLooks[SQUEAK_LOOK_COUNT][SQUEAK_LOOK_LAYERS];
@@ -174,6 +186,7 @@ extern const u16 gSqueakAbilityLooks[SQUEAK_LOOK_COUNT][SQUEAK_LOOK_LAYERS];
 // (abilities/squeak_moves.c: Ninja's B; each Kirby's input read, scrolls.c's ScrollKirbyInput: its moves that come from no button);
 void NinjaB(struct Kirby *);
 void AnimalB(struct Kirby *);
+void BubbleB(struct Kirby *);
 void SqueakAbilityInput(struct Kirby *);
 
 // The HUD portraits' size (sub_080356AC's: abilities and the special portraits up to 0x1B; the rest are smaller);
