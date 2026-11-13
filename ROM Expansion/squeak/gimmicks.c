@@ -1108,6 +1108,7 @@ struct SqueakGimmickSprite {
     u8 step;
     u8 frames;
     bool8 ended;
+    bool8 unseen;               // (hidden this frame for want of VRAM: GimmickVram(), shown again before its next step);
 };
 
 struct SqueakGimmickObject {
@@ -1145,16 +1146,70 @@ static void GimmickAnimate(struct Object *obj, struct SqueakGimmickSprite *spr) 
 /* GimmickInit(); An object a gimmick on the hammer peg's type: still, staying when off the screen, harmless, facing right (Squeak
  * Squad's look as the DS draws it, its frames' canvas mirrored), its sprite as many tiles as its look's frames take and its look's
  * palette; */
+/* GimmickShowAgain(); Its unk7C, run before its step each frame: a gimmick hidden last frame for want of VRAM (GimmickVram()) shown
+ * again, its own code seeing its own flags; not while the game's stopped (KatAM's ObjectMain draws it then as it is, no step); */
+static void GimmickShowAgain(struct Object *obj) {
+    struct SqueakGimmickSprite *spr = &((struct SqueakGimmickObject *)obj)->spr;
+
+    if (!spr->unseen || (gUnk_03000510.unk4 & ((1 << obj->base.unk56) | 0x10))) return;
+    spr->unseen = FALSE;
+    obj->base.flags &= ~0x400;
+}
+
 static void GimmickInit(struct Object *obj, struct SqueakGimmickSprite *spr, u8 look) {
     spr->look = look;
+    spr->unseen = FALSE;
     obj->base.flags |= 0x2000000 | 0x8000 | 0x800 | 0x100 | 0x40 | 1;
-    obj->base.unkC |= 1;
+    // (unkC 0x200: KatAM's sub_0809A630 gives it no VRAM, its type's 4 tiles: GimmickVram() gets its own);
+    obj->base.unkC |= 1 | 0x200;
     obj->base.unk68 &= ~7;
     obj->base.unk5C &= ~7;
     ObjectInitSprite(obj);
     if (SqueakVramOk(obj->base.sprite.tilesVram)) VramFree(obj->base.sprite.tilesVram);
-    obj->base.sprite.tilesVram = VramMalloc(gSqueakData.enemies[look].tiles);
+    obj->base.sprite.tilesVram = 0;
+    obj->base.sprite.unk8 |= 0x80000;
     obj->base.sprite.palId = SqueakLoadPalette(gSqueakData.enemies[look].animId, SQUEAK_HURT_VARIANTS, obj->base.roomId);
+    obj->unk7C = GimmickShowAgain;
+}
+
+/* GimmickVram(); A gimmick's sprite VRAM, as it's drawn (SqueakGimmickAnim(), after its step): none while it's hidden or well off the
+ * screen; else as many tiles as the frame it shows takes (its look's SqueakData.cellTiles, KatAMExpansionSqueak.cs's FitVram: the
+ * thunder cloud resting takes far fewer than its zap's 123; its look's most otherwise), a block got again when it needs more or
+ * holds far more than that; hidden for the frame while none that big is free. Each held its look's most for the whole visit before:
+ * five thunder clouds asked for more than KatAM's 512 tiles, the last given none (VramMalloc's ewram_end) and the sprites after them
+ * KatAM's 4 tiles of its type, drawn over others' (the owner: "garbled cloud graphics", room 0x49C: the clouds, Kirby's helpers and the
+ * enemies drawn in pieces); */
+#define GIMMICK_VRAM_MARGIN 96      // (pixels past the screen's edges a gimmick keeps its VRAM: the thunder cloud's frames 160 across);
+#define GIMMICK_VRAM_SLACK 32       // (tiles more than its frame takes a gimmick keeps, not made again each step);
+static void GimmickVram(struct Object *obj, struct SqueakGimmickSprite *spr) {
+    struct Sprite *sprite = &obj->base.sprite;
+    const u16 *cells = gSqueakData.cellTiles != NULL ? gSqueakData.cellTiles[spr->look] : NULL;
+    s32 x = (obj->base.x - gCurLevelInfo[gLocalPlayerId].viewportPosition.x) >> 8;
+    s32 y = (obj->base.y - gCurLevelInfo[gLocalPlayerId].viewportPosition.y) >> 8;
+    u16 need = gSqueakData.enemies[spr->look].tiles, have = SqueakVramOk(sprite->tilesVram) ? SqueakVramTiles(sprite->tilesVram) : 0;
+    bool32 shown = !(obj->base.flags & 0x400) && x >= -GIMMICK_VRAM_MARGIN && x < DISPLAY_WIDTH + GIMMICK_VRAM_MARGIN
+                   && y >= -GIMMICK_VRAM_MARGIN && y < DISPLAY_HEIGHT + GIMMICK_VRAM_MARGIN;
+
+    if (cells != NULL && obj->unk83 < cells[0]) need = cells[1 + obj->unk83];
+    if (shown && need != 0 && have >= need && have <= need + GIMMICK_VRAM_SLACK) return;
+    if (have) VramFree(sprite->tilesVram);
+    sprite->tilesVram = 0;
+    sprite->unk8 |= 0x80000;
+    if (shown && need != 0 && SqueakVramFits(need)) {
+        u32 vram = VramMalloc(need);
+
+        if (SqueakVramOk(vram)) {
+            sprite->tilesVram = vram;
+            sprite->unk8 &= ~0x80000;
+            sprite->unk1B = 0xFF;   // (its frame's tiles copied in again: sub_0809A7A4);
+            return;
+        }
+    }
+    // (none: hidden, unless it is already: an unseen one well off the screen, or one with nothing to show);
+    if (!(obj->base.flags & 0x400)) {
+        obj->base.flags |= 0x400;
+        spr->unseen = TRUE;
+    }
 }
 
 struct SqueakShutter {
@@ -3008,8 +3063,10 @@ u32 SqueakGimmickAnim(struct Object *obj) {
     if (obj->type != OBJ_HAMMER_PEG) return 0;
     if (obj->objTemplate->unk11 == SQUEAK_SWITCH_OBJECT)
         return gSqueakData.enemies[SQUEAK_SWITCH].animId | (SQUEAK_HURT_VARIANTS + (obj->unk83 & 1)) << 16;
-    if (obj->objTemplate->unk11 >= SQUEAK_FLAME_OBJECT && obj->objTemplate->unk11 <= SQUEAK_SHUTTER_OBJECT)
+    if (obj->objTemplate->unk11 >= SQUEAK_FLAME_OBJECT && obj->objTemplate->unk11 <= SQUEAK_SHUTTER_OBJECT) {
+        GimmickVram(obj, &((struct SqueakGimmickObject *)obj)->spr);
         return gSqueakData.enemies[((struct SqueakGimmickObject *)obj)->spr.look].animId | obj->unk83 << 16;
+    }
     return 0;
 }
 

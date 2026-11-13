@@ -1384,9 +1384,10 @@ namespace KatAMRandomizer {
             new SqueakEnemy(SqueakPlatformLook, "Floor", "yakumono/floor", new[] { 0, 0, 0 }, new (int, int)[0]),
             /* The thunder cloud (gimmick 5, yakumono/thunder_cloud): every cell, and its .mca's 4 composites as animations 14-17 (the
              * DS plays only those, 0x3000000-3: 14 resting, the cloud bobbing with its sparkles; 15 the zap, its green burst and sparks;
-             * 16 shaking before it breaks, flashing; 17 breaking up in puffs); no name; */
+             * 16 shaking before it breaks, flashing; 17 breaking up in puffs); no name; its sprite's VRAM as many tiles as the frame it
+             * shows (FitVram: squeak/gimmicks.c's GimmickVram(), its zap's 123 got only as it zaps); */
             new SqueakEnemy(SqueakThunderLook, "Thunder Cloud", "yakumono/thunder_cloud", new[] { 0, 0, 0 }, new (int, int)[0],
-                            Canvas: 160, FlattenComposites: true),
+                            Canvas: 160, FlattenComposites: true, FitVram: true),
             /* The rolling boulder (gimmick 6, yakumono/ball_rock: 0 the rock, 1 and 2 its pieces spinning; 3 here its roll, cell 1 turned
              * a sixteenth a step): every cell; no name; */
             new SqueakEnemy(SqueakBoulderLook, "Boulder", "yakumono/ball_rock", new[] { 0, 0, 0 }, new (int, int)[0], Roll: 1),

@@ -776,6 +776,21 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
     merged into one cell): resting until struck (Struck(), as the grass), the zap after its resting loop, 5 of its loops, its box
     ±40; its break the shake, then the puffs. Checked in the GBA emulator (USA, Europe, Japan, 3-5-1): untouched it never zaps;
     struck by the Sword, the clouds zap as above, hurting Kirby on one.
+    **Its VRAM** (the owner: "Room 0x49C, garbled cloud graphics."): every gimmick held its look's biggest frame's tiles for the
+    whole visit, the cloud's zap 123 (its burst 160 pixels across), so room 0x49C's five clouds asked for 620 of KatAM's 512: the
+    fourth and fifth got none (KatAM's `VramMalloc` gives `ewram_end`), KatAM then gave them its hammer peg's 4 tiles, and the
+    clouds, Kirby's helpers and the enemies past x 1100 were drawn from tiles not theirs. Now (`squeak/gimmicks.c`'s
+    GimmickVram, run as each gimmick is drawn) a gimmick holds as many tiles as the frame it shows (the cloud's look has its frames'
+    counts: FitVram), none while it's hidden or 96 pixels off the screen, and is hidden for the frame while there's no block that
+    big (KatAM's sub_0809A630 no longer gives it its type's: unkC 0x200). The cloud resting takes 22 tiles, its zap 124. Checked in
+    the GBA emulator (USA; Europe and Japan the sweep only; room 0x49C): Kirby moved by RAM across the room, 8 stops, every sprite whole (the heap at most 172 tiles
+    of 512); the three clouds by x 444-616 struck at once (their hit flag written), all three zapping whole, the heap 388, then 22
+    each again; rooms 0x40A (grass), 0x420 (barrels), 0x4C1 (shutters, boulders), 0x48F and 0x5DE drawn as before, every gimmick on
+    the screen with its own VRAM.
+    **What they're for** (the owner: "What is the point of grey clouds? They just hurt me if I stand on them?"): on the DS a thunder
+    cloud is a moving platform that rests harmless until an attack strikes it; then it zaps for 60 frames, hurting everything within
+    40 pixels of it, riders included: a platform to ride with care, struck to clear what's near it. Standing on it alone doesn't
+    zap it, on the DS or in the port; an attack on it does, Kirby's or a helper's.
   - **The ropes** (gimmick 1, ctor `0x022249C8`, vtable `0x02229A2C`): no sprite (the rope is drawn in the terrain: KatAM ladders
     here), an area: width from `0x02229A20` by the first byte's low nibble (pixels 6-9 of its cell), the second byte its length
     in pixels, down from its spot; the first byte's high nibble how many targets, from the third byte (0xFF none). A cutting
