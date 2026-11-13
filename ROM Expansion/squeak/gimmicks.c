@@ -969,6 +969,7 @@ struct SqueakButton {
 };
 
 static bool32 Struck(struct Object *obj);
+static struct Kirby *AttackKirby(struct ObjectBase *by);
 static bool32 SwitchTargetsRest(struct Object *obj);
 static void SqueakSwitchUp(struct Object *obj);
 
@@ -1495,7 +1496,15 @@ static void HolderInit(struct Object *obj, struct SqueakGimmickSprite *spr, u8 l
 /* The grass tuft: its look its template's unk12 (0x02227C28: grass_A_S, _A_L, _B_S, _B_L, _C_S, _C_L; even small, its box -16 to 16
  * across and 48 up from its spot, its feet; odd large, -32 to 32 and 56 up). A body moving through it rustles it (message 5: its
  * animation 1); an attack cuts it (0xB, `0x02221C64`): what it holds comes out, its blades fly (animation 5, an object of its own
- * here) and its stub goes (6); one that held something grows back 600 frames later (`0x02221F58`), with it again; */
+ * here) and its stub goes (6); one that held something grows back 600 frames later (`0x02221F58`), with it again. A fire attack
+ * burns it instead (the DS's: an attack whose flags hold 0x288, its state 9; the owner, "When grass is hit with fire, it doesn't
+ * quite burn, room 0x40A"): `0x02221DFC` plays the DS's sound 0x58 and its look's composite 2 (its .mca: flames over the tuft
+ * withering, its animation 2) for 40 frames (0x02227C1C's), `0x02221D94` composite 3 (the flames dying over the withered tuft, 3)
+ * for its frames, `0x02221CF0` lets out what it holds and plays composite 4 (the withered tuft blinking away, 4), and it's gone,
+ * growing back as a cut one does. Here a Kirby's attack with Fire or Burning (AttackKirby()), the flames objects of their own
+ * (SqueakCreateFlame(): SQUEAK_GRASS_FLAMES' animations at the compositions' places, GrassFlames(): the A tufts', every tuft's;
+ * the withered tuft in its own palette, GrassPlay()). Not ported: the DS's other
+ * attacks only shaking it (flags 0x70, composite 0) and its burning's own attack (0x0221C838 each frame); */
 struct SqueakGrass {
     struct Object obj;
     struct SqueakGimmickSprite spr;
@@ -1506,6 +1515,55 @@ struct SqueakGrass {
 #define GRASS_RUSTLE 1
 #define GRASS_CUT 2
 #define GRASS_GONE 3
+#define GRASS_BURN 4
+#define GRASS_BURN_OUT 5
+#define GRASS_FADE 6
+#define GRASS_BURN_FRAMES 40
+#define GRASS_WITHERING_ANIM 2
+#define GRASS_WITHERED_ANIM 3
+#define GRASS_FADE_ANIM 4
+struct GrassFlame {
+    u8 anim;
+    s8 x, y;
+};
+#define GRASS_FLAMES_MAX 11
+/* (small and large, the flames' animations (SQUEAK_GRASS_FLAMES': grass_A_L's 11-19 from 0) and places (pixels from its feet, y down):
+ * grass_A_S's and grass_A_L's .mca compositions 2 and 3, every look's small or large tuft burning as the A ones: the B and C files'
+ * own arrangements of the same fire didn't fit the European ROM); */
+static const struct GrassFlame sGrassBurning[2][GRASS_FLAMES_MAX] = {
+    { { 0, 0, -2 }, { 2, 8, 0 }, { 1, -11, -1 }, { 2, 0, -19 }, { 0xFF } },
+    { { 0, 0, 1 }, { 1, 13, -16 }, { 2, 18, -1 }, { 1, -17, 0 }, { 0, 2, -5 }, { 0, 1, -30 }, { 1, -13, -25 }, { 2, 15, -24 }, { 1, -16, 0 }, { 2, 20, 0 }, { 0xFF } },
+};
+static const struct GrassFlame sGrassBurnOut[2][GRASS_FLAMES_MAX] = {
+    { { 3, 5, -22 }, { 4, 4, -17 }, { 5, -11, -5 }, { 6, 8, 0 }, { 0xFF } },
+    { { 5, 4, -17 }, { 4, 22, -12 }, { 3, -14, -5 }, { 6, -1, -29 }, { 7, -15, -28 }, { 8, 17, -22 }, { 0xFF } },
+};
+static const u8 sGrassBurnOutFrames[2] = { 62, 40 };
+
+// (its flames: each an object of its own, SQUEAK_GRASS_FLAMES' animation at its place, for `frames`);
+static void GrassFlames(struct Object *obj, const struct GrassFlame *flames, u16 frames) {
+    u8 i;
+
+    for (i = 0; i < GRASS_FLAMES_MAX && flames[i].anim != 0xFF; i++)
+        CreateObjTemplateAndObj(obj->base.unk56, 1, 0x24, (obj->base.x >> 8) + flames[i].x, (obj->base.y >> 8) + flames[i].y, 0, 0x1F, 0, 0,
+                                OBJ_HAMMER_PEG, 0, 0, 0, 0, 0, 0, 0, 0, SQUEAK_FLAME_OBJECT, 0, flames[i].anim, frames, 0);
+}
+
+/* (an animation of the tuft in its own palette, the look's per animation (KatAMExpansion.cs' animPalettes: the withered tuft's cells,
+ * 2-4, in the DS's brown one, the green tuft's in its own): GimmickInit() loads the look's first, which drew the withered tuft green); */
+static void GrassPlay(struct Object *obj, struct SqueakGimmickSprite *spr, u8 anim) {
+    const struct SqueakGraphics *g = &gSqueakData.enemies[spr->look];
+
+    GimmickPlay(obj, spr, anim);
+    if (g->palette != NULL) obj->base.sprite.palId = SqueakLoadPalette(g->palette[anim].key, g->palette[anim].variant, obj->base.roomId);
+}
+
+// (an attack of a Kirby with Fire or Burning: what the DS's fire flags are here);
+static bool32 GrassFire(struct Object *obj) {
+    struct Kirby *k = AttackKirby(obj->base.unk6C);
+
+    return k != NULL && ((k->ability & NIDL_ABILITY_MASK) == KIRBY_ABILITY_FIRE || (k->ability & NIDL_ABILITY_MASK) == KIRBY_ABILITY_BURNING);
+}
 #define GRASS_REGROW 600
 #define GrassLarge(obj) ((obj)->objTemplate->unk12 & 1)
 static const s8 sGrassBoxes[2][4] = { { -16, -48, 16, 0 }, { -32, -56, 32, 0 } };
@@ -1520,6 +1578,7 @@ static void SqueakBladesMain(struct Object *obj) {
 static void SqueakGrassMain(struct Object *obj) {
     struct SqueakGrass *g = (struct SqueakGrass *)obj;
     const s8 *box = sGrassBoxes[GrassLarge(obj)];
+    u8 size = GrassLarge(obj);
 
     if (gUnk_03000510.unk4 & ((1 << obj->base.unk56) | 0x10)) return;
     GimmickAnimate(obj, &g->spr);
@@ -1527,12 +1586,20 @@ static void SqueakGrassMain(struct Object *obj) {
     case GRASS_STILL:
     case GRASS_RUSTLE:
         if (Struck(obj)) {
-            LetOut(obj);
-            CreateObjTemplateAndObj(obj->base.unk56, 1, 0x24, obj->base.x >> 8, obj->base.y >> 8, 0, 0x1F, 0, 0, OBJ_HAMMER_PEG, 0, 0,
-                                    0, 0, 0, 0, 0, 0, SQUEAK_BLADES_OBJECT, obj->objTemplate->unk12, 0, 0, 0);
-            PlaySfx(&obj->base, SQUEAK_SE(0x59)); // (the DS's 0x59, its cut);
-            GimmickPlay(obj, &g->spr, 6);
-            g->state = GRASS_CUT;
+            if (GrassFire(obj)) {
+                PlaySfx(&obj->base, SQUEAK_SE(0x58)); // (the DS's 0x58, its burning);
+                GrassPlay(obj, &g->spr, GRASS_WITHERING_ANIM);
+                GrassFlames(obj, sGrassBurning[size], GRASS_BURN_FRAMES);
+                g->state = GRASS_BURN;
+                g->timer = 0;
+            } else {
+                LetOut(obj);
+                CreateObjTemplateAndObj(obj->base.unk56, 1, 0x24, obj->base.x >> 8, obj->base.y >> 8, 0, 0x1F, 0, 0, OBJ_HAMMER_PEG, 0, 0,
+                                        0, 0, 0, 0, 0, 0, SQUEAK_BLADES_OBJECT, obj->objTemplate->unk12, 0, 0, 0);
+                PlaySfx(&obj->base, SQUEAK_SE(0x59)); // (the DS's 0x59, its cut);
+                GimmickPlay(obj, &g->spr, 6);
+                g->state = GRASS_CUT;
+            }
             obj->base.unk5C &= ~7;
         } else if (g->state == GRASS_STILL && KirbyIn(obj, box[0], box[1], box[2], box[3], TRUE)) {
             GimmickPlay(obj, &g->spr, 1);
@@ -1542,7 +1609,21 @@ static void SqueakGrassMain(struct Object *obj) {
             g->state = GRASS_STILL;
         }
         break;
+    case GRASS_BURN:
+        if (++g->timer < GRASS_BURN_FRAMES) break;
+        GrassPlay(obj, &g->spr, GRASS_WITHERED_ANIM);
+        GrassFlames(obj, sGrassBurnOut[size], sGrassBurnOutFrames[size]);
+        g->state = GRASS_BURN_OUT;
+        g->timer = 0;
+        break;
+    case GRASS_BURN_OUT:
+        if (++g->timer < sGrassBurnOutFrames[size]) break;
+        LetOut(obj);
+        GrassPlay(obj, &g->spr, GRASS_FADE_ANIM);
+        g->state = GRASS_FADE;
+        break;
     case GRASS_CUT:
+    case GRASS_FADE:
         if (!g->spr.ended) break;
         obj->base.flags |= 0x400;
         g->state = GRASS_GONE;
@@ -1554,7 +1635,7 @@ static void SqueakGrassMain(struct Object *obj) {
         if (++g->timer < GRASS_REGROW) break;
         obj->base.flags &= ~(0x400 | HOLDER_HIT);
         obj->base.unk5C = (obj->base.unk5C & ~7) | HOLDER_KIND;
-        GimmickPlay(obj, &g->spr, 0);
+        GrassPlay(obj, &g->spr, 0);
         g->state = GRASS_STILL;
         break;
     }
@@ -1573,6 +1654,33 @@ static void *SqueakCreateGrass(struct ObjectTemplate *template, u8 playerId) {
     GimmickPlay(obj, &g->spr, 0);
     obj->unk78 = SqueakGrassMain;
     return obj;
+}
+
+// (a flame of a burning tuft, GrassFlames(): SQUEAK_GRASS_FLAMES' animation of its template's unk14, for unk16 frames, then gone);
+struct SqueakFlame {
+    struct Object obj;
+    struct SqueakGimmickSprite spr;
+    u16 timer;
+};
+
+static void SqueakFlameMain(struct Object *obj) {
+    struct SqueakFlame *f = (struct SqueakFlame *)obj;
+
+    if (gUnk_03000510.unk4 & ((1 << obj->base.unk56) | 0x10)) return;
+    GimmickAnimate(obj, &f->spr);
+    if (++f->timer >= obj->objTemplate->unk16) obj->base.flags |= 0x1000;
+}
+
+static void *SqueakCreateFlame(struct ObjectTemplate *template, u8 playerId) {
+    struct Task *task = TaskCreate(ObjectMain, sizeof(struct SqueakFlame), 0x1000, TASK_USE_EWRAM, ObjectDestroy);
+    struct SqueakFlame *f = TaskGetStructPtr(task);
+
+    InitObject(&f->obj, template, playerId);
+    GimmickInit(&f->obj, &f->spr, SQUEAK_GRASS_FLAMES);
+    GimmickPlay(&f->obj, &f->spr, template->unk14);
+    f->timer = 0;
+    f->obj.unk78 = SqueakFlameMain;
+    return &f->obj;
 }
 
 // (its blades flying as it's cut: the grass's look's animation 5, gone as it ends);
@@ -2872,7 +2980,7 @@ u32 SqueakGimmickAnim(struct Object *obj) {
     if (obj->type != OBJ_HAMMER_PEG) return 0;
     if (obj->objTemplate->unk11 == SQUEAK_SWITCH_OBJECT)
         return gSqueakData.enemies[SQUEAK_SWITCH].animId | (SQUEAK_HURT_VARIANTS + (obj->unk83 & 1)) << 16;
-    if (obj->objTemplate->unk11 >= SQUEAK_PEDESTAL_OBJECT && obj->objTemplate->unk11 <= SQUEAK_SHUTTER_OBJECT)
+    if (obj->objTemplate->unk11 >= SQUEAK_FLAME_OBJECT && obj->objTemplate->unk11 <= SQUEAK_SHUTTER_OBJECT)
         return gSqueakData.enemies[((struct SqueakGimmickObject *)obj)->spr.look].animId | obj->unk83 << 16;
     return 0;
 }
@@ -2886,6 +2994,7 @@ void *SqueakCreateSwitch(struct ObjectTemplate *template, u8 playerId) {
     case SQUEAK_GRASS_OBJECT: return SqueakCreateGrass(template, playerId);
     case SQUEAK_BARREL_OBJECT: return SqueakCreateBarrel(template, playerId);
     case SQUEAK_BLADES_OBJECT: return SqueakCreateBlades(template, playerId);
+    case SQUEAK_FLAME_OBJECT: return SqueakCreateFlame(template, playerId);
     case SQUEAK_ICICLE_OBJECT: return SqueakCreateIcicle(template, playerId);
     case SQUEAK_ROCK_OBJECT: return SqueakCreateRock(template, playerId);
     case SQUEAK_PLATFORM_OBJECT: return SqueakCreatePlatform(template, playerId);

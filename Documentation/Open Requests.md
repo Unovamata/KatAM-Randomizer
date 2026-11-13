@@ -34,7 +34,6 @@ finishes it says how it was checked). The design rules for doors, mirrors and hu
 - The owner: "Room 0x4FA, is it supposed to have animated tiles?"
 - The owner: "Room 0x403 doesn't have animated water."
 - The owner: "Room 0x577 doesn't have animated water as it should."
-- The owner: "When grass is hit with fire, it doesn't quite burn, room 0x40A."
 - The owner: "Can't get inside barrels and the barrel destruction animation looks off. Room 0x420 feels empty, like something's
   missing. Also, double door clash."
 - The owner: "Squeaks have no hitbox and don't try to hit Kirby at all."

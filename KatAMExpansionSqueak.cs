@@ -1112,6 +1112,10 @@ namespace KatAMRandomizer {
          * and the pieces in its palette (the DS's 0), and the icon's other pieces (palettes 1-3: one each, more colors than one of
          * KatAM's palettes holds), drawn by a sprite of their own over it (squeak/gimmicks.c's SqueakCreatePedestal); */
         internal const int SqueakPedestalLook = 92, SqueakPedestalIconLook = 93, SqueakIceFloorLook = 94, SqueakScrollIconLook = 95;
+        /* The grass tufts' flames as they burn (squeak.h's SQUEAK_GRASS_FLAMES: squeak/gimmicks.c's GrassBurn()): grass_A_L's flame
+         * animations alone (11-19, the ones its .mca's compositions 2 and 3 play over the withering tuft), so a flame's sprite takes a
+         * flame's VRAM, not the tuft's; one look for every tuft (the six files' own, 36 KB, didn't fit the European ROM's free space); */
+        internal const int SqueakGrassFlamesLook = 96;
         internal static readonly int[] SqueakPedestalAnims = { 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2C, 0x2D, 0x2E, 0x2F, 0x30,
                                                                0x31, 0x32, 0x36, 0x37, 0x38, 0x39, 0x3A, 0x3B, 0x3C, 0x3D, 0x3E, 0x3F };
 
@@ -1404,6 +1408,8 @@ namespace KatAMRandomizer {
             /* The Ability Scrolls' icons (the Collection screen's, collection/skill: 23 cells and animations, one a scroll in the
              * treasures' order, 28-50, each in its own palette row): an Ability Scroll chest's popup (chest.c's NidlScrollPopup); no name; */
             new SqueakEnemy(SqueakScrollIconLook, "Scroll", "collection/skill", new[] { 0, 0, 0 }, new (int, int)[0]),
+            // (the grass tufts' flames, SqueakGrassFlamesLook: grass_A_L's flame animations; no name);
+            new SqueakEnemy(SqueakGrassFlamesLook, "Flames", "yakumono/grass_A_L", new[] { 0, 0, 0 }, new (int, int)[0], OnlyAnims: Enumerable.Range(11, 9).ToArray()),
         };
 
         /* The randomizer's Squeak Squad pools (the ROM Expansion tab). SqueakPool; A character the randomizer places: its index (SQUEAK_*

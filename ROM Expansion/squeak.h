@@ -115,6 +115,7 @@ enum {
                                 // its icon's other pieces (each in one of the DS's other palettes), drawn over it by a sprite of its own;
     SQUEAK_ICE_FLOOR,           // Graphics only: Dark Nebula's ice floor (squeak/dark_nebula.c's IceFloor()), the stage's ice blocks;
     SQUEAK_SCROLL_ICON,         // Graphics only: the Ability Scrolls' icons (collection/skill, one an animation, in the scrolls' order: chest.c's popup);
+    SQUEAK_GRASS_FLAMES,        // Graphics only: the grass tufts' flames as they burn (squeak/gimmicks.c's GrassFlames()), grass_A_L's;
     SQUEAK_ENEMY_COUNT,
 };
 
@@ -156,6 +157,7 @@ enum { SQUEAK_STAR_SPIT, SQUEAK_STAR_AHEAD, SQUEAK_STAR_BEHIND, SQUEAK_STAR_SWOR
 #define SQUEAK_BOULDER_OBJECT 0x91
 #define SQUEAK_CANDLE_OBJECT 0x90
 #define SQUEAK_PEDESTAL_OBJECT 0x8F
+#define SQUEAK_FLAME_OBJECT 0x8E     // (the lowest: squeak/gimmicks.c's SqueakGimmickAnim() draws SQUEAK_FLAME_OBJECT to SQUEAK_SHUTTER_OBJECT by their look);
 /* The gimmicks' messages (squeak/gimmicks.c): per loaded room's slot (gCurLevelInfo[].unk65E) its room, how many times a room was
  * loaded in it, and a byte per gimmick of the room's list, the kind + 1 of the message waiting for it (rooms.c keeps them after the
  * EWRAM heap: SqueakMailOf()); */
