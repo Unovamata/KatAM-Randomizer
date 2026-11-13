@@ -219,8 +219,22 @@ namespace KatAMRandomizer {
         // SqueakAbilityRoomDoor(); Its door: its doorway, the one that isn't where Kirby starts (null: none);
         static SqueakDoor SqueakAbilityRoomDoor(SqueakMap map) => map.Doors().FirstOrDefault(d => d.Kind != SqueakStartKind && d.X < map.Width && d.Y < map.Height);
         /* SqueakPedestalAbility(); KatAM's ability a pedestal gives: SqueakKatAMAbilities' (KatAM's Hi-Jump the NiDL one), and 17, Bun's,
-         * KatAM's Throw (squeak.c's SQUEAK_BUN); Squeak Squad's own (Ninja, Animal, Bubble, Metal, Ghost, Triple Star, 12, 18) none; */
-        static byte SqueakPedestalAbility(int ability) => ability == 17 ? (byte)10 : SqueakKatAMAbilities.GetValueOrDefault(ability);
+         * KatAM's Throw (squeak.c's SQUEAK_BUN); SqueakPedestalOwn's; and the ROM Expansion's once it has them (nidlAbilitiesBuilt:
+         * NiDL's, with its ROM; squeakAbilitiesBuilt: Squeak Squad's Ninja, Animal, Bubble and Metal, abilities.h's SQUEAK_ABILITY_*,
+         * with both ROMs; the owner, "Squeak Squad's ability room's pedestals have nothing assigned to some of them even though
+         * abilities have been implemented already"); Ghost (24) and Triple Star (26) none, not in the ROM Expansion; */
+        static byte SqueakPedestalAbility(int ability) =>
+            ability == 17 ? (byte)10
+            : SqueakKatAMAbilities.TryGetValue(ability, out byte katam) ? (katam < FirstAbility || nidlAbilitiesBuilt ? katam : (byte)0)
+            : SqueakPedestalOwn.TryGetValue(ability, out byte own) ? (own < FirstAbility || nidlAbilitiesBuilt ? own : (byte)0)
+            : squeakAbilitiesBuilt && SqueakPedestalSqueak.TryGetValue(ability, out byte squeakOwn) ? squeakOwn : (byte)0;
+        /* (the pedestals' others, told by their icons in the room, the DS's numbers: 12 a glowing paper lantern, NiDL's Light (29); 18 a
+         * magician's top hat, KatAM's Magic; 19 a kunai, 21 a beast's face, 22 a bubble, 23 a metal ball, abilities 35-38); */
+        static readonly Dictionary<int, byte> SqueakPedestalOwn = new Dictionary<int, byte> { [12] = 29, [18] = 21 };
+        static readonly Dictionary<int, byte> SqueakPedestalSqueak = new Dictionary<int, byte> { [19] = 35, [21] = 36, [22] = 37, [23] = 38 };
+        /* (whether Squeak Squad's Ninja, Animal, Bubble and Metal are in this ROM, set as their looks are built, and NiDL's abilities
+         * (27-34: Hi-Jump's pedestal, 15, gives none without them), with a NiDL ROM: AddEnemiesTo()); */
+        static bool squeakAbilitiesBuilt, nidlAbilitiesBuilt;
 
         static string BuildSqueakAbilityRoom(byte[] rom, byte[] squeak, KatAMExpansionCode.Version version, Func<string, int> table, int newProps,
                                              int newInfos, int room, int hub, int navigationRoutes, int noTypes, int paletteCycles,

@@ -560,7 +560,12 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
     `11_f`/`11_b`. Its 25 items are abilities 1-24 and 26 (no 25), each the pedestal: the top shelf's at y 80 (one at 76), the
     floor's at 176, Triple Star's on the roof at (1384, 112). Its map sets no music (+0x0B 0). Swapped into stage 1-1 (its .mxi,
     or its room's files) in the DS emulator, the room loads but its items don't come out: the DS shows them only in its Arena
-    mode (not traced). Ported as the Squeak Squad ability room (`KatAMExpansionSqueakLevels.cs`'s `BuildSqueakAbilityRoom()`).
+    mode (not traced). Ported as the Squeak Squad ability room (`KatAMExpansionSqueakLevels.cs`'s `BuildSqueakAbilityRoom()`). Its
+    pedestals give KatAM's ability where KatAM has it, and (the owner: "Squeak Squad's ability room's pedestals have nothing
+    assigned to some of them even though abilities have been implemented already") 12, the lantern, NiDL's Light (29, with the
+    NiDL ROM, as Hi-Jump's 15); 18, the top hat, KatAM's Magic; 19 Ninja, 21 Animal, 22 Bubble, 23 Metal the ROM Expansion's
+    (abilities 35-38, with the NiDL ROM too); Ghost (24) and Triple Star (26) none. Checked in the GBA emulator: Kirby touching the
+    Ninja, Metal, Magic and Light pedestals gets each.
   - The spawn flags (`+0xB`, enemies and items), from the stage-object code: a record spawns while its state (`+1`) is 0, 5 or 6
     (`0x0220A368`); with bit 4 it spawns only once the stage's treasure event has run (`0x02218D00`: the stage's `+0x14` set to 1;
     in stage mode 2, Kirby carrying the stage's chest, everything spawns), without it only before: all 856 Squeakers, most of
