@@ -2354,7 +2354,8 @@ static struct Kirby *AttackKirby(struct ObjectBase *by) {
  * a short fade, 0x022124F8's tiles 0x10-0x14, and is cleared, 0x02215830, one further out each frame). Here (the template's unk14,
  * unk16, unk18 its 6 bytes) an object hidden, its box over the rope's cells (2-14 pixels across), taking any attack as the grass tufts
  * do (Struck()), but cutting only as the DS's does: a Kirby's with a blade, Cutter, Sword or Master, or Needle (AttackKirby(); not his
- * inhale or a plain hit, which dropped its floor here before); once; not inhaled (unk5C 0x20); its cells go from the cut (the attacker's row, in the rope) out,
+ * inhale or a plain hit, which dropped its floor here before), and reached by attacks only while such a Kirby is in its room
+ * (RopeCutterNear()); once; not inhaled (unk5C 0x20); its cells go from the cut (the attacker's row, in the rope) out,
  * ROPE_CLEAR_STEP frames apart, each way till a cell isn't a ladder: each one's block record (KatAMExpansionSqueakRooms.cs's SqueakRopeCells(): the cell drawn without
  * its front layer, air) applied as a broken block's, so its look goes and Kirby can't climb it; */
 struct SqueakRope {
@@ -2402,6 +2403,18 @@ static bool32 RopeCutter(struct Kirby *k) {
         || ability == NIDL_ABILITY_NEEDLE;
 }
 
+/* (whether a Kirby who cuts is in its room: only then has it a hit box (KatAM's object flag 0x200 clear: an attack's box marks any
+ * object with one it meets, whatever its kind), as the DS's rope takes no notice of any other attack; with it all the time, it stopped
+ * Ninja's kunai, stuck in it 200 frames each and piling up, and burst Bubble's bubbles, their sprites dropping frames by the platforms
+ * (the owner: "When hitting floating platforms with non cutting powers, the game lags.", with Needle and Bubble); */
+static bool32 RopeCutterNear(struct Object *obj) {
+    u8 i;
+
+    for (i = 0; i < gNumKirbys; i++)
+        if (gKirbys[i].base.roomId == obj->base.roomId && RopeCutter(&gKirbys[i])) return TRUE;
+    return FALSE;
+}
+
 static void SqueakRopeMain(struct Object *obj) {
     struct SqueakRope *r = (struct SqueakRope *)obj;
     u8 par[6], i;
@@ -2417,7 +2430,10 @@ static void SqueakRopeMain(struct Object *obj) {
         r->step++;
         return;
     }
-    if (r->step || !Struck(obj) || !RopeCutter(AttackKirby(obj->base.unk6C))) return;
+    if (r->step) return;
+    if (RopeCutterNear(obj)) obj->base.flags &= ~0x200;
+    else obj->base.flags |= 0x200;
+    if (!Struck(obj) || !RopeCutter(AttackKirby(obj->base.unk6C))) return;
     par[0] = obj->objTemplate->unk14;
     par[1] = obj->objTemplate->unk14 >> 8;
     par[2] = obj->objTemplate->unk16;
@@ -2428,6 +2444,7 @@ static void SqueakRopeMain(struct Object *obj) {
         if (par[2 + i] != 0xFF) SqueakSendMail(SlotOf(&obj->base), par[2 + i], MESSAGE_SWITCH + 1);
     PlaySfx(&obj->base, SQUEAK_SE((obj->objTemplate->unk14 & 15) < 2 ? 0x48 : 0x49)); // (the DS's, by its look: 0x022248CE);
     obj->base.unk5C &= ~7;
+    obj->base.flags |= 0x200;
     // (where it was cut: the attacker's row, kept in the rope's);
     top = obj->base.y >> 12;
     bottom = ((obj->base.y >> 8) + (par[1] > 0 ? par[1] : 16) - 1) >> 4;

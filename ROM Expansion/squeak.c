@@ -161,6 +161,33 @@ static u16 SqueakVramTiles(u32 vram) {
     return gVramHeapState[(vram - gVramHeapStartAddr) / 0x40] * 2;
 }
 
+/* SqueakVramSpare(); KatAM's VRAM heap has `tiles` free in all (its tiles in use, as VramGetTotalAllocatedTiles() counts them, and
+ * these, within gVramHeapMaxTileSlots): its free segments (2 tiles each, 0, as the rest of a block after its head, which holds the
+ * block's size) counted from the start till there are enough, 4 at a time where they're free, read 2 to a word, and each block
+ * skipped by its size. KatAM's heap fills from its start, so the free ones come early; VramGetTotalAllocatedTiles() walked all of them,
+ * some 5000 cycles a call, which Bubble's bubbles and their bursts asked several times a frame (the owner: "When hitting floating
+ * platforms with non cutting powers, the game lags.", with Bubble); */
+bool32 SqueakVramSpare(u16 tiles) {
+    const u32 *pairs = (const u32 *)gVramHeapState;
+    u16 i = 0, n = gVramHeapMaxTileSlots / 2, need = (tiles + 1) / 2, free = 0;
+
+    if (need == 0) return TRUE;
+    while (i < n) {
+        if (!(i & 1) && i + 4 <= n && (pairs[i >> 1] | pairs[(i >> 1) + 1]) == 0) {
+            if ((free += 4) >= need) return TRUE;
+            i += 4;
+            continue;
+        }
+        if (gVramHeapState[i] != 0) {
+            i += gVramHeapState[i];
+            continue;
+        }
+        if (++free >= need) return TRUE;
+        i++;
+    }
+    return FALSE;
+}
+
 /* SqueakVramFits(); KatAM's VRAM heap has a free block of `tiles` (its blocks walked, each skipped by its size): VramMalloc's own
  * search tries every free segment against those after it, a fifth of a frame when there's none (Dark Daroach's beam's sprites
  * waiting for his fire column's VRAM), so a retry asks only when it fits; */
@@ -1040,7 +1067,7 @@ static struct SqueakFx *SqueakEffectAtIn(u16 roomId, u8 effect, s32 x, s32 y, bo
     if (gKirbys[gLocalPlayerId].base.roomId != roomId) return NULL;
     /* (none when KatAM's sprite heap couldn't hold it and still SQUEAK_FX_ROOM tiles for KatAM's own effects, which draw whatever is
      * in VRAM when they get none: Yadgaine's fight, its shell in, two of its rocks' bursts at once fill it); */
-    if (VramGetTotalAllocatedTiles() + d->tiles + SQUEAK_FX_ROOM > gVramHeapMaxTileSlots) return NULL;
+    if (!SqueakVramSpare(d->tiles + SQUEAK_FX_ROOM)) return NULL;
     t = TaskCreate(SqueakFxMain, sizeof(struct SqueakFx), 0x3500, TASK_USE_EWRAM, SqueakFxDestroy);
     if (t == NULL) return NULL;
     fx = TaskGetStructPtr(t);

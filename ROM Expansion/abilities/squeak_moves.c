@@ -353,16 +353,33 @@ static bool32 MoveStep(struct ScrollPiece *p) {
     return TRUE;
 }
 
-// FindPiece(); His moves' piece (NULL: none);
-static struct ScrollPiece *FindPiece(struct Kirby *kirby) {
-    u8 i;
+/* FindPiece(); His moves' piece (NULL: none). Its task's number + 1 is kept in MOVE_SLOT (Kirby's ability byte, abilities.h's
+ * NIDL_MIKE_USES, as Spark's scroll keeps its charge's: no other ability uses it while he has a Squeak Squad one), checked each time;
+ * only when that isn't it are the tasks searched (asked up to 7 times a frame, each search of the 128 tasks some 1200 cycles: a share
+ * of Bubble's dropped frames); */
+#define MOVE_SLOT(kirby) NIDL_MIKE_USES(kirby)
+static bool32 IsMovePiece(struct Task *t, struct Kirby *kirby) {
     struct ScrollPiece *p;
 
-    for (i = 0; i < MAX_TASK_NUM; i++) {
-        if (!ScrollPieceIs(&gTasks[i])) continue;
-        p = TaskGetStructPtr(&gTasks[i]);
-        if (p->step == MoveStep && p->kirby == kirby && !(p->base.flags & 0x1000)) return p;
-    }
+    if (!ScrollPieceIs(t)) return FALSE;
+    p = TaskGetStructPtr(t);
+    return p->step == MoveStep && p->kirby == kirby && !(p->base.flags & 0x1000);
+}
+
+/* (MOVE_NONE in it: none found since, or his last one gone (scrolls.c's ScrollPieceDestroy()), until PieceOf() makes one, the only
+ * maker of his moves' piece, which keeps its slot there: without it each frame between his moves searched every time it was asked); */
+#define MOVE_NONE SCROLL_MOVE_NONE
+static struct ScrollPiece *FindPiece(struct Kirby *kirby) {
+    u8 i, slot = MOVE_SLOT(kirby);
+
+    if (slot == MOVE_NONE) return NULL;
+    if (slot != 0 && slot <= MAX_TASK_NUM && IsMovePiece(&gTasks[slot - 1], kirby)) return TaskGetStructPtr(&gTasks[slot - 1]);
+    for (i = 0; i < MAX_TASK_NUM; i++)
+        if (IsMovePiece(&gTasks[i], kirby)) {
+            MOVE_SLOT(kirby) = i + 1;
+            return TaskGetStructPtr(&gTasks[i]);
+        }
+    MOVE_SLOT(kirby) = MOVE_NONE;
     return NULL;
 }
 
@@ -374,6 +391,8 @@ static struct ScrollPiece *PieceOf(struct Kirby *kirby) {
     p = ScrollPieceCreate(kirby, SCROLL_MOVE, 0, NINJA_KNOCK, NINJA_HIT);
     if (p == NULL) return NULL;
     p->step = MoveStep;
+    // (its slot kept, MOVE_SLOT: FindPiece() trusts MOVE_NONE till this);
+    MOVE_SLOT(kirby) = p->slot;
     return p;
 }
 

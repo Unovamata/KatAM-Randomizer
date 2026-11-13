@@ -179,15 +179,16 @@ void LookEnd(struct ScrollLook *l) {
     l->effect = SCROLL_NO_LOOK;
 }
 
-/* LookStartAt(); A look playing an effect from its first step (none when KatAM's sprite heap can't hold it, as squeak.c's effects),
- * its sprite's order `order` (KatAM's effects' 0xA, in front of the Kirbys: SCROLL_BEHIND_KIRBYS, behind them); */
+/* LookStartAt(); A look playing an effect from its first step (none when KatAM's sprite heap can't hold it and SCROLL_FX_ROOM spare,
+ * as squeak.c's effects: SqueakVramSpare()), its sprite's order `order` (KatAM's effects' 0xA, in front of the Kirbys:
+ * SCROLL_BEHIND_KIRBYS, behind them); */
 void LookStartAt(struct ScrollPiece *p, u8 i, u16 effect, s8 dx, s8 dy, u16 order) {
     struct ScrollLook *l = &p->look[i];
     const struct SqueakEffect *d = &gSqueakData.effects[effect];
     u16 cell = d->anim.step[0].cell;
 
     LookEnd(l);
-    if (VramGetTotalAllocatedTiles() + d->tiles + SCROLL_FX_ROOM > gVramHeapMaxTileSlots) return;
+    if (!SqueakVramSpare(d->tiles + SCROLL_FX_ROOM)) return;
     ClearEffectObject(&l->e);
     l->e.header.kind = 3;
     l->e.roomId = p->base.roomId;
@@ -656,6 +657,7 @@ static void ScrollPieceDestroy(struct Task *t) {
         p->kirby->base.sprite.unk8 &= ~TORNADO_HIDE;
     if (p->kind == MAGIC_BODY) MagicRelease(p);
     for (i = 0; i < SCROLL_LOOKS; i++) LookEnd(&p->look[i]);
+    if (p->kind == SCROLL_MOVE && NIDL_MIKE_USES(p->kirby) == p->slot) NIDL_MIKE_USES(p->kirby) = SCROLL_MOVE_NONE;
 }
 
 /* ScrollPieceCreate(); A piece at its Kirby's feet, its hit's kind and knock back KatAM's own attack's (unk68, unk64: the spark's,
@@ -687,6 +689,7 @@ struct ScrollPiece *ScrollPieceCreate(struct Kirby *kirby, u8 kind, u8 level, s1
     for (i = 0; i < ARRAY_COUNT(p->vars); i++) p->vars[i] = 0;
     p->held = NULL;
     p->heldTask = NULL;
+    p->slot = t - gTasks + 1;
     p->base.header.kind = 2;
     p->base.parent = kirby;
     p->base.counter = 0;

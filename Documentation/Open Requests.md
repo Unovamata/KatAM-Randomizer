@@ -6,7 +6,6 @@ finishes it says how it was checked). The design rules for doors, mirrors and hu
 
 ## 1. Squeak Squad: lag
 - The owner: "Squeak Squad ability room has some serious lag on it. Any ideas on how to limit it?"
-- The owner: "When hitting floating platforms with non cutting powers, the game lags."
 - The owner: "Some squeak lairs lag a TON, we need to fix that."
 - The owner: "Daroach ray causes lag, we need to reduce it."
 - The owner: "Dark nebula stars are still lagging the game, we need to solve that."
