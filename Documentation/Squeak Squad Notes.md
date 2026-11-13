@@ -524,8 +524,11 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
     at the block's middle, from its top): floors 0x14 and 0x1C the upper and lower halves of a slope falling right, 0x28 a 45° one
     falling, 0xE8 rising, 0xF4 and 0xFC the upper and lower halves rising; ceilings 0x68 and 0xA8 (45°, solid on the left, on the
     right), 0x74 and 0x7C, 0x94 and 0x9C (halves); thin floors the same floor codes with 0x200; bits 8-13 flags: `0x100` a ladder
-    (`0x8100` its top), `0x200` a thin floor Kirby jumps through, `0x300` another thin floor (Down drops Kirby through both: 2-2-3's
-    `0x300` ones, checked in the DS emulator), `0x400` (front layer) a cover over a
+    (`0x8100` its top), `0x200` a thin floor Kirby jumps up through but doesn't drop through (the owner, of 5-5-2's planks: "the
+    platform can be passed from below but not dropped down from above. It's part of the puzzle"; 4970 cells in 286 rooms), `0x300`
+    one Down drops him through as well (2-2-3's, checked in the DS emulator; 946 cells in 49 rooms). In KatAM (`SqueakCollision()`):
+    `0x300`'s KatAM's thin floors (0x0E, slopes 0x10-0x13, 0x18, 0x19: Down and B), `0x200`'s its firm ones (0x0F, 0x14-0x17,
+    0x1A, 0x1B: never; both were 0x0E's before), `0x400` (front layer) a cover over a
     secret way, cleared when Kirby is under it, `0x800` burnt by fire (a candle on the cells, the grid's solid one flagged so:
     4-2-3's log bridges), `0x1000` set off by a bomb block (the grid's solid cell flagged so, top byte 0x38) or a stake beside
     them (top byte 0x39), or by a switch (a switch block group, gimmick 0x10), `0x2000` not yet known;

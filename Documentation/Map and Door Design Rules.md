@@ -325,7 +325,10 @@ after any change.
   A place with none gets a one-way throw out, into the first stage of its level that has a way out. The way-out pass in `PlanDoors()`;
   Squeak Squad's worlds the same, onto the start of the first stage of its world that has one (`PlanSqueakLevels()`).
 - **Thin floors only become KatAM's undroppable kind** when, from every place Kirby arrives, dropping through leads nowhere he
-  doesn't reach anyway. `ThinFloors()`.
+  doesn't reach anyway. `ThinFloors()`. In Squeak Squad's rooms the DS's own kind decides: its `0x200` thin floors, which Kirby
+  jumps up through but doesn't drop through on the DS, are KatAM's undroppable ones, its `0x300` ones droppable (the owner: "the
+  platform can be passed from below but not dropped down from above. It's part of the puzzle"); the logic check drops through
+  neither in its no-drop pass and never through the undroppable ones. `SqueakCollision()`.
 - A one-way throw's landing never traps Kirby (rule 3), and breakable blocks a door lands Kirby inside start broken.
 
 ## 10. Chests, items and shards
