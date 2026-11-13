@@ -839,7 +839,8 @@ static void Crumbles(struct SqueakLogic *l, const struct SqueakGimmickEntry *e) 
  * objects made, then once no mini-boss with HP is left in it, as soon as none is there at all: his defeat played out, its end the
  * DS's stage switch, squeak/daroach_boss.c's DEFEAT_END; counted PHASE_STEP frames a count, PHASE_DEFEAT_MAX counts at most: a
  * defeat that leaves its mini-boss there), into the dark star's chase; from where the ride after the chase lands (a8s4s5, whose
- * coming the port plays in Dark Nebula's own room) into his fight, PHASE_ARRIVAL frames after Kirby comes in. Every Kirby in the room
+ * coming the port plays in Dark Nebula's own room) into the room before his (a8s4s7, its door into his fight: the owner, "Room 0x5DF
+ * skips the entrance 0x5E1"), PHASE_ARRIVAL frames after Kirby comes in. Every Kirby in the room
  * goes, as through a door (KatAM's room change, sub_08055920(): the one the shard cutscene ends in), onto the cell. Its byte: the
  * frames counted (after a fight: LAIR_EXIT_WAIT while the fight's on, then the counts from there), PHASE_GONE once gone; */
 #define PHASE_STEP 4

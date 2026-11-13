@@ -826,8 +826,9 @@ namespace KatAMRandomizer {
              * where the DS does; its arrival door in 8-4-4 is under the room's floor, in its last rows); */
             /* (in the finale's stage, SqueakFinalStage, no mirror: the room goes on by itself, SqueakPhaseWarps (the owner: "the warp should
              * send me to the next phase automatically"): after Dark Daroach's fight, into the chase; from where the chase's ride lands,
-             * a8s4s5 (Dark Nebula's coming, which the port plays in his own room), into his fight, as the DS's stage switches to a8s4s6:
-             * the room before it, a8s4s7 (its door into his room, where the DS brings Kirby back after a lost life), isn't on the way); */
+             * a8s4s5 (Dark Nebula's coming, which the port plays in his own room), into the room before his, a8s4s7 (with its tomato;
+             * where the DS brings Kirby back after a lost life), whose own door leads into his fight (the owner: "Room 0x5DF skips the
+             * entrance 0x5E1"), not straight into his room as the DS's stage switches to a8s4s6); */
             squeakPhaseWarps.Clear();
             foreach (var s in stages.Where(IsBossStage)) {
                 List<SqueakPlanRoom> list = byStage[s];
@@ -839,8 +840,6 @@ namespace KatAMRandomizer {
                         ends.RemoveAt(0);
                         (int x, int y) arrival = before.Doors.FirstOrDefault(SqueakArrival) is SqueakDoor d ? Drop(before, d.X, d.Y) : (before.Width / 2, before.Height / 2);
                         SqueakPlanRoom to = next;
-                        if (s == SqueakFinalStage && next.Doors.FirstOrDefault(dd => dd.Room != SqueakNoRoom && dd.Room < list.Count && list[dd.Room].Boss) is SqueakDoor into)
-                            to = list[into.Room];
                         (int x, int y) landing = to.Doors.FirstOrDefault(SqueakArrival) is SqueakDoor n ? Drop(to, n.X, n.Y) : (to.Width / 2, to.Height / 2);
                         if (s == SqueakFinalStage) squeakPhaseWarps.Add(new SqueakPhaseWarp(before.Room, arrival.x, arrival.y, to.Room, landing.x + 1, landing.y + 1, before.Boss));
                         else Add(before, arrival.x, arrival.y, (to.Room, landing.x + 1, landing.y + 1), DoorKind.Boss, true);

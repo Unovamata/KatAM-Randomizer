@@ -28,7 +28,6 @@ finishes it says how it was checked). The design rules for doors, mirrors and hu
 - The owner: "Room 0x5DB 2 pedestals on top of one another."
 - The owner: "Room 0x5DE, platforms are not pass through. They are are lnhalable. Boulders pass through the platforms."
 - The owner: "Room 0x5E0 garbled tiles for a single frame."
-- The owner: "Room 0x5DF skips the entrance 0x5E1"
 - The owner: "Room 0x520 has no entrance, only an exit."
 - The owner: "Room 0x516 double clashing exits at the bottom."
 - The owner: "Room 0x517 has pass through platforms that are not pass through."
