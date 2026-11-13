@@ -120,6 +120,15 @@ namespace KatAMRandomizer {
                 return found;
             }
 
+            /* MovingDurations(); How long the main tileset's moving tiles show each of their 4 frames (section 12's +6-+9; the DS holds
+             * each one frame more: 5, 6 frames, 1-1-4's and 7-2-1's water; 10, 11, 2-1-4's; checked in the DS emulator), null when
+             * they don't move (0: 1-7-1's stay still); */
+            public int[] MovingDurations() {
+                int at = sections[12];
+                if (at + 10 > Data.Length || Enumerable.Range(6, 4).Any(k => Data[at + k] == 0)) return null;
+                return Enumerable.Range(6, 4).Select(k => Data[at + k] + 1).ToArray();
+            }
+
             /* Animations(); Its animated blocks (section 12: 12 bytes, the count at +10, then 12 bytes each: u16 the block, u8 its
              * frames, u8 its table, 8 bytes the frames' durations), checked against the DS's tilesets: a main tileset holds 1152
              * tiles, its blocks' entries name 1024 (10 bits), and the animated blocks' frames are the blocks after them; */
@@ -251,8 +260,20 @@ namespace KatAMRandomizer {
          * stages, checked in the DS emulator in 4-6-3, 8-3-2 and 2-2-1: every cell in view where grids 4 and 5 differ shows grid 4,
          * an empty grid 4 shows nothing; 4-6-3's column a trigger area cleared shows grid 5). Drawn over both (as before), it hid
          * 4-6-3's bomb blocks and the grey floor they break behind its bricks, and the planks nailed over its sealed door; */
+        /* The main tileset's moving tiles (the DS's water surfaces: Prism Plains 1-4's pools, 7-2-1's sea; the owner: "Room 0x403
+         * doesn't have animated water"; checked in the DS emulator, its VRAM read each frame): a main tileset of 1152 tiles has its
+         * last 32 shown ones, 992-1023, drawn as 4 frames in turn, the 128 tiles after its 1024 (1024-1055 the same as 992-1023,
+         * then 1056, 1088, 1120), each for the room's own time (SqueakMap.MovingDurations()); one of 1024 has none; */
+        const int SqueakMovingFirst = 992, SqueakMovingTiles = 32, SqueakMovingFrames = 4;
+        static bool SqueakHasMoving(SqueakTileset main) => main != null && main.Count >= 1024 + SqueakMovingTiles * SqueakMovingFrames;
+        // (whether a tile of the room shows one of them: the main grid's block there, as SqueakRoomTile() draws it);
+        static bool SqueakShowsMoving(SqueakMap map, SqueakTileset main, int tx, int ty) {
+            int block = map.Block(4, tx / 2, ty / 2);
+            return block < map.TableCount(2) && (map.Entry(2, block, (ty & 1) * 2 + (tx & 1)) & 0x3FF) is >= SqueakMovingFirst and < 1024;
+        }
+
         static int[] SqueakRoomTile(SqueakMap map, SqueakTileset front, SqueakTileset main, int tx, int ty, bool bare = false,
-                                    IReadOnlyDictionary<(int layer, int block), int> shown = null, bool cleared = false) {
+                                    IReadOnlyDictionary<(int layer, int block), int> shown = null, bool cleared = false, int moving = 0) {
             int[] pixels = Enumerable.Repeat(-1, 64).ToArray();
             int quarter = (ty & 1) * 2 + (tx & 1);
             foreach ((int grid, int table, SqueakTileset tiles) in new[] { (4, 2, main), (3, 1, front), (5, 2, main) }) {
@@ -263,6 +284,9 @@ namespace KatAMRandomizer {
                 if (block >= map.TableCount(table)) continue;
                 int entry = map.Entry(table, block, quarter), tile = entry & 0x3FF;
                 if (tile >= tiles.Count) continue;
+                // (the main tileset's moving tiles drawn as their frame `moving`);
+                if (moving > 0 && tiles == main && tile >= SqueakMovingFirst && SqueakHasMoving(main))
+                    tile = 1024 + moving * SqueakMovingTiles + tile - SqueakMovingFirst;
                 bool hflip = (entry & 0x400) != 0, vflip = (entry & 0x800) != 0;
                 for (int y = 0; y < 8; y++)
                     for (int x = 0; x < 8; x++) {
@@ -487,6 +511,7 @@ namespace KatAMRandomizer {
              * frame: one whose frames all look the same is a picture as any other; the others are slots of their timing (the same
              * frames one slot), each a tile of its own (no flips), all its frames drawn with one palette; */
             List<SqueakAnimation> animations = map.Animations();
+            int[] movingDurations = map.MovingDurations();
             Dictionary<(int layer, int block), int> animationOf = new Dictionary<(int, int), int>();
             for (int k = 0; k < animations.Count; k++) animationOf.TryAdd((animations[k].Layer, animations[k].Block), k);
             List<int[]> timings = new List<int[]>();
@@ -504,11 +529,15 @@ namespace KatAMRandomizer {
                     if (animationOf.Count > 0)
                         foreach ((int grid, int layer) in new[] { (4, 1), (3, 0) })
                             if (!(grid == 3 && signed) && animationOf.TryGetValue((layer, map.Block(grid, tx / 2, ty / 2)), out int k) && !moving.Contains(k)) moving.Add(k);
-                    if (moving.Count > 0) {
-                        int[] durations = animations[moving[0]].Durations;
+                    // (a cell of the main tileset's moving tiles, none of its blocks animated: its 4 frames, the room's times);
+                    bool water = moving.Count == 0 && movingDurations != null && SqueakHasMoving(main) && SqueakShowsMoving(map, main, tx, ty);
+                    if (moving.Count > 0 || water) {
+                        int[] durations = water ? movingDurations : animations[moving[0]].Durations;
                         moving.RemoveAll(k => !animations[k].Durations.SequenceEqual(durations));
-                        int[][] frames = Enumerable.Range(0, durations.Length).Select(f => SqueakRoomTile(map, front, main, tx, ty, signed,
-                            moving.ToDictionary(k => (animations[k].Layer, animations[k].Block), k => animations[k].Block + 1 + f))).ToArray();
+                        int[][] frames = water
+                            ? Enumerable.Range(0, SqueakMovingFrames).Select(f => SqueakRoomTile(map, front, main, tx, ty, signed, null, false, f)).ToArray()
+                            : Enumerable.Range(0, durations.Length).Select(f => SqueakRoomTile(map, front, main, tx, ty, signed,
+                                moving.ToDictionary(k => (animations[k].Layer, animations[k].Block), k => animations[k].Block + 1 + f))).ToArray();
                         if (frames.Any(f => !f.SequenceEqual(frames[0]))) {
                             int timing = timings.FindIndex(t => t.SequenceEqual(durations));
                             if (timing < 0) {
