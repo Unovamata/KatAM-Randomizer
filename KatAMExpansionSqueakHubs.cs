@@ -484,7 +484,9 @@ namespace KatAMRandomizer {
          * hub -> its mirror -> (always available) KatAM's final boss. Without NiDL, the copy is made from Squeak Squad tiles."): the Dark
          * Nebula hub, where his way out leads (SqueakShardExits(), onto SqueakFinaleHubLanding, the Fountain of Dreams hub's landing), a
          * copy of the Fountain of Dreams hub's: no other door in or out, no big switch, an Amazing Mirror high up in its middle to where
-         * the finale goes on (`exit`: KatAM's final boss, SqueakFinale()), the Master Sword's stand under it on the raised platform, a
+         * the finale goes on (`exit`, SqueakFinale(): NiDL's finale, the Power Orb's room, since Squeak Squad's finale comes first (the
+         * owner: "The entire daroach/dark nebula sequence should go before nightmare's sequences"); without it KatAM's final boss), the
+         * Master Sword's stand under it on the raised platform, a
          * Maximum Tomato on the floor's right (a Squeak Squad item's gone bit: once a visit), a Cutter and a Sword statue on its sides
          * (KatAMExpansionRooms.cs' FinaleMirrorAt, FinaleSwordAt, FinaleTomatoAt, FinaleStatues), no map's chest (the Fountain of Dreams'
          * is its own hub's). With NiDL's rooms (`fountainHub`, the Fountain of Dreams hub's room), its look is that hub's own (its props:

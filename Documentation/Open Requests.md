@@ -66,4 +66,3 @@ finishes it says how it was checked). The design rules for doors, mirrors and hu
 - The owner: "Dark Nebula's ice platforms don't act as ice."
 - The owner: "Dark Nebula fire attack doesn't have the white area in the center."
 - The owner: "Dark Nebula's electric attack has missing tiles."
-- The owner: "The entire daroach/dark nebula sequence should go before nightmare's sequences."

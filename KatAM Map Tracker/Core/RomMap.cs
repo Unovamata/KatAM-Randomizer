@@ -321,6 +321,8 @@ namespace KatAMMapTracker {
         // ChaseChests; The chases' chests by room (ReadSqueakRooms()): ReadObjects() adds them to their rooms;
         readonly Dictionary<int, List<RoomObject>> ChaseChests = new Dictionary<int, List<RoomObject>>();
 
+        // DimensionMirrorTo; The room Central Circle's Dimension Mirror leads to (-1: none read): the first of the finales;
+        public int DimensionMirrorTo { get; private set; } = -1;
         // PhaseWarps; Squeak Squad's final stage going on by itself (ReadSqueakRooms()): (the room, the next, Kirby's cell, the landing cell);
         readonly List<(int room, int destination, int x, int y, int landX, int landY)> PhaseWarps = new List<(int, int, int, int, int, int)>();
 
@@ -560,6 +562,8 @@ namespace KatAMMapTracker {
                     continue;
                 }
 
+                // (Central Circle's Dimension Mirror: where it leads, the first finale's room, MapExpansion's game's end row);
+                if (id == 0x65 && Rom[address + 14] == 8 && room.Id == CentralCircle) DimensionMirrorTo = Read16(address + 0x1E);
                 // (an Amazing Mirror the game hides, +0x22 bit 0: shard.c's CreateShard draws it never);
                 if (id == 0x65 && Rom[address + 14] == 8 && (Rom[address + 0x22] & 1) != 0) continue;
 
