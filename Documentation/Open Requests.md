@@ -19,18 +19,13 @@ finishes it says how it was checked). The design rules for doors, mirrors and hu
 ## 3. Squeak Squad: rooms and objects
 - The owner: "Crimps do nothing in-game. They can only attach to walls but I have seen some even walking around on ledges or not
   stiching to walls."
-- The owner: "Room 0x495, can attack through blocks that shouldn't be pass through. Some tiles' collisions are not activating when
-  bombed."
 - The owner: "Room 0x49C, garbled cloud graphics."
 - The owner: "What is the point of grey clouds? They just hurt me if I stand on them?"
 - The owner: "Room 0x44a heavy palette errors."
 - The owner: "Room 0x5DB 2 pedestals on top of one another."
 - The owner: "Room 0x5E0 garbled tiles for a single frame."
-- The owner: "Room 0x51A these 1 pass blocks destroy very oddly, please check the original game to replicate the original behavior."
-- The owner: "Room 0x4F9, destroyed blocks, even in undestructible terrain, have no collision, the stage should retain collisions, not
-  lose them on triggering bomb blocks."
-- The owner: "Room 0x4FA, is it supposed to have animated tiles?"
-- The owner: "Room 0x403 doesn't have animated water."
+- The owner: "Room 0x403 doesn't have animated water." (the owner: on the DS, the water's surface waves; the DS's room files
+  animate no water block and cycle no palette)
 - The owner: "Room 0x577 doesn't have animated water as it should."
 - The owner: "Can't get inside barrels and the barrel destruction animation looks off. Room 0x420 feels empty, like something's
   missing. Also, double door clash."
