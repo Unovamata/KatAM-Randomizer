@@ -118,11 +118,12 @@ screen into food or 1UPs, `MAGIC_SWEEP`, the random ability, `sub_0805C11C`, the
 
 ## What `KatAMExpansion.AddEnemies()` writes into the KatAM ROM
 
-The ROM is first padded from 16 MB to 32 MB with `0xFF` (the most the GBA maps: `0x08000000`-`0x09FFFFFF`, which emulators and flash carts load like any other ROM; the game saves to SRAM, so nothing else depends on its size). Everything new goes in that second half, so the expansion has 16 MB for its enemies and leaves the game's own free space to the randomizer. Frames whose tiles are the same (byte for byte) share one copy of them (`AddAnim`'s `sharedFrameTiles`: the ported characters repeat many frames across their animations), which keeps the European build, the biggest, about 850 KB under the 32 MB (with the Spark and Beam scrolls' effects).
+The ROM is first padded from 16 MB to 32 MB with `0xFF` (the most the GBA maps: `0x08000000`-`0x09FFFFFF`, which emulators and flash carts load like any other ROM; the game saves to SRAM, so nothing else depends on its size). Everything new goes in that second half, so the expansion has 16 MB for its enemies; past the game's own data, its free space (`0xFF` to 16 MB) holds the rooms' compressed tiles, tilemaps and collision first (`AllocateCompressed`, `SpillSpace`: USA from `0xF60000`, European from `0xF70000`, Japanese from `0xF90000`, past the randomizer's rebuilt 9ROM lists at `0xF40000`/`0xF50000`; used only while all of it is `0xFF`). The European build had 13 KB left in the second half; with them in the game's free space, 589 KB (USA 799 KB, Japanese 763 KB). Frames whose tiles are the same (byte for byte) share one copy of them (`AddAnim`'s `sharedFrameTiles`: the ported characters repeat many frames across their animations), which keeps the European build, the biggest, about 850 KB under the 32 MB (with the Spark and Beam scrolls' effects).
 
 
 | Where | What |
 |---|---|
+| `0xF60000`/`0xF70000`/`0xF90000` (USA/European/Japanese) to `0x1000000` | The game's own free space: the rooms' compressed tiles, tilemaps and collision, first (`AllocateCompressed`) |
 | `0x1000000` | Code, then the converted graphics, animations, names and the extended sprite tables |
 | `gSpriteTables` (`0x3B909C`) | `anims`, `attrs` and `oamData` copied with more entries: anim `939` is the hurt frame, `940` on are the enemies (one variant per frame) |
 | `gSpawnFuncTable1[0x31]` | `CreateNidlEnemy` |

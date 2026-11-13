@@ -11,8 +11,10 @@ namespace KatAMRandomizer {
      * Every ported enemy is object type 0x31 (the only free regular enemy type); the template's behavior byte picks the enemy
      * (high nibble) and its variant (low nibble). See "ROM Expansion/nidl.h" for how they share it.
      * Layout: the ROM is expanded from 16 MB to 32 MB (the most the GBA maps, 0x08000000-0x09FFFFFF), and everything new goes in
-     * the new half, so the expansion has room for every enemy and leaves the game's own free space alone:
+     * the new half, so the expansion has room for every enemy, and past the game's own data its free space too (below):
      * • 0x1000000 (0x09000000): compiled code, then the converted graphics, animations, names and the extended sprite tables.
+     * • The game's own free space past its data (SpillSpace(): USA 0xF60000, European 0xF70000, Japanese 0xF90000, to 16 MB): the
+     *   rooms' compressed tiles, tilemaps and collision first (AllocateCompressed()), then the new half.
      * • gSpriteTables (USA 0x3B909C): anims, attrs and oamData are copied with more entries: the first free anim (USA 939) is the
      *   shared hurt frame, the next ones are the enemies' frames (one anim per enemy, one variant per frame).
      * • Object type 0x31: spawn function and parameters; its AnimInfo table holds every enemy's frames.
@@ -1038,6 +1040,8 @@ namespace KatAMRandomizer {
             for (int i = CodeAddress; i < CodeAddress + ReservedSize; i++) {
                 if (rom[i] != 0xFF) return "The free space used by the ROM Expansion is already in use.";
             }
+            // (the game's own free space past its data, filled first by the compressed blocks: AllocateCompressed());
+            SpillSpace(rom, version.GameCode);
 
             List<(Enemy enemy, byte[] palette, List<(byte[] tiles, ushort[] oams, short[] attributes, int palette)> frames, byte[] hurt)> built;
             List<(List<byte[]> palettes, List<(byte[] tiles, ushort[] oams, short[] attributes, int palette)> frames, byte[] hurt)> builtMinibosses;
