@@ -973,14 +973,28 @@ static struct Kirby *AttackKirby(struct ObjectBase *by);
 static bool32 SwitchTargetsRest(struct Object *obj);
 static void SqueakSwitchUp(struct Object *obj);
 
-// (a Kirby in its room within 12 pixels of it sideways, his middle up to 24 pixels over its spot or 8 under; positions in 1/256 pixels);
+/* (a body at it: within 12 pixels of it sideways, its middle up to 24 pixels over its spot or 8 under; positions in 1/256 pixels);
+ * a Kirby in its room, or one of the Squeak Squad's own (a Squeaker, Spinni, Doc, Storo, Daroach, or any Squeak in a chase): on the
+ * DS a body moving into it presses it (message 5), and the Squeaks running through 3-4-8 (room 0x496) press its switch by the tower
+ * (the owner: "Squeaks are not activating switches when they should when passing over them"); */
+#define SwitchReach(dx, dy) ((dx) > -0xC00 && (dx) < 0xC00 && (dy) > -0x1800 && (dy) < 0x800)
 static bool32 SwitchTouched(struct Object *obj) {
+    struct Task *t = &gTasks[0];
     u8 i;
 
-    for (i = 0; i < gNumKirbys; i++) {
-        s32 dx = gKirbys[i].base.x - obj->base.x, dy = gKirbys[i].base.y - obj->base.y;
+    for (i = 0; i < gNumKirbys; i++)
+        if (gKirbys[i].base.roomId == obj->base.roomId && SwitchReach(gKirbys[i].base.x - obj->base.x, gKirbys[i].base.y - obj->base.y))
+            return TRUE;
+    for (i = 0; i < MAX_TASK_NUM && t->next; i++) {
+        struct SqueakObject *s;
 
-        if (gKirbys[i].base.roomId == obj->base.roomId && dx > -0xC00 && dx < 0xC00 && dy > -0x1800 && dy < 0x800) return TRUE;
+        t = (struct Task *)(IWRAM_START + t->next);
+        s = TaskGetStructPtr(t);
+        if (s->obj.base.header.kind != 1 || s->obj.base.roomId != obj->base.roomId || !SqueakIsSqueak(&s->obj)
+            || s->obj.base.flags & 0x1000 || s->obj.unk80 <= 0) continue;
+        if (!s->chase && s->enemy != SQUEAK_SQUEAKER && s->enemy != SQUEAK_SPINNI && s->enemy != SQUEAK_DOC && s->enemy != SQUEAK_STORO
+            && s->enemy != SQUEAK_DAROACH) continue;
+        if (SwitchReach(s->obj.base.x - obj->base.x, s->obj.base.y - obj->base.y)) return TRUE;
     }
     return FALSE;
 }

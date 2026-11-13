@@ -1028,7 +1028,11 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
     this doesn't happen in KatAM"; squeak/gimmicks.c's SqueakCreateButton(): the item holders' kind 1 | 0x80, harmless, unk68 0,
     and the holders' flags, not the hammer peg's 0x18B00, with which KatAM's collision pass never paired an attack with it; not
     inhaled, unk5C 0x20; checked in the GBA emulator, room 0x419's switch: a Cutter thrown from 48 pixels presses it, Kirby
-    inhaling at it presses it and leaves it there).
+    inhaling at it presses it and leaves it there), and by the Squeak Squad's own running into it (Squeakers, Spinni, Doc, Storo,
+    Daroach, any chase's Squeak: the owner, "Squeaks are not activating switches when they should when passing over them. Room
+    0x496"; 3-4-8's chase sends Spinni in by its left door, over the switch that clears the block wall after it; checked in the
+    GBA emulator, room 0x496 with 3-4's chase forced on and Kirby past the switch, out of its reach: Spinni runs onto it and the
+    wall breaks).
   - **Bricks and metal blocks**: the blocks grid's metal blocks (block 1, grey) and bricks (family 0x00, brown, riveted: 1-6-5's
     wall round a chest, 2-6-2's, 4-3-6's in the cannons' way) are broken by a cannon's shot (4-3-6's chain goes through them on the
     DS) and strong attacks: KatAM's metal blocks (0xF5, attribute category 2), which its cannon shots break too (checked: 4-3-6's
