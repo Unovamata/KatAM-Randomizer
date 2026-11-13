@@ -1300,6 +1300,8 @@ namespace KatAMRandomizer {
             List<SqueakEffectBuilt> squeakEffects = new List<SqueakEffectBuilt>();
             // (Squeak Squad's abilities' looks, KatAMExpansionSqueakAbilities.cs: their body and hat tables, ROM pointers);
             (int[] bodies, int[] hats) squeakLooks = default;
+            squeakAbilitiesBuilt = false;
+            nidlAbilitiesBuilt = nidl;
             ushort[] squeakLookTable = null;
             (ushort[] palette, byte[] tiles)[] squeakPortraits = null;
             /* (each palette's slot: the first sprite's with its colors, those after it with the same taking it: KatAM keeps 7 palettes for
@@ -1324,6 +1326,7 @@ namespace KatAMRandomizer {
                     if (nidl)
                         squeakLooks = BuildSqueakAbilityLooks(rom, squeak, version.RomSymbols["gUnk_0834C5D4"], tilesBase, paletteBase, ref cursor,
                                                               HurtAnimID, animVariants, animAttributes, animOams);
+                    squeakAbilitiesBuilt = nidl && squeakLooks.bodies != null;
                     foreach (SqueakEnemy enemy in SqueakDefinitions) {
                         // (a character drawn with another's graphics, a thing it throws: that one's anim);
                         if (enemy.GraphicsOf >= 0) {
