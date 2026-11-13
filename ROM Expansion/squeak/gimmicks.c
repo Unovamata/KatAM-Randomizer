@@ -777,7 +777,7 @@ static void Currents(struct SqueakLogic *l, const struct SqueakGimmickEntry *e) 
     }
 }
 
-/* Crumbles(); The room's walk-once blocks (the DS's blocks grid's block 3 on air over a solid cell, KatAM's star blocks here: rows of
+/* Crumbles(); The room's walk-once blocks (the DS's blocks grid's block 3 on air over a solid cell, solid cells with records here: rows of
  * cracked blocks, 1-6-6's castle walkway, 2-6-7's leafy bridge; the owner: "Blocks that you can only walk once and they get destroyed
  * after do not work"): the one under a Kirby standing on it (under his middle) breaks CRUMBLE_WAIT frames after he lands on it, then
  * the hidden cells under it (the DS's 0x400 cells over solid ground: 3-6-2's second row, 3-2-3's and 3-1-3's shafts) one after
@@ -786,12 +786,26 @@ static void Currents(struct SqueakLogic *l, const struct SqueakGimmickEntry *e) 
  * one beside it). Its list: u16 a count, then 4 bytes a block: x, y (cells), how many hidden cells under it, 0; */
 #define CRUMBLE_WAIT 11            // (KatAM sees him standing a frame after he lands: 12 frames in all, as the DS);
 #define CRUMBLE_CHAIN 7
-#define CRUMBLE_STAR 0xF0           // (KatAMExpansionSqueakRooms.cs' KatAMStarBlock);
-static void CrumbleBreak(u8 p, u8 x, u8 y) {
+#define CRUMBLE_STAR 0xF0           // (KatAMExpansionSqueakRooms.cs' KatAMStarBlock, which they were);
+// (they're solid cells with a block record, KatAMExpansionSqueakRooms.cs: no attack breaks them nor inhales them, as on the DS);
+#define CRUMBLE_SOLID 0x0D          // (KatAMExpansionSqueakRooms.cs's KatAMSolid);
+#define CrumbleSolid(t) ((t) == CRUMBLE_SOLID || (t) == CRUMBLE_STAR)
+/* CrumbleBreak(); A walk-once block going: its record applied (its look the third layer's, air or water left), and its break as the
+ * DS's (5-5-5 in the DS emulator: a small flash on the block and white puffs of dust; the owner, of KatAM's, "Burst effect looks
+ * wrong"): KatAM's landing dust (sub_08089864, anim 0x293) off its top either way, and its block break sound (KatAM's bursts, 0x298
+ * and 0x292, were tried: far bigger than the block); */
+void sub_08089864(struct ObjectBase *, s8, s8, u32);
+static void CrumbleBreak(struct SqueakLogic *l, u8 x, u8 y) {
+    u8 p = l->base.unk56;
     const u8 *record;
 
-    if (GetCollisionTile(p, x, y) == CRUMBLE_STAR && (record = CellRecord(p, x, y)) != NULL)
-        sub_08001408(p, (struct Unk_0888562C *)record, NULL, NULL);
+    if (!CrumbleSolid(GetCollisionTile(p, x, y)) || (record = CellRecord(p, x, y)) == NULL) return;
+    sub_08001408(p, (struct Unk_0888562C *)record, NULL, NULL);
+    l->base.x = (x * 16 + 8) << 8;
+    l->base.y = (y * 16) << 8;
+    sub_08089864(&l->base, 4, 0, 0);
+    sub_08089864(&l->base, 4, 0, 1);
+    PlaySfx(&l->base, SE_BLOCK_BREAK);
 }
 static void Crumbles(struct SqueakLogic *l, const struct SqueakGimmickEntry *e) {
     const u8 *list = (const u8 *)(e->par[0] | e->par[1] << 8 | e->par[2] << 16 | e->par[3] << 24), *c;
@@ -805,7 +819,7 @@ static void Crumbles(struct SqueakLogic *l, const struct SqueakGimmickEntry *e) 
         if (kirby->base.roomId != l->room || gCurLevelInfo[i].currentRoom != l->room || !(kirby->base.unk62 & 4) || cx < 0 || cy < 0) continue;
         for (j = 0, c = list + 2; j < count; j++, c += 4) {
             if (c[0] != cx || c[1] != cy) continue;
-            if (GetCollisionTile(p, cx, cy) != CRUMBLE_STAR) break;
+            if (!CrumbleSolid(GetCollisionTile(p, cx, cy))) break;
             for (k = 0; k < CRUMBLES; k++)
                 if (l->crumble[k].timer != 0 && l->crumble[k].x == cx && l->crumble[k].y == cy) break;
             if (k < CRUMBLES) break;
@@ -824,7 +838,7 @@ static void Crumbles(struct SqueakLogic *l, const struct SqueakGimmickEntry *e) 
         struct SqueakCrumble *b = &l->crumble[k];
 
         if (b->timer == 0 || --b->timer != 0) continue;
-        CrumbleBreak(p, b->x, b->y);
+        CrumbleBreak(l, b->x, b->y);
         if (b->left != 0) {
             b->y++;
             b->left--;

@@ -1022,8 +1022,9 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
     that's gimmick 0x10 (`0x02223900`) clears its group (3-4-8's switch by the tower names index 5, the group in the beam over
     it); the switch rises again once its targets are done, and pressed again toggles them back. Groups with none of these (the
     2-cell ones in the stages' last rooms, 2-4-1's floor over its hidden way) are a Bomb's blast's. In KatAM: chains (the bomb
-    block and a stake 0xF1, the blocks 0xF2, the air cells 0xF3), each broken cell drawn with only the third layer (the DS clears
-    both grids; 1-1-4's grass stays), and the switches chest.c's SqueakCreateSwitch (KatAMExpansionSqueakRooms.cs): pressed by a
+    block and a stake 0xF1, the blocks 0xF2, the air cells 0xF3), each broken cell drawn empty (the DS clears both grids and
+    shows the third layer there: 1-1-4's grass, 3-4-7's tower bricks, room 0x495, which looked solid with no collision; the
+    owner chose "Draw them empty"), and the switches chest.c's SqueakCreateSwitch (KatAMExpansionSqueakRooms.cs): pressed by a
     Kirby touching it or by an attack on it, a thrown one too (the owner: "If I throw a knife at them, they do not activate which
     this doesn't happen in KatAM"; squeak/gimmicks.c's SqueakCreateButton(): the item holders' kind 1 | 0x80, harmless, unk68 0,
     and the holders' flags, not the hammer peg's 0x18B00, with which KatAM's collision pass never paired an attack with it; not
@@ -1463,11 +1464,16 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
     emulator (3-6-2, Kirby put on its first one at x 968): it breaks 12 frames after he lands (the star blocks' break), he falls,
     the cell under it 7 frames later; put at x 961, over the edge of two, only the one under his middle breaks and he stays on the
     other. A broken one shows the third layer (3-6-2's forest behind; 3-2-3's water). In KatAM (`SqueakCrumbles()`,
-    `SqueakCrumbleChain()`): each is a star block (any attack breaks it too), drawn broken with the third layer alone (`burnt`),
+    `SqueakCrumbleChain()`): each is a solid cell with a block record (no attack breaks it, nor does an inhale take it, as on the
+    DS: the owner, of 0x51A's, "Attacks/inhale break them"; they were star blocks; the levels' planner still reads them as star
+    blocks, `SqueakPlanCollision()`), drawn broken with the third layer alone (`burnt`),
     leaving air, or water where its column stands in water (3-2-3's nine); `squeak/gimmicks.c`'s `Crumbles()` (the room's
     gimmick list entry 0xF4: a cell list, each with how many hidden cells under it) breaks the one under a standing Kirby's
     middle 11 frames after KatAM sees him on it (12 in all), then its hidden cells 7 frames apart (`sub_08001408()`, the star
-    blocks' own break). Checked in the GBA emulator (forced starts, USA): in 3-6-2 (0x4A0) Kirby lands at frame 14, falls from
+    blocks' own record), with KatAM's landing dust off its top either way and its block break sound (the DS's in 5-5-5, room 0x51A,
+    seen in the DS emulator: a small flash and white puffs; the owner: "Burst effect looks wrong"). Checked in the GBA emulator
+    (forced starts, USA): 0x51A's break under a walking Kirby with the puffs, its blocks kept through 90 frames of inhaling and a
+    slide into them; in 3-6-2 (0x4A0) Kirby lands at frame 14, falls from
     frame 27 through both rows, the cells beside stay; in 3-2-3 (0x479) the column under him opens down its 7 hidden cells, shows
     water, and he sinks through it swimming. Not played through a whole stage.
   - **Tutorial signs**: the three in Prism Plains 2 (its first, third and fifth rooms: "Tap to pop!", "Find treasure and move on.",
