@@ -21,7 +21,6 @@ finishes it says how it was checked). The design rules for doors, mirrors and hu
   stiching to walls."
 - The owner: "Room 0x495, can attack through blocks that shouldn't be pass through. Some tiles' collisions are not activating when
   bombed."
-- The owner: "Squeaks are not activating switches when they should when passing over them. Room 0x496"
 - The owner: "Room 0x49C, garbled cloud graphics."
 - The owner: "What is the point of grey clouds? They just hurt me if I stand on them?"
 - The owner: "Room 0x44a heavy palette errors."
