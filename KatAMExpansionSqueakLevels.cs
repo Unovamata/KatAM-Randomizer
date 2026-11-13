@@ -68,14 +68,26 @@ namespace KatAMRandomizer {
             return FromHsv(hue, s + (look.Saturation - s) * look.Amount, Math.Min(1, v * look.Brightness));
         }
         const int CentralCircle = 0x321;
-        /* SqueakDoorThemes; The world doors' colors in the Squeak Squad hub, by world (the owner's pick: "World theme colors"): hue (degrees)
-         * and saturation: Prism Plains green, Nature Notch autumn orange, Cushy Cloud sky blue, Jam Jungle green-yellow, Vocal Volcano
-         * red, Ice Island ice blue, Secret Sea deep blue, Gamble Galaxy purple; each door's art in SqueakDoorShades shades of it, three
-         * doors a palette from SqueakDoorPalettes (KatAM's background palettes 11-13, the hub's far view in 6-10); */
-        static readonly (double hue, double saturation)[] SqueakDoorThemes = {
-            (115, 0.70), (28, 0.85), (205, 0.60), (75, 0.75), (2, 0.85), (192, 0.45), (228, 0.85), (275, 0.70) };
-        const int SqueakDoorShades = 5, SqueakDoorPalettes = 11, SqueakHubTiles = 768;
-        static string BuildSqueakHub(byte[] rom, IReadOnlyDictionary<string, int> symbols, bool nidlRooms, int roomProps, int newProps, int newInfos,
+        /* SqueakDoorDesigns; The world doors in the Squeak Squad hub (the owner: "World theme colors", then "NiDL's hub doors are way more
+         * intricate in coloring"): per world one of KatAM's door frames (anim 0x2C6's variant), the hues of its colors near `from` (within
+         * `band` degrees) turned to `to` (0, 0, 0: as it is): Prism Plains the pine trees (8); Nature Notch the mossy rock (9), its greens
+         * autumn orange; Cushy Cloud the clouds and stars (1); Jam Jungle the waves and flowers (11), its blues green-yellow; Vocal Volcano
+         * the flames (2), redder; Ice Island the ice (6); Secret Sea the shells and water (12); Gamble Galaxy the starry night (0), its
+         * blues purple, its orbs kept; their palettes (SqueakDoorPaletteOf) as the NiDL hub's doors' (DoorPalettes), its far view in 3; */
+        static readonly (int design, double from, double to, double band)[] SqueakDoorDesigns = {
+            (8, 0, 0, 0), (9, 100, 28, 55), (1, 0, 0, 0), (11, 205, 78, 40), (2, 30, 8, 30), (6, 0, 0, 0), (12, 0, 0, 0), (0, 228, 278, 40) };
+        static readonly int[] SqueakDoorPaletteOf = { 1, 2, 0, 9, 10, 11, 12, 13 };
+        const int SqueakHubViewPalettes = 3, SqueakHubTiles = 768;
+        // SqueakDoorRecolor(); A door frame's color, its hue turned as the world's design says (greys, the barely colored, kept);
+        static int SqueakDoorRecolor(int color, int world) {
+            (int design, double from, double to, double band) d = SqueakDoorDesigns[world];
+            if (d.band == 0) return color;
+            (double h, double s, double v) = ToHsv(color);
+            double off = ((h - d.from + 540) % 360) - 180;
+            if (s < 0.18 || Math.Abs(off) > d.band) return color;
+            return FromHsv((d.to + off + 360) % 360, s, v);
+        }
+        static string BuildSqueakHub(byte[] rom, IReadOnlyDictionary<string, int> symbols, int spriteTables, bool nidlRooms, int roomProps, int newProps, int newInfos,
                                      int roomInfos, int hub, int firstSwitchRoom, int abilityRoom, (int x, int y, byte facing) abilityLanding,
                                      (int room, int x, int y) wayIn, int navigationRoutes, int noTypes,
                                      Func<string, int, int> add, Func<List<byte>, int, int> doorsList,
@@ -121,62 +133,92 @@ namespace KatAMRandomizer {
             }
             // (the world doors: Central Circle's door's 3x3 block records, which draw it, its record leading to the world's switch room,
             // and its hub mirror object, 0x8C, on the cell above, the world's slot breaking them, as Central Circle's);
-            /* (the world doors in their worlds' colors, SqueakDoorThemes: Central Circle's door blocks' tiles (but the clouds', palettes 4
-             * and 5) copied into its tileset's free tiles (none of its tilemap's nor its blocks'), drawn in SqueakDoorShades shades of the
-             * world's color by their brightness (the door's darkest its darkest), in palettes SqueakDoorPalettes on (KatAM's background
-             * ones, freed by the hub's far view in 5: three doors a palette); the owner: "Change the color palette of doors in the Squeak
-             * Squad hub ... based on their stage", the world theme colors, KatAM's door shapes kept); */
+            /* (the world doors, as the NiDL hub's (KatAMExpansionHub.cs, BuildMainHub()): each world's design (SqueakDoorDesigns: one of KatAM's
+             * door frames, anim 0x2C6, over its mirror, 0x2C5, as object 0x97 draws them; some of its colors turned to the world's) drawn
+             * over Central Circle's room there (its tilemap: the door shut) into new tiles (ones its tilemap and blocks don't use), their
+             * colors in a palette of their own (SqueakDoorPaletteOf: 0-2, which Central Circle's tilemap only takes the transparent color
+             * of, its doors' blocks 1 and 2, and 9-13, the background's palette block, its far view in 6-8); the owner, of the colors
+             * filtered over Central Circle's doors: "NiDL's hub doors are way more intricate in coloring"); */
             int ccInfo = ReadInt(rom, symbols["gForegroundInfo"] + Vanilla("gForegroundInfo", 14, Props(10)) * 4) - 0x08000000;
             int ccTilesPointer = ReadInt(rom, ccInfo);
-            byte[] hubTiles = DecompressLZ77(rom, ccTilesPointer - 0x08000000);
+            byte[] hubTiles = DecompressLZ77(rom, ccTilesPointer - 0x08000000), sourceTiles = (byte[])hubTiles.Clone();
             int ccTilemapEntry = ReadInt(rom, symbols["gForegroundTilemaps"] + Vanilla("gForegroundTilemaps", 0x1E, Props(12)) * 4) - 0x08000000;
             byte[] ccMap = DecompressLZ77(rom, ReadInt(rom, ccTilemapEntry + 0x18) - 0x08000000);
+            int ccColumns = width * 2;
             int ccPaletteEntry = ReadInt(rom, symbols["gForegroundPalettes"] + Vanilla("gForegroundPalettes", 10, Props(11)) * 4) - 0x08000000;
             int ccColors = ReadInt(rom, ccPaletteEntry) - 0x08000000;
+            int[] hubColors = Enumerable.Range(0, 96).Select(i => ReadShort(rom, ccColors + i * 2) & 0x7FFF)
+                .Select((c, i) => i >= 4 * 16 && i % 16 != 0 ? SqueakCloudTint(c, SqueakHubLook) : c).ToArray();
+            int[] sourceHubColors = (int[])hubColors.Clone();
+            byte[] ccAbility = cc.Templates.FirstOrDefault(t => t[12] == HubMirrorType && t[4] == AbilityRoomSlot);
+            List<int> ccAbilityEntries = ccAbility == null ? new List<int>() : specials
+                .Where(r => r[0] == 1 && Math.Abs(r[2] - ReadShort(ccAbility, 6) / 16) <= 1 && r[3] >= ReadShort(ccAbility, 8) / 16 - 1 && r[3] <= ReadShort(ccAbility, 8) / 16 + 1)
+                .SelectMany(r => Enumerable.Range(0, 4).Select(q => ReadShort(r, 8 + q * 2))).ToList();
             HashSet<int> usedTiles = Enumerable.Range(0, ccMap.Length / 2).Select(i => ReadShort(ccMap, i * 2) & 0x3FF)
-                .Concat(specials.Where(r => r[0] == 1 && r.Length >= 16).SelectMany(r => Enumerable.Range(0, 4).Select(q => ReadShort(r, 8 + q * 2) & 0x3FF))).ToHashSet();
-            List<int> freeTiles = Enumerable.Range(1, hubTiles.Length / 32 - 1).Where(t => !usedTiles.Contains(t)).ToList();
-            ushort[] doorColors = new ushort[3 * 16];
-            void RecolorSqueakHubDoor(List<byte[]> doorBlocks, int index) {
-                (double hue, double saturation) theme = SqueakDoorThemes[index];
-                int palette = SqueakDoorPalettes + index / 3, first = 1 + index % 3 * SqueakDoorShades;
-                for (int k = 0; k < SqueakDoorShades; k++) {
-                    double light = (double)k / (SqueakDoorShades - 1);
-                    doorColors[(palette - SqueakDoorPalettes) * 16 + first + k] = (ushort)FromHsv(theme.hue, theme.saturation * (1 - 0.45 * light), 0.28 + 0.70 * light);
+                .Concat(ccAbilityEntries.Select(e => e & 0x3FF)).ToHashSet();
+            Queue<int> freeTiles = new Queue<int>(Enumerable.Range(1, hubTiles.Length / 32 - 1).Where(t => !usedTiles.Contains(t)));
+            int[][] doorColors = new int[SqueakWorlds][];
+            Dictionary<(int x, int y), int[]> drawnDoors = new Dictionary<(int, int), int[]>();
+            int RoomPixel(int x, int y) {
+                int entry = ReadShort(ccMap, ((y / 8) * ccColumns + x / 8) * 2);
+                int px = (entry & 0x400) != 0 ? 7 - x % 8 : x % 8, py = (entry & 0x800) != 0 ? 7 - y % 8 : y % 8;
+                int index = sourceTiles[(entry & 0x3FF) * 32 + py * 4 + px / 2] >> (px % 2 * 4) & 0xF;
+                return index == 0 ? -1 : hubColors[(entry >> 12) * 16 + index];
+            }
+            var doorMirror = DecodeSprite(rom, spriteTables, DoorMirrorAnim, 0);
+            for (int world = 0; world < SqueakWorlds; world++) {
+                (int x, int y) door = MainHubDoors[world];
+                int left = (door.x - 1) * 16, top = (door.y - 2) * 16, bottomX = door.x * 16 + 8, bottomY = (door.y + 1) * 16;
+                int[] area = new int[48 * 48];
+                bool[] ofDoor = new bool[48 * 48];
+                for (int y = 0; y < 48; y++) for (int x = 0; x < 48; x++) area[y * 48 + x] = RoomPixel(left + x, top + y);
+                var frame = DecodeSprite(rom, spriteTables, DoorFrameAnim, SqueakDoorDesigns[world].design);
+                foreach (var sprite in new[] { doorMirror, frame }) {
+                    bool recolor = sprite.pixels == frame.pixels;
+                    for (int y = 0; y < sprite.height; y++)
+                        for (int x = 0; x < sprite.width; x++) {
+                            int color = sprite.pixels[y * sprite.width + x], ax = bottomX - sprite.originX + x - left, ay = bottomY - sprite.originY + y - top;
+                            if (color < 0 || ax < 0 || ay < 0 || ax >= 48 || ay >= 48) continue;
+                            area[ay * 48 + ax] = recolor ? SqueakDoorRecolor(color, world) : color;
+                            ofDoor[ay * 48 + ax] = true;
+                        }
                 }
-                int Color(int entry, int pixel) => ReadShort(rom, ccColors + ((entry >> 12) * 16 + pixel) * 2) & 0x7FFF;
-                static double Light(int c) => 0.30 * (c & 31) + 0.59 * (c >> 5 & 31) + 0.11 * (c >> 10 & 31);
-                bool Recolored(int entry) => (entry & 0x3FF) != 0 && entry >> 12 <= 3;
-                List<double> lights = new List<double>();
-                foreach (byte[] block in doorBlocks)
-                    for (int q = 0; q < 4; q++) {
-                        int entry = ReadShort(block, 8 + q * 2);
-                        if (!Recolored(entry)) continue;
-                        for (int i = 0; i < 64; i++) {
-                            int pixel = hubTiles[(entry & 0x3FF) * 32 + i / 2] >> (i % 2 * 4) & 0xF;
-                            if (pixel != 0) lights.Add(Light(Color(entry, pixel)));
-                        }
-                    }
-                if (lights.Count == 0) return;
-                double darkest = lights.Min(), lightest = Math.Max(lights.Max(), darkest + 1);
-                Dictionary<int, int> copies = new Dictionary<int, int>();
-                foreach (byte[] block in doorBlocks)
-                    for (int q = 0; q < 4; q++) {
-                        int entry = ReadShort(block, 8 + q * 2);
-                        if (!Recolored(entry)) continue;
-                        if (!copies.TryGetValue(entry & 0xF3FF, out int tile)) {
-                            if (freeTiles.Count > 0) { tile = freeTiles[0]; freeTiles.RemoveAt(0); }
+                bool Touched(int tx, int ty) => Enumerable.Range(0, 64).Any(i => ofDoor[(ty * 8 + i / 8) * 48 + tx * 8 + i % 8]);
+                List<int> doorPixels = new List<int>();
+                for (int ty = 0; ty < 6; ty++)
+                    for (int tx = 0; tx < 6; tx++)
+                        if (Touched(tx, ty)) for (int i = 0; i < 64; i++) if (area[(ty * 8 + i / 8) * 48 + tx * 8 + i % 8] >= 0) doorPixels.Add(area[(ty * 8 + i / 8) * 48 + tx * 8 + i % 8]);
+                int[] palette = doorColors[world] = Quantize(doorPixels, 15);
+                int[][] entries = new int[9][];
+                for (int cell = 0; cell < 9; cell++) entries[cell] = new int[4];
+                for (int ty = 0; ty < 6; ty++)
+                    for (int tx = 0; tx < 6; tx++) {
+                        int mapX = door.x * 2 - 2 + tx, mapY = door.y * 2 - 4 + ty, entry = ReadShort(ccMap, (mapY * ccColumns + mapX) * 2);
+                        if (Touched(tx, ty)) {
+                            int tile;
+                            if (freeTiles.Count > 0) tile = freeTiles.Dequeue();
                             else if (hubTiles.Length / 32 < SqueakHubTiles) { tile = hubTiles.Length / 32; Array.Resize(ref hubTiles, hubTiles.Length + 32); }
-                            else continue;
+                            else return "The Squeak Squad hub's doors don't fit its tiles.";
                             for (int i = 0; i < 64; i++) {
-                                int pixel = hubTiles[(entry & 0x3FF) * 32 + i / 2] >> (i % 2 * 4) & 0xF;
-                                int shade = pixel == 0 ? 0 : first + (int)Math.Round((Light(Color(entry, pixel)) - darkest) / (lightest - darkest) * (SqueakDoorShades - 1));
-                                if (i % 2 == 0) hubTiles[tile * 32 + i / 2] = (byte)shade; else hubTiles[tile * 32 + i / 2] |= (byte)(shade << 4);
+                                int color = area[(ty * 8 + i / 8) * 48 + tx * 8 + i % 8];
+                                int value = color < 0 ? 0 : 1 + NearestColor(palette, color);
+                                if (i % 2 == 0) hubTiles[tile * 32 + i / 2] = (byte)value; else hubTiles[tile * 32 + i / 2] |= (byte)(value << 4);
                             }
-                            copies[entry & 0xF3FF] = tile;
+                            entry = SqueakDoorPaletteOf[world] << 12 | tile;
                         }
-                        WriteShort(block, 8 + q * 2, palette << 12 | entry & 0x0C00 | tile);
+                        entries[ty / 2 * 3 + tx / 2][ty % 2 * 2 + tx % 2] = entry;
                     }
+                for (int cell = 0; cell < 9; cell++) drawnDoors[(door.x - 1 + cell % 3, door.y - 2 + cell / 3)] = entries[cell];
+            }
+            // (the doors' palettes among the foreground's: its colors there; the rest go in the far view's block, below);
+            for (int world = 0; world < SqueakWorlds; world++) {
+                if (SqueakDoorPaletteOf[world] >= 6) continue;
+                for (int i = 0; i < 15; i++) hubColors[SqueakDoorPaletteOf[world] * 16 + 1 + i] = i < doorColors[world].Length ? doorColors[world][i] : 0;
+            }
+            void DrawSqueakHubDoor(List<byte[]> doorBlocks) {
+                foreach (byte[] block in doorBlocks)
+                    if (drawnDoors.TryGetValue((block[2], block[3]), out int[] cell))
+                        for (int q = 0; q < 4; q++) WriteShort(block, 8 + q * 2, cell[q]);
             }
             squeakHubDoors = new List<Door>();
             for (int world = 1; world <= SqueakWorlds; world++) {
@@ -185,7 +227,7 @@ namespace KatAMRandomizer {
                 Door door = new Door(spot.x, spot.y, firstSwitchRoom + world - 1, target.x + 1, target.y + 1, 1, Slot: SqueakSlot(world), Kind: DoorKind.Hub);
                 List<byte[]> blocks = specials.Where(r => r[0] == 1 && Math.Abs(r[2] - spot.x) <= 1 && r[3] >= spot.y - 2 && r[3] <= spot.y).ToList();
                 if (blocks.Count != 9) return $"Central Circle's door at ({spot.x}, {spot.y}) isn't as it should be.";
-                RecolorSqueakHubDoor(blocks, world - 1);
+                DrawSqueakHubDoor(blocks);
                 foreach (byte[] block in blocks) hubSpecials.AddRange(block);
                 hubSpecials.AddRange(DoorRecord(door, 0xFF));
                 templates.Add(HubMirrorTemplate(spot.x, spot.y - 1, templates.Count, door.Slot));
@@ -205,6 +247,29 @@ namespace KatAMRandomizer {
                 return "Central Circle's door to the ability room isn't as it should be.";
             Door abilityDoor = new Door(abilityX, abilityY, abilityRoom, abilityLanding.x, abilityLanding.y, abilityLanding.facing, Slot: SecretMapSlot,
                                         Kind: DoorKind.Hub);
+            /* (its tiles in a palette the doors took, 0-2: copies in that palette's new colors, as the NiDL hub's ability door's);
+             * its blocks copied (Central Circle's own are read again below); */
+            abilityBlocks = abilityBlocks.Select(b => (byte[])b.Clone()).ToList();
+            Dictionary<int, int> recolored = new Dictionary<int, int>();
+            foreach (byte[] block in abilityBlocks)
+                for (int q = 0; q < 4; q++) {
+                    int entry = ReadShort(block, 8 + q * 2), owner = Array.FindIndex(SqueakDoorPaletteOf, p => p == entry >> 12);
+                    if ((entry & 0x3FF) == 0 || owner < 0 || SqueakDoorPaletteOf[owner] >= 6) continue;
+                    if (!recolored.TryGetValue(entry & 0xF3FF, out int copy)) {
+                        int tile;
+                        if (freeTiles.Count > 0) tile = freeTiles.Dequeue();
+                        else if (hubTiles.Length / 32 < SqueakHubTiles) { tile = hubTiles.Length / 32; Array.Resize(ref hubTiles, hubTiles.Length + 32); }
+                        else continue;
+                        int source = entry & 0x3FF, sourcePalette = entry >> 12;
+                        for (int i = 0; i < 32; i++) {
+                            int low = sourceTiles[source * 32 + i] & 0xF, high = sourceTiles[source * 32 + i] >> 4;
+                            int Recolor(int index) => index == 0 ? 0 : 1 + NearestColor(doorColors[owner], sourceHubColors[sourcePalette * 16 + index]);
+                            hubTiles[tile * 32 + i] = (byte)(Recolor(low) | Recolor(high) << 4);
+                        }
+                        recolored[entry & 0xF3FF] = copy = sourcePalette << 12 | tile;
+                    }
+                    WriteShort(block, 8 + q * 2, copy | entry & 0x0C00);
+                }
             foreach (byte[] block in abilityBlocks) hubSpecials.AddRange(block);
             hubSpecials.AddRange(DoorRecord(abilityDoor, 0xFF));
             byte[] abilityMirror = (byte[])abilityTemplate.Clone();
@@ -226,17 +291,18 @@ namespace KatAMRandomizer {
              * and 3), tinted to it, SqueakCloudTint(), in a palette entry of its own: Central Circle's, its cycles kept); */
             int paletteEntry = ReadInt(rom, symbols["gForegroundPalettes"] + Vanilla("gForegroundPalettes", 10, Props(11)) * 4) - 0x08000000;
             int sourceColors = ReadInt(rom, paletteEntry) - 0x08000000, colorsAt = Allocate(ref cursor, 0xC0, 4), paletteAt = Allocate(ref cursor, 12, 4);
-            for (int i = 0; i < 96; i++) {
-                int color = ReadShort(rom, sourceColors + i * 2) & 0x7FFF;
-                WriteShort(rom, colorsAt + i * 2, i >= 4 * 16 && i % 16 != 0 ? SqueakCloudTint(color, SqueakHubLook) : color);
-            }
+            for (int i = 0; i < 96; i++) WriteShort(rom, colorsAt + i * 2, hubColors[i]);
             Array.Copy(rom, paletteEntry, rom, paletteAt, 12);
             WriteInt(rom, paletteAt, colorsAt + 0x08000000);
             WriteShort(rom, paletteAt + 10, hub);
-            if (viewBackground(SqueakHubLook.View + "|" + (SqueakDoorPalettes - 6)) is not { } farView)
+            if (viewBackground(SqueakHubLook.View + "|" + SqueakHubViewPalettes) is not { } farView)
                 return $"Squeak Squad has no far view {SqueakHubLook.View} for its hub.";
-            // (the doors' colors in the far view's freed palettes; its tiles Central Circle's with the doors' copies);
-            for (int c = 0; c < doorColors.Length; c++) WriteShort(rom, farView.colors + ((SqueakDoorPalettes - 6) * 16 + c) * 2, doorColors[c]);
+            // (the doors' colors in the far view's freed palettes, 9-13; its tiles Central Circle's with the doors' new ones);
+            for (int world = 0; world < SqueakWorlds; world++) {
+                if (SqueakDoorPaletteOf[world] < 6) continue;
+                for (int i = 0; i < 15; i++)
+                    WriteShort(rom, farView.colors + ((SqueakDoorPaletteOf[world] - 6) * 16 + 1 + i) * 2, i < doorColors[world].Length ? doorColors[world][i] : 0);
+            }
             int hubInfo = Allocate(ref cursor, 16, 4), hubTilesAt = AllocateCompressed(rom, CompressLZ77(hubTiles), ref cursor);
             Array.Copy(rom, ccInfo, rom, hubInfo, 16);
             for (int i = 0; i < 3; i++) if (ReadInt(rom, hubInfo + i * 4) == ccTilesPointer) WriteInt(rom, hubInfo + i * 4, hubTilesAt + 0x08000000);

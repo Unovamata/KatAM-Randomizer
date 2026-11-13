@@ -3231,7 +3231,7 @@ namespace KatAMRandomizer {
                     || SqueakAbilityRoomDoor(abilityMap) is not SqueakDoor abilityDoorway)
                     return "Squeak Squad's ability room wasn't found.";
                 (int x, int y, byte facing) abilityLanding = (abilityDoorway.X + 1, abilityDoorway.Y + 1, (byte)(abilityDoorway.X * 2 < abilityMap.Width ? 1 : 2));
-                if (BuildSqueakHub(rom, symbols, nidlRooms, roomProps, newProps, newInfos, roomInfos, hubRoom, firstSwitchRoom, abilityRoom, abilityLanding, worldStarts[1],
+                if (BuildSqueakHub(rom, symbols, version.SpriteTables, nidlRooms, roomProps, newProps, newInfos, roomInfos, hubRoom, firstSwitchRoom, abilityRoom, abilityLanding, worldStarts[1],
                                    navigationRoutes, noTypes, Add, DoorsList,
                                    view => ViewBackground(view, hubRoom) is int at && at >= 0 ? (at, backgroundSize[view].width, backgroundSize[view].height, backgroundColors[view]) : null,
                                    out KatAMRoomEdit centralCircle, out byte[] hubCollision, out int hubWidth, ref here) is string hubError)

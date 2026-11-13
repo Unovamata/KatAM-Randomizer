@@ -122,10 +122,12 @@ after any change.
   KatAM's sparkle until Kirby first goes through (`SqueakGreyDoorDesign`; its place still the owner's to change). Rainbow Route's
   mirror in it (19, 14) is the way in, to Prism Plains 1's start, as the NiDL hub's golden one. It is never reached from the NiDL
   hub, and works with or without the NiDL ROM. Its world doors: Central Circle's own doors (MainHubDoors, the world's number's,
-  KatAM's door shapes in their world's colors: Prism Plains green, Nature Notch autumn orange, Cushy Cloud sky blue, Jam Jungle
-  green-yellow, Vocal Volcano red, Ice Island ice blue, Secret Sea deep blue, Gamble Galaxy purple; the owner's pick, "World theme
-  colors"; `SqueakDoorThemes`: five shades each, in background palettes 11-13, its far view in 6-10), one per world, shown by the
-  world's big switch, to its switch room. Its background is a Squeak Squad far view and its cloud colors are tinted to it (the
+  each drawn as the NiDL hub's doors are: one of KatAM's door frames over its mirror, in its own palette of 15 colors, some of
+  its colors turned to the world's (the owner's pick, "World theme colors", then "NiDL's hub doors are way more intricate in
+  coloring"; `SqueakDoorDesigns`): Prism Plains the pine trees, Nature Notch the mossy rock gone autumn, Cushy Cloud the clouds and
+  stars, Jam Jungle the waves and flowers in jungle green, Vocal Volcano the flames in red, Ice Island the ice, Secret Sea the
+  shells and water, Gamble Galaxy the starry night in purple; their palettes the NiDL hub's doors' (0-2, 9-13), its far view in
+  6-8), one per world, shown by the world's big switch, to its switch room. Its background is a Squeak Squad far view and its cloud colors are tinted to it (the
   owner: "Change the background of the Squeak Squad hub along with its palette for the clouds"; `SqueakHubLook`): the owner's
   pick of the mock-ups, D, Prism Plains' castle and rainbow (the far view d_viw_00) with Central Circle's own cloud colors (the
   owner, sending the D mock-up: "The Squeak Squad hub should have this background as well"). `BuildSqueakHub()`.
