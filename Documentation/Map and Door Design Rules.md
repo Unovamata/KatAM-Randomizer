@@ -211,7 +211,9 @@ after any change.
     stage's hideouts (each one time in three; the Squeakers' hideout led by Spinni, Doc or Storo), each at a DS door the seed picks
     among the ones that can be (as above, in a room that shows the DS's nest), the rest of the map unchanged; off, as above;
   - the rooms a stage reaches only through its Squeaks that no lair uses (the other three hideouts of each stage, every stage's
-    copies of the same four fights, and its gold-pile treasure rooms nothing leads to) are left out, nothing leading in; a room
+    copies of the same four fights, and its gold-pile treasure rooms nothing leads to) are left out, nothing leading in, and off the
+    map viewer (the owner, of room 0x520: "has no entrance, only an exit", then: hide them; `RomMap.HideUnusedSqueakRooms()`: a
+    stage's room nothing leads into whose ways out are all mirrors; the sky rooms the rides fly through stay); a room
     after a stage's goal that isn't one of those (1-1-5, the field past its goal) is reached as any room (rule 9); the sky rooms
     the DS's warp stars fly through (3-4-5, 8-3-6, 8-3-7: nothing to stand on; and 7-2-2) are reached on those rides, as the DS's
     (3-4-4's star flies through 3-4-5 into 3-4-6, 7-2-1's through 7-2-2 into 7-2-3, 8-3-5's through 8-3-6 and 8-3-7 into 8-3-8),
