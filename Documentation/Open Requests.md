@@ -19,9 +19,14 @@ finishes it says how it was checked). The design rules for doors, mirrors and hu
   stiching to walls."
 - The owner: "Room 0x49C, garbled cloud graphics."
 - The owner: "What is the point of grey clouds? They just hurt me if I stand on them?"
-- The owner: "Room 0x44a heavy palette errors."
-- The owner: "Room 0x5DB 2 pedestals on top of one another."
-- The owner: "Room 0x5E0 garbled tiles for a single frame."
+- The owner: "Room 0x44a heavy palette errors." (Not reproduced in an expansion-only build, USA: the whole room shot in a grid,
+  its tiles, far view and enemies in their colors. Maybe a randomized room's enemies over KatAM's 16 object palettes: a screenshot
+  or the seed and settings wanted.)
+- The owner: "Room 0x5DB 2 pedestals on top of one another." (Not reproduced in an expansion-only build: one random pedestal,
+  object 0x96, at 344, 80; the seed and settings wanted.)
+- The owner: "Room 0x5E0 garbled tiles for a single frame." (Not reproduced, USA: every frame of coming in by 0x5E1's mirror and
+  of the dark star's first 900 frames checked; only its flashes and the screen's shake at Dark Nebula's coming. When in the fight
+  it shows is wanted.)
 - The owner: "Room 0x403 doesn't have animated water." (the owner: on the DS, the water's surface waves; the DS's room files
   animate no water block and cycle no palette)
 - The owner: "Room 0x577 doesn't have animated water as it should."
