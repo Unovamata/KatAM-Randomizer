@@ -357,7 +357,15 @@ how Squeak Squad's enemies work): [Squeak Squad Notes](../Documentation/Squeak%2
   `squeak/gimmicks.c`'s `LairExit()`), which writes its record's collision once no mini-boss (types 0x38-0x52) with HP is left in
   the room, 30 frames after it comes up, with or without the NiDL ROM (`arena.c`'s `OpenDoors()` too, with it). The hideout's
   third map layer (only its black doorway, blocks 604 over 796) isn't drawn. The template carries `SQUEAK_LAIR_FIGHT` (`unk22`): a
-  boss the randomizer puts there stands on that floor (`SqueakBossFloor()`: its area's bottom less 32). The randomizer takes the
+  boss the randomizer puts there stands on that floor (`SqueakBossFloor()`: its area's bottom less 32). One fight a lair, kept in
+  it (the owner: "Squeak lairs have double minibosses, that is a huge no-no. In one instance one clipped through the ground,
+  creating a soft-lock. Room 0x4FE"): a fight whose DS spot is in the ground (the Squeakers' hideouts' first Squeaker's, 12
+  pixels into the treasure pile's floor) stands on that floor's top; a lair's fight, and Spinni, Doc or Storo as a mid-boss
+  anywhere, is held within KatAM's bounds across (`squeak.c`'s `SqueakHoldAcross()`: the edge a wall it turns at; KatAM's
+  terrain reads past the room's edge as its edge cell, so the hideouts' floor running out of the room was no wall, and Storo,
+  heading for Kirby on a ledge over it, walked on off the room's left side, its fight never over); and a lair room brings out no
+  chase Squeaks (its Squeak records are its fight's and its Squeakers': in a stage with a chase, the chase brought its Squeak
+  out a second time beside its mini-boss). The randomizer takes the
   lairs' mini-bosses with KatAM's (`SqueakLairMinibosses`, `KatAMEnemiesBase.cs`' `AddSqueakLairMinibosses()`). Each lair's door
   gets the DS's own nest, drawn into the room's foreground (`KatAMExpansionSqueakNests.cs`' `SqueakNests()`): every DS room's front
   block table holds it, 5 blocks by 3 (0x110-0x114, 0x130-0x134, 0x150-0x154), in its world's front tileset's look (a stump, a

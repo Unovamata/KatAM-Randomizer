@@ -1501,6 +1501,13 @@ namespace KatAMRandomizer {
              * frame in a room a screen big, as Squeak Squad's arenas: subtype2 ONE_SCREEN). The arena is NiDL's type's (0x31): without
              * the NiDL ROM, none yet (the camera follows Kirby); */
             void Boss(int x, int y, byte type, byte behavior, byte shard = 0, int floorRow = -1) {
+                /* (a Squeak Lair's fight, `floorRow` set, whose spot is in the ground (the Squeakers' hideouts: its first Squeaker's,
+                 * 12 pixels into the treasure pile's floor) stands on that floor's top: in it, it was pushed out sideways); */
+                if (floorRow >= 0 && !Open(x / 16, (y - 1) / 16)) {
+                    int cy = (y - 1) / 16;
+                    while (cy > 0 && !Open(x / 16, cy - 1)) cy--;
+                    y = cy * 16;
+                }
                 byte[] template = ObjectTemplate(x, y - 8, templates.Count + 1, type);
                 template[14] = behavior;
                 template[0x11] = shard;
@@ -2862,6 +2869,10 @@ namespace KatAMRandomizer {
                     SqueakChase chase = null;
                     if (chaseKeys.TryGetValue((f.Area, f.Stage), out byte chaseKey)) {
                         (List<(int x, int y)> walls, List<(int x, int y, byte character, byte variant)> spawns) = SqueakChaseOf(squeak, f, doorCells);
+                        /* (a Squeak Lair: none, its Squeak records its fight's and its Squeakers' (SqueakObjects()): the chase brought its
+                         * Squeak out again beside its mini-boss, two of them (the owner: "Squeak lairs have double minibosses, that is a
+                         * huge no-no")); */
+                        if (lairHere != null) spawns.Clear();
                         chase = new SqueakChase(chaseKey, walls, spawns, chaseChests);
                         squeakChaseChests += chaseChests?.Count ?? 0;
                         foreach (byte[] chaseChest in chaseChests ?? new List<byte[]>()) chaseChestsPlaced.Add((SqueakFirstRoom + i, chaseChest));

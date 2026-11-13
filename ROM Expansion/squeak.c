@@ -736,6 +736,31 @@ static void SqueakHoldInStage(struct ObjectBase *base) {
     base->unk62 = 0;
 }
 
+/* SqueakHeldInRoom(), SqueakHoldAcross(); A fight that walks at Kirby or the chests (a Squeak Lair's, SQUEAK_LAIR_FIGHT, or Spinni,
+ * Doc or Storo as a mid-boss anywhere) is kept within KatAM's bounds across (levelMinPosition, levelMaxPosition: the room's, 8 pixels
+ * in, or its fight's screen), the edge a wall (unk62 1 ahead, 2 behind) its turn comes from, as the DS's stage holds its characters:
+ * KatAM's terrain reads the room's edge cell for what's past it, so a floor running out of the room was no wall, and a lair's
+ * Squeak walked off it, its fight never over and the lair's way out shut (the owner: "In one instance one clipped through the
+ * ground, creating a soft-lock. Room 0x4FE": Storo heading for Kirby on a ledge over it walked on out of the room's left side); */
+static bool32 SqueakHeldInRoom(struct SqueakObject *s) {
+    const struct ObjectTemplate *t = s->obj.objTemplate;
+
+    if (t == NULL || !SqueakIsMidboss(&s->obj)) return FALSE;
+    return (t->unk22 & SQUEAK_LAIR_FIGHT) || sSqueakCharacters[s->enemy].squeak;
+}
+
+static void SqueakHoldAcross(struct ObjectBase *base) {
+    struct LevelInfo *level = &gCurLevelInfo[base->unk56];
+
+    if (base->x < level->levelMinPosition.x) {
+        base->x = level->levelMinPosition.x;
+        base->unk62 |= base->flags & 1 ? 1 : 2;
+    } else if (base->x > level->levelMaxPosition.x) {
+        base->x = level->levelMaxPosition.x;
+        base->unk62 |= base->flags & 1 ? 2 : 1;
+    }
+}
+
 // SqueakThroughTerrain(); Its flag 0x200 set (`through`) or cleared: SqueakMove() takes it through the terrain;
 void SqueakThroughTerrain(struct SqueakObject *s, bool32 through) {
     if (through) s->obj.base.flags |= 0x100;
@@ -841,6 +866,7 @@ void SqueakMove(struct SqueakObject *s) {
         sub_0809D8C8(base);
         // (the moving platforms and thunder clouds are floors too: squeak/gimmicks.c, SqueakPlatformLanding());
         if (s->vy <= 0 && !(base->unk62 & 4) && SqueakPlatformLanding(base, base->unk4C)) s->vy = 0;
+        if (SqueakHeldInRoom(s)) SqueakHoldAcross(base);
     } else {
         SqueakHoldInStage(base);
     }

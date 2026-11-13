@@ -31,8 +31,6 @@ finishes it says how it was checked). The design rules for doors, mirrors and hu
 - The owner: "Room 0x520 has no entrance, only an exit."
 - The owner: "Room 0x517 has pass through platforms that are not pass through."
 - The owner: "Room 0x51A these 1 pass blocks destroy very oddly, please check the original game to replicate the original behavior."
-- The owner: "Squeak lairs have double minibosses, that is a huge no-no. In one instance one clipped through the ground, creating a
-  soft-lock. Room 0x4FE"
 - The owner: "Room 0x4F9, destroyed blocks, even in undestructible terrain, have no collision, the stage should retain collisions, not
   lose them on triggering bomb blocks."
 - The owner: "Chests are falling through stone/switch doors."
