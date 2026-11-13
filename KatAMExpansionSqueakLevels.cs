@@ -518,7 +518,7 @@ namespace KatAMRandomizer {
              * the room's own walls only), but never down through a thin floor (rule 9: without Down and B); */
             static bool Through(SqueakPlanRoom r, int y, int nx, int ny) {
                 byte v = r.At(nx, ny);
-                bool through = SqueakOpen(v, true) || v is KatAMThin or KatAMFirmThin or KatAMSpikes or (>= 0x10 and <= 0x13) or 0x18 or 0x19
+                bool through = SqueakOpen(v, true) || v is KatAMThin or KatAMFirmThin or KatAMSpikes or (>= 0x10 and <= 0x1B)
                                                        or (>= 0x01 and <= 0x0C) or (>= 0x34 and <= 0x43) or KatAMMetalBlock or (>= 0xF1 and <= 0xF3);
                 return through && !(ny == y + 1 && v is KatAMThin or KatAMFirmThin or (>= 0x10 and <= 0x1B));
             }

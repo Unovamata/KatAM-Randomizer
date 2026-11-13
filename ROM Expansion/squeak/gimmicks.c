@@ -2568,7 +2568,7 @@ static void BoulderBreak(struct Object *obj, s8 way) {
  * tests its middle, let one by a ledge's end fall past it, half over it), and each one's top, drawn in the open cell over it. Other
  * thin floors have no record; star blocks under it stay for Kirby (2-4-2's and 8-2-4's sit in pockets till their floor goes); */
 static bool32 BoulderThin(u8 c) {
-    return c == 0x0E || (c >= 0x10 && c <= 0x13) || c == 0x18 || c == 0x19;
+    return c == 0x0E || c == 0x0F || (c >= 0x10 && c <= 0x1B);   // (KatAM's thin floors, dropped through or not);
 }
 
 static void BoulderBreakUnder(struct Object *obj) {

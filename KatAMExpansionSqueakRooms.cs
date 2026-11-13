@@ -1140,7 +1140,7 @@ namespace KatAMRandomizer {
                      * as the DS's break them as they fall on them (squeak/gimmicks.c's BoulderBreakUnder()): its look gone, air left); */
                     uint frontWord = map.Collision(6, x, y), mainWord = map.Collision(7, x, y);
                     // (and the open cell over one, of its group, where the main grid draws the ledge's top: it goes with it);
-                    bool ledge = loose.Contains((x, y)) && (mainWord & 0xC000) == 0x8000 && value is KatAMThin or (>= 0x10 and <= 0x13) or 0x18 or 0x19;
+                    bool ledge = loose.Contains((x, y)) && (mainWord & 0xC000) == 0x8000 && SqueakThinFloor(value);
                     bool ledgeTop = loose.Contains((x, y)) && value == KatAMAir && map.Block(4, x, y) != 0 && loose.Contains((x, y + 1))
                                     && (map.Collision(7, x, y + 1) & 0xC000) == 0x8000;
                     if (ledge || ledgeTop) {
@@ -1196,8 +1196,7 @@ namespace KatAMRandomizer {
              * emulator; a slide into 1-1-4's wall away from its bomb doesn't); in KatAM, where only the bomb block itself does, the
              * chain's blocks facing the outside are bomb blocks too); */
             bool Open(int cx, int cy) => cx >= 0 && cy >= 0 && cx < width && cy < height && !chains.Contains((cx, cy))
-                && collision[cy * width + cx] is KatAMAir or KatAMWater or KatAMLadder or KatAMLadderTop or KatAMThin or KatAMFirmThin or KatAMSpikes
-                   or (>= 0x10 and <= 0x13) or 0x18 or 0x19;
+                && (collision[cy * width + cx] is KatAMAir or KatAMWater or KatAMLadder or KatAMLadderTop or KatAMSpikes || SqueakThinFloor(collision[cy * width + cx]));
             (int x, int y)[] Around((int x, int y) c) => new[] { (c.x + 1, c.y), (c.x - 1, c.y), (c.x, c.y + 1), (c.x, c.y - 1) };
             foreach (List<(int x, int y)> chain in chainList) {
                 if (!chain.Any(c => collision[c.y * width + c.x] == 0xF1)) continue;   // (a switch's: its switch sets it off);
@@ -1308,6 +1307,11 @@ namespace KatAMRandomizer {
             return list.ToArray();
         }
 
+        // SqueakFirm(); KatAM's thin floor Kirby doesn't drop through for one he does (KatAMExpansionRooms.cs' ThinFloors()' Kept());
+        static byte SqueakFirm(byte thin) => thin switch { KatAMThin => KatAMFirmThin, >= 0x10 and <= 0x13 => (byte)(thin + 4), 0x18 => 0x1A, 0x19 => 0x1B, _ => thin };
+        // SqueakThinFloor(); Any of KatAM's thin floors, dropped through or not;
+        static bool SqueakThinFloor(byte v) => v is KatAMThin or KatAMFirmThin or (>= 0x10 and <= 0x17) or (>= 0x18 and <= 0x1B);
+
         /* SqueakCollision(); KatAM's collision for a Squeak Squad cell (see the notes' collision word): its kind (bits 14-15: air, solid,
          * thin, slope), its flags (bits 8-13: 0x100 a ladder, on a thin floor its top; 0x200 and 0x300 thin floors, both dropped
          * through), its block (bits 24-26: 4 a star block, 5 a big one: breakable, KatAMStarBlock, what they leave the main layer's
@@ -1328,10 +1332,12 @@ namespace KatAMRandomizer {
                     return KatAMSolid;
                 case 2:
                     if ((flags & 0x100) != 0 && (flags & 0x200) == 0) return KatAMLadderTop;
-                    if (SqueakSlopes.TryGetValue(shape, out var thin)) return thin.thin;
-                    // (0x300's too: Down drops Kirby through 2-2-3's, checked in the DS emulator; as KatAM's firm ones they shut him in
-                    // the pocket its door to 2-2-5 lands him in);
-                    return KatAMThin;
+                    /* (0x300's Kirby drops through: Down drops him through 2-2-3's, checked in the DS emulator, KatAM's thin floors (Down and
+                     * B); 0x200's he only jumps up through, never drops through (the owner, of 5-5-2's planks, room 0x517: "the platform can
+                     * be passed from below but not dropped down from above. It's part of the puzzle, there are many instances of this bug
+                     * happening in game"): KatAM's firm ones, SqueakFirm()); */
+                    byte thinFloor = SqueakSlopes.TryGetValue(shape, out var thin) ? thin.thin : KatAMThin;
+                    return (flags & 0x300) == 0x300 ? thinFloor : SqueakFirm(thinFloor);
                 case 3:
                     return SqueakSlopes.TryGetValue(shape, out var slope) ? (liquid == 1 ? slope.water : slope.solid) : KatAMSolid;
             }
