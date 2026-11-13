@@ -669,8 +669,18 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
   - The grass tufts (0xE; ctor `0x02222078`, vtable `0x02229500`; `yakumono/grass_A_S` and `grass_A_L`, `0x02227C28`'s 0x14-byte
     entries by its table's first byte's low nibble: 0 small, 1 large): its box (-1.0, 0) to (1.0, 3.0) small, (-2.0, 0) to (2.0,
     3.5) large; it takes messages 7 and 8 (`+0x48`, `+0x4C`). Its messages (`0x02221F90`): 5, a body moving through it (the
-    box saved at +0x5C..+0x68: it rustles, `0x02221DFC`, its timer from `0x02227C1C` by size, sound 0x58, then back, 0x56/0x57 by
-    size), 0xB an attack (its flags' bit 0: cut, state 5 `0x02221C64`), 0xC another. Cut (`0x02221C64`), it lets out what it
+    box saved at +0x5C..+0x68: it rustles, state 1: `0x02221EEC`, sound 0x57 or 0x56 by size), 0xC another (state 1 too), 0xB an
+    attack, by its flags (the halfword at +8): bit 0 a cut, state 5 (`0x02221C64`); else 0x288, fire, state 9; else 0x70, state 3
+    (`0x02221E84`: composite 0, leaves flying round it as it shakes, sound 0x56; not cut). Its look's animation table (`0x02227CA0`,
+    `0x02227CBC` large; 0x01000000 | n an animation, 0x03000000 | n a composite of its `.mca`): +0 still, +4 rustling, +8 composite
+    0, +0xC composite 1 (the cut: its sparkle, leaves, blades and stub), +0x10 composite 2 (flames, animations 11-13, over the tuft
+    withering, 2, looping), +0x14 composite 3 (the flames dying, 14-17, over the withered tuft, 3), +0x18 composite 4 (the withered
+    tuft blinking away, 4). Burnt (`0x02221DFC`: sound 0x58, composite 2, +0x6C the timer from `0x02227C1C`, 40 frames for every
+    look; `0x02221D94` counts it down, then composite 3; `0x02221CF0` once it ends lets out what it holds and plays composite 4;
+    `0x02221CD0` once that ends, gone). The withered cells are in another palette (brown). The port: `squeak/gimmicks.c`'s
+    `GrassFlames()`, `GrassPlay()` (a Kirby's attack with Fire or Burning burns it; the flames objects of their own, `SQUEAK_GRASS_FLAMES`:
+    grass_A_L's flame animations, every look's tuft burning with the A files' arrangements, small or large; the six files' own took
+    36 KB the European ROM didn't have). Cut (`0x02221C64`), it lets out what it
     holds (its table's second byte, not 0xFF: by the first byte's high nibble, 0 an ability `0x0220A2A4`, 1 a food
     `0x0220A200`, as the barrel's and the bubbles'), plays its cut animation (sound 0x59) and stays cut; one that held something
     grows back after 600 frames (`0x02221F58`: +0x6C counts to 0x258). Its looks (`0x02227C28`, by the low nibble): 0
