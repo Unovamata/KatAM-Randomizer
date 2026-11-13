@@ -783,7 +783,7 @@ namespace KatAMRandomizer {
             }
 
             /* The goals: the deepest stage's to the boss stage; the others in turn into a goal game, the next world's stage, a goal game
-             * (the DS's goal doors, its own doorways: Plain); */
+             * (the DS's goal doors: a mirror on each, their wide doorways taken out, AddSqueakRooms()'s SqueakGoalDoorways()); */
             Dictionary<(int, int), (int room, int x, int y)> goals = new Dictionary<(int, int), (int, int, int)>();
             for (int world = 1; world <= SqueakWorlds; world++) {
                 List<(int area, int stage)> reached = stages.Where(s => s.area == world && depthOf.ContainsKey(s)).ToList();
@@ -814,10 +814,10 @@ namespace KatAMRandomizer {
             foreach (SqueakPlanRoom r in rooms)
                 foreach (SqueakDoor goal in r.Doors.Where(SqueakGoal))
                     if (goals.TryGetValue((r.Area, r.Stage), out var to) && goal.X < r.Width && goal.Y < r.Height)
-                        // (its wide doorway plain, leading on; into a goal game, a mirror on it, as every door that isn't a wide one leading on:
-                        // the owner: "All doors have to be mirrors unless the door is wide and warps to another place that is not a goal room");
+                        // (a mirror on it, wherever it leads, its wide black doorway gone: the owner, "I think we can drop the wide black
+                        // doors and replace them with regular mirrors since these look very odd in-game");
                         doors[r.Index].Add(new Door(goal.X, goal.Y, to.room, to.x, to.y, byRoom.TryGetValue(to.room, out SqueakPlanRoom target) ? Facing(target, to.x) : (byte)1,
-                                                    OneWay: true, Kind: DoorKind.Goal, Plain: !GoalRooms.Contains(to.room)));
+                                                    OneWay: true, Kind: DoorKind.Goal));
 
             /* The boss stages: the DS's doors on (into the boss room: one-way, there's none back); a room the DS reaches only by a
              * cutscene (no door or warp star of the stage leads to it: the final stage's, between its fights, room 5 to 7, 6 to 9...)

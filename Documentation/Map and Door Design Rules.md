@@ -13,7 +13,7 @@ after any change.
 
 | Way | KatAM object | One-way or two-way | Notes |
 |---|---|---|---|
-| Mirror (door) | `0x6F` mirror, a door cell | either | The normal way. One-way mirrors are drawn with KatAM's one-way graphic. Every door is a mirror but a wide doorway leading on to a place that isn't a goal game (Squeak Squad's goal doors into the next stage or the boss stage) and NiDL's own door halls (rule 2). |
+| Mirror (door) | `0x6F` mirror, a door cell | either | The normal way. One-way mirrors are drawn with KatAM's one-way graphic. Every door is a mirror but NiDL's own door halls (rule 2). Squeak Squad's goal doors, the DS's wide black doorways, are a mirror too, their doorway taken out of the room's tiles (the owner: "I think we can drop the wide black doors and replace them with regular mirrors since these look very odd in-game"). |
 | Hub door | `0x97` door object | always two-way | Only in hubs (rule 4). Hidden until its big switch is pressed. |
 | Mirra | `0x34` | one-way, but both ways into a switch room | A hidden mirror that runs away (rule 6). |
 | Warp star | `0x84` | one-way | NiDL's and Squeak Squad's own; stays a warp star (rule 7). |

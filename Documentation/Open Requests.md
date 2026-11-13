@@ -29,7 +29,6 @@ finishes it says how it was checked). The design rules for doors, mirrors and hu
 - The owner: "Room 0x5DE, platforms are not pass through. They are are lnhalable. Boulders pass through the platforms."
 - The owner: "Room 0x5E0 garbled tiles for a single frame."
 - The owner: "Room 0x520 has no entrance, only an exit."
-- The owner: "Room 0x516 double clashing exits at the bottom."
 - The owner: "Room 0x517 has pass through platforms that are not pass through."
 - The owner: "Room 0x51A these 1 pass blocks destroy very oddly, please check the original game to replicate the original behavior."
 - The owner: "Squeak lairs have double minibosses, that is a huge no-no. In one instance one clipped through the ground, creating a
@@ -41,7 +40,6 @@ finishes it says how it was checked). The design rules for doors, mirrors and hu
 - The owner: "Room 0x4F6 floating door, floating doors are not allowed."
 - The owner: "Room 0x403 doesn't have animated water."
 - The owner: "Room 0x577 doesn't have animated water as it should."
-- The owner: "I think we can drop the wide black doors and replace them with regular mirrors since these look very odd in-game."
 - The owner: "When grass is hit with fire, it doesn't quite burn, room 0x40A."
 - The owner: "Can't get inside barrels and the barrel destruction animation looks off. Room 0x420 feels empty, like something's
   missing. Also, double door clash."
