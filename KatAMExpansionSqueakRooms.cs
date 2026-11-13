@@ -1134,7 +1134,22 @@ namespace KatAMRandomizer {
                      * (top byte 0x28) drawn with its tile 0x220 or 0x221 on a main cell that isn't solid, 6-1-4's over its door. KatAM has
                      * no block only Fire breaks, and can't promise Fire there: any attack breaks them (the owner: every room reached); a
                      * burnt cell leaves air and its main layer's look goes too, a melted one what the main grid has there); */
+                    /* (a loose group's thin floors stay thin floors, the DS's main grid's (8-4-4's ledges in the dark star's shaft, room 0x5DE:
+                     * the owner, "platforms are not pass through. They are inhalable. Boulders pass through the platforms": as star blocks
+                     * they were solid and inhalable, and the boulders went through them), each with a block record a boulder applies,
+                     * as the DS's break them as they fall on them (squeak/gimmicks.c's BoulderBreakUnder()): its look gone, air left); */
                     uint frontWord = map.Collision(6, x, y), mainWord = map.Collision(7, x, y);
+                    // (and the open cell over one, of its group, where the main grid draws the ledge's top: it goes with it);
+                    bool ledge = loose.Contains((x, y)) && (mainWord & 0xC000) == 0x8000 && value is KatAMThin or (>= 0x10 and <= 0x13) or 0x18 or 0x19;
+                    bool ledgeTop = loose.Contains((x, y)) && value == KatAMAir && map.Block(4, x, y) != 0 && loose.Contains((x, y + 1))
+                                    && (map.Collision(7, x, y + 1) & 0xC000) == 0x8000;
+                    if (ledge || ledgeTop) {
+                        blocks.Add((x, y));
+                        blockValues.Add(value);
+                        leaves.Add(KatAMAir);
+                        burnt.Add((x, y));
+                        continue;
+                    }
                     bool burns = ((frontWord & 0x800) != 0 && frontWord >> 24 == 0x38 || loose.Contains((x, y))) && value != KatAMAir;
                     bool melts = (frontWord & 0xC000) == 0x4000 && frontWord >> 24 == 0x28 && map.Block(3, x, y) is 0x220 or 0x221
                                  && (mainWord & 0xC000) != 0x4000;

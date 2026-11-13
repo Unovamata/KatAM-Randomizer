@@ -2562,6 +2562,33 @@ static void BoulderBreak(struct Object *obj, s8 way) {
             sub_08001408(p, (struct Unk_0888562C *)record, NULL, NULL);
 }
 
+/* BoulderBreakUnder(); The loose groups' thin floors its round overlaps, from its middle down to under it, broken (their records:
+ * sub_08001408): KatAMExpansionSqueakRooms.cs keeps them thin floors with a record, as the DS's boulders break the floors they fall on
+ * (8-4-4's ledges in the dark star's shaft, room 0x5DE: the owner, "Boulders pass through the platforms"; KatAM's terrain, which
+ * tests its middle, let one by a ledge's end fall past it, half over it), and each one's top, drawn in the open cell over it. Other
+ * thin floors have no record; star blocks under it stay for Kirby (2-4-2's and 8-2-4's sit in pockets till their floor goes); */
+static bool32 BoulderThin(u8 c) {
+    return c == 0x0E || (c >= 0x10 && c <= 0x13) || c == 0x18 || c == 0x19;
+}
+
+static void BoulderBreakUnder(struct Object *obj) {
+    u8 p = obj->base.unk56;
+    s32 x0 = ((obj->base.x >> 8) - BOULDER_RADIUS + 4) >> 4, x1 = ((obj->base.x >> 8) + BOULDER_RADIUS - 4) >> 4;
+    s32 y0 = (obj->base.y >> 8) >> 4, y1 = ((obj->base.y >> 8) + BOULDER_RADIUS + 2) >> 4, cx, cy;
+    const u8 *record;
+
+    if (y0 < 0) y0 = 0;
+    if (x0 < 0) x0 = 0;
+    for (cy = y0; cy <= y1; cy++)
+        for (cx = x0; cx <= x1; cx++)
+            if (BoulderThin(GetCollisionTile(p, cx, cy)) && (record = CellRecord(p, cx, cy)) != NULL) {
+                sub_08001408(p, (struct Unk_0888562C *)record, NULL, NULL);
+                // (the ledge's top, drawn in the open cell over it, with its own record: it goes too);
+                if (cy > 0 && GetCollisionTile(p, cx, cy - 1) == 0 && (record = CellRecord(p, cx, cy - 1)) != NULL)
+                    sub_08001408(p, (struct Unk_0888562C *)record, NULL, NULL);
+            }
+}
+
 static void SqueakBoulderMain(struct Object *obj) {
     struct SqueakBoulder *b = (struct SqueakBoulder *)obj;
     u16 frames = sBoulderRamp[obj->objTemplate->unk14 >> 6 & 3][0], top = sBoulderRamp[obj->objTemplate->unk14 >> 6 & 3][1];
@@ -2594,6 +2621,7 @@ static void SqueakBoulderMain(struct Object *obj) {
             b->timer = 0;
             break;
         }
+        BoulderBreakUnder(obj);
         if (!(obj->base.unk62 & 4)) {
             obj->base.yspeed -= BOULDER_GRAVITY;
             if (obj->base.yspeed < -BOULDER_TOP_FALL) obj->base.yspeed = -BOULDER_TOP_FALL;
