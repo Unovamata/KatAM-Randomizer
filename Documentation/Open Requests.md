@@ -12,8 +12,6 @@ finishes it says how it was checked). The design rules for doors, mirrors and hu
 - The owner: "Squeak lairs are very prone to lag and garbage tiles."
 
 ## 2. Squeak Squad: the ability room, the hub, the boss rooms
-- The owner: "Change the color palette of doors in the Squeak Squad hub as these don't make a lot of sense as they are right now
-  based on their stage."
 - The owner: "Second phase of Mecha Kracko doesn't change the room's structure like it does in Squeak Squad."
 
 ## 3. Squeak Squad: rooms and objects

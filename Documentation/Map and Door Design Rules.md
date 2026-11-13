@@ -122,7 +122,9 @@ after any change.
   KatAM's sparkle until Kirby first goes through (`SqueakGreyDoorDesign`; its place still the owner's to change). Rainbow Route's
   mirror in it (19, 14) is the way in, to Prism Plains 1's start, as the NiDL hub's golden one. It is never reached from the NiDL
   hub, and works with or without the NiDL ROM. Its world doors: Central Circle's own doors (MainHubDoors, the world's number's,
-  drawn and shown as Central Circle's), one per world, shown by the
+  KatAM's door shapes in their world's colors: Prism Plains green, Nature Notch autumn orange, Cushy Cloud sky blue, Jam Jungle
+  green-yellow, Vocal Volcano red, Ice Island ice blue, Secret Sea deep blue, Gamble Galaxy purple; the owner's pick, "World theme
+  colors"; `SqueakDoorThemes`: five shades each, in background palettes 11-13, its far view in 6-10), one per world, shown by the
   world's big switch, to its switch room. Its background is a Squeak Squad far view and its cloud colors are tinted to it (the
   owner: "Change the background of the Squeak Squad hub along with its palette for the clouds"; `SqueakHubLook`): the owner's
   pick of the mock-ups, D, Prism Plains' castle and rainbow (the far view d_viw_00) with Central Circle's own cloud colors (the
