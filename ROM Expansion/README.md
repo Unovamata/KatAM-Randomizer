@@ -369,6 +369,13 @@ how Squeak Squad's enemies work): [Squeak Squad Notes](../Documentation/Squeak%2
   any DS door that can be one (as above) in a room that draws the DS's nest (`SqueakNestKey()`: the rooms' usual nest blocks, not
   8-3-9's; `SqueakNestDrawn()`: a front tileset whose nest covers 30-80% of its blocks, not 20_f's, 29_f's, 2C_f's, 2D_f's, 3B_f's,
   3E_f's or 3F_f's), picked from the seed; the spoiler log's "Squeak Lairs" lists them.
+- **The goal doors** (`KatAMExpansionSqueakLevels.cs`' `PlanSqueakLevels()`, `KatAMExpansionSqueakRooms.cs`' `SqueakGoalDoorways()`):
+  each stage's goal door is a mirror wherever it leads (into the next stage, the boss stage or a goal game), and the DS's wide
+  black doorway is taken out of the room's tiles (the owner: "I think we can drop the wide black doors and replace them with
+  regular mirrors since these look very odd in-game"): a 2 by 2 doorway on the door's cell and the one left of it, in the front
+  grid for 43 of them (blocks 738, 739 over 770, 771), cleared; 4-4-9's in the third grid, cleared; 1-2-5's a cave in the main
+  grid's cliff, drawn over with the cliff right of it. Before, a goal leading on kept the bare doorway, and one into a goal game
+  had its mirror on the doorway's right half, the left half showing beside it (5-5-1, room 0x516).
 - **The finale chain** (`KatAMExpansionSqueakLevels.cs`' `SqueakFinale()`, `SqueakShardExits()`; `squeak.c`'s `SqueakDestroy()`):
   Squeak Squad's final stage (`SqueakFinalStage`, 8-4) isn't world 8's boss stage: its boss (Dark Nebula) leaves no shard
   (`SQUEAK_FINALE_SHARD`: beaten, `NidlDanceOut()`), its way out its `gNidlShardExits` entry. With NiDL's finale in, Nightmare's

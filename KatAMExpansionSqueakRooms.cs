@@ -276,6 +276,34 @@ namespace KatAMRandomizer {
         /* SqueakSigns(); The cells of a room's tutorial signs ("Tap to pop!", "Find treasure and move on.", "Mix bubbles!": Prism Plains 2's
          * first, third and fifth rooms), left out (the owner: KatAM skips them): front-layer blocks without collision in a block at least
          * 10 by 6 cells, 4 in 5 of them filled (only those three in the 8 worlds, 16 by 11 each); */
+        /* SqueakGoalDoorways(); The DS's goal doors' wide black doorways taken out of a room's tiles (the owner: "I think we can drop the
+         * wide black doors and replace them with regular mirrors since these look very odd in-game"): a doorway is 2 by 2 blocks, two
+         * pairs (b, b + 1 over c, c + 1), on the door's cell and the one left of it and the row above; 43 of the DS's are in the front
+         * grid (grid 3: 738, 739 over 770, 771 in every front block table), 4-4-9's in the third (grid 5), both cleared there (the
+         * main grid's tiles show); 1-2-5's is in the main grid (grid 4: a cave in its cliff), whose blocks take the ones right of
+         * it (the cliff's). The door's mirror stands on its cell; */
+        static SqueakMap SqueakGoalDoorways(SqueakMap map) {
+            byte[] data = null;
+            bool Doorway(int grid, int x, int y) {
+                if (x < 1 || y < 1 || x >= map.Width || y >= map.Height) return false;
+                int b = map.Block(grid, x - 1, y - 1), c = map.Block(grid, x - 1, y);
+                return b != 0 && c != 0 && map.Block(grid, x, y - 1) == b + 1 && map.Block(grid, x, y) == c + 1;
+            }
+            void Set(int grid, int x, int y, int block) {
+                data ??= (byte[])map.Data.Clone();
+                WriteShort(data, map.Section(grid) + (y * map.Width + x) * 2, block);
+            }
+            foreach (SqueakDoor door in map.Doors().Where(SqueakGoal)) {
+                int x = door.X, y = door.Y;
+                int grid = Doorway(3, x, y) ? 3 : Doorway(5, x, y) ? 5 : Doorway(4, x, y) && x + 1 < map.Width ? 4 : -1;
+                if (grid < 0) continue;
+                for (int row = y - 1; row <= y; row++)
+                    for (int column = x - 1; column <= x; column++)
+                        Set(grid, column, row, grid == 4 ? map.Block(4, x + 1, row) : 0);
+            }
+            return data == null ? map : new SqueakMap(data);
+        }
+
         static HashSet<(int x, int y)> SqueakSigns(SqueakMap map) {
             HashSet<(int x, int y)> cells = new HashSet<(int, int)>(), signs = new HashSet<(int, int)>(), seen = new HashSet<(int, int)>();
             for (int y = 0; y < map.Height; y++)
@@ -2613,7 +2641,7 @@ namespace KatAMRandomizer {
                                 main?.Cycle(f.Palette == null ? null : SqueakPaletteCycles(SqueakFileAnyCase(squeak, f.Palette)));
                                 var cells = SqueakRoomCollision(map);
                                 List<(int x, int y)> digs = SqueakDigCells(map, cells.collision);
-                                SqueakMap drawn = SqueakNests(map, squeakLairs.Where(l => l.FromRoom == room).Select(l => (l.FromX, l.FromY)), squeakLairs.Any(l => l.Room == room));
+                                SqueakMap drawn = SqueakGoalDoorways(SqueakNests(map, squeakLairs.Where(l => l.FromRoom == room).Select(l => (l.FromX, l.FromY)), squeakLairs.Any(l => l.Room == room)));
                                 foregrounds[i] = ConvertSqueakForeground(drawn, front, main, ForegroundTiles, cells.blocks.Concat(SqueakRopeCells(map)).Concat(digs).ToList(),
                                                                          SqueakSigns(map), cells.chains.Union(cells.burnt).Union(digs).ToHashSet());
                             }
@@ -2723,8 +2751,8 @@ namespace KatAMRandomizer {
                     }
 
                     // Foreground: its tiles, palettes and tilemap (a nest, the DS's own, on each DS door into a Squeak Lair, and no black
-                    // doorway in a lair: SqueakNests());
-                    SqueakMap drawn = SqueakNests(map, squeakLairs.Where(l => l.FromRoom == room).Select(l => (l.FromX, l.FromY)), lairHere != null);
+                    // doorway in a lair: SqueakNests(); no goal door's wide doorway: SqueakGoalDoorways());
+                    SqueakMap drawn = SqueakGoalDoorways(SqueakNests(map, squeakLairs.Where(l => l.FromRoom == room).Select(l => (l.FromX, l.FromY)), lairHere != null));
                     // (the cut ropes' cells drawn bare too, after the blocks: SqueakRopeCells());
                     List<(int x, int y)> ropeCells = SqueakRopeCells(map);
                     SqueakForeground foreground = foregrounds[i] ?? ConvertSqueakForeground(drawn, front, main, ForegroundTiles, blocks.Concat(ropeCells).Concat(digCells).ToList(),
