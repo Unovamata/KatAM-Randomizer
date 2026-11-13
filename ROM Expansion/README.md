@@ -482,7 +482,11 @@ how Squeak Squad's enemies work): [Squeak Squad Notes](../Documentation/Squeak%2
 - **A world's boss leaves its shard** (`SqueakDestroy`, `SqueakBossShard`): in its boss room its template's `unk11` is the shard
   + 1 (`KatAMExpansionSqueakRooms.cs`); beaten (no HP left, the player in the room), as it goes it leaves the shard through NiDL's
   `NidlBossShard` (a Maxim Tomato if owned), and `gNidlShardExits` takes Kirby to the Squeak Squad hub after its cutscene.
-  `SqueakSpawn`'s copies of a template never carry it.
+  `SqueakSpawn`'s copies of a template never carry it. The boss room holds no treasure (the owner: "The boss rooms can only have
+  the shard/tomato spawn and that's it"): its chest, the DS's reward (a Boss Battle Badge), is moved into the room before it, the
+  boss stage's first, on the floor nearest its door to the boss room and 3 cells from every door (`SqueakAntechamber`: rooms 0x42D,
+  0x46A, 0x4AA, 0x4E9, 0x521, 0x56A, 0x5AA); the boss room keeps that chest's template off the stage (`OffStageX`), so its other
+  templates' numbers stay, and the shard still comes over the chest's old spot.
 - **Effects** (`SqueakSpawnEffect`): Squeak Squad's shared effects (`effect/efc_cmn0`, `efc_cmn1`), each the cells one of its
   animations shows as an anim of its own (`SqueakEffectDefinitions`), played once by an effect object at the character's spot plus
   an offset, facing as it does, and following it when Squeak Squad's does (`0x020218C0`). So far: the dust puff (type 3), and the

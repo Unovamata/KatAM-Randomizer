@@ -1699,8 +1699,10 @@ namespace KatAMRandomizer {
             }
             taken = takenAt;
             chests = chestAt;
-            /* (a world's boss room: its chest, the DS's reward dropped after the fight, shows only once the boss is gone, and the boss's
-             * shard comes over it, centred on the room's art, as the DS's reward: squeak.h's SQUEAK_CHEST_AFTER_BOSS, SqueakBossShard); */
+            /* (a world's boss room: the boss's shard comes over its chest's spot, centred on the room's art, as the DS's reward
+             * (SqueakBossShard); the chest itself, the DS's reward dropped after the fight, is moved into the room before it
+             * (AddSqueakRooms(), SqueakAntechamber: no treasure in a boss room); left there, it would show only once the boss is gone,
+             * squeak.h's SQUEAK_CHEST_AFTER_BOSS); */
             if (bossShard != 0 && templates.FirstOrDefault(t => t[12] is >= 0x40 and <= 0x42 && t[14] >= SqueakMidbossFlag && t[0x11] == bossShard) is byte[] bossTemplate) {
                 foreach (byte[] chest in templates.Where(t => t[12] == SmallChestType && t[0x11] == SqueakChestIndex)) {
                     chest[0x14] = SqueakChestAfterBoss;
@@ -1773,6 +1775,37 @@ namespace KatAMRandomizer {
          * hideouts have the base Squeak enemy and a miniboss [...] It's either one or the other"); */
         static readonly List<(int room, int address)> squeakLairEscorts = new List<(int, int)>();
         public static IReadOnlyList<(int room, int address)> SqueakLairEscorts => squeakLairEscorts;
+        /* SqueakAntechamber; The room before a world's boss room as it was written (AddSqueakRooms()): its templates and types, its doors'
+         * places, its lists' indexes (to be written again with the boss room's chest), its collision, its doors' cells and the one(s) to
+         * the boss room; Spot(): where the chest goes, a floor cell (open, its cell over it open too, the one under it floor: solid or a
+         * thin floor, not spikes or water) 3 cells across or 2 up or down from every door, the nearest to the door to the boss room; */
+        sealed class SqueakAntechamber {
+            public List<byte[]> Templates; public List<byte> Types; public List<(int room, int x, int y)> DoorPlaces;
+            public int ObjectsIndex, DoorsIndex;
+            readonly byte[] collision; readonly int width, height; readonly List<(int x, int y)> doors, toBoss;
+            public readonly List<(int x, int y)> Taken = new List<(int x, int y)>();
+            public SqueakAntechamber(List<byte[]> templates, List<byte> types, List<(int, int, int)> doorPlaces, int objectsIndex, int doorsIndex,
+                                     byte[] collision, int width, int height, List<(int x, int y)> doors, List<(int x, int y)> toBoss) {
+                (Templates, Types, DoorPlaces, ObjectsIndex, DoorsIndex) = (templates, types, doorPlaces, objectsIndex, doorsIndex);
+                (this.collision, this.width, this.height, this.doors, this.toBoss) = (collision, width, height, doors, toBoss);
+            }
+            public (int, int)? Spot() {
+                byte At(int x, int y) => x < 0 || y < 0 || x >= width || y >= height ? KatAMSolid : collision[y * width + x];
+                (int x, int y) target = toBoss.Count > 0 ? toBoss[0] : (width / 2, height / 2);
+                (int, int)? best = null;
+                int bestDistance = int.MaxValue;
+                for (int y = 1; y < height - 1; y++)
+                    for (int x = 1; x < width - 1; x++) {
+                        byte under = At(x, y + 1);
+                        if (At(x, y) != KatAMAir || At(x, y - 1) != KatAMAir || !(under == KatAMSolid || under == KatAMThin || under == KatAMFirmThin)) continue;
+                        if (doors.Any(d => Math.Abs(d.x - x) < 3 && Math.Abs(d.y - y) <= 2) || Taken.Contains((x, y))) continue;
+                        int distance = (x - target.x) * (x - target.x) + (y - target.y) * (y - target.y);
+                        if (distance < bestDistance) (best, bestDistance) = ((x, y), distance);
+                    }
+                return best;
+            }
+        }
+
         /* OffStageX; Where a template stands that KatAM never spawns: KatAM's spawner (CreateLevelObjects) makes only the ones within a
          * screen of the camera, and no room is near this wide (the Map Viewer skips them too); */
         public const int OffStageX = 0x7FF0;
@@ -2595,6 +2628,12 @@ namespace KatAMRandomizer {
                     System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(exception.InnerExceptions[0]).Throw();
                 }
 
+                /* (a world's boss room's chest moved into the room before it, its stage's first, by its door to the boss: the owner, "Treasures
+                 * in Boss rooms like the one in Dedede's or Mecha Kracko's are completely forbidden, please relocate these chests to somewhere
+                 * else sensible in Squeak Squad's map. The boss rooms can only have the shard/tomato spawn and that's it." That room is written
+                 * first: what it was written with is kept (SqueakAntechamber) to write it again with the chest; the boss room's own chest
+                 * template stays, off the stage (OffStageX: never spawned), so its other templates' numbers stay as they are); */
+                Dictionary<int, SqueakAntechamber> antechambers = new Dictionary<int, SqueakAntechamber>();
                 // (each room's music: SqueakRoomSong(), its stage's music the one a room with none keeps);
                 int lastMusic = 0;
                 (int area, int stage) musicStage = (-1, -1);
@@ -3032,6 +3071,25 @@ namespace KatAMRandomizer {
                     if (templates.Count > 31) return $"Squeak Squad's room {f.Area}-{f.Stage}-{f.Index} has {templates.Count} objects (KatAM's rooms hold 31).";
                     if (squeakTaken > 3 * 256) return "Too many Squeak Squad items for their gone bits.";
                     if (squeakChests > SqueakChestsMax) return "Too many Squeak Squad chests for their bits.";
+                    if (bossShard != 0 && antechambers.TryGetValue(room - 1, out SqueakAntechamber before)) {
+                        foreach (byte[] chest in templates.Where(t => t[12] == SmallChestType && t[0x11] == SqueakChestIndex && t[0x14] == SqueakChestAfterBoss)) {
+                            if (before.Spot() is not (int, int) spot) return $"Squeak Squad's room 0x{room - 1:X} has no floor for its boss room's chest.";
+                            byte[] moved = (byte[])chest.Clone();
+                            WriteShorts(moved, 6, spot.Item1 * 16 + 8, spot.Item2 * 16 + 8);
+                            moved[3] = (byte)before.Templates.Count;
+                            moved[0x14] = 0;
+                            before.Templates.Add(moved);
+                            before.Taken.Add(spot);
+                            WriteShort(chest, 6, OffStageX);
+                        }
+                        if (before.Templates.Count > 31) return $"Squeak Squad's room 0x{room - 1:X} has too many objects with its boss room's chest.";
+                        if (!before.Types.Contains(SmallChestType)) before.Types.Add(SmallChestType);
+                        added["gLevelObjLists"][before.ObjectsIndex - First("gLevelObjLists")] = WriteObjectList(rom, before.Templates, before.Types, noTypes, ref here) + 0x08000000;
+                        List<byte[]> movedChests = before.Templates.Where(t => t[12] == SmallChestType && t[0x11] == SqueakChestIndex).ToList();
+                        List<byte> movedNine = movedChests.SelectMany(t => ChestEntry(ReadShort(t, 6), ReadShort(t, 8))).ToList();
+                        foreach ((int room, int x, int y) place in before.DoorPlaces) movedNine.AddRange(NineROMEntry(place.room, place.x, place.y));
+                        added["gUnk_08D640A4"][before.DoorsIndex - First("gUnk_08D640A4")] = DoorsList(movedNine, movedChests.Count) + 0x08000000;
+                    }
                     int objects = WriteObjectList(rom, templates, types, noTypes, ref here);
                     // (a Squeak Lair's mini-boss's template, for the randomizer's mini-boss pool: SqueakLairMinibosses);
                     int lairFight = templates.FindIndex(t => t[12] != NightmareID && (t[0x22] & SqueakLairFight) != 0);
@@ -3061,10 +3119,19 @@ namespace KatAMRandomizer {
                     if (doorsIndex < FirstDoorsList) return "Squeak Squad's doors lists start too early.";
                     if (doorsIndex >= FirstDoorsList + VisitedLists) return "Too many doors lists for rooms.c's visited doors.";
                     int infoIndex = Add("gForegroundInfo", info), paletteIndex = Add("gForegroundPalettes", palette);
+                    int tilemapIndex = Add("gForegroundTilemaps", tilemapEntry), solidityIndex = Add("gSolidityMaps", solidity);
+                    int objectsIndex = Add("gLevelObjLists", objects);
                     WriteShorts(rom, newProps + room * 0x28, song, 0, 0, 0x100, 0x100, 0, backgroundDown, rateX, rateY, RoomFlags,
-                                infoIndex, paletteIndex, Add("gForegroundTilemaps", tilemapEntry),
-                                Add("gSolidityMaps", solidity), 0xFFFF, background, Add("gLevelObjLists", objects), Add("gUnk_08D63C28", navigation),
+                                infoIndex, paletteIndex, tilemapIndex, solidityIndex, 0xFFFF, background, objectsIndex, Add("gUnk_08D63C28", navigation),
                                 doorsIndex, 0);
+                    // (the room before a world's boss room, its stage's: kept, to take that room's chest, SqueakAntechamber);
+                    if (bossRooms.ContainsKey(room + 1) && i + 1 < files.Count && (files[i + 1].Area, files[i + 1].Stage) == (f.Area, f.Stage)) {
+                        List<(int x, int y)> toBoss = new List<(int, int)>();
+                        for (int at = 0; at + 12 <= specials.Count && specials[at + 4] != 0; at += specials[at + 4] | specials[at + 5] << 8)
+                            if (specials[at] == 3 && (specials[at + 8] | specials[at + 9] << 8) == room + 1) toBoss.Add((specials[at + 2], specials[at + 3]));
+                        antechambers[room] = new SqueakAntechamber(templates, types, doorPlaces, objectsIndex, doorsIndex, collision, width, height,
+                                                                   doorCells, toBoss);
+                    }
                     // (its look, for the switch rooms drawn in a world's tiles);
                     looks.Add(new SqueakLook { World = f.Area, Stage = f.Stage, Number = f.Index, Room = room, Width = width, Height = height, Columns = foreground.Columns,
                                                Tilemap = foreground.Tilemap, Tiles = foreground.Tiles, View = f.View,

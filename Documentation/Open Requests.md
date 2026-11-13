@@ -14,8 +14,6 @@ finishes it says how it was checked). The design rules for doors, mirrors and hu
 ## 2. Squeak Squad: the ability room, the hub, the boss rooms
 - The owner: "Change the color palette of doors in the Squeak Squad hub as these don't make a lot of sense as they are right now
   based on their stage."
-- The owner: "Treasures in Boss rooms like the one in Dedede's or Mecha Kracko's are completely forbidden, please relocate these
-  chests to somewhere else sensible in Squeak Squad's map. The boss rooms can only have the shard/tomato spawn and that's it."
 - The owner: "Second phase of Mecha Kracko doesn't change the room's structure like it does in Squeak Squad."
 
 ## 3. Squeak Squad: rooms and objects
