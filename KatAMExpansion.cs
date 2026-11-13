@@ -1365,8 +1365,11 @@ namespace KatAMRandomizer {
                         List<(List<int> cells, List<(byte[] tiles, ushort[] oams, short[] attributes, int palette)> frames, List<byte[]> palettes)> iconLayers =
                             new List<(List<int>, List<(byte[], ushort[], short[], int)>, List<byte[]>)>();
                         int[][] whole = enemy.WholeCells ? enemy.Layers : null;
-                        foreach (int[] group in enemy.Layers ?? new int[0][]) {
-                            SqueakCharacter layer = SqueakSplitLayer(character, group, true, whole);
+                        // (a split layer: its pieces in front of the character's own, then those behind: SqueakLayerSide());
+                        var layerGroups = (enemy.Layers ?? new int[0][]).SelectMany(g => enemy.SplitLayers ? new (int[], bool?)[] { (g, true), (g, false) }
+                                                                                                         : new (int[], bool?)[] { (g, null) });
+                        foreach ((int[] group, bool? side) in layerGroups) {
+                            SqueakCharacter layer = side == null ? SqueakSplitLayer(character, group, true, whole) : SqueakLayerSide(character, group, side.Value);
                             List<int> layerCells = Enumerable.Range(0, layer.Cells.Count).Where(c => layer.Cells[c].Pieces.Count > 0).ToList();
                             (List<(byte[] tiles, ushort[] oams, short[] attributes, int palette)> layerFrames, List<byte[]> layerPalettes) =
                                 SqueakFrames(layer, cells: layerCells, size: enemy.Canvas, scale: enemy.Scale);
@@ -1376,7 +1379,7 @@ namespace KatAMRandomizer {
                             for (int k = 0; k < layerCells.Count; k++) {
                                 int cell = layerCells[k];
                                 List<SqueakPiece> pieces = character.Cells[cell].Pieces;
-                                bool front = pieces.Count > 0 && group.Contains(pieces[0].Attr2 >> 12);
+                                bool front = side ?? (pieces.Count > 0 && group.Contains(pieces[0].Attr2 >> 12));
                                 perCell[cell] = (ushort)((k + 1) | (front ? 0x8000 : 0));
                             }
                             layersBuilt.Add(new SqueakLayerBuilt(layerAnim, layerFrames.Max(f => f.tiles.Length / 32), perCell,

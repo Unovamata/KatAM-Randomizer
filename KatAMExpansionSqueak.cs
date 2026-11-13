@@ -126,6 +126,21 @@ namespace KatAMRandomizer {
         /* SqueakSplitLayer(); The character's cells without the pieces of `palettes` (layer: FALSE) or with only them (TRUE), its
          * animations and composite ones (.mca) kept; `whole` (WholeCells: the layers' groups), a cell drawn wholly with one group's
          * palettes stays whole, the character's own (none of it the layer's); */
+        /* SqueakLayerSide(); The character with only a layer's pieces (its palettes) in front of its own (`front`: those before a cell's
+         * first piece of its own, the DS drawing a cell's first pieces over its later ones) or behind them (the rest): a cell whose
+         * layer pieces are on both sides (King Dedede's walk, palette 1's [1, 0, 1]: his hammer's handle over his hand, its head behind
+         * his head) drawn as the DS draws it by two layers; */
+        static SqueakCharacter SqueakLayerSide(SqueakCharacter c, int[] palettes, bool front) {
+            return new SqueakCharacter {
+                Tiles = c.Tiles, Palettes = c.Palettes, Anims = c.Anims, Compositions = c.Compositions, Composites = c.Composites,
+                Cells = c.Cells.Select(cell => {
+                    int own = cell.Pieces.FindIndex(p => !palettes.Contains(p.Attr2 >> 12));
+                    if (own < 0) own = cell.Pieces.Count;
+                    return new SqueakCell(cell.Tile, cell.Pieces.Where((p, i) => palettes.Contains(p.Attr2 >> 12) && (i < own) == front).ToList());
+                }).ToList(),
+            };
+        }
+
         static SqueakCharacter SqueakSplitLayer(SqueakCharacter c, int[] palettes, bool layer, int[][] whole = null) {
             bool Whole(SqueakCell cell) => whole != null && cell.Pieces.Count > 0
                                            && whole.Any(g => cell.Pieces.All(p => g.Contains(p.Attr2 >> 12)));
@@ -720,7 +735,9 @@ namespace KatAMRandomizer {
          * VRAM as many tiles as the frame it shows takes, more got as a bigger one shows (squeak.c's SqueakFitVram: a thing drawn with a
          * boss's graphics took his biggest frame's, Daroach's stars 103 tiles for 16, KatAM's VRAM full with three); HighParts: its
          * composites' parts placed this many pixels or more over its spot left out (SqueakLowParts(): their frames drawn up from their
-         * place, at most 128 high, wholly over KatAM's view, 16 pixels shorter than the DS's: Dark Nebula's fire wall's top row); */
+         * place, at most 128 high, wholly over KatAM's view, 16 pixels shorter than the DS's: Dark Nebula's fire wall's top row);
+         * SplitLayers: each layer two, its pieces in front of the character's own and those behind (SqueakLayerSide(): King Dedede's
+         * hammer, the owner: "Squeak Squad Dedede has a layering issue"), at most SQUEAK_LAYERS (2) in all; */
         internal sealed record SqueakEnemy(int Index, string Name, string File, int[] HurtCells, (int type, int letter)[] Glyphs, int GraphicsOf = -1,
                                             byte MidbossType = 0, int[] OnlyAnims = null, string[] Palettes = null,
                                             (ushort from, ushort to)[] MergeColors = null, string ExtraFile = null,
@@ -728,7 +745,8 @@ namespace KatAMRandomizer {
                                             bool SharePalettes = false, string PaletteFile = null, bool WholeCells = false,
                                             (int Num, int Den) Scale = default, int ShiftY = 0, int Rotate = 0, int Roll = -1,
                                             bool FlattenComposites = false, int[] OnlyPalettes = null, int[] MapIcon = null,
-                                            string DamagePalette = null, bool MergeParts = false, bool FitVram = false, int HighParts = 0);
+                                            string DamagePalette = null, bool MergeParts = false, bool FitVram = false, int HighParts = 0,
+                                            bool SplitLayers = false);
         /* AnimPalettes: a character whose cells are in Squeak Squad's different palettes (Doc's things), per animation the palette its
          * sprite takes (SqueakPaletteKey); */
         internal sealed record SqueakBuilt(SqueakEnemy Enemy, int AnimId, SqueakCharacter Character, int Tiles, List<SqueakLayerBuilt> Layers = null,
@@ -1229,7 +1247,7 @@ namespace KatAMRandomizer {
              * inhale and summon use its sparkles' ones), its hurt animation 38 (0x1000026: cell 41), the pieces in its palette 1 (its
              * hands, hammer, face: 27 colors with palette 0's) a layer, a frame big enough for its hammer over its head; */
             new SqueakEnemy(35, "King Dedede", "dedede", new[] { 41, 41, 41 }, KingDededeGlyphs, MidbossType: 0x40,
-                            Layers: new[] { new[] { 1 } }, Canvas: 192, BodyLast: true),
+                            Layers: new[] { new[] { 1 } }, Canvas: 192, BodyLast: true, SplitLayers: true),
             // The air it lets out after floating (0x0212EAA0: its animation 20), no name;
             new SqueakEnemy(36, "King Dedede's puff", "dedede", new[] { 28, 28, 28 }, new (int, int)[0], GraphicsOf: 35),
             /* Mrs. Moley (a boss, enemy 0x3A: 0x0212CF40, on mini-boss type 0x40 as the mid-bosses), drawn from mrsMoley_cmn, _ext00 and
