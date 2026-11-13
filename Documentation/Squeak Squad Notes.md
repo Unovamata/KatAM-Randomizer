@@ -1646,6 +1646,14 @@ ARMv5T, literal pools made read-only so constants fold).
 
 ## Where it's hit (0x0201322C)
 
+**The world's bosses in KatAM** (King Dedede to Dark Nebula, on mini-boss types as the mid-bosses: `squeak.c`'s `CreateSqueakMidboss`)
+take KatAM's bosses' ways, not its mini-bosses' (the owner: "Final bosses are inhalable for whatever reason when Bosses in KatAM are
+not"; "Bosses shouldn't get stunned by attacks since it makes them easier than expected, specially the Squeak Squad ones"): unkC bit 1
+(King Golem's), which spares them the push a hit gives KatAM's mini-bosses (`sub_0809B1E4`'s knockback, `unk98`/`unk9A`); once
+beaten, KatAM's mini-boss defeat (`sub_0809D060`: its falling body, hit level 1, inhalable) held at level 6 (`SqueakBossWatch`,
+their `unk7C`: nothing inhales it) on to its burst. Dark Daroach and Dark Nebula have defeats of their own (not inhalable either).
+King Dedede's hurt pose, the DS's on every hit, comes only when a hit lets a Kirby out of him.
+
 The collision pass (`0x0201B79C`) takes an object's attackers only while `0x0201322C` says it can be hit: not with its +0x18 bit 2
 (value 4: set by the grabbers' and holders' touch, Bio Spark's, Bun's, Gaw Gaw's, King Dedede's catch, cleared after), not while its
 +0xEC safe timer runs, and only with a 0x102 box whose first entry's flag word (its record's `u16` at +2) lacks 0x8000. Its box: the

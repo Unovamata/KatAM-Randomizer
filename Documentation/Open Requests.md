@@ -50,8 +50,6 @@ finishes it says how it was checked). The design rules for doors, mirrors and hu
 - The owner: "Some animal attacks are not digging the dirt."
 
 ## 6. Squeak Squad: bosses
-- The owner: "Final bosses are inhalable for whatever reason when Bosses in KatAM are not."
-- The owner: "Bosses shouldn't get stunned by attacks since it makes them easier than expected, specially the Squeak Squad ones."
 - The owner: "Mrs. Moley is off the ground and off centered."
 - The owner: "Squeak Squad Dedede has a layering issue."
 - The owner: "Dark Daroach fight, when inhaling its projectiles, they turn into daroach."

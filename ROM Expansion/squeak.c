@@ -1562,6 +1562,13 @@ void *CreateSqueakMidboss(struct ObjectTemplate *template, u8 playerId) {
     s = SqueakCreate(template, playerId, enemy);
     // (Spinni, Doc and Storo as mini-bosses: their fight with Kirby, as the hideouts' on the DS, in their chase's mood);
     if (sSqueakCharacters[enemy].squeak) s->chase = TRUE;
+    /* (a world's boss: KatAM's bosses' unkC bit 1, King Golem's, which spares them the push a hit gives (sub_0809B1E4's knockback,
+     * which KatAM's mini-bosses take: the owner, "Bosses shouldn't get stunned by attacks since it makes them easier than expected,
+     * specially the Squeak Squad ones"), and its defeat not inhaled (SqueakBossWatch); a character's own watch calls it); */
+    if (SqueakIsWorldBoss(enemy)) {
+        s->obj.base.unkC |= 2;
+        s->obj.unk7C = SqueakBossWatch;
+    }
     s->obj.base.unkC |= 1;
     s->obj.base.flags |= 0x2000000 | 0x200 | 0x200000;
     s->obj.base.unk5C = (s->obj.base.unk5C & ~7) | 3 | 0xA0;
@@ -1603,6 +1610,14 @@ static void SqueakMidbossWait(struct Object *obj) {
     else Macro_08100F18(obj);
     s->activated = TRUE;
     SqueakStart(obj);
+}
+
+/* SqueakBossWatch(); A world's boss's own before its Main (unk7C, every frame, beaten too): KatAM's mini-boss defeat (sub_0809AF38's
+ * sub_0809D060, which these bosses on mini-boss types get) leaves its falling body inhalable (unk5C 0x81: hit level 1), as a mini-boss
+ * gives its ability; KatAM's bosses never are (the owner: "Final bosses are inhalable for whatever reason when Bosses in KatAM are
+ * not"): once its HP is out its level is held at 6 (as Gordo's: nothing inhales it), KatAM's defeat going on to its burst; */
+void SqueakBossWatch(struct Object *obj) {
+    if (obj->unk80 <= 0 && (obj->base.unk5C & 7) != 6) obj->base.unk5C = (obj->base.unk5C & ~7) | 6;
 }
 
 /* SqueakMidbossUpdate(); A mid-boss in its fight stays in the area the camera is locked to (as NiDL's, NidlUpdate, and KatAM's own:

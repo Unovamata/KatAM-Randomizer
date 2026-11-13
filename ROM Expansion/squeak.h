@@ -571,6 +571,9 @@ void *CreateSqueakEnemy(struct ObjectTemplate *, u8 playerId);
 void SqueakStart(struct Object *);
 void *CreateSqueakMidboss(struct ObjectTemplate *, u8 playerId);
 void SqueakMidbossUpdate(struct SqueakObject *);
+// SqueakIsWorldBoss(); A world's boss (King Dedede to Dark Nebula: on a mini-boss type, as the mid-bosses, but KatAM's bosses' ways);
+#define SqueakIsWorldBoss(enemy) ((enemy) >= SQUEAK_KING_DEDEDE && (enemy) <= SQUEAK_DARK_NEBULA)
+void SqueakBossWatch(struct Object *);
 s32 SqueakBossFloor(struct SqueakObject *);
 
 /* The chases (squeak/gimmicks.c, KatAMExpansionSqueakRooms.cs; the owner's: "an invisible trigger wall on the position of the chest,

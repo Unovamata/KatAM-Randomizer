@@ -27,7 +27,7 @@
  * • Summon (0x020E5EB0, 0x020E5DC8): it calls (108 frames, its composite 1), and a Waddle Dee floats down with a parasol from the
  *   arena's top over Kirby (Squeak Squad's spawn 0, byte 8 4: KatAM's Waddle Dee 3), facing the arena's middle.
  * • Hit (0x020E79B0): 60 frames safe after each (KatAM's hits then undone), its hurt pose 20 frames (0x020E5654, 0x020E5604); a Kirby
- *   it holds is let out.
+ *   it holds is let out. Here the hurt pose only then (the owner: bosses aren't stunned by attacks).
  * Its sounds: Squeak Squad's (SqueakSfx). Not ported: its own defeat (0x020E5530-0x020E52DC: KatAM's mini-boss defeat), Squeak Squad's hit flash and shakes
  * (KatAM's), its boss music. */
 #include "../squeak.h"
@@ -744,7 +744,8 @@ static bool32 Body(struct SqueakObject *s) {
 }
 
 /* Hit(); 0x020E79B0 (KatAM's mini-bosses take hits without a hurt state of their own: a fall of its HP is the hit): SAFE_TIME frames
- * safe after one (KatAM's damage undone, as while it's untouchable: SqueakUntouchable), its hurt pose, a Kirby it holds let out; */
+ * safe after one (KatAM's damage undone, as while it's untouchable: SqueakUntouchable), a Kirby it holds let out, with its hurt pose
+ * (the DS's takes it on every hit: left out, the owner's); */
 static void Hit(struct SqueakObject *s) {
     struct Object *obj = &s->obj;
 
@@ -754,8 +755,12 @@ static void Hit(struct SqueakObject *s) {
             obj->unk80 = LAST_HP(s);
         } else {
             SAFE(s) = SAFE_TIME;
-            if (HELD(s)) LetOut(s);
-            SqueakSetState(s, BODY_HURT_ENTRY);
+            // (its hurt pose only when it lets a Kirby out: else it keeps on, as KatAM's bosses do; the owner, "Bosses shouldn't get
+            // stunned by attacks since it makes them easier than expected, specially the Squeak Squad ones");
+            if (HELD(s)) {
+                LetOut(s);
+                SqueakSetState(s, BODY_HURT_ENTRY);
+            }
         }
     }
     LAST_HP(s) = obj->unk80;
