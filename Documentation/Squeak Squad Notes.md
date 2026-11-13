@@ -817,6 +817,13 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
     the camera's top). First it rolled toward Kirby on flat ground, out of its pocket, and burst on the pocket's wall; then it
     took a wall it touched for higher ground and turned back: both fixed. Europe: 2-4-1's the same (it rolls down and hits Kirby).
     Not checked: 4-3-2's and 8-2-4's, Japan's boulders in the emulator.
+    The ledges they break: a group of the blocks grid's cells flagged 0x1000 with no bomb block, switch or stake (a "loose" group,
+    what the DS's boulders set off) whose main cells are thin floors (8-4-4's ledges down the dark star's shaft, 4-6-7's, 8-1-10's,
+    8-2-4's) stays thin floors, as the DS's main grid has them, each cell with a block record (its look gone, air left), and the open
+    cell over each one where the main grid draws the ledge's top too; a boulder breaks those its round overlaps from its middle
+    down (`BoulderBreakUnder()`). They were KatAM's star blocks (solid, inhalable), which the boulders went through (the owner:
+    "Room 0x5DE, platforms are not pass through. They are inhalable. Boulders pass through the platforms"; KatAM's terrain tests
+    a boulder's middle, so one by a ledge's end fell past it, half over it). The loose groups' solid cells stay star blocks.
   - **The candles** (gimmick 0xA, ctor `0x022237A4`, vtable `0x022297E8`; `yakumono/candle`: 0 lit, its flame flickering in a glow, 1
     out): 4-3-7's, 4-3-8's and 8-1-6's, 8 in dark rooms. Its box ±0.5 cells across, 1.5 up from its spot. Its message handler
     (`0x022236A0`): a burning attack (the message's flags 0x901) lights it (state 1, `0x02223688`) for the parameter's bits 4-15

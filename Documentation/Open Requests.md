@@ -26,7 +26,6 @@ finishes it says how it was checked). The design rules for doors, mirrors and hu
 - The owner: "What is the point of grey clouds? They just hurt me if I stand on them?"
 - The owner: "Room 0x44a heavy palette errors."
 - The owner: "Room 0x5DB 2 pedestals on top of one another."
-- The owner: "Room 0x5DE, platforms are not pass through. They are are lnhalable. Boulders pass through the platforms."
 - The owner: "Room 0x5E0 garbled tiles for a single frame."
 - The owner: "Room 0x520 has no entrance, only an exit."
 - The owner: "Room 0x517 has pass through platforms that are not pass through."
