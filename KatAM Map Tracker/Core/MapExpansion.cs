@@ -19,10 +19,10 @@ namespace KatAMMapTracker {
      *   its stage's rooms, else by the level's way in, so a stage's map stays together.
      *   Each level is a cluster of its own (11 + level, as its area), the hub too (19).
      * • KatAM's rooms the map lines up under itself (the tutorial and the game's end: rooms no mirror links to Central Circle's
-     *   map) go after the levels, so the map still ends with them; the Fountain of Dreams (the Power Orb's room, Nightmare's, its
-     *   hub: the finale, its Amazing Mirror to KatAM's final boss) leads the game's end's row, as it's played (the owner's: the
-     *   rows are in the order the game goes), Squeak Squad's final stage after it (its way in to the Dark Nebula hub: the owner's
-     *   "The squeak squad final boss sequence is not within this same line"), then KatAM's; */
+     *   map) go after the levels, so the map still ends with them; the finales lead the game's end's row, as they're played (the
+     *   owner's: the rows are in the order the game goes; "The squeak squad final boss sequence is not within this same line"):
+     *   Squeak Squad's final stage (its way in to the Dark Nebula hub), then the Fountain of Dreams (the Power Orb's room,
+     *   Nightmare's, its hub, its Amazing Mirror to KatAM's final boss), then KatAM's; */
     public static class MapExpansion {
         const int Grid = MapGraphics.TileSize;
         const int Step = 6 * Grid, MinGap = 3 * Grid, LevelMargin = 128, LongRoom = 60, RoomMargin = 72, Fit = 2 * Grid, TightGap = 4 * Grid;
@@ -66,9 +66,10 @@ namespace KatAMMapTracker {
             double SizeOf(RoomInfo room) => MapGraphics.SizeOf(MapGraphics.ShapeOf(room));
 
             /* KatAM's rooms lined up under its map (UnderKatAM(): not linked to Central Circle's map), the game's end's row last; the
-             * finale's rooms (the Fountain of Dreams level) first in that row, as they're played (the Power Orb's room, Nightmare's,
-             * the hub), then Squeak Squad's final stage (in the order it's played: PlayOrder()), KatAM's after them, as far apart as
-             * they are (and their rooms clear of each other); */
+             * finales first in that row, as they're played: Squeak Squad's final stage (in the order it's played: PlayOrder()), then
+             * NiDL's (the Fountain of Dreams level: the Power Orb's room, Nightmare's, the hub), Squeak Squad's first where Central
+             * Circle's Dimension Mirror leads into it (ROMs made before, NiDL's first); KatAM's after them, as far apart as they are (and
+             * their rooms clear of each other); */
             HashSet<int> under = UnderKatAM(map, layout);
             List<RoomInfo> finale = nightmare.Where(r => r.NightmareLevel == FinaleLevel).OrderBy(r => r.NightmareStage).ThenBy(r => r.NightmareIndex).ThenBy(r => r.Id).ToList();
             List<RoomInfo> squeakFinale = PlayOrder(nightmare.Where(r => r.IsSqueakFinale).ToList());
@@ -78,7 +79,9 @@ namespace KatAMMapTracker {
                 List<int> endRow = under.Where(r => Math.Abs(layout[r].CenterY - endY) < 1).OrderBy(r => layout[r].CenterX).ToList();
                 List<double> gaps = endRow.Zip(endRow.Skip(1), (a, b) => layout[b].CenterX - layout[a].CenterX).Where(g => g > 0).ToList();
                 double step = gaps.Count > 0 ? gaps.Min() : Step, x = layout[endRow[0]].CenterX, last = 0;
-                foreach (RoomInfo room in finale.Concat(squeakFinale)) {
+                // (the finales in the order they're played: Squeak Squad's first where Central Circle's Dimension Mirror leads into it);
+                bool squeakFirst = squeakFinale.Any(r => r.Id == map.DimensionMirrorTo);
+                foreach (RoomInfo room in squeakFirst ? squeakFinale.Concat(finale) : finale.Concat(squeakFinale)) {
                     if (last > 0) x += Math.Max(step, (last + SizeOf(room)) / 2 + MinGap);
                     Put(room, x, endY, room.IsSqueakFinale ? SqueakFinaleCluster : LevelCluster(FinaleLevel));
                     under.Add(room.Id);

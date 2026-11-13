@@ -276,22 +276,26 @@ after any change.
   Squad recreated and ported 1:1 -> KatAM's final boss. The additional sequences only appear when the ROM expension ROMs are
   added"; and its hubs: "One hub per finale (If available) Nightmare -> Fountain of Dreams hub -> its mirror -> (If available)
   Squeak Squad's final stage -> Dark Nebula -> new Dark Nebula hub -> its mirror -> (always available) KatAM's final boss. Without
-  NiDL, the copy is made from Squeak Squad tiles."): one hub after each finale, an interlude before the next fight. With both
-  ROMs, Nightmare's ending (Kirby going down from the moon) lands Kirby in the Fountain of Dreams hub (below), whose Amazing Mirror
-  leads to the start of Squeak Squad's final stage (8-4); its fights follow as on the DS (Dark Daroach, the rooms between going on
-  by themselves and by its warp stars, then Dark Nebula, who leaves no shard), and Dark Nebula beaten, every Kirby dances out (NiDL's
-  shard exit, `SQUEAK_FINALE_SHARD`) into the Dark Nebula hub: a copy of the Fountain of Dreams hub (its look, no other door in or
-  out, no big switch, its Amazing Mirror high up in the middle, the Master Sword's stand under it, a Maximum Tomato on the floor's
-  right, a Cutter and a Sword statue on its sides; no map's chest, the Fountain of Dreams' stays in its own hub), whose Amazing
-  Mirror leads to KatAM's final boss sequence (0x38D). Without the NiDL ROM, Central Circle's Dimension Mirror leads to 8-4's start
-  and the Dark Nebula hub is the same layout drawn in Squeak Squad's final stage's tiles, Dark Nebula's far view behind it; without
-  the Squeak Squad ROM, NiDL's finale is as below. `SqueakFinale()`, `SqueakShardExits()`, `BuildSqueakFinaleHub()`.
+  NiDL, the copy is made from Squeak Squad tiles."; then its order: "The entire daroach/dark nebula sequence should go before
+  nightmare's sequences"): one hub after each finale, an interlude before the next fight, Squeak Squad's finale first. With both
+  ROMs, Central Circle's Dimension Mirror and the NiDL hub's (once KatAM's 8 shards are found) lead to the start of Squeak Squad's
+  final stage (8-4); its fights follow as on the DS (Dark Daroach, the rooms between going on by themselves and by its warp stars,
+  then Dark Nebula, who leaves no shard), and Dark Nebula beaten, every Kirby dances out (NiDL's shard exit, `SQUEAK_FINALE_SHARD`)
+  into the Dark Nebula hub: a copy of the Fountain of Dreams hub (its look, no other door in or out, no big switch, its Amazing
+  Mirror high up in the middle, the Master Sword's stand under it, a Maximum Tomato on the floor's right, a Cutter and a Sword
+  statue on its sides; no map's chest, the Fountain of Dreams' stays in its own hub), whose Amazing Mirror leads into NiDL's
+  finale, the Power Orb's room (below); Nightmare's ending lands Kirby in the Fountain of Dreams hub, whose Amazing Mirror leads to
+  KatAM's final boss sequence (0x38D). Without the NiDL ROM, Central Circle's Dimension Mirror leads to 8-4's start, the Dark
+  Nebula hub's mirror to KatAM's final boss, and the Dark Nebula hub is the same layout drawn in Squeak Squad's final stage's
+  tiles, Dark Nebula's far view behind it; without the Squeak Squad ROM, NiDL's finale is as below. `SqueakFinale()`,
+  `SqueakShardExits()`, `BuildSqueakFinaleHub()`.
 - **The Fountain of Dreams is the finale before KatAM's final boss**, reached only once KatAM has the 8 shards: Central Circle's
-  Dimension Mirror and the NiDL hub's lead to the Power Orb's room (nothing else leads in). The Power Orb and Nightmare leave no
+  Dimension Mirror and the NiDL hub's lead to the Power Orb's room (nothing else leads in; with the Squeak Squad ROM, the Dark
+  Nebula hub's Amazing Mirror instead, above). The Power Orb and Nightmare leave no
   shard: beaten, the Power Orb's cinematic plays, every Kirby goes to a warp star and rides it to Nightmare's room, where his
   cinematic plays and the fight starts; beaten, Nightmare's (Kirby going down from the moon) plays and Kirby is in the Fountain
   of Dreams hub (its switch room), which has no other door in or out and no big switch: only an Amazing Mirror to 0x38D, KatAM's
-  final boss sequence (with the Squeak Squad ROM, to Squeak Squad's final stage instead, above; unlocked by the 8 shards, as KatAM's), the Master Sword's stand, a Maximum Tomato, and a Cutter and a Sword
+  final boss sequence (unlocked by the 8 shards, as KatAM's), the Master Sword's stand, a Maximum Tomato, and a Cutter and a Sword
   statue on its sides (the owner's), and the Fountain of Dreams' map in a chest on the floor's left (the owner: "The fountain of
   dreams hub can only exist within the amazing Mirror after the nightmare fight. It's a prelude before the final fight."). The Power Orb's and Nightmare's rooms are
   never randomized.
@@ -377,10 +381,11 @@ after any change.
 - **The whole map is tight and as square as it fits, with no rogue rooms**: each level goes in the free spot that keeps the map the
   most square, then the closest to its middle (on a randomized map, filling the gaps between clusters); no level is left out in a
   corner on its own.
-  The tutorial and the game's end come last, under it all. **The game's end is one row, in the order it's played**: NiDL's finale
-  (the Power Orb's room, Nightmare's, the Fountain of Dreams hub), then Squeak Squad's final stage (8-4: from its way in, through
-  Dark Daroach's and Dark Nebula's rooms, to the Dark Nebula hub; the owner: "The squeak squad final boss sequence is not within
-  this same line"), then KatAM's. `MapExpansion.Place()`, `PlayOrder()`.
+  The tutorial and the game's end come last, under it all. **The game's end is one row, in the order it's played**: Squeak Squad's
+  final stage (8-4: from its way in, through Dark Daroach's and Dark Nebula's rooms, to the Dark Nebula hub; the owner: "The squeak
+  squad final boss sequence is not within this same line"), then NiDL's finale (the Power Orb's room, Nightmare's, the Fountain of
+  Dreams hub), then KatAM's; Squeak Squad's first where Central Circle's Dimension Mirror leads into it (a ROM made before the
+  order changed: NiDL's first). `MapExpansion.Place()`, `PlayOrder()`.
 - **A randomized map has no islands of 2-4 rooms**: its clusters are whole communities of rooms (Louvain with its aggregation
   phase), and any cluster under 6 rooms joins the one it shares the most mirrors with. `MapLayout.FindClusters()`.
 - Rooms are placed where their doors lead (a door on a room's right edge puts the next room to its right), as KatAM's area maps.

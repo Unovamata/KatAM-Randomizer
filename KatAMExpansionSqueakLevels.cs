@@ -311,15 +311,14 @@ namespace KatAMRandomizer {
             return null;
         }
 
-        /* The finale (the owner: "move the Squeak Squad final boss sequence in between of Nightmare and KatAM's final boss ... Entire NiDL
-         * final boss sequence that's already ported -> Entire final boss sequence from Squeak Squad recreated and ported 1:1 -> KatAM's
-         * final boss. The additional sequences only appear when the ROM expansion ROMs are added"): Squeak Squad's final stage
-         * (SqueakFinalStage, 8-4: Dark Daroach, the dark star's corridor and shaft, Dark Nebula's coming and fight) is no world's boss
-         * stage; it's entered through the Fountain of Dreams hub's Amazing Mirror, after NiDL's finale (Nightmare's ending leads into that
-         * hub, as without Squeak Squad) or, without NiDL's finale, through Central Circle's Dimension Mirror (SqueakFinale()); Dark Nebula
-         * leaves no shard (his template's SqueakBossShard SqueakFinaleShard: "ROM Expansion/squeak.c" dances every Kirby out instead), his
-         * way out the Dark Nebula hub (BuildSqueakFinaleHub()), its Amazing Mirror to where the mirror into the stage led (KatAM's final
-         * boss); */
+        /* The finale (the owner: "move the Squeak Squad final boss sequence in between of Nightmare and KatAM's final boss ... The
+         * additional sequences only appear when the ROM expansion ROMs are added", then "The entire daroach/dark nebula sequence should
+         * go before nightmare's sequences"): Squeak Squad's final stage (SqueakFinalStage, 8-4: Dark Daroach, the dark star's corridor
+         * and shaft, Dark Nebula's coming and fight) is no world's boss stage; it's entered through Central Circle's Dimension Mirror
+         * (and the NiDL hub's copy of it), first of the finales (SqueakFinale()); Dark Nebula leaves no shard (his template's
+         * SqueakBossShard SqueakFinaleShard: "ROM Expansion/squeak.c" dances every Kirby out instead), his way out the Dark Nebula hub
+         * (BuildSqueakFinaleHub()), its Amazing Mirror to where the mirror into the stage led: NiDL's finale (the Power Orb's room), or
+         * without it KatAM's final boss; */
         static readonly (int area, int stage) SqueakFinalStage = (8, 4);
         /* SqueakPhaseWarp; The finale's stage going on by itself (PlanSqueakLevels()): from a room (Kirby's spot there: the room's arrival)
          * to a room's cell (+ 1, as a door's), once its fight is won (AfterFight) or once Kirby's in (squeak/gimmicks.c's PhaseWarp()); */
@@ -349,29 +348,40 @@ namespace KatAMRandomizer {
         const int SqueakThief = 8, SqueakHiddenDoor = 4, SqueakerCharacter = 27;
         static int squeakFinaleBoss = -1;
 
-        /* SqueakFinale(); The finale's ways in and out of Squeak Squad's final stage (see SqueakFinalStage; the rulebook's finale chain):
-         * with NiDL's finale in the ROM, the Fountain of Dreams hub's Amazing Mirror (where Nightmare's way on leads, as without Squeak
-         * Squad: its shard object of subtype 8, +0x1E the room, +0x1A, +0x1C the landing + 1; `fountainHub` its room) into the stage's
-         * start, its end (`exit`) where that mirror led (KatAM's final boss); without it, Central Circle's Dimension Mirror the same way.
-         * Dark Nebula's way out is the Dark Nebula hub (BuildSqueakFinaleHub()), whose Amazing Mirror leads to `exit`. `table`: a room
-         * table's base (NiDL's copies with its rooms). Returns an error, or null; */
-        static string SqueakFinale(byte[] rom, IReadOnlyDictionary<string, int> symbols, Func<string, int> table, out (int room, int x, int y) exit,
-                                   out int fountainHub) {
+        /* SqueakFinale(); The finale's ways in and out of Squeak Squad's final stage (see SqueakFinalStage; the rulebook's finale chain:
+         * the owner, "The entire daroach/dark nebula sequence should go before nightmare's sequences"): Central Circle's Dimension
+         * Mirror (its shard object of subtype 8, +0x1E the room, +0x1A, +0x1C the landing + 1) and, with NiDL's finale in the ROM, the
+         * NiDL hub's copy of it (gNidlHubRoom) lead into the stage's start; its end (`exit`) is where they led: NiDL's finale, the Power
+         * Orb's room (Nightmare's ending then into the Fountain of Dreams hub, whose Amazing Mirror leads to KatAM's final boss, as
+         * without Squeak Squad), else KatAM's final boss. Dark Nebula's way out is the Dark Nebula hub (BuildSqueakFinaleHub()), whose
+         * Amazing Mirror leads to `exit`; `fountainHub`, the Fountain of Dreams hub's room with NiDL's finale, gives that hub its look.
+         * `table`: a room table's base (NiDL's copies with its rooms). Returns an error, or null; */
+        static string SqueakFinale(byte[] rom, KatAMExpansionCode.Version version, IReadOnlyDictionary<string, int> symbols, Func<string, int> table,
+                                   out (int room, int x, int y) exit, out int fountainHub) {
             exit = default;
             fountainHub = -1;
             if (squeakFinaleEntry is not (int, int, int) entry) return null;
             var nightmare = bossExitsOf.FirstOrDefault(e => (e.Key.Level, e.Key.Stage, e.Key.Index) == NightmareBossRoom);
-            int mirrorRoom = EntryRoom;
-            if (nightmare.Key != null && endingFlight >= 0) mirrorRoom = fountainHub = nightmare.Value.room;
-            int index = ReadShort(rom, symbols["gRoomProps"] + mirrorRoom * 0x28 + 16 * 2);
-            int list = ReadInt(rom, table("gLevelObjLists") + index * 4) - 0x08000000;
-            for (int at = ReadInt(rom, list) - 0x08000000; rom[at] != 0 || rom[at + 1] != 0; at += 36)
-                if (rom[at + 12] == ShardType && rom[at + 14] == 8) {
-                    exit = (ReadShort(rom, at + 0x1E), ReadShort(rom, at + 0x1A), ReadShort(rom, at + 0x1C));
-                    WriteShorts(rom, at + 0x1A, entry.x, entry.y, entry.room);
-                    return null;
-                }
-            return fountainHub >= 0 ? "The Fountain of Dreams hub's Amazing Mirror wasn't found." : "Central Circle's Dimension Mirror wasn't found.";
+            List<int> mirrorRooms = new List<int> { EntryRoom };
+            if (nightmare.Key != null && endingFlight >= 0) {
+                fountainHub = nightmare.Value.room;
+                int nidlHub = ReadShort(rom, CodeAddress + version.CodeSymbols["gNidlHubRoom"]);
+                if (nidlHub != 0 && nidlHub != EntryRoom) mirrorRooms.Add(nidlHub);
+            }
+            bool found = false;
+            foreach (int mirrorRoom in mirrorRooms) {
+                int index = ReadShort(rom, symbols["gRoomProps"] + mirrorRoom * 0x28 + 16 * 2);
+                int list = ReadInt(rom, table("gLevelObjLists") + index * 4) - 0x08000000;
+                for (int at = ReadInt(rom, list) - 0x08000000; rom[at] != 0 || rom[at + 1] != 0; at += 36)
+                    if (rom[at + 12] == ShardType && rom[at + 14] == 8) {
+                        if (!found) exit = (ReadShort(rom, at + 0x1E), ReadShort(rom, at + 0x1A), ReadShort(rom, at + 0x1C));
+                        found = true;
+                        WriteShorts(rom, at + 0x1A, entry.x, entry.y, entry.room);
+                        break;
+                    }
+                if (!found) return "Central Circle's Dimension Mirror wasn't found.";
+            }
+            return null;
         }
 
         /* SqueakShardExits(); Where each world's boss's shard takes Kirby (the rulebook's rule 8: a shard only ever sends Kirby to a central

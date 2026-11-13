@@ -386,9 +386,11 @@ how Squeak Squad's enemies work): [Squeak Squad Notes](../Documentation/Squeak%2
   had its mirror on the doorway's right half, the left half showing beside it (5-5-1, room 0x516).
 - **The finale chain** (`KatAMExpansionSqueakLevels.cs`' `SqueakFinale()`, `SqueakShardExits()`; `squeak.c`'s `SqueakDestroy()`):
   Squeak Squad's final stage (`SqueakFinalStage`, 8-4) isn't world 8's boss stage: its boss (Dark Nebula) leaves no shard
-  (`SQUEAK_FINALE_SHARD`: beaten, `NidlDanceOut()`), its way out its `gNidlShardExits` entry. With NiDL's finale in, Nightmare's
-  ending flight's room step and his shard exit lead to 8-4's start, and Dark Nebula's way out is where they led (the Fountain of
-  Dreams hub); without it, Central Circle's Dimension Mirror leads to 8-4's start and his way out is where it led (0x38D).
+  (`SQUEAK_FINALE_SHARD`: beaten, `NidlDanceOut()`), its way out its `gNidlShardExits` entry: the Dark Nebula hub. It comes
+  first (the owner: "The entire daroach/dark nebula sequence should go before nightmare's sequences"): Central Circle's
+  Dimension Mirror (and with NiDL's finale in, the NiDL hub's, `gNidlHubRoom`) leads to 8-4's start, and the Dark Nebula hub's
+  Amazing Mirror where they led: NiDL's finale (the Power Orb's room; Nightmare's ending then into the Fountain of Dreams hub,
+  whose mirror leads to 0x38D), else KatAM's final boss (0x38D).
 - **The chases** (`squeak/gimmicks.c`, `squeak.h`'s "The chases"; the owner: "an invisible trigger wall on the position of the
   chest, the height of the wall will be of the entire room ... whenever the player passes that threshold, the chase will activate";
   and for KatAM's own rooms, random and optional, the Squeaks "faster, more aggressive and go for Kirby"): a room's gimmick list

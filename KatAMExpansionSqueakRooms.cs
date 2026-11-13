@@ -3195,10 +3195,10 @@ namespace KatAMRandomizer {
                                            view => ViewBackground(view, abilityRoom) is int at && at >= 0 ? (at, backgroundSize[view].width, backgroundSize[view].height) : null,
                                            ref here) is string abilityError)
                     return abilityError;
-                // (the finale: into Squeak Squad's final stage through the Fountain of Dreams hub's Amazing Mirror, else Central Circle's
-                // Dimension Mirror, whose template the Dark Nebula hub's takes first; Dark Nebula's way out to the Dark Nebula hub);
+                // (the finale: into Squeak Squad's final stage through Central Circle's Dimension Mirror (and the NiDL hub's), whose
+                // template the Dark Nebula hub's takes first; Dark Nebula's way out to the Dark Nebula hub, its mirror on into NiDL's finale);
                 byte[] finaleMirrorTemplate = DimensionMirrorTemplate(rom, symbols);
-                if (SqueakFinale(rom, symbols, t => nidlRooms ? roomTables[t].at : symbols[t], out (int room, int x, int y) finaleExit, out int fountainHub) is string finaleError)
+                if (SqueakFinale(rom, version, symbols, t => nidlRooms ? roomTables[t].at : symbols[t], out (int room, int x, int y) finaleExit, out int fountainHub) is string finaleError)
                     return finaleError;
                 (int room, int x, int y) finaleHubLanding = (finaleHubRoom, SqueakFinaleHubLanding.x, SqueakFinaleHubLanding.y);
                 if (SqueakShardExits(rom, version, symbols, hubRoom, bossRooms, hubCollision, hubWidth, finaleHubLanding) is string exitError) return exitError;
