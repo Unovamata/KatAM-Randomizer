@@ -189,8 +189,9 @@ u32 SqueakGimmickAnim(struct Object *obj);
 #define LAIR_UNDER_FLOOR 32
 /* (its unk14: where the shard comes, x in the room, pixels: the boss room's chest's, where the DS drops its reward, centred on its
  * art (King Dedede's machine, 12 pixels right of the room's middle); 0 the screen's middle, as NiDL's (nidl_boss.c's SHARD_X, Y);
- * the boss room's chest (its template's unk14 SQUEAK_CHEST_AFTER_BOSS) shows only once its boss is gone, as the DS drops it
- * then: chest.c's SqueakCreateChest); */
+ * a chest with its template's unk14 SQUEAK_CHEST_AFTER_BOSS shows only once its room's boss is gone, as the DS drops it then:
+ * chest.c's SqueakCreateChest; the converter moves the boss rooms' chests into the room before each (no treasure in a boss
+ * room: KatAMExpansionSqueakRooms.cs's SqueakAntechamber), so none is spawned in one now); */
 #define SQUEAK_SHARD_Y 72
 #define SQUEAK_CHEST_AFTER_BOSS 1
 // (a chest an enemy holds, its template's unk14: chest.c's SqueakEnemyChestWait);
