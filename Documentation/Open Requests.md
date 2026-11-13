@@ -5,7 +5,6 @@ finishes it says how it was checked). The design rules for doors, mirrors and hu
 [Map and Door Design Rules](Map%20and%20Door%20Design%20Rules.md).
 
 ## 1. Squeak Squad: lag
-- The owner: "Squeak Squad ability room has some serious lag on it. Any ideas on how to limit it?"
 - The owner: "Some squeak lairs lag a TON, we need to fix that."
 - The owner: "Daroach ray causes lag, we need to reduce it."
 - The owner: "Dark nebula stars are still lagging the game, we need to solve that."
@@ -25,9 +24,6 @@ finishes it says how it was checked). The design rules for doors, mirrors and hu
 - The owner: "Room 0x5E0 garbled tiles for a single frame." (Not reproduced, USA: every frame of coming in by 0x5E1's mirror and
   of the dark star's first 900 frames checked; only its flashes and the screen's shake at Dark Nebula's coming. When in the fight
   it shows is wanted.)
-- The owner: "Room 0x403 doesn't have animated water." (the owner: on the DS, the water's surface waves; the DS's room files
-  animate no water block and cycle no palette)
-- The owner: "Room 0x577 doesn't have animated water as it should."
 - The owner: "Can't get inside barrels and the barrel destruction animation looks off. Room 0x420 feels empty, like something's
   missing. Also, double door clash."
 - The owner: "Squeaks have no hitbox and don't try to hit Kirby at all."

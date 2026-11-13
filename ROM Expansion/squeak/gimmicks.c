@@ -3036,8 +3036,10 @@ static void SqueakPedestalDestroy(struct Task *t) {
     ObjectDestroy(t);
 }
 
-/* SqueakCreatePedestal(); A pedestal: still, harmless, staying when off the screen (GimmickInit()), touched as KatAM's ability statues
- * are (CreateAbilityStatue's collision); */
+/* SqueakCreatePedestal(); A pedestal: still, harmless, touched as KatAM's ability statues are (CreateAbilityStatue's collision); gone
+ * once well off the screen and made again from its template as it comes back, as KatAM's own objects (no flag 0x2000000: it keeps
+ * nothing; the ability room's 25 pedestals and their icons all updated every frame lagged it, the owner: "Squeak Squad ability room
+ * has some serious lag on it"); */
 static void *SqueakCreatePedestal(struct ObjectTemplate *template, u8 playerId) {
     struct Task *task = TaskCreate(ObjectMain, sizeof(struct SqueakPedestal), 0x1000, TASK_USE_EWRAM, SqueakPedestalDestroy);
     struct SqueakPedestal *p = TaskGetStructPtr(task);
@@ -3051,6 +3053,7 @@ static void *SqueakCreatePedestal(struct ObjectTemplate *template, u8 playerId) 
     obj->base.unk5C &= ~0x80;
     obj->base.unkC |= 1 | 4;
     obj->base.flags |= 0x200000 | 0x10000 | 0x800 | 0x8000 | 0x40 | 0x100 | 0x400000;
+    obj->base.flags &= ~0x2000000;
     sub_0803E2B0(&obj->base, PEDESTAL_LEFT, PEDESTAL_TOP, PEDESTAL_RIGHT, PEDESTAL_BOTTOM);
     ObjectSetBounds(&obj->base, PEDESTAL_LEFT, PEDESTAL_TOP, PEDESTAL_RIGHT, PEDESTAL_BOTTOM);
     if (template->unk12 >= 1 && template->unk12 <= gSqueakData.enemies[SQUEAK_PEDESTAL].anims) GimmickPlay(obj, &p->spr, template->unk12 - 1);

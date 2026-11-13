@@ -569,6 +569,12 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
     NiDL ROM, as Hi-Jump's 15); 18, the top hat, KatAM's Magic; 19 Ninja, 21 Animal, 22 Bubble, 23 Metal the ROM Expansion's
     (abilities 35-38, with the NiDL ROM too); Ghost (24) and Triple Star (26) none. Checked in the GBA emulator: Kirby touching the
     Ninja, Metal, Magic and Light pedestals gets each.
+    Its lag (the owner: "Squeak Squad ability room has some serious lag on it"): every pedestal kept itself alive off the screen
+    (KatAM's flag 0x2000000, as the gimmicks that keep a state), so its 25 pedestals and their 25 icons ran KatAM's object update
+    every frame, most of it in KatAM's ObjectMain. A pedestal keeps nothing, so it now goes as KatAM's own objects do, 48 pixels past
+    the screen, and is made again from its template as the screen comes back. Checked in the GBA emulator (USA): Kirby walking right
+    across the room for 900 frames went from 47 frames over the GBA's time (23 dropped) to 1 (none dropped); the pedestals and icons
+    drawn at every stop of a walk to the right end and back, and Kirby still taking Light from the first. Europe: 1 over, Japan: none.
   - The spawn flags (`+0xB`, enemies and items), from the stage-object code: a record spawns while its state (`+1`) is 0, 5 or 6
     (`0x0220A368`); with bit 4 it spawns only once the stage's treasure event has run (`0x02218D00`: the stage's `+0x14` set to 1;
     in stage mode 2, Kirby carrying the stage's chest, everything spawns), without it only before: all 856 Squeakers, most of
@@ -957,6 +963,18 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
     and its palette: 512 by 256 pixels (33), 256 by 256 (5) or 256 by 512 (d_viw_0C, a climb's); a painted panorama, its top 192
     rows what the DS shows (the rest its last row smeared down). In KatAM: shrunk to 3/4 (48 tiles wide, 20 tall with the smear),
     fitted to 8 palettes of 15 colors in at most 900 tiles (`ConvertSqueakFarView()`: all 39 fit, at most 10 tiles shared).
+  - **The moving tiles** (the owner: "Room 0x403 doesn't have animated water", "Room 0x577 doesn't have animated water as it
+    should"; on the DS the water's surface waves): no block animation, no palette cycle. Read in the DS emulator (its BG VRAM each
+    frame): the main tileset's last 32 shown tiles (992-1023: BG3's, `0x0601BC00`) are written anew every few frames, from the
+    tileset's own tiles after its 1024: a main tileset (`NN_b.bin`) of 1152 tiles holds 4 frames of them (1024-1055, the same as
+    992-1023, then 1056, 1088 and 1120), shown in that order. Section 12's `+6`-`+9` are the frames' times, each held one frame
+    more (5: 6 frames, 1-1-4's pools and 7-2-1's sea, 75 rooms; 10: 11 frames, 2-1-4's and 2-1-5's crystal-cave pools); 0 they
+    don't move (1-6-7, 1-7-1: checked, still); a tileset of 1024 has none. (Block animations hold their times as they are: 1-1-1's
+    grass, 10, changes every 10.) In KatAM (`SqueakMap.MovingDurations()`, `ConvertSqueakForeground()`): a cell showing one of those
+    tiles, none of its blocks animated, is drawn at each of the 4 frames and moves as any animated cell (a timing of its own). Checked
+    in the GBA emulator (USA, rooms put in by RAM): 0x403's and 0x577's water surfaces change every 6 frames, 0x432's every 11,
+    0x42D's never, as the DS's (Europe and Japan: 0x403 and 0x432 the same); the frames' look side by side with the DS's (0x403,
+    0x432).
   - Section 12, the foreground's tile animations: 12 bytes (the count a `u16` at +10), then 12 bytes each: `u16` a block, `u8` its
     frames (1-8), `u8` its table (0 the front layer's, 1 the main terrain's, its grid and the third layer's), 8 bytes the frames'
     durations (frames). The block shows blocks block + 1 to block + frames in turn (it looks as its first): a main tileset holds
