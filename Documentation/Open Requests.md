@@ -22,7 +22,6 @@ finishes it says how it was checked). The design rules for doors, mirrors and hu
 - The owner: "Second phase of Mecha Kracko doesn't change the room's structure like it does in Squeak Squad."
 
 ## 3. Squeak Squad: rooms and objects
-- The owner: "Needle counts as a cutting ability."
 - The owner: "Crimps do nothing in-game. They can only attach to walls but I have seen some even walking around on ledges or not
   stiching to walls."
 - The owner: "Room 0x495, can attack through blocks that shouldn't be pass through. Some tiles' collisions are not activating when

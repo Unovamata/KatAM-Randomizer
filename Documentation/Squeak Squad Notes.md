@@ -772,9 +772,10 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
     0x260-0x262 over the blocks grid's 0x38 0x40-0x42 cells: 3-3-6, 3-3-7, 4-4-1's chains 0x280-0x282).
     In KatAM (`squeak/gimmicks.c`): a rope is an object hidden (object 0x92, SqueakCreateRope; template unk14-unk19 its 6 bytes),
     its box over the rope (2-14 pixels across its cell, its length down), taking attacks as the grass tufts do (Struck()) but only
-    a cutting one, as the DS's flag 8: a Kirby's with Cutter, Sword or Master (not his inhale or a plain hit, which dropped the
-    plank before; the owner: "if I hit the string with a cutting ability, it stays there"); cut once, it plays the Cutter's sound,
-    messages its targets (kind 1), and its cells go from the cut's row out, a cell each way every 2 frames (each one's block
+    a cutting one, as the DS's flag 8: a Kirby's with Cutter, Sword or Master, or Needle (the owner: "Needle counts as a cutting
+    ability."; checked in the GBA emulator: Needle Kirby cut room 0x488's rope and its platform fell) (not his inhale or a plain
+    hit, which dropped the plank before; the owner: "if I hit the string with a cutting ability, it stays there"); cut once, it
+    plays the Cutter's sound, messages its targets (kind 1), and its cells go from the cut's row out, a cell each way every 2 frames (each one's block
     record, `SqueakRopeCells()`: the cell drawn without its front layer, air), so the rope's look goes and it can't be climbed. Not
     inhaled (unk5C 0x20). A rope floor is a moving platform with no legs whose end is
     the break (its word: the look, start 2 for a rider's weight or 3 for a message, end 1), so it carries Kirby, then shakes,
