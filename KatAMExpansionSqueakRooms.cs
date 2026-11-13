@@ -792,12 +792,12 @@ namespace KatAMRandomizer {
         // height tiles, palettes 6-13);
         internal sealed record SqueakBackground(byte[] Tiles, ushort[] Palettes, ushort[] Map, int Width, int Height, int MergedTiles);
 
-        /* ConvertSqueakFarView(); A far view as KatAM's background, its 900 tiles and 8 palettes of 15 colors: shrunk to `scale` (its
+        /* ConvertSqueakFarView(); A far view as KatAM's background, its 900 tiles and 8 palettes of 15 colors (or `palettesUsed`): shrunk to `scale` (its
          * colors averaged over the pixels each covers: a 512-pixel view at 3/4 is 48 tiles wide), at least `minHeight` tall (KatAM's
          * camera shows 160 rows: one shorter is shrunk less; the last row repeated only past its picture); the tiles grouped by their colors into 8 palettes,
          * each palette the 15 colors that draw its tiles best (k-means), each tile then drawn with the palette that draws it best, a
          * few rounds; past 900 tiles, the two most alike made one (as BuildBackground()); */
-        static SqueakBackground ConvertSqueakFarView(int[,] picture, double scale = 0.75, int minHeight = 160, int maxTiles = BackgroundTiles) {
+        static SqueakBackground ConvertSqueakFarView(int[,] picture, double scale = 0.75, int minHeight = 160, int maxTiles = BackgroundTiles, int palettesUsed = 8) {
             int sourceWidth = picture.GetLength(0), sourceHeight = picture.GetLength(1);
             /* (never narrower than KatAM's screen: the 256-pixel views at 3/4 were 192 wide, the screen's last 48 pixels black (Dark
              * Nebula's room, 8-4-6): those shrink to 240 wide only, their height as much if that fits the tiles, else 3/4); */
@@ -829,7 +829,9 @@ namespace KatAMRandomizer {
                 }
 
             int columns = width / 8, rows = height / 8, tileCount = columns * rows;
-            const int Palettes = 8, Colors = 15;
+            // (palettesUsed: KatAM's 6 on; 8 all of them, fewer leaving the last ones to the room: the Squeak Squad hub's doors);
+            const int Colors = 15;
+            int Palettes = Math.Clamp(palettesUsed, 1, 8);
             static double Distance(double r1, double g1, double b1, double r2, double g2, double b2) =>
                 3 * (r1 - r2) * (r1 - r2) + 4 * (g1 - g2) * (g1 - g2) + 2 * (b1 - b2) * (b1 - b2);
             // Nearest(); Which of 0 to count-1 has the least `cost` (the first of equals, as OrderBy().First(): without sorting them);
@@ -941,7 +943,7 @@ namespace KatAMRandomizer {
             }
 
             // KatAM's colors (BGR555), each tile's indexes, the same tiles (flipped too) one;
-            ushort[] paletteColors = new ushort[Palettes * 16];
+            ushort[] paletteColors = new ushort[8 * 16];
             for (int k = 0; k < Palettes; k++)
                 for (int c = 0; c < Colors; c++) {
                     int r = Math.Clamp((int)Math.Round(palettes[k][c][0]), 0, 31), g = Math.Clamp((int)Math.Round(palettes[k][c][1]), 0, 31),
@@ -2561,14 +2563,18 @@ namespace KatAMRandomizer {
             Dictionary<int, List<Transport>> ridesFrom = new Dictionary<int, List<Transport>>();
             Dictionary<string, int> backgroundOf = new Dictionary<string, int>();
             Dictionary<string, (int width, int height)> backgroundSize = new Dictionary<string, (int, int)>();
+            Dictionary<string, int> backgroundColors = new Dictionary<string, int>();     // (each far view's colors, ViewBackground());
             Dictionary<string, SqueakBackground> convertedViews = new Dictionary<string, SqueakBackground>();   // (converted ahead, below);
             // ViewBackground(); A far view's background (map/d_viw_NN.nsbtx, `room` the first room showing it), converted once and shared:
-            // its table entry, or -1 if the view isn't there (its size in backgroundSize);
+            // its table entry, or -1 if the view isn't there (its size in backgroundSize); "view|N" a copy in N palettes (the hub's);
             int ViewBackground(string view, int room) {
                 if (backgroundOf.TryGetValue(view, out int background)) return background;
-                byte[] viewFile = SqueakFileAnyCase(squeak, view);
+                string[] parts = view.Split('|');
+                int palettesUsed = parts.Length > 1 && int.TryParse(parts[1], out int asked) ? asked : 8;
+                byte[] viewFile = SqueakFileAnyCase(squeak, parts[0]);
                 if (viewFile == null) return -1;
-                SqueakBackground farView = convertedViews.TryGetValue(view, out SqueakBackground ahead) ? ahead : ConvertSqueakFarView(SqueakFarViewPicture(viewFile));
+                SqueakBackground farView = convertedViews.TryGetValue(view, out SqueakBackground ahead) ? ahead
+                    : ConvertSqueakFarView(SqueakFarViewPicture(viewFile), palettesUsed: palettesUsed);
                 int bgTiles = AllocateCompressed(rom, CompressLZ77(farView.Tiles), ref here), bgColors = Allocate(ref here, 0x100, 4);
                 for (int c = 0; c < 128; c++) WriteShort(rom, bgColors + c * 2, farView.Palettes[c]);
                 byte[] bgMap = new byte[farView.Map.Length * 2];
@@ -2580,6 +2586,7 @@ namespace KatAMRandomizer {
                 WriteInts(rom, at + 0x18, bgMapAt + 0x08000000, room << 16);
                 background = Add("gRoomTiledBGs", at);
                 backgroundSize[view] = (farView.Width * 8, farView.Height * 8);
+                backgroundColors[view] = bgColors;
                 return backgroundOf[view] = background;
             }
             try {
@@ -3226,7 +3233,7 @@ namespace KatAMRandomizer {
                 (int x, int y, byte facing) abilityLanding = (abilityDoorway.X + 1, abilityDoorway.Y + 1, (byte)(abilityDoorway.X * 2 < abilityMap.Width ? 1 : 2));
                 if (BuildSqueakHub(rom, symbols, nidlRooms, roomProps, newProps, newInfos, roomInfos, hubRoom, firstSwitchRoom, abilityRoom, abilityLanding, worldStarts[1],
                                    navigationRoutes, noTypes, Add, DoorsList,
-                                   view => ViewBackground(view, hubRoom) is int at && at >= 0 ? (at, backgroundSize[view].width, backgroundSize[view].height) : null,
+                                   view => ViewBackground(view, hubRoom) is int at && at >= 0 ? (at, backgroundSize[view].width, backgroundSize[view].height, backgroundColors[view]) : null,
                                    out KatAMRoomEdit centralCircle, out byte[] hubCollision, out int hubWidth, ref here) is string hubError)
                     return hubError;
                 if (BuildSqueakAbilityRoom(rom, squeak, version, t => nidlRooms ? roomTables[t].at : symbols[t], newProps, newInfos, abilityRoom, hubRoom,
