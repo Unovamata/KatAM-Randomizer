@@ -447,6 +447,9 @@ namespace KatAMRandomizer {
                                                                    || r.Gimmicks.Any(g => Math.Abs(g.x - x) <= 2 && Math.Abs(g.y - y) <= 2);
         // (a cell Kirby stands on: solid, slopes, thin floors, a ladder's top, blocks);
         static bool SqueakFloor(byte v) => v is (>= 0x05 and <= 0x1B) or KatAMLadderTop or (>= KatAMStarBlock and <= KatAMMetalBlock);
+        // SqueakFlat(); A floor with no slope (solid, a thin floor, a ladder's top, a block): what a new door stands on (the owner: "Room
+        // 0x4F6 floating door, floating doors are not allowed": its mirror stood over a slope's upper half, its bottom over the low side);
+        static bool SqueakFlat(byte v) => v is KatAMSolid or KatAMThin or KatAMFirmThin or KatAMLadderTop or (>= KatAMStarBlock and <= KatAMMetalBlock);
         // SqueakGoal(); Whether a DS door is its stage's goal; SqueakArrival(), where its doors land Kirby (no room, not a goal);
         /* (a goal: flags 0x23, with bit 7 too (4-4-9's: as the doors' 0x90), whatever its room (2-8-7's names room 13 of a stage of 7, the
          * only one of the 48 that names one: the DS's goal all the same); a room's start: no room, not a goal); */
@@ -608,7 +611,7 @@ namespace KatAMRandomizer {
                         if (within != null && !within.Contains((x, y))) continue;
                         if (distance < 0 || r.At(x, y) != KatAMAir || !SqueakOpen(r.At(x, y - 1)) || !SqueakOpen(r.At(x - 1, y)) || !SqueakOpen(r.At(x + 1, y))) continue;
                         if (walk != null && !walk.Contains((x, y))) continue;
-                        if (Enumerable.Range(x - 1, 3).Any(fx => !SqueakFloor(r.At(fx, y + 1)))) continue;
+                        if (Enumerable.Range(x - 1, 3).Any(fx => !SqueakFloor(r.At(fx, y + 1))) || !SqueakFlat(r.At(x, y + 1))) continue;
                         if (firm && Enumerable.Range(x - 1, 3).Any(fx => r.At(fx, y + 1) is >= KatAMStarBlock and <= KatAMMetalBlock)) continue;
                         if (taken.Any(c => Math.Abs(c.x - x) < MirrorSpacing * 2 && Math.Abs(c.y - y) <= 2)) continue;
                         if (r.Transports.Any(t => Math.Abs(t.x - x) < MirrorSpacing * 2 && Math.Abs(t.y - y) <= 2) || NearGimmick(r, x, y)) continue;

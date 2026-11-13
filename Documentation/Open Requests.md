@@ -37,7 +37,6 @@ finishes it says how it was checked). The design rules for doors, mirrors and hu
   lose them on triggering bomb blocks."
 - The owner: "Chests are falling through stone/switch doors."
 - The owner: "Room 0x4FA, is it supposed to have animated tiles?"
-- The owner: "Room 0x4F6 floating door, floating doors are not allowed."
 - The owner: "Room 0x403 doesn't have animated water."
 - The owner: "Room 0x577 doesn't have animated water as it should."
 - The owner: "When grass is hit with fire, it doesn't quite burn, room 0x40A."

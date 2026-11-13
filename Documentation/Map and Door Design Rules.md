@@ -27,7 +27,9 @@ after any change.
 - **The camera never shows 3 doors at once**: no door goes within a screen (`ViewWidth` x `ViewHeight` cells) of two others.
   `ViewFits()`. NiDL's rooms lagged and read as a mess with many mirrors in view.
 - **Mirrors stay inside what the camera shows**: never on a row the camera can't reach, never in mid-air, always on a floor
-  3 cells wide with room above. `RoomSpot()`, `Shown()`.
+  3 cells wide with room above. `RoomSpot()`, `Shown()`. In Squeak Squad's rooms the cell right under an added door is flat (solid,
+  a thin floor, a ladder's top or a block), never a slope, where the mirror stood over the slope's low side (the owner: "Room 0x4F6
+  floating door, floating doors are not allowed"). `SqueakSpot()`.
 - **Doors keep their distance** from other doors, from where other doors land Kirby, and from warp stars and cannons
   (`MirrorSpacing` x 2 cells across, 2 up or down; half that in small rooms). `RoomSpot()`.
 - **No door, landing or way back in front of a switch** (the owner: "There's instances where switches are in front of doors, this
