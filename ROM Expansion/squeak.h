@@ -607,6 +607,7 @@ void SqueakNoSprite(struct SqueakObject *s);
 bool32 SqueakVramFits(u16 tiles);
 bool32 SqueakVramSpare(u16 tiles);
 u16 SqueakVramTiles(u32 vram);
+u8 DaroachThingLook(struct SqueakObject *);
 void SqueakUsePalette(struct SqueakObject *, u8 alternate);
 void SqueakDamageColors(struct SqueakObject *, bool32 on);
 u8 SqueakLoadPalette(u16 key, u8 variant, u16 roomId);

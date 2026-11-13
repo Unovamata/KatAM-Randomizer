@@ -42,11 +42,7 @@ finishes it says how it was checked). The design rules for doors, mirrors and hu
 - The owner: "Some animal attacks are not digging the dirt."
 
 ## 6. Squeak Squad: bosses
-- The owner: "Mrs. Moley is off the ground and off centered."
 - The owner: "Squeak Squad Dedede has a layering issue."
-- The owner: "Dark Daroach fight, when inhaling its projectiles, they turn into daroach."
-- The owner: "Dark Daroach's stars have no hitbox."
-- The owner: "When beaten, Dark Daroach just floats in mid air."
 - The owner: "Dark Nebula's ice platforms don't act as ice."
 - The owner: "Dark Nebula fire attack doesn't have the white area in the center."
 - The owner: "Dark Nebula's electric attack has missing tiles."

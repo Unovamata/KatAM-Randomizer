@@ -240,8 +240,13 @@ u32 SqueakAnimFor(struct Object *obj) {
     u32 gimmick;
 
     if (SqueakIsSqueak(obj)) {
-        SqueakFitVram((struct SqueakObject *)obj);
-        return gSqueakData.enemies[((struct SqueakObject *)obj)->enemy].animId | obj->unk83 << 16;
+        struct SqueakObject *s = (struct SqueakObject *)obj;
+
+        SqueakFitVram(s);
+        // (Daroach's things, drawn with his graphics: their own frame while KatAM holds them, not his hurt one);
+        if (s->enemy == SQUEAK_DAROACH_BOSS_THING || s->enemy == SQUEAK_DARK_DAROACH_THING)
+            return gSqueakData.enemies[s->enemy].animId | DaroachThingLook(s) << 16;
+        return gSqueakData.enemies[s->enemy].animId | obj->unk83 << 16;
     }
     // (a Squeak Squad room's gimmicks on the hammer peg's type: its switches, shutters: squeak/gimmicks.c);
     if (obj->type == OBJ_HAMMER_PEG && (gimmick = SqueakGimmickAnim(obj)) != 0) return gimmick;

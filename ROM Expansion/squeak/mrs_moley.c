@@ -87,7 +87,7 @@ enum { COMPOSITE_BACK_DIVE, COMPOSITE_MIDDLE_DIVE, COMPOSITE_LAND, COMPOSITE_THR
 #define SHAKE_CRASH 3                   // KatAM's timed screen shakes (1-3: 14, 18, 24 frames; 4 on loop till stopped): Squeak Squad's
 #define SHAKE_HOLE 2                    // 4 for 60 frames as KatAM's longest, its 3 for 35 as its 18 frames;
 
-// Her arena (a2s7s2: here from the camera view's sides, in pixels; y up from the front holes' level);
+// Her arena (a2s7s2: from the room's sides, in pixels, as its points 0-4; y up from the front holes' level);
 #define FRONT_X 40
 #define BACK_LEFT_X 72
 #define BACK_RIGHT_X 56
@@ -130,7 +130,7 @@ enum {
 #define TIMER(s) ((s)->vars[10])        // +0xB4;
 #define BOX(s) (((u8 *)&(s)->vars[11])[0])
 #define AWAY(s) (((u8 *)&(s)->vars[11])[1])     // Squeak Squad's flag 1: down a hole, out of reach;
-#define ARENA(s) ((s)->vars[12])        // The arena's left: the camera view's at her fight's start (her holes stay put);
+#define ARENA(s) ((s)->vars[12])        // The arena's width: her room's (a2s7s2's 288 pixels), taken at her fight's start;
 
 // The thing's and dirt's own;
 #define T_LIFE(s) ((s)->vars[0])        // +0x138: its frames left;
@@ -226,23 +226,27 @@ static void Face(struct SqueakObject *s, bool32 left) {
     s->obj.base.flags = (s->obj.base.flags & ~1) | (left ? 1 : 0);
 }
 
-// ArenaLeft(); The arena's left (Squeak Squad's stage, 288 pixels across: here the camera's view at her fight's start);
+/* ArenaLeft(), ArenaWidth(); The arena: her room, Squeak Squad's stage (288 pixels across, its holes drawn at its points). It was
+ * the camera's view at her fight's start, 240 across, so she came up away from the holes drawn (the owner: "Mrs. Moley is off the
+ * ground and off centered": 25 pixels right of the left one, 23 left of the right one, the camera 25 in); */
 static s32 ArenaLeft(struct SqueakObject *s) {
+    return 0;
+}
+
+static s32 ArenaWidth(struct SqueakObject *s) {
     return ARENA(s);
 }
 
-// Point(); 0x02209CC0: a2s7s2's points 0-4, the holes (KatAM's 24.8);
+// Point(); 0x02209CC0: a2s7s2's points 0-4, the holes (40, 248, 152, 232 and 72 across; KatAM's 24.8);
 static void Point(struct SqueakObject *s, u8 n, s32 *x, s32 *y) {
-    static const s16 sPoints[][2] = {
-        [POINT_FRONT_LEFT] = { FRONT_X, 0 },
-        [POINT_FRONT_RIGHT] = { DISPLAY_WIDTH - FRONT_X, 0 },
-        [POINT_MIDDLE] = { DISPLAY_WIDTH / 2 + MIDDLE_X, MIDDLE_Y },
-        [POINT_BACK_RIGHT] = { DISPLAY_WIDTH - BACK_RIGHT_X, BACK_Y },
-        [POINT_BACK_LEFT] = { BACK_LEFT_X, BACK_Y },
-    };
+    s32 w = ArenaWidth(s);
+    s32 across[] = { [POINT_FRONT_LEFT] = FRONT_X, [POINT_FRONT_RIGHT] = w - FRONT_X, [POINT_MIDDLE] = w / 2 + MIDDLE_X,
+                     [POINT_BACK_RIGHT] = w - BACK_RIGHT_X, [POINT_BACK_LEFT] = BACK_LEFT_X };
+    s32 up[] = { [POINT_FRONT_LEFT] = 0, [POINT_FRONT_RIGHT] = 0, [POINT_MIDDLE] = MIDDLE_Y, [POINT_BACK_RIGHT] = BACK_Y,
+                 [POINT_BACK_LEFT] = BACK_Y };
 
-    *x = ArenaLeft(s) + (sPoints[n][0] << 8);
-    *y = FLOOR(s) - (sPoints[n][1] << 8);
+    *x = ArenaLeft(s) + (across[n] << 8);
+    *y = FLOOR(s) - (up[n] << 8);
 }
 
 // Sky(); a2s7s2's zone 6: over SKY pixels above the front holes;
@@ -255,7 +259,7 @@ static u8 Zone(struct SqueakObject *s, s32 x, s32 y) {
     x -= ArenaLeft(s);
     if (Sky(s, y)) return ZONE_MIDDLE;
     if (x < SIDE_ZONE << 8) return ZONE_LEFT;
-    if (x >= (DISPLAY_WIDTH - SIDE_ZONE) << 8) return ZONE_RIGHT;
+    if (x >= (ArenaWidth(s) - SIDE_ZONE) << 8) return ZONE_RIGHT;
     return ZONE_MIDDLE;
 }
 
@@ -390,7 +394,7 @@ static bool32 Moley(struct SqueakObject *s) {
 
     switch (s->state) {
     case MOLEY_START:       // 0x0212C68C: at the right front hole, a pixel up, facing left;
-        ARENA(s) = gCurLevelInfo[s->obj.base.unk56].viewportPosition.x;
+        ARENA(s) = gCurLevelInfo[s->obj.base.unk56].roomWidth;
         SqueakStop(s);
         AWAY(s) = TRUE;
         TIMER(s) = 0;
