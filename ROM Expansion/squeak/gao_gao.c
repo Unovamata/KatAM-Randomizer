@@ -34,7 +34,7 @@
  *   defeat is KatAM's mini-boss's.
  * Its sounds (Squeak Squad's, SqueakSfx): 0x10D, 0x14A, 0x14E, 0x152, 0x153, 0x155, 0x165, 0x178. Not ported: the DS's rumble (0x0221C6EC), Squeak Squad's hit
  * flash (its _dmg palette) and shakes (KatAM's), its defeat (0x020FE8BC: a hop, a slide shedding dust, a shudder: KatAM's defeat
- * instead), its ability (none), the other mode's air control (0x020FFCAC). Squeak Squad holds it in the stage as it drills up (it
+ * instead), its ability (Animal, squeak.c's table: inhaled once beaten, as the DS's), the other mode's air control (0x020FFCAC). Squeak Squad holds it in the stage as it drills up (it
  * would wait there for good under a stage top no higher than the screen's; its arenas leave room above): here it goes on up past
  * the room's top, KatAM's mini-boss rooms often having their camera at the top. */
 #include "../squeak.h"

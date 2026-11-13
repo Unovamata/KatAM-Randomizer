@@ -23,7 +23,7 @@
  * • Hit, it doesn't flinch (0x0210BF18: a flash in its _dmg palette, a 36-frame shake, 36 frames safe): KatAM's mini-bosses don't
  *   either (sub_0809AF38: KatAM's flash and its shortest shake); its defeat is KatAM's mini-boss's (to be inhaled).
  * Its sounds (Squeak Squad's, SqueakSfx): 0x121, 0x154, 0x16A, 0x16C, 0x16E, 0x130, 0x10D. Not ported: the DS's rumble (0x0221C748), its _dmg palette flash and
- * Squeak Squad's hit shakes (KatAM's), its defeat's hop (0x0210AE44: KatAM's defeat instead), its ability (none: Metal), the other
+ * Squeak Squad's hit shakes (KatAM's), its defeat's hop (0x0210AE44: KatAM's defeat instead), its ability (Metal, squeak.c's table: inhaled once beaten, as the DS's), the other
  * mode (air control, 0x0210BEB4). */
 #include "../squeak.h"
 
