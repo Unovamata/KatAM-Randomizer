@@ -436,6 +436,19 @@ namespace KatAMMapTracker {
             AddLaunchers();
             LinkTwoWayDoors();
             SplitGoalRooms();
+            HideUnusedSqueakRooms();
+        }
+
+        /* HideUnusedSqueakRooms(); A Squeak Squad stage's room nothing leads into (no door, warp star, cannon, shard or phase warp, nor
+         * Central Circle's Dimension Mirror) whose ways out are all mirrors is left off the map: a hideout no Squeak Lair uses this
+         * seed, a gold-pile treasure room, a copy of a fight (the rulebook's rule 8: "left out, nothing leading in"; the owner, of room
+         * 0x520, "has no entrance, only an exit", then: hide them). The rooms a warp star's ride flies through (3-4-5, 7-2-2, 8-3-6,
+         * 8-3-7: nothing leads into them either, their ways out the ride's) stay; */
+        void HideUnusedSqueakRooms() {
+            HashSet<int> entered = Rooms.Values.SelectMany(r => r.Doors.Where(d => d.Destination != r.Id).Select(d => d.Destination)).ToHashSet();
+            entered.Add(DimensionMirrorTo);
+            foreach (RoomInfo room in Rooms.Values.Where(r => r.SqueakWorld > 0 && !entered.Contains(r.Id) && r.Doors.All(d => d.Kind == DoorKind.Mirror)).ToList())
+                Rooms.Remove(room.Id);
         }
 
         /* SplitGoalRooms(); A goal game room (a boss & goal game room many rooms' goal mirrors lead to: KatAM's goal games, 0x3D4-0x3D6)

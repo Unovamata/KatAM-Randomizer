@@ -27,7 +27,6 @@ finishes it says how it was checked). The design rules for doors, mirrors and hu
 - The owner: "Room 0x44a heavy palette errors."
 - The owner: "Room 0x5DB 2 pedestals on top of one another."
 - The owner: "Room 0x5E0 garbled tiles for a single frame."
-- The owner: "Room 0x520 has no entrance, only an exit."
 - The owner: "Room 0x51A these 1 pass blocks destroy very oddly, please check the original game to replicate the original behavior."
 - The owner: "Room 0x4F9, destroyed blocks, even in undestructible terrain, have no collision, the stage should retain collisions, not
   lose them on triggering bomb blocks."
