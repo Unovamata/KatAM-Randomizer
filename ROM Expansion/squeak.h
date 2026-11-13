@@ -599,6 +599,7 @@ void SqueakSetCell(struct SqueakObject *, u8 cell);
  * its tiles copied in, unless flag 8 is set); */
 void SqueakNoSprite(struct SqueakObject *s);
 bool32 SqueakVramFits(u16 tiles);
+bool32 SqueakVramSpare(u16 tiles);
 void SqueakUsePalette(struct SqueakObject *, u8 alternate);
 void SqueakDamageColors(struct SqueakObject *, bool32 on);
 u8 SqueakLoadPalette(u16 key, u8 variant, u16 roomId);

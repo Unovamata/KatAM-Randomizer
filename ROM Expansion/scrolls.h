@@ -52,7 +52,11 @@ struct ScrollPiece {
     void *heldState;
     u32 heldFlags;
     s32 startY;
+    u8 slot;                    // (its task's number + 1, for a Kirby's byte that keeps it: abilities/squeak_moves.c's MOVE_SLOT);
 };
+/* (a SCROLL_MOVE piece's Kirby's MOVE_SLOT (abilities.h's NIDL_MIKE_USES) once his moves' piece is gone: none, till one's made; set as
+ * it goes, ScrollPieceDestroy(), if that byte still holds its slot); */
+#define SCROLL_MOVE_NONE 0xFF
 
 struct ScrollPiece *ScrollPieceCreate(struct Kirby *kirby, u8 kind, u8 level, s16 knock, u32 hitKind);
 void LookEnd(struct ScrollLook *l);
