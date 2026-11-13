@@ -187,11 +187,11 @@ after any change.
     is entered only through the deepest stage's goal; Squeak Squad's final stage (8-4) is not world 8's boss stage but the
     finale's (rule 8): its rooms the DS reaches by cutscenes between its fights go on **by themselves**, with no mirror or door
     (the owner: "Why is there a door in daroach's first phase fight [...] the warp should send me to the next phase automatically"):
-    Dark Daroach's room once his defeat has played out, into the dark star's chase, and the room the ride after the chase lands in,
-    straight into Dark Nebula's fight, as the DS switches its stage (`SqueakPhaseWarps`, squeak/gimmicks.c's `PhaseWarp`); a warp
-    star ride of the DS's still leads on where it does; the retry room before Dark Nebula's (with its tomato) and the last two rooms,
-    copies of his room and the one before it, are on no way (so he's fought once); world 8's deepest goal ends its path into a goal
-    game, as other path ends do;
+    Dark Daroach's room once his defeat has played out, into the dark star's chase, and the room the ride after the chase lands in
+    (0x5DF), into the room before Dark Nebula's (0x5E1, with its tomato), whose own door leads into his fight (the owner: "Room 0x5DF
+    skips the entrance 0x5E1"; `SqueakPhaseWarps`, squeak/gimmicks.c's `PhaseWarp`); a warp star ride of the DS's still leads on
+    where it does; the last two rooms, copies of his room and the one before it, are on no way (so he's fought once); world 8's
+    deepest goal ends its path into a goal game, as other path ends do;
   - the hidden two-way door between worlds leads into the next world's first stage;
   - **Squeak Lairs** (the owner: "Entrance 1 -> Squeak Lair with Miniboss -> Entrance 2 as an interlude between zones in the
     Squeak Squad map"): each Squeak that steals a stage's treasure on the DS (Spinni, Doc or Storo, its thief) has its hideout
