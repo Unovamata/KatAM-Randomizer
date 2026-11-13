@@ -302,15 +302,31 @@ static void SqueakBossChestWait(struct Chest *chest) {
  * swallowed, or on the screen: not left behind off it, or fallen out of the room into a pit) the chest comes where it was and
  * falls (KatAM's gravity), as the game's chest again (the owner: "Golden Waddle Dee's when defeated or inhaled, they drop the chest
  * they possess in the position they died"), unless nothing's under that spot (a pit): then at its own, where the converter put it
- * (the DS's, on its floor); */
+ * (the DS's, on its floor). A beaten enemy's flight (KatAM's) goes through walls, so where it ends can be in one (7-6's Gold Waddle
+ * Dee, beaten beside its chamber's stone door, ends in the door): a chest made there would start in the solid and fall through all
+ * under it (KatAM's gravity only lands on a floor's top), as the owner saw: "Chests are falling through stone/switch doors". So its
+ * spot is open, not in a wall (ChestSpotOpen()): where the enemy ended, else the cell beside it (towards the chest's own spot first)
+ * or above; */
 #define HELD_BY(chest) (*(struct Object **)&(chest)->fillerB4[0])
 #define HELD_TEMPLATE(t) (((const u8 *)(t))[2] | ((const u8 *)(t))[3] << 8)
+
+// (the spots tried, in cells: across (towards the chest's own spot first) and up);
+static const s8 sChestSteps[][2] = { { 0, 0 }, { 1, 0 }, { -1, 0 }, { 0, -1 }, { 1, -1 }, { -1, -1 }, { 2, 0 }, { -2, 0 } };
+
+// ChestSpotOpen(); (x, y) in the room, in an empty cell, with a floor under it (the first cell below that isn't empty) in the room;
+static bool32 ChestSpotOpen(struct Chest *chest, s32 x, s32 y, s32 bottom) {
+    if (x < 0 || y < 0 || y >= bottom || NidlIsFloor(&chest->obj, x, y)) return FALSE;
+    for (y += 0x1000; y < bottom; y += 0x1000)
+        if (NidlIsFloor(&chest->obj, x, y)) return TRUE;
+    return FALSE;
+}
+
 static void SqueakEnemyChestWait(struct Chest *chest) {
     struct Object *enemy = HELD_BY(chest), *obj;
     struct LevelInfo *level = &gCurLevelInfo[chest->obj.base.unk56];
     u16 number = chest->obj.objTemplate->unk18;
     struct Task *t;
-    s32 y;
+    s32 side;
     u8 n;
 
     if (enemy != NULL && (enemy->base.roomId != chest->obj.base.roomId || enemy->objTemplate == NULL
@@ -333,14 +349,18 @@ static void SqueakEnemyChestWait(struct Chest *chest) {
     HELD_BY(chest) = NULL;
     // (gone off the screen alive: it comes back; but one fallen out of the room's bottom, into a pit, is gone: the chest at its own spot);
     if (enemy->unk80 > 0 && !(enemy->base.unkC & 0x2000) && sub_0803D6B4(enemy) && enemy->base.y < (level->roomHeight << 8)) return;
-    // (where it died, if there's a floor under it in the room; KatAM's chest falls onto it);
-    for (y = enemy->base.y; y < (level->roomHeight << 8); y += 0x1000)
-        if (NidlIsFloor(&chest->obj, enemy->base.x, y)) {
-            chest->obj.base.x = enemy->base.x;
-            chest->obj.base.y = enemy->base.y;
-            chest->obj.base.xspeed = chest->obj.base.yspeed = 0;
-            break;
-        }
+    /* (where it died, or the cell beside it, towards the chest's own spot first, or above: the first open one with a floor under it in
+     * the room; KatAM's chest falls onto it); */
+    side = chest->obj.base.x < enemy->base.x ? -0x1000 : 0x1000;
+    for (n = 0; n < ARRAY_COUNT(sChestSteps); n++) {
+        s32 x = enemy->base.x + sChestSteps[n][0] * side, y = enemy->base.y + sChestSteps[n][1] * 0x1000;
+
+        if (!ChestSpotOpen(chest, x, y, level->roomHeight << 8)) continue;
+        chest->obj.base.x = x;
+        chest->obj.base.y = y;
+        chest->obj.base.xspeed = chest->obj.base.yspeed = 0;
+        break;
+    }
     chest->obj.base.flags &= ~0x400;
     chest->obj.unk78 = (void *)chest->unkDC;
 }
