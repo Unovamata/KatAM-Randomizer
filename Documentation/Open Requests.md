@@ -17,8 +17,6 @@ finishes it says how it was checked). The design rules for doors, mirrors and hu
 ## 3. Squeak Squad: rooms and objects
 - The owner: "Crimps do nothing in-game. They can only attach to walls but I have seen some even walking around on ledges or not
   stiching to walls."
-- The owner: "Room 0x49C, garbled cloud graphics."
-- The owner: "What is the point of grey clouds? They just hurt me if I stand on them?"
 - The owner: "Room 0x44a heavy palette errors." (Not reproduced in an expansion-only build, USA: the whole room shot in a grid,
   its tiles, far view and enemies in their colors. Maybe a randomized room's enemies over KatAM's 16 object palettes: a screenshot
   or the seed and settings wanted.)

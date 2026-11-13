@@ -156,7 +156,7 @@ static const struct SqueakCharacter sSqueakCharacters[SQUEAK_ENEMY_COUNT] = {
 };
 
 // SqueakVramTiles(); The tiles a sprite's VRAM block holds (KatAM's heap keeps each block's segments, 2 tiles each); 0 none;
-static u16 SqueakVramTiles(u32 vram) {
+u16 SqueakVramTiles(u32 vram) {
     if (!SqueakVramOk(vram) || vram < gVramHeapStartAddr) return 0;
     return gVramHeapState[(vram - gVramHeapStartAddr) / 0x40] * 2;
 }
@@ -237,13 +237,14 @@ static void SqueakFitVram(struct SqueakObject *s) {
  * index as the variant (its VRAM fitted to it first: SqueakFitVram); the type's AnimInfo for the others, as the game does; */
 u32 SqueakAnimFor(struct Object *obj) {
     const struct AnimInfo *info;
+    u32 gimmick;
 
     if (SqueakIsSqueak(obj)) {
         SqueakFitVram((struct SqueakObject *)obj);
         return gSqueakData.enemies[((struct SqueakObject *)obj)->enemy].animId | obj->unk83 << 16;
     }
     // (a Squeak Squad room's gimmicks on the hammer peg's type: its switches, shutters: squeak/gimmicks.c);
-    if (obj->type == OBJ_HAMMER_PEG && SqueakGimmickAnim(obj) != 0) return SqueakGimmickAnim(obj);
+    if (obj->type == OBJ_HAMMER_PEG && (gimmick = SqueakGimmickAnim(obj)) != 0) return gimmick;
     info = &gUnk_08351648[obj->type].unk14[obj->unk83];
     return info->animId | info->variant << 16;
 }
