@@ -30,7 +30,6 @@ finishes it says how it was checked). The design rules for doors, mirrors and hu
 - The owner: "Room 0x51A these 1 pass blocks destroy very oddly, please check the original game to replicate the original behavior."
 - The owner: "Room 0x4F9, destroyed blocks, even in undestructible terrain, have no collision, the stage should retain collisions, not
   lose them on triggering bomb blocks."
-- The owner: "Chests are falling through stone/switch doors."
 - The owner: "Room 0x4FA, is it supposed to have animated tiles?"
 - The owner: "Room 0x403 doesn't have animated water."
 - The owner: "Room 0x577 doesn't have animated water as it should."

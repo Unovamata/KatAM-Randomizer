@@ -1573,6 +1573,11 @@ NiDL's natives were); one it lacks is ported onto KatAM's own object (`ROM Expan
   link: many chests and foods have it, with no enemy flagged. The port hides the chest until the Gold Waddle Dee is gone (beaten,
   swallowed, or fallen out of the room) and puts it where it went, or at its own spot over a pit (`chest.c`'s
   `SqueakEnemyChestWait`, `SQUEAK_CHEST_AFTER_ENEMY`). 2-6-6's walks off its logs into the pit within seconds unless Kirby gets it.
+  KatAM's beaten enemies fly through walls, so where one ends can be inside a wall: 7-6-9's (room 0x5A1), beaten against Kirby
+  beside its chamber's stone door, ends in the door, and a chest made there fell through everything under it (KatAM's gravity
+  only lands on a floor's top). The chest goes to the first open cell with a floor under it: where the enemy ended, else the
+  cell beside it (towards the chest's own spot first) or above (`ChestSpotOpen`). Checked in the emulator: 0x5A1's chest now
+  lands on the platform beside the door.
 - **Big chests**: Squeak Squad's big (platinum) chests are KatAM's small chests in the port (the owner's call), so the platinum
   chest's graphics are gone from the ROM; KatAM's chests fall (`ObjectMain`'s gravity: nothing sets their flag 0x40).
 
