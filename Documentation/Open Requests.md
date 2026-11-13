@@ -55,7 +55,8 @@ finishes it says how it was checked). The design rules for doors, mirrors and hu
   wrong facing, among other problems." (with a screenshot of Ninja Kirby in a Squeak Squad room, a shuriken beside him)
 
 ## 5. Squeak Squad: abilities and Animal's digging
-- The owner: "Squeak Squad Minibosses do not give their supposed ability."
+- The owner: "Squeak Squad Minibosses do not give their supposed ability." (Big Metalun, Gao Gao and Buboo now hold Metal, Animal
+  and Bubble; Tedhaun's Ghost isn't in the ROM Expansion. Not yet seen end to end in the emulator: beating one and inhaling it.)
 - The owner: "They way tiles get destroyed when diggable when using animal is not how Squeak Squad draws them."
 - The owner: "Cannot dig up with animal."
 - The owner: "When items are inside dirt like Tomatos, Lives, and such, they go through the ground instead of staying inside the

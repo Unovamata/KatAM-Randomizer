@@ -46,7 +46,7 @@
  *   doesn't hurt them: KatAM's unk5C 0x80); Kirby's attacks beat them as KatAM's (Squeak Squad's burst them).
  * Its sounds (Squeak Squad's, SqueakSfx): 0x10D, 0x135, 0x152, 0x153, 0x165, 0x173, 0x174, 0x175, 0x176, 0x17C. Not ported: the music change (0x020B0684),
  * Squeak Squad's hit flash (its palette, 0x021059D8) and shakes (KatAM's), its own defeat (0x02106378, 0x02106530..: a hop, a slide
- * shedding dust, a shudder: KatAM's mini-boss defeat instead), its ability (none), the other mode's pad (0x021087C8), the DS's rumble
+ * shedding dust, a shudder: KatAM's mini-boss defeat instead), its ability (Bubble, squeak.c's table: inhaled once beaten, as the DS's), the other mode's pad (0x021087C8), the DS's rumble
  * (0x0221C6EC). Before its fight it falls to the floor, as the framework's mid-bosses do (SqueakMidbossWait; Squeak Squad's stays where
  * it is). KatAM's hits take HP at KatAM's rate: only those 36 frames apart count toward the burst, as Squeak Squad's. */
 #include "../squeak.h"
