@@ -4703,11 +4703,31 @@
             return objectList;
         }
 
-        // AllocateCompressed(); Data copied into the expansion, 4-aligned; its offset;
+        /* AllocateCompressed(); Data copied into the expansion, 4-aligned; its offset. Into the game's own free space first, while it
+         * lasts (SpillSpace(): the rooms' tiles, tilemaps and collision, read through pointers, as any ROM data), then the expansion's
+         * half (the European ROM's was full: the owner, "free space from the European version"); */
         static int AllocateCompressed(byte[] rom, byte[] data, ref int cursor) {
-            int at = Allocate(ref cursor, data.Length, 4);
+            int at = spillCursors.TryGetValue(rom, out System.Runtime.CompilerServices.StrongBox<int> spill) ? (spill.Value + 3) & ~3 : -1;
+            if (at >= 0 && at + data.Length <= SpillEnd) spill.Value = at + data.Length;
+            else at = Allocate(ref cursor, data.Length, 4);
             data.CopyTo(rom, at);
             return at;
+        }
+
+        /* SpillSpace(); The game's own free space past its data (0xFF to 16 MB), which the expansion's compressed blocks fill first
+         * (AllocateCompressed()): from past the randomizer's rebuilt 9ROM lists (KatAMInternal.cs's RomRegion.FreeSpace: USA 0xF40000,
+         * European 0xF50000; a few KB) and the version's data (USA's ends at 0xF330A8, the European's at 0xF40580, the Japanese one's
+         * at 0xF87E04): USA 0xF60000 (640 KB), European 0xF70000 (576 KB), Japanese 0xF90000 (448 KB). Used only while all of it is
+         * 0xFF (nothing else wrote there), kept per ROM; */
+        const int SpillEnd = 0x1000000;
+        static readonly System.Runtime.CompilerServices.ConditionalWeakTable<byte[], System.Runtime.CompilerServices.StrongBox<int>> spillCursors =
+            new System.Runtime.CompilerServices.ConditionalWeakTable<byte[], System.Runtime.CompilerServices.StrongBox<int>>();
+        static void SpillSpace(byte[] rom, string gameCode) {
+            int start = gameCode switch { "B8KE" => 0xF60000, "B8KP" => 0xF70000, "B8KJ" => 0xF90000, _ => -1 };
+            spillCursors.Remove(rom);
+            if (start < 0 || rom.Length < SpillEnd) return;
+            for (int i = start; i < SpillEnd; i++) if (rom[i] != 0xFF) return;
+            spillCursors.Add(rom, new System.Runtime.CompilerServices.StrongBox<int>(start));
         }
 
         /* AllocateShared(); As AllocateCompressed(), for data nothing changes once written (a room's tiles and tilemap): data already
