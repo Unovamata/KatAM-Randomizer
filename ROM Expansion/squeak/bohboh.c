@@ -950,6 +950,7 @@ static void BohbohWatch(struct Object *obj) {
     struct SqueakObject *s = (struct SqueakObject *)obj;
 
     if (HELD(s) && (obj->unk78 != BohbohMain || obj->unk80 <= 0 || (obj->base.flags & 0x1000))) LetGo(s, sLetGo);
+    SqueakBossWatch(obj);
 }
 
 /* BohbohStart(); Its fight's start (and after a hit: it goes on, as KatAM's mini-bosses do). It isn't held in the camera's area
