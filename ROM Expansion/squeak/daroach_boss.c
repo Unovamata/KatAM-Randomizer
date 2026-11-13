@@ -700,8 +700,11 @@ static void DaroachWatch(struct Object *obj) {
     obj->base.flags = KEPT_FLAGS(s);
     obj->base.unkC = KEPT_C(s);
     obj->base.unk5C = KEPT_5C(s);
-    obj->base.xspeed = obj->base.yspeed = 0;
     obj->unk80 = 0;
+    // (in a hop 0x02124EFC waits, his flag 0x40: his defeat once it's over, on its point; the owner: "When beaten, Dark Daroach
+    // just floats in mid air", beaten in a hop and stopped there);
+    if (s->state == DR_HOP_GO) return;
+    obj->base.xspeed = obj->base.yspeed = 0;
     DefeatStart(s);
 }
 
@@ -716,7 +719,14 @@ static void DaroachBossMain(struct Object *obj) {
     SqueakMidbossUpdate(s);
     Hit(s);
     SqueakRun(s, DaroachBoss);
-    if (obj->unk80 <= 0) return;
+    if (obj->unk80 <= 0) {
+        // (Dark Daroach beaten in a hop: it goes on to its end, DaroachWatch's defeat then);
+        if (Dark(s) && s->state == DR_HOP_GO) {
+            SqueakFinishFrame(s);
+            SqueakAnimate(s);
+        }
+        return;
+    }
     // (his HP bar Squeak Squad's boss's, which his things' hits don't take: KatAM's goes to whatever is hit, taken back);
     sub_08034E14(obj);
     SqueakFinishFrame(s);
@@ -764,6 +774,8 @@ void DaroachBossInit(struct SqueakObject *s) {
  * own) and his beam's reach (its two halves); all gone when he's beaten (a star burst); */
 #define T_HARM(t) ((t)->vars[0])
 #define T_TIMER(t) ((t)->vars[1])
+#define T_TOUCHED(t) ((t)->vars[2])     // (a star touched a Kirby: it bursts the frame after, KatAM's hit on him first);
+#define T_LOOK(t) ((t)->vars[3])        // (its last own frame, shown while KatAM holds it: DaroachThingLook());
 
 static bool32 Beaten(struct SqueakObject *t) {
     struct SqueakObject *b = (struct SqueakObject *)t->obj.base.parent;
@@ -822,8 +834,11 @@ static bool32 DaroachThing(struct SqueakObject *t) {
             StarAngle(t, Random(3), down);
         }
         SqueakMove(t);
-        // (its touch on a Kirby, 0x02124844's +0x12C, bursts it too);
-        if (T(t) > STAR_TIME || Beaten(t) || t->obj.unk80 <= 0 || SqueakTouchingKirby(t)) Burst(t);
+        /* (its touch on a Kirby, 0x02124844's +0x12C, bursts it too: the DS's touch comes with his hit, KatAM's collision after
+         * the objects' frames, so here the frame after, the star still there for KatAM to hurt him with; the owner: "Dark
+         * Daroach's stars have no hitbox", bursting on him unhurt); */
+        if (T(t) > STAR_TIME || Beaten(t) || t->obj.unk80 <= 0 || T_TOUCHED(t)) Burst(t);
+        else if (SqueakTouchingKirby(t)) T_TOUCHED(t) = TRUE;
         break;
     case THING_BOMB:
         switch (t->state) {
@@ -966,6 +981,15 @@ static void DaroachThingMain(struct Object *obj) {
     SqueakFinishFrame(t);
     if (t->variant < THING_BEAM_NEAR || t->variant == THING_WAND) SqueakAnimate(t);
     ThingBoxes(t);
+    if (obj->unk83 >= SQUEAK_HURT_VARIANTS) T_LOOK(t) = obj->unk83;
+}
+
+/* DaroachThingLook(); A thing's frame as drawn (squeak.c's SqueakAnimFor()): KatAM's inhale shows a hurt frame (variants 0-2), a
+ * thing's his (it's drawn with his graphics: the owner, "Dark Daroach fight, when inhaling its projectiles, they turn into
+ * daroach"), so a thing KatAM holds keeps its own last one; */
+u8 DaroachThingLook(struct SqueakObject *t) {
+    if (t->obj.unk83 >= SQUEAK_HURT_VARIANTS || T_LOOK(t) < SQUEAK_HURT_VARIANTS) return t->obj.unk83;
+    return T_LOOK(t);
 }
 
 void DaroachBossThingStart(struct Object *obj) {
@@ -984,6 +1008,8 @@ void DaroachBossThingInit(struct SqueakObject *t) {
     struct ObjectBase *base = &t->obj.base;
 
     T_HARM(t) = base->unk68;
+    T_TOUCHED(t) = FALSE;
+    T_LOOK(t) = 0;
     base->flags |= 0x1000000 | 0x2000000;
     ThingBoxes(t);
     // (Kirby's body no harm to his stars and bombs: a star's touch bursts it, a bomb's leaves it be, 0x02124844, 0x02124240);
