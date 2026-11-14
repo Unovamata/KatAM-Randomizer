@@ -2163,6 +2163,9 @@ void SqueakAbilityInput(struct Kirby *kirby) {
     u16 a = kirby->animationIndex;
     s32 feet;
 
+    // (only Animal's and Ninja's: Moving()'s some 40 tests each frame for every Kirby, a percent of a frame, before;
+    // the owner, "Some squeak lairs lag a TON");
+    if (kirby->ability != SQUEAK_ABILITY_ANIMAL && kirby->ability != SQUEAK_ABILITY_NINJA) return;
     if (kirby->base.unk58 & 2 || Moving(kirby) || kirby->hp <= 0) return;
     /* (Animal on the ground: Up pressed under a dig cell 17 pixels over his feet, looking up, the DS's +0x80 (0x0208B114), not puffing
      * up; crouching, B over one under his feet, digging down, +0x8C (0x0208AB1C), not sliding); */
