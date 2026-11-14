@@ -88,8 +88,42 @@ namespace KatAMRandomizer {
             new("kirby/metal_ext", 24), new("kirby/metal_ext", 34), new("kirby/metal_ext", 35), new("kirby/metal_ext", 25),
         };
 
+        /* SqueakPaletteOrder(); How much of a look's pieces of `palette` the DS draws in front of its body's (palette 0) and how much
+         * behind: in each of its steps' cells, the first piece on top, each piece's overlap with each body piece (their squares, in
+         * pixels) counted on the side its order puts it. Each palette's pieces are a sprite of their own in KatAM (SqueakLookLayers), so
+         * the side with more is the layer's: in front of the body, or behind it (SqueakLookBehind; the owner: Ninja's kunai, the throw's
+         * first part, drawn behind Kirby); */
+        const ushort SqueakLookBehind = 0x8000;
+        static (long front, long behind) SqueakPaletteOrder(SqueakCharacter flat, SqueakAnim anim, int palette) {
+            (int l, int t, int r, int b) Square(SqueakPiece piece) {
+                (int w, int h) = SqueakPieceSizes[piece.Attr0 >> 14, piece.Attr1 >> 14];
+                int x = piece.Attr1 & 0x1FF, y = piece.Attr0 & 0xFF;
+                if (x >= 256) x -= 512;
+                if (y >= 128) y -= 256;
+                return (x, y, x + w, y + h);
+            }
+            long front = 0, behind = 0;
+            foreach (int cell in anim.Steps.Select(st => st.Cell).Distinct()) {
+                List<SqueakPiece> pieces = flat.Cells[cell].Pieces;
+                for (int i = 0; i < pieces.Count; i++) {
+                    if (pieces[i].Attr2 >> 12 != palette) continue;
+                    (int l, int t, int r, int b) a = Square(pieces[i]);
+                    for (int j = 0; j < pieces.Count; j++) {
+                        if (pieces[j].Attr2 >> 12 != 0) continue;
+                        (int l, int t, int r, int b) o = Square(pieces[j]);
+                        long w = Math.Min(a.r, o.r) - Math.Max(a.l, o.l), h = Math.Min(a.b, o.b) - Math.Max(a.t, o.t);
+                        if (w <= 0 || h <= 0) continue;
+                        if (i < j) front += w * h;
+                        else behind += w * h;
+                    }
+                }
+            }
+            return (front, behind);
+        }
+
         /* SqueakMoveLookEffects(); The looks' effects (their indexes from `first` on, after SqueakEffectDefinitions') and the table of each
-         * look's (SqueakLookLayers each: the body's first, 0xFFFF none, then the other palettes'); */
+         * look's (SqueakLookLayers each: the body's first, 0xFFFF none, then the other palettes', SqueakLookBehind on those the DS draws
+         * behind the body: SqueakPaletteOrder()); */
         static (List<SqueakEffect> effects, ushort[] table) SqueakMoveLookEffects(byte[] squeak, int first) {
             List<SqueakEffect> effects = new List<SqueakEffect>();
             ushort[] table = Enumerable.Repeat((ushort)0xFFFF, SqueakMoveLooks.Length * SqueakLookLayers).ToArray();
@@ -110,7 +144,8 @@ namespace KatAMRandomizer {
                     throw new ArgumentException($"{look.File}'s look {i} is in more than {SqueakLookLayers - 1} palettes besides its body's");
                 for (int k = 0; k < palettes.Count; k++) {
                     int slot = palettes[k] == 0 ? 0 : palettes.Contains(0) ? k : k + 1;
-                    table[i * SqueakLookLayers + slot] = (ushort)(first + effects.Count);
+                    (long front, long behind) = SqueakPaletteOrder(flat, anim, palettes[k]);
+                    table[i * SqueakLookLayers + slot] = (ushort)(first + effects.Count | (behind > front ? SqueakLookBehind : 0));
                     effects.Add(new SqueakEffect(first + effects.Count, look.File, Math.Max(0, look.Anim), Composite: look.Composite,
                                                  OnlyPalettes: new[] { palettes[k] }));
                 }

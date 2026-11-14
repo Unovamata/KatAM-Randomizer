@@ -15,7 +15,3 @@ finishes it says how it was checked). The design rules for doors, mirrors and hu
 
 ## 2. Squeak Squad: the ability room, the hub, the boss rooms
 - The owner: "Second phase of Mecha Kracko doesn't change the room's structure like it does in Squeak Squad."
-
-## 3. New abilities' sprites
-- The owner: "Some sprites for the new abilities are absolutely bugged Needle and bubble to name some examples, wrong layering,
-  wrong facing, among other problems." (with a screenshot of Ninja Kirby in a Squeak Squad room, a shuriken beside him)
