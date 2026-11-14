@@ -450,7 +450,19 @@ base's pause (`0x020216E8`, `0x02021648`: 60 frames, the stage's time object slo
 into the defeat `0x02130924`. Its eye `0x0213025C` (a sprite of its own, registered with `0x02039B28`): shown while its `.mca` is
 2, 3, 6 or 7, `kracko.cea`'s 8-15 by the way to Kirby (dx/dy against tan 67.5° and 22.5°, cached at `0x022016F0`). Its low sweep and
 defeat call the stage map's +0x88 (`0x02216FF4`, `0x02216CB8`) at the low line: a cloud-floor tile (kind 0x60) where one is
-missing, the sweep at the columns of `0x0215BFE0`'s first row (0, 1, 4, 5, 10, 11, 14, 15). Its stage `map/a3s7s2` (`a3s7.mxi`'s
+missing, the sweep where it passes the columns (from the camera's left, 16 pixels each) of one of `0x0215BFE0`'s two rows, picked at
+random as it starts (`0x02130F40`: its +0xB4, the random number's top bit): 0, 1, 4, 5, 10, 11, 14, 15, or 4-11; the defeat all 16,
+then the stage's +0x68 cleared. What breaks the floor: the stage map (vtable `0x02228764`; a subclass's at `0x022289A0`) takes an
+attack against the terrain at +0x84 (`0x02217384`): while its +0x68 is set (1 as it's made, `0x02209E7C`) it runs one of five
+box-breakers (`0x02212710`, `0x022129C0`, `0x02212B10`, `0x02212FB4`, `0x0221348C`, by the attack's flags), each classing a cell
+by the blocks grid's word (`0x02209690`: family 4, the clouds, is kind 9) and breaking a cloud cell (front blocks 0x60-0x6F) with
+`0x02214808`: the cell becomes 0x40 and the bits of the cloud beside it (1 up, 2 down, 4 left, 8 right: the cloud's edge drawn
+there), the edges beside it (0x40-0x4F) losing their bit for it, its collision cleared; `0x02216CB8` the reverse (block 0x60, solid).
+The arena's floor is row 15's clouds (0x60-0x65; row 14's 0x42 and row 16's 0x41 their edges), nothing under it. Kracko's bolts'
+and field's boxes (`kracko.rca`'s 7 and 6) reach under it. Ported (KatAM room 0x4AB): its second form's field and bolts break the
+cells they touch, the sweep and the defeat mend them, the dig tunnels' machinery drawing them (`SqueakCloudCells()`); which attacks
+the DS lets break it was read from the code above, not watched: its stage doesn't load in the DS emulator (the stage loader's
+boss stages stay white). Its stage `map/a3s7s2` (`a3s7.mxi`'s
 part 2: `12_f`/`12_b`, `pa_12`, `d_viw_0A`; its spawn in `a3s7s2.doe`: 0x39 at 192, 104), 18 by 21 tiles, its camera fixed (left
 16, top 240 up), the floor row 15 (Kirby at 96 up). Daroach brings it in (the stage's scene, `demo_dancho`).
 

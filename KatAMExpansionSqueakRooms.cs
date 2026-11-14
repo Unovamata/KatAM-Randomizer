@@ -509,7 +509,7 @@ namespace KatAMRandomizer {
         static SqueakForeground ConvertSqueakForeground(SqueakMap map, SqueakTileset front, SqueakTileset main, int maxTiles = ForegroundTiles,
                                                         IReadOnlyList<(int x, int y)> bare = null, IReadOnlySet<(int x, int y)> signs = null,
                                                         IReadOnlySet<(int x, int y)> cleared = null, IReadOnlySet<(int x, int y)> emptied = null,
-                                                        IReadOnlyList<(int x, int y)> tunnels = null) {
+                                                        IReadOnlyList<(int x, int y, int pieces, int mended)> tunnels = null) {
             int columns = map.Width * 2, rows = map.Height * 2;
             // The pictures, and each tile's picture (flips found later, once the colors are final), the bare blocks' after the room's;
             List<int[]> pictures = new List<int[]>();
@@ -585,12 +585,14 @@ namespace KatAMRandomizer {
              * left looked solid and had no collision, 3-4-7's tower bricks (room 0x495) once its chain went; the owner: "Draw them
              * empty"); */
             int[] blank = Enumerable.Repeat(-1, 64).ToArray();
-            // (then each tunnel cell's 16 looks, SqueakTunnels(): its front block each of the DS's tunnel pieces 0-15 in turn);
-            tunnels ??= new List<(int, int)>();
+            // (then each tunnel cell's 16 looks, SqueakTunnels(): its front block each of the DS's tunnel pieces 0-15 in turn (the clouds'
+            // 0x40-0x4F), and its look mended (a cloud cell's block 0x60; else as it is));
+            tunnels ??= new List<(int, int, int, int)>();
             int[] barePicture = bare.SelectMany(b => Enumerable.Range(0, 4).Select(q => Picture(emptied?.Contains(b) == true ? blank
                 : SqueakRoomTile(map, front, main, b.x * 2 + (q & 1), b.y * 2 + q / 2, true, null, cleared?.Contains(b) == true))))
-                .Concat(tunnels.SelectMany(t => Enumerable.Range(0, SqueakTunnelLooks).SelectMany(mask => Enumerable.Range(0, 4)
-                    .Select(q => Picture(SqueakRoomTile(map, front, main, t.x * 2 + (q & 1), t.y * 2 + q / 2, false, null, false, 0, mask)))))).ToArray();
+                .Concat(tunnels.SelectMany(t => Enumerable.Range(0, SqueakTunnelPictures).SelectMany(look => Enumerable.Range(0, 4)
+                    .Select(q => Picture(SqueakRoomTile(map, front, main, t.x * 2 + (q & 1), t.y * 2 + q / 2, false, null, false, 0,
+                                                        look < SqueakTunnelLooks ? t.pieces + look : t.mended)))))).ToArray();
             int[] uses = new int[pictures.Count];
             foreach (int p in cellPicture.Concat(barePicture)) if (p >= 0) uses[p]++;
 
@@ -814,7 +816,7 @@ namespace KatAMRandomizer {
                 return (ushort)(number[target] | (h ? 0x400 : 0) | (v ? 0x800 : 0) | tiles[target].palette << 12);
             }
             ushort[] tilemap = cellPicture.Select((p, c) => p >= 0 ? Entry(p) : (ushort)(kept.Count + slotIndex[cellSlot[c]] | slotPalette[slotIndex[cellSlot[c]]] << 12)).ToArray();
-            ushort[][] bareEntries = Enumerable.Range(0, bare.Count + tunnels.Count * SqueakTunnelLooks).Select(b => Enumerable.Range(0, 4).Select(q => Entry(barePicture[b * 4 + q])).ToArray()).ToArray();
+            ushort[][] bareEntries = Enumerable.Range(0, bare.Count + tunnels.Count * SqueakTunnelPictures).Select(b => Enumerable.Range(0, 4).Select(q => Entry(barePicture[b * 4 + q])).ToArray()).ToArray();
             return new SqueakForeground(tileData, paletteColors, tilemap, columns, rows, mergedColors, mergedTiles, bareEntries, tileAnimations, colorCycles);
         }
 
@@ -1313,24 +1315,60 @@ namespace KatAMRandomizer {
          * "ROM Expansion/abilities/squeak_moves.c"'s Tunnel() draws it with its look for the sides still dirt (SqueakTunnelLooks of them,
          * ConvertSqueakForeground()'s `tunnels`); */
         const int SqueakTunnelLooks = 16, SqueakDirtFirst = 0x20, SqueakDirtEnd = 0x30;
-        internal sealed record SqueakTunnel(int X, int Y, bool Dig, int Kept, int Ways);
-        static List<SqueakTunnel> SqueakTunnels(SqueakMap map, List<(int x, int y)> digs) {
+        /* (the clouds the same way, 0x02214808: cloud is front blocks 0x60-0x6F; a broken cell becomes block 0x40-0x4F, 0x40 and its bits
+         * the sides with cloud still beside it, as the dirt's 0-15; SqueakCloudCells(). Each cell's kind: 0 a cell beside them, 1 a dig
+         * cell, 2 a cloud cell; its pieces' first block (0 dirt's, 0x40 the clouds'); a cloud cell's look mended (SqueakCloudMended, the
+         * DS's 0x02216CB8 puts block 0x60 back) after its 16, SqueakTunnelPictures in all); */
+        const int SqueakCloudFirst = 0x60, SqueakCloudPieces = 0x40, SqueakCloudMended = 0x60, SqueakTunnelPictures = SqueakTunnelLooks + 1;
+        const int SqueakTunnelNone = 0, SqueakTunnelDig = 1, SqueakTunnelCloud = 2;
+        internal sealed record SqueakTunnel(int X, int Y, int Kind, int Kept, int Ways, int Pieces);
+        static List<SqueakTunnel> SqueakTunnels(SqueakMap map, List<(int x, int y)> digs, List<(int x, int y)> clouds = null) {
             List<SqueakTunnel> tunnels = new List<SqueakTunnel>();
-            if (digs.Count == 0) return tunnels;
-            HashSet<(int, int)> dig = digs.ToHashSet();
-            bool Dirt(int x, int y) => x >= 0 && y >= 0 && x < map.Width && y < map.Height && map.Block(3, x, y) is >= SqueakDirtFirst and < SqueakDirtEnd;
             (int dx, int dy, int bit)[] sides = { (0, -1, 1), (0, 1, 2), (-1, 0, 4), (1, 0, 8) };
+            foreach ((List<(int x, int y)> cells, int kind, int body, int pieces) in new[] { (digs, SqueakTunnelDig, SqueakDirtFirst, 0),
+                                                                                                (clouds, SqueakTunnelCloud, SqueakCloudFirst, SqueakCloudPieces) }) {
+                if (cells == null || cells.Count == 0) continue;
+                HashSet<(int, int)> set = cells.ToHashSet();
+                bool Body(int x, int y) => x >= 0 && y >= 0 && x < map.Width && y < map.Height && map.Block(3, x, y) >= body && map.Block(3, x, y) < body + SqueakTunnelLooks;
+                for (int y = 0; y < map.Height; y++)
+                    for (int x = 0; x < map.Width; x++) {
+                        bool isCell = set.Contains((x, y));
+                        int kept = 0, ways = 0;
+                        foreach ((int dx, int dy, int bit) in sides) {
+                            if (set.Contains((x + dx, y + dy))) ways |= bit;
+                            else if (Body(x + dx, y + dy)) kept |= bit;
+                        }
+                        if (isCell || ways != 0 && map.Block(3, x, y) > pieces && map.Block(3, x, y) < pieces + SqueakTunnelLooks)
+                            tunnels.Add(new SqueakTunnel(x, y, isCell ? kind : SqueakTunnelNone, kept, ways, pieces));
+                    }
+            }
+            return tunnels;
+        }
+
+        // SqueakTunnelLooksOf(); The tunnel cells as ConvertSqueakForeground() draws their looks: each's pieces, its look mended;
+        static List<(int x, int y, int pieces, int mended)> SqueakTunnelLooksOf(SqueakMap map, List<SqueakTunnel> tunnels) =>
+            tunnels.Select(t => (t.X, t.Y, t.Pieces, t.Kind == SqueakTunnelCloud ? SqueakCloudMended : map.Block(3, t.X, t.Y))).ToList();
+
+        /* SqueakCloudCells(); Mecha-Kracko's arena's cloud floor (a3s7s2, the room with enemy 0x39: its row of front blocks 0x60-0x6F, solid,
+         * the blocks grid's family 4, the clouds, nothing under it). The DS's attacks break such cells (the stage's +0x84, 0x02217384, while
+         * its +0x68 is set, as the stage starts: 0x02212710's kind 9, 0x02214808), its bolts and field reaching the floor in its second form;
+         * its low sweep mends some (0x02130DF8: at its spot, 0x02216CB8) and its defeat all (0x02130648, its +0x68 cleared): the owner,
+         * "Second phase of Mecha Kracko doesn't change the room's structure like it does in Squeak Squad" (squeak/mecha_kracko.c); */
+        const int SqueakMechaKracko = 0x39;
+        static List<(int x, int y)> SqueakCloudCells(byte[] squeak, SqueakRoomFiles f, SqueakMap map, byte[] collision) {
+            List<(int x, int y)> cells = new List<(int, int)>();
+            byte[] objects = f.Objects == null ? null : SqueakFileAnyCase(squeak, f.Objects);
+            if (objects == null || objects.Length < 14
+                || !Enumerable.Range(0, ReadShort(objects, 12)).Any(i => 14 + i * 16 + 4 <= objects.Length && ReadShort(objects, 14 + i * 16 + 2) == SqueakMechaKracko))
+                return cells;
             for (int y = 0; y < map.Height; y++)
                 for (int x = 0; x < map.Width; x++) {
-                    bool isDig = dig.Contains((x, y));
-                    int kept = 0, ways = 0;
-                    foreach ((int dx, int dy, int bit) in sides) {
-                        if (dig.Contains((x + dx, y + dy))) ways |= bit;
-                        else if (Dirt(x + dx, y + dy)) kept |= bit;
-                    }
-                    if (isDig || ways != 0 && map.Block(3, x, y) is > 0 and < SqueakTunnelLooks) tunnels.Add(new SqueakTunnel(x, y, isDig, kept, ways));
+                    uint word = map.Collision(6, x, y);
+                    if ((word & 0xC000) == 0x4000 && (word >> 27 & 7) == 4 && map.Block(3, x, y) is >= SqueakCloudFirst and < SqueakCloudFirst + SqueakTunnelLooks
+                        && collision[y * map.Width + x] == KatAMSolid)
+                        cells.Add((x, y));
                 }
-            return tunnels;
+            return cells;
         }
 
         /* SqueakCurrents(); A room's currents (the collision word's ids 0x10-0x3C on air or water, see the notes): a byte a cell, 0 none,
@@ -2788,7 +2826,7 @@ namespace KatAMRandomizer {
                                 SqueakMap drawn = SqueakGoalDoorways(SqueakNests(map, squeakLairs.Where(l => l.FromRoom == room).Select(l => (l.FromX, l.FromY)), squeakLairs.Any(l => l.Room == room)));
                                 foregrounds[i] = ConvertSqueakForeground(drawn, front, main, ForegroundTiles, cells.blocks.Concat(SqueakRopeCells(map)).ToList(),
                                                                          SqueakSigns(map), cells.chains.Union(cells.burnt).ToHashSet(), cells.chains,
-                                                                         SqueakTunnels(map, digs).Select(t => (t.X, t.Y)).ToList());
+                                                                         SqueakTunnelLooksOf(map, SqueakTunnels(map, digs, SqueakCloudCells(squeak, f, map, cells.collision))));
                             }
                         }
                         lock (foregrounds) {
@@ -2900,10 +2938,10 @@ namespace KatAMRandomizer {
                     SqueakMap drawn = SqueakGoalDoorways(SqueakNests(map, squeakLairs.Where(l => l.FromRoom == room).Select(l => (l.FromX, l.FromY)), lairHere != null));
                     // (the cut ropes' cells drawn bare too, after the blocks: SqueakRopeCells());
                     List<(int x, int y)> ropeCells = SqueakRopeCells(map);
-                    List<SqueakTunnel> tunnels = SqueakTunnels(map, digCells);
+                    List<SqueakTunnel> tunnels = SqueakTunnels(map, digCells, SqueakCloudCells(squeak, f, map, collision));
                     SqueakForeground foreground = foregrounds[i] ?? ConvertSqueakForeground(drawn, front, main, ForegroundTiles, blocks.Concat(ropeCells).ToList(),
                                                                                            SqueakSigns(map), chains.Union(burnt).ToHashSet(), chains,
-                                                                                           tunnels.Select(t => (t.X, t.Y)).ToList());
+                                                                                           SqueakTunnelLooksOf(map, tunnels));
                     foregrounds[i] = null;      // (written: its memory let go);
                     (int info, int palette, int tilemapEntry) = WriteSqueakForeground(rom, foreground, room, paletteCycles, ref here);
 
@@ -2972,9 +3010,10 @@ namespace KatAMRandomizer {
                         doorRecords.AddRange(new byte[] { value, 0xFF });
                         if (!doorPlaces.Contains((door.Room, door.DestX, door.DestY))) doorPlaces.Add((door.Room, door.DestX, door.DestY));
                     }
-                    /* (the dig room's tunnel cells, abilities/squeak_moves.c's gSqueakDigRooms: u16 how many, u16 how many sets; each cell 8
-                     * bytes: x, y, 1 if a dig cell, the sides kept dirt, the sides with dig cells, what a dug dig cell leaves (air or water),
-                     * its set (u16); then the sets, the same ones shared: 16 tilemap entries (KatAM's), 4 a quarter by its two sides still
+                    /* (the dig room's tunnel cells, abilities/squeak_moves.c's gSqueakDigRooms: u16 how many, u16 how many sets; each cell 10
+                     * bytes: x, y, its kind (1 a dig cell, 2 a cloud cell, 0 one beside them), the sides kept dirt (cloud), the sides with dig
+                     * (cloud) cells, what a dug dig cell leaves (air or water), its set (u16), a cloud cell's look mended (a set, u16; 0xFFFF
+                     * none); then the sets, the same ones shared: 16 tilemap entries (KatAM's), 4 a quarter by its two sides still
                      * dirt (top left: up and left; top right: up and right; bottom left: down and left; bottom right: down and right): the DS's
                      * pieces each quarter drawn by those two alone (checked here: squeakTunnelOdd counts a quarter that isn't, drawn as its
                      * look with only those two)); */
@@ -2986,7 +3025,7 @@ namespace KatAMRandomizer {
                         for (int t = 0; t < tunnels.Count; t++) {
                             SqueakTunnel tunnel = tunnels[t];
                             byte after = map.Collision(7, tunnel.X, tunnel.Y) >> 30 == 1 ? KatAMWater : KatAMAir;
-                            ushort Quarter(int mask, int q) => foreground.Bare[blocks.Count + ropeCells.Count + t * SqueakTunnelLooks + mask][q];
+                            ushort Quarter(int mask, int q) => foreground.Bare[blocks.Count + ropeCells.Count + t * SqueakTunnelPictures + mask][q];
                             ushort[] set = new ushort[16];
                             for (int q = 0; q < 4; q++)
                                 for (int v = 0; v < 4; v++) {
@@ -2995,13 +3034,20 @@ namespace KatAMRandomizer {
                                     for (int m = 0; m < SqueakTunnelLooks; m++)
                                         if ((m & (vertical[q] | horizontal[q])) == mask && Quarter(m, q) != set[q * 4 + v]) { squeakTunnelOdd++; break; }
                                 }
-                            string key = string.Join(",", set);
-                            if (!setOf.TryGetValue(key, out int index)) {
-                                setOf[key] = index = sets.Count;
-                                sets.Add(set);
+                            int SetIndex(ushort[] entries) {
+                                string key = string.Join(",", entries);
+                                if (!setOf.TryGetValue(key, out int at)) {
+                                    setOf[key] = at = sets.Count;
+                                    sets.Add(entries);
+                                }
+                                return at;
                             }
-                            cellBytes.AddRange(new byte[] { (byte)tunnel.X, (byte)tunnel.Y, (byte)(tunnel.Dig ? 1 : 0), (byte)tunnel.Kept, (byte)tunnel.Ways, after,
-                                                            (byte)index, (byte)(index >> 8) });
+                            int index = SetIndex(set);
+                            // (a cloud cell's look mended: its quarters whatever the sides);
+                            int mended = tunnel.Kind != SqueakTunnelCloud ? 0xFFFF
+                                : SetIndex(Enumerable.Range(0, 16).Select(e => Quarter(SqueakTunnelLooks, e / 4)).ToArray());
+                            cellBytes.AddRange(new byte[] { (byte)tunnel.X, (byte)tunnel.Y, (byte)tunnel.Kind, (byte)tunnel.Kept, (byte)tunnel.Ways, after,
+                                                            (byte)index, (byte)(index >> 8), (byte)mended, (byte)(mended >> 8) });
                         }
                         List<byte> list = new List<byte>(BitConverter.GetBytes((ushort)tunnels.Count));
                         list.AddRange(BitConverter.GetBytes((ushort)sets.Count));
