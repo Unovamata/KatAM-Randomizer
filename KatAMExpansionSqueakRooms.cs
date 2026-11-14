@@ -325,6 +325,20 @@ namespace KatAMRandomizer {
                     for (int column = x - 1; column <= x; column++)
                         Set(grid, column, row, grid == 4 ? map.Block(4, x + 1, row) : 0);
             }
+            /* (a gate: a door the DS flags 0x20, its way on drawn as a building's wide black doorway in the main grid, 2-2-1's castle
+             * gate (the owner: "there's wide black doors in some stages, I just need you to replace these"), whose mirror stood in it:
+             * its two columns, from 3 rows up to the door's, the wall's two blocks two rows above each, as the tower's stone goes on
+             * up there (rows alike every other row: 371, 372 and 882, 883); 6-5-1's igloo, in the front grid, is its world's nest); */
+            foreach (SqueakDoor door in map.Doors().Where(d => (d.Flags & 0x7F) == 0x20)) {
+                int x = door.X, y = door.Y;
+                if (x < 1 || y < 7 || x >= map.Width || y >= map.Height) continue;
+                bool Repeats(int column) => map.Block(4, column, y - 3) != map.Block(4, column, y - 2) && map.Block(4, column, y - 3) == map.Block(4, column, y - 5)
+                                            && map.Block(4, column, y - 4) == map.Block(4, column, y - 6);
+                if (!Repeats(x - 1) || !Repeats(x)) continue;
+                for (int row = y - 2; row <= y; row++)
+                    for (int column = x - 1; column <= x; column++)
+                        Set(4, column, row, (data != null ? ReadShort(data, map.Section(4) + ((row - 2) * map.Width + column) * 2) : map.Block(4, column, row - 2)));
+            }
             return data == null ? map : new SqueakMap(data);
         }
 
@@ -1958,14 +1972,15 @@ namespace KatAMRandomizer {
         // (a switch: gimmick 0, KatAM's object 0x8D with its template's unk11 squeak.h's SQUEAK_SWITCH_OBJECT, chest.c's SqueakCreateSwitch);
         const byte HammerPegType = 0x8D, SqueakSwitchObject = 0x9C;
         const int SqueakSwitchGimmick = 0, SqueakSwitchBlocks = 0x10;
-        // SqueakChestCells(); The cells of a room's chests (its .doe items of kinds 0x11, 0x14): no door goes on one (NearGimmick());
-        static IEnumerable<(int x, int y)> SqueakChestCells(byte[] squeak, SqueakRoomFiles f) {
+        /* SqueakItemCells(); The cells of a room's items (its .doe items: chests, kinds 0x11, 0x14, and the foods, 1-Ups and the rest): no
+         * door goes on one (NearGimmick(); 5-3-6's way on stood on its meat, hiding it); */
+        static IEnumerable<(int x, int y)> SqueakItemCells(byte[] squeak, SqueakRoomFiles f) {
             byte[] objects = f.Objects == null ? null : SqueakFileAnyCase(squeak, f.Objects);
             if (objects == null || objects.Length < 8) yield break;
             int items = ReadShort(objects, 6);
             for (int i = 0, count = items + 2 <= objects.Length ? ReadShort(objects, items) : 0; i < count && items + 2 + i * 16 + 8 <= objects.Length; i++) {
                 int at = items + 2 + i * 16;
-                if (ReadShort(objects, at + 2) is SqueakChestSmall or SqueakChestBig) yield return (ReadShort(objects, at + 4) / 16, ReadShort(objects, at + 6) / 16);
+                yield return (ReadShort(objects, at + 4) / 16, ReadShort(objects, at + 6) / 16);
             }
         }
         /* SqueakRoomsInvincible(); KatAM's invincibility (the Invincible Candy's: sub_0808324C starts it, its task sub_08083494 runs it,
@@ -2643,7 +2658,7 @@ namespace KatAMRandomizer {
                         Switches = map.Gimmicks().Where(g => g.Type == SqueakSwitchGimmick).Select(g => (g.X / 16, g.Y / 16)).ToList(),
                         Gimmicks = map.Gimmicks().Where(g => g.Type is SqueakRopeGimmick or SqueakShutterGimmick or SqueakPlatformGimmick or SqueakCloudGimmick
                                                              or SqueakBoulderGimmick or SqueakFireGimmick or SqueakRockGimmick or SqueakIcicleGimmick or SqueakCandleGimmick)
-                                                 .Select(g => (g.X / 16, g.Y / 16)).Concat(SqueakChestCells(squeak, files[i])).ToList(),
+                                                 .Select(g => (g.X / 16, g.Y / 16)).Concat(SqueakItemCells(squeak, files[i])).ToList(),
                         Rides = map.Gimmicks().Where(g => g.Type == SqueakFuseCannon && (g.Word(0) & 0xFF) < SqueakStarArrival).Select(g => (g.Word(0) & 0xFF) + 1).ToList() });
                     // (whether it draws the DS's nest: Randomize Squeak Lairs, SqueakNestKey(), SqueakNestDrawn());
                     if (files[i].Front != null && !frontOf.ContainsKey(files[i].Front))

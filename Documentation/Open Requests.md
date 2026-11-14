@@ -16,18 +16,11 @@ finishes it says how it was checked). The design rules for doors, mirrors and hu
 ## 2. Squeak Squad: the ability room, the hub, the boss rooms
 - The owner: "Second phase of Mecha Kracko doesn't change the room's structure like it does in Squeak Squad."
 
-## 3. Squeak Squad: rooms and objects
-- The owner: "Can't get inside barrels and the barrel destruction animation looks off. Room 0x420 feels empty, like something's
-  missing. Also, double door clash." (the owner, after: only empty barrels open, as the DS's; what 0x420 misses: its enemies and the
-  Squeakers' chase)
-- The owner: "Squeaks have no hitbox and don't try to hit Kirby at all." (the owner, after: in the chase rooms; in the lairs they
-  hurt Kirby and throw bombs)
-
-## 4. New abilities' sprites
+## 3. New abilities' sprites
 - The owner: "Some sprites for the new abilities are absolutely bugged Needle and bubble to name some examples, wrong layering,
   wrong facing, among other problems." (with a screenshot of Ninja Kirby in a Squeak Squad room, a shuriken beside him)
 
-## 5. Squeak Squad: abilities and Animal's digging
+## 4. Squeak Squad: abilities and Animal's digging
 - The owner: "Squeak Squad Minibosses do not give their supposed ability." (Big Metalun, Gao Gao and Buboo now hold Metal, Animal
   and Bubble; Tedhaun's Ghost isn't in the ROM Expansion. Not yet seen end to end in the emulator: beating one and inhaling it.)
 - The owner: "They way tiles get destroyed when diggable when using animal is not how Squeak Squad draws them."
@@ -36,5 +29,5 @@ finishes it says how it was checked). The design rules for doors, mirrors and hu
   dirt."
 - The owner: "Some animal attacks are not digging the dirt."
 
-## 6. Squeak Squad: bosses
+## 5. Squeak Squad: bosses
 - The owner: "Dark Nebula's ice platforms don't act as ice."
