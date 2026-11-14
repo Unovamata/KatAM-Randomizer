@@ -19,10 +19,3 @@ finishes it says how it was checked). The design rules for doors, mirrors and hu
 ## 3. New abilities' sprites
 - The owner: "Some sprites for the new abilities are absolutely bugged Needle and bubble to name some examples, wrong layering,
   wrong facing, among other problems." (with a screenshot of Ninja Kirby in a Squeak Squad room, a shuriken beside him)
-
-## 4. Squeak Squad: abilities and Animal's digging
-- The owner: "They way tiles get destroyed when diggable when using animal is not how Squeak Squad draws them."
-- The owner: "Cannot dig up with animal."
-- The owner: "When items are inside dirt like Tomatos, Lives, and such, they go through the ground instead of staying inside the
-  dirt."
-- The owner: "Some animal attacks are not digging the dirt."
