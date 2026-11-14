@@ -252,7 +252,7 @@ struct SqueakStep {
 struct SqueakAnim {
     u8 steps;
     bool8 loops;
-    u16 unused;
+    u16 length;                 // Its frames in all (its steps' added up: written with it);
     const struct SqueakStep *step;
 };
 
@@ -283,7 +283,7 @@ struct SqueakCompositeStep {
 struct SqueakComposite {
     u8 steps;
     bool8 loops;
-    u16 unused;
+    u16 length;                 // Its frames in all (its steps' added up: written with it);
     const struct SqueakCompositeStep *step;
 };
 

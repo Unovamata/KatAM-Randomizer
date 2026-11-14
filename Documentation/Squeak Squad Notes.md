@@ -1783,6 +1783,12 @@ after, 5 of them the room loading; Daroach's 0x56B: 11). What it was and what ch
 - **His beam's sound** (0x1AF, archive 14's 8): 42 one-tick notes a tick apart, each ringing about 30 frames on its release (0xEB), so
   KatAM mixed up to ten voices (about a fifth of a frame). The converter caps that sound's release at 0x60 (`SqueakSoundReleaseCaps`):
   the same notes, pans and bends, each ringing about 4 frames. The DS's own players set no channel limit for it (their masks are 0).
+  Daroach's beam plays it too (the owner: "Daroach ray causes lag"): still 4 voices at 0x60, so 0x30 now (about 2 frames each). Room
+  0x56B, his beam forced (USA, Fighter, 300 frames): 1 frame dropped (its first), the beam's frames 233,000 cycles of work; now none,
+  228,000 (the composites' parts below too). His beam's 16 parts (7 of them one animation) each read their animation's step every
+  frame: its length added up from its steps and a division of the composite's time by it (`squeak.c`'s `SqueakStepAt()`); now the
+  length is written with each animation and composite (their u16 `length`), the division only past it, and a part on the same
+  animation at the same time as the one before takes its step.
 
 Dark Daroach's things, three of the owner's reports (checked in the GBA emulator, USA, room 0x5DC, his star throw forced by RAM):
 - **His stars hurt** (the owner: "Dark Daroach's stars have no hitbox"): a star bursts on touching a Kirby (the DS's touch,
@@ -1820,6 +1826,14 @@ forms, 3000 frames):
   spawn. A Squeak object's sprite is now made as for one in another room (no VRAM asked for), then given its own.
 - Measured: 3000 frames, 119 overloaded with the palette and fire wall fixes in, 36 after the rest (the room's loading 1, the cage
   9 where it was about 40, the fire attack 8 where it was about 50, a few as Kirby is hit).
+- **His stars' sound** (the owner: "Dark nebula stars are still lagging the game"): each star he shoots (his rain's, his eye's)
+  plays 0x1D2, a run of short notes a frame or two apart on a looping sample, each ringing about 30 frames: 8 voices of it at once
+  after his rain, the sound mixer (`SoundMainRAM`, in IWRAM) some 100,000 cycles a frame, more than V-blank's 84,000, so every other
+  frame was dropped. Its release is capped at 0x30 (`SqueakSoundReleaseCaps`). His rain forced (state 40, USA, 140 frames): 18
+  frames dropped, the mixer 52,000 cycles a frame on average; now 1 (its start), 32,000. A whole fight from his start (1200 frames,
+  B every 20): 43 dropped, now 19. What's left there is his spark cage (state 32: up to 95 of KatAM's 128 OAM pieces, most 8x8 and
+  16x8 as `CutFrame()` cuts a thin line, KatAM's `DisplaySprite` some 300 cycles a piece: about a third of its frames dropped), not
+  changed here.
 
 His ice floor and his look (the owner: "When using its ice attack, it doesn't add the ice platforms at the bottom.", "Dark Nebula's
 sprite looks off."):

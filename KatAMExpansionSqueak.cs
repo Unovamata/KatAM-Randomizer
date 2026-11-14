@@ -1576,7 +1576,7 @@ namespace KatAMRandomizer {
             WriteInt(rom, parameters + 20, animInfo + 0x08000000);
             Array.Copy(rom, version.ObjectParameters2, rom, version.ObjectParameters2 + SqueakID * 8, 8);
 
-            // A SqueakAnim (8 bytes: steps, loops, its steps' address) at `at`, its steps' cells through `cell`;
+            // A SqueakAnim (8 bytes: steps, loops, its frames in all (u16), its steps' address) at `at`, its steps' cells through `cell`;
             int localCursor = cursor;
             void WriteAnim(int at, SqueakAnim anim, Func<int, int> cell) {
                 int steps = Allocate(ref localCursor, Math.Max(1, anim.Steps.Count) * 8, 4);
@@ -1586,7 +1586,8 @@ namespace KatAMRandomizer {
                 }
                 rom[at] = (byte)anim.Steps.Count;
                 rom[at + 1] = (byte)(anim.Loops ? 1 : 0);
-                WriteShort(rom, at + 2, 0);
+                // (its length, which squeak.c read by adding its steps' frames up each time a part was placed, every frame);
+                WriteShort(rom, at + 2, Math.Min(0xFFFF, anim.Steps.Sum(st => st.Frames)));
                 WriteInt(rom, at + 4, steps + 0x08000000);
             }
 
@@ -1645,6 +1646,7 @@ namespace KatAMRandomizer {
                             WriteShorts(rom, steps + i * 4, composites[a].Steps[i].Composition, composites[a].Steps[i].Frames);
                         rom[compositeTable + a * 8] = (byte)composites[a].Steps.Count;
                         rom[compositeTable + a * 8 + 1] = (byte)(composites[a].Loops ? 1 : 0);
+                        WriteShort(rom, compositeTable + a * 8 + 2, Math.Min(0xFFFF, composites[a].Steps.Sum(st => st.Frames)));
                         WriteInt(rom, compositeTable + a * 8 + 4, steps + 0x08000000);
                     }
                 }
