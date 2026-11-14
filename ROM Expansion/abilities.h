@@ -124,6 +124,11 @@ void SqueakAbilitySetup(struct Kirby *);
  * palette 0's pieces, drawn with his own palette), then its other palettes' (0xFFFF none; all of them without the Squeak Squad ROM); */
 #define SQUEAK_LOOK_LAYERS 4
 #define SQUEAK_LOOK_NONE 0xFFFF
+/* (a layer's pieces the DS draws behind his body, more of them than in front (KatAMExpansionSqueakAbilities.cs' SqueakPaletteOrder()):
+ * its effect with this bit, drawn behind his body's; the others in front of it. KatAM draws the lower order in front; the same order,
+ * the first drawn in front: all of them were behind his body, Ninja's kunai in the throw too, as the owner saw); */
+#define SQUEAK_LOOK_BEHIND 0x8000
+#define SQUEAK_LOOK_ORDER 0xA
 enum {
     NINJA_LOOK_THROW,
     NINJA_LOOK_THROW_END,

@@ -403,8 +403,13 @@ static void SetLook(struct ScrollPiece *p, u8 look, bool32 restart) {
     if (p == NULL || (p->shown == look && !restart)) return;
     p->shown = look;
     for (i = 0; i < SCROLL_LOOKS; i++) LookEnd(&p->look[i]);
-    for (i = 0; i < SQUEAK_LOOK_LAYERS; i++)
-        if (gSqueakAbilityLooks[look][i] != SQUEAK_LOOK_NONE) LookStart(p, i, gSqueakAbilityLooks[look][i], 0, 0);
+    for (i = 0; i < SQUEAK_LOOK_LAYERS; i++) {
+        u16 e = gSqueakAbilityLooks[look][i];
+
+        if (e == SQUEAK_LOOK_NONE) continue;
+        // (his body at KatAM's effects' order; the other layers in front of it, or behind (SQUEAK_LOOK_BEHIND), as the DS draws them);
+        LookStartAt(p, i, e & ~SQUEAK_LOOK_BEHIND, 0, 0, i == 0 ? SQUEAK_LOOK_ORDER : e & SQUEAK_LOOK_BEHIND ? SQUEAK_LOOK_ORDER + 1 : SQUEAK_LOOK_ORDER - 1);
+    }
 }
 
 // Look(); His look (his moves' piece's);
