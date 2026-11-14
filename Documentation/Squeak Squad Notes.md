@@ -69,6 +69,17 @@ end of the line solid (`0x0220FDEC`); mode 2: both. `+0x38` and `+0x3C` (`0x0220
 or left edge is into a wall (negative) or 0x10000 (none): Crimp shifts its probes by it. Tiles are 16 pixels; a tile's word has
 its kind in bits 14-15 (`0x4000` solid).
 
+The point test (`0x0220FDEC`) takes a solid tile always, a slope (kind `0xC000`) only under its surface and a thin floor never.
+KatAM's `NidlIsFloor` takes a slope's whole cell, the air over it too, so the port's Crimps clung to the air over ledges and walked
+along them; their wall probes (`SqueakTouchesWall`) now take fully solid tiles only (`gCollisionAttributes` 0x200; a slope under
+its surface isn't ported: every Crimp's spot is beside a full wall). Their spots put their boxes up to 16 pixels into their walls,
+and the port dropped them to the floor below (`SqueakStandOnFloor`); now `OutOfWall` moves the box out, its edge on the wall's,
+and they cling from the start. Checked in the emulator (USA): all 29 Crimps in their rooms cling, climb and throw, facing out;
+room 0x422's fourth sits at (1060, 456), outside its 640-pixel room on the DS too, and never appears.
+
+Crimp's rock: its hit handler (`0x020CBDDC`) passes Kirby's touch to `0x020B4964`, which takes none: the rock hurts him and flies
+on to the terrain. KatAM's touch knocked it back into its Crimp; Kirby's body no longer hits it (as Spinni's shurikens).
+
 ### Inhaled, bitten and thrown
 
 An enemy's hit reaction (body vtable `+0x30`) gets the attack's kind first: 3-5 are Kirby's inhale pulling it, and its touch
@@ -706,7 +717,12 @@ points); its zones across: 1 left of 208, 2 to 336 (the lava), 0 right of it. `a
     beats a weak enemy): a holder takes hits of KatAM's enemies' kind but masks his body out (unk5C 0x80, as a beaten enemy's), and
     counts a Kirby's own hit only with an attack bit over his body's (a slide, a dash). Walked through, a tuft rustles; hit, it's
     cut (KatAM's cutter sound, its blades an object of their own) and grows back 600 frames on when it held something; a barrel
-    bursts (KatAM's block-break sound) and is gone. A chest a holder hides (7 in the rooms: 2-1-3, 4-1-6 (grass), 7-4-5's
+    bursts and is gone. Its burst is `barrel.mca`'s composite 0 (97 frames: animation 6, the barrel breaking, at its spot; 5, a
+    stave flying, at (20, 0); 7, its pieces, at (8, -24)), flattened into the barrel's animation 8 (`FlattenComposites`, its VRAM
+    by frame: `FitVram`); the port played animation 5 alone, one stave (the owner: "the barrel destruction animation looks off").
+    Checked in the GBA emulator (USA, room 0x420, a barrel struck by RAM): it breaks apart, its staves and lid flying and its hoop
+    rolling off, where before only the hoop rolled; and in 8-1-4 (room 0x5AF) Kirby gets into the open barrel with Down, shakes it
+    with a direction and hops out with A. A chest a holder hides (7 in the rooms: 2-1-3, 4-1-6 (grass), 7-4-5's
     Ability Scrolls, 1-5-1, 4-3-8, 5-5-4's Copy Palettes, 2-5-5's Graphic Piece) is the converter's chest template handed to the
     holder (its type and item, mark, number and half flag) and let out as the chest itself, standing where the holder stood
     (`LetOutChest()`); a tuft that held one doesn't grow back. Hiding in an empty barrel: Kirby on the floor in front of it,
