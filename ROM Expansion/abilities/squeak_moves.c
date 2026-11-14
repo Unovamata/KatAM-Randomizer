@@ -1028,9 +1028,10 @@ static void NinjaArtRelease(struct Kirby *kirby) {
 void RequestScreenShake(u16, struct ObjectBase *);
 
 /* gSqueakDigRooms; The Squeak Squad rooms' tunnel cells (KatAMExpansionSqueakRooms.cs' SqueakTunnels()): per room from
- * SQUEAK_FIRST_ROOM, a list (NULL none): u16 how many cells, u16 how many sets; each cell (TUNNEL_SIZE bytes): x, y, 1 if a dig cell,
- * the sides always dirt, the sides with dig cells, what a dug dig cell leaves (KatAM's air or water), its set (u16); then the sets (the
- * same ones shared), 16 tilemap entries each, 4 a quarter by its two sides still dirt (top left: up, left; top right: up, right;
+ * SQUEAK_FIRST_ROOM, a list (NULL none): u16 how many cells, u16 how many sets; each cell (TUNNEL_SIZE bytes): x, y, its kind (TUNNEL_DIG
+ * a dig cell, TUNNEL_CLOUD a cloud cell of Mecha-Kracko's floor, 0 one beside them), the sides always dirt (cloud), the sides with dig
+ * (cloud) cells, what a dug dig cell leaves (KatAM's air or water), its set (u16), a cloud cell's look mended (a set, u16; 0xFFFF
+ * none); then the sets (the same ones shared), 16 tilemap entries each, 4 a quarter by its two sides still dirt (top left: up, left; top right: up, right;
  * bottom left: down, left; bottom right: down, right; the sides' bits 1 up, 2 down, 4 left, 8 right). The DS's way (0x02214AC0):
  * dirt is front blocks 0x20-0x2F; a dug cell becomes block 0-15 by the sides with dirt beside it, the dug ones beside it losing that
  * side: a hole with rounded dirt edges where dirt is left; */
@@ -1039,7 +1040,9 @@ struct SqueakDigRooms {
     u32 count;
 };
 const struct SqueakDigRooms gSqueakDigRooms = { NULL, 0 };
-#define TUNNEL_SIZE 8
+#define TUNNEL_SIZE 10
+#define TUNNEL_DIG 1
+#define TUNNEL_CLOUD 2
 
 // TunnelList(); The room's tunnel list (NULL none), its cells' count in `n`;
 static const u8 *TunnelList(u8 p, u16 *n) {
@@ -1063,8 +1066,9 @@ static const u8 *TunnelAt(const u8 *list, u16 n, s32 cx, s32 cy) {
 }
 
 /* Tunnel(); A tunnel cell drawn with its look for the sides still dirt (its kept ones, and its dig cells' not yet dug: KatAM's solid
- * there), its collision `after` (a dug dig cell's; else 0xFF: as it is): a block record of KatAM's made for it (sub_08001408); */
-static void Tunnel(u8 p, const u8 *list, u16 n, const u8 *c, u8 after) {
+ * there), or with `mended` a cloud cell's whole look, its collision `after` (a dug dig cell's; else 0xFF: as it is): a block record of
+ * KatAM's made for it (sub_08001408); */
+static void Tunnel(u8 p, const u8 *list, u16 n, const u8 *c, u8 after, bool32 mended) {
     static const s8 sSides[4][2] = { { 0, -1 }, { 0, 1 }, { -1, 0 }, { 1, 0 } };
     static const u8 sVertical[4] = { 1, 1, 2, 2 }, sHorizontal[4] = { 4, 8, 4, 8 };
     const u16 *entries;
@@ -1077,7 +1081,7 @@ static void Tunnel(u8 p, const u8 *list, u16 n, const u8 *c, u8 after) {
         o = TunnelAt(list, n, c[0] + sSides[k][0], c[1] + sSides[k][1]);
         if (o != NULL && o[2] && GetCollisionTile(p, o[0], o[1]) == ANIMAL_DIG_SOLID) mask |= 1 << k;
     }
-    entries = (const u16 *)(list + 4 + n * TUNNEL_SIZE) + (c[6] | c[7] << 8) * 16;
+    entries = (const u16 *)(list + 4 + n * TUNNEL_SIZE) + (mended ? c[8] | c[9] << 8 : c[6] | c[7] << 8) * 16;
     record[0] = 1;
     record[1] = ANIMAL_DIG_SOLID;
     record[2] = c[0];
@@ -1096,11 +1100,22 @@ static void Tunnel(u8 p, const u8 *list, u16 n, const u8 *c, u8 after) {
     sub_08001408(p, (struct Unk_0888562C *)record, NULL, NULL);
 }
 
+// Beside(); The tunnel cells beside cell (cx, cy) drawn again (dug ones and the edges: that side's dirt (cloud) gone or back);
+static void Beside(u8 p, const u8 *list, u16 n, s32 cx, s32 cy) {
+    static const s8 sSides[4][2] = { { 0, -1 }, { 0, 1 }, { -1, 0 }, { 1, 0 } };
+    u8 k;
+
+    for (k = 0; k < 4; k++) {
+        const u8 *o = TunnelAt(list, n, cx + sSides[k][0], cy + sSides[k][1]);
+
+        if (o != NULL && (!o[2] || GetCollisionTile(p, o[0], o[1]) != ANIMAL_DIG_SOLID)) Tunnel(p, list, n, o, 0xFF, FALSE);
+    }
+}
+
 /* DigCell(); A dig cell where (x, y) is (the room's, still undug: KatAM's solid there), and with `dig` dug: its tunnel look, what it
  * leaves; then the tunnel cells beside it drawn again (dug ones and the edges: that side's dirt gone); */
 static bool32 DigCell(struct Kirby *kirby, s32 x, s32 y, bool32 dig) {
-    static const s8 sSides[4][2] = { { 0, -1 }, { 0, 1 }, { -1, 0 }, { 1, 0 } };
-    u8 p = kirby->base.unk56, k;
+    u8 p = kirby->base.unk56;
     u16 n;
     const u8 *list, *c;
     s32 cx, cy;
@@ -1109,15 +1124,38 @@ static bool32 DigCell(struct Kirby *kirby, s32 x, s32 y, bool32 dig) {
     cx = x >> 12;
     cy = y >> 12;
     if (GetCollisionTile(p, cx, cy) != ANIMAL_DIG_SOLID) return FALSE;
-    if ((c = TunnelAt(list, n, cx, cy)) == NULL || !c[2]) return FALSE;
+    if ((c = TunnelAt(list, n, cx, cy)) == NULL || c[2] != TUNNEL_DIG) return FALSE;
     if (!dig) return TRUE;
-    Tunnel(p, list, n, c, c[5]);
-    for (k = 0; k < 4; k++) {
-        const u8 *o = TunnelAt(list, n, cx + sSides[k][0], cy + sSides[k][1]);
-
-        if (o != NULL && (!o[2] || GetCollisionTile(p, o[0], o[1]) != ANIMAL_DIG_SOLID)) Tunnel(p, list, n, o, 0xFF);
-    }
+    Tunnel(p, list, n, c, c[5], FALSE);
+    Beside(p, list, n, cx, cy);
     return TRUE;
+}
+
+/* SqueakCloudBreak(); A cloud cell of Mecha-Kracko's floor at cell (cx, cy) broken (the DS's 0x02214808: its attacks', its second
+ * form's bolts and field, squeak/mecha_kracko.c): drawn as the cloud's edges beside it, air; FALSE when there's none there whole; */
+bool32 SqueakCloudBreak(u8 p, s32 cx, s32 cy) {
+    u16 n;
+    const u8 *list, *c;
+
+    if (cx < 0 || cy < 0 || (list = TunnelList(p, &n)) == NULL || (c = TunnelAt(list, n, cx, cy)) == NULL || c[2] != TUNNEL_CLOUD
+        || GetCollisionTile(p, cx, cy) != ANIMAL_DIG_SOLID)
+        return FALSE;
+    Tunnel(p, list, n, c, c[5], FALSE);
+    Beside(p, list, n, cx, cy);
+    return TRUE;
+}
+
+/* SqueakCloudMend(); One broken put back (0x02216CB8: its low sweep's, its defeat's): its cloud look, solid; the cells beside it drawn
+ * again with it; */
+void SqueakCloudMend(u8 p, s32 cx, s32 cy) {
+    u16 n;
+    const u8 *list, *c;
+
+    if (cx < 0 || cy < 0 || (list = TunnelList(p, &n)) == NULL || (c = TunnelAt(list, n, cx, cy)) == NULL || c[2] != TUNNEL_CLOUD
+        || GetCollisionTile(p, cx, cy) == ANIMAL_DIG_SOLID || (c[8] == 0xFF && c[9] == 0xFF))
+        return;
+    Tunnel(p, list, n, c, ANIMAL_DIG_SOLID, TRUE);
+    Beside(p, list, n, cx, cy);
 }
 
 // DigAt(); The dig cell at (ahead, up) pixels from his feet (the DS's offsets, Y up), dug with `dig`;
@@ -1134,7 +1172,7 @@ static bool32 DugAt(struct Kirby *kirby, s32 ahead, s32 up) {
 
     if (x < 0 || y < 0 || (list = TunnelList(p, &n)) == NULL) return FALSE;
     c = TunnelAt(list, n, x >> 12, y >> 12);
-    return c != NULL && c[2] && GetCollisionTile(p, x >> 12, y >> 12) != ANIMAL_DIG_SOLID;
+    return c != NULL && c[2] == TUNNEL_DIG && GetCollisionTile(p, x >> 12, y >> 12) != ANIMAL_DIG_SOLID;
 }
 
 /* DirtOver(); Dirt to dig up over him: right over his head (the DS's 17 pixels); or, the owner's ("Cannot dig up with animal": the DS's

@@ -12,6 +12,3 @@ finishes it says how it was checked). The design rules for doors, mirrors and hu
 - The owner: "Dark nebula stars are still lagging the game, we need to solve that."
 - The owner: "Squeak lairs are very prone to lag and garbage tiles." (Garbage tiles not reproduced: six lairs' fights, every
   sprite's VRAM its own, the heap at most 338 of 512. Room 0x49C's garbled sprites were the gimmicks' VRAM, fixed.)
-
-## 2. Squeak Squad: the ability room, the hub, the boss rooms
-- The owner: "Second phase of Mecha Kracko doesn't change the room's structure like it does in Squeak Squad."

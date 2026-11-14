@@ -31,8 +31,7 @@
  *   of the two); while its HP is out (its pause, its cloud breaking and gathering) it's untouchable (Squeak Squad's hit handler
  *   and touch take nothing then).
  * Its sounds: Squeak Squad's (SqueakSfx). Not ported: its hit flash (enemy/kracko_dmg isn't in the game: its hurt palette its own, no flash), the stage's slowdown
- * in its pause (0x020216E8: the time object's speed), its low sweep and defeat filling the arena's missing cloud-floor tiles
- * (0x02216CB8: KatAM's rooms have none), its own defeat (0x02130924, 0x02130648, 0x02130584, 0x02130510: KatAM's mini-boss defeat),
+ * in its pause (0x020216E8: the time object's speed), its own defeat (0x02130924, 0x02130648, 0x02130584, 0x02130510: KatAM's mini-boss defeat),
  * Daroach bringing it in (the stage's scene, its own object), its boss music. */
 #include "../squeak.h"
 #include "kirby.h"
@@ -105,6 +104,7 @@ enum {
 #define HARM(s) ((s)->vars[7])
 #define FLOOR(s) ((s)->vars[8])         // The floor where it was placed (a3s7s2's Kirby's);
 #define EYE(s) ((s)->vars[9])
+#define FLOOR_MENDED(s) ((s)->vars[10])  // Its floor's clouds put back as it's beaten;
 #define ENEMY(s, i) (*(struct Object **)&(s)->vars[12 + (i)])
 
 // kracko.rca (left, top, right, bottom; Y up): its cloud's hurt box (animation 0's); its field's (6) and bolts' (7) attack boxes by frame;
@@ -120,6 +120,18 @@ static const s16 sBoltBoxes[][4] = {
     { 21, -120, 46, -164 }, { -10, 7, 15, -144 }, { -46, 27, 45, -51 }, { -39, 25, -1, -126 }, { -59, -112, -34, -168 },
     { 7, 24, 41, -127 }, { 33, -136, 58, -174 }, { -42, 18, 44, -60 }, { -11, 19, 14, -132 }, { -42, 18, -17, -133 },
     { -54, -127, -29, -164 }, { 12, 23, 37, -128 }, { 30, -109, 55, -161 },
+};
+
+/* The cloud floor (Squeak Squad's a3s7s2: a row of clouds, nothing under it; KatAMExpansionSqueakRooms.cs' SqueakCloudCells()): its second
+ * form's field and bolts break the cells they touch (the DS's attacks against the stage, 0x02217384: 0x02214808); its low sweep puts
+ * them back where it passes the columns of one of two rows picked at random (0x02130DF8, 0x0215BFE0: from the DS camera's left, 256
+ * pixels about the middle), its defeat all 16 (0x02130648). The owner: "Second phase of Mecha Kracko doesn't change the room's
+ * structure like it does in Squeak Squad"; */
+#define CLOUD_COLUMNS 16
+#define DS_VIEW_HALF 128
+static const u8 sSweepClouds[2][CLOUD_COLUMNS] = {
+    { 1, 1, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 1, 1 },
+    { 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0 },
 };
 
 static u32 Random(u32 n) {
@@ -164,6 +176,50 @@ static s32 FxSqrt(s32 v) {
 // Middle(); The camera view's middle across (Squeak Squad's camera + 128: here KatAM's view, 240 across);
 static s32 Middle(struct SqueakObject *s) {
     return gCurLevelInfo[s->obj.base.unk56].viewportPosition.x + (DISPLAY_WIDTH / 2 << 8);
+}
+
+// FloorRow(); Its floor's cells' row (the floor where it was placed, a 256th over the top of that row: the nearest line);
+static s32 FloorRow(struct SqueakObject *s) {
+    return (FLOOR(s) + 0x800) >> 12;
+}
+
+// CloudColumn(); The DS camera's column (0-15) at x (KatAM's 24.8), -1 outside its view;
+static s32 CloudColumn(struct SqueakObject *s, s32 x) {
+    s32 c = ((x - Middle(s)) >> 8) + DS_VIEW_HALF;
+
+    return c < 0 || c >= CLOUD_COLUMNS * 16 ? -1 : c >> 4;
+}
+
+// BreakClouds(); The floor's cells its box (the DS's: left, top, right, bottom from it, Y up) touches broken;
+static void BreakClouds(struct SqueakObject *s, const s16 *b) {
+    s32 row = FloorRow(s), x = s->obj.base.x >> 8, y = s->obj.base.y >> 8, cx;
+
+    if (y - b[1] >= (row + 1) << 4 || y - b[3] < row << 4) return;
+    for (cx = (x + b[0]) >> 4; cx <= (x + b[2]) >> 4; cx++) SqueakCloudBreak(s->obj.base.unk56, cx, row);
+}
+
+/* FallsOut(); A Kirby through a hole in its floor, FALL_OUT pixels under its line, out of the DS's view (its camera's bottom 96 under the
+ * floor: the stage's), is lost as the DS's fall out of a stage: KatAM's hp out, its hurt portrait (as the arena's crush, enemies/arena.c);
+ * KatAM's level bounds held him under the room, out of view, otherwise; */
+#define FALL_OUT 48
+void sub_08088640(struct Kirby *, u8, u16);
+static void FallsOut(struct SqueakObject *s) {
+    u8 i;
+
+    for (i = 0; i < gNumKirbys; i++) {
+        struct Kirby *kirby = &gKirbys[i];
+
+        if (kirby->base.roomId != s->obj.base.roomId || kirby->hp <= 0 || kirby->base.y <= FLOOR(s) + (FALL_OUT << 8)) continue;
+        kirby->hp = 0;
+        sub_08088640(kirby, 0x1C, 0x20);
+    }
+}
+
+// MendFloor(); The floor's 16 cells in the DS camera's view put back (its defeat, 0x02130648);
+static void MendFloor(struct SqueakObject *s) {
+    s32 left = ((Middle(s) >> 8) - DS_VIEW_HALF) >> 4, i;
+
+    for (i = 0; i < CLOUD_COLUMNS; i++) SqueakCloudMend(s->obj.base.unk56, left + i, FloorRow(s));
 }
 
 // Spot(); 0x02132840: a spot of its arena (KatAM's 24.8), by kind;
@@ -522,14 +578,20 @@ static bool32 MechaKracko(struct SqueakObject *s) {
             Spot(s, SPOT_OUT_FAR, &x, &y);
             s->obj.base.y = y;
             s->vx = Ahead(s, x) / SWEEP_TIME;
-            TIMER(s) = 0;
+            // (its +0xB4 the row of the columns it mends: 0x02130F40's random bit);
+            TIMER(s) = Random(2);
             SqueakSfx(s, 0x186);
             SqueakSetState(s, MK_SWEEP);
             return TRUE;
         }
         MoveFree(s);
         break;
-    case MK_SWEEP:          // 0x02130DF8 (the cloud floor it fills: not ported); back up, in to its side's spot;
+    case MK_SWEEP:          // 0x02130DF8: the floor's clouds back where it passes its row's columns; then back up, in to its side's spot;
+        {
+            s32 c = CloudColumn(s, s->obj.base.x);
+
+            if (c >= 0 && sSweepClouds[TIMER(s) & 1][c]) SqueakCloudMend(s->obj.base.unk56, s->obj.base.x >> 12, FloorRow(s));
+        }
         if (T(s) >= SWEEP_TIME) {
             SqueakStop(s);
             Spot(s, SPOT_NEAR, &x, &y);
@@ -640,6 +702,8 @@ static void Boxes(struct SqueakObject *s) {
     base->flags &= ~0x200;
     sub_0803E2B0(base, b[0], -b[1] > 127 ? 127 : -b[1], b[2], -b[3] > 127 ? 127 : -b[3]);
     base->unk68 = HARM(s);
+    // (its second form's field and bolts breaking the floor's clouds, their whole box);
+    if (PHASE(s) && (s->composite == COMPOSITE_FIELD || s->composite == COMPOSITE_BOLTS)) BreakClouds(s, b);
     base->unk5C = (base->unk5C & ~7) | (Hittable(s) ? 3 : 6);
 }
 
@@ -661,13 +725,19 @@ static void MechaKrackoMain(struct Object *obj) {
     obj->kirby3 = FindTargetKirby(&obj->base);
     Hit(s);
     SqueakRun(s, MechaKracko);
-    if (obj->unk80 <= 0) return;
+    if (obj->unk80 <= 0) {
+        // (beaten: its floor whole again, as the DS's defeat);
+        if (!FLOOR_MENDED(s)) MendFloor(s);
+        FLOOR_MENDED(s) = TRUE;
+        return;
+    }
     // (its HP bar Squeak Squad's boss's, which its enemies' hits don't take: KatAM's goes to whatever is hit, taken back);
     sub_08034E14(obj);
     SqueakFinishFrame(s);
     SqueakAnimate(s);
     Boxes(s);
     Eye(s);
+    if (PHASE(s)) FallsOut(s);
 }
 
 /* MechaKrackoStart(); Its fight's start (and after a hit: it goes on, as KatAM's mini-bosses do). It isn't held in the camera's area
@@ -679,6 +749,7 @@ void MechaKrackoStart(struct Object *obj) {
     if (s->started) return;
     PHASE(s) = FALSE;
     FIELD_NEXT(s) = FALSE;
+    FLOOR_MENDED(s) = FALSE;
     LAST_HP(s) = obj->unk80;
     SqueakSetState(s, MK_START);
 }
