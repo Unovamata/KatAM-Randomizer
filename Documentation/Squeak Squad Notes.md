@@ -1820,7 +1820,12 @@ sprite looks off."):
   the pillar, cleared by `Ignite()`; his aura (alive all his fight) draws them (`IceFloor()`): 13 looks
   (`KatAMExpansionSqueak.cs`'s `SqueakIceFloorLook`, `ReadSqueakBlocks`: the 4 kinds by x % 3, and the three between blocks side by
   side, one sprite for three of a long row's), copied once into a VRAM block of their own, each drawn with `DisplaySprite` on the
-  room's own tiles, its bottom on the bottom of the floor's top row. Not slippery: KatAM has no slippery floor.
+  room's own tiles, its bottom on the bottom of the floor's top row. Slippery as the DS's (collision 0x2900, its ice; the owner:
+  "Dark Nebula's ice platforms don't act as ice"): KatAM has no slippery floor, so his aura makes it (`IceSlide()`): a Kirby on the
+  ground over an iced tile moves on at the speed he had, where his own update takes him each frame changing it a sixteenth
+  (`ICE_GRIP`): he starts slowly and slides on when he stops or turns, till a wall or the room's edge; a step of more than 4 pixels
+  (a warp, the edge putting him back) is taken as it is. Checked in the GBA emulator (USA, room 0x5E0; his ice form and pillar put
+  on by RAM, the pillar icing the floor itself): Kirby walking 40 frames and let go slides 27 pixels on the ice, 5 without it.
 - **The blocks come out mirrored** unless turned before: `SqueakCanvas()` mirrors every Squeak Squad cell (the DS's face right,
   KatAM's frames left); a stage's blocks are drawn as they are, so `ReadSqueakBlocks` gives each cell mirrored (each piece on the
   other side, its flip turned). Before that the left and right ends were swapped (an outline between the end and the next block).
