@@ -1022,37 +1022,124 @@ static void NinjaArtRelease(struct Kirby *kirby) {
 #define ANIMAL_DIG_SOLID 0x0D               // (KatAMExpansionSqueakRooms.cs' KatAMSolid: the dig cells' value till dug);
 void RequestScreenShake(u16, struct ObjectBase *);
 
-/* gSqueakDigRooms; The Squeak Squad rooms' dig cells (KatAMExpansionSqueakRooms.cs' SqueakDigCells()): per room from SQUEAK_FIRST_ROOM,
- * a list (NULL none): u16 how many, then a block record each (KatAM's, sub_08001408's: its cell, what it's drawn and left as dug); */
+/* gSqueakDigRooms; The Squeak Squad rooms' tunnel cells (KatAMExpansionSqueakRooms.cs' SqueakTunnels()): per room from
+ * SQUEAK_FIRST_ROOM, a list (NULL none): u16 how many cells, u16 how many sets; each cell (TUNNEL_SIZE bytes): x, y, 1 if a dig cell,
+ * the sides always dirt, the sides with dig cells, what a dug dig cell leaves (KatAM's air or water), its set (u16); then the sets (the
+ * same ones shared), 16 tilemap entries each, 4 a quarter by its two sides still dirt (top left: up, left; top right: up, right;
+ * bottom left: down, left; bottom right: down, right; the sides' bits 1 up, 2 down, 4 left, 8 right). The DS's way (0x02214AC0):
+ * dirt is front blocks 0x20-0x2F; a dug cell becomes block 0-15 by the sides with dirt beside it, the dug ones beside it losing that
+ * side: a hole with rounded dirt edges where dirt is left; */
 struct SqueakDigRooms {
     const u8 *const *list;
     u32 count;
 };
 const struct SqueakDigRooms gSqueakDigRooms = { NULL, 0 };
+#define TUNNEL_SIZE 8
 
-// DigCell(); A dig cell where (x, y) is (the room's, still undug: KatAM's solid there), and with `dig` dug (its record applied);
+// TunnelList(); The room's tunnel list (NULL none), its cells' count in `n`;
+static const u8 *TunnelList(u8 p, u16 *n) {
+    u16 room = gCurLevelInfo[p].currentRoom;
+    const u8 *list;
+
+    if (room < SQUEAK_FIRST_ROOM || room - SQUEAK_FIRST_ROOM >= gSqueakDigRooms.count) return NULL;
+    if ((list = gSqueakDigRooms.list[room - SQUEAK_FIRST_ROOM]) == NULL) return NULL;
+    *n = list[0] | list[1] << 8;
+    return list;
+}
+
+// TunnelAt(); The tunnel cell at (cx, cy), NULL none;
+static const u8 *TunnelAt(const u8 *list, u16 n, s32 cx, s32 cy) {
+    const u8 *c = list + 4;
+    u16 i;
+
+    for (i = 0; i < n; i++, c += TUNNEL_SIZE)
+        if (c[0] == cx && c[1] == cy) return c;
+    return NULL;
+}
+
+/* Tunnel(); A tunnel cell drawn with its look for the sides still dirt (its kept ones, and its dig cells' not yet dug: KatAM's solid
+ * there), its collision `after` (a dug dig cell's; else 0xFF: as it is): a block record of KatAM's made for it (sub_08001408); */
+static void Tunnel(u8 p, const u8 *list, u16 n, const u8 *c, u8 after) {
+    static const s8 sSides[4][2] = { { 0, -1 }, { 0, 1 }, { -1, 0 }, { 1, 0 } };
+    static const u8 sVertical[4] = { 1, 1, 2, 2 }, sHorizontal[4] = { 4, 8, 4, 8 };
+    const u16 *entries;
+    u8 record[0x12], mask = c[3], k;
+
+    for (k = 0; k < 4; k++) {
+        const u8 *o;
+
+        if (!(c[4] >> k & 1)) continue;
+        o = TunnelAt(list, n, c[0] + sSides[k][0], c[1] + sSides[k][1]);
+        if (o != NULL && o[2] && GetCollisionTile(p, o[0], o[1]) == ANIMAL_DIG_SOLID) mask |= 1 << k;
+    }
+    entries = (const u16 *)(list + 4 + n * TUNNEL_SIZE) + (c[6] | c[7] << 8) * 16;
+    record[0] = 1;
+    record[1] = ANIMAL_DIG_SOLID;
+    record[2] = c[0];
+    record[3] = c[1];
+    record[4] = 0x12;
+    record[5] = 0;
+    record[6] = record[7] = 0xFF;
+    for (k = 0; k < 4; k++) {
+        u16 e = entries[k * 4 + ((mask & sVertical[k]) ? 1 : 0) + ((mask & sHorizontal[k]) ? 2 : 0)];
+
+        record[8 + k * 2] = e;
+        record[9 + k * 2] = e >> 8;
+    }
+    record[0x10] = after != 0xFF ? after : GetCollisionTile(p, c[0], c[1]);
+    record[0x11] = 0xFF;
+    sub_08001408(p, (struct Unk_0888562C *)record, NULL, NULL);
+}
+
+/* DigCell(); A dig cell where (x, y) is (the room's, still undug: KatAM's solid there), and with `dig` dug: its tunnel look, what it
+ * leaves; then the tunnel cells beside it drawn again (dug ones and the edges: that side's dirt gone); */
 static bool32 DigCell(struct Kirby *kirby, s32 x, s32 y, bool32 dig) {
-    u8 p = kirby->base.unk56, cx, cy;
-    u16 room = gCurLevelInfo[p].currentRoom, n, i;
-    const u8 *list, *r;
+    static const s8 sSides[4][2] = { { 0, -1 }, { 0, 1 }, { -1, 0 }, { 1, 0 } };
+    u8 p = kirby->base.unk56, k;
+    u16 n;
+    const u8 *list, *c;
+    s32 cx, cy;
 
-    if (room < SQUEAK_FIRST_ROOM || room - SQUEAK_FIRST_ROOM >= gSqueakDigRooms.count || x < 0 || y < 0) return FALSE;
-    if ((list = gSqueakDigRooms.list[room - SQUEAK_FIRST_ROOM]) == NULL) return FALSE;
+    if (x < 0 || y < 0 || (list = TunnelList(p, &n)) == NULL) return FALSE;
     cx = x >> 12;
     cy = y >> 12;
     if (GetCollisionTile(p, cx, cy) != ANIMAL_DIG_SOLID) return FALSE;
-    n = list[0] | list[1] << 8;
-    for (i = 0, r = list + 2; i < n; i++, r += 0x12) {
-        if (r[2] != cx || r[3] != cy) continue;
-        if (dig) sub_08001408(p, (struct Unk_0888562C *)r, NULL, NULL);
-        return TRUE;
+    if ((c = TunnelAt(list, n, cx, cy)) == NULL || !c[2]) return FALSE;
+    if (!dig) return TRUE;
+    Tunnel(p, list, n, c, c[5]);
+    for (k = 0; k < 4; k++) {
+        const u8 *o = TunnelAt(list, n, cx + sSides[k][0], cy + sSides[k][1]);
+
+        if (o != NULL && (!o[2] || GetCollisionTile(p, o[0], o[1]) != ANIMAL_DIG_SOLID)) Tunnel(p, list, n, o, 0xFF);
     }
-    return FALSE;
+    return TRUE;
 }
 
 // DigAt(); The dig cell at (ahead, up) pixels from his feet (the DS's offsets, Y up), dug with `dig`;
 static bool32 DigAt(struct Kirby *kirby, s32 ahead, s32 up, bool32 dig) {
     return DigCell(kirby, kirby->base.x + Dir(kirby) * (ahead << 8), kirby->base.y + SCROLL_FEET - (up << 8), dig);
+}
+
+// DugAt(); The dig cell at (ahead, up) pixels from his feet already dug (a tunnel's open cell);
+static bool32 DugAt(struct Kirby *kirby, s32 ahead, s32 up) {
+    u8 p = kirby->base.unk56;
+    s32 x = kirby->base.x + Dir(kirby) * (ahead << 8), y = kirby->base.y + SCROLL_FEET - (up << 8);
+    u16 n;
+    const u8 *list, *c;
+
+    if (x < 0 || y < 0 || (list = TunnelList(p, &n)) == NULL) return FALSE;
+    c = TunnelAt(list, n, x >> 12, y >> 12);
+    return c != NULL && c[2] && GetCollisionTile(p, x >> 12, y >> 12) != ANIMAL_DIG_SOLID;
+}
+
+/* DirtOver(); Dirt to dig up over him: right over his head (the DS's 17 pixels); or, the owner's ("Cannot dig up with animal": the DS's
+ * tunnels 2 cells tall), over a tunnel's open cell there, the cell above it; */
+#define DIRT_OVER_HEAD 1
+#define DIRT_OVER_TUNNEL 2
+static u8 DirtOver(struct Kirby *kirby, bool32 dig) {
+    if (DigAt(kirby, 0, 17, dig)) return DIRT_OVER_HEAD;
+    if (DugAt(kirby, 0, 17) && DigAt(kirby, 0, 33, dig)) return DIRT_OVER_TUNNEL;
+    return 0;
 }
 
 // NoLook(); His moves' piece drawing nothing: Kirby's own sprite (his motions);
@@ -1066,10 +1153,13 @@ static void NoLook(struct Kirby *kirby) {
     MoveStep(p);
 }
 
-/* The dig's way: AnimalDig's unkD9 (0 down, 1 ahead, 2 up); the dig cells cleared as it starts (with word 0, the side ones too); */
+/* The dig's way: AnimalDig's unkD9 (0 down, 1 ahead, 2 up, 3 up two cells: from a tunnel, DirtOver()); the dig cells cleared as it
+ * starts (with word 0, the side ones too); */
 #define DIG_DOWN 0
 #define DIG_AHEAD 1
 #define DIG_UP 2
+#define DIG_UP_TUNNEL 3
+#define DIG_UPWARD(way) ((way) == DIG_UP || (way) == DIG_UP_TUNNEL)
 static void StartDig(struct Kirby *kirby, u8 way) {
     kirby->base.xspeed = kirby->base.yspeed = 0;
     kirby->unkD9 = way;
@@ -1084,7 +1174,7 @@ static void StartDig(struct Kirby *kirby, u8 way) {
         DigAt(kirby, -16, 8, TRUE);
         // (centred on his cell);
         kirby->base.x = ((kirby->base.x >> 12) << 12) + 0x800;
-        kirby->base.yspeed = way == DIG_UP ? ANIMAL_DIG_SPEED : -ANIMAL_DIG_SPEED;
+        kirby->base.yspeed = DIG_UPWARD(way) ? ANIMAL_DIG_SPEED : -ANIMAL_DIG_SPEED;
     }
     PlaySfx(&kirby->base, SQUEAK_SE(0xE3));
     kirby->animationIndex = NIDL_MOTION_SLOT;
@@ -1233,22 +1323,33 @@ static void AnimalThrow(struct Kirby *kirby) {
     kirby->unkD9 = 1;
 }
 
-// Digging (0x0208A988, 0x0208AC0C, 0x0208AD94): his way at 16 pixels in 20 frames, its box; then standing;
+/* Digging (0x0208A988, 0x0208AC0C, 0x0208AD94): his way at 16 pixels in 20 frames (up from a tunnel: 32 in 40), its box; then standing;
+ * dug up, his feet on the cell's line, and with Up and B still held under more dirt, on up (the owner's: the DS falls back); */
 static void AnimalDig(struct Kirby *kirby) {
-    if (kirby->unkD9 == DIG_AHEAD) {
+    u8 way = kirby->unkD9;
+
+    if (way == DIG_AHEAD) {
         kirby->base.yspeed = 0;
         kirby->base.xspeed = Dir(kirby) * ANIMAL_DIG_SPEED;
         MoveBox(kirby, -2, 30, 27, 2, ANIMAL_DIG_STRENGTH);
     } else {
         kirby->base.xspeed = 0;
-        kirby->base.yspeed = kirby->unkD9 == DIG_UP ? ANIMAL_DIG_SPEED : -ANIMAL_DIG_SPEED;
-        if (kirby->unkD9 == DIG_UP) MoveBox(kirby, -15, 30, 15, 8, ANIMAL_DIG_STRENGTH);
+        kirby->base.yspeed = DIG_UPWARD(way) ? ANIMAL_DIG_SPEED : -ANIMAL_DIG_SPEED;
+        if (DIG_UPWARD(way)) MoveBox(kirby, -15, 30, 15, 8, ANIMAL_DIG_STRENGTH);
         else MoveBox(kirby, -2, 30, 27, 2, ANIMAL_DIG_STRENGTH);
     }
     kirby->base.flags &= ~0x40;
-    if (++kirby->base.counter <= ANIMAL_DIG_FRAMES) return;
+    if (++kirby->base.counter <= ANIMAL_DIG_FRAMES * (way == DIG_UP_TUNNEL ? 2 : 1)) return;
     MoveBox(kirby, 0, 0, 0, 0, 0);
     kirby->base.xspeed = kirby->base.yspeed = 0;
+    if (DIG_UPWARD(way)) {
+        // (standing's pixel under the line, as KatAM's: the next cell up 17 pixels over his feet);
+        kirby->base.y = ((((kirby->base.y + SCROLL_FEET + 0x800) >> 12) << 12) - SCROLL_FEET) + 0xFF;
+        if (kirby->movementState & 0x40 && kirby->movementState & 2 && DigAt(kirby, 0, 17, TRUE)) {
+            StartDig(kirby, DIG_UP);
+            return;
+        }
+    }
     NidlAbilityEnd(kirby);
 }
 
@@ -1264,7 +1365,11 @@ static void AnimalLookUp(struct Kirby *kirby) {
         NidlAbilityEnd(kirby);
         return;
     }
-    if (kirby->unk11A & 2 && DigAt(kirby, 0, 17, TRUE)) StartDig(kirby, DIG_UP);
+    if (kirby->unk11A & 2) {
+        u8 over = DirtOver(kirby, TRUE);
+
+        if (over) StartDig(kirby, over == DIRT_OVER_TUNNEL ? DIG_UP_TUNNEL : DIG_UP);
+    }
 }
 
 // The bounce (0x0208A10C's, 0x0208A59C's; 0x0208A024): back and up, KatAM's flip (his own motions), till falling;
@@ -2020,7 +2125,7 @@ void SqueakAbilityInput(struct Kirby *kirby) {
      * up; crouching, B over one under his feet, digging down, +0x8C (0x0208AB1C), not sliding); */
     if (kirby->ability == SQUEAK_ABILITY_ANIMAL) {
         if (!(kirby->base.unk62 & 4)) return;
-        if (kirby->unk11A & 0x40 && DigAt(kirby, 0, 17, FALSE)) {
+        if (kirby->unk11A & 0x40 && DirtOver(kirby, FALSE)) {
             kirby->base.flags &= ~0x40;
             kirby->animationIndex = NIDL_MOTION_SLOT;
             StartState(kirby, AnimalLookUp);
