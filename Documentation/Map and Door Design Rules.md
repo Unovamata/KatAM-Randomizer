@@ -13,7 +13,7 @@ after any change.
 
 | Way | KatAM object | One-way or two-way | Notes |
 |---|---|---|---|
-| Mirror (door) | `0x6F` mirror, a door cell | either | The normal way. One-way mirrors are drawn with KatAM's one-way graphic. Every door is a mirror but NiDL's own door halls (rule 2). Squeak Squad's goal doors, the DS's wide black doorways, are a mirror too, their doorway taken out of the room's tiles (the owner: "I think we can drop the wide black doors and replace them with regular mirrors since these look very odd in-game"). |
+| Mirror (door) | `0x6F` mirror, a door cell | either | The normal way. One-way mirrors are drawn with KatAM's one-way graphic. Every door is a mirror but NiDL's own door halls (rule 2). Squeak Squad's goal doors, the DS's wide black doorways, are a mirror too, their doorway taken out of the room's tiles (the owner: "I think we can drop the wide black doors and replace them with regular mirrors since these look very odd in-game"); so is 2-2-1's castle gate (the owner: "there's wide black doors in some stages, I just need you to replace these"): the tower's stone over its arch, `SqueakGoalDoorways()`. The Squeak Lairs' nests keep their doorways (rule 5). |
 | Hub door | `0x97` door object | always two-way | Only in hubs (rule 4). Hidden until its big switch is pressed. |
 | Mirra | `0x34` | one-way, but both ways into a switch room | A hidden mirror that runs away (rule 6). |
 | Warp star | `0x84` | one-way | NiDL's and Squeak Squad's own; stays a warp star (rule 7). |
@@ -35,8 +35,8 @@ after any change.
 - **No door, landing or way back in front of a switch** (the owner: "There's instances where switches are in front of doors, this
   breaks the 3 tile rule"): the ones added to Squeak Squad's rooms keep 3 cells across, 2 up or down, from its stone-door switches
   (gimmick 0), as enemies keep from doors; and 2 across, 2 up or down, from its other gimmicks (stone doors, lifts, clouds,
-  boulders, fires, rocks, icicles, ropes, candles: 8-1-1's door stood in a stone door's pillar) and its chests (2-6-3's mirror stood
-  on its big chest's ledge). The DS's own doors stay where the DS has them. `SqueakSpot()`, `NearGimmick()`.
+  boulders, fires, rocks, icicles, ropes, candles: 8-1-1's door stood in a stone door's pillar) and its items, chests and the
+  rest (2-6-3's mirror stood on its big chest's ledge, 5-3-6's way on on its meat). The DS's own doors stay where the DS has them. `SqueakSpot()`, `NearGimmick()`.
 - NiDL's own door halls (Butter Building's tower floors, Rainbow Resort's rooms of doors) keep all their doors, drawn as NiDL's
   own doorways without mirrors, past these limits.
 - **Secret doors stay hidden until uncovered**: a door behind breakable blocks or in a hidden spot only shows once Kirby finds it.
@@ -183,21 +183,32 @@ after any change.
     7-3-2's way to 7-6-4 under its thin floors cut 7-6 off without Down and B), `Walkable()`;
   - doors go only in rooms the stage's start reaches (through the DS's own doors from every door Kirby lands on in the stage, and
     through the walls only Fire or an unported gimmick opens on the DS, which are KatAM's star blocks); where no stage in a world's tree has a room taking a door (Prism Plains 1's
-    are small, 2 doors each), **a stage's goal door leads on into the next stage**, one-way;
-  - **goals lead on to the next stage** (the owner: "Goal doors reach to the next stage correct, however keep in mind the Goal
-    minigame doors from KatAM as well for path ending sections, 1 or 2 per area"): each goal but the deepest stage's (into the boss
-    stage) leads, one-way, into the world's next stage by number; 1 or 2 a world (2 where it has 4 such goals or more), at the ends
-    of paths (no stage after them first, then the stages nothing hangs off, the deepest first), into one of KatAM's goal games;
-  - a goal room keeps the DS's own doors (they're drawn in its tiles) but gets no new one (the owner to confirm);
+    are small, 2 doors each), **a stage hangs off another's way on** (below), one-way;
+  - **every stage's goal is a goal door** (the owner, of room 0x420's "double door clash": "Wide doors should be replaced with goal
+    doors and the expected route should be placed elsewhere, that would make the most sense"; asked whether every stage's goal: "Yes,
+    every stage"): each goal leads, one-way, into one of KatAM's goal games (0x3D4-0x3D6 in turn, Central Circle after), ending the
+    stage as KatAM's stages end;
+  - **the way on is a mirror of its own**, one-way onto the start of where the goal led before (the owner earlier: "Goal doors reach
+    to the next stage correct, however keep in mind the Goal minigame doors from KatAM as well for path ending sections, 1 or 2 per
+    area"): the deepest stage's into the boss stage; a stage hung off it, into that stage; the others into the world's next stage
+    by number, but 1 or 2 a world (2 where it has 4 such stages or more), at the ends of paths (no stage after them first, then the
+    stages nothing hangs off, the deepest first), which have none (their goal game ends the path). It stands in the latest room
+    before the goal room that takes a door (the end of the stage), else in the goal room away from its goal door, else in the first
+    room after it that takes one (5-3's goal is in its first room, its hub), else in the goal room past bomb chains Kirby blows up
+    on his way to its goal (4-5-2's), under the rooms' exits (rule 2); placed before the loops and links, so they come first; one
+    that finds no room is tried again once every room is reached (7-3's: 7-3-3 is reached on the DS only by dropping through 7-3-2's
+    thin floors, till rule 9's throw), its goal leading on till then. `WayOnSpot()`, `DoorKind.WayOn`;
+  - a goal room keeps the DS's own doors (they're drawn in its tiles) and gets no new one but a way on where no room before it
+    takes one (the goal door stays apart: `MirrorSpacing` x 2 across, the view keeping 2 doors at most);
   - each world's boss stage (1-7, 2-7, 3-7, 4-7, 5-6, 6-7, 7-7; 5-7, a copy of 5-6, is left out as the Arena's copies are)
-    is entered only through the deepest stage's goal; Squeak Squad's final stage (8-4) is not world 8's boss stage but the
+    is entered only through the deepest stage's way on; Squeak Squad's final stage (8-4) is not world 8's boss stage but the
     finale's (rule 8): its rooms the DS reaches by cutscenes between its fights go on **by themselves**, with no mirror or door
     (the owner: "Why is there a door in daroach's first phase fight [...] the warp should send me to the next phase automatically"):
     Dark Daroach's room once his defeat has played out, into the dark star's chase, and the room the ride after the chase lands in
     (0x5DF), into the room before Dark Nebula's (0x5E1, with its tomato), whose own door leads into his fight (the owner: "Room 0x5DF
     skips the entrance 0x5E1"; `SqueakPhaseWarps`, squeak/gimmicks.c's `PhaseWarp`); a warp star ride of the DS's still leads on
     where it does; the last two rooms, copies of his room and the one before it, are on no way (so he's fought once); world 8's
-    deepest goal ends its path into a goal game, as other path ends do;
+    deepest stage has no way on, its goal game ending its path, as other path ends do;
   - the hidden two-way door between worlds leads into the next world's first stage;
   - **Squeak Lairs** (the owner: "Entrance 1 -> Squeak Lair with Miniboss -> Entrance 2 as an interlude between zones in the
     Squeak Squad map"): each Squeak that steals a stage's treasure on the DS (Spinni, Doc or Storo, its thief) has its hideout
