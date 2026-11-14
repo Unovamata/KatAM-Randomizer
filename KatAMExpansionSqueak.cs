@@ -1393,7 +1393,12 @@ namespace KatAMRandomizer {
             new SqueakEnemy(SqueakGrass + 3, "Grass", "yakumono/grass_B_L", new[] { 0, 0, 0 }, new (int, int)[0]),
             new SqueakEnemy(SqueakGrass + 4, "Grass", "yakumono/grass_C_S", new[] { 0, 0, 0 }, new (int, int)[0]),
             new SqueakEnemy(SqueakGrass + 5, "Grass", "yakumono/grass_C_L", new[] { 0, 0, 0 }, new (int, int)[0]),
-            new SqueakEnemy(SqueakBarrel, "Barrel", "yakumono/barrel", new[] { 0, 0, 0 }, new (int, int)[0]),
+            /* The barrel (gimmick 0xF, yakumono/barrel: 0 open, 1 the lid shutting, 2 shut, 3 the lid opening, 4 shaking, 5 a stave
+             * flying, 6 the barrel breaking, 7 its pieces): every cell, and its .mca's composite 0 as animation 8 (its burst, 97 frames:
+             * 6, 5 at (20, 0) and 7 at (8, -24) together; the DS's burst plays it, squeak/gimmicks.c's BARREL_BURST); its sprite's VRAM
+             * as many tiles as the frame it shows (FitVram); no name; */
+            new SqueakEnemy(SqueakBarrel, "Barrel", "yakumono/barrel", new[] { 0, 0, 0 }, new (int, int)[0], FlattenComposites: true,
+                            FitVram: true),
             // The icicle (gimmick 9, yakumono/icicle: 0 hanging, 1 shaking, 2 falling, 3 shattering): every cell; no name;
             new SqueakEnemy(SqueakIcicle, "Icicle", "yakumono/icicle", new[] { 0, 0, 0 }, new (int, int)[0]),
             // The falling rock (gimmick 8, yakumono/rock: 0 appearing, 1 falling, spinning, 2 breaking): every cell; no name;

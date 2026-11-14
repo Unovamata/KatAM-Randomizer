@@ -1779,9 +1779,10 @@ static void *SqueakCreateBlades(struct ObjectTemplate *template, u8 playerId) {
 }
 
 /* The barrel (yakumono/barrel: 0 open, its lid up with a down arrow, 1 the lid shutting, 2 shut, 3 the lid opening, 4 shaking,
- * 5 bursting): its spot its top, its box 16 to each side and 32 down (the constructor's -1.0, -2.0 to 1.0, 0 in the DS's y-up
- * world); one holding something starts shut, an empty one open; an attack bursts it (message 0xB, sound 0x51), letting out what it
- * holds, and it's gone. An open one hides Kirby (its states, vtable 0x02229594's: 1-2 a Kirby got in, the lid shutting then shut;
+ * 5 a stave flying, 6 the barrel breaking, 7 its pieces; 8 here its .mca's composite 0, the three together): its spot its top, its
+ * box 16 to each side and 32 down (the constructor's -1.0, -2.0 to 1.0, 0 in the DS's y-up world); one holding something starts
+ * shut, an empty one open; an attack bursts it (message 0xB, sound 0x51: composite 0, 97 frames), letting out what it holds, and
+ * it's gone. An open one hides Kirby (its states, vtable 0x02229594's: 1-2 a Kirby got in, the lid shutting then shut;
  * 6-7 he pressed a way, the barrel shaking then shut; 3-4 he pressed A, the lid opening, he's out, then open; 5 none gets in for
  * 0x1E frames after): a Kirby on the floor in front of it pressing Down gets in, as he would into KatAM's cannon (sub_08051C40:
  * hidden, out of reach of anything, held at the object in his unk6C: here the barrel's bottom, BarrelHold); A lets him out, hopping
@@ -1798,6 +1799,7 @@ struct SqueakBarrel {
                 // before the barrel's turn when he stands;
 };
 #define BARREL_WAIT 0x1E
+#define BARREL_BURST 8        // (KatAMExpansionSqueak.cs's barrel: its .mca's composite 0 after its 8 animations);
 #define BARREL_HOP 0x300
 #define BARREL_REACH 12       // a Kirby's middle within this of its middle, across;
 #define BARREL_KEY_DOWN 0x80
@@ -1905,7 +1907,9 @@ static void SqueakBarrelMain(struct Object *obj) {
     if (Struck(obj)) {
         LetOut(obj);
         PlaySfx(&obj->base, SQUEAK_SE(0x51)); // (the DS's 0x51);
-        GimmickPlay(obj, &b->spr, 5);
+        /* (its .mca's composite 0, as the DS's burst: the barrel breaking, a stave flying and its pieces, 97 frames; animation 5 alone,
+         * one stave, before: the owner, "the barrel destruction animation looks off"); */
+        GimmickPlay(obj, &b->spr, gSqueakData.enemies[SQUEAK_BARREL].anims > BARREL_BURST ? BARREL_BURST : 5);
         b->burst = TRUE;
         obj->base.unk5C &= ~7;
         return;

@@ -643,6 +643,8 @@ void SqueakHoldEffect(struct SqueakObject *, u8 effect, s32 dx, s32 dy);
 void SqueakEndHeldEffect(struct SqueakObject *);
 void SqueakSplash(struct SqueakObject *, bool8 out);
 bool32 SqueakTouches(struct SqueakObject *, u8 side, s32 dy, bool8 both);
+bool32 SqueakIsWall(struct Object *, s32 x, s32 y);
+bool32 SqueakTouchesWall(struct SqueakObject *, u8 side, s32 dy, bool8 both);
 struct SqueakObject *SqueakSpawn(struct SqueakObject *, u8 enemy, u8 variant, s32 dx, s32 dy);
 bool32 SqueakInLevel(struct SqueakObject *);
 void SqueakSetBoxes(struct SqueakObject *, const struct SqueakBoxes *, s16 harm, u8 *index);

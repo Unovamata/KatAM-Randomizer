@@ -11,9 +11,11 @@
  *   (anim 2) while there's wall beside it 8 pixels on; B throws (anim 3): 20 frames in, a rock leaves 18 pixels ahead, 6 up,
  *   flying on at 1.6 and falling 0.2 a frame (anim 11), bursting (efc_cmn1's animation 1) on whatever it hits. No wall beside it
  *   any more, it starts over (stands, or falls).
- * Its sounds (Squeak Squad's, SqueakSfx): 0x12F the throw, 0x135 the rock bursting. Not ported: the stage's wall-distance nudge of its probes (vtable +0x38,
- * +0x3C: only when its box is in a wall, which KatAM's terrain never lets it be), the rock's burst when an attack hits it (KatAM's
- * own defeat instead), and the other mode (the brain's +8 not 3; never so for this brain): A jumps off walls (2.5 up). */
+ * Its sounds (Squeak Squad's, SqueakSfx): 0x12F the throw, 0x135 the rock bursting. Its walls are fully solid tiles only
+ * (SqueakTouchesWall: whole slope cells made it cling to the air over ledges; Squeak Squad's also takes a slope under its surface,
+ * not ported: its spots are all beside walls). The stage's wall-distance nudge (vtable +0x38, +0x3C) only at its spot (OutOfWall:
+ * its box starts in its wall; KatAM's terrain keeps it out after that). Not ported: the rock's burst when an attack hits it
+ * (KatAM's own defeat instead), and the other mode (the brain's +8 not 3; never so for this brain): A jumps off walls (2.5 up). */
 #include "../squeak.h"
 #include "random.h"
 
@@ -65,9 +67,9 @@ static void Still(struct SqueakObject *s) {
     s->maxVx = s->maxVy = s->ax = s->ay = s->fx = s->fy = 0;
 }
 
-// Beside(); A wall beside it (left or right), `dy` up from it;
+// Beside(); A wall beside it (left or right), `dy` up from it (walls only: a slope or a thin floor isn't one);
 static bool32 Beside(struct SqueakObject *s, s32 dy) {
-    return SqueakTouches(s, SQUEAK_LEFT, dy, FALSE) || SqueakTouches(s, SQUEAK_RIGHT, dy, FALSE);
+    return SqueakTouchesWall(s, SQUEAK_LEFT, dy, FALSE) || SqueakTouchesWall(s, SQUEAK_RIGHT, dy, FALSE);
 }
 
 // PressedB(); 0x020CC8E4;
@@ -87,7 +89,7 @@ static bool32 Body(struct SqueakObject *s) {
         SqueakSetState(s, BODY_STAND);
         return TRUE;
     case BODY_STAND:        // 0x020CDEA4: a wall ahead or beside it (all along), it grabs it; off the ground, it falls;
-        if (SqueakWallAhead(s) || SqueakTouches(s, SQUEAK_LEFT, 0, TRUE) || SqueakTouches(s, SQUEAK_RIGHT, 0, TRUE)) {
+        if (SqueakWallAhead(s) || SqueakTouchesWall(s, SQUEAK_LEFT, 0, TRUE) || SqueakTouchesWall(s, SQUEAK_RIGHT, 0, TRUE)) {
             SqueakSetState(s, BODY_GRAB);
             break;
         }
@@ -109,10 +111,10 @@ static bool32 Body(struct SqueakObject *s) {
     case BODY_GRAB:         // 0x020CD8DC: its back to the wall;
         SqueakPlay(s, ANIM_CLING);
         SqueakStop(s);
-        if (SqueakTouches(s, SQUEAK_LEFT, 0, TRUE)) {
+        if (SqueakTouchesWall(s, SQUEAK_LEFT, 0, TRUE)) {
             if (s->obj.base.flags & 1) SqueakTurnAround(s);
             SqueakSetState(s, BODY_CLING);
-        } else if (SqueakTouches(s, SQUEAK_RIGHT, 0, TRUE)) {
+        } else if (SqueakTouchesWall(s, SQUEAK_RIGHT, 0, TRUE)) {
             if (!(s->obj.base.flags & 1)) SqueakTurnAround(s);
             SqueakSetState(s, BODY_CLING);
         } else {
@@ -288,12 +290,33 @@ void CrimpStart(struct Object *obj) {
     SqueakSetState(s, BODY_START);
 }
 
-// CrimpInit(); Its box (climb.rca's first: 12 pixels either side, 3 to 18 up; as the others', from its feet), facing left;
+/* OutOfWall(); Squeak Squad's wall-distance nudge (the stage's vtable +0x38, +0x3C): its spot is in the cell beside its wall, its
+ * box up to 16 pixels into it; out of the wall, its edge against it (either end of its side, its feet's row or its head's); */
+static void OutOfWall(struct SqueakObject *s) {
+    struct ObjectBase *b = &s->obj.base;
+    s32 head = b->y + b->unk3D * 0x100, feet = b->y + b->unk3F * 0x100 - 0x100;
+    u8 i;
+
+    for (i = 0; i < 16; i++) {
+        s32 right = b->x + b->unk3E * 0x100, left = b->x + b->unk3C * 0x100;
+
+        // (its edge on the wall's: the probes look 1/256 of a pixel past it);
+        if (SqueakIsWall(&s->obj, right, feet) || SqueakIsWall(&s->obj, right, head)) b->x = (b->x - 0x100) | 0xFF;
+        else if (SqueakIsWall(&s->obj, left, feet) || SqueakIsWall(&s->obj, left, head)) b->x = (b->x + 0x100) & ~0xFF;
+        else break;
+    }
+    b->unk48 = b->x;
+}
+
+/* CrimpInit(); Its box (climb.rca's first: 12 pixels either side, 3 to 18 up; as the others', from its feet), facing left; out of
+ * its wall, and on the floor only when there's no wall beside it (its spots are beside walls, often over the floor: Squeak Squad's
+ * Crimps cling there from the start); */
 void CrimpInit(struct SqueakObject *s) {
     sub_0803E2B0(&s->obj.base, -12, -15, 12, 0);
     ObjectSetBounds(&s->obj.base, -12, -15, 12, 0);
     s->obj.base.flags |= 1;
-    SqueakStandOnFloor(&s->obj);
+    OutOfWall(s);
+    if (!SqueakTouchesWall(s, SQUEAK_LEFT, 0, TRUE) && !SqueakTouchesWall(s, SQUEAK_RIGHT, 0, TRUE)) SqueakStandOnFloor(&s->obj);
 }
 
 /* Its rock (0x020CBD0C, 0x020CBCA8): flies on at 1.6, falling 0.2 a frame; on whatever it touches it bursts; out of the stage, it's
@@ -335,8 +358,12 @@ void CrimpRockStart(struct Object *obj) {
     SqueakSetState((struct SqueakObject *)obj, 0);
 }
 
-// CrimpRockInit(); Its box (climb.rca's second: 6 pixels either side, 5 to 15 up, from its feet);
+/* CrimpRockInit(); Its box (climb.rca's second: 6 pixels either side, 5 to 15 up, from its feet); Kirby's body doesn't hurt it, nor
+ * shows its HP bar (its hit handler 0x020CBDDC hands touches to 0x020B4964, which takes none: it hurts him and flies on to the
+ * terrain; KatAM's touch knocked it back into its Crimp); */
 void CrimpRockInit(struct SqueakObject *s) {
     sub_0803E2B0(&s->obj.base, -6, -10, 5, 0);
     ObjectSetBounds(&s->obj.base, -6, -10, 5, 0);
+    s->obj.base.unk5C |= 0x80;
+    s->obj.base.flags |= 0x1000000;
 }

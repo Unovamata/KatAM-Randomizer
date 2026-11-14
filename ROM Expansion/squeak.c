@@ -1233,7 +1233,7 @@ void SqueakSplash(struct SqueakObject *s, bool8 out) {
  * Squad's units), touches something solid on that side: a line just past the box's edge (up: one unit above it; down: its bottom
  * edge; left, right: one unit beside it, its bottom raised a unit when the character's spot is solid and its box starts at its feet),
  * either end solid (`both`: both ends, its mode 2); */
-bool32 SqueakTouches(struct SqueakObject *s, u8 side, s32 dy, bool8 both) {
+static bool32 Touches(struct SqueakObject *s, u8 side, s32 dy, bool8 both, bool32 (*solid)(struct Object *, s32, s32)) {
     struct ObjectBase *b = &s->obj.base;
     s32 x = b->x, y = b->y - SQUEAK_SPEED(dy);
     s32 left = x + b->unk3C * 0x100, top = y + b->unk3D * 0x100, right = x + b->unk3E * 0x100, bottom = y + b->unk3F * 0x100;
@@ -1253,9 +1253,24 @@ bool32 SqueakTouches(struct SqueakObject *s, u8 side, s32 dy, bool8 both) {
         if (b->unk3F == 0 && NidlIsFloor(&s->obj, x, y)) y0--;
         break;
     }
-    a = NidlIsFloor(&s->obj, x0, y0);
-    c = NidlIsFloor(&s->obj, x1, y1);
+    a = solid(&s->obj, x0, y0);
+    c = solid(&s->obj, x1, y1);
     return both ? a && c : a || c;
+}
+
+bool32 SqueakTouches(struct SqueakObject *s, u8 side, s32 dy, bool8 both) {
+    return Touches(s, side, dy, both, NidlIsFloor);
+}
+
+// SqueakIsWall(); A wall at (x, y): a fully solid tile (gCollisionAttributes' 0x200), not a slope, a thin floor or a ladder;
+bool32 SqueakIsWall(struct Object *obj, s32 x, s32 y) {
+    return (gCollisionAttributes[GetCollisionTile(obj->base.unk56, x >> 12, y >> 12)] & 0x201) == 0x200;
+}
+
+/* SqueakTouchesWall(); As SqueakTouches, only walls counting (Squeak Squad's point test, 0x0220FDEC, takes a slope only under its
+ * surface and never a thin floor; NidlIsFloor takes a slope's whole cell, the air over it too: a Crimp clung to that); */
+bool32 SqueakTouchesWall(struct SqueakObject *s, u8 side, s32 dy, bool8 both) {
+    return Touches(s, side, dy, both, SqueakIsWall);
 }
 
 /* SqueakSpawn(); Another character (`enemy`, `variant`) at (dx, dy) from this one (Squeak Squad's units, dx forward), facing as it
