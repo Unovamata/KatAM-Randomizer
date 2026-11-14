@@ -1762,7 +1762,8 @@ static void Ignite(struct SqueakObject *t, struct SqueakObject *s, s32 c) {
 /* The ice floor (his pillar's, 0x0212EBC4: the stage's vtable +0x8C, 0x022146EC): each 16-pixel tile of the floor's top row it
  * passes an ice block (the stage's own, a8s4s6's front blocks 0xC0-0x1E2: by its neighbors, alone 0xC0, a left end 0x120, a right
  * end 0x180 or between 0x1E0, plus its x % 3), the tile over it the block's top (its block - 0x20), staying through his other forms
- * till his fire's flames burn over it (0x02216BD8's 0x02214560: Ignite()); not slippery here (KatAM has no slippery floor). Drawn
+ * till his fire's flames burn over it (0x02216BD8's 0x02214560: Ignite()); slippery as the DS's (KatAM has no slippery floor:
+ * IceSlide()). Drawn
  * by his flames (their thing's alive all his fight): its 13 looks' tiles copied once into a VRAM block of their own
  * (KatAMExpansionSqueak.cs's SqueakIceFloorLook: one frame each, its anim's GetTiles, one after another), each tile (or three of a
  * long row's at once: a third of the sprites, less lag with his burning floor) drawn with KatAM's DisplaySprite on the room's own
@@ -1840,6 +1841,57 @@ static void IceFloor(struct SqueakObject *t, struct SqueakObject *s) {
         sprite.x = x;
         DisplaySprite(&sprite);
         if (look == ICE_THREE) c += 2, x += 32;
+    }
+}
+
+/* IceSlide(); The ice floor slippery, as the DS's (its tiles the stage's ice; the owner: "Dark Nebula's ice platforms don't act as
+ * ice"): a Kirby on the ground over an iced tile keeps his speed across, where his own update takes him each frame changing it only
+ * an ICE_GRIP-th a frame: he starts slowly, and slides on when he stops or turns, till a wall or the room's edge. Each Kirby's spot after the last
+ * frame and his speed kept (none out of the room; a step over 4 pixels, faster than he walks or dashes, a warp or the room's edge
+ * putting him back, taken as it is and starting over: at a8s4s6's right edge an 11-pixel one turned into a slow slide back); */
+#define A_SLIDE_X(t, i) ((t)->vars[12 + (i)])
+#define A_SLIDE_V(t, i) ((t)->vars[16 + (i)])
+#define ICE_GRIP 16
+#define ICE_JUMP 0x400
+static void IceSlide(struct SqueakObject *t, struct SqueakObject *s) {
+    u32 iced = (u32)BURNING(s) >> 16;
+    s32 first = SpotX(s, 8) >> 12;
+    u8 i;
+
+    for (i = 0; i < gNumKirbys && i < 4; i++) {
+        struct Kirby *kirby = &gKirbys[i];
+        s32 x = kirby->base.x, prev = A_SLIDE_X(t, i), c = (x >> 12) - first, dx, v, nx;
+        bool32 on;
+
+        if (kirby->base.roomId != t->obj.base.roomId || kirby->hp <= 0) {
+            A_SLIDE_X(t, i) = A_SLIDE_V(t, i) = 0;
+            continue;
+        }
+        dx = x - prev;
+        if (prev == 0 || abs(dx) > ICE_JUMP) {
+            A_SLIDE_X(t, i) = x;
+            A_SLIDE_V(t, i) = 0;
+            continue;
+        }
+        on = (kirby->base.unk62 & 4) && c >= 0 && c < 32 && (iced >> c & 1) && abs(kirby->base.y - FLOOR(s)) < 0x800;
+        if (!on) {
+            A_SLIDE_X(t, i) = x;
+            A_SLIDE_V(t, i) = dx;
+            continue;
+        }
+        v = A_SLIDE_V(t, i) + (dx - A_SLIDE_V(t, i)) / ICE_GRIP;
+        nx = prev + v;
+        // (past where his update took him, a wall beside him there stops him, or the room's edge, a8s4s6's: KatAM's level bounds);
+        if (nx != x && (NidlIsFloor((struct Object *)kirby, nx + (v > 0 ? kirby->base.unk3E + 1 : kirby->base.unk3C - 1) * 0x100, kirby->base.y - 0x800)
+                        || nx + kirby->base.unk3C * 0x100 < gCurLevelInfo[kirby->base.unk56].levelMinPosition.x
+                        || nx + kirby->base.unk3E * 0x100 > gCurLevelInfo[kirby->base.unk56].levelMaxPosition.x)) {
+            nx = x;
+            v = 0;
+        }
+        // (his own speed left as his update has it: given the slide's, it moved him on by it, never slowing);
+        kirby->base.x = nx;
+        A_SLIDE_X(t, i) = nx;
+        A_SLIDE_V(t, i) = v;
     }
 }
 
@@ -1943,6 +1995,7 @@ static bool32 DarkNebulaThing(struct SqueakObject *t) {
         base->flags = (base->flags & ~1) | (s->obj.base.flags & 1);
         base->sprite.unk14 = s->obj.base.sprite.unk14 + 0x40;
         IceFloor(t, s);
+        IceSlide(t, s);
         break;
     case T_STAR:                // 0x0212FAF0, 0x0212F9F8: till the floor, a wall or out of view;
         if (T(t) == 0) SqueakSfx(t, 0x1D2);
