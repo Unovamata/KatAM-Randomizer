@@ -67,8 +67,11 @@ namespace KatAMRandomizer {
         /* Sound effects whose notes' release (the MP2K envelope's, per frame) is at most this: Dark Daroach's beam (0x1AF) plays 42
          * one-tick notes a tick apart, each ringing about 30 frames on its release (0xEB), so KatAM mixed up to ten voices for it, a
          * fifth of a frame (the owner: "Massive amounts of lag whenever the Squeak Squad boss invokes stars."); 0x60 rings each for 4,
-         * the same notes, pans and bends; */
-        static readonly Dictionary<int, byte> SqueakSoundReleaseCaps = new Dictionary<int, byte> { [0x1AF] = 0x60 };
+         * the same notes, pans and bends; 0x30 for 2 (Daroach's beam plays it too: still 4 voices at 0x60; the owner: "Daroach ray
+         * causes lag"). Dark Nebula's star (0x1D2, each star he shoots: his rain's, his eye's) the same: 8 voices of it at once after
+         * his rain, some 100,000 cycles of KatAM's mixing a frame, every other frame dropped (the owner: "Dark nebula stars are still
+         * lagging the game"; his rain's frames dropped: 18 of 140, 2 at 0x60, 1 at 0x30); */
+        static readonly Dictionary<int, byte> SqueakSoundReleaseCaps = new Dictionary<int, byte> { [0x1AF] = 0x30, [0x1D2] = 0x30 };
         static (int archive, int index) SqueakSoundId(int id) {
             int value = Convert.ToInt32(SqueakSoundIds.Substring(id * 4, 4), 16);
             return value == 0xFFFF ? (-1, -1) : (value >> 8, value & 0xFF);

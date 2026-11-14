@@ -366,22 +366,14 @@ u32 SqueakAnimTime(struct SqueakObject *s) {
     return time;
 }
 
-// SqueakLength(); An animation's frames in all;
-static u32 SqueakLength(const struct SqueakAnim *a) {
-    u32 total = 0;
-    u8 i;
-
-    for (i = 0; i < a->steps; i++) total += a->step[i].frames;
-    return total;
-}
-
-// SqueakStepAt(); The step an animation shows `time` frames in (a looping one starts over, the others hold their last step);
+/* SqueakStepAt(); The step an animation shows `time` frames in (a looping one starts over, the others hold their last step); its
+ * length written with it, the division only past it (each composite part's every frame: the owner, "Daroach ray causes lag"); */
 static const struct SqueakStep *SqueakStepAt(const struct SqueakAnim *a, u32 time) {
-    u32 total = SqueakLength(a);
+    u32 total = a->length;
     u8 i;
 
     if (total == 0) return &a->step[0];
-    if (a->loops) time %= total;
+    if (a->loops && time >= total) time %= total;
     for (i = 0; i < a->steps; i++) {
         if (time < a->step[i].frames) return &a->step[i];
         time -= a->step[i].frames;
@@ -590,22 +582,31 @@ static void SqueakShowComposite(struct SqueakObject *s) {
     const struct SqueakComposite *c = &g->composite[s->composite];
     const struct SqueakComposition *composition;
     struct SqueakPartFx **link = (struct SqueakPartFx **)&s->parts, *p;
-    u32 total = 0, time = s->compositeTime, local;
+    u32 total = c->length, time = s->compositeTime, local;
+    const struct SqueakAnim *lastAnim = NULL;
+    const struct SqueakStep *lastStep = NULL;
+    u32 lastTime = 0;
     u8 i;
 
-    for (i = 0; i < c->steps; i++) total += c->step[i].frames;
-    if (c->loops) s->animEnded = total && time && time % total == 0;
+    local = total == 0 ? 0 : time < total ? time : c->loops ? time % total : total - 1;
+    if (c->loops) s->animEnded = total && time && local == 0;
     else if (total && time >= total) s->animEnded = TRUE;
-    local = total == 0 ? 0 : c->loops ? time % total : time < total ? time : total - 1;
     time = local;
     for (i = 0; i + 1 < c->steps && time >= c->step[i].frames; i++) time -= c->step[i].frames;
     composition = &g->composition[c->step[i].composition];
     for (i = 0; i < composition->parts; i++) {
         const struct SqueakPart *part = &composition->part[i];
-        const struct SqueakStep *step = SqueakStepAt(&g->anim[part->anim], part->absolute ? s->compositeTime : local);
+        const struct SqueakAnim *anim = &g->anim[part->anim];
+        u32 at = part->absolute ? s->compositeTime : local;
+        // (parts playing the same animation at the same time, its step found once: Daroach's beam's 7 pieces);
+        const struct SqueakStep *step = anim == lastAnim && at == lastTime ? lastStep : SqueakStepAt(anim, at);
         s32 x = SqueakTurned(s, part->x + step->x), y = part->y + step->y;
 
         const struct SqueakPaletteKey *k = SqueakAnimPalette(s, part->anim);
+
+        lastAnim = anim;
+        lastTime = at;
+        lastStep = step;
 
         if (i == 0) {
             if (k != NULL) s->obj.base.sprite.palId = SqueakLoadPalette(k->key, k->variant, s->obj.base.roomId);
