@@ -1355,6 +1355,13 @@ namespace KatAMRandomizer {
                         // (the cells merged parts draw (SqueakMergeParts()), after its own: only their part sprites show them, not its own);
                         int ownCells = character.Cells.Count;
                         if (enemy.MergeParts) character = SqueakMergeParts(character, enemy.Canvas);
+                        /* (parts playing the same animation drawn by one sprite, their copies' tiles shared: SqueakRepeatParts(); the
+                         * steps after it don't carry its copies over, nor does merging read them); */
+                        if (enemy.RepeatParts) {
+                            if (enemy.MergeParts || enemy.ShiftY != 0 || enemy.Roll >= 0 || enemy.Scale.Num > 0 || enemy.Layers != null || enemy.Rotate != 0)
+                                throw new InvalidOperationException($"{enemy.Name}'s repeated parts can't be merged, shifted, rolled, scaled, turned or layered.");
+                            character = SqueakRepeatParts(character, enemy.BodyLast);
+                        }
                         if (enemy.ShiftY != 0) character = SqueakShiftCells(character, enemy.ShiftY);
                         if (enemy.Roll >= 0) character = SqueakRolled(character, enemy.Roll, 16);
                         // (drawn smaller than the DS's: its offsets as much smaller, its frames by SqueakFrames);
@@ -1392,7 +1399,7 @@ namespace KatAMRandomizer {
                         List<byte[]> alternatePalettes = alternates != null ? new List<byte[]>() : null;
                         (List<(byte[] tiles, ushort[] oams, short[] attributes, int palette)> frames, List<byte[]> palettes) =
                             SqueakFrames(character, enemy.Canvas, alternates: alternates, alternatePalettes: alternatePalettes, merge: enemy.MergeColors,
-                                         mergeShared: enemy.WholeCells, scale: enemy.Scale, rotate: enemy.Rotate);
+                                         mergeShared: enemy.WholeCells, scale: enemy.Scale, rotate: enemy.Rotate, bigPieces: enemy.BigPieces);
                         var withHurts = enemy.HurtCells.Select(c => frames[c]).Concat(frames).ToList();
                         foreach (byte[] alternate in alternatePalettes ?? new List<byte[]>()) {
                             palettes.Add(alternate);

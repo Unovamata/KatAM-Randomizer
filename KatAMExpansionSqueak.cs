@@ -85,6 +85,8 @@ namespace KatAMRandomizer {
             public List<SqueakComposite> Composites = new List<SqueakComposite>();
             // (cells made for an affine animation's steps: a cell's copy drawn turned by its angle, in 1/4096 turns: SqueakCanvas());
             public Dictionary<int, int> Angles = new Dictionary<int, int>();
+            // (cells drawn again at these offsets (x right, y down), the same tiles each time: SqueakRepeatParts(), SqueakRepeatFrame());
+            public Dictionary<int, List<(int dx, int dy)>> Repeats = new Dictionary<int, List<(int, int)>>();
         }
 
         /* SqueakMerge(); Two files' graphics as one character: the second's tiles, palettes, cells and animations after the first's (its
@@ -249,6 +251,82 @@ namespace KatAMRandomizer {
                 Tiles = character.Tiles, Palettes = character.Palettes, Cells = cells, Anims = anims,
                 Compositions = character.Compositions, Composites = character.Composites, Angles = character.Angles,
             };
+        }
+
+        /* SqueakRepeatParts(); (RepeatParts) A composition's parts playing the same animation in step (the same timing, absolute or not)
+         * drawn by one part, the first's: an animation of their own, each step a cell the same as its animation's, drawn at each part's
+         * offset from the first's by pieces sharing its tiles (Repeats: SqueakRepeatFrame()); the same picture by fewer sprites, its
+         * copies' tiles in VRAM once (Dark Nebula's electric cage, 14 parts: its three bars over the view, three under it and the two
+         * on each side the same, 8 sprites; the owner: "Fix Dark Nebula's electric cage"). Turned parts (Angles) stay as they are, and
+         * so does the body when it's listed last (BodyLast); */
+        static SqueakCharacter SqueakRepeatParts(SqueakCharacter character, bool bodyLast) {
+            List<SqueakCell> cells = character.Cells.ToList();
+            List<SqueakAnim> anims = character.Anims.ToList();
+            Dictionary<int, List<(int dx, int dy)>> repeats = new Dictionary<int, List<(int, int)>>(character.Repeats);
+            Dictionary<string, int> made = new Dictionary<string, int>();
+            List<List<SqueakPart>> compositions = new List<List<SqueakPart>>();
+            foreach (List<SqueakPart> parts in character.Compositions) {
+                List<SqueakPart> result = new List<SqueakPart>();
+                HashSet<int> done = new HashSet<int>();
+                int last = bodyLast ? parts.Count - 1 : parts.Count;
+                for (int i = 0; i < parts.Count; i++) {
+                    if (done.Contains(i)) continue;
+                    List<int> group = new List<int> { i };
+                    if (i < last && parts[i].Anim < character.Anims.Count && character.Anims[parts[i].Anim].Steps.Count > 0
+                        && !character.Anims[parts[i].Anim].Steps.Any(st => character.Angles.ContainsKey(st.Cell) || character.Repeats.ContainsKey(st.Cell)))
+                        for (int k = i + 1; k < last; k++)
+                            if (!done.Contains(k) && parts[k].Anim == parts[i].Anim && parts[k].Absolute == parts[i].Absolute) group.Add(k);
+                    if (group.Count == 1) {
+                        result.Add(parts[i]);
+                        continue;
+                    }
+                    foreach (int k in group) done.Add(k);
+                    List<(int dx, int dy)> copies = group.Select(k => (parts[k].X - parts[i].X, parts[k].Y - parts[i].Y)).ToList();
+                    string key = $"{parts[i].Anim}|{string.Join(";", copies)}";
+                    if (!made.TryGetValue(key, out int anim)) {
+                        SqueakAnim a = character.Anims[parts[i].Anim];
+                        List<SqueakStep> steps = new List<SqueakStep>();
+                        foreach (SqueakStep st in a.Steps) {
+                            repeats[cells.Count] = copies;
+                            steps.Add(st with { Cell = cells.Count });
+                            cells.Add(character.Cells[st.Cell]);
+                        }
+                        anim = anims.Count;
+                        anims.Add(new SqueakAnim(a.Loops, steps));
+                        made[key] = anim;
+                    }
+                    result.Add(parts[i] with { Anim = anim });
+                }
+                compositions.Add(result);
+            }
+            return new SqueakCharacter {
+                Tiles = character.Tiles, Palettes = character.Palettes, Cells = cells, Anims = anims,
+                Compositions = compositions, Composites = character.Composites, Angles = character.Angles, Repeats = repeats,
+            };
+        }
+
+        /* SqueakRepeatFrame(); A frame (CutFrame's) drawn again at each of `copies`' offsets (the DS's: x right, y down; the frame's
+         * canvas mirrored, KatAM's frames facing left), every copy's pieces reading the same tiles; its box widened to them all, still
+         * centered on its spot so it flips about it; */
+        static (byte[] tiles, ushort[] oams, short[] attributes) SqueakRepeatFrame((byte[] tiles, ushort[] oams, short[] attributes) frame,
+                                                                                   List<(int dx, int dy)> copies) {
+            List<(int x, int y, int w, int h, int i)> pieces = new List<(int, int, int, int, int)>();
+            for (int i = 0; i < frame.oams.Length; i += 3) {
+                var (w, h, _, _) = PieceShapes.First(s => s.shape == frame.oams[i] >> 14 && s.size == frame.oams[i + 1] >> 14);
+                int x = (frame.oams[i + 1] & 0x1FF) - frame.attributes[4], y = (frame.oams[i] & 0xFF) - frame.attributes[5];
+                foreach ((int dx, int dy) in copies) pieces.Add((x - dx, y + dy, w * 8, h * 8, i));
+            }
+            if (pieces.Count == 0) return frame;
+            int halfWidth = pieces.Max(p => Math.Max(-p.x, p.x + p.w)), top = pieces.Min(p => p.y), bottom = pieces.Max(p => p.y + p.h);
+            if (halfWidth * 2 > 511 || bottom - top > 255) throw new InvalidOperationException("A repeated part's copies are too far apart for one frame.");
+            List<ushort> oams = new List<ushort>();
+            foreach (var (x, y, _, _, i) in pieces) {
+                oams.Add((ushort)(frame.oams[i] & ~0xFF | (y - top)));
+                oams.Add((ushort)(frame.oams[i + 1] & ~0x1FF | (x + halfWidth)));
+                oams.Add(frame.oams[i + 2]);
+            }
+            return (frame.tiles, oams.ToArray(), new short[] { frame.attributes[0], (short)(oams.Count / 3), (short)(halfWidth * 2), (short)(bottom - top),
+                                                               (short)halfWidth, (short)-top });
         }
 
         /* SqueakMergeParts(); (MergeParts) A composition's parts that play in step (the same time, absolute or not, their animations'
@@ -737,7 +815,10 @@ namespace KatAMRandomizer {
          * composites' parts placed this many pixels or more over its spot left out (SqueakLowParts(): their frames drawn up from their
          * place, at most 128 high, wholly over KatAM's view, 16 pixels shorter than the DS's: Dark Nebula's fire wall's top row);
          * SplitLayers: each layer two, its pieces in front of the character's own and those behind (SqueakLayerSide(): King Dedede's
-         * hammer, the owner: "Squeak Squad Dedede has a layering issue"), at most SQUEAK_LAYERS (2) in all; */
+         * hammer, the owner: "Squeak Squad Dedede has a layering issue"), at most SQUEAK_LAYERS (2) in all; RepeatParts: its composite
+         * animations' parts playing the same animation in step drawn by one sprite, their tiles shared (SqueakRepeatParts()); BigPieces:
+         * its frames cut in fewer, bigger pieces, up to a third of each blank (SqueakFrames(), CutFrame's blankPercent: KatAM takes
+         * some 650 cycles to draw a piece, 45,000 a frame for Dark Nebula's electric cage's 70); */
         internal sealed record SqueakEnemy(int Index, string Name, string File, int[] HurtCells, (int type, int letter)[] Glyphs, int GraphicsOf = -1,
                                             byte MidbossType = 0, int[] OnlyAnims = null, string[] Palettes = null,
                                             (ushort from, ushort to)[] MergeColors = null, string ExtraFile = null,
@@ -746,7 +827,7 @@ namespace KatAMRandomizer {
                                             (int Num, int Den) Scale = default, int ShiftY = 0, int Rotate = 0, int Roll = -1,
                                             bool FlattenComposites = false, int[] OnlyPalettes = null, int[] MapIcon = null,
                                             string DamagePalette = null, bool MergeParts = false, bool FitVram = false, int HighParts = 0,
-                                            bool SplitLayers = false);
+                                            bool SplitLayers = false, bool RepeatParts = false, bool BigPieces = false);
         /* AnimPalettes: a character whose cells are in Squeak Squad's different palettes (Doc's things), per animation the palette its
          * sprite takes (SqueakPaletteKey); */
         internal sealed record SqueakBuilt(SqueakEnemy Enemy, int AnimId, SqueakCharacter Character, int Tiles, List<SqueakLayerBuilt> Layers = null,
@@ -1358,7 +1439,7 @@ namespace KatAMRandomizer {
                             OnlyAnims: new[] { 12, 19, 13, 14, 15, 16, 17, 18 }, FitVram: true, HighParts: 128),
             new SqueakEnemy(65, "Dark Nebula's ice", "darkZERO_cmn", new[] { 0, 0, 0 }, new (int, int)[0], Canvas: 256, OnlyAnims: new[] { 20 }),
             new SqueakEnemy(66, "Dark Nebula's bolt", "darkZERO_ext", new[] { 0, 0, 0 }, new (int, int)[0], KeepComposites: true,
-                            OnlyAnims: new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12 }, MergeParts: true),
+                            OnlyAnims: new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12 }, RepeatParts: true, BigPieces: true),
             /* The floor his flames set burning (the stage's fire tile, 0x02216BD8: a 16x16 picture of the stages' own tiles, the same in
              * every stage's map/*_f.bin, its palette 3 there: 0x70); */
             new SqueakEnemy(67, "Burning floor", "raw:map/25_f.bin@5490,70,16,16", new[] { 0, 0, 0 }, new (int, int)[0]),
@@ -1805,8 +1886,10 @@ namespace KatAMRandomizer {
                                                                                                                                 (ushort from, ushort to)[] merge = null,
                                                                                                                                 bool mergeShared = false,
                                                                                                                                 (int num, int den) scale = default,
-                                                                                                                                int rotate = 0) {
+                                                                                                                                int rotate = 0,
+                                                                                                                                bool bigPieces = false) {
             cells ??= Enumerable.Range(0, character.Cells.Count).ToList();
+            if (character.Repeats.Count > 0 && (scale.num > 0 || rotate != 0)) throw new InvalidOperationException("A character with repeated parts is drawn at its size.");
             List<(int palette, int color)> used = SqueakUsedColors(character, cells).Where(u => u.palette < character.Palettes.Count).ToList();
             List<byte[]> palettes = new List<byte[]>();
             List<(byte[], ushort[], short[], int)> frames = new List<(byte[], ushort[], short[], int)>();
@@ -1823,6 +1906,22 @@ namespace KatAMRandomizer {
                                                                      scale.num, scale.den, c => SqueakBrightness(ReadShort(palette, c * 2))))
                     if (center + i >= 0 && center + j >= 0 && center + i < size && center + j < size) small[center + i, center + j] = value;
                 return small;
+            }
+            /* (a cell's frame: cut in pieces, drawn again where its repeated part's copies are (SqueakRepeatFrame()); bigPieces: up to a
+             * third or a quarter of each piece blank (CutFrame's blankPercent), whichever costs less, a piece drawn (each copy's) worth 4
+             * tiles: Dark Nebula's electric cage's bars over and under the view a piece each for 32 tiles, not 5 for 23); */
+            (byte[] tiles, ushort[] oams, short[] attributes) Cut(int cell, int[,] canvas) {
+                List<(int dx, int dy)> copies = character.Repeats.TryGetValue(cell, out List<(int, int)> c) ? c : null;
+                (byte[] tiles, ushort[] oams, short[] attributes) frame = default;
+                int cost = int.MaxValue;
+                foreach (int blank in bigPieces ? new[] { 34, 25 } : new[] { 0 }) {
+                    (byte[] tiles, ushort[] oams, short[] attributes) cut = CutFrame(canvas, int.MaxValue, size, blank);
+                    int cutCost = cut.oams.Length / 3 * (copies?.Count ?? 1) * 4 + cut.tiles.Length / 32;
+                    if (cutCost >= cost) continue;
+                    frame = cut;
+                    cost = cutCost;
+                }
+                return copies != null ? SqueakRepeatFrame(frame, copies) : frame;
             }
             byte[] PaletteBytes(IEnumerable<ushort> colors) {
                 byte[] bytes = new byte[32];
@@ -1875,7 +1974,7 @@ namespace KatAMRandomizer {
                     alternatePalettes.Add(PaletteBytes(other));
                 }
                 foreach (int cell in cells) {
-                    (byte[] tiles, ushort[] oams, short[] attributes) = CutFrame(Drawn(cell, colorMap, palettes[0]), int.MaxValue, size);
+                    (byte[] tiles, ushort[] oams, short[] attributes) = Cut(cell, Drawn(cell, colorMap, palettes[0]));
                     frames.Add((tiles, oams, attributes, 0));
                 }
             } else {
@@ -1918,7 +2017,7 @@ namespace KatAMRandomizer {
                     int palette = character.Cells[cell].Pieces.Count > 0 ? character.Cells[cell].Pieces[0].Attr2 >> 12 : 0;
                     Dictionary<(int, int), int> colorMap = Enumerable.Range(1, 15).ToDictionary(c => (palette, c), c => c);
                     if (palette < character.Palettes.Count && merged.TryGetValue(Root(palette), out var m)) (palette, colorMap) = m;
-                    (byte[] tiles, ushort[] oams, short[] attributes) = CutFrame(Drawn(cell, colorMap, palettes[Math.Min(palette, palettes.Count - 1)]), int.MaxValue, size);
+                    (byte[] tiles, ushort[] oams, short[] attributes) = Cut(cell, Drawn(cell, colorMap, palettes[Math.Min(palette, palettes.Count - 1)]));
                     frames.Add((tiles, oams, attributes, palette));
                 }
             }

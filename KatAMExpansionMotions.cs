@@ -185,8 +185,9 @@
         /* CutFrame(); A canvas (128x128 unless size says otherwise, origin at its center; 0: transparent) as a KatAM frame: its 8x8 cells with pixels (at most
          * maxTiles), on the grid (one of the 64 offsets from the top left) needing the fewest (Needle's spiked ball in the air needs 50 on
          * the top left's, 48 on its best: the hat's VRAM), drawn in big OAM pieces where they can be, the box widened to be centered on the
-         * origin so it flips about it; */
-        static (byte[] tiles, ushort[] oams, short[] attributes) CutFrame(int[,] canvas, int maxTiles, int canvasSize = 128) {
+         * origin so it flips about it. blankPercent: a piece may have up to that share of its cells blank (their tiles empty, past the
+         * grid's edges too): fewer pieces for more tiles (Dark Nebula's electric cage, thin bolts across the view); */
+        static (byte[] tiles, ushort[] oams, short[] attributes) CutFrame(int[,] canvas, int maxTiles, int canvasSize = 128, int blankPercent = 0) {
             int Size = canvasSize, Center = canvasSize / 2;
             int left = Size, right = 0, top = Size, bottom = 0;
 
@@ -240,29 +241,54 @@
             }
 
             /* The cells as OAM pieces, the biggest shapes first where every cell they cover has pixels (the same tiles, in fewer pieces:
-             * KatAM's DisplaySprite takes its time per piece, and NiDL's frames on four Kirbys made dozens each); */
+             * KatAM's DisplaySprite takes its time per piece, and NiDL's frames on four Kirbys made dozens each); with blankPercent, where
+             * no more than that share of them is blank (a piece reaching past the grid's edges by up to its size less a cell); */
+            List<(int column, int row, int w, int h, int shape, int size)> pieces = new List<(int, int, int, int, int, int)>();
+            bool[,] used = new bool[columns, rows];
+            foreach ((int w, int h, int shape, int size) in PieceShapes) {
+                int reachX = blankPercent > 0 ? w - 1 : 0, reachY = blankPercent > 0 ? h - 1 : 0;
+                for (int row = -reachY; row + h <= rows + reachY; row++)
+                    for (int column = -reachX; column + w <= columns + reachX; column++) {
+                        bool fits = true;
+                        int filled = 0;
+                        for (int dy = 0; dy < h && fits; dy++)
+                            for (int dx = 0; dx < w && fits; dx++) {
+                                int c = column + dx, r = row + dy;
+                                bool inside = c >= 0 && r >= 0 && c < columns && r < rows;
+                                fits = !(inside && used[c, r]);
+                                if (inside && cells[c, r] != null) filled++;
+                            }
+                        if (!fits || filled == 0 || (w * h - filled) * 100 > blankPercent * w * h) continue;
+                        pieces.Add((column, row, w, h, shape, size));
+                        for (int dy = 0; dy < h; dy++)
+                            for (int dx = 0; dx < w; dx++)
+                                if (column + dx >= 0 && row + dy >= 0 && column + dx < columns && row + dy < rows) used[column + dx, row + dy] = true;
+                    }
+            }
+            // (pieces past the grid's edges: the box widened to them, still centered on the origin);
+            int boxTop = gridTop, boxBottom = bottom;
+            if (blankPercent > 0) {
+                foreach (var piece in pieces) {
+                    halfWidth = Math.Max(halfWidth, Math.Max(Center - (gridLeft + piece.column * 8), gridLeft + (piece.column + piece.w) * 8 - Center));
+                    boxTop = Math.Min(boxTop, gridTop + piece.row * 8);
+                    boxBottom = Math.Max(boxBottom, gridTop + (piece.row + piece.h) * 8);
+                }
+            }
+
             List<byte> output = new List<byte>();
             List<ushort> oams = new List<ushort>();
-            bool[,] used = new bool[columns, rows];
-            foreach ((int w, int h, int shape, int size) in PieceShapes)
-                for (int row = 0; row + h <= rows; row++)
-                    for (int column = 0; column + w <= columns; column++) {
-                        bool fits = true;
-                        for (int dy = 0; dy < h && fits; dy++)
-                            for (int dx = 0; dx < w && fits; dx++)
-                                fits = cells[column + dx, row + dy] != null && !used[column + dx, row + dy];
-                        if (!fits) continue;
-                        oams.Add((ushort)(row * 8 | shape << 14));
-                        oams.Add((ushort)((gridLeft + column * 8 - Center + halfWidth) | size << 14));
-                        oams.Add((ushort)(output.Count / 32));
-                        for (int dy = 0; dy < h; dy++)
-                            for (int dx = 0; dx < w; dx++) {
-                                output.AddRange(cells[column + dx, row + dy]);
-                                used[column + dx, row + dy] = true;
-                            }
+            foreach ((int column, int row, int w, int h, int shape, int size) in pieces) {
+                oams.Add((ushort)((gridTop + row * 8 - boxTop) | shape << 14));
+                oams.Add((ushort)((gridLeft + column * 8 - Center + halfWidth) | size << 14));
+                oams.Add((ushort)(output.Count / 32));
+                for (int dy = 0; dy < h; dy++)
+                    for (int dx = 0; dx < w; dx++) {
+                        int c = column + dx, r = row + dy;
+                        output.AddRange(c >= 0 && r >= 0 && c < columns && r < rows && cells[c, r] != null ? cells[c, r] : new byte[32]);
                     }
+            }
 
-            return (output.ToArray(), oams.ToArray(), new short[] { 0, (short)(oams.Count / 3), (short)(halfWidth * 2), (short)(bottom - gridTop), (short)halfWidth, (short)(Center - gridTop) });
+            return (output.ToArray(), oams.ToArray(), new short[] { 0, (short)(oams.Count / 3), (short)(halfWidth * 2), (short)(boxBottom - boxTop), (short)halfWidth, (short)(Center - boxTop) });
         }
 
         /* BuildBackdropPalette(); Backdrop plays like KatAM's Throw, whose body draws a headband in colors 12-14 of the body palette anim
