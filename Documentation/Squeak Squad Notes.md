@@ -1819,8 +1819,18 @@ forms, 3000 frames):
 - **The burning floor** was a thing a 16-pixel tile (up to 16 with his fire wall up: a lag every other frame for about 100 frames).
   Each flame now has one trail (`Ignite()`, `Burn()`): hidden, drawing each burning tile with the trail's sprite (KatAM's
   `DisplaySprite` for each, as `sub_0809A7A4` draws an object), one box across its tiles; the same 47 frames a tile.
-- **His spark cage** (ext's `.mca` 0: 14 parts in step, a lag every third frame for about 60 frames) is drawn by a few merged sprites
-  (`MergeParts`, as Daroach's beam).
+- **His spark cage** (ext's `.mca` 0: 14 parts in step; the owner: "Fix Dark Nebula's electric cage"). Merged in runs (`MergeParts`,
+  as Daroach's beam) it was 10 sprites of 58-70 OAM pieces, most 8x8 and 16x8 as `CutFrame()` cuts a thin line, each piece some 650
+  cycles of KatAM's (`DisplaySprite`, its OAM slot `sub_08156D84`, its copy in `DrawToOamBuffer`): a lag every third frame. Its three
+  bars over the view, the three under it and the two on each side play the same animation: each set is now one sprite whose copies
+  read the same tiles (`RepeatParts`: `KatAMExpansionSqueak.cs`'s `SqueakRepeatParts()`, `SqueakRepeatFrame()`), 8 sprites, and its
+  frames are cut in a few big pieces, up to a third of each blank (`BigPieces`: `CutFrame()`'s `blankPercent`, a third or a quarter,
+  whichever costs less, a piece drawn worth 4 tiles): 20-26 pieces a frame, its VRAM 200 tiles where it was 284 (the stage's heap is
+  512), its bolts' 32 each where they were 26. Merged, its top-left run was drawn by the cage's own sprite, whose VRAM is its own
+  cells' biggest (26 tiles) for a 31-tile frame: 5 of its tiles were another sprite's, a few wrong pixels by the corner. Measured
+  (USA, state 28 forced after 1000 frames, Kirby at (60, 159), his HP kept at 6 throughout, 240 frames): 5 frames dropped, 4 in the
+  cage (its frames 247,000 cycles busy on average, at most 277,000 of 280,896); now 2, the bolts' first and the cage's first (its
+  frames 212,000, at most 242,000). Every frame drawn from its pieces matches its cells' picture (their copies' too).
 - **Spawning.** KatAM's `ObjectInitSprite` asks for the Squeak type's 123 tiles for every Squeak object made, which the character's
   own size replaces at once (`SqueakCreate`); with the heap without 123 in one piece that failed search took a sixth of a frame a
   spawn. A Squeak object's sprite is now made as for one in another room (no VRAM asked for), then given its own.
@@ -1831,9 +1841,8 @@ forms, 3000 frames):
   after his rain, the sound mixer (`SoundMainRAM`, in IWRAM) some 100,000 cycles a frame, more than V-blank's 84,000, so every other
   frame was dropped. Its release is capped at 0x30 (`SqueakSoundReleaseCaps`). His rain forced (state 40, USA, 140 frames): 18
   frames dropped, the mixer 52,000 cycles a frame on average; now 1 (its start), 32,000. A whole fight from his start (1200 frames,
-  B every 20): 43 dropped, now 19. What's left there is his spark cage (state 32: up to 95 of KatAM's 128 OAM pieces, most 8x8 and
-  16x8 as `CutFrame()` cuts a thin line, KatAM's `DisplaySprite` some 300 cycles a piece: about a third of its frames dropped), not
-  changed here.
+  B every 20): 43 dropped, now 19. What was left there was his spark cage (state 32: up to 95 of KatAM's 128 OAM pieces): fixed
+  since (above).
 
 His ice floor and his look (the owner: "When using its ice attack, it doesn't add the ice platforms at the bottom.", "Dark Nebula's
 sprite looks off."):
