@@ -817,8 +817,8 @@ namespace KatAMRandomizer {
          * SplitLayers: each layer two, its pieces in front of the character's own and those behind (SqueakLayerSide(): King Dedede's
          * hammer, the owner: "Squeak Squad Dedede has a layering issue"), at most SQUEAK_LAYERS (2) in all; RepeatParts: its composite
          * animations' parts playing the same animation in step drawn by one sprite, their tiles shared (SqueakRepeatParts()); BigPieces:
-         * its frames cut in fewer, bigger pieces, up to a third of each blank (SqueakFrames(), CutFrame's blankPercent: KatAM's
-         * DisplaySprite takes its time per piece, a third of a frame for Dark Nebula's electric cage's 70); */
+         * its frames cut in fewer, bigger pieces, up to a third of each blank (SqueakFrames(), CutFrame's blankPercent: KatAM takes
+         * some 650 cycles to draw a piece, 45,000 a frame for Dark Nebula's electric cage's 70); */
         internal sealed record SqueakEnemy(int Index, string Name, string File, int[] HurtCells, (int type, int letter)[] Glyphs, int GraphicsOf = -1,
                                             byte MidbossType = 0, int[] OnlyAnims = null, string[] Palettes = null,
                                             (ushort from, ushort to)[] MergeColors = null, string ExtraFile = null,
