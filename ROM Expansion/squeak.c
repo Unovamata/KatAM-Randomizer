@@ -60,9 +60,9 @@ const s16 gSqueakEnemyHp[SQUEAK_ENEMY_COUNT] = {
     [SQUEAK_YADGAINE_THING] = 1,
     [SQUEAK_YADGAINE_GORDO] = 1,
     [SQUEAK_YADGAINE_DAROACH] = 1,
-    [SQUEAK_BOHBOH] = 70,           // Squeak Squad's 350 (prmBB06Sl0.kgb); KatAM's bosses' 60 for one player as Mrs. Moley's 300 is;
+    [SQUEAK_BOHBOH] = 60,           // Squeak Squad's 350 (prmBB06Sl0.kgb): 70 as Mrs. Moley's 300 is 60, too hard (the owner); KatAM's bosses' 60;
     [SQUEAK_BOHBOH_THING] = 1,
-    [SQUEAK_DAROACH_BOSS] = 80,     // Squeak Squad's 400 (prmBB07Sl0.kgb), as Bohboh's 350 is 70;
+    [SQUEAK_DAROACH_BOSS] = 80,     // Squeak Squad's 400 (prmBB07Sl0.kgb), at Mrs. Moley's rate (300: 60);
     [SQUEAK_DAROACH_BOSS_THING] = 1,
     [SQUEAK_DARK_DAROACH] = 80,     // (the same parameters);
     [SQUEAK_DARK_DAROACH_THING] = 1,
@@ -1446,6 +1446,33 @@ void SqueakStopSfx(struct SqueakObject *s, u16 n) {
     s->loopSound = 0;
 }
 
+/* SqueakBossShardOut(); A world's boss's shard: over its reward chest's spot across (its template's unk14, the DS's reward), else the
+ * fight's screen's middle, SQUEAK_SHARD_Y down its screen (the template's area, the arena the camera was held to: the camera,
+ * let go as the fight ends, had moved on, the shard with it); out of the terrain, up a cell at a time while its sprite (8 over its
+ * spot to 12 under it) meets any (room 0x522's: in Bohboh's floating platform, the owner: "Bohboh's shard is in a weird position");
+ * NidlBossShardAt() places it on the camera's screen; */
+#define SHARD_OVER 8
+#define SHARD_UNDER 12
+static void SqueakBossShardOut(struct SqueakObject *s) {
+    const struct ObjectTemplate *t = s->obj.objTemplate;
+    struct LevelInfo *level = &gCurLevelInfo[s->obj.base.unk56];
+    s32 x, y;
+    u8 i;
+
+    if (t->unk20) {
+        x = t->unk14 ? t->unk14 : t->x + t->unk1A + t->unk1E / 2;
+        y = t->y + t->unk1C + SQUEAK_SHARD_Y;
+    } else {
+        x = t->unk14 ? t->unk14 : (level->viewportPosition.x >> 8) + DISPLAY_WIDTH / 2;
+        y = (level->viewportPosition.y >> 8) + SQUEAK_SHARD_Y;
+    }
+    for (i = 0; i < 8 && (NidlIsFloor(&s->obj, x << 8, (y - SHARD_OVER) << 8) || NidlIsFloor(&s->obj, x << 8, y << 8)
+                          || NidlIsFloor(&s->obj, x << 8, (y + SHARD_UNDER) << 8)); i++)
+        y -= 16;
+    NidlBossShardAt(s->obj.base.unk56, s->obj.base.roomId, SqueakBossShard(&s->obj) - 1, x - (level->viewportPosition.x >> 8),
+                    y - (level->viewportPosition.y >> 8));
+}
+
 /* SqueakDestroy(); A character's end: the effect following it stays where it is, its parts go; a world's boss beaten (no HP left, the
  * player still in its room: not the room's end) leaves its shard (SqueakBossShard), the boss room's way out, as it goes after its
  * defeat, as NiDL's bosses as they explode; the finale's (SQUEAK_FINALE_SHARD) dances every Kirby out on to the finale's next part; */
@@ -1454,11 +1481,8 @@ static void SqueakDestroy(struct Task *t) {
 
     if (s->obj.objTemplate && SqueakBossShard(&s->obj) == SQUEAK_FINALE_SHARD && s->obj.unk80 <= 0 && gKirbys[0].base.roomId == s->obj.base.roomId)
         NidlDanceOut(s->obj.base.roomId);
-    else if (s->obj.objTemplate && SqueakBossShard(&s->obj) && s->obj.unk80 <= 0 && gKirbys[0].base.roomId == s->obj.base.roomId) {
-        s32 x = s->obj.objTemplate->unk14 ? s->obj.objTemplate->unk14 - (gCurLevelInfo[s->obj.base.unk56].viewportPosition.x >> 8)
-                                          : DISPLAY_WIDTH / 2;
-        NidlBossShardAt(s->obj.base.unk56, s->obj.base.roomId, SqueakBossShard(&s->obj) - 1, x, SQUEAK_SHARD_Y);
-    }
+    else if (s->obj.objTemplate && SqueakBossShard(&s->obj) && s->obj.unk80 <= 0 && gKirbys[0].base.roomId == s->obj.base.roomId)
+        SqueakBossShardOut(s);
 
     if (s->loopSound) m4aSongNumStop(SQUEAK_SE(s->loopSound));
     if (s->follower) ((struct SqueakFx *)s->follower)->owner = NULL;
