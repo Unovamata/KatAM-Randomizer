@@ -264,16 +264,19 @@ void NidlRideStar(void) {
     if (NIDL_RIDE_SIZED(pa)) NidlShrink(first, star->sprite.x, star->sprite.y, pa, NIDL_RIDE_MATRIX);
 }
 
-/* ExpansionScreenShake(); RequestScreenShake (detoured with the warp star's: KatAMExpansionRooms.cs's WarpRideDetours()). A block an
- * attack breaks (sub_08036CBC) shakes the screen when the attack is a heavy one (its unk68's 0x10000000: an ability Kirby's slide),
- * and KatAM asks again for each block it breaks, every request starting the shake over: through the DS's packed star blocks the
- * screen shook on and on (the owner: "Room 0x4A0 do down and B on the star blocks, that we're you'll find the huge screen vibration
- * bug ... This vibration issue has been plaguing both injections"). Such a shake (an attack object's, kind 2, flagged so) is
- * none in Squeak Squad's rooms, and elsewhere KatAM's lightest (1), not starting one already going in its room over; every other
- * shake is KatAM's; */
+/* ExpansionScreenShake(); RequestScreenShake, every shake of KatAM's, NiDL's and Squeak Squad's (detoured with the warp star's:
+ * KatAMExpansionRooms.cs's WarpRideDetours()), all by the same rules (the owner: "rework the way the screenshake works, it's too
+ * inconsistent across the board in KatAM, NiDL, and SS. Make a screenshake system that is consistent across all versions"):
+ * - KatAM's levels for all: 1 a short shake (14 frames), 2 a middling one (18), 3 a big one (24), 4-6 one that goes on till it's
+ *   stopped (sub_080700D8); NiDL's and Squeak Squad's quakes are given the level of their length (nidl_boss.c, squeak/gimmicks.c);
+ * - a shake asked for while one as strong or stronger is going in its room is that one: KatAM's restarted it at each request, so
+ *   the same blow shook for as long as it was repeated (a thing landing every few frames, a slide through a wall of blocks: the
+ *   owner, "Room 0x4A0 do down and B on the star blocks [...] the huge screen vibration bug"); a stronger one takes over;
+ * - a block an attack breaks (sub_08036CBC) shakes the screen when the attack is a heavy one (its unk68's 0x10000000: an ability
+ *   Kirby's slide): KatAM's lightest (1) in every room, as above; */
 #define SHAKE_HEAVY_HIT 0x10000000
 #define SHAKE_ON 0x100
-#define SHAKE_SQUEAK_ROOMS 0x400
+#define SHAKE_TIMED_MOST 3
 struct ExpansionShake {
     void (*original)(u16, struct ObjectBase *);
 };
@@ -289,17 +292,19 @@ const struct ExpansionShake gExpansionShake = { NULL };
 const u32 gExpansionShakeTrampoline[8] = { 0 };
 
 void ExpansionScreenShake(u16 level, struct ObjectBase *obj) {
-    if (obj != NULL && obj->header.kind == 2 && (obj->unk68 & SHAKE_HEAVY_HIT)) {
-        // (none in Squeak Squad's rooms, their blocks packed in walls and floors: SQUEAK_FIRST_ROOM's, squeak.h);
-        if (obj->roomId >= SHAKE_SQUEAK_ROOMS) return;
-        if (gUnk_03000518 != NULL) {
-            const struct ExpansionShakeSlot *slot = TaskGetStructPtr(gUnk_03000518);
-            u8 i;
+    u8 strength;
 
-            for (i = 0; i < 4; i++)
-                if (slot[i].roomId == obj->roomId && (slot[i].flags & SHAKE_ON)) return;
-        }
-        level = (level & ~0xFF) | 1;
+    if (obj == NULL) return;
+    if (obj->header.kind == 2 && (obj->unk68 & SHAKE_HEAVY_HIT)) level = (level & ~0xFF) | 1;
+    strength = level & 0xFF;
+    if (gUnk_03000518 != NULL) {
+        const struct ExpansionShakeSlot *slot = TaskGetStructPtr(gUnk_03000518);
+        u8 i;
+
+        // (one going on: a timed one as strong or stronger, or the same lasting one);
+        for (i = 0; i < 4; i++)
+            if (slot[i].roomId == obj->roomId && (slot[i].flags & SHAKE_ON)
+                && (strength <= SHAKE_TIMED_MOST ? slot[i].level >= strength : slot[i].level == strength)) return;
     }
     gExpansionShake.original(level, obj);
 }

@@ -980,6 +980,12 @@ bool32 SqueakKirbyWithin(struct SqueakObject *s, s32 dx, s32 dy) {
 
 #define SQUEAK_DRIFT_MARGIN 16
 #define SQUEAK_DRIFT_LIFE 255
+/* (drifting ones at once, all rooms: SQUEAK_DRIFT_MAX; past it none is made. Each a task, an effect object and a sprite: the DS's snow,
+ * a flake every 10 frames from each emitter near the view living till it left the screen, kept some 50 alive in 6-2-5 (room 0x533),
+ * their updates and sprites some 50000 cycles a frame, every other frame dropped (the owner: "The snow rooms have massive lag maybe
+ * because of snow"); a snowflake, 1 pixel down a frame, lasts SQUEAK_SNOW_LIFE frames); */
+#define SQUEAK_DRIFT_MAX 12
+#define SQUEAK_SNOW_LIFE 150
 struct SqueakFx {
     struct EffectObject e;
     struct SqueakObject *owner; // Followed (0x020218C0: its position plus the offset each frame), till it's gone;
@@ -992,6 +998,7 @@ struct SqueakFx {
     bool8 held;                 // Kept on its last frame (or looping) while its character holds it (SqueakHoldEffect);
     bool8 seen;                 // A drifting one (SqueakDriftInRoom: no owner, dx and dy its speed): it's been on the screen;
     u8 life;                    // and the frames it has left;
+    bool8 drift;                // (counted by SqueakDrifts());
     /* A falling one (SqueakFallInRoom, Squeak Squad's 0x0211C9A8): its speed (Squeak Squad's 20.12, Y up; fracX and fracY the bits
      * KatAM's 24.8 spot drops) and its fall a frame; under `floor` it bounces (its speed up, `gain` times it, 20.12) while it has
      * bounces left, each sounding bounceSfx; */
@@ -1120,6 +1127,7 @@ static struct SqueakFx *SqueakEffectAtIn(u16 roomId, u8 effect, s32 x, s32 y, bo
     fx->held = FALSE;
     fx->seen = FALSE;
     fx->life = 0;
+    fx->drift = FALSE;
     fx->falling = FALSE;
     fx->palId = SqueakLoadPalette(d->palette.key, d->palette.variant, roomId);
     EffectObjectInitSprite(&fx->e, &fx->e.sprite, d->tiles, d->animId,
@@ -1141,13 +1149,28 @@ void SqueakEffectInRoom(u16 roomId, u8 effect, s32 x, s32 y) {
 /* SqueakDriftInRoom(); An effect at (x, y) in a room moving (dx, dy) a frame (KatAM's units), owned by nothing (gimmick 0x18's streaks:
  * squeak/gimmicks.c's Streaks): it ends once it's been on the screen (SQUEAK_DRIFT_MARGIN pixels round it) and left it, or after
  * SQUEAK_DRIFT_LIFE frames; */
-void SqueakDriftInRoom(u16 roomId, u8 effect, s32 x, s32 y, s32 dx, s32 dy) {
-    struct SqueakFx *fx = SqueakEffectAtIn(roomId, effect, x, y, FALSE);
+// (the drifting ones there are: the tasks walked, only as one's made, every few frames; the code has no RAM of its own to count in);
+static u8 SqueakDrifts(void) {
+    struct Task *t = &gTasks[0];
+    u8 n, count = 0;
 
+    for (n = 0; n < MAX_TASK_NUM && t->next; n++) {
+        t = (struct Task *)(IWRAM_START + t->next);
+        if (t->main == SqueakFxMain && ((struct SqueakFx *)TaskGetStructPtr(t))->drift) count++;
+    }
+    return count;
+}
+
+void SqueakDriftInRoom(u16 roomId, u8 effect, s32 x, s32 y, s32 dx, s32 dy) {
+    struct SqueakFx *fx;
+
+    if (SqueakDrifts() >= SQUEAK_DRIFT_MAX) return;
+    fx = SqueakEffectAtIn(roomId, effect, x, y, FALSE);
     if (fx == NULL) return;
     fx->dx = dx;
     fx->dy = dy;
-    fx->life = SQUEAK_DRIFT_LIFE;
+    fx->life = effect >= SQUEAK_FX_SNOW && effect < SQUEAK_FX_SNOW + 2 ? SQUEAK_SNOW_LIFE : SQUEAK_DRIFT_LIFE;
+    fx->drift = TRUE;
 }
 
 /* SqueakFallInRoom(); An effect at (x, y) in a room (KatAM's units) thrown at (vx, vy) and falling ay a frame (Squeak Squad's units:
@@ -1607,8 +1630,13 @@ void *CreateSqueakMidboss(struct ObjectTemplate *template, u8 playerId) {
 
     if (enemy >= SQUEAK_ENEMY_COUNT || !(sSqueakCharacters[enemy].midboss || sSqueakCharacters[enemy].squeak)) enemy = SQUEAK_BIG_METALUN;
     s = SqueakCreate(template, playerId, enemy);
-    // (Spinni, Doc and Storo as mini-bosses: their fight with Kirby, as the hideouts' on the DS, in their chase's mood);
-    if (sSqueakCharacters[enemy].squeak) s->chase = TRUE;
+    /* (Spinni, Doc and Storo as mini-bosses: their fight with Kirby, as the hideouts' on the DS, in their chase's mood; and, as a
+     * world's boss, unkC bit 1: a hit pushed them back 40 frames, the owner: "I don't like the idea of squeak bosses getting stunned
+     * on hit, that makes them much less threatning"); */
+    if (sSqueakCharacters[enemy].squeak) {
+        s->chase = TRUE;
+        s->obj.base.unkC |= 2;
+    }
     /* (a world's boss: KatAM's bosses' unkC bit 1, King Golem's, which spares them the push a hit gives (sub_0809B1E4's knockback,
      * which KatAM's mini-bosses take: the owner, "Bosses shouldn't get stunned by attacks since it makes them easier than expected,
      * specially the Squeak Squad ones"), and its defeat not inhaled (SqueakBossWatch); a character's own watch calls it); */

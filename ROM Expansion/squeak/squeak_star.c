@@ -146,6 +146,13 @@ static bool32 Star(struct SqueakObject *s) {
 static void SqueakStarMain(struct Object *obj) {
     struct SqueakObject *s = (struct SqueakObject *)obj;
 
+    /* (no attack touches it, flag 0x200, but while a Kirby's inhale reaches it (NidlInhaler): the inhale's class is Wheel's,
+     * Parasol's, Tornado's, Fighter's, Smash's, Missile's and the slide's too, which broke it through SQUEAK_INHALE_ONLY (the owner:
+     * "Stars still have hitboxes and can be hit, this should not happen, only on Daroach's fight"); */
+    if (s->variant != SQUEAK_STAR_SPIT) {
+        if (NidlInhaler(&obj->base)) obj->base.flags &= ~0x200;
+        else obj->base.flags |= 0x200;
+    }
     SqueakRun(s, Star);
     SqueakFinishFrame(s);
     SqueakAnimate(s);

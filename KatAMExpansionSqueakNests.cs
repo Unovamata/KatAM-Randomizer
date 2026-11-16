@@ -32,12 +32,29 @@ namespace KatAMRandomizer {
                 }
             return drawn * 10 >= all * 3 && drawn * 10 <= all * 8;
         }
+        /* (and the DS's own nest at one of its doors that doesn't lead into a lair any more (Randomize Squeak Lairs moved it) goes: its
+         * front cells holding nest blocks (either copy) round the door cleared, the main layer's look there; it stood under the door's
+         * mirror, 6-5-1's igloo, room 0x554: the owner, "double door frame"); */
+        static bool SqueakNestBlock(int block) => SqueakNestRows.Any(row => block >= row && block < row + 2 * SqueakNestWidth);
         static SqueakMap SqueakNests(SqueakMap map, IEnumerable<(int x, int y)> doors, bool lair = false) {
-            List<(int x, int y)> list = map.TableCount(1) > SqueakNestRows[^1] + SqueakNestWidth - 1 ? doors.ToList() : new List<(int, int)>();
-            if (list.Count == 0 && !lair) return map;
+            bool nests = map.TableCount(1) > SqueakNestRows[^1] + SqueakNestWidth - 1;
+            List<(int x, int y)> list = nests ? doors.ToList() : new List<(int, int)>();
+            List<(int x, int y)> stale = nests ? map.Doors().Select(d => (d.X, d.Y)).Where(d => !list.Contains(d)
+                && Enumerable.Range(0, SqueakNestWidth).Any(c => Enumerable.Range(0, SqueakNestRows.Length).Any(r => {
+                    int cx = d.Item1 - SqueakNestWidth / 2 + c, cy = d.Item2 - (SqueakNestRows.Length - 1) + r;
+                    return cx >= 0 && cx < map.Width && cy >= 0 && cy < map.Height && SqueakNestBlock(map.Block(3, cx, cy));
+                }))).ToList() : new List<(int, int)>();
+            if (list.Count == 0 && stale.Count == 0 && !lair) return map;
             byte[] data = (byte[])map.Data.Clone();
             int grid = map.Section(3);
             if (lair) Array.Clear(data, map.Section(5), map.Width * map.Height * 2);
+            foreach ((int x, int y) in stale)
+                for (int row = 0; row < SqueakNestRows.Length; row++)
+                    for (int column = 0; column < SqueakNestWidth; column++) {
+                        int cx = x - SqueakNestWidth / 2 + column, cy = y - (SqueakNestRows.Length - 1) + row;
+                        if (cx >= 0 && cx < map.Width && cy >= 0 && cy < map.Height && SqueakNestBlock(map.Block(3, cx, cy)))
+                            WriteShort(data, grid + (cy * map.Width + cx) * 2, 0);
+                    }
             foreach ((int x, int y) in list)
                 for (int row = 0; row < SqueakNestRows.Length; row++)
                     for (int column = 0; column < SqueakNestWidth; column++) {

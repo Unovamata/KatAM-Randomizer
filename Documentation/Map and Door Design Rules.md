@@ -23,7 +23,7 @@ of) must pass after any change.
 ## 2. How many doors a room has
 
 - **At most 3 exits a room, 2 in a small room** (2 screens or less). `MaxExits()`.
-- **At most 2 doors lead into a Squeak Squad room** (the owner: "Too many rooms lead to 0x48F, there are other places you know?
+- **At most 2 doors lead into a Squeak Squad room, a soft rule** (the owner: "Too many rooms lead to 0x48F, there are other places you know?
   Not everything has to lead to one single room. [...] There should be a maximum of 2 exits leading to a room in the injection
   rooms"): a door added there lands Kirby only in a room fewer than 2 doors lead into, counting the DS's own doors (from the rooms
   Kirby gets to: not the hideouts and gold-pile rooms nothing leads to), their warp stars, the ways back (rule 3), the switch rooms'
@@ -32,6 +32,11 @@ of) must pass after any change.
   worlds, a switch room's floor mirror, the world's Mirra, a throw out of a trapped place) finds no such room, it goes into the room
   of the stage fewest lead into; the ones it can do without (the shortcuts, the goals leading on, rule 5) go only where there's one.
   `PlanSqueakLevels()`'s `Into()`, `MaxInto`. NiDL's rooms are as they were.
+  It keeps doors sensible, it isn't a hard limit (the owner: "it's to keep doors sensible and this is not a hard limit. For example, I
+  know that there are doors that redirect to a room several times, in that case it's ok to keep these redirections but if you just
+  added shortcuts to the same room for the sake of adding them to land out in the same room, then that's a problem. I want to keep
+  the stage/layout structure pretty much the same as in Squeak Squad"): the DS's own doors into a room stay as many as the DS has;
+  only the doors the planner adds are held to it.
 - **The camera never shows 3 doors at once**: no door goes within a screen (`ViewWidth` x `ViewHeight` cells) of two others.
   `ViewFits()`. NiDL's rooms lagged and read as a mess with many mirrors in view.
 - **Mirrors stay inside what the camera shows**: never on a row the camera can't reach, never in mid-air, always on a floor
@@ -206,8 +211,12 @@ of) must pass after any change.
     7-3-2's way to 7-6-4 under its thin floors cut 7-6 off without Down and B), `Walkable()`;
   - doors go only in rooms the stage's start reaches (through the DS's own doors from every door Kirby lands on in the stage, and
     through the walls only Fire or an unported gimmick opens on the DS, which are KatAM's star blocks; where none of the DS's doors
-    needs them gone, the cells only Fire burns stay as the DS has them, solid or a thin floor, and only Fire's breath or Burning burns
-    them (4-1-1's leafy walls and log bridge, room 0x4AC: the owner, "gimmick is not implemented [...] platforms are destructible"),
+    needs them gone, or where Fire is in the room (one of its enemies or bubbles that give it, reached from one of its doors without
+    them: 6-2-5's Hot Head before its ice, room 0x533, the owner: "Room 0x533 fire gimmick is STILL not implemented as I requested"),
+    the cells only Fire burns stay as the DS has them, solid or a thin floor, and only Fire's breath or Burning burns
+    them (4-1-1's leafy walls and log bridge, room 0x4AC: the owner, "gimmick is not implemented [...] platforms are destructible"; the
+    DS's ice too, which a cannon's shot also breaks: 6-2-3's over its fuse cannon, room 0x531, the owner: "ice blocks can only be
+    destroyed with fire abilities or by going through them with a cannon"),
     walls the planner doesn't go through; a single row of blocks the DS breaks from above across a shaft is a thin floor, Kirby going
     up through it (room 0x4E4: "I cannot go up")); where no stage in a world's tree has a room taking a door (Prism Plains 1's
     are small, 2 doors each), **a stage hangs off another's way on** (below), one-way;
@@ -250,7 +259,9 @@ of) must pass after any change.
     the stage's own rooms: a DS door of the stage (the one into the room the thief waits in, else the nearest to it; not
     hidden, Kirby gets to it, not behind blocks Kirby breaks, whose breaking took the nest drawn over them: room 0x485's, the
     owner, "a destroyable lair entrance") leads into the hideout, one-way, onto the DS's arrival there, and the hideout's one way out, shut
-    until its mini-boss is beaten, leads where that door led. A nest stands at that door, the DS's own lair door for that room's
+    until its mini-boss is beaten, leads where that door led: a door leading on through the stage (into a later room of the DS's
+    order), where the stage has one, never back to where Kirby came from (the owner: "Squeak Lairs should be opening branches and
+    expanding the map, not making me go in circles"). A nest stands at that door, the DS's own lair door for that room's
     world (a stump, a grassy mound, a rock pile, a castle, an igloo, a submarine, a factory, a UFO..., each with its flag), the
     warning that a fight waits past it. The way out is KatAM's one-way door on the hideout's DS doorway, where its black doorway
     was (the owner: "The one way door on the Squeak Lairs should be where the black door was"), even where Kirby lands beside it
@@ -259,7 +270,9 @@ of) must pass after any change.
     or add these connections to these rooms in a per seed basis ... Of course, we have to have an unrandomized map as well for
     times where these won't be randomized, for this, the current layout is perfect"), the lairs are picked by the seed among each
     stage's hideouts (each one time in three; the Squeakers' hideout led by Spinni, Doc or Storo), each at a DS door the seed picks
-    among the ones that can be (as above, in a room that shows the DS's nest), the rest of the map unchanged; off, as above;
+    among the ones that can be (as above, in a room that shows the DS's nest), the rest of the map unchanged; off, as above. A DS
+    nest at a door that no longer leads into a lair is taken out of the room's tiles, its door a mirror as any other (6-5-1's igloo,
+    room 0x554: the owner, "double door frame");
   - the rooms a stage reaches only through its Squeaks that no lair uses (the other three hideouts of each stage, every stage's
     copies of the same four fights, and its gold-pile treasure rooms nothing leads to) are left out, nothing leading in, and off the
     map viewer (the owner, of room 0x520: "has no entrance, only an exit", then: hide them; `RomMap.HideUnusedSqueakRooms()`: a

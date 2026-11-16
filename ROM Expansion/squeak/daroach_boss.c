@@ -1033,9 +1033,9 @@ void DaroachBossThingInit(struct SqueakObject *t) {
         T_HARM(t) = 0;
         break;
     default:
-        // (his stars inhaled, no attack breaking them: SQUEAK_INHALE_ONLY);
+        /* (his stars inhaled, and KatAM's attacks break them, as the DS's (above): the one fight whose stars are hit, the owner:
+         * "Stars still have hitboxes and can be hit, this should not happen, only on Daroach's fight"); */
         ObjectSetBounds(base, -7, -6, 7, 6);
-        base->unk5C |= SQUEAK_INHALE_ONLY;
         break;
     }
 }

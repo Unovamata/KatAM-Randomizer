@@ -31,7 +31,10 @@ finishes it says how it was checked). The design rules for doors, mirrors and hu
   so placed on its chest it went off with it at once. Not seen in the room: the Squeaker and its chest didn't come out on a plain
   visit, only in its chase, which wasn't played.)
 - The owner: "Room 0x50E bugged sound effects and double pedestals." (The Gold Waddle Dee's chest is done: it comes where the enemy
-  was beaten. The sounds and the pedestals not looked at yet.)
+  was beaten; the doubled pedestals were KatAM's random pedestal, which no Squeak Squad room has now. The sounds not looked at yet.)
+- The owner: "Some moving platforms don't move on contact." (Checked in the GBA emulator: 6-3-3's platforms that start when Kirby
+  stands on them (room 0x53C) and 6-2-1's that a trigger area starts (0x52F) both move; every platform waiting for a message has a
+  gimmick sending it one (6-4-4's, 0x54B, its rope when cut). Which room, wanted.)
 - The owner: "Down + B on stone doors if opened, send kirby jumping back."
 - The owner: "Bomb blocks attacked from any angle can blow up even if you don't hit the bomb square." (On purpose so far: a chain
   whose bomb block can't be reached from outside, as room 0x4A0's in the middle of its 5 by 3 wall, has its outward blocks made bomb
@@ -58,3 +61,5 @@ finishes it says how it was checked). The design rules for doors, mirrors and hu
   palettes looked right standing, walking, jumping and floating: in which move were they broken?)
 - The owner: "Ghost pedestal doesn't give the ghost ability, is it even implemented?" (Not implemented: Squeak Squad's Ghost, and
   Triple Star, aren't in the ROM Expansion, so their pedestals give nothing.)
+- The owner: "Do Ice abilities can put out fire objects in the original Squeak Squad." (Done for the candles: a lit one goes out at an
+  Ice Kirby's attack. The lava rooms' fire columns burn on their timers as before: does the DS's Ice put those out too?)
