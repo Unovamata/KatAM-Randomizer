@@ -93,7 +93,7 @@ static const struct SqueakCharacter sSqueakCharacters[SQUEAK_ENEMY_COUNT] = {
     [SQUEAK_MAIGA] = { MaigaInit, MaigaStart, 0, FALSE },
     [SQUEAK_CRET] = { CretInit, CretStart, 0, FALSE },
     [SQUEAK_CRET_BALL] = { CretBallInit, CretBallStart, 0, FALSE },
-    [SQUEAK_UJA] = { UjaInit, UjaStart, 0, FALSE },
+    [SQUEAK_UJA] = { UjaInit, UjaStart, KIRBY_ABILITY_SMASH, FALSE },                                   // (Smash: the owner, "Uja should give the smash ability");
     [SQUEAK_BIO_SPARK] = { BioSparkInit, BioSparkStart, SQUEAK_ABILITY_NINJA, FALSE },   // The DS's Ninja (its ability 0x13);
     [SQUEAK_BIO_SPARK_KUNAI] = { BioSparkKunaiInit, BioSparkKunaiStart, 0, FALSE },
     [SQUEAK_BIO_SPARK_LEAF] = { BioSparkLeafInit, BioSparkLeafStart, 0, FALSE },
@@ -233,6 +233,7 @@ static void SqueakFitVram(struct SqueakObject *s) {
     sprite->unk1B = 0xFF;
 }
 
+#define KATAM_FLASH_PALETTE 15
 /* SqueakAnimFor(); The anim and variant an object shows (variant << 16 | anim ID), for the game's object drawing (sub_0809A7A4,
  * patched to call this where it read them from the type's AnimInfo table): a Squeak Squad character's own anim, with its frame
  * index as the variant (its VRAM fitted to it first: SqueakFitVram); the type's AnimInfo for the others, as the game does; */
@@ -243,6 +244,17 @@ u32 SqueakAnimFor(struct Object *obj) {
     if (SqueakIsSqueak(obj)) {
         struct SqueakObject *s = (struct SqueakObject *)obj;
 
+        /* (KatAM's hit flash, sub_080857A0, swaps its palette for 15 every other frame, the flash's colors laid out for KatAM's own
+         * sprites: on a Squeak Squad character's, garbled orange shapes, the owner: "Tedhaun and enemies have some visual glitches
+         * when hit". Its own damage colors instead, as the DS's hurt flash (SqueakDamageColors()), else its own); */
+        if (obj->base.sprite.palId == KATAM_FLASH_PALETTE) {
+            const struct SqueakGraphics *g = &gSqueakData.enemies[s->enemy];
+            const struct SqueakPaletteKey *k = gSqueakData.damage != NULL && gSqueakData.damage[s->enemy] != NULL ? &gSqueakData.damage[s->enemy][s->anim]
+                                             : g->palette != NULL ? &g->palette[s->anim] : NULL;
+
+            obj->base.sprite.palId = k != NULL ? SqueakLoadPalette(k->key, k->variant, obj->base.roomId)
+                                               : SqueakLoadPalette(g->animId, SQUEAK_HURT_VARIANTS, obj->base.roomId);
+        }
         SqueakFitVram(s);
         // (Daroach's things, drawn with his graphics: their own frame while KatAM holds them, not his hurt one);
         if (s->enemy == SQUEAK_DAROACH_BOSS_THING || s->enemy == SQUEAK_DARK_DAROACH_THING)

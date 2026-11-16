@@ -28,6 +28,16 @@ namespace KatAMRandomizer {
          * Bomb, Tornado; 0x93 Wheel, Ice, Spark, Missile, Smash, Throw, Hammer; 0x94 Parasol; 0x95 Sword, Cutter, Cupid), provisional:
          * Prism Plains Cutter and Beam, Nature Notch Bomb and Stone, Cushy Cloud Spark and Tornado, Jam Jungle Parasol and Throw, Vocal
          * Volcano Fire and Burning, Ice Island Ice and Hammer, Secret Sea Laser and Wheel, Gamble Galaxy Smash and Sword; */
+        /* SqueakHubPedestals: with Squeak Squad's own abilities in the ROM (squeakAbilitiesBuilt), its pedestals in their place (squeak/
+         * gimmicks.c's, as the ability room's: BuildSqueakAbilityRoom()), the abilities only its stages and its ability room give
+         * otherwise, by the DS's numbers (19 Ninja, 21 Animal, 22 Bubble, 23 Metal), a pair a world, each four times in all (the owner:
+         * "SS hubs should have SS abilities since these can't be obtained anywhere in game other than stages and the late unlock ability
+         * room. Make sure you cycle through all the exclusive abilities in the hubs"); their stand on the room's top floor, the
+         * statues' (SwitchStatueFloor); */
+        static readonly int[][] SqueakHubPedestals = {
+            new[] { 19, 21 }, new[] { 22, 23 }, new[] { 21, 22 }, new[] { 23, 19 }, new[] { 19, 22 }, new[] { 21, 23 }, new[] { 22, 19 }, new[] { 23, 21 },
+        };
+        const int SwitchStatueFloor = 64;
         static readonly (byte type, byte subtype)[][] SqueakStatues = {
             new[] { ((byte)0x95, (byte)1), ((byte)0x92, (byte)0) }, new[] { ((byte)0x92, (byte)6), ((byte)0x92, (byte)4) },
             new[] { ((byte)0x93, (byte)2), ((byte)0x92, (byte)7) }, new[] { ((byte)0x94, (byte)0), ((byte)0x93, (byte)5) },
@@ -278,7 +288,8 @@ namespace KatAMRandomizer {
          * the camera KatAM's (rooms.c's gNidlRoomTops 0: the room a screen, it stays put, as the NiDL switch rooms'); */
         static string BuildSqueakSwitchRooms(byte[] rom, int first, List<SqueakLook> looks, Dictionary<int, List<Door>> doors, int newProps,
                                              int newInfos, int roomInfos, int navigationRoutes, int noTypes, Func<string, int, int> add,
-                                             Func<List<byte>, int, int> doorsList, Func<string, int[,]> farView, ref int cursor) {
+                                             Func<List<byte>, int, int> doorsList, Func<string, int[,]> farView, ref int cursor,
+                                             SqueakCharacter pedestalLook = null) {
             for (int world = 1; world <= SqueakWorlds; world++) {
                 ReportEach(0.89, 0.985, world - 1, SqueakWorlds, "Drawing Squeak Squad's switch rooms");
                 int room = first + world - 1, level = SqueakLayoutLevel(world);
@@ -293,6 +304,19 @@ namespace KatAMRandomizer {
                 List<byte[]> templates = new List<byte[]> { BigSwitchTemplate(SwitchAt(level).x, SwitchAt(level).y, 0, SqueakSlot(world), NidlWorldMapDoors / 2 + world - 1) };
                 List<byte> types = new List<byte> { BigSwitchType };
                 for (int i = 0; i < 2; i++) {
+                    // (Squeak Squad's own abilities where the ROM has them: its pedestals, SqueakHubPedestals; else KatAM's statues);
+                    if (squeakAbilitiesBuilt && pedestalLook != null) {
+                        int ability = SqueakHubPedestals[world - 1][i];
+                        byte[] pedestal = ObjectTemplate(SwitchStatueXs(level)[i], SwitchStatueFloor - PedestalFoot, templates.Count, HammerPegType);
+                        pedestal[0x11] = SqueakPedestalObject;
+                        pedestal[0x12] = (byte)ability;
+                        pedestal[0x14] = SqueakPedestalAbility(ability);
+                        int cell = pedestalLook.Anims[SqueakPedestalAnims[ability - 1]].Steps[0].Cell;
+                        pedestal[0x16] = (byte)(pedestalLook.Cells[cell].Pieces.Any(piece => piece.Attr2 >> 12 != 0) ? 1 : 0);
+                        templates.Add(pedestal);
+                        if (!types.Contains(HammerPegType)) types.Add(HammerPegType);
+                        continue;
+                    }
                     (byte type, byte subtype) = SqueakStatues[world - 1][i];
                     byte[] statue = ObjectTemplate(SwitchStatueXs(level)[i], 48, templates.Count, type);
                     statue[14] = subtype; statue[15] = 0;

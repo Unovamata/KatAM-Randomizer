@@ -1847,6 +1847,8 @@ static void *SqueakCreateGrass(struct ObjectTemplate *template, u8 playerId) {
     InitObject(obj, template, playerId);
     box = sGrassBoxes[GrassLarge(obj)];
     HolderInit(obj, &g->spr, SQUEAK_GRASS + template->unk12 % 6, box[0], box[1], box[2], box[3]);
+    // (not inhaled, unk5C 0x20 as the boulders' and the platforms': the DS's tufts aren't; the owner, "Bushes and cuttable grasses can be inhaled");
+    obj->base.unk5C |= 0x20;
     g->state = GRASS_STILL;
     GimmickPlay(obj, &g->spr, 0);
     obj->unk78 = SqueakGrassMain;
@@ -2063,7 +2065,7 @@ static void *SqueakCreateBarrel(struct ObjectTemplate *template, u8 playerId) {
  * hangs over its spot (its tip: the DS draws it above), shakes ICICLE_SHAKE frames once a Kirby is under it (within 24 pixels across, 192 down), falls
  * (KatAM's gravity, hurting as it goes: a plain hit, an enemy's touch's kind 0x80; the fire column's 0x100 burnt Kirby), shatters
  * on the floor and hangs again ICICLE_BACK
- * frames on; */
+ * frames on, blinking in (ICICLE_BLINK); */
 struct SqueakIcicle {
     struct Object obj;
     struct SqueakGimmickSprite spr;
@@ -2075,6 +2077,8 @@ struct SqueakIcicle {
 #define ICICLE_FALL 2
 #define ICICLE_SHATTER 3
 #define ICICLE_GONE 4
+#define ICICLE_BLINK 5
+#define ICICLE_BLINK_FRAMES 40
 #define ICICLE_SHAKE_FRAMES 30
 #define ICICLE_BACK 180
 #define ICICLE_GRAVITY 0x30
@@ -2128,8 +2132,19 @@ static void SqueakIcicleMain(struct Object *obj) {
         if (++c->timer < ICICLE_BACK) break;
         obj->base.x = obj->objTemplate->x << 8;
         obj->base.y = obj->objTemplate->y << 8;
-        obj->base.flags &= ~0x400;
         GimmickPlay(obj, &c->spr, 0);
+        c->state = ICICLE_BLINK;
+        c->timer = 0;
+        break;
+    /* (back, blinking in ICICLE_BLINK_FRAMES before it hangs again: the DS makes the next as the last is gone, all at once, and so did
+     * this, the owner: "Icicles pop out in a very ugly way, they just replenish immediately"); */
+    case ICICLE_BLINK:
+        if (++c->timer < ICICLE_BLINK_FRAMES) {
+            if (c->timer & 2) obj->base.flags &= ~0x400;
+            else obj->base.flags |= 0x400;
+            break;
+        }
+        obj->base.flags &= ~0x400;
         c->state = ICICLE_HANG;
         break;
     }
@@ -2342,6 +2357,25 @@ static void PlatformCarryObjects(struct SqueakPlatform *p, s32 oldTop, s32 dx) {
         // moving with the platforms");
         if (o->base.flags & (0x100 | 0x1000) || o->base.yspeed > 0) continue;
         if (o->base.flags & 0x800 && !chest) continue;
+        /* (one placed on it, its template's spot on the platform's template's top, whenever it's made: where the platform is now,
+         * moved as it moved; made after the platform had gone down (6-4-4's, room 0x54B, its rope cut with the chest off the
+         * screen), it stood where it was placed, in the air: the owner, "rope destroyed yet the chest didn't fall"); */
+        if (chest) {
+            s32 home = (p->obj.objTemplate->y - PLATFORM_TOP) << 8, placed = (o->objTemplate->y + o->base.unk3F) << 8;
+            s32 across = o->objTemplate->x - p->obj.objTemplate->x;
+
+            if (across < 0) across = -across;
+            // (still where it was made: one a Squeak carries off goes its own way);
+            if (across <= PLATFORM_HALF + 4 && placed >= home - (4 << 8) && placed <= home + (12 << 8)
+                && (u32)((o->base.x >> 8) - o->objTemplate->x + 2) <= 4 && (u32)((o->base.y >> 8) - o->objTemplate->y + 12) <= 24
+                && p->obj.base.y >> 8 != p->obj.objTemplate->y) {
+                o->base.x = (o->objTemplate->x << 8) + p->obj.base.x - (p->obj.objTemplate->x << 8);
+                o->base.y = top - (o->base.unk3F << 8);
+                o->base.unk62 |= 4;
+                o->base.yspeed = 0;
+                continue;
+            }
+        }
         // (a Squeak Squad body moves itself, squeak.c's SqueakMove(): its own speed, up positive; its landing is there too);
         if (SqueakIsSqueak(o) && ((struct SqueakObject *)o)->vy > 0) continue;
         ax = (o->base.x - p->obj.base.x + dx) >> 8;

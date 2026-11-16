@@ -145,6 +145,8 @@ static const struct SqueakBoxes sTedhaunBoxData = { sTedhaunBoxes, sTedhaunBoxAn
  * pixels up and down (0x0210232C: up on its frames 0 of 8, down on 2); thrown 2.8 ahead and 0.8 up (KatAM's 16ths: his back) hurt as
  * he lands; let go as he is; */
 #define HOLD_X -8
+#define MIDBOSS_DEPTH 0x6C0   // (squeak.c's CreateSqueakMidboss: KatAM's mini-bosses');
+#define HOLD_DEPTH 0x680
 static const struct Kirby_110 sHold[] = { { HOLD_X, 1, -1, 0xFF, 0x57, 0x400 }, { 0, 0, 0, 1, 0, 0x400 } };
 static const struct Kirby_110 sHoldUp[] = { { HOLD_X, -1, -1, 0xFF, 0x57, 0x400 }, { 0, 0, 0, 1, 0, 0x400 } };
 static const struct Kirby_110 sHoldDown[] = { { HOLD_X, 3, -1, 0xFF, 0x57, 0x400 }, { 0, 0, 0, 1, 0, 0x400 } };
@@ -661,13 +663,18 @@ static void TedhaunMain(struct Object *obj) {
     if (s->state != BODY_INTRO) Ghosts(s);
     SqueakSetBoxes(s, &sTedhaunBoxData, HELD(s) || s->state == BODY_THROW ? 0 : HARM(s), &BOX(s));
     // (Kirby held, shaken (0x0210232C: up on its frames 0 of 8, down on 2), his body no harm to it, as KatAM's grabbers');
+    /* (and drawn behind it: KatAM's grab puts the Kirby held at its objects' depth (sprite unk14 0x6C0, its scripts' third byte under 1),
+     * Tedhaun's own, and which showed over the other was the sprites' order, the owner: "There's a layering issue when tedhaun grabs
+     * you"; it's a step nearer while it holds him, HOLD_DEPTH); */
     if (StillHeld(s)) {
         t = s->state == BODY_HOLD ? COUNT(s) % 8 : COUNT(s) % 8;
         HELD(s)->unk110 = t < 1 ? sHoldUp : t == 2 ? sHoldDown : sHold;
         obj->base.unk5C |= 0x80;
+        obj->base.sprite.unk14 = HOLD_DEPTH;
     } else {
         if (HELD(s)) LetGo(s, sLetGo);
         obj->base.unk5C &= ~0x80;
+        obj->base.sprite.unk14 = MIDBOSS_DEPTH;
     }
     // (its float's grabbing boxes and its hum, 0x021037B8);
     if (!s->loopSound && obj->unk80 > 0 && s->state != BODY_INTRO) SqueakLoopSfx(s, 0x17B);
