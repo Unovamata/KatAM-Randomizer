@@ -53,81 +53,10 @@ public class Entity {
         IsInhalable = entity.IsInhalable;
     }
 
-    public EntitySerializable SerializeEntity() {
-        return new EntitySerializable(this);
-    }
-
     public void AreAllPropertiesZeroes() {
         if (this.Properties.All(x => x == 0)) {
             this.Properties = new byte[] { 0 };
         }
-    }
-}
-
-public class EntitySerializable : Entity {
-    public string Definition { get; set; }
-    public string Number { get; set; }
-    public string Link { get; set; }
-    public string X { get; set; }
-    public string Y { get; set; }
-    public string Properties { get; set; }
-
-    public EntitySerializable() {}
-
-    public EntitySerializable(Entity entity) {
-        Definition = ByteArrayToHexString(entity.Definition);
-        Number = ByteArrayToHexString(entity.Number);
-        Link = ByteArrayToHexString(entity.Link);
-        X = ByteArrayToHexString(entity.X);
-        Y = ByteArrayToHexString(entity.Y);
-        Properties = ByteArrayToHexString(entity.Properties);
-
-        Name = entity.Name;
-        Description = entity.Description;
-        Address = entity.Address;
-        ID = entity.ID;
-        Behavior = entity.Behavior;
-        Speed = entity.Speed;
-        Room = entity.Room; 
-        AbilityID = entity.AbilityID;
-        IsUnderwater = entity.IsUnderwater;
-        IsFlying = entity.IsFlying;
-        IsInhalable = entity.IsInhalable;
-    }
-
-    public static string ByteArrayToHexString(byte[] byteArray) {
-        return Utils.ByteArrayToHexString(byteArray);
-    }
-
-    public Entity DeserializeEntity() {
-        Entity entity = new Entity();
-
-        /*entity.Definition = StringToByteArray(this.Definition);*/
-        entity.Number = StringToByteArray(this.Number);
-        entity.Link = StringToByteArray(this.Link);
-        entity.X = StringToByteArray(this.X);
-        entity.Y = StringToByteArray(this.Y);
-        entity.Properties = StringToByteArray(this.Properties);
-
-        entity.Name = Name;
-        entity.Description = Description;
-        entity.Address = Address;
-        entity.ID = ID;
-        entity.Behavior = Behavior;
-        entity.Speed = Speed;
-        entity.Room = Room;
-        entity.IsUnderwater = IsUnderwater;
-        entity.IsFlying = IsFlying;
-        entity.AbilityID = AbilityID;
-        entity.IsUnderwater = IsUnderwater;
-        entity.IsFlying = IsFlying;
-        entity.IsInhalable = IsInhalable;
-
-        return entity;
-    }
-
-    public static byte[] StringToByteArray(string hexString) {
-        return Utils.StringToByteArray(hexString);
     }
 }
 

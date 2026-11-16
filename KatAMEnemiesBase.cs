@@ -1,6 +1,5 @@
 ﻿using KatAMInternal;
 using KatAM_Randomizer;
-using Newtonsoft.Json.Linq;
 
 namespace KatAMRandomizer {
     public interface IKatAMEnemiesBase {
@@ -54,18 +53,18 @@ namespace KatAMRandomizer {
             0x6B,
         };
 
-        protected void LoadEnemyDataset(IKatAMRandomizer Instance, string file) {
+        protected void LoadEnemyDataset(IKatAMRandomizer Instance, ObjectKind kind) {
             entities = new List<Entity>();
 
-            // Deserializing all the entities in the game;
-            Utils.DeserializeEntitiesJSON(Utils.JSONToObjects(file), entities, Instance);
+            // All the entities in the game;
+            Utils.LoadEntities(kind, entities, Instance);
         }
 
         protected void RandomizeEnemies(IKatAMRandomizer Instance, bool isRandomizingMiniBosses = false) {
             List<Entity> minibosses = new List<Entity>();
 
             if(!isRandomizingMiniBosses && isIncludingMiniBosses) {
-                Utils.DeserializeEntitiesJSON(Utils.JSONToObjects(Utils.minibossesJson), minibosses, Instance);
+                Utils.LoadEntities(ObjectKind.Minibosses, minibosses, Instance);
             }
 
             List<byte> allEntitiesIDs = LoadAllSpeedAndBehaviorData();
@@ -377,7 +376,7 @@ namespace KatAMRandomizer {
 
             if(isUsingUnusedBehaviors) InitializeBehaviorDictionary();
 
-            LoadEnemyDataset(this, Utils.enemiesJson);
+            LoadEnemyDataset(this, ObjectKind.Enemies);
 
             GroupEnemies();
 
@@ -485,7 +484,7 @@ namespace KatAMRandomizer {
 
             LoadSettings();
 
-            LoadEnemyDataset(this, Utils.minibossesJson);
+            LoadEnemyDataset(this, ObjectKind.Minibosses);
 
             AddSqueakLairMinibosses();
 

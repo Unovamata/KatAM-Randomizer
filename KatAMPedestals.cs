@@ -79,7 +79,7 @@ namespace KatAMRandomizer
             entities = new List<Entity>();
             objectIDs = new List<KeyValuePair<byte, byte>>();
 
-            Utils.DeserializeEntitiesJSON(Utils.JSONToObjects(Utils.abilityStandsJson), entities, Instance);
+            Utils.LoadEntities(ObjectKind.AbilityStands, entities, Instance);
 
             isParasolBanned = Settings.isBanningParasol;
             isAddingRandomPedestal = Settings.isAddingRandomPedestal;

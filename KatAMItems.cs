@@ -24,8 +24,8 @@ namespace KatAMRandomizer
             // Read the settings, entities, and ROM data;
             consumableOptions = Settings.ConsumablesGenerationType;
 
-            // Deserializing all the entities in the game;
-            Utils.DeserializeEntitiesJSON(Utils.JSONToObjects(Utils.itemsJson), entities, Instance);
+            // All the entities in the game;
+            Utils.LoadEntities(ObjectKind.Items, entities, Instance);
 
             // Shuffling the object IDs;
             bool isShuffling = consumableOptions == GenerationOptions.Shuffle;

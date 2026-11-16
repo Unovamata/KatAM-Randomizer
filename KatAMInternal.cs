@@ -1,16 +1,17 @@
-﻿using Newtonsoft.Json;
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.Collections.Generic;
 using KatAMRandomizer;
 using KatAM_Randomizer;
 using System.Net;
 using System.DirectoryServices.ActiveDirectory;
 using System.Reflection;
-using Newtonsoft.Json.Linq;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace KatAMInternal
 {
+    // The kinds of objects the ROM reader sorts the rooms' objects into (Utils.KeepEntities(), Utils.LoadEntities());
+    public enum ObjectKind { Enemies, Minibosses, Items, Mirrors, AbilityStands, WorldMapObjects }
+
     public enum GenerationOptions {
         Unchanged = 0,
         Presets = 1,
@@ -723,101 +724,45 @@ namespace KatAMInternal
             return bytes;
         }
 
-        public static string jsonRoute = "JSON\\",
-                             propertiesJson = "Properties",
-                             enemiesJson = "Enemies",
-                             minibossesJson = "Minibosses",
-                             bossesJson = "Bosses",
-                             itemsJson = "Items",
-                             mirrorsJson = "Mirrors",
-                             abilityStandsJson = "AbilityStands",
-                             worldMapObjectsJson = "WorldMapObjects";
+        /* The objects the ROM reader found (KatAMROMReader), as they were before anything was randomized, kept in memory by kind (the
+         * randomizer once wrote them to JSON files and read those back, the owner: "It really doesn't make any sense"): each part of the
+         * randomizer, and the spoiler log, gets copies of its own (LoadEntities(), LoadProperties()), grouped by name as they were read
+         * (the order the randomizer goes through them in, so a seed makes the same ROM as before); */
+        static readonly Dictionary<ObjectKind, List<Entity>> readEntities = new Dictionary<ObjectKind, List<Entity>>();
+        static List<Properties> readProperties = new List<Properties>();
 
-        public static void SaveJSON(dynamic list, string filename) {
-            string json = JsonConvert.SerializeObject(ObjectsToJSON(list), Formatting.Indented);
-            File.WriteAllText(jsonRoute + filename + ".json", json);
-        }
+        public static void KeepEntities(List<Entity> list, ObjectKind kind) =>
+            readEntities[kind] = list.GroupBy(entity => entity.Name).SelectMany(group => group).Select(CopyEntity).ToList();
 
-        public static dynamic ObjectsToJSON(List<Entity> list) {
-            var groupedEntities = new Dictionary<string, List<Dictionary<string, dynamic>>>();
+        public static void KeepProperties(List<Properties> list) =>
+            readProperties = list.GroupBy(property => property.Name).SelectMany(group => group).Select(CopyProperties).ToList();
 
-            foreach (Entity entity in list) {
-                EntitySerializable serialized = entity.SerializeEntity();
-                if (!groupedEntities.ContainsKey(serialized.Name)) {
-                    groupedEntities[serialized.Name] = new List<Dictionary<string, dynamic>>();
-                }
+        // LoadEntities(); Copies of the objects of a kind the ROM reader found, those the component takes (its FilterEntities()), into `entities`;
+        public static void LoadEntities(ObjectKind kind, List<Entity> entities, IKatAMRandomizer component) {
+            if (!readEntities.TryGetValue(kind, out List<Entity> read)) return;
 
-                var entityDict = new Dictionary<string, dynamic> {
-                    ["Address"] = serialized.Address,
-                    ["Number"] = serialized.Number,
-                    ["Link"] = serialized.Link,
-                    ["X"] = serialized.X,
-                    ["Y"] = serialized.Y,
-                    ["ID"] = serialized.ID,
-                    ["Behavior"] = serialized.Behavior,
-                    ["Speed"] = serialized.Speed,
-                    ["Properties"] = serialized.Properties,
-                    ["Room"] = serialized.Room,
-                    ["Ability"] = serialized.AbilityID,
-                    ["Underwater"] = serialized.IsUnderwater,
-                    ["Flying"] = serialized.IsFlying,
-                    ["Inhalable"] = serialized.IsInhalable,
-                    ["Description"] = serialized.Description,
-                };
+            foreach (Entity entity in read) {
+                Entity copy = CopyEntity(entity);
 
-                groupedEntities[serialized.Name].Add(entityDict);
+                if (component.FilterEntities(copy)) entities.Add(copy);
             }
-
-            return groupedEntities;
         }
 
-        public static dynamic ObjectsToJSON(List<Properties> list) {
-            var groupedProperties = new Dictionary<string, List<Dictionary<string, dynamic>>>();
+        // LoadProperties(); Copies of the object parameters the ROM reader found;
+        public static List<Properties> LoadProperties() => readProperties.Select(CopyProperties).ToList();
 
-            foreach (Properties property in list) {
-                PropertiesSerializable serialized = property.SerializeEntity();
+        // (a copy with arrays of its own; its definition and IsMoved left out, as the copies read back from the files had them);
+        static Entity CopyEntity(Entity entity) => new Entity {
+            Name = entity.Name, Description = entity.Description, Address = entity.Address,
+            Number = (byte[])entity.Number.Clone(), Link = (byte[])entity.Link.Clone(), X = (byte[])entity.X.Clone(), Y = (byte[])entity.Y.Clone(),
+            ID = entity.ID, Behavior = entity.Behavior, Speed = entity.Speed, Properties = (byte[])entity.Properties.Clone(), Room = entity.Room,
+            AbilityID = entity.AbilityID, IsUnderwater = entity.IsUnderwater, IsFlying = entity.IsFlying, IsInhalable = entity.IsInhalable,
+        };
 
-                if (!groupedProperties.ContainsKey(serialized.Name)) {
-                    groupedProperties[serialized.Name] = new List<Dictionary<string, dynamic>>();
-                }
-
-                var entityDict = new Dictionary<string, dynamic> {
-                    ["ID"] = serialized.ID,
-                    ["Address"] = serialized.Address,
-                    ["Name"] = serialized.Name,
-                    ["Damage Sprites"] = serialized.DamageSprites,
-                    ["HP"] = serialized.HP,
-                    ["Copy Ability"] = serialized.CopyAbility,
-                    ["Palette"] = serialized.Palette,
-                    ["Definition"] = serialized.Definition
-                };
-
-                groupedProperties[serialized.Name].Add(entityDict);
-            }
-
-            return groupedProperties;
-        }
-
-        public static dynamic JSONToObjects(string filename) {
-            string json = File.ReadAllText(jsonRoute + filename + ".json");
-
-            var result = JsonConvert.DeserializeObject<Dictionary<string, List<Dictionary<string, dynamic>>>>(json);
-
-            return result;
-        }
-
-        public static byte[] StringToByteArray(string hexString) {
-            // Initialize the byte array
-            byte[] byteArray = new byte[hexString.Length / 2];
-
-            // Convert each pair of characters to a byte
-            for (int i = 0; i < hexString.Length; i += 2) {
-                string byteString = hexString.Substring(i, 2);
-                byteArray[i / 2] = Convert.ToByte(byteString, 16);
-            }
-
-            return byteArray;
-        }
+        static Properties CopyProperties(Properties property) => new Properties {
+            Definition = (byte[])property.Definition.Clone(), ID = property.ID, Address = property.Address, Name = property.Name,
+            DamageSprites = (byte[])property.DamageSprites.Clone(), HP = property.HP, CopyAbility = property.CopyAbility, Palette = property.Palette,
+        };
 
         public static List<T> Shuffle<T>(List<T> list) {
             return list.OrderBy(x => Utils.GetNextRandom()).ToList();
@@ -825,69 +770,6 @@ namespace KatAMInternal
 
         public static void ChangeStatusBarText(string text) {
             KatAMRandomizerMain.Instance.StatusStripRandomizer.Text = text;
-        }
-
-        public static void DeserializeEntitiesJSON(dynamic itemsJson, List<Entity> entities, IKatAMRandomizer component) {
-            // Reading the JSON dictionary;
-            foreach (string key in itemsJson.Keys) {
-                List<Dictionary<string, dynamic>> dict = itemsJson[key];
-
-                // Injecting the extracted information on Entities;
-                foreach (var item in dict) {
-                    EntitySerializable serialized = new EntitySerializable();
-
-                    serialized.Name = key;
-
-                    // Reading the KeyValuePair information;
-                    foreach (var kvp in item) {
-                        switch (kvp.Key) {
-                            case "Address":
-                                int address = (int)kvp.Value;
-                                serialized.Address = address;
-                            break;
-                            case "Number": serialized.Number = kvp.Value; break;
-                            case "Link": serialized.Link = kvp.Value; break;
-                            case "X": serialized.X = kvp.Value; break;
-                            case "Y": serialized.Y = kvp.Value; break;
-                            case "ID":
-                                byte ID = (byte)kvp.Value;
-                                serialized.ID = ID;
-                            break;
-                            case "Behavior": serialized.Behavior = (byte)kvp.Value; break;
-                            case "Speed": serialized.Speed = (byte)kvp.Value; break;
-                            case "Properties": serialized.Properties = kvp.Value; break;
-                            case "Room":
-                                serialized.Room = (int)kvp.Value;
-                            break;
-                            case "Ability":
-                                byte abilityID = (byte)kvp.Value;
-                                serialized.AbilityID = abilityID;
-                            break;
-                            case "Underwater":
-                                bool isUnderwater = kvp.Value;
-                                serialized.IsUnderwater = isUnderwater;
-                            break;
-                            case "Flying":
-                                bool isFlying = kvp.Value;
-                                serialized.IsFlying = isFlying;
-                            break;
-                            case "Inhalable":
-                                bool isInhalable = kvp.Value;
-                                serialized.IsInhalable = isInhalable;
-                            break;
-                            case "Description":
-                                serialized.Description = kvp.Value;
-                            break;
-                        }
-                    }
-
-                    Entity entity = serialized.DeserializeEntity();
-
-                    bool shouldAddEntity = component.FilterEntities(entity);
-
-                    if(shouldAddEntity) entities.Add(entity);
-                }
-            }
         }
 
         // IsVetoedRoom(); Check if the room is not feasible for randomization;
