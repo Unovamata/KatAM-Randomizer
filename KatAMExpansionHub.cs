@@ -3,7 +3,8 @@ namespace KatAMRandomizer {
      * • Background: NiDL's final boss background (the Fountain of Dreams' first room's: stars, the pink and cyan nebula, the violet
      *   sky and its galaxies), cut down to 32x36 tiles and quantized to 3 palettes (6-8), one per band of rows (HubBackground);
      * • Palettes: Central Circle's scenery (palettes 4 and 5) tinted to the night (NightTint);
-     * • Mirrors: its golden one (MainHubEntry) to Vegetable Valley's first room, the way in, a pink one (MainHubReturn, MirrorTwin()) back to Central Circle, and
+     * • Mirrors: its golden one (MainHubEntry) to Vegetable Valley's first room, the way in, a blue one (MainHubReturn, MirrorTwin(),
+     *   KatAMHubMirrorColor()) back to Central Circle, and
      *   Central Circle's Dimension Mirror (DimensionMirrorTemplate(), to the Power Orb's room as Central Circle's: FinaleMirrors());
      * • The Star Rod on a stand where Central Circle has the Master Sword's, there once the game is beaten (RodStandTemplate());
      * • Doors: as Central Circle's, special blocks (kind 1) its hub mirror objects (0x8C) break once their world slot is set, drawing
@@ -48,8 +49,9 @@ namespace KatAMRandomizer {
             (byte[] mirrorTemplate, List<byte[]> abilityBlocks, byte[] abilityDoor) = AbilityRoomDoor(rom, symbols, ReadInt(rom, solidity + 4) - 0x08000000);
             List<int> abilityEntries = abilityBlocks.SelectMany(b => Enumerable.Range(0, 4).Select(q => ReadShort(b, 8 + q * 2))).ToList();
             int[] sourceDoorColors = (int[])colors.Clone();
-            // Its pink mirror back to Central Circle (MainHubReturn), as Central Circle's to here (not in the doors' palettes 0-2);
-            MirrorTwin(map, columns, tiles, colors, abilityEntries, CycledColors(rom, paletteEntry), 3);
+            /* Its mirror back to Central Circle (MainHubReturn), as Central Circle's to here (not in the doors' palettes 0-2), in Central
+             * Circle's blue (KatAMHubMirrorColor(); Central Circle's to here stays pink); */
+            MirrorTwin(map, columns, tiles, colors, abilityEntries, CycledColors(rom, paletteEntry), 3, KatAMHubMirrorColor);
             int[][] doorColors = new int[8][];
             // A pixel of the room's tilemap (RGB555, or -1: transparent);
             int RoomPixel(int x, int y) {

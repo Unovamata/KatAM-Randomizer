@@ -2999,7 +2999,7 @@ namespace KatAMRandomizer {
                         foreach (ushort e in foreground.Bare[blocks.Count + r]) specials.AddRange(BitConverter.GetBytes(e));
                         specials.AddRange(new byte[] { map.Collision(7, x, y) >> 30 == 1 ? KatAMWater : KatAMAir, 0xFF });
                     }
-                    /* (a Mirra's door, to the switch room: its cell as it is until the Mirra breaks, which applies its block record, making
+                    /* (a Mirra's door, a shortcut (PlanSqueakLevels()): its cell as it is until the Mirra breaks, which applies its block record, making
                      * it the door, its look its own; then its record, as KatAM's Mirras': the Mirra stands on a floor that can't break, so
                      * it opens its door where it is, KatAM's as NiDL's, mirra.c); */
                     foreach (Door door in planned[i].Where(d => d.Kind == DoorKind.SwitchEntry)) {
@@ -3422,7 +3422,7 @@ namespace KatAMRandomizer {
                  * shown by the world's big switch (its slot); the designs: the hub's KatAM's hub door's, a KatAM room's its own (KatAMDesigns),
                  * the world's that of Central Circle's door it took in the hub (the area's whose door it is). The KatAM rooms' edits wait
                  * for the randomizer (squeakFinish, FinishRooms()), as NiDL's do; */
-                Door greyDoor = new Door(SqueakHubDoor.x, SqueakHubDoor.y, hubRoom, SqueakHubDoor.x + 1, SqueakHubDoor.y + 1, (byte)(SqueakHubDoor.x * 2 < centralCircle.Width ? 1 : 2),
+                Door greyDoor = new Door(SqueakHubDoor.x, SqueakHubDoor.y, hubRoom, MainHubReturn.x + 1, MainHubReturn.y + 1, (byte)(MainHubReturn.x * 2 < centralCircle.Width ? 1 : 2),
                                          Design: SqueakGreyDoorDesign);
                 var linkEdits = new List<(int room, ((int x, int y) door, int drawX, ((int x, int y) from, (int x, int y) to)[] moves, (int from, int to)[] statues, int[] landings) plan, Door back)>();
                 foreach (int world in switchDoors.Keys.OrderBy(w => w)) {

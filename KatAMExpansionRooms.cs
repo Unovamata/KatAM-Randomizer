@@ -215,10 +215,10 @@
 
         /* Switch rooms: a level's entry, as KatAM's switch rooms (0x24F, 0x316, 0xC1...: one screen walled on top, a pedestal in the
          * middle with the big switch on it, a mirror on each side's floor) in the level's tiles (see BuildSwitchRooms()): the way in a
-         * Mirra hidden in the level (PlanDoors(), SecretSpot(): as KatAM's, found by exploring, not on the way), both ways (no one-way
-         * door leads into a hub room): Kirby lands on its left floor mirror, which leads back onto the Mirra's spot; its 2 floor
-         * mirrors (SwitchSides) its 2 ways into the level, both ways: the right one with the start of the level's stage before its
-         * boss, the left one with the Mirra's spot; its 2 hub doors, as KatAM's rooms with 2 (LayoutB()), show once its big switch is pressed: SwitchLinkDoor to
+         * mirror at a hidden spot in the level (PlanDoors(), SecretSpot(): as KatAM's, found by exploring, not on the way), both ways (no
+         * one-way door, no Mirra, leads into a hub room): Kirby lands on its left floor mirror, which leads back onto it; its 2 floor
+         * mirrors (SwitchSides) its 2 ways into the level, both ways, into 2 different rooms: the right one with the start of the
+         * level's stage before its boss, the left one with that spot; its 2 hub doors, as KatAM's rooms with 2 (LayoutB()), show once its big switch is pressed: SwitchLinkDoor to
          * where LevelLinks says, SwitchHubDoor back to the NiDL hub (as KatAM's mini hubs' to Central Circle; Kirby arrives on it from
          * the hub; Rainbow Resort's link is the hub's, so there, and its SwitchLinkDoor leads back to Butter Building's); Kirby starts
          * at SwitchArrival; */
@@ -2819,7 +2819,7 @@
              * where Kirby comes into it (by open cells, through breakable blocks), best behind blocks he must break to get there; a cell
              * the camera shows a mirror on (Shown()), with room above, no door within 2 cells, not water; not in a room taken; */
             // (in a room that takes a door, Hosts(), the camera showing 2 at most there; in any stage if none in the second half);
-            (NightmareRoom part, int x, int y) SecretSpot(int level, HashSet<NightmareRoom> taken, bool anyStage = false) {
+            (NightmareRoom part, int x, int y) SecretSpot(int level, HashSet<NightmareRoom> taken, bool anyStage = false, bool secondHalfOnly = false) {
                 List<(int level, int stage)> regular = stages.Where(t => t.level == level && !IsBossStage(t)).ToList();
                 (NightmareRoom part, int x, int y) best = default;
                 int bestScore = int.MinValue;
@@ -2873,7 +2873,7 @@
                         }
                     }
                 }
-                return best.part != null || anyStage ? best : SecretSpot(level, taken, true);
+                return best.part != null || anyStage || secondHalfOnly ? best : SecretSpot(level, taken, true);
             }
 
             // The switch rooms; the NiDL hub's mirrors (Central Circle's golden mirror leads to the NiDL hub's, FinishRooms());
@@ -2885,18 +2885,30 @@
                 // out, to KatAM's final boss (BuildObjects()); the NiDL hub's door to it, and its path on the world map, never open);
                 if (level == 7) continue;
                 NightmareRoom switchRoom = SwitchRoomOf(level);
-                /* The way in: a Mirra's, hidden in the level (SecretSpot()), both ways (the owner: "No 1 way door can teleport the player
-                 * to a button room", a hub room): onto its left floor mirror, which leads back onto the Mirra's spot; */
+                /* The way in: a mirror where the level's hidden, earned spot is (SecretSpot()), both ways (the owner: "No 1 way door can
+                 * teleport the player to a button room", a hub room): onto its left floor mirror, which leads back onto it; no Mirra leads
+                 * into a switch room (the owner: "Mirra enemies do not directly unlock button hub rooms, though defeating them often clears
+                 * the path to reach those rooms. Meaning, no Mirra can go to a hub room"), nor do its 2 floor mirrors lead into one room
+                 * (the owner: "no button hub can send the player to the same room, we have 2 doors for a reason so players never get stuck
+                 * and keep cycling through the areas"): the spot is never in the room of its right floor mirror's way; */
                 (int x, int y)[] sides = SwitchSides(level);
-                (NightmareRoom part, int x, int y) secret = SecretSpot(level, secretRooms);
+                (NightmareRoom part, int x, int y)? gateSpot = gates.TryGetValue(level, out var gate) ? EntrySpot(gate) : null;
+                (NightmareRoom part, int x, int y) secret = SecretSpot(level, gateSpot is (NightmareRoom gatePart, int, int) ? secretRooms.Append(gatePart).ToHashSet() : secretRooms);
                 secretRooms.Add(secret.part);
-                Add(secret, Target((switchRoom, sides[0].x, sides[0].y)), DoorKind.SwitchEntry, hidden: true);
+                Add(secret, Target((switchRoom, sides[0].x, sides[0].y)), DoorKind.SwitchFloor);
                 Add((switchRoom, sides[0].x, sides[0].y), Target(secret), DoorKind.SwitchFloor);
                 // its right floor mirror (as KatAM's hubs, 2 ways into their area: the level branches from it), both ways with the start
                 // of the stage leading to its boss, a shortcut earned by finding the room;
-                if (gates.TryGetValue(level, out var gate) && EntrySpot(gate) is (NightmareRoom, int, int) gateSpot) {
-                    Add((switchRoom, sides[1].x, sides[1].y), Target(gateSpot), DoorKind.SwitchFloor);
-                    Add(gateSpot, Target((switchRoom, sides[1].x, sides[1].y)), DoorKind.SwitchFloor);
+                if (gateSpot is (NightmareRoom, int, int) gateAt) {
+                    Add((switchRoom, sides[1].x, sides[1].y), Target(gateAt), DoorKind.SwitchFloor);
+                    Add(gateAt, Target((switchRoom, sides[1].x, sides[1].y)), DoorKind.SwitchFloor);
+                }
+                /* (the level's Mirra: hidden in its second half too (SecretSpot(), another room), a one-way shortcut onto the stage
+                 * leading to its boss (rule 6: real progress), never into the switch room; none where no room is left for it); */
+                if (gates.ContainsKey(level) && SecretSpot(level, secretRooms.Append(gateSpot?.part).Where(r => r != null).ToHashSet(), false, true) is (NightmareRoom mirraPart, int, int) mirraAt
+                    && mirraPart != null) {
+                    secretRooms.Add(mirraPart);
+                    Add(mirraAt, LandingIn(gate, true), DoorKind.SwitchEntry, oneWay: true, hidden: true);
                 }
 
                 // Its hub doors (2, see LayoutB()): the mirror its big switch reveals (SwitchLinkDoor; Rainbow Resort's, to the hub, is its
@@ -3747,10 +3759,13 @@
         }
 
         /* MirrorTwin(); Central Circle's Rainbow Route mirror (tiles 37-40, rows 24-29 of its tilemap: door 19, 14) mirrored onto its
-         * platform's left end (door 11, 14) of a Central Circle tilemap (map, columns wide), flipped and pink (EntryMirrorColor()): new
-         * tiles (in the ones neither the map nor otherEntries use), each in the palette (firstPalette to 5) that shows it best, the pinks
-         * in the colors no tile uses nor the palette cycles change (cycled); */
-        static void MirrorTwin(byte[] map, int columns, byte[] tiles, int[] colors, IEnumerable<int> otherEntries, IEnumerable<int> cycled, int firstPalette) {
+         * platform's left end (door 11, 14) of a Central Circle tilemap (map, columns wide), flipped and recolored (`color`: pink,
+         * EntryMirrorColor(), Central Circle's to the NiDL hub; the hubs' ways back to Central Circle KatAMHubMirrorColor()): new
+         * tiles (in the ones neither the map nor otherEntries use), each in the palette (firstPalette to 5) that shows it best, the new
+         * colors in the ones no tile uses nor the palette cycles change (cycled); */
+        static void MirrorTwin(byte[] map, int columns, byte[] tiles, int[] colors, IEnumerable<int> otherEntries, IEnumerable<int> cycled, int firstPalette,
+                               Func<int, int> color = null) {
+            color ??= EntryMirrorColor;
             List<int> entries = Enumerable.Range(0, map.Length / 2).Select(i => ReadShort(map, i * 2)).Concat(otherEntries).ToList();
             HashSet<int> used = entries.Select(e => e & 0x3FF).ToHashSet();
             HashSet<int> usedColors = entries.SelectMany(e => Enumerable.Range(0, 64).Select(i => tiles[(e & 0x3FF) * 32 + i / 2] >> (i % 2 * 4) & 0xF)
@@ -3762,8 +3777,8 @@
                 for (int x = 37; x <= 40; x++) {
                     int entry = ReadShort(map, (y * columns + x) * 2);
                     for (int i = 0; entry != 0 && i < 64; i++) {
-                        int index = tiles[(entry & 0x3FF) * 32 + i / 2] >> (i % 2 * 4) & 0xF, color = colors[(entry >> 12) * 16 + index];
-                        if (index != 0 && EntryMirrorColor(color) != color) pinks.Add(EntryMirrorColor(color));
+                        int index = tiles[(entry & 0x3FF) * 32 + i / 2] >> (i % 2 * 4) & 0xF, c = colors[(entry >> 12) * 16 + index];
+                        if (index != 0 && color(c) != c) pinks.Add(color(c));
                     }
                 }
             for (int palette = firstPalette; palette < 6 && pinks.Count > 0; palette++) {
@@ -3781,7 +3796,7 @@
                     if (!recolored.TryGetValue(entry & 0xF3FF, out int made)) {
                         int tile = entry & 0x3FF, palette = entry >> 12;
                         int[] wanted = Enumerable.Range(0, 64).Select(i => tiles[tile * 32 + i / 2] >> (i % 2 * 4) & 0xF)
-                                                 .Select(index => index == 0 ? -1 : EntryMirrorColor(colors[palette * 16 + index])).ToArray();
+                                                 .Select(index => index == 0 ? -1 : color(colors[palette * 16 + index])).ToArray();
                         int Nearest(int p, int color) => 1 + NearestColor(colors.Skip(p * 16 + 1).Take(15).ToArray(), color);
                         double Error(int p) => wanted.Where(c => c >= 0).Sum(c => Distance(Rgb(colors[p * 16 + Nearest(p, c)]), Rgb(c)));
                         int best = Enumerable.Range(firstPalette, 6 - firstPalette).MinBy(Error);
@@ -3807,6 +3822,15 @@
                 int cycle = ReadInt(rom, cycles + i * 4) - 0x08000000;
                 for (int c = 0; c < ReadShort(rom, cycle + 8); c++) yield return ReadShort(rom, cycle + 6) + c;
             }
+        }
+
+        /* KatAMHubMirrorColor(); A color of Central Circle's golden mirror, for the NiDL and Squeak Squad hubs' ways back to Central
+         * Circle (the owner: "change that pink door color in both hubs for something that better represents KatAM's hub"): gold, orange
+         * and brown to Central Circle's sky blue, its glass platforms' and pillars' (hue 200), a little paler; */
+        static int KatAMHubMirrorColor(int color) {
+            (double h, double s, double v) = ToHsv(color);
+            if (s <= 0.25 || h >= 72 && h <= 324) return color;
+            return FromHsv(200, s * 0.85, Math.Min(1, v * 1.05));
         }
 
         // EntryMirrorColor(); A color of Central Circle's golden mirror, for its NiDL one: gold, orange and brown to pink;
