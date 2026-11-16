@@ -29,16 +29,16 @@ namespace KatAM_Randomizer {
             cannonEntities = new List<Entity>();
             hubMirrorEntities = new List<Entity>();
 
-            LoadMirrorDataset(this, Utils.mirrorsJson);
+            LoadMirrorDataset(this, ObjectKind.Mirrors);
 
             RandomizeWarps();
         }
         
-        protected void LoadMirrorDataset(IKatAMRandomizer Instance, string file) {
+        protected void LoadMirrorDataset(IKatAMRandomizer Instance, ObjectKind kind) {
             entities = new List<Entity>();
 
-            // Deserializing all the entities in the game;
-            Utils.DeserializeEntitiesJSON(Utils.JSONToObjects(file), entities, Instance);
+            // All the entities in the game;
+            Utils.LoadEntities(kind, entities, Instance);
         }
 
         public bool FilterEntities(Entity entity) {

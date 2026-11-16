@@ -84,7 +84,7 @@ namespace KatAM_Randomizer {
             modifiedProperties = new List<Properties>();
             enemiesDictionary = new Dictionary<byte, Data>();
 
-            DeserializePropertiesJSON(Utils.JSONToObjects(Utils.propertiesJson), Instance);
+            foreach (Properties property in Utils.LoadProperties()) propertiesDictionary[property.ID] = property;
 
             LoadRandomizationSettings();
 
@@ -154,42 +154,6 @@ namespace KatAM_Randomizer {
 
             foreach (Properties property in modifiedProperties) {
                 Utils.WritePropertiesToROM(property);
-            }
-        }
-
-        void DeserializePropertiesJSON(dynamic json, IKatAMRandomizer component) {
-            // Reading the JSON dictionary;
-            foreach (string key in json.Keys) {
-                List<Dictionary<string, dynamic>> dict = json[key];
-
-                // Injecting the extracted information on Entities;
-                foreach (var item in dict) {
-                    PropertiesSerializable serialized = new PropertiesSerializable();
-
-                    serialized.Name = key;
-
-                    // Reading the KeyValuePair information;
-                    foreach (var kvp in item) {
-                        switch (kvp.Key) {
-                            case "Definition": serialized.Definition = kvp.Value; break;
-                            case "ID":
-                                byte ID = (byte) kvp.Value;
-                                serialized.ID = ID;
-                            break;
-                            case "Address":
-                                int address = (int) kvp.Value;
-                                serialized.Address = address;
-                            break;
-                            case "Damage Sprites": serialized.DamageSprites = kvp.Value; break;
-                            case "HP": serialized.HP = (byte) kvp.Value; break;
-                            case "Copy Ability": serialized.CopyAbility = (byte) kvp.Value; break;
-                            case "Palette": serialized.Palette = (byte) kvp.Value; break;
-                        }
-                    }
-                    Properties property = serialized.DeserializeProperties();
-
-                    propertiesDictionary[property.ID] = property;
-                }
             }
         }
 

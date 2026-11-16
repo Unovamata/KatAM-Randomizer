@@ -29,8 +29,8 @@ namespace KatAMRandomizer
             // Read the settings, entities, and ROM data;
             byte[] romFile = Processing.ROMData;
 
-            // Deserializing all the entities in the game;
-            Utils.DeserializeEntitiesJSON(Utils.JSONToObjects(Utils.worldMapObjectsJson), entities, Instance);
+            // All the entities in the game;
+            Utils.LoadEntities(ObjectKind.WorldMapObjects, entities, Instance);
 
             foreach (Entity entity in entities) {
                 bool isButtonOrDoor = (entity.ID == 0x6D || entity.ID == 0x71);

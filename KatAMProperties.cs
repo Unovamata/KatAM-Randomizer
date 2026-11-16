@@ -23,52 +23,5 @@ namespace KatAMRandomizer {
             CopyAbility = 0;
             Palette = 0;
         }
-
-        public PropertiesSerializable SerializeEntity() {
-            return new PropertiesSerializable(this);
-        }
-    }
-
-    public class PropertiesSerializable : Properties {
-        public string Definition { get; set; }
-        public string DamageSprites { get; set; }
-
-        public PropertiesSerializable() {}
-
-        public PropertiesSerializable(Properties properties) {
-            Definition = ByteArrayToHexString(properties.Definition);
-            DamageSprites = ByteArrayToHexString(properties.DamageSprites);
-
-            ID = properties.ID;
-            Address = properties.Address;
-            Name = properties.Name;
-            HP = properties.HP;
-            CopyAbility = properties.CopyAbility;
-            Palette = properties.Palette;
-        }
-
-        public static string ByteArrayToHexString(byte[] byteArray) {
-            return Utils.ByteArrayToHexString(byteArray);
-        }
-
-        public Properties DeserializeProperties() {
-            Properties properties = new Properties();
-
-            properties.Definition = StringToByteArray(Definition);
-            properties.DamageSprites = StringToByteArray(DamageSprites);
-
-            properties.ID = ID;
-            properties.Address = Address;
-            properties.Name = Name;
-            properties.HP = HP;
-            properties.CopyAbility = CopyAbility;
-            properties.Palette = Palette;
-
-            return properties;
-        }
-
-        public static byte[] StringToByteArray(string hexString) {
-            return Utils.StringToByteArray(hexString);
-        }
     }
 }

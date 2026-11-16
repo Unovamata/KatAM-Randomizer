@@ -46,11 +46,11 @@ namespace KatAMRandomizer
             WriteBossShards();
             WriteChases();
             WriteSqueakLairs();
-            WriteEntities("Enemies", Utils.enemiesJson, false, false);
-            WriteEntities("Mini-Bosses", Utils.minibossesJson, false, false);
-            WriteEntities("Chests & Items", Utils.itemsJson, true, true);
-            WriteEntities("Ability Pedestals", Utils.abilityStandsJson, true, true);
-            WriteEntities("Map Elements", Utils.worldMapObjectsJson, false, true);
+            WriteEntities("Enemies", ObjectKind.Enemies, false, false);
+            WriteEntities("Mini-Bosses", ObjectKind.Minibosses, false, false);
+            WriteEntities("Chests & Items", ObjectKind.Items, true, true);
+            WriteEntities("Ability Pedestals", ObjectKind.AbilityStands, true, true);
+            WriteEntities("Map Elements", ObjectKind.WorldMapObjects, false, true);
         }
 
         public bool FilterEntities(Entity entity) => true;
@@ -257,20 +257,15 @@ namespace KatAMRandomizer
             return $"0x{behavior:X2}";
         }
 
-        /* WriteEntities(); Lists the entities of a JSON file that changed (or all of them, for chests, items and pedestals,
+        /* WriteEntities(); Lists the entities of a kind the ROM reader found (Utils.LoadEntities()) that changed (or all of them, for chests, items and pedestals,
          * so their contents can be looked up), with their room and position. Debug and vetoed rooms are left out;
          * isBehaviorContent: the behavior is what the object holds (chests, shards, pedestals). For enemies it's only how they act; */
-        void WriteEntities(string title, string json, bool listAll, bool isBehaviorContent) {
+        void WriteEntities(string title, ObjectKind kind, bool listAll, bool isBehaviorContent) {
             WriteSection(title);
 
             List<Entity> list = new List<Entity>();
 
-            try {
-                Utils.DeserializeEntitiesJSON(Utils.JSONToObjects(json), list, this);
-            } catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException) {
-                log.AppendLine($"Couldn't be read: {ex.Message}");
-                return;
-            }
+            Utils.LoadEntities(kind, list, this);
 
             int changed = 0;
 

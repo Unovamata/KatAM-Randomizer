@@ -64,7 +64,7 @@ namespace KatAMRandomizer {
 
             Console.WriteLine("Object Properties saved: " + properties.Count);
 
-            Utils.SaveJSON(properties, Utils.propertiesJson);
+            Utils.KeepProperties(properties);
         }
 
         // Calling the data linking information;
@@ -307,14 +307,13 @@ namespace KatAMRandomizer {
             Console.WriteLine("World Map Objects saved: " + miscellaneous.Count);
             Console.WriteLine("Objects Unassigned saved: " + undefined.Count);
 
-            // Serialize the dictionary to JSON using Newtonsoft.Json
-            Utils.SaveJSON(enemies, Utils.enemiesJson);
-            Utils.SaveJSON(minibosses, Utils.minibossesJson);
-            Utils.SaveJSON(bosses, Utils.bossesJson);
-            Utils.SaveJSON(items, Utils.itemsJson);
-            Utils.SaveJSON(mirrors, Utils.mirrorsJson);
-            Utils.SaveJSON(abilityStands, Utils.abilityStandsJson);
-            Utils.SaveJSON(miscellaneous, Utils.worldMapObjectsJson);
+            // (kept in memory for the randomizer's parts, Utils.LoadEntities(); the bosses' none reads);
+            Utils.KeepEntities(enemies, ObjectKind.Enemies);
+            Utils.KeepEntities(minibosses, ObjectKind.Minibosses);
+            Utils.KeepEntities(items, ObjectKind.Items);
+            Utils.KeepEntities(mirrors, ObjectKind.Mirrors);
+            Utils.KeepEntities(abilityStands, ObjectKind.AbilityStands);
+            Utils.KeepEntities(miscellaneous, ObjectKind.WorldMapObjects);
         }
     }
 }
