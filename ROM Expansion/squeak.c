@@ -1607,8 +1607,13 @@ void *CreateSqueakMidboss(struct ObjectTemplate *template, u8 playerId) {
 
     if (enemy >= SQUEAK_ENEMY_COUNT || !(sSqueakCharacters[enemy].midboss || sSqueakCharacters[enemy].squeak)) enemy = SQUEAK_BIG_METALUN;
     s = SqueakCreate(template, playerId, enemy);
-    // (Spinni, Doc and Storo as mini-bosses: their fight with Kirby, as the hideouts' on the DS, in their chase's mood);
-    if (sSqueakCharacters[enemy].squeak) s->chase = TRUE;
+    /* (Spinni, Doc and Storo as mini-bosses: their fight with Kirby, as the hideouts' on the DS, in their chase's mood; and, as a
+     * world's boss, unkC bit 1: a hit pushed them back 40 frames, the owner: "I don't like the idea of squeak bosses getting stunned
+     * on hit, that makes them much less threatning"); */
+    if (sSqueakCharacters[enemy].squeak) {
+        s->chase = TRUE;
+        s->obj.base.unkC |= 2;
+    }
     /* (a world's boss: KatAM's bosses' unkC bit 1, King Golem's, which spares them the push a hit gives (sub_0809B1E4's knockback,
      * which KatAM's mini-bosses take: the owner, "Bosses shouldn't get stunned by attacks since it makes them easier than expected,
      * specially the Squeak Squad ones"), and its defeat not inhaled (SqueakBossWatch); a character's own watch calls it); */

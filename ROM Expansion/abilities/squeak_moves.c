@@ -1291,6 +1291,15 @@ static void AnimalScratch(struct Kirby *kirby) {
     }
 }
 
+/* LeapGuard(); The leap's guard, as Metal's (MetalKirbyFrame keeps it through the leap, then takes it off): an enemy's touch doesn't
+ * hurt him, nor his body it, so the leap's grab box holds it, as the DS's (the owner: "When animal Kirby lunges at an enemy, it doesn't
+ * start the scratchin attack, rather Kirby takes damage": KatAM's touch hurt him the frame they met, before the box took it); */
+#define LEAP_GUARD 0x80                         // KatAM's enemies' own hit kind (InitObject's unk68 0x82), shut out by his unk5C;
+static void LeapGuard(struct Kirby *kirby) {
+    kirby->base.unk5C |= LEAP_GUARD;
+    kirby->base.unk68 &= ~LEAP_GUARD;
+}
+
 // The dash's crouch (0x0208B62C, 0x0208B4F4): 21, slowing; then the leap;
 static void AnimalDash(struct Kirby *kirby) {
     s16 v = kirby->base.xspeed;
@@ -1307,6 +1316,7 @@ static void AnimalDash(struct Kirby *kirby) {
     Puff(kirby, FALSE);
     StartState(kirby, AnimalLeap);
     Look(kirby, ANIMAL_LOOK_LEAP, TRUE);
+    LeapGuard(kirby);
 }
 
 // The leap (0x0208B45C): its grab box on an enemy he can hold, the flurry; landed (or word 1's frames), standing;
@@ -1966,7 +1976,13 @@ void MetalKirbyFrame(struct Kirby *kirby) {
     u8 *step = &NIDL_MIKE_USES(kirby);
 
     if (kirby->ability != SQUEAK_ABILITY_METAL) {
-        // (Metal gone: his guard, and his body's touch back, KatAM's 0x82; the guard KatAM never sets on a Kirby marks it);
+        // (Animal's leap: the same guard (LeapGuard) till it's over);
+        if (kirby->ability == SQUEAK_ABILITY_ANIMAL && kirby->stateFn == AnimalLeap) {
+            LeapGuard(kirby);
+            gMetalFrameOriginal(kirby);
+            return;
+        }
+        // (Metal gone, or the leap over: his guard, and his body's touch back, KatAM's 0x82; the guard KatAM never sets on a Kirby marks it);
         if (kirby->base.unk5C & METAL_GUARD) {
             kirby->base.unk5C &= ~METAL_GUARD;
             kirby->base.unk68 |= METAL_GUARD;

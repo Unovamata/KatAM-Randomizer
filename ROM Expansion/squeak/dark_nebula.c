@@ -2173,6 +2173,11 @@ static void DarkNebulaThingMain(struct Object *obj) {
     struct SqueakObject *t = (struct SqueakObject *)obj;
 
     obj->kirby3 = FindTargetKirby(&obj->base);
+    /* (his stars, sparks and flames: hit level 6, Gordo's, as no attack's strength reaches it, but while a Kirby's inhale reaches
+     * one (NidlInhaler): their touch hurts still; Wheel's, Parasol's, Tornado's, Fighter's, Smash's, Missile's and the slide's class
+     * is the inhale's, which broke them through SQUEAK_INHALE_ONLY, the owner: "Stars still have hitboxes and can be hit"); */
+    if (t->variant == T_STAR || t->variant == T_SPARK || t->variant == T_FLAME)
+        obj->base.unk5C = (obj->base.unk5C & ~7) | (NidlInhaler(&obj->base) ? 0 : 6);
     SqueakRun(t, DarkNebulaThing);
     if (obj->base.flags & 0x1000) return;
     SqueakFinishFrame(t);

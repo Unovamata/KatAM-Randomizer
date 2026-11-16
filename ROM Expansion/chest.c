@@ -424,9 +424,33 @@ struct SqueakCannon {
 
 const struct SqueakCannon gSqueakCannon = { NULL };
 
+/* (the shot's box, sub_08083FC0's, 12 pixels round Kirby's middle, reaches CANNON_LEAD more ahead of him: a block breaks some frames after
+ * the box touches it, and his feet are 7 pixels under his middle, so a shot down stopped on the block under the first of a column,
+ * 6-3-5's five metal blocks, room 0x53E: the owner, "cannons should break through the metal blocks but I'm stopped at the first
+ * block, effectively softlocking me"; up, his head 5 over it, it broke them); */
+#define CANNON_LEAD 10
+extern void sub_080840B8(void);
+static void CannonLead(struct Kirby *kirby) {
+    struct Task *t = &gTasks[0];
+    u8 n;
+
+    for (n = 0; n < MAX_TASK_NUM && t->next; n++) {
+        struct ObjectBase *box;
+
+        t = (struct Task *)(IWRAM_START + t->next);
+        if (t->main != sub_080840B8) continue;
+        box = TaskGetStructPtr(t);
+        if (box->parent != kirby) continue;
+        sub_0803E2B0(box, -12, -12 - (kirby->base.yspeed > 0 ? CANNON_LEAD : 0), 12 + (kirby->base.xspeed != 0 ? CANNON_LEAD : 0),
+                     12 + (kirby->base.yspeed < 0 ? CANNON_LEAD : 0));
+        return;
+    }
+}
+
 static void SqueakCannonStep(struct EightDirCannon *cannon) {
     struct Kirby *kirby = cannon->unkBC;
 
+    if (kirby != NULL && kirby->stateFn == sub_08052140 && kirby->base.counter <= 45) CannonLead(kirby);
     if (cannon->unkB7 & 1)
         cannon->unkB6 = 0;
     else if (kirby != NULL && kirby->stateFn == sub_08052140 && kirby->base.counter >= 30 && kirby->base.counter <= 44

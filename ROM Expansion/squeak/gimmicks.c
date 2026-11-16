@@ -133,7 +133,8 @@ const struct SqueakSwitch gSqueakSwitch = { NULL };
 #define GIMMICK_CRUMBLES 0xF4       // A room's walk-once blocks (KatAMExpansionSqueakRooms.cs's SqueakCrumbles()): par[0-3] their list's address;
 #define CRUMBLES 8                  // (walk-once blocks breaking at once in a room);
 #define GIMMICK_BURNS 0xF8          // A room's cells only Fire burns (KatAMExpansionSqueakRooms.cs's SqueakBurns()): par[0-3] their list's address;
-#define BURNS 8                     // (cells burning at once in a room);
+#define BURNS 16                    // (cells burning at once in a room: a cannon shot through a column of ice, its spread);
+#define GIMMICK_FUSE_WICK 0xF9      // A fuse lit from the side (KatAMExpansionSqueakRooms.cs's SqueakFuse()): its object's template spot: FuseWick();
 #define GIMMICK_PHASE_WARP 0xF5     // The finale's way on from a fight (KatAMExpansionSqueakLevels.cs' SqueakPhaseWarps): par[0-1] the room, par[2-3] the cell + 1, par[4] 1 after the fight;
 #define LAIR_EXIT_WAIT 30           // (the room's objects made by then: KatAM makes those on screen as the room comes up);
 #define LAIR_EXIT_OPEN 0xFF
@@ -859,7 +860,10 @@ static void Crumbles(struct SqueakLogic *l, const struct SqueakGimmickEntry *e) 
 #define BURN_REACH 48
 #define BURN_WAIT 12
 #define BURN_SPREAD 8
+#define BURN_FLIGHT 24
 void ScrollBreath(struct Kirby *kirby);
+extern void sub_08052140(struct Kirby *);
+extern void sub_0805177C(struct Kirby *);
 static bool32 BurnListed(const u8 *list, u16 count, s32 x, s32 y) {
     const u8 *c;
     u16 j;
@@ -893,6 +897,15 @@ static void Burns(struct SqueakLogic *l, const struct SqueakGimmickEntry *e) {
         s32 kx = kirby->base.x >> 8, ky = kirby->base.y >> 8, x0, x1;
 
         if (kirby->base.roomId != l->room || gCurLevelInfo[i].currentRoom != l->room) continue;
+        /* (a Kirby shot from a cannon, an eight-direction one's (sub_08052140) or a fuse cannon's flight out of the room (sub_0805177C),
+         * melts them as he goes, at once, BURN_FLIGHT round his middle: the DS's shots break the ice over 6-2-3's fuse cannon (room
+         * 0x531), the owner: "ice blocks can only be destroyed with fire abilities or by going through them with a cannon"); */
+        if (kirby->stateFn == sub_08052140 || kirby->stateFn == sub_0805177C) {
+            for (j = 0, c = list + 2; j < count; j++, c += 4)
+                if (c[0] * 16 + 16 > kx - BURN_FLIGHT && c[0] * 16 < kx + BURN_FLIGHT && c[1] * 16 + 16 > ky - BURN_FLIGHT
+                    && c[1] * 16 < ky + BURN_FLIGHT) BurnStart(l, c[0], c[1], 1);
+            continue;
+        }
         if (ability == KIRBY_ABILITY_FIRE && kirby->stateFn == ScrollBreath) {
             x0 = kirby->base.flags & 1 ? kx - BURN_REACH : kx;
             x1 = kirby->base.flags & 1 ? kx : kx + BURN_REACH;
@@ -920,6 +933,29 @@ static void Burns(struct SqueakLogic *l, const struct SqueakGimmickEntry *e) {
         if (x > 0 && BurnListed(list, count, x - 1, y)) BurnStart(l, x - 1, y, BURN_SPREAD);
         if (BurnListed(list, count, x, y + 1)) BurnStart(l, x, y + 1, BURN_SPREAD);
         if (y > 0 && BurnListed(list, count, x, y - 1)) BurnStart(l, x, y - 1, BURN_SPREAD);
+    }
+}
+
+/* FuseWick(); A fuse the DS lights from the side (5-1-1's, room 0x4EB): KatAM's burner starts with a step down out of its object's cell,
+ * so the object is a cell over the rope's end the DS draws, its wick in the air (the owner: "the fuse rope start seems to be offset by
+ * some pixels"): hidden (flag 0x400) till it's lit (its +0xB6, cannon_fuse.c's: 0 waiting, 3 the frame it's lit), then shown, the
+ * spark going down into the rope; */
+static void FuseWick(struct SqueakLogic *l, const struct SqueakGimmickEntry *e) {
+    struct Task *t = &gTasks[0];
+    u8 n;
+
+    for (n = 0; n < MAX_TASK_NUM && t->next; n++) {
+        struct Object *obj;
+        u16 state;
+
+        t = (struct Task *)(IWRAM_START + t->next);
+        obj = TaskGetStructPtr(t);
+        if (obj->base.header.kind != 1 || obj->type != OBJ_CANNON_FUSE || obj->base.roomId != l->room || obj->objTemplate == NULL
+            || obj->objTemplate->x != e->x || obj->objTemplate->y != e->y) continue;
+        state = *(u16 *)((u8 *)obj + 0xB6);
+        if (state == 0) obj->base.flags |= 0x400;
+        else if (state == 3) obj->base.flags &= ~0x400;
+        return;
     }
 }
 
@@ -1011,6 +1047,7 @@ static void SqueakLogicMain(void) {
         case GIMMICK_CRUMBLES: Crumbles(l, e); break;
         case GIMMICK_BURNS: Burns(l, e); break;
         case GIMMICK_PHASE_WARP: PhaseWarp(l, e); break;
+        case GIMMICK_FUSE_WICK: FuseWick(l, e); break;
         }
     }
 }
@@ -2955,7 +2992,8 @@ static void *SqueakCreateBoulder(struct ObjectTemplate *template, u8 playerId) {
  * (400-540 in the rooms; again while lit: as long again), a blowing one (flag 2) puts it out with a puff; out (0x02223514), once none of
  * the room's is lit, the far view's light dims (CandleLight()). Here: lit by an attack of a Kirby with Fire or Burning (his own, or
  * one he let go: its parent), or with NiDL's Light (its flash, with the NiDL ROM: the owner, "the light ability should light up Squeak
- * Squad sections that require the candle if NiDL expansion is present"), for its frames, then out; lit, it isn't culled off screen
+ * Squad sections that require the candle if NiDL expansion is present"), for its frames, then out (or put out by an Ice Kirby's
+ * attack, as the DS's blowing one); lit, it isn't culled off screen
  * (the DS's candles count down wherever the camera is), so the room's light follows it; */
 struct SqueakCandle {
     struct Object obj;
@@ -2972,15 +3010,22 @@ static void SqueakCandleMain(struct Object *obj) {
 
     if (gUnk_03000510.unk4 & ((1 << obj->base.unk56) | 0x10)) return;
     GimmickAnimate(obj, &c->spr);
-    if (Struck(obj) && (k = AttackKirby(by)) != NULL
-        && ((k->ability & NIDL_ABILITY_MASK) == KIRBY_ABILITY_FIRE || (k->ability & NIDL_ABILITY_MASK) == KIRBY_ABILITY_BURNING
-            || (k->ability & NIDL_ABILITY_MASK) == NIDL_ABILITY_LIGHT)) {
-        if (c->timer == 0) {
-            GimmickPlay(obj, &c->spr, CANDLE_LIT_ANIM);
-            PlaySfx(&obj->base, SE_ABILITY_FIRE_ATTACK);
-            obj->base.flags |= 0x2000000;
+    if (Struck(obj) && (k = AttackKirby(by)) != NULL) {
+        u8 ability = k->ability & NIDL_ABILITY_MASK;
+
+        if (ability == KIRBY_ABILITY_FIRE || ability == KIRBY_ABILITY_BURNING || ability == NIDL_ABILITY_LIGHT) {
+            if (c->timer == 0) {
+                GimmickPlay(obj, &c->spr, CANDLE_LIT_ANIM);
+                PlaySfx(&obj->base, SE_ABILITY_FIRE_ATTACK);
+                obj->base.flags |= 0x2000000;
+            }
+            c->timer = obj->objTemplate->unk14 >> 4;
+        /* (lit, an Ice Kirby's attack puts it out, as the DS's blowing one (flag 2) does: the owner, "Ice abilities can put out fire
+         * objects in the original Squeak Squad"); */
+        } else if (ability == KIRBY_ABILITY_ICE && c->timer > 1) {
+            PlaySfx(&obj->base, SE_ABILITY_ICE_ATTACK);
+            c->timer = 1;
         }
-        c->timer = obj->objTemplate->unk14 >> 4;
     }
     if (c->timer != 0 && --c->timer == 0) {
         GimmickPlay(obj, &c->spr, CANDLE_OUT_ANIM);
@@ -3092,7 +3137,9 @@ static void PedestalShowIcon(struct SqueakPedestal *p) {
     p->icon = i;
 }
 
-// SqueakPedestalMain(); Each frame: its icon shown; a Kirby touching it with no ability, free (sub_080AA588's checks), takes its ability;
+/* SqueakPedestalMain(); Each frame: its icon shown; a Kirby touching it, free (sub_080AA588's checks), takes its ability, whatever he
+ * had (KatAM's statues give theirs to a Kirby with none: the owner, "None of the pedestals in the Squeak Squad ability room give any
+ * abilities"); not one he has already; */
 static void SqueakPedestalMain(struct Object *obj) {
     struct SqueakPedestal *p = (struct SqueakPedestal *)obj;
     u8 ability = obj->objTemplate->unk14;
@@ -3102,7 +3149,7 @@ static void SqueakPedestalMain(struct Object *obj) {
     if (gUnk_03000510.unk4 & ((1 << obj->base.unk56) | 0x10)) return;
     if (ability == KIRBY_ABILITY_NORMAL || !(obj->base.flags & 0x40000) || !obj->base.unk6C) return;
     kirby = (struct Kirby *)obj->base.unk6C;
-    if (kirby->base.header.kind != 0 || kirby->ability != KIRBY_ABILITY_NORMAL || kirby->hp <= 0 || kirby->animationIndex == 0x27
+    if (kirby->base.header.kind != 0 || kirby->ability == ability || kirby->hp <= 0 || kirby->animationIndex == 0x27
         || kirby->animationIndex > 0x7A || kirby->unk110 || (kirby->base.flags & 0x3800B00)) return;
     kirby->transitioningAbility = ability;
     sub_08054C0C(kirby);
