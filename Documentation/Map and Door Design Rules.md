@@ -23,6 +23,15 @@ of) must pass after any change.
 ## 2. How many doors a room has
 
 - **At most 3 exits a room, 2 in a small room** (2 screens or less). `MaxExits()`.
+- **At most 2 doors lead into a Squeak Squad room** (the owner: "Too many rooms lead to 0x48F, there are other places you know?
+  Not everything has to lead to one single room. [...] There should be a maximum of 2 exits leading to a room in the injection
+  rooms"): a door added there lands Kirby only in a room fewer than 2 doors lead into, counting the DS's own doors (from the rooms
+  Kirby gets to: not the hideouts and gold-pile rooms nothing leads to), their warp stars, the ways back (rule 3), the switch rooms'
+  floor mirrors and the doors added before it. The DS's doors and their ways back already lead into most rooms of a stage twice (from
+  the room before and the one after), so where a door the map can't do without (a stage's way in, its way on, a link between
+  worlds, a switch room's floor mirror, the world's Mirra, a throw out of a trapped place) finds no such room, it goes into the room
+  of the stage fewest lead into; the ones it can do without (the shortcuts, the goals leading on, rule 5) go only where there's one.
+  `PlanSqueakLevels()`'s `Into()`, `MaxInto`. NiDL's rooms are as they were.
 - **The camera never shows 3 doors at once**: no door goes within a screen (`ViewWidth` x `ViewHeight` cells) of two others.
   `ViewFits()`. NiDL's rooms lagged and read as a mess with many mirrors in view.
 - **Mirrors stay inside what the camera shows**: never on a row the camera can't reach, never in mid-air, always on a floor
@@ -191,17 +200,27 @@ of) must pass after any change.
 - **Squeak Squad's worlds** follow the same rules (`PlanSqueakLevels()`), on the DS's own stages, whose doors keep their places
   (its doorways are in the rooms' tiles) and lead both ways where they can (rule 3). So:
   - a branch into a stage lands in its **first room** (on a mirror back there if it takes one), else in the earliest room Kirby
-    walks back from to the first through the ways back (no room before is cut off), else one-way onto the stage's start;
+    gets to the first from (through the stage's own doors, rides and ways back: no room before is cut off), else one-way onto the
+    stage's start, or such a later room fewer doors lead into (rule 2: at most 2 doors into a room); `GetsTo()`, `EntryLanding()`;
   - a new door stands only where Kirby walks to from where the DS brings him into its room (never down through a thin floor:
     7-3-2's way to 7-6-4 under its thin floors cut 7-6 off without Down and B), `Walkable()`;
   - doors go only in rooms the stage's start reaches (through the DS's own doors from every door Kirby lands on in the stage, and
-    through the walls only Fire or an unported gimmick opens on the DS, which are KatAM's star blocks); where no stage in a world's tree has a room taking a door (Prism Plains 1's
+    through the walls only Fire or an unported gimmick opens on the DS, which are KatAM's star blocks; where none of the DS's doors
+    needs them gone, the cells only Fire burns stay as the DS has them, solid or a thin floor, and only Fire's breath or Burning burns
+    them (4-1-1's leafy walls and log bridge, room 0x4AC: the owner, "gimmick is not implemented [...] platforms are destructible"),
+    walls the planner doesn't go through; a single row of blocks the DS breaks from above across a shaft is a thin floor, Kirby going
+    up through it (room 0x4E4: "I cannot go up")); where no stage in a world's tree has a room taking a door (Prism Plains 1's
     are small, 2 doors each), **a stage hangs off another's way on** (below), one-way;
   - **every stage's goal is a goal door** (the owner, of room 0x420's "double door clash": "Wide doors should be replaced with goal
     doors and the expected route should be placed elsewhere, that would make the most sense"; asked whether every stage's goal: "Yes,
-    every stage"): each goal leads, one-way, into one of KatAM's goal games (0x3D4-0x3D6 in turn, Central Circle after), ending the
-    stage as KatAM's stages end;
-  - **the way on is a mirror of its own**, one-way onto the start of where the goal led before (the owner earlier: "Goal doors reach
+    every stage"): a path's end's goal (below: the stages with no way on) leads, one-way, into one of KatAM's goal games (0x3D4-0x3D6
+    in turn, Central Circle after), ending the stage as KatAM's stages end; **the other goals are entrances to other areas** (the
+    owner: "Squeak's maps have too many Goals, we can replace some of these to entrances to other areas, that would be much more
+    interesting map design wise"), one-way, in turn as NiDL's goals (`PlanDoors()`): into a stage of a world next to its own (the one
+    before or after, by the seed), into another stage of its own world (not its own, nor where its way on goes), onto a floor in a
+    room fewer than 2 doors lead into (rule 2); a goal game where no such room is left. `GoalEntrance()`;
+  - **the way on is a mirror of its own**, one-way onto the start of where the goal led before (or a later room there, as a branch
+    lands, where 2 doors lead into its first already: rule 2) (the owner earlier: "Goal doors reach
     to the next stage correct, however keep in mind the Goal minigame doors from KatAM as well for path ending sections, 1 or 2 per
     area"): the deepest stage's into the boss stage; a stage hung off it, into that stage; the others into the world's next stage
     by number, but 1 or 2 a world (2 where it has 4 such stages or more), at the ends of paths (no stage after them first, then the
@@ -223,11 +242,14 @@ of) must pass after any change.
     where it does; the last two rooms, copies of his room and the one before it, are on no way (so he's fought once); world 8's
     deepest stage has no way on, its goal game ending its path, as other path ends do;
   - the hidden two-way door between worlds leads into the next world's first stage;
+  - the shortcuts home from the deepest stages (a third as many as a world has stages) land only in a room fewer than 2 doors lead
+    into (rule 2), none where there's none: the goals leading into other areas (above) are the worlds' loops now;
   - **Squeak Lairs** (the owner: "Entrance 1 -> Squeak Lair with Miniboss -> Entrance 2 as an interlude between zones in the
     Squeak Squad map"): each Squeak that steals a stage's treasure on the DS (Spinni, Doc or Storo, its thief) has its hideout
     (one of the stage's rooms after its goal, where it fights with its Squeakers) made a mini-boss room (rule 8) between two of
     the stage's own rooms: a DS door of the stage (the one into the room the thief waits in, else the nearest to it; not
-    hidden, Kirby gets to it) leads into the hideout, one-way, onto the DS's arrival there, and the hideout's one way out, shut
+    hidden, Kirby gets to it, not behind blocks Kirby breaks, whose breaking took the nest drawn over them: room 0x485's, the
+    owner, "a destroyable lair entrance") leads into the hideout, one-way, onto the DS's arrival there, and the hideout's one way out, shut
     until its mini-boss is beaten, leads where that door led. A nest stands at that door, the DS's own lair door for that room's
     world (a stump, a grassy mound, a rock pile, a castle, an igloo, a submarine, a factory, a UFO..., each with its flag), the
     warning that a fight waits past it. The way out is KatAM's one-way door on the hideout's DS doorway, where its black doorway

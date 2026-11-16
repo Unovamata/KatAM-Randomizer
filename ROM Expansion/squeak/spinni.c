@@ -989,6 +989,11 @@ static void SpinniMain(struct Object *obj) {
         }
     }
     SqueakSetBoxes(s, &sSpinniBoxData, HARM(s), &BOX(s));
+    /* (knocked out, till it lies dizzy: untouchable, KatAM's 0x200, as Doc's and Storo's; touchable the rest of the time: a mini-boss's
+     * spawn (CreateSqueakMidboss) sets 0x200 till its fight starts, and a Squeak's fight starts at once, nothing clearing it: the
+     * owner, "Spinni squeak has no hitbox causing a softlock in rooms where he's the main boss"); */
+    if (s->state >= BODY_KNOCK_ENTRY && s->state <= BODY_KNOCK_FLY) obj->base.flags |= 0x200;
+    else obj->base.flags &= ~0x200;
     LAST_FLAGS(s) = obj->base.flags;
     LAST_UNKC(s) = obj->base.unkC;
     LAST_HP(s) = obj->unk80;
