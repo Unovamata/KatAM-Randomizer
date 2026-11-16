@@ -19,8 +19,6 @@ finishes it says how it was checked). The design rules for doors, mirrors and hu
   Same applies with abilities."
 
 ## 3. Squeak Squad: bosses
-- The owner: "Main bosses from Squeak Squad when beaten, don't destroy as in KatAM or NiDL's or even as in Squeak Squad's. Sprites are
-  just there until they explode on their own which is miniboss behavior and not mirror boss behavior."
 - The owner: "Is the beam supposed to be this thin?" (Daroach's beam.)
 - The owner: "Daroach's star rod's stars lag a bit whenever there's 4 Kirbys in the room."
 - The owner: "Squeak Squad stars from bosses have a hitbox that the player can hit, these are supposed to be inhalable only."
@@ -35,7 +33,8 @@ finishes it says how it was checked). The design rules for doors, mirrors and hu
 - The owner: "Mecha Kracko when I died on phase 2, it showed garbled tiles on phase 1."
 - The owner: "Yagdaine's battle is completely bugged, the carcass is in the background, the stage doesn't scroll."
 - The owner: "Some of the boss rooms have the camera locked in/zoomed in closer than they should, cutting away some details of the map."
-- The owner: "Some bosses in the Map Viewer are using their beaten sprite which is shameful for a boss."
+  (Every Squeak boss's fight is held to KatAM's 240x160, the DS's arena being 256x192; widening the area lets the camera scroll, but
+  the bosses place their moves from the camera, Dark Nebula's from its middle: which rooms cut what, wanted.)
 - The owner: "Fire Lion if its jump is interrupted, it will softlock itself until killed or the blocks above him are destroyed. He
   should jump as normal."
 
@@ -49,7 +48,9 @@ finishes it says how it was checked). The design rules for doors, mirrors and hu
   and fix it so you can properly see the issue in action. This vibration issue has been plaguing both injections."
 - The owner: "Down + B on stone doors if opened, send kirby jumping back."
 - The owner: "Bomb blocks attacked from any angle can blow up even if you don't hit the bomb square."
-- The owner: "Some Squeak Lairs are not locking the camera. Check all of them."
+- The owner: "Some Squeak Lairs are not locking the camera. Check all of them." (Checked: with the NiDL ROM every lair (38, and 46 with
+  Randomize Squeak Lairs) has its arena, the camera held to the DS hideout's screen, 272x224, scrolling the 32 pixels it's wider than
+  the GBA's; without the NiDL ROM none has one, the arena being NiDL's object type. Which build, and which lair, wanted.)
 - The owner: "Room 0x494 enemies going through the ground. Nothing is ever allowed to go through the ground."
 - The owner: "Kirby doesn't grab items when riding a warp star, this should be changed so Kirby is able to do so."
 - The owner: "Squeaks should be able to take treasure chests and work similar to Golden Waddle Dees where if killed they would spawn
@@ -59,8 +60,9 @@ finishes it says how it was checked). The design rules for doors, mirrors and hu
   presses a button but doesn't move forward as it would be the next logical step."
 
 ## 5. Squeak Squad: Kirby, abilities and pedestals
-- The owner: "When I die, lives are not being taken away from me."
-- The owner: "Kirby should get a full heal after picking up a shard."
+- The owner: "When I die, lives are not being taken away from me." (Not reproduced: past the tutorial, with Skip the Tutorial or
+  without, a death takes a life in KatAM's rooms, the Squeak Squad stages, lairs and boss rooms, by a hit or a fall, the HUD too; KatAM
+  takes none in its tutorial (gAIKirbyState under 200). How the game was started, and where, wanted.)
 - The owner: "On idle, Kirby is off the ground with Squeak Squad abilities. Most sprites have inverted facing."
 - The owner: "Hammer pedestal in Squeak's gives light for whatever reason, even though Hammer is on the base game."
 - The owner: "When using the Hi-Jump pedestal, you get a very off animation."

@@ -303,7 +303,8 @@ static const struct NidlShardExit *NidlShardExitOf(u16 room) {
     return NULL;
 }
 
-/* NidlShardExit(); The room and spot Kirby comes back to after the shard cutscene (sub_0804C614); his ability before the Star Rod, back;
+/* NidlShardExit(); The room and spot Kirby comes back to after the shard cutscene (sub_0804C614), his HP full (the owner: "Kirby should
+ * get a full heal after picking up a shard"); his ability before the Star Rod, back;
  * the first Kirby (the player) on the landing, the others on its ground either side, each on his own cell, the second left of it, the
  * third right, the fourth further (or with the third, the ground ending): KatAM put them all on the one cell and they pushed each other
  * apart, the first furthest left, off a pillar's top in the NiDL hub (Kracko's, Grape Garden's door, with helpers: falling as if
@@ -315,6 +316,7 @@ void NidlShardExit(struct Kirby *kirby) {
     s8 side = 0;
 
     StarRodRestore(kirby);
+    if (kirby->hp > 0) kirby->hp = kirby->maxHp;
 
     if (exit) {
         for (i = 0; i < sizeof(sides); i++) {

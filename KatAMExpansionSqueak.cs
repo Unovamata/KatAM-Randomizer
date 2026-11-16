@@ -1320,7 +1320,7 @@ namespace KatAMRandomizer {
              * (1 and 3) layers; */
             new SqueakEnemy(33, "Storo", "stron", new[] { 50, 51, 51 }, StoroGlyphs, ExtraFile: "stron_atack,stron_dmg",
                             OnlyAnims: new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 17, 19, 20 },
-                            Layers: new[] { new[] { 5 }, new[] { 1, 3 } }, Canvas: 192),
+                            Layers: new[] { new[] { 5 }, new[] { 1, 3 } }, Canvas: 192, MapIcon: new[] { 43 }),
             /* Daroach in a stage's scene (enemy 0x45: 0x02134DA8, made by 0x020A51A8 with enemy/demo_dancho): its animations 1-5 (hovering,
              * his cape, held, pointing, flying off); never hurt (no hurt animations: his hovering frame); */
             new SqueakEnemy(34, "Daroach", "demo_dancho", new[] { 1, 1, 1 }, DaroachGlyphs, OnlyAnims: new[] { 1, 2, 3, 4, 5 }),
@@ -1340,7 +1340,7 @@ namespace KatAMRandomizer {
                             ExtraFile: "mrsMoley_ext00,mrsMoley_ext01",
                             OnlyAnims: new[] { 15, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 17, 18, 19, 20, 21, 22, 23, 24, 29, 30, 31, 32, 34, 35, 36,
                                                37, 39, 41, 43, 46, 48, 50 },
-                            Canvas: 192, BodyLast: true, KeepComposites: true),
+                            Canvas: 192, BodyLast: true, KeepComposites: true, MapIcon: new[] { 33 }),
             /* What she throws (0x021292EC, drawn from mrsMoley_ext01: by Squeak Squad's kind, its animations 5, 14, 21, 7, 9, 11, 16, 18,
              * the pebbles 19 and 20, and the bomb's flashing 12), no name; */
             new SqueakEnemy(38, "Mrs. Moley's thing", "mrsMoley_ext01", new[] { 0, 0, 0 }, new (int, int)[0],
@@ -1352,7 +1352,7 @@ namespace KatAMRandomizer {
              * animations, its .mca's composites (its cloud over its core, its field, its bolts: the first part drawn on top, the
              * character's own), its hurt look its cloud (cell 1: Squeak Squad's is .mca's 2, 0x3000002); a frame big enough for its bolts
              * (139 pixels under it); */
-            new SqueakEnemy(40, "Mecha-Kracko", "kracko", new[] { 1, 1, 1 }, MechaKrackoGlyphs, MidbossType: 0x40, Canvas: 288, MapIcon: new[] { 5 }),
+            new SqueakEnemy(40, "Mecha-Kracko", "kracko", new[] { 1, 1, 1 }, MechaKrackoGlyphs, MidbossType: 0x40, Canvas: 288, MapIcon: new[] { 1, 10 }),
             /* Its eye (0x0213025C: kracko's animations 8-15, looking at Kirby; only those, not drawn with its graphics: its sprite takes
              * an eye's VRAM, as type 0x2C's characters take the biggest frame's of theirs), no name; */
             new SqueakEnemy(41, "Mecha-Kracko's eye", "kracko", new[] { 0, 0, 0 }, new (int, int)[0],

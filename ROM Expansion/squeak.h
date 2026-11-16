@@ -512,6 +512,9 @@ struct SqueakObject {
     s16 safeX, safeY;           // and the last floor it stood on, pixels (SqueakChaseSteer: a fall into the void brings it back there);
 };
 
+// (`activated` of a world's boss beaten, its defeat as KatAM's bosses' going on: squeak.c's SqueakBossDie(), still TRUE as a fight's);
+#define SQUEAK_DYING 2
+
 /* SqueakSfx(); Squeak Squad's sound n (its DS id: the DS's 0x02013EE8 and 0x020B0604) from a character, heard if it's in the
  * player's room; SqueakLoopSfx() and SqueakStopSfx(): a sound it keeps (the DS's 0x02013E6C, a loop or a long one) and stops (the
  * DS's 0x02013DDC), one at a time, stopped with the character too (the DS's list at +0x108); */
