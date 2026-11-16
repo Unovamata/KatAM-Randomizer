@@ -46,7 +46,8 @@
  *   sprite heap at 428 of 512 tiles when two rock bursts are out, its 7 enemy palettes all taken, its frames near the end of the
  *   CPU's time): Squeak Squad's effects wait for room in the heap (squeak.c's SQUEAK_FX_ROOM: a rock's burst left out when it
  *   would leave too little for KatAM's own), the shell takes Daroach's palette slot once he's gone, and is drawn by hand.
- * Not ported: the floor crumbling behind it (the stage's tiles), the screen not scrolling, the DS's camera jolts as it walks, steps and
+ * • The stage drawn scrolling by the scroll (StageScroll(): the room's tiles and its backdrop; the camera held still).
+ * Not ported: the floor crumbling behind it (the stage's tiles), the DS's camera jolts as it walks, steps and
  * throws (0x02035F60, 0x02035FC4), its hit flash (yadgaine_dmg's palettes), Squeak Squad's damage less from some attacks (80 in
  * 100, 60 with its legs broken), its own defeat (0x02118E94: KatAM's mini-boss defeat), its walk-off when Kirby is beaten (+0x3C,
  * 0x02118A80), its boss music. */
@@ -148,6 +149,7 @@ enum {
 #define SHELL(s) (*(struct YadgaineShell **)&(s)->vars[16])
 #define BOB(s) ((s)->vars[17])          // Its body's step's offset down this frame (the DS's shell follows it);
 #define DAROACH(s) (*(struct SqueakObject **)&(s)->vars[18])
+#define SCROLLED(s) ((s)->vars[19])     // How far the scroll has gone (24.8): the stage drawn that far on (StageScroll());
 
 static void Shell(struct SqueakObject *s);
 
@@ -639,10 +641,29 @@ static void Shell(struct SqueakObject *s) {
     }
 }
 
-// YadgaineGone(); It's gone (squeak.c's SqueakDestroy): its shell goes too;
+/* StageScroll(); The stage drawn scrolling as the DS's (the owner: "the stage doesn't scroll"), the camera still held (see the top):
+ * the room's layer (KatAM's view offset for its tiles alone, the screen shake's, viewportModX_44, sub_080019F8) SCROLLED on, within
+ * FLOOR_PERIOD pixels (the room's floor repeats every 64: KatAMExpansionSqueakRooms.cs' SqueakNoShell()), and its backdrop (unk3C,
+ * added to its parallax there) as far as its parallax takes the scroll; things on the floor already go back at the scroll's speed,
+ * as the floor now does; back to none as it's beaten or gone (unk3C stays set otherwise); */
+#define FLOOR_PERIOD 64
+static void StageScroll(struct SqueakObject *s, bool32 on) {
+    struct LevelInfo *l = &gCurLevelInfo[gLocalPlayerId];
+
+    if (gKirbys[gLocalPlayerId].base.roomId != s->obj.base.roomId) return;
+    if (!on) {
+        l->unk3C = 0;
+        return;
+    }
+    l->viewportModX_44 += (SCROLLED(s) >> 8) & (FLOOR_PERIOD - 1);
+    l->unk3C = (SCROLLED(s) >> 4) * (l->unkB8 >> 4);
+}
+
+// YadgaineGone(); It's gone (squeak.c's SqueakDestroy): its shell goes too, the stage's scroll stops;
 void YadgaineGone(struct SqueakObject *s) {
     if (SHELL(s)) SHELL(s)->owner = NULL;
     SHELL(s) = NULL;
+    StageScroll(s, FALSE);
 }
 
 // Legs(); Its legs, made at its fight's start, behind it (its back one) and in front (its front one);
@@ -668,10 +689,15 @@ static void YadgaineMain(struct Object *obj) {
     Legs(s);
     before = obj->base.x;
     SqueakRun(s, Yadgaine);
-    if (obj->unk80 <= 0) return;
+    if (obj->unk80 <= 0) {
+        StageScroll(s, FALSE);
+        return;
+    }
     /* (its moves: at its speed less the scroll's; held no further than CLAMP_X in, 0x0211A098, and not out of the view's left: the
      * camera's lock carries it along while it's hidden, as logged: its rush in starts from the view's left); */
     STEP(s) = SCROLLS(s) ? SQUEAK_SPEED(SCROLL(s)) : 0;
+    SCROLLED(s) += STEP(s);
+    StageScroll(s, TRUE);
     obj->base.x += SQUEAK_SPEED(s->vx) - STEP(s);
     if (obj->base.x > LEFT(s) + (SIZED(CLAMP_X) << 8)) obj->base.x = LEFT(s) + (SIZED(CLAMP_X) << 8);
     if (obj->base.x < LEFT(s)) obj->base.x = LEFT(s);
@@ -699,6 +725,7 @@ void YadgaineStart(struct Object *obj) {
     SHOWN(s) = FALSE;
     CRACKED(s) = FALSE;
     FORWARD(s) = FALSE;
+    SCROLLED(s) = 0;
     PHASE_LEFT(s) = obj->unk80 * PHASE_DAMAGE_NUM / PHASE_DAMAGE_DEN;
     SqueakSetState(s, YG_START);
 }

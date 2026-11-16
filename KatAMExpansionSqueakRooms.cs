@@ -301,6 +301,33 @@ namespace KatAMRandomizer {
         /* SqueakSigns(); The cells of a room's tutorial signs ("Tap to pop!", "Find treasure and move on.", "Mix bubbles!": Prism Plains 2's
          * first, third and fifth rooms), left out (the owner: KatAM skips them): front-layer blocks without collision in a block at least
          * 10 by 6 cells, 4 in 5 of them filled (only those three in the 8 worlds, 16 by 11 each); */
+        /* SqueakNoShell(); Yadgaine's shell taken out of its boss room's tiles (4-7-2, room 0x4EA): the DS's stage keeps the shell's
+         * picture in its main grid's top left 16 by 13 blocks and draws it from there on a layer of its own, with the boss
+         * (KatAMExpansionSqueak.cs's SqueakShell: here a sprite of Yadgaine's, gone with it); drawn into the room's tiles as well, it
+         * stood in the room before the fight and after it (the owner: "the carcass is in the background"). The blocks there that the
+         * rest of the grid doesn't use (the floor's are) are left empty, as the DS's grid is empty where it shows nothing. The owner:
+         * "the stage doesn't scroll": its floor made to repeat (below); */
+        const int SqueakShellColumns = 16, SqueakShellRows = 13, SqueakShellPeriod = 4;
+        static SqueakMap SqueakNoShell(SqueakRoomFiles f, SqueakMap map) {
+            if ((f.Area, f.Stage, f.Index) != (4, 7, 2)) return map;
+            HashSet<int> elsewhere = new HashSet<int>();
+            for (int y = 0; y < map.Height; y++)
+                for (int x = 0; x < map.Width; x++)
+                    if (x >= SqueakShellColumns || y >= SqueakShellRows) elsewhere.Add(map.Block(4, x, y));
+            byte[] data = (byte[])map.Data.Clone();
+            for (int y = 0; y < Math.Min(SqueakShellRows, map.Height); y++)
+                for (int x = 0; x < Math.Min(SqueakShellColumns, map.Width); x++)
+                    if (!elsewhere.Contains(map.Block(4, x, y))) WriteShort(data, map.Section(4) + (y * map.Width + x) * 2, 0);
+            /* (its floor's blocks repeating every SqueakShellPeriod across, the first ones past the shell's: yadgaine.c's StageScroll()
+             * draws the stage scrolling with the camera held, the room's tiles up to 64 pixels on, over and over; the DS's floor is the
+             * same few bricks); */
+            if (map.Width >= SqueakShellColumns + SqueakShellPeriod)
+                for (int y = 0; y < map.Height; y++)
+                    for (int x = 0; x < map.Width; x++)
+                        WriteShort(data, map.Section(4) + (y * map.Width + x) * 2, ReadShort(data, map.Section(4) + (y * map.Width + SqueakShellColumns + x % SqueakShellPeriod) * 2));
+            return new SqueakMap(data);
+        }
+
         /* SqueakGoalDoorways(); The DS's goal doors' wide black doorways taken out of a room's tiles (the owner: "I think we can drop the
          * wide black doors and replace them with regular mirrors since these look very odd in-game"): a doorway is 2 by 2 blocks, two
          * pairs (b, b + 1 over c, c + 1), on the door's cell and the one left of it and the row above; 43 of the DS's are in the front
@@ -2823,7 +2850,7 @@ namespace KatAMRandomizer {
                                 main?.Cycle(f.Palette == null ? null : SqueakPaletteCycles(SqueakFileAnyCase(squeak, f.Palette)));
                                 var cells = SqueakRoomCollision(map);
                                 List<(int x, int y)> digs = SqueakDigCells(map, cells.collision);
-                                SqueakMap drawn = SqueakGoalDoorways(SqueakNests(map, squeakLairs.Where(l => l.FromRoom == room).Select(l => (l.FromX, l.FromY)), squeakLairs.Any(l => l.Room == room)));
+                                SqueakMap drawn = SqueakNoShell(f, SqueakGoalDoorways(SqueakNests(map, squeakLairs.Where(l => l.FromRoom == room).Select(l => (l.FromX, l.FromY)), squeakLairs.Any(l => l.Room == room))));
                                 foregrounds[i] = ConvertSqueakForeground(drawn, front, main, ForegroundTiles, cells.blocks.Concat(SqueakRopeCells(map)).ToList(),
                                                                          SqueakSigns(map), cells.chains.Union(cells.burnt).ToHashSet(), cells.chains,
                                                                          SqueakTunnelLooksOf(map, SqueakTunnels(map, digs, SqueakCloudCells(squeak, f, map, cells.collision))));
@@ -2935,7 +2962,7 @@ namespace KatAMRandomizer {
 
                     // Foreground: its tiles, palettes and tilemap (a nest, the DS's own, on each DS door into a Squeak Lair, and no black
                     // doorway in a lair: SqueakNests(); no goal door's wide doorway: SqueakGoalDoorways());
-                    SqueakMap drawn = SqueakGoalDoorways(SqueakNests(map, squeakLairs.Where(l => l.FromRoom == room).Select(l => (l.FromX, l.FromY)), lairHere != null));
+                    SqueakMap drawn = SqueakNoShell(f, SqueakGoalDoorways(SqueakNests(map, squeakLairs.Where(l => l.FromRoom == room).Select(l => (l.FromX, l.FromY)), lairHere != null)));
                     // (the cut ropes' cells drawn bare too, after the blocks: SqueakRopeCells());
                     List<(int x, int y)> ropeCells = SqueakRopeCells(map);
                     List<SqueakTunnel> tunnels = SqueakTunnels(map, digCells, SqueakCloudCells(squeak, f, map, collision));
