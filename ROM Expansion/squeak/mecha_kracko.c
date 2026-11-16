@@ -1,8 +1,8 @@
 /* Mecha-Kracko (Squeak Squad's); ported from Kirby: Squeak Squad (USA), boss 0x39 (its body 0x02132D7C, vtable 0x02184908: +0x34 per
  * frame 0x02132FFC, +0x30 its hit 0x02132990, +0x2C its touch 0x02132C80; its states 0x02130510-0x02132744, their table 0x02184730),
  * as SQUEAK_MECHA_KRACKO, a boss on the mid-bosses' framework (mini-boss type 0x40: the camera held on its area, the HP bar, the music,
- * KatAM's defeat). Values from param/PrmBB03Ml0.kgb (its HP, PrmBB03Sl0: 320, then 400 in its second form; here KatAM's bosses' 60
- * for one player as Mrs. Moley's 300: 64 and 80); speeds 20.12 a frame, Y up; drawn with enemy/kracko (a cloud over a spiked core,
+ * KatAM's defeat). Values from param/PrmBB03Ml0.kgb (its HP, PrmBB03Sl0: 320, then 400 in its second form; here 52 and 65, under
+ * KatAM's bosses' 60 for one player: the owner found the fight "way too hard"; a fall through its floor costs one HP, FallsOut); speeds 20.12 a frame, Y up; drawn with enemy/kracko (a cloud over a spiked core,
  * its .mca's composites), its eye a sprite of its own (SQUEAK_MECHA_KRACKO_EYE, 0x0213025C); its boxes from kracko.rca. Recorded on
  * the DS in its own stage (map/a3s7s2: the spots below; its moves' frames, the second form's forced by a RAM write).
  * • Its arena (Squeak Squad's spots are from the camera: 0x02132840; here from the camera view's middle across, and the floor where it
@@ -199,19 +199,34 @@ static void BreakClouds(struct SqueakObject *s, const s16 *b) {
 }
 
 /* FallsOut(); A Kirby through a hole in its floor, FALL_OUT pixels under its line, out of the DS's view (its camera's bottom 96 under the
- * floor: the stage's), is lost as the DS's fall out of a stage: KatAM's hp out, its hurt portrait (as the arena's crush, enemies/arena.c);
- * KatAM's level bounds held him under the room, out of view, otherwise; */
+ * floor: the stage's), was lost as the DS's fall out of a stage. Gentler here (the owner: "Mecha Kracko fight is way too hard, we need
+ * to tone it down a bit"; its field's swoop along the low line breaks the whole floor): he's brought back up RESCUE_UP pixels over the
+ * floor's line where he fell (held in the DS camera's view), the clouds under him put back (RESCUE_CELLS either side), and he loses
+ * one HP; his last, KatAM's hp out and its hurt portrait (as the arena's crush, enemies/arena.c); */
 #define FALL_OUT 48
+#define RESCUE_UP 40
+#define RESCUE_CELLS 2
 void sub_08088640(struct Kirby *, u8, u16);
+static void MendAt(struct SqueakObject *s, s32 x);
 static void FallsOut(struct SqueakObject *s) {
     u8 i;
 
     for (i = 0; i < gNumKirbys; i++) {
         struct Kirby *kirby = &gKirbys[i];
+        s32 left = Middle(s) - ((DS_VIEW_HALF - 16) << 8), right = Middle(s) + ((DS_VIEW_HALF - 16) << 8);
 
         if (kirby->base.roomId != s->obj.base.roomId || kirby->hp <= 0 || kirby->base.y <= FLOOR(s) + (FALL_OUT << 8)) continue;
-        kirby->hp = 0;
-        sub_08088640(kirby, 0x1C, 0x20);
+        if (kirby->hp <= 1) {
+            kirby->hp = 0;
+            sub_08088640(kirby, 0x1C, 0x20);
+            continue;
+        }
+        kirby->hp--;
+        if (kirby->base.x < left) kirby->base.x = left;
+        if (kirby->base.x > right) kirby->base.x = right;
+        kirby->base.y = FLOOR(s) - (RESCUE_UP << 8);
+        kirby->base.yspeed = 0;
+        MendAt(s, kirby->base.x);
     }
 }
 
@@ -220,6 +235,13 @@ static void MendFloor(struct SqueakObject *s) {
     s32 left = ((Middle(s) >> 8) - DS_VIEW_HALF) >> 4, i;
 
     for (i = 0; i < CLOUD_COLUMNS; i++) SqueakCloudMend(s->obj.base.unk56, left + i, FloorRow(s));
+}
+
+// MendAt(); The floor's cells under x and RESCUE_CELLS either side put back (a Kirby brought back up: FallsOut);
+static void MendAt(struct SqueakObject *s, s32 x) {
+    s32 cx = x >> 12, i;
+
+    for (i = -RESCUE_CELLS; i <= RESCUE_CELLS; i++) SqueakCloudMend(s->obj.base.unk56, cx + i, FloorRow(s));
 }
 
 // Spot(); 0x02132840: a spot of its arena (KatAM's 24.8), by kind;

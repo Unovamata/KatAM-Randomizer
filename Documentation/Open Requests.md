@@ -22,11 +22,9 @@ finishes it says how it was checked). The design rules for doors, mirrors and hu
 - The owner: "Is the beam supposed to be this thin?" (Daroach's beam.)
 - The owner: "Daroach's star rod's stars lag a bit whenever there's 4 Kirbys in the room."
 - The owner: "Squeak Squad stars from bosses have a hitbox that the player can hit, these are supposed to be inhalable only."
-- The owner: "Mecha Kracko fight is way too hard, we need to tone it down a bit." (Bohboh's done.)
-- The owner: "The Mecha Kracko fight has a scrollable background."
-- The owner: "Mecha Kracko enemies that are supposed to give Hi-Jump don't."
-- The owner: "Mecha Kracko when I died on phase 2, it showed garbled tiles on phase 1."
-- The owner: "Yagdaine's battle is completely bugged, the carcass is in the background, the stage doesn't scroll."
+- The owner: "Mecha Kracko when I died on phase 2, it showed garbled tiles on phase 1." (Not reproduced: USA with the NiDL ROM, a
+  death by a fall through the broken floor and one by a hit in its second form, the room and its first form came back whole. Which
+  build, and how Kirby died, wanted.)
 - The owner: "Some of the boss rooms have the camera locked in/zoomed in closer than they should, cutting away some details of the map."
   (Every Squeak boss's fight is held to KatAM's 240x160, the DS's arena being 256x192; widening the area lets the camera scroll, but
   the bosses place their moves from the camera, Dark Nebula's from its middle: which rooms cut what, wanted.)

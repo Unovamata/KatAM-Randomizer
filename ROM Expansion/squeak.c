@@ -24,7 +24,7 @@ const s16 gSqueakEnemyHp[SQUEAK_ENEMY_COUNT] = {
     [SQUEAK_BIO_SPARK] = 4,         // Squeak Squad's: 20 (prmCE18Sl0.kgb);
     [SQUEAK_BIO_SPARK_KUNAI] = 1,   // (KatAM's: any hit breaks it);
     [SQUEAK_BIO_SPARK_LEAF] = 1,
-    [SQUEAK_STARMAN] = 2,           // Squeak Squad's: 10 (prmCE20Sl0.kgb);
+    [SQUEAK_STARMAN] = 4,           // Squeak Squad's: 10 (prmCE20Sl0.kgb); it gives an ability;
     [SQUEAK_BUBBLE_HEAD] = 4,       // Squeak Squad's: 20 (prmCE21Sl0.kgb);
     [SQUEAK_BUBBLE_HEAD_BUBBLE] = 1,
     [SQUEAK_GAW_GAW] = 4,           // Squeak Squad's: 20 (prmCE22Sl0.kgb);
@@ -52,8 +52,8 @@ const s16 gSqueakEnemyHp[SQUEAK_ENEMY_COUNT] = {
     [SQUEAK_MRS_MOLEY] = 60,        // Squeak Squad's: 300 (prmBB04Sl0.kgb); KatAM's bosses' for one player;
     [SQUEAK_MOLEY_THING] = 1,       // (any hit breaks it, as Squeak Squad's: 0x021291C8);
     [SQUEAK_MOLEY_DIRT] = 1,
-    [SQUEAK_MECHA_KRACKO] = 64,     // Squeak Squad's: 320, then 400 (prmBB03Sl0.kgb); KatAM's bosses' 60 for one player as Mrs. Moley's
-                                    // 300 (its second form's 80, squeak/mecha_kracko.c);
+    [SQUEAK_MECHA_KRACKO] = 52,     // Squeak Squad's: 320, then 400 (prmBB03Sl0.kgb); 64 at Mrs. Moley's rate (300: 60), too hard (the
+                                    // owner): its second form's 65 (squeak/mecha_kracko.c);
     [SQUEAK_MECHA_KRACKO_EYE] = 1,
     [SQUEAK_YADGAINE] = 80,         // Squeak Squad's 400 (prmBB05Sl0.kgb); KatAM's bosses' 60 for one player as Mrs. Moley's 300 is;
     [SQUEAK_YADGAINE_LEG] = 58,     // Its back leg's 290 (its front one's 220: 44, yadgaine.c);
@@ -97,7 +97,7 @@ static const struct SqueakCharacter sSqueakCharacters[SQUEAK_ENEMY_COUNT] = {
     [SQUEAK_BIO_SPARK] = { BioSparkInit, BioSparkStart, SQUEAK_ABILITY_NINJA, FALSE },   // The DS's Ninja (its ability 0x13);
     [SQUEAK_BIO_SPARK_KUNAI] = { BioSparkKunaiInit, BioSparkKunaiStart, 0, FALSE },
     [SQUEAK_BIO_SPARK_LEAF] = { BioSparkLeafInit, BioSparkLeafStart, 0, FALSE },
-    [SQUEAK_STARMAN] = { SqueakStarmanInit, SqueakStarmanStart, 0, FALSE },
+    [SQUEAK_STARMAN] = { SqueakStarmanInit, SqueakStarmanStart, NIDL_ABILITY_HI_JUMP, FALSE },  // NiDL's Starman's Hi-Jump (the owner);
     [SQUEAK_BUBBLE_HEAD] = { BubbleHeadInit, BubbleHeadStart, SQUEAK_ABILITY_BUBBLE, FALSE },  // The DS's Bubble (its ability 0x16);
     [SQUEAK_BUBBLE_HEAD_BUBBLE] = { BubbleHeadBubbleInit, BubbleHeadBubbleStart, 0, FALSE },
     [SQUEAK_GAW_GAW] = { GawGawInit, GawGawStart, SQUEAK_ABILITY_ANIMAL, FALSE },     // The DS's Animal (its ability 0x15);
@@ -1641,6 +1641,112 @@ static void SqueakBossMusic(struct Object *obj) {
 /* SqueakMidbossWait(); A mid-boss before its fight (Mr. Frosty's 0x080CB7E8, as NiDL's: NidlMinibossWait): its animation going,
  * falling as the engine would, facing Kirby till he's in the template's area; then the camera stays there, the HP bar shows, the
  * mini-boss music plays (a world's boss: its arena's own, SqueakBossMusic) and it starts; */
+/* SqueakCameraHold; A fight's camera held on its screen where there's no arena (enemies/arena.c, NiDL's object type: placed only
+ * with the NiDL ROM, KatAMExpansionSqueakRooms.cs's Boss()): without it the camera followed Kirby through the fight (the owner: "The
+ * Mecha Kracko fight has a scrollable background"). From the fight's start, while the boss or mid-boss is there (beaten, till it's
+ * gone, or till the player's Kirby is beaten), each player in its room has the camera's bounds its template's area, eased there as
+ * KatAM's scroll locks (scroll_lock.c, sub_0811C8BC: as arena.c's LockCamera(), without its walls), Kirby's HOLD_BELOW more under
+ * it; then the bounds from before; */
+#define HOLD_BELOW 39
+struct SqueakCameraHold {
+    struct Object *obj;
+    u16 room;
+    u8 locked;
+    struct S32Vec2 saved7C[4], saved84[4];
+    s32 savedA0[4], savedA4[4], savedA8[4], savedAC[4];
+};
+
+static void SqueakCameraHoldMain(void) {
+    struct SqueakCameraHold *h = TaskGetStructPtr(gCurTask);
+    struct Object *obj = h->obj;
+    const struct ObjectTemplate *t = obj->objTemplate;
+    // (let go too when the player's Kirby is beaten: the room starts over, its boss a new object, maybe where this one was);
+    bool32 on = obj->base.header.kind == 1 && obj->base.roomId == h->room && !(obj->base.flags & 0x1000) && t != NULL
+                && gKirbys[gLocalPlayerId].hp > 0;
+    s32 left = 0, top = 0, right = 0, bottom = 0;
+    u8 i;
+
+    if (on) {
+        left = (t->x + t->unk1A) << 8;
+        top = (t->y + t->unk1C) << 8;
+        right = left + (t->unk1E << 8);
+        bottom = top + (t->unk20 << 8);
+    }
+    for (i = 0; i < gNumKirbys; i++) {
+        struct LevelInfo *l = &gCurLevelInfo[i];
+
+        if (on && gKirbys[i].base.roomId == h->room) {
+            if (!(h->locked & (1 << i))) {
+                h->saved7C[i] = l->unk_S32Vec2_7C;
+                h->saved84[i] = l->unk_S32Vec2_84;
+                h->savedA0[i] = l->unkA0;
+                h->savedA4[i] = l->unkA4;
+                h->savedA8[i] = l->unkA8;
+                h->savedAC[i] = l->unkAC;
+            }
+            l->unk_S32Vec2_7C.x = l->unkA0 = left;
+            l->unk_S32Vec2_7C.y = l->unkA4 = top;
+            l->unk_S32Vec2_84.x = l->unkA8 = right;
+            l->unk_S32Vec2_84.y = bottom;
+            l->unkAC = bottom + (HOLD_BELOW << 8);
+            if (h->locked & (1 << i)) continue;
+            h->locked |= 1 << i;
+            l->unk1EC = 0;
+            if (right - left >= 0xF000) {
+                if (l->unk_S32Vec2_6C.x <= l->viewportPosition.x - 0x800) l->unk_S32Vec2_6C.x = l->viewportPosition.x - 0x800;
+                if (l->unk_S32Vec2_74.x >= l->viewportPosition.x + 0xF800) l->unk_S32Vec2_74.x = l->viewportPosition.x + 0xF800;
+            }
+            if (bottom - top >= 0xA000) {
+                if (l->unk_S32Vec2_6C.y <= l->viewportPosition.y - 0x800) l->unk_S32Vec2_6C.y = l->viewportPosition.y - 0x800;
+                if (l->unk_S32Vec2_74.y >= l->viewportPosition.y + 0xA800) l->unk_S32Vec2_74.y = l->viewportPosition.y + 0xA800;
+            }
+            if (l->unk90 <= l->viewportPosition.x - 0x800) l->unk90 = l->viewportPosition.x - 0x800;
+            if (l->unk94 <= l->viewportPosition.y - 0x800) l->unk94 = l->viewportPosition.y - 0x800;
+            if (l->unk98 >= l->viewportPosition.x + 0xF800) l->unk98 = l->viewportPosition.x + 0xF800;
+            if (l->unk9C >= l->viewportPosition.y + 0xF800) l->unk9C = l->viewportPosition.y + 0xF800;
+        } else if (h->locked & (1 << i)) {
+            h->locked &= ~(1 << i);
+            l->unk_S32Vec2_7C = l->unk_S32Vec2_6C = h->saved7C[i];
+            l->unk_S32Vec2_84 = l->unk_S32Vec2_74 = h->saved84[i];
+            l->unkA0 = l->unk90 = h->savedA0[i];
+            l->unkA4 = l->unk94 = h->savedA4[i];
+            l->unkA8 = l->unk98 = h->savedA8[i];
+            l->unkAC = l->unk9C = h->savedAC[i];
+            l->unk1EC = 0;
+        }
+    }
+    if (!on) TaskDestroy(gCurTask);
+}
+
+// SqueakArenaInRoom(); An arena (object type 0x31, NiDL's: enemies/arena.c) in the room, walking the task list as SqueakBossAlive();
+static bool32 SqueakArenaInRoom(u16 room) {
+    struct Task *t = &gTasks[0];
+    u8 n;
+
+    for (n = 0; n < MAX_TASK_NUM && t->next; n++) {
+        struct Object *other;
+
+        t = (struct Task *)(IWRAM_START + t->next);
+        other = TaskGetStructPtr(t);
+        if (other->base.header.kind == 1 && other->type == OBJ_EMPTY_31 && other->base.roomId == room && !(other->base.flags & 0x1000))
+            return TRUE;
+    }
+    return FALSE;
+}
+
+static void SqueakHoldCamera(struct Object *obj) {
+    struct Task *t;
+    struct SqueakCameraHold *h;
+
+    if (obj->objTemplate == NULL || obj->objTemplate->unk1E == 0 || SqueakArenaInRoom(obj->base.roomId)) return;
+    t = TaskCreate(SqueakCameraHoldMain, sizeof(struct SqueakCameraHold), 0x1001, TASK_USE_EWRAM, NULL);
+    if (t == NULL) return;
+    h = TaskGetStructPtr(t);
+    h->obj = obj;
+    h->room = obj->base.roomId;
+    h->locked = 0;
+}
+
 static void SqueakMidbossWait(struct Object *obj) {
     struct SqueakObject *s = (struct SqueakObject *)obj;
 
@@ -1656,6 +1762,7 @@ static void SqueakMidbossWait(struct Object *obj) {
     if (obj->objTemplate && SqueakBossShard(obj)) SqueakBossMusic(obj);
     else Macro_08100F18(obj);
     s->activated = TRUE;
+    SqueakHoldCamera(obj);
     SqueakStart(obj);
 }
 
@@ -1896,6 +2003,10 @@ void SqueakStart(struct Object *obj) {
     obj->kirbyAbility = sSqueakCharacters[s->enemy].ability;
     // (Squeak Squad's abilities KatAM lacks need NiDL's ability code and their looks: without them, none, gSqueakAbilityBodies 0);
     if (obj->kirbyAbility >= SQUEAK_FIRST_ABILITY && gSqueakAbilityBodies[obj->kirbyAbility - SQUEAK_FIRST_ABILITY] == NULL)
+        obj->kirbyAbility = KIRBY_ABILITY_NORMAL;
+    // (and NiDL's, without the NiDL ROM: its looks not built, its portrait none; the Starman's Hi-Jump);
+    if (obj->kirbyAbility >= NIDL_FIRST_ABILITY && obj->kirbyAbility < SQUEAK_FIRST_ABILITY
+        && gNidlAbilityData.portraits[obj->kirbyAbility - NIDL_FIRST_ABILITY].palette == NULL)
         obj->kirbyAbility = KIRBY_ABILITY_NORMAL;
     // The engine's gravity off (flag 0x40, and 0x20, which keeps it on once falling): Squeak Squad's characters have their own;
     obj->base.flags = (obj->base.flags | 0x40) & ~0x20;

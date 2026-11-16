@@ -20,7 +20,8 @@
  *   landing); forward from a dive or a rocket it glides (anim 3, 0.8 down); up 2 climbs up through everything (anim 4) for good;
  *   walking off a ledge it falls (forward: glides, 1.8 down at first).
  * Kirby's inhale takes it as any enemy.
- * Not ported: its ability (Squeak Squad's: KatAM's own Hi-Jump is the NiDL Starman's; the owner's call), its sounds, its other mode
+ * Its ability: NiDL's Hi-Jump, the NiDL Starman's (the owner: "Mecha Kracko enemies that are supposed to give Hi-Jump don't"), none
+ * without the NiDL ROM (SqueakStart). Not ported: its sounds, its other mode
  * (the brain's +8 not 3: A jumps, 2.5 up), its despawn once it has left the screen (KatAM's own), its contact damage (KatAM's 1).
  * Squeak Squad's slope kinds under its skid (the stage's vtable +0x30: 1-2 and 14-15) are read here from KatAM's floor 4 pixels
  * ahead (uphill: KatAM's floor a pixel over its feet there). */
