@@ -132,6 +132,8 @@ const struct SqueakSwitch gSqueakSwitch = { NULL };
 #define GIMMICK_CURRENTS 0xF3       // A room's currents (KatAMExpansionSqueakRooms.cs's SqueakCurrents()): par[0-3] its grid's address;
 #define GIMMICK_CRUMBLES 0xF4       // A room's walk-once blocks (KatAMExpansionSqueakRooms.cs's SqueakCrumbles()): par[0-3] their list's address;
 #define CRUMBLES 8                  // (walk-once blocks breaking at once in a room);
+#define GIMMICK_BURNS 0xF8          // A room's cells only Fire burns (KatAMExpansionSqueakRooms.cs's SqueakBurns()): par[0-3] their list's address;
+#define BURNS 8                     // (cells burning at once in a room);
 #define GIMMICK_PHASE_WARP 0xF5     // The finale's way on from a fight (KatAMExpansionSqueakLevels.cs' SqueakPhaseWarps): par[0-1] the room, par[2-3] the cell + 1, par[4] 1 after the fight;
 #define LAIR_EXIT_WAIT 30           // (the room's objects made by then: KatAM makes those on screen as the room comes up);
 #define LAIR_EXIT_OPEN 0xFF
@@ -194,6 +196,7 @@ struct SqueakLogic {
     u16 candleCount;                            // light shown (CANDLE_FULL full);
     u16 candleFrom, candleTo, candleLevel;
     struct SqueakCrumble crumble[CRUMBLES];     // The walk-once blocks breaking (Crumbles());
+    struct SqueakCrumble burn[BURNS];           // The cells only Fire burns burning (Burns());
 };
 
 /* Inside(); A Kirby in the room touching a trigger area: its box from its spot, its parameter's low 7 bits blocks right, the next 7
@@ -847,6 +850,79 @@ static void Crumbles(struct SqueakLogic *l, const struct SqueakGimmickEntry *e) 
     }
 }
 
+/* Burns(); The cells only Fire burns (the DS's blocks grid's 0x800 under 0x38: 4-1-1's leafy walls and log bridge, solid or thin
+ * floors as on the DS, each with a block record; the owner, "Room 0x4AC gimmick is not implemented and it has incorrect collisions,
+ * and platforms are destructible"): a Kirby's fire touching one (Fire's breath, its puffs reaching BURN_REACH pixels ahead of him:
+ * his state ScrollBreath's, scrolls.c; Burning's dash, his body's attack fire's, unk68's 0x100) sets it burning, gone BURN_WAIT
+ * frames on (its record applied, the burning sound), and the fire takes the cells of the list beside it BURN_SPREAD frames after, as
+ * the DS's flames run along its bridges; */
+#define BURN_REACH 48
+#define BURN_WAIT 12
+#define BURN_SPREAD 8
+void ScrollBreath(struct Kirby *kirby);
+static bool32 BurnListed(const u8 *list, u16 count, s32 x, s32 y) {
+    const u8 *c;
+    u16 j;
+
+    for (j = 0, c = list + 2; j < count; j++, c += 4)
+        if (c[0] == x && c[1] == y) return TRUE;
+    return FALSE;
+}
+static void BurnStart(struct SqueakLogic *l, u8 x, u8 y, u8 wait) {
+    u8 k;
+
+    if (GetCollisionTile(l->base.unk56, x, y) == 0) return;
+    for (k = 0; k < BURNS; k++)
+        if (l->burn[k].timer != 0 && l->burn[k].x == x && l->burn[k].y == y) return;
+    for (k = 0; k < BURNS; k++)
+        if (l->burn[k].timer == 0) {
+            l->burn[k].x = x;
+            l->burn[k].y = y;
+            l->burn[k].timer = wait;
+            return;
+        }
+}
+static void Burns(struct SqueakLogic *l, const struct SqueakGimmickEntry *e) {
+    const u8 *list = (const u8 *)(e->par[0] | e->par[1] << 8 | e->par[2] << 16 | e->par[3] << 24), *c, *record;
+    u16 count = list[0] | list[1] << 8, j;
+    u8 i, k, p = l->base.unk56;
+
+    for (i = 0; i < gNumKirbys; i++) {
+        struct Kirby *kirby = &gKirbys[i];
+        u8 ability = kirby->ability & NIDL_ABILITY_MASK;
+        s32 kx = kirby->base.x >> 8, ky = kirby->base.y >> 8, x0, x1;
+
+        if (kirby->base.roomId != l->room || gCurLevelInfo[i].currentRoom != l->room) continue;
+        if (ability == KIRBY_ABILITY_FIRE && kirby->stateFn == ScrollBreath) {
+            x0 = kirby->base.flags & 1 ? kx - BURN_REACH : kx;
+            x1 = kirby->base.flags & 1 ? kx : kx + BURN_REACH;
+        } else if (ability == KIRBY_ABILITY_BURNING && (kirby->base.unk68 & 0x100)) {
+            x0 = kx - 16;
+            x1 = kx + 16;
+        } else {
+            continue;
+        }
+        for (j = 0, c = list + 2; j < count; j++, c += 4)
+            if (c[0] * 16 + 16 > x0 && c[0] * 16 < x1 && c[1] * 16 + 16 > ky - 20 && c[1] * 16 < ky + 8) BurnStart(l, c[0], c[1], BURN_WAIT);
+    }
+    for (k = 0; k < BURNS; k++) {
+        struct SqueakCrumble *b = &l->burn[k];
+        u8 x = b->x, y = b->y;
+
+        if (b->timer == 0 || --b->timer != 0) continue;
+        if (GetCollisionTile(p, x, y) == 0 || (record = CellRecord(p, x, y)) == NULL) continue;
+        sub_08001408(p, (struct Unk_0888562C *)record, NULL, NULL);
+        l->base.x = (x * 16 + 8) << 8;
+        l->base.y = (y * 16 + 8) << 8;
+        sub_08089864(&l->base, 4, 0, 0);
+        PlaySfx(&l->base, SQUEAK_SE(0x58));   // (the DS's 0x58, its burning: the grass's);
+        if (BurnListed(list, count, x + 1, y)) BurnStart(l, x + 1, y, BURN_SPREAD);
+        if (x > 0 && BurnListed(list, count, x - 1, y)) BurnStart(l, x - 1, y, BURN_SPREAD);
+        if (BurnListed(list, count, x, y + 1)) BurnStart(l, x, y + 1, BURN_SPREAD);
+        if (y > 0 && BurnListed(list, count, x, y - 1)) BurnStart(l, x, y - 1, BURN_SPREAD);
+    }
+}
+
 /* PhaseWarp(); Squeak Squad's final stage (8-4) goes from part to part on its own, as the DS's stage switches (the owner: "Why is there
  * a door in daroach's first phase fight [...] the warp should send me to the next phase automatically", "the mirror to go to the next
  * phase is literally right there"): from Dark Daroach's room once he's beaten (LAIR_EXIT_WAIT frames after the room comes up, its
@@ -933,6 +1009,7 @@ static void SqueakLogicMain(void) {
         case GIMMICK_LAIR_EXIT: LairExit(l, e); break;
         case GIMMICK_CURRENTS: Currents(l, e); break;
         case GIMMICK_CRUMBLES: Crumbles(l, e); break;
+        case GIMMICK_BURNS: Burns(l, e); break;
         case GIMMICK_PHASE_WARP: PhaseWarp(l, e); break;
         }
     }

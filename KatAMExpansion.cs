@@ -1644,7 +1644,9 @@ namespace KatAMRandomizer {
 
             /* The Star Rod's stand in the NiDL hub (object 0x9A, which KatAM leaves empty: "ROM Expansion/abilities/star_rod_stand.c"): its
              * spawn, and parameters as the Master Sword's stand's (0x98) but for its ability, its palette key and anim (BuildRodStand()'s:
-             * an AnimInfo, its variant 0) and VRAM tiles; its second parameters are the Master Sword stand's; */
+             * an AnimInfo, its variant 0) and VRAM tiles; no second parameters (gUnk_08352AD0 has them for types 0-0x55 only, read for
+             * types up to 0x5C: the stand's, at 0x9A, were written over Cupie's AnimInfos after the table, gUnk_08352F94's 3 and 4, and
+             * Cupie turned into Kirby for the frames it shot in: the owner, "Cupi seems to be turning into Kirby for some frames"); */
             /* (and the NiDL ability statues, its subtypes 1-7 (star_rod_stand.c, BuildNidlStatues()): its AnimInfos the rod's, then each
              * statue's anim and variant; VRAM for the biggest; no palette key of its own, each loads its own anim's: gNidlStandKeys,
              * the rod's then the statues'); */
@@ -1660,7 +1662,6 @@ namespace KatAMRandomizer {
                 for (int i = 0; i < NidlStatues.Length; i++) WriteInt(rom, rodStandAnims + 4 + i * 4, statues.animIds[i] | statues.variants[i] << 16);
                 WriteShort(rom, CodeAddress + version.CodeSymbols["gNidlStandKeys"], rodStand.animId);
                 for (int i = 0; i < NidlStatues.Length; i++) WriteShort(rom, CodeAddress + version.CodeSymbols["gNidlStandKeys"] + 2 + i * 2, statues.animIds[i]);
-                Array.Copy(rom, ObjectParameters2 + MasterSwordStand * 8, rom, ObjectParameters2 + RodStandType * 8, 8);
 
                 /* Mirras (object 0x34) fall, and open their door where they are ("ROM Expansion/mirra.c"): its spawn becomes NidlCreateMirra
                  * (the original's address in gNidlMirra), and its door's opening (sub_080B11C0) jumps to NidlMirraOpen, which does its work

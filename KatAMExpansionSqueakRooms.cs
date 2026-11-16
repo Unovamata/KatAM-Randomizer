@@ -1169,7 +1169,8 @@ namespace KatAMRandomizer {
             byte[] collision = new byte[width * height];
             List<(int x, int y)> blocks = new List<(int, int)>();
             List<byte> leaves = new List<byte>(), blockValues = new List<byte>();
-            HashSet<(int x, int y)> chains = new HashSet<(int, int)>(), burnt = new HashSet<(int, int)>(), loose = new HashSet<(int, int)>();
+            HashSet<(int x, int y)> chains = new HashSet<(int, int)>(), burnt = new HashSet<(int, int)>(), loose = new HashSet<(int, int)>(),
+                                    looseFloors = new HashSet<(int, int)>();
             List<List<(int x, int y)>> chainList = new List<List<(int x, int y)>>();
             /* (the cells fire burns, flagged 0x800, with their candles, aren't bomb chains: 4-2-3's burnable log bridges between its towers'
              * sealed parts and the wall walling its start in, Fire's on the DS; as bomb blocks they opened the towers to the levels' planner,
@@ -1196,16 +1197,31 @@ namespace KatAMRandomizer {
                      * breaks them himself (the owner: every room reached); the treasure rooms' boards of 2 over their doors, the
                      * Squeaks', stay); */
                     if (!chain.Any(c => (map.Collision(6, c.x, c.y) & 0xC000) != 0 || switched.Contains(c))) {
+                        /* (one row of them across a shaft, open above and below, a floor the DS breaks from above (4-6-7's, its boulders):
+                         * KatAM's thin floor, Kirby going up through it, down with Down and B; as star blocks, Kirby coming in from below
+                         * couldn't break them over his head (the owner: "Room 0x4E4 [...] this room is a softlock since I cannot go up"); */
+                        // (not a ledge the main grid draws as a thin floor: 8-4-4's, kept as thin floors a boulder breaks, below);
+                        if (chain.Count > 2 && chain.All(c => c.y == chain[0].y) && chain.All(c => !SqueakThinFloor(SqueakCollision(SqueakCellWord(map, c.x, c.y))))
+                            && chain.All(c => SqueakCollision(SqueakCellWord(map, c.x, c.y - 1 < 0 ? c.y : c.y - 1)) == KatAMAir || chain.Contains((c.x, c.y - 1)))
+                            && chain.All(c => c.y + 1 < height && SqueakCollision(SqueakCellWord(map, c.x, c.y + 1)) == KatAMAir)) {
+                            looseFloors.UnionWith(chain);
+                            continue;
+                        }
                         if (chain.Count > 2) loose.UnionWith(chain);
                         continue;
                     }
                     chains.UnionWith(chain);
                     chainList.Add(chain);
                 }
+            HashSet<(int x, int y)> fireOnly = SqueakFireOnly(map, loose, chains);
             for (int y = 0; y < height; y++)
                 for (int x = 0; x < width; x++) {
                     uint word = SqueakCellWord(map, x, y);
                     byte value = collision[y * width + x] = SqueakCollision(word);
+                    if (looseFloors.Contains((x, y))) {
+                        collision[y * width + x] = KatAMThin;
+                        continue;
+                    }
                     if (chains.Contains((x, y))) {
                         uint front = map.Collision(6, x, y), terrain = map.Collision(7, x, y);
                         value = collision[y * width + x] = (front & 0xC000) != 0 ? (byte)0xF1 : (terrain & 0xC000) != 0 ? (byte)0xF2 : (byte)0xF3;
@@ -1236,6 +1252,23 @@ namespace KatAMRandomizer {
                         continue;
                     }
                     bool burns = ((frontWord & 0x800) != 0 && frontWord >> 24 == 0x38 || loose.Contains((x, y))) && value != KatAMAir;
+                    /* (only Fire burns them where no DS door needs them gone (SqueakFireOnly()): the DS's own cell, solid or a thin floor (4-1-1's
+                     * leafy walls and log bridge: the owner, "Room 0x4AC gimmick is not implemented and it has incorrect collisions, and
+                     * platforms are destructible"), with a block record squeak/gimmicks.c's Burns() applies when a Kirby's fire touches
+                     * it; and never in a room's last rows, the ground under it: burnt, Kirby fell out of the room); */
+                    if (burns && !loose.Contains((x, y)) && y >= height - SqueakFireGround) {
+                        collision[y * width + x] = value is KatAMStarBlock or KatAMMetalBlock ? KatAMSolid : value;
+                        continue;
+                    }
+                    if (burns && fireOnly.Contains((x, y))) {
+                        byte kept = value is KatAMStarBlock or KatAMMetalBlock ? KatAMSolid : value;
+                        collision[y * width + x] = kept;
+                        blocks.Add((x, y));
+                        blockValues.Add(kept);
+                        leaves.Add(KatAMAir);
+                        burnt.Add((x, y));
+                        continue;
+                    }
                     bool melts = (frontWord & 0xC000) == 0x4000 && frontWord >> 24 == 0x28 && map.Block(3, x, y) is 0x220 or 0x221
                                  && (mainWord & 0xC000) != 0x4000;
                     /* (the blocks grid's block 3 over a solid main cell: the walk-once blocks, SqueakCrumbles(); solid, with a block
@@ -1472,6 +1505,73 @@ namespace KatAMRandomizer {
             return list.ToArray();
         }
 
+        /* SqueakFireOnly(); The cells only Fire burns in a room (the blocks grid's 0x800 under top byte 0x38, not a bomb chain's nor a
+         * loose group's, above its last SqueakFireGround rows), where none of the DS's doors needs them gone: Kirby, flying through the
+         * room (its solid cells and fuses closed, its other blocks broken), gets between the same of its doors and arrivals with them
+         * solid as with them gone; else none (KatAM's star blocks then, any attack breaking them: the owner, every room reached); */
+        const int SqueakFireGround = 4;
+        static HashSet<(int x, int y)> SqueakFireOnly(SqueakMap map, IReadOnlySet<(int x, int y)> loose, IReadOnlySet<(int x, int y)> chains) {
+            int width = map.Width, height = map.Height;
+            HashSet<(int x, int y)> burns = new HashSet<(int x, int y)>();
+            for (int y = 0; y < height - SqueakFireGround; y++)
+                for (int x = 0; x < width; x++) {
+                    uint front = map.Collision(6, x, y);
+                    if ((front & 0x800) != 0 && front >> 24 == 0x38 && !loose.Contains((x, y)) && !chains.Contains((x, y))
+                        && SqueakCollision(SqueakCellWord(map, x, y)) != KatAMAir) burns.Add((x, y));
+                }
+            if (burns.Count == 0) return burns;
+            List<(int x, int y)> doors = map.Doors().Where(d => d.X < width && d.Y < height).Select(d => (d.X, d.Y)).Distinct().ToList();
+            int Components(bool fireOnly) {
+                int[] label = Enumerable.Repeat(-1, width * height).ToArray();
+                bool Open(int x, int y) {
+                    if (burns.Contains((x, y))) return !fireOnly;
+                    byte v = SqueakCollision(SqueakCellWord(map, x, y));
+                    return v != KatAMSolid && v is not (>= 0x22 and <= 0x27);
+                }
+                HashSet<int> seen = new HashSet<int>();
+                int next = 0;
+                foreach ((int x, int y) in doors) {
+                    if (label[y * width + x] < 0) {
+                        Queue<(int x, int y)> open = new Queue<(int x, int y)>();
+                        label[y * width + x] = next;
+                        open.Enqueue((x, y));
+                        while (open.Count > 0) {
+                            (int cx, int cy) = open.Dequeue();
+                            foreach ((int nx, int ny) in new[] { (cx + 1, cy), (cx - 1, cy), (cx, cy + 1), (cx, cy - 1) })
+                                if (nx >= 0 && ny >= 0 && nx < width && ny < height && label[ny * width + nx] < 0 && Open(nx, ny)) {
+                                    label[ny * width + nx] = next;
+                                    open.Enqueue((nx, ny));
+                                }
+                        }
+                        next++;
+                    }
+                    seen.Add(label[y * width + x]);
+                }
+                return seen.Count;
+            }
+            return Components(true) == Components(false) ? burns : new HashSet<(int x, int y)>();
+        }
+
+        /* SqueakBurns(); The room's cells only Fire burns (SqueakFireOnly(), as SqueakRoomCollision() keeps them) for squeak/gimmicks.c's
+         * Burns(): u16 a count, then 4 bytes each: its cell (x, y); null where none; */
+        static byte[] SqueakBurns(SqueakMap map) {
+            var cells = SqueakRoomCollision(map);
+            List<byte> list = new List<byte> { 0, 0 };
+            int count = 0;
+            for (int b = 0; b < cells.blocks.Count; b++) {
+                (int x, int y) = cells.blocks[b];
+                uint front = map.Collision(6, x, y);
+                if (cells.values[b] is KatAMStarBlock or KatAMMetalBlock || (front & 0x800) == 0 || front >> 24 != 0x38 || !cells.burnt.Contains((x, y))) continue;
+                if (x > 0xFF || y > 0xFF) throw new InvalidOperationException("A Squeak Squad room's fire-only cell is past cell 255.");
+                list.AddRange(new byte[] { (byte)x, (byte)y, 0, 0 });
+                count++;
+            }
+            if (count == 0) return null;
+            list[0] = (byte)count;
+            list[1] = (byte)(count >> 8);
+            return list.ToArray();
+        }
+
         // SqueakFirm(); KatAM's thin floor Kirby doesn't drop through for one he does (KatAMExpansionRooms.cs' ThinFloors()' Kept());
         static byte SqueakFirm(byte thin) => thin switch { KatAMThin => KatAMFirmThin, >= 0x10 and <= 0x13 => (byte)(thin + 4), 0x18 => 0x1A, 0x19 => 0x1B, _ => thin };
         // SqueakThinFloor(); Any of KatAM's thin floors, dropped through or not;
@@ -1574,9 +1674,21 @@ namespace KatAMRandomizer {
         /* A mini-boss's template unk22 bit 2: KatAM's mini-boss defeat (sub_0809AF38, sub_0809EF88) doesn't put the room's music back
          * (sub_08086C48); Dark Nebula's ("ROM Expansion/squeak/dark_nebula.c") fades it out itself, as the DS's; */
         const byte KeepFightMusic = 4;
-        /* (two: with four, and the Squeaks the fight calls in, a hideout ran at 59% speed in the GBA emulator (0x481: 177 frames of the
-         * game's in 300), with two at full speed; the owner: "an unbearable amount of lag" in the Squeak hideouts); */
-        const int LairSqueakers = 2;
+        /* (one: with four, and the Squeaks the fight calls in, a hideout ran at 59% speed in the GBA emulator (0x481: 177 frames of the
+         * game's in 300), with two at full speed but for a few frames (0x51E: 8 of 600 dropped); the owner: "an unbearable amount of
+         * lag" in the Squeak hideouts, then "Room 0x48B has lag, try to keep the sprite count managable for the GBA in the Squeak Lair
+         * rooms"); */
+        const int LairSqueakers = 1;
+        // (an enemy that walks sunk this many cells into the ground at most is put on its top; one over a pit, along its floor this many);
+        const int SqueakSunkMax = 3, SqueakSlideMax = 8;
+        // (KatAM's enemies that walk on a floor: not its fliers, swimmers, floaters, nor those that cling to walls and ceilings);
+        static readonly HashSet<byte> KatAMWalkers = new HashSet<byte> { 0x00, 0x08, 0x0B, 0x11, 0x12, 0x14, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1C, 0x1D, 0x1E,
+                                                                          0x1F, 0x20, 0x21, 0x25, 0x26, 0x28, 0x29, 0x2A, 0x2B, 0x33, 0x37 };
+        // (Squeak Squad's characters that fly, swim or cling (squeak.h: Perara, Gussa, Crimp and its rock, Maiga, Cret, Uja, Bubble Head's
+        // bubble, Tedhaun, Buboo, the dark star): not set on a floor);
+        static readonly HashSet<byte> SqueakAirborne = new HashSet<byte> { 0, 2, 3, 4, 5, 6, 7, 8, 14, 22, 23, 24, 25, 26 };
+        // (KatAM's foods and the rest a Squeak Squad item becomes: OBJ_SMALL_FOOD to OBJ_INVINCIBLE_CANDY);
+        const byte SqueakFirstFood = 0x5E, SqueakLastFood = 0x64;
         // The spawn flags (+0xB): 4, a chase spawn (only once the stage's treasure is carried: not made yet);
         const int SqueakChaseSpawn = 4;
 
@@ -1685,11 +1797,44 @@ namespace KatAMRandomizer {
                  * ground"); */
                 // (only just in it: open over that cell; one deeper, a Crimp's wall, is meant there);
                 if (x >= 0 && x / 16 < width && y > 16 && !Open(x / 16, (y - 1) / 16) && Open(x / 16, (y - 1) / 16 - 1)) y = (y - 1) / 16 * 16;
+                /* (and every enemy that walks (KatAM's walkers, Squeak Squad's on the ground) in the ground deeper, up to SqueakSunkMax
+                 * cells: on its top; deeper, or a KatAM walker over nothing but a pit to the room's bottom, moved along to the nearest
+                 * floor (SqueakSlideMax cells), else left out: 0x40C's Sir Kibble in the rock, 0x424's Starman, 0x487's Sparkies over its
+                 * gap; the owner, "Check all rooms so no enemies fall through the ground"); */
+                bool walker = type == SqueakID ? !SqueakAirborne.Contains(behavior) : KatAMWalkers.Contains(type);
+                if (walker && !byDoor && x >= 0 && x / 16 < width) {
+                    int cy = (y - 1) / 16;
+                    if (cy >= 0 && cy < height && !Open(x / 16, cy)) {
+                        int up = 1;
+                        while (up <= SqueakSunkMax && cy - up >= 0 && !Open(x / 16, cy - up)) up++;
+                        if (up > SqueakSunkMax || cy - up < 0) return;
+                        y = (cy - up + 1) * 16;
+                    }
+                    bool Floored(int fx) => fx >= 0 && fx / 16 < width && Open(fx / 16, (y - 1) / 16) && OnFloor(fx, y, height) is int f && (f != y || !Open(fx / 16, y / 16));
+                    if (type != SqueakID && !Floored(x)) {
+                        int moved = -1;
+                        for (int d = 1; d <= SqueakSlideMax && moved < 0; d++)
+                            foreach (int nx in new[] { x - d * 16, x + d * 16 })
+                                if (Floored(nx)) { moved = nx; break; }
+                        if (moved < 0) return;
+                        x = moved;
+                    }
+                }
                 if (!byDoor && (NearDoor(x / 16, (y - 1) / 16) || NearDoor(x / 16, (OnFloor(x, y) - 1) / 16))) return;
                 byte[] template = ObjectTemplate(x, y - 8, templates.Count, type);
                 template[14] = behavior;
                 template[0x12] = variant;
                 Add(template);
+            }
+            // AwayFromDoors(); x, or the nearest spot across on the same floor, up to 8 cells, off every door's clear cells;
+            int AwayFromDoors(int x, int y) {
+                bool Clear(int nx) => nx >= 0 && nx / 16 < width && Open(nx / 16, (y - 1) / 16) && !NearDoor(nx / 16, (y - 1) / 16)
+                                      && !NearDoor(nx / 16, (OnFloor(nx, y) - 1) / 16) && OnFloor(nx, y) == OnFloor(x, y);
+                if (Clear(x)) return x;
+                for (int d = 1; d <= 8; d++)
+                    foreach (int nx in new[] { x - d * 16, x + d * 16 })
+                        if (Clear(nx)) return nx;
+                return x;
             }
             /* A mid-boss or boss and, first, its arena (enemies/arena.c: it holds the camera on the fight's screen, from Kirby's first
              * frame in a room a screen big, as Squeak Squad's arenas: subtype2 ONE_SCREEN). The arena is NiDL's type's (0x31): without
@@ -1783,6 +1928,10 @@ namespace KatAMRandomizer {
                         // (the dark star at its spot itself, not stood on a floor: an enemy's template is 8 over its spot);
                         bool darkStar = character == SqueakDarkStarCharacter;
                         int before = templates.Count;
+                        /* (a Gold Waddle Dee holding the room's chest, by a door: moved along its floor off the door's clear cells, not
+                         * left out with it, the chest then coming out of nothing: room 0x488's beside its door, the owner: "Room 0x488
+                         * missing golden waddle dee"); */
+                        if (id == SqueakGoldWaddleDee && (flags & SqueakDropsReward) != 0) x = AwayFromDoors(x, y);
                         Enemy(x, darkStar ? y + 8 : y, SqueakID, (byte)character, variant, darkStar);
                         if (id == SqueakGoldWaddleDee && (flags & SqueakDropsReward) != 0 && templates.Count > before) goldDee = templates[^1];
                     } else if (SqueakBosses.TryGetValue(id, out int boss)) {
@@ -1902,7 +2051,12 @@ namespace KatAMRandomizer {
                         else Add(chest);
                     }
                     else if (kind == SqueakRandomItem) RandomPedestal(x, y);
-                    else if (SqueakItemKinds.TryGetValue(kind, out byte item)) Item(x, y, item);
+                    /* (a Squeak Lair's hideout keeps one of its foods: the treasure pile's other foods and coins sprites the GBA draws on
+                     * top of the fight's, the owner: "Room 0x48B has lag, try to keep the sprite count managable for the GBA in the
+                     * Squeak Lair rooms"); */
+                    else if (SqueakItemKinds.TryGetValue(kind, out byte item)) {
+                        if (lair == null || !templates.Any(t => t[12] is >= SqueakFirstFood and <= SqueakLastFood)) Item(x, y, item);
+                    }
                     else if (kind > SqueakAbilityKinds) Ability(x, y, kind - SqueakAbilityKinds);
                 }
             }
@@ -2273,7 +2427,7 @@ namespace KatAMRandomizer {
          * room's in pixels, less them, swapped), as the entries' spots are; */
         static byte[] SqueakGimmickList(List<SqueakGimmick> gimmicks, IReadOnlySet<(int x, int y)> chains, bool arena, int height, SqueakChase chase = null,
                                         IReadOnlyList<(int x, int y)> lairExits = null, int currents = 0, int crumbles = 0,
-                                        IEnumerable<SqueakPhaseWarp> phaseWarps = null) {
+                                        IEnumerable<SqueakPhaseWarp> phaseWarps = null, int burns = 0) {
             List<byte> list = new List<byte> { 0, 0, 0, 0 };
             for (int i = 0; i < gimmicks.Count && i < SqueakMailGimmicks; i++) {
                 SqueakGimmick g = gimmicks[i];
@@ -2326,6 +2480,15 @@ namespace KatAMRandomizer {
                 list.AddRange(entry);
                 list[0]++;
             }
+            // (its cells only Fire burns, SqueakBurnsEntry: its first 4 bytes the address of their list, SqueakBurns());
+            if (burns != 0 && next < SqueakMailGimmicks && list[0] != 0xFF) {
+                byte[] entry = new byte[24];
+                entry[0] = SqueakBurnsEntry;
+                entry[1] = (byte)next++;
+                WriteInt(entry, 6, burns);
+                list.AddRange(entry);
+                list[0]++;
+            }
             // (the finale's ways on by themselves, SqueakPhaseWarpEntry: the room, the cell + 1, after its fight or not: SqueakPhaseWarps);
             foreach (SqueakPhaseWarp warp in phaseWarps ?? Enumerable.Empty<SqueakPhaseWarp>()) {
                 if (next >= SqueakMailGimmicks || list[0] == 0xFF) break;
@@ -2367,6 +2530,8 @@ namespace KatAMRandomizer {
         const byte SqueakCurrentsEntry = 0xF3;
         // (a room's walk-once blocks: squeak/gimmicks.c's GIMMICK_CRUMBLES, their list's address in its first 4 bytes, SqueakCrumbles());
         const byte SqueakCrumblesEntry = 0xF4;
+        // (a room's cells only Fire burns: squeak/gimmicks.c's GIMMICK_BURNS, their list's address in its first 4 bytes, SqueakBurns());
+        const byte SqueakBurnsEntry = 0xF8;
         // (the finale's way on by itself: squeak/gimmicks.c's GIMMICK_PHASE_WARP, SqueakPhaseWarps);
         const byte SqueakPhaseWarpEntry = 0xF5;
         // (a chest the chase brings: at its template's spot, its item, number, mark (unk16), half flag and type: squeak/gimmicks.c's GIMMICK_CHASE_CHEST);
@@ -3142,10 +3307,16 @@ namespace KatAMRandomizer {
                         crumbleList.CopyTo(rom, crumblesAt);
                         squeakCrumbleRooms++;
                     }
+                    // (and its cells only Fire burns: SqueakBurns());
+                    int burnsAt = 0;
+                    if (SqueakBurns(map) is byte[] burnList) {
+                        burnsAt = Allocate(ref here, burnList.Length, 4);
+                        burnList.CopyTo(rom, burnsAt);
+                    }
                     if (SqueakGimmickList(gimmicks, chains, arenas && (fightMidboss || fightBoss), map.Height * 16, chase,
                                           planned[i].Where(d => d.Shut).Select(d => (d.X, d.Y)).ToList(),
                                           currentsAt != 0 ? currentsAt + 0x08000000 : 0, crumblesAt != 0 ? crumblesAt + 0x08000000 : 0,
-                                          SqueakPhaseWarps.Where(w => w.Room == room)) is byte[] gimmickList) {
+                                          SqueakPhaseWarps.Where(w => w.Room == room), burnsAt != 0 ? burnsAt + 0x08000000 : 0) is byte[] gimmickList) {
                         gimmickLists[i] = Allocate(ref here, gimmickList.Length, 4);
                         gimmickList.CopyTo(rom, gimmickLists[i]);
                     }
