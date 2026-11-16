@@ -399,9 +399,12 @@ namespace KatAMRandomizer {
             : SqueakKatAMAbilities.TryGetValue(ability, out byte katam) ? (katam < FirstAbility || nidlAbilitiesBuilt ? katam : (byte)0)
             : SqueakPedestalOwn.TryGetValue(ability, out byte own) ? (own < FirstAbility || nidlAbilitiesBuilt ? own : (byte)0)
             : squeakAbilitiesBuilt && SqueakPedestalSqueak.TryGetValue(ability, out byte squeakOwn) ? squeakOwn : (byte)0;
-        /* (the pedestals' others, told by their icons in the room, the DS's numbers: 12 a glowing paper lantern, NiDL's Light (29); 18 a
-         * magician's top hat, KatAM's Magic; 19 a kunai, 21 a beast's face, 22 a bubble, 23 a metal ball, abilities 35-38); */
-        static readonly Dictionary<int, byte> SqueakPedestalOwn = new Dictionary<int, byte> { [12] = 29, [18] = 21 };
+        /* (the pedestals' others, told by their icons in the room, the DS's numbers: 12 Kirby's wooden hammer's head (taken for a paper
+         * lantern, NiDL's Light, before: the owner, "Hammer pedestal in Squeak's gives light for whatever reason, even though Hammer is on
+         * the base game"), KatAM's Hammer; 18 a magician's top hat, KatAM's Magic; 19 a kunai, 21 a beast's face, 22 a bubble, 23 a
+         * metal ball, abilities 35-38); */
+        const byte KatAMHammer = 17;
+        static readonly Dictionary<int, byte> SqueakPedestalOwn = new Dictionary<int, byte> { [12] = KatAMHammer, [18] = 21 };
         static readonly Dictionary<int, byte> SqueakPedestalSqueak = new Dictionary<int, byte> { [19] = 35, [21] = 36, [22] = 37, [23] = 38 };
         /* (whether Squeak Squad's Ninja, Animal, Bubble and Metal are in this ROM, set as their looks are built, and NiDL's abilities
          * (27-34: Hi-Jump's pedestal, 15, gives none without them), with a NiDL ROM: AddEnemiesTo()); */

@@ -1480,7 +1480,7 @@ namespace KatAMRandomizer {
         /* SqueakCollision(); KatAM's collision for a Squeak Squad cell (see the notes' collision word): its kind (bits 14-15: air, solid,
          * thin, slope), its flags (bits 8-13: 0x100 a ladder, on a thin floor its top; 0x200 and 0x300 thin floors, both dropped
          * through), its block (bits 24-26: 4 a star block, 5 a big one: breakable, KatAMStarBlock, what they leave the main layer's
-         * cell; 2 an electric zapper: spikes), the ids on air (0x40-0x4C, without the rope's 0x38 above them: spikes; doors' 0x80 and
+         * cell; 1 and 2 metal blocks, KatAMMetalBlock), the ids on air (0x40-0x4C, without the rope's 0x38 above them: spikes; doors' 0x80 and
          * up: air, the doors are objects) and its liquid (bits 30-31, on air: 1 water, 2 lava, which hurts as spikes do; with block 2,
          * fire jets: air). Ropes and chains (top byte 0x38, ids 0x40-0x46) are climbed as ladders. Currents (ids 0x10-0x3C) stay air or
          * water here: SqueakCurrents() keeps their ways and strengths; */
@@ -1493,7 +1493,10 @@ namespace KatAMRandomizer {
                     if (block is 4 or 5) return KatAMStarBlock;
                     // (block 1, the grey metal blocks a cannon's shot breaks: KatAM's metal blocks, see SqueakTurnCannon);
                     if (block == 1) return KatAMMetalBlock;
-                    if (block == 2) return KatAMSpikes;
+                    /* (block 2 on a solid cell: the riveted grey blocks, KatAM's metal blocks too: solid, heavy attacks break them; as
+                     * spikes, KatAM's hurt but don't stop him, he walked through them: the owner, "Room 0x4D5, I went right through the
+                     * metal blocks"); */
+                    if (block == 2) return KatAMMetalBlock;
                     return KatAMSolid;
                 case 2:
                     if ((flags & 0x100) != 0 && (flags & 0x200) == 0) return KatAMLadderTop;
@@ -1677,6 +1680,11 @@ namespace KatAMRandomizer {
             bool NearDoor(int cx, int cy) => doorCells.Any(c => Math.Abs(c.x - cx) <= SqueakDoorClear && Math.Abs(c.y - cy) <= 2);
             // (the dark star isn't an enemy: it waits by the stage's first door to lead Kirby on, where Squeak Squad puts it);
             void Enemy(int x, int y, byte type, byte behavior, byte variant = 0, bool byDoor = false) {
+                /* (an enemy whose feet are in the ground stands on its top: room 0x494's Bun, its DS spot 8 pixels into the floor,
+                 * fell through it; the owner, "Room 0x494 enemies going through the ground. Nothing is ever allowed to go through the
+                 * ground"); */
+                // (only just in it: open over that cell; one deeper, a Crimp's wall, is meant there);
+                if (x >= 0 && x / 16 < width && y > 16 && !Open(x / 16, (y - 1) / 16) && Open(x / 16, (y - 1) / 16 - 1)) y = (y - 1) / 16 * 16;
                 if (!byDoor && (NearDoor(x / 16, (y - 1) / 16) || NearDoor(x / 16, (OnFloor(x, y) - 1) / 16))) return;
                 byte[] template = ObjectTemplate(x, y - 8, templates.Count, type);
                 template[14] = behavior;

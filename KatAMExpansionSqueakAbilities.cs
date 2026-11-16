@@ -278,6 +278,18 @@ namespace KatAMRandomizer {
 
         /* BuildSqueakAbilityLooks(); Each Squeak Squad ability's body and hat anims (added to the anim lists) and tables (see above):
          * returns the body tables and hat tables, as ROM pointers; `normalBody` is Normal's body table (gUnk_0834C5D4); */
+        // SqueakKirbyCell(); A cell of Kirby's mirrored across (each piece's x and its flip) and SqueakKirbyDrop pixels lower;
+        const int SqueakKirbyDrop = 10;
+        static SqueakCell SqueakKirbyCell(SqueakCell cell) => cell with {
+            Pieces = cell.Pieces.Select(piece => {
+                (int w, int _) = SqueakPieceSizes[piece.Attr0 >> 14, piece.Attr1 >> 14];
+                int x = piece.Attr1 & 0x1FF, y = piece.Attr0 & 0xFF;
+                if (x >= 256) x -= 512;
+                if (y >= 128) y -= 256;
+                return piece with { Attr0 = piece.Attr0 & ~0xFF | (y + SqueakKirbyDrop) & 0xFF, Attr1 = (piece.Attr1 ^ 0x1000) & ~0x1FF | (-x - w) & 0x1FF };
+            }).ToList()
+        };
+
         static (int[] bodies, int[] hats) BuildSqueakAbilityLooks(byte[] rom, byte[] squeak, int normalBody, int tilesBase, int paletteBase, ref int cursor,
                                                                   int firstAnimId, List<int> animVariants, List<int> animAttributes, List<int> animOams) {
             int place = cursor;     // (Local functions can't use `cursor`);
@@ -307,6 +319,11 @@ namespace KatAMRandomizer {
                     return (anim.Steps.Where(st => st.Frames > 0).Select(st => (CellAt(st), st.Frames)).ToList(), anim.Loops);
                 }).ToList();
                 List<int> cells = motionSteps.SelectMany(m => m.steps.Select(st => st.cell)).Distinct().ToList();
+
+                /* (Kirby faces right in KatAM's body frames, as on the DS: SqueakCanvas() mirrors cells for KatAM's enemies, who face left,
+                 * so his are mirrored first (the owner: "Most sprites have inverted facing"); and drawn SqueakKirbyDrop lower: the DS's
+                 * spot is his feet, KatAM's his middle (the owner: "On idle, Kirby is off the ground with Squeak Squad abilities"); */
+                for (int c = 0; c < character.Cells.Count; c++) character.Cells[c] = SqueakKirbyCell(character.Cells[c]);
 
                 // Body and hat frames: palette 0's pieces and the others' (Metal: all the hat's);
                 int[] bodyPalettes = a == SqueakAbilityMetal ? new int[0] : new[] { 0 };

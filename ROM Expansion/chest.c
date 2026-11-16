@@ -308,6 +308,12 @@ static void SqueakBossChestWait(struct Chest *chest) {
  * spot is open, not in a wall (ChestSpotOpen()): where the enemy ended, else the cell beside it (towards the chest's own spot first)
  * or above; */
 #define HELD_BY(chest) (*(struct Object **)&(chest)->fillerB4[0])
+// (where the enemy last was with HP left: the chest comes there, not where its beaten flight ends; the owner, of room 0x50E's Gold
+// Waddle Dee: "it spawns the chest not in the waddle dee position but in the default position ... the waddle dee, when it dies, it
+// spawns the chest where the waddle dee died");
+#define HELD_X(chest) (*(s32 *)&(chest)->fillerB4[4])
+#define HELD_Y(chest) (*(s32 *)&(chest)->fillerB4[8])
+#define HELD_SEEN(chest) ((chest)->fillerB4[12])
 #define HELD_TEMPLATE(t) (((const u8 *)(t))[2] | ((const u8 *)(t))[3] << 8)
 
 // (the spots tried, in cells: across (towards the chest's own spot first) and up);
@@ -326,7 +332,7 @@ static void SqueakEnemyChestWait(struct Chest *chest) {
     struct LevelInfo *level = &gCurLevelInfo[chest->obj.base.unk56];
     u16 number = chest->obj.objTemplate->unk18;
     struct Task *t;
-    s32 side;
+    s32 side, ex, ey;
     u8 n;
 
     if (enemy != NULL && (enemy->base.roomId != chest->obj.base.roomId || enemy->objTemplate == NULL
@@ -345,15 +351,24 @@ static void SqueakEnemyChestWait(struct Chest *chest) {
         }
         return;
     }
-    if (!(enemy->base.flags & 0x1000)) return;
+    if (!(enemy->base.flags & 0x1000)) {
+        if (enemy->unk80 > 0) {
+            HELD_X(chest) = enemy->base.x;
+            HELD_Y(chest) = enemy->base.y;
+            HELD_SEEN(chest) = TRUE;
+        }
+        return;
+    }
     HELD_BY(chest) = NULL;
     // (gone off the screen alive: it comes back; but one fallen out of the room's bottom, into a pit, is gone: the chest at its own spot);
     if (enemy->unk80 > 0 && !(enemy->base.unkC & 0x2000) && sub_0803D6B4(enemy) && enemy->base.y < (level->roomHeight << 8)) return;
     /* (where it died, or the cell beside it, towards the chest's own spot first, or above: the first open one with a floor under it in
      * the room; KatAM's chest falls onto it); */
-    side = chest->obj.base.x < enemy->base.x ? -0x1000 : 0x1000;
+    ex = HELD_SEEN(chest) ? HELD_X(chest) : enemy->base.x;
+    ey = HELD_SEEN(chest) ? HELD_Y(chest) : enemy->base.y;
+    side = chest->obj.base.x < ex ? -0x1000 : 0x1000;
     for (n = 0; n < ARRAY_COUNT(sChestSteps); n++) {
-        s32 x = enemy->base.x + sChestSteps[n][0] * side, y = enemy->base.y + sChestSteps[n][1] * 0x1000;
+        s32 x = ex + sChestSteps[n][0] * side, y = ey + sChestSteps[n][1] * 0x1000;
 
         if (!ChestSpotOpen(chest, x, y, level->roomHeight << 8)) continue;
         chest->obj.base.x = x;
@@ -383,6 +398,7 @@ void *SqueakCreateChest(struct ObjectTemplate *template, u8 playerId) {
         chest->obj.unk78 = SqueakEnemyChestWait;
         chest->obj.base.flags |= 0x400;
         HELD_BY(chest) = NULL;
+        HELD_SEEN(chest) = FALSE;
     } else if (template->unk11 == SQUEAK_CHEST && !(chest->obj.unk83 & 1) && (template->unk14 & 0xFF) == SQUEAK_CHEST_AFTER_BOSS) {
         chest->unkDC = (u32)chest->obj.unk78;
         chest->obj.unk78 = SqueakBossChestWait;

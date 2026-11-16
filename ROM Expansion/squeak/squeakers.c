@@ -86,6 +86,7 @@ enum { BOMB_SMALL, BOMB_BIG };
 #define SIGHT_X 0x100000                // Kirby within 256 pixels across, 64 up or down;
 #define SIGHT_Y 0x40000
 #define HOLE 0x20000                    // At its hole: within 32 pixels;
+#define FLEE_X 0x40000                  // With a chest, how far from Kirby it heads (its spot, the other way from him);
 #define BLUE_WAIT 0x150
 #define HOLD_X -0xA000                  // Its chest 10 pixels behind it, 2 up (16 behind while it stops);
 #define HOLD_Y 0x2000
@@ -796,7 +797,15 @@ static void Think(struct SqueakObject *s) {
     u32 roll;
 
     if (!CHEST(s)) chest = SqueakNearestChest(s, &any);
-    if (CHEST(s) || !any) {
+    if (CHEST(s)) {
+        /* (with a chest, it keeps it, running off from Kirby, till it's hit and drops it where it is: KatAM's rooms have no hole, and
+         * at the spot it came from it went in with it, where it took it (room 0x4EF's, placed on its chest); the owner: "Squeaks should
+         * be able to take treasure chests and work similar to Golden Waddle Dees where if killed they would spawn the stolen chest at
+         * the location they are"); */
+        aim = AIM_NONE;
+        tx = x + (x < kx ? -FLEE_X : FLEE_X);
+        ty = y;
+    } else if (!any) {
         aim = AIM_HOLE;
         tx = HOME_X(s);
         ty = HOME_Y(s);
