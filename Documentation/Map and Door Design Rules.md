@@ -14,7 +14,7 @@ of) must pass after any change.
 |---|---|---|---|
 | Mirror (door) | `0x6F` mirror, a door cell | either | The normal way. One-way mirrors are drawn with KatAM's one-way graphic. Every door is a mirror but NiDL's own door halls (rule 2). Squeak Squad's goal doors, the DS's wide black doorways, are a mirror too, their doorway taken out of the room's tiles (the owner: "I think we can drop the wide black doors and replace them with regular mirrors since these look very odd in-game"); so is 2-2-1's castle gate (the owner: "there's wide black doors in some stages, I just need you to replace these"): the tower's stone over its arch, `SqueakGoalDoorways()`. The Squeak Lairs' nests keep their doorways (rule 5). |
 | Hub door | `0x97` door object | always two-way | Only in hubs (rule 4). Hidden until its big switch is pressed. |
-| Mirra | `0x34` | one-way, but both ways into a switch room | A hidden mirror that runs away (rule 6). |
+| Mirra | `0x34` | one-way | A hidden mirror that runs away (rule 6); never into a hub room. |
 | Warp star | `0x84` | one-way | NiDL's and Squeak Squad's own; stays a warp star (rule 7). |
 | Cannon | `0x8A` + fuse `0x78` | one-way | NiDL's and Squeak Squad's own; stays a cannon (rule 7). |
 | Edge | none (the room's edge) | one-way | NiDL's falls out of a room's bottom and climbs out of its top. |
@@ -75,8 +75,8 @@ of) must pass after any change.
   - **A** (`0x122`): doors at the top left and top right, the big switch between them;
   - **B** (`0x250`): one door at the top middle, one at the bottom middle.
 - **Every NiDL hub has 2 doors to its level's exploration map** (the owner's rule, for all hubs but the Fountain of Dreams'): each switch room's 2 floor
-  mirrors, both two-way, lead into its level: the right one to the stage before the boss, the left one back onto the spot of the
-  Mirra that leads in (rule 5). These are
+  mirrors, both two-way, lead into its level, into 2 different rooms: the right one to the stage before the boss, the left one
+  back onto the mirror that leads in (rule 5). These are
   its 2 regular doors; its hub doors are counted apart.
 - **The hubs stay interconnected the way they were approved**: each level's switch room reveals a hub door leading to
   (`LevelLinks`, `KatAMLinkDoors`):
@@ -99,10 +99,19 @@ of) must pass after any change.
 - **Hub doors are always two-way and never lead to a Mirra.**
 - **No one-way door leads into a hub room** (the owner: "No 1 way door can teleport the player to a button room", "With button
   room I mean a hub room"): the central hubs and the switch rooms (the levels' and worlds' hubs) are entered only through doors that
-  go both ways, Kirby landing on the door back. A switch room's Mirra lands him on its left floor mirror, which leads back onto the
-  Mirra's spot (rule 5). Shards, which aren't doors, still send him to a central hub (rule 8).
+  go both ways, Kirby landing on the door back. Shards, which aren't doors, still send him to a central hub (rule 8).
+- **Hub rooms host no one-way doors** (the owner: "Hub rooms cannot host 1 way doors"): every door the expansion puts in a central
+  hub or a switch room goes both ways (the hubs' golden ways in land Kirby on a mirror back, the switch rooms' floor mirrors too).
+  KatAM's own Central Circle stays as KatAM has it.
+- **No Mirra leads into a hub room** (the owner: "No, Mirra enemies do not directly unlock button hub rooms, though defeating them
+  often clears the path to reach those rooms. Meaning, no Mirra can go to a hub room"): a switch room is entered through mirrors
+  (rule 5); the Mirras are shortcuts (rule 6).
+- **A switch room's 2 floor mirrors lead into 2 different rooms** (the owner, of room 0x48F: "no button hub can send the player to
+  the same room, we have 2 doors for a reason so players never get stuck and keep cycling through the areas").
 - The NiDL hub (a Central Circle copy at night) has one door per level, as Central Circle has one per area. It is reached
-  through a golden mirror in Central Circle (beside Central Circle's own), and a pink mirror in the NiDL hub leads back.
+  through a pink mirror in Central Circle (at 11, 14, beside Central Circle's own golden one), and a mirror at the same spot in the
+  NiDL hub leads back, drawn in Central Circle's sky blue (the owner: "change that pink door color in both hubs for something that
+  better represents KatAM's hub"; `KatAMHubMirrorColor()`).
 - **The NiDL hub has Central Circle's ability room door**, at the same spot (top left, cell 3, 4), drawn as Central Circle's,
   leading to the NiDL ability room (room 0x002; the owner: "I would like to create a custom room that holds all NiDL exclusive
   abilities in a pedestal just like that"); it opens only once all the NiDL levels' big switches are pressed (the 7 of them;
@@ -116,10 +125,14 @@ of) must pass after any change.
 
 - **The Squeak Squad hub** (the owner: "The way in is a copy of the main game's central circle. We will later decide on position
   and visuals, the entrance door to the area is a grey door"): a copy of Central Circle (its own tiles, its doors gone), reached
-  through the grey door on Central Circle's floor (cell 11, 18, left of its bottom door; the same door at the same spot in the hub
-  leads back, Kirby landing on it each way): KatAM's door object in its grey stone frame (design 16), open from the start, with
-  KatAM's sparkle until Kirby first goes through (`SqueakGreyDoorDesign`; its place still the owner's to change). Rainbow Route's
-  mirror in it (19, 14) is the way in, to Prism Plains 1's start, as the NiDL hub's golden one. It is never reached from the NiDL
+  through the grey door on Central Circle's floor (cell 11, 18, left of its bottom door): KatAM's door object in its grey stone frame
+  (design 16), open from the start, with KatAM's sparkle until Kirby first goes through (`SqueakGreyDoorDesign`). As the NiDL hub,
+  its way back is a mirror on its platform's left end (11, 14; the owner: "The way back to the KatAM's hub should be in the same
+  position as the pink door"), in Central Circle's sky blue, Kirby landing on the grey door, and the grey door landing him on it.
+  Rainbow Route's golden mirror in it (19, 14) is the way in (the owner: "The golden door in Squeak's hub should send to the first
+  room in the Squeak layout"), both ways: Prism Plains 1's start gets a mirror back onto it. It has Central Circle's Dimension
+  Mirror (the owner: "Add the amazing mirror to the Squeak hub"), whole once KatAM's 8 shards are found, leading where Central
+  Circle's does (section 8). It is never reached from the NiDL
   hub, and works with or without the NiDL ROM. Its world doors: Central Circle's own doors (MainHubDoors, the world's number's,
   each drawn as the NiDL hub's doors are: one of KatAM's door frames over its mirror, in its own palette of 15 colors, some of
   its colors turned to the world's (the owner's pick, "World theme colors", then "NiDL's hub doors are way more intricate in
@@ -169,9 +182,10 @@ of) must pass after any change.
   sibling branches, a hidden two-way door between each level and the next, one one-way throw into another level, and links with the
   KatAM area paired with the level (rooms with few doors, far from them).
 - **Goal rooms keep their goal door alone**: no branch, no way back.
-- **A level's switch room is found by exploring**: a Mirra hidden in the second half of the level leads to it, both ways (rule 4:
-  no one-way door into a hub room): Kirby lands on its left floor mirror, which leads back onto the Mirra's spot. Its right floor
-  mirror goes both ways to the start of the stage before the boss. The Fountain of Dreams' switch room has none of these: only Nightmare's
+- **A level's switch room is found by exploring**: a mirror at a hidden, earned spot in the second half of the level (behind
+  blocks Kirby breaks where it can, `SecretSpot()`) leads to it, both ways (rule 4: no one-way door into a hub room, no Mirra):
+  Kirby lands on its left floor mirror, which leads back onto that mirror. Its right floor mirror goes both ways to the start of
+  the stage before the boss (a mirror back in its first room, else in another of its rooms), never into the left one's room. The Fountain of Dreams' switch room has none of these: only Nightmare's
   end leads there (section 8). `PlanDoors()`.
 
 - **Squeak Squad's worlds** follow the same rules (`PlanSqueakLevels()`), on the DS's own stages, whose doors keep their places
@@ -233,24 +247,24 @@ of) must pass after any change.
     (3-4-4's star flies through 3-4-5 into 3-4-6, 7-2-1's through 7-2-2 into 7-2-3, 8-3-5's through 8-3-6 and 8-3-7 into 8-3-8),
     never stood in (rule 7): no door throws Kirby into one (their DS arrival is where the star comes in, at the room's edge; thrown
     there, Kirby fell below the camera's view and died);
-  - each world's switch room is found by exploring: a Mirra hidden in the world's second half (its stages from the middle on by
-    number, the deepest first), both ways (rule 4): Kirby lands on its left floor mirror, which leads back onto the Mirra's spot;
-    its right floor mirror both ways with the start of the stage before the boss's (the deepest), with a mirror back in that
-    stage's first room if it takes one, else the switch room's leads on, one-way, onto the stage's start (a way out, not in). With
-    no spot left for a Mirra, the left one goes both ways with the start of the deepest stage off the way from the world's first
-    stage to that one.
+  - each world's switch room is found by exploring: a mirror in the world's second half (its stages from the middle on by number,
+    the deepest first; any of its stages if none has a spot left), both ways (rule 4): Kirby lands on its left floor mirror, which
+    leads back onto it; its right floor mirror both ways with the start of the stage before the boss's (the deepest), with a mirror
+    back in that stage's first room if it takes one, else in another of its rooms, else in the world's; never the left one's room
+    (the owner: "no button hub can send the player to the same room"). The world's Mirra hides in its second half too, a one-way
+    shortcut onto the stage before the boss's (rule 6), never into the switch room;
 
 ## 6. Mirras
 
 - **As few as KatAM's**, at most one per room, never chained.
-- **Always one-way, always hidden, never in mid-air**, but a switch room's, which goes both ways (rule 4: no one-way door into a hub
-  room): its switch room's left floor mirror leads back onto its spot.
+- **Always one-way, always hidden, never in mid-air**, and **never into a hub room** (rule 4).
 - **They fall** (the owner's request): KatAM's engine's gravity is on for them, so one standing on blocks that break drops onto
   what's under them, and its door opens where it lands, not where it stood. A door is built at each cell a ported Mirra can land
   in, shown once it opens there. `mirra.c`, `MirraLandings()`.
-- **Each leads to real progress** (a switch room, a shortcut to a later stage), never sideways.
+- **Each leads to real progress**, never sideways: a level's (or world's) Mirra hides in its second half and is a shortcut onto
+  the stage before its boss. `PlanDoors()`, `PlanSqueakLevels()`.
 - Never in a boss room or a switch room. `MirraSpots()`.
-- **Squeak Squad's** (one a world, to its switch room: rule 5) stand on a floor that can't break, so they never fall: KatAM's own
+- **Squeak Squad's** (one a world, its shortcut) stand on a floor that can't break, so they never fall: KatAM's own
   Mirra opens the door where it stands, with or without the NiDL ROM.
 
 ## 7. Warp stars and cannons
