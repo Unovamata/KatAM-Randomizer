@@ -50,6 +50,7 @@ gUnk_02022EB0 0x2022eb0
 gUnk_02022F50 0x2022f50
 gUnk_0203AD10 0x203ad10
 gUnk_03000510 0x3000510
+gUnk_03000518 0x3000518
 gUnk_03002EC0 0x3002ec0
 gUnk_030039A4 0x30039a4
 gUnk_082DDE84 0x82dfd24
@@ -409,3 +410,4 @@ sub_080424BC 0x80424f8
 # Squeak Squad's walk-once blocks' dust (squeak/gimmicks.c's CrumbleBreak);
 sub_08089864 0x80898ac
 sub_08098184 0x80981cc
+BonusSetFunc 0x8122fb4

@@ -102,6 +102,7 @@ struct FireLion {
     u8 timer;
     bool8 airborne;
     bool8 waiting;      // A STEP_LAND step waits for it to land;
+    u8 waited;          // (the frames it has waited: BLOCKED_JUMP);
     s16 gravity;
     u8 firePalette;     // Its descriptor's palette (its fire bits);
 };
@@ -112,11 +113,16 @@ static void Forward(struct Object *obj, s16 speed) {
     obj->base.xspeed = (obj->base.flags & 1) ? -speed : speed;
 }
 
+/* Landed(); Back on the ground after its jump; one that never left it (a ceiling right over it: the blocks above) lands as it stops
+ * rising, BLOCKED_JUMP frames on (it waited for good, till beaten or the blocks broke: the owner, "Fire Lion if its jump is
+ * interrupted, it will softlock itself ... He should jump as normal"); */
+#define BLOCKED_JUMP 8
 static bool8 Landed(struct FireLion *f) {
     struct Object *obj = &f->n.obj;
 
     if (!(obj->base.unk62 & 4)) f->airborne = TRUE;
-    return f->airborne && (obj->base.unk62 & 4) && obj->base.yspeed <= 0;
+    if (f->waited < 0xFF) f->waited++;
+    return (f->airborne || f->waited > BLOCKED_JUMP) && (obj->base.unk62 & 4) && obj->base.yspeed <= 0;
 }
 
 /* FireLionFlameMain(); A flame (its fire bits, 53-56): an attack object flying straight for FLAME_TIME frames; */
@@ -187,6 +193,7 @@ static void StartStep(struct FireLion *f) {
         obj->base.yspeed = s->height;
         f->gravity = s->gravity;
         f->airborne = FALSE;
+        f->waited = 0;
     }
     switch (s->action) {
     case STEP_FLAME:
@@ -229,6 +236,7 @@ static void FireLionMain(struct Object *obj) {
         // NiDL's landing (0x08096DB4, the pounce's 0x08096572);
         NidlSound(obj, 0x1F7);
         f->waiting = FALSE;
+        f->waited = 0;
         f->gravity = GRAVITY;
         f->timer = 1;
     }
@@ -252,6 +260,7 @@ void FireLionStart(struct Object *obj) {
     ObjectSetFunc(obj, 0, FireLionMain);
     f->firePalette = NidlLoadPalette(&f->n, NidlGraphicsOf(&f->n)->animId | NIDL_SECOND_PALETTE, FRAME_FIRE);
     f->gravity = GRAVITY;
+    f->waited = 0;
     obj->base.yspeed = 0;
     SetState(f, STATE_IDLE);
 }

@@ -86,7 +86,7 @@ codeNames = ['gNidlWorldMapDoors', 'NidlWorldMapUnlockSave', 'NidlWorldMapGetCoo
              # The Star Rod's stand in the NiDL hub (abilities/star_rod_stand.c);
              'NidlCreateRodStand', 'gNidlStandKeys',
              # The ported warp stars' rides (warpstar.c);
-             'gNidlRide', 'gNidlRideTrampolines', 'NidlRideRev', 'NidlRideRoomChange', 'NidlRideStep', 'NidlRideDraw', 'NidlRideStar',
+             'gNidlRide', 'gNidlRideTrampolines', 'NidlRideRev', 'NidlRideRoomChange', 'NidlRideStep', 'NidlRideDraw', 'NidlRideStar', 'gExpansionShake', 'gExpansionShakeTrampoline', 'ExpansionScreenShake',
              # Bigger rooms (rooms.c): the replacements;
              'BigFillLevelInfo', 'BigGetCollisionTile', 'BigSub_08002434', 'BigSub_08002470', 'BigSub_080024F0', 'BigSub_0800255C', 'BigSub_080025AC', 'BigSub_08002624', 'BigSub_080026A8', 'BigSub_08001408', 'BigSub_080015A8',
              # Squeak Squad's spray paints (sprays.c): the Collection Room's hooks, its pages, the area its table is copied to;
@@ -96,7 +96,7 @@ codeNames = ['gNidlWorldMapDoors', 'NidlWorldMapUnlockSave', 'NidlWorldMapGetCoo
              'gMetalJumpOriginal', 'MetalDash', 'gMetalDashOriginal', 'MetalKirbyFrame', 'gMetalFrameOriginal']
 romNames = ['gUnk_0834C2AC', 'gUnk_0834C318', 'gUnk_083509D0', 'gUnk_08350A3C', 'gUnk_08D60FDC', 'gUnk_082DDE84', 'gUnk_082DDEF0',
             'gUnk_082DDF5C', 'gUnk_0834C4B0', 'gUnk_08350AAC', 'gUnk_08350B30', 'sub_080356AC', 'sub_08088640', 'gUnk_08D60B64', 'gUnk_08D60BE4',
-            'sub_080547C4', 'sub_0804A728', 'sub_08038B34', 'SwallowSpecialSite', 'sub_08123FD4', 'HasShard', 'sub_0801C558', 'gUnk_08351648', 'gUnk_0834C5D4', 'gUnk_08D610B4',
+            'sub_080547C4', 'sub_0804A728', 'sub_08038B34', 'RequestScreenShake', 'SwallowSpecialSite', 'sub_08123FD4', 'HasShard', 'sub_0801C558', 'gUnk_08351648', 'gUnk_0834C5D4', 'gUnk_08D610B4',
             # The rooms' tables (see KatAMExpansionRooms.cs);
             'gRoomProps', 'gForegroundInfo', 'gForegroundPalettes', 'gForegroundTilemaps', 'gSolidityMaps', 'gRoomTiledBGs', 'gLevelObjLists',
             'gUnk_08D63C28', 'gUnk_08D6CD0C', 'gUnk_08D640A4', 'gUnk_08D6DCAC', 'AreaPlates', 'WorldMapUnlockSave', 'WorldMapGetCoorFromRoom', 'WorldMapDrawKirbys', 'gUnk_0834BD94', 'gWorldMapDotCoors', 'sWorldMapLineCoors', 'gUnk_08357B8C', 'sub_08039600', 'GetKirbyRoomFlagIndex',

@@ -23,11 +23,13 @@
  * 0x400, the star's: the orb's end draws a dot there), until it moves them on to the fade (hidden too: its flag 4); after the room
  * change another such step holds them in Nightmare's room, where his intro moves them (bosses/nightmare.c, NidlFinaleHold()); */
 #include "global.h"
+#include "data.h"
 #include "kirby.h"
 #include "warp_star.h"
 #include "functions.h"
 #include "main.h"
 #include "task.h"
+#include "constants/object_types.h"
 
 void sub_080534D0(struct Kirby *);  // a flight's step (kirby.c);
 void sub_0808EEF4(void);            // the star Kirby rides, following him (code_0806F780.c, sub_0808EDB8's task);
@@ -107,8 +109,35 @@ void NidlRideRoomChange(struct Kirby *kirby) {
     gNidlRide.roomChange(kirby);
 }
 
+/* RideItems(); The bonuses (KatAM's foods, drinks, 1-ups, batteries and candies: CreateBonus's types) a Kirby on a flight passes,
+ * within RIDE_REACH of him, taken as he'd take them touching them (BonusSetFunc: its HP, its sound, its count): flying, his touch is
+ * off (the owner: "Kirby doesn't grab items when riding a warp star, this should be changed so Kirby is able to do so"); */
+#define RIDE_REACH (16 << 8)
+void BonusSetFunc(struct Object *);
+static void RideItems(struct Kirby *kirby) {
+    struct Task *t = &gTasks[0];
+    u8 n;
+
+    if (kirby->hp <= 0 || kirby->base.unk56 >= gNumHumanPlayers) return;
+    for (n = 0; n < MAX_TASK_NUM && t->next; n++) {
+        struct Object *obj;
+        s32 dx, dy;
+
+        t = (struct Task *)(IWRAM_START + t->next);
+        obj = TaskGetStructPtr(t);
+        if (obj->base.header.kind != 1 || obj->type < OBJ_SMALL_FOOD || obj->type > OBJ_INVINCIBLE_CANDY || obj->base.roomId != kirby->base.roomId
+            || (obj->base.flags & (0x1000 | 0x800 | 0x400)))
+            continue;
+        dx = obj->base.x - kirby->base.x;
+        dy = obj->base.y - kirby->base.y;
+        if (dx <= -RIDE_REACH || dx >= RIDE_REACH || dy <= -RIDE_REACH || dy >= RIDE_REACH) continue;
+        obj->base.unk6C = &kirby->base;
+        BonusSetFunc(obj);
+    }
+}
+
 // NidlRideStep(); A flight's step (sub_080534D0); at a ride's end, Kirby left where he stands (see above), as KatAM's hop-off leaves
-// him (sub_080534D0's flight end with the 0x80 flag);
+// him (sub_080534D0's flight end with the 0x80 flag); the bonuses he passes taken (RideItems());
 void NidlRideStep(struct Kirby *kirby) {
     const struct Unk_08353510 *step = kirby->unk114;
 
@@ -124,6 +153,7 @@ void NidlRideStep(struct Kirby *kirby) {
         return;
     }
     gNidlRide.step(kirby);
+    RideItems(kirby);
     if (step != NULL && kirby->unk114 == step + 1 && step[1].unk4 == 0 && step[1].unk8 == NIDL_RIDE_HOP && kirby->stateFn != sub_080534D0) {
         kirby->base.flags &= ~0x8000;
         kirby->unk114 = NULL;
@@ -232,4 +262,44 @@ void NidlRideStar(void) {
         star->flags &= ~0x400;
     sub_0808EEF4();
     if (NIDL_RIDE_SIZED(pa)) NidlShrink(first, star->sprite.x, star->sprite.y, pa, NIDL_RIDE_MATRIX);
+}
+
+/* ExpansionScreenShake(); RequestScreenShake (detoured with the warp star's: KatAMExpansionRooms.cs's WarpRideDetours()). A block an
+ * attack breaks (sub_08036CBC) shakes the screen when the attack is a heavy one (its unk68's 0x10000000: an ability Kirby's slide),
+ * and KatAM asks again for each block it breaks, every request starting the shake over: through the DS's packed star blocks the
+ * screen shook on and on (the owner: "Room 0x4A0 do down and B on the star blocks, that we're you'll find the huge screen vibration
+ * bug ... This vibration issue has been plaguing both injections"). Such a shake (an attack object's, kind 2, flagged so) is
+ * none in Squeak Squad's rooms, and elsewhere KatAM's lightest (1), not starting one already going in its room over; every other
+ * shake is KatAM's; */
+#define SHAKE_HEAVY_HIT 0x10000000
+#define SHAKE_ON 0x100
+#define SHAKE_SQUEAK_ROOMS 0x400
+struct ExpansionShake {
+    void (*original)(u16, struct ObjectBase *);
+};
+struct ExpansionShakeSlot {
+    u16 flags;
+    u16 roomId;
+    s16 timer;
+    u8 level;
+};
+
+const struct ExpansionShake gExpansionShake = { NULL };
+// Room for the trampoline KatAMExpansionRooms.cs writes;
+const u32 gExpansionShakeTrampoline[8] = { 0 };
+
+void ExpansionScreenShake(u16 level, struct ObjectBase *obj) {
+    if (obj != NULL && obj->header.kind == 2 && (obj->unk68 & SHAKE_HEAVY_HIT)) {
+        // (none in Squeak Squad's rooms, their blocks packed in walls and floors: SQUEAK_FIRST_ROOM's, squeak.h);
+        if (obj->roomId >= SHAKE_SQUEAK_ROOMS) return;
+        if (gUnk_03000518 != NULL) {
+            const struct ExpansionShakeSlot *slot = TaskGetStructPtr(gUnk_03000518);
+            u8 i;
+
+            for (i = 0; i < 4; i++)
+                if (slot[i].roomId == obj->roomId && (slot[i].flags & SHAKE_ON)) return;
+        }
+        level = (level & ~0xFF) | 1;
+    }
+    gExpansionShake.original(level, obj);
 }

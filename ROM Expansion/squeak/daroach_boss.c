@@ -588,8 +588,6 @@ static bool32 DaroachBoss(struct SqueakObject *s) {
         if (s->animEnded) {
             SqueakPlayComposite(s, COMPOSITE_STARS_THROW);
             Throw(s, THING_STAR);
-            Throw(s, THING_STAR_2);
-            Throw(s, THING_STAR_3);
             SqueakSetState(s, DR_STARS_THROWN);
             return TRUE;
         }
@@ -599,8 +597,11 @@ static bool32 DaroachBoss(struct SqueakObject *s) {
         if (s->stateTimer == DEFEAT_BURST) DefeatBurst(s);
         if (s->stateTimer >= DEFEAT_END) s->obj.base.flags |= 0x1000;
         break;
-    case DR_STARS_THROWN:   // 0x02125C08;
-        if (!s->animEnded) {
+    case DR_STARS_THROWN:   // 0x02125C08 (his other two stars the next two frames: three made at once, with 4 Kirbys in the room, took
+                            // longer than a frame, the owner: "Daroach's star rod's stars lag a bit whenever there's 4 Kirbys");
+        if (T(s) == 1) Throw(s, THING_STAR_2);
+        if (T(s) == 2) Throw(s, THING_STAR_3);
+        if (!s->animEnded || T(s) < 3) {
             SqueakMove(s);
             break;
         }
@@ -1032,7 +1033,9 @@ void DaroachBossThingInit(struct SqueakObject *t) {
         T_HARM(t) = 0;
         break;
     default:
+        // (his stars inhaled, no attack breaking them: SQUEAK_INHALE_ONLY);
         ObjectSetBounds(base, -7, -6, 7, 6);
+        base->unk5C |= SQUEAK_INHALE_ONLY;
         break;
     }
 }

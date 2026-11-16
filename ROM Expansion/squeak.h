@@ -512,6 +512,12 @@ struct SqueakObject {
     s16 safeX, safeY;           // and the last floor it stood on, pixels (SqueakChaseSteer: a fall into the void brings it back there);
 };
 
+/* SQUEAK_INHALE_ONLY; KatAM's attack classes (unk5C's bits 3-21: an object takes an attack whose class (gUnk_082DDFC8's masks, an
+ * ability's) isn't set there, its strength over its level) but the inhale's (0x40, Normal's, also Wheel's, Parasol's, Tornado's,
+ * Fighter's, Smash's and Missile's): set, an object is inhaled and nearly nothing else breaks it (the owner: "Squeak Squad stars from
+ * bosses have a hitbox that the player can hit, these are supposed to be inhalable only"); */
+#define SQUEAK_INHALE_ONLY (0x3FFFF8 & ~0x40)
+
 // (`activated` of a world's boss beaten, its defeat as KatAM's bosses' going on: squeak.c's SqueakBossDie(), still TRUE as a fight's);
 #define SQUEAK_DYING 2
 

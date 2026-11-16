@@ -2209,7 +2209,8 @@ void SqueakDarkNebulaThingInit(struct SqueakObject *t) {
     case T_TWINKLE: SqueakPlay(t, 0); break;
     case T_BURST: SqueakPlay(t, FIRE_BURST); break;
     }
-    // (all but his shots and his fireball: not hit, nor inhaled);
+    // (his stars, sparks and flames inhaled, no attack breaking them: SQUEAK_INHALE_ONLY; all but those and his fireball: not hit, nor inhaled);
+    if (t->variant == T_STAR || t->variant == T_SPARK || t->variant == T_FLAME) base->unk5C |= SQUEAK_INHALE_ONLY;
     if (t->variant != T_STAR && t->variant != T_SPARK && t->variant != T_FLAME && t->variant != T_FIREBALL)
         base->unk5C = (base->unk5C & ~7) | 6 | 0x20 | 0x80;
     if (t->variant >= T_CAGE_SIDE && t->variant <= T_CAGE_TOP) base->flags |= 0x400;

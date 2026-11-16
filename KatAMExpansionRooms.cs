@@ -1808,7 +1808,8 @@
             if (endingFlight >= 0) WriteInt(rom, finale + 8, endingFlight + 0x08000000);
         }
 
-        /* WarpRideDetours(); "ROM Expansion/warpstar.c"'s detours (see WarpFlights()): KatAM's warp star's rev (sub_0800C270), a
+        /* WarpRideDetours(); "ROM Expansion/warpstar.c"'s detours (see WarpFlights()), and its screen shake's (ExpansionScreenShake):
+         * KatAM's warp star's rev (sub_0800C270), a
          * flight's room change (sub_08055D9C) and its step (sub_080534D0), Kirby's drawing (sub_0803F46C), their trampolines in
          * gNidlRideTrampolines, their addresses in gNidlRide; and the task of the star Kirby rides (sub_0808EEF4: its one pointer,
          * sub_0808EDB8's, which starts it) becomes NidlRideStar, which runs it (its first instructions keep gCurTask in r3, which a
@@ -1829,6 +1830,12 @@
             WriteInt(rom, ride + 8, step + 0x08000000 + 1);
             WriteInt(rom, ride + 12, draw + 0x08000000 + 1);
             WriteInt(rom, starPointers[0], CodeAddress + 0x08000000 + version.CodeSymbols["NidlRideStar"] + 1);
+            /* (and KatAM's screen shake, RequestScreenShake: "ROM Expansion/warpstar.c"'s ExpansionScreenShake, a heavy hit's shake
+             * through packed blocks once, not on and on: the owner, "This vibration issue has been plaguing both injections"); */
+            int shakeCursor = CodeAddress + version.CodeSymbols["gExpansionShakeTrampoline"];
+            int shake = Detour(rom, version.RomSymbols["RequestScreenShake"], CodeAddress + 0x08000000 + version.CodeSymbols["ExpansionScreenShake"], ref shakeCursor);
+            if (shake < 0) return $"The {version.Name} ROM's screen shake code doesn't match.";
+            WriteInt(rom, CodeAddress + version.CodeSymbols["gExpansionShake"], shake + 0x08000000 + 1);
             return null;
         }
 
