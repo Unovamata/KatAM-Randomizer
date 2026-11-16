@@ -7,18 +7,19 @@ namespace KatAMRandomizer {
      * music and enemy sound effects for both NiDL and Squeak Squad"). The DS's are all in sound/sound_data.sdat (Nintendo's SDAT): its
      * 42 sequences (the music, SSEQ), 22 sequence archives (the sound effects, SSAR), 83 instrument banks (SBNK) and 2 wave archives
      * (SWAR, every sample IMA-ADPCM). They're compiled into KatAM's MP2K songs:
-     * • a sample becomes an 8-bit DirectSound sample (halved while over 24 kHz: KatAM mixes at 13 kHz), its instrument's root key
-     *   baked into its rate (MP2K plays a sample's rate at key 60), one copy per sample and root key;
+     * • a sample becomes an 8-bit DirectSound sample (halved while over 24 kHz: KatAM mixes at 15768 Hz), the DS's rate (16756991 /
+     *   its timer) and its instrument's root key baked into its rate (MP2K plays a sample's rate at key 60), one copy per sample and
+     *   root key;
      * • a bank becomes a voicegroup: a sampled instrument a DirectSound voice (its pan, the DS's envelope by its times: attack's rise,
-     *   decay's and release's fall in decibels a second, sustain's level), a PSG one a square (its duty the nearest), noise noise; a
-     *   key split a key split (its table, its voices), a drum set a drum kit (each key its voice, at that key);
-     * • a sequence's commands become MP2K's one by one: the DS's 48 ticks a beat kept (TEMPO set to the DS's tempo itself: MP2K's
-     *   is half a tempo at 24 a beat), its notes with their length (a note waits its length, the DS's note wait, unless its track's mono/poly is 0: the music's
-     *   tracks all set it, so their notes don't wait, as MP2K's; the sound effects never do, so theirs wait)
-     *   (a length past MP2K's 223, a tie and its end after it), rests as waits, calls and returns as PATT and PEND (never nested
-     *   in Squeak Squad), jumps as GOTO, the end FINE, volume on the DS's curve (amplitude by the square: its decibel table; the
-     *   sequence's volume and the notes' velocity as they are, as loud as KatAM's own songs), pan, pitch bend and its range, priority, transpose, modulation, the envelope's changes (XCMD's); each track starts
-     *   with the DS's defaults.
+     *   decay's and release's fall in decibels a second, sustain's level), a PSG one a square (its duty the nearest; its notes moved
+     *   by its root: the DS's square plays middle C there), noise noise (its notes at MP2K's nearest noise rate, NoiseKey()); a key
+     *   split a key split (its table, its voices), a drum set a drum kit (each key its voice, at that key);
+     * • a sequence becomes an MP2K song track by track (TrackCompiler): each DS track run as the DS's own sequencer runs it (NitroSDK's
+     *   SND_seq.c and SND_exChannel.c, decompiled in pret's pokediamond) and written out tick for tick, its calls and loops played
+     *   out, its jumps back MP2K's GOTO once it's back in the same state: the same notes on the same ticks at the same pitch (checked
+     *   against a model of the DS's driver: the 42 songs' notes over 15000 ticks, their pitch and the 638 sounds' over their first
+     *   ticks), its tie mode, portamento and bends in MP2K's BEND, TUNE and KEYSH, its volume, expression and velocities on the DS's
+     *   decibel curve, its vibrato, its envelope's changes;
      * The songs go after the others in the grown song table: the music ids (the DS's own list of 43, each a sequence:
      * SqueakMusicSequences) first, then every sound effect id (SqueakSoundIds: the DS's table, an id its archive and index), so
      * Squeak Squad's sound n is "ROM Expansion/nidl.h"'s SQUEAK_SE(n) (gExpansionSongs[1]: the first); a room plays its map's
@@ -124,7 +125,6 @@ namespace KatAMRandomizer {
             readonly Dictionary<int, byte[]> waveArchives = new Dictionary<int, byte[]>();
             readonly Dictionary<(int archive, int wave, int root), int> samples = new Dictionary<(int, int, int), int>();
             readonly Dictionary<int, int> groups = new Dictionary<int, int>();
-            readonly Dictionary<(int file, int volume), (int block, Dictionary<int, int> map)> blocks = new Dictionary<(int, int), (int, Dictionary<int, int>)>();
             readonly int silentSample;
             // (a sound effect's commands, in its archive's file, and the most its release may be: SqueakSoundReleaseCaps);
             public readonly List<(int fileKey, int start, int end, byte cap)> ReleaseCaps = new List<(int, int, int, byte)>();
@@ -157,7 +157,9 @@ namespace KatAMRandomizer {
                 byte[] swar = WaveArchive(archive);
                 if (wave < 0 || wave >= ReadInt(swar, 0x38)) return samples[(archive, wave, root)] = silentSample;
                 int at = ReadInt(swar, 0x3C + wave * 4);
-                int encoding = swar[at], rate = ReadShort(swar, at + 2), loopWords = ReadShort(swar, at + 6), lengthWords = ReadInt(swar, at + 8);
+                // (its rate the DS plays it at: its timer's, 16756991 / timer, as SND_CalcTimer() does; the header's rounded rate if none);
+                int encoding = swar[at], timer = ReadShort(swar, at + 4), loopWords = ReadShort(swar, at + 6), lengthWords = ReadInt(swar, at + 8);
+                double rate = timer > 0 ? 16756991.0 / timer : ReadShort(swar, at + 2);
                 bool loops = swar[at + 1] != 0;
                 int data = at + 12, bytes = (loopWords + lengthWords) * 4;
                 List<int> pcm = new List<int>();
@@ -229,11 +231,12 @@ namespace KatAMRandomizer {
 
             /* Voice(); One of a bank's note definitions (type: 1 a sample, 2 a PSG square, 3 noise) as a 12-byte MP2K voice at `to`, played
              * at `key` (a drum's; 60 otherwise); */
-            void Voice(int to, int type, byte[] bank, int def, int[] waves, int key) {
+            void Voice(int to, int type, byte[] bank, int def, int[] waves, int key, bool drum = false) {
                 Array.Clear(rom, to, 12);
                 int wave = ReadShort(bank, def), archive = ReadShort(bank, def + 2), root = bank[def + 4], pan = bank[def + 9];
                 byte[] envelope = Envelope(bank[def + 5], bank[def + 6], bank[def + 7], bank[def + 8]);
-                rom[to + 1] = (byte)key;
+                // (a drum's key, MP2K playing the voice at it: a PSG one's moved so it sounds as the DS's, middle C at its root);
+                rom[to + 1] = (byte)(drum && type == 2 ? Math.Clamp(key + 60 - root, 0, 127) : drum && type == 3 ? NoiseKey(key, root) : key);
                 if (type == 1 && archive < 4 && waves[archive] != 0xFFFF) {
                     rom[to] = 0x00;
                     rom[to + 3] = pan == 64 ? (byte)0 : (byte)(0x80 | Math.Min(pan, 127));
@@ -275,7 +278,7 @@ namespace KatAMRandomizer {
                         int kit = allocate(128 * 12, 4);
                         for (int k = 0; k < 128; k++) {
                             if (k < low || k > high) Voice(kit + k * 12, 0, bank, at, waves, k);
-                            else Voice(kit + k * 12, bank[at + 2 + (k - low) * 12], bank, at + 4 + (k - low) * 12, waves, k);
+                            else Voice(kit + k * 12, bank[at + 2 + (k - low) * 12], bank, at + 4 + (k - low) * 12, waves, k, true);
                         }
                         Array.Clear(rom, to, 12);
                         rom[to] = 0x80;
@@ -308,10 +311,12 @@ namespace KatAMRandomizer {
                 32, 36, 40, 42, 44, 48, 52, 54, 56, 60, 64, 66, 68, 72, 76, 78, 80, 84, 88, 90, 92, 96 };
             static int ClockIndex(int ticks) { int i = Clocks.Length - 1; while (Clocks[i] > ticks) i--; return i; }
 
-            /* Level(); A track's volume on the DS's curve (its amplitude the value's square: its decibel table) times the sequence's
-             * volume (as it is: the DS's square of both made the songs about half as loud as KatAM's own); */
-            static byte Level(int value, int sequenceVolume, int floor) =>
-                (byte)Math.Clamp((int)Math.Round(127.0 * Math.Pow(value / 127.0, 2) * (sequenceVolume / 127.0)), floor, 127);
+            // (an amplitude on the DS's curve: its decibel tables' square of a 0-127 value);
+            static double Square(int value) => Math.Pow(Math.Clamp(value, 0, 127) / 127.0, 2);
+            /* Level(); An MP2K VOL for an amplitude (the DS's volume, expression, a held tie's velocity: each squared, multiplied), times
+             * the sequence's volume (as it is: the DS's square of it made the songs about half as loud as KatAM's own); */
+            static byte Level(double amplitude, int sequenceVolume) =>
+                (byte)Math.Clamp((int)Math.Round(127.0 * amplitude * (sequenceVolume / 127.0)), 0, 127);
 
             static int VarLen(byte[] d, ref int at) {
                 int value = 0;
@@ -323,134 +328,409 @@ namespace KatAMRandomizer {
                 return value;
             }
 
-            /* Block(); A sequence file's commands (from `start` to `end`) as MP2K's, at the sequence's volume: every DS command's spot's
-             * MP2K spot (a track starts, a jump or a call lands there); */
-            (int block, Dictionary<int, int> map) Block(byte[] d, int start, int end, int volume, int fileKey) {
-                if (blocks.TryGetValue((fileKey, volume), out var done)) return done;
-                // (read past its end as zeros: the padding after its last command);
-                byte[] padded = new byte[d.Length + 16];
-                Array.Copy(d, padded, d.Length);
-                d = padded;
-                List<byte> o = new List<byte>();
-                Dictionary<int, int> map = new Dictionary<int, int>();
-                List<(int at, int target)> fixups = new List<(int, int)>();
-                List<(int key, int left)> ties = new List<(int, int)>();
-                int modRange = 1;
-                /* (the DS's note wait: a note waits its length unless the track's mono/poly, 0xC7, is 0: the music's tracks all set it 0,
-                 * the sound effects never do, so their notes play one after the other; where the last wait or call was written: a jump
-                 * back to a spot after both loops with no wait, which hangs MP2K, so a tick's wait goes before it); */
-                bool noteWait = true;
-                int lastWait = -1, lastCall = -1;
-                void Wait(int ticks) {
-                    if (ticks > 0) lastWait = o.Count;
-                    while (ticks > 0) {
-                        int part = ticks;
-                        foreach (var tie in ties) part = Math.Min(part, tie.left);
-                        int done2 = 0;
-                        while (part - done2 > 0) {
-                            int i = ClockIndex(part - done2);
-                            o.Add((byte)(0x80 + i));
-                            done2 += Clocks[i];
-                        }
-                        ticks -= part;
-                        for (int i = ties.Count - 1; i >= 0; i--) {
-                            ties[i] = (ties[i].key, ties[i].left - part);
-                            if (ties[i].left <= 0) { o.Add(0xCE); o.Add((byte)ties[i].key); ties.RemoveAt(i); }
-                        }
-                    }
+            readonly Dictionary<int, byte[]> bankFiles = new Dictionary<int, byte[]>();
+            /* Instrument(); What a bank's program plays a key with: its type (1 a sample, 2 a PSG square, 3 noise; 0 none), the bank file
+             * and its definition's offset (a drum set's key's, a key split's region's), the bank's wave archives; */
+            (int type, byte[] bank, int def, int[] waves) Instrument(int bankId, int program, int key) {
+                (int file, int[] waves) = sdat.Bank(bankId);
+                if (file < 0) return (0, null, 0, null);
+                if (!bankFiles.TryGetValue(file, out byte[] bank)) bankFiles[file] = bank = sdat.File(file);
+                if (program < 0 || program >= ReadInt(bank, 0x38)) return (0, null, 0, null);
+                int type = bank[0x3C + program * 4], at = ReadShort(bank, 0x3C + program * 4 + 1);
+                if (type == 16) {
+                    int low = bank[at], high = bank[at + 1];
+                    if (key < low || key > high) return (0, null, 0, null);
+                    return (bank[at + 2 + (key - low) * 12], bank, at + 4 + (key - low) * 12, waves);
                 }
-                void EndTies() {
-                    foreach (var tie in ties) { o.Add(0xCE); o.Add((byte)tie.key); }
-                    ties.Clear();
+                if (type == 17) {
+                    int r = 0;
+                    while (r < 7 && bank[at + r + 1] != 0 && key > bank[at + r]) r++;
+                    return (bank[at + 8 + r * 12], bank, at + 10 + r * 12, waves);
                 }
-                int at = start;
-                while (at < end) {
-                    map[at] = o.Count;
-                    int commandAt = at;
-                    byte c = d[at++];
-                    if (c < 0x80) {
-                        int velocity = d[at++], length = VarLen(d, ref at);
-                        byte vel = (byte)Math.Clamp(velocity, 1, 127);
-                        if (length > 223) {
-                            o.Add(0xCF); o.Add(c); o.Add(vel);
-                            ties.Add((c, length));
-                        } else {
-                            length = Math.Max(1, length);
-                            int i = ClockIndex(Math.Min(length, 96));
-                            o.Add((byte)(0xCF + i)); o.Add(c); o.Add(vel);
-                            if (length - Clocks[i] > 0) o.Add((byte)(length - Clocks[i]));
-                        }
-                        if (noteWait) Wait(length);
-                        continue;
-                    }
-                    switch (c) {
-                    case 0x80: Wait(VarLen(d, ref at)); break;
-                    case 0x81: { int program = VarLen(d, ref at); if (program < 128) { o.Add(0xBD); o.Add((byte)program); } break; }
-                    case 0x93: at += 4; break;
-                    case 0x94: case 0x95: {
-                        int target = start + (d[at] | d[at + 1] << 8 | d[at + 2] << 16);
-                        at += 3;
-                        EndTies();
-                        if (c == 0x94 && map.TryGetValue(target, out int back) && lastWait < back && lastCall < back) o.Add(0x81);
-                        if (c == 0x95) lastCall = o.Count;
-                        o.Add(c == 0x94 ? (byte)0xB2 : (byte)0xB3);
-                        fixups.Add((o.Count, target));
-                        o.AddRange(new byte[4]);
-                        break;
-                    }
-                    case 0xC0: o.Add(0xBF); o.Add(Math.Min(d[at++], (byte)127)); break;
-                    case 0xC1: o.Add(0xBE); o.Add(Level(d[at++], volume, 0)); break;
-                    case 0xC3: o.Add(0xBC); o.Add(d[at++]); break;
-                    case 0xC4: o.Add(0xC0); o.Add((byte)Math.Clamp(64 + (sbyte)d[at++] / 2, 0, 127)); break;
-                    case 0xC5: o.Add(0xC1); o.Add(d[at++]); break;
-                    case 0xC6: o.Add(0xBA); o.Add(d[at++]); break;
-                    case 0xC7: noteWait = d[at++] != 0; break;
-                    case 0xCA: o.Add(0xC4); o.Add((byte)Math.Clamp(d[at++] * modRange / 2, 0, 127)); break;
-                    case 0xCB: o.Add(0xC2); o.Add(d[at++]); break;
-                    case 0xCC: o.Add(0xC5); o.Add((byte)Math.Min((int)d[at++], 2)); break;
-                    case 0xCD: modRange = Math.Max(1, (int)d[at++]); break;
-                    case 0xD0: case 0xD1: case 0xD2: case 0xD3: {
-                        int value = d[at++];
-                        if (value == 0xFF) break;
-                        byte[] env = Envelope(value, value, value, value);
-                        byte set = env[c - 0xD0];
-                        if (c == 0xD3)
-                            foreach (var (fileKey2, from, to, cap) in ReleaseCaps)
-                                if (fileKey2 == fileKey && commandAt >= from && commandAt < to) set = Math.Min(set, cap);
-                        o.Add(0xCD); o.Add((byte)(0x04 + c - 0xD0)); o.Add(set);
-                        break;
-                    }
-                    case 0xE0: { int delay = (short)ReadShort(d, at); at += 2; o.Add(0xC3); o.Add((byte)Math.Clamp(delay, 0, 127)); break; }
-                    case 0xE1: { int tempo = ReadShort(d, at); at += 2; o.Add(0xBB); o.Add((byte)Math.Clamp(tempo, 1, 255)); break; }
-                    case 0xE3: at += 2; break;
-                    case 0xFC: break;
-                    case 0xFD: EndTies(); o.Add(0xB4); break;
-                    case 0xFE: at += 2; noteWait = true; break;
-                    case 0xFF: EndTies(); o.Add(0xB1); noteWait = true; break;
-                    default:
-                        if (c >= 0xB0 && c <= 0xBD) { at += 3; break; }
-                        if (c >= 0xC0 && c <= 0xD6) { at++; break; }
-                        if (c == 0xA0 || c == 0xA1 || c == 0xA2) { at = end; break; }
-                        at = end;   // (past the commands: padding);
-                        break;
-                    }
+                return (type, bank, at, waves);
+            }
+            /* PsgKey(); The key MP2K's square plays a DS PSG note with: the DS's square plays middle C (its timer 8006) at the instrument's
+             * root key, MP2K's at key 60; a sample's key as it is (its root baked into its rate, Sample()); */
+            // (a program that is itself a PSG or noise voice; a drum set's or key split's notes pick their voice by their key, its
+            // drums moved in the drum kit itself, Voice());
+            int PlayedKey(int bankId, int program, int key) {
+                var (type, bank, def, _) = Instrument(bankId, program, key);
+                if (type is not (2 or 3) || bank[0x3C + program * 4] is 16 or 17) return key;
+                return type == 2 ? Math.Clamp(key + 60 - bank[def + 4], 0, 127) : NoiseKey(key, bank[def + 4]);
+            }
+            /* NoiseKey(); The key MP2K's noise plays the DS's noise with: the DS's steps its noise at 16756991 / 8006 a second (2093) at
+             * the instrument's root key, a semitone's ratio a key; MP2K's at keys 21-80 by gNoiseTable (s << 4 | r: 524288 / r / 2^(s + 1)
+             * a second, r 0 as 0.5): the nearest; */
+            static readonly byte[] NoiseTable = {
+                0xD7, 0xD6, 0xD5, 0xD4, 0xC7, 0xC6, 0xC5, 0xC4, 0xB7, 0xB6, 0xB5, 0xB4, 0xA7, 0xA6, 0xA5, 0xA4, 0x97, 0x96, 0x95, 0x94,
+                0x87, 0x86, 0x85, 0x84, 0x77, 0x76, 0x75, 0x74, 0x67, 0x66, 0x65, 0x64, 0x57, 0x56, 0x55, 0x54, 0x47, 0x46, 0x45, 0x44,
+                0x37, 0x36, 0x35, 0x34, 0x27, 0x26, 0x25, 0x24, 0x17, 0x16, 0x15, 0x14, 0x07, 0x06, 0x05, 0x04, 0x03, 0x02, 0x01, 0x00,
+            };
+            static int NoiseKey(int key, int root) {
+                double ds = 16756991.0 / 8006 * Math.Pow(2, (key - root) / 12.0);
+                int best = 60;
+                double bestError = double.MaxValue;
+                for (int k = 21; k <= 80; k++) {
+                    int v = NoiseTable[k - 21], r = v & 7, sh = v >> 4;
+                    double rate = 524288 / (r == 0 ? 0.5 : r) / Math.Pow(2, sh + 1), error = Math.Abs(Math.Log(rate / ds));
+                    if (error < bestError) { bestError = error; best = k; }
                 }
-                EndTies();
-                o.Add(0xB1);
-                int block = allocate(o.Count, 4);
-                for (int i = 0; i < o.Count; i++) rom[block + i] = o[i];
-                foreach (var (fix, target) in fixups) {
-                    int moved = map.TryGetValue(target, out int m) ? m : o.Count - 1;
-                    WriteInt(rom, block + fix, block + moved + 0x08000000);
-                }
-                return blocks[(fileKey, volume)] = (block, map);
+                return best;
+            }
+            /* SampleSeconds(); How long a note of a one-shot sample sounds at a key (its samples at the DS's rate, 16756991 / its timer,
+             * shifted by the key from its root), the DS's channel ending with it; infinity for a looped one, a PSG or noise; */
+            double SampleSeconds(int bankId, int program, int key) {
+                var (type, bank, def, waves) = Instrument(bankId, program, key);
+                if (type != 1) return double.PositiveInfinity;
+                int wave = ReadShort(bank, def), archive = ReadShort(bank, def + 2), root = bank[def + 4];
+                if (archive >= 4 || waves[archive] == 0xFFFF) return double.PositiveInfinity;
+                byte[] swar = WaveArchive(waves[archive]);
+                if (wave < 0 || wave >= ReadInt(swar, 0x38)) return double.PositiveInfinity;
+                int at = ReadInt(swar, 0x3C + wave * 4), encoding = swar[at], timer = ReadShort(swar, at + 4);
+                if (swar[at + 1] != 0 || timer == 0) return double.PositiveInfinity;
+                int words = ReadShort(swar, at + 6) + ReadInt(swar, at + 8);
+                int samples = encoding == 2 ? (words * 4 - 4) * 2 : encoding == 1 ? words * 2 : words * 4;
+                return samples / (16756991.0 / timer * Math.Pow(2, (key - root) / 12.0));
             }
 
-            /* Song(); A sequence (its commands from `start`: its tracks opened there, 0xFE then 0x93 each, track 0 after them) as an MP2K
-             * song: each track a start with the DS's defaults (volume 127, pan in the middle, bend range 2, program 0) then GOTO its
-             * commands; */
+            /* DsTrack; A DS track's state as the sequencer keeps it (SND_seq.c's TrackInit: its defaults), what the compiled MP2K stream
+             * depends on; */
+            sealed class DsTrack {
+                public int Volume = 127, Expression = 127, Bend, BendRange = 2, Transpose, Program, PortaKey = 60, PortaTime, Sweep;
+                public int ModDepth, ModSpeed = 16, ModTarget, ModRange = 1, ModDelay;
+                public bool NoteWait = true, Tie, Porta;
+                public DsTrack Copy() => (DsTrack)MemberwiseClone();
+                public string Key(bool porta) => $"{Volume},{Expression},{Bend},{BendRange},{Transpose},{Program},{(Porta || Tie ? PortaKey : 0)},{PortaTime},{Sweep}," +
+                                                 $"{ModDepth},{ModSpeed},{ModTarget},{ModRange},{ModDelay},{NoteWait},{Tie},{Porta}";
+            }
+
+            /* TrackCompiler; One DS track run as the DS's sequencer runs it (NitroSDK's SND_seq.c, TrackStepTicks(), and SND_exChannel.c's
+             * pitch: its commands one by one, its calls and loops played out, its jumps back a GOTO once the track comes back to a spot in
+             * the same state) and written as MP2K's commands, tick for tick:
+             * • the DS's 48 ticks a beat kept, MP2K's tempo set to match (TempoValue());
+             * • its notes with their length (a note waits its length while the track's note wait is on, its mono/poly: the music turns it
+             *   off, the sound effects keep it), a length past MP2K's 223 a tie and its end; a length of 0 a note held (the DS's -1);
+             * • its pitch exact (1/64 of a semitone): its bend (pitchBend * bendRange * 64 / 128), a tie's key change (the DS's tie mode
+             *   changes the held channel's key: the note held, its pitch moved) and the portamento's sweep (from the last key, over the
+             *   note's length or the portamento time's, SND_exChannel.c's ExChannelSweepUpdate(), tick by tick) in MP2K's BEND with its
+             *   range 64 (a semitone a step) and TUNE (the rest, 1/64 of a semitone a step);
+             * • its volume, expression and a tie's velocity in VOL (each squared, the DS's decibel tables), its velocities squared too,
+             *   the loudest note of the song at 127 (`maxVelocity`);
+             * • its modulation (SND_exChannel.c's LFO: a sine, `speed` << 6 a 192nd of a second over 128 << 8, `depth` * `range`) in
+             *   MP2K's (a triangle, `speed` a tick over 256): MOD, LFOS by the tempo, LFODL from 192nds of a second to ticks, MODT;
+             * • its envelope's changes (XCMD's), pan, priority, program; */
+            sealed class TrackCompiler {
+                readonly SqueakSoundCompiler c;
+                readonly byte[] d;
+                readonly int dataStart, dataEnd, volume, bankId, fileKey, maxVelocity;
+                readonly Func<int, int> tempoAt;
+                public readonly List<byte> O = new List<byte>();
+                public readonly List<(int at, int target)> Gotos = new List<(int, int)>();
+                public readonly List<(int tick, int tempo)> Tempos = new List<(int, int)>();
+                public int MaxVelocity;
+                readonly HashSet<int> targets;
+                readonly Dictionary<string, int> visits = new Dictionary<string, int>();
+                readonly Dictionary<int, int> visitCount = new Dictionary<int, int>();
+                DsTrack t = new DsTrack();
+                int tick;
+                // (what MP2K has now, so a command goes only on a change: VOL, the pitch in 1/64 semitones, the LFO's four, the voice);
+                int vol = -1, pitch = int.MinValue, bendSet, tuneSet, shiftSet, mod = -1, lfos = -1, lfodl = -1, modt = -1, voice = -1;
+                // (a held tie: its key as MP2K plays it, its velocity, the tick its one-shot sample ends; the notes held for good, the
+                // long notes' ends: key, ticks left);
+                int heldKey = -1, heldVelocity, heldUntil = int.MaxValue;
+                readonly List<int> heldForever = new List<int>();
+                readonly List<(int key, int left)> longNotes = new List<(int, int)>();
+                // (the sweep: its pitch, length, counter, whether by 192nds of a second (the portamento time's) or ticks; the tie's key offset);
+                int sweepPitch, sweepLength, sweepCounter;
+                bool autoSweep;
+                int sweepTick, sweepTempo = 120;
+                int tieOffset;
+
+                public TrackCompiler(SqueakSoundCompiler c, byte[] d, int dataStart, int dataEnd, int volume, int bankId, int fileKey,
+                                     int maxVelocity, Func<int, int> tempoAt, HashSet<int> targets) {
+                    (this.c, this.d, this.dataStart, this.dataEnd, this.volume, this.bankId, this.fileKey, this.maxVelocity, this.tempoAt, this.targets) =
+                        (c, d, dataStart, dataEnd, volume, bankId, fileKey, Math.Max(1, maxVelocity), tempoAt, targets);
+                }
+
+                void Add(params int[] bytes) { foreach (int b in bytes) O.Add((byte)b); }
+                int Tempo => Math.Max(1, tempoAt(tick));
+
+                void SetVolume() {
+                    double amplitude = Square(t.Volume) * Square(t.Expression) * (heldKey >= 0 ? Velocity(heldVelocity) / 127.0 : 1);
+                    int v = Level(amplitude, volume);
+                    if (v != vol) { Add(0xBE, v); vol = v; }
+                }
+                int Velocity(int v) => Math.Clamp((int)Math.Round(127.0 * Math.Pow(Math.Min(v, maxVelocity) / (double)maxVelocity, 2)), 0, 127);
+                /* (the sweep's counter: by ticks, or by the DS's frames since the note's: tick n of the sequence comes in its frame
+                 * ceil(240 * n / tempo), the tempo counter starting at 240, SND_seq.c's PlayerInit()); */
+                int SweepCounter() {
+                    if (!autoSweep) return sweepCounter;
+                    long Frame(long n) => (240 * n + sweepTempo - 1) / sweepTempo;
+                    return (int)(Frame(sweepTick + sweepCounter) - Frame(sweepTick));
+                }
+                int SweepNow() {
+                    if (sweepPitch == 0 || sweepLength <= 0) return 0;
+                    int counter = SweepCounter();
+                    return counter >= sweepLength ? 0 : (int)((long)sweepPitch * (sweepLength - counter) / sweepLength);
+                }
+                bool Sweeping => sweepPitch != 0 && sweepLength > 0 && SweepCounter() < sweepLength;
+                void SetPitch() {
+                    int p = (t.Bend * (t.BendRange << 6) >> 7) + tieOffset + SweepNow();
+                    if (p == pitch) return;
+                    // (past BEND's 64 semitones either way (a tie's long glide, 0x92's), the rest in KEYSH, which moves held notes too);
+                    int semitones = (int)Math.Floor(p / 64.0), bend = Math.Clamp(semitones, -64, 63), tune = p - semitones * 64;
+                    int shift = Math.Clamp(semitones - bend, -127, 127);
+                    if (shift != shiftSet) { Add(0xBC, shift & 0xFF); shiftSet = shift; }
+                    if (bend != bendSet) { Add(0xC0, 64 + bend); bendSet = bend; }
+                    if (tune != tuneSet) { Add(0xC8, 64 + tune); tuneSet = tune; }
+                    pitch = p;
+                }
+                void SetModulation() {
+                    int depth = t.ModDepth * t.ModRange, m;
+                    if (t.ModTarget == 1) {
+                        double db = 127.0 * depth * 60 / 16384 / 10;
+                        m = (int)Math.Round(128 * (1 - Math.Pow(10, -db / 20)));
+                    } else if (t.ModTarget == 2) m = (int)Math.Round(127.0 * depth / 128);
+                    else m = (int)Math.Round(127.0 * depth / 1024);
+                    m = Math.Clamp(m, 0, 127);
+                    if (m != mod) { Add(0xC4, m); mod = m; }
+                    if (m == 0) return;
+                    int s = Math.Clamp((int)Math.Round(120.0 * t.ModSpeed / Tempo), 0, 255), dl = Math.Clamp((int)Math.Round(t.ModDelay * Tempo / 240.0), 0, 255);
+                    int target = Math.Min(t.ModTarget, 2);
+                    if (s != lfos) { Add(0xC2, s); lfos = s; }
+                    if (dl != lfodl) { Add(0xC3, dl); lfodl = dl; }
+                    if (target != modt) { Add(0xC5, target); modt = target; }
+                }
+
+                // Wait(); `ticks` ticks on: MP2K's waits, a long note's end where it falls, the sweep's pitch a tick at a time while it runs;
+                void Wait(int ticks) {
+                    while (ticks > 0) {
+                        int part = Sweeping ? 1 : ticks;
+                        foreach (var note in longNotes) part = Math.Min(part, note.left);
+                        for (int done = 0; part - done > 0;) {
+                            int i = ClockIndex(part - done);
+                            Add(0x80 + i);
+                            done += Clocks[i];
+                        }
+                        ticks -= part;
+                        tick += part;
+                        if (sweepPitch != 0) { sweepCounter += part; SetPitch(); }
+                        for (int i = longNotes.Count - 1; i >= 0; i--) {
+                            longNotes[i] = (longNotes[i].key, longNotes[i].left - part);
+                            if (longNotes[i].left <= 0) { Add(0xCE, longNotes[i].key); longNotes.RemoveAt(i); }
+                        }
+                    }
+                }
+                // ReleaseAll(); The track's notes let go (the DS's TrackReleaseChannels(): the tie mode's change, the track's end);
+                void ReleaseAll() {
+                    if (heldKey >= 0) { Add(0xCE, heldKey); heldKey = -1; }
+                    foreach (int key in heldForever) Add(0xCE, key);
+                    heldForever.Clear();
+                    foreach (var note in longNotes) Add(0xCE, note.key);
+                    longNotes.Clear();
+                    tieOffset = 0;
+                    SetVolume();
+                }
+
+                void Note(int key, int velocity, int length) {
+                    key = Math.Clamp(key + t.Transpose, 0, 127);
+                    int played = c.PlayedKey(bankId, t.Program, key);
+                    // (the sweep: the DS's sweep pitch, and from the portamento's key, over the note's length or the portamento time's);
+                    int sweep = t.Sweep + (t.Porta ? (t.PortaKey - key) << 6 : 0);
+                    bool held = t.Tie && heldKey >= 0 && tick < heldUntil;
+                    if (t.Tie && heldKey >= 0 && !held) ReleaseAll();
+                    sweepPitch = sweep;
+                    sweepCounter = 0;
+                    sweepTick = tick;
+                    sweepTempo = Tempo;
+                    if (t.PortaTime == 0) { sweepLength = length > 0 ? length : -1; autoSweep = false; }
+                    else {
+                        sweepLength = (int)((long)t.PortaTime * t.PortaTime * Math.Abs(sweep) >> 11);
+                        autoSweep = true;
+                    }
+                    if (held) {
+                        // (the tie mode's held note: its key and velocity changed, the channel playing on);
+                        tieOffset = (played - heldKey) * 64;
+                        heldVelocity = velocity;
+                        SetVolume();
+                        SetPitch();
+                    } else if (t.Tie || length <= 0) {
+                        tieOffset = 0;
+                        SetPitch();
+                        if (t.Tie) {
+                            heldKey = played;
+                            heldVelocity = velocity;
+                            double seconds = c.SampleSeconds(bankId, t.Program, key);
+                            heldUntil = double.IsInfinity(seconds) ? int.MaxValue : tick + Math.Max(1, (int)Math.Ceiling(seconds * Tempo * 0.8));
+                            SetVolume();
+                            Add(0xCF, played, 127);
+                        } else {
+                            SetVolume();
+                            Add(0xCF, played, Velocity(velocity));
+                            heldForever.Add(played);
+                        }
+                    } else {
+                        tieOffset = 0;
+                        SetVolume();
+                        SetPitch();
+                        int v = Velocity(velocity);
+                        if (length > 223) {
+                            Add(0xCF, played, v);
+                            longNotes.Add((played, length));
+                        } else {
+                            int i = ClockIndex(Math.Min(length, 96));
+                            Add(0xCF + i, played, v);
+                            if (length - Clocks[i] > 0) Add(length - Clocks[i]);
+                        }
+                    }
+                    MaxVelocity = Math.Max(MaxVelocity, velocity);
+                    t.PortaKey = key;
+                    if (t.NoteWait) {
+                        if (length > 0) Wait(length);
+                        else {
+                            // (a note of length 0 waits till its channel is done: a one-shot sample's end, else for good);
+                            double seconds = c.SampleSeconds(bankId, t.Program, key);
+                            if (!double.IsInfinity(seconds)) Wait(Math.Max(1, (int)Math.Ceiling(seconds * Tempo * 0.8)));
+                            else { int here = O.Count; Add(0x80 + 48); Add(0xB2); Gotos.Add((O.Count, here)); Add(0, 0, 0, 0); end = true; }
+                        }
+                    }
+                }
+
+                bool end;
+                // Compile(); The track from `start` (MP2K's defaults first: the DS's TrackInit()'s);
+                public void Compile(int start) {
+                    Add(0xBD, 0, 0xC1, 64, 0xC0, 64, 0xC8, 64, 0xBF, 64);
+                    pitch = 0; voice = 0;
+                    SetVolume();
+                    Add(0xC4, 0); mod = 0;
+                    var stack = new List<(int ret, int count, bool loop)>();
+                    int at = start, steps = 0;
+                    while (!end && at < dataEnd && O.Count < 0x40000 && steps++ < 400000) {
+                        // (a spot a jump comes back to: MP2K's GOTO there once the track is back in the same state);
+                        if (targets.Contains(at)) {
+                            string key = at + "|" + string.Join(";", stack.Select(s => $"{s.ret},{s.count},{s.loop}")) + "|" + t.Key(true) + $"|{heldKey},{heldVelocity},{tieOffset},{sweepPitch},{Sweeping},{heldForever.Count},{longNotes.Count},{Tempo}";
+                            if (visits.TryGetValue(key, out int pos)) {
+                                Add(0xB2);
+                                Gotos.Add((O.Count, pos));
+                                Add(0, 0, 0, 0);
+                                return;
+                            }
+                            visitCount[at] = visitCount.GetValueOrDefault(at) + 1;
+                            if (visitCount[at] > 8) { Add(0xB1); return; }
+                            visits[key] = O.Count;
+                        }
+                        int commandAt = at;
+                        byte cmd = d[at++];
+                        bool run = true, random = false, variable = false;
+                        if (cmd == 0xA2) { cmd = d[at++]; }
+                        if (cmd == 0xA0) { cmd = d[at++]; random = true; }
+                        if (cmd == 0xA1) { cmd = d[at++]; variable = true; }
+                        // (a value: a random one's middle, a variable's (none in Squeak Squad's) 0);
+                        int Value(Func<int> plain) {
+                            if (random) { int lo = (short)ReadShort(d, at), hi = (short)ReadShort(d, at + 2); at += 4; return (lo + hi) / 2; }
+                            if (variable) { at++; return 0; }
+                            return plain();
+                        }
+                        if (cmd < 0x80) {
+                            int velocity = d[at++];
+                            int length = Value(() => VarLen(d, ref at));
+                            if (run) Note(cmd, velocity, length);
+                            continue;
+                        }
+                        switch (cmd & 0xF0) {
+                        case 0x80: {
+                            int value = Value(() => VarLen(d, ref at));
+                            if (cmd == 0x80) Wait(value);
+                            else if (cmd == 0x81 && value < 128) { t.Program = value; if (value != voice) { Add(0xBD, value); voice = value; } }
+                            break;
+                        }
+                        case 0x90: {
+                            if (cmd == 0x93) { at += 4; break; }
+                            int target = dataStart + (d[at] | d[at + 1] << 8 | d[at + 2] << 16);
+                            at += 3;
+                            if (cmd == 0x94) at = target;
+                            else if (cmd == 0x95 && stack.Count < 3) { stack.Add((at, 0, false)); at = target; }
+                            break;
+                        }
+                        case 0xC0: case 0xD0: {
+                            int value = Value(() => d[at++]) & 0xFF;
+                            sbyte signed = (sbyte)value;
+                            switch (cmd) {
+                            case 0xC0: Add(0xBF, Math.Min(value, 127)); break;
+                            case 0xC1: t.Volume = value; SetVolume(); break;
+                            case 0xD5: t.Expression = value; SetVolume(); break;
+                            case 0xC3: t.Transpose = signed; break;
+                            case 0xC4: t.Bend = signed; SetPitch(); break;
+                            case 0xC5: t.BendRange = value; SetPitch(); break;
+                            case 0xC6: Add(0xBA, value); break;
+                            case 0xC7: t.NoteWait = value != 0; break;
+                            case 0xC8: t.Tie = value != 0; ReleaseAll(); break;
+                            case 0xC9: t.PortaKey = (value + t.Transpose) & 0xFF; t.Porta = true; break;
+                            case 0xCE: t.Porta = value != 0; break;
+                            case 0xCF: t.PortaTime = value; break;
+                            case 0xCA: t.ModDepth = value; SetModulation(); break;
+                            case 0xCB: t.ModSpeed = value; SetModulation(); break;
+                            case 0xCC: t.ModTarget = value; SetModulation(); break;
+                            case 0xCD: t.ModRange = value; SetModulation(); break;
+                            case 0xD0: case 0xD1: case 0xD2: case 0xD3: {
+                                if (value == 0xFF) break;
+                                byte set = Envelope(value, value, value, value)[cmd - 0xD0];
+                                if (cmd == 0xD3)
+                                    foreach (var (key2, from, to, cap) in c.ReleaseCaps)
+                                        if (key2 == fileKey && commandAt >= from && commandAt < to) set = Math.Min(set, cap);
+                                Add(0xCD, 0x04 + cmd - 0xD0, set);
+                                break;
+                            }
+                            case 0xD4: if (stack.Count < 3) stack.Add((at, value, true)); break;
+                            }
+                            break;
+                        }
+                        case 0xE0: {
+                            int value = (short)Value(() => { int v = ReadShort(d, at); at += 2; return v; });
+                            if (cmd == 0xE3) t.Sweep = value;
+                            else if (cmd == 0xE1) { Tempos.Add((tick, value & 0xFFFF)); Add(0xBB, TempoValue(value & 0xFFFF)); }
+                            else if (cmd == 0xE0) { t.ModDelay = value & 0xFFFF; SetModulation(); }
+                            break;
+                        }
+                        case 0xB0: at++; Value(() => { at += 2; return 0; }); break;
+                        case 0xF0:
+                            if (cmd == 0xFD) {
+                                // (a call's return; inside a loop of the DS's, its loop's return spot: as the DS's stack);
+                                if (stack.Count > 0) { at = stack[^1].ret; stack.RemoveAt(stack.Count - 1); }
+                            } else if (cmd == 0xFC) {
+                                if (stack.Count == 0) break;
+                                var top = stack[^1];
+                                int count = top.count;
+                                if (count != 0) {
+                                    count--;
+                                    if (count == 0) { stack.RemoveAt(stack.Count - 1); break; }
+                                }
+                                stack[^1] = (top.ret, count, top.loop);
+                                at = top.ret;
+                            } else if (cmd == 0xFE) at += 2;
+                            else if (cmd == 0xFF) end = true;
+                            break;
+                        default:
+                            end = true;
+                            break;
+                        }
+                    }
+                    if (O.Count > 0 && O[^5] == 0xB2 && Gotos.Count > 0 && Gotos[^1].at == O.Count - 4) return;
+                    ReleaseAll();
+                    Add(0xB1);
+                }
+            }
+
+            /* TempoValue(); MP2K's TEMPO for a DS tempo at 48 ticks a beat: the DS ticks 191.96 times a second, `tempo` / 240 ticks
+             * each (0.79983 * tempo a second), MP2K 59.7275 times a second, 2 * TEMPO / 150 ticks each (0.79637 * TEMPO a second); */
+            static int TempoValue(int tempo) => Math.Clamp((int)Math.Round(tempo * (191.958 / 240) / (59.7275 * 2 / 150)), 1, 255);
+
+            /* Song(); A sequence (its tracks opened at `start`: 0xFE, then 0x93 each, track 0 after them) as an MP2K song, each track a
+             * TrackCompiler's (run twice: first for the tempo changes and the loudest velocity of the song, then for good); */
             public int Song(byte[] d, int dataStart, int dataEnd, int start, int volume, int bankId, int priority, int fileKey) {
-                (int block, Dictionary<int, int> map) = Block(d, dataStart, dataEnd, volume, fileKey);
+                byte[] padded = new byte[d.Length + 32];
+                Array.Copy(d, padded, d.Length);
+                d = padded;
                 List<int> starts = new List<int>();
                 int at = start;
                 if (d[at] == 0xFE) at += 3;
@@ -460,21 +740,79 @@ namespace KatAMRandomizer {
                 }
                 starts.Insert(0, at);
                 starts = starts.Take(16).ToList();
-                int header = allocate(8 + starts.Count * 4 + starts.Count * 16, 4);
-                rom[header] = (byte)starts.Count;
+                // (the spots jumps and loops go back to: the GOTOs' possible targets);
+                HashSet<int> targets = new HashSet<int>();
+                foreach (int s in starts) JumpTargets(d, dataStart, dataEnd, s, targets);
+                List<(int tick, int tempo)> tempos = new List<(int, int)>();
+                int maxVelocity = 1;
+                foreach (int s in starts) {
+                    TrackCompiler dry = new TrackCompiler(this, d, dataStart, dataEnd, volume, bankId, fileKey, 127, _ => 120, targets);
+                    dry.Compile(s);
+                    tempos.AddRange(dry.Tempos);
+                    maxVelocity = Math.Max(maxVelocity, dry.MaxVelocity);
+                }
+                tempos = tempos.OrderBy(x => x.tick).ToList();
+                int TempoAt(int tick) {
+                    int tempo = 120;
+                    foreach (var (when, value) in tempos) { if (when > tick) break; tempo = value; }
+                    return tempo;
+                }
+                List<TrackCompiler> tracks = new List<TrackCompiler>();
+                foreach (int s in starts) {
+                    TrackCompiler track = new TrackCompiler(this, d, dataStart, dataEnd, volume, bankId, fileKey, maxVelocity, TempoAt, targets);
+                    track.Compile(s);
+                    tracks.Add(track);
+                }
+                int header = allocate(8 + tracks.Count * 4, 4);
+                rom[header] = (byte)tracks.Count;
                 rom[header + 1] = 0;
                 rom[header + 2] = (byte)Math.Min(priority, 127);
                 rom[header + 3] = 0;
                 WriteInt(rom, header + 4, Group(bankId) + 0x08000000);
-                for (int t = 0; t < starts.Count; t++) {
-                    int lead = header + 8 + starts.Count * 4 + t * 16;
-                    byte[] defaults = { 0xBD, 0x00, 0xBE, Level(127, volume, 0), 0xBF, 64, 0xC1, 2, 0xC0, 64, 0xB2 };
-                    Array.Copy(defaults, 0, rom, lead, defaults.Length);
-                    int target = map.TryGetValue(starts[t], out int moved) ? block + moved : block;
-                    WriteInt(rom, lead + defaults.Length, target + 0x08000000);
-                    WriteInt(rom, header + 8 + t * 4, lead + 0x08000000);
+                for (int k = 0; k < tracks.Count; k++) {
+                    List<byte> o = tracks[k].O;
+                    int block = allocate(o.Count, 4);
+                    for (int i = 0; i < o.Count; i++) rom[block + i] = o[i];
+                    foreach (var (fix, target) in tracks[k].Gotos) WriteInt(rom, block + fix, block + target + 0x08000000);
+                    WriteInt(rom, header + 8 + k * 4, block + 0x08000000);
                 }
                 return header;
+            }
+
+            // JumpTargets(); The spots a track's jumps (0x94) and endless loops (0xD4 0) go back to, from its start through its calls;
+            static void JumpTargets(byte[] d, int dataStart, int dataEnd, int start, HashSet<int> targets) {
+                HashSet<int> seen = new HashSet<int>();
+                Stack<int> todo = new Stack<int>();
+                todo.Push(start);
+                while (todo.Count > 0) {
+                    int at = todo.Pop();
+                    while (at < dataEnd && seen.Add(at)) {
+                        byte cmd = d[at++];
+                        int extra = 0;
+                        while (cmd is 0xA0 or 0xA1 or 0xA2) {
+                            if (cmd == 0xA0) extra = 4; else if (cmd == 0xA1) extra = 1;
+                            cmd = d[at++];
+                        }
+                        if (cmd < 0x80) { at++; if (extra > 0) at += extra; else VarLen(d, ref at); continue; }
+                        if (cmd is 0x80 or 0x81) { if (extra > 0) at += extra; else VarLen(d, ref at); continue; }
+                        if (cmd == 0x93) { at += 4; continue; }
+                        if (cmd is 0x94 or 0x95) {
+                            int target = dataStart + (d[at] | d[at + 1] << 8 | d[at + 2] << 16);
+                            at += 3;
+                            if (cmd == 0x94) { targets.Add(target); at = target; }
+                            else todo.Push(target);
+                            continue;
+                        }
+                        if (cmd == 0xD4) { if (extra == 0 && d[at] == 0) targets.Add(at + 1); at += extra > 0 ? extra : 1; continue; }
+                        if (cmd >= 0xB0 && cmd <= 0xBF) { at += 1 + (extra > 0 ? extra : 2); continue; }
+                        if (cmd >= 0xC0 && cmd <= 0xDF) { at += extra > 0 ? extra : 1; continue; }
+                        if (cmd >= 0xE0 && cmd <= 0xEF) { at += extra > 0 ? extra : 2; continue; }
+                        if (cmd == 0xFE) { at += 2; continue; }
+                        if (cmd is 0xFF or 0xFD) break;
+                        if (cmd >= 0xF0) continue;
+                        break;
+                    }
+                }
             }
         }
 
@@ -530,6 +868,12 @@ namespace KatAMRandomizer {
                 return "Squeak Squad's sounds: " + e.Message;
             }
             WriteShort(rom, CodeAddress + version.CodeSymbols["gExpansionSongs"] + 2, squeakSongBase);
+            /* (KatAM's mixer at MP2K's most, 12 sampled voices, not its 10: the DS has 16, its songs sounding up to 13 notes at once (the
+             * Squeak hideout's, the last boss's), MP2K cutting the oldest; its sound mode, m4aSoundInit()'s and GameInit()'s literal: 8-bit
+             * output, 15768 Hz, volume 15, the channels); */
+            const int KatAMSoundMode = 0x00900000 | 0x00050000 | 15 << 12, KatAMChannels = 10, SqueakChannels = 12;
+            for (int at = 0x140000; at + 4 <= 0x160000; at += 4)
+                if (ReadInt(rom, at) == (KatAMSoundMode | KatAMChannels << 8)) WriteInt(rom, at, KatAMSoundMode | SqueakChannels << 8);
             cursor = here;
             return null;
         }
