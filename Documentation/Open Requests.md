@@ -22,12 +22,7 @@ finishes it says how it was checked). The design rules for doors, mirrors and hu
 - The owner: "Is the beam supposed to be this thin?" (Daroach's beam.)
 - The owner: "Daroach's star rod's stars lag a bit whenever there's 4 Kirbys in the room."
 - The owner: "Squeak Squad stars from bosses have a hitbox that the player can hit, these are supposed to be inhalable only."
-- The owner: "Bohboh's hitbox needs to be tweaked."
-- The owner: "Bohboh can get stuck on its animation if it touches the lava and cause a softlock on the fight, we need to make sure no
-  softlocks happen."
-- The owner: "The Bohboh room size is different, therefore BohBoh can be out of the screen for most of the fight."
-- The owner: "Bohboh's shard is in a weird position."
-- The owner: "Mecha Kracko fight is way too hard, we need to tone it down a bit. Same applies with Bohboh."
+- The owner: "Mecha Kracko fight is way too hard, we need to tone it down a bit." (Bohboh's done.)
 - The owner: "The Mecha Kracko fight has a scrollable background."
 - The owner: "Mecha Kracko enemies that are supposed to give Hi-Jump don't."
 - The owner: "Mecha Kracko when I died on phase 2, it showed garbled tiles on phase 1."

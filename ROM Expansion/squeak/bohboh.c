@@ -2,7 +2,7 @@
  * 0x02111568, +0x30 its hit 0x02110F98, +0x2C its touch 0x021111CC, +0x84 letting Kirby go hurt 0x02110D50; its states
  * 0x0210E16C-0x02110C7C), as SQUEAK_BOHBOH, a boss on the mid-bosses' framework (mini-boss type 0x40: the camera held on its area,
  * the HP bar, the music, KatAM's defeat). Values from param/PrmBB06Ml0.kgb (moves), PrmBB06Pl0.kgb (picks) and PrmBB06Sl0.kgb (its
- * HP, 350: here KatAM's bosses' 60 for one player as Mrs. Moley's 300 is, 70); speeds 20.12 a frame, Y up; drawn with enemy/bohboh
+ * HP, 350: here 60, KatAM's bosses' for one player, as Mrs. Moley's 300 is; 70 as the DS's was too hard for the owner); speeds 20.12 a frame, Y up; drawn with enemy/bohboh
  * (its .mca's composites); its boxes from bohboh.rca. Recorded on the DS in its own stage (map/a5s7s2, reached from a5s7s1's door:
  * the points and zones below; all its moves, its grab and the lava's drops).
  * • Its arena (a5s7s2's camera held with its middle 272 across, 56 over Kirby's floor; here KatAM's camera view's middle across and
@@ -41,14 +41,14 @@
  * • The lava's hurt (0x0212737C: an object of its own over the lava, 128 pixels across and 10 high at the floor, hurting what touches
  *   it; the stage's lava isn't in KatAM's rooms, so here it shows nothing, as on the DS).
  * Its sounds: Squeak Squad's (SqueakSfx). Not ported: the camera's shakes, its hit flash (enemy/bo_bo_dmg's palettes: KatAM's), the lava (the stage's tiles, its
- * bubbles: a5s7s2's), its own defeat (0x0210E730-0x0210E294: KatAM's mini-boss defeat), its boss music. */
+ * bubbles: a5s7s2's), its own defeat (0x0210E730-0x0210E294: KatAM's bosses', SqueakBossWatch), its boss music.
+ * Gentler than the DS's (the owner: "Mecha Kracko fight is way too hard, we need to tone it down a bit. Same applies with Bohboh"):
+ * its HP, its waits, its fires' and the lava's drops' times (DROP_TIME, WAIT_SHORT, LAVA_DROP). */
 #include "../squeak.h"
 #include "kirby.h"
 #include "constants/object_types.h"
 
 void sub_0804E09C(struct Kirby *);
-void sub_08086C48(struct Object *);    // KatAM's defeat of an object (its drop);
-void sub_0809D060(struct Object *);    // KatAM's mini-boss defeat (object.c, static);
 
 // Animations (bohboh.cea's);
 enum {
@@ -66,20 +66,20 @@ enum { COMPOSITE_FLY, COMPOSITE_CARRY, COMPOSITE_RISE, COMPOSITE_FLARE };
 #define IN_X 80                 // +0x1C, +0x20, +0x24: in from 80 out and 80 over a point, 60 frames;
 #define IN_UP 80
 #define IN_TIME 60
-#define WAIT_SHORT 30           // +0x30, +0x34;
-#define WAIT_LONG 60
+#define WAIT_SHORT 45           // +0x30, +0x34: 30 and 60 (gentler);
+#define WAIT_LONG 80
 #define POINT_RIGHT 1           // +0x38, +0x3C: the points (+1) right and left of the middle;
 #define POINT_LEFT 2
-#define LEAP_VX 0x3000          // +0x44, +0x48, +0x4C;
-#define LEAP_VY (-0x3800)
-#define LEAP_AY 0x1C3
+#define LEAP_VX 0x3000          // +0x44, +0x48, +0x4C (its up and down KatAM's screen's, HEIGHT_SCALE: -0x3800, 0x1C3);
+#define LEAP_VY (-0x3800 * 2 / 3)
+#define LEAP_AY (0x1C3 * 2 / 3)
 #define SETTLE_TIME 8           // +0x50;
 #define CHARGE_SPEED 0x2000     // +0x58;
-#define DROP_TIME 30            // +0x5C;
+#define DROP_TIME 45            // +0x5C: 30 (KatAM's fight gentler, the owner: "way too hard ... Same applies with Bohboh");
 #define PASS_SPEED 0x2000       // +0x64;
 #define WIND_TIME 60            // +0x70, +0x74, +0x78;
 #define WIND_VX (-0x667)
-#define WIND_VY 0x334
+#define WIND_VY (0x334 * 2 / 3)
 #define SWOOP_SPEED 0x4000      // +0x7C;
 #define OUT_TIME 60             // +0x80;
 #define DIVE_VX (-0x334)        // +0x84..+0x90;
@@ -102,17 +102,20 @@ enum { COMPOSITE_FLY, COMPOSITE_CARRY, COMPOSITE_RISE, COMPOSITE_FLARE };
 #define PICK_PASS 40
 #define PICK_SWOOP 60
 #define AFTER_SWOOP 30          // +0x2C;
-#define LAVA_DROP 40            // +0x34, +0x38;
-#define LAVA_DROP_RAND 20
+#define LAVA_DROP 60            // +0x34, +0x38: 40 and 20 (gentler);
+#define LAVA_DROP_RAND 30
 #define LAVA_ENEMY 30           // +0x3C;
 // PrmBB06Sl0.kgb's 350 HP: the lava's 20 (0x0212737C's box) as KatAM's 70 to it;
 #define LAVA_DAMAGE 4
 
-// a5s7s2 (pixels from the camera view's middle across and the floor where it was placed);
+/* a5s7s2 (pixels from the camera view's middle across and the floor where it was placed). Its heights over the floor two thirds of
+ * the DS's (its points', its leap's, its backing up's): the DS's screen 152 pixels over Kirby's floor, KatAM's arena 128, and at 96
+ * over the floor its head was off the screen's top, under the HUD (the owner: "BohBoh can be out of the screen for most of the
+ * fight"); */
 #define LAVA_HALF 64            // Its zone 2, the lava: 208-336 of 544 (the middle 272);
 #define P0_X 84                 // Its points: 0 (356, 176), 1 (200, 176), 2 (272, 44); the floor 80;
 #define P1_X (-72)
-#define P_UP 96
+#define P_UP (96 * 2 / 3)
 #define P2_DOWN 36
 #define START_X (-236)          // a5s7s2's spawn (36, 180);
 #define START_UP 100
@@ -158,11 +161,13 @@ static const struct Kirby_110 sLetGo[] = { { 0, 0, -1, 1, 0, 0x401 }, { 0, 0, 0,
 
 /* bohboh.rca (KatAM's: x ahead, y down, pixels from its spot): its touch's box (tag 0x101 kind 0) and where it's hit (0x102: its own
  * in its animations 0, 4, 7 and 8, else animation 0's, the sprite's first: 0x02014218), its swoop's grabbing boxes (0x101 kind 6);
- * none far off (4: its box flagged, 100 pixels over it) and in its throw (10); */
+ * none far off (4: its box flagged, 100 pixels over it) and in its throw (10). Its body as drawn (still: 32 back to 18 ahead, 46 over
+ * its spot to 2 under it): the .rca's left its back and its belly's bottom 8 pixels out (the owner: "Bohboh's hitbox needs to be
+ * tweaked"; the .rca's still box -25, -42, 20, -5, its swoop's -25, -42, 16, -12); */
 enum { BOX_STILL, BOX_SWOOP, BOX_DIVE, BOX_LAVA, BOX_NONE };
 static const struct SqueakBox sBohbohBoxes[] = {
-    [BOX_STILL] = { { -25, -42, 20, -5 }, TRUE, 0 },
-    [BOX_SWOOP] = { { -25, -42, 16, -12 }, TRUE, 2, { { 16, -42, 31, 6 }, { -25, -12, 16, 6 } } },
+    [BOX_STILL] = { { -32, -46, 18, 2 }, TRUE, 0 },
+    [BOX_SWOOP] = { { -30, -44, 16, -4 }, TRUE, 2, { { 16, -42, 31, 6 }, { -25, -12, 16, 6 } } },
     [BOX_DIVE] = { { -36, -52, 28, -5 }, TRUE, 0 },
     [BOX_LAVA] = { { -34, -49, 20, -5 }, TRUE, 0 },
 };
@@ -396,7 +401,7 @@ static bool32 Hittable(struct SqueakObject *s) {
     return (s->composite != SQUEAK_NO_COMPOSITE || (s->anim != ANIM_FAR && s->anim != ANIM_DIVE)) && !HELD(s) && SAFE(s) == 0;
 }
 
-// Hurt(); The lava's hurt as it dives in (0x0212737C's box: its 20), KatAM's mini-boss defeat if it's its last (Mrs. Moley's crash);
+// Hurt(); The lava's hurt as it dives in (0x0212737C's box: its 20); its last, its defeat as the world's bosses' (SqueakBossWatch);
 static void Hurt(struct SqueakObject *s) {
     struct Object *obj = &s->obj;
 
@@ -405,11 +410,7 @@ static void Hurt(struct SqueakObject *s) {
     obj->unk80 -= LAVA_DAMAGE;
     LAST_HP(s) = obj->unk80;
     sub_08034E14(obj);
-    if (obj->unk80 > 0) return;
-    obj->unk80 = 0;
-    obj->base.flags &= ~(0x400 | 0x200);
-    sub_08086C48(obj);
-    sub_0809D060(obj);
+    if (obj->unk80 < 0) obj->unk80 = 0;
 }
 
 // Reenter(); Out of view: in from IN_X out and IN_UP over a point, to it in IN_TIME frames (Squeak Squad's 80 / 60 a frame);
@@ -433,6 +434,38 @@ static void DropFire(struct SqueakObject *s) {
         SqueakSfx(s, 0x12D);
         TIMER(s) = DROP_TIME;
     }
+}
+
+/* InLavaZone(); Its dive kept over the lava (DIVE_VX takes it back as it dives): diving in at the lava's edge, it drifted out and
+ * never sat in it, falling on in its dive, untouchable, for good (the owner: "Bohboh can get stuck on its animation if it touches the
+ * lava and cause a softlock on the fight"); */
+#define LAVA_IN 12
+static void InLavaZone(struct SqueakObject *s) {
+    s32 left = Middle(s) - ((LAVA_HALF - LAVA_IN) << 8), right = Middle(s) + ((LAVA_HALF - LAVA_IN) << 8);
+
+    if (s->obj.base.x < left) s->obj.base.x = left;
+    if (s->obj.base.x > right) s->obj.base.x = right;
+}
+
+/* Unstick(); No state of its fight lasts STUCK_TIME frames (its longest, its intro's flight across, about 200): one that did (a move
+ * that never meets what ends it) ends: Kirby let go, it's back at the point on its side, waiting (the owner: "we need to make sure no
+ * softlocks happen"); */
+#define STUCK_TIME 600
+static bool32 Unstick(struct SqueakObject *s) {
+    s32 x, y;
+
+    if (T(s) < STUCK_TIME || s->state < BB_INTRO_IN) return FALSE;
+    if (HELD(s)) LetGo(s, sLetGo);
+    POINT(s) = s->obj.base.x < Middle(s) ? POINT_LEFT - 1 : POINT_RIGHT - 1;
+    Point(s, POINT(s), &x, &y);
+    s->obj.base.x = x;
+    s->obj.base.y = y;
+    SqueakStop(s);
+    s->ax = s->ay = 0;
+    Face(s, s->obj.base.x >= Middle(s));
+    SqueakPlayComposite(s, COMPOSITE_FLY);
+    SqueakSetState(s, BB_IDLE);
+    return TRUE;
 }
 
 // Passed(); Past a point's x the way it faces;
@@ -463,6 +496,7 @@ static bool32 Bohboh(struct SqueakObject *s) {
     struct Kirby *kirby = s->obj.kirby3;
     s32 x, y, dx, dy, d, k;
 
+    if (Unstick(s)) return TRUE;
     switch (s->state) {
     case BB_INTRO:          // 0x02110C7C: far off at a5s7s2's spawn, facing right; the lava's hurt brought in;
         s->obj.base.x = Middle(s) + (START_X << 8);
@@ -727,6 +761,7 @@ static bool32 Bohboh(struct SqueakObject *s) {
     case BB_DIVE:           // 0x0210F288: into the lava, hurt by it; out of it (the lava's top holds it: 0x0201355C) up again;
         Hurt(s);
         if (s->obj.unk80 <= 0) return FALSE;
+        InLavaZone(s);
         s->obj.base.y = FLOOR(s);
         s->vx = DIVE_VX;
         s->vy = DIVE_VY;
@@ -736,8 +771,9 @@ static bool32 Bohboh(struct SqueakObject *s) {
         SqueakSetState(s, BB_DIVE_FALL);
         Move(s);
         break;
-    case BB_DIVE_FALL:      // 0x0210F15C: down in the lava, it sits there;
-        if (LANDED(s) && InLava(s, s->obj.base.x, s->obj.base.y)) {
+    case BB_DIVE_FALL:      // 0x0210F15C: down in the lava, it sits there (its drift back kept over the lava: see InLavaZone);
+        if (LANDED(s)) {
+            InLavaZone(s);
             TIMER(s) = LAVA_TIME;
             DROP(s) = 0;
             SqueakPlay(s, ANIM_LAVA);
@@ -748,7 +784,6 @@ static bool32 Bohboh(struct SqueakObject *s) {
             break;
         }
         Move(s);
-        if (LANDED(s)) s->obj.base.y = FLOOR(s);
         break;
     case BB_LAVA:           // 0x0210EEE0: things falling from the top; then up to the point on its side;
         if (DROP(s)-- < 1) {
