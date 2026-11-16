@@ -12,10 +12,10 @@ These are the owner's standing rules for any AI assistant working here. They hol
   with the owner's go-ahead, before changing the code that follows it.
 - **The open requests are in `Documentation/Open Requests.md`.** Check it before saying something is done. Update it when an item
   is finished (and how it was checked) or when the owner adds or changes one.
-- **Test in the emulator before saying something works**, and say how it was tested: a forced state (RAM writes) is not a real
-  playthrough. Say plainly what wasn't tested.
-- **Build and check all three versions** (USA, European, Japanese rev 1) after ROM changes. Run the logic checks (every room reached,
-  every big switch pressed, nowhere Kirby gets trapped, with and without dropping through thin floors).
+- **After a change, check only that the rooms are navigable** (the owner: "I don't think we need as many tests other than if the
+  rooms are navigatable or not"): one run of the logic check, every room reached and nowhere Kirby gets trapped. No building and
+  checking all three versions each time, no run with dropping through thin floors, no emulator tests unless the owner asks for them.
+  Say how a change was checked and, plainly, what wasn't.
 
 ## Commits
 

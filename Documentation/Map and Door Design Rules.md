@@ -5,9 +5,8 @@ The rulebook for laying out mirrors, doors and the ways between rooms, for the R
 same: the map should read and play like *Kirby & the Amazing Mirror*, not like a pile of teleporters. When a new idea breaks one of
 these rules, change the rule here first, on purpose, then the code.
 
-Each rule says where it is enforced, so it can be checked. The logic checks (every room reached, every big switch pressed, no
-place you can't get out of, with and without dropping through thin floors) must pass on the USA, European and Japanese builds
-after any change.
+Each rule says where it is enforced, so it can be checked. The navigability check (every room reached, no place you can't get out
+of) must pass after any change.
 
 ## 1. What counts as a way between rooms
 
