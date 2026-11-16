@@ -1336,6 +1336,12 @@ namespace KatAMRandomizer {
                             SqueakDoor at = d.Door < to.Doors.Count ? to.Doors[d.Door] : to.Doors.FirstOrDefault(o => o.Number == d.Door);
                             if (at != null && Leads(r, d)) entrances.Add((r, k, d, to, at));
                         }
+                    /* (a door leading on through the stage (the room it led to after its own in the DS's order) where the stage has
+                     * one: its way out leads where the door led, and through a door back the lair let Kirby out where he'd come from
+                     * (the owner: "There are sequences where a squeak lair takes me to the same room, that makes no sense. Squeak Lairs
+                     * should be opening branches and expanding the map, not making me go in circles"); one back only where there's no
+                     * other, the lair kept (5-3's hideout)); */
+                    if (entrances.Any(e => e.to.Number > e.r.Number)) entrances.RemoveAll(e => e.to.Number <= e.r.Number);
                     var entrance = lairRandom != null ? (entrances.Count > 0 ? entrances[lairRandom.Next(entrances.Count)] : default)
                                  : entrances.OrderBy(e => Math.Abs(e.to.Number - thiefRoom)).ThenBy(e => e.to.Number > thiefRoom ? 1 : 0).ThenByDescending(e => e.r.Number).FirstOrDefault();
                     if (entrance.r == null) continue;

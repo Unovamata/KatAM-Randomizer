@@ -1834,7 +1834,10 @@ namespace KatAMRandomizer {
          * rooms' (the rulebook's rule 2, BuildObjects()): it's left out. A world's boss in its boss room (`bossShard`: the shard it leaves
          * + 1, its template's unk11, "ROM Expansion/squeak.h"'s SqueakBossShard) leaves it as it goes, the way out to the hub (the
          * rulebook's rule 8). Not yet: the chase spawns, the chests' Squeak Squad treasures; */
-        const int SqueakDoorClear = 3, SqueakThinLift = 4;
+        // (and Flamers, their fire trails' sprites the heaviest, SqueakScreenFlamers);
+        const int SqueakDoorClear = 3, SqueakThinLift = 4, SqueakScreenEnemies = 5, SqueakScreenFlamers = 3;
+        const byte KatAMFlamer = 0x13;
+        static readonly (int x, int y) SqueakScreenReach = (160, 120);
         const byte SqueakChestAfterBoss = 1;     // squeak.h's SQUEAK_CHEST_AFTER_BOSS (a chest's template unk14);
         /* (a Gold Waddle Dee's chest, squeak.h's SQUEAK_CHEST_AFTER_ENEMY: the DS's Gold Waddle Dees (enemy 0x0E) carry flag 8, as its
          * bosses do, and their room's one chest, a piece of the Secret Map, comes once one's beaten (the owner: "Golden Waddle Dee's
@@ -1906,6 +1909,12 @@ namespace KatAMRandomizer {
                  * still enemies in rooms going through platforms"; it starts SqueakThinLift pixels up and lands on it); */
                 if (y % 16 == 0 && x >= 0 && x / 16 < width && y / 16 < height && SqueakThinFloor(collision[y / 16 * width + x / 16])
                     && Open(x / 16, (y - 1) / 16)) y -= SqueakThinLift;
+                /* (KatAM's enemies, SqueakScreenEnemies at most round any one, SqueakScreenReach pixels across and up or down: the GBA
+                 * draws fewer sprites than the DS, 6-2-6's sixteen Flamers (room 0x534) dropped every other frame, the owner: "Room 0x534
+                 * massive lag"; the rest left out, in the room's order. Squeak Squad's own characters all stay); */
+                bool Near(byte[] t) => Math.Abs(ReadShort(t, 6) - x) <= SqueakScreenReach.x && Math.Abs(ReadShort(t, 8) - (y - 8)) <= SqueakScreenReach.y;
+                if (type != SqueakID && !byDoor && (templates.Count(t => t[12] <= 0x37 && t[12] is not (SqueakID or NightmareID) && Near(t)) >= SqueakScreenEnemies
+                    || type == KatAMFlamer && templates.Count(t => t[12] == KatAMFlamer && Near(t)) >= SqueakScreenFlamers)) return;
                 byte[] template = ObjectTemplate(x, y - 8, templates.Count, type);
                 template[14] = behavior;
                 template[0x12] = variant;
