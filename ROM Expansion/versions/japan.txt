@@ -408,3 +408,4 @@ sub_080411E8 0x8041160
 sub_080424BC 0x8042434
 # Squeak Squad's walk-once blocks' dust (squeak/gimmicks.c's CrumbleBreak);
 sub_08089864 0x80897dc
+sub_08098184 0x80980fc

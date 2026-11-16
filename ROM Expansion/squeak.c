@@ -6,6 +6,7 @@
 #include "abilities.h"
 #include "code_0806F780.h"
 #include "malloc_vram.h"
+#include "constants/songs.h"
 
 void NidlDestroy(struct Task *task);
 
@@ -1634,12 +1635,84 @@ static void SqueakMidbossWait(struct Object *obj) {
     SqueakStart(obj);
 }
 
-/* SqueakBossWatch(); A world's boss's own before its Main (unk7C, every frame, beaten too): KatAM's mini-boss defeat (sub_0809AF38's
- * sub_0809D060, which these bosses on mini-boss types get) leaves its falling body inhalable (unk5C 0x81: hit level 1), as a mini-boss
- * gives its ability; KatAM's bosses never are (the owner: "Final bosses are inhalable for whatever reason when Bosses in KatAM are
- * not"): once its HP is out its level is held at 6 (as Gordo's: nothing inhales it), KatAM's defeat going on to its burst; */
+/* SqueakBossDeath; A world's boss's defeat, as KatAM's bosses' (sub_08088528, its task sub_08086E50, which these bosses on mini-boss
+ * types can't take: it calls gUnk_08350E58[type - 0x43], a boss type's table, out of it for type 0x40): the boss still where it was,
+ * no more hits, the screen flashing (gUnk_08350E34) and shaking, the game frozen 28 frames; then the thaw, its burst (KatAM's stars,
+ * sub_08098184, and explosion, effect 0x299, the audience's cheer) and it's gone (its shard: SqueakDestroy); not KatAM's mini-boss
+ * defeat, its body falling and lying there for 4 seconds before it bursts (the owner: "Main bosses from Squeak Squad when beaten,
+ * don't destroy as in KatAM or NiDL's... Sprites are just there until they explode on their own which is miniboss behavior and not
+ * mirror boss behavior"); */
+#define BOSS_DEATH_FRAMES 0x1C
+struct SqueakBossDeath {
+    struct SqueakObject *s;
+    u16 room;
+    u8 frames;
+    u8 player;
+};
+
+void sub_08033540(u8);
+void sub_080335B4(u8);
+void sub_080700D8(struct ObjectBase *);
+void sub_08098184(struct ObjectBase *);
+void sub_0809F974(struct Object *);
+
+static void SqueakBossDeathMain(void) {
+    struct SqueakBossDeath *d = TaskGetStructPtr(gCurTask);
+    struct Object *obj = &d->s->obj;
+
+    // (its object gone meanwhile: its room left, the room's end);
+    if (obj->base.header.kind != 1 || (obj->base.flags & 0x1000) || obj->base.roomId != d->room || d->s->activated != SQUEAK_DYING) {
+        sub_080335B4(d->player);
+        TaskDestroy(gCurTask);
+        return;
+    }
+    if (--d->frames) return;
+    sub_080700D8(&obj->base);
+    sub_080335B4(d->player);
+    RequestScreenShake(3, &obj->base);
+    sub_08098184(&obj->base);
+    CreateEffectObject(&obj->base, 0, 0x299, 0);
+    PlaySfx(&obj->base, SE_AUDIENCE_CHEER);
+    obj->base.flags |= 0x1000;
+    TaskDestroy(gCurTask);
+}
+
+static void SqueakBossDie(struct SqueakObject *s) {
+    struct Object *obj = &s->obj;
+    struct Task *t = TaskCreate(SqueakBossDeathMain, sizeof(struct SqueakBossDeath), 0x2F9C, TASK_USE_IWRAM, NULL);
+    struct SqueakBossDeath *d;
+
+    s->activated = SQUEAK_DYING;
+    obj->unk80 = 0;
+    obj->base.unk68 &= 7;
+    obj->base.unk5C |= 0x80;
+    obj->base.xspeed = obj->base.yspeed = 0;
+    obj->base.flags |= 0x200 | 0x40;
+    obj->unk78 = sub_0809F974;
+    if (t == NULL) {
+        obj->base.flags |= 0x1000;
+        return;
+    }
+    d = TaskGetStructPtr(t);
+    d->s = s;
+    d->room = obj->base.roomId;
+    d->frames = BOSS_DEATH_FRAMES;
+    d->player = obj->base.unk56;
+    PlaySfx(&obj->base, SE_MINIBOSS_PRE_EXPLODE);
+    sub_080860A8(&obj->base, gUnk_08350E34);
+    RequestScreenShake(4, &obj->base);
+    sub_08033540(obj->base.unk56);
+}
+
+/* SqueakBossWatch(); A world's boss's own before its Main (unk7C, every frame, beaten too): its HP out, its defeat as KatAM's bosses'
+ * (SqueakBossDie(), not KatAM's mini-boss defeat, sub_0809AF38's sub_0809D060, which these bosses on mini-boss types get), never
+ * inhalable (KatAM's mini-boss defeat leaves its body at hit level 1; the owner: "Final bosses are inhalable for whatever reason when
+ * Bosses in KatAM are not"): its level held at 6 (as Gordo's: nothing inhales it); */
 void SqueakBossWatch(struct Object *obj) {
+    struct SqueakObject *s = (struct SqueakObject *)obj;
+
     if (obj->unk80 <= 0 && (obj->base.unk5C & 7) != 6) obj->base.unk5C = (obj->base.unk5C & ~7) | 6;
+    if (obj->unk80 <= 0 && s->activated != SQUEAK_DYING && !(obj->base.flags & 0x1000)) SqueakBossDie(s);
 }
 
 /* SqueakMidbossUpdate(); A mid-boss in its fight stays in the area the camera is locked to (as NiDL's, NidlUpdate, and KatAM's own:
