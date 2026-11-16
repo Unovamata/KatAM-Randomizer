@@ -15,17 +15,7 @@ finishes it says how it was checked). The design rules for doors, mirrors and hu
 - The owner: "Squeak lairs are very prone to lag and garbage tiles." (Garbage tiles not reproduced: six lairs' fights, every
   sprite's VRAM its own, the heap at most 338 of 512. Room 0x49C's garbled sprites were the gimmicks' VRAM, fixed.)
 
-## 2. Squeak Squad: music and sounds
-- The owner: "The music sounds kind of wrong? Off beat and off tone and mistimed. Squeak Squad actually uses a lot of the music from
-  NiDL and KatAM. This needs special attention."
-- The owner: "Some sound effects are not ported properly." / "Invest extra time making sure music and sounds are ported as expected.
-  Same applies with abilities."
-
-- The owner: "Room 0x4E4 hard game crash. Most likely had to do with the moving platforms." and "Room 0x4E5, crash sounds and a ton
-  of lag but the game stays alive with crash sounds." (Not reproduced: USA with the NiDL ROM, Kirby in both rooms with their platforms
-  running, no crash and no stray sounds. Which build, and what Kirby did there, wanted. 0x4E4's "I cannot go up" is fixed: its floor of blocks across the shaft is a thin floor now.)
-
-## 3. Squeak Squad: bosses
+## 2. Squeak Squad: bosses
 - The owner: "Is the beam supposed to be this thin?" (Daroach's beam: drawn as dancho01.mca's beam composite, about 10 pixels high,
   its reach's box 9 high as the DS's; not yet compared with the DS's own frames.)
 - The owner: "Mecha Kracko when I died on phase 2, it showed garbled tiles on phase 1." (Not reproduced: USA with the NiDL ROM, a
@@ -35,7 +25,7 @@ finishes it says how it was checked). The design rules for doors, mirrors and hu
   (Every Squeak boss's fight is held to KatAM's 240x160, the DS's arena being 256x192; widening the area lets the camera scroll, but
   the bosses place their moves from the camera, Dark Nebula's from its middle: which rooms cut what, wanted.)
 
-## 4. Squeak Squad: rooms and objects
+## 3. Squeak Squad: rooms and objects
 - The owner: "The squeaker with the chest in 0x4EF runs its animation and then just disappears for whatever reason." (Changed: a
   Squeaker with a chest keeps it, running off from Kirby, and drops it where it's hit; before, its way out was the spot it came from,
   so placed on its chest it went off with it at once. Not seen in the room: the Squeaker and its chest didn't come out on a plain
@@ -54,7 +44,7 @@ finishes it says how it was checked). The design rules for doors, mirrors and hu
   should be intelligent enough to recognize that 'I'm on Kirby's coordinate, I should wait' this happens in room 0x496, the squeak
   presses a button but doesn't move forward as it would be the next logical step."
 
-## 5. Squeak Squad: Kirby, abilities and pedestals
+## 4. Squeak Squad: Kirby, abilities and pedestals
 - The owner: "Scroll abilities don't seem to be upgrading, I got the Ice Scroll and the Ice ability is the same as ever." (Checked in
   the GBA emulator, room 0x4E2: its chest opened with Up gives the Ice Scroll, and Ice Kirby's breath then bends up with Up held
   (down with Down), as the DS's: that is all the DS's Ice Scroll changes, so without Up or Down it looks the same. Was Up or Down held?
