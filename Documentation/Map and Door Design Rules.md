@@ -376,7 +376,9 @@ of) must pass after any change.
   Kirby walks to from it, up to 4 cells across and 2 up or down (not past a wall). Those doors are built shut and open when the
   mini-boss is beaten. No two-way door in a mini-boss's room; a door into one throws Kirby in, one-way, and its way out is one-way
   too, never right beside the way in (but a Squeak Lair's, on its doorway: rule 5). `Arenas()`, `InArena()`, `ArenaCells()`,
-  `arena.c`. The Squeak Lairs (rule 5) are such rooms,
+  `arena.c`. A Squeak Squad fight's screen is the one the DS holds its camera on where it has one (a camera area over the fight's
+  spot: the GBA's smaller screen inside it, across its middle; room 0x524's Gao Gao, the owner: "camera locks incorrectly [...] Ensure
+  camera locking is properly set up for all bosses"), else round the fight's spot. `SqueakArena()`. The Squeak Lairs (rule 5) are such rooms,
   one way out each; their mini-boss, the DS's Squeak by default at its spot there, is one the randomizer's mini-boss
   randomization picks too (Include Bosses: any boss), a boss standing on the floor Kirby lands on (`SQUEAK_LAIR_FIGHT`,
   `SqueakBossFloor()`). A lair's way out shows only once its mini-boss is beaten, with or without the NiDL ROM (the owner: "Do make
@@ -407,6 +409,13 @@ of) must pass after any change.
   dead end with none gets a new chest as far into the room as Kirby goes. A dead end with nothing in it at all (no enemy, item or
   boss: 0x298) always gets one, over the level's count: no room is there for nothing. Always on a floor the camera shows, whole: never in a room's first or last column, which the camera shows only half of.
   `PlanChests()`.
+- **Squeak Squad's dead ends reward exploring** (the owner: "There are areas in rooms that have nothing in them for no reason. It would
+  be wise to reward exploration with a chest or a branching path [...] VERY IMPORTANT to reward the player. Use your critical thinking
+  for how a player will approach these places"): a room's standing spots farthest from its ways in and out (its doors, the doors
+  added to it and where they land Kirby, its gimmicks), 18 cells or more away by the way Kirby flies there and with nothing within 8
+  cells (an item, a chest, a gimmick), get a food, the farther the bigger (a Pep Brew; past 45 cells Meat; past 80 a Maximum
+  Tomato): two a room at most, 16 cells apart; never in water, a lair, a boss room or a fight's arena (room 0x549's shaft bottom).
+  Squeak Squad's chests are its own treasures (128 a save), so the rewards are foods. `SqueakObjects()`.
 - **A chest is listed in its room's doors list**, or opening it hangs the game: the ported rooms' lists are rebuilt after the
   randomizer (`FinishRooms()`), and KatAM's chest lists go into the table the game reads (the expansion moved it).
 - **To the randomizer a chest is a consumable spot**: shuffled, a chest can land wherever a consumable was in the original game.

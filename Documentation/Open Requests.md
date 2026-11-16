@@ -32,6 +32,13 @@ finishes it says how it was checked). The design rules for doors, mirrors and hu
   visit, only in its chase, which wasn't played.)
 - The owner: "Room 0x50E bugged sound effects and double pedestals." (The Gold Waddle Dee's chest is done: it comes where the enemy
   was beaten; the doubled pedestals were KatAM's random pedestal, which no Squeak Squad room has now. The sounds not looked at yet.)
+- The owner, of room 0x549's shaft (the map viewer's bottom right): "There are areas in rooms that have nothing in them for no reason.
+  It would be wise to reward exploration with a chest or a branching path like in the case of this room." (Every Squeak Squad room's
+  dead ends Kirby gets to now get a food, rule 10. That shaft, though, is shut on the DS too: the main grid's row 7 over it is solid,
+  its pools at the bottom join nothing, and Kirby comes in at the room's bottom left: no way in. Open a way into it, with a reward?)
+- The owner: "0x54B seems like a room that I'm dropped to where the X is." (Nothing lands Kirby there: the DS's two doors land him
+  at its bottom left and its top right; the X is the shaft under the hanging platform, where the chest falls once the rope is cut.
+  What was meant?)
 - The owner: "Some moving platforms don't move on contact." (Checked in the GBA emulator: 6-3-3's platforms that start when Kirby
   stands on them (room 0x53C) and 6-2-1's that a trigger area starts (0x52F) both move; every platform waiting for a message has a
   gimmick sending it one (6-4-4's, 0x54B, its rope when cut). Which room, wanted.)
@@ -59,7 +66,8 @@ finishes it says how it was checked). The design rules for doors, mirrors and hu
   (body animations 52-54) show NiDL's Hi-Jump hat and cape over KatAM's Normal body for about 25 frames; not changed yet.)
 - The owner: "Broken color palettes with Ninja and inverted facing as well as being off the ground." (Facing and height done; the
   palettes looked right standing, walking, jumping and floating: in which move were they broken?)
-- The owner: "Ghost pedestal doesn't give the ghost ability, is it even implemented?" (Not implemented: Squeak Squad's Ghost, and
-  Triple Star, aren't in the ROM Expansion, so their pedestals give nothing.)
+- The owner: "Ghost pedestal doesn't give the ghost ability, is it even implemented?", and again: "Is the ghost ability implemented
+  in-game?" (Not implemented: Squeak Squad's Ghost, and Triple Star, aren't in the ROM Expansion, so their pedestals give nothing, nor
+  does Tedhaun, which gives Ghost on the DS.)
 - The owner: "Do Ice abilities can put out fire objects in the original Squeak Squad." (Done for the candles: a lit one goes out at an
   Ice Kirby's attack. The lava rooms' fire columns burn on their timers as before: does the DS's Ice put those out too?)

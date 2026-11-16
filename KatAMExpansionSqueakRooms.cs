@@ -1283,12 +1283,17 @@ namespace KatAMRandomizer {
                         collision[y * width + x] = value is KatAMStarBlock or KatAMMetalBlock ? KatAMSolid : value;
                         continue;
                     }
+                    /* (burnt, a cell leaves the main grid's collision where the DS shows its third layer in its place, else air: 2-6-1's
+                     * block in its floor (room 0x45E) burnt to its floor's look, solid on the DS, and was air under it; the owner, "The put in
+                     * fire gimmick has the same problem as bomb blocks that makes some tiles have no collision when this depends on a case
+                     * to case basis"); */
+                    byte burntLeaves = map.Block(5, x, y) != 0 && SqueakCollision(mainWord) is byte under0 and not (KatAMStarBlock or KatAMMetalBlock) ? under0 : KatAMAir;
                     if (burns && fireOnly.Contains((x, y))) {
                         byte kept = value is KatAMStarBlock or KatAMMetalBlock ? KatAMSolid : value;
                         collision[y * width + x] = kept;
                         blocks.Add((x, y));
                         blockValues.Add(kept);
-                        leaves.Add(KatAMAir);
+                        leaves.Add(burntLeaves);
                         burnt.Add((x, y));
                         continue;
                     }
@@ -1317,7 +1322,7 @@ namespace KatAMRandomizer {
                         collision[y * width + x] = held;
                         blocks.Add((x, y));
                         blockValues.Add(held);
-                        byte under = melts && !hidden ? SqueakCollision(mainWord) : hidden && SqueakCrumbleInWater(map, x, y) ? KatAMWater : KatAMAir;
+                        byte under = melts && !hidden ? SqueakCollision(mainWord) : hidden && SqueakCrumbleInWater(map, x, y) ? KatAMWater : burns ? burntLeaves : KatAMAir;
                         leaves.Add(under is KatAMStarBlock or KatAMMetalBlock or KatAMSolid ? KatAMAir : under);
                         if (burns || hidden) burnt.Add((x, y));
                         continue;
@@ -1836,6 +1841,11 @@ namespace KatAMRandomizer {
          * rulebook's rule 8). Not yet: the chase spawns, the chests' Squeak Squad treasures; */
         // (and Flamers, their fire trails' sprites the heaviest, SqueakScreenFlamers);
         const int SqueakDoorClear = 3, SqueakThinLift = 4, SqueakScreenEnemies = 5, SqueakScreenFlamers = 3;
+        // (the dead ends' rewards: SqueakObjects());
+        const int SqueakRewardFar = 18, SqueakRewardClear = 8, SqueakRewardsMax = 2, SqueakRewardApart = 16, SqueakRewardRoom = 30,
+                  SqueakRewardEnd = 4, SqueakRewardBigRoom = 2400;
+        // SqueakRewardItem(); A dead end's food by how far it is (cells): a Maximum Tomato past 80, Meat past 45, else a Pep Brew;
+        static byte SqueakRewardItem(int far) => far > 80 ? KatAMTomato : far > 45 ? KatAMMeat : KatAMPepBrew;
         const byte KatAMFlamer = 0x13;
         static readonly (int x, int y) SqueakScreenReach = (160, 120);
         const byte SqueakChestAfterBoss = 1;     // squeak.h's SQUEAK_CHEST_AFTER_BOSS (a chest's template unk14);
@@ -2176,6 +2186,63 @@ namespace KatAMRandomizer {
                     else Ability(x, y, held[1]);
                 }
             }
+            /* Exploration's rewards (the rulebook's rule 10; the owner: "There are areas in rooms that have nothing in them for no reason.
+             * It would be wise to reward exploration with a chest or a branching path [...] VERY IMPORTANT to reward the player"): a
+             * room's dead ends, the standing spots at the ends of its branches farthest from its ways in and out (its doors, the levels'
+             * doors and where they land Kirby, its gimmicks: flown to over its open cells, `away` from them all; none nearer than
+             * SqueakRewardEnd farther), at least SqueakRewardFar cells away and with
+             * nothing put there within SqueakRewardClear (an item, a chest, a gimmick), each get a food, the farther the better
+             * (SqueakRewardItem()), SqueakRewardsMax at most a room (one more past SqueakRewardBigRoom cells), SqueakRewardApart cells from each other, not in water, a lair, a boss
+             * room or a fight's arena, the room's objects, its door cells (each a mirror at most) and its gimmicks' objects (both after them) under SqueakRewardRoom,
+             * KatAM's rooms holding 31; */
+            if (lair == null && bossShard == 0 && objects != null) {
+                // (a fight's arena, its template's area: none in it);
+                List<(int x0, int y0, int x1, int y1)> arenaBoxes = templates.Where(t => t[12] is NightmareID or (>= 0x38 and <= 0x46))
+                    .Select(t => (x0: (ReadShort(t, 6) + (short)ReadShort(t, 0x1A)) / 16, y0: (ReadShort(t, 8) + (short)ReadShort(t, 0x1C)) / 16,
+                                  x1: (ReadShort(t, 6) + (short)ReadShort(t, 0x1A) + ReadShort(t, 0x1E)) / 16, y1: (ReadShort(t, 8) + (short)ReadShort(t, 0x1C) + ReadShort(t, 0x20)) / 16)).ToList();
+                // (a door's cell itself isn't open: KatAM's door collision; it's where the way starts all the same);
+                List<(int x, int y)> seeds = doorCells.Concat(map.Gimmicks().Select(g => (x: g.X / 16, y: g.Y / 16)))
+                    .Where(c => c.x >= 0 && c.y >= 0 && c.x < width && c.y < height).Distinct().ToList();
+                int[] away = Enumerable.Repeat(-1, width * height).ToArray();
+                Queue<(int x, int y)> open = new Queue<(int x, int y)>();
+                foreach ((int x, int y) c in seeds) { away[c.y * width + c.x] = 0; open.Enqueue(c); }
+                while (open.Count > 0) {
+                    (int cx, int cy) = open.Dequeue();
+                    foreach ((int nx, int ny) in new[] { (cx + 1, cy), (cx - 1, cy), (cx, cy + 1), (cx, cy - 1) })
+                        if (Open(nx, ny) && away[ny * width + nx] < 0) {
+                            away[ny * width + nx] = away[cy * width + cx] + 1;
+                            open.Enqueue((nx, ny));
+                        }
+                }
+                List<(int x, int y)> things = templates.Where(t => t[12] is not (<= 0x37)).Select(t => (x: ReadShort(t, 6) / 16, y: (ReadShort(t, 8) + 8) / 16))
+                    .Concat(map.Gimmicks().Select(g => (x: g.X / 16, y: g.Y / 16))).ToList();
+                List<(int x, int y)> rewards = new List<(int x, int y)>();
+                // (the objects its gimmicks make after these: AddSqueakRooms(), types 0-0xF);
+                int gimmickObjects = map.Gimmicks().Count(g => g.Type <= 0xF);
+                // (a dead end: no open cell out of water within SqueakRewardEnd farther from the ways than it, the end of a branch, 0x549's shaft's foot);
+                bool DeadEnd((int x, int y) c) {
+                    for (int dy = -SqueakRewardEnd; dy <= SqueakRewardEnd; dy++)
+                        for (int dx = -SqueakRewardEnd; dx <= SqueakRewardEnd; dx++) {
+                            int nx = c.x + dx, ny = c.y + dy;
+                            if (nx >= 0 && ny >= 0 && nx < width && ny < height && away[ny * width + nx] > away[c.y * width + c.x]
+                                && collision[ny * width + nx] is not (>= 0x34 and <= KatAMWater)) return false;
+                        }
+                    return true;
+                }
+                var spots = Enumerable.Range(0, width * height).Select(i => (x: i % width, y: i / width))
+                    .Where(c => c.y + 1 < height && away[c.y * width + c.x] >= SqueakRewardFar && collision[c.y * width + c.x] == KatAMAir
+                                && !Open(c.x, c.y + 1) && collision[(c.y + 1) * width + c.x] != KatAMSpikes && DeadEnd(c))
+                    .OrderByDescending(c => away[c.y * width + c.x]).ThenBy(c => c.x).ThenBy(c => c.y);
+                int most = width * height > SqueakRewardBigRoom ? SqueakRewardsMax + 1 : SqueakRewardsMax;
+                foreach (var c in spots) {
+                    if (rewards.Count >= most || templates.Count + doorCells.Count + gimmickObjects >= SqueakRewardRoom) break;
+                    if (things.Any(t => Math.Max(Math.Abs(t.x - c.x), Math.Abs(t.y - c.y)) <= SqueakRewardClear)
+                        || arenaBoxes.Any(b => c.x >= b.x0 && c.x <= b.x1 && c.y >= b.y0 && c.y <= b.y1)
+                        || rewards.Any(r => Math.Max(Math.Abs(r.x - c.x), Math.Abs(r.y - c.y)) < SqueakRewardApart)) continue;
+                    rewards.Add(c);
+                    Item(c.x * 16 + 8, (c.y + 1) * 16, SqueakRewardItem(away[c.y * width + c.x]));
+                }
+            }
             taken = takenAt;
             chests = chestAt;
             /* (a world's boss room: the boss's shard comes over its chest's spot, centred on the room's art, as the DS's reward
@@ -2214,6 +2281,17 @@ namespace KatAMRandomizer {
             int top = floor * 16 + UnderFloor - arenaHeight;
             left = Math.Clamp(left, Edge, width - Edge - arenaWidth);
             top = Math.Clamp(top, Edge, height - Edge - arenaHeight);
+            /* (where the DS holds its camera for the fight, a camera area (gimmick 0x14) whose bounds hold the spot: the GBA's screen
+             * inside them, across their middle, and up or down as above but inside them; round the spot, it showed 6-1-2's wall
+             * past Gao Gao's screen and cut its left off (room 0x524: the owner, "camera locks incorrectly to Gao Gao fight. Ensure
+             * camera locking is properly set up for all bosses in game"); */
+            foreach (SqueakGimmick g in map.Gimmicks().Where(g => g.Type == SqueakCameraArea && g.Parameters?.Length >= 8)) {
+                int x0 = g.Word(0), y0 = g.Word(1), x1 = g.Word(2), y1 = g.Word(3);
+                if (x < x0 || x > x1 || y < y0 || y > y1 || x1 - x0 < 16 || y1 - y0 < 16) continue;
+                left = Math.Clamp(x0 + (x1 - x0 - arenaWidth) / 2, Edge, Math.Max(Edge, width - Edge - arenaWidth));
+                top = Math.Clamp(Math.Clamp(top, y0, Math.Max(y0, y1 - arenaHeight)), Edge, Math.Max(Edge, height - Edge - arenaHeight));
+                break;
+            }
             WriteShorts(template, 0x1A, left - x, top - y, arenaWidth, arenaHeight);
         }
 
@@ -3298,13 +3376,19 @@ namespace KatAMRandomizer {
                         specials.AddRange(new byte[] { leaves[b], 0xFF });
                     }
                     // (a rope's cells, cleared once it's cut: its look gone, air, water in water; a ladder's, the rope's KatAM look);
+                    /* (one through a wall, its rope over the main grid's solid cells, the wall a ladder up its column till it's cut, then the
+                     * wall again: 6-4-4's rope through the ledge over its hanging platform (room 0x54B), the platform as wide as the shaft under
+                     * it: on it, Kirby had no way out up, the owner: "If I get to the chest suspended platform, I get softlocked"); */
                     for (int r = 0; r < ropeCells.Count; r++) {
                         (int x, int y) = ropeCells[r];
                         byte value = collision[y * width + x];
+                        bool wall = value == KatAMSolid && (map.Collision(6, x, y) >> 24) == 0x38
+                                    && ropeCells.Contains((x, y - 1)) && ropeCells.Contains((x, y + 1));
+                        if (wall) value = collision[y * width + x] = KatAMLadder;
                         if (value is not (KatAMLadder or KatAMLadderTop)) continue;
                         specials.AddRange(new byte[] { 1, value, (byte)x, (byte)y, 0x12, 0, 0xFF, 0xFF });
                         foreach (ushort e in foreground.Bare[blocks.Count + r]) specials.AddRange(BitConverter.GetBytes(e));
-                        specials.AddRange(new byte[] { map.Collision(7, x, y) >> 30 == 1 ? KatAMWater : KatAMAir, 0xFF });
+                        specials.AddRange(new byte[] { wall ? KatAMSolid : map.Collision(7, x, y) >> 30 == 1 ? KatAMWater : KatAMAir, 0xFF });
                     }
                     /* (a Mirra's door, a shortcut (PlanSqueakLevels()): its cell as it is until the Mirra breaks, which applies its block record, making
                      * it the door, its look its own; then its record, as KatAM's Mirras': the Mirra stands on a floor that can't break, so
@@ -3774,7 +3858,8 @@ namespace KatAMRandomizer {
                     return finishAt;
                 };
                 if (BuildSqueakSwitchRooms(rom, firstSwitchRoom, looks, switchDoors, newProps, newInfos, roomInfos, navigationRoutes, noTypes, Add, DoorsList,
-                                           view => SqueakFileAnyCase(squeak, view) is byte[] file ? SqueakFarViewPicture(file) : null, ref here) is string switchError)
+                                           view => SqueakFileAnyCase(squeak, view) is byte[] file ? SqueakFarViewPicture(file) : null, ref here,
+                                           SqueakAbilityRoomFiles(squeak) != null ? ReadSqueakCharacter(squeak, "copy", "item") : null) is string switchError)
                     return switchError;
                 foreach (var pair in switchDoors) squeakPlanned[firstSwitchRoom + pair.Key - 1] = pair.Value;
                 if (finaleStage) {
